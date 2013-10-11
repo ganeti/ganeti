@@ -166,6 +166,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Handle a request.
 
     """
+
     if req.request_method.upper() != http.HTTP_POST:
       raise http.HttpBadRequest("Only the POST method is supported")
 
@@ -712,6 +713,13 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     (hypervisor_list, all_hvparams) = params
     return backend.GetAllInstancesInfo(hypervisor_list, all_hvparams)
+
+  @staticmethod
+  def perspective_instance_console_info(params):
+    """Query information on how to get console access to instances
+
+    """
+    return backend.GetInstanceConsoleInfo(params)
 
   @staticmethod
   def perspective_instance_list(params):

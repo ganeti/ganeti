@@ -1440,7 +1440,6 @@ def GetAllInstancesInfo(hypervisor_list, all_hvparams):
 
   """
   output = {}
-
   for hname in hypervisor_list:
     hvparams = all_hvparams[hname]
     iinfo = hypervisor.GetHypervisor(hname).GetAllInstancesInfo(hvparams)
@@ -1461,6 +1460,57 @@ def GetAllInstancesInfo(hypervisor_list, all_hvparams):
               _Fail("Instance %s is running twice"
                     " with different parameters", name)
         output[name] = value
+
+  return output
+
+
+def GetInstanceConsoleInfo(instance_param_dict,
+                           get_hv_fn=hypervisor.GetHypervisor):
+  """Gather data about the console access of a set of instances of this node.
+
+  This function assumes that the caller already knows which instances are on
+  this node, by calling a function such as L{GetAllInstancesInfo} or
+  L{GetInstanceList}.
+
+  For every instance, a large amount of configuration data needs to be
+  provided to the hypervisor interface in order to receive the console
+  information. Whether this could or should be cut down can be discussed.
+  The information is provided in a dictionary indexed by instance name,
+  allowing any number of instance queries to be done.
+
+  @type instance_param_dict: dict of string to tuple of dictionaries, where the
+    dictionaries represent: L{objects.Instance}, L{objects.Node}, HvParams,
+    BeParams
+  @param instance_param_dict: mapping of instance name to parameters necessary
+    for console information retrieval
+
+  @rtype: dict
+  @return: dictionary of instance: data, with data having the following keys:
+      - instance: instance name
+      - kind: console kind
+      - message: used with kind == CONS_MESSAGE, indicates console to be
+                 unavailable, supplies error message
+      - host: host to connect to
+      - port: port to use
+      - user: user for login
+      - command: the command, broken into parts as an array
+      - display: unknown, potentially unused?
+
+  """
+
+  output = {}
+  for inst_name in instance_param_dict:
+    instance = instance_param_dict[inst_name]["instance"]
+    pnode = instance_param_dict[inst_name]["node"]
+    hvparams = instance_param_dict[inst_name]["hvParams"]
+    beparams = instance_param_dict[inst_name]["beParams"]
+
+    instance = objects.Instance.FromDict(instance)
+    pnode = objects.Node.FromDict(pnode)
+
+    h = get_hv_fn(instance.hypervisor)
+    output[inst_name] = h.GetInstanceConsole(instance, pnode, hvparams,
+                                             beparams).ToDict()
 
   return output
 

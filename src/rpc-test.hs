@@ -80,14 +80,15 @@ instance StandardOptions Options where
   requestComp o = o { optShowComp = True }
 
 -- | The rpcs we support. Sadly this duplicates the RPC list.
-data KnownRpc = KRInstanceInfo      RpcCallInstanceInfo
-              | KRAllInstancesInfo  RpcCallAllInstancesInfo
-              | KRInstanceList      RpcCallInstanceList
-              | KRNodeInfo          RpcCallNodeInfo
-              | KRVersion           RpcCallVersion
-              | KRStorageList       RpcCallStorageList
-              | KRTestDelay         RpcCallTestDelay
-              | KRExportList        RpcCallExportList
+data KnownRpc = KRInstanceInfo        RpcCallInstanceInfo
+              | KRAllInstancesInfo    RpcCallAllInstancesInfo
+              | KRInstanceConsoleInfo RpcCallInstanceConsoleInfo
+              | KRInstanceList        RpcCallInstanceList
+              | KRNodeInfo            RpcCallNodeInfo
+              | KRVersion             RpcCallVersion
+              | KRStorageList         RpcCallStorageList
+              | KRTestDelay           RpcCallTestDelay
+              | KRExportList          RpcCallExportList
                 deriving (Show)
 
 -- | The command line options.
@@ -144,6 +145,8 @@ parseRpc "instance_info"      f =
   fromJResult "parsing rpc" (decode f) >>= Ok . KRInstanceInfo
 parseRpc "all_instances_info" f =
   fromJResult "parsing rpc" (decode f) >>= Ok . KRAllInstancesInfo
+parseRpc "console_instance_info" f =
+  fromJResult "parsing rpc" (decode f) >>= Ok . KRConsoleInstanceInfo
 parseRpc "instance_list"      f =
   fromJResult "parsing rpc" (decode f) >>= Ok . KRInstanceList
 parseRpc "node_info"          f =
@@ -162,14 +165,15 @@ parseRpc s _                  = Bad $ "Unknown rpc '" ++ s ++ "'"
 -- polymorphism of 'executeRpcCall', and the binding of the result
 -- based on the input rpc call.
 execRpc :: [Node] -> KnownRpc -> IO [[String]]
-execRpc n (KRInstanceInfo      v) = formatRpcRes `fmap` executeRpcCall n v
-execRpc n (KRAllInstancesInfo  v) = formatRpcRes `fmap` executeRpcCall n v
-execRpc n (KRInstanceList      v) = formatRpcRes `fmap` executeRpcCall n v
-execRpc n (KRNodeInfo          v) = formatRpcRes `fmap` executeRpcCall n v
-execRpc n (KRVersion           v) = formatRpcRes `fmap` executeRpcCall n v
-execRpc n (KRStorageList       v) = formatRpcRes `fmap` executeRpcCall n v
-execRpc n (KRTestDelay         v) = formatRpcRes `fmap` executeRpcCall n v
-execRpc n (KRExportList        v) = formatRpcRes `fmap` executeRpcCall n v
+execRpc n (KRInstanceInfo        v) = formatRpcRes `fmap` executeRpcCall n v
+execRpc n (KRAllInstancesInfo    v) = formatRpcRes `fmap` executeRpcCall n v
+execRpc n (KRConsoleInstanceInfo v) = formatRpcRes `fmap` executeRpcCall n v
+execRpc n (KRInstanceList        v) = formatRpcRes `fmap` executeRpcCall n v
+execRpc n (KRNodeInfo            v) = formatRpcRes `fmap` executeRpcCall n v
+execRpc n (KRVersion             v) = formatRpcRes `fmap` executeRpcCall n v
+execRpc n (KRStorageList         v) = formatRpcRes `fmap` executeRpcCall n v
+execRpc n (KRTestDelay           v) = formatRpcRes `fmap` executeRpcCall n v
+execRpc n (KRExportList          v) = formatRpcRes `fmap` executeRpcCall n v
 
 -- | Helper to format the RPC result such that it can be printed by
 -- 'printTable'.

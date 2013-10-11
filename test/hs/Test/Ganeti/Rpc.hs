@@ -36,13 +36,16 @@ import qualified Data.Map as Map
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
-import Test.Ganeti.Objects ()
+import Test.Ganeti.Objects (genInst)
 
 import qualified Ganeti.Rpc as Rpc
 import qualified Ganeti.Objects as Objects
 import qualified Ganeti.Types as Types
 import qualified Ganeti.JSON as JSON
 import Ganeti.Types
+
+instance Arbitrary Rpc.RpcCallInstanceConsoleInfo where
+  arbitrary = Rpc.RpcCallInstanceConsoleInfo <$> genConsoleInfoCallParams
 
 genStorageUnit :: Gen StorageUnit
 genStorageUnit = do
@@ -86,30 +89,44 @@ instance Arbitrary Rpc.RpcCallInstanceList where
 instance Arbitrary Rpc.RpcCallNodeInfo where
   arbitrary = Rpc.RpcCallNodeInfo <$> genStorageUnitMap <*> genHvSpecs
 
--- | Monadic check that, for an offline node and a call that does not
+-- | Generates per-instance console info params for the 'InstanceConsoleInfo'
+-- call.
+genConsoleInfoCallParams :: Gen [(String, Rpc.InstanceConsoleInfoParams)]
+genConsoleInfoCallParams = do
+  numInstances <- choose (0, 3)
+  names <- vectorOf numInstances arbitrary
+  params <- vectorOf numInstances genInstanceConsoleInfoParams
+  return $ zip names params
+
+-- | Generates parameters for the console info call, consisting of an instance
+-- object, node object, 'HvParams', and 'FilledBeParams'.
+genInstanceConsoleInfoParams :: Gen Rpc.InstanceConsoleInfoParams
+genInstanceConsoleInfoParams = Rpc.InstanceConsoleInfoParams <$>
+  genInst <*> arbitrary <*> genHvParams <*> arbitrary
+
+-- | Monadic check that, for an offline node and a call that does not support
 -- offline nodes, we get a OfflineNodeError response.
--- FIXME: We need a way of generalizing this, running it for
--- every call manually will soon get problematic
-prop_noffl_request_allinstinfo :: Rpc.RpcCallAllInstancesInfo -> Property
-prop_noffl_request_allinstinfo call =
+runOfflineTest :: (Rpc.Rpc a b, Eq b, Show b) => a -> Property
+runOfflineTest call =
   forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
       res <- run $ Rpc.executeRpcCall [node] call
       stop $ res ==? [(node, Left Rpc.OfflineNodeError)]
+
+prop_noffl_request_allinstinfo :: Rpc.RpcCallAllInstancesInfo -> Property
+prop_noffl_request_allinstinfo = runOfflineTest
+
+prop_noffl_request_instconsinfo :: Rpc.RpcCallInstanceConsoleInfo -> Property
+prop_noffl_request_instconsinfo = runOfflineTest
 
 prop_noffl_request_instlist :: Rpc.RpcCallInstanceList -> Property
-prop_noffl_request_instlist call =
-  forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
-      res <- run $ Rpc.executeRpcCall [node] call
-      stop $ res ==? [(node, Left Rpc.OfflineNodeError)]
+prop_noffl_request_instlist = runOfflineTest
 
 prop_noffl_request_nodeinfo :: Rpc.RpcCallNodeInfo -> Property
-prop_noffl_request_nodeinfo call =
-  forAll (arbitrary `suchThat` Objects.nodeOffline) $ \node -> monadicIO $ do
-      res <- run $ Rpc.executeRpcCall [node] call
-      stop $ res ==? [(node, Left Rpc.OfflineNodeError)]
+prop_noffl_request_nodeinfo = runOfflineTest
 
 testSuite "Rpc"
   [ 'prop_noffl_request_allinstinfo
+  , 'prop_noffl_request_instconsinfo
   , 'prop_noffl_request_instlist
   , 'prop_noffl_request_nodeinfo
   ]

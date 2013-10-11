@@ -49,6 +49,11 @@ module Ganeti.Rpc
   , RpcCallAllInstancesInfo(..)
   , RpcResultAllInstancesInfo(..)
 
+  , InstanceConsoleInfoParams(..)
+  , InstanceConsoleInfo(..)
+  , RpcCallInstanceConsoleInfo(..)
+  , RpcResultInstanceConsoleInfo(..)
+
   , RpcCallInstanceList(..)
   , RpcResultInstanceList(..)
 
@@ -246,9 +251,7 @@ fromJSValueToRes val = fromJResultToRes (J.readJSON val)
 
 -- ** Instance info
 
--- | InstanceInfo
---   Returns information about a single instance.
-
+-- | Returns information about a single instance
 $(buildObject "RpcCallInstanceInfo" "rpcCallInstInfo"
   [ simpleField "instance" [t| String |]
   , simpleField "hname" [t| Hypervisor |]
@@ -287,8 +290,7 @@ instance Rpc RpcCallInstanceInfo RpcResultInstanceInfo where
 
 -- ** AllInstancesInfo
 
--- | AllInstancesInfo
---   Returns information about all running instances on the given nodes
+-- | Returns information about all running instances on the given nodes
 $(buildObject "RpcCallAllInstancesInfo" "rpcCallAllInstInfo"
   [ simpleField "hypervisors" [t| [(Hypervisor, HvParams)] |] ])
 
@@ -316,10 +318,61 @@ instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo where
       _ -> Left $ JsonDecodeError
            ("Expected JSObject, got " ++ show (pp_value res))
 
+-- ** InstanceConsoleInfo
+
+-- | Returns information about how to access instances on the given node
+$(buildObject "InstanceConsoleInfoParams" "instConsInfoParams"
+  [ simpleField "instance"    [t| Instance |]
+  , simpleField "node"        [t| Node |]
+  , simpleField "hvParams"    [t| HvParams |]
+  , simpleField "beParams"    [t| FilledBeParams |]
+  ])
+
+$(buildObject "RpcCallInstanceConsoleInfo" "rpcCallInstConsInfo"
+  [ simpleField "instanceInfo" [t| [(String, InstanceConsoleInfoParams)] |] ])
+
+$(buildObject "InstanceConsoleInfo" "instConsInfo"
+  [ simpleField "instance"    [t| String |]
+  , simpleField "kind"        [t| String |]
+  , optionalField $
+    simpleField "message"     [t| String |]
+  , optionalField $
+    simpleField "host"        [t| String |]
+  , optionalField $
+    simpleField "port"        [t| Int |]
+  , optionalField $
+    simpleField "user"        [t| String |]
+  , optionalField $
+    simpleField "command"     [t| [String] |]
+  , optionalField $
+    simpleField "display"     [t| String |]
+  ])
+
+$(buildObject "RpcResultInstanceConsoleInfo" "rpcResInstConsInfo"
+  [ simpleField "instancesInfo" [t| [(String, InstanceConsoleInfo)] |] ])
+
+instance RpcCall RpcCallInstanceConsoleInfo where
+  rpcCallName _          = "instance_console_info"
+  rpcCallTimeout _       = rpcTimeoutToRaw Urgent
+  rpcCallAcceptOffline _ = False
+  rpcCallData _ call     = J.encode .
+    GenericContainer $ Map.fromList (rpcCallInstConsInfoInstanceInfo call)
+
+instance Rpc RpcCallInstanceConsoleInfo RpcResultInstanceConsoleInfo where
+  rpcResultFill _ res =
+    case res of
+      J.JSObject res' ->
+        let res'' = map (second J.readJSON) (J.fromJSObject res')
+                        :: [(String, J.Result InstanceConsoleInfo)] in
+        case sanitizeDictResults res'' of
+          Left err -> Left err
+          Right instInfos -> Right $ RpcResultInstanceConsoleInfo instInfos
+      _ -> Left $ JsonDecodeError
+           ("Expected JSObject, got " ++ show (pp_value res))
+
 -- ** InstanceList
 
--- | InstanceList
--- Returns the list of running instances on the given nodes.
+-- | Returns the list of running instances on the given nodes
 $(buildObject "RpcCallInstanceList" "rpcCallInstList"
   [ simpleField "hypervisors" [t| [Hypervisor] |] ])
 
@@ -337,8 +390,7 @@ instance Rpc RpcCallInstanceList RpcResultInstanceList where
 
 -- ** NodeInfo
 
--- | NodeInfo
--- Return node information.
+-- | Returns node information
 $(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
   [ simpleField "storage_units" [t| Map.Map String [StorageUnit] |]
   , simpleField "hypervisors" [t| [ (Hypervisor, HvParams) ] |]

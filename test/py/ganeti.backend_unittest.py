@@ -33,6 +33,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import hypervisor
 from ganeti import netutils
+from ganeti import objects
 from ganeti import utils
 
 
@@ -588,6 +589,47 @@ class TestGetInstanceList(unittest.TestCase):
     backend.GetInstanceList([constants.HT_FAKE], all_hvparams=hvparams,
                             get_hv_fn=self._GetHypervisor)
     self._test_hv.ListInstances.assert_called_with(hvparams=fake_hvparams)
+
+
+class TestInstanceConsoleInfo(unittest.TestCase):
+
+  def setUp(self):
+    self._test_hv_a = self._TestHypervisor()
+    self._test_hv_a.GetInstanceConsole = mock.Mock(
+      return_value = objects.InstanceConsole(instance="inst", kind="aHy")
+    )
+    self._test_hv_b = self._TestHypervisor()
+    self._test_hv_b.GetInstanceConsole = mock.Mock(
+      return_value = objects.InstanceConsole(instance="inst", kind="bHy")
+    )
+
+  class _TestHypervisor(hypervisor.hv_base.BaseHypervisor):
+    def __init__(self):
+      hypervisor.hv_base.BaseHypervisor.__init__(self)
+
+  def _GetHypervisor(self, name):
+    if name == "a":
+      return self._test_hv_a
+    else:
+      return self._test_hv_b
+
+  def testRightHypervisor(self):
+    dictMaker = lambda hyName: {
+      "instance":{"hypervisor":hyName},
+      "node":{},
+      "hvParams":{},
+      "beParams":{},
+    }
+
+    call = {
+      'i1':dictMaker("a"),
+      'i2':dictMaker("b"),
+    }
+
+    res = backend.GetInstanceConsoleInfo(call, get_hv_fn=self._GetHypervisor)
+
+    self.assertTrue(res["i1"]["kind"] == "aHy")
+    self.assertTrue(res["i2"]["kind"] == "bHy")
 
 
 class TestGetHvInfo(unittest.TestCase):
