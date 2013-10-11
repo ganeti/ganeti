@@ -33,6 +33,7 @@ module Ganeti.Rpc
   , ERpcError
   , explainRpcError
   , executeRpcCall
+  , executeRpcCalls
   , logRpcErrors
 
   , rpcCallName
@@ -198,23 +199,29 @@ logRpcErrors allElems =
         logError $ "Error in the RPC HTTP reply: " ++ show err
   in mapM_ logOneRpcErr allElems
 
--- | Execute RPC call for many nodes in parallel.
-executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, ERpcError b)]
-executeRpcCall nodes call = do
+-- | Get options for RPC call
+getOptionsForCall :: (Rpc a b) => FilePath -> a -> [CurlOption]
+getOptionsForCall certPath call =
+  [ CurlTimeout (fromIntegral $ rpcCallTimeout call)
+  , CurlSSLCert certPath
+  , CurlSSLKey certPath
+  , CurlCAInfo certPath
+  ]
+
+-- | Execute multiple RPC calls in parallel
+executeRpcCalls :: (Rpc a b) => [(Node, a)] -> IO [(Node, ERpcError b)]
+executeRpcCalls nodeCalls = do
   cert_file <- P.nodedCertFile
-  let opts = [ CurlTimeout (fromIntegral $ rpcCallTimeout call)
-             , CurlSSLCert cert_file
-             , CurlSSLKey cert_file
-             , CurlCAInfo cert_file
-             ]
-      opts_urls = map (\n ->
-                         case prepareHttpRequest opts n call of
+  let (nodes, calls) = unzip nodeCalls
+      opts = map (getOptionsForCall cert_file) calls
+      opts_urls = zipWith3 (\n c o ->
+                         case prepareHttpRequest o n c of
                            Left v -> Left v
                            Right request ->
                              Right (CurlPostFields [requestData request]:
                                     requestOpts request,
                                     requestUrl request)
-                      ) nodes
+                    ) nodes calls opts
   -- split the opts_urls list; we don't want to pass the
   -- failed-already nodes to Curl
   let (lefts, rights, trail) = splitEithers opts_urls
@@ -223,10 +230,14 @@ executeRpcCall nodes call = do
                 Bad msg -> error msg
                 Ok r -> return r
   -- now parse the replies
-  let results'' = map (parseHttpReply call) results'
+  let results'' = zipWith parseHttpReply calls results'
       pairedList = zip nodes results''
   logRpcErrors pairedList
   return pairedList
+
+-- | Execute an RPC call for many nodes in parallel.
+executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, ERpcError b)]
+executeRpcCall nodes call = executeRpcCalls . zip nodes $ repeat call
 
 -- | Helper function that is used to read dictionaries of values.
 sanitizeDictResults :: [(String, J.Result a)] -> ERpcError [(String, a)]
