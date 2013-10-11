@@ -3238,7 +3238,8 @@ class LUInstanceSetParams(LogicalUnit):
     self.LogInfo("Trying to hotplug device...")
     result = self.rpc.call_hotplug_device(self.instance.primary_node,
                                           self.instance, action, dev_type,
-                                          device, extra, seq)
+                                          (device, self.instance),
+                                          extra, seq)
     if result.fail_msg:
       self.LogWarning("Could not hotplug device: %s" % result.fail_msg)
       self.LogInfo("Continuing execution..")

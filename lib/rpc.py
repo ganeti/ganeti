@@ -832,11 +832,11 @@ class RpcRunner(_RpcClientBase,
         n.netinfo = objects.Network.ToDict(nobj)
     return n.ToDict()
 
-  def _DeviceDict(self, _, device):
+  def _DeviceDict(self, _, (device, instance)):
     if isinstance(device, objects.NIC):
       return self._NicDict(None, device)
     elif isinstance(device, objects.Disk):
-      return _ObjectToDict(None, device)
+      return self._SingleDiskDictDP(None, (device, instance))
 
   def _InstDict(self, node, instance, hvp=None, bep=None, osp=None):
     """Convert the given instance to a dict.
