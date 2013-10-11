@@ -384,6 +384,16 @@ daemonsLogbase =
   Map.fromList
   [ (Runtime.daemonName d, Runtime.daemonLogBase d) | d <- [minBound..] ]
 
+daemonsExtraLogbase :: Map String (Map String String)
+daemonsExtraLogbase =
+  Map.fromList $
+  map (Runtime.daemonName *** id)
+  [ (GanetiMond, Map.fromList
+                 [ ("access", Runtime.daemonsExtraLogbase GanetiMond AccessLog)
+                 , ("error", Runtime.daemonsExtraLogbase GanetiMond ErrorLog)
+                 ])
+  ]
+
 extraLogreasonAccess :: String
 extraLogreasonAccess = Runtime.daemonsExtraLogbase GanetiMond AccessLog
 

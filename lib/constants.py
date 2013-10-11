@@ -128,13 +128,7 @@ DAEMONS_LOGFILES = \
 EXTRA_LOGREASON_ACCESS = "access"
 EXTRA_LOGREASON_ERROR = "error"
 
-# These are the extra logfiles, grouped by daemon
-DAEMONS_EXTRA_LOGBASE = {
-  MOND: {
-    EXTRA_LOGREASON_ACCESS: _constants.EXTRA_LOGREASON_ACCESS,
-    EXTRA_LOGREASON_ERROR: _constants.EXTRA_LOGREASON_ERROR,
-    }
-  }
+DAEMONS_EXTRA_LOGBASE = _constants.DAEMONS_EXTRA_LOGBASE
 
 DAEMONS_EXTRA_LOGFILES = \
   dict((daemon, dict((extra,
