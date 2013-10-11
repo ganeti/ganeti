@@ -94,10 +94,11 @@ mkUnknownFDef name =
 
 -- | Runs a field getter on the existing contexts.
 execGetter :: ConfigData -> b -> a -> FieldGetter a b -> ResultEntry
-execGetter _   _ item (FieldSimple getter)  = getter item
-execGetter cfg _ item (FieldConfig getter)  = getter cfg item
-execGetter _  rt item (FieldRuntime getter) = getter rt item
-execGetter _   _ _    FieldUnknown          = rsUnknown
+execGetter _   _  item (FieldSimple getter)        = getter item
+execGetter cfg _  item (FieldConfig getter)        = getter cfg item
+execGetter _   rt item (FieldRuntime getter)       = getter rt item
+execGetter cfg rt item (FieldConfigRuntime getter) = getter cfg rt item
+execGetter _   _  _    FieldUnknown                = rsUnknown
 
 -- * Main query execution
 

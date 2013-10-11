@@ -46,9 +46,10 @@ import Ganeti.Objects
 -- runtime sources, and we always consider the entire configuration as
 -- a given (so no equivalent for Python's /*_CONFIG/ and /*_GROUP/;
 -- configuration accesses are cheap for us).
-data FieldGetter a b = FieldSimple  (a -> ResultEntry)
-                     | FieldRuntime (b -> a -> ResultEntry)
-                     | FieldConfig  (ConfigData -> a -> ResultEntry)
+data FieldGetter a b = FieldSimple        (a -> ResultEntry)
+                     | FieldRuntime       (b -> a -> ResultEntry)
+                     | FieldConfig        (ConfigData -> a -> ResultEntry)
+                     | FieldConfigRuntime (ConfigData -> b -> a -> ResultEntry)
                      | FieldUnknown
 
 -- | Type defining how the value of a field is used in filtering. This
@@ -71,5 +72,6 @@ type FieldMap a b = Map.Map String (FieldData a b)
 
 -- | Helper function to check if a getter is a runtime one.
 isRuntimeField :: FieldGetter a b -> Bool
-isRuntimeField (FieldRuntime _) = True
-isRuntimeField _                = False
+isRuntimeField FieldRuntime {}       = True
+isRuntimeField FieldConfigRuntime {} = True
+isRuntimeField _                     = False

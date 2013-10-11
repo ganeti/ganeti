@@ -220,12 +220,13 @@ evaluateFilter c mb a (ContainsFilter getter val) =
 
 -- | Runs a getter with potentially missing runtime context.
 tryGetter :: ConfigData -> Maybe b -> a -> FieldGetter a b -> Maybe ResultEntry
-tryGetter _   _ item (FieldSimple getter)  = Just $ getter item
-tryGetter cfg _ item (FieldConfig getter)  = Just $ getter cfg item
-tryGetter _  rt item (FieldRuntime getter) =
+tryGetter _    _ item (FieldSimple getter)  = Just $ getter item
+tryGetter cfg  _ item (FieldConfig getter)  = Just $ getter cfg item
+tryGetter _   rt item (FieldRuntime getter) =
   maybe Nothing (\rt' -> Just $ getter rt' item) rt
-tryGetter _   _ _    FieldUnknown          = Just $
-                                             ResultEntry RSUnknown Nothing
+tryGetter cfg rt item (FieldConfigRuntime getter) =
+  maybe Nothing (\rt' -> Just $ getter cfg rt' item) rt
+tryGetter _   _ _    FieldUnknown = Just $ ResultEntry RSUnknown Nothing
 
 -- | Computes the requested names, if only names were requested (and
 -- with equality). Otherwise returns 'Nothing'.
