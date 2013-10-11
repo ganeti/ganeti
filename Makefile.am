@@ -1630,7 +1630,6 @@ lib/_autoconf.py: Makefile | stamp-directories
 	  echo "XEN_KERNEL = '$(XEN_KERNEL)'"; \
 	  echo "XEN_INITRD = '$(XEN_INITRD)'"; \
 	  echo "KVM_KERNEL = '$(KVM_KERNEL)'"; \
-	  echo "SHARED_FILE_STORAGE_DIR = '$(SHARED_FILE_STORAGE_DIR)'"; \
 	  echo "IALLOCATOR_SEARCH_PATH = [$(IALLOCATOR_SEARCH_PATH)]"; \
 	  echo "KVM_PATH = '$(KVM_PATH)'"; \
 	  echo "IP_PATH = '$(IP_PATH)'"; \
