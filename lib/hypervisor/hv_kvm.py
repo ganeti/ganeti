@@ -1000,7 +1000,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     _, memory, vcpus = self._InstancePidInfo(pid)
     istat = "---b-"
-    times = "0"
+    times = 0
 
     try:
       qmp = QmpConnection(self._InstanceQmpMonitor(instance_name))
