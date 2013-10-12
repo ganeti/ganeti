@@ -1644,7 +1644,7 @@ INCLUDEDEFAULTS_OPT = cli_option("--include-defaults", dest="include_defaults",
 
 HOTPLUG_OPT = cli_option("--hotplug", dest="hotplug",
                          action="store_true", default=False,
-                         help="Try to hotplug device")
+                         help="Hotplug supported devices (NICs and Disks)")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]

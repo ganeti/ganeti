@@ -2228,10 +2228,12 @@ def _ApplyContainerMods(kind, container, chgdesc, mods,
       if op == constants.DDM_REMOVE:
         assert not params
 
-        if remove_fn is not None:
-          remove_fn(absidx, item, private)
-
         changes = [("%s/%s" % (kind, absidx), "remove")]
+
+        if remove_fn is not None:
+          msg = remove_fn(absidx, item, private)
+          if msg:
+            changes.append(("%s/%s" % (kind, absidx), msg))
 
         assert container[absidx] == item
         del container[absidx]
@@ -3236,6 +3238,7 @@ class LUInstanceSetParams(LogicalUnit):
 
   def _HotplugDevice(self, action, dev_type, device, extra, seq):
     self.LogInfo("Trying to hotplug device...")
+    msg = "hotplug:"
     result = self.rpc.call_hotplug_device(self.instance.primary_node,
                                           self.instance, action, dev_type,
                                           (device, self.instance),
@@ -3243,8 +3246,11 @@ class LUInstanceSetParams(LogicalUnit):
     if result.fail_msg:
       self.LogWarning("Could not hotplug device: %s" % result.fail_msg)
       self.LogInfo("Continuing execution..")
+      msg += "failed"
     else:
       self.LogInfo("Hotplug done.")
+      msg += "done"
+    return msg
 
   def _CreateNewDisk(self, idx, params, _):
     """Creates a new disk.
@@ -3271,22 +3277,26 @@ class LUInstanceSetParams(LogicalUnit):
                          disks=[(idx, disk, 0)],
                          cleanup=new_disks)
 
+    changes = [
+      ("disk/%d" % idx,
+      "add:size=%s,mode=%s" % (disk.size, disk.mode)),
+      ]
     if self.op.hotplug:
       result = self.rpc.call_blockdev_assemble(self.instance.primary_node,
                                                (disk, self.instance),
                                                self.instance.name, True, idx)
       if result.fail_msg:
+        changes.append(("disk/%d" % idx, "assemble:failed"))
         self.LogWarning("Can't assemble newly created disk %d: %s",
                         idx, result.fail_msg)
       else:
         _, link_name = result.payload
-        self._HotplugDevice(constants.HOTPLUG_ACTION_ADD,
-                            constants.HOTPLUG_TARGET_DISK,
-                            disk, link_name, idx)
+        msg = self._HotplugDevice(constants.HOTPLUG_ACTION_ADD,
+                                  constants.HOTPLUG_TARGET_DISK,
+                                  disk, link_name, idx)
+        changes.append(("disk/%d" % idx, msg))
 
-    return (disk, [
-      ("disk/%d" % idx, "add:size=%s,mode=%s" % (disk.size, disk.mode)),
-      ])
+    return (disk, changes)
 
   def _PostAddDisk(self, _, disk):
     if not WaitForSync(self, self.instance, disks=[disk],
@@ -3320,10 +3330,11 @@ class LUInstanceSetParams(LogicalUnit):
     """Removes a disk.
 
     """
+    hotmsg = ""
     if self.op.hotplug:
-      self._HotplugDevice(constants.HOTPLUG_ACTION_REMOVE,
-                          constants.HOTPLUG_TARGET_DISK,
-                          root, None, idx)
+      hotmsg = self._HotplugDevice(constants.HOTPLUG_ACTION_REMOVE,
+                                   constants.HOTPLUG_TARGET_DISK,
+                                   root, None, idx)
       ShutdownInstanceDisks(self, self.instance, [root])
 
     (anno_disk,) = AnnotateDiskParams(self.instance, [root], self.cfg)
@@ -3340,6 +3351,8 @@ class LUInstanceSetParams(LogicalUnit):
     if root.dev_type in constants.DTS_DRBD:
       self.cfg.AddTcpUdpPort(root.logical_id[2])
 
+    return hotmsg
+
   def _CreateNewNic(self, idx, params, private):
     """Creates data structure for a new network interface.
 
@@ -3355,19 +3368,20 @@ class LUInstanceSetParams(LogicalUnit):
                        nicparams=nicparams)
     nobj.uuid = self.cfg.GenerateUniqueID(self.proc.GetECId())
 
-    if self.op.hotplug:
-      self._HotplugDevice(constants.HOTPLUG_ACTION_ADD,
-                          constants.HOTPLUG_TARGET_NIC,
-                          nobj, None, idx)
-
-    desc = [
+    changes = [
       ("nic.%d" % idx,
        "add:mac=%s,ip=%s,mode=%s,link=%s,network=%s" %
        (mac, ip, private.filled[constants.NIC_MODE],
        private.filled[constants.NIC_LINK], net)),
       ]
 
-    return (nobj, desc)
+    if self.op.hotplug:
+      msg = self._HotplugDevice(constants.HOTPLUG_ACTION_ADD,
+                                constants.HOTPLUG_TARGET_NIC,
+                                nobj, None, idx)
+      changes.append(("nic.%d" % idx, msg))
+
+    return (nobj, changes)
 
   def _ApplyNicMods(self, idx, nic, params, private):
     """Modifies a network interface.
@@ -3393,17 +3407,18 @@ class LUInstanceSetParams(LogicalUnit):
         changes.append(("nic.%s/%d" % (key, idx), val))
 
     if self.op.hotplug:
-      self._HotplugDevice(constants.HOTPLUG_ACTION_MODIFY,
-                          constants.HOTPLUG_TARGET_NIC,
-                          nic, None, idx)
+      msg = self._HotplugDevice(constants.HOTPLUG_ACTION_MODIFY,
+                                constants.HOTPLUG_TARGET_NIC,
+                                nic, None, idx)
+      changes.append(("nic/%d" % idx, msg))
 
     return changes
 
   def _RemoveNic(self, idx, nic, _):
     if self.op.hotplug:
-      self._HotplugDevice(constants.HOTPLUG_ACTION_REMOVE,
-                          constants.HOTPLUG_TARGET_NIC,
-                          nic, None, idx)
+      return self._HotplugDevice(constants.HOTPLUG_ACTION_REMOVE,
+                                 constants.HOTPLUG_TARGET_NIC,
+                                 nic, None, idx)
 
   def Exec(self, feedback_fn):
     """Modifies an instance.

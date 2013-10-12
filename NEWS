@@ -36,6 +36,14 @@ New features
 - Hail and hbal now have the (optional) capability of accessing average CPU
   load information through the monitoring deamon, and to use it to dynamically
   adapt the allocation of instances.
+- Hotplug support. Introduce new option '--hotplug' to ``gnt-instance modify``
+  so that disk and NIC modifications take effect without the need of actual
+  reboot. There are a couple of constrains currently for this feature:
+
+   - only KVM hypervisor (versions >= 1.0) supports it,
+   - one can not (yet) hotplug a disk using userspace access mode for RBD
+   - in case of a downgrade instances should suffer a reboot in order to
+     be migratable (due to core change of runtime files)
 
 Misc changes
 ~~~~~~~~~~~~
@@ -102,10 +110,6 @@ Incompatible/important changes
 New features
 ~~~~~~~~~~~~
 
-- Hotplug support. Introduce new option --hotplug to gnt-instance modify
-  so that disk and NIC modifications take effect without the need of actual
-  reboot. This feature is currently supported only for KVM hypervisor with
-  version greater than 1.0.
 - DRBD 8.4 support. Depending on the installed DRBD version, Ganeti now uses
   the correct command syntax. It is possible to use different DRBD versions
   on different nodes as long as they are compatible to each other. This

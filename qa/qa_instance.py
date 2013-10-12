@@ -538,7 +538,7 @@ def TestInstanceModify(instance):
     qa_config.TestEnabled("instance-device-hotplug"):
     args.extend([
       ["--net", "-1:add", "--hotplug"],
-      ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--hotplug"],
+      ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--hotplug", "--force"],
       ["--net", "-1:remove", "--hotplug"],
       ["--disk", "-1:add,size=1G", "--hotplug"],
       ["--disk", "-1:remove", "--hotplug"],

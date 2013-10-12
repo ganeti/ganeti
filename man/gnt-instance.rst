@@ -1206,10 +1206,15 @@ immediately.
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
 
-If ``--hotplug`` is given any disk and nic modifications will take
+If ``--hotplug`` is given any disk and NIC modifications will take
 effect without the need of actual reboot. Please note that this feature
-is currently supported only for KVM hypervisor and for versions greater
-than 1.0.
+is currently supported only for KVM hypervisor and there are some
+restrictions: a) KVM versions >= 1.0 support it b) instances with chroot
+or uid pool security model do not support disk hotplug c) RBD disks with
+userspace access mode can not be hotplugged (yet) d) if hotplug fails
+(for any reason) a warning is printed but execution is continued e)
+for existing NIC modification interactive verification is needed unless
+``--force`` option is passed.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
