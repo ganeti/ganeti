@@ -562,9 +562,8 @@ type OpParam = (String, Q Type, Q Exp)
 -- This is necessary for the default values of opcode parameters and
 -- return values.  For example, if a default value or return type is a
 -- Data.Map, then it must be shown as a Python dictioanry.
-class Show a => PyValue a where
+class PyValue a where
   showValue :: a -> String
-  showValue = show
 
 -- | Encapsulates Python default values
 data PyValueEx = forall a. PyValue a => PyValueEx a

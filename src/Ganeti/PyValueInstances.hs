@@ -40,11 +40,20 @@ import qualified Data.Set as Set (toList)
 import Ganeti.BasicTypes
 import Ganeti.THH
 
-instance PyValue Bool
-instance PyValue Int
-instance PyValue Integer
-instance PyValue Double
-instance PyValue Char
+instance PyValue Bool where
+  showValue = show
+
+instance PyValue Int where
+  showValue = show
+
+instance PyValue Integer where
+  showValue = show
+
+instance PyValue Double where
+  showValue = show
+
+instance PyValue Char where
+  showValue = show
 
 instance (PyValue a, PyValue b) => PyValue (a, b) where
   showValue (x, y) = "(" ++ showValue x ++ "," ++ showValue y ++ ")"
