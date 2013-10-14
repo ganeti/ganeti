@@ -85,12 +85,12 @@ class ExportQuery(QueryBase):
     node_uuids = self._GetNames(lu, lu.cfg.GetNodeList(), locking.LEVEL_NODE)
 
     result = []
-
     for (node_uuid, nres) in lu.rpc.call_export_list(node_uuids).items():
+      node = lu.cfg.GetNodeInfo(node_uuid)
       if nres.fail_msg:
-        result.append((node_uuid, None))
+        result.append((node.name, None))
       else:
-        result.extend((node_uuid, expname) for expname in nres.payload)
+        result.extend((node.name, expname) for expname in nres.payload)
 
     return result
 
