@@ -181,6 +181,29 @@ class LUClusterPostInit(LogicalUnit):
   HPATH = "cluster-init"
   HTYPE = constants.HTYPE_CLUSTER
 
+  def CheckArguments(self):
+    self.master_uuid = self.cfg.GetMasterNode()
+    self.master_ndparams = self.cfg.GetNdParams(self.cfg.GetMasterNodeInfo())
+
+    # TODO: When Issue 584 is solved, and None is properly parsed when used
+    # as a default value, ndparams.get(.., None) can be changed to
+    # ndparams[..] to access the values directly
+
+    # OpenvSwitch: Warn user if link is missing
+    if (self.master_ndparams[constants.ND_OVS] and not
+        self.master_ndparams.get(constants.ND_OVS_LINK, None)):
+      self.LogInfo("No physical interface for OpenvSwitch was given."
+                   " OpenvSwitch will not have an outside connection. This"
+                   " might not be what you want.")
+
+    # OpenvSwitch: Warn if parameters are given, but OVS is not enabled.
+    if (not self.master_ndparams[constants.ND_OVS] and
+        (self.master_ndparams[constants.ND_OVS_NAME] or
+         self.master_ndparams.get(constants.ND_OVS_LINK, None))):
+      self.LogInfo("OpenvSwitch name or link were given, but"
+                   " OpenvSwitch is not enabled. Please enable"
+                   " OpenvSwitch with 'ovs=true' or create it manually")
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -196,9 +219,15 @@ class LUClusterPostInit(LogicalUnit):
     return ([], [self.cfg.GetMasterNode()])
 
   def Exec(self, feedback_fn):
-    """Nothing to do.
+    """Create and configure Open vSwitch
 
     """
+    if self.master_ndparams[constants.ND_OVS]:
+      result = self.rpc.call_node_configure_ovs(
+                 self.master_uuid,
+                 self.master_ndparams[constants.ND_OVS_NAME],
+                 self.master_ndparams.get(constants.ND_OVS_LINK, None))
+      result.Raise("Could not successully configure Open vSwitch")
     return True
 
 
