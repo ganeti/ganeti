@@ -868,6 +868,10 @@ dtsBlock =
   ConstantUtils.mkSet $
   map Types.diskTemplateToRaw [DTPlain, DTDrbd8, DTBlock, DTRbd, DTExt]
 
+-- | The set of lvm-based disk templates
+dtsLvm :: FrozenSet String
+dtsLvm = diskTemplates `ConstantUtils.difference` dtsNotLvm
+
 -- * Drbd
 
 drbdHmacAlg :: String
