@@ -72,5 +72,28 @@ class TestLUBackupQuery(CmdlibTestCase):
                      }, ret)
 
 
+class TestLUBackupPrepare(CmdlibTestCase):
+  @patchUtils("instance_utils")
+  def testPrepareLocalExport(self, utils):
+    utils.ReadOneLineFile.return_value = "cluster_secret"
+    inst = self.cfg.AddNewInstance()
+    op = opcodes.OpBackupPrepare(instance_name=inst.name,
+                                 mode=constants.EXPORT_MODE_LOCAL)
+    self.ExecOpCode(op)
+
+  @patchUtils("instance_utils")
+  def testPrepareRemoteExport(self, utils):
+    utils.ReadOneLineFile.return_value = "cluster_secret"
+    inst = self.cfg.AddNewInstance()
+    self.rpc.call_x509_cert_create.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(inst.primary_node,
+                                    ("key_name",
+                                     testutils.ReadTestData("cert1.pem")))
+    op = opcodes.OpBackupPrepare(instance_name=inst.name,
+                                 mode=constants.EXPORT_MODE_REMOTE)
+    self.ExecOpCode(op)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
