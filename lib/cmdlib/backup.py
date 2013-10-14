@@ -396,7 +396,7 @@ class LUBackupExport(LogicalUnit):
     activate_disks = not self.instance.disks_active
 
     if activate_disks:
-      # Activate the instance disks if we'exporting a stopped instance
+      # Activate the instance disks if we're exporting a stopped instance
       feedback_fn("Activating disks for %s" % self.instance.name)
       StartInstanceDisks(self, self.instance, None)
 
