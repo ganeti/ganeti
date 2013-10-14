@@ -29,6 +29,7 @@ module Ganeti.JQueue
     ( QueuedOpCode(..)
     , QueuedJob(..)
     , InputOpCode(..)
+    , queuedOpCodeFromMetaOpCode
     , Timestamp
     , noTimestamp
     , opStatusFinalized
@@ -48,6 +49,7 @@ module Ganeti.JQueue
 import Control.Exception
 import Control.Monad
 import Data.List
+import Data.Maybe
 import Data.Ord (comparing)
 -- workaround what seems to be a bug in ghc 7.4's TH shadowing code
 import Prelude hiding (log, id)
@@ -130,6 +132,20 @@ $(buildObject "QueuedJob" "qj"
   , optionalNullSerField $
     simpleField "end_timestamp"      [t| Timestamp      |]
   ])
+
+-- | Convenience function to obtain a QueuedOpCode from a MetaOpCode
+queuedOpCodeFromMetaOpCode :: MetaOpCode -> QueuedOpCode
+queuedOpCodeFromMetaOpCode op =
+  QueuedOpCode { qoInput = ValidOpCode op
+               , qoStatus = OP_STATUS_QUEUED
+               , qoPriority = opSubmitPriorityToRaw . opPriority . metaParams
+                              $ op
+               , qoLog = []
+               , qoResult = JSNull
+               , qoStartTimestamp = Nothing
+               , qoEndTimestamp = Nothing
+               , qoExecTimestamp = Nothing
+               }
 
 -- | Job file prefix.
 jobFilePrefix :: String
