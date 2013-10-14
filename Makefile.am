@@ -1376,6 +1376,7 @@ TEST_FILES = \
 
 python_tests = \
 	doc/examples/rapi_testutils.py \
+	test/py/cmdlib/backup_unittest.py \
 	test/py/cmdlib/cluster_unittest.py \
 	test/py/cmdlib/cmdlib_unittest.py \
 	test/py/cmdlib/group_unittest.py \
