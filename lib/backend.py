@@ -4340,16 +4340,16 @@ def ConfigureOVS(ovs_name, ovs_link):
   # Initialize the OpenvSwitch
   result = utils.RunCmd(["ovs-vsctl", "add-br", ovs_name])
   if result.failed:
-    _Fail("Failed to create openvswitch %s. Script return value: %s, output:"
-          " '%s'" % result.exit_code, result.output, log=True)
+    _Fail("Failed to create openvswitch. Script return value: %s, output: '%s'"
+          % (result.exit_code, result.output), log=True)
 
   # And connect it to a physical interface, if given
   if ovs_link:
     result = utils.RunCmd(["ovs-vsctl", "add-port", ovs_name, ovs_link])
     if result.failed:
       _Fail("Failed to connect openvswitch to  interface %s. Script return"
-            " value: %s, output: '%s'" % ovs_link, result.exit_code,
-            result.output, log=True)
+            " value: %s, output: '%s'" % (ovs_link, result.exit_code,
+            result.output), log=True)
 
 
 class HooksRunner(object):
