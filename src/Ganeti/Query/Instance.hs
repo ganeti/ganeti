@@ -1,5 +1,3 @@
-{-# LANGUAGE TupleSections #-}
-
 {-| Implementation of the Ganeti Query2 instance queries.
 
 -}
@@ -26,10 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Query.Instance
-  ( Runtime
-  , fieldsMap
-  , collectLiveData
-  ) where
+  (fieldsMap) where
 
 import qualified Data.Map as Map
 
@@ -38,11 +33,7 @@ import Ganeti.Query.Common
 import Ganeti.Query.Language
 import Ganeti.Query.Types
 
--- | Dummy type for runtime to be implemented later, see the 'genericQuery'
--- function in 'Ganeti.Query.Query' for an explanation
-data Runtime = Runtime
-
-instanceFields :: FieldList Instance Runtime
+instanceFields :: FieldList Instance NoDataRuntime
 instanceFields =
   [ (FieldDefinition "disk_template" "Disk_template" QFTText
      "Disk template",
@@ -63,10 +54,6 @@ instanceFields =
   serialFields "Instance" ++
   uuidFields "Instance"
 
-fieldsMap :: FieldMap Instance Runtime
+fieldsMap :: FieldMap Instance NoDataRuntime
 fieldsMap =
   Map.fromList [(fdefName f, v) | v@(f, _, _) <- instanceFields]
-
--- | Dummy function for collecting live data - just for interface testing
-collectLiveData :: Bool -> ConfigData -> [Instance] -> IO [(Instance, Runtime)]
-collectLiveData _ _ = return . map (, Runtime)

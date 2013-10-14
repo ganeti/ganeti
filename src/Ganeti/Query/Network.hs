@@ -27,12 +27,10 @@ module Ganeti.Query.Network
   ( getGroupConnection
   , getNetworkUuid
   , instIsConnected
-  , Runtime
   , fieldsMap
-  , collectLiveData
   ) where
 
--- FIXME: everything except Runtime(..) and fieldsMap
+-- FIXME: everything except fieldsMap
 -- is only exported for testing.
 
 import qualified Data.Map as Map
@@ -47,10 +45,7 @@ import Ganeti.Query.Common
 import Ganeti.Query.Types
 import Ganeti.Types
 
--- | There is no actual runtime.
-data Runtime = Runtime
-
-networkFields :: FieldList Network Runtime
+networkFields :: FieldList Network NoDataRuntime
 networkFields =
   [ (FieldDefinition "name" "Network" QFTText "Name",
      FieldSimple (rsNormal . networkName), QffNormal)
@@ -98,7 +93,7 @@ networkFields =
   tagsFields
 
 -- | The group fields map.
-fieldsMap :: FieldMap Network Runtime
+fieldsMap :: FieldMap Network NoDataRuntime
 fieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) networkFields
 
@@ -177,7 +172,3 @@ getExtReservationsString net =
   let addrs = getReservations (networkNetwork net)
               (fromMaybe "" $ networkExtReservations net)
   in rsNormal . intercalate ", " $ map show addrs
-
--- | Dummy function for collecting live data (which networks don't have).
-collectLiveData :: Bool -> ConfigData -> [Network] -> IO [(Network, Runtime)]
-collectLiveData _ _ = return . map (\n -> (n, Runtime))

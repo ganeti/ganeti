@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 {-| Implementation of the Ganeti Query2 functionality.
 
  -}
@@ -50,6 +52,7 @@ module Ganeti.Query.Query
     , queryCompat
     , getRequestedNames
     , nameField
+    , NoDataRuntime
     ) where
 
 import Control.DeepSeq
@@ -209,6 +212,10 @@ query cfg live (Query (ItemTypeLuxi QRJob) fields qfilter) =
   queryJobs cfg live fields qfilter
 query cfg live qry = queryInner cfg live qry $ getRequestedNames qry
 
+-- | Dummy data collection fuction
+dummyCollectLiveData :: Bool -> ConfigData -> [a] -> IO [(a, NoDataRuntime)]
+dummyCollectLiveData _ _ = return . map (, NoDataRuntime)
+
 -- | Inner query execution function.
 queryInner :: ConfigData   -- ^ The current configuration
            -> Bool         -- ^ Whether to collect live data
@@ -221,15 +228,15 @@ queryInner cfg live (Query (ItemTypeOpCode QRNode) fields qfilter) wanted =
                cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRInstance) fields qfilter) wanted =
-  genericQuery Instance.fieldsMap Instance.collectLiveData instName
+  genericQuery Instance.fieldsMap dummyCollectLiveData instName
                configInstances getInstance cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =
-  genericQuery Group.fieldsMap Group.collectLiveData groupName configNodegroups
+  genericQuery Group.fieldsMap dummyCollectLiveData groupName configNodegroups
                getGroup cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRNetwork) fields qfilter) wanted =
-  genericQuery Network.fieldsMap Network.collectLiveData
+  genericQuery Network.fieldsMap dummyCollectLiveData
                (fromNonEmpty . networkName)
                configNetworks getNetwork cfg live fields qfilter wanted
 

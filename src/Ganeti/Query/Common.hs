@@ -24,7 +24,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Query.Common
-  ( rsNoData
+  ( NoDataRuntime(..)
+  , rsNoData
   , rsUnavail
   , rsNormal
   , rsMaybeNoData
@@ -51,6 +52,9 @@ import Ganeti.Rpc
 import Ganeti.Query.Language
 import Ganeti.Query.Types
 import Ganeti.Types
+
+-- | The runtime used by queries which retrieve no live data.
+data NoDataRuntime = NoDataRuntime
 
 -- * Generic functions
 
