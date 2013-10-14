@@ -53,6 +53,7 @@ import qualified Ganeti.Logging as Logging (syslogUsageToRaw)
 import qualified Ganeti.Runtime as Runtime
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..),
                        ExtraLogReason(..))
+import Ganeti.THH (PyValueEx(..))
 import Ganeti.Types
 import qualified Ganeti.Types as Types
 import Ganeti.Confd.Types (ConfdRequestType(..), ConfdReqField(..),
@@ -3455,6 +3456,17 @@ hvcGlobals =
                        hvMigrationMode,
                        hvMigrationPort,
                        hvXenCmd]
+
+becDefaults :: Map String PyValueEx
+becDefaults =
+  Map.fromList
+  [ (beMinmem, PyValueEx (128 :: Int))
+  , (beMaxmem, PyValueEx (128 :: Int))
+  , (beVcpus, PyValueEx (1 :: Int))
+  , (beAutoBalance, PyValueEx True)
+  , (beAlwaysFailover, PyValueEx False)
+  , (beSpindleUse, PyValueEx (1 :: Int))
+  ]
 
 ndcGlobals :: FrozenSet String
 ndcGlobals = ConstantUtils.mkSet [ndExclusiveStorage]

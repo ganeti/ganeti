@@ -568,6 +568,9 @@ class PyValue a where
 -- | Encapsulates Python default values
 data PyValueEx = forall a. PyValue a => PyValueEx a
 
+instance PyValue PyValueEx where
+  showValue (PyValueEx x) = showValue x
+
 -- | Transfers opcode data between the opcode description (through
 -- @genOpCode@) and the Python code generation functions.
 type OpCodeDescriptor =
