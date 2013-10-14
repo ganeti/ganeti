@@ -152,6 +152,19 @@ getRequestedJobIDs qfilter =
 
 -- | Generic query implementation for resources that are backed by
 -- some configuration objects.
+--
+-- Different query types use the same 'genericQuery' function by providing
+-- a collector function and a field map. The collector function retrieves
+-- live data, and the field map provides both the requirements and the logic
+-- necessary to retrieve the data needed for the field.
+--
+-- The 'b' type in the specification is the runtime. Every query can gather
+-- additional live data related to the configuration object using the collector
+-- to perform RPC calls.
+--
+-- The gathered data, or the failure to get it, is expressed through a runtime
+-- object. The type of a runtime object is determined by every query type for
+-- itself, and used exclusively by that query.
 genericQuery :: FieldMap a b       -- ^ Field map
              -> (Bool -> ConfigData -> [a] -> IO [(a, b)]) -- ^ Collector
              -> (a -> String)      -- ^ Object to name function
