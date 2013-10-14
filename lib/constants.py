@@ -313,17 +313,7 @@ DRBD_B_DISK_BARRIERS = _constants.DRBD_B_DISK_BARRIERS
 DRBD_B_DISK_DRAIN = _constants.DRBD_B_DISK_DRAIN
 DRBD_B_DISK_FLUSH = _constants.DRBD_B_DISK_FLUSH
 
-# Valid barrier combinations: "n" or any non-null subset of "bfd"
-DRBD_VALID_BARRIER_OPT = compat.UniqueFrozenset([
-  frozenset([DRBD_B_NONE]),
-  frozenset([DRBD_B_DISK_BARRIERS]),
-  frozenset([DRBD_B_DISK_DRAIN]),
-  frozenset([DRBD_B_DISK_FLUSH]),
-  frozenset([DRBD_B_DISK_DRAIN, DRBD_B_DISK_FLUSH]),
-  frozenset([DRBD_B_DISK_BARRIERS, DRBD_B_DISK_DRAIN]),
-  frozenset([DRBD_B_DISK_BARRIERS, DRBD_B_DISK_FLUSH]),
-  frozenset([DRBD_B_DISK_BARRIERS, DRBD_B_DISK_FLUSH, DRBD_B_DISK_DRAIN]),
-  ])
+DRBD_VALID_BARRIER_OPT = _constants.DRBD_VALID_BARRIER_OPT
 
 RBD_CMD = _constants.RBD_CMD
 

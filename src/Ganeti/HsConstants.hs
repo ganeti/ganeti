@@ -904,6 +904,20 @@ drbdBDiskFlush = "f"
 drbdBNone :: String
 drbdBNone = "n"
 
+-- | Valid barrier combinations: "n" or any non-null subset of "bfd"
+drbdValidBarrierOpt :: FrozenSet (FrozenSet String)
+drbdValidBarrierOpt =
+  ConstantUtils.mkSet
+  [ ConstantUtils.mkSet [drbdBNone]
+  , ConstantUtils.mkSet [drbdBDiskBarriers]
+  , ConstantUtils.mkSet [drbdBDiskDrain]
+  , ConstantUtils.mkSet [drbdBDiskFlush]
+  , ConstantUtils.mkSet [drbdBDiskDrain, drbdBDiskFlush]
+  , ConstantUtils.mkSet [drbdBDiskBarriers, drbdBDiskDrain]
+  , ConstantUtils.mkSet [drbdBDiskBarriers, drbdBDiskFlush]
+  , ConstantUtils.mkSet [drbdBDiskBarriers, drbdBDiskFlush, drbdBDiskDrain]
+  ]
+
 -- | Rbd tool command
 rbdCmd :: String
 rbdCmd = "rbd"

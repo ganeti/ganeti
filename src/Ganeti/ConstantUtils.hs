@@ -46,7 +46,7 @@ instance PyValue PythonChar where
 --
 -- See 'PyValue' instance for 'FrozenSet'.
 newtype FrozenSet a = FrozenSet { unFrozenSet :: Set a }
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 -- | Converts a Haskell 'Set' into a Python 'frozenset'
 --
