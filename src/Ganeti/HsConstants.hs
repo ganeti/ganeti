@@ -3468,6 +3468,17 @@ becDefaults =
   , (beSpindleUse, PyValueEx (1 :: Int))
   ]
 
+ndcDefaults :: Map String PyValueEx
+ndcDefaults =
+  Map.fromList
+  [ (ndOobProgram,       PyValueEx "")
+  , (ndSpindleCount,     PyValueEx (1 :: Int))
+  , (ndExclusiveStorage, PyValueEx False)
+  , (ndOvs,              PyValueEx False)
+  , (ndOvsName,          PyValueEx defaultOvs)
+  , (ndOvsLink,          PyValueEx "")
+  ]
+
 ndcGlobals :: FrozenSet String
 ndcGlobals = ConstantUtils.mkSet [ndExclusiveStorage]
 
