@@ -30,6 +30,7 @@ module Ganeti.Query.Common
   , rsNormal
   , rsMaybeNoData
   , rsMaybeUnavail
+  , rsErrorNoData
   , rsUnknown
   , missingRuntime
   , rpcErrorToStatus
@@ -47,8 +48,10 @@ import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Text.JSON (JSON, showJSON)
 
+import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.Config
+import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Rpc
@@ -91,6 +94,14 @@ rsNormal a = ResultEntry RSNormal $ Just (showJSON a)
 -- use the function 'rsMaybeUnavail'.
 rsMaybeNoData :: (JSON a) => Maybe a -> ResultEntry
 rsMaybeNoData = maybe rsNoData rsNormal
+
+-- | Helper to declare a result from a 'ErrorResult' (an error happened
+-- while retrieving the data from a config, or there was no data).
+-- This function should be used if an error signals there was no data.
+rsErrorNoData :: (JSON a) => ErrorResult a -> ResultEntry
+rsErrorNoData res = case res of
+  Ok  x -> rsNormal x
+  Bad _ -> rsNoData
 
 -- | Helper to declare a result from a 'Maybe'. This version returns
 -- a 'RSUnavail' in case of 'Nothing'. It should be used for optional

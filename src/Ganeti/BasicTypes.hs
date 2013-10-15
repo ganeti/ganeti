@@ -30,6 +30,7 @@ module Ganeti.BasicTypes
   , FromString(..)
   , isOk
   , isBad
+  , justOk
   , eitherToResult
   , annotateResult
   , iterateOk
@@ -134,6 +135,13 @@ isOk _      = False
 -- | Simple checker for whether a 'GenericResult' is a failure.
 isBad :: GenericResult a b -> Bool
 isBad = not . isOk
+
+-- | Simple filter returning only OK values of GenericResult
+justOk :: [GenericResult a b] -> [b]
+justOk [] = []
+justOk (x:xs) = case x of
+  Ok  v -> v:justOk xs
+  Bad _ -> justOk xs
 
 -- | Converter from Either to 'GenericResult'.
 eitherToResult :: Either a b -> GenericResult a b

@@ -44,13 +44,14 @@ module Ganeti.Config
     , getGroupOfNode
     , getInstPrimaryNode
     , getInstMinorsForNode
+    , getInstAllNodes
     , getNetwork
     , buildLinkIpInstnameMap
     , instNodes
     ) where
 
 import Control.Monad (liftM)
-import Data.List (foldl')
+import Data.List (foldl', nub)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Text.JSON as J
@@ -240,6 +241,26 @@ getNetwork cfg name =
 getInstPrimaryNode :: ConfigData -> String -> ErrorResult Node
 getInstPrimaryNode cfg name =
   liftM instPrimaryNode (getInstance cfg name) >>= getNode cfg
+
+-- | Retrieves all nodes hosting a DRBD disk
+getDrbdDiskNodes :: ConfigData -> Disk -> [Node]
+getDrbdDiskNodes cfg disk =
+  let retrieved = case diskLogicalId disk of
+                    LIDDrbd8 nodeA nodeB _ _ _ _ ->
+                      justOk [getNode cfg nodeA, getNode cfg nodeB]
+                    _                            -> []
+  in retrieved ++ concatMap (getDrbdDiskNodes cfg) (diskChildren disk)
+
+-- | Retrieves all the nodes of the instance.
+--
+-- As instances not using DRBD can be sent as a parameter as well,
+-- the primary node has to be appended to the results.
+getInstAllNodes :: ConfigData -> String -> ErrorResult [Node]
+getInstAllNodes cfg name = do
+  inst <- getInstance cfg name
+  let diskNodes = concatMap (getDrbdDiskNodes cfg) $ instDisks inst
+  pNode <- getInstPrimaryNode cfg name
+  return . nub $ pNode:diskNodes
 
 -- | Filters DRBD minors for a given node.
 getDrbdMinorsForNode :: String -> Disk -> [(Int, String)]

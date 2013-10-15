@@ -39,6 +39,7 @@ import qualified Text.JSON as J
 import Ganeti.BasicTypes
 import Ganeti.Common
 import Ganeti.Config
+import Ganeti.Errors
 import Ganeti.Objects
 import Ganeti.Query.Common
 import Ganeti.Query.Language
@@ -64,9 +65,18 @@ fieldsMap = Map.fromList [(fdefName f, v) | v@(f, _, _) <- instanceFields]
 instanceFields :: FieldList Instance Runtime
 instanceFields =
   -- Simple fields
-  [ (FieldDefinition "disk_template" "Disk_template" QFTText
+  [ (FieldDefinition "admin_state" "InstanceState" QFTText
+     "Desired state of instance",
+     FieldSimple (rsNormal . adminStateToRaw . instAdminState), QffNormal)
+  , (FieldDefinition "admin_up" "Autostart" QFTBool
+     "Desired state of instance",
+     FieldSimple (rsNormal . (== AdminUp) . instAdminState), QffNormal)
+  , (FieldDefinition "disk_template" "Disk_template" QFTText
      "Instance disk template",
      FieldSimple (rsNormal . instDiskTemplate), QffNormal)
+  , (FieldDefinition "disks_active" "DisksActive" QFTBool
+     "Desired state of instance disks",
+     FieldSimple (rsNormal . instDisksActive), QffNormal)
   , (FieldDefinition "name" "Instance" QFTText
      "Instance name",
      FieldSimple (rsNormal . instName), QffHostname)
@@ -79,6 +89,21 @@ instanceFields =
   , (FieldDefinition "os" "OS" QFTText
      "Operating system",
      FieldSimple (rsNormal . instOs), QffNormal)
+  , (FieldDefinition "pnode" "Primary_node" QFTText
+     "Primary node",
+     FieldConfig getPrimaryNodeName, QffHostname)
+  , (FieldDefinition "pnode.group" "PrimaryNodeGroup" QFTText
+     "Primary node's group",
+     FieldConfig getPrimaryNodeGroup, QffNormal)
+  , (FieldDefinition "snodes" "Secondary_Nodes" QFTOther
+     "Secondary nodes; usually this will just be one node",
+     FieldConfig (getSecondaryNodeAttribute nodeName), QffNormal)
+  , (FieldDefinition "snodes.group" "SecondaryNodesGroups" QFTOther
+     "Node groups of secondary nodes",
+     FieldConfig (getSecondaryNodeGroupAttribute groupName), QffNormal)
+  , (FieldDefinition "snodes.group.uuid" "SecondaryNodesGroupsUUID" QFTOther
+     "Node group UUIDs of secondary nodes",
+     FieldConfig (getSecondaryNodeGroupAttribute groupUuid), QffNormal)
   ] ++
 
   -- Live fields using special getters
@@ -97,6 +122,55 @@ instanceFields =
   serialFields "Instance" ++
   uuidFields "Instance" ++
   tagsFields
+
+-- * Helper functions for node property retrieval
+
+-- | Helper function for primary node retrieval
+getPrimaryNode :: ConfigData -> Instance -> ErrorResult Node
+getPrimaryNode cfg = getInstPrimaryNode cfg . instName
+
+-- | Get primary node hostname
+getPrimaryNodeName :: ConfigData -> Instance -> ResultEntry
+getPrimaryNodeName cfg inst =
+  rsErrorNoData $ (J.showJSON . nodeName) <$> getPrimaryNode cfg inst
+
+-- | Get primary node hostname
+getPrimaryNodeGroup :: ConfigData -> Instance -> ResultEntry
+getPrimaryNodeGroup cfg inst =
+  rsErrorNoData $ (J.showJSON . groupName) <$>
+    (getPrimaryNode cfg inst >>=
+    maybeToError "Configuration missing" . getGroupOfNode cfg)
+
+-- | Get secondary nodes - the configuration objects themselves
+getSecondaryNodes :: ConfigData -> Instance -> ErrorResult [Node]
+getSecondaryNodes cfg inst = do
+  pNode <- getPrimaryNode cfg inst
+  allNodes <- getInstAllNodes cfg $ instName inst
+  return $ delete pNode allNodes
+
+-- | Get attributes of the secondary nodes
+getSecondaryNodeAttribute :: (J.JSON a)
+                          => (Node -> a)
+                          -> ConfigData
+                          -> Instance
+                          -> ResultEntry
+getSecondaryNodeAttribute getter cfg inst =
+  rsErrorNoData $ map (J.showJSON . getter) <$> getSecondaryNodes cfg inst
+
+-- | Get secondary node groups
+getSecondaryNodeGroups :: ConfigData -> Instance -> ErrorResult [NodeGroup]
+getSecondaryNodeGroups cfg inst = do
+  sNodes <- getSecondaryNodes cfg inst
+  return . catMaybes $ map (getGroupOfNode cfg) sNodes
+
+-- | Get attributes of secondary node groups
+getSecondaryNodeGroupAttribute :: (J.JSON a)
+                               => (NodeGroup -> a)
+                               -> ConfigData
+                               -> Instance
+                               -> ResultEntry
+getSecondaryNodeGroupAttribute getter cfg inst =
+  rsErrorNoData $ map (J.showJSON . getter) <$> getSecondaryNodeGroups cfg inst
 
 -- * Live fields functionality
 
@@ -128,42 +202,43 @@ instanceLiveRpcCall _ (Left err) _ =
 
 -- | Builder for node live fields.
 instanceLiveFieldBuilder :: (FieldName, FieldTitle, FieldType, String, FieldDoc)
-                     -> FieldData Instance Runtime
+                         -> FieldData Instance Runtime
 instanceLiveFieldBuilder (fname, ftitle, ftype, _, fdoc) =
   ( FieldDefinition fname ftitle ftype fdoc
   , FieldRuntime $ instanceLiveRpcCall fname
   , QffNormal)
 
-
--- Functionality related to status and operational status extraction
+-- * Functionality related to status and operational status extraction
 
 -- | The documentation text for the instance status field
 statusDocText :: String
 statusDocText =
   let si = show . instanceStatusToRaw :: InstanceStatus -> String
-  in "Instance status; " ++
-     si Running ++
-     " if instance is set to be running and actually is, " ++
-     si StatusDown ++
-     " if instance is stopped and is not running, " ++
-     si WrongNode ++
-     " if instance running, but not on its designated primary node, " ++
-     si ErrorUp ++
-     " if instance should be stopped, but is actually running, " ++
-     si ErrorDown ++
-     " if instance should run, but doesn't, " ++
-     si NodeDown ++
-     " if instance's primary node is down, " ++
-     si NodeOffline ++
-     " if instance's primary node is marked offline, " ++
-     si StatusOffline ++
-     " if instance is offline and does not use dynamic resources"
+  in  "Instance status; " ++
+      si Running ++
+      " if instance is set to be running and actually is, " ++
+      si StatusDown ++
+      " if instance is stopped and is not running, " ++
+      si WrongNode ++
+      " if instance running, but not on its designated primary node, " ++
+      si ErrorUp ++
+      " if instance should be stopped, but is actually running, " ++
+      si ErrorDown ++
+      " if instance should run, but doesn't, " ++
+      si NodeDown ++
+      " if instance's primary node is down, " ++
+      si NodeOffline ++
+      " if instance's primary node is marked offline, " ++
+      si StatusOffline ++
+      " if instance is offline and does not use dynamic resources"
 
 -- | Checks if the primary node of an instance is offline
 isPrimaryOffline :: ConfigData -> Instance -> Bool
 isPrimaryOffline cfg inst =
-  let pNode = optimisticUnwrapper . getNode cfg $ instPrimaryNode inst
-  in nodeOffline pNode
+  let pNodeResult = getNode cfg $ instPrimaryNode inst
+  in case pNodeResult of
+     Ok pNode -> nodeOffline pNode
+     Bad    _ -> error "Programmer error - result assumed to be OK is Bad!"
 
 -- | Determines the status of a live instance
 liveInstanceStatus :: LiveInfo -> Instance -> InstanceStatus
@@ -182,45 +257,36 @@ deadInstanceStatus inst =
     AdminOffline -> StatusOffline
 
 -- | Determines the status of the instance, depending on whether it is possible
--- | to communicate with its primary node, on which node it is, and its
--- | configuration.
-determineInstanceStatus :: ConfigData -- ^ The configuration data
-                        -> Runtime    -- ^ All the data from the live call
-                        -> Instance   -- ^ The static instance configuration
-                        -> InstanceStatus -- ^ Result
-determineInstanceStatus cfg res inst =
-  if isPrimaryOffline cfg inst
-    then NodeOffline
-    else case res of
-      Left _                -> NodeDown
-      Right (Just liveData) -> liveInstanceStatus liveData inst
-      Right Nothing         -> deadInstanceStatus inst
+-- to communicate with its primary node, on which node it is, and its
+-- configuration.
+determineInstanceStatus :: ConfigData      -- ^ The configuration data
+                        -> Runtime         -- ^ All the data from the live call
+                        -> Instance        -- ^ Static instance configuration
+                        -> InstanceStatus  -- ^ Result
+determineInstanceStatus cfg res inst
+  | isPrimaryOffline cfg inst = NodeOffline
+  | otherwise = case res of
+                  Left _                -> NodeDown
+                  Right (Just liveData) -> liveInstanceStatus liveData inst
+                  Right Nothing         -> deadInstanceStatus inst
 
--- | Extracts the status, doing necessary transformations but once
+-- | Extracts the instance status, retrieving it using the functions above and
+-- transforming it into a 'ResultEntry'.
 statusExtract :: ConfigData -> Runtime -> Instance -> ResultEntry
 statusExtract cfg res inst =
   rsNormal . J.showJSON . instanceStatusToRaw $
     determineInstanceStatus cfg res inst
 
--- | Extracts the operational status
+-- | Extracts the operational status of the instance.
 operStatusExtract :: Runtime -> Instance -> ResultEntry
 operStatusExtract res _ =
-  rsMaybeNoData $ J.showJSON <$> case res of
-    Left _  -> Nothing
-    Right x -> Just $ isJust x
+  rsMaybeNoData $ J.showJSON <$>
+    case res of
+      Left  _ -> Nothing
+      Right x -> Just $ isJust x
 
-
--- Helper functions extracting information as necessary for the generic query
+-- * Helper functions extracting information as necessary for the generic query
 -- interfaces
-
--- | A function removing the GenericResult wrapper from assuredly OK values
-optimisticUnwrapper :: GenericResult a b -> b
-optimisticUnwrapper (Ok x) = x
-optimisticUnwrapper (Bad _) = error "Programmer error: assumptions are wrong!"
-
--- | Simple filter of OK results only
-okNodesOnly :: [GenericResult a Node] -> [Node]
-okNodesOnly = map optimisticUnwrapper . filter isOk
 
 -- | Finds information about the instance in the info delivered by a node
 findInstanceInfo :: Instance
@@ -286,7 +352,7 @@ collectLiveData liveDataEnabled cfg instances
                             RpcResultError $ "Live data disabled"
   | otherwise = do
       let hvSpec = getDefaultHypervisorSpec cfg
-          instance_nodes = nub . okNodesOnly $
+          instance_nodes = nub . justOk $
                              map (getNode cfg . instPrimaryNode) instances
           good_nodes = nodesWithValidConfig cfg instance_nodes
       rpcres <- executeRpcCall good_nodes $ RpcCallAllInstancesInfo [hvSpec]
