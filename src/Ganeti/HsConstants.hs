@@ -3505,39 +3505,99 @@ ndcDefaults =
 ndcGlobals :: FrozenSet String
 ndcGlobals = ConstantUtils.mkSet [ndExclusiveStorage]
 
+-- | Default delay target measured in sectors
+defaultDelayTarget :: Int
+defaultDelayTarget = 1
+
+defaultDiskCustom :: String
+defaultDiskCustom = ""
+
+defaultDiskResync :: Bool
+defaultDiskResync = False
+
+-- | Default fill target measured in sectors
+defaultFillTarget :: Int
+defaultFillTarget = 0
+
+-- | Default mininum rate measured in KiB/s
+defaultMinRate :: Int
+defaultMinRate = 4 * 1024
+
+defaultNetCustom :: String
+defaultNetCustom = ""
+
+-- | Default plan ahead measured in sectors
+--
+-- The default values for the DRBD dynamic resync speed algorithm are
+-- taken from the drbsetup 8.3.11 man page, except for c-plan-ahead
+-- (that we don't need to set to 0, because we have a separate option
+-- to enable it) and for c-max-rate, that we cap to the default value
+-- for the static resync rate.
+defaultPlanAhead :: Int
+defaultPlanAhead = 20
+
+defaultRbdPool :: String
+defaultRbdPool = "rbd"
+
 diskLdDefaults :: Map DiskTemplate (Map String PyValueEx)
 diskLdDefaults =
   Map.fromList
-  [ (DTDrbd8, Map.fromList
-              [ (ldpBarriers, PyValueEx drbdBarriers)
+  [ (DTBlock, Map.empty)
+  , (DTDrbd8, Map.fromList
+              [ (ldpBarriers,      PyValueEx drbdBarriers)
               , (ldpDefaultMetavg, PyValueEx defaultVg)
-              , (ldpDelayTarget, PyValueEx (1 :: Int)) -- ds
-              , (ldpDiskCustom, PyValueEx "")
-              , (ldpDynamicResync, PyValueEx False)
-              , (ldpFillTarget, PyValueEx (0 :: Int)) -- sectors
-              , (ldpMaxRate, PyValueEx (classicDrbdSyncSpeed :: Int)) -- KiB/s
-              , (ldpMinRate, PyValueEx (4 * 1024 :: Int)) -- KiB/s
-              , (ldpNetCustom, PyValueEx "")
-              , (ldpNoMetaFlush, PyValueEx drbdNoMetaFlush)
-                -- The default values for the DRBD dynamic resync
-                -- speed algorithm are taken from the drbsetup 8.3.11
-                -- man page, except for c-plan-ahead (that we don't
-                -- need to set to 0, because we have a separate option
-                -- to enable it) and for c-max-rate, that we cap to
-                -- the default value for the static resync rate.
-              , (ldpPlanAhead, PyValueEx (20 :: Int)) -- ds
-              , (ldpProtocol, PyValueEx drbdDefaultNetProtocol)
-              , (ldpResyncRate, PyValueEx classicDrbdSyncSpeed)
+              , (ldpDelayTarget,   PyValueEx defaultDelayTarget)
+              , (ldpDiskCustom,    PyValueEx defaultDiskCustom)
+              , (ldpDynamicResync, PyValueEx defaultDiskResync)
+              , (ldpFillTarget,    PyValueEx defaultFillTarget)
+              , (ldpMaxRate,       PyValueEx classicDrbdSyncSpeed)
+              , (ldpMinRate,       PyValueEx defaultMinRate)
+              , (ldpNetCustom,     PyValueEx defaultNetCustom)
+              , (ldpNoMetaFlush,   PyValueEx drbdNoMetaFlush)
+              , (ldpPlanAhead,     PyValueEx defaultPlanAhead)
+              , (ldpProtocol,      PyValueEx drbdDefaultNetProtocol)
+              , (ldpResyncRate,    PyValueEx classicDrbdSyncSpeed)
               ])
-  , (DTPlain, Map.fromList [(ldpStripes, PyValueEx lvmStripecount)])
+  , (DTExt, Map.empty)
   , (DTFile, Map.empty)
-  , (DTSharedFile, Map.empty)
-  , (DTBlock, Map.empty)
+  , (DTPlain, Map.fromList [(ldpStripes, PyValueEx lvmStripecount)])
   , (DTRbd, Map.fromList
-            [ (ldpPool, PyValueEx "rbd")
+            [ (ldpPool, PyValueEx defaultRbdPool)
             , (ldpAccess, PyValueEx diskKernelspace)
             ])
-  , (DTExt, Map.empty)
+  , (DTSharedFile, Map.empty)
+  ]
+
+diskDtDefaults :: Map DiskTemplate (Map String PyValueEx)
+diskDtDefaults =
+  Map.fromList
+  [ (DTBlock,      Map.empty)
+  , (DTDiskless,   Map.empty)
+  , (DTDrbd8,      Map.fromList
+                   [ (drbdDataStripes,   PyValueEx lvmStripecount)
+                   , (drbdDefaultMetavg, PyValueEx defaultVg)
+                   , (drbdDelayTarget,   PyValueEx defaultDelayTarget)
+                   , (drbdDiskBarriers,  PyValueEx drbdBarriers)
+                   , (drbdDiskCustom,    PyValueEx defaultDiskCustom)
+                   , (drbdDynamicResync, PyValueEx defaultDiskResync)
+                   , (drbdFillTarget,    PyValueEx defaultFillTarget)
+                   , (drbdMaxRate,       PyValueEx classicDrbdSyncSpeed)
+                   , (drbdMetaBarriers,  PyValueEx drbdNoMetaFlush)
+                   , (drbdMetaStripes,   PyValueEx lvmStripecount)
+                   , (drbdMinRate,       PyValueEx defaultMinRate)
+                   , (drbdNetCustom,     PyValueEx defaultNetCustom)
+                   , (drbdPlanAhead,     PyValueEx defaultPlanAhead)
+                   , (drbdProtocol,      PyValueEx drbdDefaultNetProtocol)
+                   , (drbdResyncRate,    PyValueEx classicDrbdSyncSpeed)
+                   ])
+  , (DTExt,        Map.empty)
+  , (DTFile,       Map.empty)
+  , (DTPlain,      Map.fromList [(lvStripes, PyValueEx lvmStripecount)])
+  , (DTRbd,        Map.fromList
+                   [ (rbdPool, PyValueEx defaultRbdPool)
+                   , (rbdAccess, PyValueEx diskKernelspace)
+                   ])
+  , (DTSharedFile, Map.empty)
   ]
 
 niccDefaults :: Map String PyValueEx
