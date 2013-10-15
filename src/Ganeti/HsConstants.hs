@@ -3539,6 +3539,23 @@ ispecsMinmaxDefaults =
      (ConstantUtils.ispecNicCount, Types.iSpecNicCount Types.defMaxISpec),
      (ConstantUtils.ispecSpindleUse, Types.iSpecSpindleUse Types.defMaxISpec)])]
 
+ipolicyDefaults :: Map String PyValueEx
+ipolicyDefaults =
+  Map.fromList
+  [ (ispecsMinmax,        PyValueEx [ispecsMinmaxDefaults])
+  , (ispecsStd,           PyValueEx (Map.fromList
+                                     [ (ispecMemSize,    128)
+                                     , (ispecCpuCount,   1)
+                                     , (ispecDiskCount,  1)
+                                     , (ispecDiskSize,   1024)
+                                     , (ispecNicCount,   1)
+                                     , (ispecSpindleUse, 1)
+                                     ] :: Map String Int))
+  , (ipolicyDts,          PyValueEx (ConstantUtils.toList diskTemplates))
+  , (ipolicyVcpuRatio,    PyValueEx (4.0 :: Double))
+  , (ipolicySpindleRatio, PyValueEx (32.0 :: Double))
+  ]
+
 masterPoolSizeDefault :: Int
 masterPoolSizeDefault = 10
 
