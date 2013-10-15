@@ -2353,7 +2353,7 @@ class DRBD8(BaseDRBD):
 class FileStorage(BlockDev):
   """File device.
 
-  This class represents the a file storage backend device.
+  This class represents a file storage backend device.
 
   The unique_id for the file device is a (file_driver, file_path) tuple.
 
