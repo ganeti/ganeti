@@ -42,6 +42,12 @@ newtype PythonChar = PythonChar { unPythonChar :: Char }
 instance PyValue PythonChar where
   showValue c = "chr(" ++ show (ord (unPythonChar c)) ++ ")"
 
+-- | 'PythonNone' wraps Python 'None'
+data PythonNone = PythonNone
+
+instance PyValue PythonNone where
+  showValue _ = "None"
+
 -- | FrozenSet wraps a Haskell 'Set'
 --
 -- See 'PyValue' instance for 'FrozenSet'.

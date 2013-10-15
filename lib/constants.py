@@ -203,14 +203,13 @@ IEIO_FILE = _constants.IEIO_FILE
 IEIO_RAW_DISK = _constants.IEIO_RAW_DISK
 IEIO_SCRIPT = _constants.IEIO_SCRIPT
 
-VALUE_DEFAULT = "default"
-VALUE_AUTO = "auto"
-VALUE_GENERATE = "generate"
-VALUE_NONE = "none"
-VALUE_TRUE = "true"
-VALUE_FALSE = "false"
-VALUE_HS_NOTHING = {"Nothing": None}
-
+VALUE_DEFAULT = _constants.VALUE_DEFAULT
+VALUE_AUTO = _constants.VALUE_AUTO
+VALUE_GENERATE = _constants.VALUE_GENERATE
+VALUE_NONE = _constants.VALUE_NONE
+VALUE_TRUE = _constants.VALUE_TRUE
+VALUE_FALSE = _constants.VALUE_FALSE
+VALUE_HS_NOTHING = _constants.VALUE_HS_NOTHING
 
 # External script validation mask
 EXT_PLUGIN_MASK = re.compile("^[a-zA-Z0-9_-]+$")
@@ -1325,12 +1324,7 @@ DISK_DT_DEFAULTS = {
 # we don't want to export the shortcuts
 del _LV_DEFAULTS, _DRBD_DEFAULTS
 
-NICC_DEFAULTS = {
-  NIC_MODE: NIC_MODE_BRIDGED,
-  NIC_LINK: DEFAULT_BRIDGE,
-  NIC_VLAN: VALUE_HS_NOTHING,
-  }
-
+NICC_DEFAULTS = _constants.NICC_DEFAULTS
 ISPECS_MINMAX_DEFAULTS = _constants.ISPECS_MINMAX_DEFAULTS
 IPOLICY_DEFAULTS = _constants.IPOLICY_DEFAULTS
 
