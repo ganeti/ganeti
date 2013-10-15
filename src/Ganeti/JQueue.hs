@@ -45,6 +45,7 @@ module Ganeti.JQueue
     , sortJobIDs
     , loadJobFromDisk
     , noSuchJob
+    , readSerialFromDisk
     ) where
 
 import Control.Exception
@@ -69,6 +70,7 @@ import Ganeti.OpCodes
 import Ganeti.Path
 import Ganeti.THH
 import Ganeti.Types
+import Ganeti.Utils
 
 -- * Data types
 
@@ -329,3 +331,10 @@ loadJobFromDisk rootdir archived jid = do
              Just (str, arch) ->
                liftM (\qj -> (qj, arch)) .
                fromJResult "Parsing job file" $ Text.JSON.decode str
+
+-- | Read the job serial number from disk.
+readSerialFromDisk :: IO (Result JobId)
+readSerialFromDisk = do
+  filename <- jobQueueSerialFile
+  tryAndLogIOError (readFile filename) "Failed to read serial file"
+                   (makeJobIdS . rStripSpace)
