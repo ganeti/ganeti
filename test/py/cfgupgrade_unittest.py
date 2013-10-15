@@ -371,6 +371,9 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFullConfigFrom_2_8(self):
     self._TestUpgradeFromFile("cluster_config_2.8.json", False)
 
+  def testUpgradeFullConfigFrom_2_9(self):
+    self._TestUpgradeFromFile("cluster_config_2.9.json", False)
+
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
@@ -388,25 +391,11 @@ class TestCfgupgrade(unittest.TestCase):
   def testDowngradeFullConfig(self):
     """Test for upgrade + downgrade combination."""
     # This test can work only with the previous version of a configuration!
-    oldconfname = "cluster_config_2.9.json"
+    oldconfname = "cluster_config_2.10.json"
     self._TestUpgradeFromFile(oldconfname, False)
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadTestDataConfig(oldconfname)
     newconf = self._LoadConfig()
-
-    # downgrade from 2.10 to 2.9 does not add physical_id to disks, which is ok
-    # TODO (2.11): Remove this code, it's not required to downgrade from 2.11
-    #              to 2.10
-    def RemovePhysicalId(disk):
-      if "children" in disk:
-        for d in disk["children"]:
-          RemovePhysicalId(d)
-      if "physical_id" in disk:
-        del disk["physical_id"]
-
-    for inst in oldconf["instances"].values():
-      for disk in inst["disks"]:
-        RemovePhysicalId(disk)
 
     self.assertEqual(oldconf, newconf)
 

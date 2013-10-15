@@ -1,0 +1,533 @@
+{
+    "cluster": {
+        "beparams": {
+            "default": {
+                "always_failover": false,
+                "auto_balance": true,
+                "maxmem": 128,
+                "minmem": 128,
+                "spindle_use": 1,
+                "vcpus": 1
+            }
+        },
+        "blacklisted_os": [],
+        "candidate_pool_size": 10,
+        "cluster_name": "cluster.name.example.com",
+        "ctime": 1343869045.604884,
+        "default_iallocator": "hail",
+        "disk_state_static": {},
+        "diskparams": {
+            "blockdev": {},
+            "diskless": {},
+            "drbd": {
+                "c-delay-target": 1,
+                "c-fill-target": 200,
+                "c-max-rate": 2048,
+                "c-min-rate": 1024,
+                "c-plan-ahead": 1,
+                "data-stripes": 2,
+                "disk-barriers": "bf",
+                "disk-custom": "",
+                "dynamic-resync": false,
+                "meta-barriers": true,
+                "meta-stripes": 2,
+                "metavg": "xenvg",
+                "net-custom": "",
+                "resync-rate": 1024
+            },
+            "ext": {},
+            "file": {},
+            "plain": {
+                "stripes": 2
+            },
+            "rbd": {
+                "pool": "rbd"
+            },
+            "sharedfile": {}
+        },
+        "drbd_usermode_helper": "/bin/true",
+        "enabled_disk_templates": [
+            "drbd",
+            "plain",
+            "file",
+            "sharedfile"
+        ],
+        "enabled_hypervisors": [
+            "xen-pvm"
+        ],
+        "file_storage_dir": "",
+        "hidden_os": [],
+        "highest_used_port": 32105,
+        "hv_state_static": {
+            "xen-pvm": {
+                "cpu_node": 1,
+                "cpu_total": 1,
+                "mem_hv": 0,
+                "mem_node": 0,
+                "mem_total": 0
+            }
+        },
+        "hvparams": {
+            "chroot": {
+                "init_script": "/ganeti-chroot"
+            },
+            "fake": {},
+            "kvm": {
+                "acpi": true,
+                "boot_order": "disk",
+                "cdrom2_image_path": "",
+                "cdrom_disk_type": "",
+                "cdrom_image_path": "",
+                "cpu_cores": 0,
+                "cpu_mask": "all",
+                "cpu_sockets": 0,
+                "cpu_threads": 0,
+                "cpu_type": "",
+                "disk_cache": "default",
+                "disk_type": "paravirtual",
+                "floppy_image_path": "",
+                "initrd_path": "",
+                "kernel_args": "ro",
+                "kernel_path": "/boot/vmlinuz-kvmU",
+                "keymap": "",
+                "kvm_extra": "",
+                "kvm_flag": "",
+                "kvm_path": "/usr/bin/kvm",
+                "machine_version": "",
+                "mem_path": "",
+                "migration_bandwidth": 4,
+                "migration_downtime": 30,
+                "migration_mode": "live",
+                "migration_port": 4041,
+                "nic_type": "paravirtual",
+                "reboot_behavior": "reboot",
+                "root_path": "/dev/vda1",
+                "security_domain": "",
+                "security_model": "none",
+                "serial_console": true,
+                "serial_speed": 38400,
+                "soundhw": "",
+                "spice_bind": "",
+                "spice_image_compression": "",
+                "spice_ip_version": 0,
+                "spice_jpeg_wan_compression": "",
+                "spice_password_file": "",
+                "spice_playback_compression": true,
+                "spice_streaming_video": "",
+                "spice_tls_ciphers": "HIGH:-DES:-3DES:-EXPORT:-ADH",
+                "spice_use_tls": false,
+                "spice_use_vdagent": true,
+                "spice_zlib_glz_wan_compression": "",
+                "usb_devices": "",
+                "usb_mouse": "",
+                "use_chroot": false,
+                "use_localtime": false,
+                "vga": "",
+                "vhost_net": false,
+                "vnc_bind_address": "",
+                "vnc_password_file": "",
+                "vnc_tls": false,
+                "vnc_x509_path": "",
+                "vnc_x509_verify": false
+            },
+            "lxc": {
+                "cpu_mask": ""
+            },
+            "xen-hvm": {
+                "acpi": true,
+                "blockdev_prefix": "hd",
+                "boot_order": "cd",
+                "cdrom_image_path": "",
+                "cpu_cap": 0,
+                "cpu_mask": "all",
+                "cpu_weight": 256,
+                "device_model": "/usr/lib/xen/bin/qemu-dm",
+                "disk_type": "paravirtual",
+                "kernel_path": "/usr/lib/xen/boot/hvmloader",
+                "migration_mode": "non-live",
+                "migration_port": 8082,
+                "nic_type": "rtl8139",
+                "pae": true,
+                "pci_pass": "",
+                "reboot_behavior": "reboot",
+                "use_localtime": false,
+                "vif_script": "",
+                "vnc_bind_address": "0.0.0.0",
+                "vnc_password_file": "/your/vnc-cluster-password",
+                "xen_cmd": "xm"
+            },
+            "xen-pvm": {
+                "blockdev_prefix": "sd",
+                "bootloader_args": "",
+                "bootloader_path": "",
+                "cpu_cap": 0,
+                "cpu_mask": "all",
+                "cpu_weight": 256,
+                "initrd_path": "",
+                "kernel_args": "ro",
+                "kernel_path": "/boot/vmlinuz-xenU",
+                "migration_mode": "live",
+                "migration_port": 8082,
+                "reboot_behavior": "reboot",
+                "root_path": "/dev/xvda1",
+                "use_bootloader": false,
+                "vif_script": "",
+                "xen_cmd": "xm"
+            }
+        },
+        "ipolicy": {
+            "disk-templates": [
+                "sharedfile",
+                "diskless",
+                "plain",
+                "blockdev",
+                "drbd",
+                "file",
+                "rbd"
+            ],
+            "minmax": [
+                {
+                    "max": {
+                        "cpu-count": 8,
+                        "disk-count": 16,
+                        "disk-size": 1048576,
+                        "memory-size": 32768,
+                        "nic-count": 8,
+                        "spindle-use": 12
+                    },
+                    "min": {
+                        "cpu-count": 1,
+                        "disk-count": 1,
+                        "disk-size": 1024,
+                        "memory-size": 128,
+                        "nic-count": 1,
+                        "spindle-use": 1
+                    }
+                }
+            ],
+            "spindle-ratio": 32.0,
+            "std": {
+                "cpu-count": 1,
+                "disk-count": 1,
+                "disk-size": 1024,
+                "memory-size": 128,
+                "nic-count": 1,
+                "spindle-use": 1
+            },
+            "vcpu-ratio": 1.0
+        },
+        "mac_prefix": "aa:bb:cc",
+        "maintain_node_health": false,
+        "master_ip": "192.0.2.87",
+        "master_netdev": "eth0",
+        "master_netmask": 32,
+        "master_node": "9a12d554-75c0-4cb1-8064-103365145db0",
+        "modify_etc_hosts": true,
+        "modify_ssh_setup": true,
+        "mtime": 1361964122.79471,
+        "ndparams": {
+            "exclusive_storage": false,
+            "oob_program": "",
+            "spindle_count": 1
+        },
+        "nicparams": {
+            "default": {
+                "link": "br974",
+                "mode": "bridged"
+            }
+        },
+        "os_hvp": {
+            "TEMP-Ganeti-QA-OS": {
+                "xen-hvm": {
+                    "acpi": false,
+                    "pae": true
+                },
+                "xen-pvm": {
+                    "root_path": "/dev/sda5"
+                }
+            }
+        },
+        "osparams": {},
+        "prealloc_wipe_disks": false,
+        "primary_ip_family": 2,
+        "reserved_lvs": [],
+        "rsahostkeypub": "YOURKEY",
+        "serial_no": 3189,
+        "shared_file_storage_dir": "/srv/ganeti/shared-file-storage",
+        "tags": [
+            "mytag"
+        ],
+        "tcpudp_port_pool": [
+            32101,
+            32102,
+            32103,
+            32104,
+            32105
+        ],
+        "uid_pool": [],
+        "use_external_mip_script": false,
+        "uuid": "dddf8c12-f2d8-4718-a35b-7804daf12a3f",
+        "volume_group_name": "xenvg"
+    },
+    "ctime": 1343869045.605523,
+    "instances": {
+        "4e091bdc-e205-4ed7-8a47-0c9130a6619f": {
+            "admin_state": "up",
+            "beparams": {},
+            "ctime": 1354038435.343601,
+            "disk_template": "plain",
+            "disks": [
+                {
+                    "dev_type": "plain",
+                    "iv_name": "disk/0",
+                    "logical_id": [
+                        "xenvg",
+                        "b27a576a-13f7-4f07-885c-63fcad4fdfcc.disk0"
+                    ],
+                    "mode": "rw",
+                    "params": {},
+                    "size": 1280,
+                    "uuid": "150bd154-8e23-44d1-b762-5065ae5a507b"
+                }
+            ],
+            "hvparams": {},
+            "hypervisor": "xen-pvm",
+            "mtime": 1354224585.700732,
+            "name": "instance3.example.com",
+            "nics": [
+                {
+                    "mac": "aa:bb:cc:5e:5c:75",
+                    "nicparams": {},
+                    "uuid": "1ab090c1-e017-406c-afb4-fc285cb43e31"
+                }
+            ],
+            "os": "debian-image",
+            "osparams": {},
+            "primary_node": "2ae3d962-2dad-44f2-bdb1-85f77107f907",
+            "serial_no": 4,
+            "tags": [],
+            "uuid": "4e091bdc-e205-4ed7-8a47-0c9130a6619f"
+        },
+        "6c078d22-3eb6-4780-857d-81772e09eef1": {
+            "admin_state": "up",
+            "beparams": {},
+            "ctime": 1363620258.608976,
+            "disk_template": "drbd",
+            "disks": [
+                {
+                    "children": [
+                        {
+                            "dev_type": "plain",
+                            "logical_id": [
+                                "xenvg",
+                                "5c390722-6a7a-4bb4-9cef-98d896a8e6b1.disk0_data"
+                            ],
+                            "params": {},
+                            "size": 1024
+                        },
+                        {
+                            "dev_type": "plain",
+                            "logical_id": [
+                                "xenvg",
+                                "5c390722-6a7a-4bb4-9cef-98d896a8e6b1.disk0_meta"
+                            ],
+                            "params": {},
+                            "size": 128
+                        }
+                    ],
+                    "dev_type": "drbd",
+                    "iv_name": "disk/0",
+                    "logical_id": [
+                        "9a12d554-75c0-4cb1-8064-103365145db0",
+                        "41f9c238-173c-4120-9e41-04ad379b647a",
+                        32100,
+                        0,
+                        0,
+                        "d3c3fd475fcbaf5fd177fb245ac43b71247ada38"
+                    ],
+                    "mode": "rw",
+                    "params": {},
+                    "size": 1024,
+                    "uuid": "77ced3a5-6756-49ae-8d1f-274e27664c05"
+                }
+            ],
+            "hvparams": {},
+            "hypervisor": "xen-pvm",
+            "mtime": 1363620320.874901,
+            "name": "instance1.example.com",
+            "nics": [
+                {
+                    "mac": "aa:bb:cc:b2:6e:0b",
+                    "nicparams": {},
+                    "uuid": "2c953d72-fac4-4aa9-a225-4131bb271791"
+                }
+            ],
+            "os": "busybox",
+            "osparams": {},
+            "primary_node": "9a12d554-75c0-4cb1-8064-103365145db0",
+            "serial_no": 2,
+            "uuid": "6c078d22-3eb6-4780-857d-81772e09eef1"
+        },
+        "8fde9f6d-e1f1-4850-9e9c-154966f622f5": {
+            "admin_state": "up",
+            "beparams": {},
+            "ctime": 1355186880.451181,
+            "disk_template": "plain",
+            "disks": [
+                {
+                    "dev_type": "plain",
+                    "iv_name": "disk/0",
+                    "logical_id": [
+                        "xenvg",
+                        "3e559cd7-1024-4294-a923-a9fd13182b2f.disk0"
+                    ],
+                    "mode": "rw",
+                    "params": {},
+                    "size": 102400,
+                    "uuid": "79acf611-be58-4334-9fe4-4f2b73ae8abb"
+                }
+            ],
+            "hvparams": {},
+            "hypervisor": "xen-pvm",
+            "mtime": 1355186898.307642,
+            "name": "instance2.example.com",
+            "nics": [
+                {
+                    "mac": "aa:bb:cc:56:83:fb",
+                    "nicparams": {},
+                    "uuid": "1cf95562-e676-4fd0-8214-e8b84a2f7bd1"
+                }
+            ],
+            "os": "debian-image",
+            "osparams": {},
+            "primary_node": "41f9c238-173c-4120-9e41-04ad379b647a",
+            "serial_no": 2,
+            "tags": [],
+            "uuid": "8fde9f6d-e1f1-4850-9e9c-154966f622f5"
+        }
+    },
+    "mtime": 1367352404.758083,
+    "networks": {
+        "99f0128a-1c84-44da-90b9-9581ea00c075": {
+            "ext_reservations": "1000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001",
+            "name": "a network",
+            "network": "203.0.113.0/24",
+            "reservations": "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+            "serial_no": 1,
+            "uuid": "99f0128a-1c84-44da-90b9-9581ea00c075"
+        }
+    },
+    "nodegroups": {
+        "5244a46d-7506-4e14-922d-02b58153dde1": {
+            "alloc_policy": "preferred",
+            "diskparams": {},
+            "ipolicy": {},
+            "mtime": 1361963775.575009,
+            "name": "default",
+            "ndparams": {},
+            "networks": {},
+            "serial_no": 125,
+            "tags": [],
+            "uuid": "5244a46d-7506-4e14-922d-02b58153dde1"
+        },
+        "6c0a8916-b719-45ad-95dd-82192b1e473f": {
+            "alloc_policy": "preferred",
+            "diskparams": {},
+            "ipolicy": {
+                "disk-templates": [
+                    "plain"
+                ],
+                "minmax": [
+                    {
+                        "max": {
+                            "cpu-count": 8,
+                            "disk-count": 16,
+                            "disk-size": 1048576,
+                            "memory-size": 32768,
+                            "nic-count": 18,
+                            "spindle-use": 14
+                        },
+                        "min": {
+                            "cpu-count": 2,
+                            "disk-count": 2,
+                            "disk-size": 1024,
+                            "memory-size": 128,
+                            "nic-count": 1,
+                            "spindle-use": 1
+                        }
+                    }
+                ],
+                "spindle-ratio": 5.2,
+                "vcpu-ratio": 3.14
+            },
+            "mtime": 1361963775.575009,
+            "name": "another",
+            "ndparams": {
+                "exclusive_storage": true
+            },
+            "networks": {},
+            "serial_no": 125,
+            "tags": [],
+            "uuid": "6c0a8916-b719-45ad-95dd-82192b1e473f"
+        }
+    },
+    "nodes": {
+        "2ae3d962-2dad-44f2-bdb1-85f77107f907": {
+            "ctime": 1343869045.604884,
+            "drained": false,
+            "group": "5244a46d-7506-4e14-922d-02b58153dde1",
+            "master_candidate": true,
+            "master_capable": true,
+            "mtime": 1358348755.779906,
+            "name": "node2.example.com",
+            "ndparams": {},
+            "offline": false,
+            "powered": true,
+            "primary_ip": "192.0.2.83",
+            "secondary_ip": "198.51.100.83",
+            "serial_no": 6,
+            "tags": [],
+            "uuid": "2ae3d962-2dad-44f2-bdb1-85f77107f907",
+            "vm_capable": true
+        },
+        "41f9c238-173c-4120-9e41-04ad379b647a": {
+            "ctime": 1343869205.934807,
+            "drained": false,
+            "group": "5244a46d-7506-4e14-922d-02b58153dde1",
+            "master_candidate": true,
+            "master_capable": true,
+            "mtime": 1353019704.885368,
+            "name": "node3.example.com",
+            "ndparams": {},
+            "offline": false,
+            "powered": true,
+            "primary_ip": "192.0.2.84",
+            "secondary_ip": "198.51.100.84",
+            "serial_no": 2,
+            "tags": [],
+            "uuid": "41f9c238-173c-4120-9e41-04ad379b647a",
+            "vm_capable": true
+        },
+        "9a12d554-75c0-4cb1-8064-103365145db0": {
+            "ctime": 1349722460.022264,
+            "drained": false,
+            "group": "5244a46d-7506-4e14-922d-02b58153dde1",
+            "master_candidate": true,
+            "master_capable": true,
+            "mtime": 1359986533.353329,
+            "name": "node1.example.com",
+            "ndparams": {},
+            "offline": false,
+            "powered": true,
+            "primary_ip": "192.0.2.82",
+            "secondary_ip": "198.51.100.82",
+            "serial_no": 197,
+            "tags": [],
+            "uuid": "9a12d554-75c0-4cb1-8064-103365145db0",
+            "vm_capable": true
+        }
+    },
+    "serial_no": 7625,
+    "version": 2100000
+}
+
