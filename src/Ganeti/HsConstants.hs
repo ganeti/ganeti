@@ -3946,9 +3946,15 @@ cpuavgloadBufferSize = 150
 cpuavgloadWindowSize :: Int
 cpuavgloadWindowSize = 600
 
+-- * Monitoring daemon
+
 -- | Mond's variable for periodical data collection
 mondTimeInterval :: Int
 mondTimeInterval = 5
+
+-- | Mond's latest API version
+mondLatestApiVersion :: Int
+mondLatestApiVersion = 1
 
 -- * Disk access modes
 
