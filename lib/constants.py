@@ -1284,40 +1284,7 @@ BEC_DEFAULTS = _constants.BEC_DEFAULTS
 NDC_DEFAULTS = _constants.NDC_DEFAULTS
 NDC_GLOBALS = _constants.NDC_GLOBALS
 
-DISK_LD_DEFAULTS = {
-  DT_DRBD8: {
-    LDP_RESYNC_RATE: CLASSIC_DRBD_SYNC_SPEED,
-    LDP_BARRIERS: _constants.DRBD_BARRIERS,
-    LDP_NO_META_FLUSH: _constants.DRBD_NO_META_FLUSH,
-    LDP_DEFAULT_METAVG: DEFAULT_VG,
-    LDP_DISK_CUSTOM: "",
-    LDP_NET_CUSTOM: "",
-    LDP_PROTOCOL: DRBD_DEFAULT_NET_PROTOCOL,
-    LDP_DYNAMIC_RESYNC: False,
-
-    # The default values for the DRBD dynamic resync speed algorithm
-    # are taken from the drbsetup 8.3.11 man page, except for
-    # c-plan-ahead (that we don't need to set to 0, because we have a
-    # separate option to enable it) and for c-max-rate, that we cap to
-    # the default value for the static resync rate.
-    LDP_PLAN_AHEAD: 20, # ds
-    LDP_FILL_TARGET: 0, # sectors
-    LDP_DELAY_TARGET: 1, # ds
-    LDP_MAX_RATE: CLASSIC_DRBD_SYNC_SPEED, # KiB/s
-    LDP_MIN_RATE: 4 * 1024, # KiB/s
-    },
-  DT_PLAIN: {
-    LDP_STRIPES: _constants.LVM_STRIPECOUNT
-    },
-  DT_FILE: {},
-  DT_SHARED_FILE: {},
-  DT_BLOCK: {},
-  DT_RBD: {
-    LDP_POOL: "rbd",
-    LDP_ACCESS: DISK_KERNELSPACE,
-    },
-  DT_EXT: {},
-  }
+DISK_LD_DEFAULTS = _constants.DISK_LD_DEFAULTS
 
 # readability shortcuts
 _LV_DEFAULTS = DISK_LD_DEFAULTS[DT_PLAIN]

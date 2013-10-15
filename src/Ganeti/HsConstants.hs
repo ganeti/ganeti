@@ -40,7 +40,7 @@ module Ganeti.HsConstants where
 import Control.Arrow ((***))
 import Data.List ((\\))
 import Data.Map (Map)
-import qualified Data.Map as Map (fromList, keys, insert)
+import qualified Data.Map as Map (empty, fromList, keys, insert)
 
 import qualified AutoConf
 import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
@@ -3481,6 +3481,41 @@ ndcDefaults =
 
 ndcGlobals :: FrozenSet String
 ndcGlobals = ConstantUtils.mkSet [ndExclusiveStorage]
+
+diskLdDefaults :: Map DiskTemplate (Map String PyValueEx)
+diskLdDefaults =
+  Map.fromList
+  [ (DTDrbd8, Map.fromList
+              [ (ldpBarriers, PyValueEx drbdBarriers)
+              , (ldpDefaultMetavg, PyValueEx defaultVg)
+              , (ldpDelayTarget, PyValueEx (1 :: Int)) -- ds
+              , (ldpDiskCustom, PyValueEx "")
+              , (ldpDynamicResync, PyValueEx False)
+              , (ldpFillTarget, PyValueEx (0 :: Int)) -- sectors
+              , (ldpMaxRate, PyValueEx (classicDrbdSyncSpeed :: Int)) -- KiB/s
+              , (ldpMinRate, PyValueEx (4 * 1024 :: Int)) -- KiB/s
+              , (ldpNetCustom, PyValueEx "")
+              , (ldpNoMetaFlush, PyValueEx drbdNoMetaFlush)
+                -- The default values for the DRBD dynamic resync
+                -- speed algorithm are taken from the drbsetup 8.3.11
+                -- man page, except for c-plan-ahead (that we don't
+                -- need to set to 0, because we have a separate option
+                -- to enable it) and for c-max-rate, that we cap to
+                -- the default value for the static resync rate.
+              , (ldpPlanAhead, PyValueEx (20 :: Int)) -- ds
+              , (ldpProtocol, PyValueEx drbdDefaultNetProtocol)
+              , (ldpResyncRate, PyValueEx classicDrbdSyncSpeed)
+              ])
+  , (DTPlain, Map.fromList [(ldpStripes, PyValueEx lvmStripecount)])
+  , (DTFile, Map.empty)
+  , (DTSharedFile, Map.empty)
+  , (DTBlock, Map.empty)
+  , (DTRbd, Map.fromList
+            [ (ldpPool, PyValueEx "rbd")
+            , (ldpAccess, PyValueEx diskKernelspace)
+            ])
+  , (DTExt, Map.empty)
+  ]
 
 -- | All of the following values are quite arbitrary - there are no
 -- "good" defaults, these must be customised per-site
