@@ -111,9 +111,11 @@ Draft designs
    design-autorepair.rst
    design-bulk-create.rst
    design-chained-jobs.rst
+   design-cmdlib-unittests.rst
    design-cpu-pinning.rst
    design-device-uuid-name.rst
    design-hroller.rst
+   design-hotplug.rst
    design-linuxha.rst
    design-lu-generated-jobs.rst
    design-monitoring-agent.rst
@@ -121,6 +123,7 @@ Draft designs
    design-network.rst
    design-node-add.rst
    design-oob.rst
+   design-openvswitch.rst
    design-opportunistic-locking.rst
    design-ovf-support.rst
    design-partitioned
@@ -128,6 +131,8 @@ Draft designs
    design-reason-trail.rst
    design-restricted-commands.rst
    design-shared-storage.rst
+   design-storagetypes.rst
+   design-upgrade.rst
    design-virtual-clusters.rst
    devnotes.rst
    glossary.rst
