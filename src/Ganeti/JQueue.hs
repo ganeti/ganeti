@@ -30,6 +30,7 @@ module Ganeti.JQueue
     , QueuedJob(..)
     , InputOpCode(..)
     , queuedOpCodeFromMetaOpCode
+    , queuedJobFromOpCodes
     , Timestamp
     , noTimestamp
     , opStatusFinalized
@@ -146,6 +147,19 @@ queuedOpCodeFromMetaOpCode op =
                , qoEndTimestamp = Nothing
                , qoExecTimestamp = Nothing
                }
+
+-- | From a job-id and a list of op-codes create a job. This is
+-- the pure part of job creation, as allocating a new job id
+-- lives in IO.
+queuedJobFromOpCodes :: (Monad m) => JobId -> [MetaOpCode] -> m QueuedJob
+queuedJobFromOpCodes jobid ops = do
+  ops' <- mapM (`resolveDependencies` jobid) ops
+  return QueuedJob { qjId = jobid
+                   , qjOps = map queuedOpCodeFromMetaOpCode ops'
+                   , qjReceivedTimestamp = Nothing 
+                   , qjStartTimestamp = Nothing
+                   , qjEndTimestamp = Nothing
+                   }
 
 -- | Job file prefix.
 jobFilePrefix :: String
