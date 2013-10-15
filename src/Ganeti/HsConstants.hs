@@ -3822,6 +3822,12 @@ sshHostRsaPriv = sshConfigDir ++ "/ssh_host_rsa_key"
 sshHostRsaPub :: String
 sshHostRsaPub = sshHostRsaPriv ++ ".pub"
 
+sshDaemonKeyfiles :: Map String (String, String)
+sshDaemonKeyfiles =
+  Map.fromList [ (sshkRsa, (sshHostRsaPriv, sshHostRsaPub))
+               , (sshkDsa, (sshHostDsaPriv, sshHostDsaPub))
+               ]
+
 -- * Node daemon setup
 
 ndsClusterName :: String
