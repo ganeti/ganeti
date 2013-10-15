@@ -815,6 +815,13 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.assertEqual(enabled_disk_templates,
                      self.cluster.enabled_disk_templates)
 
+  def testEnabledDiskTemplatesVsIpolicy(self):
+    enabled_disk_templates = [constants.DT_DISKLESS, constants.DT_PLAIN]
+    op = opcodes.OpClusterSetParams(
+           enabled_disk_templates=enabled_disk_templates,
+           ipolicy={constants.IPOLICY_DTS: [constants.DT_FILE]})
+    self.ExecOpCodeExpectOpPrereqError(op, "but not enabled on the cluster")
+
   def testDisablingDiskTemplatesOfInstances(self):
     old_disk_templates = [constants.DT_DISKLESS, constants.DT_PLAIN]
     self.cfg.SetEnabledDiskTemplates(old_disk_templates)
