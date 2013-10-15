@@ -157,15 +157,6 @@ AC_ARG_WITH([kvm-kernel],
   [kvm_kernel="/boot/vmlinuz-3-kvmU"])
 AC_SUBST(KVM_KERNEL, $kvm_kernel)
 
-# --with-shared-file-storage-dir=...
-AC_ARG_WITH([shared-file-storage-dir],
-  [AS_HELP_STRING([--with-shared-file-storage-dir=PATH],
-    [directory to store files for shared file-based backend]
-    [ (default is /srv/ganeti/shared-file-storage)]
-  )],
-  [[shared_file_storage_dir="/srv/ganeti/shared-file-storage"]])
-AC_SUBST(SHARED_FILE_STORAGE_DIR, $shared_file_storage_dir)
-
 # --with-kvm-path=...
 AC_ARG_WITH([kvm-path],
   [AS_HELP_STRING([--with-kvm-path=PATH],

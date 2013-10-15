@@ -443,10 +443,13 @@ class ConfigData(ConfigObject):
       node.UpgradeConfig()
     for instance in self.instances.values():
       instance.UpgradeConfig()
+    self._UpgradeEnabledDiskTemplates()
     if self.nodegroups is None:
       self.nodegroups = {}
     for nodegroup in self.nodegroups.values():
       nodegroup.UpgradeConfig()
+      InstancePolicy.UpgradeDiskTemplates(
+        nodegroup.ipolicy, self.cluster.enabled_disk_templates)
     if self.cluster.drbd_usermode_helper is None:
       if self.cluster.IsDiskTemplateEnabled(constants.DT_DRBD8):
         self.cluster.drbd_usermode_helper = constants.DEFAULT_DRBD_HELPER
@@ -454,15 +457,12 @@ class ConfigData(ConfigObject):
       self.networks = {}
     for network in self.networks.values():
       network.UpgradeConfig()
-    self._UpgradeEnabledDiskTemplates()
 
   def _UpgradeEnabledDiskTemplates(self):
     """Upgrade the cluster's enabled disk templates by inspecting the currently
        enabled and/or used disk templates.
 
     """
-    # enabled_disk_templates in the cluster config were introduced in 2.8.
-    # Remove this code once upgrading from earlier versions is deprecated.
     if not self.cluster.enabled_disk_templates:
       template_set = \
         set([inst.disk_template for inst in self.instances.values()])
@@ -479,6 +479,8 @@ class ConfigData(ConfigObject):
           self.cluster.enabled_disk_templates.append(preferred_template)
           template_set.remove(preferred_template)
       self.cluster.enabled_disk_templates.extend(list(template_set))
+    InstancePolicy.UpgradeDiskTemplates(
+      self.cluster.ipolicy, self.cluster.enabled_disk_templates)
 
 
 class NIC(ConfigObject):
@@ -913,6 +915,15 @@ class InstancePolicy(ConfigObject):
   used as a placeholder for a few functions.
 
   """
+  @classmethod
+  def UpgradeDiskTemplates(cls, ipolicy, enabled_disk_templates):
+    """Upgrades the ipolicy configuration."""
+    if constants.IPOLICY_DTS in ipolicy:
+      if not set(ipolicy[constants.IPOLICY_DTS]).issubset(
+        set(enabled_disk_templates)):
+        ipolicy[constants.IPOLICY_DTS] = list(
+          set(ipolicy[constants.IPOLICY_DTS]) & set(enabled_disk_templates))
+
   @classmethod
   def CheckParameterSyntax(cls, ipolicy, check_std):
     """ Check the instance policy for validity.
