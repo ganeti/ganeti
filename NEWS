@@ -24,6 +24,7 @@ Incompatible/important changes
 
 New features
 ~~~~~~~~~~~~
+
 - KVM hypervisors can now access RBD storage directly without having to
   go through a block device.
 - A new command 'gnt-cluster upgrade' was added that automates the upgrade
@@ -35,6 +36,8 @@ New features
 Misc changes
 ~~~~~~~~~~~~
 
+- A new test framework for logical units was introduced and the test
+  coverage for logical units was improved significantly.
 - Opcodes are entirely generated from Haskell using the tool 'hs2py' and
   the module 'src/Ganeti/OpCodes.hs'.
 - Constants are also generated from Haskell using the tool
@@ -43,6 +46,16 @@ Misc changes
   cluster configuration file, and HVS related constants, because they
   are part of a port of instance queries to Haskell.  As a result, these
   changes will be part of the next release of Ganeti.
+
+New dependencies
+~~~~~~~~~~~~~~~~
+
+The following new dependencies have been added/updated.
+
+Python
+
+- The version requirements for ``python-mock`` have increased to at least
+  version 1.0.1. It is still used for testing only.
 
 
 Version 2.9.0 rc3
