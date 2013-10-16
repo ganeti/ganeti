@@ -292,12 +292,14 @@ check_and_start() {
 start_master() {
   start ganeti-masterd
   start ganeti-rapi
+  _confd_enabled && start ganeti-luxid
 }
 
 # Stops the master role
 stop_master() {
   stop ganeti-rapi
   stop ganeti-masterd
+  _confd_enabled && stop ganeti-luxid
 }
 
 # Start all daemons
