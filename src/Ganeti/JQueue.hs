@@ -48,6 +48,7 @@ module Ganeti.JQueue
     , readSerialFromDisk
     , allocateJobIds
     , allocateJobId
+    , writeJobToDisk
     ) where
 
 import Control.Concurrent.MVar
@@ -336,6 +337,14 @@ loadJobFromDisk rootdir archived jid = do
              Just (str, arch) ->
                liftM (\qj -> (qj, arch)) .
                fromJResult "Parsing job file" $ Text.JSON.decode str
+
+-- | Write a job to disk.
+writeJobToDisk :: FilePath -> QueuedJob -> IO (Result ())
+writeJobToDisk rootdir job = do
+  let filename = liveJobFile rootdir . qjId $ job
+      content = Text.JSON.encode . Text.JSON.showJSON $ job
+  tryAndLogIOError (atomicWriteFile filename content)
+                   ("Failed to write " ++ filename) Ok
 
 -- | Read the job serial number from disk.
 readSerialFromDisk :: IO (Result JobId)
