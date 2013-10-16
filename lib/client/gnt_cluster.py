@@ -78,19 +78,6 @@ _EPO_PING_TIMEOUT = 1 # 1 second
 _EPO_REACHABLE_TIMEOUT = 15 * 60 # 15 minutes
 
 
-def _CheckNoLvmStorageOptDeprecated(opts):
-  """Checks if the legacy option '--no-lvm-storage' is used.
-
-  """
-  if not opts.lvm_storage:
-    ToStderr("The option --no-lvm-storage is no longer supported. If you want"
-             " to disable lvm-based storage cluster-wide, use the option"
-             " --enabled-disk-templates to disable all of these lvm-base disk "
-             "  templates: %s" %
-             utils.CommaJoin(constants.DTS_LVM))
-    return 1
-
-
 def _InitEnabledDiskTemplates(opts):
   """Initialize the list of enabled disk templates.
 
@@ -156,9 +143,6 @@ def InitCluster(opts, args):
   @return: the desired exit code
 
   """
-  if _CheckNoLvmStorageOptDeprecated(opts):
-    return 1
-
   enabled_disk_templates = _InitEnabledDiskTemplates(opts)
 
   try:
@@ -1104,9 +1088,6 @@ def SetClusterParams(opts, args):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
-  if _CheckNoLvmStorageOptDeprecated(opts):
-    return 1
-
   enabled_disk_templates = _GetEnabledDiskTemplates(opts)
   vg_name = _GetVgName(opts, enabled_disk_templates)
 
@@ -2040,13 +2021,13 @@ commands = {
     InitCluster, [ArgHost(min=1, max=1)],
     [BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, GLOBAL_FILEDIR_OPT,
      HVLIST_OPT, MAC_PREFIX_OPT, MASTER_NETDEV_OPT, MASTER_NETMASK_OPT,
-     NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, NOMODIFY_ETCHOSTS_OPT,
-     NOMODIFY_SSH_SETUP_OPT, SECONDARY_IP_OPT, VG_NAME_OPT,
-     MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, DRBD_HELPER_OPT,
-     DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT,
-     NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT,
-     DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
-     IPOLICY_STD_SPECS_OPT] + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
+     NIC_PARAMS_OPT, NOMODIFY_ETCHOSTS_OPT, NOMODIFY_SSH_SETUP_OPT,
+     SECONDARY_IP_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT,
+     DRBD_HELPER_OPT, DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT,
+     PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT,
+     USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT,
+     ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT]
+     + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
     DestroyCluster, ARGS_NONE, [YES_DOIT_OPT],
@@ -2121,12 +2102,11 @@ commands = {
     SetClusterParams, ARGS_NONE,
     [FORCE_OPT,
      BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
-     MASTER_NETMASK_OPT, NIC_PARAMS_OPT, NOLVM_STORAGE_OPT, VG_NAME_OPT,
-     MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT,
-     DRBD_HELPER_OPT, DEFAULT_IALLOCATOR_OPT,
-     RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT,
-     NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT,
-     DISK_STATE_OPT] + SUBMIT_OPTS +
+     MASTER_NETMASK_OPT, NIC_PARAMS_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
+     UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
+     DEFAULT_IALLOCATOR_OPT, RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT,
+     PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT,
+     DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] + SUBMIT_OPTS +
      [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT] +
      INSTANCE_POLICY_OPTS + [GLOBAL_FILEDIR_OPT],
     "[opts...]",

@@ -139,7 +139,6 @@ __all__ = [
   "NOIPCHECK_OPT",
   "NO_INSTALL_OPT",
   "NONAMECHECK_OPT",
-  "NOLVM_STORAGE_OPT",
   "NOMODIFY_ETCHOSTS_OPT",
   "NOMODIFY_SSH_SETUP_OPT",
   "NONICS_OPT",
@@ -1230,11 +1229,6 @@ CAPAB_VM_OPT = cli_option("--vm-capable", dest="vm_capable",
 ALLOCATABLE_OPT = cli_option("--allocatable", dest="allocatable",
                              type="bool", default=None, metavar=_YORNO,
                              help="Set the allocatable flag on a volume")
-
-NOLVM_STORAGE_OPT = cli_option("--no-lvm-storage", dest="lvm_storage",
-                               help="Disable support for lvm based instances"
-                               " (cluster-wide)",
-                               action="store_false", default=True)
 
 ENABLED_HV_OPT = cli_option("--enabled-hypervisors",
                             dest="enabled_hypervisors",
