@@ -61,8 +61,10 @@ module Ganeti.Utils
   , setOwnerAndGroupFromNames
   , formatOrdinal
   , atomicWriteFile
+  , tryAndLogIOError
   ) where
 
+import Control.Exception (try)
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import Data.Function (on)
 import Data.List
@@ -267,6 +269,16 @@ logWarningIfBad msg defVal (Bad s) = do
   logWarning $ msg ++ ": " ++ s
   return defVal
 logWarningIfBad _ _ (Ok v) = return v
+
+-- | Try an IO interaction, log errors and unfold as a 'Result'.
+tryAndLogIOError :: IO a -> String -> (a -> Result b) -> IO (Result b)
+tryAndLogIOError io msg okfn =
+ try io >>= either
+   (\ e -> do
+       let combinedmsg = msg ++ ": " ++ show (e :: IOError)
+       logError combinedmsg
+       return . Bad $ combinedmsg)
+   (return . okfn)
 
 -- | Print a warning, but do not exit.
 warn :: String -> IO ()
