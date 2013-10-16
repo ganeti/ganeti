@@ -1133,6 +1133,53 @@ def TestClusterMasterFailover():
     failovermaster.Release()
 
 
+def TestUpgrade():
+  """Test gnt-cluster upgrade.
+
+  This tests the 'gnt-cluster upgrade' command by flipping
+  between the current and a different version of Ganeti.
+  To also recover subtile points in the configuration up/down
+  grades, instances are left over both upgrades.
+
+  """
+  this_version = qa_config.get("dir-version")
+  other_version = qa_config.get("other-dir-version")
+  if this_version is None or other_version is None:
+    print qa_utils.FormatInfo("Test not run, as versions not specified")
+    return
+
+  inst_creates = []
+  upgrade_instances = qa_config.get("upgrade-instances", [])
+  live_instances = []
+  for (test_name, templ, cf, n) in qa_instance.available_instance_tests:
+    if (qa_config.TestEnabled(test_name) and
+        qa_config.IsTemplateSupported(templ) and
+        templ in upgrade_instances):
+      inst_creates.append((cf, n))
+      break
+  
+  for (cf, n) in inst_creates:
+    nodes = qa_config.AcquireManyNodes(n)
+    live_instances.append(cf(nodes))
+
+  AssertCommand(["gnt-cluster", "upgrade", "--to", other_version])
+  AssertCommand(["gnt-cluster", "verify"])
+
+  for instance in live_instances:
+    qa_instance.TestInstanceRemove(instance)
+    instance.Release()
+  live_instances = []
+  for (cf, n) in inst_creates:
+    nodes = qa_config.AcquireManyNodes(n)
+    live_instances.append(cf(nodes))
+
+  AssertCommand(["gnt-cluster", "upgrade", "--to", this_version])
+  AssertCommand(["gnt-cluster", "verify"])
+
+  for instance in live_instances:
+    qa_instance.TestInstanceRemove(instance)
+    instance.Release()
+
 def _NodeQueueDrainFile(node):
   """Returns path to queue drain file for a node.
 
