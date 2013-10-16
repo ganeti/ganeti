@@ -111,14 +111,20 @@ debootstrap --arch $ARCH $DIST_RELEASE $CHDIR
 
 APT_INSTALL="apt-get install -y --no-install-recommends"
 
-echo "deb http://backports.debian.org/debian-backports" \
-     "$DIST_RELEASE-backports main contrib non-free" \
-     > $CHDIR/etc/apt/sources.list.d/backports.list
+if [ DIST_RELEASE = squeeze ]
+then
+  echo "deb http://backports.debian.org/debian-backports" \
+       "$DIST_RELEASE-backports main contrib non-free" \
+       > $CHDIR/etc/apt/sources.list.d/backports.list
+fi
 
 #Install all the packages
 in_chroot -- \
   apt-get update
 
+case $DIST_RELEASE in
+
+  squeeze)
 
 # do not install libghc6-network-dev, since it's too old, and just
 # confuses the dependencies
@@ -132,7 +138,7 @@ in_chroot -- \
     libghc6-vector-dev \
     libpcre3-dev \
     hlint hscolour pandoc \
-    graphviz socat qemu-utils \
+    graphviz qemu-utils \
     python-docutils \
     python-simplejson \
     python-pyparsing \
@@ -203,33 +209,68 @@ in_chroot -- \
     git-email \
     vim
 
+;;
+
+  wheezy)
+
 in_chroot -- \
-  $APT_INSTALL sudo fakeroot rsync locales less
+  $APT_INSTALL \
+  autoconf automake ghc ghc-haddock libghc-network-dev \
+  libghc-test-framework{,-hunit,-quickcheck2}-dev \
+  libghc-json-dev libghc-curl-dev libghc-hinotify-dev \
+  libghc-parallel-dev libghc-utf8-string-dev \
+  libghc-hslogger-dev libghc-crypto-dev \
+  libghc-regex-pcre-dev libghc-attoparsec-dev \
+  libghc-vector-dev libghc-temporary-dev \
+  libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
+  python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
+  python-simplejson python-pycurl python-paramiko \
+  python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
+  shelltestrunner python-dev pylint openssh-client vim git git-email
+
+  easy_install pyinotify==0.9.4
+
+;;
+
+  *)
+
+in_chroot -- \
+  $APT_INSTALL \
+  autoconf automake ghc ghc-haddock libghc-network-dev \
+  libghc-test-framework{,-hunit,-quickcheck2}-dev \
+  libghc-json-dev libghc-curl-dev libghc-hinotify-dev \
+  libghc-parallel-dev libghc-utf8-string-dev \
+  libghc-hslogger-dev libghc-crypto-dev \
+  libghc-regex-pcre-dev libghc-attoparsec-dev \
+  libghc-vector-dev libghc-temporary-dev \
+  libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
+  python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
+  python-simplejson python-pyinotify python-pycurl python-paramiko \
+  python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
+  shelltestrunner python-dev pylint openssh-client vim git git-email
+
+;;
+esac
 
 echo "en_US.UTF-8 UTF-8" >> $CHDIR/etc/locale.gen
+
+in_chroot -- \
+  $APT_INSTALL sudo fakeroot rsync locales less socat
 
 in_chroot -- \
   locale-gen
 
 in_chroot -- \
   $APT_INSTALL lvm2 ssh bridge-utils iproute iputils-arping \
-               ndisc6 python python-pyopenssl openssl \
-               python-mock \
-               socat fping
-
-in_chroot -- \
-  $APT_INSTALL qemu-utils
+               ndisc6 python-openssl openssl \
+               python-mock fping qemu-utils
 
 in_chroot -- \
   easy_install affinity
 
-#Python development tools
 in_chroot -- \
-  $APT_INSTALL python-epydoc
-
-#Tools for creating debian packages
-in_chroot -- \
-  $APT_INSTALL debhelper quilt
+  $APT_INSTALL \
+  python-epydoc debhelper quilt
 
 # extra debian packages
 
@@ -259,5 +300,4 @@ rm -rf $TEMP_DATA_DIR
 echo "Chroot created. In order to run it:"
 echo " * Copy the file $FINAL_CHROOT_CONF to $CONF_DIR/$FINAL_CHROOT_CONF"
 echo " * Copy the file $COMP_FILEPATH to $CHROOT_DIR/$COMP_FILENAME"
-
 echo "Then run \"schroot -c $CHROOTNAME\""
