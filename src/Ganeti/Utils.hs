@@ -60,6 +60,7 @@ module Ganeti.Utils
   , resolveAddr
   , setOwnerAndGroupFromNames
   , formatOrdinal
+  , atomicWriteFile
   ) where
 
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
@@ -67,6 +68,8 @@ import Data.Function (on)
 import Data.List
 import qualified Data.Map as M
 import Control.Monad (foldM)
+import System.Directory (renameFile)
+import System.FilePath.Posix (takeDirectory, takeBaseName)
 
 import Debug.Trace
 import Network.Socket
@@ -485,3 +488,12 @@ formatOrdinal num
   | otherwise            = suffix "th"
   where tens     = num `mod` 10
         suffix s = show num ++ s
+
+-- | Atomically write a file, by first writing the contents into a temporary
+-- file and then renaming it to the old position.
+atomicWriteFile :: FilePath -> String -> IO ()
+atomicWriteFile path contents = do
+  (tmppath, tmphandle) <- openTempFile (takeDirectory path) (takeBaseName path)
+  hPutStr tmphandle contents
+  hClose tmphandle
+  renameFile tmppath path
