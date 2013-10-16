@@ -832,10 +832,13 @@ def TestClusterMasterFailover():
   failovermaster = qa_config.AcquireNode(exclude=master)
 
   cmd = ["gnt-cluster", "master-failover"]
+  node_list_cmd = ["gnt-node", "list"]
   try:
     AssertCommand(cmd, node=failovermaster)
+    AssertCommand(node_list_cmd, node=failovermaster)
     # Back to original master node
     AssertCommand(cmd, node=master)
+    AssertCommand(node_list_cmd, node=master)
   finally:
     failovermaster.Release()
 
