@@ -106,7 +106,7 @@ queueDir = dataDirP "queue"
 
 -- | Job queue serial file.
 jobQueueSerialFile :: IO FilePath
-jobQueueSerialFile = dataDirP "serial"
+jobQueueSerialFile = queueDir `pjoin` "serial"
 
 -- | Job queue archive directory.
 jobQueueArchiveSubDir :: FilePath
