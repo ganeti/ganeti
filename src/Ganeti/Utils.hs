@@ -58,6 +58,7 @@ module Ganeti.Utils
   , splitEithers
   , recombineEithers
   , resolveAddr
+  , monadicThe
   , setOwnerAndGroupFromNames
   , formatOrdinal
   , atomicWriteFile
@@ -422,6 +423,13 @@ defaultHead _   (x:_) = x
 exitIfEmpty :: String -> [a] -> IO a
 exitIfEmpty _ (x:_) = return x
 exitIfEmpty s []    = exitErr s
+
+-- | Obtain the unique element of a list in an arbitrary monad.
+monadicThe :: (Eq a, Monad m) => String -> [a] -> m a
+monadicThe s [] = fail s
+monadicThe s (x:xs)
+  | all (x ==) xs = return x
+  | otherwise = fail s
 
 -- | Split an 'Either' list into two separate lists (containing the
 -- 'Left' and 'Right' elements, plus a \"trail\" list that allows
