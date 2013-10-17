@@ -32,6 +32,7 @@ New features
 - The move-instance command can now change disk templates when moving
   instances, and does not require any node placement options to be
   specified if the destination cluster has a default iallocator.
+- Users can now change the soundhw and cpuid settings for XEN hypervisors.
 
 Misc changes
 ~~~~~~~~~~~~
