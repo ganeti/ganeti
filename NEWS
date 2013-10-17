@@ -32,6 +32,19 @@ New features
   instances, and does not require any node placement options to be
   specified if the destination cluster has a default iallocator.
 
+Misc changes
+~~~~~~~~~~~~
+
+- Opcodes are entirely generated from Haskell using the tool 'hs2py' and
+  the module 'src/Ganeti/OpCodes.hs'.
+- Constants are also generated from Haskell using the tool
+  'hs2py-constants' and the module 'src/Ganeti/HsConstants.hs', with the
+  exception of socket related constants, which require changing the
+  cluster configuration file, and HVS related constants, because they
+  are part of a port of instance queries to Haskell.  As a result, these
+  changes will be part of the next release of Ganeti.
+
+
 Version 2.9.0 rc3
 -----------------
 
