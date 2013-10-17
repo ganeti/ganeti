@@ -28,7 +28,9 @@ New features
   go through a block device.
 - A new command 'gnt-cluster upgrade' was added that automates the upgrade
   procedure between two Ganeti versions that are both 2.10 or higher.
-
+- The move-instance command can now change disk templates when moving
+  instances, and does not require any node placement options to be
+  specified if the destination cluster has a default iallocator.
 
 Version 2.9.0 rc3
 -----------------
