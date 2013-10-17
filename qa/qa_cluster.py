@@ -1157,7 +1157,7 @@ def TestUpgrade():
         templ in upgrade_instances):
       inst_creates.append((cf, n))
       break
-  
+
   for (cf, n) in inst_creates:
     nodes = qa_config.AcquireManyNodes(n)
     live_instances.append(cf(nodes))
