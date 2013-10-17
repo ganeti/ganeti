@@ -2087,7 +2087,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_device = _RUNTIME_DEVICE[dev_type](entry)
     kvm_devid = _GenerateDeviceKVMId(dev_type, kvm_device)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      command = "device_del %s" % kvm_devid
+      command = "device_del %s\n" % kvm_devid
+      command += "drive_del %s" % kvm_devid
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       command = "device_del %s\n" % kvm_devid
       command += "netdev_del %s" % kvm_devid
