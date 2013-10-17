@@ -179,6 +179,7 @@
     "cluster-repair-disk-sizes": true,
     "cluster-exclusive-storage": true,
     "cluster-instance-policy": true,
+    "cluster-upgrade" : true,
 
     "haskell-confd": true,
     "htools": true,

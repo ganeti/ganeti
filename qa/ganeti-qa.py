@@ -846,6 +846,8 @@ def RunQa():
   finally:
     pnode.Release()
 
+  RunTestIf("cluster-upgrade", qa_cluster.TestUpgrade)
+
   RunExclusiveStorageTests()
   RunTestIf(["cluster-instance-policy", "instance-add-plain-disk"],
             TestIPolicyPlainInstance)
