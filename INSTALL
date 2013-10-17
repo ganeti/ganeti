@@ -252,7 +252,10 @@ To install, simply run the following command::
 This will install the software under ``/usr/local``. You then need to
 copy ``doc/examples/ganeti.initd`` to ``/etc/init.d/ganeti`` and
 integrate it into your boot sequence (``chkconfig``, ``update-rc.d``,
-etc.).
+etc.). Also, Ganeti uses symbolic links in the sysconfdir to determine,
+which of potentially many installed versions currently is used. If these
+symbolic links should be added by the install as well, add the
+option ``--enable-symlinks`` to the ``configure`` call.
 
 
 Cluster initialisation
