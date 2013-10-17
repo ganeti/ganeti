@@ -81,7 +81,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
         memory = utils.TryConvert(int, fh.readline().strip())
         vcpus = utils.TryConvert(int, fh.readline().strip())
         stat = "---b-"
-        times = "0"
+        times = 0
         return (instance_name, inst_id, memory, vcpus, stat, times)
       finally:
         fh.close()
@@ -105,13 +105,13 @@ class FakeHypervisor(hv_base.BaseHypervisor):
         memory = 0
         vcpus = 1
         stat = "-----"
-        times = "-1"
+        times = -1
         try:
           inst_id = fh.readline().strip()
           memory = utils.TryConvert(int, fh.readline().strip())
           vcpus = utils.TryConvert(int, fh.readline().strip())
           stat = "---b-"
-          times = "0"
+          times = 0
         finally:
           fh.close()
         data.append((file_name, inst_id, memory, vcpus, stat, times))
