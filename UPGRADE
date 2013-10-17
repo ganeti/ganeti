@@ -12,6 +12,22 @@ following command on all nodes::
 
     $ /etc/init.d/ganeti restart
 
+2.11 and above
+--------------
+
+Starting from 2.10 onwards, Ganeti has support for parallely installed versions
+and automated upgrades. The default configuration for 2.11 and higher already is
+to install as a parallel version without changing the running version. If both
+versions, the installed one and the one to upgrade to, are 2.10 or higher, the
+actual switch of the live version can be carried out by the following command
+on the master node.::
+
+   $ gnt-cluster upgrade --to 2.11
+
+This will carry out the steps described below in the section on upgrades from
+2.1 and above. Downgrades to the previous minor version can be done in the same
+way, specifiying the smaller version on the ``--to`` argument.
+
 
 2.1 and above
 -------------
