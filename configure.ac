@@ -40,14 +40,14 @@ AM_CONDITIONAL([USE_VERSION_FULL], [test "$USE_VERSION_FULL" = yes])
 AC_ARG_ENABLE([symlinks],
   [AS_HELP_STRING([--enable-symlinks],
                   m4_normalize([also install version-dependent symlinks under
-                  $sysconfdir (default: enabled)]))],
-  [[if test "$enableval" != no; then
-      INSTALL_SYMLINKS=yes
-    else
+                  $sysconfdir (default: disabled)]))],
+  [[if test "$enableval" != yes; then
       INSTALL_SYMLINKS=no
+    else
+      INSTALL_SYMLINKS=yes
     fi
   ]],
-  [INSTALL_SYMLINKS=yes
+  [INSTALL_SYMLINKS=no
   ])
 AC_SUBST(INSTALL_SYMLINKS, $INSTALL_SYMLINKS)
 AM_CONDITIONAL([INSTALL_SYMLINKS], [test "$INSTALL_SYMLINKS" = yes])
