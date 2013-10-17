@@ -1084,3 +1084,16 @@ def TestInstanceCreationRestrictedByDiskTemplates():
                  "--ipolicy-disk-templates=%s" %
                    ",".join(enabled_disk_templates)],
                  fail=False)
+
+available_instance_tests = [
+  ("instance-add-plain-disk", constants.DT_PLAIN,
+   TestInstanceAddWithPlainDisk, 1),
+  ("instance-add-drbd-disk", constants.DT_DRBD8,
+   TestInstanceAddWithDrbdDisk, 2),
+  ("instance-add-diskless", constants.DT_DISKLESS,
+   TestInstanceAddDiskless, 1),
+  ("instance-add-file", constants.DT_FILE,
+   TestInstanceAddFile, 1),
+  ("instance-add-shared-file", constants.DT_SHARED_FILE,
+   TestInstanceAddSharedFile, 1),
+  ]
