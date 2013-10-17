@@ -1601,11 +1601,9 @@ hvsParameterTitles =
    (hvPassthrough, "pci_pass"),
    (hvVncBindAddress, "VNC_bind_address")]
 
--- | Converted from Python list or set @HVS_PARAMETERS@
 hvsParameters :: FrozenSet String
 hvsParameters = ConstantUtils.mkSet $ Map.keys hvsParameterTypes
 
--- | Converted from Python list or set @HVS_PARAMETER_TYPES@
 hvsParameterTypes :: Map String VType
 hvsParameterTypes = Map.fromList
   [ (hvAcpi,                            VTypeBool)
@@ -1674,7 +1672,7 @@ hvsParameterTypes = Map.fromList
   , (hvViridian,                        VTypeBool)
   , (hvVncBindAddress,                  VTypeString)
   , (hvVncPasswordFile,                 VTypeString)
-  , (hvVncTls,                          VTypeString)
+  , (hvVncTls,                          VTypeBool)
   , (hvVncX509,                         VTypeString)
   , (hvVncX509Verify,                   VTypeBool)
   , (hvVnetHdr,                         VTypeBool)
