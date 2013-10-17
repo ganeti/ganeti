@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.9.0 rc3
+Version 2.9.0 rc4
 -----------------
 
-*(Released Tue, 15 Oct 2013)*
+*(unreleased)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,8 +71,19 @@ Haskell
 - ``hslogger`` (http://software.complete.org/hslogger) is now always
   required, even if confd is not enabled.
 
-Since 2.9.0 rc2
+Since 2.9.0 rc3
 ~~~~~~~~~~~~~~~
+
+- Correctly start/stop luxid during gnt-cluster master-failover (inherited
+  from stable-2.8)
+
+
+Version 2.9.0 rc3
+-----------------
+
+*(Released Tue, 15 Oct 2013)*
+
+The third release candidate in the 2.9 series. Since 2.9.0 rc2:
 
 - in implicit configuration upgrade, match ipolicy with enabled disk templates
 - improved harep documentation (inherited from stable-2.8)
