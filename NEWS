@@ -33,6 +33,9 @@ New features
   instances, and does not require any node placement options to be
   specified if the destination cluster has a default iallocator.
 - Users can now change the soundhw and cpuid settings for XEN hypervisors.
+- Hail and hbal now have the (optional) capability of accessing average CPU
+  load information through the monitoring deamon, and to use it to dynamically
+  adapt the allocation of instances.
 
 Misc changes
 ~~~~~~~~~~~~
