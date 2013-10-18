@@ -435,6 +435,7 @@ class LUBackupExport(LogicalUnit):
 
           (fin_resu, dresults) = helper.RemoteExport(self.dest_disk_info,
                                                      key_name, dest_ca_pem,
+                                                     self.op.compress,
                                                      timeouts)
       finally:
         helper.Cleanup()

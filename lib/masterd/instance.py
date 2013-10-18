@@ -1271,7 +1271,7 @@ class ExportInstanceHelper:
 
     return (fin_resu, dresults)
 
-  def RemoteExport(self, disk_info, key_name, dest_ca_pem, timeouts):
+  def RemoteExport(self, disk_info, key_name, dest_ca_pem, compress, timeouts):
     """Inter-cluster instance export.
 
     @type disk_info: list
@@ -1280,6 +1280,8 @@ class ExportInstanceHelper:
     @param key_name: Name of X509 key to use
     @type dest_ca_pem: string
     @param dest_ca_pem: Destination X509 CA in PEM format
+    @type compress: string
+    @param compress: one of L{constants.IEC_ALL}
     @type timeouts: L{ImportExportTimeouts}
     @param timeouts: Timeouts for this import
 
@@ -1299,7 +1301,9 @@ class ExportInstanceHelper:
 
         opts = objects.ImportExportOptions(key_name=key_name,
                                            ca_pem=dest_ca_pem,
-                                           magic=magic, ipv6=ipv6)
+                                           magic=magic,
+                                           compress=compress,
+                                           ipv6=ipv6)
 
         self._feedback_fn("Sending disk %s to %s:%s" % (idx, host, port))
         finished_fn = compat.partial(self._TransferFinished, idx)
