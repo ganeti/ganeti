@@ -24,14 +24,18 @@ COMMANDS
 EXPORT
 ~~~~~~
 
-| **export** {-n *node*} [\--shutdown-timeout=*N*] [\--noshutdown]
-| [\--remove-instance] [\--ignore-remove-failures] [\--submit]
-| [\--print-job-id]
+| **export** {-n *node*} [\--compress=*compression-mode*]
+| [\--shutdown-timeout=*N*] [\--noshutdown] [\--remove-instance]
+| [\--ignore-remove-failures] [\--submit] [\--print-job-id]
 | {*instance*}
 
 Exports an instance to the target node. All the instance data and
 its configuration will be exported under the
 ``@CUSTOM_EXPORT_DIR@/$instance`` directory on the target node.
+
+The ``--compress`` option is used to specify which compression mode
+is used during the export. Valid values are 'none' (the default) and
+'gzip'.
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (xm destroy in xen, killing the kvm

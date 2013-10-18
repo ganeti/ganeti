@@ -92,6 +92,7 @@ def ExportInstance(opts, args):
 
   op = opcodes.OpBackupExport(instance_name=args[0],
                               target_node=opts.node,
+                              compress=opts.compress,
                               shutdown=opts.shutdown,
                               shutdown_timeout=opts.shutdown_timeout,
                               remove_instance=opts.remove_instance,
@@ -148,9 +149,9 @@ commands = {
     "Lists all available fields for exports"),
   "export": (
     ExportInstance, ARGS_ONE_INSTANCE,
-    [FORCE_OPT, SINGLE_NODE_OPT, NOSHUTDOWN_OPT, SHUTDOWN_TIMEOUT_OPT,
-     REMOVE_INSTANCE_OPT, IGNORE_REMOVE_FAILURES_OPT, DRY_RUN_OPT,
-     PRIORITY_OPT] + SUBMIT_OPTS,
+    [FORCE_OPT, SINGLE_NODE_OPT, COMPRESS_OPT, NOSHUTDOWN_OPT,
+     SHUTDOWN_TIMEOUT_OPT, REMOVE_INSTANCE_OPT, IGNORE_REMOVE_FAILURES_OPT,
+     DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "-n <target_node> [opts...] <name>",
     "Exports an instance to an image"),
   "import": (
