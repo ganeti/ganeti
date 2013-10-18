@@ -7,6 +7,15 @@ Version 2.11.0 alpha1
 
 *(unreleased)*
 
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+New features
+~~~~~~~~~~~~
+
+- Instance moves, backups and imports can now use compression to transfer the
+  instance data.
+
 
 Version 2.10.0 alpha1
 ---------------------
