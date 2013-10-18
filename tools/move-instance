@@ -115,6 +115,12 @@ DEST_DISK_TEMPLATE_OPT = \
                  dest="dest_disk_template", default=None,
                  help="Disk template to use on destination cluster")
 
+COMPRESS_OPT = \
+  cli.cli_option("--compress", action="store", type="string",
+                 dest="compress", default="none",
+                 help="Compression mode to use during the move (this mode has"
+                      " to be supported by both clusters)")
+
 PARALLEL_OPT = \
   cli.cli_option("-p", "--parallel", action="store", type="int", default=1,
                  dest="parallel", metavar="<number>",
@@ -276,7 +282,7 @@ class InstanceMove(object):
 
   """
   def __init__(self, src_instance_name, dest_instance_name,
-               dest_pnode, dest_snode, dest_iallocator,
+               dest_pnode, dest_snode, compress, dest_iallocator,
                dest_disk_template, hvparams,
                beparams, osparams, nics):
     """Initializes this class.
@@ -289,6 +295,9 @@ class InstanceMove(object):
     @param dest_pnode: Name of primary node on destination cluster
     @type dest_snode: string or None
     @param dest_snode: Name of secondary node on destination cluster
+    @type compress; string
+    @param compress: Compression mode to use (has to be supported on both
+                     clusters)
     @type dest_iallocator: string or None
     @param dest_iallocator: Name of iallocator to use
     @type dest_disk_template: string or None
@@ -307,6 +316,7 @@ class InstanceMove(object):
     self.dest_instance_name = dest_instance_name
     self.dest_pnode = dest_pnode
     self.dest_snode = dest_snode
+    self.compress = compress
     self.dest_iallocator = dest_iallocator
     self.dest_disk_template = dest_disk_template
     self.hvparams = hvparams
@@ -437,6 +447,7 @@ class MoveDestExecutor(object):
                  mrt.move.dest_instance_name)
     job_id = self._CreateInstance(dest_client, mrt.move.dest_instance_name,
                                   mrt.move.dest_pnode, mrt.move.dest_snode,
+                                  mrt.move.compress,
                                   mrt.move.dest_iallocator,
                                   mrt.move.dest_disk_template,
                                   mrt.src_instinfo, mrt.src_expinfo,
@@ -464,9 +475,9 @@ class MoveDestExecutor(object):
       mrt.dest_to_source.release()
 
   @staticmethod
-  def _CreateInstance(cl, name, pnode, snode, iallocator, dest_disk_template,
-                      instance, expinfo, override_hvparams, override_beparams,
-                      override_osparams, override_nics):
+  def _CreateInstance(cl, name, pnode, snode, compress, iallocator,
+                      dest_disk_template, instance, expinfo, override_hvparams,
+                      override_beparams, override_osparams, override_nics):
     """Starts the instance creation in remote import mode.
 
     @type cl: L{rapi.client.GanetiRapiClient}
@@ -477,6 +488,8 @@ class MoveDestExecutor(object):
     @param pnode: Name of primary node on destination cluster
     @type snode: string or None
     @param snode: Name of secondary node on destination cluster
+    @type compress: string
+    @param compress: Compression mode to use
     @type iallocator: string or None
     @param iallocator: Name of iallocator to use
     @type dest_disk_template: string or None
@@ -561,6 +574,7 @@ class MoveDestExecutor(object):
                              hypervisor=instance["hypervisor"],
                              source_handshake=expinfo["handshake"],
                              source_x509_ca=expinfo["x509_ca"],
+                             compress=compress,
                              source_instance_name=instance["name"],
                              beparams=objects.FillDict(inst_beparams,
                                                        override_beparams),
@@ -612,7 +626,8 @@ class MoveSourceExecutor(object):
 
     logging.info("Starting remote export on source cluster")
     self._ExportInstance(src_client, mrt.PollJob, mrt.move.src_instance_name,
-                         expinfo["x509_key_name"], mrt.dest_impinfo)
+                         expinfo["x509_key_name"], mrt.move.compress,
+                         mrt.dest_impinfo)
 
     logging.info("Export successful")
 
@@ -666,7 +681,7 @@ class MoveSourceExecutor(object):
     return poll_job_fn(cl, job_id)[0]
 
   @staticmethod
-  def _ExportInstance(cl, poll_job_fn, name, x509_key_name, impinfo):
+  def _ExportInstance(cl, poll_job_fn, name, x509_key_name, compress, impinfo):
     """Exports instance from source cluster.
 
     @type cl: L{rapi.client.GanetiRapiClient}
@@ -676,6 +691,8 @@ class MoveSourceExecutor(object):
     @type name: string
     @param name: Instance name
     @param x509_key_name: Source X509 key
+    @type compress: string
+    @param compress: Compression mode to use
     @param impinfo: Import information from destination cluster
 
     """
@@ -683,7 +700,8 @@ class MoveSourceExecutor(object):
                                impinfo["disks"], shutdown=True,
                                remove_instance=True,
                                x509_key_name=x509_key_name,
-                               destination_x509_ca=impinfo["x509_ca"])
+                               destination_x509_ca=impinfo["x509_ca"],
+                               compress=compress)
     (fin_resu, dresults) = poll_job_fn(cl, job_id)[0]
 
     if not (fin_resu and compat.all(dresults)):
@@ -777,6 +795,7 @@ def ParseOptions():
   parser.add_option(DEST_PRIMARY_NODE_OPT)
   parser.add_option(DEST_SECONDARY_NODE_OPT)
   parser.add_option(DEST_DISK_TEMPLATE_OPT)
+  parser.add_option(COMPRESS_OPT)
   parser.add_option(PARALLEL_OPT)
 
   (options, args) = parser.parse_args()
@@ -894,6 +913,7 @@ def main():
     moves.append(InstanceMove(src_instance_name, dest_instance_name,
                               options.dest_primary_node,
                               options.dest_secondary_node,
+                              options.compress,
                               options.iallocator,
                               options.dest_disk_template,
                               options.hvparams,

@@ -87,6 +87,9 @@ destination-related options default to the source value (e.g. setting
   When moving a single instance: Secondary node on destination cluster.
 ``--dest-disk-template``
   Disk template to use after the move. Can be used to change disk templates.
+``--compress``
+  Compression mode to use during the instance move. This mode has to be
+  supported by both the source and the destination cluster.
 ``--iallocator``
   Iallocator for creating instance on destination cluster.
 ``--hypervisor-parameters``/``--backend-parameters``/``--os-parameters``/``--net``

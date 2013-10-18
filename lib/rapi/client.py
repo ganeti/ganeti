@@ -1176,7 +1176,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
   def ExportInstance(self, instance, mode, destination, shutdown=None,
                      remove_instance=None,
-                     x509_key_name=None, destination_x509_ca=None):
+                     x509_key_name=None, destination_x509_ca=None,
+                     compress=None):
     """Exports an instance.
 
     @type instance: string
@@ -1198,6 +1199,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     _SetItemIf(body, x509_key_name is not None, "x509_key_name", x509_key_name)
     _SetItemIf(body, destination_x509_ca is not None,
                "destination_x509_ca", destination_x509_ca)
+    _SetItemIf(body, compress is not None, "compress", compress)
 
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/export" %
