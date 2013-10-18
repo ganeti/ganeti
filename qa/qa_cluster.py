@@ -1180,6 +1180,7 @@ def TestUpgrade():
     qa_instance.TestInstanceRemove(instance)
     instance.Release()
 
+
 def _NodeQueueDrainFile(node):
   """Returns path to queue drain file for a node.
 
