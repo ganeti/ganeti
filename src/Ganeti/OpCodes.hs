@@ -448,6 +448,7 @@ $(genOpCode "OpCode"
      , pSrcNode
      , pSrcNodeUuid
      , pSrcPath
+     , pBackupCompress
      , pStartInstance
      , pInstTags
      ],

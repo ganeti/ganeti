@@ -1408,7 +1408,7 @@ class LUInstanceCreate(LogicalUnit):
                                                   self.op.src_node_uuid,
                                                   self.pnode.uuid,
                                                   self.pnode.secondary_ip,
-                                                  constants.IEC_NONE,
+                                                  self.op.compress,
                                                   iobj, transfers)
           if not compat.all(import_result):
             self.LogWarning("Some disks for instance %s on node %s were not"
