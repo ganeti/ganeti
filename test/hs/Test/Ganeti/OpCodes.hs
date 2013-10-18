@@ -330,9 +330,9 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpBackupPrepare <$> genFQDN <*> return Nothing <*> arbitrary
       "OP_BACKUP_EXPORT" ->
         OpCodes.OpBackupExport <$> genFQDN <*> return Nothing <*>
-          arbitrary <*> arbitrary <*> return Nothing <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> genMaybe (pure []) <*>
-          genMaybe genNameNE
+          arbitrary <*> arbitrary <*> arbitrary <*> return Nothing <*>
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          genMaybe (pure []) <*> genMaybe genNameNE
       "OP_BACKUP_REMOVE" ->
         OpCodes.OpBackupRemove <$> genFQDN <*> return Nothing
       "OP_TEST_ALLOCATOR" ->

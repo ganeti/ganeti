@@ -777,6 +777,7 @@ $(genOpCode "OpCode"
      OpDoc.opBackupExport,
      [ pInstanceName
      , pInstanceUuid
+     , pBackupCompress
      , pShutdownTimeout
      , pExportTargetNode
      , pExportTargetNodeUuid

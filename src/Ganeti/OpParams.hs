@@ -84,6 +84,7 @@ module Ganeti.OpParams
   , pMoveTargetNode
   , pMoveTargetNodeUuid
   , pMoveCompress
+  , pBackupCompress
   , pStartupPaused
   , pVerbose
   , pDebugSimulateErrors
@@ -1245,6 +1246,12 @@ pMoveTargetNodeUuid =
 pMoveCompress :: Field
 pMoveCompress =
   withDoc "Compression mode to use during instance moves" .
+  defaultField [| None |] $
+  simpleField "compress" [t| ImportExportCompression |]
+
+pBackupCompress :: Field
+pBackupCompress =
+  withDoc "Compression mode to use for moves during backups" .
   defaultField [| None |] $
   simpleField "compress" [t| ImportExportCompression |]
 

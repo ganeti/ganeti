@@ -1218,11 +1218,13 @@ class ExportInstanceHelper:
       else:
         self._removed_snaps[disk_index] = True
 
-  def LocalExport(self, dest_node):
+  def LocalExport(self, dest_node, compress):
     """Intra-cluster instance export.
 
     @type dest_node: L{objects.Node}
     @param dest_node: Destination node
+    @type compress: string
+    @param compress: one of L{constants.IEC_ALL}
 
     """
     instance = self._instance
@@ -1253,7 +1255,7 @@ class ExportInstanceHelper:
     dresults = TransferInstanceData(self._lu, self._feedback_fn,
                                     src_node_uuid, dest_node.uuid,
                                     dest_node.secondary_ip,
-                                    constants.IEC_NONE,
+                                    compress,
                                     instance, transfers)
 
     assert len(dresults) == len(instance.disks)

@@ -421,7 +421,8 @@ class LUBackupExport(LogicalUnit):
             raise errors.OpExecError("Could not start instance: %s" % msg)
 
         if self.op.mode == constants.EXPORT_MODE_LOCAL:
-          (fin_resu, dresults) = helper.LocalExport(self.dst_node)
+          (fin_resu, dresults) = helper.LocalExport(self.dst_node,
+                                                    self.op.compress)
         elif self.op.mode == constants.EXPORT_MODE_REMOTE:
           connect_timeout = constants.RIE_CONNECT_TIMEOUT
           timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
