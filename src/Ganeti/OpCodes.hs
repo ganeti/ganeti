@@ -78,10 +78,10 @@ instance PyValue a => PyValue (SetParamsMods a) where
 
 instance PyValue a => PyValue (NonNegative a) where
   showValue = showValue . fromNonNegative
-  
+
 instance PyValue a => PyValue (NonEmpty a) where
   showValue = showValue . fromNonEmpty
-  
+
 -- FIXME: should use the 'toRaw' function instead of being harcoded or
 -- perhaps use something similar to the NonNegative type instead of
 -- using the declareSADT

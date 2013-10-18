@@ -479,12 +479,12 @@ pDebugSimulateErrors =
   defaultFalse "debug_simulate_errors"
 
 pErrorCodes :: Field
-pErrorCodes = 
+pErrorCodes =
   withDoc "Error codes" $
   defaultFalse "error_codes"
 
 pSkipChecks :: Field
-pSkipChecks = 
+pSkipChecks =
   withDoc "Which checks to skip" .
   defaultField [| emptyListSet |] $
   simpleField "skip_checks" [t| ListSet VerifyOptionalChecks |]
@@ -822,7 +822,7 @@ pNdParams =
   withDoc "Node parameters" .
   renameField "genericNdParams" .
   optionalField $ simpleField "ndparams" [t| JSObject JSValue |]
-  
+
 pNames :: Field
 pNames =
   withDoc "List of names" .
@@ -916,7 +916,7 @@ pIgnoreIpolicy :: Field
 pIgnoreIpolicy =
   withDoc "Whether to ignore ipolicy violations" $
   defaultFalse "ignore_ipolicy"
-  
+
 pIallocator :: Field
 pIallocator =
   withDoc "Iallocator for deciding the target node for shared-storage\
@@ -1167,7 +1167,7 @@ pNewName :: Field
 pNewName =
   withDoc "New group or instance name" $
   simpleField "new_name" [t| NonEmptyString |]
-  
+
 pIgnoreOfflineNodes :: Field
 pIgnoreOfflineNodes =
   withDoc "Whether to ignore offline nodes" $
@@ -1245,12 +1245,12 @@ pIgnoreDiskSize :: Field
 pIgnoreDiskSize =
   withDoc "Whether to ignore recorded disk size" $
   defaultFalse "ignore_size"
-  
+
 pWaitForSyncFalse :: Field
 pWaitForSyncFalse =
   withDoc "Whether to wait for the disk to synchronize (defaults to false)" $
   defaultField [| False |] pWaitForSync
-  
+
 pRecreateDisksInfo :: Field
 pRecreateDisksInfo =
   withDoc "Disk list for recreate disks" .
