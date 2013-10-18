@@ -822,6 +822,7 @@ def MoveInstance(opts, args):
 
   op = opcodes.OpInstanceMove(instance_name=instance_name,
                               target_node=opts.node,
+                              compress=opts.compress,
                               shutdown_timeout=opts.shutdown_timeout,
                               ignore_consistency=opts.ignore_consistency,
                               ignore_ipolicy=opts.ignore_ipolicy)
@@ -1486,7 +1487,7 @@ commands = {
   "move": (
     MoveInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT] + SUBMIT_OPTS +
-    [SINGLE_NODE_OPT,
+    [SINGLE_NODE_OPT, COMPRESS_OPT,
      SHUTDOWN_TIMEOUT_OPT, DRY_RUN_OPT, PRIORITY_OPT, IGNORE_CONSIST_OPT,
      IGNORE_IPOLICY_OPT],
     "[-f] <instance>", "Move instance to an arbitrary node"

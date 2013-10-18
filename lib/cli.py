@@ -182,6 +182,7 @@ __all__ = [
   "SEP_OPT",
   "SHOWCMD_OPT",
   "SHOW_MACHINE_OPT",
+  "COMPRESS_OPT",
   "SHUTDOWN_TIMEOUT_OPT",
   "SINGLE_NODE_OPT",
   "SPECS_CPU_COUNT_OPT",
@@ -1344,6 +1345,11 @@ NOSHUTDOWN_OPT = cli_option("--noshutdown", dest="shutdown",
 TIMEOUT_OPT = cli_option("--timeout", dest="timeout", type="int",
                          default=constants.DEFAULT_SHUTDOWN_TIMEOUT,
                          help="Maximum time to wait")
+
+COMPRESS_OPT = cli_option("--compress", dest="compress",
+                          default=constants.IEC_NONE,
+                          help="The compression mode to use",
+                          choices=list(constants.IEC_ALL))
 
 SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
                                   dest="shutdown_timeout", type="int",

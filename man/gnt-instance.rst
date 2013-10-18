@@ -1871,8 +1871,8 @@ MOVE
 ^^^^
 
 | **move** [-f] [\--ignore-consistency]
-| [-n *node*] [\--shutdown-timeout=*N*] [\--submit] [\--print-job-id]
-| [\--ignore-ipolicy]
+| [-n *node*] [\--compress=*compression-mode*] [\--shutdown-timeout=*N*]
+| [\--submit] [\--print-job-id] [\--ignore-ipolicy]
 | {*instance*}
 
 Move will move the instance to an arbitrary node in the cluster. This
@@ -1881,6 +1881,10 @@ works only for instances having a plain or file disk template.
 Note that since this operation is done via data copy, it will take a
 long time for big disks (similar to replace-disks for a drbd
 instance).
+
+The ``--compress`` option is used to specify which compression mode
+is used during the move. Valid values are 'none' (the default) and
+'gzip'.
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (e.g. ``xm destroy`` in XEN, killing the
