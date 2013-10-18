@@ -1007,7 +1007,7 @@ def _GetInstDiskMagic(base, instance_name, index):
 
 
 def TransferInstanceData(lu, feedback_fn, src_node_uuid, dest_node_uuid,
-                         dest_ip, instance, all_transfers):
+                         dest_ip, compress, instance, all_transfers):
   """Transfers an instance's data from one node to another.
 
   @param lu: Logical unit instance
@@ -1018,6 +1018,8 @@ def TransferInstanceData(lu, feedback_fn, src_node_uuid, dest_node_uuid,
   @param dest_node_uuid: Destination node UUID
   @type dest_ip: string
   @param dest_ip: IP address of destination node
+  @type compress: string
+  @param compress: one of L{constants.IEC_ALL}
   @type instance: L{objects.Instance}
   @param instance: Instance object
   @type all_transfers: list of L{DiskTransfer} instances
@@ -1027,9 +1029,6 @@ def TransferInstanceData(lu, feedback_fn, src_node_uuid, dest_node_uuid,
            each transfer
 
   """
-  # Disable compression for all moves as these are all within the same cluster
-  compress = constants.IEC_NONE
-
   src_node_name = lu.cfg.GetNodeName(src_node_uuid)
   dest_node_name = lu.cfg.GetNodeName(dest_node_uuid)
 
@@ -1254,6 +1253,7 @@ class ExportInstanceHelper:
     dresults = TransferInstanceData(self._lu, self._feedback_fn,
                                     src_node_uuid, dest_node.uuid,
                                     dest_node.secondary_ip,
+                                    constants.IEC_NONE,
                                     instance, transfers)
 
     assert len(dresults) == len(instance.disks)

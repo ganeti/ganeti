@@ -80,6 +80,8 @@ $(genArbitrary ''OpCodes.ReplaceDisksMode)
 
 $(genArbitrary ''DiskAccess)
 
+$(genArbitrary ''ImportExportCompression)
+
 instance Arbitrary OpCodes.DiskIndex where
   arbitrary = choose (0, C.maxDisks - 1) >>= OpCodes.mkDiskIndex
 
@@ -265,7 +267,7 @@ instance Arbitrary OpCodes.OpCode where
       "OP_INSTANCE_MOVE" ->
         OpCodes.OpInstanceMove <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> genNodeNameNE <*> return Nothing <*>
-          arbitrary
+          arbitrary <*> arbitrary
       "OP_INSTANCE_CONSOLE" -> OpCodes.OpInstanceConsole <$> genFQDN <*>
           return Nothing
       "OP_INSTANCE_ACTIVATE_DISKS" ->

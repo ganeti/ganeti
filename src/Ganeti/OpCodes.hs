@@ -576,6 +576,7 @@ $(genOpCode "OpCode"
      , pIgnoreIpolicy
      , pMoveTargetNode
      , pMoveTargetNodeUuid
+     , pMoveCompress
      , pIgnoreConsistency
      ],
      "instance_name")

@@ -544,13 +544,14 @@ iemImport = "import"
 -- * Import/export transport compression
 
 iecGzip :: String
-iecGzip = "gzip"
+iecGzip = Types.importExportCompressionToRaw GZip
 
 iecNone :: String
-iecNone = "none"
+iecNone = Types.importExportCompressionToRaw None
 
-iecAll :: [String]
-iecAll = [iecGzip, iecNone]
+iecAll :: FrozenSet String
+iecAll =
+  ConstantUtils.mkSet $ map Types.importExportCompressionToRaw [minBound..]
 
 ieCustomSize :: String
 ieCustomSize = "fd"

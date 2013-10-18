@@ -540,6 +540,7 @@ TDiskTemplate = TElemOf(constants.DISK_TEMPLATES)
 TEvacMode = TElemOf(constants.NODE_EVAC_MODES)
 TIAllocatorTestDir = TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS)
 TIAllocatorMode = TElemOf(constants.VALID_IALLOCATOR_MODES)
+TImportExportCompression = TElemOf(constants.IEC_ALL)
 
 
 def TSetParamsMods(fn):

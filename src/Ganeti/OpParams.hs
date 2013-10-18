@@ -83,6 +83,7 @@ module Ganeti.OpParams
   , pMigrationTargetNodeUuid
   , pMoveTargetNode
   , pMoveTargetNodeUuid
+  , pMoveCompress
   , pStartupPaused
   , pVerbose
   , pDebugSimulateErrors
@@ -1240,6 +1241,12 @@ pMoveTargetNodeUuid =
   withDoc "Target node UUID for instance move" .
   renameField "MoveTargetNodeUuid" . optionalField $
   simpleField "target_node_uuid" [t| NonEmptyString |]
+
+pMoveCompress :: Field
+pMoveCompress =
+  withDoc "Compression mode to use during instance moves" .
+  defaultField [| None |] $
+  simpleField "compress" [t| ImportExportCompression |]
 
 pIgnoreDiskSize :: Field
 pIgnoreDiskSize =

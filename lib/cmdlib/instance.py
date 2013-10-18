@@ -1408,6 +1408,7 @@ class LUInstanceCreate(LogicalUnit):
                                                   self.op.src_node_uuid,
                                                   self.pnode.uuid,
                                                   self.pnode.secondary_ip,
+                                                  constants.IEC_NONE,
                                                   iobj, transfers)
           if not compat.all(import_result):
             self.LogWarning("Some disks for instance %s on node %s were not"
@@ -1838,6 +1839,7 @@ class LUInstanceMove(LogicalUnit):
                                             source_node.uuid,
                                             target_node.uuid,
                                             target_node.secondary_ip,
+                                            self.op.compress,
                                             self.instance, transfers)
     if not compat.all(import_result):
       errs.append("Failed to transfer instance data")
