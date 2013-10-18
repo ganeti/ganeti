@@ -214,6 +214,10 @@ for example::
 
   $ make hs-shell-{balancing,basic}
 
+Checking for the correct style of the NEWS file is also possible, by running::
+
+  $ make check-news
+
 Packaging notes
 ===============
 
