@@ -1431,7 +1431,7 @@ class LUInstanceCreate(LogicalUnit):
           disk_results = \
             masterd.instance.RemoteImport(self, feedback_fn, iobj, self.pnode,
                                           self.source_x509_ca,
-                                          self._cds, timeouts)
+                                          self._cds, self.op.compress, timeouts)
           if not compat.all(disk_results):
             # TODO: Should the instance still be started, even if some disks
             # failed to import (valid for local imports, too)?

@@ -1436,7 +1436,7 @@ class _RemoteImportCb(ImportExportCbBase):
 
 
 def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
-                 cds, timeouts):
+                 cds, compress, timeouts):
   """Imports an instance from another cluster.
 
   @param lu: Logical unit instance
@@ -1449,6 +1449,8 @@ def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
   @param source_x509_ca: Import source's X509 CA
   @type cds: string
   @param cds: Cluster domain secret
+  @type compress: string
+  @param compress: one of L{constants.IEC_ALL}
   @type timeouts: L{ImportExportTimeouts}
   @param timeouts: Timeouts for this import
 
@@ -1487,7 +1489,9 @@ def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
         # Import daemon options
         opts = objects.ImportExportOptions(key_name=x509_key_name,
                                            ca_pem=source_ca_pem,
-                                           magic=magic, ipv6=ipv6)
+                                           magic=magic,
+                                           compress=compress,
+                                           ipv6=ipv6)
 
         ieloop.Add(DiskImport(lu, instance.primary_node, opts, instance,
                               "disk%d" % idx,

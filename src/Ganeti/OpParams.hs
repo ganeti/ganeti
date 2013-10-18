@@ -1251,7 +1251,7 @@ pMoveCompress =
 
 pBackupCompress :: Field
 pBackupCompress =
-  withDoc "Compression mode to use for moves during backups" .
+  withDoc "Compression mode to use for moves during backups/imports" .
   defaultField [| None |] $
   simpleField "compress" [t| ImportExportCompression |]
 
