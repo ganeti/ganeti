@@ -62,10 +62,10 @@ Python
   version 1.0.1. It is still used for testing only.
 
 
-Version 2.9.0 rc3
+Version 2.9.0 rc4
 -----------------
 
-*(Released Tue, 15 Oct 2013)*
+*(unreleased)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -131,8 +131,19 @@ Haskell
 - ``hslogger`` (http://software.complete.org/hslogger) is now always
   required, even if confd is not enabled.
 
-Since 2.9.0 rc2
+Since 2.9.0 rc3
 ~~~~~~~~~~~~~~~
+
+- Correctly start/stop luxid during gnt-cluster master-failover (inherited
+  from stable-2.8)
+
+
+Version 2.9.0 rc3
+-----------------
+
+*(Released Tue, 15 Oct 2013)*
+
+The third release candidate in the 2.9 series. Since 2.9.0 rc2:
 
 - in implicit configuration upgrade, match ipolicy with enabled disk templates
 - improved harep documentation (inherited from stable-2.8)
@@ -171,6 +182,18 @@ Version 2.9.0 beta1
 
 This was the first beta release of the 2.9 series. All important changes
 are listed in the latest 2.9 entry.
+
+
+Version 2.8.1
+-------------
+
+*(Released Thu, 17 Oct 2013)*
+
+- Correctly start/stop luxid during gnt-cluster master-failover
+- Don't attempt IPv6 ssh in case of IPv4 cluster (Issue 595)
+- Fix path for the job queue serial file
+- Improved harep man page
+- Minor documentation improvements
 
 
 Version 2.8.0
