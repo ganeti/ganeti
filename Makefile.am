@@ -2030,12 +2030,15 @@ check-dirs: $(GENERATED_FILES)
 	  test -z "$$error"; \
 	}
 
+.PHONY: check-news
+check-news:
+	RELEASE=$(PACKAGE_VERSION) $(CHECK_NEWS) < $(top_srcdir)/NEWS
+
 .PHONY: check-local
-check-local: check-dirs $(GENERATED_FILES)
+check-local: check-dirs check-news $(GENERATED_FILES)
 	$(CHECK_PYTHON_CODE) $(check_python_code)
 	PYTHONPATH=. $(CHECK_HEADER) $(check_python_code)
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
-	RELEASE=$(PACKAGE_VERSION) $(CHECK_NEWS) < $(top_srcdir)/NEWS
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
 	error= ; \
 	if [ "x`echo $(VERSION_SUFFIX)|grep 'alpha'`" == "x" ]; then \

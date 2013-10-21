@@ -700,8 +700,10 @@ def _AddExclusiveStorageFlagToLvmStorageUnits(storage_units, es_flag):
   """
   result = []
   for (storage_type, storage_key) in storage_units:
-    if storage_type in [constants.ST_LVM_VG, constants.ST_LVM_PV]:
+    if storage_type in [constants.ST_LVM_VG]:
       result.append((storage_type, storage_key, [es_flag]))
+      if es_flag:
+        result.append((constants.ST_LVM_PV, storage_key, [es_flag]))
     else:
       result.append((storage_type, storage_key, []))
   return result

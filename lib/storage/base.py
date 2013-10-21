@@ -364,7 +364,7 @@ class BlockDev(object):
 
     @rtype: string
     @return: userspace device URI
-    @raise errors.BlockDeviceError if userspace access is not supported
+    @raise errors.BlockDeviceError: if userspace access is not supported
 
     """
     ThrowError("Userspace access with %s block device and %s hypervisor is not "

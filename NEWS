@@ -30,10 +30,42 @@ Incompatible/important changes
 
 New features
 ~~~~~~~~~~~~
+
 - KVM hypervisors can now access RBD storage directly without having to
   go through a block device.
 - A new command 'gnt-cluster upgrade' was added that automates the upgrade
   procedure between two Ganeti versions that are both 2.10 or higher.
+- The move-instance command can now change disk templates when moving
+  instances, and does not require any node placement options to be
+  specified if the destination cluster has a default iallocator.
+- Users can now change the soundhw and cpuid settings for XEN hypervisors.
+- Hail and hbal now have the (optional) capability of accessing average CPU
+  load information through the monitoring deamon, and to use it to dynamically
+  adapt the allocation of instances.
+
+Misc changes
+~~~~~~~~~~~~
+
+- A new test framework for logical units was introduced and the test
+  coverage for logical units was improved significantly.
+- Opcodes are entirely generated from Haskell using the tool 'hs2py' and
+  the module 'src/Ganeti/OpCodes.hs'.
+- Constants are also generated from Haskell using the tool
+  'hs2py-constants' and the module 'src/Ganeti/HsConstants.hs', with the
+  exception of socket related constants, which require changing the
+  cluster configuration file, and HVS related constants, because they
+  are part of a port of instance queries to Haskell.  As a result, these
+  changes will be part of the next release of Ganeti.
+
+New dependencies
+~~~~~~~~~~~~~~~~
+
+The following new dependencies have been added/updated.
+
+Python
+
+- The version requirements for ``python-mock`` have increased to at least
+  version 1.0.1. It is still used for testing only.
 
 
 Version 2.9.0 rc3

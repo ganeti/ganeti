@@ -73,7 +73,8 @@ class TestCheckNodesFreeDiskOnVG(unittest.TestCase):
   def testPerformNodeInfoCall(self):
     expected_hv_arg = [(self.hvname, self.hvparams)]
     expected_storage_arg = {self.node_uuid:
-        [(constants.ST_LVM_VG, self.vg, [self.es])]}
+        [(constants.ST_LVM_VG, self.vg, [self.es]),
+         (constants.ST_LVM_PV, self.vg, [self.es])]}
     instance_storage._PerformNodeInfoCall(self.lu, self.node_uuids, self.vg)
     self.lu.rpc.call_node_info.assert_called_with(
         self.node_uuids, expected_storage_arg, expected_hv_arg)
