@@ -35,6 +35,7 @@ module Ganeti.Path
   , nodedCertFile
   , queueDir
   , jobQueueSerialFile
+  , jobQueueLockFile 
   , jobQueueArchiveSubDir
   , instanceReasonDir
   , getInstReasonFilename
@@ -109,6 +110,10 @@ queueDir = dataDirP "queue"
 -- | Job queue serial file.
 jobQueueSerialFile :: IO FilePath
 jobQueueSerialFile = queueDir `pjoin` "serial"
+
+-- | Job queue lock file
+jobQueueLockFile :: IO FilePath
+jobQueueLockFile = queueDir `pjoin` "lock"
 
 -- | Job queue archive directory.
 jobQueueArchiveSubDir :: FilePath
