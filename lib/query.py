@@ -65,6 +65,7 @@ from ganeti import ht
 from ganeti import runtime
 from ganeti import qlang
 from ganeti import jstore
+from ganeti.hypervisor import hv_base
 
 from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
                               QFT_UNIT, QFT_TIMESTAMP, QFT_OTHER,
@@ -1537,13 +1538,24 @@ def _GetInstStatus(ctx, inst):
   if inst.primary_node in ctx.bad_nodes:
     return constants.INSTST_NODEDOWN
 
-  if bool(ctx.live_data.get(inst.uuid)):
+  instance_live_data = ctx.live_data.get(inst.uuid)
+
+  if bool(instance_live_data):
+    instance_state = instance_live_data["state"]
+
     if inst.uuid in ctx.wrongnode_inst:
       return constants.INSTST_WRONGNODE
-    elif inst.admin_state == constants.ADMINST_UP:
-      return constants.INSTST_RUNNING
     else:
-      return constants.INSTST_ERRORUP
+      if hv_base.HvInstanceState.IsShutdown(instance_state):
+        if inst.admin_state == constants.ADMINST_UP:
+          return constants.INSTST_USERDOWN
+        else:
+          return constants.INSTST_ADMINDOWN
+      else:
+        if inst.admin_state == constants.ADMINST_UP:
+          return constants.INSTST_RUNNING
+        else:
+          return constants.INSTST_ERRORUP
 
   if inst.admin_state == constants.ADMINST_UP:
     return constants.INSTST_ERRORDOWN
@@ -2157,7 +2169,8 @@ def _BuildInstanceFields():
   status_values = (constants.INSTST_RUNNING, constants.INSTST_ADMINDOWN,
                    constants.INSTST_WRONGNODE, constants.INSTST_ERRORUP,
                    constants.INSTST_ERRORDOWN, constants.INSTST_NODEDOWN,
-                   constants.INSTST_NODEOFFLINE, constants.INSTST_ADMINOFFLINE)
+                   constants.INSTST_NODEOFFLINE, constants.INSTST_ADMINOFFLINE,
+                   constants.INSTST_USERDOWN)
   status_doc = ("Instance status; \"%s\" if instance is set to be running"
                 " and actually is, \"%s\" if instance is stopped and"
                 " is not running, \"%s\" if instance running, but not on its"
@@ -2165,10 +2178,12 @@ def _BuildInstanceFields():
                 " stopped, but is actually running, \"%s\" if instance should"
                 " run, but doesn't, \"%s\" if instance's primary node is down,"
                 " \"%s\" if instance's primary node is marked offline,"
-                " \"%s\" if instance is offline and does not use dynamic"
+                " \"%s\" if instance is offline and does not use dynamic,"
+                " \"%s\" if the user shutdown the instance"
                 " resources" % status_values)
   fields.append((_MakeField("status", "Status", QFT_TEXT, status_doc),
                  IQ_LIVE, 0, _GetInstStatus))
+
   assert set(status_values) == constants.INSTST_ALL, \
          "Status documentation mismatch"
 
