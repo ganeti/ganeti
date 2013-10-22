@@ -38,6 +38,8 @@ from ganeti import errors
 # counter, so 8 hours (16*1/2h) seems like a reasonable reset time
 RETRY_EXPIRATION = 8 * 3600
 
+KEY_CLEANUP_COUNT = "cleanup_count"
+KEY_CLEANUP_WHEN = "cleanup_when"
 KEY_RESTART_COUNT = "restart_count"
 KEY_RESTART_WHEN = "restart_when"
 KEY_BOOT_ID = "bootid"
@@ -162,6 +164,20 @@ class WatcherState(object):
 
     return 0
 
+  def NumberOfCleanupAttempts(self, instance_name):
+    """Returns number of previous cleanup attempts.
+
+    @type instance_name: string
+    @param instance_name: the name of the instance to look up
+
+    """
+    idata = self._data["instance"]
+
+    if instance_name in idata:
+      return idata[instance_name][KEY_CLEANUP_COUNT]
+
+    return 0
+
   def MaintainInstanceList(self, instances):
     """Perform maintenance on the recorded instances.
 
@@ -185,6 +201,28 @@ class WatcherState(object):
       logging.debug("Expiring record for instance %s", inst)
       idict.pop(inst, None)
 
+  @staticmethod
+  def _RecordAttempt(instances, instance_name, key_when, key_count):
+    """Record an event.
+
+    @type instances: dict
+    @param instances: contains instance data indexed by instance_name
+
+    @type instance_name: string
+    @param instance_name: name of the instance involved in the event
+
+    @type key_when:
+    @param key_when: dict key for the information for when the event occurred
+
+    @type key_count: int
+    @param key_count: dict key for the information for how many times
+                      the event occurred
+
+    """
+    instance = instances.setdefault(instance_name, {})
+    instance[key_when] = time.time()
+    instance[key_count] = instance.get(key_count, 0) + 1
+
   def RecordRestartAttempt(self, instance_name):
     """Record a restart attempt.
 
@@ -192,11 +230,18 @@ class WatcherState(object):
     @param instance_name: the name of the instance being restarted
 
     """
-    idata = self._data["instance"]
+    self._RecordAttempt(self._data["instance"], instance_name,
+                        KEY_RESTART_WHEN, KEY_RESTART_COUNT)
 
-    inst = idata.setdefault(instance_name, {})
-    inst[KEY_RESTART_WHEN] = time.time()
-    inst[KEY_RESTART_COUNT] = inst.get(KEY_RESTART_COUNT, 0) + 1
+  def RecordCleanupAttempt(self, instance_name):
+    """Record a cleanup attempt.
+
+    @type instance_name: string
+    @param instance_name: the name of the instance being cleaned up
+
+    """
+    self._RecordAttempt(self._data["instance"], instance_name,
+                        KEY_CLEANUP_WHEN, KEY_CLEANUP_COUNT)
 
   def RemoveInstance(self, instance_name):
     """Update state to reflect that a machine is running.

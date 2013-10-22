@@ -172,6 +172,27 @@ class Node:
     self.secondaries = secondaries
 
 
+def _CleanupInstance(cl, notepad, inst):
+  n = notepad.NumberOfCleanupAttempts(inst.name)
+
+  if n > MAXTRIES:
+    logging.warning("Not cleaning up instance '%s', retries exhausted",
+                    inst.name)
+    return
+
+  logging.info("Instance '%s' was shutdown by the user, cleaning up instance",
+               inst.name)
+  op = opcodes.OpInstanceShutdown(instance_name=inst.name)
+
+  try:
+    cli.SubmitOpCode(op, cl=cl)
+    if notepad.NumberOfCleanupAttempts(inst.name):
+      notepad.RemoveInstance(inst.name)
+  except Exception: # pylint: disable=W0703
+    logging.exception("Error while cleaning up instance '%s'", inst.name)
+    notepad.RecordCleanupAttempt(inst.name)
+
+
 def _CheckInstances(cl, notepad, instances):
   """Make a pass over the list of instances, restarting downed ones.
 
@@ -181,7 +202,9 @@ def _CheckInstances(cl, notepad, instances):
   started = set()
 
   for inst in instances.values():
-    if inst.status in BAD_STATES:
+    if inst.status == constants.INSTST_USERDOWN:
+      _CleanupInstance(cl, notepad, inst)
+    elif inst.status in BAD_STATES:
       n = notepad.NumberOfRestartAttempts(inst.name)
 
       if n > MAXTRIES:
