@@ -1159,7 +1159,6 @@ def TestUpgrade():
         qa_config.IsTemplateSupported(templ) and
         templ in upgrade_instances):
       inst_creates.append((cf, n))
-      break
 
   for (cf, n) in inst_creates:
     nodes = qa_config.AcquireManyNodes(n)
