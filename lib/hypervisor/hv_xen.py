@@ -949,6 +949,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                      % (constants.XEN_CMD_XL, result.stderr))
 
 
+def WriteXenConfigEvents(config, hvp):
+  config.write("on_poweroff = 'preserve'\n")
+  if hvp[constants.HV_REBOOT_BEHAVIOR] == constants.INSTANCE_REBOOT_ALLOWED:
+    config.write("on_reboot = 'restart'\n")
+  else:
+    config.write("on_reboot = 'destroy'\n")
+  config.write("on_crash = 'restart'\n")
+
+
 class XenPvmHypervisor(XenHypervisor):
   """Xen PVM hypervisor interface"""
 
@@ -1050,12 +1059,8 @@ class XenPvmHypervisor(XenHypervisor):
 
     if hvp[constants.HV_ROOT_PATH]:
       config.write("root = '%s'\n" % hvp[constants.HV_ROOT_PATH])
-    config.write("on_poweroff = 'destroy'\n")
-    if hvp[constants.HV_REBOOT_BEHAVIOR] == constants.INSTANCE_REBOOT_ALLOWED:
-      config.write("on_reboot = 'restart'\n")
-    else:
-      config.write("on_reboot = 'destroy'\n")
-    config.write("on_crash = 'restart'\n")
+
+    WriteXenConfigEvents(config, hvp)
     config.write("extra = '%s'\n" % hvp[constants.HV_KERNEL_ARGS])
 
     cpuid = hvp[constants.HV_XEN_CPUID]
@@ -1239,12 +1244,8 @@ class XenHvmHypervisor(XenHypervisor):
     if pci_pass:
       pci_pass_arr = pci_pass.split(";")
       config.write("pci = %s\n" % pci_pass_arr)
-    config.write("on_poweroff = 'destroy'\n")
-    if hvp[constants.HV_REBOOT_BEHAVIOR] == constants.INSTANCE_REBOOT_ALLOWED:
-      config.write("on_reboot = 'restart'\n")
-    else:
-      config.write("on_reboot = 'destroy'\n")
-    config.write("on_crash = 'restart'\n")
+
+    WriteXenConfigEvents(config, hvp)
 
     cpuid = hvp[constants.HV_XEN_CPUID]
     if cpuid:
