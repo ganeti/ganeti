@@ -34,6 +34,7 @@ from ganeti import objects
 from ganeti import cmdlib
 
 import ganeti.masterd.instance as gmi
+from ganeti.hypervisor import hv_base
 
 import testutils
 
@@ -806,6 +807,17 @@ class TestInstanceQuery(unittest.TestCase):
         disks_active=False,
         beparams={},
         osparams={}),
+      objects.Instance(name="inst9", hvparams={}, nics=[],
+        uuid="inst9-uuid",
+        ctime=None, mtime=None, serial_no=19478,
+        admin_state=constants.ADMINST_UP, hypervisor=constants.HT_XEN_HVM,
+        os="deb99",
+        primary_node="node6-uuid",
+        disk_template=constants.DT_DISKLESS,
+        disks=[],
+        disks_active=False,
+        beparams={},
+        osparams={}),
       ]
 
     assert not utils.FindDuplicates(inst.uuid for inst in instances)
@@ -828,15 +840,23 @@ class TestInstanceQuery(unittest.TestCase):
     live_data = {
       "inst2-uuid": {
         "vcpus": 3,
+        "state": hv_base.HvInstanceState.RUNNING,
         },
       "inst4-uuid": {
         "memory": 123,
+        "state": hv_base.HvInstanceState.RUNNING,
         },
       "inst6-uuid": {
         "memory": 768,
+        "state": hv_base.HvInstanceState.RUNNING,
         },
       "inst7-uuid": {
         "vcpus": 3,
+        "state": hv_base.HvInstanceState.RUNNING,
+        },
+      "inst9-uuid": {
+        "vcpus": 3,
+        "state": hv_base.HvInstanceState.SHUTDOWN,
         },
       }
     wrongnode_inst = set(["inst7-uuid"])
@@ -880,16 +900,25 @@ class TestInstanceQuery(unittest.TestCase):
       elif inst.uuid in live_data:
         if inst.uuid in wrongnode_inst:
           exp_status = constants.INSTST_WRONGNODE
-        elif inst.admin_state == constants.ADMINST_UP:
-          exp_status = constants.INSTST_RUNNING
         else:
-          exp_status = constants.INSTST_ERRORUP
-      elif inst.admin_state == constants.ADMINST_UP:
-        exp_status = constants.INSTST_ERRORDOWN
-      elif inst.admin_state == constants.ADMINST_DOWN:
-        exp_status = constants.INSTST_ADMINDOWN
+          instance_state = live_data[inst.uuid]["state"]
+          if hv_base.HvInstanceState.IsShutdown(instance_state):
+            if inst.admin_state == constants.ADMINST_UP:
+              exp_status = constants.INSTST_USERDOWN
+            else:
+              exp_status = constants.INSTST_ADMINDOWN
+          else:
+            if inst.admin_state == constants.ADMINST_UP:
+              exp_status = constants.INSTST_RUNNING
+            else:
+              exp_status = constants.INSTST_ERRORUP
       else:
-        exp_status = constants.INSTST_ADMINOFFLINE
+        if inst.admin_state == constants.ADMINST_UP:
+          exp_status = constants.INSTST_ERRORDOWN
+        elif inst.admin_state == constants.ADMINST_DOWN:
+          exp_status = constants.INSTST_ADMINDOWN
+        else:
+          exp_status = constants.INSTST_ADMINOFFLINE
 
       self.assertEqual(row[fieldidx["status"]],
                        (constants.RS_NORMAL, exp_status))
@@ -975,7 +1004,7 @@ class TestInstanceQuery(unittest.TestCase):
       self._CheckInstanceConsole(inst, row[fieldidx["console"]])
 
     # Ensure all possible status' have been tested
-    self.assertEqual(tested_status, constants.INSTST_ALL)
+    self.assertEqual(tested_status, set(constants.INSTST_ALL))
 
   def _CheckInstanceConsole(self, instance, (status, consdata)):
     if instance.name == "inst7":

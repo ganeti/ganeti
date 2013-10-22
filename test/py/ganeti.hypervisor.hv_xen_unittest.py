@@ -37,6 +37,7 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import compat
 
+from ganeti.hypervisor import hv_base
 from ganeti.hypervisor import hv_xen
 
 import testutils
@@ -137,7 +138,7 @@ class TestParseInstanceList(testutils.GanetiTestCase):
     self.assertEqual(result[0][3], 1)
 
     # State
-    self.assertEqual(result[0][4], "r-----")
+    self.assertEqual(result[0][4], hv_base.HvInstanceState.RUNNING)
 
     # Time
     self.assertAlmostEqual(result[0][5], 121152.6)
@@ -166,7 +167,7 @@ class TestGetInstanceList(testutils.GanetiTestCase):
   def testTimeout(self):
     fn = testutils.CallCounter(self._Fail)
     try:
-      hv_xen._GetInstanceList(fn, False, _timeout=0.1)
+      hv_xen._GetRunningInstanceList(fn, False, _timeout=0.1)
     except errors.HypervisorError, err:
       self.assertTrue("timeout exceeded" in str(err))
     else:
@@ -184,7 +185,7 @@ class TestGetInstanceList(testutils.GanetiTestCase):
 
     fn = testutils.CallCounter(compat.partial(self._Success, data))
 
-    result = hv_xen._GetInstanceList(fn, True, _timeout=0.1)
+    result = hv_xen._GetRunningInstanceList(fn, True, _timeout=0.1)
 
     self.assertEqual(len(result), 4)
 
@@ -379,7 +380,7 @@ class TestXenHypervisorGetInstanceList(unittest.TestCase):
 
   def testNoHvparams(self):
     expected_xen_cmd = "xm"
-    mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
+    mock_run_cmd = mock.Mock(return_value=self.RESULT_OK)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
     self.assertRaises(errors.HypervisorError, hv._GetInstanceList, True, None)
@@ -387,7 +388,7 @@ class TestXenHypervisorGetInstanceList(unittest.TestCase):
   def testFromHvparams(self):
     expected_xen_cmd = "xl"
     hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
-    mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
+    mock_run_cmd = mock.Mock(return_value=self.RESULT_OK)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
     hv._GetInstanceList(True, hvparams)
@@ -401,7 +402,7 @@ class TestXenHypervisorListInstances(unittest.TestCase):
 
   def testNoHvparams(self):
     expected_xen_cmd = "xm"
-    mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
+    mock_run_cmd = mock.Mock(return_value=self.RESULT_OK)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
     self.assertRaises(errors.HypervisorError, hv.ListInstances)
@@ -409,7 +410,7 @@ class TestXenHypervisorListInstances(unittest.TestCase):
   def testHvparamsXl(self):
     expected_xen_cmd = "xl"
     hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
-    mock_run_cmd = mock.Mock( return_value=self.RESULT_OK )
+    mock_run_cmd = mock.Mock(return_value=self.RESULT_OK)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
                               _run_cmd_fn=mock_run_cmd)
     hv.ListInstances(hvparams=hvparams)
@@ -446,7 +447,7 @@ class TestXenHypervisorCheckToolstack(unittest.TestCase):
   def testCheckToolstackXlNotConfigured(self):
     RESULT_FAILED = utils.RunResult(
         1, None, "",
-        "ERROR:  A different toolstack (xm) have been selected!",
+        "ERROR:  A different toolstack (xm) has been selected!",
         "", None, None)
     mock_run_cmd = mock.Mock(return_value=RESULT_FAILED)
     hv = hv_xen.XenHypervisor(_cfgdir=NotImplemented,
@@ -610,7 +611,7 @@ class _TestXenHypervisor(object):
     self.assertEqual(instid, 1)
     self.assertEqual(memory, 1024)
     self.assertEqual(vcpus, 1)
-    self.assertEqual(state, "-b----")
+    self.assertEqual(state, hv_base.HvInstanceState.RUNNING)
     self.assertAlmostEqual(runtime, 167643.2)
 
   def testGetInstanceInfoDom0(self):
@@ -625,7 +626,7 @@ class _TestXenHypervisor(object):
     self.assertEqual(instid, 0)
     self.assertEqual(memory, 1023)
     self.assertEqual(vcpus, 1)
-    self.assertEqual(state, "r-----")
+    self.assertEqual(state, hv_base.HvInstanceState.RUNNING)
     self.assertAlmostEqual(runtime, 154706.1)
 
   def testGetInstanceInfoUnknown(self):
@@ -738,9 +739,15 @@ class _TestXenHypervisor(object):
           self.assertTrue(("extra = '%s'" % extra) in lines)
 
   def _StopInstanceCommand(self, instance_name, force, fail, cmd):
-    if ((force and cmd[:2] == [self.CMD, "destroy"]) or
-        (not force and cmd[:2] == [self.CMD, "shutdown"])):
+    if (cmd == [self.CMD, "list"]):
+      output = "Name  ID  Mem  VCPUs  State  Time(s)\n" \
+        "Domain-0  0  1023  1  r-----  142691.0\n" \
+        "%s  417  128  1  r-----  3.2\n" % instance_name
+    elif cmd[:2] == [self.CMD, "destroy"]:
       self.assertEqual(cmd[2:], [instance_name])
+      output = ""
+    elif not force and cmd[:3] == [self.CMD, "shutdown", "-w"]:
+      self.assertEqual(cmd[3:], [instance_name])
       output = ""
     else:
       self.fail("Unhandled command: %s" % (cmd, ))
@@ -770,7 +777,8 @@ class _TestXenHypervisor(object):
           try:
             hv._StopInstance(name, force, None)
           except errors.HypervisorError, err:
-            self.assertTrue(str(err).startswith("Failed to stop instance"))
+            self.assertTrue(str(err).startswith("listing instances failed"),
+                            msg=str(err))
           else:
             self.fail("Exception was not raised")
           self.assertEqual(utils.ReadFile(cfgfile), cfgdata,
