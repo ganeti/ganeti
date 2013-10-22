@@ -330,8 +330,7 @@ $(THH.declareLADT ''String "AllocPolicy"
        ])
 $(THH.makeJSONInstance ''AllocPolicy)
 
--- | The Instance real state type. FIXME: this could be improved to
--- just wrap a /NormalState AdminStatus | ErrorState ErrorCondition/.
+-- | The Instance real state type.
 $(THH.declareLADT ''String "InstanceStatus"
        [ ("StatusDown",    "ADMIN_down")
        , ("StatusOffline", "ADMIN_offline")
@@ -340,6 +339,7 @@ $(THH.declareLADT ''String "InstanceStatus"
        , ("NodeDown",      "ERROR_nodedown")
        , ("NodeOffline",   "ERROR_nodeoffline")
        , ("Running",       "running")
+       , ("UserDown",      "USER_down")
        , ("WrongNode",     "ERROR_wrongnode")
        ])
 $(THH.makeJSONInstance ''InstanceStatus)

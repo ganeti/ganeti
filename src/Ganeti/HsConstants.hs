@@ -3033,6 +3033,9 @@ inststNodeoffline = Types.instanceStatusToRaw NodeOffline
 inststRunning :: String
 inststRunning = Types.instanceStatusToRaw Running
 
+inststUserdown :: String
+inststUserdown = Types.instanceStatusToRaw UserDown
+
 inststWrongnode :: String
 inststWrongnode = Types.instanceStatusToRaw WrongNode
 
