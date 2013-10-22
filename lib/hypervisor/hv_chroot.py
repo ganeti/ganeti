@@ -123,7 +123,7 @@ class ChrootManager(hv_base.BaseHypervisor):
     dir_name = self._InstanceDir(instance_name)
     if not self._IsDirLive(dir_name):
       raise HypervisorError("Instance %s is not running" % instance_name)
-    return (instance_name, 0, 0, 0, 0, 0)
+    return (instance_name, 0, 0, 0, hv_base.HvInstanceState.RUNNING, 0)
 
   def GetAllInstancesInfo(self, hvparams=None):
     """Get properties of all instances.

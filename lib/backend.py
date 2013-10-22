@@ -1377,7 +1377,7 @@ def GetInstanceInfo(instance, hname, hvparams=None):
   @rtype: dict
   @return: dictionary with the following keys:
       - memory: memory size of instance (int)
-      - state: xen state of instance (string)
+      - state: state of instance (HvInstanceState)
       - time: cpu time of instance (float)
       - vcpus: the number of vcpus (int)
 

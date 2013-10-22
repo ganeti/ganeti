@@ -80,7 +80,7 @@ class FakeHypervisor(hv_base.BaseHypervisor):
         inst_id = fh.readline().strip()
         memory = utils.TryConvert(int, fh.readline().strip())
         vcpus = utils.TryConvert(int, fh.readline().strip())
-        stat = "---b-"
+        stat = hv_base.HvInstanceState.RUNNING
         times = 0
         return (instance_name, inst_id, memory, vcpus, stat, times)
       finally:
@@ -104,13 +104,13 @@ class FakeHypervisor(hv_base.BaseHypervisor):
         inst_id = "-1"
         memory = 0
         vcpus = 1
-        stat = "-----"
+        stat = hv_base.HvInstanceState.SHUTDOWN
         times = -1
         try:
           inst_id = fh.readline().strip()
           memory = utils.TryConvert(int, fh.readline().strip())
           vcpus = utils.TryConvert(int, fh.readline().strip())
-          stat = "---b-"
+          stat = hv_base.HvInstanceState.RUNNING
           times = 0
         finally:
           fh.close()

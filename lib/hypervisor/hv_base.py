@@ -144,6 +144,19 @@ def ParamInSet(required, my_set):
   return (required, fn, err, None, None)
 
 
+class HvInstanceState(object):
+  RUNNING = 0
+  SHUTDOWN = 1
+
+  @staticmethod
+  def IsRunning(s):
+    return s == HvInstanceState.RUNNING
+
+  @staticmethod
+  def IsShutdown(s):
+    return s == HvInstanceState.SHUTDOWN
+
+
 class BaseHypervisor(object):
   """Abstract virtualisation technology interface
 

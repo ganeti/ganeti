@@ -1163,7 +1163,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       return None
 
     _, memory, vcpus = self._InstancePidInfo(pid)
-    istat = "---b-"
+    istat = hv_base.HvInstanceState.RUNNING
     times = 0
 
     try:

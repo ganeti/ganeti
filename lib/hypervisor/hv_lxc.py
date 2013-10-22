@@ -189,7 +189,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     cpu_list = self._GetCgroupCpuList(instance_name)
     memory = self._GetCgroupMemoryLimit(instance_name) / (1024 ** 2)
-    return (instance_name, 0, memory, len(cpu_list), 0, 0)
+    return (instance_name, 0, memory, len(cpu_list),
+            hv_base.HvInstanceState.RUNNING, 0)
 
   def GetAllInstancesInfo(self, hvparams=None):
     """Get properties of all instances.
