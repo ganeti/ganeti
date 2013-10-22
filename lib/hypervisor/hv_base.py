@@ -231,6 +231,7 @@ class BaseHypervisor(object):
     @type hvparams: dict of strings
     @param hvparams: hvparams to be used with this instance
 
+    @rtype: (string, string, int, int, HvInstanceState, int)
     @return: tuple (name, id, memory, vcpus, state, times)
 
     """
@@ -241,7 +242,9 @@ class BaseHypervisor(object):
 
     @type hvparams: dict of strings
     @param hvparams: hypervisor parameter
-    @return: list of tuples (name, id, memory, vcpus, stat, times)
+
+    @rtype: (string, string, int, int, HvInstanceState, int)
+    @return: list of tuples (name, id, memory, vcpus, state, times)
 
     """
     raise NotImplementedError

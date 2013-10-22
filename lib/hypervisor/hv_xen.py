@@ -84,8 +84,8 @@ def _CreateConfigCpus(cpu_mask):
 
 
 def _RunInstanceList(fn, instance_list_errors):
-  """Helper function for L{_GetInstanceList} to retrieve the list of instances
-  from xen.
+  """Helper function for L{_GetAllInstanceList} to retrieve the list
+  of instances from xen.
 
   @type fn: callable
   @param fn: Function to query xen for the list of instances
@@ -131,6 +131,7 @@ def _ParseInstanceList(lines, include_node):
       data[1] = int(data[1])
       data[2] = int(data[2])
       data[3] = int(data[3])
+      data[4] = _XenToHypervisorInstanceState(data[4])
       data[5] = float(data[5])
     except (TypeError, ValueError), err:
       raise errors.HypervisorError("Can't parse instance list,"
@@ -143,8 +144,8 @@ def _ParseInstanceList(lines, include_node):
   return result
 
 
-def _GetInstanceList(fn, include_node, _timeout=5):
-  """Return the list of running instances.
+def _GetAllInstanceList(fn, include_node, _timeout=5):
+  """Return the list of instances including running and shutdown.
 
   See L{_RunInstanceList} and L{_ParseInstanceList} for parameter details.
 
@@ -165,6 +166,46 @@ def _GetInstanceList(fn, include_node, _timeout=5):
     raise errors.HypervisorError(errmsg)
 
   return _ParseInstanceList(lines, include_node)
+
+
+def _IsInstanceRunning(instance_info):
+  return instance_info == "r-----" \
+      or instance_info == "-b----"
+
+
+def _IsInstanceShutdown(instance_info):
+  return instance_info == "---s--"
+
+
+def _XenToHypervisorInstanceState(instance_info):
+  if _IsInstanceRunning(instance_info):
+    return hv_base.HvInstanceState.RUNNING
+  elif _IsInstanceShutdown(instance_info):
+    return hv_base.HvInstanceState.SHUTDOWN
+  else:
+    raise errors.HypervisorError("hv_xen._XenToHypervisorInstanceState:"
+                                 " unhandled Xen instance state '%s'" %
+                                   instance_info)
+
+
+def _GetRunningInstanceList(fn, include_node, _timeout=5):
+  """Return the list of running instances.
+
+  See L{_GetAllInstanceList} for parameter details.
+
+  """
+  instances = _GetAllInstanceList(fn, include_node, _timeout)
+  return [i for i in instances if hv_base.HvInstanceState.IsRunning(i[4])]
+
+
+def _GetShutdownInstanceList(fn, include_node, _timeout=5):
+  """Return the list of shutdown instances.
+
+  See L{_GetAllInstanceList} for parameter details.
+
+  """
+  instances = _GetAllInstanceList(fn, include_node, _timeout)
+  return [i for i in instances if hv_base.HvInstanceState.IsShutdown(i[4])]
 
 
 def _ParseNodeInfo(info):
@@ -514,14 +555,14 @@ class XenHypervisor(hv_base.BaseHypervisor):
     return new_filename
 
   def _GetInstanceList(self, include_node, hvparams):
-    """Wrapper around module level L{_GetInstanceList}.
+    """Wrapper around module level L{_GetAllInstanceList}.
 
     @type hvparams: dict of strings
     @param hvparams: hypervisor parameters to be used on this node
 
     """
-    return _GetInstanceList(lambda: self._RunXen(["list"], hvparams),
-                            include_node)
+    return _GetAllInstanceList(lambda: self._RunXen(["list"], hvparams),
+                               include_node)
 
   def ListInstances(self, hvparams=None):
     """Get the list of running instances.
@@ -555,7 +596,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     @type hvparams: dict of strings
     @param hvparams: hypervisor parameters
-    @return: list of tuples (name, id, memory, vcpus, stat, times)
+
+    @rtype: (string, string, int, int, HypervisorInstanceState, int)
+    @return: list of tuples (name, id, memory, vcpus, state, times)
 
     """
     return self._GetInstanceList(False, hvparams)
@@ -607,6 +650,28 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return self._StopInstance(name, force, instance.hvparams)
 
+  def _ShutdownInstance(self, name, hvparams, instance_info):
+    # The '-w' flag waits for shutdown to complete
+    #
+    # In the case of shutdown, we want to wait until the shutdown
+    # process is complete because then we want to also destroy the
+    # domain, and we do not want to destroy the domain while it is
+    # shutting down.
+    if hv_base.HvInstanceState.IsShutdown(instance_info):
+      logging.info("Instance '%s' is already shutdown, skipping shutdown"
+                   " command", name)
+    else:
+      result = self._RunXen(["shutdown", "-w", name], hvparams)
+      if result.failed:
+        raise errors.HypervisorError("Failed to shutdown instance %s: %s, %s" %
+                                     (name, result.fail_reason, result.output))
+
+  def _DestroyInstance(self, name, hvparams):
+    result = self._RunXen(["destroy", name], hvparams)
+    if result.failed:
+      raise errors.HypervisorError("Failed to destroy instance %s: %s, %s" %
+                                   (name, result.fail_reason, result.output))
+
   def _StopInstance(self, name, force, hvparams):
     """Stop an instance.
 
@@ -618,15 +683,17 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @param hvparams: hypervisor parameters of the instance
 
     """
-    if force:
-      action = "destroy"
-    else:
-      action = "shutdown"
+    instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
 
-    result = self._RunXen([action, name], hvparams)
-    if result.failed:
-      raise errors.HypervisorError("Failed to stop instance %s: %s, %s" %
-                                   (name, result.fail_reason, result.output))
+    if instance_info is None:
+      raise errors.HypervisorError("Failed to shutdown instance %s,"
+                                   " not running" % name)
+
+    if force:
+      self._DestroyInstance(name, hvparams)
+    else:
+      self._ShutdownInstance(name, hvparams, instance_info[4])
+      self._DestroyInstance(name, hvparams)
 
     # Remove configuration file if stopping/starting instance was successful
     self._RemoveConfigFile(name)
