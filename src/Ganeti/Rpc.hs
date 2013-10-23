@@ -43,8 +43,9 @@ module Ganeti.Rpc
 
   , rpcResultFill
 
-  , InstanceInfo(..)
   , RpcCallInstanceInfo(..)
+  , InstanceState(..)
+  , InstanceInfo(..)
   , RpcResultInstanceInfo(..)
 
   , RpcCallAllInstancesInfo(..)
@@ -270,9 +271,19 @@ $(buildObject "RpcCallInstanceInfo" "rpcCallInstInfo"
   , simpleField "hname" [t| Hypervisor |]
   ])
 
+$(declareILADT "InstanceState"
+  [ ("InstanceStateRunning", 0)
+  , ("InstanceStateShutdown", 1)
+  ])
+
+$(makeJSONInstance ''InstanceState)
+
+instance PyValue InstanceState where
+  showValue = show . instanceStateToRaw
+
 $(buildObject "InstanceInfo" "instInfo"
   [ simpleField "memory" [t| Int|]
-  , simpleField "state"  [t| String |] -- It depends on hypervisor :(
+  , simpleField "state"  [t| InstanceState |]
   , simpleField "vcpus"  [t| Int |]
   , simpleField "time"   [t| Int |]
   ])

@@ -56,7 +56,7 @@ createInstance name pnodeUuid adminState =
 
 -- | A fake InstanceInfo to be used to check values.
 fakeInstanceInfo :: InstanceInfo
-fakeInstanceInfo = InstanceInfo 0 "" 0 0
+fakeInstanceInfo = InstanceInfo 0 InstanceStateRunning 0 0
 
 -- | Erroneous node response - the exact error does not matter.
 responseError :: String -> (String, ERpcError a)
