@@ -2346,6 +2346,8 @@ endif
 
 coverage: $(COVERAGE_TESTS)
 
+test/py/docs_unittest.py: $(gnt_scripts)
+
 .PHONY: py-coverage
 py-coverage: $(GENERATED_FILES) $(python_tests)
 	@test -n "$(PYCOVERAGE)" || \
