@@ -63,6 +63,7 @@ module Ganeti.Utils
   , formatOrdinal
   , atomicWriteFile
   , tryAndLogIOError
+  , lockFile
   ) where
 
 import Control.Exception (try)
@@ -70,7 +71,7 @@ import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import Data.Function (on)
 import Data.List
 import qualified Data.Map as M
-import Control.Monad (foldM)
+import Control.Monad (foldM, liftM)
 import System.Directory (renameFile)
 import System.FilePath.Posix (takeDirectory, takeBaseName)
 
@@ -84,6 +85,7 @@ import Ganeti.Runtime
 import System.IO
 import System.Exit
 import System.Posix.Files
+import System.Posix.IO
 import System.Time
 
 -- * Debug functions
@@ -517,3 +519,12 @@ atomicWriteFile path contents = do
   hPutStr tmphandle contents
   hClose tmphandle
   renameFile tmppath path
+
+-- | Attempt, in a non-blocking way, to obtain a lock on a given file; report
+-- back success.
+lockFile :: FilePath -> IO (Result ())
+lockFile path = do
+  handle <- openFile path WriteMode
+  fd <- handleToFd handle
+  Control.Monad.liftM (either (Bad . show) Ok)
+    (try (setLock fd (WriteLock, AbsoluteSeek, 0, 0)) :: IO (Either IOError ()))
