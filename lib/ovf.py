@@ -328,7 +328,7 @@ class OVFReader(object):
       schema fragment removed or empty dictionary, when root is None
 
     """
-    if not root:
+    if root is None:
       return {}
     results = {}
     for element in list(root):
@@ -398,7 +398,7 @@ class OVFReader(object):
     hypervisor_search = ("{%s}GanetiSection/{%s}Hypervisor" %
                          (GANETI_SCHEMA, GANETI_SCHEMA))
     hypervisor_data = self.tree.find(hypervisor_search)
-    if not hypervisor_data:
+    if hypervisor_data is None:
       return {"hypervisor_name": constants.VALUE_AUTO}
     results = {
       "hypervisor_name": hypervisor_data.findtext("{%s}Name" % GANETI_SCHEMA,
@@ -419,7 +419,7 @@ class OVFReader(object):
     os_search = ("{%s}GanetiSection/{%s}OperatingSystem" %
                  (GANETI_SCHEMA, GANETI_SCHEMA))
     os_data = self.tree.find(os_search)
-    if os_data:
+    if os_data is not None:
       results["os_name"] = os_data.findtext("{%s}Name" % GANETI_SCHEMA)
       parameters = os_data.find("{%s}Parameters" % GANETI_SCHEMA)
       results.update(self._GetDictParameters(parameters, GANETI_SCHEMA))
@@ -439,7 +439,7 @@ class OVFReader(object):
                    (OVF_SCHEMA, OVF_SCHEMA, OVF_SCHEMA))
     match_vcpus = ("{%s}ResourceType" % RASD_SCHEMA, RASD_TYPE["vcpus"])
     vcpus = self._GetElementMatchingText(find_vcpus, match_vcpus)
-    if vcpus:
+    if vcpus is not None:
       vcpus_count = vcpus.findtext("{%s}VirtualQuantity" % RASD_SCHEMA,
                                    default=constants.VALUE_AUTO)
     else:
@@ -450,7 +450,7 @@ class OVFReader(object):
     match_memory = ("{%s}ResourceType" % RASD_SCHEMA, RASD_TYPE["memory"])
     memory = self._GetElementMatchingText(find_memory, match_memory)
     memory_raw = None
-    if memory:
+    if memory is not None:
       alloc_units = memory.findtext("{%s}AllocationUnits" % RASD_SCHEMA)
       matching_units = [units for units, variants in ALLOCATION_UNITS.items()
                         if alloc_units.lower() in variants]
@@ -528,7 +528,7 @@ class OVFReader(object):
                                                          ganeti_match)
 
       ganeti_data = {}
-      if network_ganeti_data:
+      if network_ganeti_data is not None:
         ganeti_data["mode"] = network_ganeti_data.findtext("{%s}Mode" %
                                                            GANETI_SCHEMA)
         ganeti_data["mac"] = network_ganeti_data.findtext("{%s}MACAddress" %
@@ -540,7 +540,7 @@ class OVFReader(object):
         ganeti_data["network"] = network_ganeti_data.findtext("{%s}Net" %
                                                               GANETI_SCHEMA)
       mac_data = None
-      if network_data:
+      if network_data is not None:
         mac_data = network_data.findtext("{%s}Address" % RASD_SCHEMA)
 
       network_name = network_name.lower()
