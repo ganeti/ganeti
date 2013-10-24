@@ -43,6 +43,7 @@ import qualified Ganeti.HTools.Program.Hbal as Hbal
 import qualified Ganeti.HTools.Program.Hcheck as Hcheck
 import qualified Ganeti.HTools.Program.Hscan as Hscan
 import qualified Ganeti.HTools.Program.Hspace as Hspace
+import qualified Ganeti.HTools.Program.Hsqueeze as Hsqueeze
 import qualified Ganeti.HTools.Program.Hinfo as Hinfo
 import qualified Ganeti.HTools.Program.Hroller as Hroller
 import Ganeti.Utils
@@ -79,6 +80,10 @@ personalities =
                 "cluster rolling maintenance helper; it helps scheduling\
                 \ node reboots in a manner that doesn't conflict with the\
                 \ instances' topology"))
+  , ("hsqueeze", (Hsqueeze.main, Hsqueeze.options, Hsqueeze.arguments,
+                "cluster dynamic power management;  it powers up and down\
+                \ nodes to keep the amount of free online resources in a\
+                \ given range"))
   ]
 
 -- | Display usage and exit.

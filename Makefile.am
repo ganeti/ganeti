@@ -583,7 +583,7 @@ HS_COMPILE_PROGS= \
 # All Haskell non-test programs to be compiled but not automatically installed
 HS_PROGS = $(HS_BIN_PROGS) $(HS_MYEXECLIB_PROGS)
 
-HS_BIN_ROLES = harep hbal hscan hspace hinfo hcheck hroller
+HS_BIN_ROLES = harep hbal hscan hspace hinfo hcheck hroller hsqueeze
 HS_HTOOLS_PROGS = $(HS_BIN_ROLES) hail
 
 # Haskell programs that cannot be disabled at configure (e.g., unlike
@@ -675,6 +675,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Program/Hinfo.hs \
 	src/Ganeti/HTools/Program/Hscan.hs \
 	src/Ganeti/HTools/Program/Hspace.hs \
+	src/Ganeti/HTools/Program/Hsqueeze.hs \
 	src/Ganeti/HTools/Program/Hroller.hs \
 	src/Ganeti/HTools/Program/Main.hs \
 	src/Ganeti/HTools/Types.hs \
