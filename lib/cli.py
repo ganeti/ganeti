@@ -2707,6 +2707,7 @@ def GenericInstanceCreate(mode, opts, args):
     src_path = None
     no_install = opts.no_install
     identify_defaults = False
+    compress = constants.IEC_NONE
   elif mode == constants.INSTANCE_IMPORT:
     start = False
     os_type = None
@@ -2715,6 +2716,7 @@ def GenericInstanceCreate(mode, opts, args):
     src_path = opts.src_dir
     no_install = None
     identify_defaults = opts.identify_defaults
+    compress = opts.compress
   else:
     raise errors.ProgrammerError("Invalid creation mode %s" % mode)
 
@@ -2740,6 +2742,7 @@ def GenericInstanceCreate(mode, opts, args):
                                 force_variant=force_variant,
                                 src_node=src_node,
                                 src_path=src_path,
+                                compress=compress,
                                 tags=tags,
                                 no_install=no_install,
                                 identify_defaults=identify_defaults,
