@@ -1,0 +1,17 @@
+./test/hs/hsqueeze --no-headers -t $TESTDATA_DIR/hsqueeze-underutilized.data
+>>>/^node-01-00[2345]
+node-01-00[2345]
+node-01-00[2345]$/
+>>>= 0
+
+./test/hs/hsqueeze --no-headers --target-resources=2.0 -t $TESTDATA_DIR/hsqueeze-underutilized.data
+>>>/^node-01-00[2345]
+node-01-00[2345]$/
+>>>= 0
+
+./test/hs/hsqueeze --no-headers --target-resources=0 -t $TESTDATA_DIR/hsqueeze-underutilized.data
+>>>/^node-01-00[2345]
+node-01-00[2345]
+node-01-00[2345]
+node-01-00[2345]$/
+>>>= 0

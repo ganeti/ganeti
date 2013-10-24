@@ -1268,6 +1268,7 @@ TEST_FILES = \
 	test/data/htools/hroller-nodegroups.data \
 	test/data/htools/hroller-nonredundant.data \
 	test/data/htools/hroller-online.data \
+	test/data/htools/hsqueeze-underutilized.data \
 	test/data/htools/unique-reboot-order.data \
 	test/hs/shelltests/htools-balancing.test \
 	test/hs/shelltests/htools-basic.test \
@@ -1276,6 +1277,7 @@ TEST_FILES = \
 	test/hs/shelltests/htools-hail.test \
 	test/hs/shelltests/htools-hroller.test \
 	test/hs/shelltests/htools-hspace.test \
+	test/hs/shelltests/htools-hsqueeze.test \
 	test/hs/shelltests/htools-invalid.test \
 	test/hs/shelltests/htools-multi-group.test \
 	test/hs/shelltests/htools-no-backend.test \
