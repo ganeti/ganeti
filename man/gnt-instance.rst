@@ -992,6 +992,14 @@ follows::
     # gnt-instance batch-create instances.json
     Submitted jobs 37, 38
 
+
+Note: If the allocator is used for computing suitable nodes for the
+instances, it will only take into account disk information for the
+default disk template. That means, even if other disk templates are
+specified for the instances, storage space information of these disk
+templates will not be considered in the allocation computation.
+
+
 REMOVE
 ^^^^^^
 
@@ -1921,7 +1929,9 @@ CHANGE-GROUP
 
 This command moves an instance to another node group. The move is
 calculated by an iallocator, either given on the command line or as a
-cluster default.
+cluster default. Note that the iallocator does only consider disk
+information of the default disk template, even if the instances'
+disk templates differ from that.
 
 If no specific destination groups are specified using ``--to``, all
 groups except the one containing the instance are considered.

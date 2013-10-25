@@ -761,7 +761,6 @@ class IAllocator(object):
     """
     request = req.GetRequest(self.cfg)
     disk_template = None
-    # FIXME: decide this based on request mode
     if "disk_template" in request:
       disk_template = request["disk_template"]
     self._ComputeClusterData(disk_template=disk_template)

@@ -123,6 +123,10 @@ each affected instance individually:
   instance that the node is a secondary for.
 - when neither of the above is done a combination of the two cases is run
 
+Note that the iallocator currently only considers disk information of
+the default disk template, even if the instance's disk templates differ
+from that.
+
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
