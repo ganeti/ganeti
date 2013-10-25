@@ -92,6 +92,7 @@ module Ganeti.HTools.CLI
   , oShowComp
   , oSkipNonRedundant
   , oStdSpec
+  , oTargetResources
   , oTieredSpec
   , oVerbose
   , oPriority
@@ -166,6 +167,7 @@ data Options = Options
   , optShowVer     :: Bool           -- ^ Just show the program version
   , optSkipNonRedundant :: Bool      -- ^ Skip nodes with non-redundant instance
   , optStdSpec     :: Maybe RSpec    -- ^ Requested standard specs
+  , optTargetResources :: Double     -- ^ Target resources for squeezing
   , optTestCount   :: Maybe Int      -- ^ Optional test count override
   , optTieredSpec  :: Maybe RSpec    -- ^ Requested specs for tiered mode
   , optReplay      :: Maybe String   -- ^ Unittests: RNG state
@@ -223,6 +225,7 @@ defaultOptions  = Options
   , optShowNodes   = Nothing
   , optShowVer     = False
   , optStdSpec     = Nothing
+  , optTargetResources = 1.0
   , optTestCount   = Nothing
   , optTieredSpec  = Nothing
   , optReplay      = Nothing
@@ -636,6 +639,15 @@ oStdSpec =
     "STDSPEC")
    "enable standard specs allocation, given as 'disk,ram,cpu'",
    OptComplString)
+
+oTargetResources :: OptType
+oTargetResources =
+  (Option "" ["target-resources"]
+   (reqWithConversion (tryRead "target resources")
+    (\d opts -> Ok opts { optTargetResources = d}) "FACTOR")
+   "target resources to be left on each node after squeezing in\
+   \ multiples of the standard allocation",
+   OptComplFloat)
 
 oTieredSpec :: OptType
 oTieredSpec =
