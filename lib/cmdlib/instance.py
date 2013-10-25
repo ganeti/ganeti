@@ -2809,6 +2809,7 @@ class LUInstanceSetParams(LogicalUnit):
     assert self.op.instance_name in self.owned_locks(locking.LEVEL_INSTANCE)
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     self.cluster = self.cfg.GetClusterInfo()
+    cluster_hvparams = self.cluster.hvparams[self.instance.hypervisor]
 
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
@@ -2822,7 +2823,7 @@ class LUInstanceSetParams(LogicalUnit):
       # verify that the instance is not up
       instance_info = self.rpc.call_instance_info(
           pnode_uuid, self.instance.name, self.instance.hypervisor,
-          self.instance.hvparams)
+          cluster_hvparams)
       if instance_info.fail_msg:
         self.warn.append("Can't get instance runtime information: %s" %
                          instance_info.fail_msg)
@@ -2941,9 +2942,9 @@ class LUInstanceSetParams(LogicalUnit):
         mem_check_list.extend(self.instance.secondary_nodes)
       instance_info = self.rpc.call_instance_info(
           pnode_uuid, self.instance.name, self.instance.hypervisor,
-          self.instance.hvparams)
+          cluster_hvparams)
       hvspecs = [(self.instance.hypervisor,
-                  self.cluster.hvparams[self.instance.hypervisor])]
+                  cluster_hvparams)]
       nodeinfo = self.rpc.call_node_info(mem_check_list, None,
                                          hvspecs)
       pninfo = nodeinfo[pnode_uuid]
@@ -3004,7 +3005,7 @@ class LUInstanceSetParams(LogicalUnit):
       remote_info = self.rpc.call_instance_info(
          self.instance.primary_node, self.instance.name,
          self.instance.hypervisor,
-         self.cluster.hvparams[self.instance.hypervisor])
+         cluster_hvparams)
       remote_info.Raise("Error checking node %s" %
                         self.cfg.GetNodeName(self.instance.primary_node))
       if not remote_info.payload: # not running already
