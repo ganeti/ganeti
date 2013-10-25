@@ -1210,6 +1210,7 @@ man_MANS = \
 	man/hinfo.1 \
 	man/hscan.1 \
 	man/hspace.1 \
+	man/hsqueeze.1 \
 	man/hroller.1 \
 	man/htools.1 \
 	man/mon-collector.7
