@@ -81,7 +81,7 @@ class OpCode(opcodes_base.BaseOpCode):
      " for details"),
     (opcodes_base.COMMENT_ATTR, None, ht.TMaybe(ht.TString),
      "Comment describing the purpose of the opcode"),
-    (constants.OPCODE_REASON, None, ht.TMaybe(ht.TListOf(ht.TAny)),
+    (constants.OPCODE_REASON, [], ht.TMaybe(ht.TListOf(ht.TAny)),
      "The reason trail, describing why the OpCode is executed"),
     ]
   OP_RESULT = None
