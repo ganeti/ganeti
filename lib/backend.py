@@ -2178,10 +2178,18 @@ def BlockdevRemove(disk):
     rdev = None
   if rdev is not None:
     r_path = rdev.dev_path
-    try:
-      rdev.Remove()
-    except errors.BlockDeviceError, err:
-      msgs.append(str(err))
+
+    def _TryRemove():
+      try:
+        rdev.Remove()
+        return []
+      except errors.BlockDeviceError, err:
+        return [str(err)]
+
+    msgs.extend(utils.SimpleRetry([], _TryRemove,
+                                  constants.DISK_REMOVE_RETRY_INTERVAL,
+                                  constants.DISK_REMOVE_RETRY_TIMEOUT))
+
     if not msgs:
       DevCacheManager.RemoveCache(r_path)
 

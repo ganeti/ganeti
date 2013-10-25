@@ -4222,3 +4222,11 @@ hotplugTargetDisk = Types.hotplugTargetToRaw HTDisk
 hotplugAllTargets :: FrozenSet String
 hotplugAllTargets =
   ConstantUtils.mkSet $ map Types.hotplugTargetToRaw [minBound..]
+
+-- | Timeout for disk removal
+diskRemoveRetryTimeout :: Int
+diskRemoveRetryTimeout = 30
+
+-- | Intervall between disk removal retries
+diskRemoveRetryInterval :: Int
+diskRemoveRetryInterval  = 3
