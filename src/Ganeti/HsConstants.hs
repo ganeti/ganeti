@@ -1139,7 +1139,7 @@ defaultBridge = "xen-br0"
 defaultOvs :: String
 defaultOvs = "switch1"
 
--- | 60 MiB, expressed in KiB
+-- | 60 MiB/s, expressed in KiB/s
 classicDrbdSyncSpeed :: Int
 classicDrbdSyncSpeed = 60 * 1024
 
