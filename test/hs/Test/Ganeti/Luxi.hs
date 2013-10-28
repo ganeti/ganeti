@@ -84,6 +84,7 @@ instance Arbitrary Luxi.LuxiOp where
       Luxi.ReqWaitForJobChange -> Luxi.WaitForJobChange <$> arbitrary <*>
                                   genFields <*> pure J.JSNull <*>
                                   pure J.JSNull <*> arbitrary
+      Luxi.ReqPickupJob -> Luxi.PickupJob <$> arbitrary
       Luxi.ReqArchiveJob -> Luxi.ArchiveJob <$> arbitrary
       Luxi.ReqAutoArchiveJobs -> Luxi.AutoArchiveJobs <$> arbitrary <*>
                                  arbitrary

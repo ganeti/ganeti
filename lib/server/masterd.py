@@ -295,6 +295,11 @@ class ClientOps:
       _LogNewJob(True, job_id, ops)
       return job_id
 
+    elif method == luxi.REQ_PICKUP_JOB:
+      logging.info("Picking up new job from queue")
+      (job_id, ) = args
+      queue.PickupJob(job_id)
+
     elif method == luxi.REQ_SUBMIT_JOB_TO_DRAINED_QUEUE:
       logging.info("Forcefully receiving new job")
       (job_def, ) = args

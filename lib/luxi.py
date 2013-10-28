@@ -53,6 +53,7 @@ KEY_VERSION = "version"
 REQ_SUBMIT_JOB = "SubmitJob"
 REQ_SUBMIT_JOB_TO_DRAINED_QUEUE = "SubmitJobToDrainedQueue"
 REQ_SUBMIT_MANY_JOBS = "SubmitManyJobs"
+REQ_PICKUP_JOB = "PickupJob"
 REQ_WAIT_FOR_JOB_CHANGE = "WaitForJobChange"
 REQ_CANCEL_JOB = "CancelJob"
 REQ_ARCHIVE_JOB = "ArchiveJob"
@@ -78,6 +79,7 @@ REQ_ALL = compat.UniqueFrozenset([
   REQ_AUTO_ARCHIVE_JOBS,
   REQ_CANCEL_JOB,
   REQ_CHANGE_JOB_PRIORITY,
+  REQ_PICKUP_JOB,
   REQ_QUERY,
   REQ_QUERY_CLUSTER_INFO,
   REQ_QUERY_CONFIG_VALUES,
@@ -478,6 +480,9 @@ class Client(object):
 
   def SetWatcherPause(self, until):
     return self.CallMethod(REQ_SET_WATCHER_PAUSE, (until, ))
+
+  def PickupJob(self, job):
+    return self.CallMethod(REQ_PICKUP_JOB, (job,))
 
   def SubmitJob(self, ops):
     ops_state = map(lambda op: op.__getstate__(), ops)

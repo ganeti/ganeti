@@ -163,6 +163,9 @@ $(genLuxiOp "LuxiOp"
      , simpleField "prev_log" [t| JSValue |]
      , simpleField "tmout"    [t| Int     |]
      ])
+  , (luxiReqPickupJob,
+     [ simpleField "job" [t| JobId |] ]
+    )
   , (luxiReqArchiveJob,
      [ simpleField "job" [t| JobId |] ]
     )
@@ -394,6 +397,9 @@ decodeCall (LuxiCall call args) =
                     J.readJSON e
                   _ -> J.Error "Not enough values"
               return $ WaitForJobChange jid fields pinfo pidx wtmout
+    ReqPickupJob -> do
+              [jid] <- fromJVal args
+              return $ PickupJob jid
     ReqArchiveJob -> do
               [jid] <- fromJVal args
               return $ ArchiveJob jid
