@@ -123,7 +123,7 @@ updateConfig path save_fn = do
   newcfg <- loadConfig path
   let !newdata = case newcfg of
                    Ok !cfg -> Ok cfg
-                   Bad _ -> Bad "Cannot load configuration"
+                   Bad _ -> Bad $ "Cannot load configuration from " ++ path
   save_fn newdata
   case newcfg of
     Ok cfg -> logInfo ("Loaded new config, serial " ++
