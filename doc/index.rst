@@ -120,6 +120,7 @@ Draft designs
    design-lu-generated-jobs.rst
    design-monitoring-agent.rst
    design-multi-reloc.rst
+   design-multi-version-tests.rst
    design-network.rst
    design-node-add.rst
    design-oob.rst

@@ -519,6 +519,7 @@ docinput = \
 	doc/design-lu-generated-jobs.rst \
 	doc/design-linuxha.rst \
 	doc/design-multi-reloc.rst \
+        doc/design-multi-version-tests.rst \
 	doc/design-network.rst \
 	doc/design-node-add.rst \
 	doc/design-oob.rst \
