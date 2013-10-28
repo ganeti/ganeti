@@ -17,9 +17,11 @@
 .hpc/
 
 # /
+/.hsenv
 /Makefile
 /Makefile.in
 /Makefile.local
+/Session.vim
 /TAGS
 /aclocal.m4
 /autom4te.cache
