@@ -197,6 +197,10 @@ class RpcResult(object):
                       "node", "offline", "payload"]:
       assert hasattr(self, attr_name), "Missing attribute %s" % attr_name
 
+  def __repr__(self):
+    return ("RpcResult(data=%s, call=%s, node=%s, offline=%s, fail_msg=%s)" %
+            (self.offline, self.call, self.node, self.offline, self.fail_msg))
+
   @staticmethod
   def _EnsureErr(val):
     """Helper to ensure we return a 'True' value for error."""
