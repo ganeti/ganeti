@@ -213,9 +213,9 @@ class TestClient(object):
       {"type": constants.CONFD_REQ_CLUSTER_MASTER},
       {"type": constants.CONFD_REQ_CLUSTER_MASTER,
        "query": {constants.CONFD_REQQ_FIELDS:
-                 [constants.CONFD_REQFIELD_NAME,
-                  constants.CONFD_REQFIELD_IP,
-                  constants.CONFD_REQFIELD_MNODE_PIP,
+                 [str(constants.CONFD_REQFIELD_NAME),
+                  str(constants.CONFD_REQFIELD_IP),
+                  str(constants.CONFD_REQFIELD_MNODE_PIP),
                   ]}},
       {"type": constants.CONFD_REQ_NODE_ROLE_BYNAME},
       {"type": constants.CONFD_REQ_NODE_PIP_LIST},

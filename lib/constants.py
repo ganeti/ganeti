@@ -30,7 +30,6 @@ from ganeti import compat
 from ganeti import pathutils
 
 
-# various versions
 RELEASE_VERSION = _constants.RELEASE_VERSION
 OS_API_V10 = _constants.OS_API_V10
 OS_API_V15 = _constants.OS_API_V15
@@ -116,17 +115,7 @@ LAST_DRBD_PORT = _constants.LAST_DRBD_PORT
 
 DAEMONS_LOGBASE = _constants.DAEMONS_LOGBASE
 
-DAEMONS_LOGFILES = \
-    dict((daemon, pathutils.GetLogFilename(DAEMONS_LOGBASE[daemon]))
-         for daemon in DAEMONS_LOGBASE)
-
 DAEMONS_EXTRA_LOGBASE = _constants.DAEMONS_EXTRA_LOGBASE
-
-DAEMONS_EXTRA_LOGFILES = \
-  dict((daemon, dict((extra,
-       pathutils.GetLogFilename(DAEMONS_EXTRA_LOGBASE[daemon][extra]))
-       for extra in DAEMONS_EXTRA_LOGBASE[daemon]))
-         for daemon in DAEMONS_EXTRA_LOGBASE)
 
 DEV_CONSOLE = _constants.DEV_CONSOLE
 
@@ -153,24 +142,12 @@ XEN_CMD_XM = _constants.XEN_CMD_XM
 XEN_CMD_XL = _constants.XEN_CMD_XL
 KNOWN_XEN_COMMANDS = _constants.KNOWN_XEN_COMMANDS
 
-# When the Xen toolstack used is "xl", live migration requires the source host
-# to connect to the target host via ssh (xl runs this command). We need to pass
-# the command xl runs some extra info so that it can use Ganeti's key
-# verification and not fail. Note that this string is incomplete: it must be
-# filled with the cluster name before being used.
-XL_SSH_CMD = ("ssh -l %s -oGlobalKnownHostsFile=%s"
-              " -oUserKnownHostsFile=/dev/null"
-              " -oCheckHostIp=no -oStrictHostKeyChecking=yes"
-              " -oHostKeyAlias=%%s") % (SSH_LOGIN_USER,
-                                        pathutils.SSH_KNOWN_HOSTS_FILE)
-
 KVM_PATH = _constants.KVM_PATH
 KVM_KERNEL = _constants.KVM_KERNEL
 SOCAT_PATH = _constants.SOCAT_PATH
 SOCAT_USE_ESCAPE = _constants.SOCAT_USE_ESCAPE
 SOCAT_USE_COMPRESS = _constants.SOCAT_USE_COMPRESS
 SOCAT_ESCAPE_CODE = _constants.SOCAT_ESCAPE_CODE
-
 
 CONS_SSH = _constants.CONS_SSH
 CONS_VNC = _constants.CONS_VNC
@@ -186,18 +163,14 @@ X509_CERT_DEFAULT_VALIDITY = _constants.X509_CERT_DEFAULT_VALIDITY
 X509_CERT_CN = _constants.X509_CERT_CN
 X509_CERT_SIGNATURE_HEADER = _constants.X509_CERT_SIGNATURE_HEADER
 
-# Import/export daemon mode
 IEM_IMPORT = _constants.IEM_IMPORT
 IEM_EXPORT = _constants.IEM_EXPORT
 
-# Import/export transport compression
 IEC_NONE = _constants.IEC_NONE
 IEC_GZIP = _constants.IEC_GZIP
 IEC_ALL = _constants.IEC_ALL
 
 IE_CUSTOM_SIZE = _constants.IE_CUSTOM_SIZE
-
-IE_MAGIC_RE = re.compile(r"^[-_.a-zA-Z0-9]{5,100}$")
 
 IEIO_FILE = _constants.IEIO_FILE
 IEIO_RAW_DISK = _constants.IEIO_RAW_DISK
@@ -210,9 +183,6 @@ VALUE_NONE = _constants.VALUE_NONE
 VALUE_TRUE = _constants.VALUE_TRUE
 VALUE_FALSE = _constants.VALUE_FALSE
 VALUE_HS_NOTHING = _constants.VALUE_HS_NOTHING
-
-# External script validation mask
-EXT_PLUGIN_MASK = re.compile("^[a-zA-Z0-9_-]+$")
 
 HOOKS_PHASE_PRE = _constants.HOOKS_PHASE_PRE
 HOOKS_PHASE_POST = _constants.HOOKS_PHASE_POST
@@ -241,11 +211,8 @@ ST_RADOS = _constants.ST_RADOS
 STORAGE_TYPES = _constants.STORAGE_TYPES
 STS_REPORT = _constants.STS_REPORT
 
-# Storage fields
-# first two are valid in LU context only, not passed to backend
 SF_NODE = _constants.SF_NODE
 SF_TYPE = _constants.SF_TYPE
-# and the rest are valid in backend
 SF_NAME = _constants.SF_NAME
 SF_SIZE = _constants.SF_SIZE
 SF_FREE = _constants.SF_FREE
@@ -362,7 +329,6 @@ DDM_REMOVE = _constants.DDM_REMOVE
 DDMS_VALUES = _constants.DDMS_VALUES
 DDMS_VALUES_WITH_MODIFY = _constants.DDMS_VALUES_WITH_MODIFY
 
-# common exit codes
 EXIT_SUCCESS = _constants.EXIT_SUCCESS
 EXIT_FAILURE = _constants.EXIT_FAILURE
 EXIT_NOTCLUSTER = _constants.EXIT_NOTCLUSTER
@@ -381,7 +347,6 @@ VALID_TAG_TYPES = _constants.VALID_TAG_TYPES
 MAX_TAG_LEN = _constants.MAX_TAG_LEN
 MAX_TAGS_PER_OBJ = _constants.MAX_TAGS_PER_OBJ
 
-# others
 DEFAULT_BRIDGE = _constants.DEFAULT_BRIDGE
 DEFAULT_OVS = _constants.DEFAULT_OVS
 CLASSIC_DRBD_SYNC_SPEED = _constants.CLASSIC_DRBD_SYNC_SPEED
@@ -392,9 +357,6 @@ IP6_ADDRESS_ANY = _constants.IP6_ADDRESS_ANY
 IP4_VERSION = _constants.IP4_VERSION
 IP6_VERSION = _constants.IP6_VERSION
 VALID_IP_VERSIONS = _constants.VALID_IP_VERSIONS
-# for export to htools
-IP4_FAMILY = socket.AF_INET
-IP6_FAMILY = socket.AF_INET6
 
 TCP_PING_TIMEOUT = _constants.TCP_PING_TIMEOUT
 DEFAULT_VG = _constants.DEFAULT_VG
@@ -955,9 +917,6 @@ JOB_QUEUE_VERSION = _constants.JOB_QUEUE_VERSION
 JOB_QUEUE_SIZE_HARD_LIMIT = _constants.JOB_QUEUE_SIZE_HARD_LIMIT
 JOB_QUEUE_FILES_PERMS = _constants.JOB_QUEUE_FILES_PERMS
 
-JOB_ID_TEMPLATE = r"\d+"
-JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
-
 JOB_NOTCHANGED = _constants.JOB_NOTCHANGED
 
 JOB_STATUS_QUEUED = _constants.JOB_STATUS_QUEUED
@@ -1083,14 +1042,6 @@ SS_FILE_PERMS = _constants.SS_FILE_PERMS
 
 DEFAULT_ENABLED_HYPERVISOR = _constants.DEFAULT_ENABLED_HYPERVISOR
 
-# HVC_DEFAULTS contains one value 'HV_VNC_PASSWORD_FILE' which is not
-# a constant because it depends on an environment variable that is
-# used for VClusters.  Therefore, it cannot be automatically generated
-# by Haskell at compilation time (given that this environment variable
-# might be different at runtime).
-HVC_DEFAULTS = _constants.HVC_DEFAULTS
-HVC_DEFAULTS[HT_XEN_HVM][HV_VNC_PASSWORD_FILE] = pathutils.VNC_PASSWORD_FILE
-
 HVC_GLOBALS = _constants.HVC_GLOBALS
 
 BEC_DEFAULTS = _constants.BEC_DEFAULTS
@@ -1128,11 +1079,9 @@ CONFD_REQQ_IP = _constants.CONFD_REQQ_IP
 CONFD_REQQ_IPLIST = _constants.CONFD_REQQ_IPLIST
 CONFD_REQQ_FIELDS = _constants.CONFD_REQQ_FIELDS
 
-# FIXME: perhaps update code that uses these constants to deal with
-# integers instead of strings
-CONFD_REQFIELD_NAME = str(_constants.CONFD_REQFIELD_NAME)
-CONFD_REQFIELD_IP = str(_constants.CONFD_REQFIELD_IP)
-CONFD_REQFIELD_MNODE_PIP = str(_constants.CONFD_REQFIELD_MNODE_PIP)
+CONFD_REQFIELD_NAME = _constants.CONFD_REQFIELD_NAME
+CONFD_REQFIELD_IP = _constants.CONFD_REQFIELD_IP
+CONFD_REQFIELD_MNODE_PIP = _constants.CONFD_REQFIELD_MNODE_PIP
 
 CONFD_REPL_STATUS_OK = _constants.CONFD_REPL_STATUS_OK
 CONFD_REPL_STATUS_ERROR = _constants.CONFD_REPL_STATUS_ERROR
@@ -1205,9 +1154,6 @@ NDS_START_NODE_DAEMON = _constants.NDS_START_NODE_DAEMON
 
 RANDOM_UUID_FILE = _constants.RANDOM_UUID_FILE
 
-# Regex string for verifying a UUID
-UUID_REGEX = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
-
 AUTO_REPAIR_TAG_PREFIX = _constants.AUTO_REPAIR_TAG_PREFIX
 AUTO_REPAIR_TAG_ENABLED = _constants.AUTO_REPAIR_TAG_ENABLED
 AUTO_REPAIR_TAG_SUSPENDED = _constants.AUTO_REPAIR_TAG_SUSPENDED
@@ -1245,33 +1191,69 @@ CPUAVGLOAD_WINDOW_SIZE = _constants.CPUAVGLOAD_WINDOW_SIZE
 MOND_TIME_INTERVAL = _constants.MOND_TIME_INTERVAL
 MOND_LATEST_API_VERSION = _constants.MOND_LATEST_API_VERSION
 
-# Timeouts for upgrades
-
 UPGRADE_QUEUE_DRAIN_TIMEOUT = _constants.UPGRADE_QUEUE_DRAIN_TIMEOUT
 UPGRADE_QUEUE_POLL_INTERVAL = _constants.UPGRADE_QUEUE_POLL_INTERVAL
 
-# device types to hotplug
 HOTPLUG_TARGET_DISK = _constants.HOTPLUG_TARGET_DISK
 HOTPLUG_TARGET_NIC = _constants.HOTPLUG_TARGET_NIC
 HOTPLUG_ALL_TARGETS = _constants.HOTPLUG_ALL_TARGETS
 
-# hotplug actions
 HOTPLUG_ACTION_ADD = _constants.HOTPLUG_ACTION_ADD
 HOTPLUG_ACTION_REMOVE = _constants.HOTPLUG_ACTION_REMOVE
 HOTPLUG_ACTION_MODIFY = _constants.HOTPLUG_ACTION_MODIFY
 HOTPLUG_ALL_ACTIONS = _constants.HOTPLUG_ALL_ACTIONS
 
-# disk removal timeouts
 DISK_REMOVE_RETRY_INTERVAL = _constants.DISK_REMOVE_RETRY_INTERVAL
 DISK_REMOVE_RETRY_TIMEOUT = _constants.DISK_REMOVE_RETRY_TIMEOUT
 
-# other constants
-
 HAS_GNU_LN = _constants.HAS_GNU_LN
-
-# Do not re-export imported modules
-del re, _vcsversion, _constants, socket, pathutils, compat
-
 
 ALLOCATABLE_KEY = "allocatable"
 FAILED_KEY = "failed"
+
+DAEMONS_LOGFILES = \
+    dict((daemon, pathutils.GetLogFilename(DAEMONS_LOGBASE[daemon]))
+         for daemon in DAEMONS_LOGBASE)
+
+DAEMONS_EXTRA_LOGFILES = \
+  dict((daemon, dict((extra,
+       pathutils.GetLogFilename(DAEMONS_EXTRA_LOGBASE[daemon][extra]))
+       for extra in DAEMONS_EXTRA_LOGBASE[daemon]))
+         for daemon in DAEMONS_EXTRA_LOGBASE)
+
+# When the Xen toolstack used is "xl", live migration requires the source host
+# to connect to the target host via ssh (xl runs this command). We need to pass
+# the command xl runs some extra info so that it can use Ganeti's key
+# verification and not fail. Note that this string is incomplete: it must be
+# filled with the cluster name before being used.
+XL_SSH_CMD = ("ssh -l %s -oGlobalKnownHostsFile=%s"
+              " -oUserKnownHostsFile=/dev/null"
+              " -oCheckHostIp=no -oStrictHostKeyChecking=yes"
+              " -oHostKeyAlias=%%s") % (SSH_LOGIN_USER,
+                                        pathutils.SSH_KNOWN_HOSTS_FILE)
+
+IE_MAGIC_RE = re.compile(r"^[-_.a-zA-Z0-9]{5,100}$")
+
+# External script validation mask
+EXT_PLUGIN_MASK = re.compile("^[a-zA-Z0-9_-]+$")
+
+# for export to htools
+IP4_FAMILY = socket.AF_INET
+IP6_FAMILY = socket.AF_INET6
+
+JOB_ID_TEMPLATE = r"\d+"
+JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
+
+# HVC_DEFAULTS contains one value 'HV_VNC_PASSWORD_FILE' which is not
+# a constant because it depends on an environment variable that is
+# used for VClusters.  Therefore, it cannot be automatically generated
+# by Haskell at compilation time (given that this environment variable
+# might be different at runtime).
+HVC_DEFAULTS = _constants.HVC_DEFAULTS
+HVC_DEFAULTS[HT_XEN_HVM][HV_VNC_PASSWORD_FILE] = pathutils.VNC_PASSWORD_FILE
+
+# Regex string for verifying a UUID
+UUID_REGEX = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+
+# Do not re-export imported modules
+del re, _vcsversion, _constants, socket, pathutils, compat
