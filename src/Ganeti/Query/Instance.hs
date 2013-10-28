@@ -733,12 +733,11 @@ extractLiveInfo nodeResultList nodeConsoleList inst =
 getAllConsoleParams :: ConfigData
                     -> [Instance]
                     -> ErrorResult [InstanceConsoleInfoParams]
-getAllConsoleParams cfg instances = do
-  pNodes <- mapM (getPrimaryNode cfg) instances
-  let filledHvParams = map (getFilledInstHvParams [] cfg) instances
-  filledBeParams <- mapM (getFilledInstBeParams cfg) instances
-  return . map (\(i, n, h, b) -> InstanceConsoleInfoParams i n h b) $
-    zip4 instances pNodes filledHvParams filledBeParams
+getAllConsoleParams cfg = mapM $ \i ->
+  InstanceConsoleInfoParams i
+    <$> getPrimaryNode cfg i
+    <*> pure (getFilledInstHvParams [] cfg i)
+    <*> getFilledInstBeParams cfg i
 
 -- | Compares two params according to their node, needed for grouping.
 compareParamsByNode :: InstanceConsoleInfoParams
