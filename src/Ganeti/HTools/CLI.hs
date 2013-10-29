@@ -70,6 +70,7 @@ module Ganeti.HTools.CLI
   , oMinDisk
   , oMinGain
   , oMinGainLim
+  , oMinResources
   , oMinScore
   , oNoHeaders
   , oNoSimulation
@@ -148,6 +149,7 @@ data Options = Options
   , optMdsk        :: Double         -- ^ Max disk usage ratio for nodes
   , optMinGain     :: Score          -- ^ Min gain we aim for in a step
   , optMinGainLim  :: Score          -- ^ Limit below which we apply mingain
+  , optMinResources :: Double        -- ^ Minimal resources for hsqueeze
   , optMinScore    :: Score          -- ^ The minimum score we aim for
   , optNoHeaders   :: Bool           -- ^ Do not show a header line
   , optNoSimulation :: Bool          -- ^ Skip the rebalancing dry-run
@@ -206,6 +208,7 @@ defaultOptions  = Options
   , optMdsk        = defReservedDiskRatio
   , optMinGain     = 1e-2
   , optMinGainLim  = 1e-1
+  , optMinResources = 2.0
   , optMinScore    = 1e-9
   , optNoHeaders   = False
   , optNoSimulation = False
@@ -496,6 +499,15 @@ oMinGainLim =
    (reqWithConversion (tryRead "min gain limit")
     (\g opts -> Ok opts { optMinGainLim = g }) "SCORE")
    "minimum cluster score for which we start checking the min-gain",
+   OptComplFloat)
+
+oMinResources :: OptType
+oMinResources =
+  (Option "" ["minimal-resources"]
+   (reqWithConversion (tryRead "minimal resources")
+    (\d opts -> Ok opts { optMinResources = d}) "FACTOR")
+   "minimal resources to be present on each in multiples of\ 
+   \ the standard allocation for not onlining standby nodes",
    OptComplFloat)
 
 oMinScore :: OptType
