@@ -135,33 +135,37 @@ case_formatCommands =
     resCmdTest (formatCommands personalities)
   where resCmdTest :: [String]
         resCmdTest =
-          [ " hail    - Ganeti IAllocator plugin that implements the instance\
+          [ " hail     - Ganeti IAllocator plugin that implements the instance\
             \ placement and"
-          , "           movement using the same algorithm as hbal(1)"
-          , " harep   - auto-repair tool that detects certain kind of problems\
-            \ with instances"
-          , "           and applies the allowed set of solutions"
-          , " hbal    - cluster balancer that looks at the current state of\
+          , "            movement using the same algorithm as hbal(1)"
+          , " harep    - auto-repair tool that detects certain kind of problems\
+            \ with"
+          , "            instances and applies the allowed set of solutions"
+          , " hbal     - cluster balancer that looks at the current state of\
             \ the cluster and"
-          , "           computes a series of steps designed to bring the\
+          , "            computes a series of steps designed to bring the\
             \ cluster into a"
-          , "           better state"
-          , " hcheck  - cluster checker; prints information about cluster's\
-            \ health and checks"
-          , "           whether a rebalance done using hbal would help"
-          , " hinfo   - cluster information printer; it prints information\
+          , "            better state"
+          , " hcheck   - cluster checker; prints information about cluster's\
+            \ health and"
+          , "            checks whether a rebalance done using hbal would help"
+          , " hinfo    - cluster information printer; it prints information\
             \ about the current"
-          , "           cluster state and its residing nodes/instances"
-          , " hroller - cluster rolling maintenance helper; it helps\
+          , "            cluster state and its residing nodes/instances"
+          , " hroller  - cluster rolling maintenance helper; it helps\
             \ scheduling node reboots"
-          , "           in a manner that doesn't conflict with the instances'\
+          , "            in a manner that doesn't conflict with the instances'\
             \ topology"
-          , " hscan   - tool for scanning clusters via RAPI and saving their\
+          , " hscan    - tool for scanning clusters via RAPI and saving their\
             \ data in the"
-          , "           input format used by hbal(1) and hspace(1)"
-          , " hspace  - computes how many additional instances can be fit on a\
-            \ cluster, while"
-          , "           maintaining N+1 status."
+          , "            input format used by hbal(1) and hspace(1)"
+          , " hspace   - computes how many additional instances can be fit on a\
+            \ cluster,"
+          , "            while maintaining N+1 status."
+          , " hsqueeze - cluster dynamic power management;  it powers up and\
+            \ down nodes to"
+          , "            keep the amount of free online resources in a given\
+            \ range"
           ]
 
 testSuite "Common"
