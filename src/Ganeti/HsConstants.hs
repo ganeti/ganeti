@@ -1026,7 +1026,7 @@ rieHandshake = "Hi, I'm Ganeti"
 rieVersion :: Int
 rieVersion = 0
 
--- | Remote import/export certificate validity in seconds
+-- | Remote import/export certificate validity (seconds)
 rieCertValidity :: Int
 rieCertValidity = 24 * 60 * 60
 
@@ -1179,11 +1179,11 @@ minVgSize = 20480
 defaultMacPrefix :: String
 defaultMacPrefix = "aa:00:00"
 
--- | Default maximum instance wait time, in seconds.
+-- | Default maximum instance wait time (seconds)
 defaultShutdownTimeout :: Int
 defaultShutdownTimeout = 120
 
--- | Node clock skew in seconds
+-- | Node clock skew (seconds)
 nodeMaxClockSkew :: Int
 nodeMaxClockSkew = 150
 
@@ -4302,10 +4302,10 @@ hotplugAllTargets :: FrozenSet String
 hotplugAllTargets =
   ConstantUtils.mkSet $ map Types.hotplugTargetToRaw [minBound..]
 
--- | Timeout for disk removal
+-- | Timeout for disk removal (seconds)
 diskRemoveRetryTimeout :: Int
 diskRemoveRetryTimeout = 30
 
--- | Intervall between disk removal retries
+-- | Interval between disk removal retries (seconds)
 diskRemoveRetryInterval :: Int
 diskRemoveRetryInterval  = 3
