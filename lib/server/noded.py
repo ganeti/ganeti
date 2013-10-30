@@ -631,6 +631,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.HotplugDevice(instance, action, dev_type, device, extra, seq)
 
   @staticmethod
+  def perspective_hotplug_supported(params):
+    """Checks if hotplug is supported.
+
+    """
+    instance = objects.Instance.FromDict(params[0])
+    return backend.HotplugSupported(instance)
+
+  @staticmethod
   def perspective_migration_info(params):
     """Gather information about an instance to be migrated.
 

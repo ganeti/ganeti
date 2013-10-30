@@ -2003,6 +2003,17 @@ def HotplugDevice(instance, action, dev_type, device, extra, seq):
   return fn(instance, dev_type, device, extra, seq)
 
 
+def HotplugSupported(instance):
+  """Checks if hotplug is generally supported.
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  try:
+    hyper.HotplugSupported(instance)
+  except errors.HotplugError, err:
+    _Fail("Hotplug is not supported: %s", err)
+
+
 def BlockdevCreate(disk, size, owner, on_primary, info, excl_stor):
   """Creates a block device for an instance.
 
