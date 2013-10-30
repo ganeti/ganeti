@@ -210,7 +210,7 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags,
               excl_stor, free_spindles, nos_cpu] = do
   gdx <- lookupGroup ktg name gu
   new_node <-
-      if "?" `elem` [tm,nm,fm,td,fd,tc] || fo == "Y" then
+      if "?" `elem` [tm,nm,fm,td,fd,tc] then
           return $ Node.create name 0 0 0 0 0 0 0 True 0 0 gdx False
       else do
         let vtags = commaSplit tags
@@ -230,7 +230,7 @@ loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags,
                              "Invalid exclusive_storage value for node '" ++
                              name ++ "': " ++ excl_stor
         return . flip Node.setMaster (fo == "M") . flip Node.setNodeTags vtags $
-          Node.create name vtm vnm vfm vtd vfd vtc vnc False vspindles
+          Node.create name vtm vnm vfm vtd vfd vtc vnc (fo == "Y") vspindles
           vfree_spindles gdx vexcl_stor
   return (name, new_node)
 
