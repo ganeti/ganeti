@@ -229,6 +229,7 @@
     "instance-rename": true,
     "instance-shutdown": true,
     "instance-device-names": true,
+    "instance-device-hotplug": false,
 
     "job-list": true,
 

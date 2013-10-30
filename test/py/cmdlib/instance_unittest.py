@@ -1491,7 +1491,8 @@ class TestLUInstanceMove(CmdlibTestCase):
 
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
-        .CreateSuccessfulNodeResult(self.node, "/dev/mocked_path")
+        .CreateSuccessfulNodeResult(self.node, ("/dev/mocked_path",
+                                    "/var/run/ganeti/instance-disks/mocked_d"))
     self.rpc.call_blockdev_remove.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, "")
@@ -1629,10 +1630,10 @@ class TestLUInstanceRename(CmdlibTestCase):
   def testFileInstance(self):
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
-        .CreateSuccessfulNodeResult(self.master, None)
+        .CreateSuccessfulNodeResult(self.master, (None, None))
     self.rpc.call_blockdev_shutdown.return_value = \
       self.RpcResultsBuilder() \
-        .CreateSuccessfulNodeResult(self.master, None)
+        .CreateSuccessfulNodeResult(self.master, (None, None))
 
     inst = self.cfg.AddNewInstance(disk_template=constants.DT_FILE)
     op = self.CopyOpCode(self.op,
@@ -1991,6 +1992,13 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          nics=[(constants.DDM_ADD, -1, {})])
     self.ExecOpCode(op)
 
+  def testHotAddNic(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_ADD, -1, {})],
+                         hotplug=True)
+    self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_hotplug_device.called)
+
   def testAddNicWithIp(self):
     op = self.CopyOpCode(self.op,
                          nics=[(constants.DDM_ADD, -1,
@@ -2074,6 +2082,13 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          nics=[(constants.DDM_MODIFY, 0, {})])
     self.ExecOpCode(op)
 
+  def testHotModifyNic(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_MODIFY, 0, {})],
+                         hotplug=True)
+    self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_hotplug_device.called)
+
   def testRemoveLastNic(self):
     op = self.CopyOpCode(self.op,
                          nics=[(constants.DDM_REMOVE, 0, {})])
@@ -2087,6 +2102,16 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          instance_name=inst.name,
                          nics=[(constants.DDM_REMOVE, 0, {})])
     self.ExecOpCode(op)
+
+  def testHotRemoveNic(self):
+    inst = self.cfg.AddNewInstance(nics=[self.cfg.CreateNic(),
+                                         self.cfg.CreateNic()])
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         nics=[(constants.DDM_REMOVE, 0, {})],
+                         hotplug=True)
+    self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_hotplug_device.called)
 
   def testSetOffline(self):
     op = self.CopyOpCode(self.op,
@@ -2161,6 +2186,35 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                    constants.IDISK_NAME: constants.VALUE_NONE
                                  }]])
     self.ExecOpCode(op)
+
+  def testHotAddDisk(self):
+    self.rpc.call_blockdev_assemble.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master, ("/dev/mocked_path",
+                                    "/var/run/ganeti/instance-disks/mocked_d"))
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_ADD, -1,
+                                 {
+                                   constants.IDISK_SIZE: 1024,
+                                 }]],
+                         hotplug=True)
+    self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_blockdev_create.called)
+    self.assertTrue(self.rpc.call_blockdev_assemble.called)
+    self.assertTrue(self.rpc.call_hotplug_device.called)
+
+  def testHotRemoveDisk(self):
+    inst = self.cfg.AddNewInstance(disks=[self.cfg.CreateDisk(),
+                                          self.cfg.CreateDisk()])
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_REMOVE, -1,
+                                 {}]],
+                         hotplug=True)
+    self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_hotplug_device.called)
+    self.assertTrue(self.rpc.call_blockdev_shutdown.called)
+    self.assertTrue(self.rpc.call_blockdev_remove.called)
 
   def testModifyDiskWithSize(self):
     op = self.CopyOpCode(self.op,

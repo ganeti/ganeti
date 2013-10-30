@@ -992,6 +992,14 @@ follows::
     # gnt-instance batch-create instances.json
     Submitted jobs 37, 38
 
+
+Note: If the allocator is used for computing suitable nodes for the
+instances, it will only take into account disk information for the
+default disk template. That means, even if other disk templates are
+specified for the instances, storage space information of these disk
+templates will not be considered in the allocation computation.
+
+
 REMOVE
 ^^^^^^
 
@@ -1128,6 +1136,7 @@ MODIFY
 | [\--offline \| \--online]
 | [\--submit] [\--print-job-id]
 | [\--ignore-ipolicy]
+| [\--hotplug]
 | {*instance*}
 
 Modifies the memory size, number of vcpus, ip address, MAC address
@@ -1204,6 +1213,16 @@ immediately.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+If ``--hotplug`` is given any disk and NIC modifications will take
+effect without the need of actual reboot. Please note that this feature
+is currently supported only for KVM hypervisor and there are some
+restrictions: a) KVM versions >= 1.0 support it b) instances with chroot
+or uid pool security model do not support disk hotplug c) RBD disks with
+userspace access mode can not be hotplugged (yet) d) if hotplug fails
+(for any reason) a warning is printed but execution is continued e)
+for existing NIC modification interactive verification is needed unless
+``--force`` option is passed.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
@@ -1914,7 +1933,9 @@ CHANGE-GROUP
 
 This command moves an instance to another node group. The move is
 calculated by an iallocator, either given on the command line or as a
-cluster default.
+cluster default. Note that the iallocator does only consider disk
+information of the default disk template, even if the instances'
+disk templates differ from that.
 
 If no specific destination groups are specified using ``--to``, all
 groups except the one containing the instance are considered.

@@ -40,11 +40,11 @@ module Ganeti.HsConstants where
 import Control.Arrow ((***))
 import Data.List ((\\))
 import Data.Map (Map)
-import qualified Data.Map as Map (fromList, keys, insert)
+import qualified Data.Map as Map (empty, fromList, keys, insert)
 
 import qualified AutoConf
-import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
-                             buildVersion)
+import Ganeti.ConstantUtils (PythonChar(..), PythonNone(..), FrozenSet,
+                             Protocol(..), buildVersion)
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.HTools.Types (AutoRepairResult(..), AutoRepairType(..))
 import qualified Ganeti.HTools.Types as Types
@@ -53,6 +53,7 @@ import qualified Ganeti.Logging as Logging (syslogUsageToRaw)
 import qualified Ganeti.Runtime as Runtime
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..),
                        ExtraLogReason(..))
+import Ganeti.THH (PyValueEx(..))
 import Ganeti.Types
 import qualified Ganeti.Types as Types
 import Ganeti.Confd.Types (ConfdRequestType(..), ConfdReqField(..),
@@ -384,6 +385,16 @@ daemonsLogbase =
   Map.fromList
   [ (Runtime.daemonName d, Runtime.daemonLogBase d) | d <- [minBound..] ]
 
+daemonsExtraLogbase :: Map String (Map String String)
+daemonsExtraLogbase =
+  Map.fromList $
+  map (Runtime.daemonName *** id)
+  [ (GanetiMond, Map.fromList
+                 [ ("access", Runtime.daemonsExtraLogbase GanetiMond AccessLog)
+                 , ("error", Runtime.daemonsExtraLogbase GanetiMond ErrorLog)
+                 ])
+  ]
+
 extraLogreasonAccess :: String
 extraLogreasonAccess = Runtime.daemonsExtraLogbase GanetiMond AccessLog
 
@@ -570,6 +581,29 @@ ieioRawDisk = "raw"
 -- | OS definition import/export script
 ieioScript :: String
 ieioScript = "script"
+
+-- * Values
+
+valueDefault :: String
+valueDefault = "default"
+
+valueAuto :: String
+valueAuto = "auto"
+
+valueGenerate :: String
+valueGenerate = "generate"
+
+valueNone :: String
+valueNone = "none"
+
+valueTrue :: String
+valueTrue = "true"
+
+valueFalse :: String
+valueFalse = "false"
+
+valueHsNothing :: Map String PythonNone
+valueHsNothing = Map.fromList [("Nothing", PythonNone)]
 
 -- * Hooks
 
@@ -859,6 +893,10 @@ dtsBlock =
   ConstantUtils.mkSet $
   map Types.diskTemplateToRaw [DTPlain, DTDrbd8, DTBlock, DTRbd, DTExt]
 
+-- | The set of lvm-based disk templates
+dtsLvm :: FrozenSet String
+dtsLvm = diskTemplates `ConstantUtils.difference` dtsNotLvm
+
 -- * Drbd
 
 drbdHmacAlg :: String
@@ -890,6 +928,20 @@ drbdBDiskFlush = "f"
 
 drbdBNone :: String
 drbdBNone = "n"
+
+-- | Valid barrier combinations: "n" or any non-null subset of "bfd"
+drbdValidBarrierOpt :: FrozenSet (FrozenSet String)
+drbdValidBarrierOpt =
+  ConstantUtils.mkSet
+  [ ConstantUtils.mkSet [drbdBNone]
+  , ConstantUtils.mkSet [drbdBDiskBarriers]
+  , ConstantUtils.mkSet [drbdBDiskDrain]
+  , ConstantUtils.mkSet [drbdBDiskFlush]
+  , ConstantUtils.mkSet [drbdBDiskDrain, drbdBDiskFlush]
+  , ConstantUtils.mkSet [drbdBDiskBarriers, drbdBDiskDrain]
+  , ConstantUtils.mkSet [drbdBDiskBarriers, drbdBDiskFlush]
+  , ConstantUtils.mkSet [drbdBDiskBarriers, drbdBDiskFlush, drbdBDiskDrain]
+  ]
 
 -- | Rbd tool command
 rbdCmd :: String
@@ -1088,7 +1140,7 @@ defaultBridge = "xen-br0"
 defaultOvs :: String
 defaultOvs = "switch1"
 
--- | 60 MiB, expressed in KiB
+-- | 60 MiB/s, expressed in KiB/s
 classicDrbdSyncSpeed :: Int
 classicDrbdSyncSpeed = 60 * 1024
 
@@ -3501,6 +3553,118 @@ ssFilePerms = 0o444
 defaultEnabledHypervisor :: String
 defaultEnabledHypervisor = htXenPvm
 
+hvcDefaults :: Map Hypervisor (Map String PyValueEx)
+hvcDefaults =
+  Map.fromList
+  [ (XenPvm, Map.fromList
+             [ (hvUseBootloader,  PyValueEx False)
+             , (hvBootloaderPath, PyValueEx xenBootloader)
+             , (hvBootloaderArgs, PyValueEx "")
+             , (hvKernelPath,     PyValueEx xenKernel)
+             , (hvInitrdPath,     PyValueEx "")
+             , (hvRootPath,       PyValueEx "/dev/xvda1")
+             , (hvKernelArgs,     PyValueEx "ro")
+             , (hvMigrationPort,  PyValueEx (8002 :: Int))
+             , (hvMigrationMode,  PyValueEx htMigrationLive)
+             , (hvBlockdevPrefix, PyValueEx "sd")
+             , (hvRebootBehavior, PyValueEx instanceRebootAllowed)
+             , (hvCpuMask,        PyValueEx cpuPinningAll)
+             , (hvCpuCap,         PyValueEx (0 :: Int))
+             , (hvCpuWeight,      PyValueEx (256 :: Int))
+             , (hvVifScript,      PyValueEx "")
+             , (hvXenCmd,         PyValueEx xenCmdXm)
+             , (hvXenCpuid,       PyValueEx "")
+             , (hvSoundhw,        PyValueEx "")
+             ])
+  , (XenHvm, Map.fromList
+             [ (hvBootOrder,      PyValueEx "cd")
+             , (hvCdromImagePath, PyValueEx "")
+             , (hvNicType,        PyValueEx htNicRtl8139)
+             , (hvDiskType,       PyValueEx htDiskParavirtual)
+             , (hvVncBindAddress, PyValueEx ip4AddressAny)
+             , (hvAcpi,           PyValueEx True)
+             , (hvPae,            PyValueEx True)
+             , (hvKernelPath,     PyValueEx "/usr/lib/xen/boot/hvmloader")
+             , (hvDeviceModel,    PyValueEx "/usr/lib/xen/bin/qemu-dm")
+             , (hvMigrationPort,  PyValueEx (8002 :: Int))
+             , (hvMigrationMode,  PyValueEx htMigrationNonlive)
+             , (hvUseLocaltime,   PyValueEx False)
+             , (hvBlockdevPrefix, PyValueEx "hd")
+             , (hvPassthrough,    PyValueEx "")
+             , (hvRebootBehavior, PyValueEx instanceRebootAllowed)
+             , (hvCpuMask,        PyValueEx cpuPinningAll)
+             , (hvCpuCap,         PyValueEx (0 :: Int))
+             , (hvCpuWeight,      PyValueEx (256 :: Int))
+             , (hvVifType,        PyValueEx htHvmVifIoemu)
+             , (hvVifScript,      PyValueEx "")
+             , (hvViridian,       PyValueEx False)
+             , (hvXenCmd,         PyValueEx xenCmdXm)
+             , (hvXenCpuid,       PyValueEx "")
+             , (hvSoundhw,        PyValueEx "")
+             ])
+  , (Kvm, Map.fromList
+          [ (hvKvmPath,                         PyValueEx kvmPath)
+          , (hvKernelPath,                      PyValueEx kvmKernel)
+          , (hvInitrdPath,                      PyValueEx "")
+          , (hvKernelArgs,                      PyValueEx "ro")
+          , (hvRootPath,                        PyValueEx "/dev/vda1")
+          , (hvAcpi,                            PyValueEx True)
+          , (hvSerialConsole,                   PyValueEx True)
+          , (hvSerialSpeed,                     PyValueEx (38400 :: Int))
+          , (hvVncBindAddress,                  PyValueEx "")
+          , (hvVncTls,                          PyValueEx False)
+          , (hvVncX509,                         PyValueEx "")
+          , (hvVncX509Verify,                   PyValueEx False)
+          , (hvVncPasswordFile,                 PyValueEx "")
+          , (hvKvmSpiceBind,                    PyValueEx "")
+          , (hvKvmSpiceIpVersion,           PyValueEx ifaceNoIpVersionSpecified)
+          , (hvKvmSpicePasswordFile,            PyValueEx "")
+          , (hvKvmSpiceLosslessImgCompr,        PyValueEx "")
+          , (hvKvmSpiceJpegImgCompr,            PyValueEx "")
+          , (hvKvmSpiceZlibGlzImgCompr,         PyValueEx "")
+          , (hvKvmSpiceStreamingVideoDetection, PyValueEx "")
+          , (hvKvmSpiceAudioCompr,              PyValueEx True)
+          , (hvKvmSpiceUseTls,                  PyValueEx False)
+          , (hvKvmSpiceTlsCiphers,              PyValueEx opensslCiphers)
+          , (hvKvmSpiceUseVdagent,              PyValueEx True)
+          , (hvKvmFloppyImagePath,              PyValueEx "")
+          , (hvCdromImagePath,                  PyValueEx "")
+          , (hvKvmCdrom2ImagePath,              PyValueEx "")
+          , (hvBootOrder,                       PyValueEx htBoDisk)
+          , (hvNicType,                         PyValueEx htNicParavirtual)
+          , (hvDiskType,                        PyValueEx htDiskParavirtual)
+          , (hvKvmCdromDiskType,                PyValueEx "")
+          , (hvUsbMouse,                        PyValueEx "")
+          , (hvKeymap,                          PyValueEx "")
+          , (hvMigrationPort,                   PyValueEx (8102 :: Int))
+          , (hvMigrationBandwidth,              PyValueEx (32 :: Int))
+          , (hvMigrationDowntime,               PyValueEx (30 :: Int))
+          , (hvMigrationMode,                   PyValueEx htMigrationLive)
+          , (hvUseLocaltime,                    PyValueEx False)
+          , (hvDiskCache,                       PyValueEx htCacheDefault)
+          , (hvSecurityModel,                   PyValueEx htSmNone)
+          , (hvSecurityDomain,                  PyValueEx "")
+          , (hvKvmFlag,                         PyValueEx "")
+          , (hvVhostNet,                        PyValueEx False)
+          , (hvKvmUseChroot,                    PyValueEx False)
+          , (hvMemPath,                         PyValueEx "")
+          , (hvRebootBehavior,                  PyValueEx instanceRebootAllowed)
+          , (hvCpuMask,                         PyValueEx cpuPinningAll)
+          , (hvCpuType,                         PyValueEx "")
+          , (hvCpuCores,                        PyValueEx (0 :: Int))
+          , (hvCpuThreads,                      PyValueEx (0 :: Int))
+          , (hvCpuSockets,                      PyValueEx (0 :: Int))
+          , (hvSoundhw,                         PyValueEx "")
+          , (hvUsbDevices,                      PyValueEx "")
+          , (hvVga,                             PyValueEx "")
+          , (hvKvmExtra,                        PyValueEx "")
+          , (hvKvmMachineVersion,               PyValueEx "")
+          , (hvVnetHdr,                         PyValueEx True)])
+  , (Fake, Map.fromList [(hvMigrationMode, PyValueEx htMigrationLive)])
+  , (Chroot, Map.fromList [(hvInitScript, PyValueEx "/ganeti-chroot")])
+  , (Lxc, Map.fromList [(hvCpuMask, PyValueEx "")])
+  ]
+
 hvcGlobals :: FrozenSet String
 hvcGlobals =
   ConstantUtils.mkSet [hvMigrationBandwidth,
@@ -3508,8 +3672,133 @@ hvcGlobals =
                        hvMigrationPort,
                        hvXenCmd]
 
+becDefaults :: Map String PyValueEx
+becDefaults =
+  Map.fromList
+  [ (beMinmem, PyValueEx (128 :: Int))
+  , (beMaxmem, PyValueEx (128 :: Int))
+  , (beVcpus, PyValueEx (1 :: Int))
+  , (beAutoBalance, PyValueEx True)
+  , (beAlwaysFailover, PyValueEx False)
+  , (beSpindleUse, PyValueEx (1 :: Int))
+  ]
+
+ndcDefaults :: Map String PyValueEx
+ndcDefaults =
+  Map.fromList
+  [ (ndOobProgram,       PyValueEx "")
+  , (ndSpindleCount,     PyValueEx (1 :: Int))
+  , (ndExclusiveStorage, PyValueEx False)
+  , (ndOvs,              PyValueEx False)
+  , (ndOvsName,          PyValueEx defaultOvs)
+  , (ndOvsLink,          PyValueEx "")
+  ]
+
 ndcGlobals :: FrozenSet String
 ndcGlobals = ConstantUtils.mkSet [ndExclusiveStorage]
+
+-- | Default delay target measured in sectors
+defaultDelayTarget :: Int
+defaultDelayTarget = 1
+
+defaultDiskCustom :: String
+defaultDiskCustom = ""
+
+defaultDiskResync :: Bool
+defaultDiskResync = False
+
+-- | Default fill target measured in sectors
+defaultFillTarget :: Int
+defaultFillTarget = 0
+
+-- | Default mininum rate measured in KiB/s
+defaultMinRate :: Int
+defaultMinRate = 4 * 1024
+
+defaultNetCustom :: String
+defaultNetCustom = ""
+
+-- | Default plan ahead measured in sectors
+--
+-- The default values for the DRBD dynamic resync speed algorithm are
+-- taken from the drbsetup 8.3.11 man page, except for c-plan-ahead
+-- (that we don't need to set to 0, because we have a separate option
+-- to enable it) and for c-max-rate, that we cap to the default value
+-- for the static resync rate.
+defaultPlanAhead :: Int
+defaultPlanAhead = 20
+
+defaultRbdPool :: String
+defaultRbdPool = "rbd"
+
+diskLdDefaults :: Map DiskTemplate (Map String PyValueEx)
+diskLdDefaults =
+  Map.fromList
+  [ (DTBlock, Map.empty)
+  , (DTDrbd8, Map.fromList
+              [ (ldpBarriers,      PyValueEx drbdBarriers)
+              , (ldpDefaultMetavg, PyValueEx defaultVg)
+              , (ldpDelayTarget,   PyValueEx defaultDelayTarget)
+              , (ldpDiskCustom,    PyValueEx defaultDiskCustom)
+              , (ldpDynamicResync, PyValueEx defaultDiskResync)
+              , (ldpFillTarget,    PyValueEx defaultFillTarget)
+              , (ldpMaxRate,       PyValueEx classicDrbdSyncSpeed)
+              , (ldpMinRate,       PyValueEx defaultMinRate)
+              , (ldpNetCustom,     PyValueEx defaultNetCustom)
+              , (ldpNoMetaFlush,   PyValueEx drbdNoMetaFlush)
+              , (ldpPlanAhead,     PyValueEx defaultPlanAhead)
+              , (ldpProtocol,      PyValueEx drbdDefaultNetProtocol)
+              , (ldpResyncRate,    PyValueEx classicDrbdSyncSpeed)
+              ])
+  , (DTExt, Map.empty)
+  , (DTFile, Map.empty)
+  , (DTPlain, Map.fromList [(ldpStripes, PyValueEx lvmStripecount)])
+  , (DTRbd, Map.fromList
+            [ (ldpPool, PyValueEx defaultRbdPool)
+            , (ldpAccess, PyValueEx diskKernelspace)
+            ])
+  , (DTSharedFile, Map.empty)
+  ]
+
+diskDtDefaults :: Map DiskTemplate (Map String PyValueEx)
+diskDtDefaults =
+  Map.fromList
+  [ (DTBlock,      Map.empty)
+  , (DTDiskless,   Map.empty)
+  , (DTDrbd8,      Map.fromList
+                   [ (drbdDataStripes,   PyValueEx lvmStripecount)
+                   , (drbdDefaultMetavg, PyValueEx defaultVg)
+                   , (drbdDelayTarget,   PyValueEx defaultDelayTarget)
+                   , (drbdDiskBarriers,  PyValueEx drbdBarriers)
+                   , (drbdDiskCustom,    PyValueEx defaultDiskCustom)
+                   , (drbdDynamicResync, PyValueEx defaultDiskResync)
+                   , (drbdFillTarget,    PyValueEx defaultFillTarget)
+                   , (drbdMaxRate,       PyValueEx classicDrbdSyncSpeed)
+                   , (drbdMetaBarriers,  PyValueEx drbdNoMetaFlush)
+                   , (drbdMetaStripes,   PyValueEx lvmStripecount)
+                   , (drbdMinRate,       PyValueEx defaultMinRate)
+                   , (drbdNetCustom,     PyValueEx defaultNetCustom)
+                   , (drbdPlanAhead,     PyValueEx defaultPlanAhead)
+                   , (drbdProtocol,      PyValueEx drbdDefaultNetProtocol)
+                   , (drbdResyncRate,    PyValueEx classicDrbdSyncSpeed)
+                   ])
+  , (DTExt,        Map.empty)
+  , (DTFile,       Map.empty)
+  , (DTPlain,      Map.fromList [(lvStripes, PyValueEx lvmStripecount)])
+  , (DTRbd,        Map.fromList
+                   [ (rbdPool, PyValueEx defaultRbdPool)
+                   , (rbdAccess, PyValueEx diskKernelspace)
+                   ])
+  , (DTSharedFile, Map.empty)
+  ]
+
+niccDefaults :: Map String PyValueEx
+niccDefaults =
+  Map.fromList
+  [ (nicMode, PyValueEx nicModeBridged)
+  , (nicLink, PyValueEx defaultBridge)
+  , (nicVlan, PyValueEx valueHsNothing)
+  ]
 
 -- | All of the following values are quite arbitrary - there are no
 -- "good" defaults, these must be customised per-site
@@ -3532,6 +3821,23 @@ ispecsMinmaxDefaults =
      (ConstantUtils.ispecDiskSize, Types.iSpecDiskSize Types.defMaxISpec),
      (ConstantUtils.ispecNicCount, Types.iSpecNicCount Types.defMaxISpec),
      (ConstantUtils.ispecSpindleUse, Types.iSpecSpindleUse Types.defMaxISpec)])]
+
+ipolicyDefaults :: Map String PyValueEx
+ipolicyDefaults =
+  Map.fromList
+  [ (ispecsMinmax,        PyValueEx [ispecsMinmaxDefaults])
+  , (ispecsStd,           PyValueEx (Map.fromList
+                                     [ (ispecMemSize,    128)
+                                     , (ispecCpuCount,   1)
+                                     , (ispecDiskCount,  1)
+                                     , (ispecDiskSize,   1024)
+                                     , (ispecNicCount,   1)
+                                     , (ispecSpindleUse, 1)
+                                     ] :: Map String Int))
+  , (ipolicyDts,          PyValueEx (ConstantUtils.toList diskTemplates))
+  , (ipolicyVcpuRatio,    PyValueEx (4.0 :: Double))
+  , (ipolicySpindleRatio, PyValueEx (32.0 :: Double))
+  ]
 
 masterPoolSizeDefault :: Int
 masterPoolSizeDefault = 10
@@ -3816,6 +4122,12 @@ sshHostRsaPriv = sshConfigDir ++ "/ssh_host_rsa_key"
 sshHostRsaPub :: String
 sshHostRsaPub = sshHostRsaPriv ++ ".pub"
 
+sshDaemonKeyfiles :: Map String (String, String)
+sshDaemonKeyfiles =
+  Map.fromList [ (sshkRsa, (sshHostRsaPriv, sshHostRsaPub))
+               , (sshkDsa, (sshHostDsaPriv, sshHostDsaPub))
+               ]
+
 -- * Node daemon setup
 
 ndsClusterName :: String
@@ -3934,9 +4246,15 @@ cpuavgloadBufferSize = 150
 cpuavgloadWindowSize :: Int
 cpuavgloadWindowSize = 600
 
+-- * Monitoring daemon
+
 -- | Mond's variable for periodical data collection
 mondTimeInterval :: Int
 mondTimeInterval = 5
+
+-- | Mond's latest API version
+mondLatestApiVersion :: Int
+mondLatestApiVersion = 1
 
 -- * Disk access modes
 
@@ -3957,3 +4275,38 @@ upgradeQueueDrainTimeout = 36 * 60 * 60 -- 1.5 days
 -- | Intervall at which the queue is polled during upgrades
 upgradeQueuePollInterval :: Int
 upgradeQueuePollInterval  = 10
+
+-- * Hotplug Actions
+
+hotplugActionAdd :: String
+hotplugActionAdd = Types.hotplugActionToRaw HAAdd
+
+hotplugActionRemove :: String
+hotplugActionRemove = Types.hotplugActionToRaw HARemove
+
+hotplugActionModify :: String
+hotplugActionModify = Types.hotplugActionToRaw HAMod
+
+hotplugAllActions :: FrozenSet String
+hotplugAllActions =
+  ConstantUtils.mkSet $ map Types.hotplugActionToRaw [minBound..]
+
+-- * Hotplug Device Targets
+
+hotplugTargetNic :: String
+hotplugTargetNic = Types.hotplugTargetToRaw HTNic
+
+hotplugTargetDisk :: String
+hotplugTargetDisk = Types.hotplugTargetToRaw HTDisk
+
+hotplugAllTargets :: FrozenSet String
+hotplugAllTargets =
+  ConstantUtils.mkSet $ map Types.hotplugTargetToRaw [minBound..]
+
+-- | Timeout for disk removal
+diskRemoveRetryTimeout :: Int
+diskRemoveRetryTimeout = 30
+
+-- | Intervall between disk removal retries
+diskRemoveRetryInterval :: Int
+diskRemoveRetryInterval  = 3

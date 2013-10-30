@@ -794,6 +794,7 @@ class RpcRunner(_RpcClientBase,
       rpc_defs.ED_INST_DICT_HVP_BEP_DP: self._InstDictHvpBepDp,
       rpc_defs.ED_INST_DICT_OSP_DP: self._InstDictOspDp,
       rpc_defs.ED_NIC_DICT: self._NicDict,
+      rpc_defs.ED_DEVICE_DICT: self._DeviceDict,
 
       # Encoders annotating disk parameters
       rpc_defs.ED_DISKS_DICT_DP: self._DisksDictDP,
@@ -834,6 +835,12 @@ class RpcRunner(_RpcClientBase,
         nobj = self._cfg.GetNetwork(net_uuid)
         n.netinfo = objects.Network.ToDict(nobj)
     return n.ToDict()
+
+  def _DeviceDict(self, _, (device, instance)):
+    if isinstance(device, objects.NIC):
+      return self._NicDict(None, device)
+    elif isinstance(device, objects.Disk):
+      return self._SingleDiskDictDP(None, (device, instance))
 
   def _InstDict(self, node, instance, hvp=None, bep=None, osp=None):
     """Convert the given instance to a dict.

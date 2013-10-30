@@ -27,6 +27,7 @@ import unittest
 import socket
 import os
 import struct
+import re
 
 from ganeti import serializer
 from ganeti import constants
@@ -382,6 +383,53 @@ class TestProbeTapVnetHdr(unittest.TestCase):
     fd = tmpfile.fileno()
 
     self.assertFalse(hv_kvm._ProbeTapVnetHdr(fd, _features_fn=lambda _: None))
+
+
+class TestGenerateDeviceKVMId(unittest.TestCase):
+  def test(self):
+    device = objects.NIC()
+    target = constants.HOTPLUG_TARGET_NIC
+    fn = hv_kvm._GenerateDeviceKVMId
+    self.assertRaises(errors.HotplugError, fn, target, device)
+
+    device.pci = 5
+    device.uuid = "003fc157-66a8-4e6d-8b7e-ec4f69751396"
+    self.assertTrue(re.match("hotnic-003fc157-pci-5", fn(target, device)))
+
+
+class TestGetRuntimeInfo(unittest.TestCase):
+  @classmethod
+  def _GetRuntime(cls):
+    data = testutils.ReadTestData("kvm_runtime.json")
+    return hv_kvm._AnalyzeSerializedRuntime(data)
+
+  def _fail(self, target, device, runtime):
+    device.uuid = "aaaaaaaa-66a8-4e6d-8b7e-ec4f69751396"
+    self.assertRaises(errors.HotplugError,
+                      hv_kvm._GetExistingDeviceInfo,
+                      target, device, runtime)
+
+  def testNIC(self):
+    device = objects.NIC()
+    target = constants.HOTPLUG_TARGET_NIC
+    runtime = self._GetRuntime()
+
+    self._fail(target, device, runtime)
+
+    device.uuid = "003fc157-66a8-4e6d-8b7e-ec4f69751396"
+    devinfo = hv_kvm._GetExistingDeviceInfo(target, device, runtime)
+    self.assertTrue(devinfo.pci==6)
+
+  def testDisk(self):
+    device = objects.Disk()
+    target = constants.HOTPLUG_TARGET_DISK
+    runtime = self._GetRuntime()
+
+    self._fail(target, device, runtime)
+
+    device.uuid = "9f5c5bd4-6f60-480b-acdc-9bb1a4b7df79"
+    (devinfo, _, __) = hv_kvm._GetExistingDeviceInfo(target, device, runtime)
+    self.assertTrue(devinfo.pci==5)
 
 
 if __name__ == "__main__":

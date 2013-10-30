@@ -154,6 +154,10 @@ module Ganeti.Types
   , rpcTimeoutToRaw
   , ImportExportCompression(..)
   , importExportCompressionToRaw
+  , HotplugTarget(..)
+  , hotplugTargetToRaw
+  , HotplugAction(..)
+  , hotplugActionToRaw
   ) where
 
 import Control.Monad (liftM)
@@ -847,3 +851,20 @@ $(THH.makeJSONInstance ''ImportExportCompression)
 
 instance THH.PyValue ImportExportCompression where
   showValue = THH.showValue . importExportCompressionToRaw
+
+-- | Hotplug action.
+
+$(THH.declareLADT ''String "HotplugAction"
+  [ ("HAAdd", "hotadd")
+  , ("HARemove",  "hotremove")
+  , ("HAMod",     "hotmod")
+  ])
+$(THH.makeJSONInstance ''HotplugAction)
+
+-- | Hotplug Device Target.
+
+$(THH.declareLADT ''String "HotplugTarget"
+  [ ("HTDisk", "hotdisk")
+  , ("HTNic",  "hotnic")
+  ])
+$(THH.makeJSONInstance ''HotplugTarget)

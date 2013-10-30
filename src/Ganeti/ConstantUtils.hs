@@ -30,23 +30,29 @@ module Ganeti.ConstantUtils where
 
 import Data.Char (ord)
 import Data.Set (Set)
-import qualified Data.Set as Set (fromList, toList, union)
+import qualified Data.Set as Set (difference, fromList, toList, union)
 
 import Ganeti.THH (PyValue(..))
 import Ganeti.PyValueInstances ()
 
--- | PythonChar wraps a Python 'char'
+-- | 'PythonChar' wraps a Python 'char'
 newtype PythonChar = PythonChar { unPythonChar :: Char }
   deriving (Show)
 
 instance PyValue PythonChar where
   showValue c = "chr(" ++ show (ord (unPythonChar c)) ++ ")"
 
+-- | 'PythonNone' wraps Python 'None'
+data PythonNone = PythonNone
+
+instance PyValue PythonNone where
+  showValue _ = "None"
+
 -- | FrozenSet wraps a Haskell 'Set'
 --
 -- See 'PyValue' instance for 'FrozenSet'.
 newtype FrozenSet a = FrozenSet { unFrozenSet :: Set a }
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)
 
 -- | Converts a Haskell 'Set' into a Python 'frozenset'
 --
@@ -66,6 +72,9 @@ toList = Set.toList . unFrozenSet
 
 union :: Ord a => FrozenSet a -> FrozenSet a -> FrozenSet a
 union x y = FrozenSet (unFrozenSet x `Set.union` unFrozenSet y)
+
+difference :: Ord a => FrozenSet a -> FrozenSet a -> FrozenSet a
+difference x y = FrozenSet (unFrozenSet x `Set.difference` unFrozenSet y)
 
 -- | 'Protocol' represents the protocols used by the daemons
 data Protocol = Tcp | Udp

@@ -614,11 +614,14 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     raise errors.OpPrereqError("Invalid mac prefix given '%s'" % mac_prefix,
                                errors.ECODE_INVAL)
 
-  result = utils.RunCmd(["ip", "link", "show", "dev", master_netdev])
-  if result.failed:
-    raise errors.OpPrereqError("Invalid master netdev given (%s): '%s'" %
-                               (master_netdev,
-                                result.output.strip()), errors.ECODE_INVAL)
+  if not nicparams.get('mode', None) == "openvswitch":
+    # Do not do this check if mode=openvswitch, since the openvswitch is not
+    # created yet
+    result = utils.RunCmd(["ip", "link", "show", "dev", master_netdev])
+    if result.failed:
+      raise errors.OpPrereqError("Invalid master netdev given (%s): '%s'" %
+                                 (master_netdev,
+                                  result.output.strip()), errors.ECODE_INVAL)
 
   dirs = [(pathutils.RUN_DIR, constants.RUN_DIRS_MODE)]
   utils.EnsureDirs(dirs)

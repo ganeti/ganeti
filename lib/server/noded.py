@@ -608,6 +608,21 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.StartInstance(instance, startup_paused, trail)
 
   @staticmethod
+  def perspective_hotplug_device(params):
+    """Hotplugs device to a running instance.
+
+    """
+    (idict, action, dev_type, ddict, extra, seq) = params
+    instance = objects.Instance.FromDict(idict)
+    if dev_type == constants.HOTPLUG_TARGET_DISK:
+      device = objects.Disk.FromDict(ddict)
+    elif dev_type == constants.HOTPLUG_TARGET_NIC:
+      device = objects.NIC.FromDict(ddict)
+    else:
+      assert dev_type in constants.HOTPLUG_ALL_TARGETS
+    return backend.HotplugDevice(instance, action, dev_type, device, extra, seq)
+
+  @staticmethod
   def perspective_migration_info(params):
     """Gather information about an instance to be migrated.
 

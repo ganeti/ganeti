@@ -1661,6 +1661,28 @@ def _RemoveBlockDevLinks(instance_name, disks):
         logging.exception("Can't remove symlink '%s'", link_name)
 
 
+def _CalculateDeviceURI(instance, disk, device):
+  """Get the URI for the device.
+
+  @type instance: L{objects.Instance}
+  @param instance: the instance which disk belongs to
+  @type disk: L{objects.Disk}
+  @param disk: the target disk object
+  @type device: L{bdev.BlockDev}
+  @param device: the corresponding BlockDevice
+  @rtype: string
+  @return: the device uri if any else None
+
+  """
+  access_mode = disk.params.get(constants.LDP_ACCESS,
+                                constants.DISK_KERNELSPACE)
+  if access_mode == constants.DISK_USERSPACE:
+    # This can raise errors.BlockDeviceError
+    return device.GetUserspaceAccessUri(instance.hypervisor)
+  else:
+    return None
+
+
 def _GatherAndLinkBlockDevs(instance):
   """Set up an instance's block device(s).
 
@@ -1670,7 +1692,7 @@ def _GatherAndLinkBlockDevs(instance):
   @type instance: L{objects.Instance}
   @param instance: the instance whose disks we should assemble
   @rtype: list
-  @return: list of (disk_object, device_path)
+  @return: list of (disk_object, link_name, drive_uri)
 
   """
   block_devices = []
@@ -1685,8 +1707,9 @@ def _GatherAndLinkBlockDevs(instance):
     except OSError, e:
       raise errors.BlockDeviceError("Cannot create block device symlink: %s" %
                                     e.strerror)
+    uri = _CalculateDeviceURI(instance, disk, device)
 
-    block_devices.append((disk, link_name, device))
+    block_devices.append((disk, link_name, uri))
 
   return block_devices
 
@@ -1993,6 +2016,43 @@ def GetMigrationStatus(instance):
     _Fail("Failed to get migration status: %s", err, exc=True)
 
 
+def HotplugDevice(instance, action, dev_type, device, extra, seq):
+  """Hotplug a device
+
+  Hotplug is currently supported only for KVM Hypervisor.
+  @type instance: L{objects.Instance}
+  @param instance: the instance to which we hotplug a device
+  @type action: string
+  @param action: the hotplug action to perform
+  @type dev_type: string
+  @param dev_type: the device type to hotplug
+  @type device: either L{objects.NIC} or L{objects.Disk}
+  @param device: the device object to hotplug
+  @type extra: string
+  @param extra: extra info used by hotplug code (e.g. disk link)
+  @type seq: int
+  @param seq: the index of the device from master perspective
+  @raise RPCFail: in case instance does not have KVM hypervisor
+
+  """
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
+  try:
+    hyper.VerifyHotplugSupport(instance, action, dev_type)
+  except errors.HotplugError, err:
+    _Fail("Hotplug is not supported: %s", err)
+
+  if action == constants.HOTPLUG_ACTION_ADD:
+    fn = hyper.HotAddDevice
+  elif action == constants.HOTPLUG_ACTION_REMOVE:
+    fn = hyper.HotDelDevice
+  elif action == constants.HOTPLUG_ACTION_MODIFY:
+    fn = hyper.HotModDevice
+  else:
+    assert action in constants.HOTPLUG_ALL_ACTIONS
+
+  return fn(instance, dev_type, device, extra, seq)
+
+
 def BlockdevCreate(disk, size, owner, on_primary, info, excl_stor):
   """Creates a block device for an instance.
 
@@ -2168,10 +2228,18 @@ def BlockdevRemove(disk):
     rdev = None
   if rdev is not None:
     r_path = rdev.dev_path
-    try:
-      rdev.Remove()
-    except errors.BlockDeviceError, err:
-      msgs.append(str(err))
+
+    def _TryRemove():
+      try:
+        rdev.Remove()
+        return []
+      except errors.BlockDeviceError, err:
+        return [str(err)]
+
+    msgs.extend(utils.SimpleRetry([], _TryRemove,
+                                  constants.DISK_REMOVE_RETRY_INTERVAL,
+                                  constants.DISK_REMOVE_RETRY_TIMEOUT))
+
     if not msgs:
       DevCacheManager.RemoveCache(r_path)
 
@@ -2245,23 +2313,28 @@ def BlockdevAssemble(disk, owner, as_primary, idx):
   This is a wrapper over _RecursiveAssembleBD.
 
   @rtype: str or boolean
-  @return: a C{/dev/...} path for primary nodes, and
-      C{True} for secondary nodes
+  @return: a tuple with the C{/dev/...} path and the created symlink
+      for primary nodes, and (C{True}, C{True}) for secondary nodes
 
   """
   try:
     result = _RecursiveAssembleBD(disk, owner, as_primary)
     if isinstance(result, BlockDev):
       # pylint: disable=E1103
-      result = result.dev_path
+      dev_path = result.dev_path
+      link_name = None
       if as_primary:
-        _SymlinkBlockDev(owner, result, idx)
+        link_name = _SymlinkBlockDev(owner, dev_path, idx)
+    elif result:
+      return result, result
+    else:
+      _Fail("Unexpected result from _RecursiveAssembleBD")
   except errors.BlockDeviceError, err:
     _Fail("Error while assembling disk: %s", err, exc=True)
   except OSError, err:
     _Fail("Error while symlinking disk: %s", err, exc=True)
 
-  return result
+  return dev_path, link_name
 
 
 def BlockdevShutdown(disk):
@@ -4268,16 +4341,16 @@ def ConfigureOVS(ovs_name, ovs_link):
   # Initialize the OpenvSwitch
   result = utils.RunCmd(["ovs-vsctl", "add-br", ovs_name])
   if result.failed:
-    _Fail("Failed to create openvswitch %s. Script return value: %s, output:"
-          " '%s'" % result.exit_code, result.output, log=True)
+    _Fail("Failed to create openvswitch. Script return value: %s, output: '%s'"
+          % (result.exit_code, result.output), log=True)
 
   # And connect it to a physical interface, if given
   if ovs_link:
     result = utils.RunCmd(["ovs-vsctl", "add-port", ovs_name, ovs_link])
     if result.failed:
       _Fail("Failed to connect openvswitch to  interface %s. Script return"
-            " value: %s, output: '%s'" % ovs_link, result.exit_code,
-            result.output, log=True)
+            " value: %s, output: '%s'" % (ovs_link, result.exit_code,
+            result.output), log=True)
 
 
 class HooksRunner(object):
