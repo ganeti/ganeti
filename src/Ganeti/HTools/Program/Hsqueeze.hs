@@ -55,6 +55,7 @@ options = do
   return
     [ luxi
     , oDataFile
+    , oMinResources
     , oTargetResources
     , oSaveCluster
     , oVerbose
@@ -64,6 +65,15 @@ options = do
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]
 arguments = []
+
+-- | The tag-prefix indicating that hsqueeze should consider a node
+-- as being standby.
+standbyPrefix :: String
+standbyPrefix = "htools:standby:"
+
+-- | Predicate of having a standby tag.
+hasStandbyTag :: Node.Node -> Bool
+hasStandbyTag = any (standbyPrefix `isPrefixOf`) . Node.nTags
 
 -- | Within a cluster configuration, decide if the node hosts only
 -- externally-mirrored instances.
@@ -98,29 +108,52 @@ balance (nl, il) =
                                     $ iterate (>>= balanceStep) (Just ini_tbl)
   in (nl', il')
 
--- | In a configuration, mark a node as offline.
-offlineNode :: (Node.List, Instance.List) -> Ndx -> (Node.List, Instance.List)
-offlineNode (nl, il) ndx =
+-- | In a configuration, mark a node as online or offline.
+onlineOfflineNode :: Bool -> (Node.List, Instance.List) -> Ndx ->
+                     (Node.List, Instance.List)
+onlineOfflineNode offline (nl, il) ndx =
   let nd = Container.find ndx nl
-      nd' = Node.setOffline nd True
+      nd' = Node.setOffline nd offline
       nl' = Container.add ndx nd' nl
   in (nl', il)
 
--- | Offline a list node, and return the state after a balancing attempt.
-offlineNodes :: [Ndx] -> (Node.List, Instance.List)
-                -> (Node.List, Instance.List)
-offlineNodes ndxs conf =
-  let conf' = foldl offlineNode conf ndxs
+-- | Offline or online a list nodes, and return the state after a balancing
+-- attempt.
+onlineOfflineNodes :: Bool -> [Ndx] -> (Node.List, Instance.List)
+                      -> (Node.List, Instance.List)
+onlineOfflineNodes offline ndxs conf =
+  let conf' = foldl (onlineOfflineNode offline) conf ndxs
   in balance conf'
 
--- | Predicate on whether a list of nodes can be offlined simultaneously in a
--- given configuration, while still leaving enough capacity on every node for
--- the given instance
-canOffline :: Instance.Instance -> [Node.Node] -> (Node.List, Instance.List)
-              -> Bool
-canOffline inst nds conf = 
-  let conf' = offlineNodes (map Node.idx nds) conf
+-- | Offline a list of nodes, and return the state after balancing.
+offlineNodes :: [Ndx] -> (Node.List, Instance.List)
+                -> (Node.List, Instance.List)
+offlineNodes = onlineOfflineNodes True
+
+-- | Online a list of nodes, and return the state after balancing.
+onlineNodes :: [Ndx] -> (Node.List, Instance.List)
+               -> (Node.List, Instance.List)
+onlineNodes = onlineOfflineNodes False
+
+-- | Predicate on whether a list of nodes can be offlined or onlined
+-- simultaneously in a given configuration, while still leaving enough
+-- capacity on every node for the given instance.
+canOnlineOffline :: Bool -> Instance.Instance -> (Node.List, Instance.List)
+                    -> [Node.Node] ->Bool
+canOnlineOffline offline inst conf nds = 
+  let conf' = onlineOfflineNodes offline (map Node.idx nds) conf
   in allInstancesOnOnlineNodes conf' && allNodesCapacityFor inst conf'
+
+-- | Predicate on whether a list of nodes can be offlined simultaneously.
+canOffline :: Instance.Instance -> (Node.List, Instance.List) ->
+              [Node.Node] -> Bool
+canOffline = canOnlineOffline True
+
+-- | Predicate on whether onlining a list of nodes suffices to get enough
+-- free resources for given instance.
+sufficesOnline :: Instance.Instance -> (Node.List, Instance.List)
+                  -> [Node.Node] ->  Bool
+sufficesOnline = canOnlineOffline False
 
 -- | Greedily offline the nodes, starting from the last element, and return
 -- the list of nodes that could simultaneously be offlined, while keeping
@@ -130,7 +163,14 @@ greedyOfflineNodes :: Instance.Instance -> (Node.List, Instance.List)
 greedyOfflineNodes _ _ [] = []
 greedyOfflineNodes inst conf (nd:nds) =
   let nds' = greedyOfflineNodes inst conf nds
-  in if canOffline inst (nd:nds') conf then nd:nds' else nds'
+  in if canOffline inst conf (nd:nds') then nd:nds' else nds'
+
+-- | Try to provide enough resources by onlining an initial segment of
+-- a list of nodes. Return Nothing, if even onlining all of them is not
+-- enough.
+tryOnline :: Instance.Instance -> (Node.List, Instance.List) -> [Node.Node]
+             -> Maybe [Node.Node]
+tryOnline inst conf = listToMaybe . filter (sufficesOnline inst conf) . inits
 
 -- | From a specification, name, and factor create an instance that uses that
 -- factor times the specification, rounded down.
@@ -151,35 +191,64 @@ main opts args = do
 
   let verbose = optVerbose opts
       targetf = optTargetResources opts
+      minf = optMinResources opts
 
   ini_cdata@(ClusterData _ nlf ilf _ ipol) <- loadExternalData opts
 
   maybeSaveData (optSaveCluster opts) "original" "before hsqueeze run" ini_cdata
 
-  let offlineCandidates = 
+  let nodelist = IntMap.elems nlf
+      offlineCandidates = 
         sortBy (flip compare `on` length . Node.pList)
         . filter (foldl (liftA2 (&&)) (const True)
                   [ not . Node.offline
                   , not . Node.isMaster
                   , onlyExternal (nlf, ilf)
                   ])
-        . IntMap.elems $ nlf
+        $ nodelist
+      onlineCandidates =
+        filter (liftA2 (&&) Node.offline hasStandbyTag) nodelist
       conf = (nlf, ilf)
       std = iPolicyStdSpec ipol
       targetInstance = instanceFromSpecAndFactor "targetInstance" targetf std
+      minInstance = instanceFromSpecAndFactor "targetInstance" minf std
       toOffline = greedyOfflineNodes targetInstance conf offlineCandidates
-      (fin_nl, fin_il) = offlineNodes (map Node.idx toOffline) conf
-      final_cdata = ini_cdata { cdNodes = fin_nl, cdInstances = fin_il }
+      (fin_off_nl, fin_off_il) = offlineNodes (map Node.idx toOffline) conf
+      final_off_cdata =
+        ini_cdata { cdNodes = fin_off_nl, cdInstances = fin_off_il }
+      toOnline = tryOnline minInstance conf onlineCandidates
+      nodesToOnline = fromMaybe onlineCandidates toOnline
+      (fin_on_nl, fin_on_il) = onlineNodes (map Node.idx nodesToOnline) conf
+      final_on_cdata =
+        ini_cdata { cdNodes = fin_on_nl, cdInstances = fin_on_il }
 
   when (verbose > 1) . putStrLn 
     $ "Offline candidates: " ++ commaJoin (map Node.name offlineCandidates)
 
-  unless (optNoHeaders opts) $
-    putStrLn "'Nodes to offline'"
+  when (verbose > 1) . putStrLn
+    $ "Online candidates: " ++ commaJoin (map Node.name onlineCandidates)
 
-  mapM_ (putStrLn . Node.name) toOffline
+  if not (allNodesCapacityFor minInstance conf)
+    then do
+      unless (optNoHeaders opts) $
+        putStrLn "'Nodes to online'"
+      mapM_ (putStrLn . Node.name) nodesToOnline
+      when (verbose > 1 && isNothing toOnline) . putStrLn $
+        "Onlining all nodes will not yield enough capacity"
+      maybeSaveData (optSaveCluster opts)
+         "squeezed" "after hsqueeze expansion" final_on_cdata
+    else
+      if null toOffline
+        then do      
+          unless (optNoHeaders opts) $
+            putStrLn "'No action'"
+          maybeSaveData (optSaveCluster opts)
+            "squeezed" "after hsqueeze doing nothing" ini_cdata
+        else do
+          unless (optNoHeaders opts) $
+            putStrLn "'Nodes to offline'"
 
-  maybeSaveData (optSaveCluster opts)
-    "squeezed" "after hsqueeze run" final_cdata
+          mapM_ (putStrLn . Node.name) toOffline
 
-  
+          maybeSaveData (optSaveCluster opts)
+            "squeezed" "after hsqueeze run" final_off_cdata
