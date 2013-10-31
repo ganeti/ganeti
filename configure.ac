@@ -526,17 +526,20 @@ AC_GHC_PKG_REQUIRE(bytestring)
 AC_GHC_PKG_REQUIRE(utf8-string)
 AC_GHC_PKG_REQUIRE(hslogger)
 
-# extra modules for confd functionality
+# extra modules for confd functionality; also needed for tests
+HS_NODEV=
+CONFD_PKG=
+AC_GHC_PKG_CHECK([vector], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG vector"])
+
 HS_REGEX_PCRE=-DNO_REGEX_PCRE
+AC_GHC_PKG_CHECK([regex-pcre], [HS_REGEX_PCRE=],
+                 [HS_NODEV=1; CONFD_PKG="$CONFD_PKG regex-pcre"])
+AC_GHC_PKG_CHECK([text], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG text"])
+AC_GHC_PKG_CHECK([hinotify], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG hinotify"])
+AC_GHC_PKG_CHECK([Crypto], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG Crypto"])
+
 has_confd=False
 if test "$enable_confd" != no; then
-  CONFD_PKG=
-  AC_GHC_PKG_CHECK([regex-pcre], [HS_REGEX_PCRE=],
-                   [CONFD_PKG="$CONFD_PKG regex-pcre"])
-  AC_GHC_PKG_CHECK([Crypto], [], [CONFD_PKG="$CONFD_PKG Crypto"])
-  AC_GHC_PKG_CHECK([text], [], [CONFD_PKG="$CONFD_PKG text"])
-  AC_GHC_PKG_CHECK([hinotify], [], [CONFD_PKG="$CONFD_PKG hinotify"])
-  AC_GHC_PKG_CHECK([vector], [], [CONFD_PKG="$CONFD_PKG vector"])
   if test -z "$CONFD_PKG"; then
     has_confd=True
   elif test "$enable_confd" = check; then
@@ -555,16 +558,17 @@ fi
 AC_SUBST(ENABLE_CONFD, $has_confd)
 AM_CONDITIONAL([ENABLE_CONFD], [test x$has_confd = xTrue])
 
-#extra modules for monitoring daemon functionality
+#extra modules for monitoring daemon functionality; also needed for tests
+MONITORING_PKG=
+AC_GHC_PKG_CHECK([attoparsec], [],
+                 [HS_NODEV=1; MONITORING_PKG="$MONITORING_PKG attoparsec"])
+AC_GHC_PKG_CHECK([snap-server], [],
+                 [NS_NODEV=1; MONITORING_PKG="$MONITORING_PKG snap-server"])
+AC_GHC_PKG_CHECK([process], [],
+                 [HS_NODEV=1; MONITORING_PKG="$MONITORING_PKG process"])
+
 has_monitoring=False
 if test "$enable_monitoring" != no; then
-  MONITORING_PKG=
-  AC_GHC_PKG_CHECK([attoparsec], [],
-                   [MONITORING_PKG="$MONITORING_PKG attoparsec"])
-  AC_GHC_PKG_CHECK([snap-server], [],
-                   [MONITORING_PKG="$MONITORING_PKG snap-server"])
-  AC_GHC_PKG_CHECK([process], [],
-                   [MONITORING_PKG="$MONITORING_PKG process"])
   MONITORING_DEP=
   if test "$has_confd" = False; then
     MONITORING_DEP="$MONITORING_DEP confd"
@@ -603,23 +607,11 @@ AC_SUBST(ENABLE_MOND, $has_monitoring)
 AM_CONDITIONAL([ENABLE_MOND], [test "$has_monitoring" = True])
 
 # development modules
-HS_NODEV=
 AC_GHC_PKG_CHECK([QuickCheck-2.*], [], [HS_NODEV=1], t)
 AC_GHC_PKG_CHECK([test-framework-0.6*], [], [HS_NODEV=1], t)
 AC_GHC_PKG_CHECK([test-framework-hunit], [], [HS_NODEV=1])
 AC_GHC_PKG_CHECK([test-framework-quickcheck2], [], [HS_NODEV=1])
 AC_GHC_PKG_CHECK([temporary], [], [HS_NODEV=1])
-# FIXME: unify checks for non-test libraries (attoparsec, hinotify, ...)
-#        that are needed to execute the tests, avoiding the duplication
-#        of the checks.
-AC_GHC_PKG_CHECK([attoparsec], [], [HS_NODEV=1])
-AC_GHC_PKG_CHECK([vector], [], [HS_NODEV=1])
-AC_GHC_PKG_CHECK([process], [], [HS_NODEV=1])
-AC_GHC_PKG_CHECK([snap-server], [], [HS_NODEV=1])
-AC_GHC_PKG_CHECK([regex-pcre], [], [HS_NODEV=1])
-AC_GHC_PKG_CHECK([Crypto], [], [HS_NODEV=1])
-AC_GHC_PKG_CHECK([text], [], [HS_NODEV=1])
-AC_GHC_PKG_CHECK([hinotify], [], [HS_NODEV=1])
 if test -n "$HS_NODEV"; then
    AC_MSG_WARN(m4_normalize([Required development modules were not found,
                              you won't be able to run Haskell unittests]))
