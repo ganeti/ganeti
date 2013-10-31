@@ -19,6 +19,7 @@ Backend options:
 
 Algorithm options:
 
+**[ \--minimal-resources=*factor* ]**
 **[ \--target-resources=*factor* ]**
 
 Reporting options:
@@ -31,7 +32,7 @@ DESCRIPTION
 
 hsqueeze does dynamic power management, by powering up or shutting down nodes,
 depending on the current load of the cluster. Currently, only suggesting nodes
-to be powered off is implemented.
+is implemented.
 
 ALGORITHM
 ~~~~~~~~~
@@ -44,6 +45,12 @@ for being taken offline, if, after marking these nodes as offline, balancing the
 cluster by the algorithm used by **hbal**\(1) yields a situation where all instances
 are located on online nodes, and each node has at least the target resources free
 for new instances.
+
+All offline nodes with a tag starting with ``htools:standby`` are
+considered candidates for being taken online. Those nodes are taken online
+till balancing the cluster by the algorithm used by **hbal**\(1) yields a
+situation where each node has at least the minimal resources free for new
+instances.
 
 OPTIONS
 -------
@@ -65,6 +72,11 @@ OPTIONS
   information (if not collecting LUXI). This or one of the
   other backends must be selected. The option is described in the man
   page **htools**\(1).
+
+\--minimal-resources=*factor*
+  Specify the amount of resources to be free on each node for hsqueeze not to
+  consider onlining additional nodes. The value is reported a multiple of the
+  standard instance specification, as taken from the instance policy.
 
 \--target-resources=*factor*
   Specify the amount of resources to remain free on any node after squeezing.
