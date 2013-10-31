@@ -230,6 +230,7 @@
     "instance-shutdown": true,
     "instance-device-names": true,
     "instance-device-hotplug": false,
+    "instance-user-down": true,
 
     "job-list": true,
 

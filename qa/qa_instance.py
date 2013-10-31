@@ -1094,6 +1094,91 @@ def TestInstanceCreationRestrictedByDiskTemplates():
                    ",".join(enabled_disk_templates)],
                  fail=False)
 
+
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+def _TestInstanceUserDown(instance, master, hv_shutdown_fn):
+  # Shutdown instance in Xen and bring instance status to 'USER_down'
+  hv_shutdown_fn()
+
+  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), constants.INSTST_USERDOWN)
+
+  # Fail to bring instance status to 'running'
+  AssertCommand(["gnt-instance", "start", instance.name], fail=True)
+
+  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), constants.INSTST_USERDOWN)
+
+  # Bring instance status to 'ADMIN_down'
+  AssertCommand(["gnt-instance", "shutdown", instance.name])
+
+  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), constants.INSTST_ADMINDOWN)
+
+  # Bring instance status to 'running'
+  AssertCommand(["gnt-instance", "start", instance.name])
+
+  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), constants.INSTST_RUNNING)
+
+  # Bring instance status to 'ADMIN_down' forcibly
+  AssertCommand(["gnt-instance", "shutdown", "-f", instance.name])
+
+  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), constants.INSTST_ADMINDOWN)
+
+  # Bring instance status to 'running'
+  AssertCommand(["gnt-instance", "start", instance.name])
+
+  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), constants.INSTST_RUNNING)
+
+
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+def _TestInstanceUserDownXen(instance, master):
+  primary = _GetInstanceField(instance.name, "pnode")
+  fn = lambda: AssertCommand(["xm", "shutdown", "-w", instance.name],
+                             fail=False, node=primary)
+  _TestInstanceUserDown(instance, master, fn)
+
+
+# FIXME: User shutdown is not implemented for KVM yet
+#
+# @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+# def _TestInstanceUserDownKvm(instance, master):
+#   fn = lambda: hv_kvm.KVMHypervisor._StopInstance(None, True, instance.name)
+#   _TestInstanceUserDown(instance, master, fn)
+#
+def _TestInstanceUserDownKvm(_1, _2):
+  pass
+
+
+def TestInstanceUserDown(instance, master):
+  """Tests user shutdown"""
+  enabled_hypervisors = qa_config.GetEnabledHypervisors()
+
+  for (hv, fn) in [(constants.HT_XEN_PVM, _TestInstanceUserDownXen),
+                   (constants.HT_XEN_HVM, _TestInstanceUserDownXen),
+                   (constants.HT_KVM, _TestInstanceUserDownKvm)]:
+    if hv in enabled_hypervisors:
+      fn(instance, master)
+    else:
+      print "%s hypervisor is not enabled, skipping test for this hypervisor" \
+          % hv
+
+
 available_instance_tests = [
   ("instance-add-plain-disk", constants.DT_PLAIN,
    TestInstanceAddWithPlainDisk, 1),
