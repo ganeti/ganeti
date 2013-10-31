@@ -832,7 +832,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return (instance, memory, vcpus)
 
-  def _InstancePidAlive(self, instance_name):
+  @classmethod
+  def _InstancePidAlive(cls, instance_name):
     """Returns the instance pidfile, pid, and liveness.
 
     @type instance_name: string
@@ -841,23 +842,24 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @return: (pid file name, pid, liveness)
 
     """
-    pidfile = self._InstancePidFile(instance_name)
+    pidfile = cls._InstancePidFile(instance_name)
     pid = utils.ReadPidFile(pidfile)
 
     alive = False
     try:
-      cmd_instance = self._InstancePidInfo(pid)[0]
+      cmd_instance = cls._InstancePidInfo(pid)[0]
       alive = (cmd_instance == instance_name)
     except errors.HypervisorError:
       pass
 
     return (pidfile, pid, alive)
 
-  def _CheckDown(self, instance_name):
+  @classmethod
+  def _CheckDown(cls, instance_name):
     """Raises an error unless the given instance is down.
 
     """
-    alive = self._InstancePidAlive(instance_name)[2]
+    alive = cls._InstancePidAlive(instance_name)[2]
     if alive:
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance_name, "already running"))
@@ -1956,7 +1958,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp)
 
-  def _CallMonitorCommand(self, instance_name, command):
+  @classmethod
+  def _CallMonitorCommand(cls, instance_name, command):
     """Invoke a command on the instance monitor.
 
     """
@@ -1970,7 +1973,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     socat = ("echo %s | %s STDIO UNIX-CONNECT:%s" %
              (utils.ShellQuote(command),
               constants.SOCAT_PATH,
-              utils.ShellQuote(self._InstanceMonitor(instance_name))))
+              utils.ShellQuote(cls._InstanceMonitor(instance_name))))
     result = utils.RunCmd(socat)
     if result.failed:
       msg = ("Failed to send command '%s' to instance '%s', reason '%s',"
@@ -2207,7 +2210,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       return "pc"
 
-  def StopInstance(self, instance, force=False, retry=False, name=None):
+  @classmethod
+  def _StopInstance(cls, instance, force=False, name=None):
     """Stop an instance.
 
     """
@@ -2218,12 +2222,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       acpi = instance.hvparams[constants.HV_ACPI]
     else:
       acpi = False
-    _, pid, alive = self._InstancePidAlive(name)
+    _, pid, alive = cls._InstancePidAlive(name)
     if pid > 0 and alive:
       if force or not acpi:
         utils.KillProcess(pid)
       else:
-        self._CallMonitorCommand(name, "system_powerdown")
+        cls._CallMonitorCommand(name, "system_powerdown")
+
+  def StopInstance(self, instance, force=False, retry=False, name=None):
+    """Stop an instance.
+
+    """
+    self._StopInstance(instance, force, name)
 
   def CleanupInstance(self, instance_name):
     """Cleanup after a stopped instance
