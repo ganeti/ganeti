@@ -3285,7 +3285,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     changes = [
       ("disk/%d" % idx,
-      "add:size=%s,mode=%s" % (disk.size, disk.mode)),
+       "add:size=%s,mode=%s" % (disk.size, disk.mode)),
       ]
     if self.op.hotplug:
       result = self.rpc.call_blockdev_assemble(self.instance.primary_node,
