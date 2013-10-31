@@ -607,11 +607,16 @@ isPrimaryOffline cfg inst =
 
 -- | Determines the status of a live instance
 liveInstanceStatus :: (InstanceInfo, Bool) -> Instance -> InstanceStatus
-liveInstanceStatus (_, foundOnPrimary) inst
-  | not foundOnPrimary    = WrongNode
-  | adminState == AdminUp = Running
-  | otherwise             = ErrorUp
+liveInstanceStatus (instInfo, foundOnPrimary) inst
+  | not foundOnPrimary = WrongNode
+  | otherwise =
+    case instanceState of
+      InstanceStateRunning | adminState == AdminUp -> Running
+                           | otherwise -> ErrorUp
+      InstanceStateShutdown | adminState == AdminUp -> UserDown
+                            | otherwise -> StatusDown
   where adminState = instAdminState inst
+        instanceState = instInfoState instInfo
 
 -- | Determines the status of a dead instance.
 deadInstanceStatus :: Instance -> InstanceStatus
