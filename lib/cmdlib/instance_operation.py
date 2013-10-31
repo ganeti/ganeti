@@ -42,6 +42,7 @@ from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
   ShutdownInstanceDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   CheckInstanceBridgesExist, CheckNodeFreeMemory, CheckNodeHasOS
+from ganeti.hypervisor import hv_base
 
 
 class LUInstanceStartup(LogicalUnit):
@@ -135,7 +136,13 @@ class LUInstanceStartup(LogicalUnit):
       remote_info.Raise("Error checking node %s" %
                         self.cfg.GetNodeName(self.instance.primary_node),
                         prereq=True, ecode=errors.ECODE_ENVIRON)
-      if not remote_info.payload: # not running already
+      if remote_info.payload:
+        if hv_base.HvInstanceState.IsShutdown(remote_info.payload["state"]):
+          raise errors.OpPrereqError("Instance '%s' was shutdown by the user,"
+                                     " please shutdown the instance before"
+                                     " starting it again" % self.instance.name,
+                                     errors.ECODE_INVAL)
+      else: # not running already
         CheckNodeFreeMemory(
             self, self.instance.primary_node,
             "starting instance %s" % self.instance.name,
