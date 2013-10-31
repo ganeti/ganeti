@@ -73,10 +73,13 @@ def _DescriptionOf(fn):
   """
   if fn.__doc__:
     desc = fn.__doc__.splitlines()[0].strip()
+    desc = desc.rstrip(".")
+    if fn.__name__:
+      desc = "[" + fn.__name__ + "] " + desc
   else:
     desc = "%r" % fn
 
-  return desc.rstrip(".")
+  return desc
 
 
 def RunTest(fn, *args, **kwargs):
