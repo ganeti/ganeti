@@ -135,6 +135,9 @@ ip
     connected to the said network. ``--no-conflicts-check`` can be used
     to override this check. The special value **pool** causes Ganeti to
     select an IP from the the network the NIC is or will be connected to.
+    One can pick an externally reserved IP of a network along with
+    ``--no-conflict-check``. Note that this IP cannot be assigned to
+    any other instance until it gets released.
 
 mode
     specifies the connection mode for this NIC: routed, bridged or

@@ -365,10 +365,7 @@ class LUNetworkSetParams(LogicalUnit):
     if self.op.add_reserved_ips:
       for ip in self.op.add_reserved_ips:
         try:
-          if self.pool.IsReserved(ip):
-            self.LogWarning("IP address %s is already reserved", ip)
-          else:
-            self.pool.Reserve(ip, external=True)
+          self.pool.Reserve(ip, external=True)
         except errors.AddressPoolError, err:
           self.LogWarning("Cannot reserve IP address %s: %s", ip, err)
 
@@ -378,10 +375,7 @@ class LUNetworkSetParams(LogicalUnit):
           self.LogWarning("Cannot unreserve Gateway's IP")
           continue
         try:
-          if not self.pool.IsReserved(ip):
-            self.LogWarning("IP address %s is already unreserved", ip)
-          else:
-            self.pool.Release(ip, external=True)
+          self.pool.Release(ip, external=True)
         except errors.AddressPoolError, err:
           self.LogWarning("Cannot release IP address %s: %s", ip, err)
 

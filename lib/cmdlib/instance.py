@@ -1035,7 +1035,8 @@ class LUInstanceCreate(LogicalUnit):
             self.LogInfo("Chose IP %s from network %s", nic.ip, nobj.name)
           else:
             try:
-              self.cfg.ReserveIp(net_uuid, nic.ip, self.proc.GetECId())
+              self.cfg.ReserveIp(net_uuid, nic.ip, self.proc.GetECId(),
+                                 check=self.op.conflicts_check)
             except errors.ReservationError:
               raise errors.OpPrereqError("IP address %s already in use"
                                          " or does not belong to network %s" %
@@ -2620,7 +2621,8 @@ class LUInstanceSetParams(LogicalUnit):
         # Reserve new IP if in the new network if any
         elif new_net_uuid:
           try:
-            self.cfg.ReserveIp(new_net_uuid, new_ip, self.proc.GetECId())
+            self.cfg.ReserveIp(new_net_uuid, new_ip, self.proc.GetECId(),
+                               check=self.op.conflicts_check)
             self.LogInfo("Reserving IP %s in network %s",
                          new_ip, new_net_obj.name)
           except errors.ReservationError:
