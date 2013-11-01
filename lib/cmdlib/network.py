@@ -169,7 +169,7 @@ class LUNetworkAdd(LogicalUnit):
         for ip in [node.primary_ip, node.secondary_ip]:
           try:
             if pool.Contains(ip):
-              pool.Reserve(ip)
+              pool.Reserve(ip, external=True)
               self.LogInfo("Reserved IP address of node '%s' (%s)",
                            node.name, ip)
           except errors.AddressPoolError, err:
@@ -179,7 +179,7 @@ class LUNetworkAdd(LogicalUnit):
       master_ip = self.cfg.GetClusterInfo().master_ip
       try:
         if pool.Contains(master_ip):
-          pool.Reserve(master_ip)
+          pool.Reserve(master_ip, external=True)
           self.LogInfo("Reserved cluster master IP address (%s)", master_ip)
       except errors.AddressPoolError, err:
         self.LogWarning("Cannot reserve cluster master IP address (%s): %s",
