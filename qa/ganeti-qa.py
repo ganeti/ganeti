@@ -31,6 +31,7 @@ import datetime
 import optparse
 import sys
 
+import colors
 import qa_cluster
 import qa_config
 import qa_daemon
@@ -57,13 +58,14 @@ import ganeti.rapi.client # pylint: disable=W0611
 from ganeti.rapi.client import UsesRapiClient
 
 
-def _FormatHeader(line, end=72):
+def _FormatHeader(line, end=72, mark="-", color=None):
   """Fill a line up to the end column.
 
   """
-  line = "---- " + line + " "
+  line = (mark * 4) + " " + line + " "
   line += "-" * (end - len(line))
   line = line.rstrip()
+  line = colors.colorize(line, color)
   return line
 
 
@@ -92,15 +94,21 @@ def RunTest(fn, *args, **kwargs):
   desc = _DescriptionOf(fn)
 
   print
-  print _FormatHeader("%s start %s" % (tstart, desc))
+  print _FormatHeader("%s start %s" % (tstart, desc),
+                      color=colors.YELLOW, mark="<")
 
   try:
     retval = fn(*args, **kwargs)
+    print _FormatHeader("PASSED %s" % (desc, ), color=colors.GREEN)
     return retval
+  except Exception, e:
+    print _FormatHeader("FAILED %s: %s" % (desc, e), color=colors.RED)
+    raise
   finally:
     tstop = datetime.datetime.now()
     tdelta = tstop - tstart
-    print _FormatHeader("%s time=%s %s" % (tstop, tdelta, desc))
+    print _FormatHeader("%s time=%s %s" % (tstop, tdelta, desc),
+                        color=colors.MAGENTA, mark=">")
 
 
 def RunTestIf(testnames, fn, *args, **kwargs):
@@ -117,7 +125,8 @@ def RunTestIf(testnames, fn, *args, **kwargs):
     desc = _DescriptionOf(fn)
     # TODO: Formatting test names when non-string names are involved
     print _FormatHeader("%s skipping %s, test(s) %s disabled" %
-                        (tstart, desc, testnames))
+                        (tstart, desc, testnames),
+                        color=colors.BLUE, mark="*")
 
 
 def RunEnvTests():

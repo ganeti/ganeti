@@ -45,6 +45,7 @@ from ganeti import ht
 from ganeti import pathutils
 from ganeti import vcluster
 
+import colors
 import qa_config
 import qa_error
 
@@ -285,7 +286,8 @@ def StartLocalCommand(cmd, _nolog_opts=False, log_cmd=True, **kwargs):
       pcmd = [i for i in cmd if not i.startswith("-")]
     else:
       pcmd = cmd
-    print "Command: %s" % utils.ShellQuoteArgs(pcmd)
+    print "%s %s" % (colors.colorize("Command:", colors.CYAN),
+                     utils.ShellQuoteArgs(pcmd))
   return subprocess.Popen(cmd, shell=False, **kwargs)
 
 
