@@ -74,6 +74,8 @@ module Ganeti.Rpc
 
   , RpcCallExportList(..)
   , RpcResultExportList(..)
+
+  , RpcCallJobqueueUpdate(..)
   ) where
 
 import Control.Arrow (second)
@@ -82,7 +84,7 @@ import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 
-import Network.Curl
+import Network.Curl hiding (content)
 import qualified Ganeti.Path as P
 
 import Ganeti.BasicTypes
@@ -540,3 +542,31 @@ instance RpcCall RpcCallExportList where
 
 instance Rpc RpcCallExportList RpcResultExportList where
   rpcResultFill _ res = fromJSValueToRes res RpcResultExportList
+
+-- ** Job Queue Replication
+  
+-- | Update a job queue file
+  
+$(buildObject "RpcCallJobqueueUpdate" "rpcCallJobqueueUpdate"
+  [ simpleField "file_name" [t| String |]
+  , simpleField "content" [t| String |]
+  ])
+
+instance RpcCall RpcCallJobqueueUpdate where
+  rpcCallName _          = "jobqueue_update"
+  rpcCallTimeout _       = rpcTimeoutToRaw Fast
+  rpcCallAcceptOffline _ = False
+  rpcCallData _ call     = J.encode
+    ( rpcCallJobqueueUpdateFileName call
+    , ( C.rpcEncodingNone
+      , rpcCallJobqueueUpdateContent call
+      )
+    )
+
+instance Rpc RpcCallJobqueueUpdate () where
+  rpcResultFill _ res =
+    case res of
+      J.JSNull ->  Right ()
+      _ -> Left $ JsonDecodeError
+           ("Expected JSNull, got " ++ show (pp_value res))
+
