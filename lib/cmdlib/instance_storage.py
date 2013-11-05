@@ -2188,8 +2188,15 @@ class TLReplaceDisks(Tasklet):
         if msg or not result.payload:
           if not msg:
             msg = "disk not found"
-          raise errors.OpExecError("Can't find disk/%d on node %s: %s" %
-                                   (idx, self.cfg.GetNodeName(node_uuid), msg))
+          if not self._CheckDisksActivated(self.instance):
+            extra_hint = ("\nDisks seem to be not properly activated. Try"
+                          " running activate-disks on the instance before"
+                          " using replace-disks.")
+          else:
+            extra_hint = ""
+          raise errors.OpExecError("Can't find disk/%d on node %s: %s%s" %
+                                   (idx, self.cfg.GetNodeName(node_uuid), msg,
+                                    extra_hint))
 
   def _CheckDisksConsistency(self, node_uuid, on_primary, ldisk):
     for idx, dev in enumerate(self.instance.disks):
