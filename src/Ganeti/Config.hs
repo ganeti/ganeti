@@ -123,7 +123,7 @@ getNodeInstances cfg nname =
 -- | Computes the role of a node.
 getNodeRole :: ConfigData -> Node -> NodeRole
 getNodeRole cfg node
-  | nodeName node == clusterMasterNode (configCluster cfg) = NRMaster
+  | nodeUuid node == clusterMasterNode (configCluster cfg) = NRMaster
   | nodeMasterCandidate node = NRCandidate
   | nodeDrained node = NRDrained
   | nodeOffline node = NROffline
