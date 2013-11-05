@@ -37,6 +37,7 @@ CHECK_IMPORTS = $(top_srcdir)/autotools/check-imports
 DOCPP = $(top_srcdir)/autotools/docpp
 REPLACE_VARS_SED = autotools/replace_vars.sed
 CONVERT_CONSTANTS = $(top_srcdir)/autotools/convert-constants
+PRINT_PY_CONSTANTS = $(top_srcdir)/autotools/print-py-constants
 BUILD_RPC = $(top_srcdir)/autotools/build-rpc
 SHELL_ENV_INIT = autotools/shell-env-init
 
@@ -1785,7 +1786,8 @@ lib/_constants.py: Makefile lib/_constants.py.in src/hs2py-constants \
 
 lib/constants.py: lib/_constants.py
 
-src/AutoConf.hs: Makefile src/AutoConf.hs.in | stamp-directories
+src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
+	       | $(built_base_sources)
 	@echo "m4 ... >" $@
 	@m4 -DPACKAGE_VERSION="$(PACKAGE_VERSION)" \
 	    -DVERSION_MAJOR="$(VERSION_MAJOR)" \
@@ -1850,6 +1852,8 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in | stamp-directories
 	    -DMAN_PAGES="$$(for i in $(notdir $(man_MANS)); do \
 	                    echo -n "$$i" | sed -re 's/^(.*)\.([0-9]+)$$/("\1",\2):/g'; \
 	                    done)" \
+	    -DAF_INET4="$$(PYTHONPATH=. python $(PRINT_PY_CONSTANTS) AF_INET4)" \
+	    -DAF_INET6="$$(PYTHONPATH=. python $(PRINT_PY_CONSTANTS) AF_INET6)" \
 	$(abs_top_srcdir)/src/AutoConf.hs.in > $@
 
 lib/_vcsversion.py: Makefile vcs-version | stamp-directories
