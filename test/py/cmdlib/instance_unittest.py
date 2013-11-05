@@ -1997,6 +1997,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          nics=[(constants.DDM_ADD, -1, {})],
                          hotplug=True)
     self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_hotplug_device.called)
 
   def testAddNicWithIp(self):
@@ -2087,6 +2088,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          nics=[(constants.DDM_MODIFY, 0, {})],
                          hotplug=True)
     self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_hotplug_device.called)
 
   def testRemoveLastNic(self):
@@ -2111,6 +2113,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          nics=[(constants.DDM_REMOVE, 0, {})],
                          hotplug=True)
     self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_hotplug_device.called)
 
   def testSetOffline(self):
@@ -2199,6 +2202,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                  }]],
                          hotplug=True)
     self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_blockdev_create.called)
     self.assertTrue(self.rpc.call_blockdev_assemble.called)
     self.assertTrue(self.rpc.call_hotplug_device.called)
@@ -2212,6 +2216,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                  {}]],
                          hotplug=True)
     self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_hotplug_device.called)
     self.assertTrue(self.rpc.call_blockdev_shutdown.called)
     self.assertTrue(self.rpc.call_blockdev_remove.called)

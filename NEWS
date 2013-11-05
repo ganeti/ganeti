@@ -85,10 +85,10 @@ Python
   version 1.0.1. It is still used for testing only.
 
 
-Version 2.9.0 rc4
------------------
+Version 2.9.0
+-------------
 
-*(unreleased)*
+*(Released Tue, 5 Nov 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -159,6 +159,7 @@ Since 2.9.0 rc3
 
 - Correctly start/stop luxid during gnt-cluster master-failover (inherited
   from stable-2.8)
+- Improved error messsages (inherited from stable-2.8)
 
 
 Version 2.9.0 rc3
