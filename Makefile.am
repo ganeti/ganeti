@@ -1136,6 +1136,7 @@ EXTRA_DIST = \
 	autotools/convert-constants \
 	autotools/docpp \
 	autotools/gen-py-coverage \
+	autotools/print-py-constants \
 	autotools/sphinx-wrapper \
 	autotools/testrunner \
 	autotools/wrong-hardcoded-paths \
