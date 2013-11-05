@@ -34,7 +34,7 @@ module Ganeti.Query.Server
 import Control.Applicative
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forever, when)
+import Control.Monad (forever, when, zipWithM)
 import Data.Bits (bitSize)
 import qualified Data.Set as Set (toList)
 import Data.IORef
@@ -221,6 +221,39 @@ handleCall qlock cfg (SubmitJob ops) =
        then return . Bad . GenericError $ "Queue drained"
        else handleCall qlock cfg (SubmitJobToDrainedQueue ops)
 
+handleCall qlock cfg (SubmitManyJobs lops) =
+  do
+    open <- isQueueOpen
+    if not open
+      then return . Bad . GenericError $ "Queue drained"
+      else do
+        result_jobids <- allocateJobIds (Config.getMasterCandidates cfg)
+                           qlock (length lops)
+        case result_jobids of
+          Bad s -> return . Bad . GenericError $ s
+          Ok jids -> do
+            jobs <- zipWithM queuedJobFromOpCodes jids lops
+            qDir <- queueDir
+            write_results <- mapM (writeJobToDisk qDir) jobs
+            let annotated_results = zip write_results jids
+                succeeded = map snd $ filter (isOk . fst) annotated_results
+            when (any isBad write_results) . logWarning
+              $ "Writing some jobs failed " ++ show annotated_results
+            socketpath <- defaultLuxiSocket
+            client <- getClient socketpath
+            pickupResults <- mapM (flip callMethod client . PickupJob)
+                               succeeded
+            closeClient client
+            when (any isBad pickupResults)
+              . logWarning . (++)  "Failed to notify maserd: " . show
+              $ zip succeeded pickupResults
+            return . Ok . JSArray
+              . map (\(res, jid) ->
+                      if isOk res
+                        then showJSON (True, fromJobId jid)
+                        else showJSON (False, genericResult id (const "") res))
+              $ annotated_results
+    
 handleCall _ _ op =
   return . Bad $
     GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")
