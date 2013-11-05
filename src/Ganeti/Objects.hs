@@ -95,6 +95,7 @@ import Data.Word
 import Text.JSON (showJSON, readJSON, JSON, JSValue(..), fromJSString)
 import qualified Text.JSON as J
 
+import qualified AutoConf
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
@@ -599,8 +600,8 @@ instance TagsObject NodeGroup where
 
 -- | IP family type
 $(declareIADT "IpFamily"
-  [ ("IpFamilyV4", 'C.ip4Family)
-  , ("IpFamilyV6", 'C.ip6Family)
+  [ ("IpFamilyV4", 'AutoConf.pyAfInet4)
+  , ("IpFamilyV6", 'AutoConf.pyAfInet6)
   ])
 $(makeJSONInstance ''IpFamily)
 

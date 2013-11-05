@@ -36,8 +36,6 @@ module Ganeti.Ssconf
   , sSFilePrefix
   ) where
 
-import Ganeti.THH
-
 import Control.Exception
 import Control.Monad (liftM)
 import Data.Maybe (fromMaybe)
@@ -45,9 +43,11 @@ import qualified Network.Socket as Socket
 import System.FilePath ((</>))
 import System.IO.Error (isDoesNotExistError)
 
+import qualified AutoConf
+import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
-import Ganeti.BasicTypes
+import Ganeti.THH
 import Ganeti.Utils
 
 -- | Maximum ssconf file size we support.
@@ -119,14 +119,16 @@ readSSConfFile optpath def key = do
 
 -- | Parses a string containing an IP family
 parseIPFamily :: Int -> Result Socket.Family
-parseIPFamily fam | fam == C.ip4Family = Ok Socket.AF_INET
-                  | fam == C.ip6Family = Ok Socket.AF_INET6
+parseIPFamily fam | fam == AutoConf.pyAfInet4 = Ok Socket.AF_INET
+                  | fam == AutoConf.pyAfInet6 = Ok Socket.AF_INET6
                   | otherwise = Bad $ "Unknown af_family value: " ++ show fam
 
 -- | Read the primary IP family.
 getPrimaryIPFamily :: Maybe FilePath -> IO (Result Socket.Family)
 getPrimaryIPFamily optpath = do
-  result <- readSSConfFile optpath (Just (show C.ip4Family)) SSPrimaryIpFamily
+  result <- readSSConfFile optpath
+                           (Just (show AutoConf.pyAfInet4))
+                           SSPrimaryIpFamily
   return (liftM rStripSpace result >>=
           tryRead "Parsing af_family" >>= parseIPFamily)
 
