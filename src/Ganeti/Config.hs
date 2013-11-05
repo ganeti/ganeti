@@ -33,6 +33,7 @@ module Ganeti.Config
     , getDefaultNicLink
     , getDefaultHypervisor
     , getInstancesIpByLink
+    , getMasterCandidates
     , getNode
     , getInstance
     , getGroup
@@ -128,6 +129,12 @@ getNodeRole cfg node
   | nodeDrained node = NRDrained
   | nodeOffline node = NROffline
   | otherwise = NRRegular
+
+-- | Get the list of master candidates.
+getMasterCandidates :: ConfigData -> [Node]
+getMasterCandidates cfg = 
+  filter ((==) NRCandidate . getNodeRole cfg)
+    (map snd . M.toList . fromContainer . configNodes $ cfg)
 
 -- | Returns the default cluster link.
 getDefaultNicLink :: ConfigData -> String
