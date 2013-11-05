@@ -64,10 +64,6 @@ IE_MAGIC_RE = re.compile(r"^[-_.a-zA-Z0-9]{5,100}$")
 # External script validation mask
 EXT_PLUGIN_MASK = re.compile("^[a-zA-Z0-9_-]+$")
 
-# for export to htools
-IP4_FAMILY = socket.AF_INET
-IP6_FAMILY = socket.AF_INET6
-
 JOB_ID_TEMPLATE = r"\d+"
 JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
 
