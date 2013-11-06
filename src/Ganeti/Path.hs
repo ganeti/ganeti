@@ -36,6 +36,7 @@ module Ganeti.Path
   , queueDir
   , jobQueueSerialFile
   , jobQueueLockFile 
+  , jobQueueDrainFile  
   , jobQueueArchiveSubDir
   , instanceReasonDir
   , getInstReasonFilename
@@ -114,6 +115,10 @@ jobQueueSerialFile = queueDir `pjoin` "serial"
 -- | Job queue lock file
 jobQueueLockFile :: IO FilePath
 jobQueueLockFile = queueDir `pjoin` "lock"
+
+-- | Job queue drain file
+jobQueueDrainFile :: IO FilePath
+jobQueueDrainFile = queueDir `pjoin` "drain"
 
 -- | Job queue archive directory.
 jobQueueArchiveSubDir :: FilePath
