@@ -112,23 +112,6 @@ class LUNodeAdd(LogicalUnit):
       raise errors.OpPrereqError("Cannot pass a node group when a node is"
                                  " being readded", errors.ECODE_INVAL)
 
-    if self.op.ndparams:
-      ovs = self.op.ndparams.get(constants.ND_OVS, None)
-      ovs_name = self.op.ndparams.get(constants.ND_OVS_NAME, None)
-      ovs_link = self.op.ndparams.get(constants.ND_OVS_LINK, None)
-
-      # OpenvSwitch: Warn user if link is missing
-      if ovs and not ovs_link:
-        self.LogInfo("No physical interface for OpenvSwitch was given."
-                     " OpenvSwitch will not have an outside connection. This"
-                     " might not be what you want.")
-      # OpenvSwitch: Fail if parameters are given, but OVS is not enabled.
-      if not ovs and (ovs_name or ovs_link):
-        raise errors.OpPrereqError("OpenvSwitch name or link were given, but"
-                                   " OpenvSwitch is not enabled. Please enable"
-                                   " OpenvSwitch with --ovs",
-                                   errors.ECODE_INVAL)
-
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -319,6 +302,24 @@ class LUNodeAdd(LogicalUnit):
         raise errors.OpPrereqError("Checks on node PVs failed: %s" %
                                    "; ".join(errmsgs), errors.ECODE_ENVIRON)
 
+  def _InitOpenVSwitch(self):
+    filled_ndparams = self.cfg.GetClusterInfo().FillND(
+      self.new_node, self.cfg.GetNodeGroup(self.new_node.group))
+
+    ovs = filled_ndparams.get(constants.ND_OVS, None)
+    ovs_name = filled_ndparams.get(constants.ND_OVS_NAME, None)
+    ovs_link = filled_ndparams.get(constants.ND_OVS_LINK, None)
+
+    if ovs:
+      if not ovs_link:
+        self.LogInfo("No physical interface for OpenvSwitch was given."
+                     " OpenvSwitch will not have an outside connection. This"
+                     " might not be what you want.")
+
+      result = self.rpc.call_node_configure_ovs(
+                 self.new_node.name, ovs_name, ovs_link)
+      result.Raise("Failed to initialize OpenVSwitch on new node")
+
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
 
@@ -392,14 +393,7 @@ class LUNodeAdd(LogicalUnit):
                       (verifier, nl_payload[failed]))
         raise errors.OpExecError("ssh/hostname verification failed")
 
-    # OpenvSwitch initialization on the node
-    ovs = self.new_node.ndparams.get(constants.ND_OVS, None)
-    ovs_name = self.new_node.ndparams.get(constants.ND_OVS_NAME, None)
-    ovs_link = self.new_node.ndparams.get(constants.ND_OVS_LINK, None)
-
-    if ovs:
-      result = self.rpc.call_node_configure_ovs(
-                 self.new_node.name, ovs_name, ovs_link)
+    self._InitOpenVSwitch()
 
     if self.op.readd:
       self.context.ReaddNode(self.new_node)

@@ -35,12 +35,14 @@ from testsupport import *
 
 import testutils
 
+
 # pylint: disable=W0613
 def _TcpPingFailSecondary(cfg, mock_fct, target, port, timeout=None,
                           live_port_needed=None, source=None):
   # This will return True if target is in 192.0.2.0/24 (primary range)
   # and False if not.
   return "192.0.2." in target
+
 
 class TestLUNodeAdd(CmdlibTestCase):
   def setUp(self):
@@ -79,17 +81,6 @@ class TestLUNodeAdd(CmdlibTestCase):
     # we can't know the node's UUID in advance, so use defaultdict here
     self.rpc.call_node_verify.return_value = \
       defaultdict(lambda: node_verify_result, {})
-
-  def testOvsParamsButNotEnabled(self):
-    ndparams = {
-      constants.ND_OVS: False,
-      constants.ND_OVS_NAME: "testswitch",
-    }
-
-    op = self.CopyOpCode(self.op_add,
-                         ndparams=ndparams)
-
-    self.ExecOpCodeExpectOpPrereqError(op, "OpenvSwitch is not enabled")
 
   def testOvsNoLink(self):
     ndparams = {

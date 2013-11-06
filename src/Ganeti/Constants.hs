@@ -42,8 +42,8 @@ import Data.Map (Map)
 import qualified Data.Map as Map (empty, fromList, keys, insert)
 
 import qualified AutoConf
-import Ganeti.ConstantUtils (PythonChar(..), PythonNone(..), FrozenSet,
-                             Protocol(..), buildVersion)
+import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
+                             buildVersion)
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.HTools.Types (AutoRepairResult(..), AutoRepairType(..))
 import qualified Ganeti.HTools.Types as Types
@@ -599,9 +599,6 @@ valueTrue = "true"
 
 valueFalse :: String
 valueFalse = "false"
-
-valueHsNothing :: Map String PythonNone
-valueHsNothing = Map.fromList [("Nothing", PythonNone)]
 
 -- * Hooks
 
@@ -2249,7 +2246,7 @@ nicsParameterTypes :: Map String VType
 nicsParameterTypes =
   Map.fromList [(nicMode, vtypeString),
                 (nicLink, vtypeString),
-                (nicVlan, vtypeMaybeString)]
+                (nicVlan, vtypeString)]
 
 nicsParameters :: FrozenSet String
 nicsParameters = ConstantUtils.mkSet (Map.keys nicsParameterTypes)
@@ -3795,7 +3792,7 @@ niccDefaults =
   Map.fromList
   [ (nicMode, PyValueEx nicModeBridged)
   , (nicLink, PyValueEx defaultBridge)
-  , (nicVlan, PyValueEx valueHsNothing)
+  , (nicVlan, PyValueEx "")
   ]
 
 -- | All of the following values are quite arbitrary - there are no

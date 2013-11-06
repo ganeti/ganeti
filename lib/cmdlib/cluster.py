@@ -196,14 +196,6 @@ class LUClusterPostInit(LogicalUnit):
                    " OpenvSwitch will not have an outside connection. This"
                    " might not be what you want.")
 
-    # OpenvSwitch: Warn if parameters are given, but OVS is not enabled.
-    if (not self.master_ndparams[constants.ND_OVS] and
-        (self.master_ndparams[constants.ND_OVS_NAME] or
-         self.master_ndparams.get(constants.ND_OVS_LINK, None))):
-      self.LogInfo("OpenvSwitch name or link were given, but"
-                   " OpenvSwitch is not enabled. Please enable"
-                   " OpenvSwitch with 'ovs=true' or create it manually")
-
   def BuildHooksEnv(self):
     """Build hooks env.
 

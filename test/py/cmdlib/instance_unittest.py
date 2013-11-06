@@ -180,15 +180,6 @@ class TestLUInstanceCreate(CmdlibTestCase):
     self.ExecOpCodeExpectOpPrereqError(
       op, "If network is given, no mode or link is allowed to be passed")
 
-  def testVlanWithWrongMode(self):
-    op = self.CopyOpCode(self.diskless_op,
-                         nics=[{
-                           constants.INIC_VLAN: ":1",
-                           constants.INIC_MODE: constants.NIC_MODE_BRIDGED
-                         }])
-    self.ExecOpCodeExpectOpPrereqError(
-      op, "VLAN is given, but network mode is not openvswitch")
-
   def testAutoIpNoNameCheck(self):
     op = self.CopyOpCode(self.diskless_op,
                          nics=[{

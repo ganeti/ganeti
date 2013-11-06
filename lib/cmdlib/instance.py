@@ -183,10 +183,6 @@ def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
                                    " is allowed to be passed",
                                    errors.ECODE_INVAL)
 
-    if vlan is not None and nic_mode != constants.NIC_MODE_OVS:
-      raise errors.OpPrereqError("VLAN is given, but network mode is not"
-                                 " openvswitch", errors.ECODE_INVAL)
-
     # ip validity checks
     if ip is None or ip.lower() == constants.VALUE_NONE:
       nic_ip = None
