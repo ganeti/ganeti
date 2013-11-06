@@ -49,6 +49,7 @@ module Ganeti.JQueue
     , allocateJobIds
     , allocateJobId
     , writeJobToDisk
+    , isQueueOpen
     ) where
 
 import Control.Concurrent.MVar
@@ -389,3 +390,7 @@ allocateJobId :: [Node] -> MVar () -> IO (Result JobId)
 allocateJobId mastercandidates lock = do
   jids <- allocateJobIds mastercandidates lock 1
   return (jids >>= monadicThe "Failed to allocate precisely one Job ID")
+
+-- | Decide if job queue is open
+isQueueOpen :: IO Bool
+isQueueOpen = liftM not (jobQueueDrainFile >>= doesFileExist)
