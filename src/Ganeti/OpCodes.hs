@@ -40,6 +40,7 @@ module Ganeti.OpCodes
   , CommonOpParams(..)
   , defOpParams
   , MetaOpCode(..)
+  , resolveDependencies
   , wrapOpCode
   , setOpComment
   , setOpPriority
@@ -1032,10 +1033,23 @@ defOpParams =
                  , opReason     = []
                  }
 
+-- | Resolve relative dependencies to absolute ones, given the job ID.
+resolveDependsCommon :: (Monad m) => CommonOpParams -> JobId -> m CommonOpParams
+resolveDependsCommon p@(CommonOpParams { opDepends = Just deps}) jid = do
+  deps' <- mapM (`absoluteJobDependency` jid) deps
+  return p { opDepends = Just deps' }
+resolveDependsCommon p _ = return p
+
 -- | The top-level opcode type.
 data MetaOpCode = MetaOpCode { metaParams :: CommonOpParams
                              , metaOpCode :: OpCode
                              } deriving (Show, Eq)
+
+-- | Resolve relative dependencies to absolute ones, given the job Id.
+resolveDependencies :: (Monad m) => MetaOpCode -> JobId -> m MetaOpCode
+resolveDependencies mopc jid = do
+  mpar <- resolveDependsCommon (metaParams mopc) jid
+  return (mopc { metaParams = mpar })
 
 -- | JSON serialisation for 'MetaOpCode'.
 showMeta :: MetaOpCode -> JSValue
