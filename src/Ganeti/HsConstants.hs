@@ -4314,3 +4314,119 @@ diskRemoveRetryInterval  = 3
 
 uuidRegex :: String
 uuidRegex = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
+
+-- * Luxi constants
+
+luxiKeyMethod :: String
+luxiKeyMethod = "method"
+
+luxiKeyArgs :: String
+luxiKeyArgs = "args"
+
+luxiKeySuccess :: String
+luxiKeySuccess = "success"
+
+luxiKeyResult :: String
+luxiKeyResult = "result"
+
+luxiKeyVersion :: String
+luxiKeyVersion = "version"
+
+luxiReqSubmitJob :: String
+luxiReqSubmitJob = "SubmitJob"
+
+luxiReqSubmitJobToDrainedQueue :: String
+luxiReqSubmitJobToDrainedQueue = "SubmitJobToDrainedQueue"
+
+luxiReqSubmitManyJobs :: String
+luxiReqSubmitManyJobs = "SubmitManyJobs"
+
+luxiReqWaitForJobChange :: String
+luxiReqWaitForJobChange = "WaitForJobChange"
+
+luxiReqCancelJob :: String
+luxiReqCancelJob = "CancelJob"
+
+luxiReqArchiveJob :: String
+luxiReqArchiveJob = "ArchiveJob"
+
+luxiReqChangeJobPriority :: String
+luxiReqChangeJobPriority = "ChangeJobPriority"
+
+luxiReqAutoArchiveJobs :: String
+luxiReqAutoArchiveJobs = "AutoArchiveJobs"
+
+luxiReqQuery :: String
+luxiReqQuery = "Query"
+
+luxiReqQueryFields :: String
+luxiReqQueryFields = "QueryFields"
+
+luxiReqQueryJobs :: String
+luxiReqQueryJobs = "QueryJobs"
+
+luxiReqQueryInstances :: String
+luxiReqQueryInstances = "QueryInstances"
+
+luxiReqQueryNodes :: String
+luxiReqQueryNodes = "QueryNodes"
+
+luxiReqQueryGroups :: String
+luxiReqQueryGroups = "QueryGroups"
+
+luxiReqQueryNetworks :: String
+luxiReqQueryNetworks = "QueryNetworks"
+
+luxiReqQueryExports :: String
+luxiReqQueryExports = "QueryExports"
+
+luxiReqQueryConfigValues :: String
+luxiReqQueryConfigValues = "QueryConfigValues"
+
+luxiReqQueryClusterInfo :: String
+luxiReqQueryClusterInfo = "QueryClusterInfo"
+
+luxiReqQueryTags :: String
+luxiReqQueryTags = "QueryTags"
+
+luxiReqSetDrainFlag :: String
+luxiReqSetDrainFlag = "SetDrainFlag"
+
+luxiReqSetWatcherPause :: String
+luxiReqSetWatcherPause = "SetWatcherPause"
+
+luxiReqAll :: FrozenSet String
+luxiReqAll =
+  ConstantUtils.mkSet
+  [ luxiReqArchiveJob
+  , luxiReqAutoArchiveJobs
+  , luxiReqCancelJob
+  , luxiReqChangeJobPriority
+  , luxiReqQuery
+  , luxiReqQueryClusterInfo
+  , luxiReqQueryConfigValues
+  , luxiReqQueryExports
+  , luxiReqQueryFields
+  , luxiReqQueryGroups
+  , luxiReqQueryInstances
+  , luxiReqQueryJobs
+  , luxiReqQueryNodes
+  , luxiReqQueryNetworks
+  , luxiReqQueryTags
+  , luxiReqSetDrainFlag
+  , luxiReqSetWatcherPause
+  , luxiReqSubmitJob
+  , luxiReqSubmitJobToDrainedQueue
+  , luxiReqSubmitManyJobs
+  , luxiReqWaitForJobChange
+  ]
+
+luxiDefCtmo :: Int
+luxiDefCtmo = 10
+
+luxiDefRwto :: Int
+luxiDefRwto = 60
+
+-- | 'WaitForJobChange' timeout
+luxiWfjcTimeout :: Int
+luxiWfjcTimeout = (luxiDefRwto - 1) `div` 2

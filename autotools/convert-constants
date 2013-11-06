@@ -27,7 +27,6 @@ import types
 
 from ganeti import compat
 from ganeti import errors
-from ganeti import luxi
 from ganeti import qlang
 from ganeti import jstore
 
@@ -299,7 +298,6 @@ def Convert(module, prefix):
 
 
 def main():
-  print Convert(luxi, "luxi")
   print Convert(qlang, "qlang")
   print Convert(errors, "errors")
   print Convert(jstore, "jstore")
