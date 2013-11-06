@@ -35,6 +35,7 @@ from ganeti.cmdlib.common import ShareAll, GetWantedInstances, \
   CheckInstanceNodeGroups, CheckInstancesNodeGroups, AnnotateDiskParams
 from ganeti.cmdlib.instance_operation import GetInstanceConsole
 from ganeti.cmdlib.instance_utils import NICListToTuple
+from ganeti.hypervisor import hv_base
 
 import ganeti.masterd.instance
 
@@ -409,7 +410,10 @@ class LUInstanceQueryData(NoHooksLU):
         remote_info.Raise("Error checking node %s" % pnode.name)
         remote_info = remote_info.payload
         if remote_info and "state" in remote_info:
-          remote_state = "up"
+          if hv_base.HvInstanceState.IsShutdown(remote_info["state"]):
+            remote_state = "user down"
+          else:
+            remote_state = "up"
         else:
           if instance.admin_state == constants.ADMINST_UP:
             remote_state = "down"
