@@ -110,6 +110,7 @@ module Ganeti.Types
   , RelativeJobId
   , JobIdDep(..)
   , JobDependency(..)
+  , absoluteJobDependency
   , OpSubmitPriority(..)
   , opSubmitPriorityToRaw
   , parseSubmitPriority
@@ -675,6 +676,12 @@ instance JSON.JSON JobIdDep where
       JSON.Ok r -> return $ JobDepRelative r
       JSON.Error _ -> liftM JobDepAbsolute (parseJobId v)
 
+-- | From job ID dependency and job ID, compute the absolute dependency.
+absoluteJobIdDep :: (Monad m) => JobIdDep -> JobId -> m JobIdDep
+absoluteJobIdDep (JobDepAbsolute jid) _ = return $ JobDepAbsolute jid
+absoluteJobIdDep (JobDepRelative rjid) jid =
+  liftM JobDepAbsolute . makeJobId $ fromJobId jid + fromNegative rjid 
+
 -- | Job Dependency type.
 data JobDependency = JobDependency JobIdDep [FinalizedJobStatus]
                      deriving (Show, Eq)
@@ -682,6 +689,11 @@ data JobDependency = JobDependency JobIdDep [FinalizedJobStatus]
 instance JSON JobDependency where
   showJSON (JobDependency dep status) = showJSON (dep, status)
   readJSON = liftM (uncurry JobDependency) . readJSON
+
+-- | From job dependency and job id compute an absolute job dependency.
+absoluteJobDependency :: (Monad m) => JobDependency -> JobId -> m JobDependency
+absoluteJobDependency (JobDependency jdep fstats) jid =
+  liftM (flip JobDependency fstats) $ absoluteJobIdDep jdep jid 
 
 -- | Valid opcode priorities for submit.
 $(THH.declareIADT "OpSubmitPriority"
