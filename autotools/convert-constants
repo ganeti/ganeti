@@ -298,7 +298,6 @@ def Convert(module, prefix):
 
 
 def main():
-  print Convert(qlang, "qlang")
   print Convert(errors, "errors")
   print Convert(jstore, "jstore")
 

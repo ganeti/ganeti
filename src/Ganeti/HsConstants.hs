@@ -4430,3 +4430,63 @@ luxiDefRwto = 60
 -- | 'WaitForJobChange' timeout
 luxiWfjcTimeout :: Int
 luxiWfjcTimeout = (luxiDefRwto - 1) `div` 2
+
+-- * Query language constants
+
+-- ** Logic operators with one or more operands, each of which is a
+-- filter on its own
+
+qlangOpAnd :: String
+qlangOpAnd = "&"
+
+qlangOpOr :: String
+qlangOpOr = "|"
+
+-- ** Unary operators with exactly one operand
+
+qlangOpNot :: String
+qlangOpNot = "!"
+
+qlangOpTrue :: String
+qlangOpTrue = "?"
+
+-- ** Binary operators with exactly two operands, the field name and
+-- an operator-specific value
+
+qlangOpContains :: String
+qlangOpContains = "=[]"
+
+qlangOpEqual :: String
+qlangOpEqual = "="
+
+qlangOpGe :: String
+qlangOpGe = ">="
+
+qlangOpGt :: String
+qlangOpGt = ">"
+
+qlangOpLe :: String
+qlangOpLe = "<="
+
+qlangOpLt :: String
+qlangOpLt = "<"
+
+qlangOpNotEqual :: String
+qlangOpNotEqual = "!="
+
+qlangOpRegexp :: String
+qlangOpRegexp = "=~"
+
+-- | Characters used for detecting user-written filters (see
+-- L{_CheckFilter})
+
+qlangFilterDetectionChars :: FrozenSet String
+qlangFilterDetectionChars =
+  ConstantUtils.mkSet ["!", " ", "\"", "\'",
+                       ")", "(", "\x0b", "\n",
+                       "\r", "\x0c", "/", "<",
+                       "\t", ">", "=", "\\", "~"]
+
+-- | Characters used to detect globbing filters
+qlangGlobDetectionChars :: FrozenSet String
+qlangGlobDetectionChars = ConstantUtils.mkSet ["*", "?"]
