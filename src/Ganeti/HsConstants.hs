@@ -4490,3 +4490,61 @@ qlangFilterDetectionChars =
 -- | Characters used to detect globbing filters
 qlangGlobDetectionChars :: FrozenSet String
 qlangGlobDetectionChars = ConstantUtils.mkSet ["*", "?"]
+
+-- * Error related constants
+--
+-- 'OpPrereqError' failure types
+
+-- | Environment error (e.g. node disk error)
+errorsEcodeEnviron :: String
+errorsEcodeEnviron = "environment_error"
+
+-- | Entity already exists
+errorsEcodeExists :: String
+errorsEcodeExists = "already_exists"
+
+-- | Internal cluster error
+errorsEcodeFault :: String
+errorsEcodeFault = "internal_error"
+
+-- | Wrong arguments (at syntax level)
+errorsEcodeInval :: String
+errorsEcodeInval = "wrong_input"
+
+-- | Entity not found
+errorsEcodeNoent :: String
+errorsEcodeNoent = "unknown_entity"
+
+-- | Not enough resources (iallocator failure, disk space, memory, etc)
+errorsEcodeNores :: String
+errorsEcodeNores = "insufficient_resources"
+
+-- | Resource not unique (e.g. MAC or IP duplication)
+errorsEcodeNotunique :: String
+errorsEcodeNotunique = "resource_not_unique"
+
+-- | Resolver errors
+errorsEcodeResolver :: String
+errorsEcodeResolver = "resolver_error"
+
+-- | Wrong entity state
+errorsEcodeState :: String
+errorsEcodeState = "wrong_state"
+
+-- | Temporarily out of resources; operation can be tried again
+errorsEcodeTempNores :: String
+errorsEcodeTempNores = "temp_insufficient_resources"
+
+errorsEcodeAll :: FrozenSet String
+errorsEcodeAll =
+  ConstantUtils.mkSet [ errorsEcodeNores
+                      , errorsEcodeExists
+                      , errorsEcodeState
+                      , errorsEcodeNotunique
+                      , errorsEcodeTempNores
+                      , errorsEcodeNoent
+                      , errorsEcodeFault
+                      , errorsEcodeResolver
+                      , errorsEcodeInval
+                      , errorsEcodeEnviron
+                      ]

@@ -23,54 +23,20 @@
 
 """
 
-from ganeti import compat
+from ganeti import constants
 
 
-# OpPrereqError failure types
-
-#: Resolver errors
-ECODE_RESOLVER = "resolver_error"
-
-#: Not enough resources (iallocator failure, disk space, memory, etc.)
-ECODE_NORES = "insufficient_resources"
-
-#: Temporarily out of resources; operation can be tried again
-ECODE_TEMP_NORES = "temp_insufficient_resources"
-
-#: Wrong arguments (at syntax level)
-ECODE_INVAL = "wrong_input"
-
-#: Wrong entity state
-ECODE_STATE = "wrong_state"
-
-#: Entity not found
-ECODE_NOENT = "unknown_entity"
-
-#: Entity already exists
-ECODE_EXISTS = "already_exists"
-
-#: Resource not unique (e.g. MAC or IP duplication)
-ECODE_NOTUNIQUE = "resource_not_unique"
-
-#: Internal cluster error
-ECODE_FAULT = "internal_error"
-
-#: Environment error (e.g. node disk error)
-ECODE_ENVIRON = "environment_error"
-
-#: List of all failure types
-ECODE_ALL = compat.UniqueFrozenset([
-  ECODE_RESOLVER,
-  ECODE_NORES,
-  ECODE_TEMP_NORES,
-  ECODE_INVAL,
-  ECODE_STATE,
-  ECODE_NOENT,
-  ECODE_EXISTS,
-  ECODE_NOTUNIQUE,
-  ECODE_FAULT,
-  ECODE_ENVIRON,
-  ])
+ECODE_RESOLVER = constants.ERRORS_ECODE_RESOLVER
+ECODE_NORES = constants.ERRORS_ECODE_NORES
+ECODE_TEMP_NORES = constants.ERRORS_ECODE_TEMP_NORES
+ECODE_INVAL = constants.ERRORS_ECODE_INVAL
+ECODE_STATE = constants.ERRORS_ECODE_STATE
+ECODE_NOENT = constants.ERRORS_ECODE_NOENT
+ECODE_EXISTS = constants.ERRORS_ECODE_EXISTS
+ECODE_NOTUNIQUE = constants.ERRORS_ECODE_NOTUNIQUE
+ECODE_FAULT = constants.ERRORS_ECODE_FAULT
+ECODE_ENVIRON = constants.ERRORS_ECODE_ENVIRON
+ECODE_ALL = constants.ERRORS_ECODE_ALL
 
 
 class GenericError(Exception):
