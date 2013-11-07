@@ -119,6 +119,7 @@ class DRBD8Status(object): # pylint: disable=R0902
 
     self.is_diskless = self.ldisk == self.DS_DISKLESS
     self.is_disk_uptodate = self.ldisk == self.DS_UPTODATE
+    self.peer_disk_uptodate = self.rdisk == self.DS_UPTODATE
 
     self.is_in_resync = self.cstatus in self.CSET_SYNC
     self.is_in_use = self.cstatus != self.CS_UNCONFIGURED
