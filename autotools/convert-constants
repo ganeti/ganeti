@@ -298,7 +298,7 @@ def Convert(module, prefix):
 
 
 def main():
-  print Convert(jstore, "jstore")
+  pass
 
 
 if __name__ == "__main__":

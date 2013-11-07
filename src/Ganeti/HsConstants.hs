@@ -4548,3 +4548,8 @@ errorsEcodeAll =
                       , errorsEcodeInval
                       , errorsEcodeEnviron
                       ]
+
+-- * Jstore related constants
+
+jstoreJobsPerArchiveDirectory :: Int
+jstoreJobsPerArchiveDirectory = 10000
