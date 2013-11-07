@@ -59,6 +59,7 @@ import qualified Ganeti.Query.Cluster as QCluster
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 import Ganeti.Types
+import qualified Ganeti.Version as Version
 
 -- | Helper for classic queries.
 handleClassicQuery :: ConfigData      -- ^ Cluster config
@@ -102,7 +103,7 @@ handleCall cdata QueryClusterInfo =
                                  Set.toList . ConstantUtils.unFrozenSet $
                                  C.osApiVersions)
             , ("export_version", showJSON C.exportVersion)
-            , ("vcs_version", showJSON C.vcsVersion)
+            , ("vcs_version", showJSON Version.version)
             , ("architecture", showJSON arch_tuple)
             , ("name", showJSON $ clusterClusterName cluster)
             , ("master", showJSON (case master of
