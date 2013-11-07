@@ -26,8 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.Constants (module Ganeti.HsConstants,
-                         module Ganeti.PyConstants) where
+module Ganeti.Constants (module Ganeti.HsConstants) where
 
 import Ganeti.HsConstants
-import Ganeti.PyConstants

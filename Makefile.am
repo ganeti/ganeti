@@ -36,7 +36,6 @@ CHECK_NEWS = $(top_srcdir)/autotools/check-news
 CHECK_IMPORTS = $(top_srcdir)/autotools/check-imports
 DOCPP = $(top_srcdir)/autotools/docpp
 REPLACE_VARS_SED = autotools/replace_vars.sed
-CONVERT_CONSTANTS = $(top_srcdir)/autotools/convert-constants
 PRINT_PY_CONSTANTS = $(top_srcdir)/autotools/print-py-constants
 BUILD_RPC = $(top_srcdir)/autotools/build-rpc
 SHELL_ENV_INIT = autotools/shell-env-init
@@ -780,7 +779,6 @@ HS_BUILT_SRCS = \
 	test/hs/Test/Ganeti/TestImports.hs \
 	src/AutoConf.hs \
 	src/Ganeti/Hs2Py/ListConstants.hs \
-	src/Ganeti/PyConstants.hs \
 	src/Ganeti/Curl/Internal.hs \
 	src/Ganeti/Version.hs
 HS_BUILT_SRCS_IN = \
@@ -1134,7 +1132,6 @@ EXTRA_DIST = \
 	autotools/check-python-code \
 	autotools/check-tar \
 	autotools/check-version \
-	autotools/convert-constants \
 	autotools/docpp \
 	autotools/gen-py-coverage \
 	autotools/print-py-constants \
@@ -1756,16 +1753,6 @@ src/Ganeti/Hs2Py/ListConstants.hs: src/Ganeti/Hs2Py/ListConstants.hs.in \
 		 sed -n -e "/=/ s/\(.*\) =.*/    '\1:/g p"); \
 	m4 -DPY_CONSTANT_NAMES="$$NAMES" $(abs_top_srcdir)/$< > $@
 
-src/Ganeti/PyConstants.hs: src/Ganeti/PyConstants.hs.in \
-	lib/constants.py lib/luxi.py lib/errors.py \
-	lib/jstore.py $(RUN_IN_TEMPDIR) \
-	$(CONVERT_CONSTANTS) $(built_base_sources) \
-	| lib/_vcsversion.py
-	set -e; \
-	{ cat $< ; \
-	  PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CONVERT_CONSTANTS); \
-	} > $@
-
 src/Ganeti/Curl/Internal.hs: src/Ganeti/Curl/Internal.hsc | stamp-directories
 	hsc2hs -o $@ $<
 
@@ -1877,7 +1864,7 @@ lib/_vcsversion.py: Makefile vcs-version | stamp-directories
 	  echo "VCS_VERSION = '$$VCSVER'"; \
 	} > $@
 
-lib/opcodes.py: Makefile src/hs2py src/Ganeti/PyConstants.hs \
+lib/opcodes.py: Makefile src/hs2py src/Ganeti/Constants.hs \
 		lib/opcodes.py.in_before lib/opcodes.py.in_after \
 		| stamp-directories
 	cat $(abs_top_srcdir)/lib/opcodes.py.in_before > $@
