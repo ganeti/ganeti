@@ -2,6 +2,16 @@ News
 ====
 
 
+Version 2.9.1
+-------------
+
+*(Released Fri, 8 Nov 2013)*
+
+- fix bug, that kept nodes offline when readding
+- when verifying DRBD versions, ignore unavailable nodes
+- DRBD: ensure peers are UpToDate for dual-primary (inherited 2.8.2)
+
+
 Version 2.9.0
 -------------
 
