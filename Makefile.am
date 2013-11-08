@@ -541,6 +541,7 @@ docinput = \
 	doc/design-storagetypes.rst \
         doc/design-upgrade.rst \
 	doc/design-hsqueeze.rst \
+	doc/design-ssh-ports.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
