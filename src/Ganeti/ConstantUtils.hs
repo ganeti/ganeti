@@ -89,25 +89,23 @@ instance PyValue Protocol where
 
 -- | Failure exit code
 --
--- These are defined here and not in 'Ganeti.HsConstants' together with
+-- These are defined here and not in 'Ganeti.Constants' together with
 -- the other exit codes in order to avoid a circular dependency
--- between 'Ganeti.HsConstants' and 'Ganeti.Runtime'
+-- between 'Ganeti.Constants' and 'Ganeti.Runtime'
 exitFailure :: Int
 exitFailure = 1
 
 -- | Console device
 --
--- This is defined here and not in 'Ganeti.HsConstants' order to avoid
--- a circular dependency between 'Ganeti.HsConstants' and
--- 'Ganeti.Logging'
+-- This is defined here and not in 'Ganeti.Constants' order to avoid a
+-- circular dependency between 'Ganeti.Constants' and 'Ganeti.Logging'
 devConsole :: String
 devConsole = "/dev/console"
 
 -- | Random uuid generator
 --
--- This is defined here and not in 'Ganeti.HsConstants' order to avoid
--- a circular dependendy between 'Ganeti.HsConstants' and
--- 'Ganeti.Types'
+-- This is defined here and not in 'Ganeti.Constants' order to avoid a
+-- circular dependendy between 'Ganeti.Constants' and 'Ganeti.Types'
 randomUuidFile :: String
 randomUuidFile = "/proc/sys/kernel/random/uuid"
 
@@ -135,7 +133,7 @@ buildVersion major minor revision =
 -- | Confd protocol version
 --
 -- This is defined here in order to avoid a circular dependency
--- between 'Ganeti.Confd.Types' and 'Ganeti.HsConstants'.
+-- between 'Ganeti.Confd.Types' and 'Ganeti.Constants'.
 confdProtocolVersion :: Int
 confdProtocolVersion = 1
 
@@ -143,7 +141,7 @@ confdProtocolVersion = 1
 --
 -- These are defined here and not in 'Ganeti.Types' due to GHC stage
 -- restrictions concerning Template Haskell.  They are also not
--- defined in 'Ganeti.HsConstants' in order to avoid a circular
+-- defined in 'Ganeti.Constants' in order to avoid a circular
 -- dependency between that module and 'Ganeti.Types'.
 
 confdReqqLink :: String
