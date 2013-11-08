@@ -5,7 +5,7 @@ News
 Version 2.9.1
 -------------
 
-*(Released Fri, 8 Nov 2013)*
+*(unreleased)*
 
 - fix bug, that kept nodes offline when readding
 - when verifying DRBD versions, ignore unavailable nodes
