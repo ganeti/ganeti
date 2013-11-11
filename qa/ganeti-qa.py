@@ -39,6 +39,7 @@ import qa_env
 import qa_error
 import qa_group
 import qa_instance
+import qa_iptables
 import qa_monitoring
 import qa_network
 import qa_node
@@ -577,6 +578,55 @@ def RunExclusiveStorageTests():
     node.Release()
 
 
+def RunCustomSshPortTests():
+  """Test accessing nodes with custom SSH ports.
+
+  This requires removing nodes, adding them to a new group, and then undoing
+  the change.
+  """
+  if not qa_config.TestEnabled("group-custom-ssh-port"):
+    return
+
+  port = 211
+  master = qa_config.GetMasterNode()
+  with qa_config.AcquireManyNodesCtx(1, exclude=master) as nodes:
+    for node in nodes:
+      qa_node.NodeRemove(node)
+    with qa_iptables.RulesContext(nodes) as r:
+      with qa_group.NewGroupCtx() as group:
+        qa_group.ModifyGroupSshPort(r, group, nodes, port)
+
+        for node in nodes:
+          qa_node.NodeAdd(node, group=group)
+
+        # Make sure that the cluster doesn't have any pre-existing problem
+        qa_cluster.AssertClusterVerify()
+
+        # Create and allocate instances
+        instance1 = qa_instance.TestInstanceAddWithPlainDisk(nodes)
+        try:
+          instance2 = qa_instance.TestInstanceAddWithPlainDisk(nodes)
+          try:
+            # cluster-verify checks that disks are allocated correctly
+            qa_cluster.AssertClusterVerify()
+
+            # Remove instances
+            qa_instance.TestInstanceRemove(instance2)
+            qa_instance.TestInstanceRemove(instance1)
+          finally:
+            instance2.Release()
+        finally:
+          instance1.Release()
+
+        for node in nodes:
+          qa_node.NodeRemove(node)
+
+    for node in nodes:
+      qa_node.NodeAdd(node)
+
+    qa_cluster.AssertClusterVerify()
+
+
 def _BuildSpecDict(par, mn, st, mx):
   return {
     constants.ISPECS_MINMAX: [{
@@ -865,6 +915,8 @@ def RunQa():
   RunExclusiveStorageTests()
   RunTestIf(["cluster-instance-policy", "instance-add-plain-disk"],
             TestIPolicyPlainInstance)
+
+  RunCustomSshPortTests()
 
   RunTestIf(
     "instance-add-restricted-by-disktemplates",

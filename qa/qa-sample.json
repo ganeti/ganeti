@@ -186,6 +186,7 @@
 
     "group-list": true,
     "group-rwops": true,
+    "group-custom-ssh-port": true,
 
     "network": false,
 
