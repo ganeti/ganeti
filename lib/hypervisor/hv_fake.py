@@ -228,7 +228,8 @@ class FakeHypervisor(hv_base.BaseHypervisor):
     return result
 
   @classmethod
-  def GetInstanceConsole(cls, instance, primary_node, hvparams, beparams):
+  def GetInstanceConsole(cls, instance, primary_node, node_group,
+                         hvparams, beparams):
     """Return information for connecting to the console of an instance.
 
     """

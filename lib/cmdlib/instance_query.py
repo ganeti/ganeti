@@ -166,9 +166,10 @@ class InstanceQuery(QueryBase):
       for inst in instance_list:
         if inst.uuid in live_data:
           # Instance is running
+          node = lu.cfg.GetNodeInfo(inst.primary_node)
+          group = lu.cfg.GetNodeGroup(node.group)
           consinfo[inst.uuid] = \
-            GetInstanceConsole(cluster, inst,
-                               lu.cfg.GetNodeInfo(inst.primary_node))
+            GetInstanceConsole(cluster, inst, node, group)
         else:
           consinfo[inst.uuid] = None
     else:

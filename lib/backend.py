@@ -1489,8 +1489,8 @@ def GetInstanceConsoleInfo(instance_param_dict,
   allowing any number of instance queries to be done.
 
   @type instance_param_dict: dict of string to tuple of dictionaries, where the
-    dictionaries represent: L{objects.Instance}, L{objects.Node}, HvParams,
-    BeParams
+    dictionaries represent: L{objects.Instance}, L{objects.Node},
+    L{objects.NodeGroup}, HvParams, BeParams
   @param instance_param_dict: mapping of instance name to parameters necessary
     for console information retrieval
 
@@ -1512,15 +1512,17 @@ def GetInstanceConsoleInfo(instance_param_dict,
   for inst_name in instance_param_dict:
     instance = instance_param_dict[inst_name]["instance"]
     pnode = instance_param_dict[inst_name]["node"]
+    group = instance_param_dict[inst_name]["group"]
     hvparams = instance_param_dict[inst_name]["hvParams"]
     beparams = instance_param_dict[inst_name]["beParams"]
 
     instance = objects.Instance.FromDict(instance)
     pnode = objects.Node.FromDict(pnode)
+    group = objects.NodeGroup.FromDict(group)
 
     h = get_hv_fn(instance.hypervisor)
-    output[inst_name] = h.GetInstanceConsole(instance, pnode, hvparams,
-                                             beparams).ToDict()
+    output[inst_name] = h.GetInstanceConsole(instance, pnode, group,
+                                             hvparams, beparams).ToDict()
 
   return output
 

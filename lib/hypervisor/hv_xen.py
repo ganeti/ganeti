@@ -772,14 +772,17 @@ class XenHypervisor(hv_base.BaseHypervisor):
     instance_list = self._GetInstanceList(True, hvparams)
     return _GetNodeInfo(result.stdout, instance_list)
 
-  def GetInstanceConsole(self, instance, primary_node, hvparams, beparams):
+  def GetInstanceConsole(self, instance, primary_node, node_group,
+                         hvparams, beparams):
     """Return a command for connecting to the console of an instance.
 
     """
     xen_cmd = self._GetCommand(hvparams)
+    ndparams = node_group.FillND(primary_node)
     return objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_SSH,
                                    host=primary_node.name,
+                                   port=ndparams.get(constants.ND_SSH_PORT),
                                    user=constants.SSH_CONSOLE_USER,
                                    command=[pathutils.XEN_CONSOLE_WRAPPER,
                                             xen_cmd, instance.name])

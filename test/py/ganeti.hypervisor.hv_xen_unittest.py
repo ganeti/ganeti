@@ -53,8 +53,10 @@ class TestConsole(unittest.TestCase):
     for cls in [hv_xen.XenPvmHypervisor(), hv_xen.XenHvmHypervisor()]:
       instance = objects.Instance(name="xen.example.com",
                                   primary_node="node24828-uuid")
-      node = objects.Node(name="node24828", uuid="node24828-uuid")
-      cons = cls.GetInstanceConsole(instance, node, hvparams, {})
+      node = objects.Node(name="node24828", uuid="node24828-uuid",
+                          ndparams={})
+      group = objects.NodeGroup(name="group52341", ndparams={})
+      cons = cls.GetInstanceConsole(instance, node, group, hvparams, {})
       self.assertTrue(cons.Validate())
       self.assertEqual(cons.kind, constants.CONS_SSH)
       self.assertEqual(cons.host, node.name)

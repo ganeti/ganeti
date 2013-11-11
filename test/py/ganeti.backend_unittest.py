@@ -619,6 +619,7 @@ class TestInstanceConsoleInfo(unittest.TestCase):
     dictMaker = lambda hyName: {
       "instance":{"hypervisor":hyName},
       "node":{},
+      "group":{},
       "hvParams":{},
       "beParams":{},
     }

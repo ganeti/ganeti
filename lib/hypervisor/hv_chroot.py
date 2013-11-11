@@ -260,7 +260,7 @@ class ChrootManager(hv_base.BaseHypervisor):
 
   @classmethod
   def GetInstanceConsole(cls, instance, primary_node, # pylint: disable=W0221
-                         hvparams, beparams, root_dir=None):
+                         node_group, hvparams, beparams, root_dir=None):
     """Return information for connecting to the console of an instance.
 
     """
@@ -269,9 +269,11 @@ class ChrootManager(hv_base.BaseHypervisor):
       if not os.path.ismount(root_dir):
         raise HypervisorError("Instance %s is not running" % instance.name)
 
+    ndparams = node_group.FillND(primary_node)
     return objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_SSH,
                                    host=primary_node.name,
+                                   port=ndparams.get(constants.ND_SSH_PORT),
                                    user=constants.SSH_CONSOLE_USER,
                                    command=["chroot", root_dir])
 

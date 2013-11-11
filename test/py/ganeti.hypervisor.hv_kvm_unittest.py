@@ -200,21 +200,24 @@ class TestQmp(testutils.GanetiTestCase):
 
 
 class TestConsole(unittest.TestCase):
-  def _Test(self, instance, node, hvparams):
-    cons = hv_kvm.KVMHypervisor.GetInstanceConsole(instance, node, hvparams, {})
+  def _Test(self, instance, node, group, hvparams):
+    cons = hv_kvm.KVMHypervisor.GetInstanceConsole(instance, node, group,
+                                                   hvparams, {})
     self.assertTrue(cons.Validate())
     return cons
 
   def testSerial(self):
     instance = objects.Instance(name="kvm.example.com",
                                 primary_node="node6017-uuid")
-    node = objects.Node(name="node6017", uuid="node6017-uuid")
+    node = objects.Node(name="node6017", uuid="node6017-uuid",
+                        ndparams={})
+    group = objects.NodeGroup(name="group6134", ndparams={})
     hvparams = {
       constants.HV_SERIAL_CONSOLE: True,
       constants.HV_VNC_BIND_ADDRESS: None,
       constants.HV_KVM_SPICE_BIND: None,
       }
-    cons = self._Test(instance, node, hvparams)
+    cons = self._Test(instance, node, group, hvparams)
     self.assertEqual(cons.kind, constants.CONS_SSH)
     self.assertEqual(cons.host, node.name)
     self.assertEqual(cons.command[0], pathutils.KVM_CONSOLE_WRAPPER)
@@ -224,13 +227,15 @@ class TestConsole(unittest.TestCase):
     instance = objects.Instance(name="kvm.example.com",
                                 primary_node="node7235-uuid",
                                 network_port=constants.VNC_BASE_PORT + 10)
-    node = objects.Node(name="node7235", uuid="node7235-uuid")
+    node = objects.Node(name="node7235", uuid="node7235-uuid",
+                        ndparams={})
+    group = objects.NodeGroup(name="group3632", ndparams={})
     hvparams = {
       constants.HV_SERIAL_CONSOLE: False,
       constants.HV_VNC_BIND_ADDRESS: "192.0.2.1",
       constants.HV_KVM_SPICE_BIND: None,
       }
-    cons = self._Test(instance, node, hvparams)
+    cons = self._Test(instance, node, group, hvparams)
     self.assertEqual(cons.kind, constants.CONS_VNC)
     self.assertEqual(cons.host, "192.0.2.1")
     self.assertEqual(cons.port, constants.VNC_BASE_PORT + 10)
@@ -240,13 +245,15 @@ class TestConsole(unittest.TestCase):
     instance = objects.Instance(name="kvm.example.com",
                                 primary_node="node7235",
                                 network_port=11000)
-    node = objects.Node(name="node7235", uuid="node7235-uuid")
+    node = objects.Node(name="node7235", uuid="node7235-uuid",
+                        ndparams={})
+    group = objects.NodeGroup(name="group0132", ndparams={})
     hvparams = {
       constants.HV_SERIAL_CONSOLE: False,
       constants.HV_VNC_BIND_ADDRESS: None,
       constants.HV_KVM_SPICE_BIND: "192.0.2.1",
       }
-    cons = self._Test(instance, node, hvparams)
+    cons = self._Test(instance, node, group, hvparams)
     self.assertEqual(cons.kind, constants.CONS_SPICE)
     self.assertEqual(cons.host, "192.0.2.1")
     self.assertEqual(cons.port, 11000)
@@ -255,13 +262,15 @@ class TestConsole(unittest.TestCase):
     instance = objects.Instance(name="kvm.example.com",
                                 primary_node="node24325",
                                 network_port=0)
-    node = objects.Node(name="node24325", uuid="node24325-uuid")
+    node = objects.Node(name="node24325", uuid="node24325-uuid",
+                        ndparams={})
+    group = objects.NodeGroup(name="group9184", ndparams={})
     hvparams = {
       constants.HV_SERIAL_CONSOLE: False,
       constants.HV_VNC_BIND_ADDRESS: None,
       constants.HV_KVM_SPICE_BIND: None,
       }
-    cons = self._Test(instance, node, hvparams)
+    cons = self._Test(instance, node, group, hvparams)
     self.assertEqual(cons.kind, constants.CONS_MESSAGE)
 
 

@@ -36,8 +36,11 @@ class TestConsole(unittest.TestCase):
   def test(self):
     instance = objects.Instance(name="lxc.example.com",
                                 primary_node="node199-uuid")
-    node = objects.Node(name="node199", uuid="node199-uuid")
-    cons = hv_lxc.LXCHypervisor.GetInstanceConsole(instance, node, {}, {})
+    node = objects.Node(name="node199", uuid="node199-uuid",
+                        ndparams={})
+    group = objects.NodeGroup(name="group991", ndparams={})
+    cons = hv_lxc.LXCHypervisor.GetInstanceConsole(instance, node, group,
+                                                   {}, {})
     self.assertTrue(cons.Validate())
     self.assertEqual(cons.kind, constants.CONS_SSH)
     self.assertEqual(cons.host, node.name)
