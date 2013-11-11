@@ -181,6 +181,8 @@ def SetupCluster(rapi_user):
       # To support RAPI on an existing cluster we have to find out the secret
       rapi_secret = _LookupRapiSecret(rapi_user)
 
+  qa_group.ConfigureGroups()
+
   # Test on empty cluster
   RunTestIf("node-list", qa_node.TestNodeList)
   RunTestIf("instance-list", qa_instance.TestInstanceList)

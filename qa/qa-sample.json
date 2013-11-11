@@ -264,7 +264,9 @@
     "burnin-rename": "xen-test-rename",
     "burnin-reboot": true,
     "reboot-types": ["soft", "hard", "full"],
-    "use-iallocators": false
+    "use-iallocators": false,
+    "# Uncomment if you want to run the whole cluster on a different SSH port": null,
+    "# ssh-port": 222
   },
 
   "# vim: set syntax=javascript :": null

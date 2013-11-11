@@ -24,9 +24,11 @@
 """
 
 from ganeti import constants
+from ganeti import netutils
 from ganeti import query
 from ganeti import utils
 
+import qa_iptables
 import qa_config
 import qa_utils
 
@@ -39,6 +41,52 @@ def GetDefaultGroup():
   """
   groups = qa_config.get("groups", {})
   return groups.get("group-with-nodes", constants.INITIAL_NODE_GROUP_NAME)
+
+
+def ConfigureGroups():
+  """Configures groups and nodes for tests such as custom SSH ports.
+
+  """
+
+  defgroup = GetDefaultGroup()
+  nodes = qa_config.get("nodes")
+  options = qa_config.get("options", {})
+
+  # Clear any old configuration
+  qa_iptables.CleanRules(nodes)
+
+  # Custom SSH ports:
+  ssh_port = options.get("ssh-port")
+  default_ssh_port = netutils.GetDaemonPort(constants.SSH)
+  if (ssh_port is not None) and (ssh_port != default_ssh_port):
+    ModifyGroupSshPort(qa_iptables.GLOBAL_RULES, defgroup, nodes, ssh_port)
+
+
+def ModifyGroupSshPort(ipt_rules, group, nodes, ssh_port):
+  """Modifies the node group settings and sets up iptable rules.
+
+  For each pair of nodes add two rules that affect SSH connections from one
+  to the other one.
+  The first one redirects port 22 to some unused port so that connecting
+  through 22 fails. The second redirects port `ssh_port` to port 22.
+  Together this results in master seeing the SSH daemons on the nodes on
+  `ssh_port` instead of 22.
+  """
+  default_ssh_port = netutils.GetDaemonPort(constants.SSH)
+  all_nodes = qa_config.get("nodes")
+  AssertCommand(["gnt-group", "modify",
+                 "--node-parameters=ssh_port=" + str(ssh_port),
+                 group])
+  for node in nodes:
+    ipt_rules.RedirectPort(node.primary, "localhost",
+                           default_ssh_port, 65535)
+    ipt_rules.RedirectPort(node.primary, "localhost",
+                           ssh_port, default_ssh_port)
+    for node2 in all_nodes:
+      ipt_rules.RedirectPort(node2.primary, node.primary,
+                             default_ssh_port, 65535)
+      ipt_rules.RedirectPort(node2.primary, node.primary,
+                             ssh_port, default_ssh_port)
 
 
 def TestGroupAddRemoveRename():
