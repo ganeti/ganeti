@@ -468,7 +468,7 @@ class TestInstanceActivateDisks(unittest.TestCase):
     self.assertTrue(isinstance(op, opcodes.OpInstanceActivateDisks))
     self.assertEqual(op.instance_name, "xyz")
     self.assertTrue(op.ignore_size)
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(op.dry_run)
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
@@ -487,8 +487,8 @@ class TestInstanceDeactivateDisks(unittest.TestCase):
     self.assertEqual(job_id, exp_job_id)
     self.assertTrue(isinstance(op, opcodes.OpInstanceDeactivateDisks))
     self.assertEqual(op.instance_name, "inst22357")
-    self.assertFalse(hasattr(op, "dry_run"))
-    self.assertFalse(hasattr(op, "force"))
+    self.assertFalse(op.dry_run)
+    self.assertFalse(op.force)
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
@@ -507,7 +507,7 @@ class TestInstanceRecreateDisks(unittest.TestCase):
     self.assertEqual(job_id, exp_job_id)
     self.assertTrue(isinstance(op, opcodes.OpInstanceRecreateDisks))
     self.assertEqual(op.instance_name, "inst22357")
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -527,7 +527,7 @@ class TestInstanceFailover(unittest.TestCase):
     self.assertEqual(job_id, exp_job_id)
     self.assertTrue(isinstance(op, opcodes.OpInstanceFailover))
     self.assertEqual(op.instance_name, "inst12794")
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -552,7 +552,7 @@ class TestInstanceDiskGrow(unittest.TestCase):
     self.assertEqual(op.instance_name, "inst10742")
     self.assertEqual(op.disk, 3)
     self.assertEqual(op.amount, 1024)
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -576,7 +576,7 @@ class TestBackupPrepare(unittest.TestCase):
     self.assertTrue(isinstance(op, opcodes.OpBackupPrepare))
     self.assertEqual(op.instance_name, "inst17925")
     self.assertEqual(op.mode, constants.EXPORT_MODE_REMOTE)
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -622,7 +622,7 @@ class TestStorageQuery(unittest.TestCase):
     self.assertEqual(op.nodes, ["node21075"])
     self.assertEqual(op.storage_type, constants.ST_LVM_PV)
     self.assertEqual(op.output_fields, ["name", "other"])
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -687,7 +687,7 @@ class TestStorageModify(unittest.TestCase):
         self.assertEqual(op.changes, {
           constants.SF_ALLOCATABLE: (allocatable == "1"),
           })
-      self.assertFalse(hasattr(op, "dry_run"))
+      self.assertFalse(op.dry_run)
       self.assertFalse(hasattr(op, "force"))
 
       self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -742,7 +742,7 @@ class TestStorageRepair(unittest.TestCase):
     self.assertEqual(op.node_name, "node19265")
     self.assertEqual(op.storage_type, constants.ST_LVM_PV)
     self.assertEqual(op.name, "pv16611")
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -921,12 +921,12 @@ class TestInstanceCreation(testutils.GanetiTestCase):
                     self.assertFalse("foobar" in opnic)
 
                   if beparams is None:
-                    self.assertFalse(hasattr(op, "beparams"))
+                    self.assertTrue(op.beparams in [None, {}])
                   else:
                     self.assertEqualValues(op.beparams, beparams)
 
                   if hvparams is None:
-                    self.assertFalse(hasattr(op, "hvparams"))
+                    self.assertTrue(op.hvparams in [None, {}])
                   else:
                     self.assertEqualValues(op.hvparams, hvparams)
 
@@ -1102,7 +1102,7 @@ class TestBackupExport(unittest.TestCase):
     self.assertEqual(op.remove_instance, True)
     self.assertEqual(op.x509_key_name, ["name", "hash"])
     self.assertEqual(op.destination_x509_ca, "---cert---")
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -1128,10 +1128,10 @@ class TestBackupExport(unittest.TestCase):
     self.assertTrue(isinstance(op, opcodes.OpBackupExport))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.target_node, "node2")
-    self.assertFalse(hasattr(op, "mode"))
-    self.assertFalse(hasattr(op, "remove_instance"))
+    self.assertEqual(op.mode, "local")
+    self.assertFalse(op.remove_instance)
     self.assertFalse(hasattr(op, "destination"))
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -1172,7 +1172,7 @@ class TestInstanceMigrate(testutils.GanetiTestCase):
         self.assertEqual(op.instance_name, name)
         self.assertEqual(op.mode, mode)
         self.assertEqual(op.cleanup, cleanup)
-        self.assertFalse(hasattr(op, "dry_run"))
+        self.assertFalse(op.dry_run)
         self.assertFalse(hasattr(op, "force"))
 
         self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -1193,9 +1193,9 @@ class TestInstanceMigrate(testutils.GanetiTestCase):
     self.assertEqual(job_id, exp_job_id)
     self.assertTrue(isinstance(op, opcodes.OpInstanceMigrate))
     self.assertEqual(op.instance_name, name)
-    self.assertFalse(hasattr(op, "mode"))
-    self.assertFalse(hasattr(op, "cleanup"))
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertTrue(op.mode is None)
+    self.assertFalse(op.cleanup)
+    self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -1230,7 +1230,7 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
           self.assertEqual(op.new_name, new_name)
           self.assertEqual(op.ip_check, ip_check)
           self.assertEqual(op.name_check, name_check)
-          self.assertFalse(hasattr(op, "dry_run"))
+          self.assertFalse(op.dry_run)
           self.assertFalse(hasattr(op, "force"))
 
           self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -1257,9 +1257,9 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
       self.assertTrue(isinstance(op, opcodes.OpInstanceRename))
       self.assertEqual(op.instance_name, name)
       self.assertEqual(op.new_name, new_name)
-      self.assertFalse(hasattr(op, "ip_check"))
-      self.assertFalse(hasattr(op, "name_check"))
-      self.assertFalse(hasattr(op, "dry_run"))
+      self.assertTrue(op.ip_check)
+      self.assertTrue(op.name_check)
+      self.assertFalse(op.dry_run)
       self.assertFalse(hasattr(op, "force"))
 
       self.assertRaises(IndexError, cl.GetNextSubmittedJob)
@@ -1311,10 +1311,10 @@ class TestParseModifyInstanceRequest(unittest.TestCase):
                   self.assertEqual(op.nics, nics)
                   self.assertEqual(op.disks, disks)
                   self.assertEqual(op.disk_template, disk_template)
-                  self.assertFalse(hasattr(op, "remote_node"))
-                  self.assertFalse(hasattr(op, "os_name"))
-                  self.assertFalse(hasattr(op, "force_variant"))
-                  self.assertFalse(hasattr(op, "dry_run"))
+                  self.assertTrue(op.remote_node is None)
+                  self.assertTrue(op.os_name is None)
+                  self.assertFalse(op.force_variant)
+                  self.assertFalse(op.dry_run)
 
                   self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
@@ -1337,7 +1337,7 @@ class TestParseModifyInstanceRequest(unittest.TestCase):
 
     for i in ["hvparams", "beparams", "osparams", "force", "nics", "disks",
               "disk_template", "remote_node", "os_name", "force_variant"]:
-      self.assertFalse(hasattr(op, i))
+      self.assertTrue(hasattr(op, i))
 
 
 class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
@@ -1497,8 +1497,8 @@ class TestInstanceReplaceDisks(unittest.TestCase):
     self.assertTrue(isinstance(op, opcodes.OpInstanceReplaceDisks))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.mode, constants.REPLACE_DISK_AUTO)
-    self.assertFalse(hasattr(op, "iallocator"))
-    self.assertFalse(hasattr(op, "disks"))
+    self.assertTrue(op.iallocator is None)
+    self.assertEqual(op.disks, [])
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testNoDisks(self):
@@ -1552,7 +1552,7 @@ class TestGroupModify(unittest.TestCase):
       self.assertTrue(isinstance(op, opcodes.OpGroupSetParams))
       self.assertEqual(op.group_name, name)
       self.assertEqual(op.alloc_policy, policy)
-      self.assertFalse(hasattr(op, "dry_run"))
+      self.assertFalse(op.dry_run)
       self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testUnknownPolicy(self):
@@ -1584,8 +1584,8 @@ class TestGroupModify(unittest.TestCase):
 
     self.assertTrue(isinstance(op, opcodes.OpGroupSetParams))
     self.assertEqual(op.group_name, name)
-    self.assertFalse(hasattr(op, "alloc_policy"))
-    self.assertFalse(hasattr(op, "dry_run"))
+    self.assertTrue(op.alloc_policy is None)
+    self.assertFalse(op.dry_run)
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
@@ -1646,7 +1646,7 @@ class TestGroupAdd(unittest.TestCase):
 
     self.assertTrue(isinstance(op, opcodes.OpGroupAdd))
     self.assertEqual(op.group_name, name)
-    self.assertFalse(hasattr(op, "alloc_policy"))
+    self.assertTrue(op.alloc_policy is None)
     self.assertFalse(op.dry_run)
 
   def testLegacyName(self):
@@ -1670,7 +1670,7 @@ class TestGroupAdd(unittest.TestCase):
 
     self.assertTrue(isinstance(op, opcodes.OpGroupAdd))
     self.assertEqual(op.group_name, name)
-    self.assertFalse(hasattr(op, "alloc_policy"))
+    self.assertTrue(op.alloc_policy is None)
     self.assertTrue(op.dry_run)
 
 
@@ -1694,7 +1694,7 @@ class TestNodeRole(unittest.TestCase):
         self.assertTrue(isinstance(op, opcodes.OpNodeSetParams))
         self.assertEqual(op.node_name, "node-z")
         self.assertFalse(op.force)
-        self.assertFalse(hasattr(op, "dry_run"))
+        self.assertFalse(op.dry_run)
 
         if role == rlib2._NR_REGULAR:
           self.assertFalse(op.drained)

@@ -44,7 +44,7 @@ class TestFillOpcode(unittest.TestCase):
     for static in [None, {}]:
       op = baserlib.FillOpcode(self.OpTest, {}, static)
       self.assertTrue(isinstance(op, self.OpTest))
-      self.assertFalse(hasattr(op, "test"))
+      self.assertTrue(op.test is None)
 
   def testStatic(self):
     op = baserlib.FillOpcode(self.OpTest, {}, {"test": "abc"})

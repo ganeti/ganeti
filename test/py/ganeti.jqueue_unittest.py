@@ -298,7 +298,7 @@ class TestEncodeOpError(unittest.TestCase):
 class TestQueuedOpCode(unittest.TestCase):
   def testDefaults(self):
     def _Check(op):
-      self.assertFalse(hasattr(op.input, "dry_run"))
+      self.assertFalse(op.input.dry_run)
       self.assertEqual(op.priority, constants.OP_PRIO_DEFAULT)
       self.assertFalse(op.log)
       self.assert_(op.start_timestamp is None)
@@ -432,8 +432,6 @@ class TestQueuedJob(unittest.TestCase):
     self.assertTrue(compat.all(op.priority == constants.OP_PRIO_DEFAULT
                                for op in job.ops))
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
-    self.assertFalse(compat.any(hasattr(op.input, "priority")
-                                for op in job.ops))
 
     return job
 
@@ -445,8 +443,6 @@ class TestQueuedJob(unittest.TestCase):
     result = job.ChangePriority(-10)
     self.assertEqual(job.CalcPriority(), -10)
     self.assertTrue(compat.all(op.priority == -10 for op in job.ops))
-    self.assertFalse(compat.any(hasattr(op.input, "priority")
-                                for op in job.ops))
     self.assertEqual(result,
                      (True, ("Priorities of pending opcodes for job 24984 have"
                              " been changed to -10")))
@@ -466,8 +462,6 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
     self.assertTrue(compat.all(op.priority == constants.OP_PRIO_DEFAULT
                                for op in job.ops))
-    self.assertFalse(compat.any(hasattr(op.input, "priority")
-                                for op in job.ops))
     self.assertEqual(map(operator.attrgetter("status"), job.ops), [
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_SUCCESS,
@@ -491,8 +485,6 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
     self.assertTrue(compat.all(op.priority == constants.OP_PRIO_DEFAULT
                                for op in job.ops))
-    self.assertFalse(compat.any(hasattr(op.input, "priority")
-                                for op in job.ops))
     self.assertEqual(map(operator.attrgetter("status"), job.ops), [
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_SUCCESS,
@@ -516,8 +508,6 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
     self.assertEqual(map(operator.attrgetter("priority"), job.ops),
                      [constants.OP_PRIO_DEFAULT, 7, 7, 7])
-    self.assertFalse(compat.any(hasattr(op.input, "priority")
-                                for op in job.ops))
     self.assertEqual(map(operator.attrgetter("status"), job.ops), [
       constants.OP_STATUS_RUNNING,
       constants.OP_STATUS_QUEUED,
@@ -543,8 +533,6 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
     self.assertTrue(compat.all(op.priority == constants.OP_PRIO_DEFAULT
                                for op in job.ops))
-    self.assertFalse(compat.any(hasattr(op.input, "priority")
-                                for op in job.ops))
     self.assertEqual(map(operator.attrgetter("status"), job.ops), [
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_SUCCESS,
@@ -568,8 +556,6 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(map(operator.attrgetter("priority"), job.ops),
                      [constants.OP_PRIO_DEFAULT, constants.OP_PRIO_DEFAULT,
                       -19, -19])
-    self.assertFalse(compat.any(hasattr(op.input, "priority")
-                                for op in job.ops))
     self.assertEqual(map(operator.attrgetter("status"), job.ops), [
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_RUNNING,
@@ -2268,10 +2254,6 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
 
       result = proc(_nextop_fn=self._NextOpcode)
       assert self.curop is not None
-
-      # Input priority should never be set or modified
-      self.assertFalse(compat.any(hasattr(op.input, "priority")
-                                  for op in job.ops))
 
       if result == jqueue._JobProcessor.FINISHED or self.gave_lock:
         # Got lock and/or job is done, result must've been written

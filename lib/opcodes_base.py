@@ -160,6 +160,12 @@ class BaseOpCode(outils.ValidatedSlots):
   # as OP_ID is dynamically defined
   __metaclass__ = _AutoOpParamSlots
 
+  def __init__(self, **kwargs):
+    outils.ValidatedSlots.__init__(self, **kwargs)
+    for key, default, _, _ in self.__class__.GetAllParams():
+      if not hasattr(self, key):
+        setattr(self, key, default)
+
   def __getstate__(self):
     """Generic serializer.
 
