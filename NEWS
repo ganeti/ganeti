@@ -10,6 +10,12 @@ Version 2.11.0 alpha1
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Over luxi, syntactially incorrect queries are now rejected as a whole;
+  before, a 'SumbmitManyJobs' request was partially executed, if the outer
+  structure of the request was syntactically correct. As the luxi protocol
+  is internal (external applications are expected to use RAPI), the impact
+  of this incompatible change should be limited.
+
 New features
 ~~~~~~~~~~~~
 
