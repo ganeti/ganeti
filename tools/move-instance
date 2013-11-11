@@ -600,8 +600,7 @@ class MoveSourceExecutor(object):
     logging.info("Retrieving instance information from source cluster")
     instinfo = self._GetInstanceInfo(src_client, mrt.PollJob,
                                      mrt.move.src_instance_name)
-    if (instinfo["disk_template"] in
-        [constants.DT_FILE, constants.DT_SHARED_FILE]):
+    if (instinfo["disk_template"] in constants.DTS_FILEBASED):
       raise Error("Inter-cluster move of file-based instances is not"
                   " supported.")
 

@@ -2939,7 +2939,7 @@ def OSEnvironment(instance, inst_os, debug=0):
         instance.hvparams[constants.HV_DISK_TYPE]
     if disk.dev_type in constants.DTS_BLOCK:
       result["DISK_%d_BACKEND_TYPE" % idx] = "block"
-    elif disk.dev_type in [constants.DT_FILE, constants.DT_SHARED_FILE]:
+    elif disk.dev_type in constants.DTS_FILEBASED:
       result["DISK_%d_BACKEND_TYPE" % idx] = \
         "file:%s" % disk.logical_id[0]
 

@@ -1098,7 +1098,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     self.assertRaises(errors.OpPrereqError, self._TestTrivialDisk,
                       constants.DT_SHARED_FILE, [], 0, NotImplemented)
 
-    for disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]:
+    for disk_template in constants.DTS_FILEBASED:
       disk_info = [{
         constants.IDISK_SIZE: 80 * 1024,
         constants.IDISK_MODE: constants.DISK_RDONLY,

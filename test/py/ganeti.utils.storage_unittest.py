@@ -80,7 +80,7 @@ class TestGetStorageUnits(unittest.TestCase):
     self._cfg = mock.Mock()
 
   def testGetStorageUnits(self):
-    disk_templates = [constants.DT_FILE, constants.DT_SHARED_FILE]
+    disk_templates = constants.DTS_FILEBASED
     storage_units = storage.GetStorageUnits(self._cfg, disk_templates)
     self.assertEqual(len(storage_units), len(disk_templates))
 

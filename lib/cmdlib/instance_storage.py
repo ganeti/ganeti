@@ -459,7 +459,7 @@ def GenerateDiskTemplate(
         vg = disk.get(constants.IDISK_VG, vgname)
         return (vg, names[idx])
 
-    elif template_name in (constants.DT_FILE, constants.DT_SHARED_FILE):
+    elif template_name in constants.DTS_FILEBASED:
       logical_id_fn = \
         lambda _, disk_index, disk: (file_driver,
                                      "%s/disk%d" % (file_storage_dir,

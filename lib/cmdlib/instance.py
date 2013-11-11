@@ -463,8 +463,7 @@ class LUInstanceCreate(LogicalUnit):
 
     # set default file_driver if unset and required
     if (not self.op.file_driver and
-        self.op.disk_template in [constants.DT_FILE,
-                                  constants.DT_SHARED_FILE]):
+        self.op.disk_template in constants.DTS_FILEBASED):
       self.op.file_driver = constants.FD_LOOP
 
     ### Node/iallocator related checks

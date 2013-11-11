@@ -341,7 +341,7 @@ class LUBackupExport(LogicalUnit):
     # instance disk type verification
     # TODO: Implement export support for file-based disks
     for disk in self.instance.disks:
-      if disk.dev_type in [constants.DT_FILE, constants.DT_SHARED_FILE]:
+      if disk.dev_type in constants.DTS_FILEBASED:
         raise errors.OpPrereqError("Export not supported for instances with"
                                    " file-based disks", errors.ECODE_INVAL)
 

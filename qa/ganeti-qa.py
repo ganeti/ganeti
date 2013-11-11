@@ -422,8 +422,7 @@ def RunExportImportTests(instance, inodes):
   # based storage types are untested, though. Also note that import could still
   # work, but is deeply embedded into the "export" case.
   if (qa_config.TestEnabled("instance-export") and
-      instance.disk_template not in [constants.DT_FILE,
-                                     constants.DT_SHARED_FILE]):
+      instance.disk_template not in constants.DTS_FILEBASED):
     RunTest(qa_instance.TestInstanceExportNoTarget, instance)
 
     pnode = inodes[0]
@@ -449,8 +448,7 @@ def RunExportImportTests(instance, inodes):
   # FIXME: inter-cluster-instance-move crashes on file based instances :/
   # See Issue 414.
   if (qa_config.TestEnabled([qa_rapi.Enabled, "inter-cluster-instance-move"])
-      and (instance.disk_template not in
-           [constants.DT_FILE, constants.DT_SHARED_FILE])):
+      and (instance.disk_template not in constants.DTS_FILEBASED)):
     newinst = qa_config.AcquireInstance()
     try:
       tnode = qa_config.AcquireNode(exclude=inodes)

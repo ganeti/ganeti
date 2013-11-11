@@ -399,7 +399,7 @@ class ConfigMock(config.ConfigWriter):
     elif dev_type == constants.DT_PLAIN:
       if logical_id is None:
         logical_id = ("mockvg", "mock_disk_%d" % disk_id)
-    elif dev_type in (constants.DT_FILE, constants.DT_SHARED_FILE):
+    elif dev_type in constants.DTS_FILEBASED:
       if logical_id is None:
         logical_id = (constants.FD_LOOP, "/file/storage/disk%d" % disk_id)
     elif dev_type == constants.DT_BLOCK:

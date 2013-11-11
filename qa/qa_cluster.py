@@ -492,7 +492,7 @@ def TestClusterModifyFileBasedStorageDir(
 
   """
   enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
-  assert file_disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]
+  assert file_disk_template in constants.DTS_FILEBASED
   if not qa_config.IsTemplateSupported(file_disk_template):
     return
 
