@@ -21,6 +21,8 @@ New features
 
 - Instance moves, backups and imports can now use compression to transfer the
   instance data.
+- Node groups can be configured to use an SSH port different than the
+  default 22.
 
 
 Version 2.10.0 alpha1
