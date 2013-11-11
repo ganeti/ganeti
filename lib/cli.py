@@ -229,6 +229,7 @@ __all__ = [
   "GenericListFields",
   "GetClient",
   "GetOnlineNodes",
+  "GetNodesSshPorts",
   "JobExecutor",
   "JobSubmittedException",
   "ParseTimespec",
@@ -2761,7 +2762,8 @@ class _RunWhileClusterStoppedHelper:
   """Helper class for L{RunWhileClusterStopped} to simplify state management
 
   """
-  def __init__(self, feedback_fn, cluster_name, master_node, online_nodes):
+  def __init__(self, feedback_fn, cluster_name, master_node,
+               online_nodes, ssh_ports):
     """Initializes this class.
 
     @type feedback_fn: callable
@@ -2772,12 +2774,15 @@ class _RunWhileClusterStoppedHelper:
     @param master_node Master node name
     @type online_nodes: list
     @param online_nodes: List of names of online nodes
+    @type ssh_ports: list
+    @param ssh_ports: List of SSH ports of online nodes
 
     """
     self.feedback_fn = feedback_fn
     self.cluster_name = cluster_name
     self.master_node = master_node
     self.online_nodes = online_nodes
+    self.ssh_ports = dict(zip(online_nodes, ssh_ports))
 
     self.ssh = ssh.SshRunner(self.cluster_name)
 
@@ -2800,7 +2805,8 @@ class _RunWhileClusterStoppedHelper:
       result = utils.RunCmd(cmd)
     else:
       result = self.ssh.Run(node_name, constants.SSH_LOGIN_USER,
-                            utils.ShellQuoteArgs(cmd))
+                            utils.ShellQuoteArgs(cmd),
+                            port=self.ssh_ports[node_name])
 
     if result.failed:
       errmsg = ["Failed to run command %s" % result.cmd]
@@ -2871,6 +2877,7 @@ def RunWhileClusterStopped(feedback_fn, fn, *args):
     cl.QueryConfigValues(["cluster_name", "master_node"])
 
   online_nodes = GetOnlineNodes([], cl=cl)
+  ssh_ports = GetNodesSshPorts(online_nodes, cl)
 
   # Don't keep a reference to the client. The master daemon will go away.
   del cl
@@ -2878,7 +2885,7 @@ def RunWhileClusterStopped(feedback_fn, fn, *args):
   assert master_node in online_nodes
 
   return _RunWhileClusterStoppedHelper(feedback_fn, cluster_name, master_node,
-                                       online_nodes).Call(fn, *args)
+                                       online_nodes, ssh_ports).Call(fn, *args)
 
 
 def GenerateTable(headers, fields, separator, data,
@@ -3533,6 +3540,22 @@ def GetOnlineNodes(nodes, cl=None, nowarn=False, secondary_ips=False,
     fn = _GetName
 
   return map(fn, online)
+
+
+def GetNodesSshPorts(nodes, cl):
+  """Retrieves SSH ports of given nodes.
+
+  @param nodes: the names of nodes
+  @type nodes: a list of strings
+  @param cl: a client to use for the query
+  @type cl: L{Client}
+  @return: the list of SSH ports corresponding to the nodes
+  @rtype: a list of tuples
+  """
+  return map(lambda t: t[0],
+             cl.QueryNodes(names=nodes,
+                           fields=["ndp/ssh_port"],
+                           use_locking=False))
 
 
 def _ToStream(stream, txt, *args):

@@ -248,7 +248,7 @@ class SshRunner:
     """
     return utils.RunCmd(self.BuildCmd(*args, **kwargs))
 
-  def CopyFileToNode(self, node, filename):
+  def CopyFileToNode(self, node, port, filename):
     """Copy a file to another node with scp.
 
     @param node: node in the cluster
@@ -267,7 +267,7 @@ class SshRunner:
       return False
 
     command = [constants.SCP, "-p"]
-    command.extend(self._BuildSshOptions(True, False, True, True))
+    command.extend(self._BuildSshOptions(True, False, True, True, port=port))
     command.append(filename)
     if netutils.IP6Address.IsValid(node):
       node = netutils.FormatAddress((node, None))

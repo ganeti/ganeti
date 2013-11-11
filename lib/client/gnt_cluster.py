@@ -570,17 +570,20 @@ def ClusterCopyFile(opts, args):
                                errors.ECODE_INVAL)
 
   cl = GetClient()
+  try:
+    cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
 
-  cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
-
-  results = GetOnlineNodes(nodes=opts.nodes, cl=cl, filter_master=True,
-                           secondary_ips=opts.use_replication_network,
-                           nodegroup=opts.nodegroup)
+    results = GetOnlineNodes(nodes=opts.nodes, cl=cl, filter_master=True,
+                             secondary_ips=opts.use_replication_network,
+                             nodegroup=opts.nodegroup)
+    ports = GetNodesSshPorts(opts.nodes, cl)
+  finally:
+    cl.Close()
 
   srun = ssh.SshRunner(cluster_name)
-  for node in results:
-    if not srun.CopyFileToNode(node, filename):
-      ToStderr("Copy of file %s to node %s failed", filename, node)
+  for (node, port) in zip(results, ports):
+    if not srun.CopyFileToNode(node, port, filename):
+      ToStderr("Copy of file %s to node %s:%d failed", filename, node, port)
 
   return 0
 
@@ -600,6 +603,7 @@ def RunClusterCommand(opts, args):
   command = " ".join(args)
 
   nodes = GetOnlineNodes(nodes=opts.nodes, cl=cl, nodegroup=opts.nodegroup)
+  ports = GetNodesSshPorts(nodes, cl)
 
   cluster_name, master_node = cl.QueryConfigValues(["cluster_name",
                                                     "master_node"])
@@ -611,8 +615,8 @@ def RunClusterCommand(opts, args):
     nodes.remove(master_node)
     nodes.append(master_node)
 
-  for name in nodes:
-    result = srun.Run(name, constants.SSH_LOGIN_USER, command)
+  for (name, port) in zip(nodes, ports):
+    result = srun.Run(name, constants.SSH_LOGIN_USER, command, port=port)
 
     if opts.failure_only and result.exit_code == constants.EXIT_SUCCESS:
       # Do not output anything for successful commands
@@ -978,10 +982,11 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
 
     if files_to_copy:
       for node_name in ctx.nonmaster_nodes:
-        ctx.feedback_fn("Copying %s to %s" %
-                        (", ".join(files_to_copy), node_name))
+        port = ctx.ssh_ports[node_name]
+        ctx.feedback_fn("Copying %s to %s:%d" %
+                        (", ".join(files_to_copy), node_name, port))
         for file_name in files_to_copy:
-          ctx.ssh.CopyFileToNode(node_name, file_name)
+          ctx.ssh.CopyFileToNode(node_name, port, file_name)
 
   RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
 

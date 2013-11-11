@@ -249,13 +249,14 @@ def AddNode(opts, args):
 
   # Retrieve relevant parameters of the node group.
   ssh_port = None
-  if opts.nodegroup:
-    try:
-      output = cl.QueryGroups(names=[opts.nodegroup], fields=["ndp/ssh_port"],
-                              use_locking=False)
-      (ssh_port, ) = output[0]
-    except (errors.OpPrereqError, errors.OpExecError):
-      pass
+  try:
+    # Passing [] to QueryGroups means query the default group:
+    node_groups = [opts.nodegroup] if opts.nodegroup is not None else []
+    output = cl.QueryGroups(names=node_groups, fields=["ndp/ssh_port"],
+                            use_locking=False)
+    (ssh_port, ) = output[0]
+  except (errors.OpPrereqError, errors.OpExecError):
+    pass
 
   try:
     output = cl.QueryNodes(names=[node],
