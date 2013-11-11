@@ -43,7 +43,8 @@ def GetMinimalConfig():
     "version": constants.CONFIG_VERSION,
     "cluster": {
       "master_node": "node1-uuid",
-      "ipolicy": None
+      "ipolicy": None,
+      "ndparams": {}
     },
     "instances": {},
     "networks": {},
