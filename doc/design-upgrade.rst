@@ -279,16 +279,19 @@ disappear, once :doc:`design-optables` is implemented, as then the
 undrain will then be restricted to filters by gnt-upgrade.
 
 
-Requirement of opcode backwards compatibility
-==============================================
+Requirement of job queue update
+===============================
 
 Since for upgrades we only pause jobs and do not fully drain the
 queue, we need to be able to transform the job queue into a queue for
-the new version. The way this is achieved is by keeping the
-serialization format backwards compatible. This is in line with
-current practice that opcodes do not change between versions, and at
-most new fields are added. Whenever we add a new field to an opcode,
-we will make sure that the deserialization function will provide a
-default value if the field is not present.
+the new version. The preferred way to obtain this is to keep the
+serialization format backwards compatible, i.e., only adding new
+opcodes and new optional fields.
 
-
+However, even with soft drain, no job is running at the moment `cfgupgrade`
+is running. So, if we change the queue representation, including the
+representation of individual opcodes in any way, `cfgupgrade` will also
+modify the queue accordingly. In a jobs-as-processes world, pausing a job
+will be implemented in such a way that the corresponding process stops after
+finishing the current opcode, and a new process is created if and when the
+job is unpaused again.
