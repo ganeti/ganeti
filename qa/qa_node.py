@@ -35,7 +35,7 @@ import qa_utils
 from qa_utils import AssertCommand, AssertEqual
 
 
-def _NodeAdd(node, readd=False):
+def NodeAdd(node, readd=False, group=None):
   if not readd and node.added:
     raise qa_error.Error("Node %s already in cluster" % node.primary)
   elif readd and not node.added:
@@ -46,6 +46,8 @@ def _NodeAdd(node, readd=False):
     cmd.append("--secondary-ip=%s" % node.secondary)
   if readd:
     cmd.append("--readd")
+  if group is not None:
+    cmd.extend(["--node-group", group])
   cmd.append(node.primary)
 
   AssertCommand(cmd)
@@ -56,7 +58,7 @@ def _NodeAdd(node, readd=False):
     node.MarkAdded()
 
 
-def _NodeRemove(node):
+def NodeRemove(node):
   AssertCommand(["gnt-node", "remove", node.primary])
   node.MarkRemoved()
 
@@ -72,7 +74,7 @@ def TestNodeAddAll():
   master = qa_config.GetMasterNode()
   for node in qa_config.get("nodes"):
     if node != master:
-      _NodeAdd(node, readd=False)
+      NodeAdd(node, readd=False)
 
 
 def MarkNodeAddedAll():
@@ -92,12 +94,12 @@ def TestNodeRemoveAll():
   master = qa_config.GetMasterNode()
   for node in qa_config.get("nodes"):
     if node != master:
-      _NodeRemove(node)
+      NodeRemove(node)
 
 
 def TestNodeReadd(node):
   """gnt-node add --readd"""
-  _NodeAdd(node, readd=True)
+  NodeAdd(node, readd=True)
 
 
 def TestNodeInfo():
