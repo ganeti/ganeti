@@ -19,7 +19,7 @@
 # 02110-1301, USA.
 
 
-"""Script for unittesting the ganeti.storage.file module"""
+"""Script for unittesting the ganeti.storage.filestorage module"""
 
 import os
 import shutil
