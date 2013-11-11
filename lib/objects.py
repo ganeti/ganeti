@@ -75,10 +75,8 @@ def FillDict(defaults_dict, custom_dict, skip_keys=None):
   ret_dict.update(custom_dict)
   if skip_keys:
     for k in skip_keys:
-      try:
+      if k in ret_dict:
         del ret_dict[k]
-      except KeyError:
-        pass
   return ret_dict
 
 
