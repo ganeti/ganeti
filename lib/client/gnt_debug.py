@@ -311,16 +311,14 @@ def _TestJobSubmission(opts):
        opcodes.OpTestDelay(duration=0, dry_run=True)],
       ops,
       ]
-    result = cl.SubmitManyJobs(jobs)
-    if not (len(result) == 2 and
-            compat.all(len(i) == 2 for i in result) and
-            isinstance(result[0][1], int) and
-            isinstance(result[1][1], basestring) and
-            result[0][0] and not result[1][0]):
-      raise errors.OpExecError("Submitting multiple jobs did not work as"
-                               " expected, result %s" % result)
-    assert len(result) == 2
-
+    try:
+      cl.SubmitManyJobs(jobs)
+    except errors.GenericError, err:
+      if opts.debug:
+        ToStdout("Ignoring error for 'wrong priority' test: %s", err)
+    else:
+      raise errors.OpExecError("Submitting manyjobs with an incorrect one"
+                               " did not fail when it should.")
   ToStdout("Job submission tests were successful")
 
 
