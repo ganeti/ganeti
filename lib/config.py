@@ -237,6 +237,17 @@ class ConfigWriter(object):
     return self._config_data.cluster.FillND(node, nodegroup)
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetNdGroupParams(self, nodegroup):
+    """Get the node groups params populated with cluster defaults.
+
+    @type nodegroup: L{objects.NodeGroup}
+    @param nodegroup: The node group we want to know the params for
+    @return: A dict with the filled in node group params
+
+    """
+    return self._config_data.cluster.FillNDGroup(nodegroup)
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceDiskParams(self, instance):
     """Get the disk params populated with inherit chain.
 
@@ -1349,12 +1360,18 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetNodeGroup(uuid)
 
+  def _UnlockedGetAllNodeGroupsInfo(self):
+    """Get the configuration of all node groups.
+
+    """
+    return dict(self._config_data.nodegroups)
+
   @locking.ssynchronized(_config_lock, shared=1)
   def GetAllNodeGroupsInfo(self):
     """Get the configuration of all node groups.
 
     """
-    return dict(self._config_data.nodegroups)
+    return self._UnlockedGetAllNodeGroupsInfo()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNodeGroupList(self):
@@ -2023,6 +2040,21 @@ class ConfigWriter(object):
 
     """
     return self._UnlockedGetNodeInfoByName(node_name)
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNodeGroupInfoByName(self, nodegroup_name):
+    """Get the L{objects.NodeGroup} object for a named node group.
+
+    @param nodegroup_name: name of the node group to get information for
+    @type nodegroup_name: string
+    @return: the corresponding L{objects.NodeGroup} instance or None if no
+          information is available
+
+    """
+    for nodegroup in self._UnlockedGetAllNodeGroupsInfo().values():
+      if nodegroup.name == nodegroup_name:
+        return nodegroup
+    return None
 
   def _UnlockedGetNodeName(self, node_spec):
     if isinstance(node_spec, objects.Node):

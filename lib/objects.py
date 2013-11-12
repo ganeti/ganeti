@@ -1886,6 +1886,16 @@ class Cluster(TaggableObject):
     """
     return self.SimpleFillND(nodegroup.FillND(node))
 
+  def FillNDGroup(self, nodegroup):
+    """Return filled out ndparams for just L{objects.NodeGroup}
+
+    @type nodegroup: L{objects.NodeGroup}
+    @param nodegroup: A Node object to fill
+    @return a copy of the node group's ndparams with defaults filled
+
+    """
+    return self.SimpleFillND(nodegroup.SimpleFillND({}))
+
   def SimpleFillND(self, ndparams):
     """Fill a given ndparams dict with defaults.
 
