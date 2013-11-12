@@ -505,11 +505,14 @@ docinput = \
 	doc/design-2.10.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
+	doc/design-ceph-ganeti-support.rst \
 	doc/design-chained-jobs.rst \
+	doc/design-cmdlib-unittests.rst \
 	doc/design-cpu-pinning.rst \
 	doc/design-device-uuid-name.rst \
 	doc/design-draft.rst \
 	doc/design-hotplug.rst \
+	doc/design-hugepages-support.rst \
 	doc/design-glusterfs-ganeti-support.rst \
 	doc/design-daemons.rst \
 	doc/design-htools-2.3.rst \
