@@ -488,10 +488,10 @@ utils_PYTHON = \
 	lib/utils/x509.py
 
 docinput = \
-	doc/conf.py \
-	doc/css/style.css \
 	doc/admin.rst \
 	doc/cluster-merge.rst \
+	doc/conf.py \
+	doc/css/style.css \
 	doc/design-2.0.rst \
 	doc/design-2.1.rst \
 	doc/design-2.2.rst \
@@ -509,26 +509,29 @@ docinput = \
 	doc/design-chained-jobs.rst \
 	doc/design-cmdlib-unittests.rst \
 	doc/design-cpu-pinning.rst \
+	doc/design-daemons.rst \
 	doc/design-device-uuid-name.rst \
 	doc/design-draft.rst \
-	doc/design-hotplug.rst \
-	doc/design-hugepages-support.rst \
 	doc/design-glusterfs-ganeti-support.rst \
-	doc/design-daemons.rst \
+	doc/design-hotplug.rst \
+	doc/design-hroller.rst \
+	doc/design-hsqueeze.rst \
 	doc/design-htools-2.3.rst \
 	doc/design-http-server.rst \
+	doc/design-hugepages-support.rst \
 	doc/design-impexp2.rst \
 	doc/design-internal-shutdown.rst \
-	doc/design-lu-generated-jobs.rst \
 	doc/design-linuxha.rst \
+	doc/design-lu-generated-jobs.rst \
+	doc/design-monitoring-agent.rst \
 	doc/design-multi-reloc.rst \
 	doc/design-network.rst \
 	doc/design-node-add.rst \
 	doc/design-oob.rst \
 	doc/design-openvswitch.rst \
-	doc/design-ovf-support.rst \
 	doc/design-opportunistic-locking.rst \
 	doc/design-optables.rst \
+	doc/design-ovf-support.rst \
 	doc/design-partitioned.rst \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
@@ -536,13 +539,10 @@ docinput = \
 	doc/design-resource-model.rst \
 	doc/design-restricted-commands.rst \
 	doc/design-shared-storage.rst \
-	doc/design-monitoring-agent.rst \
+	doc/design-storagetypes.rst \
+	doc/design-upgrade.rst \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
-	doc/design-hroller.rst \
-	doc/design-storagetypes.rst \
-        doc/design-upgrade.rst \
-	doc/design-hsqueeze.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \
