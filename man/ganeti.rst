@@ -139,6 +139,14 @@ ovs_link
     is not set per default, as it depends very much on the specific
     setup.
 
+ssh_port
+    The port used for SSH connections to nodes belonging to a group. The user
+    is responsible for properly configuring the ports of SSH daemons on
+    machines prior to adding them as Ganeti nodes or when modifying the
+    parameter value of an existing group. Note that using non-standard SSH
+    ports and downgrading to an older Ganeti version that doesn't support
+    ``ssh_port`` will break the cluster.
+
 
 Hypervisor State Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
