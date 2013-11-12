@@ -929,7 +929,7 @@ def _VerifyNodeInfo(what, vm_capable, result, all_hvparams):
     result[constants.NV_HVINFO] = hyper.GetNodeInfo(hvparams=hvparams)
 
 
-def VerifyNode(what, cluster_name, all_hvparams):
+def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
   """Verify the status of the local node.
 
   Based on the input L{what} parameter, various checks are done on the
@@ -957,6 +957,11 @@ def VerifyNode(what, cluster_name, all_hvparams):
   @param cluster_name: the cluster's name
   @type all_hvparams: dict of dict of strings
   @param all_hvparams: a dictionary mapping hypervisor names to hvparams
+  @type node_groups: a dict of strings
+  @param node_groups: node _names_ mapped to their group uuids (it's enough to
+      have only those nodes that are in `what["nodelist"]`)
+  @type groups_cfg: a dict of dict of strings
+  @param groups_cfg: a dictionary mapping group uuids to their configuration
   @rtype: dict
   @return: a dictionary with the same keys as the input dict, and
       values representing the result of the checks
@@ -992,7 +997,12 @@ def VerifyNode(what, cluster_name, all_hvparams):
     # Try to contact all nodes
     val = {}
     for node in nodes:
-      success, message = _GetSshRunner(cluster_name).VerifyNodeHostname(node)
+      params = groups_cfg.get(node_groups.get(node))
+      ssh_port = params["ndparams"].get(constants.ND_SSH_PORT)
+      logging.debug("Ssh port %s (None = default) for node %s",
+                    str(ssh_port), node)
+      success, message = _GetSshRunner(cluster_name). \
+                            VerifyNodeHostname(node, ssh_port)
       if not success:
         val[node] = message
 

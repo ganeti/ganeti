@@ -123,7 +123,8 @@ class SshRunner:
     self.ipv6 = ipv6
 
   def _BuildSshOptions(self, batch, ask_key, use_cluster_key,
-                       strict_host_check, private_key=None, quiet=True):
+                       strict_host_check, private_key=None, quiet=True,
+                       port=None):
     """Builds a list with needed SSH options.
 
     @param batch: same as ssh's batch option
@@ -134,6 +135,7 @@ class SshRunner:
     @param strict_host_check: this makes the host key checking strict
     @param private_key: use this private key instead of the default
     @param quiet: whether to enable -q to ssh
+    @param port: the SSH port to use, or None to use the default
 
     @rtype: list
     @return: the list of options ready to use in L{utils.process.RunCmd}
@@ -155,6 +157,9 @@ class SshRunner:
 
     if private_key:
       options.append("-i%s" % private_key)
+
+    if port:
+      options.append("-oPort=%d" % port)
 
     # TODO: Too many boolean options, maybe convert them to more descriptive
     # constants.
@@ -190,7 +195,7 @@ class SshRunner:
 
   def BuildCmd(self, hostname, user, command, batch=True, ask_key=False,
                tty=False, use_cluster_key=True, strict_host_check=True,
-               private_key=None, quiet=True):
+               private_key=None, quiet=True, port=None):
     """Build an ssh command to execute a command on a remote node.
 
     @param hostname: the target host, string
@@ -205,6 +210,7 @@ class SshRunner:
     @param strict_host_check: whether to check the host's SSH key at all
     @param private_key: use this private key instead of the default
     @param quiet: whether to enable -q to ssh
+    @param port: the SSH port on which the node's daemon is running
 
     @return: the ssh call to run 'command' on the remote host.
 
@@ -212,7 +218,7 @@ class SshRunner:
     argv = [constants.SSH]
     argv.extend(self._BuildSshOptions(batch, ask_key, use_cluster_key,
                                       strict_host_check, private_key,
-                                      quiet=quiet))
+                                      quiet=quiet, port=port))
     if tty:
       argv.extend(["-t", "-t"])
 
@@ -277,7 +283,7 @@ class SshRunner:
 
     return not result.failed
 
-  def VerifyNodeHostname(self, node):
+  def VerifyNodeHostname(self, node, ssh_port):
     """Verify hostname consistency via SSH.
 
     This functions connects via ssh to a node and compares the hostname
@@ -290,6 +296,7 @@ class SshRunner:
 
     @param node: nodename of a host to check; can be short or
         full qualified hostname
+    @param ssh_port: the port of a SSH daemon running on the node
 
     @return: (success, detail), where:
         - success: True/False
@@ -301,7 +308,8 @@ class SshRunner:
            "else"
            "  echo \"$GANETI_HOSTNAME\";"
            "fi")
-    retval = self.Run(node, constants.SSH_LOGIN_USER, cmd, quiet=False)
+    retval = self.Run(node, constants.SSH_LOGIN_USER, cmd,
+                      quiet=False, port=ssh_port)
 
     if retval.failed:
       msg = "ssh problem"

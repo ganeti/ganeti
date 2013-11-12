@@ -270,10 +270,11 @@ class LUNodeAdd(LogicalUnit):
     else:
       self.master_candidate = False
 
+    node_group = self.cfg.LookupNodeGroup(self.op.group)
+
     if self.op.readd:
       self.new_node = existing_node_info
     else:
-      node_group = self.cfg.LookupNodeGroup(self.op.group)
       self.new_node = objects.Node(name=node_name,
                                    primary_ip=self.op.primary_ip,
                                    secondary_ip=secondary_ip,
@@ -313,7 +314,10 @@ class LUNodeAdd(LogicalUnit):
       cname = self.cfg.GetClusterName()
       result = rpcrunner.call_node_verify_light(
           [node_name], vparams, cname,
-          self.cfg.GetClusterInfo().hvparams)[node_name]
+          self.cfg.GetClusterInfo().hvparams,
+          {node_name: node_group},
+          self.cfg.GetAllNodeGroupsInfoDict()
+        )[node_name]
       (errmsgs, _) = CheckNodePVs(result.payload, excl_stor)
       if errmsgs:
         raise errors.OpPrereqError("Checks on node PVs failed: %s" %
@@ -381,7 +385,10 @@ class LUNodeAdd(LogicalUnit):
     result = self.rpc.call_node_verify(
                node_verifier_uuids, node_verify_param,
                self.cfg.GetClusterName(),
-               self.cfg.GetClusterInfo().hvparams)
+               self.cfg.GetClusterInfo().hvparams,
+               {self.new_node.name: self.cfg.LookupNodeGroup(self.op.group)},
+               self.cfg.GetAllNodeGroupsInfoDict()
+               )
     for verifier in node_verifier_uuids:
       result[verifier].Raise("Cannot communicate with node %s" % verifier)
       nl_payload = result[verifier].payload[constants.NV_NODELIST]

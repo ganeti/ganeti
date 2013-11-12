@@ -774,15 +774,19 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Run a verify sequence on this node.
 
     """
-    (what, cluster_name, hvparams) = params
-    return backend.VerifyNode(what, cluster_name, hvparams)
+    (what, cluster_name, hvparams, node_groups, groups_cfg) = params
+    return backend.VerifyNode(what, cluster_name, hvparams,
+                              node_groups, groups_cfg)
 
   @classmethod
   def perspective_node_verify_light(cls, params):
     """Run a light verify sequence on this node.
 
+    This call is meant to perform a less strict verification of the node in
+    certain situations. Right now, it is invoked only when a node is just about
+    to be added to a cluster, and even then, it performs the same checks as
+    L{perspective_node_verify}.
     """
-    # So far it's the same as the normal node_verify
     return cls.perspective_node_verify(params)
 
   @staticmethod

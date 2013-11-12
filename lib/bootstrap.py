@@ -280,7 +280,8 @@ def _WaitForSshDaemon(hostname, port, family):
 
 
 def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
-                    use_cluster_key, ask_key, strict_host_check, data):
+                    use_cluster_key, ask_key, strict_host_check,
+                    port, data):
   """Runs a command to configure something on a remote machine.
 
   @type cluster_name: string
@@ -299,6 +300,8 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
   @param ask_key: See L{ssh.SshRunner.BuildCmd}
   @type strict_host_check: bool
   @param strict_host_check: See L{ssh.SshRunner.BuildCmd}
+  @type port: int
+  @param port: The SSH port of the remote machine or None for the default
   @param data: JSON-serializable input data for script (passed to stdin)
 
   """
@@ -311,6 +314,9 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
   if verbose:
     cmd.append("--verbose")
 
+  if port is None:
+    port = netutils.GetDaemonPort(constants.SSH)
+
   family = ssconf.SimpleStore().GetPrimaryIPFamily()
   srun = ssh.SshRunner(cluster_name,
                        ipv6=(family == netutils.IP6Address.family))
@@ -318,7 +324,8 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
                        utils.ShellQuoteArgs(cmd),
                        batch=False, ask_key=ask_key, quiet=False,
                        strict_host_check=strict_host_check,
-                       use_cluster_key=use_cluster_key)
+                       use_cluster_key=use_cluster_key,
+                       port=port)
 
   tempfh = tempfile.TemporaryFile()
   try:
@@ -333,7 +340,7 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
     raise errors.OpExecError("Command '%s' failed: %s" %
                              (result.cmd, result.fail_reason))
 
-  _WaitForSshDaemon(node, netutils.GetDaemonPort(constants.SSH), family)
+  _WaitForSshDaemon(node, port, family)
 
 
 def _InitFileStorageDir(file_storage_dir):
@@ -874,7 +881,7 @@ def FinalizeClusterDestroy(master_uuid):
                     " the node: %s", msg)
 
 
-def SetupNodeDaemon(opts, cluster_name, node):
+def SetupNodeDaemon(opts, cluster_name, node, ssh_port):
   """Add a node to the cluster.
 
   This function must be called before the actual opcode, and will ssh
@@ -883,6 +890,7 @@ def SetupNodeDaemon(opts, cluster_name, node):
 
   @param cluster_name: the cluster name
   @param node: the name of the new node
+  @param ssh_port: the SSH port of the new node
 
   """
   data = {
@@ -895,7 +903,8 @@ def SetupNodeDaemon(opts, cluster_name, node):
 
   RunNodeSetupCmd(cluster_name, node, pathutils.NODE_DAEMON_SETUP,
                   opts.debug, opts.verbose,
-                  True, opts.ssh_key_check, opts.ssh_key_check, data)
+                  True, opts.ssh_key_check, opts.ssh_key_check,
+                  ssh_port, data)
 
   _WaitForNodeDaemon(node)
 

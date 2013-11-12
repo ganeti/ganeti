@@ -899,6 +899,7 @@ def _DoConsole(console, show_command, cluster_name, feedback_fn=ToStdout,
 
     srun = ssh.SshRunner(cluster_name=cluster_name)
     ssh_cmd = srun.BuildCmd(console.host, console.user, cmd,
+                            port=console.port,
                             batch=True, quiet=False, tty=True)
 
     if show_command:

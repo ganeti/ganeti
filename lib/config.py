@@ -1374,6 +1374,15 @@ class ConfigWriter(object):
     return self._UnlockedGetAllNodeGroupsInfo()
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetAllNodeGroupsInfoDict(self):
+    """Get the configuration of all node groups expressed as a dictionary of
+    dictionaries.
+
+    """
+    return dict(map(lambda (uuid, ng): (uuid, ng.ToDict()),
+                    self._UnlockedGetAllNodeGroupsInfo().items()))
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetNodeGroupList(self):
     """Get a list of node groups.
 
