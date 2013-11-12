@@ -20,6 +20,7 @@ Design document drafts
    design-daemons.rst
    design-hsqueeze.rst
    design-ssh-ports.rst
+   design-os.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
