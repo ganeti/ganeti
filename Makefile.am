@@ -2310,14 +2310,17 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 .PHONY: TAGS
 TAGS: $(GENERATED_FILES)
 	rm -f TAGS
-	$(GHC) -e ":etags" -v0 \
+	$(GHC) -e ":etags TAGS_hs" -v0 \
 	  $(filter-out -O -Werror,$(HFLAGS)) \
+		-osuf tags.o \
+		-hisuf tags.hi \
+    -lcurl \
 	  $(HS_PARALLEL3) $(HS_REGEX_PCRE) \
 	  $(HS_LIBTEST_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \
 	  -path './qa/*.py' | \
-	  etags -l python -a -
+	  etags --etags-include=TAGS_hs -L -
 
 .PHONY: coverage
 

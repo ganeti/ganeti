@@ -22,7 +22,7 @@
 /Makefile.in
 /Makefile.local
 /Session.vim
-/TAGS
+/TAGS*
 /aclocal.m4
 /autom4te.cache
 /autotools/install-sh
