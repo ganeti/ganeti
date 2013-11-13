@@ -757,7 +757,25 @@ def AcquireNode(exclude=None, _cfg=None):
   return sorted(nodes, key=_NodeSortKey)[0].Use()
 
 
-def AcquireManyNodes(num, exclude=None):
+class AcquireManyNodesCtx(object):
+  """Returns the least used nodes for use with a `with` block
+
+  """
+  def __init__(self, num, exclude=None, cfg=None):
+    self._num = num
+    self._exclude = exclude
+    self._cfg = cfg
+
+  def __enter__(self):
+    self._nodes = AcquireManyNodes(self._num, exclude=self._exclude,
+                                   cfg=self._cfg)
+    return self._nodes
+
+  def __exit__(self, exc_type, exc_value, exc_tb):
+    ReleaseManyNodes(self._nodes)
+
+
+def AcquireManyNodes(num, exclude=None, cfg=None):
   """Return the least used nodes.
 
   @type num: int
@@ -779,7 +797,7 @@ def AcquireManyNodes(num, exclude=None):
 
   try:
     for _ in range(0, num):
-      n = AcquireNode(exclude=exclude)
+      n = AcquireNode(exclude=exclude, _cfg=cfg)
       nodes.append(n)
       exclude.append(n)
   except qa_error.OutOfNodesError:

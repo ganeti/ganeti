@@ -127,6 +127,18 @@ def TestGroupAddWithOptions():
   AssertCommand(["gnt-group", "remove", group1])
 
 
+class NewGroupCtx(object):
+  """Creates a new group and disposes afterwards."""
+
+  def __enter__(self):
+    (self._group, ) = qa_utils.GetNonexistentGroups(1)
+    AssertCommand(["gnt-group", "add", self._group])
+    return self._group
+
+  def __exit__(self, exc_type, exc_val, exc_tb):
+    AssertCommand(["gnt-group", "remove", self._group])
+
+
 def _GetGroupIPolicy(groupname):
   """Return the run-time values of the cluster-level instance policy.
 
