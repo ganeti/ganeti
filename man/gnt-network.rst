@@ -34,7 +34,7 @@ ADD
 ~~~
 
 | **add**
-| [\--network=*NETWORK*]
+| --network=*NETWORK*
 | [\--gateway=*GATEWAY*]
 | [\--add-reserved-ips=*RESERVEDIPS*]
 | [\--network6=*NETWORK6*]
