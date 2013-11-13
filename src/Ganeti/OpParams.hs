@@ -255,7 +255,7 @@ module Ganeti.OpParams
   , pEnabledDiskTemplates
   ) where
 
-import Control.Monad (liftM)
+import Control.Monad (liftM, mplus)
 import Text.JSON (JSON, JSValue(..), JSObject (..), readJSON, showJSON,
                   fromJSString, toJSObject)
 import qualified Text.JSON
@@ -403,20 +403,22 @@ data SetParamsMods a
   = SetParamsEmpty
   | SetParamsDeprecated (NonEmpty (DdmOldChanges, a))
   | SetParamsNew (NonEmpty (DdmFull, Int, a))
+  | SetParamsNewName (NonEmpty (DdmFull, String, a))
     deriving (Eq, Show)
 
 -- | Custom deserialiser for 'SetParamsMods'.
 readSetParams :: (JSON a) => JSValue -> Text.JSON.Result (SetParamsMods a)
 readSetParams (JSArray []) = return SetParamsEmpty
 readSetParams v =
-  case readJSON v::Text.JSON.Result [(DdmOldChanges, JSValue)] of
-    Text.JSON.Ok _ -> liftM SetParamsDeprecated $ readJSON v
-    _ -> liftM SetParamsNew $ readJSON v
+  liftM SetParamsDeprecated (readJSON v)
+  `mplus` liftM SetParamsNew (readJSON v)
+  `mplus` liftM SetParamsNewName (readJSON v)
 
 instance (JSON a) => JSON (SetParamsMods a) where
   showJSON SetParamsEmpty = showJSON ()
   showJSON (SetParamsDeprecated v) = showJSON v
   showJSON (SetParamsNew v) = showJSON v
+  showJSON (SetParamsNewName v) = showJSON v
   readJSON = readSetParams
 
 -- | Custom type for target_node parameter of OpBackupExport, which
