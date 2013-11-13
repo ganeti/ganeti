@@ -253,7 +253,8 @@ handleCall qlock cfg (SubmitManyJobs lops) =
                         then showJSON (True, fromJobId jid)
                         else showJSON (False, genericResult id (const "") res))
               $ annotated_results
-    
+{-# ANN handleCall "HLint: ignore Too strict if" #-}
+
 handleCall _ _ op =
   return . Bad $
     GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")
