@@ -1410,7 +1410,7 @@ involvedNodes :: Instance.List -- ^ Instance list, used for retrieving
 involvedNodes il plc =
   let (i, np, ns, _, _) = plc
       inst = Container.find i il
-  in nub $ [np, ns] ++ Instance.allNodes inst
+  in nub . filter (>= 0) $ [np, ns] ++ Instance.allNodes inst
 
 -- | Inner function for splitJobs, that either appends the next job to
 -- the current jobset, or starts a new jobset.
