@@ -1871,7 +1871,7 @@ lib/opcodes.py: Makefile src/hs2py src/Ganeti/Constants.hs \
 		lib/opcodes.py.in_before lib/opcodes.py.in_after \
 		| stamp-directories
 	cat $(abs_top_srcdir)/lib/opcodes.py.in_before > $@
-	src/hs2py >> $@
+	src/hs2py --opcodes >> $@
 	cat $(abs_top_srcdir)/lib/opcodes.py.in_after >> $@
 
 lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC)
