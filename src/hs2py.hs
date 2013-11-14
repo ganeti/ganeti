@@ -24,6 +24,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 import Ganeti.Hs2Py.GenOpCodes
+import Ganeti.Hs2Py.ListConstants
 
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
@@ -34,6 +35,7 @@ main = do
   args <- getArgs
   case args of
     ["--opcodes"] -> putStrLn showPyClasses
+    ["--constants"] -> putConstants
     _ -> do
-      hPutStrLn stderr "Usage: hs2py --opcodes"
+      hPutStrLn stderr "Usage: hs2py --opcodes | --constants"
       exitFailure
