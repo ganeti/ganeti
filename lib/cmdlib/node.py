@@ -30,7 +30,6 @@ from ganeti import locking
 from ganeti import netutils
 from ganeti import objects
 from ganeti import opcodes
-from ganeti import qlang
 from ganeti import query
 from ganeti import rpc
 from ganeti import utils
@@ -1175,90 +1174,13 @@ class NodeQuery(QueryBase):
   FIELDS = query.NODE_FIELDS
 
   def ExpandNames(self, lu):
-    lu.needed_locks = {}
-    lu.share_locks = ShareAll()
-
-    if self.names:
-      (self.wanted, _) = GetWantedNodes(lu, self.names)
-    else:
-      self.wanted = locking.ALL_SET
-
-    self.do_locking = (self.use_locking and
-                       query.NQ_LIVE in self.requested_data)
-
-    if self.do_locking:
-      # If any non-static field is requested we need to lock the nodes
-      lu.needed_locks[locking.LEVEL_NODE] = self.wanted
-      lu.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
+    raise NotImplementedError
 
   def DeclareLocks(self, lu, level):
     pass
 
   def _GetQueryData(self, lu):
-    """Computes the list of nodes and their attributes.
-
-    """
-    all_info = lu.cfg.GetAllNodesInfo()
-
-    node_uuids = self._GetNames(lu, all_info.keys(), locking.LEVEL_NODE)
-
-    # Gather data as requested
-    if query.NQ_LIVE in self.requested_data:
-      # filter out non-vm_capable nodes
-      toquery_node_uuids = [node.uuid for node in all_info.values()
-                            if node.vm_capable and node.uuid in node_uuids]
-      default_template = lu.cfg.GetClusterInfo().enabled_disk_templates[0]
-      raw_storage_units = utils.storage.GetStorageUnits(
-          lu.cfg, [default_template])
-      storage_units = rpc.PrepareStorageUnitsForNodes(
-          lu.cfg, raw_storage_units, toquery_node_uuids)
-      default_hypervisor = lu.cfg.GetHypervisorType()
-      hvparams = lu.cfg.GetClusterInfo().hvparams[default_hypervisor]
-      hvspecs = [(default_hypervisor, hvparams)]
-      node_data = lu.rpc.call_node_info(toquery_node_uuids, storage_units,
-                                        hvspecs)
-      live_data = dict(
-          (uuid, rpc.MakeLegacyNodeInfo(nresult.payload, default_template))
-          for (uuid, nresult) in node_data.items()
-          if not nresult.fail_msg and nresult.payload)
-    else:
-      live_data = None
-
-    if query.NQ_INST in self.requested_data:
-      node_to_primary = dict([(uuid, set()) for uuid in node_uuids])
-      node_to_secondary = dict([(uuid, set()) for uuid in node_uuids])
-
-      inst_data = lu.cfg.GetAllInstancesInfo()
-      inst_uuid_to_inst_name = {}
-
-      for inst in inst_data.values():
-        inst_uuid_to_inst_name[inst.uuid] = inst.name
-        if inst.primary_node in node_to_primary:
-          node_to_primary[inst.primary_node].add(inst.uuid)
-        for secnode in inst.secondary_nodes:
-          if secnode in node_to_secondary:
-            node_to_secondary[secnode].add(inst.uuid)
-    else:
-      node_to_primary = None
-      node_to_secondary = None
-      inst_uuid_to_inst_name = None
-
-    if query.NQ_OOB in self.requested_data:
-      oob_support = dict((uuid, bool(SupportsOob(lu.cfg, node)))
-                         for uuid, node in all_info.iteritems())
-    else:
-      oob_support = None
-
-    if query.NQ_GROUP in self.requested_data:
-      groups = lu.cfg.GetAllNodeGroupsInfo()
-    else:
-      groups = {}
-
-    return query.NodeQueryData([all_info[uuid] for uuid in node_uuids],
-                               live_data, lu.cfg.GetMasterNode(),
-                               node_to_primary, node_to_secondary,
-                               inst_uuid_to_inst_name, groups, oob_support,
-                               lu.cfg.GetClusterInfo())
+    raise NotImplementedError
 
 
 class LUNodeQuery(NoHooksLU):
@@ -1269,17 +1191,16 @@ class LUNodeQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.nq = NodeQuery(qlang.MakeSimpleFilter("name", self.op.names),
-                         self.op.output_fields, self.op.use_locking)
+    raise NotImplementedError
 
   def ExpandNames(self):
-    self.nq.ExpandNames(self)
+    raise NotImplementedError
 
   def DeclareLocks(self, level):
-    self.nq.DeclareLocks(self, level)
+    raise NotImplementedError
 
   def Exec(self, feedback_fn):
-    return self.nq.OldStyleQuery(self)
+    raise NotImplementedError
 
 
 def _CheckOutputFields(fields, selected):
