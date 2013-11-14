@@ -462,6 +462,12 @@ class OpcodeResource(ResourceBase):
   method to do their own opcode input processing (e.g. for static values). The
   C{$METHOD$_RENAME} variable defines which values are renamed (see
   L{baserlib.FillOpcode}).
+  Still default behavior cannot be totally overriden. There are opcode params
+  that are available to all opcodes, e.g. "depends". In case those params
+  (currently only "depends") are found in the original request's body, they are
+  added to the dictionary of parsed parameters and eventually passed to the
+  opcode. If the parsed body is not represented as a dictionary object, the
+  values are not added.
 
   @cvar GET_OPCODE: Set this to a class derived from L{opcodes.OpCode} to
     automatically generate a GET handler submitting the opcode
@@ -528,8 +534,18 @@ class OpcodeResource(ResourceBase):
       }
     return common_static
 
+  def _GetDepends(self):
+    ret = {}
+    if isinstance(self.request_body, dict):
+      depends = self.getBodyParameter("depends", None)
+      if depends:
+        ret.update({"depends": depends})
+    return ret
+
   def _GenericHandler(self, opcode, rename, fn):
     (body, specific_static) = fn()
+    if isinstance(body, dict):
+      body.update(self._GetDepends())
     static = self._GetCommonStatic()
     if specific_static:
       static.update(specific_static)
