@@ -33,7 +33,7 @@ module Ganeti.HTools.Program.Hbal
 import Control.Exception (bracket)
 import Control.Monad
 import Data.List
-import Data.Maybe (isJust, isNothing, fromJust)
+import Data.Maybe (isNothing)
 import Data.IORef
 import System.Exit
 import System.IO
@@ -167,20 +167,6 @@ printStats ini_nl fin_nl = do
              (Cluster.csFmem ini_cs) (Cluster.csFdsk ini_cs) :: IO ()
   printf "Final:    mem=%d disk=%d\n"
              (Cluster.csFmem fin_cs) (Cluster.csFdsk fin_cs)
-
--- | Saves the rebalance commands to a text file.
-saveBalanceCommands :: Options -> String -> IO ()
-saveBalanceCommands opts cmd_data = do
-  let out_path = fromJust $ optShowCmds opts
-  putStrLn ""
-  if out_path == "-"
-    then printf "Commands to run to reach the above solution:\n%s"
-           (unlines . map ("  " ++) .
-            filter (/= "  check") .
-            lines $ cmd_data)
-    else do
-      writeFile out_path (shTemplate ++ cmd_data)
-      printf "The commands have been written to file '%s'\n" out_path
 
 -- | Wrapper over execJobSet checking for early termination via an IORef.
 execCancelWrapper :: Annotator -> String -> Node.List
@@ -409,8 +395,8 @@ main opts args = do
 
   let cmd_jobs = Cluster.splitJobs cmd_strs
 
-  when (isJust $ optShowCmds opts) .
-       saveBalanceCommands opts $ Cluster.formatCmds cmd_jobs
+  maybeSaveCommands "Commands to run to reach the above solution:" opts
+    $ Cluster.formatCmds cmd_jobs
 
   maybeSaveData (optSaveCluster opts) "balanced" "after balancing"
                 ini_cdata { cdNodes = fin_nl, cdInstances = fin_il }

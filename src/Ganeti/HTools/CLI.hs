@@ -36,6 +36,7 @@ module Ganeti.HTools.CLI
   , parseYesNo
   , parseISpecString
   , shTemplate
+  , maybeSaveCommands
   , maybePrintNodes
   , maybePrintInsts
   , maybeShowWarnings
@@ -719,6 +720,22 @@ shTemplate =
          \    exit 0\n\
          \  fi\n\
          \}\n\n"
+
+-- | Optionally show or save a list of commands
+maybeSaveCommands :: String -- ^ Informal description
+                  -> Options
+                  -> String -- ^ commands
+                  -> IO ()
+maybeSaveCommands msg opts cmds =
+  case optShowCmds opts of
+    Nothing -> return ()
+    Just "-" -> do
+      putStrLn ""
+      putStrLn msg
+      putStr . unlines .  map ("  " ++) . filter (/= "  check") . lines $ cmds
+    Just out_path -> do
+      writeFile out_path (shTemplate ++ cmds)
+      printf "The commands have been written to file '%s'\n" out_path
 
 -- | Optionally print the node list.
 maybePrintNodes :: Maybe [String]       -- ^ The field list
