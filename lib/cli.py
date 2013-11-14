@@ -2379,7 +2379,7 @@ def GetClient(query=False):
       address = pathutils.QUERY_SOCKET
     else:
       address = override_socket
-  elif query and constants.ENABLE_SPLIT_QUERY:
+  elif query:
     address = pathutils.QUERY_SOCKET
   else:
     address = None

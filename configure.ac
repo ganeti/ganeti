@@ -623,42 +623,6 @@ AC_SUBST(HS_NODEV)
 HTOOLS=yes
 AC_SUBST(HTOOLS)
 
-# --enable-split-query
-ENABLE_SPLIT_QUERY=
-AC_ARG_ENABLE([split-query],
-  [AS_HELP_STRING([--enable-split-query],
-  [enable use of custom query daemon via confd])],
-  [[case "$enableval" in
-      no)
-        enable_split_query=False
-        ;;
-      yes)
-        enable_split_query=True
-        ;;
-      *)
-        echo "Invalid value for enable-confd '$enableval'"
-        exit 1
-        ;;
-    esac
-  ]],
-  [[case "x${has_confd}x" in
-     xTruex)
-       enable_split_query=True
-       ;;
-     *)
-       enable_split_query=False
-       ;;
-   esac]])
-AC_SUBST(ENABLE_SPLIT_QUERY, $enable_split_query)
-
-if test x$enable_split_query = xTrue -a x$has_confd != xTrue; then
-  AC_MSG_ERROR([Split queries require the confd daemon])
-fi
-
-if test x$enable_split_query = xTrue; then
-  AC_MSG_NOTICE([Split query functionality enabled])
-fi
-
 # Check for HsColour
 HS_APIDOC=no
 AC_ARG_VAR(HSCOLOUR, [HsColour path])

@@ -359,7 +359,7 @@ class ResourceBase(object):
         instead of the masterd socket
 
     """
-    if query and constants.ENABLE_SPLIT_QUERY:
+    if query:
       address = pathutils.QUERY_SOCKET
     else:
       address = None

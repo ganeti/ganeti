@@ -313,9 +313,6 @@ enableMond = AutoConf.enableMond
 enableRestrictedCommands :: Bool
 enableRestrictedCommands = AutoConf.enableRestrictedCommands
 
-enableSplitQuery :: Bool
-enableSplitQuery = AutoConf.enableSplitQuery
-
 -- * SSH constants
 
 ssh :: String

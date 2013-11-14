@@ -202,9 +202,6 @@ enableConfd = ENABLE_CONFD
 xenCmd :: String
 xenCmd = "XEN_CMD"
 
-enableSplitQuery :: Bool
-enableSplitQuery = ENABLE_SPLIT_QUERY
-
 enableRestrictedCommands :: Bool
 enableRestrictedCommands = ENABLE_RESTRICTED_COMMANDS
 
