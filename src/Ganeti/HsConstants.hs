@@ -1990,6 +1990,9 @@ ndOvsLink = "ovs_link"
 ndOvsName :: String
 ndOvsName = "ovs_name"
 
+ndSshPort :: String
+ndSshPort = "ssh_port"
+
 ndsParameterTypes :: Map String VType
 ndsParameterTypes =
   Map.fromList
@@ -1998,7 +2001,8 @@ ndsParameterTypes =
    (ndOvs, VTypeBool),
    (ndOvsLink, VTypeMaybeString),
    (ndOvsName, VTypeMaybeString),
-   (ndSpindleCount, VTypeInt)]
+   (ndSpindleCount, VTypeInt),
+   (ndSshPort, VTypeInt)]
 
 ndsParameters :: FrozenSet String
 ndsParameters = ConstantUtils.mkSet (Map.keys ndsParameterTypes)
@@ -3695,6 +3699,7 @@ ndcDefaults =
   , (ndOvs,              PyValueEx False)
   , (ndOvsName,          PyValueEx defaultOvs)
   , (ndOvsLink,          PyValueEx "")
+  , (ndSshPort,          PyValueEx (22 :: Int))
   ]
 
 ndcGlobals :: FrozenSet String

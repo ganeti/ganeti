@@ -545,6 +545,7 @@ $(buildParam "ND" "ndp"
   , simpleField "ovs"           [t| Bool |]
   , simpleField "ovs_name"       [t| String |]
   , simpleField "ovs_link"       [t| String |]
+  , simpleField "ssh_port"      [t| Int |]
   ])
 
 $(buildObject "Node" "node" $
