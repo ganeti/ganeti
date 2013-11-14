@@ -99,14 +99,17 @@ allNodesCapacityFor inst (nl, _) =
 
 -- | Balance a configuration, possible for 0 steps, till no further improvement
 -- is possible.
-balance :: (Node.List, Instance.List) -> (Node.List, Instance.List)
+balance :: (Node.List, Instance.List) 
+           -> ((Node.List, Instance.List), [MoveJob])
 balance (nl, il) =
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
       balanceStep tbl = Cluster.tryBalance tbl True True False 0.0 0.0
-      (Cluster.Table nl' il' _ _) = fromJust . last . takeWhile isJust
-                                    $ iterate (>>= balanceStep) (Just ini_tbl)
-  in (nl', il')
+      bTables = map fromJust . takeWhile isJust
+                  $ iterate (>>= balanceStep) (Just ini_tbl)
+      (Cluster.Table nl' il' _ _) = last bTables
+      moves = zip bTables (drop 1 bTables) >>= Cluster.getMoves
+  in ((nl', il'), reverse moves)
 
 -- | In a configuration, mark a node as online or offline.
 onlineOfflineNode :: Bool -> (Node.List, Instance.List) -> Ndx ->
@@ -118,21 +121,23 @@ onlineOfflineNode offline (nl, il) ndx =
   in (nl', il)
 
 -- | Offline or online a list nodes, and return the state after a balancing
--- attempt.
+-- attempt together with the sequence of moves that lead there.
 onlineOfflineNodes :: Bool -> [Ndx] -> (Node.List, Instance.List)
-                      -> (Node.List, Instance.List)
+                      -> ((Node.List, Instance.List), [MoveJob])
 onlineOfflineNodes offline ndxs conf =
   let conf' = foldl (onlineOfflineNode offline) conf ndxs
   in balance conf'
 
--- | Offline a list of nodes, and return the state after balancing.
+-- | Offline a list of nodes, and return the state after balancing with
+-- the sequence of moves that lead there.
 offlineNodes :: [Ndx] -> (Node.List, Instance.List)
-                -> (Node.List, Instance.List)
+                -> ((Node.List, Instance.List), [MoveJob])
 offlineNodes = onlineOfflineNodes True
 
--- | Online a list of nodes, and return the state after balancing.
+-- | Online a list of nodes, and return the state after balancing with
+-- the sequence of moves that lead there.
 onlineNodes :: [Ndx] -> (Node.List, Instance.List)
-               -> (Node.List, Instance.List)
+               -> ((Node.List, Instance.List), [MoveJob])
 onlineNodes = onlineOfflineNodes False
 
 -- | Predicate on whether a list of nodes can be offlined or onlined
@@ -141,7 +146,7 @@ onlineNodes = onlineOfflineNodes False
 canOnlineOffline :: Bool -> Instance.Instance -> (Node.List, Instance.List)
                     -> [Node.Node] ->Bool
 canOnlineOffline offline inst conf nds = 
-  let conf' = onlineOfflineNodes offline (map Node.idx nds) conf
+  let conf' = fst $ onlineOfflineNodes offline (map Node.idx nds) conf
   in allInstancesOnOnlineNodes conf' && allNodesCapacityFor inst conf'
 
 -- | Predicate on whether a list of nodes can be offlined simultaneously.
@@ -213,12 +218,14 @@ main opts args = do
       targetInstance = instanceFromSpecAndFactor "targetInstance" targetf std
       minInstance = instanceFromSpecAndFactor "targetInstance" minf std
       toOffline = greedyOfflineNodes targetInstance conf offlineCandidates
-      (fin_off_nl, fin_off_il) = offlineNodes (map Node.idx toOffline) conf
+      (fin_off_nl, fin_off_il) =
+        fst $ offlineNodes (map Node.idx toOffline) conf
       final_off_cdata =
         ini_cdata { cdNodes = fin_off_nl, cdInstances = fin_off_il }
       toOnline = tryOnline minInstance conf onlineCandidates
       nodesToOnline = fromMaybe onlineCandidates toOnline
-      (fin_on_nl, fin_on_il) = onlineNodes (map Node.idx nodesToOnline) conf
+      (fin_on_nl, fin_on_il) =
+        fst $ onlineNodes (map Node.idx nodesToOnline) conf
       final_on_cdata =
         ini_cdata { cdNodes = fin_on_nl, cdInstances = fin_on_il }
 
