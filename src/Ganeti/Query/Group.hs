@@ -72,7 +72,6 @@ groupFields =
      QffNormal)
   , (FieldDefinition "pinst_list" "InstanceList" QFTOther
        "List of primary instances",
-     -- FIXME: the niceSort here is not tested
      FieldConfig (\cfg -> rsNormal . niceSort . map instName . fst .
                           getGroupInstances cfg . groupUuid), QffNormal)
   ] ++

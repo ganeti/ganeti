@@ -169,6 +169,12 @@ case_niceSort_static = do
              "cPRi0lM7HLnSuWA2G9", "KVQqLPDjcPjf8T3oyzjcOsfkb",
              "guKJkXnkULealVC8CyF1xefym", "pqF8dkU5B1cMnyZuREaSOADYx"]
 
+  assertEqual "hostnames"
+    ["host1.example.com", "host2.example.com", "host03.example.com",
+     "host11.example.com", "host255.example.com"] $
+    niceSort ["host2.example.com", "host11.example.com", "host03.example.com",
+     "host1.example.com", "host255.example.com"]
+
 -- | Tests single-string behaviour of 'niceSort'.
 prop_niceSort_single :: Property
 prop_niceSort_single =
