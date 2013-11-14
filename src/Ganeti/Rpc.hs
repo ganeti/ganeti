@@ -348,6 +348,7 @@ instance Rpc RpcCallAllInstancesInfo RpcResultAllInstancesInfo where
 $(buildObject "InstanceConsoleInfoParams" "instConsInfoParams"
   [ simpleField "instance"    [t| Instance |]
   , simpleField "node"        [t| Node |]
+  , simpleField "group"       [t| NodeGroup |]
   , simpleField "hvParams"    [t| HvParams |]
   , simpleField "beParams"    [t| FilledBeParams |]
   ])

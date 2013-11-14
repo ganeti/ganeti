@@ -741,6 +741,7 @@ getAllConsoleParams :: ConfigData
 getAllConsoleParams cfg = mapM $ \i ->
   InstanceConsoleInfoParams i
     <$> getPrimaryNode cfg i
+    <*> getPrimaryNodeGroup cfg i
     <*> pure (getFilledInstHvParams [] cfg i)
     <*> getFilledInstBeParams cfg i
 

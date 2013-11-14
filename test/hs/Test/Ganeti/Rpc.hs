@@ -102,7 +102,7 @@ genConsoleInfoCallParams = do
 -- object, node object, 'HvParams', and 'FilledBeParams'.
 genInstanceConsoleInfoParams :: Gen Rpc.InstanceConsoleInfoParams
 genInstanceConsoleInfoParams = Rpc.InstanceConsoleInfoParams <$>
-  genInst <*> arbitrary <*> genHvParams <*> arbitrary
+  genInst <*> arbitrary <*> arbitrary <*> genHvParams <*> arbitrary
 
 -- | Monadic check that, for an offline node and a call that does not support
 -- offline nodes, we get a OfflineNodeError response.
