@@ -35,6 +35,7 @@ import Data.Function
 import Data.List
 import Data.Maybe
 import qualified Data.IntMap as IntMap
+import Text.Printf (printf)
 
 import Ganeti.BasicTypes
 import Ganeti.Common
@@ -58,6 +59,7 @@ options = do
     , oMinResources
     , oTargetResources
     , oSaveCluster
+    , oPrintCommands
     , oVerbose
     , oNoHeaders
     ]
@@ -218,16 +220,26 @@ main opts args = do
       targetInstance = instanceFromSpecAndFactor "targetInstance" targetf std
       minInstance = instanceFromSpecAndFactor "targetInstance" minf std
       toOffline = greedyOfflineNodes targetInstance conf offlineCandidates
-      (fin_off_nl, fin_off_il) =
-        fst $ offlineNodes (map Node.idx toOffline) conf
+      ((fin_off_nl, fin_off_il), off_mvs) =
+        offlineNodes (map Node.idx toOffline) conf
       final_off_cdata =
         ini_cdata { cdNodes = fin_off_nl, cdInstances = fin_off_il }
+      off_jobs = Cluster.splitJobs off_mvs
+      off_cmd =
+        Cluster.formatCmds off_jobs
+        ++ "\necho Power Commands\n"
+        ++ (toOffline >>= printf "  gnt-node power off -f %s\n" . Node.alias)
       toOnline = tryOnline minInstance conf onlineCandidates
       nodesToOnline = fromMaybe onlineCandidates toOnline
-      (fin_on_nl, fin_on_il) =
-        fst $ onlineNodes (map Node.idx nodesToOnline) conf
+      ((fin_on_nl, fin_on_il), on_mvs) =
+        onlineNodes (map Node.idx nodesToOnline) conf
       final_on_cdata =
         ini_cdata { cdNodes = fin_on_nl, cdInstances = fin_on_il }
+      on_jobs = Cluster.splitJobs on_mvs
+      on_cmd =
+        "echo Power Commands\n"
+        ++ (nodesToOnline >>= printf "  gnt-node power on -f %s\n" . Node.alias)
+        ++ Cluster.formatCmds on_jobs
 
   when (verbose > 1) . putStrLn 
     $ "Offline candidates: " ++ commaJoin (map Node.name offlineCandidates)
@@ -242,6 +254,7 @@ main opts args = do
       mapM_ (putStrLn . Node.name) nodesToOnline
       when (verbose > 1 && isNothing toOnline) . putStrLn $
         "Onlining all nodes will not yield enough capacity"
+      maybeSaveCommands "Commands to run:" opts on_cmd
       maybeSaveData (optSaveCluster opts)
          "squeezed" "after hsqueeze expansion" final_on_cdata
     else
@@ -249,13 +262,13 @@ main opts args = do
         then do      
           unless (optNoHeaders opts) $
             putStrLn "'No action'"
+          maybeSaveCommands "Commands to run:" opts "echo Nothing to do"
           maybeSaveData (optSaveCluster opts)
             "squeezed" "after hsqueeze doing nothing" ini_cdata
         else do
           unless (optNoHeaders opts) $
             putStrLn "'Nodes to offline'"
-
           mapM_ (putStrLn . Node.name) toOffline
-
+          maybeSaveCommands "Commands to run:" opts off_cmd
           maybeSaveData (optSaveCluster opts)
             "squeezed" "after hsqueeze run" final_off_cdata
