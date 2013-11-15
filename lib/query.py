@@ -1734,6 +1734,24 @@ def _GetInstNicBridge(ctx, index, _):
     return _FS_UNAVAIL
 
 
+def _GetInstNicVLan(ctx, index, _):
+  """Get a NIC's VLAN.
+
+  @type ctx: L{InstanceQueryData}
+  @type index: int
+  @param index: NIC index
+
+  """
+  assert len(ctx.inst_nicparams) >= index
+
+  nicparams = ctx.inst_nicparams[index]
+
+  if nicparams[constants.NIC_MODE] == constants.NIC_MODE_OVS:
+    return nicparams[constants.NIC_VLAN]
+  else:
+    return _FS_UNAVAIL
+
+
 def _GetInstAllNicNetworkNames(ctx, inst):
   """Get all network names for an instance.
 
@@ -1873,6 +1891,9 @@ def _GetInstanceNetworkFields():
       (_MakeField("nic.bridge/%s" % i, "NicBridge/%s" % i, QFT_TEXT,
                   "Bridge of %s network interface" % numtext),
        IQ_CONFIG, 0, _GetInstNic(i, _GetInstNicBridge)),
+      (_MakeField("nic.vlan/%s" % i, "NicVLAN/%s" % i, QFT_TEXT,
+                  "VLAN of %s network interface" % numtext),
+       IQ_CONFIG, 0, _GetInstNic(i, _GetInstNicVLan)),
       (_MakeField("nic.network/%s" % i, "NicNetwork/%s" % i, QFT_TEXT,
                   "Network of %s network interface" % numtext),
        IQ_CONFIG, 0, _GetInstNic(i, _GetInstNicNetwork)),

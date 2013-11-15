@@ -76,7 +76,7 @@ Misc changes
 - Opcodes are entirely generated from Haskell using the tool 'hs2py' and
   the module 'src/Ganeti/OpCodes.hs'.
 - Constants are also generated from Haskell using the tool
-  'hs2py-constants' and the module 'src/Ganeti/HsConstants.hs', with the
+  'hs2py-constants' and the module 'src/Ganeti/Constants.hs', with the
   exception of socket related constants, which require changing the
   cluster configuration file, and HVS related constants, because they
   are part of a port of instance queries to Haskell.  As a result, these
@@ -91,6 +91,18 @@ Python
 
 - The version requirements for ``python-mock`` have increased to at least
   version 1.0.1. It is still used for testing only.
+
+
+Version 2.9.1
+-------------
+
+*(Released Wed, 13 Nov 2013)*
+
+- fix bug, that kept nodes offline when readding
+- when verifying DRBD versions, ignore unavailable nodes
+- fix bug that made the console unavailable on kvm in split-user
+  setup (issue 608)
+- DRBD: ensure peers are UpToDate for dual-primary (inherited 2.8.2)
 
 
 Version 2.9.0
@@ -214,6 +226,17 @@ Version 2.9.0 beta1
 
 This was the first beta release of the 2.9 series. All important changes
 are listed in the latest 2.9 entry.
+
+
+Version 2.8.2
+-------------
+
+*(Released Thu, 07 Nov 2013)*
+
+- DRBD: ensure peers are UpToDate for dual-primary
+- Improve error message for replace-disks
+- More dependency checks at configure time
+- Placate warnings on ganeti.outils_unittest.py
 
 
 Version 2.8.1

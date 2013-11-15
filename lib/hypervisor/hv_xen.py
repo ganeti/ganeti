@@ -397,6 +397,19 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     self._cmd = _cmd
 
+  @staticmethod
+  def _GetCommandFromHvparams(hvparams):
+    """Returns the Xen command extracted from the given hvparams.
+
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters
+
+    """
+    if hvparams is None or constants.HV_XEN_CMD not in hvparams:
+      raise errors.HypervisorError("Cannot determine xen command.")
+    else:
+      return hvparams[constants.HV_XEN_CMD]
+
   def _GetCommand(self, hvparams):
     """Returns Xen command to use.
 
@@ -405,10 +418,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     if self._cmd is None:
-      if hvparams is None or constants.HV_XEN_CMD not in hvparams:
-        raise errors.HypervisorError("Cannot determine xen command.")
-      else:
-        cmd = hvparams[constants.HV_XEN_CMD]
+      cmd = XenHypervisor._GetCommandFromHvparams(hvparams)
     else:
       cmd = self._cmd
 
@@ -772,12 +782,13 @@ class XenHypervisor(hv_base.BaseHypervisor):
     instance_list = self._GetInstanceList(True, hvparams)
     return _GetNodeInfo(result.stdout, instance_list)
 
-  def GetInstanceConsole(self, instance, primary_node, node_group,
+  @classmethod
+  def GetInstanceConsole(cls, instance, primary_node, node_group,
                          hvparams, beparams):
     """Return a command for connecting to the console of an instance.
 
     """
-    xen_cmd = self._GetCommand(hvparams)
+    xen_cmd = XenHypervisor._GetCommandFromHvparams(hvparams)
     ndparams = node_group.FillND(primary_node)
     return objects.InstanceConsole(instance=instance.name,
                                    kind=constants.CONS_SSH,

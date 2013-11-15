@@ -196,14 +196,6 @@ class LUClusterPostInit(LogicalUnit):
                    " OpenvSwitch will not have an outside connection. This"
                    " might not be what you want.")
 
-    # OpenvSwitch: Warn if parameters are given, but OVS is not enabled.
-    if (not self.master_ndparams[constants.ND_OVS] and
-        (self.master_ndparams[constants.ND_OVS_NAME] or
-         self.master_ndparams.get(constants.ND_OVS_LINK, None))):
-      self.LogInfo("OpenvSwitch name or link were given, but"
-                   " OpenvSwitch is not enabled. Please enable"
-                   " OpenvSwitch with 'ovs=true' or create it manually")
-
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -1936,8 +1928,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     node_versions = {}
     for node_uuid, ndata in node_verify_infos.items():
       nresult = ndata.payload
-      version = nresult.get(constants.NV_DRBDVERSION, "Missing DRBD version")
-      node_versions[node_uuid] = version
+      if nresult:
+        version = nresult.get(constants.NV_DRBDVERSION, "Missing DRBD version")
+        node_versions[node_uuid] = version
 
     if len(set(node_versions.values())) > 1:
       for node_uuid, version in sorted(node_versions.items()):

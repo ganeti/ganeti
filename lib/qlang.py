@@ -32,44 +32,30 @@ converted to callable functions by L{query._CompileFilter}.
 """
 
 import re
-import string # pylint: disable=W0402
 import logging
 
 import pyparsing as pyp
 
+from ganeti import constants
 from ganeti import errors
 from ganeti import utils
 from ganeti import compat
 
 
-# Logic operators with one or more operands, each of which is a filter on its
-# own
-OP_OR = "|"
-OP_AND = "&"
-
-
-# Unary operators with exactly one operand
-OP_NOT = "!"
-OP_TRUE = "?"
-
-
-# Binary operators with exactly two operands, the field name and an
-# operator-specific value
-OP_EQUAL = "="
-OP_NOT_EQUAL = "!="
-OP_LT = "<"
-OP_LE = "<="
-OP_GT = ">"
-OP_GE = ">="
-OP_REGEXP = "=~"
-OP_CONTAINS = "=[]"
-
-
-#: Characters used for detecting user-written filters (see L{_CheckFilter})
-FILTER_DETECTION_CHARS = frozenset("()=/!~'\"\\<>" + string.whitespace)
-
-#: Characters used to detect globbing filters (see L{_CheckGlobbing})
-GLOB_DETECTION_CHARS = frozenset("*?")
+OP_OR = constants.QLANG_OP_OR
+OP_AND = constants.QLANG_OP_AND
+OP_NOT = constants.QLANG_OP_NOT
+OP_TRUE = constants.QLANG_OP_TRUE
+OP_EQUAL = constants.QLANG_OP_EQUAL
+OP_NOT_EQUAL = constants.QLANG_OP_NOT_EQUAL
+OP_LT = constants.QLANG_OP_LT
+OP_LE = constants.QLANG_OP_LE
+OP_GT = constants.QLANG_OP_GT
+OP_GE = constants.QLANG_OP_GE
+OP_REGEXP = constants.QLANG_OP_REGEXP
+OP_CONTAINS = constants.QLANG_OP_CONTAINS
+FILTER_DETECTION_CHARS = constants.QLANG_FILTER_DETECTION_CHARS
+GLOB_DETECTION_CHARS = constants.QLANG_GLOB_DETECTION_CHARS
 
 
 def MakeSimpleFilter(namefield, values):

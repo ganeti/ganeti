@@ -621,7 +621,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     raise errors.OpPrereqError("Invalid mac prefix given '%s'" % mac_prefix,
                                errors.ECODE_INVAL)
 
-  if not nicparams.get('mode', None) == "openvswitch":
+  if not nicparams.get('mode', None) == constants.NIC_MODE_OVS:
     # Do not do this check if mode=openvswitch, since the openvswitch is not
     # created yet
     result = utils.RunCmd(["ip", "link", "show", "dev", master_netdev])

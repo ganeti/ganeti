@@ -218,3 +218,9 @@ hasGnuLn = HAS_GNU_LN
 -- number as the value
 manPages :: [(String, Int)]
 manPages = MAN_PAGES[]
+
+pyAfInet4 :: Int
+pyAfInet4 = AF_INET4
+
+pyAfInet6 :: Int
+pyAfInet6 = AF_INET6

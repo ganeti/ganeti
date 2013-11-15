@@ -31,7 +31,7 @@ from ganeti import utils
 from ganeti import pathutils
 
 
-JOBS_PER_ARCHIVE_DIRECTORY = 10000
+JOBS_PER_ARCHIVE_DIRECTORY = constants.JSTORE_JOBS_PER_ARCHIVE_DIRECTORY
 
 
 def _ReadNumericFile(file_name):

@@ -2109,18 +2109,17 @@ Manages storage units on the node.
 ``GET``
 ~~~~~~~
 
-FIXME: enable ".. pyassert::" again when all storage types are
-implemented::
+.. pyassert::
 
-   constants.STORAGE_TYPES == set([constants.ST_FILE,
-                                   constants.ST_LVM_PV,
-                                   constants.ST_LVM_VG])
+   constants.STS_REPORT == set([constants.ST_FILE,
+                                constants.ST_LVM_PV,
+                                constants.ST_LVM_VG])
 
 Requests a list of storage units on a node. Requires the parameters
-``storage_type`` (one of :pyeval:`constants.ST_FILE`,
-:pyeval:`constants.ST_LVM_PV` or :pyeval:`constants.ST_LVM_VG`) and
-``output_fields``. The result will be a job id, using which the result
-can be retrieved.
+``storage_type`` for storage types that support space reporting
+(one of :pyeval:`constants.ST_FILE`, :pyeval:`constants.ST_LVM_PV`
+or :pyeval:`constants.ST_LVM_VG`) and ``output_fields``. The result
+will be a job id, using which the result can be retrieved.
 
 
 .. _rapi-res-nodes-node_name-storage-modify:

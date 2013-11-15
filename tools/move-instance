@@ -531,7 +531,7 @@ class MoveDestExecutor(object):
       constants.INIC_MAC: mac,
       constants.INIC_MODE: mode,
       constants.INIC_LINK: link,
-      constants.INIC_NAME: vlan,
+      constants.INIC_VLAN: vlan,
       constants.INIC_NETWORK: network,
       constants.INIC_NAME: nic_name
       } for nic_name, _, ip, mac, mode, link, vlan, network, _

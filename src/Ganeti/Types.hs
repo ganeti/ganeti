@@ -546,7 +546,7 @@ addParamsToStorageUnit _ (SURaw StorageRados key) = SURados key
 -- This is part of the 'IAllocator' interface and it is used, for
 -- example, in 'Ganeti.HTools.Loader.RqType'.  However, it must reside
 -- in this module, and not in 'Ganeti.HTools.Types', because it is
--- also used by 'Ganeti.HsConstants'.
+-- also used by 'Ganeti.Constants'.
 $(THH.declareLADT ''String "EvacMode"
   [ ("ChangePrimary",   "primary-only")
   , ("ChangeSecondary", "secondary-only")

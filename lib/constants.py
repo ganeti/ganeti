@@ -64,10 +64,6 @@ IE_MAGIC_RE = re.compile(r"^[-_.a-zA-Z0-9]{5,100}$")
 # External script validation mask
 EXT_PLUGIN_MASK = re.compile("^[a-zA-Z0-9_-]+$")
 
-# for export to htools
-IP4_FAMILY = socket.AF_INET
-IP6_FAMILY = socket.AF_INET6
-
 JOB_ID_TEMPLATE = r"\d+"
 JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
 
@@ -77,9 +73,6 @@ JOB_FILE_RE = re.compile(r"^job-(%s)$" % JOB_ID_TEMPLATE)
 # by Haskell at compilation time (given that this environment variable
 # might be different at runtime).
 HVC_DEFAULTS[HT_XEN_HVM][HV_VNC_PASSWORD_FILE] = pathutils.VNC_PASSWORD_FILE
-
-# Regex string for verifying a UUID
-UUID_REGEX = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
 
 # Do not re-export imported modules
 del re, socket, pathutils, compat

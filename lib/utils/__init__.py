@@ -99,11 +99,6 @@ def ForceDictType(target, key_types, allowed_values=None):
 
     if ktype in (constants.VTYPE_STRING, constants.VTYPE_MAYBE_STRING):
       if target[key] is None and ktype == constants.VTYPE_MAYBE_STRING:
-        msg = ("'None' is not a valid Maybe value for '%s'. "
-               "Use 'VALUE_HS_NOTHING'") % (key, )
-        logging.warning(msg)
-      elif (target[key] == constants.VALUE_HS_NOTHING
-            and ktype == constants.VTYPE_MAYBE_STRING):
         pass
       elif not isinstance(target[key], basestring):
         if isinstance(target[key], bool) and not target[key]:

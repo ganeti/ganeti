@@ -192,8 +192,7 @@ class TestForceDictType(unittest.TestCase):
     self.assertEqual(self._fdt({"b": "True"}), {"b": True})
     self.assertEqual(self._fdt({"d": "4"}), {"d": 4})
     self.assertEqual(self._fdt({"d": "4M"}), {"d": 4})
-    self.assertEqual(self._fdt({"e": constants.VALUE_HS_NOTHING, }), {"e":
-                               constants.VALUE_HS_NOTHING, })
+    self.assertEqual(self._fdt({"e": None, }), {"e": None, })
     self.assertEqual(self._fdt({"e": "Hello World", }), {"e": "Hello World", })
     self.assertEqual(self._fdt({"e": False, }), {"e": "", })
     self.assertEqual(self._fdt({"b": "hello", }, ["hello"]), {"b": "hello"})
