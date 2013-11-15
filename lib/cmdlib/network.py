@@ -26,11 +26,10 @@ from ganeti import errors
 from ganeti import locking
 from ganeti import network
 from ganeti import objects
-from ganeti import qlang
 from ganeti import query
 from ganeti import utils
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, QueryBase
-from ganeti.cmdlib.common import ShareAll, CheckNodeGroupInstances
+from ganeti.cmdlib.common import CheckNodeGroupInstances
 
 
 def _BuildNetworkHookEnv(name, subnet, gateway, network6, gateway6,
@@ -403,103 +402,17 @@ class NetworkQuery(QueryBase):
   FIELDS = query.NETWORK_FIELDS
 
   def ExpandNames(self, lu):
-    lu.needed_locks = {}
-    lu.share_locks = ShareAll()
-
-    self.do_locking = self.use_locking
-
-    all_networks = lu.cfg.GetAllNetworksInfo()
-    name_to_uuid = dict((n.name, n.uuid) for n in all_networks.values())
-
-    if self.names:
-      missing = []
-      self.wanted = []
-
-      for name in self.names:
-        if name in name_to_uuid:
-          self.wanted.append(name_to_uuid[name])
-        else:
-          missing.append(name)
-
-      if missing:
-        raise errors.OpPrereqError("Some networks do not exist: %s" % missing,
-                                   errors.ECODE_NOENT)
-    else:
-      self.wanted = locking.ALL_SET
-
-    if self.do_locking:
-      lu.needed_locks[locking.LEVEL_NETWORK] = self.wanted
-      if query.NETQ_INST in self.requested_data:
-        lu.needed_locks[locking.LEVEL_INSTANCE] = locking.ALL_SET
-      if query.NETQ_GROUP in self.requested_data:
-        lu.needed_locks[locking.LEVEL_NODEGROUP] = locking.ALL_SET
+    raise NotImplementedError
 
   def DeclareLocks(self, lu, level):
-    pass
+    raise NotImplementedError
 
   def _GetQueryData(self, lu):
-    """Computes the list of networks and their attributes.
-
-    """
-    all_networks = lu.cfg.GetAllNetworksInfo()
-
-    network_uuids = self._GetNames(lu, all_networks.keys(),
-                                   locking.LEVEL_NETWORK)
-
-    do_instances = query.NETQ_INST in self.requested_data
-    do_groups = query.NETQ_GROUP in self.requested_data
-
-    network_to_instances = None
-    network_to_groups = None
-
-    # For NETQ_GROUP, we need to map network->[groups]
-    if do_groups:
-      all_groups = lu.cfg.GetAllNodeGroupsInfo()
-      network_to_groups = dict((uuid, []) for uuid in network_uuids)
-      for _, group in all_groups.iteritems():
-        for net_uuid in network_uuids:
-          netparams = group.networks.get(net_uuid, None)
-          if netparams:
-            info = (group.name, netparams[constants.NIC_MODE],
-                    netparams[constants.NIC_LINK])
-
-            network_to_groups[net_uuid].append(info)
-
-    if do_instances:
-      all_instances = lu.cfg.GetAllInstancesInfo()
-      network_to_instances = dict((uuid, []) for uuid in network_uuids)
-      for instance in all_instances.values():
-        for nic in instance.nics:
-          if nic.network in network_uuids:
-            network_to_instances[nic.network].append(instance.uuid)
-            break
-
-    if query.NETQ_STATS in self.requested_data:
-      stats = \
-        dict((uuid,
-              self._GetStats(network.AddressPool(all_networks[uuid])))
-             for uuid in network_uuids)
-    else:
-      stats = None
-
-    return query.NetworkQueryData([all_networks[uuid]
-                                   for uuid in network_uuids],
-                                   network_to_groups,
-                                   network_to_instances,
-                                   stats)
+    raise NotImplementedError
 
   @staticmethod
   def _GetStats(pool):
-    """Returns statistics for a network address pool.
-
-    """
-    return {
-      "free_count": pool.GetFreeCount(),
-      "reserved_count": pool.GetReservedCount(),
-      "map": pool.GetMap(),
-      "external_reservations":
-        utils.CommaJoin(pool.GetExternalReservations()),
-      }
+    raise NotImplementedError
 
 
 class LUNetworkQuery(NoHooksLU):
@@ -509,14 +422,13 @@ class LUNetworkQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.nq = NetworkQuery(qlang.MakeSimpleFilter("name", self.op.names),
-                            self.op.output_fields, self.op.use_locking)
+    raise NotImplementedError
 
   def ExpandNames(self):
-    self.nq.ExpandNames(self)
+    raise NotImplementedError
 
   def Exec(self, feedback_fn):
-    return self.nq.OldStyleQuery(self)
+    raise NotImplementedError
 
 
 def _FmtNetworkConflict(details):

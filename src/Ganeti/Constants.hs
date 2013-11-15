@@ -3341,12 +3341,11 @@ qrViaOp =
                        qrGroup,
                        qrOs,
                        qrExport,
-                       qrNetwork,
                        qrExtstorage]
 
 -- | List of resources which can be queried using Local UniX Interface
 qrViaLuxi :: FrozenSet String
-qrViaLuxi = ConstantUtils.mkSet [qrLock, qrJob, qrNode]
+qrViaLuxi = ConstantUtils.mkSet [qrLock, qrJob, qrNode, qrNetwork]
 
 -- | List of resources which can be queried using RAPI
 qrViaRapi :: FrozenSet String
