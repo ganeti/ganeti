@@ -1928,8 +1928,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     node_versions = {}
     for node_uuid, ndata in node_verify_infos.items():
       nresult = ndata.payload
-      version = nresult.get(constants.NV_DRBDVERSION, "Missing DRBD version")
-      node_versions[node_uuid] = version
+      if nresult:
+        version = nresult.get(constants.NV_DRBDVERSION, "Missing DRBD version")
+        node_versions[node_uuid] = version
 
     if len(set(node_versions.values())) > 1:
       for node_uuid, version in sorted(node_versions.items()):

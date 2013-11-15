@@ -335,6 +335,7 @@ class LUNodeAdd(LogicalUnit):
     # later in the procedure; this also means that if the re-add
     # fails, we are left with a non-offlined, broken node
     if self.op.readd:
+      self.new_node.offline = False
       self.new_node.drained = False
       self.LogInfo("Readding a node, the offline/drained flags were reset")
       # if we demote the node, we do cleanup later in the procedure

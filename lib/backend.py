@@ -4020,8 +4020,20 @@ def DrbdAttachNet(disks, instance_name, multimaster):
     for rd in bdevs:
       stats = rd.GetProcStatus()
 
-      all_connected = (all_connected and
-                       (stats.is_connected or stats.is_in_resync))
+      if multimaster:
+        # In the multimaster case we have to wait explicitly until
+        # the resource is Connected and UpToDate/UpToDate, because
+        # we promote *both nodes* to primary directly afterwards.
+        # Being in resync is not enough, since there is a race during which we
+        # may promote a node with an Outdated disk to primary, effectively
+        # tearing down the connection.
+        all_connected = (all_connected and
+                         stats.is_connected and
+                         stats.is_disk_uptodate and
+                         stats.peer_disk_uptodate)
+      else:
+        all_connected = (all_connected and
+                         (stats.is_connected or stats.is_in_resync))
 
       if stats.is_standalone:
         # peer had different config info and this node became
