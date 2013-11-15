@@ -2,6 +2,14 @@ News
 ====
 
 
+Version 2.8.3
+-------------
+
+*(unreleased)*
+
+- Fixed Luxi daemon socket permissions after master-failover
+
+
 Version 2.8.2
 -------------
 
