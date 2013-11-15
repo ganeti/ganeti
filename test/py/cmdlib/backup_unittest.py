@@ -31,46 +31,6 @@ from testsupport import *
 import testutils
 
 
-class TestLUBackupQuery(CmdlibTestCase):
-  def setUp(self):
-    super(TestLUBackupQuery, self).setUp()
-
-    self.fields = query._BuildExportFields().keys()
-
-  def testFailingExportList(self):
-    self.rpc.call_export_list.return_value = \
-      self.RpcResultsBuilder() \
-        .AddFailedNode(self.master) \
-        .Build()
-    op = opcodes.OpBackupQuery(nodes=[self.master.name])
-    ret = self.ExecOpCode(op)
-    self.assertEqual({self.master.name: False}, ret)
-
-  def testQueryOneNode(self):
-    self.rpc.call_export_list.return_value = \
-      self.RpcResultsBuilder() \
-        .AddSuccessfulNode(self.master,
-                           ["mock_export1", "mock_export2"]) \
-        .Build()
-    op = opcodes.OpBackupQuery(nodes=[self.master.name])
-    ret = self.ExecOpCode(op)
-    self.assertEqual({self.master.name: ["mock_export1", "mock_export2"]}, ret)
-
-  def testQueryAllNodes(self):
-    node = self.cfg.AddNewNode()
-    self.rpc.call_export_list.return_value = \
-      self.RpcResultsBuilder() \
-        .AddSuccessfulNode(self.master, ["mock_export1"]) \
-        .AddSuccessfulNode(node, ["mock_export2"]) \
-        .Build()
-    op = opcodes.OpBackupQuery()
-    ret = self.ExecOpCode(op)
-    self.assertEqual({
-                       self.master.name: ["mock_export1"],
-                       node.name: ["mock_export2"]
-                     }, ret)
-
-
 class TestLUBackupPrepare(CmdlibTestCase):
   @patchUtils("instance_utils")
   def testPrepareLocalExport(self, utils):

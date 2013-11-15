@@ -24,7 +24,6 @@
 from ganeti import constants
 from ganeti import errors
 from ganeti import query
-from ganeti.cmdlib.backup import ExportQuery
 from ganeti.cmdlib.base import NoHooksLU
 from ganeti.cmdlib.cluster import ClusterQuery
 from ganeti.cmdlib.group import GroupQuery
@@ -40,7 +39,6 @@ _QUERY_IMPL = {
   constants.QR_GROUP: GroupQuery,
   constants.QR_OS: OsQuery,
   constants.QR_EXTSTORAGE: ExtStorageQuery,
-  constants.QR_EXPORT: ExportQuery,
   }
 
 assert set(_QUERY_IMPL.keys()) == constants.QR_VIA_OP

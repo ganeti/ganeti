@@ -29,12 +29,11 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import locking
 from ganeti import masterd
-from ganeti import qlang
 from ganeti import query
 from ganeti import utils
 
 from ganeti.cmdlib.base import QueryBase, NoHooksLU, LogicalUnit
-from ganeti.cmdlib.common import GetWantedNodes, ShareAll, CheckNodeOnline, \
+from ganeti.cmdlib.common import CheckNodeOnline, \
   ExpandNodeUuidAndName
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
   ShutdownInstanceDisks
@@ -49,50 +48,13 @@ class ExportQuery(QueryBase):
   SORT_FIELD = "node"
 
   def ExpandNames(self, lu):
-    lu.needed_locks = {}
-
-    # The following variables interact with _QueryBase._GetNames
-    if self.names:
-      (self.wanted, _) = GetWantedNodes(lu, self.names)
-    else:
-      self.wanted = locking.ALL_SET
-
-    self.do_locking = self.use_locking
-
-    if self.do_locking:
-      lu.share_locks = ShareAll()
-      lu.needed_locks = {
-        locking.LEVEL_NODE: self.wanted,
-        }
-
-      if not self.names:
-        lu.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
+    raise NotImplementedError
 
   def DeclareLocks(self, lu, level):
     pass
 
   def _GetQueryData(self, lu):
-    """Computes the list of nodes and their attributes.
-
-    """
-    # Locking is not used
-    # TODO
-    assert not (compat.any(lu.glm.is_owned(level)
-                           for level in locking.LEVELS
-                           if level != locking.LEVEL_CLUSTER) or
-                self.do_locking or self.use_locking)
-
-    node_uuids = self._GetNames(lu, lu.cfg.GetNodeList(), locking.LEVEL_NODE)
-
-    result = []
-    for (node_uuid, nres) in lu.rpc.call_export_list(node_uuids).items():
-      node = lu.cfg.GetNodeInfo(node_uuid)
-      if nres.fail_msg:
-        result.append((node.name, None))
-      else:
-        result.extend((node.name, expname) for expname in nres.payload)
-
-    return result
+    raise NotImplementedError
 
 
 class LUBackupQuery(NoHooksLU):
@@ -102,25 +64,16 @@ class LUBackupQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.expq = ExportQuery(qlang.MakeSimpleFilter("node", self.op.nodes),
-                            ["node", "export"], self.op.use_locking)
+    raise NotImplementedError
 
   def ExpandNames(self):
-    self.expq.ExpandNames(self)
+    raise NotImplementedError
 
   def DeclareLocks(self, level):
-    self.expq.DeclareLocks(self, level)
+    raise NotImplementedError
 
   def Exec(self, feedback_fn):
-    result = {}
-
-    for (node, expname) in self.expq.OldStyleQuery(self):
-      if expname is None:
-        result[node] = False
-      else:
-        result.setdefault(node, []).append(expname)
-
-    return result
+    raise NotImplementedError
 
 
 class LUBackupPrepare(NoHooksLU):
