@@ -238,6 +238,11 @@ instanceFields =
        (nicpMode . fillNicParamsFromConfig cfg . nicNicparams)
        . instNics),
      QffNormal)
+  , (FieldDefinition "nic.vlans" "NIC_VLANs" QFTOther
+     (nicAggDescPrefix ++ "VLAN"),
+     FieldConfig (\cfg -> rsNormal . map (MaybeForJSON . getNicVlan .
+       fillNicParamsFromConfig cfg . nicNicparams) . instNics),
+     QffNormal)
   , (FieldDefinition "nic.bridges" "NIC_bridges" QFTOther
      (nicAggDescPrefix ++ "bridge"),
      FieldConfig (\cfg -> rsNormal . map (MaybeForJSON . getNicBridge .
