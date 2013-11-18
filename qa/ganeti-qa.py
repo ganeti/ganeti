@@ -953,6 +953,8 @@ def main():
   """Main program.
 
   """
+  colors.check_for_colors()
+
   parser = optparse.OptionParser(usage="%prog [options] <config-file>")
   parser.add_option("--yes-do-it", dest="yes_do_it",
                     action="store_true",

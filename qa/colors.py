@@ -22,10 +22,12 @@
 """Script for adding colorized output to Ganeti.
 
 Colors are enabled only if the standard output is a proper terminal.
+(Or call check_for_colors() to make a thorough test using "tput".)
 
 """
 
 import os
+import subprocess
 import sys
 
 DEFAULT = '\033[0m'
@@ -47,3 +49,22 @@ def colorize(line, color=None):
     return color + line + DEFAULT
   else:
     return line
+
+
+def check_for_colors():
+  """Tries to call 'tput' to properly determine, if the terminal has colors.
+
+  This functions is meant to be run once at the program's start. If not
+  invoked, colors are enabled iff standard output is a terminal.
+  """
+  colors = 0
+  if sys.stdout.isatty():
+    try:
+      p = subprocess.Popen(["tput", "colors"], stdout=subprocess.PIPE)
+      output = p.communicate()[0]
+      if p.returncode == 0:
+        colors = int(output)
+    except (OSError, ValueError):
+      pass
+  global _enabled
+  _enabled = (colors >= 2)
