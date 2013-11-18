@@ -66,7 +66,7 @@ def _FormatHeader(line, end=72, mark="-", color=None):
   line = (mark * 4) + " " + line + " "
   line += "-" * (end - len(line))
   line = line.rstrip()
-  line = colors.colorize(line, color)
+  line = colors.colorize(line, color=color)
   return line
 
 

@@ -24,29 +24,64 @@
 Colors are enabled only if the standard output is a proper terminal.
 (Or call check_for_colors() to make a thorough test using "tput".)
 
+See http://en.wikipedia.org/wiki/ANSI_escape_code for more possible additions.
 """
 
 import os
 import subprocess
 import sys
 
-DEFAULT = '\033[0m'
-RED = '\033[91m'
-GREEN = '\033[92m'
-BLUE = '\033[94m'
-CYAN = '\033[96m'
-WHITE = '\033[97m'
-YELLOW = '\033[93m'
-MAGENTA = '\033[95m'
-GREY = '\033[90m'
-BLACK = '\033[90m'
+DEFAULT = "0"
+BOLD = "1"
+UNDERLINE = "4"
+REVERSE = "7"
+
+BLACK = "30"
+RED = "31"
+GREEN = "32"
+YELLOW = "33"
+BLUE = "34"
+MAGENTA = "35"
+CYAN = "36"
+WHITE = "37"
+
+BG_BLACK = "40"
+BG_RED = "41"
+BG_GREEN = "42"
+BG_YELLOW = "43"
+BG_BLUE = "44"
+BG_MAGENTA = "45"
+BG_CYAN = "46"
+BG_WHITE = "47"
 
 _enabled = sys.stdout.isatty()
 
 
+def _escape_one(code):
+  return "\033[" + code + "m" if code else ""
+
+
+def _escape(codes):
+  if hasattr(codes, "__iter__"):
+    return _escape_one(";".join(codes))
+  else:
+    return _escape_one(codes)
+
+
+def _reset():
+  return _escape([DEFAULT])
+
+
 def colorize(line, color=None):
-  if _enabled and color is not None:
-    return color + line + DEFAULT
+  """Wraps a given string into ANSI color codes corresponding to given
+  color(s).
+
+  @param line: a string
+  @param color: a color or a list of colors selected from this module's
+    constants
+  """
+  if _enabled and color:
+    return _escape(color) + line + _reset()
   else:
     return line
 
