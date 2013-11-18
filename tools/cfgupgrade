@@ -394,20 +394,48 @@ def UpgradeAll(config_data):
   UpgradeInstanceIndices(config_data)
 
 
+def DowngradeNDParams(ndparams):
+  for param in ["ovs", "ovs_link", "ovs_name"]:
+    if param in ndparams:
+      del ndparams[param]
+
+
+def DowngradeNicParams(nicparams):
+  if "vlan" in nicparams:
+    del nicparams["vlan"]
+
+
+def DowngradeHVParams(hvparams):
+  for hv in ["xen-pvm", "xen-hvm"]:
+    if hv not in hvparams:
+      continue
+    for param in ["cpuid", "soundhw"]:
+      if param in hvparams[hv]:
+        del hvparams[hv][param]
+
+
+def DowngradeCluster(config_data):
+  cluster = config_data["cluster"]
+  DowngradeNDParams(cluster["ndparams"])
+  DowngradeNicParams(cluster["nicparams"][constants.PP_DEFAULT])
+  DowngradeHVParams(cluster["hvparams"])
+
+
+def DowngradeNodeGroups(config_data):
+  for (_, ngobj) in config_data["nodegroups"].items():
+    DowngradeNDParams(ngobj["ndparams"])
+
+
+def DowngradeNodes(config_data):
+  for (_, nobj) in config_data["nodes"].items():
+    DowngradeNDParams(nobj["ndparams"])
+
+
 def DowngradeInstances(config_data):
-  if "instances" not in config_data:
-    raise Error("Cannot find the 'instances' key in the configuration!")
-  for (iname, iobj) in config_data["instances"].items():
-    DowngradeNicParamsVLAN(iobj["nics"], iname)
-
-
-def DowngradeNicParamsVLAN(nics, owner):
-  for nic in nics:
-    vlan = nic["nicparams"].get("vlan", None)
-    if vlan:
-      logging.warning("Instance with name %s found. Removing VLAN information"
-                      " %s.", owner, vlan)
-      del nic["nicparams"]["vlan"]
+  for (_, iobj) in config_data["instances"].items():
+    DowngradeHVParams(iobj["hvparams"])
+    for nic in iobj["nics"]:
+      DowngradeNicParams(nic["nicparams"])
 
 
 def DowngradeAll(config_data):
@@ -415,6 +443,9 @@ def DowngradeAll(config_data):
   # it can be removed when updating to the next version.
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
+  DowngradeCluster(config_data)
+  DowngradeNodeGroups(config_data)
+  DowngradeNodes(config_data)
   DowngradeInstances(config_data)
 
 
