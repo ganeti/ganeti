@@ -284,6 +284,9 @@ instanceFields =
   , (fieldDefinitionCompleter "nic.link/%d" "NicLink/%d" QFTText
      ("Link" ++ nicDescSuffix),
      getIndexedNicField nicpLink, QffNormal)
+  , (fieldDefinitionCompleter "nic.vlan/%d" "NicVLAN/%d" QFTText
+     ("VLAN" ++ nicDescSuffix),
+     getOptionalIndexedNicField getNicVlan, QffNormal)
   , (fieldDefinitionCompleter "nic.network.name/%d" "NicNetworkName/%d" QFTText
      ("Network name" ++ nicDescSuffix),
      getIndexedNicNetworkNameField, QffNormal)
@@ -333,6 +336,12 @@ getNicBridge :: FilledNicParams -> Maybe String
 getNicBridge nicParams
   | nicpMode nicParams == NMBridged = Just $ nicpLink nicParams
   | otherwise                       = Nothing
+
+-- | Gets the VLAN of a NIC.
+getNicVlan :: FilledNicParams -> Maybe String
+getNicVlan params
+  | nicpMode params == NMOvs = Just $ nicpVlan params
+  | otherwise                = Nothing
 
 -- | Fill partial NIC params by using the defaults from the configuration.
 fillNicParamsFromConfig :: ConfigData -> PartialNicParams -> FilledNicParams
