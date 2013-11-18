@@ -130,6 +130,31 @@ def RunTestIf(testnames, fn, *args, **kwargs):
                         color=colors.BLUE, mark="*")
 
 
+def RunTestBlock(fn, *args, **kwargs):
+  """Runs a block of tests after printing a header.
+
+  """
+  tstart = datetime.datetime.now()
+
+  desc = _DescriptionOf(fn)
+
+  print
+  print _FormatHeader("BLOCK %s start %s" % (tstart, desc),
+                      color=[colors.YELLOW, colors.BOLD], mark="v")
+
+  try:
+    return fn(*args, **kwargs)
+  except Exception, e:
+    print _FormatHeader("BLOCK FAILED %s: %s" % (desc, e),
+                        color=[colors.RED, colors.BOLD])
+    raise
+  finally:
+    tstop = datetime.datetime.now()
+    tdelta = tstop - tstart
+    print _FormatHeader("BLOCK %s time=%s %s" % (tstop, tdelta, desc),
+                        color=[colors.MAGENTA, colors.BOLD], mark="^")
+
+
 def RunEnvTests():
   """Run several environment tests.
 
@@ -821,22 +846,22 @@ def RunQa():
   """
   rapi_user = "ganeti-qa"
 
-  RunEnvTests()
+  RunTestBlock(RunEnvTests)
   rapi_secret = SetupCluster(rapi_user)
 
   if qa_rapi.Enabled():
     # Load RAPI certificate
     qa_rapi.Setup(rapi_user, rapi_secret)
 
-  RunClusterTests()
-  RunOsTests()
+  RunTestBlock(RunClusterTests)
+  RunTestBlock(RunOsTests)
 
   RunTestIf("tags", qa_tags.TestClusterTags)
 
-  RunCommonNodeTests()
-  RunGroupListTests()
-  RunGroupRwTests()
-  RunNetworkTests()
+  RunTestBlock(RunCommonNodeTests)
+  RunTestBlock(RunGroupListTests)
+  RunTestBlock(RunGroupRwTests)
+  RunTestBlock(RunNetworkTests)
 
   # The master shouldn't be readded or put offline; "delay" needs a non-master
   # node to test
@@ -883,7 +908,7 @@ def RunQa():
   for (conf_name, setup_conf_f, restore_conf_f) in config_list:
     if qa_config.TestEnabled(conf_name):
       oldconf = setup_conf_f()
-      RunInstanceTests()
+      RunTestBlock(RunInstanceTests)
       restore_conf_f(oldconf)
 
   pnode = qa_config.AcquireNode()
@@ -912,11 +937,11 @@ def RunQa():
 
   RunTestIf("cluster-upgrade", qa_cluster.TestUpgrade)
 
-  RunExclusiveStorageTests()
+  RunTestBlock(RunExclusiveStorageTests)
   RunTestIf(["cluster-instance-policy", "instance-add-plain-disk"],
             TestIPolicyPlainInstance)
 
-  RunCustomSshPortTests()
+  RunTestBlock(RunCustomSshPortTests)
 
   RunTestIf(
     "instance-add-restricted-by-disktemplates",
@@ -941,7 +966,7 @@ def RunQa():
       snode.Release()
     qa_cluster.AssertClusterVerify()
 
-  RunMonitoringTests()
+  RunTestBlock(RunMonitoringTests)
 
   RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)
 
