@@ -337,7 +337,7 @@ $(buildObject "INicParams" "inic"
   , optionalField $ simpleField C.inicMode   [t| NonEmptyString |]
   , optionalField $ simpleField C.inicLink   [t| NonEmptyString |]
   , optionalField $ simpleField C.inicName   [t| NonEmptyString |]
-  , optionalField $ simpleField C.inicVlan   [t| NonEmptyString |]
+  , optionalField $ simpleField C.inicVlan   [t| String         |]
   , optionalField $ simpleField C.inicBridge [t| NonEmptyString |]
   ])
 
