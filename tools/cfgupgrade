@@ -416,19 +416,24 @@ def DowngradeHVParams(hvparams):
 
 def DowngradeCluster(config_data):
   cluster = config_data["cluster"]
-  DowngradeNDParams(cluster["ndparams"])
-  DowngradeNicParams(cluster["nicparams"][constants.PP_DEFAULT])
-  DowngradeHVParams(cluster["hvparams"])
+  if "ndparams" in cluster:
+    DowngradeNDParams(cluster["ndparams"])
+  if "nicparams" in cluster:
+    DowngradeNicParams(cluster["nicparams"][constants.PP_DEFAULT])
+  if "hvparams" in cluster:
+    DowngradeHVParams(cluster["hvparams"])
 
 
 def DowngradeNodeGroups(config_data):
   for (_, ngobj) in config_data["nodegroups"].items():
-    DowngradeNDParams(ngobj["ndparams"])
+    if "ndparams" in ngobj:
+      DowngradeNDParams(ngobj["ndparams"])
 
 
 def DowngradeNodes(config_data):
   for (_, nobj) in config_data["nodes"].items():
-    DowngradeNDParams(nobj["ndparams"])
+    if "ndparams" in nobj:
+      DowngradeNDParams(nobj["ndparams"])
 
 
 def DowngradeInstances(config_data):
