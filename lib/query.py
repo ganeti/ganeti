@@ -1784,6 +1784,29 @@ def _GetInstAllNicBridges(ctx, inst):
   return result
 
 
+def _GetInstAllNicVlans(ctx, inst):
+  """Get all network VLANs of an instance.
+
+  @type ctx: L{InstanceQueryData}
+  @type inst: L{objects.Instance}
+  @param inst: Instance object
+
+  """
+  assert len(ctx.inst_nicparams) == len(inst.nics)
+
+  result = []
+
+  for nicp in ctx.inst_nicparams:
+    if nicp[constants.NIC_MODE] == constants.NIC_MODE_OVS:
+      result.append(nicp[constants.NIC_VLAN])
+    else:
+      result.append(None)
+
+  assert len(result) == len(inst.nics)
+
+  return result
+
+
 def _GetInstNicParam(name):
   """Build function for retrieving a NIC parameter.
 
@@ -1843,6 +1866,9 @@ def _GetInstanceNetworkFields():
                 "List containing each network interface's link"), IQ_CONFIG, 0,
      lambda ctx, inst: [nicp[constants.NIC_LINK]
                         for nicp in ctx.inst_nicparams]),
+    (_MakeField("nic.vlans", "NIC_VLANs", QFT_OTHER,
+                "List containing each network interface's VLAN"),
+     IQ_CONFIG, 0, _GetInstAllNicVlans),
     (_MakeField("nic.bridges", "NIC_bridges", QFT_OTHER,
                 "List containing each network interface's bridge"),
      IQ_CONFIG, 0, _GetInstAllNicBridges),
