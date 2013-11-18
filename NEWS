@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.10.0 alpha1
----------------------
+Version 2.10.0 beta1
+--------------------
 
-*(unreleased)*
+*(Released Wed, 27 Nov 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -68,6 +68,17 @@ Python
 
 - The version requirements for ``python-mock`` have increased to at least
   version 1.0.1. It is still used for testing only.
+
+Known issues
+~~~~~~~~~~~~
+
+The following issues are known to be present in the beta and will be fixed
+before rc1.
+
+- Issue 477: Wrong permissions for confd LUXI socket
+- Issue 621: Instance related opcodes do not aquire network/group locks
+- Issue 622: Assertion Error: Node locks differ from node resource locks
+- Issue 623: IPv6 Masterd <-> Luxid communication error
 
 
 Version 2.9.1
