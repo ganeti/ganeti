@@ -25,6 +25,7 @@ Algorithm options:
 Reporting options:
 
 **[ -S *file* ]**
+**[ -C[*file*] ]**
 
 
 DESCRIPTION
@@ -66,6 +67,11 @@ OPTIONS
   (i.e. *filename*.original), and the state at the end of the
   squeezing operation is saved to the given file plus the extension "squeezed"
   (i.e. *filename*.squeezed).
+
+-C[*filename*], \--print-commands[=*filename*]
+  If given, a shell script containing the commands to squeeze or unsqueeze
+  the cluster are saved in a file with the given name; if no name is provided,
+  they are printed to stdout.
 
 -t *datafile*, \--text-data=*datafile*
   Backend specification: the name of the file holding node and instance
