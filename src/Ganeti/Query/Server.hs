@@ -182,6 +182,10 @@ handleCall _ cfg (QueryNodes names fields lock) =
   handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRNode)
     (map Left names) fields lock
 
+handleCall _ cfg (QueryInstances names fields lock) =
+  handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRInstance)
+    (map Left names) fields lock
+
 handleCall _ cfg (QueryGroups names fields lock) =
   handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRGroup)
     (map Left names) fields lock
