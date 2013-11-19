@@ -216,7 +216,7 @@ class TestEpo(unittest.TestCase):
 
       off_fn = compat.partial(self._Off, ["node1.example.com"])
 
-      result = self._Test(opts, [], cl=client, _off_fn=off_fn,
+      result = self._Test(opts, [], cl=client, qcl=client, _off_fn=off_fn,
                           _confirm_fn=confirm_fn)
       if force or confirm_result:
         self.assertEqual(result, self._OFF_EXITCODE)
@@ -246,7 +246,7 @@ class TestEpo(unittest.TestCase):
         self.assertFalse(inst_map)
         return self._ON_EXITCODE
 
-      result = self._Test(opts, [], cl=client, _on_fn=_On,
+      result = self._Test(opts, [], cl=client, qcl=client, _on_fn=_On,
                           _confirm_fn=self._ConfirmForce)
       self.assertEqual(result, self._ON_EXITCODE)
 
@@ -256,7 +256,8 @@ class TestEpo(unittest.TestCase):
     client = _ClientForEpo(NotImplemented, [
       ("node1.example.com", True, [], [], True, False),
       ])
-    result = self._Test(opts, [], cl=client, _confirm_fn=self._ConfirmForce)
+    result = self._Test(opts, [], cl=client, qcl=client,
+                        _confirm_fn=self._ConfirmForce)
     self.assertEqual(result, constants.EXIT_FAILURE)
 
 

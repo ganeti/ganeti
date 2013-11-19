@@ -232,6 +232,7 @@ def AddNode(opts, args):
 
   """
   cl = GetClient()
+  query_cl = GetClient(query=True)
   node = netutils.GetHostname(name=args[0]).name
   readd = opts.readd
 
@@ -247,9 +248,10 @@ def AddNode(opts, args):
     pass
 
   try:
-    output = cl.QueryNodes(names=[node],
-                           fields=["name", "sip", "master", "ndp/ssh_port"],
-                           use_locking=False)
+    output = query_cl.QueryNodes(names=[node],
+                                 fields=["name", "sip", "master",
+                                         "ndp/ssh_port"],
+                                 use_locking=False)
     node_exists, sip, is_master, ssh_port = output[0]
   except (errors.OpPrereqError, errors.OpExecError):
     node_exists = ""
@@ -438,8 +440,8 @@ def FailoverNode(opts, args):
   # these fields are static data anyway, so it doesn't matter, but
   # locking=True should be safer
   qcl = GetClient(query=True)
-  result = cl.QueryNodes(names=args, fields=selected_fields,
-                         use_locking=False)
+  result = qcl.QueryNodes(names=args, fields=selected_fields,
+                          use_locking=False)
   qcl.Close()
   node, pinst = result[0]
 
@@ -480,7 +482,7 @@ def MigrateNode(opts, args):
   selected_fields = ["name", "pinst_list"]
 
   qcl = GetClient(query=True)
-  result = cl.QueryNodes(names=args, fields=selected_fields, use_locking=False)
+  result = qcl.QueryNodes(names=args, fields=selected_fields, use_locking=False)
   qcl.Close()
   ((node, pinst), ) = result
 

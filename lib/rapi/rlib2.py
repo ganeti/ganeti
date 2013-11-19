@@ -901,7 +901,7 @@ class R_2_instances(baserlib.OpcodeResource):
     """Returns a list of all available instances.
 
     """
-    client = self.GetClient()
+    client = self.GetClient(query=True)
 
     use_locking = self.useLocking()
     if self.useBulk():
@@ -981,7 +981,7 @@ class R_2_instances_name(baserlib.OpcodeResource):
     """Send information about an instance.
 
     """
-    client = self.GetClient()
+    client = self.GetClient(query=True)
     instance_name = self.items[0]
 
     result = baserlib.HandleItemQueryErrors(client.QueryInstances,
@@ -1411,7 +1411,8 @@ class R_2_query(baserlib.ResourceBase):
   PUT_OPCODE = opcodes.OpQuery
 
   def _Query(self, fields, qfilter):
-    return self.GetClient().Query(self.items[0], fields, qfilter).ToDict()
+    client = self.GetClient()
+    return client.Query(self.items[0], fields, qfilter).ToDict()
 
   def GET(self):
     """Returns resource information.

@@ -570,15 +570,17 @@ def ClusterCopyFile(opts, args):
                                errors.ECODE_INVAL)
 
   cl = GetClient()
+  qcl = GetClient(query=True)
   try:
     cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
 
-    results = GetOnlineNodes(nodes=opts.nodes, cl=cl, filter_master=True,
+    results = GetOnlineNodes(nodes=opts.nodes, cl=qcl, filter_master=True,
                              secondary_ips=opts.use_replication_network,
                              nodegroup=opts.nodegroup)
-    ports = GetNodesSshPorts(opts.nodes, cl)
+    ports = GetNodesSshPorts(opts.nodes, qcl)
   finally:
     cl.Close()
+    qcl.Close()
 
   srun = ssh.SshRunner(cluster_name)
   for (node, port) in zip(results, ports):
@@ -599,11 +601,12 @@ def RunClusterCommand(opts, args):
 
   """
   cl = GetClient()
+  qcl = GetClient(query=True)
 
   command = " ".join(args)
 
-  nodes = GetOnlineNodes(nodes=opts.nodes, cl=cl, nodegroup=opts.nodegroup)
-  ports = GetNodesSshPorts(nodes, cl)
+  nodes = GetOnlineNodes(nodes=opts.nodes, cl=qcl, nodegroup=opts.nodegroup)
+  ports = GetNodesSshPorts(nodes, qcl)
 
   cluster_name, master_node = cl.QueryConfigValues(["cluster_name",
                                                     "master_node"])
@@ -1520,7 +1523,7 @@ def _EpoOff(opts, node_list, inst_map):
     return constants.EXIT_FAILURE
 
 
-def Epo(opts, args, cl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
+def Epo(opts, args, cl=None, qcl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
         _confirm_fn=ConfirmOperation,
         _stdout_fn=ToStdout, _stderr_fn=ToStderr):
   """EPO operations.
@@ -1541,6 +1544,9 @@ def Epo(opts, args, cl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
 
   if cl is None:
     cl = GetClient()
+  if qcl is None:
+    # Query client
+    qcl = GetClient(query=True)
 
   if opts.groups:
     node_query_list = \
@@ -1548,9 +1554,9 @@ def Epo(opts, args, cl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
   else:
     node_query_list = args
 
-  result = cl.QueryNodes(node_query_list, ["name", "master", "pinst_list",
-                                           "sinst_list", "powered", "offline"],
-                         False)
+  result = qcl.QueryNodes(node_query_list, ["name", "master", "pinst_list",
+                                            "sinst_list", "powered", "offline"],
+                          False)
 
   all_nodes = map(compat.fst, result)
   node_list = []
