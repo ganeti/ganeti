@@ -581,7 +581,9 @@ TInstCreateMode = TElemOf(constants.INSTANCE_CREATE_MODES)
 TRebootType = TElemOf(constants.REBOOT_TYPES)
 TFileDriver = TElemOf(constants.FILE_DRIVER)
 TOobCommand = TElemOf(constants.OOB_COMMANDS)
-TQueryTypeOp = TElemOf(constants.QR_VIA_OP)
+# FIXME: adjust this after all queries are in haskell
+TQueryTypeOp = TElemOf(set(constants.QR_VIA_OP)
+                       .union(set(constants.QR_VIA_LUXI)))
 
 TDiskParams = \
     Comment("Disk parameters")(TDictOf(TNonEmptyString,

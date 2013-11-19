@@ -23,7 +23,6 @@
 
 
 import unittest
-import operator
 import itertools
 import copy
 
@@ -31,19 +30,15 @@ from ganeti import constants
 from ganeti import mcpu
 from ganeti import cmdlib
 from ganeti.cmdlib import cluster
-from ganeti.cmdlib import instance
 from ganeti.cmdlib import instance_storage
 from ganeti.cmdlib import instance_utils
 from ganeti.cmdlib import common
 from ganeti.cmdlib import query
 from ganeti import opcodes
 from ganeti import errors
-from ganeti import utils
 from ganeti import luxi
 from ganeti import ht
 from ganeti import objects
-from ganeti import compat
-from ganeti import rpc
 from ganeti import locking
 from ganeti.masterd import iallocator
 
@@ -141,7 +136,7 @@ class TestLUQuery(unittest.TestCase):
     self.assertEqual(sorted(query._QUERY_IMPL.keys()),
                      sorted(constants.QR_VIA_OP))
 
-    assert constants.QR_NODE in constants.QR_VIA_OP
+    assert constants.QR_NODE in constants.QR_VIA_LUXI
     assert constants.QR_INSTANCE in constants.QR_VIA_OP
 
     for i in constants.QR_VIA_OP:

@@ -31,7 +31,6 @@ from ganeti.cmdlib.group import GroupQuery
 from ganeti.cmdlib.instance_query import InstanceQuery
 from ganeti.cmdlib.misc import ExtStorageQuery
 from ganeti.cmdlib.network import NetworkQuery
-from ganeti.cmdlib.node import NodeQuery
 from ganeti.cmdlib.operating_system import OsQuery
 
 
@@ -39,7 +38,6 @@ from ganeti.cmdlib.operating_system import OsQuery
 _QUERY_IMPL = {
   constants.QR_CLUSTER: ClusterQuery,
   constants.QR_INSTANCE: InstanceQuery,
-  constants.QR_NODE: NodeQuery,
   constants.QR_GROUP: GroupQuery,
   constants.QR_NETWORK: NetworkQuery,
   constants.QR_OS: OsQuery,

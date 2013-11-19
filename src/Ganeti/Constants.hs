@@ -3338,7 +3338,6 @@ qrViaOp :: FrozenSet String
 qrViaOp =
   ConstantUtils.mkSet [qrCluster,
                        qrInstance,
-                       qrNode,
                        qrGroup,
                        qrOs,
                        qrExport,
@@ -3347,11 +3346,11 @@ qrViaOp =
 
 -- | List of resources which can be queried using Local UniX Interface
 qrViaLuxi :: FrozenSet String
-qrViaLuxi = ConstantUtils.mkSet [qrLock, qrJob]
+qrViaLuxi = ConstantUtils.mkSet [qrLock, qrJob, qrNode]
 
 -- | List of resources which can be queried using RAPI
 qrViaRapi :: FrozenSet String
-qrViaRapi = qrViaLuxi
+qrViaRapi = ConstantUtils.mkSet [qrLock, qrJob]
 
 -- * Query field types
 

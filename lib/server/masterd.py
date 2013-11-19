@@ -361,7 +361,8 @@ class ClientOps:
       elif what == constants.QR_JOB:
         return queue.QueryJobs(fields, qfilter)
       elif what in constants.QR_VIA_LUXI:
-        raise NotImplementedError
+        luxi_client = runtime.GetClient(query=True)
+        result = luxi_client.Query(what, fields, qfilter).ToDict()
       else:
         raise errors.OpPrereqError("Resource type '%s' unknown" % what,
                                    errors.ECODE_INVAL)
