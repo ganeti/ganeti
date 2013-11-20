@@ -52,6 +52,7 @@ import qa_utils
 from ganeti import utils
 from ganeti import rapi # pylint: disable=W0611
 from ganeti import constants
+from ganeti import netutils
 from ganeti import pathutils
 
 from ganeti.http.auth import ParsePasswordFile
@@ -612,9 +613,19 @@ def RunCustomSshPortTests():
   if not qa_config.TestEnabled("group-custom-ssh-port"):
     return
 
+  std_port = netutils.GetDaemonPort(constants.SSH)
   port = 211
   master = qa_config.GetMasterNode()
   with qa_config.AcquireManyNodesCtx(1, exclude=master) as nodes:
+    # Checks if the node(s) could be contacted through IPv6.
+    # If yes, better skip the whole test.
+
+    for node in nodes:
+      if qa_utils.UsesIPv6Connection(node.primary, std_port):
+        print ("Node %s is likely to be reached using IPv6,"
+               "skipping the test" % (node.primary, ))
+        return
+
     for node in nodes:
       qa_node.NodeRemove(node)
     with qa_iptables.RulesContext(nodes) as r:

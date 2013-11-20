@@ -28,6 +28,7 @@ import operator
 import os
 import random
 import re
+import socket
 import subprocess
 import sys
 import tempfile
@@ -906,3 +907,10 @@ def ParseIPolicy(policy):
     else:
       ret_policy[key] = val
   return (ret_policy, ret_specs)
+
+
+def UsesIPv6Connection(host, port):
+  """Returns True if the connection to a given host/port could go through IPv6.
+
+  """
+  return any(t[0] == socket.AF_INET6 for t in socket.getaddrinfo(host, port))
