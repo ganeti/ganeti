@@ -37,7 +37,6 @@ from ganeti import errors
 from ganeti import constants
 from ganeti import opcodes
 from ganeti import luxi
-from ganeti import ssconf
 from ganeti import rpc
 from ganeti import ssh
 from ganeti import compat
@@ -45,6 +44,8 @@ from ganeti import netutils
 from ganeti import qlang
 from ganeti import objects
 from ganeti import pathutils
+
+from ganeti.runtime import (GetClient)
 
 from optparse import (OptionParser, TitledHelpFormatter,
                       Option, OptionValueError)
@@ -2359,51 +2360,6 @@ def SetGenericOpcodeOpts(opcode_list, options):
     if getattr(options, "priority", None) is not None:
       op.priority = options.priority
     _InitReasonTrail(op, options)
-
-
-def GetClient(query=False):
-  """Connects to the a luxi socket and returns a client.
-
-  @type query: boolean
-  @param query: this signifies that the client will only be
-      used for queries; if the build-time parameter
-      enable-split-queries is enabled, then the client will be
-      connected to the query socket instead of the masterd socket
-
-  """
-  override_socket = os.getenv(constants.LUXI_OVERRIDE, "")
-  if override_socket:
-    if override_socket == constants.LUXI_OVERRIDE_MASTER:
-      address = pathutils.MASTER_SOCKET
-    elif override_socket == constants.LUXI_OVERRIDE_QUERY:
-      address = pathutils.QUERY_SOCKET
-    else:
-      address = override_socket
-  elif query:
-    address = pathutils.QUERY_SOCKET
-  else:
-    address = None
-  # TODO: Cache object?
-  try:
-    client = luxi.Client(address=address)
-  except luxi.NoMasterError:
-    ss = ssconf.SimpleStore()
-
-    # Try to read ssconf file
-    try:
-      ss.GetMasterNode()
-    except errors.ConfigurationError:
-      raise errors.OpPrereqError("Cluster not initialized or this machine is"
-                                 " not part of a cluster",
-                                 errors.ECODE_INVAL)
-
-    master, myself = ssconf.GetMasterAndMyself(ss=ss)
-    if master != myself:
-      raise errors.OpPrereqError("This is not the master node, please connect"
-                                 " to node '%s' and rerun the command" %
-                                 master, errors.ECODE_INVAL)
-    raise
-  return client
 
 
 def FormatError(err):
