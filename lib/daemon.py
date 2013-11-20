@@ -144,7 +144,7 @@ class AsyncStreamServer(GanetiBaseAsyncoreDispatcher):
   _REQUEST_QUEUE_SIZE = 5
 
   def __init__(self, family, address):
-    """Constructor for AsyncUnixStreamSocket
+    """Constructor for AsyncStreamServer
 
     @type family: integer
     @param family: socket family (one of socket.AF_*)
