@@ -511,7 +511,7 @@ def _MergeInstanceStatus(filename, pergroup_filename, groups):
   _WriteInstanceStatus(filename, inststatus)
 
 
-def GetLuxiClient(try_restart):
+def GetLuxiClient(try_restart, query=False):
   """Tries to connect to the master daemon.
 
   @type try_restart: bool
@@ -519,7 +519,7 @@ def GetLuxiClient(try_restart):
 
   """
   try:
-    return cli.GetClient()
+    return cli.GetClient(query=query)
   except errors.OpPrereqError, err:
     # this is, from cli.GetClient, a not-master case
     raise NotMasterError("Not on master node (%s)" % err)
@@ -535,7 +535,7 @@ def GetLuxiClient(try_restart):
       raise errors.GenericError("Can't start the master daemon")
 
     # Retry the connection
-    return cli.GetClient()
+    return cli.GetClient(query=query)
 
 
 def _StartGroupChildren(cl, wait):
@@ -642,28 +642,47 @@ def _GlobalWatcher(opts):
   return constants.EXIT_SUCCESS
 
 
-def _GetGroupData(cl, uuid):
+def _GetAllNodesInGroup(qcl, uuid):
+  """Get all nodes of a node group.
+
+  This function uses the query client to find out which nodes are in the node
+  group.
+
+  @type qcl: @C{luxi.Client}
+  @param qcl: luxi client for queries
+  @type uuid: string
+  @param uuid: UUID of the node group
+
+  """
+  what = constants.QR_NODE
+  fields = ["name", "bootid", "offline"]
+  qfilter = [qlang.OP_EQUAL, "group.uuid", uuid]
+
+  result = qcl.Query(what, fields, qfilter)
+  return result
+
+
+def _GetGroupData(cl, qcl, uuid):
   """Retrieves instances and nodes per node group.
 
   """
+  # FIXME: This is an intermediate state where some queries are done via
+  # the old and some via the new query implementation. This will be beautiful
+  # again when the transition is complete for all queries.
+  node_result = _GetAllNodesInGroup(qcl, uuid)
+
   job = [
     # Get all primary instances in group
     opcodes.OpQuery(what=constants.QR_INSTANCE,
                     fields=["name", "status", "disks_active", "snodes",
                             "pnode.group.uuid", "snodes.group.uuid"],
                     qfilter=[qlang.OP_EQUAL, "pnode.group.uuid", uuid],
-                    use_locking=True),
-
-    # Get all nodes in group
-    opcodes.OpQuery(what=constants.QR_NODE,
-                    fields=["name", "bootid", "offline"],
-                    qfilter=[qlang.OP_EQUAL, "group.uuid", uuid],
-                    use_locking=True),
+                    use_locking=True)
     ]
-
   job_id = cl.SubmitJob(job)
   results = map(objects.QueryResponse.FromDict,
                 cli.PollJob(job_id, cl=cl, feedback_fn=logging.debug))
+  results.append(node_result)
   cl.ArchiveJob(job_id)
 
   results_data = map(operator.attrgetter("data"), results)
@@ -751,10 +770,11 @@ def _GroupWatcher(opts):
   try:
     # Connect to master daemon
     client = GetLuxiClient(False)
+    query_client = GetLuxiClient(False, query=True)
 
     _CheckMaster(client)
 
-    (nodes, instances) = _GetGroupData(client, group_uuid)
+    (nodes, instances) = _GetGroupData(client, query_client, group_uuid)
 
     # Update per-group instance status file
     _UpdateInstanceStatus(inst_status_path, instances.values())
