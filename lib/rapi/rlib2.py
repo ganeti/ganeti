@@ -1363,11 +1363,13 @@ class R_2_instances_name_console(baserlib.ResourceBase):
              L{objects.InstanceConsole}
 
     """
+    instance_name = self.items[0]
     client = self.GetClient(query=True)
 
-    ((console, ), ) = client.QueryInstances([self.items[0]], ["console"], False)
+    ((console, oper_state), ) = \
+        client.QueryInstances([instance_name], ["console", "oper_state"], False)
 
-    if console is None:
+    if not oper_state:
       raise http.HttpServiceUnavailable("Instance console unavailable")
 
     assert isinstance(console, dict)
