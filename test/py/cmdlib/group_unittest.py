@@ -176,43 +176,6 @@ class TestLUGroupAssignNodes(CmdlibTestCase):
     self.assertEqual(set(["inst3c"]), set(prev))
 
 
-class TestLUGroupQuery(CmdlibTestCase):
-  def setUp(self):
-    super(TestLUGroupQuery, self).setUp()
-    self.fields = query._BuildGroupFields().keys()
-
-  def testInvalidGroupName(self):
-    op = opcodes.OpGroupQuery(names=["does_not_exist"],
-                              output_fields=self.fields)
-
-    self.ExecOpCodeExpectOpPrereqError(op, "Some groups do not exist")
-
-  def testQueryAllGroups(self):
-    op = opcodes.OpGroupQuery(output_fields=self.fields)
-
-    self.ExecOpCode(op)
-
-    self.mcpu.assertLogIsEmpty()
-
-  def testQueryGroupsByNameAndUuid(self):
-    group1 = self.cfg.AddNewNodeGroup()
-    group2 = self.cfg.AddNewNodeGroup()
-
-    node1 = self.cfg.AddNewNode(group=group1)
-    node2 = self.cfg.AddNewNode(group=group1)
-    self.cfg.AddNewInstance(disk_template=constants.DT_DRBD8,
-                            primary_node=node1,
-                            secondary_node=node2)
-    self.cfg.AddNewInstance(primary_node=node2)
-
-    op = opcodes.OpGroupQuery(names=[group1.name, group2.uuid],
-                              output_fields=self.fields)
-
-    self.ExecOpCode(op)
-
-    self.mcpu.assertLogIsEmpty()
-
-
 class TestLUGroupSetParams(CmdlibTestCase):
   def testNoModifications(self):
     op = opcodes.OpGroupSetParams(group_name=self.group.name)

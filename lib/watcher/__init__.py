@@ -614,6 +614,7 @@ def _GlobalWatcher(opts):
 
   try:
     client = GetLuxiClient(True)
+    query_client = GetLuxiClient(True, query=True)
   except NotMasterError:
     # Don't proceed on non-master nodes
     return constants.EXIT_SUCCESS
@@ -637,7 +638,7 @@ def _GlobalWatcher(opts):
   _ArchiveJobs(client, opts.job_age)
 
   # Spawn child processes for all node groups
-  _StartGroupChildren(client, opts.wait_children)
+  _StartGroupChildren(query_client, opts.wait_children)
 
   return constants.EXIT_SUCCESS
 

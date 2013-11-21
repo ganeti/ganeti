@@ -241,8 +241,8 @@ def AddNode(opts, args):
   try:
     # Passing [] to QueryGroups means query the default group:
     node_groups = [opts.nodegroup] if opts.nodegroup is not None else []
-    output = cl.QueryGroups(names=node_groups, fields=["ndp/ssh_port"],
-                            use_locking=False)
+    output = query_cl.QueryGroups(names=node_groups, fields=["ndp/ssh_port"],
+                                  use_locking=False)
     (ssh_port, ) = output[0]
   except (errors.OpPrereqError, errors.OpExecError):
     pass

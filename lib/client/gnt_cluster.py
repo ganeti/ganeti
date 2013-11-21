@@ -1523,7 +1523,7 @@ def _EpoOff(opts, node_list, inst_map):
     return constants.EXIT_FAILURE
 
 
-def Epo(opts, args, cl=None, qcl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
+def Epo(opts, args, qcl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
         _confirm_fn=ConfirmOperation,
         _stdout_fn=ToStdout, _stderr_fn=ToStderr):
   """EPO operations.
@@ -1542,15 +1542,13 @@ def Epo(opts, args, cl=None, qcl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
     _stderr_fn("Arguments in combination with --all are not allowed")
     return constants.EXIT_FAILURE
 
-  if cl is None:
-    cl = GetClient()
   if qcl is None:
     # Query client
     qcl = GetClient(query=True)
 
   if opts.groups:
     node_query_list = \
-      itertools.chain(*cl.QueryGroups(args, ["node_list"], False))
+      itertools.chain(*qcl.QueryGroups(args, ["node_list"], False))
   else:
     node_query_list = args
 
