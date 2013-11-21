@@ -374,15 +374,16 @@ allocateJobIds mastercandidates lock n =
           serial <- jobQueueSerialFile
           write_result <- try $ atomicWriteFile serial serial_content
                           :: IO (Either IOError ())
-          putMVar lock ()
           case write_result of
             Left e -> do
+              putMVar lock ()
               let msg = "Failed to write serial file: " ++ show e
               logError msg
               return . Bad $ msg 
             Right () -> do
               _ <- executeRpcCall mastercandidates
                      $ RpcCallJobqueueUpdate serial serial_content
+              putMVar lock ()
               return $ mapM makeJobId [(current+1)..(current+n)]
 
 -- | Allocate one new job id.
