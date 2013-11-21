@@ -443,7 +443,7 @@ genOLuxiSocket defSocket =
    OptComplFile)
 
 oLuxiSocket :: IO OptType
-oLuxiSocket = liftM genOLuxiSocket Path.defaultLuxiSocket
+oLuxiSocket = liftM genOLuxiSocket Path.defaultMasterSocket
 
 oMachineReadable :: OptType
 oMachineReadable =

@@ -57,7 +57,7 @@ import Ganeti.Logging
 import Ganeti.Luxi
 import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Query.Cluster as QCluster
-import Ganeti.Path (queueDir, jobQueueLockFile, defaultLuxiSocket)
+import Ganeti.Path (queueDir, jobQueueLockFile, defaultMasterSocket)
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 import Ganeti.Types
@@ -210,7 +210,7 @@ handleCall qlock cfg (SubmitJobToDrainedQueue ops) =
         case write_result of
           Bad s -> return . Bad . GenericError $ s
           Ok () -> do
-            socketpath <- defaultLuxiSocket
+            socketpath <- defaultMasterSocket
             client <- getClient socketpath
             pickupResult <- callMethod (PickupJob jid) client
             closeClient client
@@ -244,7 +244,7 @@ handleCall qlock cfg (SubmitManyJobs lops) =
                 succeeded = map snd $ filter (isOk . fst) annotated_results
             when (any isBad write_results) . logWarning
               $ "Writing some jobs failed " ++ show annotated_results
-            socketpath <- defaultLuxiSocket
+            socketpath <- defaultMasterSocket
             client <- getClient socketpath
             pickupResults <- mapM (flip callMethod client . PickupJob)
                                succeeded

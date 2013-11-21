@@ -28,7 +28,7 @@ module Ganeti.Path
   , runDir
   , logDir
   , socketDir
-  , defaultLuxiSocket
+  , defaultMasterSocket
   , defaultQuerySocket
   , confdHmacKey
   , clusterConfFile
@@ -84,9 +84,9 @@ logDir = addNodePrefix $ AutoConf.localstatedir </> "log" </> "ganeti"
 socketDir :: IO FilePath
 socketDir = runDir `pjoin` "socket"
 
--- | The default LUXI socket path.
-defaultLuxiSocket :: IO FilePath
-defaultLuxiSocket = socketDir `pjoin` "ganeti-master"
+-- | The default path for the master-daemon LUXI socket.
+defaultMasterSocket :: IO FilePath
+defaultMasterSocket = socketDir `pjoin` "ganeti-master"
 
 -- | The default LUXI socket for queries.
 defaultQuerySocket :: IO FilePath

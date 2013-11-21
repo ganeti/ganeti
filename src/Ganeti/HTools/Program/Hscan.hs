@@ -150,7 +150,7 @@ main opts clusters = do
                 "t_disk" "f_disk" "Score"
 
   when (null clusters) $ do
-         def_socket <- Path.defaultLuxiSocket
+         def_socket <- Path.defaultMasterSocket
          let lsock = fromMaybe def_socket (optLuxi opts)
          let name = local
          input_data <- Luxi.loadData lsock
