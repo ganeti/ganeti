@@ -28,7 +28,6 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import locking
 from ganeti import objects
-from ganeti import qlang
 from ganeti import query
 from ganeti import utils
 from ganeti.masterd import iallocator
@@ -289,80 +288,13 @@ class GroupQuery(QueryBase):
   FIELDS = query.GROUP_FIELDS
 
   def ExpandNames(self, lu):
-    lu.needed_locks = {}
-
-    self._all_groups = lu.cfg.GetAllNodeGroupsInfo()
-    self._cluster = lu.cfg.GetClusterInfo()
-    name_to_uuid = dict((g.name, g.uuid) for g in self._all_groups.values())
-
-    if not self.names:
-      self.wanted = [name_to_uuid[name]
-                     for name in utils.NiceSort(name_to_uuid.keys())]
-    else:
-      # Accept names to be either names or UUIDs.
-      missing = []
-      self.wanted = []
-      all_uuid = frozenset(self._all_groups.keys())
-
-      for name in self.names:
-        if name in all_uuid:
-          self.wanted.append(name)
-        elif name in name_to_uuid:
-          self.wanted.append(name_to_uuid[name])
-        else:
-          missing.append(name)
-
-      if missing:
-        raise errors.OpPrereqError("Some groups do not exist: %s" %
-                                   utils.CommaJoin(missing),
-                                   errors.ECODE_NOENT)
+    raise NotImplementedError
 
   def DeclareLocks(self, lu, level):
     pass
 
   def _GetQueryData(self, lu):
-    """Computes the list of node groups and their attributes.
-
-    """
-    do_nodes = query.GQ_NODE in self.requested_data
-    do_instances = query.GQ_INST in self.requested_data
-
-    group_to_nodes = None
-    group_to_instances = None
-
-    # For GQ_NODE, we need to map group->[nodes], and group->[instances] for
-    # GQ_INST. The former is attainable with just GetAllNodesInfo(), but for the
-    # latter GetAllInstancesInfo() is not enough, for we have to go through
-    # instance->node. Hence, we will need to process nodes even if we only need
-    # instance information.
-    if do_nodes or do_instances:
-      all_nodes = lu.cfg.GetAllNodesInfo()
-      group_to_nodes = dict((uuid, []) for uuid in self.wanted)
-      node_to_group = {}
-
-      for node in all_nodes.values():
-        if node.group in group_to_nodes:
-          group_to_nodes[node.group].append(node.uuid)
-          node_to_group[node.uuid] = node.group
-
-      if do_instances:
-        all_instances = lu.cfg.GetAllInstancesInfo()
-        group_to_instances = dict((uuid, []) for uuid in self.wanted)
-
-        for instance in all_instances.values():
-          node = instance.primary_node
-          if node in node_to_group:
-            group_to_instances[node_to_group[node]].append(instance.uuid)
-
-        if not do_nodes:
-          # Do not pass on node information if it was not requested.
-          group_to_nodes = None
-
-    return query.GroupQueryData(self._cluster,
-                                [self._all_groups[uuid]
-                                 for uuid in self.wanted],
-                                group_to_nodes, group_to_instances,
-                                query.GQ_DISKPARAMS in self.requested_data)
+    raise NotImplementedError
 
 
 class LUGroupQuery(NoHooksLU):
@@ -372,17 +304,16 @@ class LUGroupQuery(NoHooksLU):
   REQ_BGL = False
 
   def CheckArguments(self):
-    self.gq = GroupQuery(qlang.MakeSimpleFilter("name", self.op.names),
-                          self.op.output_fields, False)
+    raise NotImplementedError
 
   def ExpandNames(self):
-    self.gq.ExpandNames(self)
+    raise NotImplementedError
 
   def DeclareLocks(self, level):
-    self.gq.DeclareLocks(self, level)
+    raise NotImplementedError
 
   def Exec(self, feedback_fn):
-    return self.gq.OldStyleQuery(self)
+    raise NotImplementedError
 
 
 class LUGroupSetParams(LogicalUnit):

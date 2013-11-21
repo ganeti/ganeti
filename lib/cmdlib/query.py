@@ -26,7 +26,6 @@ from ganeti import errors
 from ganeti import query
 from ganeti.cmdlib.base import NoHooksLU
 from ganeti.cmdlib.cluster import ClusterQuery
-from ganeti.cmdlib.group import GroupQuery
 from ganeti.cmdlib.instance_query import InstanceQuery
 from ganeti.cmdlib.misc import ExtStorageQuery
 from ganeti.cmdlib.operating_system import OsQuery
@@ -36,7 +35,6 @@ from ganeti.cmdlib.operating_system import OsQuery
 _QUERY_IMPL = {
   constants.QR_CLUSTER: ClusterQuery,
   constants.QR_INSTANCE: InstanceQuery,
-  constants.QR_GROUP: GroupQuery,
   constants.QR_OS: OsQuery,
   constants.QR_EXTSTORAGE: ExtStorageQuery,
   }

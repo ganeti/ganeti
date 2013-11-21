@@ -3338,13 +3338,13 @@ qrViaOp :: FrozenSet String
 qrViaOp =
   ConstantUtils.mkSet [qrCluster,
                        qrInstance,
-                       qrGroup,
                        qrOs,
                        qrExtstorage]
 
 -- | List of resources which can be queried using Local UniX Interface
 qrViaLuxi :: FrozenSet String
-qrViaLuxi = ConstantUtils.mkSet [qrExport,
+qrViaLuxi = ConstantUtils.mkSet [qrGroup,
+                                 qrExport,
                                  qrJob,
                                  qrLock,
                                  qrNetwork,
