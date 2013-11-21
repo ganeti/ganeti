@@ -1363,7 +1363,7 @@ class R_2_instances_name_console(baserlib.ResourceBase):
              L{objects.InstanceConsole}
 
     """
-    client = self.GetClient()
+    client = self.GetClient(query=True)
 
     ((console, ), ) = client.QueryInstances([self.items[0]], ["console"], False)
 

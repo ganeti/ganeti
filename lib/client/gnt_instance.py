@@ -95,7 +95,7 @@ def _ExpandMultiNames(mode, names, client=None):
   # pylint: disable=W0142
 
   if client is None:
-    client = GetClient()
+    client = GetClient(query=True)
   if mode == _EXPAND_CLUSTER:
     if names:
       raise errors.OpPrereqError("Cluster filter mode takes no arguments",
@@ -182,7 +182,8 @@ def GenericManyOps(operation, fn):
     if opts.multi_mode is None:
       opts.multi_mode = _EXPAND_INSTANCES
     cl = GetClient()
-    inames = _ExpandMultiNames(opts.multi_mode, args, client=cl)
+    qcl = GetClient(query=True)
+    inames = _ExpandMultiNames(opts.multi_mode, args, client=qcl)
     if not inames:
       if opts.multi_mode == _EXPAND_CLUSTER:
         ToStdout("Cluster is empty, no instances to shutdown")
@@ -851,15 +852,18 @@ def ConnectToInstanceConsole(opts, args):
   instance_name = args[0]
 
   cl = GetClient()
+  qcl = GetClient(query=True)
   try:
     cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
     ((console_data, oper_state), ) = \
-      cl.QueryInstances([instance_name], ["console", "oper_state"], False)
+      qcl.QueryInstances([instance_name], ["console", "oper_state"], False)
   finally:
     # Ensure client connection is closed while external commands are run
     cl.Close()
+    qcl.Close()
 
   del cl
+  del qcl
 
   if not console_data:
     if oper_state:

@@ -203,7 +203,7 @@ def ShowNetworkConfig(_, args):
   @return: the desired exit code
 
   """
-  cl = GetClient()
+  cl = GetClient(query=True)
   result = cl.QueryNetworks(fields=["name", "network", "gateway",
                                     "network6", "gateway6",
                                     "mac_prefix",
