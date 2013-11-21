@@ -94,7 +94,8 @@ instance Arbitrary INicParams where
 instance Arbitrary IDiskParams where
   arbitrary = IDiskParams <$> arbitrary <*> arbitrary <*>
               genMaybe genNameNE <*> genMaybe genNameNE <*>
-              genMaybe genNameNE <*> genMaybe genNameNE
+              genMaybe genNameNE <*> genMaybe genNameNE <*>
+              arbitrary
 
 instance Arbitrary RecreateDisksInfo where
   arbitrary = oneof [ pure RecreateDisksAll
