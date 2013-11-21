@@ -2035,11 +2035,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @raise errors.HypervisorError: in one of the previous cases
 
     """
-    output = self._CallMonitorCommand(instance.name, self._INFO_VERSION_CMD)
+    try:
+      output = self._CallMonitorCommand(instance.name, self._INFO_VERSION_CMD)
+    except errors.HypervisorError:
+      raise errors.HotplugError("Instance is probably down")
+
     # TODO: search for netdev_add, drive_add, device_add.....
     match = self._INFO_VERSION_RE.search(output.stdout)
     if not match:
-      raise errors.HotplugError("Try hotplug only in running instances.")
+      raise errors.HotplugError("Cannot parse qemu version via monitor")
+
     v_major, v_min, _, _ = match.groups()
     if (int(v_major), int(v_min)) < (1, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.0")

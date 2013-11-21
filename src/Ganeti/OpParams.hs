@@ -95,6 +95,7 @@ module Ganeti.OpParams
   , pDiskState
   , pIgnoreIpolicy
   , pHotplug
+  , pHotplugIfPossible
   , pAllowRuntimeChgs
   , pInstDisks
   , pDiskTemplate
@@ -515,6 +516,9 @@ pGroupName =
 -- | Whether to hotplug device.
 pHotplug :: Field
 pHotplug = defaultFalse "hotplug"
+
+pHotplugIfPossible :: Field
+pHotplugIfPossible = defaultFalse "hotplug_if_possible"
 
 pInstances :: Field
 pInstances =

@@ -96,6 +96,7 @@ __all__ = [
   "HID_OS_OPT",
   "GLOBAL_SHARED_FILEDIR_OPT",
   "HOTPLUG_OPT",
+  "HOTPLUG_IF_POSSIBLE_OPT",
   "HVLIST_OPT",
   "HVOPTS_OPT",
   "HYPERVISOR_OPT",
@@ -1645,6 +1646,12 @@ INCLUDEDEFAULTS_OPT = cli_option("--include-defaults", dest="include_defaults",
 HOTPLUG_OPT = cli_option("--hotplug", dest="hotplug",
                          action="store_true", default=False,
                          help="Hotplug supported devices (NICs and Disks)")
+
+HOTPLUG_IF_POSSIBLE_OPT = cli_option("--hotplug-if-possible",
+                                     dest="hotplug_if_possible",
+                                     action="store_true", default=False,
+                                     help="Hotplug devices in case"
+                                          " hotplug is supported")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]

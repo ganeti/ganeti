@@ -2841,10 +2841,19 @@ class LUInstanceSetParams(LogicalUnit):
     # dictionary with instance information after the modification
     ispec = {}
 
-    if self.op.hotplug:
+    if self.op.hotplug or self.op.hotplug_if_possible:
       result = self.rpc.call_hotplug_supported(self.instance.primary_node,
                                                self.instance)
-      result.Raise("Hotplug is not supported.")
+      if result.fail_msg:
+        if self.op.hotplug:
+          result.Raise("Hotplug is not possible: %s" % result.fail_msg,
+                       prereq=True)
+        else:
+          self.LogWarning(result.fail_msg)
+          self.op.hotplug = False
+          self.LogInfo("Modification will take place without hotplugging.")
+      else:
+        self.op.hotplug = True
 
     # Prepare NIC modifications
     self.nicmod = _PrepareContainerMods(self.op.nics, _InstNicModPrivate)
