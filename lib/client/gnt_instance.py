@@ -539,6 +539,14 @@ def RecreateDisks(opts, args):
           raise errors.OpPrereqError("Invalid disk size for disk %d: %s" %
                                      (didx, err), errors.ECODE_INVAL)
 
+      if constants.IDISK_SPINDLES in ddict:
+        try:
+          ddict[constants.IDISK_SPINDLES] = \
+              int(ddict[constants.IDISK_SPINDLES])
+        except ValueError, err:
+          raise errors.OpPrereqError("Invalid spindles for disk %d: %s" %
+                                     (didx, err), errors.ECODE_INVAL)
+
       disks.append((didx, ddict))
 
     # TODO: Verify modifyable parameters (already done in
