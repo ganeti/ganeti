@@ -23,45 +23,9 @@
 
 """
 
-from ganeti import opcodes
-from ganeti import query
-
 from testsupport import *
 
 import testutils
-
-
-class TestLUInstanceQuery(CmdlibTestCase):
-  def setUp(self):
-    super(TestLUInstanceQuery, self).setUp()
-
-    self.inst = self.cfg.AddNewInstance()
-    self.fields = query._BuildInstanceFields().keys()
-
-  def testInvalidInstance(self):
-    op = opcodes.OpInstanceQuery(names=["does_not_exist"],
-                                 output_fields=self.fields)
-    self.ExecOpCodeExpectOpPrereqError(
-      op, "Instance 'does_not_exist' not known")
-
-  def testQueryInstance(self):
-    op = opcodes.OpInstanceQuery(output_fields=self.fields)
-    self.ExecOpCode(op)
-
-
-class TestLUInstanceQueryData(CmdlibTestCase):
-  def setUp(self):
-    super(TestLUInstanceQueryData, self).setUp()
-
-    self.inst = self.cfg.AddNewInstance()
-
-  def testQueryInstanceData(self):
-    op = opcodes.OpInstanceQueryData()
-    self.ExecOpCode(op)
-
-  def testQueryStaticInstanceData(self):
-    op = opcodes.OpInstanceQueryData(static=True)
-    self.ExecOpCode(op)
 
 
 if __name__ == "__main__":

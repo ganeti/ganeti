@@ -3337,7 +3337,6 @@ qrOs = "os"
 qrViaOp :: FrozenSet String
 qrViaOp =
   ConstantUtils.mkSet [qrCluster,
-                       qrInstance,
                        qrOs,
                        qrExtstorage]
 
@@ -3345,6 +3344,7 @@ qrViaOp =
 qrViaLuxi :: FrozenSet String
 qrViaLuxi = ConstantUtils.mkSet [qrGroup,
                                  qrExport,
+                                 qrInstance,
                                  qrJob,
                                  qrLock,
                                  qrNetwork,

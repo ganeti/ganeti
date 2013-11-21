@@ -137,7 +137,7 @@ class TestLUQuery(unittest.TestCase):
                      sorted(constants.QR_VIA_OP))
 
     assert constants.QR_NODE in constants.QR_VIA_LUXI
-    assert constants.QR_INSTANCE in constants.QR_VIA_OP
+    assert constants.QR_INSTANCE in constants.QR_VIA_LUXI
 
     for i in constants.QR_VIA_OP:
       self.assert_(query._GetQueryImplementation(i))
