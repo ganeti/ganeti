@@ -30,13 +30,11 @@ from ganeti import locking
 from ganeti import netutils
 from ganeti import objects
 from ganeti import opcodes
-from ganeti import query
 from ganeti import rpc
 from ganeti import utils
 from ganeti.masterd import iallocator
 
-from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, QueryBase, \
-  ResultWithJobs
+from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, ResultWithJobs
 from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   MergeAndVerifyHvState, MergeAndVerifyDiskState, \
   IsExclusiveStorageEnabledNode, CheckNodePVs, \
@@ -1168,39 +1166,6 @@ class LUNodeModifyStorage(NoHooksLU):
                                           self.op.name, self.op.changes)
     result.Raise("Failed to modify storage unit '%s' on %s" %
                  (self.op.name, self.op.node_name))
-
-
-class NodeQuery(QueryBase):
-  FIELDS = query.NODE_FIELDS
-
-  def ExpandNames(self, lu):
-    raise NotImplementedError
-
-  def DeclareLocks(self, lu, level):
-    pass
-
-  def _GetQueryData(self, lu):
-    raise NotImplementedError
-
-
-class LUNodeQuery(NoHooksLU):
-  """Logical unit for querying nodes.
-
-  """
-  # pylint: disable=W0142
-  REQ_BGL = False
-
-  def CheckArguments(self):
-    raise NotImplementedError
-
-  def ExpandNames(self):
-    raise NotImplementedError
-
-  def DeclareLocks(self, level):
-    raise NotImplementedError
-
-  def Exec(self, feedback_fn):
-    raise NotImplementedError
 
 
 def _CheckOutputFields(fields, selected):

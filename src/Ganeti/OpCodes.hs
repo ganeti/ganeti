@@ -314,14 +314,6 @@ $(genOpCode "OpCode"
      , pNdParams
      ],
      "node_name")
-  , ("OpNodeQuery",
-     [t| [[JSValue]] |],
-     OpDoc.opNodeQuery,
-     [ pOutputFields
-     , withDoc "Empty list to query all nodes, node names otherwise" pNames
-     , pUseLocking
-     ],
-     [])
   , ("OpNodeQueryvols",
      [t| [JSValue] |],
      OpDoc.opNodeQueryvols,

@@ -62,7 +62,6 @@ from ganeti.cmdlib.node import \
   LUNodeEvacuate, \
   LUNodeMigrate, \
   LUNodeModifyStorage, \
-  LUNodeQuery, \
   LUNodeQueryvols, \
   LUNodeQueryStorage, \
   LUNodeRemove, \

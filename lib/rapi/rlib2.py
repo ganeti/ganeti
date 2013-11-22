@@ -392,7 +392,6 @@ class R_2_nodes(baserlib.OpcodeResource):
   """/2/nodes resource.
 
   """
-  GET_OPCODE = opcodes.OpNodeQuery
 
   def GET(self):
     """Returns a list of all nodes.
@@ -414,7 +413,6 @@ class R_2_nodes_name(baserlib.OpcodeResource):
   """/2/nodes/[node_name] resource.
 
   """
-  GET_OPCODE = opcodes.OpNodeQuery
 
   def GET(self):
     """Send information about a node.
