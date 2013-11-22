@@ -1000,11 +1000,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type tap: str
 
     """
-    if instance.tags:
-      tags = " ".join(instance.tags)
-    else:
-      tags = ""
-
     env = {
       "PATH": "%s:/sbin:/usr/sbin" % os.environ["PATH"],
       "INSTANCE": instance.name,
@@ -1012,7 +1007,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       "MODE": nic.nicparams[constants.NIC_MODE],
       "INTERFACE": tap,
       "INTERFACE_INDEX": str(seq),
-      "TAGS": tags,
+      "TAGS": " ".join(instance.GetTags()),
     }
 
     if nic.ip:
