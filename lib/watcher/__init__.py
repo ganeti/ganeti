@@ -643,48 +643,23 @@ def _GlobalWatcher(opts):
   return constants.EXIT_SUCCESS
 
 
-def _GetAllNodesInGroup(qcl, uuid):
-  """Get all nodes of a node group.
-
-  This function uses the query client to find out which nodes are in the node
-  group.
-
-  @type qcl: @C{luxi.Client}
-  @param qcl: luxi client for queries
-  @type uuid: string
-  @param uuid: UUID of the node group
-
-  """
-  what = constants.QR_NODE
-  fields = ["name", "bootid", "offline"]
-  qfilter = [qlang.OP_EQUAL, "group.uuid", uuid]
-
-  result = qcl.Query(what, fields, qfilter)
-  return result
-
-
-def _GetGroupData(cl, qcl, uuid):
+def _GetGroupData(qcl, uuid):
   """Retrieves instances and nodes per node group.
 
   """
-  # FIXME: This is an intermediate state where some queries are done via
-  # the old and some via the new query implementation. This will be beautiful
-  # again when the transition is complete for all queries.
-  node_result = _GetAllNodesInGroup(qcl, uuid)
+  queries = [
+      (constants.QR_INSTANCE,
+       ["name", "status", "disks_active", "snodes",
+        "pnode.group.uuid", "snodes.group.uuid"],
+       [qlang.OP_EQUAL, "pnode.group.uuid", uuid]),
+      (constants.QR_NODE,
+       ["name", "bootid", "offline"],
+       [qlang.OP_EQUAL, "group.uuid", uuid]),
+      ]
 
-  job = [
-    # Get all primary instances in group
-    opcodes.OpQuery(what=constants.QR_INSTANCE,
-                    fields=["name", "status", "disks_active", "snodes",
-                            "pnode.group.uuid", "snodes.group.uuid"],
-                    qfilter=[qlang.OP_EQUAL, "pnode.group.uuid", uuid],
-                    use_locking=True)
-    ]
-  job_id = cl.SubmitJob(job)
-  results = map(objects.QueryResponse.FromDict,
-                cli.PollJob(job_id, cl=cl, feedback_fn=logging.debug))
-  results.append(node_result)
-  cl.ArchiveJob(job_id)
+  results = []
+  for what, fields, qfilter in queries:
+    results.append(qcl.Query(what, fields, qfilter))
 
   results_data = map(operator.attrgetter("data"), results)
 
@@ -775,7 +750,7 @@ def _GroupWatcher(opts):
 
     _CheckMaster(client)
 
-    (nodes, instances) = _GetGroupData(client, query_client, group_uuid)
+    (nodes, instances) = _GetGroupData(query_client, group_uuid)
 
     # Update per-group instance status file
     _UpdateInstanceStatus(inst_status_path, instances.values())
