@@ -428,19 +428,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     data.write("TAGS=%s\n" % "\ ".join(instance.GetTags()))
     if nic.netinfo:
       netinfo = objects.Network.FromDict(nic.netinfo)
-      data.write("NETWORK_NAME=%s\n" % netinfo.name)
-      if netinfo.network:
-        data.write("NETWORK_SUBNET=%s\n" % netinfo.network)
-      if netinfo.gateway:
-        data.write("NETWORK_GATEWAY=%s\n" % netinfo.gateway)
-      if netinfo.network6:
-        data.write("NETWORK_SUBNET6=%s\n" % netinfo.network6)
-      if netinfo.gateway6:
-        data.write("NETWORK_GATEWAY6=%s\n" % netinfo.gateway6)
-      if netinfo.mac_prefix:
-        data.write("NETWORK_MAC_PREFIX=%s\n" % netinfo.mac_prefix)
-      if netinfo.tags:
-        data.write("NETWORK_TAGS=%s\n" % r"\ ".join(netinfo.tags))
+      for k, v in netinfo.HooksDict().iteritems():
+        data.write("%s=%s\n" % (k, v))
 
     data.write("MAC=%s\n" % nic.mac)
     data.write("IP=%s\n" % nic.ip)
