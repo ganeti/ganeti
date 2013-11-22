@@ -523,7 +523,9 @@ AC_GHC_PKG_REQUIRE(json)
 AC_GHC_PKG_REQUIRE(network)
 AC_GHC_PKG_REQUIRE(mtl)
 AC_GHC_PKG_REQUIRE(bytestring)
+AC_GHC_PKG_REQUIRE(base64-bytestring)
 AC_GHC_PKG_REQUIRE(utf8-string)
+AC_GHC_PKG_REQUIRE(zlib)
 AC_GHC_PKG_REQUIRE(hslogger)
 
 # extra modules for confd functionality; also needed for tests

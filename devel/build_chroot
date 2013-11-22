@@ -137,6 +137,7 @@ case $DIST_RELEASE in
         libghc6-text-dev \
         libghc6-vector-dev \
         libpcre3-dev \
+        libghc6-zlib-dev \
         hlint hscolour pandoc \
         graphviz qemu-utils \
         python-docutils \
@@ -203,6 +204,9 @@ case $DIST_RELEASE in
     in_chroot -- \
       cabal install --global shelltestrunner
 
+    in_chroot -- \
+      cabal install --global base64-bytestring
+
     #Install selected packages from backports
     in_chroot -- \
       $APT_INSTALL -t squeeze-backports \
@@ -224,6 +228,7 @@ case $DIST_RELEASE in
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
+      libghc6-zlib-dev libghc-base64-bytestring-dev \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \

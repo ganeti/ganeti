@@ -24,6 +24,14 @@ New features
 - Node groups can be configured to use an SSH port different than the
   default 22.
 
+New dependencies
+~~~~~~~~~~~~~~~~
+The following new dependencies have been added:
+
+For Haskell:
+- ``zlib`` library (http://hackage.haskell.org/package/base64-bytestring)
+- ``base64-bytestring`` library (http://hackage.haskell.org/package/zlib)
+
 
 Version 2.10.0 alpha1
 ---------------------
