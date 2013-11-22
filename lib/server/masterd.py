@@ -400,43 +400,6 @@ class ClientOps:
                                    use_locking=use_locking)
       return self._Query(op)
 
-    elif method == luxi.REQ_QUERY_NODES:
-      (names, fields, use_locking) = args
-      logging.info("Received node query request for %s", names)
-      if use_locking:
-        raise errors.OpPrereqError("Sync queries are not allowed",
-                                   errors.ECODE_INVAL)
-      op = opcodes.OpNodeQuery(names=names, output_fields=fields,
-                               use_locking=use_locking)
-      return self._Query(op)
-
-    elif method == luxi.REQ_QUERY_GROUPS:
-      (names, fields, use_locking) = args
-      logging.info("Received group query request for %s", names)
-      if use_locking:
-        raise errors.OpPrereqError("Sync queries are not allowed",
-                                   errors.ECODE_INVAL)
-      op = opcodes.OpGroupQuery(names=names, output_fields=fields)
-      return self._Query(op)
-
-    elif method == luxi.REQ_QUERY_NETWORKS:
-      (names, fields, use_locking) = args
-      logging.info("Received network query request for %s", names)
-      if use_locking:
-        raise errors.OpPrereqError("Sync queries are not allowed",
-                                   errors.ECODE_INVAL)
-      op = opcodes.OpNetworkQuery(names=names, output_fields=fields)
-      return self._Query(op)
-
-    elif method == luxi.REQ_QUERY_EXPORTS:
-      (nodes, use_locking) = args
-      if use_locking:
-        raise errors.OpPrereqError("Sync queries are not allowed",
-                                   errors.ECODE_INVAL)
-      logging.info("Received exports query request")
-      op = opcodes.OpBackupQuery(nodes=nodes, use_locking=use_locking)
-      return self._Query(op)
-
     elif method == luxi.REQ_QUERY_CONFIG_VALUES:
       (fields, ) = args
       logging.info("Received config values query request for %s", fields)
