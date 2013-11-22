@@ -128,7 +128,6 @@ class TestOpcodes(unittest.TestCase):
     self.assertEqual(opcodes.OpClusterPostInit().TinySummary(), "C_POST_INIT")
     self.assertEqual(opcodes.OpNodeRemove().TinySummary(), "N_REMOVE")
     self.assertEqual(opcodes.OpInstanceMigrate().TinySummary(), "I_MIGRATE")
-    self.assertEqual(opcodes.OpGroupQuery().TinySummary(), "G_QUERY")
     self.assertEqual(opcodes.OpTestJqueue().TinySummary(), "TEST_JQUEUE")
 
   def testListSummary(self):

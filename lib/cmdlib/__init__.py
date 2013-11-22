@@ -49,7 +49,6 @@ from ganeti.cmdlib.cluster import \
 from ganeti.cmdlib.group import \
   LUGroupAdd, \
   LUGroupAssignNodes, \
-  LUGroupQuery, \
   LUGroupSetParams, \
   LUGroupRemove, \
   LUGroupRename, \

@@ -771,7 +771,6 @@ class R_2_groups(baserlib.OpcodeResource):
   """/2/groups resource.
 
   """
-  GET_OPCODE = opcodes.OpGroupQuery
   POST_OPCODE = opcodes.OpGroupAdd
   POST_RENAME = {
     "name": "group_name",

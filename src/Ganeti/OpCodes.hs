@@ -697,13 +697,6 @@ $(genOpCode "OpCode"
      , withDoc "List of node UUIDs to assign" pRequiredNodeUuids
      ],
      "group_name")
-  , ("OpGroupQuery",
-     [t| [[JSValue]] |],
-     OpDoc.opGroupQuery,
-     [ pOutputFields
-     , withDoc "Empty list to query all groups, group names otherwise" pNames
-     ],
-     [])
   , ("OpGroupSetParams",
      [t| [(NonEmptyString, JSValue)] |],
      OpDoc.opGroupSetParams,
