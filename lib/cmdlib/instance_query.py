@@ -26,43 +26,11 @@ import itertools
 from ganeti import compat
 from ganeti import constants
 from ganeti import locking
-from ganeti import query
-from ganeti.cmdlib.base import QueryBase, NoHooksLU
+from ganeti.cmdlib.base import NoHooksLU
 from ganeti.cmdlib.common import ShareAll, GetWantedInstances, \
   CheckInstancesNodeGroups, AnnotateDiskParams
 from ganeti.cmdlib.instance_utils import NICListToTuple
 from ganeti.hypervisor import hv_base
-
-
-
-class InstanceQuery(QueryBase):
-  FIELDS = query.INSTANCE_FIELDS
-
-  def ExpandNames(self, lu):
-    raise NotImplementedError
-
-  def DeclareLocks(self, lu, level):
-    raise NotImplementedError
-
-
-class LUInstanceQuery(NoHooksLU):
-  """Logical unit for querying instances.
-
-  """
-  # pylint: disable=W0142
-  REQ_BGL = False
-
-  def CheckArguments(self):
-    raise NotImplementedError
-
-  def ExpandNames(self):
-    raise NotImplementedError
-
-  def DeclareLocks(self, level):
-    raise NotImplementedError
-
-  def Exec(self, feedback_fn):
-    raise NotImplementedError
 
 
 class LUInstanceQueryData(NoHooksLU):

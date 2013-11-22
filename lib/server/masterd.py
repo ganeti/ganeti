@@ -390,16 +390,6 @@ class ClientOps:
       logging.info("Received job query request for %s", msg)
       return queue.OldStyleQueryJobs(job_ids, fields)
 
-    elif method == luxi.REQ_QUERY_INSTANCES:
-      (names, fields, use_locking) = args
-      logging.info("Received instance query request for %s", names)
-      if use_locking:
-        raise errors.OpPrereqError("Sync queries are not allowed",
-                                   errors.ECODE_INVAL)
-      op = opcodes.OpInstanceQuery(names=names, output_fields=fields,
-                                   use_locking=use_locking)
-      return self._Query(op)
-
     elif method == luxi.REQ_QUERY_CONFIG_VALUES:
       (fields, ) = args
       logging.info("Received config values query request for %s", fields)

@@ -886,7 +886,6 @@ class R_2_instances(baserlib.OpcodeResource):
   """/2/instances resource.
 
   """
-  GET_OPCODE = opcodes.OpInstanceQuery
   POST_OPCODE = opcodes.OpInstanceCreate
   POST_RENAME = {
     "os": "os_type",
@@ -970,7 +969,6 @@ class R_2_instances_name(baserlib.OpcodeResource):
   """/2/instances/[instance_name] resource.
 
   """
-  GET_OPCODE = opcodes.OpInstanceQuery
   DELETE_OPCODE = opcodes.OpInstanceRemove
 
   def GET(self):

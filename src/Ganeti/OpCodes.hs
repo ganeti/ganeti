@@ -609,16 +609,6 @@ $(genOpCode "OpCode"
      , pIallocator
      ],
      "instance_name")
-  , ("OpInstanceQuery",
-     [t| [[JSValue]] |],
-     OpDoc.opInstanceQuery,
-     [ pOutputFields
-     , pUseLocking
-     , withDoc
-       "Empty list to query all instances, instance names otherwise"
-       pNames
-     ],
-     [])
   , ("OpInstanceQueryData",
      [t| JSObject (JSObject JSValue) |],
      OpDoc.opInstanceQueryData,

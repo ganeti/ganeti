@@ -89,7 +89,6 @@ from ganeti.cmdlib.instance_operation import \
   LUInstanceReboot, \
   LUInstanceConsole
 from ganeti.cmdlib.instance_query import \
-  LUInstanceQuery, \
   LUInstanceQueryData
 from ganeti.cmdlib.backup import \
   LUBackupPrepare, \
