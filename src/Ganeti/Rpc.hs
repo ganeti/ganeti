@@ -80,10 +80,13 @@ module Ganeti.Rpc
   ) where
 
 import Control.Arrow (second)
+import qualified Codec.Compression.Zlib as Zlib
+import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
+import qualified Data.ByteString.Base64.Lazy as Base64
 
 import Network.Curl hiding (content)
 import qualified Ganeti.Path as P
@@ -570,8 +573,9 @@ instance RpcCall RpcCallJobqueueUpdate where
   rpcCallAcceptOffline _ = False
   rpcCallData _ call     = J.encode
     ( rpcCallJobqueueUpdateFileName call
-    , ( C.rpcEncodingNone
-      , rpcCallJobqueueUpdateContent call
+    , ( C.rpcEncodingZlibBase64
+      , BL.unpack . Base64.encode . Zlib.compress . BL.pack
+          $ rpcCallJobqueueUpdateContent call
       )
     )
 
