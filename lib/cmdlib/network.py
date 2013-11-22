@@ -26,9 +26,8 @@ from ganeti import errors
 from ganeti import locking
 from ganeti import network
 from ganeti import objects
-from ganeti import query
 from ganeti import utils
-from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, QueryBase
+from ganeti.cmdlib.base import LogicalUnit
 from ganeti.cmdlib.common import CheckNodeGroupInstances
 
 
@@ -396,39 +395,6 @@ class LUNetworkSetParams(LogicalUnit):
     self.pool.Validate()
 
     self.cfg.Update(self.network, feedback_fn)
-
-
-class NetworkQuery(QueryBase):
-  FIELDS = query.NETWORK_FIELDS
-
-  def ExpandNames(self, lu):
-    raise NotImplementedError
-
-  def DeclareLocks(self, lu, level):
-    raise NotImplementedError
-
-  def _GetQueryData(self, lu):
-    raise NotImplementedError
-
-  @staticmethod
-  def _GetStats(pool):
-    raise NotImplementedError
-
-
-class LUNetworkQuery(NoHooksLU):
-  """Logical unit for querying networks.
-
-  """
-  REQ_BGL = False
-
-  def CheckArguments(self):
-    raise NotImplementedError
-
-  def ExpandNames(self):
-    raise NotImplementedError
-
-  def Exec(self, feedback_fn):
-    raise NotImplementedError
 
 
 def _FmtNetworkConflict(details):

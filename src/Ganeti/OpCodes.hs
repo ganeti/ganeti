@@ -745,13 +745,6 @@ $(genOpCode "OpCode"
      , withDoc "Which ExtStorage Provider to diagnose" pNames
      ],
      [])
-  , ("OpBackupQuery",
-     [t| JSObject (Either Bool [NonEmptyString]) |],
-     OpDoc.opBackupQuery,
-     [ pUseLocking
-     , withDoc "Empty list to query all nodes, node names otherwise" pNodes
-     ],
-     [])
   , ("OpBackupPrepare",
      [t| Maybe (JSObject JSValue) |],
      OpDoc.opBackupPrepare,
@@ -914,14 +907,6 @@ $(genOpCode "OpCode"
      , pNetworkName
      ],
      "network_name")
-  , ("OpNetworkQuery",
-     [t| [[JSValue]] |],
-     OpDoc.opNetworkQuery,
-     [ pOutputFields
-     , pUseLocking
-     , withDoc "Empty list to query all groups, group names otherwise" pNames
-     ],
-     [])
   ])
 
 -- | Returns the OP_ID for a given opcode value.

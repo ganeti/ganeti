@@ -92,7 +92,6 @@ from ganeti.cmdlib.instance_query import \
   LUInstanceQuery, \
   LUInstanceQueryData
 from ganeti.cmdlib.backup import \
-  LUBackupQuery, \
   LUBackupPrepare, \
   LUBackupExport, \
   LUBackupRemove
@@ -110,7 +109,6 @@ from ganeti.cmdlib.network import \
   LUNetworkAdd, \
   LUNetworkRemove, \
   LUNetworkSetParams, \
-  LUNetworkQuery, \
   LUNetworkConnect, \
   LUNetworkDisconnect
 from ganeti.cmdlib.misc import \

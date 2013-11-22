@@ -29,51 +29,15 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import locking
 from ganeti import masterd
-from ganeti import query
 from ganeti import utils
 
-from ganeti.cmdlib.base import QueryBase, NoHooksLU, LogicalUnit
+from ganeti.cmdlib.base import NoHooksLU, LogicalUnit
 from ganeti.cmdlib.common import CheckNodeOnline, \
   ExpandNodeUuidAndName
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
   ShutdownInstanceDisks
 from ganeti.cmdlib.instance_utils import GetClusterDomainSecret, \
   BuildInstanceHookEnvByObject, CheckNodeNotDrained, RemoveInstance
-
-
-class ExportQuery(QueryBase):
-  FIELDS = query.EXPORT_FIELDS
-
-  #: The node name is not a unique key for this query
-  SORT_FIELD = "node"
-
-  def ExpandNames(self, lu):
-    raise NotImplementedError
-
-  def DeclareLocks(self, lu, level):
-    pass
-
-  def _GetQueryData(self, lu):
-    raise NotImplementedError
-
-
-class LUBackupQuery(NoHooksLU):
-  """Query the exports list
-
-  """
-  REQ_BGL = False
-
-  def CheckArguments(self):
-    raise NotImplementedError
-
-  def ExpandNames(self):
-    raise NotImplementedError
-
-  def DeclareLocks(self, level):
-    raise NotImplementedError
-
-  def Exec(self, feedback_fn):
-    raise NotImplementedError
 
 
 class LUBackupPrepare(NoHooksLU):

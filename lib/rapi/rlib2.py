@@ -655,7 +655,6 @@ class R_2_networks(baserlib.OpcodeResource):
   """/2/networks resource.
 
   """
-  GET_OPCODE = opcodes.OpNetworkQuery
   POST_OPCODE = opcodes.OpNetworkAdd
   POST_RENAME = {
     "name": "network_name",
