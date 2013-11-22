@@ -202,8 +202,6 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNodeAdd <$> genNodeNameNE <*> emptyMUD <*> emptyMUD <*>
           genMaybe genNameNE <*> genMaybe genNameNE <*> arbitrary <*>
           genMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD
-      "OP_NODE_QUERY" ->
-        OpCodes.OpNodeQuery <$> genFieldsNE <*> genNamesNE <*> arbitrary
       "OP_NODE_QUERYVOLS" ->
         OpCodes.OpNodeQueryvols <$> arbitrary <*> genNodeNamesNE
       "OP_NODE_QUERY_STORAGE" ->
@@ -281,8 +279,6 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpInstanceRecreateDisks <$> genFQDN <*> return Nothing <*>
           arbitrary <*> genNodeNamesNE <*> return Nothing <*>
           genMaybe genNameNE
-      "OP_INSTANCE_QUERY" ->
-        OpCodes.OpInstanceQuery <$> genFieldsNE <*> arbitrary <*> genNamesNE
       "OP_INSTANCE_QUERY_DATA" ->
         OpCodes.OpInstanceQueryData <$> arbitrary <*>
           genNodeNamesNE <*> arbitrary
@@ -308,8 +304,6 @@ instance Arbitrary OpCodes.OpCode where
       "OP_GROUP_ASSIGN_NODES" ->
         OpCodes.OpGroupAssignNodes <$> genNameNE <*> arbitrary <*>
           genNodeNamesNE <*> return Nothing
-      "OP_GROUP_QUERY" ->
-        OpCodes.OpGroupQuery <$> genFieldsNE <*> genNamesNE
       "OP_GROUP_SET_PARAMS" ->
         OpCodes.OpGroupSetParams <$> genNameNE <*> arbitrary <*>
           emptyMUD <*> genMaybe genEmptyContainer <*>
@@ -325,8 +319,6 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
       "OP_EXT_STORAGE_DIAGNOSE" ->
         OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
-      "OP_BACKUP_QUERY" ->
-        OpCodes.OpBackupQuery <$> arbitrary <*> genNodeNamesNE
       "OP_BACKUP_PREPARE" ->
         OpCodes.OpBackupPrepare <$> genFQDN <*> return Nothing <*> arbitrary
       "OP_BACKUP_EXPORT" ->
@@ -367,8 +359,6 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> genNameNE <*> arbitrary
       "OP_NETWORK_DISCONNECT" ->
         OpCodes.OpNetworkDisconnect <$> genNameNE <*> genNameNE
-      "OP_NETWORK_QUERY" ->
-        OpCodes.OpNetworkQuery <$> genFieldsNE <*> arbitrary <*> genNamesNE
       "OP_RESTRICTED_COMMAND" ->
         OpCodes.OpRestrictedCommand <$> arbitrary <*> genNodeNamesNE <*>
           return Nothing <*> genNameNE
