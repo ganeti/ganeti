@@ -524,7 +524,6 @@ class LUInstanceCreate(LogicalUnit):
 
       if self.op.opportunistic_locking:
         self.opportunistic_locks[locking.LEVEL_NODE] = True
-        self.opportunistic_locks[locking.LEVEL_NODE_RES] = True
     else:
       self.op.pnode = ExpandNodeName(self.cfg, self.op.pnode)
       nodelist = [self.op.pnode]
@@ -559,6 +558,14 @@ class LUInstanceCreate(LogicalUnit):
 
     self.needed_locks[locking.LEVEL_NODE_RES] = \
       CopyLockList(self.needed_locks[locking.LEVEL_NODE])
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE_RES and \
+      self.opportunistic_locks[locking.LEVEL_NODE]:
+      # Even when using opportunistic locking, we require the same set of
+      # NODE_RES locks as we got NODE locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.owned_locks(locking.LEVEL_NODE)
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
@@ -1873,7 +1880,6 @@ class LUInstanceMultiAlloc(NoHooksLU):
 
       if self.op.opportunistic_locking:
         self.opportunistic_locks[locking.LEVEL_NODE] = True
-        self.opportunistic_locks[locking.LEVEL_NODE_RES] = True
     else:
       nodeslist = []
       for inst in self.op.instances:
@@ -1887,6 +1893,14 @@ class LUInstanceMultiAlloc(NoHooksLU):
       # Lock resources of instance's primary and secondary nodes (copy to
       # prevent accidential modification)
       self.needed_locks[locking.LEVEL_NODE_RES] = list(nodeslist)
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE_RES and \
+      self.opportunistic_locks[locking.LEVEL_NODE]:
+      # Even when using opportunistic locking, we require the same set of
+      # NODE_RES locks as we got NODE locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.owned_locks(locking.LEVEL_NODE)
 
   def CheckPrereq(self):
     """Check prerequisite.
