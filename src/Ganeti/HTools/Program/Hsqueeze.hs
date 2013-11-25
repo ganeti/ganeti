@@ -228,7 +228,7 @@ main opts args = do
       off_cmd =
         Cluster.formatCmds off_jobs
         ++ "\necho Power Commands\n"
-        ++ (toOffline >>= printf "  gnt-node power off -f %s\n" . Node.alias)
+        ++ (toOffline >>= printf "  gnt-node power -f off %s\n" . Node.alias)
       toOnline = tryOnline minInstance conf onlineCandidates
       nodesToOnline = fromMaybe onlineCandidates toOnline
       ((fin_on_nl, fin_on_il), on_mvs) =
@@ -238,7 +238,7 @@ main opts args = do
       on_jobs = Cluster.splitJobs on_mvs
       on_cmd =
         "echo Power Commands\n"
-        ++ (nodesToOnline >>= printf "  gnt-node power on -f %s\n" . Node.alias)
+        ++ (nodesToOnline >>= printf "  gnt-node power -f on %s\n" . Node.alias)
         ++ Cluster.formatCmds on_jobs
 
   when (verbose > 1) . putStrLn 
