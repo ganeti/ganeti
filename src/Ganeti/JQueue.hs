@@ -49,7 +49,7 @@ module Ganeti.JQueue
     , allocateJobIds
     , allocateJobId
     , writeJobToDisk
-    , replicateJob
+    , replicateManyJobs
     , isQueueOpen
     ) where
 
@@ -358,6 +358,11 @@ replicateJob rootdir mastercandidates job = do
               $ RpcCallJobqueueUpdate filename content
   logRpcErrors result
   return result
+
+-- | Replicate many jobs to all master candidates.
+replicateManyJobs :: FilePath -> [Node] -> [QueuedJob] -> IO ()
+replicateManyJobs rootdir mastercandidates =
+  mapM_ (replicateJob rootdir mastercandidates)
 
 -- | Read the job serial number from disk.
 readSerialFromDisk :: IO (Result JobId)
