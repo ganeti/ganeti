@@ -457,7 +457,7 @@ applyMove nl inst (ReplaceAndFailover new_pdx) =
                 new_inst, new_pdx, old_pdx)
   in new_nl
 
--- Failver and replace the secondary (f, r:ns)
+-- Failover and replace the secondary (f, r:ns)
 applyMove nl inst (FailoverAndReplace new_sdx) =
   let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       tgt_n = Container.find new_sdx nl
