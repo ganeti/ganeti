@@ -22,7 +22,7 @@ node-01-00[2345]$/
 
 ./test/hs/hsqueeze --no-headers --target-resources=0 -t $TESTDATA_DIR/hsqueeze-underutilized.data -C
 >>>/gnt-instance migrate -f -n node-01-00[01] inst-50(.|
-)*gnt-node power off -f node-01-005/
+)*gnt-node power -f off node-01-005/
 >>>=0
 
 ./test/hs/hsqueeze -v -t $TESTDATA_DIR/hsqueeze-overutilized.data
@@ -46,7 +46,7 @@ node-01-00[2456]$/
 >>>= 0
 
 ./test/hs/hsqueeze --no-headers -t $TESTDATA_DIR/hsqueeze-overutilized.data --minimal-resources=4.0 --target-resources=5.0 -C
->>>/gnt-node power on -f node-01-006(.|
+>>>/gnt-node power -f on node-01-006(.|
 )*gnt-instance migrate -f -n node-01-006 inst-/
 >>>= 0
 
