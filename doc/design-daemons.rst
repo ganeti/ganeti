@@ -261,6 +261,136 @@ leaving the codebase in a consistent and usable state.
    MasterD will cease to exist as a deamon on its own at this point, but not
    before.
 
+WConfD details
+--------------
+
+WConfD will communicate with its clients through a Unix domain socket for both
+configuration management and locking. Clients can issue multiple RPC calls
+through one socket. For each such a call the client sends a JSON request
+document with a remote function name and data for its arguments. The server
+replies with a JSON response document containing either the result of
+signalling a failure.
+
+There will be a special RPC call for identifying a client when connecting to
+WConfD. The client will tell WConfD it's job number and process ID. WConfD will
+fail any other RPC calls before a client identifies this way.
+
+Any state associated with client processes will be mirrored on persistent
+storage and linked to the identity of processes so that the WConfD daemon will
+be able to resume its operation at any point after a restart or a crash. WConfD
+will track each client's process start time along with its process ID to be
+able detect if a process dies and it's process ID is reused.  WConfD will clear
+all locks and other state associated with a client if it detects it's process
+no longer exists.
+
+Configuration management
+++++++++++++++++++++++++
+
+The new configuration management protocol will be implemented in the following
+steps:
+
+#. Reimplement all current methods of ``ConfigWriter`` for reading and writing
+   the configuration of a cluster in WConfD.
+#. Expose each of those functions in WConfD as a RPC function. This will allow
+   easy future extensions or modifications.
+#. Replace ``ConfigWriter`` with a stub (preferably automatically generated
+   from the Haskell code) that will contain the same methods as the current
+   ``ConfigWriter`` and delegate all calls to its methods to WConfD.
+
+After this step it'll be possible access the configuration from separate
+processes.
+
+Future aims:
+
+-  Optionally refactor the RPC calls to reduce their number or improve their
+   efficiency (for example by obtaining a larger set of data instead of
+   querying items one by one).
+
+Locking
++++++++
+
+The new locking protocol will be implemented as follows:
+
+Re-implement the current locking mechanism in WConfD and expose it for RPC
+calls. All current locks will be mapped into a data structure that will
+uniquely identify them (storing lock's level together with it's name).
+
+WConfD will impose a linear order on locks. The order will be compatible
+with the current ordering of lock levels so that existing code will work
+without changes.
+
+WConfD will keep the set of currently held locks for each client. The
+protocol will allow the following operations on the set:
+
+*Update:*
+  Update the current set of locks according to a given list. The list contains
+  locks and their desired level (release / shared / exclusive). To prevent
+  deadlocks, WConfD will check that all newly requested locks (or already held
+  locks requested to be upgraded to *exclusive*) are greater in the sense of
+  the linear order than all currently held locks, and fail the operation if
+  not. Only the locks in the list will be updated, other locks already held
+  will be left intact. If the operation fails, the client's lock set will be
+  left intact.
+*Opportunistic union:*
+  Add as much as possible locks from a given set to the current set within a
+  given timeout. WConfD will again check the proper order of locks and
+  acquire only the ones that are allowed wrt. the current set.  Returns the
+  set of acquired locks, possibly empty. Immediate. Never fails. (It would also
+  be possible to extend the operation to try to wait until a given number of
+  locks is available, or a given timeout elapses.)
+*List:*
+  List the current set of held locks. Immediate, never fails.
+*Intersection:*
+  Retain only a given set of locks in the current one. This function is
+  provided for convenience, it's redundant wrt. *list* and *update*. Immediate,
+  never fails.
+
+After this step it'll be possible to use locks from jobs as separate processes.
+
+The above set of operations allows the clients to use various work-flows. In particular:
+
+Pessimistic strategy:
+  Lock all potentially relevant resources (for example all nodes), determine
+  which will be needed, and release all the others.
+Optimistic strategy:
+  Determine what locks need to be acquired without holding any. Lock the
+  required set of locks. Determine the set of required locks again and check if
+  they are all held. If not, release everything and restart.
+
+.. COMMENTED OUT:
+  Start with the smallest set of locks and when determining what more
+  relevant resources will be needed, expand the set. If an *union* operation
+  fails, release all locks, acquire the desired union and restart the
+  operation so that all preconditions and possible concurrent changes are
+  checked again.
+
+Future aims:
+
+-  Add more fine-grained locks to prevent unnecessary blocking of jobs. This
+   could include locks on parameters of entities or locks on their states (so that
+   a node remains online, but otherwise can change, etc.). In particular,
+   adding, moving and removing instances currently blocks the whole node.
+-  Add checks that all modified configuration parameters belong to entities
+   the client has locked and log violations.
+-  Make the above checks mandatory.
+-  Automate optimistic locking and checking the locks in logical units.
+   For example, this could be accomplished by allowing some of the initial
+   phases of `LogicalUnit` (such as `ExpandNames` and `DeclareLocks`) to be run
+   repeatedly, checking if the set of locks requested the second time is
+   contained in the set acquired after the first pass.
+-  Add the possibility for a job to reserve hardware resources such as disk
+   space or memory on nodes. Most likely as a new, special kind of instances
+   that would only block its resources and allow to be converted to a regular
+   instance. This would allow long-running jobs such as instance creation or
+   move to lock the corresponding nodes, acquire the resources and turn the
+   locks into shared ones, keeping an exclusive lock only on the instance.
+-  Use more sophisticated algorithm for preventing deadlocks such as a
+   `wait-for graph`_. This would allow less *union* failures and allow more
+   optimistic, scalable acquisition of locks.
+
+.. _`wait-for graph`: http://en.wikipedia.org/wiki/Wait-for_graph
+
+
 Further considerations
 ======================
 
