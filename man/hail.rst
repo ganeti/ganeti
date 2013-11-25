@@ -79,7 +79,7 @@ The options that can be passed to the program are as follows:
   in the JSON request itself. This is mostly used for debugging. The
   format of the file is described in the man page **htools**\(1).
 
-\--mond
+\--mond=*yes|no*
   If given the program will query all MonDs to fetch data from the
   supported data collectors over the network.
 

@@ -219,7 +219,7 @@ support all options. Some common options are:
   - vcpu ratio
   - spindle ratio
 
-\--mond
+\--mond=*yes|no*
   If given the program will query all MonDs to fetch data from the
   supported data collectors over the network.
 

@@ -297,9 +297,11 @@ oDiskMoves =
 oMonD :: OptType
 oMonD =
   (Option "" ["mond"]
-   (NoArg (\ opts -> Ok opts {optMonD = True}))
-   "Query MonDs",
-   OptComplNone)
+   (OptArg (\ f opts -> do
+              flag <- parseYesNo True f
+              return $ opts { optMonD = flag }) "CHOICE")
+   "pass either 'yes' or 'no' to query all monDs",
+   optComplYesNo)
 
 oMonDDataFile :: OptType
 oMonDDataFile =

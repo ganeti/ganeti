@@ -31,6 +31,7 @@ Algorithm options:
 **[ \--no-instance-moves ]**
 **[ -U *util-file* ]**
 **[ \--ignore-dynu ]**
+**[ \--mond *yes|no* ]**
 **[ \--evac-mode ]**
 **[ \--select-instances *inst...* ]**
 **[ \--exclude-instances *inst...* ]**
@@ -349,7 +350,7 @@ The options that can be passed to the program are as follows:
   other backends must be selected. The option is described in the man
   page **htools**\(1).
 
-\--mond
+\--mond=*yes|no*
   If given the program will query all MonDs to fetch data from the
   supported data collectors over the network.
 
