@@ -57,7 +57,7 @@ import Ganeti.Logging
 import Ganeti.Luxi
 import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Query.Cluster as QCluster
-import Ganeti.Path (queueDir, jobQueueLockFile, defaultMasterSocket)
+import Ganeti.Path (queueDir, jobQueueLockFile)
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 import Ganeti.Types
@@ -200,7 +200,8 @@ handleCall _ cfg (QueryNetworks names fields lock) =
 
 handleCall qlock cfg (SubmitJobToDrainedQueue ops) =
   do
-    jobid <- allocateJobId (Config.getMasterCandidates cfg) qlock
+    let mcs = Config.getMasterCandidates cfg
+    jobid <- allocateJobId mcs qlock
     case jobid of
       Bad s -> return . Bad . GenericError $ s
       Ok jid -> do
@@ -210,13 +211,8 @@ handleCall qlock cfg (SubmitJobToDrainedQueue ops) =
         case write_result of
           Bad s -> return . Bad . GenericError $ s
           Ok () -> do
-            socketpath <- defaultMasterSocket
-            client <- getClient socketpath
-            pickupResult <- callMethod (PickupJob jid) client
-            closeClient client
-            case pickupResult of
-              Ok _ -> return ()
-              Bad e -> logWarning $ "Failded to notify masterd: " ++ show e
+            _ <- replicateManyJobs qDir mcs [job]
+            _ <- forkIO $ enqueueJobs [job]
             return . Ok . showJSON . fromJobId $ jid
 
 handleCall qlock cfg (SubmitJob ops) =
@@ -232,30 +228,24 @@ handleCall qlock cfg (SubmitManyJobs lops) =
     if not open
       then return . Bad . GenericError $ "Queue drained"
       else do
-        result_jobids <- allocateJobIds (Config.getMasterCandidates cfg)
-                           qlock (length lops)
+        let mcs = Config.getMasterCandidates cfg
+        result_jobids <- allocateJobIds mcs qlock (length lops)
         case result_jobids of
           Bad s -> return . Bad . GenericError $ s
           Ok jids -> do
             jobs <- zipWithM queuedJobFromOpCodes jids lops
             qDir <- queueDir
             write_results <- mapM (writeJobToDisk qDir) jobs
-            let annotated_results = zip write_results jids
+            let annotated_results = zip write_results jobs
                 succeeded = map snd $ filter (isOk . fst) annotated_results
             when (any isBad write_results) . logWarning
               $ "Writing some jobs failed " ++ show annotated_results
-            socketpath <- defaultMasterSocket
-            client <- getClient socketpath
-            pickupResults <- mapM (flip callMethod client . PickupJob)
-                               succeeded
-            closeClient client
-            when (any isBad pickupResults)
-              . logWarning . (++)  "Failed to notify maserd: " . show
-              $ zip succeeded pickupResults
+            replicateManyJobs qDir mcs succeeded
+            _ <- forkIO $ enqueueJobs succeeded
             return . Ok . JSArray
-              . map (\(res, jid) ->
+              . map (\(res, job) ->
                       if isOk res
-                        then showJSON (True, fromJobId jid)
+                        then showJSON (True, fromJobId $ qjId job)
                         else showJSON (False, genericResult id (const "") res))
               $ annotated_results
 
