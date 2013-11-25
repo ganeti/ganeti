@@ -168,9 +168,14 @@ def _GetInstanceList(fn, include_node, _timeout=5):
   return _ParseInstanceList(lines, include_node)
 
 
+# Determine whether an instance is running
+#
+# An instance is running if it is in the following Xen states:
+# running, blocked, or paused.
 def _IsInstanceRunning(instance_info):
   return instance_info == "r-----" \
-      or instance_info == "-b----"
+      or instance_info == "-b----" \
+      or instance_info == "--p---"
 
 
 def _IsInstanceShutdown(instance_info):
