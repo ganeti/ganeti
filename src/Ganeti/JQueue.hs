@@ -49,6 +49,7 @@ module Ganeti.JQueue
     , allocateJobIds
     , allocateJobId
     , writeJobToDisk
+    , replicateJob
     , isQueueOpen
     ) where
 
@@ -74,7 +75,8 @@ import Ganeti.Logging
 import Ganeti.Objects (Node)
 import Ganeti.OpCodes
 import Ganeti.Path
-import Ganeti.Rpc (executeRpcCall, RpcCallJobqueueUpdate(..))
+import Ganeti.Rpc (executeRpcCall, ERpcError, logRpcErrors,
+                   RpcCallJobqueueUpdate(..))
 import Ganeti.THH
 import Ganeti.Types
 import Ganeti.Utils
@@ -346,6 +348,16 @@ writeJobToDisk rootdir job = do
       content = Text.JSON.encode . Text.JSON.showJSON $ job
   tryAndLogIOError (atomicWriteFile filename content)
                    ("Failed to write " ++ filename) Ok
+
+-- | Replicate a job to all master candidates.
+replicateJob :: FilePath -> [Node] -> QueuedJob -> IO [(Node, ERpcError ())]
+replicateJob rootdir mastercandidates job = do
+  let filename = liveJobFile rootdir . qjId $ job
+      content = Text.JSON.encode . Text.JSON.showJSON $ job
+  result <- executeRpcCall mastercandidates
+              $ RpcCallJobqueueUpdate filename content
+  logRpcErrors result
+  return result
 
 -- | Read the job serial number from disk.
 readSerialFromDisk :: IO (Result JobId)
