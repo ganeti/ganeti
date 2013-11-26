@@ -52,8 +52,12 @@ def TestNetworkAddRemove():
   AssertCommand(["gnt-network", "add", "--network", "203.0.133.0/24", network2],
                 fail=True)
 
+  AssertCommand(["gnt-network", "list"])
+
   AssertCommand(["gnt-network", "remove", network1])
   AssertCommand(["gnt-network", "remove", network2])
+
+  AssertCommand(["gnt-network", "list"])
 
 
 def TestNetworkConnect():
@@ -75,6 +79,7 @@ def TestNetworkConnect():
   AssertCommand(["gnt-network", "add", "--network", "192.0.2.0/24", network1])
 
   AssertCommand(["gnt-network", "connect", network1, mode, link, group1])
+  AssertCommand(["gnt-network", "list"])
   AssertCommand(["gnt-network", "disconnect", network1, group1])
 
   AssertCommand(["gnt-group", "remove", group1])
