@@ -160,7 +160,7 @@ data HttpClientRequest = HttpClientRequest
 
 -- | Check if a string represented address is IPv6
 isIpV6 :: String -> Bool
-isIpV6 ip = elem ':' ip
+isIpV6 = (':' `elem`)
 
 -- | Prepare url for the HTTP request.
 prepareUrl :: (RpcCall a) => Node -> a -> String
