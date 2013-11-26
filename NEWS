@@ -15,6 +15,9 @@ Incompatible/important changes
   structure of the request was syntactically correct. As the luxi protocol
   is internal (external applications are expected to use RAPI), the impact
   of this incompatible change should be limited.
+- Queries for nodes, instances, groups, backups and networks are now
+  exclusively done via the luxi daemon. Legacy python code was removed,
+  as well as the --enable-split-queries configuration option.
 
 New features
 ~~~~~~~~~~~~
