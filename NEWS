@@ -32,8 +32,11 @@ New dependencies
 The following new dependencies have been added:
 
 For Haskell:
+
 - ``zlib`` library (http://hackage.haskell.org/package/base64-bytestring)
-- ``base64-bytestring`` library (http://hackage.haskell.org/package/zlib)
+
+- ``base64-bytestring`` library (http://hackage.haskell.org/package/zlib),
+  at least version 1.0.0.0
 
 
 Version 2.10.0 alpha1
