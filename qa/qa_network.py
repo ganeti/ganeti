@@ -26,7 +26,19 @@
 import qa_config
 import qa_utils
 
+from ganeti import query
+
 from qa_utils import AssertCommand
+
+
+def TestNetworkList():
+  """gnt-network list"""
+  qa_utils.GenericQueryTest("gnt-network", query.NETWORK_FIELDS.keys())
+
+
+def TestNetworkListFields():
+  """gnt-network list-fields"""
+  qa_utils.GenericQueryFieldsTest("gnt-network", query.NETWORK_FIELDS.keys())
 
 
 def GetNonexistentNetworks(count):
@@ -52,12 +64,13 @@ def TestNetworkAddRemove():
   AssertCommand(["gnt-network", "add", "--network", "203.0.133.0/24", network2],
                 fail=True)
 
-  AssertCommand(["gnt-network", "list"])
+  TestNetworkList()
+  TestNetworkListFields()
 
   AssertCommand(["gnt-network", "remove", network1])
   AssertCommand(["gnt-network", "remove", network2])
 
-  AssertCommand(["gnt-network", "list"])
+  TestNetworkList()
 
 
 def TestNetworkConnect():
@@ -79,7 +92,9 @@ def TestNetworkConnect():
   AssertCommand(["gnt-network", "add", "--network", "192.0.2.0/24", network1])
 
   AssertCommand(["gnt-network", "connect", network1, mode, link, group1])
-  AssertCommand(["gnt-network", "list"])
+
+  TestNetworkList()
+
   AssertCommand(["gnt-network", "disconnect", network1, group1])
 
   AssertCommand(["gnt-group", "remove", group1])
