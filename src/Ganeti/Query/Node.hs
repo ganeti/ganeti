@@ -218,14 +218,10 @@ nodeFields =
   -- FIXME: the below could be generalised a bit, like in Python
   , (FieldDefinition "pinst_cnt" "Pinst" QFTNumber
        "Number of instances with this node as primary",
-     FieldConfig (\cfg ->
-                    rsNormal . length . fst . getNodeInstances cfg . nodeUuid),
-     QffNormal)
+     FieldConfig (\cfg -> rsNormal . getNumInstances fst cfg), QffNormal)
   , (FieldDefinition "sinst_cnt" "Sinst" QFTNumber
        "Number of instances with this node as secondary",
-     FieldConfig (\cfg ->
-                    rsNormal . length . snd . getNodeInstances cfg . nodeUuid),
-     QffNormal)
+     FieldConfig (\cfg -> rsNormal . getNumInstances snd cfg), QffNormal)
   , (FieldDefinition "pinst_list" "PriInstances" QFTOther
        "List of instances with this node as primary",
      FieldConfig (\cfg -> rsNormal . niceSort . map instName . fst .
@@ -253,6 +249,11 @@ nodeFields =
   uuidFields "Node" ++
   serialFields "Node" ++
   tagsFields
+
+-- | Helper function to retrieve the number of (primary or secondary) instances
+getNumInstances :: (([Instance], [Instance]) -> [Instance])
+                -> ConfigData -> Node -> Int
+getNumInstances get_fn cfg = length . get_fn . getNodeInstances cfg . nodeUuid
 
 -- | The node fields map.
 fieldsMap :: FieldMap Node Runtime
