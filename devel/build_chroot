@@ -270,6 +270,11 @@ in_chroot -- \
   easy_install affinity
 
 in_chroot -- \
+  easy_install jsonpointer \
+    jsonpointer \
+    jsonpatch
+
+in_chroot -- \
   $APT_INSTALL \
   python-epydoc debhelper quilt
 
