@@ -31,6 +31,7 @@ module Ganeti.BasicTypes
   , isOk
   , isBad
   , justOk
+  , justBad
   , eitherToResult
   , annotateResult
   , iterateOk
@@ -51,6 +52,7 @@ import Control.Monad
 import Control.Monad.Trans
 import Data.Function
 import Data.List
+import Data.Maybe
 import Data.Set (Set)
 import qualified Data.Set as Set (empty)
 import Text.JSON (JSON)
@@ -138,10 +140,11 @@ isBad = not . isOk
 
 -- | Simple filter returning only OK values of GenericResult
 justOk :: [GenericResult a b] -> [b]
-justOk [] = []
-justOk (x:xs) = case x of
-  Ok  v -> v:justOk xs
-  Bad _ -> justOk xs
+justOk = mapMaybe (genericResult (const Nothing) Just)
+
+-- | Simple filter returning only Bad values of GenericResult
+justBad :: [GenericResult a b] -> [a]
+justBad = mapMaybe (genericResult Just (const Nothing))
 
 -- | Converter from Either to 'GenericResult'.
 eitherToResult :: Either a b -> GenericResult a b
