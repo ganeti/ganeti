@@ -683,9 +683,27 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
   def _DestroyInstance(self, name, hvparams):
     result = self._RunXen(["destroy", name], hvparams)
+
     if result.failed:
       raise errors.HypervisorError("Failed to destroy instance %s: %s, %s" %
                                    (name, result.fail_reason, result.output))
+
+  # Destroy a domain only if necessary
+  #
+  # This method checks if the domain has already been destroyed before
+  # issuing the 'destroy' command.  This step is necessary to handle
+  # domains created by other versions of Ganeti.  For example, an
+  # instance created with 2.10 will be destroy by the
+  # '_ShutdownInstance', thus not requiring an additional destroy,
+  # which would cause an error if issued.  See issue 619.
+  def _DestroyInstanceIfAlive(self, name, hvparams):
+    instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
+
+    if instance_info is None:
+      raise errors.HypervisorError("Failed to destroy instance %s, already"
+                                   " destroyed" % name)
+    else:
+      self._DestroyInstance(name, hvparams)
 
   def _StopInstance(self, name, force, hvparams):
     """Stop an instance.
@@ -708,7 +726,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       self._DestroyInstance(name, hvparams)
     else:
       self._ShutdownInstance(name, hvparams, instance_info[4])
-      self._DestroyInstance(name, hvparams)
+      self._DestroyInstanceIfAlive(name, hvparams)
 
     # Remove configuration file if stopping/starting instance was successful
     self._RemoveConfigFile(name)
