@@ -34,6 +34,7 @@ import Ganeti.Types
 import qualified Ganeti.Types as T
 
 import Control.Monad
+import Data.List (nub)
 import Data.Maybe
 import qualified Data.Map as M
 
@@ -56,7 +57,7 @@ getDefaultSpindleSU cfg =
 getClusterStorageUnitRaws :: ConfigData -> [StorageUnitRaw]
 getClusterStorageUnitRaws cfg = foldSUs (maybe_units ++ [spindle_unit])
   where disk_templates = clusterEnabledDiskTemplates $ configCluster cfg
-        storage_types = map diskTemplateToStorageType disk_templates
+        storage_types = nub $ map diskTemplateToStorageType disk_templates
         maybe_units = zip storage_types (map (getDefaultStorageKey cfg)
             disk_templates)
         spindle_unit = getDefaultSpindleSU cfg
