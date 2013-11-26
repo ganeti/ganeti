@@ -129,6 +129,11 @@ execute any query from any node; except maybe practical reasons
 we want to change the cluster security model). In any case, it should
 be possible to do this in a reliable way from all master candidates.
 
+Update: We decided to keep the restriction to run queries on the master
+node. The reason is that it is confusing from a usability point of view
+that querying will work on any node and suddenly, when the user tries
+to submit a job, it won't work.
+
 Some implementation details
 ---------------------------
 
