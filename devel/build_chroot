@@ -228,7 +228,8 @@ case $DIST_RELEASE in
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
-      libghc6-zlib-dev libghc-base64-bytestring-dev \
+      libghc6-zlib-dev \
+      cabal-install\
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
@@ -236,6 +237,11 @@ case $DIST_RELEASE in
 
       easy_install pyinotify==0.9.4
 
+     in_chroot -- \
+       cabal update
+
+     in_chroot -- \
+       cabal install --global base64-bytestring
 ;;
 
   *)
