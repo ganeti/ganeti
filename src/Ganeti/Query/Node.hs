@@ -263,19 +263,41 @@ fieldsMap =
 rpcResultNodeBroken :: Node -> (Node, Runtime)
 rpcResultNodeBroken node = (node, Left (RpcResultError "Broken configuration"))
 
+-- | Storage-related query fields
+storageFields :: [String]
+storageFields = ["dtotal", "dfree", "spfree", "sptotal"]
+
+-- | Hypervisor-related query fields
+hypervisorFields :: [String]
+hypervisorFields = ["mnode", "mfree", "mtotal",
+                    "cnodes", "csockets", "cnos", "ctotal"]
+
+-- | Check if it is required to include domain-specific entities (for example
+-- storage units for storage info, hypervisor specs for hypervisor info)
+-- in the node_info call
+queryDomainRequired :: -- domain-specific fields to look for (storage, hv)
+                      [String]
+                      -- list of requested fields
+                   -> [String]
+                   -> Bool
+queryDomainRequired domain_fields fields = any (`elem` fields) domain_fields
+
 -- | Collect live data from RPC query if enabled.
---
--- FIXME: Check which fields we actually need and possibly send empty
--- hvs\/vgs if no info from hypervisor\/volume group respectively is
--- required
-collectLiveData:: Bool -> ConfigData -> [Node] -> IO [(Node, Runtime)]
-collectLiveData False _ nodes =
+collectLiveData :: Bool
+                -> ConfigData
+                -> [String]
+                -> [Node]
+                -> IO [(Node, Runtime)]
+collectLiveData False _ _ nodes =
   return $ zip nodes (repeat $ Left (RpcResultError "Live data disabled"))
-collectLiveData True cfg nodes = do
-  let hvs = [getDefaultHypervisorSpec cfg]
+collectLiveData True cfg fields nodes = do
+  let hvs = [getDefaultHypervisorSpec cfg |
+             queryDomainRequired hypervisorFields fields]
       good_nodes = nodesWithValidConfig cfg nodes
-      -- FIXME: use storage units from calling code
-      storage_units = getStorageUnitsOfNodes cfg good_nodes
+      storage_units = if queryDomainRequired storageFields fields
+                        then getStorageUnitsOfNodes cfg good_nodes
+                        else Map.fromList
+                          (map (\n -> (nodeUuid n, [])) good_nodes)
   rpcres <- executeRpcCall good_nodes (RpcCallNodeInfo storage_units hvs)
   return $ fillUpList (fillPairFromMaybe rpcResultNodeBroken pickPairUnique)
       nodes rpcres

@@ -232,8 +232,8 @@ queryInner :: ConfigData   -- ^ The current configuration
            -> IO (ErrorResult QueryResult) -- ^ Result
 
 queryInner cfg live (Query (ItemTypeOpCode QRNode) fields qfilter) wanted =
-  genericQuery Node.fieldsMap (CollectorSimple Node.collectLiveData) nodeName
-               configNodes getNode cfg live fields qfilter wanted
+  genericQuery Node.fieldsMap (CollectorFieldAware Node.collectLiveData)
+               nodeName configNodes getNode cfg live fields qfilter wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRInstance) fields qfilter) wanted =
   genericQuery Instance.fieldsMap (CollectorFieldAware Instance.collectLiveData)
