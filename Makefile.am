@@ -972,7 +972,8 @@ qa_scripts = \
 	qa/qa_os.py \
 	qa/qa_rapi.py \
 	qa/qa_tags.py \
-	qa/qa_utils.py
+	qa/qa_utils.py \
+        qa/rapi-workload.py
 
 bin_SCRIPTS =
 if WANT_HTOOLS
