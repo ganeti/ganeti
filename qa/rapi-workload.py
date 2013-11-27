@@ -156,6 +156,40 @@ def Finish(client, fn, *args, **kwargs):
     return None
 
 
+def TestTags(client, get_fn, add_fn, delete_fn, *args):
+  """ Tests whether tagging works.
+
+  @type client C{GanetiRapiClientWrapper}
+  @param client The client wrapper.
+  @type get_fn function
+  @param get_fn A Get*Tags function of the client.
+  @type add_fn function
+  @param add_fn An Add*Tags function of the client.
+  @type delete_fn function
+  @param delete_fn A Delete*Tags function of the client.
+
+  To allow this method to work for all tagging functions of the client, use
+  named methods.
+
+  """
+  get_fn(*args)
+
+  tags = ["tag1", "tag2", "tag3"]
+  Finish(client, add_fn, *args, tags=tags, dry_run=True)
+  Finish(client, add_fn, *args, tags=tags)
+
+  get_fn(*args)
+
+  Finish(client, delete_fn, *args, tags=tags[:1], dry_run=True)
+  Finish(client, delete_fn, *args, tags=tags[:1])
+
+  get_fn(*args)
+
+  Finish(client, delete_fn, *args, tags=tags[1:])
+
+  get_fn(*args)
+
+
 def Workload(client):
   """ The actual RAPI workload used for tests.
 
@@ -182,6 +216,15 @@ def Workload(client):
   client.GetGroups(bulk=True)
 
   Finish(client, client.RedistributeConfig)
+
+  TestTags(client, client.GetClusterTags, client.AddClusterTags,
+           client.DeleteClusterTags)
+
+  # Generously assume the master is present
+  node = qa_config.AcquireNode()
+  TestTags(client, client.GetNodeTags, client.AddNodeTags,
+           client.DeleteNodeTags, node.primary)
+  node.Release()
 
 
 def Usage():
