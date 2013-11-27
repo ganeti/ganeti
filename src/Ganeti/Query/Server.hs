@@ -216,7 +216,7 @@ handleCall qlock cfg (SubmitJobToDrainedQueue ops) =
           Bad s -> return . Bad . GenericError $ s
           Ok () -> do
             _ <- replicateManyJobs qDir mcs [job]
-            _ <- forkIO $ enqueueJobs [job]
+            _ <- forkIO $ startJobs [job]
             return . Ok . showJSON . fromJobId $ jid
 
 handleCall qlock cfg (SubmitJob ops) =
@@ -247,7 +247,7 @@ handleCall qlock cfg (SubmitManyJobs lops) =
             when (any isBad write_results) . logWarning
               $ "Writing some jobs failed " ++ show annotated_results
             replicateManyJobs qDir mcs succeeded
-            _ <- forkIO $ enqueueJobs succeeded
+            _ <- forkIO $ startJobs succeeded
             return . Ok . JSArray
               . map (\(res, job) ->
                       if isOk res

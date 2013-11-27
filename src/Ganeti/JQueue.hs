@@ -53,7 +53,7 @@ module Ganeti.JQueue
     , writeJobToDisk
     , replicateManyJobs
     , isQueueOpen
-    , enqueueJobs
+    , startJobs
     ) where
 
 import Control.Concurrent.MVar
@@ -430,11 +430,9 @@ allocateJobId mastercandidates lock = do
 isQueueOpen :: IO Bool
 isQueueOpen = liftM not (jobQueueDrainFile >>= doesFileExist)
 
--- | Enqueue jobs. This will guarantee that jobs get executed eventually.
--- Curenntly, the implementation is to unconditionally hand over the job
--- to masterd.
-enqueueJobs :: [QueuedJob] -> IO ()
-enqueueJobs jobs = do
+-- | Start enqueued jobs, currently by handing them over to masterd.
+startJobs :: [QueuedJob] -> IO ()
+startJobs jobs = do
   socketpath <- defaultMasterSocket
   client <- getClient socketpath
   pickupResults <- mapM (flip callMethod client . PickupJob . qjId) jobs
