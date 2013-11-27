@@ -115,7 +115,6 @@ class GanetiRapiClientWrapper(object):
     # guide, this will stop infinite loops in attribute fetches.
     if attr.startswith("_"):
       return self.__getattribute__(attr)
-
     try:
       return InvokerCreator(self._client.__getattribute__(attr), attr)
     except AttributeError:
@@ -130,7 +129,26 @@ def Workload(client):
   @param client A wrapped RAPI client.
 
   """
-  print client.GetVersion()
+
+  # First just the simple information retrievals
+  client.GetVersion()
+  client.GetFeatures()
+  client.GetOperatingSystems()
+  client.GetInfo()
+  client.GetClusterTags()
+  client.GetInstances()
+  client.GetInstances(bulk=True)
+  client.GetJobs()
+  client.GetJobs(bulk=True)
+  client.GetNodes()
+  client.GetNodes(bulk=True)
+  client.GetNetworks()
+  client.GetNetworks(bulk=True)
+  client.GetGroups()
+  client.GetGroups(bulk=True)
+
+  job_id = client.RedistributeConfig()
+  client.WaitForJobCompletion(job_id)
 
 
 def Usage():
