@@ -754,7 +754,7 @@ class Burner(object):
     for pnode, snode, enode, instance in mytor:
       Log("instance %s", instance, indent=1)
       # read the full name of the instance
-      full_name = qcl.QueryInstances([instance], ["name"], False)
+      ((full_name, ), ) = qcl.QueryInstances([instance], ["name"], False)
 
       if self.opts.iallocator:
         pnode = snode = None
