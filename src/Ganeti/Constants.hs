@@ -3857,6 +3857,20 @@ partMargin = 0.01
 partReserved :: Double
 partReserved = 0.02
 
+-- * Luxid job scheduling
+
+-- | Time intervall in seconds for polling updates on the job queue. This
+-- intervall is only relevant if the number of running jobs reaches the maximal
+-- allowed number, as otherwise new jobs will be started immediately anyway.
+luxidJobqueuePollInterval :: Int
+luxidJobqueuePollInterval = 3
+
+-- | Maximal number of jobs to be running at the same time. Once this number is
+-- reached, new jobs will just be queued and only started, once some of the
+-- other jobs have finished.
+luxidMaximalRunningJobs :: Int
+luxidMaximalRunningJobs = 20
+
 -- * Confd
 
 confdProtocolVersion :: Int
