@@ -116,6 +116,7 @@ Draft designs
    design-device-uuid-name.rst
    design-hroller.rst
    design-hotplug.rst
+   design-kvmd.rst
    design-linuxha.rst
    design-lu-generated-jobs.rst
    design-monitoring-agent.rst

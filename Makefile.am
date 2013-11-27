@@ -531,6 +531,7 @@ docinput = \
 	doc/design-hugepages-support.rst \
 	doc/design-impexp2.rst \
 	doc/design-internal-shutdown.rst \
+	doc/design-kvmd.rst \
 	doc/design-linuxha.rst \
 	doc/design-lu-generated-jobs.rst \
 	doc/design-monitoring-agent.rst \
