@@ -122,6 +122,40 @@ class GanetiRapiClientWrapper(object):
       return MockMethod
 
 
+def Finish(client, fn, *args, **kwargs):
+  """ When invoked with a job-starting RAPI client method, it passes along any
+  additional arguments and waits until its completion.
+
+  @type client C{GanetiRapiClientWrapper}
+  @param client The client wrapper.
+  @type fn function
+  @param fn A client method returning a job id.
+
+  """
+  possible_job_id = fn(*args, **kwargs)
+  try:
+    # The job ids are returned as both ints and ints represented by strings.
+    # This is a pythonic check to see if the content is an int.
+    int(possible_job_id)
+  except (ValueError, TypeError):
+    # As a rule of thumb, failures will return None, and other methods are
+    # expected to return at least something
+    if possible_job_id is not None:
+      print ("Finish called with a method not producing a job id, "
+             "returning %s" % possible_job_id)
+    return possible_job_id
+
+  success = client.WaitForJobCompletion(possible_job_id)
+
+  result = client.GetJobStatus(possible_job_id)["opresult"][0]
+  if success:
+    return result
+  else:
+    print "Error encountered while performing operation: "
+    print result
+    return None
+
+
 def Workload(client):
   """ The actual RAPI workload used for tests.
 
@@ -147,8 +181,7 @@ def Workload(client):
   client.GetGroups()
   client.GetGroups(bulk=True)
 
-  job_id = client.RedistributeConfig()
-  client.WaitForJobCompletion(job_id)
+  Finish(client, client.RedistributeConfig)
 
 
 def Usage():
