@@ -190,15 +190,13 @@ def TestTags(client, get_fn, add_fn, delete_fn, *args):
   get_fn(*args)
 
 
-def Workload(client):
-  """ The actual RAPI workload used for tests.
+def TestGetters(client):
+  """ Tests the various get functions which only retrieve information about the
+  cluster.
 
   @type client C{GanetiRapiClientWrapper}
-  @param client A wrapped RAPI client.
 
   """
-
-  # First just the simple information retrievals
   client.GetVersion()
   client.GetFeatures()
   client.GetOperatingSystems()
@@ -215,6 +213,135 @@ def Workload(client):
   client.GetGroups()
   client.GetGroups(bulk=True)
 
+
+def RemoveAllInstances(client):
+  """ Queries for a list of instances, then removes them all.
+
+  @type client C{GanetiRapiClientWrapper}
+  @param client A wrapped RAPI client.
+
+  """
+  instances = client.GetInstances()
+  for inst in instances:
+    Finish(client, client.DeleteInstance, inst)
+
+  instances = client.GetInstances()
+  assert len(instances) == 0
+
+
+def TestSingleInstance(client, instance_name, alternate_name, node_one,
+                       node_two):
+  """ Creates an instance, performs operations involving it, and then deletes
+  it.
+
+  @type client C{GanetiRapiClientWrapper}
+  @param client A wrapped RAPI client.
+  @type instance_name string
+  @param instance_name The hostname to use.
+  @type instance_name string
+  @param instance_name Another valid hostname to use.
+  @type node_one string
+  @param node_one A node on which an instance can be added.
+  @type node_two string
+  @param node_two A node on which an instance can be added.
+
+  """
+
+  # Check that a dry run works, use string with size and unit
+  Finish(client, client.CreateInstance,
+         "create", instance_name, "plain", [{"size":"1gb"}], [], dry_run=True,
+          os="debian-image", pnode=node_one)
+
+  # Another dry run, numeric size, should work, but still a dry run
+  Finish(client, client.CreateInstance,
+         "create", instance_name, "plain", [{"size": "1000"}], [{}],
+         dry_run=True, os="debian-image", pnode=node_one)
+
+  # Create a smaller instance, and delete it immediately
+  Finish(client, client.CreateInstance,
+         "create", instance_name, "plain", [{"size":800}], [{}],
+         os="debian-image", pnode=node_one)
+
+  Finish(client, client.DeleteInstance, instance_name)
+
+  # Create one instance to use in further tests
+  Finish(client, client.CreateInstance,
+         "create", instance_name, "plain", [{"size":1200}], [{}],
+         os="debian-image", pnode=node_one)
+
+  client.GetInstance(instance_name)
+
+  Finish(client, client.GetInstanceInfo, instance_name)
+
+  Finish(client, client.GetInstanceInfo, instance_name, static=True)
+
+  TestTags(client, client.GetInstanceTags, client.AddInstanceTags,
+           client.DeleteInstanceTags, instance_name)
+
+  Finish(client, client.GrowInstanceDisk,
+         instance_name, 0, 100, wait_for_sync=True)
+
+  Finish(client, client.RebootInstance,
+         instance_name, "soft", ignore_secondaries=True, dry_run=True,
+         reason="Hulk smash gently!")
+
+  Finish(client, client.ShutdownInstance,
+         instance_name, dry_run=True, no_remember=False,
+         reason="Hulk smash hard!")
+
+  Finish(client, client.StartupInstance,
+         instance_name, dry_run=True, no_remember=False,
+         reason="Not hard enough!")
+
+  Finish(client, client.RebootInstance,
+         instance_name, "soft", ignore_secondaries=True, dry_run=False)
+
+  Finish(client, client.ShutdownInstance,
+         instance_name, dry_run=False, no_remember=False)
+
+  Finish(client, client.ModifyInstance,
+         instance_name, disk_template="drbd", remote_node=node_two)
+
+  Finish(client, client.ModifyInstance,
+         instance_name, disk_template="plain")
+
+  Finish(client, client.RenameInstance,
+         instance_name, alternate_name, ip_check=True, name_check=True)
+
+  Finish(client, client.RenameInstance, alternate_name, instance_name)
+
+  Finish(client, client.DeactivateInstanceDisks, instance_name)
+
+  Finish(client, client.ActivateInstanceDisks, instance_name)
+
+  Finish(client, client.RecreateInstanceDisks,
+         instance_name, [0], [node_one])
+
+  Finish(client, client.StartupInstance,
+         instance_name, dry_run=False, no_remember=False)
+
+  client.GetInstanceConsole(instance_name)
+
+  Finish(client, client.ReinstallInstance,
+         instance_name, os=None, no_startup=False, osparams={})
+
+  Finish(client, client.DeleteInstance, instance_name, dry_run=True)
+
+  Finish(client, client.DeleteInstance, instance_name)
+
+
+def Workload(client):
+  """ The actual RAPI workload used for tests.
+
+  @type client C{GanetiRapiClientWrapper}
+  @param client A wrapped RAPI client.
+
+  """
+
+  # First just the simple information retrievals
+  TestGetters(client)
+
+  # Then the only remaining function which is parameter-free
   Finish(client, client.RedistributeConfig)
 
   TestTags(client, client.GetClusterTags, client.AddClusterTags,
@@ -225,6 +352,20 @@ def Workload(client):
   TestTags(client, client.GetNodeTags, client.AddNodeTags,
            client.DeleteNodeTags, node.primary)
   node.Release()
+
+  # Instance tests
+
+  # First remove all instances the QA might have created
+  RemoveAllInstances(client)
+
+  nodes = qa_config.AcquireManyNodes(2)
+  instance_one = qa_config.AcquireInstance()
+  instance_two = qa_config.AcquireInstance()
+  TestSingleInstance(client, instance_one.name, instance_two.name,
+                     nodes[0].primary, nodes[1].primary)
+  instance_two.Release()
+  instance_one.Release()
+  qa_config.ReleaseManyNodes(nodes)
 
 
 def Usage():
