@@ -33,6 +33,7 @@ module Ganeti.JQueue
     , queuedJobFromOpCodes
     , Timestamp
     , noTimestamp
+    , currentTimestamp
     , opStatusFinalized
     , extractOpSummary
     , calcJobStatus
@@ -66,6 +67,7 @@ import System.Directory
 import System.FilePath
 import System.IO.Error (isDoesNotExistError)
 import System.Posix.Files
+import System.Time
 import qualified Text.JSON
 import Text.JSON.Types
 
@@ -85,12 +87,20 @@ import Ganeti.Utils
 
 -- * Data types
 
--- | The ganeti queue timestamp type
+-- | The ganeti queue timestamp type. It represents the time as the pair
+-- of seconds since the epoch and microseconds since the beginning of the
+-- second.
 type Timestamp = (Int, Int)
 
 -- | Missing timestamp type.
 noTimestamp :: Timestamp
 noTimestamp = (-1, -1)
+
+-- | Get the current time in the job-queue timestamp format.
+currentTimestamp :: IO Timestamp
+currentTimestamp = do
+  TOD ctime pico <- getClockTime
+  return (fromIntegral ctime, fromIntegral $ pico `div` 1000000)
 
 -- | An input opcode.
 data InputOpCode = ValidOpCode MetaOpCode -- ^ OpCode was parsed successfully
