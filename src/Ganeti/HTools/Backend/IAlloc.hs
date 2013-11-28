@@ -132,7 +132,7 @@ parseNode ktg n a = do
   gidx <- lookupGroup ktg n guuid
   ndparams <- extract "ndparams" >>= asJSObject
   spindles <- tryFromObj desc (fromJSObject ndparams) "spindle_count"
-  let live = not offline && not drained && vm_capable'
+  let live = not offline && vm_capable'
       lvextract def = eitherLive live def . extract
   mtotal <- lvextract 0.0 "total_memory"
   mnode  <- lvextract 0 "reserved_memory"
@@ -140,8 +140,8 @@ parseNode ktg n a = do
   dtotal <- lvextract 0.0 "total_disk"
   dfree  <- lvextract 0 "free_disk"
   ctotal <- lvextract 0.0 "total_cpus"
-  let node = Node.create n mtotal mnode mfree dtotal dfree ctotal (not live)
-             spindles gidx
+  let node = Node.create n mtotal mnode mfree dtotal dfree ctotal
+             (not live || drained) spindles gidx
   return (n, node)
 
 -- | Parses a group as found in the cluster group list.

@@ -515,7 +515,7 @@ class IAllocator(object):
       assert nname in node_results, "Missing basic data for node %s" % nname
       ninfo = node_cfg[nname]
 
-      if not (ninfo.offline or ninfo.drained):
+      if not ninfo.offline:
         nresult.Raise("Can't get data for node %s" % nname)
         node_iinfo[nname].Raise("Can't get node instance info from node %s" %
                                 nname)
