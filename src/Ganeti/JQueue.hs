@@ -34,6 +34,7 @@ module Ganeti.JQueue
     , Timestamp
     , noTimestamp
     , currentTimestamp
+    , setReceivedTimestamp
     , opStatusFinalized
     , extractOpSummary
     , calcJobStatus
@@ -183,6 +184,10 @@ queuedJobFromOpCodes jobid ops = do
                    , qjStartTimestamp = Nothing
                    , qjEndTimestamp = Nothing
                    }
+
+-- | Attach a received timestamp to a Queued Job.
+setReceivedTimestamp :: Timestamp -> QueuedJob -> QueuedJob
+setReceivedTimestamp ts job = job { qjReceivedTimestamp = Just ts }
 
 -- | Job file prefix.
 jobFilePrefix :: String
