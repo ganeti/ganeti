@@ -987,9 +987,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Run an iallocator script.
 
     """
-    name, idata = params
+    name, idata, ial_params_dict = params
+    ial_params = []
+    for ial_param in ial_params_dict.items():
+      ial_params.append("--" + ial_param[0] + "=" + ial_param[1])
     iar = backend.IAllocatorRunner()
-    return iar.Run(name, idata)
+    return iar.Run(name, idata, ial_params)
 
   # test -----------------------
 

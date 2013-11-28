@@ -225,6 +225,7 @@ $(genOpCode "OpCode"
      , withDoc "Cluster-wide ipolicy specs" pIpolicy
      , pDrbdHelper
      , pDefaultIAllocator
+     , pDefaultIAllocatorParams
      , pMasterNetdev
      , pMasterNetmask
      , pReservedLvs

@@ -147,6 +147,9 @@ def UpgradeCluster(config_data):
   ipolicy = cluster.setdefault("ipolicy", None)
   if ipolicy:
     UpgradeIPolicy(ipolicy, constants.IPOLICY_DEFAULTS, False)
+  ial_params = cluster.get("default_iallocator_params", None)
+  if not ial_params:
+    cluster["default_iallocator_params"] = {}
 
 
 def UpgradeGroups(config_data):
@@ -398,7 +401,12 @@ def UpgradeAll(config_data):
 
 
 def DowngradeCluster(config_data):
-  DowngradeNdparams(config_data["cluster"])
+  cluster = config_data.get("cluster", None)
+  if not cluster:
+    raise Error("Cannot find the 'cluster' key in the configuration!")
+  DowngradeNdparams(cluster)
+  if "default_iallocator_params" in cluster:
+    del cluster["default_iallocator_params"]
 
 
 def DowngradeGroups(config_data):

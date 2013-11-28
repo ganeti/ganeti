@@ -264,6 +264,7 @@ def InitCluster(opts, args):
 
   hv_state = dict(opts.hv_state)
 
+  default_ialloc_params = opts.default_iallocator_params
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
@@ -286,6 +287,7 @@ def InitCluster(opts, args):
                         drbd_helper=drbd_helper,
                         uid_pool=uid_pool,
                         default_iallocator=opts.default_iallocator,
+                        default_iallocator_params=default_ialloc_params,
                         primary_ip_version=primary_ip_version,
                         prealloc_wipe_disks=opts.prealloc_wipe_disks,
                         use_external_mip_script=external_ip_setup_script,
@@ -524,6 +526,8 @@ def ShowClusterConfig(opts, args):
       ("maintenance of node health", result["maintain_node_health"]),
       ("uid pool", uidpool.FormatUidPool(result["uid_pool"])),
       ("default instance allocator", result["default_iallocator"]),
+      ("default instance allocator parameters",
+       result["default_iallocator_params"]),
       ("primary ip version", result["primary_ip_version"]),
       ("preallocation wipe disks", result["prealloc_wipe_disks"]),
       ("OS search path", utils.CommaJoin(pathutils.OS_SEARCH_PATH)),
@@ -1078,6 +1082,7 @@ def SetClusterParams(opts, args):
           opts.add_uids is not None or
           opts.remove_uids is not None or
           opts.default_iallocator is not None or
+          opts.default_iallocator_params or
           opts.reserved_lvs is not None or
           opts.master_netdev is not None or
           opts.master_netmask is not None or
@@ -1191,6 +1196,7 @@ def SetClusterParams(opts, args):
     add_uids=add_uids,
     remove_uids=remove_uids,
     default_iallocator=opts.default_iallocator,
+    default_iallocator_params=opts.default_iallocator_params,
     prealloc_wipe_disks=opts.prealloc_wipe_disks,
     master_netdev=opts.master_netdev,
     master_netmask=opts.master_netmask,
@@ -2032,10 +2038,11 @@ commands = {
      HVLIST_OPT, MAC_PREFIX_OPT, MASTER_NETDEV_OPT, MASTER_NETMASK_OPT,
      NIC_PARAMS_OPT, NOMODIFY_ETCHOSTS_OPT, NOMODIFY_SSH_SETUP_OPT,
      SECONDARY_IP_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT,
-     DRBD_HELPER_OPT, DEFAULT_IALLOCATOR_OPT, PRIMARY_IP_VERSION_OPT,
-     PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT, GLOBAL_SHARED_FILEDIR_OPT,
-     USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT,
-     ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT]
+     DRBD_HELPER_OPT, DEFAULT_IALLOCATOR_OPT, DEFAULT_IALLOCATOR_PARAMS_OPT,
+     PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT,
+     GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT,
+     HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
+     IPOLICY_STD_SPECS_OPT]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
@@ -2113,9 +2120,10 @@ commands = {
      BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
      MASTER_NETMASK_OPT, NIC_PARAMS_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
-     DEFAULT_IALLOCATOR_OPT, RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT,
-     PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT,
-     DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] + SUBMIT_OPTS +
+     DEFAULT_IALLOCATOR_OPT, DEFAULT_IALLOCATOR_PARAMS_OPT, RESERVED_LVS_OPT,
+     DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT,
+     USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] +
+     SUBMIT_OPTS +
      [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT] +
      INSTANCE_POLICY_OPTS + [GLOBAL_FILEDIR_OPT],
     "[opts...]",

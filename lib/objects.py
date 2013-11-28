@@ -1573,6 +1573,7 @@ class Cluster(TaggableObject):
     "maintain_node_health",
     "uid_pool",
     "default_iallocator",
+    "default_iallocator_params",
     "hidden_os",
     "blacklisted_os",
     "primary_ip_family",
@@ -1645,6 +1646,9 @@ class Cluster(TaggableObject):
 
     if self.default_iallocator is None:
       self.default_iallocator = ""
+
+    if self.default_iallocator_params is None:
+      self.default_iallocator_params = {}
 
     # reserved_lvs added before 2.2
     if self.reserved_lvs is None:

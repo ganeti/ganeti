@@ -178,7 +178,7 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*>
           emptyMUD <*> emptyMUD <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
+          arbitrary  <*> emptyMUD <*> arbitrary <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
           genMaybe genName <*>
           genMaybe genName

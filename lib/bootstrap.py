@@ -512,7 +512,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 hvparams=None, diskparams=None, enabled_hypervisors=None,
                 modify_etc_hosts=True, modify_ssh_setup=True,
                 maintain_node_health=False, drbd_helper=None, uid_pool=None,
-                default_iallocator=None, primary_ip_version=None, ipolicy=None,
+                default_iallocator=None, default_iallocator_params=None,
+                primary_ip_version=None, ipolicy=None,
                 prealloc_wipe_disks=False, use_external_mip_script=False,
                 hv_state=None, disk_state=None, enabled_disk_templates=None):
   """Initialise the cluster.
@@ -762,6 +763,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     maintain_node_health=maintain_node_health,
     drbd_usermode_helper=drbd_helper,
     default_iallocator=default_iallocator,
+    default_iallocator_params=default_iallocator_params,
     primary_ip_family=ipcls.family,
     prealloc_wipe_disks=prealloc_wipe_disks,
     use_external_mip_script=use_external_mip_script,

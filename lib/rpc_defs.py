@@ -542,6 +542,7 @@ _MISC_CALLS = [
   ("iallocator_runner", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("name", None, "Iallocator name"),
     ("idata", None, "JSON-encoded input string"),
+    ("default_iallocator_params", None, "Additional iallocator parameters"),
     ], None, None, "Call an iallocator on a remote node"),
   ("test_delay", MULTI, None, _TestDelayTimeout, [
     ("duration", None, None),

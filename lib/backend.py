@@ -4490,13 +4490,15 @@ class IAllocatorRunner(object):
 
   """
   @staticmethod
-  def Run(name, idata):
+  def Run(name, idata, ial_params):
     """Run an iallocator script.
 
     @type name: str
     @param name: the iallocator script name
     @type idata: str
     @param idata: the allocator input data
+    @type ial_params: list
+    @param ial_params: the iallocator parameters
 
     @rtype: tuple
     @return: two element tuple of:
@@ -4513,7 +4515,7 @@ class IAllocatorRunner(object):
     try:
       os.write(fd, idata)
       os.close(fd)
-      result = utils.RunCmd([alloc_script, fin_name])
+      result = utils.RunCmd([alloc_script, fin_name] + ial_params)
       if result.failed:
         _Fail("iallocator module '%s' failed: %s, output '%s'",
               name, result.fail_reason, result.output)

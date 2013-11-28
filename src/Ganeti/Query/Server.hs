@@ -145,6 +145,8 @@ handleCall _ cdata QueryClusterInfo =
             , ("uid_pool", showJSON $ clusterUidPool cluster)
             , ("default_iallocator",
                showJSON $ clusterDefaultIallocator cluster)
+            , ("default_iallocator_params",
+              showJSON $ clusterDefaultIallocatorParams cluster)
             , ("reserved_lvs", showJSON $ clusterReservedLvs cluster)
             , ("primary_ip_version",
                showJSON . ipFamilyToVersion $ clusterPrimaryIpFamily cluster)

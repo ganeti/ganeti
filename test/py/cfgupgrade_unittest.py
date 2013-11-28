@@ -44,6 +44,7 @@ def GetMinimalConfig():
     "cluster": {
       "master_node": "node1-uuid",
       "ipolicy": None,
+      "default_iallocator_params": {},
       "ndparams": {}
     },
     "instances": {},

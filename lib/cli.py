@@ -102,6 +102,7 @@ __all__ = [
   "HYPERVISOR_OPT",
   "IALLOCATOR_OPT",
   "DEFAULT_IALLOCATOR_OPT",
+  "DEFAULT_IALLOCATOR_PARAMS_OPT",
   "IDENTIFY_DEFAULTS_OPT",
   "IGNORE_CONSIST_OPT",
   "IGNORE_ERRORS_OPT",
@@ -911,6 +912,15 @@ DEFAULT_IALLOCATOR_OPT = cli_option("-I", "--default-iallocator",
                                     " allocator plugin",
                                     default=None, type="string",
                                     completion_suggest=OPT_COMPL_ONE_IALLOCATOR)
+
+DEFAULT_IALLOCATOR_PARAMS_OPT = cli_option("--default-iallocator-params",
+                                           dest="default_iallocator_params",
+                                           help="iallocator template"
+                                           " parameters, in the format"
+                                           " template:option=value,"
+                                           " option=value,...",
+                                           type="keyval",
+                                           default={})
 
 OS_OPT = cli_option("-o", "--os-type", dest="os", help="What OS to run",
                     metavar="<os>",

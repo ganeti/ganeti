@@ -228,6 +228,9 @@ instance Arbitrary ClusterBeParams where
 instance Arbitrary TagSet where
   arbitrary = Set.fromList <$> genTags
 
+instance Arbitrary IAllocatorParams where
+  arbitrary = return $ GenericContainer Map.empty
+
 $(genArbitrary ''Cluster)
 
 instance Arbitrary Network where

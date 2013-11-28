@@ -129,6 +129,7 @@ module Ganeti.OpParams
   , pIpolicy
   , pDrbdHelper
   , pDefaultIAllocator
+  , pDefaultIAllocatorParams
   , pMasterNetdev
   , pMasterNetmask
   , pReservedLvs
@@ -666,6 +667,11 @@ pDefaultIAllocator :: Field
 pDefaultIAllocator =
   withDoc "Default iallocator for cluster" $
   optionalStringField "default_iallocator"
+
+pDefaultIAllocatorParams :: Field
+pDefaultIAllocatorParams =
+  withDoc "Default iallocator parameters for cluster" . optionalField
+    $ simpleField "default_iallocator_params" [t| JSObject JSValue |]
 
 pMasterNetdev :: Field
 pMasterNetdev =

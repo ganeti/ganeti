@@ -343,6 +343,7 @@ class LUClusterQuery(NoHooksLU):
       "tags": list(cluster.GetTags()),
       "uid_pool": cluster.uid_pool,
       "default_iallocator": cluster.default_iallocator,
+      "default_iallocator_params": cluster.default_iallocator_params,
       "reserved_lvs": cluster.reserved_lvs,
       "primary_ip_version": primary_ip_version,
       "prealloc_wipe_disks": cluster.prealloc_wipe_disks,
@@ -1286,6 +1287,9 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.default_iallocator is not None:
       self.cluster.default_iallocator = self.op.default_iallocator
+
+    if self.op.default_iallocator_params is not None:
+      self.cluster.default_iallocator_params = self.op.default_iallocator_params
 
     if self.op.reserved_lvs is not None:
       self.cluster.reserved_lvs = self.op.reserved_lvs

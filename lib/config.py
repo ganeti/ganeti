@@ -1203,6 +1203,16 @@ class ConfigWriter(object):
     return self._config_data.cluster.default_iallocator
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetDefaultIAllocatorParameters(self):
+    """Get the default instance allocator parameters for this cluster.
+
+    @rtype: dict
+    @return: dict of iallocator parameters
+
+    """
+    return self._config_data.cluster.default_iallocator_params
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetPrimaryIPFamily(self):
     """Get cluster primary ip family.
 

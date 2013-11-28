@@ -182,6 +182,7 @@ INIT
 | [\--maintain-node-health {yes \| no}]
 | [\--uid-pool *user-id pool definition*]
 | [{-I|\--default-iallocator} *default instance allocator*]
+| [\--default-iallocator-params *ial-param*=*value*,*ial-param*=*value*]
 | [\--primary-ip-version *version*]
 | [\--prealloc-wipe-disks {yes \| no}]
 | [\--node-parameters *ndparams*]
@@ -512,6 +513,10 @@ the default iallocator will be **hail**\(1) (assuming it can be found
 on disk). The default iallocator can be changed later using the
 **modify** command.
 
+The option ``--default-iallocator-params`` sets the cluster-wide
+iallocator parameters used by the default iallocator only on instance
+allocations.
+
 The ``--primary-ip-version`` option specifies the IP version used
 for the primary address. Possible values are 4 and 6 for IPv4 and
 IPv6, respectively. This option is used when resolving node names
@@ -636,6 +641,7 @@ MODIFY
 | [\--maintain-node-health {yes \| no}]
 | [\--prealloc-wipe-disks {yes \| no}]
 | [{-I|\--default-iallocator} *default instance allocator*]
+| [\--default-iallocator-params *ial-param*=*value*,*ial-param*=*value*]
 | [\--reserved-lvs=*NAMES*]
 | [\--node-parameters *ndparams*]
 | [\--master-netdev *interface-name*]
@@ -687,6 +693,10 @@ to the option, as in ``--reserved-lvs=`` or ``--reserved-lvs ''``.
 The ``-I (--default-iallocator)`` is described in the **init**
 command. To clear the default iallocator, just pass an empty string
 ('').
+
+The option ``--default-iallocator-params`` is described in the **init**
+command. To clear the default iallocator parameters, just pass an empty
+string ('').
 
 The ``--ipolicy-...`` options are described in the **init** command.
 

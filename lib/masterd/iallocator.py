@@ -777,7 +777,9 @@ class IAllocator(object):
     if call_fn is None:
       call_fn = self.rpc.call_iallocator_runner
 
-    result = call_fn(self.cfg.GetMasterNode(), name, self.in_text)
+    ial_params = self.cfg.GetDefaultIAllocatorParameters()
+
+    result = call_fn(self.cfg.GetMasterNode(), name, self.in_text, ial_params)
     result.Raise("Failure while running the iallocator script")
 
     self.out_text = result.payload
