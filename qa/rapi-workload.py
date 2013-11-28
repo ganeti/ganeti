@@ -29,6 +29,7 @@
 
 import sys
 
+import ganeti.constants as constants
 from ganeti.rapi.client import GanetiApiError
 
 import qa_config
@@ -333,6 +334,81 @@ def TestSingleInstance(client, instance_name, alternate_name, node_one,
   Finish(client, client.DeleteInstance, instance_name)
 
 
+def MarkUnmarkNode(client, node, state):
+  """ Given a certain node state, marks a node as being in that state, and then
+  unmarks it.
+
+  @type client C{GanetiRapiClientWrapper}
+  @param client A wrapped RAPI client.
+  @type node string
+  @type state string
+
+  """
+  # pylint: disable=W0142
+  Finish(client, client.ModifyNode, node, **{state: True})
+  Finish(client, client.ModifyNode, node, **{state: False})
+  # pylint: enable=W0142
+
+
+def TestNodeOperations(client, non_master_node):
+  """ Tests various operations related to nodes only
+
+  @type client C{GanetiRapiClientWrapper}
+  @param client A wrapped RAPI client.
+  @type non_master_node string
+  @param non_master_node The name of a non-master node in the cluster.
+
+  """
+
+  client.GetNode(non_master_node)
+
+  old_role = client.GetNodeRole(non_master_node)
+
+  # Should fail
+  Finish(client, client.SetNodeRole,
+         non_master_node, "master", False, auto_promote=True)
+
+  Finish(client, client.SetNodeRole,
+         non_master_node, "regular", False, auto_promote=True)
+
+  Finish(client, client.SetNodeRole,
+         non_master_node, "master-candidate", False, auto_promote=True)
+
+  Finish(client, client.SetNodeRole,
+         non_master_node, "drained", False, auto_promote=True)
+
+  Finish(client, client.SetNodeRole,
+         non_master_node, old_role, False, auto_promote=True)
+
+  Finish(client, client.PowercycleNode,
+         non_master_node, force=False)
+
+  storage_units_fields = [
+    "name", "allocatable", "free", "node", "size", "type", "used",
+  ]
+
+  for storage_type in constants.STS_REPORT:
+    storage_units = Finish(client, client.GetNodeStorageUnits,
+                           non_master_node, storage_type,
+                           ",".join(storage_units_fields))
+
+    if len(storage_units) > 0 and len(storage_units[0]) > 0:
+      # Name is the first entry of the first result, allocatable the other
+      unit_name = storage_units[0][0]
+      Finish(client, client.ModifyNodeStorageUnits,
+             non_master_node, storage_type, unit_name,
+             allocatable=not storage_units[0][1])
+      Finish(client, client.ModifyNodeStorageUnits,
+             non_master_node, storage_type, unit_name,
+             allocatable=storage_units[0][1])
+      Finish(client, client.RepairNodeStorageUnits,
+             non_master_node, storage_type, unit_name)
+
+  MarkUnmarkNode(client, non_master_node, "drained")
+  MarkUnmarkNode(client, non_master_node, "powered")
+  MarkUnmarkNode(client, non_master_node, "offline")
+
+
 def Workload(client):
   """ The actual RAPI workload used for tests.
 
@@ -369,6 +445,10 @@ def Workload(client):
   instance_two.Release()
   instance_one.Release()
   qa_config.ReleaseManyNodes(nodes)
+
+  node = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
+  TestNodeOperations(client, node.primary)
+  node.Release()
 
 
 def Usage():
