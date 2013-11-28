@@ -199,6 +199,8 @@ class BaseHypervisor(object):
     @param name: if this parameter is passed, the the instance object
         should not be used (will be passed as None), and the shutdown
         must be done by name only
+    @raise errors.HypervisorError: when a parameter is not valid or
+        the instance failed to be stopped
 
     """
     raise NotImplementedError
