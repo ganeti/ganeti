@@ -64,6 +64,9 @@ module Ganeti.Utils
   , atomicWriteFile
   , tryAndLogIOError
   , lockFile
+  , FStat
+  , nullFStat
+  , needsReload
   ) where
 
 import Control.Exception (try)
@@ -74,6 +77,7 @@ import qualified Data.Map as M
 import Control.Monad (foldM, liftM)
 import System.Directory (renameFile)
 import System.FilePath.Posix (takeDirectory, takeBaseName)
+import System.Posix.Types
 
 import Debug.Trace
 import Network.Socket
@@ -528,3 +532,31 @@ lockFile path = do
   fd <- handleToFd handle
   Control.Monad.liftM (either (Bad . show) Ok)
     (try (setLock fd (WriteLock, AbsoluteSeek, 0, 0)) :: IO (Either IOError ()))
+
+-- | File stat identifier.
+type FStat = (EpochTime, FileID, FileOffset)
+
+-- | Null 'FStat' value.
+nullFStat :: FStat
+nullFStat = (-1, -1, -1)
+
+-- | Computes the file cache data from a FileStatus structure.
+buildFileStatus :: FileStatus -> FStat
+buildFileStatus ofs =
+    let modt = modificationTime ofs
+        inum = fileID ofs
+        fsize = fileSize ofs
+    in (modt, inum, fsize)
+
+-- | Wrapper over 'buildFileStatus'. This reads the data from the
+-- filesystem and then builds our cache structure.
+getFStat :: FilePath -> IO FStat
+getFStat p = liftM buildFileStatus (getFileStatus p)
+
+-- | Check if the file needs reloading
+needsReload :: FStat -> FilePath -> IO (Maybe FStat)
+needsReload oldstat path = do
+  newstat <- getFStat path
+  return $ if newstat /= oldstat
+             then Just newstat
+             else Nothing

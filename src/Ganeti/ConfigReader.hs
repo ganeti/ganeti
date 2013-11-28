@@ -32,10 +32,8 @@ module Ganeti.ConfigReader
 
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (liftM, unless)
+import Control.Monad (unless)
 import Data.IORef
-import System.Posix.Files
-import System.Posix.Types
 import System.INotify
 
 import Ganeti.BasicTypes
@@ -51,12 +49,6 @@ import Ganeti.Utils
 -- executed.
 type ConfigReader = IO (Result ConfigData)
 
--- | File stat identifier.
-type FStat = (EpochTime, FileID, FileOffset)
-
--- | Null 'FStat' value.
-nullFStat :: FStat
-nullFStat = (-1, -1, -1)
 
 -- | Reload model data type.
 data ReloadModel = ReloadNotify      -- ^ We are using notifications
@@ -150,27 +142,6 @@ safeUpdateConfig path oldfstat save_fn =
              save_fn $ Bad msg
              return (nullFStat, ConfigIOError)
           )
-
--- | Computes the file cache data from a FileStatus structure.
-buildFileStatus :: FileStatus -> FStat
-buildFileStatus ofs =
-    let modt = modificationTime ofs
-        inum = fileID ofs
-        fsize = fileSize ofs
-    in (modt, inum, fsize)
-
--- | Wrapper over 'buildFileStatus'. This reads the data from the
--- filesystem and then builds our cache structure.
-getFStat :: FilePath -> IO FStat
-getFStat p = liftM buildFileStatus (getFileStatus p)
-
--- | Check if the file needs reloading
-needsReload :: FStat -> FilePath -> IO (Maybe FStat)
-needsReload oldstat path = do
-  newstat <- getFStat path
-  return $ if newstat /= oldstat
-             then Just newstat
-             else Nothing
 
 -- ** Watcher threads
 
