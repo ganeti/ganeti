@@ -34,7 +34,7 @@ module Ganeti.Query.Server
 import Control.Applicative
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forever, when, zipWithM)
+import Control.Monad (forever, when, zipWithM, liftM)
 import Data.Bits (bitSize)
 import qualified Data.Set as Set (toList)
 import Data.IORef
@@ -205,8 +205,10 @@ handleCall qlock cfg (SubmitJobToDrainedQueue ops) =
     case jobid of
       Bad s -> return . Bad . GenericError $ s
       Ok jid -> do
+        ts <- currentTimestamp
+        job <- liftM (setReceivedTimestamp ts)
+                 $ queuedJobFromOpCodes jid ops
         qDir <- queueDir
-        job <- queuedJobFromOpCodes jid ops
         write_result <- writeJobToDisk qDir job
         case write_result of
           Bad s -> return . Bad . GenericError $ s
@@ -233,7 +235,9 @@ handleCall qlock cfg (SubmitManyJobs lops) =
         case result_jobids of
           Bad s -> return . Bad . GenericError $ s
           Ok jids -> do
-            jobs <- zipWithM queuedJobFromOpCodes jids lops
+            ts <- currentTimestamp
+            jobs <- liftM (map $ setReceivedTimestamp ts)
+                      $ zipWithM queuedJobFromOpCodes jids lops
             qDir <- queueDir
             write_results <- mapM (writeJobToDisk qDir) jobs
             let annotated_results = zip write_results jobs
