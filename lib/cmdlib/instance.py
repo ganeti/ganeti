@@ -559,6 +559,22 @@ class LUInstanceCreate(LogicalUnit):
     self.needed_locks[locking.LEVEL_NODE_RES] = \
       CopyLockList(self.needed_locks[locking.LEVEL_NODE])
 
+    # Optimistically acquire shared group locks (we're reading the
+    # configuration).  We can't just call GetInstanceNodeGroups, because the
+    # instance doesn't exist yet. Therefore we lock all node groups of all
+    # nodes we have.
+    if self.needed_locks[locking.LEVEL_NODE] == locking.ALL_SET:
+      # In the case we lock all nodes for opportunistic allocation, we have no
+      # choice than to lock all groups, because they're allocated before nodes.
+      # This is sad, but true. At least we release all those we don't need in
+      # CheckPrereq later.
+      self.needed_locks[locking.LEVEL_NODEGROUP] = locking.ALL_SET
+    else:
+      self.needed_locks[locking.LEVEL_NODEGROUP] = \
+        list(self.cfg.GetNodeGroupsFromNodes(
+          self.needed_locks[locking.LEVEL_NODE]))
+    self.share_locks[locking.LEVEL_NODEGROUP] = 1
+
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE_RES and \
       self.opportunistic_locks[locking.LEVEL_NODE]:
@@ -846,6 +862,21 @@ class LUInstanceCreate(LogicalUnit):
     """Check prerequisites.
 
     """
+    # Check that the optimistically acquired groups are correct wrt the
+    # acquired nodes
+    owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
+    owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
+    cur_groups = list(self.cfg.GetNodeGroupsFromNodes(owned_nodes))
+    if not owned_groups.issuperset(cur_groups):
+      raise errors.OpPrereqError("New instance %s's node groups changed since"
+                                 " locks were acquired, current groups are"
+                                 " are '%s', owning groups '%s'; retry the"
+                                 " operation" %
+                                 (self.op.instance_name,
+                                  utils.CommaJoin(cur_groups),
+                                  utils.CommaJoin(owned_groups)),
+                                 errors.ECODE_STATE)
+
     self._CalculateFileStorageDir()
 
     if self.op.mode == constants.INSTANCE_IMPORT:
@@ -957,6 +988,9 @@ class LUInstanceCreate(LogicalUnit):
     ReleaseLocks(self, locking.LEVEL_NODE, keep=keep_locks)
     ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=keep_locks)
     ReleaseLocks(self, locking.LEVEL_NODE_ALLOC)
+    # Release all unneeded group locks
+    ReleaseLocks(self, locking.LEVEL_NODEGROUP,
+                 keep=self.cfg.GetNodeGroupsFromNodes(keep_locks))
 
     assert (self.owned_locks(locking.LEVEL_NODE) ==
             self.owned_locks(locking.LEVEL_NODE_RES)), \
