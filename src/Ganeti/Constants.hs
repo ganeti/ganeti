@@ -3352,7 +3352,11 @@ qrViaLuxi = ConstantUtils.mkSet [qrGroup,
 
 -- | List of resources which can be queried using RAPI
 qrViaRapi :: FrozenSet String
-qrViaRapi = ConstantUtils.mkSet [qrLock, qrJob]
+qrViaRapi = qrViaLuxi
+
+-- | List of resources which can be queried via RAPI including PUT requests
+qrViaRapiPut :: FrozenSet String
+qrViaRapiPut = ConstantUtils.mkSet [qrLock, qrJob]
 
 -- * Query field types
 

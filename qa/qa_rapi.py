@@ -322,22 +322,24 @@ def TestRapiQuery():
       # Note the spaces
       ("/2/query/%s?fields=%s,%%20%s%%09,%s%%20" %
        (what, namefield, namefield, namefield),
-       compat.partial(_Check, [namefield] * 3), "GET", None),
+       compat.partial(_Check, [namefield] * 3), "GET", None)])
 
-      # PUT with fields in query
-      ("/2/query/%s?fields=%s" % (what, namefield),
-       compat.partial(_Check, [namefield]), "PUT", {}),
+    if what in constants.QR_VIA_RAPI_PUT:
+      _DoTests([
+        # PUT with fields in query
+        ("/2/query/%s?fields=%s" % (what, namefield),
+         compat.partial(_Check, [namefield]), "PUT", {}),
 
-      ("/2/query/%s" % what, compat.partial(_Check, [namefield] * 4), "PUT", {
-         "fields": [namefield] * 4,
-         }),
+        ("/2/query/%s" % what, compat.partial(_Check, [namefield] * 4), "PUT", {
+           "fields": [namefield] * 4,
+           }),
 
-      ("/2/query/%s" % what, compat.partial(_Check, all_fields), "PUT", {
-         "fields": all_fields,
-         }),
+        ("/2/query/%s" % what, compat.partial(_Check, all_fields), "PUT", {
+           "fields": all_fields,
+           }),
 
-      ("/2/query/%s" % what, compat.partial(_Check, [namefield] * 4), "PUT", {
-         "fields": [namefield] * 4
+        ("/2/query/%s" % what, compat.partial(_Check, [namefield] * 4), "PUT", {
+           "fields": [namefield] * 4
          })])
 
     def _CheckFilter():
@@ -358,7 +360,8 @@ def TestRapiQuery():
       else:
         raise qa_error.Error("Filtering locks didn't fail")
     else:
-      _CheckFilter()
+      if what in constants.QR_VIA_RAPI_PUT:
+        _CheckFilter()
 
     if what == constants.QR_NODE:
       # Test with filter
