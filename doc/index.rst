@@ -123,6 +123,7 @@ Draft designs
    design-multi-version-tests.rst
    design-network.rst
    design-node-add.rst
+   design-node-security.rst
    design-oob.rst
    design-openvswitch.rst
    design-opportunistic-locking.rst
