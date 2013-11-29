@@ -239,8 +239,8 @@ leaving the codebase in a consistent and usable state.
    MasterD into LuxiD.
    Actually executing jobs will still be done by MasterD, that contains all the
    logic for doing that and for properly managing locks and the configuration.
-   A separate design document will detail how the system will decide which jobs
-   to send over for execution, and how to rate-limit them.
+   At this stage, scheduling will simply consist in starting jobs until a fixed
+   maximum number of simultaneously running jobs is reached.
 
 #. Extract WConfD from MasterD.
    The logic for managing the configuration file is factored out to the
@@ -260,6 +260,11 @@ leaving the codebase in a consistent and usable state.
    as possible.
    MasterD will cease to exist as a deamon on its own at this point, but not
    before.
+
+#. Improve job scheduling algorithm.
+   The simple algorithm for scheduling jobs will be replaced by a more
+   intelligent one. Also, the implementation of :doc:`design-optables` can be
+   started.
 
 WConfD details
 --------------
