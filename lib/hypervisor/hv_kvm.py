@@ -188,22 +188,45 @@ def _GetExistingDeviceInfo(dev_type, device, runtime):
   return found[0]
 
 
+def _UpgradeSerializedRuntime(serialized_runtime):
+  """Upgrade runtime data
+
+  Remove any deprecated fields or change the format of the data.
+  The runtime files are not upgraded when Ganeti is upgraded, so the required
+  modification have to be performed here.
+
+  @type serialized_runtime: string
+  @param serialized_runtime: raw text data read from actual runtime file
+  @return: (cmd, nic dicts, hvparams, bdev dicts)
+  @rtype: tuple
+
+  """
+  loaded_runtime = serializer.Load(serialized_runtime)
+  kvm_cmd, serialized_nics, hvparams = loaded_runtime[:3]
+  if len(loaded_runtime) >= 4:
+    serialized_disks = loaded_runtime[3]
+  else:
+    serialized_disks = []
+
+  for nic in serialized_nics:
+    # Add a dummy uuid slot if an pre-2.8 NIC is found
+    if "uuid" not in nic:
+      nic["uuid"] = utils.NewUUID()
+
+  return kvm_cmd, serialized_nics, hvparams, serialized_disks
+
+
 def _AnalyzeSerializedRuntime(serialized_runtime):
   """Return runtime entries for a serialized runtime file
 
   @type serialized_runtime: string
   @param serialized_runtime: raw text data read from actual runtime file
   @return: (cmd, nics, hvparams, bdevs)
-  @rtype: list
+  @rtype: tuple
 
   """
-  loaded_runtime = serializer.Load(serialized_runtime)
-  if len(loaded_runtime) == 3:
-    serialized_disks = []
-    kvm_cmd, serialized_nics, hvparams = loaded_runtime
-  else:
-    kvm_cmd, serialized_nics, hvparams, serialized_disks = loaded_runtime
-
+  kvm_cmd, serialized_nics, hvparams, serialized_disks = \
+    _UpgradeSerializedRuntime(serialized_runtime)
   kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
   kvm_disks = [(objects.Disk.FromDict(sdisk), link, uri)
                for sdisk, link, uri in serialized_disks]
