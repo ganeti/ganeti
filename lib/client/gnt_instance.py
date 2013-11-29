@@ -1285,6 +1285,9 @@ def _ParseDiskSizes(mods):
 
   """
   for (action, _, params) in mods:
+    if params and constants.IDISK_SPINDLES in params:
+      params[constants.IDISK_SPINDLES] = \
+          int(params[constants.IDISK_SPINDLES])
     if params and constants.IDISK_SIZE in params:
       params[constants.IDISK_SIZE] = \
         utils.ParseUnit(params[constants.IDISK_SIZE])
