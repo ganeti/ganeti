@@ -2652,8 +2652,7 @@ def GenericInstanceCreate(mode, opts, args):
         raise errors.OpPrereqError("Missing size or adoption source for"
                                    " disk %d" % didx, errors.ECODE_INVAL)
       if constants.IDISK_SPINDLES in ddict:
-        ddict[constants.IDISK_SPINDLES] = \
-          utils.ParseUnit(ddict[constants.IDISK_SPINDLES])
+        ddict[constants.IDISK_SPINDLES] = int(ddict[constants.IDISK_SPINDLES])
 
       disks[didx] = ddict
 
