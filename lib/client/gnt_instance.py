@@ -420,9 +420,10 @@ def RemoveInstance(opts, args):
   instance_name = args[0]
   force = opts.force
   cl = GetClient()
+  qcl = GetClient(query=True)
 
   if not force:
-    _EnsureInstancesExist(cl, [instance_name])
+    _EnsureInstancesExist(qcl, [instance_name])
 
     usertext = ("This will remove the volumes of the instance %s"
                 " (including mirrors), thus removing all the data"
