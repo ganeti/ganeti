@@ -265,6 +265,7 @@ import Text.JSON.Pretty (pp_value)
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.THH
+import Ganeti.Utils
 import Ganeti.JSON
 import Ganeti.Types
 import qualified Ganeti.Query.Language as Qlang
@@ -342,9 +343,10 @@ $(buildObject "INicParams" "inic"
   , optionalField $ simpleField C.inicBridge [t| NonEmptyString |]
   ])
 
--- | Disk modification definition. FIXME: disksize should be VTYPE_UNIT.
+-- | Disk modification definition.
 $(buildObject "IDiskParams" "idisk"
-  [ optionalField $ simpleField C.idiskSize   [t| Int            |]
+  [ specialNumericalField 'parseUnitAssumeBinary . optionalField
+      $ simpleField C.idiskSize               [t| Int            |]
   , optionalField $ simpleField C.idiskMode   [t| DiskAccess     |]
   , optionalField $ simpleField C.idiskAdopt  [t| NonEmptyString |]
   , optionalField $ simpleField C.idiskVg     [t| NonEmptyString |]
