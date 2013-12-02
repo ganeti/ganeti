@@ -552,9 +552,15 @@ class _TestXenHypervisor(object):
           self.assertTrue(("extra = '%s'" % extra) in lines)
 
   def _StopInstanceCommand(self, instance_name, force, fail, cmd):
-    if ((force and cmd[:2] == [self.CMD, "destroy"]) or
-        (not force and cmd[:2] == [self.CMD, "shutdown"])):
+    if (cmd == [self.CMD, "list"]):
+      output = "Name  ID  Mem  VCPUs  State  Time(s)\n" \
+        "Domain-0  0  1023  1  r-----  142691.0\n" \
+        "%s  417  128  1  r-----  3.2\n" % instance_name
+    elif cmd[:2] == [self.CMD, "destroy"]:
       self.assertEqual(cmd[2:], [instance_name])
+      output = ""
+    elif not force and cmd[:3] == [self.CMD, "shutdown", "-w"]:
+      self.assertEqual(cmd[3:], [instance_name])
       output = ""
     else:
       self.fail("Unhandled command: %s" % (cmd, ))
@@ -584,7 +590,8 @@ class _TestXenHypervisor(object):
           try:
             hv._StopInstance(name, force)
           except errors.HypervisorError, err:
-            self.assertTrue(str(err).startswith("Failed to stop instance"))
+            self.assertTrue(str(err).startswith("xm list failed"),
+                            msg=str(err))
           else:
             self.fail("Exception was not raised")
           self.assertEqual(utils.ReadFile(cfgfile), cfgdata,
