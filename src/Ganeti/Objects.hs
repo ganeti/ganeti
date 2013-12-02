@@ -103,7 +103,7 @@ import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
 import Ganeti.Types
 import Ganeti.THH
-import Ganeti.Utils (sepSplit, tryRead)
+import Ganeti.Utils (sepSplit, tryRead, parseUnitAssumeBinary)
 
 -- * Generic definitions
 
@@ -421,8 +421,10 @@ includesLogicalId vg_name lv_name disk =
 -- * Instance definitions
 
 $(buildParam "Be" "bep"
-  [ simpleField "minmem"          [t| Int  |]
-  , simpleField "maxmem"          [t| Int  |]
+  [ specialNumericalField 'parseUnitAssumeBinary
+      $ simpleField "minmem"      [t| Int  |]
+  , specialNumericalField 'parseUnitAssumeBinary
+      $ simpleField "maxmem"      [t| Int  |]
   , simpleField "vcpus"           [t| Int  |]
   , simpleField "auto_balance"    [t| Bool |]
   , simpleField "always_failover" [t| Bool |]
