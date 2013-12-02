@@ -516,6 +516,78 @@ def TestGroupOperations(client, node, another_node):
   Finish(client, client.DeleteGroup, TEST_GROUP_NAME)
 
 
+def TestNetworkConnectDisconnect(client, network_name, mode, link):
+  """ Test connecting and disconnecting the network to a new node group.
+
+  @type network_name string
+  @param network_name The name of an existing and unconnected network.
+  @type mode string
+  @param mode The network mode.
+  @type link string
+  @param link The network link.
+
+  """
+  # For testing the connect/disconnect calls, a group is needed
+  TEST_GROUP_NAME = "TestGroup"
+  Finish(client, client.CreateGroup,
+         TEST_GROUP_NAME, alloc_policy=constants.ALLOC_POLICY_PREFERRED)
+
+  Finish(client, client.ConnectNetwork,
+         network_name, TEST_GROUP_NAME, mode, link, dry_run=True)
+
+  Finish(client, client.ConnectNetwork,
+         network_name, TEST_GROUP_NAME, mode, link)
+
+  Finish(client, client.DisconnectNetwork,
+         network_name, TEST_GROUP_NAME, dry_run=True)
+
+  Finish(client, client.DisconnectNetwork,
+         network_name, TEST_GROUP_NAME)
+
+  # Clean up the group
+  Finish(client, client.DeleteGroup, TEST_GROUP_NAME)
+
+
+def TestNetworks(client):
+  """ Add some networks of different sizes, using RFC5737 addresses like in the
+  QA.
+
+  """
+
+  NETWORK_NAME = "SurelyCertainlyNonexistentNetwork"
+
+  Finish(client, client.CreateNetwork,
+         NETWORK_NAME, "192.0.2.0/30", tags=[], dry_run=True)
+
+  Finish(client, client.CreateNetwork,
+         NETWORK_NAME, "192.0.2.0/30", tags=[])
+
+  client.GetNetwork(NETWORK_NAME)
+
+  TestTags(client, client.GetNetworkTags, client.AddNetworkTags,
+           client.DeleteNetworkTags, NETWORK_NAME)
+
+  Finish(client, client.ModifyNetwork,
+         NETWORK_NAME, mac_prefix=None)
+
+  TestQueries(client, "network")
+
+  default_nicparams = qa_config.get("default-nicparams", None)
+
+  # The entry might not be present in the QA config
+  if default_nicparams is not None:
+    mode = default_nicparams.get("mode", None)
+    link = default_nicparams.get("link", None)
+    if mode is not None and link is not None:
+      TestNetworkConnectDisconnect(client, NETWORK_NAME, mode, link)
+
+  # Clean up the network
+  Finish(client, client.DeleteNetwork,
+         NETWORK_NAME, dry_run=True)
+
+  Finish(client, client.DeleteNetwork, NETWORK_NAME)
+
+
 def Workload(client):
   """ The actual RAPI workload used for tests.
 
@@ -563,10 +635,12 @@ def Workload(client):
   TestNodeOperations(client, node.primary)
   TestQueryFiltering(client, node.primary)
   node.Release()
-  
+
   nodes = qa_config.AcquireManyNodes(2)
   TestGroupOperations(client, nodes[0].primary, nodes[1].primary)
   qa_config.ReleaseManyNodes(nodes)
+
+  TestNetworks(client)
 
 
 def Usage():
