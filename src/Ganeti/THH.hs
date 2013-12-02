@@ -1159,7 +1159,9 @@ loadPParamField field = do
   let objvar = varNameE "o"
       objfield = stringE name
       loadexp = [| $(varE 'maybeFromObj) $objvar $objfield |]
-  bexp <- loadFn field loadexp objvar
+      field' = field {fieldRead=fmap (appE (varE 'makeReadOptional))
+                                  $ fieldRead field}
+  bexp <- loadFn field' loadexp objvar
   return (fvar, BindS (VarP fvar) bexp)
 
 -- | Builds a simple declaration of type @n_x = fromMaybe f_x p_x@.
