@@ -215,6 +215,32 @@ def TestGetters(client):
   client.GetGroups(bulk=True)
 
 
+def TestQueries(client, resource_name):
+  """ Finds out which fields are present for a given resource type, and attempts
+  to retrieve their values for all present resources.
+
+  @type client C{GanetiRapiClientWrapper}
+  @param client A wrapped RAPI client.
+  @type resource_name string
+  @param resource_name The name of the resource to use.
+
+  """
+
+  FIELDS_KEY = "fields"
+
+  query_res = client.QueryFields(resource_name)
+
+  if query_res is None or FIELDS_KEY not in query_res or \
+    len(query_res[FIELDS_KEY]) == 0:
+    return
+
+  field_entries = query_res[FIELDS_KEY]
+
+  fields = map(lambda e: e["name"], field_entries)
+
+  client.Query(resource_name, fields)
+
+
 def RemoveAllInstances(client):
   """ Queries for a list of instances, then removes them all.
 
@@ -275,6 +301,8 @@ def TestSingleInstance(client, instance_name, alternate_name, node_one,
   Finish(client, client.GetInstanceInfo, instance_name)
 
   Finish(client, client.GetInstanceInfo, instance_name, static=True)
+
+  TestQueries(client, "instance")
 
   TestTags(client, client.GetInstanceTags, client.AddInstanceTags,
            client.DeleteInstanceTags, instance_name)
@@ -408,6 +436,8 @@ def TestNodeOperations(client, non_master_node):
   MarkUnmarkNode(client, non_master_node, "powered")
   MarkUnmarkNode(client, non_master_node, "offline")
 
+  TestQueries(client, "node")
+
 
 def TestGroupOperations(client, node, another_node):
   """ Tests various operations related to groups only.
@@ -433,6 +463,8 @@ def TestGroupOperations(client, node, another_node):
          TEST_GROUP_NAME, alloc_policy=constants.ALLOC_POLICY_PREFERRED)
 
   client.GetGroup(TEST_GROUP_NAME)
+
+  TestQueries(client, "group")
 
   TestTags(client, client.GetGroupTags, client.AddGroupTags,
            client.DeleteGroupTags, TEST_GROUP_NAME)
@@ -497,6 +529,12 @@ def Workload(client):
   instance_two.Release()
   instance_one.Release()
   qa_config.ReleaseManyNodes(nodes)
+
+  # Test all the queries which involve resources that do not have functions
+  # of their own
+  TestQueries(client, "lock")
+  TestQueries(client, "job")
+  TestQueries(client, "export")
 
   node = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
   TestNodeOperations(client, node.primary)
