@@ -32,6 +32,7 @@ module Ganeti.JQScheduler
 
 import Control.Arrow
 import Control.Concurrent
+import Control.Exception
 import Control.Monad
 import Data.List
 import Data.IORef
@@ -161,6 +162,18 @@ selectJobsToRun queue =
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}
      , map jJob chosen)
 
+-- | Requeue jobs that were previously selected for execution
+-- but couldn't be started.
+requeueJobs :: JQStatus -> [QueuedJob] -> IOError -> IO ()
+requeueJobs qstate jobs err = do
+  let jids = map qjId jobs
+      jidsString = commaJoin $ map (show . fromJobId) jids
+      rmJobs = filter ((`notElem` jids) . qjId . jJob)
+  logWarning $ "Starting jobs failed: " ++ show err
+  logWarning $ "Rescheduling jobs: " ++ jidsString
+  modifyJobs qstate (onRunningJobs rmJobs)
+  modifyJobs qstate (onQueuedJobs . (++) $ map unreadJob jobs)
+
 -- | Schedule jobs to be run. This is the IO wrapper around the
 -- pure `selectJobsToRun`.
 scheduleSomeJobs :: JQStatus -> IO ()
@@ -168,7 +181,8 @@ scheduleSomeJobs qstate = do
   chosen <- atomicModifyIORef (jqJobs qstate) selectJobsToRun
   unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
     $ map (show . fromJobId . qjId) chosen
-  JQ.startJobs chosen
+  result <- try $ JQ.startJobs chosen
+  either (requeueJobs qstate chosen) return result
 
 -- | Format the job queue status in a compact, human readable way.
 showQueue :: Queue -> String
