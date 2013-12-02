@@ -241,6 +241,29 @@ def TestQueries(client, resource_name):
   client.Query(resource_name, fields)
 
 
+def TestQueryFiltering(client, master_name):
+  """ Performs queries by playing around with the only guaranteed resource, the
+  master node.
+
+  @type client C{GanetiRapiClientWrapper}
+  @param client A wrapped RAPI client.
+  @type master_name string
+  @param master_name The hostname of the master node.
+
+  """
+  client.Query("node", ["name"],
+               ["|",
+                ["=", "name", master_name],
+                [">", "dtotal", 0],
+               ])
+
+  client.Query("instance", ["name"],
+               ["|",
+                ["=", "name", "NonexistentInstance"],
+                [">", "oper_ram", 0],
+               ])
+
+
 def RemoveAllInstances(client):
   """ Queries for a list of instances, then removes them all.
 
@@ -538,8 +561,9 @@ def Workload(client):
 
   node = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
   TestNodeOperations(client, node.primary)
+  TestQueryFiltering(client, node.primary)
   node.Release()
-
+  
   nodes = qa_config.AcquireManyNodes(2)
   TestGroupOperations(client, nodes[0].primary, nodes[1].primary)
   qa_config.ReleaseManyNodes(nodes)
