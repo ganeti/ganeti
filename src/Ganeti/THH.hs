@@ -47,6 +47,7 @@ module Ganeti.THH ( declareSADT
                   , genLuxiOp
                   , Field (..)
                   , simpleField
+                  , specialNumericalField
                   , withDoc
                   , defaultField
                   , optionalField
@@ -141,6 +142,32 @@ optionalField field = field { fieldIsOptional = OptionalOmitNull }
 -- with 'Nothing' serialised explicitly as /null/.
 optionalNullSerField :: Field -> Field
 optionalNullSerField field = field { fieldIsOptional = OptionalSerializeNull }
+
+-- | Wrapper around a special parse function, suitable as field-parsing
+-- function.
+numericalReadFn :: JSON.JSON a => (String -> JSON.Result a)
+                   -> [(String, JSON.JSValue)] -> JSON.JSValue -> JSON.Result a
+numericalReadFn _ _ v@(JSON.JSRational _ _) = JSON.readJSON v
+numericalReadFn f _ (JSON.JSString x) = f $ JSON.fromJSString x
+numericalReadFn _ _ _ = JSON.Error "A numerical field has to be a number or\ 
+                                   \ a string."
+
+-- | Wrapper to lift a read function to optional values
+makeReadOptional :: ([(String, JSON.JSValue)] -> JSON.JSValue -> JSON.Result a)
+                    -> [(String, JSON.JSValue)]
+                    -> Maybe JSON.JSValue -> JSON.Result (Maybe a)
+makeReadOptional _ _ Nothing = JSON.Ok Nothing
+makeReadOptional f o (Just x) = fmap Just $ f o x
+
+-- | Sets the read function to also accept string parsable by the given
+-- function.
+specialNumericalField :: Name -> Field -> Field
+specialNumericalField f field =
+  if (fieldIsOptional field == NotOptional)
+     then field { fieldRead = Just (appE (varE 'numericalReadFn) (varE f)) }
+     else field { fieldRead = Just (appE (varE 'makeReadOptional)
+                                         (appE (varE 'numericalReadFn)
+                                               (varE f))) }
 
 -- | Sets custom functions on a field.
 customField :: Name      -- ^ The name of the read function
