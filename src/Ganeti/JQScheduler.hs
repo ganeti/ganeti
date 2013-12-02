@@ -181,7 +181,7 @@ showQueue (Queue {qEnqueued=waiting, qRunning=running}) =
 onTimeWatcher :: JQStatus -> IO ()
 onTimeWatcher qstate = forever $ do
   threadDelay watchInterval
-  logDebug "Watcher timer fired"
+  logDebug "Job queue watcher timer fired"
   jobs <- readIORef (jqJobs qstate)
   mapM_ (updateJob qstate) $ qRunning jobs
   cleanupFinishedJobs qstate

@@ -168,7 +168,7 @@ onWatcherTimer :: IO Bool -> FilePath -> (Result ConfigData -> IO ())
                -> MVar ServerState -> IO ()
 onWatcherTimer inotiaction path save_fn state = do
   threadDelay watchInterval
-  logDebug "Watcher timer fired"
+  logDebug "Config-reader watcher timer fired"
   modifyMVar_ state (onWatcherInner path save_fn)
   _ <- inotiaction
   onWatcherTimer inotiaction path save_fn state
