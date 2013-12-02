@@ -409,6 +409,58 @@ def TestNodeOperations(client, non_master_node):
   MarkUnmarkNode(client, non_master_node, "offline")
 
 
+def TestGroupOperations(client, node, another_node):
+  """ Tests various operations related to groups only.
+
+  @type client C{GanetiRapiClientWrapper}
+  @param client A Ganeti RAPI client to use.
+  @type node string
+  @param node The name of a node in the cluster.
+  @type another_node string
+  @param another_node The name of another node in the cluster.
+
+  """
+
+  DEFAULT_GROUP_NAME = constants.INITIAL_NODE_GROUP_NAME
+  TEST_GROUP_NAME = "TestGroup"
+  ALTERNATE_GROUP_NAME = "RenamedTestGroup"
+
+  Finish(client, client.CreateGroup,
+         TEST_GROUP_NAME, alloc_policy=constants.ALLOC_POLICY_PREFERRED,
+         dry_run=True)
+
+  Finish(client, client.CreateGroup,
+         TEST_GROUP_NAME, alloc_policy=constants.ALLOC_POLICY_PREFERRED)
+
+  client.GetGroup(TEST_GROUP_NAME)
+
+  TestTags(client, client.GetGroupTags, client.AddGroupTags,
+           client.DeleteGroupTags, TEST_GROUP_NAME)
+
+  Finish(client, client.ModifyGroup,
+         TEST_GROUP_NAME, alloc_policy=constants.ALLOC_POLICY_PREFERRED,
+         depends=None)
+
+  Finish(client, client.AssignGroupNodes,
+         TEST_GROUP_NAME, [node, another_node], force=False, dry_run=True)
+
+  Finish(client, client.AssignGroupNodes,
+         TEST_GROUP_NAME, [another_node], force=False)
+
+  Finish(client, client.RenameGroup,
+         TEST_GROUP_NAME, ALTERNATE_GROUP_NAME)
+
+  Finish(client, client.RenameGroup,
+         ALTERNATE_GROUP_NAME, TEST_GROUP_NAME)
+
+  Finish(client, client.AssignGroupNodes,
+         DEFAULT_GROUP_NAME, [another_node], force=False)
+
+  Finish(client, client.DeleteGroup, TEST_GROUP_NAME, dry_run=True)
+
+  Finish(client, client.DeleteGroup, TEST_GROUP_NAME)
+
+
 def Workload(client):
   """ The actual RAPI workload used for tests.
 
@@ -449,6 +501,10 @@ def Workload(client):
   node = qa_config.AcquireNode(exclude=qa_config.GetMasterNode())
   TestNodeOperations(client, node.primary)
   node.Release()
+
+  nodes = qa_config.AcquireManyNodes(2)
+  TestGroupOperations(client, nodes[0].primary, nodes[1].primary)
+  qa_config.ReleaseManyNodes(nodes)
 
 
 def Usage():
