@@ -23,6 +23,8 @@ set -e -u
 USAGE_MSG="Usage: $0 {start|stop}"
 PATH=$PATH:/sbin:/usr/sbin:/usr/local/sbin
 
+FPING_PACKET_COUNT=1
+
 # Start the master IP
 start() {
   case $CLUSTER_IP_VERSION in
@@ -39,13 +41,13 @@ start() {
   esac
 
   # Check if the master IP address is already configured on this machine
-  if fping -S 127.0.0.1 $MASTER_IP >/dev/null 2>&1; then
+  if fping -c $FPING_PACKET_COUNT -S 127.0.0.1 $MASTER_IP >/dev/null 2>&1; then
     echo "Master IP address already configured on this machine. Doing nothing."
     exit 0
   fi
 
   # Check if the master IP address is already configured on another machine
-  if fping $MASTER_IP >/dev/null 2>&1; then
+  if fping -c $FPING_PACKET_COUNT $MASTER_IP >/dev/null 2>&1; then
     echo "Error: master IP address configured on another machine." >&2
     exit 1
   fi
@@ -66,7 +68,7 @@ stop() {
   if ! ip addr show dev $MASTER_NETDEV | \
      grep -F " $MASTER_IP/$MASTER_NETMASK" >/dev/null 2>&1; then
     # Check if the master IP address is configured on a wrong device
-    if fping -S 127.0.0.1 $MASTER_IP >/dev/null 2>&1; then
+    if fping -c $FPING_PACKET_COUNT -S 127.0.0.1 $MASTER_IP >/dev/null 2>&1; then
       echo "Error: master IP address configured on wrong device," \
            "can't shut it down." >&2
       exit 1
