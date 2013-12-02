@@ -36,6 +36,7 @@ module Ganeti.Utils
   , formatTable
   , printTable
   , parseUnit
+  , parseUnitAssumeBinary
   , plural
   , niceSort
   , niceSortKey
@@ -212,8 +213,8 @@ printTable lp header rows isnum =
   formatTable (header:rows) isnum
 
 -- | Converts a unit (e.g. m or GB) into a scaling factor.
-parseUnitValue :: (Monad m) => String -> m Rational
-parseUnitValue unit
+parseUnitValue :: (Monad m) => Bool -> String -> m Rational
+parseUnitValue noDecimal unit
   -- binary conversions first
   | null unit                     = return 1
   | unit == "m" || upper == "MIB" = return 1
@@ -226,7 +227,7 @@ parseUnitValue unit
   | otherwise = fail $ "Unknown unit '" ++ unit ++ "'"
   where upper = map toUpper unit
         kbBinary = 1024 :: Rational
-        kbDecimal = 1000 :: Rational
+        kbDecimal = if noDecimal then kbBinary else 1000
         decToBin = kbDecimal / kbBinary -- factor for 1K conversion
         mbFactor = decToBin * decToBin -- twice the factor for just 1K
 
@@ -234,18 +235,31 @@ parseUnitValue unit
 --
 -- Input must be in the format NUMBER+ SPACE* [UNIT]. If no unit is
 -- specified, it defaults to MiB. Return value is always an integral
--- value in MiB.
-parseUnit :: (Monad m, Integral a, Read a) => String -> m a
-parseUnit str =
+-- value in MiB; if the first argument is True, all kilos are binary.
+parseUnitEx :: (Monad m, Integral a, Read a) => Bool -> String -> m a
+parseUnitEx noDecimal str =
   -- TODO: enhance this by splitting the unit parsing code out and
   -- accepting floating-point numbers
   case (reads str::[(Int, String)]) of
     [(v, suffix)] ->
       let unit = dropWhile (== ' ') suffix
       in do
-        scaling <- parseUnitValue unit
+        scaling <- parseUnitValue noDecimal unit
         return $ truncate (fromIntegral v * scaling)
     _ -> fail $ "Can't parse string '" ++ str ++ "'"
+
+-- | Tries to extract number and scale from the given string.
+--
+-- Input must be in the format NUMBER+ SPACE* [UNIT]. If no unit is
+-- specified, it defaults to MiB. Return value is always an integral
+-- value in MiB.
+parseUnit :: (Monad m, Integral a, Read a) => String -> m a
+parseUnit = parseUnitEx False
+
+-- | Tries to extract a number and scale from a given string, taking
+-- all kilos to be binary.
+parseUnitAssumeBinary :: (Monad m, Integral a, Read a) => String -> m a
+parseUnitAssumeBinary = parseUnitEx True
 
 -- | Unwraps a 'Result', exiting the program if it is a 'Bad' value,
 -- otherwise returning the actual contained value.
