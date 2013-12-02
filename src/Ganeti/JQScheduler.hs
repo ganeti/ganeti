@@ -166,7 +166,7 @@ selectJobsToRun queue =
 scheduleSomeJobs :: JQStatus -> IO ()
 scheduleSomeJobs qstate = do
   chosen <- atomicModifyIORef (jqJobs qstate) selectJobsToRun
-  unless (null chosen) . logInfo . (++) "Staring jobs: " . commaJoin
+  unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
     $ map (show . fromJobId . qjId) chosen
   JQ.startJobs chosen
 
