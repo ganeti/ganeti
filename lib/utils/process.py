@@ -782,6 +782,19 @@ def IsProcessAlive(pid):
     err.RaiseInner()
 
 
+def IsDaemonAlive(name):
+  """Determines whether a daemon is alive
+
+  @type name: string
+  @param name: daemon name
+
+  @rtype: boolean
+  @return: True if daemon is running, False otherwise
+
+  """
+  return IsProcessAlive(utils_io.ReadPidFile(utils_io.DaemonPidFileName(name)))
+
+
 def _ParseSigsetT(sigset):
   """Parse a rendered sigset_t value.
 
