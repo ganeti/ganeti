@@ -36,6 +36,7 @@ options =
   [ oNoDaemonize
   , oNoUserChecks
   , oDebug
+  , oBindAddress
   , oPort C.defaultMondPort
   ]
 

@@ -119,10 +119,11 @@ prepMain :: PrepFn CheckResult PrepResult
 prepMain opts _ = do
   accessLog <- daemonsExtraLogFile GanetiMond AccessLog
   errorLog <- daemonsExtraLogFile GanetiMond ErrorLog
-  return $
+  return .
     setPort
-      (maybe C.defaultMondPort fromIntegral (optPort opts))
-      (defaultHttpConf accessLog errorLog)
+      (maybe C.defaultMondPort fromIntegral (optPort opts)) .
+    maybe id (setBind . pack) (optBindAddress opts)
+    $ defaultHttpConf accessLog errorLog
 
 -- * Query answers
 
