@@ -1707,11 +1707,6 @@ class JobQueue(object):
 
     # Setup worker pool
     self._wpool = _JobQueueWorkerPool(self)
-    try:
-      self._InspectQueue()
-    except:
-      self._wpool.TerminateWorkers()
-      raise
 
   def _PickupJobUnlocked(self, job_id):
     """Load a job from the job queue
@@ -1750,32 +1745,6 @@ class JobQueue(object):
   @locking.ssynchronized(_LOCK)
   def PickupJob(self, job_id):
     self._PickupJobUnlocked(job_id)
-
-  @locking.ssynchronized(_LOCK)
-  @_RequireOpenQueue
-  def _InspectQueue(self):
-    """Loads the whole job queue and resumes unfinished jobs.
-
-    This function needs the lock here because WorkerPool.AddTask() may start a
-    job while we're still doing our work.
-
-    """
-    logging.info("Inspecting job queue")
-
-    all_job_ids = self._GetJobIDsUnlocked()
-    jobs_count = len(all_job_ids)
-    lastinfo = time.time()
-    for idx, job_id in enumerate(all_job_ids):
-      # Give an update every 1000 jobs or 10 seconds
-      if (idx % 1000 == 0 or time.time() >= (lastinfo + 10.0) or
-          idx == (jobs_count - 1)):
-        logging.info("Job queue inspection: %d/%d (%0.1f %%)",
-                     idx, jobs_count - 1, 100.0 * (idx + 1) / jobs_count)
-        lastinfo = time.time()
-
-      self._PickupJobUnlocked(job_id)
-
-    logging.info("Job queue inspection finished")
 
   def _GetRpc(self, address_list):
     """Gets RPC runner with context.
