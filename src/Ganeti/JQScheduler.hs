@@ -99,15 +99,17 @@ readJobStatus (JobWithStat {jStat=fstat, jJob=job})  = do
   qdir <- queueDir
   let fpath = liveJobFile qdir jid
   logDebug $ "Checking if " ++ fpath ++ " changed on disk."
-  changed <- needsReload fstat fpath
+  changedResult <- try $ needsReload fstat fpath
+                   :: IO (Either IOError (Maybe FStat))
+  let changed = either (const $ Just nullFStat) id changedResult
   case changed of
     Nothing -> do
       logDebug $ "File " ++ fpath ++ " not changed on disk."
       return Nothing
     Just fstat' -> do
-      logInfo $ "Rereading " ++ fpath
-      readResult <- loadJobFromDisk qdir False jid
       let jids = show $ fromJobId jid
+      logInfo $ "Rereading job "  ++ jids
+      readResult <- loadJobFromDisk qdir True jid
       case readResult of
         Bad s -> do
           logWarning $ "Failed to read job " ++ jids ++ ": " ++ s
