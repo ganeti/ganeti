@@ -140,9 +140,7 @@ updateJob state jb = do
 -- and the jobs that were removed.
 sortoutFinishedJobs :: Queue -> (Queue, [QueuedJob])
 sortoutFinishedJobs queue =
-  let (run', fin) = partition
-                      ((<= JOB_STATUS_RUNNING) . calcJobStatus . jJob)
-                      . qRunning $ queue
+  let (fin, run') = partition (jobFinalized . jJob) . qRunning $ queue
   in (queue {qRunning=run'}, map jJob fin)
 
 -- | Actually clean up the finished jobs. This is the IO wrapper around
