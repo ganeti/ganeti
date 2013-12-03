@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 
 {-
 
@@ -49,10 +49,12 @@ module Ganeti.BasicTypes
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.Error.Class
 import Control.Monad.Trans
 import Data.Function
 import Data.List
 import Data.Maybe
+import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set (empty)
 import Text.JSON (JSON)
@@ -92,13 +94,17 @@ instance Functor (GenericResult a) where
   fmap _ (Bad msg) = Bad msg
   fmap fn (Ok val) = Ok (fn val)
 
-instance MonadPlus (GenericResult String) where
-  mzero = Bad "zero Result when used as MonadPlus"
+instance (FromString a, Monoid a) => MonadPlus (GenericResult a) where
+  mzero = Bad $ mkFromString "zero Result when used as MonadPlus"
   -- for mplus, when we 'add' two Bad values, we concatenate their
   -- error descriptions
-  (Bad x) `mplus` (Bad y) = Bad (x ++ "; " ++ y)
+  (Bad x) `mplus` (Bad y) = Bad (x `mappend` mkFromString "; " `mappend` y)
   (Bad _) `mplus` x = x
   x@(Ok _) `mplus` _ = x
+
+instance (FromString a) => MonadError a (GenericResult a) where
+  throwError = Bad
+  catchError x h = genericResult h (const x) x
 
 instance Applicative (GenericResult a) where
   pure = Ok
@@ -110,20 +116,46 @@ instance Applicative (GenericResult a) where
 -- based on the implementations of MaybeT and ErrorT.
 newtype ResultT a m b = ResultT {runResultT :: m (GenericResult a b)}
 
+-- | Eliminates a 'ResultT' value given appropriate continuations
+elimResultT :: (Monad m)
+            => (a -> ResultT a' m b')
+            -> (b -> ResultT a' m b')
+            -> ResultT a m b
+            -> ResultT a' m b'
+elimResultT l r = ResultT . (runResultT . result <=< runResultT)
+  where
+    result (Ok x)   = r x
+    result (Bad e)  = l e
+{-# INLINE elimResultT #-}
+
+instance (Monad f) => Functor (ResultT a f) where
+  fmap f = ResultT . liftM (fmap f) . runResultT
+
+instance (Monad m, FromString a) => Applicative (ResultT a m) where
+  pure = return
+  (<*>) = ap
+
 instance (Monad m, FromString a) => Monad (ResultT a m) where
   fail err = ResultT (return . Bad $ mkFromString err)
   return   = lift . return
-  x >>= f  = ResultT $ do
-               a <- runResultT x
-               case a of
-                 Ok val -> runResultT $ f val
-                 Bad err -> return $ Bad err
+  (>>=)    = flip (elimResultT throwError)
+
+instance (Monad m, FromString a) => MonadError a (ResultT a m) where
+  throwError = resultT . Bad
+  catchError x h = elimResultT h return x
 
 instance MonadTrans (ResultT a) where
-  lift x = ResultT (liftM Ok x)
+  lift = ResultT . liftM Ok
 
 instance (MonadIO m, FromString a) => MonadIO (ResultT a m) where
   liftIO = lift . liftIO
+
+instance (Monad m, FromString a, Monoid a) => MonadPlus (ResultT a m) where
+  mzero = ResultT $ return mzero
+  -- Ensure that 'y' isn't run if 'x' contains a value. This makes it a bit
+  -- more complicated than 'mplus' of 'GenericResult'.
+  mplus x y = elimResultT combine return x
+    where combine x' = ResultT $ liftM (mplus (Bad x')) (runResultT y)
 
 -- | Lift a `Result` value to a `ResultT`.
 resultT :: Monad m => GenericResult a b -> ResultT a m b
