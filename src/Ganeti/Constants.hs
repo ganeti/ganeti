@@ -212,6 +212,12 @@ confdUser = Runtime.daemonUser GanetiConfd
 confdGroup :: String
 confdGroup = Runtime.daemonGroup (DaemonGroup GanetiConfd)
 
+kvmdUser :: String
+kvmdUser = Runtime.daemonUser GanetiKvmd
+
+kvmdGroup :: String
+kvmdGroup = Runtime.daemonGroup (DaemonGroup GanetiKvmd)
+
 luxidUser :: String
 luxidUser = Runtime.daemonUser GanetiLuxid
 
@@ -340,6 +346,9 @@ luxid = Runtime.daemonName GanetiLuxid
 
 rapi :: String
 rapi = Runtime.daemonName GanetiRapi
+
+kvmd :: String
+kvmd = Runtime.daemonName GanetiKvmd
 
 daemons :: FrozenSet String
 daemons =

@@ -223,18 +223,21 @@ AC_ARG_WITH([user-prefix],
   [user_masterd="${withval}masterd";
    user_rapi="${withval}rapi";
    user_confd="${withval}confd";
+   user_kvmd="$user_default";
    user_luxid="${withval}luxid";
    user_noded="$user_default";
    user_mond="$user_default"],
   [user_masterd="$user_default";
    user_rapi="$user_default";
    user_confd="$user_default";
+   user_kvmd="$user_default";
    user_luxid="$user_default";
    user_noded="$user_default";
    user_mond="$user_default"])
 AC_SUBST(MASTERD_USER, $user_masterd)
 AC_SUBST(RAPI_USER, $user_rapi)
 AC_SUBST(CONFD_USER, $user_confd)
+AC_SUBST(KVMD_USER, $user_kvmd)
 AC_SUBST(LUXID_USER, $user_luxid)
 AC_SUBST(NODED_USER, $user_noded)
 AC_SUBST(MOND_USER, $user_mond)
@@ -249,6 +252,7 @@ AC_ARG_WITH([group-prefix],
   [group_rapi="${withval}rapi";
    group_admin="${withval}admin";
    group_confd="${withval}confd";
+   group_kvmd="$group_default";
    group_luxid="${withval}luxid";
    group_masterd="${withval}masterd";
    group_noded="$group_default";
@@ -257,6 +261,7 @@ AC_ARG_WITH([group-prefix],
   [group_rapi="$group_default";
    group_admin="$group_default";
    group_confd="$group_default";
+   group_kvmd="$group_default";
    group_luxid="$group_default";
    group_masterd="$group_default";
    group_noded="$group_default";
@@ -265,6 +270,7 @@ AC_ARG_WITH([group-prefix],
 AC_SUBST(RAPI_GROUP, $group_rapi)
 AC_SUBST(ADMIN_GROUP, $group_admin)
 AC_SUBST(CONFD_GROUP, $group_confd)
+AC_SUBST(KVMD_GROUP, $group_kvmd)
 AC_SUBST(LUXID_GROUP, $group_luxid)
 AC_SUBST(MASTERD_GROUP, $group_masterd)
 AC_SUBST(NODED_GROUP, $group_noded)

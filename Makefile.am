@@ -1842,6 +1842,8 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DRAPI_GROUP="$(RAPI_GROUP)" \
 	    -DCONFD_USER="$(CONFD_USER)" \
 	    -DCONFD_GROUP="$(CONFD_GROUP)" \
+	    -DKVMD_USER="$(KVMD_USER)" \
+	    -DKVMD_GROUP="$(KVMD_GROUP)" \
 	    -DLUXID_USER="$(LUXID_USER)" \
 	    -DLUXID_GROUP="$(LUXID_GROUP)" \
 	    -DNODED_USER="$(NODED_USER)" \

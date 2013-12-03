@@ -63,6 +63,7 @@ data GanetiDaemon = GanetiMasterd
                   | GanetiNoded
                   | GanetiRapi
                   | GanetiConfd
+                  | GanetiKvmd
                   | GanetiLuxid
                   | GanetiMond
                     deriving (Show, Enum, Bounded, Eq, Ord)
@@ -83,6 +84,7 @@ daemonName GanetiMasterd = "ganeti-masterd"
 daemonName GanetiNoded   = "ganeti-noded"
 daemonName GanetiRapi    = "ganeti-rapi"
 daemonName GanetiConfd   = "ganeti-confd"
+daemonName GanetiKvmd    = "ganeti-kvmd"
 daemonName GanetiLuxid   = "ganeti-luxid"
 daemonName GanetiMond    = "ganeti-mond"
 
@@ -92,6 +94,7 @@ daemonOnlyOnMaster GanetiMasterd = True
 daemonOnlyOnMaster GanetiNoded   = False
 daemonOnlyOnMaster GanetiRapi    = False
 daemonOnlyOnMaster GanetiConfd   = False
+daemonOnlyOnMaster GanetiKvmd    = False
 daemonOnlyOnMaster GanetiLuxid   = True
 daemonOnlyOnMaster GanetiMond    = False
 
@@ -101,6 +104,7 @@ daemonLogBase GanetiMasterd = "master-daemon"
 daemonLogBase GanetiNoded   = "node-daemon"
 daemonLogBase GanetiRapi    = "rapi-daemon"
 daemonLogBase GanetiConfd   = "conf-daemon"
+daemonLogBase GanetiKvmd    = "kvm-daemon"
 daemonLogBase GanetiLuxid   = "luxi-daemon"
 daemonLogBase GanetiMond    = "monitoring-daemon"
 
@@ -110,6 +114,7 @@ daemonUser GanetiMasterd = AutoConf.masterdUser
 daemonUser GanetiNoded   = AutoConf.nodedUser
 daemonUser GanetiRapi    = AutoConf.rapiUser
 daemonUser GanetiConfd   = AutoConf.confdUser
+daemonUser GanetiKvmd    = AutoConf.kvmdUser
 daemonUser GanetiLuxid   = AutoConf.luxidUser
 daemonUser GanetiMond    = AutoConf.mondUser
 
@@ -120,6 +125,7 @@ daemonGroup (DaemonGroup GanetiNoded)   = AutoConf.nodedGroup
 daemonGroup (DaemonGroup GanetiRapi)    = AutoConf.rapiGroup
 daemonGroup (DaemonGroup GanetiConfd)   = AutoConf.confdGroup
 daemonGroup (DaemonGroup GanetiLuxid)   = AutoConf.luxidGroup
+daemonGroup (DaemonGroup GanetiKvmd)    = AutoConf.kvmdGroup
 daemonGroup (DaemonGroup GanetiMond)    = AutoConf.mondGroup
 daemonGroup (ExtraGroup  DaemonsGroup)  = AutoConf.daemonsGroup
 daemonGroup (ExtraGroup  AdminGroup)    = AutoConf.adminGroup
