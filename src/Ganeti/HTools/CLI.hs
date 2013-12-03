@@ -59,7 +59,7 @@ module Ganeti.HTools.CLI
   , oFullEvacuation
   , oGroup
   , oIAllocSrc
-  , oIgnoreDyn 
+  , oIgnoreDyn
   , oIgnoreNonRedundant
   , oInstMoves
   , oJobDelay

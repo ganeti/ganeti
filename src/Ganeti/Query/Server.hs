@@ -82,7 +82,7 @@ handleClassicQuery cfg qkind names fields _ = do
   return $ showJSON <$> (qr >>= queryCompat)
 
 -- | Minimal wrapper to handle the missing config case.
-handleCallWrapper :: MVar () -> JQStatus ->  Result ConfigData 
+handleCallWrapper :: MVar () -> JQStatus ->  Result ConfigData
                      -> LuxiOp -> IO (ErrorResult JSValue)
 handleCallWrapper _ _ (Bad msg) _ =
   return . Bad . ConfigurationError $
@@ -91,7 +91,7 @@ handleCallWrapper _ _ (Bad msg) _ =
 handleCallWrapper qlock qstat (Ok config) op = handleCall qlock qstat config op
 
 -- | Actual luxi operation handler.
-handleCall :: MVar () -> JQStatus 
+handleCall :: MVar () -> JQStatus
               -> ConfigData -> LuxiOp -> IO (ErrorResult JSValue)
 handleCall _ _ cdata QueryClusterInfo =
   let cluster = configCluster cdata
@@ -274,7 +274,7 @@ handleCall qlock qstat cfg (SubmitManyJobs lops) =
               $ annotated_results
 
 handleCall _ _ cfg (WaitForJobChange jid fields prev_job prev_log tmout) = do
-  let compute_fn = computeJobUpdate cfg jid fields prev_log 
+  let compute_fn = computeJobUpdate cfg jid fields prev_log
   qDir <- queueDir
   -- verify if the job is finalized, and return immediately in this case
   jobresult <- loadJobFromDisk qDir False jid
@@ -311,7 +311,7 @@ handleCall _ _ _ op =
 
 -- | Query the status of a job and return the requested fields
 -- and the logs newer than the given log number.
-computeJobUpdate :: ConfigData -> JobId -> [String] -> JSValue 
+computeJobUpdate :: ConfigData -> JobId -> [String] -> JSValue
                     -> IO (JSValue, JSValue)
 computeJobUpdate cfg jid fields prev_log = do
   let sjid = show $ fromJobId jid
@@ -350,7 +350,6 @@ luxiHandler cfg = U.Handler { U.hParse         = decodeLuxiCall
                             , U.hExec          = luxiExec cfg
                             }
 
-
 -- | Type alias for prepMain results
 type PrepResult = (Server, IORef (Result ConfigData), JQStatus)
 
@@ -366,7 +365,7 @@ prepMain _ _ = do
   s <- describeError "binding to the Luxi socket"
          Nothing (Just socket_path) $ getLuxiServer True socket_path
   cref <- newIORef (Bad "Configuration not yet loaded")
-  jq <- emptyJQStatus 
+  jq <- emptyJQStatus
   return (s, cref, jq)
 
 -- | Main function.
@@ -375,7 +374,7 @@ main _ _ (server, cref, jq) = do
   initConfigReader id cref
   let creader = readIORef cref
   initJQScheduler jq
-  
+
   qlockFile <- jobQueueLockFile
   lockFile qlockFile >>= exitIfBad "Failed to obtain the job-queue lock"
   qlock <- newMVar ()

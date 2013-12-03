@@ -116,7 +116,7 @@ $(genLuxiOp "LuxiOp"
     )
   , (luxiReqQueryClusterInfo, [])
   , (luxiReqQueryTags,
-     [ pTagsObject 
+     [ pTagsObject
      , simpleField "name" [t| String |]
      ])
   , (luxiReqSubmitJob,
