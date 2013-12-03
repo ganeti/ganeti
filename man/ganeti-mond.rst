@@ -26,6 +26,8 @@ Debug-level message can be activated by giving the ``-d`` option.
 The **ganeti-mond** daemon listens to port 1815 TCP, on all interfaces,
 by default. The port can be overridden by an entry the services database
 by passing the ``-p`` option.
+The ``-b`` option can be used to specify the address to bind to
+(defaults to ``0.0.0.0``).
 The daemon will refuse to start if the user and group do not match the
 one defined at build time; this behaviour can be overridden by the
 ``--no-user-checks`` option.
