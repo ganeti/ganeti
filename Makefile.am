@@ -591,6 +591,7 @@ endif
 
 # Haskell programs to be compiled by "make really-all"
 HS_COMPILE_PROGS= \
+	src/ganeti-kvmd \
 	src/ganeti-mond \
 	src/hconfd \
 	src/hluxid \
@@ -1064,6 +1065,7 @@ src/ganeti-luxid: src/hluxid
 
 nodist_sbin_SCRIPTS += src/ganeti-confd
 nodist_sbin_SCRIPTS += src/ganeti-luxid
+nodist_sbin_SCRIPTS += src/ganeti-kvmd
 endif
 
 if ENABLE_MOND

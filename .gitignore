@@ -138,6 +138,7 @@
 /src/hs2py
 /src/hs2py-constants
 /src/ganeti-confd
+/src/ganeti-kvmd
 /src/ganeti-luxid
 /src/ganeti-mond
 /src/rpc-test
