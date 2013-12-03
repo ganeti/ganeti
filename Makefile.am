@@ -705,6 +705,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/JQScheduler.hs \
 	src/Ganeti/JSON.hs \
 	src/Ganeti/Jobs.hs \
+	src/Ganeti/Kvmd.hs \
 	src/Ganeti/Logging.hs \
 	src/Ganeti/Luxi.hs \
 	src/Ganeti/Monitoring/Server.hs \
