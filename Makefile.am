@@ -1195,6 +1195,7 @@ man_MANS = \
 	man/ganeti-confd.8 \
 	man/ganeti-luxid.8 \
 	man/ganeti-listrunner.8 \
+	man/ganeti-kvmd.8 \
 	man/ganeti-masterd.8 \
 	man/ganeti-mond.8 \
 	man/ganeti-noded.8 \
