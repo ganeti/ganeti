@@ -203,10 +203,40 @@ onTimeWatcher qstate = forever $ do
   logInfo $ showQueue jobs'
   scheduleSomeJobs qstate
 
+-- | Read a single, non-archived, job, specified by its id, from disk.
+readJobFromDisk :: JobId -> IO (Result JobWithStat)
+readJobFromDisk jid = do
+  qdir <- queueDir
+  let fpath = liveJobFile qdir jid
+  logDebug $ "Reading " ++ fpath
+  tryFstat <- try $ getFStat fpath :: IO (Either IOError FStat)
+  let fstat = either (const nullFStat) id tryFstat
+  loadResult <- JQ.loadJobFromDisk qdir False jid
+  return $ liftM (JobWithStat fstat . fst) loadResult
+
+-- | Read all non-finalized jobs from disk.
+readJobsFromDisk :: IO [JobWithStat]
+readJobsFromDisk = do
+  logInfo "Loading job queue"
+  qdir <- queueDir
+  eitherJids <- JQ.getJobIDs [qdir]
+  let jids = either (const []) JQ.sortJobIDs eitherJids
+      jidsstring = commaJoin $ map (show . fromJobId) jids
+  logInfo $ "Non-archived jobs on disk: " ++ jidsstring
+  jobs <- mapM readJobFromDisk jids
+  return $ justOk jobs
+
 -- | Set up the job scheduler. This will also start the monitoring
 -- of changes to the running jobs.
 initJQScheduler :: JQStatus -> IO ()
 initJQScheduler qstate = do
+  alljobs <- readJobsFromDisk
+  let jobs = filter (not . jobFinalized . jJob) alljobs
+      (running, queued) = partition (jobStarted . jJob) jobs
+  modifyJobs qstate (onQueuedJobs (++ queued) . onRunningJobs (++ running))
+  jqjobs <- readIORef (jqJobs qstate)
+  logInfo $ showQueue jqjobs
+  scheduleSomeJobs qstate
   logInfo "Starting time-based job queue watcher"
   _ <- forkIO $ onTimeWatcher qstate
   return ()
