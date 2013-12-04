@@ -67,6 +67,7 @@ module Ganeti.Utils
   , lockFile
   , FStat
   , nullFStat
+  , getFStat
   , needsReload
   ) where
 
