@@ -727,6 +727,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Storage/Utils.hs \
 	src/Ganeti/THH.hs \
 	src/Ganeti/Types.hs \
+	src/Ganeti/UDSServer.hs \
 	src/Ganeti/Utils.hs
 
 HS_TEST_SRCS = \
