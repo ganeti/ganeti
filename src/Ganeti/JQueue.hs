@@ -38,6 +38,7 @@ module Ganeti.JQueue
     , opStatusFinalized
     , extractOpSummary
     , calcJobStatus
+    , jobStarted
     , jobFinalized
     , calcJobPriority
     , jobFileName
@@ -245,6 +246,10 @@ calcJobStatus QueuedJob { qjOps = ops } =
            | softStatus x     = extractOpSt xs d new_all -- continue unchanged
            | otherwise        = extractOpSt xs (opStatusToJob x) new_all
            where new_all = x == OP_STATUS_SUCCESS && old_all
+
+-- | Determine if a job has started
+jobStarted :: QueuedJob -> Bool
+jobStarted = (> JOB_STATUS_QUEUED) . calcJobStatus
 
 -- | Determine if a job is finalised.
 jobFinalized :: QueuedJob -> Bool
