@@ -25,6 +25,7 @@
 
 import os
 import re
+import time
 
 from ganeti import utils
 from ganeti import constants
@@ -1097,7 +1098,7 @@ def TestInstanceCreationRestrictedByDiskTemplates():
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def _TestInstanceUserDown(instance, master, hv_shutdown_fn):
-  # Shutdown instance in Xen and bring instance status to 'USER_down'
+  # Shutdown instance and bring instance status to 'USER_down'
   hv_shutdown_fn()
 
   cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
@@ -1150,19 +1151,27 @@ def _TestInstanceUserDown(instance, master, hv_shutdown_fn):
 def _TestInstanceUserDownXen(instance, master):
   primary = _GetInstanceField(instance.name, "pnode")
   fn = lambda: AssertCommand(["xm", "shutdown", "-w", instance.name],
-                             fail=False, node=primary)
+                             node=primary)
   _TestInstanceUserDown(instance, master, fn)
 
 
-# FIXME: User shutdown is not implemented for KVM yet
-#
-# @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
-# def _TestInstanceUserDownKvm(instance, master):
-#   fn = lambda: hv_kvm.KVMHypervisor._StopInstance(None, True, instance.name)
-#   _TestInstanceUserDown(instance, master, fn)
-#
-def _TestInstanceUserDownKvm(_1, _2):
-  pass
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+def _TestInstanceUserDownKvm(instance, master):
+  def _StopKVMInstance():
+    AssertCommand("pkill -f \"kvm -name %s\"" % instance.name, node=primary)
+    time.sleep(5)
+
+  AssertCommand(["gnt-instance", "modify", "-H", "user_shutdown=true",
+                 instance.name])
+
+  # The instance needs to reboot not because the 'user_shutdown'
+  # parameter was modified but because the KVM daemon need to be
+  # started, given that the instance was first created with user
+  # shutdown disabled.
+  AssertCommand(["gnt-instance", "reboot", instance.name])
+
+  primary = _GetInstanceField(instance.name, "pnode")
+  _TestInstanceUserDown(instance, master, _StopKVMInstance)
 
 
 def TestInstanceUserDown(instance, master):
