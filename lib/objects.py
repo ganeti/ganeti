@@ -831,6 +831,10 @@ class Disk(ConfigObject):
     self.params = {}
     # add here config upgrade for this disk
 
+    # If the file driver is empty, fill it up with the default value
+    if self.dev_type == constants.LD_FILE and self.physical_id[0] is None:
+      self.physical_id[0] = constants.FD_DEFAULT
+
   @staticmethod
   def ComputeLDParams(disk_template, disk_params):
     """Computes Logical Disk parameters from Disk Template parameters.

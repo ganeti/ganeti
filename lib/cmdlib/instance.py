@@ -408,7 +408,7 @@ class LUInstanceCreate(LogicalUnit):
     if (not self.op.file_driver and
         self.op.disk_template in [constants.DT_FILE,
                                   constants.DT_SHARED_FILE]):
-      self.op.file_driver = constants.FD_LOOP
+      self.op.file_driver = constants.FD_DEFAULT
 
     if self.op.disk_template == constants.DT_FILE:
       opcodes.RequireFileStorage()

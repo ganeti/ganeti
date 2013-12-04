@@ -615,6 +615,7 @@ RBD_CMD = "rbd"
 # file backend driver
 FD_LOOP = "loop"
 FD_BLKTAP = "blktap"
+FD_DEFAULT = FD_LOOP
 
 # the set of drbd-like disk types
 LDS_DRBD = compat.UniqueFrozenset([LD_DRBD8])
