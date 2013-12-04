@@ -40,7 +40,7 @@ import qualified Data.Set as Set (toList)
 import Data.IORef
 import qualified Network.Socket as S
 import qualified Text.JSON as J
-import Text.JSON (showJSON, JSValue(..))
+import Text.JSON (encode, showJSON, JSValue(..))
 import System.Info (arch)
 
 import qualified Ganeti.Constants as C
@@ -62,7 +62,7 @@ import Ganeti.Path (queueDir, jobQueueLockFile)
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 import Ganeti.Types
-import Ganeti.Utils (lockFile, exitIfBad)
+import Ganeti.Utils (lockFile, exitIfBad, watchFile)
 import qualified Ganeti.Version as Version
 
 -- | Helper for classic queries.
@@ -257,11 +257,46 @@ handleCall qlock qstat cfg (SubmitManyJobs lops) =
                         else showJSON (False, genericResult id (const "") res))
               $ annotated_results
 
+handleCall _ _ cfg (WaitForJobChange jid fields prev_job prev_log tmout) = do
+  let compute_fn = computeJobUpdate cfg jid fields prev_log 
+  qDir <- queueDir
+  -- verify if the job is finalized, and return immediately in this case
+  jobresult <- loadJobFromDisk qDir False jid
+  case jobresult of
+    Ok (job, _) | not (jobFinalized job) -> do
+      let jobfile = liveJobFile qDir jid
+      answer <- watchFile jobfile (min tmout C.luxiWfjcTimeout)
+                  (prev_job, JSArray []) compute_fn
+      return . Ok $ showJSON answer
+    _ -> liftM (Ok . showJSON) compute_fn
+
 handleCall _ _ _ op =
   return . Bad $
     GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")
 
 {-# ANN handleCall "HLint: ignore Too strict if" #-}
+
+-- | Query the status of a job and return the requested fields
+-- and the logs newer than the given log number.
+computeJobUpdate :: ConfigData -> JobId -> [String] -> JSValue 
+                    -> IO (JSValue, JSValue)
+computeJobUpdate cfg jid fields prev_log = do
+  let sjid = show $ fromJobId jid
+  logDebug $ "Inspecting fields " ++ show fields ++ " of job " ++ sjid
+  let fromJSArray (JSArray xs) = xs
+      fromJSArray _ = []
+  let logFilter JSNull (JSArray _) = True
+      logFilter (JSRational _ n) (JSArray (JSRational _ m:_)) = n < m
+      logFilter _ _ = False
+  let filterLogs n logs = JSArray (filter (logFilter n) (logs >>= fromJSArray))
+  jobQuery <- handleClassicQuery cfg (Qlang.ItemTypeLuxi Qlang.QRJob)
+                [Right . fromIntegral $ fromJobId jid] ("oplog" : fields) False
+  let (rfields, rlogs) = case jobQuery of
+        Ok (JSArray [JSArray (JSArray logs : answer)]) ->
+          (answer, filterLogs prev_log logs)
+        _ -> (map (const JSNull) fields, JSArray [])
+  logDebug $ "Updates for job " ++ sjid ++ " are " ++ encode (rfields, rlogs)
+  return (JSArray rfields, rlogs)
 
 -- | Given a decoded luxi request, executes it and sends the luxi
 -- response back to the client.
