@@ -1756,8 +1756,9 @@ class JobQueue(object):
           job.MarkUnfinishedOps(constants.OP_STATUS_QUEUED, None)
           restartjobs.append(job)
         else:
+          to_encode = errors.OpExecError("Unclean master daemon shutdown")
           job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
-                                "Unclean master daemon shutdown")
+                                _EncodeOpError(to_encode))
           job.Finalize()
 
         self.UpdateJobUnlocked(job)
