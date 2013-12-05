@@ -1576,6 +1576,7 @@ class Cluster(TaggableObject):
     "hv_state_static",
     "disk_state_static",
     "enabled_disk_templates",
+    "candidate_certs",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -1697,6 +1698,9 @@ class Cluster(TaggableObject):
                utils.CommaJoin(wrongkeys))
         raise errors.ConfigurationError(msg)
       self.ipolicy = FillIPolicy(constants.IPOLICY_DEFAULTS, self.ipolicy)
+
+    if self.candidate_certs is None:
+      self.candidate_certs = {}
 
   @property
   def primary_hypervisor(self):

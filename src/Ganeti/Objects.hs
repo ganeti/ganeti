@@ -659,6 +659,9 @@ type UidPool = [(Int, Int)]
 -- | The iallocator parameters type.
 type IAllocatorParams = Container JSValue
 
+-- | The master candidate client certificate digests
+type CandidateCertificates = Container String
+
 -- * Cluster definitions
 $(buildObject "Cluster" "cluster" $
   [ simpleField "rsahostkeypub"             [t| String           |]
@@ -702,6 +705,7 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "prealloc_wipe_disks"       [t| Bool             |]
   , simpleField "ipolicy"                   [t| FilledIPolicy    |]
   , simpleField "enabled_disk_templates"    [t| [DiskTemplate]   |]
+  , simpleField "candidate_certs"           [t| CandidateCertificates |]
  ]
  ++ timeStampFields
  ++ uuidFields

@@ -749,6 +749,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                       os.path.isfile):
       default_iallocator = constants.IALLOC_HAIL
 
+  candidate_certs = {}
+
   now = time.time()
 
   # init of cluster config file
@@ -790,6 +792,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     hv_state_static=hv_state,
     disk_state_static=disk_state,
     enabled_disk_templates=enabled_disk_templates,
+    candidate_certs=candidate_certs,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
@@ -803,6 +806,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   cfg = config.ConfigWriter(offline=True)
   ssh.WriteKnownHostsFile(cfg, pathutils.SSH_KNOWN_HOSTS_FILE)
   cfg.Update(cfg.GetClusterInfo(), logging.error)
+
   ssconf.WriteSsconfFiles(cfg.GetSsconfValues())
 
   # set up the inter-node password and certificate

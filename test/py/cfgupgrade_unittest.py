@@ -45,7 +45,8 @@ def GetMinimalConfig():
       "master_node": "node1-uuid",
       "ipolicy": None,
       "default_iallocator_params": {},
-      "ndparams": {}
+      "ndparams": {},
+      "candidate_certs": {},
     },
     "instances": {},
     "networks": {},
