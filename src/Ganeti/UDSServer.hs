@@ -38,11 +38,13 @@ module Ganeti.UDSServer
   , closeClient
   , closeServer
   , buildResponse
+  , parseCall
   , recvMsg
   , recvMsgExt
   , sendMsg
   ) where
 
+import Control.Applicative
 import Control.Exception (catch)
 import Data.IORef
 import qualified Data.ByteString as B
@@ -56,9 +58,12 @@ import System.Directory (removeFile)
 import System.IO (hClose, hFlush, hWaitForInput, Handle, IOMode(..))
 import System.IO.Error (isEOFError)
 import System.Timeout
-import Text.JSON (encodeStrict)
+import Text.JSON (encodeStrict, decodeStrict)
+import qualified Text.JSON as J
 import Text.JSON.Types
 
+import Ganeti.BasicTypes
+import Ganeti.JSON
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..))
 import Ganeti.THH
 import Ganeti.Utils
@@ -212,6 +217,16 @@ recvMsgExt s =
     return $ if isEOFError e
                then RecvConnClosed
                else RecvError (show e)
+
+
+-- | Parse the required keys out of a call.
+parseCall :: (J.JSON mth) => String -> Result (mth, JSValue)
+parseCall s = do
+  arr <- fromJResult "parsing top-level JSON message" $
+           decodeStrict s :: Result (JSObject JSValue)
+  let keyFromObj :: (J.JSON a) => MsgKeys -> Result a
+      keyFromObj = fromObj (fromJSObject arr) . strOfKey
+  (,) <$> keyFromObj Method <*> keyFromObj Args
 
 
 -- | Serialize the response to String.

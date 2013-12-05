@@ -55,6 +55,7 @@ module Ganeti.Luxi
 
 import Control.Monad
 import qualified Data.ByteString.UTF8 as UTF8
+import Data.Functor ((<$>))
 import Text.JSON (encodeStrict, decodeStrict)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
@@ -199,13 +200,7 @@ buildCall lo =
 
 -- | Check that luxi request contains the required keys and parse it.
 validateCall :: String -> Result LuxiCall
-validateCall s = do
-  arr <- fromJResult "parsing top-level luxi message" $
-         decodeStrict s::Result (JSObject JSValue)
-  let aobj = fromJSObject arr
-  call <- fromObj aobj (strOfKey Method)::Result LuxiReq
-  args <- fromObj aobj (strOfKey Args)
-  return (LuxiCall call args)
+validateCall s = uncurry LuxiCall <$> parseCall s
 
 -- | Converts Luxi call arguments into a 'LuxiOp' data structure.
 --
