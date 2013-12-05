@@ -356,7 +356,7 @@ listener qlock qstat creader socket = do
   return ()
 
 -- | Type alias for prepMain results
-type PrepResult = (FilePath, Server, IORef (Result ConfigData), JQStatus)
+type PrepResult = (Server, IORef (Result ConfigData), JQStatus)
 
 -- | Check function for luxid.
 checkMain :: CheckFn ()
@@ -371,11 +371,11 @@ prepMain _ _ = do
          Nothing (Just socket_path) $ getLuxiServer True socket_path
   cref <- newIORef (Bad "Configuration not yet loaded")
   jq <- emptyJQStatus 
-  return (socket_path, s, cref, jq)
+  return (s, cref, jq)
 
 -- | Main function.
 main :: MainFn () PrepResult
-main _ _ (socket_path, server, cref, jq) = do
+main _ _ (server, cref, jq) = do
   initConfigReader id cref
   let creader = readIORef cref
   initJQScheduler jq
@@ -386,4 +386,4 @@ main _ _ (socket_path, server, cref, jq) = do
 
   finally
     (forever $ listener qlock jq creader server)
-    (closeServer socket_path server)
+    (closeServer server)

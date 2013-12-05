@@ -116,6 +116,7 @@ data Client = Client { socket :: Handle           -- ^ The socket of the client
 
 -- | A server encapsulation.
 data Server = Server { sSocket :: S.Socket        -- ^ The bound server socket
+                     , sPath :: FilePath          -- ^ The scoket's path
                      , serverConfig :: ConnectConfig
                      }
 
@@ -142,14 +143,14 @@ connectServer conf setOwner path = do
   when setOwner . setOwnerAndGroupFromNames path (connDaemon conf) $
     ExtraGroup DaemonsGroup
   S.listen s 5 -- 5 is the max backlog
-  return Server { sSocket=s, serverConfig=conf }
+  return Server { sSocket=s, sPath=path, serverConfig=conf }
 
 -- | Closes a server endpoint.
 -- FIXME: this should be encapsulated into a nicer type.
-closeServer :: FilePath -> Server -> IO ()
-closeServer path server = do
+closeServer :: Server -> IO ()
+closeServer server = do
   S.sClose (sSocket server)
-  removeFile path
+  removeFile (sPath server)
 
 -- | Accepts a client
 acceptClient :: Server -> IO Client
