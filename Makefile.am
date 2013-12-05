@@ -490,6 +490,7 @@ utils_PYTHON = \
 	lib/utils/nodesetup.py \
 	lib/utils/process.py \
 	lib/utils/retry.py \
+	lib/utils/security.py \
 	lib/utils/storage.py \
 	lib/utils/text.py \
 	lib/utils/version.py \
@@ -1473,6 +1474,7 @@ python_tests = \
 	test/py/ganeti.utils.nodesetup_unittest.py \
 	test/py/ganeti.utils.process_unittest.py \
 	test/py/ganeti.utils.retry_unittest.py \
+	test/py/ganeti.utils.security_unittest.py \
 	test/py/ganeti.utils.storage_unittest.py \
 	test/py/ganeti.utils.text_unittest.py \
 	test/py/ganeti.utils.version_unittest.py \
