@@ -25,14 +25,12 @@ import os
 import tempfile
 import unittest
 import shutil
-import time
 import OpenSSL
 import distutils.version
 import string
 
 from ganeti import constants
 from ganeti import utils
-from ganeti import compat
 from ganeti import errors
 
 import testutils
