@@ -1007,6 +1007,7 @@ $(HS_ALL_PROGS): %: %.hs $(HS_SRCS) Makefile
 # for the test/hs/htest binary, we need to enable profiling/coverage
 test/hs/htest: HCOVERAGE = true
 test/hs/htest: HFLAGS += -itest/hs
+test/hs/htest: | $(BUILT_PYTHON_SOURCES)
 
 # we compile the hpc-htools binary with the program coverage
 test/hs/hpc-htools: HCOVERAGE = true
@@ -2059,12 +2060,12 @@ check-local: check-dirs check-news $(GENERATED_FILES)
 	test -z "$$error"
 
 .PHONY: hs-test-%
-hs-test-%: test/hs/htest | $(BUILT_PYTHON_SOURCES)
+hs-test-%: test/hs/htest
 	@rm -f htest.tix
 	test/hs/htest -t $*
 
 .PHONY: hs-tests
-hs-tests: test/hs/htest | $(BUILT_PYTHON_SOURCES)
+hs-tests: test/hs/htest
 	@rm -f htest.tix
 	./test/hs/htest
 
