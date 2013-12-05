@@ -4140,6 +4140,21 @@ fakeOpMasterTurndown = "OP_CLUSTER_IP_TURNDOWN"
 fakeOpMasterTurnup :: String
 fakeOpMasterTurnup = "OP_CLUSTER_IP_TURNUP"
 
+
+-- * Crypto Types
+-- Types of cryptographic tokens used in node communication
+
+cryptoTypeSslDigest :: String
+cryptoTypeSslDigest = "ssl"
+
+cryptoTypeSsh :: String
+cryptoTypeSsh = "ssh"
+
+-- So far only ssl keys are used in the context of this constant
+cryptoTypes :: FrozenSet String
+cryptoTypes = ConstantUtils.mkSet [cryptoTypeSslDigest]
+
+
 -- * SSH key types
 
 sshkDsa :: String

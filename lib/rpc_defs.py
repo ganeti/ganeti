@@ -505,6 +505,9 @@ _NODE_CALLS = [
     ("ovs_name", None, "Name of the OpenvSwitch to create"),
     ("ovs_link", None, "Link of the OpenvSwitch to the outside"),
     ], None, None, "This will create and setup the OpenvSwitch"),
+  ("node_crypto_tokens", SINGLE, None, constants.RPC_TMO_NORMAL, [
+    ("token_types", None, "List of requested crypto token types"),
+    ], None, None, "Retrieve public crypto tokens from the node."),
   ]
 
 _MISC_CALLS = [

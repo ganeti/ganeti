@@ -70,5 +70,23 @@ class TestCandidateCerts(unittest.TestCase):
     self.assertEqual(0, len(self._candidate_certs))
 
 
+class TestGetCertificateDigest(testutils.GanetiTestCase):
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    # certificate file that contains the certificate only
+    self._certfilename1 = testutils.TestDataFilename("cert1.pem")
+    # (different) certificate file that contains both, certificate
+    # and private key
+    self._certfilename2 = testutils.TestDataFilename("cert2.pem")
+
+  def testGetCertificateDigest(self):
+    digest1 = security.GetClientCertificateDigest(
+      cert_filename=self._certfilename1)
+    digest2 = security.GetClientCertificateDigest(
+      cert_filename=self._certfilename2)
+    self.assertFalse(digest1 == digest2)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

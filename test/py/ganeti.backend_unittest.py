@@ -73,6 +73,27 @@ class TestX509Certificates(unittest.TestCase):
     self.assertEqual(utils.ListVisibleFiles(self.tmpdir), [name])
 
 
+class TestGetCryptoTokens(testutils.GanetiTestCase):
+
+  def setUp(self):
+    self._digest_fn_orig = utils.GetClientCertificateDigest
+    self._ssl_digest = "12345"
+    utils.GetClientCertificateDigest = mock.Mock(
+      return_value=self._ssl_digest)
+
+  def tearDown(self):
+    utils.GetClientCertificateDigest = self._digest_fn_orig
+
+  def testSslToken(self):
+    result = backend.GetCryptoTokens([constants.CRYPTO_TYPE_SSL_DIGEST])
+    self.assertTrue((constants.CRYPTO_TYPE_SSL_DIGEST, self._ssl_digest)
+                    in result)
+
+  def testUnknownToken(self):
+    self.assertRaises(errors.ProgrammerError,
+                      backend.GetCryptoTokens, ["pink_bunny"])
+
+
 class TestNodeVerify(testutils.GanetiTestCase):
 
   def setUp(self):

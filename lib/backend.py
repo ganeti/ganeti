@@ -1162,6 +1162,30 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
   return result
 
 
+def GetCryptoTokens(token_types):
+  """Get the node's public cryptographic tokens.
+
+  This can be the public ssh key of the node or the certificate digest of
+  the node's public client SSL certificate.
+
+  Note: so far, only retrieval of the SSL digest is implemented
+
+  @type token_types: list of strings in constants.CRYPTO_TYPES
+  @param token_types: list of types of requested cryptographic tokens
+  @rtype: list of tuples (string, string)
+  @return: list of tuples of the token type and the public crypto token
+
+  """
+  tokens = []
+  for token_type in token_types:
+    if token_type not in constants.CRYPTO_TYPES:
+      raise errors.ProgrammerError("Token type %s not supported." %
+                                   token_type)
+    if token_type == constants.CRYPTO_TYPE_SSL_DIGEST:
+      tokens.append((token_type, utils.GetClientCertificateDigest()))
+  return tokens
+
+
 def GetBlockDevSizes(devices):
   """Return the size of the given block devices
 

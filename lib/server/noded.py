@@ -864,6 +864,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     (ovs_name, ovs_link) = params
     return backend.ConfigureOVS(ovs_name, ovs_link)
 
+  @staticmethod
+  def perspective_node_crypto_tokens(params):
+    """Gets the node's public crypto tokens.
+
+    """
+    token_types = params[0]
+    return backend.GetCryptoTokens(token_types)
+
   # cluster --------------------------
 
   @staticmethod
