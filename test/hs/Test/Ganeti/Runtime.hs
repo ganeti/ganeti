@@ -83,6 +83,7 @@ case_UsersGroups = do
               \         constants.NODED_USER,\n\
               \         constants.RAPI_USER,\n\
               \         constants.CONFD_USER,\n\
+              \         constants.WCONFD_USER,\n\
               \         constants.KVMD_USER,\n\
               \         constants.LUXID_USER,\n\
               \         constants.METAD_USER,\n\
@@ -92,6 +93,7 @@ case_UsersGroups = do
               \          constants.NODED_GROUP,\n\
               \          constants.RAPI_GROUP,\n\
               \          constants.CONFD_GROUP,\n\
+              \          constants.WCONFD_GROUP,\n\
               \          constants.KVMD_GROUP,\n\
               \          constants.LUXID_GROUP,\n\
               \          constants.METAD_GROUP,\n\

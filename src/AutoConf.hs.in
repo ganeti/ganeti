@@ -175,6 +175,12 @@ confdUser = "CONFD_USER"
 confdGroup :: String
 confdGroup = "CONFD_GROUP"
 
+wconfdUser :: String
+wconfdUser = "WCONFD_USER"
+
+wconfdGroup :: String
+wconfdGroup = "WCONFD_GROUP"
+
 kvmdUser :: String
 kvmdUser = "KVMD_USER"
 

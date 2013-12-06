@@ -1870,6 +1870,8 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DRAPI_GROUP="$(RAPI_GROUP)" \
 	    -DCONFD_USER="$(CONFD_USER)" \
 	    -DCONFD_GROUP="$(CONFD_GROUP)" \
+	    -DWCONFD_USER="$(WCONFD_USER)" \
+	    -DWCONFD_GROUP="$(WCONFD_GROUP)" \
 	    -DKVMD_USER="$(KVMD_USER)" \
 	    -DKVMD_GROUP="$(KVMD_GROUP)" \
 	    -DLUXID_USER="$(LUXID_USER)" \
@@ -1957,6 +1959,7 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTMASTERUSER@#$(MASTERD_USER)#g'; \
 	  echo 's#@''GNTRAPIUSER@#$(RAPI_USER)#g'; \
 	  echo 's#@''GNTCONFDUSER@#$(CONFD_USER)#g'; \
+	  echo 's#@''GNTWCONFDUSER@#$(WCONFD_USER)#g'; \
 	  echo 's#@''GNTLUXIDUSER@#$(LUXID_USER)#g'; \
 	  echo 's#@''GNTNODEDUSER@#$(NODED_USER)#g'; \
 	  echo 's#@''GNTMONDUSER@#$(MOND_USER)#g'; \
@@ -1964,6 +1967,7 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
 	  echo 's#@''GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
 	  echo 's#@''GNTNODEDGROUP@#$(NODED_GROUP)#g'; \
+	  echo 's#@''GNTWCONFDGROUP@#$(CONFD_GROUP)#g'; \
 	  echo 's#@''GNTLUXIDGROUP@#$(LUXID_GROUP)#g'; \
 	  echo 's#@''GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	  echo 's#@''GNTMONDGROUP@#$(MOND_GROUP)#g'; \

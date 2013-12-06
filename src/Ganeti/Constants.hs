@@ -218,6 +218,12 @@ confdUser = Runtime.daemonUser GanetiConfd
 confdGroup :: String
 confdGroup = Runtime.daemonGroup (DaemonGroup GanetiConfd)
 
+wconfdUser :: String
+wconfdUser = Runtime.daemonUser GanetiWConfd
+
+wconfdGroup :: String
+wconfdGroup = Runtime.daemonGroup (DaemonGroup GanetiWConfd)
+
 kvmdUser :: String
 kvmdUser = Runtime.daemonUser GanetiKvmd
 

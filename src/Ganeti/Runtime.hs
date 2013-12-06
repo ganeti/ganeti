@@ -64,6 +64,7 @@ data GanetiDaemon = GanetiMasterd
                   | GanetiNoded
                   | GanetiRapi
                   | GanetiConfd
+                  | GanetiWConfd
                   | GanetiKvmd
                   | GanetiLuxid
                   | GanetiMond
@@ -86,6 +87,7 @@ daemonName GanetiMetad   = "ganeti-metad"
 daemonName GanetiNoded   = "ganeti-noded"
 daemonName GanetiRapi    = "ganeti-rapi"
 daemonName GanetiConfd   = "ganeti-confd"
+daemonName GanetiWConfd  = "ganeti-wconfd"
 daemonName GanetiKvmd    = "ganeti-kvmd"
 daemonName GanetiLuxid   = "ganeti-luxid"
 daemonName GanetiMond    = "ganeti-mond"
@@ -97,6 +99,7 @@ daemonOnlyOnMaster GanetiMetad   = False
 daemonOnlyOnMaster GanetiNoded   = False
 daemonOnlyOnMaster GanetiRapi    = False
 daemonOnlyOnMaster GanetiConfd   = False
+daemonOnlyOnMaster GanetiWConfd  = True
 daemonOnlyOnMaster GanetiKvmd    = False
 daemonOnlyOnMaster GanetiLuxid   = True
 daemonOnlyOnMaster GanetiMond    = False
@@ -108,6 +111,7 @@ daemonLogBase GanetiMetad   = "meta-daemon"
 daemonLogBase GanetiNoded   = "node-daemon"
 daemonLogBase GanetiRapi    = "rapi-daemon"
 daemonLogBase GanetiConfd   = "conf-daemon"
+daemonLogBase GanetiWConfd  = "wconf-daemon"
 daemonLogBase GanetiKvmd    = "kvm-daemon"
 daemonLogBase GanetiLuxid   = "luxi-daemon"
 daemonLogBase GanetiMond    = "monitoring-daemon"
@@ -119,6 +123,7 @@ daemonUser GanetiMetad   = AutoConf.metadUser
 daemonUser GanetiNoded   = AutoConf.nodedUser
 daemonUser GanetiRapi    = AutoConf.rapiUser
 daemonUser GanetiConfd   = AutoConf.confdUser
+daemonUser GanetiWConfd  = AutoConf.wconfdUser
 daemonUser GanetiKvmd    = AutoConf.kvmdUser
 daemonUser GanetiLuxid   = AutoConf.luxidUser
 daemonUser GanetiMond    = AutoConf.mondUser
@@ -130,6 +135,7 @@ daemonGroup (DaemonGroup GanetiMetad)   = AutoConf.metadGroup
 daemonGroup (DaemonGroup GanetiNoded)   = AutoConf.nodedGroup
 daemonGroup (DaemonGroup GanetiRapi)    = AutoConf.rapiGroup
 daemonGroup (DaemonGroup GanetiConfd)   = AutoConf.confdGroup
+daemonGroup (DaemonGroup GanetiWConfd)  = AutoConf.wconfdGroup
 daemonGroup (DaemonGroup GanetiLuxid)   = AutoConf.luxidGroup
 daemonGroup (DaemonGroup GanetiKvmd)    = AutoConf.kvmdGroup
 daemonGroup (DaemonGroup GanetiMond)    = AutoConf.mondGroup

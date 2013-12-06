@@ -79,6 +79,8 @@ class GetentResolver:
   @ivar masterd_gid: The resolved gid of the masterd group
   @ivar confd_uid: The resolved uid of the confd user
   @ivar confd_gid: The resolved gid of the confd group
+  @ivar wconfd_uid: The resolved uid of the wconfd user
+  @ivar wconfd_gid: The resolved gid of the wconfd group
   @ivar luxid_uid: The resolved uid of the luxid user
   @ivar luxid_gid: The resolved gid of the luxid group
   @ivar rapi_uid: The resolved uid of the rapi user
@@ -99,6 +101,9 @@ class GetentResolver:
     self.confd_uid = GetUid(constants.CONFD_USER, _getpwnam)
     self.confd_gid = GetGid(constants.CONFD_GROUP, _getgrnam)
 
+    self.wconfd_uid = GetUid(constants.WCONFD_USER, _getpwnam)
+    self.wconfd_gid = GetGid(constants.WCONFD_GROUP, _getgrnam)
+
     self.luxid_uid = GetUid(constants.LUXID_USER, _getpwnam)
     self.luxid_gid = GetGid(constants.LUXID_GROUP, _getgrnam)
 
@@ -118,6 +123,7 @@ class GetentResolver:
     self._uid2user = {
       self.masterd_uid: constants.MASTERD_USER,
       self.confd_uid: constants.CONFD_USER,
+      self.wconfd_uid: constants.WCONFD_USER,
       self.luxid_uid: constants.LUXID_USER,
       self.rapi_uid: constants.RAPI_USER,
       self.noded_uid: constants.NODED_USER,
@@ -127,6 +133,7 @@ class GetentResolver:
     self._gid2group = {
       self.masterd_gid: constants.MASTERD_GROUP,
       self.confd_gid: constants.CONFD_GROUP,
+      self.wconfd_gid: constants.WCONFD_GROUP,
       self.luxid_gid: constants.LUXID_GROUP,
       self.rapi_gid: constants.RAPI_GROUP,
       self.noded_gid: constants.NODED_GROUP,

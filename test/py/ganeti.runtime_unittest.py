@@ -42,6 +42,7 @@ def _StubGetpwnam(user):
     constants.RAPI_USER: _EntStub(uid=2),
     constants.NODED_USER: _EntStub(uid=3),
     constants.LUXID_USER: _EntStub(uid=4),
+    constants.WCONFD_USER: _EntStub(uid=5),
     }
   return users[user]
 
@@ -55,6 +56,7 @@ def _StubGetgrnam(group):
     constants.ADMIN_GROUP: _EntStub(gid=4),
     constants.NODED_GROUP: _EntStub(gid=5),
     constants.LUXID_GROUP: _EntStub(gid=6),
+    constants.WCONFD_GROUP: _EntStub(gid=7),
     }
   return groups[group]
 
@@ -86,6 +88,10 @@ class TestErrors(unittest.TestCase):
                      _StubGetpwnam(constants.CONFD_USER).pw_uid)
     self.assertEqual(self.resolver.confd_gid,
                      _StubGetgrnam(constants.CONFD_GROUP).gr_gid)
+    self.assertEqual(self.resolver.wconfd_uid,
+                     _StubGetpwnam(constants.WCONFD_USER).pw_uid)
+    self.assertEqual(self.resolver.wconfd_gid,
+                     _StubGetgrnam(constants.WCONFD_GROUP).gr_gid)
     self.assertEqual(self.resolver.rapi_uid,
                      _StubGetpwnam(constants.RAPI_USER).pw_uid)
     self.assertEqual(self.resolver.rapi_gid,
