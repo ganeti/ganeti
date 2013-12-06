@@ -42,7 +42,7 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   CheckInstanceState, INSTANCE_DOWN, GetUpdatedParams, \
   AdjustCandidatePool, CheckIAllocatorOrNode, LoadNodeEvacResult, \
   GetWantedNodes, MapInstanceLvsToNodes, RunPostHook, \
-  FindFaultyInstanceDisks, CheckStorageTypeEnabled
+  FindFaultyInstanceDisks, CheckStorageTypeEnabled, AddNodeCertToCandidateCerts
 
 
 def _DecideSelfPromotion(lu, exceptions=None):
@@ -413,6 +413,16 @@ class LUNodeAdd(LogicalUnit):
     else:
       self.context.AddNode(self.new_node, self.proc.GetECId())
       RedistributeAncillaryFiles(self)
+
+    cluster = self.cfg.GetClusterInfo()
+    if self.new_node.master_candidate:
+      AddNodeCertToCandidateCerts(self, self.new_node.uuid, cluster)
+      self.cfg.Update(cluster, feedback_fn)
+    else:
+      if self.new_node.uuid in cluster.candidate_certs:
+        utils.RemoveNodeFromCandidateCerts(self.new_node.uuid,
+                                           cluster.candidate_certs)
+        self.cfg.Update(cluster, feedback_fn)
 
 
 class LUNodeSetParams(LogicalUnit):
@@ -1473,8 +1483,16 @@ class LUNodeRemove(LogicalUnit):
       self.LogWarning("Errors encountered on the remote node while leaving"
                       " the cluster: %s", msg)
 
+    cluster = self.cfg.GetClusterInfo()
+
+    # Remove node from candidate certificate list
+    if self.node.master_candidate:
+      utils.RemoveNodeFromCandidateCerts(self.node.uuid,
+                                         cluster.candidate_certs)
+      self.cfg.Update(cluster, feedback_fn)
+
     # Remove node from our /etc/hosts
-    if self.cfg.GetClusterInfo().modify_etc_hosts:
+    if cluster.modify_etc_hosts:
       master_node_uuid = self.cfg.GetMasterNode()
       result = self.rpc.call_etc_hosts_modify(master_node_uuid,
                                               constants.ETC_HOSTS_REMOVE,

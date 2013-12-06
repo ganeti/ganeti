@@ -29,7 +29,6 @@ from ganeti import compat
 from ganeti import constants
 from ganeti import objects
 from ganeti import opcodes
-from ganeti import errors
 
 from testsupport import *
 
@@ -81,6 +80,10 @@ class TestLUNodeAdd(CmdlibTestCase):
     # we can't know the node's UUID in advance, so use defaultdict here
     self.rpc.call_node_verify.return_value = \
       defaultdict(lambda: node_verify_result, {})
+    self.rpc.call_node_crypto_tokens.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.node_add,
+            [(constants.CRYPTO_TYPE_SSL_DIGEST, "IA:MA:FA:KE:DI:GE:ST")])
 
   def testOvsNoLink(self):
     ndparams = {
@@ -105,6 +108,28 @@ class TestLUNodeAdd(CmdlibTestCase):
                      created_node.ndparams.get(constants.ND_OVS_NAME, None))
     self.assertEqual(ndparams[constants.ND_OVS_LINK],
                      created_node.ndparams.get(constants.ND_OVS_LINK, None))
+
+  def testAddCandidateCert(self):
+    self.ExecOpCode(self.op_add)
+
+    created_node = self.cfg.GetNodeInfoByName(self.op_add.node_name)
+    cluster = self.cfg.GetClusterInfo()
+    self.assertTrue(created_node.uuid in cluster.candidate_certs)
+
+  def testReAddCandidateCert(self):
+    cluster = self.cfg.GetClusterInfo()
+    self.ExecOpCode(self.op_readd)
+    created_node = self.cfg.GetNodeInfoByName(self.op_readd.node_name)
+    self.assertTrue(created_node.uuid in cluster.candidate_certs)
+
+  def testAddNoCandidateCert(self):
+    op = self.CopyOpCode(self.op_add,
+                         master_capable=False)
+    self.ExecOpCode(op)
+
+    created_node = self.cfg.GetNodeInfoByName(self.op_add.node_name)
+    cluster = self.cfg.GetClusterInfo()
+    self.assertFalse(created_node.uuid in cluster.candidate_certs)
 
   def testWithoutOVS(self):
     self.ExecOpCode(self.op_add)
