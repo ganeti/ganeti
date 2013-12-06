@@ -26,12 +26,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.UDSServer
-  ( Client
+  ( ConnectConfig(..)
+  , Client
+  , Server
   , RecvResult(..)
   , MsgKeys(..)
   , strOfKey
-  , getLuxiClient
-  , getLuxiServer
+  , connectClient
+  , connectServer
   , acceptClient
   , closeClient
   , closeServer
@@ -57,7 +59,6 @@ import System.Timeout
 import Text.JSON (encodeStrict)
 import Text.JSON.Types
 
-import Ganeti.Constants
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..))
 import Ganeti.THH
 import Ganeti.Utils
@@ -101,54 +102,74 @@ data MsgKeys = Method
 $(genStrOfKey ''MsgKeys "strOfKey")
 
 
--- | Luxi client encapsulation.
-data Client = Client { socket :: Handle           -- ^ The socket of the client
-                     , rbuf :: IORef B.ByteString -- ^ Already received buffer
+data ConnectConfig = ConnectConfig
+                     { connDaemon :: GanetiDaemon
+                     , recvTmo :: Int
+                     , sendTmo :: Int
                      }
 
--- | Connects to the master daemon and returns a luxi Client.
-getLuxiClient :: String -> IO Client
-getLuxiClient path = do
+-- | A client encapsulation.
+data Client = Client { socket :: Handle           -- ^ The socket of the client
+                     , rbuf :: IORef B.ByteString -- ^ Already received buffer
+                     , clientConfig :: ConnectConfig
+                     }
+
+-- | A server encapsulation.
+data Server = Server { sSocket :: S.Socket        -- ^ The bound server socket
+                     , serverConfig :: ConnectConfig
+                     }
+
+
+-- | Connects to the master daemon and returns a Client.
+connectClient
+  :: ConnectConfig    -- ^ configuration for the client
+  -> Int              -- ^ connection timeout
+  -> FilePath         -- ^ socket path
+  -> IO Client
+connectClient conf tmo path = do
   s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
-  withTimeout luxiDefCtmo "creating luxi connection" $
+  withTimeout tmo "creating a connection" $
               S.connect s (S.SockAddrUnix path)
   rf <- newIORef B.empty
   h <- S.socketToHandle s ReadWriteMode
-  return Client { socket=h, rbuf=rf }
+  return Client { socket=h, rbuf=rf, clientConfig=conf }
 
 -- | Creates and returns a server endpoint.
-getLuxiServer :: Bool -> FilePath -> IO S.Socket
-getLuxiServer setOwner path = do
+connectServer :: ConnectConfig -> Bool -> FilePath -> IO Server
+connectServer conf setOwner path = do
   s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
   S.bindSocket s (S.SockAddrUnix path)
-  when setOwner . setOwnerAndGroupFromNames path GanetiLuxid $
+  when setOwner . setOwnerAndGroupFromNames path (connDaemon conf) $
     ExtraGroup DaemonsGroup
   S.listen s 5 -- 5 is the max backlog
-  return s
+  return Server { sSocket=s, serverConfig=conf }
 
 -- | Closes a server endpoint.
 -- FIXME: this should be encapsulated into a nicer type.
-closeServer :: FilePath -> S.Socket -> IO ()
-closeServer path sock = do
-  S.sClose sock
+closeServer :: FilePath -> Server -> IO ()
+closeServer path server = do
+  S.sClose (sSocket server)
   removeFile path
 
 -- | Accepts a client
-acceptClient :: S.Socket -> IO Client
+acceptClient :: Server -> IO Client
 acceptClient s = do
   -- second return is the address of the client, which we ignore here
-  (client_socket, _) <- S.accept s
+  (client_socket, _) <- S.accept (sSocket s)
   new_buffer <- newIORef B.empty
   handle <- S.socketToHandle client_socket ReadWriteMode
-  return Client { socket=handle, rbuf=new_buffer }
+  return Client { socket=handle
+                , rbuf=new_buffer
+                , clientConfig=serverConfig s
+                }
 
 -- | Closes the client socket.
 closeClient :: Client -> IO ()
 closeClient = hClose . socket
 
--- | Sends a message over a luxi transport.
+-- | Sends a message over a transport.
 sendMsg :: Client -> String -> IO ()
-sendMsg s buf = withTimeout luxiDefRwto "sending luxi message" $ do
+sendMsg s buf = withTimeout (sendTmo $ clientConfig s) "sending a message" $ do
   let encoded = UTF8L.fromString buf
       handle = socket s
   BL.hPut handle encoded
@@ -158,25 +179,27 @@ sendMsg s buf = withTimeout luxiDefRwto "sending luxi message" $ do
 -- | Given a current buffer and the handle, it will read from the
 -- network until we get a full message, and it will return that
 -- message and the leftover buffer contents.
-recvUpdate :: Handle -> B.ByteString -> IO (B.ByteString, B.ByteString)
-recvUpdate handle obuf = do
-  nbuf <- withTimeout luxiDefRwto "reading luxi response" $ do
+recvUpdate :: ConnectConfig -> Handle -> B.ByteString
+           -> IO (B.ByteString, B.ByteString)
+recvUpdate conf handle obuf = do
+  nbuf <- withTimeout (recvTmo conf) "reading a response" $ do
             _ <- hWaitForInput handle (-1)
             B.hGetNonBlocking handle 4096
   let (msg, remaining) = B.break (eOM ==) nbuf
       newbuf = B.append obuf msg
   if B.null remaining
-    then recvUpdate handle newbuf
+    then recvUpdate conf handle newbuf
     else return (newbuf, B.tail remaining)
 
--- | Waits for a message over a luxi transport.
+-- | Waits for a message over a transport.
 recvMsg :: Client -> IO String
 recvMsg s = do
   cbuf <- readIORef $ rbuf s
   let (imsg, ibuf) = B.break (eOM ==) cbuf
   (msg, nbuf) <-
     if B.null ibuf      -- if old buffer didn't contain a full message
-      then recvUpdate (socket s) cbuf   -- then we read from network
+                        -- then we read from network:
+      then recvUpdate (clientConfig s) (socket s) cbuf
       else return (imsg, B.tail ibuf)   -- else we return data from our buffer
   writeIORef (rbuf s) nbuf
   return $ UTF8.toString msg

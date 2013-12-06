@@ -29,6 +29,7 @@ module Ganeti.Luxi
   ( LuxiOp(..)
   , LuxiReq(..)
   , Client
+  , Server
   , JobId
   , fromJobId
   , makeJobId
@@ -67,6 +68,7 @@ import Ganeti.UDSServer
 import Ganeti.OpParams (pTagsObject)
 import Ganeti.OpCodes
 import qualified Ganeti.Query.Language as Qlang
+import Ganeti.Runtime (GanetiDaemon(..))
 import Ganeti.THH
 import Ganeti.Types
 
@@ -169,6 +171,21 @@ $(genStrOfOp ''LuxiOp "strOfOp")
 
 -- | Type holding the initial (unparsed) Luxi call.
 data LuxiCall = LuxiCall LuxiReq JSValue
+
+luxiConnectConfig :: ConnectConfig
+luxiConnectConfig = ConnectConfig { connDaemon = GanetiLuxid
+                                  , recvTmo    = luxiDefRwto
+                                  , sendTmo    = luxiDefRwto
+                                  }
+
+-- | Connects to the master daemon and returns a luxi Client.
+getLuxiClient :: String -> IO Client
+getLuxiClient = connectClient luxiConnectConfig luxiDefCtmo
+
+-- | Creates and returns a server endpoint.
+getLuxiServer :: Bool -> FilePath -> IO Server
+getLuxiServer = connectServer luxiConnectConfig
+
 
 -- | Serialize a request to String.
 buildCall :: LuxiOp  -- ^ The method

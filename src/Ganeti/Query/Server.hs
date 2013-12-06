@@ -38,7 +38,6 @@ import Control.Monad (forever, when, zipWithM, liftM)
 import Data.Bits (bitSize)
 import qualified Data.Set as Set (toList)
 import Data.IORef
-import qualified Network.Socket as S
 import qualified Text.JSON as J
 import Text.JSON (encode, showJSON, JSValue(..))
 import System.Info (arch)
@@ -350,14 +349,14 @@ clientLoop qlock qstat client creader = do
 
 -- | Main listener loop: accepts clients, forks an I/O thread to handle
 -- that client.
-listener :: MVar () -> JQStatus -> ConfigReader -> S.Socket -> IO ()
+listener :: MVar () -> JQStatus -> ConfigReader -> Server -> IO ()
 listener qlock qstat creader socket = do
   client <- acceptClient socket
   _ <- forkIO $ clientLoop qlock qstat client creader
   return ()
 
 -- | Type alias for prepMain results
-type PrepResult = (FilePath, S.Socket, IORef (Result ConfigData), JQStatus)
+type PrepResult = (FilePath, Server, IORef (Result ConfigData), JQStatus)
 
 -- | Check function for luxid.
 checkMain :: CheckFn ()
