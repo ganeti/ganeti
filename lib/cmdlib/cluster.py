@@ -58,7 +58,7 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   CheckOSParams, CheckHVParams, AdjustCandidatePool, CheckNodePVs, \
   ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
-  CheckDiskAccessModeConsistency
+  CheckDiskAccessModeConsistency, AddNodeCertToCandidateCerts
 
 import ganeti.masterd.instance
 
@@ -220,6 +220,10 @@ class LUClusterPostInit(LogicalUnit):
                  self.master_ndparams[constants.ND_OVS_NAME],
                  self.master_ndparams.get(constants.ND_OVS_LINK, None))
       result.Raise("Could not successully configure Open vSwitch")
+
+    AddNodeCertToCandidateCerts(self, self.master_uuid,
+                                self.cfg.GetClusterInfo())
+
     return True
 
 

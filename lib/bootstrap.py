@@ -806,7 +806,6 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   cfg = config.ConfigWriter(offline=True)
   ssh.WriteKnownHostsFile(cfg, pathutils.SSH_KNOWN_HOSTS_FILE)
   cfg.Update(cfg.GetClusterInfo(), logging.error)
-
   ssconf.WriteSsconfFiles(cfg.GetSsconfValues())
 
   # set up the inter-node password and certificate

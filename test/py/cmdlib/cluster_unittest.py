@@ -31,6 +31,8 @@ import os
 import tempfile
 import shutil
 
+from collections import defaultdict
+
 from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
@@ -229,7 +231,13 @@ class TestLUClusterDestroy(CmdlibTestCase):
 
 
 class TestLUClusterPostInit(CmdlibTestCase):
-  def testExecuion(self):
+  def testExecution(self):
+    # For the purpose of this test, return the same certificate digest for all
+    # nodes
+    self.rpc.call_node_crypto_tokens = \
+      lambda node_uuid, _: self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(node_uuid,
+          [(constants.CRYPTO_TYPE_SSL_DIGEST, "IA:MA:FA:KE:DI:GE:ST")])
     op = opcodes.OpClusterPostInit()
 
     self.ExecOpCode(op)

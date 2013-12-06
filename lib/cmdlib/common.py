@@ -1216,3 +1216,22 @@ def IsValidDiskAccessModeCombination(hv, disk_template, mode):
 
   # Everything else:
   return False
+
+
+def AddNodeCertToCandidateCerts(lu, node_uuid, cluster):
+  """Add the node's client SSL certificate digest to the candidate certs.
+
+  @type node_uuid: string
+  @param node_uuid: the node's UUID
+  @type cluster: C{object.Cluster}
+  @param cluster: the cluster's configuration
+
+  """
+  result = lu.rpc.call_node_crypto_tokens(
+             node_uuid, [constants.CRYPTO_TYPE_SSL_DIGEST])
+  result.Raise("Could not retrieve the node's (uuid %s) SSL digest."
+               % node_uuid)
+  ((crypto_type, digest), ) = result.payload
+  assert crypto_type == constants.CRYPTO_TYPE_SSL_DIGEST
+
+  utils.AddNodeToCandidateCerts(node_uuid, digest, cluster.candidate_certs)
