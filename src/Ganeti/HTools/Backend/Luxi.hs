@@ -272,7 +272,7 @@ readData :: String -- ^ Unix socket to use as source
          -> IO (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
 readData master =
   E.bracket
-       (L.getClient master)
+       (L.getLuxiClient master)
        L.closeClient
        (\s -> do
           nodes <- queryNodes s

@@ -444,7 +444,7 @@ isQueueOpen = liftM not (jobQueueDrainFile >>= doesFileExist)
 startJobs :: [QueuedJob] -> IO ()
 startJobs jobs = do
   socketpath <- defaultMasterSocket
-  client <- getClient socketpath
+  client <- getLuxiClient socketpath
   pickupResults <- mapM (flip callMethod client . PickupJob . qjId) jobs
   let failures = map show $ justBad pickupResults
   unless (null failures)

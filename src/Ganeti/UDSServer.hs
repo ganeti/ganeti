@@ -30,8 +30,8 @@ module Ganeti.UDSServer
   , RecvResult(..)
   , MsgKeys(..)
   , strOfKey
-  , getClient
-  , getServer
+  , getLuxiClient
+  , getLuxiServer
   , acceptClient
   , closeClient
   , closeServer
@@ -107,8 +107,8 @@ data Client = Client { socket :: Handle           -- ^ The socket of the client
                      }
 
 -- | Connects to the master daemon and returns a luxi Client.
-getClient :: String -> IO Client
-getClient path = do
+getLuxiClient :: String -> IO Client
+getLuxiClient path = do
   s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
   withTimeout luxiDefCtmo "creating luxi connection" $
               S.connect s (S.SockAddrUnix path)
@@ -117,8 +117,8 @@ getClient path = do
   return Client { socket=h, rbuf=rf }
 
 -- | Creates and returns a server endpoint.
-getServer :: Bool -> FilePath -> IO S.Socket
-getServer setOwner path = do
+getLuxiServer :: Bool -> FilePath -> IO S.Socket
+getLuxiServer setOwner path = do
   s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
   S.bindSocket s (S.SockAddrUnix path)
   when setOwner . setOwnerAndGroupFromNames path GanetiLuxid $

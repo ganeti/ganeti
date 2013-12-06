@@ -463,7 +463,7 @@ main opts args = do
   iniData <- exitIfBad "when parsing auto-repair tags" iniDataRes
 
   -- First step: check all pending repairs, see if they are completed.
-  iniData' <- bracket (L.getClient master) L.closeClient $
+  iniData' <- bracket (L.getLuxiClient master) L.closeClient $
               forM iniData . processPending
 
   -- Second step: detect any problems.
@@ -476,7 +476,7 @@ main opts args = do
                             ArHealthy _ -> doRepair c jobDelay i
                             _           -> const (return i)
 
-  repairDone <- bracket (L.getClient master) L.closeClient $
+  repairDone <- bracket (L.getLuxiClient master) L.closeClient $
                 forM (zip iniData' repairs) . maybeRepair
 
   -- Print some stats and exit.
