@@ -48,7 +48,8 @@ module Ganeti.Logging
   , syslogUsageFromRaw
   ) where
 
-import Control.Monad (when)
+import Control.Monad
+import Control.Monad.Reader
 import System.Log.Logger
 import System.Log.Handler.Simple
 import System.Log.Handler.Syslog
@@ -133,6 +134,8 @@ class Monad m => MonadLog m where
 instance MonadLog IO where
   logAt = logM rootLoggerName
 
+instance (MonadLog m) => MonadLog (ReaderT r m) where
+  logAt p x = lift $ logAt p x
 
 -- | Log at debug level.
 logDebug :: (MonadLog m) => String -> m ()
