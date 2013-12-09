@@ -909,6 +909,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     return utils.PathJoin(cls._CTRL_DIR, "%s.qmp" % instance_name)
 
+  @classmethod
+  def _InstanceShutdownMonitor(cls, instance_name):
+    """Returns the instance QMP output filename
+
+    """
+    return utils.PathJoin(cls._CTRL_DIR, "%s.shutdown" % instance_name)
+
   @staticmethod
   def _SocatUnixConsoleParams():
     """Returns the correct parameters for socat
@@ -1168,9 +1175,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     result = []
     for name in os.listdir(self._PIDS_DIR):
-      if self._InstancePidAlive(name)[2]:
+      if self._InstancePidAlive(name)[2] or self._IsUserShutdown(name):
         result.append(name)
     return result
+
+  @classmethod
+  def _IsUserShutdown(cls, instance_name):
+    return os.path.exists(cls._InstanceShutdownMonitor(instance_name))
+
+  @classmethod
+  def _ClearUserShutdown(cls, instance_name):
+    utils.RemoveFile(cls._InstanceShutdownMonitor(instance_name))
 
   def GetInstanceInfo(self, instance_name, hvparams=None):
     """Get instance properties.
@@ -1185,7 +1200,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     _, pid, alive = self._InstancePidAlive(instance_name)
     if not alive:
-      return None
+      if self._IsUserShutdown(instance_name):
+        return (instance_name, -1, 0, 0, hv_base.HvInstanceState.SHUTDOWN, 0)
+      else:
+        return None
 
     _, memory, vcpus = self._InstancePidInfo(pid)
     istat = hv_base.HvInstanceState.RUNNING
@@ -1767,6 +1785,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     name = instance.name
     self._CheckDown(name)
 
+    self._ClearUserShutdown(instance.name)
+    self._StartKvmd(instance.hvparams)
+
     temp_files = []
 
     kvm_cmd, kvm_nics, up_hvp, kvm_disks = kvm_runtime
@@ -1968,6 +1989,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # the VM was started in a frozen state. If freezing was not
       # explicitly requested resume the vm status.
       self._CallMonitorCommand(instance.name, self._CONT_CMD)
+
+  @staticmethod
+  def _StartKvmd(hvparams):
+    """Ensure that the Kvm daemon is running.
+
+    """
+    if hvparams is None \
+          or not hvparams[constants.HV_KVM_USER_SHUTDOWN] \
+          or utils.IsDaemonAlive(constants.KVMD):
+      return
+
+    result = utils.RunCmd(constants.KVMD)
+
+    if result.failed:
+      raise errors.HypervisorError("Failed to start KVM daemon")
 
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
@@ -2256,6 +2292,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         utils.KillProcess(pid)
       else:
         cls._CallMonitorCommand(name, "system_powerdown")
+    cls._ClearUserShutdown(instance.name)
 
   def StopInstance(self, instance, force=False, retry=False, name=None):
     """Stop an instance.
@@ -2271,6 +2308,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if pid > 0 and alive:
       raise errors.HypervisorError("Cannot cleanup a live instance")
     self._RemoveInstanceRuntimeFiles(pidfile, instance_name)
+    self._ClearUserShutdown(instance_name)
 
   def RebootInstance(self, instance):
     """Reboot an instance.
@@ -2409,6 +2447,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
     elif live:
       self._CallMonitorCommand(instance.name, self._CONT_CMD)
+    self._ClearUserShutdown(instance.name)
 
   def GetMigrationStatus(self, instance):
     """Get the migration status
