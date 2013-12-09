@@ -53,9 +53,7 @@ from ganeti import utils
 from ganeti import rapi # pylint: disable=W0611
 from ganeti import constants
 from ganeti import netutils
-from ganeti import pathutils
 
-from ganeti.http.auth import ParsePasswordFile
 import ganeti.rapi.client # pylint: disable=W0611
 from ganeti.rapi.client import UsesRapiClient
 
@@ -165,31 +163,6 @@ def RunEnvTests():
   RunTestIf("env", qa_env.TestGanetiCommands)
 
 
-def _LookupRapiSecret(rapi_user):
-  """Find the RAPI secret for the given user.
-
-  @param rapi_user: Login user
-  @return: Login secret for the user
-
-  """
-  CTEXT = "{CLEARTEXT}"
-  master = qa_config.GetMasterNode()
-  cmd = ["cat", qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)]
-  file_content = qa_utils.GetCommandOutput(master.primary,
-                                           utils.ShellQuoteArgs(cmd))
-  users = ParsePasswordFile(file_content)
-  entry = users.get(rapi_user)
-  if not entry:
-    raise qa_error.Error("User %s not found in RAPI users file" % rapi_user)
-  secret = entry.password
-  if secret.upper().startswith(CTEXT):
-    secret = secret[len(CTEXT):]
-  elif secret.startswith("{"):
-    raise qa_error.Error("Unsupported password schema for RAPI user %s:"
-                         " not a clear text password" % rapi_user)
-  return secret
-
-
 def SetupCluster(rapi_user):
   """Initializes the cluster.
 
@@ -206,7 +179,7 @@ def SetupCluster(rapi_user):
     qa_config.SetExclusiveStorage(qa_config.get("exclusive-storage", False))
     if qa_rapi.Enabled():
       # To support RAPI on an existing cluster we have to find out the secret
-      rapi_secret = _LookupRapiSecret(rapi_user)
+      rapi_secret = qa_rapi.LookupRapiSecret(rapi_user)
 
   qa_group.ConfigureGroups()
 
