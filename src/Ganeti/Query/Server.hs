@@ -430,7 +430,7 @@ luxiExec (qlock, qstat, creader) args = do
   result <- handleCallWrapper qlock qstat cfg args
   return (True, result)
 
-luxiHandler :: LuxiConfig -> U.Handler LuxiOp JSValue
+luxiHandler :: LuxiConfig -> U.Handler LuxiOp IO JSValue
 luxiHandler cfg = U.Handler { U.hParse         = decodeLuxiCall
                             , U.hInputLogShort = strOfOp
                             , U.hInputLogLong  = show

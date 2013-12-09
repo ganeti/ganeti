@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 {-| Implementation of the Ganeti Unix Domain Socket JSON server interface.
 
@@ -56,7 +57,9 @@ module Ganeti.UDSServer
   ) where
 
 import Control.Applicative
-import Control.Concurrent (forkIO)
+import Control.Concurrent.Lifted (fork)
+import Control.Monad.Base
+import Control.Monad.Trans.Control
 import Control.Exception (catch)
 import Control.Monad
 import qualified Data.ByteString as B
@@ -198,9 +201,9 @@ connectServer conf setOwner path = do
   return Server { sSocket=s, sPath=path, serverConfig=conf }
 
 -- | Closes a server endpoint.
-closeServer :: Server -> IO ()
+closeServer :: (MonadBase IO m) => Server -> m ()
 closeServer server =
-  closeServerSocket (sSocket server) (sPath server)
+  liftBase $ closeServerSocket (sSocket server) (sPath server)
 
 -- | Accepts a client
 acceptClient :: Server -> IO Client
@@ -285,7 +288,7 @@ buildResponse success args =
 -- | Logs an outgoing message.
 logMsg
     :: (Show e, J.JSON e, MonadLog m)
-    => Handler i o
+    => Handler i m o
     -> i                          -- ^ the received request (used for logging)
     -> GenericResult e J.JSValue  -- ^ A message to be sent
     -> m ()
@@ -308,25 +311,25 @@ prepareMsg (Ok result) = (True, result)
 
 -- * Processing client requests
 
-type HandlerResult o = IO (Bool, GenericResult GanetiException o)
+type HandlerResult m o = m (Bool, GenericResult GanetiException o)
 
-data Handler i o = Handler
+data Handler i m o = Handler
   { hParse         :: J.JSValue -> J.JSValue -> Result i
     -- ^ parses method and its arguments into the input type
   , hInputLogShort :: i -> String
     -- ^ short description of an input, for the INFO logging level
   , hInputLogLong  :: i -> String
     -- ^ long description of an input, for the DEBUG logging level
-  , hExec          :: i -> HandlerResult o
+  , hExec          :: i -> HandlerResult m o
     -- ^ executes the handler on an input
   }
 
 
 handleJsonMessage
-    :: (J.JSON o)
-    => Handler i o              -- ^ handler
+    :: (J.JSON o, Monad m)
+    => Handler i m o            -- ^ handler
     -> i                        -- ^ parsed input
-    -> HandlerResult J.JSValue
+    -> HandlerResult m J.JSValue
 handleJsonMessage handler req = do
   (close, call_result) <- hExec handler req
   return (close, fmap J.showJSON call_result)
@@ -334,10 +337,10 @@ handleJsonMessage handler req = do
 -- | Takes a request as a 'String', parses it, passes it to a handler and
 -- formats its response.
 handleRawMessage
-    :: (J.JSON o)
-    => Handler i o              -- ^ handler
+    :: (J.JSON o, MonadLog m)
+    => Handler i m o            -- ^ handler
     -> String                   -- ^ raw unparsed input
-    -> IO (Bool, String)
+    -> m (Bool, String)
 handleRawMessage handler payload =
   case parseCall payload >>= uncurry (hParse handler) of
     Bad err -> do
@@ -359,14 +362,14 @@ isRisky msg = case msg of
 -- | Reads a request, passes it to a handler and sends a response back to the
 -- client.
 handleClient
-    :: (J.JSON o)
-    => Handler i o
+    :: (J.JSON o, MonadBase IO m, MonadLog m)
+    => Handler i m o
     -> Client
-    -> IO Bool
+    -> m Bool
 handleClient handler client = do
-  msg <- recvMsgExt client
+  msg <- liftBase $ recvMsgExt client
 
-  debugMode <- isDebugMode
+  debugMode <- liftBase isDebugMode
   when (debugMode && isRisky msg) $
     logAlert "POSSIBLE LEAKING OF CONFIDENTIAL PARAMETERS. \
              \Daemon is running in debug mode. \
@@ -380,31 +383,31 @@ handleClient handler client = do
                      return False
     RecvOk payload -> do
       (close, outMsg) <- handleRawMessage handler payload
-      sendMsg client outMsg
+      liftBase $ sendMsg client outMsg
       return close
 
 
 -- | Main client loop: runs one loop of 'handleClient', and if that
 -- doesn't report a finished (closed) connection, restarts itself.
 clientLoop
-    :: (J.JSON o)
-    => Handler i o
+    :: (J.JSON o, MonadBase IO m, MonadLog m)
+    => Handler i m o
     -> Client
-    -> IO ()
+    -> m ()
 clientLoop handler client = do
   result <- handleClient handler client
   if result
     then clientLoop handler client
-    else closeClient client
+    else liftBase $ closeClient client
 
 -- | Main listener loop: accepts clients, forks an I/O thread to handle
 -- that client.
 listener
-    :: (J.JSON o)
-    => Handler i o
+    :: (J.JSON o, MonadBaseControl IO m, MonadLog m)
+    => Handler i m o
     -> Server
-    -> IO ()
+    -> m ()
 listener handler server = do
-  client <- acceptClient server
-  _ <- forkIO $ clientLoop handler client
+  client <- liftBase $ acceptClient server
+  _ <- fork $ clientLoop handler client
   return ()
