@@ -70,16 +70,20 @@ module Ganeti.Utils
   , getFStat
   , getFStatSafe
   , needsReload
+  , watchFile
   ) where
 
+import Control.Concurrent
 import Control.Exception (try)
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import Data.Function (on)
+import Data.IORef
 import Data.List
 import qualified Data.Map as M
 import Control.Monad (foldM, liftM)
 import System.Directory (renameFile)
 import System.FilePath.Posix (takeDirectory, takeBaseName)
+import System.INotify
 import System.Posix.Types
 
 import Debug.Trace
@@ -581,3 +585,43 @@ needsReload oldstat path = do
   return $ if newstat /= oldstat
              then Just newstat
              else Nothing
+
+-- | Until the given point in time (useconds since the epoch), wait
+-- for the output of a given method to change and return the new value;
+-- make use of the promise that the output only changes if the reference
+-- has a value different than the given one.
+watchFileEx :: (Eq a, Eq b) => Integer -> b -> IORef b -> a -> IO a -> IO a
+watchFileEx endtime base ref old read_fn = do
+  current <- getCurrentTimeUSec
+  if current > endtime then read_fn else do
+    val <- readIORef ref
+    if val /= base
+      then do
+        new <- read_fn
+        if new /= old then return new else do
+          threadDelay 100000
+          watchFileEx endtime val ref old read_fn
+      else do 
+       threadDelay 100000
+       watchFileEx endtime base ref old read_fn
+
+-- | Within the given timeout (in seconds), wait for for the output
+-- of the given method to change and return the new value; make use of
+-- the promise that the method will only change its value, if
+-- the given file changes on disk. If the file does not exist on disk, return
+-- immediately.
+watchFile :: Eq a => FilePath -> Int -> a -> IO a -> IO a
+watchFile fpath timeout old read_fn = do
+  current <- getCurrentTimeUSec
+  let endtime = current + fromIntegral timeout * 1000000
+  fstat <- getFStatSafe fpath
+  ref <- newIORef fstat
+  inotify <- initINotify
+  _ <- addWatch inotify [Modify, Delete] fpath . const $ do
+    logDebug $ "Notified of change in " ++ fpath
+    fstat' <- getFStatSafe fpath
+    writeIORef ref fstat'
+  result <- watchFileEx endtime fstat ref old read_fn
+  killINotify inotify
+  return result
+  
