@@ -103,6 +103,8 @@ def Setup(username, password):
 
     print "RAPI protocol version: %s" % _rapi_client.GetVersion()
 
+  return _rapi_client
+
 
 def LookupRapiSecret(rapi_user):
   """Find the RAPI secret for the given user.
