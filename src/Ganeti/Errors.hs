@@ -40,6 +40,7 @@ module Ganeti.Errors
   , maybeToError
   ) where
 
+import Control.Monad.Error (Error(..))
 import Text.JSON hiding (Result, Ok)
 import System.Exit
 
@@ -110,6 +111,9 @@ $(genException "GanetiException"
   , ("RapiTestResult", [excErrMsg])
   , ("FileStoragePathError", [excErrMsg])
   ])
+
+instance Error GanetiException where
+  strMsg = mkFromString
 
 instance JSON GanetiException where
   showJSON = saveGanetiException
