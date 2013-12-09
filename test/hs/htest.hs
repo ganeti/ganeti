@@ -55,6 +55,7 @@ import Test.Ganeti.Hypervisor.Xen.XmParser
 import Test.Ganeti.JSON
 import Test.Ganeti.Jobs
 import Test.Ganeti.JQueue
+import Test.Ganeti.Kvmd
 import Test.Ganeti.Luxi
 import Test.Ganeti.Network
 import Test.Ganeti.Objects
@@ -118,6 +119,7 @@ allTests =
   , testJSON
   , testJobs
   , testJQueue
+  , testKvmd
   , testLuxi
   , testNetwork
   , testObjects

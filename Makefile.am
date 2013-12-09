@@ -772,6 +772,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/JSON.hs \
 	test/hs/Test/Ganeti/Jobs.hs \
 	test/hs/Test/Ganeti/JQueue.hs \
+	test/hs/Test/Ganeti/Kvmd.hs \
 	test/hs/Test/Ganeti/Luxi.hs \
 	test/hs/Test/Ganeti/Network.hs \
 	test/hs/Test/Ganeti/Objects.hs \

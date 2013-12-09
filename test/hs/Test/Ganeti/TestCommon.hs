@@ -66,6 +66,7 @@ module Test.Ganeti.TestCommon
   , genPropParser
   , genNonNegative
   , relativeError
+  , getTempFileName
   ) where
 
 import Control.Applicative
@@ -76,8 +77,10 @@ import Data.List
 import Data.Text (pack)
 import Data.Word
 import qualified Data.Set as Set
+import System.Directory (getTemporaryDirectory, removeFile)
 import System.Environment (getEnv)
 import System.Exit (ExitCode(..))
+import System.IO (hClose, openTempFile)
 import System.IO.Error (isDoesNotExistError)
 import System.Process (readProcessWithExitCode)
 import qualified Test.HUnit as HUnit
@@ -421,3 +424,12 @@ relativeError d1 d2 =
   in if delta == 0
        then 0
        else delta / greatest
+
+-- | Helper to a get a temporary file name.
+getTempFileName :: String -> IO FilePath
+getTempFileName filename = do
+  tempdir <- getTemporaryDirectory
+  (fpath, handle) <- openTempFile tempdir filename
+  _ <- hClose handle
+  removeFile fpath
+  return fpath

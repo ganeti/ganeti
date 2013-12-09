@@ -36,8 +36,6 @@ import Data.List
 import Control.Applicative
 import Control.Concurrent (forkIO)
 import Control.Exception (bracket)
-import System.Directory (getTemporaryDirectory, removeFile)
-import System.IO (hClose, openTempFile)
 import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
@@ -100,15 +98,6 @@ prop_CallEncoding :: Luxi.LuxiOp -> Property
 prop_CallEncoding op =
   (US.parseCall (Luxi.buildCall op) >>= uncurry Luxi.decodeLuxiCall) ==? Ok op
 
--- | Helper to a get a temporary file name.
-getTempFileName :: IO FilePath
-getTempFileName = do
-  tempdir <- getTemporaryDirectory
-  (fpath, handle) <- openTempFile tempdir "luxitest"
-  _ <- hClose handle
-  removeFile fpath
-  return fpath
-
 -- | Server ping-pong helper.
 luxiServerPong :: Luxi.Client -> IO ()
 luxiServerPong c = do
@@ -128,7 +117,7 @@ luxiClientPong c =
 prop_ClientServer :: [[DNSChar]] -> Property
 prop_ClientServer dnschars = monadicIO $ do
   let msgs = map (map dnsGetChar) dnschars
-  fpath <- run getTempFileName
+  fpath <- run $ getTempFileName "luxitest"
   -- we need to create the server first, otherwise (if we do it in the
   -- forked thread) the client could try to connect to it before it's
   -- ready
