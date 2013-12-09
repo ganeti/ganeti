@@ -628,10 +628,17 @@ liveInstanceStatus (instInfo, foundOnPrimary) inst
     case instanceState of
       InstanceStateRunning | adminState == AdminUp -> Running
                            | otherwise -> ErrorUp
-      InstanceStateShutdown | adminState == AdminUp -> UserDown
+      InstanceStateShutdown | adminState == AdminUp && allowDown -> UserDown
                             | otherwise -> StatusDown
   where adminState = instAdminState inst
         instanceState = instInfoState instInfo
+
+        hvparams = fromContainer $ instHvparams inst
+
+        allowDown =
+          instHypervisor inst /= Kvm ||
+          (Map.member C.hvKvmUserShutdown hvparams &&
+           hvparams Map.! C.hvKvmUserShutdown == J.JSBool True)
 
 -- | Determines the status of a dead instance.
 deadInstanceStatus :: Instance -> InstanceStatus

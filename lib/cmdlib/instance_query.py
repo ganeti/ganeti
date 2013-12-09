@@ -225,7 +225,9 @@ class LUInstanceQueryData(NoHooksLU):
         remote_info.Raise("Error checking node %s" % pnode.name)
         remote_info = remote_info.payload
         if remote_info and "state" in remote_info:
-          if hv_base.HvInstanceState.IsShutdown(remote_info["state"]):
+          if hv_base.HvInstanceState.IsShutdown(remote_info["state"]) \
+                and (instance.hypervisor != constants.HT_KVM
+                       or instance.hvparams[constants.HV_KVM_USER_SHUTDOWN]):
             remote_state = "user down"
           else:
             remote_state = "up"

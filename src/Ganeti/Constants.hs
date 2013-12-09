@@ -1565,6 +1565,9 @@ hvKvmSpiceZlibGlzImgCompr = "spice_zlib_glz_wan_compression"
 hvKvmUseChroot :: String
 hvKvmUseChroot = "use_chroot"
 
+hvKvmUserShutdown :: String
+hvKvmUserShutdown = "user_shutdown"
+
 hvMemPath :: String
 hvMemPath = "mem_path"
 
@@ -1721,6 +1724,7 @@ hvsParameterTypes = Map.fromList
   , (hvKvmSpiceUseVdagent,              VTypeBool)
   , (hvKvmSpiceZlibGlzImgCompr,         VTypeString)
   , (hvKvmUseChroot,                    VTypeBool)
+  , (hvKvmUserShutdown,                 VTypeBool)
   , (hvMemPath,                         VTypeString)
   , (hvMigrationBandwidth,              VTypeInt)
   , (hvMigrationDowntime,               VTypeInt)
@@ -3717,6 +3721,7 @@ hvcDefaults =
           , (hvKvmFlag,                         PyValueEx "")
           , (hvVhostNet,                        PyValueEx False)
           , (hvKvmUseChroot,                    PyValueEx False)
+          , (hvKvmUserShutdown,                 PyValueEx False)
           , (hvMemPath,                         PyValueEx "")
           , (hvRebootBehavior,                  PyValueEx instanceRebootAllowed)
           , (hvCpuMask,                         PyValueEx cpuPinningAll)
