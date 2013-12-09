@@ -137,6 +137,8 @@ EXTERNAL_MASTER_SETUP_SCRIPT = USER_SCRIPTS_DIR + "/master-ip-setup"
 MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 #: LUXI socket used for queries only
 QUERY_SOCKET = SOCKET_DIR + "/ganeti-query"
+#: WConfD socket
+WCONFD_SOCKET = SOCKET_DIR + "/ganeti-wconfd"
 
 LOG_OS_DIR = LOG_DIR + "/os"
 LOG_ES_DIR = LOG_DIR + "/extstorage"

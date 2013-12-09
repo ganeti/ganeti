@@ -28,6 +28,7 @@ readonly defaults_file="$SYSCONFDIR/default/ganeti"
 # order is important as there are dependencies between them. On shutdown,
 # they're stopped in reverse order.
 DAEMONS=(
+  ganeti-wconfd
   ganeti-noded
   ganeti-masterd
   ganeti-rapi
@@ -53,6 +54,7 @@ fi
 NODED_ARGS=
 MASTERD_ARGS=
 CONFD_ARGS=
+WCONFD_ARGS=
 LUXID_ARGS=
 RAPI_ARGS=
 MOND_ARGS=
@@ -83,6 +85,9 @@ _daemon_usergroup() {
       ;;
     confd)
       echo "@GNTCONFDUSER@:@GNTCONFDGROUP@"
+      ;;
+    wconfd)
+      echo "@GNTWCONFDUSER@:@GNTWCONFDGROUP@"
       ;;
     luxid)
       echo "@GNTLUXIDUSER@:@GNTLUXIDGROUP@"

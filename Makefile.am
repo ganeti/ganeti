@@ -131,6 +131,7 @@ HS_DIRS = \
 	src/Ganeti/Storage/Drbd \
 	src/Ganeti/Storage/Lvm \
 	src/Ganeti/THH \
+	src/Ganeti/WConfd \
 	test/hs \
 	test/hs/Test \
 	test/hs/Test/Ganeti \
@@ -272,6 +273,7 @@ CLEANFILES = \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
 	src/ganeti-confd \
+	src/ganeti-wconfd \
 	src/ganeti-luxid \
 	src/ganeti-mond \
 	.hpc/*.mix src/*.tix test/hs/*.tix *.tix \
@@ -601,6 +603,7 @@ HS_COMPILE_PROGS= \
 	src/ganeti-metad \
 	src/ganeti-mond \
 	src/hconfd \
+	src/ganeti-wconfd \
 	src/hluxid \
 	src/hs2py \
 	src/rpc-test
@@ -759,7 +762,8 @@ HS_LIB_SRCS = \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
 	src/Ganeti/WConfd/Core.hs \
-	src/Ganeti/WConfd/Monad.hs
+	src/Ganeti/WConfd/Monad.hs \
+	src/Ganeti/WConfd/Server.hs
 
 HS_TEST_SRCS = \
 	test/hs/Test/AutoConf.hs \
@@ -1078,6 +1082,7 @@ src/ganeti-luxid: src/hluxid
 	cp -f $< $@
 
 nodist_sbin_SCRIPTS += src/ganeti-confd
+nodist_sbin_SCRIPTS += src/ganeti-wconfd
 nodist_sbin_SCRIPTS += src/ganeti-luxid
 nodist_sbin_SCRIPTS += src/ganeti-kvmd
 nodist_sbin_SCRIPTS += src/ganeti-metad

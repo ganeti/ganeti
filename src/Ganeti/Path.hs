@@ -30,6 +30,7 @@ module Ganeti.Path
   , socketDir
   , defaultMasterSocket
   , defaultQuerySocket
+  , defaultWConfdSocket
   , confdHmacKey
   , clusterConfFile
   , watcherPauseFile
@@ -93,6 +94,10 @@ defaultMasterSocket = socketDir `pjoin` "ganeti-master"
 -- | The default LUXI socket for queries.
 defaultQuerySocket :: IO FilePath
 defaultQuerySocket = socketDir `pjoin` "ganeti-query"
+
+-- | The default WConfD socket for queries.
+defaultWConfdSocket :: IO FilePath
+defaultWConfdSocket = socketDir `pjoin` "ganeti-wconfd"
 
 -- | Path to file containing confd's HMAC key.
 confdHmacKey :: IO FilePath
