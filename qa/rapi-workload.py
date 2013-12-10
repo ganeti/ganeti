@@ -26,8 +26,9 @@
 # pylint: disable=C0103
 # due to invalid name
 
-
+import inspect
 import sys
+import types
 
 import ganeti.constants as constants
 from ganeti.rapi.client import GanetiApiError
@@ -69,32 +70,6 @@ def MockMethod(*_args, **_kwargs):
   return None
 
 
-def InvokerCreator(fn, name):
-  """ Returns an invoker function that will invoke the given function
-  with any arguments passed to the invoker at a later time, while
-  catching any specific non-fatal errors we would like to know more
-  about.
-
-  @type fn arbitrary function
-  @param fn The function to invoke later.
-  @type name string
-  @param name The name of the function, for debugging purposes.
-  @rtype function
-
-  """
-  def decoratedFn(*args, **kwargs):
-    result = None
-    try:
-      print "Using method %s" % name
-      result = fn(*args, **kwargs)
-    except GanetiApiError as e:
-      print "RAPI error while performing function %s : %s" % \
-            (name, str(e))
-    return result
-
-  return decoratedFn
-
-
 RAPI_USERNAME = "ganeti-qa"
 
 
@@ -107,6 +82,45 @@ class GanetiRapiClientWrapper(object):
     self._client = qa_rapi.Setup(RAPI_USERNAME,
                                  qa_rapi.LookupRapiSecret(RAPI_USERNAME))
 
+    self._method_invocations = {}
+
+  def _RecordMethodInvocation(self, name, arg_dict):
+    """ Records the invocation of a C{GanetiRAPIClient} method, noting the
+    argument and the method names.
+
+    """
+    if name not in self._method_invocations:
+      self._method_invocations[name] = set()
+
+    for named_arg in arg_dict:
+      self._method_invocations[name].add(named_arg)
+
+  def _InvokerCreator(self, fn, name):
+    """ Returns an invoker function that will invoke the given function
+    with any arguments passed to the invoker at a later time, while
+    catching any specific non-fatal errors we would like to know more
+    about.
+
+    @type fn arbitrary function
+    @param fn The function to invoke later.
+    @type name string
+    @param name The name of the function, for debugging purposes.
+    @rtype function
+
+    """
+    def decoratedFn(*args, **kwargs):
+      result = None
+      try:
+        print "Using method %s" % name
+        self._RecordMethodInvocation(name, kwargs)
+        result = fn(*args, **kwargs)
+      except GanetiApiError as e:
+        print "RAPI error while performing function %s : %s" % \
+              (name, str(e))
+      return result
+
+    return decoratedFn
+
   def __getattr__(self, attr):
     """ Fetches an attribute from the underlying client if necessary.
 
@@ -116,11 +130,41 @@ class GanetiRapiClientWrapper(object):
     # guide, this will stop infinite loops in attribute fetches.
     if attr.startswith("_"):
       return self.__getattribute__(attr)
+
+    # We also want to expose non-methods
+    if hasattr(self._client, attr) and \
+       not isinstance(getattr(self._client, attr), types.MethodType):
+      return getattr(self._client, attr)
+
     try:
-      return InvokerCreator(self._client.__getattribute__(attr), attr)
+      return self._InvokerCreator(self._client.__getattribute__(attr), attr)
     except AttributeError:
       print "Missing method %s; supplying mock method" % attr
       return MockMethod
+
+  def _OutputMethodInvocationDetails(self):
+    """ Attempts to output as much information as possible about the methods
+    that have and have not been invoked, including which arguments have not
+    been used.
+
+    """
+    print "\nMethod usage:\n"
+    for method in [n for n in dir(self._client)
+                     if not n.startswith('_') and
+                        isinstance(self.__getattr__(n), types.FunctionType)]:
+      if method not in self._method_invocations:
+        print "Method unused: %s" % method
+      else:
+        arg_spec, _, _, default_arg_spec = \
+          inspect.getargspec(getattr(self._client, method))
+        default_args = []
+        if default_arg_spec is not None:
+          default_args = arg_spec[-len(default_arg_spec):]
+        used_arg_set = self._method_invocations[method]
+        unused_args = [arg for arg in default_args if arg not in used_arg_set]
+        if unused_args:
+          print "Method %s used, but arguments unused: %s" % \
+                (method, ", ".join(unused_args))
 
 
 def Finish(client, fn, *args, **kwargs):
@@ -663,6 +707,12 @@ def Main():
 
   qa_node.TestNodeRemoveAll()
 
+  # The method invoked has the naming of the protected method, and pylint does
+  # not like this. Disabling the warning is healthier than explicitly adding and
+  # maintaining an exception for this method in the wrapper.
+  # pylint: disable=W0212
+  client._OutputMethodInvocationDetails()
+  # pylint: enable=W0212
 
 if __name__ == "__main__":
   Main()
