@@ -49,6 +49,7 @@ _VALID_KEYS = compat.UniqueFrozenset([
   constants.SS_GLUSTER_STORAGE_DIR,
   constants.SS_MASTER_CANDIDATES,
   constants.SS_MASTER_CANDIDATES_IPS,
+  constants.SS_MASTER_CANDIDATES_CERTS,
   constants.SS_MASTER_IP,
   constants.SS_MASTER_NETDEV,
   constants.SS_MASTER_NETMASK,
@@ -242,6 +243,22 @@ class SimpleStore(object):
     data = self._ReadFile(constants.SS_MASTER_CANDIDATES_IPS)
     nl = data.splitlines(False)
     return nl
+
+  def GetMasterCandidatesCertMap(self):
+    """Returns the map of master candidate UUIDs to ssl cert.
+
+    @rtype: dict of string to string
+    @return: dictionary mapping the master candidates' UUIDs
+      to their SSL certificate digests
+
+    """
+    data = self._ReadFile(constants.SS_MASTER_CANDIDATES_CERTS)
+    lines = data.splitlines(False)
+    certs = {}
+    for line in lines:
+      (node_uuid, cert_digest) = line.split("=")
+      certs[node_uuid] = cert_digest
+    return certs
 
   def GetMasterIP(self):
     """Get the IP of the master node for this cluster.

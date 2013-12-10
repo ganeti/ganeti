@@ -2593,6 +2593,10 @@ class ConfigWriter(object):
     cluster = self._config_data.cluster
     cluster_tags = fn(cluster.GetTags())
 
+    master_candidates_certs = fn("%s=%s" % (mc_uuid, mc_cert)
+                                 for mc_uuid, mc_cert
+                                 in cluster.candidate_certs.items())
+
     hypervisor_list = fn(cluster.enabled_hypervisors)
     all_hvparams = self._GetAllHvparamsStrings(constants.HYPER_TYPES)
 
@@ -2613,6 +2617,7 @@ class ConfigWriter(object):
       constants.SS_GLUSTER_STORAGE_DIR: cluster.gluster_storage_dir,
       constants.SS_MASTER_CANDIDATES: mc_data,
       constants.SS_MASTER_CANDIDATES_IPS: mc_ips_data,
+      constants.SS_MASTER_CANDIDATES_CERTS: master_candidates_certs,
       constants.SS_MASTER_IP: cluster.master_ip,
       constants.SS_MASTER_NETDEV: cluster.master_netdev,
       constants.SS_MASTER_NETMASK: str(cluster.master_netmask),

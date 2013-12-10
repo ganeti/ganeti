@@ -3502,6 +3502,9 @@ ssMasterCandidates = "master_candidates"
 ssMasterCandidatesIps :: String
 ssMasterCandidatesIps = "master_candidates_ips"
 
+ssMasterCandidatesCerts :: String
+ssMasterCandidatesCerts = "master_candidates_certs"
+
 ssMasterIp :: String
 ssMasterIp = "master_ip"
 
