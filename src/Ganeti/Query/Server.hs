@@ -36,6 +36,7 @@ import Control.Monad (forever, when, zipWithM, liftM)
 import Data.Bits (bitSize)
 import qualified Data.Set as Set (toList)
 import Data.IORef
+import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.JSON (encode, showJSON, JSValue(..))
 import System.Info (arch)
@@ -200,6 +201,19 @@ handleCall _ _ cfg (QueryJobs names fields) =
 handleCall _ _ cfg (QueryNetworks names fields lock) =
   handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRNetwork)
     (map Left names) fields lock
+
+handleCall _ _ cfg (QueryConfigValues fields) = do
+  let params = [ ("cluster_name", return . showJSON . clusterClusterName
+                                    . configCluster $ cfg)
+               , ("watcher_pause", liftM (maybe JSNull showJSON)
+                                     QCluster.isWatcherPaused)
+               , ("master_node", return . genericResult (const JSNull) showJSON
+                                   $ QCluster.clusterMasterNodeName cfg)
+               , ("drain_flag", liftM showJSON isQueueOpen) 
+               ] :: [(String, IO JSValue)]
+  let answer = map (fromMaybe (return JSNull) . flip lookup params) fields
+  answerEval <- sequence answer
+  return . Ok . showJSON $ answerEval
 
 handleCall qlock qstat cfg (SubmitJobToDrainedQueue ops) =
   do
