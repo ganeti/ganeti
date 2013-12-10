@@ -2277,8 +2277,7 @@ class LUInstanceSetParams(LogicalUnit):
       else:
         raise errors.ProgrammerError("Unhandled operation '%s'" % op)
 
-  @staticmethod
-  def _VerifyDiskModification(op, params):
+  def _VerifyDiskModification(self, op, params):
     """Verifies a disk modification.
 
     """
@@ -2308,10 +2307,12 @@ class LUInstanceSetParams(LogicalUnit):
       if constants.IDISK_SIZE in params:
         raise errors.OpPrereqError("Disk size change not possible, use"
                                    " grow-disk", errors.ECODE_INVAL)
-      if len(params) > 2:
-        raise errors.OpPrereqError("Disk modification doesn't support"
-                                   " additional arbitrary parameters",
-                                   errors.ECODE_INVAL)
+
+      # Disk modification supports changing only the disk name and mode.
+      # Changing arbitrary parameters is allowed only for ext disk template",
+      if self.instance.disk_template != constants.DT_EXT:
+        utils.ForceDictType(params, constants.MODIFIABLE_IDISK_PARAMS_TYPES)
+
       name = params.get(constants.IDISK_NAME, None)
       if name is not None and name.lower() == constants.VALUE_NONE:
         params[constants.IDISK_NAME] = None
@@ -3182,8 +3183,7 @@ class LUInstanceSetParams(LogicalUnit):
       ("disk/%d" % idx, "add:size=%s,mode=%s" % (disk.size, disk.mode)),
       ])
 
-  @staticmethod
-  def _ModifyDisk(idx, disk, params, _):
+  def _ModifyDisk(self, idx, disk, params, _):
     """Modifies a disk.
 
     """
@@ -3195,6 +3195,13 @@ class LUInstanceSetParams(LogicalUnit):
     if constants.IDISK_NAME in params:
       disk.name = params.get(constants.IDISK_NAME)
       changes.append(("disk.name/%d" % idx, disk.name))
+
+    # Modify arbitrary params in case instance template is ext
+    for key, value in params.iteritems():
+      if (key not in constants.MODIFIABLE_IDISK_PARAMS and
+          self.instance.disk_template == constants.DT_EXT):
+        disk.params[key] = value
+        changes.append(("disk.params:%s/%d" % (key, idx), value))
 
     return changes
 

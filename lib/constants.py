@@ -1354,6 +1354,12 @@ IDISK_PARAMS_TYPES = {
   }
 IDISK_PARAMS = frozenset(IDISK_PARAMS_TYPES.keys())
 
+MODIFIABLE_IDISK_PARAMS_TYPES = {
+  IDISK_MODE: VTYPE_STRING,
+  IDISK_NAME: VTYPE_STRING,
+  }
+MODIFIABLE_IDISK_PARAMS = frozenset(MODIFIABLE_IDISK_PARAMS_TYPES.keys())
+
 # INIC_* constants are used in opcodes, to create/change nics
 INIC_MAC = "mac"
 INIC_IP = "ip"
