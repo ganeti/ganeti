@@ -68,6 +68,7 @@ module Ganeti.Utils
   , FStat
   , nullFStat
   , getFStat
+  , getFStatSafe
   , needsReload
   ) where
 
@@ -567,6 +568,11 @@ buildFileStatus ofs =
 -- filesystem and then builds our cache structure.
 getFStat :: FilePath -> IO FStat
 getFStat p = liftM buildFileStatus (getFileStatus p)
+
+-- | Safe version of 'getFStat', that ignores IOErrors.
+getFStatSafe :: FilePath -> IO FStat
+getFStatSafe fpath = liftM (either (const nullFStat) id)
+                       ((try $ getFStat fpath) :: IO (Either IOError FStat))
 
 -- | Check if the file needs reloading
 needsReload :: FStat -> FilePath -> IO (Maybe FStat)
