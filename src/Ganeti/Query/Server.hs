@@ -59,7 +59,7 @@ import Ganeti.Path (queueDir, jobQueueLockFile)
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 import Ganeti.Types
-import qualified Ganeti.UDSServer as U
+import qualified Ganeti.UDSServer as U (Handler(..), listener)
 import Ganeti.Utils (lockFile, exitIfBad, watchFile)
 import qualified Ganeti.Version as Version
 
@@ -316,105 +316,6 @@ luxiHandler cfg = U.Handler { U.hParse         = decodeLuxiCall
                             }
 
 
--- | Logs an outgoing message.
-logMsg
-    :: (Show e, J.JSON e, MonadLog m)
-    => U.Handler i o
-    -> i                          -- ^ the received request (used for logging)
-    -> GenericResult e J.JSValue  -- ^ A message to be sent
-    -> m ()
-logMsg handler req (Bad err) =
-  logWarning $ "Failed to execute request "
-               ++ U.hInputLogLong handler req ++ ": "
-               ++ show err
-logMsg handler req (Ok result) = do
-  -- only log the first 2,000 chars of the result
-  logDebug $ "Result (truncated): " ++ take 2000 (J.encode result)
-  logInfo $ "Successfully handled " ++ U.hInputLogShort handler req
-
--- | Prepares an outgoing message.
-prepareMsg
-    :: (J.JSON e)
-    => GenericResult e J.JSValue  -- ^ A message to be sent
-    -> (Bool, J.JSValue)
-prepareMsg (Bad err)   = (False, J.showJSON err)
-prepareMsg (Ok result) = (True, result)
-
-handleJsonMessage
-    :: (J.JSON o)
-    => U.Handler i o              -- ^ handler
-    -> i                        -- ^ parsed input
-    -> U.HandlerResult J.JSValue
-handleJsonMessage handler req = do
-  (close, call_result) <- U.hExec handler req
-  return (close, fmap J.showJSON call_result)
-
--- | Takes a request as a 'String', parses it, passes it to a handler and
--- formats its response.
-handleRawMessage
-    :: (J.JSON o)
-    => U.Handler i o              -- ^ handler
-    -> String                   -- ^ raw unparsed input
-    -> IO (Bool, String)
-handleRawMessage handler payload =
-  case U.parseCall payload >>= uncurry (U.hParse handler) of
-    Bad err -> do
-         let errmsg = "Failed to parse request: " ++ err
-         logWarning errmsg
-         return (False, buildResponse False (J.showJSON errmsg))
-    Ok req -> do
-        logDebug $ "Request: " ++ U.hInputLogLong handler req
-        (close, call_result_json) <- handleJsonMessage handler req
-        logMsg handler req call_result_json
-        let (status, response) = prepareMsg call_result_json
-        return (close, buildResponse status response)
-
--- | Reads a request, passes it to a handler and sends a response back to the
--- client.
-handleClient
-    :: (J.JSON o)
-    => U.Handler i o
-    -> Client
-    -> IO Bool
-handleClient handler client = do
-  msg <- recvMsgExt client
-  logDebug $ "Received message: " ++ show msg
-  case msg of
-    RecvConnClosed -> logDebug "Connection closed" >>
-                      return False
-    RecvError err -> logWarning ("Error during message receiving: " ++ err) >>
-                     return False
-    RecvOk payload -> do
-      (close, outMsg) <- handleRawMessage handler payload
-      sendMsg client outMsg
-      return close
-
--- | Main client loop: runs one loop of 'handleClient', and if that
--- doesn't report a finished (closed) connection, restarts itself.
-clientLoop
-    :: (J.JSON o)
-    => U.Handler i o
-    -> Client
-    -> IO ()
-clientLoop handler client = do
-  result <- handleClient handler client
-  if result
-    then clientLoop handler client
-    else closeClient client
-
--- | Main listener loop: accepts clients, forks an I/O thread to handle
--- that client.
-listener
-    :: (J.JSON o)
-    => U.Handler i o
-    -> Server
-    -> IO ()
-listener handler server = do
-  client <- acceptClient server
-  _ <- forkIO $ clientLoop handler client
-  return ()
-
-
 -- | Type alias for prepMain results
 type PrepResult = (Server, IORef (Result ConfigData), JQStatus)
 
@@ -445,5 +346,5 @@ main _ _ (server, cref, jq) = do
   qlock <- newMVar ()
 
   finally
-    (forever $ listener (luxiHandler (qlock, jq, creader)) server)
+    (forever $ U.listener (luxiHandler (qlock, jq, creader)) server)
     (closeServer server)

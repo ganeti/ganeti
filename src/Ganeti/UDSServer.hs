@@ -45,9 +45,11 @@ module Ganeti.UDSServer
   -- * Client handler
   , Handler(..)
   , HandlerResult
+  , listener
   ) where
 
 import Control.Applicative
+import Control.Concurrent (forkIO)
 import Control.Exception (catch)
 import Data.IORef
 import qualified Data.ByteString as B
@@ -68,6 +70,7 @@ import Text.JSON.Types
 import Ganeti.BasicTypes
 import Ganeti.Errors (GanetiException)
 import Ganeti.JSON
+import Ganeti.Logging
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..))
 import Ganeti.THH
 import Ganeti.Utils
@@ -243,6 +246,28 @@ buildResponse success args =
       jo = toJSObject ja
   in encodeStrict jo
 
+-- | Logs an outgoing message.
+logMsg
+    :: (Show e, J.JSON e, MonadLog m)
+    => Handler i o
+    -> i                          -- ^ the received request (used for logging)
+    -> GenericResult e J.JSValue  -- ^ A message to be sent
+    -> m ()
+logMsg handler req (Bad err) =
+  logWarning $ "Failed to execute request " ++ hInputLogLong handler req ++ ": "
+               ++ show err
+logMsg handler req (Ok result) = do
+  -- only log the first 2,000 chars of the result
+  logDebug $ "Result (truncated): " ++ take 2000 (J.encode result)
+  logInfo $ "Successfully handled " ++ hInputLogShort handler req
+
+-- | Prepares an outgoing message.
+prepareMsg
+    :: (J.JSON e)
+    => GenericResult e J.JSValue  -- ^ A message to be sent
+    -> (Bool, J.JSValue)
+prepareMsg (Bad err)   = (False, J.showJSON err)
+prepareMsg (Ok result) = (True, result)
 
 
 -- * Processing client requests
@@ -259,3 +284,78 @@ data Handler i o = Handler
   , hExec          :: i -> HandlerResult o
     -- ^ executes the handler on an input
   }
+
+
+handleJsonMessage
+    :: (J.JSON o)
+    => Handler i o              -- ^ handler
+    -> i                        -- ^ parsed input
+    -> HandlerResult J.JSValue
+handleJsonMessage handler req = do
+  (close, call_result) <- hExec handler req
+  return (close, fmap J.showJSON call_result)
+
+-- | Takes a request as a 'String', parses it, passes it to a handler and
+-- formats its response.
+handleRawMessage
+    :: (J.JSON o)
+    => Handler i o              -- ^ handler
+    -> String                   -- ^ raw unparsed input
+    -> IO (Bool, String)
+handleRawMessage handler payload =
+  case parseCall payload >>= uncurry (hParse handler) of
+    Bad err -> do
+         let errmsg = "Failed to parse request: " ++ err
+         logWarning errmsg
+         return (False, buildResponse False (J.showJSON errmsg))
+    Ok req -> do
+        logDebug $ "Request: " ++ hInputLogLong handler req
+        (close, call_result_json) <- handleJsonMessage handler req
+        logMsg handler req call_result_json
+        let (status, response) = prepareMsg call_result_json
+        return (close, buildResponse status response)
+
+-- | Reads a request, passes it to a handler and sends a response back to the
+-- client.
+handleClient
+    :: (J.JSON o)
+    => Handler i o
+    -> Client
+    -> IO Bool
+handleClient handler client = do
+  msg <- recvMsgExt client
+  logDebug $ "Received message: " ++ show msg
+  case msg of
+    RecvConnClosed -> logDebug "Connection closed" >>
+                      return False
+    RecvError err -> logWarning ("Error during message receiving: " ++ err) >>
+                     return False
+    RecvOk payload -> do
+      (close, outMsg) <- handleRawMessage handler payload
+      sendMsg client outMsg
+      return close
+
+-- | Main client loop: runs one loop of 'handleClient', and if that
+-- doesn't report a finished (closed) connection, restarts itself.
+clientLoop
+    :: (J.JSON o)
+    => Handler i o
+    -> Client
+    -> IO ()
+clientLoop handler client = do
+  result <- handleClient handler client
+  if result
+    then clientLoop handler client
+    else closeClient client
+
+-- | Main listener loop: accepts clients, forks an I/O thread to handle
+-- that client.
+listener
+    :: (J.JSON o)
+    => Handler i o
+    -> Server
+    -> IO ()
+listener handler server = do
+  client <- acceptClient server
+  _ <- forkIO $ clientLoop handler client
+  return ()
