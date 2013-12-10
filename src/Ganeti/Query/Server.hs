@@ -56,6 +56,7 @@ import Ganeti.Luxi
 import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Query.Cluster as QCluster
 import Ganeti.Path (queueDir, jobQueueLockFile)
+import Ganeti.Rpc
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 import Ganeti.Types
@@ -267,6 +268,14 @@ handleCall _ _ cfg (WaitForJobChange jid fields prev_job prev_log tmout) = do
                   (prev_job, JSArray []) compute_fn
       return . Ok $ showJSON answer
     _ -> liftM (Ok . showJSON) compute_fn
+
+handleCall _ _ cfg (SetWatcherPause time) = do
+  let mcs = Config.getMasterCandidates cfg
+      masters = genericResult (const []) return
+                  . Config.getNode cfg . clusterMasterNode
+                  $ configCluster cfg
+  _ <- executeRpcCall (masters ++ mcs) $ RpcCallSetWatcherPause time
+  return . Ok . maybe JSNull showJSON $ time
 
 handleCall _ _ _ op =
   return . Bad $
