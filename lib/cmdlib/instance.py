@@ -3200,7 +3200,14 @@ class LUInstanceSetParams(LogicalUnit):
     for key, value in params.iteritems():
       if (key not in constants.MODIFIABLE_IDISK_PARAMS and
           self.instance.disk_template == constants.DT_EXT):
-        disk.params[key] = value
+        # stolen from GetUpdatedParams: default means reset/delete
+        if value.lower() == constants.VALUE_DEFAULT:
+          try:
+            del disk.params[key]
+          except KeyError:
+            pass
+        else:
+          disk.params[key] = value
         changes.append(("disk.params:%s/%d" % (key, idx), value))
 
     return changes
