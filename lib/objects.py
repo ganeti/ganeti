@@ -828,7 +828,12 @@ class Disk(ConfigObject):
         child.UpgradeConfig()
 
     # FIXME: Make this configurable in Ganeti 2.7
-    self.params = {}
+    # Params should be an empty dict that gets filled any time needed
+    # In case of ext template we allow arbitrary params that should not
+    # be overrided during a config reload/upgrade.
+    if not self.params or not isinstance(self.params, dict):
+      self.params = {}
+
     # add here config upgrade for this disk
 
     # If the file driver is empty, fill it up with the default value
