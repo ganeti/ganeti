@@ -474,6 +474,9 @@ acpi
     A boolean option that specifies if the hypervisor should enable
     ACPI support for this instance. By default, ACPI is disabled.
 
+    ACPI should be enabled for user shutdown detection.  See
+    ``user_shutdown``.
+
 pae
     Valid for the Xen HVM and KVM hypervisors.
 
@@ -615,6 +618,19 @@ use\_chroot
     If it is set to ``true``, an empty directory is created before
     starting the instance and its path is passed via the -chroot flag
     to kvm. The directory is removed when the instance is stopped.
+
+    It is set to ``false`` by default.
+
+user\_shutdown
+    Valid for the KVM hypervisor.
+
+    This boolean option determines whether the KVM instance suports user
+    shutdown detection.  This option does not necessarily require ACPI
+    enabled, but ACPI must be enabled for users to poweroff their KVM
+    instances.
+
+    If it is set to ``true``, the user can shutdown this KVM instance
+    and its status is reported as ``USER_down``.
 
     It is set to ``false`` by default.
 
