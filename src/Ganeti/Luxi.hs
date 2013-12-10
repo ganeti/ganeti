@@ -156,7 +156,7 @@ $(genLuxiOp "LuxiOp"
      [ simpleField "flag" [t| Bool |] ]
     )
   , (luxiReqSetWatcherPause,
-     [ simpleField "duration" [t| Double |] ]
+     [ simpleField "duration" [t| Maybe Double |] ]
     )
   ])
 
@@ -288,7 +288,10 @@ decodeLuxiCall method args = do
               [flag] <- fromJVal args
               return $ SetDrainFlag flag
     ReqSetWatcherPause -> do
-              [duration] <- fromJVal args
+              let duration = case args of
+                               JSArray [JSRational _ x] 
+                                 -> Just (fromRational x :: Double)
+                               _ -> Nothing
               return $ SetWatcherPause duration
 
 -- | Check that luxi responses contain the required keys and that the
