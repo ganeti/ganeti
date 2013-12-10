@@ -47,6 +47,7 @@ import Test.Ganeti.OpCodes ()
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Luxi as Luxi
+import qualified Ganeti.UDSServer as US
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -97,7 +98,7 @@ instance Arbitrary Luxi.LuxiOp where
 -- | Simple check that encoding/decoding of LuxiOp works.
 prop_CallEncoding :: Luxi.LuxiOp -> Property
 prop_CallEncoding op =
-  (Luxi.validateCall (Luxi.buildCall op) >>= Luxi.decodeCall) ==? Ok op
+  (US.parseCall (Luxi.buildCall op) >>= uncurry Luxi.decodeLuxiCall) ==? Ok op
 
 -- | Helper to a get a temporary file name.
 getTempFileName :: IO FilePath

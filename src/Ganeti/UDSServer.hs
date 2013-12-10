@@ -42,6 +42,9 @@ module Ganeti.UDSServer
   , recvMsg
   , recvMsgExt
   , sendMsg
+  -- * Client handler
+  , Handler(..)
+  , HandlerResult
   ) where
 
 import Control.Applicative
@@ -63,6 +66,7 @@ import qualified Text.JSON as J
 import Text.JSON.Types
 
 import Ganeti.BasicTypes
+import Ganeti.Errors (GanetiException)
 import Ganeti.JSON
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..))
 import Ganeti.THH
@@ -220,7 +224,7 @@ recvMsgExt s =
 
 
 -- | Parse the required keys out of a call.
-parseCall :: (J.JSON mth) => String -> Result (mth, JSValue)
+parseCall :: (J.JSON mth, J.JSON args) => String -> Result (mth, args)
 parseCall s = do
   arr <- fromJResult "parsing top-level JSON message" $
            decodeStrict s :: Result (JSObject JSValue)
@@ -238,3 +242,20 @@ buildResponse success args =
            , (strOfKey Result, args)]
       jo = toJSObject ja
   in encodeStrict jo
+
+
+
+-- * Processing client requests
+
+type HandlerResult o = IO (Bool, GenericResult GanetiException o)
+
+data Handler i o = Handler
+  { hParse         :: J.JSValue -> J.JSValue -> Result i
+    -- ^ parses method and its arguments into the input type
+  , hInputLogShort :: i -> String
+    -- ^ short description of an input, for the INFO logging level
+  , hInputLogLong  :: i -> String
+    -- ^ long description of an input, for the DEBUG logging level
+  , hExec          :: i -> HandlerResult o
+    -- ^ executes the handler on an input
+  }

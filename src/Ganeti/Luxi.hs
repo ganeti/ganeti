@@ -45,8 +45,7 @@ module Ganeti.Luxi
   , queryJobsStatus
   , buildCall
   , buildResponse
-  , validateCall
-  , decodeCall
+  , decodeLuxiCall
   , recvMsg
   , recvMsgExt
   , sendMsg
@@ -55,7 +54,6 @@ module Ganeti.Luxi
 
 import Control.Monad
 import qualified Data.ByteString.UTF8 as UTF8
-import Data.Functor ((<$>))
 import Text.JSON (encodeStrict, decodeStrict)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
@@ -170,8 +168,6 @@ $(genAllConstr (drop 3) ''LuxiReq "allLuxiCalls")
 -- | The serialisation of LuxiOps into strings in messages.
 $(genStrOfOp ''LuxiOp "strOfOp")
 
--- | Type holding the initial (unparsed) Luxi call.
-data LuxiCall = LuxiCall LuxiReq JSValue
 
 luxiConnectConfig :: ConnectConfig
 luxiConnectConfig = ConnectConfig { connDaemon = GanetiLuxid
@@ -198,16 +194,15 @@ buildCall lo =
       jo = toJSObject ja
   in encodeStrict jo
 
--- | Check that luxi request contains the required keys and parse it.
-validateCall :: String -> Result LuxiCall
-validateCall s = uncurry LuxiCall <$> parseCall s
 
 -- | Converts Luxi call arguments into a 'LuxiOp' data structure.
+-- This is used for building a Luxi 'Handler'.
 --
 -- This is currently hand-coded until we make it more uniform so that
 -- it can be generated using TH.
-decodeCall :: LuxiCall -> Result LuxiOp
-decodeCall (LuxiCall call args) =
+decodeLuxiCall :: JSValue -> JSValue -> Result LuxiOp
+decodeLuxiCall method args = do
+  call <- fromJResult "Unable to parse LUXI request method" $ J.readJSON method
   case call of
     ReqQueryJobs -> do
               (jids, jargs) <- fromJVal args
