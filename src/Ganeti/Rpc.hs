@@ -77,6 +77,7 @@ module Ganeti.Rpc
   , RpcResultExportList(..)
 
   , RpcCallJobqueueUpdate(..)
+  , RpcCallSetWatcherPause(..)
   ) where
 
 import Control.Arrow (second)
@@ -585,6 +586,30 @@ instance Rpc RpcCallJobqueueUpdate RpcResultJobQueueUpdate where
   rpcResultFill _ res =
     case res of
       J.JSNull ->  Right RpcResultJobQueueUpdate
+      _ -> Left $ JsonDecodeError
+           ("Expected JSNull, got " ++ show (pp_value res))
+
+-- ** Watcher Status Update
+      
+-- | Set the watcher status
+      
+$(buildObject "RpcCallSetWatcherPause" "rpcCallSetWatcherPause"
+  [ simpleField "time" [t| Maybe Double |]
+  ])
+
+instance RpcCall RpcCallSetWatcherPause where
+  rpcCallName _          = "set_watcher_pause"
+  rpcCallTimeout _       = rpcTimeoutToRaw Fast
+  rpcCallAcceptOffline _ = False
+  rpcCallData _ call     = J.encode
+    [ maybe J.JSNull J.showJSON $ rpcCallSetWatcherPauseTime call ]
+
+$(buildObject "RpcResultSetWatcherPause" "rpcResultSetWatcherPause" [])
+
+instance Rpc RpcCallSetWatcherPause RpcResultSetWatcherPause where
+  rpcResultFill _ res =
+    case res of
+      J.JSNull ->  Right RpcResultSetWatcherPause
       _ -> Left $ JsonDecodeError
            ("Expected JSNull, got " ++ show (pp_value res))
 
