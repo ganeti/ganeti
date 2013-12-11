@@ -106,6 +106,7 @@ RESTRICTED_COMMANDS_DIR = CONF_DIR + "/restricted-commands"
 
 #: Node daemon certificate path
 NODED_CERT_FILE = DATA_DIR + "/server.pem"
+NODED_CLIENT_CERT_FILE = DATA_DIR + "/client.pem"
 
 #: Node daemon certificate file permissions
 NODED_CERT_MODE = 0440

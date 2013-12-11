@@ -24,8 +24,10 @@
 
 import logging
 import OpenSSL
+import os
 
 from ganeti.utils import io
+from ganeti.utils import x509
 from ganeti import pathutils
 
 
@@ -92,3 +94,23 @@ def GetClientCertificateDigest(cert_filename=pathutils.NODED_CERT_FILE):
   cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                          cert_plain)
   return cert.digest("sha1")
+
+
+def GenerateNewSslCert(new_cert, cert_filename, log_msg):
+  """Creates a new SSL certificate and backups the old one.
+
+  @type new_cert: boolean
+  @param new_cert: whether a new certificate should be created
+  @type cert_filename: string
+  @param cert_filename: filename of the certificate file
+  @type log_msg: string
+  @param log_msg: log message to be written on certificate creation
+
+  """
+  cert_exists = os.path.exists(cert_filename)
+  if new_cert or not cert_exists:
+    if cert_exists:
+      io.CreateBackup(cert_filename)
+
+    logging.debug(log_msg)
+    x509.GenerateSelfSignedSslCert(cert_filename)

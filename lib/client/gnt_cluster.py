@@ -961,11 +961,13 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
 
   def _RenewCryptoInner(ctx):
     ctx.feedback_fn("Updating certificates and keys")
+    # FIXME: add separate option for client certs
     bootstrap.GenerateClusterCrypto(new_cluster_cert,
                                     new_rapi_cert,
                                     new_spice_cert,
                                     new_confd_hmac_key,
                                     new_cds,
+                                    new_cluster_cert,
                                     rapi_cert_pem=rapi_cert_pem,
                                     spice_cert_pem=spice_cert_pem,
                                     spice_cacert_pem=spice_cacert_pem,

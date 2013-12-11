@@ -571,8 +571,9 @@ def main():
                     backup=True)
 
     if not options.dry_run:
+      # FIXME: fix node client certificate
       bootstrap.GenerateClusterCrypto(
-        False, False, False, False, False,
+        False, False, False, False, False, False,
         nodecert_file=options.SERVER_PEM_PATH,
         rapicert_file=options.RAPI_CERT_FILE,
         spicecert_file=options.SPICE_CERT_FILE,
