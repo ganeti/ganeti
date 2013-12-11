@@ -32,6 +32,7 @@ module Ganeti.Path
   , defaultQuerySocket
   , confdHmacKey
   , clusterConfFile
+  , watcherPauseFile
   , nodedCertFile
   , queueDir
   , jobQueueSerialFile
@@ -99,6 +100,10 @@ confdHmacKey = dataDirP "hmac.key"
 -- | Path to cluster configuration file.
 clusterConfFile :: IO FilePath
 clusterConfFile  = dataDirP "config.data"
+
+-- | Path to the watcher pause file.
+watcherPauseFile :: IO FilePath
+watcherPauseFile = dataDirP "watcher.pause"
 
 -- | Path to the noded certificate.
 nodedCertFile :: IO FilePath
