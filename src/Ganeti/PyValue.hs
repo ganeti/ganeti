@@ -28,9 +28,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleInstances, OverlappingInstances,
-             TypeSynonymInstances, IncoherentInstances #-}
-module Ganeti.PyValue where
+module Ganeti.PyValue
+  ( PyValue(..)
+  , PyValueEx(..)
+  ) where
 
 import Data.List (intercalate)
 import Data.Map (Map)
@@ -49,6 +50,9 @@ import Ganeti.BasicTypes
 class PyValue a where
   showValue :: a -> String
 
+  showValueList :: [a] -> String
+  showValueList xs =  "[" ++ intercalate "," (map showValue xs) ++ "]"
+
 instance PyValue Bool where
   showValue = show
 
@@ -63,6 +67,7 @@ instance PyValue Double where
 
 instance PyValue Char where
   showValue = show
+  showValueList = show
 
 instance (PyValue a, PyValue b) => PyValue (a, b) where
   showValue (x, y) = "(" ++ showValue x ++ "," ++ showValue y ++ ")"
@@ -75,11 +80,8 @@ instance (PyValue a, PyValue b, PyValue c) => PyValue (a, b, c) where
     showValue z ++
     ")"
 
-instance PyValue String where
-  showValue = show
-
 instance PyValue a => PyValue [a] where
-  showValue xs = "[" ++ intercalate "," (map showValue xs) ++ "]"
+  showValue = showValueList
 
 instance (PyValue k, PyValue a) => PyValue (Map k a) where
   showValue mp =
