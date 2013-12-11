@@ -58,9 +58,73 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   CheckOSParams, CheckHVParams, AdjustCandidatePool, CheckNodePVs, \
   ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
-  CheckDiskAccessModeConsistency, AddNodeCertToCandidateCerts
+  CheckDiskAccessModeConsistency, CreateNewClientCert
 
 import ganeti.masterd.instance
+
+
+def _UpdateMasterClientCert(
+    lu, master_uuid, cluster, feedback_fn,
+    client_cert=pathutils.NODED_CLIENT_CERT_FILE,
+    client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP):
+  """Renews the master's client certificate and propagates the config.
+
+  @type lu: C{LogicalUnit}
+  @param lu: the logical unit holding the config
+  @type master_uuid: string
+  @param master_uuid: the master node's UUID
+  @type cluster: C{objects.Cluster}
+  @param cluster: the cluster's configuration
+  @type feedback_fn: function
+  @param feedback_fn: feedback functions for config updates
+  @type client_cert: string
+  @param client_cert: the path of the client certificate
+  @type client_cert_tmp: string
+  @param client_cert_tmp: the temporary path of the client certificate
+  @rtype: string
+  @return: the digest of the newly created client certificate
+
+  """
+  client_digest = CreateNewClientCert(lu, master_uuid, filename=client_cert_tmp)
+  utils.AddNodeToCandidateCerts(master_uuid, client_digest,
+                                cluster.candidate_certs)
+  # This triggers an update of the config and distribution of it with the old
+  # SSL certificate
+  lu.cfg.Update(cluster, feedback_fn)
+
+  utils.RemoveFile(client_cert)
+  utils.RenameFile(client_cert_tmp, client_cert)
+  return client_digest
+
+
+class LUClusterRenewCrypto(NoHooksLU):
+  """Renew the cluster's crypto tokens.
+
+  Note that most of this operation is done in gnt_cluster.py, this LU only
+  takes care of the renewal of the client SSL certificates.
+
+  """
+  def Exec(self, feedback_fn):
+    master_uuid = self.cfg.GetMasterNode()
+    cluster = self.cfg.GetClusterInfo()
+
+    server_digest = utils.GetCertificateDigest(
+      cert_filename=pathutils.NODED_CERT_FILE)
+    utils.AddNodeToCandidateCerts("%s-SERVER" % master_uuid,
+                                  server_digest,
+                                  cluster.candidate_certs)
+    new_master_digest = _UpdateMasterClientCert(self, master_uuid, cluster,
+                                                feedback_fn)
+
+    cluster.candidate_certs = {master_uuid: new_master_digest}
+    nodes = self.cfg.GetAllNodesInfo()
+    for (node_uuid, node_info) in nodes.items():
+      if node_uuid != master_uuid:
+        new_digest = CreateNewClientCert(self, node_uuid)
+        if node_info.master_candidate:
+          cluster.candidate_certs[node_uuid] = new_digest
+    # Trigger another update of the config now with the new master cert
+    self.cfg.Update(cluster, feedback_fn)
 
 
 class LUClusterActivateMasterIp(NoHooksLU):
@@ -221,8 +285,8 @@ class LUClusterPostInit(LogicalUnit):
                  self.master_ndparams.get(constants.ND_OVS_LINK, None))
       result.Raise("Could not successully configure Open vSwitch")
 
-    AddNodeCertToCandidateCerts(self, self.master_uuid,
-                                self.cfg.GetClusterInfo())
+    cluster = self.cfg.GetClusterInfo()
+    _UpdateMasterClientCert(self, self.master_uuid, cluster, feedback_fn)
 
     return True
 

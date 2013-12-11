@@ -68,6 +68,7 @@ RAPI_OPCODE_EXCLUDE = compat.UniqueFrozenset([
 
   # Very sensitive in nature
   opcodes.OpRestrictedCommand,
+  opcodes.OpClusterRenewCrypto,
 
   # Helper opcodes (e.g. submitted by LUs)
   opcodes.OpClusterVerifyConfig,

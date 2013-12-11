@@ -470,7 +470,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
 
   def __init__(self, mainloop, local_address, port, handler,
                ssl_params=None, ssl_verify_peer=False,
-               request_executor_class=None):
+               request_executor_class=None, ssl_verify_callback=None):
     """Initializes the HTTP server
 
     @type mainloop: ganeti.daemon.Mainloop
@@ -502,7 +502,8 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     self.port = port
     self.handler = handler
     family = netutils.IPAddress.GetAddressFamily(local_address)
-    self.socket = self._CreateSocket(ssl_params, ssl_verify_peer, family)
+    self.socket = self._CreateSocket(ssl_params, ssl_verify_peer, family,
+                                     ssl_verify_callback)
 
     # Allow port to be reused
     self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)

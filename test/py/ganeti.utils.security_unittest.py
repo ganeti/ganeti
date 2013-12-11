@@ -81,9 +81,9 @@ class TestGetCertificateDigest(testutils.GanetiTestCase):
     self._certfilename2 = testutils.TestDataFilename("cert2.pem")
 
   def testGetCertificateDigest(self):
-    digest1 = security.GetClientCertificateDigest(
+    digest1 = security.GetCertificateDigest(
       cert_filename=self._certfilename1)
-    digest2 = security.GetClientCertificateDigest(
+    digest2 = security.GetCertificateDigest(
       cert_filename=self._certfilename2)
     self.assertFalse(digest1 == digest2)
 

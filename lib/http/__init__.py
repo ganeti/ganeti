@@ -567,7 +567,8 @@ class HttpBase(object):
     self._ssl_key = None
     self._ssl_cert = None
 
-  def _CreateSocket(self, ssl_params, ssl_verify_peer, family):
+  def _CreateSocket(self, ssl_params, ssl_verify_peer, family,
+                    ssl_verify_callback):
     """Creates a TCP socket and initializes SSL if needed.
 
     @type ssl_params: HttpSslParams
@@ -580,6 +581,8 @@ class HttpBase(object):
 
     """
     assert family in (socket.AF_INET, socket.AF_INET6)
+    if ssl_verify_peer:
+      assert ssl_verify_callback is not None
 
     self._ssl_params = ssl_params
     sock = socket.socket(family, socket.SOCK_STREAM)
@@ -607,7 +610,7 @@ class HttpBase(object):
     if ssl_verify_peer:
       ctx.set_verify(OpenSSL.SSL.VERIFY_PEER |
                      OpenSSL.SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
-                     self._SSLVerifyCallback)
+                     ssl_verify_callback)
 
       # Also add our certificate as a trusted CA to be sent to the client.
       # This is required at least for GnuTLS clients to work.

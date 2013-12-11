@@ -34,6 +34,7 @@ module Ganeti.Path
   , clusterConfFile
   , watcherPauseFile
   , nodedCertFile
+  , nodedClientCertFile
   , queueDir
   , jobQueueSerialFile
   , jobQueueLockFile 
@@ -108,6 +109,10 @@ watcherPauseFile = dataDirP "watcher.pause"
 -- | Path to the noded certificate.
 nodedCertFile :: IO FilePath
 nodedCertFile = dataDirP "server.pem"
+
+-- | Path to the noded client certificate.
+nodedClientCertFile :: IO FilePath
+nodedClientCertFile = dataDirP "client.pem"
 
 -- | Job queue directory.
 queueDir :: IO FilePath

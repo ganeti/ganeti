@@ -132,6 +132,10 @@ opClusterDeactivateMasterIp :: String
 opClusterDeactivateMasterIp =
   "Deactivate the master IP on the master node."
 
+opClusterRenewCrypto :: String
+opClusterRenewCrypto =
+  "Renews the cluster node's SSL client certificates."
+
 opQuery :: String
 opQuery =
   "Query for resources/items.\n\

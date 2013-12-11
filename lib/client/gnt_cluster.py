@@ -885,7 +885,7 @@ def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
 def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
                  rapi_cert_filename, new_spice_cert, spice_cert_filename,
                  spice_cacert_filename, new_confd_hmac_key, new_cds,
-                 cds_filename, force):
+                 cds_filename, force, new_node_cert):
   """Renews cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -909,6 +909,8 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   @param cds_filename: Path to file containing new cluster domain secret
   @type force: bool
   @param force: Whether to ask user for confirmation
+  @type new_node_cert: string
+  @param new_node_cert: Whether to generate new node certificates
 
   """
   if new_rapi_cert and rapi_cert_filename:
@@ -961,13 +963,12 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
 
   def _RenewCryptoInner(ctx):
     ctx.feedback_fn("Updating certificates and keys")
-    # FIXME: add separate option for client certs
+    # Note: the node certificate will be generated in the LU
     bootstrap.GenerateClusterCrypto(new_cluster_cert,
                                     new_rapi_cert,
                                     new_spice_cert,
                                     new_confd_hmac_key,
                                     new_cds,
-                                    new_cluster_cert,
                                     rapi_cert_pem=rapi_cert_pem,
                                     spice_cert_pem=spice_cert_pem,
                                     spice_cacert_pem=spice_cacert_pem,
@@ -1004,6 +1005,11 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   ToStdout("All requested certificates and keys have been replaced."
            " Running \"gnt-cluster verify\" now is recommended.")
 
+  if new_node_cert:
+    cl = GetClient()
+    renew_op = opcodes.OpClusterRenewCrypto()
+    SubmitOpCode(renew_op, cl=cl)
+
   return 0
 
 
@@ -1020,7 +1026,8 @@ def RenewCrypto(opts, args):
                       opts.new_confd_hmac_key,
                       opts.new_cluster_domain_secret,
                       opts.cluster_domain_secret,
-                      opts.force)
+                      opts.force,
+                      opts.new_node_cert)
 
 
 def _GetEnabledDiskTemplates(opts):
@@ -2137,7 +2144,8 @@ commands = {
     [NEW_CLUSTER_CERT_OPT, NEW_RAPI_CERT_OPT, RAPI_CERT_OPT,
      NEW_CONFD_HMAC_KEY_OPT, FORCE_OPT,
      NEW_CLUSTER_DOMAIN_SECRET_OPT, CLUSTER_DOMAIN_SECRET_OPT,
-     NEW_SPICE_CERT_OPT, SPICE_CERT_OPT, SPICE_CACERT_OPT],
+     NEW_SPICE_CERT_OPT, SPICE_CERT_OPT, SPICE_CACERT_OPT,
+     NEW_NODE_CERT_OPT],
     "[opts...]",
     "Renews cluster certificates, keys and secrets"),
   "epo": (

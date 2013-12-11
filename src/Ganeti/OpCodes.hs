@@ -254,6 +254,11 @@ $(genOpCode "OpCode"
      OpDoc.opClusterDeactivateMasterIp,
      [],
      [])
+  , ("OpClusterRenewCrypto",
+     [t| () |],
+     OpDoc.opClusterRenewCrypto,
+     [],
+     [])
   , ("OpQuery",
      [t| QueryResponse |],
      OpDoc.opQuery,

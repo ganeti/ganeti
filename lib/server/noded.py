@@ -1182,6 +1182,53 @@ def CheckNoded(_, args):
     sys.exit(constants.EXIT_FAILURE)
 
 
+def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
+  """Callback function to verify a peer against the candidate cert map.
+
+  Note that we have a chicken-and-egg problem during cluster init and upgrade.
+  This method checks whether the incoming connection comes from a master
+  candidate by comparing it to the master certificate map in the cluster
+  configuration. However, during cluster init and cluster upgrade there
+  are various RPC calls done to the master node itself, before the candidate
+  certificate list is established and the cluster configuration is written.
+  In this case, we cannot check against the master candidate map.
+
+  This problem is solved by checking whether the candidate map is empty. An
+  initialized 2.11 or higher cluster has at least one entry for the master
+  node in the candidate map. If the map is empty, we know that we are still
+  in the bootstrap/upgrade phase. In this case, we read the server certificate
+  digest and compare it to the incoming request.
+
+  This means that after an upgrade of Ganeti, the system continues to operate
+  like before, using server certificates only. After the client certificates
+  are generated with ``gnt-cluster renew-crypto --new-node-certificates``,
+  RPC communication is switched to using client certificates and the trick of
+  using server certificates does not work anymore.
+
+  @type conn: C{OpenSSL.SSL.Connection}
+  @param conn: the OpenSSL connection object
+  @type cert: C{OpenSSL.X509}
+  @param cert: the peer's SSL certificate
+
+  """
+  # some parameters are unused, but this is the API
+  # pylint: disable=W0613
+  _BOOTSTRAP = "bootstrap"
+  sstore = ssconf.SimpleStore()
+  try:
+    candidate_certs = sstore.GetMasterCandidatesCertMap()
+  except IOError:
+    logging.info("No candidate certificates found. Switching to "
+                 "bootstrap/update mode.")
+    candidate_certs = None
+  if not candidate_certs:
+    candidate_certs = {
+      _BOOTSTRAP: utils.GetCertificateDigest(
+        cert_filename=pathutils.NODED_CERT_FILE)}
+  return cert.digest("sha1") in candidate_certs.values()
+  # pylint: enable=W0613
+
+
 def PrepNoded(options, _):
   """Preparation node daemon function, executed with the PID file held.
 
@@ -1216,7 +1263,8 @@ def PrepNoded(options, _):
   server = \
     http.server.HttpServer(mainloop, options.bind_address, options.port,
                            handler, ssl_params=ssl_params, ssl_verify_peer=True,
-                           request_executor_class=request_executor_class)
+                           request_executor_class=request_executor_class,
+                           ssl_verify_callback=SSLVerifyPeer)
   server.Start()
 
   return (mainloop, server)

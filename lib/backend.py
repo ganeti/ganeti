@@ -1210,11 +1210,11 @@ def GetCryptoTokens(token_requests):
           True, cert_filename,
           "Create new client SSL certificate in %s." % cert_filename)
         tokens.append((token_type,
-                       utils.GetClientCertificateDigest(
+                       utils.GetCertificateDigest(
                          cert_filename=cert_filename)))
       elif action == constants.CRYPTO_ACTION_GET:
         tokens.append((token_type,
-                       utils.GetClientCertificateDigest()))
+                       utils.GetCertificateDigest()))
   return tokens
 
 

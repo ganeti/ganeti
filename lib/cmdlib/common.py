@@ -1251,7 +1251,7 @@ def RemoveNodeCertFromCandidateCerts(node_uuid, cluster):
   utils.RemoveNodeFromCandidateCerts(node_uuid, cluster.candidate_certs)
 
 
-def CreateNewClientCert(self, node_uuid, filename=None):
+def CreateNewClientCert(lu, node_uuid, filename=None):
   """Creates a new client SSL certificate for the node.
 
   @type node_uuid: string
@@ -1265,7 +1265,7 @@ def CreateNewClientCert(self, node_uuid, filename=None):
   options = {}
   if filename:
     options[constants.CRYPTO_OPTION_CERT_FILE] = filename
-  result = self.rpc.call_node_crypto_tokens(
+  result = lu.rpc.call_node_crypto_tokens(
              node_uuid,
              [(constants.CRYPTO_TYPE_SSL_DIGEST,
                constants.CRYPTO_ACTION_CREATE,

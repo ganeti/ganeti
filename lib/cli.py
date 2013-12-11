@@ -126,6 +126,7 @@ __all__ = [
   "NETWORK_OPT",
   "NETWORK6_OPT",
   "NEW_CLUSTER_CERT_OPT",
+  "NEW_NODE_CERT_OPT",
   "NEW_CLUSTER_DOMAIN_SECRET_OPT",
   "NEW_CONFD_HMAC_KEY_OPT",
   "NEW_RAPI_CERT_OPT",
@@ -1396,6 +1397,10 @@ NEW_CLUSTER_CERT_OPT = cli_option("--new-cluster-certificate",
                                   dest="new_cluster_cert",
                                   default=False, action="store_true",
                                   help="Generate a new cluster certificate")
+
+NEW_NODE_CERT_OPT = cli_option(
+  "--new-node-certificates", dest="new_node_cert", default=False,
+  action="store_true", help="Generate new node certificates (for all nodes)")
 
 RAPI_CERT_OPT = cli_option("--rapi-certificate", dest="rapi_cert",
                            default=None,

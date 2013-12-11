@@ -33,6 +33,7 @@ import shutil
 
 from collections import defaultdict
 
+from ganeti.cmdlib import cluster
 from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
@@ -41,7 +42,6 @@ from ganeti import opcodes
 from ganeti import utils
 from ganeti import pathutils
 from ganeti import query
-from ganeti.cmdlib import cluster
 from ganeti.hypervisor import hv_xen
 
 from testsupport import *
@@ -231,7 +231,11 @@ class TestLUClusterDestroy(CmdlibTestCase):
 
 
 class TestLUClusterPostInit(CmdlibTestCase):
-  def testExecution(self):
+
+  @testutils.patch_object(cluster, "_UpdateMasterClientCert")
+  def testExecution(self, update_client_cert_mock):
+    # mock the client certificate creation as it is tested separately
+    update_client_cert_mock.return_value = None
     # For the purpose of this test, return the same certificate digest for all
     # nodes
     self.rpc.call_node_crypto_tokens = \

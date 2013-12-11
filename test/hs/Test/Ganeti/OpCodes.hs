@@ -148,6 +148,7 @@ instance Arbitrary OpCodes.OpCode where
       "OP_TAGS_DEL" ->
         arbitraryOpTagsDel
       "OP_CLUSTER_POST_INIT" -> pure OpCodes.OpClusterPostInit
+      "OP_CLUSTER_RENEW_CRYPTO" -> pure OpCodes.OpClusterRenewCrypto
       "OP_CLUSTER_DESTROY" -> pure OpCodes.OpClusterDestroy
       "OP_CLUSTER_QUERY" -> pure OpCodes.OpClusterQuery
       "OP_CLUSTER_VERIFY" ->

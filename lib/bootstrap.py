@@ -91,12 +91,12 @@ def GenerateHmacKey(file_name):
                   backup=True)
 
 
+# pylint: disable=R0913
 def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
-                          new_confd_hmac_key, new_cds, new_node_client_cert,
+                          new_confd_hmac_key, new_cds,
                           rapi_cert_pem=None, spice_cert_pem=None,
                           spice_cacert_pem=None, cds=None,
                           nodecert_file=pathutils.NODED_CERT_FILE,
-                          nodecert_client_file=pathutils.NODED_CLIENT_CERT_FILE,
                           rapicert_file=pathutils.RAPI_CERT_FILE,
                           spicecert_file=pathutils.SPICE_CERT_FILE,
                           spicecacert_file=pathutils.SPICE_CACERT_FILE,
@@ -114,9 +114,6 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
   @param new_confd_hmac_key: Whether to generate a new HMAC key
   @type new_cds: bool
   @param new_cds: Whether to generate a new cluster domain secret
-  @type new_node_client_cert: bool
-  @param new_node_client_cert: Whether to generate a new node (SSL)
-    client certificate
   @type rapi_cert_pem: string
   @param rapi_cert_pem: New RAPI certificate in PEM format
   @type spice_cert_pem: string
@@ -128,9 +125,6 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
   @param cds: New cluster domain secret
   @type nodecert_file: string
   @param nodecert_file: optional override of the node cert file path
-  @type nodecert_client_file: string
-  @param nodecert_client_file: optional override of the node client certificate
-    file path
   @type rapicert_file: string
   @param rapicert_file: optional override of the rapi cert file path
   @type spicecert_file: string
@@ -141,15 +135,11 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
   @param hmackey_file: optional override of the hmac key file path
 
   """
+  # pylint: disable=R0913
   # noded SSL certificate
   utils.GenerateNewSslCert(
     new_cluster_cert, nodecert_file,
     "Generating new cluster certificate at %s" % nodecert_file)
-
-  # noded client SSL certificate (to be used only by this very node)
-  utils.GenerateNewSslCert(
-    new_node_client_cert, nodecert_client_file,
-    "Generating new node client certificate at %s" % nodecert_client_file)
 
   # confd HMAC key
   if new_confd_hmac_key or not os.path.exists(hmackey_file):
@@ -212,7 +202,7 @@ def _InitGanetiServerSetup(master_name):
 
   """
   # Generate cluster secrets
-  GenerateClusterCrypto(True, False, False, False, False, True)
+  GenerateClusterCrypto(True, False, False, False, False)
 
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:

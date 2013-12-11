@@ -150,6 +150,8 @@ def UpgradeCluster(config_data):
   ial_params = cluster.get("default_iallocator_params", None)
   if not ial_params:
     cluster["default_iallocator_params"] = {}
+  if not "candidate_certs" in cluster:
+    cluster["candidate_certs"] = {}
 
 
 def UpgradeGroups(config_data):
@@ -407,6 +409,8 @@ def DowngradeCluster(config_data):
   DowngradeNdparams(cluster)
   if "default_iallocator_params" in cluster:
     del cluster["default_iallocator_params"]
+  if "candidate_certs" in cluster:
+    del cluster["candidate_certs"]
 
 
 def DowngradeGroups(config_data):
@@ -469,6 +473,7 @@ def main():
   options.data_dir = os.path.abspath(options.data_dir)
   options.CONFIG_DATA_PATH = options.data_dir + "/config.data"
   options.SERVER_PEM_PATH = options.data_dir + "/server.pem"
+  options.CLIENT_PEM_PATH = options.data_dir + "/client.pem"
   options.KNOWN_HOSTS_PATH = options.data_dir + "/known_hosts"
   options.RAPI_CERT_FILE = options.data_dir + "/rapi.pem"
   options.SPICE_CERT_FILE = options.data_dir + "/spice.pem"
@@ -571,9 +576,8 @@ def main():
                     backup=True)
 
     if not options.dry_run:
-      # FIXME: fix node client certificate
       bootstrap.GenerateClusterCrypto(
-        False, False, False, False, False, False,
+        False, False, False, False, False,
         nodecert_file=options.SERVER_PEM_PATH,
         rapicert_file=options.RAPI_CERT_FILE,
         spicecert_file=options.SPICE_CERT_FILE,

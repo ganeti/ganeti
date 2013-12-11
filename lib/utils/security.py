@@ -82,14 +82,10 @@ def RemoveNodeFromCandidateCerts(node_uuid, candidate_certs,
   del candidate_certs[node_uuid]
 
 
-def GetClientCertificateDigest(cert_filename=pathutils.NODED_CERT_FILE):
+def GetCertificateDigest(cert_filename=pathutils.NODED_CLIENT_CERT_FILE):
   """Reads the SSL certificate and returns the sha1 digest.
 
   """
-  # FIXME: This is supposed to read the client certificate, but
-  # in this stage of the patch series there is no client certificate
-  # yet, so we return the digest of the server certificate to get
-  # the rest of the key management infrastructure running.
   cert_plain = io.ReadFile(cert_filename)
   cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
                                          cert_plain)

@@ -39,12 +39,14 @@ from ganeti.constants import \
 import testutils
 
 
+# FIXME: Document what BGL whitelist means
 REQ_BGL_WHITELIST = compat.UniqueFrozenset([
   opcodes.OpClusterActivateMasterIp,
   opcodes.OpClusterDeactivateMasterIp,
   opcodes.OpClusterDestroy,
   opcodes.OpClusterPostInit,
   opcodes.OpClusterRename,
+  opcodes.OpClusterRenewCrypto,
   opcodes.OpInstanceRename,
   opcodes.OpNodeAdd,
   opcodes.OpNodeRemove,

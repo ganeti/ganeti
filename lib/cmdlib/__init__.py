@@ -45,7 +45,8 @@ from ganeti.cmdlib.cluster import \
   LUClusterVerify, \
   LUClusterVerifyConfig, \
   LUClusterVerifyGroup, \
-  LUClusterVerifyDisks
+  LUClusterVerifyDisks, \
+  LUClusterRenewCrypto
 from ganeti.cmdlib.group import \
   LUGroupAdd, \
   LUGroupAssignNodes, \

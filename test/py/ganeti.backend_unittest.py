@@ -77,15 +77,15 @@ class TestX509Certificates(unittest.TestCase):
 class TestGetCryptoTokens(testutils.GanetiTestCase):
 
   def setUp(self):
-    self._get_digest_fn_orig = utils.GetClientCertificateDigest
+    self._get_digest_fn_orig = utils.GetCertificateDigest
     self._create_digest_fn_orig = utils.GenerateNewSslCert
     self._ssl_digest = "12345"
-    utils.GetClientCertificateDigest = mock.Mock(
+    utils.GetCertificateDigest = mock.Mock(
       return_value=self._ssl_digest)
     utils.GenerateNewSslCert = mock.Mock()
 
   def tearDown(self):
-    utils.GetClientCertificateDigest = self._get_digest_fn_orig
+    utils.GetCertificateDigest = self._get_digest_fn_orig
     utils.GenerateNewSslCert = self._create_digest_fn_orig
 
   def testGetSslToken(self):
