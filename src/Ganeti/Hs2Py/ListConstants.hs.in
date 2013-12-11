@@ -30,7 +30,7 @@ module Ganeti.Hs2Py.ListConstants where
 
 import Ganeti.Constants
 import Ganeti.Hs2Py.GenConstants
-import Ganeti.PyValueInstances ()
+import Ganeti.PyValue ()
 
 $(genPyConstants "pyConstants"
   (

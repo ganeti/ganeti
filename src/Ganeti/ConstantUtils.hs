@@ -32,8 +32,7 @@ import Data.Char (ord)
 import Data.Set (Set)
 import qualified Data.Set as Set (difference, fromList, toList, union)
 
-import Ganeti.THH (PyValue(..))
-import Ganeti.PyValueInstances ()
+import Ganeti.PyValue
 
 -- | 'PythonChar' wraps a Python 'char'
 newtype PythonChar = PythonChar { unPythonChar :: Char }

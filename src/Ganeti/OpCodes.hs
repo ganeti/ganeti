@@ -53,7 +53,7 @@ import Ganeti.THH
 
 import qualified Ganeti.Hs2Py.OpDoc as OpDoc
 import Ganeti.OpParams
-import Ganeti.PyValueInstances ()
+import Ganeti.PyValue ()
 import Ganeti.Types
 import Ganeti.Query.Language (queryTypeOpToRaw)
 

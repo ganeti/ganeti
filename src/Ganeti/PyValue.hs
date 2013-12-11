@@ -1,4 +1,4 @@
-{-| PyValueInstances contains instances for the 'PyValue' typeclass.
+{-| PyValue contains instances for the 'PyValue' typeclass.
 
 The typeclass 'PyValue' converts Haskell values to Python values.
 This module contains instances of this typeclass for several generic
@@ -30,7 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances, OverlappingInstances,
              TypeSynonymInstances, IncoherentInstances #-}
-module Ganeti.PyValueInstances where
+module Ganeti.PyValue where
 
 import Data.List (intercalate)
 import Data.Map (Map)

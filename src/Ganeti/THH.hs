@@ -77,7 +77,7 @@ import qualified Text.JSON as JSON
 import Text.JSON.Pretty (pp_value)
 
 import Ganeti.JSON
-import Ganeti.PyValueInstances
+import Ganeti.PyValue
 
 import Data.Maybe
 import Data.Functor ((<$>))

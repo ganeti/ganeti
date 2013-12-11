@@ -701,7 +701,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/OpParams.hs \
 	src/Ganeti/Path.hs \
 	src/Ganeti/Parsers.hs \
-	src/Ganeti/PyValueInstances.hs \
+	src/Ganeti/PyValue.hs \
 	src/Ganeti/Query/Cluster.hs \
 	src/Ganeti/Query/Common.hs \
 	src/Ganeti/Query/Export.hs \
