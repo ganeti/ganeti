@@ -164,6 +164,7 @@ in_chroot -- \
 
 in_chroot -- \
   cabal install --global \
+    blaze-builder==0.3.1.1 \
     network==2.3 \
     regex-pcre==0.94.2 \
     hinotify==0.3.2 \

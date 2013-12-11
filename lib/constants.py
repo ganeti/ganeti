@@ -238,6 +238,7 @@ LUXI_VERSION = CONFIG_VERSION
 LUXI_OVERRIDE = "FORCE_LUXI_SOCKET"
 LUXI_OVERRIDE_MASTER = "master"
 LUXI_OVERRIDE_QUERY = "query"
+LUXI_SOCKET_PERMS = 0660
 
 # one of "no", "yes", "only"
 SYSLOG_USAGE = _autoconf.SYSLOG_USAGE
@@ -608,6 +609,7 @@ RBD_CMD = "rbd"
 # file backend driver
 FD_LOOP = "loop"
 FD_BLKTAP = "blktap"
+FD_DEFAULT = FD_LOOP
 
 # disk access mode
 DISK_RDONLY = "ro"
@@ -1352,6 +1354,12 @@ IDISK_PARAMS_TYPES = {
   IDISK_NAME: VTYPE_MAYBE_STRING,
   }
 IDISK_PARAMS = frozenset(IDISK_PARAMS_TYPES.keys())
+
+MODIFIABLE_IDISK_PARAMS_TYPES = {
+  IDISK_MODE: VTYPE_STRING,
+  IDISK_NAME: VTYPE_STRING,
+  }
+MODIFIABLE_IDISK_PARAMS = frozenset(MODIFIABLE_IDISK_PARAMS_TYPES.keys())
 
 # INIC_* constants are used in opcodes, to create/change nics
 INIC_MAC = "mac"

@@ -721,6 +721,9 @@ class TLMigrateInstance(Tasklet):
 
     self.feedback_fn("* preparing %s to accept the instance" %
                      self.cfg.GetNodeName(self.target_node_uuid))
+    # This fills physical_id slot that may be missing on newly created disks
+    for disk in instance.disks:
+      self.cfg.SetDiskID(disk, target_node)
     result = self.rpc.call_accept_instance(self.target_node_uuid,
                                            self.instance,
                                            migration_info,
