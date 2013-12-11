@@ -567,6 +567,8 @@ $(buildObject "RpcCallJobqueueUpdate" "rpcCallJobqueueUpdate"
   , simpleField "content" [t| String |]
   ])
 
+$(buildObject "RpcResultJobQueueUpdate" "rpcResultJobQueueUpdate" [])
+
 instance RpcCall RpcCallJobqueueUpdate where
   rpcCallName _          = "jobqueue_update"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
@@ -579,10 +581,10 @@ instance RpcCall RpcCallJobqueueUpdate where
       )
     )
 
-instance Rpc RpcCallJobqueueUpdate () where
+instance Rpc RpcCallJobqueueUpdate RpcResultJobQueueUpdate where
   rpcResultFill _ res =
     case res of
-      J.JSNull ->  Right ()
+      J.JSNull ->  Right RpcResultJobQueueUpdate
       _ -> Left $ JsonDecodeError
            ("Expected JSNull, got " ++ show (pp_value res))
 

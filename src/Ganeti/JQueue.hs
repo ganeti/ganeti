@@ -58,14 +58,16 @@ module Ganeti.JQueue
     , startJobs
     ) where
 
+import Control.Arrow (second)
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
+import Data.Functor ((<$))
 import Data.List
 import Data.Maybe
 import Data.Ord (comparing)
 -- workaround what seems to be a bug in ghc 7.4's TH shadowing code
-import Prelude hiding (log, id)
+import Prelude hiding (id, log)
 import System.Directory
 import System.FilePath
 import System.IO.Error (isDoesNotExistError)
@@ -381,8 +383,9 @@ replicateJob :: FilePath -> [Node] -> QueuedJob -> IO [(Node, ERpcError ())]
 replicateJob rootdir mastercandidates job = do
   let filename = liveJobFile rootdir . qjId $ job
       content = Text.JSON.encode . Text.JSON.showJSON $ job
-  result <- executeRpcCall mastercandidates
-              $ RpcCallJobqueueUpdate filename content
+  callresult <- executeRpcCall mastercandidates
+                  $ RpcCallJobqueueUpdate filename content
+  let result = map (second (() <$)) callresult
   logRpcErrors result
   return result
 
