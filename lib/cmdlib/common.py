@@ -1237,3 +1237,41 @@ def AddNodeCertToCandidateCerts(lu, node_uuid, cluster):
   assert crypto_type == constants.CRYPTO_TYPE_SSL_DIGEST
 
   utils.AddNodeToCandidateCerts(node_uuid, digest, cluster.candidate_certs)
+
+
+def RemoveNodeCertFromCandidateCerts(node_uuid, cluster):
+  """Removes the node's certificate from the candidate certificates list.
+
+  @type node_uuid: string
+  @param node_uuid: the node's UUID
+  @type cluster: C{objects.Cluster}
+  @param cluster: the cluster's configuration
+
+  """
+  utils.RemoveNodeFromCandidateCerts(node_uuid, cluster.candidate_certs)
+
+
+def CreateNewClientCert(self, node_uuid, filename=None):
+  """Creates a new client SSL certificate for the node.
+
+  @type node_uuid: string
+  @param node_uuid: the node's UUID
+  @type filename: string
+  @param filename: the certificate's filename
+  @rtype: string
+  @return: the digest of the newly created certificate
+
+  """
+  options = {}
+  if filename:
+    options[constants.CRYPTO_OPTION_CERT_FILE] = filename
+  result = self.rpc.call_node_crypto_tokens(
+             node_uuid,
+             [(constants.CRYPTO_TYPE_SSL_DIGEST,
+               constants.CRYPTO_ACTION_CREATE,
+               options)])
+  result.Raise("Could not create the node's (uuid %s) SSL client"
+               " certificate." % node_uuid)
+  ((crypto_type, new_digest), ) = result.payload
+  assert crypto_type == constants.CRYPTO_TYPE_SSL_DIGEST
+  return new_digest

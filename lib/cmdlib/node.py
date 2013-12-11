@@ -42,7 +42,8 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   CheckInstanceState, INSTANCE_DOWN, GetUpdatedParams, \
   AdjustCandidatePool, CheckIAllocatorOrNode, LoadNodeEvacResult, \
   GetWantedNodes, MapInstanceLvsToNodes, RunPostHook, \
-  FindFaultyInstanceDisks, CheckStorageTypeEnabled, AddNodeCertToCandidateCerts
+  FindFaultyInstanceDisks, CheckStorageTypeEnabled, CreateNewClientCert, \
+  AddNodeCertToCandidateCerts, RemoveNodeCertFromCandidateCerts
 
 
 def _DecideSelfPromotion(lu, exceptions=None):
@@ -416,7 +417,10 @@ class LUNodeAdd(LogicalUnit):
 
     cluster = self.cfg.GetClusterInfo()
     if self.new_node.master_candidate:
-      AddNodeCertToCandidateCerts(self, self.new_node.uuid, cluster)
+      # We create a new certificate even if the node is readded
+      digest = CreateNewClientCert(self, self.new_node.uuid)
+      utils.AddNodeToCandidateCerts(self.new_node.uuid, digest,
+                                    cluster.candidate_certs)
       self.cfg.Update(cluster, feedback_fn)
     else:
       if self.new_node.uuid in cluster.candidate_certs:
@@ -779,6 +783,14 @@ class LUNodeSetParams(LogicalUnit):
       # we locked all nodes, we adjust the CP before updating this node
       if self.lock_all:
         AdjustCandidatePool(self, [node.uuid])
+
+      cluster = self.cfg.GetClusterInfo()
+      # if node gets promoted, grant RPC priviledges
+      if self.new_role == self._ROLE_CANDIDATE:
+        AddNodeCertToCandidateCerts(self, node.uuid, cluster)
+      # if node is demoted, revoke RPC priviledges
+      if self.old_role == self._ROLE_CANDIDATE:
+        RemoveNodeCertFromCandidateCerts(node.uuid, cluster)
 
     if self.op.secondary_ip:
       node.secondary_ip = self.op.secondary_ip
