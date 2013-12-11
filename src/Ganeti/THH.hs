@@ -1,4 +1,4 @@
-{-# LANGUAGE ExistentialQuantification, ParallelListComp, TemplateHaskell #-}
+{-# LANGUAGE ParallelListComp, TemplateHaskell #-}
 
 {-| TemplateHaskell helper for Ganeti Haskell code.
 
@@ -77,6 +77,7 @@ import qualified Text.JSON as JSON
 import Text.JSON.Pretty (pp_value)
 
 import Ganeti.JSON
+import Ganeti.PyValueInstances
 
 import Data.Maybe
 import Data.Functor ((<$>))
@@ -583,20 +584,6 @@ genAllOpIDs = genAllConstr deCamelCase
 type OpParam = (String, Q Type, Q Exp)
 
 -- * Python code generation
-
--- | Converts Haskell values into Python values
---
--- This is necessary for the default values of opcode parameters and
--- return values.  For example, if a default value or return type is a
--- Data.Map, then it must be shown as a Python dictioanry.
-class PyValue a where
-  showValue :: a -> String
-
--- | Encapsulates Python default values
-data PyValueEx = forall a. PyValue a => PyValueEx a
-
-instance PyValue PyValueEx where
-  showValue (PyValueEx x) = showValue x
 
 -- | Transfers opcode data between the opcode description (through
 -- @genOpCode@) and the Python code generation functions.

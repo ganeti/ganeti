@@ -27,9 +27,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.
 
 -}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances, OverlappingInstances,
              TypeSynonymInstances, IncoherentInstances #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Ganeti.PyValueInstances where
 
 import Data.List (intercalate)
@@ -38,7 +38,16 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set (toList)
 
 import Ganeti.BasicTypes
-import Ganeti.THH
+
+-- * PyValue represents data types convertible to Python
+
+-- | Converts Haskell values into Python values
+--
+-- This is necessary for the default values of opcode parameters and
+-- return values.  For example, if a default value or return type is a
+-- Data.Map, then it must be shown as a Python dictioanry.
+class PyValue a where
+  showValue :: a -> String
 
 instance PyValue Bool where
   showValue = show
@@ -79,3 +88,11 @@ instance (PyValue k, PyValue a) => PyValue (Map k a) where
 
 instance PyValue a => PyValue (ListSet a) where
   showValue = showValue . Set.toList . unListSet
+
+-- * PyValue represents an unspecified value convertible to Python
+
+-- | Encapsulates Python default values
+data PyValueEx = forall a. PyValue a => PyValueEx a
+
+instance PyValue PyValueEx where
+  showValue (PyValueEx x) = showValue x
