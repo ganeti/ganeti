@@ -34,6 +34,7 @@ from ganeti import errors
 from ganeti import hypervisor
 from ganeti import netutils
 from ganeti import objects
+from ganeti import pathutils
 from ganeti import utils
 
 
@@ -76,22 +77,49 @@ class TestX509Certificates(unittest.TestCase):
 class TestGetCryptoTokens(testutils.GanetiTestCase):
 
   def setUp(self):
-    self._digest_fn_orig = utils.GetClientCertificateDigest
+    self._get_digest_fn_orig = utils.GetClientCertificateDigest
+    self._create_digest_fn_orig = utils.GenerateNewSslCert
     self._ssl_digest = "12345"
     utils.GetClientCertificateDigest = mock.Mock(
       return_value=self._ssl_digest)
+    utils.GenerateNewSslCert = mock.Mock()
 
   def tearDown(self):
-    utils.GetClientCertificateDigest = self._digest_fn_orig
+    utils.GetClientCertificateDigest = self._get_digest_fn_orig
+    utils.GenerateNewSslCert = self._create_digest_fn_orig
 
-  def testSslToken(self):
-    result = backend.GetCryptoTokens([constants.CRYPTO_TYPE_SSL_DIGEST])
+  def testGetSslToken(self):
+    result = backend.GetCryptoTokens(
+      [(constants.CRYPTO_TYPE_SSL_DIGEST, constants.CRYPTO_ACTION_GET, None)])
     self.assertTrue((constants.CRYPTO_TYPE_SSL_DIGEST, self._ssl_digest)
                     in result)
 
-  def testUnknownToken(self):
+  def testCreateSslToken(self):
+    result = backend.GetCryptoTokens(
+      [(constants.CRYPTO_TYPE_SSL_DIGEST, constants.CRYPTO_ACTION_CREATE,
+        None)])
+    self.assertTrue((constants.CRYPTO_TYPE_SSL_DIGEST, self._ssl_digest)
+                    in result)
+    self.assertTrue(utils.GenerateNewSslCert.assert_calls().once())
+
+  def testCreateSslTokenDifferentFilename(self):
+    result = backend.GetCryptoTokens(
+      [(constants.CRYPTO_TYPE_SSL_DIGEST, constants.CRYPTO_ACTION_CREATE,
+        {constants.CRYPTO_OPTION_CERT_FILE:
+          pathutils.NODED_CLIENT_CERT_FILE_TMP})])
+    self.assertTrue((constants.CRYPTO_TYPE_SSL_DIGEST, self._ssl_digest)
+                    in result)
+    self.assertTrue(utils.GenerateNewSslCert.assert_calls().once())
+
+  def testUnknownTokenType(self):
     self.assertRaises(errors.ProgrammerError,
-                      backend.GetCryptoTokens, ["pink_bunny"])
+                      backend.GetCryptoTokens,
+                      [("pink_bunny", constants.CRYPTO_ACTION_GET, None)])
+
+  def testUnknownAction(self):
+    self.assertRaises(errors.ProgrammerError,
+                      backend.GetCryptoTokens,
+                      [(constants.CRYPTO_TYPE_SSL_DIGEST, "illuminate", None)])
 
 
 class TestNodeVerify(testutils.GanetiTestCase):

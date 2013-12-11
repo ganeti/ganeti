@@ -4157,6 +4157,24 @@ cryptoTypeSsh = "ssh"
 cryptoTypes :: FrozenSet String
 cryptoTypes = ConstantUtils.mkSet [cryptoTypeSslDigest]
 
+-- * Crypto Actions
+-- Actions that can be performed on crypto tokens
+
+cryptoActionGet :: String
+cryptoActionGet = "get"
+
+-- This is 'create and get'
+cryptoActionCreate :: String
+cryptoActionCreate = "create"
+
+cryptoActions :: FrozenSet String
+cryptoActions = ConstantUtils.mkSet [cryptoActionGet, cryptoActionCreate]
+
+-- * Options for CryptoActions
+
+-- Filename of the certificate
+cryptoOptionCertFile :: String
+cryptoOptionCertFile = "cert_file"
 
 -- * SSH key types
 

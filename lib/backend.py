@@ -1162,27 +1162,59 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
   return result
 
 
-def GetCryptoTokens(token_types):
-  """Get the node's public cryptographic tokens.
+def GetCryptoTokens(token_requests):
+  """Perform actions on the node's cryptographic tokens.
 
-  This can be the public ssh key of the node or the certificate digest of
-  the node's public client SSL certificate.
+  Token types can be 'ssl' or 'ssh'. So far only some actions are implemented
+  for 'ssl'. Action 'get' returns the digest of the public client ssl
+  certificate. Action 'create' creates a new client certificate and private key
+  and also returns the digest of the certificate. The third parameter of a
+  token request are optional parameters for the actions, so far only the
+  filename is supported.
 
-  Note: so far, only retrieval of the SSL digest is implemented
-
-  @type token_types: list of strings in constants.CRYPTO_TYPES
-  @param token_types: list of types of requested cryptographic tokens
+  @type token_requests: list of tuples of (string, string, dict), where the
+    first string is in constants.CRYPTO_TYPES, the second in
+    constants.CRYPTO_ACTIONS. The third parameter is a dictionary of string
+    to string.
+  @param token_requests: list of requests of cryptographic tokens and actions
+    to perform on them. The actions come with a dictionary of options.
   @rtype: list of tuples (string, string)
   @return: list of tuples of the token type and the public crypto token
 
   """
+  _VALID_CERT_FILES = [pathutils.NODED_CERT_FILE,
+                       pathutils.NODED_CLIENT_CERT_FILE,
+                       pathutils.NODED_CLIENT_CERT_FILE_TMP]
+  _DEFAULT_CERT_FILE = pathutils.NODED_CLIENT_CERT_FILE
   tokens = []
-  for token_type in token_types:
+  for (token_type, action, options) in token_requests:
     if token_type not in constants.CRYPTO_TYPES:
-      raise errors.ProgrammerError("Token type %s not supported." %
+      raise errors.ProgrammerError("Token type '%s' not supported." %
                                    token_type)
+    if action not in constants.CRYPTO_ACTIONS:
+      raise errors.ProgrammerError("Action '%s' is not supported." %
+                                   action)
     if token_type == constants.CRYPTO_TYPE_SSL_DIGEST:
-      tokens.append((token_type, utils.GetClientCertificateDigest()))
+      if action == constants.CRYPTO_ACTION_CREATE:
+        cert_filename = None
+        if options:
+          cert_filename = options.get(constants.CRYPTO_OPTION_CERT_FILE)
+        if not cert_filename:
+          cert_filename = _DEFAULT_CERT_FILE
+        # For security reason, we don't allow arbitrary filenames
+        if not cert_filename in _VALID_CERT_FILES:
+          raise errors.ProgrammerError(
+            "The certificate file name path '%s' is not allowed." %
+            cert_filename)
+        utils.GenerateNewSslCert(
+          True, cert_filename,
+          "Create new client SSL certificate in %s." % cert_filename)
+        tokens.append((token_type,
+                       utils.GetClientCertificateDigest(
+                         cert_filename=cert_filename)))
+      elif action == constants.CRYPTO_ACTION_GET:
+        tokens.append((token_type,
+                       utils.GetClientCertificateDigest()))
   return tokens
 
 

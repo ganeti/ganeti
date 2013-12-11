@@ -1228,7 +1228,9 @@ def AddNodeCertToCandidateCerts(lu, node_uuid, cluster):
 
   """
   result = lu.rpc.call_node_crypto_tokens(
-             node_uuid, [constants.CRYPTO_TYPE_SSL_DIGEST])
+             node_uuid,
+             [(constants.CRYPTO_TYPE_SSL_DIGEST, constants.CRYPTO_ACTION_GET,
+               None)])
   result.Raise("Could not retrieve the node's (uuid %s) SSL digest."
                % node_uuid)
   ((crypto_type, digest), ) = result.payload

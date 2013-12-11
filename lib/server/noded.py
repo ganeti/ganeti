@@ -869,8 +869,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Gets the node's public crypto tokens.
 
     """
-    token_types = params[0]
-    return backend.GetCryptoTokens(token_types)
+    token_requests = params[0]
+    return backend.GetCryptoTokens(token_requests)
 
   # cluster --------------------------
 
