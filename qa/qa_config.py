@@ -702,6 +702,48 @@ def AcquireInstance(_cfg=None):
   return instance
 
 
+def AcquireManyInstances(num, _cfg=None):
+  """Return instances that are not in use.
+
+  @type num: int
+  @param num: Number of instances; can be 0.
+  @rtype: list of instances
+  @return: C{num} different instances
+
+  """
+
+  if _cfg is None:
+    cfg = GetConfig()
+  else:
+    cfg = _cfg
+
+  # Filter out unwanted instances
+  instances = filter(lambda inst: not inst.used, cfg["instances"])
+
+  if len(instances) < num:
+    raise qa_error.OutOfInstancesError(
+      "Not enough instances left (%d needed, %d remaining)" %
+      (num, len(instances))
+    )
+
+  instances = []
+
+  try:
+    for _ in range(0, num):
+      n = AcquireInstance(_cfg=cfg)
+      instances.append(n)
+  except qa_error.OutOfInstancesError:
+    ReleaseManyInstances(instances)
+    raise
+
+  return instances
+
+
+def ReleaseManyInstances(instances):
+  for instance in instances:
+    instance.Release()
+
+
 def SetExclusiveStorage(value):
   """Wrapper for L{_QaConfig.SetExclusiveStorage}.
 

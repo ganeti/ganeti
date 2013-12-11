@@ -31,7 +31,7 @@ import sys
 import types
 
 import ganeti.constants as constants
-from ganeti.rapi.client import GanetiApiError
+from ganeti.rapi.client import GanetiApiError, NODE_EVAC_PRI, NODE_EVAC_SEC
 
 import qa_config
 import qa_node
@@ -632,6 +632,61 @@ def TestNetworks(client):
   Finish(client, client.DeleteNetwork, NETWORK_NAME)
 
 
+def CreateDRBDInstance(client, node_one, node_two, instance_name):
+  """ Creates a DRBD-enabled instance on the given nodes.
+
+  """
+  Finish(client, client.CreateInstance,
+         "create", instance_name, "drbd", [{"size": "1000"}], [{}],
+         os="debian-image", pnode=node_one, snode=node_two)
+
+
+def TestInstanceMigrations(client, node_one, node_two, node_three,
+                           instance_name):
+  """ Test various operations related to migrating instances.
+
+  @type node_one string
+  @param node_one The name of a node in the cluster.
+  @type node_two string
+  @param node_two The name of another node in the cluster.
+  @type node_three string
+  @param node_three The name of yet another node in the cluster.
+  @type instance_name string
+  @param instance_name An instance name that can be used.
+
+  """
+
+  CreateDRBDInstance(client, node_one, node_two, instance_name)
+  Finish(client, client.FailoverInstance, instance_name)
+  Finish(client, client.DeleteInstance, instance_name)
+
+  CreateDRBDInstance(client, node_one, node_two, instance_name)
+  Finish(client, client.EvacuateNode,
+         node_two, early_release=False, mode=NODE_EVAC_SEC,
+         remote_node=node_three)
+  Finish(client, client.DeleteInstance, instance_name)
+
+  CreateDRBDInstance(client, node_one, node_two, instance_name)
+  Finish(client, client.EvacuateNode,
+         node_one, early_release=False, mode=NODE_EVAC_PRI, iallocator="hail")
+  Finish(client, client.DeleteInstance, instance_name)
+
+  CreateDRBDInstance(client, node_one, node_two, instance_name)
+  Finish(client, client.MigrateInstance,
+         instance_name, cleanup=True, target_node=node_two)
+  Finish(client, client.DeleteInstance, instance_name)
+
+  CreateDRBDInstance(client, node_one, node_two, instance_name)
+  Finish(client, client.MigrateNode,
+         node_one, iallocator="hail", mode="non-live")
+  Finish(client, client.DeleteInstance, instance_name)
+
+  CreateDRBDInstance(client, node_one, node_two, instance_name)
+  Finish(client, client.MigrateNode,
+         node_one, target_node=node_two, mode="non-live")
+  Finish(client, client.DeleteInstance, instance_name)
+
+
 def Workload(client):
   """ The actual RAPI workload used for tests.
 
@@ -661,12 +716,10 @@ def Workload(client):
   RemoveAllInstances(client)
 
   nodes = qa_config.AcquireManyNodes(2)
-  instance_one = qa_config.AcquireInstance()
-  instance_two = qa_config.AcquireInstance()
-  TestSingleInstance(client, instance_one.name, instance_two.name,
+  instances = qa_config.AcquireManyInstances(2)
+  TestSingleInstance(client, instances[0].name, instances[1].name,
                      nodes[0].primary, nodes[1].primary)
-  instance_two.Release()
-  instance_one.Release()
+  qa_config.ReleaseManyInstances(instances)
   qa_config.ReleaseManyNodes(nodes)
 
   # Test all the queries which involve resources that do not have functions
@@ -685,6 +738,13 @@ def Workload(client):
   qa_config.ReleaseManyNodes(nodes)
 
   TestNetworks(client)
+
+  nodes = qa_config.AcquireManyNodes(3)
+  instance = qa_config.AcquireInstance()
+  TestInstanceMigrations(client, nodes[0].primary, nodes[1].primary,
+                         nodes[2].primary, instance.name)
+  instance.Release()
+  qa_config.ReleaseManyNodes(nodes)
 
 
 def Usage():
