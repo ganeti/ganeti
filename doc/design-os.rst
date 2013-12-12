@@ -236,7 +236,7 @@ last one in the instance, after all the user defined ones. On the host side,
 this interface will only be accessible to the host itself, and not routed
 outside the machine.
 On this network interface, the instance will connect using the IP:
-169.254.169.1 and netmask 255.255.255.0.
+169.254.169.253 and netmask 255.255.255.0.
 The host will be on the same network, with the IP address: 169.254.169.254.
 
 The way to create this interface depends on the specific hypervisor being used.
