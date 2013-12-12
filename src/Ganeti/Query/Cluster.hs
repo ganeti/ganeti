@@ -25,13 +25,20 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Query.Cluster
   ( clusterMasterNodeName
+  , isWatcherPaused
   ) where
 
+import Control.Exception (try)
 import Control.Monad (liftM)
+import Data.Char (isSpace)
+import Numeric (readDec)
 
-import Ganeti.Objects
 import Ganeti.Config
 import Ganeti.Errors
+import Ganeti.Logging
+import Ganeti.Objects
+import Ganeti.Path
+import Ganeti.Utils (getCurrentTime)
 
 -- | Get master node name.
 clusterMasterNodeName :: ConfigData -> ErrorResult String
@@ -39,3 +46,19 @@ clusterMasterNodeName cfg =
   let cluster = configCluster cfg
       masterNodeUuid = clusterMasterNode cluster
   in liftM nodeName $ getNode cfg masterNodeUuid
+
+isWatcherPaused :: IO (Maybe Integer)
+isWatcherPaused = do
+  logDebug "Checking if the watcher is paused"
+  wfile <- watcherPauseFile
+  contents <- try $ readFile wfile :: IO (Either IOError String)
+  case contents of
+    Left _ -> return Nothing
+    Right s -> case readDec (dropWhile isSpace s) of
+                 [(n, rest)] | all isSpace rest -> do
+                   now <- getCurrentTime
+                   return $ if n > now then Just n else Nothing
+                 _ -> do
+                   logWarning $ "Watcher pause file contents '" ++ s
+                                 ++ "' not parsable as int"
+                   return Nothing
