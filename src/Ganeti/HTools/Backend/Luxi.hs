@@ -230,7 +230,8 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xcnos <- lvconvert 0 "cnos" cnos
   let node = flip Node.setNodeTags xtags $
              Node.create xname xmtotal xmnode xmfree xdtotal xdfree
-             xctotal xcnos (not live || xdrained) xsptotal xspfree xgdx xexcl_stor
+             xctotal xcnos (not live || xdrained) xsptotal xspfree
+             xgdx xexcl_stor
   return (xname, node)
 
 parseNode _ v = fail ("Invalid node query result: " ++ show v)
