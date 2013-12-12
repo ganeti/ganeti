@@ -626,7 +626,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     immediately after shutdown.
 
     """
-    instance_info = self.GetInstanceInfo(name)
+    instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
 
     if instance_info is None or _IsInstanceShutdown(instance_info[4]):
       logging.info("Failed to shutdown instance %s, not running", name)
@@ -643,7 +643,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @param hvparams: hypervisor parameters of the instance
 
     """
-    instance_info = self.GetInstanceInfo(name)
+    instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
 
     if instance_info is None:
       logging.info("Failed to destroy instance %s, does not exist", name)
@@ -671,7 +671,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       result = self._DestroyInstance(name, hvparams)
 
     if result is not None and result.failed and \
-          self.GetInstanceInfo(name) is not None:
+          self.GetInstanceInfo(name, hvparams=hvparams) is not None:
       raise errors.HypervisorError("Failed to stop instance %s: %s, %s" %
                                    (name, result.fail_reason, result.output))
 
