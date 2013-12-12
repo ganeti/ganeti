@@ -62,6 +62,7 @@ instance Arbitrary OpCodes.TagObject where
   arbitrary = oneof [ OpCodes.TagInstance <$> genFQDN
                     , OpCodes.TagNode     <$> genFQDN
                     , OpCodes.TagGroup    <$> genFQDN
+                    , OpCodes.TagNetwork  <$> genFQDN
                     , pure OpCodes.TagCluster
                     ]
 
@@ -538,6 +539,7 @@ case_TagObject_fail =
     , (TagTypeInstance, J.JSNull)
     , (TagTypeNode,     J.JSNull)
     , (TagTypeGroup,    J.JSNull)
+    , (TagTypeNetwork,  J.JSNull)
     ]
 
 -- | Tests wrong (negative) disk index.
