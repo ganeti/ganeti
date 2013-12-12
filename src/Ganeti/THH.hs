@@ -40,7 +40,8 @@ module Ganeti.THH ( declareSADT
                   , genAllOpIDs
                   , PyValue(..)
                   , PyValueEx(..)
-                  , OpCodeDescriptor
+                  , OpCodeField(..)
+                  , OpCodeDescriptor(..)
                   , genOpCode
                   , genStrOfOp
                   , genStrOfKey
@@ -67,9 +68,11 @@ module Ganeti.THH ( declareSADT
                   , excErrMsg
                   ) where
 
-import Control.Monad (liftM)
+import Control.Applicative
+import Control.Monad
 import Data.Char
 import Data.List
+import Data.Maybe
 import qualified Data.Set as Set
 import Language.Haskell.TH
 
@@ -79,8 +82,6 @@ import Text.JSON.Pretty (pp_value)
 import Ganeti.JSON
 import Ganeti.PyValue
 
-import Data.Maybe
-import Data.Functor ((<$>))
 
 -- * Exported types
 
@@ -585,11 +586,20 @@ type OpParam = (String, Q Type, Q Exp)
 
 -- * Python code generation
 
+data OpCodeField = OpCodeField { ocfName :: String
+                               , ocfType :: String
+                               , ocfDefl :: Maybe PyValueEx
+                               , ocfDoc  :: String
+                               }
+
 -- | Transfers opcode data between the opcode description (through
 -- @genOpCode@) and the Python code generation functions.
-type OpCodeDescriptor =
-  (String, String, String, [String],
-   [String], [Maybe PyValueEx], [String], String)
+data OpCodeDescriptor = OpCodeDescriptor { ocdName   :: String
+                                         , ocdType   :: String
+                                         , ocdDoc    :: String
+                                         , ocdFields :: [OpCodeField]
+                                         , ocdDescr  :: String
+                                         }
 
 -- | Strips out the module name
 --
@@ -682,41 +692,36 @@ maybeApp (Just expr) typ =
 
 -- | Generates a Python type according to whether the field is
 -- optional
-genPyType :: OptionalType -> Q Type -> Q ExpQ
-genPyType opt typ =
-  do t <- typ
-     stringE <$> pyOptionalType (opt /= NotOptional) t
+genPyType' :: OptionalType -> Q Type -> Q Exp
+genPyType' opt typ = typ >>= pyOptionalType (opt /= NotOptional) >>= stringE
 
 -- | Generates Python types from opcode parameters.
-genPyTypes :: [Field] -> Q ExpQ
-genPyTypes fs =
-  listE <$> mapM (\f -> genPyType (fieldIsOptional f) (fieldType f)) fs
+genPyType :: Field -> Q Exp
+genPyType f = genPyType' (fieldIsOptional f) (fieldType f)
 
 -- | Generates Python default values from opcode parameters.
-genPyDefaults :: [Field] -> ExpQ
-genPyDefaults fs =
-  listE $ map (\f -> maybeApp (fieldDefault f) (fieldType f)) fs
+genPyDefault :: Field -> Q Exp
+genPyDefault f = maybeApp (fieldDefault f) (fieldType f)
+
+pyField :: Field -> Q Exp
+pyField f = [| OpCodeField $(stringE (fieldName f))
+                           $(genPyType f)
+                           $(genPyDefault f)
+                           $(stringE (fieldDoc f)) |]
 
 -- | Generates a Haskell function call to "showPyClass" with the
 -- necessary information on how to build the Python class string.
-pyClass :: OpCodeConstructor -> ExpQ
+pyClass :: OpCodeConstructor -> Q Exp
 pyClass (consName, consType, consDoc, consFields, consDscField) =
   do let pyClassVar = varNameE "showPyClass"
          consName' = stringE consName
-     consType' <- genPyType NotOptional consType
+     let consType' = genPyType' NotOptional consType
      let consDoc' = stringE consDoc
-         consFieldNames = listE $ map (stringE . fieldName) consFields
-         consFieldDocs = listE $ map (stringE . fieldDoc) consFields
-     consFieldTypes <- genPyTypes consFields
-     let consFieldDefaults = genPyDefaults consFields
-     [| ($consName',
-         $consType',
-         $consDoc',
-         $consFieldNames,
-         $consFieldTypes,
-         $consFieldDefaults,
-         $consFieldDocs,
-         consDscField) |]
+     [| OpCodeDescriptor $consName'
+                         $consType'
+                         $consDoc'
+                         $(listE $ map pyField consFields)
+                         consDscField |]
 
 -- | Generates a function called "pyClasses" that holds the list of
 -- all the opcode descriptors necessary for generating the Python

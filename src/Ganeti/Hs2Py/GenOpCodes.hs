@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Hs2Py.GenOpCodes (showPyClasses) where
 
-import Data.List (intercalate, zipWith4)
+import Data.List (intercalate)
 
 import Ganeti.OpCodes
 import Ganeti.THH
@@ -42,20 +42,19 @@ pyClassDoc doc
     "  \"\"\"" ++ doc ++ "\"\"\"" ++ "\n"
 
 -- | Generates an opcode parameter in Python.
-pyClassField :: String -> String -> Maybe PyValueEx -> String -> String
-pyClassField name typ Nothing doc =
+pyClassField :: OpCodeField -> String
+pyClassField (OpCodeField name typ Nothing doc) =
   "(" ++ intercalate ", " [show name, "None", typ, show doc] ++ ")"
-  
-pyClassField name typ (Just (PyValueEx def)) doc =
+pyClassField (OpCodeField name typ (Just def) doc) =
   "(" ++ intercalate ", " [show name, showValue def, typ, show doc] ++ ")"
-  
+
 -- | Comma intercalates and indents opcode parameters in Python.
 intercalateIndent :: [String] -> String
 intercalateIndent xs = intercalate "," (map ("\n    " ++) xs)
 
 -- | Generates an opcode as a Python class.
 showPyClass :: OpCodeDescriptor -> String
-showPyClass (name, typ, doc, fields, types, defs, docs, dsc) =
+showPyClass (OpCodeDescriptor name typ doc fields dsc) =
   let
     baseclass
       | name == "OpInstanceMultiAlloc" = "OpInstanceMultiAllocBase"
@@ -71,7 +70,7 @@ showPyClass (name, typ, doc, fields, types, defs, docs, dsc) =
    pyClassDoc doc ++
    opDscField ++
    "  OP_PARAMS = [" ++
-   intercalateIndent (zipWith4 pyClassField fields types defs docs) ++
+   intercalateIndent (map pyClassField fields) ++
    "\n    ]" ++ "\n" ++
    "  OP_RESULT = " ++ typ ++
    withLU ++ "\n\n"
