@@ -311,6 +311,7 @@ $(declareSADT "TagType"
   , ("TagTypeNode",     'C.tagNode)
   , ("TagTypeGroup",    'C.tagNodegroup)
   , ("TagTypeCluster",  'C.tagCluster)
+  , ("TagTypeNetwork",  'C.tagNetwork)
   ])
 $(makeJSONInstance ''TagType)
 
@@ -318,6 +319,7 @@ $(makeJSONInstance ''TagType)
 data TagObject = TagInstance String
                | TagNode     String
                | TagGroup    String
+               | TagNetwork  String
                | TagCluster
                deriving (Show, Eq)
 
@@ -327,12 +329,14 @@ tagTypeOf (TagInstance {}) = TagTypeInstance
 tagTypeOf (TagNode     {}) = TagTypeNode
 tagTypeOf (TagGroup    {}) = TagTypeGroup
 tagTypeOf (TagCluster  {}) = TagTypeCluster
+tagTypeOf (TagNetwork  {}) = TagTypeNetwork
 
 -- | Gets the potential tag object name.
 tagNameOf :: TagObject -> Maybe String
 tagNameOf (TagInstance s) = Just s
 tagNameOf (TagNode     s) = Just s
 tagNameOf (TagGroup    s) = Just s
+tagNameOf (TagNetwork  s) = Just s
 tagNameOf  TagCluster     = Nothing
 
 -- | Builds a 'TagObject' from a tag type and name.
@@ -341,6 +345,8 @@ tagObjectFrom TagTypeInstance (JSString s) =
   return . TagInstance $ fromJSString s
 tagObjectFrom TagTypeNode     (JSString s) = return . TagNode $ fromJSString s
 tagObjectFrom TagTypeGroup    (JSString s) = return . TagGroup $ fromJSString s
+tagObjectFrom TagTypeNetwork  (JSString s) =
+  return . TagNetwork $ fromJSString s
 tagObjectFrom TagTypeCluster   JSNull      = return TagCluster
 tagObjectFrom t v =
   fail $ "Invalid tag type/name combination: " ++ show t ++ "/" ++

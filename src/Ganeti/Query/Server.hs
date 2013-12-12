@@ -150,6 +150,7 @@ handleCall cfg (QueryTags kind) =
                TagGroup    name -> groupTags <$> Config.getGroup    cfg name
                TagNode     name -> nodeTags  <$> Config.getNode     cfg name
                TagInstance name -> instTags  <$> Config.getInstance cfg name
+               TagNetwork  name -> networkTags  <$> Config.getNetwork cfg name
   in return (J.showJSON <$> tags)
 
 handleCall cfg (Query qkind qfields qfilter) = do
