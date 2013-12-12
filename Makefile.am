@@ -129,6 +129,7 @@ HS_DIRS = \
 	src/Ganeti/Storage/Diskstats \
 	src/Ganeti/Storage/Drbd \
 	src/Ganeti/Storage/Lvm \
+	src/Ganeti/THH \
 	test/hs \
 	test/hs/Test \
 	test/hs/Test/Ganeti \
@@ -726,6 +727,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Storage/Lvm/Types.hs \
 	src/Ganeti/Storage/Utils.hs \
 	src/Ganeti/THH.hs \
+	src/Ganeti/THH/PyType.hs \
 	src/Ganeti/Types.hs \
 	src/Ganeti/UDSServer.hs \
 	src/Ganeti/Utils.hs

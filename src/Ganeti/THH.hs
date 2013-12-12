@@ -10,7 +10,7 @@ needs in this module (except the one for unittests).
 
 {-
 
-Copyright (C) 2011, 2012 Google Inc.
+Copyright (C) 2011, 2012, 2013 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -81,6 +81,7 @@ import Text.JSON.Pretty (pp_value)
 
 import Ganeti.JSON
 import Ganeti.PyValue
+import Ganeti.THH.PyType
 
 
 -- * Exported types
@@ -587,7 +588,7 @@ type OpParam = (String, Q Type, Q Exp)
 -- * Python code generation
 
 data OpCodeField = OpCodeField { ocfName :: String
-                               , ocfType :: String
+                               , ocfType :: PyType
                                , ocfDefl :: Maybe PyValueEx
                                , ocfDoc  :: String
                                }
@@ -595,86 +596,11 @@ data OpCodeField = OpCodeField { ocfName :: String
 -- | Transfers opcode data between the opcode description (through
 -- @genOpCode@) and the Python code generation functions.
 data OpCodeDescriptor = OpCodeDescriptor { ocdName   :: String
-                                         , ocdType   :: String
+                                         , ocdType   :: PyType
                                          , ocdDoc    :: String
                                          , ocdFields :: [OpCodeField]
                                          , ocdDescr  :: String
                                          }
-
--- | Strips out the module name
---
--- @
--- pyBaseName "Data.Map" = "Map"
--- @
-pyBaseName :: String -> String
-pyBaseName str =
-  case span (/= '.') str of
-    (x, []) -> x
-    (_, _:x) -> pyBaseName x
-
--- | Converts a Haskell type name into a Python type name.
---
--- @
--- pyTypename "Bool" = "ht.TBool"
--- @
-pyTypeName :: Show a => a -> String
-pyTypeName name =
-  "ht.T" ++ (case pyBaseName (show name) of
-                "()" -> "None"
-                "Map" -> "DictOf"
-                "Set" -> "SetOf"
-                "ListSet" -> "SetOf"
-                "Either" -> "Or"
-                "GenericContainer" -> "DictOf"
-                "JSValue" -> "Any"
-                "JSObject" -> "Object"
-                str -> str)
-
--- | Converts a Haskell type into a Python type.
---
--- @
--- pyType [Int] = "ht.TListOf(ht.TInt)"
--- @
-pyType :: Type -> Q String
-pyType (AppT typ1 typ2) =
-  do t <- pyCall typ1 typ2
-     return $ t ++ ")"
-
-pyType (ConT name) = return (pyTypeName name)
-pyType ListT = return "ht.TListOf"
-pyType (TupleT 0) = return "ht.TNone"
-pyType (TupleT _) = return "ht.TTupleOf"
-pyType typ = error $ "unhandled case for type " ++ show typ
-        
--- | Converts a Haskell type application into a Python type.
---
--- @
--- Maybe Int = "ht.TMaybe(ht.TInt)"
--- @
-pyCall :: Type -> Type -> Q String
-pyCall (AppT typ1 typ2) arg =
-  do t <- pyCall typ1 typ2
-     targ <- pyType arg
-     return $ t ++ ", " ++ targ
-
-pyCall typ1 typ2 =
-  do t1 <- pyType typ1
-     t2 <- pyType typ2
-     return $ t1 ++ "(" ++ t2
-
--- | @pyType opt typ@ converts Haskell type @typ@ into a Python type,
--- where @opt@ determines if the converted type is optional (i.e.,
--- Maybe).
---
--- @
--- pyType False [Int] = "ht.TListOf(ht.TInt)" (mandatory)
--- pyType True [Int] = "ht.TMaybe(ht.TListOf(ht.TInt))" (optional)
--- @
-pyOptionalType :: Bool -> Type -> Q String
-pyOptionalType opt typ
-  | opt = do t <- pyType typ
-             return $ "ht.TMaybe(" ++ t ++ ")"
-  | otherwise = pyType typ
 
 -- | Optionally encapsulates default values in @PyValueEx@.
 --
@@ -689,14 +615,15 @@ maybeApp Nothing _ =
 maybeApp (Just expr) typ =
   [| Just ($(conE (mkName "PyValueEx")) ($expr :: $typ)) |]
 
-
 -- | Generates a Python type according to whether the field is
--- optional
-genPyType' :: OptionalType -> Q Type -> Q Exp
-genPyType' opt typ = typ >>= pyOptionalType (opt /= NotOptional) >>= stringE
+-- optional.
+--
+-- The type of created expression is PyType.
+genPyType' :: OptionalType -> Q Type -> Q PyType
+genPyType' opt typ = typ >>= pyOptionalType (opt /= NotOptional)
 
 -- | Generates Python types from opcode parameters.
-genPyType :: Field -> Q Exp
+genPyType :: Field -> Q PyType
 genPyType f = genPyType' (fieldIsOptional f) (fieldType f)
 
 -- | Generates Python default values from opcode parameters.
@@ -704,8 +631,9 @@ genPyDefault :: Field -> Q Exp
 genPyDefault f = maybeApp (fieldDefault f) (fieldType f)
 
 pyField :: Field -> Q Exp
-pyField f = [| OpCodeField $(stringE (fieldName f))
-                           $(genPyType f)
+pyField f = genPyType f >>= \t ->
+            [| OpCodeField $(stringE (fieldName f))
+                           t
                            $(genPyDefault f)
                            $(stringE (fieldDoc f)) |]
 
@@ -715,10 +643,10 @@ pyClass :: OpCodeConstructor -> Q Exp
 pyClass (consName, consType, consDoc, consFields, consDscField) =
   do let pyClassVar = varNameE "showPyClass"
          consName' = stringE consName
-     let consType' = genPyType' NotOptional consType
+     consType' <- genPyType' NotOptional consType
      let consDoc' = stringE consDoc
      [| OpCodeDescriptor $consName'
-                         $consType'
+                         consType'
                          $consDoc'
                          $(listE $ map pyField consFields)
                          consDscField |]

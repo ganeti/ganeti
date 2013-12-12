@@ -44,9 +44,10 @@ pyClassDoc doc
 -- | Generates an opcode parameter in Python.
 pyClassField :: OpCodeField -> String
 pyClassField (OpCodeField name typ Nothing doc) =
-  "(" ++ intercalate ", " [show name, "None", typ, show doc] ++ ")"
+  "(" ++ intercalate ", " [show name, "None", showValue typ, show doc] ++ ")"
 pyClassField (OpCodeField name typ (Just def) doc) =
-  "(" ++ intercalate ", " [show name, showValue def, typ, show doc] ++ ")"
+  "(" ++ intercalate ", "
+           [show name, showValue def, showValue typ, show doc] ++ ")"
 
 -- | Comma intercalates and indents opcode parameters in Python.
 intercalateIndent :: [String] -> String
@@ -72,7 +73,7 @@ showPyClass (OpCodeDescriptor name typ doc fields dsc) =
    "  OP_PARAMS = [" ++
    intercalateIndent (map pyClassField fields) ++
    "\n    ]" ++ "\n" ++
-   "  OP_RESULT = " ++ typ ++
+   "  OP_RESULT = " ++ showValue typ ++
    withLU ++ "\n\n"
 
 -- | Generates all opcodes as Python classes.
