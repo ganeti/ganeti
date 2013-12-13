@@ -615,6 +615,7 @@ RBD_CMD = "rbd"
 # file backend driver
 FD_LOOP = "loop"
 FD_BLKTAP = "blktap"
+FD_BLKTAP2 = "blktap2"
 FD_DEFAULT = FD_LOOP
 
 # the set of drbd-like disk types
@@ -674,7 +675,7 @@ RIE_CONNECT_RETRIES = 10
 #: Give child process up to 5 seconds to exit after sending a signal
 CHILD_LINGER_TIMEOUT = 5.0
 
-FILE_DRIVER = compat.UniqueFrozenset([FD_LOOP, FD_BLKTAP])
+FILE_DRIVER = compat.UniqueFrozenset([FD_LOOP, FD_BLKTAP, FD_BLKTAP2])
 
 # import/export config options
 INISECT_EXP = "export"

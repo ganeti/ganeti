@@ -91,9 +91,9 @@ DISK_%N_FRONTEND_TYPE
 DISK_%N_BACKEND_TYPE
     How files are visible on the node side. This can be either
     ``block`` (when using block devices) or ``file:type``, where
-    ``type`` is either ``loop`` or ``blktap`` depending on how the
-    hypervisor will be configured.  Note that not all backend types
-    apply to all hypervisors.
+    ``type`` is either ``loop``, ``blktap`` or ``blktap2``, depending on how the
+    hypervisor will be configured.  Note that not all backend types apply to all
+    hypervisors.
 
 NIC_COUNT
     Similar to the ``DISK_COUNT``, this represents the number of NICs

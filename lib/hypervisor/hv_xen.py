@@ -47,6 +47,7 @@ _DISK_LETTERS = string.ascii_lowercase
 _FILE_DRIVER_MAP = {
   constants.FD_LOOP: "file",
   constants.FD_BLKTAP: "tap:aio",
+  constants.FD_BLKTAP2: "tap2:tapdisk:aio",
   }
 
 
