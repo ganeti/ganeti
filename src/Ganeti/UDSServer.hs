@@ -32,6 +32,13 @@ module Ganeti.UDSServer
   , RecvResult(..)
   , MsgKeys(..)
   , strOfKey
+  -- * Unix sockets
+  , openClientSocket
+  , closeClientSocket
+  , openServerSocket
+  , closeServerSocket
+  , acceptSocket
+  -- * Client and server
   , connectClient
   , connectServer
   , acceptClient
@@ -132,6 +139,42 @@ data Server = Server { sSocket :: S.Socket        -- ^ The bound server socket
                      , serverConfig :: ConnectConfig
                      }
 
+-- * Unix sockets
+
+-- | Creates a Unix socket and connects it to the specified @path@,
+-- where @timeout@ specifies the connection timeout.
+openClientSocket
+  :: Int              -- ^ connection timeout
+  -> FilePath         -- ^ socket path
+  -> IO Handle
+openClientSocket tmo path = do
+  sock <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
+  withTimeout tmo "creating a connection" $
+              S.connect sock (S.SockAddrUnix path)
+  S.socketToHandle sock ReadWriteMode
+
+closeClientSocket :: Handle -> IO ()
+closeClientSocket = hClose
+
+-- | Creates a Unix socket and binds it to the specified @path@.
+openServerSocket :: FilePath -> IO S.Socket
+openServerSocket path = do
+  sock <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
+  S.bindSocket sock (S.SockAddrUnix path)
+  return sock
+
+closeServerSocket :: S.Socket -> FilePath -> IO ()
+closeServerSocket sock path = do
+  S.sClose sock
+  removeFile path
+
+acceptSocket :: S.Socket -> IO Handle
+acceptSocket sock = do
+  -- ignore client socket address
+  (clientSock, _) <- S.accept sock
+  S.socketToHandle clientSock ReadWriteMode
+
+-- * Client and server
 
 -- | Connects to the master daemon and returns a Client.
 connectClient
@@ -140,37 +183,29 @@ connectClient
   -> FilePath         -- ^ socket path
   -> IO Client
 connectClient conf tmo path = do
-  s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
-  withTimeout tmo "creating a connection" $
-              S.connect s (S.SockAddrUnix path)
+  h <- openClientSocket tmo path
   rf <- newIORef B.empty
-  h <- S.socketToHandle s ReadWriteMode
   return Client { socket=h, rbuf=rf, clientConfig=conf }
 
 -- | Creates and returns a server endpoint.
 connectServer :: ConnectConfig -> Bool -> FilePath -> IO Server
 connectServer conf setOwner path = do
-  s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
-  S.bindSocket s (S.SockAddrUnix path)
+  s <- openServerSocket path
   when setOwner . setOwnerAndGroupFromNames path (connDaemon conf) $
     ExtraGroup DaemonsGroup
   S.listen s 5 -- 5 is the max backlog
   return Server { sSocket=s, sPath=path, serverConfig=conf }
 
 -- | Closes a server endpoint.
--- FIXME: this should be encapsulated into a nicer type.
 closeServer :: Server -> IO ()
-closeServer server = do
-  S.sClose (sSocket server)
-  removeFile (sPath server)
+closeServer server =
+  closeServerSocket (sSocket server) (sPath server)
 
 -- | Accepts a client
 acceptClient :: Server -> IO Client
 acceptClient s = do
-  -- second return is the address of the client, which we ignore here
-  (client_socket, _) <- S.accept (sSocket s)
+  handle <- acceptSocket (sSocket s)
   new_buffer <- newIORef B.empty
-  handle <- S.socketToHandle client_socket ReadWriteMode
   return Client { socket=handle
                 , rbuf=new_buffer
                 , clientConfig=serverConfig s
@@ -178,7 +213,7 @@ acceptClient s = do
 
 -- | Closes the client socket.
 closeClient :: Client -> IO ()
-closeClient = hClose . socket
+closeClient = closeClientSocket . socket
 
 -- | Sends a message over a transport.
 sendMsg :: Client -> String -> IO ()
