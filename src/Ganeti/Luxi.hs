@@ -156,7 +156,8 @@ $(genLuxiOp "LuxiOp"
      [ simpleField "flag" [t| Bool |] ]
     )
   , (luxiReqSetWatcherPause,
-     [ simpleField "duration" [t| Maybe Double |] ]
+     [ optionalNullSerField
+         $ simpleField "duration" [t| Double |] ]
     )
   ])
 
