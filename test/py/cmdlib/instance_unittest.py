@@ -2243,8 +2243,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                    constants.IDISK_MODE: "invalid",
                                    constants.IDISK_NAME: "new_name"
                                  }]])
-    self.ExecOpCodeExpectOpPrereqError(
-      op, "Disk modification doesn't support additional arbitrary parameters")
+    self.ExecOpCodeExpectException(op, errors.TypeEnforcementError,
+                                   "Unknown parameter 'metavg'")
 
   def testModifyDiskUnsetName(self):
     op = self.CopyOpCode(self.op,

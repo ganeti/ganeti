@@ -950,6 +950,9 @@ fdBlktap = Types.fileDriverToRaw FileBlktap
 fdLoop :: String
 fdLoop = Types.fileDriverToRaw FileLoop
 
+fdDefault :: String
+fdDefault = fdLoop
+
 fileDriver :: FrozenSet String
 fileDriver =
   ConstantUtils.mkSet $
@@ -2311,6 +2314,15 @@ idiskParamsTypes =
 
 idiskParams :: FrozenSet String
 idiskParams = ConstantUtils.mkSet (Map.keys idiskParamsTypes)
+
+modifiableIdiskParamsTypes :: Map String VType
+modifiableIdiskParamsTypes =
+  Map.fromList [(idiskMode, VTypeString),
+                (idiskName, VTypeString)]
+
+modifiableIdiskParams :: FrozenSet String
+modifiableIdiskParams =
+  ConstantUtils.mkSet (Map.keys modifiableIdiskParamsTypes)
 
 -- * inic* constants are used in opcodes, to create/change nics
 
@@ -4312,6 +4324,9 @@ uuidRegex :: String
 uuidRegex = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
 
 -- * Luxi constants
+
+luxiSocketPerms :: Int
+luxiSocketPerms = 0o660
 
 luxiKeyMethod :: String
 luxiKeyMethod = "method"

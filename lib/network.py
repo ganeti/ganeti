@@ -158,7 +158,7 @@ class AddressPool(object):
       assert self.gateway in self.network
 
     if self.network6 and self.gateway6:
-      assert self.gateway6 in self.network6
+      assert self.gateway6 in self.network6 or self.gateway6.is_link_local
 
     return True
 

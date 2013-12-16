@@ -167,6 +167,15 @@ def _GetInstanceList(fn, include_node, _timeout=5):
   return _ParseInstanceList(lines, include_node)
 
 
+def _IsInstanceRunning(instance_info):
+  return instance_info == "r-----" \
+      or instance_info == "-b----"
+
+
+def _IsInstanceShutdown(instance_info):
+  return instance_info == "---s--"
+
+
 def _ParseNodeInfo(info):
   """Return information about the node.
 
@@ -613,24 +622,65 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return self._StopInstance(name, force, instance.hvparams)
 
+  def _ShutdownInstance(self, name, hvparams):
+    """Shutdown an instance if the instance is running.
+
+    @type name: string
+    @param name: name of the instance to stop
+    @type hvparams: dict of string
+    @param hvparams: hypervisor parameters of the instance
+
+    The '-w' flag waits for shutdown to complete which avoids the need
+    to poll in the case where we want to destroy the domain
+    immediately after shutdown.
+
+    """
+    instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
+
+    if instance_info is None or _IsInstanceShutdown(instance_info[4]):
+      logging.info("Failed to shutdown instance %s, not running", name)
+      return None
+
+    return self._RunXen(["shutdown", "-w", name], hvparams)
+
+  def _DestroyInstance(self, name, hvparams):
+    """Destroy an instance if the instance if the instance exists.
+
+    @type name: string
+    @param name: name of the instance to destroy
+    @type hvparams: dict of string
+    @param hvparams: hypervisor parameters of the instance
+
+    """
+    instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
+
+    if instance_info is None:
+      logging.info("Failed to destroy instance %s, does not exist", name)
+      return None
+
+    return self._RunXen(["destroy", name], hvparams)
+
   def _StopInstance(self, name, force, hvparams):
     """Stop an instance.
 
     @type name: string
-    @param name: name of the instance to be shutdown
+    @param name: name of the instance to destroy
+
     @type force: boolean
-    @param force: flag specifying whether shutdown should be forced
+    @param force: whether to do a "hard" stop (destroy)
+
     @type hvparams: dict of string
     @param hvparams: hypervisor parameters of the instance
 
     """
     if force:
-      action = "destroy"
+      result = self._DestroyInstance(name, hvparams)
     else:
-      action = "shutdown"
+      self._ShutdownInstance(name, hvparams)
+      result = self._DestroyInstance(name, hvparams)
 
-    result = self._RunXen([action, name], hvparams)
-    if result.failed:
+    if result is not None and result.failed and \
+          self.GetInstanceInfo(name, hvparams=hvparams) is not None:
       raise errors.HypervisorError("Failed to stop instance %s: %s, %s" %
                                    (name, result.fail_reason, result.output))
 

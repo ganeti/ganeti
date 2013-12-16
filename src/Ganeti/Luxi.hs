@@ -67,6 +67,7 @@ import Text.JSON.Types
 import System.Directory (removeFile)
 import System.IO (hClose, hFlush, hWaitForInput, Handle, IOMode(..))
 import System.IO.Error (isEOFError)
+import System.Posix.Files
 import System.Timeout
 import qualified Network.Socket as S
 
@@ -233,8 +234,9 @@ getServer :: Bool -> FilePath -> IO S.Socket
 getServer setOwner path = do
   s <- S.socket S.AF_UNIX S.Stream S.defaultProtocol
   S.bindSocket s (S.SockAddrUnix path)
-  when setOwner . setOwnerAndGroupFromNames path GanetiLuxid $
-    ExtraGroup DaemonsGroup
+  when setOwner $ do
+    setOwnerAndGroupFromNames path GanetiLuxid $ ExtraGroup DaemonsGroup
+    setFileMode path $ fromIntegral luxiSocketPerms
   S.listen s 5 -- 5 is the max backlog
   return s
 

@@ -2209,7 +2209,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     result = utils.RunCmd([kvm_path] + optlist)
     if result.failed and not can_fail:
       raise errors.HypervisorError("Unable to get KVM %s output" %
-                                    " ".join(cls._KVMOPTS_CMDS[option]))
+                                    " ".join(optlist))
     return result.output
 
   @classmethod
@@ -2461,10 +2461,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     result = self.GetLinuxNodeInfo()
-    # FIXME: this is the global kvm version, but the actual version can be
-    # customized as an hv parameter. we should use the nodegroup's default kvm
-    # path parameter here.
-    _, v_major, v_min, v_rev = self._GetKVMVersion(constants.KVM_PATH)
+    kvmpath = constants.KVM_PATH
+    if hvparams is not None:
+      kvmpath = hvparams.get(constants.HV_KVM_PATH, constants.KVM_PATH)
+    _, v_major, v_min, v_rev = self._GetKVMVersion(kvmpath)
     result[constants.HV_NODEINFO_KEY_VERSION] = (v_major, v_min, v_rev)
     return result
 
@@ -2518,11 +2518,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     msgs = []
-    # FIXME: this is the global kvm binary, but the actual path can be
-    # customized as an hv parameter; we should use the nodegroup's
-    # default kvm path parameter here.
-    if not os.path.exists(constants.KVM_PATH):
-      msgs.append("The KVM binary ('%s') does not exist" % constants.KVM_PATH)
+    kvmpath = constants.KVM_PATH
+    if hvparams is not None:
+      kvmpath = hvparams.get(constants.HV_KVM_PATH, constants.KVM_PATH)
+    if not os.path.exists(kvmpath):
+      msgs.append("The KVM binary ('%s') does not exist" % kvmpath)
     if not os.path.exists(constants.SOCAT_PATH):
       msgs.append("The socat binary ('%s') does not exist" %
                   constants.SOCAT_PATH)

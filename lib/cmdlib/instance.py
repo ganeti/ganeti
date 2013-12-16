@@ -461,7 +461,7 @@ class LUInstanceCreate(LogicalUnit):
     if (not self.op.file_driver and
         self.op.disk_template in [constants.DT_FILE,
                                   constants.DT_SHARED_FILE]):
-      self.op.file_driver = constants.FD_LOOP
+      self.op.file_driver = constants.FD_DEFAULT
 
     ### Node/iallocator related checks
     CheckIAllocatorOrNode(self, "iallocator", "pnode")
@@ -568,7 +568,6 @@ class LUInstanceCreate(LogicalUnit):
 
       if self.op.opportunistic_locking:
         self.opportunistic_locks[locking.LEVEL_NODE] = True
-        self.opportunistic_locks[locking.LEVEL_NODE_RES] = True
     else:
       (self.op.pnode_uuid, self.op.pnode) = \
         ExpandNodeUuidAndName(self.cfg, self.op.pnode_uuid, self.op.pnode)
@@ -606,6 +605,30 @@ class LUInstanceCreate(LogicalUnit):
 
     self.needed_locks[locking.LEVEL_NODE_RES] = \
       CopyLockList(self.needed_locks[locking.LEVEL_NODE])
+
+    # Optimistically acquire shared group locks (we're reading the
+    # configuration).  We can't just call GetInstanceNodeGroups, because the
+    # instance doesn't exist yet. Therefore we lock all node groups of all
+    # nodes we have.
+    if self.needed_locks[locking.LEVEL_NODE] == locking.ALL_SET:
+      # In the case we lock all nodes for opportunistic allocation, we have no
+      # choice than to lock all groups, because they're allocated before nodes.
+      # This is sad, but true. At least we release all those we don't need in
+      # CheckPrereq later.
+      self.needed_locks[locking.LEVEL_NODEGROUP] = locking.ALL_SET
+    else:
+      self.needed_locks[locking.LEVEL_NODEGROUP] = \
+        list(self.cfg.GetNodeGroupsFromNodes(
+          self.needed_locks[locking.LEVEL_NODE]))
+    self.share_locks[locking.LEVEL_NODEGROUP] = 1
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE_RES and \
+      self.opportunistic_locks[locking.LEVEL_NODE]:
+      # Even when using opportunistic locking, we require the same set of
+      # NODE_RES locks as we got NODE locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.owned_locks(locking.LEVEL_NODE)
 
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
@@ -873,6 +896,21 @@ class LUInstanceCreate(LogicalUnit):
     """Check prerequisites.
 
     """
+    # Check that the optimistically acquired groups are correct wrt the
+    # acquired nodes
+    owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
+    owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
+    cur_groups = list(self.cfg.GetNodeGroupsFromNodes(owned_nodes))
+    if not owned_groups.issuperset(cur_groups):
+      raise errors.OpPrereqError("New instance %s's node groups changed since"
+                                 " locks were acquired, current groups are"
+                                 " are '%s', owning groups '%s'; retry the"
+                                 " operation" %
+                                 (self.op.instance_name,
+                                  utils.CommaJoin(cur_groups),
+                                  utils.CommaJoin(owned_groups)),
+                                 errors.ECODE_STATE)
+
     self._CalculateFileStorageDir()
 
     if self.op.mode == constants.INSTANCE_IMPORT:
@@ -985,6 +1023,9 @@ class LUInstanceCreate(LogicalUnit):
     ReleaseLocks(self, locking.LEVEL_NODE, keep=keep_locks)
     ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=keep_locks)
     ReleaseLocks(self, locking.LEVEL_NODE_ALLOC)
+    # Release all unneeded group locks
+    ReleaseLocks(self, locking.LEVEL_NODEGROUP,
+                 keep=self.cfg.GetNodeGroupsFromNodes(keep_locks))
 
     assert (self.owned_locks(locking.LEVEL_NODE) ==
             self.owned_locks(locking.LEVEL_NODE_RES)), \
@@ -1939,7 +1980,6 @@ class LUInstanceMultiAlloc(NoHooksLU):
 
       if self.op.opportunistic_locking:
         self.opportunistic_locks[locking.LEVEL_NODE] = True
-        self.opportunistic_locks[locking.LEVEL_NODE_RES] = True
     else:
       nodeslist = []
       for inst in self.op.instances:
@@ -1955,6 +1995,14 @@ class LUInstanceMultiAlloc(NoHooksLU):
       # Lock resources of instance's primary and secondary nodes (copy to
       # prevent accidential modification)
       self.needed_locks[locking.LEVEL_NODE_RES] = list(nodeslist)
+
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE_RES and \
+      self.opportunistic_locks[locking.LEVEL_NODE]:
+      # Even when using opportunistic locking, we require the same set of
+      # NODE_RES locks as we got NODE locks
+      self.needed_locks[locking.LEVEL_NODE_RES] = \
+        self.owned_locks(locking.LEVEL_NODE)
 
   def CheckPrereq(self):
     """Check prerequisite.
@@ -2314,8 +2362,7 @@ class LUInstanceSetParams(LogicalUnit):
       else:
         raise errors.ProgrammerError("Unhandled operation '%s'" % op)
 
-  @staticmethod
-  def _VerifyDiskModification(op, params, excl_stor):
+  def _VerifyDiskModification(self, op, params, excl_stor):
     """Verifies a disk modification.
 
     """
@@ -2342,10 +2389,12 @@ class LUInstanceSetParams(LogicalUnit):
       if constants.IDISK_SIZE in params:
         raise errors.OpPrereqError("Disk size change not possible, use"
                                    " grow-disk", errors.ECODE_INVAL)
-      if len(params) > 2:
-        raise errors.OpPrereqError("Disk modification doesn't support"
-                                   " additional arbitrary parameters",
-                                   errors.ECODE_INVAL)
+
+      # Disk modification supports changing only the disk name and mode.
+      # Changing arbitrary parameters is allowed only for ext disk template",
+      if self.instance.disk_template != constants.DT_EXT:
+        utils.ForceDictType(params, constants.MODIFIABLE_IDISK_PARAMS_TYPES)
+
       name = params.get(constants.IDISK_NAME, None)
       if name is not None and name.lower() == constants.VALUE_NONE:
         params[constants.IDISK_NAME] = None
@@ -3322,20 +3371,32 @@ class LUInstanceSetParams(LogicalUnit):
     if not self.instance.disks_active:
       ShutdownInstanceDisks(self, self.instance, disks=[disk])
 
-  @staticmethod
-  def _ModifyDisk(idx, disk, params, _):
+  def _ModifyDisk(self, idx, disk, params, _):
     """Modifies a disk.
 
     """
     changes = []
-    mode = params.get(constants.IDISK_MODE, None)
-    if mode:
-      disk.mode = mode
+    if constants.IDISK_MODE in params:
+      disk.mode = params.get(constants.IDISK_MODE)
       changes.append(("disk.mode/%d" % idx, disk.mode))
 
-    name = params.get(constants.IDISK_NAME, None)
-    disk.name = name
-    changes.append(("disk.name/%d" % idx, disk.name))
+    if constants.IDISK_NAME in params:
+      disk.name = params.get(constants.IDISK_NAME)
+      changes.append(("disk.name/%d" % idx, disk.name))
+
+    # Modify arbitrary params in case instance template is ext
+    for key, value in params.iteritems():
+      if (key not in constants.MODIFIABLE_IDISK_PARAMS and
+          self.instance.disk_template == constants.DT_EXT):
+        # stolen from GetUpdatedParams: default means reset/delete
+        if value.lower() == constants.VALUE_DEFAULT:
+          try:
+            del disk.params[key]
+          except KeyError:
+            pass
+        else:
+          disk.params[key] = value
+        changes.append(("disk.params:%s/%d" % (key, idx), value))
 
     return changes
 
