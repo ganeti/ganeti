@@ -241,7 +241,7 @@ def GetArchInfo():
   return _arch
 
 
-def GetClient(query=False):
+def GetClient(query=True):
   """Connects to the a luxi socket and returns a client.
 
   @type query: boolean
