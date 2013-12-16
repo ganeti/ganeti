@@ -317,7 +317,7 @@ queryJobs cfg live fields qfilter =
 fieldsExtractor :: FieldMap a b -> [FilterField] -> QueryFieldsResult
 fieldsExtractor fieldsMap fields =
   let selected = if null fields
-                   then map snd $ Map.toAscList fieldsMap
+                   then map snd . niceSortKey fst $ Map.toList fieldsMap
                    else getSelectedFields fieldsMap fields
   in QueryFieldsResult (map (\(defs, _, _) -> defs) selected)
 
