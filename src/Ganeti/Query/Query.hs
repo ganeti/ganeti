@@ -338,6 +338,10 @@ queryFields (QueryFields (ItemTypeLuxi QRJob) fields) =
 queryFields (QueryFields (ItemTypeOpCode QRExport) fields) =
   Ok $ fieldsExtractor Export.fieldsMap fields
 
+queryFields (QueryFields (ItemTypeOpCode QRInstance) fields) =
+  Ok $ fieldsExtractor Instance.fieldsMap fields
+
+
 queryFields (QueryFields qkind _) =
   Bad . GenericError $ "QueryFields '" ++ show qkind ++ "' not supported"
 
