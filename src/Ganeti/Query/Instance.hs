@@ -170,7 +170,8 @@ instanceFields =
 
   -- Instance parameter fields, generated
   map (buildBeParamField beParamGetter) allBeParamFields ++
-  map (buildHvParamField hvParamGetter) (C.toList C.hvsParameters) ++
+  map (buildHvParamField hvParamGetter)
+      (C.toList C.hvsParameters \\ C.toList C.hvcGlobals) ++
 
   -- Aggregate disk parameter fields
   [ (FieldDefinition "disk_usage" "DiskUsage" QFTUnit
