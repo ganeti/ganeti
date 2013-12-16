@@ -24,6 +24,7 @@
 """
 
 import qa_config
+import qa_tags
 import qa_utils
 
 from qa_utils import AssertCommand
@@ -54,6 +55,14 @@ def TestNetworkAddRemove():
 
   AssertCommand(["gnt-network", "remove", network1])
   AssertCommand(["gnt-network", "remove", network2])
+
+
+def TestNetworkTags():
+  """gnt-network tags"""
+  (network, ) = GetNonexistentNetworks(1)
+  AssertCommand(["gnt-network", "add", "--network", "192.0.2.0/30", network])
+  qa_tags.TestNetworkTags(network)
+  AssertCommand(["gnt-network", "remove", network])
 
 
 def TestNetworkConnect():

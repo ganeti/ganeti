@@ -385,6 +385,7 @@ def RunNetworkTests():
   """
   RunTestIf("network", qa_network.TestNetworkAddRemove)
   RunTestIf("network", qa_network.TestNetworkConnect)
+  RunTestIf(["network", "tags"], qa_network.TestNetworkTags)
 
 
 def RunGroupRwTests():

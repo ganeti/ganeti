@@ -1501,7 +1501,8 @@ class _R_Tags(baserlib.OpcodeResource):
 
     if kind in (constants.TAG_INSTANCE,
                 constants.TAG_NODEGROUP,
-                constants.TAG_NODE):
+                constants.TAG_NODE,
+                constants.TAG_NETWORK):
       if not self.name:
         raise http.HttpBadRequest("Missing name on tag request")
 
@@ -1513,6 +1514,9 @@ class _R_Tags(baserlib.OpcodeResource):
       # TODO: Use query API?
       ssc = ssconf.SimpleStore()
       tags = ssc.GetClusterTags()
+
+    else:
+      raise http.HttpBadRequest("Unhandled tag type!")
 
     return list(tags)
 

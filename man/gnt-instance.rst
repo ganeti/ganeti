@@ -37,7 +37,7 @@ ADD
 | [{-B|\--backend-parameters} *BEPARAMS*]
 | [{-H|\--hypervisor-parameters} *HYPERVISOR* [: option=*value*... ]]
 | [{-O|\--os-parameters} *param*=*value*... ]
-| [\--file-storage-dir *dir\_path*] [\--file-driver {loop \| blktap}]
+| [\--file-storage-dir *dir\_path*] [\--file-driver {loop \| blktap \| blktap2}]
 | {{-n|\--node} *node[:secondary-node]* \| {-I|\--iallocator} *name*}
 | {{-o|\--os-type} *os-type*}
 | [\--submit] [\--print-job-id]
@@ -848,6 +848,9 @@ blktap
     xend).  This user-level disk I/O interface has the advantage of
     better performance. Especially if you use a network file system
     (e.g. NFS) to store your instances this is the recommended choice.
+
+blktap2
+    Analogous to the blktap driver, but used by newer versions of Xen.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.

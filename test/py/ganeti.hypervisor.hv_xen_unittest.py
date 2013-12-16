@@ -311,6 +311,9 @@ class TestGetConfigFileDiskData(unittest.TestCase):
       (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDWR,
                     physical_id=[constants.FD_LOOP]),
        "/tmp/diskThree"),
+      (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDONLY,
+                    physical_id=[constants.FD_BLKTAP2]),
+       "/tmp/diskFour"),
       (objects.Disk(dev_type=constants.DT_FILE, mode=constants.DISK_RDWR,
                     physical_id=[constants.FD_BLKTAP]),
        "/tmp/diskLast"),
@@ -321,7 +324,8 @@ class TestGetConfigFileDiskData(unittest.TestCase):
       "'file:/tmp/diskFirst,sda,w'",
       "'tap:aio:/tmp/diskTwo,sdb,r'",
       "'file:/tmp/diskThree,sdc,w'",
-      "'tap:aio:/tmp/diskLast,sdd,w'",
+      "'tap2:tapdisk:aio:/tmp/diskFour,sdd,r'",
+      "'tap:aio:/tmp/diskLast,sde,w'",
       ])
 
   def testInvalidFileDisk(self):
