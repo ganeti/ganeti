@@ -32,6 +32,7 @@ import platform
 from ganeti import constants
 from ganeti import errors
 from ganeti import luxi
+from ganeti.rpc.errors import NoMasterError
 from ganeti import pathutils
 from ganeti import ssconf
 from ganeti import utils
@@ -266,7 +267,7 @@ def GetClient(query=True):
   # TODO: Cache object?
   try:
     client = luxi.Client(address=address)
-  except luxi.NoMasterError:
+  except NoMasterError:
     ss = ssconf.SimpleStore()
 
     # Try to read ssconf file

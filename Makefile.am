@@ -465,7 +465,9 @@ server_PYTHON = \
 
 rpc_PYTHON = \
 	lib/rpc/__init__.py \
-	lib/rpc/node.py
+	lib/rpc/errors.py \
+	lib/rpc/node.py \
+	lib/rpc/transport.py
 
 pytools_PYTHON = \
 	lib/tools/__init__.py \
