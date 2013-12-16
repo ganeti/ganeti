@@ -48,10 +48,9 @@ To generate unittest coverage reports (``make coverage``), `coverage
 Installation of all dependencies listed here::
 
      $ apt-get install python-setuptools automake git fakeroot
-     $ apt-get install pandoc python-epydoc graphviz
+     $ apt-get install pandoc python-epydoc graphviz python-sphinx
      $ apt-get install python-yaml
-     $ cd / && sudo easy_install \
-               sphinx \
+     $ cd / && easy_install \
                logilab-astng==0.24.1 \
                logilab-common==0.58.3 \
                pylint==0.26.0 \
@@ -91,7 +90,7 @@ required ones from the quick install document) via::
         libghc-test-framework-dev \
         libghc-test-framework-quickcheck2-dev \
         libghc-test-framework-hunit-dev \
-        libghc-temporary-dev \
+        libghc-temporary-dev shelltestrunner \
         hscolour hlint
 
 Or alternatively via ``cabal``::
