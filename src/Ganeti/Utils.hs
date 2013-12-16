@@ -621,7 +621,14 @@ watchFile fpath timeout old read_fn = do
     logDebug $ "Notified of change in " ++ fpath
     fstat' <- getFStatSafe fpath
     writeIORef ref fstat'
-  result <- watchFileEx endtime fstat ref old read_fn
-  killINotify inotify
-  return result
+  newval <- read_fn
+  if newval /= old
+    then do
+      logDebug $ "File " ++ fpath ++ " changed during setup of inotify"
+      killINotify inotify
+      return newval
+    else do
+      result <- watchFileEx endtime fstat ref old read_fn
+      killINotify inotify
+      return result
   
