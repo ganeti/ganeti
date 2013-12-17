@@ -25,7 +25,6 @@
 
 import logging
 
-from ganeti import pathutils
 import ganeti.rpc.transport as t
 
 from ganeti import constants
@@ -157,8 +156,7 @@ class AbstractClient(object):
 
   """
 
-  def __init__(self, address=None, timeouts=None,
-               transport=t.Transport):
+  def __init__(self, timeouts=None, transport=t.Transport):
     """Constructor for the Client class.
 
     Arguments:
@@ -171,22 +169,24 @@ class AbstractClient(object):
     class are used.
 
     """
-    if address is None:
-      address = pathutils.QUERY_SOCKET
-    self.address = address
     self.timeouts = timeouts
     self.transport_class = transport
     self.transport = None
-    self._InitTransport()
     # The version used in RPC communication, by default unused:
     self.version = None
+
+  def _GetAddress(self):
+    """Returns the socket address
+
+    """
+    raise NotImplementedError
 
   def _InitTransport(self):
     """(Re)initialize the transport if needed.
 
     """
     if self.transport is None:
-      self.transport = self.transport_class(self.address,
+      self.transport = self.transport_class(self._GetAddress(),
                                             timeouts=self.timeouts)
 
   def _CloseTransport(self):
