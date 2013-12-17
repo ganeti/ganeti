@@ -267,6 +267,31 @@ class Hostname:
     return hostname
 
 
+def ValidatePortNumber(port):
+  """Returns the validated integer port number if it is valid.
+
+  @param port: the port number to be validated
+
+  @raise ValueError: if the port is not valid
+  @rtype: int
+  @return: the validated value.
+
+  """
+
+  try:
+    port = int(port)
+  except TypeError:
+    raise errors.ProgrammerError("ValidatePortNumber called with non-numeric"
+                                 " type %s." % port.__class__.__name__)
+  except ValueError:
+    raise ValueError("Invalid port value: '%s'" % port)
+
+  if not 0 < port < 2 ** 16:
+    raise ValueError("Invalid port value: '%d'" % port)
+
+  return port
+
+
 def TcpPing(target, port, timeout=10, live_port_needed=False, source=None):
   """Simple ping implementation using TCP connect(2).
 
