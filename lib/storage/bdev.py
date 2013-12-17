@@ -19,7 +19,9 @@
 # 02110-1301, USA.
 
 
-"""Block device abstraction"""
+"""Block device abstraction.
+
+"""
 
 import re
 import errno
@@ -1740,17 +1742,6 @@ def _VolumeLogName(kind, es_name, volume):
   return utils.PathJoin(pathutils.LOG_ES_DIR, basename)
 
 
-DEV_MAP = {
-  constants.DT_PLAIN: LogicalVolume,
-  constants.DT_DRBD8: drbd.DRBD8Dev,
-  constants.DT_BLOCK: PersistentBlockDevice,
-  constants.DT_RBD: RADOSBlockDevice,
-  constants.DT_EXT: ExtStorageDevice,
-  constants.DT_FILE: FileStorage,
-  constants.DT_SHARED_FILE: FileStorage,
-  }
-
-
 def _VerifyDiskType(dev_type):
   if dev_type not in DEV_MAP:
     raise errors.ProgrammerError("Invalid block device type '%s'" % dev_type)
@@ -1828,3 +1819,17 @@ def Create(disk, children, excl_stor):
                                          disk.spindles, disk.params, excl_stor,
                                          disk.dynamic_params)
   return device
+
+# Please keep this at the bottom of the file for visibility.
+DEV_MAP = {
+  constants.DT_PLAIN: LogicalVolume,
+  constants.DT_DRBD8: drbd.DRBD8Dev,
+  constants.DT_BLOCK: PersistentBlockDevice,
+  constants.DT_RBD: RADOSBlockDevice,
+  constants.DT_EXT: ExtStorageDevice,
+  constants.DT_FILE: FileStorage,
+  constants.DT_SHARED_FILE: FileStorage,
+}
+"""Map disk types to disk type classes.
+
+@see: L{Assemble}, L{FindDevice}, L{Create}.""" # pylint: disable=W0105
