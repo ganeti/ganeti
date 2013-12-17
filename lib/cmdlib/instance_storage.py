@@ -285,6 +285,7 @@ def ComputeDiskSizePerVG(disk_template, disks):
     constants.DT_DRBD8: _compute(disks, constants.DRBD_META_SIZE),
     constants.DT_FILE: {},
     constants.DT_SHARED_FILE: {},
+    constants.DT_GLUSTER: {},
     }
 
   if disk_template not in req_size_dict:

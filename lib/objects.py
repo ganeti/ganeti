@@ -586,7 +586,8 @@ class Disk(ConfigObject):
     """
     if self.dev_type in [constants.DT_PLAIN, constants.DT_FILE,
                          constants.DT_BLOCK, constants.DT_RBD,
-                         constants.DT_EXT, constants.DT_SHARED_FILE]:
+                         constants.DT_EXT, constants.DT_SHARED_FILE,
+                         constants.DT_GLUSTER]:
       result = [node_uuid]
     elif self.dev_type in constants.DTS_DRBD:
       result = [self.logical_id[0], self.logical_id[1]]
@@ -663,7 +664,7 @@ class Disk(ConfigObject):
     """
     if self.dev_type in (constants.DT_PLAIN, constants.DT_FILE,
                          constants.DT_RBD, constants.DT_EXT,
-                         constants.DT_SHARED_FILE):
+                         constants.DT_SHARED_FILE, constants.DT_GLUSTER):
       self.size += amount
     elif self.dev_type == constants.DT_DRBD8:
       if self.children:

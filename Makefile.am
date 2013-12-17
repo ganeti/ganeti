@@ -421,7 +421,8 @@ storage_PYTHON = \
 	lib/storage/drbd.py \
 	lib/storage/drbd_info.py \
 	lib/storage/drbd_cmdgen.py \
-	lib/storage/filestorage.py
+	lib/storage/filestorage.py \
+	lib/storage/gluster.py
 
 rapi_PYTHON = \
 	lib/rapi/__init__.py \
@@ -1445,6 +1446,7 @@ python_tests = \
 	test/py/ganeti.storage.container_unittest.py \
 	test/py/ganeti.storage.drbd_unittest.py \
 	test/py/ganeti.storage.filestorage_unittest.py \
+	test/py/ganeti.storage.gluster_unittest.py \
 	test/py/ganeti.tools.burnin_unittest.py \
 	test/py/ganeti.tools.ensure_dirs_unittest.py \
 	test/py/ganeti.tools.node_daemon_setup_unittest.py \

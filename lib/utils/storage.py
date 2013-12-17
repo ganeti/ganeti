@@ -91,6 +91,8 @@ def _GetDefaultStorageUnitForDiskTemplate(cfg, disk_template):
     return (storage_type, cluster.file_storage_dir)
   elif disk_template == constants.DT_SHARED_FILE:
     return (storage_type, cluster.shared_file_storage_dir)
+  elif disk_template == constants.DT_GLUSTER:
+    return (storage_type, constants.GLUSTER_MOUNTPOINT)
   else:
     return (storage_type, None)
 

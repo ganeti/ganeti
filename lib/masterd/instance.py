@@ -1648,6 +1648,7 @@ def ComputeDiskSize(disk_template, disks):
       sum(d[constants.IDISK_SIZE] + constants.DRBD_META_SIZE for d in disks),
     constants.DT_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
     constants.DT_SHARED_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
+    constants.DT_GLUSTER: sum(d[constants.IDISK_SIZE] for d in disks),
     constants.DT_BLOCK: 0,
     constants.DT_RBD: sum(d[constants.IDISK_SIZE] for d in disks),
     constants.DT_EXT: sum(d[constants.IDISK_SIZE] for d in disks),

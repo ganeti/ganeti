@@ -353,6 +353,13 @@ decodeDLId obj lid = do
           path'   <- readJSON path
           return $ LIDSharedFile driver' path'
         _ -> fail "Can't read logical_id for shared file type"
+    DTGluster ->
+      case lid of
+        JSArray [driver, path] -> do
+          driver' <- readJSON driver
+          path'   <- readJSON path
+          return $ LIDSharedFile driver' path'
+        _ -> fail "Can't read logical_id for shared file type"
     DTBlock ->
       case lid of
         JSArray [driver, path] -> do

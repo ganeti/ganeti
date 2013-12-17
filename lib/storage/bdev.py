@@ -39,6 +39,7 @@ from ganeti import serializer
 from ganeti.storage import base
 from ganeti.storage import drbd
 from ganeti.storage.filestorage import FileStorage
+from ganeti.storage.gluster import GlusterStorage
 
 
 class RbdShowmappedJsonError(Exception):
@@ -1667,6 +1668,7 @@ DEV_MAP = {
   constants.DT_EXT: ExtStorageDevice,
   constants.DT_FILE: FileStorage,
   constants.DT_SHARED_FILE: FileStorage,
+  constants.DT_GLUSTER: GlusterStorage,
 }
 """Map disk types to disk type classes.
 

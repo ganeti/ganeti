@@ -849,7 +849,8 @@ class LUInstanceCreate(LogicalUnit):
       # build the full file storage dir path
       joinargs = []
 
-      if self.op.disk_template == constants.DT_SHARED_FILE:
+      if self.op.disk_template in (constants.DT_SHARED_FILE,
+                                   constants.DT_GLUSTER):
         get_fsd_fn = self.cfg.GetSharedFileStorageDir
       else:
         get_fsd_fn = self.cfg.GetFileStorageDir
@@ -1754,7 +1755,7 @@ class LUInstanceMove(LogicalUnit):
 
     for idx, dsk in enumerate(self.instance.disks):
       if dsk.dev_type not in (constants.DT_PLAIN, constants.DT_FILE,
-                              constants.DT_SHARED_FILE):
+                              constants.DT_SHARED_FILE, constants.DT_GLUSTER):
         raise errors.OpPrereqError("Instance disk %d has a complex layout,"
                                    " cannot copy" % idx, errors.ECODE_STATE)
 

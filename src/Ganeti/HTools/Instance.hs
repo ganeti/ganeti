@@ -157,6 +157,7 @@ movableDiskTemplates =
   [ T.DTDrbd8
   , T.DTBlock
   , T.DTSharedFile
+  , T.DTGluster
   , T.DTRbd
   , T.DTExt
   ]

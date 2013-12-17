@@ -297,6 +297,7 @@ $(THH.declareLADT ''String "DiskTemplate"
        , ("DTDrbd8",      "drbd")
        , ("DTRbd",        "rbd")
        , ("DTExt",        "ext")
+       , ("DTGluster",    "gluster")
        ])
 $(THH.makeJSONInstance ''DiskTemplate)
 
@@ -530,6 +531,7 @@ diskTemplateToStorageType DTPlain = StorageLvmVg
 diskTemplateToStorageType DTRbd = StorageRados
 diskTemplateToStorageType DTDiskless = StorageDiskless
 diskTemplateToStorageType DTBlock = StorageBlock
+diskTemplateToStorageType DTGluster = StorageFile
 
 -- | Equips a raw storage unit with its parameters
 addParamsToStorageUnit :: SPExclusiveStorage -> StorageUnitRaw -> StorageUnit

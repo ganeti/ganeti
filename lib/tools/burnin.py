@@ -61,6 +61,7 @@ _SINGLE_NODE_DISK_TEMPLATES = compat.UniqueFrozenset([
   constants.DT_SHARED_FILE,
   constants.DT_EXT,
   constants.DT_RBD,
+  constants.DT_GLUSTER
   ])
 
 _SUPPORTED_DISK_TEMPLATES = compat.UniqueFrozenset([
@@ -71,6 +72,7 @@ _SUPPORTED_DISK_TEMPLATES = compat.UniqueFrozenset([
   constants.DT_PLAIN,
   constants.DT_RBD,
   constants.DT_SHARED_FILE,
+  constants.DT_GLUSTER
   ])
 
 #: Disk templates for which import/export is tested
@@ -78,6 +80,7 @@ _IMPEXP_DISK_TEMPLATES = (_SUPPORTED_DISK_TEMPLATES - frozenset([
   constants.DT_DISKLESS,
   constants.DT_FILE,
   constants.DT_SHARED_FILE,
+  constants.DT_GLUSTER
   ]))
 
 

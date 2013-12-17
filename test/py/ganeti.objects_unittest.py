@@ -746,7 +746,7 @@ class TestDisk(unittest.TestCase):
   def testUpgradeConfigDevTypeLegacyUnchanged(self):
     dev_types = [constants.DT_FILE, constants.DT_SHARED_FILE,
                  constants.DT_BLOCK, constants.DT_EXT,
-                 constants.DT_RBD]
+                 constants.DT_RBD, constants.DT_GLUSTER]
     for dev_type in dev_types:
       disk = objects.Disk()
       disk.dev_type = dev_type
