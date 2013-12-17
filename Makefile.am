@@ -73,6 +73,7 @@ bindir = $(versiondir)/$(BINDIR)
 sbindir = $(versiondir)$(SBINDIR)
 mandir = $(versionedsharedir)/root$(MANDIR)
 pkgpythondir = $(versionedsharedir)/ganeti
+pkgpython_rpc_stubdir = $(versionedsharedir)/ganeti/rpc/stub
 gntpythondir = $(versionedsharedir)
 pkgpython_bindir = $(versionedsharedir)
 gnt_python_sbindir = $(versionedsharedir)
@@ -87,6 +88,7 @@ masterddir = $(pkgpythondir)/masterd
 confddir = $(pkgpythondir)/confd
 rapidir = $(pkgpythondir)/rapi
 rpcdir = $(pkgpythondir)/rpc
+rpc_stubdir = $(pkgpythondir)/rpc/stub
 serverdir = $(pkgpythondir)/server
 watcherdir = $(pkgpythondir)/watcher
 impexpddir = $(pkgpythondir)/impexpd
@@ -177,6 +179,7 @@ DIRS = \
 	lib/masterd \
 	lib/rapi \
 	lib/rpc \
+	lib/rpc/stub \
 	lib/server \
 	lib/storage \
 	lib/tools \
@@ -473,6 +476,9 @@ rpc_PYTHON = \
 	lib/rpc/errors.py \
 	lib/rpc/node.py \
 	lib/rpc/transport.py
+
+rpc_stub_PYTHON = \
+	lib/rpc/stub/__init__.py
 
 pytools_PYTHON = \
 	lib/tools/__init__.py \
@@ -1589,6 +1595,7 @@ all_python_code = \
 	$(rapi_PYTHON) \
 	$(server_PYTHON) \
 	$(rpc_PYTHON) \
+	$(rpc_stub_PYTHON) \
 	$(pytools_PYTHON) \
 	$(http_PYTHON) \
 	$(confd_PYTHON) \
