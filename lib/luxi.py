@@ -91,6 +91,8 @@ class Client(cl.AbstractClient):
 
     """
     super(Client, self).__init__(address, timeouts, transport)
+    # Override the version of the protocol:
+    self.version = constants.LUXI_VERSION
 
   def SetQueueDrainFlag(self, drain_flag):
     return self.CallMethod(REQ_SET_DRAIN_FLAG, (drain_flag, ))

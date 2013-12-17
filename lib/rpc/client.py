@@ -177,6 +177,8 @@ class AbstractClient(object):
     self.transport_class = transport
     self.transport = None
     self._InitTransport()
+    # The version used in RPC communication, by default unused:
+    self.version = None
 
   def _InitTransport(self):
     """(Re)initialize the transport if needed.
@@ -228,4 +230,4 @@ class AbstractClient(object):
       raise errors.ProgrammerError("Invalid parameter passed to CallMethod:"
                                    " expected list, got %s" % type(args))
     return CallRPCMethod(self._SendMethodCall, method, args,
-                         version=constants.LUXI_VERSION)
+                         version=self.version)
