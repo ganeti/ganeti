@@ -63,6 +63,7 @@ $(declareSADT "SSKey"
   , ("SSClusterTags",          'C.ssClusterTags)
   , ("SSFileStorageDir",       'C.ssFileStorageDir)
   , ("SSSharedFileStorageDir", 'C.ssSharedFileStorageDir)
+  , ("SSGlusterStorageDir",    'C.ssGlusterStorageDir)
   , ("SSMasterCandidates",     'C.ssMasterCandidates)
   , ("SSMasterCandidatesIps",  'C.ssMasterCandidatesIps)
   , ("SSMasterIp",             'C.ssMasterIp)

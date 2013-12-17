@@ -444,6 +444,20 @@ def _PrepareSharedFileStorage(
       init_fn=init_fn, acceptance_fn=acceptance_fn)
 
 
+def _PrepareGlusterStorage(
+    enabled_disk_templates, file_storage_dir, init_fn=_InitFileStorageDir,
+    acceptance_fn=None):
+  """Checks if gluster storage is enabled and inits the dir.
+
+  @see: C{_PrepareFileBasedStorage}
+
+  """
+  return _PrepareFileBasedStorage(
+      enabled_disk_templates, file_storage_dir,
+      pathutils.DEFAULT_GLUSTER_STORAGE_DIR, constants.DT_GLUSTER,
+      init_fn=init_fn, acceptance_fn=acceptance_fn)
+
+
 def _InitCheckEnabledDiskTemplates(enabled_disk_templates):
   """Checks the sanity of the enabled disk templates.
 
@@ -507,7 +521,8 @@ def _InitCheckDrbdHelper(drbd_helper, drbd_enabled):
 
 def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 master_netmask, master_netdev, file_storage_dir,
-                shared_file_storage_dir, candidate_pool_size, secondary_ip=None,
+                shared_file_storage_dir, gluster_storage_dir,
+                candidate_pool_size, secondary_ip=None,
                 vg_name=None, beparams=None, nicparams=None, ndparams=None,
                 hvparams=None, diskparams=None, enabled_hypervisors=None,
                 modify_etc_hosts=True, modify_ssh_setup=True,
@@ -748,6 +763,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     cluster_name=clustername.name,
     file_storage_dir=file_storage_dir,
     shared_file_storage_dir=shared_file_storage_dir,
+    gluster_storage_dir=gluster_storage_dir,
     enabled_hypervisors=enabled_hypervisors,
     beparams={constants.PP_DEFAULT: beparams},
     nicparams={constants.PP_DEFAULT: nicparams},

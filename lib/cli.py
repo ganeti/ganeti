@@ -95,6 +95,7 @@ __all__ = [
   "GATEWAY6_OPT",
   "GLOBAL_FILEDIR_OPT",
   "HID_OS_OPT",
+  "GLOBAL_GLUSTER_FILEDIR_OPT",
   "GLOBAL_SHARED_FILEDIR_OPT",
   "HOTPLUG_OPT",
   "HVLIST_OPT",
@@ -1317,6 +1318,15 @@ GLOBAL_SHARED_FILEDIR_OPT = cli_option(
   " shared file-based disks [%s]" %
   pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR,
   metavar="SHAREDDIR", default=None)
+
+GLOBAL_GLUSTER_FILEDIR_OPT = cli_option(
+  "--gluster-storage-dir",
+  dest="gluster_storage_dir",
+  help="Specify the default directory (cluster-wide) for mounting Gluster"
+  " file systems [%s]" %
+  pathutils.DEFAULT_GLUSTER_STORAGE_DIR,
+  metavar="GLUSTERDIR",
+  default=pathutils.DEFAULT_GLUSTER_STORAGE_DIR)
 
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                                    help="Don't modify %s" % pathutils.ETC_HOSTS,

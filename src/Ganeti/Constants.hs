@@ -3466,6 +3466,9 @@ ssFileStorageDir = "file_storage_dir"
 ssSharedFileStorageDir :: String
 ssSharedFileStorageDir = "shared_file_storage_dir"
 
+ssGlusterStorageDir :: String
+ssGlusterStorageDir = "gluster_storage_dir"
+
 ssMasterCandidates :: String
 ssMasterCandidates = "master_candidates"
 

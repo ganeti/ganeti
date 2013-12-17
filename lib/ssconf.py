@@ -46,6 +46,7 @@ _VALID_KEYS = compat.UniqueFrozenset([
   constants.SS_CLUSTER_TAGS,
   constants.SS_FILE_STORAGE_DIR,
   constants.SS_SHARED_FILE_STORAGE_DIR,
+  constants.SS_GLUSTER_STORAGE_DIR,
   constants.SS_MASTER_CANDIDATES,
   constants.SS_MASTER_CANDIDATES_IPS,
   constants.SS_MASTER_IP,
@@ -219,6 +220,12 @@ class SimpleStore(object):
 
     """
     return self._ReadFile(constants.SS_SHARED_FILE_STORAGE_DIR)
+
+  def GetGlusterStorageDir(self):
+    """Get the Gluster storage dir.
+
+    """
+    return self._ReadFile(constants.SS_GLUSTER_STORAGE_DIR)
 
   def GetMasterCandidates(self):
     """Return the list of master candidates.

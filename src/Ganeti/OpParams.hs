@@ -105,6 +105,7 @@ module Ganeti.OpParams
   , pFileStorageDir
   , pClusterFileStorageDir
   , pClusterSharedFileStorageDir
+  , pClusterGlusterStorageDir
   , pVgName
   , pEnabledHypervisors
   , pHypervisor
@@ -566,6 +567,12 @@ pClusterSharedFileStorageDir :: Field
 pClusterSharedFileStorageDir =
   renameField "ClusterSharedFileStorageDir" $
   optionalStringField "shared_file_storage_dir"
+
+-- | Cluster-wide default directory for storing Gluster-backed disks.
+pClusterGlusterStorageDir :: Field
+pClusterGlusterStorageDir =
+  renameField "ClusterGlusterStorageDir" $
+  optionalStringField "gluster_storage_dir"
 
 -- | Volume group name.
 pVgName :: Field

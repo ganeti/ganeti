@@ -174,6 +174,7 @@ INIT
 | [\--no-ssh-init]
 | [\--file-storage-dir *dir*]
 | [\--shared-file-storage-dir *dir*]
+| [\--gluster-storage-dir *dir*]
 | [\--enabled-hypervisors *hypervisors*]
 | [{-H|\--hypervisor-parameters} *hypervisor*:*hv-param*=*value*[,*hv-param*=*value*...]]
 | [{-B|\--backend-parameters} *be-param*=*value*[,*be-param*=*value*...]]
@@ -268,12 +269,13 @@ without modifying the /etc/hosts file.
 The ``--no-ssh-init`` option allows you to initialize the cluster
 without creating or distributing SSH key pairs.
 
-The ``--file-storage-dir`` and ``--shared-file-storage-dir`` options
-allow you set the directory to use for storing the instance disk files
-when using file storage backend, respectively shared file storage
-backend,  for instance disks. Note that the file and shared file storage
-dir must be an allowed directory for file storage. Those directories
-are specified in the ``@SYSCONFDIR@/ganeti/file-storage-paths`` file.
+The ``--file-storage-dir``, ``--shared-file-storage-dir`` and
+``--gluster-storage-dir`` options allow you set the directory to use for
+storing the instance disk files when using respectively the file storage
+backend, the shared file storage backend and the gluster storage
+backend. Note that these directories must be an allowed directory for
+file storage. Those directories are specified in the
+``@SYSCONFDIR@/ganeti/file-storage-paths`` file.
 The file storage directory can also be a subdirectory of an allowed one.
 The file storage directory should be present on all nodes.
 

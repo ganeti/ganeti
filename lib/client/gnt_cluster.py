@@ -273,6 +273,7 @@ def InitCluster(opts, args):
                         master_netdev=master_netdev,
                         file_storage_dir=opts.file_storage_dir,
                         shared_file_storage_dir=opts.shared_file_storage_dir,
+                        gluster_storage_dir=opts.gluster_storage_dir,
                         enabled_hypervisors=hvlist,
                         hvparams=hvparams,
                         beparams=beparams,
@@ -523,6 +524,7 @@ def ShowClusterConfig(opts, args):
       ("drbd usermode helper", result["drbd_usermode_helper"]),
       ("file storage path", result["file_storage_dir"]),
       ("shared file storage path", result["shared_file_storage_dir"]),
+      ("gluster storage path", result["gluster_storage_dir"]),
       ("maintenance of node health", result["maintain_node_health"]),
       ("uid pool", uidpool.FormatUidPool(result["uid_pool"])),
       ("default instance allocator", result["default_iallocator"]),
@@ -2042,7 +2044,7 @@ commands = {
      PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT,
      GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT,
      HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
-     IPOLICY_STD_SPECS_OPT]
+     IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (

@@ -1547,6 +1547,7 @@ class Cluster(TaggableObject):
     "cluster_name",
     "file_storage_dir",
     "shared_file_storage_dir",
+    "gluster_storage_dir",
     "enabled_hypervisors",
     "hvparams",
     "ipolicy",
@@ -1664,6 +1665,10 @@ class Cluster(TaggableObject):
     # shared_file_storage_dir added before 2.5
     if self.shared_file_storage_dir is None:
       self.shared_file_storage_dir = ""
+
+    # gluster_storage_dir added in 2.11
+    if self.gluster_storage_dir is None:
+      self.gluster_storage_dir = ""
 
     if self.use_external_mip_script is None:
       self.use_external_mip_script = False

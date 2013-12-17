@@ -1169,6 +1169,13 @@ class ConfigWriter(object):
     return self._config_data.cluster.shared_file_storage_dir
 
   @locking.ssynchronized(_config_lock, shared=1)
+  def GetGlusterStorageDir(self):
+    """Get the Gluster storage dir for this cluster.
+
+    """
+    return self._config_data.cluster.gluster_storage_dir
+
+  @locking.ssynchronized(_config_lock, shared=1)
   def GetHypervisorType(self):
     """Get the hypervisor type for this cluster.
 
@@ -2596,6 +2603,7 @@ class ConfigWriter(object):
       constants.SS_CLUSTER_TAGS: cluster_tags,
       constants.SS_FILE_STORAGE_DIR: cluster.file_storage_dir,
       constants.SS_SHARED_FILE_STORAGE_DIR: cluster.shared_file_storage_dir,
+      constants.SS_GLUSTER_STORAGE_DIR: cluster.gluster_storage_dir,
       constants.SS_MASTER_CANDIDATES: mc_data,
       constants.SS_MASTER_CANDIDATES_IPS: mc_ips_data,
       constants.SS_MASTER_IP: cluster.master_ip,

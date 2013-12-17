@@ -236,6 +236,7 @@ $(genOpCode "OpCode"
      , pModifyEtcHosts
      , pClusterFileStorageDir
      , pClusterSharedFileStorageDir
+     , pClusterGlusterStorageDir
      ],
      [])
   , ("OpClusterRedistConf",
