@@ -227,7 +227,7 @@ class TestFileDeviceHelper(testutils.GanetiTestCase):
   def _Make(path, create_with_size=None, create_folders=False):
     skip_checks = lambda path: None
     if create_with_size:
-      return filestorage.FileDeviceHelper.Create(
+      return filestorage.FileDeviceHelper.CreateFile(
         path, create_with_size, create_folders=create_folders,
         _file_path_acceptance_fn=skip_checks
       )
