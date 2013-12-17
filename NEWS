@@ -10,6 +10,14 @@ Version 2.11.0 alpha1
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- ``gnt-node list`` no longer shows disk space information for shared file
+  disk templates because it is not a node attribute. (For example, if you have
+  both the file and shared file disk templates enabled, ``gnt-node list`` now
+  only shows information about the file disk template.)
+- The shared file disk template is now in the new 'sharedfile' storage type.
+  As a result, ``gnt-node list-storage -t file`` now only shows information
+  about the file disk template and you may use ``gnt-node list-storage -t
+  sharedfile`` to query storage information for the shared file disk template.
 - Over luxi, syntactially incorrect queries are now rejected as a whole;
   before, a 'SumbmitManyJobs' request was partially executed, if the outer
   structure of the request was syntactically correct. As the luxi protocol
@@ -28,6 +36,11 @@ New features
   instance data.
 - Node groups can be configured to use an SSH port different than the
   default 22.
+- Added experimental support for Gluster distributed file storage as the
+  ``gluster`` disk template under the new ``sharedfile`` storage type through
+  automatic management of per-node FUSE mount points. You can configure the
+  mount point location at ``gnt-cluster init`` time by using the new
+  ``--gluster-storage-dir`` switch.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
