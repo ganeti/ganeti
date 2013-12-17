@@ -857,6 +857,7 @@ class Disk(ConfigObject):
 
     result = list()
     dt_params = disk_params[disk_template]
+
     if disk_template == constants.DT_DRBD8:
       result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.DT_DRBD8], {
         constants.LDP_RESYNC_RATE: dt_params[constants.DRBD_RESYNC_RATE],
@@ -884,25 +885,12 @@ class Disk(ConfigObject):
         constants.LDP_STRIPES: dt_params[constants.DRBD_META_STRIPES],
         }))
 
-    elif disk_template in (constants.DT_FILE, constants.DT_SHARED_FILE):
-      result.append(constants.DISK_LD_DEFAULTS[disk_template])
-
-    elif disk_template == constants.DT_PLAIN:
-      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.DT_PLAIN], {
-        constants.LDP_STRIPES: dt_params[constants.LV_STRIPES],
-        }))
-
-    elif disk_template == constants.DT_BLOCK:
-      result.append(constants.DISK_LD_DEFAULTS[constants.DT_BLOCK])
-
-    elif disk_template == constants.DT_RBD:
-      result.append(FillDict(constants.DISK_LD_DEFAULTS[constants.DT_RBD], {
-        constants.LDP_POOL: dt_params[constants.RBD_POOL],
-        constants.LDP_ACCESS: dt_params[constants.RBD_ACCESS],
-        }))
-
-    elif disk_template == constants.DT_EXT:
-      result.append(constants.DISK_LD_DEFAULTS[constants.DT_EXT])
+    else:
+      defaults = constants.DISK_LD_DEFAULTS[disk_template]
+      values = {}
+      for field in defaults:
+        values[field] = dt_params[field]
+      result.append(FillDict(defaults, values))
 
     return result
 
