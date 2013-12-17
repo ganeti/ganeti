@@ -28,7 +28,9 @@ import unittest
 
 from ganeti import errors
 from ganeti.storage import filestorage
+from ganeti.utils import io
 from ganeti import utils
+from ganeti import constants
 
 import testutils
 
@@ -218,6 +220,95 @@ class TestCheckFileStoragePathExistance(testutils.GanetiTestCase):
                       filestorage.CheckFileStoragePathAcceptance,
                       "/usr/lib64/xyz", _filename=tmpfile)
 
+
+class TestFileDeviceHelper(testutils.GanetiTestCase):
+
+  @staticmethod
+  def _Make(path, create_with_size=None, create_folders=False):
+    skip_checks = lambda path: None
+    if create_with_size:
+      return filestorage.FileDeviceHelper.Create(
+        path, create_with_size, create_folders=create_folders,
+        _file_path_acceptance_fn=skip_checks
+      )
+    else:
+      return filestorage.FileDeviceHelper(path,
+                                          _file_path_acceptance_fn=skip_checks)
+
+  class TempEnvironment(object):
+
+    def __init__(self, create_file=False, delete_file=True):
+      self.create_file = create_file
+      self.delete_file = delete_file
+
+    def __enter__(self):
+      self.directory = tempfile.mkdtemp()
+      self.subdirectory = io.PathJoin(self.directory, "pinky")
+      os.mkdir(self.subdirectory)
+      self.path = io.PathJoin(self.subdirectory, "bunny")
+      self.volume = TestFileDeviceHelper._Make(self.path)
+      if self.create_file:
+        open(self.path, mode="w").close()
+      return self
+
+    def __exit__(self, *args):
+      if self.delete_file:
+        os.unlink(self.path)
+      os.rmdir(self.subdirectory)
+      os.rmdir(self.directory)
+      return False #don't swallow exceptions
+
+  def testOperationsOnNonExistingFiles(self):
+    path = "/e/no/ent"
+    volume = TestFileDeviceHelper._Make(path)
+
+    # These should fail horribly.
+    volume.Exists(assert_exists=False)
+    self.assertRaises(errors.BlockDeviceError, lambda: \
+      volume.Exists(assert_exists=True))
+    self.assertRaises(errors.BlockDeviceError, lambda: \
+      volume.Size())
+    self.assertRaises(errors.BlockDeviceError, lambda: \
+      volume.Grow(0.020, True, False, None))
+
+    # Removing however fails silently.
+    volume.Remove()
+
+    # Make sure we don't create all directories for you unless we ask for it
+    self.assertRaises(errors.BlockDeviceError, lambda: \
+      TestFileDeviceHelper._Make(path, create_with_size=1))
+
+  def testFileCreation(self):
+    with TestFileDeviceHelper.TempEnvironment() as env:
+      TestFileDeviceHelper._Make(env.path, create_with_size=1)
+
+      self.assertTrue(env.volume.Exists())
+      env.volume.Exists(assert_exists=True)
+      self.assertRaises(errors.BlockDeviceError, lambda: \
+        env.volume.Exists(assert_exists=False))
+
+    self.assertRaises(errors.BlockDeviceError, lambda: \
+      TestFileDeviceHelper._Make("/enoent", create_with_size=0.042))
+
+  def testFailSizeDirectory(self):
+  # This should still fail.
+   with TestFileDeviceHelper.TempEnvironment(delete_file=False) as env:
+    self.assertRaises(errors.BlockDeviceError, lambda: \
+      TestFileDeviceHelper._Make(env.subdirectory).Size())
+
+  def testGrowFile(self):
+    with TestFileDeviceHelper.TempEnvironment(create_file=True) as env:
+      self.assertRaises(errors.BlockDeviceError, lambda: \
+        env.volume.Grow(-1, False, True, None))
+
+      env.volume.Grow(2, False, True, None)
+      self.assertEqual(2.0, env.volume.Size() / 1024.0**2)
+
+  def testRemoveFile(self):
+    with TestFileDeviceHelper.TempEnvironment(create_file=True,
+                                              delete_file=False) as env:
+      env.volume.Remove()
+      env.volume.Exists(assert_exists=False)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
