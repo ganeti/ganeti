@@ -28,6 +28,8 @@ import os
 
 from ganeti.utils import io
 from ganeti.utils import x509
+from ganeti import constants
+from ganeti import errors
 from ganeti import pathutils
 
 
@@ -110,3 +112,36 @@ def GenerateNewSslCert(new_cert, cert_filename, log_msg):
 
     logging.debug(log_msg)
     x509.GenerateSelfSignedSslCert(cert_filename)
+
+
+def VerifyCertificate(filename):
+  """Verifies a SSL certificate.
+
+  @type filename: string
+  @param filename: Path to PEM file
+
+  """
+  try:
+    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           io.ReadFile(filename))
+  except Exception, err: # pylint: disable=W0703
+    return (constants.CV_ERROR,
+            "Failed to load X509 certificate %s: %s" % (filename, err))
+
+  (errcode, msg) = \
+    x509.VerifyX509Certificate(cert, constants.SSL_CERT_EXPIRATION_WARN,
+                                constants.SSL_CERT_EXPIRATION_ERROR)
+
+  if msg:
+    fnamemsg = "While verifying %s: %s" % (filename, msg)
+  else:
+    fnamemsg = None
+
+  if errcode is None:
+    return (None, fnamemsg)
+  elif errcode == x509.CERT_WARNING:
+    return (constants.CV_WARNING, fnamemsg)
+  elif errcode == x509.CERT_ERROR:
+    return (constants.CV_ERROR, fnamemsg)
+
+  raise errors.ProgrammerError("Unhandled certificate error code %r" % errcode)

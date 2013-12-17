@@ -22,8 +22,12 @@
 """Script for unittesting the ganeti.utils.storage module"""
 
 import mock
+import os
+import shutil
+import tempfile
 import unittest
 
+from ganeti import constants
 from ganeti.utils import security
 
 import testutils
@@ -86,6 +90,29 @@ class TestGetCertificateDigest(testutils.GanetiTestCase):
     digest2 = security.GetCertificateDigest(
       cert_filename=self._certfilename2)
     self.assertFalse(digest1 == digest2)
+
+
+class TestCertVerification(testutils.GanetiTestCase):
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testVerifyCertificate(self):
+    security.VerifyCertificate(testutils.TestDataFilename("cert1.pem"))
+
+    nonexist_filename = os.path.join(self.tmpdir, "does-not-exist")
+
+    (errcode, msg) = security.VerifyCertificate(nonexist_filename)
+    self.assertEqual(errcode, constants.CV_ERROR)
+
+    # Try to load non-certificate file
+    invalid_cert = testutils.TestDataFilename("bdev-net.txt")
+    (errcode, msg) = security.VerifyCertificate(invalid_cert)
+    self.assertEqual(errcode, constants.CV_ERROR)
 
 
 if __name__ == "__main__":

@@ -21,8 +21,6 @@
 
 """Logical units dealing with the cluster."""
 
-import OpenSSL
-
 import copy
 import itertools
 import logging
@@ -1484,8 +1482,8 @@ class _VerifyErrors(object):
   """
 
   ETYPE_FIELD = "code"
-  ETYPE_ERROR = "ERROR"
-  ETYPE_WARNING = "WARNING"
+  ETYPE_ERROR = constants.CV_ERROR
+  ETYPE_WARNING = constants.CV_WARNING
 
   def _Error(self, ecode, item, msg, *args, **kwargs):
     """Format an error message.
@@ -1527,39 +1525,6 @@ class _VerifyErrors(object):
     if (bool(cond)
         or self.op.debug_simulate_errors): # pylint: disable=E1101
       self._Error(*args, **kwargs)
-
-
-def _VerifyCertificate(filename):
-  """Verifies a certificate for L{LUClusterVerifyConfig}.
-
-  @type filename: string
-  @param filename: Path to PEM file
-
-  """
-  try:
-    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                           utils.ReadFile(filename))
-  except Exception, err: # pylint: disable=W0703
-    return (LUClusterVerifyConfig.ETYPE_ERROR,
-            "Failed to load X509 certificate %s: %s" % (filename, err))
-
-  (errcode, msg) = \
-    utils.VerifyX509Certificate(cert, constants.SSL_CERT_EXPIRATION_WARN,
-                                constants.SSL_CERT_EXPIRATION_ERROR)
-
-  if msg:
-    fnamemsg = "While verifying %s: %s" % (filename, msg)
-  else:
-    fnamemsg = None
-
-  if errcode is None:
-    return (None, fnamemsg)
-  elif errcode == utils.CERT_WARNING:
-    return (LUClusterVerifyConfig.ETYPE_WARNING, fnamemsg)
-  elif errcode == utils.CERT_ERROR:
-    return (LUClusterVerifyConfig.ETYPE_ERROR, fnamemsg)
-
-  raise errors.ProgrammerError("Unhandled certificate error code %r" % errcode)
 
 
 def _GetAllHypervisorParameters(cluster, instances):
@@ -1642,7 +1607,7 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     feedback_fn("* Verifying cluster certificate files")
 
     for cert_filename in pathutils.ALL_CERT_FILES:
-      (errcode, msg) = _VerifyCertificate(cert_filename)
+      (errcode, msg) = utils.VerifyCertificate(cert_filename)
       self._ErrorIf(errcode, constants.CV_ECLUSTERCERT, None, msg, code=errcode)
 
     self._ErrorIf(not utils.CanRead(constants.LUXID_USER,
@@ -2328,6 +2293,86 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       " should node %s fail (%dMiB needed, %dMiB available)",
                       self.cfg.GetNodeName(prinode), needed_mem, n_img.mfree)
 
+  def _VerifyClientCertificates(self, nodes, all_nvinfo):
+    """Verifies the consistency of the client certificates.
+
+    This includes several aspects:
+      - the individual validation of all nodes' certificates
+      - the consistency of the master candidate certificate map
+      - the consistency of the master candidate certificate map with the
+        certificates that the master candidates are actually using.
+
+    @param nodes: the list of nodes to consider in this verification
+    @param all_nvinfo: the map of results of the verify_node call to
+      all nodes
+
+    """
+    candidate_certs = self.cfg.GetClusterInfo().candidate_certs
+    if candidate_certs is None or len(candidate_certs) == 0:
+      self._ErrorIf(
+        True, constants.CV_ECLUSTERCLIENTCERT, None,
+        "The cluster's list of master candidate certificates is empty."
+        "If you just updated the cluster, please run"
+        " 'gnt-cluster renew-crypto --new-node-certificates'.")
+      return
+
+    self._ErrorIf(
+      len(candidate_certs) != len(set(candidate_certs.values())),
+      constants.CV_ECLUSTERCLIENTCERT, None,
+      "There are at least two master candidates configured to use the same"
+      " certificate.")
+
+    # collect the client certificate
+    for node in nodes:
+      if node.offline:
+        continue
+
+      nresult = all_nvinfo[node.uuid]
+      if nresult.fail_msg or not nresult.payload:
+        continue
+
+      (errcode, msg) = nresult.payload.get(constants.NV_CLIENT_CERT, None)
+
+      self._ErrorIf(
+        errcode is not None, constants.CV_ECLUSTERCLIENTCERT, None,
+        "Client certificate of node '%s' failed validation: %s (code '%s')",
+        node.uuid, msg, errcode)
+
+      if not errcode:
+        digest = msg
+        if node.master_candidate:
+          if node.uuid in candidate_certs:
+            self._ErrorIf(
+              digest != candidate_certs[node.uuid],
+              constants.CV_ECLUSTERCLIENTCERT, None,
+              "Client certificate digest of master candidate '%s' does not"
+              " match its entry in the cluster's map of master candidate"
+              " certificates. Expected: %s Got: %s", node.uuid,
+              digest, candidate_certs[node.uuid])
+          else:
+            self._ErrorIf(
+              True, constants.CV_ECLUSTERCLIENTCERT, None,
+              "The master candidate '%s' does not have an entry in the"
+              " map of candidate certificates.", node.uuid)
+            self._ErrorIf(
+              digest in candidate_certs.values(),
+              constants.CV_ECLUSTERCLIENTCERT, None,
+              "Master candidate '%s' is using a certificate of another node.",
+              node.uuid)
+        else:
+          self._ErrorIf(
+            node.uuid in candidate_certs,
+            constants.CV_ECLUSTERCLIENTCERT, None,
+            "Node '%s' is not a master candidate, but still listed in the"
+            " map of master candidate certificates.", node.uuid)
+          self._ErrorIf(
+            (node.uuid not in candidate_certs) and
+              (digest in candidate_certs.values()),
+            constants.CV_ECLUSTERCLIENTCERT, None,
+            "Node '%s' is not a master candidate and is incorrectly using a"
+            " certificate of another node which is master candidate.",
+            node.uuid)
+
   def _VerifyFiles(self, nodes, master_node_uuid, all_nvinfo,
                    (files_all, files_opt, files_mc, files_vm)):
     """Verifies file checksums collected from all nodes.
@@ -2371,7 +2416,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if nresult.fail_msg or not nresult.payload:
         node_files = None
       else:
-        fingerprints = nresult.payload.get(constants.NV_FILELIST, None)
+        fingerprints = nresult.payload.get(constants.NV_FILELIST, {})
         node_files = dict((vcluster.LocalizeVirtualPath(key), value)
                           for (key, value) in fingerprints.items())
         del fingerprints
@@ -3008,6 +3053,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       constants.NV_OSLIST: None,
       constants.NV_VMNODES: self.cfg.GetNonVmCapableNodeList(),
       constants.NV_USERSCRIPTS: user_scripts,
+      constants.NV_CLIENT_CERT: None,
       }
 
     if vg_name is not None:
@@ -3132,6 +3178,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     feedback_fn("* Verifying configuration file consistency")
 
+    self._VerifyClientCertificates(self.my_node_info.values(), all_nvinfo)
     # If not all nodes are being checked, we need to make sure the master node
     # and a non-checked vm_capable node are in the list.
     absent_node_uuids = set(self.all_node_info).difference(self.my_node_info)

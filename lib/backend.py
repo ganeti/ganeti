@@ -930,6 +930,24 @@ def _VerifyNodeInfo(what, vm_capable, result, all_hvparams):
     result[constants.NV_HVINFO] = hyper.GetNodeInfo(hvparams=hvparams)
 
 
+def _VerifyClientCertificate(cert_file=pathutils.NODED_CLIENT_CERT_FILE):
+  """Verify the existance and validity of the client SSL certificate.
+
+  """
+  create_cert_cmd = "gnt-cluster renew-crypto --new-node-certificates"
+  if not os.path.exists(cert_file):
+    return (constants.CV_ERROR,
+            "The client certificate does not exist. Run '%s' to create"
+            "client certificates for all nodes." % create_cert_cmd)
+
+  (errcode, msg) = utils.VerifyCertificate(cert_file)
+  if errcode is not None:
+    return (errcode, msg)
+  else:
+    # if everything is fine, we return the digest to be compared to the config
+    return (None, utils.GetCertificateDigest(cert_filename=cert_file))
+
+
 def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
   """Verify the status of the local node.
 
@@ -982,6 +1000,9 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
     result[constants.NV_FILELIST] = \
       dict((vcluster.MakeVirtualPath(key), value)
            for (key, value) in fingerprints.items())
+
+  if constants.NV_CLIENT_CERT in what:
+    result[constants.NV_CLIENT_CERT] = _VerifyClientCertificate()
 
   if constants.NV_NODELIST in what:
     (nodes, bynode) = what[constants.NV_NODELIST]

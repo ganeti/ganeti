@@ -2684,6 +2684,14 @@ cvTnode = "node"
 cvTinstance :: String
 cvTinstance = "instance"
 
+-- * Cluster Verify error levels
+
+cvWarning :: String
+cvWarning = "WARNING"
+
+cvError :: String
+cvError = "ERROR"
+
 -- * Cluster Verify error codes and documentation
 
 cvEclustercert :: (String, String, String)
@@ -2691,6 +2699,12 @@ cvEclustercert =
   ("cluster",
    Types.cVErrorCodeToRaw CvECLUSTERCERT,
    "Cluster certificate files verification failure")
+
+cvEclusterclientcert :: (String, String, String)
+cvEclusterclientcert =
+  ("cluster",
+   Types.cVErrorCodeToRaw CvECLUSTERCLIENTCERT,
+   "Cluster client certificate files verification failure")
 
 cvEclustercfg :: (String, String, String)
 cvEclustercfg =
@@ -2964,6 +2978,9 @@ cvAllEcodesStrings =
 
 nvBridges :: String
 nvBridges = "bridges"
+
+nvClientCert :: String
+nvClientCert = "client-cert"
 
 nvDrbdhelper :: String
 nvDrbdhelper = "drbd-helper"

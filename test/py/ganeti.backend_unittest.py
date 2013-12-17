@@ -177,6 +177,29 @@ class TestNodeVerify(testutils.GanetiTestCase):
         get_hv_fn=self._GetHypervisor)
     self._mock_hv.Verify.assert_called_with(hvparams=hvparams)
 
+  @testutils.patch_object(utils, "VerifyCertificate")
+  def testVerifyClientCertificateSuccess(self, verif_cert):
+    # mock the underlying x509 verification because the test cert is expired
+    verif_cert.return_value = (None, None)
+    cert_file = testutils.TestDataFilename("cert2.pem")
+    (errcode, digest) = backend._VerifyClientCertificate(cert_file=cert_file)
+    self.assertEqual(None, errcode)
+    self.assertTrue(isinstance(digest, str))
+
+  @testutils.patch_object(utils, "VerifyCertificate")
+  def testVerifyClientCertificateFailed(self, verif_cert):
+    expected_errcode = 666
+    verif_cert.return_value = (expected_errcode,
+                               "The devil created this certificate.")
+    cert_file = testutils.TestDataFilename("cert2.pem")
+    (errcode, digest) = backend._VerifyClientCertificate(cert_file=cert_file)
+    self.assertEqual(expected_errcode, errcode)
+
+  def testVerifyClientCertificateNoCert(self):
+    cert_file = testutils.TestDataFilename("cert-that-does-not-exist.pem")
+    (errcode, digest) = backend._VerifyClientCertificate(cert_file=cert_file)
+    self.assertEqual(constants.CV_ERROR, errcode)
+
 
 def _DefRestrictedCmdOwner():
   return (os.getuid(), os.getgid())

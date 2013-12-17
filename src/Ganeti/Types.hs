@@ -362,6 +362,7 @@ $(THH.makeJSONInstance ''VerifyOptionalChecks)
 $(THH.declareLADT ''String "CVErrorCode"
   [ ("CvECLUSTERCFG",                  "ECLUSTERCFG")
   , ("CvECLUSTERCERT",                 "ECLUSTERCERT")
+  , ("CvECLUSTERCLIENTCERT",           "ECLUSTERCLIENTCERT")
   , ("CvECLUSTERFILECHECK",            "ECLUSTERFILECHECK")
   , ("CvECLUSTERDANGLINGNODES",        "ECLUSTERDANGLINGNODES")
   , ("CvECLUSTERDANGLINGINST",         "ECLUSTERDANGLINGINST")
