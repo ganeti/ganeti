@@ -32,7 +32,7 @@ from ganeti import locking
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import pathutils
-from ganeti import rpc
+import ganeti.rpc.node as rpc
 from ganeti import ssconf
 from ganeti import utils
 

@@ -37,7 +37,7 @@ from ganeti import errors
 from ganeti import constants
 from ganeti import opcodes
 from ganeti import luxi
-from ganeti import rpc
+import ganeti.rpc.node as rpc
 from ganeti import ssh
 from ganeti import compat
 from ganeti import netutils

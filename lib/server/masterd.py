@@ -52,7 +52,7 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import ssconf
 from ganeti import workerpool
-from ganeti import rpc
+import ganeti.rpc.node as rpc
 from ganeti import bootstrap
 from ganeti import netutils
 from ganeti import objects

@@ -87,6 +87,7 @@ httpdir = $(pkgpythondir)/http
 masterddir = $(pkgpythondir)/masterd
 confddir = $(pkgpythondir)/confd
 rapidir = $(pkgpythondir)/rapi
+rpcdir = $(pkgpythondir)/rpc
 serverdir = $(pkgpythondir)/server
 watcherdir = $(pkgpythondir)/watcher
 impexpddir = $(pkgpythondir)/impexpd
@@ -173,6 +174,7 @@ DIRS = \
 	lib/impexpd \
 	lib/masterd \
 	lib/rapi \
+	lib/rpc \
 	lib/server \
 	lib/storage \
 	lib/tools \
@@ -359,7 +361,6 @@ pkgpython_PYTHON = \
 	lib/pathutils.py \
 	lib/qlang.py \
 	lib/query.py \
-	lib/rpc.py \
 	lib/rpc_defs.py \
 	lib/runtime.py \
 	lib/serializer.py \
@@ -461,6 +462,10 @@ server_PYTHON = \
 	lib/server/masterd.py \
 	lib/server/noded.py \
 	lib/server/rapi.py
+
+rpc_PYTHON = \
+	lib/rpc/__init__.py \
+	lib/rpc/node.py
 
 pytools_PYTHON = \
 	lib/tools/__init__.py \
@@ -1545,6 +1550,7 @@ all_python_code = \
 	$(storage_PYTHON) \
 	$(rapi_PYTHON) \
 	$(server_PYTHON) \
+	$(rpc_PYTHON) \
 	$(pytools_PYTHON) \
 	$(http_PYTHON) \
 	$(confd_PYTHON) \

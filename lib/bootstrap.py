@@ -31,7 +31,7 @@ import time
 import tempfile
 
 from ganeti.cmdlib import cluster
-from ganeti import rpc
+import ganeti.rpc.node as rpc
 from ganeti import ssh
 from ganeti import utils
 from ganeti import errors

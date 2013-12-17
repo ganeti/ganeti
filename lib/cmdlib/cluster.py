@@ -42,7 +42,7 @@ from ganeti import objects
 from ganeti import opcodes
 from ganeti import pathutils
 from ganeti import query
-from ganeti import rpc
+import ganeti.rpc.node as rpc
 from ganeti import runtime
 from ganeti import ssh
 from ganeti import uidpool

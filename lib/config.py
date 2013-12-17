@@ -45,7 +45,7 @@ from ganeti import errors
 from ganeti import locking
 from ganeti import utils
 from ganeti import constants
-from ganeti import rpc
+import ganeti.rpc.node as rpc
 from ganeti import objects
 from ganeti import serializer
 from ganeti import uidpool

@@ -27,7 +27,7 @@ from ganeti import errors
 from ganeti import ht
 from ganeti import outils
 from ganeti import opcodes
-from ganeti import rpc
+import ganeti.rpc.node as rpc
 from ganeti import serializer
 from ganeti import utils
 

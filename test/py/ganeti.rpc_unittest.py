@@ -29,7 +29,7 @@ import tempfile
 
 from ganeti import constants
 from ganeti import compat
-from ganeti import rpc
+from ganeti.rpc import node as rpc
 from ganeti import rpc_defs
 from ganeti import http
 from ganeti import errors

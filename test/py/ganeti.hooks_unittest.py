@@ -34,7 +34,7 @@ from ganeti import hooksmaster
 from ganeti import backend
 from ganeti import constants
 from ganeti import cmdlib
-from ganeti import rpc
+from ganeti.rpc import node as rpc
 from ganeti import compat
 from ganeti import pathutils
 from ganeti.constants import HKR_SUCCESS, HKR_FAIL, HKR_SKIP

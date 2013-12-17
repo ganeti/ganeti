@@ -55,7 +55,7 @@ from ganeti import errors
 from ganeti import mcpu
 from ganeti import utils
 from ganeti import jstore
-from ganeti import rpc
+import ganeti.rpc.node as rpc
 from ganeti import runtime
 from ganeti import netutils
 from ganeti import compat

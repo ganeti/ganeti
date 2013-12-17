@@ -35,7 +35,7 @@ from ganeti import errors
 from ganeti import ht
 from ganeti import opcodes
 from ganeti import objects
-from ganeti import rpc
+from ganeti.rpc import node as rpc
 from ganeti import utils
 from ganeti.cmdlib import instance
 

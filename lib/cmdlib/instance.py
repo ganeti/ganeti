@@ -37,7 +37,7 @@ from ganeti import masterd
 from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
-from ganeti import rpc
+import ganeti.rpc.node as rpc
 from ganeti import utils
 
 from ganeti.cmdlib.base import NoHooksLU, LogicalUnit, ResultWithJobs

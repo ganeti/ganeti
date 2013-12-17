@@ -25,7 +25,7 @@
 import mock
 
 from ganeti import objects
-from ganeti import rpc
+from ganeti.rpc import node as rpc
 
 from cmdlib.testsupport.util import patchModule
 

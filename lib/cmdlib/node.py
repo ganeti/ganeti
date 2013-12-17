@@ -30,7 +30,7 @@ from ganeti import locking
 from ganeti import netutils
 from ganeti import objects
 from ganeti import opcodes
-from ganeti import rpc
+import ganeti.rpc.node as rpc
 from ganeti import utils
 from ganeti.masterd import iallocator
 
