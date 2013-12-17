@@ -418,6 +418,29 @@ only need to specify the IP addresses of the RADOS Cluster monitors.
 For more information, please see the `Ceph Docs
 <http://ceph.newdream.net/docs/latest/>`_
 
+Installing Gluster
+++++++++++++++++++
+
+For Gluster integration, Ganeti requires that ``mount.glusterfs`` is
+installed on each and every node. On Debian Wheezy and newer, you can
+satisfy this requirement with the ``glusterfs-client`` package; see
+`this guide
+<http://gluster.org/community/documentation/index.php/Gluster_3.2:_Installing_the_Gluster_Native_Client>`_
+for details.
+
+KVM userspace access
+~~~~~~~~~~~~~~~~~~~~
+
+If your cluster uses a sufficiently new version of KVM (you will need at
+least QEMU 1.3 with Gluster support compiled in), you can take advantage
+of KVM's native support for gluster in order to have better performance
+and avoid potential deadlocks in low memory scenarios.
+
+Please be aware that QEMU 1.3 was released in December 3, 2012, and as
+such this feature is not available out of the box in any distribution
+older than Ubuntu 13.04; this excludes Ubuntu 12.04 LTS and Debian
+Wheezy.
+
 Other required software
 +++++++++++++++++++++++
 

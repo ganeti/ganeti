@@ -678,12 +678,16 @@ class ConfigWriter(object):
             constants.NDS_PARAMETER_TYPES)
     _helper_ipolicy("cluster", cluster.ipolicy, True)
 
-    if constants.DT_RBD in cluster.diskparams:
-      access = cluster.diskparams[constants.DT_RBD][constants.RBD_ACCESS]
+    for disk_template in cluster.diskparams:
+      if disk_template not in constants.DTS_HAVE_ACCESS:
+        continue
+
+      access = cluster.diskparams[disk_template].get(constants.LDP_ACCESS,
+                                                     constants.DISK_KERNELSPACE)
       if access not in constants.DISK_VALID_ACCESS_MODES:
         result.append(
           "Invalid value of '%s:%s': '%s' (expected one of %s)" % (
-            constants.DT_RBD, constants.RBD_ACCESS, access,
+            disk_template, constants.LDP_ACCESS, access,
             utils.CommaJoin(constants.DISK_VALID_ACCESS_MODES)
           )
         )

@@ -1142,14 +1142,14 @@ def CheckDiskAccessModeValidity(parameters):
   @raise errors.OpPrereqError: if the check fails.
 
   """
-  if constants.DT_RBD in parameters:
-    access = parameters[constants.DT_RBD].get(constants.RBD_ACCESS,
-                                              constants.DISK_KERNELSPACE)
+  for disk_template in parameters:
+    access = parameters[disk_template].get(constants.LDP_ACCESS,
+                                           constants.DISK_KERNELSPACE)
     if access not in constants.DISK_VALID_ACCESS_MODES:
       valid_vals_str = utils.CommaJoin(constants.DISK_VALID_ACCESS_MODES)
       raise errors.OpPrereqError("Invalid value of '{d}:{a}': '{v}' (expected"
-                                 " one of {o})".format(d=constants.DT_RBD,
-                                                       a=constants.RBD_ACCESS,
+                                 " one of {o})".format(d=disk_template,
+                                                       a=constants.LDP_ACCESS,
                                                        v=access,
                                                        o=valid_vals_str))
 
@@ -1170,9 +1170,12 @@ def CheckDiskAccessModeConsistency(parameters, cfg, group=None):
   """
   CheckDiskAccessModeValidity(parameters)
 
-  if constants.DT_RBD in parameters:
-    access = parameters[constants.DT_RBD].get(constants.RBD_ACCESS,
-                                              constants.DISK_KERNELSPACE)
+  for disk_template in parameters:
+    access = parameters[disk_template].get(constants.LDP_ACCESS,
+                                           constants.DISK_KERNELSPACE)
+
+    if dt not in constants.DTS_HAVE_ACCESS
+      continue
 
     #Check the combination of instance hypervisor, disk template and access
     #protocol is sane.
@@ -1180,14 +1183,9 @@ def CheckDiskAccessModeConsistency(parameters, cfg, group=None):
                  cfg.GetInstanceList()
 
     for entry in inst_uuids:
-      #hyp, disk, access
       inst = cfg.GetInstanceInfo(entry)
       hv = inst.hypervisor
       dt = inst.disk_template
-
-      #do not check for disk types that don't have this setting.
-      if dt != constants.DT_RBD:
-        continue
 
       if not IsValidDiskAccessModeCombination(hv, dt, access):
         raise errors.OpPrereqError("Instance {i}: cannot use '{a}' access"
@@ -1212,7 +1210,7 @@ def IsValidDiskAccessModeCombination(hv, disk_template, mode):
     return True
 
   if (hv == constants.HT_KVM and
-      disk_template == constants.DT_RBD and
+      disk_template in (constants.DT_RBD, constants.DT_GLUSTER) and
       mode == constants.DISK_USERSPACE):
     return True
 

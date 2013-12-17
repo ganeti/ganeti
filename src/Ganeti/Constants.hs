@@ -896,6 +896,11 @@ dtsBlock =
 dtsLvm :: FrozenSet String
 dtsLvm = diskTemplates `ConstantUtils.difference` dtsNotLvm
 
+-- | The set of lvm-based disk templates
+dtsHaveAccess :: FrozenSet String
+dtsHaveAccess = ConstantUtils.mkSet $
+  map Types.diskTemplateToRaw [DTRbd, DTGluster]
+
 -- * Drbd
 
 drbdHmacAlg :: String
