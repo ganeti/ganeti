@@ -1557,7 +1557,8 @@ class LUInstanceRename(LogicalUnit):
     old_name = self.instance.name
 
     rename_file_storage = False
-    if (self.instance.disk_template in constants.DTS_FILEBASED and
+    if (self.instance.disk_template in (constants.DT_FILE,
+                                        constants.DT_SHARED_FILE) and
         self.op.new_name != self.instance.name):
       old_file_storage_dir = os.path.dirname(
                                self.instance.disks[0].logical_id[1])
