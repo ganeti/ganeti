@@ -2218,7 +2218,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                 not reserved.Matches(volume))
         self._ErrorIf(test, constants.CV_ENODEORPHANLV,
                       self.cfg.GetNodeName(node_uuid),
-                      "volume %s is unknown", volume)
+                      "volume %s is unknown", volume,
+                      code=_VerifyErrors.ETYPE_WARNING)
 
   def _VerifyNPlusOneMemory(self, node_image, all_insts):
     """Verify N+1 Memory Resilience.

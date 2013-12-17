@@ -111,29 +111,44 @@ def _CheckVerifyErrors(actual, expected, etype):
                          " %ss: %s" % (etype, utils.CommaJoin(missing)))
 
 
-def AssertClusterVerify(fail=False, errors=None, warnings=None):
-  """Run cluster-verify and check the result
+def _CheckVerifyNoWarnings(actual, expected):
+  exp_codes = compat.UniqueFrozenset(e for (_, e, _) in expected)
+  excess = actual.intersection(exp_codes)
+  if excess:
+    raise qa_error.Error("Cluster-verify returned these warnings:"
+                         " %s" % (utils.CommaJoin(excess)))
+
+
+def AssertClusterVerify(fail=False, errors=None,
+                        warnings=None, no_warnings=None):
+  """Run cluster-verify and check the result, ignoring warnings by default.
 
   @type fail: bool
-  @param fail: if cluster-verify is expected to fail instead of succeeding
+  @param fail: if cluster-verify is expected to fail instead of succeeding.
   @type errors: list of tuples
   @param errors: List of CV_XXX errors that are expected; if specified, all the
       errors listed must appear in cluster-verify output. A non-empty value
       implies C{fail=True}.
   @type warnings: list of tuples
-  @param warnings: Same as C{errors} but for warnings.
-
+  @param warnings: List of CV_XXX warnings that are expected to be raised; if
+      specified, all the errors listed must appear in cluster-verify output.
+  @type no_warnings: list of tuples
+  @param no_warnings: List of CV_XXX warnings that we expect NOT to be raised.
   """
   cvcmd = "gnt-cluster verify"
   mnode = qa_config.GetMasterNode()
-  if errors or warnings:
+  if errors or warnings or no_warnings:
     cvout = GetCommandOutput(mnode.primary, cvcmd + " --error-codes",
                              fail=(fail or errors))
+    print cvout
     (act_errs, act_warns) = _GetCVErrorCodes(cvout)
     if errors:
       _CheckVerifyErrors(act_errs, errors, "error")
     if warnings:
       _CheckVerifyErrors(act_warns, warnings, "warning")
+    if no_warnings:
+      _CheckVerifyNoWarnings(act_warns, no_warnings)
+
   else:
     AssertCommand(cvcmd, fail=fail, node=mnode)
 
@@ -420,23 +435,29 @@ def TestClusterReservedLvs():
   vgname = qa_config.get("vg-name", constants.DEFAULT_VG)
   lvname = _QA_LV_PREFIX + "test"
   lvfullname = "/".join([vgname, lvname])
-  for fail, cmd in [
-    (False, _CLUSTER_VERIFY),
-    (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
-    (False, ["lvcreate", "-L1G", "-n", lvname, vgname]),
-    (True, _CLUSTER_VERIFY),
-    (False, ["gnt-cluster", "modify", "--reserved-lvs",
-             "%s,.*/other-test" % lvfullname]),
-    (False, _CLUSTER_VERIFY),
-    (False, ["gnt-cluster", "modify", "--reserved-lvs",
-             ".*/%s.*" % _QA_LV_PREFIX]),
-    (False, _CLUSTER_VERIFY),
-    (False, ["gnt-cluster", "modify", "--reserved-lvs", ""]),
-    (True, _CLUSTER_VERIFY),
-    (False, ["lvremove", "-f", lvfullname]),
-    (False, _CLUSTER_VERIFY),
-    ]:
-    AssertCommand(cmd, fail=fail)
+
+  # Clean cluster
+  AssertClusterVerify()
+
+  AssertCommand(["gnt-cluster", "modify", "--reserved-lvs", ""])
+  AssertCommand(["lvcreate", "-L1G", "-n", lvname, vgname])
+  AssertClusterVerify(fail=False,
+                      warnings=[constants.CV_ENODEORPHANLV])
+
+  AssertCommand(["gnt-cluster", "modify", "--reserved-lvs",
+                 "%s,.*/other-test" % lvfullname])
+  AssertClusterVerify(no_warnings=[constants.CV_ENODEORPHANLV])
+
+  AssertCommand(["gnt-cluster", "modify", "--reserved-lvs",
+                ".*/%s.*" % _QA_LV_PREFIX])
+  AssertClusterVerify(no_warnings=[constants.CV_ENODEORPHANLV])
+
+  AssertCommand(["gnt-cluster", "modify", "--reserved-lvs", ""])
+  AssertClusterVerify(fail=False,
+                      warnings=[constants.CV_ENODEORPHANLV])
+
+  AssertCommand(["lvremove", "-f", lvfullname])
+  AssertClusterVerify()
 
 
 def TestClusterModifyEmpty():
@@ -1304,10 +1325,12 @@ def TestExclStorSharedPv(node):
   lvname2 = _QA_LV_PREFIX + "vol2"
   node_name = node.primary
   AssertCommand(["lvcreate", "-L1G", "-n", lvname1, vgname], node=node_name)
-  AssertClusterVerify(fail=True, errors=[constants.CV_ENODEORPHANLV])
+  AssertClusterVerify(fail=False,
+                      warnings=[constants.CV_ENODEORPHANLV])
   AssertCommand(["lvcreate", "-L1G", "-n", lvname2, vgname], node=node_name)
-  AssertClusterVerify(fail=True, errors=[constants.CV_ENODELVM,
-                                         constants.CV_ENODEORPHANLV])
+  AssertClusterVerify(fail=True,
+                      errors=[constants.CV_ENODELVM],
+                      warnings=[constants.CV_ENODEORPHANLV])
   AssertCommand(["lvremove", "-f", "/".join([vgname, lvname1])], node=node_name)
   AssertCommand(["lvremove", "-f", "/".join([vgname, lvname2])], node=node_name)
   AssertClusterVerify()

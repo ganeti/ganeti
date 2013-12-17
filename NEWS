@@ -18,6 +18,8 @@ Incompatible/important changes
 - Queries for nodes, instances, groups, backups and networks are now
   exclusively done via the luxi daemon. Legacy python code was removed,
   as well as the --enable-split-queries configuration option.
+- Orphan volumes errors are demoted to warnings and no longer affect the exit
+  code of ``gnt-cluster verify``.
 
 New features
 ~~~~~~~~~~~~
