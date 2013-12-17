@@ -272,6 +272,7 @@ CLEANFILES = \
 	stamp-directories \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON) \
+	$(nodist_pkgpython_rpc_stub_PYTHON) \
 	$(gnt_scripts) \
 	$(HS_ALL_PROGS) $(HS_BUILT_SRCS) \
 	$(HS_BUILT_TEST_HELPERS) \
@@ -306,8 +307,8 @@ built_python_base_sources = \
 	lib/opcodes.py
 
 BUILT_PYTHON_SOURCES = \
-	$(built_python_base_sources) \
-	lib/_generated_rpc.py
+	$(nodist_pkgpython_PYTHON) \
+	$(nodist_pkgpython_rpc_stub_PYTHON)
 
 # Generating the RPC wrappers depends on many things, so make sure
 # it's built at the end of the built sources
@@ -328,7 +329,10 @@ dist_ifup_SCRIPTS = \
 	tools/kvm-ifup-os
 
 nodist_pkgpython_PYTHON = \
-	$(BUILT_PYTHON_SOURCES)
+	$(built_python_base_sources) \
+	lib/_generated_rpc.py
+
+nodist_pkgpython_rpc_stub_PYTHON =
 
 nodist_pkgpython_bin_SCRIPTS = \
 	$(nodist_pkglib_python_scripts)
