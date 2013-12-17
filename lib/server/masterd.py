@@ -53,6 +53,7 @@ from ganeti import errors
 from ganeti import ssconf
 from ganeti import workerpool
 import ganeti.rpc.node as rpc
+import ganeti.rpc.client as rpccl
 from ganeti import bootstrap
 from ganeti import netutils
 from ganeti import objects
@@ -92,7 +93,7 @@ class ClientRequestWorker(workerpool.BaseWorker):
     client_ops = ClientOps(server)
 
     try:
-      (method, args, ver) = luxi.ParseRequest(message)
+      (method, args, ver) = rpccl.ParseRequest(message)
     except luxi.ProtocolError, err:
       logging.error("Protocol Error: %s", err)
       client.close_log()
@@ -117,7 +118,7 @@ class ClientRequestWorker(workerpool.BaseWorker):
       result = "Caught exception: %s" % str(err[1])
 
     try:
-      reply = luxi.FormatResponse(success, result)
+      reply = rpccl.FormatResponse(success, result)
       client.send_message(reply)
       # awake the main thread so that it can write out the data.
       server.awaker.signal()

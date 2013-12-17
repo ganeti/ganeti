@@ -29,14 +29,10 @@ The module is also used by the master daemon.
 
 """
 
-import logging
-
-from ganeti import serializer
 from ganeti import constants
-from ganeti import errors
 from ganeti import objects
-from ganeti import pathutils
-from ganeti.rpc import transport as t
+import ganeti.rpc.client as cl
+from ganeti.rpc.transport import Transport
 from ganeti.rpc.errors import (ProtocolError, ConnectionClosedError,
                                TimeoutError, RequestError, NoMasterError,
                                PermissionError)
@@ -49,21 +45,9 @@ __all__ = [
   "RequestError",
   "NoMasterError",
   "PermissionError",
-  "ParseRequest",
-  "ParseResponse",
-  "FormatRequest",
-  "FormatResponse",
-  "CallLuxiMethod",
   # classes:
   "Client"
   ]
-
-
-KEY_METHOD = constants.LUXI_KEY_METHOD
-KEY_ARGS = constants.LUXI_KEY_ARGS
-KEY_SUCCESS = constants.LUXI_KEY_SUCCESS
-KEY_RESULT = constants.LUXI_KEY_RESULT
-KEY_VERSION = constants.LUXI_KEY_VERSION
 
 REQ_SUBMIT_JOB = constants.LUXI_REQ_SUBMIT_JOB
 REQ_SUBMIT_JOB_TO_DRAINED_QUEUE = constants.LUXI_REQ_SUBMIT_JOB_TO_DRAINED_QUEUE
@@ -93,187 +77,20 @@ DEF_RWTO = constants.LUXI_DEF_RWTO
 WFJC_TIMEOUT = constants.LUXI_WFJC_TIMEOUT
 
 
-def ParseRequest(msg):
-  """Parses a LUXI request message.
-
-  """
-  try:
-    request = serializer.LoadJson(msg)
-  except ValueError, err:
-    raise ProtocolError("Invalid LUXI request (parsing error): %s" % err)
-
-  logging.debug("LUXI request: %s", request)
-
-  if not isinstance(request, dict):
-    logging.error("LUXI request not a dict: %r", msg)
-    raise ProtocolError("Invalid LUXI request (not a dict)")
-
-  method = request.get(KEY_METHOD, None) # pylint: disable=E1103
-  args = request.get(KEY_ARGS, None) # pylint: disable=E1103
-  version = request.get(KEY_VERSION, None) # pylint: disable=E1103
-
-  if method is None or args is None:
-    logging.error("LUXI request missing method or arguments: %r", msg)
-    raise ProtocolError(("Invalid LUXI request (no method or arguments"
-                         " in request): %r") % msg)
-
-  return (method, args, version)
-
-
-def ParseResponse(msg):
-  """Parses a LUXI response message.
-
-  """
-  # Parse the result
-  try:
-    data = serializer.LoadJson(msg)
-  except KeyboardInterrupt:
-    raise
-  except Exception, err:
-    raise ProtocolError("Error while deserializing response: %s" % str(err))
-
-  # Validate response
-  if not (isinstance(data, dict) and
-          KEY_SUCCESS in data and
-          KEY_RESULT in data):
-    raise ProtocolError("Invalid response from server: %r" % data)
-
-  return (data[KEY_SUCCESS], data[KEY_RESULT],
-          data.get(KEY_VERSION, None)) # pylint: disable=E1103
-
-
-def FormatResponse(success, result, version=None):
-  """Formats a LUXI response message.
-
-  """
-  response = {
-    KEY_SUCCESS: success,
-    KEY_RESULT: result,
-    }
-
-  if version is not None:
-    response[KEY_VERSION] = version
-
-  logging.debug("LUXI response: %s", response)
-
-  return serializer.DumpJson(response)
-
-
-def FormatRequest(method, args, version=None):
-  """Formats a LUXI request message.
-
-  """
-  # Build request
-  request = {
-    KEY_METHOD: method,
-    KEY_ARGS: args,
-    }
-
-  if version is not None:
-    request[KEY_VERSION] = version
-
-  # Serialize the request
-  return serializer.DumpJson(request)
-
-
-def CallLuxiMethod(transport_cb, method, args, version=None):
-  """Send a LUXI request via a transport and return the response.
-
-  """
-  assert callable(transport_cb)
-
-  request_msg = FormatRequest(method, args, version=version)
-
-  # Send request and wait for response
-  response_msg = transport_cb(request_msg)
-
-  (success, result, resp_version) = ParseResponse(response_msg)
-
-  # Verify version if there was one in the response
-  if resp_version is not None and resp_version != version:
-    raise errors.LuxiError("LUXI version mismatch, client %s, response %s" %
-                           (version, resp_version))
-
-  if success:
-    return result
-
-  errors.MaybeRaise(result)
-  raise RequestError(result)
-
-
-class Client(object):
+class Client(cl.AbstractClient):
   """High-level client implementation.
 
   This uses a backing Transport-like class on top of which it
   implements data serialization/deserialization.
 
   """
-  def __init__(self, address=None, timeouts=None, transport=t.Transport):
+  def __init__(self, address=None, timeouts=None, transport=Transport):
     """Constructor for the Client class.
 
-    Arguments:
-      - address: a valid address the the used transport class
-      - timeout: a list of timeouts, to be used on connect and read/write
-      - transport: a Transport-like class
-
-
-    If timeout is not passed, the default timeouts of the transport
-    class are used.
+    Arguments are the same as for L{AbstractClient}.
 
     """
-    if address is None:
-      address = pathutils.MASTER_SOCKET
-    self.address = address
-    self.timeouts = timeouts
-    self.transport_class = transport
-    self.transport = None
-    self._InitTransport()
-
-  def _InitTransport(self):
-    """(Re)initialize the transport if needed.
-
-    """
-    if self.transport is None:
-      self.transport = self.transport_class(self.address,
-                                            timeouts=self.timeouts)
-
-  def _CloseTransport(self):
-    """Close the transport, ignoring errors.
-
-    """
-    if self.transport is None:
-      return
-    try:
-      old_transp = self.transport
-      self.transport = None
-      old_transp.Close()
-    except Exception: # pylint: disable=W0703
-      pass
-
-  def _SendMethodCall(self, data):
-    # Send request and wait for response
-    try:
-      self._InitTransport()
-      return self.transport.Call(data)
-    except Exception:
-      self._CloseTransport()
-      raise
-
-  def Close(self):
-    """Close the underlying connection.
-
-    """
-    self._CloseTransport()
-
-  def CallMethod(self, method, args):
-    """Send a generic request and return the response.
-
-    """
-    if not isinstance(args, (list, tuple)):
-      raise errors.ProgrammerError("Invalid parameter passed to CallMethod:"
-                                   " expected list, got %s" % type(args))
-    return CallLuxiMethod(self._SendMethodCall, method, args,
-                          version=constants.LUXI_VERSION)
+    super(Client, self).__init__(address, timeouts, transport)
 
   def SetQueueDrainFlag(self, drain_flag):
     return self.CallMethod(REQ_SET_DRAIN_FLAG, (drain_flag, ))

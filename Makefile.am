@@ -465,6 +465,7 @@ server_PYTHON = \
 
 rpc_PYTHON = \
 	lib/rpc/__init__.py \
+	lib/rpc/client.py \
 	lib/rpc/errors.py \
 	lib/rpc/node.py \
 	lib/rpc/transport.py
@@ -1444,6 +1445,7 @@ python_tests = \
 	test/py/ganeti.rapi.rlib2_unittest.py \
 	test/py/ganeti.rapi.testutils_unittest.py \
 	test/py/ganeti.rpc_unittest.py \
+	test/py/ganeti.rpc.client_unittest.py \
 	test/py/ganeti.runtime_unittest.py \
 	test/py/ganeti.serializer_unittest.py \
 	test/py/ganeti.server.rapi_unittest.py \

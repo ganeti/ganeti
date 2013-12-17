@@ -36,6 +36,7 @@ from ganeti import server
 from ganeti import utils
 from ganeti import compat
 from ganeti import luxi
+import ganeti.rpc.client as rpccl
 from ganeti import rapi
 
 import ganeti.http.server # pylint: disable=W0611
@@ -273,7 +274,7 @@ class _TestLuxiTransport:
     raised. There is no return value.
 
     """
-    (method, _, _) = luxi.ParseRequest(data)
+    (method, _, _) = rpccl.ParseRequest(data)
 
     # Take a note of called method
     self._record_fn(method)
