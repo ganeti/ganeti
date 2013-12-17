@@ -31,7 +31,6 @@ module Ganeti.Storage.Utils
 import Ganeti.Config
 import Ganeti.Objects
 import Ganeti.Types
-import Ganeti.Constants
 import qualified Ganeti.Types as T
 
 import Control.Monad

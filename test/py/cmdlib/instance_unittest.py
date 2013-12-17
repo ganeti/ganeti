@@ -446,7 +446,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
     self.cluster.file_storage_dir = None
     op = self.CopyOpCode(self.file_op)
     self.ExecOpCodeExpectOpPrereqError(
-      op, "Cluster file storage dir not defined")
+      op, "Cluster file storage dir for 'file' storage type not defined")
 
   def testFileInstanceAdditionalPath(self):
     op = self.CopyOpCode(self.file_op,

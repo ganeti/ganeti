@@ -849,25 +849,35 @@ class LUInstanceCreate(LogicalUnit):
       # build the full file storage dir path
       joinargs = []
 
-      if self.op.disk_template in (constants.DT_SHARED_FILE,
-                                   constants.DT_GLUSTER):
-        get_fsd_fn = self.cfg.GetSharedFileStorageDir
-      else:
-        get_fsd_fn = self.cfg.GetFileStorageDir
+      cfg_storage = None
+      if self.op.disk_template == constants.DT_FILE:
+        cfg_storage = self.cfg.GetFileStorageDir()
+      elif self.op.disk_template == constants.DT_SHARED_FILE:
+        cfg_storage = self.cfg.GetSharedFileStorageDir()
+      elif self.op.disk_template == constants.DT_GLUSTER:
+        cfg_storage = self.cfg.GetGlusterStorageDir()
 
-      cfg_storagedir = get_fsd_fn()
-      if not cfg_storagedir:
-        raise errors.OpPrereqError("Cluster file storage dir not defined",
-                                   errors.ECODE_STATE)
-      joinargs.append(cfg_storagedir)
+      if not cfg_storage:
+        raise errors.OpPrereqError(
+          "Cluster file storage dir for {tpl} storage type not defined".format(
+            tpl=repr(self.op.disk_template)
+          ),
+          errors.ECODE_STATE
+      )
+
+      joinargs.append(cfg_storage)
 
       if self.op.file_storage_dir is not None:
         joinargs.append(self.op.file_storage_dir)
 
-      joinargs.append(self.op.instance_name)
+      if self.op.disk_template != constants.DT_GLUSTER:
+        joinargs.append(self.op.instance_name)
 
-      # pylint: disable=W0142
-      self.instance_file_storage_dir = utils.PathJoin(*joinargs)
+      if len(joinargs) > 1:
+        # pylint: disable=W0142
+        self.instance_file_storage_dir = utils.PathJoin(*joinargs)
+      else:
+        self.instance_file_storage_dir = joinargs[0]
 
   def CheckPrereq(self): # pylint: disable=R0914
     """Check prerequisites.

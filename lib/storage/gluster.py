@@ -53,7 +53,8 @@ class GlusterVolume(object):
 
   """
 
-  def __init__(self, server_addr, port, volume, _run_cmd=utils.RunCmd):
+  def __init__(self, server_addr, port, volume, _run_cmd=utils.RunCmd,
+               _mount_point=None):
     """Creates a Gluster volume object.
 
     @type server_addr: str
@@ -72,8 +73,10 @@ class GlusterVolume(object):
     port = netutils.ValidatePortNumber(port)
     self._port = port
     self._volume = volume
-    self.mount_point = io.PathJoin(constants.GLUSTER_MOUNTPOINT,
-                                   self._volume)
+    if _mount_point: # tests
+      self.mount_point = _mount_point
+    else:
+      self.mount_point = ssconf.SimpleStore().GetGlusterStorageDir()
 
     self._run_cmd = _run_cmd
 
