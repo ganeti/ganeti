@@ -232,3 +232,26 @@ class AbstractClient(object):
                                    " expected list, got %s" % type(args))
     return CallRPCMethod(self._SendMethodCall, method, args,
                          version=self.version)
+
+
+class AbstractStubClient(AbstractClient):
+  """An abstract Client that connects a generated stub client to a L{Transport}.
+
+  Subclasses should inherit from this class (first) as well and a designated
+  stub (second).
+  """
+
+  def __init__(self, timeouts=None, transport=t.Transport):
+    """Constructor for the class.
+
+    Arguments are the same as for L{AbstractClient}. Checks that SOCKET_PATH
+    attribute is defined (in the stub class).
+    """
+
+    super(AbstractStubClient, self).__init__(timeouts, transport)
+
+  def _GenericInvoke(self, method, *args):
+    return self.CallMethod(method, args)
+
+  def _GetAddress(self):
+    return self._GetSocketPath() # pylint: disable=E1101
