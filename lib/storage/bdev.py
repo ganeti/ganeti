@@ -24,7 +24,6 @@
 """
 
 import re
-import errno
 import stat
 import os
 import logging
@@ -39,7 +38,7 @@ from ganeti import pathutils
 from ganeti import serializer
 from ganeti.storage import base
 from ganeti.storage import drbd
-from ganeti.storage import filestorage
+from ganeti.storage.filestorage import FileStorage
 
 
 class RbdShowmappedJsonError(Exception):
@@ -712,167 +711,6 @@ class LogicalVolume(base.BlockDev):
     """
     assert self.attached, "BlockDevice not attached in GetActualSpindles()"
     return len(self.pv_names)
-
-
-class FileStorage(base.BlockDev):
-  """File device.
-
-  This class represents a file storage backend device.
-
-  The unique_id for the file device is a (file_driver, file_path) tuple.
-
-  """
-  def __init__(self, unique_id, children, size, params, dyn_params):
-    """Initalizes a file device backend.
-
-    """
-    if children:
-      raise errors.BlockDeviceError("Invalid setup for file device")
-    super(FileStorage, self).__init__(unique_id, children, size, params,
-                                      dyn_params)
-    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
-      raise ValueError("Invalid configuration data %s" % str(unique_id))
-    self.driver = unique_id[0]
-    self.dev_path = unique_id[1]
-
-    filestorage.CheckFileStoragePathAcceptance(self.dev_path)
-
-    self.Attach()
-
-  def Assemble(self):
-    """Assemble the device.
-
-    Checks whether the file device exists, raises BlockDeviceError otherwise.
-
-    """
-    if not os.path.exists(self.dev_path):
-      base.ThrowError("File device '%s' does not exist" % self.dev_path)
-
-  def Shutdown(self):
-    """Shutdown the device.
-
-    This is a no-op for the file type, as we don't deactivate
-    the file on shutdown.
-
-    """
-    pass
-
-  def Open(self, force=False):
-    """Make the device ready for I/O.
-
-    This is a no-op for the file type.
-
-    """
-    pass
-
-  def Close(self):
-    """Notifies that the device will no longer be used for I/O.
-
-    This is a no-op for the file type.
-
-    """
-    pass
-
-  def Remove(self):
-    """Remove the file backing the block device.
-
-    @rtype: boolean
-    @return: True if the removal was successful
-
-    """
-    try:
-      os.remove(self.dev_path)
-    except OSError, err:
-      if err.errno != errno.ENOENT:
-        base.ThrowError("Can't remove file '%s': %s", self.dev_path, err)
-
-  def Rename(self, new_id):
-    """Renames the file.
-
-    """
-    # TODO: implement rename for file-based storage
-    base.ThrowError("Rename is not supported for file-based storage")
-
-  def Grow(self, amount, dryrun, backingstore, excl_stor):
-    """Grow the file
-
-    @param amount: the amount (in mebibytes) to grow with
-
-    """
-    if not backingstore:
-      return
-    # Check that the file exists
-    self.Assemble()
-    current_size = self.GetActualSize()
-    new_size = current_size + amount * 1024 * 1024
-    assert new_size > current_size, "Cannot Grow with a negative amount"
-    # We can't really simulate the growth
-    if dryrun:
-      return
-    try:
-      f = open(self.dev_path, "a+")
-      f.truncate(new_size)
-      f.close()
-    except EnvironmentError, err:
-      base.ThrowError("Error in file growth: %", str(err))
-
-  def Attach(self):
-    """Attach to an existing file.
-
-    Check if this file already exists.
-
-    @rtype: boolean
-    @return: True if file exists
-
-    """
-    self.attached = os.path.exists(self.dev_path)
-    return self.attached
-
-  def GetActualSize(self):
-    """Return the actual disk size.
-
-    @note: the device needs to be active when this is called
-
-    """
-    assert self.attached, "BlockDevice not attached in GetActualSize()"
-    try:
-      st = os.stat(self.dev_path)
-      return st.st_size
-    except OSError, err:
-      base.ThrowError("Can't stat %s: %s", self.dev_path, err)
-
-  @classmethod
-  def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params):
-    """Create a new file.
-
-    @param size: the size of file in MiB
-
-    @rtype: L{bdev.FileStorage}
-    @return: an instance of FileStorage
-
-    """
-    if excl_stor:
-      raise errors.ProgrammerError("FileStorage device requested with"
-                                   " exclusive_storage")
-    if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
-      raise ValueError("Invalid configuration data %s" % str(unique_id))
-
-    dev_path = unique_id[1]
-
-    filestorage.CheckFileStoragePathAcceptance(dev_path)
-
-    try:
-      fd = os.open(dev_path, os.O_RDWR | os.O_CREAT | os.O_EXCL)
-      f = os.fdopen(fd, "w")
-      f.truncate(size * 1024 * 1024)
-      f.close()
-    except EnvironmentError, err:
-      if err.errno == errno.EEXIST:
-        base.ThrowError("File already existing: %s", dev_path)
-      base.ThrowError("Error in file creation: %", str(err))
-
-    return FileStorage(unique_id, children, size, params, dyn_params)
 
 
 class PersistentBlockDevice(base.BlockDev):
