@@ -681,8 +681,9 @@ def PathJoin(*args):
   @raise ValueError: for invalid paths
 
   """
-  # ensure we're having at least one path passed in
-  assert args
+  # ensure we're having at least two paths passed in
+  if len(args) <= 1:
+    raise errors.ProgrammerError("PathJoin requires two arguments")
   # ensure the first component is an absolute and normalized path name
   root = args[0]
   if not IsNormAbsPath(root):
