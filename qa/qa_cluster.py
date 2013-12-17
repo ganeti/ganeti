@@ -519,8 +519,10 @@ def TestClusterModifyFileBasedStorageDir(
 
   # Get some non-file-based disk template to disable file storage
   other_disk_template = _GetOtherEnabledDiskTemplate(
-      utils.storage.GetDiskTemplatesOfStorageType(constants.ST_FILE),
-      enabled_disk_templates)
+    utils.storage.GetDiskTemplatesOfStorageTypes(constants.ST_FILE,
+                                                 constants.ST_SHARED_FILE),
+    enabled_disk_templates
+  )
 
   file_storage_dir = qa_config.get(dir_config_key, default_dir)
   invalid_file_storage_dir = "/boot/"

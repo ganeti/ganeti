@@ -135,7 +135,7 @@ def _DestroyInstanceDisks(instance):
     vols = info["volumes"]
     for node in info["nodes"]:
       AssertCommand(["lvremove", "-f"] + vols, node=node)
-  elif info["storage-type"] == constants.ST_FILE:
+  elif info["storage-type"] in (constants.ST_FILE, constants.ST_SHARED_FILE):
     # Note that this works for both file and sharedfile, and this is intended.
     storage_dir = qa_config.get("file-storage-dir",
                                 pathutils.DEFAULT_FILE_STORAGE_DIR)

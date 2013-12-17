@@ -659,6 +659,9 @@ stExt = Types.storageTypeToRaw StorageExt
 stFile :: String
 stFile = Types.storageTypeToRaw StorageFile
 
+stSharedFile :: String
+stSharedFile = Types.storageTypeToRaw StorageSharedFile
+
 stLvmPv :: String
 stLvmPv = Types.storageTypeToRaw StorageLvmPv
 
@@ -671,12 +674,15 @@ stRados = Types.storageTypeToRaw StorageRados
 storageTypes :: FrozenSet String
 storageTypes = ConstantUtils.mkSet $ map Types.storageTypeToRaw [minBound..]
 
--- | The set of storage types for which storage reporting is available
---
--- FIXME: Remove this, once storage reporting is available for all
--- types.
+-- | The set of storage types for which full storage reporting is available
 stsReport :: FrozenSet String
 stsReport = ConstantUtils.mkSet [stFile, stLvmPv, stLvmVg]
+
+-- | The set of storage types for which node storage reporting is available
+-- | (as used by LUQueryNodeStorage)
+stsReportNodeStorage :: FrozenSet String
+stsReportNodeStorage = ConstantUtils.union stsReport $
+                                           ConstantUtils.mkSet [stSharedFile]
 
 -- * Storage fields
 -- ** First two are valid in LU context only, not passed to backend
@@ -818,12 +824,12 @@ mapDiskTemplateStorageType =
   [(DTBlock, StorageBlock),
    (DTDrbd8, StorageLvmVg),
    (DTExt, StorageExt),
-   (DTSharedFile, StorageFile),
+   (DTSharedFile, StorageSharedFile),
    (DTFile, StorageFile),
    (DTDiskless, StorageDiskless),
    (DTPlain, StorageLvmVg),
    (DTRbd, StorageRados),
-   (DTGluster, StorageFile)]
+   (DTGluster, StorageSharedFile)]
 
 -- | The set of network-mirrored disk templates
 dtsIntMirror :: FrozenSet String

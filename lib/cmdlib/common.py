@@ -1104,7 +1104,7 @@ def CheckStorageTypeEnabled(cluster, storage_type):
     CheckStorageTypeEnabled(cluster, constants.ST_LVM_VG)
   else:
     possible_disk_templates = \
-        utils.storage.GetDiskTemplatesOfStorageType(storage_type)
+        utils.storage.GetDiskTemplatesOfStorageTypes(storage_type)
     for disk_template in possible_disk_templates:
       if disk_template in cluster.enabled_disk_templates:
         return
@@ -1174,7 +1174,7 @@ def CheckDiskAccessModeConsistency(parameters, cfg, group=None):
     access = parameters[disk_template].get(constants.LDP_ACCESS,
                                            constants.DISK_KERNELSPACE)
 
-    if dt not in constants.DTS_HAVE_ACCESS
+    if disk_template not in constants.DTS_HAVE_ACCESS:
       continue
 
     #Check the combination of instance hypervisor, disk template and access

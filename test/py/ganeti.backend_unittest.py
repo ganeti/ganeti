@@ -839,20 +839,22 @@ class TestGetNodeInfo(unittest.TestCase):
 class TestSpaceReportingConstants(unittest.TestCase):
   """Ensures consistency between STS_REPORT and backend.
 
-  These tests ensure, that the constant 'STS_REPORT' is consitent
+  These tests ensure, that the constant 'STS_REPORT' is consistent
   with the implementation of invoking space reporting functions
   in backend.py. Once space reporting is available for all types,
   the constant can be removed and these tests as well.
 
   """
+
+  REPORTING = set(constants.STS_REPORT)
+  NOT_REPORTING = set(constants.STORAGE_TYPES) - REPORTING
+
   def testAllReportingTypesHaveAReportingFunction(self):
-    for storage_type in constants.STS_REPORT:
+    for storage_type in TestSpaceReportingConstants.REPORTING:
       self.assertTrue(backend._STORAGE_TYPE_INFO_FN[storage_type] is not None)
 
-  def testAllNotReportingTypesDoneHaveFunction(self):
-    non_reporting_types = set(constants.STORAGE_TYPES)\
-        - set(constants.STS_REPORT)
-    for storage_type in non_reporting_types:
+  def testAllNotReportingTypesDontHaveFunction(self):
+    for storage_type in TestSpaceReportingConstants.NOT_REPORTING:
       self.assertEqual(None, backend._STORAGE_TYPE_INFO_FN[storage_type])
 
 

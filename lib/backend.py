@@ -778,6 +778,7 @@ _STORAGE_TYPE_INFO_FN = {
   constants.ST_FILE: _GetFileStorageSpaceInfo,
   constants.ST_LVM_PV: _GetLvmPvSpaceInfo,
   constants.ST_LVM_VG: _GetLvmVgSpaceInfo,
+  constants.ST_SHARED_FILE: None,
   constants.ST_RADOS: None,
 }
 

@@ -387,13 +387,16 @@ def _PrepareFileBasedStorage(
   @param default_dir: default file storage directory when C{file_storage_dir}
       is 'None'
   @type file_disk_template: string
-  @param file_disk_template: a disk template whose storage type is 'ST_FILE'
+  @param file_disk_template: a disk template whose storage type is 'ST_FILE' or
+      'ST_SHARED_FILE'
   @rtype: string
   @returns: the name of the actual file storage directory
 
   """
-  assert (file_disk_template in
-          utils.storage.GetDiskTemplatesOfStorageType(constants.ST_FILE))
+  assert (file_disk_template in utils.storage.GetDiskTemplatesOfStorageTypes(
+            constants.ST_FILE, constants.ST_SHARED_FILE
+         ))
+
   if file_storage_dir is None:
     file_storage_dir = default_dir
   if not acceptance_fn:

@@ -480,9 +480,9 @@ class _QaConfig(object):
     """
     enabled_disk_templates = self.GetEnabledDiskTemplates()
     if storage_type == constants.ST_LVM_PV:
-      disk_templates = utils.GetDiskTemplatesOfStorageType(constants.ST_LVM_VG)
+      disk_templates = utils.GetDiskTemplatesOfStorageTypes(constants.ST_LVM_VG)
     else:
-      disk_templates = utils.GetDiskTemplatesOfStorageType(storage_type)
+      disk_templates = utils.GetDiskTemplatesOfStorageTypes(storage_type)
     return bool(set(enabled_disk_templates).intersection(set(disk_templates)))
 
   def AreSpindlesSupported(self):

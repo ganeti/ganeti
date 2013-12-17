@@ -89,6 +89,7 @@ _USER_STORAGE_TYPE = {
   constants.ST_FILE: "file",
   constants.ST_LVM_PV: "lvm-pv",
   constants.ST_LVM_VG: "lvm-vg",
+  constants.ST_SHARED_FILE: "sharedfile",
   }
 
 _STORAGE_TYPE_OPT = \
