@@ -47,21 +47,21 @@ def ParseRequest(msg):
   try:
     request = serializer.LoadJson(msg)
   except ValueError, err:
-    raise ProtocolError("Invalid LUXI request (parsing error): %s" % err)
+    raise ProtocolError("Invalid RPC request (parsing error): %s" % err)
 
-  logging.debug("LUXI request: %s", request)
+  logging.debug("RPC request: %s", request)
 
   if not isinstance(request, dict):
-    logging.error("LUXI request not a dict: %r", msg)
-    raise ProtocolError("Invalid LUXI request (not a dict)")
+    logging.error("RPC request not a dict: %r", msg)
+    raise ProtocolError("Invalid RPC request (not a dict)")
 
   method = request.get(KEY_METHOD, None) # pylint: disable=E1103
   args = request.get(KEY_ARGS, None) # pylint: disable=E1103
   version = request.get(KEY_VERSION, None) # pylint: disable=E1103
 
   if method is None or args is None:
-    logging.error("LUXI request missing method or arguments: %r", msg)
-    raise ProtocolError(("Invalid LUXI request (no method or arguments"
+    logging.error("RPC request missing method or arguments: %r", msg)
+    raise ProtocolError(("Invalid RPC request (no method or arguments"
                          " in request): %r") % msg)
 
   return (method, args, version)
@@ -101,7 +101,7 @@ def FormatResponse(success, result, version=None):
   if version is not None:
     response[KEY_VERSION] = version
 
-  logging.debug("LUXI response: %s", response)
+  logging.debug("RPC response: %s", response)
 
   return serializer.DumpJson(response)
 
@@ -123,8 +123,8 @@ def FormatRequest(method, args, version=None):
   return serializer.DumpJson(request)
 
 
-def CallLuxiMethod(transport_cb, method, args, version=None):
-  """Send a LUXI request via a transport and return the response.
+def CallRPCMethod(transport_cb, method, args, version=None):
+  """Send a RPC request via a transport and return the response.
 
   """
   assert callable(transport_cb)
@@ -138,7 +138,7 @@ def CallLuxiMethod(transport_cb, method, args, version=None):
 
   # Verify version if there was one in the response
   if resp_version is not None and resp_version != version:
-    raise LuxiError("LUXI version mismatch, client %s, response %s" %
+    raise LuxiError("RPC version mismatch, client %s, response %s" %
                     (version, resp_version))
 
   if success:
@@ -227,5 +227,5 @@ class AbstractClient(object):
     if not isinstance(args, (list, tuple)):
       raise errors.ProgrammerError("Invalid parameter passed to CallMethod:"
                                    " expected list, got %s" % type(args))
-    return CallLuxiMethod(self._SendMethodCall, method, args,
-                          version=constants.LUXI_VERSION)
+    return CallRPCMethod(self._SendMethodCall, method, args,
+                         version=constants.LUXI_VERSION)
