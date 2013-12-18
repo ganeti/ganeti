@@ -233,7 +233,8 @@ main opts args = do
       off_cmd =
         Cluster.formatCmds off_jobs
         ++ "\necho Tagging Commands\n"
-        ++ (toOffline >>= printf "  gnt-node add-tags %s htools:standby:auto\n" . Node.alias)
+        ++ (toOffline >>= printf "  gnt-node add-tags %s htools:standby:auto\n" 
+                          . Node.alias)
         ++ "\necho Power Commands\n"
         ++ (toOffline >>= printf "  gnt-node power -f off %s\n" . Node.alias)
       toOnline = tryOnline minInstance conf onlineCandidates
