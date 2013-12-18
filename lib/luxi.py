@@ -33,16 +33,8 @@ from ganeti import constants
 from ganeti import objects
 import ganeti.rpc.client as cl
 from ganeti.rpc.transport import Transport
-import ganeti.rpc.errors
 
 __all__ = [
-  # functions:
-  "ProtocolError",
-  "ConnectionClosedError",
-  "TimeoutError",
-  "RequestError",
-  "NoMasterError",
-  "PermissionError",
   # classes:
   "Client"
   ]
@@ -73,14 +65,6 @@ REQ_ALL = constants.LUXI_REQ_ALL
 
 DEF_RWTO = constants.LUXI_DEF_RWTO
 WFJC_TIMEOUT = constants.LUXI_WFJC_TIMEOUT
-
-# "Legacy" re-exports.
-ProtocolError = ganeti.rpc.errors.ProtocolError
-ConnectionClosedError = ganeti.rpc.errors.ConnectionClosedError
-TimeoutError = ganeti.rpc.errors.TimeoutError
-RequestError = ganeti.rpc.errors.RequestError
-NoMasterError = ganeti.rpc.errors.NoMasterError
-PermissionError = ganeti.rpc.errors.PermissionError
 
 
 class Client(cl.AbstractClient):

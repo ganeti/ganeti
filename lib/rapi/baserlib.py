@@ -30,6 +30,7 @@
 import logging
 
 from ganeti import luxi
+import ganeti.rpc.errors as rpcerr
 from ganeti import rapi
 from ganeti import http
 from ganeti import errors
@@ -366,9 +367,9 @@ class ResourceBase(object):
     # Could be a function, pylint: disable=R0201
     try:
       return self._client_cls(address=address)
-    except luxi.NoMasterError, err:
+    except rpcerr.NoMasterError, err:
       raise http.HttpBadGateway("Can't connect to master daemon: %s" % err)
-    except luxi.PermissionError:
+    except rpcerr.PermissionError:
       raise http.HttpInternalServerError("Internal error: no permission to"
                                          " connect to the master daemon")
 
@@ -391,12 +392,12 @@ class ResourceBase(object):
       raise http.HttpServiceUnavailable("Job queue is full, needs archiving")
     except errors.JobQueueDrainError:
       raise http.HttpServiceUnavailable("Job queue is drained, cannot submit")
-    except luxi.NoMasterError, err:
+    except rpcerr.NoMasterError, err:
       raise http.HttpBadGateway("Master seems to be unreachable: %s" % err)
-    except luxi.PermissionError:
+    except rpcerr.PermissionError:
       raise http.HttpInternalServerError("Internal error: no permission to"
                                          " connect to the master daemon")
-    except luxi.TimeoutError, err:
+    except rpcerr.TimeoutError, err:
       raise http.HttpGatewayTimeout("Timeout while talking to the master"
                                     " daemon: %s" % err)
 

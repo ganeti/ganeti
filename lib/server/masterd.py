@@ -48,6 +48,7 @@ from ganeti import opcodes
 from ganeti import jqueue
 from ganeti import locking
 from ganeti import luxi
+import ganeti.rpc.errors as rpcerr
 from ganeti import utils
 from ganeti import errors
 from ganeti import ssconf
@@ -94,7 +95,7 @@ class ClientRequestWorker(workerpool.BaseWorker):
 
     try:
       (method, args, ver) = rpccl.ParseRequest(message)
-    except luxi.ProtocolError, err:
+    except rpcerr.ProtocolError, err:
       logging.error("Protocol Error: %s", err)
       client.close_log()
       return

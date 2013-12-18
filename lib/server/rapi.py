@@ -43,7 +43,7 @@ from ganeti import constants
 from ganeti import http
 from ganeti import daemon
 from ganeti import ssconf
-from ganeti import luxi
+import ganeti.rpc.errors as rpcerr
 from ganeti import serializer
 from ganeti import compat
 from ganeti import utils
@@ -195,9 +195,9 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
 
     try:
       result = ctx.handler_fn()
-    except luxi.TimeoutError:
+    except rpcerr.TimeoutError:
       raise http.HttpGatewayTimeout()
-    except luxi.ProtocolError, err:
+    except rpcerr.ProtocolError, err:
       raise http.HttpBadGateway(str(err))
 
     req.resp_headers[http.HTTP_CONTENT_TYPE] = http.HTTP_APP_JSON

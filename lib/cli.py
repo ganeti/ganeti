@@ -36,7 +36,7 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import constants
 from ganeti import opcodes
-from ganeti import luxi
+import ganeti.rpc.errors as rpcerr
 import ganeti.rpc.node as rpc
 from ganeti import ssh
 from ganeti import compat
@@ -2440,7 +2440,7 @@ def FormatError(err):
     obuf.write("Parameter Error: %s" % msg)
   elif isinstance(err, errors.ParameterError):
     obuf.write("Failure: unknown/wrong parameter name '%s'" % msg)
-  elif isinstance(err, luxi.NoMasterError):
+  elif isinstance(err, rpcerr.NoMasterError):
     if err.args[0] == pathutils.MASTER_SOCKET:
       daemon = "the master daemon"
     elif err.args[0] == pathutils.QUERY_SOCKET:
@@ -2449,16 +2449,16 @@ def FormatError(err):
       daemon = "socket '%s'" % str(err.args[0])
     obuf.write("Cannot communicate with %s.\nIs the process running"
                " and listening for connections?" % daemon)
-  elif isinstance(err, luxi.TimeoutError):
+  elif isinstance(err, rpcerr.TimeoutError):
     obuf.write("Timeout while talking to the master daemon. Jobs might have"
                " been submitted and will continue to run even if the call"
                " timed out. Useful commands in this situation are \"gnt-job"
                " list\", \"gnt-job cancel\" and \"gnt-job watch\". Error:\n")
     obuf.write(msg)
-  elif isinstance(err, luxi.PermissionError):
+  elif isinstance(err, rpcerr.PermissionError):
     obuf.write("It seems you don't have permissions to connect to the"
                " master daemon.\nPlease retry as a different user.")
-  elif isinstance(err, luxi.ProtocolError):
+  elif isinstance(err, rpcerr.ProtocolError):
     obuf.write("Unhandled protocol error while talking to the master daemon:\n"
                "%s" % msg)
   elif isinstance(err, errors.JobLost):
@@ -2543,7 +2543,7 @@ def GenericMain(commands, override=None, aliases=None,
 
   try:
     result = func(options, args)
-  except (errors.GenericError, luxi.ProtocolError,
+  except (errors.GenericError, rpcerr.ProtocolError,
           JobSubmittedException), err:
     result, err_msg = FormatError(err)
     logging.exception("Error during command processing")
@@ -3706,7 +3706,7 @@ class JobExecutor(object):
         ToStderr("Job %s%s has been archived, cannot check its result",
                  jid, self._IfName(name, " for %s"))
         success = False
-      except (errors.GenericError, luxi.ProtocolError), err:
+      except (errors.GenericError, rpcerr.ProtocolError), err:
         _, job_result = FormatError(err)
         success = False
         # the error message will always be shown, verbose or not

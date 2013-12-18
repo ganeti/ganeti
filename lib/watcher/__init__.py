@@ -42,7 +42,8 @@ from ganeti import compat
 from ganeti import errors
 from ganeti import opcodes
 from ganeti import cli
-from ganeti import luxi
+import ganeti.rpc.node as rpc
+import ganeti.rpc.errors as rpcerr
 from ganeti import rapi
 from ganeti import netutils
 from ganeti import qlang
@@ -524,7 +525,7 @@ def GetLuxiClient(try_restart, query=False):
     # this is, from cli.GetClient, a not-master case
     raise NotMasterError("Not on master node (%s)" % err)
 
-  except luxi.NoMasterError, err:
+  except rpcerr.NoMasterError, err:
     if not try_restart:
       raise
 

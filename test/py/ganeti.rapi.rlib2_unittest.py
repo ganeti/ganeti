@@ -33,7 +33,7 @@ from ganeti import opcodes
 from ganeti import compat
 from ganeti import http
 from ganeti import query
-from ganeti import luxi
+import ganeti.rpc.errors as rpcerr
 from ganeti import errors
 from ganeti import rapi
 
@@ -107,7 +107,7 @@ class TestConstants(unittest.TestCase):
 class TestClientConnectError(unittest.TestCase):
   @staticmethod
   def _FailingClient(address=None):
-    raise luxi.NoMasterError("test")
+    raise rpcerr.NoMasterError("test")
 
   def test(self):
     resources = [
