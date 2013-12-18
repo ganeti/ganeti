@@ -29,6 +29,17 @@ This will carry out the steps described below in the section on upgrades from
 way, specifiying the smaller version on the ``--to`` argument.
 
 
+2.11
+----
+
+When upgrading to 2.11, first apply the instructions of ``2.11 and
+above``. 2.11 comes with the new feature of enhanced RPC security
+through client certificates. This features needs to be enabled after the
+upgrade by::
+
+   $ gnt-cluster renew-crypto --new-node-certificates
+
+
 2.1 and above
 -------------
 
