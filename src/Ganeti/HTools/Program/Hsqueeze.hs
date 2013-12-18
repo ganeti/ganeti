@@ -85,6 +85,10 @@ onlyExternal (_, il) nd =
   . any (Instance.usesLocalStorage . flip Container.find il)
   $ Node.pList nd
 
+-- | Predicate of not being secondary node for any instance
+noSecondaries :: Node.Node -> Bool
+noSecondaries = null . Node.sList
+
 -- | Predicate whether, in a configuration, all running instances are on
 -- online nodes.
 allInstancesOnOnlineNodes :: (Node.List, Instance.List) -> Bool
@@ -210,6 +214,7 @@ main opts args = do
         . filter (foldl (liftA2 (&&)) (const True)
                   [ not . Node.offline
                   , not . Node.isMaster
+                  , noSecondaries
                   , onlyExternal (nlf, ilf)
                   ])
         $ nodelist
