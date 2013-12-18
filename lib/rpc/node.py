@@ -615,7 +615,7 @@ def _AddStorageInfoToLegacyNodeInfoByTemplate(
 
 
 def MakeLegacyNodeInfo(data, disk_template):
-  """Formats the data returned by L{rpc.RpcRunner.call_node_info}.
+  """Formats the data returned by call_node_info.
 
   Converts the data into a single dictionary. This is fine for most use cases,
   but some require information from more than one volume group or hypervisor.

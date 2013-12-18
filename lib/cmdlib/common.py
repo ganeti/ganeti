@@ -717,7 +717,7 @@ def AnnotateDiskParams(instance, devs, cfg):
   @param devs: The root devices (not any of its children!)
   @param cfg: The config object
   @returns The annotated disk copies
-  @see L{rpc.AnnotateDiskParams}
+  @see L{rpc.node.AnnotateDiskParams}
 
   """
   return rpc.AnnotateDiskParams(devs, cfg.GetInstanceDiskParams(instance))

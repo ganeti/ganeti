@@ -84,7 +84,7 @@ def _Prepare(calls):
 
 
 def _MigrationStatusPostProc(result):
-  """Post-processor for L{rpc.RpcRunner.call_instance_get_migration_status}.
+  """Post-processor for L{RpcRunner.call_instance_get_migration_status}.
 
   """
   if not result.fail_msg and result.payload is not None:
@@ -93,7 +93,7 @@ def _MigrationStatusPostProc(result):
 
 
 def _BlockdevFindPostProc(result):
-  """Post-processor for L{rpc.RpcRunner.call_blockdev_find}.
+  """Post-processor for L{rpc.node.RpcRunner.call_blockdev_find}.
 
   """
   if not result.fail_msg and result.payload is not None:
@@ -102,7 +102,7 @@ def _BlockdevFindPostProc(result):
 
 
 def _BlockdevGetMirrorStatusPostProc(result):
-  """Post-processor for L{rpc.RpcRunner.call_blockdev_getmirrorstatus}.
+  """Post-processor for call_blockdev_getmirrorstatus.
 
   """
   if not result.fail_msg:
@@ -122,7 +122,7 @@ def _BlockdevGetMirrorStatusMultiPreProc(node, args):
 
 
 def _BlockdevGetMirrorStatusMultiPostProc(result):
-  """Post-processor for L{rpc.RpcRunner.call_blockdev_getmirrorstatus_multi}.
+  """Post-processor for call_blockdev_getmirrorstatus_multi.
 
   """
   if not result.fail_msg:
@@ -145,7 +145,7 @@ def _NodeInfoPreProc(node, args):
 
 
 def _OsGetPostProc(result):
-  """Post-processor for L{rpc.RpcRunner.call_os_get}.
+  """Post-processor for L{rpc.node.RpcRunner.call_os_get}.
 
   """
   if not result.fail_msg and isinstance(result.payload, dict):
