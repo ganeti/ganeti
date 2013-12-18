@@ -818,7 +818,7 @@ def GetOperatingSystems():
 
 
 def TestInterClusterInstanceMove(src_instance, dest_instance,
-                                 inodes, tnode):
+                                 inodes, tnode, perform_checks=True):
   """Test tools/move-instance"""
   master = qa_config.GetMasterNode()
 
@@ -826,7 +826,9 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
   rapi_pw_file.write(_rapi_password)
   rapi_pw_file.flush()
 
-  dest_instance.SetDiskTemplate(src_instance.disk_template)
+  # Needed only if checks are to be performed
+  if perform_checks:
+    dest_instance.SetDiskTemplate(src_instance.disk_template)
 
   # TODO: Run some instance tests before moving back
 
@@ -842,26 +844,32 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
   pnode = inodes[0]
   # note: pnode:snode are the *current* nodes, so we move it first to
   # tnode:pnode, then back to pnode:snode
-  for si, di, pn, sn in [(src_instance.name, dest_instance.name,
-                          tnode.primary, pnode.primary),
-                         (dest_instance.name, src_instance.name,
-                          pnode.primary, snode.primary)]:
+  for current_src_inst, current_dest_inst, target_pnode, target_snode in \
+    [(src_instance.name, dest_instance.name, tnode.primary, pnode.primary),
+     (dest_instance.name, src_instance.name, pnode.primary, snode.primary)]:
     cmd = [
       "../tools/move-instance",
       "--verbose",
       "--src-ca-file=%s" % _rapi_ca.name,
       "--src-username=%s" % _rapi_username,
       "--src-password-file=%s" % rapi_pw_file.name,
-      "--dest-instance-name=%s" % di,
-      "--dest-primary-node=%s" % pn,
-      "--dest-secondary-node=%s" % sn,
+      "--dest-instance-name=%s" % current_dest_inst,
+      "--dest-primary-node=%s" % target_pnode,
+      "--dest-secondary-node=%s" % target_snode,
       "--net=0:mac=%s" % constants.VALUE_GENERATE,
       master.primary,
       master.primary,
-      si,
+      current_src_inst,
       ]
 
-    qa_utils.RunInstanceCheck(di, False)
+    # Some uses of this test might require that RAPI-only commands are used,
+    # and the checks are command-line based.
+
+    if perform_checks:
+      qa_utils.RunInstanceCheck(current_dest_inst, False)
+
     AssertEqual(StartLocalCommand(cmd).wait(), 0)
-    qa_utils.RunInstanceCheck(si, False)
-    qa_utils.RunInstanceCheck(di, True)
+
+    if perform_checks:
+      qa_utils.RunInstanceCheck(current_src_inst, False)
+      qa_utils.RunInstanceCheck(current_dest_inst, True)
