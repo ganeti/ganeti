@@ -84,7 +84,7 @@ def _Prepare(calls):
 
 
 def _MigrationStatusPostProc(result):
-  """Post-processor for L{RpcRunner.call_instance_get_migration_status}.
+  """Post-processor for L{rpc.node.RpcRunner.call_instance_get_migration_status}
 
   """
   if not result.fail_msg and result.payload is not None:
