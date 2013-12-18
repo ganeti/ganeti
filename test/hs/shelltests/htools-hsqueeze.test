@@ -22,6 +22,7 @@ node-01-00[2345]$/
 
 ./test/hs/hsqueeze --no-headers --target-resources=0 -t $TESTDATA_DIR/hsqueeze-underutilized.data -C
 >>>/gnt-instance migrate -f -n node-01-00[01] inst-50(.|
+)*gnt-node add-tags node-01-005 htools:standby:auto(.|
 )*gnt-node power -f off node-01-005/
 >>>=0
 
