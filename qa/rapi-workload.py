@@ -690,6 +690,86 @@ def TestInstanceMigrations(client, node_one, node_two, node_three,
   Finish(client, client.DeleteInstance, instance_name)
 
 
+def TestJobCancellation(client, node_one, node_two, instance_one, instance_two):
+  """ Test if jobs can be cancelled.
+
+  @type node_one string
+  @param node_one The name of a node in the cluster.
+  @type node_two string
+  @param node_two The name of a node in the cluster.
+  @type instance_one string
+  @param instance_one An available instance name.
+  @type instance_two string
+  @param instance_two An available instance name.
+
+  """
+
+  # Just in case, remove all previously present instances
+  RemoveAllInstances(client)
+
+  # Let us issue a job that is sure to both succeed and last for a while
+  running_job = client.CreateInstance("create", instance_one, "drbd",
+                                      [{"size": "5000"}], [{}],
+                                      os="debian-image", pnode=node_one,
+                                      snode=node_two)
+
+  # And immediately afterwards, another very similar one
+  job_to_cancel = client.CreateInstance("create", instance_two, "drbd",
+                                        [{"size": "5000"}], [{}],
+                                        os="debian-image", pnode=node_one,
+                                        snode=node_two)
+
+  # Try to cancel, which should fail as the job is already running
+  success, msg = client.CancelJob(running_job)
+  if success:
+    print "Job succeeded: this should not have happened as it is running!"
+    print "Message: %s" % msg
+
+  success, msg = client.CancelJob(job_to_cancel)
+  if not success:
+    print "Job failed: this was unexpected as it was not a dry run"
+    print "Message: %s" % msg
+
+  # And wait for the proper job
+  client.WaitForJobCompletion(running_job)
+
+  # Remove all the leftover instances, success or no success
+  RemoveAllInstances(client)
+
+
+def TestInstanceMoves(client, node_one, node_two, instance_to_create,
+                      new_instance):
+  """ Reuses a part of the QA to test instance moves.
+
+  @type node_one C{_QaNode}
+  @param node_one A node configuration object.
+  @type node_two C{_QaNode}
+  @param node_two A node configuration object.
+  @type instance_to_create C{_QaInstance}
+  @param instance_to_create An instance configuration object.
+  @type new_instance C{_QaInstance}
+  @param new_instance An instance configuration object.
+
+  """
+
+  # First create the instance to move
+  Finish(client, client.CreateInstance,
+         "create", instance_to_create.name, "plain", [{"size": "2000"}], [{}],
+         os="debian-image", pnode=node_one.primary)
+
+  Finish(client, client.ShutdownInstance,
+         instance_to_create.name, dry_run=False, no_remember=False)
+
+  instance_to_create.SetDiskTemplate("plain")
+
+  qa_rapi.TestInterClusterInstanceMove(instance_to_create, new_instance,
+                                       [node_one], node_two,
+                                       perform_checks=False)
+
+  # Finally, cleanup
+  RemoveAllInstances(client)
+
+
 def Workload(client):
   """ The actual RAPI workload used for tests.
 
@@ -747,6 +827,12 @@ def Workload(client):
   TestInstanceMigrations(client, nodes[0].primary, nodes[1].primary,
                          nodes[2].primary, instance.name)
   instance.Release()
+  qa_config.ReleaseManyNodes(nodes)
+
+  nodes = qa_config.AcquireManyNodes(2)
+  instances = qa_config.AcquireManyInstances(2)
+  TestInstanceMoves(client, nodes[0], nodes[1], instances[0], instances[1])
+  qa_config.ReleaseManyInstances(instances)
   qa_config.ReleaseManyNodes(nodes)
 
 
