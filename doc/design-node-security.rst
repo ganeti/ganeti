@@ -46,7 +46,7 @@ Currently (as of 2.10), all nodes hold the following information:
 
 - the ssh host keys (public and private)
 - the ssh root keys (public and private)
-- node daemon certificates (the SSL client certificate and its
+- node daemon certificate (the SSL client certificate and its
   corresponding private key)
 
 Concerning ssh, this setup contains the following security issue. Since
@@ -330,6 +330,9 @@ Cluster verify will be extended by the following checks:
   candidate.
 - Whether the master candidate's certificate digest match their entry
   in the candidate map.
+- Whether no node tries to use the certificate of another node. In
+  particular, it is important to check that no normal node tries to
+  use the certificate of a master candidate.
 
 
 Crypto renewal
@@ -340,24 +343,14 @@ Currently, when the cluster's cryptographic tokens are renewed using the
 renewed (among others). Option ``--new-cluster-certificate`` renews the
 node daemon certificate only.
 
-Additionally to the renewal of the node daemon server certificate, we
-propose to renew all client certificates when ``gnt-cluster
-renew-crypto`` is called without another option.
-
 By adding an option ``--new-node-certificates`` we offer to renew the
-client certificates only. Whenever the client certificates are renewed, the
+client certificate. Whenever the client certificates are renewed, the
 candidate map has to be updated and redistributed.
 
-If for whatever reason there is an entry in the candidate map of a node
-that is not a master candidate (for example due inconsistent updating
-after a demotion or offlining), we offer the user to remove the entry
-from the candidate list (for example if cluster verify detects this
-inconsistency). We propose to implement a new option called
-
-::
-  gnt-cluster renew-crypto --update-candidate-map
-
-TODO: describe what exactly should happen here
+If for whatever reason, the candidate map becomes inconsistent, for example
+due inconsistent updating after a demotion or offlining), the user can use
+this option to renew the client certificates and update the candidate
+certificate map.
 
 
 Further considerations
