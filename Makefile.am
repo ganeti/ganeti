@@ -1271,6 +1271,7 @@ TEST_FILES = \
 	test/data/htools/hroller-nodegroups.data \
 	test/data/htools/hroller-nonredundant.data \
 	test/data/htools/hroller-online.data \
+	test/data/htools/hsqueeze-mixed-instances.data \
 	test/data/htools/hsqueeze-overutilized.data \
 	test/data/htools/hsqueeze-underutilized.data \
 	test/data/htools/unique-reboot-order.data \

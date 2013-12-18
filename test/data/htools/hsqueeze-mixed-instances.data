@@ -1,0 +1,16 @@
+group-01|fake-uuid-01|preferred|
+
+node-01-000|639|0|512|1052|1052|9|M|fake-uuid-01|1
+node-01-001|639|0|512|1052|1052|9|N|fake-uuid-01|1
+node-01-002|639|0|385|1052|28|9|N|fake-uuid-01|1
+node-01-003|639|0|512|1052|28|9|N|fake-uuid-01|1
+node-01-004|639|0|385|1052|28|9|N|fake-uuid-01|1
+node-01-005|639|0|512|1052|28|9|N|fake-uuid-01|1
+
+inst-00|127|0|1|running|Y|node-01-000||ext||1
+inst-10|127|0|1|running|Y|node-01-001||ext||1
+inst-2-3|127|1024|1|running|Y|node-01-002|node-01-003|drbd||1
+inst-4-5|127|1024|1|running|Y|node-01-004|node-01-005|drbd||1
+
+|127,1,0,0,1,1|127,1,0,1,1,1;256,1,0,0,2,2|ext|1.0|32.0
+
