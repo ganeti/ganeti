@@ -935,6 +935,53 @@ def TestClusterParameterModification(client):
     #pylint: enable=W0142
 
 
+def TestJobCancellation(client, node_one, node_two, instance_one, instance_two):
+  """ Test if jobs can be cancelled.
+
+  @type node_one string
+  @param node_one The name of a node in the cluster.
+  @type node_two string
+  @param node_two The name of a node in the cluster.
+  @type instance_one string
+  @param instance_one An available instance name.
+  @type instance_two string
+  @param instance_two An available instance name.
+
+  """
+
+  # Just in case, remove all previously present instances
+  RemoveAllInstances(client)
+
+  # Let us issue a job that is sure to both succeed and last for a while
+  running_job = client.CreateInstance("create", instance_one, "drbd",
+                                      [{"size": "5000"}], [{}],
+                                      os="debian-image", pnode=node_one,
+                                      snode=node_two)
+
+  # And immediately afterwards, another very similar one
+  job_to_cancel = client.CreateInstance("create", instance_two, "drbd",
+                                        [{"size": "5000"}], [{}],
+                                        os="debian-image", pnode=node_one,
+                                        snode=node_two)
+
+  # Try to cancel, which should fail as the job is already running
+  success, msg = client.CancelJob(running_job)
+  if success:
+    print "Job succeeded: this should not have happened as it is running!"
+    print "Message: %s" % msg
+
+  success, msg = client.CancelJob(job_to_cancel)
+  if not success:
+    print "Job failed: this was unexpected as it was not a dry run"
+    print "Message: %s" % msg
+
+  # And wait for the proper job
+  client.WaitForJobCompletion(running_job)
+
+  # Remove all the leftover instances, success or no success
+  RemoveAllInstances(client)
+
+
 def Workload(client):
   """ The actual RAPI workload used for tests.
 
@@ -1000,6 +1047,8 @@ def Workload(client):
   nodes = qa_config.AcquireManyNodes(2)
   instances = qa_config.AcquireManyInstances(2)
   TestInstanceMoves(client, nodes[0], nodes[1], instances[0], instances[1])
+  TestJobCancellation(client, nodes[0].primary, nodes[1].primary,
+                      instances[0].name, instances[1].name)
   qa_config.ReleaseManyInstances(instances)
   qa_config.ReleaseManyNodes(nodes)
 
