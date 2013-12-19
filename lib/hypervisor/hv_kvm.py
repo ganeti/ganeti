@@ -188,22 +188,45 @@ def _GetExistingDeviceInfo(dev_type, device, runtime):
   return found[0]
 
 
+def _UpgradeSerializedRuntime(serialized_runtime):
+  """Upgrade runtime data
+
+  Remove any deprecated fields or change the format of the data.
+  The runtime files are not upgraded when Ganeti is upgraded, so the required
+  modification have to be performed here.
+
+  @type serialized_runtime: string
+  @param serialized_runtime: raw text data read from actual runtime file
+  @return: (cmd, nic dicts, hvparams, bdev dicts)
+  @rtype: tuple
+
+  """
+  loaded_runtime = serializer.Load(serialized_runtime)
+  kvm_cmd, serialized_nics, hvparams = loaded_runtime[:3]
+  if len(loaded_runtime) >= 4:
+    serialized_disks = loaded_runtime[3]
+  else:
+    serialized_disks = []
+
+  for nic in serialized_nics:
+    # Add a dummy uuid slot if an pre-2.8 NIC is found
+    if "uuid" not in nic:
+      nic["uuid"] = utils.NewUUID()
+
+  return kvm_cmd, serialized_nics, hvparams, serialized_disks
+
+
 def _AnalyzeSerializedRuntime(serialized_runtime):
   """Return runtime entries for a serialized runtime file
 
   @type serialized_runtime: string
   @param serialized_runtime: raw text data read from actual runtime file
   @return: (cmd, nics, hvparams, bdevs)
-  @rtype: list
+  @rtype: tuple
 
   """
-  loaded_runtime = serializer.Load(serialized_runtime)
-  if len(loaded_runtime) == 3:
-    serialized_disks = []
-    kvm_cmd, serialized_nics, hvparams = loaded_runtime
-  else:
-    kvm_cmd, serialized_nics, hvparams, serialized_disks = loaded_runtime
-
+  kvm_cmd, serialized_nics, hvparams, serialized_disks = \
+    _UpgradeSerializedRuntime(serialized_runtime)
   kvm_nics = [objects.NIC.FromDict(snic) for snic in serialized_nics]
   kvm_disks = [(objects.Disk.FromDict(sdisk), link, uri)
                for sdisk, link, uri in serialized_disks]
@@ -1002,11 +1025,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type tap: str
 
     """
-    if instance.tags:
-      tags = " ".join(instance.tags)
-    else:
-      tags = ""
-
     env = {
       "PATH": "%s:/sbin:/usr/sbin" % os.environ["PATH"],
       "INSTANCE": instance.name,
@@ -1014,11 +1032,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       "MODE": nic.nicparams[constants.NIC_MODE],
       "INTERFACE": tap,
       "INTERFACE_INDEX": str(seq),
-      "TAGS": tags,
+      "INTERFACE_UUID": nic.uuid,
+      "TAGS": " ".join(instance.GetTags()),
     }
 
     if nic.ip:
       env["IP"] = nic.ip
+
+    if nic.name:
+      env["INTERFACE_NAME"] = nic.name
 
     if nic.nicparams[constants.NIC_LINK]:
       env["LINK"] = nic.nicparams[constants.NIC_LINK]
@@ -2038,11 +2060,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @raise errors.HypervisorError: in one of the previous cases
 
     """
-    output = self._CallMonitorCommand(instance.name, self._INFO_VERSION_CMD)
+    try:
+      output = self._CallMonitorCommand(instance.name, self._INFO_VERSION_CMD)
+    except errors.HypervisorError:
+      raise errors.HotplugError("Instance is probably down")
+
     # TODO: search for netdev_add, drive_add, device_add.....
     match = self._INFO_VERSION_RE.search(output.stdout)
     if not match:
-      raise errors.HotplugError("Try hotplug only in running instances.")
+      raise errors.HotplugError("Cannot parse qemu version via monitor")
+
     v_major, v_min, _, _ = match.groups()
     if (int(v_major), int(v_min)) < (1, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.0")
@@ -2185,7 +2212,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     result = utils.RunCmd([kvm_path] + optlist)
     if result.failed and not can_fail:
       raise errors.HypervisorError("Unable to get KVM %s output" %
-                                    " ".join(cls._KVMOPTS_CMDS[option]))
+                                    " ".join(optlist))
     return result.output
 
   @classmethod
@@ -2444,10 +2471,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     result = self.GetLinuxNodeInfo()
-    # FIXME: this is the global kvm version, but the actual version can be
-    # customized as an hv parameter. we should use the nodegroup's default kvm
-    # path parameter here.
-    _, v_major, v_min, v_rev = self._GetKVMVersion(constants.KVM_PATH)
+    kvmpath = constants.KVM_PATH
+    if hvparams is not None:
+      kvmpath = hvparams.get(constants.HV_KVM_PATH, constants.KVM_PATH)
+    _, v_major, v_min, v_rev = self._GetKVMVersion(kvmpath)
     result[constants.HV_NODEINFO_KEY_VERSION] = (v_major, v_min, v_rev)
     return result
 
@@ -2504,11 +2531,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     msgs = []
-    # FIXME: this is the global kvm binary, but the actual path can be
-    # customized as an hv parameter; we should use the nodegroup's
-    # default kvm path parameter here.
-    if not os.path.exists(constants.KVM_PATH):
-      msgs.append("The KVM binary ('%s') does not exist" % constants.KVM_PATH)
+    kvmpath = constants.KVM_PATH
+    if hvparams is not None:
+      kvmpath = hvparams.get(constants.HV_KVM_PATH, constants.KVM_PATH)
+    if not os.path.exists(kvmpath):
+      msgs.append("The KVM binary ('%s') does not exist" % kvmpath)
     if not os.path.exists(constants.SOCAT_PATH):
       msgs.append("The socat binary ('%s') does not exist" %
                   constants.SOCAT_PATH)

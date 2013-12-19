@@ -215,7 +215,7 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xgdx   <- convert "group.uuid" g_uuid >>= lookupGroup ktg xname
   xtags <- convert "tags" tags
   xexcl_stor <- convert "exclusive_storage" excl_stor
-  let live = not xoffline && not xdrained && xvm_capable
+  let live = not xoffline && xvm_capable
       lvconvert def n d = eitherLive live def $ convert n d
   xsptotal <- if xexcl_stor
               then lvconvert 0 "sptotal" sptotal
@@ -230,7 +230,8 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xcnos <- lvconvert 0 "cnos" cnos
   let node = flip Node.setNodeTags xtags $
              Node.create xname xmtotal xmnode xmfree xdtotal xdfree
-             xctotal xcnos (not live) xsptotal xspfree xgdx xexcl_stor
+             xctotal xcnos (not live || xdrained) xsptotal xspfree
+             xgdx xexcl_stor
   return (xname, node)
 
 parseNode _ v = fail ("Invalid node query result: " ++ show v)

@@ -65,7 +65,7 @@ function setup_ovs {
 }
 
 function setup_route {
-  if [ "$MODE" = "openvswitch" ]; then
+  if [ "$MODE" = "routed" ]; then
     ip link set $INTERFACE up
 
     if [ -z "$IP" ]; then

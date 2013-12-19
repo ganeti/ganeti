@@ -49,6 +49,7 @@ Before installing, please verify that you have the following programs:
   <http://code.google.com/p/ipaddr-py/>`_
 - `Bitarray Python library <http://pypi.python.org/pypi/bitarray/>`_
 - `GNU Make <http://www.gnu.org/software/make/>`_
+- `GNU M4 <http://www.gnu.org/software/m4/>`_
 
 These programs are supplied as part of most Linux distributions, so
 usually they can be installed via the standard package manager. Also
@@ -56,7 +57,7 @@ many of them will already be installed on a standard machine. On
 Debian/Ubuntu, you can use this command line to install all required
 packages, except for RBD, DRBD and Xen::
 
-  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make \
+  $ apt-get install lvm2 ssh bridge-utils iproute iputils-arping make m4 \
                     ndisc6 python python-openssl openssl \
                     python-pyparsing python-simplejson python-bitarray \
                     python-pyinotify python-pycurl python-ipaddr socat fping
@@ -75,14 +76,14 @@ If bitarray is missing it can be installed from easy-install::
 
 Note that this does not install optional packages::
 
-  $ apt-get install python-paramiko python-affinity qemu-img
+  $ apt-get install python-paramiko python-affinity qemu-utils
 
 If some of the python packages are not available in your system,
 you can try installing them using ``easy_install`` command.
 For example::
 
   $ apt-get install python-setuptools python-dev
-  $ cd / && sudo easy_install \
+  $ cd / && easy_install \
             affinity \
             bitarray \
             ipaddr
@@ -205,6 +206,7 @@ can use either apt::
 
   $ apt-get install libghc-crypto-dev libghc-text-dev \
                     libghc-hinotify-dev libghc-regex-pcre-dev \
+                    libpcre3-dev \
                     libghc-attoparsec-dev libghc-vector-dev \
                     libghc-snap-server-dev
 
@@ -219,7 +221,7 @@ to install them.
 In case you still use ghc-6.12, note that ``cabal`` would automatically try to
 install newer versions of some of the libraries snap-server depends on, that
 cannot be compiled with ghc-6.12, so you have to install snap-server on its
-own, esplicitly forcing the installation of compatible versions::
+own, explicitly forcing the installation of compatible versions::
 
   $ cabal install MonadCatchIO-transformers==0.2.2.0 mtl==2.0.1.0 \
                   hashable==1.1.2.0 case-insensitive==0.3 parsec==3.0.1 \

@@ -54,10 +54,10 @@ For Haskell:
   at least version 1.0.0.0
 
 
-Version 2.10.0 alpha1
----------------------
+Version 2.10.0 rc1
+------------------
 
-*(unreleased)*
+*(Released Tue, 17 Dec 2013)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -120,6 +120,96 @@ Python
 
 - The version requirements for ``python-mock`` have increased to at least
   version 1.0.1. It is still used for testing only.
+
+Since 2.10.0 beta1
+~~~~~~~~~~~~~~~~~~
+
+- All known issues in 2.10.0 beta1 have been resolved (see changes from
+  the 2.8 branch).
+- Improve handling of KVM runtime files from earlier Ganeti versions
+- Documentation fixes
+
+Inherited from the 2.9 branch:
+
+- use custom KVM path if set for version checking
+- SingleNotifyPipeCondition: don't share pollers
+
+Inherited from the 2.8 branch:
+
+- Fixed Luxi daemon socket permissions after master-failover
+- Improve IP version detection code directly checking for colons rather than
+  passing the family from the cluster object
+- Fix NODE/NODE_RES locking in LUInstanceCreate by not acquiring NODE_RES locks
+  opportunistically anymore (Issue 622)
+- Allow link local IPv6 gateways (Issue 624)
+- Fix error printing (Issue 616)
+- Fix a bug in InstanceSetParams concerning names: in case no name is passed in
+  disk modifications, keep the old one. If name=none then set disk name to
+  None.
+- Update build_chroot script to work with the latest hackage packages
+- Add a packet number limit to "fping" in master-ip-setup (Issue 630)
+- Fix evacuation out of drained node (Issue 615)
+- Add default file_driver if missing (Issue 571)
+- Fix job error message after unclean master shutdown (Issue 618)
+- Lock group(s) when creating instances (Issue 621)
+- SetDiskID() before accepting an instance (Issue 633)
+- Allow the ext template disks to receive arbitrary parameters, both at creation
+  time and while being modified
+- Xen handle domain shutdown (future proofing cherry-pick)
+- Refactor reading live data in htools (future proofing cherry-pick)
+
+
+Version 2.10.0 beta1
+--------------------
+
+*(Released Wed, 27 Nov 2013)*
+
+This was the first beta release of the 2.10 series. All important changes
+are listed in the latest 2.10 entry.
+
+Known issues
+~~~~~~~~~~~~
+
+The following issues are known to be present in the beta and will be fixed
+before rc1.
+
+- Issue 477: Wrong permissions for confd LUXI socket
+- Issue 621: Instance related opcodes do not aquire network/group locks
+- Issue 622: Assertion Error: Node locks differ from node resource locks
+- Issue 623: IPv6 Masterd <-> Luxid communication error
+
+
+Version 2.9.2
+-------------
+
+*(Released Fri, 13 Dec 2013)*
+
+- use custom KVM path if set for version checking
+- SingleNotifyPipeCondition: don't share pollers
+
+Inherited from the 2.8 branch:
+
+- Fixed Luxi daemon socket permissions after master-failover
+- Improve IP version detection code directly checking for colons rather than
+  passing the family from the cluster object
+- Fix NODE/NODE_RES locking in LUInstanceCreate by not acquiring NODE_RES locks
+  opportunistically anymore (Issue 622)
+- Allow link local IPv6 gateways (Issue 624)
+- Fix error printing (Issue 616)
+- Fix a bug in InstanceSetParams concerning names: in case no name is passed in
+  disk modifications, keep the old one. If name=none then set disk name to
+  None.
+- Update build_chroot script to work with the latest hackage packages
+- Add a packet number limit to "fping" in master-ip-setup (Issue 630)
+- Fix evacuation out of drained node (Issue 615)
+- Add default file_driver if missing (Issue 571)
+- Fix job error message after unclean master shutdown (Issue 618)
+- Lock group(s) when creating instances (Issue 621)
+- SetDiskID() before accepting an instance (Issue 633)
+- Allow the ext template disks to receive arbitrary parameters, both at creation
+  time and while being modified
+- Xen handle domain shutdown (future proofing cherry-pick)
+- Refactor reading live data in htools (future proofing cherry-pick)
 
 
 Version 2.9.1
@@ -255,6 +345,34 @@ Version 2.9.0 beta1
 
 This was the first beta release of the 2.9 series. All important changes
 are listed in the latest 2.9 entry.
+
+
+Version 2.8.3
+-------------
+
+*(Released Thu, 12 Dec 2013)*
+
+- Fixed Luxi daemon socket permissions after master-failover
+- Improve IP version detection code directly checking for colons rather than
+  passing the family from the cluster object
+- Fix NODE/NODE_RES locking in LUInstanceCreate by not acquiring NODE_RES locks
+  opportunistically anymore (Issue 622)
+- Allow link local IPv6 gateways (Issue 624)
+- Fix error printing (Issue 616)
+- Fix a bug in InstanceSetParams concerning names: in case no name is passed in
+  disk modifications, keep the old one. If name=none then set disk name to
+  None.
+- Update build_chroot script to work with the latest hackage packages
+- Add a packet number limit to "fping" in master-ip-setup (Issue 630)
+- Fix evacuation out of drained node (Issue 615)
+- Add default file_driver if missing (Issue 571)
+- Fix job error message after unclean master shutdown (Issue 618)
+- Lock group(s) when creating instances (Issue 621)
+- SetDiskID() before accepting an instance (Issue 633)
+- Allow the ext template disks to receive arbitrary parameters, both at creation
+  time and while being modified
+- Xen handle domain shutdown (future proofing cherry-pick)
+- Refactor reading live data in htools (future proofing cherry-pick)
 
 
 Version 2.8.2

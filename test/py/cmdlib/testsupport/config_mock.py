@@ -28,6 +28,7 @@ import uuid as uuid_module
 from ganeti import config
 from ganeti import constants
 from ganeti import objects
+from ganeti.network import AddressPool
 
 import mocks
 
@@ -507,6 +508,9 @@ class ConfigMock(config.ConfigWriter):
     if mac is None:
       mac = "aa:00:00:aa:%02x:%02x" % (nic_id / 0xff, nic_id % 0xff)
     if isinstance(network, objects.Network):
+      if ip:
+        pool = AddressPool(network)
+        pool.Reserve(ip)
       network = network.uuid
     if nicparams is None:
       nicparams = {}

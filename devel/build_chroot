@@ -235,6 +235,17 @@ case $DIST_RELEASE in
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       shelltestrunner python-dev pylint openssh-client vim git git-email
 
+    # We need version 0.9.4 of pyinotify because the packaged version, 0.9.3, is
+    # incompatibile with the packaged version of python-epydoc 3.0.1.
+    # Reason: a logger class in pyinotify calculates its superclasses at
+    # runtime, which clashes with python-epydoc's static analysis phase.
+    #
+    # Problem introduced in:
+    #   https://github.com/seb-m/pyinotify/commit/2c7e8f8959d2f8528e0d90847df360
+    # and "fixed" in:
+    #   https://github.com/seb-m/pyinotify/commit/98c5f41a6e2e90827a63ff1b878596
+
+    in_chroot -- \
       easy_install pyinotify==0.9.4
 
      in_chroot -- \

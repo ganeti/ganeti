@@ -167,7 +167,7 @@ class LUNetworkAdd(LogicalUnit):
         for ip in [node.primary_ip, node.secondary_ip]:
           try:
             if pool.Contains(ip):
-              pool.Reserve(ip)
+              pool.Reserve(ip, external=True)
               self.LogInfo("Reserved IP address of node '%s' (%s)",
                            node.name, ip)
           except errors.AddressPoolError, err:
@@ -177,7 +177,7 @@ class LUNetworkAdd(LogicalUnit):
       master_ip = self.cfg.GetClusterInfo().master_ip
       try:
         if pool.Contains(master_ip):
-          pool.Reserve(master_ip)
+          pool.Reserve(master_ip, external=True)
           self.LogInfo("Reserved cluster master IP address (%s)", master_ip)
       except errors.AddressPoolError, err:
         self.LogWarning("Cannot reserve cluster master IP address (%s): %s",
@@ -363,10 +363,7 @@ class LUNetworkSetParams(LogicalUnit):
     if self.op.add_reserved_ips:
       for ip in self.op.add_reserved_ips:
         try:
-          if self.pool.IsReserved(ip):
-            self.LogWarning("IP address %s is already reserved", ip)
-          else:
-            self.pool.Reserve(ip, external=True)
+          self.pool.Reserve(ip, external=True)
         except errors.AddressPoolError, err:
           self.LogWarning("Cannot reserve IP address %s: %s", ip, err)
 
@@ -376,10 +373,7 @@ class LUNetworkSetParams(LogicalUnit):
           self.LogWarning("Cannot unreserve Gateway's IP")
           continue
         try:
-          if not self.pool.IsReserved(ip):
-            self.LogWarning("IP address %s is already unreserved", ip)
-          else:
-            self.pool.Release(ip, external=True)
+          self.pool.Release(ip, external=True)
         except errors.AddressPoolError, err:
           self.LogWarning("Cannot release IP address %s: %s", ip, err)
 

@@ -135,6 +135,9 @@ ip
     connected to the said network. ``--no-conflicts-check`` can be used
     to override this check. The special value **pool** causes Ganeti to
     select an IP from the the network the NIC is or will be connected to.
+    One can pick an externally reserved IP of a network along with
+    ``--no-conflict-check``. Note that this IP cannot be assigned to
+    any other instance until it gets released.
 
 mode
     specifies the connection mode for this NIC: routed, bridged or
@@ -1137,6 +1140,7 @@ MODIFY
 | [\--submit] [\--print-job-id]
 | [\--ignore-ipolicy]
 | [\--hotplug]
+| [\--hotplug-if-possible]
 | {*instance*}
 
 Modifies the memory size, number of vcpus, ip address, MAC address
@@ -1223,6 +1227,11 @@ userspace access mode can not be hotplugged (yet) d) if hotplug fails
 (for any reason) a warning is printed but execution is continued e)
 for existing NIC modification interactive verification is needed unless
 ``--force`` option is passed.
+
+If ``--hotplug-if-possible`` is given then ganeti won't abort in case
+hotplug is not supported. It will continue execution and modification
+will take place after reboot. This covers use cases where instances are
+not running or hypervisor is not KVM.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.

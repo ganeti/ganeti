@@ -1991,10 +1991,34 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          nics=[(constants.DDM_ADD, -1, {})])
     self.ExecOpCode(op)
 
+  def testNoHotplugSupport(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_ADD, -1, {})],
+                         hotplug=True)
+    self.rpc.call_hotplug_supported.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(self.master)
+    self.ExecOpCodeExpectOpPrereqError(op, "Hotplug is not possible")
+    self.assertTrue(self.rpc.call_hotplug_supported.called)
+
+  def testHotplugIfPossible(self):
+    op = self.CopyOpCode(self.op,
+                         nics=[(constants.DDM_ADD, -1, {})],
+                         hotplug_if_possible=True)
+    self.rpc.call_hotplug_supported.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(self.master)
+    self.ExecOpCode(op)
+    self.assertTrue(self.rpc.call_hotplug_supported.called)
+    self.assertFalse(self.rpc.call_hotplug_device.called)
+
   def testHotAddNic(self):
     op = self.CopyOpCode(self.op,
                          nics=[(constants.DDM_ADD, -1, {})],
                          hotplug=True)
+    self.rpc.call_hotplug_supported.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master)
     self.ExecOpCode(op)
     self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_hotplug_device.called)
@@ -2086,6 +2110,9 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     op = self.CopyOpCode(self.op,
                          nics=[(constants.DDM_MODIFY, 0, {})],
                          hotplug=True)
+    self.rpc.call_hotplug_supported.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master)
     self.ExecOpCode(op)
     self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_hotplug_device.called)
@@ -2111,6 +2138,9 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          instance_name=inst.name,
                          nics=[(constants.DDM_REMOVE, 0, {})],
                          hotplug=True)
+    self.rpc.call_hotplug_supported.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master)
     self.ExecOpCode(op)
     self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_hotplug_device.called)
@@ -2200,6 +2230,9 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                    constants.IDISK_SIZE: 1024,
                                  }]],
                          hotplug=True)
+    self.rpc.call_hotplug_supported.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master)
     self.ExecOpCode(op)
     self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_blockdev_create.called)
@@ -2214,6 +2247,9 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          disks=[[constants.DDM_REMOVE, -1,
                                  {}]],
                          hotplug=True)
+    self.rpc.call_hotplug_supported.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master)
     self.ExecOpCode(op)
     self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_hotplug_device.called)
@@ -2237,8 +2273,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                    constants.IDISK_MODE: "invalid",
                                    constants.IDISK_NAME: "new_name"
                                  }]])
-    self.ExecOpCodeExpectOpPrereqError(
-      op, "Disk modification doesn't support additional arbitrary parameters")
+    self.ExecOpCodeExpectException(op, errors.TypeEnforcementError,
+                                   "Unknown parameter 'metavg'")
 
   def testModifyDiskUnsetName(self):
     op = self.CopyOpCode(self.op,

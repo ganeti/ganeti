@@ -184,7 +184,6 @@ getLuxiClient = connectClient luxiConnectConfig luxiDefCtmo
 getLuxiServer :: Bool -> FilePath -> IO Server
 getLuxiServer = connectServer luxiConnectConfig
 
-
 -- | Serialize a request to String.
 buildCall :: LuxiOp  -- ^ The method
           -> String  -- ^ The serialized form

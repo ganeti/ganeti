@@ -457,12 +457,13 @@ class XenHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(self._cfgdir, instance_name)
 
   @classmethod
-  def _WriteNICInfoFile(cls, instance_name, idx, nic):
+  def _WriteNICInfoFile(cls, instance, idx, nic):
     """Write the Xen config file for the instance.
 
     This version of the function just writes the config file from static data.
 
     """
+    instance_name = instance.name
     dirs = [(dname, constants.RUN_DIRS_MODE)
             for dname in cls._DIRS + [cls._InstanceNICDir(instance_name)]]
     utils.EnsureDirs(dirs)
@@ -470,24 +471,19 @@ class XenHypervisor(hv_base.BaseHypervisor):
     cfg_file = cls._InstanceNICFile(instance_name, idx)
     data = StringIO()
 
+    data.write("TAGS=%s\n" % r"\ ".join(instance.GetTags()))
     if nic.netinfo:
       netinfo = objects.Network.FromDict(nic.netinfo)
-      data.write("NETWORK_NAME=%s\n" % netinfo.name)
-      if netinfo.network:
-        data.write("NETWORK_SUBNET=%s\n" % netinfo.network)
-      if netinfo.gateway:
-        data.write("NETWORK_GATEWAY=%s\n" % netinfo.gateway)
-      if netinfo.network6:
-        data.write("NETWORK_SUBNET6=%s\n" % netinfo.network6)
-      if netinfo.gateway6:
-        data.write("NETWORK_GATEWAY6=%s\n" % netinfo.gateway6)
-      if netinfo.mac_prefix:
-        data.write("NETWORK_MAC_PREFIX=%s\n" % netinfo.mac_prefix)
-      if netinfo.tags:
-        data.write("NETWORK_TAGS=%s\n" % r"\ ".join(netinfo.tags))
+      for k, v in netinfo.HooksDict().iteritems():
+        data.write("%s=%s\n" % (k, v))
 
     data.write("MAC=%s\n" % nic.mac)
-    data.write("IP=%s\n" % nic.ip)
+    if nic.ip:
+      data.write("IP=%s\n" % nic.ip)
+    data.write("INTERFACE_INDEX=%s\n" % str(idx))
+    if nic.name:
+      data.write("INTERFACE_NAME=%s\n" % nic.name)
+    data.write("INTERFACE_UUID=%s\n" % nic.uuid)
     data.write("MODE=%s\n" % nic.nicparams[constants.NIC_MODE])
     data.write("LINK=%s\n" % nic.nicparams[constants.NIC_LINK])
 
@@ -665,28 +661,43 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return self._StopInstance(name, force, instance.hvparams)
 
-  def _ShutdownInstance(self, name, hvparams, instance_info):
-    # The '-w' flag waits for shutdown to complete
-    #
-    # In the case of shutdown, we want to wait until the shutdown
-    # process is complete because then we want to also destroy the
-    # domain, and we do not want to destroy the domain while it is
-    # shutting down.
-    if hv_base.HvInstanceState.IsShutdown(instance_info):
-      logging.info("Instance '%s' is already shutdown, skipping shutdown"
-                   " command", name)
-    else:
-      result = self._RunXen(["shutdown", "-w", name], hvparams)
-      if result.failed:
-        raise errors.HypervisorError("Failed to shutdown instance %s: %s, %s" %
-                                     (name, result.fail_reason, result.output))
+  def _ShutdownInstance(self, name, hvparams):
+    """Shutdown an instance if the instance is running.
+
+    @type name: string
+    @param name: name of the instance to stop
+    @type hvparams: dict of string
+    @param hvparams: hypervisor parameters of the instance
+
+    The '-w' flag waits for shutdown to complete which avoids the need
+    to poll in the case where we want to destroy the domain
+    immediately after shutdown.
+
+    """
+    instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
+
+    if instance_info is None or _IsInstanceShutdown(instance_info[4]):
+      logging.info("Failed to shutdown instance %s, not running", name)
+      return None
+
+    return self._RunXen(["shutdown", "-w", name], hvparams)
 
   def _DestroyInstance(self, name, hvparams):
-    result = self._RunXen(["destroy", name], hvparams)
+    """Destroy an instance if the instance if the instance exists.
 
-    if result.failed:
-      raise errors.HypervisorError("Failed to destroy instance %s: %s, %s" %
-                                   (name, result.fail_reason, result.output))
+    @type name: string
+    @param name: name of the instance to destroy
+    @type hvparams: dict of string
+    @param hvparams: hypervisor parameters of the instance
+
+    """
+    instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
+
+    if instance_info is None:
+      logging.info("Failed to destroy instance %s, does not exist", name)
+      return None
+
+    return self._RunXen(["destroy", name], hvparams)
 
   # Destroy a domain only if necessary
   #
@@ -709,9 +720,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Stop an instance.
 
     @type name: string
-    @param name: name of the instance to be shutdown
+    @param name: name of the instance to destroy
+
     @type force: boolean
-    @param force: flag specifying whether shutdown should be forced
+    @param force: whether to do a "hard" stop (destroy)
+
     @type hvparams: dict of string
     @param hvparams: hypervisor parameters of the instance
 
@@ -723,10 +736,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    " not running" % name)
 
     if force:
-      self._DestroyInstance(name, hvparams)
+      result = self._DestroyInstanceIfAlive(name, hvparams)
     else:
-      self._ShutdownInstance(name, hvparams, instance_info[4])
-      self._DestroyInstanceIfAlive(name, hvparams)
+      self._ShutdownInstance(name, hvparams)
+      result = self._DestroyInstanceIfAlive(name, hvparams)
+
+    if result is not None and result.failed and \
+          self.GetInstanceInfo(name, hvparams=hvparams) is not None:
+      raise errors.HypervisorError("Failed to stop instance %s: %s, %s" %
+                                   (name, result.fail_reason, result.output))
 
     # Remove configuration file if stopping/starting instance was successful
     self._RemoveConfigFile(name)
@@ -1153,7 +1171,7 @@ class XenPvmHypervisor(XenHypervisor):
       if hvp[constants.HV_VIF_SCRIPT]:
         nic_str += ", script=%s" % hvp[constants.HV_VIF_SCRIPT]
       vif_data.append("'%s'" % nic_str)
-      self._WriteNICInfoFile(instance.name, idx, nic)
+      self._WriteNICInfoFile(instance, idx, nic)
 
     disk_data = \
       _GetConfigFileDiskData(block_devices, hvp[constants.HV_BLOCKDEV_PREFIX])
@@ -1329,7 +1347,7 @@ class XenHvmHypervisor(XenHypervisor):
       if hvp[constants.HV_VIF_SCRIPT]:
         nic_str += ", script=%s" % hvp[constants.HV_VIF_SCRIPT]
       vif_data.append("'%s'" % nic_str)
-      self._WriteNICInfoFile(instance.name, idx, nic)
+      self._WriteNICInfoFile(instance, idx, nic)
 
     config.write("vif = [%s]\n" % ",".join(vif_data))
 

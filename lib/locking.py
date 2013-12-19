@@ -97,20 +97,16 @@ class _SingleNotifyPipeConditionWaiter(object):
   """
   __slots__ = [
     "_fd",
-    "_poller",
     ]
 
-  def __init__(self, poller, fd):
+  def __init__(self, fd):
     """Constructor for _SingleNotifyPipeConditionWaiter
 
-    @type poller: select.poll
-    @param poller: Poller object
     @type fd: int
     @param fd: File descriptor to wait for
 
     """
     object.__init__(self)
-    self._poller = poller
     self._fd = fd
 
   def __call__(self, timeout):
@@ -121,6 +117,8 @@ class _SingleNotifyPipeConditionWaiter(object):
 
     """
     running_timeout = utils.RunningTimeout(timeout, True)
+    poller = select.poll()
+    poller.register(self._fd, select.POLLHUP)
 
     while True:
       remaining_time = running_timeout.Remaining()
@@ -133,7 +131,7 @@ class _SingleNotifyPipeConditionWaiter(object):
         remaining_time *= 1000
 
       try:
-        result = self._poller.poll(remaining_time)
+        result = poller.poll(remaining_time)
       except EnvironmentError, err:
         if err.errno != errno.EINTR:
           raise
@@ -222,7 +220,6 @@ class SingleNotifyPipeCondition(_BaseCondition):
   """
 
   __slots__ = [
-    "_poller",
     "_read_fd",
     "_write_fd",
     "_nwaiters",
@@ -240,7 +237,6 @@ class SingleNotifyPipeCondition(_BaseCondition):
     self._notified = False
     self._read_fd = None
     self._write_fd = None
-    self._poller = None
 
   def _check_unnotified(self):
     """Throws an exception if already notified.
@@ -260,7 +256,6 @@ class SingleNotifyPipeCondition(_BaseCondition):
     if self._write_fd is not None:
       os.close(self._write_fd)
       self._write_fd = None
-    self._poller = None
 
   def wait(self, timeout):
     """Wait for a notification.
@@ -274,12 +269,10 @@ class SingleNotifyPipeCondition(_BaseCondition):
 
     self._nwaiters += 1
     try:
-      if self._poller is None:
+      if self._read_fd is None:
         (self._read_fd, self._write_fd) = os.pipe()
-        self._poller = select.poll()
-        self._poller.register(self._read_fd, select.POLLHUP)
 
-      wait_fn = self._waiter_class(self._poller, self._read_fd)
+      wait_fn = self._waiter_class(self._read_fd)
       state = self._release_save()
       try:
         # Wait for notification

@@ -395,7 +395,7 @@ class ConfigWriter(object):
     _, address, _ = self._temporary_ips.Generate([], gen_one, ec_id)
     return address
 
-  def _UnlockedReserveIp(self, net_uuid, address, ec_id):
+  def _UnlockedReserveIp(self, net_uuid, address, ec_id, check=True):
     """Reserve a given IPv4 address for use by an instance.
 
     """
@@ -403,22 +403,25 @@ class ConfigWriter(object):
     pool = network.AddressPool(nobj)
     try:
       isreserved = pool.IsReserved(address)
+      isextreserved = pool.IsReserved(address, external=True)
     except errors.AddressPoolError:
       raise errors.ReservationError("IP address not in network")
     if isreserved:
       raise errors.ReservationError("IP address already in use")
+    if check and isextreserved:
+      raise errors.ReservationError("IP is externally reserved")
 
     return self._temporary_ips.Reserve(ec_id,
                                        (constants.RESERVE_ACTION,
                                         address, net_uuid))
 
   @locking.ssynchronized(_config_lock, shared=1)
-  def ReserveIp(self, net_uuid, address, ec_id):
+  def ReserveIp(self, net_uuid, address, ec_id, check=True):
     """Reserve a given IPv4 address for use by an instance.
 
     """
     if net_uuid:
-      return self._UnlockedReserveIp(net_uuid, address, ec_id)
+      return self._UnlockedReserveIp(net_uuid, address, ec_id, check)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def ReserveLV(self, lv_name, ec_id):

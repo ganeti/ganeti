@@ -127,7 +127,8 @@ file
   configure for high performance. Note that for security reasons the
   file storage directory must be listed under
   ``/etc/ganeti/file-storage-paths``, and that file is not copied
-  automatically to all nodes by Ganeti.
+  automatically to all nodes by Ganeti. The format of that file is a
+  newline-separated list of directories.
 
 sharedfile
   The instance will use plain files as backend, but Ganeti assumes that

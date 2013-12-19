@@ -88,21 +88,24 @@ give IP pool management capabilities. A network's pool is defined by two
 bitfields, the length of the network size each:
 
 ``reservations``
-  This field holds all IP addresses reserved by Ganeti instances, as
-  well as cluster IP addresses (node addresses + cluster master)
+  This field holds all IP addresses reserved by Ganeti instances.
 
 ``external reservations``
   This field holds all IP addresses that are manually reserved by the
-  administrator, because some other equipment is using them outside the
-  scope of Ganeti.
+  administrator (external gateway, IPs of external servers, etc) or
+  automatically by ganeti (the network/broadcast addresses,
+  Cluster IPs (node addresses + cluster master)). These IPs are excluded
+  from the IP pool and cannot be assigned automatically by ganeti to
+  instances (via ip=pool).
 
 The bitfields are implemented using the python-bitarray package for
 space efficiency and their binary value stored base64-encoded for JSON
 compatibility. This approach gives relatively compact representations
 even for large IPv4 networks (e.g. /20).
 
-Ganeti-owned IP addresses (node + master IPs) are reserved automatically
-if the cluster's data network itself is placed under pool management.
+Cluster IP addresses (node + master IPs) are reserved automatically
+as external if the cluster's data network itself is placed under
+pool management.
 
 Helper ConfigWriter methods provide free IP address generation and
 reservation, using a TemporaryReservationManager.
@@ -129,10 +132,14 @@ node-specific underlying infrastructure.
 
 We also introduce a new ``ip`` address value, ``constants.NIC_IP_POOL``,
 that specifies that a given NIC's IP address should be obtained using
-the IP address pool of the specified network. This value is only valid
+the first available IP address inside the pool of the specified network.
+(reservations OR external_reservations). This value is only valid
 for NICs belonging to a network. A NIC's IP address can also be
 specified manually, as long as it is contained in the network the NIC
-is connected to.
+is connected to. In case this IP is externally reserved, Ganeti will produce
+an error which the user can override if explicitly requested. Of course
+this IP will be reserved and will not be able to be assigned to another
+instance.
 
 
 Hooks

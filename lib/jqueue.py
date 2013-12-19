@@ -1721,7 +1721,6 @@ class JobQueue(object):
       return
 
     status = job.CalcStatus()
-
     if status == constants.JOB_STATUS_QUEUED:
       self._EnqueueJobsUnlocked([job])
       logging.info("Restarting job %s", job.id)
@@ -1736,8 +1735,9 @@ class JobQueue(object):
         self._EnqueueJobsUnlocked([job])
         logging.info("Restarting job %s", job.id)
       else:
+        to_encode = errors.OpExecError("Unclean master daemon shutdown")
         job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
-                              "Unclean master daemon shutdown")
+                              _EncodeOpError(to_encode))
         job.Finalize()
 
     self.UpdateJobUnlocked(job)

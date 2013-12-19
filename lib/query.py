@@ -1786,7 +1786,8 @@ def _GetInstAllNicVlans(ctx, inst):
   result = []
 
   for nicp in ctx.inst_nicparams:
-    if nicp[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+    if nicp[constants.NIC_MODE] in \
+          [constants.NIC_MODE_BRIDGED, constants.NIC_MODE_OVS]:
       result.append(nicp[constants.NIC_VLAN])
     else:
       result.append(None)

@@ -159,12 +159,19 @@ data HttpClientRequest = HttpClientRequest
   , requestOpts :: [CurlOption] -- ^ The various curl options
   }
 
+-- | Check if a string represented address is IPv6
+isIpV6 :: String -> Bool
+isIpV6 = (':' `elem`)
+
 -- | Prepare url for the HTTP request.
 prepareUrl :: (RpcCall a) => Node -> a -> String
 prepareUrl node call =
   let node_ip = nodePrimaryIp node
+      node_address = if isIpV6 node_ip
+                     then "[" ++ node_ip ++ "]"
+                     else node_ip
       port = C.defaultNodedPort
-      path_prefix = "https://" ++ node_ip ++ ":" ++ show port
+      path_prefix = "https://" ++ node_address ++ ":" ++ show port
   in path_prefix ++ "/" ++ rpcCallName call
 
 -- | Create HTTP request for a given node provided it is online,
