@@ -176,6 +176,9 @@ def Finish(client, fn, *args, **kwargs):
   @type fn function
   @param fn A client method returning a job id.
 
+  @rtype tuple of bool, any object
+  @return The success status and the result of the operation, if any
+
   """
   possible_job_id = fn(*args, **kwargs)
   try:
@@ -194,11 +197,11 @@ def Finish(client, fn, *args, **kwargs):
 
   result = client.GetJobStatus(possible_job_id)["opresult"][0]
   if success:
-    return result
+    return success, result
   else:
     print "Error encountered while performing operation: "
     print result
-    return None
+    return success, None
 
 
 def TestTags(client, get_fn, add_fn, delete_fn, *args):
@@ -483,11 +486,11 @@ def TestNodeOperations(client, non_master_node):
   ]
 
   for storage_type in constants.STS_REPORT:
-    storage_units = Finish(client, client.GetNodeStorageUnits,
-                           non_master_node, storage_type,
-                           ",".join(storage_units_fields))
+    success, storage_units = Finish(client, client.GetNodeStorageUnits,
+                                    non_master_node, storage_type,
+                                    ",".join(storage_units_fields))
 
-    if len(storage_units) > 0 and len(storage_units[0]) > 0:
+    if success and len(storage_units) > 0 and len(storage_units[0]) > 0:
       # Name is the first entry of the first result, allocatable the other
       unit_name = storage_units[0][0]
       Finish(client, client.ModifyNodeStorageUnits,
