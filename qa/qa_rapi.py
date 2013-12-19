@@ -257,10 +257,13 @@ def TestRapiQuery():
   for what in constants.QR_VIA_RAPI:
     if what == constants.QR_JOB:
       namefield = "id"
+      trivial_filter = [qlang.OP_GE, namefield, 0]
     elif what == constants.QR_EXPORT:
       namefield = "export"
+      trivial_filter = [qlang.OP_REGEXP, ".*", namefield]
     else:
       namefield = "name"
+      trivial_filter = [qlang.OP_REGEXP, ".*", namefield]
 
     all_fields = query.ALL_FIELDS[what].keys()
     rnd.shuffle(all_fields)
@@ -347,7 +350,7 @@ def TestRapiQuery():
         # With filter
         ("/2/query/%s" % what, compat.partial(_Check, all_fields), "PUT", {
            "fields": all_fields,
-           "filter": [qlang.OP_TRUE, namefield],
+           "filter": trivial_filter
            }),
         ])
 
