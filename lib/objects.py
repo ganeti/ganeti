@@ -1597,9 +1597,13 @@ class Cluster(TaggableObject):
     if self.hvparams is None:
       self.hvparams = constants.HVC_DEFAULTS
     else:
-      for hypervisor in self.hvparams:
+      for hypervisor in constants.HYPER_TYPES:
+        try:
+          existing_params = self.hvparams[hypervisor]
+        except KeyError:
+          existing_params = {}
         self.hvparams[hypervisor] = FillDict(
-            constants.HVC_DEFAULTS[hypervisor], self.hvparams[hypervisor])
+            constants.HVC_DEFAULTS[hypervisor], existing_params)
 
     if self.os_hvp is None:
       self.os_hvp = {}
