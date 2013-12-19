@@ -34,6 +34,7 @@ import ganeti.constants as constants
 from ganeti.rapi.client import GanetiApiError, NODE_EVAC_PRI, NODE_EVAC_SEC
 
 import qa_config
+import qa_error
 import qa_node
 import qa_rapi
 
@@ -690,56 +691,205 @@ def TestInstanceMigrations(client, node_one, node_two, node_three,
   Finish(client, client.DeleteInstance, instance_name)
 
 
-def TestJobCancellation(client, node_one, node_two, instance_one, instance_two):
-  """ Test if jobs can be cancelled.
+def ExtractAllNicInformationPossible(nics, replace_macs=True):
+  """ Extracts NIC information as a dictionary.
 
-  @type node_one string
-  @param node_one The name of a node in the cluster.
-  @type node_two string
-  @param node_two The name of a node in the cluster.
-  @type instance_one string
-  @param instance_one An available instance name.
-  @type instance_two string
-  @param instance_two An available instance name.
+  @type nics list of tuples of varying structure
+  @param nics The network interfaces, as received from the instance info RAPI
+              call.
+
+  @rtype list of dict
+  @return Dictionaries of NIC information.
+
+  The NIC information is returned in a different format across versions, and to
+  try and see if the execution of commands is still compatible, this function
+  attempts to grab all the info that it can.
 
   """
 
-  # Just in case, remove all previously present instances
-  RemoveAllInstances(client)
+  desired_entries = [
+    constants.INIC_IP,
+    constants.INIC_MAC,
+    constants.INIC_MODE,
+    constants.INIC_LINK,
+    constants.INIC_VLAN,
+    constants.INIC_NETWORK,
+    constants.INIC_NAME,
+    ]
 
-  # Let us issue a job that is sure to both succeed and last for a while
-  running_job = client.CreateInstance("create", instance_one, "drbd",
-                                      [{"size": "5000"}], [{}],
-                                      os="debian-image", pnode=node_one,
-                                      snode=node_two)
+  nic_dicts = []
+  for nic_index in range(len(nics)):
+    nic_raw_data = nics[nic_index]
 
-  # And immediately afterwards, another very similar one
-  job_to_cancel = client.CreateInstance("create", instance_two, "drbd",
-                                        [{"size": "5000"}], [{}],
-                                        os="debian-image", pnode=node_one,
-                                        snode=node_two)
+    # Fill dictionary with None-s as defaults
+    nic_dict = dict([(key, None) for key in desired_entries])
 
-  # Try to cancel, which should fail as the job is already running
-  success, msg = client.CancelJob(running_job)
-  if success:
-    print "Job succeeded: this should not have happened as it is running!"
-    print "Message: %s" % msg
+    try:
+      # The 2.6 format
+      ip, mac, mode, link = nic_raw_data
+    except ValueError:
+      # If there is yet another ValueError here, let it go through as it is
+      # legitimate - we are out of versions
 
-  success, msg = client.CancelJob(job_to_cancel)
+      # The 2.11 format
+      nic_name, _, ip, mac, mode, link, vlan, network, _ = nic_raw_data
+      nic_dict[constants.INIC_VLAN] = vlan
+      nic_dict[constants.INIC_NETWORK] = network
+      nic_dict[constants.INIC_NAME] = nic_name
+
+    # These attributes will be present in either version
+    nic_dict[constants.INIC_IP] = ip
+    nic_dict[constants.INIC_MAC] = mac
+    nic_dict[constants.INIC_MODE] = mode
+    nic_dict[constants.INIC_LINK] = link
+
+    # Very simple mac generation, which should work as the setup cluster should
+    # have no mac prefix restrictions in the default network, and there is a
+    # hard and reasonable limit of only 8 NICs
+    if replace_macs:
+      nic_dict[constants.INIC_MAC] = "00:00:00:00:00:%02x" % nic_index
+
+    nic_dicts.append(nic_dict)
+
+  return nic_dicts
+
+
+def MoveInstance(client, src_instance, dst_instance, src_node, dst_node):
+  """ Moves a single instance, compatible with 2.6.
+
+  @rtype bool
+  @return Whether the instance was moved successfully
+
+  """
+  success, inst_info_all = Finish(client, client.GetInstanceInfo,
+                                  src_instance.name, static=True)
+
+  if not success or src_instance.name not in inst_info_all:
+    raise Exception("Did not find the source instance information!")
+
+  inst_info = inst_info_all[src_instance.name]
+
+  # Try to extract NICs first, as this is the operation most likely to fail
+  try:
+    nic_info = ExtractAllNicInformationPossible(inst_info["nics"])
+  except ValueError:
+    # Without the NIC info, there is very little we can do
+    return False
+
+  NIC_COMPONENTS_26 = [
+    constants.INIC_IP,
+    constants.INIC_MAC,
+    constants.INIC_MODE,
+    constants.INIC_LINK,
+    ]
+
+  nic_converter = lambda old: dict((k, old[k]) for k in NIC_COMPONENTS_26)
+  nics = map(nic_converter, nic_info)
+
+  # Prepare the parameters
+  disks = []
+  for idisk in inst_info["disks"]:
+    odisk = {
+      constants.IDISK_SIZE: idisk["size"],
+      constants.IDISK_MODE: idisk["mode"],
+      }
+
+    spindles = idisk.get("spindles")
+    if spindles is not None:
+      odisk[constants.IDISK_SPINDLES] = spindles
+
+    # Disk name may be present, but must not be supplied in 2.6!
+    disks.append(odisk)
+
+  # With all the parameters properly prepared, try the export
+  success, exp_info = Finish(client, client.PrepareExport,
+                             src_instance.name, constants.EXPORT_MODE_REMOTE)
+
   if not success:
-    print "Job failed: this was unexpected as it was not a dry run"
-    print "Message: %s" % msg
+    # The instance will still have to be deleted
+    return False
 
-  # And wait for the proper job
-  client.WaitForJobCompletion(running_job)
+  success, _ = Finish(client, client.CreateInstance,
+                      constants.INSTANCE_REMOTE_IMPORT, dst_instance.name,
+                      inst_info["disk_template"], disks, nics,
+                      os=inst_info["os"],
+                      pnode=dst_node.primary,
+                      snode=src_node.primary, # Ignored as no DRBD
+                      start=(inst_info["config_state"] == "up"),
+                      ip_check=False,
+                      iallocator=inst_info.get("iallocator", None),
+                      hypervisor=inst_info["hypervisor"],
+                      source_handshake=exp_info["handshake"],
+                      source_x509_ca=exp_info["x509_ca"],
+                      source_instance_name=inst_info["name"],
+                      beparams=inst_info["be_instance"],
+                      hvparams=inst_info["hv_instance"],
+                      osparams=inst_info["os_instance"])
 
-  # Remove all the leftover instances, success or no success
-  RemoveAllInstances(client)
+  return success
+
+
+def CreateInstanceForMoveTest(client, node, instance):
+  """ Creates a single shutdown instance to move about in tests.
+
+  @type node C{_QaNode}
+  @param node A node configuration object.
+  @type instance C{_QaInstance}
+  @param instance An instance configuration object.
+
+  """
+  Finish(client, client.CreateInstance,
+         "create", instance.name, "plain", [{"size": "2000"}], [{}],
+         os="debian-image", pnode=node.primary)
+
+  Finish(client, client.ShutdownInstance,
+         instance.name, dry_run=False, no_remember=False)
+
+
+def Test26InstanceMove(client, node_one, node_two, instance_to_create,
+                       new_instance):
+  """ Tests instance moves using commands that work in 2.6.
+
+  """
+
+  # First create the instance to move
+  CreateInstanceForMoveTest(client, node_one, instance_to_create)
+
+  # The cleanup should be conditional on operation success
+  if MoveInstance(client, instance_to_create, new_instance, node_one, node_two):
+    Finish(client, client.DeleteInstance, new_instance.name)
+  else:
+    Finish(client, client.DeleteInstance, instance_to_create.name)
+
+
+def Test211InstanceMove(client, node_one, node_two, instance_to_create,
+                        new_instance):
+  """ Tests instance moves using the QA-provided move test.
+
+  """
+
+  # First create the instance to move
+  CreateInstanceForMoveTest(client, node_one, instance_to_create)
+
+  instance_to_create.SetDiskTemplate("plain")
+
+  try:
+    qa_rapi.TestInterClusterInstanceMove(instance_to_create, new_instance,
+                                         [node_one], node_two,
+                                         perform_checks=False)
+  except qa_error.Error:
+    # A failure is sad, but requires no special actions to be undertaken
+    pass
+
+  # Try to delete the instance when done - either the move has failed, or
+  # a double move was performed - the instance to delete is one and the same
+  Finish(client, client.DeleteInstance, instance_to_create.name)
 
 
 def TestInstanceMoves(client, node_one, node_two, instance_to_create,
                       new_instance):
-  """ Reuses a part of the QA to test instance moves.
+  """ Performs two types of instance moves, one compatible with 2.6, the other
+  with 2.11.
 
   @type node_one C{_QaNode}
   @param node_one A node configuration object.
@@ -752,22 +902,10 @@ def TestInstanceMoves(client, node_one, node_two, instance_to_create,
 
   """
 
-  # First create the instance to move
-  Finish(client, client.CreateInstance,
-         "create", instance_to_create.name, "plain", [{"size": "2000"}], [{}],
-         os="debian-image", pnode=node_one.primary)
-
-  Finish(client, client.ShutdownInstance,
-         instance_to_create.name, dry_run=False, no_remember=False)
-
-  instance_to_create.SetDiskTemplate("plain")
-
-  qa_rapi.TestInterClusterInstanceMove(instance_to_create, new_instance,
-                                       [node_one], node_two,
-                                       perform_checks=False)
-
-  # Finally, cleanup
-  RemoveAllInstances(client)
+  Test26InstanceMove(client, node_one, node_two, instance_to_create,
+                     new_instance)
+  Test211InstanceMove(client, node_one, node_two, instance_to_create,
+                      new_instance)
 
 
 def Workload(client):
