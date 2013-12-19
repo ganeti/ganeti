@@ -314,6 +314,9 @@ def TestSingleInstance(client, instance_name, alternate_name, node_one,
 
   Finish(client, client.ActivateInstanceDisks, instance_name)
 
+  # Note that the RecreateInstanceDisks command will always fail, as there is
+  # no way to induce the necessary prerequisites (removal of LV) via RAPI.
+  # Keeping it around allows us to at least know that it still exists.
   Finish(client, client.RecreateInstanceDisks,
          instance_name, [0], [node_one])
 
