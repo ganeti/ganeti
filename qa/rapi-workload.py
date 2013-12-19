@@ -908,6 +908,33 @@ def TestInstanceMoves(client, node_one, node_two, instance_to_create,
                       new_instance)
 
 
+def TestClusterParameterModification(client):
+  """ Try to modify some of the cluster parameters using RAPI.
+
+  """
+  cluster_info = client.GetInfo()
+
+  # Each attribute has several safe choices we can use
+  ATTRIBUTES_TO_MODIFY = [
+    ("default_iallocator", ["hail", ""]), # Use "" to reset
+    ("candidate_pool_size", [1, 5]),
+    ("maintain_node_health", [True, False]),
+    ]
+
+  for attribute, options in ATTRIBUTES_TO_MODIFY:
+    current_value = cluster_info[attribute]
+
+    if current_value in options:
+      value_to_use = options[1 - options.index(current_value)]
+    else:
+      value_to_use = options[0]
+
+    #pylint: disable=W0142
+    Finish(client, client.ModifyCluster, **{attribute: value_to_use})
+    Finish(client, client.ModifyCluster, **{attribute: current_value})
+    #pylint: enable=W0142
+
+
 def Workload(client):
   """ The actual RAPI workload used for tests.
 
@@ -921,6 +948,9 @@ def Workload(client):
 
   # Then the only remaining function which is parameter-free
   Finish(client, client.RedistributeConfig)
+
+  # Try changing the cluster parameters
+  TestClusterParameterModification(client)
 
   TestTags(client, client.GetClusterTags, client.AddClusterTags,
            client.DeleteClusterTags)
