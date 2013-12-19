@@ -526,16 +526,20 @@ class MoveDestExecutor(object):
         odisk[constants.IDISK_SPINDLES] = spindles
       disks.append(odisk)
 
-    nics = [{
-      constants.INIC_IP: ip,
-      constants.INIC_MAC: mac,
-      constants.INIC_MODE: mode,
-      constants.INIC_LINK: link,
-      constants.INIC_VLAN: vlan,
-      constants.INIC_NETWORK: network,
-      constants.INIC_NAME: nic_name
-      } for nic_name, _, ip, mac, mode, link, vlan, network, _
-        in instance["nics"]]
+    try:
+      nics = [{
+        constants.INIC_IP: ip,
+        constants.INIC_MAC: mac,
+        constants.INIC_MODE: mode,
+        constants.INIC_LINK: link,
+        constants.INIC_VLAN: vlan,
+        constants.INIC_NETWORK: network,
+        constants.INIC_NAME: nic_name
+        } for nic_name, _, ip, mac, mode, link, vlan, network, _
+          in instance["nics"]]
+    except ValueError:
+      raise Error("Received NIC information does not match expected format; "
+                  "Do the versions of this tool and the source cluster match?")
 
     if len(override_nics) > len(nics):
       raise Error("Can not create new NICs")
