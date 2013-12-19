@@ -2,6 +2,14 @@ News
 ====
 
 
+Version 2.9.3
+-------------
+
+*(unreleased)*
+
+- Ensure that all the hypervisors exist in the config file (Issue 640)
+
+
 Version 2.9.2
 -------------
 
