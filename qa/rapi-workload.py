@@ -27,6 +27,7 @@
 # due to invalid name
 
 import inspect
+import optparse
 import sys
 import types
 
@@ -1053,15 +1054,24 @@ def Workload(client):
   qa_config.ReleaseManyNodes(nodes)
 
 
-def Usage():
-  sys.stderr.write("Usage:\n\trapi-workload.py qa-config-file")
-
-
 def Main():
-  if len(sys.argv) < 2:
-    Usage()
+  parser = optparse.OptionParser(usage="%prog [options] <config-file>")
+  parser.add_option("--yes-do-it", dest="yes_do_it",
+                    action="store_true",
+                    help="Really execute the tests")
+  parser.add_option("--show-invocations", dest="show_invocations",
+                    action="store_true",
+                    help="Show which client methods have and have not been "
+                         "called")
+  (opts, args) = parser.parse_args()
 
-  qa_config.Load(sys.argv[1])
+  if not opts.yes_do_it:
+    print ("Executing this script irreversibly destroys any Ganeti\n"
+           "configuration on all nodes involved. If you really want\n"
+           "to start testing, supply the --yes-do-it option.")
+    sys.exit(1)
+
+  qa_config.Load(args[0])
 
   # Only the master will be present after a fresh QA cluster setup, so we have
   # to invoke this to get all the other nodes.
@@ -1076,9 +1086,10 @@ def Main():
   # The method invoked has the naming of the protected method, and pylint does
   # not like this. Disabling the warning is healthier than explicitly adding and
   # maintaining an exception for this method in the wrapper.
-  # pylint: disable=W0212
-  client._OutputMethodInvocationDetails()
-  # pylint: enable=W0212
+  if opts.show_invocations:
+    # pylint: disable=W0212
+    client._OutputMethodInvocationDetails()
+    # pylint: enable=W0212
 
 if __name__ == "__main__":
   Main()
