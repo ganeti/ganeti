@@ -103,11 +103,11 @@ class GanetiRapiClientWrapper(object):
     catching any specific non-fatal errors we would like to know more
     about.
 
-    @type fn arbitrary function
-    @param fn The function to invoke later.
-    @type name string
-    @param name The name of the function, for debugging purposes.
-    @rtype function
+    @type fn: arbitrary function
+    @param fn: The function to invoke later.
+    @type name: string
+    @param name: The name of the function, for debugging purposes.
+    @rtype: function
 
     """
     def decoratedFn(*args, **kwargs):
@@ -173,13 +173,13 @@ def Finish(client, fn, *args, **kwargs):
   """ When invoked with a job-starting RAPI client method, it passes along any
   additional arguments and waits until its completion.
 
-  @type client C{GanetiRapiClientWrapper}
-  @param client The client wrapper.
-  @type fn function
-  @param fn A client method returning a job id.
+  @type client: C{GanetiRapiClientWrapper}
+  @param client: The client wrapper.
+  @type fn: function
+  @param fn: A client method returning a job id.
 
-  @rtype tuple of bool, any object
-  @return The success status and the result of the operation, if any
+  @rtype: tuple of bool, any object
+  @return: The success status and the result of the operation, if any
 
   """
   possible_job_id = fn(*args, **kwargs)
@@ -209,14 +209,14 @@ def Finish(client, fn, *args, **kwargs):
 def TestTags(client, get_fn, add_fn, delete_fn, *args):
   """ Tests whether tagging works.
 
-  @type client C{GanetiRapiClientWrapper}
-  @param client The client wrapper.
-  @type get_fn function
-  @param get_fn A Get*Tags function of the client.
-  @type add_fn function
-  @param add_fn An Add*Tags function of the client.
-  @type delete_fn function
-  @param delete_fn A Delete*Tags function of the client.
+  @type client: C{GanetiRapiClientWrapper}
+  @param client: The client wrapper.
+  @type get_fn: function
+  @param get_fn: A Get*Tags function of the client.
+  @type add_fn: function
+  @param add_fn: An Add*Tags function of the client.
+  @type delete_fn: function
+  @param delete_fn: A Delete*Tags function of the client.
 
   To allow this method to work for all tagging functions of the client, use
   named methods.
@@ -244,7 +244,7 @@ def TestGetters(client):
   """ Tests the various get functions which only retrieve information about the
   cluster.
 
-  @type client C{GanetiRapiClientWrapper}
+  @type client: C{GanetiRapiClientWrapper}
 
   """
   client.GetVersion()
@@ -268,10 +268,10 @@ def TestQueries(client, resource_name):
   """ Finds out which fields are present for a given resource type, and attempts
   to retrieve their values for all present resources.
 
-  @type client C{GanetiRapiClientWrapper}
-  @param client A wrapped RAPI client.
-  @type resource_name string
-  @param resource_name The name of the resource to use.
+  @type client: C{GanetiRapiClientWrapper}
+  @param client: A wrapped RAPI client.
+  @type resource_name: string
+  @param resource_name: The name of the resource to use.
 
   """
 
@@ -294,10 +294,10 @@ def TestQueryFiltering(client, master_name):
   """ Performs queries by playing around with the only guaranteed resource, the
   master node.
 
-  @type client C{GanetiRapiClientWrapper}
-  @param client A wrapped RAPI client.
-  @type master_name string
-  @param master_name The hostname of the master node.
+  @type client: C{GanetiRapiClientWrapper}
+  @param client: A wrapped RAPI client.
+  @type master_name: string
+  @param master_name: The hostname of the master node.
 
   """
   client.Query("node", ["name"],
@@ -316,8 +316,8 @@ def TestQueryFiltering(client, master_name):
 def RemoveAllInstances(client):
   """ Queries for a list of instances, then removes them all.
 
-  @type client C{GanetiRapiClientWrapper}
-  @param client A wrapped RAPI client.
+  @type client: C{GanetiRapiClientWrapper}
+  @param client: A wrapped RAPI client.
 
   """
   instances = client.GetInstances()
@@ -333,16 +333,16 @@ def TestSingleInstance(client, instance_name, alternate_name, node_one,
   """ Creates an instance, performs operations involving it, and then deletes
   it.
 
-  @type client C{GanetiRapiClientWrapper}
-  @param client A wrapped RAPI client.
-  @type instance_name string
-  @param instance_name The hostname to use.
-  @type instance_name string
-  @param instance_name Another valid hostname to use.
-  @type node_one string
-  @param node_one A node on which an instance can be added.
-  @type node_two string
-  @param node_two A node on which an instance can be added.
+  @type client: C{GanetiRapiClientWrapper}
+  @param client: A wrapped RAPI client.
+  @type instance_name: string
+  @param instance_name: The hostname to use.
+  @type instance_name: string
+  @param instance_name: Another valid hostname to use.
+  @type node_one: string
+  @param node_one: A node on which an instance can be added.
+  @type node_two: string
+  @param node_two: Another node on which an instance can be added.
 
   """
 
@@ -438,10 +438,10 @@ def MarkUnmarkNode(client, node, state):
   """ Given a certain node state, marks a node as being in that state, and then
   unmarks it.
 
-  @type client C{GanetiRapiClientWrapper}
-  @param client A wrapped RAPI client.
-  @type node string
-  @type state string
+  @type client: C{GanetiRapiClientWrapper}
+  @param client: A wrapped RAPI client.
+  @type node: string
+  @type state: string
 
   """
   # pylint: disable=W0142
@@ -453,10 +453,10 @@ def MarkUnmarkNode(client, node, state):
 def TestNodeOperations(client, non_master_node):
   """ Tests various operations related to nodes only
 
-  @type client C{GanetiRapiClientWrapper}
-  @param client A wrapped RAPI client.
-  @type non_master_node string
-  @param non_master_node The name of a non-master node in the cluster.
+  @type client: C{GanetiRapiClientWrapper}
+  @param client: A wrapped RAPI client.
+  @type non_master_node: string
+  @param non_master_node: The name of a non-master node in the cluster.
 
   """
 
@@ -514,12 +514,12 @@ def TestNodeOperations(client, non_master_node):
 def TestGroupOperations(client, node, another_node):
   """ Tests various operations related to groups only.
 
-  @type client C{GanetiRapiClientWrapper}
-  @param client A Ganeti RAPI client to use.
-  @type node string
-  @param node The name of a node in the cluster.
-  @type another_node string
-  @param another_node The name of another node in the cluster.
+  @type client: C{GanetiRapiClientWrapper}
+  @param client: A Ganeti RAPI client to use.
+  @type node: string
+  @param node: The name of a node in the cluster.
+  @type another_node: string
+  @param another_node: The name of another node in the cluster.
 
   """
 
@@ -568,12 +568,12 @@ def TestGroupOperations(client, node, another_node):
 def TestNetworkConnectDisconnect(client, network_name, mode, link):
   """ Test connecting and disconnecting the network to a new node group.
 
-  @type network_name string
-  @param network_name The name of an existing and unconnected network.
-  @type mode string
-  @param mode The network mode.
-  @type link string
-  @param link The network link.
+  @type network_name: string
+  @param network_name: The name of an existing and unconnected network.
+  @type mode: string
+  @param mode: The network mode.
+  @type link: string
+  @param link: The network link.
 
   """
   # For testing the connect/disconnect calls, a group is needed
@@ -650,14 +650,14 @@ def TestInstanceMigrations(client, node_one, node_two, node_three,
                            instance_name):
   """ Test various operations related to migrating instances.
 
-  @type node_one string
-  @param node_one The name of a node in the cluster.
-  @type node_two string
-  @param node_two The name of another node in the cluster.
-  @type node_three string
-  @param node_three The name of yet another node in the cluster.
-  @type instance_name string
-  @param instance_name An instance name that can be used.
+  @type node_one: string
+  @param node_one: The name of a node in the cluster.
+  @type node_two: string
+  @param node_two: The name of another node in the cluster.
+  @type node_three: string
+  @param node_three: The name of yet another node in the cluster.
+  @type instance_name: string
+  @param instance_name: An instance name that can be used.
 
   """
 
@@ -695,12 +695,12 @@ def TestInstanceMigrations(client, node_one, node_two, node_three,
 def ExtractAllNicInformationPossible(nics, replace_macs=True):
   """ Extracts NIC information as a dictionary.
 
-  @type nics list of tuples of varying structure
-  @param nics The network interfaces, as received from the instance info RAPI
-              call.
+  @type nics: list of tuples of varying structure
+  @param nics: The network interfaces, as received from the instance info RAPI
+               call.
 
-  @rtype list of dict
-  @return Dictionaries of NIC information.
+  @rtype: list of dict
+  @return: Dictionaries of NIC information.
 
   The NIC information is returned in a different format across versions, and to
   try and see if the execution of commands is still compatible, this function
@@ -758,8 +758,8 @@ def ExtractAllNicInformationPossible(nics, replace_macs=True):
 def MoveInstance(client, src_instance, dst_instance, src_node, dst_node):
   """ Moves a single instance, compatible with 2.6.
 
-  @rtype bool
-  @return Whether the instance was moved successfully
+  @rtype: bool
+  @return: Whether the instance was moved successfully
 
   """
   success, inst_info_all = Finish(client, client.GetInstanceInfo,
@@ -833,10 +833,10 @@ def MoveInstance(client, src_instance, dst_instance, src_node, dst_node):
 def CreateInstanceForMoveTest(client, node, instance):
   """ Creates a single shutdown instance to move about in tests.
 
-  @type node C{_QaNode}
-  @param node A node configuration object.
-  @type instance C{_QaInstance}
-  @param instance An instance configuration object.
+  @type node: C{_QaNode}
+  @param node: A node configuration object.
+  @type instance: C{_QaInstance}
+  @param instance: An instance configuration object.
 
   """
   Finish(client, client.CreateInstance,
@@ -892,14 +892,14 @@ def TestInstanceMoves(client, node_one, node_two, instance_to_create,
   """ Performs two types of instance moves, one compatible with 2.6, the other
   with 2.11.
 
-  @type node_one C{_QaNode}
-  @param node_one A node configuration object.
-  @type node_two C{_QaNode}
-  @param node_two A node configuration object.
-  @type instance_to_create C{_QaInstance}
-  @param instance_to_create An instance configuration object.
-  @type new_instance C{_QaInstance}
-  @param new_instance An instance configuration object.
+  @type node_one: C{_QaNode}
+  @param node_one: A node configuration object.
+  @type node_two: C{_QaNode}
+  @param node_two: A node configuration object.
+  @type instance_to_create: C{_QaInstance}
+  @param instance_to_create: An instance configuration object.
+  @type new_instance: C{_QaInstance}
+  @param new_instance: An instance configuration object.
 
   """
 
@@ -939,14 +939,14 @@ def TestClusterParameterModification(client):
 def TestJobCancellation(client, node_one, node_two, instance_one, instance_two):
   """ Test if jobs can be cancelled.
 
-  @type node_one string
-  @param node_one The name of a node in the cluster.
-  @type node_two string
-  @param node_two The name of a node in the cluster.
-  @type instance_one string
-  @param instance_one An available instance name.
-  @type instance_two string
-  @param instance_two An available instance name.
+  @type node_one: string
+  @param node_one: The name of a node in the cluster.
+  @type node_two: string
+  @param node_two: The name of another node in the cluster.
+  @type instance_one: string
+  @param instance_one: An available instance name.
+  @type instance_two: string
+  @param instance_two: An available instance name.
 
   """
 
@@ -986,8 +986,8 @@ def TestJobCancellation(client, node_one, node_two, instance_one, instance_two):
 def Workload(client):
   """ The actual RAPI workload used for tests.
 
-  @type client C{GanetiRapiClientWrapper}
-  @param client A wrapped RAPI client.
+  @type client: C{GanetiRapiClientWrapper}
+  @param client: A wrapped RAPI client.
 
   """
 
