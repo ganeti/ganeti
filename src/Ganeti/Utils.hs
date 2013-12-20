@@ -617,8 +617,9 @@ watchFile fpath timeout old read_fn = do
   fstat <- getFStatSafe fpath
   ref <- newIORef fstat
   inotify <- initINotify
-  _ <- addWatch inotify [Modify, Delete] fpath . const $ do
-    logDebug $ "Notified of change in " ++ fpath
+  _ <- addWatch inotify [Modify, Delete] fpath $ \ e -> do
+    logDebug $ "Notified of change in " ++ fpath 
+                 ++ "; event: " ++ show e
     fstat' <- getFStatSafe fpath
     writeIORef ref fstat'
   newval <- read_fn
