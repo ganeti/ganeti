@@ -3931,8 +3931,12 @@ partReserved = 0.02
 -- | Time intervall in seconds for polling updates on the job queue. This
 -- intervall is only relevant if the number of running jobs reaches the maximal
 -- allowed number, as otherwise new jobs will be started immediately anyway.
+-- Also, as jobs are watched via inotify, scheduling usually works independent
+-- of polling. Therefore we chose a sufficiently large interval, in the order of
+-- 5 minutes. As with the interval for reloading the configuration, we chose a
+-- prime number to avoid accidental 'same wakeup' with other processes.
 luxidJobqueuePollInterval :: Int
-luxidJobqueuePollInterval = 3
+luxidJobqueuePollInterval = 307
 
 -- | Maximal number of jobs to be running at the same time. Once this number is
 -- reached, new jobs will just be queued and only started, once some of the
