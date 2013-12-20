@@ -36,6 +36,7 @@ import Control.Exception
 import Control.Monad
 import Data.List
 import Data.IORef
+import System.INotify
 
 import Ganeti.BasicTypes
 import Ganeti.Constants as C
@@ -45,7 +46,10 @@ import Ganeti.Path
 import Ganeti.Types
 import Ganeti.Utils
 
-data JobWithStat = JobWithStat { jStat :: FStat, jJob :: QueuedJob }
+data JobWithStat = JobWithStat { jINotify :: Maybe INotify
+                               , jStat :: FStat
+                               , jJob :: QueuedJob
+                               }
 data Queue = Queue { qEnqueued :: [JobWithStat], qRunning :: [JobWithStat] }
 
 {-| Representation of the job queue
@@ -78,7 +82,7 @@ onQueuedJobs f queue = queue {qEnqueued=f $ qEnqueued queue}
 
 -- | Obtain a JobWithStat from a QueuedJob.
 unreadJob :: QueuedJob -> JobWithStat
-unreadJob job = JobWithStat {jJob=job, jStat=nullFStat}
+unreadJob job = JobWithStat {jJob=job, jStat=nullFStat, jINotify=Nothing}
 
 -- | Reload interval for polling the running jobs for updates in microseconds.
 watchInterval :: Int
@@ -94,7 +98,7 @@ modifyJobs qstat f = atomicModifyIORef (jqJobs qstat) (flip (,) ()  . f)
 
 -- | Reread a job from disk, if the file has changed.
 readJobStatus :: JobWithStat -> IO (Maybe JobWithStat)
-readJobStatus (JobWithStat {jStat=fstat, jJob=job})  = do
+readJobStatus jWS@(JobWithStat {jStat=fstat, jJob=job})  = do
   let jid = qjId job
   qdir <- queueDir
   let fpath = liveJobFile qdir jid
@@ -117,7 +121,8 @@ readJobStatus (JobWithStat {jStat=fstat, jJob=job})  = do
         Ok (job', _) -> do
           logDebug
             $ "Read job " ++ jids ++ ", staus is " ++ show (calcJobStatus job')
-          return . Just $ JobWithStat {jStat=fstat', jJob=job'}
+          return . Just $ jWS {jStat=fstat', jJob=job'}
+                          -- jINotify unchanged
 
 -- | Update a job in the job queue, if it is still there. This is the
 -- pure function for inserting a previously read change into the queue.
@@ -212,7 +217,7 @@ readJobFromDisk jid = do
   tryFstat <- try $ getFStat fpath :: IO (Either IOError FStat)
   let fstat = either (const nullFStat) id tryFstat
   loadResult <- JQ.loadJobFromDisk qdir False jid
-  return $ liftM (JobWithStat fstat . fst) loadResult
+  return $ liftM (JobWithStat Nothing fstat . fst) loadResult
 
 -- | Read all non-finalized jobs from disk.
 readJobsFromDisk :: IO [JobWithStat]
