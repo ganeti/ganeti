@@ -75,12 +75,12 @@ module Ganeti.Utils
 
 import Control.Concurrent
 import Control.Exception (try)
+import Control.Monad (foldM, liftM, when)
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import Data.Function (on)
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
-import Control.Monad (foldM, liftM)
 import System.Directory (renameFile)
 import System.FilePath.Posix (takeDirectory, takeBaseName)
 import System.INotify
@@ -618,11 +618,15 @@ watchFile fpath timeout old read_fn = do
   fstat <- getFStatSafe fpath
   ref <- newIORef fstat
   inotify <- initINotify
-  _ <- addWatch inotify [Modify, Delete] fpath $ \ e -> do
-    logDebug $ "Notified of change in " ++ fpath 
-                 ++ "; event: " ++ show e
-    fstat' <- getFStatSafe fpath
-    writeIORef ref fstat'
+  let do_watch e = do
+                     logDebug $ "Notified of change in " ++ fpath 
+                                  ++ "; event: " ++ show e
+                     when (e == Ignored)
+                       (addWatch inotify [Modify, Delete] fpath do_watch
+                          >> return ())
+                     fstat' <- getFStatSafe fpath
+                     writeIORef ref fstat'
+  _ <- addWatch inotify [Modify, Delete] fpath do_watch
   newval <- read_fn
   if newval /= old
     then do
