@@ -599,6 +599,7 @@ watchFileEx endtime base ref old read_fn = do
       then do
         new <- read_fn
         if new /= old then return new else do
+          logDebug "Observed change not relevant"
           threadDelay 100000
           watchFileEx endtime val ref old read_fn
       else do 
