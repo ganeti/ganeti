@@ -35,6 +35,7 @@ import Control.Concurrent
 import Control.Exception
 import Control.Monad
 import Data.List
+import Data.Maybe
 import Data.IORef
 import System.INotify
 
@@ -159,6 +160,34 @@ cleanupFinishedJobs qstate = do
     . logInfo $ "Finished jobs: " ++ jlist
   mapM_ (maybe (return ()) killINotify . jINotify) finished
 
+-- | Watcher task for a job, to update it on file changes. It also
+-- reinstantiates itself upon receiving an Ignored event.
+jobWatcher :: JQStatus -> JobWithStat -> Event -> IO ()
+jobWatcher state jWS e = do
+  let jid = qjId $ jJob jWS
+      jids = show $ fromJobId jid
+  logInfo $ "Scheduler notified of change of job " ++ jids
+  logDebug $ "Scheulder notify event for " ++ jids ++ ": " ++ show e
+  let inotify = jINotify jWS
+  when (e == Ignored  && isJust inotify) $ do
+    qdir <- queueDir
+    let fpath = liveJobFile qdir jid
+    _ <- addWatch (fromJust inotify) [Modify, Delete] fpath
+           (jobWatcher state jWS)
+    return ()
+  updateJob state jWS
+
+-- | Attach the job watcher to a running job.
+attachWatcher :: JQStatus -> JobWithStat -> IO ()
+attachWatcher state jWS = when (isNothing $ jINotify jWS) $ do
+  inotify <- initINotify
+  qdir <- queueDir
+  let fpath = liveJobFile qdir . qjId $ jJob jWS
+      jWS' = jWS { jINotify=Just inotify }
+  logDebug $ "Attaching queue watcher for " ++ fpath
+  _ <- addWatch inotify [Modify, Delete] fpath $ jobWatcher state jWS'
+  modifyJobs state . onRunningJobs $ updateJobStatus jWS'
+
 -- | Decide on which jobs to schedule next for execution. This is the
 -- pure function doing the scheduling.
 selectJobsToRun :: Queue -> (Queue, [JobWithStat])
@@ -187,6 +216,7 @@ scheduleSomeJobs qstate = do
   let jobs = map jJob chosen
   unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
     $ map (show . fromJobId . qjId) jobs
+  mapM_ (attachWatcher qstate) chosen
   result <- try $ JQ.startJobs jobs
   either (requeueJobs qstate chosen) return result
 
