@@ -140,6 +140,10 @@ updateJob :: JQStatus -> JobWithStat -> IO ()
 updateJob state jb = do
   jb' <- readJobStatus jb
   maybe (return ()) (modifyJobs state . onRunningJobs . updateJobStatus) jb'
+  when (maybe True (jobFinalized . jJob) jb') . (>> return ()) . forkIO $ do
+    logDebug "Scheduler noticed a job to have finished."
+    cleanupFinishedJobs state
+    scheduleSomeJobs state
 
 -- | Sort out the finished jobs from the monitored part of the queue.
 -- This is the pure part, splitting the queue into a remaining queue
