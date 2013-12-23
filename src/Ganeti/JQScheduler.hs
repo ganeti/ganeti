@@ -157,6 +157,7 @@ cleanupFinishedJobs qstate = do
       jlist = commaJoin $ map showJob finished
   unless (null finished)
     . logInfo $ "Finished jobs: " ++ jlist
+  mapM_ (maybe (return ()) killINotify . jINotify) finished
 
 -- | Decide on which jobs to schedule next for execution. This is the
 -- pure function doing the scheduling.
