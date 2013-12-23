@@ -143,17 +143,17 @@ updateJob state jb = do
 -- | Sort out the finished jobs from the monitored part of the queue.
 -- This is the pure part, splitting the queue into a remaining queue
 -- and the jobs that were removed.
-sortoutFinishedJobs :: Queue -> (Queue, [QueuedJob])
+sortoutFinishedJobs :: Queue -> (Queue, [JobWithStat])
 sortoutFinishedJobs queue =
   let (fin, run') = partition (jobFinalized . jJob) . qRunning $ queue
-  in (queue {qRunning=run'}, map jJob fin)
+  in (queue {qRunning=run'}, fin)
 
 -- | Actually clean up the finished jobs. This is the IO wrapper around
 -- the pure `sortoutFinishedJobs`.
 cleanupFinishedJobs :: JQStatus -> IO ()
 cleanupFinishedJobs qstate = do
   finished <- atomicModifyIORef (jqJobs qstate) sortoutFinishedJobs
-  let showJob = show . ((fromJobId . qjId) &&& calcJobStatus)
+  let showJob = show . ((fromJobId . qjId) &&& calcJobStatus) . jJob
       jlist = commaJoin $ map showJob finished
   unless (null finished)
     . logInfo $ "Finished jobs: " ++ jlist
@@ -161,33 +161,33 @@ cleanupFinishedJobs qstate = do
 
 -- | Decide on which jobs to schedule next for execution. This is the
 -- pure function doing the scheduling.
-selectJobsToRun :: Queue -> (Queue, [QueuedJob])
+selectJobsToRun :: Queue -> (Queue, [JobWithStat])
 selectJobsToRun queue =
   let n = maxRunningJobs - length (qRunning queue)
       (chosen, remain) = splitAt n (qEnqueued queue)
-  in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}
-     , map jJob chosen)
+  in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
 
 -- | Requeue jobs that were previously selected for execution
 -- but couldn't be started.
-requeueJobs :: JQStatus -> [QueuedJob] -> IOError -> IO ()
+requeueJobs :: JQStatus -> [JobWithStat] -> IOError -> IO ()
 requeueJobs qstate jobs err = do
-  let jids = map qjId jobs
+  let jids = map (qjId . jJob) jobs
       jidsString = commaJoin $ map (show . fromJobId) jids
       rmJobs = filter ((`notElem` jids) . qjId . jJob)
   logWarning $ "Starting jobs failed: " ++ show err
   logWarning $ "Rescheduling jobs: " ++ jidsString
   modifyJobs qstate (onRunningJobs rmJobs)
-  modifyJobs qstate (onQueuedJobs . (++) $ map unreadJob jobs)
+  modifyJobs qstate (onQueuedJobs $ (++) jobs)
 
 -- | Schedule jobs to be run. This is the IO wrapper around the
 -- pure `selectJobsToRun`.
 scheduleSomeJobs :: JQStatus -> IO ()
 scheduleSomeJobs qstate = do
   chosen <- atomicModifyIORef (jqJobs qstate) selectJobsToRun
+  let jobs = map jJob chosen
   unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
-    $ map (show . fromJobId . qjId) chosen
-  result <- try $ JQ.startJobs chosen
+    $ map (show . fromJobId . qjId) jobs
+  result <- try $ JQ.startJobs jobs
   either (requeueJobs qstate chosen) return result
 
 -- | Format the job queue status in a compact, human readable way.
