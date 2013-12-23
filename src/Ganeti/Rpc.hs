@@ -78,6 +78,7 @@ module Ganeti.Rpc
 
   , RpcCallJobqueueUpdate(..)
   , RpcCallSetWatcherPause(..)
+  , RpcCallSetDrainFlag(..)
   ) where
 
 import Control.Arrow (second)
@@ -625,6 +626,29 @@ instance Rpc RpcCallSetWatcherPause RpcResultSetWatcherPause where
   rpcResultFill _ res =
     case res of
       J.JSNull ->  Right RpcResultSetWatcherPause
+      _ -> Left $ JsonDecodeError
+           ("Expected JSNull, got " ++ show (pp_value res))
+
+-- ** Queue drain status
+      
+-- | Set the queu drain flag
+      
+$(buildObject "RpcCallSetDrainFlag" "rpcCallSetDrainFlag"
+  [ simpleField "value" [t| Bool |]
+  ])
+
+instance RpcCall RpcCallSetDrainFlag where
+  rpcCallName _          = "jobqueue_set_drain_flag"
+  rpcCallTimeout _       = rpcTimeoutToRaw Fast
+  rpcCallAcceptOffline _ = False
+  rpcCallData _ call     = J.encode [ rpcCallSetDrainFlagValue call ]
+
+$(buildObject "RpcResultSetDrainFlag" "rpcResultSetDrainFalg" [])
+
+instance Rpc RpcCallSetDrainFlag RpcResultSetDrainFlag where
+  rpcResultFill _ res =
+    case res of
+      J.JSNull ->  Right RpcResultSetDrainFlag
       _ -> Left $ JsonDecodeError
            ("Expected JSNull, got " ++ show (pp_value res))
 
