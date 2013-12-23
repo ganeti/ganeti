@@ -40,6 +40,7 @@ import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.JSON (encode, showJSON, JSValue(..))
 import System.Info (arch)
+import System.Directory
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as ConstantUtils (unFrozenSet)
@@ -56,7 +57,7 @@ import Ganeti.Logging
 import Ganeti.Luxi
 import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Query.Cluster as QCluster
-import Ganeti.Path (queueDir, jobQueueLockFile)
+import Ganeti.Path (queueDir, jobQueueLockFile, jobQueueDrainFile)
 import Ganeti.Rpc
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
@@ -292,6 +293,15 @@ handleCall _ _ cfg (SetWatcherPause time) = do
                   $ configCluster cfg
   _ <- executeRpcCall (masters ++ mcs) $ RpcCallSetWatcherPause time
   return . Ok . maybe JSNull showJSON $ time
+
+handleCall _ _ cfg (SetDrainFlag value) = do
+  let mcs = Config.getMasterCandidates cfg
+  fpath <- jobQueueDrainFile
+  if value
+     then writeFile fpath ""
+     else removeFile fpath
+  _ <- executeRpcCall mcs $ RpcCallSetDrainFlag value
+  return . Ok . showJSON $ True
 
 handleCall _ _ _ op =
   return . Bad $
