@@ -18,7 +18,7 @@ perform all the OS-related functionality (setting up an operating system inside
 the disks of the instance being created, exporting/importing the instance,
 renaming it).
 
-These scripts receive, as environment variables, a fixed set of parameters
+These scripts receive through environment variables a fixed set of parameters
 related to the instance (such as the hypervisor, the name of the instance, the
 number of disks, and their location) and a set of user defined parameters.
 These parameters are also written in the configuration file of Ganeti, to allow
@@ -72,126 +72,158 @@ Proposed changes
 ================
 
 In order to fix the shortcomings of the current state, we plan to introduce the
-following changes:
+following changes.
 
-* Change the OS parameters to have three categories:
 
- * ``public``: the current behavior. The parameter is logged and stored freely.
+OS parameters categories
+++++++++++++++++++++++++
 
- * ``private``: the parameter is saved inside the Ganeti configuration (to allow
-   for instance reinstall) but it is not shown in logs, job logs, or passed back
-   via RAPI.
+Change the OS parameters to have three categories:
 
- * ``secret``: the parameter is not saved inside the Ganeti configuration.
-   Reinstalls are impossible unless the data is passed again. The parameter will
-   not appear in any log file. When a functionality is performed jointly by
-   multiple daemons (such as MasterD and LuxiD), currently Ganeti sometimes
-   serializes jobs on disk and later reloads them. Secret parameters will not be
-   serialized to disk. They will be passed around as part of the LUXI calls
-   exchanged by the daemons, and only kept in memory, in order to reduce their
-   accessibility as much as possible. In case of failure of the master node,
-   these parameters will be lost and cannot be recovered because they are not
-   serialized. As a result, the job cannot be taken over by the new master.
-   This is an expected and accepted side effect of jobs with secret parameters:
-   if they fail, they'll have to be restarted manually.
+* ``public``: the current behavior. The parameter is logged and stored freely.
 
-* A new OS installation procedure, based on a safe virtualized environment.
-  This virtualized environment will run with the same hardware parameter as the
-  actual instance being installed, as much as possible. This will also allow to
-  reduce the memory usage in the host (specifically, in Dom0 for Xen
-  installations). Each instance will have these possible execution modes:
+* ``private``: the parameter is saved inside the Ganeti configuration (to allow
+  for instance reinstall) but it is not shown in logs, job logs, or passed back
+  via RAPI.
 
-  * ``run``: the default mode, used when the machine is running normally and
-    the OS installation procedure is run before starting the instance for the
-    first time.
+* ``secret``: the parameter is not saved inside the Ganeti configuration.
+  Reinstalls are impossible unless the data is passed again. The parameter will
+  not appear in any log file. When a functionality is performed jointly by
+  multiple daemons (such as MasterD and LuxiD), currently Ganeti sometimes
+  serializes jobs on disk and later reloads them. Secret parameters will not be
+  serialized to disk. They will be passed around as part of the LUXI calls
+  exchanged by the daemons, and only kept in memory, in order to reduce their
+  accessibility as much as possible. In case of failure of the master node,
+  these parameters will be lost and cannot be recovered because they are not
+  serialized. As a result, the job cannot be taken over by the new master.  This
+  is an expected and accepted side effect of jobs with secret parameters: if
+  they fail, they'll have to be restarted manually.
 
-  * ``self_install``: the first run of the instance will be with a different set
-    of parameters w.r.t. all the successive runs. This set of "install
-    parameters" will allow, e.g., to attach an installation
-    floppy/cdrom/network, change the boot device order, or specify an OS image
-    to be used. Through this set of parameters, the administrator will have to
-    provide the hypervisor a way to find an installation medium for the instance
-    (e.g., a boot disk, a network image, etc). This medium will then install the
-    instance itself on the disks and will then be responsible to get the
-    parameters for configuring it (its network interfaces, IP address, hostname,
-    etc.) from a set of metadata provided by Ganeti (e.g.: using an approach
-    comparable to the one of the ``cloud-init`` tool). When this installation
-    mode is used, no OS installation script is required.  In order for the
-    installation of an OS from an image to be possible, the ``--os-type``
-    parameter will be extended to support a new additional format: ``--os-type
-    image:<URL>`` will instruct Ganeti to take an image from the specified
-    position. For the initial implementation, URL can be either a filename or a
-    publically accessible HTTP or FTP resource. Once the instance image is
-    received, it will be dd-ed onto the first disk of the instance.  When an
-    image is specified, ``--os-parameters`` can still be used, and its content
-    will be passed to the instance as part of the metadata. Note that, as part
-    of the OS scripts, there is a file specifying what parameters are
-    expected. With OS images, though, none of the traditional structure of OS
-    scripts is in place, so there will be no check regarding what parameters can
-    be specified: they will all be passed, as long as the ``--os-parameters``
-    string is syntactically valid.  The set of ``self_install`` parameters will
-    be stored as part of the instance configuration, so that they can be used to
-    reinstall the instance.  It will be the user's responsibility to ensure that
-    the OS image or any installation media is still available in the proper
-    position when a reinstall happens. After the first run, the instance will
-    revert to ``run`` mode.
 
-  * ``install``: Ganeti will start the instance using a virtual appliance
-    specifically made for installing Ganeti instances. Scripts analogous to the
-    current ones will run inside this instance. The disks of the instance being
-    installed will be connected to this virtual appliance, so that the scripts
-    can mount them and modify them as needed, as currently happens, but with the
-    additional protection given by this happening in a VM. The disk of the
-    virtual appliance will be read only, so that a pristine copy of the
-    appliance can be started every time a new instance needs to be created, to
-    further increase security. The data the instance needs to write at runtime
-    will only be stored in RAM, and disappear as soon as the instance is
-    stopped. Metadata will be provided also to this virtual applicance, that
-    will take care of converting them to environment variables for the
-    installation scripts. After the first run, the instance will revert to
-    ``run`` mode.
+Metadata
+++++++++
 
-* In order to allow for the metadata to be sent inside the instance, a
-  communication mechanism between the instance and the host will be created.
-  This mechanism will be bidirectional (e.g.: to allow the setup process going
-  on inside the instance to communicate its progress to the host). Each instance
-  will have access exclusively to its own metadata, and it will be only able to
-  communicate with its host over this channel. More details will be provided in
-  the `Communication mechanism and metadata service`_ section.
+In order to allow metadata to be sent inside the instance, a communication
+mechanism between the instance and the host will be created.  This mechanism
+will be bidirectional (e.g.: to allow the setup process going on inside the
+instance to communicate its progress to the host). Each instance will have
+access exclusively to its own metadata, and it will be only able to communicate
+with its host over this channel.  This is the approach followed the
+``cloud-init`` tool and more details will be provided in the `Communication
+mechanism and metadata service`_ section.
 
-* As part of the instance creation command it will be possible to indicate a URL
-  for a "personalization package", that is an archive containing a set of files
-  meant to be overlayed on top of the operating system file system at the end of
-  the setup process, before the VM is started for the first time in ``run``
-  mode.  Ganeti will provide a mechanism for receiving and unpacking this
-  archive as part of the ``install`` execution mode, whereas in ``self_install``
-  mode it will only be provided as a metadata for the instance to use.  The
-  archive will be in TAR-GZIP format (with extension ``.tar.gz`` or ``.tgz``)
-  and will contain the files according to the directory structure that will be
-  recreated on the installation disk. Files contained in this archive will
-  overwrite files with the same path created during the install procedure (if
-  any).  The URL of the "personalization package" will have to specify an
-  extesion to identify the file format (in order to allow for more formats to be
-  supported in the future).  The URL will be stored as part of the configuration
-  of the instance (therefore, the URL should not contain confidential
-  information, but the files there available can). It is up to the system
-  administrator to ensure that a package is actually available at that URL at
-  install and reinstall time.  The content of the package is allowed to change.
-  E.g.: a system administrator might create a package containing the private
-  keys of the instance being created. When the instance is reinstalled, a new
-  package with new keys can be made available there, therefore allowing instance
-  reinstall without the need to store keys.  Together with the URL, a username
-  and a password can be specified to. If the URL is a HTTP(S) URL, they will be
-  used as basic access authentication credentials to access that URL. The
-  username and password will not be saved in the config, and will have to be
-  provided again in case a reinstall is requested.  The downloaded
-  personalization package will not be stored locally on the node for longer than
-  it is needed while unpacking it and adding its files to the instance being
-  created.  The personalization package will be overlayed on top of the instance
-  filesystem after the scripts that created it have been executed.  In order for
-  the files in the package to be automatically overlayed on top of the instance
-  filesystem it is required that the appliance is actually able to mount the
-  instance disks, therefore this will not work for every filesystem.
+
+Installation procedure
+++++++++++++++++++++++
+
+A new installation procedure will be introduced, with which it will be possible
+to use an installation medium and run the OS scripts in an optional virtualized
+environment and with an optional personalization package.  There will be two
+sets of parameters, namely, installation parameters, which are used mainly for
+installs and reinstalls, and execution parameters, which are used in all the
+other runs that are not part of an installation procedure.
+
+This set of installation parameters will allow, e.g., to attach an installation
+floppy/cdrom/network, change the boot device order, or specify a disk image to
+be used.  Through this set of parameters, the administrator will have to provide
+the hypervisor a location for an installation medium for the instance (e.g., a
+boot disk, a network image, etc).  This medium will carry out the installation
+of the instance onto the instance's disks and will then be responsible for
+getting the parameters for configuring the instance, such as, network
+interfaces, IP address, and hostname.  These parameters are taken from the
+metadata.  The installation parameters will be stored in the configuration of
+Ganeti and used in future reinstalls, but not during normal execution.
+
+The instance is reinstalled using the same installation parameters from the
+first installation.  However, it will be the administrator's responsibility to
+ensure that the any installation media is still available at the proper location
+when a reinstall occurs.
+
+The parameter ``--os-parameters`` can still be used to specify the OS
+parameters.  However, without OS scripts, Ganeti cannot do more than a syntactic
+check to validate the supplied OS parameters string.  As a result, this string
+will be directly passed to the instance as part of the metadata.  If the
+installation procedure is running inside a virtualized environment, then Ganeti
+will take these parameters from the metadata and pass them to the OS scripts as
+environment variables.
+
+* Use a disk image:
+
+  Currently, it is already possible to specify an installation medium, such as,
+  a cdrom, but not a disk image.  Therefore, a new parameter ``--os-image`` will
+  be used to specify the location of a disk image which will be dumped to the
+  instance's first disk before the instance is started.  The location of the
+  image can be a URL and, if this is the case, Ganeti will download this image.
+
+* Run OS scripts:
+
+  The parameter ``--os-type`` (short version: ``-o``), is currently used to
+  specify the OS scripts.  This parameter will still be used to specify the OS
+  scripts with the difference that these OS scripts may optionally run inside a
+  virtualized environment for safety reasons, depending on whether they are
+  trusted or not.  For more details on trusted and untrusted OS scripts, refer
+  to the `Installation process in a virtualized environment`_ section.
+
+* Personalization package
+
+  As part of the instance creation command, it will be possible to indicate a
+  URL for a "personalization package", which is an archive containing a set of
+  files meant to be overlayed on top of the OS file system at the end of the
+  setup process and before the VM is started for the first time in normal mode.
+  Ganeti will provide a mechanism for receiving and unpacking this archive
+  whether the installation is being performed inside the virtualized environment
+  or not.
+
+  The archive will be in TAR-GZIP format (with extension ``.tar.gz`` or
+  ``.tgz``) and contain the files according to the directory structure that will
+  be recreated on the installation disk.  Files contained in this archive will
+  overwrite files with the same path created during the installation procedure
+  (if any).  The URL of the "personalization package" will have to specify an
+  extension to identify the file format (in order to allow for more formats to
+  be supported in the future).  The URL will be stored as part of the
+  configuration of the instance (therefore, the URL should not contain
+  confidential information, but the files there available can).
+
+  It is up to the system administrator to ensure that a package is actually
+  available at that URL at install and reinstall time.  The contents of the
+  package are allowed to change.  E.g.: a system administrator might create a
+  package containing the private keys of the instance being created.  When the
+  instance is reinstalled, a new package with new keys can be made available
+  there, thus allowing instance reinstall without the need to store keys.  A
+  username and a password can be specified together with the URL.  If the URL is
+  a HTTP(S) URL, they will be used as basic access authentication credentials to
+  access that URL.  The username and password will not be saved in the config,
+  and will have to be provided again in case a reinstall is requested.
+
+  The downloaded personalization package will not be stored locally on the node
+  for longer than it is needed while unpacking it and adding its files to the
+  instance being created.  The personalization package will be overlayed on top
+  of the instance filesystem after the scripts that created it have been
+  executed.  In order for the files in the package to be automatically overlayed
+  on top of the instance filesystem, it is required that the appliance is
+  actually able to mount the instance's disks.  As a result, this will not work
+  for every filesystem.
+
+* Combine a disk image, OS scripts, and a personalization package
+
+  It will possible to combine a disk image, OS scripts, and a personalization
+  package, both with or without a virtualized environment.  There is one
+  exception which is if there are untrusted OS scripts.  At least, an
+  installation medium or OS scripts should be specified.
+
+  The disk image of the actual virtual appliance, which bootstraps the virtual
+  environment used in the installation procedure, will be read only, so that a
+  pristine copy of the appliance can be started every time a new instance needs
+  to be created and to further increase security.  The data the instance needs
+  to write at runtime will only be stored in RAM and disappear as soon as the
+  instance is stopped.
+
+  The parameter ``--enable-safe-install=yes|no`` will be used to give the
+  administrator control over whether to use a virtualized environment for the
+  installation procedure.  By default, a virtualized environment will be used.
+  Note that some feature combinations, such as, using untrusted scripts, will
+  require the virtualized environment.  In this case, Ganeti will not allow
+  disabling the virtualized environment.
 
 Implementation
 ==============
@@ -203,8 +235,8 @@ of increasing impact on the system and, in some cases, dependent on each other:
 #. Communication mechanism between host and instance
 #. Metadata service
 #. Personalization package (inside a virtualization environment)
-#. ``self_install`` mode
-#. ``install`` mode (inside a virtualization environment)
+#. Instance creation via a disk image
+#. Instance creation inside a virtualized environment
 
 Some of these steps need to be more deeply specified w.r.t. what is already
 written in the `Proposed changes`_ Section. Extra details will be provided in
@@ -214,21 +246,21 @@ Communication mechanism and metadata service
 ++++++++++++++++++++++++++++++++++++++++++++
 
 The communication mechanism and the metadata service are described together
-because they are deeply tied. On the other hand, the communication mechanism
-will need to be more generic because it can be used for other reasons in the
-future (like allowing instances to explicitly send commands to Ganeti, or to let
-Ganeti control a helper instance, like the one hereby introduced for performing
-OS installs inside a safe environment).
+because they are deeply tied. The communication mechanism will be made more
+generic because it can be used for other purposes in the future (like allowing
+instances to explicitly send commands to Ganeti, or to let Ganeti control a
+helper instance, like the one hereby introduced for performing OS installs
+inside a safe environment).
 
-The communication mechanism will be enabled automatically when the instance is
-in ``self_install`` or ``install`` mode, but for backwards compatibility it will
-be disabled when the instance is in ``run`` mode unless it is explicitly
-requested. Specifically, a new parameter ``--communication`` (short version:
-``-C``), with possible values ``true`` or ``false`` will be added to
+The communication mechanism will be enabled automatically during an installation
+procedure that requires a virtualized environment, but for backwards
+compatibility it will be disabled when the instance is running normally, unless
+it is explicitly requested. Specifically, a new parameter
+``--communication=yes|no`` (short version: ``-C``) will be added to
 ``gnt-instance add`` and ``gnt-instance modify``. It will determine whether the
-instance will have a communication channel set up to interact with the host and
-to receive metadata. The value of this parameter will be saved as part of the
-configuration of the instance.
+instance has a communication channel set to interact with the host and receive
+metadata. The value of this parameter will be saved as part of the configuration
+of the instance.
 
 When the communication mechanism is enabled, Ganeti will create a new network
 interface inside the instance. This additional network interface will be the
@@ -313,10 +345,10 @@ pair ``(<value>, <visibility>)`` as the value, where ``<value>`` is the
 user-provided value of the parameter, and ``<visibility>`` is either ``public``,
 ``private`` or ``secret``.
 
-The installation scripts to be run inside the virtualized environment while the
-instance is run in ``install`` mode will be available at::
+The installation scripts to be run inside the virtualized environment will be
+available at::
 
-  http://169.254.169.254/<version>/ganeti/os/scripts/<script_name>
+  http://169.254.169.254/ganeti/<version>/os/scripts/<script_name>
 
 where ``<script_name>`` is the name of the script.
 
