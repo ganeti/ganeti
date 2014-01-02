@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2011, 2012, 2013 Google Inc.
+Copyright (C) 2011, 2012, 2013, 2014 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -60,6 +60,7 @@ import Ganeti.BasicTypes
 import AutoConf
 
 data GanetiDaemon = GanetiMasterd
+                  | GanetiMetad
                   | GanetiNoded
                   | GanetiRapi
                   | GanetiConfd
@@ -81,6 +82,7 @@ type RuntimeEnts = (M.Map GanetiDaemon UserID, M.Map GanetiGroup GroupID)
 -- | Returns the daemon name for a given daemon.
 daemonName :: GanetiDaemon -> String
 daemonName GanetiMasterd = "ganeti-masterd"
+daemonName GanetiMetad   = "ganeti-metad"
 daemonName GanetiNoded   = "ganeti-noded"
 daemonName GanetiRapi    = "ganeti-rapi"
 daemonName GanetiConfd   = "ganeti-confd"
@@ -91,6 +93,7 @@ daemonName GanetiMond    = "ganeti-mond"
 -- | Returns whether the daemon only runs on the master node.
 daemonOnlyOnMaster :: GanetiDaemon -> Bool
 daemonOnlyOnMaster GanetiMasterd = True
+daemonOnlyOnMaster GanetiMetad   = False
 daemonOnlyOnMaster GanetiNoded   = False
 daemonOnlyOnMaster GanetiRapi    = False
 daemonOnlyOnMaster GanetiConfd   = False
@@ -101,6 +104,7 @@ daemonOnlyOnMaster GanetiMond    = False
 -- | Returns the log file base for a daemon.
 daemonLogBase :: GanetiDaemon -> String
 daemonLogBase GanetiMasterd = "master-daemon"
+daemonLogBase GanetiMetad   = "meta-daemon"
 daemonLogBase GanetiNoded   = "node-daemon"
 daemonLogBase GanetiRapi    = "rapi-daemon"
 daemonLogBase GanetiConfd   = "conf-daemon"
@@ -111,6 +115,7 @@ daemonLogBase GanetiMond    = "monitoring-daemon"
 -- | Returns the configured user name for a daemon.
 daemonUser :: GanetiDaemon -> String
 daemonUser GanetiMasterd = AutoConf.masterdUser
+daemonUser GanetiMetad   = AutoConf.metadUser
 daemonUser GanetiNoded   = AutoConf.nodedUser
 daemonUser GanetiRapi    = AutoConf.rapiUser
 daemonUser GanetiConfd   = AutoConf.confdUser
@@ -121,6 +126,7 @@ daemonUser GanetiMond    = AutoConf.mondUser
 -- | Returns the configured group for a daemon.
 daemonGroup :: GanetiGroup -> String
 daemonGroup (DaemonGroup GanetiMasterd) = AutoConf.masterdGroup
+daemonGroup (DaemonGroup GanetiMetad)   = AutoConf.metadGroup
 daemonGroup (DaemonGroup GanetiNoded)   = AutoConf.nodedGroup
 daemonGroup (DaemonGroup GanetiRapi)    = AutoConf.rapiGroup
 daemonGroup (DaemonGroup GanetiConfd)   = AutoConf.confdGroup

@@ -200,6 +200,12 @@ masterdUser = Runtime.daemonUser GanetiMasterd
 masterdGroup :: String
 masterdGroup = Runtime.daemonGroup (DaemonGroup GanetiMasterd)
 
+metadUser :: String
+metadUser = Runtime.daemonUser GanetiMetad
+
+metadGroup :: String
+metadGroup = Runtime.daemonGroup (DaemonGroup GanetiMetad)
+
 rapiUser :: String
 rapiUser = Runtime.daemonUser GanetiRapi
 
@@ -335,6 +341,9 @@ confd = Runtime.daemonName GanetiConfd
 masterd :: String
 masterd = Runtime.daemonName GanetiMasterd
 
+metad :: String
+metad = Runtime.daemonName GanetiMetad
+
 mond :: String
 mond = Runtime.daemonName GanetiMond
 
@@ -365,6 +374,9 @@ defaultConfdPort = 1814
 defaultMondPort :: Int
 defaultMondPort = 1815
 
+defaultMetadPort :: Int
+defaultMetadPort = 8080
+
 defaultNodedPort :: Int
 defaultNodedPort = 1811
 
@@ -373,11 +385,14 @@ defaultRapiPort = 5080
 
 daemonsPorts :: Map String (Protocol, Int)
 daemonsPorts =
-  Map.fromList [(confd, (Udp, defaultConfdPort)),
-                (mond, (Tcp, defaultMondPort)),
-                (noded, (Tcp, defaultNodedPort)),
-                (rapi, (Tcp, defaultRapiPort)),
-                (ssh, (Tcp, 22))]
+  Map.fromList
+  [ (confd, (Udp, defaultConfdPort))
+  , (metad, (Tcp, defaultMetadPort))
+  , (mond, (Tcp, defaultMondPort))
+  , (noded, (Tcp, defaultNodedPort))
+  , (rapi, (Tcp, defaultRapiPort))
+  , (ssh, (Tcp, 22))
+  ]
 
 firstDrbdPort :: Int
 firstDrbdPort = 11000

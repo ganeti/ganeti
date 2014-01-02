@@ -225,6 +225,7 @@ AC_ARG_WITH([user-prefix],
     [ to change the default)]
   )],
   [user_masterd="${withval}masterd";
+   user_metad="${withval}metad";
    user_rapi="${withval}rapi";
    user_confd="${withval}confd";
    user_kvmd="$user_default";
@@ -232,6 +233,7 @@ AC_ARG_WITH([user-prefix],
    user_noded="$user_default";
    user_mond="$user_default"],
   [user_masterd="$user_default";
+   user_metad="$user_default";
    user_rapi="$user_default";
    user_confd="$user_default";
    user_kvmd="$user_default";
@@ -239,6 +241,7 @@ AC_ARG_WITH([user-prefix],
    user_noded="$user_default";
    user_mond="$user_default"])
 AC_SUBST(MASTERD_USER, $user_masterd)
+AC_SUBST(METAD_USER, $user_metad)
 AC_SUBST(RAPI_USER, $user_rapi)
 AC_SUBST(CONFD_USER, $user_confd)
 AC_SUBST(KVMD_USER, $user_kvmd)
@@ -259,6 +262,7 @@ AC_ARG_WITH([group-prefix],
    group_kvmd="$group_default";
    group_luxid="${withval}luxid";
    group_masterd="${withval}masterd";
+   group_metad="${withval}metad";
    group_noded="$group_default";
    group_daemons="${withval}daemons";
    group_mond="$group_default"],
@@ -268,6 +272,7 @@ AC_ARG_WITH([group-prefix],
    group_kvmd="$group_default";
    group_luxid="$group_default";
    group_masterd="$group_default";
+   group_metad="$group_default";
    group_noded="$group_default";
    group_daemons="$group_default";
    group_mond="$group_default"])
@@ -277,12 +282,14 @@ AC_SUBST(CONFD_GROUP, $group_confd)
 AC_SUBST(KVMD_GROUP, $group_kvmd)
 AC_SUBST(LUXID_GROUP, $group_luxid)
 AC_SUBST(MASTERD_GROUP, $group_masterd)
+AC_SUBST(METAD_GROUP, $group_metad)
 AC_SUBST(NODED_GROUP, $group_noded)
 AC_SUBST(DAEMONS_GROUP, $group_daemons)
 AC_SUBST(MOND_GROUP, $group_mond)
 
 # Print the config to the user
 AC_MSG_NOTICE([Running ganeti-masterd as $group_masterd:$group_masterd])
+AC_MSG_NOTICE([Running ganeti-metad as $group_metad:$group_metad])
 AC_MSG_NOTICE([Running ganeti-rapi as $user_rapi:$group_rapi])
 AC_MSG_NOTICE([Running ganeti-confd as $user_confd:$group_confd])
 AC_MSG_NOTICE([Running ganeti-luxid as $user_luxid:$group_luxid])

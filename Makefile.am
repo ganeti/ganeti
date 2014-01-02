@@ -595,6 +595,7 @@ endif
 # Haskell programs to be compiled by "make really-all"
 HS_COMPILE_PROGS= \
 	src/ganeti-kvmd \
+	src/ganeti-metad \
 	src/ganeti-mond \
 	src/hconfd \
 	src/hluxid \
@@ -713,6 +714,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Logging.hs \
 	src/Ganeti/Luxi.hs \
 	src/Ganeti/Monitoring/Server.hs \
+	src/Ganeti/Metad.hs \
 	src/Ganeti/Network.hs \
 	src/Ganeti/Objects.hs \
 	src/Ganeti/OpCodes.hs \
@@ -1072,6 +1074,7 @@ src/ganeti-luxid: src/hluxid
 nodist_sbin_SCRIPTS += src/ganeti-confd
 nodist_sbin_SCRIPTS += src/ganeti-luxid
 nodist_sbin_SCRIPTS += src/ganeti-kvmd
+nodist_sbin_SCRIPTS += src/ganeti-metad
 endif
 
 if ENABLE_MOND
@@ -1849,6 +1852,8 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DADMIN_GROUP="$(ADMIN_GROUP)" \
 	    -DMASTERD_USER="$(MASTERD_USER)" \
 	    -DMASTERD_GROUP="$(MASTERD_GROUP)" \
+	    -DMETAD_USER="$(METAD_USER)" \
+	    -DMETAD_GROUP="$(METAD_GROUP)" \
 	    -DRAPI_USER="$(RAPI_USER)" \
 	    -DRAPI_GROUP="$(RAPI_GROUP)" \
 	    -DCONFD_USER="$(CONFD_USER)" \

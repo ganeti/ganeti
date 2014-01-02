@@ -85,6 +85,7 @@ case_UsersGroups = do
               \         constants.CONFD_USER,\n\
               \         constants.KVMD_USER,\n\
               \         constants.LUXID_USER,\n\
+              \         constants.METAD_USER,\n\
               \         constants.MOND_USER,\n\
               \        ]\n\
               \groups = [constants.MASTERD_GROUP,\n\
@@ -93,6 +94,7 @@ case_UsersGroups = do
               \          constants.CONFD_GROUP,\n\
               \          constants.KVMD_GROUP,\n\
               \          constants.LUXID_GROUP,\n\
+              \          constants.METAD_GROUP,\n\
               \          constants.MOND_GROUP,\n\
               \          constants.DAEMONS_GROUP,\n\
               \          constants.ADMIN_GROUP,\n\

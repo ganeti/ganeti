@@ -140,6 +140,7 @@
 /src/ganeti-confd
 /src/ganeti-kvmd
 /src/ganeti-luxid
+/src/ganeti-metad
 /src/ganeti-mond
 /src/rpc-test
 

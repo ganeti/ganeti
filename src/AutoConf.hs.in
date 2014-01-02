@@ -7,7 +7,7 @@ from @AutoConf.hs.in@.
 
 {-
 
-Copyright (C) 2013 Google Inc.
+Copyright (C) 2013, 2014 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -156,6 +156,12 @@ masterdUser = "MASTERD_USER"
 
 masterdGroup :: String
 masterdGroup = "MASTERD_GROUP"
+
+metadUser :: String
+metadUser = "METAD_USER"
+
+metadGroup :: String
+metadGroup = "METAD_GROUP"
 
 rapiUser :: String
 rapiUser = "RAPI_USER"
