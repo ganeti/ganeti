@@ -90,7 +90,11 @@ def _SetupColours():
     # Don't use colours if curses module can't be imported
     return
 
-  curses.setupterm()
+  try:
+    curses.setupterm()
+  except curses.error:
+    # Probably a non-standard terminal, don't use colours then
+    return
 
   _RESET_SEQ = curses.tigetstr("op")
 
