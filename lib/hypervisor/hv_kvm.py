@@ -1384,7 +1384,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # Various types of usb devices, comma separated
     if hvp[constants.HV_USB_DEVICES]:
-      for dev in hvp[constants.HV_USB_DEVICES].split(","):
+      for dev in hvp[constants.HV_USB_DEVICES].split(" "):
         kvm_cmd.extend(["-usbdevice", dev])
 
     if hvp[constants.HV_KVM_EXTRA]:

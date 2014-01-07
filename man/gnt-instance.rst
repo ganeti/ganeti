@@ -723,10 +723,12 @@ soundhw
 usb\_devices
     Valid for the KVM hypervisor.
 
-    Comma separated list of usb devices. These can be emulated devices
+    Space separated list of usb devices. These can be emulated devices
     or passthrough ones, and each one gets passed to kvm with its own
     ``-usbdevice`` option. See the **qemu**\(1) manpage for the syntax
-    of the possible components.
+    of the possible components. Note that values set with this
+    parameter are split on a space character and currently don't support
+    quoting.
 
 vga
     Valid for the KVM hypervisor.

@@ -2,6 +2,16 @@ News
 ====
 
 
+Version 2.8.4
+-------------
+
+*(unreleased)*
+
+- Change the list separator for the usb_devices parameter from comma to space.
+  Commas could not work because they are already the hypervisor option
+  separator (Issue 649)
+
+
 Version 2.8.3
 -------------
 
