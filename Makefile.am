@@ -758,6 +758,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
+	src/Ganeti/WConfd/Core.hs \
 	src/Ganeti/WConfd/Monad.hs
 
 HS_TEST_SRCS = \
