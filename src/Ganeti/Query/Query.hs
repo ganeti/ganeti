@@ -56,6 +56,7 @@ module Ganeti.Query.Query
 import Control.DeepSeq
 import Control.Monad (filterM, foldM)
 import Control.Monad.Trans (lift)
+import qualified Data.Foldable as Foldable
 import Data.List (intercalate)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
@@ -260,7 +261,9 @@ queryJobs cfg live fields qfilter =
   cfilter <- resultT $ compileFilter Query.Job.fieldsMap qfilter
   let selected = getSelectedFields Query.Job.fieldsMap fields
       (fdefs, fgetters, _) = unzip3 selected
-      live' = live && needsLiveData fgetters
+      (_, filtergetters, _) = unzip3 . getSelectedFields Query.Job.fieldsMap
+                                $ Foldable.toList qfilter
+      live' = live && needsLiveData (fgetters ++ filtergetters)
       disabled_data = Bad "live data disabled"
   -- runs first pass of the filter, without a runtime context; this
   -- will limit the jobs that we'll load from disk
