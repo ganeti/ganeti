@@ -1217,7 +1217,7 @@ def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
   sstore = ssconf.SimpleStore()
   try:
     candidate_certs = sstore.GetMasterCandidatesCertMap()
-  except IOError:
+  except errors.ConfigurationError:
     logging.info("No candidate certificates found. Switching to "
                  "bootstrap/update mode.")
     candidate_certs = None
