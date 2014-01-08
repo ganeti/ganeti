@@ -411,6 +411,9 @@ def DowngradeCluster(config_data):
     del cluster["default_iallocator_params"]
   if "candidate_certs" in cluster:
     del cluster["candidate_certs"]
+  for param in ["gluster", "gluster_storage_dir"]:
+    if param in cluster:
+      del cluster[param]
 
 
 def DowngradeGroups(config_data):
