@@ -728,7 +728,8 @@ usb\_devices
     ``-usbdevice`` option. See the **qemu**\(1) manpage for the syntax
     of the possible components. Note that values set with this
     parameter are split on a space character and currently don't support
-    quoting.
+    quoting. For backwards compatibility reasons, the RAPI interface keeps
+    accepting comma separated lists too.
 
 vga
     Valid for the KVM hypervisor.
