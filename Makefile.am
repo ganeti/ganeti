@@ -543,6 +543,7 @@ docinput = \
 	doc/design-upgrade.rst \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
+	doc/dev-codestyle.rst \
 	doc/devnotes.rst \
 	doc/glossary.rst \
 	doc/hooks.rst \

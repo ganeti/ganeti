@@ -137,6 +137,7 @@ Draft designs
    design-upgrade.rst
    design-virtual-clusters.rst
    devnotes.rst
+   dev-codestyle.rst
    glossary.rst
    hooks.rst
    iallocator.rst

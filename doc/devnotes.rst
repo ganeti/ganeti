@@ -116,6 +116,11 @@ the installed and developed versions are very similar, and/or if
 PYTHONPATH is customised correctly). As such, in general it's
 recommended to use a "clean" machine for ganeti development.
 
+Style guide
+-----------
+
+Please adhere to the :doc:`dev-codestyle` while writing code for Ganeti.
+
 Haskell development notes
 -------------------------
 
