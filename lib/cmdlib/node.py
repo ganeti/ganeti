@@ -416,9 +416,9 @@ class LUNodeAdd(LogicalUnit):
       RedistributeAncillaryFiles(self)
 
     cluster = self.cfg.GetClusterInfo()
+    # We create a new certificate even if the node is readded
+    digest = CreateNewClientCert(self, self.new_node.uuid)
     if self.new_node.master_candidate:
-      # We create a new certificate even if the node is readded
-      digest = CreateNewClientCert(self, self.new_node.uuid)
       utils.AddNodeToCandidateCerts(self.new_node.uuid, digest,
                                     cluster.candidate_certs)
       self.cfg.Update(cluster, feedback_fn)
