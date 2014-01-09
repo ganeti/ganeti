@@ -1881,6 +1881,22 @@ def _VersionSpecificDowngrade():
   """
   ToStdout("Performing version-specific downgrade tasks.")
 
+  ToStdout("...removing client certificates ssconf file")
+  ssconffile = ssconf.SimpleStore().KeyToFilename(
+    constants.SS_MASTER_CANDIDATES_CERTS)
+  badnodes = _VerifyCommand(["rm", "-f", ssconffile])
+  if badnodes:
+    ToStderr("Warning: failed to clean up ssconf on %s."
+             % (", ".join(badnodes),))
+    return False
+
+  ToStdout("...removing client certificates")
+  badnodes = _VerifyCommand(["rm", "-f", pathutils.NODED_CLIENT_CERT_FILE])
+  if badnodes:
+    ToStderr("Warning: failed to clean up certificates on %s."
+             % (", ".join(badnodes),))
+    return False
+
   return True
 
 
