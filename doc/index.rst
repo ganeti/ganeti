@@ -4,82 +4,61 @@
 Welcome to Ganeti's documentation!
 ==================================
 
-This page is the starting point for browsing the ganeti documentation. It
-contains link to all the sections of the documentation, grouped by topic.
+This page is the starting point for browsing the Ganeti documentation. It
+contains links to all the sections of Ganeti documentation, grouped by topic.
 
-The list of changes between Ganeti versions is provided in the :doc:`news` file.
+A few quick references:
 
-In order to help understanding the Ganeti terminology, a :doc:`glossary` is
-provided.
-
-Also see the :ref:`search`.
+- :doc:`glossary`: Provides explanations of basic Ganeti terminology.
+- :doc:`news` file: Lists changes between Ganeti versions.
+- :ref:`search`: Allows you to search for key terms across Ganeti documentation.
 
 Installing Ganeti
 +++++++++++++++++
 
-In order to install Ganeti, follow the instructions contained in the
-:doc:`install`.
+There are a few resources you can use to install and/or upgrade Ganeti:
 
-If you are an experienced user, the content of the :doc:`install-quick` should
-be enough.
-
-Instructions for upgrading an existing installation to the latest version of
-Ganeti are contained in the :doc:`upgrade`.
+- :doc:`install`: Comprehensive instructions for installing Ganeti.
+- :doc:`install-quick`: A shortened installation guide for the experienced Ganeti user.
+- :doc:`upgrade`: Instructions for upgrading an existing installation to the latest version of Ganeti.
 
 Using Ganeti
 ++++++++++++
 
-Information about how to manage a Ganeti cluster after it has been installed
-(including management of nodes, instances, info about the tools and the
-monitoring agent) can be found in :doc:`admin`.
+The following resources provide guidance on how to use Ganeti:
 
-A more example-oriended guide is available in :doc:`walkthrough`.
+- :doc:`admin`: Information about how to manage a Ganeti cluster after it is installed (including management of nodes, instances, and information about the tools and the monitoring agent).
+- :doc:`walkthrough`: A more example-oriented guide to Ganeti.
+- :doc:`manpages`: Descriptions of the various tools that are part of Ganeti.
+- :doc:`security`: A description of the security model underlying a Ganeti cluster.
+- :doc:`hooks`: Information on hooking scripts, which extend Ganeti functionalities by automatically activating when certain events happen.
+- :doc:`iallocator`: Description of the API for external tools which can allocate instances either manually or automatically.
+- :doc:`rapi`: Details the Ganeti remote API, which allows programmatic access to most of the functionalities of Ganeti.
+- :doc:`ovfconverter`: Provides compatibility with the standard OVF virtual machine interchange format.
+- :doc:`virtual-cluster`: Describes how to use virtual cluster support, which is utilized mainly for testing reasons.
 
-The various tool that are part of Ganeti are described one by one in the
-:doc:`manpages`.
+A few functionalities are explicitly targeted for big installations, in which
+multiple clusters are present.
 
-A description of the security model underlying a Ganeti cluster can be found in
-the :doc:`security` document.
-
-Ganeti functionalities can be extended by hooking scripts automatically
-activated when certain events happen. Information on this mechanism is provided
-in the :doc:`hooks` document.
-
-While using Ganeti, the allocation of instances can happen manually or
-automatically, through some external tools making decisions about this. The API
-for such tools is described in :doc:`iallocator`.
-
-Most of the functionalities of Ganeti can be programmatically accessed through
-an API, the :doc:`rapi`.
-
-Compatibility with the standard OVF virtual machine interchange format is
-provided by the :doc:`ovfconverter`.
-
-Mainly for testing reasons, Ganeti also has :doc:`virtual-cluster`.
-
-A few functionalities are explicitly targeted for big installations, where
-multiple clusters are present. A tool for merging two existing clusters
-is provided, and is described in :doc:`cluster-merge`. There is also a document
-describing the procedure for :doc:`move-instance`.
+- :doc:`cluster-merge`: Describes a tool for merging two existing clusters.
+- :doc:`move-instance`: Describes how to move instances between clusters.
 
 Developing Ganeti
 +++++++++++++++++
 
-A few documents useful for who wants to modify Ganeti are available and listed
-in this section.
+There are a few useful documents for developers who want to modify Ganeti:
 
-A description of the locking strategy and, in particular, lock order
-dependencies is presented in :doc:`locking`.
+- :doc:`locking`: Describes Ganeti's locking strategy and, in particular, lock order dependencies.
+- :doc:`devnotes`: Details build dependencies and other useful development-related information. 
 
-Build dependencies and other useful development-related information are provided
-in the :doc:`devnotes`.
-
-All the features implemented in Ganeti are described in a design document before
-being actually implemented. Designs can be implemented in a released version, or
-be still draft (and therefore either incomplete or not implemented).
 
 Implemented designs
 -------------------
+
+Before actual implementation, all Ganeti features are described in a design
+document. Designs fall into two categories: released versions and draft versions
+(which are either incomplete or not implemented).
+
 .. toctree::
    :maxdepth: 1
 
@@ -145,5 +124,3 @@ Draft designs
    upgrade.rst
    virtual-cluster.rst
    walkthrough
-
-.. vim: set textwidth=72 :
