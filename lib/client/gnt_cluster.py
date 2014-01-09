@@ -1867,6 +1867,23 @@ def _UpgradeBeforeConfigurationChange(versionstring):
   return (True, rollback)
 
 
+def _VersionSpecificDowngrade():
+  """
+  Perform any additional downrade tasks that are version specific
+  and need to be done just after the configuration downgrade. This
+  function needs to be idempotent, so that it can be redone if the
+  downgrade procedure gets interrupted after changing the
+  configuration.
+
+  Note that this function has to be reset with every version bump.
+
+  @return: True upon success
+  """
+  ToStdout("Performing version-specific downgrade tasks.")
+
+  return True
+
+
 def _SwitchVersionAndConfig(versionstring, downgrade):
   """
   Switch to the new Ganeti version and change the configuration,
@@ -1885,6 +1902,11 @@ def _SwitchVersionAndConfig(versionstring, downgrade):
   if downgrade:
     ToStdout("Downgrading configuration")
     if not _RunCommandAndReport([pathutils.CFGUPGRADE, "--downgrade", "-f"]):
+      return (False, rollback)
+    # Note: version specific downgrades need to be done before switching
+    # binaries, so that we still have the knowledgeable binary if the downgrade
+    # process gets interrupted at this point.
+    if not _VersionSpecificDowngrade():
       return (False, rollback)
 
   # Configuration change is the point of no return. From then onwards, it is
