@@ -209,6 +209,9 @@ following actions.
 - If the action is a downgrade to the previous minor version, the
   configuration is downgraded now, using ``cfgupgrade --downgrade``.
 
+- If the action is downgrade, any version-specific additional downgrade
+  actions are carried out.
+
 - The ``${sysconfdir}/ganeti/lib`` and ``${sysconfdir}/ganeti/share``
   symbolic links are updated.
 
