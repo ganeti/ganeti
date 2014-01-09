@@ -467,14 +467,25 @@ Similarly, provide Haddock-style comments for top-level definitions.
 Parentheses, point free style
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Prefer the so-called point-free style to extra parentheses::
+Prefer the so-called `point-free`_ style style when declaring functions, if
+applicable::
 
   -- bad
-  let a = f ( g ( h x) )
+  let a x = f (g (h x))
+  -- good
+  let a = f . g . h
+
+Also use function composition in a similar manner in expressions to avoid extra
+parentheses::
+
+  -- bad
+  f (g (h x))
   -- better
-  let b = f $ g $ h x
+  f $ g $ h x
   -- best
-  let c = f . g . h $ x
+  f . g . h $ x
+
+.. _`point-free`: http://www.haskell.org/haskellwiki/Pointfree
 
 Language features
 ~~~~~~~~~~~~~~~~~
