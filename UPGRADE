@@ -202,6 +202,14 @@ revert the configuration **before** installing the old version.
 
     $ gnt-cluster verify
 
+Specific tasks for 2.11 to 2.10 downgrade
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+After running ``cfgupgrade``, the ``client.pem`` and
+``ssconf_master_candidates_certs`` files need to be removed
+from Ganeti's data directory on all nodes. While this step is
+not necessary for 2.10 to run cleanly, leaving them will cause
+problems when upgrading again after the downgrade.
 
 2.0 releases
 ------------
