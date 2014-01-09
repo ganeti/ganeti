@@ -115,34 +115,28 @@ The are multiple options for the storage provided to an instance; while
 the instance sees the same virtual drive in all cases, the node-level
 configuration varies between them.
 
-There are five disk templates you can choose from:
+There are several disk templates you can choose from:
 
-diskless
+``diskless``
   The instance has no disks. Only used for special purpose operating
   systems or for testing.
 
-file
+``file`` *****
   The instance will use plain files as backend for its disks. No
   redundancy is provided, and this is somewhat more difficult to
-  configure for high performance. Note that for security reasons the
-  file storage directory must be listed under
-  ``/etc/ganeti/file-storage-paths``, and that file is not copied
-  automatically to all nodes by Ganeti. The format of that file is a
-  newline-separated list of directories.
+  configure for high performance.
 
-sharedfile
+``sharedfile`` *****
   The instance will use plain files as backend, but Ganeti assumes that
   those files will be available and in sync automatically on all nodes.
   This allows live migration and failover of instances using this
-  method. As for ``file`` the file storage directory must be listed under
-  ``/etc/ganeti/file-storage-paths`` or ganeti will refuse to create
-  instances under it.
+  method.
 
-plain
+``plain``
   The instance will use LVM devices as backend for its disks. No
   redundancy is provided.
 
-drbd
+``drbd``
   .. note:: This is only valid for multi-node clusters using DRBD 8.0+
 
   A mirror is set between the local node and a remote one, which must be
@@ -154,13 +148,36 @@ drbd
      DRBD stacked setup is not fully symmetric and as such it is
      not working with live migration.
 
-rbd
+``rbd``
   The instance will use Volumes inside a RADOS cluster as backend for its
   disks. It will access them using the RADOS block device (RBD).
 
-ext
+``gluster`` *****
+  The instance will use a Gluster volume for instance storage. Disk
+  images will be stored in the top-level ``ganeti/`` directory of the
+  volume. This directory will be created automatically for you.
+
+``ext``
   The instance will use an external storage provider. See
   :manpage:`ganeti-extstorage-interface(7)` for how to implement one.
+
+.. note::
+  Disk templates marked with an asterisk require Ganeti to access the
+  file system. Ganeti will refuse to do so unless you whitelist the
+  relevant paths in :pyeval:`pathutils.FILE_STORAGE_PATHS_FILE`.
+
+  The default paths used by Ganeti are:
+
+  =============== ===================================================
+  Disk template   Default path
+  =============== ===================================================
+  ``file``        :pyeval:`pathutils.DEFAULT_FILE_STORAGE_DIR`
+  ``sharedfile``  :pyeval:`pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR`
+  ``gluster``     :pyeval:`pathutils.DEFAULT_GLUSTER_STORAGE_DIR`
+  =============== ===================================================
+
+  Those paths can be changed at ``gnt-cluster init`` time. See
+  :manpage:`gnt-cluster(8)` for details.
 
 
 IAllocator

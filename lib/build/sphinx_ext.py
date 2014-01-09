@@ -58,6 +58,7 @@ from ganeti import rapi
 from ganeti import luxi
 from ganeti import objects
 from ganeti import http
+from ganeti import pathutils
 
 import ganeti.rapi.rlib2 # pylint: disable=W0611
 import ganeti.rapi.connector # pylint: disable=W0611
@@ -94,7 +95,7 @@ COMMON_PARAM_NAMES = _GetCommonParamNames()
 #: Namespace for evaluating expressions
 EVAL_NS = dict(compat=compat, constants=constants, utils=utils, errors=errors,
                rlib2=rapi.rlib2, luxi=luxi, rapi=rapi, objects=objects,
-               http=http)
+               http=http, pathutils=pathutils)
 
 # Constants documentation for man pages
 CV_ECODES_DOC = "ecodes"
