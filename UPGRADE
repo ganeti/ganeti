@@ -132,6 +132,17 @@ course, but you get a warning about it. If there is any new feature and
 you haven't changed from its default value, you don't have to worry
 about it, as it will get the same value whenever you'll upgrade again.
 
+Automatic downgrades
+....................
+
+From version 2.11 onwards, downgrades can be done by using the
+``gnt-cluster upgrade`` command.::
+
+  gnt-cluster upgrade --to 2.10
+
+Manual downgrades
+.................
+
 The procedure is similar to upgrading, but please notice that you have to
 revert the configuration **before** installing the old version.
 
