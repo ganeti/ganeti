@@ -129,6 +129,7 @@ Draft designs
    design-oob.rst
    design-openvswitch.rst
    design-opportunistic-locking.rst
+   design-os.rst
    design-ovf-support.rst
    design-partitioned
    design-query2.rst
