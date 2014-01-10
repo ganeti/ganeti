@@ -1783,20 +1783,20 @@ def _GetConfigVersion():
 def _ReadIntentToUpgrade():
   """Read the file documenting the intent to upgrade the cluster.
 
-  @rtype: string or None
-  @return: the version to upgrade to, if the file exists, and None
-      otherwise.
+  @rtype: (string, string) or (None, None)
+  @return: (old version, version to upgrade to), if the file exists,
+      and (None, None) otherwise.
 
   """
   if not os.path.isfile(pathutils.INTENT_TO_UPGRADE):
-    return None
+    return (None, None)
 
   contentstring = utils.ReadFile(pathutils.INTENT_TO_UPGRADE)
   contents = utils.UnescapeAndSplit(contentstring)
-  if len(contents) != 2:
+  if len(contents) != 3:
     # file syntactically mal-formed
-    return None
-  return contents[0]
+    return (None, None)
+  return (contents[0], contents[1])
 
 
 def _WriteIntentToUpgrade(version):
@@ -1807,7 +1807,8 @@ def _WriteIntentToUpgrade(version):
 
   """
   utils.WriteFile(pathutils.INTENT_TO_UPGRADE,
-                  data=utils.EscapeAndJoin([version, "%d" % os.getpid()]))
+                  data=utils.EscapeAndJoin([constants.RELEASE_VERSION, version,
+                                            "%d" % os.getpid()]))
 
 
 def _UpgradeBeforeConfigurationChange(versionstring):
@@ -1950,7 +1951,7 @@ def _SwitchVersionAndConfig(versionstring, downgrade):
   return (True, rollback)
 
 
-def _UpgradeAfterConfigurationChange():
+def _UpgradeAfterConfigurationChange(oldversion):
   """
   Carry out the upgrade actions necessary after switching to the new
   Ganeti version and updating the configuration.
@@ -1960,6 +1961,8 @@ def _UpgradeAfterConfigurationChange():
   interface. Also, as the configuration change is the point of no return,
   all actions are pushed trough, even if some of them fail.
 
+  @param oldversion: the version the upgrade started from
+  @type oldversion: string
   @rtype: int
   @return: the intended return value
 
@@ -1997,6 +2000,10 @@ def _UpgradeAfterConfigurationChange():
 
   _RunCommandAndReport(["rm", "-f", pathutils.INTENT_TO_UPGRADE])
 
+  ToStdout("Running post-upgrade hooks")
+  if not _RunCommandAndReport([pathutils.POST_UPGRADE, oldversion]):
+    returnvalue = 1
+
   ToStdout("Verifying cluster.")
   if not _RunCommandAndReport(["gnt-cluster", "verify"]):
     returnvalue = 1
@@ -2020,9 +2027,11 @@ def UpgradeGanetiCommand(opts, args):
              " has to be given")
     return 1
 
+  oldversion = constants.RELEASE_VERSION
+
   if opts.resume:
     ssconf.CheckMaster(False)
-    versionstring = _ReadIntentToUpgrade()
+    oldversion, versionstring = _ReadIntentToUpgrade()
     if versionstring is None:
       return 0
     version = utils.version.ParseVersion(versionstring)
@@ -2077,7 +2086,7 @@ def UpgradeGanetiCommand(opts, args):
     _ExecuteCommands(rollback)
     return 1
 
-  return _UpgradeAfterConfigurationChange()
+  return _UpgradeAfterConfigurationChange(oldversion)
 
 
 commands = {

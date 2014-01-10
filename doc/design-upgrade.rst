@@ -230,6 +230,8 @@ following actions.
 
 - The intent-to-upgrade file is removed.
 
+- ``post-upgrade`` is run with the original version as argument.
+
 - ``gnt-cluster verify`` is run and the result reported.
 
 

@@ -1079,6 +1079,7 @@ python_scripts = \
 	tools/lvmstrap \
 	tools/move-instance \
 	tools/ovfconverter \
+	tools/post-upgrade \
 	tools/sanitize-config
 
 dist_tools_SCRIPTS = \
