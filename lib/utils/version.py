@@ -152,3 +152,23 @@ def IsCorrectConfigVersion(targetversion, configversion):
   """
   return (configversion[0] == targetversion[0] and
           configversion[1] == targetversion[1])
+
+
+def IsBefore(version, major, minor, revision):
+  """Decide if a given version is strictly before a given version.
+
+  @param version: (major, minor, revision) or None, with None being
+      before all versions
+  @type version: (int, int, int) or None
+  @param major: major version
+  @type major: int
+  @param minor: minor version
+  @type minor: int
+  @param revision: revision
+  @type revision: int
+
+  """
+  if version is None:
+    return True
+
+  return version < (major, minor, revision)

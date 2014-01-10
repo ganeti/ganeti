@@ -72,5 +72,15 @@ class IsCorrectConfigVersionTest(unittest.TestCase):
         self.assertFalse(version.IsCorrectConfigVersion((3,10,0), (2,10,0)))
 
 
+class IsBeforeTest(unittest.TestCase):
+    def testIsBefore(self):
+        self.assertTrue(version.IsBefore(None, 2, 10, 0))
+        self.assertFalse(version.IsBefore((2, 10, 0), 2, 10, 0))
+        self.assertTrue(version.IsBefore((2, 10, 0), 2, 10, 1))
+        self.assertFalse(version.IsBefore((2, 10, 1), 2, 10, 0))
+        self.assertTrue(version.IsBefore((2, 10, 1), 2, 11, 0))
+        self.assertFalse(version.IsBefore((2, 11, 0), 2, 10, 3))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
