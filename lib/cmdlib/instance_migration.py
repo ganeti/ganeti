@@ -136,11 +136,12 @@ class LUInstanceFailover(LogicalUnit):
     """
     instance = self._migrater.instance
     source_node_uuid = instance.primary_node
+    target_node_uuid = self._migrater.target_node_uuid
     env = {
       "IGNORE_CONSISTENCY": self.op.ignore_consistency,
       "SHUTDOWN_TIMEOUT": self.op.shutdown_timeout,
       "OLD_PRIMARY": self.cfg.GetNodeName(source_node_uuid),
-      "NEW_PRIMARY": self.op.target_node,
+      "NEW_PRIMARY": self.cfg.GetNodeName(target_node_uuid),
       "FAILOVER_CLEANUP": self.op.cleanup,
       }
 
@@ -160,6 +161,7 @@ class LUInstanceFailover(LogicalUnit):
     """
     instance = self._migrater.instance
     nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
+    nl.append(self._migrater.target_node_uuid)
     return (nl, nl + [instance.primary_node])
 
 
@@ -198,12 +200,13 @@ class LUInstanceMigrate(LogicalUnit):
     """
     instance = self._migrater.instance
     source_node_uuid = instance.primary_node
+    target_node_uuid = self._migrater.target_node_uuid
     env = BuildInstanceHookEnvByObject(self, instance)
     env.update({
       "MIGRATE_LIVE": self._migrater.live,
       "MIGRATE_CLEANUP": self.op.cleanup,
       "OLD_PRIMARY": self.cfg.GetNodeName(source_node_uuid),
-      "NEW_PRIMARY": self.op.target_node,
+      "NEW_PRIMARY": self.cfg.GetNodeName(target_node_uuid),
       "ALLOW_RUNTIME_CHANGES": self.op.allow_runtime_changes,
       })
 
@@ -211,7 +214,7 @@ class LUInstanceMigrate(LogicalUnit):
       env["OLD_SECONDARY"] = self.cfg.GetNodeName(instance.secondary_nodes[0])
       env["NEW_SECONDARY"] = self.cfg.GetNodeName(source_node_uuid)
     else:
-      env["OLD_SECONDARY"] = env["NEW_SECONDARY"] = None
+      env["OLD_SECONDARY"] = env["NEW_SECONDARY"] = ""
 
     return env
 
@@ -222,6 +225,7 @@ class LUInstanceMigrate(LogicalUnit):
     instance = self._migrater.instance
     snode_uuids = list(instance.secondary_nodes)
     nl = [self.cfg.GetMasterNode(), instance.primary_node] + snode_uuids
+    nl.append(self._migrater.target_node_uuid)
     return (nl, nl)
 
 
@@ -350,7 +354,7 @@ class TLMigrateInstance(Tasklet):
         raise errors.ConfigurationError("No secondary node but using"
                                         " %s disk template" %
                                         self.instance.disk_template)
-      target_node_uuid = secondary_node_uuids[0]
+      self.target_node_uuid = target_node_uuid = secondary_node_uuids[0]
       if self.lu.op.iallocator or \
         (self.lu.op.target_node_uuid and
          self.lu.op.target_node_uuid != target_node_uuid):

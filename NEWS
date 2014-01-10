@@ -21,6 +21,8 @@ Incompatible/important changes
   checks whether there are instances still using those templates.
 - 'gnt-node list-storage' now also reports storage information about
   file-based storage types.
+- In case of non drbd instances, export \*_SECONDARY environment variables
+  as empty strings (and not "None") during 'instance-migrate' related hooks.
 
 New features
 ~~~~~~~~~~~~
