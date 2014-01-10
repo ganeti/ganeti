@@ -426,7 +426,7 @@ def CheckHVParams(lu, node_uuids, hvname, hvparams):
                lu.cfg.GetNodeName(node_uuid))
 
 
-def AdjustCandidatePool(lu, exceptions):
+def AdjustCandidatePool(lu, exceptions, feedback_fn):
   """Adjust the candidate pool after node operations.
 
   """
@@ -436,6 +436,9 @@ def AdjustCandidatePool(lu, exceptions):
                utils.CommaJoin(node.name for node in mod_list))
     for node in mod_list:
       lu.context.ReaddNode(node)
+      cluster = lu.cfg.GetClusterInfo()
+      AddNodeCertToCandidateCerts(lu, node.uuid, cluster)
+      lu.cfg.Update(cluster, feedback_fn)
   mc_now, mc_max, _ = lu.cfg.GetMasterCandidateStats(exceptions)
   if mc_now > mc_max:
     lu.LogInfo("Note: more nodes are candidates (%d) than desired (%d)" %

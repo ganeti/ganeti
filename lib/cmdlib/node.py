@@ -782,7 +782,7 @@ class LUNodeSetParams(LogicalUnit):
 
       # we locked all nodes, we adjust the CP before updating this node
       if self.lock_all:
-        AdjustCandidatePool(self, [node.uuid])
+        AdjustCandidatePool(self, [node.uuid], feedback_fn)
 
       cluster = self.cfg.GetClusterInfo()
       # if node gets promoted, grant RPC priviledges
@@ -1481,7 +1481,7 @@ class LUNodeRemove(LogicalUnit):
       "Not owning BGL"
 
     # Promote nodes to master candidate as needed
-    AdjustCandidatePool(self, exceptions=[self.node.uuid])
+    AdjustCandidatePool(self, [self.node.uuid], feedback_fn)
     self.context.RemoveNode(self.node)
 
     # Run post hooks on the node before it's removed
