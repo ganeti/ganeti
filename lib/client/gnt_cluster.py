@@ -1786,10 +1786,10 @@ def _ReadIntentToUpgrade():
 
   contentstring = utils.ReadFile(pathutils.INTENT_TO_UPGRADE)
   contents = utils.UnescapeAndSplit(contentstring)
-  if len(contents) != 2:
+  if len(contents) != 3:
     # file syntactically mal-formed
     return None
-  return contents[0]
+  return contents[1]
 
 
 def _WriteIntentToUpgrade(version):
@@ -1800,7 +1800,8 @@ def _WriteIntentToUpgrade(version):
 
   """
   utils.WriteFile(pathutils.INTENT_TO_UPGRADE,
-                  data=utils.EscapeAndJoin([version, "%d" % os.getpid()]))
+                  data=utils.EscapeAndJoin([constants.RELEASE_VERSION, version,
+                                            "%d" % os.getpid()]))
 
 
 def _UpgradeBeforeConfigurationChange(versionstring):
