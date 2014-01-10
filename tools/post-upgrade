@@ -25,11 +25,29 @@
 
 """
 
+import sys
+
+from ganeti import utils
+from ganeti import cli
+
 
 def main():
   """Main program.
 
   """
+  if len(sys.argv) != 2:
+    cli.ToStderr("Expecting precisely one argument, the version upgrading from")
+    return 1
+  versionstring = sys.argv[1]
+
+  version = utils.version.ParseVersion(versionstring)
+
+  if utils.version.IsBefore(version, 2, 11, 0):
+    result = utils.RunCmd(["gnt-cluster", "renew-crypto",
+                           "--new-node-certificates", "-f"])
+    if result.failed:
+      cli.ToStderr("Failed to create node certificates: %s; Output %s" %
+                   (result.fail_reason, result.output))
   return 0
 
 if __name__ == "__main__":
