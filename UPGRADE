@@ -39,6 +39,9 @@ upgrade by::
 
    $ gnt-cluster renew-crypto --new-node-certificates
 
+Note that new node certificates are generated automatically without
+warning when upgrading with ``gnt-cluster upgrade``.
+
 
 2.1 and above
 -------------
