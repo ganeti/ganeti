@@ -5,16 +5,17 @@ Detection of user-initiated shutdown from inside an instance
 .. contents:: :depth: 2
 
 This is a design document detailing the implementation of a way for Ganeti to
-detect whether a machine marked as up but not running was shutdown gracefully
-by the user from inside the machine itself.
+detect whether an instance marked as up but not running was shutdown gracefully
+by the user from inside the instance itself.
 
 Current state and shortcomings
 ==============================
 
 Ganeti keeps track of the desired status of instances in order to be able to
-take proper actions (e.g.: reboot) on the ones that happen to crash.
-Currently, the only way to properly shut down a machine is through Ganeti's own
-commands, that will mark an instance as ``ADMIN_down``.
+take proper action (e.g.: reboot) on the instances that happen to crash.
+Currently, the only way to properly shut down an instance is through Ganeti's
+own commands, which can be used to mark an instance as ``ADMIN_down``.
+
 If a user shuts down an instance from inside, through the proper command of the
 operating system it is running, the instance will be shutdown gracefully, but
 Ganeti is not aware of that: the desired status of the instance will still be
@@ -25,18 +26,16 @@ Proposed changes
 ================
 
 We propose to modify Ganeti in such a way that it will detect when an instance
-was shutdown because of an explicit user request. When such a situation is
-detected, instead of presenting an error as it happens now, either the state
-of the instance will be set to ADMIN_down, or the instance will be
-automatically rebooted, depending on a instance-specific configuration value.
-The default behavior in case no such parameter is found will be to follow
-the apparent will of the user, and setting to ADMIN_down an instance that
-was shut down correctly from inside.
+was shutdown as a result of an explicit request from the user. When such a
+situation is detected, instead of presenting an error as it happens now, either
+the state of the instance will be set to ``ADMIN_down``, or the instance will be
+automatically rebooted, depending on an instance-specific configuration value.
+The default behavior in case no such parameter is found will be to follow the
+apparent will of the user, and setting to ``ADMIN_down`` an instance that was
+shut down correctly from inside.
 
-This design document applies to the Xen backend of Ganeti, because it uses
-features specific of such hypervisor. Initial analysis suggests that a similar
-approach might be used for KVM as well, so this design document will be later
-extended to add more details about it.
+The rest of this design document details the implementation of instance shutdown
+detection for Xen.  The KVM implementation is detailed in :doc:`design-kvmd`.
 
 Implementation
 ==============
@@ -60,26 +59,26 @@ If the state is ``----c-`` it means the instance has crashed.
 If the state is ``---s--`` it means the instance was properly shutdown.
 
 If the instance was properly shutdown and it is still marked as ``running`` by
-Ganeti, it means that it was shutdown from inside by the user, and the ganeti
+Ganeti, it means that it was shutdown from inside by the user, and the Ganeti
 status of the instance needs to be changed to ``ADMIN_down``.
 
 This will be done at regular intervals by the group watcher, just before
 deciding which instances to reboot.
 
-On top of that, at the same times, the watcher will also need to issue ``xm
-destroy`` commands for all the domains that are in crashed or shutdown state,
+On top of that, at the same time, the watcher will also need to issue ``xm
+destroy`` commands for all the domains that are in a crashed or shutdown state,
 since this will not be done automatically by Xen anymore because of the
 ``preserve`` setting in their config files.
 
 This behavior will be limited to the domains shut down from inside, because it
 will actually keep the resources of the domain busy until the watcher will do
 the cleaning job (that, with the default setting, is up to every 5 minutes).
-Still, this is considered acceptable, because it is not frequent for a domain
-to be shut down this way. The cleanup function will be also run
-automatically just before performing any job that requires resources to be
-available (such as when creating a new instance), in order to ensure that the
-new resource allocation happens starting from a clean state. Functionalities
-that only query the state of instances will not run the cleanup function.
+Still, this is considered acceptable, because it is not frequent for a domain to
+be shut down this way. The cleanup function will be also run automatically just
+before performing any job that requires resources to be available (such as when
+creating a new instance), in order to ensure that the new resource allocation
+happens starting from a clean state. Functionalities that only query the state
+of instances will not run the cleanup function.
 
 The cleanup operation includes both node-specific operations (the actual
 destruction of the stopped domains) and configuration changes, to be performed
@@ -112,8 +111,8 @@ situation, destroying the instance and carrying out the rest of the Ganeti
 shutdown procedure as usual.
 
 The ``gnt-instance list`` command will need to be able to handle the situation
-where an instance was shutdown internally but not yet cleaned up.
-The ``admin_state`` field will maintain the current meaning unchanged. The
+where an instance was shutdown internally but not yet cleaned up.  The
+``admin_state`` field will maintain the current meaning unchanged. The
 ``oper_state`` field will get a new possible state, ``S``, meaning that the
 instance was shutdown internally.
 
