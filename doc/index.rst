@@ -4,8 +4,9 @@
 Welcome to Ganeti's documentation!
 ==================================
 
-This page is the starting point for browsing the Ganeti documentation. It
-contains links to all the sections of Ganeti documentation, grouped by topic.
+This page is the starting point for browsing the Ganeti
+documentation. Below, the corpus of Ganeti documentation is grouped by
+topic.
 
 A few quick references:
 
@@ -16,29 +17,29 @@ A few quick references:
 Installing Ganeti
 +++++++++++++++++
 
-There are a few resources you can use to install and/or upgrade Ganeti:
+Use the following resources to install and/or upgrade Ganeti:
 
 - :doc:`install`: Comprehensive instructions for installing Ganeti.
 - :doc:`install-quick`: A shortened installation guide for the experienced Ganeti user.
-- :doc:`upgrade`: Instructions for upgrading an existing installation to the latest version of Ganeti.
+- :doc:`upgrade`: Instructions for upgrading an existing Ganeti installation to the latest version.
 
 Using Ganeti
 ++++++++++++
 
 The following resources provide guidance on how to use Ganeti:
 
-- :doc:`admin`: Information about how to manage a Ganeti cluster after it is installed (including management of nodes, instances, and information about the tools and the monitoring agent).
-- :doc:`walkthrough`: A more example-oriented guide to Ganeti.
+- :doc:`admin`: Information about how to manage a Ganeti cluster after it is installed (including management of nodes and instances, and information about Ganeti's tools and monitoring agent).
+- :doc:`walkthrough`: An example-oriented guide to Ganeti.
 - :doc:`manpages`: Descriptions of the various tools that are part of Ganeti.
 - :doc:`security`: A description of the security model underlying a Ganeti cluster.
-- :doc:`hooks`: Information on hooking scripts, which extend Ganeti functionalities by automatically activating when certain events happen.
-- :doc:`iallocator`: Description of the API for external tools which can allocate instances either manually or automatically.
-- :doc:`rapi`: Details the Ganeti remote API, which allows programmatic access to most of the functionalities of Ganeti.
-- :doc:`ovfconverter`: Provides compatibility with the standard OVF virtual machine interchange format.
-- :doc:`virtual-cluster`: Describes how to use virtual cluster support, which is utilized mainly for testing reasons.
+- :doc:`hooks`: Information on hooking scripts, which extend Ganeti functionalities by automatically activating when certain events occur.
+- :doc:`iallocator`: Description of the API for external tools, which can allocate instances either manually or automatically.
+- :doc:`rapi`: Description of the Ganeti remote API, which allows programmatic access to most of the functionalities of Ganeti.
+- :doc:`ovfconverter`: Description of a tool that provides compatibility with the standard OVF virtual machine interchange format.
+- :doc:`virtual-cluster`: Explanation of how to use virtual cluster support, which is utilized mainly for testing reasons.
 
-A few functionalities are explicitly targeted for big installations, in which
-multiple clusters are present.
+Some features are explicitly targeted for large Ganeti installations,
+in which multiple clusters are present:
 
 - :doc:`cluster-merge`: Describes a tool for merging two existing clusters.
 - :doc:`move-instance`: Describes how to move instances between clusters.
@@ -46,18 +47,19 @@ multiple clusters are present.
 Developing Ganeti
 +++++++++++++++++
 
-There are a few useful documents for developers who want to modify Ganeti:
+There are a few documents particularly useful for developers who want
+to modify Ganeti:
 
-- :doc:`locking`: Describes Ganeti's locking strategy and, in particular, lock order dependencies.
+- :doc:`locking`: Describes Ganeti's locking strategy and lock order dependencies.
 - :doc:`devnotes`: Details build dependencies and other useful development-related information. 
 
 
 Implemented designs
 -------------------
 
-Before actual implementation, all Ganeti features are described in a design
-document. Designs fall into two categories: released versions and draft versions
-(which are either incomplete or not implemented).
+Before actual implementation, all Ganeti features are described in a
+design document. Designs fall into two categories: released versions
+and draft versions (which are either incomplete or not implemented).
 
 .. toctree::
    :maxdepth: 1
@@ -124,3 +126,5 @@ Draft designs
    upgrade.rst
    virtual-cluster.rst
    walkthrough
+
+.. vim: set textwidth=72 :
