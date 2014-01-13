@@ -51,6 +51,7 @@ module Ganeti.JSON
   , GenericContainer(..)
   , Container
   , MaybeForJSON(..)
+  , TimeAsDoubleJSON(..)
   )
   where
 
@@ -59,6 +60,7 @@ import Control.Monad (liftM)
 import Control.Monad.Error.Class
 import Data.Maybe (fromMaybe, catMaybes)
 import qualified Data.Map as Map
+import System.Time (ClockTime(..))
 import Text.Printf (printf)
 
 import qualified Text.JSON as J
@@ -315,3 +317,17 @@ instance (J.JSON a) => J.JSON (MaybeForJSON a) where
   readJSON = J.readJSON
   showJSON (MaybeForJSON (Just x)) = J.showJSON x
   showJSON (MaybeForJSON Nothing)  = J.JSNull
+
+newtype TimeAsDoubleJSON
+    = TimeAsDoubleJSON { unTimeAsDoubleJSON :: ClockTime }
+  deriving (Show, Eq, Ord)
+instance J.JSON TimeAsDoubleJSON where
+  readJSON v = do
+      t <- J.readJSON v :: J.Result Double
+      return . TimeAsDoubleJSON . uncurry TOD
+             $ divMod (round $ t * pico) (pico :: Integer)
+    where
+      pico :: (Num a) => a
+      pico = 10^(12 :: Int)
+  showJSON (TimeAsDoubleJSON (TOD ss ps)) = J.showJSON
+      (fromIntegral ss + fromIntegral ps / 10^(12 :: Int) :: Double)
