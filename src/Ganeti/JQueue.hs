@@ -31,6 +31,7 @@ module Ganeti.JQueue
     , InputOpCode(..)
     , queuedOpCodeFromMetaOpCode
     , queuedJobFromOpCodes
+    , cancelQueuedJob
     , Timestamp
     , noTimestamp
     , currentTimestamp
@@ -194,6 +195,17 @@ queuedJobFromOpCodes jobid ops = do
 -- | Attach a received timestamp to a Queued Job.
 setReceivedTimestamp :: Timestamp -> QueuedJob -> QueuedJob
 setReceivedTimestamp ts job = job { qjReceivedTimestamp = Just ts }
+
+-- | Set the state of a QueuedOpCode to canceled.
+cancelOpCode :: Timestamp -> QueuedOpCode -> QueuedOpCode
+cancelOpCode now op =
+  op { qoStatus = OP_STATUS_CANCELED, qoEndTimestamp = Just now }
+
+-- | Transform a QueuedJob that has not been started into its canceled form.
+cancelQueuedJob :: Timestamp -> QueuedJob -> QueuedJob
+cancelQueuedJob now job =
+  let ops' = map (cancelOpCode now) $ qjOps job
+  in job { qjOps = ops', qjEndTimestamp = Just now}
 
 -- | Job file prefix.
 jobFilePrefix :: String
