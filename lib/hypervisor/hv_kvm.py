@@ -319,22 +319,20 @@ def _OpenTap(vnet_hdr=True):
   return (ifname, tapfd)
 
 
+class HeadRequest(urllib2.Request):
+  def get_method(self):
+    return "HEAD"
+
+
 def _CheckUrl(url):
   """Check if a given URL exists on the server
 
   """
-  req = urllib2.Request(url)
-
-  # XXX: ugly but true
-  req.get_method = lambda: "HEAD"
-
   try:
-    resp = urllib2.urlopen(req)
+    urllib2.urlopen(HeadRequest(url))
+    return True
   except urllib2.URLError:
     return False
-
-  del resp
-  return True
 
 
 class QmpMessage:
@@ -698,7 +696,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KVM_SPICE_USE_VDAGENT: hv_base.NO_CHECK,
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
-    constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
     constants.HV_BOOT_ORDER:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_BO_TYPES),
     constants.HV_NIC_TYPE:
@@ -1352,6 +1350,68 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return dev_opts
 
+  @staticmethod
+  def CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
+                  needs_boot_flag):
+    """Extends L{kvm_cmd} with the '-drive' option for a cdrom, and
+    optionally the '-boot' option.
+
+    Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide -boot d
+
+    Example: -drive file=cdrom.iso,media=cdrom,format=raw,if=ide,boot=on
+
+    Example: -drive file=http://hostname.com/cdrom.iso,media=cdrom
+
+    @type kvm_cmd: string
+    @param kvm_cmd: KVM command line
+
+    @type cdrom_disk_type:
+    @param cdrom_disk_type:
+
+    @type cdrom_image:
+    @param cdrom_image:
+
+    @type cdrom_boot:
+    @param cdrom_boot:
+
+    @type needs_boot_flag:
+    @param needs_boot_flag:
+
+    """
+    # Check that the ISO image is accessible
+    # See https://bugs.launchpad.net/qemu/+bug/597575
+    if utils.IsUrl(cdrom_image) and not _CheckUrl(cdrom_image):
+      raise errors.HypervisorError("Cdrom ISO image '%s' is not accessible" %
+                                   cdrom_image)
+
+    # set cdrom 'media' and 'format', if needed
+    if utils.IsUrl(cdrom_image):
+      options = ",media=cdrom"
+    else:
+      options = ",media=cdrom,format=raw"
+
+    # set cdrom 'if' type
+    if cdrom_boot:
+      if_val = ",if=" + constants.HT_DISK_IDE
+    elif cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
+      if_val = ",if=virtio"
+    else:
+      if_val = ",if=" + cdrom_disk_type
+
+    # set boot flag, if needed
+    boot_val = ""
+    if cdrom_boot:
+      kvm_cmd.extend(["-boot", "d"])
+
+      # whether this is an older KVM version that requires the 'boot=on' flag
+      # on devices
+      if needs_boot_flag:
+        boot_val = ",boot=on"
+
+    # build '-drive' option
+    drive_val = "file=%s%s%s%s" % (cdrom_image, options, if_val, boot_val)
+    kvm_cmd.extend(["-drive", drive_val])
+
   def _GenerateKVMRuntime(self, instance, block_devices, startup_paused,
                           kvmhelp):
     """Generate KVM information to start an instance.
@@ -1432,55 +1492,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if boot_network:
       kvm_cmd.extend(["-boot", "n"])
 
-    # whether this is an older KVM version that uses the boot=on flag
-    # on devices
-    needs_boot_flag = self._BOOT_RE.search(kvmhelp)
-
     disk_type = hvp[constants.HV_DISK_TYPE]
 
-    #Now we can specify a different device type for CDROM devices.
+    # Now we can specify a different device type for CDROM devices.
     cdrom_disk_type = hvp[constants.HV_KVM_CDROM_DISK_TYPE]
     if not cdrom_disk_type:
       cdrom_disk_type = disk_type
 
-    iso_image = hvp[constants.HV_CDROM_IMAGE_PATH]
-    if iso_image:
-      options = ",media=cdrom"
-      if re.match(r'(https?|ftps?)://', iso_image):
-        # Check that the iso image is really there
-        # See https://bugs.launchpad.net/qemu/+bug/597575
-        if not _CheckUrl(iso_image):
-          raise errors.HypervisorError("ISO image %s is not accessible" %
-                                       iso_image)
-      else:
-        options = "%s,format=raw" % options
-      # set cdrom 'if' type
-      if boot_cdrom:
-        actual_cdrom_type = constants.HT_DISK_IDE
-      elif cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
-        actual_cdrom_type = "virtio"
-      else:
-        actual_cdrom_type = cdrom_disk_type
-      if_val = ",if=%s" % actual_cdrom_type
-      # set boot flag, if needed
-      boot_val = ""
-      if boot_cdrom:
-        kvm_cmd.extend(["-boot", "d"])
-        if needs_boot_flag:
-          boot_val = ",boot=on"
-      # and finally build the entire '-drive' value
-      drive_val = "file=%s%s%s%s" % (iso_image, options, if_val, boot_val)
-      kvm_cmd.extend(["-drive", drive_val])
+    cdrom_image1 = hvp[constants.HV_CDROM_IMAGE_PATH]
+    if cdrom_image1:
+      needs_boot_flag = self._BOOT_RE.search(kvmhelp)
+      self.CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image1, boot_cdrom,
+                       needs_boot_flag)
 
-    iso_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
-    if iso_image2:
-      options = ",format=raw,media=cdrom"
-      if cdrom_disk_type == constants.HT_DISK_PARAVIRTUAL:
-        if_val = ",if=virtio"
-      else:
-        if_val = ",if=%s" % cdrom_disk_type
-      drive_val = "file=%s%s%s" % (iso_image2, options, if_val)
-      kvm_cmd.extend(["-drive", drive_val])
+    cdrom_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
+    if cdrom_image2:
+      self.CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, False)
 
     floppy_image = hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
     if floppy_image:

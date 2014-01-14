@@ -670,11 +670,14 @@ def IsBelowDir(root, other_path):
   return os.path.commonprefix([prepared_root, norm_other]) == prepared_root
 
 
-def IsNormAbsPathOrURL(path):
-  """Check whether a path is absolute and normalized, or an HTTP URL.
+URL_RE = re.compile(r'(https?|ftps?)://')
+
+
+def IsUrl(path):
+  """Check whether a path is a HTTP URL.
 
   """
-  return IsNormAbsPath(path) or re.match(r'(https?|ftps?)://', path)
+  return URL_RE.match(path)
 
 
 def PathJoin(*args):

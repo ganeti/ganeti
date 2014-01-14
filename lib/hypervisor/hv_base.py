@@ -79,15 +79,14 @@ def _IsMultiCpuMaskWellFormed(cpu_mask):
 # Read the BaseHypervisor.PARAMETERS docstring for the syntax of the
 # _CHECK values
 
-# must be afile
+# must be a file
 _FILE_CHECK = (utils.IsNormAbsPath, "must be an absolute normalized path",
                os.path.isfile, "not found or not a file")
 
 # must be a file or a URL
-_FILE_OR_URL_CHECK = (utils.IsNormAbsPathOrURL,
+_FILE_OR_URL_CHECK = (lambda x: utils.IsNormAbsPath(x) or utils.IsUrl(x),
                       "must be an absolute normalized path or a URL",
-                      lambda x: os.path.isfile(x) or
-                      re.match(r'(https?|ftps?)://', x),
+                      lambda x: os.path.isfile(x) or utils.IsUrl(x),
                       "not found or not a file or URL")
 
 # must be a directory
