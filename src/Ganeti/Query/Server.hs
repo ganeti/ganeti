@@ -303,6 +303,35 @@ handleCall _ _ cfg (SetDrainFlag value) = do
   _ <- executeRpcCall mcs $ RpcCallSetDrainFlag value
   return . Ok . showJSON $ True
 
+handleCall _ qstat  cfg (CancelJob jid) = do
+  let jName = (++) "job " . show $ fromJobId jid
+  dequeueResult <- dequeueJob qstat jid
+  case dequeueResult of
+    Ok True -> do
+      logDebug $ jName ++ " dequeued, marking as canceled"
+      qDir <- queueDir
+      readResult <- loadJobFromDisk qDir True jid
+      let jobFileFailed = return . Ok . showJSON . (,) False
+                            . (++) ("Dequeued " ++ jName
+                                    ++ ", but failed to mark as cancelled: ")
+                          :: String -> IO (ErrorResult JSValue)
+      case readResult of
+        Bad s -> jobFileFailed s
+        Ok (job, _) -> do
+          now <- currentTimestamp
+          let job' = cancelQueuedJob now job
+              mcs = Config.getMasterCandidates cfg
+          write_result <- writeJobToDisk qDir job'
+          case write_result of
+            Bad s -> jobFileFailed s
+            Ok () -> do
+              replicateManyJobs qDir mcs [job']
+              return . Ok . showJSON $ (True, "Dequeued " ++ jName)
+    Ok False -> do
+      logDebug $ jName ++ " not queued; trying to cancel directly"
+      cancelJob jid
+    Bad s -> return . Ok . showJSON $ (False, s)
+
 handleCall _ _ _ op =
   return . Bad $
     GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")
