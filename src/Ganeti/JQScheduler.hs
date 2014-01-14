@@ -28,6 +28,7 @@ module Ganeti.JQScheduler
   , emptyJQStatus
   , initJQScheduler
   , enqueueNewJobs
+  , dequeueJob
   ) where
 
 import Control.Arrow
@@ -290,3 +291,29 @@ enqueueNewJobs state jobs = do
   let jobs' = map unreadJob jobs
   modifyJobs state (onQueuedJobs (++ jobs'))
   scheduleSomeJobs state
+
+-- | Pure function for removing a queued job from the job queue by
+-- atomicModifyIORef. The answer is True if the job could be removed
+-- before being handed over to execution, False if it already was started
+-- and a Bad result if the job is not found in the queue.
+rmJob :: JobId -> Queue -> (Queue, Result Bool)
+rmJob jid q =
+  let isJid = (jid ==) . qjId . jJob
+      (found, queued') = partition isJid $ qEnqueued q
+  in if null found
+       then if any isJid $ qRunning q
+              then (q, Ok False)
+              else (q, Bad $ "Job " ++ show (fromJobId jid)
+                              ++ " unknown to the queue")
+       else (q {qEnqueued = queued'}, Ok True)
+
+-- | Try to remove a queued job from the job queue. Return True, if
+-- the job could be removed from the queue before being handed over
+-- to execution, False if the job already started, and a Bad result
+-- if the job is unknown.
+dequeueJob :: JQStatus -> JobId -> IO (Result Bool)
+dequeueJob state jid = do
+  result <- atomicModifyIORef (jqJobs state) $ rmJob jid
+  logDebug $ "Result of dequeing job " ++ show (fromJobId jid)
+              ++ " is " ++ show result
+  return result
