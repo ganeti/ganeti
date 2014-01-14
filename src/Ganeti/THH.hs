@@ -10,7 +10,7 @@ needs in this module (except the one for unittests).
 
 {-
 
-Copyright (C) 2011, 2012, 2013 Google Inc.
+Copyright (C) 2011, 2012, 2013, 2014 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -155,22 +155,11 @@ numericalReadFn f _ (JSON.JSString x) = f $ JSON.fromJSString x
 numericalReadFn _ _ _ = JSON.Error "A numerical field has to be a number or\ 
                                    \ a string."
 
--- | Wrapper to lift a read function to optional values
-makeReadOptional :: ([(String, JSON.JSValue)] -> JSON.JSValue -> JSON.Result a)
-                    -> [(String, JSON.JSValue)]
-                    -> Maybe JSON.JSValue -> JSON.Result (Maybe a)
-makeReadOptional _ _ Nothing = JSON.Ok Nothing
-makeReadOptional f o (Just x) = fmap Just $ f o x
-
 -- | Sets the read function to also accept string parsable by the given
 -- function.
 specialNumericalField :: Name -> Field -> Field
 specialNumericalField f field =
-  if (fieldIsOptional field == NotOptional)
-     then field { fieldRead = Just (appE (varE 'numericalReadFn) (varE f)) }
-     else field { fieldRead = Just (appE (varE 'makeReadOptional)
-                                         (appE (varE 'numericalReadFn)
-                                               (varE f))) }
+     field { fieldRead = Just (appE (varE 'numericalReadFn) (varE f)) }
 
 -- | Sets custom functions on a field.
 customField :: Name      -- ^ The name of the read function
@@ -219,6 +208,14 @@ checkNonOptDef (Field { fieldDefault = (Just _), fieldName = name }) =
   fail $ "Default field " ++ name ++ " used in parameter declaration"
 checkNonOptDef _ = return ()
 
+-- | Construct a function that parses a field value. If the field has
+-- a custom 'fieldRead', it's applied to @o@ and used. Otherwise
+-- @JSON.readJSON@ is used.
+parseFn :: Field   -- ^ The field definition
+        -> Q Exp   -- ^ The entire object in JSON object format
+        -> Q Exp   -- ^ The resulting function that parses a JSON message
+parseFn field o = maybe [| JSON.readJSON |] (`appE` o) (fieldRead field)
+
 -- | Produces the expression that will de-serialise a given
 -- field. Since some custom parsing functions might need to use the
 -- entire object, we do take and pass the object to any custom read
@@ -227,8 +224,18 @@ loadFn :: Field   -- ^ The field definition
        -> Q Exp   -- ^ The value of the field as existing in the JSON message
        -> Q Exp   -- ^ The entire object in JSON object format
        -> Q Exp   -- ^ Resulting expression
-loadFn (Field { fieldRead = Just readfn }) expr o = [| $expr >>= $readfn $o |]
-loadFn _ expr _ = expr
+loadFn field expr o = [| $expr >>= $(parseFn field o) |]
+
+-- | Just as 'loadFn', but for optional fields.
+loadFnOpt :: Field   -- ^ The field definition
+          -> Q Exp   -- ^ The value of the field as existing in the JSON message
+                     -- as Maybe
+          -> Q Exp   -- ^ The entire object in JSON object format
+          -> Q Exp   -- ^ Resulting expression
+loadFnOpt field@(Field { fieldDefault = Just def }) expr o
+  = [| $expr >>= maybe (return $def) $(parseFn field o) |]
+loadFnOpt field expr o
+  = [| $expr >>= maybe (return Nothing) (liftM Just . $(parseFn field o)) |]
 
 -- * Common field declarations
 
@@ -962,18 +969,14 @@ loadObjectField field = do
   -- these are used in all patterns below
   let objvar = varNameE "o"
       objfield = stringE (fieldName field)
-      loadexp =
-        if fieldIsOptional field /= NotOptional
-          -- we treat both optional types the same, since
-          -- 'maybeFromObj' can deal with both missing and null values
-          -- appropriately (the same)
-          then [| $(varE 'maybeFromObj) $objvar $objfield |]
-          else case fieldDefault field of
-                 Just defv ->
-                   [| $(varE 'fromObjWithDefault) $objvar
-                      $objfield $defv |]
-                 Nothing -> [| $fromObjE $objvar $objfield |]
-  bexp <- loadFn field loadexp objvar
+  bexp <- case fieldDefault field of
+            -- Only non-optional fields without defaults must have a value;
+            -- we treat both optional types the same, since
+            -- 'maybeFromObj' can deal with both missing and null values
+            -- appropriately (the same)
+            Nothing | fieldIsOptional field == NotOptional ->
+                 loadFn field [| fromObj $objvar $objfield |] objvar
+            _ -> loadFnOpt field [| maybeFromObj $objvar $objfield |] objvar
 
   return (fvar, BindS (VarP fvar) bexp)
 
@@ -1079,9 +1082,7 @@ loadPParamField field = do
   let objvar = varNameE "o"
       objfield = stringE name
       loadexp = [| $(varE 'maybeFromObj) $objvar $objfield |]
-      field' = field {fieldRead=fmap (appE (varE 'makeReadOptional))
-                                  $ fieldRead field}
-  bexp <- loadFn field' loadexp objvar
+  bexp <- loadFnOpt field loadexp objvar
   return (fvar, BindS (VarP fvar) bexp)
 
 -- | Builds a simple declaration of type @n_x = fromMaybe f_x p_x@.
