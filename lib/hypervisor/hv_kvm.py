@@ -34,6 +34,7 @@ import pwd
 import struct
 import fcntl
 import shutil
+import urllib2
 import socket
 import stat
 import StringIO
@@ -316,6 +317,24 @@ def _OpenTap(vnet_hdr=True):
   # Get the interface name from the ioctl
   ifname = struct.unpack("16sh", res)[0].strip("\x00")
   return (ifname, tapfd)
+
+
+def _CheckUrl(url):
+  """Check if a given URL exists on the server
+
+  """
+  req = urllib2.Request(url)
+
+  # XXX: ugly but true
+  req.get_method = lambda: "HEAD"
+
+  try:
+    resp = urllib2.urlopen(req)
+  except urllib2.URLError:
+    return False
+
+  del resp
+  return True
 
 
 class QmpMessage:
@@ -1427,7 +1446,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     iso_image = hvp[constants.HV_CDROM_IMAGE_PATH]
     if iso_image:
       options = ",media=cdrom"
-      if not re.match(r'(https?|ftps?)://', iso_image):
+      if re.match(r'(https?|ftps?)://', iso_image):
+        # Check that the iso image is really there
+        # See https://bugs.launchpad.net/qemu/+bug/597575
+        if not _CheckUrl(iso_image):
+          raise errors.HypervisorError("ISO image %s is not accessible" %
+                                       iso_image)
+      else:
         options = "%s,format=raw" % options
       # set cdrom 'if' type
       if boot_cdrom:
