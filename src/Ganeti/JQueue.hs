@@ -56,6 +56,7 @@ module Ganeti.JQueue
     , replicateManyJobs
     , isQueueOpen
     , startJobs
+    , cancelJob
     ) where
 
 import Control.Arrow (second)
@@ -78,6 +79,7 @@ import Text.JSON.Types
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import Ganeti.Errors (ErrorResult)
 import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Luxi
@@ -452,3 +454,11 @@ startJobs jobs = do
   let failures = map show $ justBad pickupResults
   unless (null failures)
    . logWarning . (++) "Failed to notify masterd: " . commaJoin $ failures
+
+-- | Try to cancel a job that has already been handed over to execution,
+-- currently by asking masterd to cancel it.
+cancelJob :: JobId -> IO (ErrorResult JSValue)
+cancelJob jid = do
+  socketpath <- defaultMasterSocket
+  client <- getLuxiClient socketpath
+  callMethod (CancelJob jid) client
