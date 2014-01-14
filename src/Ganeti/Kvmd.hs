@@ -50,7 +50,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Kvmd where
 
-import Prelude hiding (catch, rem)
+import Prelude hiding (rem)
 
 import Control.Applicative ((<$>))
 import Control.Exception (try)
