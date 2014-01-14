@@ -83,6 +83,13 @@ def _IsMultiCpuMaskWellFormed(cpu_mask):
 _FILE_CHECK = (utils.IsNormAbsPath, "must be an absolute normalized path",
                os.path.isfile, "not found or not a file")
 
+# must be a file or a URL
+_FILE_OR_URL_CHECK = (utils.IsNormAbsPathOrURL,
+                      "must be an absolute normalized path or a URL",
+                      lambda x: os.path.isfile(x) or
+                      re.match(r'(https?|ftps?)://', x),
+                      "not found or not a file or URL")
+
 # must be a directory
 _DIR_CHECK = (utils.IsNormAbsPath, "must be an absolute normalized path",
               os.path.isdir, "not found or not a directory")
@@ -108,6 +115,8 @@ _NONNEGATIVE_INT_CHECK = (lambda x: x >= 0, "cannot be negative", None, None)
 # nice wrappers for users
 REQ_FILE_CHECK = (True, ) + _FILE_CHECK
 OPT_FILE_CHECK = (False, ) + _FILE_CHECK
+REQ_FILE_OR_URL_CHECK = (True, ) + _FILE_OR_URL_CHECK
+OPT_FILE_OR_URL_CHECK = (False, ) + _FILE_OR_URL_CHECK
 REQ_DIR_CHECK = (True, ) + _DIR_CHECK
 OPT_DIR_CHECK = (False, ) + _DIR_CHECK
 REQ_NET_PORT_CHECK = (True, ) + _NET_PORT_CHECK

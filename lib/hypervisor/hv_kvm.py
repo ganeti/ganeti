@@ -678,7 +678,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KVM_SPICE_TLS_CIPHERS: hv_base.NO_CHECK,
     constants.HV_KVM_SPICE_USE_VDAGENT: hv_base.NO_CHECK,
     constants.HV_KVM_FLOPPY_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
-    constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
+    constants.HV_CDROM_IMAGE_PATH: hv_base.OPT_FILE_OR_URL_CHECK,
     constants.HV_KVM_CDROM2_IMAGE_PATH: hv_base.OPT_FILE_CHECK,
     constants.HV_BOOT_ORDER:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_BO_TYPES),
@@ -1426,7 +1426,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     iso_image = hvp[constants.HV_CDROM_IMAGE_PATH]
     if iso_image:
-      options = ",format=raw,media=cdrom"
+      options = ",media=cdrom"
+      if not re.match(r'(https?|ftps?)://', iso_image):
+        options = "%s,format=raw" % options
       # set cdrom 'if' type
       if boot_cdrom:
         actual_cdrom_type = constants.HT_DISK_IDE
