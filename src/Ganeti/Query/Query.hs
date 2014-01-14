@@ -69,6 +69,8 @@ import Ganeti.Config
 import Ganeti.Errors
 import Ganeti.JQueue
 import Ganeti.JSON
+import Ganeti.Logging
+import qualified Ganeti.Luxi as L
 import Ganeti.Objects
 import Ganeti.Query.Common
 import qualified Ganeti.Query.Export as Export
@@ -77,6 +79,7 @@ import qualified Ganeti.Query.Instance as Instance
 import qualified Ganeti.Query.Job as Query.Job
 import qualified Ganeti.Query.Group as Group
 import Ganeti.Query.Language
+import qualified Ganeti.Query.Locks as Locks
 import qualified Ganeti.Query.Network as Network
 import qualified Ganeti.Query.Node as Node
 import Ganeti.Query.Types
@@ -219,7 +222,25 @@ query :: ConfigData   -- ^ The current configuration
       -> IO (ErrorResult QueryResult) -- ^ Result
 query cfg live (Query (ItemTypeLuxi QRJob) fields qfilter) =
   queryJobs cfg live fields qfilter
+query _ live (Query (ItemTypeLuxi QRLock) fields qfilter) =
+  if not live
+    then return . Bad $ GenericError "Locks can only be queried live"
+    else do
+      socketpath <- defaultMasterSocket
+      logDebug $ "Forwarding live query on locks for " ++ show fields
+                   ++ ", " ++ show qfilter ++ " to " ++ socketpath
+      cl <- L.getLuxiClient socketpath
+      answer <- L.callMethod (L.Query (ItemTypeLuxi QRLock) fields qfilter) cl
+      return
+        . genericResult Bad
+            (either (Bad . GenericError
+                       . (++) "Got unparsable answer from masterd: ")
+               Ok
+             . J.resultToEither . J.readJSON)
+        $ answer
+
 query cfg live qry = queryInner cfg live qry $ getRequestedNames qry
+
 
 -- | Dummy data collection fuction
 dummyCollectLiveData :: Bool -> ConfigData -> [a] -> IO [(a, NoDataRuntime)]
@@ -344,6 +365,8 @@ queryFields (QueryFields (ItemTypeOpCode QRExport) fields) =
 queryFields (QueryFields (ItemTypeOpCode QRInstance) fields) =
   Ok $ fieldsExtractor Instance.fieldsMap fields
 
+queryFields (QueryFields (ItemTypeLuxi QRLock) fields) =
+  Ok $ fieldsExtractor Locks.fieldsMap fields
 
 queryFields (QueryFields qkind _) =
   Bad . GenericError $ "QueryFields '" ++ show qkind ++ "' not supported"
