@@ -53,6 +53,7 @@ import Ganeti.ConfigReader
 import Ganeti.BasicTypes
 import Ganeti.JQueue
 import Ganeti.JQScheduler
+import Ganeti.JSON (TimeAsDoubleJSON(..))
 import Ganeti.Logging
 import Ganeti.Luxi
 import qualified Ganeti.Query.Language as Qlang
@@ -143,8 +144,8 @@ handleCall _ _ cdata QueryClusterInfo =
                showJSON $ clusterGlusterStorageDir cluster)
             , ("maintain_node_health",
                showJSON $ clusterMaintainNodeHealth cluster)
-            , ("ctime", showJSON $ clusterCtime cluster)
-            , ("mtime", showJSON $ clusterMtime cluster)
+            , ("ctime", showJSON . TimeAsDoubleJSON $ clusterCtime cluster)
+            , ("mtime", showJSON . TimeAsDoubleJSON $ clusterMtime cluster)
             , ("uuid", showJSON $ clusterUuid cluster)
             , ("tags", showJSON $ clusterTags cluster)
             , ("uid_pool", showJSON $ clusterUidPool cluster)

@@ -43,7 +43,7 @@ $(buildObject "InstStatus" "iStat"
   , simpleField "actualState"  [t| ActualState |]
   , optionalNullSerField $
     simpleField "uptime"       [t| String |]
-  , simpleField "mtime"        [t| Double |]
+  , timeAsDoubleField "mtime"
   , simpleField "state_reason" [t| ReasonTrail |]
   , simpleField "status"       [t| DCStatus |]
   ])

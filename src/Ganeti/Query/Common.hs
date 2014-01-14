@@ -135,9 +135,9 @@ rpcErrorToStatus _ = RSNoData
 timeStampFields :: (TimeStampObject a) => FieldList a b
 timeStampFields =
   [ (FieldDefinition "ctime" "CTime" QFTTimestamp "Creation timestamp",
-     FieldSimple (rsNormal . cTimeOf), QffNormal)
+     FieldSimple (rsNormal . TimeAsDoubleJSON . cTimeOf), QffNormal)
   , (FieldDefinition "mtime" "MTime" QFTTimestamp "Modification timestamp",
-     FieldSimple (rsNormal . mTimeOf), QffNormal)
+     FieldSimple (rsNormal . TimeAsDoubleJSON . mTimeOf), QffNormal)
   ]
 
 -- | The list of UUID fields.

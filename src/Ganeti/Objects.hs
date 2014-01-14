@@ -94,6 +94,7 @@ import Data.Maybe
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Word
+import System.Time (ClockTime(..))
 import Text.JSON (showJSON, readJSON, JSON, JSValue(..), fromJSString)
 import qualified Text.JSON as J
 
@@ -125,8 +126,8 @@ type OsParams = Container String
 
 -- | Class of objects that have timestamps.
 class TimeStampObject a where
-  cTimeOf :: a -> Double
-  mTimeOf :: a -> Double
+  cTimeOf :: a -> ClockTime
+  mTimeOf :: a -> ClockTime
 
 -- | Class of objects that have an UUID.
 class UuidObject a where

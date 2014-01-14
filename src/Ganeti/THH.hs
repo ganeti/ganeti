@@ -316,10 +316,9 @@ loadFnOpt field expr o
 
 -- | Timestamp fields description.
 timeStampFields :: [Field]
-timeStampFields =
-    [ defaultField [| 0::Double |] $ simpleField "ctime" [t| Double |]
-    , defaultField [| 0::Double |] $ simpleField "mtime" [t| Double |]
-    ]
+timeStampFields = map (defaultField [| TOD 0 0 |] . timeAsDoubleField)
+                      ["ctime", "mtime"]
+
 
 -- | Serial number fields description.
 serialFields :: [Field]
