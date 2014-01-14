@@ -49,6 +49,7 @@ module Ganeti.THH ( declareSADT
                   , Field (..)
                   , simpleField
                   , specialNumericalField
+                  , timeAsDoubleField
                   , withDoc
                   , defaultField
                   , optionalField
@@ -78,6 +79,7 @@ import Data.List
 import Data.Maybe
 import qualified Data.Set as Set
 import Language.Haskell.TH
+import System.Time (ClockTime(..))
 
 import qualified Text.JSON as JSON
 import Text.JSON.Pretty (pp_value)
@@ -219,6 +221,16 @@ numericalReadFn _ _ _ = JSON.Error "A numerical field has to be a number or\
 specialNumericalField :: Name -> Field -> Field
 specialNumericalField f field =
      field { fieldRead = Just (appE (varE 'numericalReadFn) (varE f)) }
+
+-- | Creates a new mandatory field that reads time as the (floating point)
+-- number of seconds since the standard UNIX epoch, and represents it in
+-- Haskell as 'ClockTime'.
+timeAsDoubleField :: String -> Field
+timeAsDoubleField fname =
+  (simpleField fname [t| ClockTime |])
+    { fieldRead = Just $ [| \_ -> liftM unTimeAsDoubleJSON . JSON.readJSON |]
+    , fieldShow = Just $ [| \c -> (JSON.showJSON $ TimeAsDoubleJSON c, []) |]
+    }
 
 -- | Sets custom functions on a field.
 customField :: Name      -- ^ The name of the read function
