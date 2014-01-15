@@ -68,6 +68,7 @@ module Ganeti.THH ( declareSADT
                   , excErrMsg
                   ) where
 
+import Control.Arrow ((&&&))
 import Control.Applicative
 import Control.Monad
 import Data.Char
@@ -910,24 +911,20 @@ genSaveObject save_fn sname fields = do
 -- various types of fields that we have.
 saveObjectField :: Name -> Field -> Q Exp
 saveObjectField fvar field =
-  case fieldIsOptional field of
-    OptionalOmitNull -> [| case $(varE fvar) of
-                             Nothing -> []
-                             Just v  -> [( $nameE, JSON.showJSON v )]
-                         |]
-    OptionalSerializeNull -> [| case $(varE fvar) of
-                                  Nothing -> [( $nameE, JSON.JSNull )]
-                                  Just v  -> [( $nameE, JSON.showJSON v )]
+  let formatFn = fromMaybe [| JSON.showJSON &&& (const []) |] $
+                           fieldShow field
+      formatCode v = [| let (actual, extra) = $formatFn $(v)
+                         in ($nameE, actual) : extra |]
+  in case fieldIsOptional field of
+    OptionalOmitNull ->       [| case $(fvarE) of
+                                   Nothing -> []
+                                   Just v  -> $(formatCode [| v |])
                               |]
-    NotOptional ->
-      case fieldShow field of
-        -- Note: the order of actual:extra is important, since for
-        -- some serialisation types (e.g. Luxi), we use tuples
-        -- (positional info) rather than object (name info)
-        Nothing -> [| [( $nameE, JSON.showJSON $fvarE)] |]
-        Just fn -> [| let (actual, extra) = $fn $fvarE
-                      in ($nameE, JSON.showJSON actual):extra
-                    |]
+    OptionalSerializeNull ->  [| case $(fvarE) of
+                                   Nothing -> [( $nameE, JSON.JSNull )]
+                                   Just v  -> $(formatCode [| v |])
+                              |]
+    NotOptional ->            formatCode fvarE
   where nameE = stringE (fieldName field)
         fvarE = varE fvar
 
