@@ -180,6 +180,7 @@ __all__ = [
   "REMOVE_RESERVED_IPS_OPT",
   "REMOVE_UIDS_OPT",
   "RESERVED_LVS_OPT",
+  "RQL_OPT",
   "RUNTIME_MEM_OPT",
   "ROMAN_OPT",
   "SECONDARY_IP_OPT",
@@ -1265,6 +1266,10 @@ NIC_PARAMS_OPT = cli_option("-N", "--nic-parameters", dest="nicparams",
 CP_SIZE_OPT = cli_option("-C", "--candidate-pool-size", default=None,
                          dest="candidate_pool_size", type="int",
                          help="Set the candidate pool size")
+
+RQL_OPT = cli_option("--max-running-jobs", dest="max_running_jobs",
+                     type="int", help="Set the maximal number of jobs to "
+                                      "run simultaneously")
 
 VG_NAME_OPT = cli_option("--vg-name", dest="vg_name",
                          help=("Enables LVM and specifies the volume group"
