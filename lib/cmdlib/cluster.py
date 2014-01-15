@@ -1331,6 +1331,9 @@ class LUClusterSetParams(LogicalUnit):
       # we need to update the pool size here, otherwise the save will fail
       AdjustCandidatePool(self, [], feedback_fn)
 
+    if self.op.max_running_jobs is not None:
+      self.cluster.max_running_jobs = self.op.max_running_jobs
+
     if self.op.maintain_node_health is not None:
       if self.op.maintain_node_health and not constants.ENABLE_CONFD:
         feedback_fn("Note: CONFD was disabled at build time, node health"

@@ -176,6 +176,7 @@ instance Arbitrary OpCodes.OpCode where
           genMaybe genEmptyContainer <*> emptyMUD <*>
           genMaybe genEmptyContainer <*> genMaybe genEmptyContainer <*>
           genMaybe genEmptyContainer <*> genMaybe arbitrary <*>
+          genMaybe arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*>
           emptyMUD <*> emptyMUD <*> arbitrary <*>
