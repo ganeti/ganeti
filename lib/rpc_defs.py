@@ -609,8 +609,8 @@ CALLS = {
       ("modify_ssh_setup", None, None),
       ], None, None,
      "Requests a node to clean the cluster information it has"),
-    ("master_info", MULTI, None, constants.RPC_TMO_URGENT, [], None, None,
-     "Query master info"),
+    ("master_node_name", MULTI, None, constants.RPC_TMO_URGENT, [], None, None,
+     "Returns the master node name"),
     ]),
   "RpcClientDnsOnly": _Prepare([
     ("version", MULTI, ACCEPT_OFFLINE_NODE, constants.RPC_TMO_URGENT, [], None,

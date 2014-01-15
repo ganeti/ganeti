@@ -283,29 +283,18 @@ def JobQueuePurge():
   _CleanDirectory(pathutils.JOB_QUEUE_ARCHIVE_DIR)
 
 
-def GetMasterInfo():
-  """Returns master information.
+def GetMasterNodeName():
+  """Returns the master node name.
 
-  This is an utility function to compute master information, either
-  for consumption here or from the node daemon.
-
-  @rtype: tuple
-  @return: master_netdev, master_ip, master_name, primary_ip_family,
-    master_netmask
+  @rtype: string
+  @return: name of the master node
   @raise RPCFail: in case of errors
 
   """
   try:
-    cfg = _GetConfig()
-    master_netdev = cfg.GetMasterNetdev()
-    master_ip = cfg.GetMasterIP()
-    master_netmask = cfg.GetMasterNetmask()
-    master_node = cfg.GetMasterNode()
-    primary_ip_family = cfg.GetPrimaryIPFamily()
+    return _GetConfig().GetMasterNode()
   except errors.ConfigurationError, err:
     _Fail("Cluster configuration incomplete: %s", err, exc=True)
-  return (master_netdev, master_ip, master_node, primary_ip_family,
-          master_netmask)
 
 
 def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):

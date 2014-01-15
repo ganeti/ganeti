@@ -1111,7 +1111,7 @@ def GatherMasterVotes(node_names):
   if not node_names:
     # no nodes left (eventually after removing myself)
     return []
-  results = rpc.BootstrapRunner().call_master_info(node_names)
+  results = rpc.BootstrapRunner().call_master_node_name(node_names)
   if not isinstance(results, dict):
     # this should not happen (unless internal error in rpc)
     logging.critical("Can't complete rpc call, aborting master startup")
@@ -1119,27 +1119,18 @@ def GatherMasterVotes(node_names):
   votes = {}
   for node_name in results:
     nres = results[node_name]
-    data = nres.payload
     msg = nres.fail_msg
-    fail = False
+
     if msg:
       logging.warning("Error contacting node %s: %s", node_name, msg)
-      fail = True
-    # for now we accept both length 3, 4 and 5 (data[3] is primary ip version
-    # and data[4] is the master netmask)
-    elif not isinstance(data, (tuple, list)) or len(data) < 3:
-      logging.warning("Invalid data received from node %s: %s",
-                      node_name, data)
-      fail = True
-    if fail:
-      if None not in votes:
-        votes[None] = 0
-      votes[None] += 1
-      continue
-    master_node = data[2]
-    if master_node not in votes:
-      votes[master_node] = 0
-    votes[master_node] += 1
+      node = None
+    else:
+      node = nres.payload
+
+    if node not in votes:
+      votes[node] = 1
+    else:
+      votes[node] += 1
 
   vote_list = [v for v in votes.items()]
   # sort first on number of votes then on name, since we want None

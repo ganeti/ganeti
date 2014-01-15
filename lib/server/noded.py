@@ -892,11 +892,11 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.UploadFile(*(params[0]))
 
   @staticmethod
-  def perspective_master_info(params):
-    """Query master information.
+  def perspective_master_node_name(params):
+    """Returns the master node name.
 
     """
-    return backend.GetMasterInfo()
+    return backend.GetMasterNodeName()
 
   @staticmethod
   def perspective_run_oob(params):
