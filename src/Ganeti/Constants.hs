@@ -3958,6 +3958,12 @@ luxidJobqueuePollInterval = 307
 luxidMaximalRunningJobs :: Int
 luxidMaximalRunningJobs = 20
 
+-- | The default value for the maximal number of jobs to be running at the same
+-- time. Once the maximal number is reached, new jobs will just be queued and
+-- only started, once some of the other jobs have finished.
+luxidMaximalRunningJobsDefault :: Int
+luxidMaximalRunningJobsDefault = 20
+
 -- * Confd
 
 confdProtocolVersion :: Int

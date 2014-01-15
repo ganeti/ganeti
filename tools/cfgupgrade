@@ -414,6 +414,8 @@ def DowngradeCluster(config_data):
   for param in ["gluster", "gluster_storage_dir"]:
     if param in cluster:
       del cluster[param]
+  if "max_running_jobs" in cluster:
+    del cluster["max_running_jobs"]
 
 
 def DowngradeGroups(config_data):
