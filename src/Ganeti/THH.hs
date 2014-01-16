@@ -101,15 +101,71 @@ data OptionalType
   | OptionalSerializeNull -- ^ Field is optional, null is serialised
   deriving (Show, Eq)
 
--- | Serialised field data type.
+-- | Serialised field data type describing how to generate code for the field.
+-- Each field has a type, which isn't captured in the type of the data type,
+-- but is saved in the 'Q' monad in 'fieldType'.
+--
+-- Let @t@ be a type we want to parametrize the field with. There are the
+-- following possible types of fields:
+--
+--   [Mandatory with no default.] Then @fieldType@ holds @t@,
+--     @fieldDefault = Nothing@ and @fieldIsOptional = NotOptional@.
+--
+--   [Field with a default value.] Then @fieldType@ holds @t@ and
+--     @fieldDefault = Just exp@ where @exp@ is an expression of type @t@ and
+--    @fieldIsOptional = NotOptional@.
+--
+--   [Optional, no default value.] Then @fieldType@ holds @Maybe t@,
+--     @fieldDefault = Nothing@ and @fieldIsOptional@ is either
+--     'OptionalOmitNull' or 'OptionalSerializeNull'.
+--
+-- Optional fields with a default value are prohibited, as their main
+-- intention is to represent the information that a request didn't contain
+-- the field data.
+--
+-- /Custom (de)serialization:/
+-- Field can have custom (de)serialization functions that are stored in
+-- 'fieldRead' and 'fieldShow'. If they aren't provided, the default is to use
+-- 'readJSON' and 'showJSON' for the field's type @t@. If they are provided,
+-- the type of the contained deserializing expression must be
+--
+-- @
+--   [(String, JSON.JSValue)] -> JSON.JSValue -> JSON.Result t
+-- @
+--
+-- where the first argument carries the whole record in the case the
+-- deserializing function needs to process additional information.
+--
+-- The type of the contained serializing experssion must be
+--
+-- @
+--   t -> (JSON.JSValue, [(String, JSON.JSValue)])
+-- @
+--
+-- where the result can provide extra JSON fields to include in the output
+-- record (or just return @[]@ if they're not needed).
+--
+-- Note that for optional fields the type appearing in the custom functions
+-- is still @t@. Therefore making a field optional doesn't change the
+-- functions.
 data Field = Field { fieldName        :: String
                    , fieldType        :: Q Type
+                     -- ^ the type of the field, @t@ for non-optional fields,
+                     -- @Maybe t@ for optional ones.
                    , fieldRead        :: Maybe (Q Exp)
+                     -- ^ an optional custom deserialization function of type
+                     -- @[(String, JSON.JSValue)] -> JSON.JSValue ->
+                     -- JSON.Result t@
                    , fieldShow        :: Maybe (Q Exp)
+                     -- ^ an optional custom serialization function of type
+                     -- @t -> (JSON.JSValue, [(String, JSON.JSValue)])@
                    , fieldExtraKeys   :: [String]
                    , fieldDefault     :: Maybe (Q Exp)
+                     -- ^ an optional default value of type @t@
                    , fieldConstr      :: Maybe String
                    , fieldIsOptional  :: OptionalType
+                     -- ^ determines if a field is optional, and if yes,
+                     -- how
                    , fieldDoc         :: String
                    }
 
