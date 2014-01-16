@@ -128,6 +128,8 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("diskparams", showJSON $ clusterDiskparams cluster)
             , ("candidate_pool_size",
                showJSON $ clusterCandidatePoolSize cluster)
+            , ("max_running_jobs",
+               showJSON $ clusterMaxRunningJobs cluster)
             , ("master_netdev",  showJSON $ clusterMasterNetdev cluster)
             , ("master_netmask", showJSON $ clusterMasterNetmask cluster)
             , ("use_external_mip_script",

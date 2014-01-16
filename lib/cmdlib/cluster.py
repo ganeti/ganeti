@@ -395,6 +395,7 @@ class LUClusterQuery(NoHooksLU):
       "ndparams": cluster.ndparams,
       "diskparams": cluster.diskparams,
       "candidate_pool_size": cluster.candidate_pool_size,
+      "max_running_jobs": cluster.max_running_jobs,
       "master_netdev": cluster.master_netdev,
       "master_netmask": cluster.master_netmask,
       "use_external_mip_script": cluster.use_external_mip_script,
