@@ -37,6 +37,9 @@ module Test.Ganeti.Types
   , JobId(..)
   ) where
 
+import Control.Applicative
+import System.Time (ClockTime(..))
+
 import Test.QuickCheck as QuickCheck hiding (Result)
 import Test.HUnit
 import qualified Text.JSON as J
@@ -53,6 +56,9 @@ import Ganeti.JSON
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
 -- * Arbitrary instance
+
+instance Arbitrary ClockTime where
+  arbitrary = TOD <$> arbitrary <*> fmap (`mod` (10^(12::Int))) arbitrary
 
 instance (Arbitrary a, Ord a, Num a, Show a) =>
   Arbitrary (Types.Positive a) where
