@@ -179,6 +179,7 @@ def SetupCluster(rapi_user):
     qa_node.MarkNodeAddedAll()
 
   RunTestIf("test-jobqueue", qa_cluster.TestJobqueue)
+  RunTestIf("test-jobqueue", qa_job.TestJobCancellation)
 
   # enable the watcher (unconditionally)
   RunTest(qa_daemon.TestResumeWatcher)
