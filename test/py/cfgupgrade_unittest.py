@@ -27,6 +27,7 @@ import unittest
 import shutil
 import tempfile
 import operator
+import json
 
 from ganeti import constants
 from ganeti import utils
@@ -377,6 +378,9 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFullConfigFrom_2_9(self):
     self._TestUpgradeFromFile("cluster_config_2.9.json", False)
 
+  def testUpgradeFullConfigFrom_2_10(self):
+    self._TestUpgradeFromFile("cluster_config_2.10.json", False)
+
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
@@ -394,12 +398,17 @@ class TestCfgupgrade(unittest.TestCase):
   def testDowngradeFullConfig(self):
     """Test for upgrade + downgrade combination."""
     # This test can work only with the previous version of a configuration!
-    oldconfname = "cluster_config_2.10.json"
+    oldconfname = "cluster_config_2.11.json"
     self._TestUpgradeFromFile(oldconfname, False)
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadTestDataConfig(oldconfname)
     newconf = self._LoadConfig()
-
+    old = open('/tmp/old', 'w')
+    old.write(json.dumps(oldconf))
+    old.close()
+    new = open('/tmp/new', 'w')
+    new.write(json.dumps(newconf))
+    new.close()
     self.assertEqual(oldconf, newconf)
 
   def testDowngradeFullConfigBackwardFrom_2_7(self):

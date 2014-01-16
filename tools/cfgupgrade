@@ -54,11 +54,11 @@ args = None
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 11
+TARGET_MINOR = 12
 #: Target major version for downgrade
 DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
-DOWNGRADE_MINOR = 10
+DOWNGRADE_MINOR = 11
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -402,40 +402,11 @@ def UpgradeAll(config_data):
 # DOWNGRADE ------------------------------------------------------------
 
 
-def DowngradeCluster(config_data):
-  cluster = config_data.get("cluster", None)
-  if not cluster:
-    raise Error("Cannot find the 'cluster' key in the configuration!")
-  DowngradeNdparams(cluster)
-  if "default_iallocator_params" in cluster:
-    del cluster["default_iallocator_params"]
-  if "candidate_certs" in cluster:
-    del cluster["candidate_certs"]
-  for param in ["gluster", "gluster_storage_dir"]:
-    if param in cluster:
-      del cluster[param]
-
-
-def DowngradeGroups(config_data):
-  for group in config_data["nodegroups"].values():
-    DowngradeNdparams(group)
-
-
-def DowngradeNdparams(group_or_cluster):
-  ssh_port = group_or_cluster["ndparams"].pop("ssh_port", None)
-  if (ssh_port is not None) and (ssh_port != 22):
-    raise Error(("The cluster or some node group has configured SSH port %d."
-                 " Refusing to downgrade as it will most certainly fail."
-                 ) % (ssh_port, ))
-
-
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
-  DowngradeCluster(config_data)
-  DowngradeGroups(config_data)
 
 
 def main():
@@ -557,8 +528,8 @@ def main():
                    config_minor, config_revision))
     DowngradeAll(config_data)
 
-  # Upgrade from 2.{0..10} to 2.11
-  elif config_major == 2 and config_minor in range(0, 11):
+  # Upgrade from 2.{0..10} to 2.12
+  elif config_major == 2 and config_minor in range(0, 12):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
     UpgradeAll(config_data)
