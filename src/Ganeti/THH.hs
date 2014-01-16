@@ -236,7 +236,11 @@ loadFnOpt :: Field   -- ^ The field definition
           -> Q Exp   -- ^ The entire object in JSON object format
           -> Q Exp   -- ^ Resulting expression
 loadFnOpt field@(Field { fieldDefault = Just def }) expr o
-  = [| $expr >>= maybe (return $def) $(parseFn field o) |]
+  = case fieldIsOptional field of
+      NotOptional -> [| $expr >>= maybe (return $def) $(parseFn field o) |]
+      _           -> fail $ "Field " ++ fieldName field ++ ":\
+                            \ A field can't be optional and\
+                            \ have a default value at the same time."
 loadFnOpt field expr o
   = [| $expr >>= maybe (return Nothing) (liftM Just . $(parseFn field o)) |]
 
