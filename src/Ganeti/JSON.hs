@@ -313,8 +313,10 @@ instance (HasStringRepr a, Ord a, J.JSON b) =>
 -- semantics of Maybe and JSON in our calls. Does not produce needless
 -- and confusing dictionaries.
 newtype MaybeForJSON a = MaybeForJSON { unMaybeForJSON :: Maybe a }
+  deriving (Show, Eq, Ord)
 instance (J.JSON a) => J.JSON (MaybeForJSON a) where
-  readJSON = J.readJSON
+  readJSON J.JSNull = return $ MaybeForJSON Nothing
+  readJSON x        = (MaybeForJSON . Just) `liftM` J.readJSON x
   showJSON (MaybeForJSON (Just x)) = J.showJSON x
   showJSON (MaybeForJSON Nothing)  = J.JSNull
 

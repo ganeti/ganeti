@@ -41,6 +41,9 @@ import Test.Ganeti.Types ()
 import qualified Ganeti.BasicTypes as BasicTypes
 import qualified Ganeti.JSON as JSON
 
+instance (Arbitrary a) => Arbitrary (JSON.MaybeForJSON a) where
+  arbitrary = liftM JSON.MaybeForJSON arbitrary
+
 instance Arbitrary JSON.TimeAsDoubleJSON where
   arbitrary = liftM JSON.TimeAsDoubleJSON arbitrary
 
@@ -81,6 +84,9 @@ prop_arrayMaybeFromObjFail t k =
                                 , Data.List.isInfixOf k e ==? True
                                 ]
 
+prop_MaybeForJSON_serialisation :: JSON.MaybeForJSON String -> Property
+prop_MaybeForJSON_serialisation = testSerialisation
+
 prop_TimeAsDoubleJSON_serialisation :: JSON.TimeAsDoubleJSON -> Property
 prop_TimeAsDoubleJSON_serialisation = testSerialisation
 
@@ -89,5 +95,6 @@ testSuite "JSON"
           , 'prop_toArrayFail
           , 'prop_arrayMaybeFromObj
           , 'prop_arrayMaybeFromObjFail
+          , 'prop_MaybeForJSON_serialisation
           , 'prop_TimeAsDoubleJSON_serialisation
           ]
