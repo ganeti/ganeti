@@ -71,6 +71,8 @@ module Ganeti.THH ( declareSADT
 import Control.Arrow ((&&&))
 import Control.Applicative
 import Control.Monad
+import Data.Attoparsec () -- Needed to prevent spurious GHC 7.4 linking errors.
+  -- See issue #683 and https://ghc.haskell.org/trac/ghc/ticket/4899
 import Data.Char
 import Data.List
 import Data.Maybe
