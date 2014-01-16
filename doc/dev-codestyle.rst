@@ -351,6 +351,18 @@ following is also allowed::
     , value2
     ]
 
+For records, always add spaces around the braces and the equality sign.
+::
+
+  foo = Foo { fBar = "bar", fBaz = 4711 }
+
+  foo' = Foo { fBar = "bar 2"
+             , fBaz = 4712
+             }
+
+  node' = node { ip = "127.0.0.1" }
+
+
 White space
 ~~~~~~~~~~~
 Like in Python, surround binary operators with one space on either side. Do no

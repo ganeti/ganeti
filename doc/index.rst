@@ -95,6 +95,7 @@ Implemented designs
    design-2.8.rst
    design-2.9.rst
    design-2.10.rst
+   design-2.11.rst
 
 Draft designs
 -------------

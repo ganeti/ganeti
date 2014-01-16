@@ -707,6 +707,7 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "ipolicy"                   [t| FilledIPolicy    |]
   , simpleField "enabled_disk_templates"    [t| [DiskTemplate]   |]
   , simpleField "candidate_certs"           [t| CandidateCertificates |]
+  , simpleField "max_running_jobs"          [t| Int              |]
  ]
  ++ timeStampFields
  ++ uuidFields

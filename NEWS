@@ -52,6 +52,8 @@ New features
   automatic management of per-node FUSE mount points. You can configure the
   mount point location at ``gnt-cluster init`` time by using the new
   ``--gluster-storage-dir`` switch.
+- Job scheduling is now handled by luxid, and the maximal number of jobs running
+  in parallel is a run-time parameter of the cluster.
 
 New dependencies
 ~~~~~~~~~~~~~~~~

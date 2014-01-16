@@ -395,6 +395,7 @@ class LUClusterQuery(NoHooksLU):
       "ndparams": cluster.ndparams,
       "diskparams": cluster.diskparams,
       "candidate_pool_size": cluster.candidate_pool_size,
+      "max_running_jobs": cluster.max_running_jobs,
       "master_netdev": cluster.master_netdev,
       "master_netmask": cluster.master_netmask,
       "use_external_mip_script": cluster.use_external_mip_script,
@@ -1330,6 +1331,9 @@ class LUClusterSetParams(LogicalUnit):
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
       # we need to update the pool size here, otherwise the save will fail
       AdjustCandidatePool(self, [], feedback_fn)
+
+    if self.op.max_running_jobs is not None:
+      self.cluster.max_running_jobs = self.op.max_running_jobs
 
     if self.op.maintain_node_health is not None:
       if self.op.maintain_node_health and not constants.ENABLE_CONFD:

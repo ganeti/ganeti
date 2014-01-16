@@ -515,6 +515,9 @@ def ShowClusterConfig(opts, args):
       ("candidate pool size",
        compat.TryToRoman(result["candidate_pool_size"],
                          convert=opts.roman_integers)),
+      ("maximal number of jobs running simultaneously",
+       compat.TryToRoman(result["max_running_jobs"],
+                         convert=opts.roman_integers)),
       ("master netdev", result["master_netdev"]),
       ("master netmask", result["master_netmask"]),
       ("use external master IP address setup script",
@@ -1088,6 +1091,7 @@ def SetClusterParams(opts, args):
           opts.beparams or opts.nicparams or
           opts.ndparams or opts.diskparams or
           opts.candidate_pool_size is not None or
+          opts.max_running_jobs is not None or
           opts.uid_pool is not None or
           opts.maintain_node_health is not None or
           opts.add_uids is not None or
@@ -1201,6 +1205,7 @@ def SetClusterParams(opts, args):
     diskparams=diskparams,
     ipolicy=ipolicy,
     candidate_pool_size=opts.candidate_pool_size,
+    max_running_jobs=opts.max_running_jobs,
     maintain_node_health=mnh,
     modify_etc_hosts=opts.modify_etc_hosts,
     uid_pool=uid_pool,
@@ -2175,7 +2180,8 @@ commands = {
   "modify": (
     SetClusterParams, ARGS_NONE,
     [FORCE_OPT,
-     BACKEND_OPT, CP_SIZE_OPT, ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
+     BACKEND_OPT, CP_SIZE_OPT, RQL_OPT,
+     ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
      MASTER_NETMASK_OPT, NIC_PARAMS_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
      DEFAULT_IALLOCATOR_OPT, DEFAULT_IALLOCATOR_PARAMS_OPT, RESERVED_LVS_OPT,

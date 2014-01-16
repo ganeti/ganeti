@@ -215,6 +215,7 @@ $(genOpCode "OpCode"
      , pClusterOsParams
      , pDiskParams
      , pCandidatePoolSize
+     , pMaxRunningJobs
      , pUidPool
      , pAddUids
      , pRemoveUids

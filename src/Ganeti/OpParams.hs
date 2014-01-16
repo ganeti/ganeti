@@ -119,6 +119,7 @@ module Ganeti.OpParams
   , pClusterOsParams
   , pInstOsParams
   , pCandidatePoolSize
+  , pMaxRunningJobs
   , pUidPool
   , pAddUids
   , pRemoveUids
@@ -627,6 +628,11 @@ pCandidatePoolSize :: Field
 pCandidatePoolSize =
   withDoc "Master candidate pool size" .
   optionalField $ simpleField "candidate_pool_size" [t| Positive Int |]
+
+pMaxRunningJobs :: Field
+pMaxRunningJobs =
+  withDoc "Maximal number of jobs to run simultaneously" .
+  optionalField $ simpleField "max_running_jobs" [t| Positive Int |]
 
 pUidPool :: Field
 pUidPool =

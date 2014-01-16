@@ -12,7 +12,7 @@ Design document drafts
    design-impexp2.rst
    design-resource-model.rst
    design-query-splitting.rst
-   design-internal-shutdown.rst
+   design-internal-shutdown
    design-glusterfs-ganeti-support.rst
    design-hugepages-support.rst
    design-optables.rst

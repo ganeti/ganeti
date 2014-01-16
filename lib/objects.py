@@ -1577,6 +1577,7 @@ class Cluster(TaggableObject):
     "disk_state_static",
     "enabled_disk_templates",
     "candidate_certs",
+    "max_running_jobs",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -1701,6 +1702,9 @@ class Cluster(TaggableObject):
 
     if self.candidate_certs is None:
       self.candidate_certs = {}
+
+    if self.max_running_jobs is None:
+      self.max_running_jobs = constants.LUXID_MAXIMAL_RUNNING_JOBS_DEFAULT
 
   @property
   def primary_hypervisor(self):
