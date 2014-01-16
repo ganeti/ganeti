@@ -396,7 +396,7 @@ prepMain _ _ = do
   s <- describeError "binding to the Luxi socket"
          Nothing (Just socket_path) $ getLuxiServer True socket_path
   cref <- newIORef (Bad "Configuration not yet loaded")
-  jq <- emptyJQStatus
+  jq <- emptyJQStatus cref
   return (s, cref, jq)
 
 -- | Main function.
