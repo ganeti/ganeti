@@ -13,4 +13,5 @@ The following design documents have been implemented in Ganeti 2.10.
 The following designs have been partially implemented in Ganeti 2.10.
 
 - :doc:`design-ceph-ganeti-support`
+- :doc:`design-internal-shutdown`
 - :doc:`design-query-splitting`
