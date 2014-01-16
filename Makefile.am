@@ -65,14 +65,13 @@ defaultversiondir = $(libdir)/ganeti/default
 versionedsharedir = $(prefix)/share/ganeti/$(DIRVERSION)
 defaultversionedsharedir = $(prefix)/share/ganeti/default
 
-
 # Note: these are automake-specific variables, and must be named after
 # the directory + 'dir' suffix
 pkglibdir = $(versiondir)$(libdir)/ganeti
 myexeclibdir = $(pkglibdir)
-bindir = $(versiondir)$(exec_prefix)/bin
-sbindir = $(versiondir)$(exec_prefix)/sbin
-mandir = $(versionedsharedir)$(datarootdir)/man
+bindir = $(versiondir)/$(BINDIR)
+sbindir = $(versiondir)$(SBINDIR)
+mandir = $(versionedsharedir)/root$(MANDIR)
 pkgpythondir = $(versionedsharedir)/ganeti
 gntpythondir = $(versionedsharedir)
 pkgpython_bindir = $(versionedsharedir)
@@ -101,11 +100,11 @@ SYMLINK_TARGET_DIRS = \
 	$(libdir)/ganeti/iallocators \
 	$(libdir)/ganeti/tools \
 	$(prefix)/share/ganeti \
-	$(exec_prefix)/bin \
-	$(exec_prefix)/sbin \
-	$(datarootdir)/man/man1 \
-	$(datarootdir)/man/man7 \
-	$(datarootdir)/man/man8
+	$(BINDIR) \
+	$(SBINDIR) \
+	$(MANDIR)/man1 \
+	$(MANDIR)/man7 \
+	$(MANDIR)/man8
 
 # Delete output file if an error occurred while building it
 .DELETE_ON_ERROR:
@@ -1876,8 +1875,8 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	{ echo 's#@''PREFIX@#$(prefix)#g'; \
 	  echo 's#@''SYSCONFDIR@#$(sysconfdir)#g'; \
 	  echo 's#@''LOCALSTATEDIR@#$(localstatedir)#g'; \
-	  echo 's#@''BINDIR@#$(execprefix)/bin#g'; \
-	  echo 's#@''SBINDIR@#$(execprefix)/sbin#g'; \
+	  echo 's#@''BINDIR@#$(BINDIR)#g'; \
+	  echo 's#@''SBINDIR@#$(SBINDIR)#g'; \
 	  echo 's#@''LIBDIR@#$(libdir)#g'; \
 	  echo 's#@''GANETI_VERSION@#$(PACKAGE_VERSION)#g'; \
 	  echo 's#@''CUSTOM_XEN_BOOTLOADER@#$(XEN_BOOTLOADER)#g'; \
@@ -2212,14 +2211,14 @@ install-exec-local:
 	$(LN_S) -f $(sysconfdir)/ganeti/lib $(DESTDIR)$(defaultversiondir)
 	$(LN_S) -f $(sysconfdir)/ganeti/share $(DESTDIR)$(defaultversionedsharedir)
 	for prog in $(HS_BIN_ROLES); do \
-	  $(LN_S) -f $(defaultversiondir)$(exec_prefix)/bin/$$prog $(DESTDIR)$(exec_prefix)/bin/$$prog; \
+	  $(LN_S) -f $(defaultversiondir)$(BINDIR)/$$prog $(DESTDIR)$(BINDIR)/$$prog; \
 	done
 	$(LN_S) -f $(defaultversiondir)$(libdir)/ganeti/iallocators/hail $(DESTDIR)$(libdir)/ganeti/iallocators/hail
 	for prog in $(all_sbin_scripts); do \
-	  $(LN_S) -f $(defaultversiondir)$(exec_prefix)/sbin/$$prog $(DESTDIR)$(exec_prefix)/sbin/$$prog; \
+	  $(LN_S) -f $(defaultversiondir)$(SBINDIR)/$$prog $(DESTDIR)$(SBINDIR)/$$prog; \
 	done
 	for prog in $(gnt_scripts_basenames); do \
-	  $(LN_S) -f $(defaultversionedsharedir)/$$prog $(DESTDIR)$(exec_prefix)/sbin/$$prog; \
+	  $(LN_S) -f $(defaultversionedsharedir)/$$prog $(DESTDIR)$(SBINDIR)/$$prog; \
 	done
 	for prog in $(pkglib_python_basenames); do \
 	  $(LN_S) -f $(defaultversionedsharedir)/$$prog $(DESTDIR)$(libdir)/ganeti/$$prog; \
@@ -2232,7 +2231,7 @@ install-exec-local:
 	done
 	if ! test -n '$(ENABLE_MANPAGES)'; then \
 	  for man in $(manfullpath); do \
-	    $(LN_S) -f $(defaultversionedsharedir)$(datarootdir)/man/$$man $(DESTDIR)$(datarootdir)/man/$$man; \
+	    $(LN_S) -f $(defaultversionedsharedir)/root$(MANDIR)/$$man $(DESTDIR)$(MANDIR)/$$man; \
 	  done; \
 	fi
 	for prog in $(myexeclib_scripts_basenames); do \
