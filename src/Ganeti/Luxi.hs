@@ -52,6 +52,7 @@ module Ganeti.Luxi
   , allLuxiCalls
   ) where
 
+import Control.Applicative (optional)
 import Control.Monad
 import qualified Data.ByteString.UTF8 as UTF8
 import Text.JSON (encodeStrict, decodeStrict)
@@ -157,7 +158,7 @@ $(genLuxiOp "LuxiOp"
     )
   , (luxiReqSetWatcherPause,
      [ optionalNullSerField
-         $ simpleField "duration" [t| Double |] ]
+         $ timeAsDoubleField "duration" ]
     )
   ])
 
@@ -288,10 +289,9 @@ decodeLuxiCall method args = do
               [flag] <- fromJVal args
               return $ SetDrainFlag flag
     ReqSetWatcherPause -> do
-              let duration = case args of
-                               JSArray [JSRational _ x] 
-                                 -> Just (fromRational x :: Double)
-                               _ -> Nothing
+              duration <- optional $ do
+                [x] <- fromJVal args
+                liftM unTimeAsDoubleJSON $ fromJVal x
               return $ SetWatcherPause duration
 
 -- | Check that luxi responses contain the required keys and that the

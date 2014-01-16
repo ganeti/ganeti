@@ -293,7 +293,7 @@ handleCall _ _ cfg (SetWatcherPause time) = do
                   . Config.getNode cfg . clusterMasterNode
                   $ configCluster cfg
   _ <- executeRpcCall (masters ++ mcs) $ RpcCallSetWatcherPause time
-  return . Ok . maybe JSNull showJSON $ time
+  return . Ok . maybe JSNull showJSON $ fmap TimeAsDoubleJSON time
 
 handleCall _ _ cfg (SetDrainFlag value) = do
   let mcs = Config.getMasterCandidates cfg

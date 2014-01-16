@@ -610,7 +610,7 @@ instance Rpc RpcCallJobqueueUpdate RpcResultJobQueueUpdate where
 -- | Set the watcher status
       
 $(buildObject "RpcCallSetWatcherPause" "rpcCallSetWatcherPause"
-  [ simpleField "time" [t| Maybe Double |]
+  [ optionalField $ timeAsDoubleField "time"
   ])
 
 instance RpcCall RpcCallSetWatcherPause where
@@ -618,7 +618,8 @@ instance RpcCall RpcCallSetWatcherPause where
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
   rpcCallData _ call     = J.encode
-    [ maybe J.JSNull J.showJSON $ rpcCallSetWatcherPauseTime call ]
+    [ maybe J.JSNull (J.showJSON . TimeAsDoubleJSON) $
+            rpcCallSetWatcherPauseTime call ]
 
 $(buildObject "RpcResultSetWatcherPause" "rpcResultSetWatcherPause" [])
 
