@@ -112,6 +112,10 @@ instance Applicative (GenericResult a) where
   _       <*> (Bad x) = Bad x
   (Ok f)  <*> (Ok x)  = Ok $ f x
 
+instance (FromString a, Monoid a) => Alternative (GenericResult a) where
+  empty = mzero
+  (<|>) = mplus
+
 -- | This is a monad transformation for Result. It's implementation is
 -- based on the implementations of MaybeT and ErrorT.
 newtype ResultT a m b = ResultT {runResultT :: m (GenericResult a b)}
@@ -156,6 +160,10 @@ instance (Monad m, FromString a, Monoid a) => MonadPlus (ResultT a m) where
   -- more complicated than 'mplus' of 'GenericResult'.
   mplus x y = elimResultT combine return x
     where combine x' = ResultT $ liftM (mplus (Bad x')) (runResultT y)
+
+instance (Monad m, FromString a, Monoid a) => Alternative (ResultT a m) where
+  empty = mzero
+  (<|>) = mplus
 
 -- | Lift a `Result` value to a `ResultT`.
 resultT :: Monad m => GenericResult a b -> ResultT a m b
