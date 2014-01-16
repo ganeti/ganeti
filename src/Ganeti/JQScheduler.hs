@@ -44,7 +44,7 @@ import Ganeti.BasicTypes
 import Ganeti.Constants as C
 import Ganeti.JQueue as JQ
 import Ganeti.Logging
-import Ganeti.Objects (ConfigData)
+import Ganeti.Objects
 import Ganeti.Path
 import Ganeti.Types
 import Ganeti.Utils
@@ -92,9 +92,13 @@ unreadJob job = JobWithStat {jJob=job, jStat=nullFStat, jINotify=Nothing}
 watchInterval :: Int
 watchInterval = C.luxidJobqueuePollInterval * 1000000 
 
--- | Maximal number of jobs to be running at the same time.
-maxRunningJobs :: Int
-maxRunningJobs = C.luxidMaximalRunningJobs 
+-- | Get the maximual number of jobs to be run simultaneously from the
+-- configuration. If the configuration is not available, be conservative
+-- and use the smallest possible value, i.e., 1.
+getMaxRunningJobs :: JQStatus -> IO Int
+getMaxRunningJobs =
+  liftM (genericResult (const 1) (clusterMaxRunningJobs . configCluster))
+  . readIORef . jqConfig
 
 -- | Wrapper function to atomically update the jobs in the queue status.
 modifyJobs :: JQStatus -> (Queue -> Queue) -> IO ()
@@ -197,9 +201,9 @@ attachWatcher state jWS = when (isNothing $ jINotify jWS) $ do
 
 -- | Decide on which jobs to schedule next for execution. This is the
 -- pure function doing the scheduling.
-selectJobsToRun :: Queue -> (Queue, [JobWithStat])
-selectJobsToRun queue =
-  let n = maxRunningJobs - length (qRunning queue)
+selectJobsToRun :: Int -> Queue -> (Queue, [JobWithStat])
+selectJobsToRun count queue =
+  let n = count - length (qRunning queue)
       (chosen, remain) = splitAt n (qEnqueued queue)
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
 
@@ -219,7 +223,8 @@ requeueJobs qstate jobs err = do
 -- pure `selectJobsToRun`.
 scheduleSomeJobs :: JQStatus -> IO ()
 scheduleSomeJobs qstate = do
-  chosen <- atomicModifyIORef (jqJobs qstate) selectJobsToRun
+  count <- getMaxRunningJobs qstate
+  chosen <- atomicModifyIORef (jqJobs qstate) (selectJobsToRun count)
   let jobs = map jJob chosen
   unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
     $ map (show . fromJobId . qjId) jobs
