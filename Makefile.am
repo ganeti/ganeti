@@ -745,7 +745,8 @@ HS_LIB_SRCS = \
 	src/Ganeti/THH/PyType.hs \
 	src/Ganeti/Types.hs \
 	src/Ganeti/UDSServer.hs \
-	src/Ganeti/Utils.hs
+	src/Ganeti/Utils.hs\
+	src/Ganeti/VCluster.hs
 
 HS_TEST_SRCS = \
 	test/hs/Test/AutoConf.hs \
