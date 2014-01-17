@@ -946,16 +946,16 @@ def _StaticValue(value):
   return compat.partial(_StaticValueInner, value)
 
 
-def _GetNodeRole(node, master_name):
+def _GetNodeRole(node, master_uuid):
   """Determine node role.
 
   @type node: L{objects.Node}
   @param node: Node object
-  @type master_name: string
-  @param master_name: Master node name
+  @type master_uuid: string
+  @param master_uuid: Master node UUID
 
   """
-  if node.name == master_name:
+  if node.uuid == master_uuid:
     return constants.NR_MASTER
   elif node.master_candidate:
     return constants.NR_MCANDIDATE

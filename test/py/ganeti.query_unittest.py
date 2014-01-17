@@ -299,20 +299,23 @@ class TestQuery(unittest.TestCase):
 class TestGetNodeRole(unittest.TestCase):
   def test(self):
     tested_role = set()
-
+    master_uuid = "969502b9-f632-4d3d-83a5-a78b0ca8cdf6"
+    node_uuid = "d75499b5-83e3-4b80-b6fe-3e1aee7e5a35"
     checks = [
-      (constants.NR_MASTER, "node1", objects.Node(name="node1")),
-      (constants.NR_MCANDIDATE, "master",
-       objects.Node(name="node1", master_candidate=True)),
-      (constants.NR_REGULAR, "master", objects.Node(name="node1")),
-      (constants.NR_DRAINED, "master",
-       objects.Node(name="node1", drained=True)),
+      (constants.NR_MASTER,
+       objects.Node(name="node1", uuid=master_uuid)),
+      (constants.NR_MCANDIDATE,
+       objects.Node(name="node1", uuid=node_uuid, master_candidate=True)),
+      (constants.NR_REGULAR,
+       objects.Node(name="node1", uuid=node_uuid)),
+      (constants.NR_DRAINED,
+       objects.Node(name="node1", uuid=node_uuid, drained=True)),
       (constants.NR_OFFLINE,
-       "master", objects.Node(name="node1", offline=True)),
+       objects.Node(name="node1", uuid=node_uuid, offline=True)),
       ]
 
-    for (role, master_name, node) in checks:
-      result = query._GetNodeRole(node, master_name)
+    for (role, node) in checks:
+      result = query._GetNodeRole(node, master_uuid)
       self.assertEqual(result, role)
       tested_role.add(result)
 
