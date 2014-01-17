@@ -643,13 +643,13 @@ To be able to install instances you need to have an Operating System
 installation script. An example OS that works under Debian and can
 install Debian and Ubuntu instace OSes is provided on the project web
 site.  Download it from the project page and follow the instructions in
-the ``README`` file.  Here is the installation procedure (replace 0.12
+the ``README`` file.  Here is the installation procedure (replace 0.14
 with the latest version that is compatible with your ganeti version)::
 
   $ cd /usr/local/src/
-  $ wget http://ganeti.googlecode.com/files/ganeti-instance-debootstrap-%0.12%.tar.gz
-  $ tar xzf ganeti-instance-debootstrap-%0.12%.tar.gz
-  $ cd ganeti-instance-debootstrap-%0.12%
+  $ wget http://ganeti.googlecode.com/files/ganeti-instance-debootstrap-%0.14%.tar.gz
+  $ tar xzf ganeti-instance-debootstrap-%0.14%.tar.gz
+  $ cd ganeti-instance-debootstrap-%0.14%
   $ ./configure --with-os-dir=/srv/ganeti/os
   $ make
   $ make install
