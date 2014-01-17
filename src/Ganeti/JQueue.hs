@@ -92,6 +92,7 @@ import Ganeti.Rpc (executeRpcCall, ERpcError, logRpcErrors,
 import Ganeti.THH
 import Ganeti.Types
 import Ganeti.Utils
+import Ganeti.VCluster (makeVirtualPath)
 
 -- * Data types
 
@@ -397,8 +398,9 @@ replicateJob :: FilePath -> [Node] -> QueuedJob -> IO [(Node, ERpcError ())]
 replicateJob rootdir mastercandidates job = do
   let filename = liveJobFile rootdir . qjId $ job
       content = Text.JSON.encode . Text.JSON.showJSON $ job
+  filename' <- makeVirtualPath filename
   callresult <- executeRpcCall mastercandidates
-                  $ RpcCallJobqueueUpdate filename content
+                  $ RpcCallJobqueueUpdate filename' content
   let result = map (second (() <$)) callresult
   logRpcErrors result
   return result
@@ -442,8 +444,9 @@ allocateJobIds mastercandidates lock n =
               logError msg
               return . Bad $ msg 
             Right () -> do
+              serial' <- makeVirtualPath serial
               _ <- executeRpcCall mastercandidates
-                     $ RpcCallJobqueueUpdate serial serial_content
+                     $ RpcCallJobqueueUpdate serial' serial_content
               putMVar lock ()
               return $ mapM makeJobId [(current+1)..(current+n)]
 
