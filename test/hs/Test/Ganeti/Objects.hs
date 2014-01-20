@@ -298,9 +298,12 @@ genEmptyCluster ncount = do
       networks = GenericContainer Map.empty
   let contgroups = GenericContainer $ Map.singleton guuid grp
   serial <- arbitrary
+  -- timestamp fields
+  ctime <- arbitrary
+  mtime <- arbitrary
   cluster <- resize 8 arbitrary
   let c = ConfigData version cluster contnodes contgroups continsts networks
-            serial
+            ctime mtime serial
   return c
 
 -- | FIXME: make an even simpler base version of creating a cluster.

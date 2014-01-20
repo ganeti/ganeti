@@ -745,7 +745,12 @@ $(buildObject "ConfigData" "config" $
   , simpleField "instances"  [t| Container Instance  |]
   , simpleField "networks"   [t| Container Network   |]
   ]
+  ++ timeStampFields
   ++ serialFields)
 
 instance SerialNoObject ConfigData where
   serialOf = configSerial
+
+instance TimeStampObject ConfigData where
+  cTimeOf = configCtime
+  mTimeOf = configMtime
