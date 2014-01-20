@@ -14,6 +14,7 @@ Version 2.8.4
 - Add network tag definitions to the haskell codebase (Issue 641)
 - Fix RAPI network tag handling
 - Add the network tags to the tags searched by gnt-cluster search-tags
+- Fix caching bug preventing jobs from being cancelled
 
 
 Version 2.8.3
