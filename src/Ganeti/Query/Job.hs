@@ -26,7 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Query.Job
   ( RuntimeData
   , fieldsMap
-  , loadRuntimeData
   , wantArchived
   ) where
 
@@ -36,7 +35,6 @@ import qualified Text.JSON as J
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.JQueue
-import Ganeti.Path
 import Ganeti.Query.Common
 import Ganeti.Query.Language
 import Ganeti.Query.Types
@@ -143,9 +141,3 @@ jobFields =
 fieldsMap :: FieldMap JobId RuntimeData
 fieldsMap =
   Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) jobFields
-
--- | Load the given jobs from disk.
-loadRuntimeData :: [JobId] -> Bool -> IO [RuntimeData]
-loadRuntimeData ids archived = do
-  qdir <- queueDir
-  mapM (loadJobFromDisk qdir archived) ids
