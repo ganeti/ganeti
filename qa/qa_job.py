@@ -23,9 +23,11 @@
 
 """
 
+from ganeti.utils import retry
 from ganeti import constants
 from ganeti import query
 
+import functools
 import re
 
 import qa_config
@@ -60,6 +62,37 @@ def _GetJobStatuses():
   return dict(map(lambda s: s.split(), list_output.splitlines()))
 
 
+def _GetJobStatus(job_id):
+  """ Retrieves the status of a job.
+
+  @type job_id: string
+  @param job_id: The job id, represented as a string.
+  @rtype: string or None
+
+  @return: The job status, or None if not present.
+
+  """
+  return _GetJobStatuses().get(job_id, None)
+
+
+def _RetryingFetchJobStatus(retry_status, job_id):
+  """ Used with C{retry.Retry}, waits for a status other than the one given.
+
+  @type retry_status: string
+  @param retry_status: The old job status, expected to change.
+  @type job_id: string
+  @param job_id: The job id, represented as a string.
+
+  @rtype: string or None
+  @return: The new job status, or None if none could be retrieved.
+
+  """
+  status = _GetJobStatus(job_id)
+  if status == retry_status:
+    raise retry.RetryAgain()
+  return status
+
+
 def TestJobCancellation():
   """gnt-job cancel"""
   # The delay used for the first command should be large enough for the next
@@ -90,6 +123,19 @@ def TestJobCancellation():
   AssertCommand(["gnt-job", "watch", job_id], fail=True)
 
   # Then check for job cancellation
-  status_dict = _GetJobStatuses()
-  if status_dict.get(job_id, None) != constants.JOB_STATUS_CANCELED:
-    raise qa_error.Error("Job was not successfully cancelled!")
+  job_status = _GetJobStatus(job_id)
+  if job_status != constants.JOB_STATUS_CANCELED:
+    # Try and see if the job is being cancelled, and wait until the status
+    # changes or we hit a timeout
+    if job_status == constants.JOB_STATUS_CANCELING:
+      retry_fn = functools.partial(_RetryingFetchJobStatus,
+                                   constants.JOB_STATUS_CANCELING, job_id)
+      try:
+        job_status = retry.Retry(retry_fn, 2.0, 2 * FIRST_COMMAND_DELAY)
+      except retry.RetryTimeout:
+        # The job status remains the same
+        pass
+
+    if job_status != constants.JOB_STATUS_CANCELED:
+      raise qa_error.Error("Job was not successfully cancelled, status "
+                           "found: %s" % job_status)
