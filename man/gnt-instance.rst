@@ -334,6 +334,14 @@ vnc\_bind\_address
     or specify the address of one of the interfaces on the node to
     restrict listening to that interface.
 
+vnc\_password\_file
+    Valid for the Xen HVM and KVM hypervisors.
+
+    Specifies the location of the file containing the password for
+    connections using VNC. The default is a file named
+    vnc-cluster-password which can be found in the configuration
+    directory.
+
 vnc\_tls
     Valid for the KVM hypervisor.
 
