@@ -27,7 +27,6 @@ from ganeti import constants
 from ganeti import query
 
 import re
-import time
 
 import qa_config
 import qa_error
