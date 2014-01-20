@@ -8,6 +8,8 @@ Version 2.9.3
 *(unreleased)*
 
 - Ensure that all the hypervisors exist in the config file (Issue 640)
+- Correctly recognise the role as master node (Issue 687)
+- configure: allow detection of Sphinx 1.2+ (Issue 502)
 
 
 Version 2.9.2
