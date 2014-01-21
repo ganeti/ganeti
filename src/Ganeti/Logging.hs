@@ -49,6 +49,7 @@ module Ganeti.Logging
   ) where
 
 import Control.Monad
+import Control.Monad.Error (Error(..))
 import Control.Monad.Reader
 import System.Log.Logger
 import System.Log.Handler.Simple
@@ -57,6 +58,7 @@ import System.Log.Handler (setFormatter, LogHandler)
 import System.Log.Formatter
 import System.IO
 
+import Ganeti.BasicTypes (ResultT(..))
 import Ganeti.THH
 import qualified Ganeti.ConstantUtils as ConstantUtils
 
@@ -136,6 +138,9 @@ instance MonadLog IO where
 
 instance (MonadLog m) => MonadLog (ReaderT r m) where
   logAt p x = lift $ logAt p x
+
+instance (MonadLog m, Error e) => MonadLog (ResultT e m) where
+  logAt p = lift . logAt p
 
 -- | Log at debug level.
 logDebug :: (MonadLog m) => String -> m ()
