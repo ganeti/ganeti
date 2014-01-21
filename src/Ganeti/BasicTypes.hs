@@ -27,7 +27,7 @@ module Ganeti.BasicTypes
   , Result
   , ResultT(..)
   , resultT
-  , FromString(..)
+  , Error(..) -- re-export from Control.Monad.Error
   , isOk
   , isBad
   , justOk
@@ -74,35 +74,26 @@ genericResult _ g (Ok b) = g b
 -- | Type alias for a string Result.
 type Result = GenericResult String
 
--- | Type class for things that can be built from strings.
-class FromString a where
-  mkFromString :: String -> a
-
--- | Trivial 'String' instance; requires FlexibleInstances extension
--- though.
-instance FromString [Char] where
-  mkFromString = id
-
 -- | 'Monad' instance for 'GenericResult'.
-instance (FromString a) => Monad (GenericResult a) where
+instance (Error a) => Monad (GenericResult a) where
   (>>=) (Bad x) _ = Bad x
   (>>=) (Ok x) fn = fn x
   return = Ok
-  fail   = Bad . mkFromString
+  fail   = Bad . strMsg
 
 instance Functor (GenericResult a) where
   fmap _ (Bad msg) = Bad msg
   fmap fn (Ok val) = Ok (fn val)
 
-instance (FromString a, Monoid a) => MonadPlus (GenericResult a) where
-  mzero = Bad $ mkFromString "zero Result when used as MonadPlus"
+instance (Error a, Monoid a) => MonadPlus (GenericResult a) where
+  mzero = Bad $ strMsg "zero Result when used as MonadPlus"
   -- for mplus, when we 'add' two Bad values, we concatenate their
   -- error descriptions
-  (Bad x) `mplus` (Bad y) = Bad (x `mappend` mkFromString "; " `mappend` y)
+  (Bad x) `mplus` (Bad y) = Bad (x `mappend` strMsg "; " `mappend` y)
   (Bad _) `mplus` x = x
   x@(Ok _) `mplus` _ = x
 
-instance (FromString a) => MonadError a (GenericResult a) where
+instance (Error a) => MonadError a (GenericResult a) where
   throwError = Bad
   catchError x h = genericResult h (const x) x
 
@@ -112,7 +103,7 @@ instance Applicative (GenericResult a) where
   _       <*> (Bad x) = Bad x
   (Ok f)  <*> (Ok x)  = Ok $ f x
 
-instance (FromString a, Monoid a) => Alternative (GenericResult a) where
+instance (Error a, Monoid a) => Alternative (GenericResult a) where
   empty = mzero
   (<|>) = mplus
 
@@ -135,33 +126,33 @@ elimResultT l r = ResultT . (runResultT . result <=< runResultT)
 instance (Monad f) => Functor (ResultT a f) where
   fmap f = ResultT . liftM (fmap f) . runResultT
 
-instance (Monad m, FromString a) => Applicative (ResultT a m) where
+instance (Monad m, Error a) => Applicative (ResultT a m) where
   pure = return
   (<*>) = ap
 
-instance (Monad m, FromString a) => Monad (ResultT a m) where
-  fail err = ResultT (return . Bad $ mkFromString err)
+instance (Monad m, Error a) => Monad (ResultT a m) where
+  fail err = ResultT (return . Bad $ strMsg err)
   return   = lift . return
   (>>=)    = flip (elimResultT throwError)
 
-instance (Monad m, FromString a) => MonadError a (ResultT a m) where
+instance (Monad m, Error a) => MonadError a (ResultT a m) where
   throwError = resultT . Bad
   catchError x h = elimResultT h return x
 
 instance MonadTrans (ResultT a) where
   lift = ResultT . liftM Ok
 
-instance (MonadIO m, FromString a) => MonadIO (ResultT a m) where
+instance (MonadIO m, Error a) => MonadIO (ResultT a m) where
   liftIO = lift . liftIO
 
-instance (Monad m, FromString a, Monoid a) => MonadPlus (ResultT a m) where
+instance (Monad m, Error a, Monoid a) => MonadPlus (ResultT a m) where
   mzero = ResultT $ return mzero
   -- Ensure that 'y' isn't run if 'x' contains a value. This makes it a bit
   -- more complicated than 'mplus' of 'GenericResult'.
   mplus x y = elimResultT combine return x
     where combine x' = ResultT $ liftM (mplus (Bad x')) (runResultT y)
 
-instance (Monad m, FromString a, Monoid a) => Alternative (ResultT a m) where
+instance (Monad m, Error a, Monoid a) => Alternative (ResultT a m) where
   empty = mzero
   (<|>) = mplus
 
