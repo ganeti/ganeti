@@ -33,6 +33,7 @@ module Ganeti.Query.Types
   , FieldList
   , FieldMap
   , isRuntimeField
+  , fieldListToFieldMap
   ) where
 
 import qualified Data.Map as Map
@@ -75,3 +76,7 @@ isRuntimeField :: FieldGetter a b -> Bool
 isRuntimeField FieldRuntime {}       = True
 isRuntimeField FieldConfigRuntime {} = True
 isRuntimeField _                     = False
+
+-- | Helper function to obtain a FieldMap from the corresponding FieldList.
+fieldListToFieldMap :: FieldList a b -> FieldMap a b
+fieldListToFieldMap = Map.fromList . map (\v@(f, _, _) -> (fdefName f, v))
