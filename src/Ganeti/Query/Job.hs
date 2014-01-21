@@ -29,7 +29,6 @@ module Ganeti.Query.Job
   , wantArchived
   ) where
 
-import qualified Data.Map as Map
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
@@ -139,5 +138,4 @@ jobFields =
 
 -- | The node fields map.
 fieldsMap :: FieldMap JobId RuntimeData
-fieldsMap =
-  Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) jobFields
+fieldsMap = fieldListToFieldMap jobFields

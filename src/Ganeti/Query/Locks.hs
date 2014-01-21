@@ -30,8 +30,6 @@ module Ganeti.Query.Locks
   ( fieldsMap
   ) where
 
-import qualified Data.Map as Map
-
 import Ganeti.Query.Common
 import Ganeti.Query.Language
 import Ganeti.Query.Types
@@ -53,5 +51,4 @@ lockFields =
 
 -- | The lock fields map.
 fieldsMap :: FieldMap String ()
-fieldsMap =
-  Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) lockFields
+fieldsMap = fieldListToFieldMap lockFields

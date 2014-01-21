@@ -257,8 +257,7 @@ getNumInstances get_fn cfg = length . get_fn . getNodeInstances cfg . nodeUuid
 
 -- | The node fields map.
 fieldsMap :: FieldMap Node Runtime
-fieldsMap =
-  Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) nodeFields
+fieldsMap = fieldListToFieldMap nodeFields
 
 -- | Create an RPC result for a broken node
 rpcResultNodeBroken :: Node -> (Node, Runtime)

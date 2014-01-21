@@ -94,8 +94,7 @@ networkFields =
 
 -- | The group fields map.
 fieldsMap :: FieldMap Network NoDataRuntime
-fieldsMap =
-  Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) networkFields
+fieldsMap = fieldListToFieldMap networkFields
 
 -- TODO: the following fields are not implemented yet: external_reservations
 

@@ -30,7 +30,6 @@ module Ganeti.Query.Export
   ) where
 
 import Control.Monad (liftM)
-import qualified Data.Map as Map
 
 import Ganeti.Objects
 import Ganeti.Rpc
@@ -65,8 +64,7 @@ exportFields =
 
 -- | The node fields map.
 fieldsMap :: FieldMap Node Runtime
-fieldsMap =
-  Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) exportFields
+fieldsMap = fieldListToFieldMap exportFields
 
 -- | Collect live data from RPC query if enabled.
 --

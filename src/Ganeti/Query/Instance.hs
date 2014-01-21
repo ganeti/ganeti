@@ -72,7 +72,7 @@ type Runtime = Either RpcError LiveInfo
 
 -- | The instance fields map.
 fieldsMap :: FieldMap Instance Runtime
-fieldsMap = Map.fromList [(fdefName f, v) | v@(f, _, _) <- aliasedFields]
+fieldsMap = fieldListToFieldMap aliasedFields
 
 -- | The instance aliases.
 instanceAliases :: [(FieldName, FieldName)]

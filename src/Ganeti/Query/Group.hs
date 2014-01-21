@@ -26,8 +26,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Query.Group
   (fieldsMap) where
 
-import qualified Data.Map as Map
-
 import Ganeti.Config
 import Ganeti.Objects
 import Ganeti.Query.Language
@@ -83,5 +81,4 @@ groupFields =
 
 -- | The group fields map.
 fieldsMap :: FieldMap NodeGroup NoDataRuntime
-fieldsMap =
-  Map.fromList $ map (\v@(f, _, _) -> (fdefName f, v)) groupFields
+fieldsMap = fieldListToFieldMap groupFields
