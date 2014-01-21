@@ -334,6 +334,32 @@ handleCall _ qstat  cfg (CancelJob jid) = do
       cancelJob jid
     Bad s -> return . Ok . showJSON $ (False, s)
 
+handleCall qlock _ cfg (ArchiveJob jid) = do
+  let archiveFailed = putMVar qlock  () >> (return . Ok $ showJSON False)
+                      :: IO (ErrorResult JSValue)
+  qDir <- queueDir
+  takeMVar qlock
+  result <- loadJobFromDisk qDir False jid
+  case result of
+    Bad _ -> archiveFailed
+    Ok (job, _) -> if jobFinalized job
+                     then do
+                       let mcs = Config.getMasterCandidates cfg
+                           live = liveJobFile qDir jid
+                           archive = archivedJobFile qDir jid
+                       renameResult <- try $ renameFile live archive
+                                       :: IO (Either IOError ())
+                       putMVar qlock ()
+                       case renameResult of
+                         Left e -> return . Bad . JobQueueError
+                                     $ "Archiving failed in an unexpected way: "
+                                         ++ show e
+                         Right () -> do
+                           _ <- executeRpcCall mcs
+                                  $ RpcCallJobqueueRename [(live, archive)]
+                          return . Ok $ showJSON True
+                     else archiveFailed
+
 handleCall _ _ _ op =
   return . Bad $
     GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")
