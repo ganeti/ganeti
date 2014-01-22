@@ -77,6 +77,7 @@ module Ganeti.Rpc
   , RpcResultExportList(..)
 
   , RpcCallJobqueueUpdate(..)
+  , RpcCallJobqueueRename(..)
   , RpcCallSetWatcherPause(..)
   , RpcCallSetDrainFlag(..)
   ) where
@@ -602,6 +603,27 @@ instance Rpc RpcCallJobqueueUpdate RpcResultJobQueueUpdate where
   rpcResultFill _ res =
     case res of
       J.JSNull ->  Right RpcResultJobQueueUpdate
+      _ -> Left $ JsonDecodeError
+           ("Expected JSNull, got " ++ show (pp_value res))
+
+-- | Rename a file in the job queue
+
+$(buildObject "RpcCallJobqueueRename" "rpcCallJobqueueRename"
+  [ simpleField "rename" [t| [(String, String)] |]
+  ])
+
+$(buildObject "RpcResultJobqueueRename" "rpcResultJobqueueRename" [])
+
+instance RpcCall RpcCallJobqueueRename where
+  rpcCallName _          = "jobqueue_rename"
+  rpcCallTimeout _       = rpcTimeoutToRaw Fast
+  rpcCallAcceptOffline _ = False
+  rpcCallData _ call     = J.encode [ rpcCallJobqueueRenameRename call ]
+
+instance Rpc RpcCallJobqueueRename RpcResultJobqueueRename where
+  rpcResultFill _ res =
+    case res of
+      J.JSNull -> Right RpcResultJobqueueRename
       _ -> Left $ JsonDecodeError
            ("Expected JSNull, got " ++ show (pp_value res))
 
