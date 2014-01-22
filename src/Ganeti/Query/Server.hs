@@ -33,6 +33,7 @@ import Control.Applicative
 import Control.Concurrent
 import Control.Exception
 import Control.Monad (forever, when, zipWithM, liftM)
+import Control.Monad.IO.Class
 import Data.Bits (bitSize)
 import qualified Data.Set as Set (toList)
 import Data.IORef
@@ -219,24 +220,17 @@ handleCall _ _ cfg (QueryConfigValues fields) = do
   answerEval <- sequence answer
   return . Ok . showJSON $ answerEval
 
-handleCall qlock qstat cfg (SubmitJobToDrainedQueue ops) =
-  do
+handleCall qlock qstat cfg (SubmitJobToDrainedQueue ops) = runResultT $ do
     let mcs = Config.getMasterCandidates cfg
-    jobid <- allocateJobId mcs qlock
-    case jobid of
-      Bad s -> return . Bad . GenericError $ s
-      Ok jid -> do
-        ts <- currentTimestamp
-        job <- liftM (setReceivedTimestamp ts)
-                 $ queuedJobFromOpCodes jid ops
-        qDir <- queueDir
-        write_result <- writeJobToDisk qDir job
-        case write_result of
-          Bad s -> return . Bad . GenericError $ s
-          Ok () -> do
-            _ <- replicateManyJobs qDir mcs [job]
-            _ <- forkIO $ enqueueNewJobs qstat [job]
-            return . Ok . showJSON . fromJobId $ jid
+    jid <- mkResultT $ allocateJobId mcs qlock
+    ts <- liftIO currentTimestamp
+    job <- liftM (setReceivedTimestamp ts)
+             $ queuedJobFromOpCodes jid ops
+    qDir <- liftIO queueDir
+    mkResultT $ writeJobToDisk qDir job
+    liftIO $ replicateManyJobs qDir mcs [job]
+    _ <- liftIO . forkIO $ enqueueNewJobs qstat [job]
+    return . showJSON . fromJobId $ jid
 
 handleCall qlock qstat cfg (SubmitJob ops) =
   do
