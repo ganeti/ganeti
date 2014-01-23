@@ -42,6 +42,7 @@ ADD
 | {{-o|\--os-type} *os-type*}
 | [\--submit] [\--print-job-id]
 | [\--ignore-ipolicy]
+| [\--no-wait-for-sync]
 | {*instance*}
 
 Creates a new instance on the specified host. The *instance* argument
