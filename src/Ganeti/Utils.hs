@@ -71,6 +71,7 @@ module Ganeti.Utils
   , getFStatSafe
   , needsReload
   , watchFile
+  , safeRenameFile
   ) where
 
 import Control.Concurrent
@@ -81,7 +82,7 @@ import Data.Function (on)
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
-import System.Directory (renameFile)
+import System.Directory (renameFile, createDirectoryIfMissing)
 import System.FilePath.Posix (takeDirectory, takeBaseName)
 import System.INotify
 import System.Posix.Types
@@ -638,3 +639,10 @@ watchFile fpath timeout old read_fn = do
       killINotify inotify
       return result
   
+-- | Safely rename a file, creating the target directory, if needed.
+safeRenameFile :: FilePath -> FilePath -> IO (Result ())
+safeRenameFile from to = do
+  result <- try $ do
+    createDirectoryIfMissing True $ takeDirectory to
+    renameFile from to
+  return $ either (Bad . show) Ok (result :: Either IOError ())
