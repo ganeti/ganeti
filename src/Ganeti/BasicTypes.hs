@@ -151,7 +151,7 @@ instance (Monad m, Error a) => Monad (ResultT a m) where
   (>>=)    = flip (elimResultT throwError)
 
 instance (Monad m, Error a) => MonadError a (ResultT a m) where
-  throwError = resultT . Bad
+  throwError = ResultT . return . Bad
   catchError = catchErrorT
 
 instance MonadTrans (ResultT a) where
@@ -183,9 +183,12 @@ withErrorT :: (Monad m, Error e)
            => (e' -> e) -> ResultT e' m a -> ResultT e m a
 withErrorT f = ResultT . liftM (withError f) . runResultT
 
--- | Lift a `Result` value to a `ResultT`.
-resultT :: Monad m => GenericResult a b -> ResultT a m b
-resultT = ResultT . return
+-- | Lift a 'Result' value to any 'MonadError'. Since 'ResultT' is itself its
+-- instance, it's a generalization of
+-- @Monad m => GenericResult a b -> ResultT a m b@.
+resultT :: (MonadError e m) => GenericResult e a -> m a
+resultT = genericResult throwError return
+{-# INLINE resultT #-}
 
 -- | An alias for @withError strMsg@, which is often used to lift a pure error
 -- to a monad stack. See also 'annotateResult'.
@@ -225,10 +228,12 @@ eitherToResult :: Either a b -> GenericResult a b
 eitherToResult (Left  s) = Bad s
 eitherToResult (Right v) = Ok  v
 
---- | Annotate a Result with an ownership information.
-annotateResult :: String -> Result a -> Result a
-annotateResult owner (Bad s) = Bad $ owner ++ ": " ++ s
-annotateResult _ v = v
+-- | Annotate an error with an ownership information, lifting it to a
+-- 'MonadError'. Since 'Result' is an instance of 'MonadError' itself,
+-- it's a generalization of type @String -> Result a -> Result a@.
+-- See also 'toErrorStr'.
+annotateResult :: (MonadError e m, Error e) => String -> Result a -> m a
+annotateResult owner = toErrorStr . annotateError owner
 
 -- | Annotate an error with an ownership information inside a 'MonadError'.
 -- See also 'annotateResult'.

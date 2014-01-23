@@ -168,7 +168,7 @@ prop_eitherToResult ei =
     Right v -> case r of
                  Bad _ -> False
                  Ok v' -> v == v'
-    where r = eitherToResult ei
+    where r = eitherToResult ei :: Result Int
 
 -- | Test 'AutoRepairType' ordering is as expected and consistent with Python
 -- codebase.
