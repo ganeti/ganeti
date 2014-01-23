@@ -63,7 +63,7 @@ import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 import Ganeti.Types
 import qualified Ganeti.UDSServer as U (Handler(..), listener)
-import Ganeti.Utils (lockFile, exitIfBad, watchFile)
+import Ganeti.Utils (lockFile, exitIfBad, watchFile, safeRenameFile)
 import qualified Ganeti.Version as Version
 
 -- | Helper for classic queries.
@@ -347,14 +347,13 @@ handleCall qlock _ cfg (ArchiveJob jid) = do
                        let mcs = Config.getMasterCandidates cfg
                            live = liveJobFile qDir jid
                            archive = archivedJobFile qDir jid
-                       renameResult <- try $ renameFile live archive
-                                       :: IO (Either IOError ())
+                       renameResult <- safeRenameFile live archive
                        putMVar qlock ()
                        case renameResult of
-                         Left e -> return . Bad . JobQueueError
-                                     $ "Archiving failed in an unexpected way: "
-                                         ++ show e
-                         Right () -> do
+                         Bad s -> return . Bad . JobQueueError
+                                    $ "Archiving failed in an unexpected way: "
+                                        ++ s
+                         Ok () -> do
                            _ <- executeRpcCall mcs
                                   $ RpcCallJobqueueRename [(live, archive)]
                            return . Ok $ showJSON True
