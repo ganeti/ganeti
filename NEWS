@@ -205,7 +205,7 @@ Version 2.8.4
 - Fix RAPI network tag handling
 - Add the network tags to the tags searched by gnt-cluster search-tags
 - Fix caching bug preventing jobs from being cancelled
-- Start-master/stop-master was always failing of ConfD was disabled. (Issue 685)
+- Start-master/stop-master was always failing if ConfD was disabled. (Issue 685)
 
 
 Version 2.8.3
