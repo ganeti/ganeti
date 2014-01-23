@@ -359,6 +359,17 @@ handleCall qlock _ cfg (ArchiveJob jid) = do
                            return . Ok $ showJSON True
                      else archiveFailed
 
+handleCall qlock _ cfg (AutoArchiveJobs age timeout) = do
+  qDir <- queueDir
+  eitherJids <- getJobIDs [qDir]
+  case eitherJids of
+    Left s -> return . Bad . JobQueueError $ show s
+    Right jids -> do
+      result <- bracket_ (takeMVar qlock) (putMVar qlock ())
+                  . archiveJobs cfg age timeout
+                  $ sortJobIDs jids
+      return . Ok $ showJSON result
+
 handleCall _ _ _ op =
   return . Bad $
     GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")
