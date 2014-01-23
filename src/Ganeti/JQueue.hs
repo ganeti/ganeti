@@ -41,6 +41,7 @@ module Ganeti.JQueue
     , calcJobStatus
     , jobStarted
     , jobFinalized
+    , jobArchivable
     , calcJobPriority
     , jobFileName
     , liveJobFile
@@ -60,6 +61,7 @@ module Ganeti.JQueue
     , cancelJob
     ) where
 
+import Control.Applicative (liftA2, (<|>))
 import Control.Arrow (second)
 import Control.Concurrent.MVar
 import Control.Exception
@@ -271,6 +273,13 @@ jobStarted = (> JOB_STATUS_QUEUED) . calcJobStatus
 -- | Determine if a job is finalised.
 jobFinalized :: QueuedJob -> Bool
 jobFinalized = (> JOB_STATUS_RUNNING) . calcJobStatus
+
+-- | Determine if a job is finalized and its timestamp is before
+-- a given time.
+jobArchivable :: Timestamp -> QueuedJob -> Bool
+jobArchivable ts = liftA2 (&&) jobFinalized 
+  $ maybe False (< ts)
+    .  liftA2 (<|>) qjEndTimestamp qjStartTimestamp
 
 -- | Determine whether an opcode status is finalized.
 opStatusFinalized :: OpStatus -> Bool
