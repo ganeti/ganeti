@@ -357,7 +357,7 @@ handleCall qlock _ cfg (ArchiveJob jid) = do
                          Right () -> do
                            _ <- executeRpcCall mcs
                                   $ RpcCallJobqueueRename [(live, archive)]
-                          return . Ok $ showJSON True
+                           return . Ok $ showJSON True
                      else archiveFailed
 
 handleCall _ _ _ op =
