@@ -56,6 +56,7 @@ module Ganeti.BasicTypes
   ) where
 
 import Control.Applicative
+import Control.Exception (try)
 import Control.Monad
 import Control.Monad.Error.Class
 import Control.Monad.Trans
@@ -157,8 +158,18 @@ instance (Monad m, Error a) => MonadError a (ResultT a m) where
 instance MonadTrans (ResultT a) where
   lift = ResultT . liftM Ok
 
+-- | The instance catches any 'IOError' using 'try' and converts it into an
+-- error message using 'strMsg'.
+--
+-- This way, monadic code within 'ResultT' that uses solely 'liftIO' to
+-- include 'IO' actions ensures that all IO exceptions are handled.
+--
+-- Other exceptions (see instances of 'Exception') are not currently handled.
+-- This might be revised in the future.
 instance (MonadIO m, Error a) => MonadIO (ResultT a m) where
-  liftIO = lift . liftIO
+  liftIO = ResultT . liftIO
+                   . liftM (either (failError . show) return)
+                   . (try :: IO a -> IO (Either IOError a))
 
 instance (Monad m, Error a, Monoid a) => MonadPlus (ResultT a m) where
   mzero = ResultT $ return mzero
