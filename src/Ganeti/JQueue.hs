@@ -36,6 +36,7 @@ module Ganeti.JQueue
     , fromClockTime
     , noTimestamp
     , currentTimestamp
+    , advanceTimestamp
     , setReceivedTimestamp
     , opStatusFinalized
     , extractOpSummary
@@ -63,7 +64,7 @@ module Ganeti.JQueue
     ) where
 
 import Control.Applicative (liftA2, (<|>))
-import Control.Arrow (second)
+import Control.Arrow (first, second)
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
@@ -116,6 +117,11 @@ fromClockTime (TOD ctime pico) =
 -- | Get the current time in the job-queue timestamp format.
 currentTimestamp :: IO Timestamp
 currentTimestamp = fromClockTime `liftM` getClockTime
+
+-- | From a given timestamp, obtain the timestamp of the
+-- time that is the given number of seconds later.
+advanceTimestamp :: Int -> Timestamp -> Timestamp
+advanceTimestamp = first . (+)
 
 -- | An input opcode.
 data InputOpCode = ValidOpCode MetaOpCode -- ^ OpCode was parsed successfully
