@@ -621,11 +621,16 @@ instance RpcCall RpcCallJobqueueRename where
   rpcCallData _ call     = J.encode [ rpcCallJobqueueRenameRename call ]
 
 instance Rpc RpcCallJobqueueRename RpcResultJobqueueRename where
-  rpcResultFill _ res =
-    case res of
-      J.JSNull -> Right RpcResultJobqueueRename
-      _ -> Left $ JsonDecodeError
-           ("Expected JSNull, got " ++ show (pp_value res))
+  rpcResultFill call res =
+    -- Upon success, the RPC returns the list of return values of
+    -- the rename operations, which is always None, serialized to
+    -- null in JSON.
+    let expected = J.showJSON . map (const J.JSNull)
+                     $ rpcCallJobqueueRenameRename call
+    in if res == expected
+      then Right RpcResultJobqueueRename
+      else Left
+             $ JsonDecodeError ("Expected JSNull, got " ++ show (pp_value res))
 
 -- ** Watcher Status Update
       
