@@ -306,7 +306,8 @@ disk\_type
     instance. The possible options are:
 
     - ioemu [default] (HVM & KVM)
-    - ide (HVM & KVM)
+    - paravirtual (HVM & KVM)
+    - ide (KVM)
     - scsi (KVM)
     - sd (KVM)
     - mtd (KVM)
