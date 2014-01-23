@@ -766,7 +766,7 @@ RENEW-CRYPTO
 ~~~~~~~~~~~~
 
 | **renew-crypto** [-f]
-| [\--new-cluster-certificate] | [\--new-node-certificates]
+| [\--new-cluster-certificate]
 | [\--new-confd-hmac-key]
 | [\--new-rapi-certificate] [\--rapi-certificate *rapi-cert*]
 | [\--new-spice-certificate | \--spice-certificate *spice-cert*
@@ -778,11 +778,6 @@ them again once the new certificates and keys are replicated. The
 options ``--new-cluster-certificate`` and ``--new-confd-hmac-key``
 can be used to regenerate respectively the cluster-internal SSL
 certificate and the HMAC key used by **ganeti-confd**\(8).
-
-The option ``--new-node-certificates`` will generate new node SSL
-certificates for all nodes. Note that the regeneration of the node
-certificates takes place after the other certificates are created
-and distributed and the ganeti daemons are restarted again.
 
 To generate a new self-signed RAPI certificate (used by
 **ganeti-rapi**\(8)) specify ``--new-rapi-certificate``. If you want to
