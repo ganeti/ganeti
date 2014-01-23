@@ -33,6 +33,7 @@ module Ganeti.JQueue
     , queuedJobFromOpCodes
     , cancelQueuedJob
     , Timestamp
+    , fromClockTime
     , noTimestamp
     , currentTimestamp
     , setReceivedTimestamp
@@ -107,11 +108,14 @@ type Timestamp = (Int, Int)
 noTimestamp :: Timestamp
 noTimestamp = (-1, -1)
 
+-- | Obtain a Timestamp from a given clock time
+fromClockTime :: ClockTime -> Timestamp
+fromClockTime (TOD ctime pico) =
+  (fromIntegral ctime, fromIntegral $ pico `div` 1000000)
+
 -- | Get the current time in the job-queue timestamp format.
 currentTimestamp :: IO Timestamp
-currentTimestamp = do
-  TOD ctime pico <- getClockTime
-  return (fromIntegral ctime, fromIntegral $ pico `div` 1000000)
+currentTimestamp = fromClockTime `liftM` getClockTime
 
 -- | An input opcode.
 data InputOpCode = ValidOpCode MetaOpCode -- ^ OpCode was parsed successfully
