@@ -476,6 +476,21 @@ complex expression; this usually means the expression is too complex, however.
 
 Similarly, provide Haddock-style comments for top-level definitions.
 
+Use sum types instead of exceptions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Exceptions make it hard to write functional code, as alternative
+control flows need to be considered and compiler support is limited.
+Therefore, Ganeti functions should never allow exceptions to escape.
+Function that can fail should report failure by returning an appropriate
+sum type (``Either`` or one of its glorified variants like ``Maybe`` or
+``Result``); the preferred sum type for reporting errors is ``Result``.
+
+As other Ganeti functions also follow these guide lines, they can safely
+be composed. However, be careful when using functions from other libraries;
+if they can raise exceptions, catch them, preferably as close to their
+origin as reasonably possible.
+
 Parentheses, point free style
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
