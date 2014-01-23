@@ -180,6 +180,22 @@ This was the first beta release of the 2.9 series. All important changes
 are listed in the latest 2.9 entry.
 
 
+Version 2.8.4
+-------------
+
+*(Released Thu, 23 Jan 2014)*
+
+- Change the list separator for the usb_devices parameter from comma to space.
+  Commas could not work because they are already the hypervisor option
+  separator (Issue 649)
+- Add support for blktap2 file-driver (Issue 638)
+- Add network tag definitions to the haskell codebase (Issue 641)
+- Fix RAPI network tag handling
+- Add the network tags to the tags searched by gnt-cluster search-tags
+- Fix caching bug preventing jobs from being cancelled
+- Start-master/stop-master was always failing of ConfD was disabled. (Issue 685)
+
+
 Version 2.8.3
 -------------
 

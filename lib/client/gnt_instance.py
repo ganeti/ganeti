@@ -1317,6 +1317,7 @@ def SetInstanceParams(opts, args):
 
   utils.ForceDictType(opts.hvparams, constants.HVS_PARAMETER_TYPES,
                       allowed_values=[constants.VALUE_DEFAULT])
+  FixHvParams(opts.hvparams)
 
   nics = _ConvertNicDiskModifications(opts.nics)
   disks = _ParseDiskSizes(_ConvertNicDiskModifications(opts.disks))

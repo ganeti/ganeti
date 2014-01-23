@@ -338,6 +338,14 @@ vnc\_bind\_address
     or specify the address of one of the interfaces on the node to
     restrict listening to that interface.
 
+vnc\_password\_file
+    Valid for the Xen HVM and KVM hypervisors.
+
+    Specifies the location of the file containing the password for
+    connections using VNC. The default is a file named
+    vnc-cluster-password which can be found in the configuration
+    directory.
+
 vnc\_tls
     Valid for the KVM hypervisor.
 
@@ -727,10 +735,13 @@ soundhw
 usb\_devices
     Valid for the KVM hypervisor.
 
-    Comma separated list of usb devices. These can be emulated devices
+    Space separated list of usb devices. These can be emulated devices
     or passthrough ones, and each one gets passed to kvm with its own
     ``-usbdevice`` option. See the **qemu**\(1) manpage for the syntax
-    of the possible components.
+    of the possible components. Note that values set with this
+    parameter are split on a space character and currently don't support
+    quoting. For backwards compatibility reasons, the RAPI interface keeps
+    accepting comma separated lists too.
 
 vga
     Valid for the KVM hypervisor.
