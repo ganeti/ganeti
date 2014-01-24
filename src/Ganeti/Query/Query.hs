@@ -56,7 +56,7 @@ module Ganeti.Query.Query
     ) where
 
 import Control.DeepSeq
-import Control.Monad (filterM, foldM)
+import Control.Monad (filterM, foldM, unless)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import qualified Data.Foldable as Foldable
@@ -223,22 +223,16 @@ query :: ConfigData   -- ^ The current configuration
       -> IO (ErrorResult QueryResult) -- ^ Result
 query cfg live (Query (ItemTypeLuxi QRJob) fields qfilter) =
   queryJobs cfg live fields qfilter
-query _ live (Query (ItemTypeLuxi QRLock) fields qfilter) =
-  if not live
-    then return . Bad $ GenericError "Locks can only be queried live"
-    else do
-      socketpath <- defaultMasterSocket
-      logDebug $ "Forwarding live query on locks for " ++ show fields
-                   ++ ", " ++ show qfilter ++ " to " ++ socketpath
-      cl <- L.getLuxiClient socketpath
-      answer <- L.callMethod (L.Query (ItemTypeLuxi QRLock) fields qfilter) cl
-      return
-        . genericResult Bad
-            (either (Bad . GenericError
-                       . (++) "Got unparsable answer from masterd: ")
-               Ok
-             . J.resultToEither . J.readJSON)
-        $ answer
+query _ live (Query (ItemTypeLuxi QRLock) fields qfilter) = runResultT $ do
+  unless live (failError "Locks can only be queried live")
+  cl <- liftIO $ do
+    socketpath <- liftIO defaultMasterSocket
+    logDebug $ "Forwarding live query on locks for " ++ show fields
+                 ++ ", " ++ show qfilter ++ " to " ++ socketpath
+    liftIO $ L.getLuxiClient socketpath
+  answer <- ResultT $ L.callMethod (L.Query (ItemTypeLuxi QRLock)
+                                            fields qfilter) cl
+  fromJResultE "Got unparsable answer from masterd: " $ J.readJSON answer
 
 query cfg live qry = queryInner cfg live qry $ getRequestedNames qry
 
