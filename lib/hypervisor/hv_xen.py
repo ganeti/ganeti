@@ -585,8 +585,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """Start an instance.
 
     """
-    startup_memory = self._InstanceStartupMemory(instance,
-                                                 hvparams=instance.hvparams)
+    startup_memory = self._InstanceStartupMemory(instance)
 
     self._MakeConfigFile(instance, startup_memory, block_devices)
 
