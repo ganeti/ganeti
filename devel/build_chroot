@@ -270,7 +270,8 @@ case $DIST_RELEASE in
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
-      shelltestrunner python-dev pylint openssh-client vim git git-email
+      shelltestrunner python-dev pylint openssh-client vim git git-email \
+      build-essential
 
 ;;
 esac
