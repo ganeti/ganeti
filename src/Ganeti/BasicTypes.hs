@@ -29,7 +29,7 @@ module Ganeti.BasicTypes
   , mkResultT
   , withError
   , withErrorT
-  , resultT
+  , toError
   , toErrorStr
   , Error(..) -- re-export from Control.Monad.Error
   , isOk
@@ -186,9 +186,9 @@ withErrorT f = ResultT . liftM (withError f) . runResultT
 -- | Lift a 'Result' value to any 'MonadError'. Since 'ResultT' is itself its
 -- instance, it's a generalization of
 -- @Monad m => GenericResult a b -> ResultT a m b@.
-resultT :: (MonadError e m) => GenericResult e a -> m a
-resultT = genericResult throwError return
-{-# INLINE resultT #-}
+toError :: (MonadError e m) => GenericResult e a -> m a
+toError = genericResult throwError return
+{-# INLINE toError #-}
 
 -- | An alias for @withError strMsg@, which is often used to lift a pure error
 -- to a monad stack. See also 'annotateResult'.

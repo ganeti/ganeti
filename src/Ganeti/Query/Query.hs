@@ -193,17 +193,17 @@ genericQuery :: FieldMap a b       -- ^ Maps field names to field definitions
 genericQuery fieldsMap collector nameFn configFn getFn cfg
              live fields qfilter wanted =
   runResultT $ do
-  cfilter <- resultT $ compileFilter fieldsMap qfilter
+  cfilter <- toError $ compileFilter fieldsMap qfilter
   let selected = getSelectedFields fieldsMap fields
       (fdefs, fgetters, _) = unzip3 selected
       live' = live && needsLiveData fgetters
-  objects <- resultT $ case wanted of
+  objects <- toError $ case wanted of
              [] -> Ok . niceSortKey nameFn .
                    Map.elems . fromContainer $ configFn cfg
              _  -> mapM (getFn cfg) wanted
   -- Run the first pass of the filter, without a runtime context; this will
   -- limit the objects that we'll contact for exports
-  fobjects <- resultT $ filterM (\n -> evaluateFilter cfg Nothing n cfilter)
+  fobjects <- toError $ filterM (\n -> evaluateFilter cfg Nothing n cfilter)
                         objects
   -- Gather the runtime data
   runtimes <- case collector of
@@ -291,7 +291,7 @@ queryJobs cfg live fields qfilter =
   let wanted_names = getRequestedJobIDs qfilter
       want_arch = Query.Job.wantArchived fields
   rjids <- case wanted_names of
-             Bad msg -> resultT . Bad $ GenericError msg
+             Bad msg -> toError . Bad $ GenericError msg
              Ok [] -> if live
                         -- we can check the filesystem for actual jobs
                         then do
@@ -299,13 +299,13 @@ queryJobs cfg live fields qfilter =
                             lift (determineJobDirectories rootdir want_arch
                               >>= getJobIDs)
                           case maybeJobIDs of
-                            Left e -> (resultT . Bad) . BlockDeviceError $
+                            Left e -> (toError . Bad) . BlockDeviceError $
                               "Unable to fetch the job list: " ++ show e
-                            Right jobIDs -> resultT . Ok $ sortJobIDs jobIDs
+                            Right jobIDs -> toError . Ok $ sortJobIDs jobIDs
                         -- else we shouldn't look at the filesystem...
                         else return []
-             Ok v -> resultT $ Ok v
-  cfilter <- resultT $ compileFilter Query.Job.fieldsMap qfilter
+             Ok v -> toError $ Ok v
+  cfilter <- toError $ compileFilter Query.Job.fieldsMap qfilter
   let selected = getSelectedFields Query.Job.fieldsMap fields
       (fdefs, fgetters, _) = unzip3 selected
       (_, filtergetters, _) = unzip3 . getSelectedFields Query.Job.fieldsMap
@@ -314,7 +314,7 @@ queryJobs cfg live fields qfilter =
       disabled_data = Bad "live data disabled"
   -- runs first pass of the filter, without a runtime context; this
   -- will limit the jobs that we'll load from disk
-  jids <- resultT $
+  jids <- toError $
           filterM (\jid -> evaluateFilter cfg Nothing jid cfilter) rjids
   -- here we run the runtime data gathering, filtering and evaluation,
   -- all in the same step, so that we don't keep jobs in memory longer
@@ -327,7 +327,7 @@ queryJobs cfg live fields qfilter =
               job <- lift $ if live'
                               then loadJobFromDisk qdir True jid
                               else return disabled_data
-              pass <- resultT $ evaluateFilter cfg (Just job) jid cfilter
+              pass <- toError $ evaluateFilter cfg (Just job) jid cfilter
               let nlst = if pass
                            then let row = map (execGetter cfg job jid) fgetters
                                 in rnf row `seq` row:lst
