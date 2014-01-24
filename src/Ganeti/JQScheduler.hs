@@ -268,7 +268,7 @@ readJobsFromDisk = do
   logInfo "Loading job queue"
   qdir <- queueDir
   eitherJids <- JQ.getJobIDs [qdir]
-  let jids = either (const []) JQ.sortJobIDs eitherJids
+  let jids = genericResult (const []) JQ.sortJobIDs eitherJids
       jidsstring = commaJoin $ map (show . fromJobId) jids
   logInfo $ "Non-archived jobs on disk: " ++ jidsstring
   jobs <- mapM readJobFromDisk jids

@@ -361,10 +361,10 @@ handleCall qlock _ cfg (ArchiveJob jid) = do
 
 handleCall qlock _ cfg (AutoArchiveJobs age timeout) = do
   qDir <- queueDir
-  eitherJids <- getJobIDs [qDir]
-  case eitherJids of
-    Left s -> return . Bad . JobQueueError $ show s
-    Right jids -> do
+  resultJids <- getJobIDs [qDir]
+  case resultJids of
+    Bad s -> return . Bad . JobQueueError $ show s
+    Ok jids -> do
       result <- bracket_ (takeMVar qlock) (putMVar qlock ())
                   . archiveJobs cfg age timeout
                   $ sortJobIDs jids

@@ -176,15 +176,8 @@ case_JobStatusPri_py_equiv = do
 -- | Tests listing of Job ids.
 prop_ListJobIDs :: Property
 prop_ListJobIDs = monadicIO $ do
-  let extractJobIDs jIDs = do
-        either_jobs <- jIDs
-        case either_jobs of
-          Right j -> return j
-          Left e -> fail $ show e
-      isLeft e =
-        case e of
-          Left _ -> True
-          _ -> False
+  let extractJobIDs :: (Show e, Monad m) => m (GenericResult e a) -> m a
+      extractJobIDs = (>>= genericResult (fail . show) return)
   jobs <- pick $ resize 10 (listOf1 genJobId `suchThat` (\l -> l == nub l))
   (e, f, g) <-
     run . withSystemTempDirectory "jqueue-test." $ \tempdir -> do
@@ -196,7 +189,7 @@ prop_ListJobIDs = monadicIO $ do
   stop $ conjoin [ printTestCase "empty directory" $ e ==? []
                  , printTestCase "directory with valid names" $
                    f ==? sortJobIDs jobs
-                 , printTestCase "invalid directory" $ isLeft g
+                 , printTestCase "invalid directory" $ isBad g
                  ]
 
 -- | Tests loading jobs from disk.

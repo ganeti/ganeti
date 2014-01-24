@@ -299,9 +299,9 @@ queryJobs cfg live fields qfilter =
                             lift (determineJobDirectories rootdir want_arch
                               >>= getJobIDs)
                           case maybeJobIDs of
-                            Left e -> (toError . Bad) . BlockDeviceError $
+                            Bad e -> (toError . Bad) . BlockDeviceError $
                               "Unable to fetch the job list: " ++ show e
-                            Right jobIDs -> toError . Ok $ sortJobIDs jobIDs
+                            Ok jobIDs -> toError . Ok $ sortJobIDs jobIDs
                         -- else we shouldn't look at the filesystem...
                         else return []
              Ok v -> toError $ Ok v
