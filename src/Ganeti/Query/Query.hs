@@ -57,6 +57,7 @@ module Ganeti.Query.Query
 
 import Control.DeepSeq
 import Control.Monad (filterM, foldM)
+import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import qualified Data.Foldable as Foldable
 import Data.List (intercalate)
@@ -285,26 +286,20 @@ queryJobs :: ConfigData                   -- ^ The current configuration
           -> [FilterField]                -- ^ Item
           -> Filter FilterField           -- ^ Filter
           -> IO (ErrorResult QueryResult) -- ^ Result
-queryJobs cfg live fields qfilter =
-  runResultT $ do
+queryJobs cfg live fields qfilter = runResultT $ do
   rootdir <- lift queueDir
-  let wanted_names = getRequestedJobIDs qfilter
-      want_arch = Query.Job.wantArchived fields
+  wanted_names <- toErrorStr $ getRequestedJobIDs qfilter
   rjids <- case wanted_names of
-             Bad msg -> toError . Bad $ GenericError msg
-             Ok [] -> if live
-                        -- we can check the filesystem for actual jobs
-                        then do
-                          maybeJobIDs <-
-                            lift (determineJobDirectories rootdir want_arch
-                              >>= getJobIDs)
-                          case maybeJobIDs of
-                            Bad e -> (toError . Bad) . BlockDeviceError $
-                              "Unable to fetch the job list: " ++ show e
-                            Ok jobIDs -> toError . Ok $ sortJobIDs jobIDs
-                        -- else we shouldn't look at the filesystem...
-                        else return []
-             Ok v -> toError $ Ok v
+       [] | live -> do -- we can check the filesystem for actual jobs
+              let want_arch = Query.Job.wantArchived fields
+              jobIDs <-
+                withErrorT (BlockDeviceError .
+                            (++) "Unable to fetch the job list: " . show) $
+                  liftIO (determineJobDirectories rootdir want_arch)
+                  >>= ResultT . getJobIDs
+              return $ sortJobIDs jobIDs
+              -- else we shouldn't look at the filesystem...
+       v -> return v
   cfilter <- toError $ compileFilter Query.Job.fieldsMap qfilter
   let selected = getSelectedFields Query.Job.fieldsMap fields
       (fdefs, fgetters, _) = unzip3 selected
