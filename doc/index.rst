@@ -71,8 +71,8 @@ in this section.
 A description of the locking strategy and, in particular, lock order
 dependencies is presented in :doc:`locking`.
 
-Build dependencies and other useful development-related information are provided
-in the :doc:`devnotes`.
+Build dependencies and other useful development-related information
+are provided in the :doc:`devnotes`.
 
 All the features implemented in Ganeti are described in a design document before
 being actually implemented. Designs can be implemented in a released version, or
@@ -108,12 +108,14 @@ Draft designs
 
    admin.rst
    cluster-merge.rst
+   cluster-keys-replacement.rst
    design-autorepair.rst
    design-bulk-create.rst
    design-chained-jobs.rst
    design-cmdlib-unittests.rst
    design-cpu-pinning.rst
    design-device-uuid-name.rst
+   design-file-based-storage.rst
    design-hroller.rst
    design-hotplug.rst
    design-linuxha.rst

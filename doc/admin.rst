@@ -1340,6 +1340,13 @@ SSH changes and log directories:
 Otherwise, if you plan to re-create the cluster, you can just go ahead
 and rerun ``gnt-cluster init``.
 
+Replacing the SSH and SSL keys
+++++++++++++++++++++++++++++++
+
+Ganeti uses both SSL and SSH keys, and actively modifies the SSH keys on
+the nodes.  As result, in order to replace these keys, a few extra steps
+need to be followed: :doc:`cluster-keys-replacement`
+
 Monitoring the cluster
 ----------------------
 

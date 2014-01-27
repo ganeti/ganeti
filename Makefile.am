@@ -487,6 +487,7 @@ utils_PYTHON = \
 
 docinput = \
 	doc/admin.rst \
+	doc/cluster-keys-replacement.rst \
 	doc/cluster-merge.rst \
 	doc/conf.py \
 	doc/css/style.css \
@@ -510,6 +511,7 @@ docinput = \
 	doc/design-daemons.rst \
 	doc/design-device-uuid-name.rst \
 	doc/design-draft.rst \
+	doc/design-file-based-storage.rst \
 	doc/design-glusterfs-ganeti-support.rst \
 	doc/design-hotplug.rst \
 	doc/design-hroller.rst \
