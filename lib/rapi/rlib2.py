@@ -886,6 +886,27 @@ class R_2_groups_name_assign_nodes(baserlib.OpcodeResource):
       })
 
 
+def _ConvertUsbDevices(data):
+  """Convert in place the usb_devices string to the proper format.
+
+  In Ganeti 2.8.4 the separator for the usb_devices hvparam was changed from
+  comma to space because commas cannot be accepted on the command line
+  (they already act as the separator between different hvparams). RAPI
+  should be able to accept commas for backwards compatibility, but we want
+  it to also accept the new space separator. Therefore, we convert
+  spaces into commas here and keep the old parsing logic elsewhere.
+
+  """
+  try:
+    hvparams = data["hvparams"]
+    usb_devices = hvparams[constants.HV_USB_DEVICES]
+    hvparams[constants.HV_USB_DEVICES] = usb_devices.replace(" ", ",")
+    data["hvparams"] = hvparams
+  except KeyError:
+    #No usb_devices, no modification required
+    pass
+
+
 class R_2_instances(baserlib.OpcodeResource):
   """/2/instances resource.
 
@@ -934,6 +955,8 @@ class R_2_instances(baserlib.OpcodeResource):
     data = self.request_body.copy()
     # Remove "__version__"
     data.pop(_REQ_DATA_VERSION, None)
+
+    _ConvertUsbDevices(data)
 
     return (data, {
       "dry_run": self.dryRun(),
@@ -1328,7 +1351,10 @@ class R_2_instances_name_modify(baserlib.OpcodeResource):
     """Changes parameters of an instance.
 
     """
-    return (self.request_body, {
+    data = self.request_body.copy()
+    _ConvertUsbDevices(data)
+
+    return (data, {
       "instance_name": self.items[0],
       })
 
@@ -1501,7 +1527,8 @@ class _R_Tags(baserlib.OpcodeResource):
 
     if kind in (constants.TAG_INSTANCE,
                 constants.TAG_NODEGROUP,
-                constants.TAG_NODE):
+                constants.TAG_NODE,
+                constants.TAG_NETWORK):
       if not self.name:
         raise http.HttpBadRequest("Missing name on tag request")
 
@@ -1513,6 +1540,9 @@ class _R_Tags(baserlib.OpcodeResource):
       # TODO: Use query API?
       ssc = ssconf.SimpleStore()
       tags = ssc.GetClusterTags()
+
+    else:
+      raise http.HttpBadRequest("Unhandled tag type!")
 
     return list(tags)
 

@@ -38,6 +38,7 @@ _KIND_TO_COMMAND = {
   constants.TAG_NODE: "gnt-node",
   constants.TAG_INSTANCE: "gnt-instance",
   constants.TAG_NODEGROUP: "gnt-group",
+  constants.TAG_NETWORK: "gnt-network",
   }
 
 
@@ -83,3 +84,8 @@ def TestGroupTags(group):
 def TestInstanceTags(instance):
   """gnt-instance tags"""
   _TestTags(constants.TAG_INSTANCE, instance.name)
+
+
+def TestNetworkTags(network):
+  """gnt-network tags"""
+  _TestTags(constants.TAG_NETWORK, network)

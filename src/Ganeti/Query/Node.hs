@@ -200,7 +200,7 @@ nodeFields =
      FieldSimple (rsNormal . nodeSecondaryIp), QffNormal)
   , (FieldDefinition "master" "IsMaster" QFTBool "Whether node is master",
      FieldConfig (\cfg node ->
-                    rsNormal (nodeName node ==
+                    rsNormal (nodeUuid node ==
                               clusterMasterNode (configCluster cfg))),
      QffNormal)
   , (FieldDefinition "group" "Group" QFTText "Node group",

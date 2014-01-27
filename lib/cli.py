@@ -288,6 +288,7 @@ __all__ = [
   "OPT_COMPL_ONE_OS",
   "OPT_COMPL_ONE_EXTSTORAGE",
   "cli_option",
+  "FixHvParams",
   "SplitNodeOption",
   "CalculateOSNames",
   "ParseFields",
@@ -2618,6 +2619,21 @@ def ParseNicOption(optvalue):
   return nics
 
 
+def FixHvParams(hvparams):
+  # In Ganeti 2.8.4 the separator for the usb_devices hvparam was changed from
+  # comma to space because commas cannot be accepted on the command line
+  # (they already act as the separator between different hvparams). Still,
+  # RAPI should be able to accept commas for backwards compatibility.
+  # Therefore, we convert spaces into commas here, and we keep the old
+  # parsing logic everywhere else.
+  try:
+    new_usb_devices = hvparams[constants.HV_USB_DEVICES].replace(" ", ",")
+    hvparams[constants.HV_USB_DEVICES] = new_usb_devices
+  except KeyError:
+    #No usb_devices, no modification required
+    pass
+
+
 def GenericInstanceCreate(mode, opts, args):
   """Add an instance to the cluster via either creation or import.
 
@@ -2710,6 +2726,7 @@ def GenericInstanceCreate(mode, opts, args):
 
   utils.ForceDictType(opts.beparams, constants.BES_PARAMETER_COMPAT)
   utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
+  FixHvParams(hvparams)
 
   if mode == constants.INSTANCE_CREATE:
     start = opts.start

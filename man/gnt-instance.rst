@@ -37,11 +37,12 @@ ADD
 | [{-B|\--backend-parameters} *BEPARAMS*]
 | [{-H|\--hypervisor-parameters} *HYPERVISOR* [: option=*value*... ]]
 | [{-O|\--os-parameters} *param*=*value*... ]
-| [\--file-storage-dir *dir\_path*] [\--file-driver {loop \| blktap}]
+| [\--file-storage-dir *dir\_path*] [\--file-driver {loop \| blktap \| blktap2}]
 | {{-n|\--node} *node[:secondary-node]* \| {-I|\--iallocator} *name*}
 | {{-o|\--os-type} *os-type*}
 | [\--submit] [\--print-job-id]
 | [\--ignore-ipolicy]
+| [\--no-wait-for-sync]
 | {*instance*}
 
 Creates a new instance on the specified host. The *instance* argument
@@ -314,7 +315,8 @@ disk\_type
     instance. The possible options are:
 
     - ioemu [default] (HVM & KVM)
-    - ide (HVM & KVM)
+    - paravirtual (HVM & KVM)
+    - ide (KVM)
     - scsi (KVM)
     - sd (KVM)
     - mtd (KVM)
@@ -344,6 +346,14 @@ vnc\_bind\_address
     0.0.0.0 to bind to all available interfaces (this is the default)
     or specify the address of one of the interfaces on the node to
     restrict listening to that interface.
+
+vnc\_password\_file
+    Valid for the Xen HVM and KVM hypervisors.
+
+    Specifies the location of the file containing the password for
+    connections using VNC. The default is a file named
+    vnc-cluster-password which can be found in the configuration
+    directory.
 
 vnc\_tls
     Valid for the KVM hypervisor.
@@ -747,10 +757,13 @@ cpuid
 usb\_devices
     Valid for the KVM hypervisor.
 
-    Comma separated list of usb devices. These can be emulated devices
+    Space separated list of usb devices. These can be emulated devices
     or passthrough ones, and each one gets passed to kvm with its own
     ``-usbdevice`` option. See the **qemu**\(1) manpage for the syntax
-    of the possible components.
+    of the possible components. Note that values set with this
+    parameter are split on a space character and currently don't support
+    quoting. For backwards compatibility reasons, the RAPI interface keeps
+    accepting comma separated lists too.
 
 vga
     Valid for the KVM hypervisor.
@@ -869,6 +882,9 @@ blktap
     xend).  This user-level disk I/O interface has the advantage of
     better performance. Especially if you use a network file system
     (e.g. NFS) to store your instances this is the recommended choice.
+
+blktap2
+    Analogous to the blktap driver, but used by newer versions of Xen.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.

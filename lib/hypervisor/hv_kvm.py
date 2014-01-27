@@ -462,7 +462,6 @@ class QmpConnection(MonitorSocket):
   _RETURN_KEY = RETURN_KEY = "return"
   _ACTUAL_KEY = ACTUAL_KEY = "actual"
   _ERROR_CLASS_KEY = "class"
-  _ERROR_DATA_KEY = "data"
   _ERROR_DESC_KEY = "desc"
   _EXECUTE_KEY = "execute"
   _ARGUMENTS_KEY = "arguments"
@@ -606,11 +605,10 @@ class QmpConnection(MonitorSocket):
       err = response[self._ERROR_KEY]
       if err:
         raise errors.HypervisorError("kvm: error executing the %s"
-                                     " command: %s (%s, %s):" %
+                                     " command: %s (%s):" %
                                      (command,
                                       err[self._ERROR_DESC_KEY],
-                                      err[self._ERROR_CLASS_KEY],
-                                      err[self._ERROR_DATA_KEY]))
+                                      err[self._ERROR_CLASS_KEY]))
 
       elif not response[self._EVENT_KEY]:
         return response
