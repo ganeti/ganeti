@@ -72,6 +72,7 @@ module Ganeti.Utils
   , needsReload
   , watchFile
   , safeRenameFile
+  , FilePermissions(..)
   ) where
 
 import Control.Concurrent
@@ -638,7 +639,16 @@ watchFile fpath timeout old read_fn = do
       result <- watchFileEx endtime fstat ref old read_fn
       killINotify inotify
       return result
-  
+
+-- | Type describing ownership and permissions of newly generated
+-- directories and files. All parameters are optional, with nothing
+-- meaning that the default value should be left untouched.
+
+data FilePermissions = FilePermissions { fpOwner :: Maybe String
+                                       , fpGroup :: Maybe String
+                                       , fpPermissions :: FileMode
+                                       }
+
 -- | Safely rename a file, creating the target directory, if needed.
 safeRenameFile :: FilePath -> FilePath -> IO (Result ())
 safeRenameFile from to = do
