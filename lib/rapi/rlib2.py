@@ -989,7 +989,8 @@ class R_2_instances_multi_alloc(baserlib.OpcodeResource):
 
     body = objects.FillDict(self.request_body, {
       "instances": [
-        baserlib.FillOpcode(opcodes.OpInstanceCreate, inst, {}, OPCODE_RENAME)
+        baserlib.FillOpcode(opcodes.OpInstanceCreate, inst, {},
+                            rename=OPCODE_RENAME)
         for inst in self.request_body["instances"]
         ],
       })

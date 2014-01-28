@@ -27,6 +27,7 @@ import tempfile
 import random
 import re
 import itertools
+import functools
 
 from ganeti import utils
 from ganeti import constants
@@ -620,6 +621,76 @@ def TestRapiInstanceAdd(node, use_client):
   except:
     instance.Release()
     raise
+
+
+def _GenInstanceAllocationDict(node, instance):
+  """Creates an instance allocation dict to be used with the RAPI"""
+  instance.SetDiskTemplate(constants.DT_PLAIN)
+
+  disks = [{"size": utils.ParseUnit(d.get("size")),
+              "name": str(d.get("name"))}
+             for d in qa_config.GetDiskOptions()]
+
+  nic0_mac = instance.GetNicMacAddr(0, constants.VALUE_GENERATE)
+  nics = [{
+    constants.INIC_MAC: nic0_mac,
+    }]
+
+  beparams = {
+    constants.BE_MAXMEM: utils.ParseUnit(qa_config.get(constants.BE_MAXMEM)),
+    constants.BE_MINMEM: utils.ParseUnit(qa_config.get(constants.BE_MINMEM)),
+    }
+
+  return _rapi_client.InstanceAllocation(constants.INSTANCE_CREATE,
+                                         instance.name,
+                                         constants.DT_PLAIN,
+                                         disks, nics,
+                                         os=qa_config.get("os"),
+                                         pnode=node.primary,
+                                         beparams=beparams)
+
+
+def TestRapiInstanceMultiAlloc(node):
+  """Test adding two new instances via the RAPI instance-multi-alloc method"""
+  if not qa_config.IsTemplateSupported(constants.DT_PLAIN):
+    return
+
+  JOBS_KEY = "jobs"
+
+  instance_one = qa_config.AcquireInstance()
+  instance_two = qa_config.AcquireInstance()
+  instance_list = [instance_one, instance_two]
+  try:
+    rapi_dicts = map(functools.partial(_GenInstanceAllocationDict, node),
+                     instance_list)
+
+    job_id = _rapi_client.InstancesMultiAlloc(rapi_dicts)
+
+    results, = _WaitForRapiJob(job_id)
+
+    if JOBS_KEY not in results:
+      raise qa_error.Error("RAPI instance-multi-alloc did not deliver "
+                           "information about created jobs")
+
+    if len(results[JOBS_KEY]) != len(instance_list):
+      raise qa_error.Error("RAPI instance-multi-alloc failed to return the "
+                           "desired number of jobs!")
+
+    for success, job in results[JOBS_KEY]:
+      if success:
+        _WaitForRapiJob(job)
+      else:
+        raise qa_error.Error("Failed to create instance in "
+                             "instance-multi-alloc call")
+  except:
+    # Note that although released, it may be that some of the instance creations
+    # have in fact succeeded. Handling this in a better way may be possible, but
+    # is not necessary as the QA has already failed at this point.
+    for instance in instance_list:
+      instance.Release()
+    raise
+
+  return (instance_one, instance_two)
 
 
 @InstanceCheck(None, INST_DOWN, FIRST_ARG)
