@@ -61,6 +61,7 @@ module Ganeti.JQueue
     , isQueueOpen
     , startJobs
     , cancelJob
+    , queueDirPermissions
     , archiveJobs
     ) where
 
@@ -499,6 +500,13 @@ cancelJob jid = do
   socketpath <- defaultMasterSocket
   client <- getLuxiClient socketpath
   callMethod (CancelJob jid) client
+
+-- | Permissions for the archive directories.
+queueDirPermissions :: FilePermissions
+queueDirPermissions = FilePermissions { fpOwner = Just C.masterdUser
+                                      , fpGroup = Just C.daemonsGroup
+                                      , fpPermissions = 0o0750
+                                      }
 
 -- | Try, at most until the given endtime, to archive some of the given
 -- jobs, if they are older than the specified cut-off time; also replicate
