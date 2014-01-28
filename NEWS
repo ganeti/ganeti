@@ -2,6 +2,14 @@ News
 ====
 
 
+Version 2.9.4
+-------------
+
+*(unreleased)*
+
+- Fix the RAPI instances-multi-alloc call
+
+
 Version 2.9.3
 -------------
 
