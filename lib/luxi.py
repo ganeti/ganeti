@@ -32,6 +32,7 @@ The module is also used by the master daemon.
 from ganeti import constants
 from ganeti import objects
 import ganeti.rpc.client as cl
+from ganeti.rpc.errors import RequestError
 from ganeti.rpc.transport import Transport
 
 __all__ = [
