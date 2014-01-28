@@ -52,6 +52,8 @@ _DISK_TEMPLATE_NAME_PREFIX = {
   constants.DT_PLAIN: "",
   constants.DT_RBD: ".rbd",
   constants.DT_EXT: ".ext",
+  constants.DT_FILE: ".file",
+  constants.DT_SHARED_FILE: ".sharedfile",
   }
 
 
@@ -464,8 +466,8 @@ def GenerateDiskTemplate(
     elif template_name in (constants.DT_FILE, constants.DT_SHARED_FILE):
       logical_id_fn = \
         lambda _, disk_index, disk: (file_driver,
-                                     "%s/disk%d" % (file_storage_dir,
-                                                    disk_index))
+                                     "%s/%s" % (file_storage_dir,
+                                                names[idx]))
     elif template_name == constants.DT_BLOCK:
       logical_id_fn = \
         lambda idx, disk_index, disk: (constants.BLOCKDEV_DRIVER_MANUAL,
