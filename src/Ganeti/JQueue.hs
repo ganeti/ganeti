@@ -545,7 +545,8 @@ archiveSomeJobsUntil replicateFn qDir endt cutt arch torepl (jid:jids) = do
             then do
               let live = liveJobFile qDir jid
                   archive = archivedJobFile qDir jid
-              renameResult <- safeRenameFile live archive
+              renameResult <- safeRenameFile queueDirPermissions
+                                live archive
               case renameResult of                   
                 Bad s -> do
                   logWarning $ "Renaming " ++ live ++ " to " ++ archive

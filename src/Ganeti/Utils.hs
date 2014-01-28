@@ -687,9 +687,15 @@ ensurePermissions fpath perms = do
       else return . Bad $ show errors
 
 -- | Safely rename a file, creating the target directory, if needed.
-safeRenameFile :: FilePath -> FilePath -> IO (Result ())
-safeRenameFile from to = do
-  result <- try $ do
-    createDirectoryIfMissing True $ takeDirectory to
-    renameFile from to
-  return $ either (Bad . show) Ok (result :: Either IOError ())
+safeRenameFile :: FilePermissions -> FilePath -> FilePath -> IO (Result ())
+safeRenameFile perms from to = do
+  directtry <- try $ renameFile from to
+  case (directtry :: Either IOError ()) of
+    Right () -> return $ Ok ()
+    Left _ -> do
+      result <- try $ do
+        let dir = takeDirectory to
+        createDirectoryIfMissing True dir
+        _ <- ensurePermissions dir perms
+        renameFile from to
+      return $ either (Bad . show) Ok (result :: Either IOError ())

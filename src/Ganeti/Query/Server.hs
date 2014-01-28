@@ -345,7 +345,8 @@ handleCall qlock _ cfg (ArchiveJob jid) = do
                        let mcs = Config.getMasterCandidates cfg
                            live = liveJobFile qDir jid
                            archive = archivedJobFile qDir jid
-                       renameResult <- safeRenameFile live archive
+                       renameResult <- safeRenameFile queueDirPermissions
+                                         live archive
                        putMVar qlock ()
                        case renameResult of
                          Bad s -> return . Bad . JobQueueError
