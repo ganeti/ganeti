@@ -171,12 +171,10 @@ handleCall _ _ cdata QueryClusterInfo =
 handleCall _ _ cfg (QueryTags kind name) = do
   let tags = case kind of
                TagKindCluster  -> Ok . clusterTags $ configCluster cfg
-               TagKindGroup    -> groupTags <$> Config.getGroup    cfg name
-               TagKindNode     -> nodeTags  <$> Config.getNode     cfg name
-               TagKindInstance -> instTags  <$> Config.getInstance cfg name
-               TagKindNetwork  -> Bad $ OpPrereqError
-                                        "Network tag is not allowed"
-                                        ECodeInval
+               TagKindGroup    -> groupTags   <$> Config.getGroup    cfg name
+               TagKindNode     -> nodeTags    <$> Config.getNode     cfg name
+               TagKindInstance -> instTags    <$> Config.getInstance cfg name
+               TagKindNetwork  -> networkTags <$> Config.getNetwork  cfg name
   return (J.showJSON <$> tags)
 
 handleCall _ _ cfg (Query qkind qfields qfilter) = do

@@ -566,6 +566,7 @@ $(THH.makeJSONInstance ''EvacMode)
 $(THH.declareLADT ''String "FileDriver"
   [ ("FileLoop",   "loop")
   , ("FileBlktap", "blktap")
+  , ("FileBlktap2", "blktap2")
   ])
 $(THH.makeJSONInstance ''FileDriver)
 

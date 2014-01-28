@@ -130,17 +130,26 @@ class LUTagsSearch(NoHooksLU):
       raise errors.OpPrereqError("Invalid search pattern '%s': %s" %
                                  (self.op.pattern, err), errors.ECODE_INVAL)
 
+  @staticmethod
+  def _ExtendTagTargets(targets, object_type_name, object_info_dict):
+    return targets.extend(("/%s/%s" % (object_type_name, o.name), o)
+                          for o in object_info_dict.values())
+
   def Exec(self, feedback_fn):
     """Returns the tag list.
 
     """
     tgts = [("/cluster", self.cfg.GetClusterInfo())]
-    ilist = self.cfg.GetAllInstancesInfo().values()
-    tgts.extend([("/instances/%s" % i.name, i) for i in ilist])
-    nlist = self.cfg.GetAllNodesInfo().values()
-    tgts.extend([("/nodes/%s" % n.name, n) for n in nlist])
-    tgts.extend(("/nodegroup/%s" % n.name, n)
-                for n in self.cfg.GetAllNodeGroupsInfo().values())
+
+    LUTagsSearch._ExtendTagTargets(tgts, "instances",
+                                   self.cfg.GetAllInstancesInfo())
+    LUTagsSearch._ExtendTagTargets(tgts, "nodes",
+                                   self.cfg.GetAllNodesInfo())
+    LUTagsSearch._ExtendTagTargets(tgts, "nodegroup",
+                                   self.cfg.GetAllNodeGroupsInfo())
+    LUTagsSearch._ExtendTagTargets(tgts, "network",
+                                   self.cfg.GetAllNetworksInfo())
+
     results = []
     for path, target in tgts:
       for tag in target.GetTags():

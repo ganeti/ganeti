@@ -971,6 +971,9 @@ rbdCmd = "rbd"
 fdBlktap :: String
 fdBlktap = Types.fileDriverToRaw FileBlktap
 
+fdBlktap2 :: String
+fdBlktap2 = Types.fileDriverToRaw FileBlktap2
+
 fdLoop :: String
 fdLoop = Types.fileDriverToRaw FileLoop
 

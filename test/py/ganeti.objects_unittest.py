@@ -93,9 +93,10 @@ class TestClusterObject(unittest.TestCase):
     self.failUnlessEqual(cl.GetHVDefaults(constants.HT_FAKE),
                          cl.hvparams[constants.HT_FAKE])
     self.failUnlessEqual(cl.GetHVDefaults(None), {})
-    self.failUnlessEqual(cl.GetHVDefaults(constants.HT_XEN_PVM,
-                                          os_name="lenny-image"),
-                         cl.os_hvp["lenny-image"][constants.HT_XEN_PVM])
+    defaults = cl.GetHVDefaults(constants.HT_XEN_PVM,
+                                          os_name="lenny-image")
+    for param, value in cl.os_hvp["lenny-image"][constants.HT_XEN_PVM].items():
+      self.assertEqual(value, defaults[param])
 
   def testFillHvFullMerge(self):
     inst_hvparams = {
@@ -132,14 +133,19 @@ class TestClusterObject(unittest.TestCase):
                                  os="ubuntu-hardy",
                                  hypervisor=constants.HT_XEN_PVM,
                                  hvparams=inst_hvparams)
-    self.assertEqual(inst_hvparams, self.fake_cl.FillHV(fake_inst))
+    filled_conf = self.fake_cl.FillHV(fake_inst)
+    for param, value in constants.HVC_DEFAULTS[constants.HT_XEN_PVM].items():
+      if param == "blah":
+        value = "blubb"
+      self.assertEqual(value, filled_conf[param])
 
-  def testFillHvEmptyParams(self):
+  def testFillHvDefaultParams(self):
     fake_inst = objects.Instance(name="foobar",
                                  os="ubuntu-hardy",
                                  hypervisor=constants.HT_XEN_PVM,
                                  hvparams={})
-    self.assertEqual({}, self.fake_cl.FillHV(fake_inst))
+    self.assertEqual(constants.HVC_DEFAULTS[constants.HT_XEN_PVM],
+                     self.fake_cl.FillHV(fake_inst))
 
   def testFillHvPartialParams(self):
     os = "lenny-image"
@@ -147,8 +153,9 @@ class TestClusterObject(unittest.TestCase):
                                  os=os,
                                  hypervisor=constants.HT_XEN_PVM,
                                  hvparams={})
-    self.assertEqual(self.fake_cl.os_hvp[os][constants.HT_XEN_PVM],
-                     self.fake_cl.FillHV(fake_inst))
+    filled_conf = self.fake_cl.FillHV(fake_inst)
+    for param, value in self.fake_cl.os_hvp[os][constants.HT_XEN_PVM].items():
+      self.assertEqual(value, filled_conf[param])
 
   def testFillNdParamsCluster(self):
     fake_node = objects.Node(name="test",

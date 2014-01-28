@@ -498,6 +498,8 @@ def TestTags(kind, name, tags):
     uri = "/2/instances/%s/tags" % name
   elif kind == constants.TAG_NODEGROUP:
     uri = "/2/groups/%s/tags" % name
+  elif kind == constants.TAG_NETWORK:
+    uri = "/2/networks/%s/tags" % name
   else:
     raise errors.ProgrammerError("Unknown tag kind")
 

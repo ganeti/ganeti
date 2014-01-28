@@ -20,6 +20,10 @@ AC_SUBST([VERSION_REVISION], gnt_version_revision)
 AC_SUBST([VERSION_SUFFIX], gnt_version_suffix)
 AC_SUBST([VERSION_FULL], gnt_version_full)
 
+AC_SUBST([BINDIR], $bindir)
+AC_SUBST([SBINDIR], $sbindir)
+AC_SUBST([MANDIR], $mandir)
+
 # --enable-versionfull
 AC_ARG_ENABLE([versionfull],
   [AS_HELP_STRING([--enable-versionfull],
@@ -399,7 +403,8 @@ else
 
   # Note: Character classes ([...]) need to be double quoted due to autoconf
   # using m4
-  elif ! echo "$sphinxver" | grep -q -E '^Sphinx[[[:space:]]]+v[[1-9]]\>'; then
+  elif ! echo "$sphinxver" | grep -q -E \
+       '^Sphinx[[[:space:]]]+(\(sphinx-build\)[[[:space:]]]+|v)[[1-9]]\>'; then
     AC_MSG_ERROR([Sphinx 1.0 or higher is required])
   fi
 fi

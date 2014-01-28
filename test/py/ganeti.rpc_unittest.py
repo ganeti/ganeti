@@ -777,7 +777,7 @@ class TestRpcRunner(unittest.TestCase):
   def testEncodeInstance(self):
     cluster = objects.Cluster(hvparams={
       constants.HT_KVM: {
-        constants.HV_BLOCKDEV_PREFIX: "foo",
+        constants.HV_CDROM_IMAGE_PATH: "foo",
         },
       },
       beparams={
@@ -794,13 +794,11 @@ class TestRpcRunner(unittest.TestCase):
     cluster.UpgradeConfig()
 
     inst = objects.Instance(name="inst1.example.com",
-      hypervisor=constants.HT_FAKE,
+      hypervisor=constants.HT_KVM,
       os="linux",
       hvparams={
-        constants.HT_KVM: {
-          constants.HV_BLOCKDEV_PREFIX: "bar",
-          constants.HV_ROOT_PATH: "/tmp",
-          },
+        constants.HV_CDROM_IMAGE_PATH: "bar",
+        constants.HV_ROOT_PATH: "/tmp",
         },
       beparams={
         constants.BE_MINMEM: 128,
@@ -829,7 +827,6 @@ class TestRpcRunner(unittest.TestCase):
       self.assertEqual(result["name"], "inst1.example.com")
       self.assertEqual(result["os"], "linux")
       self.assertEqual(result["beparams"][constants.BE_MINMEM], 128)
-      self.assertEqual(len(result["hvparams"]), 1)
       self.assertEqual(len(result["nics"]), 1)
       self.assertEqual(result["nics"][0]["nicparams"][constants.NIC_MODE],
                        "mymode")
@@ -837,22 +834,24 @@ class TestRpcRunner(unittest.TestCase):
     # Generic object serialization
     result = runner._encoder(NotImplemented, (rpc_defs.ED_OBJECT_DICT, inst))
     _CheckBasics(result)
+    self.assertEqual(len(result["hvparams"]), 2)
 
     result = runner._encoder(NotImplemented,
                              (rpc_defs.ED_OBJECT_DICT_LIST, 5 * [inst]))
     map(_CheckBasics, result)
+    map(lambda r: self.assertEqual(len(r["hvparams"]), 2), result)
 
     # Just an instance
     result = runner._encoder(NotImplemented, (rpc_defs.ED_INST_DICT, inst))
     _CheckBasics(result)
     self.assertEqual(result["beparams"][constants.BE_MAXMEM], 256)
-    self.assertEqual(result["hvparams"][constants.HT_KVM], {
-      constants.HV_BLOCKDEV_PREFIX: "bar",
-      constants.HV_ROOT_PATH: "/tmp",
-      })
+    self.assertEqual(result["hvparams"][constants.HV_CDROM_IMAGE_PATH], "bar")
+    self.assertEqual(result["hvparams"][constants.HV_ROOT_PATH], "/tmp")
     self.assertEqual(result["osparams"], {
       "role": "unknown",
       })
+    self.assertEqual(len(result["hvparams"]),
+                     len(constants.HVC_DEFAULTS[constants.HT_KVM]))
 
     # Instance with OS parameters
     result = runner._encoder(NotImplemented,
@@ -862,10 +861,8 @@ class TestRpcRunner(unittest.TestCase):
                              })))
     _CheckBasics(result)
     self.assertEqual(result["beparams"][constants.BE_MAXMEM], 256)
-    self.assertEqual(result["hvparams"][constants.HT_KVM], {
-      constants.HV_BLOCKDEV_PREFIX: "bar",
-      constants.HV_ROOT_PATH: "/tmp",
-      })
+    self.assertEqual(result["hvparams"][constants.HV_CDROM_IMAGE_PATH], "bar")
+    self.assertEqual(result["hvparams"][constants.HV_ROOT_PATH], "/tmp")
     self.assertEqual(result["osparams"], {
       "role": "webserver",
       "other": "field",
