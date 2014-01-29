@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008 Google Inc.
+# Copyright (C) 2007, 2008, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -65,8 +65,8 @@ def LoadJson(txt):
   """Unserialize data from a string.
 
   @param txt: the json-encoded form
-
   @return: the original data
+  @raise JSONDecodeError: if L{txt} is not a valid JSON document
 
   """
   return simplejson.loads(txt)
