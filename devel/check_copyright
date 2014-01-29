@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# Copyright (C) 2014 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+# Script to check whether the local dirty commits are changing files
+# which do not have an updated copyright.
+#
+# The script will determine your current remote branch and local
+# branch, from which it will extract the commits to analyze.
+# Afterwards, for each commit, it will see which files are being
+# modified and, for each file, it will check the copyright.
+
+function join {
+    local IFS="$1"
+    shift
+    echo "$*"
+}
+
+# Determine the tracking branch for the current branch
+readonly REMOTE=$(git branch -vv | grep "^\*" | cut -d "[" -f 2- | cut -d ":" -f 1)
+
+if [ -z "$REMOTE" ]
+then
+    echo check_copyright: failed to get remote branch
+    exit 1
+fi
+
+# Determine which commits have no been pushed (i.e, diff between the
+# remote branch and the current branch)
+COMMITS=$(git log --pretty=format:'%h' ${REMOTE}..HEAD)
+
+if [ -z "$COMMITS" ]
+then
+    echo check_copyright: there are no commits to check
+    exit 0
+fi
+
+# for each commit, check its files
+for commit in $(echo $COMMITS | tac -s " ")
+do
+    FILES=$(git diff-tree --no-commit-id --name-only -r $commit)
+
+    if [ -z "$FILES" ]
+    then
+	echo check_copyright: commit \"$commit\" has no files to check
+    else
+	# for each file, check if it is in the 'lib' or 'src' dirs
+	# and, if so, check the copyright
+	for file in $FILES
+	do
+	    DIR=$(echo $file | cut -d "/" -f 1)
+
+	    if [ "$DIR" = lib -o "$DIR" = src ]
+	    then
+		COPYRIGHT=$(grep "Copyright (C)" $file)
+		YEAR=$(date +%G)
+
+		if [ -z "$COPYRIGHT" ]
+		then
+		    echo check_copyright: commit \"$commit\" misses \
+			copyright for \"$file\"
+		elif ! echo $COPYRIGHT | grep -o $YEAR > /dev/null
+		then
+		    echo check_copyright: commit \"$commit\" misses \
+			\"$YEAR\" copyright for \"$file\"
+		fi
+	    fi
+	done
+    fi
+done
