@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.JSON
   ( fromJResult
   , fromJResultE
+  , readJSONWithDesc
   , readEitherString
   , JSRecord
   , loadJSArray
@@ -90,6 +91,21 @@ type JSField = (String, J.JSValue)
 
 -- | A type alias for the list-based representation of J.JSObject.
 type JSRecord = [JSField]
+
+-- | Annotate @readJSON@ error messages with descriptions of what
+-- is being parsed into what.
+readJSONWithDesc :: (J.JSON a)
+                 => String                    -- ^ description of @a@
+                 -> Bool                      -- ^ include input in
+                                              --   error messages
+                 -> J.JSValue                 -- ^ input value
+                 -> J.Result a
+readJSONWithDesc typ incInput input =
+  case J.readJSON input of
+    J.Ok r    -> J.Ok r
+    J.Error e -> J.Error $ if incInput then msg ++ " from " ++ show input
+                                       else msg
+      where msg = "Can't parse value for type " ++ typ ++ ": " ++ e
 
 -- | Converts a JSON Result into a monadic value.
 fromJResult :: Monad m => String -> J.Result a -> m a
