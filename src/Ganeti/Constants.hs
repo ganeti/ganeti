@@ -4761,3 +4761,11 @@ glusterPort = "port"
 -- | Default value of the Gluster port setting
 glusterPortDefault :: Int
 glusterPortDefault = 24007
+
+-- * Instance communication
+
+instanceCommunicationNetwork :: String
+instanceCommunicationNetwork = "ganeti:network:communication"
+
+instanceCommunicationNicPrefix :: String
+instanceCommunicationNicPrefix = "ganeti:communication:"

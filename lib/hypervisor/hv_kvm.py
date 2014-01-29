@@ -1819,6 +1819,54 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not self._InstancePidAlive(name)[2]:
       raise errors.HypervisorError("Failed to start instance %s" % name)
 
+  @staticmethod
+  def _GenerateTapName(nic):
+    """Generate a TAP network interface name for a NIC.
+
+    This helper function generates a special TAP network interface
+    name for NICs that are meant to be used in instance communication.
+    This function checks the existing TAP interfaces in order to find
+    a unique name for the new TAP network interface.  The TAP network
+    interface names are of the form 'gnt.com.%d', where '%d' is a
+    unique number within the node.
+
+    @type nic: ganeti.objects.NIC
+    @param nic: NIC object for the name should be generated
+
+    @rtype: string
+    @return: TAP network interface name, or the empty string if the
+             NIC is not used in instance communication
+
+    """
+    if nic.name is None or not \
+          nic.name.startswith(constants.INSTANCE_COMMUNICATION_NIC_PREFIX):
+      return ""
+
+    result = utils.RunCmd(["ip", "tuntap", "list"])
+
+    if result.failed:
+      raise errors.HypervisorError("Failed to list TUN/TAP interfaces")
+
+    idxs = set()
+
+    for line in result.output.splitlines():
+      parts = line.split(": ", 1)
+
+      if len(parts) < 2:
+        raise errors.HypervisorError("Failed to parse TUN/TAP interfaces")
+
+      r = re.match(r"gnt\.com\.([0-9]+)", parts[0])
+
+      if r is not None:
+        idxs.add(int(r.group(1)))
+
+    if idxs:
+      idx = max(idxs) + 1
+    else:
+      idx = 0
+
+    return "gnt.com.%d" % idx
+
   # too many local variables
   # pylint: disable=R0914
   def _ExecuteKVMRuntime(self, instance, kvm_runtime, kvmhelp, incoming=None):
@@ -1904,7 +1952,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_supports_netdev = self._NETDEV_RE.search(kvmhelp)
 
       for nic_seq, nic in enumerate(kvm_nics):
-        tapname, tapfd = _OpenTap(vnet_hdr=vnet_hdr)
+        tapname, tapfd = _OpenTap(vnet_hdr=vnet_hdr,
+                                  name=self._GenerateTapName(nic))
         tapfds.append(tapfd)
         taps.append(tapname)
         if kvm_supports_netdev:
