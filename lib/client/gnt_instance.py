@@ -249,7 +249,7 @@ def ListInstanceFields(opts, args):
 def AddInstance(opts, args):
   """Add an instance to the cluster.
 
-  This is just a wrapper over GenericInstanceCreate.
+  This is just a wrapper over L{GenericInstanceCreate}.
 
   """
   return GenericInstanceCreate(constants.INSTANCE_CREATE, opts, args)
