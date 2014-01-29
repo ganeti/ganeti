@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -100,6 +100,7 @@ def ReadFile(file_name, size=-1, preread=None):
   @param preread: Function called before file is read
   @rtype: str
   @return: the (possibly partial) content of the file
+  @raise IOError: if the file cannot be opened
 
   """
   f = open(file_name, "r")
