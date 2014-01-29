@@ -285,7 +285,9 @@ checkNonOptDef _ = return ()
 parseFn :: Field   -- ^ The field definition
         -> Q Exp   -- ^ The entire object in JSON object format
         -> Q Exp   -- ^ The resulting function that parses a JSON message
-parseFn field o = maybe [| JSON.readJSON |] (`appE` o) (fieldRead field)
+parseFn field o
+  = maybe [| readJSONWithDesc $(stringE $ fieldName field) False |]
+          (`appE` o) (fieldRead field)
 
 -- | Produces the expression that will de-serialise a given
 -- field. Since some custom parsing functions might need to use the
