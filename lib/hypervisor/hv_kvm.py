@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1349,8 +1349,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return dev_opts
 
   @staticmethod
-  def CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
-                  needs_boot_flag):
+  def _CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image, cdrom_boot,
+                   needs_boot_flag):
     """Extends L{kvm_cmd} with the '-drive' option for a cdrom, and
     optionally the '-boot' option.
 
@@ -1500,12 +1500,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     cdrom_image1 = hvp[constants.HV_CDROM_IMAGE_PATH]
     if cdrom_image1:
       needs_boot_flag = self._BOOT_RE.search(kvmhelp)
-      self.CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image1, boot_cdrom,
-                       needs_boot_flag)
+      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image1, boot_cdrom,
+                        needs_boot_flag)
 
     cdrom_image2 = hvp[constants.HV_KVM_CDROM2_IMAGE_PATH]
     if cdrom_image2:
-      self.CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, False)
+      self._CdromOption(kvm_cmd, cdrom_disk_type, cdrom_image2, False, False)
 
     floppy_image = hvp[constants.HV_KVM_FLOPPY_IMAGE_PATH]
     if floppy_image:
