@@ -289,16 +289,21 @@ part of the instance's configuration.
 The communication mechanism will be implemented through network interfaces on
 the host and the guest, and Ganeti will be responsible for the host side,
 namely, creating a TAP interface for each guest and configuring these interfaces
-to have IP address ``169.254.169.254`` and netmask ``255.255.255.255``.  This
-network interface will be connected to the guest's last network interface, which
-is meant to be used exclusively for the communication mechanism and is defined
-after all the used-defined interfaces.  The last interface was chosen (as
-opposed to the first one, for example) because the first interface is generally
-understood and the main gateway out, and also because it minimizes the impact on
-existing systems, for example, in a scenario where the system administrator has
-a running cluster and wants to enable the communication mechanism for already
-existing instances, which might have been created with older versions of Ganeti.
-Further, DBus should assist in keeping the guest network interfaces more stable.
+to have name ``gnt.com.%d``, where ``%d`` is a unique number within the host
+(e.g., ``gnt.com.0`` and ``gnt.com.1``), IP address ``169.254.169.254``, and
+netmask ``255.255.255.255``.  The interface's name allows DHCP servers to
+recognize which interfaces are part of the communication mechanism.
+
+This network interface will be connected to the guest's last network interface,
+which is meant to be used exclusively for the communication mechanism and is
+defined after all the used-defined interfaces.  The last interface was chosen
+(as opposed to the first one, for example) because the first interface is
+generally understood and the main gateway out, and also because it minimizes the
+impact on existing systems, for example, in a scenario where the system
+administrator has a running cluster and wants to enable the communication
+mechanism for already existing instances, which might have been created with
+older versions of Ganeti.  Further, DBus should assist in keeping the guest
+network interfaces more stable.
 
 On the guest side, each instance will have its own MAC address and IP address.
 Both the guest's MAC address and IP address must be unique within a single
@@ -355,6 +360,55 @@ For Xen, a network interface will be created on the host (using the ``vif``
 parameter of the Xen configuration file).  Each instance will have its
 corresponding ``vif`` network interface on the host.  The ``vif-route`` script
 of Xen might be helpful in implementing this.
+
+dnsmasq
++++++++
+
+The previous section describes the communication mechanism and explains the role
+of the DHCP server.  Note that any DHCP server can be used in the implementation
+of the communication mechanism.  However, the DHCP server employed should not
+violate the properties described in the previous section, which state that the
+communication mechanism should be exclusive, generic, and bidirectional, unless
+this is intentional.
+
+In our experiments, we have used dnsmasq.  In this section, we describe how to
+properly configure dnsmasq to work on a given Ganeti installation.  This is
+particularly important if, in this Ganeti installation, dnsmasq will share the
+node with one or more DHCP servers running in parallel.
+
+First, it is important to become familiar with the operational modes of dnsmasq,
+which are well explained in the `FAQ
+<http://www.thekelleys.org.uk/dnsmasq/docs/FAQ>`_ under the question ``What are
+these strange "bind-interface" and "bind-dynamic" options?``.  The rest of this
+section assumes the reader is familiar with these operational modes.
+
+bind-dynamic
+  dnsmasq SHOULD be configured in the ``bind-dynamic`` mode (if supported) in
+  order to allow other DHCP servers to run on the same node.  In this mode,
+  dnsmasq can listen on the TAP interfaces for the communication mechanism by
+  listening on the TAP interfaces that match the pattern ``gnt.com.*`` (e.g.,
+  ``interface=gnt.com.*``).  For extra safety, interfaces matching the pattern
+  ``eth*`` and the name ``lo`` should be configured such that dnsmasq will
+  always ignore them (e.g., ``except-interface=eth*`` and
+  ``except-interface=lo``).
+
+bind-interfaces
+  dnsmasq MAY be configured in the ``bind-interfaces`` mode (if supported) in
+  order to allow other DHCP servers to run on the same node.  Unfortunately,
+  because dnsmasq cannot dynamically adjust to TAP interfaces that are created
+  and destroyed by the system, dnsmasq must be restarted with a new
+  configuration file each time an instance is created or destroyed.
+
+  Also, the interfaces cannot be patterns, such as, ``gnt.com.*``.  Instead, the
+  interfaces must be explictly specified, for example,
+  ``interface=gnt.com.0,gnt.com.1``.  Moreover, dnsmasq cannot bind to the TAP
+  interfaces if they have all the same IPv4 address.  As a result, it is
+  necessary to configure these TAP interfaces to enable IPv6 and an IPv6 address
+  must be assigned to them.
+
+wildcard
+  dnsmasq CANNOT be configured in the ``wildcard`` mode if there is
+  (at least) another DHCP server running on the same node.
 
 Metadata service
 ++++++++++++++++
