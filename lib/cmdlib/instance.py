@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -430,6 +430,17 @@ class LUInstanceCreate(LogicalUnit):
       # TODO: make the ip check more flexible and not depend on the name check
       raise errors.OpPrereqError("Cannot do IP address check without a name"
                                  " check", errors.ECODE_INVAL)
+
+    # add nic for instance communication
+    if self.op.instance_communication:
+      nic_name = "%s%s" % (constants.INSTANCE_COMMUNICATION_NIC_PREFIX,
+                           self.op.instance_name)
+      communication_network = constants.INSTANCE_COMMUNICATION_NETWORK
+
+      self.op.nics.append({constants.INIC_NAME: nic_name,
+                           constants.INIC_MAC: constants.VALUE_GENERATE,
+                           constants.INIC_IP: constants.NIC_IP_POOL,
+                           constants.INIC_NETWORK: communication_network})
 
     # check nics' parameter names
     for nic in self.op.nics:
