@@ -16,7 +16,7 @@ imported.
 
 {-
 
-Copyright (C) 2013 Google Inc.
+Copyright (C) 2013, 2014 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -4763,6 +4763,10 @@ glusterPortDefault :: Int
 glusterPortDefault = 24007
 
 -- * Instance communication
+
+instanceCommunicationDoc :: String
+instanceCommunicationDoc =
+  "Enable or disable the communication mechanism for an instance"
 
 instanceCommunicationNetwork :: String
 instanceCommunicationNetwork = "ganeti:network:communication"

@@ -12,7 +12,7 @@ module.
 
 {-
 
-Copyright (C) 2012 Google Inc.
+Copyright (C) 2012, 2014 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -44,6 +44,7 @@ module Ganeti.OpParams
   , SetParamsMods(..)
   , ExportTarget(..)
   , pInstanceName
+  , pInstanceCommunication
   , pInstanceUuid
   , pInstances
   , pName
@@ -984,6 +985,11 @@ pInstanceName :: Field
 pInstanceName =
   withDoc "A required instance name (for single-instance LUs)" $
   simpleField "instance_name" [t| String |]
+
+pInstanceCommunication :: Field
+pInstanceCommunication =
+  withDoc C.instanceCommunicationDoc $
+  defaultFalse "instance_communication"
 
 pForceVariant :: Field
 pForceVariant =

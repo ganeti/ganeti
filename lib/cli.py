@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -115,6 +115,7 @@ __all__ = [
   "IGNORE_SIZE_OPT",
   "INCLUDEDEFAULTS_OPT",
   "INTERVAL_OPT",
+  "INSTANCE_COMMUNICATION_OPT",
   "MAC_PREFIX_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
@@ -1686,6 +1687,13 @@ HOTPLUG_IF_POSSIBLE_OPT = cli_option("--hotplug-if-possible",
                                      help="Hotplug devices in case"
                                           " hotplug is supported")
 
+INSTANCE_COMMUNICATION_OPT = \
+    cli_option("-c", "--communication",
+               default=False,
+               dest="instance_communication",
+               help=constants.INSTANCE_COMMUNICATION_DOC,
+               type="bool")
+
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]
 
@@ -2727,6 +2735,7 @@ def GenericInstanceCreate(mode, opts, args):
     no_install = opts.no_install
     identify_defaults = False
     compress = constants.IEC_NONE
+    instance_communication = opts.instance_communication
   elif mode == constants.INSTANCE_IMPORT:
     start = False
     os_type = None
@@ -2736,6 +2745,7 @@ def GenericInstanceCreate(mode, opts, args):
     no_install = None
     identify_defaults = opts.identify_defaults
     compress = opts.compress
+    instance_communication = False
   else:
     raise errors.ProgrammerError("Invalid creation mode %s" % mode)
 
@@ -2765,7 +2775,8 @@ def GenericInstanceCreate(mode, opts, args):
                                 tags=tags,
                                 no_install=no_install,
                                 identify_defaults=identify_defaults,
-                                ignore_ipolicy=opts.ignore_ipolicy)
+                                ignore_ipolicy=opts.ignore_ipolicy,
+                                instance_communication=instance_communication)
 
   SubmitOrSend(op, opts)
   return 0

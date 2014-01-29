@@ -7,7 +7,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -452,6 +452,7 @@ $(genOpCode "OpCode"
      , pBackupCompress
      , pStartInstance
      , pInstTags
+     , pInstanceCommunication
      ],
      "instance_name")
   , ("OpInstanceMultiAlloc",
