@@ -816,6 +816,164 @@ needed to do two replace-disks operation (two copies of the instance
 disks), because we needed to get rid of both the original nodes (A and
 B).
 
+Network Management
+------------------
+
+Ganeti used to describe NICs of an Instance with an IP, a MAC, a connectivity
+link and mode. This had three major shortcomings:
+
+  * there was no easy way to assign a unique IP to an instance
+  * network info (subnet, gateway, domain, etc.) was not available on target
+    node (kvm-ifup, hooks, etc)
+  * one should explicitly pass L2 info (mode, and link) to every NIC
+
+Plus there was no easy way to get the current networking overview (which
+instances are on the same L2 or L3 network, which IPs are reserved, etc).
+
+All the above required an external management tool that has an overall view
+and provides the corresponding info to Ganeti.
+
+gnt-network aims to support a big part of this functionality inside Ganeti and
+abstract the network as a separate entity. Currently, a Ganeti network
+provides the following:
+
+  * A single IPv4 pool, subnet and gateway
+  * Connectivity info per nodegroup (mode, link)
+  * MAC prefix for each NIC inside the network
+  * IPv6 prefix/Gateway related to this network
+  * Tags
+
+IP pool management ensures IP uniqueness inside this network. The user can
+pass `ip=pool,network=test` and will:
+
+1. Get the first available IP in the pool
+2. Inherit the connectivity mode and link of the network's netparams
+3. NIC will obtain the MAC prefix of the network
+4. All network related info will be available as environment variables in
+   kvm-ifup scripts and hooks, so that they can dynamically manage all
+   networking-related setup on the host.
+
+Hands on with gnt-network
++++++++++++++++++++++++++
+
+To create a network do::
+
+  # gnt-network add --network=192.0.2.0/24 --gateway=192.0.2.1 test
+
+Please see all other available options (--add-reserved-ips, --mac-prefix,
+--network6, --subnet6, --tags).
+
+To make this network available on a nodegroup you should specify the
+connectivity mode and link during connection::
+
+  # gnt-network connect test bridged br100 default nodegroup1
+
+To add a NIC inside this network::
+
+  # gnt-instance modify --net -1:add,ip=pool,network=test inst1
+
+This will let a NIC obtain a unique IP inside this network, and inherit the
+nodegroup's netparams (bridged, br100). IP here is optional. If missing the
+NIC will just get the L2 info.
+
+To move an existing NIC from a network to another and remove its IP::
+
+  # gnt-instance modify --net -1:ip=none,network=test1 inst1
+
+This will release the old IP from the old IP pool and the NIC will inherit the
+new nicparams.
+
+On the above actions there is a extra option `--no-conflicts-ckeck`. This
+does not check for conflicting setups. Specifically:
+
+1. When a network is added, IPs of nodes and master are not being checked.
+2. When connecting a network on a nodegroup, IPs of instances inside this
+   nodegroup are not checked whether they reside inside the subnet or not.
+3. When specifying explicitly a IP without passing a network, Ganeti will not
+   check if this IP is included inside any available network on the nodegroup.
+
+External components
++++++++++++++++++++
+
+All the aforementioned steps assure NIC configuration from the Ganeti
+perspective. Of course this has nothing to do, how the instance eventually will
+get the desired connectivity (IPv4, IPv6, default routes, DNS info, etc) and
+where will the IP resolve.  This functionality is managed by the external
+components.
+
+Let's assume that the VM will need to obtain a dynamic IP via DHCP, get a SLAAC
+address, and use DHCPv6 for other configuration information (in case RFC-6106
+is not supported by the client, e.g.  Windows).  This means that the following
+external services are needed:
+
+1. A DHCP server
+2. An IPv6 router sending Router Advertisements
+3. A DHCPv6 server exporting DNS info
+4. A dynamic DNS server
+
+These components must be configured dynamically and on a per NIC basis.
+The way to do this is by using custom kvm-ifup scripts and hooks.
+
+snf-network
+~~~~~~~~~~~
+
+The snf-network package [1,3] includes custom scripts that will provide the
+aforementioned functionality. `kvm-vif-bridge` and `vif-custom` is an
+alternative to `kvm-ifup` and `vif-ganeti` that take into account all network
+info being exported. Their actions depend on network tags. Specifically:
+
+`dns`: will update an external DDNS server (nsupdate on a bind server)
+
+`ip-less-routed`: will setup routes, rules and proxy ARP
+This setup assumes a pre-existing routing table along with some local
+configuration and provides connectivity to instances via an external
+gateway/router without requiring nodes to have an IP inside this network.
+
+`private-filtered`: will setup ebtables rules to ensure L2 isolation on a
+common bridge. Only packets with the same MAC prefix will be forwarded to the
+corresponding virtual interface.
+
+`nfdhcpd`: will update an external DHCP server
+
+nfdhcpd
+~~~~~~~
+
+snf-network works with nfdhcpd [2,3]: a custom user space DHCP
+server based on NFQUEUE. Currently, nfdhcpd replies on BOOTP/DHCP requests
+originating from a tap or a bridge. Additionally in case of a routed setup it
+provides a ra-stateless configuration by responding to router and neighbour
+solicitations along with DHCPv6 requests for DNS options.  Its db is
+dynamically updated using text files inside a local dir with inotify
+(snf-network just adds a per NIC binding file with all relevant info if the
+corresponding network tag is found). Still we need to mangle all these
+packets and send them to the corresponding NFQUEUE.
+
+Known shortcomings
+++++++++++++++++++
+
+Currently the following things are some know weak points of the gnt-network
+design and implementation:
+
+ * Cannot define a network without an IP pool
+ * The pool defines the size of the network
+ * Reserved IPs must be defined explicitly (inconvenient for a big range)
+ * Cannot define an IPv6 only network
+
+Future work
++++++++++++
+
+Any upcoming patches should target:
+
+ * Separate L2, L3, IPv6, IP pool info
+ * Support a set of IP pools per network
+ * Make IP/network in NIC object take a list of entries
+ * Introduce external scripts for node configuration
+   (dynamically create/destroy bridges/routes upon network connect/disconnect)
+
+[1] https://code.grnet.gr/git/snf-network
+[2] https://code.grnet.gr/git/snf-nfdhcpd
+[3] deb http:/apt.dev.grnet.gr/ wheezy/
+
 Node operations
 ---------------
 
