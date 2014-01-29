@@ -283,7 +283,7 @@ def _ProbeTapVnetHdr(fd, _features_fn=_GetTunFeatures):
   return result
 
 
-def _OpenTap(vnet_hdr=True):
+def _OpenTap(vnet_hdr=True, name=""):
   """Open a new tap device and return its file descriptor.
 
   This is intended to be used by a qemu-type hypervisor together with the -net
@@ -291,6 +291,11 @@ def _OpenTap(vnet_hdr=True):
 
   @type vnet_hdr: boolean
   @param vnet_hdr: Enable the VNET Header
+
+  @type name: string
+  @param name: name for the TAP interface being created; if an empty
+               string is passed, the OS will generate a unique name
+
   @return: (ifname, tapfd)
   @rtype: tuple
 
@@ -306,7 +311,7 @@ def _OpenTap(vnet_hdr=True):
     flags |= IFF_VNET_HDR
 
   # The struct ifreq ioctl request (see netdevice(7))
-  ifr = struct.pack("16sh", "", flags)
+  ifr = struct.pack("16sh", name, flags)
 
   try:
     res = fcntl.ioctl(tapfd, TUNSETIFF, ifr)
