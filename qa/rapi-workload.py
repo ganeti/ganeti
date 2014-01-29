@@ -300,17 +300,19 @@ def TestQueryFiltering(client, master_name):
   @param master_name: The hostname of the master node.
 
   """
-  client.Query("node", ["name"],
-               ["|",
-                ["=", "name", master_name],
-                [">", "dtotal", 0],
-               ])
+  qfilter = [
+    "|",
+    ["=", "name", master_name],
+    [">", "dtotal", 0],
+  ]
+  client.Query("node", ["name"], qfilter)
 
-  client.Query("instance", ["name"],
-               ["|",
-                ["=", "name", "NonexistentInstance"],
-                [">", "oper_ram", 0],
-               ])
+  qfilter = [
+    "|",
+    ["=", "name", "NonexistentInstance"],
+    [">", "oper_ram", 0],
+  ]
+  client.Query("instance", ["name"], qfilter)
 
 
 def RemoveAllInstances(client):
