@@ -575,13 +575,8 @@ genShowJSON name = do
 genReadJSON :: String -> Q Dec
 genReadJSON name = do
   let s = mkName "s"
-  body <- [| case JSON.readJSON $(varE s) of
-               JSON.Ok s' -> $(varE (fromRawName name)) s'
-               JSON.Error e ->
-                   JSON.Error $ "Can't parse raw value for type " ++
-                           $(stringE name) ++ ": " ++ e ++ " from " ++
-                           show $(varE s)
-           |]
+  body <- [| $(varE (fromRawName name)) =<<
+             readJSONWithDesc $(stringE name) True $(varE s) |]
   return $ FunD 'JSON.readJSON [Clause [VarP s] (NormalB body) []]
 
 -- | Generates a JSON instance for a given type.
@@ -1056,12 +1051,8 @@ loadObjectField field = do
 objectReadJSON :: String -> Q Dec
 objectReadJSON name = do
   let s = mkName "s"
-  body <- [| case JSON.readJSON $(varE s) of
-               JSON.Ok s' -> $(varE .mkName $ "load" ++ name) s'
-               JSON.Error e ->
-                 JSON.Error $ "Can't parse value for type " ++
-                       $(stringE name) ++ ": " ++ e
-           |]
+  body <- [| $(varE . mkName $ "load" ++ name) =<<
+             readJSONWithDesc $(stringE name) False $(varE s) |]
   return $ FunD 'JSON.readJSON [Clause [VarP s] (NormalB body) []]
 
 -- * Inheritable parameter tables implementation
