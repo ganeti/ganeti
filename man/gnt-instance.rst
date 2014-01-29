@@ -43,6 +43,7 @@ ADD
 | [\--submit] [\--print-job-id]
 | [\--ignore-ipolicy]
 | [\--no-wait-for-sync]
+| [{-c|\--communication=yes|no}]
 | {*instance*}
 
 Creates a new instance on the specified host. The *instance* argument
@@ -904,6 +905,10 @@ blktap2
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+The ``-c`` and ``--communication`` specify whether to enable/disable
+instance communication, which is a communication mechanism between the
+instance and the host.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
