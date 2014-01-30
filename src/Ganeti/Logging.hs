@@ -137,7 +137,7 @@ instance MonadLog IO where
   logAt = logM rootLoggerName
 
 instance (MonadLog m) => MonadLog (ReaderT r m) where
-  logAt p x = lift $ logAt p x
+  logAt p = lift . logAt p
 
 instance (MonadLog m, Error e) => MonadLog (ResultT e m) where
   logAt p = lift . logAt p
