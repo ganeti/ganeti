@@ -8,6 +8,7 @@ Version 2.9.4
 *(unreleased)*
 
 - Fix the RAPI instances-multi-alloc call
+- assign unique filenames to file-based disks
 
 
 Version 2.9.3
