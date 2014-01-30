@@ -46,10 +46,11 @@ module Ganeti.Logging
   , SyslogUsage(..)
   , syslogUsageToRaw
   , syslogUsageFromRaw
+  , withErrorLogAt
   ) where
 
 import Control.Monad
-import Control.Monad.Error (Error(..))
+import Control.Monad.Error (Error(..), MonadError(..), catchError)
 import Control.Monad.Reader
 import System.Log.Logger
 import System.Log.Handler.Simple
@@ -173,3 +174,13 @@ logAlert = logAt ALERT
 -- | Log at emergency level.
 logEmergency :: (MonadLog m) => String -> m ()
 logEmergency = logAt EMERGENCY
+
+-- * Logging in an error monad with rethrowing errors
+
+-- | If an error occurs within a given computation, it annotated
+-- with a given message and logged and the error is re-thrown.
+withErrorLogAt :: (MonadLog m, MonadError e m, Show e)
+               => Priority -> String -> m a -> m a
+withErrorLogAt prio msg = flip catchError $ \e -> do
+  logAt prio (msg ++ ": " ++ show e)
+  throwError e
