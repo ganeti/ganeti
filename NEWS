@@ -9,6 +9,7 @@ Version 2.9.4
 
 - Fix the RAPI instances-multi-alloc call
 - assign unique filenames to file-based disks
+- gracefully handle degraded non-diskless instances with 0 disks (issue 697)
 
 
 Version 2.9.3
