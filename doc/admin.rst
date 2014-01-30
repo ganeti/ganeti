@@ -861,7 +861,10 @@ To create a network do::
   # gnt-network add --network=192.0.2.0/24 --gateway=192.0.2.1 test
 
 Please see all other available options (--add-reserved-ips, --mac-prefix,
---network6, --subnet6, --tags).
+--network6, --gateway6, --tags).
+
+Currently, IPv6 info is not used by Ganeti itself. It only gets exported
+to NIC configuration scripts and hooks via environment variables.
 
 To make this network available on a nodegroup you should specify the
 connectivity mode and link during connection::
