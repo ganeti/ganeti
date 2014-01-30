@@ -1569,13 +1569,13 @@ class ConfigWriter:
     inst = self._config_data.instances[inst_uuid]
     inst.name = new_name
 
-    for (idx, disk) in enumerate(inst.disks):
+    for (_, disk) in enumerate(inst.disks):
       if disk.dev_type in [constants.DT_FILE, constants.DT_SHARED_FILE]:
         # rename the file paths in logical and physical id
         file_storage_dir = os.path.dirname(os.path.dirname(disk.logical_id[1]))
         disk.logical_id = (disk.logical_id[0],
                            utils.PathJoin(file_storage_dir, inst.name,
-                                          "disk%s" % idx))
+                                          os.path.basename(disk.logical_id[1])))
         disk.physical_id = disk.logical_id
 
     # Force update of ssconf files
