@@ -291,7 +291,15 @@ def RemoveDisks(lu, instance, target_node_uuid=None, ignore_failures=False):
   CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), instance.disk_template)
 
   if instance.disk_template in constants.DTS_FILEBASED:
-    file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
+    if len(instance.disks) > 0:
+      file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
+    else:
+      if instance.disk_template == constants.DT_SHARED_FILE:
+        file_storage_dir = utils.PathJoin(lu.cfg.GetSharedFileStorageDir(),
+                                          instance.name)
+      else:
+        file_storage_dir = utils.PathJoin(lu.cfg.GetFileStorageDir(),
+                                          instance.name)
     if target_node_uuid:
       tgt = target_node_uuid
     else:
