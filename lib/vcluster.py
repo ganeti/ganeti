@@ -30,18 +30,18 @@ functions' docstrings for details.
 import os
 
 from ganeti import compat
+from ganeti import _constants
+# cannot use constants, as this would cause a circular import
 
 
-ETC_HOSTS = "/etc/hosts"
+ETC_HOSTS = _constants.V_CLUSTER_ETC_HOSTS
 
-_VIRT_PATH_PREFIX = "/###-VIRTUAL-PATH-###,"
-_ROOTDIR_ENVNAME = "GANETI_ROOTDIR"
-_HOSTNAME_ENVNAME = "GANETI_HOSTNAME"
+_VIRT_PATH_PREFIX = _constants.V_CLUSTER_VIRT_PATH_PREFIX
+_ROOTDIR_ENVNAME = _constants.V_CLUSTER_ROOTDIR_ENVNAME
+_HOSTNAME_ENVNAME = _constants.V_CLUSTER_HOSTNAME_ENVNAME
 
 #: List of paths which shouldn't be virtualized
-_VPATH_WHITELIST = compat.UniqueFrozenset([
-  ETC_HOSTS,
-  ])
+_VPATH_WHITELIST = _constants.V_CLUSTER_VPATH_WHITELIST
 
 
 def _GetRootDirectory(envname):

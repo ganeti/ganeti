@@ -971,6 +971,9 @@ rbdCmd = "rbd"
 fdBlktap :: String
 fdBlktap = Types.fileDriverToRaw FileBlktap
 
+fdBlktap2 :: String
+fdBlktap2 = Types.fileDriverToRaw FileBlktap2
+
 fdLoop :: String
 fdLoop = Types.fileDriverToRaw FileLoop
 
@@ -4280,6 +4283,23 @@ ndsSsconf = "ssconf"
 
 ndsStartNodeDaemon :: String
 ndsStartNodeDaemon = "start_node_daemon"
+
+-- * VCluster related constants
+
+vClusterEtcHosts :: String
+vClusterEtcHosts = "/etc/hosts"
+
+vClusterVirtPathPrefix :: String
+vClusterVirtPathPrefix = "/###-VIRTUAL-PATH-###,"
+
+vClusterRootdirEnvname :: String
+vClusterRootdirEnvname = "GANETI_ROOTDIR"
+
+vClusterHostnameEnvname :: String
+vClusterHostnameEnvname = "GANETI_HOSTNAME"
+
+vClusterVpathWhitelist :: FrozenSet String
+vClusterVpathWhitelist = ConstantUtils.mkSet [ vClusterEtcHosts ]
 
 -- * The source reasons for the execution of an OpCode
 

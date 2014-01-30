@@ -77,6 +77,7 @@ module Ganeti.Rpc
   , RpcResultExportList(..)
 
   , RpcCallJobqueueUpdate(..)
+  , RpcCallJobqueueRename(..)
   , RpcCallSetWatcherPause(..)
   , RpcCallSetDrainFlag(..)
   ) where
@@ -89,7 +90,6 @@ import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 import qualified Data.ByteString.Base64.Lazy as Base64
-import System.Directory
 
 import Network.Curl hiding (content)
 import qualified Ganeti.Path as P
@@ -228,15 +228,8 @@ getOptionsForCall cert_path client_cert_path call =
 executeRpcCalls :: (Rpc a b) => [(Node, a)] -> IO [(Node, ERpcError b)]
 executeRpcCalls nodeCalls = do
   cert_file <- P.nodedCertFile
-  client_cert_file_name <- P.nodedClientCertFile
-  client_file_exists <- doesFileExist client_cert_file_name
-  -- FIXME: This is needed to ensure upgradability to 2.11
-  -- Remove in 2.12.
-  let client_cert_file = if client_file_exists
-                         then client_cert_file_name
-                         else cert_file
-      (nodes, calls) = unzip nodeCalls
-      opts = map (getOptionsForCall cert_file client_cert_file) calls
+  let (nodes, calls) = unzip nodeCalls
+      opts = map (getOptionsForCall cert_file cert_file) calls
       opts_urls = zipWith3 (\n c o ->
                          case prepareHttpRequest o n c of
                            Left v -> Left v
@@ -604,6 +597,32 @@ instance Rpc RpcCallJobqueueUpdate RpcResultJobQueueUpdate where
       J.JSNull ->  Right RpcResultJobQueueUpdate
       _ -> Left $ JsonDecodeError
            ("Expected JSNull, got " ++ show (pp_value res))
+
+-- | Rename a file in the job queue
+
+$(buildObject "RpcCallJobqueueRename" "rpcCallJobqueueRename"
+  [ simpleField "rename" [t| [(String, String)] |]
+  ])
+
+$(buildObject "RpcResultJobqueueRename" "rpcResultJobqueueRename" [])
+
+instance RpcCall RpcCallJobqueueRename where
+  rpcCallName _          = "jobqueue_rename"
+  rpcCallTimeout _       = rpcTimeoutToRaw Fast
+  rpcCallAcceptOffline _ = False
+  rpcCallData _ call     = J.encode [ rpcCallJobqueueRenameRename call ]
+
+instance Rpc RpcCallJobqueueRename RpcResultJobqueueRename where
+  rpcResultFill call res =
+    -- Upon success, the RPC returns the list of return values of
+    -- the rename operations, which is always None, serialized to
+    -- null in JSON.
+    let expected = J.showJSON . map (const J.JSNull)
+                     $ rpcCallJobqueueRenameRename call
+    in if res == expected
+      then Right RpcResultJobqueueRename
+      else Left
+             $ JsonDecodeError ("Expected JSNull, got " ++ show (pp_value res))
 
 -- ** Watcher Status Update
       

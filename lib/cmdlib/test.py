@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,13 +53,21 @@ class LUTestDelay(NoHooksLU):
 
     """
     self.needed_locks = {}
+
+    if self.op.on_nodes or self.op.on_master:
+      self.needed_locks[locking.LEVEL_NODE] = []
+
     if self.op.on_nodes:
       # _GetWantedNodes can be used here, but is not always appropriate to use
       # this way in ExpandNames. Check LogicalUnit.ExpandNames docstring for
       # more information.
       (self.op.on_node_uuids, self.op.on_nodes) = \
         GetWantedNodes(self, self.op.on_nodes)
-      self.needed_locks[locking.LEVEL_NODE] = self.op.on_node_uuids
+      self.needed_locks[locking.LEVEL_NODE].extend(self.op.on_node_uuids)
+
+    if self.op.on_master:
+      # The node lock should be acquired for the master as well.
+      self.needed_locks[locking.LEVEL_NODE].append(self.cfg.GetMasterNode())
 
   def _TestDelay(self):
     """Do the actual sleep.

@@ -12,17 +12,18 @@ Current state and shortcomings
 ==============================
 
 As of Ganeti 2.10, each instance is associated with an OS definition. An OS
-definition is a set of scripts (``create``, ``export``, ``import``, ``rename``)
-that are executed with root privileges on the primary host of the instance to
-perform all the OS-related functionality (setting up an operating system inside
-the disks of the instance being created, exporting/importing the instance,
-renaming it).
+definition is a set of scripts (i.e., ``create``, ``export``, ``import``,
+``rename``) that are executed with root privileges on the primary host of the
+instance.  These scripts are responsible for performing all the OS-related
+tasks, namely, create an instance, setup an operating system on the instance's
+disks, export/import the instance, and rename the instance.
 
-These scripts receive through environment variables a fixed set of parameters
-related to the instance (such as the hypervisor, the name of the instance, the
-number of disks, and their location) and a set of user defined parameters.
-These parameters are also written in the configuration file of Ganeti, to allow
-future reinstalls of the instance, and in various log files, namely:
+These scripts receive, through environment variables, a fixed set of instance
+parameters (such as, the hypervisor, the name of the instance, the number of
+disks and their location) and a set of user defined parameters.  Both the
+instance and user defined parameters are written in the configuration file of
+Ganeti, to allow future reinstalls of the instance, and in various log files,
+namely:
 
 * node daemon log file: contains DEBUG strings of the ``/os_validate``,
   ``/instance_os_add`` and ``/instance_start`` RPC calls.
@@ -41,31 +42,31 @@ future reinstalls of the instance, and in various log files, namely:
 
 The current situation presents a number of shortcomings:
 
-* Having the installation scripts run as root on the nodes doesn't allow
-  user-defined OS scripts, as they would pose a huge security issue.
+* Having the installation scripts run as root on the nodes does not allow
+  user-defined OS scripts, as they would pose a huge security risk.
   Furthermore, even a script without malicious intentions might end up
-  distrupting a node because of a bug in it.
+  disrupting a node because of due to a bug.
 
 * Ganeti cannot be used to create instances starting from user provided disk
-  images: even in the (hypothetical) case where the scripts are completely
+  images: even in the (hypothetical) case in which the scripts are completely
   secure and run not by root but by an unprivileged user with only the power to
-  mount arbitrary files as disk images, this is a security issue. It has been
-  proven that a carefully crafted file system might exploit kernel
+  mount arbitrary files as disk images, this is still a security issue. It has
+  been proven that a carefully crafted file system might exploit kernel
   vulnerabilities to gain control of the system. Therefore, directly mounting
   images on the Ganeti nodes is not an option.
 
 * There is no way to inject files into an existing disk image. A common use case
   is for the system administrator to provide a standard image of the system, to
   be later personalized with the network configuration, private keys identifying
-  the machine, ssh keys of the users and so on. A possible workaround would be
+  the machine, ssh keys of the users, and so on. A possible workaround would be
   for the scripts to mount the image (only if this is trusted!) and to receive
   the configurations and ssh keys as user defined OS parameters. Unfortunately,
   this is also not an option for security sensitive material (such as the ssh
   keys) because the OS parameters are stored in many places on the system, as
   already described above.
 
-* Most other virtualization software simply work with instance images, not with
-  installation scripts. This difference makes the interaction of Ganeti with
+* Most other virtualization software allow only instance images, but no
+  installation scripts. This difference makes the interaction between Ganeti and
   other software difficult.
 
 Proposed changes
@@ -74,9 +75,8 @@ Proposed changes
 In order to fix the shortcomings of the current state, we plan to introduce the
 following changes.
 
-
-OS parameters categories
-++++++++++++++++++++++++
+OS parameter categories
++++++++++++++++++++++++
 
 Change the OS parameters to have three categories:
 
@@ -99,7 +99,6 @@ Change the OS parameters to have three categories:
   is an expected and accepted side effect of jobs with secret parameters: if
   they fail, they'll have to be restarted manually.
 
-
 Metadata
 ++++++++
 
@@ -110,42 +109,44 @@ instance to communicate its progress to the host). Each instance will have
 access exclusively to its own metadata, and it will be only able to communicate
 with its host over this channel.  This is the approach followed the
 ``cloud-init`` tool and more details will be provided in the `Communication
-mechanism and metadata service`_ section.
-
+mechanism`_ and `Metadata service`_ sections.
 
 Installation procedure
 ++++++++++++++++++++++
 
-A new installation procedure will be introduced, with which it will be possible
-to use an installation medium and run the OS scripts in an optional virtualized
-environment and with an optional personalization package.  There will be two
-sets of parameters, namely, installation parameters, which are used mainly for
-installs and reinstalls, and execution parameters, which are used in all the
-other runs that are not part of an installation procedure.
+A new installation procedure will be introduced.  There will be two sets of
+parameters, namely, installation parameters, which are used mainly for installs
+and reinstalls, and execution parameters, which are used in all the other runs
+that are not part of an installation procedure.  Also, it will be possible to
+use an installation medium and/or run the OS scripts in an optional virtualized
+environment, and optionally use a personalization package.  This section details
+all of these options.
 
-This set of installation parameters will allow, e.g., to attach an installation
-floppy/cdrom/network, change the boot device order, or specify a disk image to
-be used.  Through this set of parameters, the administrator will have to provide
-the hypervisor a location for an installation medium for the instance (e.g., a
-boot disk, a network image, etc).  This medium will carry out the installation
-of the instance onto the instance's disks and will then be responsible for
-getting the parameters for configuring the instance, such as, network
-interfaces, IP address, and hostname.  These parameters are taken from the
-metadata.  The installation parameters will be stored in the configuration of
-Ganeti and used in future reinstalls, but not during normal execution.
+The set of installation parameters will allow, for example, to attach an
+installation floppy/cdrom/network, change the boot device order, or specify a
+disk image to be used.  Through this set of parameters, the administrator will
+have to provide the hypervisor a location for an installation medium for the
+instance (e.g., a boot disk, a network image, etc).  This medium will carry out
+the installation of the instance onto the instance's disks and will then be
+responsible for getting the parameters for configuring the instance, such as,
+network interfaces, IP address, and hostname.  These parameters are taken from
+the metadata.  The installation parameters will be stored in the configuration
+of Ganeti and used in future reinstalls, but not during normal execution.
 
 The instance is reinstalled using the same installation parameters from the
 first installation.  However, it will be the administrator's responsibility to
-ensure that the any installation media is still available at the proper location
+ensure that the installation media is still available at the proper location
 when a reinstall occurs.
 
 The parameter ``--os-parameters`` can still be used to specify the OS
 parameters.  However, without OS scripts, Ganeti cannot do more than a syntactic
-check to validate the supplied OS parameters string.  As a result, this string
-will be directly passed to the instance as part of the metadata.  If the
-installation procedure is running inside a virtualized environment, then Ganeti
-will take these parameters from the metadata and pass them to the OS scripts as
-environment variables.
+check to validate the supplied OS parameter string.  As a result, this string
+will be passed directly to the instance as part of the metadata.  If OS scripts
+are used and the installation procedure is running inside a virtualized
+environment, Ganeti will take these parameters from the metadata and pass them
+to the OS scripts as environment variables.
+
+Ganeti allows the following installation options:
 
 * Use a disk image:
 
@@ -159,10 +160,13 @@ environment variables.
 
   The parameter ``--os-type`` (short version: ``-o``), is currently used to
   specify the OS scripts.  This parameter will still be used to specify the OS
-  scripts with the difference that these OS scripts may optionally run inside a
+  scripts with the difference that these scripts may optionally run inside a
   virtualized environment for safety reasons, depending on whether they are
   trusted or not.  For more details on trusted and untrusted OS scripts, refer
-  to the `Installation process in a virtualized environment`_ section.
+  to the `Installation process in a virtualized environment`_ section.  Note
+  that this parameter will become optional thus allowing a user to create an
+  instance specifying only, for example, a disk image or a cdrom image to boot
+  from.
 
 * Personalization package
 
@@ -170,9 +174,9 @@ environment variables.
   URL for a "personalization package", which is an archive containing a set of
   files meant to be overlayed on top of the OS file system at the end of the
   setup process and before the VM is started for the first time in normal mode.
-  Ganeti will provide a mechanism for receiving and unpacking this archive
-  whether the installation is being performed inside the virtualized environment
-  or not.
+  Ganeti will provide a mechanism for receiving and unpacking this archive,
+  independently of whether the installation is being performed inside the
+  virtualized environment or not.
 
   The archive will be in TAR-GZIP format (with extension ``.tar.gz`` or
   ``.tgz``) and contain the files according to the directory structure that will
@@ -207,9 +211,8 @@ environment variables.
 * Combine a disk image, OS scripts, and a personalization package
 
   It will possible to combine a disk image, OS scripts, and a personalization
-  package, both with or without a virtualized environment.  There is one
-  exception which is if there are untrusted OS scripts.  At least, an
-  installation medium or OS scripts should be specified.
+  package, both with or without a virtualized environment (see the exception
+  below). At least, an installation medium or OS scripts should be specified.
 
   The disk image of the actual virtual appliance, which bootstraps the virtual
   environment used in the installation procedure, will be read only, so that a
@@ -242,87 +245,147 @@ Some of these steps need to be more deeply specified w.r.t. what is already
 written in the `Proposed changes`_ Section. Extra details will be provided in
 the following subsections.
 
-Communication mechanism and metadata service
-++++++++++++++++++++++++++++++++++++++++++++
+Communication mechanism
++++++++++++++++++++++++
 
-The communication mechanism and the metadata service are described together
-because they are deeply tied. The communication mechanism will be made more
-generic because it can be used for other purposes in the future (like allowing
-instances to explicitly send commands to Ganeti, or to let Ganeti control a
-helper instance, like the one hereby introduced for performing OS installs
-inside a safe environment).
+The communication mechanism will be an exclusive, generic, bidirectional
+communication channel between Ganeti hosts and guests.
+
+exclusive
+  The communication mechanism allows communication between a guest and its host,
+  but it does not allow a guest to communicate with other guests or reach the
+  outside world.
+
+generic
+  The communication mechanism allows a guest to reach any service on the host,
+  not just the metadata service.  Examples of valid communication include, but
+  are not limited to, access to the metadata service, send commands to Ganeti,
+  request changes to parameters, such as, those related to the distribution
+  upgrades, and let Ganeti control a helper instance, such as, the one for
+  performing OS installs inside a safe environment.
+
+bidirectional
+  The communication mechanism allows communication to be initiated from either
+  party, namely, from a host to a guest or guest to host.
+
+Note that Ganeti will allow communication with any service (e.g., daemon) running
+on the host and, as a result, Ganeti will not be responsible for ensuring that
+only the metadata service is reachable.  It is the responsibility of each system
+administrator to ensure that the extra firewalling and routing rules specified
+on the host provide the necessary protection on a given Ganeti installation and,
+at the same time, do not accidentally override the behaviour hereby described
+which makes the communication between the host and the guest exclusive, generic,
+and bidirectional, unless intended.
 
 The communication mechanism will be enabled automatically during an installation
-procedure that requires a virtualized environment, but for backwards
-compatibility it will be disabled when the instance is running normally, unless
-it is explicitly requested. Specifically, a new parameter
-``--communication=yes|no`` (short version: ``-C``) will be added to
-``gnt-instance add`` and ``gnt-instance modify``. It will determine whether the
-instance has a communication channel set to interact with the host and receive
-metadata. The value of this parameter will be saved as part of the configuration
-of the instance.
+procedure that requires a virtualized environment, but, for backwards
+compatibility, it will be disabled when the instance is running normally, unless
+explicitly requested.  Specifically, a new parameter ``--communication=yes|no``
+(short version: ``-C``) will be added to ``gnt-instance add`` and ``gnt-instance
+modify``.  This parameter will determine whether the communication mechanism is
+enabled for a particular instance.  The value of this parameter will be saved as
+part of the instance's configuration.
 
-When the communication mechanism is enabled, Ganeti will create a new network
-interface inside the instance. This additional network interface will be the
-last one in the instance, after all the user defined ones. On the host side,
-this interface will only be accessible to the host itself, and not routed
-outside the machine.
-On this network interface, the instance will connect using the IP:
-169.254.169.253 and netmask 255.255.255.0.
-The host will be on the same network, with the IP address: 169.254.169.254.
+The communication mechanism will be implemented through network interfaces on
+the host and the guest, and Ganeti will be responsible for the host side,
+namely, creating a TAP interface for each guest and configuring these interfaces
+to have IP address ``169.254.169.254`` and netmask ``255.255.255.255``.  This
+network interface will be connected to the guest's last network interface, which
+is meant to be used exclusively for the communication mechanism and is defined
+after all the used-defined interfaces.  The last interface was chosen (as
+opposed to the first one, for example) because the first interface is generally
+understood and the main gateway out, and also because it minimizes the impact on
+existing systems, for example, in a scenario where the system administrator has
+a running cluster and wants to enable the communication mechanism for already
+existing instances, which might have been created with older versions of Ganeti.
+Further, DBus should assist in keeping the guest network interfaces more stable.
 
-The way to create this interface depends on the specific hypervisor being used.
-In KVM, it is possible to create a network interface inside the instance without
-having a corresponding interface created on the host. Using a command like::
+On the guest side, each instance will have its own MAC address and IP address.
+Both the guest's MAC address and IP address must be unique within a single
+cluster.  An IP is unique within a single cluster, and not within a single host,
+in order to minimize disruption of connectivity, for example, during live
+migration, in particular since an instance is not aware when it changes host.
+Unfortunately, a side-effect of this decision is that a cluster can have a
+maximum of a ``/16`` network allowed instances (with communication enabled).  If
+necessary to overcome this limit, it should be possible to allow different
+networks to be configured link-local only.
 
-  kvm -net nic -net \
-    user,restrict=on,net=169.254.169.0/24,host=169.254.169.253,
-    guestfwd=tcp:169.254.169.254:80-tcp:127.0.0.1:8080
+The guest will use the DHCP protocol on its last network interface to contact a
+DHCP server running on the host and thus determine its IP address.  The DHCP
+server is configured, started, and stopped, by Ganeti and it will be listening
+exclusively on the TAP network interfaces of the guests in order not to
+interfere with a potential DHCP server running on the same host.  Furthermore,
+the DHCP server will only recognize MAC and IP address pairs that have been
+approved by Ganeti.
 
-a network interface will be created inside the VM, part of the 169.254.169.0/24
-network, where the VM will have IP address .253 and the host port 8080 will be
-reachable on port 80.
+The TAP network interfaces created for each guest share the same IP address.
+Therefore, it will be necessary to extend the routing table with rules specific
+to each guest.  This can be achieved with the following command, which takes the
+guest's unique IP address and its TAP interface::
 
-In Xen, unfortunately, such a capability is not present, and an actual network
-interface has to be created on the host (using the ``vif`` parameter of the Xen
-configuration file). Each instance will have its corresponding ``vif`` network
-interface on the host. These interfaces will not be connected to each other in
-any way, and Ganeti will not configure them to allow traffic to be forwarded
-beyond the host machine. The ``vif-route`` script of Xen might be helpful in
-implementing this.
-It will be the system administrator's responsibility to ensure that the extra
-firewalling and routing rules specified on the host don't allow this
-accidentally.
+  route add -host <ip> dev <ifname>
 
-The instance will be able to connect to 169.254.169.254:80, and issue GET
-requests to an HTTP server that will provide the instance metadata.
+This rule has the additional advantage of preventing guests from trying to lease
+IP addresses from the DHCP server other than the own that has been assigned to
+them by Ganeti.  The guest could lie about its MAC address to the DHCP server
+and try to steal another guest's IP address, however, this routing rule will
+block traffic (i.e., IP packets carrying the wrong IP) from the DHCP server to
+the malicious guest.  Similarly, the guest could lie about its IP address (i.e.,
+simply assign a predefined IP address, perhaps from another guest), however,
+replies from the host will not be routed to the malicious guest.
 
-The choice of this IP address and port for accessing the metadata is done for
-compatibility reasons with OpenStack's and Amazon EC2's ways of providing
-metadata to the instance. The metadata will be provided by a single daemon,
-which will determine what instance the request comes from and reply with the
-metadata specific for that instance.
+This routing rule ensures that the communication channel is exclusive but, as
+mentioned before, it will not prevent guests from accessing any service on the
+host.  It is the system administrator's responsibility to employ the necessary
+``iptables`` rules.  In order to achieve this, Ganeti will provide ``ifup``
+hooks associated with the guest network interfaces which will give system
+administrator's the opportunity to customize their own ``iptables``, if
+necessary.  Ganeti will also provide examples of such hooks.  However, these are
+meant to personalized to each Ganeti installation and not to be taken as
+production ready scripts.
+
+For KVM, an instance will be started with a unique MAC address and the file
+descriptor for the TAP network interface meant to be used by the communication
+mechanism.  Ganeti will be responsible for generating a unique MAC address for
+the guest, opening the TAP interface, and passing its file descriptor to KVM::
+
+  kvm -net nic,macaddr=<mac> -net tap,fd=<tap-fd> ...
+
+For Xen, a network interface will be created on the host (using the ``vif``
+parameter of the Xen configuration file).  Each instance will have its
+corresponding ``vif`` network interface on the host.  The ``vif-route`` script
+of Xen might be helpful in implementing this.
+
+Metadata service
+++++++++++++++++
+
+An instance will be able to reach metadata service on ``169.254.169.254:80`` in
+order to, for example, retrieve its metadata.  This IP address and port were
+chosen for compatibility with the OpenStack and Amazon EC2 metadata service.
+The metadata service will be provided by a single daemon, which will determine
+the source instance for a given request and reply with the metadata pertaining
+to that instance.
 
 Where possible, the metadata will be provided in a way compatible with Amazon
 EC2, at::
 
   http://169.254.169.254/<version>/meta-data/*
 
-If some metadata are Ganeti-specific and don't fit this structure, they will be
-provided at::
+Ganeti-specific metadata, that does not fit this structure, will be provided
+at::
 
   http://169.254.169.254/ganeti/<version>/meta_data.json
 
-``<version>`` is either a date in YYYY-MM-DD format, or ``latest`` to indicate
-the most recent available protocol version.
+where ``<version>`` is either a date in YYYY-MM-DD format, or ``latest`` to
+indicate the most recent available protocol version.
 
 If needed in the future, this structure also allows us to support OpenStack's
 metadata at::
 
   http://169.254.169.254/openstack/<version>/meta_data.json
 
-A bi-directional, pipe-like communication channel will be provided. The instance
-will be able to receive data from the host by a GET request at::
+A bi-directional, pipe-like communication channel will also be provided.  The
+instance will be able to receive data from the host by a GET request at::
 
   http://169.254.169.254/ganeti/<version>/read
 
@@ -331,12 +394,10 @@ and to send data to the host by a POST request at::
   http://169.254.169.254/ganeti/<version>/write
 
 As in a pipe, once the data are read, they will not be in the buffer anymore, so
-subsequent GET requests to ``read`` will not return the same data twice.
-Unlike a pipe, though, it will not be possible to perform blocking I/O
-operations.
+subsequent GET requests to ``read`` will not return the same data.  However,
+unlike a pipe, it will not be possible to perform blocking I/O operations.
 
-The OS parameters will be accessible through a GET
-request at::
+The OS parameters will be accessible through a GET request at::
 
   http://169.254.169.254/ganeti/<version>/os/parameters.json
 
@@ -352,7 +413,6 @@ available at::
 
 where ``<script_name>`` is the name of the script.
 
-
 Rationale
 ---------
 
@@ -365,7 +425,6 @@ virtual floppy or USB devices because the latter tend to be detected and
 configured by the guest operating systems, sometimes even in prominent positions
 in the user interface, whereas it is fairly common to have an unconfigured
 network interface in a system, usually without any negative side effects.
-
 
 Installation process in a virtualized environment
 +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -407,7 +466,7 @@ running on the host, leaving only the ones running in the VM.
 Ganeti will provide a script to be run at install time that can be used to
 create the virtualized environment that will perform the OS installation of new
 instances.
-This script will build a debootstrapped basic debian system including a software
+This script will build a debootstrapped basic Debian system including a software
 that will read the metadata, setup the environment variables and launch the
 installation scripts inside the virtualized environment. The script will also
 provide hooks for personalization.
@@ -416,16 +475,77 @@ It will also be possible to use other self-made virtualized environments, as
 long as they connect to Ganeti over the described communication mechanism and
 they know how to read and use the provided metadata to create a new instance.
 
-While performing an installation in the virtualized environment, a
-personalizable timeout will be used to detect possible problems with the
-installation process, and to kill the virtualized environment. The timeout will
-be optional and set on a cluster basis by the administrator. If set, it will be
-the total time allowed to setup an instance inside the appliance. It is mainly
-meant as a safety measure to prevent an instance taken over by malicious scripts
-to be available for a long time.
+While performing an installation in the virtualized environment, a customizable
+timeout will be used to detect possible problems with the installation process,
+and to kill the virtualized environment. The timeout will be optional and set on
+a cluster basis by the administrator. If set, it will be the total time allowed
+to setup an instance inside the appliance. It is mainly meant as a safety
+measure to prevent an instance taken over by malicious scripts to be available
+for a long time.
 
-.. vim: set textwidth=72 :
-.. Local Variables:
-.. mode: rst
-.. fill-column: 72
-.. End:
+Alternatives to design and implementation
+=========================================
+
+This section lists alternatives to design and implementation, which came up
+during the development of this design document, that will not be implemented.
+Please read carefully through the limitations and security concerns of each of
+these alternatives.
+
+Port forwarding in KVM
+++++++++++++++++++++++
+
+The communication mechanism could have been implemented in KVM using guest port
+forwarding, as opposed to network interfaces.  There are two alternatives in
+KVM's guest port forwarding, namely, creating a forwarding device, such as, a
+TCP/IP connection, or executing a command.  However, we have determined that
+both of these options are not viable.
+
+A TCP/IP forwarding device can be created through the following KVM invocation::
+
+  kvm -net nic -net \
+    user,restrict=on,net=169.254.0.0/16,host=169.254.169.253,
+    guestfwd=tcp:169.254.169.254:80-tcp:127.0.0.1:8080 ...
+
+This invocation even has the advantage that it can block undesired traffic
+(i.e., traffic that is not explicitly specified in the arguments) and it can
+remap ports, which would have allowed the metadata service daemon to run in port
+8080 instead of 80.  However, in this scheme, KVM opens the TCP connection only
+once, when it is started, and, if the connection breaks, KVM will not
+reestablish the connection.  Furthermore, opening the TCP connection only once
+interferes with the HTTP protocol, which needs to dynamically establish and
+close connections.
+
+The alternative to the TCP/IP forwarding device is to execute a command.  The
+KVM invocation for this is, for example, the following::
+
+  kvm -net nic -net \
+    "user,restrict=on,net=169.254.0.0/16,host=169.254.169.253,
+    guestfwd=tcp:169.254.169.254:80-netcat 127.0.0.1 8080" ...
+
+The advantage of this approach is that the command is executed each time the
+guest initiates a connection.  This is the ideal situation, however, it is only
+supported in KVM 1.2 and above, and, therefore, not viable because we want to
+provide support for at least KVM version 1.0, which is the version provided by
+Ubuntu LTS.
+
+Alternatives to the DHCP server
++++++++++++++++++++++++++++++++
+
+There are alternatives to using the DHCP server, for example, by assigning a
+fixed IP address to guests, such as, the IP address ``169.254.169.253``.
+However, this introduces a routing problem, namely, how to route incoming
+packets from the same source IP to the host.  This problem can be overcome in a
+number of ways.
+
+The first solution is to use NAT to translate the incoming guest IP address, for
+example, ``169.254.169.253``, to a unique IP address, for example,
+``169.254.0.1``.  Given that NAT through ``ip rule`` is deprecated, users can
+resort to ``iptables``.  Note that this has not yet been tested.
+
+Another option, which has been tested, but only in a prototype, is to connect
+the TAP network interfaces of the guests to a bridge.  The bridge takes the
+configuration from the TAP network interfaces, namely, IP address
+``169.254.169.254`` and netmask ``255.255.255.255``, thus leaving those
+interfaces without an IP address.  Note that in this setting, guests will be
+able to reach each other, therefore, if necessary, additional ``iptables`` rules
+can be put in place to prevent it.

@@ -453,6 +453,21 @@ class DRBD8Dev(base.BlockDev):
     except utils.RetryTimeout:
       base.ThrowError("drbd%d: timeout while configuring network", minor)
 
+    # Once the assembly is over, try to set the synchronization parameters
+    try:
+      # The minor may not have been set yet, requiring us to set it at least
+      # temporarily
+      old_minor = self.minor
+      self._SetFromMinor(minor)
+      sync_errors = self.SetSyncParams(self.params)
+      if sync_errors:
+        base.ThrowError("drbd%d: can't set the synchronization parameters: %s" %
+                        (self.minor, utils.CommaJoin(sync_errors)))
+    finally:
+      # Undo the change, regardless of whether it will have to be done again
+      # soon
+      self._SetFromMinor(old_minor)
+
   @staticmethod
   def _GetNetFamily(minor, lhost, rhost):
     if netutils.IP6Address.IsValid(lhost):
@@ -804,11 +819,6 @@ class DRBD8Dev(base.BlockDev):
       # we have to recheck the local and network status and try to fix
       # the device
       self._SlowAssemble()
-
-    sync_errors = self.SetSyncParams(self.params)
-    if sync_errors:
-      base.ThrowError("drbd%d: can't set the synchronization parameters: %s" %
-                      (self.minor, utils.CommaJoin(sync_errors)))
 
   def _SlowAssemble(self):
     """Assembles the DRBD device from a (partially) configured device.

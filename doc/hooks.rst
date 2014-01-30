@@ -379,8 +379,8 @@ and secondary before failover.
 
 :directory: instance-failover
 :env. vars: IGNORE_CONSISTENCY, SHUTDOWN_TIMEOUT, OLD_PRIMARY, OLD_SECONDARY, NEW_PRIMARY, NEW_SECONDARY
-:pre-execution: master node, secondary node
-:post-execution: master node, primary and secondary nodes
+:pre-execution: master node, secondary (target) node
+:post-execution: master node, primary (source) and secondary (target) nodes
 
 OP_INSTANCE_MIGRATE
 ++++++++++++++++++++
@@ -391,8 +391,8 @@ and secondary before migration.
 
 :directory: instance-migrate
 :env. vars: MIGRATE_LIVE, MIGRATE_CLEANUP, OLD_PRIMARY, OLD_SECONDARY, NEW_PRIMARY, NEW_SECONDARY
-:pre-execution: master node, primary and secondary nodes
-:post-execution: master node, primary and secondary nodes
+:pre-execution: master node, primary (source) and secondary (target) nodes
+:post-execution: master node, primary (source) and secondary (target) nodes
 
 
 OP_INSTANCE_REMOVE

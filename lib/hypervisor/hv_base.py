@@ -408,7 +408,7 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
-  def _InstanceStartupMemory(self, instance, hvparams=None):
+  def _InstanceStartupMemory(self, instance):
     """Get the correct startup memory for an instance
 
     This function calculates how much memory an instance should be started
@@ -421,7 +421,7 @@ class BaseHypervisor(object):
     @return: memory the instance should be started with
 
     """
-    free_memory = self.GetNodeInfo(hvparams=hvparams)["memory_free"]
+    free_memory = self.GetNodeInfo(hvparams=instance.hvparams)["memory_free"]
     max_start_mem = min(instance.beparams[constants.BE_MAXMEM], free_memory)
     start_mem = max(instance.beparams[constants.BE_MINMEM], max_start_mem)
     return start_mem

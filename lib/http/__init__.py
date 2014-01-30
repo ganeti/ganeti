@@ -610,7 +610,7 @@ class HttpBase(object):
     if ssl_verify_peer:
       ctx.set_verify(OpenSSL.SSL.VERIFY_PEER |
                      OpenSSL.SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
-                     ssl_verify_callback)
+                     self._SSLVerifyCallback)
 
       # Also add our certificate as a trusted CA to be sent to the client.
       # This is required at least for GnuTLS clients to work.

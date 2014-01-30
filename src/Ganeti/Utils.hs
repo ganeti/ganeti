@@ -71,17 +71,22 @@ module Ganeti.Utils
   , getFStatSafe
   , needsReload
   , watchFile
+  , safeRenameFile
+  , FilePermissions(..)
+  , ensurePermissions
   ) where
 
 import Control.Concurrent
 import Control.Exception (try)
-import Control.Monad (foldM, liftM, when)
+import Control.Monad (foldM, liftM, when, unless)
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
+import qualified Data.Either as E
 import Data.Function (on)
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
-import System.Directory (renameFile)
+import Numeric (showOct)
+import System.Directory (renameFile, createDirectoryIfMissing)
 import System.FilePath.Posix (takeDirectory, takeBaseName)
 import System.INotify
 import System.Posix.Types
@@ -97,6 +102,7 @@ import System.IO
 import System.Exit
 import System.Posix.Files
 import System.Posix.IO
+import System.Posix.User
 import System.Time
 
 -- * Debug functions
@@ -637,4 +643,59 @@ watchFile fpath timeout old read_fn = do
       result <- watchFileEx endtime fstat ref old read_fn
       killINotify inotify
       return result
-  
+
+-- | Type describing ownership and permissions of newly generated
+-- directories and files. All parameters are optional, with nothing
+-- meaning that the default value should be left untouched.
+
+data FilePermissions = FilePermissions { fpOwner :: Maybe String
+                                       , fpGroup :: Maybe String
+                                       , fpPermissions :: FileMode
+                                       }
+
+-- | Ensure that a given file or directory has the permissions, and
+-- possibly ownerships, as required.
+ensurePermissions :: FilePath -> FilePermissions -> IO (Result ())
+ensurePermissions fpath perms = do
+  eitherFileStatus <- try $ getFileStatus fpath
+                      :: IO (Either IOError FileStatus)
+  (flip $ either (return . Bad . show)) eitherFileStatus $ \fstat -> do
+    ownertry <- case fpOwner perms of
+      Nothing -> return $ Right ()
+      Just owner -> try $ do
+        ownerid <- userID `liftM` getUserEntryForName owner
+        unless (ownerid == fileOwner fstat) $ do
+          logDebug $ "Changing owner of " ++ fpath ++ " to " ++ owner
+          setOwnerAndGroup fpath ownerid (-1)
+    grouptry <- case fpGroup perms of
+      Nothing -> return $ Right ()
+      Just grp -> try $ do
+        groupid <- groupID `liftM` getGroupEntryForName grp
+        unless (groupid == fileGroup fstat) $ do
+          logDebug $ "Changing group of " ++ fpath ++ " to " ++ grp
+          setOwnerAndGroup fpath (-1) groupid
+    let fp = fpPermissions perms
+    permtry <- if fileMode fstat == fp
+      then return $ Right ()
+      else try $ do
+        logInfo $ "Changing permissions of " ++ fpath ++ " to "
+                    ++ showOct fp ""
+        setFileMode fpath fp
+    let errors = E.lefts ([ownertry, grouptry, permtry] :: [Either IOError ()])
+    if null errors
+      then return $ Ok ()
+      else return . Bad $ show errors
+
+-- | Safely rename a file, creating the target directory, if needed.
+safeRenameFile :: FilePermissions -> FilePath -> FilePath -> IO (Result ())
+safeRenameFile perms from to = do
+  directtry <- try $ renameFile from to
+  case (directtry :: Either IOError ()) of
+    Right () -> return $ Ok ()
+    Left _ -> do
+      result <- try $ do
+        let dir = takeDirectory to
+        createDirectoryIfMissing True dir
+        _ <- ensurePermissions dir perms
+        renameFile from to
+      return $ either (Bad . show) Ok (result :: Either IOError ())

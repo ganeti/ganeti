@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ The module is also used by the master daemon.
 from ganeti import constants
 from ganeti import objects
 import ganeti.rpc.client as cl
+from ganeti.rpc.errors import RequestError
 from ganeti.rpc.transport import Transport
 
 __all__ = [
@@ -107,13 +108,25 @@ class Client(cl.AbstractClient):
       jobs_state.append([op.__getstate__() for op in ops])
     return self.CallMethod(REQ_SUBMIT_MANY_JOBS, (jobs_state, ))
 
+  @staticmethod
+  def _PrepareJobId(request_name, job_id):
+    try:
+      return int(job_id)
+    except ValueError:
+      raise RequestError("Invalid parameter passed to %s as job id: "
+                         " expected integer, got value %s" %
+                         (request_name, job_id))
+
   def CancelJob(self, job_id):
+    job_id = Client._PrepareJobId(REQ_CANCEL_JOB, job_id)
     return self.CallMethod(REQ_CANCEL_JOB, (job_id, ))
 
   def ArchiveJob(self, job_id):
+    job_id = Client._PrepareJobId(REQ_ARCHIVE_JOB, job_id)
     return self.CallMethod(REQ_ARCHIVE_JOB, (job_id, ))
 
   def ChangeJobPriority(self, job_id, priority):
+    job_id = Client._PrepareJobId(REQ_CHANGE_JOB_PRIORITY, job_id)
     return self.CallMethod(REQ_CHANGE_JOB_PRIORITY, (job_id, priority))
 
   def AutoArchiveJobs(self, age):
@@ -144,6 +157,7 @@ class Client(cl.AbstractClient):
                             min(WFJC_TIMEOUT, timeout)))
 
   def WaitForJobChange(self, job_id, fields, prev_job_info, prev_log_serial):
+    job_id = Client._PrepareJobId(REQ_WAIT_FOR_JOB_CHANGE, job_id)
     while True:
       result = self.WaitForJobChangeOnce(job_id, fields,
                                          prev_job_info, prev_log_serial)

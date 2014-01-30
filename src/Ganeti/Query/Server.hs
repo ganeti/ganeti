@@ -64,7 +64,7 @@ import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 import Ganeti.Types
 import qualified Ganeti.UDSServer as U (Handler(..), listener)
-import Ganeti.Utils (lockFile, exitIfBad, watchFile)
+import Ganeti.Utils (lockFile, exitIfBad, watchFile, safeRenameFile)
 import qualified Ganeti.Version as Version
 
 -- | Helper for classic queries.
@@ -172,12 +172,10 @@ handleCall _ _ cdata QueryClusterInfo =
 handleCall _ _ cfg (QueryTags kind name) = do
   let tags = case kind of
                TagKindCluster  -> Ok . clusterTags $ configCluster cfg
-               TagKindGroup    -> groupTags <$> Config.getGroup    cfg name
-               TagKindNode     -> nodeTags  <$> Config.getNode     cfg name
-               TagKindInstance -> instTags  <$> Config.getInstance cfg name
-               TagKindNetwork  -> Bad $ OpPrereqError
-                                        "Network tag is not allowed"
-                                        ECodeInval
+               TagKindGroup    -> groupTags   <$> Config.getGroup    cfg name
+               TagKindNode     -> nodeTags    <$> Config.getNode     cfg name
+               TagKindInstance -> instTags    <$> Config.getInstance cfg name
+               TagKindNetwork  -> networkTags <$> Config.getNetwork  cfg name
   return (J.showJSON <$> tags)
 
 handleCall _ _ cfg (Query qkind qfields qfilter) = do
@@ -334,6 +332,43 @@ handleCall _ qstat  cfg (CancelJob jid) = do
       logDebug $ jName ++ " not queued; trying to cancel directly"
       cancelJob jid
     Bad s -> return . Ok . showJSON $ (False, s)
+
+handleCall qlock _ cfg (ArchiveJob jid) = do
+  let archiveFailed = putMVar qlock  () >> (return . Ok $ showJSON False)
+                      :: IO (ErrorResult JSValue)
+  qDir <- queueDir
+  takeMVar qlock
+  result <- loadJobFromDisk qDir False jid
+  case result of
+    Bad _ -> archiveFailed
+    Ok (job, _) -> if jobFinalized job
+                     then do
+                       let mcs = Config.getMasterCandidates cfg
+                           live = liveJobFile qDir jid
+                           archive = archivedJobFile qDir jid
+                       renameResult <- safeRenameFile queueDirPermissions
+                                         live archive
+                       putMVar qlock ()
+                       case renameResult of
+                         Bad s -> return . Bad . JobQueueError
+                                    $ "Archiving failed in an unexpected way: "
+                                        ++ s
+                         Ok () -> do
+                           _ <- executeRpcCall mcs
+                                  $ RpcCallJobqueueRename [(live, archive)]
+                           return . Ok $ showJSON True
+                     else archiveFailed
+
+handleCall qlock _ cfg (AutoArchiveJobs age timeout) = do
+  qDir <- queueDir
+  eitherJids <- getJobIDs [qDir]
+  case eitherJids of
+    Left s -> return . Bad . JobQueueError $ show s
+    Right jids -> do
+      result <- bracket_ (takeMVar qlock) (putMVar qlock ())
+                  . archiveJobs cfg age timeout
+                  $ sortJobIDs jids
+      return . Ok $ showJSON result
 
 handleCall _ _ _ op =
   return . Bad $

@@ -33,14 +33,17 @@ module Ganeti.JQueue
     , queuedJobFromOpCodes
     , cancelQueuedJob
     , Timestamp
+    , fromClockTime
     , noTimestamp
     , currentTimestamp
+    , advanceTimestamp
     , setReceivedTimestamp
     , opStatusFinalized
     , extractOpSummary
     , calcJobStatus
     , jobStarted
     , jobFinalized
+    , jobArchivable
     , calcJobPriority
     , jobFileName
     , liveJobFile
@@ -58,9 +61,13 @@ module Ganeti.JQueue
     , isQueueOpen
     , startJobs
     , cancelJob
+    , queueDirPermissions
+    , archiveJobs
     ) where
 
-import Control.Arrow (second)
+import Control.Applicative (liftA2, (<|>))
+import Control.Arrow (first, second)
+import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar
 import Control.Exception
 import Control.Monad
@@ -79,19 +86,21 @@ import qualified Text.JSON
 import Text.JSON.Types
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Config as Config
 import qualified Ganeti.Constants as C
 import Ganeti.Errors (ErrorResult)
 import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Luxi
-import Ganeti.Objects (Node)
+import Ganeti.Objects (ConfigData, Node)
 import Ganeti.OpCodes
 import Ganeti.Path
 import Ganeti.Rpc (executeRpcCall, ERpcError, logRpcErrors,
-                   RpcCallJobqueueUpdate(..))
+                   RpcCallJobqueueUpdate(..), RpcCallJobqueueRename(..))
 import Ganeti.THH
 import Ganeti.Types
 import Ganeti.Utils
+import Ganeti.VCluster (makeVirtualPath)
 
 -- * Data types
 
@@ -104,11 +113,19 @@ type Timestamp = (Int, Int)
 noTimestamp :: Timestamp
 noTimestamp = (-1, -1)
 
+-- | Obtain a Timestamp from a given clock time
+fromClockTime :: ClockTime -> Timestamp
+fromClockTime (TOD ctime pico) =
+  (fromIntegral ctime, fromIntegral $ pico `div` 1000000)
+
 -- | Get the current time in the job-queue timestamp format.
 currentTimestamp :: IO Timestamp
-currentTimestamp = do
-  TOD ctime pico <- getClockTime
-  return (fromIntegral ctime, fromIntegral $ pico `div` 1000000)
+currentTimestamp = fromClockTime `liftM` getClockTime
+
+-- | From a given timestamp, obtain the timestamp of the
+-- time that is the given number of seconds later.
+advanceTimestamp :: Int -> Timestamp -> Timestamp
+advanceTimestamp = first . (+)
 
 -- | An input opcode.
 data InputOpCode = ValidOpCode MetaOpCode -- ^ OpCode was parsed successfully
@@ -271,6 +288,13 @@ jobStarted = (> JOB_STATUS_QUEUED) . calcJobStatus
 jobFinalized :: QueuedJob -> Bool
 jobFinalized = (> JOB_STATUS_RUNNING) . calcJobStatus
 
+-- | Determine if a job is finalized and its timestamp is before
+-- a given time.
+jobArchivable :: Timestamp -> QueuedJob -> Bool
+jobArchivable ts = liftA2 (&&) jobFinalized 
+  $ maybe False (< ts)
+    .  liftA2 (<|>) qjEndTimestamp qjStartTimestamp
+
 -- | Determine whether an opcode status is finalized.
 opStatusFinalized :: OpStatus -> Bool
 opStatusFinalized = (> OP_STATUS_RUNNING)
@@ -397,8 +421,9 @@ replicateJob :: FilePath -> [Node] -> QueuedJob -> IO [(Node, ERpcError ())]
 replicateJob rootdir mastercandidates job = do
   let filename = liveJobFile rootdir . qjId $ job
       content = Text.JSON.encode . Text.JSON.showJSON $ job
+  filename' <- makeVirtualPath filename
   callresult <- executeRpcCall mastercandidates
-                  $ RpcCallJobqueueUpdate filename content
+                  $ RpcCallJobqueueUpdate filename' content
   let result = map (second (() <$)) callresult
   logRpcErrors result
   return result
@@ -442,8 +467,9 @@ allocateJobIds mastercandidates lock n =
               logError msg
               return . Bad $ msg 
             Right () -> do
+              serial' <- makeVirtualPath serial
               _ <- executeRpcCall mastercandidates
-                     $ RpcCallJobqueueUpdate serial serial_content
+                     $ RpcCallJobqueueUpdate serial' serial_content
               putMVar lock ()
               return $ mapM makeJobId [(current+1)..(current+n)]
 
@@ -474,3 +500,85 @@ cancelJob jid = do
   socketpath <- defaultMasterSocket
   client <- getLuxiClient socketpath
   callMethod (CancelJob jid) client
+
+-- | Permissions for the archive directories.
+queueDirPermissions :: FilePermissions
+queueDirPermissions = FilePermissions { fpOwner = Just C.masterdUser
+                                      , fpGroup = Just C.daemonsGroup
+                                      , fpPermissions = 0o0750
+                                      }
+
+-- | Try, at most until the given endtime, to archive some of the given
+-- jobs, if they are older than the specified cut-off time; also replicate
+-- archival of the additional jobs. Return the pair of the number of jobs
+-- archived, and the number of jobs remaining int he queue, asuming the
+-- given numbers about the not considered jobs.
+archiveSomeJobsUntil :: ([JobId] -> IO ()) -- ^ replication function
+                        -> FilePath -- ^ queue root directory
+                        -> ClockTime -- ^ Endtime
+                        -> Timestamp -- ^ cut-off time for archiving jobs
+                        -> Int -- ^ number of jobs alread archived
+                        -> [JobId] -- ^ Additional jobs to replicate
+                        -> [JobId] -- ^ List of job-ids still to consider
+                        -> IO (Int, Int)
+archiveSomeJobsUntil replicateFn _ _ _ arch torepl [] = do
+  unless (null torepl) . (>> return ())
+   . forkIO $ replicateFn torepl
+  return (arch, 0)
+
+archiveSomeJobsUntil replicateFn qDir endt cutt arch torepl (jid:jids) = do
+  let archiveMore = archiveSomeJobsUntil replicateFn qDir endt cutt
+      continue = archiveMore arch torepl jids
+      jidname = show $ fromJobId jid
+  time <- getClockTime
+  if time >= endt
+    then do
+      _ <- forkIO $ replicateFn torepl
+      return (arch, length (jid:jids))
+    else do
+      logDebug $ "Inspecting job " ++ jidname ++ " for archival"
+      loadResult <- loadJobFromDisk qDir False jid
+      case loadResult of
+        Bad _ -> continue
+        Ok (job, _) -> 
+          if jobArchivable cutt job
+            then do
+              let live = liveJobFile qDir jid
+                  archive = archivedJobFile qDir jid
+              renameResult <- safeRenameFile queueDirPermissions
+                                live archive
+              case renameResult of                   
+                Bad s -> do
+                  logWarning $ "Renaming " ++ live ++ " to " ++ archive
+                                 ++ " failed unexpectedly: " ++ s
+                  continue
+                Ok () -> do
+                  let torepl' = jid:torepl
+                  if length torepl' >= 10
+                    then do
+                      _ <- forkIO $ replicateFn torepl'
+                      archiveMore (arch + 1) [] jids
+                    else archiveMore (arch + 1) torepl' jids
+            else continue
+                   
+-- | Archive jobs older than the given time, but do not exceed the timeout for
+-- carrying out this task.
+archiveJobs :: ConfigData -- ^ cluster configuration
+               -> Int  -- ^ time the job has to be in the past in order
+                       -- to be archived
+               -> Int -- ^ timeout
+               -> [JobId] -- ^ jobs to consider
+               -> IO (Int, Int)
+archiveJobs cfg age timeout jids = do
+  now <- getClockTime
+  qDir <- queueDir
+  let endtime = addToClockTime (noTimeDiff { tdSec = timeout }) now
+      cuttime = if age < 0 then noTimestamp
+                           else advanceTimestamp (- age) (fromClockTime now)
+      mcs = Config.getMasterCandidates cfg
+      replicateFn jobs = do
+        let olds = map (liveJobFile qDir) jobs
+            news = map (archivedJobFile qDir) jobs
+        _ <- executeRpcCall mcs . RpcCallJobqueueRename $ zip olds news
+        return ()
+  archiveSomeJobsUntil replicateFn qDir endtime cuttime 0 [] jids
