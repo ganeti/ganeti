@@ -215,9 +215,9 @@ following actions.
 - If the action is an upgrade to a higher minor version, the configuration
   is upgraded now, using ``cfgupgrade``.
 
-- All daemons are started on all nodes.
-
 - ``ensure-dirs --full-run`` is run on all nodes.
+
+- All daemons are started on all nodes.
 
 - ``gnt-cluster redist-conf`` is run on the master node. 
 
