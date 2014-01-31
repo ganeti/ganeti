@@ -1924,17 +1924,17 @@ def _UpgradeAfterConfigurationChange(oldversion):
   """
   returnvalue = 0
 
-  ToStdout("Starting daemons everywhere.")
-  badnodes = _VerifyCommand([pathutils.DAEMON_UTIL, "start-all"])
-  if badnodes:
-    ToStderr("Warning: failed to start daemons on %s." % (", ".join(badnodes),))
-    returnvalue = 1
-
   ToStdout("Ensuring directories everywhere.")
   badnodes = _VerifyCommand([pathutils.ENSURE_DIRS])
   if badnodes:
     ToStderr("Warning: failed to ensure directories on %s." %
              (", ".join(badnodes)))
+    returnvalue = 1
+
+  ToStdout("Starting daemons everywhere.")
+  badnodes = _VerifyCommand([pathutils.DAEMON_UTIL, "start-all"])
+  if badnodes:
+    ToStderr("Warning: failed to start daemons on %s." % (", ".join(badnodes),))
     returnvalue = 1
 
   ToStdout("Redistributing the configuration.")
