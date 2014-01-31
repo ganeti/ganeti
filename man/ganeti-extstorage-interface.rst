@@ -63,6 +63,12 @@ VOL_METADATA
     metadata to be associated with the volume. Currently, Ganeti sets
     this value to ``originstname+X`` where ``X`` is the instance's name.
 
+VOL_CNAME
+    The name of the Disk config object (optional).
+
+VOL_UUID
+    The uuid of the Disk config object.
+
 EXECUTABLE SCRIPTS
 ------------------
 
