@@ -761,6 +761,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   _INFO_PCI_RE = re.compile(r'Bus.*device[ ]*(\d+).*')
   _INFO_PCI_CMD = "info pci"
+  _FIND_PCI_DEVICE_RE = \
+    staticmethod(
+      lambda pci, devid: re.compile(r'Bus.*device[ ]*%d,(.*\n){5,6}.*id "%s"' %
+                                    (pci, devid), re.M))
+
   _INFO_VERSION_RE = \
     re.compile(r'^QEMU (\d+)\.(\d+)(\.(\d+))?.*monitor.*', re.M)
   _INFO_VERSION_CMD = "info version"
@@ -2071,11 +2076,32 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
   def _CallHotplugCommands(self, name, cmds):
     for c in cmds:
-      output = self._CallMonitorCommand(name, c)
-      # TODO: parse output and check if succeeded
-      for line in output.stdout.splitlines():
-        logging.info("%s", line)
+      self._CallMonitorCommand(name, c)
       time.sleep(1)
+
+  def _VerifyHotplugCommand(self, instance_name, device, dev_type,
+                            should_exist):
+    """Checks if a previous hotplug command has succeeded.
+
+    It issues info pci monitor command and checks depending on should_exist
+    value if an entry with PCI slot and device ID is found or not.
+
+    @raise errors.HypervisorError: if result is not the expected one
+
+    """
+    output = self._CallMonitorCommand(instance_name, self._INFO_PCI_CMD)
+    kvm_devid = _GenerateDeviceKVMId(dev_type, device)
+    match = \
+      self._FIND_PCI_DEVICE_RE(device.pci, kvm_devid).search(output.stdout)
+    if match and not should_exist:
+      msg = "Device %s should have been removed but is still there" % kvm_devid
+      raise errors.HypervisorError(msg)
+
+    if not match and should_exist:
+      msg = "Device %s should have been added but is missing" % kvm_devid
+      raise errors.HypervisorError(msg)
+
+    logging.info("Device %s has been correctly hot-plugged", kvm_devid)
 
   def HotAddDevice(self, instance, dev_type, device, extra, seq):
     """ Helper method to hot-add a new device
@@ -2105,6 +2131,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
 
     self._CallHotplugCommands(instance.name, cmds)
+    self._VerifyHotplugCommand(instance.name, device, dev_type, True)
     # update relevant entries in runtime file
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     entry = _RUNTIME_ENTRY[dev_type](device, extra)
@@ -2130,6 +2157,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       cmds += ["netdev_del %s" % kvm_devid]
       utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
     self._CallHotplugCommands(instance.name, cmds)
+    self._VerifyHotplugCommand(instance.name, kvm_device, dev_type, False)
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     runtime[index].remove(entry)
     self._SaveKVMRuntime(instance, runtime)
