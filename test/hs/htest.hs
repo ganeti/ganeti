@@ -74,6 +74,7 @@ import Test.Ganeti.Storage.Drbd.Parser
 import Test.Ganeti.Storage.Drbd.Types
 import Test.Ganeti.Storage.Lvm.LVParser
 import Test.Ganeti.THH
+import Test.Ganeti.THH.Types
 import Test.Ganeti.Types
 import Test.Ganeti.Utils
 
@@ -135,6 +136,7 @@ allTests =
   , testSsconf
   , testStorage_Lvm_LVParser
   , testTHH
+  , testTHH_Types
   , testTypes
   , testUtils
   ]

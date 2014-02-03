@@ -143,7 +143,8 @@ HS_DIRS = \
 	test/hs/Test/Ganeti/HTools/Backend \
 	test/hs/Test/Ganeti/Hypervisor \
 	test/hs/Test/Ganeti/Hypervisor/Xen \
-	test/hs/Test/Ganeti/Query
+	test/hs/Test/Ganeti/Query \
+	test/hs/Test/Ganeti/THH
 
 # Haskell directories without the roots (src, test/hs)
 HS_DIRS_NOROOT = $(filter-out src,$(filter-out test/hs,$(HS_DIRS)))
@@ -801,6 +802,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Storage/Drbd/Types.hs \
 	test/hs/Test/Ganeti/Storage/Lvm/LVParser.hs \
 	test/hs/Test/Ganeti/THH.hs \
+	test/hs/Test/Ganeti/THH/Types.hs \
 	test/hs/Test/Ganeti/TestCommon.hs \
 	test/hs/Test/Ganeti/TestHTools.hs \
 	test/hs/Test/Ganeti/TestHelper.hs \
