@@ -69,14 +69,14 @@ class LogicalVolume(base.BlockDev):
   _INVALID_NAMES = compat.UniqueFrozenset([".", "..", "snapshot", "pvmove"])
   _INVALID_SUBSTRINGS = compat.UniqueFrozenset(["_mlog", "_mimage"])
 
-  def __init__(self, unique_id, children, size, params, dyn_params):
+  def __init__(self, unique_id, children, size, params, dyn_params, *args):
     """Attaches to a LV device.
 
     The unique_id is a tuple (vg_name, lv_name)
 
     """
     super(LogicalVolume, self).__init__(unique_id, children, size, params,
-                                        dyn_params)
+                                        dyn_params, *args)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self._vg_name, self._lv_name = unique_id
@@ -724,14 +724,14 @@ class PersistentBlockDevice(base.BlockDev):
   For the time being, pathnames are required to lie under /dev.
 
   """
-  def __init__(self, unique_id, children, size, params, dyn_params):
+  def __init__(self, unique_id, children, size, params, dyn_params, *args):
     """Attaches to a static block device.
 
     The unique_id is a path under /dev.
 
     """
     super(PersistentBlockDevice, self).__init__(unique_id, children, size,
-                                                params, dyn_params)
+                                                params, dyn_params, *args)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.dev_path = unique_id[1]
@@ -837,12 +837,12 @@ class RADOSBlockDevice(base.BlockDev):
   this to be functional.
 
   """
-  def __init__(self, unique_id, children, size, params, dyn_params):
+  def __init__(self, unique_id, children, size, params, dyn_params, *args):
     """Attaches to an rbd device.
 
     """
     super(RADOSBlockDevice, self).__init__(unique_id, children, size, params,
-                                           dyn_params)
+                                           dyn_params, *args)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
 
