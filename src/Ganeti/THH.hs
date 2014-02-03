@@ -73,6 +73,7 @@ import Control.Monad
 import Data.Char
 import Data.List
 import Data.Maybe
+import qualified Data.Map as M
 import qualified Data.Set as Set
 import Language.Haskell.TH
 
@@ -96,6 +97,8 @@ data OptionalType
   = NotOptional           -- ^ Field is not optional
   | OptionalOmitNull      -- ^ Field is optional, null is not serialised
   | OptionalSerializeNull -- ^ Field is optional, null is serialised
+  | AndRestArguments      -- ^ Special field capturing all the remaining fields
+                          -- as plain JSON values
   deriving (Show, Eq)
 
 -- | Serialised field data type.
@@ -202,8 +205,8 @@ fieldVariable f =
 -- | Compute the actual field type (taking into account possible
 -- optional status).
 actualFieldType :: Field -> Q Type
-actualFieldType f | fieldIsOptional f /= NotOptional = [t| Maybe $t |]
-                  | otherwise = t
+actualFieldType f | fieldIsOptional f `elem` [NotOptional, AndRestArguments] = t
+                  | otherwise =  [t| Maybe $t |]
                   where t = fieldType f
 
 -- | Checks that a given field is not optional (for object types or
@@ -763,7 +766,7 @@ genSaveOpCode tname jvalstr tdstr opdefs fn gen_object = do
 loadConstructor :: OpCodeConstructor -> Q Exp
 loadConstructor (sname, _, _, fields, _) = do
   let name = mkName sname
-  fbinds <- mapM loadObjectField fields
+  fbinds <- mapM (loadObjectField fields) fields
   let (fnames, fstmts) = unzip fbinds
   let cval = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) fnames
       fstmts' = fstmts ++ [NoBindS (AppE (VarE 'return) cval)]
@@ -866,7 +869,7 @@ buildObjectSerialisation :: String -> [Field] -> Q [Dec]
 buildObjectSerialisation sname fields = do
   let name = mkName sname
   savedecls <- genSaveObject saveObjectField sname fields
-  (loadsig, loadfn) <- genLoadObject loadObjectField sname fields
+  (loadsig, loadfn) <- genLoadObject (loadObjectField fields) sname fields
   shjson <- objectShowJSON sname
   rdjson <- objectReadJSON sname
   let instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
@@ -921,6 +924,7 @@ saveObjectField fvar field =
         Just fn -> [| let (actual, extra) = $fn $fvarE
                       in ($nameE, JSON.showJSON actual):extra
                     |]
+    AndRestArguments -> [| M.toList $(varE fvar) |]
   where nameE = stringE (fieldName field)
         fvarE = varE fvar
 
@@ -955,24 +959,30 @@ genLoadObject load_fn sname fields = do
             FunD funname [Clause [VarP arg1] (NormalB (DoE fstmts')) []])
 
 -- | Generates code for loading an object's field.
-loadObjectField :: Field -> Q (Name, Stmt)
-loadObjectField field = do
+loadObjectField :: [Field] -> Field -> Q (Name, Stmt)
+loadObjectField allFields field = do
   let name = fieldVariable field
+      names = map fieldVariable allFields
+      otherNames = listE . map stringE $ names \\ [name]
   fvar <- newName name
   -- these are used in all patterns below
   let objvar = varNameE "o"
       objfield = stringE (fieldName field)
       loadexp =
-        if fieldIsOptional field /= NotOptional
-          -- we treat both optional types the same, since
-          -- 'maybeFromObj' can deal with both missing and null values
-          -- appropriately (the same)
-          then [| $(varE 'maybeFromObj) $objvar $objfield |]
-          else case fieldDefault field of
+        case fieldIsOptional field of
+          NotOptional ->
+            case fieldDefault field of
                  Just defv ->
                    [| $(varE 'fromObjWithDefault) $objvar
                       $objfield $defv |]
                  Nothing -> [| $fromObjE $objvar $objfield |]
+          AndRestArguments -> [| return . M.fromList
+                                   $ filter (not . (`elem` $otherNames) . fst)
+                                            $objvar |]
+          _ -> [| $(varE 'maybeFromObj) $objvar $objfield |]
+          -- we treat both optional types the same, since
+          -- 'maybeFromObj' can deal with both missing and null values
+          -- appropriately (the same)
   bexp <- loadFn field loadexp objvar
 
   return (fvar, BindS (VarP fvar) bexp)
