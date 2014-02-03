@@ -55,6 +55,7 @@ module Ganeti.Config
     ) where
 
 import Control.Monad (liftM)
+import Control.Monad.IO.Class (liftIO)
 import Data.List (foldl', nub)
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -75,8 +76,8 @@ class NdParamObject a where
   getNdParamsOf :: ConfigData -> a -> Maybe FilledNDParams
 
 -- | Reads the config file.
-readConfig :: FilePath -> IO String
-readConfig = readFile
+readConfig :: FilePath -> IO (Result String)
+readConfig = runResultT . liftIO . readFile
 
 -- | Parses the configuration file.
 parseConfig :: String -> Result ConfigData
@@ -84,7 +85,7 @@ parseConfig = fromJResult "parsing configuration" . J.decodeStrict
 
 -- | Wrapper over 'readConfig' and 'parseConfig'.
 loadConfig :: FilePath -> IO (Result ConfigData)
-loadConfig = fmap parseConfig . readConfig
+loadConfig = fmap (>>= parseConfig) . readConfig
 
 -- * Query functions
 
