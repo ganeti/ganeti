@@ -571,7 +571,7 @@ TINicParams = \
                                       TMaybe(TString)))
 
 TIDiskParams = \
-    Comment("Disk parameters")(TDictOf(TElemOf(constants.IDISK_PARAMS),
+    Comment("Disk parameters")(TDictOf(TNonEmptyString,
                                        TOr(TNonEmptyString, TInt)))
 
 THypervisor = TElemOf(constants.HYPER_TYPES)
