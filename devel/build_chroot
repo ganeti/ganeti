@@ -185,7 +185,8 @@ case $DIST_RELEASE in
         case-insensitive==0.3 \
         parsec==3.0.1 \
         snap-server==0.8.1 \
-        json==0.4.4
+        json==0.4.4 \
+        lifted-base==0.2.1.1
 
     in_chroot -- \
       cabal install --global \
@@ -229,6 +230,7 @@ case $DIST_RELEASE in
       libghc-vector-dev libghc-temporary-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
       libghc6-zlib-dev \
+      libghc-lifted-base-dev \
       cabal-install\
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-paramiko \
@@ -267,6 +269,7 @@ case $DIST_RELEASE in
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
+      libghc-lifted-base-dev \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \

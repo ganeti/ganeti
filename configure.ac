@@ -551,6 +551,7 @@ AC_GHC_PKG_REQUIRE(vector)
 AC_GHC_PKG_REQUIRE(text)
 AC_GHC_PKG_REQUIRE(hinotify)
 AC_GHC_PKG_REQUIRE(Crypto)
+AC_GHC_PKG_REQUIRE(lifted-base)
 
 # extra modules for confd functionality; also needed for tests
 HS_NODEV=
