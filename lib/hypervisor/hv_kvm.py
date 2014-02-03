@@ -2069,11 +2069,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if (int(v_major), int(v_min)) < (1, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.0")
 
-  def _CallHotplugCommand(self, name, cmd):
-    output = self._CallMonitorCommand(name, cmd)
-    # TODO: parse output and check if succeeded
-    for line in output.stdout.splitlines():
-      logging.info("%s", line)
+  def _CallHotplugCommands(self, name, cmds):
+    for c in cmds:
+      output = self._CallMonitorCommand(name, c)
+      # TODO: parse output and check if succeeded
+      for line in output.stdout.splitlines():
+        logging.info("%s", line)
+      time.sleep(1)
 
   def HotAddDevice(self, instance, dev_type, device, extra, seq):
     """ Helper method to hot-add a new device
@@ -2088,21 +2090,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_devid = _GenerateDeviceKVMId(dev_type, device)
     runtime = self._LoadKVMRuntime(instance)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      command = "drive_add dummy file=%s,if=none,id=%s,format=raw\n" % \
-                 (extra, kvm_devid)
-      command += ("device_add virtio-blk-pci,bus=pci.0,addr=%s,drive=%s,id=%s" %
-                  (hex(device.pci), kvm_devid, kvm_devid))
+      cmds = ["drive_add dummy file=%s,if=none,id=%s,format=raw" %
+                (extra, kvm_devid)]
+      cmds += ["device_add virtio-blk-pci,bus=pci.0,addr=%s,drive=%s,id=%s" %
+                (hex(device.pci), kvm_devid, kvm_devid)]
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       (tap, fd) = _OpenTap()
       self._ConfigureNIC(instance, seq, device, tap)
       self._PassTapFd(instance, fd, device)
-      command = "netdev_add tap,id=%s,fd=%s\n" % (kvm_devid, kvm_devid)
+      cmds = ["netdev_add tap,id=%s,fd=%s" % (kvm_devid, kvm_devid)]
       args = "virtio-net-pci,bus=pci.0,addr=%s,mac=%s,netdev=%s,id=%s" % \
                (hex(device.pci), device.mac, kvm_devid, kvm_devid)
-      command += "device_add %s" % args
+      cmds += ["device_add %s" % args]
       utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
 
-    self._CallHotplugCommand(instance.name, command)
+    self._CallHotplugCommands(instance.name, cmds)
     # update relevant entries in runtime file
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     entry = _RUNTIME_ENTRY[dev_type](device, extra)
@@ -2121,13 +2123,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_device = _RUNTIME_DEVICE[dev_type](entry)
     kvm_devid = _GenerateDeviceKVMId(dev_type, kvm_device)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      command = "device_del %s\n" % kvm_devid
-      command += "drive_del %s" % kvm_devid
+      cmds = ["device_del %s" % kvm_devid]
+      cmds += ["drive_del %s" % kvm_devid]
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
-      command = "device_del %s\n" % kvm_devid
-      command += "netdev_del %s" % kvm_devid
+      cmds = ["device_del %s" % kvm_devid]
+      cmds += ["netdev_del %s" % kvm_devid]
       utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
-    self._CallHotplugCommand(instance.name, command)
+    self._CallHotplugCommands(instance.name, cmds)
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     runtime[index].remove(entry)
     self._SaveKVMRuntime(instance, runtime)
@@ -2144,8 +2146,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if dev_type == constants.HOTPLUG_TARGET_NIC:
       # putting it back in the same pci slot
       device.pci = self.HotDelDevice(instance, dev_type, device, _, seq)
-      # TODO: remove sleep when socat gets removed
-      time.sleep(2)
       self.HotAddDevice(instance, dev_type, device, _, seq)
 
   def _PassTapFd(self, instance, fd, nic):
