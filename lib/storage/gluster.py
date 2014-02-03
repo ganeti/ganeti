@@ -417,7 +417,7 @@ class GlusterStorage(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params):
+             dyn_params, *args):
     """Create a new file.
 
     @param size: the size of file in MiB
@@ -446,4 +446,5 @@ class GlusterStorage(base.BlockDev):
     with volume_obj.Mount():
       FileDeviceHelper.CreateFile(full_path, size, create_folders=True)
 
-    return GlusterStorage(unique_id, children, size, params, dyn_params)
+    return GlusterStorage(unique_id, children, size, params, dyn_params,
+                          *args)

@@ -1027,7 +1027,7 @@ class DRBD8Dev(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params):
+             dyn_params, *_):
     """Create a new DRBD8 device.
 
     Since DRBD devices are not created per se, just assembled, this
