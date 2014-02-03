@@ -491,6 +491,10 @@ class QmpConnection(MonitorSocket):
       raise errors.HypervisorError("kvm: QMP communication error (wrong"
                                    " server greeting")
 
+    # This is needed because QMP can return more than one greetings
+    # see https://groups.google.com/d/msg/ganeti-devel/gZYcvHKDooU/SnukC8dgS5AJ
+    self._buf = ""
+
     # Let's put the monitor in command mode using the qmp_capabilities
     # command, or else no command will be executable.
     # (As per the QEMU Protocol Specification 0.1 - section 4)
