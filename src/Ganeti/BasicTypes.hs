@@ -1,4 +1,7 @@
-{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 
 {-
 
@@ -58,8 +61,10 @@ module Ganeti.BasicTypes
 import Control.Applicative
 import Control.Exception (try)
 import Control.Monad
+import Control.Monad.Base
 import Control.Monad.Error.Class
 import Control.Monad.Trans
+import Control.Monad.Trans.Control
 import Data.Function
 import Data.List
 import Data.Maybe
@@ -170,6 +175,27 @@ instance (MonadIO m, Error a) => MonadIO (ResultT a m) where
   liftIO = ResultT . liftIO
                    . liftM (either (failError . show) return)
                    . (try :: IO a -> IO (Either IOError a))
+
+instance (MonadBase IO m, Error a) => MonadBase IO (ResultT a m) where
+  liftBase = ResultT . liftBase
+                   . liftM (either (failError . show) return)
+                   . (try :: IO a -> IO (Either IOError a))
+
+instance (Error a) => MonadTransControl (ResultT a) where
+  newtype StT (ResultT a) b = StResultT { runStResultT :: GenericResult a b }
+  liftWith f = ResultT . liftM return $ f (liftM StResultT . runResultT)
+  restoreT = ResultT . liftM runStResultT
+  {-# INLINE liftWith #-}
+  {-# INLINE restoreT #-}
+
+instance (Error a, MonadBaseControl IO m)
+         => MonadBaseControl IO (ResultT a m) where
+  newtype StM (ResultT a m) b
+    = StMResultT { runStMResultT :: ComposeSt (ResultT a) m b }
+  liftBaseWith = defaultLiftBaseWith StMResultT
+  restoreM = defaultRestoreM runStMResultT
+  {-# INLINE liftBaseWith #-}
+  {-# INLINE restoreM #-}
 
 instance (Monad m, Error a, Monoid a) => MonadPlus (ResultT a m) where
   mzero = ResultT $ return mzero
