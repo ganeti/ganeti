@@ -60,6 +60,7 @@ module Test.Ganeti.TestCommon
   , genLuxiTagName
   , netmask2NumHosts
   , testSerialisation
+  , testDeserialisationFail
   , resultProp
   , readTestData
   , genSample
@@ -372,6 +373,16 @@ testSerialisation a =
   case J.readJSON (J.showJSON a) of
     J.Error msg -> failTest $ "Failed to deserialise: " ++ msg
     J.Ok a' -> a ==? a'
+
+-- | Checks if the deserializer doesn't accept forbidden values.
+-- The first argument is ignored, it just enforces the correct type.
+testDeserialisationFail :: (Eq a, Show a, J.JSON a)
+                        => a -> J.JSValue -> Property
+testDeserialisationFail a val =
+  case liftM (`asTypeOf` a) $ J.readJSON val of
+    J.Error _ -> passTest
+    J.Ok x    -> failTest $ "Parsed invalid value " ++ show val ++
+                            " to: " ++ show x
 
 -- | Result to PropertyM IO.
 resultProp :: (Show a) => BasicTypes.GenericResult a b -> PropertyM IO b
