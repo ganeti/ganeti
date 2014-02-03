@@ -750,6 +750,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Storage/Utils.hs \
 	src/Ganeti/THH.hs \
 	src/Ganeti/THH/PyType.hs \
+	src/Ganeti/THH/Types.hs \
 	src/Ganeti/Types.hs \
 	src/Ganeti/UDSServer.hs \
 	src/Ganeti/Utils.hs\
