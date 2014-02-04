@@ -29,12 +29,14 @@ module Ganeti.JQScheduler
   , initJQScheduler
   , enqueueNewJobs
   , dequeueJob
+  , setJobPriority
   ) where
 
 import Control.Arrow
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
+import Control.Monad.IO.Class
 import Data.Function (on)
 import Data.List
 import Data.Maybe
@@ -330,3 +332,21 @@ dequeueJob state jid = do
   logDebug $ "Result of dequeing job " ++ show (fromJobId jid)
               ++ " is " ++ show result'
   return result'
+
+-- | Change the priority of a queued job (once the job is handed over
+-- to execution, the job itself needs to be informed). To avoid the
+-- job being started unmodified, it is temporarily unqueued during the
+-- change. Return the modified job, if the job's priority was sucessfully
+-- modified, Nothing, if the job already started, and a Bad value, if the job
+-- is unkown.
+setJobPriority :: JQStatus -> JobId -> Int -> IO (Result (Maybe QueuedJob))
+setJobPriority state jid prio = runResultT $ do
+  maybeJob <- mkResultT . atomicModifyIORef (jqJobs state) $ rmJob jid
+  case maybeJob of
+    Nothing -> return Nothing
+    Just job -> do
+      let job' = changeJobPriority prio job
+      qDir <- liftIO queueDir
+      mkResultT $ writeJobToDisk qDir job'
+      liftIO $ enqueueNewJobs state [job']
+      return $ Just job'
