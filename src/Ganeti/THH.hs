@@ -955,6 +955,10 @@ fieldTypeInfo field_pfx fd = do
 -- | Build an object declaration.
 buildObject :: String -> String -> [Field] -> Q [Dec]
 buildObject sname field_pfx fields = do
+  when (any ((==) AndRestArguments . fieldIsOptional)
+         . drop 1 $ reverse fields)
+    $ fail "Objects may have only one AndRestArguments field,\
+           \ and it must be the last one."
   let name = mkName sname
   fields_d <- mapM (fieldTypeInfo field_pfx) fields
   let decl_d = RecC name fields_d
