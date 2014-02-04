@@ -51,7 +51,7 @@ There are a few documents particularly useful for developers who want
 to modify Ganeti:
 
 - :doc:`locking`: Describes Ganeti's locking strategy and lock order dependencies.
-- :doc:`devnotes`: Details build dependencies and other useful development-related information. 
+- :doc:`devnotes`: Details build dependencies and other useful development-related information.
 
 
 Implemented designs
@@ -106,6 +106,7 @@ Draft designs
    design-linuxha.rst
    design-lu-generated-jobs.rst
    design-monitoring-agent.rst
+   design-move-instance-improvements.rst
    design-multi-reloc.rst
    design-multi-version-tests.rst
    design-network.rst

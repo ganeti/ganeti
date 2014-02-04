@@ -19,6 +19,7 @@ Design document drafts
    design-daemons.rst
    design-hsqueeze.rst
    design-os.rst
+   design-move-instance-improvements.rst
    design-node-security.rst
    design-systemd.rst
 
