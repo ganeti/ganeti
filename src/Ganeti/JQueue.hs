@@ -31,6 +31,7 @@ module Ganeti.JQueue
     , InputOpCode(..)
     , queuedOpCodeFromMetaOpCode
     , queuedJobFromOpCodes
+    , changeOpCodePriority
     , cancelQueuedJob
     , Timestamp
     , fromClockTime
@@ -212,6 +213,14 @@ queuedJobFromOpCodes jobid ops = do
 -- | Attach a received timestamp to a Queued Job.
 setReceivedTimestamp :: Timestamp -> QueuedJob -> QueuedJob
 setReceivedTimestamp ts job = job { qjReceivedTimestamp = Just ts }
+
+-- | Change the priority of a QueuedOpCode, if it is not already
+-- finalized.
+changeOpCodePriority :: Int -> QueuedOpCode -> QueuedOpCode
+changeOpCodePriority prio op =
+  if qoStatus op > OP_STATUS_RUNNING
+     then op
+     else op { qoPriority = prio }
 
 -- | Set the state of a QueuedOpCode to canceled.
 cancelOpCode :: Timestamp -> QueuedOpCode -> QueuedOpCode
