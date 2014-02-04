@@ -221,6 +221,10 @@ handleCall _ _ cfg (QueryConfigValues fields) = do
   answerEval <- sequence answer
   return . Ok . showJSON $ answerEval
 
+handleCall _ _ cfg (QueryExports nodes lock) =
+  handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRExport)
+    (map Left nodes) ["node", "export"] lock
+
 handleCall qlock qstat cfg (SubmitJobToDrainedQueue ops) = runResultT $ do
     let mcs = Config.getMasterCandidates cfg
     jid <- mkResultT $ allocateJobId mcs qlock
