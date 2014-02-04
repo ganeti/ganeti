@@ -35,6 +35,7 @@ import Control.Arrow
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
+import Data.Function (on)
 import Data.List
 import Data.Maybe
 import Data.IORef
@@ -296,7 +297,9 @@ enqueueNewJobs state jobs = do
   logInfo . (++) "New jobs enqueued: " . commaJoin
     $ map (show . fromJobId . qjId) jobs
   let jobs' = map unreadJob jobs
-  modifyJobs state (onQueuedJobs (++ jobs'))
+      insertFn = insertBy (compare `on` fromJobId . qjId . jJob)
+      addJobs oldjobs = foldl (flip insertFn) oldjobs jobs'
+  modifyJobs state (onQueuedJobs addJobs)
   scheduleSomeJobs state
 
 -- | Pure function for removing a queued job from the job queue by
