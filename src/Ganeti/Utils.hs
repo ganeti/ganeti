@@ -79,6 +79,7 @@ module Ganeti.Utils
 import Control.Concurrent
 import Control.Exception (try)
 import Control.Monad (foldM, liftM, when, unless)
+import Control.Monad.IO.Class (liftIO)
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import qualified Data.Either as E
 import Data.Function (on)
@@ -553,11 +554,10 @@ atomicWriteFile path contents = do
 -- | Attempt, in a non-blocking way, to obtain a lock on a given file; report
 -- back success.
 lockFile :: FilePath -> IO (Result ())
-lockFile path = do
+lockFile path = runResultT . liftIO $ do
   handle <- openFile path WriteMode
   fd <- handleToFd handle
-  Control.Monad.liftM (either (Bad . show) Ok)
-    (try (setLock fd (WriteLock, AbsoluteSeek, 0, 0)) :: IO (Either IOError ()))
+  setLock fd (WriteLock, AbsoluteSeek, 0, 0)
 
 -- | File stat identifier.
 type FStat = (EpochTime, FileID, FileOffset)
