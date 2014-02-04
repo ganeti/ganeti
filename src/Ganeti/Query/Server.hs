@@ -387,9 +387,9 @@ handleCall qlock _ cfg (AutoArchiveJobs age timeout) = do
                   $ sortJobIDs jids
       return . Ok $ showJSON result
 
-handleCall _ _ _ op =
-  return . Bad $
-    GenericError ("Luxi call '" ++ strOfOp op ++ "' not implemented")
+handleCall _ _ _ (PickupJob _) =
+  return . Bad
+    $ GenericError "Luxi call 'PickupJob' is for internal use only"
 
 {-# ANN handleCall "HLint: ignore Too strict if" #-}
 
