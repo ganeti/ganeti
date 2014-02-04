@@ -167,14 +167,14 @@ class FileStorage(base.BlockDev):
   The unique_id for the file device is a (file_driver, file_path) tuple.
 
   """
-  def __init__(self, unique_id, children, size, params, dyn_params):
+  def __init__(self, unique_id, children, size, params, dyn_params, *args):
     """Initalizes a file device backend.
 
     """
     if children:
       raise errors.BlockDeviceError("Invalid setup for file device")
     super(FileStorage, self).__init__(unique_id, children, size, params,
-                                      dyn_params)
+                                      dyn_params, *args)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.driver = unique_id[0]
@@ -265,7 +265,7 @@ class FileStorage(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params):
+             dyn_params, *args):
     """Create a new file.
 
     @type size: int
@@ -284,7 +284,8 @@ class FileStorage(base.BlockDev):
     dev_path = unique_id[1]
 
     FileDeviceHelper.CreateFile(dev_path, size)
-    return FileStorage(unique_id, children, size, params, dyn_params)
+    return FileStorage(unique_id, children, size, params, dyn_params,
+                       *args)
 
 
 def GetFileStorageSpaceInfo(path):

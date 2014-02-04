@@ -48,6 +48,7 @@ module Ganeti.THH ( declareSADT
                   , genLuxiOp
                   , Field (..)
                   , simpleField
+                  , andRestArguments
                   , specialNumericalField
                   , timeAsDoubleField
                   , withDoc
@@ -77,6 +78,7 @@ import Data.Attoparsec () -- Needed to prevent spurious GHC 7.4 linking errors.
 import Data.Char
 import Data.List
 import Data.Maybe
+import qualified Data.Map as M
 import qualified Data.Set as Set
 import Language.Haskell.TH
 import System.Time (ClockTime(..))
@@ -101,6 +103,8 @@ data OptionalType
   = NotOptional           -- ^ Field is not optional
   | OptionalOmitNull      -- ^ Field is optional, null is not serialised
   | OptionalSerializeNull -- ^ Field is optional, null is serialised
+  | AndRestArguments      -- ^ Special field capturing all the remaining fields
+                          -- as plain JSON values
   deriving (Show, Eq)
 
 -- | Serialised field data type describing how to generate code for the field.
@@ -150,6 +154,11 @@ data OptionalType
 -- Note that for optional fields the type appearing in the custom functions
 -- is still @t@. Therefore making a field optional doesn't change the
 -- functions.
+--
+-- There is also a special type of optional field 'AndRestArguments' which
+-- allows to parse any additional arguments not covered by other fields. There
+-- can be at most one such special field and it's type must be
+-- @Map String JSON.JSValue@. See also 'andRestArguments'.
 data Field = Field { fieldName        :: String
                    , fieldType        :: Q Type
                      -- ^ the type of the field, @t@ for non-optional fields,
@@ -182,6 +191,20 @@ simpleField fname ftype =
         , fieldDefault     = Nothing
         , fieldConstr      = Nothing
         , fieldIsOptional  = NotOptional
+        , fieldDoc         = ""
+        }
+
+-- | Generate an AndRestArguments catch-all field.
+andRestArguments :: String -> Field
+andRestArguments fname =
+  Field { fieldName        = fname
+        , fieldType        = [t| M.Map String JSON.JSValue |]
+        , fieldRead        = Nothing
+        , fieldShow        = Nothing
+        , fieldExtraKeys   = []
+        , fieldDefault     = Nothing
+        , fieldConstr      = Nothing
+        , fieldIsOptional  = AndRestArguments
         , fieldDoc         = ""
         }
 
@@ -262,8 +285,8 @@ fieldVariable f =
 -- | Compute the actual field type (taking into account possible
 -- optional status).
 actualFieldType :: Field -> Q Type
-actualFieldType f | fieldIsOptional f /= NotOptional = [t| Maybe $t |]
-                  | otherwise = t
+actualFieldType f | fieldIsOptional f `elem` [NotOptional, AndRestArguments] = t
+                  | otherwise =  [t| Maybe $t |]
                   where t = fieldType f
 
 -- | Checks that a given field is not optional (for object types or
@@ -841,7 +864,7 @@ genSaveOpCode tname jvalstr tdstr opdefs fn gen_object = do
 loadConstructor :: OpCodeConstructor -> Q Exp
 loadConstructor (sname, _, _, fields, _) = do
   let name = mkName sname
-  fbinds <- mapM loadObjectField fields
+  fbinds <- mapM (loadObjectField fields) fields
   let (fnames, fstmts) = unzip fbinds
   let cval = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) fnames
       fstmts' = fstmts ++ [NoBindS (AppE (VarE 'return) cval)]
@@ -944,7 +967,7 @@ buildObjectSerialisation :: String -> [Field] -> Q [Dec]
 buildObjectSerialisation sname fields = do
   let name = mkName sname
   savedecls <- genSaveObject saveObjectField sname fields
-  (loadsig, loadfn) <- genLoadObject loadObjectField sname fields
+  (loadsig, loadfn) <- genLoadObject (loadObjectField fields) sname fields
   shjson <- objectShowJSON sname
   rdjson <- objectReadJSON sname
   let instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
@@ -995,6 +1018,7 @@ saveObjectField fvar field =
                                    Just v  -> $(formatCode [| v |])
                               |]
     NotOptional ->            formatCode fvarE
+    AndRestArguments -> [| M.toList $(varE fvar) |]
   where nameE = stringE (fieldName field)
         fvarE = varE fvar
 
@@ -1029,21 +1053,28 @@ genLoadObject load_fn sname fields = do
             FunD funname [Clause [VarP arg1] (NormalB (DoE fstmts')) []])
 
 -- | Generates code for loading an object's field.
-loadObjectField :: Field -> Q (Name, Stmt)
-loadObjectField field = do
+loadObjectField :: [Field] -> Field -> Q (Name, Stmt)
+loadObjectField allFields field = do
   let name = fieldVariable field
+      names = map fieldVariable allFields
+      otherNames = listE . map stringE $ names \\ [name]
   fvar <- newName name
   -- these are used in all patterns below
   let objvar = varNameE "o"
       objfield = stringE (fieldName field)
-  bexp <- case fieldDefault field of
+  bexp <- case (fieldDefault field, fieldIsOptional field) of
             -- Only non-optional fields without defaults must have a value;
             -- we treat both optional types the same, since
             -- 'maybeFromObj' can deal with both missing and null values
             -- appropriately (the same)
-            Nothing | fieldIsOptional field == NotOptional ->
-                 loadFn field [| fromObj $objvar $objfield |] objvar
-            _ -> loadFnOpt field [| maybeFromObj $objvar $objfield |] objvar
+            (Nothing, NotOptional) ->
+                  loadFn field [| fromObj $objvar $objfield |] objvar
+            -- AndRestArguments need not to be parsed at all,
+            -- they're just extracted from the list of other fields.
+            (Nothing, AndRestArguments) ->
+                  [| return . M.fromList
+                     $ filter (not . (`elem` $otherNames) . fst) $objvar |]
+            _ ->  loadFnOpt field [| maybeFromObj $objvar $objfield |] objvar
 
   return (fvar, BindS (VarP fvar) bexp)
 

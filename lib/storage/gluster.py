@@ -284,7 +284,7 @@ class GlusterStorage(base.BlockDev):
   The unique_id for the file device is a (file_driver, file_path) tuple.
 
   """
-  def __init__(self, unique_id, children, size, params, dyn_params):
+  def __init__(self, unique_id, children, size, params, dyn_params, *args):
     """Initalizes a file device backend.
 
     """
@@ -307,7 +307,7 @@ class GlusterStorage(base.BlockDev):
     self.file = None
 
     super(GlusterStorage, self).__init__(unique_id, children, size,
-                                         params, dyn_params)
+                                         params, dyn_params, *args)
 
     self.Attach()
 
@@ -417,7 +417,7 @@ class GlusterStorage(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params):
+             dyn_params, *args):
     """Create a new file.
 
     @param size: the size of file in MiB
@@ -446,4 +446,5 @@ class GlusterStorage(base.BlockDev):
     with volume_obj.Mount():
       FileDeviceHelper.CreateFile(full_path, size, create_folders=True)
 
-    return GlusterStorage(unique_id, children, size, params, dyn_params)
+    return GlusterStorage(unique_id, children, size, params, dyn_params,
+                          *args)
