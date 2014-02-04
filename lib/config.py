@@ -659,8 +659,18 @@ class ConfigWriter(object):
           # FIXME: assuming list type
           if key in constants.IPOLICY_PARAMETERS:
             exp_type = float
+            # if the value is int, it can be converted into float
+            convertible_types = [int]
           else:
             exp_type = list
+            convertible_types = []
+          # Try to convert from allowed types, if necessary.
+          if any(isinstance(value, ct) for ct in convertible_types):
+            try:
+              value = exp_type(value)
+              ipolicy[key] = value
+            except ValueError:
+              pass
           if not isinstance(value, exp_type):
             result.append("%s has invalid instance policy: for %s,"
                           " expecting %s, got %s" %
