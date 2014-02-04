@@ -304,7 +304,8 @@ built_base_sources = \
 built_python_base_sources = \
 	lib/_constants.py \
 	lib/_vcsversion.py \
-	lib/opcodes.py
+	lib/opcodes.py \
+	lib/rpc/stub/wconfd.py
 
 BUILT_PYTHON_SOURCES = \
 	$(nodist_pkgpython_PYTHON) \
@@ -332,7 +333,8 @@ nodist_pkgpython_PYTHON = \
 	$(built_python_base_sources) \
 	lib/_generated_rpc.py
 
-nodist_pkgpython_rpc_stub_PYTHON =
+nodist_pkgpython_rpc_stub_PYTHON = \
+	lib/rpc/stub/wconfd.py
 
 nodist_pkgpython_bin_SCRIPTS = \
 	$(nodist_pkglib_python_scripts)
@@ -1940,6 +1942,9 @@ lib/opcodes.py: Makefile src/hs2py lib/opcodes.py.in_before \
 
 lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) lib/rpc_defs.py > $@
+
+lib/rpc/stub/wconfd.py: Makefile src/hs2py | stamp-directories
+	src/hs2py --wconfd-rpc > $@
 
 $(SHELL_ENV_INIT): Makefile stamp-directories
 	set -e; \

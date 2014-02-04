@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-| Haskell to Python opcode generation program.
 
 -}
@@ -25,6 +27,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 import Ganeti.Hs2Py.GenOpCodes
 import Ganeti.Hs2Py.ListConstants
+import Ganeti.THH.PyRPC
+import qualified Ganeti.WConfd.Core as WConfd
 
 import System.Environment (getArgs)
 import System.Exit (exitFailure)
@@ -36,6 +40,11 @@ main = do
   case args of
     ["--opcodes"] -> putStrLn showPyClasses
     ["--constants"] -> putConstants
+    ["--wconfd-rpc"] -> putStrLn $
+      $( genPyUDSRpcStubStr "ClientRpcStub" "WCONFD_SOCKET"
+                            WConfd.exportedFunctions )
     _ -> do
-      hPutStrLn stderr "Usage: hs2py --opcodes | --constants"
+      hPutStrLn stderr "Usage: hs2py --opcodes\
+                                  \| --constants\
+                                  \| --wconfd-rpc"
       exitFailure
