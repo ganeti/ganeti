@@ -95,6 +95,7 @@ toolsdir = $(pkglibdir)/tools
 iallocatorsdir = $(pkglibdir)/iallocators
 pytoolsdir = $(pkgpythondir)/tools
 docdir = $(versiondir)$(datadir)/doc/$(PACKAGE)
+ifupdir = $(sysconfdir)/ganeti
 
 SYMLINK_TARGET_DIRS = \
 	$(sysconfdir)/ganeti \
@@ -258,6 +259,7 @@ CLEANFILES = \
 	$(man_MANS) \
 	$(manhtml) \
 	tools/kvm-ifup \
+	tools/kvm-ifup-os \
 	tools/vif-ganeti \
 	tools/net-common \
 	tools/users-setup \
@@ -319,6 +321,9 @@ BUILT_EXAMPLES = \
 	doc/examples/ganeti-node-role.ocf \
 	doc/examples/gnt-config-backup \
 	doc/examples/hooks/ipsec
+
+dist_ifup_SCRIPTS = \
+	tools/kvm-ifup-os
 
 nodist_pkgpython_PYTHON = \
 	$(BUILT_PYTHON_SOURCES)
@@ -1131,6 +1136,7 @@ pkglib_python_basenames = \
 myexeclib_SCRIPTS = \
 	daemons/daemon-util \
 	tools/kvm-ifup \
+	tools/kvm-ifup-os \
 	tools/vif-ganeti \
 	tools/net-common \
 	$(HS_MYEXECLIB_PROGS)
@@ -1169,6 +1175,7 @@ EXTRA_DIST = \
 	devel/upload \
 	devel/webserver \
 	tools/kvm-ifup.in \
+	tools/kvm-ifup-os.in \
 	tools/vif-ganeti.in \
 	tools/net-common.in \
 	tools/vcluster-setup.in \
@@ -1650,6 +1657,10 @@ test/py/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 test/py/bash_completion.bash: doc/examples/bash_completion-debug
 
 tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+	chmod +x $@
+
+tools/kvm-ifup-os: tools/kvm-ifup-os.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 

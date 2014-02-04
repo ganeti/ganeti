@@ -1,0 +1,296 @@
+#!/bin/bash
+#
+
+# Copyright (C) 2014 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+# This script is a hook called to configure new TAP network interfaces
+# used for instance communication, and it should be called whenever a
+# new instance is started.
+#
+# This script configures the new interface but it also performs
+# maintenance on the network interfaces that have been configured
+# before, by checking whether those TAP interfaces still exist, etc.
+#
+# This script also controls the DHCP server that leases IP address for
+# instances, i.e., the NICs inside the instances, not the TAP
+# interfaces.  The DHCP server is started and restarted (or reHUPed)
+# as necessary and always with up-to-date configuration files.
+#
+# This script expects the following environment variables
+#
+#   INTERFACE: network interface name to be configured
+#   MODE: networking mode for 'INTERFACE' (must be 'routed')
+#   MAC: MAC address for 'INTERFACE'
+#   IP: IP address for 'INTERFACE'
+
+source @PKGLIBDIR@/net-common
+
+readonly NETMASK=255.255.255.255
+readonly DNSMASQ_CONF=/var/run/ganeti/dnsmasq.conf
+readonly DNSMASQ_HOSTS=/var/run/ganeti/dnsmasq.hosts
+readonly DNSMASQ_PID=/var/run/ganeti/dnsmasq.pid
+
+# join intercalates a sequence of arguments using the given separator
+function join {
+  local IFS="$1"
+  shift
+  echo "$*"
+}
+
+# restart_dnsmasq restarts the DHCP server dnsmasq with the (possibly
+# up-to-date) configuration file.
+#
+# If all instances have been terminated, which means there are no more
+# TAP network interfaces to monitor or IP addresses to lease, the DHCP
+# server is terminated through 'SIGTERM'.
+#
+# If there are still instances running, then:
+#  - if the DHCP server is running, a 'SIGHUP' will be sent to the
+#    dnsmasq process which will cause the configuration file to be
+#    re-read, while keeping the process running
+#  - if the DHCP server is not running, it will be started, and the
+#    configuration file will be passed it
+function restart_dnsmasq {
+  SIGNAL=
+
+  if [ -z "$ALIVE_INTERFACES" -o -z "$ALIVE_LEASES" ]
+  then
+      SIGNAL=TERM
+  else
+      SIGNAL=HUP
+  fi
+
+  RUNNING=
+
+  if [ -f "$DNSMASQ_PID" ]
+  then
+      PID=$(cat $DNSMASQ_PID)
+      if [ -n "$PID" ] && ps -p "$PID"
+      then
+	  RUNNING=yes
+      fi
+  fi
+
+  KILLED=
+
+  if [ "$RUNNING" = yes ]
+  then
+      kill -$SIGNAL $PID
+
+      if [ "$SIGNAL" = TERM ]
+      then
+	  KILLED=yes
+      fi
+  fi
+
+  if [ "$KILLED" = yes ]
+  then
+      rm -f $DNSMASQ_PID
+  fi
+
+  if [ "$RUNNING" != yes -o "$KILLED" == yes ]
+  then
+      if [ -n "$ALIVE_INTERFACES" -a -n "$ALIVE_LEASES" ]
+      then
+	  dnsmasq -C $DNSMASQ_CONF
+      fi
+  fi
+
+  return 0
+}
+
+# Check that environment variable 'INTERFACE' exists.
+#
+# This environment variable holds the TAP network interface that
+# should be configured by this script.  Ganeti always passes it,
+# but... :)
+if [ -z "$INTERFACE" ]
+then
+  echo kvm-vif-bridge: Failed to configure communication mechanism \
+      interface because the \'INTERFACE\' environment variable was \
+      not specified to the \'kvm-vif-bridge\' script
+  exit 1
+fi
+
+# Check that environment variable 'MODE' exists.
+#
+# See comment about environment variable 'INTERFACE'.
+if [ -z "$MODE" ]
+then
+  echo kvm-vif-bridge: Failed to configure communication mechanism \
+      interface because the \'MODE\' environment variable was \
+      not specified to the \'kvm-vif-bridge\' script
+  exit 1
+fi
+
+# Check whether the interface being configured has instance
+# communication enabled, otherwise exit this script.
+if ! is_instance_communication_tap; then exit 0; fi
+
+# Check that environment variable 'MAC' exists.
+#
+# See comment about environment variable 'INTERFACE'.
+if [ -z "$MAC" ]
+then
+  echo kvm-vif-bridge: Failed to configure communication mechanism \
+      interface because the \'MAC\' environment variable was \
+      not specified to the \'kvm-vif-bridge\' script
+  exit 1
+fi
+
+# Check that environment variable 'IP' exists.
+#
+# See comment about environment variable 'INTERFACE'.
+if [ -z "$IP" ]
+then
+  echo kvm-vif-bridge: Failed to configure communication mechanism \
+      interface because the \'IP\' environment variable was \
+      not specified to the \'kvm-vif-bridge\' script
+  exit 1
+fi
+
+# Configure the TAP interface
+#
+# Ganeti defers the configuration of instance network interfaces to
+# hooks, therefore, we must configure the interface's network address,
+# netmask, and IP address.
+#
+# The TAP network interface, which is used by the instance
+# communication, is part of the network 169.254.0.0/16 and has the IP
+# 169.254.169.254.  Because all network interfaces used in the
+# instance communication have the same IP, the routing table must also
+# be configured, and that is done at a later step.
+#
+# Note the interface must be marked as up before configuring the
+# routing table and before starting/restarting the DHCP server.
+#
+# Note also that we don't have to check whether the interface is
+# already configured because reconfiguring the interface with the same
+# parameters does not produce an error.
+ifconfig $INTERFACE 169.254.169.254 netmask $NETMASK up
+
+# Configure the routing table
+#
+# Given that all TAP network interfaces in the instance communication
+# have the same IP address, the routing table must be configured in
+# order to properly route traffic from the host to the guests.
+#
+# Note that we must first check if a duplicate routing rule has
+# already been added to the routing table, as this operation will fail
+# if we try to add a routing rule that already exists.
+ACTIVE_IP=$(ip route | grep "dev $INTERFACE" | awk '{ print $1 }')
+
+if [ -z "$ACTIVE_IP" -o "$ACTIVE_IP" != "$IP" ]
+then
+  route add -host $IP dev $INTERFACE
+fi
+
+# Ensure the DHCP server configuration files exist
+touch $DNSMASQ_CONF
+chmod 0644 $DNSMASQ_CONF
+
+touch $DNSMASQ_HOSTS
+chmod 0644 $DNSMASQ_HOSTS
+
+# Determine dnsmasq operational mode.
+#
+# The DHCP server dnsmasq can run in different modes.  In this version
+# of the script, only the mode 'bind-dynamic' is supported.  Please
+# refer to the dnsmasq FAQ for a detailed of each mode.
+#
+# Note that dnsmasq might already be running, therefore, we don't need
+# to determine which modes are supported by this DHCP server.
+# Instead, we just read the current mode from the configuration file.
+DNSMASQ_MODE=$(head -n 1 $DNSMASQ_CONF)
+
+if [ -z "$DNSMASQ_MODE" ]
+then
+  BIND_DYNAMIC=$(dnsmasq --help | grep -e --bind-dynamic)
+
+  if [ -z "$BIND_DYNAMIC" ]
+  then
+    echo kvm-vif-bridge: dnsmasq mode \"bind-dynamic\" is not supported
+    exit 1
+  fi
+
+  DNSMASQ_MODE=bind-dynamic
+fi
+
+# Determine the interfaces that should go in the configuration file.
+#
+# The TAP network interfaces used by the instance communication are
+# named after the following pattern
+#
+#  gnt.com.%d
+#
+# where '%d' is a unique number within the host.  Fortunately, dnsmasq
+# supports binding to specific network interfaces via a pattern.
+ALIVE_INTERFACES=${GANETI_TAP}.*
+
+# Determine which of the leases are not duplicated and should go in
+# the new configuration file for the DHCP server.
+#
+# Given that instances come and go, it is possible that we offer more
+# leases that necessary and, worse, that we have duplicate leases,
+# that is, the same IP address for the same/different MAC addresses.
+# Duplicate leases must be eliminated before being written to the
+# configuration file.
+CONF_LEASES=$(cat $DNSMASQ_HOSTS)
+CONF_LEASES=$(join $'\n' $CONF_LEASES | sort -u)
+
+ALIVE_LEASES=( $MAC,$IP )
+
+for i in $CONF_LEASES
+do
+  LEASE_MAC=$(echo $i | cut -d "," -f 1)
+  LEASE_IP=$(echo $i | cut -d "," -f 2)
+  if [ "$LEASE_MAC" != "$MAC" -a "$LEASE_IP" != "$IP" ]
+  then
+      ALIVE_LEASES=( ${ALIVE_LEASES[@]} $i )
+  fi
+done
+
+ALIVE_LEASES=$(echo ${ALIVE_LEASES[@]} | sort -u)
+
+# Update dnsmasq configuration.
+#
+# Write the parameters we have collected before into the new dnsmasq
+# configuration file.  Also, write the new leases into the new dnsmasq
+# hosts file.  Finally, restart dnsmasq with the new configuration
+# files.
+cat > $DNSMASQ_CONF <<EOF
+$DNSMASQ_MODE
+dhcp-authoritative
+dhcp-hostsfile=$DNSMASQ_HOSTS
+dhcp-range=169.254.0.0,static,255.255.0.0
+except-interface=eth*
+except-interface=lo
+leasefile-ro
+no-hosts
+no-ping
+no-resolv
+pid-file=$DNSMASQ_PID
+port=0
+strict-order
+EOF
+for i in $ALIVE_INTERFACES; do echo interface=$i >> $DNSMASQ_CONF; done
+
+echo -n > $DNSMASQ_HOSTS
+for i in $ALIVE_LEASES; do echo $i >> $DNSMASQ_HOSTS; done
+
+restart_dnsmasq

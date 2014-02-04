@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 
-# Copyright (C) 2011, 2012 Google Inc.
+# Copyright (C) 2011, 2012, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,12 +20,21 @@
 
 source @PKGLIBDIR@/net-common
 
+check
+
+# Execute the script for setting up the communication with the
+# instance OS
+if is_instance_communication_tap && [ -x "$CONF_DIR/kvm-ifup-os" ]; then
+  . $CONF_DIR/kvm-ifup-os
+fi
+
 # Execute the user-supplied network script, if applicable
 if [ -x "$CONF_DIR/kvm-vif-bridge" ]; then
   exec $CONF_DIR/kvm-vif-bridge
 fi
 
-check
-setup_bridge
-setup_ovs
-setup_route
+if ! is_instance_communication_tap; then
+  setup_bridge
+  setup_ovs
+  setup_route
+fi
