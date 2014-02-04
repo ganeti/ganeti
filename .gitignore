@@ -85,6 +85,7 @@
 /lib/_vcsversion.py
 /lib/_generated_rpc.py
 /lib/opcodes.py
+/lib/rpc/stub/
 
 # man
 /man/*.[0-9]
@@ -139,6 +140,7 @@
 /src/hs2py
 /src/hs2py-constants
 /src/ganeti-confd
+/src/ganeti-wconfd
 /src/ganeti-kvmd
 /src/ganeti-luxid
 /src/ganeti-metad
