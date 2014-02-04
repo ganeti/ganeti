@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 {-| Utility functions. -}
 
 {-
@@ -61,10 +63,15 @@ module Ganeti.Utils
   , resolveAddr
   , monadicThe
   , setOwnerAndGroupFromNames
+  , setOwnerWGroupR
   , formatOrdinal
   , atomicWriteFile
+  , atomicUpdateFile
+  , atomicUpdateLockedFile
+  , atomicUpdateLockedFile_
   , tryAndLogIOError
   , lockFile
+  , withLockedFile
   , FStat
   , nullFStat
   , getFStat
@@ -78,8 +85,11 @@ module Ganeti.Utils
 
 import Control.Concurrent
 import Control.Exception (try)
-import Control.Monad (foldM, liftM, when, unless)
-import Control.Monad.IO.Class (liftIO)
+import qualified Control.Exception.Lifted as L
+import Control.Monad
+import Control.Monad.Base (MonadBase(..))
+import Control.Monad.Error
+import Control.Monad.Trans.Control
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import qualified Data.Either as E
 import Data.Function (on)
@@ -531,6 +541,13 @@ setOwnerAndGroupFromNames filename daemon dGroup = do
   let gid = snd ents M.! dGroup
   setOwnerAndGroup filename uid gid
 
+-- | Resets permissions so that the owner can read/write and the group only
+-- read. All other permissions are cleared.
+setOwnerWGroupR :: FilePath -> IO ()
+setOwnerWGroupR path = setFileMode path mode
+  where mode = foldl unionFileModes nullFileMode
+                     [ownerReadMode, ownerWriteMode, groupReadMode]
+
 -- | Formats an integral number, appending a suffix.
 formatOrdinal :: (Integral a, Show a) => a -> String
 formatOrdinal num
@@ -545,11 +562,71 @@ formatOrdinal num
 -- | Atomically write a file, by first writing the contents into a temporary
 -- file and then renaming it to the old position.
 atomicWriteFile :: FilePath -> String -> IO ()
-atomicWriteFile path contents = do
-  (tmppath, tmphandle) <- openTempFile (takeDirectory path) (takeBaseName path)
-  hPutStr tmphandle contents
-  hClose tmphandle
-  renameFile tmppath path
+atomicWriteFile path contents = atomicUpdateFile path
+                                  (\_ fh -> hPutStr fh contents)
+
+-- | Atomically update a file, by first creating a temporary file, running the
+-- given action on it, and then renaming it to the old position.
+-- Usually the action will write to the file and update its permissions.
+-- The action is allowed to close the file descriptor, but isn't required to do
+-- so.
+atomicUpdateFile :: (MonadBaseControl IO m)
+                 => FilePath -> (FilePath -> Handle -> m a) -> m a
+atomicUpdateFile path action = do
+  (tmppath, tmphandle) <- liftBase $ openTempFile (takeDirectory path)
+                                                  (takeBaseName path)
+  r <- L.finally (action tmppath tmphandle) (liftBase $ hClose tmphandle)
+  -- if all went well, rename the file
+  liftBase $ renameFile tmppath path
+  return r
+
+-- | Opens a file in a R/W mode, locks it (blocking if needed) and runs
+-- a given action while the file is locked. Releases the lock and
+-- closes the file afterwards.
+withLockedFile :: (MonadError e m, Error e, MonadBaseControl IO m)
+               => FilePath -> (Fd -> m a) -> m a
+withLockedFile path =
+    L.bracket (openAndLock path) (liftBase . closeFd)
+  where
+    openAndLock :: (MonadError e m, Error e, MonadBaseControl IO m)
+                => FilePath -> m Fd
+    openAndLock p = liftBase $ do
+      fd <- openFd p ReadWrite Nothing defaultFileFlags
+      waitToSetLock fd (WriteLock, AbsoluteSeek, 0, 0)
+      return fd
+
+-- | Just as 'atomicUpdateFile', but in addition locks the file during the
+-- operation using 'withLockedFile' and checks if the file has been modified.
+-- The action is only run if it hasn't, otherwise an error is thrown.
+-- The file must exist.
+-- Returns the new file status after the operation is finished.
+atomicUpdateLockedFile :: FilePath
+                       -> FStat
+                       -> (FilePath -> Handle -> IO a)
+                       -> ResultT IOError IO (FStat, a)
+atomicUpdateLockedFile path fstat action =
+    withLockedFile path checkStatAndRun
+  where
+    checkStatAndRun _ = do
+      newstat <- liftIO $ getFStat path
+      unless (fstat == newstat)
+             (failError $ "Cannot overwrite file " ++ path ++
+                          ": it has been modified since last written" ++
+                          " (" ++ show fstat ++ " != " ++ show newstat ++ ")")
+      liftIO $ atomicUpdateFile path actionAndStat
+    actionAndStat tmppath tmphandle = do
+      r <- action tmppath tmphandle
+      hClose tmphandle -- close the handle so that we get meaningful stats
+      finalstat <- liftIO $ getFStat tmppath
+      return (finalstat, r)
+
+-- | Just as 'atomicUpdateLockedFile', but discards the action result.
+atomicUpdateLockedFile_ :: FilePath
+                        -> FStat
+                        -> (FilePath -> Handle -> IO a)
+                        -> ResultT IOError IO FStat
+atomicUpdateLockedFile_ path oldstat
+  = liftM fst . atomicUpdateLockedFile path oldstat
 
 -- | Attempt, in a non-blocking way, to obtain a lock on a given file; report
 -- back success.
