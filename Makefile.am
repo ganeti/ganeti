@@ -2336,7 +2336,7 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	  f_html=$${f_notst%%.hs}.html; \
 	  $(HSCOLOUR) -css -anchor $$file > $(APIDOC_HS_DIR)/$$f_html ; \
 	done ; \
-	$(HADDOCK) --odir $(APIDOC_HS_DIR) --html --ignore-all-exports -w \
+	$(HADDOCK) --odir $(APIDOC_HS_DIR) --html --hoogle --ignore-all-exports -w \
 	  -t ganeti -p src/haddock-prologue \
 	  --source-module="%{MODULE/.//}.html" \
 	  --source-entity="%{MODULE/.//}.html#%{NAME}" \
