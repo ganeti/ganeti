@@ -50,6 +50,7 @@ module Ganeti.Query.Query
     , queryCompat
     , getRequestedNames
     , nameField
+    , uuidField
     ) where
 
 import Control.DeepSeq
@@ -120,6 +121,13 @@ nameField :: ItemType -> FilterField
 nameField (ItemTypeLuxi QRJob) = "id"
 nameField (ItemTypeOpCode QRExport) = "node"
 nameField _ = "name"
+
+-- | Computes the uuid field, or the best possible substitute, for different
+-- query types.
+uuidField :: ItemType -> FilterField
+uuidField (ItemTypeLuxi QRJob) = nameField (ItemTypeLuxi QRJob)
+uuidField (ItemTypeOpCode QRExport) = nameField (ItemTypeOpCode QRExport)
+uuidField _ = "uuid"
 
 -- | Extracts all quoted strings from a list, ignoring the
 -- 'NumericValue' entries.
