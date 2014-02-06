@@ -59,7 +59,8 @@ import Ganeti.Logging
 import Ganeti.Luxi
 import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Query.Cluster as QCluster
-import Ganeti.Path (queueDir, jobQueueLockFile, jobQueueDrainFile)
+import Ganeti.Path ( queueDir, jobQueueLockFile, jobQueueDrainFile
+                   , defaultMasterSocket)
 import Ganeti.Rpc
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
@@ -297,6 +298,24 @@ handleCall _ _ cfg (SetDrainFlag value) = do
      else removeFile fpath
   _ <- executeRpcCall mcs $ RpcCallSetDrainFlag value
   return . Ok . showJSON $ True
+
+handleCall _ qstat cfg (ChangeJobPriority jid prio) = do
+  maybeJob <- setJobPriority qstat jid prio
+  case maybeJob of
+    Bad s -> return . Ok $ showJSON (False, s)
+    Ok (Just job) -> runResultT $ do
+      let mcs = Config.getMasterCandidates cfg
+      qDir <- liftIO queueDir
+      liftIO $ replicateManyJobs qDir mcs [job]
+      return $ showJSON (True, "Priorities of pending opcodes for job "
+                               ++ show (fromJobId jid) ++ " have been changed"
+                               ++ " to " ++ show prio)
+    Ok Nothing -> runResultT $ do
+      -- Job has already started; so we have to forward the request
+      -- to the job, currently handled by masterd.
+      socketpath <- liftIO defaultMasterSocket
+      cl <- liftIO $ getLuxiClient socketpath
+      ResultT $ callMethod (ChangeJobPriority jid prio) cl
 
 handleCall _ qstat  cfg (CancelJob jid) = do
   let jName = (++) "job " . show $ fromJobId jid

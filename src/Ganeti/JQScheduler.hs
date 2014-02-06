@@ -29,12 +29,15 @@ module Ganeti.JQScheduler
   , initJQScheduler
   , enqueueNewJobs
   , dequeueJob
+  , setJobPriority
   ) where
 
 import Control.Arrow
 import Control.Concurrent
 import Control.Exception
 import Control.Monad
+import Control.Monad.IO.Class
+import Data.Function (on)
 import Data.List
 import Data.Maybe
 import Data.IORef
@@ -296,23 +299,27 @@ enqueueNewJobs state jobs = do
   logInfo . (++) "New jobs enqueued: " . commaJoin
     $ map (show . fromJobId . qjId) jobs
   let jobs' = map unreadJob jobs
-  modifyJobs state (onQueuedJobs (++ jobs'))
+      insertFn = insertBy (compare `on` fromJobId . qjId . jJob)
+      addJobs oldjobs = foldl (flip insertFn) oldjobs jobs'
+  modifyJobs state (onQueuedJobs addJobs)
   scheduleSomeJobs state
 
 -- | Pure function for removing a queued job from the job queue by
--- atomicModifyIORef. The answer is True if the job could be removed
--- before being handed over to execution, False if it already was started
+-- atomicModifyIORef. The answer is Just the job if the job could be removed
+-- before being handed over to execution, Nothing if it already was started
 -- and a Bad result if the job is not found in the queue.
-rmJob :: JobId -> Queue -> (Queue, Result Bool)
+rmJob :: JobId -> Queue -> (Queue, Result (Maybe QueuedJob))
 rmJob jid q =
   let isJid = (jid ==) . qjId . jJob
       (found, queued') = partition isJid $ qEnqueued q
-  in if null found
-       then if any isJid $ qRunning q
-              then (q, Ok False)
-              else (q, Bad $ "Job " ++ show (fromJobId jid)
-                              ++ " unknown to the queue")
-       else (q {qEnqueued = queued'}, Ok True)
+      isRunning = any isJid $ qRunning q
+      sJid = (++) "Job " . show $ fromJobId jid
+  in case (found, isRunning) of
+    ([job], _) -> (q {qEnqueued = queued'}, Ok . Just $ jJob job)
+    (_:_, _) -> (q, Bad $ "Queue in inconsistent state."
+                           ++ sJid ++ " queued multiple times")
+    (_, True) -> (q, Ok Nothing)
+    _ -> (q, Bad $ sJid ++ " not found in queue")
 
 -- | Try to remove a queued job from the job queue. Return True, if
 -- the job could be removed from the queue before being handed over
@@ -321,6 +328,25 @@ rmJob jid q =
 dequeueJob :: JQStatus -> JobId -> IO (Result Bool)
 dequeueJob state jid = do
   result <- atomicModifyIORef (jqJobs state) $ rmJob jid
+  let result' = fmap isJust result
   logDebug $ "Result of dequeing job " ++ show (fromJobId jid)
-              ++ " is " ++ show result
-  return result
+              ++ " is " ++ show result'
+  return result'
+
+-- | Change the priority of a queued job (once the job is handed over
+-- to execution, the job itself needs to be informed). To avoid the
+-- job being started unmodified, it is temporarily unqueued during the
+-- change. Return the modified job, if the job's priority was sucessfully
+-- modified, Nothing, if the job already started, and a Bad value, if the job
+-- is unkown.
+setJobPriority :: JQStatus -> JobId -> Int -> IO (Result (Maybe QueuedJob))
+setJobPriority state jid prio = runResultT $ do
+  maybeJob <- mkResultT . atomicModifyIORef (jqJobs state) $ rmJob jid
+  case maybeJob of
+    Nothing -> return Nothing
+    Just job -> do
+      let job' = changeJobPriority prio job
+      qDir <- liftIO queueDir
+      mkResultT $ writeJobToDisk qDir job'
+      liftIO $ enqueueNewJobs state [job']
+      return $ Just job'
