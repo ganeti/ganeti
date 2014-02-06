@@ -1898,6 +1898,7 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTRAPIGROUP@#$(RAPI_GROUP)#g'; \
 	  echo 's#@''GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
 	  echo 's#@''GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
+	  echo 's#@''GNTNODEDGROUP@#$(NODED_GROUP)#g'; \
 	  echo 's#@''GNTLUXIDGROUP@#$(LUXID_GROUP)#g'; \
 	  echo 's#@''GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	  echo 's#@''GNTMONDGROUP@#$(MOND_GROUP)#g'; \

@@ -980,12 +980,19 @@ class R_2_instances_multi_alloc(baserlib.OpcodeResource):
       raise http.HttpBadRequest("Request is missing required 'instances' field"
                                 " in body")
 
-    op_id = {
-      "OP_ID": self.POST_OPCODE.OP_ID, # pylint: disable=E1101
-      }
+    # Unlike most other RAPI calls, this one is composed of individual opcodes,
+    # and we have to do the filling ourselves
+    OPCODE_RENAME = {
+      "os": "os_type",
+      "name": "instance_name",
+    }
+
     body = objects.FillDict(self.request_body, {
-      "instances": [objects.FillDict(inst, op_id)
-                    for inst in self.request_body["instances"]],
+      "instances": [
+        baserlib.FillOpcode(opcodes.OpInstanceCreate, inst, {},
+                            rename=OPCODE_RENAME)
+        for inst in self.request_body["instances"]
+        ],
       })
 
     return (body, {

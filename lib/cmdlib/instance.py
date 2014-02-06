@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1504,7 +1504,7 @@ class LUInstanceCreate(LogicalUnit):
                                             False, self.op.reason)
       result.Raise("Could not start instance")
 
-    return list(iobj.all_nodes)
+    return self.cfg.GetNodeNames(list(iobj.all_nodes))
 
 
 class LUInstanceRename(LogicalUnit):

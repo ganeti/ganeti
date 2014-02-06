@@ -25,6 +25,7 @@
 
 import copy
 import itertools
+import re
 import unittest
 import mock
 import operator
@@ -1106,11 +1107,12 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
         disk_template, disk_info, 2, disk_template,
         file_storage_dir="/tmp", file_driver=constants.FD_BLKTAP)
 
-      self.assertEqual(map(operator.attrgetter("logical_id"), result), [
-        (constants.FD_BLKTAP, "/tmp/disk2"),
-        (constants.FD_BLKTAP, "/tmp/disk3"),
-        (constants.FD_BLKTAP, "/tmp/disk4"),
-        ])
+      for (idx, disk) in enumerate(result):
+        (file_driver, file_storage_dir) = disk.logical_id
+        dir_fmt = r"^/tmp/.*\.%s\.disk%d$" % (disk_template, idx + 2)
+        self.assertEqual(file_driver, constants.FD_BLKTAP)
+        # FIXME: use assertIsNotNone when py 2.7 is minimum supported version
+        self.assertNotEqual(re.match(dir_fmt, file_storage_dir), None)
 
   def testBlock(self):
     disk_info = [{

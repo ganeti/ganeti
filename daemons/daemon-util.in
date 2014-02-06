@@ -91,7 +91,7 @@ _daemon_usergroup() {
       echo "@GNTRAPIUSER@:@GNTRAPIGROUP@"
       ;;
     noded)
-      echo "@GNTNODEDUSER@:@GNTDAEMONSGROUP@"
+      echo "@GNTNODEDUSER@:@GNTNODEDGROUP@"
       ;;
     mond)
       echo "@GNTMONDUSER@:@GNTMONDGROUP@"
