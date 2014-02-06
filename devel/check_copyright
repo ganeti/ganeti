@@ -32,7 +32,7 @@ function join {
 }
 
 # Determine the tracking branch for the current branch
-readonly REMOTE=$(git branch -vv | grep "^\*" | cut -d "[" -f 2- | cut -d ":" -f 1)
+readonly REMOTE=$(git branch -vv | grep -e "^\*" | sed -e "s/ \+/ /g" | awk '{ print $4 }' | grep "\[" | tr -d ":[]")
 
 if [ -z "$REMOTE" ]
 then
