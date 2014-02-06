@@ -490,20 +490,13 @@ Further considerations
 
 There is a possibility that a job will finish performing its task while LuxiD
 and/or WConfD will not be available.
-In order to deal with this situation, each job will write the results of its
-execution on a file. The name of this file will be known to LuxiD before
-starting the job, and will be stored together with the job ID, and the
-name of the job-unique socket.
-
-The job, upon ending its execution, will signal LuxiD (through the socket), so
-that it can read the result of the execution and release the locks as needed.
-
-In case LuxiD is not available at that time, the job will just terminate without
-signalling it, and writing the results on file as usual. When a new LuxiD
-becomes available, it will have the most up-to-date list of running jobs
-(received via replication from the former LuxiD), and go through it, cleaning up
-all the terminated jobs.
-
+In order to deal with this situation, each job will update its job file
+in the queue. This is race free, as LuxiD will no longer touch the job file,
+once the job is started; a corollary of this is that the job also has to
+take care of replicating updates to the job file. LuxiD will watch job files for
+changes to determine when a job as cleanly finished. To determine jobs
+that died without having the chance of updating the job file, the `Job death
+detection`_ mechanism will be used.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
