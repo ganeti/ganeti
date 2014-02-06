@@ -95,7 +95,7 @@ def _ExpandMultiNames(mode, names, client=None):
   # pylint: disable=W0142
 
   if client is None:
-    client = GetClient(query=True)
+    client = GetClient()
   if mode == _EXPAND_CLUSTER:
     if names:
       raise errors.OpPrereqError("Cluster filter mode takes no arguments",
@@ -182,8 +182,7 @@ def GenericManyOps(operation, fn):
     if opts.multi_mode is None:
       opts.multi_mode = _EXPAND_INSTANCES
     cl = GetClient()
-    qcl = GetClient(query=True)
-    inames = _ExpandMultiNames(opts.multi_mode, args, client=qcl)
+    inames = _ExpandMultiNames(opts.multi_mode, args, client=cl)
     if not inames:
       if opts.multi_mode == _EXPAND_CLUSTER:
         ToStdout("Cluster is empty, no instances to shutdown")
@@ -224,7 +223,7 @@ def ListInstances(opts, args):
                                                       for item in value),
                                False))
 
-  cl = GetClient(query=True)
+  cl = GetClient()
 
   return GenericList(constants.QR_INSTANCE, selected_fields, args, opts.units,
                      opts.separator, not opts.no_headers,
@@ -422,10 +421,9 @@ def RemoveInstance(opts, args):
   instance_name = args[0]
   force = opts.force
   cl = GetClient()
-  qcl = GetClient(query=True)
 
   if not force:
-    _EnsureInstancesExist(qcl, [instance_name])
+    _EnsureInstancesExist(cl, [instance_name])
 
     usertext = ("This will remove the volumes of the instance %s"
                 " (including mirrors), thus removing all the data"
@@ -855,18 +853,15 @@ def ConnectToInstanceConsole(opts, args):
   instance_name = args[0]
 
   cl = GetClient()
-  qcl = GetClient(query=True)
   try:
     cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
     ((console_data, oper_state), ) = \
-      qcl.QueryInstances([instance_name], ["console", "oper_state"], False)
+      cl.QueryInstances([instance_name], ["console", "oper_state"], False)
   finally:
     # Ensure client connection is closed while external commands are run
     cl.Close()
-    qcl.Close()
 
   del cl
-  del qcl
 
   if not console_data:
     if oper_state:

@@ -50,7 +50,7 @@ def PrintExportList(opts, args):
 
   qfilter = qlang.MakeSimpleFilter("node", opts.nodes)
 
-  cl = GetClient(query=True)
+  cl = GetClient()
 
   return GenericList(constants.QR_EXPORT, selected_fields, None, opts.units,
                      opts.separator, not opts.no_headers,
@@ -67,7 +67,7 @@ def ListExportFields(opts, args):
   @return: the desired exit code
 
   """
-  cl = GetClient(query=True)
+  cl = GetClient()
 
   return GenericListFields(constants.QR_EXPORT, args, opts.separator,
                            not opts.no_headers, cl=cl)

@@ -412,7 +412,7 @@ def ShowClusterVersion(opts, args):
   @return: the desired exit code
 
   """
-  cl = GetClient(query=True)
+  cl = GetClient()
   result = cl.QueryClusterInfo()
   ToStdout("Software version: %s", result["software_version"])
   ToStdout("Internode protocol: %s", result["protocol_version"])
@@ -468,7 +468,7 @@ def ShowClusterConfig(opts, args):
   @return: the desired exit code
 
   """
-  cl = GetClient(query=True)
+  cl = GetClient()
   result = cl.QueryClusterInfo()
 
   if result["tags"]:
@@ -579,7 +579,7 @@ def ClusterCopyFile(opts, args):
                                errors.ECODE_INVAL)
 
   cl = GetClient()
-  qcl = GetClient(query=True)
+  qcl = GetClient()
   try:
     cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
 
@@ -610,7 +610,7 @@ def RunClusterCommand(opts, args):
 
   """
   cl = GetClient()
-  qcl = GetClient(query=True)
+  qcl = GetClient()
 
   command = " ".join(args)
 
@@ -1566,7 +1566,7 @@ def Epo(opts, args, qcl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
 
   if qcl is None:
     # Query client
-    qcl = GetClient(query=True)
+    qcl = GetClient()
 
   if opts.groups:
     node_query_list = \
@@ -1633,7 +1633,7 @@ def ShowCreateCommand(opts, args):
   Currently it works only for ipolicy specs.
 
   """
-  cl = GetClient(query=True)
+  cl = GetClient()
   result = cl.QueryClusterInfo()
   ToStdout(_GetCreateCommand(result))
 

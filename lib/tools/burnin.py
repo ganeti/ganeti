@@ -549,7 +549,7 @@ class Burner(object):
     else:
       names = []
     try:
-      qcl = GetClient(query=True)
+      qcl = GetClient()
       result = qcl.QueryNodes(names, ["name", "offline", "drained"], False)
     except errors.GenericError, err:
       err_code, msg = cli.FormatError(err)
@@ -753,7 +753,7 @@ class Burner(object):
                  islice(cycle(self.nodes), 2, None),
                  self.instances)
 
-    qcl = GetClient(query=True)
+    qcl = GetClient()
     for pnode, snode, enode, instance in mytor:
       Log("instance %s", instance, indent=1)
       # read the full name of the instance

@@ -233,7 +233,6 @@ def AddNode(opts, args):
 
   """
   cl = GetClient()
-  query_cl = GetClient(query=True)
   node = netutils.GetHostname(name=args[0]).name
   readd = opts.readd
 
@@ -242,17 +241,17 @@ def AddNode(opts, args):
   try:
     # Passing [] to QueryGroups means query the default group:
     node_groups = [opts.nodegroup] if opts.nodegroup is not None else []
-    output = query_cl.QueryGroups(names=node_groups, fields=["ndp/ssh_port"],
-                                  use_locking=False)
+    output = cl.QueryGroups(names=node_groups, fields=["ndp/ssh_port"],
+                            use_locking=False)
     (ssh_port, ) = output[0]
   except (errors.OpPrereqError, errors.OpExecError):
     pass
 
   try:
-    output = query_cl.QueryNodes(names=[node],
-                                 fields=["name", "sip", "master",
-                                         "ndp/ssh_port"],
-                                 use_locking=False)
+    output = cl.QueryNodes(names=[node],
+                           fields=["name", "sip", "master",
+                                   "ndp/ssh_port"],
+                           use_locking=False)
     node_exists, sip, is_master, ssh_port = output[0]
   except (errors.OpPrereqError, errors.OpExecError):
     node_exists = ""
@@ -320,7 +319,7 @@ def ListNodes(opts, args):
   fmtoverride = dict.fromkeys(["pinst_list", "sinst_list", "tags"],
                               (",".join, False))
 
-  cl = GetClient(query=True)
+  cl = GetClient()
 
   return GenericList(constants.QR_NODE, selected_fields, args, opts.units,
                      opts.separator, not opts.no_headers,
@@ -338,7 +337,7 @@ def ListNodeFields(opts, args):
   @return: the desired exit code
 
   """
-  cl = GetClient(query=True)
+  cl = GetClient()
 
   return GenericListFields(constants.QR_NODE, args, opts.separator,
                            not opts.no_headers, cl=cl)
@@ -381,7 +380,7 @@ def EvacuateNode(opts, args):
 
   cl = GetClient()
 
-  qcl = GetClient(query=True)
+  qcl = GetClient()
   result = qcl.QueryNodes(names=args, fields=fields, use_locking=False)
   qcl.Close()
 
@@ -440,7 +439,7 @@ def FailoverNode(opts, args):
 
   # these fields are static data anyway, so it doesn't matter, but
   # locking=True should be safer
-  qcl = GetClient(query=True)
+  qcl = GetClient()
   result = qcl.QueryNodes(names=args, fields=selected_fields,
                           use_locking=False)
   qcl.Close()
@@ -482,7 +481,7 @@ def MigrateNode(opts, args):
   force = opts.force
   selected_fields = ["name", "pinst_list"]
 
-  qcl = GetClient(query=True)
+  qcl = GetClient()
   result = qcl.QueryNodes(names=args, fields=selected_fields, use_locking=False)
   qcl.Close()
   ((node, pinst), ) = result
@@ -578,7 +577,7 @@ def ShowNodeConfig(opts, args):
   @return: the desired exit code
 
   """
-  cl = GetClient(query=True)
+  cl = GetClient()
   result = cl.QueryNodes(fields=["name", "pip", "sip",
                                  "pinst_list", "sinst_list",
                                  "master_candidate", "drained", "offline",

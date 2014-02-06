@@ -225,7 +225,7 @@ class R_2_info(baserlib.OpcodeResource):
     """Returns cluster information.
 
     """
-    client = self.GetClient(query=True)
+    client = self.GetClient()
     return client.QueryClusterInfo()
 
 
@@ -296,7 +296,7 @@ class R_2_jobs(baserlib.ResourceBase):
     @return: a dictionary with jobs id and uri.
 
     """
-    client = self.GetClient(query=True)
+    client = self.GetClient()
 
     if self.useBulk():
       bulkdata = client.QueryJobs(None, J_FIELDS_BULK)
@@ -325,7 +325,7 @@ class R_2_jobs_id(baserlib.ResourceBase):
 
     """
     job_id = self.items[0]
-    result = self.GetClient(query=True).QueryJobs([job_id, ], J_FIELDS)[0]
+    result = self.GetClient().QueryJobs([job_id, ], J_FIELDS)[0]
     if result is None:
       raise http.HttpNotFound()
     return baserlib.MapFields(J_FIELDS, result)
@@ -397,7 +397,7 @@ class R_2_nodes(baserlib.OpcodeResource):
     """Returns a list of all nodes.
 
     """
-    client = self.GetClient(query=True)
+    client = self.GetClient()
 
     if self.useBulk():
       bulkdata = client.QueryNodes([], N_FIELDS, False)
@@ -419,7 +419,7 @@ class R_2_nodes_name(baserlib.OpcodeResource):
 
     """
     node_name = self.items[0]
-    client = self.GetClient(query=True)
+    client = self.GetClient()
 
     result = baserlib.HandleItemQueryErrors(client.QueryNodes,
                                             names=[node_name], fields=N_FIELDS,
@@ -457,7 +457,7 @@ class R_2_nodes_name_role(baserlib.OpcodeResource):
 
     """
     node_name = self.items[0]
-    client = self.GetClient(query=True)
+    client = self.GetClient()
     result = client.QueryNodes(names=[node_name], fields=["role"],
                                use_locking=self.useLocking())
 
@@ -673,7 +673,7 @@ class R_2_networks(baserlib.OpcodeResource):
     """Returns a list of all networks.
 
     """
-    client = self.GetClient(query=True)
+    client = self.GetClient()
 
     if self.useBulk():
       bulkdata = client.QueryNetworks([], NET_FIELDS, False)
@@ -696,7 +696,7 @@ class R_2_networks_name(baserlib.OpcodeResource):
 
     """
     network_name = self.items[0]
-    client = self.GetClient(query=True)
+    client = self.GetClient()
 
     result = baserlib.HandleItemQueryErrors(client.QueryNetworks,
                                             names=[network_name],
@@ -789,7 +789,7 @@ class R_2_groups(baserlib.OpcodeResource):
     """Returns a list of all node groups.
 
     """
-    client = self.GetClient(query=True)
+    client = self.GetClient()
 
     if self.useBulk():
       bulkdata = client.QueryGroups([], G_FIELDS, False)
@@ -812,7 +812,7 @@ class R_2_groups_name(baserlib.OpcodeResource):
 
     """
     group_name = self.items[0]
-    client = self.GetClient(query=True)
+    client = self.GetClient()
 
     result = baserlib.HandleItemQueryErrors(client.QueryGroups,
                                             names=[group_name], fields=G_FIELDS,
@@ -917,7 +917,7 @@ class R_2_instances(baserlib.OpcodeResource):
     """Returns a list of all available instances.
 
     """
-    client = self.GetClient(query=True)
+    client = self.GetClient()
 
     use_locking = self.useLocking()
     if self.useBulk():
@@ -998,7 +998,7 @@ class R_2_instances_name(baserlib.OpcodeResource):
     """Send information about an instance.
 
     """
-    client = self.GetClient(query=True)
+    client = self.GetClient()
     instance_name = self.items[0]
 
     result = baserlib.HandleItemQueryErrors(client.QueryInstances,
@@ -1384,7 +1384,7 @@ class R_2_instances_name_console(baserlib.ResourceBase):
 
     """
     instance_name = self.items[0]
-    client = self.GetClient(query=True)
+    client = self.GetClient()
 
     ((console, oper_state), ) = \
         client.QueryInstances([instance_name], ["console", "oper_state"], False)
@@ -1529,7 +1529,7 @@ class _R_Tags(baserlib.OpcodeResource):
       if not self.name:
         raise http.HttpBadRequest("Missing name on tag request")
 
-      cl = self.GetClient(query=True)
+      cl = self.GetClient()
       tags = list(cl.QueryTags(kind, self.name))
 
     elif kind == constants.TAG_CLUSTER:

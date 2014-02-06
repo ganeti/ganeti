@@ -531,7 +531,7 @@ def ListTags(opts, args):
 
   """
   kind, name = _ExtractTagsObject(opts, args)
-  cl = GetClient(query=True)
+  cl = GetClient()
   result = cl.QueryTags(kind, name)
   result = list(result)
   result.sort()
@@ -2932,18 +2932,15 @@ def RunWhileClusterStopped(feedback_fn, fn, *args):
 
   # This ensures we're running on the master daemon
   cl = GetClient()
-  # Query client
-  qcl = GetClient(query=True)
 
   (cluster_name, master_node) = \
     cl.QueryConfigValues(["cluster_name", "master_node"])
 
-  online_nodes = GetOnlineNodes([], cl=qcl)
-  ssh_ports = GetNodesSshPorts(online_nodes, qcl)
+  online_nodes = GetOnlineNodes([], cl=cl)
+  ssh_ports = GetNodesSshPorts(online_nodes, cl)
 
   # Don't keep a reference to the client. The master daemon will go away.
   del cl
-  del qcl
 
   assert master_node in online_nodes
 
@@ -3554,7 +3551,7 @@ def GetOnlineNodes(nodes, cl=None, nowarn=False, secondary_ips=False,
 
   """
   if cl is None:
-    cl = GetClient(query=True)
+    cl = GetClient()
 
   qfilter = []
 
