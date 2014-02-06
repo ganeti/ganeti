@@ -10,6 +10,8 @@ Version 2.9.4
 - Fix the RAPI instances-multi-alloc call
 - assign unique filenames to file-based disks
 - gracefully handle degraded non-diskless instances with 0 disks (issue 697)
+- noded now runs with its specified group, which is the default group,
+  defaulting to root (issue 707)
 
 
 Version 2.9.3
