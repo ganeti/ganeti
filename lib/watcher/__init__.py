@@ -512,15 +512,15 @@ def _MergeInstanceStatus(filename, pergroup_filename, groups):
   _WriteInstanceStatus(filename, inststatus)
 
 
-def GetLuxiClient(try_restart, query=False):
-  """Tries to connect to the master daemon.
+def GetLuxiClient(try_restart):
+  """Tries to connect to the luxi daemon.
 
   @type try_restart: bool
   @param try_restart: Whether to attempt to restart the master daemon
 
   """
   try:
-    return cli.GetClient(query=query)
+    return cli.GetClient()
   except errors.OpPrereqError, err:
     # this is, from cli.GetClient, a not-master case
     raise NotMasterError("Not on master node (%s)" % err)
@@ -529,14 +529,14 @@ def GetLuxiClient(try_restart, query=False):
     if not try_restart:
       raise
 
-    logging.warning("Master daemon seems to be down (%s), trying to restart",
+    logging.warning("Luxi daemon seems to be down (%s), trying to restart",
                     err)
 
-    if not utils.EnsureDaemon(constants.MASTERD):
+    if not utils.EnsureDaemon(constants.LUXID):
       raise errors.GenericError("Can't start the master daemon")
 
     # Retry the connection
-    return cli.GetClient(query=query)
+    return cli.GetClient()
 
 
 def _StartGroupChildren(cl, wait):
@@ -615,7 +615,6 @@ def _GlobalWatcher(opts):
 
   try:
     client = GetLuxiClient(True)
-    query_client = GetLuxiClient(True, query=True)
   except NotMasterError:
     # Don't proceed on non-master nodes
     return constants.EXIT_SUCCESS
@@ -639,7 +638,7 @@ def _GlobalWatcher(opts):
   _ArchiveJobs(client, opts.job_age)
 
   # Spawn child processes for all node groups
-  _StartGroupChildren(query_client, opts.wait_children)
+  _StartGroupChildren(client, opts.wait_children)
 
   return constants.EXIT_SUCCESS
 
@@ -747,11 +746,10 @@ def _GroupWatcher(opts):
   try:
     # Connect to master daemon
     client = GetLuxiClient(False)
-    query_client = GetLuxiClient(False, query=True)
 
     _CheckMaster(client)
 
-    (nodes, instances) = _GetGroupData(query_client, group_uuid)
+    (nodes, instances) = _GetGroupData(client, group_uuid)
 
     # Update per-group instance status file
     _UpdateInstanceStatus(inst_status_path, instances.values())
