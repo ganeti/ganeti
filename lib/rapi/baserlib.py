@@ -351,7 +351,7 @@ class ResourceBase(object):
     """
     return bool(self._checkIntVariable("dry-run"))
 
-  def GetClient(self, query=False):
+  def GetClient(self, query=True):
     """Wrapper for L{luxi.Client} with HTTP-specific error handling.
 
     @param query: this signifies that the client will only be used for
