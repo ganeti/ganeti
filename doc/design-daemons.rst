@@ -266,6 +266,58 @@ leaving the codebase in a consistent and usable state.
    intelligent one. Also, the implementation of :doc:`design-optables` can be
    started.
 
+Job death detection
+-------------------
+
+**Requirements:**
+
+- It must be possible to reliably detect a death of a process even under
+  uncommon conditions such as very heavy system load.
+- A daemon must be able to detect a death of a process even if the
+  daemon is restarted while the process is running.
+- The solution must not rely on being able to communicate with
+  a process.
+- The solution must work for the current situation where multiple jobs
+  run in a single process.
+- It must be POSIX compliant.
+
+These conditions rule out simple solutions like checking a process ID
+(because the process might be eventually replaced by another process
+with the same ID) or keeping an open connection to a process.
+
+**Solution:** As a job process is spawned, before attempting to
+communicate with any other process, it will create a designated empty
+lock file, open it, acquire an *exclusive* lock on it, and keep it open.
+When connecting to a daemon, the job process will provide it with the
+path of the file. If the process dies unexpectedly, the operating system
+kernel automatically cleans up the lock.
+
+Therefore, daemons can check if a process is dead by trying to acquire
+a *shared* lock on the lock file in a non-blocking mode:
+
+- If the locking operation succeeds, it means that the exclusive lock is
+  missing, therefore the process has died, but the lock
+  file hasn't been cleaned up yet. The daemon should release the lock
+  immediately. Optionally, the daemon may delete the lock file.
+- If the file is missing, the process has died and the lock file has
+  been cleaned up.
+- If the locking operation fails due to a lock conflict, it means
+  the process is alive.
+
+Using shared locks for querying lock files ensures that the detection
+works correctly even if multiple daemons query a file at the same time.
+
+A job should close and remove its lock file when completely finishes.
+The WConfD daemon will be responsible for removing stale lock files of
+jobs that didn't remove its lock files themselves.
+
+**Considered alternatives:** An alternative to creating a separate lock
+file would be to lock the job status file. However, file locks are kept
+only as long as the file is open. Therefore any operation followed by
+closing the file would cause the process to release the lock. In
+particular, with jobs as threads, the master daemon wouldn't be able to
+keep locks and operate on job files at the same time.
+
 WConfD details
 --------------
 
