@@ -346,16 +346,53 @@ Configuration management
 The new configuration management protocol will be implemented in the following
 steps:
 
-#. Reimplement all current methods of ``ConfigWriter`` for reading and writing
-   the configuration of a cluster in WConfD.
-#. Expose each of those functions in WConfD as a RPC function. This will allow
-   easy future extensions or modifications.
-#. Replace ``ConfigWriter`` with a stub (preferably automatically generated
-   from the Haskell code) that will contain the same methods as the current
-   ``ConfigWriter`` and delegate all calls to its methods to WConfD.
+Step 1:
+  #. Implement the following functions in WConfD and export them through
+     RPC:
 
-After this step it'll be possible access the configuration from separate
-processes.
+     - Obtain a single internal lock, either in shared or
+       exclusive mode. This lock will substitute the current lock
+       ``_config_lock`` in config.py.
+     - Release the lock.
+     - Return the whole configuration data to a client.
+     - Receive the whole configuration data from a client and replace the
+       current configuration with it. Distribute it to master candidates
+       and distribute the corresponding *ssconf*.
+
+     WConfD must detect deaths of its clients (see `Job death
+     detection`_) and release locks automatically.
+
+  #. In config.py modify public methods that access configuration:
+
+     - Instead of acquiring a local lock, obtain a lock from WConfD
+       using the above functions
+     - Fetch the current configuration from WConfD.
+     - Use it to perform the method's task.
+     - If the configuration was modified, send it to WConfD at the end.
+     - Release the lock to WConfD.
+
+  This will decouple the configuration management from the master daemon,
+  even though the specific configuration tasks will still performed by
+  individual jobs.
+
+  After this step it'll be possible access the configuration from separate
+  processes.
+
+Step 2:
+  #. Reimplement all current methods of ``ConfigWriter`` for reading and
+     writing the configuration of a cluster in WConfD.
+  #. Expose each of those functions in WConfD as a separate RPC function.
+     This will allow easy future extensions or modifications.
+  #. Replace ``ConfigWriter`` with a stub (preferably automatically
+     generated from the Haskell code) that will contain the same methods
+     as the current ``ConfigWriter`` and delegate all calls to its
+     methods to WConfD.
+
+Step 3:
+  #. Remove WConfD's RPC functions for obtaining/releasing the single
+     internal lock from Step 1.
+  #. Remove WConfD's RPC functions for sending/receiving the whole
+     configuration from Step 1.
 
 Future aims:
 
