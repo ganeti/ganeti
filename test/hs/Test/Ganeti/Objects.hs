@@ -123,6 +123,8 @@ instance Arbitrary Instance where
       <*> arbitrary
       -- osparams
       <*> pure (GenericContainer Map.empty)
+      -- osparams_private
+      <*> pure (GenericContainer Map.empty)
       -- admin_state
       <*> arbitrary
       -- nics

@@ -786,6 +786,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     disk_state_static=disk_state,
     enabled_disk_templates=enabled_disk_templates,
     candidate_certs=candidate_certs,
+    osparams={},
+    osparams_private_cluster={}
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,

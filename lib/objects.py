@@ -47,6 +47,7 @@ from ganeti import constants
 from ganeti import netutils
 from ganeti import outils
 from ganeti import utils
+from ganeti import serializer
 
 from socket import AF_INET
 
@@ -213,7 +214,7 @@ class ConfigObject(outils.ValidatedSlots):
 
     """
 
-  def ToDict(self):
+  def ToDict(self, _with_private=False):
     """Convert to a dict holding only standard python types.
 
     The generic routine just dumps all of this object's attributes in
@@ -221,6 +222,15 @@ class ConfigObject(outils.ValidatedSlots):
     ConfigObjects themselves (e.g. the nics list in an Instance), in
     which case the object should subclass the function in order to
     make sure all objects returned are only standard python types.
+
+    Private fields can be included or not with the _with_private switch.
+    The actual implementation of this switch is left for those subclassses
+    with private fields to implement.
+
+    @type _with_private: bool
+    @param _with_private: if True, the object will leak its private fields in
+                          the dictionary representation. If False, the values
+                          will be replaced with None.
 
     """
     result = {}
@@ -333,13 +343,13 @@ class TaggableObject(ConfigObject):
     except KeyError:
       raise errors.TagError("Tag not found")
 
-  def ToDict(self):
+  def ToDict(self, _with_private=False):
     """Taggable-object-specific conversion to standard python types.
 
     This replaces the tags set with a list.
 
     """
-    bo = super(TaggableObject, self).ToDict()
+    bo = super(TaggableObject, self).ToDict(_with_private=_with_private)
 
     tags = bo.get("tags", None)
     if isinstance(tags, set):
@@ -388,14 +398,14 @@ class ConfigData(ConfigObject):
     "serial_no",
     ] + _TIMESTAMPS
 
-  def ToDict(self):
+  def ToDict(self, _with_private=False):
     """Custom function for top-level config data.
 
     This just replaces the list of instances, nodes and the cluster
     with standard python types.
 
     """
-    mydict = super(ConfigData, self).ToDict()
+    mydict = super(ConfigData, self).ToDict(_with_private=_with_private)
     mydict["cluster"] = mydict["cluster"].ToDict()
     for key in "nodes", "instances", "nodegroups", "networks":
       mydict[key] = outils.ContainerToDicts(mydict[key])
@@ -746,7 +756,8 @@ class Disk(ConfigObject):
     self.dynamic_params = dyn_disk_params
 
   # pylint: disable=W0221
-  def ToDict(self, include_dynamic_params=False):
+  def ToDict(self, include_dynamic_params=False,
+             _with_private=False):
     """Disk-specific conversion to standard python types.
 
     This replaces the children lists of objects with lists of
@@ -1063,6 +1074,7 @@ class Instance(TaggableObject):
     "hvparams",
     "beparams",
     "osparams",
+    "osparams_private",
     "admin_state",
     "nics",
     "disks",
@@ -1187,14 +1199,17 @@ class Instance(TaggableObject):
                                  " 0 to %d" % (idx, len(self.disks) - 1),
                                  errors.ECODE_INVAL)
 
-  def ToDict(self):
+  def ToDict(self, _with_private=False):
     """Instance-specific conversion to standard python types.
 
     This replaces the children lists of objects with lists of standard
     python types.
 
     """
-    bo = super(Instance, self).ToDict()
+    bo = super(Instance, self).ToDict(_with_private=_with_private)
+
+    if _with_private:
+      bo["osparams_private"] = self.osparams_private.Unprivate()
 
     for attr in "nics", "disks":
       alist = bo.get(attr, None)
@@ -1238,6 +1253,8 @@ class Instance(TaggableObject):
           pass
     if self.osparams is None:
       self.osparams = {}
+    if self.osparams_private is None:
+      self.osparams_private = serializer.PrivateDict()
     UpgradeBeParams(self.beparams)
     if self.disks_active is None:
       self.disks_active = self.admin_state == constants.ADMINST_UP
@@ -1407,11 +1424,11 @@ class Node(TaggableObject):
     if self.powered is None:
       self.powered = True
 
-  def ToDict(self):
+  def ToDict(self, _with_private=False):
     """Custom function for serializing.
 
     """
-    data = super(Node, self).ToDict()
+    data = super(Node, self).ToDict(_with_private=_with_private)
 
     hv_state = data.get("hv_state", None)
     if hv_state is not None:
@@ -1459,14 +1476,14 @@ class NodeGroup(TaggableObject):
     "networks",
     ] + _TIMESTAMPS + _UUID
 
-  def ToDict(self):
+  def ToDict(self, _with_private=False):
     """Custom function for nodegroup.
 
     This discards the members object, which gets recalculated and is only kept
     in memory.
 
     """
-    mydict = super(NodeGroup, self).ToDict()
+    mydict = super(NodeGroup, self).ToDict(_with_private=_with_private)
     del mydict["members"]
     return mydict
 
@@ -1559,6 +1576,7 @@ class Cluster(TaggableObject):
     "os_hvp",
     "beparams",
     "osparams",
+    "osparams_private_cluster",
     "nicparams",
     "ndparams",
     "diskparams",
@@ -1600,9 +1618,11 @@ class Cluster(TaggableObject):
     if self.os_hvp is None:
       self.os_hvp = {}
 
-    # osparams added before 2.2
     if self.osparams is None:
       self.osparams = {}
+    # osparams_private_cluster added in 2.12
+    if self.osparams_private_cluster is None:
+      self.osparams_private_cluster = {}
 
     self.ndparams = UpgradeNDParams(self.ndparams)
 
@@ -1719,11 +1739,17 @@ class Cluster(TaggableObject):
     """
     return self.enabled_hypervisors[0]
 
-  def ToDict(self):
+  def ToDict(self, _with_private=False):
     """Custom function for cluster.
 
     """
-    mydict = super(Cluster, self).ToDict()
+    mydict = super(Cluster, self).ToDict(_with_private=_with_private)
+
+    # Explicitly save private parameters.
+    if _with_private:
+      for os in mydict["osparams_private_cluster"]:
+        mydict["osparams_private_cluster"][os] = \
+          self.osparams_private_cluster[os].Unprivate()
 
     if self.tcpudp_port_pool is None:
       tcpudp_port_pool = []
@@ -1855,25 +1881,89 @@ class Cluster(TaggableObject):
     """
     return FillDict(self.nicparams.get(constants.PP_DEFAULT, {}), nicparams)
 
-  def SimpleFillOS(self, os_name, os_params):
+  def SimpleFillOS(self, os_name,
+                    os_params_public,
+                    os_params_private=None,
+                    os_params_secret=None):
     """Fill an instance's osparams dict with cluster defaults.
 
     @type os_name: string
     @param os_name: the OS name to use
-    @type os_params: dict
-    @param os_params: the dict to fill with default values
+    @type os_params_public: dict
+    @param os_params_public: the dict to fill with default values
+    @type os_params_private: dict
+    @param os_params_private: the dict with private fields to fill
+                              with default values. Not passing this field
+                              results in no private fields being added to the
+                              return value. Private fields will be wrapped in
+                              L{Private} objects.
+    @type os_params_secret: dict
+    @param os_params_secret: the dict with secret fields to fill
+                             with default values. Not passing this field
+                             results in no secret fields being added to the
+                             return value. Private fields will be wrapped in
+                             L{Private} objects.
     @rtype: dict
     @return: a copy of the instance's osparams with missing keys filled from
-        the cluster defaults
+        the cluster defaults. Private and secret parameters are not included
+        unless the respective optional parameters are supplied.
 
     """
     name_only = os_name.split("+", 1)[0]
-    # base OS
-    result = self.osparams.get(name_only, {})
-    # OS with variant
-    result = FillDict(result, self.osparams.get(os_name, {}))
-    # specified params
-    return FillDict(result, os_params)
+
+    defaults_base_public = self.osparams.get(name_only, {})
+    defaults_public = FillDict(defaults_base_public,
+                               self.osparams.get(os_name, {}))
+    params_public = FillDict(defaults_public, os_params_public)
+
+    if os_params_private is not None:
+      defaults_base_private = self.osparams_private_cluster.get(name_only, {})
+      defaults_private = FillDict(defaults_base_private,
+                                  self.osparams_private_cluster.get(os_name,
+                                                                    {}))
+      params_private = FillDict(defaults_private, os_params_private)
+    else:
+      params_private = {}
+
+    if os_params_secret is not None:
+      # There can't be default secret settings, so there's nothing to be done.
+      params_secret = os_params_secret
+    else:
+      params_secret = {}
+
+    # Enforce that the set of keys be distinct:
+    duplicate_keys = utils.GetRepeatedKeys(params_public,
+                                           params_private,
+                                           params_secret)
+    if not duplicate_keys:
+
+      # Actually update them:
+      params_public.update(params_private)
+      params_public.update(params_secret)
+
+      return params_public
+
+    else:
+
+      def formatter(keys):
+        return utils.CommaJoin(sorted(map(repr, keys))) if keys else "(none)"
+
+      #Lose the values.
+      params_public = set(params_public)
+      params_private = set(params_private)
+      params_secret = set(params_secret)
+
+      msg = """Cannot assign multiple values to OS parameters.
+
+      Conflicting OS parameters that would have been set by this operation:
+      - at public visibility:  {public}
+      - at private visibility: {private}
+      - at secret visibility:  {secret}
+      """.format(dupes=formatter(duplicate_keys),
+                 public=formatter(params_public & duplicate_keys),
+                 private=formatter(params_private & duplicate_keys),
+                 secret=formatter(params_secret & duplicate_keys))
+      raise errors.OpPrereqError(msg)
 
   @staticmethod
   def SimpleFillHvState(hv_state):
@@ -2061,7 +2151,7 @@ class _QueryResponseBase(ConfigObject):
     "fields",
     ]
 
-  def ToDict(self):
+  def ToDict(self, _with_private=False):
     """Custom function for serializing.
 
     """

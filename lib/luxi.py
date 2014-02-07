@@ -95,7 +95,9 @@ class Client(cl.AbstractClient):
     return self.CallMethod(REQ_PICKUP_JOB, (job,))
 
   def SubmitJob(self, ops):
-    ops_state = map(lambda op: op.__getstate__(), ops)
+    ops_state = map(lambda op: op.__getstate__()
+                               if not isinstance(op, objects.ConfigObject)
+                               else op.ToDict(_with_private=True), ops)
     return self.CallMethod(REQ_SUBMIT_JOB, (ops_state, ))
 
   def SubmitJobToDrainedQueue(self, ops):

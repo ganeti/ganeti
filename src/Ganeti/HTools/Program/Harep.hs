@@ -307,6 +307,8 @@ detectBroken nl inst =
                                  , opInstanceUuid = Nothing
                                  , opOsType = Nothing
                                  , opTempOsParams = Nothing
+                                 , opOsparamsPrivate = Nothing
+                                 , opOsparamsSecret = Nothing
                                  , opForceVariant = False
                                  }
            ])
@@ -359,6 +361,8 @@ detectBroken nl inst =
                                  , opInstanceUuid = Nothing
                                  , opOsType = Nothing
                                  , opTempOsParams = Nothing
+                                 , opOsparamsPrivate = Nothing
+                                 , opOsparamsSecret = Nothing
                                  , opForceVariant = False
                                  }
            ])

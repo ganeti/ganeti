@@ -35,6 +35,7 @@ from ganeti import objects
 from ganeti import utils
 from ganeti import netutils
 from ganeti import compat
+from ganeti import serializer
 from ganeti.cmdlib import instance
 
 from ganeti.config import TemporaryReservationManager
@@ -109,7 +110,8 @@ class TestConfigRunner(unittest.TestCase):
                             uuid="test-uuid",
                             disks=[], nics=[],
                             disk_template=constants.DT_DISKLESS,
-                            primary_node=self._get_object().GetMasterNode())
+                            primary_node=self._get_object().GetMasterNode(),
+                            osparams_private=serializer.PrivateDict())
     return inst
 
   def testEmpty(self):

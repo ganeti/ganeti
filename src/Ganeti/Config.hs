@@ -276,7 +276,7 @@ getFilledInstBeParams cfg inst = do
   return $ fillBeParams parentParams (instBeparams inst)
 
 -- | Retrieves the instance os params, missing values filled with cluster
--- defaults.
+-- defaults. This does NOT include private and secret parameters.
 getFilledInstOsParams :: ConfigData -> Instance -> OsParams
 getFilledInstOsParams cfg inst =
   let osLookupName = takeWhile (/= '+') (instOs inst)

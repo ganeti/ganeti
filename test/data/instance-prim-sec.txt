@@ -72,6 +72,7 @@
    ],
    "os": "busybox",
    "osparams": {},
+   "osparams_private": {},
    "primary_node": "60e687a0-21fc-4577-997f-ccd08925fa65",
    "serial_no": 2,
    "uuid": "aec390cb-5eae-44e6-bcc2-ec14d31347f0"

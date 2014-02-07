@@ -181,6 +181,7 @@ class ConfigMock(config.ConfigWriter):
                      hvparams=None,
                      beparams=None,
                      osparams=None,
+                     osparams_private=None,
                      admin_state=None,
                      nics=None,
                      disks=None,
@@ -217,6 +218,8 @@ class ConfigMock(config.ConfigWriter):
       beparams = {}
     if osparams is None:
       osparams = {}
+    if osparams_private is None:
+      osparams_private = {}
     if admin_state is None:
       admin_state = constants.ADMINST_DOWN
     if nics is None:
@@ -247,6 +250,7 @@ class ConfigMock(config.ConfigWriter):
                             hvparams=hvparams,
                             beparams=beparams,
                             osparams=osparams,
+                            osparams_private=osparams_private,
                             admin_state=admin_state,
                             nics=nics,
                             disks=disks,
@@ -571,6 +575,7 @@ class ConfigMock(config.ConfigWriter):
       os_hvp={self.GetDefaultOs().name: constants.HVC_DEFAULTS.copy()},
       beparams=None,
       osparams=None,
+      osparams_private_cluster=None,
       nicparams={constants.PP_DEFAULT: constants.NICC_DEFAULTS},
       ndparams=None,
       diskparams=None,

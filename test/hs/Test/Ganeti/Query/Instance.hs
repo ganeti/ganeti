@@ -52,7 +52,7 @@ createInstance name pnodeUuid adminState =
   Instance name pnodeUuid "" Kvm
     (GenericContainer Map.empty)
     (PartialBeParams Nothing Nothing Nothing Nothing Nothing Nothing)
-    (GenericContainer Map.empty)
+    (GenericContainer Map.empty) (GenericContainer Map.empty)
     adminState [] [] DTDrbd8 False Nothing epochTime epochTime "" 0 Set.empty
   where epochTime = TOD 0 0
 
