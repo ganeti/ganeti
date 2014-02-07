@@ -12,6 +12,8 @@ Version 2.9.4
 - gracefully handle degraded non-diskless instances with 0 disks (issue 697)
 - noded now runs with its specified group, which is the default group,
   defaulting to root (issue 707)
+- make using UUIDs to identify nodes in gnt-node consistently possible
+  (issue 703)
 
 
 Version 2.9.3
