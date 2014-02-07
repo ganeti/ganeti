@@ -40,19 +40,25 @@ import simplejson
 
 from ganeti import errors
 from ganeti import utils
-
+from ganeti import constants
 
 _RE_EOLSP = re.compile("[ \t]+$", re.MULTILINE)
 
 
-def DumpJson(data):
+def DumpJson(data, private_encoder=None):
   """Serialize a given object.
 
   @param data: the data to serialize
   @return: the string representation of data
+  @param private_encoder: specify L{serializer.EncodeWithPrivateFields} if you
+                          require the produced JSON to also contain private
+                          parameters. Otherwise, they will encode to null.
 
   """
-  encoded = simplejson.dumps(data)
+  if private_encoder is None:
+    # Do not leak private fields by default.
+    private_encoder = EncodeWithoutPrivateFields
+  encoded = simplejson.dumps(data, default=private_encoder)
 
   txt = _RE_EOLSP.sub("", encoded)
   if not txt.endswith("\n"):
@@ -69,20 +75,64 @@ def LoadJson(txt):
   @raise JSONDecodeError: if L{txt} is not a valid JSON document
 
   """
-  return simplejson.loads(txt)
+  values = simplejson.loads(txt)
+
+  # Hunt and seek for Private fields and wrap them.
+  WrapPrivateValues(values)
+
+  return values
 
 
-def DumpSignedJson(data, key, salt=None, key_selector=None):
+def WrapPrivateValues(json):
+  """Crawl a JSON decoded structure for private values and wrap them.
+
+  @param json: the json-decoded value to protect.
+
+  """
+  # This function used to be recursive. I use this list to avoid actual
+  # recursion, however, since this is a very high-traffic area.
+  todo = [json]
+
+  while todo:
+    data = todo.pop()
+
+    if isinstance(data, list): # Array
+      for item in data:
+        todo.append(item)
+    elif isinstance(data, dict): # Object
+
+      # This is kind of a kludge, but the only place where we know what should
+      # be protected is in ganeti.opcodes, and not in a way that is helpful to
+      # us, especially in such a high traffic method; on the other hand, the
+      # Haskell `py_compat_fields` test should complain whenever this check
+      # does not protect fields properly.
+      for field in data:
+        value = data[field]
+        if field in constants.PRIVATE_PARAMETERS_BLACKLIST:
+          if not field.endswith("_cluster"):
+            data[field] = PrivateDict(value)
+          else:
+            for os in data[field]:
+              value[os] = PrivateDict(value[os])
+        else:
+          todo.append(value)
+    else: # Values
+      pass
+
+
+def DumpSignedJson(data, key, salt=None, key_selector=None,
+                   private_encoder=None):
   """Serialize a given object and authenticate it.
 
   @param data: the data to serialize
   @param key: shared hmac key
   @param key_selector: name/id that identifies the key (in case there are
     multiple keys in use, e.g. in a multi-cluster environment)
+  @param private_encoder: see L{DumpJson}
   @return: the string representation of data signed by the hmac key
 
   """
-  txt = DumpJson(data)
+  txt = DumpJson(data, private_encoder=private_encoder)
   if salt is None:
     salt = ""
   signed_dict = {
@@ -113,6 +163,9 @@ def LoadSignedJson(txt, key):
 
   """
   signed_dict = LoadJson(txt)
+
+  WrapPrivateValues(signed_dict)
+
   if not isinstance(signed_dict, dict):
     raise errors.SignatureError("Invalid external message")
   try:
@@ -319,3 +372,15 @@ class PrivateDict(dict):
     for key in self:
       returndict[key] = self[key].Get()
     return returndict
+
+
+def EncodeWithoutPrivateFields(obj):
+  if isinstance(obj, Private):
+    return None
+  raise TypeError(repr(obj) + " is not JSON serializable")
+
+
+def EncodeWithPrivateFields(obj):
+  if isinstance(obj, Private):
+    return obj.Get()
+  raise TypeError(repr(obj) + " is not JSON serializable")

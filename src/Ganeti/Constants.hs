@@ -4773,3 +4773,23 @@ instanceCommunicationNetwork = "ganeti:network:communication"
 
 instanceCommunicationNicPrefix :: String
 instanceCommunicationNicPrefix = "ganeti:communication:"
+
+-- | Parameters that should be protected
+--
+-- Python does not have a type system and can't automatically infer what should
+-- be the resulting type of a JSON request. As a result, it must rely on this
+-- list of parameter names to protect values correctly.
+--
+-- Names ending in _cluster will be treated as dicts of dicts of private values.
+-- Otherwise they are considered dicts of private values.
+privateParametersBlacklist :: [String]
+privateParametersBlacklist = [ "osparams_private"
+                             , "osparams_secret"
+                             , "osparams_private_cluster"
+                             ]
+
+-- | Warn the user that the logging level is too low for production use.
+debugModeConfidentialityWarning :: String
+debugModeConfidentialityWarning =
+  "ALERT: %s started in debug mode.\n\
+  \ Private and secret parameters WILL be logged!\n"

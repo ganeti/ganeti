@@ -120,7 +120,8 @@ def FormatRequest(method, args, version=None):
     request[KEY_VERSION] = version
 
   # Serialize the request
-  return serializer.DumpJson(request)
+  return serializer.DumpJson(request,
+                             private_encoder=serializer.EncodeWithPrivateFields)
 
 
 def CallRPCMethod(transport_cb, method, args, version=None):

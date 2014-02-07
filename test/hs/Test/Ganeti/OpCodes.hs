@@ -519,7 +519,10 @@ case_py_compat_types = do
                \  op.Validate(True)\n\
                \encoded = [(op.Summary(), op.__getstate__())\n\
                \           for op in decoded]\n\
-               \print serializer.Dump(encoded)" serialized
+               \print serializer.Dump(\
+               \  encoded,\
+               \  private_encoder=serializer.EncodeWithPrivateFields)"
+               serialized
      >>= checkPythonResult
   let deserialised =
         J.decode py_stdout::J.Result [(String, OpCodes.MetaOpCode)]

@@ -229,7 +229,6 @@ class TestLUNodeAdd(CmdlibTestCase):
     self.ExecOpCodeExpectOpPrereqError(op, "Readded node doesn't have the same"
                                        " IP address configuration as before")
 
-
   def testNodeHasSecondaryIpButNotMaster(self):
     self.master.secondary_ip = self.master.primary_ip
 
