@@ -523,7 +523,7 @@ case_py_compat_types = do
   HUnit.assertEqual "Mismatch in number of returned opcodes"
     (length decoded) (length with_sum)
   mapM_ (uncurry (HUnit.assertEqual "Different result after encoding/decoding")
-        ) $ zip decoded with_sum
+        ) $ zip with_sum decoded
 
 -- | Custom HUnit test case that forks a Python process and checks
 -- correspondence between Haskell OpCodes fields and their Python
@@ -556,7 +556,7 @@ case_py_compat_fields = do
            HUnit.assertEqual "Mismatch in OP_ID" py_id hs_id
            HUnit.assertEqual ("Mismatch in fields for " ++ hs_id)
              py_flds hs_flds
-        ) $ zip py_fields hs_fields
+        ) $ zip hs_fields py_fields
 
 -- | Checks that setOpComment works correctly.
 prop_setOpComment :: OpCodes.MetaOpCode -> String -> Property

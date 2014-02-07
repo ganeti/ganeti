@@ -170,7 +170,7 @@ case_JobStatusPri_py_equiv = do
            let hs_sp = (jobStatusToRaw $ calcJobStatus job,
                         calcJobPriority job)
            in assertEqual ("Different result after encoding/decoding for " ++
-                           show job) py_sp hs_sp
+                           show job) hs_sp py_sp
         ) $ zip decoded jobs
 
 -- | Tests listing of Job ids.

@@ -64,7 +64,7 @@ case_LogFiles = do
   assertEqual "Mismatch in number of returned log files"
     (length decoded) (length daemons)
   mapM_ (uncurry (assertEqual "Different result after encoding/decoding")
-        ) $ zip decoded dfiles
+        ) $ zip dfiles decoded
 
 -- | Tests the compatibility between Haskell and Python users.
 case_UsersGroups :: Assertion
@@ -116,9 +116,9 @@ case_UsersGroups = do
   assertEqual "Mismatch in number of returned users"
     (length py_groups) (length groups)
   mapM_ (uncurry (assertEqual "Different result for users")
-        ) $ zip py_users users
+        ) $ zip users py_users
   mapM_ (uncurry (assertEqual "Different result for groups")
-        ) $ zip py_groups groups
+        ) $ zip groups py_groups
 
 testSuite "Runtime"
           [ 'case_LogFiles
