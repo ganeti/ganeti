@@ -1163,22 +1163,7 @@ class LUClusterSetParams(LogicalUnit):
               self.new_os_hvp[os_name][hv_name].update(hv_dict)
 
     # os parameters
-    self.new_osp = objects.FillDict(cluster.osparams, {})
-    if self.op.osparams:
-      for os_name, osp in self.op.osparams.items():
-        if os_name not in self.new_osp:
-          self.new_osp[os_name] = {}
-
-        self.new_osp[os_name] = GetUpdatedParams(self.new_osp[os_name], osp,
-                                                 use_none=True)
-
-        if not self.new_osp[os_name]:
-          # we removed all parameters
-          del self.new_osp[os_name]
-        else:
-          # check the parameter validity (remote check)
-          CheckOSParams(self, False, [self.cfg.GetMasterNode()],
-                        os_name, self.new_osp[os_name])
+    self._BuildOSParams(cluster)
 
     # changes to the hypervisor list
     if self.op.enabled_hypervisors is not None:
@@ -1231,6 +1216,39 @@ class LUClusterSetParams(LogicalUnit):
         raise errors.OpPrereqError("Invalid default iallocator script '%s'"
                                    " specified" % self.op.default_iallocator,
                                    errors.ECODE_INVAL)
+
+  def _BuildOSParams(self, cluster):
+    "Calculate the new OS parameters for this operation."
+
+    def _GetNewParams(source, new_params):
+      "Wrapper around GetUpdatedParams."
+      if new_params is None:
+        return source
+      result = objects.FillDict(source, {}) # deep copy of source
+      for os_name in new_params:
+        result[os_name] = GetUpdatedParams(result.get(os_name, {}),
+                                           new_params[os_name],
+                                           use_none=True)
+        if not result[os_name]:
+          del result[os_name] # we removed all parameters
+      return result
+
+    self.new_osp = _GetNewParams(cluster.osparams,
+                                 self.op.osparams)
+    self.new_osp_private = _GetNewParams(cluster.osparams_private_cluster,
+                                         self.op.osparams_private_cluster)
+
+    # Remove os validity check
+    changed_oses = (set(self.new_osp.keys()) | set(self.new_osp_private.keys()))
+    for os_name in changed_oses:
+      os_params = cluster.SimpleFillOS(
+        os_name,
+        self.new_osp.get(os_name, {}),
+        os_params_private=self.new_osp_private.get(os_name, {})
+      )
+      # check the parameter validity (remote check)
+      CheckOSParams(self, False, [self.cfg.GetMasterNode()],
+                    os_name, os_params)
 
   def _CheckDiskTemplateConsistency(self):
     """Check whether the disk templates that are going to be disabled
@@ -1318,6 +1336,8 @@ class LUClusterSetParams(LogicalUnit):
       self.cluster.ipolicy = self.new_ipolicy
     if self.op.osparams:
       self.cluster.osparams = self.new_osp
+    if self.op.osparams_private_cluster:
+      self.cluster.osparams_private_cluster = self.new_osp_private
     if self.op.ndparams:
       self.cluster.ndparams = self.new_ndparams
     if self.op.diskparams:

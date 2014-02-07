@@ -72,6 +72,7 @@ module Ganeti.Objects
   , OsHvParams
   , ClusterBeParams
   , ClusterOsParams
+  , ClusterOsParamsPrivate
   , ClusterNicParams
   , Cluster(..)
   , ConfigData(..)

@@ -752,6 +752,7 @@ class TestLUClusterSetParams(CmdlibTestCase):
       }
     }
     self.cluster.osparams = {"other_os": {"param1": "value1"}}
+    self.cluster.osparams_private_cluster = {}
     op = opcodes.OpClusterSetParams(osparams=osparams)
     self.ExecOpCode(op)
 

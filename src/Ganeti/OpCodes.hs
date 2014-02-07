@@ -213,6 +213,7 @@ $(genOpCode "OpCode"
      , pClusterBeParams
      , pOsHvp
      , pClusterOsParams
+     , pClusterOsParamsPrivate
      , pDiskParams
      , pCandidatePoolSize
      , pMaxRunningJobs

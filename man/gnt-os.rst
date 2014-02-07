@@ -57,6 +57,8 @@ MODIFY
 ~~~~~~
 
 | **modify** [\--submit] [\--print-job-id]
+| [ [ -O | --os-parameters ] =*option*=*value*]
+| [ --os-parameters-private=*option*=*value*]
 | [-H *HYPERVISOR*:option=*value*[,...]]
 | [\--hidden=*yes|no*] [\--blacklisted=*yes|no*]
 | {*OS*}
@@ -68,8 +70,14 @@ global hypervisor parameters), you can run modify ``-H`` with the
 same syntax as in **gnt-cluster init** to override default
 hypervisor parameters of the cluster for specified *OS* argument.
 
+To modify the parameters passed to the OS install scripts, use the
+**--os-parameters** option. If the value of the parameter should not be
+saved to logs, use **--os-parameters-private** *and* make sure that
+no Ganeti daemon or program is running in debug mode. **ganeti-luxid**
+in particular will issue a warning at startup time if ran in debug mode.
+
 To modify the hidden and blacklisted states of an OS, pass the options
-``--hidden ``*yes|no*, or respectively ``--blacklisted ...``. The
+``--hidden`` *yes|no*, or respectively ``--blacklisted ...``. The
 'hidden' state means that an OS won't be listed by default in the OS
 list, but is available for installation. The 'blacklisted' state means
 that the OS is not listed and is also not allowed for new instance

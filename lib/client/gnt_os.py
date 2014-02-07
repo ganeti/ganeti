@@ -245,6 +245,11 @@ def ModifyOS(opts, args):
   else:
     osp = None
 
+  if opts.osparams_private:
+    osp_private = {os: opts.osparams_private}
+  else:
+    osp_private = None
+
   if opts.hidden is not None:
     if opts.hidden:
       ohid = [(constants.DDM_ADD, os)]
@@ -261,13 +266,14 @@ def ModifyOS(opts, args):
   else:
     oblk = None
 
-  if not (os_hvp or osp or ohid or oblk):
+  if not (os_hvp or osp or osp_private or ohid or oblk):
     ToStderr("At least one of OS parameters or hypervisor parameters"
              " must be passed")
     return 1
 
   op = opcodes.OpClusterSetParams(os_hvp=os_hvp,
                                   osparams=osp,
+                                  osparams_private_cluster=osp_private,
                                   hidden_os=ohid,
                                   blacklisted_os=oblk)
   SubmitOrSend(op, opts)
@@ -288,8 +294,8 @@ commands = {
     "operating systems"),
   "modify": (
     ModifyOS, ARGS_ONE_OS,
-    [HVLIST_OPT, OSPARAMS_OPT, DRY_RUN_OPT, PRIORITY_OPT,
-     HID_OS_OPT, BLK_OS_OPT] + SUBMIT_OPTS,
+    [HVLIST_OPT, OSPARAMS_OPT, OSPARAMS_PRIVATE_OPT,
+     DRY_RUN_OPT, PRIORITY_OPT, HID_OS_OPT, BLK_OS_OPT] + SUBMIT_OPTS,
     "", "Modify the OS parameters"),
   }
 

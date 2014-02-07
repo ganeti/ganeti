@@ -32,6 +32,7 @@ from ganeti import locking
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import pathutils
+from ganeti.serializer import Private
 import ganeti.rpc.node as rpc
 from ganeti import ssconf
 from ganeti import utils
@@ -382,6 +383,12 @@ def CheckOSParams(lu, required, node_uuids, osname, osparams):
 
   """
   node_uuids = _FilterVmNodes(lu, node_uuids)
+
+  # Last chance to unwrap private elements.
+  for key in osparams:
+    if isinstance(osparams[key], Private):
+      osparams[key] = osparams[key].Get()
+
   result = lu.rpc.call_os_validate(node_uuids, required, osname,
                                    [constants.OS_VALIDATE_PARAMETERS],
                                    osparams)

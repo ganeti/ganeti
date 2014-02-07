@@ -171,18 +171,42 @@ instance Arbitrary OpCodes.OpCode where
       "OP_CLUSTER_RENAME" ->
         OpCodes.OpClusterRename <$> genNameNE
       "OP_CLUSTER_SET_PARAMS" ->
-        OpCodes.OpClusterSetParams <$> arbitrary <*> emptyMUD <*> emptyMUD <*>
-          arbitrary <*> genMaybe arbitrary <*>
-          genMaybe genEmptyContainer <*> emptyMUD <*>
-          genMaybe genEmptyContainer <*> genMaybe genEmptyContainer <*>
-          genMaybe genEmptyContainer <*> genMaybe arbitrary <*>
-          genMaybe arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*>
-          emptyMUD <*> emptyMUD <*> arbitrary <*>
-          arbitrary  <*> emptyMUD <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> genMaybe genName <*> genMaybe genName
+        OpCodes.OpClusterSetParams
+          <$> arbitrary                    -- force
+          <*> emptyMUD                     -- hv_state
+          <*> emptyMUD                     -- disk_state
+          <*> arbitrary                    -- vg_name
+          <*> genMaybe arbitrary           -- enabled_hypervisors
+          <*> genMaybe genEmptyContainer   -- hvparams
+          <*> emptyMUD                     -- beparams
+          <*> genMaybe genEmptyContainer   -- os_hvp
+          <*> genMaybe genEmptyContainer   -- osparams
+          <*> genMaybe genEmptyContainer   -- osparams_private_cluster
+          <*> genMaybe genEmptyContainer   -- diskparams
+          <*> genMaybe arbitrary           -- candidate_pool_size
+          <*> genMaybe arbitrary           -- max_running_jobs
+          <*> arbitrary                    -- uid_pool
+          <*> arbitrary                    -- add_uids
+          <*> arbitrary                    -- remove_uids
+          <*> arbitrary                    -- maintain_node_health
+          <*> arbitrary                    -- prealloc_wipe_disks
+          <*> arbitrary                    -- nicparams
+          <*> emptyMUD                     -- ndparams
+          <*> emptyMUD                     -- ipolicy
+          <*> arbitrary                    -- drbd_helper
+          <*> arbitrary                    -- default_iallocator
+          <*> emptyMUD                     -- default_iallocator_params
+          <*> arbitrary                    -- master_netdev
+          <*> arbitrary                    -- master_netmask
+          <*> arbitrary                    -- reserved_lvs
+          <*> arbitrary                    -- hidden_os
+          <*> arbitrary                    -- blacklisted_os
+          <*> arbitrary                    -- use_external_mip_script
+          <*> arbitrary                    -- enabled_disk_templates
+          <*> arbitrary                    -- modify_etc_hosts
+          <*> genMaybe genName             -- file_storage_dir
+          <*> genMaybe genName             -- shared_file_storage_dir
+          <*> genMaybe genName             -- gluster_file_storage_dir
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
         pure OpCodes.OpClusterActivateMasterIp
