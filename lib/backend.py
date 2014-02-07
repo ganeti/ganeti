@@ -3266,6 +3266,10 @@ def FinalizeExport(instance, snap_disks):
   for name, value in instance.osparams.items():
     config.set(constants.INISECT_OSP, name, str(value))
 
+  config.add_section(constants.INISECT_OSP_PRIVATE)
+  for name, value in instance.osparams_private.items():
+    config.set(constants.INISECT_OSP_PRIVATE, name, str(value.Get()))
+
   utils.WriteFile(utils.PathJoin(destdir, constants.EXPORT_CONF_FILE),
                   data=config.Dumps())
   shutil.rmtree(finaldestdir, ignore_errors=True)

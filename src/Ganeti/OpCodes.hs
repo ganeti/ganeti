@@ -438,6 +438,8 @@ $(genOpCode "OpCode"
      , pInstNics
      , pNoInstall
      , pInstOsParams
+     , pInstOsParamsPrivate
+     , pInstOsParamsSecret
      , pInstOs
      , pPrimaryNode
      , pPrimaryNodeUuid

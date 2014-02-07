@@ -465,6 +465,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
                          osparams={
                            self.os_name_variant: {}
                          },
+                         osparams_private={},
                          identify_defaults=True)
     self.ExecOpCode(op)
 

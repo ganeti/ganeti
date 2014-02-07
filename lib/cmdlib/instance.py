@@ -37,6 +37,7 @@ from ganeti import masterd
 from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
+from ganeti import serializer
 import ganeti.rpc.node as rpc
 from ganeti import utils
 
@@ -847,6 +848,12 @@ class LUInstanceCreate(LogicalUnit):
         if name not in self.op.osparams:
           self.op.osparams[name] = value
 
+    if einfo.has_section(constants.INISECT_OSP_PRIVATE):
+      # use the parameters, without overriding
+      for name, value in einfo.items(constants.INISECT_OSP_PRIVATE):
+        if name not in self.op.osparams_private:
+          self.op.osparams_private[name] = serializer.Private(value, descr=name)
+
   def _RevertToDefaults(self, cluster):
     """Revert the instance parameters to the default values.
 
@@ -872,6 +879,12 @@ class LUInstanceCreate(LogicalUnit):
     for name in self.op.osparams.keys():
       if name in os_defs and os_defs[name] == self.op.osparams[name]:
         del self.op.osparams[name]
+
+    os_defs_ = cluster.SimpleFillOS(self.op.os_type, {},
+                                    os_params_private={})
+    for name in self.op.osparams_private.keys():
+      if name in os_defs_ and os_defs_[name] == self.op.osparams_private[name]:
+        del self.op.osparams_private[name]
 
   def _CalculateFileStorageDir(self):
     """Calculate final instance file storage dir.
@@ -977,7 +990,17 @@ class LUInstanceCreate(LogicalUnit):
     self.be_full = _ComputeFullBeParams(self.op, cluster)
 
     # build os parameters
-    self.os_full = cluster.SimpleFillOS(self.op.os_type, self.op.osparams)
+    if self.op.osparams_private is None:
+      self.op.osparams_private = serializer.PrivateDict()
+    if self.op.osparams_secret is None:
+      self.op.osparams_secret = serializer.PrivateDict()
+
+    self.os_full = cluster.SimpleFillOS(
+      self.op.os_type,
+      self.op.osparams,
+      os_params_private=self.op.osparams_private,
+      os_params_secret=self.op.osparams_secret
+    )
 
     # now that hvp/bep are in final format, let's reset to defaults,
     # if told to do so
@@ -1332,6 +1355,7 @@ class LUInstanceCreate(LogicalUnit):
                             hvparams=self.op.hvparams,
                             hypervisor=self.op.hypervisor,
                             osparams=self.op.osparams,
+                            osparams_private=self.op.osparams_private,
                             )
 
     if self.op.tags:
@@ -1428,7 +1452,9 @@ class LUInstanceCreate(LogicalUnit):
           feedback_fn("* running the instance OS create scripts...")
           # FIXME: pass debug option from opcode to backend
           os_add_result = \
-            self.rpc.call_instance_os_add(self.pnode.uuid, (iobj, None), False,
+            self.rpc.call_instance_os_add(self.pnode.uuid,
+                                          (iobj, self.op.osparams_secret),
+                                          False,
                                           self.op.debug_level)
           if pause_sync:
             feedback_fn("* resuming disk sync")
@@ -3008,9 +3034,9 @@ class LUInstanceSetParams(LogicalUnit):
                                 hvspecs)
 
     # osparams processing
-    if self.op.osparams or self.op.osparams_private_cluster:
+    if self.op.osparams or self.op.osparams_private:
       public_parms = self.op.osparams or {}
-      private_parms = self.op.osparams_private_cluster or {}
+      private_parms = self.op.osparams_private or {}
       dupe_keys = utils.GetRepeatedKeys(public_parms, private_parms)
 
       if dupe_keys:

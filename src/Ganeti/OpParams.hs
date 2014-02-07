@@ -120,6 +120,8 @@ module Ganeti.OpParams
   , pClusterOsParams
   , pClusterOsParamsPrivate
   , pInstOsParams
+  , pInstOsParamsPrivate
+  , pInstOsParamsSecret
   , pCandidatePoolSize
   , pMaxRunningJobs
   , pUidPool
@@ -1097,6 +1099,18 @@ pInstOsParams =
   renameField "InstOsParams" .
   defaultField [| toJSObject [] |] $
   simpleField "osparams" [t| JSObject JSValue |]
+
+pInstOsParamsPrivate :: Field
+pInstOsParamsPrivate =
+  withDoc "Private OS parameters for instance" .
+  optionalField $
+  simpleField "osparams_private" [t| JSObject (Private JSValue) |]
+
+pInstOsParamsSecret :: Field
+pInstOsParamsSecret =
+  withDoc "Secret OS parameters for instance" .
+  optionalField $
+  simpleField "osparams_secret" [t| JSObject (Private JSValue) |]
 
 pPrimaryNode :: Field
 pPrimaryNode =

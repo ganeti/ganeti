@@ -2794,6 +2794,8 @@ def GenericInstanceCreate(mode, opts, args):
                                 hvparams=hvparams,
                                 beparams=opts.beparams,
                                 osparams=opts.osparams,
+                                osparams_private=opts.osparams_private,
+                                osparams_secret=opts.osparams_secret,
                                 mode=mode,
                                 start=start,
                                 os_type=os_type,

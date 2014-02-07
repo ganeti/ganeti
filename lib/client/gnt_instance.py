@@ -1485,7 +1485,8 @@ add_opts = [
 
 commands = {
   "add": (
-    AddInstance, [ArgHost(min=1, max=1)], COMMON_CREATE_OPTS + add_opts,
+    AddInstance, [ArgHost(min=1, max=1)],
+    COMMON_CREATE_OPTS + add_opts + [OSPARAMS_PRIVATE_OPT, OSPARAMS_SECRET_OPT],
     "[...] -t disk-type -n node[:secondary-node] -o os-type <name>",
     "Creates and adds a new instance to the cluster"),
   "batch-create": (
@@ -1548,7 +1549,7 @@ commands = {
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, m_node_tags_opt,
      m_pri_node_tags_opt, m_sec_node_tags_opt, m_inst_tags_opt, SELECT_OS_OPT]
     + SUBMIT_OPTS + [DRY_RUN_OPT, PRIORITY_OPT, OSPARAMS_OPT,
-                     OSPARAMS_NOLOG_OPT, OSPARAMS_NOLOG_NOSAVE_OPT],
+                     OSPARAMS_PRIVATE_OPT, OSPARAMS_SECRET_OPT],
     "[-f] <instance>", "Reinstall a stopped instance"),
   "remove": (
     RemoveInstance, ARGS_ONE_INSTANCE,
@@ -1572,7 +1573,7 @@ commands = {
     SetInstanceParams, ARGS_ONE_INSTANCE,
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT] + SUBMIT_OPTS +
     [DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT,
-     OSPARAMS_OPT, OSPARAMS_NOLOG_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT,
+     OSPARAMS_OPT, OSPARAMS_PRIVATE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT,
      OFFLINE_INST_OPT, ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
      NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT,
      HOTPLUG_IF_POSSIBLE_OPT],

@@ -255,18 +255,46 @@ instance Arbitrary OpCodes.OpCode where
           return Nothing <*> genMaybe genNodeNameNE <*> return Nothing <*>
           genMaybe genNameNE <*> arbitrary
       "OP_INSTANCE_CREATE" ->
-        OpCodes.OpInstanceCreate <$> genFQDN <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          pure emptyJSObject <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          genMaybe genNameNE <*> pure emptyJSObject <*> arbitrary <*>
-          genMaybe genNameNE <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> pure emptyJSObject <*>
-          genMaybe genNameNE <*> genMaybe genNodeNameNE <*> return Nothing <*>
-          genMaybe genNodeNameNE <*> return Nothing <*> genMaybe (pure []) <*>
-          genMaybe genNodeNameNE <*> arbitrary <*> genMaybe genNodeNameNE <*>
-          return Nothing <*> genMaybe genNodeNameNE <*> genMaybe genNameNE <*>
-          arbitrary <*> arbitrary <*> (genTags >>= mapM mkNonEmpty) <*>
-          arbitrary
+        OpCodes.OpInstanceCreate
+          <$> genFQDN                         -- instance_name
+          <*> arbitrary                       -- force_variant
+          <*> arbitrary                       -- wait_for_sync
+          <*> arbitrary                       -- name_check
+          <*> arbitrary                       -- ignore_ipolicy
+          <*> arbitrary                       -- opportunistic_locking
+          <*> pure emptyJSObject              -- beparams
+          <*> arbitrary                       -- disks
+          <*> arbitrary                       -- disk_template
+          <*> arbitrary                       -- file_driver
+          <*> genMaybe genNameNE              -- file_storage_dir
+          <*> pure emptyJSObject              -- hvparams
+          <*> arbitrary                       -- hypervisor
+          <*> genMaybe genNameNE              -- iallocator
+          <*> arbitrary                       -- identify_defaults
+          <*> arbitrary                       -- ip_check
+          <*> arbitrary                       -- conflicts_check
+          <*> arbitrary                       -- mode
+          <*> arbitrary                       -- nics
+          <*> arbitrary                       -- no_install
+          <*> pure emptyJSObject              -- osparams
+          <*> genMaybe arbitraryPrivateJSObj  -- osparams_private
+          <*> genMaybe arbitraryPrivateJSObj  -- osparams_secret
+          <*> genMaybe genNameNE              -- os_type
+          <*> genMaybe genNodeNameNE          -- pnode
+          <*> return Nothing                  -- pnode_uuid
+          <*> genMaybe genNodeNameNE          -- snode
+          <*> return Nothing                  -- snode_uuid
+          <*> genMaybe (pure [])              -- source_handshake
+          <*> genMaybe genNodeNameNE          -- source_instance_name
+          <*> arbitrary                       -- source_shutdown_timeout
+          <*> genMaybe genNodeNameNE          -- source_x509_ca
+          <*> return Nothing                  -- src_node
+          <*> genMaybe genNodeNameNE          -- src_node_uuid
+          <*> genMaybe genNameNE              -- src_path
+          <*> arbitrary                       -- compress
+          <*> arbitrary                       -- start
+          <*> (genTags >>= mapM mkNonEmpty)   -- tags
+          <*> arbitrary                       -- instance_communication
       "OP_INSTANCE_MULTI_ALLOC" ->
         OpCodes.OpInstanceMultiAlloc <$> arbitrary <*> genMaybe genNameNE <*>
         pure []

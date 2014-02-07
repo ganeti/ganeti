@@ -37,6 +37,8 @@ ADD
 | [{-B|\--backend-parameters} *BEPARAMS*]
 | [{-H|\--hypervisor-parameters} *HYPERVISOR* [: option=*value*... ]]
 | [{-O|\--os-parameters} *param*=*value*... ]
+| [--os-parameters-private *param*=*value*... ]
+| [--os-parameters-secret *param*=*value*... ]
 | [\--file-storage-dir *dir\_path*] [\--file-driver {loop \| blktap \| blktap2}]
 | {{-n|\--node} *node[:secondary-node]* \| {-I|\--iallocator} *name*}
 | {{-o|\--os-type} *os-type*}
@@ -826,6 +828,18 @@ being used, but the syntax is the same key=value. For example, setting
 a hypothetical ``dhcp`` parameter to yes can be achieved by::
 
     gnt-instance add -O dhcp=yes ...
+
+You can also specify OS parameters that should not be logged but reused
+at the next reinstall with ``--os-parameters-private`` and OS parameters
+that should not be logged or saved to configuration with
+``--os-parameters-secret``. Bear in mind that:
+
+  * Launching the daemons in debug mode will cause debug logging to
+    happen, which leaks private and secret parameters to the log files.
+    Do not use the debug mode in production. Deamons will emit a warning
+    on startup if they are in debug mode.
+  * You will have to pass again all ``--os-parameters-secret`` parameters
+    should you want to reinstall this instance.
 
 The ``-I (--iallocator)`` option specifies the instance allocator plugin
 to use (``.`` means the default allocator). If you pass in this option
