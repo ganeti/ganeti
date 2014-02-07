@@ -165,6 +165,8 @@ __all__ = [
   "ON_SECONDARY_OPT",
   "OFFLINE_OPT",
   "OSPARAMS_OPT",
+  "OSPARAMS_PRIVATE_OPT",
+  "OSPARAMS_SECRET_OPT",
   "OS_OPT",
   "OS_SIZE_OPT",
   "OOB_TIMEOUT_OPT",
@@ -947,6 +949,21 @@ OS_OPT = cli_option("-o", "--os-type", dest="os", help="What OS to run",
 OSPARAMS_OPT = cli_option("-O", "--os-parameters", dest="osparams",
                           type="keyval", default={},
                           help="OS parameters")
+
+OSPARAMS_PRIVATE_OPT = cli_option("--os-parameters-private",
+                                  dest="osparams_private",
+                                  type="keyprivateval",
+                                  default=serializer.PrivateDict(),
+                                  help="Private OS parameters"
+                                       " (won't be logged)")
+
+OSPARAMS_SECRET_OPT = cli_option("--os-parameters-secret",
+                                 dest="osparams_secret",
+                                 type="keyprivateval",
+                                 default=serializer.PrivateDict(),
+                                 help="Secret OS parameters (won't be logged or"
+                                      " saved; you must supply these for every"
+                                      " operation.)")
 
 FORCE_VARIANT_OPT = cli_option("--force-variant", dest="force_variant",
                                action="store_true", default=False,
