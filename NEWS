@@ -7,6 +7,29 @@ Version 2.12.0 alpha1
 
 *(unreleased)*
 
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Do not use debug mode in production. Certain daemons will issue warnings
+  when launched in debug mode. Some debug logging violates some of the new
+  invariants in the system (see "New features"). The logging has been kept as
+  it aids diagnostics and development.
+
+New features
+~~~~~~~~~~~~
+
+- OS install script parameters now come in public, private and secret
+  varieties:
+
+  - Public parameters are like all other parameters in Ganeti.
+  - Ganeti will not log private and secret parameters, *unless* it is running
+    in debug mode.
+  - Ganeti will not save secret parameters to configuration. Secret parameters
+    must be supplied every time you install, or reinstall, an instance.
+  - Attempting to override public parameters with private or secret parameters
+    results in an error. Similarly, you may not use secret parameters to
+    override private parameters.
+
 
 Version 2.11.0 alpha1
 ---------------------
