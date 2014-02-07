@@ -1336,3 +1336,124 @@ def TestExclStorSharedPv(node):
   AssertCommand(["lvremove", "-f", "/".join([vgname, lvname1])], node=node_name)
   AssertCommand(["lvremove", "-f", "/".join([vgname, lvname2])], node=node_name)
   AssertClusterVerify()
+
+
+def TestInstanceCommunication():
+  """Tests instance communication"""
+  master = qa_config.GetMasterNode()
+
+  # Check that the 'default' node group exists
+  cmd = ["gnt-group", "list", "--no-headers", "-o", "name"]
+  result_output = GetCommandOutput(master.primary, utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), "default", msg="Checking 'default' group")
+
+  # Check that no networks exist
+  cmd = ["gnt-network", "list", "--no-headers", "-o", "name"]
+  result_output = GetCommandOutput(master.primary, utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), "", msg="Checking networks")
+
+  # Modify cluster parameter 'instance-communication-network' and
+  # check whether the cluster creates the instance communication
+  # network and connects it to the 'default' node group
+  network_name = "mynetwork"
+
+  cmd = "gnt-cluster modify --instance-communication-network=%s" % network_name
+  result_output = qa_utils.GetCommandOutput(master.primary, cmd)
+  print result_output
+
+  cmd = ["gnt-network", "list", "--no-headers", "-o", "name", network_name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), "mynetwork", msg="Checking 'mynetwork'")
+
+  cmd = ["gnt-network", "list", "--no-headers", "-o", "group_list",
+         network_name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), "default (routed, communication_rt)",
+              msg="Checking network connected groups")
+
+  # Check that the network has the parameters necessary for instance
+  # communication
+  cmd = ["gnt-network", "list", "--no-headers", "-o", "gateway",
+         network_name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), "-", msg="Checking gateway")
+
+  cmd = ["gnt-network", "list", "--no-headers", "-o", "gateway6",
+         network_name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), "-", msg="Checking gateway6")
+
+  cmd = ["gnt-network", "list", "--no-headers", "-o", "network",
+         network_name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), constants.INSTANCE_COMMUNICATION_NETWORK4,
+              msg="Checking network")
+
+  cmd = ["gnt-network", "list", "--no-headers", "-o", "network6",
+         network_name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), constants.INSTANCE_COMMUNICATION_NETWORK6,
+              msg="Checking network6")
+
+  # Add a new group and check whether the instance communication
+  # network connects to this new group
+  #
+  # We don't assume any particular group order and allow the output of
+  # 'gnt-network list' to print the 'default' and 'mygroup' groups in
+  # any order.
+  group = "mygroup"
+
+  AssertCommand(["gnt-group", "add", group])
+
+  cmd = ["gnt-network", "list", "--no-headers", "-o", "group_list",
+         network_name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+
+  try:
+    r1 = "mygroup (routed, communication_rt)," \
+         " default (routed, communication_rt)"
+    AssertEqual(result_output.strip(), r1,
+                msg="Checking network connected groups")
+  except qa_error.Error:
+    r2 = "default (routed, communication_rt)," \
+         " mygroup (routed, communication_rt)"
+    AssertEqual(result_output.strip(), r2,
+                msg="Checking network connected groups")
+
+  # Modify cluster parameter 'instance-communication-network' to the
+  # same value and check that nothing happens.
+  cmd = "gnt-cluster modify --instance-communication-network=%s" % network_name
+  result_output = qa_utils.GetCommandOutput(master.primary, cmd)
+  print result_output
+
+  # Disable instance communication network, disconnect the instance
+  # communication network and remove it, and remove the group
+  cmd = "gnt-cluster modify --instance-communication-network="
+  result_output = qa_utils.GetCommandOutput(master.primary, cmd)
+  print result_output
+
+  cmd = ["gnt-network", "disconnect", network_name]
+  AssertCommand(utils.ShellQuoteArgs(cmd))
+
+  cmd = ["gnt-network", "remove", network_name]
+  AssertCommand(utils.ShellQuoteArgs(cmd))
+
+  cmd = ["gnt-group", "remove", group]
+  AssertCommand(utils.ShellQuoteArgs(cmd))
+
+  # Check that the 'default' node group exists
+  cmd = ["gnt-group", "list", "--no-headers", "-o", "name"]
+  result_output = GetCommandOutput(master.primary, utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), "default", msg="Checking 'default' group")
+
+  # Check that no networks exist
+  cmd = ["gnt-network", "list", "--no-headers", "-o", "name"]
+  result_output = GetCommandOutput(master.primary, utils.ShellQuoteArgs(cmd))
+  AssertEqual(result_output.strip(), "", msg="Checking networks")

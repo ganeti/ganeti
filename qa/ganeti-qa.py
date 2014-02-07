@@ -244,6 +244,7 @@ def RunClusterTests():
      qa_cluster.TestClusterMasterFailoverWithDrainedQueue),
     (["cluster-oob", qa_config.NoVirtualCluster],
      qa_cluster.TestClusterOob),
+    ("cluster-instance-communication", qa_cluster.TestInstanceCommunication),
     (qa_rapi.Enabled, qa_rapi.TestVersion),
     (qa_rapi.Enabled, qa_rapi.TestEmptyCluster),
     (qa_rapi.Enabled, qa_rapi.TestRapiQuery),

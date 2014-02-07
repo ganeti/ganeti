@@ -123,12 +123,15 @@ def AssertNotIn(item, sequence):
     raise qa_error.Error("%r in %r" % (item, sequence))
 
 
-def AssertEqual(first, second):
+def AssertEqual(first, second, msg=""):
   """Raises an error when values aren't equal.
 
   """
   if not first == second:
-    raise qa_error.Error("%r == %r" % (first, second))
+    if msg:
+      raise qa_error.Error("%s: %r == %r" % (msg, first, second))
+    else:
+      raise qa_error.Error("%r == %r" % (first, second))
 
 
 def AssertMatch(string, pattern):
