@@ -195,8 +195,7 @@ def main():
     assert module.SINGLE == _SINGLE
     assert module.MULTI == _MULTI
 
-    dups = utils.FindDuplicates(itertools.chain(*map(lambda value: value.keys(),
-                                                     module.CALLS.values())))
+    dups = utils.GetRepeatedKeys(*module.CALLS.values())
     if dups:
       raise Exception("Found duplicate RPC definitions for '%s'" %
                       utils.CommaJoin(sorted(dups)))
