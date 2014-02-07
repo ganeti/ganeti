@@ -244,10 +244,10 @@ class Private(object):
     return self._item
 
   def __str__(self):
-    return "<{._descr}>".format(self)
+    return "<%s>" % self._descr
 
   def __repr__(self):
-    return "Private(?, descr='{._descr}')".format(self)
+    return "Private(?, descr=%r)".format(self._descr)
 
   # pylint: disable=W0212
   # If it doesn't access _item directly, the call will go through __getattr__

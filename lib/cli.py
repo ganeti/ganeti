@@ -2778,6 +2778,9 @@ def GenericInstanceCreate(mode, opts, args):
   else:
     raise errors.ProgrammerError("Invalid creation mode %s" % mode)
 
+  osparams_private = opts.osparams_private or serializer.PrivateDict()
+  osparams_secret = opts.osparams_private or serializer.PrivateDict()
+
   op = opcodes.OpInstanceCreate(instance_name=instance,
                                 disks=disks,
                                 disk_template=opts.disk_template,
@@ -2794,8 +2797,8 @@ def GenericInstanceCreate(mode, opts, args):
                                 hvparams=hvparams,
                                 beparams=opts.beparams,
                                 osparams=opts.osparams,
-                                osparams_private=opts.osparams_private,
-                                osparams_secret=opts.osparams_secret,
+                                osparams_private=osparams_private,
+                                osparams_secret=osparams_secret,
                                 mode=mode,
                                 start=start,
                                 os_type=os_type,

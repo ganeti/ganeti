@@ -182,32 +182,32 @@ class TestPrivate(unittest.TestCase):
   def testLeak(self):
     pDict = serializer.PrivateDict()
     pDict["bar"] = "egg"
-    self.assertNotIn("egg", str(pDict), "Value leaked in str(PrivateDict)")
-    self.assertNotIn("egg", repr(pDict), "Value leaked in repr(PrivateDict)")
-    self.assertNotIn("egg", "{0}".format(pDict),
+    self.assertTrue("egg" not in str(pDict), "Value leaked in str(PrivateDict)")
+    self.assertTrue("egg" not in repr(pDict), "Value leak in repr(PrivateDict)")
+    self.assertTrue("egg" not in "{0}".format(pDict),
                      "Value leaked in PrivateDict.__format__")
-    self.assertNotIn("egg", serializer.Dump(pDict),
+    self.assertTrue("egg" not in serializer.Dump(pDict),
                      "Value leaked in serializer.Dump(PrivateDict)")
 
   def testProperAccess(self):
     pDict = serializer.PrivateDict()
     pDict["bar"] = "egg"
 
-    self.assertIs("egg", pDict["bar"].Get(),
-                  "Value not returned by Private.Get()")
-    self.assertIs("egg", pDict.GetPrivate("bar"),
-                  "Value not returned by Private.GetPrivate()")
-    self.assertIs("egg", pDict.Unprivate()["bar"],
-                  "Value not returned by PrivateDict.Unprivate()")
-    self.assertIn(
-      "egg",
-      serializer.Dump(pDict,
-                      private_encoder=serializer.EncodeWithPrivateFields)
-    )
+    self.assertTrue("egg" is pDict["bar"].Get(),
+                    "Value not returned by Private.Get()")
+    self.assertTrue("egg" is pDict.GetPrivate("bar"),
+                    "Value not returned by Private.GetPrivate()")
+    self.assertTrue("egg" is pDict.Unprivate()["bar"],
+                    "Value not returned by PrivateDict.Unprivate()")
+
+    json = serializer.Dump(pDict,
+                           private_encoder=serializer.EncodeWithPrivateFields)
+    self.assertTrue("egg" in json)
 
   def testDictGet(self):
-    self.assertIs("tar", serializer.PrivateDict().GetPrivate("bar", "tar"),
-                  "Private.GetPrivate() did not handle the default case")
+    result = serializer.PrivateDict().GetPrivate("bar", "tar")
+    self.assertTrue("tar" is result,
+                    "Private.GetPrivate() did not handle the default case")
 
   def testZeronessPrivate(self):
     self.assertTrue(serializer.Private("foo"),

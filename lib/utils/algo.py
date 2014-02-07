@@ -95,7 +95,8 @@ def FindDuplicates(seq):
   return list(dup)
 
 
-#pylint: disable=W0142 (use of *-magic in argument list)
+#pylint: disable=W0142
+# (use of *-magic in argument list)
 def GetRepeatedKeys(*dicts):
   """Return the set of keys defined multiple times in the given dicts.
 
