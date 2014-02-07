@@ -292,6 +292,14 @@ class LUInstanceReinstall(LogicalUnit):
                                  errors.ECODE_INVAL)
     CheckInstanceState(self, instance, INSTANCE_DOWN, msg="cannot reinstall")
 
+    # Handle OS parameters
+    self._MergeValidateOsParams(instance)
+
+    self.instance = instance
+
+  def _MergeValidateOsParams(self, instance):
+    "Handle the OS parameter merging and validation for the target instance."
+
     if self.op.os_type is not None:
       # OS verification
       CheckNodeHasOS(self, instance.primary_node, self.op.os_type,
@@ -302,14 +310,25 @@ class LUInstanceReinstall(LogicalUnit):
 
     node_uuids = list(instance.all_nodes)
 
-    if self.op.osparams:
-      i_osdict = GetUpdatedParams(instance.osparams, self.op.osparams)
-      CheckOSParams(self, True, node_uuids, instance_os, i_osdict)
-      self.os_inst = i_osdict # the new dict (without defaults)
-    else:
-      self.os_inst = None
+    self.op.osparams = self.op.osparams or {}
+    self.op.osparams_private = self.op.osparams_private or {}
+    self.op.osparams_secret = self.op.osparams_secret or {}
 
-    self.instance = instance
+    # Handle the use of 'default' values.
+    params_public = GetUpdatedParams(instance.osparams, self.op.osparams)
+    params_private = GetUpdatedParams(instance.osparams_private,
+                                        self.op.osparams_private)
+    params_secret = self.op.osparams_secret
+
+    cluster = self.cfg.GetClusterInfo()
+    self.os_inst = cluster.SimpleFillOS(
+      instance_os,
+      params_public,
+      os_params_private=params_private,
+      os_params_secret=params_secret
+    )
+
+    CheckOSParams(self, True, node_uuids, instance_os, self.os_inst)
 
   def Exec(self, feedback_fn):
     """Reinstall the instance.

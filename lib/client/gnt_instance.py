@@ -395,7 +395,9 @@ def ReinstallInstance(opts, args):
     op = opcodes.OpInstanceReinstall(instance_name=instance_name,
                                      os_type=os_name,
                                      force_variant=opts.force_variant,
-                                     osparams=opts.osparams)
+                                     osparams=opts.osparams,
+                                     osparams_private=opts.osparams_private,
+                                     osparams_secret=opts.osparams_secret)
     jex.QueueJob(instance_name, op)
 
   results = jex.WaitOrShow(not opts.submit_only)

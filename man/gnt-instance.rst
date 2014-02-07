@@ -1297,7 +1297,10 @@ REINSTALL
 | **reinstall** [{-o|\--os-type} *os-type*] [\--select-os] [-f *force*]
 | [\--force-multiple]
 | [\--instance \| \--node \| \--primary \| \--secondary \| \--all]
-| [{-O|\--os-parameters} *OS\_PARAMETERS*] [\--submit] [\--print-job-id]
+| [{-O|\--os-parameters} *OS\_PARAMETERS*]
+| [--os-parameters-private} *OS\_PARAMETERS*]
+| [--os-parameters-secret} *OS\_PARAMETERS*]
+| [\--submit] [\--print-job-id]
 | {*instance*...}
 
 Reinstalls the operating system on the given instance(s). The

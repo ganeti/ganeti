@@ -301,6 +301,7 @@ instance Arbitrary OpCodes.OpCode where
       "OP_INSTANCE_REINSTALL" ->
         OpCodes.OpInstanceReinstall <$> genFQDN <*> return Nothing <*>
           arbitrary <*> genMaybe genNameNE <*> genMaybe (pure emptyJSObject)
+          <*> genMaybe arbitraryPrivateJSObj <*> genMaybe arbitraryPrivateJSObj
       "OP_INSTANCE_REMOVE" ->
         OpCodes.OpInstanceRemove <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary
