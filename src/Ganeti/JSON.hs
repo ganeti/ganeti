@@ -48,6 +48,7 @@ module Ganeti.JSON
   , toArray
   , optionalJSField
   , optFieldsToObj
+  , readContainer
   , HasStringRepr(..)
   , GenericContainer(..)
   , Container

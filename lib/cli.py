@@ -44,6 +44,7 @@ from ganeti import netutils
 from ganeti import qlang
 from ganeti import objects
 from ganeti import pathutils
+from ganeti import serializer
 
 from ganeti.runtime import (GetClient)
 
@@ -679,6 +680,15 @@ def check_key_val(option, opt, value):  # pylint: disable=W0613
   return _SplitKeyVal(opt, value, True)
 
 
+def check_key_private_val(option, opt, value):  # pylint: disable=W0613
+  """Custom parser class for private and secret key=val,key=val options.
+
+  This will store the parsed values as a dict {key: val}.
+
+  """
+  return serializer.PrivateDict(_SplitKeyVal(opt, value, True))
+
+
 def _SplitListKeyVal(opt, value):
   retval = {}
   for elem in value.split("/"):
@@ -781,6 +791,7 @@ class CliOption(Option):
     "multilistidentkeyval",
     "identkeyval",
     "keyval",
+    "keyprivateval",
     "unit",
     "bool",
     "list",
@@ -790,6 +801,7 @@ class CliOption(Option):
   TYPE_CHECKER["multilistidentkeyval"] = check_multilist_ident_key_val
   TYPE_CHECKER["identkeyval"] = check_ident_key_val
   TYPE_CHECKER["keyval"] = check_key_val
+  TYPE_CHECKER["keyprivateval"] = check_key_private_val
   TYPE_CHECKER["unit"] = check_unit
   TYPE_CHECKER["bool"] = check_bool
   TYPE_CHECKER["list"] = check_list

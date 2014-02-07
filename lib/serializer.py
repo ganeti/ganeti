@@ -166,3 +166,156 @@ Dump = DumpJson
 Load = LoadJson
 DumpSigned = DumpSignedJson
 LoadSigned = LoadSignedJson
+
+
+class Private(object):
+  """Wrap a value so it is hard to leak it accidentally.
+
+  >>> x = Private("foo")
+  >>> print "Value: %s" % x
+  Value: <redacted>
+  >>> print "Value: {0}".format(x)
+  Value: <redacted>
+  >>> x.upper() == "FOO"
+  True
+
+  """
+  def __init__(self, item, descr="redacted"):
+    if isinstance(item, Private):
+      raise ValueError("Attempted to nest Private values.")
+    self._item = item
+    self._descr = descr
+
+  def Get(self):
+    "Return the wrapped value."
+    return self._item
+
+  def __str__(self):
+    return "<{._descr}>".format(self)
+
+  def __repr__(self):
+    return "Private(?, descr='{._descr}')".format(self)
+
+  # pylint: disable=W0212
+  # If it doesn't access _item directly, the call will go through __getattr__
+  # because this class defines __slots__ and "item" is not in it.
+  # OTOH, if we do add it there, we'd risk shadowing an "item" attribute.
+  def __eq__(self, other):
+    if isinstance(other, Private):
+      return self._item == other._item
+    else:
+      return self._item == other
+
+  def __hash__(self):
+    return hash(self._item)
+
+  def __format__(self, *_1, **_2):
+    return self.__str__()
+
+  def __getattr__(self, attr):
+    return Private(getattr(self._item, attr),
+                   descr="%s.%s" % (self._descr, attr))
+
+  def __call__(self, *args, **kwargs):
+    return Private(self._item(*args, **kwargs),
+                   descr="%s()" % self._descr)
+
+  # pylint: disable=R0201
+  # While this could get away with being a function, it needs to be a method.
+  # Required by the copy.deepcopy function used by FillDict.
+  def __getnewargs__(self):
+    return tuple()
+
+  def __nonzero__(self):
+    return bool(self._item)
+
+  # Get in the way of Pickle by implementing __slots__ but not __getstate__
+  # ...and get a performance boost, too.
+  __slots__ = ["_item", "_descr"]
+
+
+class PrivateDict(dict):
+  """A dictionary that turns its values to private fields.
+
+  >>> PrivateDict()
+  {}
+  >>> supersekkrit = PrivateDict({"password": "foobar"})
+  >>> print supersekkrit["password"]
+  <password>
+  >>> supersekkrit["password"].Get()
+  'foobar'
+  >>> supersekkrit.GetPrivate("password")
+  'foobar'
+  >>> supersekkrit["user"] = "eggspam"
+  >>> supersekkrit.Unprivate()
+  {'password': 'foobar', 'user': 'eggspam'}
+
+  """
+  def __init__(self, data=None):
+    dict.__init__(self)
+    self.update(data)
+
+  def __setitem__(self, item, value):
+    if not isinstance(value, Private):
+      if not isinstance(item, dict):
+        value = Private(value, descr=item)
+      else:
+        value = PrivateDict(value)
+    dict.__setitem__(self, item, value)
+
+  # The actual conversion to Private containers is done by __setitem__
+
+  # copied straight from cpython/Lib/UserDict.py
+  # Copyright (c) 2001-2014 Python Software Foundation; All Rights Reserved
+  def update(self, other=None, **kwargs):
+    # Make progressively weaker assumptions about "other"
+    if other is None:
+      pass
+    elif hasattr(other, 'iteritems'):  # iteritems saves memory and lookups
+      for k, v in other.iteritems():
+        self[k] = v
+    elif hasattr(other, 'keys'):
+      for k in other.keys():
+        self[k] = other[k]
+    else:
+      for k, v in other:
+        self[k] = v
+    if kwargs:
+      self.update(kwargs)
+
+  def GetPrivate(self, *args):
+    """Like dict.get, but extracting the value in the process.
+
+    Arguments are semantically equivalent to ``dict.get``
+
+    >>> PrivateDict({"foo": "bar"}).GetPrivate("foo")
+    'bar'
+    >>> PrivateDict({"foo": "bar"}).GetPrivate("baz", "spam")
+    'spam'
+
+    """
+    if len(args) == 1:
+      key, = args
+      return self[key].Get()
+    elif len(args) == 2:
+      key, default = args
+      if key not in self:
+        return default
+      else:
+        return self[key].Get()
+    else:
+      raise TypeError("GetPrivate() takes 2 arguments (%d given)" % len(args))
+
+  def Unprivate(self):
+    """Turn this dict of Private() values to a dict of values.
+
+    >>> PrivateDict({"foo": "bar"}).Unprivate()
+    {'foo': 'bar'}
+
+    @rtype: dict
+
+    """
+    returndict = {}
+    for key in self:
+      returndict[key] = self[key].Get()
+    return returndict

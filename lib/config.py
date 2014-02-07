@@ -2488,7 +2488,10 @@ class ConfigWriter(object):
     if destination is None:
       destination = self._cfg_file
     self._BumpSerialNo()
-    txt = serializer.Dump(self._config_data.ToDict())
+    txt = serializer.DumpJson(
+      self._config_data.ToDict(_with_private=True),
+      private_encoder=serializer.EncodeWithPrivateFields
+    )
 
     getents = self._getents()
     try:

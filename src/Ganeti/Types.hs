@@ -159,6 +159,8 @@ module Ganeti.Types
   , hotplugTargetToRaw
   , HotplugAction(..)
   , hotplugActionToRaw
+  , Private(..)
+  , showPrivateJSObject
   ) where
 
 import Control.Monad (liftM)
@@ -689,7 +691,7 @@ instance JSON.JSON JobIdDep where
 absoluteJobIdDep :: (Monad m) => JobIdDep -> JobId -> m JobIdDep
 absoluteJobIdDep (JobDepAbsolute jid) _ = return $ JobDepAbsolute jid
 absoluteJobIdDep (JobDepRelative rjid) jid =
-  liftM JobDepAbsolute . makeJobId $ fromJobId jid + fromNegative rjid 
+  liftM JobDepAbsolute . makeJobId $ fromJobId jid + fromNegative rjid
 
 -- | Job Dependency type.
 data JobDependency = JobDependency JobIdDep [FinalizedJobStatus]
@@ -702,7 +704,7 @@ instance JSON JobDependency where
 -- | From job dependency and job id compute an absolute job dependency.
 absoluteJobDependency :: (Monad m) => JobDependency -> JobId -> m JobDependency
 absoluteJobDependency (JobDependency jdep fstats) jid =
-  liftM (flip JobDependency fstats) $ absoluteJobIdDep jdep jid 
+  liftM (flip JobDependency fstats) $ absoluteJobIdDep jdep jid
 
 -- | Valid opcode priorities for submit.
 $(THH.declareIADT "OpSubmitPriority"
@@ -889,3 +891,36 @@ $(THH.declareLADT ''String "HotplugTarget"
   , ("HTNic",  "hotnic")
   ])
 $(THH.makeJSONInstance ''HotplugTarget)
+
+-- * Private type and instances
+
+-- | A container for values that should be happy to be manipulated yet
+-- refuses to be shown unless explicitly requested.
+newtype Private a = Private { getPrivate :: a }
+  deriving Eq
+
+instance (Show a, JSON.JSON a) => JSON.JSON (Private a) where
+  readJSON = liftM Private . JSON.readJSON
+  showJSON (Private x) = JSON.showJSON x
+
+-- | "Show" the value of the field.
+--
+-- It would be better not to implement this at all.
+-- Alas, Show OpCode requires Show Private.
+instance Show a => Show (Private a) where
+  show _ = "<redacted>"
+
+instance THH.PyValue a => THH.PyValue (Private a) where
+  showValue (Private x) = "Private(" ++ THH.showValue x ++ ")"
+
+instance Functor Private where
+  fmap f (Private x) = Private $ f x
+
+instance Monad Private where
+  (Private x) >>= f = f x
+  return = Private
+
+showPrivateJSObject :: (JSON.JSON a) =>
+                       [(String, a)] -> JSON.JSObject (Private JSON.JSValue)
+showPrivateJSObject value = JSON.toJSObject $ map f value
+  where f (k, v) = (k, Private $ JSON.showJSON v)

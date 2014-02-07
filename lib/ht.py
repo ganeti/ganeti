@@ -29,7 +29,7 @@ from ganeti import compat
 from ganeti import utils
 from ganeti import constants
 from ganeti import objects
-
+from ganeti.serializer import Private
 
 _PAREN_RE = re.compile("^[a-zA-Z0-9_-]+$")
 
@@ -76,6 +76,9 @@ class _DescWrapper(_WrapperBase):
   """
   def __str__(self):
     return self._text
+
+  def __repr__(self):
+    return "<%s %r>" % (self._text, self._fn)
 
 
 class _CommentWrapper(_WrapperBase):
@@ -269,6 +272,8 @@ def TTuple(val):
 def TDict(val):
   """Checks if the given value is a dictionary.
 
+  Note that L{PrivateDict}s subclass dict and pass this check.
+
   """
   return isinstance(val, dict)
 
@@ -414,6 +419,18 @@ def TInstanceOf(cls):
   desc = WithDesc("Instance of %s" % (Parens(name), ))
 
   return desc(lambda val: isinstance(val, cls))
+
+
+def TPrivate(val_type):
+  """Checks if a given value is an instance of Private.
+
+  """
+  def fn(val):
+    return isinstance(val, Private) and val_type(val.Get())
+
+  desc = WithDesc("Private %s" % Parens(val_type))
+
+  return desc(fn)
 
 
 def TListOf(my_type):
