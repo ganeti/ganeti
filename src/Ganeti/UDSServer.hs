@@ -58,13 +58,14 @@ module Ganeti.UDSServer
 import Control.Applicative
 import Control.Concurrent (forkIO)
 import Control.Exception (catch)
-import Data.IORef
+import Control.Monad
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.ByteString.Lazy.UTF8 as UTF8L
+import Data.IORef
+import Data.List
 import Data.Word (Word8)
-import Control.Monad
 import qualified Network.Socket as S
 import System.Directory (removeFile)
 import System.IO (hClose, hFlush, hWaitForInput, Handle, IOMode(..))
@@ -81,7 +82,7 @@ import Ganeti.Logging
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..))
 import Ganeti.THH
 import Ganeti.Utils
-
+import Ganeti.Constants (privateParametersBlacklist)
 
 -- * Utility functions
 
@@ -350,6 +351,11 @@ handleRawMessage handler payload =
         let (status, response) = prepareMsg call_result_json
         return (close, buildResponse status response)
 
+isRisky :: RecvResult -> Bool
+isRisky msg = case msg of
+  RecvOk payload -> any (`isInfixOf` payload) privateParametersBlacklist
+  _ -> False
+
 -- | Reads a request, passes it to a handler and sends a response back to the
 -- client.
 handleClient
@@ -359,7 +365,14 @@ handleClient
     -> IO Bool
 handleClient handler client = do
   msg <- recvMsgExt client
+
+  debugMode <- isDebugMode
+  when (debugMode && isRisky msg) $
+    logAlert "POSSIBLE LEAKING OF CONFIDENTIAL PARAMETERS. \
+             \Daemon is running in debug mode. \
+             \The text of the request has been logged."
   logDebug $ "Received message: " ++ show msg
+
   case msg of
     RecvConnClosed -> logDebug "Connection closed" >>
                       return False
@@ -369,6 +382,7 @@ handleClient handler client = do
       (close, outMsg) <- handleRawMessage handler payload
       sendMsg client outMsg
       return close
+
 
 -- | Main client loop: runs one loop of 'handleClient', and if that
 -- doesn't report a finished (closed) connection, restarts itself.

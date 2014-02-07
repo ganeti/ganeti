@@ -2594,7 +2594,7 @@ def GenericMain(commands, override=None, aliases=None,
   utils.SetupLogging(pathutils.LOG_COMMANDS, logname, debug=options.debug,
                      stderr_logging=True)
 
-  logging.info("Command line: %s", cmdline)
+  logging.debug("Command line: %s", cmdline)
 
   try:
     result = func(options, args)

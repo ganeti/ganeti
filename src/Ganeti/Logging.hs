@@ -47,8 +47,10 @@ module Ganeti.Logging
   , syslogUsageToRaw
   , syslogUsageFromRaw
   , withErrorLogAt
+  , isDebugMode
   ) where
 
+import Control.Applicative ((<$>))
 import Control.Monad
 import Control.Monad.Error (Error(..), MonadError(..), catchError)
 import Control.Monad.Reader
@@ -174,6 +176,11 @@ logAlert = logAt ALERT
 -- | Log at emergency level.
 logEmergency :: (MonadLog m) => String -> m ()
 logEmergency = logAt EMERGENCY
+
+-- | Check if the logging is at DEBUG level.
+-- DEBUG logging is unacceptable for production.
+isDebugMode :: IO Bool
+isDebugMode = (Just DEBUG ==) . getLevel <$> getRootLogger
 
 -- * Logging in an error monad with rethrowing errors
 

@@ -670,7 +670,8 @@ def _HandleSigHup(reopen_fn, signum, frame): # pylint: disable=W0613
 def GenericMain(daemon_name, optionparser,
                 check_fn, prepare_fn, exec_fn,
                 multithreaded=False, console_logging=False,
-                default_ssl_cert=None, default_ssl_key=None):
+                default_ssl_cert=None, default_ssl_key=None,
+                warn_breach=False):
   """Shared main function for daemons.
 
   @type daemon_name: string
@@ -697,6 +698,10 @@ def GenericMain(daemon_name, optionparser,
   @param default_ssl_cert: Default SSL certificate path
   @type default_ssl_key: string
   @param default_ssl_key: Default SSL key path
+  @type warn_breach: bool
+  @param warn_breach: issue a warning at daemon launch time, before
+      daemonizing, about the possibility of breaking parameter privacy
+      invariants through the otherwise helpful debug logging.
 
   """
   optionparser.add_option("-f", "--foreground", dest="fork",
@@ -799,6 +804,10 @@ def GenericMain(daemon_name, optionparser,
     check_fn(options, args)
 
   log_filename = constants.DAEMONS_LOGFILES[daemon_name]
+
+  # node-daemon logging in lib/http/server.py, _HandleServerRequestInner
+  if options.debug and warn_breach:
+    sys.stderr.write(constants.DEBUG_MODE_CONFIDENTIALITY_WARNING % daemon_name)
 
   if options.fork:
     utils.CloseFDs()
