@@ -1158,8 +1158,8 @@ def _TestInstanceUserDownXen(instance, master):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def _TestInstanceUserDownKvm(instance, master):
   def _StopKVMInstance():
-    AssertCommand("pkill -f \"kvm -name %s\"" % instance.name, node=primary)
-    time.sleep(5)
+    AssertCommand("pkill -f \"\\-name %s\"" % instance.name, node=primary)
+    time.sleep(10)
 
   AssertCommand(["gnt-instance", "modify", "-H", "user_shutdown=true",
                  instance.name])
