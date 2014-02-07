@@ -501,8 +501,12 @@ class _RpcClientBase:
     # name to the prep_fn, and serialise its return value
     encode_args_fn = lambda node: map(compat.partial(self._encoder, node),
                                       zip(map(compat.snd, argdefs), args))
-    pnbody = dict((n, serializer.DumpJson(prep_fn(n, encode_args_fn(n))))
-                  for n in node_list)
+    pnbody = dict(
+      (n,
+       serializer.DumpJson(prep_fn(n, encode_args_fn(n)),
+                           private_encoder=serializer.EncodeWithPrivateFields))
+      for n in node_list
+    )
 
     result = self._proc(node_list, procedure, pnbody, read_timeout,
                         req_resolver_opts)

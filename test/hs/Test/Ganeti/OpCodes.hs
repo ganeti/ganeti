@@ -285,13 +285,30 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpInstanceQueryData <$> arbitrary <*>
           genNodeNamesNE <*> arbitrary
       "OP_INSTANCE_SET_PARAMS" ->
-        OpCodes.OpInstanceSetParams <$> genFQDN <*> return Nothing <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          arbitrary <*> pure emptyJSObject <*> arbitrary <*>
-          pure emptyJSObject <*> arbitrary <*> genMaybe genNodeNameNE <*>
-          return Nothing <*> genMaybe genNodeNameNE <*> return Nothing <*>
-          genMaybe genNameNE <*> pure emptyJSObject <*> arbitrary <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+        OpCodes.OpInstanceSetParams
+          <$> genFQDN                         -- instance_name
+          <*> return Nothing                  -- instance_uuid
+          <*> arbitrary                       -- force
+          <*> arbitrary                       -- force_variant
+          <*> arbitrary                       -- ignore_ipolicy
+          <*> arbitrary                       -- nics
+          <*> arbitrary                       -- disks
+          <*> pure emptyJSObject              -- beparams
+          <*> arbitrary                       -- runtime_mem
+          <*> pure emptyJSObject              -- hvparams
+          <*> arbitrary                       -- disk_template
+          <*> genMaybe genNodeNameNE          -- pnode
+          <*> return Nothing                  -- pnode_uuid
+          <*> genMaybe genNodeNameNE          -- remote_node
+          <*> return Nothing                  -- remote_node_uuid
+          <*> genMaybe genNameNE              -- os_name
+          <*> pure emptyJSObject              -- osparams
+          <*> genMaybe arbitraryPrivateJSObj  -- osparams_private
+          <*> arbitrary                       -- wait_for_sync
+          <*> arbitrary                       -- offline
+          <*> arbitrary                       -- conflicts_check
+          <*> arbitrary                       -- hotplug
+          <*> arbitrary                       -- hotplug_if_possible
       "OP_INSTANCE_GROW_DISK" ->
         OpCodes.OpInstanceGrowDisk <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary

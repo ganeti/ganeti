@@ -1173,6 +1173,7 @@ MODIFY
 | [\--new-primary=*node*]
 | [\--os-type=*OS* [\--force-variant]]
 | [{-O|\--os-parameters} *param*=*value*... ]
+| [--os-parameters-private *param*=*value*... ]
 | [\--offline \| \--online]
 | [\--submit] [\--print-job-id]
 | [\--ignore-ipolicy]

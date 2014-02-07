@@ -2475,7 +2475,7 @@ class LUInstanceSetParams(LogicalUnit):
     if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams or self.op.os_name or
             self.op.osparams or self.op.offline is not None or
-            self.op.runtime_mem or self.op.pnode):
+            self.op.runtime_mem or self.op.pnode or self.op.osparams_private):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     if self.op.hvparams:
@@ -3008,12 +3008,27 @@ class LUInstanceSetParams(LogicalUnit):
                                 hvspecs)
 
     # osparams processing
-    if self.op.osparams:
-      i_osdict = GetUpdatedParams(self.instance.osparams, self.op.osparams)
-      CheckOSParams(self, True, node_uuids, instance_os, i_osdict)
-      self.os_inst = i_osdict # the new dict (without defaults)
+    if self.op.osparams or self.op.osparams_private_cluster:
+      public_parms = self.op.osparams or {}
+      private_parms = self.op.osparams_private_cluster or {}
+      dupe_keys = utils.GetRepeatedKeys(public_parms, private_parms)
+
+      if dupe_keys:
+        raise errors.OpPrereqError("OS parameters repeated multiple times: %s" %
+                                   utils.CommaJoin(dupe_keys))
+
+      self.os_inst = GetUpdatedParams(self.instance.osparams,
+                                      public_parms)
+      self.os_inst_private = GetUpdatedParams(self.instance.osparams_private,
+                                              private_parms)
+
+      CheckOSParams(self, True, node_uuids, instance_os,
+                    objects.FillDict(self.os_inst,
+                                     self.os_inst_private))
+
     else:
       self.os_inst = {}
+      self.os_inst_private = {}
 
     #TODO(dynmem): do the appropriate check involving MINMEM
     if (constants.BE_MAXMEM in self.op.beparams and not self.op.force and
@@ -3609,6 +3624,12 @@ class LUInstanceSetParams(LogicalUnit):
       self.instance.osparams = self.os_inst
       for key, val in self.op.osparams.iteritems():
         result.append(("os/%s" % key, val))
+
+    if self.op.osparams_private:
+      self.instance.osparams_private = self.os_inst_private
+      for key, val in self.op.osparams_private.iteritems():
+        # Show the Private(...) blurb.
+        result.append(("os_private/%s" % key, repr(val)))
 
     if self.op.offline is None:
       # Ignore

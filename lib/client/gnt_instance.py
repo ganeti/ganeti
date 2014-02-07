@@ -1310,9 +1310,9 @@ def SetInstanceParams(opts, args):
   @return: the desired exit code
 
   """
-  if not (opts.nics or opts.disks or opts.disk_template or
-          opts.hvparams or opts.beparams or opts.os or opts.osparams or
-          opts.offline_inst or opts.online_inst or opts.runtime_mem or
+  if not (opts.nics or opts.disks or opts.disk_template or opts.hvparams or
+          opts.beparams or opts.os or opts.osparams or opts.osparams_private
+          or opts.offline_inst or opts.online_inst or opts.runtime_mem or
           opts.new_primary_node):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -1372,6 +1372,7 @@ def SetInstanceParams(opts, args):
                                    runtime_mem=opts.runtime_mem,
                                    os_name=opts.os,
                                    osparams=opts.osparams,
+                                   osparams_private=opts.osparams_private,
                                    force_variant=opts.force_variant,
                                    force=opts.force,
                                    wait_for_sync=opts.wait_for_sync,

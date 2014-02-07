@@ -3604,7 +3604,8 @@ def ValidateOS(required, osname, checks, osparams):
   @type checks: list
   @param checks: list of the checks to run (currently only 'parameters')
   @type osparams: dict
-  @param osparams: dictionary with OS parameters
+  @param osparams: dictionary with OS parameters, some of which may be
+                   private.
   @rtype: boolean
   @return: True if the validation passed, or False if the OS was not
       found and L{required} was false
