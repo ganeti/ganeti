@@ -288,10 +288,12 @@ _INSTANCE_CALLS = [
     ("reason", None, "The reason for the startup"),
     ], None, None, "Starts an instance"),
   ("instance_os_add", SINGLE, None, constants.RPC_TMO_1DAY, [
-    ("instance_osp", ED_INST_DICT_OSP_DP, None),
-    ("reinstall", None, None),
-    ("debug", None, None),
-    ], None, None, "Starts an instance"),
+    ("instance_osp", ED_INST_DICT_OSP_DP, "Tuple: (target instance,"
+                                          " temporary OS parameters"
+                                          " overriding configuration)"),
+    ("reinstall", None, "Whether the instance is being reinstalled"),
+    ("debug", None, "Debug level for the OS install script to use"),
+    ], None, None, "Installs an operative system onto an instance"),
   ("hotplug_device", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("instance", ED_INST_DICT, "Instance object"),
     ("action", None, "Hotplug Action"),
