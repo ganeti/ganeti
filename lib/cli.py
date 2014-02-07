@@ -1751,6 +1751,8 @@ COMMON_CREATE_OPTS = [
   NONICS_OPT,
   NWSYNC_OPT,
   OSPARAMS_OPT,
+  OSPARAMS_PRIVATE_OPT,
+  OSPARAMS_SECRET_OPT,
   OS_SIZE_OPT,
   SUBMIT_OPT,
   PRINT_JOBID_OPT,
@@ -2755,6 +2757,9 @@ def GenericInstanceCreate(mode, opts, args):
   utils.ForceDictType(hvparams, constants.HVS_PARAMETER_TYPES)
   FixHvParams(hvparams)
 
+  osparams_private = opts.osparams_private or serializer.PrivateDict()
+  osparams_secret = opts.osparams_secret or serializer.PrivateDict()
+
   if mode == constants.INSTANCE_CREATE:
     start = opts.start
     os_type = opts.os
@@ -2777,9 +2782,6 @@ def GenericInstanceCreate(mode, opts, args):
     instance_communication = False
   else:
     raise errors.ProgrammerError("Invalid creation mode %s" % mode)
-
-  osparams_private = opts.osparams_private or serializer.PrivateDict()
-  osparams_secret = opts.osparams_private or serializer.PrivateDict()
 
   op = opcodes.OpInstanceCreate(instance_name=instance,
                                 disks=disks,

@@ -1488,7 +1488,7 @@ add_opts = [
 commands = {
   "add": (
     AddInstance, [ArgHost(min=1, max=1)],
-    COMMON_CREATE_OPTS + add_opts + [OSPARAMS_PRIVATE_OPT, OSPARAMS_SECRET_OPT],
+    COMMON_CREATE_OPTS + add_opts,
     "[...] -t disk-type -n node[:secondary-node] -o os-type <name>",
     "Creates and adds a new instance to the cluster"),
   "batch-create": (
