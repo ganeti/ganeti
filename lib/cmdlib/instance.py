@@ -436,12 +436,12 @@ class LUInstanceCreate(LogicalUnit):
     if self.op.instance_communication:
       nic_name = "%s%s" % (constants.INSTANCE_COMMUNICATION_NIC_PREFIX,
                            self.op.instance_name)
-      communication_network = constants.INSTANCE_COMMUNICATION_NETWORK
 
       self.op.nics.append({constants.INIC_NAME: nic_name,
                            constants.INIC_MAC: constants.VALUE_GENERATE,
                            constants.INIC_IP: constants.NIC_IP_POOL,
-                           constants.INIC_NETWORK: communication_network})
+                           constants.INIC_NETWORK:
+                             self.cfg.GetInstanceCommunicationNetwork()})
 
     # check nics' parameter names
     for nic in self.op.nics:

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1250,6 +1250,17 @@ class ConfigWriter(object):
       ip_family=cluster.primary_ip_family)
 
     return result
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetInstanceCommunicationNetwork(self):
+    """Get cluster instance communication network
+
+    @rtype: string
+    @return: instance communication network, which is the name of the
+             network used for instance communication
+
+    """
+    return self._config_data.cluster.instance_communication_network
 
   @locking.ssynchronized(_config_lock)
   def AddNodeGroup(self, group, ec_id, check_uuid=True):
