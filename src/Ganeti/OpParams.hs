@@ -108,6 +108,7 @@ module Ganeti.OpParams
   , pClusterFileStorageDir
   , pClusterSharedFileStorageDir
   , pClusterGlusterStorageDir
+  , pInstanceCommunicationNetwork
   , pVgName
   , pEnabledHypervisors
   , pHypervisor
@@ -586,6 +587,10 @@ pClusterGlusterStorageDir :: Field
 pClusterGlusterStorageDir =
   renameField "ClusterGlusterStorageDir" $
   optionalStringField "gluster_storage_dir"
+
+pInstanceCommunicationNetwork :: Field
+pInstanceCommunicationNetwork =
+  optionalStringField "instance_communication_network"
 
 -- | Volume group name.
 pVgName :: Field

@@ -239,6 +239,7 @@ $(genOpCode "OpCode"
      , pClusterFileStorageDir
      , pClusterSharedFileStorageDir
      , pClusterGlusterStorageDir
+     , pInstanceCommunicationNetwork
      ],
      [])
   , ("OpClusterRedistConf",
