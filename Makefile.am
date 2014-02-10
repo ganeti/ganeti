@@ -373,6 +373,7 @@ pkgpython_PYTHON = \
 
 client_PYTHON = \
 	lib/client/__init__.py \
+	lib/client/base.py \
 	lib/client/gnt_backup.py \
 	lib/client/gnt_cluster.py \
 	lib/client/gnt_debug.py \
