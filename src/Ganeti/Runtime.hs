@@ -198,7 +198,6 @@ getEnts = do
         groupmap = M.fromList groups'
     return (usermap, groupmap)
 
-
 -- | Checks whether a daemon runs as the right user.
 verifyDaemonUser :: GanetiDaemon -> RuntimeEnts -> IO ()
 verifyDaemonUser daemon ents = do
