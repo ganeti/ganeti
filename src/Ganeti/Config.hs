@@ -55,7 +55,6 @@ module Ganeti.Config
     ) where
 
 import Control.Monad (liftM)
-import Control.Monad.IO.Class (liftIO)
 import Data.List (foldl', nub)
 import qualified Data.Map as M
 import qualified Data.Set as S

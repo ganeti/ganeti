@@ -35,6 +35,7 @@ module Ganeti.BasicTypes
   , toError
   , toErrorStr
   , Error(..) -- re-export from Control.Monad.Error
+  , MonadIO(..) -- re-export from Control.Monad.IO.Class
   , isOk
   , isBad
   , justOk
