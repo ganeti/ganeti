@@ -36,7 +36,6 @@ from ganeti import http
 from ganeti import errors
 from ganeti import compat
 from ganeti import constants
-from ganeti import pathutils
 from ganeti import utils
 
 
@@ -351,22 +350,13 @@ class ResourceBase(object):
     """
     return bool(self._checkIntVariable("dry-run"))
 
-  def GetClient(self, query=True):
+  def GetClient(self):
     """Wrapper for L{luxi.Client} with HTTP-specific error handling.
 
-    @param query: this signifies that the client will only be used for
-        queries; if the build-time parameter enable-split-queries is
-        enabled, then the client will be connected to the query socket
-        instead of the masterd socket
-
     """
-    if query:
-      address = pathutils.QUERY_SOCKET
-    else:
-      address = None
     # Could be a function, pylint: disable=R0201
     try:
-      return self._client_cls(address=address)
+      return self._client_cls()
     except rpcerr.NoMasterError, err:
       raise http.HttpBadGateway("Can't connect to master daemon: %s" % err)
     except rpcerr.PermissionError:
