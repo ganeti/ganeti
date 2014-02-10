@@ -62,6 +62,8 @@ module Ganeti.JSON
 import Control.DeepSeq
 import Control.Monad (liftM)
 import Control.Monad.Error.Class
+import qualified Data.Foldable as F
+import qualified Data.Traversable as F
 import Data.Maybe (fromMaybe, catMaybes)
 import qualified Data.Map as Map
 import System.Time (ClockTime(..))
@@ -298,6 +300,15 @@ newtype GenericContainer a b =
 
 instance (NFData a, NFData b) => NFData (GenericContainer a b) where
   rnf = rnf . Map.toList . fromContainer
+
+instance Functor (GenericContainer a) where
+  fmap f = GenericContainer . fmap f . fromContainer
+
+instance F.Foldable (GenericContainer a) where
+  foldMap f = F.foldMap f . fromContainer
+
+instance F.Traversable (GenericContainer a) where
+  traverse f = fmap GenericContainer . F.traverse f . fromContainer
 
 -- | Type alias for string keys.
 type Container = GenericContainer String

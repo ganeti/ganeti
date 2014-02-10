@@ -209,7 +209,7 @@ genericQuery fieldsMap collector nameFn configFn getFn cfg
       live' = live && needsLiveData fgetters
   objects <- toError $ case wanted of
              [] -> Ok . niceSortKey nameFn .
-                   Map.elems . fromContainer $ configFn cfg
+                   Foldable.toList $ configFn cfg
              _  -> mapM (getFn cfg) wanted
   -- Run the first pass of the filter, without a runtime context; this will
   -- limit the objects that we'll contact for exports
