@@ -33,20 +33,21 @@ import OpenSSL
 import itertools
 
 from ganeti.cli import *
-from ganeti import opcodes
+from ganeti import bootstrap
+from ganeti import compat
 from ganeti import constants
 from ganeti import errors
-from ganeti import utils
-from ganeti import bootstrap
-from ganeti import ssh
-from ganeti import objects
-from ganeti import uidpool
-from ganeti import compat
 from ganeti import netutils
-from ganeti import ssconf
+from ganeti import objects
+from ganeti import opcodes
 from ganeti import pathutils
-from ganeti import serializer
 from ganeti import qlang
+from ganeti import serializer
+from ganeti import ssconf
+from ganeti import ssh
+from ganeti import uidpool
+from ganeti import utils
+from ganeti.client import base
 
 
 ON_OPT = cli_option("--on", default=False,
@@ -1114,7 +1115,8 @@ def SetClusterParams(opts, args):
           opts.ipolicy_vcpu_ratio is not None or
           opts.ipolicy_spindle_ratio is not None or
           opts.modify_etc_hosts is not None or
-          opts.file_storage_dir is not None):
+          opts.file_storage_dir is not None or
+          opts.instance_communication_network is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1225,9 +1227,9 @@ def SetClusterParams(opts, args):
     enabled_disk_templates=enabled_disk_templates,
     force=opts.force,
     file_storage_dir=opts.file_storage_dir,
+    instance_communication_network=opts.instance_communication_network
     )
-  SubmitOrSend(op, opts)
-  return 0
+  return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
 
 def QueueOps(opts, args):
@@ -2165,7 +2167,7 @@ commands = {
   "modify": (
     SetClusterParams, ARGS_NONE,
     [FORCE_OPT,
-     BACKEND_OPT, CP_SIZE_OPT, RQL_OPT,
+     BACKEND_OPT, CP_SIZE_OPT, RQL_OPT, INSTANCE_COMMUNICATION_NETWORK_OPT,
      ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
      MASTER_NETMASK_OPT, NIC_PARAMS_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,

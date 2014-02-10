@@ -185,6 +185,7 @@ __all__ = [
   "REMOVE_UIDS_OPT",
   "RESERVED_LVS_OPT",
   "RQL_OPT",
+  "INSTANCE_COMMUNICATION_NETWORK_OPT",
   "RUNTIME_MEM_OPT",
   "ROMAN_OPT",
   "SECONDARY_IP_OPT",
@@ -1301,6 +1302,12 @@ CP_SIZE_OPT = cli_option("-C", "--candidate-pool-size", default=None,
 RQL_OPT = cli_option("--max-running-jobs", dest="max_running_jobs",
                      type="int", help="Set the maximal number of jobs to "
                                       "run simultaneously")
+
+INSTANCE_COMMUNICATION_NETWORK_OPT = \
+    cli_option("--instance-communication-network",
+               dest="instance_communication_network",
+               type="string",
+               help="Set the network name for instance communication")
 
 VG_NAME_OPT = cli_option("--vg-name", dest="vg_name",
                          help=("Enables LVM and specifies the volume group"
