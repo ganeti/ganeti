@@ -202,7 +202,7 @@ $(genOpCode "OpCode"
      ],
      "name")
   , ("OpClusterSetParams",
-     [t| () |],
+     [t| Either () JobIdListOnly |],
      OpDoc.opClusterSetParams,
      [ pForce
      , pHvState

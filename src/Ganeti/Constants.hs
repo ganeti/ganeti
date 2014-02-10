@@ -4759,13 +4759,35 @@ glusterPortDefault :: Int
 glusterPortDefault = 24007
 
 -- * Instance communication
+--
+-- The instance communication attaches an additional NIC, named
+-- @instanceCommunicationNicPrefix@:@instanceName@ and prefixed by
+-- @instanceCommunicationMacPrefix@, to the instances that have
+-- instance communication enabled.  This NIC is part of the network
+-- @instanceCommunicationNetworkName@, which is in turn created by
+-- 'gnt-network'.  This network is defined as
+-- @instanceCommunicationNetwork4@ for IPv4 and
+-- @instanceCommunicationNetwork6@ for IPv6.
 
 instanceCommunicationDoc :: String
 instanceCommunicationDoc =
   "Enable or disable the communication mechanism for an instance"
 
-instanceCommunicationNetwork :: String
-instanceCommunicationNetwork = "ganeti:network:communication"
+instanceCommunicationMacPrefix :: String
+instanceCommunicationMacPrefix = "52:54:00"
+
+-- | The instance communication network is a link-local IPv4/IPv6
+-- network because the communication is meant to be exclusive between
+-- the host and the guest and not routed outside the node.
+instanceCommunicationNetwork4 :: String
+instanceCommunicationNetwork4 = "169.254.0.0/16"
+
+-- | See 'instanceCommunicationNetwork4'.
+instanceCommunicationNetwork6 :: String
+instanceCommunicationNetwork6 = "fe80::/10"
+
+instanceCommunicationNetworkLink :: String
+instanceCommunicationNetworkLink = "communication_rt"
 
 instanceCommunicationNicPrefix :: String
 instanceCommunicationNicPrefix = "ganeti:communication:"

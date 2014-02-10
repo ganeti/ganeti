@@ -1360,6 +1360,133 @@ class LUClusterSetParams(LogicalUnit):
         feedback_fn("Cluster DRBD helper already in desired state,"
                     " not changing")
 
+  @staticmethod
+  def _EnsureInstanceCommunicationNetwork(cfg, network_name):
+    """Ensure that the instance communication network exists and is
+    connected to all groups.
+
+    The instance communication network given by L{network_name} it is
+    created, if necessary, via the opcode 'OpNetworkAdd'.  Also, the
+    instance communication network is connected to all existing node
+    groups, if necessary, via the opcode 'OpNetworkConnect'.
+
+    @type cfg: L{ganeti.config.ConfigWriter}
+    @param cfg: Ganeti configuration
+
+    @type network_name: string
+    @param network_name: instance communication network name
+
+    @rtype: L{ganeti.cmdlib.ResultWithJobs} or L{None}
+    @return: L{ganeti.cmdlib.ResultWithJobs} if the instance
+             communication needs to be created or it needs to be
+             connected to a group, otherwise L{None}
+
+    """
+    jobs = []
+
+    try:
+      network_uuid = cfg.LookupNetwork(network_name)
+      network_exists = True
+    except errors.OpPrereqError:
+      network_exists = False
+
+    if not network_exists:
+      op = opcodes.OpNetworkAdd(
+        network_name=network_name,
+        gateway=None,
+        network=constants.INSTANCE_COMMUNICATION_NETWORK4,
+        gateway6=None,
+        network6=constants.INSTANCE_COMMUNICATION_NETWORK6,
+        mac_prefix=constants.INSTANCE_COMMUNICATION_MAC_PREFIX,
+        add_reserved_ips=None,
+        conflicts_check=True,
+        tags=[])
+      jobs.append(op)
+
+    for group_uuid in cfg.GetNodeGroupList():
+      group = cfg.GetNodeGroup(group_uuid)
+
+      if network_exists:
+        network_connected = network_uuid in group.networks
+      else:
+        # The network was created asynchronously by the previous
+        # opcode and, therefore, we don't have access to its
+        # network_uuid.  As a result, we assume that the network is
+        # not connected to any group yet.
+        network_connected = False
+
+      if not network_connected:
+        op = opcodes.OpNetworkConnect(
+          group_name=group_uuid,
+          network_name=network_name,
+          network_mode=constants.NIC_MODE_ROUTED,
+          network_link=constants.INSTANCE_COMMUNICATION_NETWORK_LINK,
+          conflicts_check=True)
+        jobs.append(op)
+
+    if jobs:
+      return ResultWithJobs([jobs])
+    else:
+      return None
+
+  @staticmethod
+  def _ModifyInstanceCommunicationNetwork(cfg, cluster, network_name,
+                                          feedback_fn):
+    """Update the instance communication network stored in the cluster
+    configuration.
+
+    Compares the user-supplied instance communication network against
+    the one stored in the Ganeti cluster configuration.  If there is a
+    change, the instance communication network may be possibly created
+    and connected to all groups (see
+    L{LUClusterSetParams._EnsureInstanceCommunicationNetwork}).
+
+    @type cfg: L{ganeti.config.ConfigWriter}
+    @param cfg: Ganeti configuration
+
+    @type cluster: L{ganeti.objects.Cluster}
+    @param cluster: Ganeti cluster
+
+    @type network_name: string
+    @param network_name: instance communication network name
+
+    @type feedback_fn: function
+    @param feedback_fn: see L{ganeti.cmdlist.base.LogicalUnit}
+
+    @rtype: L{LUClusterSetParams._EnsureInstanceCommunicationNetwork} or L{None}
+    @return: see L{LUClusterSetParams._EnsureInstanceCommunicationNetwork}
+
+    """
+    config_network_name = cfg.GetInstanceCommunicationNetwork()
+
+    if network_name == config_network_name:
+      feedback_fn("Instance communication network already is '%s', nothing to"
+                  " do." % network_name)
+    else:
+      try:
+        cfg.LookupNetwork(config_network_name)
+        feedback_fn("Previous instance communication network '%s'"
+                    " should be removed manually." % config_network_name)
+      except errors.OpPrereqError:
+        pass
+
+      if network_name:
+        feedback_fn("Changing instance communication network to '%s', only new"
+                    " instances will be affected."
+                    % network_name)
+      else:
+        feedback_fn("Disabling instance communication network, only new"
+                    " instances will be affected.")
+
+      cluster.instance_communication_network = network_name
+
+      if network_name:
+        return LUClusterSetParams._EnsureInstanceCommunicationNetwork(
+          cfg,
+          network_name)
+      else:
+        return None
+
   def Exec(self, feedback_fn):
     """Change the parameters of the cluster.
 
@@ -1501,6 +1628,13 @@ class LUClusterSetParams(LogicalUnit):
                                                      master_params, ems)
       result.Warn("Could not re-enable the master ip on the master,"
                   " please restart manually", self.LogWarning)
+
+    network_name = self.op.instance_communication_network
+    if network_name is not None:
+      return self._ModifyInstanceCommunicationNetwork(self.cfg, self.cluster,
+                                                      network_name, feedback_fn)
+    else:
+      return None
 
 
 class LUClusterVerify(NoHooksLU):
