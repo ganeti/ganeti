@@ -684,7 +684,7 @@ $(genOpCode "OpCode"
      ],
      "instance_name")
   , ("OpGroupAdd",
-     [t| () |],
+     [t| Either () JobIdListOnly |],
      OpDoc.opGroupAdd,
      [ pGroupName
      , pNodeGroupAllocPolicy

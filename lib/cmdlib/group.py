@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import locking
 from ganeti import objects
+from ganeti import opcodes
 from ganeti import utils
 from ganeti.masterd import iallocator
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, ResultWithJobs
@@ -134,6 +135,50 @@ class LUGroupAdd(LogicalUnit):
     mn = self.cfg.GetMasterNode()
     return ([mn], [mn])
 
+  @staticmethod
+  def _ConnectInstanceCommunicationNetwork(cfg, group_uuid, network_name):
+    """Connect a node group to the instance communication network.
+
+    The group is connected to the instance communication network via
+    the Opcode 'OpNetworkConnect'.
+
+    @type cfg: L{ganeti.config.ConfigWriter}
+    @param cfg: Ganeti configuration
+
+    @type group_uuid: string
+    @param group_uuid: UUID of the group to connect
+
+    @type network_name: string
+    @param network_name: name of the network to connect to
+
+    @rtype: L{ganeti.cmdlib.ResultWithJobs} or L{None}
+    @return: L{ganeti.cmdlib.ResultWithJobs} if the group needs to be
+             connected, otherwise (the group is already connected)
+             L{None}
+
+    """
+    jobs = []
+
+    try:
+      cfg.LookupNetwork(network_name)
+      network_exists = True
+    except errors.OpPrereqError:
+      network_exists = False
+
+    if network_exists:
+      op = opcodes.OpNetworkConnect(
+        group_name=group_uuid,
+        network_name=network_name,
+        network_mode=constants.NIC_MODE_ROUTED,
+        network_link=constants.INSTANCE_COMMUNICATION_NETWORK_LINK,
+        conflicts_check=True)
+      jobs.append(op)
+
+    if jobs:
+      return ResultWithJobs([jobs])
+    else:
+      return None
+
   def Exec(self, feedback_fn):
     """Add the node group to the cluster.
 
@@ -149,6 +194,12 @@ class LUGroupAdd(LogicalUnit):
 
     self.cfg.AddNodeGroup(group_obj, self.proc.GetECId(), check_uuid=False)
     del self.remove_locks[locking.LEVEL_NODEGROUP]
+
+    network_name = self.cfg.GetClusterInfo().instance_communication_network
+    if network_name:
+      return self._ConnectInstanceCommunicationNetwork(self.cfg,
+                                                       self.group_uuid,
+                                                       network_name)
 
 
 class LUGroupAssignNodes(NoHooksLU):

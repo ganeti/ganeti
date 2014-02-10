@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ from ganeti import constants
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import compat
+from ganeti.client import base
 
 
 #: default list of fields for L{ListGroups}
@@ -70,7 +71,7 @@ def AddGroup(opts, args):
                           diskparams=diskparams, ipolicy=ipolicy,
                           hv_state=hv_state,
                           disk_state=disk_state)
-  SubmitOrSend(op, opts)
+  return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
 
 def AssignNodes(opts, args):
