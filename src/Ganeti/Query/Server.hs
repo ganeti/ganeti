@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2012, 2013 Google Inc.
+Copyright (C) 2012, 2013, 2014 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -166,6 +166,8 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("hidden_os", showJSON $ clusterHiddenOs cluster)
             , ("blacklisted_os", showJSON $ clusterBlacklistedOs cluster)
             , ("enabled_disk_templates", showJSON diskTemplates)
+            , ("instance_communication_network",
+               showJSON (clusterInstanceCommunicationNetwork cluster))
             ]
 
   in case master of

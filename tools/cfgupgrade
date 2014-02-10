@@ -152,6 +152,8 @@ def UpgradeCluster(config_data):
     cluster["default_iallocator_params"] = {}
   if not "candidate_certs" in cluster:
     cluster["candidate_certs"] = {}
+  cluster["instance_communication_network"] = \
+    cluster.get("instance_communication_network", "")
 
 
 def UpgradeGroups(config_data):
@@ -410,11 +412,15 @@ def DowngradeCluster(config_data):
   if "osparams_private_cluster" in cluster:
     del cluster["osparams_private_cluster"]
 
+  if "instance_communication_network" in cluster:
+    del cluster["instance_communication_network"]
+
 
 def DowngradeInstances(config_data):
   instances = config_data.get("instances", None)
   if instances is None:
     raise Error("Cannot find the 'instances' key in the configuration")
+
   for (_, iobj) in instances.items():
     if "osparams_private" in iobj:
       del iobj["osparams_private"]

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1596,6 +1596,7 @@ class Cluster(TaggableObject):
     "enabled_disk_templates",
     "candidate_certs",
     "max_running_jobs",
+    "instance_communication_network",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -1729,6 +1730,9 @@ class Cluster(TaggableObject):
 
     if self.max_running_jobs is None:
       self.max_running_jobs = constants.LUXID_MAXIMAL_RUNNING_JOBS_DEFAULT
+
+    if self.instance_communication_network is None:
+      self.instance_communication_network = ""
 
   @property
   def primary_hypervisor(self):
