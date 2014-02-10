@@ -66,6 +66,7 @@ $(declareSADT "SSKey"
   , ("SSGlusterStorageDir",    'C.ssGlusterStorageDir)
   , ("SSMasterCandidates",     'C.ssMasterCandidates)
   , ("SSMasterCandidatesIps",  'C.ssMasterCandidatesIps)
+  , ("SSMasterCandidatesCerts",'C.ssMasterCandidatesCerts)
   , ("SSMasterIp",             'C.ssMasterIp)
   , ("SSMasterNetdev",         'C.ssMasterNetdev)
   , ("SSMasterNetmask",        'C.ssMasterNetmask)
@@ -82,6 +83,7 @@ $(declareSADT "SSKey"
   , ("SSMaintainNodeHealth",   'C.ssMaintainNodeHealth)
   , ("SSUidPool",              'C.ssUidPool)
   , ("SSNodegroups",           'C.ssNodegroups)
+  , ("SSNetworks",             'C.ssNetworks)
   ])
 
 -- | Convert a ssconf key into a (full) file path.
