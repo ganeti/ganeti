@@ -172,7 +172,7 @@ class AbstractClient(object):
 
     """
     if address is None:
-      address = pathutils.MASTER_SOCKET
+      address = pathutils.QUERY_SOCKET
     self.address = address
     self.timeouts = timeouts
     self.transport_class = transport
