@@ -1034,6 +1034,44 @@ class LUClusterSetParams(LogicalUnit):
             "Cannot disable disk template '%s', because there is at least one"
             " instance using it." % disk_template)
 
+  @staticmethod
+  def _CheckInstanceCommunicationNetwork(network, warning_fn):
+    """Check whether an existing network is configured for instance
+    communication.
+
+    Checks whether an existing network is configured with the
+    parameters that are advisable for instance communication, and
+    otherwise issue security warnings.
+
+    @type network: L{ganeti.objects.Network}
+    @param network: L{ganeti.objects.Network} object whose
+                    configuration is being checked
+    @type warning_fn: function
+    @param warning_fn: function used to print warnings
+    @rtype: None
+    @return: None
+
+    """
+    def _MaybeWarn(err, val, default):
+      if val != default:
+        warning_fn("Supplied instance communication network '%s' %s '%s',"
+                   " this might pose a security risk (default is '%s').",
+                   network.name, err, val, default)
+
+    if network.network is None:
+      raise errors.OpPrereqError("Supplied instance communication network '%s'"
+                                 " must have an IPv4 network address.",
+                                 network.name)
+
+    _MaybeWarn("has an IPv4 gateway", network.gateway, None)
+    _MaybeWarn("has a non-standard IPv4 network address", network.network,
+               constants.INSTANCE_COMMUNICATION_NETWORK4)
+    _MaybeWarn("has an IPv6 gateway", network.gateway6, None)
+    _MaybeWarn("has a non-standard IPv6 network address", network.network6,
+               constants.INSTANCE_COMMUNICATION_NETWORK6)
+    _MaybeWarn("has a non-standard MAC prefix", network.mac_prefix,
+               constants.INSTANCE_COMMUNICATION_MAC_PREFIX)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -1217,6 +1255,18 @@ class LUClusterSetParams(LogicalUnit):
         raise errors.OpPrereqError("Invalid default iallocator script '%s'"
                                    " specified" % self.op.default_iallocator,
                                    errors.ECODE_INVAL)
+
+    if self.op.instance_communication_network:
+      network_name = self.op.instance_communication_network
+
+      try:
+        network_uuid = self.cfg.LookupNetwork(network_name)
+      except errors.OpPrereqError:
+        network_uuid = None
+
+      if network_uuid is not None:
+        network = self.cfg.GetNetwork(network_uuid)
+        self._CheckInstanceCommunicationNetwork(network, self.LogWarning)
 
   def _BuildOSParams(self, cluster):
     "Calculate the new OS parameters for this operation."
