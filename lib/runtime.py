@@ -26,7 +26,6 @@
 import grp
 import pwd
 import threading
-import os
 import platform
 
 from ganeti import constants
@@ -242,31 +241,12 @@ def GetArchInfo():
   return _arch
 
 
-def GetClient(query=True):
+def GetClient():
   """Connects to the a luxi socket and returns a client.
 
-  @type query: boolean
-  @param query: this signifies that the client will only be
-      used for queries; if the build-time parameter
-      enable-split-queries is enabled, then the client will be
-      connected to the query socket instead of the masterd socket
-
   """
-  override_socket = os.getenv(constants.LUXI_OVERRIDE, "")
-  if override_socket:
-    if override_socket == constants.LUXI_OVERRIDE_MASTER:
-      address = pathutils.MASTER_SOCKET
-    elif override_socket == constants.LUXI_OVERRIDE_QUERY:
-      address = pathutils.QUERY_SOCKET
-    else:
-      address = override_socket
-  elif query:
-    address = pathutils.QUERY_SOCKET
-  else:
-    address = None
-  # TODO: Cache object?
   try:
-    client = luxi.Client(address=address)
+    client = luxi.Client(address=pathutils.QUERY_SOCKET)
   except NoMasterError:
     ss = ssconf.SimpleStore()
 
