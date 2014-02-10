@@ -108,7 +108,7 @@ instance PyValue JSValue where
   showValue (JSObject obj) = showValue obj
   showValue x = show x
 
-type JobIdListOnly = [(Bool, Either String JobId)]
+type JobIdListOnly = Map String [(Bool, Either String JobId)]
 
 type InstanceMultiAllocResponse =
   ([(Bool, Either String JobId)], NonEmptyString)

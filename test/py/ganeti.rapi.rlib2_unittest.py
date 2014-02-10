@@ -1763,18 +1763,27 @@ class TestInstancesMultiAlloc(unittest.TestCase):
     clfactory = _FakeClientFactory(_FakeClient)
     data = {
       "instances": [{
-        "instance_name": "bar",
+        "name": "bar",
         "mode": "create",
+        "disks": [{"size": 1024}],
+        "disk_template": "plain",
+        "nics": [{}],
         }, {
-        "instance_name": "foo",
+        "name": "foo",
         "mode": "create",
+        "disks": [{"size": 1024}],
+        "disk_template": "drbd",
+        "nics": [{}],
         }],
       }
     handler = _CreateHandler(rlib2.R_2_instances_multi_alloc, [], {}, data,
                              clfactory)
+
     (body, _) = handler.GetPostOpInput()
-    self.assertTrue(compat.all([inst["OP_ID"] == handler.POST_OPCODE.OP_ID
-                                for inst in body["instances"]]))
+
+    self.assertTrue(compat.all(
+      [isinstance(inst, opcodes.OpInstanceCreate) for inst in body["instances"]]
+    ))
 
 
 class TestPermissions(unittest.TestCase):

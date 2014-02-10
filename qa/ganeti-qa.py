@@ -871,6 +871,7 @@ def RunQa():
 
       if (qa_config.TestEnabled("instance-add-plain-disk")
           and qa_config.IsTemplateSupported(constants.DT_PLAIN)):
+        # Normal instance allocation via RAPI
         for use_client in [True, False]:
           rapi_instance = RunTest(qa_rapi.TestRapiInstanceAdd, pnode,
                                   use_client)
@@ -882,6 +883,16 @@ def RunQa():
             rapi_instance.Release()
           del rapi_instance
 
+        # Multi-instance allocation
+        rapi_instance_one, rapi_instance_two = \
+          RunTest(qa_rapi.TestRapiInstanceMultiAlloc, pnode)
+
+        try:
+          RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance_one, True)
+          RunTest(qa_rapi.TestRapiInstanceRemove, rapi_instance_two, True)
+        finally:
+          rapi_instance_one.Release()
+          rapi_instance_two.Release()
   finally:
     pnode.Release()
 

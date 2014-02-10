@@ -79,7 +79,8 @@ handleClassicQuery :: ConfigData      -- ^ Cluster config
 handleClassicQuery _ _ _ _ True =
   return . Bad $ OpPrereqError "Sync queries are not allowed" ECodeInval
 handleClassicQuery cfg qkind names fields _ = do
-  let flt = makeSimpleFilter (nameField qkind) names
+  let simpleNameFilter field = makeSimpleFilter (field qkind) names
+      flt = Qlang.OrFilter $ map simpleNameFilter [nameField, uuidField]
   qr <- query cfg True (Qlang.Query qkind fields flt)
   return $ showJSON <$> (qr >>= queryCompat)
 
