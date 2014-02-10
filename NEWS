@@ -90,10 +90,10 @@ For Haskell:
   at least version 1.0.0.0
 
 
-Version 2.10.0 rc1
+Version 2.10.0 rc2
 ------------------
 
-*(Released Tue, 17 Dec 2013)*
+*(Released Fri, 31 Jan 2014)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -159,6 +159,34 @@ Python
 - The version requirements for ``python-mock`` have increased to at least
   version 1.0.1. It is still used for testing only.
 
+Since 2.10.0 rc1
+~~~~~~~~~~~~~~~~
+
+- Documentation improvements
+- Run drbdsetup syncer only on network attach
+- Include target node in hooks nodes for migration
+- Fix configure dirs
+- Support post-upgrade hooks during cluster upgrades
+
+Inherited from the 2.9 branch:
+
+- Ensure that all the hypervisors exist in the config file (Issue 640)
+- Correctly recognise the role as master node (Issue 687)
+- configure: allow detection of Sphinx 1.2+ (Issue 502)
+- gnt-instance now honors the KVM path correctly (Issue 691)
+
+Inherited from the 2.8 branch:
+
+- Change the list separator for the usb_devices parameter from comma to space.
+  Commas could not work because they are already the hypervisor option
+  separator (Issue 649)
+- Add support for blktap2 file-driver (Issue 638)
+- Add network tag definitions to the haskell codebase (Issue 641)
+- Fix RAPI network tag handling
+- Add the network tags to the tags searched by gnt-cluster search-tags
+- Fix caching bug preventing jobs from being cancelled
+- Start-master/stop-master was always failing if ConfD was disabled. (Issue 685)
+
 Since 2.10.0 beta1
 ~~~~~~~~~~~~~~~~~~
 
@@ -197,6 +225,15 @@ Inherited from the 2.8 branch:
 - Refactor reading live data in htools (future proofing cherry-pick)
 
 
+Version 2.10.0 rc1
+------------------
+
+*(Released Tue, 17 Dec 2013)*
+
+This was the first RC release of the 2.10 series. All important changes
+are listed in the latest 2.10 entry.
+
+
 Version 2.10.0 beta1
 --------------------
 
@@ -215,6 +252,20 @@ before rc1.
 - Issue 621: Instance related opcodes do not aquire network/group locks
 - Issue 622: Assertion Error: Node locks differ from node resource locks
 - Issue 623: IPv6 Masterd <-> Luxid communication error
+
+
+Version 2.9.4
+-------------
+
+*(Released Mon, 10 Feb 2014)*
+
+- Fix the RAPI instances-multi-alloc call
+- assign unique filenames to file-based disks
+- gracefully handle degraded non-diskless instances with 0 disks (issue 697)
+- noded now runs with its specified group, which is the default group,
+  defaulting to root (issue 707)
+- make using UUIDs to identify nodes in gnt-node consistently possible
+  (issue 703)
 
 
 Version 2.9.3

@@ -1552,7 +1552,7 @@ class LUInstanceCreate(LogicalUnit):
                                             False, self.op.reason)
       result.Raise("Could not start instance")
 
-    return list(iobj.all_nodes)
+    return self.cfg.GetNodeNames(list(iobj.all_nodes))
 
 
 class LUInstanceRename(LogicalUnit):
