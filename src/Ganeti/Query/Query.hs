@@ -57,11 +57,11 @@ module Ganeti.Query.Query
     ) where
 
 import Control.DeepSeq
-import Control.Monad (filterM, foldM, unless)
+import Control.Monad (filterM, foldM, liftM, unless)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import qualified Data.Foldable as Foldable
-import Data.List (intercalate)
+import Data.List (intercalate, nub)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 import qualified Text.JSON as J
@@ -168,6 +168,7 @@ getRequestedJobIDs qfilter =
     Nothing -> Ok []
     Just [] -> Ok []
     Just vals ->
+      liftM nub $
       mapM (\e -> case e of
                     QuotedString s -> makeJobIdS s
                     NumericValue i -> makeJobId $ fromIntegral i
