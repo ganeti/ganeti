@@ -381,6 +381,7 @@ pkgpython_PYTHON = \
 	lib/uidpool.py \
 	lib/vcluster.py \
 	lib/network.py \
+	lib/wconfd.py \
 	lib/workerpool.py
 
 client_PYTHON = \
