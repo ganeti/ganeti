@@ -84,6 +84,8 @@ For Haskell:
 - ``base64-bytestring`` library (http://hackage.haskell.org/package/zlib),
   at least version 1.0.0.0
 
+- ``lifted-base`` library (http://hackage.haskell.org/package/lifted-base)
+
 
 Version 2.10.0 rc2
 ------------------

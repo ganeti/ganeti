@@ -160,6 +160,8 @@ deploy Ganeti on production machines). More specifically:
 - `vector <http://hackage.haskell.org/package/vector>`_
 - `process <http://hackage.haskell.org/package/process>`_, version 1.0.1.1 and
   above
+- `lifted-base <http://hackage.haskell.org/package/lifted-base>`_,
+  version 0.1.1 and above.
 
 Some of these are also available as package in Debian/Ubuntu::
 
