@@ -126,6 +126,23 @@ PARALLEL_OPT = \
                  dest="parallel", metavar="<number>",
                  help="Number of instances to be moved simultaneously")
 
+OPPORTUNISTIC_TRIES_OPT = \
+  cli.cli_option("--opportunistic-tries", action="store", type="int",
+                 dest="opportunistic_tries", metavar="<number>",
+                 help="Number of opportunistic instance creation attempts"
+                      " before a normal creation is performed. An opportunistic"
+                      " attempt will use the iallocator with all the nodes"
+                      " currently unlocked, failing if not enough nodes are"
+                      " available. Even though it will succeed (or fail) more"
+                      " quickly, it can result in suboptimal instance"
+                      " placement")
+
+OPPORTUNISTIC_DELAY_OPT = \
+  cli.cli_option("--opportunistic-delay", action="store", type="int",
+                 dest="opportunistic_delay", metavar="<number>",
+                 help="The delay between successive opportunistic instance"
+                      " creation attempts, in seconds")
+
 
 class Error(Exception):
   """Generic error.
@@ -800,6 +817,8 @@ def ParseOptions():
   parser.add_option(DEST_DISK_TEMPLATE_OPT)
   parser.add_option(COMPRESS_OPT)
   parser.add_option(PARALLEL_OPT)
+  parser.add_option(OPPORTUNISTIC_TRIES_OPT)
+  parser.add_option(OPPORTUNISTIC_DELAY_OPT)
 
   (options, args) = parser.parse_args()
 
@@ -830,6 +849,26 @@ def CheckOptions(parser, options, args):
   if (bool(options.iallocator) and
       bool(options.dest_primary_node or options.dest_secondary_node)):
     parser.error("Destination node and iallocator options exclude each other")
+
+  if (not options.iallocator and (options.opportunistic_tries > 0)):
+    parser.error("Opportunistic instance creation can only be used with an"
+                 " iallocator")
+
+  tries_specified = options.opportunistic_tries is not None
+  delay_specified = options.opportunistic_delay is not None
+  if tries_specified:
+    if options.opportunistic_tries < 0:
+      parser.error("Number of opportunistic creation attempts must be >= 0")
+    if delay_specified:
+      if options.opportunistic_delay <= 0:
+        parser.error("The delay between two successive creation attempts must"
+                     " be greater than zero")
+  elif delay_specified:
+    parser.error("Opportunistic delay can only be specified when opportunistic"
+                 " tries are used")
+  else:
+    # The default values will be provided later
+    pass
 
   if len(instance_names) == 1:
     # Moving one instance only

@@ -3214,6 +3214,15 @@ iallocatorSearchPath = AutoConf.iallocatorSearchPath
 defaultIallocatorShortcut :: String
 defaultIallocatorShortcut = "."
 
+-- * Opportunistic allocator usage
+
+-- | Time delay in seconds between repeated opportunistic instance creations.
+-- Rather than failing with an informative error message if the opportunistic
+-- creation cannot grab enough nodes, for some uses it is better to retry the
+-- creation with an interval between attempts. This is a reasonable default.
+defaultOpportunisticRetryInterval :: Int
+defaultOpportunisticRetryInterval = 30
+
 -- * Node evacuation
 
 nodeEvacPri :: String
