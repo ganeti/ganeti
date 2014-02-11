@@ -54,6 +54,8 @@ import Control.Applicative ((<$>))
 import Control.Monad
 import Control.Monad.Error (Error(..), MonadError(..), catchError)
 import Control.Monad.Reader
+import qualified Control.Monad.RWS.Strict as RWSS
+import Data.Monoid
 import System.Log.Logger
 import System.Log.Handler.Simple
 import System.Log.Handler.Syslog
@@ -140,6 +142,9 @@ instance MonadLog IO where
   logAt = logM rootLoggerName
 
 instance (MonadLog m) => MonadLog (ReaderT r m) where
+  logAt p = lift . logAt p
+
+instance (MonadLog m, Monoid w) => MonadLog (RWSS.RWST r w s m) where
   logAt p = lift . logAt p
 
 instance (MonadLog m, Error e) => MonadLog (ResultT e m) where
