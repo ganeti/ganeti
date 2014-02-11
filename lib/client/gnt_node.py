@@ -253,7 +253,11 @@ def AddNode(opts, args):
                                  fields=["name", "sip", "master",
                                          "ndp/ssh_port"],
                                  use_locking=False)
-    node_exists, sip, is_master, ssh_port = output[0]
+    if len(output) == 0:
+      node_exists = ""
+      sip = None
+    else:
+      node_exists, sip, is_master, ssh_port = output[0]
   except (errors.OpPrereqError, errors.OpExecError):
     node_exists = ""
     sip = None
