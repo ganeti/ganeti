@@ -28,7 +28,6 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import locking
 from ganeti import objects
-from ganeti import opcodes
 from ganeti import utils
 from ganeti.masterd import iallocator
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, ResultWithJobs
@@ -38,7 +37,7 @@ from ganeti.cmdlib.common import MergeAndVerifyHvState, \
   ComputeNewInstanceViolations, GetDefaultIAllocator, ShareAll, \
   CheckInstancesNodeGroups, LoadNodeEvacResult, MapInstanceLvsToNodes, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
-  CheckDiskAccessModeConsistency
+  CheckDiskAccessModeConsistency, OpConnectInstanceCommunicationNetwork
 
 import ganeti.masterd.instance
 
@@ -157,8 +156,6 @@ class LUGroupAdd(LogicalUnit):
              L{None}
 
     """
-    jobs = []
-
     try:
       cfg.LookupNetwork(network_name)
       network_exists = True
@@ -166,16 +163,8 @@ class LUGroupAdd(LogicalUnit):
       network_exists = False
 
     if network_exists:
-      op = opcodes.OpNetworkConnect(
-        group_name=group_uuid,
-        network_name=network_name,
-        network_mode=constants.NIC_MODE_ROUTED,
-        network_link=constants.INSTANCE_COMMUNICATION_NETWORK_LINK,
-        conflicts_check=True)
-      jobs.append(op)
-
-    if jobs:
-      return ResultWithJobs([jobs])
+      op = OpConnectInstanceCommunicationNetwork(group_uuid, network_name)
+      return ResultWithJobs([[op]])
     else:
       return None
 

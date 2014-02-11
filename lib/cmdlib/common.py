@@ -1285,3 +1285,55 @@ def CreateNewClientCert(lu, node_uuid, filename=None):
   ((crypto_type, new_digest), ) = result.payload
   assert crypto_type == constants.CRYPTO_TYPE_SSL_DIGEST
   return new_digest
+
+
+def OpAddInstanceCommunicationNetwork(network):
+  """Create OpCode that adds the instance communication network.
+
+  This OpCode contains the configuration necessary for the instance
+  communication network.
+
+  @type network: string
+  @param network: name or UUID of the instance communication network
+
+  @rtype: L{ganeti.opcodes.OpCode}
+  @return: OpCode that creates the instance communication network
+
+  """
+  return opcodes.OpNetworkAdd(
+    network_name=network,
+    gateway=None,
+    network=constants.INSTANCE_COMMUNICATION_NETWORK4,
+    gateway6=None,
+    network6=constants.INSTANCE_COMMUNICATION_NETWORK6,
+    mac_prefix=constants.INSTANCE_COMMUNICATION_MAC_PREFIX,
+    add_reserved_ips=None,
+    conflicts_check=True,
+    tags=[])
+
+
+def OpConnectInstanceCommunicationNetwork(group_uuid, network):
+  """Create OpCode that connects a group to the instance communication
+  network.
+
+  This OpCode contains the configuration necessary for the instance
+  communication network.
+
+  @type group_uuid: string
+  @param group_uuid: UUID of the group to connect
+
+  @type network: string
+  @param network: name or UUID of the network to connect to, i.e., the
+                  instance communication network
+
+  @rtype: L{ganeti.opcodes.OpCode}
+  @return: OpCode that connects the group to the instance
+           communication network
+
+  """
+  return opcodes.OpNetworkConnect(
+    group_name=group_uuid,
+    network_name=network,
+    network_mode=constants.NIC_MODE_ROUTED,
+    network_link=constants.INSTANCE_COMMUNICATION_NETWORK_LINK,
+    conflicts_check=True)

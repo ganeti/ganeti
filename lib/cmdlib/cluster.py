@@ -56,7 +56,8 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   CheckOSParams, CheckHVParams, AdjustCandidatePool, CheckNodePVs, \
   ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
-  CheckDiskAccessModeConsistency, CreateNewClientCert
+  CheckDiskAccessModeConsistency, CreateNewClientCert, \
+  OpAddInstanceCommunicationNetwork, OpConnectInstanceCommunicationNetwork
 
 import ganeti.masterd.instance
 
@@ -1391,17 +1392,7 @@ class LUClusterSetParams(LogicalUnit):
       network_exists = False
 
     if not network_exists:
-      op = opcodes.OpNetworkAdd(
-        network_name=network_name,
-        gateway=None,
-        network=constants.INSTANCE_COMMUNICATION_NETWORK4,
-        gateway6=None,
-        network6=constants.INSTANCE_COMMUNICATION_NETWORK6,
-        mac_prefix=constants.INSTANCE_COMMUNICATION_MAC_PREFIX,
-        add_reserved_ips=None,
-        conflicts_check=True,
-        tags=[])
-      jobs.append(op)
+      jobs.append(OpAddInstanceCommunicationNetwork(network_name))
 
     for group_uuid in cfg.GetNodeGroupList():
       group = cfg.GetNodeGroup(group_uuid)
@@ -1416,12 +1407,7 @@ class LUClusterSetParams(LogicalUnit):
         network_connected = False
 
       if not network_connected:
-        op = opcodes.OpNetworkConnect(
-          group_name=group_uuid,
-          network_name=network_name,
-          network_mode=constants.NIC_MODE_ROUTED,
-          network_link=constants.INSTANCE_COMMUNICATION_NETWORK_LINK,
-          conflicts_check=True)
+        op = OpConnectInstanceCommunicationNetwork(group_uuid, network_name)
         jobs.append(op)
 
     if jobs:
