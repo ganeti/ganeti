@@ -755,8 +755,10 @@ HS_LIB_SRCS = \
 	src/Ganeti/THH/RPC.hs \
 	src/Ganeti/Types.hs \
 	src/Ganeti/UDSServer.hs \
-	src/Ganeti/Utils.hs\
-	src/Ganeti/VCluster.hs
+	src/Ganeti/Utils.hs \
+	src/Ganeti/VCluster.hs \
+	src/Ganeti/WConfd/ConfigState.hs \
+	src/Ganeti/WConfd/Monad.hs
 
 HS_TEST_SRCS = \
 	test/hs/Test/AutoConf.hs \
