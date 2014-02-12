@@ -33,6 +33,7 @@ from ganeti import query
 from ganeti import pathutils
 
 import qa_config
+import qa_daemon
 import qa_utils
 import qa_error
 
@@ -1158,7 +1159,7 @@ def _TestInstanceUserDownXen(instance, master):
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def _TestInstanceUserDownKvm(instance, master):
   def _StopKVMInstance():
-    AssertCommand("pkill -f \"kvm -name %s\"" % instance.name, node=primary)
+    AssertCommand("pkill -f \"\\-name %s\"" % instance.name, node=primary)
     time.sleep(5)
 
   AssertCommand(["gnt-instance", "modify", "-H", "user_shutdown=true",
@@ -1182,7 +1183,9 @@ def TestInstanceUserDown(instance, master):
                    (constants.HT_XEN_HVM, _TestInstanceUserDownXen),
                    (constants.HT_KVM, _TestInstanceUserDownKvm)]:
     if hv in enabled_hypervisors:
+      qa_daemon.TestPauseWatcher()
       fn(instance, master)
+      qa_daemon.TestResumeWatcher()
     else:
       print "%s hypervisor is not enabled, skipping test for this hypervisor" \
           % hv
