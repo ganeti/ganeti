@@ -36,12 +36,12 @@ if ! grep -q '^ENABLE_MOND = ' lib/_constants.py; then
   err "Please update $0, mond enable feature is missing"
 fi
 
-DAEMONS_LIST="noded masterd rapi"
-STOPDAEMONS_LIST="rapi masterd noded"
+DAEMONS_LIST="noded masterd rapi luxid"
+STOPDAEMONS_LIST="luxid rapi masterd noded"
 
 if grep -q '^ENABLE_CONFD = True' lib/_constants.py; then
-  DAEMONS_LIST="$DAEMONS_LIST confd luxid"
-  STOPDAEMONS_LIST="luxid confd $STOPDAEMONS_LIST"
+  DAEMONS_LIST="$DAEMONS_LIST confd"
+  STOPDAEMONS_LIST="confd $STOPDAEMONS_LIST"
 fi
 
 if grep -q '^ENABLE_MOND = True' lib/_constants.py; then

@@ -31,6 +31,7 @@ DAEMONS=(
   ganeti-noded
   ganeti-masterd
   ganeti-rapi
+  ganeti-luxid
   )
 
 _confd_enabled() {
@@ -39,7 +40,6 @@ _confd_enabled() {
 
 if _confd_enabled; then
   DAEMONS+=( ganeti-confd )
-  DAEMONS+=( ganeti-luxid )
 fi
 
 _mond_enabled() {
@@ -233,7 +233,7 @@ start() {
   local usergroup=$(_daemon_usergroup $plain_name)
   local daemonexec=$(_daemon_executable $name)
 
-  if ( [[ "$name" == ganeti-confd ]] || [[ "$name" == ganeti-luxid ]] ) \
+  if [[ "$name" == ganeti-confd ]] \
       && ! _confd_enabled; then
     echo 'ganeti-confd disabled at build time' >&2
     return 1
@@ -292,18 +292,12 @@ check_and_start() {
 start_master() {
   start ganeti-masterd
   start ganeti-rapi
-  if _confd_enabled; then
-      start ganeti-luxid
-  else
-      return 0
-  fi
+  start ganeti-luxid
 }
 
 # Stops the master role
 stop_master() {
-  if _confd_enabled ; then
-      stop ganeti-luxid
-  fi
+  stop ganeti-luxid
   stop ganeti-rapi
   stop ganeti-masterd
 }
