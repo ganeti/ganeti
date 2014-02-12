@@ -2353,7 +2353,9 @@ TAGS: $(GENERATED_FILES)
 .PHONY: coverage
 
 COVERAGE_TESTS=
+if HS_UNIT
 COVERAGE_TESTS += hs-coverage
+endif
 if PY_UNIT
 COVERAGE_TESTS += py-coverage
 endif

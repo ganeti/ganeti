@@ -632,6 +632,7 @@ else
    AC_MSG_NOTICE([Haskell development modules found, unittests enabled])
 fi
 AC_SUBST(HS_NODEV)
+AM_CONDITIONAL([HS_UNIT], [test -n $HS_NODEV])
 
 # Check for HsColour
 HS_APIDOC=no
