@@ -432,7 +432,7 @@ class LUInstanceCreate(LogicalUnit):
       raise errors.OpPrereqError("Cannot do IP address check without a name"
                                  " check", errors.ECODE_INVAL)
 
-    # add nic for instance communication
+    # add NIC for instance communication
     if self.op.instance_communication:
       nic_name = "%s%s" % (constants.INSTANCE_COMMUNICATION_NIC_PREFIX,
                            self.op.instance_name)

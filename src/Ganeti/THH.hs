@@ -237,7 +237,7 @@ numericalReadFn :: JSON.JSON a => (String -> JSON.Result a)
                    -> [(String, JSON.JSValue)] -> JSON.JSValue -> JSON.Result a
 numericalReadFn _ _ v@(JSON.JSRational _ _) = JSON.readJSON v
 numericalReadFn f _ (JSON.JSString x) = f $ JSON.fromJSString x
-numericalReadFn _ _ _ = JSON.Error "A numerical field has to be a number or\ 
+numericalReadFn _ _ _ = JSON.Error "A numerical field has to be a number or\
                                    \ a string."
 
 -- | Sets the read function to also accept string parsable by the given

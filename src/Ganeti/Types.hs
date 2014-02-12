@@ -11,7 +11,7 @@ representation should go into 'Ganeti.HTools.Types'.
 
 {-
 
-Copyright (C) 2012, 2013 Google Inc.
+Copyright (C) 2012, 2013, 2014 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -405,7 +405,7 @@ $(THH.declareLADT ''String "CVErrorCode"
   ])
 $(THH.makeJSONInstance ''CVErrorCode)
 
--- | Dynamic device modification, just add\/remove version.
+-- | Dynamic device modification, just add/remove version.
 $(THH.declareLADT ''String "DdmSimple"
      [ ("DdmSimpleAdd",    "add")
      , ("DdmSimpleRemove", "remove")
