@@ -162,7 +162,7 @@ module Ganeti.OpParams
   , pRequiredNodes
   , pRequiredNodeUuids
   , pStorageType
-  , pStorageTypeOptional
+  , pOptStorageType
   , pStorageChanges
   , pMasterCandidate
   , pOffline
@@ -894,10 +894,10 @@ pStorageType :: Field
 pStorageType =
   withDoc "Storage type" $ simpleField "storage_type" [t| StorageType |]
 
-pStorageTypeOptional :: Field
-pStorageTypeOptional =
+pOptStorageType :: Field
+pOptStorageType =
   withDoc "Storage type" .
-  renameField "StorageTypeOptional" .
+  renameField "OptStorageType" .
   optionalField $ simpleField "storage_type" [t| StorageType |]
 
 pStorageName :: Field

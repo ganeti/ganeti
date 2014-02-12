@@ -335,7 +335,7 @@ $(genOpCode "OpCode"
      [t| [[JSValue]] |],
      OpDoc.opNodeQueryStorage,
      [ pOutputFields
-     , pStorageTypeOptional
+     , pOptStorageType
      , withDoc
        "Empty list to query all, list of names to query otherwise"
        pNodes
