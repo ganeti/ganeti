@@ -68,7 +68,7 @@ NODE_EVAC_SEC = "secondary-only"
 NODE_EVAC_ALL = "all"
 
 NODE_ROLE_DRAINED = "drained"
-NODE_ROLE_MASTER_CANDIATE = "master-candidate"
+NODE_ROLE_MASTER_CANDIDATE = "master-candidate"
 NODE_ROLE_MASTER = "master"
 NODE_ROLE_OFFLINE = "offline"
 NODE_ROLE_REGULAR = "regular"
