@@ -633,9 +633,6 @@ else
 fi
 AC_SUBST(HS_NODEV)
 
-HTOOLS=yes
-AC_SUBST(HTOOLS)
-
 # Check for HsColour
 HS_APIDOC=no
 AC_ARG_VAR(HSCOLOUR, [HsColour path])
@@ -664,12 +661,6 @@ if test -z "$HLINT"; then
   AC_MSG_WARN([hlint not found, checking code will not be possible])
 fi
 
-if test "$HTOOLS" != yes && test "$ENABLE_CONFD" = True; then
-  AC_MSG_ERROR(m4_normalize([cannot enable ganeti-confd if
-                             htools support is not enabled]))
-fi
-
-AM_CONDITIONAL([WANT_HTOOLS], [test "$HTOOLS" = yes])
 AM_CONDITIONAL([WANT_HSTESTS], [test "x$HS_NODEV" = x])
 AM_CONDITIONAL([WANT_HSAPIDOC], [test "$HS_APIDOC" = yes])
 AM_CONDITIONAL([HAS_HLINT], [test "$HLINT"])

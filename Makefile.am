@@ -280,16 +280,12 @@ GENERATED_FILES = \
 	$(PYTHON_BOOTSTRAP) \
 	$(gnt_python_sbin_SCRIPTS)
 
-HS_GENERATED_FILES =
-if WANT_HTOOLS
-HS_GENERATED_FILES += $(HS_PROGS)
+HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid
 if ENABLE_CONFD
-HS_GENERATED_FILES += src/hconfd src/ganeti-confd src/hluxid src/ganeti-luxid
+HS_GENERATED_FILES += src/hconfd src/ganeti-confd
 endif
-
 if ENABLE_MOND
 HS_GENERATED_FILES += src/ganeti-mond
-endif
 endif
 
 built_base_sources = \
@@ -983,9 +979,7 @@ qa_scripts = \
 	qa/qa_utils.py \
         qa/rapi-workload.py
 
-bin_SCRIPTS =
-if WANT_HTOOLS
-bin_SCRIPTS += $(HS_BIN_PROGS)
+bin_SCRIPTS = $(HS_BIN_PROGS)
 install-exec-hook:
 	@mkdir_p@ $(DESTDIR)$(iallocatorsdir)
 # FIXME: this is a hardcoded logic, instead of auto-resolving
@@ -994,7 +988,6 @@ install-exec-hook:
 	for role in $(HS_BIN_ROLES); do \
 	  $(LN_S) -f htools $(DESTDIR)$(bindir)/$$role ; \
 	done
-endif
 
 HNORMAL_SUFFIX = .o
 HPROFILE_SUFFIX = .prof.o
@@ -2360,9 +2353,7 @@ TAGS: $(GENERATED_FILES)
 .PHONY: coverage
 
 COVERAGE_TESTS=
-if WANT_HTOOLS
 COVERAGE_TESTS += hs-coverage
-endif
 if PY_UNIT
 COVERAGE_TESTS += py-coverage
 endif
