@@ -4161,13 +4161,6 @@ blockdevDriverManual = Types.blockDriverToRaw BlockDrvManual
 qemuimgPath :: String
 qemuimgPath = AutoConf.qemuimgPath
 
--- | Whether htools was enabled at compilation time
---
--- FIXME: this should be moved next to the other enable constants,
--- such as, 'enableConfd', and renamed to 'enableHtools'.
-htools :: Bool
-htools = AutoConf.htools
-
 -- | The hail iallocator
 iallocHail :: String
 iallocHail = "hail"
