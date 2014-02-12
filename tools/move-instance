@@ -39,6 +39,7 @@ from ganeti import workerpool
 from ganeti import objects
 from ganeti import compat
 from ganeti import rapi
+from ganeti import errors
 
 import ganeti.rapi.client # pylint: disable=W0611
 import ganeti.rapi.client_utils
@@ -301,7 +302,8 @@ class InstanceMove(object):
   def __init__(self, src_instance_name, dest_instance_name,
                dest_pnode, dest_snode, compress, dest_iallocator,
                dest_disk_template, hvparams,
-               beparams, osparams, nics):
+               beparams, osparams, nics, opportunistic_tries,
+               opportunistic_delay):
     """Initializes this class.
 
     @type src_instance_name: string
@@ -327,6 +329,12 @@ class InstanceMove(object):
     @param osparams: OS parameters to override
     @type nics: dict or None
     @param nics: NICs to override
+    @type opportunistic_tries: int or None
+    @param opportunistic_tries: Number of opportunistic creation attempts to
+                                perform
+    @type opportunistic_delay: int or None
+    @param opportunistic_delay: Delay between successive creation attempts, in
+                                seconds
 
     """
     self.src_instance_name = src_instance_name
@@ -340,6 +348,16 @@ class InstanceMove(object):
     self.beparams = beparams
     self.osparams = osparams
     self.nics = nics
+
+    if opportunistic_tries is not None:
+      self.opportunistic_tries = opportunistic_tries
+    else:
+      self.opportunistic_tries = 0
+
+    if opportunistic_delay is not None:
+      self.opportunistic_delay = opportunistic_delay
+    else:
+      self.opportunistic_delay = constants.DEFAULT_OPPORTUNISTIC_RETRY_INTERVAL
 
     self.error_message = None
 
@@ -462,18 +480,45 @@ class MoveDestExecutor(object):
 
     logging.info("Creating instance %s in remote-import mode",
                  mrt.move.dest_instance_name)
-    job_id = self._CreateInstance(dest_client, mrt.move.dest_instance_name,
-                                  mrt.move.dest_pnode, mrt.move.dest_snode,
-                                  mrt.move.compress,
-                                  mrt.move.dest_iallocator,
-                                  mrt.move.dest_disk_template,
-                                  mrt.src_instinfo, mrt.src_expinfo,
-                                  mrt.move.hvparams, mrt.move.beparams,
-                                  mrt.move.beparams, mrt.move.nics)
-    mrt.PollJob(dest_client, job_id,
-                remote_import_fn=compat.partial(self._SetImportInfo, mrt))
 
-    logging.info("Import successful")
+    # Depending on whether opportunistic tries are enabled, we may have to
+    # make multiple creation attempts
+    creation_attempts = [True] * mrt.move.opportunistic_tries
+
+    # But the last one is never opportunistic, and will block until completion
+    # or failure
+    creation_attempts.append(False)
+
+    for is_attempt_opportunistic in creation_attempts:
+      job_id = self._CreateInstance(dest_client, mrt.move.dest_instance_name,
+                                    mrt.move.dest_pnode, mrt.move.dest_snode,
+                                    mrt.move.compress,
+                                    mrt.move.dest_iallocator,
+                                    mrt.move.dest_disk_template,
+                                    mrt.src_instinfo, mrt.src_expinfo,
+                                    mrt.move.hvparams, mrt.move.beparams,
+                                    mrt.move.beparams, mrt.move.nics,
+                                    is_attempt_opportunistic
+                                    )
+
+      try:
+        # The completion of this block signifies that the import has been
+        # completed successfullly
+        mrt.PollJob(dest_client, job_id,
+                    remote_import_fn=compat.partial(self._SetImportInfo, mrt))
+        logging.info("Import successful")
+        return
+      except errors.OpPrereqError, err:
+        # Any exception in the non-opportunistic creation is to be passed on,
+        # as well as exceptions apart from resources temporarily unavailable
+        if not is_attempt_opportunistic or \
+           err.args[1] != rapi.client.ECODE_TEMP_NORES:
+          raise
+
+      logging.info("Opportunistic attempt unsuccessful, waiting %d seconds"
+                   " before another creation attempt is made",
+                   mrt.move.opportunistic_delay)
+      time.sleep(mrt.move.opportunistic_delay)
 
   @staticmethod
   def _SetImportInfo(mrt, impinfo):
@@ -494,7 +539,8 @@ class MoveDestExecutor(object):
   @staticmethod
   def _CreateInstance(cl, name, pnode, snode, compress, iallocator,
                       dest_disk_template, instance, expinfo, override_hvparams,
-                      override_beparams, override_osparams, override_nics):
+                      override_beparams, override_osparams, override_nics,
+                      is_attempt_opportunistic):
     """Starts the instance creation in remote import mode.
 
     @type cl: L{rapi.client.GanetiRapiClient}
@@ -523,6 +569,8 @@ class MoveDestExecutor(object):
     @param override_osparams: OS parameters to override
     @type override_nics: dict or None
     @param override_nics: NICs to override
+    @type is_attempt_opportunistic: bool
+    @param is_attempt_opportunistic: Whether to use opportunistic locking or not
     @return: Job ID
 
     """
@@ -602,7 +650,9 @@ class MoveDestExecutor(object):
                              hvparams=objects.FillDict(inst_hvparams,
                                                        override_hvparams),
                              osparams=objects.FillDict(inst_osparams,
-                                                       override_osparams))
+                                                       override_osparams),
+                             opportunistic_locking=is_attempt_opportunistic
+                             )
 
 
 class MoveSourceExecutor(object):
@@ -961,7 +1011,9 @@ def main():
                               options.hvparams,
                               options.beparams,
                               options.osparams,
-                              options.nics))
+                              options.nics,
+                              options.opportunistic_tries,
+                              options.opportunistic_delay))
 
   assert len(moves) == len(instance_names)
 
