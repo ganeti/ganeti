@@ -52,6 +52,10 @@ class LUTestDelay(NoHooksLU):
     This expands the node list, if any.
 
     """
+
+    if self.op.duration <= 0:
+      raise errors.OpPrereqError("Duration must be greater than zero")
+
     self.op.on_node_uuids = []
     if self.op.on_nodes:
       # _GetWantedNodes can be used here, but is not always appropriate to use
