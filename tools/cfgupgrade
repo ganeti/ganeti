@@ -410,6 +410,7 @@ def DowngradeCluster(config_data):
   if "osparams_private_cluster" in cluster:
     del cluster["osparams_private_cluster"]
 
+
 def DowngradeInstances(config_data):
   instances = config_data.get("instances", None)
   if not instances:
@@ -417,6 +418,7 @@ def DowngradeInstances(config_data):
   for (_, iobj) in instances.items():
     if "osparams_private" in iobj:
       del iobj["osparams_private"]
+
 
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
