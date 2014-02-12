@@ -137,6 +137,18 @@ class TestConstants(unittest.TestCase):
     self.assertEqual(client._NODE_EVAC_RES1, rlib2._NODE_EVAC_RES1)
     self.assertEqual(client.NODE_EVAC_RES1, rlib2._NODE_EVAC_RES1)
 
+    # Error codes
+    self.assertEqual(client.ECODE_RESOLVER, errors.ECODE_RESOLVER)
+    self.assertEqual(client.ECODE_NORES, errors.ECODE_NORES)
+    self.assertEqual(client.ECODE_TEMP_NORES, errors.ECODE_TEMP_NORES)
+    self.assertEqual(client.ECODE_INVAL, errors.ECODE_INVAL)
+    self.assertEqual(client.ECODE_STATE, errors.ECODE_STATE)
+    self.assertEqual(client.ECODE_NOENT, errors.ECODE_NOENT)
+    self.assertEqual(client.ECODE_EXISTS, errors.ECODE_EXISTS)
+    self.assertEqual(client.ECODE_NOTUNIQUE, errors.ECODE_NOTUNIQUE)
+    self.assertEqual(client.ECODE_FAULT, errors.ECODE_FAULT)
+    self.assertEqual(client.ECODE_ENVIRON, errors.ECODE_ENVIRON)
+
   def testErrors(self):
     self.assertEqual(client.ECODE_ALL, errors.ECODE_ALL)
 
