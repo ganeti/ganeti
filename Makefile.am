@@ -126,6 +126,7 @@ HS_DIRS = \
 	src/Ganeti/HTools/Program \
 	src/Ganeti/Hypervisor \
 	src/Ganeti/Hypervisor/Xen \
+        src/Ganeti/Locking \
 	src/Ganeti/Monitoring \
 	src/Ganeti/Query \
 	src/Ganeti/Storage \
@@ -730,6 +731,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/JSON.hs \
 	src/Ganeti/Jobs.hs \
 	src/Ganeti/Kvmd.hs \
+        src/Ganeti/Locking/Allocation.hs \
 	src/Ganeti/Logging.hs \
 	src/Ganeti/Luxi.hs \
 	src/Ganeti/Monitoring/Server.hs \
