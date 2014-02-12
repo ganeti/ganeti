@@ -545,18 +545,21 @@ AC_GHC_PKG_REQUIRE(base64-bytestring-1.*, t)
 AC_GHC_PKG_REQUIRE(utf8-string)
 AC_GHC_PKG_REQUIRE(zlib)
 AC_GHC_PKG_REQUIRE(hslogger)
+AC_GHC_PKG_REQUIRE(process)
+AC_GHC_PKG_REQUIRE(attoparsec)
+AC_GHC_PKG_REQUIRE(vector)
+AC_GHC_PKG_REQUIRE(text)
+AC_GHC_PKG_REQUIRE(hinotify)
+AC_GHC_PKG_REQUIRE(Crypto)
 
 # extra modules for confd functionality; also needed for tests
 HS_NODEV=
 CONFD_PKG=
-AC_GHC_PKG_CHECK([vector], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG vector"])
-
+# if a new confd dependency is needed, add it here like:
+# AC_GHC_PKG_CHECK([somepkg], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG somepkg"])
 HS_REGEX_PCRE=-DNO_REGEX_PCRE
 AC_GHC_PKG_CHECK([regex-pcre], [HS_REGEX_PCRE=],
                  [HS_NODEV=1; CONFD_PKG="$CONFD_PKG regex-pcre"])
-AC_GHC_PKG_CHECK([text], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG text"])
-AC_GHC_PKG_CHECK([hinotify], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG hinotify"])
-AC_GHC_PKG_CHECK([Crypto], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG Crypto"])
 
 has_confd=False
 if test "$enable_confd" != no; then
@@ -580,12 +583,8 @@ AM_CONDITIONAL([ENABLE_CONFD], [test x$has_confd = xTrue])
 
 #extra modules for monitoring daemon functionality; also needed for tests
 MONITORING_PKG=
-AC_GHC_PKG_CHECK([attoparsec], [],
-                 [HS_NODEV=1; MONITORING_PKG="$MONITORING_PKG attoparsec"])
 AC_GHC_PKG_CHECK([snap-server], [],
                  [NS_NODEV=1; MONITORING_PKG="$MONITORING_PKG snap-server"])
-AC_GHC_PKG_CHECK([process], [],
-                 [HS_NODEV=1; MONITORING_PKG="$MONITORING_PKG process"])
 
 has_monitoring=False
 if test "$enable_monitoring" != no; then
@@ -639,9 +638,7 @@ else
    AC_MSG_NOTICE([Haskell development modules found, unittests enabled])
 fi
 AC_SUBST(HS_NODEV)
-
-HTOOLS=yes
-AC_SUBST(HTOOLS)
+AM_CONDITIONAL([HS_UNIT], [test -n $HS_NODEV])
 
 # Check for HsColour
 HS_APIDOC=no
@@ -671,12 +668,6 @@ if test -z "$HLINT"; then
   AC_MSG_WARN([hlint not found, checking code will not be possible])
 fi
 
-if test "$HTOOLS" != yes && test "$ENABLE_CONFD" = True; then
-  AC_MSG_ERROR(m4_normalize([cannot enable ganeti-confd if
-                             htools support is not enabled]))
-fi
-
-AM_CONDITIONAL([WANT_HTOOLS], [test "$HTOOLS" = yes])
 AM_CONDITIONAL([WANT_HSTESTS], [test "x$HS_NODEV" = x])
 AM_CONDITIONAL([WANT_HSAPIDOC], [test "$HS_APIDOC" = yes])
 AM_CONDITIONAL([HAS_HLINT], [test "$HLINT"])

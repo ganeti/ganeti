@@ -848,10 +848,9 @@ def main():
   WriteHaskellCompletion(sw, "daemons/ganeti-cleaner", htools=False,
                          debug=not options.compact)
 
-  # htools, if enabled
-  if _constants.HTOOLS:
-    for script in _constants.HTOOLS_PROGS:
-      WriteHaskellCompletion(sw, script, htools=True, debug=debug)
+  # htools
+  for script in _constants.HTOOLS_PROGS:
+    WriteHaskellCompletion(sw, script, htools=True, debug=debug)
 
   # ganeti-confd, if enabled
   if _constants.ENABLE_CONFD:
