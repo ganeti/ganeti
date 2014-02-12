@@ -402,11 +402,20 @@ def UpgradeAll(config_data):
 # DOWNGRADE ------------------------------------------------------------
 
 
+def DowngradeCluster(config_data):
+  cluster = config_data.get("cluster", None)
+  if not cluster:
+    raise Error("Cannot find the 'cluster' key in the configuration")
+
+  if "osparams_private_cluster" in cluster:
+    del cluster["osparams_private_cluster"]
+
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
+  DowngradeCluster(config_data)
 
 
 def main():
