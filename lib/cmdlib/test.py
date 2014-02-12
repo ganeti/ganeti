@@ -52,35 +52,33 @@ class LUTestDelay(NoHooksLU):
     This expands the node list, if any.
 
     """
-    self.needed_locks = {}
-
-    if self.op.on_nodes or self.op.on_master:
-      self.needed_locks[locking.LEVEL_NODE] = []
-
+    self.op.on_node_uuids = []
     if self.op.on_nodes:
       # _GetWantedNodes can be used here, but is not always appropriate to use
       # this way in ExpandNames. Check LogicalUnit.ExpandNames docstring for
       # more information.
       (self.op.on_node_uuids, self.op.on_nodes) = \
         GetWantedNodes(self, self.op.on_nodes)
-      self.needed_locks[locking.LEVEL_NODE].extend(self.op.on_node_uuids)
 
-    if self.op.on_master:
-      # The node lock should be acquired for the master as well.
-      self.needed_locks[locking.LEVEL_NODE].append(self.cfg.GetMasterNode())
+    master_uuid = self.cfg.GetMasterNode()
+    if self.op.on_master and master_uuid not in self.op.on_node_uuids:
+      self.op.on_node_uuids.append(master_uuid)
+
+    self.needed_locks = {}
+    self.needed_locks[locking.LEVEL_NODE] = self.op.on_node_uuids
 
   def _TestDelay(self):
     """Do the actual sleep.
 
     """
-    if self.op.on_master:
-      if not utils.TestDelay(self.op.duration)[0]:
-        raise errors.OpExecError("Error during master delay test")
     if self.op.on_node_uuids:
       result = self.rpc.call_test_delay(self.op.on_node_uuids, self.op.duration)
       for node_uuid, node_result in result.items():
         node_result.Raise("Failure during rpc call to node %s" %
                           self.cfg.GetNodeName(node_uuid))
+    else:
+      if not utils.TestDelay(self.op.duration)[0]:
+        raise errors.OpExecError("Error during master delay test")
 
   def Exec(self, feedback_fn):
     """Execute the test delay opcode, with the wanted repetitions.
