@@ -1049,7 +1049,7 @@ def TestClusterRenewCrypto():
     # Ensure certificate doesn't cause "gnt-cluster verify" to complain
     validity = constants.SSL_CERT_EXPIRATION_WARN * 3
 
-    utils.GenerateSelfSignedSslCert(fh.name, validity=validity)
+    utils.GenerateSelfSignedSslCert(fh.name, 1, validity=validity)
 
     tmpcert = qa_utils.UploadFile(master.primary, fh.name)
     try:

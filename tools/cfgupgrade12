@@ -405,7 +405,7 @@ def main():
     if not options.dry_run:
       if not os.path.exists(options.RAPI_CERT_FILE):
         logging.debug("Writing RAPI certificate to %s", options.RAPI_CERT_FILE)
-        utils.GenerateSelfSignedSslCert(options.RAPI_CERT_FILE)
+        utils.GenerateSelfSignedSslCert(options.RAPI_CERT_FILE, 1)
 
   except:
     logging.critical("Writing configuration failed. It is probably in an"

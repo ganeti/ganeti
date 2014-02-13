@@ -25,12 +25,18 @@
 import logging
 import OpenSSL
 import os
+import uuid as uuid_module
 
 from ganeti.utils import io
 from ganeti.utils import x509
 from ganeti import constants
 from ganeti import errors
 from ganeti import pathutils
+
+
+def UuidToInt(uuid):
+  uuid_obj = uuid_module.UUID(uuid)
+  return uuid_obj.int # pylint: disable=E1101
 
 
 def AddNodeToCandidateCerts(node_uuid, cert_digest, candidate_certs,
@@ -94,13 +100,15 @@ def GetCertificateDigest(cert_filename=pathutils.NODED_CLIENT_CERT_FILE):
   return cert.digest("sha1")
 
 
-def GenerateNewSslCert(new_cert, cert_filename, log_msg):
+def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg):
   """Creates a new SSL certificate and backups the old one.
 
   @type new_cert: boolean
   @param new_cert: whether a new certificate should be created
   @type cert_filename: string
   @param cert_filename: filename of the certificate file
+  @type serial_no: int
+  @param serial_no: serial number of the certificate
   @type log_msg: string
   @param log_msg: log message to be written on certificate creation
 
@@ -111,7 +119,7 @@ def GenerateNewSslCert(new_cert, cert_filename, log_msg):
       io.CreateBackup(cert_filename)
 
     logging.debug(log_msg)
-    x509.GenerateSelfSignedSslCert(cert_filename)
+    x509.GenerateSelfSignedSslCert(cert_filename, serial_no)
 
 
 def VerifyCertificate(filename):

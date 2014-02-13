@@ -97,7 +97,7 @@ def main():
   elif what == "connected":
     WaitForConnected(filename)
   elif what == "gencert":
-    utils.GenerateSelfSignedSslCert(filename, validity=VALIDITY)
+    utils.GenerateSelfSignedSslCert(filename, 1, validity=VALIDITY)
   else:
     raise Exception("Unknown command '%s'" % what)
 

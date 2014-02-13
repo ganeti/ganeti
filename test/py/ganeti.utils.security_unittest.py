@@ -33,6 +33,13 @@ from ganeti.utils import security
 import testutils
 
 
+class TestUuidConversion(unittest.TestCase):
+
+  def testUuidConversion(self):
+    uuid_as_int = security.UuidToInt("5cd037f4-9587-49c4-a23e-142f8b7e909d")
+    self.assertEqual(uuid_as_int, int(uuid_as_int))
+
+
 class TestCandidateCerts(unittest.TestCase):
 
   def setUp(self):

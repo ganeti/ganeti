@@ -97,7 +97,7 @@ class TestGetCryptoTokens(testutils.GanetiTestCase):
   def testCreateSslToken(self):
     result = backend.GetCryptoTokens(
       [(constants.CRYPTO_TYPE_SSL_DIGEST, constants.CRYPTO_ACTION_CREATE,
-        None)])
+        {constants.CRYPTO_OPTION_SERIAL_NO: 42})])
     self.assertTrue((constants.CRYPTO_TYPE_SSL_DIGEST, self._ssl_digest)
                     in result)
     self.assertTrue(utils.GenerateNewSslCert.assert_calls().once())
@@ -106,7 +106,16 @@ class TestGetCryptoTokens(testutils.GanetiTestCase):
     result = backend.GetCryptoTokens(
       [(constants.CRYPTO_TYPE_SSL_DIGEST, constants.CRYPTO_ACTION_CREATE,
         {constants.CRYPTO_OPTION_CERT_FILE:
-          pathutils.NODED_CLIENT_CERT_FILE_TMP})])
+          pathutils.NODED_CLIENT_CERT_FILE_TMP,
+         constants.CRYPTO_OPTION_SERIAL_NO: 42})])
+    self.assertTrue((constants.CRYPTO_TYPE_SSL_DIGEST, self._ssl_digest)
+                    in result)
+    self.assertTrue(utils.GenerateNewSslCert.assert_calls().once())
+
+  def testCreateSslTokenSerialNo(self):
+    result = backend.GetCryptoTokens(
+      [(constants.CRYPTO_TYPE_SSL_DIGEST, constants.CRYPTO_ACTION_CREATE,
+        {constants.CRYPTO_OPTION_SERIAL_NO: 42})])
     self.assertTrue((constants.CRYPTO_TYPE_SSL_DIGEST, self._ssl_digest)
                     in result)
     self.assertTrue(utils.GenerateNewSslCert.assert_calls().once())
