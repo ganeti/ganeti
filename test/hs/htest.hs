@@ -56,6 +56,7 @@ import Test.Ganeti.JSON
 import Test.Ganeti.Jobs
 import Test.Ganeti.JQueue
 import Test.Ganeti.Kvmd
+import Test.Ganeti.Locking.Allocation
 import Test.Ganeti.Luxi
 import Test.Ganeti.Network
 import Test.Ganeti.Objects
@@ -121,6 +122,7 @@ allTests =
   , testJobs
   , testJQueue
   , testKvmd
+  , testLocking_Allocation
   , testLuxi
   , testNetwork
   , testObjects

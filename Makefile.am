@@ -147,6 +147,7 @@ HS_DIRS = \
 	test/hs/Test/Ganeti/HTools/Backend \
 	test/hs/Test/Ganeti/Hypervisor \
 	test/hs/Test/Ganeti/Hypervisor/Xen \
+	test/hs/Test/Ganeti/Locking \
 	test/hs/Test/Ganeti/Query \
 	test/hs/Test/Ganeti/THH
 
@@ -809,6 +810,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/JQueue.hs \
 	test/hs/Test/Ganeti/Kvmd.hs \
 	test/hs/Test/Ganeti/Luxi.hs \
+        test/hs/Test/Ganeti/Locking/Allocation.hs \
 	test/hs/Test/Ganeti/Network.hs \
 	test/hs/Test/Ganeti/Objects.hs \
 	test/hs/Test/Ganeti/OpCodes.hs \
