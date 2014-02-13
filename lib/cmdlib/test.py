@@ -37,6 +37,62 @@ from ganeti.cmdlib.common import ExpandInstanceUuidAndName, GetWantedNodes, \
   GetWantedInstances
 
 
+class TestSocketWrapper(object):
+  """ Utility class that opens a domain socket and cleans up as needed.
+
+  """
+  def __init__(self):
+    """ Constructor cleaning up variables to be used.
+
+    """
+    self.tmpdir = None
+    self.sock = None
+
+  def Create(self, max_connections=1):
+    """ Creates a bound and ready socket, cleaning up in case of failure.
+
+    @type max_connections: int
+    @param max_connections: The number of max connections allowed for the
+                            socket.
+
+    @rtype: tuple of socket, string
+    @return: The socket object and the path to reach it with.
+
+    """
+    # Using a temporary directory as there's no easy way to create temporary
+    # sockets without writing a custom loop around tempfile.mktemp and
+    # socket.bind
+    self.tmpdir = tempfile.mkdtemp()
+    try:
+      tmpsock = utils.PathJoin(self.tmpdir, "sock")
+      logging.debug("Creating temporary socket at %s", tmpsock)
+      self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+      try:
+        self.sock.bind(tmpsock)
+        self.sock.listen(max_connections)
+      except:
+        self.sock.close()
+        raise
+    except:
+      shutil.rmtree(self.tmpdir)
+      raise
+
+    return self.sock, tmpsock
+
+  def Destroy(self):
+    """ Destroys the socket and performs all necessary cleanup.
+
+    """
+    if self.tmpdir is None or self.sock is None:
+      raise Exception("A socket must be created successfully before attempting "
+                      "its destruction")
+
+    try:
+      self.sock.close()
+    finally:
+      shutil.rmtree(self.tmpdir)
+
+
 class LUTestDelay(NoHooksLU):
   """Sleep for a specified amount of time.
 
@@ -118,33 +174,23 @@ class LUTestJqueue(NoHooksLU):
     @param errcls: Exception class to use for errors
 
     """
+
     # Using a temporary directory as there's no easy way to create temporary
     # sockets without writing a custom loop around tempfile.mktemp and
     # socket.bind
-    tmpdir = tempfile.mkdtemp()
+
+    socket_wrapper = TestSocketWrapper()
+    sock, path = socket_wrapper.Create()
+
+    cb(path)
+
     try:
-      tmpsock = utils.PathJoin(tmpdir, "sock")
-
-      logging.debug("Creating temporary socket at %s", tmpsock)
-      sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-      try:
-        sock.bind(tmpsock)
-        sock.listen(1)
-
-        # Send details to client
-        cb(tmpsock)
-
-        # Wait for client to connect before continuing
-        sock.settimeout(cls._CLIENT_CONNECT_TIMEOUT)
-        try:
-          (conn, _) = sock.accept()
-        except socket.error, err:
-          raise errcls("Client didn't connect in time (%s)" % err)
-      finally:
-        sock.close()
+      sock.settimeout(cls._CLIENT_CONNECT_TIMEOUT)
+      (conn, _) = sock.accept()
+    except socket.error, err:
+      raise errcls("Client didn't connect in time (%s)" % err)
     finally:
-      # Remove as soon as client is connected
-      shutil.rmtree(tmpdir)
+      socket_wrapper.Destroy()
 
     # Wait for client to close
     try:
