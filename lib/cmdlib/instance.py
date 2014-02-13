@@ -757,9 +757,19 @@ class LUInstanceCreate(LogicalUnit):
       for idx in range(constants.MAX_NICS):
         if einfo.has_option(constants.INISECT_INS, "nic%d_mac" % idx):
           ndict = {}
-          for name in list(constants.NICS_PARAMETERS) + ["ip", "mac"]:
+          for name in [constants.INIC_IP, constants.INIC_MAC]:
             v = einfo.get(constants.INISECT_INS, "nic%d_%s" % (idx, name))
             ndict[name] = v
+          network = einfo.get(constants.INISECT_INS,
+                              "nic%d_%s" % (idx, constants.INIC_NETWORK))
+          # in case network is given link and mode are inherited
+          # from nodegroup's netparams and thus should not be passed here
+          if network:
+            ndict[constants.INIC_NETWORK] = network
+          else:
+            for name in list(constants.NICS_PARAMETERS):
+              v = einfo.get(constants.INISECT_INS, "nic%d_%s" % (idx, name))
+              ndict[name] = v
           nics.append(ndict)
         else:
           break
