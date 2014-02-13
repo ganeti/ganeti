@@ -744,6 +744,7 @@ $(THH.declareLADT ''String "ELogType"
   [ ("ELogMessage",      "message")
   , ("ELogRemoteImport", "remote-import")
   , ("ELogJqueueTest",   "jqueue-test")
+  , ("ELogDelayTest",    "delay-test")
   ])
 $(THH.makeJSONInstance ''ELogType)
 

@@ -3376,6 +3376,9 @@ elogRemoteImport = Types.eLogTypeToRaw ELogRemoteImport
 elogJqueueTest :: String
 elogJqueueTest = Types.eLogTypeToRaw ELogJqueueTest
 
+elogDelayTest :: String
+elogDelayTest = Types.eLogTypeToRaw ELogDelayTest
+
 -- * /etc/hosts modification
 
 etcHostsAdd :: String
