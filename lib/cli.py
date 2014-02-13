@@ -3615,7 +3615,7 @@ def GetNodesSshPorts(nodes, cl):
   @param nodes: the names of nodes
   @type nodes: a list of strings
   @param cl: a client to use for the query
-  @type cl: L{Client}
+  @type cl: L{ganeti.luxi.Client}
   @return: the list of SSH ports corresponding to the nodes
   @rtype: a list of tuples
   """
