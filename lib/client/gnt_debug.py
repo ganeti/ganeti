@@ -65,7 +65,8 @@ def Delay(opts, args):
   op = opcodes.OpTestDelay(duration=delay,
                            on_master=opts.on_master,
                            on_nodes=opts.on_nodes,
-                           repeat=opts.repeat)
+                           repeat=opts.repeat,
+                           interruptible=opts.interruptible)
   SubmitOrSend(op, opts)
 
   return 0
@@ -661,6 +662,10 @@ commands = {
                 action="append", help="Select nodes to sleep on"),
      cli_option("-r", "--repeat", type="int", default="0", dest="repeat",
                 help="Number of times to repeat the sleep"),
+     cli_option("-i", "--interruptible", default=False, dest="interruptible",
+                action="store_true",
+                help="Allows the opcode to be interrupted by using a domain "
+                     "socket"),
      DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "[opts...] <duration>", "Executes a TestDelay OpCode"),
   "submit-job": (
