@@ -745,7 +745,12 @@ class LUInstanceCreate(LogicalUnit):
       for idx in range(constants.MAX_DISKS):
         if einfo.has_option(constants.INISECT_INS, "disk%d_size" % idx):
           disk_sz = einfo.getint(constants.INISECT_INS, "disk%d_size" % idx)
-          disks.append({constants.IDISK_SIZE: disk_sz})
+          disk_name = einfo.get(constants.INISECT_INS, "disk%d_name" % idx)
+          disk = {
+            constants.IDISK_SIZE: disk_sz,
+            constants.IDISK_NAME: disk_name
+            }
+          disks.append(disk)
       self.op.disks = disks
       if not disks and self.op.disk_template != constants.DT_DISKLESS:
         raise errors.OpPrereqError("No disk info specified and the export"
@@ -757,7 +762,8 @@ class LUInstanceCreate(LogicalUnit):
       for idx in range(constants.MAX_NICS):
         if einfo.has_option(constants.INISECT_INS, "nic%d_mac" % idx):
           ndict = {}
-          for name in [constants.INIC_IP, constants.INIC_MAC]:
+          for name in [constants.INIC_IP,
+                       constants.INIC_MAC, constants.INIC_NAME]:
             v = einfo.get(constants.INISECT_INS, "nic%d_%s" % (idx, name))
             ndict[name] = v
           network = einfo.get(constants.INISECT_INS,
