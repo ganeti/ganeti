@@ -444,7 +444,7 @@ def TestJobqueue(opts, _):
       "Hello World",
       "A",
       "",
-      "B"
+      "B",
       "Foo|bar|baz",
       utils.TimestampForFilename(),
       ]
