@@ -1074,7 +1074,12 @@ def TestClusterRenewCrypto():
     # Normal case
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
                    "--new-cluster-certificate", "--new-confd-hmac-key",
-                   "--new-rapi-certificate", "--new-cluster-domain-secret"])
+                   "--new-rapi-certificate", "--new-cluster-domain-secret",
+                   "--new-node-certificates"])
+
+    # Only renew node certificates
+    AssertCommand(["gnt-cluster", "renew-crypto", "--force",
+                   "--new-node-certificates"])
 
     # Restore RAPI certificate
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
