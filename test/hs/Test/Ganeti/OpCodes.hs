@@ -125,7 +125,7 @@ instance Arbitrary OpCodes.OpCode where
     case op_id of
       "OP_TEST_DELAY" ->
         OpCodes.OpTestDelay <$> arbitrary <*> arbitrary <*>
-          genNodeNamesNE <*> return Nothing <*> arbitrary
+          genNodeNamesNE <*> return Nothing <*> arbitrary <*> arbitrary
       "OP_INSTANCE_REPLACE_DISKS" ->
         OpCodes.OpInstanceReplaceDisks <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary <*> genDiskIndices <*>

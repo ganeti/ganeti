@@ -823,6 +823,7 @@ $(genOpCode "OpCode"
      , pDelayOnNodes
      , pDelayOnNodeUuids
      , pDelayRepeat
+     , pDelayInterruptible
      ],
      "duration")
   , ("OpTestAllocator",

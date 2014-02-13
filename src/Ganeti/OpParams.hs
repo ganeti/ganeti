@@ -228,6 +228,7 @@ module Ganeti.OpParams
   , pDelayOnNodes
   , pDelayOnNodeUuids
   , pDelayRepeat
+  , pDelayInterruptible
   , pIAllocatorDirection
   , pIAllocatorMode
   , pIAllocatorReqName
@@ -1531,6 +1532,13 @@ pDelayRepeat =
   renameField "DelayRepeat" .
   defaultField [| forceNonNeg (0::Int) |] $
   simpleField "repeat" [t| NonNegative Int |]
+
+pDelayInterruptible :: Field
+pDelayInterruptible =
+  withDoc "Allows socket-based interruption of a running OpTestDelay" .
+  renameField "DelayInterruptible" .
+  defaultField [| False |] $
+  simpleField "interruptible" [t| Bool |]
 
 pIAllocatorDirection :: Field
 pIAllocatorDirection =

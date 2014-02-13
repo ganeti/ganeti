@@ -427,6 +427,7 @@ doRepair client delay instData (rtype, opcodes) =
                             , opDelayOnNodes = []
                             , opDelayOnNodeUuids = Nothing
                             , opDelayRepeat = fromJust $ mkNonNegative 0
+                            , opDelayInterruptible = False
                             } : opcodes
               else
                 opcodes
