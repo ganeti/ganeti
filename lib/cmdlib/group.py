@@ -37,7 +37,7 @@ from ganeti.cmdlib.common import MergeAndVerifyHvState, \
   ComputeNewInstanceViolations, GetDefaultIAllocator, ShareAll, \
   CheckInstancesNodeGroups, LoadNodeEvacResult, MapInstanceLvsToNodes, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
-  CheckDiskAccessModeConsistency, OpConnectInstanceCommunicationNetwork
+  CheckDiskAccessModeConsistency, ConnectInstanceCommunicationNetworkOp
 
 import ganeti.masterd.instance
 
@@ -163,7 +163,7 @@ class LUGroupAdd(LogicalUnit):
       network_exists = False
 
     if network_exists:
-      op = OpConnectInstanceCommunicationNetwork(group_uuid, network_name)
+      op = ConnectInstanceCommunicationNetworkOp(group_uuid, network_name)
       return ResultWithJobs([[op]])
     else:
       return None

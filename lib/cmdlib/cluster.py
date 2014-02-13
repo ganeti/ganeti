@@ -57,7 +57,7 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
   CheckDiskAccessModeConsistency, CreateNewClientCert, \
-  OpAddInstanceCommunicationNetwork, OpConnectInstanceCommunicationNetwork
+  AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp
 
 import ganeti.masterd.instance
 
@@ -1392,7 +1392,7 @@ class LUClusterSetParams(LogicalUnit):
       network_exists = False
 
     if not network_exists:
-      jobs.append(OpAddInstanceCommunicationNetwork(network_name))
+      jobs.append(AddInstanceCommunicationNetworkOp(network_name))
 
     for group_uuid in cfg.GetNodeGroupList():
       group = cfg.GetNodeGroup(group_uuid)
@@ -1407,7 +1407,7 @@ class LUClusterSetParams(LogicalUnit):
         network_connected = False
 
       if not network_connected:
-        op = OpConnectInstanceCommunicationNetwork(group_uuid, network_name)
+        op = ConnectInstanceCommunicationNetworkOp(group_uuid, network_name)
         jobs.append(op)
 
     if jobs:

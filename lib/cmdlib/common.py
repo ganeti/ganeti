@@ -1287,8 +1287,8 @@ def CreateNewClientCert(lu, node_uuid, filename=None):
   return new_digest
 
 
-def OpAddInstanceCommunicationNetwork(network):
-  """Create OpCode that adds the instance communication network.
+def AddInstanceCommunicationNetworkOp(network):
+  """Create an OpCode that adds the instance communication network.
 
   This OpCode contains the configuration necessary for the instance
   communication network.
@@ -1312,9 +1312,9 @@ def OpAddInstanceCommunicationNetwork(network):
     tags=[])
 
 
-def OpConnectInstanceCommunicationNetwork(group_uuid, network):
-  """Create OpCode that connects a group to the instance communication
-  network.
+def ConnectInstanceCommunicationNetworkOp(group_uuid, network):
+  """Create an OpCode that connects a group to the instance
+  communication network.
 
   This OpCode contains the configuration necessary for the instance
   communication network.
