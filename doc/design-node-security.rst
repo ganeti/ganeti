@@ -105,8 +105,8 @@ distribution to master candidates only.
 (Re-)Adding nodes to a cluster
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-According to ``design-node-add.rst``, Ganeti transfers the ssh keys to every
-node that gets added to the cluster.
+According to :doc:`design-node-add`, Ganeti transfers the ssh keys to
+every node that gets added to the cluster.
 
 We propose to change this procedure to treat master candidates and normal
 nodes differently. For master candidates, the procedure would stay as is.
@@ -192,7 +192,10 @@ in the design.
 - Instead of using the same certificate for all nodes as both, server
   and client certificate, we generate a common server certificate (and
   the corresponding private key) for all nodes and a different client
-  certificate (and the corresponding private key) for each node.
+  certificate (and the corresponding private key) for each node. All
+  those certificates will be self-signed for now. The client
+  certificates will use the node UUID as serial number to ensure
+  uniqueness within the cluster.
 - In addition, we store a mapping of
   (node UUID, client certificate digest) in the cluster's configuration
   and ssconf for hosts that are master or master candidate.
@@ -248,6 +251,9 @@ Drawbacks of this design:
   design (limiting ssh keys to master candidates), but it will be
   eliminated with the second part of the design (separate ssh keys for
   each master candidate).
+- Even though this proposal is an improvement towards the previous
+  situation in Ganeti, it still does not use the full power of SSL. For
+  further improvements, see Section "Related and future work".
 
 Alternative proposals:
 
@@ -379,7 +385,7 @@ in this design so far. Also, other daemons than the ones mentioned so far
 perform intra-cluster communication. Neither the keys nor the daemons will
 be affected by this design for several reasons:
 
-- The hmac key used by ConfD (see ``design-2.1.rst``): the hmac key is still
+- The hmac key used by ConfD (see :doc:`design-2.1`): the hmac key is still
   distributed to all nodes, because it was designed to be used for
   communicating with ConfD, which should be possible from all nodes.
   For example, the monitoring daemon which runs on all nodes uses it to
@@ -392,7 +398,7 @@ be affected by this design for several reasons:
   RPC requests is maintained with this design.
 
 - The rapi SSL key certificate and rapi user/password file 'rapi_users' is
-  already only copied to the master candidates (see ``design-2.1.rst``,
+  already only copied to the master candidates (see :doc:`design-2.1`,
   Section ``Redistribute Config``).
 
 - The spice certificates are still distributed to all nodes, since it should
@@ -407,9 +413,51 @@ be affected by this design for several reasons:
 Related and Future Work
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-Ganeti RPC calls are currently done without server verification.
-Establishing server verification might be a desirable feature, but is
-not part of this design.
+There a couple of suggestions on how to improve the SSL setup even more.
+As a trade-off wrt to complexity and implementation effort, we did not
+implement them yet (as of version 2.11) but describe them here for
+future reference.
+
+- All SSL certificates that Ganeti uses so far are self-signed. It would
+  increase the security if they were signed by a common CA. There is
+  already a design doc for a Ganeti CA which was suggested in a
+  different context (related to import/export). This would also be a
+  benefit for the RPC calls. See design doc :doc:`design-impexp2` for
+  more information. Implementing a CA is rather complex, because it
+  would mean also to support renewing the CA certificate and providing
+  and supporting infrastructure to revoke compromised certificates.
+- An extension of the previous suggestion would be to even enable the
+  system administrator to use an external CA. Especially in bigger
+  setups, where already an SSL infrastructure exists, it would be useful
+  if Ganeti can simply be integrated with it, rather than forcing the
+  user to use the Ganeti CA.
+- A lighter version of using a CA would be to use the server certificate
+  to sign the client certificate instead of using self-signed
+  certificates for both. The probleme here is that this would make
+  renewing the server certificate rather complicated, because all client
+  certificates would need to be resigned and redistributed as well,
+  which leads to interesting chicken-and-egg problems when this is done
+  via RPC calls.
+- Ganeti RPC calls are currently done without checking if the hostname
+  of the node complies with the common name of the certificate. This
+  might be a desirable feature, but would increase the effort when a
+  node is renamed.
+- The typical use case for SSL is to have one certificate per node
+  rather than one shared certificate (Ganeti's noded server certificate)
+  and a client certificate. One could change the design in a way that
+  only one certificate per node is used, but this would require a common
+  CA so that the validity of the certificate can be established by every
+  node in the cluster.
+- With the proposed design, the serial numbers of the client
+  certificates are set to the node UUIDs. This is technically also not
+  complying to how SSL is supposed to be used, as the serial numbers
+  should reflect the enumeration of certificates created by the CA. Once
+  a CA is implemented, it might be reasonable to change this
+  accordingly. The implementation of the proposed design also has the
+  drawback of the serial number not changing even if the certificate is
+  replaced by a new one (for example when calling ``gnt-cluster renew-
+  crypt``), which also does not comply to way SSL was designed to be
+  used.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
