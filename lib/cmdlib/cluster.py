@@ -3189,6 +3189,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     feedback_fn("* Verifying configuration file consistency")
 
+    self._VerifyClientCertificates(self.my_node_info.values(), all_nvinfo)
     # If not all nodes are being checked, we need to make sure the master node
     # and a non-checked vm_capable node are in the list.
     absent_node_uuids = set(self.all_node_info).difference(self.my_node_info)

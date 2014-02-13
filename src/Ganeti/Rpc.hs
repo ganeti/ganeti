@@ -90,6 +90,7 @@ import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 import qualified Data.ByteString.Base64.Lazy as Base64
+import System.Directory
 
 import Network.Curl hiding (content)
 import qualified Ganeti.Path as P
@@ -228,8 +229,15 @@ getOptionsForCall cert_path client_cert_path call =
 executeRpcCalls :: (Rpc a b) => [(Node, a)] -> IO [(Node, ERpcError b)]
 executeRpcCalls nodeCalls = do
   cert_file <- P.nodedCertFile
-  let (nodes, calls) = unzip nodeCalls
-      opts = map (getOptionsForCall cert_file cert_file) calls
+  client_cert_file_name <- P.nodedClientCertFile
+  client_file_exists <- doesFileExist client_cert_file_name
+  -- FIXME: This is needed to ensure upgradability to 2.11
+  -- Remove in 2.12.
+  let client_cert_file = if client_file_exists
+                         then client_cert_file_name
+                         else cert_file
+      (nodes, calls) = unzip nodeCalls
+      opts = map (getOptionsForCall cert_file client_cert_file) calls
       opts_urls = zipWith3 (\n c o ->
                          case prepareHttpRequest o n c of
                            Left v -> Left v

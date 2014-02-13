@@ -1085,6 +1085,140 @@ class TestLUClusterVerifyGroup(CmdlibTestCase):
     self.ExecOpCode(op)
 
 
+class TestLUClusterVerifyClientCerts(CmdlibTestCase):
+
+  def _AddNormalNode(self):
+    self.normalnode = copy.deepcopy(self.master)
+    self.normalnode.master_candidate = False
+    self.normalnode.uuid = "normal-node-uuid"
+    self.cfg.AddNode(self.normalnode, None)
+
+  def testVerifyMasterCandidate(self):
+    client_cert = "client-cert-digest"
+    self.cluster.candidate_certs = {self.master.uuid: client_cert}
+    self.rpc.call_node_verify.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master,
+          {constants.NV_CLIENT_CERT: (None, client_cert)}) \
+        .Build()
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+    self.ExecOpCode(op)
+
+  def testVerifyMasterCandidateInvalid(self):
+    client_cert = "client-cert-digest"
+    self.cluster.candidate_certs = {self.master.uuid: client_cert}
+    self.rpc.call_node_verify.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master,
+          {constants.NV_CLIENT_CERT: (666, "Invalid Certificate")}) \
+        .Build()
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex("Client certificate")
+    self.mcpu.assertLogContainsRegex("failed validation")
+
+  def testVerifyNoMasterCandidateMap(self):
+    client_cert = "client-cert-digest"
+    self.cluster.candidate_certs = {}
+    self.rpc.call_node_verify.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master,
+          {constants.NV_CLIENT_CERT: (None, client_cert)}) \
+        .Build()
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex(
+      "list of master candidate certificates is empty")
+
+  def testVerifyNoSharingMasterCandidates(self):
+    client_cert = "client-cert-digest"
+    self.cluster.candidate_certs = {
+      self.master.uuid: client_cert,
+      "some-other-master-candidate-uuid": client_cert}
+    self.rpc.call_node_verify.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master,
+          {constants.NV_CLIENT_CERT: (None, client_cert)}) \
+        .Build()
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex(
+      "two master candidates configured to use the same")
+
+  def testVerifyMasterCandidateCertMismatch(self):
+    client_cert = "client-cert-digest"
+    self.cluster.candidate_certs = {self.master.uuid: "different-cert-digest"}
+    self.rpc.call_node_verify.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master,
+          {constants.NV_CLIENT_CERT: (None, client_cert)}) \
+        .Build()
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex("does not match its entry")
+
+  def testVerifyMasterCandidateUnregistered(self):
+    client_cert = "client-cert-digest"
+    self.cluster.candidate_certs = {"other-node-uuid": "different-cert-digest"}
+    self.rpc.call_node_verify.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master,
+          {constants.NV_CLIENT_CERT: (None, client_cert)}) \
+        .Build()
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex("does not have an entry")
+
+  def testVerifyMasterCandidateOtherNodesCert(self):
+    client_cert = "client-cert-digest"
+    self.cluster.candidate_certs = {"other-node-uuid": client_cert}
+    self.rpc.call_node_verify.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master,
+          {constants.NV_CLIENT_CERT: (None, client_cert)}) \
+        .Build()
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex("using a certificate of another node")
+
+  def testNormalNodeStillInList(self):
+    self._AddNormalNode()
+    client_cert_master = "client-cert-digest-master"
+    client_cert_normal = "client-cert-digest-normal"
+    self.cluster.candidate_certs = {
+      self.normalnode.uuid: client_cert_normal,
+      self.master.uuid: client_cert_master}
+    self.rpc.call_node_verify.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.normalnode,
+          {constants.NV_CLIENT_CERT: (None, client_cert_normal)}) \
+        .AddSuccessfulNode(self.master,
+          {constants.NV_CLIENT_CERT: (None, client_cert_master)}) \
+        .Build()
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex("not a master candidate")
+    self.mcpu.assertLogContainsRegex("still listed")
+
+  def testNormalNodeStealingMasterCandidateCert(self):
+    self._AddNormalNode()
+    client_cert_master = "client-cert-digest-master"
+    self.cluster.candidate_certs = {
+      self.master.uuid: client_cert_master}
+    self.rpc.call_node_verify.return_value = \
+      RpcResultsBuilder() \
+        .AddSuccessfulNode(self.normalnode,
+          {constants.NV_CLIENT_CERT: (None, client_cert_master)}) \
+        .AddSuccessfulNode(self.master,
+          {constants.NV_CLIENT_CERT: (None, client_cert_master)}) \
+        .Build()
+    op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex("not a master candidate")
+    self.mcpu.assertLogContainsRegex(
+      "certificate of another node which is master candidate")
+
+
 class TestLUClusterVerifyGroupMethods(CmdlibTestCase):
   """Base class for testing individual methods in LUClusterVerifyGroup.
 
