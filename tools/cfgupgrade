@@ -413,7 +413,7 @@ def DowngradeCluster(config_data):
 
 def DowngradeInstances(config_data):
   instances = config_data.get("instances", None)
-  if not instances:
+  if instances is None:
     raise Error("Cannot find the 'instances' key in the configuration")
   for (_, iobj) in instances.items():
     if "osparams_private" in iobj:
