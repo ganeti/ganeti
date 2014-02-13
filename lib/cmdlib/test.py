@@ -25,6 +25,7 @@ import logging
 import shutil
 import socket
 import tempfile
+import time
 
 from ganeti import compat
 from ganeti import constants
@@ -127,8 +128,53 @@ class LUTestDelay(NoHooksLU):
     self.needed_locks = {}
     self.needed_locks[locking.LEVEL_NODE] = self.op.on_node_uuids
 
-  def _TestDelay(self):
-    """Do the actual sleep.
+  def _InterruptibleDelay(self):
+    """Delays but provides the mechanisms necessary to interrupt the delay as
+    needed.
+
+    """
+    socket_wrapper = TestSocketWrapper()
+    sock, path = socket_wrapper.Create()
+
+    self.Log(constants.ELOG_DELAY_TEST, (path,))
+
+    try:
+      sock.settimeout(self.op.duration)
+      start = time.time()
+      (conn, _) = sock.accept()
+    except socket.timeout, _:
+      # If we timed out, all is well
+      return False
+    finally:
+      # Destroys the original socket, but the new connection is still usable
+      socket_wrapper.Destroy()
+
+    try:
+      # Change to remaining time
+      time_to_go = self.op.duration - (time.time() - start)
+      self.Log(constants.ELOG_MESSAGE,
+               "Received connection, time to go is %d" % time_to_go)
+      if time_to_go < 0:
+        time_to_go = 0
+      # pylint: disable=E1101
+      # Instance of '_socketobject' has no ... member
+      conn.settimeout(time_to_go)
+      conn.recv(1)
+      # pylint: enable=E1101
+    except socket.timeout, _:
+      # A second timeout can occur if no data is sent
+      return False
+    finally:
+      conn.close()
+
+    self.Log(constants.ELOG_MESSAGE,
+             "Interrupted, time spent waiting: %d" % (time.time() - start))
+
+    # Reaching this point means we were interrupted
+    return True
+
+  def _UninterruptibleDelay(self):
+    """Delays without allowing interruptions.
 
     """
     if self.op.on_node_uuids:
@@ -140,17 +186,32 @@ class LUTestDelay(NoHooksLU):
       if not utils.TestDelay(self.op.duration)[0]:
         raise errors.OpExecError("Error during master delay test")
 
+  def _TestDelay(self):
+    """Do the actual sleep.
+
+    @rtype: bool
+    @return: Whether the delay was interrupted
+
+    """
+    if self.op.interruptible:
+      return self._InterruptibleDelay()
+    else:
+      self._UninterruptibleDelay()
+      return False
+
   def Exec(self, feedback_fn):
     """Execute the test delay opcode, with the wanted repetitions.
 
     """
     if self.op.repeat == 0:
-      self._TestDelay()
+      i = self._TestDelay()
     else:
       top_value = self.op.repeat - 1
       for i in range(self.op.repeat):
         self.LogInfo("Test delay iteration %d/%d", i, top_value)
-        self._TestDelay()
+        # Break in case of interruption
+        if self._TestDelay():
+          break
 
 
 class LUTestJqueue(NoHooksLU):
