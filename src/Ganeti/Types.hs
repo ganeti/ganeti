@@ -645,7 +645,7 @@ $(THH.makeJSONInstance ''FinalizedJobStatus)
 
 -- | The Ganeti job type.
 newtype JobId = JobId { fromJobId :: Int }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- | Builds a job ID.
 makeJobId :: (Monad m) => Int -> m JobId
