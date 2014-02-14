@@ -2895,6 +2895,63 @@ class LUInstanceSetParams(LogicalUnit):
       CheckInstanceState(self, self.instance, CAN_CHANGE_INSTANCE_OFFLINE,
                          msg="can't change to offline")
 
+  @staticmethod
+  def _InstanceCommunicationDDM(cfg, instance_communication, instance):
+    """Create a NIC mod that adds or removes the instance
+    communication NIC to a running instance.
+
+    The NICS are dynamically created using the Dynamic Device
+    Modification (DDM).  This function produces a NIC modification
+    (mod) that inserts an additional NIC meant for instance
+    communication in or removes an existing instance communication NIC
+    from a running instance, using DDM.
+
+    @type cfg: L{config.ConfigWriter}
+    @param cfg: cluster configuration
+
+    @type instance_communication: boolean
+    @param instance_communication: whether instance communication is
+                                   enabled or disabled
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to which the NIC mod will be applied to
+
+    @rtype: (L{constants.DDM_ADD}, -1, parameters) or
+            (L{constants.DDM_REMOVE}, -1, parameters) or
+            L{None}
+    @return: DDM mod containing an action to add or remove the NIC, or
+             None if nothing needs to be done
+
+    """
+    nic_name = "%s%s" % (constants.INSTANCE_COMMUNICATION_NIC_PREFIX,
+                         instance.name)
+
+    instance_communication_nic = None
+
+    for nic in instance.nics:
+      if nic.name == nic_name:
+        instance_communication_nic = nic
+        break
+
+    if instance_communication and not instance_communication_nic:
+      action = constants.DDM_ADD
+      params = {constants.INIC_NAME: nic_name,
+                constants.INIC_MAC: constants.VALUE_GENERATE,
+                constants.INIC_IP: constants.NIC_IP_POOL,
+                constants.INIC_NETWORK:
+                  cfg.GetInstanceCommunicationNetwork()}
+    elif not instance_communication and instance_communication_nic:
+      action = constants.DDM_REMOVE
+      params = None
+    else:
+      action = None
+      params = None
+
+    if action is not None:
+      return (action, -1, params)
+    else:
+      return None
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -2953,6 +3010,14 @@ class LUInstanceSetParams(LogicalUnit):
         self.op.hotplug = True
 
     # Prepare NIC modifications
+    # add or remove NIC for instance communication
+    if self.op.instance_communication is not None:
+      mod = self._InstanceCommunicationDDM(self.cfg,
+                                           self.op.instance_communication,
+                                           self.instance)
+      if mod is not None:
+        self.op.nics.append(mod)
+
     self.nicmod = _PrepareContainerMods(self.op.nics, _InstNicModPrivate)
 
     # OS change

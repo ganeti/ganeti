@@ -688,9 +688,9 @@ def _ValidateNetmask(cfg, netmask):
   """Checks if a netmask is valid.
 
   @type cfg: L{config.ConfigWriter}
-  @param cfg: The cluster configuration
+  @param cfg: cluster configuration
   @type netmask: int
-  @param netmask: the netmask to be verified
+  @param netmask: netmask to be verified
   @raise errors.OpPrereqError: if the validation fails
 
   """
@@ -1371,8 +1371,8 @@ class LUClusterSetParams(LogicalUnit):
     instance communication network is connected to all existing node
     groups, if necessary, via the opcode 'OpNetworkConnect'.
 
-    @type cfg: L{ganeti.config.ConfigWriter}
-    @param cfg: Ganeti configuration
+    @type cfg: L{config.ConfigWriter}
+    @param cfg: cluster configuration
 
     @type network_name: string
     @param network_name: instance communication network name
@@ -1427,8 +1427,8 @@ class LUClusterSetParams(LogicalUnit):
     and connected to all groups (see
     L{LUClusterSetParams._EnsureInstanceCommunicationNetwork}).
 
-    @type cfg: L{ganeti.config.ConfigWriter}
-    @param cfg: Ganeti configuration
+    @type cfg: L{config.ConfigWriter}
+    @param cfg: cluster configuration
 
     @type cluster: L{ganeti.objects.Cluster}
     @param cluster: Ganeti cluster
