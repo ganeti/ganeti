@@ -3175,7 +3175,7 @@ class LUInstanceSetParams(LogicalUnit):
         self.cfg.ReleaseIp(net, ip, self.proc.GetECId())
 
     # Verify NIC changes (operating on copy)
-    nics = self.instance.nics[:]
+    nics = [nic.Copy() for nic in self.instance.nics]
     _ApplyContainerMods("NIC", nics, None, self.nicmod,
                         _PrepareNicCreate, _PrepareNicMod, _PrepareNicRemove)
     if len(nics) > constants.MAX_NICS:
