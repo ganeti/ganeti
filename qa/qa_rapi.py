@@ -890,6 +890,48 @@ def GetOperatingSystems():
   return _rapi_client.GetOperatingSystems()
 
 
+def _InvokeMoveInstance(current_dest_inst, current_src_inst, rapi_pw_filename,
+                        joint_master, perform_checks, target_nodes=None):
+  """ Invokes the move-instance tool for testing purposes.
+
+  """
+  # Some uses of this test might require that RAPI-only commands are used,
+  # and the checks are command-line based.
+  if perform_checks:
+    qa_utils.RunInstanceCheck(current_dest_inst, False)
+
+  cmd = [
+      "../tools/move-instance",
+      "--verbose",
+      "--src-ca-file=%s" % _rapi_ca.name,
+      "--src-username=%s" % _rapi_username,
+      "--src-password-file=%s" % rapi_pw_filename,
+      "--dest-instance-name=%s" % current_dest_inst,
+      ]
+
+  if target_nodes:
+    pnode, snode = target_nodes
+    cmd.extend([
+      "--dest-primary-node=%s" % pnode,
+      "--dest-secondary-node=%s" % snode,
+      ])
+  else:
+    cmd.append("--iallocator=%s" % constants.IALLOC_HAIL)
+
+  cmd.extend([
+    "--net=0:mac=%s" % constants.VALUE_GENERATE,
+    joint_master,
+    joint_master,
+    current_src_inst,
+    ])
+
+  AssertEqual(StartLocalCommand(cmd).wait(), 0)
+
+  if perform_checks:
+    qa_utils.RunInstanceCheck(current_src_inst, False)
+    qa_utils.RunInstanceCheck(current_dest_inst, True)
+
+
 def TestInterClusterInstanceMove(src_instance, dest_instance,
                                  inodes, tnode, perform_checks=True):
   """Test tools/move-instance"""
@@ -911,38 +953,17 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
     assert len(inodes) == 2
     snode = inodes[1]
   else:
-    # instance is not redundant, but we still need to pass a node
+    # Instance is not redundant, but we still need to pass a node
     # (which will be ignored)
     snode = tnode
   pnode = inodes[0]
-  # note: pnode:snode are the *current* nodes, so we move it first to
-  # tnode:pnode, then back to pnode:snode
-  for current_src_inst, current_dest_inst, target_pnode, target_snode in \
-    [(src_instance.name, dest_instance.name, tnode.primary, pnode.primary),
-     (dest_instance.name, src_instance.name, pnode.primary, snode.primary)]:
-    cmd = [
-      "../tools/move-instance",
-      "--verbose",
-      "--src-ca-file=%s" % _rapi_ca.name,
-      "--src-username=%s" % _rapi_username,
-      "--src-password-file=%s" % rapi_pw_file.name,
-      "--dest-instance-name=%s" % current_dest_inst,
-      "--dest-primary-node=%s" % target_pnode,
-      "--dest-secondary-node=%s" % target_snode,
-      "--net=0:mac=%s" % constants.VALUE_GENERATE,
-      master.primary,
-      master.primary,
-      current_src_inst,
-      ]
 
-    # Some uses of this test might require that RAPI-only commands are used,
-    # and the checks are command-line based.
+  # pnode:snode are the *current* nodes, so we move it first to tnode:pnode
+  _InvokeMoveInstance(dest_instance.name, src_instance.name, rapi_pw_file.name,
+                      master.primary, perform_checks,
+                      target_nodes=(tnode.primary, pnode.primary))
 
-    if perform_checks:
-      qa_utils.RunInstanceCheck(current_dest_inst, False)
-
-    AssertEqual(StartLocalCommand(cmd).wait(), 0)
-
-    if perform_checks:
-      qa_utils.RunInstanceCheck(current_src_inst, False)
-      qa_utils.RunInstanceCheck(current_dest_inst, True)
+  # And then back to pnode:snode
+  _InvokeMoveInstance(src_instance.name, dest_instance.name, rapi_pw_file.name,
+                      master.primary, perform_checks,
+                      target_nodes=(pnode.primary, snode.primary))
