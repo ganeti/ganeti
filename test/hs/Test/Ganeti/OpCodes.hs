@@ -363,6 +363,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                       -- conflicts_check
           <*> arbitrary                       -- hotplug
           <*> arbitrary                       -- hotplug_if_possible
+          <*> arbitrary                       -- instance_communication
       "OP_INSTANCE_GROW_DISK" ->
         OpCodes.OpInstanceGrowDisk <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary

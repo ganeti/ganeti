@@ -1725,7 +1725,6 @@ HOTPLUG_IF_POSSIBLE_OPT = cli_option("--hotplug-if-possible",
 
 INSTANCE_COMMUNICATION_OPT = \
     cli_option("-c", "--communication",
-               default=False,
                dest="instance_communication",
                help=constants.INSTANCE_COMMUNICATION_DOC,
                type="bool")
@@ -2776,7 +2775,10 @@ def GenericInstanceCreate(mode, opts, args):
     no_install = opts.no_install
     identify_defaults = False
     compress = constants.IEC_NONE
-    instance_communication = opts.instance_communication
+    if opts.instance_communication is None:
+      instance_communication = False
+    else:
+      instance_communication = opts.instance_communication
   elif mode == constants.INSTANCE_IMPORT:
     start = False
     os_type = None

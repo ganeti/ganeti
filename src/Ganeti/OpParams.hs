@@ -45,6 +45,7 @@ module Ganeti.OpParams
   , ExportTarget(..)
   , pInstanceName
   , pInstanceCommunication
+  , pOptInstanceCommunication
   , pInstanceUuid
   , pInstances
   , pName
@@ -1009,6 +1010,13 @@ pInstanceCommunication :: Field
 pInstanceCommunication =
   withDoc C.instanceCommunicationDoc $
   defaultFalse "instance_communication"
+
+pOptInstanceCommunication :: Field
+pOptInstanceCommunication =
+  withDoc C.instanceCommunicationDoc .
+  renameField "OptInstanceCommunication" .
+  optionalField $
+  booleanField "instance_communication"
 
 pForceVariant :: Field
 pForceVariant =

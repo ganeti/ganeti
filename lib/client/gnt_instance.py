@@ -1310,7 +1310,7 @@ def SetInstanceParams(opts, args):
   if not (opts.nics or opts.disks or opts.disk_template or opts.hvparams or
           opts.beparams or opts.os or opts.osparams or opts.osparams_private
           or opts.offline_inst or opts.online_inst or opts.runtime_mem or
-          opts.new_primary_node):
+          opts.new_primary_node or opts.instance_communication is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1356,6 +1356,8 @@ def SetInstanceParams(opts, args):
   else:
     offline = None
 
+  instance_comm = opts.instance_communication
+
   op = opcodes.OpInstanceSetParams(instance_name=args[0],
                                    nics=nics,
                                    disks=disks,
@@ -1375,7 +1377,8 @@ def SetInstanceParams(opts, args):
                                    wait_for_sync=opts.wait_for_sync,
                                    offline=offline,
                                    conflicts_check=opts.conflicts_check,
-                                   ignore_ipolicy=opts.ignore_ipolicy)
+                                   ignore_ipolicy=opts.ignore_ipolicy,
+                                   instance_communication=instance_comm)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -1573,7 +1576,7 @@ commands = {
      OSPARAMS_OPT, OSPARAMS_PRIVATE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT,
      OFFLINE_INST_OPT, ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
      NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT,
-     HOTPLUG_IF_POSSIBLE_OPT],
+     HOTPLUG_IF_POSSIBLE_OPT, INSTANCE_COMMUNICATION_OPT],
     "<instance>", "Alters the parameters of an instance"),
   "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],

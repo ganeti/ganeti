@@ -2501,7 +2501,8 @@ class LUInstanceSetParams(LogicalUnit):
     if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams or self.op.os_name or
             self.op.osparams or self.op.offline is not None or
-            self.op.runtime_mem or self.op.pnode or self.op.osparams_private):
+            self.op.runtime_mem or self.op.pnode or self.op.osparams_private or
+            self.op.instance_communication is not None):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
     if self.op.hvparams:

@@ -660,6 +660,7 @@ $(genOpCode "OpCode"
      , pIpConflictsCheck
      , pHotplug
      , pHotplugIfPossible
+     , pOptInstanceCommunication
      ],
      "instance_name")
   , ("OpInstanceGrowDisk",
