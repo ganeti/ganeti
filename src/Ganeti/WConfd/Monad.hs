@@ -43,6 +43,7 @@ module Ganeti.WConfd.Monad
   , runWConfdMonadInt
   , WConfdMonad
   , modifyConfigState
+  , modifyLockAllocation
   ) where
 
 import Control.Applicative
@@ -55,6 +56,7 @@ import Data.IORef
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
+import Ganeti.Locking.Locks
 import Ganeti.Logging
 import Ganeti.Types
 import Ganeti.WConfd.ConfigState
@@ -63,11 +65,9 @@ import Ganeti.WConfd.ConfigState
 
 -- | The state of the daemon, capturing both the configuration state and the
 -- locking state.
---
--- Currently contains only the configuration state, the the locking state will
--- go here in the future as well.
 data DaemonState = DaemonState
   { dsConfigState :: ConfigState
+  , dsLockAllocation :: GanetiLockAllocation
   }
 
 data DaemonHandle = DaemonHandle
@@ -80,9 +80,10 @@ data DaemonHandle = DaemonHandle
 
 mkDaemonHandle :: FilePath
                -> ConfigState
+               -> GanetiLockAllocation
                -> ResultT GanetiException IO DaemonHandle
-mkDaemonHandle cp cs =
-  DaemonHandle <$> liftBase (newIORef $ DaemonState cs) <*> pure cp
+mkDaemonHandle cp cs la =
+  DaemonHandle <$> liftBase (newIORef $ DaemonState cs la) <*> pure cp
 
 data ClientState = ClientState
   { clLiveFilePath :: FilePath
@@ -144,4 +145,13 @@ modifyConfigState f = do
   -- TODO: Use lenses to modify the daemons state here
   let mf ds = let (cs', r) = f (dsConfigState ds)
               in (ds { dsConfigState = cs' }, r)
+  liftBase $ atomicModifyIORef (dhDaemonState dh) mf
+
+-- | Atomically modifies the lock allocation state in WConfdMonad.
+modifyLockAllocation :: (GanetiLockAllocation -> (GanetiLockAllocation, a))
+                     -> WConfdMonad a
+modifyLockAllocation f = do
+  dh <- lift . WConfdMonadInt $ ask
+  let mf ds = let (la', r) = f (dsLockAllocation ds)
+              in (ds { dsLockAllocation = la' }, r)
   liftBase $ atomicModifyIORef (dhDaemonState dh) mf

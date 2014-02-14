@@ -125,7 +125,7 @@ prop_LockupdateAtomic =
   forAll (arbitrary :: Gen TestOwner) $ \a ->
   forAll (arbitrary :: Gen [LockRequest TestLock]) $ \request ->
   let (state', result) = updateLocks a request state
-  in if result == Ok (S.empty)
+  in if result == Ok S.empty
        then printTestCase
             ("Update suceeded, but in final state " ++ show state'
               ++ "not all locks are as requested")

@@ -37,6 +37,7 @@ import Control.Monad.Error
 
 import Ganeti.BasicTypes
 import Ganeti.Daemon
+import Ganeti.Locking.Allocation
 import qualified Ganeti.Path as Path
 import Ganeti.THH.RPC
 import Ganeti.UDSServer
@@ -67,7 +68,8 @@ prepMain _ _ = do
   -- TODO: Lock the configuration file so that running the daemon twice fails?
   conf_file <- Path.clusterConfFile
 
-  dhOpt <- runResultT $ mkDaemonHandle conf_file mkConfigState
+  dhOpt <- runResultT $ mkDaemonHandle conf_file mkConfigState emptyAllocation
+  -- TODO: read current lock allocation from disk
   dh <- withError (strMsg . ("Initialization of the daemon failed" ++) . show)
                   dhOpt
 
