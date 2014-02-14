@@ -733,6 +733,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Jobs.hs \
 	src/Ganeti/Kvmd.hs \
         src/Ganeti/Locking/Allocation.hs \
+        src/Ganeti/Locking/Locks.hs \
 	src/Ganeti/Logging.hs \
 	src/Ganeti/Luxi.hs \
 	src/Ganeti/Monitoring/Server.hs \
