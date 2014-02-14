@@ -37,6 +37,7 @@ import Test.QuickCheck
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHelper
 
+import Ganeti.BasicTypes
 import Ganeti.Locking.Allocation
 
 {-
@@ -112,7 +113,30 @@ prop_LocksStable =
   let (state', _) = updateLocks b request state
   in (listLocks a state ==? listLocks a state')
 
+-- | Verify that a given request is statisfied in list of owned locks
+requestSucceeded :: Ord a => M.Map a  OwnerState -> LockRequest a -> Bool
+requestSucceeded owned (LockRequest lock status) = M.lookup lock owned == status
+
+-- | Verify that lock updates are atomic, i.e., either we get all the required
+-- locks, or the state is completely unchanged.
+prop_LockupdateAtomic :: Property
+prop_LockupdateAtomic =
+  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll (arbitrary :: Gen [LockRequest TestLock]) $ \request ->
+  let (state', result) = updateLocks a request state
+  in if result == Ok (S.empty)
+       then printTestCase
+            ("Update suceeded, but in final state " ++ show state'
+              ++ "not all locks are as requested")
+            $ let owned = listLocks a state'
+              in all (requestSucceeded owned) request
+       else printTestCase
+            ("Update failed, but state changed to " ++ show state')
+            (state == state')
+
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
  , 'prop_LocksStable
+ , 'prop_LockupdateAtomic
  ]
