@@ -34,6 +34,7 @@ import qualified Data.Set as S
 
 import Test.QuickCheck
 
+import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHelper
 
 import Ganeti.Locking.Allocation
@@ -101,6 +102,17 @@ prop_LocksDisjoint =
      (show a ++ "'s exclusive lock" ++ " is not respected by " ++ show b)
      (S.null $ S.intersection aExclusive bAll)
 
+-- | Verify that locks can only be modified by updates of the owner.
+prop_LocksStable :: Property
+prop_LocksStable =
+  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll (arbitrary `suchThat` (/= a)) $ \b ->
+  forAll (arbitrary :: Gen [LockRequest TestLock]) $ \request ->
+  let (state', _) = updateLocks b request state
+  in (listLocks a state ==? listLocks a state')
+
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
+ , 'prop_LocksStable
  ]
