@@ -107,12 +107,15 @@ def _SetupColours():
 _SetupColours()
 
 
-def AssertIn(item, sequence):
+def AssertIn(item, sequence, msg=""):
   """Raises an error when item is not in sequence.
 
   """
   if item not in sequence:
-    raise qa_error.Error("%r not in %r" % (item, sequence))
+    if msg:
+      raise qa_error.Error("%s: %r not in %r" % (msg, item, sequence))
+    else:
+      raise qa_error.Error("%r not in %r" % (item, sequence))
 
 
 def AssertNotIn(item, sequence):
