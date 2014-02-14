@@ -788,6 +788,10 @@ def RunInstanceTests():
         try:
           RunTestIf("instance-user-down", qa_instance.TestInstanceUserDown,
                     instance, qa_config.GetMasterNode())
+          RunTestIf("instance-communication",
+                    qa_instance.TestInstanceCommunication,
+                    instance,
+                    qa_config.GetMasterNode())
           RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
           RunDaemonTests(instance)
           for node in inodes:

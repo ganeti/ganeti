@@ -1344,7 +1344,7 @@ def TestExclStorSharedPv(node):
 
 
 def TestInstanceCommunication():
-  """Tests instance communication"""
+  """Tests instance communication via 'gnt-cluster modify'"""
   master = qa_config.GetMasterNode()
 
   # Check that the 'default' node group exists

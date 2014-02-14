@@ -233,6 +233,7 @@
     "instance-device-names": true,
     "instance-device-hotplug": false,
     "instance-user-down": true,
+    "instance-communication": true,
 
     "job-list": true,
 

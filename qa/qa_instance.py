@@ -29,15 +29,16 @@ import time
 
 from ganeti import utils
 from ganeti import constants
-from ganeti import query
 from ganeti import pathutils
+from ganeti import query
+from ganeti.netutils import IP4Address
 
 import qa_config
 import qa_daemon
 import qa_utils
 import qa_error
 
-from qa_utils import AssertCommand, AssertEqual
+from qa_utils import AssertCommand, AssertEqual, AssertIn
 from qa_utils import InstanceCheck, INST_DOWN, INST_UP, FIRST_ARG, RETURN_VALUE
 from qa_instance_utils import CheckSsconfInstanceList, \
                               CreateInstanceDrbd8, \
@@ -1189,6 +1190,113 @@ def TestInstanceUserDown(instance, master):
     else:
       print "%s hypervisor is not enabled, skipping test for this hypervisor" \
           % hv
+
+
+@InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
+def TestInstanceCommunication(instance, master):
+  """Tests instance communication via 'gnt-instance modify'"""
+
+  # Enable instance communication network at the cluster level
+  network_name = "mynetwork"
+
+  cmd = ["gnt-cluster", "modify",
+         "--instance-communication-network=%s" % network_name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  print result_output
+
+  # Enable instance communication mechanism for this instance
+  AssertCommand(["gnt-instance", "modify", "-c", "yes", instance.name])
+
+  # Reboot instance for changes to NIC to take effect
+  AssertCommand(["gnt-instance", "reboot", instance.name])
+
+  # Check if the instance is properly configured for instance
+  # communication.
+  nic_name = "%s%s" % (constants.INSTANCE_COMMUNICATION_NIC_PREFIX,
+                       instance.name)
+
+  ## Check the output of 'gnt-instance list'
+  nic_names = _GetInstanceField(instance.name, "nic.names")
+  nic_names = map(lambda x: x.strip(" '"), nic_names.strip("[]").split(","))
+
+  AssertIn(nic_name, nic_names,
+           msg="Looking for instance communication TAP interface")
+
+  nic_n = nic_names.index(nic_name)
+
+  nic_ip = _GetInstanceField(instance.name, "nic.ip/%d" % nic_n)
+  nic_network = _GetInstanceField(instance.name, "nic.network.name/%d" % nic_n)
+  nic_mode = _GetInstanceField(instance.name, "nic.mode/%d" % nic_n)
+
+  AssertEqual(IP4Address.InNetwork(constants.INSTANCE_COMMUNICATION_NETWORK4,
+                                   nic_ip),
+              True,
+              msg="Checking if NIC's IP if part of the expected network")
+
+  AssertEqual(network_name, nic_network,
+              msg="Checking if NIC's network name matches the expected value")
+
+  AssertEqual(constants.INSTANCE_COMMUNICATION_NETWORK_MODE, nic_mode,
+              msg="Checking if NIC's mode name matches the expected value")
+
+  ## Check the output of 'ip route'
+  cmd = ["ip", "route", "show", nic_ip]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  result = result_output.split()
+
+  AssertEqual(len(result), 5, msg="Checking if the IP route is established")
+
+  route_ip = result[0]
+  route_dev = result[1]
+  route_tap = result[2]
+  route_scope = result[3]
+  route_link = result[4]
+
+  AssertEqual(route_ip, nic_ip,
+              msg="Checking if IP route shows the expected IP")
+  AssertEqual(route_dev, "dev",
+              msg="Checking if IP route shows the expected device")
+  AssertEqual(route_scope, "scope",
+              msg="Checking if IP route shows the expected scope")
+  AssertEqual(route_link, "link",
+              msg="Checking if IP route shows the expected link-level scope")
+
+  ## Check the output of 'ip address'
+  cmd = ["ip", "address", "show", "dev", route_tap]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  result = result_output.splitlines()
+
+  AssertEqual(len(result), 3,
+              msg="Checking if the IP address is established")
+
+  result = result.pop().split()
+
+  AssertEqual(len(result), 7,
+              msg="Checking if the IP address has the expected value")
+
+  address_ip = result[1]
+  address_netmask = result[3]
+
+  AssertEqual(address_ip, "169.254.169.254/32",
+              msg="Checking if the TAP interface has the expected IP")
+  AssertEqual(address_netmask, "169.254.255.255",
+              msg="Checking if the TAP interface has the expected netmask")
+
+  # Disable instance communication mechanism for this instance
+  AssertCommand(["gnt-instance", "modify", "-c", "no", instance.name])
+
+  # Reboot instance for changes to NIC to take effect
+  AssertCommand(["gnt-instance", "reboot", instance.name])
+
+  # Disable instance communication network at cluster level
+  cmd = ["gnt-cluster", "modify",
+         "--instance-communication-network=%s" % network_name]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  print result_output
 
 
 available_instance_tests = [
