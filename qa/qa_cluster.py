@@ -1414,7 +1414,10 @@ def TestInstanceCommunication():
   # any order.
   group = "mygroup"
 
-  AssertCommand(["gnt-group", "add", group])
+  cmd = ["gnt-group", "add", group]
+  result_output = qa_utils.GetCommandOutput(master.primary,
+                                            utils.ShellQuoteArgs(cmd))
+  print result_output
 
   cmd = ["gnt-network", "list", "--no-headers", "-o", "group_list",
          network_name]
