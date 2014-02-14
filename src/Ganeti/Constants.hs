@@ -4771,13 +4771,15 @@ glusterPortDefault = 24007
 -- * Instance communication
 --
 -- The instance communication attaches an additional NIC, named
--- @instanceCommunicationNicPrefix@:@instanceName@ and prefixed by
--- @instanceCommunicationMacPrefix@, to the instances that have
--- instance communication enabled.  This NIC is part of the network
--- @instanceCommunicationNetworkName@, which is in turn created by
--- 'gnt-network'.  This network is defined as
--- @instanceCommunicationNetwork4@ for IPv4 and
--- @instanceCommunicationNetwork6@ for IPv6.
+-- @instanceCommunicationNicPrefix@:@instanceName@ with MAC address
+-- prefixed by @instanceCommunicationMacPrefix@, to the instances that
+-- have instance communication enabled.  This NIC is part of the
+-- instance communication network which is supplied by the user via
+--
+--   gnt-cluster modify --instance-communication=mynetwork
+--
+-- This network is defined as @instanceCommunicationNetwork4@ for IPv4
+-- and @instanceCommunicationNetwork6@ for IPv6.
 
 instanceCommunicationDoc :: String
 instanceCommunicationDoc =
@@ -4798,6 +4800,9 @@ instanceCommunicationNetwork6 = "fe80::/10"
 
 instanceCommunicationNetworkLink :: String
 instanceCommunicationNetworkLink = "communication_rt"
+
+instanceCommunicationNetworkMode :: String
+instanceCommunicationNetworkMode = nicModeRouted
 
 instanceCommunicationNicPrefix :: String
 instanceCommunicationNicPrefix = "ganeti:communication:"

@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1335,6 +1335,6 @@ def ConnectInstanceCommunicationNetworkOp(group_uuid, network):
   return opcodes.OpNetworkConnect(
     group_name=group_uuid,
     network_name=network,
-    network_mode=constants.NIC_MODE_ROUTED,
+    network_mode=constants.INSTANCE_COMMUNICATION_NETWORK_MODE,
     network_link=constants.INSTANCE_COMMUNICATION_NETWORK_LINK,
     conflicts_check=True)
