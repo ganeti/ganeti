@@ -4231,6 +4231,10 @@ cryptoActions = ConstantUtils.mkSet [cryptoActionGet, cryptoActionCreate]
 cryptoOptionCertFile :: String
 cryptoOptionCertFile = "cert_file"
 
+-- Serial number of the certificate
+cryptoOptionSerialNo :: String
+cryptoOptionSerialNo = "serial_no"
+
 -- * SSH key types
 
 sshkDsa :: String

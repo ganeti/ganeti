@@ -1206,6 +1206,8 @@ def GetCryptoTokens(token_requests):
                                    action)
     if token_type == constants.CRYPTO_TYPE_SSL_DIGEST:
       if action == constants.CRYPTO_ACTION_CREATE:
+
+        # extract file name from options
         cert_filename = None
         if options:
           cert_filename = options.get(constants.CRYPTO_OPTION_CERT_FILE)
@@ -1216,8 +1218,25 @@ def GetCryptoTokens(token_requests):
           raise errors.ProgrammerError(
             "The certificate file name path '%s' is not allowed." %
             cert_filename)
+
+        # extract serial number from options
+        serial_no = None
+        if options:
+          try:
+            serial_no = int(options[constants.CRYPTO_OPTION_SERIAL_NO])
+          except ValueError:
+            raise errors.ProgrammerError(
+              "The given serial number is not an intenger: %s." %
+              options.get(constants.CRYPTO_OPTION_SERIAL_NO))
+          except KeyError:
+            raise errors.ProgrammerError("No serial number was provided.")
+
+        if not serial_no:
+          raise errors.ProgrammerError(
+            "Cannot create an SSL certificate without a serial no.")
+
         utils.GenerateNewSslCert(
-          True, cert_filename,
+          True, cert_filename, serial_no,
           "Create new client SSL certificate in %s." % cert_filename)
         tokens.append((token_type,
                        utils.GetCertificateDigest(
@@ -3689,7 +3708,7 @@ def CreateX509Certificate(validity, cryptodir=pathutils.CRYPTO_KEYS_DIR):
   """
   (key_pem, cert_pem) = \
     utils.GenerateSelfSignedX509Cert(netutils.Hostname.GetSysName(),
-                                     min(validity, _MAX_SSL_CERT_VALIDITY))
+                                     min(validity, _MAX_SSL_CERT_VALIDITY), 1)
 
   cert_dir = tempfile.mkdtemp(dir=cryptodir,
                               prefix="x509-%s-" % utils.TimestampForFilename())

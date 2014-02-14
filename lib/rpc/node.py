@@ -36,6 +36,7 @@ import base64
 import pycurl
 import threading
 import copy
+import os
 
 from ganeti import utils
 from ganeti import objects
@@ -97,15 +98,23 @@ def Shutdown():
 
 def _ConfigRpcCurl(curl):
   noded_cert = str(pathutils.NODED_CERT_FILE)
+  noded_client_cert = str(pathutils.NODED_CLIENT_CERT_FILE)
+
+  # FIXME: The next two lines are necessary to ensure upgradability from
+  # 2.10 to 2.11. Remove in 2.12, because this slows down RPC calls.
+  if not os.path.exists(noded_client_cert):
+    logging.info("Using server certificate as client certificate for RPC"
+                 "call.")
+    noded_client_cert = noded_cert
 
   curl.setopt(pycurl.FOLLOWLOCATION, False)
   curl.setopt(pycurl.CAINFO, noded_cert)
   curl.setopt(pycurl.SSL_VERIFYHOST, 0)
   curl.setopt(pycurl.SSL_VERIFYPEER, True)
   curl.setopt(pycurl.SSLCERTTYPE, "PEM")
-  curl.setopt(pycurl.SSLCERT, noded_cert)
+  curl.setopt(pycurl.SSLCERT, noded_client_cert)
   curl.setopt(pycurl.SSLKEYTYPE, "PEM")
-  curl.setopt(pycurl.SSLKEY, noded_cert)
+  curl.setopt(pycurl.SSLKEY, noded_client_cert)
   curl.setopt(pycurl.CONNECTTIMEOUT, constants.RPC_CONNECT_TIMEOUT)
 
 

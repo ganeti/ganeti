@@ -138,7 +138,7 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
   # pylint: disable=R0913
   # noded SSL certificate
   utils.GenerateNewSslCert(
-    new_cluster_cert, nodecert_file,
+    new_cluster_cert, nodecert_file, 1,
     "Generating new cluster certificate at %s" % nodecert_file)
 
   # confd HMAC key
@@ -153,7 +153,7 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
 
   else:
     utils.GenerateNewSslCert(
-      new_rapi_cert, rapicert_file,
+      new_rapi_cert, rapicert_file, 1,
       "Generating new RAPI certificate at %s" % rapicert_file)
 
   # SPICE
@@ -173,7 +173,7 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
 
     logging.debug("Generating new self-signed SPICE certificate at %s",
                   spicecert_file)
-    (_, cert_pem) = utils.GenerateSelfSignedSslCert(spicecert_file)
+    (_, cert_pem) = utils.GenerateSelfSignedSslCert(spicecert_file, 1)
 
     # Self-signed certificate -> the public certificate is also the CA public
     # certificate

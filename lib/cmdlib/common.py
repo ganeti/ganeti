@@ -1275,6 +1275,7 @@ def CreateNewClientCert(lu, node_uuid, filename=None):
   options = {}
   if filename:
     options[constants.CRYPTO_OPTION_CERT_FILE] = filename
+  options[constants.CRYPTO_OPTION_SERIAL_NO] = utils.UuidToInt(node_uuid)
   result = lu.rpc.call_node_crypto_tokens(
              node_uuid,
              [(constants.CRYPTO_TYPE_SSL_DIGEST,

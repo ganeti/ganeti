@@ -254,7 +254,7 @@ def LoadSignedX509Certificate(cert_pem, key):
   return (cert, salt)
 
 
-def GenerateSelfSignedX509Cert(common_name, validity):
+def GenerateSelfSignedX509Cert(common_name, validity, serial_no):
   """Generates a self-signed X509 certificate.
 
   @type common_name: string
@@ -273,7 +273,7 @@ def GenerateSelfSignedX509Cert(common_name, validity):
   cert = OpenSSL.crypto.X509()
   if common_name:
     cert.get_subject().CN = common_name
-  cert.set_serial_number(1)
+  cert.set_serial_number(serial_no)
   cert.gmtime_adj_notBefore(0)
   cert.gmtime_adj_notAfter(validity)
   cert.set_issuer(cert.get_subject())
@@ -286,7 +286,8 @@ def GenerateSelfSignedX509Cert(common_name, validity):
   return (key_pem, cert_pem)
 
 
-def GenerateSelfSignedSslCert(filename, common_name=constants.X509_CERT_CN,
+def GenerateSelfSignedSslCert(filename, serial_no,
+                              common_name=constants.X509_CERT_CN,
                               validity=constants.X509_CERT_DEFAULT_VALIDITY):
   """Legacy function to generate self-signed X509 certificate.
 
@@ -303,8 +304,8 @@ def GenerateSelfSignedSslCert(filename, common_name=constants.X509_CERT_CN,
   # TODO: Investigate using the cluster name instead of X505_CERT_CN for
   # common_name, as cluster-renames are very seldom, and it'd be nice if RAPI
   # and node daemon certificates have the proper Subject/Issuer.
-  (key_pem, cert_pem) = GenerateSelfSignedX509Cert(common_name,
-                                                   validity * 24 * 60 * 60)
+  (key_pem, cert_pem) = GenerateSelfSignedX509Cert(
+      common_name, validity * 24 * 60 * 60, serial_no)
 
   utils_io.WriteFile(filename, mode=0400, data=key_pem + cert_pem)
   return (key_pem, cert_pem)

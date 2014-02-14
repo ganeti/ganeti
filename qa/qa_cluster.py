@@ -1049,7 +1049,7 @@ def TestClusterRenewCrypto():
     # Ensure certificate doesn't cause "gnt-cluster verify" to complain
     validity = constants.SSL_CERT_EXPIRATION_WARN * 3
 
-    utils.GenerateSelfSignedSslCert(fh.name, validity=validity)
+    utils.GenerateSelfSignedSslCert(fh.name, 1, validity=validity)
 
     tmpcert = qa_utils.UploadFile(master.primary, fh.name)
     try:
@@ -1074,7 +1074,12 @@ def TestClusterRenewCrypto():
     # Normal case
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
                    "--new-cluster-certificate", "--new-confd-hmac-key",
-                   "--new-rapi-certificate", "--new-cluster-domain-secret"])
+                   "--new-rapi-certificate", "--new-cluster-domain-secret",
+                   "--new-node-certificates"])
+
+    # Only renew node certificates
+    AssertCommand(["gnt-cluster", "renew-crypto", "--force",
+                   "--new-node-certificates"])
 
     # Restore RAPI certificate
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",

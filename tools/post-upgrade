@@ -43,9 +43,11 @@ def main():
   version = utils.version.ParseVersion(versionstring)
 
   if utils.version.IsBefore(version, 2, 11, 0):
-    # FIXME: Add client certificate handling here when resolving issue 692.
-    pass
-
+    result = utils.RunCmd(["gnt-cluster", "renew-crypto",
+                           "--new-node-certificates", "-f"])
+    if result.failed:
+      cli.ToStderr("Failed to create node certificates: %s; Output %s" %
+                   (result.fail_reason, result.output))
   return 0
 
 if __name__ == "__main__":

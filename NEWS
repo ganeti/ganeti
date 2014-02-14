@@ -57,6 +57,11 @@ Incompatible/important changes
   as well as the --enable-split-queries configuration option.
 - Orphan volumes errors are demoted to warnings and no longer affect the exit
   code of ``gnt-cluster verify``.
+- RPC security got enhanced by using different client SSL certificates
+  for each node. In this context 'gnt-cluster renew-crypto' got a new
+  option '--renew-node-certificates', which renews the client
+  certificates of all nodes. After a cluster upgrade from pre-2.11, run
+  this to create client certificates and activate this feature.
 
 New features
 ~~~~~~~~~~~~
