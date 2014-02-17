@@ -39,6 +39,7 @@ import Test.Ganeti.TestHelper
 
 import Ganeti.BasicTypes
 import Ganeti.Locking.Allocation
+import Ganeti.Locking.Types
 
 {-
 
@@ -52,13 +53,29 @@ exploit the simplicity of the types they're deling with.
 data TestOwner = TestOwner Int deriving (Ord, Eq, Show)
 
 instance Arbitrary TestOwner where
-  arbitrary = TestOwner <$> choose (0, 7)
+  arbitrary = TestOwner <$> choose (0, 2)
 
-data TestLock = TestLock Int deriving (Ord, Eq, Show)
+data TestLock = TestBigLock
+              | TestCollectionLockA
+              | TestLockA Int
+              | TestCollectionLockB
+              | TestLockB Int
+              deriving (Ord, Eq, Show)
 
 instance Arbitrary TestLock where
-  arbitrary = TestLock <$> choose (0, 7)
+  arbitrary =  frequency [ (1, elements [ TestBigLock
+                                        , TestCollectionLockA
+                                        , TestCollectionLockB
+                                        ])
+                         , (2, TestLockA <$> choose (0, 2))
+                         , (2, TestLockB <$> choose (0, 2))
+                         ]
 
+instance Lock TestLock where
+  lockImplications (TestLockA _) = [TestCollectionLockA, TestBigLock]
+  lockImplications (TestLockB _) = [TestCollectionLockB, TestBigLock]
+  lockImplications TestBigLock = []
+  lockImplications _ = [TestBigLock]
 
 {-
 
@@ -79,14 +96,14 @@ data UpdateRequest a b = UpdateRequest a [LockRequest b] deriving Show
 instance (Arbitrary a, Arbitrary b) => Arbitrary (UpdateRequest a b) where
   arbitrary = UpdateRequest <$> arbitrary <*> arbitrary
 
--- | Fold a sequence of update requests; all allocationscan be obtained in
+-- | Fold a sequence of update requests; all allocations can be obtained in
 -- this way, starting from the empty allocation.
-foldUpdates :: (Ord a, Ord b, Show b)
-            => LockAllocation b a -> [UpdateRequest a b] -> LockAllocation b a
+foldUpdates :: (Lock a, Ord b, Show b)
+            => LockAllocation a b -> [UpdateRequest b a] -> LockAllocation a b
 foldUpdates = foldl (\s (UpdateRequest owner updates) ->
                       fst $ updateLocks owner updates s)
 
-instance (Arbitrary a, Arbitrary b, Ord a, Ord b, Show a, Show b)
+instance (Arbitrary a, Lock a, Arbitrary b, Ord b, Show b)
           => Arbitrary (LockAllocation a b) where
   arbitrary = foldUpdates emptyAllocation <$> arbitrary
 
