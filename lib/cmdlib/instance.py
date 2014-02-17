@@ -318,6 +318,26 @@ def _CheckOSVariant(os_obj, name):
     raise errors.OpPrereqError("Unsupported OS variant", errors.ECODE_INVAL)
 
 
+def _ComputeInstanceCommunicationNIC(instance_name):
+  """Compute the name of the instance NIC used by instance
+  communication.
+
+  With instance communication, a new NIC is added to the instance.
+  This NIC has a special name that identities it as being part of
+  instance communication, and not just a normal NIC.  This function
+  generates the name of the NIC based on a prefix and the instance
+  name
+
+  @type instance_name: string
+  @param instance_name: name of the instance the NIC belongs to
+
+  @rtype: string
+  @return: name of the NIC
+
+  """
+  return constants.INSTANCE_COMMUNICATION_NIC_PREFIX + instance_name
+
+
 class LUInstanceCreate(LogicalUnit):
   """Create an instance.
 
@@ -434,8 +454,7 @@ class LUInstanceCreate(LogicalUnit):
 
     # add NIC for instance communication
     if self.op.instance_communication:
-      nic_name = "%s%s" % (constants.INSTANCE_COMMUNICATION_NIC_PREFIX,
-                           self.op.instance_name)
+      nic_name = _ComputeInstanceCommunicationNIC(self.op.instance_name)
 
       self.op.nics.append({constants.INIC_NAME: nic_name,
                            constants.INIC_MAC: constants.VALUE_GENERATE,
@@ -2923,8 +2942,7 @@ class LUInstanceSetParams(LogicalUnit):
              None if nothing needs to be done
 
     """
-    nic_name = "%s%s" % (constants.INSTANCE_COMMUNICATION_NIC_PREFIX,
-                         instance.name)
+    nic_name = _ComputeInstanceCommunicationNIC(instance.name)
 
     instance_communication_nic = None
 
