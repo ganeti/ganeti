@@ -4183,6 +4183,30 @@ def _NotAContainer(data):
   return not (isinstance(data, (list, dict, tuple)))
 
 
+def _GetAlignmentMapping(data):
+  """ Returns info about alignment if present in an encoded ordered dictionary.
+
+  @type data: list of tuple
+  @param data: The encoded ordered dictionary, as defined in
+               L{_SerializeGenericInfo}.
+  @rtype: dict of any to int
+  @return: The dictionary mapping alignment groups to the maximum length of the
+           dictionary key found in the group.
+
+  """
+  alignment_map = {}
+  for entry in data:
+    if len(entry) > 2:
+      group_key = entry[2]
+      key_length = len(entry[0])
+      if group_key in alignment_map:
+        alignment_map[group_key] = max(alignment_map[group_key], key_length)
+      else:
+        alignment_map[group_key] = key_length
+
+  return alignment_map
+
+
 def _SerializeGenericInfo(buf, data, level, afterkey=False):
   """Formatting core of L{PrintGenericInfo}.
 
@@ -4215,18 +4239,26 @@ def _SerializeGenericInfo(buf, data, level, afterkey=False):
         _SerializeGenericInfo(buf, data[key], level + 1, afterkey=True)
   elif isinstance(data, list) and len(data) > 0 and isinstance(data[0], tuple):
     # list of tuples (an ordered dictionary)
+    # the tuples may have two or three members - key, value, and alignment group
+    # if the alignment group is present, align all values sharing the same group
     if afterkey:
       buf.write("\n")
       doindent = True
     else:
       doindent = False
-    for (key, val) in data:
+
+    alignment_mapping = _GetAlignmentMapping(data)
+    for entry in data:
+      key, val = entry[0:2]
       if doindent:
         buf.write(baseind * level)
       else:
         doindent = True
       buf.write(key)
       buf.write(": ")
+      if len(entry) > 2:
+        max_key_length = alignment_mapping[entry[2]]
+        buf.write(" " * (max_key_length - len(key)))
       _SerializeGenericInfo(buf, val, level + 1, afterkey=True)
   elif isinstance(data, tuple) and all(map(_NotAContainer, data)):
     # tuples with simple content are serialized as inline lists
@@ -4265,9 +4297,11 @@ def PrintGenericInfo(data):
       can be:
         - dictionaries, where keys are strings and values are of any of the
           types listed here
-        - lists of pairs (key, value), where key is a string and value is of
-          any of the types listed here; it's a way to encode ordered
-          dictionaries
+        - lists of tuples (key, value) or (key, value, alignment_group), where
+          key is a string, value is of any of the types listed here, and
+          alignment_group can be any hashable value; it's a way to encode
+          ordered dictionaries; any entries sharing the same alignment group are
+          aligned by appending whitespace before the value as needed
         - lists of any of the types listed here
         - strings
 
