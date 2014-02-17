@@ -341,7 +341,7 @@ def CloseMultiplexers():
     utils.RemoveFile(sname)
 
 
-def GetCommandOutput(node, cmd, tty=None, use_multiplexer=True,
+def GetCommandOutput(node, cmd, tty=None, use_multiplexer=True, log_cmd=True,
                      fail=False):
   """Returns the output of a command executed on the given node.
 
@@ -354,13 +354,15 @@ def GetCommandOutput(node, cmd, tty=None, use_multiplexer=True,
   @type use_multiplexer: bool
   @param use_multiplexer: if the SSH multiplexer provided by the QA should be
                           used or not
+  @type log_cmd: bool
+  @param log_cmd: if the command should be logged
   @type fail: bool
   @param fail: whether the command is expected to fail
   """
   assert cmd
   p = StartLocalCommand(GetSSHCommand(node, cmd, tty=tty,
                                       use_multiplexer=use_multiplexer),
-                        stdout=subprocess.PIPE)
+                        stdout=subprocess.PIPE, log_cmd=log_cmd)
   rcode = p.wait()
   _AssertRetCode(rcode, fail, cmd, node)
   return p.stdout.read()
