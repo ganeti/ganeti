@@ -29,12 +29,16 @@ module Ganeti.Locking.Locks
   ) where
 
 import Ganeti.Locking.Allocation
+import Ganeti.Locking.Types
 import Ganeti.Types
 
 -- | The type of Locks available in Ganeti. The order of this type
 -- is the lock oder.
 data GanetiLocks = BGL deriving (Ord, Eq, Show)
 -- TODO: add the remaining locks
+
+instance Lock GanetiLocks where
+  lockImplications BGL = []
 
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of
 -- locks are jobs.
