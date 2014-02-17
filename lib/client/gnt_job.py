@@ -286,17 +286,6 @@ def ShowJobs(opts, args):
   @return: the desired exit code
 
   """
-  def format_msg(level, text):
-    """Display the text indented."""
-    ToStdout("%s%s", "  " * level, text)
-
-  def result_helper(value):
-    """Format a result field in a nice way."""
-    if isinstance(value, (tuple, list)):
-      return "[%s]" % utils.CommaJoin(value)
-    else:
-      return str(value)
-
   selected_fields = [
     "id", "status", "ops", "opresult", "opstatus", "oplog",
     "opstart", "opexec", "opend", "received_ts", "start_ts", "end_ts",
@@ -306,35 +295,32 @@ def ShowJobs(opts, args):
   cl = GetClient()
   result = cl.Query(constants.QR_JOB, selected_fields, qfilter).data
 
-  first = True
+  job_info_container = []
 
   for entry in result:
-    if not first:
-      format_msg(0, "")
-    else:
-      first = False
-
     ((_, job_id), (rs_status, status), (_, ops), (_, opresult), (_, opstatus),
      (_, oplog), (_, opstart), (_, opexec), (_, opend), (_, recv_ts),
      (_, start_ts), (_, end_ts)) = entry
 
     # Detect non-normal results
     if rs_status != constants.RS_NORMAL:
-      format_msg(0, "Job ID %s not found" % job_id)
+      job_info_container.append("Job ID %s not found" % job_id)
       continue
 
-    format_msg(0, "Job ID: %s" % job_id)
+    # Container for produced data
+    job_info = [("Job ID", job_id)]
+
     if status in _USER_JOB_STATUS:
       status = _USER_JOB_STATUS[status]
     else:
       raise errors.ProgrammerError("Unknown job status code '%s'" % status)
 
-    format_msg(1, "Status: %s" % status)
+    job_info.append(("Status", status))
 
     if recv_ts is not None:
-      format_msg(1, "Received:         %s" % FormatTimestamp(recv_ts))
+      job_info.append(("Received", FormatTimestamp(recv_ts)))
     else:
-      format_msg(1, "Missing received timestamp (%s)" % str(recv_ts))
+      job_info.append(("Received", "unknown (%s)" % str(recv_ts)))
 
     if start_ts is not None:
       if recv_ts is not None:
@@ -342,10 +328,10 @@ def ShowJobs(opts, args):
         delta = " (delta %.6fs)" % d1
       else:
         delta = ""
-      format_msg(1, "Processing start: %s%s" %
-                 (FormatTimestamp(start_ts), delta))
+      job_info.append(("Processing start", "%s%s" %
+                       (FormatTimestamp(start_ts), delta)))
     else:
-      format_msg(1, "Processing start: unknown (%s)" % str(start_ts))
+      job_info.append(("Processing start", "unknown (%s)" % str(start_ts)))
 
     if end_ts is not None:
       if start_ts is not None:
@@ -353,64 +339,63 @@ def ShowJobs(opts, args):
         delta = " (delta %.6fs)" % d2
       else:
         delta = ""
-      format_msg(1, "Processing end:   %s%s" %
-                 (FormatTimestamp(end_ts), delta))
+      job_info.append(("Processing end", "%s%s" %
+                       (FormatTimestamp(end_ts), delta)))
     else:
-      format_msg(1, "Processing end:   unknown (%s)" % str(end_ts))
+      job_info.append(("Processing end", "unknown (%s)" % str(end_ts)))
 
     if end_ts is not None and recv_ts is not None:
       d3 = end_ts[0] - recv_ts[0] + (end_ts[1] - recv_ts[1]) / 1000000.0
-      format_msg(1, "Total processing time: %.6f seconds" % d3)
+      job_info.append(("Total processing time", "%.6f seconds" % d3))
     else:
-      format_msg(1, "Total processing time: N/A")
-    format_msg(1, "Opcodes:")
+      job_info.append(("Total processing time", "N/A"))
+
+    opcode_container = []
     for (opcode, result, status, log, s_ts, x_ts, e_ts) in \
             zip(ops, opresult, opstatus, oplog, opstart, opexec, opend):
-      format_msg(2, "%s" % opcode["OP_ID"])
-      format_msg(3, "Status: %s" % status)
+      opcode_info = []
+      opcode_info.append(("Opcode", opcode["OP_ID"]))
+      opcode_info.append(("Status", status))
+
       if isinstance(s_ts, (tuple, list)):
-        format_msg(3, "Processing start: %s" % FormatTimestamp(s_ts))
+        opcode_info.append(("Processing start", FormatTimestamp(s_ts)))
       else:
-        format_msg(3, "No processing start time")
+        opcode_info.append(("Processing start", "N/A"))
+
       if isinstance(x_ts, (tuple, list)):
-        format_msg(3, "Execution start:  %s" % FormatTimestamp(x_ts))
+        opcode_info.append(("Execution start", FormatTimestamp(x_ts)))
       else:
-        format_msg(3, "No execution start time")
+        opcode_info.append(("Execution start", "N/A"))
+
       if isinstance(e_ts, (tuple, list)):
-        format_msg(3, "Processing end:   %s" % FormatTimestamp(e_ts))
+        opcode_info.append(("Processing end", FormatTimestamp(e_ts)))
       else:
-        format_msg(3, "No processing end time")
-      format_msg(3, "Input fields:")
-      for key in utils.NiceSort(opcode.keys()):
-        if key == "OP_ID":
-          continue
-        val = opcode[key]
-        if isinstance(val, (tuple, list)):
-          val = ",".join([str(item) for item in val])
-        format_msg(4, "%s: %s" % (key, val))
-      if result is None:
-        format_msg(3, "No output data")
-      elif isinstance(result, (tuple, list)):
-        if not result:
-          format_msg(3, "Result: empty sequence")
-        else:
-          format_msg(3, "Result:")
-          for elem in result:
-            format_msg(4, result_helper(elem))
-      elif isinstance(result, dict):
-        if not result:
-          format_msg(3, "Result: empty dictionary")
-        else:
-          format_msg(3, "Result:")
-          for key, val in result.iteritems():
-            format_msg(4, "%s: %s" % (key, result_helper(val)))
-      else:
-        format_msg(3, "Result: %s" % result)
-      format_msg(3, "Execution log:")
+        opcode_info.append(("Processing end", "N/A"))
+
+      opcode_info.append(("Input fields", opcode))
+      opcode_info.append(("Result", result))
+
+      exec_log_container = []
       for serial, log_ts, log_type, log_msg in log:
         time_txt = FormatTimestamp(log_ts)
         encoded = FormatLogMessage(log_type, log_msg)
-        format_msg(4, "%s:%s:%s %s" % (serial, time_txt, log_type, encoded))
+
+        # Arranged in this curious way to preserve the brevity for multiple
+        # logs. This content cannot be exposed as a 4-tuple, as time contains
+        # the colon, causing some YAML parsers to fail.
+        exec_log_info = [("Time", time_txt),
+                         ("Content", (serial, log_type, encoded,)),
+                        ]
+        exec_log_container.append(exec_log_info)
+      opcode_info.append(("Execution log", exec_log_container))
+
+      opcode_container.append(opcode_info)
+
+    job_info.append(("Opcodes", opcode_container))
+    job_info_container.append(job_info)
+
+  PrintGenericInfo(job_info_container)
+
   return 0
 
 
