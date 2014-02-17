@@ -23,34 +23,35 @@
 
 """
 
-import tempfile
-import random
-import re
 import itertools
 import functools
+import random
+import re
+import tempfile
 
-from ganeti import utils
+from ganeti import cli
+from ganeti import compat
 from ganeti import constants
 from ganeti import errors
-from ganeti import cli
-from ganeti import rapi
-from ganeti import objects
-from ganeti import query
-from ganeti import compat
-from ganeti import qlang
+from ganeti import locking
 from ganeti import pathutils
+from ganeti import objects
+from ganeti import qlang
+from ganeti import query
+from ganeti import rapi
+from ganeti import utils
 
 from ganeti.http.auth import ParsePasswordFile
 import ganeti.rapi.client        # pylint: disable=W0611
 import ganeti.rapi.client_utils
 
 import qa_config
-import qa_utils
 import qa_error
+import qa_utils
 
+from qa_instance import IsDiskReplacingSupported
 from qa_instance import IsFailoverSupported
 from qa_instance import IsMigrationSupported
-from qa_instance import IsDiskReplacingSupported
 from qa_utils import (AssertEqual, AssertIn, AssertMatch, StartLocalCommand)
 from qa_utils import InstanceCheck, INST_DOWN, INST_UP, FIRST_ARG
 
