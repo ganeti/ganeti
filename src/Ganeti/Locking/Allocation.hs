@@ -38,12 +38,13 @@ module Ganeti.Locking.Allocation
 
 import Control.Arrow (second, (***))
 import Control.Monad
-import Data.Foldable (for_)
+import Data.Foldable (for_, find)
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
 
 import Ganeti.BasicTypes
+import Ganeti.Locking.Types
 
 {-
 
@@ -55,11 +56,29 @@ module.
 
 -}
 
--- | The state of a lock that is taken.
-data AllocationState a = Exclusive a | Shared (S.Set a) deriving (Eq, Show)
-
 -- | Data type describing the way a lock can be owned.
 data OwnerState = OwnShared | OwnExclusive deriving (Ord, Eq, Show)
+
+-- | Type describing indirect ownership on a lock. We keep the set
+-- of all (lock, owner)-pairs for locks that are implied in the given
+-- lock, annotated with the type of ownership (shared or exclusive).
+type IndirectOwners a b = M.Map (a, b) OwnerState
+
+-- | The state of a lock that is taken. Besides the state of the lock
+-- itself, we also keep track of all other lock allocation that affect
+-- the given lock by means of implication.
+data AllocationState a b = Exclusive b (IndirectOwners a b)
+                         | Shared (S.Set b) (IndirectOwners a b)
+                         deriving (Eq, Show)
+
+-- | Compute the set of indirect owners from the information about
+-- indirect ownership.
+indirectOwners :: (Ord a, Ord b) => M.Map (a, b) OwnerState -> S.Set b
+indirectOwners = S.map snd . M.keysSet
+
+-- | Compute the (zero or one-elment) set of exclusive indirect owners.
+indirectExclusives :: (Ord a, Ord b) => M.Map (a, b) OwnerState -> S.Set b
+indirectExclusives = indirectOwners . M.filter (== OwnExclusive)
 
 {-| Representation of a Lock allocation
 
@@ -75,7 +94,7 @@ that keep the invariant.
 -}
 
 data LockAllocation a b =
-  LockAllocation { laLocks :: M.Map a (AllocationState b)
+  LockAllocation { laLocks :: M.Map a (AllocationState a b)
                  , laOwned :: M.Map b (M.Map a OwnerState)
                  }
   deriving (Eq, Show)
@@ -114,13 +133,28 @@ requestRelease :: a -> LockRequest a
 requestRelease lock = LockRequest { lockAffected = lock
                                   , lockRequestType = Nothing }
 
+-- | Update the Allocation state of a lock according to a given
+-- function.
+updateAllocState :: (Ord a, Ord b)
+                  => (Maybe (AllocationState a b) -> AllocationState a b)
+                  -> LockAllocation a b -> a -> LockAllocation a b
+updateAllocState f state lock =
+  let locks' = M.alter (find (/= Shared S.empty M.empty) . Just . f)
+                        lock (laLocks state)
+  in state { laLocks = locks' }
+
 -- | Internal function to update the state according to a single
 -- lock request, assuming all prerequisites are met.
 updateLock :: (Ord a, Ord b)
            => b
            -> LockAllocation a b -> LockRequest a -> LockAllocation a b
 updateLock owner state (LockRequest lock (Just OwnExclusive)) =
-  let locks' = M.insert lock (Exclusive owner) $ laLocks state
+  let locks = laLocks state
+      lockstate' = case M.lookup lock locks of
+        Just (Exclusive _ i) -> Exclusive owner i
+        Just (Shared _ i) -> Exclusive owner i
+        Nothing -> Exclusive owner M.empty
+      locks' = M.insert lock lockstate' locks
       ownersLocks' = M.insert lock OwnExclusive $ listLocks owner state
       owned' = M.insert owner ownersLocks' $ laOwned state
   in state { laLocks = locks', laOwned = owned' }
@@ -129,8 +163,9 @@ updateLock owner state (LockRequest lock (Just OwnShared)) =
       owned' = M.insert owner ownersLocks' $ laOwned state
       locks = laLocks state
       lockState' = case M.lookup lock locks of
-        Just (Shared s) -> Shared (S.insert owner s)
-        _ -> Shared $ S.singleton owner
+        Just (Exclusive _ i) -> Shared (S.singleton owner) i
+        Just (Shared s i) -> Shared (S.insert owner s) i
+        _ -> Shared (S.singleton owner) M.empty
       locks' = M.insert lock lockState' locks
   in state { laLocks = locks', laOwned = owned' }
 updateLock owner state (LockRequest lock Nothing) =
@@ -139,28 +174,43 @@ updateLock owner state (LockRequest lock Nothing) =
       owned' = if M.null ownersLocks'
                  then M.delete owner owned
                  else M.insert owner ownersLocks' owned
-      locks = laLocks state
-      lockRemoved = M.delete lock locks
-      locks' = case M.lookup lock locks of
-                 Nothing -> locks
-                 Just (Exclusive x) ->
-                   if x == owner then lockRemoved else locks
-                 Just (Shared s)
-                   -> let s' = S.delete owner s
-                      in if S.null s'
-                        then lockRemoved
-                        else M.insert lock (Shared s') locks
-  in state { laLocks = locks', laOwned = owned' }
+      update (Just (Exclusive x i)) = if x == owner
+                                        then Shared S.empty i
+                                        else Exclusive x i
+      update (Just (Shared s i)) = Shared (S.delete owner s) i
+      update Nothing = Shared S.empty M.empty
+  in updateAllocState update (state { laOwned = owned' }) lock
+
+-- | Update the set of indirect ownerships of a lock by the given function.
+updateIndirectSet :: (Ord a, Ord b)
+                  => (IndirectOwners a b -> IndirectOwners a b)
+                  -> LockAllocation a b -> a -> LockAllocation a b
+updateIndirectSet f =
+  let update (Just (Exclusive x i)) = Exclusive x (f i)
+      update (Just (Shared s i)) = Shared s (f i)
+      update Nothing = Shared S.empty (f M.empty)
+  in updateAllocState update
+
+-- | Update all indirect onwerships of a given lock.
+updateIndirects :: (Lock a, Ord b)
+                => b
+                -> LockAllocation a b -> LockRequest a -> LockAllocation a b
+updateIndirects owner state req =
+  let lock = lockAffected req
+      fn = case lockRequestType req of
+             Nothing -> M.delete (lock, owner)
+             Just tp -> M.insert (lock, owner) tp
+  in foldl (updateIndirectSet fn) state $ lockImplications lock
 
 -- | Update the locks of an owner according to the given request. Return
 -- the pair of the new state and the result of the operation, which is the
 -- the set of owners on which the operation was blocked on. so an empty set is
 -- success, and the state is updated if, and only if, the returned set is emtpy.
 -- In that way, it can be used in atomicModifyIORef.
-updateLocks :: (Ord a, Show a, Ord b)
-               => b
-               -> [LockRequest a]
-               -> LockAllocation a b -> (LockAllocation a b, Result (S.Set b))
+updateLocks :: (Lock a, Ord b)
+            => b
+            -> [LockRequest a]
+            -> LockAllocation a b -> (LockAllocation a b, Result (S.Set b))
 updateLocks owner reqs state = genericResult ((,) state . Bad) (second Ok) $ do
   runListHead (return ())
               (fail . (++) "Inconsitent requests for lock " . show) $ do
@@ -188,16 +238,35 @@ updateLocks owner reqs state = genericResult ((,) state . Bad) (second Ok) $ do
   let blockedOn (LockRequest  _ Nothing) = S.empty
       blockedOn (LockRequest lock (Just OwnExclusive)) =
         case M.lookup lock (laLocks state) of
-          Just (Exclusive x) -> S.singleton x
-          Just (Shared xs) -> xs
+          Just (Exclusive x i) ->
+            S.singleton x `S.union` indirectOwners i
+          Just (Shared xs i) ->
+            xs `S.union` indirectOwners i
           _ -> S.empty
       blockedOn (LockRequest lock (Just OwnShared)) =
         case M.lookup lock (laLocks state) of
-          Just (Exclusive x) -> S.singleton x
+          Just (Exclusive x i) ->
+            S.singleton x `S.union` indirectExclusives i
+          Just (Shared _ i) -> indirectExclusives i
           _ -> S.empty
-  let blocked = S.delete owner . S.unions $ map blockedOn reqs
+  let indirectBlocked Nothing _ = S.empty
+      indirectBlocked (Just OwnShared) lock =
+        case M.lookup lock (laLocks state) of
+          Just (Exclusive x _) -> S.singleton x
+          _ -> S.empty
+      indirectBlocked (Just OwnExclusive) lock =
+        case M.lookup lock (laLocks state) of
+          Just (Exclusive x _) -> S.singleton x
+          Just (Shared xs _) -> xs
+          _ -> S.empty
+  let direct = S.unions $ map blockedOn reqs
+      indirect = reqs >>= \req ->
+        map (indirectBlocked (lockRequestType req))
+          . lockImplications $ lockAffected req
+  let blocked = S.delete owner . S.unions $ direct:indirect
   let state' = foldl (updateLock owner) state reqs
-  return (if S.null blocked then state' else state, blocked)
+      state'' = foldl (updateIndirects owner) state' reqs
+  return (if S.null blocked then state'' else state, blocked)
 
 -- | Compute the state after an onwer releases all its locks.
 freeLocks :: (Lock a, Ord b) => LockAllocation a b -> b -> LockAllocation a b
