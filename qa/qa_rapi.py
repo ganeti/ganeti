@@ -52,6 +52,7 @@ import qa_utils
 from qa_instance import IsDiskReplacingSupported
 from qa_instance import IsFailoverSupported
 from qa_instance import IsMigrationSupported
+from qa_job_utils import RunWithLocks
 from qa_utils import (AssertEqual, AssertIn, AssertMatch, StartLocalCommand)
 from qa_utils import InstanceCheck, INST_DOWN, INST_UP, FIRST_ARG
 
@@ -917,7 +918,10 @@ def _InvokeMoveInstance(current_dest_inst, current_src_inst, rapi_pw_filename,
       "--dest-secondary-node=%s" % snode,
       ])
   else:
-    cmd.append("--iallocator=%s" % constants.IALLOC_HAIL)
+    cmd.extend([
+      "--iallocator=%s" % constants.IALLOC_HAIL,
+      "--opportunistic-tries=1",
+      ])
 
   cmd.extend([
     "--net=0:mac=%s" % constants.VALUE_GENERATE,
@@ -959,10 +963,14 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
     snode = tnode
   pnode = inodes[0]
 
-  # pnode:snode are the *current* nodes, so we move it first to tnode:pnode
-  _InvokeMoveInstance(dest_instance.name, src_instance.name, rapi_pw_file.name,
-                      master.primary, perform_checks,
-                      target_nodes=(tnode.primary, pnode.primary))
+  # pnode:snode are the *current* nodes, and the first move is an
+  # iallocator-guided move outside of pnode. The node lock for the pnode
+  # assures that this happens, and while we cannot be sure where the instance
+  # will land, it is a real move.
+  locks = {locking.LEVEL_NODE: [pnode.primary]}
+  RunWithLocks(_InvokeMoveInstance, locks, 600.0,
+               dest_instance.name, src_instance.name, rapi_pw_file.name,
+               master.primary, perform_checks)
 
   # And then back to pnode:snode
   _InvokeMoveInstance(src_instance.name, dest_instance.name, rapi_pw_file.name,
