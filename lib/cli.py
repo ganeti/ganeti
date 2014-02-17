@@ -4174,6 +4174,15 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
   return ipolicy_out
 
 
+def _NotAContainer(data):
+  """ Checks whether the input is not a container data type.
+
+  @rtype: bool
+
+  """
+  return not (isinstance(data, (list, dict, tuple)))
+
+
 def _SerializeGenericInfo(buf, data, level, afterkey=False):
   """Formatting core of L{PrintGenericInfo}.
 
@@ -4219,7 +4228,11 @@ def _SerializeGenericInfo(buf, data, level, afterkey=False):
       buf.write(key)
       buf.write(": ")
       _SerializeGenericInfo(buf, val, level + 1, afterkey=True)
-  elif isinstance(data, list):
+  elif isinstance(data, tuple) and all(map(_NotAContainer, data)):
+    # tuples with simple content are serialized as inline lists
+    buf.write("[%s]\n" % utils.CommaJoin(data))
+  elif isinstance(data, list) or isinstance(data, tuple):
+    # lists and tuples
     if not data:
       buf.write("\n")
     else:
