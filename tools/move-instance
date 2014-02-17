@@ -30,6 +30,7 @@ import sys
 import time
 import logging
 import optparse
+import random
 import threading
 
 from ganeti import cli
@@ -489,6 +490,9 @@ class MoveDestExecutor(object):
     # or failure
     creation_attempts.append(False)
 
+    # Initiate the RNG for the variations
+    random.seed()
+
     for is_attempt_opportunistic in creation_attempts:
       job_id = self._CreateInstance(dest_client, mrt.move.dest_instance_name,
                                     mrt.move.dest_pnode, mrt.move.dest_snode,
@@ -515,10 +519,20 @@ class MoveDestExecutor(object):
            err.args[1] != rapi.client.ECODE_TEMP_NORES:
           raise
 
-      logging.info("Opportunistic attempt unsuccessful, waiting %d seconds"
+      delay_to_use = MoveDestExecutor._VaryDelay(mrt)
+      logging.info("Opportunistic attempt unsuccessful, waiting %.2f seconds"
                    " before another creation attempt is made",
-                   mrt.move.opportunistic_delay)
-      time.sleep(mrt.move.opportunistic_delay)
+                   delay_to_use)
+      time.sleep(delay_to_use)
+
+  @staticmethod
+  def _VaryDelay(mrt):
+    """ Varies the opportunistic delay by a small amount.
+
+    """
+    MAX_VARIATION = 0.15
+    variation_factor = (1.0 + random.uniform(-MAX_VARIATION, MAX_VARIATION))
+    return mrt.move.opportunistic_delay * variation_factor
 
   @staticmethod
   def _SetImportInfo(mrt, impinfo):
