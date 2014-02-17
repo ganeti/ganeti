@@ -276,6 +276,40 @@ def ChangePriority(opts, args):
                            cl.ChangeJobPriority(job_id, opts.priority))
 
 
+def _ListOpcodeTimestamp(name, ts, container):
+  """ Adds the opcode timestamp to the given container.
+
+  """
+  if isinstance(ts, (tuple, list)):
+    container.append((name, FormatTimestamp(ts), "opcode_timestamp"))
+  else:
+    container.append((name, "N/A", "opcode_timestamp"))
+
+
+def _CalcDelta(from_ts, to_ts):
+  """ Calculates the delta between two timestamps.
+
+  """
+  return to_ts[0] - from_ts[0] + (to_ts[1] - from_ts[1]) / 1000000.0
+
+
+def _ListJobTimestamp(name, ts, container, prior_ts=None):
+  """ Adds the job timestamp to the given container.
+
+  @param prior_ts: The timestamp used to calculate the amount of time that
+                   passed since the given timestamp.
+
+  """
+  if ts is not None:
+    delta = ""
+    if prior_ts is not None:
+      delta = " (delta %.6fs)" % _CalcDelta(prior_ts, ts)
+    output = "%s%s" % (FormatTimestamp(ts), delta)
+    container.append((name, output, "job_timestamp"))
+  else:
+    container.append((name, "unknown (%s)" % str(ts), "job_timestamp"))
+
+
 def ShowJobs(opts, args):
   """Show detailed information about jobs.
 
@@ -317,36 +351,13 @@ def ShowJobs(opts, args):
 
     job_info.append(("Status", status))
 
-    if recv_ts is not None:
-      job_info.append(("Received", FormatTimestamp(recv_ts)))
-    else:
-      job_info.append(("Received", "unknown (%s)" % str(recv_ts)))
-
-    if start_ts is not None:
-      if recv_ts is not None:
-        d1 = start_ts[0] - recv_ts[0] + (start_ts[1] - recv_ts[1]) / 1000000.0
-        delta = " (delta %.6fs)" % d1
-      else:
-        delta = ""
-      job_info.append(("Processing start", "%s%s" %
-                       (FormatTimestamp(start_ts), delta)))
-    else:
-      job_info.append(("Processing start", "unknown (%s)" % str(start_ts)))
-
-    if end_ts is not None:
-      if start_ts is not None:
-        d2 = end_ts[0] - start_ts[0] + (end_ts[1] - start_ts[1]) / 1000000.0
-        delta = " (delta %.6fs)" % d2
-      else:
-        delta = ""
-      job_info.append(("Processing end", "%s%s" %
-                       (FormatTimestamp(end_ts), delta)))
-    else:
-      job_info.append(("Processing end", "unknown (%s)" % str(end_ts)))
+    _ListJobTimestamp("Received", recv_ts, job_info)
+    _ListJobTimestamp("Processing start", start_ts, job_info, prior_ts=recv_ts)
+    _ListJobTimestamp("Processing end", end_ts, job_info, prior_ts=start_ts)
 
     if end_ts is not None and recv_ts is not None:
-      d3 = end_ts[0] - recv_ts[0] + (end_ts[1] - recv_ts[1]) / 1000000.0
-      job_info.append(("Total processing time", "%.6f seconds" % d3))
+      job_info.append(("Total processing time", "%.6f seconds" %
+                       _CalcDelta(recv_ts, end_ts)))
     else:
       job_info.append(("Total processing time", "N/A"))
 
@@ -357,20 +368,9 @@ def ShowJobs(opts, args):
       opcode_info.append(("Opcode", opcode["OP_ID"]))
       opcode_info.append(("Status", status))
 
-      if isinstance(s_ts, (tuple, list)):
-        opcode_info.append(("Processing start", FormatTimestamp(s_ts)))
-      else:
-        opcode_info.append(("Processing start", "N/A"))
-
-      if isinstance(x_ts, (tuple, list)):
-        opcode_info.append(("Execution start", FormatTimestamp(x_ts)))
-      else:
-        opcode_info.append(("Execution start", "N/A"))
-
-      if isinstance(e_ts, (tuple, list)):
-        opcode_info.append(("Processing end", FormatTimestamp(e_ts)))
-      else:
-        opcode_info.append(("Processing end", "N/A"))
+      _ListOpcodeTimestamp("Processing start", s_ts, opcode_info)
+      _ListOpcodeTimestamp("Execution start", x_ts, opcode_info)
+      _ListOpcodeTimestamp("Processing end", e_ts, opcode_info)
 
       opcode_info.append(("Input fields", opcode))
       opcode_info.append(("Result", result))
