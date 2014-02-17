@@ -121,6 +121,35 @@ prop_LocksDisjoint =
      (show a ++ "'s exclusive lock" ++ " is not respected by " ++ show b)
      (S.null $ S.intersection aExclusive bAll)
 
+-- | Verify that exclusive group locks are honored, i.e., verify that if someone
+-- holds a lock, then no one else can hold a lock on an exclusive lock on an
+-- implied lock.
+prop_LockImplicationX :: Property
+prop_LockImplicationX =
+  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll (arbitrary `suchThat` (/= a)) $ \b ->
+  let bExclusive = M.keysSet . M.filter (== OwnExclusive) $ listLocks  b state
+  in printTestCase "Others cannot have an exclusive lock on an implied lock" .
+     flip all (M.keys $ listLocks a state) $ \lock ->
+     flip all (lockImplications lock) $ \impliedlock ->
+     not $ S.member impliedlock bExclusive
+
+-- | Verify that shared group locks are honored, i.e., verify that if someone
+-- holds an exclusive lock, then no one else can hold any form on lock on an
+-- implied lock.
+prop_LockImplicationS :: Property
+prop_LockImplicationS =
+  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll (arbitrary `suchThat` (/= a)) $ \b ->
+  let aExclusive = M.keys . M.filter (== OwnExclusive) $ listLocks  a state
+      bAll = M.keysSet $ listLocks b state
+  in printTestCase "Others cannot hold locks implied by an exclusive lock" .
+     flip all aExclusive $ \lock ->
+     flip all (lockImplications lock) $ \impliedlock ->
+     not $ S.member impliedlock bAll
+
 -- | Verify that locks can only be modified by updates of the owner.
 prop_LocksStable :: Property
 prop_LocksStable =
@@ -208,6 +237,8 @@ prop_BlockNecessary =
 
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
+ , 'prop_LockImplicationX
+ , 'prop_LockImplicationS
  , 'prop_LocksStable
  , 'prop_LockupdateAtomic
  , 'prop_LockReleaseSucceeds
