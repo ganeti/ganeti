@@ -29,6 +29,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.Locking.Allocation (testLocking_Allocation) where
 
 import Control.Applicative
+import qualified Data.Foldable as F
 import qualified Data.Map as M
 import qualified Data.Set as S
 
@@ -164,9 +165,28 @@ prop_LockReleaseSucceeds =
        ++ show result)
      (isOk result)
 
+-- | Verify the property that only the blocking owners prevent
+-- lock allocation. We deliberatly go for the expensive variant
+-- restraining by suchThat, as otherwise the number of cases actually
+-- covered is too small.
+prop_BlockSufficient :: Property
+prop_BlockSufficient =
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll (arbitrary :: Gen TestLock) $ \lock ->
+  forAll (elements [ [requestShared lock]
+                   , [requestExclusive lock]]) $ \request ->
+  forAll ((arbitrary :: Gen (LockAllocation TestLock TestOwner))
+           `suchThat` (genericResult (const False) (not . S.null)
+                        . snd . updateLocks a request)) $ \state ->
+  let (_, result) = updateLocks a request state
+      blockedOn = genericResult (const S.empty) id result
+  in  printTestCase "After all blockers release, a request must succeed"
+      . isOk . snd . updateLocks a request $ F.foldl freeLocks state blockedOn
+
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
  , 'prop_LocksStable
  , 'prop_LockupdateAtomic
  , 'prop_LockReleaseSucceeds
+ , 'prop_BlockSufficient
  ]
