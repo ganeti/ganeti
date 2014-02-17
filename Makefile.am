@@ -285,7 +285,7 @@ CLEANFILES = \
 
 GENERATED_FILES = \
 	$(built_base_sources) \
-	$(BUILT_PYTHON_SOURCES) \
+	$(built_python_sources) \
 	$(PYTHON_BOOTSTRAP) \
 	$(gnt_python_sbin_SCRIPTS)
 
@@ -307,7 +307,7 @@ built_python_base_sources = \
 	lib/opcodes.py \
 	lib/rpc/stub/wconfd.py
 
-BUILT_PYTHON_SOURCES = \
+built_python_sources = \
 	$(nodist_pkgpython_PYTHON) \
 	$(nodist_pkgpython_rpc_stub_PYTHON)
 
@@ -863,7 +863,7 @@ doc/html/index.html doc/man-html/index.html: $(docinput) doc/conf.py \
 	configure.ac $(RUN_IN_TEMPDIR) lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py lib/ht.py \
 	doc/css/style.css lib/rapi/connector.py lib/rapi/rlib2.py \
-	autotools/sphinx-wrapper | $(BUILT_PYTHON_SOURCES)
+	autotools/sphinx-wrapper | $(built_python_sources)
 	@test -n "$(SPHINX)" || \
 	    { echo 'sphinx-build' not found during configure; exit 1; }
 if !MANPAGES_IN_DOC
@@ -1057,7 +1057,7 @@ $(HS_ALL_PROGS): %: %.hs $(HS_SRCS) Makefile
 # for the test/hs/htest binary, we need to enable profiling/coverage
 test/hs/htest: HCOVERAGE = true
 test/hs/htest: HFLAGS += -itest/hs
-test/hs/htest: | $(BUILT_PYTHON_SOURCES)
+test/hs/htest: | $(built_python_sources)
 
 # we compile the hpc-htools binary with the program coverage
 test/hs/hpc-htools: HCOVERAGE = true
@@ -1739,7 +1739,7 @@ doc/examples/bash_completion doc/examples/bash_completion-debug: \
 
 man/%.gen: man/%.rst lib/query.py lib/build/sphinx_ext.py \
 	lib/build/shell_example_lexer.py \
-	| $(RUN_IN_TEMPDIR) $(BUILT_PYTHON_SOURCES)
+	| $(RUN_IN_TEMPDIR) $(built_python_sources)
 	@echo "Checking $< for hardcoded paths..."
 	@if grep -nEf autotools/wrong-hardcoded-paths $<; then \
 	  echo "Man page $< has hardcoded paths (see above)!" 1>&2 ; \
@@ -2183,7 +2183,7 @@ hs-check: hs-tests hs-shell
 PEP8_IGNORE = E111,E121,E123,E125,E127,E261,E501
 
 # For excluding pep8 expects filenames only, not whole paths
-PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(BUILT_PYTHON_SOURCES))))
+PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(built_python_sources))))
 
 LINT_TARGETS = pylint pylint-qa pylint-test
 if HAS_PEP8
