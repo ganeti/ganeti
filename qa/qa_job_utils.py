@@ -192,7 +192,7 @@ def _GetBlockingLocks():
 
 
 # TODO: Can this be done as a decorator? Implement as needed.
-def RunWithLocks(fn, locks, timeout, *args, **kwargs):
+def RunWithLocks(fn, locks, timeout, block, *args, **kwargs):
   """ Runs the given function, acquiring a set of locks beforehand.
 
   @type fn: function
@@ -202,6 +202,8 @@ def RunWithLocks(fn, locks, timeout, *args, **kwargs):
   @type timeout: number
   @param timeout: The number of seconds the locks should be held before
                   expiring.
+  @type block: bool
+  @param block: Whether the test should block when locks are used or not.
 
   This function allows a set of locks to be acquired in preparation for a QA
   test, to try and see if the function can run in parallel with other
@@ -256,10 +258,13 @@ def RunWithLocks(fn, locks, timeout, *args, **kwargs):
 
   qa_thread.join()
 
-  if test_blocked:
-    blocking_lock_names = map(lock_name_map.get, blocking_owned_locks)
-    raise qa_error.Error("QA test succeded, but was blocked by the locks: %s" %
-                         ", ".join(blocking_lock_names))
+  blocking_lock_names = ", ".join(map(lock_name_map.get, blocking_owned_locks))
+  if not block and test_blocked:
+    raise qa_error.Error("QA test succeded, but was blocked by locks: %s" %
+                         blocking_lock_names)
+  elif block and not test_blocked:
+    raise qa_error.Error("QA test succeded, but was not blocked as it was "
+                         "expected to by locks: %s" % blocking_lock_names)
   else:
     _TerminateDelayFunction(termination_socket)
 

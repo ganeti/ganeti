@@ -968,7 +968,7 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
   # assures that this happens, and while we cannot be sure where the instance
   # will land, it is a real move.
   locks = {locking.LEVEL_NODE: [pnode.primary]}
-  RunWithLocks(_InvokeMoveInstance, locks, 600.0,
+  RunWithLocks(_InvokeMoveInstance, locks, 600.0, False,
                dest_instance.name, src_instance.name, rapi_pw_file.name,
                master.primary, perform_checks)
 
