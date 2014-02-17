@@ -86,6 +86,9 @@ emptyAllocation =
                  , laOwned = M.empty
                  }
 
+-- | Obtain the locks held by a given owner. The locks are reported
+-- as a map from the owned locks to the form of ownership (OwnShared
+-- or OwnExclusive).
 listLocks :: Ord b => b -> LockAllocation a b -> M.Map a OwnerState
 listLocks owner = fromMaybe M.empty . M.lookup owner . laOwned
 
