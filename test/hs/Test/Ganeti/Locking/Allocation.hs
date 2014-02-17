@@ -127,7 +127,7 @@ prop_LockupdateAtomic =
   let (state', result) = updateLocks a request state
   in if result == Ok S.empty
        then printTestCase
-            ("Update suceeded, but in final state " ++ show state'
+            ("Update succeeded, but in final state " ++ show state'
               ++ "not all locks are as requested")
             $ let owned = listLocks a state'
               in all (requestSucceeded owned) request
@@ -135,8 +135,21 @@ prop_LockupdateAtomic =
             ("Update failed, but state changed to " ++ show state')
             (state == state')
 
+-- | Verify that releasing a lock always succeeds.
+prop_LockReleaseSucceeds :: Property
+prop_LockReleaseSucceeds =
+  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll (arbitrary :: Gen TestLock) $ \lock ->
+  let (_, result) = updateLocks a [requestRelease lock] state
+  in printTestCase
+     ("Releasing a lock has to suceed uncondiationally, but got "
+       ++ show result)
+     (isOk result)
+
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
  , 'prop_LocksStable
  , 'prop_LockupdateAtomic
+ , 'prop_LockReleaseSucceeds
  ]
