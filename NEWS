@@ -29,6 +29,8 @@ New features
   - Attempting to override public parameters with private or secret parameters
     results in an error. Similarly, you may not use secret parameters to
     override private parameters.
+  - The move-instance tool can now attempt to allocate an instance by using
+    opportunistic locking when an iallocator is used.
 
 
 Version 2.11.0 alpha1
