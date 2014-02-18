@@ -183,10 +183,34 @@ prop_BlockSufficient =
   in  printTestCase "After all blockers release, a request must succeed"
       . isOk . snd . updateLocks a request $ F.foldl freeLocks state blockedOn
 
+-- | Verify the property that every blocking owner is necessary, i.e., even
+-- if we only keep the locks of one of the blocking owners, the request still
+-- will be blocked. We deliberatly use the expensive variant of restraining
+-- to ensure good coverage. To make sure the request can always be blocked
+-- by two owners, for a shared request we request two different locks.
+prop_BlockNecessary :: Property
+prop_BlockNecessary =
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll (arbitrary :: Gen TestLock) $ \lock ->
+  forAll (arbitrary `suchThat` (/= lock)) $ \lock' ->
+  forAll (elements [ [requestShared lock, requestShared lock']
+                   , [requestExclusive lock]]) $ \request ->
+  forAll ((arbitrary :: Gen (LockAllocation TestLock TestOwner))
+           `suchThat` (genericResult (const False) ((>= 2) . S.size)
+                        . snd . updateLocks a request)) $ \state ->
+  let (_, result) = updateLocks a request state
+      blockers = genericResult (const S.empty) id result
+  in  printTestCase "Each blocker alone must block the request"
+      . flip all (S.elems blockers) $ \blocker ->
+        (==) (Ok $ S.singleton blocker) . snd . updateLocks a request
+        . F.foldl freeLocks state
+        $ S.filter (/= blocker) blockers
+
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
  , 'prop_LocksStable
  , 'prop_LockupdateAtomic
  , 'prop_LockReleaseSucceeds
  , 'prop_BlockSufficient
+ , 'prop_BlockNecessary
  ]
