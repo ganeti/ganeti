@@ -2190,6 +2190,15 @@ PEP8_IGNORE = E111,E121,E123,E125,E127,E261,E501
 # For excluding pep8 expects filenames only, not whole paths
 PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(built_python_sources))))
 
+# A space-separated list of pylint warnings to completely ignore:
+# I0013 = disable warnings for ignoring whole files
+LINT_DISABLE = I0013
+# Additional pylint options
+LINT_OPTS =
+# The combined set of pylint options
+LINT_OPTS_ALL = $(LINT_OPTS) \
+  $(addprefix --disable=,$(LINT_DISABLE))
+
 LINT_TARGETS = pylint pylint-qa pylint-test
 if HAS_PEP8
 LINT_TARGETS += pep8
@@ -2204,19 +2213,19 @@ lint: $(LINT_TARGETS)
 .PHONY: pylint
 pylint: $(GENERATED_FILES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
-	$(PYLINT) $(LINT_OPTS) $(lint_python_code)
+	$(PYLINT) $(LINT_OPTS_ALL) $(lint_python_code)
 
 .PHONY: pylint-qa
 pylint-qa: $(GENERATED_FILES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
 	cd $(top_srcdir)/qa && \
-	  PYTHONPATH=$(abs_top_srcdir) $(PYLINT) $(LINT_OPTS) \
-	  --rcfile  ../pylintrc $(patsubst qa/%.py,%,$(qa_scripts))
+	  PYTHONPATH=$(abs_top_srcdir) $(PYLINT) $(LINT_OPTS_ALL) \
+		--rcfile  ../pylintrc $(patsubst qa/%.py,%,$(qa_scripts))
 # FIXME: lint all test code, not just the newly added test support
 pylint-test: $(GENERATED_FILES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
 	cd $(top_srcdir) && \
-		PYTHONPATH=.:./test/py $(PYLINT) $(LINT_OPTS) \
+		PYTHONPATH=.:./test/py $(PYLINT) $(LINT_OPTS_ALL) \
 		--rcfile=pylintrc-test  $(python_test_support)
 
 .PHONY: pep8
