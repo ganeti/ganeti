@@ -212,8 +212,9 @@ updateLocks :: (Lock a, Ord b)
             -> [LockRequest a]
             -> LockAllocation a b -> (LockAllocation a b, Result (S.Set b))
 updateLocks owner reqs state = genericResult ((,) state . Bad) (second Ok) $ do
-  runListHead (return ())
-              (fail . (++) "Inconsitent requests for lock " . show) $ do
+  unless ((==) (length reqs) . S.size . S.fromList $ map lockAffected reqs)
+    . runListHead (return ())
+                  (fail . (++) "Inconsitent requests for lock " . show) $ do
       r <- reqs
       r' <- reqs
       guard $ r /= r'
