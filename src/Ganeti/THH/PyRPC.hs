@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 
 {-| Combines the construction of RPC server components and their Python stubs.
 
