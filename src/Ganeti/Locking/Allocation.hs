@@ -236,6 +236,17 @@ updateLocks owner reqs state = genericResult ((,) state . Bad) (second Ok) $ do
                                        , (lock, OwnExclusive)]
         -> orderViolation lock
       _ -> Ok ()
+  let sharedsHeld = M.keysSet $ M.filter (== OwnShared) current
+      exclusivesRequested = map lockAffected
+                            . filter ((== Just OwnExclusive) . lockRequestType)
+                            $ reqs
+  runListHead (return ()) fail $ do
+    x <- exclusivesRequested
+    i <- lockImplications x
+    guard $ S.member i sharedsHeld
+    return $ "Order violation: requesting exclusively " ++ show x
+              ++ " while holding a shared lock on the group lock " ++ show i
+              ++ " it belongs to."
   let blockedOn (LockRequest  _ Nothing) = S.empty
       blockedOn (LockRequest lock (Just OwnExclusive)) =
         case M.lookup lock (laLocks state) of
