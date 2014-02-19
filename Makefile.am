@@ -239,6 +239,10 @@ CLEANFILES = \
 	$(addsuffix /*.py[co],$(DIRS)) \
 	$(addsuffix /*.hi,$(HS_DIRS)) \
 	$(addsuffix /*.o,$(HS_DIRS)) \
+	$(addsuffix /*.$(HTEST_SUFFIX)_hi,$(HS_DIRS)) \
+	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
+	Makefile.ghc \
+	Makefile.ghc.bak \
 	$(PYTHON_BOOTSTRAP) \
 	$(gnt_python_sbin_SCRIPTS) \
 	epydoc.conf \
@@ -614,6 +618,9 @@ HS_DEFAULT_PROGS = \
 
 HS_ALL_PROGS = $(HS_DEFAULT_PROGS) $(HS_MYEXECLIB_PROGS)
 
+HS_TEST_PROGS = $(filter test/%,$(HS_ALL_PROGS))
+HS_SRC_PROGS = $(filter-out test/%,$(HS_ALL_PROGS))
+
 HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_DEFAULT_PROGS)) src/mon-collector.hs
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/hs/%) test/hs/hail
 
@@ -622,6 +629,22 @@ HFLAGS = \
 	-fwarn-monomorphism-restriction \
 	-fwarn-tabs \
 	$(GHC_BYVERSION_FLAGS)
+
+if HPROFILE
+HFLAGS += -prof -auto-all
+endif
+if HCOVERAGE
+HFLAGS += -fhpc
+endif
+if HTEST
+HFLAGS += -DTEST
+endif
+
+HTEST_SUFFIX = hpc
+
+HTEST_FLAGS = $(HFLAGS) -fhpc -itest/hs \
+	-osuf .$(HTEST_SUFFIX)_o \
+	-hisuf .$(HTEST_SUFFIX)_hi
 
 # extra flags that can be overriden on the command line (e.g. -Wwarn, etc.)
 HEXTRA =
@@ -989,59 +1012,45 @@ install-exec-hook:
 	  $(LN_S) -f htools $(DESTDIR)$(bindir)/$$role ; \
 	done
 
-HNORMAL_SUFFIX = .o
-HPROFILE_SUFFIX = .prof.o
-HCOVERAGE_SUFFIX = .hpc.o
-HTEST_SUFFIX = .test.o
-
-HSUFFIX = $(if $(HPROFILE),$(HPROFILE_SUFFIX), \
-	  $(if $(HCOVERAGE),$(HCOVERAGE_SUFFIX), \
-	  $(if $(HTEST),$(HTEST_SUFFIX), \
-	  $(HNORMAL_SUFFIX))))
-
-HFLAGS += $(if $(HPROFILE),-prof -auto-all,)
-HFLAGS += $(if $(HCOVERAGE),-fhpc,)
-HFLAGS += $(if $(HTEST),-DTEST,)
-
 HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 
-.NOTPARALLEL: $(HS_ALL_PROGS)
-.PHONY: $(HS_ALL_PROGS)
-$(HS_ALL_PROGS): %: %.hs $(HS_SRCS) Makefile
-	@if [ "$(notdir $@)" = "test" ] && [ "$(HS_NODEV)" ]; then \
+Makefile.ghc: $(HS_ALL_PROGS:%=%.hs) $(HS_SRCS) Makefile | $(built_base_sources)
+	$(GHC) -M -dep-makefile $@ -dep-suffix $(HTEST_SUFFIX) $(HFLAGS) \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(HS_ALL_PROGS:%=%.hs) $(HS_SRCS)
+
+@include_makefile_ghc@
+
+%.o:
+	$(GHC) -c $(HFLAGS) \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(@:%.o=%.hs)
+
+%.$(HTEST_SUFFIX)_o:
+	$(GHC) -c $(HTEST_FLAGS) \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
+
+%.hi: %.o ;
+%.$(HTEST_SUFFIX)_hi: %.$(HTEST_SUFFIX)_o ;
+
+$(HS_SRC_PROGS): %: %.o | stamp-directories
+	$(GHC) $(HFLAGS) \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) --make $(@:%=%.hs)
+	@rm -f $(notdir $@).tix
+	@touch "$@"
+
+$(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
+	                   | stamp-directories $(BUILT_PYTHON_SOURCES)
+	@if [ "$(HS_NODEV)" ]; then \
 	  echo "Error: cannot run unittests without the development" \
 	       " libraries (see devnotes.rst)" 1>&2; \
 	  exit 1; \
 	fi
+	$(GHC) $(HTEST_FLAGS) \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
-	$(GHC) --make $(HFLAGS) \
-		-osuf $(HSUFFIX) \
-		-hisuf $(patsubst %.o,%.hi,$(HSUFFIX)) \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $@
 	@touch "$@"
-
-# for the test/hs/htest binary, we need to enable profiling/coverage
-test/hs/htest: HCOVERAGE = true
-test/hs/htest: HFLAGS += -itest/hs
-test/hs/htest: | $(BUILT_PYTHON_SOURCES)
-
-# we compile the hpc-htools binary with the program coverage
-test/hs/hpc-htools: HCOVERAGE = true
-
-# we compile the hpc-mon-collector binary with the program coverage
-test/hs/hpc-mon-collector: HCOVERAGE = true
 
 # test dependency
 test/hs/offline-test.sh: test/hs/hpc-htools test/hs/hpc-mon-collector
-
-# rule for building profiling-enabled versions of the haskell programs
-.PHONY: hs-prof
-hs-prof:
-	@if [ -z "$(TARGET)" ]; then \
-	  echo "You need to define TARGET when running this rule" 1>&2; \
-	  exit 1; \
-	fi
-	$(MAKE) $(AM_MAKEFLAGS) HPROFILE=y $(TARGET)
 
 dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner

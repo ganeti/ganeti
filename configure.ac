@@ -809,6 +809,18 @@ fi
 AC_SUBST(PY_NODEV)
 AM_CONDITIONAL([PY_UNIT], [test -n $PY_NODEV])
 
+include_makefile_ghc='
+ifneq ($(MAKECMDGOALS),ganeti)
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(MAKECMDGOALS),distclean)
+include Makefile.ghc
+endif
+endif
+endif
+'
+AC_SUBST([include_makefile_ghc])
+AM_SUBST_NOTMAKE([include_makefile_ghc])
+
 AC_CONFIG_FILES([ Makefile ])
 
 AC_OUTPUT
