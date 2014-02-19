@@ -131,7 +131,11 @@ def TestJobCancellation():
       retry_fn = functools.partial(_RetryingFetchJobStatus,
                                    constants.JOB_STATUS_CANCELING, job_id)
       try:
-        job_status = retry.Retry(retry_fn, 2.0, 2 * FIRST_COMMAND_DELAY)
+        # The multiplier to use is arbitrary, setting it higher could prevent
+        # flakiness
+        WAIT_MULTIPLIER = 4.0
+        job_status = retry.Retry(retry_fn, 2.0,
+                                 WAIT_MULTIPLIER * FIRST_COMMAND_DELAY)
       except retry.RetryTimeout:
         # The job status remains the same
         pass
