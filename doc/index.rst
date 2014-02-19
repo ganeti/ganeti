@@ -100,6 +100,7 @@ Draft designs
    design-file-based-storage.rst
    design-hroller.rst
    design-hotplug.rst
+   design-internal-shutdown.rst
    design-kvmd.rst
    design-linuxha.rst
    design-lu-generated-jobs.rst
@@ -119,6 +120,7 @@ Draft designs
    design-reason-trail.rst
    design-restricted-commands.rst
    design-shared-storage.rst
+   design-ssh-ports.rst
    design-storagetypes.rst
    design-upgrade.rst
    design-virtual-clusters.rst
