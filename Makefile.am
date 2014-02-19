@@ -1775,7 +1775,8 @@ src/Ganeti/Hs2Py/ListConstants.hs: src/Ganeti/Hs2Py/ListConstants.hs.in \
 ##   'adminstDown
 	NAMES=$$(sed -e "/^--/ d" $(abs_top_srcdir)/src/Ganeti/Constants.hs |\
 		 sed -n -e "/=/ s/\(.*\) =.*/    '\1:/g p"); \
-	m4 -DPY_CONSTANT_NAMES="$$NAMES" $(abs_top_srcdir)/$< > $@
+	m4 -DPY_CONSTANT_NAMES="$$NAMES" \
+		$(abs_top_srcdir)/src/Ganeti/Hs2Py/ListConstants.hs.in > $@
 
 src/Ganeti/Curl/Internal.hs: src/Ganeti/Curl/Internal.hsc | stamp-directories
 	hsc2hs -o $@ $<
