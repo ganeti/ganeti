@@ -1021,11 +1021,13 @@ Makefile.ghc: $(HS_ALL_PROGS:%=%.hs) $(HS_SRCS) Makefile | $(built_base_sources)
 @include_makefile_ghc@
 
 %.o:
-	$(GHC) -c $(HFLAGS) \
+	@echo '[GHC]: $@ <- $^'
+	@$(GHC) -c $(HFLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(@:%.o=%.hs)
 
 %.$(HTEST_SUFFIX)_o:
-	$(GHC) -c $(HTEST_FLAGS) \
+	@echo '[GHC]: $@ <- $^'
+	@$(GHC) -c $(HTEST_FLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
 
 %.hi: %.o ;
