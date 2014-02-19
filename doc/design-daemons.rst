@@ -439,6 +439,17 @@ protocol will allow the following operations on the set:
   provided for convenience, it's redundant wrt. *list* and *update*. Immediate,
   never fails.
 
+Addidional restrictions due to lock implications:
+  Ganeti supports locks that act as if a lock on a whole group (like all nodes)
+  were held. To avoid dead locks caused by the additional blockage of those
+  group locks, we impose certain restrictions. Whenever `A` is a group lock and
+  `B` belongs to `A`, then the following holds.
+
+  - `A` is in lock order before `B`.
+  - All locks that are in the lock order between `A` and `B` also belong to `A`.
+  - It is considered a lock-order violation to ask for an exclusive lock on `B`
+    while holding a shared lock on `A`.
+
 After this step it'll be possible to use locks from jobs as separate processes.
 
 The above set of operations allows the clients to use various work-flows. In particular:
