@@ -33,6 +33,7 @@ module Ganeti.Locking.Allocation
   , requestShared
   , requestRelease
   , updateLocks
+  , freeLocks
   ) where
 
 import Control.Arrow (second, (***))
@@ -197,3 +198,9 @@ updateLocks owner reqs state = genericResult ((,) state . Bad) (second Ok) $ do
   let blocked = S.delete owner . S.unions $ map blockedOn reqs
   let state' = foldl (updateLock owner) state reqs
   return (if S.null blocked then state' else state, blocked)
+
+-- | Compute the state after an onwer releases all its locks.
+freeLocks :: (Lock a, Ord b) => LockAllocation a b -> b -> LockAllocation a b
+freeLocks state owner =
+  fst . flip (updateLocks owner) state . map requestRelease . M.keys
+    $ listLocks owner state
