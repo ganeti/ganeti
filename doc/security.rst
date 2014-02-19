@@ -33,8 +33,8 @@ changes:
 - Communication between nodes is encrypted using SSL/TLS. A common key
   and certificate combo is shared between all nodes of the cluster.  At
   this time, no CA is used.
-- The Ganeti node daemon will accept RPC requests from any host within
-  the cluster with the correct certificate, and the operations it will
+- The Ganeti node daemon will accept RPC requests from any host that is
+  master candidate within the cluster, and the operations it will
   do as a result of these requests are:
 
   - running commands under the ``/etc/ganeti/hooks`` directory
@@ -42,7 +42,8 @@ changes:
   - overwrite a defined list of files on the host
 
 As you can see, as soon as a node is joined, it becomes equal to all
-other nodes in the cluster, and the security of the cluster is
+other nodes in the cluster wrt to SSH and equal to all non-master
+candidate nodes wrt to RPC, and the security of the cluster is
 determined by the weakest node.
 
 Note that only the SSH key will allow other machines to run any command
@@ -100,10 +101,13 @@ The SSH traffic is protected (after the initial login to a new node) by
 the cluster-wide shared SSH key.
 
 RPC communication between the master and nodes is protected using
-SSL/TLS encryption. Both the client and the server must have the
-cluster-wide shared SSL/TLS certificate and verify it when establishing
-the connection by comparing fingerprints. We decided not to use a CA to
-simplify the key handling.
+SSL/TLS encryption. The server must have must have the cluster-wide
+shared SSL/TLS certificate. When acting as a client, the nodes use an
+individual SSL/TLS certificate. On incoming requests, the server checks
+whether the client's certificate is that of a master candidate by
+verifying its finterprint to a list of known master candidate
+certificates. We decided not to use a CA (yet) to simplify the key
+handling.
 
 The DRBD traffic is not protected by encryption, as DRBD does not
 support this. It's therefore recommended to implement host-level
