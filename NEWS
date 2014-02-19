@@ -61,10 +61,10 @@ For Haskell:
   at least version 1.0.0.0
 
 
-Version 2.10.0 rc2
+Version 2.10.0 rc3
 ------------------
 
-*(Released Fri, 31 Jan 2014)*
+*(Released Wed, 12 Feb 2014)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -130,6 +130,23 @@ Python
 - The version requirements for ``python-mock`` have increased to at least
   version 1.0.1. It is still used for testing only.
 
+Since 2.10.0 rc2
+~~~~~~~~~~~~~~~~
+
+- Improved hotplug robustness
+- Start Ganeti daemons after ensure-dirs during upgrade
+- Documentation improvements
+
+Inherited from the 2.9 branch:
+
+- Fix the RAPI instances-multi-alloc call
+- assign unique filenames to file-based disks
+- gracefully handle degraded non-diskless instances with 0 disks (issue 697)
+- noded now runs with its specified group, which is the default group,
+  defaulting to root (issue 707)
+- make using UUIDs to identify nodes in gnt-node consistently possible
+  (issue 703)
+
 Since 2.10.0 rc1
 ~~~~~~~~~~~~~~~~
 
@@ -194,6 +211,15 @@ Inherited from the 2.8 branch:
   time and while being modified
 - Xen handle domain shutdown (future proofing cherry-pick)
 - Refactor reading live data in htools (future proofing cherry-pick)
+
+
+Version 2.10.0 rc2
+------------------
+
+*(Released Fri, 31 Jan 2014)*
+
+This was the second RC release of the 2.10 series. All important changes
+are listed in the latest 2.10 entry.
 
 
 Version 2.10.0 rc1

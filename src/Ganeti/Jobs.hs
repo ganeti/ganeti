@@ -70,12 +70,12 @@ waitForJobs jids client = waitForJobs' 500000 15000000
     waitForJobs' delay maxdelay = do
       -- TODO: this should use WaitForJobChange once it's available in Haskell
       -- land, instead of a fixed schedule of sleeping intervals.
-      threadDelay $ min delay maxdelay
+      threadDelay delay
       sts <- L.queryJobsStatus client jids
       case sts of
         Bad e -> return . Bad $ "Checking job status: " ++ formatError e
         Ok sts' -> if any (<= JOB_STATUS_RUNNING) sts' then
-                     waitForJobs' (delay * 2) maxdelay
+                     waitForJobs' (min (delay * 2) maxdelay) maxdelay
                    else
                      return . Ok $ zip jids sts'
 
