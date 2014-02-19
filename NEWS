@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.10.0 rc3
-------------------
+Version 2.10.0
+--------------
 
-*(Released Wed, 12 Feb 2014)*
+*(Released Thu, 20 Feb 2014)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -71,8 +71,18 @@ Python
 - The version requirements for ``python-mock`` have increased to at least
   version 1.0.1. It is still used for testing only.
 
-Since 2.10.0 rc2
+Since 2.10.0 rc3
 ~~~~~~~~~~~~~~~~
+
+- Fix integer overflow problem in hbal
+
+
+Version 2.10.0 rc3
+------------------
+
+*(Released Wed, 12 Feb 2014)*
+
+This was the third RC release of the 2.10 series. Since 2.10.0 rc2:
 
 - Improved hotplug robustness
 - Start Ganeti daemons after ensure-dirs during upgrade
@@ -88,8 +98,13 @@ Inherited from the 2.9 branch:
 - make using UUIDs to identify nodes in gnt-node consistently possible
   (issue 703)
 
-Since 2.10.0 rc1
-~~~~~~~~~~~~~~~~
+
+Version 2.10.0 rc2
+------------------
+
+*(Released Fri, 31 Jan 2014)*
+
+This was the second RC release of the 2.10 series. Since 2.10.0 rc1:
 
 - Documentation improvements
 - Run drbdsetup syncer only on network attach
@@ -116,8 +131,13 @@ Inherited from the 2.8 branch:
 - Fix caching bug preventing jobs from being cancelled
 - Start-master/stop-master was always failing if ConfD was disabled. (Issue 685)
 
-Since 2.10.0 beta1
-~~~~~~~~~~~~~~~~~~
+
+Version 2.10.0 rc1
+------------------
+
+*(Released Tue, 17 Dec 2013)*
+
+This was the first RC release of the 2.10 series. Since 2.10.0 beta1:
 
 - All known issues in 2.10.0 beta1 have been resolved (see changes from
   the 2.8 branch).
@@ -152,24 +172,6 @@ Inherited from the 2.8 branch:
   time and while being modified
 - Xen handle domain shutdown (future proofing cherry-pick)
 - Refactor reading live data in htools (future proofing cherry-pick)
-
-
-Version 2.10.0 rc2
-------------------
-
-*(Released Fri, 31 Jan 2014)*
-
-This was the second RC release of the 2.10 series. All important changes
-are listed in the latest 2.10 entry.
-
-
-Version 2.10.0 rc1
-------------------
-
-*(Released Tue, 17 Dec 2013)*
-
-This was the first RC release of the 2.10 series. All important changes
-are listed in the latest 2.10 entry.
 
 
 Version 2.10.0 beta1
