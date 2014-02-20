@@ -35,11 +35,13 @@ module Ganeti.Locking.Allocation
   , updateLocks
   , freeLocks
   , intersectLocks
+  , opportunisticLockUnion
   ) where
 
 import Control.Arrow (second, (***))
 import Control.Monad
 import Data.Foldable (for_, find)
+import Data.List (sort)
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
@@ -295,3 +297,21 @@ intersectLocks owner locks state =
       toFree = filter (not . flip S.member lockset)
                  . M.keys $ listLocks owner state
   in fst $ updateLocks owner (map requestRelease toFree) state
+
+-- | Opportunistically allocate locks for a given user; return the set
+-- of actually acquired. The signature is chosen to be suitable for
+-- atomicModifyIORef.
+opportunisticLockUnion :: (Lock a, Ord b)
+                       => b -> [(a, OwnerState)]
+                       -> LockAllocation a b -> (LockAllocation a b, S.Set a)
+opportunisticLockUnion owner reqs state =
+  let locks = listLocks owner state
+      reqs' = sort $ filter (uncurry (<) . (flip M.lookup locks *** Just)) reqs
+      maybeAllocate (s, success) (lock, ownstate) =
+        let (s', result) = updateLocks owner
+                                       [(if ownstate == OwnShared
+                                           then requestShared
+                                           else requestExclusive) lock]
+                                       s
+        in (s', if result == Ok S.empty then lock:success else success)
+  in second S.fromList $ foldl maybeAllocate (state, []) reqs'
