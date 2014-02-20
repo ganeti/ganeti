@@ -94,6 +94,7 @@ instance Arbitrary a => Arbitrary (LockRequest a) where
 
 data UpdateRequest b a = UpdateRequest b [LockRequest a]
                        | IntersectRequest b [a]
+                       | OpportunisticUnion b [(a, OwnerState)]
                        | FreeLockRequest b
                        deriving Show
 
@@ -102,6 +103,8 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (UpdateRequest a b) where
     frequency [ (4, UpdateRequest <$> arbitrary <*> (choose (1, 4) >>= vector))
               , (2, IntersectRequest <$> arbitrary
                                      <*> (choose (1, 4) >>= vector))
+              , (2, OpportunisticUnion <$> arbitrary
+                                       <*> (choose (1, 4) >>= vector))
               , (1, FreeLockRequest <$> arbitrary)
               ]
 
@@ -112,6 +115,8 @@ asAllocTrans state (UpdateRequest owner updates) =
   fst $ updateLocks owner updates state
 asAllocTrans state (IntersectRequest owner locks) =
   intersectLocks owner locks state
+asAllocTrans state (OpportunisticUnion owner locks) =
+  fst $ opportunisticLockUnion owner locks state
 asAllocTrans state (FreeLockRequest owner) = freeLocks state owner
 
 -- | Fold a sequence of requests to transform a lock allocation onto the empty
