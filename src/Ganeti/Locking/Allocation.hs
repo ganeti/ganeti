@@ -34,6 +34,7 @@ module Ganeti.Locking.Allocation
   , requestRelease
   , updateLocks
   , freeLocks
+  , intersectLocks
   ) where
 
 import Control.Arrow (second, (***))
@@ -285,3 +286,12 @@ freeLocks :: (Lock a, Ord b) => LockAllocation a b -> b -> LockAllocation a b
 freeLocks state owner =
   fst . flip (updateLocks owner) state . map requestRelease . M.keys
     $ listLocks owner state
+
+-- | Restrict the locks of a user to a given set.
+intersectLocks :: (Lock a, Ord b) => b -> [a]
+               -> LockAllocation a b -> LockAllocation a b
+intersectLocks owner locks state =
+  let lockset = S.fromList locks
+      toFree = filter (not . flip S.member lockset)
+                 . M.keys $ listLocks owner state
+  in fst $ updateLocks owner (map requestRelease toFree) state
