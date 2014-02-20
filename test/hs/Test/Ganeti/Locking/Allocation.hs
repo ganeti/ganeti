@@ -80,9 +80,9 @@ instance Lock TestLock where
 
 {-
 
-All states of a  LockAllocation can be obtained by starting from the
-empty allocation, and sequentially requesting (successfully or not)
-lock updates. So we first define what arbitrary updates sequences are.
+All states of a  LockAllocation every available outside the
+Ganeti.Locking.Allocation module must be constructed by starting
+with emptyAllocation and applying the exported functions.
 
 -}
 
@@ -92,21 +92,38 @@ instance Arbitrary OwnerState where
 instance Arbitrary a => Arbitrary (LockRequest a) where
   arbitrary = LockRequest <$> arbitrary <*> genMaybe arbitrary
 
-data UpdateRequest a b = UpdateRequest a [LockRequest b] deriving Show
+data UpdateRequest b a = UpdateRequest b [LockRequest a]
+                       | IntersectRequest b [a]
+                       | FreeLockRequest b
+                       deriving Show
 
 instance (Arbitrary a, Arbitrary b) => Arbitrary (UpdateRequest a b) where
-  arbitrary = UpdateRequest <$> arbitrary <*> arbitrary
+  arbitrary =
+    frequency [ (4, UpdateRequest <$> arbitrary <*> (choose (1, 4) >>= vector))
+              , (2, IntersectRequest <$> arbitrary
+                                     <*> (choose (1, 4) >>= vector))
+              , (1, FreeLockRequest <$> arbitrary)
+              ]
 
--- | Fold a sequence of update requests; all allocations can be obtained in
--- this way, starting from the empty allocation.
+-- | Transform an UpdateRequest into the corresponding state transformer.
+asAllocTrans :: (Lock a, Ord b, Show b)
+              => LockAllocation a b -> UpdateRequest b a -> LockAllocation a b
+asAllocTrans state (UpdateRequest owner updates) =
+  fst $ updateLocks owner updates state
+asAllocTrans state (IntersectRequest owner locks) =
+  intersectLocks owner locks state
+asAllocTrans state (FreeLockRequest owner) = freeLocks state owner
+
+-- | Fold a sequence of requests to transform a lock allocation onto the empty
+-- allocation. As we consider all exported LockAllocation transformers, any
+-- LockAllocation definable is obtained in this way.
 foldUpdates :: (Lock a, Ord b, Show b)
-            => LockAllocation a b -> [UpdateRequest b a] -> LockAllocation a b
-foldUpdates = foldl (\s (UpdateRequest owner updates) ->
-                      fst $ updateLocks owner updates s)
+            => [UpdateRequest b a] -> LockAllocation a b
+foldUpdates = foldl asAllocTrans emptyAllocation
 
 instance (Arbitrary a, Lock a, Arbitrary b, Ord b, Show b)
           => Arbitrary (LockAllocation a b) where
-  arbitrary = foldUpdates emptyAllocation <$> arbitrary
+  arbitrary = foldUpdates <$> (choose (0, 8) >>= vector)
 
 -- | Basic property of locking: the exclusive locks of one user
 -- are disjoint from any locks of any other user.
