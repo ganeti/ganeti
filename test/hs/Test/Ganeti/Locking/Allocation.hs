@@ -257,6 +257,20 @@ prop_BlockNecessary =
         . F.foldl freeLocks state
         $ S.filter (/= blocker) blockers
 
+-- | Verify that opportunistic union only increases the locks held.
+prop_OpportunisticMonotone :: Property
+prop_OpportunisticMonotone =
+  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll ((choose (1,3) >>= vector) :: Gen [(TestLock, OwnerState)]) $ \req ->
+  let (state', _) = opportunisticLockUnion a req state
+      oldOwned = listLocks a state
+      oldLocks = M.keys oldOwned
+      newOwned = listLocks a state'
+  in printTestCase "Opportunistic union may only increase the set of locks held"
+     . flip all oldLocks $ \lock ->
+       M.lookup lock newOwned >= M.lookup lock oldOwned
+
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
  , 'prop_LockImplicationX
@@ -266,4 +280,5 @@ testSuite "Locking/Allocation"
  , 'prop_LockReleaseSucceeds
  , 'prop_BlockSufficient
  , 'prop_BlockNecessary
+ , 'prop_OpportunisticMonotone
  ]
