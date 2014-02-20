@@ -746,7 +746,12 @@ class LUInstanceCreate(LogicalUnit):
       for idx in range(constants.MAX_DISKS):
         if einfo.has_option(constants.INISECT_INS, "disk%d_size" % idx):
           disk_sz = einfo.getint(constants.INISECT_INS, "disk%d_size" % idx)
-          disks.append({constants.IDISK_SIZE: disk_sz})
+          disk_name = einfo.get(constants.INISECT_INS, "disk%d_name" % idx)
+          disk = {
+            constants.IDISK_SIZE: disk_sz,
+            constants.IDISK_NAME: disk_name
+            }
+          disks.append(disk)
       self.op.disks = disks
       if not disks and self.op.disk_template != constants.DT_DISKLESS:
         raise errors.OpPrereqError("No disk info specified and the export"
@@ -758,10 +763,21 @@ class LUInstanceCreate(LogicalUnit):
       for idx in range(constants.MAX_NICS):
         if einfo.has_option(constants.INISECT_INS, "nic%d_mac" % idx):
           ndict = {}
-          for name in list(constants.NICS_PARAMETERS) + ["ip", "mac"]:
+          for name in [constants.INIC_IP,
+                       constants.INIC_MAC, constants.INIC_NAME]:
             nic_param_name = "nic%d_%s" % (idx, name)
             if einfo.has_option(constants.INISECT_INS, nic_param_name):
-              v = einfo.get(constants.INISECT_INS, nic_param_name)
+              v = einfo.get(constants.INISECT_INS, "nic%d_%s" % (idx, name))
+              ndict[name] = v
+          network = einfo.get(constants.INISECT_INS,
+                              "nic%d_%s" % (idx, constants.INIC_NETWORK))
+          # in case network is given link and mode are inherited
+          # from nodegroup's netparams and thus should not be passed here
+          if network:
+            ndict[constants.INIC_NETWORK] = network
+          else:
+            for name in list(constants.NICS_PARAMETERS):
+              v = einfo.get(constants.INISECT_INS, "nic%d_%s" % (idx, name))
               ndict[name] = v
           nics.append(ndict)
         else:

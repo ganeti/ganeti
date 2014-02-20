@@ -2202,7 +2202,8 @@ class Network(TaggableObject):
     return obj
 
 
-class SerializableConfigParser(ConfigParser.SafeConfigParser):
+# need to inherit object in order to use super()
+class SerializableConfigParser(ConfigParser.SafeConfigParser, object):
   """Simple wrapper over ConfigParse that allows serialization.
 
   This class is basically ConfigParser.SafeConfigParser with two
@@ -2223,6 +2224,23 @@ class SerializableConfigParser(ConfigParser.SafeConfigParser):
     cfp = cls()
     cfp.readfp(buf)
     return cfp
+
+  def get(self, section, option, **kwargs):
+    value = None
+    try:
+      value = super(SerializableConfigParser, self).get(section, option,
+                                                        **kwargs)
+      if value.lower() == constants.VALUE_NONE:
+        value = None
+    except ConfigParser.NoOptionError:
+      r = re.compile(r"(disk|nic)\d+_name")
+      match = r.match(option)
+      if match:
+        pass
+      else:
+        raise
+
+    return value
 
 
 class LvmPvInfo(ConfigObject):
