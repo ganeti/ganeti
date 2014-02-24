@@ -149,6 +149,10 @@ This command will fail over all instances having the given node as
 primary to their secondary nodes. This works only for instances having
 a drbd disk template.
 
+Note that failover will stop any running instances on the given node and
+restart them again on the new primary.
+See also FAILOVER in **gnt-instance**\(8).
+
 Normally the failover will check the consistency of the disks before
 failing over the instance. If you are trying to migrate instances off
 a dead node, this will fail. Use the ``--ignore-consistency`` option
