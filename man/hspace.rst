@@ -138,10 +138,10 @@ TSPEC
   This parameter holds the pairs of specifications and counts of
   instances that can be created in the *tiered allocation* mode. The
   value of the key is a space-separated list of values; each value is of
-  the form *memory,disk,vcpu=count* where the memory, disk and vcpu are
+  the form *memory,disk,vcpu,spindles=count* where the memory, disk and vcpu are
   the values for the current spec, and count is how many instances of
   this spec can be created. A complete value for this variable could be:
-  **4096,102400,2=225 2560,102400,2=20 512,102400,2=21**.
+  **4096,102400,2,1=225 2560,102400,2,1=20 512,102400,2,1=21**.
 
 KM_USED_CPU, KM_USED_NPU, KM_USED_MEM, KM_USED_DSK
   These represents the metrics of used resources at the start of the
