@@ -292,6 +292,9 @@ EOF
       cabal update
 
     in_chroot -- \
+      cabal install --global base64-bytestring
+
+    in_chroot -- \
       cabal install --global shelltestrunner
     ;;
 
@@ -307,6 +310,7 @@ EOF
       libghc-vector-dev libghc-temporary-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
       libghc-lifted-base-dev \
+      libghc-base64-bytestring-dev \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
