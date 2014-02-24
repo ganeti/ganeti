@@ -320,13 +320,22 @@ EOF
 ;;
 esac
 
-echo "en_US.UTF-8 UTF-8" >> $CHDIR/etc/locale.gen
-
 in_chroot -- \
   $APT_INSTALL sudo fakeroot rsync locales less socat
 
-in_chroot -- \
-  locale-gen
+# Configure the locale
+case $DIST_RELEASE in
+  precise)
+    in_chroot -- \
+      $APT_INSTALL language-pack-en
+    ;;
+  *)
+    echo "en_US.UTF-8 UTF-8" >> $CHDIR/etc/locale.gen
+
+    in_chroot -- \
+      locale-gen
+    ;;
+esac
 
 in_chroot -- \
   $APT_INSTALL lvm2 ssh bridge-utils iproute iputils-arping \
