@@ -1105,7 +1105,12 @@ class _JobProcessor(object):
     """
     op = opctx.op
 
-    assert op.status == constants.OP_STATUS_WAITING
+    assert op.status in (constants.OP_STATUS_WAITING,
+                         constants.OP_STATUS_CANCELING)
+
+    # The very last check if the job was cancelled before trying to execute
+    if op.status == constants.OP_STATUS_CANCELING:
+      return (constants.OP_STATUS_CANCELING, None)
 
     timeout = opctx.GetNextLockTimeout()
 
