@@ -190,7 +190,8 @@ execJobSet anno master nl il cref (js:jss) = do
   let jobs = map (\(_, idx, move, _) ->
                     map anno $ Cluster.iMoveToJob nl il idx move) js
       descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
-      logfn = putStrLn . ("Got job IDs" ++) . commaJoin . map (show . fromJobId)
+      logfn =
+        putStrLn . ("Got job IDs " ++) . commaJoin . map (show . fromJobId)
   putStrLn $ "Executing jobset for instances " ++ commaJoin descr
   jrs <- bracket (L.getLuxiClient master) L.closeClient $
          Jobs.execJobsWait jobs logfn

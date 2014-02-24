@@ -47,6 +47,7 @@ from ganeti import netutils
 from ganeti import luxi
 from ganeti import jstore
 from ganeti import pathutils
+from ganeti import runtime
 
 
 # ec_id for InitConfig's temporary reservation manager
@@ -741,6 +742,13 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                       constants.IALLOCATOR_SEARCH_PATH,
                       os.path.isfile):
       default_iallocator = constants.IALLOC_HAIL
+
+  # check if we have all the users we need
+  try:
+    runtime.GetEnts()
+  except errors.ConfigurationError, err:
+    raise errors.OpPrereqError("Required system user/group missing: %s" %
+                               err, errors.ECODE_ENVIRON)
 
   candidate_certs = {}
 

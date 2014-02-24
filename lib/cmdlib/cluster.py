@@ -109,19 +109,32 @@ class LUClusterRenewCrypto(NoHooksLU):
 
     server_digest = utils.GetCertificateDigest(
       cert_filename=pathutils.NODED_CERT_FILE)
+    old_master_digest = utils.GetCertificateDigest(
+      cert_filename=pathutils.NODED_CLIENT_CERT_FILE)
     utils.AddNodeToCandidateCerts("%s-SERVER" % master_uuid,
                                   server_digest,
+                                  cluster.candidate_certs)
+    utils.AddNodeToCandidateCerts("%s-OLDMASTER" % master_uuid,
+                                  old_master_digest,
                                   cluster.candidate_certs)
     new_master_digest = _UpdateMasterClientCert(self, master_uuid, cluster,
                                                 feedback_fn)
 
-    cluster.candidate_certs = {master_uuid: new_master_digest}
+    utils.AddNodeToCandidateCerts(master_uuid,
+                                  new_master_digest,
+                                  cluster.candidate_certs)
     nodes = self.cfg.GetAllNodesInfo()
     for (node_uuid, node_info) in nodes.items():
       if node_uuid != master_uuid:
         new_digest = CreateNewClientCert(self, node_uuid)
         if node_info.master_candidate:
-          cluster.candidate_certs[node_uuid] = new_digest
+          utils.AddNodeToCandidateCerts(node_uuid,
+                                        new_digest,
+                                        cluster.candidate_certs)
+    utils.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid,
+                                       cluster.candidate_certs)
+    utils.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid,
+                                       cluster.candidate_certs)
     # Trigger another update of the config now with the new master cert
     self.cfg.Update(cluster, feedback_fn)
 

@@ -56,6 +56,54 @@ AC_ARG_ENABLE([symlinks],
 AC_SUBST(INSTALL_SYMLINKS, $INSTALL_SYMLINKS)
 AM_CONDITIONAL([INSTALL_SYMLINKS], [test "$INSTALL_SYMLINKS" = yes])
 
+# --enable-haskell-profiling
+AC_ARG_ENABLE([haskell-profiling],
+  [AS_HELP_STRING([--enable-haskell-profiling],
+                  m4_normalize([enable profiling for Haskell binaries
+                  (default: disabled)]))],
+  [[if test "$enableval" != yes; then
+      HPROFILE=no
+    else
+      HPROFILE=yes
+    fi
+  ]],
+  [HPROFILE=no
+  ])
+AC_SUBST(HPROFILE, $HPROFILE)
+AM_CONDITIONAL([HPROFILE], [test "$HPROFILE" = yes])
+
+# --enable-haskell-coverage
+AC_ARG_ENABLE([haskell-coverage],
+  [AS_HELP_STRING([--enable-haskell-coverage],
+                  m4_normalize([enable coverage for Haskell binaries
+                  (default: disabled)]))],
+  [[if test "$enableval" != yes; then
+      HCOVERAGE=no
+    else
+      HCOVERAGE=yes
+    fi
+  ]],
+  [HCOVERAGE=no
+  ])
+AC_SUBST(HCOVERAGE, $HCOVERAGE)
+AM_CONDITIONAL([HCOVERAGE], [test "$HCOVERAGE" = yes])
+
+# --enable-haskell-tests
+AC_ARG_ENABLE([haskell-tests],
+  [AS_HELP_STRING([--enable-haskell-tests],
+                  m4_normalize([enable additinal Haskell development test code
+                  (default: disabled)]))],
+  [[if test "$enableval" != yes; then
+      HTEST=no
+    else
+      HTEST=yes
+    fi
+  ]],
+  [HTEST=no
+  ])
+AC_SUBST(HTEST, $HTEST)
+AM_CONDITIONAL([HTEST], [test "$HTEST" = yes])
+
 # --with-ssh-initscript=...
 AC_ARG_WITH([ssh-initscript],
   [AS_HELP_STRING([--with-ssh-initscript=SCRIPT],
@@ -230,7 +278,7 @@ AC_ARG_WITH([user-prefix],
    user_confd="${withval}confd";
    user_wconfd="${withval}wconfd";
    user_kvmd="$user_default";
-   user_luxid="${withval}luxid";
+   user_luxid="${withval}masterd";
    user_noded="$user_default";
    user_mond="$user_default"],
   [user_masterd="$user_default";
@@ -775,6 +823,18 @@ else
 fi
 AC_SUBST(PY_NODEV)
 AM_CONDITIONAL([PY_UNIT], [test -n $PY_NODEV])
+
+include_makefile_ghc='
+ifneq ($(MAKECMDGOALS),ganeti)
+ifneq ($(MAKECMDGOALS),clean)
+ifneq ($(MAKECMDGOALS),distclean)
+include Makefile.ghc
+endif
+endif
+endif
+'
+AC_SUBST([include_makefile_ghc])
+AM_SUBST_NOTMAKE([include_makefile_ghc])
 
 AC_CONFIG_FILES([ Makefile ])
 

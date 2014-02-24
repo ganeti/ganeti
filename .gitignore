@@ -9,7 +9,9 @@
 *.swp
 *~
 *.o
+*.hpc_o
 *.hi
+*.hpc_hi
 *.hp
 *.tix
 *.prof
@@ -19,6 +21,8 @@
 # /
 /.hsenv
 /Makefile
+/Makefile.ghc
+/Makefile.ghc.bak
 /Makefile.in
 /Makefile.local
 /Session.vim
