@@ -67,18 +67,19 @@ override them.
 The following keys are available in the machine-readable output of the
 script (all prefixed with *HTS_*):
 
-SPEC_MEM, SPEC_DSK, SPEC_CPU, SPEC_RQN, SPEC_DISK_TEMPLATE
+SPEC_MEM, SPEC_DSK, SPEC_CPU, SPEC_RQN, SPEC_DISK_TEMPLATE, SPEC_SPN
   These represent the specifications of the instance model used for
-  allocation (the memory, disk, cpu, requested nodes, disk template).
+  allocation (the memory, disk, cpu, requested nodes, disk template,
+  spindles).
 
 TSPEC_INI_MEM, TSPEC_INI_DSK, TSPEC_INI_CPU, ...
   Only defined when the tiered mode allocation is enabled, these are
   similar to the above specifications but show the initial starting spec
   for tiered allocation.
 
-CLUSTER_MEM, CLUSTER_DSK, CLUSTER_CPU, CLUSTER_NODES
-  These represent the total memory, disk, CPU count and total nodes in
-  the cluster.
+CLUSTER_MEM, CLUSTER_DSK, CLUSTER_CPU, CLUSTER_NODES, CLUSTER_SPN
+  These represent the total memory, disk, CPU count, total nodes, and
+  total spindles in the cluster.
 
 INI_SCORE, FIN_SCORE
   These are the initial (current) and final cluster score (see the hbal
@@ -117,6 +118,9 @@ INI_DSK_FREE, INI_DSK_AVAIL, INI_DSK_RESVD, INI_DSK_INST, INI_DSK_EFF
 
 FIN_DSK_FREE, FIN_DSK_AVAIL, FIN_DSK_RESVD, FIN_DSK_INST, FIN_DSK_EFF
   Final disk stats, similar to the memory ones.
+
+INI_SPN_FREE, ..., FIN_SPN_FREE, ..
+  Initial and final spindles stats, similar to memory ones.
 
 INI_CPU_INST, FIN_CPU_INST
   Initial and final number of virtual CPUs used by instances.
