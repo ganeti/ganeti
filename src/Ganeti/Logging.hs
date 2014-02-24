@@ -55,6 +55,8 @@ import Control.Monad
 import Control.Monad.Error (Error(..), MonadError(..), catchError)
 import Control.Monad.Reader
 import qualified Control.Monad.RWS.Strict as RWSS
+import qualified Control.Monad.State.Strict as SS
+import Control.Monad.Trans.Identity
 import Data.Monoid
 import System.Log.Logger
 import System.Log.Handler.Simple
@@ -141,7 +143,13 @@ class Monad m => MonadLog m where
 instance MonadLog IO where
   logAt = logM rootLoggerName
 
+instance (MonadLog m) => MonadLog (IdentityT m) where
+  logAt p = lift . logAt p
+
 instance (MonadLog m) => MonadLog (ReaderT r m) where
+  logAt p = lift . logAt p
+
+instance (MonadLog m) => MonadLog (SS.StateT s m) where
   logAt p = lift . logAt p
 
 instance (MonadLog m, Monoid w) => MonadLog (RWSS.RWST r w s m) where
