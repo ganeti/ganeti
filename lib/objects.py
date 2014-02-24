@@ -1118,10 +1118,11 @@ class Instance(TaggableObject):
           _Helper(nodes, child)
 
     all_nodes = set()
-    all_nodes.add(self.primary_node)
     for device in self.disks:
       _Helper(all_nodes, device)
-    return tuple(all_nodes)
+    # ensure that the primary node is always the first
+    all_nodes.discard(self.primary_node)
+    return (self.primary_node, ) + tuple(all_nodes)
 
   all_nodes = property(_ComputeAllNodes, None, None,
                        "List of names of all the nodes of the instance")
