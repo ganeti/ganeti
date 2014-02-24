@@ -28,6 +28,10 @@ module Ganeti.Locking.Locks
   , GanetiLockAllocation
   ) where
 
+import Control.Monad (liftM)
+import qualified Text.JSON as J
+
+import Ganeti.JSON (asJSObject, fromObj)
 import Ganeti.Locking.Allocation
 import Ganeti.Locking.Types
 import Ganeti.Types
@@ -36,6 +40,25 @@ import Ganeti.Types
 -- is the lock oder.
 data GanetiLocks = BGL deriving (Ord, Eq, Show)
 -- TODO: add the remaining locks
+
+-- | Describe the parts the pieces of information that are needed to
+-- describe the lock.
+lockData :: GanetiLocks -> [(String, J.JSValue)]
+lockData BGL = [("type", J.showJSON "BGL")]
+
+-- | Read a lock form its JSON representation.
+readLock :: J.JSValue -> J.Result GanetiLocks
+readLock v =  do
+  fields <- liftM J.fromJSObject $ asJSObject v
+  tp <- fromObj fields "type"
+  case tp of
+    "BGL" -> return BGL
+    _ -> fail $ "Unknown lock type " ++ tp
+
+instance J.JSON GanetiLocks where
+  showJSON = J.JSObject . J.toJSObject . lockData
+  readJSON = readLock
+
 
 instance Lock GanetiLocks where
   lockImplications BGL = []
