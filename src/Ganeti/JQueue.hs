@@ -103,6 +103,7 @@ import Ganeti.Rpc (executeRpcCall, ERpcError, logRpcErrors,
 import Ganeti.THH
 import Ganeti.Types
 import Ganeti.Utils
+import Ganeti.Utils.Atomic
 import Ganeti.VCluster (makeVirtualPath)
 
 -- * Data types

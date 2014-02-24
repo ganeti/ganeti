@@ -135,6 +135,7 @@ HS_DIRS = \
 	src/Ganeti/Storage/Drbd \
 	src/Ganeti/Storage/Lvm \
 	src/Ganeti/THH \
+	src/Ganeti/Utils \
 	src/Ganeti/WConfd \
 	test/hs \
 	test/hs/Test \
@@ -803,6 +804,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Types.hs \
 	src/Ganeti/UDSServer.hs \
 	src/Ganeti/Utils.hs \
+	src/Ganeti/Utils/Atomic.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
 	src/Ganeti/WConfd/Core.hs \
