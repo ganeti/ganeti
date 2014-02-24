@@ -2233,7 +2233,7 @@ class SerializableConfigParser(ConfigParser.SafeConfigParser, object):
       if value.lower() == constants.VALUE_NONE:
         value = None
     except ConfigParser.NoOptionError:
-      r = re.compile(r"(disk|nic)\d+_name")
+      r = re.compile(r"(disk|nic)\d+_name|nic\d+_(network|vlan)")
       match = r.match(option)
       if match:
         pass
