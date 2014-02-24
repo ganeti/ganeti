@@ -360,10 +360,10 @@ class TestInstance(unittest.TestCase):
 
   def testNodesDrbdDisks(self):
     inst = objects.Instance(name="fakeinstdrbd.example.com",
-      primary_node="node10.example.com",
+      primary_node="node20.example.com",
       disks=[
         objects.Disk(dev_type=constants.DT_DRBD8, size=786432,
-          logical_id=("node10.example.com", "node15.example.com",
+          logical_id=("node20.example.com", "node15.example.com",
                       12300, 0, 0, "secret"),
           children=[
             objects.Disk(dev_type=constants.DT_PLAIN, size=786432,

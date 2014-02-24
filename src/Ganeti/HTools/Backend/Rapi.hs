@@ -150,7 +150,8 @@ parseNode :: NameAssoc -> JSRecord -> Result (String, Node.Node)
 parseNode ktg a = do
   name <- tryFromObj "Parsing new node" a "name"
   let desc = "Node '" ++ name ++ "', error while parsing data"
-      extract s = tryFromObj desc a s
+      extract key = tryFromObj desc a key
+      extractDef def key = fromObjWithDefault a key def
   offline <- extract "offline"
   drained <- extract "drained"
   vm_cap  <- annotateResult desc $ maybeFromObj a "vm_capable"
@@ -161,15 +162,16 @@ parseNode ktg a = do
   guuid' <-  lookupGroup ktg name (fromMaybe defaultGroupID guuid)
   let live = not offline && vm_cap'
       lvextract def = eitherLive live def . extract
+      lvextractDef def = eitherLive live def . extractDef def
   sptotal <- if excl_stor
              then lvextract 0 "sptotal"
              else tryFromObj desc (fromJSObject ndparams) "spindle_count"
-  spfree <- lvextract 0 "spfree"
+  spfree <- lvextractDef 0 "spfree"
   mtotal <- lvextract 0.0 "mtotal"
   mnode <- lvextract 0 "mnode"
   mfree <- lvextract 0 "mfree"
-  dtotal <- lvextract 0.0 "dtotal"
-  dfree <- lvextract 0 "dfree"
+  dtotal <- lvextractDef 0.0 "dtotal"
+  dfree <- lvextractDef 0 "dfree"
   ctotal <- lvextract 0.0 "ctotal"
   cnos <- lvextract 0 "cnos"
   tags <- extract "tags"

@@ -3251,6 +3251,8 @@ def FinalizeExport(instance, snap_disks):
     config.set(constants.INISECT_INS, "nic%d_ip" % nic_count, "%s" % nic.ip)
     config.set(constants.INISECT_INS, "nic%d_network" % nic_count,
                "%s" % nic.network)
+    config.set(constants.INISECT_INS, "nic%d_name" % nic_count,
+               "%s" % nic.name)
     for param in constants.NICS_PARAMETER_TYPES:
       config.set(constants.INISECT_INS, "nic%d_%s" % (nic_count, param),
                  "%s" % nic.nicparams.get(param, None))
@@ -3267,6 +3269,8 @@ def FinalizeExport(instance, snap_disks):
                  ("%s" % disk.logical_id[1]))
       config.set(constants.INISECT_INS, "disk%d_size" % disk_count,
                  ("%d" % disk.size))
+      config.set(constants.INISECT_INS, "disk%d_name" % disk_count,
+                 "%s" % disk.name)
 
   config.set(constants.INISECT_INS, "disk_count", "%d" % disk_total)
 

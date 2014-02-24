@@ -1105,10 +1105,11 @@ class Instance(TaggableObject):
           _Helper(nodes, child)
 
     all_nodes = set()
-    all_nodes.add(self.primary_node)
     for device in self.disks:
       _Helper(all_nodes, device)
-    return tuple(all_nodes)
+    # ensure that the primary node is always the first
+    all_nodes.discard(self.primary_node)
+    return (self.primary_node, ) + tuple(all_nodes)
 
   all_nodes = property(_ComputeAllNodes, None, None,
                        "List of names of all the nodes of the instance")
@@ -2217,7 +2218,8 @@ class Network(TaggableObject):
     return obj
 
 
-class SerializableConfigParser(ConfigParser.SafeConfigParser):
+# need to inherit object in order to use super()
+class SerializableConfigParser(ConfigParser.SafeConfigParser, object):
   """Simple wrapper over ConfigParse that allows serialization.
 
   This class is basically ConfigParser.SafeConfigParser with two
@@ -2238,6 +2240,23 @@ class SerializableConfigParser(ConfigParser.SafeConfigParser):
     cfp = cls()
     cfp.readfp(buf)
     return cfp
+
+  def get(self, section, option, **kwargs):
+    value = None
+    try:
+      value = super(SerializableConfigParser, self).get(section, option,
+                                                        **kwargs)
+      if value.lower() == constants.VALUE_NONE:
+        value = None
+    except ConfigParser.NoOptionError:
+      r = re.compile(r"(disk|nic)\d+_name|nic\d+_(network|vlan)")
+      match = r.match(option)
+      if match:
+        pass
+      else:
+        raise
+
+    return value
 
 
 class LvmPvInfo(ConfigObject):
