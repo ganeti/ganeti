@@ -27,6 +27,7 @@ module Ganeti.Config
     ( LinkIpMap
     , NdParamObject(..)
     , loadConfig
+    , saveConfig
     , getNodeInstances
     , getNodeRole
     , getNodeNdParams
@@ -59,6 +60,7 @@ import Data.List (foldl', nub)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Text.JSON as J
+import System.IO
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -82,9 +84,17 @@ readConfig = runResultT . liftIO . readFile
 parseConfig :: String -> Result ConfigData
 parseConfig = fromJResult "parsing configuration" . J.decodeStrict
 
+-- | Encodes the configuration file.
+encodeConfig :: ConfigData -> String
+encodeConfig = J.encodeStrict
+
 -- | Wrapper over 'readConfig' and 'parseConfig'.
 loadConfig :: FilePath -> IO (Result ConfigData)
 loadConfig = fmap (>>= parseConfig) . readConfig
+
+-- | Wrapper over 'hPutStr' and 'encodeConfig'.
+saveConfig :: Handle -> ConfigData -> IO ()
+saveConfig fh = hPutStr fh . encodeConfig
 
 -- * Query functions
 
