@@ -34,10 +34,13 @@ module Ganeti.WConfd.Server where
 import Control.Exception
 import Control.Monad
 import Control.Monad.Error
+import System.Directory (doesFileExist)
 
 import Ganeti.BasicTypes
 import Ganeti.Daemon
+import Ganeti.Logging (logInfo)
 import Ganeti.Locking.Allocation
+import Ganeti.Locking.Locks
 import qualified Ganeti.Path as Path
 import Ganeti.THH.RPC
 import Ganeti.UDSServer
@@ -69,12 +72,18 @@ prepMain _ _ = do
   -- TODO: Lock the configuration file so that running the daemon twice fails?
   conf_file <- Path.clusterConfFile
 
+  lock_file <- Path.lockStatusFile
+  lock_file_present <- doesFileExist lock_file
+  when (not lock_file_present)
+    $ logInfo "No saved lock status; assuming all locks free"
   dhOpt <- runResultT $ do
     (cdata, cstat) <- loadConfigFromFile conf_file
-      -- TODO: read current lock allocation from disk
+    lock <- if lock_file_present
+              then loadLockAllocation lock_file
+              else return emptyAllocation
     mkDaemonHandle conf_file
                    (mkConfigState cdata)
-                   emptyAllocation
+                   lock
                    (saveConfigAsyncTask conf_file cstat)
   dh <- withError (strMsg . ("Initialization of the daemon failed" ++) . show)
                   dhOpt
