@@ -126,7 +126,7 @@ HS_DIRS = \
 	src/Ganeti/HTools/Program \
 	src/Ganeti/Hypervisor \
 	src/Ganeti/Hypervisor/Xen \
-        src/Ganeti/Locking \
+	src/Ganeti/Locking \
 	src/Ganeti/Monitoring \
 	src/Ganeti/Query \
 	src/Ganeti/Storage \
@@ -755,9 +755,9 @@ HS_LIB_SRCS = \
 	src/Ganeti/JSON.hs \
 	src/Ganeti/Jobs.hs \
 	src/Ganeti/Kvmd.hs \
-        src/Ganeti/Locking/Allocation.hs \
-        src/Ganeti/Locking/Types.hs \
-        src/Ganeti/Locking/Locks.hs \
+	src/Ganeti/Locking/Allocation.hs \
+	src/Ganeti/Locking/Types.hs \
+	src/Ganeti/Locking/Locks.hs \
 	src/Ganeti/Logging.hs \
 	src/Ganeti/Luxi.hs \
 	src/Ganeti/Monitoring/Server.hs \
@@ -835,7 +835,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/JQueue.hs \
 	test/hs/Test/Ganeti/Kvmd.hs \
 	test/hs/Test/Ganeti/Luxi.hs \
-        test/hs/Test/Ganeti/Locking/Allocation.hs \
+	test/hs/Test/Ganeti/Locking/Allocation.hs \
 	test/hs/Test/Ganeti/Network.hs \
 	test/hs/Test/Ganeti/Objects.hs \
 	test/hs/Test/Ganeti/OpCodes.hs \
@@ -1040,7 +1040,7 @@ qa_scripts = \
 	qa/qa_rapi.py \
 	qa/qa_tags.py \
 	qa/qa_utils.py \
-        qa/rapi-workload.py
+	qa/rapi-workload.py
 
 bin_SCRIPTS = $(HS_BIN_PROGS)
 install-exec-hook:
