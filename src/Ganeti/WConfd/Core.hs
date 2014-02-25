@@ -34,12 +34,19 @@ module Ganeti.WConfd.Core where
 import Language.Haskell.TH (Name)
 
 import Ganeti.WConfd.Monad
+import Ganeti.WConfd.ConfigWriter
 
--- * The list of all functions exported to RPC.
+-- * Functions available to the RPC module
 
 -- Just a test function
 echo :: String -> WConfdMonad String
 echo = return
 
+-- ** Configuration related functions
+
+-- ** Locking related functions
+
+-- * The list of all functions exported to RPC.
+
 exportedFunctions :: [Name]
-exportedFunctions = [ 'echo ]
+exportedFunctions = [ 'echo, 'readConfig, 'writeConfig ]
