@@ -65,6 +65,7 @@ module Ganeti.Objects
   , DiskParams
   , NodeGroup(..)
   , IpFamily(..)
+  , ipFamilyToRaw
   , ipFamilyToVersion
   , fillDict
   , ClusterHvParams
@@ -73,6 +74,9 @@ module Ganeti.Objects
   , ClusterOsParams
   , ClusterOsParamsPrivate
   , ClusterNicParams
+  , UidPool
+  , formatUidRange
+  , UidRange
   , Cluster(..)
   , ConfigData(..)
   , TimeStampObject(..)
@@ -659,8 +663,16 @@ type ClusterOsParamsPrivate = Container (Private OsParams)
 -- | Cluster NicParams.
 type ClusterNicParams = Container FilledNicParams
 
+-- | A low-high UID ranges.
+type UidRange = (Int, Int)
+
+formatUidRange :: UidRange -> String
+formatUidRange (lower, higher)
+  | lower == higher = show lower
+  | otherwise       = show lower ++ "-" ++ show higher
+
 -- | Cluster UID Pool, list (low, high) UID ranges.
-type UidPool = [(Int, Int)]
+type UidPool = [UidRange]
 
 -- | The iallocator parameters type.
 type IAllocatorParams = Container JSValue
