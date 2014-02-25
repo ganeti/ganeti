@@ -26,12 +26,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Locking.Locks
   ( GanetiLocks(..)
   , GanetiLockAllocation
+  , loadLockAllocation
   ) where
 
-import Control.Monad (liftM)
+import Control.Monad (liftM, (>=>))
 import qualified Text.JSON as J
 
-import Ganeti.JSON (asJSObject, fromObj)
+
+import Ganeti.BasicTypes
+import Ganeti.Errors (ResultG)
+import Ganeti.JSON (asJSObject, fromObj, fromJResultE)
 import Ganeti.Locking.Allocation
 import Ganeti.Locking.Types
 import Ganeti.Types
@@ -66,3 +70,9 @@ instance Lock GanetiLocks where
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of
 -- locks are jobs.
 type GanetiLockAllocation = LockAllocation GanetiLocks JobId
+
+-- | Load a lock allocation from disk.
+loadLockAllocation :: FilePath -> ResultG GanetiLockAllocation
+loadLockAllocation =
+  liftIO . readFile
+  >=> fromJResultE "parsing lock allocation" . J.decodeStrict
