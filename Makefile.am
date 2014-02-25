@@ -127,6 +127,7 @@ HS_DIRS = \
 	src/Ganeti/Hypervisor \
 	src/Ganeti/Hypervisor/Xen \
 	src/Ganeti/Locking \
+	src/Ganeti/Logging \
 	src/Ganeti/Monitoring \
 	src/Ganeti/Query \
 	src/Ganeti/Storage \
@@ -759,6 +760,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Locking/Types.hs \
 	src/Ganeti/Locking/Locks.hs \
 	src/Ganeti/Logging.hs \
+	src/Ganeti/Logging/Lifted.hs \
 	src/Ganeti/Luxi.hs \
 	src/Ganeti/Monitoring/Server.hs \
 	src/Ganeti/Metad.hs \
