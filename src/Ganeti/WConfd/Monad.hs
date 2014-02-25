@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, FlexibleContexts #-}
 
 {-| All RPC calls are run within this monad.
 
@@ -37,12 +37,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.WConfd.Monad
   ( DaemonHandle
   , dhConfigPath
+  , dhSaveConfigWorker
   , mkDaemonHandle
   , ClientState(..)
   , WConfdMonadInt
   , runWConfdMonadInt
   , WConfdMonad
+  , daemonHandle
   , modifyConfigState
+  , readConfigState
   , modifyLockAllocation
   ) where
 
@@ -52,13 +55,14 @@ import Control.Monad.Base
 import Control.Monad.Error
 import Control.Monad.Trans.Control
 import Control.Monad.Trans.RWS.Strict
-import Data.IORef
+import Data.IORef.Lifted
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
 import Ganeti.Locking.Locks
 import Ganeti.Logging
 import Ganeti.Types
+import Ganeti.Utils.AsyncWorker
 import Ganeti.WConfd.ConfigState
 
 -- * Pure data types used in the monad
@@ -76,14 +80,20 @@ data DaemonHandle = DaemonHandle
   -- all static information that doesn't change during the life-time of the
   -- daemon should go here;
   -- all IDs of threads that do asynchronous work should probably also go here
+  , dhSaveConfigWorker :: AsyncWorker ()
   }
 
 mkDaemonHandle :: FilePath
                -> ConfigState
                -> GanetiLockAllocation
-               -> ResultT GanetiException IO DaemonHandle
-mkDaemonHandle cp cs la =
-  DaemonHandle <$> liftBase (newIORef $ DaemonState cs la) <*> pure cp
+               -> (IO ConfigState -> ResultG (AsyncWorker ()))
+                  -- ^ A function that creates a worker that asynchronously
+                  -- saves the configuration to the master file.
+               -> ResultG DaemonHandle
+mkDaemonHandle cpath cstat lstat saveWorkerFn = do
+  ds <- newIORef $ DaemonState cstat lstat
+  saveWorker <- saveWorkerFn $ dsConfigState `liftM` readIORef ds
+  return $ DaemonHandle ds cpath saveWorker
 
 data ClientState = ClientState
   { clLiveFilePath :: FilePath
@@ -138,14 +148,30 @@ type WConfdMonad = ResultT GanetiException WConfdMonadInt
 
 -- * Basic functions in the monad
 
+-- | Returns the daemon handle.
+daemonHandle :: WConfdMonad DaemonHandle
+daemonHandle = lift . WConfdMonadInt $ ask
+
+-- | Returns the current configuration, given a handle
+readConfigState :: WConfdMonad ConfigState
+readConfigState = liftM dsConfigState . readIORef . dhDaemonState
+                  =<< daemonHandle
+
 -- | Atomically modifies the configuration state in the WConfdMonad.
 modifyConfigState :: (ConfigState -> (ConfigState, a)) -> WConfdMonad a
 modifyConfigState f = do
-  dh <- lift . WConfdMonadInt $ ask
+  dh <- daemonHandle
   -- TODO: Use lenses to modify the daemons state here
   let mf ds = let (cs', r) = f (dsConfigState ds)
               in (ds { dsConfigState = cs' }, r)
-  liftBase $ atomicModifyIORef (dhDaemonState dh) mf
+  r <- atomicModifyIORef (dhDaemonState dh) mf
+  -- trigger the config. saving worker and wait for it
+  logDebug "Triggering config write"
+  liftBase . triggerAndWait . dhSaveConfigWorker $ dh
+  logDebug "Config write finished"
+  -- trigger the config. distribution worker asynchronously
+  -- TODO
+  return r
 
 -- | Atomically modifies the lock allocation state in WConfdMonad.
 modifyLockAllocation :: (GanetiLockAllocation -> (GanetiLockAllocation, a))
@@ -154,4 +180,5 @@ modifyLockAllocation f = do
   dh <- lift . WConfdMonadInt $ ask
   let mf ds = let (la', r) = f (dsLockAllocation ds)
               in (ds { dsLockAllocation = la' }, r)
-  liftBase $ atomicModifyIORef (dhDaemonState dh) mf
+  atomicModifyIORef (dhDaemonState dh) mf
+  -- TODO: Trigger the async. lock saving worker

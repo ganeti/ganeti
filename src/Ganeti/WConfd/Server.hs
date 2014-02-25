@@ -43,6 +43,7 @@ import Ganeti.THH.RPC
 import Ganeti.UDSServer
 
 import Ganeti.Runtime
+import Ganeti.Utils.AsyncWorker
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.Core
 import Ganeti.WConfd.Monad
@@ -69,6 +70,7 @@ prepMain _ _ = do
   conf_file <- Path.clusterConfFile
 
   dhOpt <- runResultT $ mkDaemonHandle conf_file mkConfigState emptyAllocation
+                                       (const $ mkAsyncWorker (return ()))
   -- TODO: read current lock allocation from disk
   dh <- withError (strMsg . ("Initialization of the daemon failed" ++) . show)
                   dhOpt
