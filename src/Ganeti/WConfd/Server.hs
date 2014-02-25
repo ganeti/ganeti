@@ -43,8 +43,8 @@ import Ganeti.THH.RPC
 import Ganeti.UDSServer
 
 import Ganeti.Runtime
-import Ganeti.Utils.AsyncWorker
 import Ganeti.WConfd.ConfigState
+import Ganeti.WConfd.ConfigWriter
 import Ganeti.WConfd.Core
 import Ganeti.WConfd.Monad
 
@@ -69,9 +69,13 @@ prepMain _ _ = do
   -- TODO: Lock the configuration file so that running the daemon twice fails?
   conf_file <- Path.clusterConfFile
 
-  dhOpt <- runResultT $ mkDaemonHandle conf_file mkConfigState emptyAllocation
-                                       (const $ mkAsyncWorker (return ()))
-  -- TODO: read current lock allocation from disk
+  dhOpt <- runResultT $ do
+    (cdata, cstat) <- loadConfigFromFile conf_file
+      -- TODO: read current lock allocation from disk
+    mkDaemonHandle conf_file
+                   (mkConfigState cdata)
+                   emptyAllocation
+                   (saveConfigAsyncTask conf_file cstat)
   dh <- withError (strMsg . ("Initialization of the daemon failed" ++) . show)
                   dhOpt
 

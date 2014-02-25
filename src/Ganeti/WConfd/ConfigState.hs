@@ -25,14 +25,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.WConfd.ConfigState
   ( ConfigState
+  , csConfigData
   , mkConfigState
   ) where
+
+import Ganeti.Objects
 
 -- | In future this data type will include the current configuration
 -- ('ConfigData') and the last 'FStat' of its file.
 data ConfigState = ConfigState
+  { csConfigData :: ConfigData
+  }
 
 -- | Creates a new configuration state.
 -- This method will expand as more fields are added to 'ConfigState'.
-mkConfigState :: ConfigState
+mkConfigState :: ConfigData -> ConfigState
 mkConfigState = ConfigState

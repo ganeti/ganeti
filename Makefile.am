@@ -808,6 +808,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils/AsyncWorker.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
+	src/Ganeti/WConfd/ConfigWriter.hs \
 	src/Ganeti/WConfd/Core.hs \
 	src/Ganeti/WConfd/Monad.hs \
 	src/Ganeti/WConfd/Server.hs
