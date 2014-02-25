@@ -110,7 +110,7 @@ def NiceSortKey(value):
 
   """
   return [_NiceSortTryInt(grp)
-          for grp in _SORTER_RE.match(value).groups()]
+          for grp in _SORTER_RE.match(str(value)).groups()]
 
 
 def NiceSort(values, key=None):
