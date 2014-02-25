@@ -32,6 +32,7 @@ import Control.Applicative
 import qualified Data.Foldable as F
 import qualified Data.Map as M
 import qualified Data.Set as S
+import qualified Text.JSON as J
 
 import Test.QuickCheck
 
@@ -61,7 +62,7 @@ data TestLock = TestBigLock
               | TestLockA Int
               | TestCollectionLockB
               | TestLockB Int
-              deriving (Ord, Eq, Show)
+              deriving (Ord, Eq, Show, Read)
 
 instance Arbitrary TestLock where
   arbitrary =  frequency [ (1, elements [ TestBigLock
@@ -300,7 +301,19 @@ prop_OpportunisticAnswer =
                       (M.lookup lock newOwned)
              ]
 
+instance J.JSON TestOwner where
+  showJSON (TestOwner x) = J.showJSON x
+  readJSON = (>>= return . TestOwner) . J.readJSON
 
+instance J.JSON TestLock where
+  showJSON = J.showJSON . show
+  readJSON = (>>= return . read) . J.readJSON
+
+-- | Verify that for LockAllocation we have readJSON . showJSON = Ok.
+prop_ReadShow :: Property
+prop_ReadShow =
+  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
+  J.readJSON (J.showJSON state) ==? J.Ok state
 
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
@@ -313,4 +326,5 @@ testSuite "Locking/Allocation"
  , 'prop_BlockNecessary
  , 'prop_OpportunisticMonotone
  , 'prop_OpportunisticAnswer
+ , 'prop_ReadShow
  ]
