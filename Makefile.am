@@ -1051,9 +1051,6 @@ $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
 	@rm -f $(notdir $@).tix
 	@touch "$@"
 
-# test dependency
-test/hs/offline-test.sh: test/hs/hpc-htools test/hs/hpc-mon-collector
-
 dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
 
@@ -1541,6 +1538,8 @@ check_SCRIPTS =
 
 if WANT_HSTESTS
 nodist_TESTS += $(haskell_tests)
+# test dependency
+test/hs/offline-test.sh: test/hs/hpc-htools test/hs/hpc-mon-collector
 dist_TESTS += test/hs/offline-test.sh
 check_SCRIPTS += \
 	test/hs/hpc-htools \
