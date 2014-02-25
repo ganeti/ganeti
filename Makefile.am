@@ -805,6 +805,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/UDSServer.hs \
 	src/Ganeti/Utils.hs \
 	src/Ganeti/Utils/Atomic.hs \
+	src/Ganeti/Utils/AsyncWorker.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
 	src/Ganeti/WConfd/Core.hs \
