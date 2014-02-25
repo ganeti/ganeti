@@ -842,6 +842,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Kvmd.hs \
 	test/hs/Test/Ganeti/Luxi.hs \
 	test/hs/Test/Ganeti/Locking/Allocation.hs \
+	test/hs/Test/Ganeti/Locking/Locks.hs \
 	test/hs/Test/Ganeti/Network.hs \
 	test/hs/Test/Ganeti/Objects.hs \
 	test/hs/Test/Ganeti/OpCodes.hs \
