@@ -38,6 +38,7 @@ module Ganeti.Locking.Allocation
   , opportunisticLockUnion
   ) where
 
+import Control.Applicative (liftA2)
 import Control.Arrow (second, (***))
 import Control.Monad
 import Data.Foldable (for_, find)
@@ -45,8 +46,10 @@ import Data.List (sort)
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
+import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
+import Ganeti.JSON (toArray)
 import Ganeti.Locking.Types
 
 {-
@@ -315,3 +318,64 @@ opportunisticLockUnion owner reqs state =
                                        s
         in (s', if result == Ok S.empty then lock:success else success)
   in second S.fromList $ foldl maybeAllocate (state, []) reqs'
+
+{-| Serializaiton of Lock Allocations
+
+To serialize a lock allocation, we only remember which owner holds
+which locks at which level (shared or exclusive). From this information,
+everything else can be reconstructed, simply using updateLocks.
+-}
+
+instance J.JSON OwnerState where
+  showJSON OwnShared = J.showJSON "shared"
+  showJSON OwnExclusive = J.showJSON "exclusive"
+  readJSON (J.JSString x) = let s = J.fromJSString x
+                            in case s of
+                              "shared" -> J.Ok OwnShared
+                              "exclusive" -> J.Ok OwnExclusive
+                              _ -> J.Error $ "Unknown owner type " ++ s
+  readJSON _ = J.Error "Owner type not encoded as a string"
+
+-- | Read a lock-ownerstate pair from JSON.
+readLockOwnerstate :: (J.JSON a) => J.JSValue -> J.Result (a, OwnerState)
+readLockOwnerstate (J.JSArray [x, y]) = liftA2 (,) (J.readJSON x) (J.readJSON y)
+readLockOwnerstate x = fail $ "lock-ownerstate pairs are encoded as arrays"
+                              ++ " of length 2, but found " ++ show x
+
+-- | Read an owner-lock pair from JSON.
+readOwnerLock :: (J.JSON a, J.JSON b)
+              => J.JSValue -> J.Result (b, [(a, OwnerState)])
+readOwnerLock (J.JSArray [x, J.JSArray ys]) =
+  liftA2 (,) (J.readJSON x) (mapM readLockOwnerstate ys)
+readOwnerLock x = fail $ "Expected pair of owner and list of owned locks,"
+                         ++ " but found " ++ show x
+
+-- | Transform a lock-ownerstate pair into a LockRequest.
+toRequest :: (a, OwnerState) -> LockRequest a
+toRequest (a, OwnExclusive) = requestExclusive a
+toRequest (a, OwnShared) = requestShared a
+
+-- | Obtain a LockAllocation from a given owner-locks list.
+-- The obtained allocation is the one obtained if the respective owners
+-- requested their locks sequentially.
+allocationFromOwners :: (Lock a, Ord b, Show b)
+                     => [(b, [(a, OwnerState)])]
+                     -> J.Result (LockAllocation a b)
+allocationFromOwners =
+  let allocateOneOwner s (o, req) = do
+        let (s', result) = updateLocks o (map toRequest req) s
+        when (result /= Ok S.empty) . fail
+          . (++) ("Inconsistent lock status for " ++ show o ++ ": ")
+          $ case result of
+            Bad err -> err
+            Ok blocked -> "blocked on " ++ show (S.toList blocked)
+        return s'
+  in foldM allocateOneOwner emptyAllocation
+
+instance (Lock a, J.JSON a, Ord b, J.JSON b, Show b)
+           => J.JSON (LockAllocation a b) where
+  showJSON = J.showJSON . M.toList . M.map M.toList . laOwned
+  readJSON x = do
+    xs <- toArray x
+    owned <- mapM readOwnerLock xs
+    allocationFromOwners owned
