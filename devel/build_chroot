@@ -230,7 +230,6 @@ case $DIST_RELEASE in
       libghc-vector-dev libghc-temporary-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
       libghc6-zlib-dev \
-      libghc-lifted-base-dev \
       cabal-install\
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-paramiko \
@@ -254,7 +253,9 @@ case $DIST_RELEASE in
        cabal update
 
      in_chroot -- \
-       cabal install --global base64-bytestring
+       cabal install --global \
+        base64-bytestring \
+        'lifted-base>=0.1.2'
 ;;
   precise)
     # ghc, git-email and other dependencies are hosted in the universe
@@ -277,7 +278,6 @@ EOF
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
-      libghc-lifted-base-dev \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
@@ -291,8 +291,10 @@ EOF
     in_chroot -- \
       cabal update
 
-    in_chroot -- \
-      cabal install --global base64-bytestring
+     in_chroot -- \
+       cabal install --global \
+        base64-bytestring \
+        'lifted-base>=0.1.2'
 
     in_chroot -- \
       cabal install --global shelltestrunner
