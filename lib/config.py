@@ -46,6 +46,7 @@ from ganeti import locking
 from ganeti import utils
 from ganeti import constants
 import ganeti.rpc.node as rpc
+import ganeti.wconfd as wc
 from ganeti import objects
 from ganeti import serializer
 from ganeti import uidpool
@@ -202,6 +203,7 @@ class ConfigWriter(object):
     self._last_cluster_serial = -1
     self._cfg_id = None
     self._context = None
+    self._wconfd = None
     self._OpenConfig(accept_foreign)
 
   def _GetRpc(self, address_list):
@@ -2355,10 +2357,20 @@ class ConfigWriter(object):
     """Read the config data from disk.
 
     """
-    raw_data = utils.ReadFile(self._cfg_file)
+    # Read the configuration data. If offline, read the file directly.
+    # If online, call WConfd.
+    if self._offline:
+      raw_data = utils.ReadFile(self._cfg_file)
+      try:
+        dict_data = serializer.Load(raw_data)
+      except Exception, err:
+        raise errors.ConfigurationError(err)
+    else:
+      self._wconfd = wc.Client()
+      dict_data = self._wconfd.ReadConfig()
 
     try:
-      data = objects.ConfigData.FromDict(serializer.Load(raw_data))
+      data = objects.ConfigData.FromDict(dict_data)
     except Exception, err:
       raise errors.ConfigurationError(err)
 
@@ -2508,24 +2520,35 @@ class ConfigWriter(object):
 
     if destination is None:
       destination = self._cfg_file
-    self._BumpSerialNo()
-    txt = serializer.DumpJson(
-      self._config_data.ToDict(_with_private=True),
-      private_encoder=serializer.EncodeWithPrivateFields
-    )
 
-    getents = self._getents()
-    try:
-      fd = utils.SafeWriteFile(destination, self._cfg_id, data=txt,
-                               close=False, gid=getents.confd_gid, mode=0640)
-    except errors.LockError:
-      raise errors.ConfigurationError("The configuration file has been"
-                                      " modified since the last write, cannot"
-                                      " update")
-    try:
-      self._cfg_id = utils.GetFileID(fd=fd)
-    finally:
-      os.close(fd)
+    self._BumpSerialNo()
+    # Save the configuration data. If offline, write the file directly.
+    # If online, call WConfd.
+    if self._offline:
+      txt = serializer.DumpJson(
+        self._config_data.ToDict(_with_private=True),
+        private_encoder=serializer.EncodeWithPrivateFields
+      )
+
+      getents = self._getents()
+      try:
+        fd = utils.SafeWriteFile(destination, self._cfg_id, data=txt,
+                                 close=False, gid=getents.confd_gid, mode=0640)
+      except errors.LockError:
+        raise errors.ConfigurationError("The configuration file has been"
+                                        " modified since the last write, cannot"
+                                        " update")
+      try:
+        self._cfg_id = utils.GetFileID(fd=fd)
+      finally:
+        os.close(fd)
+    else:
+      try:
+        self._wconfd.WriteConfig(self._config_data.ToDict())
+      except errors.LockError:
+        raise errors.ConfigurationError("The configuration file has been"
+                                        " modified since the last write, cannot"
+                                        " update")
 
     self.write_count += 1
 
