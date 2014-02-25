@@ -33,6 +33,7 @@ module Ganeti.Path
   , defaultWConfdSocket
   , confdHmacKey
   , clusterConfFile
+  , lockStatusFile
   , watcherPauseFile
   , nodedCertFile
   , nodedClientCertFile
@@ -106,6 +107,10 @@ confdHmacKey = dataDirP "hmac.key"
 -- | Path to cluster configuration file.
 clusterConfFile :: IO FilePath
 clusterConfFile  = dataDirP "config.data"
+
+-- | Path to the file representing the lock status.
+lockStatusFile :: IO FilePath
+lockStatusFile  = dataDirP "locks.data"
 
 -- | Path to the watcher pause file.
 watcherPauseFile :: IO FilePath
