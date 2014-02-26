@@ -356,6 +356,9 @@ mond = Runtime.daemonName GanetiMond
 noded :: String
 noded = Runtime.daemonName GanetiNoded
 
+wconfd :: String
+wconfd = Runtime.daemonName GanetiWConfd
+
 luxid :: String
 luxid = Runtime.daemonName GanetiLuxid
 
