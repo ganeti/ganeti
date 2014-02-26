@@ -74,7 +74,7 @@ prepMain _ _ = do
 
   lock_file <- Path.lockStatusFile
   lock_file_present <- doesFileExist lock_file
-  when (not lock_file_present)
+  unless lock_file_present
     $ logInfo "No saved lock status; assuming all locks free"
   dhOpt <- runResultT $ do
     (cdata, cstat) <- loadConfigFromFile conf_file
