@@ -991,6 +991,15 @@ def MasterFailover(no_voting=False):
   logging.info("Setting master to %s, old master: %s", new_master, old_master)
 
   try:
+    # Start WConfd so that we can access the configuration
+    result = utils.RunCmd([pathutils.DAEMON_UTIL,
+                           "start", constants.WCONFD, "--force-node"])
+    if result.failed:
+      raise errors.OpPrereqError("Could not start the configuration daemon,"
+                                 " command %s had exitcode %s and error %s" %
+                                 (result.cmd, result.exit_code, result.output),
+                                 errors.ECODE_NOENT)
+
     # instantiate a real config writer, as we now know we have the
     # configuration data
     cfg = config.ConfigWriter(accept_foreign=True)
@@ -1016,6 +1025,13 @@ def MasterFailover(no_voting=False):
     logging.error("Error while trying to set the new master: %s",
                   str(err))
     return 1
+  finally:
+    # stop WConfd again:
+    result = utils.RunCmd([pathutils.DAEMON_UTIL, "stop", constants.WCONFD])
+    if result.failed:
+      logging.error("Could not stop the configuration daemon,"
+                    " command %s had exitcode %s and error %s",
+                    result.cmd, result.exit_code, result.output)
 
   # if cfg.Update worked, then it means the old master daemon won't be
   # able now to write its own config file (we rely on locking in both
