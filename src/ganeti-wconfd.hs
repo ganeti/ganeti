@@ -29,19 +29,11 @@ import qualified Ganeti.WConfd.Server
 import Ganeti.Daemon
 import Ganeti.Runtime
 
--- | Options list and functions.
-options :: [OptType]
-options =
-  [ oNoDaemonize
-  , oNoUserChecks
-  , oDebug
-  , oSyslogUsage
-  ]
-
 -- | Main function.
 main :: IO ()
 main =
-  genericMain GanetiWConfd options
+  genericMain GanetiWConfd
+    Ganeti.WConfd.Server.options
     Ganeti.WConfd.Server.checkMain
     Ganeti.WConfd.Server.prepMain
     Ganeti.WConfd.Server.main

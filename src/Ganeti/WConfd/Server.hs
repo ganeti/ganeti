@@ -108,4 +108,5 @@ options =
   , oNoUserChecks
   , oDebug
   , oSyslogUsage
+  , oForceNode
   ]
