@@ -40,6 +40,7 @@ import Control.Applicative
 import Control.Monad.Base
 import Control.Monad.Error
 import qualified Control.Monad.State.Strict as S
+import Control.Monad.Trans.Control
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
@@ -80,6 +81,31 @@ writeConfigToFile cfg path oldstat = do
       setOwnerWGroupR fname
       saveConfig fh cfg
 
+-- Reads the current configuration state in the 'WConfdMonad'.
+readConfig :: WConfdMonad ConfigData
+readConfig = csConfigData <$> readConfigState
+
+-- Replaces the current configuration state within the 'WConfdMonad'.
+writeConfig :: ConfigData -> WConfdMonad ()
+writeConfig cd = modifyConfigState $ const (mkConfigState cd, ())
+
+-- * Asynchronous tasks
+
+-- | Creates an asynchronous task that handles errors in its actions.
+-- If an error occurs, it's logged and the internal state remains unchanged.
+mkStatefulAsyncTask :: (MonadBaseControl IO m, Show e)
+                    => Priority
+                    -> String
+                    -> (s -> ResultT e m s)
+                    -> s
+                    -> m (AsyncWorker ())
+mkStatefulAsyncTask logPrio logPrefix action start =
+    flip S.evalStateT start . mkAsyncWorker $
+      S.get >>= lift . runResultT . action
+            >>= genericResult
+                  (logAt logPrio . (++) (logPrefix ++ ": ") . show)
+                  S.put -- on success save the state
+
 -- | Construct an asynchronous worker whose action is to save the
 -- configuration to the master file.
 -- The worker's action reads the configuration using the given @IO@ action
@@ -90,19 +116,9 @@ saveConfigAsyncTask :: FilePath -- ^ Path to the config file
                     -> IO ConfigState -- ^ An action to read the current config
                     -> ResultG (AsyncWorker ())
 saveConfigAsyncTask fpath fstat cdRef =
-  flip S.evalStateT fstat . mkAsyncWorker $
-    catchError (do
-        oldstat <- S.get
-        cd <- liftBase (csConfigData `liftM` cdRef)
-        newstat <- writeConfigToFile cd fpath oldstat
-        S.put newstat
-      ) (logEmergency . (++) "Can't write the master configuration file: "
-                      . show)
-
--- Reads the current configuration state in the 'WConfdMonad'.
-readConfig :: WConfdMonad ConfigData
-readConfig = csConfigData <$> readConfigState
-
--- Replaces the current configuration state within the 'WConfdMonad'.
-writeConfig :: ConfigData -> WConfdMonad ()
-writeConfig cd = modifyConfigState $ const (mkConfigState cd, ())
+  let action oldstat = do
+                        cd <- liftBase (csConfigData `liftM` cdRef)
+                        writeConfigToFile cd fpath oldstat
+  in lift $ mkStatefulAsyncTask
+              EMERGENCY "Can't write the master configuration file"
+              action fstat
