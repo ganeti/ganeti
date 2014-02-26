@@ -38,6 +38,7 @@ module Ganeti.Daemon
   , oPort
   , oBindAddress
   , oSyslogUsage
+  , oForceNode
   , parseArgs
   , parseAddress
   , cleanupSocket
@@ -99,6 +100,7 @@ data DaemonOptions = DaemonOptions
   , optNoUserChecks :: Bool           -- ^ Ignore user checks
   , optBindAddress  :: Maybe String   -- ^ Override for the bind address
   , optSyslogUsage  :: Maybe SyslogUsage -- ^ Override for Syslog usage
+  , optForceNode    :: Bool           -- ^ Ignore node checks
   }
 
 -- | Default values for the command line options.
@@ -113,6 +115,7 @@ defaultOptions  = DaemonOptions
   , optNoUserChecks = False
   , optBindAddress  = Nothing
   , optSyslogUsage  = Nothing
+  , optForceNode    = False
   }
 
 instance StandardOptions DaemonOptions where
@@ -184,6 +187,13 @@ oSyslogUsage =
     \messages); one of 'no', 'yes' or 'only' [" ++ C.syslogUsage ++
     "]"),
    OptComplChoices ["yes", "no", "only"])
+
+oForceNode :: OptType
+oForceNode =
+  (Option "" ["force-node"]
+   (NoArg (\ opts -> Ok opts { optForceNode = True }))
+   "Force the daemon to run on a different node than the master",
+   OptComplNone)
 
 -- | Generic options.
 genericOpts :: [OptType]
@@ -328,10 +338,12 @@ isMaster = do
 
 -- | Ensures that the daemon runs on the right node (and exits
 -- gracefully if it doesnt)
-ensureNode :: GanetiDaemon -> IO ()
-ensureNode daemon = do
+ensureNode :: GanetiDaemon -> DaemonOptions -> IO ()
+ensureNode daemon opts = do
   is_master <- isMaster
-  when (daemonOnlyOnMaster daemon && not is_master) $ do
+  when (daemonOnlyOnMaster daemon
+        && not is_master
+        && not (optForceNode opts)) $ do
     putStrLn "Not master, exiting."
     exitWith (ExitFailure C.exitNotmaster)
 
@@ -389,7 +401,7 @@ genericMain daemon options check_fn prep_fn exec_fn = do
     hPutStrLn stderr $
       printf C.debugModeConfidentialityWarning (daemonName daemon)
 
-  ensureNode daemon
+  ensureNode daemon opts
 
   exitUnless (null args) "This program doesn't take any arguments"
 
