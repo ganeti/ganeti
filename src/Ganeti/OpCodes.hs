@@ -776,6 +776,7 @@ $(genOpCode "OpCode"
      , defaultField [| ExportModeLocal |] pExportMode
      , pX509KeyName
      , pX509DestCA
+     , pZeroFreeSpace
      ],
      "instance_name")
   , ("OpBackupRemove",

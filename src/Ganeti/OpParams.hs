@@ -218,6 +218,7 @@ module Ganeti.OpParams
   , pIgnoreRemoveFailures
   , pX509KeyName
   , pX509DestCA
+  , pZeroFreeSpace
   , pTagSearchPattern
   , pRestrictedCommand
   , pReplaceDisksMode
@@ -1478,6 +1479,11 @@ pX509DestCA :: Field
 pX509DestCA =
   withDoc "Destination X509 CA (remote export only)" $
   optionalNEStringField "destination_x509_ca"
+
+pZeroFreeSpace :: Field
+pZeroFreeSpace =
+  withDoc "Whether to zero the free space on the disks of the instance" $
+  defaultFalse "zero_free_space"
 
 pTagsObject :: Field
 pTagsObject =

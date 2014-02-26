@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -112,6 +112,14 @@ class LUBackupExport(LogicalUnit):
       if not self.dest_x509_ca_pem:
         raise errors.OpPrereqError("Missing destination X509 CA",
                                    errors.ECODE_INVAL)
+
+    if self.op.zero_free_space and not self.op.compress:
+      raise errors.OpPrereqError("Zeroing free space does not make sense "
+                                 "unless compression is used")
+
+    if self.op.zero_free_space and not self.op.shutdown:
+      raise errors.OpPrereqError("Unless the instance is shut down, zeroing "
+                                 "cannot be used.")
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()

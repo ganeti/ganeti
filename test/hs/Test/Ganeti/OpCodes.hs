@@ -400,7 +400,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpBackupExport <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          genMaybe (pure []) <*> genMaybe genNameNE
+          genMaybe (pure []) <*> genMaybe genNameNE <*> arbitrary
       "OP_BACKUP_REMOVE" ->
         OpCodes.OpBackupRemove <$> genFQDN <*> return Nothing
       "OP_TEST_ALLOCATOR" ->
