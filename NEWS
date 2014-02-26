@@ -284,6 +284,20 @@ before rc1.
 - Issue 623: IPv6 Masterd <-> Luxid communication error
 
 
+Version 2.9.5
+-------------
+
+*(Released Tue, 25 Feb 2014)*
+
+- Fix overflow problem in hbal that caused it to break when waiting for
+  jobs for more than 10 minutes (issue 717)
+- Make hbal properly handle non-LVM storage
+- Properly export and import NIC parameters, and do so in a backwards
+  compatible way (issue 716)
+- Fix net-common script in case of routed mode (issue 728)
+- Improve documentation (issues 724, 730)
+
+
 Version 2.9.4
 -------------
 
