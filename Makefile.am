@@ -823,7 +823,8 @@ HS_LIB_SRCS = \
 	src/Ganeti/WConfd/DeathDetection.hs \
 	src/Ganeti/WConfd/Language.hs \
 	src/Ganeti/WConfd/Monad.hs \
-	src/Ganeti/WConfd/Server.hs
+	src/Ganeti/WConfd/Server.hs \
+	src/Ganeti/WConfd/Ssconf.hs
 
 HS_TEST_SRCS = \
 	test/hs/Test/AutoConf.hs \
