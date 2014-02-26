@@ -295,6 +295,7 @@ check_and_start() {
 
 # Starts the master role
 start_master() {
+  start ganeti-wconfd
   start ganeti-masterd
   start ganeti-rapi
   start ganeti-luxid
@@ -305,6 +306,7 @@ stop_master() {
   stop ganeti-luxid
   stop ganeti-rapi
   stop ganeti-masterd
+  stop ganeti-wconfd
 }
 
 # Start all daemons
