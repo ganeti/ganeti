@@ -595,7 +595,7 @@ def ListLocks(opts, args): # pylint: disable=W0613
     """Format pending acquires.
 
     """
-    return utils.CommaJoin("%s:%s" % (mode, ",".join(threads))
+    return utils.CommaJoin("%s:%s" % (mode, ",".join(map(str, threads)))
                            for mode, threads in value)
 
   # Format raw values
