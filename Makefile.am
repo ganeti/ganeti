@@ -1019,9 +1019,14 @@ install-exec-hook:
 
 HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 
-Makefile.ghc: $(HS_ALL_PROGS:%=%.hs) $(HS_SRCS) Makefile | $(built_base_sources)
-	$(GHC) -M -dep-makefile $@ -dep-suffix $(HTEST_SUFFIX) $(HFLAGS) \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(HS_ALL_PROGS:%=%.hs) $(HS_SRCS)
+HS_MAKEFILE_GHC_SRCS = $(HS_SRC_PROGS:%=%.hs)
+if WANT_HSTESTS
+HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
+endif
+Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
+              | $(built_base_sources) $(HS_BUILT_SRCS)
+	$(GHC) -M -dep-makefile $@ -dep-suffix $(HTEST_SUFFIX) $(HFLAGS) -itest/hs \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(HS_MAKEFILE_GHC_SRCS)
 
 @include_makefile_ghc@
 
