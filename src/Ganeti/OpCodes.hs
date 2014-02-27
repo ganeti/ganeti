@@ -228,6 +228,7 @@ $(genOpCode "OpCode"
      , pDrbdHelper
      , pDefaultIAllocator
      , pDefaultIAllocatorParams
+     , pNetworkMacPrefix
      , pMasterNetdev
      , pMasterNetmask
      , pReservedLvs

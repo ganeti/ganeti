@@ -803,6 +803,10 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.remove_uids:
       uidpool.CheckUidPool(self.op.remove_uids)
 
+    if self.op.mac_prefix:
+      self.op.mac_prefix = \
+          utils.NormalizeAndValidateThreeOctetMacPrefix(self.op.mac_prefix)
+
     if self.op.master_netmask is not None:
       _ValidateNetmask(self.cfg, self.op.master_netmask)
 
@@ -1588,6 +1592,9 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.blacklisted_os:
       helper_os("blacklisted_os", self.op.blacklisted_os, "blacklisted")
+
+    if self.op.mac_prefix:
+      self.cluster.mac_prefix = self.op.mac_prefix
 
     if self.op.master_netdev:
       master_params = self.cfg.GetMasterNetworkParameters()

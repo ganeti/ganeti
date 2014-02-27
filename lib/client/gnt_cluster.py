@@ -1103,6 +1103,7 @@ def SetClusterParams(opts, args):
           opts.default_iallocator is not None or
           opts.default_iallocator_params or
           opts.reserved_lvs is not None or
+          opts.mac_prefix is not None or
           opts.master_netdev is not None or
           opts.master_netmask is not None or
           opts.use_external_mip_script is not None or
@@ -1219,6 +1220,7 @@ def SetClusterParams(opts, args):
     default_iallocator=opts.default_iallocator,
     default_iallocator_params=opts.default_iallocator_params,
     prealloc_wipe_disks=opts.prealloc_wipe_disks,
+    mac_prefix=opts.mac_prefix,
     master_netdev=opts.master_netdev,
     master_netmask=opts.master_netmask,
     reserved_lvs=opts.reserved_lvs,
@@ -2169,7 +2171,7 @@ commands = {
     SetClusterParams, ARGS_NONE,
     [FORCE_OPT,
      BACKEND_OPT, CP_SIZE_OPT, RQL_OPT, INSTANCE_COMMUNICATION_NETWORK_OPT,
-     ENABLED_HV_OPT, HVLIST_OPT, MASTER_NETDEV_OPT,
+     ENABLED_HV_OPT, HVLIST_OPT, MAC_PREFIX_OPT, MASTER_NETDEV_OPT,
      MASTER_NETMASK_OPT, NIC_PARAMS_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
      UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
      DEFAULT_IALLOCATOR_OPT, DEFAULT_IALLOCATOR_PARAMS_OPT, RESERVED_LVS_OPT,

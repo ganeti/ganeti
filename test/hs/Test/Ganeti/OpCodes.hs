@@ -196,6 +196,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                    -- drbd_helper
           <*> arbitrary                    -- default_iallocator
           <*> emptyMUD                     -- default_iallocator_params
+          <*> genMaybe genMacPrefix        -- mac_prefix
           <*> arbitrary                    -- master_netdev
           <*> arbitrary                    -- master_netmask
           <*> arbitrary                    -- reserved_lvs
