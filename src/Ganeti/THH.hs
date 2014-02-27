@@ -36,6 +36,7 @@ module Ganeti.THH ( declareSADT
                   , makeJSONInstance
                   , deCamelCase
                   , genOpID
+                  , genOpLowerStrip
                   , genAllConstr
                   , genAllOpIDs
                   , PyValue(..)
@@ -577,6 +578,18 @@ genConstrToStr trans_fun name fname = do
 -- | Constructor-to-string for OpCode.
 genOpID :: Name -> String -> Q [Dec]
 genOpID = genConstrToStr (return . deCamelCase)
+
+-- | Strips @Op@ from the constructor name, converts to lower-case
+-- and adds a given prefix.
+genOpLowerStrip :: String -> Name -> String -> Q [Dec]
+genOpLowerStrip prefix =
+    genConstrToStr (liftM ((prefix ++) . map toLower . deCamelCase)
+                    . stripPrefixM "Op")
+  where
+    stripPrefixM :: String -> String -> Q String
+    stripPrefixM pfx s = maybe (fail $ s ++ " doesn't start with " ++ pfx)
+                               return
+                         $ stripPrefix pfx s
 
 -- | Builds a list with all defined constructor names for a type.
 --
