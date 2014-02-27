@@ -34,6 +34,7 @@ module Ganeti.OpCodes
   , mkDiskIndex
   , unDiskIndex
   , opID
+  , opReasonSrcID
   , allOpIDs
   , allOpFields
   , opSummary
@@ -913,6 +914,10 @@ $(genOpID ''OpCode "opID")
 
 -- | A list of all defined/supported opcode IDs.
 $(genAllOpIDs ''OpCode "allOpIDs")
+
+-- | Convert the opcode name to lowercase with underscores and strip
+-- the @Op@ prefix.
+$(genOpLowerStrip (C.opcodeReasonSrcOpcode ++ ":") ''OpCode "opReasonSrcID")
 
 instance JSON OpCode where
   readJSON = loadOpCode
