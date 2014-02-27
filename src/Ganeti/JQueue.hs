@@ -40,6 +40,7 @@ module Ganeti.JQueue
     , currentTimestamp
     , advanceTimestamp
     , setReceivedTimestamp
+    , extendJobReasonTrail
     , opStatusFinalized
     , extractOpSummary
     , calcJobStatus
@@ -206,7 +207,7 @@ queuedJobFromOpCodes jobid ops = do
   ops' <- mapM (`resolveDependencies` jobid) ops
   return QueuedJob { qjId = jobid
                    , qjOps = map queuedOpCodeFromMetaOpCode ops'
-                   , qjReceivedTimestamp = Nothing 
+                   , qjReceivedTimestamp = Nothing
                    , qjStartTimestamp = Nothing
                    , qjEndTimestamp = Nothing
                    }
@@ -214,6 +215,51 @@ queuedJobFromOpCodes jobid ops = do
 -- | Attach a received timestamp to a Queued Job.
 setReceivedTimestamp :: Timestamp -> QueuedJob -> QueuedJob
 setReceivedTimestamp ts job = job { qjReceivedTimestamp = Just ts }
+
+-- | Build a timestamp in the format expected by the reason trail (nanoseconds)
+-- starting from a JQueue Timestamp.
+reasonTrailTimestamp :: Timestamp -> Integer
+reasonTrailTimestamp (sec, micro) =
+  let sec' = toInteger sec
+      micro' = toInteger micro
+  in sec' * 1000000000 + micro' * 1000
+
+-- | Append an element to the reason trail of an input opcode.
+extendInputOpCodeReasonTrail :: JobId -> Timestamp -> Int -> InputOpCode
+                             -> InputOpCode
+extendInputOpCodeReasonTrail _ _ _ op@(InvalidOpCode _) = op
+extendInputOpCodeReasonTrail jid ts i (ValidOpCode vOp) =
+  let metaP = metaParams vOp
+      op = metaOpCode vOp
+      trail = opReason metaP
+      reasonSrc = opReasonSrcID op
+      reasonText = "job=" ++ show (fromJobId jid) ++ ";index=" ++ show i
+      reason = (reasonSrc, reasonText, reasonTrailTimestamp ts)
+      trail' = trail ++ [reason]
+  in ValidOpCode $ vOp { metaParams = metaP { opReason = trail' } }
+
+-- | Append an element to the reason trail of a queued opcode.
+extendOpCodeReasonTrail :: JobId -> Timestamp -> Int -> QueuedOpCode
+                        -> QueuedOpCode
+extendOpCodeReasonTrail jid ts i op =
+  let inOp = qoInput op
+  in op { qoInput = extendInputOpCodeReasonTrail jid ts i inOp }
+
+-- | Append an element to the reason trail of all the OpCodes of a queued job.
+extendJobReasonTrail :: QueuedJob -> QueuedJob
+extendJobReasonTrail job =
+  let jobId = qjId job
+      mTimestamp = qjReceivedTimestamp job
+      -- This function is going to be called on QueuedJobs that already contain
+      -- a timestamp. But for safety reasons we cannot assume mTimestamp will
+      -- be (Just timestamp), so we use the value 0 in the extremely unlikely
+      -- case this is not true.
+      timestamp = fromMaybe (0, 0) mTimestamp
+    in job
+        { qjOps =
+            zipWith (extendOpCodeReasonTrail jobId timestamp) [0..] $
+              qjOps job
+        }
 
 -- | Change the priority of a QueuedOpCode, if it is not already
 -- finalized.
@@ -307,7 +353,7 @@ jobFinalized = (> JOB_STATUS_RUNNING) . calcJobStatus
 -- | Determine if a job is finalized and its timestamp is before
 -- a given time.
 jobArchivable :: Timestamp -> QueuedJob -> Bool
-jobArchivable ts = liftA2 (&&) jobFinalized 
+jobArchivable ts = liftA2 (&&) jobFinalized
   $ maybe False (< ts)
     .  liftA2 (<|>) qjEndTimestamp qjStartTimestamp
 
@@ -481,7 +527,7 @@ allocateJobIds mastercandidates lock n =
               putMVar lock ()
               let msg = "Failed to write serial file: " ++ show e
               logError msg
-              return . Bad $ msg 
+              return . Bad $ msg
             Right () -> do
               serial' <- makeVirtualPath serial
               _ <- executeRpcCall mastercandidates
@@ -556,14 +602,14 @@ archiveSomeJobsUntil replicateFn qDir endt cutt arch torepl (jid:jids) = do
       loadResult <- loadJobFromDisk qDir False jid
       case loadResult of
         Bad _ -> continue
-        Ok (job, _) -> 
+        Ok (job, _) ->
           if jobArchivable cutt job
             then do
               let live = liveJobFile qDir jid
                   archive = archivedJobFile qDir jid
               renameResult <- safeRenameFile queueDirPermissions
                                 live archive
-              case renameResult of                   
+              case renameResult of
                 Bad s -> do
                   logWarning $ "Renaming " ++ live ++ " to " ++ archive
                                  ++ " failed unexpectedly: " ++ s
@@ -576,7 +622,7 @@ archiveSomeJobsUntil replicateFn qDir endt cutt arch torepl (jid:jids) = do
                       archiveMore (arch + 1) [] jids
                     else archiveMore (arch + 1) torepl' jids
             else continue
-                   
+
 -- | Archive jobs older than the given time, but do not exceed the timeout for
 -- carrying out this task.
 archiveJobs :: ConfigData -- ^ cluster configuration
