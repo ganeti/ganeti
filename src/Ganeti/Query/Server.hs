@@ -259,7 +259,7 @@ handleCall qlock qstat cfg (SubmitManyJobs lops) =
           Bad s -> return . Bad . GenericError $ s
           Ok jids -> do
             ts <- currentTimestamp
-            jobs <- liftM (map $ setReceivedTimestamp ts)
+            jobs <- liftM (map $ extendJobReasonTrail . setReceivedTimestamp ts)
                       $ zipWithM queuedJobFromOpCodes jids lops
             qDir <- queueDir
             write_results <- mapM (writeJobToDisk qDir) jobs
