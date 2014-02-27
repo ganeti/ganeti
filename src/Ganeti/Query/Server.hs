@@ -229,7 +229,7 @@ handleCall qlock qstat cfg (SubmitJobToDrainedQueue ops) =
       Bad s -> return . Bad . GenericError $ s
       Ok jid -> do
         ts <- currentTimestamp
-        job <- liftM (setReceivedTimestamp ts)
+        job <- liftM (extendJobReasonTrail . setReceivedTimestamp ts)
                  $ queuedJobFromOpCodes jid ops
         qDir <- queueDir
         write_result <- writeJobToDisk qDir job
