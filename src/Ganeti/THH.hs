@@ -568,15 +568,15 @@ reifyConsNames name = do
 --
 -- This builds a custom list of name\/string pairs and then uses
 -- 'genToRaw' to actually generate the function.
-genConstrToStr :: (String -> String) -> Name -> String -> Q [Dec]
+genConstrToStr :: (String -> Q String) -> Name -> String -> Q [Dec]
 genConstrToStr trans_fun name fname = do
   cnames <- reifyConsNames name
-  let svalues = map (Left . trans_fun) cnames
+  svalues <- mapM (liftM Left . trans_fun) cnames
   genToRaw ''String (mkName fname) name $ zip cnames svalues
 
 -- | Constructor-to-string for OpCode.
 genOpID :: Name -> String -> Q [Dec]
-genOpID = genConstrToStr deCamelCase
+genOpID = genConstrToStr (return . deCamelCase)
 
 -- | Builds a list with all defined constructor names for a type.
 --
@@ -814,11 +814,11 @@ genLoadOpCode opdefs = do
 
 -- | Constructor-to-string for LuxiOp.
 genStrOfOp :: Name -> String -> Q [Dec]
-genStrOfOp = genConstrToStr id
+genStrOfOp = genConstrToStr return
 
 -- | Constructor-to-string for MsgKeys.
 genStrOfKey :: Name -> String -> Q [Dec]
-genStrOfKey = genConstrToStr ensureLower
+genStrOfKey = genConstrToStr (return . ensureLower)
 
 -- | Generates the LuxiOp data type.
 --
