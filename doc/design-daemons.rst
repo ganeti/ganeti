@@ -311,6 +311,15 @@ A job should close and remove its lock file when completely finishes.
 The WConfD daemon will be responsible for removing stale lock files of
 jobs that didn't remove its lock files themselves.
 
+**Statelessness of the protocol:** To keep our protocols stateless,
+the job id and the path the to lock file are sent as part of every
+request that deals with resources, in particular the Ganeti Locks.
+All resources are owned by the pair (job id, lock file). In this way,
+several jobs can live in the same process (as it will be in the
+transition period), but owner death detection still only depends on the
+owner of the resource. In particular, no additional lookup table is
+needed to obtain the lock file for a given owner.
+
 **Considered alternatives:** An alternative to creating a separate lock
 file would be to lock the job status file. However, file locks are kept
 only as long as the file is open. Therefore any operation followed by
@@ -327,10 +336,6 @@ through one socket. For each such a call the client sends a JSON request
 document with a remote function name and data for its arguments. The server
 replies with a JSON response document containing either the result of
 signalling a failure.
-
-There will be a special RPC call for identifying a client when connecting to
-WConfD. The client will tell WConfD it's job number and process ID. WConfD will
-fail any other RPC calls before a client identifies this way.
 
 Any state associated with client processes will be mirrored on persistent
 storage and linked to the identity of processes so that the WConfD daemon will
