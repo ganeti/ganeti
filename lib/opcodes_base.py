@@ -219,8 +219,11 @@ class BaseOpCode(outils.ValidatedSlots):
     """Validate opcode parameters, optionally setting default values.
 
     @type set_defaults: bool
-    @param set_defaults: Whether to set default values
-    @raise errors.OpPrereqError: When a parameter value doesn't match
+    @param set_defaults: whether to set default values
+
+    @rtype: NoneType
+    @return: L{None}, if the validation succeeds
+    @raise errors.OpPrereqError: when a parameter value doesn't match
                                  requirements
 
     """

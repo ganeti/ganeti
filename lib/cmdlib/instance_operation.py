@@ -449,7 +449,7 @@ def GetInstanceConsole(cluster, instance, primary_node, node_group):
                                      hvparams, beparams)
 
   assert console.instance == instance.name
-  assert console.Validate()
+  console.Validate()
 
   return console.ToDict()
 

@@ -92,6 +92,14 @@ class ValidatedSlots(object):
   def Validate(self):
     """Validates the slots.
 
+    This method returns L{None} if the validation succeeds, or raises
+    an exception otherwise.
+
+    @rtype: NoneType
+    @return: L{None}, if the validation succeeds
+
+    @raise Exception: validation fails
+
     This method must be implemented by the child classes.
 
     """

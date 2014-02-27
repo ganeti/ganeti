@@ -867,7 +867,7 @@ def TestRapiInstanceConsole(instance):
   """Test getting instance console information via RAPI"""
   result = _rapi_client.GetInstanceConsole(instance.name)
   console = objects.InstanceConsole.FromDict(result)
-  AssertEqual(console.Validate(), True)
+  AssertEqual(console.Validate(), None)
   AssertEqual(console.instance, qa_utils.ResolveInstanceName(instance.name))
 
 
