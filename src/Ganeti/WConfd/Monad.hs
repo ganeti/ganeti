@@ -6,8 +6,7 @@ It encapsulates:
 
 * IO operations,
 * failures,
-* working with the daemon state,
-* working with the client state.
+* working with the daemon state.
 
 Code that is specific either to the configuration or the lock management, should
 go into their corresponding dedicated modules.
@@ -39,7 +38,6 @@ module Ganeti.WConfd.Monad
   , dhConfigPath
   , dhSaveConfigWorker
   , mkDaemonHandle
-  , ClientState(..)
   , WConfdMonadInt
   , runWConfdMonadInt
   , WConfdMonad
@@ -53,15 +51,14 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error
+import Control.Monad.Reader
 import Control.Monad.Trans.Control
-import Control.Monad.Trans.RWS.Strict
 import Data.IORef.Lifted
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
 import Ganeti.Locking.Locks
 import Ganeti.Logging
-import Ganeti.Types
 import Ganeti.Utils.AsyncWorker
 import Ganeti.WConfd.ConfigState
 
@@ -95,16 +92,11 @@ mkDaemonHandle cpath cstat lstat saveWorkerFn = do
   saveWorker <- saveWorkerFn $ dsConfigState `liftM` readIORef ds
   return $ DaemonHandle ds cpath saveWorker
 
-data ClientState = ClientState
-  { clLiveFilePath :: FilePath
-  , clJobId :: JobId
-  }
-
 -- * The monad and its instances
 
 -- | A type alias for easier referring to the actual content of the monad
 -- when implementing its instances.
-type WConfdMonadIntType = RWST DaemonHandle () (Maybe ClientState) IO
+type WConfdMonadIntType = ReaderT DaemonHandle IO
 
 -- | The internal part of the monad without error handling.
 newtype WConfdMonadInt a = WConfdMonadInt
@@ -140,8 +132,7 @@ instance MonadLog WConfdMonadInt where
 -- | Runs the internal part of the WConfdMonad monad on a given daemon
 -- handle.
 runWConfdMonadInt :: WConfdMonadInt a -> DaemonHandle -> IO a
-runWConfdMonadInt (WConfdMonadInt k) dhandle =
-  liftM fst $ evalRWST k dhandle Nothing
+runWConfdMonadInt (WConfdMonadInt k) = runReaderT k
 
 -- | The complete monad with error handling.
 type WConfdMonad = ResultT GanetiException WConfdMonadInt
