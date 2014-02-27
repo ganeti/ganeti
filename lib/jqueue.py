@@ -224,7 +224,7 @@ class _QueuedJob(object):
                "received_timestamp", "start_timestamp", "end_timestamp",
                "__weakref__", "processor_lock", "writable", "archived"]
 
-  def _AddReasons(self):
+  def AddReasons(self):
     """Extend the reason trail
 
     Add the reason for all the opcodes of this job to be executed.
@@ -260,7 +260,7 @@ class _QueuedJob(object):
     self.queue = queue
     self.id = int(job_id)
     self.ops = [_QueuedOpCode(op) for op in ops]
-    self._AddReasons()
+    self.AddReasons()
     self.log_serial = 0
     self.received_timestamp = TimeStampNow()
     self.start_timestamp = None
