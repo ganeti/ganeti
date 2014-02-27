@@ -4303,11 +4303,20 @@ vClusterVpathWhitelist = ConstantUtils.mkSet [ vClusterEtcHosts ]
 opcodeReasonSrcClient :: String
 opcodeReasonSrcClient = "gnt:client"
 
+_opcodeReasonSrcDaemon :: String
+_opcodeReasonSrcDaemon = "gnt:daemon"
+
+_opcodeReasonSrcMasterd :: String
+_opcodeReasonSrcMasterd = _opcodeReasonSrcDaemon ++ ":masterd"
+
 opcodeReasonSrcNoded :: String
-opcodeReasonSrcNoded = "gnt:daemon:noded"
+opcodeReasonSrcNoded = _opcodeReasonSrcDaemon ++ ":noded"
 
 opcodeReasonSrcOpcode :: String
 opcodeReasonSrcOpcode = "gnt:opcode"
+
+opcodeReasonSrcPickup :: String
+opcodeReasonSrcPickup = _opcodeReasonSrcMasterd ++ ":pickup"
 
 opcodeReasonSrcRlib2 :: String
 opcodeReasonSrcRlib2 = "gnt:library:rlib2"
@@ -4320,6 +4329,7 @@ opcodeReasonSources =
   ConstantUtils.mkSet [opcodeReasonSrcClient,
                        opcodeReasonSrcNoded,
                        opcodeReasonSrcOpcode,
+                       opcodeReasonSrcPickup,
                        opcodeReasonSrcRlib2,
                        opcodeReasonSrcUser]
 
