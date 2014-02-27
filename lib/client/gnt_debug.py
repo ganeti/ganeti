@@ -38,6 +38,7 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import compat
 from ganeti import ht
+from ganeti import wconfd
 
 
 #: Default fields for L{ListLocks}
@@ -620,6 +621,29 @@ def ListLocks(opts, args): # pylint: disable=W0613
   return 0
 
 
+def Wconfd(opts, args): # pylint: disable=W0613
+  """Send commands to WConfD.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: the command to send, followed by the command-specific arguments
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  if args[0] == "echo":
+    if len(args) != 2:
+      ToStderr("Command 'echo' takes only precisely argument.")
+      return 1
+    result = wconfd.Client().Echo(args[1])
+    print "Answer: %s" % (result,)
+  else:
+    ToStderr("Command '%s' not supported", args[0])
+    return 1
+
+  return 0
+
+
 commands = {
   "delay": (
     Delay, [ArgUnknown(min=1, max=1)],
@@ -691,6 +715,9 @@ commands = {
     ListLocks, ARGS_NONE,
     [NOHDR_OPT, SEP_OPT, FIELDS_OPT, INTERVAL_OPT, VERBOSE_OPT],
     "[--interval N]", "Show a list of locks in the master daemon"),
+  "wconfd": (
+    Wconfd, [ArgUnknown(min=1)], [],
+    "<cmd> <args...>", "Directly talk to WConfD"),
   }
 
 #: dictionary with aliases for commands
