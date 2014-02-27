@@ -47,21 +47,18 @@ module Ganeti.OpCodes
   , setOpPriority
   ) where
 
-import Text.JSON (readJSON, JSObject, JSON, JSValue(..), makeObj, fromJSObject)
+import Data.List (intercalate)
+import Data.Map (Map)
 import qualified Text.JSON
+import Text.JSON (readJSON, JSObject, JSON, JSValue(..), makeObj, fromJSObject)
 
-import Ganeti.THH
-
+import qualified Ganeti.Constants as C
 import qualified Ganeti.Hs2Py.OpDoc as OpDoc
 import Ganeti.OpParams
 import Ganeti.PyValue ()
-import Ganeti.Types
 import Ganeti.Query.Language (queryTypeOpToRaw)
-
-import Data.List (intercalate)
-import Data.Map (Map)
-
-import qualified Ganeti.Constants as C
+import Ganeti.THH
+import Ganeti.Types
 
 instance PyValue DiskIndex where
   showValue = showValue . unDiskIndex
