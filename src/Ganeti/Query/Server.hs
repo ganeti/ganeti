@@ -134,6 +134,7 @@ handleCall _ _ cdata QueryClusterInfo =
                showJSON $ clusterCandidatePoolSize cluster)
             , ("max_running_jobs",
                showJSON $ clusterMaxRunningJobs cluster)
+            , ("mac_prefix",  showJSON $ clusterMacPrefix cluster)
             , ("master_netdev",  showJSON $ clusterMasterNetdev cluster)
             , ("master_netmask", showJSON $ clusterMasterNetmask cluster)
             , ("use_external_mip_script",

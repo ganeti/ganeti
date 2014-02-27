@@ -519,6 +519,7 @@ def ShowClusterConfig(opts, args):
       ("maximal number of jobs running simultaneously",
        compat.TryToRoman(result["max_running_jobs"],
                          convert=opts.roman_integers)),
+      ("mac prefix", result["mac_prefix"]),
       ("master netdev", result["master_netdev"]),
       ("master netmask", result["master_netmask"]),
       ("use external master IP address setup script",
