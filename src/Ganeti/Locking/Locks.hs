@@ -69,7 +69,7 @@ instance Lock GanetiLocks where
 
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of
 -- locks are jobs.
-type GanetiLockAllocation = LockAllocation GanetiLocks JobId
+type GanetiLockAllocation = LockAllocation GanetiLocks (JobId, FilePath)
 
 -- | Load a lock allocation from disk.
 loadLockAllocation :: FilePath -> ResultG GanetiLockAllocation
