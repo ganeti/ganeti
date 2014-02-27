@@ -646,6 +646,7 @@ MODIFY
 | [\--default-iallocator-params *ial-param*=*value*,*ial-param*=*value*]
 | [\--reserved-lvs=*NAMES*]
 | [\--node-parameters *ndparams*]
+| [{-m|\--mac-prefix} *mac-prefix*]
 | [\--master-netdev *interface-name*]
 | [\--master-netmask *netmask*]
 | [\--use-external-mip-script {yes \| no}]
@@ -668,10 +669,10 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``-B (--backend-parameters)``, ``-D (--disk-parameters)``, ``--nic-parameters``,
 ``-C (--candidate-pool-size)``, ``--maintain-node-health``,
 ``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters``,
-``--master-netdev``, ``--master-netmask``, ``--use-external-mip-script``,
-``--drbd-usermode-helper``, ``--file-storage-dir``,
-``--shared-file-storage-dir``, and ``--enabled-disk-templates`` options are
-described in the **init** command.
+``--mac-prefix``, ``--master-netdev``, ``--master-netmask``,
+``--use-external-mip-script``, ``--drbd-usermode-helper``,
+``--file-storage-dir``, ``--shared-file-storage-dir``, and
+``--enabled-disk-templates`` options are described in the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**\(7).
