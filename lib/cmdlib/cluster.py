@@ -2333,7 +2333,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self._ErrorIf(
         True, constants.CV_ECLUSTERCLIENTCERT, None,
         "The cluster's list of master candidate certificates is empty."
-        "If you just updated the cluster, please run"
+        " If you just updated the cluster, please run"
         " 'gnt-cluster renew-crypto --new-node-certificates'.")
       return
 

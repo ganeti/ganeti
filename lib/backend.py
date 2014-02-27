@@ -927,7 +927,7 @@ def _VerifyClientCertificate(cert_file=pathutils.NODED_CLIENT_CERT_FILE):
   if not os.path.exists(cert_file):
     return (constants.CV_ERROR,
             "The client certificate does not exist. Run '%s' to create"
-            "client certificates for all nodes." % create_cert_cmd)
+            " client certificates for all nodes." % create_cert_cmd)
 
   (errcode, msg) = utils.VerifyCertificate(cert_file)
   if errcode is not None:
