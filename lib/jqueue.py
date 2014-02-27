@@ -224,7 +224,7 @@ class _QueuedJob(object):
                "received_timestamp", "start_timestamp", "end_timestamp",
                "__weakref__", "processor_lock", "writable", "archived"]
 
-  def AddReasons(self):
+  def AddReasons(self, pickup=False):
     """Extend the reason trail
 
     Add the reason for all the opcodes of this job to be executed.
@@ -233,7 +233,12 @@ class _QueuedJob(object):
     count = 0
     for queued_op in self.ops:
       op = queued_op.input
-      reason_src = opcodes_base.NameToReasonSrc(op.__class__.__name__)
+      if pickup:
+        reason_src_prefix = constants.OPCODE_REASON_SRC_PICKUP
+      else:
+        reason_src_prefix = constants.OPCODE_REASON_SRC_OPCODE
+      reason_src = opcodes_base.NameToReasonSrc(op.__class__.__name__,
+                                                reason_src_prefix)
       reason_text = "job=%d;index=%d" % (self.id, count)
       reason = getattr(op, "reason", [])
       reason.append((reason_src, reason_text, utils.EpochNano()))
@@ -1724,6 +1729,8 @@ class JobQueue(object):
     if job is None:
       logging.warning("Job %s could not be read", job_id)
       return
+
+    job.AddReasons(pickup=True)
 
     status = job.CalcStatus()
     if status == constants.JOB_STATUS_QUEUED:
