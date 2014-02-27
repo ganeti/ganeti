@@ -32,8 +32,7 @@ from ganeti import masterd
 from ganeti import utils
 
 from ganeti.cmdlib.base import NoHooksLU, LogicalUnit
-from ganeti.cmdlib.common import CheckNodeOnline, \
-  ExpandNodeUuidAndName
+from ganeti.cmdlib.common import CheckNodeOnline, ExpandNodeUuidAndName
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
   ShutdownInstanceDisks
 from ganeti.cmdlib.instance_utils import GetClusterDomainSecret, \
@@ -269,6 +268,21 @@ class LUBackupExport(LogicalUnit):
       if disk.dev_type in constants.DTS_FILEBASED:
         raise errors.OpPrereqError("Export not supported for instances with"
                                    " file-based disks", errors.ECODE_INVAL)
+
+    # Check prerequisites for zeroing
+    if self.op.zero_free_space:
+      # Check that user shutdown detection has been enabled
+      hvparams = self.cfg.GetClusterInfo().FillHV(self.instance)
+      if self.instance.hypervisor == constants.HT_KVM and \
+         not hvparams.get(constants.HV_KVM_USER_SHUTDOWN, False):
+        raise errors.OpPrereqError("Instance shutdown detection must be "
+                                   "enabled for zeroing to work")
+
+      # Check that the instance is set to boot from the disk
+      if constants.HV_BOOT_ORDER in hvparams and \
+         hvparams[constants.HV_BOOT_ORDER] != constants.HT_BO_DISK:
+        raise errors.OpPrereqError("Booting from disk must be set for zeroing "
+                                   "to work")
 
   def _CleanupExports(self, feedback_fn):
     """Removes exports of current instance from all other nodes.
