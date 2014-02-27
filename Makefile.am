@@ -593,13 +593,17 @@ HS_MYEXECLIB_PROGS=
 endif
 
 # Haskell programs to be compiled by "make really-all"
-HS_COMPILE_PROGS= \
+HS_COMPILE_PROGS = \
 	src/ganeti-kvmd \
-	src/ganeti-mond \
-	src/hconfd \
 	src/hluxid \
 	src/hs2py \
 	src/rpc-test
+if ENABLE_CONFD
+HS_COMPILE_PROGS += src/hconfd
+endif
+if ENABLE_MOND
+HS_COMPILE_PROGS += src/ganeti-mond
+endif
 
 # All Haskell non-test programs to be compiled but not automatically installed
 HS_PROGS = $(HS_BIN_PROGS) $(HS_MYEXECLIB_PROGS)
