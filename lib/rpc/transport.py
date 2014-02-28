@@ -27,6 +27,7 @@ A transport can send to and receive messages from some endpoint.
 
 import collections
 import errno
+import logging
 import socket
 import time
 
@@ -176,6 +177,37 @@ class Transport:
     """
     self.Send(msg)
     return self.Recv()
+
+  @staticmethod
+  def RetryOnBrokenPipe(fn, on_error):
+    """Calls a given function, retrying if it fails on the 'Broken pipe' IO
+    exception.
+
+    This allows to re-establish a broken connection and retry an IO operation.
+
+    The function receives one an integer argument stating the current retry
+    number, 0 being the first call, 1 being the retry.
+
+    If any exception occurs, on_error is invoked first with the exception given
+    as an argument. Then, if the exception is 'Broken pipe', the function call
+    is retried once more.
+
+    """
+    retries = 2
+    for try_no in range(0, retries):
+      try:
+        return fn(try_no)
+      except socket.error, ex:
+        on_error(ex)
+        # we retry on "Broken pipe", unless it's the last try
+        if try_no == retries - 1:
+          raise
+        elif not (isinstance(ex.args, tuple) and (ex[0] == errno.EPIPE)):
+          raise
+      except Exception, ex:
+        on_error(ex)
+        raise
+    assert False # we should never get here
 
   def Close(self):
     """Close the socket"""

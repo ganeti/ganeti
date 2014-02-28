@@ -204,12 +204,12 @@ class AbstractClient(object):
 
   def _SendMethodCall(self, data):
     # Send request and wait for response
-    try:
+    def send(try_no):
+      if try_no:
+        logging.debug("RPC peer disconnected, retrying")
       self._InitTransport()
       return self.transport.Call(data)
-    except Exception:
-      self._CloseTransport()
-      raise
+    return t.Transport.RetryOnBrokenPipe(send, lambda _: self._CloseTransport())
 
   def Close(self):
     """Close the underlying connection.
