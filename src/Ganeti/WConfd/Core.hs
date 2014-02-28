@@ -31,12 +31,16 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.WConfd.Core where
 
+import Control.Monad (liftM)
 import qualified Data.Map as M
+import qualified Data.Set as S
 import Language.Haskell.TH (Name)
 
+import Ganeti.BasicTypes (toErrorStr)
 import qualified Ganeti.Locking.Allocation as L
 import Ganeti.Locking.Locks (GanetiLocks)
 import Ganeti.Types (JobId)
+import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
 import Ganeti.WConfd.ConfigWriter
 
@@ -55,7 +59,24 @@ listLocks :: JobId -> FilePath -> WConfdMonad [(GanetiLocks, L.OwnerState)]
 listLocks jid fpath =
   liftM (M.toList . L.listLocks (jid, fpath)) readLockAllocation
 
+-- | Try to update the locks of a given owner (i.e., a job-id lockfile pair).
+-- This function always returns immediately. If the lock update was possible,
+-- the empty list is returned; otherwise, the lock status is left completly
+-- unchanged, and the return value is the list of jobs which need to release
+-- some locks before this request can succeed.
+tryUpdateLocks :: JobId -> FilePath -> GanetiLockRequest -> WConfdMonad [JobId]
+tryUpdateLocks jid fpath req =
+  liftM (S.toList . S.map fst)
+  . (>>= toErrorStr)
+  $ modifyLockAllocation (L.updateLocks (jid, fpath)
+                                        (fromGanetiLockRequest req))
+
 -- * The list of all functions exported to RPC.
 
 exportedFunctions :: [Name]
-exportedFunctions = [ 'echo, 'readConfig, 'writeConfig, 'listLocks]
+exportedFunctions = [ 'echo
+                    , 'readConfig
+                    , 'writeConfig
+                    , 'listLocks
+                    , 'tryUpdateLocks
+                    ]
