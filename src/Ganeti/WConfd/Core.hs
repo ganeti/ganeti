@@ -31,8 +31,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.WConfd.Core where
 
+import qualified Data.Map as M
 import Language.Haskell.TH (Name)
 
+import qualified Ganeti.Locking.Allocation as L
+import Ganeti.Locking.Locks (GanetiLocks)
+import Ganeti.Types (JobId)
 import Ganeti.WConfd.Monad
 import Ganeti.WConfd.ConfigWriter
 
@@ -46,7 +50,12 @@ echo = return
 
 -- ** Locking related functions
 
+-- | List the locks of a given owner (i.e., a job-id lockfile pair).
+listLocks :: JobId -> FilePath -> WConfdMonad [(GanetiLocks, L.OwnerState)]
+listLocks jid fpath =
+  liftM (M.toList . L.listLocks (jid, fpath)) readLockAllocation
+
 -- * The list of all functions exported to RPC.
 
 exportedFunctions :: [Name]
-exportedFunctions = [ 'echo, 'readConfig, 'writeConfig ]
+exportedFunctions = [ 'echo, 'readConfig, 'writeConfig, 'listLocks]
