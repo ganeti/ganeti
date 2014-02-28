@@ -34,21 +34,28 @@ module Ganeti.Ssconf
   , getMasterNode
   , keyToFilename
   , sSFilePrefix
+  , SSConf(..)
+  , emptySSConf
   ) where
 
 import Control.Exception
 import Control.Monad (liftM)
+import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Network.Socket as Socket
 import System.FilePath ((</>))
 import System.IO.Error (isDoesNotExistError)
+import qualified Text.JSON as J
 
 import qualified AutoConf
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import Ganeti.JSON (GenericContainer(..), HasStringRepr(..))
 import qualified Ganeti.Path as Path
 import Ganeti.THH
 import Ganeti.Utils
+
+-- * Reading individual ssconf entries
 
 -- | Maximum ssconf file size we support.
 maxFileSize :: Int
@@ -85,6 +92,10 @@ $(declareSADT "SSKey"
   , ("SSNodegroups",           'C.ssNodegroups)
   , ("SSNetworks",             'C.ssNetworks)
   ])
+
+instance HasStringRepr SSKey where
+  fromStringRepr = sSKeyFromRaw
+  toStringRepr = sSKeyToRaw
 
 -- | Convert a ssconf key into a (full) file path.
 keyToFilename :: FilePath     -- ^ Config path root
@@ -146,3 +157,16 @@ getMasterNode :: Maybe FilePath -> IO (Result String)
 getMasterNode optPath = do
   result <- readSSConfFile optPath Nothing SSMasterNode
   return (liftM rStripSpace result)
+
+-- * Working with the whole ssconf map
+
+-- | The data type used for representing the ssconf.
+newtype SSConf = SSConf { getSSConf :: M.Map SSKey [String] }
+  deriving (Eq, Ord, Show)
+
+instance J.JSON SSConf where
+  showJSON = J.showJSON . GenericContainer . getSSConf
+  readJSON = liftM (SSConf . fromContainer) . J.readJSON
+
+emptySSConf :: SSConf
+emptySSConf = SSConf M.empty
