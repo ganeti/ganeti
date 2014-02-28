@@ -27,7 +27,6 @@ A transport can send to and receive messages from some endpoint.
 
 import collections
 import errno
-import logging
 import socket
 import time
 
