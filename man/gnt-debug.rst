@@ -122,6 +122,16 @@ the entire list of fields.
 Use ``--interval`` to repeat the listing. A delay specified by the
 option value in seconds is inserted.
 
+WCONFD
+~~~~~~
+
+| **wconfd** echo *text*
+
+Tests the WConf daemon by invoking its ``echo`` function.
+
+A given text is sent to WConfd through RPC, echoed back by WConfd and
+printed to the console.
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst
