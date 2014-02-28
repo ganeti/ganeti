@@ -233,7 +233,7 @@ handleCall qlock qstat cfg (SubmitJobToDrainedQueue ops) = runResultT $ do
     let mcs = Config.getMasterCandidates cfg
     jid <- mkResultT $ allocateJobId mcs qlock
     ts <- liftIO currentTimestamp
-    job <- liftM (setReceivedTimestamp ts)
+    job <- liftM (extendJobReasonTrail . setReceivedTimestamp ts)
              $ queuedJobFromOpCodes jid ops
     qDir <- liftIO queueDir
     mkResultT $ writeJobToDisk qDir job
@@ -260,7 +260,7 @@ handleCall qlock qstat cfg (SubmitManyJobs lops) =
           Bad s -> return . Bad . GenericError $ s
           Ok jids -> do
             ts <- currentTimestamp
-            jobs <- liftM (map $ setReceivedTimestamp ts)
+            jobs <- liftM (map $ extendJobReasonTrail . setReceivedTimestamp ts)
                       $ zipWithM queuedJobFromOpCodes jids lops
             qDir <- queueDir
             write_results <- mapM (writeJobToDisk qDir) jobs

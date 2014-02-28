@@ -109,14 +109,18 @@ class LUClusterRenewCrypto(NoHooksLU):
 
     server_digest = utils.GetCertificateDigest(
       cert_filename=pathutils.NODED_CERT_FILE)
-    old_master_digest = utils.GetCertificateDigest(
-      cert_filename=pathutils.NODED_CLIENT_CERT_FILE)
     utils.AddNodeToCandidateCerts("%s-SERVER" % master_uuid,
                                   server_digest,
                                   cluster.candidate_certs)
-    utils.AddNodeToCandidateCerts("%s-OLDMASTER" % master_uuid,
-                                  old_master_digest,
-                                  cluster.candidate_certs)
+    try:
+      old_master_digest = utils.GetCertificateDigest(
+        cert_filename=pathutils.NODED_CLIENT_CERT_FILE)
+      utils.AddNodeToCandidateCerts("%s-OLDMASTER" % master_uuid,
+                                    old_master_digest,
+                                    cluster.candidate_certs)
+    except IOError:
+      logging.info("No old certificate available.")
+
     new_master_digest = _UpdateMasterClientCert(self, master_uuid, cluster,
                                                 feedback_fn)
 
@@ -2528,7 +2532,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       self._ErrorIf(
         True, constants.CV_ECLUSTERCLIENTCERT, None,
         "The cluster's list of master candidate certificates is empty."
-        "If you just updated the cluster, please run"
+        " If you just updated the cluster, please run"
         " 'gnt-cluster renew-crypto --new-node-certificates'.")
       return
 

@@ -212,6 +212,16 @@ class ConfigObject(outils.ValidatedSlots):
   def Validate(self):
     """Validates the slots.
 
+    This method returns L{None} if the validation succeeds, or raises
+    an exception otherwise.
+
+    This method must be implemented by the child classes.
+
+    @rtype: NoneType
+    @return: L{None}, if the validation succeeds
+
+    @raise Exception: validation fails
+
     """
 
   def ToDict(self, _with_private=False):
@@ -2253,7 +2263,6 @@ class InstanceConsole(ConfigObject):
     assert self.display or self.kind in [constants.CONS_MESSAGE,
                                          constants.CONS_SPICE,
                                          constants.CONS_SSH]
-    return True
 
 
 class Network(TaggableObject):

@@ -36,6 +36,7 @@ module Ganeti.THH ( declareSADT
                   , makeJSONInstance
                   , deCamelCase
                   , genOpID
+                  , genOpLowerStrip
                   , genAllConstr
                   , genAllOpIDs
                   , PyValue(..)
@@ -652,15 +653,27 @@ reifyConsNames name = do
 --
 -- This builds a custom list of name\/string pairs and then uses
 -- 'genToRaw' to actually generate the function.
-genConstrToStr :: (String -> String) -> Name -> String -> Q [Dec]
+genConstrToStr :: (String -> Q String) -> Name -> String -> Q [Dec]
 genConstrToStr trans_fun name fname = do
   cnames <- reifyConsNames name
-  let svalues = map (Left . trans_fun) cnames
+  svalues <- mapM (liftM Left . trans_fun) cnames
   genToRaw ''String (mkName fname) name $ zip cnames svalues
 
 -- | Constructor-to-string for OpCode.
 genOpID :: Name -> String -> Q [Dec]
-genOpID = genConstrToStr deCamelCase
+genOpID = genConstrToStr (return . deCamelCase)
+
+-- | Strips @Op@ from the constructor name, converts to lower-case
+-- and adds a given prefix.
+genOpLowerStrip :: String -> Name -> String -> Q [Dec]
+genOpLowerStrip prefix =
+    genConstrToStr (liftM ((prefix ++) . map toLower . deCamelCase)
+                    . stripPrefixM "Op")
+  where
+    stripPrefixM :: String -> String -> Q String
+    stripPrefixM pfx s = maybe (fail $ s ++ " doesn't start with " ++ pfx)
+                               return
+                         $ stripPrefix pfx s
 
 -- | Builds a list with all defined constructor names for a type.
 --
@@ -898,11 +911,11 @@ genLoadOpCode opdefs = do
 
 -- | Constructor-to-string for LuxiOp.
 genStrOfOp :: Name -> String -> Q [Dec]
-genStrOfOp = genConstrToStr id
+genStrOfOp = genConstrToStr return
 
 -- | Constructor-to-string for MsgKeys.
 genStrOfKey :: Name -> String -> Q [Dec]
-genStrOfKey = genConstrToStr ensureLower
+genStrOfKey = genConstrToStr (return . ensureLower)
 
 -- | Generates the LuxiOp data type.
 --

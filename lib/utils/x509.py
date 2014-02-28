@@ -288,7 +288,8 @@ def GenerateSelfSignedX509Cert(common_name, validity, serial_no):
 
 def GenerateSelfSignedSslCert(filename, serial_no,
                               common_name=constants.X509_CERT_CN,
-                              validity=constants.X509_CERT_DEFAULT_VALIDITY):
+                              validity=constants.X509_CERT_DEFAULT_VALIDITY,
+                              uid=-1, gid=-1):
   """Legacy function to generate self-signed X509 certificate.
 
   @type filename: str
@@ -297,6 +298,10 @@ def GenerateSelfSignedSslCert(filename, serial_no,
   @param common_name: commonName value
   @type validity: int
   @param validity: validity of certificate in number of days
+  @type uid: int
+  @param uid: the user ID of the user who will be owner of the certificate file
+  @type gid: int
+  @param gid: the group ID of the group who will own the certificate file
   @return: a tuple of strings containing the PEM-encoded private key and
            certificate
 
@@ -307,7 +312,8 @@ def GenerateSelfSignedSslCert(filename, serial_no,
   (key_pem, cert_pem) = GenerateSelfSignedX509Cert(
       common_name, validity * 24 * 60 * 60, serial_no)
 
-  utils_io.WriteFile(filename, mode=0400, data=key_pem + cert_pem)
+  utils_io.WriteFile(filename, mode=0440, data=key_pem + cert_pem,
+                     uid=uid, gid=gid)
   return (key_pem, cert_pem)
 
 

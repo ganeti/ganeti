@@ -100,7 +100,8 @@ def GetCertificateDigest(cert_filename=pathutils.NODED_CLIENT_CERT_FILE):
   return cert.digest("sha1")
 
 
-def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg):
+def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg,
+                       uid=-1, gid=-1):
   """Creates a new SSL certificate and backups the old one.
 
   @type new_cert: boolean
@@ -111,6 +112,10 @@ def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg):
   @param serial_no: serial number of the certificate
   @type log_msg: string
   @param log_msg: log message to be written on certificate creation
+  @type uid: int
+  @param uid: the user ID of the user who will be owner of the certificate file
+  @type gid: int
+  @param gid: the group ID of the group who will own the certificate file
 
   """
   cert_exists = os.path.exists(cert_filename)
@@ -119,7 +124,7 @@ def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg):
       io.CreateBackup(cert_filename)
 
     logging.debug(log_msg)
-    x509.GenerateSelfSignedSslCert(cert_filename, serial_no)
+    x509.GenerateSelfSignedSslCert(cert_filename, serial_no, uid=uid, gid=gid)
 
 
 def VerifyCertificate(filename):

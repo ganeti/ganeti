@@ -1013,7 +1013,7 @@ class TestInstanceQuery(unittest.TestCase):
     if instance.name == "inst7":
       self.assertEqual(status, constants.RS_NORMAL)
       console = objects.InstanceConsole.FromDict(consdata)
-      self.assertTrue(console.Validate())
+      self.assertEqual(console.Validate(), None)
       self.assertEqual(console.host, instance.primary_node)
     else:
       self.assertEqual(status, constants.RS_UNAVAIL)

@@ -34,6 +34,7 @@ module Ganeti.OpCodes
   , mkDiskIndex
   , unDiskIndex
   , opID
+  , opReasonSrcID
   , allOpIDs
   , allOpFields
   , opSummary
@@ -46,21 +47,18 @@ module Ganeti.OpCodes
   , setOpPriority
   ) where
 
-import Text.JSON (readJSON, JSObject, JSON, JSValue(..), makeObj, fromJSObject)
+import Data.List (intercalate)
+import Data.Map (Map)
 import qualified Text.JSON
+import Text.JSON (readJSON, JSObject, JSON, JSValue(..), makeObj, fromJSObject)
 
-import Ganeti.THH
-
+import qualified Ganeti.Constants as C
 import qualified Ganeti.Hs2Py.OpDoc as OpDoc
 import Ganeti.OpParams
 import Ganeti.PyValue ()
-import Ganeti.Types
 import Ganeti.Query.Language (queryTypeOpToRaw)
-
-import Data.List (intercalate)
-import Data.Map (Map)
-
-import qualified Ganeti.Constants as C
+import Ganeti.THH
+import Ganeti.Types
 
 instance PyValue DiskIndex where
   showValue = showValue . unDiskIndex
@@ -923,6 +921,10 @@ $(genOpID ''OpCode "opID")
 
 -- | A list of all defined/supported opcode IDs.
 $(genAllOpIDs ''OpCode "allOpIDs")
+
+-- | Convert the opcode name to lowercase with underscores and strip
+-- the @Op@ prefix.
+$(genOpLowerStrip (C.opcodeReasonSrcOpcode ++ ":") ''OpCode "opReasonSrcID")
 
 instance JSON OpCode where
   readJSON = loadOpCode

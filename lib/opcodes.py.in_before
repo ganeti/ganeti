@@ -207,6 +207,15 @@ class OpInstanceMultiAllocBase(OpCode):
 
     We do this recursively.
 
+    @type set_defaults: bool
+    @param set_defaults: whether to set default values
+
+    @rtype: NoneType
+    @return: L{None}, if the validation succeeds
+
+    @raise errors.OpPrereqError: when a parameter value doesn't match
+                                 requirements
+
     """
     OpCode.Validate(self, set_defaults)
 

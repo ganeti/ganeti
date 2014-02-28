@@ -94,18 +94,20 @@ def _NameToId(name):
   return "_".join(n.upper() for n in _NameComponents(name))
 
 
-def NameToReasonSrc(name):
+def NameToReasonSrc(name, prefix):
   """Convert an opcode class name to a source string for the reason trail
 
   @type name: string
   @param name: the class name, as OpXxxYyy
+  @type prefix: string
+  @param prefix: the prefix that will be prepended to the opcode name
   @rtype: string
   @return: the name in the OP_XXXX_YYYY format
 
   """
   if not name.startswith("Op"):
     return None
-  return "%s:%s" % (constants.OPCODE_REASON_SRC_OPCODE,
+  return "%s:%s" % (prefix,
                     "_".join(n.lower() for n in _NameComponents(name)))
 
 
@@ -217,8 +219,11 @@ class BaseOpCode(outils.ValidatedSlots):
     """Validate opcode parameters, optionally setting default values.
 
     @type set_defaults: bool
-    @param set_defaults: Whether to set default values
-    @raise errors.OpPrereqError: When a parameter value doesn't match
+    @param set_defaults: whether to set default values
+
+    @rtype: NoneType
+    @return: L{None}, if the validation succeeds
+    @raise errors.OpPrereqError: when a parameter value doesn't match
                                  requirements
 
     """

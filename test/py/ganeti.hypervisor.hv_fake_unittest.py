@@ -39,7 +39,7 @@ class TestConsole(unittest.TestCase):
     group = objects.NodeGroup(name="default", ndparams={})
     cons = hv_fake.FakeHypervisor.GetInstanceConsole(instance, node, group,
                                                      {}, {})
-    self.assertTrue(cons.Validate())
+    self.assertEqual(cons.Validate(), None)
     self.assertEqual(cons.kind, constants.CONS_MESSAGE)
 
 

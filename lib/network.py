@@ -160,8 +160,6 @@ class AddressPool(object):
     if self.network6 and self.gateway6:
       assert self.gateway6 in self.network6 or self.gateway6.is_link_local
 
-    return True
-
   def IsFull(self):
     """Check whether the network is full.
 

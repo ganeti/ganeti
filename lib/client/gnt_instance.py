@@ -888,7 +888,7 @@ def _DoConsole(console, show_command, cluster_name, feedback_fn=ToStdout,
   @param cluster_name: Cluster name as retrieved from master daemon
 
   """
-  assert console.Validate()
+  console.Validate()
 
   if console.kind == constants.CONS_MESSAGE:
     feedback_fn(console.message)

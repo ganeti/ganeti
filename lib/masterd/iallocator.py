@@ -100,6 +100,15 @@ class IARequestBase(outils.ValidatedSlots):
   def Validate(self):
     """Validates all parameters of the request.
 
+
+    This method returns L{None} if the validation succeeds, or raises
+    an exception otherwise.
+
+    @rtype: NoneType
+    @return: L{None}, if the validation succeeds
+
+    @raise Exception: validation fails
+
     """
     assert self.MODE in constants.VALID_IALLOCATOR_MODES
 

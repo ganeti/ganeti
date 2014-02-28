@@ -619,15 +619,19 @@ HS_MYEXECLIB_PROGS=
 endif
 
 # Haskell programs to be compiled by "make really-all"
-HS_COMPILE_PROGS= \
+HS_COMPILE_PROGS = \
 	src/ganeti-kvmd \
 	src/ganeti-metad \
-	src/ganeti-mond \
-	src/hconfd \
 	src/ganeti-wconfd \
 	src/hluxid \
 	src/hs2py \
 	src/rpc-test
+if ENABLE_CONFD
+HS_COMPILE_PROGS += src/hconfd
+endif
+if ENABLE_MOND
+HS_COMPILE_PROGS += src/ganeti-mond
+endif
 
 # All Haskell non-test programs to be compiled but not automatically installed
 HS_PROGS = $(HS_BIN_PROGS) $(HS_MYEXECLIB_PROGS)
@@ -1061,9 +1065,14 @@ install-exec-hook:
 
 HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 
-Makefile.ghc: $(HS_ALL_PROGS:%=%.hs) $(HS_SRCS) Makefile | $(built_base_sources)
-	$(GHC) -M -dep-makefile $@ -dep-suffix $(HTEST_SUFFIX) $(HFLAGS) \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(HS_ALL_PROGS:%=%.hs) $(HS_SRCS)
+HS_MAKEFILE_GHC_SRCS = $(HS_SRC_PROGS:%=%.hs)
+if WANT_HSTESTS
+HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
+endif
+Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
+              | $(built_base_sources) $(HS_BUILT_SRCS)
+	$(GHC) -M -dep-makefile $@ -dep-suffix $(HTEST_SUFFIX) $(HFLAGS) -itest/hs \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(HS_MAKEFILE_GHC_SRCS)
 
 @include_makefile_ghc@
 

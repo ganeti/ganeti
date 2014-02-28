@@ -203,7 +203,7 @@ class TestConsole(unittest.TestCase):
   def _Test(self, instance, node, group, hvparams):
     cons = hv_kvm.KVMHypervisor.GetInstanceConsole(instance, node, group,
                                                    hvparams, {})
-    self.assertTrue(cons.Validate())
+    self.assertEqual(cons.Validate(), None)
     return cons
 
   def testSerial(self):
