@@ -151,6 +151,8 @@ def GetPaths():
      getent.noded_uid, getent.masterd_gid, False),
     (pathutils.NODED_CERT_FILE, FILE, pathutils.NODED_CERT_MODE,
      getent.masterd_uid, getent.masterd_gid, False),
+    (pathutils.NODED_CLIENT_CERT_FILE, FILE, pathutils.NODED_CERT_MODE,
+     getent.masterd_uid, getent.masterd_gid, False),
     (pathutils.WATCHER_PAUSEFILE, FILE, 0644,
      getent.masterd_uid, getent.masterd_gid, False),
     ]

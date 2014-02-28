@@ -1192,6 +1192,7 @@ def GetCryptoTokens(token_requests):
   @return: list of tuples of the token type and the public crypto token
 
   """
+  getents = runtime.GetEnts()
   _VALID_CERT_FILES = [pathutils.NODED_CERT_FILE,
                        pathutils.NODED_CLIENT_CERT_FILE,
                        pathutils.NODED_CLIENT_CERT_FILE_TMP]
@@ -1237,7 +1238,8 @@ def GetCryptoTokens(token_requests):
 
         utils.GenerateNewSslCert(
           True, cert_filename, serial_no,
-          "Create new client SSL certificate in %s." % cert_filename)
+          "Create new client SSL certificate in %s." % cert_filename,
+          uid=getents.masterd_uid, gid=getents.masterd_gid)
         tokens.append((token_type,
                        utils.GetCertificateDigest(
                          cert_filename=cert_filename)))
