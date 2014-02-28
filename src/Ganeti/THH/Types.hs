@@ -90,7 +90,8 @@ uncurryVarType = uncurryN . length . fst . funArgs
     uncurryN n = do
       f <- newName "f"
       ps <- mapM newName (replicate n "x")
-      return $ LamE (VarP f : map VarP ps) (foldl AppE (VarE f) $ map VarE ps)
+      return $ LamE [VarP f, TupP $ map VarP ps]
+                 (foldl AppE (VarE f) $ map VarE ps)
 
 -- | Creates an uncurried version of a function.
 -- If the function has no arguments, it's converted into @() -> o@.
