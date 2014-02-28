@@ -637,6 +637,14 @@ def Wconfd(opts, args): # pylint: disable=W0613
       return 1
     result = wconfd.Client().Echo(args[1])
     print "Answer: %s" % (result,)
+  elif args[0] == "listlocks":
+    if len(args) != 2:
+      ToStderr("Command 'listlocks' takes only precisely argument.")
+      return 1
+    result = wconfd.Client().ListLocks(int(args[1]), "")
+    # TODO: add canonical path to death-detection file for that job
+    #       once that is implemented
+    print "Answer: %s" % (result,)
   else:
     ToStderr("Command '%s' not supported", args[0])
     return 1
