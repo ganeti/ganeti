@@ -31,8 +31,10 @@ module Test.Ganeti.Ssconf (testSsconf) where
 import Test.QuickCheck
 
 import Data.List
+import qualified Data.Map as M
 
 import Test.Ganeti.TestHelper
+import Test.Ganeti.TestCommon
 
 import qualified Ganeti.Ssconf as Ssconf
 
@@ -40,11 +42,23 @@ import qualified Ganeti.Ssconf as Ssconf
 
 $(genArbitrary ''Ssconf.SSKey)
 
+instance Arbitrary Ssconf.SSConf where
+  arbitrary = fmap (Ssconf.SSConf . M.fromList) arbitrary
+
+-- * Reading SSConf
+
 prop_filename :: Ssconf.SSKey -> Property
 prop_filename key =
   printTestCase "Key doesn't start with correct prefix" $
     Ssconf.sSFilePrefix `isPrefixOf` Ssconf.keyToFilename "" key
 
+-- * Creating and writing SSConf
+
+-- | Verify that for SSConf we have readJSON . showJSON = Ok.
+prop_ReadShow :: Ssconf.SSConf -> Property
+prop_ReadShow = testSerialisation
+
 testSuite "Ssconf"
   [ 'prop_filename
+  , 'prop_ReadShow
   ]
