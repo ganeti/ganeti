@@ -403,6 +403,23 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
     self.assertEqual(additional_pool, self.cluster.uid_pool)
 
+  def testMacPrefix(self):
+    mac_prefix = "aa:01:02"
+    op = opcodes.OpClusterSetParams(mac_prefix=mac_prefix)
+    self.ExecOpCode(op)
+    self.assertEqual(mac_prefix, self.cluster.mac_prefix)
+
+  def testEmptyMacPrefix(self):
+    mac_prefix = ""
+    op = opcodes.OpClusterSetParams(mac_prefix=mac_prefix)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Parameter 'OP_CLUSTER_SET_PARAMS.mac_prefix' fails validation")
+
+  def testInvalidMacPrefix(self):
+    mac_prefix = "az:00:00"
+    op = opcodes.OpClusterSetParams(mac_prefix=mac_prefix)
+    self.ExecOpCodeExpectOpPrereqError(op, "Invalid MAC address prefix")
+
   def testMasterNetmask(self):
     op = opcodes.OpClusterSetParams(master_netmask=26)
     self.ExecOpCode(op)
