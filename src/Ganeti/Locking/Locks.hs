@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 {-| Ganeti lock structure
 
 -}
@@ -30,6 +32,7 @@ module Ganeti.Locking.Locks
   ) where
 
 import Control.Monad ((>=>))
+import Data.List (stripPrefix)
 import qualified Text.JSON as J
 
 
@@ -42,16 +45,49 @@ import Ganeti.Types
 
 -- | The type of Locks available in Ganeti. The order of this type
 -- is the lock oder.
-data GanetiLocks = BGL deriving (Ord, Eq, Show)
--- TODO: add the remaining locks
+data GanetiLocks = BGL
+                 | ClusterLockSet
+                 | InstanceLockSet
+                 | Instance String
+                 | NodeGroupLockSet
+                 | NodeGroup String
+                 | NodeAllocLockSet
+                 | NAL
+                 | NodeResLockSet
+                 | NodeRes String
+                 | NodeLockSet
+                 | Node String
+                 deriving (Ord, Eq, Show)
 
 -- | Provide teh String representation of a lock
 lockName :: GanetiLocks -> String
 lockName BGL = "cluster/BGL"
+lockName ClusterLockSet = "cluster/[lockset]"
+lockName InstanceLockSet = "instance/[lockset]"
+lockName (Instance uuid) = "instance/" ++ uuid
+lockName NodeGroupLockSet = "nodegroup/[lockset]"
+lockName (NodeGroup uuid) = "nodegroup/" ++ uuid
+lockName NodeAllocLockSet = "node-alloc/[lockset]"
+lockName NAL = "node-alloc/NAL"
+lockName NodeResLockSet = "node-res/[lockset]"
+lockName (NodeRes uuid) = "node-res/" ++ uuid
+lockName NodeLockSet = "node/[lockset]"
+lockName (Node uuid) = "node/" ++ uuid
 
 -- | Obtain a lock from its name.
 lockFromName :: String -> J.Result GanetiLocks
 lockFromName "cluster/BGL" = return BGL
+lockFromName "cluster/[lockset]" = return ClusterLockSet
+lockFromName "instance/[lockset]" = return InstanceLockSet
+lockFromName (stripPrefix "instance/" -> Just uuid) = return $ Instance uuid
+lockFromName "nodegroup/[lockset]" = return NodeGroupLockSet
+lockFromName (stripPrefix "nodegroup/" -> Just uuid) = return $ NodeGroup uuid
+lockFromName "node-alloc/[lockset]" = return NodeAllocLockSet
+lockFromName "node-alloc/NAL" = return NAL
+lockFromName "node-res/[lockset]" = return NodeResLockSet
+lockFromName (stripPrefix "node-res/" -> Just uuid) = return $ NodeRes uuid
+lockFromName "node/[lockset]" = return NodeLockSet
+lockFromName (stripPrefix "node/" -> Just uuid) = return $ Node uuid
 lockFromName n = fail $ "Unknown lock name '" ++ n ++ "'"
 
 instance J.JSON GanetiLocks where
@@ -61,6 +97,12 @@ instance J.JSON GanetiLocks where
 
 instance Lock GanetiLocks where
   lockImplications BGL = []
+  lockImplications (Instance _) = [InstanceLockSet, BGL]
+  lockImplications (NodeGroup _) = [NodeGroupLockSet, BGL]
+  lockImplications NAL = [NodeAllocLockSet, BGL]
+  lockImplications (NodeRes _) = [NodeResLockSet, BGL]
+  lockImplications (Node _) = [NodeLockSet, BGL]
+  lockImplications _ = [BGL]
 
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of
 -- locks are jobs.
