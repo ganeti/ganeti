@@ -814,6 +814,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/WConfd/ConfigState.hs \
 	src/Ganeti/WConfd/ConfigWriter.hs \
 	src/Ganeti/WConfd/Core.hs \
+	src/Ganeti/WConfd/Language.hs \
 	src/Ganeti/WConfd/Monad.hs \
 	src/Ganeti/WConfd/Server.hs
 
