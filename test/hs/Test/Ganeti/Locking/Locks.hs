@@ -28,6 +28,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Locking.Locks (testLocking_Locks) where
 
+import Control.Applicative ((<$>))
+
 import Test.QuickCheck
 import Text.JSON
 
@@ -37,7 +39,19 @@ import Test.Ganeti.TestCommon
 import Ganeti.Locking.Locks
 
 instance Arbitrary GanetiLocks where
-  arbitrary = elements [BGL]
+  arbitrary = oneof [ return BGL
+                    , return ClusterLockSet
+                    , return InstanceLockSet
+                    , Instance <$> genUUID
+                    , return NodeGroupLockSet
+                    , NodeGroup <$> genUUID
+                    , return NAL
+                    , return NodeAllocLockSet
+                    , return NodeResLockSet
+                    , NodeRes <$> genUUID
+                    , return NodeLockSet
+                    , Node <$> genUUID
+                    ]
 
 -- | Verify that readJSON . showJSON = Ok
 prop_ReadShow :: Property
