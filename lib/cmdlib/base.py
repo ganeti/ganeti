@@ -269,13 +269,10 @@ class LogicalUnit(object):
   def BuildHooksNodes(self):
     """Build list of nodes to run LU's hooks.
 
-    @rtype: tuple; (list, list) or (list, list, list)
+    @rtype: tuple; (list, list)
     @return: Tuple containing a list of node UUIDs on which the hook
       should run before the execution and a list of node UUIDs on which the
-      hook should run after the execution. As it might be possible that the
-      node UUID is not known at the time this method is invoked, an optional
-      third list can be added which contains node names on which the hook
-      should run after the execution (in case of node add, for instance).
+      hook should run after the execution.
       No nodes should be returned as an empty list (and not None).
     @note: If the C{HPATH} attribute of the LU class is C{None}, this function
       will not be called.

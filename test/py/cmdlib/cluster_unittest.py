@@ -234,7 +234,7 @@ class TestLUClusterPostInit(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-    self.assertSingleHooksCall([self.master.name],
+    self.assertSingleHooksCall([self.master.uuid],
                                "cluster-init",
                                constants.HOOKS_PHASE_POST)
 

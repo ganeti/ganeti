@@ -495,7 +495,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
     assert isinstance(self.lu, FakeNoHooksLU), "LU was replaced"
 
 
-class FakeEnvWithNodeNameLU(cmdlib.LogicalUnit):
+class FakeEnvWithCustomPostHookNodesLU(cmdlib.LogicalUnit):
   HPATH = "env_test_lu"
   HTYPE = constants.HTYPE_GROUP
 
@@ -506,7 +506,10 @@ class FakeEnvWithNodeNameLU(cmdlib.LogicalUnit):
     return {}
 
   def BuildHooksNodes(self):
-    return (["a"], ["a"], ["explicit.node1.com", "explicit.node2.com"])
+    return (["a"], ["a"])
+
+  def PreparePostHookNodes(self, post_hook_node_uuids):
+    return post_hook_node_uuids + ["b"]
 
 
 class TestHooksRunnerEnv(unittest.TestCase):
@@ -514,7 +517,8 @@ class TestHooksRunnerEnv(unittest.TestCase):
     self._rpcs = []
 
     self.op = opcodes.OpTestDummy(result=False, messages=[], fail=False)
-    self.lu = FakeEnvWithNodeNameLU(FakeProc(), self.op, FakeContext(), None)
+    self.lu = FakeEnvWithCustomPostHookNodesLU(FakeProc(), self.op,
+                                               FakeContext(), None)
 
   def _HooksRpc(self, *args):
     self._rpcs.append(args)
@@ -526,15 +530,13 @@ class TestHooksRunnerEnv(unittest.TestCase):
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(node_list, set(["node_a.example.com"]))
+    self.assertEqual(node_list, set(["a"]))
 
     # Check post-phase hook
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(node_list, set(["node_a.example.com",
-                                     "explicit.node1.com",
-                                     "explicit.node2.com"]))
+    self.assertEqual(node_list, set(["a", "b"]))
 
     self.assertRaises(IndexError, self._rpcs.pop)
 

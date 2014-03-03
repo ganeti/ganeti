@@ -268,15 +268,10 @@ class HooksMaster(object):
       nodes = (None, None)
     else:
       hooks_nodes = lu.BuildHooksNodes()
-      to_name = lambda node_uuids: frozenset(lu.cfg.GetNodeNames(node_uuids))
-      if len(hooks_nodes) == 2:
-        nodes = (to_name(hooks_nodes[0]), to_name(hooks_nodes[1]))
-      elif len(hooks_nodes) == 3:
-        nodes = (to_name(hooks_nodes[0]),
-                 to_name(hooks_nodes[1]) | frozenset(hooks_nodes[2]))
-      else:
+      if len(hooks_nodes) != 2:
         raise errors.ProgrammerError(
-          "LogicalUnit.BuildHooksNodes must return a 2- or 3-tuple")
+          "LogicalUnit.BuildHooksNodes must return a 2-tuple")
+      nodes = (frozenset(hooks_nodes[0]), frozenset(hooks_nodes[1]))
 
     master_name = cluster_name = None
     if lu.cfg:
