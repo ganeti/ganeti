@@ -29,13 +29,13 @@ module Ganeti.Locking.Locks
   , loadLockAllocation
   ) where
 
-import Control.Monad (liftM, (>=>))
+import Control.Monad ((>=>))
 import qualified Text.JSON as J
 
 
 import Ganeti.BasicTypes
 import Ganeti.Errors (ResultG)
-import Ganeti.JSON (asJSObject, fromObj, fromJResultE)
+import Ganeti.JSON (readEitherString, fromJResultE)
 import Ganeti.Locking.Allocation
 import Ganeti.Locking.Types
 import Ganeti.Types
@@ -45,23 +45,18 @@ import Ganeti.Types
 data GanetiLocks = BGL deriving (Ord, Eq, Show)
 -- TODO: add the remaining locks
 
--- | Describe the parts the pieces of information that are needed to
--- describe the lock.
-lockData :: GanetiLocks -> [(String, J.JSValue)]
-lockData BGL = [("type", J.showJSON "BGL")]
+-- | Provide teh String representation of a lock
+lockName :: GanetiLocks -> String
+lockName BGL = "cluster/BGL"
 
--- | Read a lock form its JSON representation.
-readLock :: J.JSValue -> J.Result GanetiLocks
-readLock v =  do
-  fields <- liftM J.fromJSObject $ asJSObject v
-  tp <- fromObj fields "type"
-  case tp of
-    "BGL" -> return BGL
-    _ -> fail $ "Unknown lock type " ++ tp
+-- | Obtain a lock from its name.
+lockFromName :: String -> J.Result GanetiLocks
+lockFromName "cluster/BGL" = return BGL
+lockFromName n = fail $ "Unknown lock name '" ++ n ++ "'"
 
 instance J.JSON GanetiLocks where
-  showJSON = J.JSObject . J.toJSObject . lockData
-  readJSON = readLock
+  showJSON = J.JSString . J.toJSString . lockName
+  readJSON = readEitherString >=> lockFromName
 
 
 instance Lock GanetiLocks where
