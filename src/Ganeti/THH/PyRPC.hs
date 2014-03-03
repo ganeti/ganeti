@@ -98,6 +98,10 @@ toFunc fname as = do
     varName idx (AppT ListT t)        = listOf idx t
     varName idx (AppT (ConT n) t)
       | n == ''[]                     = listOf idx t
+    varName idx (AppT (AppT (TupleT 2) t) t')
+                                      = pairOf idx t t'
+    varName idx (AppT (AppT (ConT n) t) t')
+      | n == ''(,)                    = pairOf idx t t'
     varName idx t                     = do
       report False $ "Don't know how to make a Python variable name from "
                      ++ show t ++ "; using a numbered one."
@@ -107,6 +111,14 @@ toFunc fname as = do
     -- a given type.
     listOf :: Int -> Type -> Q Doc
     listOf idx t = (<> text "List") <$> varName idx t
+
+    -- | Create a name for a method argument, knowing that its a pair of
+    -- the given types.
+    pairOf :: Int -> Type -> Type -> Q Doc
+    pairOf idx t t' = do
+      tn <- varName idx t
+      tn' <- varName idx t'
+      return $ tn <> text "_" <> tn' <> text "_Pair"
 
     lowerFirstNameQ :: Name -> Q Doc
     lowerFirstNameQ = return . text . lowerFirst . nameBase
