@@ -45,6 +45,7 @@ module Ganeti.WConfd.Monad
   , modifyConfigState
   , readConfigState
   , modifyLockAllocation
+  , modifyLockAllocation_
   , readLockAllocation
   ) where
 
@@ -174,6 +175,12 @@ modifyLockAllocation f = do
               in (ds { dsLockAllocation = la' }, r)
   atomicModifyIORef (dhDaemonState dh) mf
   -- TODO: Trigger the async. lock saving worker
+
+-- | Atomically modifies the lock allocation state in WConfdMonad, not
+-- producing any result
+modifyLockAllocation_ :: (GanetiLockAllocation -> GanetiLockAllocation)
+                      -> WConfdMonad ()
+modifyLockAllocation_ = modifyLockAllocation . (flip (,) () .)
 
 -- | Read the lock allocation state.
 readLockAllocation :: WConfdMonad GanetiLockAllocation
