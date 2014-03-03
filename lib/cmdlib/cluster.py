@@ -3249,9 +3249,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         test = msg and not res.offline
         self._ErrorIf(test, constants.CV_ENODEHOOKS, node_name,
                       "Communication failure in hooks execution: %s", msg)
-        if res.offline or msg:
-          # No need to investigate payload if node is offline or gave
-          # an error.
+        if test:
+          lu_result = False
+          continue
+        if res.offline:
+          # No need to investigate payload if node is offline
           continue
         for script, hkr, output in res.payload:
           test = hkr == constants.HKR_FAIL
