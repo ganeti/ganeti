@@ -76,6 +76,11 @@ freeLocks :: JobId -> FilePath -> WConfdMonad ()
 freeLocks jid fpath =
   modifyLockAllocation_ (`L.freeLocks` (jid, fpath))
 
+-- | Intersect the possesed locks of an owner with a given set.
+intersectLocks :: JobId -> FilePath -> [GanetiLocks] -> WConfdMonad ()
+intersectLocks jid fpath =
+ modifyLockAllocation_ . L.intersectLocks (jid,fpath)
+
 -- * The list of all functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -85,4 +90,5 @@ exportedFunctions = [ 'echo
                     , 'listLocks
                     , 'tryUpdateLocks
                     , 'freeLocks
+                    , 'intersectLocks
                     ]
