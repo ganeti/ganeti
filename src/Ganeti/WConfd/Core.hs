@@ -81,6 +81,15 @@ intersectLocks :: JobId -> FilePath -> [GanetiLocks] -> WConfdMonad ()
 intersectLocks jid fpath =
  modifyLockAllocation_ . L.intersectLocks (jid,fpath)
 
+-- | Opportunistically allocate locks for a given owner.
+opportunisticLockUnion :: JobId -> FilePath
+                       -> [(GanetiLocks, L.OwnerState)]
+                       -> WConfdMonad [GanetiLocks]
+opportunisticLockUnion jid fpath req =
+  liftM S.toList
+  . modifyLockAllocation
+  $ L.opportunisticLockUnion (jid, fpath) req
+
 -- * The list of all functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -91,4 +100,5 @@ exportedFunctions = [ 'echo
                     , 'tryUpdateLocks
                     , 'freeLocks
                     , 'intersectLocks
+                    , 'opportunisticLockUnion
                     ]
