@@ -283,6 +283,27 @@ class LogicalUnit(object):
     """
     raise NotImplementedError
 
+  def PreparePostHookNodes(self, post_hook_node_uuids):
+    """Extend list of nodes to run the post LU hook.
+
+    This method allows LUs to change the list of node UUIDs on which the
+    post hook should run after the LU has been executed but before the post
+    hook is run.
+
+    @type post_hook_node_uuids: list
+    @param post_hook_node_uuids: The initial list of node UUIDs to run the
+      post hook on, as returned by L{BuildHooksNodes}.
+    @rtype: list
+    @return: list of node UUIDs on which the post hook should run. The default
+      implementation returns the passed in C{post_hook_node_uuids}, but
+      custom implementations can choose to alter the list.
+
+    """
+    # For consistency with HooksCallBack we ignore the "could be a function"
+    # warning
+    # pylint: disable=R0201
+    return post_hook_node_uuids
+
   def HooksCallBack(self, phase, hook_results, feedback_fn, lu_result):
     """Notify the LU about the results of its hooks.
 
@@ -400,6 +421,12 @@ class NoHooksLU(LogicalUnit): # pylint: disable=W0223
 
     """
     raise AssertionError("BuildHooksNodes called for NoHooksLU")
+
+  def PreparePostHookNodes(self, post_hook_node_uuids):
+    """Empty PreparePostHookNodes for NoHooksLU.
+
+    """
+    raise AssertionError("PreparePostHookNodes called for NoHooksLU")
 
 
 class Tasklet:

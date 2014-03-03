@@ -46,8 +46,8 @@ def _RpcResultsToHooksResults(rpc_results):
 
 class HooksMaster(object):
   def __init__(self, opcode, hooks_path, nodes, hooks_execution_fn,
-               hooks_results_adapt_fn, build_env_fn, log_fn, htype=None,
-               cluster_name=None, master_name=None):
+               hooks_results_adapt_fn, build_env_fn, prepare_post_nodes_fn,
+               log_fn, htype=None, cluster_name=None, master_name=None):
     """Base class for hooks masters.
 
     This class invokes the execution of hooks according to the behaviour
@@ -70,6 +70,11 @@ class HooksMaster(object):
     @type build_env_fn: function that returns a dictionary having strings as
       keys
     @param build_env_fn: function that builds the environment for the hooks
+    @type prepare_post_nodes_fn: function that take a list of node UUIDs and
+      returns a list of node UUIDs
+    @param prepare_post_nodes_fn: function that is invoked right before
+      executing post hooks and can change the list of node UUIDs to run the post
+      hooks on
     @type log_fn: function that accepts a string
     @param log_fn: logging function
     @type htype: string or None
@@ -86,6 +91,7 @@ class HooksMaster(object):
     self.hooks_execution_fn = hooks_execution_fn
     self.hooks_results_adapt_fn = hooks_results_adapt_fn
     self.build_env_fn = build_env_fn
+    self.prepare_post_nodes_fn = prepare_post_nodes_fn
     self.log_fn = log_fn
     self.htype = htype
     self.cluster_name = cluster_name
@@ -195,6 +201,8 @@ class HooksMaster(object):
     elif phase == constants.HOOKS_PHASE_POST:
       if node_names is None:
         node_names = self.post_nodes
+        if node_names is not None and self.prepare_post_nodes_fn is not None:
+          node_names = frozenset(self.prepare_post_nodes_fn(list(node_names)))
       env = self._BuildEnv(phase)
     else:
       raise AssertionError("Unknown phase '%s'" % phase)
@@ -277,4 +285,5 @@ class HooksMaster(object):
 
     return HooksMaster(lu.op.OP_ID, lu.HPATH, nodes, hooks_execution_fn,
                        _RpcResultsToHooksResults, lu.BuildHooksEnv,
-                       lu.LogWarning, lu.HTYPE, cluster_name, master_name)
+                       lu.PreparePostHookNodes, lu.LogWarning, lu.HTYPE,
+                       cluster_name, master_name)
