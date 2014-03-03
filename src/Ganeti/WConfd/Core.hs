@@ -71,6 +71,11 @@ tryUpdateLocks jid fpath req =
   $ modifyLockAllocation (L.updateLocks (jid, fpath)
                                         (fromGanetiLockRequest req))
 
+-- | Free all locks of a given owner (i.e., a job-id lockfile pair).
+freeLocks :: JobId -> FilePath -> WConfdMonad ()
+freeLocks jid fpath =
+  modifyLockAllocation_ (`L.freeLocks` (jid, fpath))
+
 -- * The list of all functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -79,4 +84,5 @@ exportedFunctions = [ 'echo
                     , 'writeConfig
                     , 'listLocks
                     , 'tryUpdateLocks
+                    , 'freeLocks
                     ]
