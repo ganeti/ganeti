@@ -24,6 +24,11 @@ TEMP_DATA_DIR=`mktemp -d`
 ACTUAL_DATA_DIR=$DATA_DIR
 ACTUAL_DATA_DIR=${ACTUAL_DATA_DIR:-$TEMP_DATA_DIR}
 
+# Use gzip --rsyncable if available, to speed up transfers of generated files
+# The environment variable GZIP is read automatically by 'gzip',
+# see ENVIRONMENT in gzip(1).
+gzip --rsyncable </dev/null >/dev/null 2>&1 && export GZIP="--rsyncable"
+
 #Runnability checks
 if [ $USER != 'root' ]
 then
