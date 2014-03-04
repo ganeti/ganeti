@@ -37,6 +37,7 @@ import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
 import Ganeti.Locking.Locks
+import Ganeti.Locking.Types
 
 instance Arbitrary GanetiLocks where
   arbitrary = oneof [ return BGL
@@ -58,7 +59,16 @@ prop_ReadShow :: Property
 prop_ReadShow = forAll (arbitrary :: Gen GanetiLocks) $ \a ->
   readJSON (showJSON a) ==? Ok a
 
+-- | Verify the implied locks are earlier in the lock order.
+prop_ImpliedOrder :: Property
+prop_ImpliedOrder =
+  forAll ((arbitrary :: Gen GanetiLocks)
+          `suchThat` (not . null . lockImplications)) $ \b ->
+  printTestCase "Implied locks must be earlier in the lock order"
+  . flip all (lockImplications b) $ \a ->
+  a < b
 
 testSuite "Locking/Locks"
  [ 'prop_ReadShow
+ , 'prop_ImpliedOrder
  ]
