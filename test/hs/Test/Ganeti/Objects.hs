@@ -350,6 +350,9 @@ prop_fillDict defaults custom =
 prop_Disk_serialisation :: Disk -> Property
 prop_Disk_serialisation = testSerialisation
 
+prop_Disk_array_serialisation :: Disk -> Property
+prop_Disk_array_serialisation = testArraySerialisation
+
 -- | Check that node serialisation is idempotent.
 prop_Node_serialisation :: Node -> Property
 prop_Node_serialisation = testSerialisation
@@ -591,6 +594,7 @@ caseNotIncludeLogicalIdPlain =
 testSuite "Objects"
   [ 'prop_fillDict
   , 'prop_Disk_serialisation
+  , 'prop_Disk_array_serialisation
   , 'prop_Inst_serialisation
   , 'prop_Network_serialisation
   , 'prop_Node_serialisation
