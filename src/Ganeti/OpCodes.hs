@@ -1035,7 +1035,7 @@ resolveDependencies mopc jid = do
 -- | JSON serialisation for 'MetaOpCode'.
 showMeta :: MetaOpCode -> JSValue
 showMeta (MetaOpCode params op) =
-  let objparams = toDictCommonOpParams params
+  let objparams = toDict params
       objop = toDictOpCode op
   in makeObj (objparams ++ objop)
 

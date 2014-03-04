@@ -47,7 +47,6 @@ module Ganeti.Objects
   , fillBeParams
   , allBeParamFields
   , Instance(..)
-  , toDictInstance
   , getDiskSizeRequirements
   , PartialNDParams(..)
   , FilledNDParams(..)

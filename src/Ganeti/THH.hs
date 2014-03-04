@@ -1007,14 +1007,6 @@ buildObjectSerialisation sname fields = do
 objVarName :: Name
 objVarName = mkName "_o"
 
--- | The toDict function name for a given type.
-toDictName :: String -> Name
-toDictName sname = mkName ("toDict" ++ sname)
-
--- | The fromDict function name for a given type.
-fromDictName :: String -> Name
-fromDictName sname = mkName ("fromDict" ++ sname)
-
 -- | Generates 'DictObject' instance.
 genDictObject :: (Name -> Field -> Q Exp)  -- ^ a saving function
               -> (Field -> Q Exp)          -- ^ a loading function
@@ -1031,16 +1023,11 @@ genDictObject save_fn load_fn sname fields = do
   -- fromDict
   fdexp <- loadConstructor name load_fn fields
   let fdclause = Clause [VarP objVarName] (NormalB fdexp) []
-  -- the toDict... function
-  let tdname = toDictName sname
-  tdsigt <- [t| $(conT name) -> [(String, JSON.JSValue)] |]
   -- the final instance
-  return $ [InstanceD [] (AppT (ConT ''DictObject) (ConT name))
-             [ ValD (VarP 'toDict) (NormalB (VarE tdname)) []
-             , FunD 'fromDict [fdclause]
-             ]] ++
-           [ SigD tdname tdsigt
-           , ValD (VarP tdname) (NormalB (VarE 'toDict)) [] ]
+  return [InstanceD [] (AppT (ConT ''DictObject) (ConT name))
+           [ FunD 'toDict [tdclause]
+           , FunD 'fromDict [fdclause]
+           ]]
 
 -- | Generates the save object functionality.
 genSaveObject :: String -> Q [Dec]
@@ -1164,14 +1151,6 @@ buildParamAllFields sname fields =
       sig = SigD vname (AppT ListT (ConT ''String))
       val = ListE $ map (LitE . StringL . fieldName) fields
   in [sig, ValD (VarP vname) (NormalB val) []]
-
--- | Builds the 'DictObject' instance for a filled parameter.
-buildDictObjectInst :: Name -> String -> [Dec]
-buildDictObjectInst name sname =
-  [InstanceD [] (AppT (ConT ''DictObject) (ConT name))
-   [ ValD (VarP 'toDict) (NormalB (VarE (toDictName sname))) []
-   , ValD (VarP 'fromDict) (NormalB (VarE (fromDictName sname))) []
-   ]]
 
 -- | Generates the serialisation for a partial parameter.
 buildPParamSerialisation :: String -> [Field] -> Q [Dec]
