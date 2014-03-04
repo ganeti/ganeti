@@ -60,6 +60,7 @@ module Test.Ganeti.TestCommon
   , genLuxiTagName
   , netmask2NumHosts
   , testSerialisation
+  , testArraySerialisation
   , testDeserialisationFail
   , resultProp
   , readTestData
@@ -93,6 +94,7 @@ import qualified Text.JSON as J
 import Numeric
 
 import qualified Ganeti.BasicTypes as BasicTypes
+import Ganeti.JSON (ArrayObject(..))
 import Ganeti.Types
 
 -- * Constants
@@ -371,6 +373,13 @@ genLuxiTagName _ = genFQDN
 testSerialisation :: (Eq a, Show a, J.JSON a) => a -> Property
 testSerialisation a =
   case J.readJSON (J.showJSON a) of
+    J.Error msg -> failTest $ "Failed to deserialise: " ++ msg
+    J.Ok a' -> a ==? a'
+
+-- | Checks for array serialisation idempotence.
+testArraySerialisation :: (Eq a, Show a, ArrayObject a) => a -> Property
+testArraySerialisation a =
+  case fromJSArray (toJSArray a) of
     J.Error msg -> failTest $ "Failed to deserialise: " ++ msg
     J.Ok a' -> a ==? a'
 
