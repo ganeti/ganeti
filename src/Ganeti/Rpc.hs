@@ -139,13 +139,14 @@ explainRpcError OfflineNodeError =
 type ERpcError = Either RpcError
 
 -- | A generic class for RPC calls.
-class (J.JSON a) => RpcCall a where
+class (ArrayObject a) => RpcCall a where
   -- | Give the (Python) name of the procedure.
   rpcCallName :: a -> String
   -- | Calculate the timeout value for the call execution.
   rpcCallTimeout :: a -> Int
   -- | Prepare arguments of the call to be send as POST.
   rpcCallData :: Node -> a -> String
+  rpcCallData _ = J.encode . J.JSArray . toJSArray
   -- | Whether we accept offline nodes when making a call.
   rpcCallAcceptOffline :: a -> Bool
 
@@ -318,10 +319,6 @@ instance RpcCall RpcCallInstanceInfo where
   rpcCallName _          = "instance_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode
-    ( rpcCallInstInfoInstance call
-    , rpcCallInstInfoHname call
-    )
 
 instance Rpc RpcCallInstanceInfo RpcResultInstanceInfo where
   rpcResultFill _ res =
@@ -429,7 +426,6 @@ instance RpcCall RpcCallInstanceList where
   rpcCallName _          = "instance_list"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode [rpcCallInstListHypervisors call]
 
 instance Rpc RpcCallInstanceList RpcResultInstanceList where
   rpcResultFill _ res = fromJSValueToRes res RpcResultInstanceList
@@ -518,12 +514,6 @@ instance RpcCall RpcCallStorageList where
   rpcCallName _          = "storage_list"
   rpcCallTimeout _       = rpcTimeoutToRaw Normal
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode
-    ( rpcCallStorageListSuName call
-    , rpcCallStorageListSuArgs call
-    , rpcCallStorageListName call
-    , rpcCallStorageListFields call
-    )
 
 instance Rpc RpcCallStorageList RpcResultStorageList where
   rpcResultFill call res =
@@ -551,7 +541,6 @@ instance RpcCall RpcCallTestDelay where
   rpcCallName _          = "test_delay"
   rpcCallTimeout         = ceiling . (+ 5) . rpcCallTestDelayDuration
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode [rpcCallTestDelayDuration call]
 
 instance Rpc RpcCallTestDelay RpcResultTestDelay where
   rpcResultFill _ res = fromJSValueToRes res id
@@ -618,7 +607,6 @@ instance RpcCall RpcCallJobqueueRename where
   rpcCallName _          = "jobqueue_rename"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode [ rpcCallJobqueueRenameRename call ]
 
 instance Rpc RpcCallJobqueueRename RpcResultJobqueueRename where
   rpcResultFill call res =
@@ -644,9 +632,6 @@ instance RpcCall RpcCallSetWatcherPause where
   rpcCallName _          = "set_watcher_pause"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode
-    [ maybe J.JSNull (J.showJSON . TimeAsDoubleJSON) $
-            rpcCallSetWatcherPauseTime call ]
 
 $(buildObject "RpcResultSetWatcherPause" "rpcResultSetWatcherPause" [])
 
@@ -669,7 +654,6 @@ instance RpcCall RpcCallSetDrainFlag where
   rpcCallName _          = "jobqueue_set_drain_flag"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode [ rpcCallSetDrainFlagValue call ]
 
 $(buildObject "RpcResultSetDrainFlag" "rpcResultSetDrainFalg" [])
 
