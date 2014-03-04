@@ -202,6 +202,7 @@ INIT
 | [\--hypervisor-state *hvstate*]
 | [\--drbd-usermode-helper *helper*]
 | [\--enabled-disk-templates *template* [,*template*...]]
+| [\--zeroing-image *image*]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -589,6 +590,12 @@ the cluster. It is also not possible to disable a disk template when there
 are still instances using it. The first disk template in the list of
 enabled disk template is the default disk template. It will be used for
 instance creation, if no disk template is requested explicitely.
+
+The ``--zeroing-image`` option specifies the location of the OS image to
+use to zero out the free space of an instance. This can be a file path
+or a URL. In the case that a file path is used, nodes are expected to
+have the zeroing image located at the given path, although that is
+enforced during a zeroing operation only.
 
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
