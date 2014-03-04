@@ -39,6 +39,7 @@ from ganeti import objects
 from ganeti.rpc import node as rpc
 from ganeti import utils
 from ganeti.cmdlib import instance
+from ganeti.cmdlib import instance_utils
 
 from cmdlib.cmdlib_unittest import _StubComputeIPolicySpecViolation, _FakeLU
 
@@ -743,26 +744,26 @@ param1=val1
 class TestCheckOSVariant(CmdlibTestCase):
   def testNoVariantsSupported(self):
     os = self.cfg.CreateOs(supported_variants=[])
-    self.assertRaises(errors.OpPrereqError, instance._CheckOSVariant,
+    self.assertRaises(errors.OpPrereqError, instance_utils._CheckOSVariant,
                       os, "os+variant")
 
   def testNoVariantGiven(self):
     os = self.cfg.CreateOs(supported_variants=["default"])
-    self.assertRaises(errors.OpPrereqError, instance._CheckOSVariant,
+    self.assertRaises(errors.OpPrereqError, instance_utils._CheckOSVariant,
                       os, "os")
 
   def testWrongVariantGiven(self):
     os = self.cfg.CreateOs(supported_variants=["default"])
-    self.assertRaises(errors.OpPrereqError, instance._CheckOSVariant,
+    self.assertRaises(errors.OpPrereqError, instance_utils._CheckOSVariant,
                       os, "os+wrong_variant")
 
   def testOkWithVariant(self):
     os = self.cfg.CreateOs(supported_variants=["default"])
-    instance._CheckOSVariant(os, "os+default")
+    instance_utils._CheckOSVariant(os, "os+default")
 
   def testOkWithoutVariant(self):
     os = self.cfg.CreateOs(supported_variants=[])
-    instance._CheckOSVariant(os, "os")
+    instance_utils._CheckOSVariant(os, "os")
 
 
 class TestCheckTargetNodeIPolicy(TestLUInstanceCreate):

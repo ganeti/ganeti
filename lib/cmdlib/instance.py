@@ -294,30 +294,6 @@ def _ComputeIPolicyInstanceSpecViolation(
                      disk_sizes, spindle_use, disk_template)
 
 
-def _CheckOSVariant(os_obj, name):
-  """Check whether an OS name conforms to the os variants specification.
-
-  @type os_obj: L{objects.OS}
-  @param os_obj: OS object to check
-  @type name: string
-  @param name: OS name passed by the user, to check for validity
-
-  """
-  variant = objects.OS.GetVariant(name)
-  if not os_obj.supported_variants:
-    if variant:
-      raise errors.OpPrereqError("OS '%s' doesn't support variants ('%s'"
-                                 " passed)" % (os_obj.name, variant),
-                                 errors.ECODE_INVAL)
-    return
-  if not variant:
-    raise errors.OpPrereqError("OS name must include a variant",
-                               errors.ECODE_INVAL)
-
-  if variant not in os_obj.supported_variants:
-    raise errors.OpPrereqError("Unsupported OS variant", errors.ECODE_INVAL)
-
-
 def _ComputeInstanceCommunicationNIC(instance_name):
   """Compute the name of the instance NIC used by instance
   communication.
