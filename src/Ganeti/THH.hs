@@ -66,8 +66,6 @@ module Ganeti.THH ( declareSADT
                   , buildObject
                   , buildObjectSerialisation
                   , buildParam
-                  , DictObject(..)
-                  , ArrayObject(..)
                   , genException
                   , excErrMsg
                   ) where
@@ -96,18 +94,6 @@ import Ganeti.THH.PyType
 
 
 -- * Exported types
-
--- | Class of objects that can be converted from and to 'JSObject'
--- lists-format.
-class DictObject a where
-  toDict :: a -> [(String, JSON.JSValue)]
-  fromDict :: [(String, JSON.JSValue)] -> JSON.Result a
-
--- | Class of objects that can be converted from and to @[JSValue]@ with
--- a fixed length and order.
-class ArrayObject a where
-  toJSArray :: a -> [JSON.JSValue]
-  fromJSArray :: [JSON.JSValue] -> JSON.Result a
 
 -- | Optional field information.
 data OptionalType

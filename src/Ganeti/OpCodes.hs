@@ -54,6 +54,7 @@ import Text.JSON (readJSON, JSObject, JSON, JSValue(..), makeObj, fromJSObject)
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Hs2Py.OpDoc as OpDoc
+import Ganeti.JSON (DictObject(..))
 import Ganeti.OpParams
 import Ganeti.PyValue ()
 import Ganeti.Query.Language (queryTypeOpToRaw)

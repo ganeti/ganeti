@@ -49,6 +49,8 @@ module Ganeti.JSON
   , optionalJSField
   , optFieldsToObj
   , readContainer
+  , DictObject(..)
+  , ArrayObject(..)
   , HasStringRepr(..)
   , GenericContainer(..)
   , Container
@@ -325,6 +327,22 @@ instance (HasStringRepr a, Ord a, J.JSON b) =>
   readJSON (J.JSObject o) = readContainer o
   readJSON v = fail $ "Failed to load container, expected object but got "
                ++ show (pp_value v)
+
+-- * Types that (de)serialize in a special form of JSON
+
+-- | Class of objects that can be converted from and to 'JSObject'
+-- lists-format.
+class DictObject a where
+  toDict :: a -> [(String, J.JSValue)]
+  fromDict :: [(String, J.JSValue)] -> J.Result a
+
+-- | Class of objects that can be converted from and to @[JSValue]@ with
+-- a fixed length and order.
+class ArrayObject a where
+  toJSArray :: a -> [J.JSValue]
+  fromJSArray :: [J.JSValue] -> J.Result a
+
+-- * General purpose data types for working with JSON
 
 -- | A Maybe newtype that allows for serialization more appropriate to the
 -- semantics of Maybe and JSON in our calls. Does not produce needless
