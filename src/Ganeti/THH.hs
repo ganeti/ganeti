@@ -174,6 +174,7 @@ data Field = Field { fieldName        :: String
                      -- ^ an optional custom serialization function of type
                      -- @t -> (JSON.JSValue, [(String, JSON.JSValue)])@
                    , fieldExtraKeys   :: [String]
+                     -- ^ a list of extra keys added by 'fieldShow'
                    , fieldDefault     :: Maybe (Q Exp)
                      -- ^ an optional default value of type @t@
                    , fieldConstr      :: Maybe String
