@@ -80,6 +80,7 @@ data DaemonHandle = DaemonHandle
   -- daemon should go here;
   -- all IDs of threads that do asynchronous work should probably also go here
   , dhSaveConfigWorker :: AsyncWorker ()
+  , dhSaveLocksWorker :: AsyncWorker ()
   }
 
 mkDaemonHandle :: FilePath
@@ -88,11 +89,15 @@ mkDaemonHandle :: FilePath
                -> (IO ConfigState -> ResultG (AsyncWorker ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the configuration to the master file.
+               -> (IO GanetiLockAllocation -> ResultG (AsyncWorker ()))
+                  -- ^ A function that creates a worker that asynchronously
+                  -- saves the lock allocation state.
                -> ResultG DaemonHandle
-mkDaemonHandle cpath cstat lstat saveWorkerFn = do
+mkDaemonHandle cpath cstat lstat saveConfigWorkerFn saveLockWorkerFn = do
   ds <- newIORef $ DaemonState cstat lstat
-  saveWorker <- saveWorkerFn $ dsConfigState `liftM` readIORef ds
-  return $ DaemonHandle ds cpath saveWorker
+  saveConfigWorker <- saveConfigWorkerFn $ dsConfigState `liftM` readIORef ds
+  saveLockWorker <- saveLockWorkerFn $ dsLockAllocation `liftM` readIORef ds
+  return $ DaemonHandle ds cpath saveConfigWorker saveLockWorker
 
 -- * The monad and its instances
 
@@ -173,8 +178,11 @@ modifyLockAllocation f = do
   dh <- lift . WConfdMonadInt $ ask
   let mf ds = let (la', r) = f (dsLockAllocation ds)
               in (ds { dsLockAllocation = la' }, r)
-  atomicModifyIORef (dhDaemonState dh) mf
-  -- TODO: Trigger the async. lock saving worker
+  r <- atomicModifyIORef (dhDaemonState dh) mf
+  logDebug "Triggering lock state write"
+  liftBase . triggerAndWait . dhSaveLocksWorker $ dh
+  logDebug "Lock write finished"
+  return r
 
 -- | Atomically modifies the lock allocation state in WConfdMonad, not
 -- producing any result

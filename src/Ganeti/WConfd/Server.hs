@@ -85,6 +85,7 @@ prepMain _ _ = do
                    (mkConfigState cdata)
                    lock
                    (saveConfigAsyncTask conf_file cstat)
+                   (writeLocksAsyncTask lock_file)
   dh <- withError (strMsg . ("Initialization of the daemon failed" ++) . show)
                   dhOpt
 
