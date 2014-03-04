@@ -95,10 +95,11 @@ import Ganeti.THH.PyType
 
 -- * Exported types
 
--- | Class of objects that can be converted to 'JSObject'
+-- | Class of objects that can be converted from and to 'JSObject'
 -- lists-format.
 class DictObject a where
   toDict :: a -> [(String, JSON.JSValue)]
+  fromDict :: [(String, JSON.JSValue)] -> JSON.Result a
 
 -- | Optional field information.
 data OptionalType
@@ -837,7 +838,7 @@ saveConstructor (sname, fields) = do
   let cname = mkName sname
   fnames <- mapM (newName . fieldVariable) fields
   let pat = conP cname (map varP fnames)
-  let felems = map (uncurry saveObjectField) (zip fnames fields)
+  let felems = zipWith saveObjectField fnames fields
       -- now build the OP_ID serialisation
       opid = [| [( $(stringE "OP_ID"),
                    JSON.showJSON $(stringE . deCamelCase $ sname) )] |]
@@ -875,27 +876,34 @@ genSaveOpCode tname jvalstr tdstr opdefs fn gen_object = do
          , ValD (VarP jvalname) (NormalB jvalclause) []]
 
 -- | Generates load code for a single constructor of the opcode data type.
-loadConstructor :: OpCodeConstructor -> Q Exp
-loadConstructor (sname, _, _, fields, _) = do
-  let name = mkName sname
-  fbinds <- mapM (loadObjectField fields) fields
-  let (fnames, fstmts) = unzip fbinds
-  let cval = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) fnames
-      fstmts' = fstmts ++ [NoBindS (AppE (VarE 'return) cval)]
-  return $ DoE fstmts'
+loadConstructor :: Name -> (Field -> Q Exp) -> [Field] -> Q Exp
+loadConstructor name loadfn fields = do
+  fnames <- mapM (newName . ("r_" ++) . fieldName) fields
+  fexps <- mapM loadfn fields
+  let fstmts = zipWith (BindS . VarP) fnames fexps
+      cexp = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) fnames
+      retstmt = [NoBindS (AppE (VarE 'return) cexp)]
+      -- FIXME: should we require an empty dict for an empty type?
+      -- this allows any JSValue right now
+  return $ DoE (fstmts ++ retstmt)
+
+-- | Generates load code for a single constructor of the opcode data type.
+loadOpConstructor :: OpCodeConstructor -> Q Exp
+loadOpConstructor (sname, _, _, fields, _) =
+  loadConstructor (mkName sname) (loadObjectField fields) fields
 
 -- | Generates the loadOpCode function.
 genLoadOpCode :: [OpCodeConstructor] -> Q (Dec, Dec)
 genLoadOpCode opdefs = do
   let fname = mkName "loadOpCode"
       arg1 = mkName "v"
-      objname = mkName "o"
+      objname = objVarName
       opid = mkName "op_id"
   st1 <- bindS (varP objname) [| liftM JSON.fromJSObject
                                  (JSON.readJSON $(varE arg1)) |]
   st2 <- bindS (varP opid) [| $fromObjE $(varE objname) $(stringE "OP_ID") |]
   -- the match results (per-constructor blocks)
-  mexps <- mapM loadConstructor opdefs
+  mexps <- mapM loadOpConstructor opdefs
   fails <- [| fail $ "Unknown opcode " ++ $(varE opid) |]
   let mpats = map (\(me, (consName, _, _, _, _)) ->
                        let mp = LitP . StringL . deCamelCase $ consName
@@ -953,7 +961,7 @@ saveLuxiConstructor (sname, fields) = do
   let cname = mkName sname
   fnames <- mapM (newName . fieldVariable) fields
   let pat = conP cname (map varP fnames)
-  let felems = map (uncurry saveObjectField) (zip fnames fields)
+  let felems = zipWith saveObjectField fnames fields
       flist = [| concat $(listE felems) |]
   clause [pat] (normalB flist) []
 
@@ -984,39 +992,63 @@ buildObject sname field_pfx fields = do
 buildObjectSerialisation :: String -> [Field] -> Q [Dec]
 buildObjectSerialisation sname fields = do
   let name = mkName sname
-  savedecls <- genSaveObject saveObjectField sname fields
-  (loadsig, loadfn) <- genLoadObject (loadObjectField fields) sname fields
+  dictdecls <- genDictObject saveObjectField
+                             (loadObjectField fields) sname fields
+  savedecls <- genSaveObject sname
+  (loadsig, loadfn) <- genLoadObject sname
   shjson <- objectShowJSON sname
   rdjson <- objectReadJSON sname
   let instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
                  [rdjson, shjson]
-  return $ savedecls ++ [loadsig, loadfn, instdecl]
+  return $ dictdecls ++ savedecls ++ [loadsig, loadfn, instdecl]
+
+-- | An internal name used for naming variables that hold the entire
+-- object of type @[(String,JSValue)]@.
+objVarName :: Name
+objVarName = mkName "_o"
 
 -- | The toDict function name for a given type.
 toDictName :: String -> Name
 toDictName sname = mkName ("toDict" ++ sname)
 
--- | Generates the save object functionality.
-genSaveObject :: (Name -> Field -> Q Exp)
-              -> String -> [Field] -> Q [Dec]
-genSaveObject save_fn sname fields = do
+-- | The fromDict function name for a given type.
+fromDictName :: String -> Name
+fromDictName sname = mkName ("fromDict" ++ sname)
+
+-- | Generates 'DictObject' instance.
+genDictObject :: (Name -> Field -> Q Exp)  -- ^ a saving function
+              -> (Field -> Q Exp)          -- ^ a loading function
+              -> String                    -- ^ an object name
+              -> [Field]                   -- ^ a list of fields
+              -> Q [Dec]
+genDictObject save_fn load_fn sname fields = do
   let name = mkName sname
+  -- toDict
   fnames <- mapM (newName . fieldVariable) fields
   let pat = conP name (map varP fnames)
+      tdexp = [| concat $(listE $ zipWith save_fn fnames fields) |]
+  tdclause <- clause [pat] (normalB tdexp) []
+  -- fromDict
+  fdexp <- loadConstructor name load_fn fields
+  let fdclause = Clause [VarP objVarName] (NormalB fdexp) []
+  -- the toDict... function
   let tdname = toDictName sname
   tdsigt <- [t| $(conT name) -> [(String, JSON.JSValue)] |]
+  -- the final instance
+  return $ [InstanceD [] (AppT (ConT ''DictObject) (ConT name))
+             [ ValD (VarP 'toDict) (NormalB (VarE tdname)) []
+             , FunD 'fromDict [fdclause]
+             ]] ++
+           [ SigD tdname tdsigt
+           , ValD (VarP tdname) (NormalB (VarE 'toDict)) [] ]
 
-  let felems = map (uncurry save_fn) (zip fnames fields)
-      flist = listE felems
-      -- and finally convert all this to a json object
-      tdlist = [| concat $flist |]
-      iname = mkName "i"
-  tclause <- clause [pat] (normalB tdlist) []
-  cclause <- [| $makeObjE . $(varE tdname) |]
+-- | Generates the save object functionality.
+genSaveObject :: String -> Q [Dec]
+genSaveObject sname = do
   let fname = mkName ("save" ++ sname)
-  sigt <- [t| $(conT name) -> JSON.JSValue |]
-  return [SigD tdname tdsigt, FunD tdname [tclause],
-          SigD fname sigt, ValD (VarP fname) (NormalB cclause) []]
+  sigt <- [t| $(conT $ mkName sname) -> JSON.JSValue |]
+  cclause <- [| $makeObjE . $(varE $ 'toDict) |]
+  return [SigD fname sigt, ValD (VarP fname) (NormalB cclause) []]
 
 -- | Generates the code for saving an object's field, handling the
 -- various types of fields that we have.
@@ -1047,40 +1079,24 @@ objectShowJSON name = do
   return $ FunD 'JSON.showJSON [Clause [] (NormalB body) []]
 
 -- | Generates the load object functionality.
-genLoadObject :: (Field -> Q (Name, Stmt))
-              -> String -> [Field] -> Q (Dec, Dec)
-genLoadObject load_fn sname fields = do
-  let name = mkName sname
-      funname = mkName $ "load" ++ sname
-      arg1 = mkName $ if null fields then "_" else "v"
-      objname = mkName "o"
-      opid = mkName "op_id"
-  st1 <- bindS (varP objname) [| liftM JSON.fromJSObject
-                                 (JSON.readJSON $(varE arg1)) |]
-  fbinds <- mapM load_fn fields
-  let (fnames, fstmts) = unzip fbinds
-  let cval = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) fnames
-      retstmt = [NoBindS (AppE (VarE 'return) cval)]
-      -- FIXME: should we require an empty dict for an empty type?
-      -- this allows any JSValue right now
-      fstmts' = if null fields
-                  then retstmt
-                  else st1:fstmts ++ retstmt
-  sigt <- [t| JSON.JSValue -> JSON.Result $(conT name) |]
-  return $ (SigD funname sigt,
-            FunD funname [Clause [VarP arg1] (NormalB (DoE fstmts')) []])
+genLoadObject :: String -> Q (Dec, Dec)
+genLoadObject sname = do
+  let fname = mkName $ "load" ++ sname
+  sigt <- [t| JSON.JSValue -> JSON.Result $(conT $ mkName sname) |]
+  cclause <- [| fromDict <=< liftM JSON.fromJSObject . JSON.readJSON |]
+  return $ (SigD fname sigt,
+            FunD fname [Clause [] (NormalB cclause) []])
 
 -- | Generates code for loading an object's field.
-loadObjectField :: [Field] -> Field -> Q (Name, Stmt)
+loadObjectField :: [Field] -> Field -> Q Exp
 loadObjectField allFields field = do
   let name = fieldVariable field
       names = map fieldVariable allFields
       otherNames = listE . map stringE $ names \\ [name]
-  fvar <- newName name
   -- these are used in all patterns below
-  let objvar = varNameE "o"
+  let objvar = varE objVarName
       objfield = stringE (fieldName field)
-  bexp <- case (fieldDefault field, fieldIsOptional field) of
+  case (fieldDefault field, fieldIsOptional field) of
             -- Only non-optional fields without defaults must have a value;
             -- we treat both optional types the same, since
             -- 'maybeFromObj' can deal with both missing and null values
@@ -1093,8 +1109,6 @@ loadObjectField allFields field = do
                   [| return . M.fromList
                      $ filter (not . (`elem` $otherNames) . fst) $objvar |]
             _ ->  loadFnOpt field [| maybeFromObj $objvar $objfield |] objvar
-
-  return (fvar, BindS (VarP fvar) bexp)
 
 -- | Builds the readJSON instance for a given object name.
 objectReadJSON :: String -> Q Dec
@@ -1141,8 +1155,7 @@ buildParam sname field_pfx fields = do
   ser_decls_p <- buildPParamSerialisation sname_p fields
   fill_decls <- fillParam sname field_pfx fields
   return $ [declF, declP] ++ ser_decls_f ++ ser_decls_p ++ fill_decls ++
-           buildParamAllFields sname fields ++
-           buildDictObjectInst name_f sname_f
+           buildParamAllFields sname fields
 
 -- | Builds a list of all fields of a parameter.
 buildParamAllFields :: String -> [Field] -> [Dec]
@@ -1156,19 +1169,22 @@ buildParamAllFields sname fields =
 buildDictObjectInst :: Name -> String -> [Dec]
 buildDictObjectInst name sname =
   [InstanceD [] (AppT (ConT ''DictObject) (ConT name))
-   [ValD (VarP 'toDict) (NormalB (VarE (toDictName sname))) []]]
+   [ ValD (VarP 'toDict) (NormalB (VarE (toDictName sname))) []
+   , ValD (VarP 'fromDict) (NormalB (VarE (fromDictName sname))) []
+   ]]
 
 -- | Generates the serialisation for a partial parameter.
 buildPParamSerialisation :: String -> [Field] -> Q [Dec]
 buildPParamSerialisation sname fields = do
   let name = mkName sname
-  savedecls <- genSaveObject savePParamField sname fields
-  (loadsig, loadfn) <- genLoadObject loadPParamField sname fields
+  dictdecls <- genDictObject savePParamField loadPParamField sname fields
+  savedecls <- genSaveObject sname
+  (loadsig, loadfn) <- genLoadObject sname
   shjson <- objectShowJSON sname
   rdjson <- objectReadJSON sname
   let instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
                  [rdjson, shjson]
-  return $ savedecls ++ [loadsig, loadfn, instdecl]
+  return $ dictdecls ++ savedecls ++ [loadsig, loadfn, instdecl]
 
 -- | Generates code to save an optional parameter field.
 savePParamField :: Name -> Field -> Q Exp
@@ -1185,17 +1201,15 @@ savePParamField fvar field = do
                              ]
 
 -- | Generates code to load an optional parameter field.
-loadPParamField :: Field -> Q (Name, Stmt)
+loadPParamField :: Field -> Q Exp
 loadPParamField field = do
   checkNonOptDef field
   let name = fieldName field
-  fvar <- newName name
   -- these are used in all patterns below
-  let objvar = varNameE "o"
+  let objvar = varE objVarName
       objfield = stringE name
       loadexp = [| $(varE 'maybeFromObj) $objvar $objfield |]
-  bexp <- loadFnOpt field loadexp objvar
-  return (fvar, BindS (VarP fvar) bexp)
+  loadFnOpt field loadexp objvar
 
 -- | Builds a simple declaration of type @n_x = fromMaybe f_x p_x@.
 buildFromMaybe :: String -> Q Dec
