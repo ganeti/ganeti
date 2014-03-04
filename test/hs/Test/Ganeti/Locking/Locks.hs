@@ -28,7 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Locking.Locks (testLocking_Locks) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), liftA2)
 
 import Test.QuickCheck
 import Text.JSON
@@ -68,7 +68,19 @@ prop_ImpliedOrder =
   . flip all (lockImplications b) $ \a ->
   a < b
 
+-- | Verify the intervall property of the locks.
+prop_ImpliedIntervall :: Property
+prop_ImpliedIntervall =
+  forAll ((arbitrary :: Gen GanetiLocks)
+          `suchThat` (not . null . lockImplications)) $ \b ->
+  forAll (elements $ lockImplications b) $ \a ->
+  forAll (arbitrary `suchThat` liftA2 (&&) (a <) (<= b)) $ \x ->
+  printTestCase ("Locks between a group and a member of the group"
+                 ++ " must also belong to the group")
+  $ a `elem` lockImplications x
+
 testSuite "Locking/Locks"
  [ 'prop_ReadShow
  , 'prop_ImpliedOrder
+ , 'prop_ImpliedIntervall
  ]
