@@ -1924,7 +1924,7 @@ class Cluster(TaggableObject):
         unless the respective optional parameters are supplied.
 
     """
-    name_only = os_name.split("+", 1)[0]
+    name_only = OS.GetName(os_name)
 
     defaults_base_public = self.osparams.get(name_only, {})
     defaults_public = FillDict(defaults_base_public,
