@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -33,13 +33,14 @@ from ganeti import errors
 from ganeti import hypervisor
 from ganeti import locking
 from ganeti import objects
+from ganeti import ssh
 from ganeti import utils
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU
 from ganeti.cmdlib.common import INSTANCE_ONLINE, INSTANCE_DOWN, \
   CheckHVParams, CheckInstanceState, CheckNodeOnline, GetUpdatedParams, \
-  CheckOSParams, ShareAll
+  CheckOSParams, CheckOSImage, ShareAll
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
-  ShutdownInstanceDisks
+  ShutdownInstanceDisks, ImageDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   CheckInstanceBridgesExist, CheckNodeFreeMemory, CheckNodeHasOS
 from ganeti.hypervisor import hv_base
@@ -256,6 +257,9 @@ class LUInstanceReinstall(LogicalUnit):
   HTYPE = constants.HTYPE_INSTANCE
   REQ_BGL = False
 
+  def CheckArguments(self):
+    CheckOSImage(self.op)
+
   def ExpandNames(self):
     self._ExpandAndLockInstance()
 
@@ -321,37 +325,99 @@ class LUInstanceReinstall(LogicalUnit):
     params_secret = self.op.osparams_secret
 
     cluster = self.cfg.GetClusterInfo()
-    self.os_inst = cluster.SimpleFillOS(
+    self.osparams = cluster.SimpleFillOS(
       instance_os,
       params_public,
       os_params_private=params_private,
       os_params_secret=params_secret
     )
 
-    CheckOSParams(self, True, node_uuids, instance_os, self.os_inst)
+    CheckOSParams(self, True, node_uuids, instance_os, self.osparams)
+
+  def _ReinstallOSScripts(self, instance, osparams, debug_level):
+    """Reinstall OS scripts on an instance.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance of which the OS scripts should run
+
+    @type osparams: L{dict}
+    @param osparams: OS parameters
+
+    @type debug_level: non-negative int
+    @param debug_level: debug level
+
+    @rtype: NoneType
+    @return: None
+    @raise errors.OpExecError: in case of failure
+
+    """
+    self.LogInfo("Running instance OS create scripts...")
+    result = self.rpc.call_instance_os_add(instance.primary_node,
+                                           (instance, osparams),
+                                           True,
+                                           debug_level)
+    result.Raise("Could not install OS for instance '%s' on node '%s'" %
+                 (instance.name, self.cfg.GetNodeName(instance.primary_node)))
+
+  def _ReinstallOSImage(self, instance, os_image):
+    """Reinstall OS image on an instance.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance on which the OS image should be installed
+
+    @type os_image: string
+    @param os_image: OS image URL or absolute file path
+
+    @rtype: NoneType
+    @return: None
+    @raise errors.OpExecError: in case of failure
+
+    """
+    master = self.cfg.GetMasterNode()
+    pnode = self.cfg.GetNodeInfo(instance.primary_node)
+
+    if not utils.IsUrl(os_image) and master != pnode.uuid:
+      ssh_port = pnode.ndparams.get(constants.ND_SSH_PORT)
+      srun = ssh.SshRunner(self.cfg.GetClusterName())
+      srun.CopyFileToNode(pnode.name, ssh_port, os_image)
+
+    ImageDisks(self, instance, os_image)
 
   def Exec(self, feedback_fn):
     """Reinstall the instance.
 
     """
-    if self.op.os_type is not None:
-      feedback_fn("Changing OS to '%s'..." % self.op.os_type)
-      self.instance.os = self.op.os_type
-      # Write to configuration
-      self.cfg.Update(self.instance, feedback_fn)
+    os_image = objects.GetOSImage(self.op.osparams)
 
-    StartInstanceDisks(self, self.instance, None)
-    try:
-      feedback_fn("Running the instance OS create scripts...")
-      # FIXME: pass debug option from opcode to backend
-      result = self.rpc.call_instance_os_add(self.instance.primary_node,
-                                             (self.instance, self.os_inst),
-                                             True, self.op.debug_level)
-      result.Raise("Could not install OS for instance %s on node %s" %
-                   (self.instance.name,
-                    self.cfg.GetNodeName(self.instance.primary_node)))
-    finally:
-      ShutdownInstanceDisks(self, self.instance)
+    if os_image is not None:
+      feedback_fn("Using OS image '%s', not changing instance"
+                  " configuration" % os_image)
+    else:
+      os_image = objects.GetOSImage(self.instance.osparams)
+
+    os_type = self.op.os_type
+
+    if os_type is not None:
+      feedback_fn("Changing OS scripts to '%s'..." % os_type)
+      self.instance.os = os_type
+      self.cfg.Update(self.instance, feedback_fn)
+    else:
+      os_type = self.instance.os
+
+    if not os_image and not os_type:
+      self.LogInfo("No OS scripts or OS image specified or found in the"
+                   " instance's configuration, nothing to install")
+    else:
+      StartInstanceDisks(self, self.instance, None)
+      try:
+        if os_image:
+          self._ReinstallOSImage(self.instance, os_image)
+
+        if os_type:
+          self._ReinstallOSScripts(self.instance, self.osparams,
+                                   self.op.debug_level)
+      finally:
+        ShutdownInstanceDisks(self, self.instance)
 
 
 class LUInstanceReboot(LogicalUnit):
