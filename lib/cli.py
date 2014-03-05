@@ -229,6 +229,7 @@ __all__ = [
   "WFSYNC_OPT",
   "YES_DOIT_OPT",
   "ZEROING_IMAGE_OPT",
+  "ZERO_FREE_SPACE_OPT",
   "DISK_STATE_OPT",
   "HV_STATE_OPT",
   "IGNORE_IPOLICY_OPT",
@@ -1740,6 +1741,12 @@ ZEROING_IMAGE_OPT = \
     cli_option("--zeroing-image",
                dest="zeroing_image", action="store", default=None,
                help="The OS image to use to zero instance disks")
+
+ZERO_FREE_SPACE_OPT = \
+    cli_option("--zero-free-space",
+               dest="zero_free_space", action="store_true", default=False,
+               help="Whether to zero the free space on the disks of the "
+                    "instance prior to the export")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]

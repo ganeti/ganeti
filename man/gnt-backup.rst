@@ -28,6 +28,7 @@ EXPORT
 | [\--shutdown-timeout=*N*] [\--noshutdown] [\--remove-instance]
 | [\--ignore-remove-failures] [\--submit] [\--print-job-id]
 | [\--transport-compression=*compression-mode*]
+| [\--zero-free-space]
 | {*instance*}
 
 Exports an instance to the target node. All the instance data and
@@ -51,6 +52,10 @@ data will be in a consistent state in the exported dump.
 The ``--remove`` option can be used to remove the instance after it
 was exported. This is useful to make one last backup before
 removing the instance.
+
+The ``--zero-free-space`` option can be used to zero the free space
+of the instance prior to exporting it, saving space if compression
+is used.
 
 The exit code of the command is 0 if all disks were backed up
 successfully, 1 if no data was backed up or if the configuration
