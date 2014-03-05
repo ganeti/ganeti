@@ -23,6 +23,16 @@ COMP_FILEPATH=$ROOT/$COMP_FILENAME
 TEMP_DATA_DIR=`mktemp -d`
 ACTUAL_DATA_DIR=$DATA_DIR
 ACTUAL_DATA_DIR=${ACTUAL_DATA_DIR:-$TEMP_DATA_DIR}
+GHC_VERSION="7.6.3"
+CABAL_INSTALL_VERSION="1.18.0.2"
+SHA1_LIST='
+cabal-install-1.18.0.2.tar.gz 2d1f7a48d17b1e02a1e67584a889b2ff4176a773
+ghc-7.6.3-i386-unknown-linux.tar.bz2 f042b4171a2d4745137f2e425e6949c185f8ea14
+ghc-7.6.3-x86_64-unknown-linux.tar.bz2 46ec3f3352ff57fba0dcbc8d9c20f7bcb6924b77
+'
+
+# export all variables needed in the schroot
+export ARCH GHC_VERSION CABAL_INSTALL_VERSION SHA1_LIST
 
 # Use gzip --rsyncable if available, to speed up transfers of generated files
 # The environment variable GZIP is read automatically by 'gzip',
@@ -127,6 +137,77 @@ fi
 in_chroot -- \
   apt-get update
 
+# arguments : file_name expected_sha1
+function verify_sha1 {
+  local SUM="$( sha1sum "$1" | awk '{print $1;exit}' )"
+  if [ "$SUM" != "$2" ] ; then
+    echo "ERROR: The SHA1 sum $SUM of $1 doesn't match $2." >&2
+    return 1
+  else
+    echo "SHA1 of $1 verified correct."
+  fi
+}
+export -f verify_sha1
+
+# arguments: URL
+function lookup_sha1 {
+  grep -o "${1##*/}"'\s\+[0-9a-fA-F]*' <<<"$SHA1_LIST" | awk '{print $2;exit}'
+}
+export -f lookup_sha1
+
+# arguments : file_name URL
+function download {
+  local FNAME="$1"
+  local URL="$2"
+  wget --output-document="$FNAME" "$URL"
+  verify_sha1 "$FNAME" "$( lookup_sha1 "$URL" )"
+}
+export -f download
+
+function install_ghc {
+  set -e
+  local TDIR=$( mktemp -d ) ;
+  pushd "$TDIR"
+  {
+    local GHC_ARCH=$ARCH
+    if [ "$ARCH" == "amd64" ] ; then
+      download ghc.tar.bz2 \
+        http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_VERSION}-x86_64-unknown-linux.tar.bz2
+    elif [ "$ARCH" == "i386" ] ; then
+      download ghc.tar.bz2 \
+        http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_VERSION}-i386-unknown-linux.tar.bz2
+    else
+      echo "Don't know what GHC to download for architecture $ARCH" >&2
+      return 1
+    fi
+    tar xjf ghc.tar.bz2
+    cd ghc-${GHC_VERSION}
+    ./configure --prefix=/usr/local
+    make install
+  }
+  popd
+  [ -d "$TDIR" ] && rm -rf "$TDIR"
+}
+# export everything so that the function can be called in a sub-shell
+export -f install_ghc
+
+function install_cabal {
+  set -e
+  local TDIR=$( mktemp -d )
+  pushd "$TDIR"
+  {
+    download cabal-install.tar.gz \
+      http://www.haskell.org/cabal/release/cabal-install-${CABAL_INSTALL_VERSION}/cabal-install-${CABAL_INSTALL_VERSION}.tar.gz
+    tar xzf cabal-install.tar.gz
+    cd cabal-install-${CABAL_INSTALL_VERSION}
+    ./bootstrap.sh --global
+  }
+  popd
+  [ -d "$TDIR" ] && rm -rf "$TDIR"
+}
+# export everything so that the function can be called in a sub-shell
+export -f install_cabal
+
 case $DIST_RELEASE in
 
   squeeze)
@@ -136,13 +217,11 @@ case $DIST_RELEASE in
     in_chroot -- \
       $APT_INSTALL \
         autoconf automake \
-        ghc cabal-install \
-        libghc6-curl-dev \
-        libghc6-parallel-dev \
-        libghc6-text-dev \
-        libghc6-vector-dev \
+        zlib1g-dev \
+        libgmp3-dev \
+        libcurl4-gnutls-dev \
         libpcre3-dev \
-        libghc6-zlib-dev \
+        happy \
         hlint hscolour pandoc \
         graphviz qemu-utils \
         python-docutils \
@@ -171,47 +250,50 @@ case $DIST_RELEASE in
         coverage==3.4 \
         bitarray==0.8.0
 
+    in_chroot -p -- \
+      bash -c install_ghc
+
+    in_chroot -p -- \
+      bash -c install_cabal
+
     in_chroot -- \
       cabal update
 
     in_chroot -- \
       cabal install --global \
-        blaze-builder==0.3.1.1 \
-        network==2.3 \
-        regex-pcre==0.94.4 \
-        hinotify==0.3.2 \
-        hslogger==1.1.4 \
-        quickcheck==2.5.1.1 \
-        attoparsec==0.10.1.1 \
-        crypto==4.2.4 \
-        MonadCatchIO-transformers==0.2.2.0 \
-        mtl==2.0.1.0 \
-        hashable==1.1.2.0 \
-        case-insensitive==0.3 \
-        parsec==3.0.1 \
-        snap-server==0.8.1 \
-        json==0.4.4 \
-        lifted-base==0.2.1.1
-
-    in_chroot -- \
-      cabal install --global \
-        hunit==1.2.5.2 \
-        happy==1.18.10 \
-        hlint==1.8.43 \
-        hscolour==1.20.3 \
-        temporary==1.1.2.3 \
-        test-framework==0.6.1 \
-        test-framework-hunit==0.2.7 \
-        test-framework-quickcheck2==0.2.12.3
-
-    in_chroot -- \
-      cabal install --global cabal-file-th
-
-    in_chroot -- \
-      cabal install --global shelltestrunner
-
-    in_chroot -- \
-      cabal install --global base64-bytestring
+        attoparsec-0.11.1.0 \
+        base64-bytestring-1.0.0.1 \
+        blaze-builder-0.3.3.2 \
+        case-insensitive-1.1.0.3 \
+        Crypto-4.2.5.1 \
+        curl-1.3.8 \
+        happy \
+        hashable-1.2.1.0 \
+        hinotify-0.3.6 \
+        hscolour-1.20.3 \
+        hslogger-1.2.3 \
+        json-0.7 \
+        lifted-base-0.2.2.0 \
+        MonadCatchIO-transformers-0.3.0.0 \
+        network-2.4.1.2 \
+        parallel-3.2.0.4 \
+        parsec-3.1.3 \
+        regex-pcre-0.94.4 \
+        temporary-1.2.0.1 \
+        vector-0.10.9.1 \
+        zlib-0.5.4.1 \
+        \
+        hlint-1.8.57 \
+        HUnit-1.2.5.2 \
+        QuickCheck-2.6 \
+        test-framework-0.8.0.3 \
+        test-framework-hunit-0.3.0.1 \
+        test-framework-quickcheck2-0.3.0.2 \
+        \
+        snap-server-0.9.4.0 \
+        \
+        cabal-file-th-0.2.3 \
+        shelltestrunner
 
     #Install selected packages from backports
     in_chroot -- \
@@ -234,8 +316,8 @@ case $DIST_RELEASE in
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
-      libghc6-zlib-dev \
-      cabal-install\
+      libghc-zlib-dev \
+      cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
@@ -326,6 +408,10 @@ EOF
 
 ;;
 esac
+
+# print what packages and versions are installed:
+in_chroot -- \
+  cabal list --installed --simple-output
 
 in_chroot -- \
   $APT_INSTALL sudo fakeroot rsync locales less socat

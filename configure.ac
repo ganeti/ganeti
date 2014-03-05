@@ -683,7 +683,11 @@ AM_CONDITIONAL([ENABLE_MOND], [test "$has_monitoring" = True])
 
 # development modules
 AC_GHC_PKG_CHECK([QuickCheck-2.*], [], [HS_NODEV=1], t)
-AC_GHC_PKG_CHECK([test-framework-0.6*], [], [HS_NODEV=1], t)
+AC_GHC_PKG_CHECK([test-framework-0.6*], [], [
+  AC_GHC_PKG_CHECK([test-framework-0.7*], [], [
+    AC_GHC_PKG_CHECK([test-framework-0.8*], [], [HS_NODEV=1], t)
+  ], t)
+], t)
 AC_GHC_PKG_CHECK([test-framework-hunit], [], [HS_NODEV=1])
 AC_GHC_PKG_CHECK([test-framework-quickcheck2], [], [HS_NODEV=1])
 AC_GHC_PKG_CHECK([temporary], [], [HS_NODEV=1])
