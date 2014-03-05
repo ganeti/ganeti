@@ -208,6 +208,7 @@ def GetPaths():
     (master_cleaner_log_dir, DIR, 0750, getent.masterd_uid, getent.masterd_gid),
     (pathutils.INSTANCE_REASON_DIR, DIR, 0755, getent.noded_uid,
      getent.noded_gid),
+    (pathutils.LIVELOCK_DIR, DIR, 0750, getent.masterd_uid, getent.daemons_gid),
     ])
 
   return paths
