@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2011, 2012, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -222,6 +222,15 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     disks_s, pause = params
     disks = [objects.Disk.FromDict(bdev_s) for bdev_s in disks_s]
     return backend.BlockdevPauseResumeSync(disks, pause)
+
+  @staticmethod
+  def perspective_blockdev_image(params):
+    """Image a block device.
+
+    """
+    bdev_s, image, size = params
+    bdev = objects.Disk.FromDict(bdev_s)
+    return backend.BlockdevImage(bdev, image, size)
 
   @staticmethod
   def perspective_blockdev_wipe(params):

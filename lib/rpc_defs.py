@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -367,6 +367,12 @@ _BLOCKDEV_CALLS = [
     ("info", None, None),
     ("exclusive_storage", None, None),
     ], None, None, "Request creation of a given block device"),
+  ("blockdev_image", SINGLE, None, constants.RPC_TMO_SLOW, [
+    ("bdev", ED_SINGLE_DISK_DICT_DP, None),
+    ("image", None, None),
+    ("size", None, None),
+    ], None, None,
+    "Request to dump an image with given size onto a block device"),
   ("blockdev_wipe", SINGLE, None, constants.RPC_TMO_SLOW, [
     ("bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("offset", None, None),
