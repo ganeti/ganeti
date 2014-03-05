@@ -38,6 +38,7 @@ from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
 from ganeti import serializer
+from ganeti import ssh
 import ganeti.rpc.node as rpc
 from ganeti import utils
 
@@ -52,11 +53,11 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   ComputeIPolicySpecViolation, CheckInstanceState, ExpandNodeUuidAndName, \
   CheckDiskTemplateEnabled, IsValidDiskAccessModeCombination
 from ganeti.cmdlib.instance_storage import CreateDisks, \
-  CheckNodesFreeDiskPerVG, WipeDisks, WipeOrCleanupDisks, WaitForSync, \
-  IsExclusiveStorageEnabledNodeUuid, CreateSingleBlockDev, ComputeDisks, \
-  CheckRADOSFreeSpace, ComputeDiskSizePerVG, GenerateDiskTemplate, \
-  StartInstanceDisks, ShutdownInstanceDisks, AssembleInstanceDisks, \
-  CheckSpindlesExclusiveStorage
+  CheckNodesFreeDiskPerVG, WipeDisks, WipeOrCleanupDisks, ImageDisks, \
+  WaitForSync, IsExclusiveStorageEnabledNodeUuid, CreateSingleBlockDev, \
+  ComputeDisks, CheckRADOSFreeSpace, ComputeDiskSizePerVG, \
+  GenerateDiskTemplate, StartInstanceDisks, ShutdownInstanceDisks, \
+  AssembleInstanceDisks, CheckSpindlesExclusiveStorage
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   GetClusterDomainSecret, BuildInstanceHookEnv, NICListToTuple, \
   NICToTuple, CheckNodeNotDrained, RemoveInstance, CopyLockList, \
@@ -1471,6 +1472,27 @@ class LUInstanceCreate(LogicalUnit):
 
     self._RemoveDegradedDisks(feedback_fn, disk_abort, iobj)
 
+    # Image disks
+    os_image = objects.GetOSImage(iobj.osparams)
+    disk_abort = False
+
+    if not self.adopt_disks and os_image is not None:
+      master = self.cfg.GetMasterNode()
+
+      if not utils.IsUrl(os_image) and master != self.pnode.uuid:
+        ssh_port = self.pnode.ndparams.get(constants.ND_SSH_PORT)
+        srun = ssh.SshRunner(self.cfg.GetClusterName())
+        srun.CopyFileToNode(self.pnode.name, ssh_port, os_image)
+
+      feedback_fn("* imaging instance disks...")
+      try:
+        ImageDisks(self, iobj, os_image)
+      except errors.OpExecError, err:
+        logging.exception("Imaging disks failed")
+        self.LogWarning("Imaging instance disks failed (%s)", err)
+        disk_abort = True
+
+    self._RemoveDegradedDisks(feedback_fn, disk_abort, iobj)
 
     # instance disks are now active
     iobj.disks_active = True
