@@ -642,9 +642,9 @@ def Wconfd(opts, args): # pylint: disable=W0613
     if len(args) != 2:
       ToStderr("Command 'listlocks' takes only precisely argument.")
       return 1
-    result = wconfd.Client().ListLocks(int(args[1]), "")
-    # TODO: add canonical path to death-detection file for that job
-    #       once that is implemented
+    result = \
+        wconfd.Client().ListLocks(int(args[1]),
+                                  utils.livelock.GuessLockfileFor("masterd"))
     print "Answer: %s" % (result,)
   else:
     ToStderr("Command '%s' not supported", args[0])
