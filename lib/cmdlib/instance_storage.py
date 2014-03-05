@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1093,6 +1093,68 @@ def WipeDisks(lu, instance, disks=None):
         if not success:
           lu.LogWarning("Resuming synchronization of disk %s of instance '%s'"
                         " failed", idx, instance.name)
+
+
+def ImageDisks(lu, instance, image, disks=None):
+  """Dumps an image onto an instance disk.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+  @type instance: L{objects.Instance}
+  @param instance: the instance whose disks we should create
+  @type image: string
+  @param image: the image whose disks we should create
+  @type disks: None or list of ints
+  @param disks: disk indices
+
+  """
+  node_uuid = instance.primary_node
+  node_name = lu.cfg.GetNodeName(node_uuid)
+
+  if disks is None:
+    disks = [(0, instance.disks[0])]
+  else:
+    disks = map(lambda idx: instance.disks[idx], disks)
+
+  logging.info("Pausing synchronization of disks of instance '%s'",
+               instance.name)
+  result = lu.rpc.call_blockdev_pause_resume_sync(node_uuid,
+                                                  (map(compat.snd, disks),
+                                                   instance),
+                                                  True)
+  result.Raise("Failed to pause disk synchronization on node '%s'" % node_name)
+
+  for idx, success in enumerate(result.payload):
+    if not success:
+      logging.warn("Pausing synchronization of disk %s of instance '%s'"
+                   " failed", idx, instance.name)
+
+  try:
+    for (idx, device) in disks:
+      lu.LogInfo("Imaging disk '%d' for instance '%s' on node '%s'",
+                 idx, instance.name, node_name)
+
+      result = lu.rpc.call_blockdev_image(node_uuid, (device, instance),
+                                          image, device.size)
+      result.Raise("Could not image disk '%d' for instance '%s' on node '%s'" %
+                   (idx, instance.name, node_name))
+  finally:
+    logging.info("Resuming synchronization of disks for instance '%s'",
+                 instance.name)
+
+    result = lu.rpc.call_blockdev_pause_resume_sync(node_uuid,
+                                                    (map(compat.snd, disks),
+                                                     instance),
+                                                    False)
+
+    if result.fail_msg:
+      lu.LogWarning("Failed to resume disk synchronization for instance '%s' on"
+                    " node '%s'", node_name, result.fail_msg)
+    else:
+      for idx, success in enumerate(result.payload):
+        if not success:
+          lu.LogWarning("Failed to resume synchronization of disk '%d' of"
+                        " instance '%s'", idx, instance.name)
 
 
 def WipeOrCleanupDisks(lu, instance, disks=None, cleanup=None):
