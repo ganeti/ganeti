@@ -1321,6 +1321,55 @@ class LUInstanceCreate(LogicalUnit):
 
     self.dry_run_result = list(node_uuids)
 
+  def _RemoveDegradedDisks(self, feedback_fn, disk_abort, instance):
+    """Removes degraded disks and instance.
+
+    It optionally checks whether disks are degraded.  If the disks are
+    degraded, they are removed and the instance is also removed from
+    the configuration.
+
+    If L{disk_abort} is True, then the disks are considered degraded
+    and removed, and the instance is removed from the configuration.
+
+    If L{disk_abort} is False, then it first checks whether disks are
+    degraded and, if so, it removes the disks and the instance is
+    removed from the configuration.
+
+    @type feedback_fn: callable
+    @param feedback_fn: function used send feedback back to the caller
+
+    @type disk_abort: boolean
+    @param disk_abort:
+      True if disks are degraded, False to first check if disks are
+      degraded
+
+    @type instance: L{objects.Instance}
+    @param instance: instance containing the disks to check
+
+    @rtype: NoneType
+    @return: None
+    @raise errors.OpPrereqError: if disks are degraded
+
+    """
+    if disk_abort:
+      pass
+    elif self.op.wait_for_sync:
+      disk_abort = not WaitForSync(self, instance)
+    elif instance.disk_template in constants.DTS_INT_MIRROR:
+      # make sure the disks are not degraded (still sync-ing is ok)
+      feedback_fn("* checking mirrors status")
+      disk_abort = not WaitForSync(self, instance, oneshot=True)
+    else:
+      disk_abort = False
+
+    if disk_abort:
+      RemoveDisks(self, instance)
+      self.cfg.RemoveInstance(instance.uuid)
+      # Make sure the instance lock gets removed
+      self.remove_locks[locking.LEVEL_INSTANCE] = instance.name
+      raise errors.OpExecError("There are some degraded disks for"
+                               " this instance")
+
   def Exec(self, feedback_fn):
     """Create and add the instance to the cluster.
 
@@ -1409,6 +1458,7 @@ class LUInstanceCreate(LogicalUnit):
       # Release all nodes
       ReleaseLocks(self, locking.LEVEL_NODE)
 
+    # Wipe disks
     disk_abort = False
     if not self.adopt_disks and self.cfg.GetClusterInfo().prealloc_wipe_disks:
       feedback_fn("* wiping instance disks...")
@@ -1419,25 +1469,8 @@ class LUInstanceCreate(LogicalUnit):
         self.LogWarning("Wiping instance disks failed (%s)", err)
         disk_abort = True
 
-    if disk_abort:
-      # Something is already wrong with the disks, don't do anything else
-      pass
-    elif self.op.wait_for_sync:
-      disk_abort = not WaitForSync(self, iobj)
-    elif iobj.disk_template in constants.DTS_INT_MIRROR:
-      # make sure the disks are not degraded (still sync-ing is ok)
-      feedback_fn("* checking mirrors status")
-      disk_abort = not WaitForSync(self, iobj, oneshot=True)
-    else:
-      disk_abort = False
+    self._RemoveDegradedDisks(feedback_fn, disk_abort, iobj)
 
-    if disk_abort:
-      RemoveDisks(self, iobj)
-      self.cfg.RemoveInstance(iobj.uuid)
-      # Make sure the instance lock gets removed
-      self.remove_locks[locking.LEVEL_INSTANCE] = iobj.name
-      raise errors.OpExecError("There are some degraded disks for"
-                               " this instance")
 
     # instance disks are now active
     iobj.disks_active = True
