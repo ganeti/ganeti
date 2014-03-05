@@ -30,6 +30,7 @@ import os
 import struct
 import time
 
+from ganeti.utils.algo import NiceSort
 from ganeti import pathutils
 
 
@@ -54,3 +55,20 @@ class LiveLock(object):
     """
     self.lockfile.close()
     os.remove(self.lockfile.name)
+
+
+def GuessLockfileFor(name):
+  """For a given name, take the latest file matching.
+
+  @return: the file with the latest name matching the given
+      prefix in LIVELOCK_DIR, or the plain name, if none
+      exists.
+  """
+  lockfiles = filter(lambda n: n.startswith(name),
+                     os.listdir(pathutils.LIVELOCK_DIR))
+  if len(lockfiles) > 0:
+    lockfile = NiceSort(lockfiles)[-1]
+  else:
+    lockfile = name
+
+  return os.path.join(pathutils.LIVELOCK_DIR, lockfile)
