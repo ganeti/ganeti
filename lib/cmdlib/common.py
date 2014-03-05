@@ -402,6 +402,32 @@ def CheckOSParams(lu, required, node_uuids, osname, osparams):
                  osname, lu.cfg.GetNodeName(node_uuid))
 
 
+def CheckOSImage(op):
+  """Checks if the OS image in the OS parameters of an opcode is
+  valid.
+
+  This function can also be used in LUs as they carry an opcode.
+
+  @type op: L{opcodes.OpCode}
+  @param op: opcode containing the OS params
+
+  @rtype: string or NoneType
+  @return:
+    None if the OS parameters in the opcode do not contain the OS
+    image, otherwise the OS image value contained in the OS parameters
+  @raise errors.OpPrereqError: if OS image is not a URL or an absolute path
+
+  """
+  os_image = objects.GetOSImage(op.osparams)
+
+  if os_image is None:
+    return None
+  elif utils.IsUrl(os_image) or os.path.exists(os_image):
+    return os_image
+  else:
+    raise errors.OpPrereqError("OS image must be a URL or an absolute path")
+
+
 def CheckHVParams(lu, node_uuids, hvname, hvparams):
   """Hypervisor parameter validation.
 
