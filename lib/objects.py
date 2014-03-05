@@ -1074,6 +1074,41 @@ class InstancePolicy(ConfigObject):
                                       " '%s', error: %s" % (key, value, err))
 
 
+def GetOSImage(osparams):
+  """Gets the OS image value from the OS parameters.
+
+  @type osparams: L{dict} or NoneType
+  @param osparams: OS parameters or None
+
+  @rtype: string or NoneType
+  @return:
+    value of OS image contained in OS parameters, or None if the OS
+    parameters are None or the OS parameters do not contain an OS
+    image
+
+  """
+  if osparams is None:
+    return None
+  else:
+    return osparams.get("os-image", None)
+
+
+def PutOSImage(osparams, os_image):
+  """Update OS image value in the OS parameters
+
+  @type osparams: L{dict}
+  @param osparams: OS parameters
+
+  @type os_image: string
+  @param os_image: OS image
+
+  @rtype: NoneType
+  @return: None
+
+  """
+  osparams["os-image"] = os_image
+
+
 class Instance(TaggableObject):
   """Config object representing an instance."""
   __slots__ = [
