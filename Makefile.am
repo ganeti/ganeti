@@ -762,6 +762,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/JSON.hs \
 	src/Ganeti/Jobs.hs \
 	src/Ganeti/Kvmd.hs \
+	src/Ganeti/Lens.hs \
 	src/Ganeti/Locking/Allocation.hs \
 	src/Ganeti/Locking/Types.hs \
 	src/Ganeti/Locking/Locks.hs \
