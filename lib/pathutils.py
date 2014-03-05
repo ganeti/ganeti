@@ -85,6 +85,7 @@ INSTANCE_REASON_DIR = RUN_DIR + "/instance-reason"
 #: User-id pool lock directory (used user IDs have a corresponding lock file in
 #: this directory)
 UIDPOOL_LOCKDIR = RUN_DIR + "/uid-pool"
+LIVELOCK_DIR = RUN_DIR + "/livelocks"
 
 SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
 
