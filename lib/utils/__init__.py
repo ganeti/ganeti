@@ -47,6 +47,7 @@ from ganeti.utils.algo import *
 from ganeti.utils.filelock import *
 from ganeti.utils.hash import *
 from ganeti.utils.io import *
+from ganeti.utils.livelock import *
 from ganeti.utils.log import *
 from ganeti.utils.lvm import *
 from ganeti.utils.mlock import *

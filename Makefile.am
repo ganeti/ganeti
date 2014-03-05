@@ -509,6 +509,7 @@ utils_PYTHON = \
 	lib/utils/filelock.py \
 	lib/utils/hash.py \
 	lib/utils/io.py \
+	lib/utils/livelock.py \
 	lib/utils/log.py \
 	lib/utils/lvm.py \
 	lib/utils/mlock.py \
