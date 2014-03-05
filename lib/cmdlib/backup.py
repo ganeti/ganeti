@@ -123,6 +123,13 @@ class LUBackupExport(LogicalUnit):
   def ExpandNames(self):
     self._ExpandAndLockInstance()
 
+    # In case we are zeroing, a node lock is required as we will be creating and
+    # destroying a disk - allocations should be stopped, but not on the entire
+    # cluster
+    if self.op.zero_free_space:
+      self.recalculate_locks = {locking.LEVEL_NODE: constants.LOCKS_REPLACE}
+      self._LockInstancesNodes(primary_only=True)
+
     # Lock all nodes for local exports
     if self.op.mode == constants.EXPORT_MODE_LOCAL:
       (self.op.target_node_uuid, self.op.target_node) = \
