@@ -2351,6 +2351,41 @@ def BlockdevWipe(disk, offset, size):
   _DumpDevice("/dev/zero", rdev.dev_path, offset, size)
 
 
+def BlockdevImage(disk, image, size):
+  """Images a block device either by dumping a local file or
+  downloading a URL.
+
+  @type disk: L{objects.Disk}
+  @param disk: the disk object we want to image
+
+  @type image: string
+  @param image: file path to the disk image be dumped
+
+  @type size: int
+  @param size: The size in MiB to write
+
+  @rtype: NoneType
+  @return: None
+  @raise RPCFail: in case of failure
+
+  """
+  try:
+    rdev = _RecursiveFindBD(disk)
+  except errors.BlockDeviceError:
+    rdev = None
+
+  if not rdev:
+    _Fail("Cannot image device %s: device not found", disk.iv_name)
+  if size < 0:
+    _Fail("Negative size")
+  if size > rdev.size:
+    _Fail("Image size is bigger than device size")
+
+  if utils.IsUrl(image):
+    _DownloadAndDumpDevice(image, rdev.dev_path, size)
+  else:
+    _DumpDevice(image, rdev.dev_path, 0, size)
+
 
 def BlockdevPauseResumeSync(disks, pause):
   """Pause or resume the sync of the block device.
