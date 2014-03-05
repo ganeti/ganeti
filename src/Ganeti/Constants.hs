@@ -294,7 +294,7 @@ cpuPinningAllXen = "0-63"
 cpuPinningAllKvm :: Int
 cpuPinningAllKvm = 0xFFFFFFFF
 
--- * Wipe
+-- * Image and wipe
 
 ddCmd :: String
 ddCmd = "dd"

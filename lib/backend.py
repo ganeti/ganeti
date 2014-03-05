@@ -42,6 +42,7 @@ import errno
 import logging
 import os
 import os.path
+import pycurl
 import random
 import re
 import shutil
@@ -52,6 +53,7 @@ import time
 import zlib
 
 from ganeti import errors
+from ganeti import http
 from ganeti import utils
 from ganeti import ssh
 from ganeti import hypervisor
@@ -2265,6 +2267,58 @@ def _DumpDevice(source_path, target_path, offset, size):
   if result.failed:
     _Fail("Dump command '%s' exited with error: %s; output: %s", result.cmd,
           result.fail_reason, result.output)
+
+
+def _DownloadAndDumpDevice(source_url, target_path, size):
+  """This function images a device using a downloaded image file.
+
+  @type source_url: string
+  @param source_url: URL of image to dump to disk
+
+  @type target_path: string
+  @param target_path: path of the device to image
+
+  @type size: int
+  @param size: maximum size in MiB to write (data source might be smaller)
+
+  @rtype: NoneType
+  @return: None
+  @raise RPCFail: in case of download or write failures
+
+  """
+  class DDParams(object):
+    def __init__(self, current_size, total_size):
+      self.current_size = current_size
+      self.total_size = total_size
+      self.image_size_error = False
+
+  def dd_write(ddparams, out):
+    if ddparams.current_size < ddparams.total_size:
+      ddparams.current_size += len(out)
+      target_file.write(out)
+    else:
+      ddparams.image_size_error = True
+      return -1
+
+  target_file = open(target_path, "w")
+  ddparams = DDParams(0, 1024 * 1024 * size)
+
+  curl = pycurl.Curl()
+  curl.setopt(pycurl.VERBOSE, True)
+  curl.setopt(pycurl.NOSIGNAL, True)
+  curl.setopt(pycurl.USERAGENT, http.HTTP_GANETI_VERSION)
+  curl.setopt(pycurl.URL, source_url)
+  curl.setopt(pycurl.WRITEFUNCTION, lambda out: dd_write(ddparams, out))
+
+  try:
+    curl.perform()
+  except pycurl.error:
+    if ddparams.image_size_error:
+      _Fail("Disk image larger than the disk")
+    else:
+      raise
+
+  target_file.close()
 
 
 def BlockdevWipe(disk, offset, size):
