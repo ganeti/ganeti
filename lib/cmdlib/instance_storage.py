@@ -40,7 +40,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, INSTANCE_NOT_RUNNING, \
   AnnotateDiskParams, CheckIAllocatorOrNode, ExpandNodeUuidAndName, \
   CheckNodeOnline, CheckInstanceNodeGroups, CheckInstanceState, \
   IsExclusiveStorageEnabledNode, FindFaultyInstanceDisks, GetWantedNodes, \
-  CheckDiskTemplateEnabled
+  CheckDiskTemplateEnabled, IsInstanceRunning
 from ganeti.cmdlib.instance_utils import GetInstanceInfoText, \
   CopyLockList, ReleaseLocks, CheckNodeVmCapable, \
   BuildInstanceHookEnvByObject, CheckNodeNotDrained, CheckTargetNodeIPolicy
@@ -2674,3 +2674,114 @@ class TLReplaceDisks(Tasklet):
     if not self.early_release:
       self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
+
+
+class TemporaryDisk():
+  """ Creates a new temporary bootable disk, and makes sure it is destroyed.
+
+  Is a context manager, and should be used with the ``with`` statement as such.
+
+  The disk is guaranteed to be created at index 0, shifting any other disks of
+  the instance by one place, and allowing the instance to be booted with the
+  content of the disk.
+
+  """
+
+  def __init__(self, lu, instance, size, feedback_fn,
+               shutdown_timeout=constants.DEFAULT_SHUTDOWN_TIMEOUT):
+    """ Constructor storing arguments until used later.
+
+    @type lu: L{ganeti.cmdlib.base.LogicalUnit}
+    @param lu: The LU within which this disk is created.
+    @type instance: L{ganeti.objects.Instance}
+    @param instance: The instance to which the disk should be added
+    @type size: int
+    @param size: Size in MB
+    @type feedback_fn: function
+    @param feedback_fn: Function used to log progress
+
+    """
+    self._lu = lu
+    self._instance = instance
+    self._size = size
+    self._feedback_fn = feedback_fn
+    self._shutdown_timeout = shutdown_timeout
+
+  def _EnsureInstanceDiskState(self):
+    """ Ensures that the instance is down, and its disks inactive.
+
+    All the operations related to the creation and destruction of disks require
+    that the instance is down and that the disks are inactive. This function is
+    invoked to make it so.
+
+    """
+    # The instance needs to be down before any of these actions occur
+    # Whether it is must be checked manually through a RPC - configuration
+    # reflects only the desired state
+    if IsInstanceRunning(self._lu, self._instance):
+      self._feedback_fn("Shutting down instance")
+      result = self._lu.rpc.call_instance_shutdown(self._instance.primary_node,
+                                                   self._instance,
+                                                   self._shutdown_timeout,
+                                                   self._lu.op.reason)
+      result.Raise("Shutdown of instance %s while removing temporary disk "
+                   "failed" % self._instance.name)
+
+    # Disks need to be deactivated prior to being removed
+    # The disks_active configuration entry should match the actual state
+    if self._instance.disks_active:
+      self._feedback_fn("Deactivating disks")
+      ShutdownInstanceDisks(self._lu, self._instance)
+
+  def __enter__(self):
+    """ Context manager entry function, creating the disk.
+
+    @rtype: L{ganeti.objects.Disk}
+    @return: The disk object created.
+
+    """
+    self._EnsureInstanceDiskState()
+
+    # The iv_name of the disk intentionally diverges from Ganeti's standards, as
+    # this disk should be very temporary and its presence should be reported.
+    # With the special iv_name, gnt-cluster verify detects the disk and warns
+    # the user of its presence. Removing the disk restores the instance to its
+    # proper state, despite an error that appears when the removal is performed.
+    new_disk = objects.Disk()
+    new_disk.dev_type = constants.DT_PLAIN
+    new_disk.iv_name = "disk/-"
+    new_disk.mode = constants.DISK_RDWR
+    new_disk.uuid = "temporary-disk-%s" % self._instance.uuid
+    new_disk.logical_id = (self._lu.cfg.GetVGName(), new_disk.uuid)
+    new_disk.params = {}
+    new_disk.size = self._size
+
+    self._feedback_fn("Attempting to create temporary disk")
+
+    self._undoing_info = CreateDisks(self._lu, self._instance, disks=[new_disk])
+    self._instance.disks.insert(0, new_disk)
+
+    self._feedback_fn("Temporary disk created")
+
+    return new_disk
+
+  def __exit__(self, exc_type, _value, _traceback):
+    """ Context manager exit function, destroying the disk.
+
+    """
+    if exc_type:
+      self._feedback_fn("Exception raised, cleaning up temporary disk")
+    else:
+      self._feedback_fn("Regular cleanup of temporary disk")
+
+    try:
+      self._EnsureInstanceDiskState()
+
+      _UndoCreateDisks(self._lu, self._undoing_info, self._instance)
+      self._instance.disks.pop(0)
+
+      self._feedback_fn("Temporary disk removed")
+    except:
+      self._feedback_fn("Disk cleanup failed; it will have to be removed "
+                        "manually")
+      raise
