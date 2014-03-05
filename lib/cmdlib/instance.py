@@ -48,7 +48,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   INSTANCE_NOT_RUNNING, CAN_CHANGE_INSTANCE_OFFLINE, CheckNodeOnline, \
   ShareAll, GetDefaultIAllocator, CheckInstanceNodeGroups, \
   LoadNodeEvacResult, CheckIAllocatorOrNode, CheckParamsNotGlobal, \
-  IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, \
+  IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, CheckOSImage, \
   AnnotateDiskParams, GetUpdatedParams, ExpandInstanceUuidAndName, \
   ComputeIPolicySpecViolation, CheckInstanceState, ExpandNodeUuidAndName, \
   CheckDiskTemplateEnabled, IsValidDiskAccessModeCombination
@@ -494,15 +494,24 @@ class LUInstanceCreate(LogicalUnit):
       if self.op.no_install:
         self.LogInfo("No-installation mode has no effect during import")
 
+      if objects.GetOSImage(self.op.osparams):
+        self.LogInfo("OS image has no effect during import")
     elif self.op.mode == constants.INSTANCE_CREATE:
-      if self.op.os_type is None:
-        raise errors.OpPrereqError("No guest OS specified",
+      os_image = CheckOSImage(self.op)
+
+      if self.op.os_type is None and os_image is None:
+        raise errors.OpPrereqError("No guest OS or OS image specified",
                                    errors.ECODE_INVAL)
-      if self.op.os_type in self.cfg.GetClusterInfo().blacklisted_os:
+
+      if self.op.os_type is not None \
+            and self.op.os_type in self.cfg.GetClusterInfo().blacklisted_os:
         raise errors.OpPrereqError("Guest OS '%s' is not allowed for"
                                    " installation" % self.op.os_type,
                                    errors.ECODE_STATE)
     elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
+      if objects.GetOSImage(self.op.osparams):
+        self.LogInfo("OS image has no effect during import")
+
       self._cds = GetClusterDomainSecret()
 
       # Check handshake to ensure both clusters have the same domain secret
@@ -1301,7 +1310,9 @@ class LUInstanceCreate(LogicalUnit):
 
     CheckHVParams(self, node_uuids, self.op.hypervisor, self.op.hvparams)
 
-    CheckNodeHasOS(self, pnode.uuid, self.op.os_type, self.op.force_variant)
+    if self.op.os_type is not None:
+      CheckNodeHasOS(self, pnode.uuid, self.op.os_type, self.op.force_variant)
+
     # check OS parameters (remotely)
     CheckOSParams(self, True, node_uuids, self.op.os_type, self.os_full)
 
@@ -1403,9 +1414,14 @@ class LUInstanceCreate(LogicalUnit):
                                  feedback_fn,
                                  self.cfg.GetGroupDiskParams(nodegroup))
 
+    if self.op.os_type is None:
+      os_type = ""
+    else:
+      os_type = self.op.os_type
+
     iobj = objects.Instance(name=self.op.instance_name,
                             uuid=instance_uuid,
-                            os=self.op.os_type,
+                            os=os_type,
                             primary_node=self.pnode.uuid,
                             nics=self.nics, disks=disks,
                             disk_template=self.op.disk_template,
@@ -1502,7 +1518,9 @@ class LUInstanceCreate(LogicalUnit):
 
     if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
       if self.op.mode == constants.INSTANCE_CREATE:
-        if not self.op.no_install:
+        os_image = objects.GetOSImage(self.op.osparams)
+
+        if os_image is None and not self.op.no_install:
           pause_sync = (iobj.disk_template in constants.DTS_INT_MIRROR and
                         not self.op.wait_for_sync)
           if pause_sync:

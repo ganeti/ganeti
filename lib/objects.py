@@ -1959,7 +1959,10 @@ class Cluster(TaggableObject):
         unless the respective optional parameters are supplied.
 
     """
-    name_only = OS.GetName(os_name)
+    if os_name is None:
+      name_only = None
+    else:
+      name_only = OS.GetName(os_name)
 
     defaults_base_public = self.osparams.get(name_only, {})
     defaults_public = FillDict(defaults_base_public,

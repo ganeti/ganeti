@@ -389,17 +389,18 @@ def CheckOSParams(lu, required, node_uuids, osname, osparams):
     if isinstance(osparams[key], Private):
       osparams[key] = osparams[key].Get()
 
-  result = lu.rpc.call_os_validate(node_uuids, required, osname,
-                                   [constants.OS_VALIDATE_PARAMETERS],
-                                   osparams)
-  for node_uuid, nres in result.items():
-    # we don't check for offline cases since this should be run only
-    # against the master node and/or an instance's nodes
-    nres.Raise("OS Parameters validation failed on node %s" %
-               lu.cfg.GetNodeName(node_uuid))
-    if not nres.payload:
-      lu.LogInfo("OS %s not found on node %s, validation skipped",
-                 osname, lu.cfg.GetNodeName(node_uuid))
+  if osname:
+    result = lu.rpc.call_os_validate(node_uuids, required, osname,
+                                     [constants.OS_VALIDATE_PARAMETERS],
+                                     osparams)
+    for node_uuid, nres in result.items():
+      # we don't check for offline cases since this should be run only
+      # against the master node and/or an instance's nodes
+      nres.Raise("OS Parameters validation failed on node %s" %
+                 lu.cfg.GetNodeName(node_uuid))
+      if not nres.payload:
+        lu.LogInfo("OS %s not found on node %s, validation skipped",
+                   osname, lu.cfg.GetNodeName(node_uuid))
 
 
 def CheckOSImage(op):

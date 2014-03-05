@@ -383,7 +383,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
   def testMissingOsType(self):
     op = self.CopyOpCode(self.diskless_op,
                          os_type=self.REMOVE)
-    self.ExecOpCodeExpectOpPrereqError(op, "No guest OS specified")
+    self.ExecOpCodeExpectOpPrereqError(op, "No guest OS or OS image specified")
 
   def testBlacklistedOs(self):
     self.cluster.blacklisted_os = [self.os_name_variant]
