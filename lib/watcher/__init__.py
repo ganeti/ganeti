@@ -173,8 +173,13 @@ class Node:
     self.secondaries = secondaries
 
 
-def _CleanupInstance(cl, notepad, inst):
+def _CleanupInstance(cl, notepad, inst, locks):
   n = notepad.NumberOfCleanupAttempts(inst.name)
+
+  if inst.name in locks:
+    logging.info("Not cleaning up instance '%s', instance is locked",
+                 inst.name)
+    return
 
   if n > MAXTRIES:
     logging.warning("Not cleaning up instance '%s', retries exhausted",
@@ -194,7 +199,7 @@ def _CleanupInstance(cl, notepad, inst):
     notepad.RecordCleanupAttempt(inst.name)
 
 
-def _CheckInstances(cl, notepad, instances):
+def _CheckInstances(cl, notepad, instances, locks):
   """Make a pass over the list of instances, restarting downed ones.
 
   """
@@ -204,7 +209,7 @@ def _CheckInstances(cl, notepad, instances):
 
   for inst in instances.values():
     if inst.status == constants.INSTST_USERDOWN:
-      _CleanupInstance(cl, notepad, inst)
+      _CleanupInstance(cl, notepad, inst, locks)
     elif inst.status in BAD_STATES:
       n = notepad.NumberOfRestartAttempts(inst.name)
 
@@ -647,6 +652,17 @@ def _GetGroupData(qcl, uuid):
   """Retrieves instances and nodes per node group.
 
   """
+  locks = qcl.Query(constants.QR_LOCK, ["name", "mode"], None)
+
+  prefix = "instance/"
+  prefix_len = len(prefix)
+
+  locked_instances = set()
+
+  for [[_, name], [_, lock]] in locks.data:
+    if name.startswith(prefix) and lock:
+      locked_instances.add(name[prefix_len:])
+
   queries = [
       (constants.QR_INSTANCE,
        ["name", "status", "disks_active", "snodes",
@@ -692,7 +708,8 @@ def _GetGroupData(qcl, uuid):
            for (name, bootid, offline) in raw_nodes]
 
   return (dict((node.name, node) for node in nodes),
-          dict((inst.name, inst) for inst in instances))
+          dict((inst.name, inst) for inst in instances),
+          locked_instances)
 
 
 def _LoadKnownGroups():
@@ -749,7 +766,7 @@ def _GroupWatcher(opts):
 
     _CheckMaster(client)
 
-    (nodes, instances) = _GetGroupData(client, group_uuid)
+    (nodes, instances, locks) = _GetGroupData(client, group_uuid)
 
     # Update per-group instance status file
     _UpdateInstanceStatus(inst_status_path, instances.values())
@@ -758,7 +775,7 @@ def _GroupWatcher(opts):
                          pathutils.WATCHER_GROUP_INSTANCE_STATUS_FILE,
                          known_groups)
 
-    started = _CheckInstances(client, notepad, instances)
+    started = _CheckInstances(client, notepad, instances, locks)
     _CheckDisks(client, notepad, nodes, instances, started)
     _VerifyDisks(client, group_uuid, nodes, instances)
   except Exception, err:
