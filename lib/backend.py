@@ -37,19 +37,19 @@
 # C0302: This module has become too big and should be split up
 
 
+import base64
+import errno
+import logging
 import os
 import os.path
-import shutil
-import time
-import stat
-import errno
-import re
 import random
-import logging
-import tempfile
-import zlib
-import base64
+import re
+import shutil
 import signal
+import stat
+import tempfile
+import time
+import zlib
 
 from ganeti import errors
 from ganeti import utils
@@ -2233,12 +2233,23 @@ def BlockdevCreate(disk, size, owner, on_primary, info, excl_stor):
   return device.unique_id
 
 
-def _WipeDevice(path, offset, size):
-  """This function actually wipes the device.
+def _DumpDevice(source_path, target_path, offset, size):
+  """This function images/wipes the device using a local file.
 
-  @param path: The path to the device to wipe
-  @param offset: The offset in MiB in the file
-  @param size: The size in MiB to write
+  @type source_path: string
+  @param source_path: path of the image or data source (e.g., "/dev/zero")
+
+  @type target_path: string
+  @param target_path: path of the device to image/wipe
+
+  @type offset: int
+  @param offset: offset in MiB in the output file
+
+  @type size: int
+  @param size: maximum size in MiB to write (data source might be smaller)
+
+  @return: None
+  @raise RPCFail: in case of failure
 
   """
   # Internal sizes are always in Mebibytes; if the following "dd" command
@@ -2246,13 +2257,13 @@ def _WipeDevice(path, offset, size):
   # function must be adjusted accordingly before being passed to "dd".
   block_size = 1024 * 1024
 
-  cmd = [constants.DD_CMD, "if=/dev/zero", "seek=%d" % offset,
-         "bs=%s" % block_size, "oflag=direct", "of=%s" % path,
+  cmd = [constants.DD_CMD, "if=%s" % source_path, "seek=%d" % offset,
+         "bs=%s" % block_size, "oflag=direct", "of=%s" % target_path,
          "count=%d" % size]
   result = utils.RunCmd(cmd)
 
   if result.failed:
-    _Fail("Wipe command '%s' exited with error: %s; output: %s", result.cmd,
+    _Fail("Dump command '%s' exited with error: %s; output: %s", result.cmd,
           result.fail_reason, result.output)
 
 
@@ -2273,19 +2284,18 @@ def BlockdevWipe(disk, offset, size):
     rdev = None
 
   if not rdev:
-    _Fail("Cannot execute wipe for device %s: device not found", disk.iv_name)
-
-  # Do cross verify some of the parameters
+    _Fail("Cannot wipe device %s: device not found", disk.iv_name)
   if offset < 0:
     _Fail("Negative offset")
   if size < 0:
     _Fail("Negative size")
   if offset > rdev.size:
-    _Fail("Offset is bigger than device size")
+    _Fail("Wipe offset is bigger than device size")
   if (offset + size) > rdev.size:
-    _Fail("The provided offset and size to wipe is bigger than device size")
+    _Fail("Wipe offset and size are bigger than device size")
 
-  _WipeDevice(rdev.dev_path, offset, size)
+  _DumpDevice("/dev/zero", rdev.dev_path, offset, size)
+
 
 
 def BlockdevPauseResumeSync(disks, pause):
