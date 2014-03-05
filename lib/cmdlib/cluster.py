@@ -57,7 +57,8 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
   CheckDiskAccessModeConsistency, CreateNewClientCert, \
-  AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp
+  AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp, \
+  CheckImageValidity
 
 import ganeti.masterd.instance
 
@@ -1610,6 +1611,11 @@ class LUClusterSetParams(LogicalUnit):
                  master_params.netdev)
       result.Warn("Could not change the master IP netmask", feedback_fn)
       self.cluster.master_netmask = self.op.master_netmask
+
+    if self.op.zeroing_image is not None:
+      CheckImageValidity(self.op.zeroing_image,
+                         "Zeroing image must be an absolute path or a URL")
+      self.cluster.zeroing_image = self.op.zeroing_image
 
     self.cfg.Update(self.cluster, feedback_fn)
 

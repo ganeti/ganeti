@@ -228,6 +228,7 @@ __all__ = [
   "VG_NAME_OPT",
   "WFSYNC_OPT",
   "YES_DOIT_OPT",
+  "ZEROING_IMAGE_OPT",
   "DISK_STATE_OPT",
   "HV_STATE_OPT",
   "IGNORE_IPOLICY_OPT",
@@ -1734,6 +1735,11 @@ INSTANCE_COMMUNICATION_OPT = \
                dest="instance_communication",
                help=constants.INSTANCE_COMMUNICATION_DOC,
                type="bool")
+
+ZEROING_IMAGE_OPT = \
+    cli_option("--zeroing-image",
+               dest="zeroing_image", action="store", default=None,
+               help="The OS image to use to zero instance disks")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]

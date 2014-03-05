@@ -265,6 +265,11 @@ def InitCluster(opts, args):
 
   hv_state = dict(opts.hv_state)
 
+  if opts.zeroing_image:
+    zeroing_image = opts.zeroing_image
+  else:
+    zeroing_image = ""
+
   default_ialloc_params = opts.default_iallocator_params
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
@@ -296,6 +301,7 @@ def InitCluster(opts, args):
                         hv_state=hv_state,
                         disk_state=disk_state,
                         enabled_disk_templates=enabled_disk_templates,
+                        zeroing_image=zeroing_image
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
@@ -548,6 +554,7 @@ def ShowClusterConfig(opts, args):
        utils.CommaJoin(result["enabled_disk_templates"])),
       ("instance communication network",
        result["instance_communication_network"]),
+      ("zeroing image", result["zeroing_image"]),
       ]),
 
     ("Default node parameters",
@@ -1124,7 +1131,8 @@ def SetClusterParams(opts, args):
           opts.ipolicy_spindle_ratio is not None or
           opts.modify_etc_hosts is not None or
           opts.file_storage_dir is not None or
-          opts.instance_communication_network is not None):
+          opts.instance_communication_network is not None or
+          opts.zeroing_image is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1236,7 +1244,8 @@ def SetClusterParams(opts, args):
     enabled_disk_templates=enabled_disk_templates,
     force=opts.force,
     file_storage_dir=opts.file_storage_dir,
-    instance_communication_network=opts.instance_communication_network
+    instance_communication_network=opts.instance_communication_network,
+    zeroing_image=opts.zeroing_image
     )
   return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
@@ -2101,7 +2110,7 @@ commands = {
      PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT,
      GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT,
      HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
-     IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT]
+     IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT, ZEROING_IMAGE_OPT]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
@@ -2185,7 +2194,7 @@ commands = {
      USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] +
      SUBMIT_OPTS +
      [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT] +
-     INSTANCE_POLICY_OPTS + [GLOBAL_FILEDIR_OPT],
+     INSTANCE_POLICY_OPTS + [GLOBAL_FILEDIR_OPT, ZEROING_IMAGE_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

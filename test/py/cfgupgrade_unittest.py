@@ -49,6 +49,7 @@ def GetMinimalConfig():
       "ndparams": {},
       "candidate_certs": {},
       "instance_communication_network": "",
+      "zeroing_image": "",
     },
     "instances": {},
     "networks": {},

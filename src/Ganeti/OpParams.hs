@@ -110,6 +110,7 @@ module Ganeti.OpParams
   , pClusterSharedFileStorageDir
   , pClusterGlusterStorageDir
   , pInstanceCommunicationNetwork
+  , pZeroingImage
   , pVgName
   , pEnabledHypervisors
   , pHypervisor
@@ -595,6 +596,11 @@ pClusterGlusterStorageDir =
 pInstanceCommunicationNetwork :: Field
 pInstanceCommunicationNetwork =
   optionalStringField "instance_communication_network"
+
+-- | The OS to use when zeroing instance disks
+pZeroingImage :: Field
+pZeroingImage =
+  optionalStringField "zeroing_image"
 
 -- | Volume group name.
 pVgName :: Field

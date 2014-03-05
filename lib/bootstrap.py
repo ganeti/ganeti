@@ -527,7 +527,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 default_iallocator=None, default_iallocator_params=None,
                 primary_ip_version=None, ipolicy=None,
                 prealloc_wipe_disks=False, use_external_mip_script=False,
-                hv_state=None, disk_state=None, enabled_disk_templates=None):
+                hv_state=None, disk_state=None, enabled_disk_templates=None,
+                zeroing_image=None):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
@@ -795,7 +796,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     enabled_disk_templates=enabled_disk_templates,
     candidate_certs=candidate_certs,
     osparams={},
-    osparams_private_cluster={}
+    osparams_private_cluster={},
+    zeroing_image=zeroing_image
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,

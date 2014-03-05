@@ -209,6 +209,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> genMaybe genName             -- shared_file_storage_dir
           <*> genMaybe genName             -- gluster_file_storage_dir
           <*> arbitrary                    -- instance_communication_network
+          <*> arbitrary                    -- zeroing_image
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
         pure OpCodes.OpClusterActivateMasterIp

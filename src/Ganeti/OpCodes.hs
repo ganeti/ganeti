@@ -240,6 +240,7 @@ $(genOpCode "OpCode"
      , pClusterSharedFileStorageDir
      , pClusterGlusterStorageDir
      , pInstanceCommunicationNetwork
+     , pZeroingImage
      ],
      [])
   , ("OpClusterRedistConf",

@@ -284,6 +284,11 @@ class LUBackupExport(LogicalUnit):
         raise errors.OpPrereqError("Booting from disk must be set for zeroing "
                                    "to work")
 
+      # Check that the zeroing image is set
+      if not self.cfg.GetZeroingImage():
+        raise errors.OpPrereqError("A zeroing image must be set for zeroing to"
+                                   " work")
+
   def _CleanupExports(self, feedback_fn):
     """Removes exports of current instance from all other nodes.
 

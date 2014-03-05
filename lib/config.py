@@ -1373,6 +1373,16 @@ class ConfigWriter(object):
     """
     self._ConfigData().cluster.instance_communication_network = network_name
 
+  @_ConfigSync(shared=1)
+  def GetZeroingImage(self):
+    """Get the zeroing image location
+
+    @rtype: string
+    @return: the location of the zeroing image
+
+    """
+    return self._config_data.cluster.zeroing_image
+
   @_ConfigSync()
   def AddNodeGroup(self, group, ec_id, check_uuid=True):
     """Add a node group to the configuration.

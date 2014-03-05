@@ -1643,6 +1643,7 @@ class Cluster(TaggableObject):
     "candidate_certs",
     "max_running_jobs",
     "instance_communication_network",
+    "zeroing_image"
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):

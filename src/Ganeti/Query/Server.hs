@@ -169,6 +169,7 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("enabled_disk_templates", showJSON diskTemplates)
             , ("instance_communication_network",
                showJSON (clusterInstanceCommunicationNetwork cluster))
+            , ("zeroing_image", showJSON $ clusterZeroingImage cluster)
             ]
 
   in case master of
