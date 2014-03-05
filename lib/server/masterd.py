@@ -267,6 +267,7 @@ class MasterServer(daemon.AsyncStreamServer):
         self.request_workers.TerminateWorkers()
       if self.context:
         self.context.jobqueue.Shutdown()
+        self.context.livelock.close()
 
 
 class ClientOps:
@@ -455,6 +456,9 @@ class GanetiContext(object):
 
     """
     assert self.__class__._instance is None, "double GanetiContext instance"
+
+    # Create a livelock file
+    self.livelock = utils.livelock.LiveLock("masterd")
 
     # Create global configuration object
     self.cfg = config.ConfigWriter()
