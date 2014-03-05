@@ -35,7 +35,7 @@ module Ganeti.THH.Types
   ) where
 
 import Control.Arrow (first)
-import Control.Monad (liftM)
+import Control.Monad (liftM, replicateM)
 import Language.Haskell.TH
 import qualified Text.JSON as J
 
@@ -89,7 +89,7 @@ uncurryVarType = uncurryN . length . fst . funArgs
     uncurryN 1 = [| (. getOneTuple) |]
     uncurryN n = do
       f <- newName "f"
-      ps <- mapM newName (replicate n "x")
+      ps <- replicateM n (newName "x")
       return $ LamE [VarP f, TupP $ map VarP ps]
                  (foldl AppE (VarE f) $ map VarE ps)
 

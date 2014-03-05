@@ -35,7 +35,9 @@ module Test.Ganeti.HTools.Instance
   , Instance.Instance(..)
   ) where
 
+import Control.Arrow ((&&&))
 import Control.Monad (liftM)
+import Data.Functor ((<$>))
 import Test.QuickCheck hiding (Result)
 
 import Test.Ganeti.TestHelper
@@ -112,7 +114,7 @@ genInstanceOnNodeList nl = do
 genInstanceList :: Gen Instance.Instance -> Gen Instance.List
 genInstanceList igen = fmap (snd . Loader.assignIndices) names_instances
     where names_instances =
-            (fmap . map) (\n -> (Instance.name n, n)) $ listOf igen
+            map (Instance.name &&& id) <$> listOf igen
 
 -- let's generate a random instance
 instance Arbitrary Instance.Instance where
