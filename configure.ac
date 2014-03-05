@@ -607,6 +607,7 @@ AC_GHC_PKG_REQUIRE(text)
 AC_GHC_PKG_REQUIRE(hinotify)
 AC_GHC_PKG_REQUIRE(Crypto)
 AC_GHC_PKG_REQUIRE(lifted-base)
+AC_GHC_PKG_REQUIRE(lens)
 
 # extra modules for confd functionality; also needed for tests
 HS_NODEV=

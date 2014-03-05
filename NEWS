@@ -93,6 +93,8 @@ For Haskell:
 
 - ``lifted-base`` library (http://hackage.haskell.org/package/lifted-base)
 
+- ``lens`` library (http://hackage.haskell.org/package/lens)
+
 
 Version 2.10.0
 --------------
