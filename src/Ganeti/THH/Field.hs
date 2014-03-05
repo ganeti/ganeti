@@ -36,12 +36,14 @@ module Ganeti.THH.Field
   , serialFields
   , TagSet
   , tagsFields
+  , fileModeAsIntField
   ) where
 
 import Control.Monad
 import qualified Data.Set as Set
 import Language.Haskell.TH
 import qualified Text.JSON as JSON
+import System.Posix.Types (FileMode)
 import System.Time (ClockTime(..))
 
 import Ganeti.JSON
@@ -74,6 +76,22 @@ timeAsDoubleField fname =
     , fieldShow = Just $ [| \c -> (JSON.showJSON $ TimeAsDoubleJSON c, []) |]
     }
 
+-- | A helper function for creating fields whose Haskell representation is
+-- 'Integral' and which are serialized as numbers.
+integralField :: Q Type -> String -> Field
+integralField typq fname =
+  let (~->) = appT . appT arrowT  -- constructs an arrow type
+      (~::) = sigE . varE         -- (f ~:: t) constructs (f :: t)
+  in (simpleField fname typq)
+      { fieldRead = Just $
+        [| \_ -> liftM $('fromInteger ~:: (conT ''Integer ~-> typq))
+                   . JSON.readJSON |]
+      , fieldShow = Just $
+          [| \c -> (JSON.showJSON
+                    . $('toInteger ~:: (typq ~-> conT ''Integer))
+                    $ c, []) |]
+      }
+
 -- * External functions and data types
 
 -- | Timestamp fields description.
@@ -98,3 +116,10 @@ type TagSet = Set.Set String
 tagsFields :: [Field]
 tagsFields = [ defaultField [| Set.empty |] $
                simpleField "tags" [t| TagSet |] ]
+
+-- ** Fields related to POSIX data types
+
+-- | Creates a new mandatory field that reads a file mode in the standard
+-- POSIX file mode representation. The Haskell type of the field is 'FileMode'.
+fileModeAsIntField :: String -> Field
+fileModeAsIntField = integralField [t| FileMode |]
