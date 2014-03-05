@@ -376,7 +376,7 @@ def CheckOSParams(lu, required, node_uuids, osname, osparams):
   @type node_uuids: list
   @param node_uuids: the list of nodes on which we should check
   @type osname: string
-  @param osname: the name of the hypervisor we should use
+  @param osname: the name of the OS we should use
   @type osparams: dict
   @param osparams: the parameters which we need to check
   @raise errors.OpPrereqError: if the parameters are not valid

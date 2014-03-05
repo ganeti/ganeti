@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -136,6 +136,10 @@ def _StoreInstReasonTrail(instance_name, trail):
 
   @type instance_name: string
   @param instance_name: The name of the instance
+
+  @type trail: list of reasons
+  @param trail: reason trail
+
   @rtype: None
 
   """
@@ -3623,7 +3627,7 @@ def _CheckOSPList(os_obj, parameters):
 
 
 def ValidateOS(required, osname, checks, osparams):
-  """Validate the given OS' parameters.
+  """Validate the given OS parameters.
 
   @type required: boolean
   @param required: whether absence of the OS should translate into
