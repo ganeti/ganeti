@@ -238,7 +238,7 @@ class MasterServer(daemon.AsyncStreamServer):
     # maximum number to avoid breaking for lack of file descriptors or memory.
     MasterClientHandler(self, connected_socket, client_address, self.family)
 
-  def setup_queue(self):
+  def setup_context(self):
     self.context = GanetiContext()
     self.request_workers = workerpool.WorkerPool("ClientReq",
                                                  CLIENT_REQUEST_WORKERS,
@@ -724,7 +724,7 @@ def ExecMasterd(options, args, prep_data): # pylint: disable=W0613
   try:
     rpc.Init()
     try:
-      master.setup_queue()
+      master.setup_context()
       try:
         mainloop.Run(shutdown_wait_fn=master.WaitForShutdown)
       finally:
