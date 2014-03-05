@@ -105,6 +105,7 @@ import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
 import Ganeti.Types
 import Ganeti.THH
+import Ganeti.THH.Field
 import Ganeti.Utils (sepSplit, tryRead, parseUnitAssumeBinary)
 
 -- * Generic definitions

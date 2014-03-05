@@ -101,6 +101,7 @@ import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.THH
+import Ganeti.THH.Field
 import Ganeti.Types
 import Ganeti.Curl.Multi
 import Ganeti.Utils

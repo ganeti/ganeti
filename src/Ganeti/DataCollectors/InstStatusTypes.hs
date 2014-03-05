@@ -33,6 +33,7 @@ module Ganeti.DataCollectors.InstStatusTypes
 import Ganeti.DataCollectors.Types
 import Ganeti.Hypervisor.Xen.Types
 import Ganeti.THH
+import Ganeti.THH.Field
 import Ganeti.Types
 
 -- | Data type representing the status of an instance to be returned.

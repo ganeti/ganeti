@@ -277,6 +277,7 @@ import Text.JSON.Pretty (pp_value)
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.THH
+import Ganeti.THH.Field
 import Ganeti.Utils
 import Ganeti.JSON
 import Ganeti.Types

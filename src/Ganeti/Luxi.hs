@@ -70,6 +70,7 @@ import Ganeti.OpCodes
 import qualified Ganeti.Query.Language as Qlang
 import Ganeti.Runtime (GanetiDaemon(..))
 import Ganeti.THH
+import Ganeti.THH.Field
 import Ganeti.Types
 
 
