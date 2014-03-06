@@ -86,6 +86,9 @@ module Ganeti.Rpc
   , RpcCallJobqueueRename(..)
   , RpcCallSetWatcherPause(..)
   , RpcCallSetDrainFlag(..)
+
+  , RpcCallUploadFile(..)
+  , prepareRpcCallUploadFile
   ) where
 
 import Control.Arrow (second)
@@ -97,6 +100,8 @@ import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 import qualified Data.ByteString.Base64.Lazy as Base64
 import System.Directory
+import System.Posix.Files ( modificationTime, accessTime, fileOwner
+                          , fileGroup, fileMode, getFileStatus)
 
 import Network.Curl hiding (content)
 import qualified Ganeti.Path as P
@@ -105,13 +110,16 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.Codec
 import Ganeti.Curl.Multi
+import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Objects
+import Ganeti.Runtime
 import Ganeti.THH
 import Ganeti.THH.Field
 import Ganeti.Types
 import Ganeti.Utils
+import Ganeti.VCluster
 
 -- * Base RPC functionality and types
 
@@ -710,3 +718,53 @@ instance Rpc RpcCallSetDrainFlag RpcResultSetDrainFlag where
       _ -> Left $ JsonDecodeError
            ("Expected JSNull, got " ++ show (pp_value res))
 
+-- ** Configuration files upload to nodes
+
+-- | Upload a configuration file to nodes
+
+$(buildObject "RpcCallUploadFile" "rpcCallUploadFile"
+  [ simpleField "file_name" [t| FilePath |]
+  , simpleField "content" [t| Compressed |]
+  , optionalField $ fileModeAsIntField "mode"
+  , simpleField "uid" [t| String |]
+  , simpleField "gid" [t| String |]
+  , timeAsDoubleField "atime"
+  , timeAsDoubleField "mtime"
+  ])
+
+instance RpcCall RpcCallUploadFile where
+  rpcCallName _          = "upload_file_single"
+  rpcCallTimeout _       = rpcTimeoutToRaw Normal
+  rpcCallAcceptOffline _ = False
+
+$(buildObject "RpcResultUploadFile" "rpcResultUploadFile" [])
+
+instance Rpc RpcCallUploadFile RpcResultUploadFile where
+  rpcResultFill _ res =
+    case res of
+      J.JSNull -> Right RpcResultUploadFile
+      _ -> Left $ JsonDecodeError
+           ("Expected JSNull, got " ++ show (pp_value res))
+
+-- | Reads a file and constructs the corresponding 'RpcCallUploadFile' value.
+prepareRpcCallUploadFile :: RuntimeEnts -> FilePath
+                         -> ResultG RpcCallUploadFile
+prepareRpcCallUploadFile re path = do
+  status <- liftIO $ getFileStatus path
+  content <- liftIO $ BL.readFile path
+  let lookupM x m = maybe (failError $ "Uid/gid " ++ show x ++
+                                       " not found, probably file " ++
+                                       show path ++ " isn't a Ganeti file")
+                          return
+                          (Map.lookup x m)
+  uid <- lookupM (fileOwner status) (reUidToUser re)
+  gid <- lookupM (fileGroup status) (reGidToGroup re)
+  vpath <- liftIO $ makeVirtualPath path
+  return $ RpcCallUploadFile
+    vpath
+    (packCompressed content)
+    (Just $ fileMode status)
+    uid
+    gid
+    (cTimeToClockTime $ accessTime status)
+    (cTimeToClockTime $ modificationTime status)
