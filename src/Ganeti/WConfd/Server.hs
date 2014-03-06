@@ -10,7 +10,7 @@ needs in this module (except the one for unittests).
 
 {-
 
-Copyright (C) 2013 Google Inc.
+Copyright (C) 2013, 2014 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.WConfd.Server where
 
+import Control.Concurrent (forkIO)
 import Control.Exception
 import Control.Monad
 import Control.Monad.Error
@@ -38,7 +39,7 @@ import System.Directory (doesFileExist)
 
 import Ganeti.BasicTypes
 import Ganeti.Daemon
-import Ganeti.Logging (logInfo)
+import Ganeti.Logging (logInfo, logDebug)
 import Ganeti.Locking.Allocation
 import Ganeti.Locking.Locks
 import qualified Ganeti.Path as Path
@@ -49,6 +50,7 @@ import Ganeti.Runtime
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.ConfigWriter
 import Ganeti.WConfd.Core
+import Ganeti.WConfd.DeathDetection (cleanupLocksTask)
 import Ganeti.WConfd.Monad
 
 handler :: DaemonHandle -> RpcServer WConfdMonadInt
@@ -96,7 +98,9 @@ connectConfig = ConnectConfig GanetiLuxid 60 60
 
 -- | Main function.
 main :: MainFn () PrepResult
-main _ _ (server, dh) =
+main _ _ (server, dh) = do
+  logDebug "Starting the cleanup task"
+  _ <- forkIO $ runWConfdMonadInt cleanupLocksTask dh
   finally
     (forever $ runWConfdMonadInt (listener (handler dh) server) dh)
     (liftIO $ closeServer server)
