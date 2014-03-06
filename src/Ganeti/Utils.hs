@@ -52,6 +52,8 @@ module Ganeti.Utils
   , getCurrentTime
   , getCurrentTimeUSec
   , clockTimeToString
+  , clockTimeToCTime
+  , cTimeToClockTime
   , chompPrefix
   , warn
   , wrap
@@ -88,6 +90,7 @@ import Data.Function (on)
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
+import Foreign.C.Types (CTime(..))
 import Numeric (showOct)
 import System.Directory (renameFile, createDirectoryIfMissing)
 import System.FilePath.Posix (takeDirectory)
@@ -391,6 +394,14 @@ getCurrentTimeUSec = do
 -- | Convert a ClockTime into a (seconds-only) timestamp.
 clockTimeToString :: ClockTime -> String
 clockTimeToString (TOD t _) = show t
+
+-- | Convert a ClockTime into a (seconds-only) 'EpochTime' (AKA @time_t@).
+clockTimeToCTime :: ClockTime -> EpochTime
+clockTimeToCTime (TOD secs _) = fromInteger secs
+
+-- | Convert a ClockTime into a (seconds-only) 'EpochTime' (AKA @time_t@).
+cTimeToClockTime :: EpochTime -> ClockTime
+cTimeToClockTime (CTime timet) = TOD (toInteger timet) 0
 
 {-| Strip a prefix from a string, allowing the last character of the prefix
 (which is assumed to be a separator) to be absent from the string if the string
