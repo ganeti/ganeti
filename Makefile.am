@@ -699,6 +699,7 @@ HPCEXCL = --exclude Main \
 
 HS_LIB_SRCS = \
 	src/Ganeti/BasicTypes.hs \
+	src/Ganeti/Codec.hs \
 	src/Ganeti/Common.hs \
 	src/Ganeti/Compat.hs \
 	src/Ganeti/Confd/Client.hs \
