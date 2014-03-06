@@ -315,6 +315,12 @@ prop_ReadShow =
   forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
   J.readJSON (J.showJSON state) ==? J.Ok state
 
+-- | Verify that the list of lock owners is complete.
+prop_OwnerComplete :: Property
+prop_OwnerComplete =
+  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
+  foldl freeLocks state (lockOwners state) ==? emptyAllocation
+
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
  , 'prop_LockImplicationX
@@ -327,4 +333,5 @@ testSuite "Locking/Allocation"
  , 'prop_OpportunisticMonotone
  , 'prop_OpportunisticAnswer
  , 'prop_ReadShow
+ , 'prop_OwnerComplete
  ]
