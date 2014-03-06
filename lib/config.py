@@ -195,8 +195,8 @@ class ConfigWriter(object):
     self._all_rms = [self._temporary_ids, self._temporary_macs,
                      self._temporary_secrets, self._temporary_lvs,
                      self._temporary_ips]
-    # Note: in order to prevent errors when resolving our name in
-    # _DistributeConfig, we compute it here once and reuse it; it's
+    # Note: in order to prevent errors when resolving our name later,
+    # we compute it here once and reuse it; it's
     # better to raise an error before starting to modify the config
     # file than after it was modified
     self._my_hostname = netutils.Hostname.GetSysName()
@@ -2457,49 +2457,6 @@ class ConfigWriter(object):
                   (utils.CommaJoin(config_errors)))
         logging.critical(errmsg)
 
-  def _DistributeConfig(self, feedback_fn):
-    """Distribute the configuration to the other nodes.
-
-    Currently, this only copies the configuration file. In the future,
-    it could be used to encapsulate the 2/3-phase update mechanism.
-
-    """
-    if self._offline:
-      return True
-
-    bad = False
-
-    node_list = []
-    addr_list = []
-    myhostname = self._my_hostname
-    # we can skip checking whether _UnlockedGetNodeInfo returns None
-    # since the node list comes from _UnlocketGetNodeList, and we are
-    # called with the lock held, so no modifications should take place
-    # in between
-    for node_uuid in self._UnlockedGetNodeList():
-      node_info = self._UnlockedGetNodeInfo(node_uuid)
-      if node_info.name == myhostname or not node_info.master_candidate:
-        continue
-      node_list.append(node_info.name)
-      addr_list.append(node_info.primary_ip)
-
-    # TODO: Use dedicated resolver talking to config writer for name resolution
-    result = \
-      self._GetRpc(addr_list).call_upload_file(node_list, self._cfg_file)
-    for to_node, to_result in result.items():
-      msg = to_result.fail_msg
-      if msg:
-        msg = ("Copy of file %s to node %s failed: %s" %
-               (self._cfg_file, to_node, msg))
-        logging.error(msg)
-
-        if feedback_fn:
-          feedback_fn(msg)
-
-        bad = True
-
-    return not bad
-
   def _WriteConfig(self, destination=None, feedback_fn=None):
     """Write the configuration data to persistent storage.
 
@@ -2551,9 +2508,6 @@ class ConfigWriter(object):
                                         " update")
 
     self.write_count += 1
-
-    # and redistribute the config file to master candidates
-    self._DistributeConfig(feedback_fn)
 
     # Write ssconf files on all nodes (including locally)
     if self._last_cluster_serial < self._config_data.cluster.serial_no:

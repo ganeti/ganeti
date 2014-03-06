@@ -37,7 +37,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.WConfd.Monad
   ( DaemonHandle
   , dhConfigPath
-  , dhSaveConfigWorker
   , mkDaemonHandle
   , WConfdMonadInt
   , runWConfdMonadInt
@@ -85,6 +84,7 @@ data DaemonHandle = DaemonHandle
   -- daemon should go here;
   -- all IDs of threads that do asynchronous work should probably also go here
   , dhSaveConfigWorker :: AsyncWorker ()
+  , dhDistMCsWorker :: AsyncWorker ()
   , dhSaveLocksWorker :: AsyncWorker ()
   }
 
@@ -94,15 +94,26 @@ mkDaemonHandle :: FilePath
                -> (IO ConfigState -> ResultG (AsyncWorker ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the configuration to the master file.
+               -> (IO ConfigState -> ResultG (AsyncWorker ()))
+                  -- ^ A function that creates a worker that asynchronously
+                  -- distributes the configuration to master candidates
                -> (IO GanetiLockAllocation -> ResultG (AsyncWorker ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the lock allocation state.
                -> ResultG DaemonHandle
-mkDaemonHandle cpath cstat lstat saveConfigWorkerFn saveLockWorkerFn = do
+mkDaemonHandle cpath cstat lstat
+               saveWorkerFn distMCsWorkerFn
+               saveLockWorkerFn = do
   ds <- newIORef $ DaemonState cstat lstat
-  saveConfigWorker <- saveConfigWorkerFn $ dsConfigState `liftM` readIORef ds
+  let readConfigIO = dsConfigState `liftM` readIORef ds :: IO ConfigState
+
+  saveWorker <- saveWorkerFn readConfigIO
+  distMCsWorker <- distMCsWorkerFn readConfigIO
+
   saveLockWorker <- saveLockWorkerFn $ dsLockAllocation `liftM` readIORef ds
-  return $ DaemonHandle ds cpath saveConfigWorker saveLockWorker
+
+  return $ DaemonHandle ds cpath saveWorker distMCsWorker
+                                 saveLockWorker
 
 -- * The monad and its instances
 
@@ -174,7 +185,8 @@ modifyConfigState f = do
     liftBase . triggerAndWait . dhSaveConfigWorker $ dh
     logDebug "Config write finished"
     -- trigger the config. distribution worker asynchronously
-    -- TODO
+    liftBase . triggerAndWait . dhDistMCsWorker $ dh
+    -- TODO: SSConf
   return r
 
 -- | Atomically modifies the lock allocation state in WConfdMonad.

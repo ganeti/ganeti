@@ -71,6 +71,7 @@ prepMain _ _ = do
   cleanupSocket socket_path
   s <- describeError "binding to the socket" Nothing (Just socket_path)
          $ connectServer connectConfig True socket_path
+
   -- TODO: Lock the configuration file so that running the daemon twice fails?
   conf_file <- Path.clusterConfFile
 
@@ -79,6 +80,7 @@ prepMain _ _ = do
   unless lock_file_present
     $ logInfo "No saved lock status; assuming all locks free"
   dhOpt <- runResultT $ do
+    ents <- getEnts
     (cdata, cstat) <- loadConfigFromFile conf_file
     lock <- if lock_file_present
               then loadLockAllocation lock_file
@@ -87,6 +89,7 @@ prepMain _ _ = do
                    (mkConfigState cdata)
                    lock
                    (saveConfigAsyncTask conf_file cstat)
+                   (distMCsAsyncTask ents conf_file)
                    (writeLocksAsyncTask lock_file)
   dh <- withError (strMsg . ("Initialization of the daemon failed" ++) . show)
                   dhOpt
