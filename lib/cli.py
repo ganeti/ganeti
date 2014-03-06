@@ -190,6 +190,7 @@ __all__ = [
   "SHOWCMD_OPT",
   "SHOW_MACHINE_OPT",
   "COMPRESS_OPT",
+  "TRANSPORT_COMPRESSION_OPT",
   "SHUTDOWN_TIMEOUT_OPT",
   "SINGLE_NODE_OPT",
   "SPECS_CPU_COUNT_OPT",
@@ -1381,6 +1382,11 @@ COMPRESS_OPT = cli_option("--compress", dest="compress",
                           default=constants.IEC_NONE,
                           help="The compression mode to use",
                           choices=list(constants.IEC_ALL))
+
+TRANSPORT_COMPRESSION_OPT = \
+    cli_option("--transport-compression", dest="transport_compression",
+               default=constants.IEC_NONE, choices=list(constants.IEC_ALL),
+               help="The compression mode to use during transport")
 
 SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
                                   dest="shutdown_timeout", type="int",
