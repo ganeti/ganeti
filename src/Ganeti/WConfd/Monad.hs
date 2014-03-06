@@ -160,15 +160,17 @@ modifyConfigState :: (ConfigState -> (ConfigState, a)) -> WConfdMonad a
 modifyConfigState f = do
   dh <- daemonHandle
   -- TODO: Use lenses to modify the daemons state here
-  let mf ds = let (cs', r) = f (dsConfigState ds)
-              in (ds { dsConfigState = cs' }, r)
-  r <- atomicModifyIORef (dhDaemonState dh) mf
-  -- trigger the config. saving worker and wait for it
-  logDebug "Triggering config write"
-  liftBase . triggerAndWait . dhSaveConfigWorker $ dh
-  logDebug "Config write finished"
-  -- trigger the config. distribution worker asynchronously
-  -- TODO
+  let mf ds = let cs = dsConfigState ds
+                  (cs', r) = f cs
+              in (ds { dsConfigState = cs' }, (r, cs /= cs'))
+  (r, modified) <- atomicModifyIORef (dhDaemonState dh) mf
+  when modified $ do
+    -- trigger the config. saving worker and wait for it
+    logDebug "Triggering config write"
+    liftBase . triggerAndWait . dhSaveConfigWorker $ dh
+    logDebug "Config write finished"
+    -- trigger the config. distribution worker asynchronously
+    -- TODO
   return r
 
 -- | Atomically modifies the lock allocation state in WConfdMonad.

@@ -36,6 +36,7 @@ import Ganeti.Objects
 data ConfigState = ConfigState
   { csConfigData :: ConfigData
   }
+  deriving (Eq, Show)
 
 -- | Creates a new configuration state.
 -- This method will expand as more fields are added to 'ConfigState'.
