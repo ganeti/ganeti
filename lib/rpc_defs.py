@@ -629,7 +629,16 @@ CALLS = {
   "RpcClientConfig": _Prepare([
     ("upload_file", MULTI, None, constants.RPC_TMO_NORMAL, [
       ("file_name", ED_FILE_DETAILS, None),
-      ], None, None, "Upload a file"),
+      ], None, None, "Upload files"),
+    ("upload_file_single", MULTI, None, constants.RPC_TMO_NORMAL, [
+      ("file_name", None, "The name of the file"),
+      ("content", ED_COMPRESS, "The data to be uploaded"),
+      ("mode", None, "The mode of the file or None"),
+      ("uid", None, "The owner of the file"),
+      ("gid", None, "The group of the file"),
+      ("atime", None, "The file's last access time"),
+      ("mtime", None, "The file's last modification time"),
+      ], None, None, "Upload files"),
     ("write_ssconf_files", MULTI, None, constants.RPC_TMO_NORMAL, [
       ("values", None, None),
       ], None, None, "Write ssconf files"),

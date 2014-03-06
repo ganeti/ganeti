@@ -892,6 +892,16 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.UploadFile(*(params[0]))
 
   @staticmethod
+  def perspective_upload_file_single(params):
+    """Upload a file.
+
+    Note that the backend implementation imposes strict rules on which
+    files are accepted.
+
+    """
+    return backend.UploadFile(*params)
+
+  @staticmethod
   def perspective_master_node_name(params):
     """Returns the master node name.
 
