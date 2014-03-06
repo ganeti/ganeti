@@ -24,6 +24,7 @@
 """
 
 import re
+import sys
 import threading
 import time
 
@@ -218,6 +219,40 @@ def _GetBlockingLocks():
       blocking_locks.append(lock_name)
 
   return blocking_locks
+
+
+class QAThread(threading.Thread):
+  """ An exception-preserving thread that executes a given function.
+
+  """
+  def __init__(self, fn, args, kwargs):
+    """ Constructor accepting the function to be invoked later.
+
+    """
+    threading.Thread.__init__(self)
+    self._fn = fn
+    self._args = args
+    self._kwargs = kwargs
+    self._exc_info = None
+
+  def run(self):
+    """ Executes the function, preserving exception info if necessary.
+
+    """
+    # pylint: disable=W0702
+    # We explicitly want to catch absolutely anything
+    try:
+      self._fn(*self._args, **self._kwargs)
+    except:
+      self._exc_info = sys.exc_info()
+    # pylint: enable=W0702
+
+  def reraise(self):
+    """ Reraises any exceptions that might have occured during thread execution.
+
+    """
+    if self._exc_info is not None:
+      raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
 
 
 # TODO: Can this be done as a decorator? Implement as needed.
