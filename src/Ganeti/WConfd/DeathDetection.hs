@@ -36,7 +36,7 @@ module Ganeti.WConfd.DeathDetection
   ) where
 
 import Control.Concurrent (threadDelay)
-import Control.Exception (bracket)
+import Control.Exception (bracket, try)
 import Control.Monad
 import System.Directory
 import System.IO
@@ -75,5 +75,8 @@ cleanupLocksTask = forever . runResultT $ do
         when died $ do
           logInfo $ show owner ++ " died, releasing locks"
           modifyLockAllocation_ (`L.freeLocks` owner)
+          _ <- liftIO . try $ removeFile fpath
+               :: WConfdMonad (Either IOError ())
+          return ()
   mapM_ cleanupIfDead owners
   liftIO $ threadDelay cleanupInterval
