@@ -340,6 +340,73 @@ def TestInstanceReinstall(instance):
     print qa_utils.FormatInfo("Test not supported for diskless instances")
     return
 
+  master = qa_config.GetMasterNode()
+
+  AssertCommand(["gnt-backup", "export", "-n", master.primary, instance.name])
+
+  instance_info = GetInstanceInfo(instance.name)
+  disk0 = None
+
+  for volume in instance_info["volumes"]:
+    if "disk0" in volume:
+      i = volume.find("/")
+      if i >= 0:
+        disk0_id = volume[(i + 1):]
+      else:
+        disk0_id = volume
+
+      disk0_path = "/srv/ganeti/export/%s/%s.snap" % (instance.name, disk0_id)
+
+      try:
+        AssertCommand(["stat", disk0_path])
+        disk0 = disk0_path
+        break
+      except qa_error.Error:
+        pass
+
+  if disk0 is None:
+    raise qa_error.Error("Could not determine exported disk for instance '%s'" %
+                         instance.name)
+
+  image = qa_utils.BackupFile(master.primary, disk0)
+
+  AssertCommand(["gnt-instance", "reinstall",
+                 "--os-parameters", "os-image=" + image,
+                 "-f", instance.name])
+
+  try:
+    port = 8000
+
+    while True:
+      cmd = "( cd /srv/ganeti/export; python -m SimpleHTTPServer %d )" % port
+      ssh_cmd = qa_utils.GetSSHCommand(master.primary, cmd)
+
+      try:
+        server_process = qa_utils.StartLocalCommand(ssh_cmd)
+        break
+      except OSError:
+        if port < 9000:
+          port += 1
+        else:
+          raise
+
+    url = "http://localhost:%d/%s" % (port, os.path.basename(image))
+    AssertCommand(["gnt-instance", "reinstall",
+                   "--os-parameters", "os-image=" + url,
+                   "-f", instance.name])
+
+    AssertCommand(["rm", "-f", image])
+  finally:
+    server_process.terminate()
+
+  AssertCommand(["gnt-instance", "reinstall",
+                 "--os-parameters", "os-image=NonExistantOsForQa",
+                 "-f", instance.name], fail=True)
+
+  AssertCommand(["gnt-instance", "reinstall",
+                 "--os-parameters", "os-image=http://NonExistantOsForQa",
+                 "-f", instance.name], fail=True)
+
   AssertCommand(["gnt-instance", "reinstall", "-f", instance.name])
 
   # Test with non-existant OS definition
@@ -545,6 +612,12 @@ def TestInstanceModify(instance):
       ["--net", "-1:remove", "--hotplug"],
       ["--disk", "-1:add,size=1G", "--hotplug"],
       ["--disk", "-1:remove", "--hotplug"],
+      ])
+
+  url = "http://example.com/busybox.img"
+  args.extend([
+      ["--os-parameters", "os-image=" + url],
+      ["--os-parameters", "os-image=default"]
       ])
 
   for alist in args:
