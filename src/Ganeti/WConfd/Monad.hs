@@ -1,4 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 {-| All RPC calls are run within this monad.
 
@@ -56,9 +57,11 @@ import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Data.IORef.Lifted
+import Data.Tuple (swap)
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
+import Ganeti.Lens
 import Ganeti.Locking.Locks
 import Ganeti.Logging
 import Ganeti.Utils.AsyncWorker
@@ -72,6 +75,8 @@ data DaemonState = DaemonState
   { dsConfigState :: ConfigState
   , dsLockAllocation :: GanetiLockAllocation
   }
+
+$(makeCustomLenses ''DaemonState)
 
 data DaemonHandle = DaemonHandle
   { dhDaemonState :: IORef DaemonState -- ^ The current state of the daemon
@@ -159,11 +164,10 @@ readConfigState = liftM dsConfigState . readIORef . dhDaemonState
 modifyConfigState :: (ConfigState -> (ConfigState, a)) -> WConfdMonad a
 modifyConfigState f = do
   dh <- daemonHandle
-  -- TODO: Use lenses to modify the daemons state here
-  let mf ds = let cs = dsConfigState ds
-                  (cs', r) = f cs
-              in (ds { dsConfigState = cs' }, (r, cs /= cs'))
-  (r, modified) <- atomicModifyIORef (dhDaemonState dh) mf
+  let modCS cs = let (cs', r) = f cs
+                  in ((r, cs /= cs'), cs')
+  let mf = traverseOf dsConfigStateL modCS
+  (r, modified) <- atomicModifyIORef (dhDaemonState dh) (swap . mf)
   when modified $ do
     -- trigger the config. saving worker and wait for it
     logDebug "Triggering config write"
@@ -178,9 +182,8 @@ modifyLockAllocation :: (GanetiLockAllocation -> (GanetiLockAllocation, a))
                      -> WConfdMonad a
 modifyLockAllocation f = do
   dh <- lift . WConfdMonadInt $ ask
-  let mf ds = let (la', r) = f (dsLockAllocation ds)
-              in (ds { dsLockAllocation = la' }, r)
-  r <- atomicModifyIORef (dhDaemonState dh) mf
+  r <- atomicModifyIORef (dhDaemonState dh)
+                         (swap . traverseOf dsLockAllocationL (swap . f))
   logDebug "Triggering lock state write"
   liftBase . triggerAndWait . dhSaveLocksWorker $ dh
   logDebug "Lock write finished"
