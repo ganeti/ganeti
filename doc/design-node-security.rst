@@ -67,39 +67,124 @@ be used by an attacker to for example bring down the VMs or exploit bugs
 in the virtualization stacks to gain access to the host machines as well.
 
 
-Proposal concerning SSH key distribution
-----------------------------------------
+Proposal concerning SSH host key distribution
+---------------------------------------------
 
-We propose two improvements regarding the ssh keys:
+We propose the following design regarding the SSH host key handling. The
+root keys are untouched by this design.
 
-#. Limit the distribution of the private ssh key to the master candidates.
+Each node gets its own ssh private/public key pair, but only the public
+keys of the master candidates get added to the ``authorized_keys`` file
+of all nodes. This has the advantages, that:
 
-#. Use different ssh key pairs for each master candidate.
+- Only master candidates can ssh into other nodes, thus compromised
+  nodes cannot compromise the cluster further.
+- One can remove a compromised master candidate from a cluster
+  (including removing it's public key from all nodes' ``authorized_keys``
+  file) without having to regenerate and distribute new ssh keys for all
+  master candidates. (Even though it is be good practice to do that anyway,
+  since the compromising of the other master candidates might have taken
+  place already.)
+- If a (uncompromised) master candidate is offlined to be sent for
+  repair due to a hardware failure before Ganeti can remove any keys
+  from it (for example when the network adapter of the machine is broken),
+  we don't have to worry about the keys being on a machine that is
+  physically accessible.
 
-We propose to limit the set of nodes holding the private root user SSH key
-to the master and the master candidates. This way, the security risk would
-be limited to a rather small set of nodes even though the cluster could
-consists of a lot more nodes. The set of master candidates could be protected
-better than the normal nodes (for example residing in a DMZ) to enhance
-security even more if the administrator wishes so. The following
-sections describe in detail which Ganeti commands are affected by this
-change and in what way.
+To ensure security while transferring public key information and
+updating the ``authorized_keys``, there are several other changes
+necessary:
 
-Security will be even more increased if each master candidate gets
-its own ssh private/public key pair. This way, one can remove a
-compromised master candidate from a cluster (including removing it's
-public key from all nodes' ``authorized_keys`` file) without having to
-regenerate and distribute new ssh keys for all master candidates. (Even
-though it is be good practice to do that anyway, since the compromising
-of the other master candidates might have taken place already.) However,
-this improvement was not part of the original feature request and
-increases the complexity of node management even more. We therefore
-consider it as second step in this design and will address
-this after the other parts of this design are implemented.
+- Any distribution of keys (in this case only public keys) is done via
+  SSH and not via RPC. An attacker who has RPC control should not be
+  able to get SSH access where he did not have SSH access before
+  already.
+- The only RPC calls that are made in this context are from the master
+  daemon to the node daemon on its own host and noded ensures as much
+  as possible that the change to be made does not harm the cluster's
+  security boundary.
+- The nodes that are potential master candidates keep a list of public
+  keys of potential master candidates of the cluster in a separate
+  file called ``ganeti_pub_keys`` to keep track of which keys could
+  possibly be added ``authorized_keys`` files of the nodes. We come
+  to what "potential" means in this case in the next section. The key
+  list is only transferred via SSH or written directly by noded. It
+  is not stored in the cluster config, because the config is
+  distributed via RPC.
 
-The following sections describe in detail which Ganeti commands are affected
-by the first part of ssh-related improvements, limiting the key
-distribution to master candidates only.
+The following sections describe in detail which Ganeti commands are
+affected by the proposed changes.
+
+
+RAPI
+~~~~
+
+The design goal to limit SSH powers to master candidates conflicts with
+the current powers a user of the RAPI interface would have. The
+``master_capable`` flag of nodes can be modified via RAPI.
+That means, an attacker that has access to the RAPI interface, can make
+all non-master-capable nodes master-capable, and then increase the master
+candidate pool size till all machines are master candidates (or at least
+a particular machine that he is aming for). This means that with RAPI
+access and a compromised normal node, one can make this node a master
+candidate and then still have the power to compromise the whole cluster.
+
+To mitigate this issue, we propose the following changes:
+- Add a flag to the cluster configuration
+  ``master_capability_rapi_modifiable`` which indicates whether or
+  not it should be possible to modify the ``master_capable`` flag of
+  nodes via RAPI. The flag is set to ``False`` by default and can
+  itself only be changed on the commandline. In this design doc, we
+  refer to the flag as the "rapi flag" from here on.
+- Only if the ``master_capabability_rapi_modifiable`` switch is set to
+  ``True``, it is possible to modify the master-capability flag of
+  nodes.
+
+With this setup, there are the following definitions of "potential
+master candidates" depending on the rapi flag:
+- If the rapi flag is set to ``True``, all cluster nodes are potential
+  master candidates, because as described above, all of them can
+  eventually be made master candidates via RAPI and thus security-wise,
+  we haven't won anything above the current SSH handling.
+- If the rapi flag is set to ``False``, only the master capable nodes
+  are considered potential master candidates, as it is not possible to
+  make them master candidates via RAPI at all.
+
+Note that when the rapi flag is changed, the state of the
+``ganeti_pub_keys`` file on all nodes  has to be updated accordingly.
+This should be done in the client script ``gnt_cluster`` before the
+RPC call to update the configuration is made, because this way, if
+someone would try to perform that RPC call on master to trick it into
+thinking that the flag is enabled, this would not help as the content of
+the ``ganeti_pub_keys`` file is a crucial part in the design of the
+distribution of the SSH keys.
+
+Note: One could think of always allowing to disable the master-capability
+via RAPI and just restrict the enabling of it, thus making it possible
+to RAPI-"freeze" the nodes' master-capability state once it disabled.
+However, we think these are rather confusing semantics of the involved
+flags and thus we go with proposed design.
+
+Note that this change will break RAPI compatibility, at least if the
+rapi flag is not explicitely set to ``True``. We made this choice to
+have the more secure option as default, because otherwise it is
+unlikely to be widely used.
+
+
+Cluster initialization
+~~~~~~~~~~~~~~~~~~~~~~
+
+On cluster initialization, the following steps are taken in
+bootstrap.py:
+- A public/private key pair is generated (as before), but only used
+  by the first (and thus master) node. In particular, the private key
+  never leaves the node.
+- A mapping of node UUIDs to public SSH keys is created and stored
+  as text file in ``/var/lib/ganeti/ganeti_pub_keys`` only accessible
+  by root (permissions 0600). The master node's uuid and its public
+  key is added as first entry. The format of the file is one
+  line per node, each line composed as ``node_uuid ssh_key``.
+- The node's public key is added to it's own ``authorized_keys`` file.
 
 
 (Re-)Adding nodes to a cluster
@@ -108,29 +193,60 @@ distribution to master candidates only.
 According to :doc:`design-node-add`, Ganeti transfers the ssh keys to
 every node that gets added to the cluster.
 
-We propose to change this procedure to treat master candidates and normal
-nodes differently. For master candidates, the procedure would stay as is.
-For normal nodes, Ganeti would transfer the public and private ssh host
-keys (as before) and only the public root key.
+Adding a new node will require the following steps.
 
-A normal node would not be able to connect via ssh to other nodes, but
-the master (and potentially master candidates) can connect to this node.
+In gnt_node.py:
+- On the new node, a new public/private SSH key pair is generated.
+- The public key of the new node is fetched (via SSH) to the master
+  node and if it is a potential master candidate (see definition above),
+  it is added to the ``ganeti_pub_keys`` list on the master node.
+- The public keys of all current master candidates are added to the
+  new node's ``authorized_keys`` file (also via SSH).
+
+In LUNodeAdd in cmdlib/node.py:
+- The LUNodeAdd determines whether or not the new node is a master
+  candidate and in any case updates the cluster's configuration with the
+  new nodes information. (This is not changed by the proposed design.)
+- If the new node is a master candidate, we make an RPC call to the node
+  daemon of the master node to add the new node's public key to all
+  nodes' ``authorized_keys`` files. The implementation of this RPC call
+  has to be extra careful as described in the next steps, because
+  compromised RPC security should not compromise SSH security.
+
+RPC call execution in noded (on master node):
+- Check that the public key of the new node is in the
+  ``ganeti_pub_keys`` file of the master node to make sure that no keys
+  of nodes outside the Ganeti cluster and no keys that are not potential
+  master candidates gain SSH access in the cluster.
+- Via SSH, transfer the new node's public key to all nodes (including
+  the new node) and add it to their ``authorized_keys`` file.
+- The ``ganeti_pub_keys`` file is transferred via SSH to all
+  potential master candidates nodes except the master node
+  (including the new one).
 
 In case of readding a node that used to be in the cluster before,
-handling of the ssh keys would basically be the same with the following
-additional modifications: if the node used to be a master or
-master-candidate node, but will be a normal node after readding, Ganeti
-should make sure that the private root key is deleted if it is still
-present on the node.
+handling of the SSH keys would basically be the same, in particular also
+a new SSH key pair is generated for the node, because we cannot be sure
+that the old key pair has not been compromised while the node was
+offlined.
 
 
 Pro- and demoting a node to/from master candidate
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If the role of a node is changed from 'normal' to 'master_candidate', the
-master node should at that point copy the private root ssh key. When demoting
-a node from master candidate to a normal node, the key that have been copied
-there on promotion or addition should be removed again.
+If the role of a node is changed from 'normal' to 'master_candidate',
+the procedure is the same as for adding nodes from the step "In
+LUNodeAdd ..." on.
+
+If a node gets demoted to 'normal', the master daemon makes a similar
+RPC call to the master node's node daemon as for adding a node.
+
+In the RPC call, noded will perform the following steps:
+- Check that the public key of the node to be demoted is indeed in the
+  ``ganeti_pub_keys`` file to avoid deleting ssh keys of machines that
+  don't belong to the cluster (and thus potentially lock out the
+  administrator).
+- Via SSH, remove the key from all node's ``authorized_keys`` files.
 
 This affected the behavior of the following commands:
 
@@ -176,11 +292,58 @@ The same behavior should be ensured for the corresponding rapi command.
 Cluster verify
 ~~~~~~~~~~~~~~
 
-To make sure the private root ssh key was not distributed to a normal
-node, 'gnt-cluster verify' will be extended by a check for the key
-on normal nodes. Additionally, it will check if the private key is
-indeed present on master candidates.
+So far, 'gnt-cluster verify' checks the SSH connectivity of all nodes to
+all other nodes. We propose to replace this by the following checks:
 
+- For all master candidates, we check if they can connect any other node
+  in the cluster (other master candidates and normal nodes).
+- We check if the ``ganeti_pub_keys`` file contains keys of nodes that
+  are no longer in the cluster or that are not potential master
+  candidates.
+- For all normal nodes, we check if their key does not appear in other
+  node's ``authorized_keys``. For now, we will only emit a warning
+  rather than an error if this check fails, because Ganeti might be
+  run in a setup where Ganeti is not the only system manipulating the
+  SSH keys.
+
+
+Upgrades
+~~~~~~~~
+
+When upgrading from a version that has the previous SSH setup to the one
+proposed in this design, the upgrade procedure has to involve the
+following steps in the post-upgrade hook:
+- For all nodes, new SSH key pairs are generated.
+- All nodes and their public keys are added to the ``ganeti_pub_keys``
+  file and the file is copied to all nodes.
+- All keys of master candidate nodes are added to the
+  ``authorized_keys`` files of all other nodes.
+
+Since this upgrade significantly changes the configuration of the
+clusters' nodes, we will add a note to the UPGRADE notes to make the
+administrator aware of this fact (in case he intends to enable access
+from normal nodes to master candidates for other reasons than Ganeti
+uses the machines).
+
+Also, in any operation where Ganeti creates new SSH keys, the old keys
+will be backed up and not simply overridden.
+
+
+Downgrades
+~~~~~~~~~~
+
+These downgrading steps will be implemtented from 2.12 to 2.11:
+- The master node's private/public key pair will be distributed to all
+  nodes (via SSH) and the individual SSH keys will be backed up.
+- The obsolete individual ssh keys will be removed from all nodes'
+  ``authorized_keys`` file.
+
+
+Renew-Crypto
+~~~~~~~~~~~~
+
+The ``gnt-cluster renew-crypto`` command is not affected by the proposed
+changes related to SSH.
 
 
 Proposal regarding node daemon certificates
