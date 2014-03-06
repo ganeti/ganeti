@@ -89,6 +89,7 @@ module Ganeti.Rpc
 
   , RpcCallUploadFile(..)
   , prepareRpcCallUploadFile
+  , RpcCallWriteSsconfFiles(..)
   ) where
 
 import Control.Arrow (second)
@@ -115,6 +116,7 @@ import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.Runtime
+import Ganeti.Ssconf
 import Ganeti.THH
 import Ganeti.THH.Field
 import Ganeti.Types
@@ -768,3 +770,23 @@ prepareRpcCallUploadFile re path = do
     gid
     (cTimeToClockTime $ accessTime status)
     (cTimeToClockTime $ modificationTime status)
+
+-- | Upload ssconf files to nodes
+
+$(buildObject "RpcCallWriteSsconfFiles" "rpcCallWriteSsconfFiles"
+  [ simpleField "values" [t| SSConf |]
+  ])
+
+instance RpcCall RpcCallWriteSsconfFiles where
+  rpcCallName _          = "write_ssconf_files"
+  rpcCallTimeout _       = rpcTimeoutToRaw Fast
+  rpcCallAcceptOffline _ = False
+
+$(buildObject "RpcResultWriteSsconfFiles" "rpcResultWriteSsconfFiles" [])
+
+instance Rpc RpcCallWriteSsconfFiles RpcResultWriteSsconfFiles where
+  rpcResultFill _ res =
+    case res of
+      J.JSNull -> Right RpcResultWriteSsconfFiles
+      _ -> Left $ JsonDecodeError
+           ("Expected JSNull, got " ++ show (pp_value res))
