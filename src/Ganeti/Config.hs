@@ -35,6 +35,7 @@ module Ganeti.Config
     , getDefaultHypervisor
     , getInstancesIpByLink
     , getMasterCandidates
+    , getOnlineNodes
     , getNode
     , getInstance
     , getGroup
@@ -56,6 +57,7 @@ module Ganeti.Config
     ) where
 
 import Control.Monad (liftM)
+import qualified Data.Foldable as F
 import Data.List (foldl', nub)
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -143,8 +145,11 @@ getNodeRole cfg node
 -- | Get the list of master candidates.
 getMasterCandidates :: ConfigData -> [Node]
 getMasterCandidates cfg = 
-  filter ((==) NRCandidate . getNodeRole cfg)
-    (map snd . M.toList . fromContainer . configNodes $ cfg)
+  filter ((==) NRCandidate . getNodeRole cfg) . F.toList . configNodes $ cfg
+
+-- | Get the list of online nodes.
+getOnlineNodes :: ConfigData -> [Node]
+getOnlineNodes = filter (not . nodeOffline) . F.toList . configNodes
 
 -- | Returns the default cluster link.
 getDefaultNicLink :: ConfigData -> String
