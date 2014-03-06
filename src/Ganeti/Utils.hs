@@ -525,12 +525,12 @@ setOwnerAndGroupFromNames :: FilePath -> GanetiDaemon -> GanetiGroup -> IO ()
 setOwnerAndGroupFromNames filename daemon dGroup = do
   -- TODO: it would be nice to rework this (or getEnts) so that runtimeEnts
   -- is read only once per daemon startup, and then cached for further usage.
-  runtimeEnts <- getEnts
+  runtimeEnts <- runResultT getEnts
   ents <- exitIfBad "Can't find required user/groups" runtimeEnts
   -- note: we use directly ! as lookup failures shouldn't happen, due
   -- to the map construction
-  let uid = fst ents M.! daemon
-  let gid = snd ents M.! dGroup
+  let uid = reUserToUid ents M.! daemon
+  let gid = reGroupToGid ents M.! dGroup
   setOwnerAndGroup filename uid gid
 
 -- | Resets permissions so that the owner can read/write and the group only

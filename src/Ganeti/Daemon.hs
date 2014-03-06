@@ -406,7 +406,7 @@ genericMain daemon options check_fn prep_fn exec_fn = do
   exitUnless (null args) "This program doesn't take any arguments"
 
   unless (optNoUserChecks opts) $ do
-    runtimeEnts <- getEnts
+    runtimeEnts <- runResultT getEnts
     ents <- exitIfBad "Can't find required user/groups" runtimeEnts
     verifyDaemonUser daemon ents
 

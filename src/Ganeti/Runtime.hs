@@ -27,7 +27,7 @@ module Ganeti.Runtime
   ( GanetiDaemon(..)
   , MiscGroup(..)
   , GanetiGroup(..)
-  , RuntimeEnts
+  , RuntimeEnts(..)
   , daemonName
   , daemonOnlyOnMaster
   , daemonLogBase
@@ -42,13 +42,12 @@ module Ganeti.Runtime
   , verifyDaemonUser
   ) where
 
-import Control.Exception
 import Control.Monad
+import Control.Monad.Error
 import qualified Data.Map as M
 import System.Exit
 import System.FilePath
 import System.IO
-import System.IO.Error
 import System.Posix.Types
 import System.Posix.User
 import Text.Printf
@@ -78,7 +77,12 @@ data GanetiGroup = DaemonGroup GanetiDaemon
                  | ExtraGroup MiscGroup
                    deriving (Show, Eq, Ord)
 
-type RuntimeEnts = (M.Map GanetiDaemon UserID, M.Map GanetiGroup GroupID)
+data RuntimeEnts = RuntimeEnts
+  { reUserToUid :: M.Map GanetiDaemon UserID
+  , reUidToUser :: M.Map UserID String
+  , reGroupToGid :: M.Map GanetiGroup GroupID
+  , reGidToGroup :: M.Map GroupID String
+  }
 
 -- | Returns the daemon name for a given daemon.
 daemonName :: GanetiDaemon -> String
@@ -175,34 +179,19 @@ allGroups :: [GanetiGroup]
 allGroups = map DaemonGroup [minBound..maxBound] ++
             map ExtraGroup  [minBound..maxBound]
 
-ignoreDoesNotExistErrors :: IO a -> IO (Result a)
-ignoreDoesNotExistErrors value = do
-  result <- tryJust (\e -> if isDoesNotExistError e
-                             then Just (show e)
-                             else Nothing) value
-  return $ eitherToResult result
-
 -- | Computes the group/user maps.
-getEnts :: IO (Result RuntimeEnts)
+getEnts :: (Error e) => ResultT e IO RuntimeEnts
 getEnts = do
-  users <- mapM (\daemon -> do
-                   entry <- ignoreDoesNotExistErrors .
-                            getUserEntryForName .
-                            daemonUser $ daemon
-                   return (entry >>= \e -> return (daemon, userID e))
-                ) [minBound..maxBound]
-  groups <- mapM (\group -> do
-                    entry <- ignoreDoesNotExistErrors .
-                             getGroupEntryForName .
-                             daemonGroup $ group
-                    return (entry >>= \e -> return (group, groupID e))
-                 ) allGroups
-  return $ do -- 'Result' monad
-    users'  <- sequence users
-    groups' <- sequence groups
-    let usermap = M.fromList users'
-        groupmap = M.fromList groups'
-    return (usermap, groupmap)
+  let userOf = liftM userID . liftIO . getUserEntryForName . daemonUser
+  let groupOf = liftM groupID . liftIO . getGroupEntryForName . daemonGroup
+  let allDaemons = [minBound..maxBound] :: [GanetiDaemon]
+  users <- mapM userOf allDaemons
+  groups <- mapM groupOf allGroups
+  return $ RuntimeEnts
+            (M.fromList $ zip allDaemons users)
+            (M.fromList $ zip users (map daemonUser allDaemons))
+            (M.fromList $ zip allGroups groups)
+            (M.fromList $ zip groups (map daemonGroup allGroups))
 
 -- | Checks whether a daemon runs as the right user.
 verifyDaemonUser :: GanetiDaemon -> RuntimeEnts -> IO ()
@@ -210,7 +199,7 @@ verifyDaemonUser daemon ents = do
   myuid <- getEffectiveUserID
   -- note: we use directly ! as lookup failues shouldn't happen, due
   -- to the above map construction
-  checkUidMatch (daemonName daemon) ((M.!) (fst ents) daemon) myuid
+  checkUidMatch (daemonName daemon) ((M.!) (reUserToUid ents) daemon) myuid
 
 -- | Check that two UIDs are matching or otherwise exit.
 checkUidMatch :: String -> UserID -> UserID -> IO ()
