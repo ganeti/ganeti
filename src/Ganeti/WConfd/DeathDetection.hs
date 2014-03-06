@@ -32,8 +32,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.WConfd.DeathDetection
   ( isDead
+  , cleanupLocksTask
   ) where
 
+import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
 import Control.Monad
 import System.Directory
@@ -41,6 +43,10 @@ import System.IO
 import System.Posix.IO
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
+import qualified Ganeti.Locking.Allocation as L
+import Ganeti.Logging.Lifted (logDebug, logInfo)
+import Ganeti.WConfd.Monad
 
 -- | Detect whether a the process identified by the given path
 -- does not exist any more. This function never fails and only
@@ -53,3 +59,21 @@ isDead fpath = fmap (isOk :: Result () -> Bool) . runResultT . liftIO $ do
   when filepresent
     $ bracket (openFd fpath ReadOnly Nothing defaultFileFlags) closeFd
               (`setLock` (ReadLock, AbsoluteSeek, 0, 0))
+
+-- | Interval to run clean-up tasks in microseconds
+cleanupInterval :: Int
+cleanupInterval = C.wconfdDeathdetectionIntervall * 1000000
+
+-- | Thread periodically cleaning up locks of lock owners that died.
+cleanupLocksTask :: WConfdMonadInt ()
+cleanupLocksTask = forever . runResultT $ do
+  logDebug "Death detection timer fired"
+  owners <- liftM L.lockOwners readLockAllocation
+  logDebug $ "Current lock owners: " ++ show owners
+  let cleanupIfDead owner@(_, fpath) = do
+        died <- liftIO (isDead fpath)
+        when died $ do
+          logInfo $ show owner ++ " died, releasing locks"
+          modifyLockAllocation_ (`L.freeLocks` owner)
+  mapM_ cleanupIfDead owners
+  liftIO $ threadDelay cleanupInterval
