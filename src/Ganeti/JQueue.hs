@@ -464,7 +464,7 @@ replicateJob rootdir mastercandidates job = do
   callresult <- executeRpcCall mastercandidates
                   $ RpcCallJobqueueUpdate filename' content
   let result = map (second (() <$)) callresult
-  logRpcErrors result
+  _ <- logRpcErrors result
   return result
 
 -- | Replicate many jobs to all master candidates.

@@ -34,6 +34,7 @@ module Ganeti.Rpc
   , explainRpcError
   , executeRpcCall
   , executeRpcCalls
+  , rpcErrors
   , logRpcErrors
 
   , rpcCallName
@@ -86,7 +87,7 @@ import Control.Arrow (second)
 import qualified Codec.Compression.Zlib as Zlib
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, mapMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 import qualified Data.ByteString.Base64.Lazy as Base64
@@ -209,14 +210,24 @@ parseHttpResponse call res =
        J.JSString msg -> Left $ RpcResultError (J.fromJSString msg)
        _ -> Left . JsonDecodeError $ show (pp_value jerr)
 
+-- | Scan the list of results produced by executeRpcCall and extract
+-- all the RPC errors.
+rpcErrors :: [(a, ERpcError b)] -> [(a, RpcError)]
+rpcErrors =
+  let rpcErr (node, Left err) = Just (node, err)
+      rpcErr _                = Nothing
+  in mapMaybe rpcErr
+
 -- | Scan the list of results produced by executeRpcCall and log all the RPC
--- errors.
-logRpcErrors :: [(a, ERpcError b)] -> IO ()
-logRpcErrors allElems =
-  let logOneRpcErr (_, Right _) = return ()
-      logOneRpcErr (_, Left err) =
-        logError $ "Error in the RPC HTTP reply: " ++ show err
-  in mapM_ logOneRpcErr allElems
+-- errors. Returns the list of errors for further processing.
+logRpcErrors :: (MonadLog m, Show a) => [(a, ERpcError b)]
+                                     -> m [(a, RpcError)]
+logRpcErrors rs =
+  let logOneRpcErr (node, err) =
+        logError $ "Error in the RPC HTTP reply from '" ++
+                   show node ++ "': " ++ show err
+      errs = rpcErrors rs
+  in mapM_ logOneRpcErr errs >> return errs
 
 -- | Get options for RPC call
 getOptionsForCall :: (Rpc a b) => FilePath -> FilePath -> a -> [CurlOption]
@@ -258,7 +269,7 @@ executeRpcCalls nodeCalls = do
   -- now parse the replies
   let results'' = zipWith parseHttpReply calls results'
       pairedList = zip nodes results''
-  logRpcErrors pairedList
+  _ <- logRpcErrors pairedList
   return pairedList
 
 -- | Execute an RPC call for many nodes in parallel.
