@@ -4000,6 +4000,17 @@ luxidJobqueuePollInterval = 307
 luxidMaximalRunningJobsDefault :: Int
 luxidMaximalRunningJobsDefault = 20
 
+-- * WConfD
+
+-- | Time itnervall in seconds between checks that all lock owners are still
+-- alive, and cleaning up the resources for the dead ones. As jobs dying without
+-- releasing resources is the exception, not the rule, we don't want this task
+-- to take up too many cycles itself. Hence we choose a sufficiently large
+-- intervall, in the order of 5 minutes. To avoid accidental 'same wakeup'
+-- with other tasks, we choose the next unused prime number.
+wconfdDeathdetectionIntervall :: Int
+wconfdDeathdetectionIntervall = 311
+
 -- * Confd
 
 confdProtocolVersion :: Int
