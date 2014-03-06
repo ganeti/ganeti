@@ -34,6 +34,7 @@ module Ganeti.WConfd.ConfigWriter
   , writeConfig
   , saveConfigAsyncTask
   , distMCsAsyncTask
+  , distSSConfAsyncTask
   ) where
 
 import Control.Applicative
@@ -54,6 +55,7 @@ import Ganeti.Utils.Atomic
 import Ganeti.Utils.AsyncWorker
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.Monad
+import Ganeti.WConfd.Ssconf
 
 -- | Loads the configuration from the file, if it hasn't been loaded yet.
 -- The function is internal and isn't thread safe.
@@ -161,3 +163,21 @@ distMCsAsyncTask ents cpath cdRef =
           cd <- liftBase (csConfigData <$> cdRef) :: ResultG ConfigData
           fupload <- prepareRpcCallUploadFile ents cpath
           execRpcCallAndLog (getMasterCandidates cd) fupload
+
+-- | Construct an asynchronous worker whose action is to construct SSConf
+-- and distribute it to master candidates.
+-- The worker's action reads the configuration using the given @IO@ action,
+-- computes the current SSConf, compares it to the previous version, and
+-- if different, distributes it.
+distSSConfAsyncTask
+    :: IO ConfigState -- ^ An action to read the current config
+    -> ResultG (AsyncWorker ())
+distSSConfAsyncTask cdRef =
+  lift . mkStatefulAsyncTask ERROR "Can't distribute Ssconf" emptySSConf
+       $ \oldssc -> do
+            cd <- liftBase (csConfigData <$> cdRef) :: ResultG ConfigData
+            let ssc = mkSSConf cd
+            when (oldssc /= ssc)
+              $ execRpcCallAndLog (getOnlineNodes cd)
+                                  (RpcCallWriteSsconfFiles ssc)
+            return ssc
