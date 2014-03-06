@@ -321,6 +321,15 @@ prop_OwnerComplete =
   forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
   foldl freeLocks state (lockOwners state) ==? emptyAllocation
 
+-- | Verify that each owner actually owns a lock.
+prop_OwnerSound :: Property
+prop_OwnerSound =
+  forAll ((arbitrary :: Gen (LockAllocation TestLock TestOwner))
+          `suchThat` (not . null . lockOwners)) $ \state ->
+  printTestCase "All subjects listed as owners must own at least one lock"
+  . flip all (lockOwners state) $ \owner ->
+  not . M.null $ listLocks owner state
+
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
  , 'prop_LockImplicationX
@@ -334,4 +343,5 @@ testSuite "Locking/Allocation"
  , 'prop_OpportunisticAnswer
  , 'prop_ReadShow
  , 'prop_OwnerComplete
+ , 'prop_OwnerSound
  ]
