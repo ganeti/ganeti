@@ -30,6 +30,7 @@ import time
 from ganeti import constants
 from ganeti import locking
 from ganeti import utils
+from ganeti.utils import retry
 
 import qa_config
 import qa_error
@@ -74,6 +75,37 @@ def ExecuteJobProducingCommand(cmd):
   return int(possible_job_ids[0])
 
 
+def _RetrieveTerminationInfo(job_id):
+  """ Retrieves the termination info from a job caused by gnt-debug delay.
+
+  @rtype: dict or None
+  @return: The termination log entry, or None if no entry was found
+
+  """
+  job_info = GetObjectInfo(["gnt-job", "info", str(job_id)])
+
+  opcodes = job_info[0]["Opcodes"]
+  if not opcodes:
+    raise qa_error.Error("Cannot retrieve a list of opcodes")
+
+  execution_logs = opcodes[0]["Execution log"]
+  if not execution_logs:
+    return None
+
+  is_termination_info_fn = \
+    lambda e: e["Content"][1] == constants.ELOG_DELAY_TEST
+
+  filtered_logs = filter(is_termination_info_fn, execution_logs)
+
+  no_logs = len(filtered_logs)
+  if no_logs > 1:
+    raise qa_error.Error("Too many interruption information entries found!")
+  elif no_logs == 1:
+    return filtered_logs[0]
+  else:
+    return None
+
+
 def _StartDelayFunction(locks, timeout):
   """ Starts the gnt-debug delay option with the given locks and timeout.
 
@@ -83,22 +115,19 @@ def _StartDelayFunction(locks, timeout):
 
   for node in locks.get(locking.LEVEL_NODE, []):
     cmd.append("-n%s" % node)
-
   cmd.append(str(timeout))
 
   job_id = ExecuteJobProducingCommand(cmd)
-  job_info = GetObjectInfo(["gnt-job", "info", str(job_id)])
-  execution_logs = job_info[0]["Opcodes"][0]["Execution log"]
 
-  is_termination_info_fn = \
-    lambda e: e["Content"][1] == constants.ELOG_DELAY_TEST
-  filtered_logs = filter(is_termination_info_fn, execution_logs)
+  # Waits until a non-empty result is returned from the function
+  log_entry = retry.SimpleRetry(lambda x: x, _RetrieveTerminationInfo, 2.0,
+                                10.0, args=[job_id])
 
-  if len(filtered_logs) != 1:
+  if not log_entry:
     raise qa_error.Error("Failure when trying to retrieve delay termination "
                          "information")
 
-  _, _, (socket_path, ) = filtered_logs[0]["Content"]
+  _, _, (socket_path, ) = log_entry["Content"]
 
   return socket_path
 
