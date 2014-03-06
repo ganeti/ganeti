@@ -2,7 +2,6 @@
 
 {-| Implementation of functions specific to configuration management.
 
-TODO: distribute the configuration to master candidates (and not the master)
 TODO: Detect changes in SSConf and distribute only if it changes
 TODO: distribute ssconf configuration, if it has changed
 
@@ -31,9 +30,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.WConfd.ConfigWriter
   ( loadConfigFromFile
-  , saveConfigAsyncTask
   , readConfig
   , writeConfig
+  , saveConfigAsyncTask
+  , distMCsAsyncTask
   ) where
 
 import Control.Applicative
@@ -45,8 +45,9 @@ import Control.Monad.Trans.Control
 import Ganeti.BasicTypes
 import Ganeti.Errors
 import Ganeti.Config
-import Ganeti.Logging.Lifted
+import Ganeti.Logging
 import Ganeti.Objects
+import Ganeti.Rpc
 import Ganeti.Runtime
 import Ganeti.Utils
 import Ganeti.Utils.Atomic
@@ -91,20 +92,37 @@ writeConfig cd = modifyConfigState $ const (mkConfigState cd, ())
 
 -- * Asynchronous tasks
 
+-- | Runs the given action on success, or logs an error on failure.
+finishOrLog :: (Show e, MonadLog m)
+            => Priority
+            -> String
+            -> (a -> m ())
+            -> GenericResult e a
+            -> m ()
+finishOrLog logPrio logPrefix =
+  genericResult (logAt logPrio . (++) (logPrefix ++ ": ") . show)
+
+-- | Creates a stateless asynchronous task that handles errors in its actions.
+mkStatelessAsyncTask :: (MonadBaseControl IO m, MonadLog m, Show e)
+                     => Priority
+                     -> String
+                     -> ResultT e m ()
+                     -> m (AsyncWorker ())
+mkStatelessAsyncTask logPrio logPrefix action =
+    mkAsyncWorker $ runResultT action >>= finishOrLog logPrio logPrefix return
+
 -- | Creates an asynchronous task that handles errors in its actions.
 -- If an error occurs, it's logged and the internal state remains unchanged.
-mkStatefulAsyncTask :: (MonadBaseControl IO m, Show e)
+mkStatefulAsyncTask :: (MonadBaseControl IO m, MonadLog m, Show e)
                     => Priority
                     -> String
-                    -> (s -> ResultT e m s)
                     -> s
+                    -> (s -> ResultT e m s)
                     -> m (AsyncWorker ())
-mkStatefulAsyncTask logPrio logPrefix action start =
+mkStatefulAsyncTask logPrio logPrefix start action =
     flip S.evalStateT start . mkAsyncWorker $
       S.get >>= lift . runResultT . action
-            >>= genericResult
-                  (logAt logPrio . (++) (logPrefix ++ ": ") . show)
-                  S.put -- on success save the state
+            >>= finishOrLog logPrio logPrefix S.put -- put on success
 
 -- | Construct an asynchronous worker whose action is to save the
 -- configuration to the master file.
@@ -116,9 +134,30 @@ saveConfigAsyncTask :: FilePath -- ^ Path to the config file
                     -> IO ConfigState -- ^ An action to read the current config
                     -> ResultG (AsyncWorker ())
 saveConfigAsyncTask fpath fstat cdRef =
-  let action oldstat = do
-                        cd <- liftBase (csConfigData `liftM` cdRef)
-                        writeConfigToFile cd fpath oldstat
-  in lift $ mkStatefulAsyncTask
-              EMERGENCY "Can't write the master configuration file"
-              action fstat
+  lift . mkStatefulAsyncTask
+           EMERGENCY "Can't write the master configuration file" fstat
+       $ \oldstat -> do
+            cd <- liftBase (csConfigData `liftM` cdRef)
+            writeConfigToFile cd fpath oldstat
+
+-- | Performs a RPC call on the given list of nodes and logs any failures.
+-- If any of the calls fails, fail the computation with 'failError'.
+execRpcCallAndLog :: (Rpc a b) => [Node] -> a -> ResultG ()
+execRpcCallAndLog nodes req = do
+  rs <- liftIO $ executeRpcCall nodes req
+  es <- logRpcErrors rs
+  unless (null es) $ failError "At least one of the RPC calls failed"
+
+-- | Construct an asynchronous worker whose action is to distribute the
+-- configuration to master candidates.
+distMCsAsyncTask :: RuntimeEnts
+                 -> FilePath -- ^ Path to the config file
+                 -> IO ConfigState -- ^ An action to read the current config
+                 -> ResultG (AsyncWorker ())
+distMCsAsyncTask ents cpath cdRef =
+  lift . mkStatelessAsyncTask ERROR "Can't distribute the configuration\
+                                    \ to master candidates"
+       $ do
+          cd <- liftBase (csConfigData <$> cdRef) :: ResultG ConfigData
+          fupload <- prepareRpcCallUploadFile ents cpath
+          execRpcCallAndLog (getMasterCandidates cd) fupload
