@@ -27,6 +27,7 @@ module Ganeti.Locking.Allocation
   ( LockAllocation
   , emptyAllocation
   , OwnerState(..)
+  , lockOwners
   , listLocks
   , LockRequest(..)
   , requestExclusive
@@ -111,6 +112,10 @@ emptyAllocation =
   LockAllocation { laLocks = M.empty
                  , laOwned = M.empty
                  }
+
+-- | Obtain the list of all owners holding at least a single lock.
+lockOwners :: Ord b => LockAllocation a b -> [b]
+lockOwners = M.keys . laOwned
 
 -- | Obtain the locks held by a given owner. The locks are reported
 -- as a map from the owned locks to the form of ownership (OwnShared
