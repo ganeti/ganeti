@@ -200,7 +200,6 @@ class ConfigWriter(object):
     # better to raise an error before starting to modify the config
     # file than after it was modified
     self._my_hostname = netutils.Hostname.GetSysName()
-    self._last_cluster_serial = -1
     self._cfg_id = None
     self._context = None
     self._wconfd = None
@@ -2397,9 +2396,6 @@ class ConfigWriter(object):
       raise errors.ConfigurationError(msg)
 
     self._config_data = data
-    # reset the last serial as -1 so that the next write will cause
-    # ssconf update
-    self._last_cluster_serial = -1
 
     # Upgrade configuration if needed
     self._UpgradeConfig()
@@ -2508,25 +2504,6 @@ class ConfigWriter(object):
                                         " update")
 
     self.write_count += 1
-
-    # Write ssconf files on all nodes (including locally)
-    if self._last_cluster_serial < self._config_data.cluster.serial_no:
-      if not self._offline:
-        result = self._GetRpc(None).call_write_ssconf_files(
-          self._UnlockedGetNodeNames(self._UnlockedGetOnlineNodeList()),
-          self._UnlockedGetSsconfValues())
-
-        for nname, nresu in result.items():
-          msg = nresu.fail_msg
-          if msg:
-            errmsg = ("Error while uploading ssconf files to"
-                      " node %s: %s" % (nname, msg))
-            logging.warning(errmsg)
-
-            if feedback_fn:
-              feedback_fn(errmsg)
-
-      self._last_cluster_serial = self._config_data.cluster.serial_no
 
   def _GetAllHvparamsStrings(self, hypervisors):
     """Get the hvparams of all given hypervisors from the config.

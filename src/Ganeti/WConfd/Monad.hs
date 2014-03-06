@@ -85,6 +85,7 @@ data DaemonHandle = DaemonHandle
   -- all IDs of threads that do asynchronous work should probably also go here
   , dhSaveConfigWorker :: AsyncWorker ()
   , dhDistMCsWorker :: AsyncWorker ()
+  , dhDistSSConfWorker :: AsyncWorker ()
   , dhSaveLocksWorker :: AsyncWorker ()
   }
 
@@ -97,22 +98,26 @@ mkDaemonHandle :: FilePath
                -> (IO ConfigState -> ResultG (AsyncWorker ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- distributes the configuration to master candidates
+               -> (IO ConfigState -> ResultG (AsyncWorker ()))
+                  -- ^ A function that creates a worker that asynchronously
+                  -- distributes SSConf to nodes
                -> (IO GanetiLockAllocation -> ResultG (AsyncWorker ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the lock allocation state.
                -> ResultG DaemonHandle
 mkDaemonHandle cpath cstat lstat
-               saveWorkerFn distMCsWorkerFn
+               saveWorkerFn distMCsWorkerFn distSSConfWorkerFn
                saveLockWorkerFn = do
   ds <- newIORef $ DaemonState cstat lstat
   let readConfigIO = dsConfigState `liftM` readIORef ds :: IO ConfigState
 
   saveWorker <- saveWorkerFn readConfigIO
+  ssconfWorker <- distSSConfWorkerFn readConfigIO
   distMCsWorker <- distMCsWorkerFn readConfigIO
 
   saveLockWorker <- saveLockWorkerFn $ dsLockAllocation `liftM` readIORef ds
 
-  return $ DaemonHandle ds cpath saveWorker distMCsWorker
+  return $ DaemonHandle ds cpath saveWorker distMCsWorker ssconfWorker
                                  saveLockWorker
 
 -- * The monad and its instances
@@ -184,9 +189,13 @@ modifyConfigState f = do
     logDebug "Triggering config write"
     liftBase . triggerAndWait . dhSaveConfigWorker $ dh
     logDebug "Config write finished"
-    -- trigger the config. distribution worker asynchronously
-    liftBase . triggerAndWait . dhDistMCsWorker $ dh
-    -- TODO: SSConf
+    -- trigger the config. distribution worker synchronously
+    -- TODO: figure out what configuration changes need synchronous updates
+    -- and otherwise use asynchronous triggers
+    _ <- liftBase . triggerAndWaitMany $ [ dhDistMCsWorker dh
+                                         , dhDistSSConfWorker dh
+                                         ]
+    return ()
   return r
 
 -- | Atomically modifies the lock allocation state in WConfdMonad.
