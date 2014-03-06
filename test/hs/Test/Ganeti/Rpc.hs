@@ -47,6 +47,9 @@ import Ganeti.Types
 instance Arbitrary Rpc.RpcCallInstanceConsoleInfo where
   arbitrary = Rpc.RpcCallInstanceConsoleInfo <$> genConsoleInfoCallParams
 
+instance Arbitrary Rpc.Compressed where
+  arbitrary = Rpc.toCompressed <$> arbitrary
+
 genStorageUnit :: Gen StorageUnit
 genStorageUnit = do
   storage_type <- arbitrary
@@ -124,9 +127,14 @@ prop_noffl_request_instlist = runOfflineTest
 prop_noffl_request_nodeinfo :: Rpc.RpcCallNodeInfo -> Property
 prop_noffl_request_nodeinfo = runOfflineTest
 
+-- | Test that the serialisation of 'Compressed' is idempotent.
+prop_Compressed_serialisation :: Rpc.Compressed -> Property
+prop_Compressed_serialisation = testSerialisation
+
 testSuite "Rpc"
   [ 'prop_noffl_request_allinstinfo
   , 'prop_noffl_request_instconsinfo
   , 'prop_noffl_request_instlist
   , 'prop_noffl_request_nodeinfo
+  , 'prop_Compressed_serialisation
   ]

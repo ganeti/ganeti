@@ -44,6 +44,11 @@ module Ganeti.Rpc
 
   , rpcResultFill
 
+  , Compressed
+  , packCompressed
+  , toCompressed
+  , getCompressed
+
   , RpcCallInstanceInfo(..)
   , InstanceState(..)
   , InstanceInfo(..)
@@ -84,7 +89,7 @@ module Ganeti.Rpc
   ) where
 
 import Control.Arrow (second)
-import qualified Codec.Compression.Zlib as Zlib
+import Control.Monad
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, mapMaybe)
@@ -98,13 +103,14 @@ import qualified Ganeti.Path as P
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import Ganeti.Codec
+import Ganeti.Curl.Multi
 import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.THH
 import Ganeti.THH.Field
 import Ganeti.Types
-import Ganeti.Curl.Multi
 import Ganeti.Utils
 
 -- * Base RPC functionality and types
@@ -294,6 +300,37 @@ fromJResultToRes (J.Ok v) f = Right $ f v
 -- | Helper function transforming JSValue to Rpc result type.
 fromJSValueToRes :: (J.JSON a) => J.JSValue -> (a -> b) -> ERpcError b
 fromJSValueToRes val = fromJResultToRes (J.readJSON val)
+
+-- | An opaque data type for representing data that should be compressed
+-- over the wire.
+--
+-- On Python side it is decompressed by @backend._Decompress@.
+newtype Compressed = Compressed { getCompressed :: BL.ByteString }
+  deriving (Eq, Ord, Show)
+
+-- TODO Add a unit test for all octets
+instance J.JSON Compressed where
+  showJSON = J.showJSON
+             . (,) C.rpcEncodingZlibBase64
+             . Base64.encode . compressZlib . getCompressed
+  readJSON = J.readJSON >=> decompress
+    where
+      decompress (enc, cont)
+        | enc == C.rpcEncodingNone =
+            return $ Compressed cont
+        | enc == C.rpcEncodingZlibBase64 =
+            liftM Compressed
+            . either fail return . decompressZlib
+            <=< either (fail . ("Base64: " ++)) return . Base64.decode
+            $ cont
+        | otherwise =
+            fail $ "Unknown RPC encoding type: " ++ show enc
+
+packCompressed :: BL.ByteString -> Compressed
+packCompressed = Compressed
+
+toCompressed :: String -> Compressed
+toCompressed = packCompressed . BL.pack
 
 -- * RPC calls and results
 
@@ -594,10 +631,7 @@ instance RpcCall RpcCallJobqueueUpdate where
   rpcCallAcceptOffline _ = False
   rpcCallData _ call     = J.encode
     ( rpcCallJobqueueUpdateFileName call
-    , ( C.rpcEncodingZlibBase64
-      , BL.unpack . Base64.encode . Zlib.compress . BL.pack
-          $ rpcCallJobqueueUpdateContent call
-      )
+    , toCompressed $ rpcCallJobqueueUpdateContent call
     )
 
 instance Rpc RpcCallJobqueueUpdate RpcResultJobQueueUpdate where
