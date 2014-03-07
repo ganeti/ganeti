@@ -626,7 +626,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return self._StopInstance(name, force, instance.hvparams, timeout)
 
-  def _ShutdownInstance(self, name, hvparams):
+  def _ShutdownInstance(self, name, hvparams, timeout):
     """Shutdown an instance if the instance is running.
 
     The '-w' flag waits for shutdown to complete which avoids the need
