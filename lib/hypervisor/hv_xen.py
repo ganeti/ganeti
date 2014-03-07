@@ -519,16 +519,21 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    (instance.name, result.fail_reason,
                                     result.output, stashed_config))
 
-  def StopInstance(self, instance, force=False, retry=False, name=None):
+  def StopInstance(self, instance, force=False, retry=False, name=None,
+                   timeout=None):
     """Stop an instance.
 
+    A soft shutdown can be interrupted. A hard shutdown tries forever.
+
     """
+    assert(timeout is None or force is not None)
+
     if name is None:
       name = instance.name
 
-    return self._StopInstance(name, force)
+    return self._StopInstance(name, force, timeout)
 
-  def _ShutdownInstance(self, name):
+  def _ShutdownInstance(self, name, timeout):
     """Shutdown an instance if the instance is running.
 
     The '-w' flag waits for shutdown to complete which avoids the need
@@ -537,6 +542,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     @type name: string
     @param name: name of the instance to stop
+    @type timeout: int or None
+    @param timeout: a timeout after which the shutdown command should be killed,
+                    or None for no timeout
 
     """
     instance_info = self.GetInstanceInfo(name)
@@ -545,7 +553,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       logging.info("Failed to shutdown instance %s, not running", name)
       return None
 
-    return self._RunXen(["shutdown", "-w", name])
+    return self._RunXen(["shutdown", "-w", name], timeout)
 
   def _DestroyInstance(self, name):
     """Destroy an instance if the instance if the instance exists.
@@ -562,7 +570,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return self._RunXen(["destroy", name])
 
-  def _StopInstance(self, name, force):
+  def _StopInstance(self, name, force, timeout):
     """Stop an instance.
 
     @type name: string
@@ -571,11 +579,15 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @type force: boolean
     @param force: whether to do a "hard" stop (destroy)
 
+    @type timeout: int or None
+    @param timeout: a timeout after which the shutdown command should be killed,
+                    or None for no timeout
+
     """
     if force:
       result = self._DestroyInstance(name)
     else:
-      self._ShutdownInstance(name)
+      self._ShutdownInstance(name, timeout)
       result = self._DestroyInstance(name)
 
     if result is not None and result.failed and \

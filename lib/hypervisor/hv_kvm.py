@@ -1696,10 +1696,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # 500ms and likely more: socat can't detect the end of the reply and waits
     # for 500ms of no data received before exiting (500 ms is the default for
     # the "-t" parameter).
-    socat = ("echo %s | %s STDIO UNIX-CONNECT:%s" %
+    socat = ("echo %s | %s %s STDIO UNIX-CONNECT:%s" %
              (utils.ShellQuote(command),
+              timeout_cmd,
               constants.SOCAT_PATH,
               utils.ShellQuote(self._InstanceMonitor(instance_name))))
+
     result = utils.RunCmd(socat)
     if result.failed:
       msg = ("Failed to send command '%s' to instance '%s', reason '%s',"
@@ -1776,10 +1778,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       return "pc"
 
-  def StopInstance(self, instance, force=False, retry=False, name=None):
+  def StopInstance(self, instance, force=False, retry=False, name=None,
+                   timeout=None):
     """Stop an instance.
 
     """
+    assert(timeout is None or force is not None)
+
     if name is not None and not force:
       raise errors.HypervisorError("Cannot shutdown cleanly by name only")
     if name is None:
@@ -1792,7 +1797,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if force or not acpi:
         utils.KillProcess(pid)
       else:
-        self._CallMonitorCommand(name, "system_powerdown")
+        self._CallMonitorCommand(name, "system_powerdown", timeout)
 
   def CleanupInstance(self, instance_name):
     """Cleanup after a stopped instance

@@ -555,7 +555,14 @@ class _TestXenHypervisor(object):
           extra = inst.hvparams[constants.HV_KERNEL_ARGS]
           self.assertTrue(("extra = '%s'" % extra) in lines)
 
-  def _StopInstanceCommand(self, instance_name, force, fail, cmd):
+  def _StopInstanceCommand(self, instance_name, force, fail, full_cmd):
+    # Remove the timeout (and its number of seconds) if it's there
+    if full_cmd[:1][0] == "timeout":
+      cmd = full_cmd[2:]
+    else:
+      cmd = full_cmd
+
+    # Test the actual command
     if (cmd == [self.CMD, "list"]):
       output = "Name  ID  Mem  VCPUs  State  Time(s)\n" \
         "Domain-0  0  1023  1  r-----  142691.0\n" \
@@ -592,7 +599,7 @@ class _TestXenHypervisor(object):
 
         if fail:
           try:
-            hv._StopInstance(name, force)
+            hv._StopInstance(name, force, constants.DEFAULT_SHUTDOWN_TIMEOUT)
           except errors.HypervisorError, err:
             self.assertTrue(str(err).startswith("xm list failed"),
                             msg=str(err))
@@ -602,7 +609,7 @@ class _TestXenHypervisor(object):
                            msg=("Configuration was removed when stopping"
                                 " instance failed"))
         else:
-          hv._StopInstance(name, force)
+          hv._StopInstance(name, force, constants.DEFAULT_SHUTDOWN_TIMEOUT)
           self.assertFalse(os.path.exists(cfgfile))
 
   def _MigrateNonRunningInstCmd(self, cmd):
