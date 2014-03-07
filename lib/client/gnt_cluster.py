@@ -522,6 +522,8 @@ def ClusterCopyFile(opts, args):
 
   """
   filename = args[0]
+  filename = os.path.abspath(filename)
+
   if not os.path.exists(filename):
     raise errors.OpPrereqError("No such filename '%s'" % filename,
                                errors.ECODE_INVAL)
