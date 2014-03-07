@@ -360,13 +360,21 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return cmd
 
-  def _RunXen(self, args):
+  def _RunXen(self, args, timeout=None):
     """Wrapper around L{utils.process.RunCmd} to run Xen command.
+
+    If a timeout (in seconds) is specified, the command will be terminated after
+    that number of seconds.
 
     @see: L{utils.process.RunCmd}
 
     """
-    cmd = [self._GetCommand()]
+    cmd = []
+
+    if timeout is not None:
+      cmd.extend(["timeout", str(timeout)])
+
+    cmd.extend([self._GetCommand()])
     cmd.extend(args)
 
     return self._run_cmd_fn(cmd)
