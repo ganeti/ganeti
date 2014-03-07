@@ -61,6 +61,26 @@ For Haskell:
   at least version 1.0.0.0
 
 
+Version 2.10.1
+--------------
+
+*(Released Wed, 5 Mar 2014)*
+
+- Fix incorrect invocation of hooks on offline nodes (issue 742)
+- Fix incorrect exit code of gnt-cluster verify in certain circumstances
+  (issue 744)
+
+Inherited from the 2.9 branch:
+
+- Fix overflow problem in hbal that caused it to break when waiting for
+  jobs for more than 10 minutes (issue 717)
+- Make hbal properly handle non-LVM storage
+- Properly export and import NIC parameters, and do so in a backwards
+  compatible way (issue 716)
+- Fix net-common script in case of routed mode (issue 728)
+- Improve documentation (issues 724, 730)
+
+
 Version 2.10.0
 --------------
 

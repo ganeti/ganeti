@@ -186,7 +186,8 @@ class BaseHypervisor(object):
     """Start an instance."""
     raise NotImplementedError
 
-  def StopInstance(self, instance, force=False, retry=False, name=None):
+  def StopInstance(self, instance, force=False, retry=False, name=None,
+                   timeout=None):
     """Stop an instance
 
     @type instance: L{objects.Instance}
@@ -199,6 +200,10 @@ class BaseHypervisor(object):
     @param name: if this parameter is passed, the the instance object
         should not be used (will be passed as None), and the shutdown
         must be done by name only
+    @type timeout: int or None
+    @param timeout: if the parameter is not None, a soft shutdown operation will
+        be killed after the specified number of seconds. A hard (forced)
+        shutdown cannot have a timeout
     @raise errors.HypervisorError: when a parameter is not valid or
         the instance failed to be stopped
 
