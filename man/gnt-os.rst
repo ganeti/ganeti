@@ -50,8 +50,17 @@ INFO
 
 This command will list detailed information about each OS available
 in the cluster, including its validity status, the supported API
-versions, the supported parameters (if any) and their
-documentations, etc.
+versions, the supported parameters and variants (if any), and their
+documentation, etc.
+
+Note that this command besides the information about the given OS(es),
+shows detailed information about the given available/supported OS
+variant(s), in terms of the modified per-OS hypervisor parameters and
+the modified per-OS parameters passed to the OS install scripts.
+
+For the list of the available OSes use **list**. Also, see **modify**
+for a description of how to modify the parameters for a specific
+operating system.
 
 MODIFY
 ~~~~~~
