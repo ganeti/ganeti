@@ -257,15 +257,17 @@ Imports
 Imports should be grouped into the following groups and inside each group they
 should be sorted alphabetically:
 
-1. standard library imports
-2. third-party imports
-3. local imports
+1. import of non-Ganeti libaries
+2. import of Ganeti libraries
 
 It is allowed to use qualified imports with short names for:
 
 * standard library (e.g. ``import qualified Data.Map as M``)
-* local imports (e.g. ``import qualified Ganeti.Constants as C``), although
-  this form should be kept to a minimum
+* local imports (e.g. ``import qualified Ganeti.Constants as C``)
+
+Whenever possible, prefer explicit imports, either in form of
+qualified imports, or by naming the imported functions
+(e.g., ``import Control.Arrow ((&&&))``, ``import Data.Foldable(fold, toList)``)
 
 Indentation
 ~~~~~~~~~~~
