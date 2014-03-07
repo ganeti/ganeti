@@ -329,6 +329,10 @@ def IsRapiResponding(hostname):
   Connects to RAPI port of hostname and does a simple test. At this time, the
   test is GetVersion.
 
+  If RAPI responds with error code "401 Unauthorized", the test is successful,
+  because the aim of this function is to assess whether RAPI is responding, not
+  if it is accessible.
+
   @type hostname: string
   @param hostname: hostname of the node to connect to.
   @rtype: bool
@@ -344,8 +348,12 @@ def IsRapiResponding(hostname):
     logging.warning("RAPI certificate error: %s", err)
     return False
   except rapi.client.GanetiApiError, err:
-    logging.warning("RAPI error: %s", err)
-    return False
+    if err.code == 401:
+      # Unauthorized, but RAPI is alive and responding
+      return True
+    else:
+      logging.warning("RAPI error: %s", err)
+      return False
   else:
     logging.debug("Reported RAPI version %s", master_version)
     return master_version == constants.RAPI_VERSION

@@ -174,13 +174,16 @@ class FakeHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to start instance %s: %s" %
                                    (instance.name, err))
 
-  def StopInstance(self, instance, force=False, retry=False, name=None):
+  def StopInstance(self, instance, force=False, retry=False, name=None,
+                   timeout=None):
     """Stop an instance.
 
     For the fake hypervisor, this just removes the file in the base
     dir, if it exist, otherwise we raise an exception.
 
     """
+    assert(timeout is None or force is not None)
+
     if name is None:
       name = instance.name
     if not self._IsAlive(name):
