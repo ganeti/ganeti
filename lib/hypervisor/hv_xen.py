@@ -523,12 +523,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
   def _ShutdownInstance(self, name):
     """Shutdown an instance if the instance is running.
 
-    @type name: string
-    @param name: name of the instance to stop
-
     The '-w' flag waits for shutdown to complete which avoids the need
     to poll in the case where we want to destroy the domain
     immediately after shutdown.
+
+    @type name: string
+    @param name: name of the instance to stop
 
     """
     instance_info = self.GetInstanceInfo(name)
