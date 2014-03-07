@@ -1680,10 +1680,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     self._SaveKVMRuntime(instance, kvm_runtime)
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp)
 
-  def _CallMonitorCommand(self, instance_name, command):
+  def _CallMonitorCommand(self, instance_name, command, timeout=None):
     """Invoke a command on the instance monitor.
 
     """
+    if timeout is not None:
+      timeout_cmd = "timeout %s" % (timeout, )
+    else:
+      timeout_cmd = ""
+
     # TODO: Replace monitor calls with QMP once KVM >= 0.14 is the minimum
     # version. The monitor protocol is designed for human consumption, whereas
     # QMP is made for programmatic usage. In the worst case QMP can also
