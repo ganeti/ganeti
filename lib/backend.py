@@ -1731,7 +1731,7 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
         return
 
       try:
-        hyper.StopInstance(instance, retry=self.tried_once)
+        hyper.StopInstance(instance, retry=self.tried_once, timeout=timeout)
         if store_reason:
           _StoreInstReasonTrail(instance.name, reason)
       except errors.HypervisorError, err:

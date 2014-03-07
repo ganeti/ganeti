@@ -40,6 +40,10 @@ _VCLUSTER_MASTER_KEY = "vcluster-master"
 _VCLUSTER_BASEDIR_KEY = "vcluster-basedir"
 _ENABLED_DISK_TEMPLATES_KEY = "enabled-disk-templates"
 
+# The path of an optional JSON Patch file (as per RFC6902) that modifies QA's
+# configuration.
+_PATCH_JSON = os.path.join(os.path.dirname(__file__), "qa-patch.json")
+
 #: QA configuration (L{_QaConfig})
 _config = None
 
@@ -260,6 +264,20 @@ class _QaConfig(object):
 
     """
     data = serializer.LoadJson(utils.ReadFile(filename))
+
+    # Patch the document using JSON Patch (RFC6902) in file _PATCH_JSON, if
+    # available
+    try:
+      patch = serializer.LoadJson(utils.ReadFile(_PATCH_JSON))
+      if patch:
+        mod = __import__("jsonpatch", fromlist=[])
+        data = mod.apply_patch(data, patch)
+    except IOError:
+      pass
+    except ImportError:
+      raise qa_error.Error("If you want to use the QA JSON patching feature,"
+                           " you need to install Python modules"
+                           " 'jsonpatch' and 'jsonpointer'.")
 
     result = cls(dict(map(_ConvertResources,
                           data.items()))) # pylint: disable=E1103

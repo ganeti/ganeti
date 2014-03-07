@@ -171,7 +171,8 @@ class ChrootManager(hv_base.BaseHypervisor):
       raise HypervisorError("Can't run the chroot start script: %s" %
                             result.output)
 
-  def StopInstance(self, instance, force=False, retry=False, name=None):
+  def StopInstance(self, instance, force=False, retry=False, name=None,
+                   timeout=None):
     """Stop an instance.
 
     This method has complicated cleanup tests, as we must:
@@ -180,6 +181,8 @@ class ChrootManager(hv_base.BaseHypervisor):
       - finally unmount the instance dir
 
     """
+    assert(timeout is None or force is not None)
+
     if name is None:
       name = instance.name
 
@@ -187,9 +190,14 @@ class ChrootManager(hv_base.BaseHypervisor):
     if not os.path.exists(root_dir) or not self._IsDirLive(root_dir):
       return
 
+    timeout_cmd = []
+    if timeout is not None:
+      timeout_cmd.extend(["timeout", str(timeout)])
+
     # Run the chroot stop script only once
     if not retry and not force:
-      result = utils.RunCmd(["chroot", root_dir, "/ganeti-chroot", "stop"])
+      result = utils.RunCmd(timeout_cmd.extend(["chroot", root_dir,
+                                                "/ganeti-chroot", "stop"]))
       if result.failed:
         raise HypervisorError("Can't run the chroot stop script: %s" %
                               result.output)
