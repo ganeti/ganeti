@@ -2133,10 +2133,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp)
 
   @classmethod
-  def _CallMonitorCommand(cls, instance_name, command):
+  def _CallMonitorCommand(cls, instance_name, command, timeout=None):
     """Invoke a command on the instance monitor.
 
     """
+    if timeout is not None:
+      timeout_cmd = "timeout %s" % (timeout, )
+    else:
+      timeout_cmd = ""
+
     # TODO: Replace monitor calls with QMP once KVM >= 0.14 is the minimum
     # version. The monitor protocol is designed for human consumption, whereas
     # QMP is made for programmatic usage. In the worst case QMP can also
@@ -2144,8 +2149,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # 500ms and likely more: socat can't detect the end of the reply and waits
     # for 500ms of no data received before exiting (500 ms is the default for
     # the "-t" parameter).
-    socat = ("echo %s | %s STDIO UNIX-CONNECT:%s" %
+    socat = ("echo %s | %s %s STDIO UNIX-CONNECT:%s" %
              (utils.ShellQuote(command),
+              timeout_cmd,
               constants.SOCAT_PATH,
               utils.ShellQuote(cls._InstanceMonitor(instance_name))))
     result = utils.RunCmd(socat)
@@ -2413,10 +2419,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       return "pc"
 
   @classmethod
-  def _StopInstance(cls, instance, force=False, name=None):
+  def _StopInstance(cls, instance, force=False, name=None, timeout=None):
     """Stop an instance.
 
     """
+    assert(timeout is None or force is not None)
+
     if name is not None and not force:
       raise errors.HypervisorError("Cannot shutdown cleanly by name only")
     if name is None:
@@ -2429,14 +2437,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if force or not acpi:
         utils.KillProcess(pid)
       else:
-        cls._CallMonitorCommand(name, "system_powerdown")
+        cls._CallMonitorCommand(name, "system_powerdown", timeout)
     cls._ClearUserShutdown(instance.name)
 
-  def StopInstance(self, instance, force=False, retry=False, name=None):
+  def StopInstance(self, instance, force=False, retry=False, name=None,
+                   timeout=None):
     """Stop an instance.
 
     """
-    self._StopInstance(instance, force, name)
+    self._StopInstance(instance, force, name=name, timeout=timeout)
 
   def CleanupInstance(self, instance_name):
     """Cleanup after a stopped instance

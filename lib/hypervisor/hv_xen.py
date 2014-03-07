@@ -433,15 +433,23 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     return cmd
 
-  def _RunXen(self, args, hvparams):
+  def _RunXen(self, args, hvparams, timeout=None):
     """Wrapper around L{utils.process.RunCmd} to run Xen command.
 
     @type hvparams: dict of strings
     @param hvparams: dictionary of hypervisor params
+    @type timeout: int or None
+    @param timeout: if a timeout (in seconds) is specified, the command will be
+                    terminated after that number of seconds.
     @see: L{utils.process.RunCmd}
 
     """
-    cmd = [self._GetCommand(hvparams)]
+    cmd = []
+
+    if timeout is not None:
+      cmd.extend(["timeout", str(timeout)])
+
+    cmd.extend([self._GetCommand(hvparams)])
     cmd.extend(args)
 
     return self._run_cmd_fn(cmd)
@@ -652,26 +660,34 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    (instance.name, result.fail_reason,
                                     result.output, stashed_config))
 
-  def StopInstance(self, instance, force=False, retry=False, name=None):
+  def StopInstance(self, instance, force=False, retry=False, name=None,
+                   timeout=None):
     """Stop an instance.
 
+    A soft shutdown can be interrupted. A hard shutdown tries forever.
+
     """
+    assert(timeout is None or force is not None)
+
     if name is None:
       name = instance.name
 
-    return self._StopInstance(name, force, instance.hvparams)
+    return self._StopInstance(name, force, instance.hvparams, timeout)
 
-  def _ShutdownInstance(self, name, hvparams):
+  def _ShutdownInstance(self, name, hvparams, timeout):
     """Shutdown an instance if the instance is running.
+
+    The '-w' flag waits for shutdown to complete which avoids the need
+    to poll in the case where we want to destroy the domain
+    immediately after shutdown.
 
     @type name: string
     @param name: name of the instance to stop
     @type hvparams: dict of string
     @param hvparams: hypervisor parameters of the instance
-
-    The '-w' flag waits for shutdown to complete which avoids the need
-    to poll in the case where we want to destroy the domain
-    immediately after shutdown.
+    @type timeout: int or None
+    @param timeout: a timeout after which the shutdown command should be killed,
+                    or None for no timeout
 
     """
     instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
@@ -680,7 +696,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
       logging.info("Failed to shutdown instance %s, not running", name)
       return None
 
-    return self._RunXen(["shutdown", "-w", name], hvparams)
+    return self._RunXen(["shutdown", "-w", name], hvparams, timeout)
 
   def _DestroyInstance(self, name, hvparams):
     """Destroy an instance if the instance if the instance exists.
@@ -716,7 +732,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     else:
       self._DestroyInstance(name, hvparams)
 
-  def _StopInstance(self, name, force, hvparams):
+  def _StopInstance(self, name, force, hvparams, timeout):
     """Stop an instance.
 
     @type name: string
@@ -728,6 +744,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @type hvparams: dict of string
     @param hvparams: hypervisor parameters of the instance
 
+    @type timeout: int or None
+    @param timeout: a timeout after which the shutdown command should be killed,
+                    or None for no timeout
+
     """
     instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
 
@@ -738,7 +758,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if force:
       result = self._DestroyInstanceIfAlive(name, hvparams)
     else:
-      self._ShutdownInstance(name, hvparams)
+      self._ShutdownInstance(name, hvparams, timeout)
       result = self._DestroyInstanceIfAlive(name, hvparams)
 
     if result is not None and result.failed and \

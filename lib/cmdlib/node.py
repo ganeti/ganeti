@@ -136,7 +136,10 @@ class LUNodeAdd(LogicalUnit):
       hook_nodes = list(set(hook_nodes) - set([new_node_info.uuid]))
 
     # add the new node as post hook node by name; it does not have an UUID yet
-    return (hook_nodes, hook_nodes, [self.op.node_name, ])
+    return (hook_nodes, hook_nodes)
+
+  def PreparePostHookNodes(self, post_hook_node_uuids):
+    return post_hook_node_uuids + [self.new_node.uuid]
 
   def CheckPrereq(self):
     """Check prerequisites.
