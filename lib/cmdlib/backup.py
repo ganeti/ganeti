@@ -361,7 +361,7 @@ class LUBackupExport(LogicalUnit):
         if (self.op.shutdown and
             self.instance.admin_state == constants.ADMINST_UP and
             not self.op.remove_instance):
-          assert not activate_disks
+          assert self.instance.disks_active
           feedback_fn("Starting instance %s" % self.instance.name)
           result = self.rpc.call_instance_start(src_node_uuid,
                                                 (self.instance, None, None),
