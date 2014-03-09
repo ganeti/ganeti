@@ -21,8 +21,10 @@
 
 """Logical units dealing with backup operations."""
 
+import urllib2
 import OpenSSL
 import logging
+import math
 
 from ganeti import compat
 from ganeti import constants
@@ -324,6 +326,54 @@ class LUBackupExport(LogicalUnit):
             self.LogWarning("Could not remove older export for instance %s"
                             " on node %s: %s", iname,
                             self.cfg.GetNodeName(node_uuid), msg)
+
+  def _DetermineImageSize(self, image_path, node_uuid):
+    """ Determines the size of the specified image.
+
+    @type image_path: string
+    @param image_path: The disk path or a URL of an image.
+    @type node_uuid: string
+    @param node_uuid: If a file path is used,
+
+    @raise OpExecError: If the image does not exist.
+
+    @rtype: int
+    @return: The size in MB, rounded up.
+
+    """
+    # Check if we are dealing with a URL first
+    class _HeadRequest(urllib2.Request):
+      def get_method(self):
+        return "HEAD"
+
+    if utils.IsUrl(image_path):
+      try:
+        response = urllib2.urlopen(_HeadRequest(image_path))
+      except urllib2.URLError:
+        raise errors.OpExecError("Could not retrieve image from given url %s" %
+                                 image_path)
+
+      content_length_str = response.info().getheader('content-length')
+
+      if not content_length_str:
+        raise errors.OpExecError(
+          "Cannot create temporary disk: size of zeroing image at path %s "
+          "could not be retrieved through HEAD request" % image_path
+        )
+
+      byte_size = int(content_length_str)
+    else:
+      # We end up here if a file path is used
+      result = self.rpc.call_get_file_info(node_uuid, image_path)
+      result.Raise("Cannot determine the size of file %s" % image_path)
+
+      success, attributes = result.payload
+      if not success:
+        raise errors.OpExecError("Could not open file %s" % image_path)
+      byte_size = attributes[constants.STAT_SIZE]
+
+    # Finally, the conversion
+    return math.ceil(byte_size / 1024. / 1024.)
 
   def Exec(self, feedback_fn):
     """Export an instance to an image in the cluster.
