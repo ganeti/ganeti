@@ -36,7 +36,7 @@ from ganeti import utils
 from ganeti.cmdlib.base import NoHooksLU, LogicalUnit
 from ganeti.cmdlib.common import CheckNodeOnline, ExpandNodeUuidAndName
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
-  ShutdownInstanceDisks
+  ShutdownInstanceDisks, TemporaryDisk
 from ganeti.cmdlib.instance_utils import GetClusterDomainSecret, \
   BuildInstanceHookEnvByObject, CheckNodeNotDrained, RemoveInstance
 
@@ -375,6 +375,20 @@ class LUBackupExport(LogicalUnit):
     # Finally, the conversion
     return math.ceil(byte_size / 1024. / 1024.)
 
+  def ZeroFreeSpace(self, feedback_fn):
+    """Zeroes the free space on a shutdown instance.
+
+    @type feedback_fn: function
+    @param feedback_fn: Function used to log progress
+
+    """
+    zeroing_image = self.cfg.GetZeroingImage()
+    src_node_uuid = self.instance.primary_node
+    disk_size = self._DetermineImageSize(zeroing_image, src_node_uuid)
+
+    with TemporaryDisk(self, self.instance, disk_size, feedback_fn) as _disk:
+      pass
+
   def Exec(self, feedback_fn):
     """Export an instance to an image in the cluster.
 
@@ -393,6 +407,9 @@ class LUBackupExport(LogicalUnit):
       result.Raise("Could not shutdown instance %s on"
                    " node %s" % (self.instance.name,
                                  self.cfg.GetNodeName(src_node_uuid)))
+
+    if self.op.zero_free_space:
+      self.ZeroFreeSpace(feedback_fn)
 
     activate_disks = not self.instance.disks_active
 
