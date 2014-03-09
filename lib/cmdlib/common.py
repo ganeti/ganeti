@@ -32,8 +32,8 @@ from ganeti import locking
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import pathutils
-from ganeti.serializer import Private
 import ganeti.rpc.node as rpc
+from ganeti.serializer import Private
 from ganeti import ssconf
 from ganeti import utils
 
@@ -1008,6 +1008,40 @@ def IsExclusiveStorageEnabledNode(cfg, node):
   return cfg.GetNdParams(node)[constants.ND_EXCLUSIVE_STORAGE]
 
 
+def IsInstanceRunning(lu, instance, check_user_shutdown=False):
+  """ Given an instance object, checks if the instance is running.
+
+  """
+  pnode_uuid = instance.primary_node
+
+  # We assume that the instance is offline if the node is offline
+  if lu.cfg.GetNodeInfo(pnode_uuid).offline:
+    return False
+
+  all_hvparams = lu.cfg.GetClusterInfo().hvparams
+  instance_list = lu.rpc.call_instance_list([pnode_uuid], [instance.hypervisor],
+                                            all_hvparams)[pnode_uuid]
+  instance_list.Raise("Can't contact node %s for instance information" %
+                      lu.cfg.GetNodeName(pnode_uuid),
+                      prereq=True, ecode=errors.ECODE_ENVIRON)
+
+  if instance.name not in instance_list.payload:
+    return False
+
+  if check_user_shutdown:
+    # One more check to be made - whether the instance was shutdown by the user
+    full_hvparams = lu.cfg.GetClusterInfo().FillHV(lu.instance)
+    inst_info = lu.rpc.call_instance_info(pnode_uuid, instance.name,
+                                          instance.hypervisor, full_hvparams)
+    inst_info.Raise("Can't retrieve instance information for instance %s" %
+                    instance.name, prereq=True, ecode=errors.ECODE_ENVIRON)
+
+    return inst_info.payload["state"] != \
+           hypervisor.hv_base.HvInstanceState.SHUTDOWN
+  else:
+    return True
+
+
 def CheckInstanceState(lu, instance, req_states, msg=None):
   """Ensure that an instance is in one of the required states.
 
@@ -1027,14 +1061,9 @@ def CheckInstanceState(lu, instance, req_states, msg=None):
 
   if constants.ADMINST_UP not in req_states:
     pnode_uuid = instance.primary_node
+    # Replicating the offline check
     if not lu.cfg.GetNodeInfo(pnode_uuid).offline:
-      all_hvparams = lu.cfg.GetClusterInfo().hvparams
-      ins_l = lu.rpc.call_instance_list(
-                [pnode_uuid], [instance.hypervisor], all_hvparams)[pnode_uuid]
-      ins_l.Raise("Can't contact node %s for instance information" %
-                  lu.cfg.GetNodeName(pnode_uuid),
-                  prereq=True, ecode=errors.ECODE_ENVIRON)
-      if instance.name in ins_l.payload:
+      if IsInstanceRunning(lu, instance):
         raise errors.OpPrereqError("Instance %s is running, %s" %
                                    (instance.name, msg), errors.ECODE_STATE)
     else:
