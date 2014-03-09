@@ -969,6 +969,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     (until, ) = params
     return backend.SetWatcherPause(until)
 
+  @staticmethod
+  def perspective_get_file_info(params):
+    """Get info on whether a file exists and its properties.
+
+    """
+    (path, ) = params
+    return backend.GetFileInfo(path)
+
   # os -----------------------
 
   @staticmethod

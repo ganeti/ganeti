@@ -4873,3 +4873,12 @@ debugModeConfidentialityWarning :: String
 debugModeConfidentialityWarning =
   "ALERT: %s started in debug mode.\n\
   \ Private and secret parameters WILL be logged!\n"
+
+-- * Stat dictionary entries
+--
+-- The get_file_info RPC returns a number of values as a dictionary, and the
+-- following constants are both descriptions and means of accessing them.
+
+-- | The size of the file
+statSize :: String
+statSize = "size"

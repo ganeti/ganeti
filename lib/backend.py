@@ -4675,6 +4675,30 @@ def ConfigureOVS(ovs_name, ovs_link):
             result.output), log=True)
 
 
+def GetFileInfo(file_path):
+  """ Checks if a file exists and returns information related to it.
+
+  Currently returned information:
+    - file size: int, size in bytes
+
+  @type file_path: string
+  @param file_path: Name of file to examine.
+
+  @rtype: tuple of bool, dict
+  @return: Whether the file exists, and a dictionary of information about the
+           file gathered by os.stat.
+
+  """
+  try:
+    stat_info = os.stat(file_path)
+    values_dict = {
+      constants.STAT_SIZE: stat_info.st_size,
+    }
+    return True, values_dict
+  except IOError:
+    return False, {}
+
+
 class HooksRunner(object):
   """Hook runner.
 

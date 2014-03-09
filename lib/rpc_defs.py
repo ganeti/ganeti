@@ -560,6 +560,9 @@ _MISC_CALLS = [
   ("set_watcher_pause", MULTI, None, constants.RPC_TMO_URGENT, [
     ("until", None, None),
     ], None, None, "Set watcher pause end"),
+  ("get_file_info", SINGLE, None, constants.RPC_TMO_FAST, [
+    ("file_path", None, None),
+    ], None, None, "Checks if a file exists and reports on it"),
   ]
 
 CALLS = {
