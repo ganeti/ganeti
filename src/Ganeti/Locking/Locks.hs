@@ -30,6 +30,8 @@ module Ganeti.Locking.Locks
   , GanetiLockAllocation
   , loadLockAllocation
   , writeLocksAsyncTask
+  , LockLevel(..)
+  , lockLevel
   ) where
 
 import Control.Monad ((>=>))
@@ -106,6 +108,57 @@ instance J.JSON GanetiLocks where
   showJSON = J.JSString . J.toJSString . lockName
   readJSON = readEitherString >=> lockFromName
 
+-- | The levels, the locks belong to.
+data LockLevel = LevelCluster
+               | LevelInstance
+               | LevelNodeAlloc
+               | LevelNodeGroup
+               | LevelNode
+               | LevelNodeRes
+               | LevelNetwork
+               deriving (Eq, Show, Enum)
+
+-- | Provide the names of the lock levels.
+lockLevelName :: LockLevel -> String
+lockLevelName LevelCluster = "cluster"
+lockLevelName LevelInstance = "instance"
+lockLevelName LevelNodeAlloc = "node-alloc"
+lockLevelName LevelNodeGroup = "node-group"
+lockLevelName LevelNode = "node"
+lockLevelName LevelNodeRes = "node-res"
+lockLevelName LevelNetwork = "network"
+
+-- | Obtain a lock level from its name/
+lockLevelFromName :: String -> J.Result LockLevel
+lockLevelFromName "cluster" = return LevelCluster
+lockLevelFromName "instance" = return LevelInstance
+lockLevelFromName "node-alloc" = return LevelNodeAlloc
+lockLevelFromName "node-group" = return LevelNodeGroup
+lockLevelFromName "node" = return LevelNode
+lockLevelFromName "node-res" = return LevelNodeRes
+lockLevelFromName "network" = return LevelNetwork
+lockLevelFromName n = fail $ "Unknown lock-level name '" ++ n ++ "'"
+
+instance J.JSON LockLevel where
+  showJSON = J.JSString . J.toJSString . lockLevelName
+  readJSON = readEitherString >=> lockLevelFromName
+
+-- | For a lock, provide its level.
+lockLevel :: GanetiLocks -> LockLevel
+lockLevel BGL = LevelCluster
+lockLevel ClusterLockSet = LevelCluster
+lockLevel InstanceLockSet = LevelInstance
+lockLevel NodeAllocLockSet = LevelNodeAlloc
+lockLevel NAL = LevelNodeAlloc
+lockLevel (Instance _) = LevelInstance
+lockLevel NodeGroupLockSet = LevelNodeGroup
+lockLevel (NodeGroup _) = LevelNodeGroup
+lockLevel NodeLockSet = LevelNode
+lockLevel (Node _) = LevelNode
+lockLevel NodeResLockSet = LevelNodeRes
+lockLevel (NodeRes _) = LevelNodeRes
+lockLevel NetworkLockSet = LevelNetwork
+lockLevel (Network _) = LevelNetwork
 
 instance Lock GanetiLocks where
   lockImplications BGL = []
