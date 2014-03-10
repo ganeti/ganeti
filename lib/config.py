@@ -63,7 +63,18 @@ def _ConfigSync(shared=0):
   """Configuration synchronization decorator.
 
   """
-  return locking.ssynchronized(_config_lock, shared=shared)
+  def wrap(fn):
+    def sync_function(*args, **kwargs):
+      cw = args[0]
+      assert isinstance(cw, ConfigWriter), \
+             "cannot ssynchronize on non-class method: self not found"
+      _config_lock.acquire(shared=shared)
+      try:
+        return fn(*args, **kwargs)
+      finally:
+        _config_lock.release()
+    return sync_function
+  return wrap
 
 # job id used for resource management at config upgrade time
 _UPGRADE_CONFIG_JID = "jid-cfg-upgrade"
