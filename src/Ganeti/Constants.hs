@@ -4882,3 +4882,17 @@ debugModeConfidentialityWarning =
 -- | The size of the file
 statSize :: String
 statSize = "size"
+
+
+-- * Helper VM-related timeouts
+
+-- | The default fixed timeout - needed to startup the helper VM
+helperVmStartup :: Int
+helperVmStartup = 5 * 60
+
+-- | The zeroing timeout per MiB of disks to zero
+--
+-- Determined by estimating that a disk writes at a relatively slow speed of 1/5
+-- of the max speed of current drives
+zeroingTimeoutPerMib :: Double
+zeroingTimeoutPerMib = 1.0 / (100.0 / 5.0)

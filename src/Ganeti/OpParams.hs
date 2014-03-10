@@ -220,6 +220,8 @@ module Ganeti.OpParams
   , pX509KeyName
   , pX509DestCA
   , pZeroFreeSpace
+  , pZeroingTimeoutFixed
+  , pZeroingTimeoutPerMiB
   , pTagSearchPattern
   , pRestrictedCommand
   , pReplaceDisksMode
@@ -1490,6 +1492,18 @@ pZeroFreeSpace :: Field
 pZeroFreeSpace =
   withDoc "Whether to zero the free space on the disks of the instance" $
   defaultFalse "zero_free_space"
+
+pZeroingTimeoutFixed :: Field
+pZeroingTimeoutFixed =
+  withDoc "The fixed part of time to wait before declaring the zeroing\
+           \ operation to have failed" .
+  optionalField $ simpleField "zeroing_timeout_fixed" [t| Int |]
+
+pZeroingTimeoutPerMiB :: Field
+pZeroingTimeoutPerMiB =
+  withDoc "The variable part of time to wait before declaring the zeroing\
+           \ operation to have failed, dependent on total size of disks" .
+  optionalField $ simpleField "zeroing_timeout_per_mib" [t| Double |]
 
 pTagsObject :: Field
 pTagsObject =

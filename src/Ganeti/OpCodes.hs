@@ -778,6 +778,8 @@ $(genOpCode "OpCode"
      , pX509KeyName
      , pX509DestCA
      , pZeroFreeSpace
+     , pZeroingTimeoutFixed
+     , pZeroingTimeoutPerMiB
      ],
      "instance_name")
   , ("OpBackupRemove",
