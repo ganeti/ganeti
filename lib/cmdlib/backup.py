@@ -32,11 +32,13 @@ from ganeti import errors
 from ganeti import locking
 from ganeti import masterd
 from ganeti import utils
+from ganeti.utils import retry
 
 from ganeti.cmdlib.base import NoHooksLU, LogicalUnit
-from ganeti.cmdlib.common import CheckNodeOnline, ExpandNodeUuidAndName
+from ganeti.cmdlib.common import CheckNodeOnline, ExpandNodeUuidAndName, \
+  IsInstanceRunning
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
-  ShutdownInstanceDisks, TemporaryDisk
+  ShutdownInstanceDisks, TemporaryDisk, ImageDisks
 from ganeti.cmdlib.instance_utils import GetClusterDomainSecret, \
   BuildInstanceHookEnvByObject, CheckNodeNotDrained, RemoveInstance
 
@@ -387,6 +389,15 @@ class LUBackupExport(LogicalUnit):
     # Finally, the conversion
     return math.ceil(byte_size / 1024. / 1024.)
 
+  def _InstanceDiskSizeSum(self):
+    """Calculates the size of all the disks of the instance used in this LU.
+
+    @rtype: int
+    @return: Size of the disks in MiB
+
+    """
+    return sum([d.size for d in self.instance.disks])
+
   def ZeroFreeSpace(self, feedback_fn):
     """Zeroes the free space on a shutdown instance.
 
@@ -401,8 +412,43 @@ class LUBackupExport(LogicalUnit):
     src_node_uuid = self.instance.primary_node
     disk_size = self._DetermineImageSize(zeroing_image, src_node_uuid)
 
-    with TemporaryDisk(self, self.instance, disk_size, feedback_fn) as _disk:
-      pass
+    # Calculate the sum prior to adding the temporary disk
+    instance_disks_size_sum = self._InstanceDiskSizeSum()
+
+    with TemporaryDisk(self, self.instance, disk_size, feedback_fn):
+      feedback_fn("Activating instance disks")
+      StartInstanceDisks(self, self.instance, False)
+
+      feedback_fn("Imaging disk with zeroing image")
+      ImageDisks(self, self.instance, zeroing_image)
+
+      feedback_fn("Starting instance with zeroing image")
+      result = self.rpc.call_instance_start(src_node_uuid,
+                                            (self.instance, [], []),
+                                            False, self.op.reason)
+      result.Raise("Could not start instance %s when using the zeroing image "
+                   "%s" % (self.instance.name, zeroing_image))
+
+      # First wait for the instance to start up
+      running_check = lambda: IsInstanceRunning(self, self.instance,
+                                                check_user_shutdown=True)
+      instance_up = retry.SimpleRetry(True, running_check, 5.0,
+                                      self.op.shutdown_timeout)
+      if not instance_up:
+        raise errors.OpExecError("Could not boot instance when using the "
+                                 "zeroing image %s" % zeroing_image)
+
+      feedback_fn("Instance is up, now awaiting shutdown")
+
+      # Then for it to be finished, detected by its shutdown
+      timeout = self.op.zeroing_timeout_fixed + \
+                self.op.zeroing_timeout_per_mib * instance_disks_size_sum
+      instance_up = retry.SimpleRetry(False, running_check, 20.0, timeout)
+      if instance_up:
+        self.LogWarning("Zeroing not completed prior to timeout; instance will"
+                        "be shut down forcibly")
+
+    feedback_fn("Zeroing completed!")
 
   def Exec(self, feedback_fn):
     """Export an instance to an image in the cluster.
