@@ -52,6 +52,8 @@ instance Arbitrary GanetiLocks where
                     , NodeRes <$> genUUID
                     , return NodeLockSet
                     , Node <$> genUUID
+                    , return NetworkLockSet
+                    , Network <$> genUUID
                     ]
 
 -- | Verify that readJSON . showJSON = Ok

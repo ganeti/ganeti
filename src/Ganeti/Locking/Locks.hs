@@ -63,6 +63,8 @@ data GanetiLocks = BGL
                  | Node String
                  | NodeResLockSet
                  | NodeRes String
+                 | NetworkLockSet
+                 | Network String
                  deriving (Ord, Eq, Show)
 
 -- | Provide the String representation of a lock
@@ -79,6 +81,8 @@ lockName NodeLockSet = "node/[lockset]"
 lockName (Node uuid) = "node/" ++ uuid
 lockName NodeResLockSet = "node-res/[lockset]"
 lockName (NodeRes uuid) = "node-res/" ++ uuid
+lockName NetworkLockSet = "network/[lockset]"
+lockName (Network uuid) = "network/" ++ uuid
 
 -- | Obtain a lock from its name.
 lockFromName :: String -> J.Result GanetiLocks
@@ -94,6 +98,8 @@ lockFromName "node-res/[lockset]" = return NodeResLockSet
 lockFromName (stripPrefix "node-res/" -> Just uuid) = return $ NodeRes uuid
 lockFromName "node/[lockset]" = return NodeLockSet
 lockFromName (stripPrefix "node/" -> Just uuid) = return $ Node uuid
+lockFromName "network/[lockset]" = return NetworkLockSet
+lockFromName (stripPrefix "network/" -> Just uuid) = return $ Network uuid
 lockFromName n = fail $ "Unknown lock name '" ++ n ++ "'"
 
 instance J.JSON GanetiLocks where
@@ -108,6 +114,7 @@ instance Lock GanetiLocks where
   lockImplications NAL = [NodeAllocLockSet, BGL]
   lockImplications (NodeRes _) = [NodeResLockSet, BGL]
   lockImplications (Node _) = [NodeLockSet, BGL]
+  lockImplications (Network _) = [NetworkLockSet, BGL]
   lockImplications _ = [BGL]
 
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of
