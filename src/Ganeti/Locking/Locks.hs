@@ -55,30 +55,30 @@ data GanetiLocks = BGL
                  | ClusterLockSet
                  | InstanceLockSet
                  | Instance String
-                 | NodeGroupLockSet
-                 | NodeGroup String
                  | NodeAllocLockSet
                  | NAL
-                 | NodeResLockSet
-                 | NodeRes String
+                 | NodeGroupLockSet
+                 | NodeGroup String
                  | NodeLockSet
                  | Node String
+                 | NodeResLockSet
+                 | NodeRes String
                  deriving (Ord, Eq, Show)
 
--- | Provide teh String representation of a lock
+-- | Provide the String representation of a lock
 lockName :: GanetiLocks -> String
 lockName BGL = "cluster/BGL"
 lockName ClusterLockSet = "cluster/[lockset]"
 lockName InstanceLockSet = "instance/[lockset]"
+lockName NodeAllocLockSet = "node-alloc/[lockset]"
+lockName NAL = "node-alloc/NAL"
 lockName (Instance uuid) = "instance/" ++ uuid
 lockName NodeGroupLockSet = "nodegroup/[lockset]"
 lockName (NodeGroup uuid) = "nodegroup/" ++ uuid
-lockName NodeAllocLockSet = "node-alloc/[lockset]"
-lockName NAL = "node-alloc/NAL"
-lockName NodeResLockSet = "node-res/[lockset]"
-lockName (NodeRes uuid) = "node-res/" ++ uuid
 lockName NodeLockSet = "node/[lockset]"
 lockName (Node uuid) = "node/" ++ uuid
+lockName NodeResLockSet = "node-res/[lockset]"
+lockName (NodeRes uuid) = "node-res/" ++ uuid
 
 -- | Obtain a lock from its name.
 lockFromName :: String -> J.Result GanetiLocks
