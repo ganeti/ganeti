@@ -68,6 +68,10 @@ data GanetiLocks = ClusterLockSet
                  | NodeRes String
                  | NetworkLockSet
                  | Network String
+                 -- | A lock used for a transitional period when WConfd
+                 -- keeps the state of the configuration, but all the
+                 -- operations are still performed on the Python side.
+                 | ConfigLock
                  deriving (Ord, Eq, Show)
 
 -- | Provide the String representation of a lock
@@ -86,6 +90,7 @@ lockName NodeResLockSet = "node-res/[lockset]"
 lockName (NodeRes uuid) = "node-res/" ++ uuid
 lockName NetworkLockSet = "network/[lockset]"
 lockName (Network uuid) = "network/" ++ uuid
+lockName ConfigLock = "cluster/config"
 
 -- | Obtain a lock from its name.
 lockFromName :: String -> J.Result GanetiLocks
@@ -103,6 +108,7 @@ lockFromName "node/[lockset]" = return NodeLockSet
 lockFromName (stripPrefix "node/" -> Just uuid) = return $ Node uuid
 lockFromName "network/[lockset]" = return NetworkLockSet
 lockFromName (stripPrefix "network/" -> Just uuid) = return $ Network uuid
+lockFromName "cluster/config" = return ConfigLock
 lockFromName n = fail $ "Unknown lock name '" ++ n ++ "'"
 
 instance J.JSON GanetiLocks where
@@ -117,6 +123,8 @@ data LockLevel = LevelCluster
                | LevelNode
                | LevelNodeRes
                | LevelNetwork
+               -- | A transitional level for internal configuration locks
+               | LevelConfig
                deriving (Eq, Show, Enum)
 
 -- | Provide the names of the lock levels.
@@ -128,6 +136,7 @@ lockLevelName LevelNodeGroup = "nodegroup"
 lockLevelName LevelNode = "node"
 lockLevelName LevelNodeRes = "node-res"
 lockLevelName LevelNetwork = "network"
+lockLevelName LevelConfig = "config"
 
 -- | Obtain a lock level from its name/
 lockLevelFromName :: String -> J.Result LockLevel
@@ -138,6 +147,7 @@ lockLevelFromName "nodegroup" = return LevelNodeGroup
 lockLevelFromName "node" = return LevelNode
 lockLevelFromName "node-res" = return LevelNodeRes
 lockLevelFromName "network" = return LevelNetwork
+lockLevelFromName "config" = return LevelConfig
 lockLevelFromName n = fail $ "Unknown lock-level name '" ++ n ++ "'"
 
 instance J.JSON LockLevel where
@@ -160,6 +170,7 @@ lockLevel NodeResLockSet = LevelNodeRes
 lockLevel (NodeRes _) = LevelNodeRes
 lockLevel NetworkLockSet = LevelNetwork
 lockLevel (Network _) = LevelNetwork
+lockLevel ConfigLock = LevelConfig
 
 instance Lock GanetiLocks where
   lockImplications BGL = [ClusterLockSet]
@@ -169,6 +180,9 @@ instance Lock GanetiLocks where
   lockImplications (NodeRes _) = [NodeResLockSet]
   lockImplications (Node _) = [NodeLockSet]
   lockImplications (Network _) = [NetworkLockSet]
+  -- the ConfigLock is idependent of everything, it only synchronizes
+  -- access to the configuration
+  lockImplications ConfigLock = []
   lockImplications _ = []
 
 -- | A client is identified as a job id, thread id and path to its process
