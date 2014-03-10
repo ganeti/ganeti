@@ -225,6 +225,9 @@ class ConfigWriter(object):
     self._wconfd = None
     self._OpenConfig(accept_foreign)
 
+  def _ConfigData(self):
+    return self._config_data
+
   def _GetRpc(self, address_list):
     """Returns RPC runner for configuration.
 
@@ -255,7 +258,7 @@ class ConfigWriter(object):
 
     """
     nodegroup = self._UnlockedGetNodeGroup(node.group)
-    return self._config_data.cluster.FillND(node, nodegroup)
+    return self._ConfigData().cluster.FillND(node, nodegroup)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNdGroupParams(self, nodegroup):
@@ -266,7 +269,7 @@ class ConfigWriter(object):
     @return: A dict with the filled in node group params
 
     """
-    return self._config_data.cluster.FillNDGroup(nodegroup)
+    return self._ConfigData().cluster.FillNDGroup(nodegroup)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceDiskParams(self, instance):
@@ -300,7 +303,7 @@ class ConfigWriter(object):
     @return: A dict with the filled in disk params
 
     """
-    return self._config_data.cluster.SimpleFillDP(group.diskparams)
+    return self._ConfigData().cluster.SimpleFillDP(group.diskparams)
 
   def _UnlockedGetNetworkMACPrefix(self, net_uuid):
     """Return the network mac prefix if it exists or the cluster level default.
@@ -321,7 +324,7 @@ class ConfigWriter(object):
 
     """
     if not prefix:
-      prefix = self._config_data.cluster.mac_prefix
+      prefix = self._ConfigData().cluster.mac_prefix
 
     def GenMac():
       byte1 = random.randrange(0, 256)
@@ -474,7 +477,7 @@ class ConfigWriter(object):
 
     """
     lvnames = set()
-    for instance in self._config_data.instances.values():
+    for instance in self._ConfigData().instances.values():
       node_data = instance.MapLVsByNode()
       for lv_list in node_data.values():
         lvnames.update(lv_list)
@@ -495,7 +498,7 @@ class ConfigWriter(object):
       return disks
 
     disks = []
-    for instance in self._config_data.instances.values():
+    for instance in self._ConfigData().instances.values():
       for disk in instance.disks:
         disks.extend(DiskAndAllChildren(disk))
     return disks
@@ -505,7 +508,7 @@ class ConfigWriter(object):
 
     """
     nics = []
-    for instance in self._config_data.instances.values():
+    for instance in self._ConfigData().instances.values():
       nics.extend(instance.nics)
     return nics
 
@@ -522,8 +525,8 @@ class ConfigWriter(object):
     if include_temporary:
       existing.update(self._temporary_ids.GetReserved())
     existing.update(self._AllLVs())
-    existing.update(self._config_data.instances.keys())
-    existing.update(self._config_data.nodes.keys())
+    existing.update(self._ConfigData().instances.keys())
+    existing.update(self._ConfigData().nodes.keys())
     existing.update([i.uuid for i in self._AllUUIDObjects() if i.uuid])
     return existing
 
@@ -560,7 +563,7 @@ class ConfigWriter(object):
 
     """
     result = []
-    for instance in self._config_data.instances.values():
+    for instance in self._ConfigData().instances.values():
       for nic in instance.nics:
         result.append(nic.mac)
 
@@ -582,7 +585,7 @@ class ConfigWriter(object):
           helper(child, result)
 
     result = []
-    for instance in self._config_data.instances.values():
+    for instance in self._ConfigData().instances.values():
       for disk in instance.disks:
         helper(disk, result)
 
@@ -623,7 +626,7 @@ class ConfigWriter(object):
     result = []
     seen_macs = []
     ports = {}
-    data = self._config_data
+    data = self._ConfigData()
     cluster = data.cluster
     seen_lids = []
 
@@ -936,14 +939,14 @@ class ConfigWriter(object):
     if not isinstance(port, int):
       raise errors.ProgrammerError("Invalid type passed for port")
 
-    self._config_data.cluster.tcpudp_port_pool.add(port)
+    self._ConfigData().cluster.tcpudp_port_pool.add(port)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetPortList(self):
     """Returns a copy of the current port list.
 
     """
-    return self._config_data.cluster.tcpudp_port_pool.copy()
+    return self._ConfigData().cluster.tcpudp_port_pool.copy()
 
   @locking.ssynchronized(_config_lock)
   def AllocatePort(self):
@@ -955,15 +958,15 @@ class ConfigWriter(object):
 
     """
     # If there are TCP/IP ports configured, we use them first.
-    if self._config_data.cluster.tcpudp_port_pool:
-      port = self._config_data.cluster.tcpudp_port_pool.pop()
+    if self._ConfigData().cluster.tcpudp_port_pool:
+      port = self._ConfigData().cluster.tcpudp_port_pool.pop()
     else:
-      port = self._config_data.cluster.highest_used_port + 1
+      port = self._ConfigData().cluster.highest_used_port + 1
       if port >= constants.LAST_DRBD_PORT:
         raise errors.ConfigurationError("The highest used port is greater"
                                         " than %s. Aborting." %
                                         constants.LAST_DRBD_PORT)
-      self._config_data.cluster.highest_used_port = port
+      self._ConfigData().cluster.highest_used_port = port
 
     self._WriteConfig()
     return port
@@ -999,8 +1002,8 @@ class ConfigWriter(object):
       return duplicates
 
     duplicates = []
-    my_dict = dict((node_uuid, {}) for node_uuid in self._config_data.nodes)
-    for instance in self._config_data.instances.itervalues():
+    my_dict = dict((node_uuid, {}) for node_uuid in self._ConfigData().nodes)
+    for instance in self._ConfigData().instances.itervalues():
       for disk in instance.disks:
         duplicates.extend(_AppendUsedMinors(self._UnlockedGetNodeName,
                                             instance, disk, my_dict))
@@ -1123,7 +1126,7 @@ class ConfigWriter(object):
     @return: Config version
 
     """
-    return self._config_data.version
+    return self._ConfigData().version
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetClusterName(self):
@@ -1132,7 +1135,7 @@ class ConfigWriter(object):
     @return: Cluster name
 
     """
-    return self._config_data.cluster.cluster_name
+    return self._ConfigData().cluster.cluster_name
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetMasterNode(self):
@@ -1141,7 +1144,7 @@ class ConfigWriter(object):
     @return: Master node UUID
 
     """
-    return self._config_data.cluster.master_node
+    return self._ConfigData().cluster.master_node
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetMasterNodeName(self):
@@ -1150,7 +1153,7 @@ class ConfigWriter(object):
     @return: Master node hostname
 
     """
-    return self._UnlockedGetNodeName(self._config_data.cluster.master_node)
+    return self._UnlockedGetNodeName(self._ConfigData().cluster.master_node)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetMasterNodeInfo(self):
@@ -1160,7 +1163,7 @@ class ConfigWriter(object):
     @return: Master node L{objects.Node} object
 
     """
-    return self._UnlockedGetNodeInfo(self._config_data.cluster.master_node)
+    return self._UnlockedGetNodeInfo(self._ConfigData().cluster.master_node)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetMasterIP(self):
@@ -1169,56 +1172,56 @@ class ConfigWriter(object):
     @return: Master IP
 
     """
-    return self._config_data.cluster.master_ip
+    return self._ConfigData().cluster.master_ip
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetMasterNetdev(self):
     """Get the master network device for this cluster.
 
     """
-    return self._config_data.cluster.master_netdev
+    return self._ConfigData().cluster.master_netdev
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetMasterNetmask(self):
     """Get the netmask of the master node for this cluster.
 
     """
-    return self._config_data.cluster.master_netmask
+    return self._ConfigData().cluster.master_netmask
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetUseExternalMipScript(self):
     """Get flag representing whether to use the external master IP setup script.
 
     """
-    return self._config_data.cluster.use_external_mip_script
+    return self._ConfigData().cluster.use_external_mip_script
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetFileStorageDir(self):
     """Get the file storage dir for this cluster.
 
     """
-    return self._config_data.cluster.file_storage_dir
+    return self._ConfigData().cluster.file_storage_dir
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetSharedFileStorageDir(self):
     """Get the shared file storage dir for this cluster.
 
     """
-    return self._config_data.cluster.shared_file_storage_dir
+    return self._ConfigData().cluster.shared_file_storage_dir
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetGlusterStorageDir(self):
     """Get the Gluster storage dir for this cluster.
 
     """
-    return self._config_data.cluster.gluster_storage_dir
+    return self._ConfigData().cluster.gluster_storage_dir
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetHypervisorType(self):
     """Get the hypervisor type for this cluster.
 
     """
-    return self._config_data.cluster.enabled_hypervisors[0]
+    return self._ConfigData().cluster.enabled_hypervisors[0]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetRsaHostKey(self):
@@ -1228,7 +1231,7 @@ class ConfigWriter(object):
     @return: the rsa hostkey
 
     """
-    return self._config_data.cluster.rsahostkeypub
+    return self._ConfigData().cluster.rsahostkeypub
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetDsaHostKey(self):
@@ -1238,14 +1241,14 @@ class ConfigWriter(object):
     @return: the dsa hostkey
 
     """
-    return self._config_data.cluster.dsahostkeypub
+    return self._ConfigData().cluster.dsahostkeypub
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetDefaultIAllocator(self):
     """Get the default instance allocator for this cluster.
 
     """
-    return self._config_data.cluster.default_iallocator
+    return self._ConfigData().cluster.default_iallocator
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetDefaultIAllocatorParameters(self):
@@ -1255,7 +1258,7 @@ class ConfigWriter(object):
     @return: dict of iallocator parameters
 
     """
-    return self._config_data.cluster.default_iallocator_params
+    return self._ConfigData().cluster.default_iallocator_params
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetPrimaryIPFamily(self):
@@ -1264,7 +1267,7 @@ class ConfigWriter(object):
     @return: primary ip family
 
     """
-    return self._config_data.cluster.primary_ip_family
+    return self._ConfigData().cluster.primary_ip_family
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetMasterNetworkParameters(self):
@@ -1274,7 +1277,7 @@ class ConfigWriter(object):
     @return: network parameters of the master node
 
     """
-    cluster = self._config_data.cluster
+    cluster = self._ConfigData().cluster
     result = objects.MasterNetworkParameters(
       uuid=cluster.master_node, ip=cluster.master_ip,
       netmask=cluster.master_netmask, netdev=cluster.master_netdev,
@@ -1291,7 +1294,7 @@ class ConfigWriter(object):
              network used for instance communication
 
     """
-    return self._config_data.cluster.instance_communication_network
+    return self._ConfigData().cluster.instance_communication_network
 
   @locking.ssynchronized(_config_lock)
   def AddNodeGroup(self, group, ec_id, check_uuid=True):
@@ -1339,8 +1342,8 @@ class ConfigWriter(object):
     group.ctime = group.mtime = time.time()
     group.UpgradeConfig()
 
-    self._config_data.nodegroups[group.uuid] = group
-    self._config_data.cluster.serial_no += 1
+    self._ConfigData().nodegroups[group.uuid] = group
+    self._ConfigData().cluster.serial_no += 1
 
   @locking.ssynchronized(_config_lock)
   def RemoveNodeGroup(self, group_uuid):
@@ -1352,14 +1355,14 @@ class ConfigWriter(object):
     """
     logging.info("Removing node group %s from configuration", group_uuid)
 
-    if group_uuid not in self._config_data.nodegroups:
+    if group_uuid not in self._ConfigData().nodegroups:
       raise errors.ConfigurationError("Unknown node group '%s'" % group_uuid)
 
-    assert len(self._config_data.nodegroups) != 1, \
+    assert len(self._ConfigData().nodegroups) != 1, \
             "Group '%s' is the only group, cannot be removed" % group_uuid
 
-    del self._config_data.nodegroups[group_uuid]
-    self._config_data.cluster.serial_no += 1
+    del self._ConfigData().nodegroups[group_uuid]
+    self._ConfigData().cluster.serial_no += 1
     self._WriteConfig()
 
   def _UnlockedLookupNodeGroup(self, target):
@@ -1373,14 +1376,14 @@ class ConfigWriter(object):
 
     """
     if target is None:
-      if len(self._config_data.nodegroups) != 1:
+      if len(self._ConfigData().nodegroups) != 1:
         raise errors.OpPrereqError("More than one node group exists. Target"
                                    " group must be specified explicitly.")
       else:
-        return self._config_data.nodegroups.keys()[0]
-    if target in self._config_data.nodegroups:
+        return self._ConfigData().nodegroups.keys()[0]
+    if target in self._ConfigData().nodegroups:
       return target
-    for nodegroup in self._config_data.nodegroups.values():
+    for nodegroup in self._ConfigData().nodegroups.values():
       if nodegroup.name == target:
         return nodegroup.uuid
     raise errors.OpPrereqError("Node group '%s' not found" % target,
@@ -1409,10 +1412,10 @@ class ConfigWriter(object):
     @return: nodegroup object, or None if not found
 
     """
-    if uuid not in self._config_data.nodegroups:
+    if uuid not in self._ConfigData().nodegroups:
       return None
 
-    return self._config_data.nodegroups[uuid]
+    return self._ConfigData().nodegroups[uuid]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNodeGroup(self, uuid):
@@ -1430,7 +1433,7 @@ class ConfigWriter(object):
     """Get the configuration of all node groups.
 
     """
-    return dict(self._config_data.nodegroups)
+    return dict(self._ConfigData().nodegroups)
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetAllNodeGroupsInfo(self):
@@ -1453,7 +1456,7 @@ class ConfigWriter(object):
     """Get a list of node groups.
 
     """
-    return self._config_data.nodegroups.keys()
+    return self._ConfigData().nodegroups.keys()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNodeGroupMembersByNodes(self, nodes):
@@ -1505,8 +1508,8 @@ class ConfigWriter(object):
 
     instance.serial_no = 1
     instance.ctime = instance.mtime = time.time()
-    self._config_data.instances[instance.uuid] = instance
-    self._config_data.cluster.serial_no += 1
+    self._ConfigData().instances[instance.uuid] = instance
+    self._ConfigData().cluster.serial_no += 1
     self._UnlockedReleaseDRBDMinors(instance.uuid)
     self._UnlockedCommitTemporaryIps(ec_id)
     self._WriteConfig()
@@ -1542,10 +1545,10 @@ class ConfigWriter(object):
     """Set the instance's status to a given value.
 
     """
-    if inst_uuid not in self._config_data.instances:
+    if inst_uuid not in self._ConfigData().instances:
       raise errors.ConfigurationError("Unknown instance '%s'" %
                                       inst_uuid)
-    instance = self._config_data.instances[inst_uuid]
+    instance = self._ConfigData().instances[inst_uuid]
 
     if status is None:
       status = instance.admin_state
@@ -1586,15 +1589,15 @@ class ConfigWriter(object):
     """Remove the instance from the configuration.
 
     """
-    if inst_uuid not in self._config_data.instances:
+    if inst_uuid not in self._ConfigData().instances:
       raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
 
     # If a network port has been allocated to the instance,
     # return it to the pool of free ports.
-    inst = self._config_data.instances[inst_uuid]
+    inst = self._ConfigData().instances[inst_uuid]
     network_port = getattr(inst, "network_port", None)
     if network_port is not None:
-      self._config_data.cluster.tcpudp_port_pool.add(network_port)
+      self._ConfigData().cluster.tcpudp_port_pool.add(network_port)
 
     instance = self._UnlockedGetInstanceInfo(inst_uuid)
 
@@ -1603,8 +1606,8 @@ class ConfigWriter(object):
         # Return all IP addresses to the respective address pools
         self._UnlockedCommitIp(constants.RELEASE_ACTION, nic.network, nic.ip)
 
-    del self._config_data.instances[inst_uuid]
-    self._config_data.cluster.serial_no += 1
+    del self._ConfigData().instances[inst_uuid]
+    self._ConfigData().cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
@@ -1616,10 +1619,10 @@ class ConfigWriter(object):
     rename.
 
     """
-    if inst_uuid not in self._config_data.instances:
+    if inst_uuid not in self._ConfigData().instances:
       raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
 
-    inst = self._config_data.instances[inst_uuid]
+    inst = self._ConfigData().instances[inst_uuid]
     inst.name = new_name
 
     for (_, disk) in enumerate(inst.disks):
@@ -1631,7 +1634,7 @@ class ConfigWriter(object):
                                           os.path.basename(disk.logical_id[1])))
 
     # Force update of ssconf files
-    self._config_data.cluster.serial_no += 1
+    self._ConfigData().cluster.serial_no += 1
 
     self._WriteConfig()
 
@@ -1665,7 +1668,7 @@ class ConfigWriter(object):
     This function is for internal use, when the config lock is already held.
 
     """
-    return self._config_data.instances.keys()
+    return self._ConfigData().instances.keys()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceList(self):
@@ -1698,10 +1701,10 @@ class ConfigWriter(object):
     This function is for internal use, when the config lock is already held.
 
     """
-    if inst_uuid not in self._config_data.instances:
+    if inst_uuid not in self._ConfigData().instances:
       return None
 
-    return self._config_data.instances[inst_uuid]
+    return self._ConfigData().instances[inst_uuid]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetInstanceInfo(self, inst_uuid):
@@ -1814,7 +1817,7 @@ class ConfigWriter(object):
 
     """
     return dict((uuid, inst)
-                for (uuid, inst) in self._config_data.instances.items()
+                for (uuid, inst) in self._ConfigData().instances.items()
                 if filter_fn(inst))
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -1883,8 +1886,8 @@ class ConfigWriter(object):
     node.serial_no = 1
     node.ctime = node.mtime = time.time()
     self._UnlockedAddNodeToGroup(node.uuid, node.group)
-    self._config_data.nodes[node.uuid] = node
-    self._config_data.cluster.serial_no += 1
+    self._ConfigData().nodes[node.uuid] = node
+    self._ConfigData().cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock)
@@ -1894,12 +1897,12 @@ class ConfigWriter(object):
     """
     logging.info("Removing node %s from configuration", node_uuid)
 
-    if node_uuid not in self._config_data.nodes:
+    if node_uuid not in self._ConfigData().nodes:
       raise errors.ConfigurationError("Unknown node '%s'" % node_uuid)
 
-    self._UnlockedRemoveNodeFromGroup(self._config_data.nodes[node_uuid])
-    del self._config_data.nodes[node_uuid]
-    self._config_data.cluster.serial_no += 1
+    self._UnlockedRemoveNodeFromGroup(self._ConfigData().nodes[node_uuid])
+    del self._ConfigData().nodes[node_uuid]
+    self._ConfigData().cluster.serial_no += 1
     self._WriteConfig()
 
   def ExpandNodeName(self, short_name):
@@ -1930,10 +1933,10 @@ class ConfigWriter(object):
     @return: the node object
 
     """
-    if node_uuid not in self._config_data.nodes:
+    if node_uuid not in self._ConfigData().nodes:
       return None
 
-    return self._config_data.nodes[node_uuid]
+    return self._ConfigData().nodes[node_uuid]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNodeInfo(self, node_uuid):
@@ -1961,7 +1964,7 @@ class ConfigWriter(object):
     """
     pri = []
     sec = []
-    for inst in self._config_data.instances.values():
+    for inst in self._ConfigData().instances.values():
       if inst.primary_node == node_uuid:
         pri.append(inst.uuid)
       if node_uuid in inst.secondary_nodes:
@@ -1984,7 +1987,7 @@ class ConfigWriter(object):
       nodes_fn = lambda inst: inst.all_nodes
 
     return frozenset(inst.uuid
-                     for inst in self._config_data.instances.values()
+                     for inst in self._ConfigData().instances.values()
                      for node_uuid in nodes_fn(inst)
                      if self._UnlockedGetNodeInfo(node_uuid).group == uuid)
 
@@ -1996,7 +1999,7 @@ class ConfigWriter(object):
 
     """
     result = ""
-    hvparams = self._config_data.cluster.hvparams[hvname]
+    hvparams = self._ConfigData().cluster.hvparams[hvname]
     for key in hvparams:
       result += "%s=%s\n" % (key, hvparams[key])
     return result
@@ -2023,7 +2026,7 @@ class ConfigWriter(object):
     @rtype: list
 
     """
-    return self._config_data.nodes.keys()
+    return self._ConfigData().nodes.keys()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNodeList(self):
@@ -2191,14 +2194,14 @@ class ConfigWriter(object):
 
     """
     mc_now = mc_should = mc_max = 0
-    for node in self._config_data.nodes.values():
+    for node in self._ConfigData().nodes.values():
       if exceptions and node.uuid in exceptions:
         continue
       if not (node.offline or node.drained) and node.master_capable:
         mc_max += 1
       if node.master_candidate:
         mc_now += 1
-    mc_should = min(mc_max, self._config_data.cluster.candidate_pool_size)
+    mc_should = min(mc_max, self._ConfigData().cluster.candidate_pool_size)
     return (mc_now, mc_should, mc_max)
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -2229,12 +2232,12 @@ class ConfigWriter(object):
                           exception_node_uuids)
     mod_list = []
     if mc_now < mc_max:
-      node_list = self._config_data.nodes.keys()
+      node_list = self._ConfigData().nodes.keys()
       random.shuffle(node_list)
       for uuid in node_list:
         if mc_now >= mc_max:
           break
-        node = self._config_data.nodes[uuid]
+        node = self._ConfigData().nodes[uuid]
         if (node.master_candidate or node.offline or node.drained or
             node.uuid in exception_node_uuids or not node.master_capable):
           continue
@@ -2247,7 +2250,7 @@ class ConfigWriter(object):
         logging.warning("Warning: MaintainCandidatePool didn't manage to"
                         " fill the candidate pool (%d/%d)", mc_now, mc_max)
       if mod_list:
-        self._config_data.cluster.serial_no += 1
+        self._ConfigData().cluster.serial_no += 1
         self._WriteConfig()
 
     return mod_list
@@ -2256,24 +2259,24 @@ class ConfigWriter(object):
     """Add a given node to the specified group.
 
     """
-    if nodegroup_uuid not in self._config_data.nodegroups:
+    if nodegroup_uuid not in self._ConfigData().nodegroups:
       # This can happen if a node group gets deleted between its lookup and
       # when we're adding the first node to it, since we don't keep a lock in
       # the meantime. It's ok though, as we'll fail cleanly if the node group
       # is not found anymore.
       raise errors.OpExecError("Unknown node group: %s" % nodegroup_uuid)
-    if node_uuid not in self._config_data.nodegroups[nodegroup_uuid].members:
-      self._config_data.nodegroups[nodegroup_uuid].members.append(node_uuid)
+    if node_uuid not in self._ConfigData().nodegroups[nodegroup_uuid].members:
+      self._ConfigData().nodegroups[nodegroup_uuid].members.append(node_uuid)
 
   def _UnlockedRemoveNodeFromGroup(self, node):
     """Remove a given node from its group.
 
     """
     nodegroup = node.group
-    if nodegroup not in self._config_data.nodegroups:
+    if nodegroup not in self._ConfigData().nodegroups:
       logging.warning("Warning: node '%s' has unknown node group '%s'"
                       " (while being removed from it)", node.uuid, nodegroup)
-    nodegroup_obj = self._config_data.nodegroups[nodegroup]
+    nodegroup_obj = self._ConfigData().nodegroups[nodegroup]
     if node.uuid not in nodegroup_obj.members:
       logging.warning("Warning: node '%s' not a member of its node group '%s'"
                       " (while being removed from it)", node.uuid, nodegroup)
@@ -2288,8 +2291,8 @@ class ConfigWriter(object):
     @param mods: Node membership modifications
 
     """
-    groups = self._config_data.nodegroups
-    nodes = self._config_data.nodes
+    groups = self._ConfigData().nodegroups
+    nodes = self._ConfigData().nodes
 
     resmod = []
 
@@ -2349,7 +2352,7 @@ class ConfigWriter(object):
       obj.mtime = now
 
     # Force ssconf update
-    self._config_data.cluster.serial_no += 1
+    self._ConfigData().cluster.serial_no += 1
 
     self._WriteConfig()
 
@@ -2357,20 +2360,20 @@ class ConfigWriter(object):
     """Bump up the serial number of the config.
 
     """
-    self._config_data.serial_no += 1
-    self._config_data.mtime = time.time()
+    self._ConfigData().serial_no += 1
+    self._ConfigData().mtime = time.time()
 
   def _AllUUIDObjects(self):
     """Returns all objects with uuid attributes.
 
     """
-    return (self._config_data.instances.values() +
-            self._config_data.nodes.values() +
-            self._config_data.nodegroups.values() +
-            self._config_data.networks.values() +
+    return (self._ConfigData().instances.values() +
+            self._ConfigData().nodes.values() +
+            self._ConfigData().nodegroups.values() +
+            self._ConfigData().networks.values() +
             self._AllDisks() +
             self._AllNICs() +
-            [self._config_data.cluster])
+            [self._ConfigData().cluster])
 
   def _OpenConfig(self, accept_foreign):
     """Read the config data from disk.
@@ -2415,7 +2418,7 @@ class ConfigWriter(object):
              (master_info.name, self._my_hostname))
       raise errors.ConfigurationError(msg)
 
-    self._config_data = data
+    self._ConfigData() = data
 
     # Upgrade configuration if needed
     self._UpgradeConfig()
@@ -2438,20 +2441,20 @@ class ConfigWriter(object):
     """
     # Keep a copy of the persistent part of _config_data to check for changes
     # Serialization doesn't guarantee order in dictionaries
-    oldconf = copy.deepcopy(self._config_data.ToDict())
+    oldconf = copy.deepcopy(self._ConfigData().ToDict())
 
     # In-object upgrades
-    self._config_data.UpgradeConfig()
+    self._ConfigData().UpgradeConfig()
 
     for item in self._AllUUIDObjects():
       if item.uuid is None:
         item.uuid = self._GenerateUniqueID(_UPGRADE_CONFIG_JID)
-    if not self._config_data.nodegroups:
+    if not self._ConfigData().nodegroups:
       default_nodegroup_name = constants.INITIAL_NODE_GROUP_NAME
       default_nodegroup = objects.NodeGroup(name=default_nodegroup_name,
                                             members=[])
       self._UnlockedAddNodeGroup(default_nodegroup, _UPGRADE_CONFIG_JID, True)
-    for node in self._config_data.nodes.values():
+    for node in self._ConfigData().nodes.values():
       if not node.group:
         node.group = self.LookupNodeGroup(None)
       # This is technically *not* an upgrade, but needs to be done both when
@@ -2460,7 +2463,7 @@ class ConfigWriter(object):
       # serializing/deserializing the object.
       self._UnlockedAddNodeToGroup(node.uuid, node.group)
 
-    modified = (oldconf != self._config_data.ToDict())
+    modified = (oldconf != self._ConfigData().ToDict())
     if modified:
       self._WriteConfig()
       # This is ok even if it acquires the internal lock, as _UpgradeConfig is
@@ -2499,7 +2502,7 @@ class ConfigWriter(object):
     # If online, call WConfd.
     if self._offline:
       txt = serializer.DumpJson(
-        self._config_data.ToDict(_with_private=True),
+        self._ConfigData().ToDict(_with_private=True),
         private_encoder=serializer.EncodeWithPrivateFields
       )
 
@@ -2517,7 +2520,7 @@ class ConfigWriter(object):
         os.close(fd)
     else:
       try:
-        self._wconfd.WriteConfig(self._config_data.ToDict())
+        self._wconfd.WriteConfig(self._ConfigData().ToDict())
       except errors.LockError:
         raise errors.ConfigurationError("The configuration file has been"
                                         " modified since the last write, cannot"
@@ -2588,7 +2591,7 @@ class ConfigWriter(object):
     node_pri_ips_data = fn(node_pri_ips)
     node_snd_ips_data = fn(node_snd_ips)
 
-    cluster = self._config_data.cluster
+    cluster = self._ConfigData().cluster
     cluster_tags = fn(cluster.GetTags())
 
     master_candidates_certs = fn("%s=%s" % (mc_uuid, mc_cert)
@@ -2601,10 +2604,10 @@ class ConfigWriter(object):
     uid_pool = uidpool.FormatUidPool(cluster.uid_pool, separator="\n")
 
     nodegroups = ["%s %s" % (nodegroup.uuid, nodegroup.name) for nodegroup in
-                  self._config_data.nodegroups.values()]
+                  self._ConfigData().nodegroups.values()]
     nodegroups_data = fn(utils.NiceSort(nodegroups))
     networks = ["%s %s" % (net.uuid, net.name) for net in
-                self._config_data.networks.values()]
+                self._ConfigData().networks.values()]
     networks_data = fn(utils.NiceSort(networks))
 
     ssconf_values = {
@@ -2656,15 +2659,15 @@ class ConfigWriter(object):
     """Return the volume group name.
 
     """
-    return self._config_data.cluster.volume_group_name
+    return self._ConfigData().cluster.volume_group_name
 
   @locking.ssynchronized(_config_lock)
   def SetVGName(self, vg_name):
     """Set the volume group name.
 
     """
-    self._config_data.cluster.volume_group_name = vg_name
-    self._config_data.cluster.serial_no += 1
+    self._ConfigData().cluster.volume_group_name = vg_name
+    self._ConfigData().cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -2672,15 +2675,15 @@ class ConfigWriter(object):
     """Return DRBD usermode helper.
 
     """
-    return self._config_data.cluster.drbd_usermode_helper
+    return self._ConfigData().cluster.drbd_usermode_helper
 
   @locking.ssynchronized(_config_lock)
   def SetDRBDHelper(self, drbd_helper):
     """Set DRBD usermode helper.
 
     """
-    self._config_data.cluster.drbd_usermode_helper = drbd_helper
-    self._config_data.cluster.serial_no += 1
+    self._ConfigData().cluster.drbd_usermode_helper = drbd_helper
+    self._ConfigData().cluster.serial_no += 1
     self._WriteConfig()
 
   @locking.ssynchronized(_config_lock, shared=1)
@@ -2688,7 +2691,7 @@ class ConfigWriter(object):
     """Return the mac prefix.
 
     """
-    return self._config_data.cluster.mac_prefix
+    return self._ConfigData().cluster.mac_prefix
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetClusterInfo(self):
@@ -2698,14 +2701,14 @@ class ConfigWriter(object):
     @return: the cluster object
 
     """
-    return self._config_data.cluster
+    return self._ConfigData().cluster
 
   @locking.ssynchronized(_config_lock, shared=1)
   def HasAnyDiskOfType(self, dev_type):
     """Check if in there is at disk of the given type in the configuration.
 
     """
-    return self._config_data.HasAnyDiskOfType(dev_type)
+    return self._ConfigData().HasAnyDiskOfType(dev_type)
 
   @locking.ssynchronized(_config_lock)
   def Update(self, target, feedback_fn, ec_id=None):
@@ -2723,21 +2726,21 @@ class ConfigWriter(object):
     @param feedback_fn: Callable feedback function
 
     """
-    if self._config_data is None:
+    if self._ConfigData() is None:
       raise errors.ProgrammerError("Configuration file not read,"
                                    " cannot save.")
     update_serial = False
     if isinstance(target, objects.Cluster):
-      test = target == self._config_data.cluster
+      test = target == self._ConfigData().cluster
     elif isinstance(target, objects.Node):
-      test = target in self._config_data.nodes.values()
+      test = target in self._ConfigData().nodes.values()
       update_serial = True
     elif isinstance(target, objects.Instance):
-      test = target in self._config_data.instances.values()
+      test = target in self._ConfigData().instances.values()
     elif isinstance(target, objects.NodeGroup):
-      test = target in self._config_data.nodegroups.values()
+      test = target in self._ConfigData().nodegroups.values()
     elif isinstance(target, objects.Network):
-      test = target in self._config_data.networks.values()
+      test = target in self._ConfigData().networks.values()
     else:
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))
@@ -2749,8 +2752,8 @@ class ConfigWriter(object):
 
     if update_serial:
       # for node updates, we need to increase the cluster serial too
-      self._config_data.cluster.serial_no += 1
-      self._config_data.cluster.mtime = now
+      self._ConfigData().cluster.serial_no += 1
+      self._ConfigData().cluster.mtime = now
 
     if isinstance(target, objects.Instance):
       self._UnlockedReleaseDRBDMinors(target.uuid)
@@ -2774,7 +2777,7 @@ class ConfigWriter(object):
     """Get configuration info of all the networks.
 
     """
-    return dict(self._config_data.networks)
+    return dict(self._ConfigData().networks)
 
   def _UnlockedGetNetworkList(self):
     """Get the list of networks.
@@ -2782,7 +2785,7 @@ class ConfigWriter(object):
     This function is for internal use, when the config lock is already held.
 
     """
-    return self._config_data.networks.keys()
+    return self._ConfigData().networks.keys()
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNetworkList(self):
@@ -2799,7 +2802,7 @@ class ConfigWriter(object):
 
     """
     names = [net.name
-             for net in self._config_data.networks.values()]
+             for net in self._ConfigData().networks.values()]
     return names
 
   def _UnlockedGetNetwork(self, uuid):
@@ -2808,10 +2811,10 @@ class ConfigWriter(object):
     This function is for internal use, when the config lock is already held.
 
     """
-    if uuid not in self._config_data.networks:
+    if uuid not in self._ConfigData().networks:
       return None
 
-    return self._config_data.networks[uuid]
+    return self._ConfigData().networks[uuid]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNetwork(self, uuid):
@@ -2851,8 +2854,8 @@ class ConfigWriter(object):
 
     net.serial_no = 1
     net.ctime = net.mtime = time.time()
-    self._config_data.networks[net.uuid] = net
-    self._config_data.cluster.serial_no += 1
+    self._ConfigData().networks[net.uuid] = net
+    self._ConfigData().cluster.serial_no += 1
 
   def _UnlockedLookupNetwork(self, target):
     """Lookup a network's UUID.
@@ -2866,9 +2869,9 @@ class ConfigWriter(object):
     """
     if target is None:
       return None
-    if target in self._config_data.networks:
+    if target in self._ConfigData().networks:
       return target
-    for net in self._config_data.networks.values():
+    for net in self._ConfigData().networks.values():
       if net.name == target:
         return net.uuid
     raise errors.OpPrereqError("Network '%s' not found" % target,
@@ -2898,11 +2901,11 @@ class ConfigWriter(object):
     """
     logging.info("Removing network %s from configuration", network_uuid)
 
-    if network_uuid not in self._config_data.networks:
+    if network_uuid not in self._ConfigData().networks:
       raise errors.ConfigurationError("Unknown network '%s'" % network_uuid)
 
-    del self._config_data.networks[network_uuid]
-    self._config_data.cluster.serial_no += 1
+    del self._ConfigData().networks[network_uuid]
+    self._ConfigData().cluster.serial_no += 1
     self._WriteConfig()
 
   def _UnlockedGetGroupNetParams(self, net_uuid, node_uuid):
@@ -2964,7 +2967,7 @@ class ConfigWriter(object):
     """Returns the candidate certificate map.
 
     """
-    return self._config_data.cluster.candidate_certs
+    return self._ConfigData().cluster.candidate_certs
 
   @locking.ssynchronized(_config_lock)
   def AddNodeToCandidateCerts(self, node_uuid, cert_digest,
@@ -2981,7 +2984,7 @@ class ConfigWriter(object):
     @param warn_fn: logging function for warning messages
 
     """
-    cluster = self._config_data.cluster
+    cluster = self._ConfigData().cluster
     if node_uuid in cluster.candidate_certs:
       old_cert_digest = cluster.candidate_certs[node_uuid]
       if old_cert_digest == cert_digest:
@@ -3007,7 +3010,7 @@ class ConfigWriter(object):
     @param warn_fn: logging function for warning messages
 
     """
-    cluster = self._config_data.cluster
+    cluster = self._ConfigData().cluster
     if node_uuid not in cluster.candidate_certs:
       if warn_fn is not None:
         warn_fn("Cannot remove certifcate for node %s, because it's not"
