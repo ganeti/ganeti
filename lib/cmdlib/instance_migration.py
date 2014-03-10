@@ -347,8 +347,6 @@ class TLMigrateInstance(Tasklet):
         ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
     else:
-      assert not self.lu.glm.is_owned(locking.LEVEL_NODE_ALLOC)
-
       secondary_node_uuids = self.instance.secondary_nodes
       if not secondary_node_uuids:
         raise errors.ConfigurationError("No secondary node but using"

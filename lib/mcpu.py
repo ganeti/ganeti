@@ -44,6 +44,7 @@ from ganeti import cmdlib
 from ganeti import locking
 from ganeti import utils
 from ganeti import compat
+from ganeti import wconfd
 
 
 _OP_PREFIX = "Op"
@@ -250,20 +251,19 @@ def _FailingSubmitManyJobs(_):
                                " queries) can not submit jobs")
 
 
-def _VerifyLocks(lu, glm, _mode_whitelist=_NODE_ALLOC_MODE_WHITELIST,
+def _VerifyLocks(lu, _mode_whitelist=_NODE_ALLOC_MODE_WHITELIST,
                  _nal_whitelist=_NODE_ALLOC_WHITELIST):
   """Performs consistency checks on locks acquired by a logical unit.
 
   @type lu: L{cmdlib.LogicalUnit}
   @param lu: Logical unit instance
-  @type glm: L{locking.GanetiLockManager}
-  @param glm: Lock manager
 
   """
   if not __debug__:
     return
 
-  have_nal = glm.check_owned(locking.LEVEL_NODE_ALLOC, locking.NAL)
+  allocset = lu.owned_locks(locking.LEVEL_NODE_ALLOC)
+  have_nal = locking.NAL in allocset
 
   for level in [locking.LEVEL_NODE, locking.LEVEL_NODE_RES]:
     # TODO: Verify using actual lock mode, not using LU variables
@@ -282,7 +282,7 @@ def _VerifyLocks(lu, glm, _mode_whitelist=_NODE_ALLOC_MODE_WHITELIST,
       if lu.__class__ in _nal_whitelist:
         assert not have_nal, \
           "LU is whitelisted for not acquiring the node allocation lock"
-      elif lu.needed_locks[level] == locking.ALL_SET or glm.owning_all(level):
+      elif lu.needed_locks[level] == locking.ALL_SET:
         assert have_nal, \
           ("Node allocation lock must be used if an LU acquires all nodes"
            " or node resources")
@@ -307,6 +307,7 @@ class Processor(object):
     self.rpc = context.rpc
     self.hmclass = hooksmaster.HooksMaster
     self._enable_locks = enable_locks
+    self.wconfd = wconfd # Indirection to allow testing
 
   def _CheckLocksEnabled(self):
     """Checks if locking is enabled.
@@ -336,19 +337,71 @@ class Processor(object):
     """
     self._CheckLocksEnabled()
 
+    # TODO: honor priority in lock allocation
     if self._cbs:
-      priority = self._cbs.CurrentPriority()
+      priority = self._cbs.CurrentPriority() # pylint: disable=W0612
     else:
       priority = None
 
-    acquired = self.context.glm.acquire(level, names, shared=shared,
-                                        timeout=timeout, priority=priority,
-                                        opportunistic=opportunistic)
+    if names == locking.ALL_SET:
+      if opportunistic:
+        expand_fns = {
+          locking.LEVEL_CLUSTER: (lambda: [locking.BGL]),
+          locking.LEVEL_INSTANCE: self.context.cfg.GetInstanceList,
+          locking.LEVEL_NODE_ALLOC: (lambda: [locking.NAL]),
+          locking.LEVEL_NODEGROUP: self.context.cfg.GetNodeGroupList,
+          locking.LEVEL_NODE: self.context.cfg.GetNodeList,
+          locking.LEVEL_NODE_RES: self.context.cfg.GetNodeList,
+          locking.LEVEL_NETWORK: self.context.cfg.GetNetworkList,
+          }
+        names = expand_fns[level]()
+      else:
+        names = locking.LOCKSET_NAME
 
-    if acquired is None:
-      raise LockAcquireTimeout()
+    if isinstance(names, str):
+      names = [names]
 
-    return acquired
+    levelname = locking.LEVEL_NAMES[level]
+    jid = int(self.GetECId())
+    livelockfile = self.context.livelock.lockfile.name
+
+    locks = ["%s/%s" % (levelname, lock) for lock in list(names)]
+
+    if not names:
+      logging.debug("Acquiring no locks for %d (%s) at level %s",
+                    jid, livelockfile, levelname)
+      return []
+
+    if shared:
+      request = [[lock, "shared"] for lock in locks]
+    else:
+      request = [[lock, "exclusive"] for lock in locks]
+
+    if opportunistic:
+      logging.debug("Opportunistically acquring some of %s for %d (%s).",
+                    locks, jid, livelockfile)
+      locks = self.wconfd.Client().OpportunisticLockUnion(jid, livelockfile,
+                                                          request)
+    elif timeout is None:
+      while True:
+        ## TODO: use asynchronous wait instead of polling
+        blockedon = self.wconfd.Client().TryUpdateLocks(jid, livelockfile,
+                                                        request)
+        logging.debug("Requesting %s for %d (%s) blocked on %s",
+                      request, jid, livelockfile, blockedon)
+        if not blockedon:
+          break
+        time.sleep(random.random())
+    else:
+      logging.debug("Trying %ss to request %s for %d (%s)",
+                    timeout, request, jid, livelockfile)
+      ## TODO: use blocking wait instead of polling
+      blocked = utils.SimpleRetry([], self.wconfd.Client().TryUpdateLocks, 0.1,
+                                  timeout, args=[jid, livelockfile, request])
+      if blocked:
+        raise LockAcquireTimeout()
+
+    return locks
 
   def _ExecLU(self, lu):
     """Logical Unit execution sequence.
@@ -398,12 +451,11 @@ class Processor(object):
     given LU and its opcodes.
 
     """
-    glm = self.context.glm
     adding_locks = level in lu.add_locks
     acquiring_locks = level in lu.needed_locks
 
     if level not in locking.LEVELS:
-      _VerifyLocks(lu, glm)
+      _VerifyLocks(lu)
 
       if self._cbs:
         self._cbs.NotifyStart()
@@ -445,14 +497,37 @@ class Processor(object):
 
           self._AcquireLocks(level, needed_locks, share, opportunistic,
                              calc_timeout())
+          (jid, livelockfile) = lu.wconfdcontext
+          lu.wconfdlocks = self.wconfd.Client().ListLocks(jid, livelockfile)
         else:
           # Adding locks
           add_locks = lu.add_locks[level]
+          if isinstance(add_locks, str):
+            add_locks = [add_locks]
           lu.remove_locks[level] = add_locks
 
           try:
-            glm.add(level, add_locks, acquired=1, shared=share)
-          except errors.LockError:
+            jid = int(self.GetECId())
+            livelockfile = self.context.livelock.lockfile.name
+            levelname = locking.LEVEL_NAMES[level]
+
+            if share:
+              mode = "shared"
+            else:
+              mode = "exclusive"
+
+            request = [["%s/%s" % (levelname, lock), mode]
+                       for lock in add_locks]
+
+            logging.debug("Requesting %s for %d (%s)",
+                          request, jid, livelockfile)
+            blocked = \
+              self.wconfd.Client().TryUpdateLocks(jid, livelockfile, request)
+            assert blocked == [], "Allocating newly 'created' locks failed"
+            (jid, livelockfile) = lu.wconfdcontext
+            lu.wconfdlocks = self.wconfd.Client().ListLocks(jid, livelockfile)
+          except errors.GenericError:
+            # TODO: verify what actually caused the error
             logging.exception("Detected lock error in level %s for locks"
                               " %s, shared=%s", level, add_locks, share)
             raise errors.OpPrereqError(
@@ -464,11 +539,21 @@ class Processor(object):
           result = self._LockAndExecLU(lu, level + 1, calc_timeout)
         finally:
           if level in lu.remove_locks:
-            glm.remove(level, lu.remove_locks[level])
+            jid = int(self.GetECId())
+            livelockfile = self.context.livelock.lockfile.name
+            levelname = locking.LEVEL_NAMES[level]
+            request = [["%s/%s" % (levelname, lock), "release"]
+                       for lock in lu.remove_locks[level]]
+            blocked = \
+              self.wconfd.Client().TryUpdateLocks(jid, livelockfile, request)
+            assert blocked == [], "Release may not fail"
       finally:
-        if glm.is_owned(level):
-          glm.release(level)
-
+        jid = int(self.GetECId())
+        livelockfile = self.context.livelock.lockfile.name
+        levelname = locking.LEVEL_NAMES[level]
+        logging.debug("Freeing locks at level %s for %d (%s)",
+                      levelname, jid, livelockfile)
+        self.wconfd.Client().FreeLocksLevel(jid, livelockfile, levelname)
     else:
       result = self._LockAndExecLU(lu, level + 1, calc_timeout)
 
@@ -529,7 +614,11 @@ class Processor(object):
                                      " disabled" % op.OP_ID)
 
       try:
-        lu = lu_class(self, op, self.context, self.rpc)
+        jid = int(self.GetECId())
+        livelockfile = self.context.livelock.lockfile.name
+        lu = lu_class(self, op, self.context, self.rpc, (jid, livelockfile),
+                      self.wconfd)
+        lu.wconfdlocks = self.wconfd.Client().ListLocks(jid, livelockfile)
         lu.ExpandNames()
         assert lu.needed_locks is not None, "needed_locks not set by LU"
 
@@ -541,9 +630,12 @@ class Processor(object):
             self.context.cfg.DropECReservations(self._ec_id)
       finally:
         # Release BGL if owned
-        if self.context.glm.is_owned(locking.LEVEL_CLUSTER):
-          assert self._enable_locks
-          self.context.glm.release(locking.LEVEL_CLUSTER)
+        jid = int(self.GetECId())
+        livelockfile = self.context.livelock.lockfile.name
+        bglname = "%s/%s" % (locking.LEVEL_NAMES[locking.LEVEL_CLUSTER],
+                             locking.BGL)
+        self.wconfd.Client().TryUpdateLocks(jid, livelockfile,
+                                            [[bglname, "release"]])
     finally:
       self._cbs = None
 

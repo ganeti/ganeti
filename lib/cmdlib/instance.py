@@ -1389,7 +1389,6 @@ class LUInstanceCreate(LogicalUnit):
     assert not (self.owned_locks(locking.LEVEL_NODE_RES) -
                 self.owned_locks(locking.LEVEL_NODE)), \
       "Node locks differ from node resource locks"
-    assert not self.glm.is_owned(locking.LEVEL_NODE_ALLOC)
 
     ht_kind = self.op.hypervisor
     if ht_kind in constants.HTS_REQ_PORT:
@@ -1732,8 +1731,6 @@ class LUInstanceRename(LogicalUnit):
     # Otherwise the new lock would have to be added in acquired mode.
     assert self.REQ_BGL
     assert locking.BGL in self.owned_locks(locking.LEVEL_CLUSTER)
-    self.glm.remove(locking.LEVEL_INSTANCE, old_name)
-    self.glm.add(locking.LEVEL_INSTANCE, self.op.new_name)
 
     # re-read the instance from the configuration after rename
     renamed_inst = self.cfg.GetInstanceInfo(self.instance.uuid)

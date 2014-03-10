@@ -784,8 +784,6 @@ class LUInstanceRecreateDisks(LogicalUnit):
       ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=self.op.node_uuids)
       ReleaseLocks(self, locking.LEVEL_NODE_ALLOC)
 
-    assert not self.glm.is_owned(locking.LEVEL_NODE_ALLOC)
-
     if self.op.node_uuids:
       node_uuids = self.op.node_uuids
     else:
@@ -1590,7 +1588,8 @@ class LUInstanceGrowDisk(LogicalUnit):
     ReleaseLocks(self, locking.LEVEL_NODE)
 
     # Downgrade lock while waiting for sync
-    self.glm.downgrade(locking.LEVEL_INSTANCE)
+    self.WConfdClient().DownGradeLocksLevel(
+          locking.LEVEL_NAMES[locking.LEVEL_INSTANCE])
 
     assert wipe_disks ^ (old_disk_size is None)
 
@@ -1707,8 +1706,6 @@ class LUInstanceReplaceDisks(LogicalUnit):
            for group_uuid in self.owned_locks(locking.LEVEL_NODEGROUP)
            for node_uuid in self.cfg.GetNodeGroup(group_uuid).members]
       else:
-        assert not self.glm.is_owned(locking.LEVEL_NODE_ALLOC)
-
         self._LockInstancesNodes()
 
     elif level == locking.LEVEL_NODE_RES:
@@ -1748,9 +1745,6 @@ class LUInstanceReplaceDisks(LogicalUnit):
     """Check prerequisites.
 
     """
-    assert (self.glm.is_owned(locking.LEVEL_NODEGROUP) or
-            self.op.iallocator is None)
-
     # Verify if node group locks are still correct
     owned_groups = self.owned_locks(locking.LEVEL_NODEGROUP)
     if owned_groups:
@@ -2170,14 +2164,10 @@ class TLReplaceDisks(Tasklet):
            (owned_nodes, self.node_secondary_ip.keys()))
       assert (self.lu.owned_locks(locking.LEVEL_NODE) ==
               self.lu.owned_locks(locking.LEVEL_NODE_RES))
-      assert not self.lu.glm.is_owned(locking.LEVEL_NODE_ALLOC)
 
       owned_instances = self.lu.owned_locks(locking.LEVEL_INSTANCE)
       assert list(owned_instances) == [self.instance_name], \
           "Instance '%s' not locked" % self.instance_name
-
-      assert not self.lu.glm.is_owned(locking.LEVEL_NODEGROUP), \
-          "Should not own any node group lock at this point"
 
     if not self.disks:
       feedback_fn("No disks need replacement for instance '%s'" %

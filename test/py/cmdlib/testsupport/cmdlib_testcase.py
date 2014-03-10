@@ -29,17 +29,17 @@ import traceback
 
 from cmdlib.testsupport.config_mock import ConfigMock
 from cmdlib.testsupport.iallocator_mock import patchIAllocator
-from cmdlib.testsupport.lock_manager_mock import LockManagerMock
+from cmdlib.testsupport.livelock_mock import LiveLockMock
 from cmdlib.testsupport.netutils_mock import patchNetutils, \
   SetupDefaultNetutilsMock
 from cmdlib.testsupport.processor_mock import ProcessorMock
 from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock, \
   RpcResultsBuilder, patchRpc, SetupDefaultRpcModuleMock
 from cmdlib.testsupport.ssh_mock import patchSsh
+from cmdlib.testsupport.wconfd_mock import WConfdMock
 
 from ganeti.cmdlib.base import LogicalUnit
 from ganeti import errors
-from ganeti import locking
 from ganeti import objects
 from ganeti import opcodes
 from ganeti import runtime
@@ -51,25 +51,20 @@ class GanetiContextMock(object):
   # pylint: disable=W0212
   cfg = property(fget=lambda self: self._test_case.cfg)
   # pylint: disable=W0212
-  glm = property(fget=lambda self: self._test_case.glm)
-  # pylint: disable=W0212
   rpc = property(fget=lambda self: self._test_case.rpc)
 
   def __init__(self, test_case):
     self._test_case = test_case
+    self.livelock = LiveLockMock()
 
   def AddNode(self, node, ec_id):
     self._test_case.cfg.AddNode(node, ec_id)
-    self._test_case.glm.add(locking.LEVEL_NODE, node.uuid)
-    self._test_case.glm.add(locking.LEVEL_NODE_RES, node.uuid)
 
   def ReaddNode(self, node):
     pass
 
   def RemoveNode(self, node):
     self._test_case.cfg.RemoveNode(node.uuid)
-    self._test_case.glm.remove(locking.LEVEL_NODE, node.uuid)
-    self._test_case.glm.remove(locking.LEVEL_NODE_RES, node.uuid)
 
 
 class MockLU(LogicalUnit):
@@ -90,7 +85,6 @@ class CmdlibTestCase(testutils.GanetiTestCase):
   The environment can be customized via the following fields:
 
     * C{cfg}: @see L{ConfigMock}
-    * C{glm}: @see L{LockManagerMock}
     * C{rpc}: @see L{CreateRpcRunnerMock}
     * C{iallocator_cls}: @see L{patchIAllocator}
     * C{mcpu}: @see L{ProcessorMock}
@@ -168,7 +162,6 @@ class CmdlibTestCase(testutils.GanetiTestCase):
 
     """
     self.cfg = ConfigMock()
-    self.glm = LockManagerMock()
     self.rpc = CreateRpcRunnerMock()
     self.ctx = GanetiContextMock(self)
     self.mcpu = ProcessorMock(self.ctx)
@@ -211,7 +204,8 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     @return: A mock LU
 
     """
-    return MockLU(self.mcpu, mock.MagicMock(), self.ctx, self.rpc)
+    return MockLU(self.mcpu, mock.MagicMock(), self.ctx, self.rpc,
+                  (1234, "/tmp/mock/livelock"), WConfdMock())
 
   def RpcResultsBuilder(self, use_node_names=False):
     """Creates a pre-configured L{RpcResultBuilder}
@@ -231,8 +225,6 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     @return: the result of the LU's C{Exec} method
 
     """
-    self.glm.AddLocksFromConfig(self.cfg)
-
     return self.mcpu.ExecOpCodeAndRecordOutput(opcode)
 
   def ExecOpCodeExpectException(self, opcode,
@@ -292,8 +284,6 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     @return: the result of test_func
 
     """
-    self.glm.AddLocksFromConfig(self.cfg)
-
     return self.mcpu.RunWithLockedLU(opcode, test_func)
 
   def assertLogContainsMessage(self, expected_msg):

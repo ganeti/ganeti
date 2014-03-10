@@ -331,12 +331,6 @@ class ClusterQuery(QueryBase):
     """Computes the list of nodes and their attributes.
 
     """
-    # Locking is not used
-    assert not (compat.any(lu.glm.is_owned(level)
-                           for level in locking.LEVELS
-                           if level != locking.LEVEL_CLUSTER) or
-                self.do_locking or self.use_locking)
-
     if query.CQ_CONFIG in self.requested_data:
       cluster = lu.cfg.GetClusterInfo()
       nodes = lu.cfg.GetAllNodesInfo()
@@ -591,7 +585,9 @@ class LUClusterRepairDiskSizes(NoHooksLU):
 
     """
     if self.wanted_names is None:
-      self.wanted_names = self.owned_locks(locking.LEVEL_INSTANCE)
+      self.wanted_names = \
+          map(self.cfg.GetInstanceName,
+              self.owned_locks(locking.LEVEL_INSTANCE))
 
     self.wanted_instances = \
         map(compat.snd, self.cfg.GetMultiInstanceInfoByName(self.wanted_names))
@@ -634,7 +630,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
         per_node_disks[pnode].append((instance, idx, disk))
 
     assert not (frozenset(per_node_disks.keys()) -
-                self.owned_locks(locking.LEVEL_NODE_RES)), \
+                frozenset(self.owned_locks(locking.LEVEL_NODE_RES))), \
       "Not owning correct locks"
     assert not self.owned_locks(locking.LEVEL_NODE)
 

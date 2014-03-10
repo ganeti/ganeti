@@ -24,7 +24,6 @@
 import logging
 import time
 
-from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import locking
@@ -286,12 +285,6 @@ class ExtStorageQuery(QueryBase):
     """Computes the list of nodes and their attributes.
 
     """
-    # Locking is not used
-    assert not (compat.any(lu.glm.is_owned(level)
-                           for level in locking.LEVELS
-                           if level != locking.LEVEL_CLUSTER) or
-                self.do_locking or self.use_locking)
-
     valid_nodes = [node.uuid
                    for node in lu.cfg.GetAllNodesInfo().values()
                    if not node.offline and node.vm_capable]

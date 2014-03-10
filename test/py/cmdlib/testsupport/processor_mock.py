@@ -27,6 +27,8 @@ import re
 from ganeti import constants
 from ganeti import mcpu
 
+from cmdlib.testsupport.wconfd_mock import WConfdMock
+
 
 class LogRecordingCallback(mcpu.OpExecCbBase):
   """Helper class for log output recording.
@@ -68,6 +70,7 @@ class ProcessorMock(mcpu.Processor):
     super(ProcessorMock, self).__init__(context, 1, True)
     self.log_entries = []
     self._lu_test_func = None
+    self.wconfd = WConfdMock()
 
   def ExecOpCodeAndRecordOutput(self, op):
     """Executes the given opcode and records the output for further inspection.

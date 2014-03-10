@@ -378,6 +378,8 @@ def ReleaseLocks(lu, level, names=None, keep=None):
   @param keep: Names of locks to retain
 
   """
+  logging.debug("Lu %s ReleaseLocks %s names=%s, keep=%s",
+                lu.wconfdcontext, level, names, keep)
   assert not (keep is not None and names is not None), \
          "Only one of the 'names' and the 'keep' parameters can be given"
 
@@ -387,6 +389,8 @@ def ReleaseLocks(lu, level, names=None, keep=None):
     should_release = lambda name: name not in keep
   else:
     should_release = None
+
+  levelname = locking.LEVEL_NAMES[level]
 
   owned = lu.owned_locks(level)
   if not owned:
@@ -407,14 +411,11 @@ def ReleaseLocks(lu, level, names=None, keep=None):
     assert len(lu.owned_locks(level)) == (len(retain) + len(release))
 
     # Release just some locks
-    lu.glm.release(level, names=release)
-
+    lu.WConfdClient().TryUpdateLocks(
+      lu.release_request(level, release))
     assert frozenset(lu.owned_locks(level)) == frozenset(retain)
   else:
-    # Release everything
-    lu.glm.release(level)
-
-    assert not lu.glm.is_owned(level), "No locks should be owned"
+    lu.WConfdClient().FreeLocksLevel(levelname)
 
 
 def _ComputeIPolicyNodeViolation(ipolicy, instance, current_group,

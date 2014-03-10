@@ -489,7 +489,7 @@ class GanetiContext(object):
     object.__setattr__(self, name, value)
 
   def AddNode(self, node, ec_id):
-    """Adds a node to the configuration and lock manager.
+    """Adds a node to the configuration.
 
     """
     # Add it to the configuration
@@ -497,10 +497,6 @@ class GanetiContext(object):
 
     # If preseeding fails it'll not be added
     self.jobqueue.AddNode(node)
-
-    # Add the new node to the Ganeti Lock Manager
-    self.glm.add(locking.LEVEL_NODE, node.uuid)
-    self.glm.add(locking.LEVEL_NODE_RES, node.uuid)
 
   def ReaddNode(self, node):
     """Updates a node that's already in the configuration
@@ -518,10 +514,6 @@ class GanetiContext(object):
 
     # Notify job queue
     self.jobqueue.RemoveNode(node.name)
-
-    # Remove the node from the Ganeti Lock Manager
-    self.glm.remove(locking.LEVEL_NODE, node.uuid)
-    self.glm.remove(locking.LEVEL_NODE_RES, node.uuid)
 
 
 def _SetWatcherPause(context, until):

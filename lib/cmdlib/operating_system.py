@@ -21,7 +21,6 @@
 
 """Logical units dealing with OS."""
 
-from ganeti import compat
 from ganeti import locking
 from ganeti import qlang
 from ganeti import query
@@ -94,12 +93,6 @@ class OsQuery(QueryBase):
     """Computes the list of nodes and their attributes.
 
     """
-    # Locking is not used
-    assert not (compat.any(lu.glm.is_owned(level)
-                           for level in locking.LEVELS
-                           if level != locking.LEVEL_CLUSTER) or
-                self.do_locking or self.use_locking)
-
     valid_node_uuids = [node.uuid
                         for node in lu.cfg.GetAllNodesInfo().values()
                         if not node.offline and node.vm_capable]

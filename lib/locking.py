@@ -916,6 +916,8 @@ class SharedLock(object):
 # to acquire.  Hide this behind this nicely named constant.
 ALL_SET = None
 
+LOCKSET_NAME = "[lockset]"
+
 
 def _TimeoutZero():
   """Returns the number zero.
