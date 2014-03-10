@@ -38,7 +38,7 @@ import Language.Haskell.TH (Name)
 
 import Ganeti.BasicTypes (toErrorStr)
 import qualified Ganeti.Locking.Allocation as L
-import Ganeti.Locking.Locks (GanetiLocks)
+import Ganeti.Locking.Locks (GanetiLocks, lockLevel, LockLevel)
 import Ganeti.Types (JobId)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
@@ -76,6 +76,13 @@ freeLocks :: JobId -> FilePath -> WConfdMonad ()
 freeLocks jid fpath =
   modifyLockAllocation_ (`L.freeLocks` (jid, fpath))
 
+-- | Free all locks of a given owner (i.e., a job-id lockfile pair)
+-- of a given level in the Ganeti sense (e.g., "cluster", "node").
+freeLocksLevel :: JobId -> FilePath -> LockLevel -> WConfdMonad ()
+freeLocksLevel jid fpath level =
+  modifyLockAllocation_ (L.freeLocksPredicate ((==) level . lockLevel)
+                           `flip` (jid, fpath))
+
 -- | Intersect the possesed locks of an owner with a given set.
 intersectLocks :: JobId -> FilePath -> [GanetiLocks] -> WConfdMonad ()
 intersectLocks jid fpath =
@@ -99,6 +106,7 @@ exportedFunctions = [ 'echo
                     , 'listLocks
                     , 'tryUpdateLocks
                     , 'freeLocks
+                    , 'freeLocksLevel
                     , 'intersectLocks
                     , 'opportunisticLockUnion
                     ]
