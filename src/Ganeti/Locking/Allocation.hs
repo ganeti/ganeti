@@ -35,6 +35,7 @@ module Ganeti.Locking.Allocation
   , requestRelease
   , updateLocks
   , freeLocks
+  , freeLocksPredicate
   , intersectLocks
   , opportunisticLockUnion
   ) where
@@ -292,11 +293,20 @@ updateLocks owner reqs state = genericResult ((,) state . Bad) (second Ok) $ do
       state'' = foldl (updateIndirects owner) state' reqs
   return (if S.null blocked then state'' else state, blocked)
 
+-- | Compute the state after an owner releases all its locks that
+-- satisfy a certain property.
+freeLocksPredicate :: (Lock a, Ord b)
+                   => (a -> Bool)
+                   -> LockAllocation a b -> b -> LockAllocation a b
+freeLocksPredicate property state owner =
+  fst . flip (updateLocks owner) state . map requestRelease
+    . filter property
+    . M.keys
+    $ listLocks owner state
+
 -- | Compute the state after an onwer releases all its locks.
 freeLocks :: (Lock a, Ord b) => LockAllocation a b -> b -> LockAllocation a b
-freeLocks state owner =
-  fst . flip (updateLocks owner) state . map requestRelease . M.keys
-    $ listLocks owner state
+freeLocks = freeLocksPredicate (const True)
 
 -- | Restrict the locks of a user to a given set.
 intersectLocks :: (Lock a, Ord b) => b -> [a]
