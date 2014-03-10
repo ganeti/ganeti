@@ -243,7 +243,7 @@ updateLocks owner reqs state = genericResult ((,) state . Bad) (second Ok) $ do
         | lock < highest && notHolding [ (lock, OwnExclusive) ]
         -> orderViolation lock
       LockRequest lock (Just OwnShared)
-        | lock < highest && notHolding [ (lock, OwnExclusive)
+        | lock < highest && notHolding [ (lock, OwnShared)
                                        , (lock, OwnExclusive)]
         -> orderViolation lock
       _ -> Ok ()
