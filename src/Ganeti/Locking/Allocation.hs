@@ -39,7 +39,7 @@ module Ganeti.Locking.Allocation
   , opportunisticLockUnion
   ) where
 
-import Control.Applicative (liftA2)
+import Control.Applicative (liftA2, (<$>), (<*>))
 import Control.Arrow (second, (***))
 import Control.Monad
 import Data.Foldable (for_, find)
@@ -240,11 +240,12 @@ updateLocks owner reqs state = genericResult ((,) state . Bad) (second Ok) $ do
                                    ++ " while holding " ++ show highest
     for_ reqs $ \req -> case req of
       LockRequest lock (Just OwnExclusive)
-        | lock < highest && notHolding [ (lock, OwnExclusive) ]
+        | lock < highest && notHolding ((,) <$> lock : lockImplications lock
+                                            <*> [OwnExclusive])
         -> orderViolation lock
       LockRequest lock (Just OwnShared)
-        | lock < highest && notHolding [ (lock, OwnShared)
-                                       , (lock, OwnExclusive)]
+        | lock < highest && notHolding ((,) <$> lock : lockImplications lock
+                                            <*> [OwnExclusive, OwnShared])
         -> orderViolation lock
       _ -> Ok ()
   let sharedsHeld = M.keysSet $ M.filter (== OwnShared) current
