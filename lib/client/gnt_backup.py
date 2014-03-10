@@ -90,14 +90,18 @@ def ExportInstance(opts, args):
     raise errors.OpPrereqError("Target node must be specified",
                                errors.ECODE_INVAL)
 
-  op = opcodes.OpBackupExport(instance_name=args[0],
-                              target_node=opts.node,
-                              compress=opts.transport_compression,
-                              shutdown=opts.shutdown,
-                              shutdown_timeout=opts.shutdown_timeout,
-                              remove_instance=opts.remove_instance,
-                              ignore_remove_failures=ignore_remove_failures,
-                              zero_free_space=opts.zero_free_space)
+  op = opcodes.OpBackupExport(
+    instance_name=args[0],
+    target_node=opts.node,
+    compress=opts.transport_compression,
+    shutdown=opts.shutdown,
+    shutdown_timeout=opts.shutdown_timeout,
+    remove_instance=opts.remove_instance,
+    ignore_remove_failures=ignore_remove_failures,
+    zero_free_space=opts.zero_free_space,
+    zeroing_timeout_fixed=opts.zeroing_timeout_fixed,
+    zeroing_timeout_per_mib=opts.zeroing_timeout_per_mib
+  )
 
   SubmitOrSend(op, opts)
   return 0
@@ -153,7 +157,8 @@ commands = {
     ExportInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, SINGLE_NODE_OPT, TRANSPORT_COMPRESSION_OPT, NOSHUTDOWN_OPT,
      SHUTDOWN_TIMEOUT_OPT, REMOVE_INSTANCE_OPT, IGNORE_REMOVE_FAILURES_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT, ZERO_FREE_SPACE_OPT] + SUBMIT_OPTS,
+     DRY_RUN_OPT, PRIORITY_OPT, ZERO_FREE_SPACE_OPT, ZEROING_TIMEOUT_FIXED_OPT,
+     ZEROING_TIMEOUT_PER_MIB_OPT] + SUBMIT_OPTS,
     "-n <target_node> [opts...] <name>",
     "Exports an instance to an image"),
   "import": (

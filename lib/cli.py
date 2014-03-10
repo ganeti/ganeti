@@ -230,6 +230,8 @@ __all__ = [
   "YES_DOIT_OPT",
   "ZEROING_IMAGE_OPT",
   "ZERO_FREE_SPACE_OPT",
+  "ZEROING_TIMEOUT_FIXED_OPT",
+  "ZEROING_TIMEOUT_PER_MIB_OPT",
   "DISK_STATE_OPT",
   "HV_STATE_OPT",
   "IGNORE_IPOLICY_OPT",
@@ -1747,6 +1749,18 @@ ZERO_FREE_SPACE_OPT = \
                dest="zero_free_space", action="store_true", default=False,
                help="Whether to zero the free space on the disks of the "
                     "instance prior to the export")
+
+ZEROING_TIMEOUT_FIXED_OPT = \
+    cli_option("--zeroing-timeout-fixed",
+               dest="zeroing_timeout_fixed", action="store", type="int",
+               help="The fixed amount of time to wait before assuming that the "
+                    "zeroing failed")
+
+ZEROING_TIMEOUT_PER_MIB_OPT = \
+    cli_option("--zeroing-timeout-per-mib",
+               dest="zeroing_timeout_per_mib", action="store", type="float",
+               help="The amount of time to wait per MiB of data to zero, in "
+                    "addition to the fixed timeout")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]

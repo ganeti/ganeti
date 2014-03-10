@@ -298,6 +298,18 @@ class LUBackupExport(LogicalUnit):
         raise errors.OpPrereqError("A zeroing image must be set for zeroing to"
                                    " work")
 
+      if self.op.zeroing_timeout_fixed is None:
+        self.op.zeroing_timeout_fixed = constants.HELPER_VM_STARTUP
+
+      if self.op.zeroing_timeout_per_mib is None:
+        self.op.zeroing_timeout_per_mib = constants.ZEROING_TIMEOUT_PER_MIB
+
+    else:
+      if (self.op.zeroing_timeout_fixed is not None or
+          self.op.zeroing_timeout_per_mib is not None):
+        raise errors.OpPrereqError("Zeroing timeout options can only be used"
+                                   " only with the --zero-free-space option")
+
   def _CleanupExports(self, feedback_fn):
     """Removes exports of current instance from all other nodes.
 
@@ -382,6 +394,9 @@ class LUBackupExport(LogicalUnit):
     @param feedback_fn: Function used to log progress
 
     """
+    assert self.op.zeroing_timeout_fixed is not None
+    assert self.op.zeroing_timeout_per_mib is not None
+
     zeroing_image = self.cfg.GetZeroingImage()
     src_node_uuid = self.instance.primary_node
     disk_size = self._DetermineImageSize(zeroing_image, src_node_uuid)
