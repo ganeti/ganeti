@@ -115,7 +115,31 @@ def GetAllUserFiles(user, mkdir=False, dircheck=True, _homedir_fn=None):
                for (kind, (privkey, pubkey, _)) in result))
 
 
-class SshRunner(object):
+def InitSSHSetup(error_fn=errors.OpPrereqError):
+  """Setup the SSH configuration for the node.
+
+  This generates a dsa keypair for root, adds the pub key to the
+  permitted hosts and adds the hostkey to its own known hosts.
+
+  """
+  priv_key, pub_key, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER)
+
+  for name in priv_key, pub_key:
+    if os.path.exists(name):
+      utils.CreateBackup(name)
+    utils.RemoveFile(name)
+
+  result = utils.RunCmd(["ssh-keygen", "-t", "dsa",
+                         "-f", priv_key,
+                         "-q", "-N", ""])
+  if result.failed:
+    raise error_fn("Could not generate ssh keypair, error %s" %
+                   result.output)
+
+  utils.AddAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
+
+
+class SshRunner:
   """Wrapper for SSH commands.
 
   """
