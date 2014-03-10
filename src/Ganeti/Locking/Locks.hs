@@ -53,8 +53,8 @@ import Ganeti.Utils.AsyncWorker
 
 -- | The type of Locks available in Ganeti. The order of this type
 -- is the lock oder.
-data GanetiLocks = BGL
-                 | ClusterLockSet
+data GanetiLocks = ClusterLockSet
+                 | BGL
                  | InstanceLockSet
                  | Instance String
                  | NodeAllocLockSet
@@ -161,14 +161,14 @@ lockLevel NetworkLockSet = LevelNetwork
 lockLevel (Network _) = LevelNetwork
 
 instance Lock GanetiLocks where
-  lockImplications BGL = []
-  lockImplications (Instance _) = [InstanceLockSet, BGL]
-  lockImplications (NodeGroup _) = [NodeGroupLockSet, BGL]
-  lockImplications NAL = [NodeAllocLockSet, BGL]
-  lockImplications (NodeRes _) = [NodeResLockSet, BGL]
-  lockImplications (Node _) = [NodeLockSet, BGL]
-  lockImplications (Network _) = [NetworkLockSet, BGL]
-  lockImplications _ = [BGL]
+  lockImplications BGL = [ClusterLockSet]
+  lockImplications (Instance _) = [InstanceLockSet]
+  lockImplications (NodeGroup _) = [NodeGroupLockSet]
+  lockImplications NAL = [NodeAllocLockSet]
+  lockImplications (NodeRes _) = [NodeResLockSet]
+  lockImplications (Node _) = [NodeLockSet]
+  lockImplications (Network _) = [NetworkLockSet]
+  lockImplications _ = []
 
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of
 -- locks are jobs.
