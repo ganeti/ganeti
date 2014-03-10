@@ -72,7 +72,13 @@ def _ConfigSync(shared=0):
       try:
         return fn(*args, **kwargs)
       finally:
-        _config_lock.release()
+        try:
+          if not shared:
+            cw._WriteConfig()
+        except Exception, err:
+          logging.crititcal("Can't write the configuration: %s", str(err))
+        finally:
+          _config_lock.release()
     return sync_function
   return wrap
 
@@ -984,8 +990,6 @@ class ConfigWriter(object):
                                         " than %s. Aborting." %
                                         constants.LAST_DRBD_PORT)
       self._ConfigData().cluster.highest_used_port = port
-
-    self._WriteConfig()
     return port
 
   def _UnlockedComputeDRBDMap(self):
@@ -1331,7 +1335,6 @@ class ConfigWriter(object):
 
     """
     self._UnlockedAddNodeGroup(group, ec_id, check_uuid)
-    self._WriteConfig()
 
   def _UnlockedAddNodeGroup(self, group, ec_id, check_uuid):
     """Add a node group to the configuration.
@@ -1380,7 +1383,6 @@ class ConfigWriter(object):
 
     del self._ConfigData().nodegroups[group_uuid]
     self._ConfigData().cluster.serial_no += 1
-    self._WriteConfig()
 
   def _UnlockedLookupNodeGroup(self, target):
     """Lookup a node group's UUID.
@@ -1529,7 +1531,6 @@ class ConfigWriter(object):
     self._ConfigData().cluster.serial_no += 1
     self._UnlockedReleaseDRBDMinors(instance.uuid)
     self._UnlockedCommitTemporaryIps(ec_id)
-    self._WriteConfig()
 
   def _EnsureUUID(self, item, ec_id):
     """Ensures a given object has a valid UUID.
@@ -1581,7 +1582,6 @@ class ConfigWriter(object):
       instance.disks_active = disks_active
       instance.serial_no += 1
       instance.mtime = time.time()
-      self._WriteConfig()
 
   @_ConfigSync()
   def MarkInstanceUp(self, inst_uuid):
@@ -1625,7 +1625,6 @@ class ConfigWriter(object):
 
     del self._ConfigData().instances[inst_uuid]
     self._ConfigData().cluster.serial_no += 1
-    self._WriteConfig()
 
   @_ConfigSync()
   def RenameInstance(self, inst_uuid, new_name):
@@ -1652,8 +1651,6 @@ class ConfigWriter(object):
 
     # Force update of ssconf files
     self._ConfigData().cluster.serial_no += 1
-
-    self._WriteConfig()
 
   @_ConfigSync()
   def MarkInstanceDown(self, inst_uuid):
@@ -1905,7 +1902,6 @@ class ConfigWriter(object):
     self._UnlockedAddNodeToGroup(node.uuid, node.group)
     self._ConfigData().nodes[node.uuid] = node
     self._ConfigData().cluster.serial_no += 1
-    self._WriteConfig()
 
   @_ConfigSync()
   def RemoveNode(self, node_uuid):
@@ -1920,7 +1916,6 @@ class ConfigWriter(object):
     self._UnlockedRemoveNodeFromGroup(self._ConfigData().nodes[node_uuid])
     del self._ConfigData().nodes[node_uuid]
     self._ConfigData().cluster.serial_no += 1
-    self._WriteConfig()
 
   def ExpandNodeName(self, short_name):
     """Attempt to expand an incomplete node name into a node UUID.
@@ -2268,7 +2263,6 @@ class ConfigWriter(object):
                         " fill the candidate pool (%d/%d)", mc_now, mc_max)
       if mod_list:
         self._ConfigData().cluster.serial_no += 1
-        self._WriteConfig()
 
     return mod_list
 
@@ -2370,8 +2364,6 @@ class ConfigWriter(object):
 
     # Force ssconf update
     self._ConfigData().cluster.serial_no += 1
-
-    self._WriteConfig()
 
   def _BumpSerialNo(self):
     """Bump up the serial number of the config.
@@ -2685,7 +2677,6 @@ class ConfigWriter(object):
     """
     self._ConfigData().cluster.volume_group_name = vg_name
     self._ConfigData().cluster.serial_no += 1
-    self._WriteConfig()
 
   @_ConfigSync(shared=1)
   def GetDRBDHelper(self):
@@ -2701,7 +2692,6 @@ class ConfigWriter(object):
     """
     self._ConfigData().cluster.drbd_usermode_helper = drbd_helper
     self._ConfigData().cluster.serial_no += 1
-    self._WriteConfig()
 
   @_ConfigSync(shared=1)
   def GetMACPrefix(self):
@@ -2858,7 +2848,6 @@ class ConfigWriter(object):
 
     """
     self._UnlockedAddNetwork(net, ec_id, check_uuid)
-    self._WriteConfig()
 
   def _UnlockedAddNetwork(self, net, ec_id, check_uuid):
     """Add a network to the configuration.
@@ -2923,7 +2912,6 @@ class ConfigWriter(object):
 
     del self._ConfigData().networks[network_uuid]
     self._ConfigData().cluster.serial_no += 1
-    self._WriteConfig()
 
   def _UnlockedGetGroupNetParams(self, net_uuid, node_uuid):
     """Get the netparams (mode, link) of a network.
@@ -3014,7 +3002,6 @@ class ConfigWriter(object):
           warn_fn("Overriding differing certificate digest for node %s"
                   % node_uuid)
     cluster.candidate_certs[node_uuid] = cert_digest
-    self._WriteConfig()
 
   @_ConfigSync()
   def RemoveNodeFromCandidateCerts(self, node_uuid,
@@ -3034,4 +3021,3 @@ class ConfigWriter(object):
                 " in the candidate map." % node_uuid)
       return
     del cluster.candidate_certs[node_uuid]
-    self._WriteConfig()
