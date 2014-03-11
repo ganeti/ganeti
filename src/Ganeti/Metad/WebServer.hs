@@ -23,7 +23,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Ganeti.Metad (start) where
+module Ganeti.Metad.WebServer (start) where
 
 import Control.Applicative
 import Control.Monad.IO.Class (liftIO)

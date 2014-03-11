@@ -28,7 +28,7 @@ module Main (main) where
 import qualified Ganeti.Constants as Constants
 import Ganeti.Daemon (OptType)
 import qualified Ganeti.Daemon as Daemon
-import qualified Ganeti.Metad as Metad
+import qualified Ganeti.Metad.WebServer as WebServer
 import qualified Ganeti.Runtime as Runtime
 
 options :: [OptType]
@@ -45,4 +45,4 @@ main =
   Daemon.genericMain Runtime.GanetiMetad options
     (\_ -> return . Right $ ())
     (\_ _ -> return ())
-    (\opts _ _ -> Metad.start opts)
+    (\opts _ _ -> WebServer.start opts)

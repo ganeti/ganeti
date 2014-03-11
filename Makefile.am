@@ -129,6 +129,7 @@ HS_DIRS = \
 	src/Ganeti/Locking \
 	src/Ganeti/Logging \
 	src/Ganeti/Monitoring \
+	src/Ganeti/Metad \
 	src/Ganeti/Objects \
 	src/Ganeti/Query \
 	src/Ganeti/Storage \
@@ -772,8 +773,8 @@ HS_LIB_SRCS = \
 	src/Ganeti/Logging.hs \
 	src/Ganeti/Logging/Lifted.hs \
 	src/Ganeti/Luxi.hs \
+	src/Ganeti/Metad/WebServer.hs \
 	src/Ganeti/Monitoring/Server.hs \
-	src/Ganeti/Metad.hs \
 	src/Ganeti/Network.hs \
 	src/Ganeti/Objects.hs \
 	src/Ganeti/Objects/Lens.hs \
