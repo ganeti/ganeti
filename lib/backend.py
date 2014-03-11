@@ -559,7 +559,7 @@ def LeaveCluster(modify_ssh_setup):
     try:
       priv_key, pub_key, auth_keys = ssh.GetUserFiles(constants.SSH_LOGIN_USER)
 
-      utils.RemoveAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
+      ssh.RemoveAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
 
       utils.RemoveFile(priv_key)
       utils.RemoveFile(pub_key)

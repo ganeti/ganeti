@@ -235,7 +235,7 @@ def UpdateSshRoot(data, dry_run, _homedir_fn=None):
     logging.info("This is a dry run, not modifying %s", auth_keys_file)
   else:
     for (_, _, public_key) in keys:
-      utils.AddAuthorizedKey(auth_keys_file, public_key)
+      ssh.AddAuthorizedKey(auth_keys_file, public_key)
 
 
 def LoadData(raw):

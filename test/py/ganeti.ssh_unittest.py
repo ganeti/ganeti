@@ -157,5 +157,73 @@ class TestGetUserFiles(unittest.TestCase):
     self.assertEqual(os.listdir(self.tmpdir), [])
 
 
+class TestSshKeys(testutils.GanetiTestCase):
+  """Test case for the AddAuthorizedKey function"""
+
+  KEY_A = "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a"
+  KEY_B = ('command="/usr/bin/fooserver -t --verbose",from="198.51.100.4" '
+           "ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b")
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    self.tmpname = self._CreateTempFile()
+    handle = open(self.tmpname, "w")
+    try:
+      handle.write("%s\n" % TestSshKeys.KEY_A)
+      handle.write("%s\n" % TestSshKeys.KEY_B)
+    finally:
+      handle.close()
+
+  def testAddingNewKey(self):
+    ssh.AddAuthorizedKey(self.tmpname,
+                         "ssh-dss AAAAB3NzaC1kc3MAAACB root@test")
+
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+      "ssh-dss AAAAB3NzaC1kc3MAAACB root@test\n")
+
+  def testAddingAlmostButNotCompletelyTheSameKey(self):
+    ssh.AddAuthorizedKey(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test")
+
+    # Only significant fields are compared, therefore the key won't be
+    # updated/added
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
+
+  def testAddingExistingKeyWithSomeMoreSpaces(self):
+    ssh.AddAuthorizedKey(self.tmpname,
+      "ssh-dss  AAAAB3NzaC1w5256closdj32mZaQU   root@key-a")
+    ssh.AddAuthorizedKey(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22")
+
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+      "ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22\n")
+
+  def testRemovingExistingKeyWithSomeMoreSpaces(self):
+    ssh.RemoveAuthorizedKey(self.tmpname,
+      "ssh-dss  AAAAB3NzaC1w5256closdj32mZaQU   root@key-a")
+
+    self.assertFileContent(self.tmpname,
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
+
+  def testRemovingNonExistingKey(self):
+    ssh.RemoveAuthorizedKey(self.tmpname,
+      "ssh-dss  AAAAB3Nsdfj230xxjxJjsjwjsjdjU   root@test")
+
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

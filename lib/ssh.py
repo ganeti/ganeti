@@ -33,8 +33,9 @@
 """
 
 
-import os
 import logging
+import os
+import tempfile
 
 from ganeti import utils
 from ganeti import errors
@@ -115,6 +116,95 @@ def GetAllUserFiles(user, mkdir=False, dircheck=True, _homedir_fn=None):
                for (kind, (privkey, pubkey, _)) in result))
 
 
+def _SplitSshKey(key):
+  """Splits a line for SSH's C{authorized_keys} file.
+
+  If the line has no options (e.g. no C{command="..."}), only the significant
+  parts, the key type and its hash, are used. Otherwise the whole line is used
+  (split at whitespace).
+
+  @type key: string
+  @param key: Key line
+  @rtype: tuple
+
+  """
+  parts = key.split()
+
+  if parts and parts[0] in constants.SSHAK_ALL:
+    # If the key has no options in front of it, we only want the significant
+    # fields
+    return (False, parts[:2])
+  else:
+    # Can't properly split the line, so use everything
+    return (True, parts)
+
+
+def AddAuthorizedKey(file_obj, key):
+  """Adds an SSH public key to an authorized_keys file.
+
+  @type file_obj: str or file handle
+  @param file_obj: path to authorized_keys file
+  @type key: str
+  @param key: string containing key
+
+  """
+  key_fields = _SplitSshKey(key)
+
+  if isinstance(file_obj, basestring):
+    f = open(file_obj, "a+")
+  else:
+    f = file_obj
+
+  try:
+    nl = True
+    for line in f:
+      # Ignore whitespace changes
+      if _SplitSshKey(line) == key_fields:
+        break
+      nl = line.endswith("\n")
+    else:
+      if not nl:
+        f.write("\n")
+      f.write(key.rstrip("\r\n"))
+      f.write("\n")
+      f.flush()
+  finally:
+    f.close()
+
+
+def RemoveAuthorizedKey(file_name, key):
+  """Removes an SSH public key from an authorized_keys file.
+
+  @type file_name: str
+  @param file_name: path to authorized_keys file
+  @type key: str
+  @param key: string containing key
+
+  """
+  key_fields = _SplitSshKey(key)
+
+  fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
+  try:
+    out = os.fdopen(fd, "w")
+    try:
+      f = open(file_name, "r")
+      try:
+        for line in f:
+          # Ignore whitespace changes while comparing lines
+          if _SplitSshKey(line) != key_fields:
+            out.write(line)
+
+        out.flush()
+        os.rename(tmpname, file_name)
+      finally:
+        f.close()
+    finally:
+      out.close()
+  except:
+    utils.RemoveFile(tmpname)
+    raise
+
+
 def InitSSHSetup(error_fn=errors.OpPrereqError):
   """Setup the SSH configuration for the node.
 
@@ -136,7 +226,7 @@ def InitSSHSetup(error_fn=errors.OpPrereqError):
     raise error_fn("Could not generate ssh keypair, error %s" %
                    result.output)
 
-  utils.AddAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
+  AddAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
 
 
 class SshRunner:
