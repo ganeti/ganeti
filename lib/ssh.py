@@ -141,16 +141,16 @@ def _SplitSshKey(key):
     return (True, parts)
 
 
-def AddAuthorizedKey(file_obj, key):
-  """Adds an SSH public key to an authorized_keys file.
+def AddAuthorizedKeys(file_obj, keys):
+  """Adds a list of SSH public key to an authorized_keys file.
 
   @type file_obj: str or file handle
   @param file_obj: path to authorized_keys file
-  @type key: str
-  @param key: string containing key
+  @type keys: list of str
+  @param keys: list of strings containing keys
 
   """
-  key_fields = _SplitSshKey(key)
+  key_field_list = [(key, _SplitSshKey(key)) for key in keys]
 
   if isinstance(file_obj, basestring):
     f = open(file_obj, "a+")
@@ -161,17 +161,32 @@ def AddAuthorizedKey(file_obj, key):
     nl = True
     for line in f:
       # Ignore whitespace changes
-      if _SplitSshKey(line) == key_fields:
-        break
+      line_key = _SplitSshKey(line)
+      key_field_list[:] = [(key, split_key) for (key, split_key)
+                           in key_field_list
+                           if split_key != line_key]
       nl = line.endswith("\n")
     else:
       if not nl:
         f.write("\n")
-      f.write(key.rstrip("\r\n"))
-      f.write("\n")
+      for (key, _) in key_field_list:
+        f.write(key.rstrip("\r\n"))
+        f.write("\n")
       f.flush()
   finally:
     f.close()
+
+
+def AddAuthorizedKey(file_obj, key):
+  """Adds an SSH public key to an authorized_keys file.
+
+  @type file_obj: str or file handle
+  @param file_obj: path to authorized_keys file
+  @type key: str
+  @param key: string containing key
+
+  """
+  AddAuthorizedKeys(file_obj, [key])
 
 
 def RemoveAuthorizedKey(file_name, key):
@@ -576,6 +591,21 @@ def InitSSHSetup(error_fn=errors.OpPrereqError):
                    result.output)
 
   AddAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
+
+
+def InitPubKeyFile(master_uuid, key_file=pathutils.SSH_PUB_KEYS):
+  """Creates the public key file and adds the master node's SSH key.
+
+  @type master_uuid: str
+  @param master_uuid: the master node's UUID
+  @type key_file: str
+  @param key_file: name of the file containing the public keys
+
+  """
+  _, pub_key, _ = GetUserFiles(constants.SSH_LOGIN_USER)
+  utils.WriteFile(key_file, data="", mode=0600)
+  key = utils.ReadFile(pub_key)
+  AddPublicKey(master_uuid, key, key_file=key_file)
 
 
 class SshRunner:

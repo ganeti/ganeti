@@ -192,7 +192,7 @@ def _ReadSshKeys(keyfiles, _tostderr_fn=ToStderr):
   return result
 
 
-def _SetupSSH(options, cluster_name, node, ssh_port):
+def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   """Configures a destination node's SSH daemon.
 
   @param options: Command line options
@@ -202,8 +202,18 @@ def _SetupSSH(options, cluster_name, node, ssh_port):
   @param node: Destination node name
   @type ssh_port: int
   @param ssh_port: Destination node ssh port
+  @param cl: luxi client
 
   """
+  # Retrieve the list of master and master candidates
+  candidate_filter = ["|", ["=", "role", "M"], ["=", "role", "C"]]
+  result = cl.Query(constants.QR_NODE, ["uuid"], candidate_filter)
+  if len(result.data) < 1:
+    raise errors.OpPrereqError("No master or master candidate nodes are"
+                               " found.")
+  candidates = [uuid for (_, uuid) in result.data[0]]
+  candidate_keys = ssh.QueryPubKeyFile(candidates)
+
   if options.force_join:
     ToStderr("The \"--force-join\" option is no longer supported and will be"
              " ignored.")
@@ -223,6 +233,7 @@ def _SetupSSH(options, cluster_name, node, ssh_port):
     constants.SSHS_NODE_DAEMON_CERTIFICATE: cert_pem,
     constants.SSHS_SSH_HOST_KEY: host_keys,
     constants.SSHS_SSH_ROOT_KEY: root_keys,
+    constants.SSHS_SSH_AUTHORIZED_KEYS: candidate_keys,
     }
 
   bootstrap.RunNodeSetupCmd(cluster_name, node, pathutils.PREPARE_NODE_JOIN,
@@ -298,7 +309,7 @@ def AddNode(opts, args):
              "and grant full intra-cluster ssh root access to/from it\n", node)
 
   if opts.node_setup:
-    _SetupSSH(opts, cluster_name, node, ssh_port)
+    _SetupSSH(opts, cluster_name, node, ssh_port, cl)
 
   bootstrap.SetupNodeDaemon(opts, cluster_name, node, ssh_port)
 

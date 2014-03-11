@@ -184,6 +184,33 @@ class TestSshKeys(testutils.GanetiTestCase):
       " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
       "ssh-dss AAAAB3NzaC1kc3MAAACB root@test\n")
 
+  def testAddingDuplicateKeys(self):
+    ssh.AddAuthorizedKey(self.tmpname,
+                         "ssh-dss AAAAB3NzaC1kc3MAAACB root@test")
+    ssh.AddAuthorizedKeys(self.tmpname,
+                          ["ssh-dss AAAAB3NzaC1kc3MAAACB root@test",
+                           "ssh-dss AAAAB3NzaC1kc3MAAACB root@test"])
+
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+      "ssh-dss AAAAB3NzaC1kc3MAAACB root@test\n")
+
+  def testAddingSeveralKeysAtOnce(self):
+    ssh.AddAuthorizedKeys(self.tmpname, ["aaa", "bbb", "ccc"])
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+      "aaa\nbbb\nccc\n")
+    ssh.AddAuthorizedKeys(self.tmpname, ["bbb", "ddd", "eee"])
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+      "aaa\nbbb\nccc\nddd\neee\n")
+
   def testAddingAlmostButNotCompletelyTheSameKey(self):
     ssh.AddAuthorizedKey(self.tmpname,
       "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@test")
@@ -223,6 +250,26 @@ class TestSshKeys(testutils.GanetiTestCase):
       "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
       'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
       " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
+
+  def testAddingNewKeys(self):
+    ssh.AddAuthorizedKeys(self.tmpname,
+                          ["ssh-dss AAAAB3NzaC1kc3MAAACB root@test"])
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+      "ssh-dss AAAAB3NzaC1kc3MAAACB root@test\n")
+
+    ssh.AddAuthorizedKeys(self.tmpname,
+                          ["ssh-dss AAAAB3asdfasdfaYTUCB laracroft@test",
+                           "ssh-dss AasdfliuobaosfMAAACB frodo@test"])
+    self.assertFileContent(self.tmpname,
+      "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      'command="/usr/bin/fooserver -t --verbose",from="198.51.100.4"'
+      " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n"
+      "ssh-dss AAAAB3NzaC1kc3MAAACB root@test\n"
+      "ssh-dss AAAAB3asdfasdfaYTUCB laracroft@test\n"
+      "ssh-dss AasdfliuobaosfMAAACB frodo@test\n")
 
 
 class TestPublicSshKeys(testutils.GanetiTestCase):

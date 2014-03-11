@@ -64,6 +64,8 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
   constants.SSHS_NODE_DAEMON_CERTIFICATE: ht.TNonEmptyString,
   constants.SSHS_SSH_HOST_KEY: _SSH_KEY_LIST,
   constants.SSHS_SSH_ROOT_KEY: _SSH_KEY_LIST,
+  constants.SSHS_SSH_AUTHORIZED_KEYS:
+    ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString)),
   })
 
 
@@ -222,20 +224,30 @@ def UpdateSshRoot(data, dry_run, _homedir_fn=None):
 
   """
   keys = data.get(constants.SSHS_SSH_ROOT_KEY)
-  if not keys:
-    return
+  authorized_keys = data.get(constants.SSHS_SSH_AUTHORIZED_KEYS)
 
-  (auth_keys_file, keyfiles) = \
-    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=True,
-                        _homedir_fn=_homedir_fn)
+  if keys or authorized_keys:
+    (auth_keys_file, keyfiles) = \
+      ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=True,
+                          _homedir_fn=_homedir_fn)
 
-  _UpdateKeyFiles(keys, dry_run, keyfiles)
+    if keys:
+      _UpdateKeyFiles(keys, dry_run, keyfiles)
 
-  if dry_run:
-    logging.info("This is a dry run, not modifying %s", auth_keys_file)
-  else:
-    for (_, _, public_key) in keys:
-      ssh.AddAuthorizedKey(auth_keys_file, public_key)
+      if dry_run:
+        logging.info("This is a dry run, not modifying %s", auth_keys_file)
+      else:
+        for (_, _, public_key) in keys:
+          ssh.AddAuthorizedKey(auth_keys_file, public_key)
+
+    if authorized_keys:
+      if dry_run:
+        logging.info("This is a dry run, not modifying %s", auth_keys_file)
+      else:
+        all_authorized_keys = []
+        for keys in authorized_keys.values():
+          all_authorized_keys += keys
+        ssh.AddAuthorizedKeys(auth_keys_file, all_authorized_keys)
 
 
 def LoadData(raw):

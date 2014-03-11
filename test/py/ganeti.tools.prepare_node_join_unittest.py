@@ -64,9 +64,21 @@ class TestLoadData(unittest.TestCase):
     raw = serializer.DumpJson([])
     self.assertRaises(errors.ParseError, prepare_node_join.LoadData, raw)
 
-  def testValidData(self):
+  def testEmptyDict(self):
     raw = serializer.DumpJson({})
     self.assertEqual(prepare_node_join.LoadData(raw), {})
+
+  def testValidData(self):
+    key_list = [[constants.SSHK_DSA, "private foo", "public bar"]]
+    data_dict = {
+      constants.SSHS_CLUSTER_NAME: "Skynet",
+      constants.SSHS_SSH_HOST_KEY: key_list,
+      constants.SSHS_SSH_ROOT_KEY: key_list,
+      constants.SSHS_SSH_AUTHORIZED_KEYS:
+        {"nodeuuid01234": ["foo"],
+         "nodeuuid56789": ["bar"]}}
+    raw = serializer.DumpJson(data_dict)
+    self.assertEqual(prepare_node_join.LoadData(raw), data_dict)
 
 
 class TestVerifyCertificate(testutils.GanetiTestCase):

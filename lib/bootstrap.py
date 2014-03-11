@@ -36,6 +36,7 @@ import os
 import os.path
 import re
 import logging
+import tempfile
 import time
 import tempfile
 
@@ -865,6 +866,9 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   cfg.Update(cfg.GetClusterInfo(), logging.error)
   ssconf.WriteSsconfFiles(cfg.GetSsconfValues())
 
+  master_uuid = cfg.GetMasterNode()
+  if modify_ssh_setup:
+    ssh.InitPubKeyFile(master_uuid)
   # set up the inter-node password and certificate
   _InitGanetiServerSetup(hostname.name)
 
