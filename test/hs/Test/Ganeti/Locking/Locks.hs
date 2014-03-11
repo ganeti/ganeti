@@ -81,8 +81,17 @@ prop_ImpliedIntervall =
                  ++ " must also belong to the group")
   $ a `elem` lockImplications x
 
+instance Arbitrary LockLevel where
+  arbitrary = elements [LevelCluster ..]
+
+-- | Verify that readJSON . showJSON = Ok for lock levels
+prop_ReadShowLevel :: Property
+prop_ReadShowLevel = forAll (arbitrary :: Gen LockLevel) $ \a ->
+  readJSON (showJSON a) ==? Ok a
+
 testSuite "Locking/Locks"
  [ 'prop_ReadShow
  , 'prop_ImpliedOrder
  , 'prop_ImpliedIntervall
+ , 'prop_ReadShowLevel
  ]
