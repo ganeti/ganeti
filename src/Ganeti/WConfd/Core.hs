@@ -83,6 +83,12 @@ freeLocksLevel jid fpath level =
   modifyLockAllocation_ (L.freeLocksPredicate ((==) level . lockLevel)
                            `flip` (jid, fpath))
 
+-- | Downgrade all locks of the given level to shared.
+downGradeLocksLevel :: JobId -> FilePath -> LockLevel -> WConfdMonad ()
+downGradeLocksLevel jid fpath level =
+  modifyLockAllocation_ $ L.downGradePredicate ((==) level . lockLevel)
+                                               (jid, fpath)
+
 -- | Intersect the possesed locks of an owner with a given set.
 intersectLocks :: JobId -> FilePath -> [GanetiLocks] -> WConfdMonad ()
 intersectLocks jid fpath =
@@ -107,6 +113,7 @@ exportedFunctions = [ 'echo
                     , 'tryUpdateLocks
                     , 'freeLocks
                     , 'freeLocksLevel
+                    , 'downGradeLocksLevel
                     , 'intersectLocks
                     , 'opportunisticLockUnion
                     ]
