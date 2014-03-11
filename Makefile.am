@@ -1582,6 +1582,7 @@ python_test_support = \
 	test/py/cmdlib/testsupport/cmdlib_testcase.py \
 	test/py/cmdlib/testsupport/config_mock.py \
 	test/py/cmdlib/testsupport/iallocator_mock.py \
+	test/py/cmdlib/testsupport/livelock_mock.py \
 	test/py/cmdlib/testsupport/lock_manager_mock.py \
 	test/py/cmdlib/testsupport/netutils_mock.py \
 	test/py/cmdlib/testsupport/processor_mock.py \
