@@ -123,7 +123,7 @@ lockLevelName :: LockLevel -> String
 lockLevelName LevelCluster = "cluster"
 lockLevelName LevelInstance = "instance"
 lockLevelName LevelNodeAlloc = "node-alloc"
-lockLevelName LevelNodeGroup = "node-group"
+lockLevelName LevelNodeGroup = "nodegroup"
 lockLevelName LevelNode = "node"
 lockLevelName LevelNodeRes = "node-res"
 lockLevelName LevelNetwork = "network"
@@ -133,7 +133,7 @@ lockLevelFromName :: String -> J.Result LockLevel
 lockLevelFromName "cluster" = return LevelCluster
 lockLevelFromName "instance" = return LevelInstance
 lockLevelFromName "node-alloc" = return LevelNodeAlloc
-lockLevelFromName "node-group" = return LevelNodeGroup
+lockLevelFromName "nodegroup" = return LevelNodeGroup
 lockLevelFromName "node" = return LevelNode
 lockLevelFromName "node-res" = return LevelNodeRes
 lockLevelFromName "network" = return LevelNetwork
