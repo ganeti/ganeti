@@ -36,6 +36,7 @@ module Ganeti.Locking.Allocation
   , updateLocks
   , freeLocks
   , freeLocksPredicate
+  , downGradePredicate
   , intersectLocks
   , opportunisticLockUnion
   ) where
@@ -293,20 +294,33 @@ updateLocks owner reqs state = genericResult ((,) state . Bad) (second Ok) $ do
       state'' = foldl (updateIndirects owner) state' reqs
   return (if S.null blocked then state'' else state, blocked)
 
+-- | Manipluate all locks of the owner with a given property.
+manipulateLocksPredicate :: (Lock a, Ord b)
+                         => (a -> LockRequest a)
+                         -> (a -> Bool)
+                         -> b -> LockAllocation a b -> LockAllocation a b
+manipulateLocksPredicate req prop owner state =
+  fst . flip (updateLocks owner) state . map req
+    . filter prop
+    . M.keys
+    $ listLocks owner state
+
 -- | Compute the state after an owner releases all its locks that
 -- satisfy a certain property.
 freeLocksPredicate :: (Lock a, Ord b)
                    => (a -> Bool)
                    -> LockAllocation a b -> b -> LockAllocation a b
-freeLocksPredicate property state owner =
-  fst . flip (updateLocks owner) state . map requestRelease
-    . filter property
-    . M.keys
-    $ listLocks owner state
+freeLocksPredicate prop = flip $ manipulateLocksPredicate requestRelease prop
 
 -- | Compute the state after an onwer releases all its locks.
 freeLocks :: (Lock a, Ord b) => LockAllocation a b -> b -> LockAllocation a b
 freeLocks = freeLocksPredicate (const True)
+
+-- | Downgrade to shared all locks held that satisfy a given predicate.
+downGradePredicate :: (Lock a, Ord b)
+                   => (a -> Bool)
+                   -> b -> LockAllocation a b -> LockAllocation a b
+downGradePredicate = manipulateLocksPredicate requestShared
 
 -- | Restrict the locks of a user to a given set.
 intersectLocks :: (Lock a, Ord b) => b -> [a]
