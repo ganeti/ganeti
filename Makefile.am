@@ -1589,7 +1589,8 @@ python_test_support = \
 	test/py/cmdlib/testsupport/rpc_runner_mock.py \
 	test/py/cmdlib/testsupport/ssh_mock.py \
 	test/py/cmdlib/testsupport/utils_mock.py \
-	test/py/cmdlib/testsupport/util.py
+	test/py/cmdlib/testsupport/util.py \
+	test/py/cmdlib/testsupport/wconfd_mock.py
 
 haskell_tests = test/hs/htest
 

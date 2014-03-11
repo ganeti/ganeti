@@ -35,6 +35,7 @@ from cmdlib.testsupport.processor_mock import ProcessorMock
 from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock, \
   RpcResultsBuilder
 from cmdlib.testsupport.ssh_mock import patchSsh
+from cmdlib.testsupport.wconfd_mock import WConfdMock
 
 __all__ = ["CmdlibTestCase",
            "withLockedLU",
@@ -49,4 +50,5 @@ __all__ = ["CmdlibTestCase",
            "ProcessorMock",
            "RpcResultsBuilder",
            "LiveLockMock",
+           "WConfdMock",
            ]
