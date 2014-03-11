@@ -331,7 +331,8 @@ class LUInstanceReinstall(LogicalUnit):
       os_params_secret=params_secret
     )
 
-    CheckOSParams(self, True, node_uuids, instance_os, self.osparams)
+    CheckOSParams(self, True, node_uuids, instance_os, self.osparams,
+                  self.op.force_variant)
 
   def _ReinstallOSScripts(self, instance, osparams, debug_level):
     """Reinstall OS scripts on an instance.

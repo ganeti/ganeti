@@ -3735,7 +3735,37 @@ def _CheckOSPList(os_obj, parameters):
           " by the OS %s: %s" % (os_obj.name, utils.CommaJoin(delta)))
 
 
-def ValidateOS(required, osname, checks, osparams):
+def _CheckOSVariant(os_obj, name):
+  """Check whether an OS name conforms to the os variants specification.
+
+  @type os_obj: L{objects.OS}
+  @param os_obj: OS object to check
+
+  @type name: string
+  @param name: OS name passed by the user, to check for validity
+
+  @rtype: NoneType
+  @return: None
+  @raise RPCFail: if OS variant is not valid
+
+  """
+  variant = objects.OS.GetVariant(name)
+
+  if not os_obj.supported_variants:
+    if variant:
+      _Fail("OS '%s' does not support variants ('%s' passed)" %
+            (os_obj.name, variant))
+    else:
+      return
+
+  if not variant:
+    _Fail("OS name '%s' must include a variant" % name)
+
+  if variant not in os_obj.supported_variants:
+    _Fail("OS '%s' does not support variant '%s'" % (os_obj.name, variant))
+
+
+def ValidateOS(required, osname, checks, osparams, force_variant):
   """Validate the given OS parameters.
 
   @type required: boolean
@@ -3765,6 +3795,9 @@ def ValidateOS(required, osname, checks, osparams):
       _Fail(tbv)
     else:
       return False
+
+  if not force_variant:
+    _CheckOSVariant(tbv, osname)
 
   if max(tbv.api_versions) < constants.OS_API_V20:
     return True

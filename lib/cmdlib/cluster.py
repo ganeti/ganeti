@@ -1318,7 +1318,7 @@ class LUClusterSetParams(LogicalUnit):
       )
       # check the parameter validity (remote check)
       CheckOSParams(self, False, [self.cfg.GetMasterNode()],
-                    os_name, os_params)
+                    os_name, os_params, False)
 
   def _CheckDiskTemplateConsistency(self):
     """Check whether the disk templates that are going to be disabled

@@ -1313,7 +1313,8 @@ class LUInstanceCreate(LogicalUnit):
       CheckNodeHasOS(self, pnode.uuid, self.op.os_type, self.op.force_variant)
 
     # check OS parameters (remotely)
-    CheckOSParams(self, True, node_uuids, self.op.os_type, self.os_full)
+    CheckOSParams(self, True, node_uuids, self.op.os_type, self.os_full,
+                  self.op.force_variant)
 
     CheckNicsBridgesExist(self, self.nics, self.pnode.uuid)
 
@@ -3188,7 +3189,8 @@ class LUInstanceSetParams(LogicalUnit):
 
       CheckOSParams(self, True, node_uuids, instance_os,
                     objects.FillDict(self.os_inst,
-                                     self.os_inst_private))
+                                     self.os_inst_private),
+                    self.op.force_variant)
 
     else:
       self.os_inst = {}

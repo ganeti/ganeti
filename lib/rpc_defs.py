@@ -470,6 +470,7 @@ _OS_CALLS = [
     ("name", None, None),
     ("checks", None, None),
     ("params", None, None),
+    ("force_variant", None, None),
     ], None, None, "Run a validation routine for a given OS"),
   ("os_get", SINGLE, None, constants.RPC_TMO_FAST, [
     ("name", None, None),

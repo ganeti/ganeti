@@ -365,7 +365,7 @@ def MergeAndVerifyDiskState(op_input, obj_input):
   return None
 
 
-def CheckOSParams(lu, required, node_uuids, osname, osparams):
+def CheckOSParams(lu, required, node_uuids, osname, osparams, force_variant):
   """OS parameters validation.
 
   @type lu: L{LogicalUnit}
@@ -392,7 +392,7 @@ def CheckOSParams(lu, required, node_uuids, osname, osparams):
   if osname:
     result = lu.rpc.call_os_validate(node_uuids, required, osname,
                                      [constants.OS_VALIDATE_PARAMETERS],
-                                     osparams)
+                                     osparams, force_variant)
     for node_uuid, nres in result.items():
       # we don't check for offline cases since this should be run only
       # against the master node and/or an instance's nodes

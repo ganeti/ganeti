@@ -984,8 +984,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Run a given OS' validation routine.
 
     """
-    required, name, checks, params = params
-    return backend.ValidateOS(required, name, checks, params)
+    required, name, checks, params, force_variant = params
+    return backend.ValidateOS(required, name, checks, params, force_variant)
 
   # extstorage -----------------------
 
