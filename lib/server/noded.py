@@ -971,15 +971,6 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.DiagnoseOS()
 
   @staticmethod
-  def perspective_os_get(params):
-    """Query information about a given OS.
-
-    """
-    name = params[0]
-    os_obj = backend.OSFromDisk(name)
-    return os_obj.ToDict()
-
-  @staticmethod
   def perspective_os_validate(params):
     """Run a given OS' validation routine.
 

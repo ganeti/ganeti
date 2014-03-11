@@ -144,15 +144,6 @@ def _NodeInfoPreProc(node, args):
     return args
 
 
-def _OsGetPostProc(result):
-  """Post-processor for L{rpc.node.RpcRunner.call_os_get}.
-
-  """
-  if not result.fail_msg and isinstance(result.payload, dict):
-    result.payload = objects.OS.FromDict(result.payload)
-  return result
-
-
 def _ImpExpStatusPostProc(result):
   """Post-processor for import/export status.
 
@@ -472,9 +463,6 @@ _OS_CALLS = [
     ("params", None, None),
     ("force_variant", None, None),
     ], None, None, "Run a validation routine for a given OS"),
-  ("os_get", SINGLE, None, constants.RPC_TMO_FAST, [
-    ("name", None, None),
-    ], None, _OsGetPostProc, "Returns an OS definition"),
   ]
 
 _EXTSTORAGE_CALLS = [
