@@ -382,6 +382,16 @@ def TestInstanceReinstall(instance):
                  instance.name],
                 fail=True)
 
+  # Test with existing OS but invalid variant
+  AssertCommand(["gnt-instance", "reinstall", "-f", "-o", "debootstrap+ola",
+                 instance.name],
+                fail=True)
+
+  # Test with existing OS but invalid variant
+  AssertCommand(["gnt-instance", "reinstall", "-f", "-o", "debian-image+ola",
+                 instance.name],
+                fail=True)
+
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
 def TestInstanceRenameAndBack(rename_source, rename_target):

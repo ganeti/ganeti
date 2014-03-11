@@ -30,6 +30,7 @@ import unittest
 import mock
 import operator
 
+from ganeti import backend
 from ganeti import compat
 from ganeti import constants
 from ganeti import errors
@@ -75,10 +76,6 @@ class TestLUInstanceCreate(CmdlibTestCase):
 
     self.node1 = self.cfg.AddNewNode()
     self.node2 = self.cfg.AddNewNode()
-
-    self.rpc.call_os_get.side_effect = \
-      lambda node, _: self.RpcResultsBuilder() \
-                        .CreateSuccessfulNodeResult(node, self.os)
 
     hv_info = ("bootid",
                [{
@@ -744,26 +741,26 @@ param1=val1
 class TestCheckOSVariant(CmdlibTestCase):
   def testNoVariantsSupported(self):
     os = self.cfg.CreateOs(supported_variants=[])
-    self.assertRaises(errors.OpPrereqError, instance_utils._CheckOSVariant,
+    self.assertRaises(backend.RPCFail, backend._CheckOSVariant,
                       os, "os+variant")
 
   def testNoVariantGiven(self):
     os = self.cfg.CreateOs(supported_variants=["default"])
-    self.assertRaises(errors.OpPrereqError, instance_utils._CheckOSVariant,
+    self.assertRaises(backend.RPCFail, backend._CheckOSVariant,
                       os, "os")
 
   def testWrongVariantGiven(self):
     os = self.cfg.CreateOs(supported_variants=["default"])
-    self.assertRaises(errors.OpPrereqError, instance_utils._CheckOSVariant,
+    self.assertRaises(backend.RPCFail, backend._CheckOSVariant,
                       os, "os+wrong_variant")
 
   def testOkWithVariant(self):
     os = self.cfg.CreateOs(supported_variants=["default"])
-    instance_utils._CheckOSVariant(os, "os+default")
+    backend._CheckOSVariant(os, "os+default")
 
   def testOkWithoutVariant(self):
     os = self.cfg.CreateOs(supported_variants=[])
-    instance_utils._CheckOSVariant(os, "os")
+    backend._CheckOSVariant(os, "os")
 
 
 class TestCheckTargetNodeIPolicy(TestLUInstanceCreate):
@@ -1864,9 +1861,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
 
   def testOsChange(self):
     os = self.cfg.CreateOs(supported_variants=[])
-    self.rpc.call_os_get.return_value = \
-      self.RpcResultsBuilder() \
-        .CreateSuccessfulNodeResult(self.master, os)
+    self.rpc.call_os_validate.return_value = True
     op = self.CopyOpCode(self.op,
                          os_name=os.name)
     self.ExecOpCode(op)
