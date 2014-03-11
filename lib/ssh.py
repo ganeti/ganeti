@@ -37,6 +37,8 @@ import logging
 import os
 import tempfile
 
+from functools import partial
+
 from ganeti import utils
 from ganeti import errors
 from ganeti import constants
@@ -203,6 +205,353 @@ def RemoveAuthorizedKey(file_name, key):
   except:
     utils.RemoveFile(tmpname)
     raise
+
+
+def _AddPublicKeyProcessLine(new_uuid, new_key, line_uuid, line_key, tmp_file,
+                             found):
+  """Processes one line of the public key file when adding a key.
+
+  This is a sub function that can be called within the
+  C{_ManipulatePublicKeyFile} function. It processes one line of the public
+  key file, checks if this line contains the key to add already and if so,
+  notes the occurrence in the return value.
+
+  @type new_uuid: string
+  @param new_uuid: the node UUID of the node whose key is added
+  @type new_key: string
+  @param new_key: the SSH key to be added
+  @type line_uuid: the UUID of the node whose line in the public key file
+    is processed in this function call
+  @param line_key: the SSH key of the node whose line in the public key
+    file is processed in this function call
+  @type tmp_file: file descriptor
+  @param tmp_file: the temporary file to which the manipulated public key
+    file is written to, before replacing the original public key file
+    automically
+  @type found: boolean
+  @param found: whether or not the (UUID, key) pair of the node whose key
+    is being added was found in the public key file already.
+  @rtype: boolean
+  @return: a possibly updated value of C{found}
+
+  """
+  if line_uuid == new_uuid and line_key == new_key:
+    logging.debug("SSH key of node '%s' already in key file.", new_uuid)
+    found = True
+  tmp_file.write("%s %s\n" % (line_uuid, line_key))
+  return found
+
+
+def _AddPublicKeyElse(new_uuid, new_key, tmp_file):
+  """Adds a new SSH key to the key file if it did not exist already.
+
+  This is an auxiliary function for C{_ManipulatePublicKeyFile} which
+  is carried out when a new key is added to the public key file and
+  after processing the whole file, we found out that the key does
+  not exist in the file yet but needs to be appended at the end.
+
+  @type new_uuid: string
+  @param new_uuid: the UUID of the node whose key is added
+  @type new_key: string
+  @param new_key: the SSH key to be added
+  @type tmp_file: file descriptor
+  @param tmp_file: the file where the key is appended
+
+  """
+  tmp_file.write("%s %s\n" % (new_uuid, new_key))
+
+
+def _RemovePublicKeyProcessLine(
+    target_uuid, _target_key,
+    line_uuid, line_key, tmp_file, found):
+  """Processes a line in the public key file when aiming for removing a key.
+
+  This is an auxiliary function for C{_ManipulatePublicKeyFile} when we
+  are removing a key from the public key file. This particular function
+  only checks if the current line contains the UUID of the node in
+  question and writes the line to the temporary file otherwise.
+
+  @type target_uuid: string
+  @param target_uuid: UUID of the node whose key is being removed
+  @type _target_key: string
+  @param _target_key: SSH key of the node (not used)
+  @type line_uuid: string
+  @param line_uuid: UUID of the node whose line is processed in this call
+  @type line_key: string
+  @param line_key: SSH key of the nodes whose line is processed in this call
+  @type tmp_file: file descriptor
+  @param tmp_file: temporary file which eventually replaces the ganeti public
+    key file
+  @type found: boolean
+  @param found: whether or not the UUID was already found.
+
+  """
+  if line_uuid != target_uuid:
+    tmp_file.write("%s %s\n" % (line_uuid, line_key))
+    return found
+  else:
+    return True
+
+
+def _RemovePublicKeyElse(
+    target_uuid, _target_key, _tmp_file):
+  """Logs when we tried to remove a key that does not exist.
+
+  This is an auxiliary function for C{_ManipulatePublicKeyFile} which is
+  run after we have processed the complete public key file and did not find
+  the key to be removed.
+
+  @type target_uuid: string
+  @param target_uuid: the UUID of the node whose key was supposed to be removed
+  @type _target_key: string
+  @param _target_key: the key of the node which was supposed to be removed
+    (not used)
+  @type _tmp_file: file descriptor
+  @param _tmp_file: the temporary file which eventually will replace the public
+    key file (not used)
+
+  """
+  logging.debug("Trying to remove key of node '%s' which is not in list"
+                " of public keys.", target_uuid)
+
+
+def _ReplaceNameByUuidProcessLine(
+    node_name, _key, line_identifier, line_key, tmp_file, found,
+    node_uuid=None):
+  """Replaces a node's name with its UUID on a matching line in the key file.
+
+  This is an auxiliary function for C{_ManipulatePublicKeyFile} which processes
+  a line of the ganeti public key file. If the line in question matches the
+  node's name, the name will be replaced by the node's UUID.
+
+  @type node_name: string
+  @param node_name: name of the node to be replaced by the UUID
+  @type _key: string
+  @param _key: SSH key of the node (not used)
+  @type line_identifier: string
+  @param line_identifier: an identifier of a node in a line of the public key
+    file. This can be either a node name or a node UUID, depending on if it
+    got replaced already or not.
+  @type line_key: string
+  @param line_key: SSH key of the node whose line is processed
+  @type tmp_file: file descriptor
+  @param tmp_file: temporary file which will eventually replace the public
+    key file
+  @type found: boolean
+  @param found: whether or not the line matches the node's name
+  @type node_uuid: string
+  @param node_uuid: the node's UUID which will replace the node name
+
+  """
+  if node_name == line_identifier:
+    found = True
+    tmp_file.write("%s %s\n" % (node_uuid, line_key))
+  else:
+    tmp_file.write("%s %s\n" % (line_identifier, line_key))
+  return found
+
+
+def _ReplaceNameByUuidElse(
+    node_uuid, node_name, _key, _tmp_file):
+  """Logs a debug message when we try to replace a key that is not there.
+
+  This is an implementation of the auxiliary C{process_else_fn} function for
+  the C{_ManipulatePubKeyFile} function when we use it to replace a line
+  in the public key file that is indexed by the node's name instead of the
+  node's UUID.
+
+  @type node_uuid: string
+  @param node_uuid: the node's UUID
+  @type node_name: string
+  @param node_name: the node's UUID
+  @type _key: string (not used)
+  @param _key: the node's SSH key (not used)
+  @type _tmp_file: file descriptor
+  @param _tmp_file: temporary file for manipulating the public key file
+    (not used)
+
+  """
+  logging.debug("Trying to replace node name '%s' with UUID '%s', but"
+                " no line with that name was found.", node_name, node_uuid)
+
+
+def _ParseKeyLine(line, error_fn):
+  """Parses a line of the public key file.
+
+  @type line: string
+  @param line: line of the public key file
+  @type error_fn: function
+  @param error_fn: function to process error messages
+  @rtype: tuple (string, string)
+  @return: a tuple containing the UUID of the node and a string containing
+    the SSH key and possible more parameters for the key
+
+  """
+  if len(line.rstrip()) == 0:
+    return (None, None)
+  chunks = line.split(" ")
+  if len(chunks) < 2:
+    raise error_fn("Error parsing public SSH key file. Line: '%s'"
+                   % line)
+  uuid = chunks[0]
+  key = " ".join(chunks[1:]).rstrip()
+  return (uuid, key)
+
+
+def _ManipulatePubKeyFile(target_identifier, target_key,
+                          key_file=pathutils.SSH_PUB_KEYS,
+                          error_fn=errors.ProgrammerError,
+                          process_line_fn=None, process_else_fn=None):
+  """Manipulates the list of public SSH keys of the cluster.
+
+  This is a general function to manipulate the public key file. It needs
+  two auxiliary functions C{process_line_fn} and C{process_else_fn} to
+  work. Generally, the public key file is processed as follows:
+  1) A temporary file is opened to write the content of the ganeti public key
+  file to (possibly with changes).
+  2) The function processes each line of the original ganeti public key file,
+  applies the C{process_line_fn} function on it, which possibly writes the
+  original line, a changed line or no line to the temporary file. If
+  the return value of the C{process_line_fn} function is True, it will
+  be recorded in the 'found' variable for later use.
+  3) If all lines are processed and the 'found' variable is False, the
+  seconds auxiliary function C{process_else_fn} is called to possibly
+  add more lines to the temporary file.
+  4) Finally, the temporary file is written to disk and moved to the original
+  files name to ensure atomic writing.
+
+  @type target_identifier: str
+  @param target_identifier: identifier of the node whose key is added; in most
+    cases this is the node's UUID, but in some it is the node's host name
+  @type target_key: str
+  @param target_key: string containing a public SSH key (a complete line
+    possibly including more parameters than just the key)
+  @type key_file: str
+  @param key_file: filename of the file of public node keys (optional
+    parameter for testing)
+  @type error_fn: function
+  @param error_fn: Function that returns an exception, used to customize
+    exception types depending on the calling context
+  @type process_line_fn: function
+  @param process_line_fn: function to process one line of the public key file
+  @type process_else_fn: function
+  @param process_else_fn: function to be called if no line of the key file
+    matches the target uuid
+
+  """
+  assert process_else_fn is not None
+  assert process_line_fn is not None
+
+  fd_tmp, tmpname = tempfile.mkstemp(dir=os.path.dirname(key_file))
+  try:
+    f_tmp = os.fdopen(fd_tmp, "w")
+    try:
+      f_orig = open(key_file, "r")
+      try:
+        found = False
+        for line in f_orig:
+          (uuid, key) = _ParseKeyLine(line, error_fn)
+          if not uuid:
+            continue
+          if process_line_fn(target_identifier, target_key, uuid,
+                             key, f_tmp, found):
+            found = True
+        if not found:
+          process_else_fn(target_identifier, target_key, f_tmp)
+        f_tmp.flush()
+        os.rename(tmpname, key_file)
+      finally:
+        f_orig.close()
+    finally:
+      f_tmp.close()
+  except:
+    utils.RemoveFile(tmpname)
+    raise
+
+
+def AddPublicKey(new_uuid, new_key, key_file=pathutils.SSH_PUB_KEYS,
+                 error_fn=errors.ProgrammerError):
+  """Adds a new key to the list of public keys.
+
+  @see: _ManipulatePubKeyFile for parameter descriptions.
+
+  """
+  _ManipulatePubKeyFile(new_uuid, new_key, key_file=key_file,
+                        process_line_fn=_AddPublicKeyProcessLine,
+                        process_else_fn=_AddPublicKeyElse,
+                        error_fn=error_fn)
+
+
+def RemovePublicKey(target_uuid, key_file=pathutils.SSH_PUB_KEYS,
+                    error_fn=errors.ProgrammerError):
+  """Removes a key from the list of public keys.
+
+  @see: _ManipulatePubKeyFile for parameter descriptions.
+
+  """
+  _ManipulatePubKeyFile(target_uuid, None, key_file=key_file,
+                        process_line_fn=_RemovePublicKeyProcessLine,
+                        process_else_fn=_RemovePublicKeyElse,
+                        error_fn=error_fn)
+
+
+def ReplaceNameByUuid(node_uuid, node_name, key_file=pathutils.SSH_PUB_KEYS,
+                      error_fn=errors.ProgrammerError):
+  """Replaces a host name with the node's corresponding UUID.
+
+  When a node is added to the cluster, we don't know it's UUID yet. So first
+  its SSH key gets added to the public key file and in a second step, the
+  node's name gets replaced with the node's UUID as soon as we know the UUID.
+
+  @type node_uuid: string
+  @param node_uuid: the node's UUID to replace the node's name
+  @type node_name: string
+  @param node_name: the node's name to be replaced by the node's UUID
+
+  @see: _ManipulatePubKeyFile for the other parameter descriptions.
+
+  """
+  process_line_fn = partial(_ReplaceNameByUuidProcessLine, node_uuid=node_uuid)
+  process_else_fn = partial(_ReplaceNameByUuidElse, node_uuid=node_uuid)
+  _ManipulatePubKeyFile(node_name, None, key_file=key_file,
+                        process_line_fn=process_line_fn,
+                        process_else_fn=process_else_fn,
+                        error_fn=error_fn)
+
+
+def QueryPubKeyFile(target_uuids, key_file=pathutils.SSH_PUB_KEYS,
+                    error_fn=errors.ProgrammerError):
+  """Retrieves a map of keys for the requested node UUIDs.
+
+  @type target_uuids: str or list of str
+  @param target_uuids: UUID of the node to retrieve the key for or a list
+    of UUIDs of nodes to retrieve the keys for
+  @type key_file: str
+  @param key_file: filename of the file of public node keys (optional
+    parameter for testing)
+  @type error_fn: function
+  @param error_fn: Function that returns an exception, used to customize
+    exception types depending on the calling context
+  @rtype: dict mapping strings to list of strings
+  @return: dictionary mapping node uuids to their ssh keys
+
+  """
+  if isinstance(target_uuids, str):
+    target_uuids = [target_uuids]
+  result = {}
+  f = open(key_file, "r")
+  try:
+    for line in f:
+      (uuid, key) = _ParseKeyLine(line, error_fn)
+      if not uuid:
+        continue
+      if uuid in target_uuids:
+        if uuid not in result:
+          result[uuid] = []
+        result[uuid].append(key)
+  finally:
+    f.close()
+  return result
 
 
 def InitSSHSetup(error_fn=errors.OpPrereqError):

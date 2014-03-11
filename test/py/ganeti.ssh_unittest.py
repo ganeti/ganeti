@@ -225,5 +225,122 @@ class TestSshKeys(testutils.GanetiTestCase):
       " ssh-dss AAAAB3NzaC1w520smc01ms0jfJs22 root@key-b\n")
 
 
+class TestPublicSshKeys(testutils.GanetiTestCase):
+  """Test case for the handling of the list of public ssh keys."""
+
+  KEY_A = "ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a"
+  KEY_B = "ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b"
+  UUID_1 = "123-456"
+  UUID_2 = "789-ABC"
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+  def testAddingAndRemovingPubKey(self):
+    pub_key_file = self._CreateTempFile()
+    ssh.AddPublicKey(self.UUID_1, self.KEY_A, key_file=pub_key_file)
+    ssh.AddPublicKey(self.UUID_2, self.KEY_B, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file,
+      "123-456 ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      "789-ABC ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b\n")
+
+    ssh.RemovePublicKey(self.UUID_2, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file,
+      "123-456 ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n")
+
+  def testAddingExistingPubKey(self):
+    expected_file_content = \
+      "123-456 ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n" + \
+      "789-ABC ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b\n"
+    pub_key_file = self._CreateTempFile()
+    ssh.AddPublicKey(self.UUID_1, self.KEY_A, key_file=pub_key_file)
+    ssh.AddPublicKey(self.UUID_2, self.KEY_B, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file, expected_file_content)
+
+    ssh.AddPublicKey(self.UUID_1, self.KEY_A, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file, expected_file_content)
+
+    ssh.AddPublicKey(self.UUID_1, self.KEY_B, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file,
+      "123-456 ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      "789-ABC ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b\n"
+      "123-456 ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b\n")
+
+  def testRemoveNonexistingKey(self):
+    pub_key_file = self._CreateTempFile()
+    ssh.AddPublicKey(self.UUID_1, self.KEY_B, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file,
+      "123-456 ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b\n")
+
+    ssh.RemovePublicKey(self.UUID_2, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file,
+      "123-456 ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b\n")
+
+  def testRemoveAllExistingKeys(self):
+    pub_key_file = self._CreateTempFile()
+    ssh.AddPublicKey(self.UUID_1, self.KEY_A, key_file=pub_key_file)
+    ssh.AddPublicKey(self.UUID_1, self.KEY_B, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file,
+      "123-456 ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      "123-456 ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b\n")
+
+    ssh.RemovePublicKey(self.UUID_1, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file, "")
+
+  def testRemoveKeyFromEmptyFile(self):
+    pub_key_file = self._CreateTempFile()
+    ssh.RemovePublicKey(self.UUID_2, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file, "")
+
+  def testRetrieveKeys(self):
+    pub_key_file = self._CreateTempFile()
+    ssh.AddPublicKey(self.UUID_1, self.KEY_A, key_file=pub_key_file)
+    ssh.AddPublicKey(self.UUID_2, self.KEY_B, key_file=pub_key_file)
+    result = ssh.QueryPubKeyFile(self.UUID_1, key_file=pub_key_file)
+    self.assertEquals([self.KEY_A], result[self.UUID_1])
+
+    target_uuids = [self.UUID_1, self.UUID_2, "non-existing-UUID"]
+    result = ssh.QueryPubKeyFile(target_uuids, key_file=pub_key_file)
+    self.assertEquals([self.KEY_A], result[self.UUID_1])
+    self.assertEquals([self.KEY_B], result[self.UUID_2])
+    self.assertEquals(2, len(result))
+
+  def testReplaceNameByUuid(self):
+    pub_key_file = self._CreateTempFile()
+    name = "my.precious.node"
+    ssh.AddPublicKey(name, self.KEY_A, key_file=pub_key_file)
+    ssh.AddPublicKey(self.UUID_2, self.KEY_A, key_file=pub_key_file)
+    ssh.AddPublicKey(name, self.KEY_B, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file,
+      "my.precious.node ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      "789-ABC ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      "my.precious.node ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b\n")
+
+    ssh.ReplaceNameByUuid(self.UUID_1, name, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file,
+      "123-456 ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      "789-ABC ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      "123-456 ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b\n")
+
+  def testParseEmptyLines(self):
+    pub_key_file = self._CreateTempFile()
+    ssh.AddPublicKey(self.UUID_1, self.KEY_A, key_file=pub_key_file)
+
+    # Add an empty line
+    fd = open(pub_key_file, 'a')
+    fd.write("\n")
+    fd.close()
+
+    ssh.AddPublicKey(self.UUID_2, self.KEY_B, key_file=pub_key_file)
+
+    # Add a whitespace line
+    fd = open(pub_key_file, 'a')
+    fd.write("    \n")
+    fd.close()
+
+    result = ssh.QueryPubKeyFile(self.UUID_1, key_file=pub_key_file)
+    self.assertEquals([self.KEY_A], result[self.UUID_1])
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

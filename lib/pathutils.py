@@ -84,6 +84,7 @@ SSH_HOST_DSA_PRIV = _constants.SSH_HOST_DSA_PRIV
 SSH_HOST_DSA_PUB = _constants.SSH_HOST_DSA_PUB
 SSH_HOST_RSA_PRIV = _constants.SSH_HOST_RSA_PRIV
 SSH_HOST_RSA_PUB = _constants.SSH_HOST_RSA_PUB
+SSH_PUB_KEYS = DATA_DIR + "/ganeti_pub_keys"
 
 BDEV_CACHE_DIR = RUN_DIR + "/bdev-cache"
 DISK_LINKS_DIR = RUN_DIR + "/instance-disks"
