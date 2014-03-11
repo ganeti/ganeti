@@ -41,7 +41,7 @@ from ganeti.cmdlib.common import INSTANCE_ONLINE, INSTANCE_DOWN, \
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
   ShutdownInstanceDisks, ImageDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
-  CheckInstanceBridgesExist, CheckNodeFreeMemory, CheckNodeHasOS
+  CheckInstanceBridgesExist, CheckNodeFreeMemory
 from ganeti.hypervisor import hv_base
 
 
@@ -302,15 +302,6 @@ class LUInstanceReinstall(LogicalUnit):
 
   def _MergeValidateOsParams(self, instance):
     "Handle the OS parameter merging and validation for the target instance."
-
-    if self.op.os_type is not None:
-      # OS verification
-      CheckNodeHasOS(self, instance.primary_node, self.op.os_type,
-                     self.op.force_variant)
-      instance_os = self.op.os_type
-    else:
-      instance_os = instance.os
-
     node_uuids = list(instance.all_nodes)
 
     self.op.osparams = self.op.osparams or {}
@@ -322,6 +313,12 @@ class LUInstanceReinstall(LogicalUnit):
     params_private = GetUpdatedParams(instance.osparams_private,
                                         self.op.osparams_private)
     params_secret = self.op.osparams_secret
+
+    # Handle OS parameters
+    if self.op.os_type is not None:
+      instance_os = self.op.os_type
+    else:
+      instance_os = instance.os
 
     cluster = self.cfg.GetClusterInfo()
     self.osparams = cluster.SimpleFillOS(

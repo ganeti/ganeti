@@ -62,7 +62,7 @@ from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   NICToTuple, CheckNodeNotDrained, RemoveInstance, CopyLockList, \
   ReleaseLocks, CheckNodeVmCapable, CheckTargetNodeIPolicy, \
   GetInstanceInfoText, RemoveDisks, CheckNodeFreeMemory, \
-  CheckInstanceBridgesExist, CheckNicsBridgesExist, CheckNodeHasOS
+  CheckInstanceBridgesExist, CheckNicsBridgesExist
 
 import ganeti.masterd.instance
 
@@ -1309,10 +1309,6 @@ class LUInstanceCreate(LogicalUnit):
 
     CheckHVParams(self, node_uuids, self.op.hypervisor, self.op.hvparams)
 
-    if self.op.os_type is not None:
-      CheckNodeHasOS(self, pnode.uuid, self.op.os_type, self.op.force_variant)
-
-    # check OS parameters (remotely)
     CheckOSParams(self, True, node_uuids, self.op.os_type, self.os_full,
                   self.op.force_variant)
 
@@ -3093,14 +3089,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     self.nicmod = _PrepareContainerMods(self.op.nics, _InstNicModPrivate)
 
-    # OS change
-    if self.op.os_name and not self.op.force:
-      CheckNodeHasOS(self, self.instance.primary_node, self.op.os_name,
-                     self.op.force_variant)
-      instance_os = self.op.os_name
-    else:
-      instance_os = self.instance.os
-
+    # disks processing
     assert not (self.op.disk_template and self.op.disks), \
       "Can't modify disk template and apply disk changes at the same time"
 
@@ -3173,6 +3162,11 @@ class LUInstanceSetParams(LogicalUnit):
                                 hvspecs)
 
     # osparams processing
+    if self.op.os_name and not self.op.force:
+      instance_os = self.op.os_name
+    else:
+      instance_os = self.instance.os
+
     if self.op.osparams or self.op.osparams_private:
       public_parms = self.op.osparams or {}
       private_parms = self.op.osparams_private or {}
