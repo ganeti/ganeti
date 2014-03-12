@@ -2369,6 +2369,9 @@ def BlockdevImage(disk, image, size):
   @raise RPCFail: in case of failure
 
   """
+  if not (utils.IsUrl(image) or os.path.exists(image)):
+    _Fail("Image '%s' not found", image)
+
   try:
     rdev = _RecursiveFindBD(disk)
   except errors.BlockDeviceError:
