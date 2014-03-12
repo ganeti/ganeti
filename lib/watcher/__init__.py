@@ -52,12 +52,10 @@ from ganeti import compat
 from ganeti import errors
 from ganeti import opcodes
 from ganeti import cli
-import ganeti.rpc.node as rpc
 import ganeti.rpc.errors as rpcerr
 from ganeti import rapi
 from ganeti import netutils
 from ganeti import qlang
-from ganeti import objects
 from ganeti import ssconf
 from ganeti import ht
 from ganeti import pathutils
