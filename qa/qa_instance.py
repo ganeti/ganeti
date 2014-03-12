@@ -340,73 +340,40 @@ def TestInstanceReinstall(instance):
     print qa_utils.FormatInfo("Test not supported for diskless instances")
     return
 
-  master = qa_config.GetMasterNode()
+  qa_storage = qa_config.get("qa-storage")
 
-  AssertCommand(["gnt-backup", "export", "-n", master.primary, instance.name])
-
-  instance_info = GetInstanceInfo(instance.name)
-  disk0 = None
-
-  for volume in instance_info["volumes"]:
-    if "disk0" in volume:
-      i = volume.find("/")
-      if i >= 0:
-        disk0_id = volume[(i + 1):]
-      else:
-        disk0_id = volume
-
-      disk0_path = "/srv/ganeti/export/%s/%s.snap" % (instance.name, disk0_id)
-
-      try:
-        AssertCommand(["stat", disk0_path])
-        disk0 = disk0_path
-        break
-      except qa_error.Error:
-        pass
-
-  if disk0 is None:
-    raise qa_error.Error("Could not determine exported disk for instance '%s'" %
-                         instance.name)
-
-  image = qa_utils.BackupFile(master.primary, disk0)
-
-  AssertCommand(["gnt-instance", "reinstall",
-                 "--os-parameters", "os-image=" + image,
-                 "-f", instance.name])
-
-  try:
-    port = 8000
-
-    while True:
-      cmd = "( cd /srv/ganeti/export; python -m SimpleHTTPServer %d )" % port
-      ssh_cmd = qa_utils.GetSSHCommand(master.primary, cmd)
-
-      try:
-        server_process = qa_utils.StartLocalCommand(ssh_cmd)
-        break
-      except OSError:
-        if port < 9000:
-          port += 1
-        else:
-          raise
-
-    url = "http://localhost:%d/%s" % (port, os.path.basename(image))
+  if qa_storage is None:
+    print qa_utils.FormatInfo("Test not supported because the additional QA"
+                              " storage is not available")
+  else:
+    # Reinstall with OS image from QA storage
+    url = "%s/busybox.img" % qa_storage
     AssertCommand(["gnt-instance", "reinstall",
                    "--os-parameters", "os-image=" + url,
                    "-f", instance.name])
 
-    AssertCommand(["rm", "-f", image])
-  finally:
-    server_process.terminate()
+    # Reinstall with OS image as local file on the node
+    pnode = _GetInstanceField(instance.name, "pnode")
 
+    cmd = ("wget -O busybox.img %s &> /dev/null &&"
+           " echo $(pwd)/busybox.img") % url
+    image = qa_utils.GetCommandOutput(pnode, cmd).strip()
+
+    AssertCommand(["gnt-instance", "reinstall",
+                   "--os-parameters", "os-image=" + image,
+                   "-f", instance.name])
+
+  # Reinstall non existing local file
   AssertCommand(["gnt-instance", "reinstall",
                  "--os-parameters", "os-image=NonExistantOsForQa",
                  "-f", instance.name], fail=True)
 
+  # Reinstall non existing URL
   AssertCommand(["gnt-instance", "reinstall",
                  "--os-parameters", "os-image=http://NonExistantOsForQa",
                  "-f", instance.name], fail=True)
 
+  # Reinstall using OS scripts
   AssertCommand(["gnt-instance", "reinstall", "-f", instance.name])
 
   # Test with non-existant OS definition
