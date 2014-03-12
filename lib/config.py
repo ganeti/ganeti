@@ -2771,13 +2771,16 @@ class ConfigWriter(object):
 
     self._WriteConfig(feedback_fn=feedback_fn)
 
-  @_ConfigSync()
-  def DropECReservations(self, ec_id):
+  def _UnlockedDropECReservations(self, ec_id):
     """Drop per-execution-context reservations
 
     """
     for rm in self._all_rms:
       rm.DropECReservations(ec_id)
+
+  @_ConfigSync()
+  def DropECReservations(self, ec_id):
+    self._UnlockedDropECReservations(ec_id)
 
   @_ConfigSync(shared=1)
   def GetAllNetworksInfo(self):
