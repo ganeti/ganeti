@@ -33,7 +33,6 @@ from ganeti import errors
 from ganeti import hypervisor
 from ganeti import locking
 from ganeti import objects
-from ganeti import ssh
 from ganeti import utils
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU
 from ganeti.cmdlib.common import INSTANCE_ONLINE, INSTANCE_DOWN, \
@@ -359,30 +358,6 @@ class LUInstanceReinstall(LogicalUnit):
     result.Raise("Could not install OS for instance '%s' on node '%s'" %
                  (instance.name, self.cfg.GetNodeName(instance.primary_node)))
 
-  def _ReinstallOSImage(self, instance, os_image):
-    """Reinstall OS image on an instance.
-
-    @type instance: L{objects.Instance}
-    @param instance: instance on which the OS image should be installed
-
-    @type os_image: string
-    @param os_image: OS image URL or absolute file path
-
-    @rtype: NoneType
-    @return: None
-    @raise errors.OpExecError: in case of failure
-
-    """
-    master = self.cfg.GetMasterNode()
-    pnode = self.cfg.GetNodeInfo(instance.primary_node)
-
-    if not utils.IsUrl(os_image) and master != pnode.uuid:
-      ssh_port = pnode.ndparams.get(constants.ND_SSH_PORT)
-      srun = ssh.SshRunner(self.cfg.GetClusterName())
-      srun.CopyFileToNode(pnode.name, ssh_port, os_image)
-
-    ImageDisks(self, instance, os_image)
-
   def Exec(self, feedback_fn):
     """Reinstall the instance.
 
@@ -411,7 +386,7 @@ class LUInstanceReinstall(LogicalUnit):
       StartInstanceDisks(self, self.instance, None)
       try:
         if os_image:
-          self._ReinstallOSImage(self.instance, os_image)
+          ImageDisks(self, self.instance, os_image)
 
         if os_type:
           self._ReinstallOSScripts(self.instance, self.osparams,

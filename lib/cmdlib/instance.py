@@ -38,7 +38,6 @@ from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
 from ganeti import serializer
-from ganeti import ssh
 import ganeti.rpc.node as rpc
 from ganeti import utils
 
@@ -1492,13 +1491,6 @@ class LUInstanceCreate(LogicalUnit):
     disk_abort = False
 
     if not self.adopt_disks and os_image is not None:
-      master = self.cfg.GetMasterNode()
-
-      if not utils.IsUrl(os_image) and master != self.pnode.uuid:
-        ssh_port = self.pnode.ndparams.get(constants.ND_SSH_PORT)
-        srun = ssh.SshRunner(self.cfg.GetClusterName())
-        srun.CopyFileToNode(self.pnode.name, ssh_port, os_image)
-
       feedback_fn("* imaging instance disks...")
       try:
         ImageDisks(self, iobj, os_image)
