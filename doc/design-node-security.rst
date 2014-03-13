@@ -130,18 +130,20 @@ access and a compromised normal node, one can make this node a master
 candidate and then still have the power to compromise the whole cluster.
 
 To mitigate this issue, we propose the following changes:
-- Add a flag to the cluster configuration
-  ``master_capability_rapi_modifiable`` which indicates whether or
-  not it should be possible to modify the ``master_capable`` flag of
-  nodes via RAPI. The flag is set to ``False`` by default and can
-  itself only be changed on the commandline. In this design doc, we
-  refer to the flag as the "rapi flag" from here on.
+
+- Add a flag ``master_capability_rapi_modifiable`` to the cluster
+  configuration which indicates whether or not it should be possible
+  to modify the ``master_capable`` flag of nodes via RAPI. The flag is
+  set to ``False`` by default and can itself only be changed on the
+  commandline. In this design doc, we refer to the flag as the
+  "rapi flag" from here on.
 - Only if the ``master_capabability_rapi_modifiable`` switch is set to
   ``True``, it is possible to modify the master-capability flag of
   nodes.
 
 With this setup, there are the following definitions of "potential
 master candidates" depending on the rapi flag:
+
 - If the rapi flag is set to ``True``, all cluster nodes are potential
   master candidates, because as described above, all of them can
   eventually be made master candidates via RAPI and thus security-wise,
@@ -176,6 +178,7 @@ Cluster initialization
 
 On cluster initialization, the following steps are taken in
 bootstrap.py:
+
 - A public/private key pair is generated (as before), but only used
   by the first (and thus master) node. In particular, the private key
   never leaves the node.
@@ -196,6 +199,7 @@ every node that gets added to the cluster.
 Adding a new node will require the following steps.
 
 In gnt_node.py:
+
 - On the new node, a new public/private SSH key pair is generated.
 - The public key of the new node is fetched (via SSH) to the master
   node and if it is a potential master candidate (see definition above),
@@ -204,6 +208,7 @@ In gnt_node.py:
   new node's ``authorized_keys`` file (also via SSH).
 
 In LUNodeAdd in cmdlib/node.py:
+
 - The LUNodeAdd determines whether or not the new node is a master
   candidate and in any case updates the cluster's configuration with the
   new nodes information. (This is not changed by the proposed design.)
@@ -214,6 +219,7 @@ In LUNodeAdd in cmdlib/node.py:
   compromised RPC security should not compromise SSH security.
 
 RPC call execution in noded (on master node):
+
 - Check that the public key of the new node is in the
   ``ganeti_pub_keys`` file of the master node to make sure that no keys
   of nodes outside the Ganeti cluster and no keys that are not potential
@@ -242,6 +248,7 @@ If a node gets demoted to 'normal', the master daemon makes a similar
 RPC call to the master node's node daemon as for adding a node.
 
 In the RPC call, noded will perform the following steps:
+
 - Check that the public key of the node to be demoted is indeed in the
   ``ganeti_pub_keys`` file to avoid deleting ssh keys of machines that
   don't belong to the cluster (and thus potentially lock out the
@@ -313,6 +320,7 @@ Upgrades
 When upgrading from a version that has the previous SSH setup to the one
 proposed in this design, the upgrade procedure has to involve the
 following steps in the post-upgrade hook:
+
 - For all nodes, new SSH key pairs are generated.
 - All nodes and their public keys are added to the ``ganeti_pub_keys``
   file and the file is copied to all nodes.
@@ -333,6 +341,7 @@ Downgrades
 ~~~~~~~~~~
 
 These downgrading steps will be implemtented from 2.12 to 2.11:
+
 - The master node's private/public key pair will be distributed to all
   nodes (via SSH) and the individual SSH keys will be backed up.
 - The obsolete individual ssh keys will be removed from all nodes'
