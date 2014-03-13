@@ -423,7 +423,7 @@ def CheckOSImage(op):
 
   if os_image is None:
     return None
-  elif utils.IsUrl(os_image) or os.path.exists(os_image):
+  elif utils.IsUrl(os_image) or os.path.isabs(os_image):
     return os_image
   else:
     raise errors.OpPrereqError("OS image must be a URL or an absolute path")
