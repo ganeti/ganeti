@@ -65,19 +65,19 @@ class LUWConfdClient(object):
     self.lu = lu
 
   def TryUpdateLocks(self, req):
-    jid, livelockfile = self.lu.wconfdcontext
-    self.lu.wconfd.Client().TryUpdateLocks(jid, livelockfile, req)
-    self.lu.wconfdlocks = self.lu.wconfd.Client().ListLocks(jid, livelockfile)
+    self.lu.wconfd.Client().TryUpdateLocks(self.lu.wconfdcontext, req)
+    self.lu.wconfdlocks = \
+      self.lu.wconfd.Client().ListLocks(self.lu.wconfdcontext)
 
   def DownGradeLocksLevel(self, level):
-    jid, livelockfile = self.lu.wconfdcontext
-    self.lu.wconfd.Client().DownGradeLocksLevel(jid, livelockfile, level)
-    self.lu.wconfdlocks = self.lu.wconfd.Client().ListLocks(jid, livelockfile)
+    self.lu.wconfd.Client().DownGradeLocksLevel(self.lu.wconfdcontext, level)
+    self.lu.wconfdlocks = \
+      self.lu.wconfd.Client().ListLocks(self.lu.wconfdcontext)
 
   def FreeLocksLevel(self, level):
-    jid, livelockfile = self.lu.wconfdcontext
-    self.lu.wconfd.Client().FreeLocksLevel(jid, livelockfile, level)
-    self.lu.wconfdlocks = self.lu.wconfd.Client().ListLocks(jid, livelockfile)
+    self.lu.wconfd.Client().FreeLocksLevel(self.lu.wconfdcontext, level)
+    self.lu.wconfdlocks = \
+      self.lu.wconfd.Client().ListLocks(self.lu.wconfdcontext)
 
 
 class LogicalUnit(object):

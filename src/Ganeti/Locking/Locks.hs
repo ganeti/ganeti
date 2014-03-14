@@ -44,7 +44,7 @@ import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Errors (ResultG, GanetiException)
-import Ganeti.JSON (readEitherString, fromJResultE)
+import Ganeti.JSON (readEitherString, fromJResultE, MaybeForJSON(..))
 import Ganeti.Locking.Allocation
 import Ganeti.Locking.Types
 import Ganeti.Logging.Lifted (MonadLog, logDebug, logEmergency)
@@ -171,17 +171,30 @@ instance Lock GanetiLocks where
   lockImplications (Network _) = [NetworkLockSet]
   lockImplications _ = []
 
--- | A client is identified as a job id and path to its process
+-- | A client is identified as a job id, thread id and path to its process
 -- identifier file.
+--
+-- The JobId isn't enough to identify a client as the master daemon
+-- also handles RPC calls that aren't jobs, but which use the configuration.
+-- Therefore it's needed to include the identification for threads.
+-- An alternative would be to use something like @Either JobId RpcCallId@.
+--
+-- FIXME: Python threads are only unique wrt running threads, so it's possible
+-- that a new thread will get a thread id that has been used before by another
+-- finished thread. Since we rely on threads releasing their locks anyway,
+-- this isn't a big issue, but in the future it'd be better to have a unique
+-- identifier for each operation.
 data ClientId = ClientId
-  { ciJobId :: JobId
+  { ciJobId :: Maybe JobId
+  , ciThreadId :: Integer
   , ciLockFile :: FilePath
   }
   deriving (Ord, Eq, Show)
 
 instance J.JSON ClientId where
-  showJSON (ClientId jid lf) = J.showJSON (jid, lf)
-  readJSON = liftM (uncurry ClientId) . J.readJSON
+  showJSON (ClientId jid tid lf) = J.showJSON (MaybeForJSON jid, tid, lf)
+  readJSON = liftM (\(MaybeForJSON jid, tid, lf) -> ClientId jid tid lf)
+             . J.readJSON
 
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of
 -- locks are jobs.
