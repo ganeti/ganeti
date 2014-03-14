@@ -138,10 +138,10 @@ Tests the WConf daemon by invoking its ``echo`` function.
 A given text is sent to WConfd through RPC, echoed back by WConfd and
 printed to the console.
 
-| **wconfd** listlocks *jid*
+| **wconfd** listlocks *jid* *threadid*
 
-A request to list the locks owned by the given job id is sent to WConfd
-and the answer is displayed.
+A request to list the locks owned by the given job id and thread id is
+sent to WConfd and the answer is displayed.
 
 .. vim: set textwidth=72 :
 .. Local Variables:

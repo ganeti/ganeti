@@ -639,12 +639,12 @@ def Wconfd(opts, args): # pylint: disable=W0613
     result = wconfd.Client().Echo(args[1])
     print "Answer: %s" % (result,)
   elif args[0] == "listlocks":
-    if len(args) != 2:
-      ToStderr("Command 'listlocks' takes only precisely argument.")
+    if len(args) != 3:
+      ToStderr("Command 'listlocks' takes precisely two arguments.")
       return 1
-    result = \
-        wconfd.Client().ListLocks(int(args[1]),
-                                  utils.livelock.GuessLockfileFor("masterd"))
+    wconfdcontext = (int(args[1]), int(args[2]),
+                     utils.livelock.GuessLockfileFor("masterd"))
+    result = wconfd.Client().ListLocks(wconfdcontext)
     print "Answer: %s" % (result,)
   else:
     ToStderr("Command '%s' not supported", args[0])
