@@ -2300,7 +2300,7 @@ def _DownloadAndDumpDevice(source_url, target_path, size):
       ddparams.image_size_error = True
       return -1
 
-  target_file = open(target_path, "w")
+  target_file = open(target_path, "r+")
   ddparams = DDParams(0, 1024 * 1024 * size)
 
   curl = pycurl.Curl()
