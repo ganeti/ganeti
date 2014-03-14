@@ -105,6 +105,9 @@
   "# Regular expression to ignore existing tags": null,
   "ignore-tags-re": null,
 
+  "# Repository containing additional files for the QA": null,
+  "# qa-storage": "http://example.com",
+
   "nodes": [
     {
       "# Master node": null,
