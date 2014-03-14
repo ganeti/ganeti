@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Locking.Locks
   ( GanetiLocks(..)
+  , ClientId(..)
   , GanetiLockAllocation
   , loadLockAllocation
   , writeLocksAsyncTask
@@ -34,7 +35,7 @@ module Ganeti.Locking.Locks
   , lockLevel
   ) where
 
-import Control.Monad ((>=>))
+import Control.Monad ((>=>), liftM)
 import Control.Monad.Base (MonadBase, liftBase)
 import Control.Monad.Error (MonadError, catchError)
 import Data.List (stripPrefix)
@@ -170,9 +171,21 @@ instance Lock GanetiLocks where
   lockImplications (Network _) = [NetworkLockSet]
   lockImplications _ = []
 
+-- | A client is identified as a job id and path to its process
+-- identifier file.
+data ClientId = ClientId
+  { ciJobId :: JobId
+  , ciLockFile :: FilePath
+  }
+  deriving (Ord, Eq, Show)
+
+instance J.JSON ClientId where
+  showJSON (ClientId jid lf) = J.showJSON (jid, lf)
+  readJSON = liftM (uncurry ClientId) . J.readJSON
+
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of
 -- locks are jobs.
-type GanetiLockAllocation = LockAllocation GanetiLocks (JobId, FilePath)
+type GanetiLockAllocation = LockAllocation GanetiLocks ClientId
 
 -- | Load a lock allocation from disk.
 loadLockAllocation :: FilePath -> ResultG GanetiLockAllocation

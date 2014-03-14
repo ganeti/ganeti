@@ -45,6 +45,7 @@ import System.Posix.IO
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Locking.Allocation as L
+import Ganeti.Locking.Locks (ClientId(..))
 import Ganeti.Logging.Lifted (logDebug, logInfo)
 import Ganeti.WConfd.Monad
 
@@ -70,7 +71,8 @@ cleanupLocksTask = forever . runResultT $ do
   logDebug "Death detection timer fired"
   owners <- liftM L.lockOwners readLockAllocation
   logDebug $ "Current lock owners: " ++ show owners
-  let cleanupIfDead owner@(_, fpath) = do
+  let cleanupIfDead owner = do
+        let fpath = ciLockFile owner
         died <- liftIO (isDead fpath)
         when died $ do
           logInfo $ show owner ++ " died, releasing locks"

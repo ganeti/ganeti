@@ -38,8 +38,7 @@ import Language.Haskell.TH (Name)
 
 import Ganeti.BasicTypes (toErrorStr)
 import qualified Ganeti.Locking.Allocation as L
-import Ganeti.Locking.Locks (GanetiLocks, lockLevel, LockLevel)
-import Ganeti.Types (JobId)
+import Ganeti.Locking.Locks (ClientId, GanetiLocks, lockLevel, LockLevel)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
 import Ganeti.WConfd.ConfigWriter
@@ -55,53 +54,50 @@ echo = return
 -- ** Locking related functions
 
 -- | List the locks of a given owner (i.e., a job-id lockfile pair).
-listLocks :: JobId -> FilePath -> WConfdMonad [(GanetiLocks, L.OwnerState)]
-listLocks jid fpath =
-  liftM (M.toList . L.listLocks (jid, fpath)) readLockAllocation
+listLocks :: ClientId -> WConfdMonad [(GanetiLocks, L.OwnerState)]
+listLocks cid = liftM (M.toList . L.listLocks cid) readLockAllocation
 
 -- | Try to update the locks of a given owner (i.e., a job-id lockfile pair).
 -- This function always returns immediately. If the lock update was possible,
 -- the empty list is returned; otherwise, the lock status is left completly
 -- unchanged, and the return value is the list of jobs which need to release
 -- some locks before this request can succeed.
-tryUpdateLocks :: JobId -> FilePath -> GanetiLockRequest -> WConfdMonad [JobId]
-tryUpdateLocks jid fpath req =
-  liftM (S.toList . S.map fst)
+tryUpdateLocks :: ClientId -> GanetiLockRequest -> WConfdMonad [ClientId]
+tryUpdateLocks cid req =
+  liftM S.toList
   . (>>= toErrorStr)
-  $ modifyLockAllocation (L.updateLocks (jid, fpath)
-                                        (fromGanetiLockRequest req))
+  $ modifyLockAllocation (L.updateLocks cid (fromGanetiLockRequest req))
 
 -- | Free all locks of a given owner (i.e., a job-id lockfile pair).
-freeLocks :: JobId -> FilePath -> WConfdMonad ()
-freeLocks jid fpath =
-  modifyLockAllocation_ (`L.freeLocks` (jid, fpath))
+freeLocks :: ClientId -> WConfdMonad ()
+freeLocks cid =
+  modifyLockAllocation_ (`L.freeLocks` cid)
 
 -- | Free all locks of a given owner (i.e., a job-id lockfile pair)
 -- of a given level in the Ganeti sense (e.g., "cluster", "node").
-freeLocksLevel :: JobId -> FilePath -> LockLevel -> WConfdMonad ()
-freeLocksLevel jid fpath level =
+freeLocksLevel :: ClientId -> LockLevel -> WConfdMonad ()
+freeLocksLevel cid level =
   modifyLockAllocation_ (L.freeLocksPredicate ((==) level . lockLevel)
-                           `flip` (jid, fpath))
+                           `flip` cid)
 
 -- | Downgrade all locks of the given level to shared.
-downGradeLocksLevel :: JobId -> FilePath -> LockLevel -> WConfdMonad ()
-downGradeLocksLevel jid fpath level =
-  modifyLockAllocation_ $ L.downGradePredicate ((==) level . lockLevel)
-                                               (jid, fpath)
+downGradeLocksLevel :: ClientId -> LockLevel -> WConfdMonad ()
+downGradeLocksLevel cid level =
+  modifyLockAllocation_ $ L.downGradePredicate ((==) level . lockLevel) cid
 
 -- | Intersect the possesed locks of an owner with a given set.
-intersectLocks :: JobId -> FilePath -> [GanetiLocks] -> WConfdMonad ()
-intersectLocks jid fpath =
- modifyLockAllocation_ . L.intersectLocks (jid,fpath)
+intersectLocks :: ClientId -> [GanetiLocks] -> WConfdMonad ()
+intersectLocks cid =
+ modifyLockAllocation_ . L.intersectLocks cid
 
 -- | Opportunistically allocate locks for a given owner.
-opportunisticLockUnion :: JobId -> FilePath
+opportunisticLockUnion :: ClientId
                        -> [(GanetiLocks, L.OwnerState)]
                        -> WConfdMonad [GanetiLocks]
-opportunisticLockUnion jid fpath req =
+opportunisticLockUnion cid req =
   liftM S.toList
   . modifyLockAllocation
-  $ L.opportunisticLockUnion (jid, fpath) req
+  $ L.opportunisticLockUnion cid req
 
 -- * The list of all functions exported to RPC.
 
