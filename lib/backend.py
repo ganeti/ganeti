@@ -2235,7 +2235,7 @@ def BlockdevCreate(disk, size, owner, on_primary, info, excl_stor):
   return device.unique_id
 
 
-def _DumpDevice(source_path, target_path, offset, size):
+def _DumpDevice(source_path, target_path, offset, size, truncate):
   """This function images/wipes the device using a local file.
 
   @type source_path: string
@@ -2250,6 +2250,9 @@ def _DumpDevice(source_path, target_path, offset, size):
   @type size: int
   @param size: maximum size in MiB to write (data source might be smaller)
 
+  @type truncate: bool
+  @param truncate: whether the file should be truncated
+
   @return: None
   @raise RPCFail: in case of failure
 
@@ -2262,6 +2265,10 @@ def _DumpDevice(source_path, target_path, offset, size):
   cmd = [constants.DD_CMD, "if=%s" % source_path, "seek=%d" % offset,
          "bs=%s" % block_size, "oflag=direct", "of=%s" % target_path,
          "count=%d" % size]
+
+  if not truncate:
+    cmd.append("conv=notrunc")
+
   result = utils.RunCmd(cmd)
 
   if result.failed:
@@ -2348,7 +2355,7 @@ def BlockdevWipe(disk, offset, size):
   if (offset + size) > rdev.size:
     _Fail("Wipe offset and size are bigger than device size")
 
-  _DumpDevice("/dev/zero", rdev.dev_path, offset, size)
+  _DumpDevice("/dev/zero", rdev.dev_path, offset, size, True)
 
 
 def BlockdevImage(disk, image, size):
@@ -2387,7 +2394,7 @@ def BlockdevImage(disk, image, size):
   if utils.IsUrl(image):
     _DownloadAndDumpDevice(image, rdev.dev_path, size)
   else:
-    _DumpDevice(image, rdev.dev_path, 0, size)
+    _DumpDevice(image, rdev.dev_path, 0, size, False)
 
 
 def BlockdevPauseResumeSync(disks, pause):
