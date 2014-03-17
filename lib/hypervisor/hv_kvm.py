@@ -137,29 +137,36 @@ def _GenerateDeviceKVMId(dev_type, dev):
   return "%s-%s-pci-%d" % (dev_type.lower(), dev.uuid.split("-")[0], dev.pci)
 
 
-def _UpdatePCISlots(dev, pci_reservations):
-  """Update pci configuration for a stopped instance
+def _GetFreeSlot(slots, slot=None, reserve=False):
+  """Helper method to get first available slot in a bitarray
 
-  If dev has a pci slot then reserve it, else find first available
-  in pci_reservations bitarray. It acts on the same objects passed
-  as params so there is no need to return anything.
-
-  @type dev: L{objects.Disk} or L{objects.NIC}
-  @param dev: the device object for which we update its pci slot
-  @type pci_reservations: bitarray
-  @param pci_reservations: existing pci reservations for an instance
-  @raise errors.HotplugError: in case an instance has all its slot occupied
+  @type slots: bitarray
+  @param slots: the bitarray to operate on
+  @type slot: integer
+  @param slot: if given we check whether the slot is free
+  @type reserve: boolean
+  @param reserve: whether to reserve the first available slot or not
+  @return: the idx of the (first) available slot
+  @raise errors.HotplugError: If all slots in a bitarray are occupied
+    or the given slot is not free.
 
   """
-  if dev.pci:
-    free = dev.pci
-  else: # pylint: disable=E1103
-    [free] = pci_reservations.search(_AVAILABLE_PCI_SLOT, 1)
-    if not free:
-      raise errors.HypervisorError("All PCI slots occupied")
-    dev.pci = int(free)
+  if slot is not None:
+    assert slot < len(slots)
+    if slots[slot]:
+      raise errors.HypervisorError("Slots %d occupied" % slot)
 
-  pci_reservations[free] = True
+  else:
+    avail = slots.search(_AVAILABLE_PCI_SLOT, 1)
+    if not avail:
+      raise errors.HypervisorError("All slots occupied")
+
+    slot = int(avail[0])
+
+  if reserve:
+    slots[slot] = True
+
+  return slot
 
 
 def _GetExistingDeviceInfo(dev_type, device, runtime):
@@ -1670,12 +1677,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     pci_reservations = bitarray(self._DEFAULT_PCI_RESERVATIONS)
     kvm_disks = []
     for disk, link_name, uri in block_devices:
-      _UpdatePCISlots(disk, pci_reservations)
+      disk.pci = _GetFreeSlot(pci_reservations, disk.pci, True)
       kvm_disks.append((disk, link_name, uri))
 
     kvm_nics = []
     for nic in instance.nics:
-      _UpdatePCISlots(nic, pci_reservations)
+      nic.pci = _GetFreeSlot(pci_reservations, nic.pci, True)
       kvm_nics.append(nic)
 
     hvparams = hvp
@@ -2029,11 +2036,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         slot = int(match.group(1))
         slots[slot] = True
 
-    [free] = slots.search(_AVAILABLE_PCI_SLOT, 1) # pylint: disable=E1101
-    if not free:
-      raise errors.HypervisorError("All PCI slots occupied")
-
-    dev.pci = int(free)
+    dev.pci = _GetFreeSlot(slots)
 
   def VerifyHotplugSupport(self, instance, action, dev_type):
     """Verifies that hotplug is supported.
