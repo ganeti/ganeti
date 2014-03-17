@@ -28,13 +28,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Locking.Locks (testLocking_Locks) where
 
-import Control.Applicative ((<$>), liftA2)
+import Control.Applicative ((<$>), (<*>), liftA2)
 
 import Test.QuickCheck
 import Text.JSON
 
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
+import Test.Ganeti.Types ()
 
 import Ganeti.Locking.Locks
 import Ganeti.Locking.Types
@@ -89,9 +90,18 @@ prop_ReadShowLevel :: Property
 prop_ReadShowLevel = forAll (arbitrary :: Gen LockLevel) $ \a ->
   readJSON (showJSON a) ==? Ok a
 
+instance Arbitrary ClientId where
+  arbitrary = ClientId <$> arbitrary <*> arbitrary <*> arbitrary
+
+-- | Verify that readJSON . showJSON = Ok for ClientId
+prop_ReadShow_ClientId :: Property
+prop_ReadShow_ClientId = forAll (arbitrary :: Gen ClientId) $ \a ->
+  readJSON (showJSON a) ==? Ok a
+
 testSuite "Locking/Locks"
  [ 'prop_ReadShow
  , 'prop_ImpliedOrder
  , 'prop_ImpliedIntervall
  , 'prop_ReadShowLevel
+ , 'prop_ReadShow_ClientId
  ]
