@@ -781,7 +781,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     re.compile(r'^QEMU (\d+)\.(\d+)(\.(\d+))?.*monitor.*', re.M)
   _INFO_VERSION_CMD = "info version"
 
-  _DEFAULT_PCI_RESERVATIONS = "11110000000000000000000000000000"
+  # Slot 0 for Host bridge, Slot 1 for ISA bridge, Slot 2 for VGA controller
+  _DEFAULT_PCI_RESERVATIONS = "11100000000000000000000000000000"
+  _SOUNDHW_WITH_PCI_SLOT = ["ac97", "es1370", "hda"]
 
   ANCILLARY_FILES = [
     _KVM_NETWORK_SCRIPT,
@@ -1362,7 +1364,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_cmd.extend(["-smp", ",".join(smp_list)])
 
     kvm_cmd.extend(["-pidfile", pidfile])
-    kvm_cmd.extend(["-balloon", "virtio"])
+
+    pci_reservations = bitarray(self._DEFAULT_PCI_RESERVATIONS)
+
+    # As requested by music lovers
+    if hvp[constants.HV_SOUNDHW]:
+      soundhw = hvp[constants.HV_SOUNDHW]
+      # For some reason only few sound devices require a PCI slot
+      # while the Audio controller *must* be in slot 3.
+      # That's why we bridge this option early in command line
+      if soundhw in self._SOUNDHW_WITH_PCI_SLOT:
+        _ = _GetFreeSlot(pci_reservations, reserve=True)
+      kvm_cmd.extend(["-soundhw", soundhw])
+
+    # Add id to ballon and place to the first available slot (3 or 4)
+    addr = _GetFreeSlot(pci_reservations, reserve=True)
+    pci_info = ",bus=pci.0,addr=%s" % hex(addr)
+    kvm_cmd.extend(["-balloon", "virtio,id=balloon%s" % pci_info])
     kvm_cmd.extend(["-daemonize"])
     if not instance.hvparams[constants.HV_ACPI]:
       kvm_cmd.extend(["-no-acpi"])
@@ -1623,7 +1641,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         # Enable the spice agent communication channel between the host and the
         # agent.
-        kvm_cmd.extend(["-device", "virtio-serial-pci"])
+        addr = _GetFreeSlot(pci_reservations, reserve=True)
+        pci_info = ",bus=pci.0,addr=%s" % hex(addr)
+        kvm_cmd.extend(["-device", "virtio-serial-pci,id=spice%s" % pci_info])
         kvm_cmd.extend([
           "-device",
           "virtserialport,chardev=spicechannel0,name=com.redhat.spice.0",
@@ -1651,10 +1671,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if hvp[constants.HV_CPU_TYPE]:
       kvm_cmd.extend(["-cpu", hvp[constants.HV_CPU_TYPE]])
 
-    # As requested by music lovers
-    if hvp[constants.HV_SOUNDHW]:
-      kvm_cmd.extend(["-soundhw", hvp[constants.HV_SOUNDHW]])
-
     # Pass a -vga option if requested, or if spice is used, for backwards
     # compatibility.
     if hvp[constants.HV_VGA]:
@@ -1674,7 +1690,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if hvp[constants.HV_KVM_EXTRA]:
       kvm_cmd.extend(hvp[constants.HV_KVM_EXTRA].split(" "))
 
-    pci_reservations = bitarray(self._DEFAULT_PCI_RESERVATIONS)
     kvm_disks = []
     for disk, link_name, uri in block_devices:
       disk.pci = _GetFreeSlot(pci_reservations, disk.pci, True)
