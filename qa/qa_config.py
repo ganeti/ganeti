@@ -40,10 +40,11 @@ _VCLUSTER_MASTER_KEY = "vcluster-master"
 _VCLUSTER_BASEDIR_KEY = "vcluster-basedir"
 _ENABLED_DISK_TEMPLATES_KEY = "enabled-disk-templates"
 
-# The path of an optional JSON Patch file (as per RFC6902) that modifies QA's
+# The constants related to JSON patching (as per RFC6902) that modifies QA's
 # configuration.
 _QA_BASE_PATH = os.path.dirname(__file__)
 _QA_DEFAULT_PATCH = "qa-patch.json"
+_QA_PATCH_DIR = "patch"
 
 #: QA configuration (L{_QaConfig})
 _config = None
@@ -284,7 +285,38 @@ class _QaConfig(object):
     """
     patches = {}
     _QaConfig.LoadPatch(patches, _QA_DEFAULT_PATCH)
+    patch_dir_path = os.path.join(_QA_BASE_PATH, _QA_PATCH_DIR)
+    if os.path.exists(patch_dir_path):
+      for filename in os.listdir(patch_dir_path):
+        if filename.endswith(".json"):
+          _QaConfig.LoadPatch(patches, os.path.join(_QA_PATCH_DIR, filename))
     return patches
+
+  @staticmethod
+  def ApplyPatches(data, patch_module, patches):
+    """Applies any patches present, and returns the modified QA configuration.
+
+    First, patches from the patch directory are applied, ordered alphabetically
+    by name.
+
+    @type data: dict (deserialized json)
+    @param data: The QA configuration
+    @type patch_module: module
+    @param patch_module: The json patch module, loaded dynamically
+    @type patches: dict of string to dict
+    @param patches: The dictionary of patch path to content
+
+    @return: The modified configuration data.
+
+    """
+    for patch in sorted(patches):
+      if patch != _QA_DEFAULT_PATCH:
+        data = patch_module.apply_patch(data, patches[patch])
+
+    if _QA_DEFAULT_PATCH in patches:
+      data = patch_module.apply_patch(data, patches[_QA_DEFAULT_PATCH])
+
+    return data
 
   @classmethod
   def Load(cls, filename):
@@ -303,9 +335,7 @@ class _QaConfig(object):
       patches = _QaConfig.LoadPatches()
       if patches:
         mod = __import__("jsonpatch", fromlist=[])
-        # TODO: only one patch, the default one, is supported at the moment.
-        # If patches is not empty, it is within. Later changes will remedy this.
-        data = mod.apply_patch(data, patches[_QA_DEFAULT_PATCH])
+        data = _QaConfig.ApplyPatches(data, mod, patches)
     except IOError:
       pass
     except ImportError:
