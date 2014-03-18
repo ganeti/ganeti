@@ -191,7 +191,8 @@ ones not available in your distribution packages) via ``cabal``::
 
   $ cabal install json network parallel utf8-string curl hslogger \
                   Crypto text hinotify==0.3.2 regex-pcre \
-                  attoparsec vector base64-bytestring lens
+                  attoparsec vector base64-bytestring \
+                  lifted-base==0.2.0.3 lens==3.10
 
 Haskell optional features
 ~~~~~~~~~~~~~~~~~~~~~~~~~
