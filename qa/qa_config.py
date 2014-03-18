@@ -45,6 +45,7 @@ _ENABLED_DISK_TEMPLATES_KEY = "enabled-disk-templates"
 _QA_BASE_PATH = os.path.dirname(__file__)
 _QA_DEFAULT_PATCH = "qa-patch.json"
 _QA_PATCH_DIR = "patch"
+_QA_PATCH_ORDER_FILE = "order"
 
 #: QA configuration (L{_QaConfig})
 _config = None
@@ -296,8 +297,11 @@ class _QaConfig(object):
   def ApplyPatches(data, patch_module, patches):
     """Applies any patches present, and returns the modified QA configuration.
 
-    First, patches from the patch directory are applied, ordered alphabetically
-    by name.
+    First, patches from the patch directory are applied. They are ordered
+    alphabetically, unless there is an ``order`` file present - any patches
+    listed within are applied in that order, and any remaining ones in
+    alphabetical order again. Finally, the default patch residing in the
+    top-level QA directory is applied.
 
     @type data: dict (deserialized json)
     @param data: The QA configuration
@@ -309,10 +313,32 @@ class _QaConfig(object):
     @return: The modified configuration data.
 
     """
+    ordered_patches = []
+    order_path = os.path.join(_QA_BASE_PATH, _QA_PATCH_DIR,
+                              _QA_PATCH_ORDER_FILE)
+    if os.path.exists(order_path):
+      order_file = open(order_path, 'r')
+      ordered_patches = order_file.read().splitlines()
+      # Removes empty lines
+      ordered_patches = filter(None, ordered_patches)
+
+    # Add the patch dir
+    ordered_patches = map(lambda x: os.path.join(_QA_PATCH_DIR, x),
+                          ordered_patches)
+
+    # First the ordered patches
+    for patch in ordered_patches:
+      if patch not in patches:
+        raise qa_error.Error("Patch %s specified in the ordering file does not "
+                             "exist" % patch)
+      data = patch_module.apply_patch(data, patches[patch])
+
+    # Then the other non-default ones
     for patch in sorted(patches):
-      if patch != _QA_DEFAULT_PATCH:
+      if patch != _QA_DEFAULT_PATCH and patch not in ordered_patches:
         data = patch_module.apply_patch(data, patches[patch])
 
+    # Finally the default one
     if _QA_DEFAULT_PATCH in patches:
       data = patch_module.apply_patch(data, patches[_QA_DEFAULT_PATCH])
 
