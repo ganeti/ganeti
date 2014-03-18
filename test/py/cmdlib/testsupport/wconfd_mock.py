@@ -29,7 +29,7 @@ class MockClient(object):
   def __init__(self, wconfdmock):
     self.wconfdmock = wconfdmock
 
-  def TryUpdateLocks(self, _jid, _lockfile, req):
+  def TryUpdateLocks(self, _cid, req):
     for lockrq in req:
       if lockrq[1] == "release":
         if lockrq[0] in self.wconfdmock.mylocks:
@@ -44,13 +44,13 @@ class MockClient(object):
       result.append([lock, self.wconfdmock.mylocks[lock]])
     return result
 
-  def FreeLocksLevel(self, _jid, _lockfile, level):
+  def FreeLocksLevel(self, _cid, level):
     locks = self.wconfdmock.mylocks.keys()
     for lock in locks:
       if lock.startswith(level + "/"):
         del self.wconfdmock.mylocks[lock]
 
-  def OpportunisticLockUnion(self, _jid, _lockfile, req):
+  def OpportunisticLockUnion(self, _cid, req):
     for lockrq in req:
       self.wconfdmock.mylocks[lockrq[0]] = lockrq[1]
     return [lockrq[0] for lockrq in req]
