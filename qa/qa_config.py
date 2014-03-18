@@ -42,7 +42,8 @@ _ENABLED_DISK_TEMPLATES_KEY = "enabled-disk-templates"
 
 # The path of an optional JSON Patch file (as per RFC6902) that modifies QA's
 # configuration.
-_PATCH_JSON = os.path.join(os.path.dirname(__file__), "qa-patch.json")
+_QA_BASE_PATH = os.path.dirname(__file__)
+_QA_DEFAULT_PATCH = "qa-patch.json"
 
 #: QA configuration (L{_QaConfig})
 _config = None
@@ -254,6 +255,37 @@ class _QaConfig(object):
     #: Cluster-wide run-time value of the exclusive storage flag
     self._exclusive_storage = None
 
+  @staticmethod
+  def LoadPatch(patch_dict, rel_path):
+    """ Loads a single patch.
+
+    @type patch_dict: dict of string to dict
+    @param patch_dict: A dictionary storing patches by relative path.
+    @type rel_path: string
+    @param rel_path: The relative path to the patch, might or might not exist.
+
+    """
+    try:
+      full_path = os.path.join(_QA_BASE_PATH, rel_path)
+      patch = serializer.LoadJson(utils.ReadFile(full_path))
+      if patch:
+        patch_dict[rel_path] = patch
+    except IOError:
+      pass
+
+  @staticmethod
+  def LoadPatches():
+    """ Finds and loads all non-empty patches supported by the QA.
+
+    @rtype: dict of string to dict
+    @return: A dictionary of relative path to patch content, for non-empty
+             patches.
+
+    """
+    patches = {}
+    _QaConfig.LoadPatch(patches, _QA_DEFAULT_PATCH)
+    return patches
+
   @classmethod
   def Load(cls, filename):
     """Loads a configuration file and produces a configuration object.
@@ -268,16 +300,18 @@ class _QaConfig(object):
     # Patch the document using JSON Patch (RFC6902) in file _PATCH_JSON, if
     # available
     try:
-      patch = serializer.LoadJson(utils.ReadFile(_PATCH_JSON))
-      if patch:
+      patches = _QaConfig.LoadPatches()
+      if patches:
         mod = __import__("jsonpatch", fromlist=[])
-        data = mod.apply_patch(data, patch)
+        # TODO: only one patch, the default one, is supported at the moment.
+        # If patches is not empty, it is within. Later changes will remedy this.
+        data = mod.apply_patch(data, patches[_QA_DEFAULT_PATCH])
     except IOError:
       pass
     except ImportError:
-      raise qa_error.Error("If you want to use the QA JSON patching feature,"
-                           " you need to install Python modules"
-                           " 'jsonpatch' and 'jsonpointer'.")
+      raise qa_error.Error("For the QA JSON patching feature to work, you "
+                           "need to install Python modules 'jsonpatch' and "
+                           "'jsonpointer'.")
 
     result = cls(dict(map(_ConvertResources,
                           data.items()))) # pylint: disable=E1103
