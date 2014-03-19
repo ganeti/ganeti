@@ -4526,6 +4526,9 @@ sshsSshRootKey = "ssh_root_key"
 sshsSshAuthorizedKeys :: String
 sshsSshAuthorizedKeys = "authorized_keys"
 
+sshsSshPublicKeys :: String
+sshsSshPublicKeys = "public_keys"
+
 sshsNodeDaemonCertificate :: String
 sshsNodeDaemonCertificate = "node_daemon_certificate"
 

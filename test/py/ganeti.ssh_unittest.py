@@ -352,6 +352,12 @@ class TestPublicSshKeys(testutils.GanetiTestCase):
     self.assertEquals([self.KEY_B], result[self.UUID_2])
     self.assertEquals(2, len(result))
 
+    # Query all keys
+    target_uuids = None
+    result = ssh.QueryPubKeyFile(target_uuids, key_file=pub_key_file)
+    self.assertEquals([self.KEY_A], result[self.UUID_1])
+    self.assertEquals([self.KEY_B], result[self.UUID_2])
+
   def testReplaceNameByUuid(self):
     pub_key_file = self._CreateTempFile()
     name = "my.precious.node"
@@ -387,6 +393,22 @@ class TestPublicSshKeys(testutils.GanetiTestCase):
 
     result = ssh.QueryPubKeyFile(self.UUID_1, key_file=pub_key_file)
     self.assertEquals([self.KEY_A], result[self.UUID_1])
+
+  def testClearPubKeyFile(self):
+    pub_key_file = self._CreateTempFile()
+    ssh.AddPublicKey(self.UUID_2, self.KEY_A, key_file=pub_key_file)
+    ssh.ClearPubKeyFile(key_file=pub_key_file)
+    self.assertFileContent(pub_key_file, "")
+
+  def testOverridePubKeyFile(self):
+    pub_key_file = self._CreateTempFile()
+    key_map = {self.UUID_1: [self.KEY_A, self.KEY_B],
+               self.UUID_2: [self.KEY_A]}
+    ssh.OverridePubKeyFile(key_map, key_file=pub_key_file)
+    self.assertFileContent(pub_key_file,
+      "123-456 ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n"
+      "123-456 ssh-dss BAasjkakfa234SFSFDA345462AAAB root@key-b\n"
+      "789-ABC ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n")
 
 
 if __name__ == "__main__":

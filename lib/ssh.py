@@ -36,6 +36,7 @@
 import logging
 import os
 import tempfile
+import stat
 
 from functools import partial
 
@@ -46,6 +47,7 @@ from ganeti import netutils
 from ganeti import pathutils
 from ganeti import vcluster
 from ganeti import compat
+from ganeti import serializer
 
 
 def GetUserFiles(user, mkdir=False, dircheck=True, kind=constants.SSHK_DSA,
@@ -534,6 +536,36 @@ def ReplaceNameByUuid(node_uuid, node_name, key_file=pathutils.SSH_PUB_KEYS,
                         error_fn=error_fn)
 
 
+def ClearPubKeyFile(key_file=pathutils.SSH_PUB_KEYS, mode=0600):
+  """Resets the content of the public key file.
+
+  """
+  utils.WriteFile(key_file, data="", mode=mode)
+
+
+def OverridePubKeyFile(key_map, key_file=pathutils.SSH_PUB_KEYS,
+                       error_fn=errors.ProgrammerError):
+  """Overrides the public key file with a list of given keys.
+
+  @type key_map: dict from str to list of str
+  @param key_map: dictionary mapping uuids to lists of SSH keys
+
+  """
+  try:
+    fd_tmp, tmpname = tempfile.mkstemp(dir=os.path.dirname(key_file))
+    f_tmp = os.fdopen(fd_tmp, "w")
+    for (uuid, keys) in key_map.items():
+      for key in keys:
+        f_tmp.write("%s %s\n" % (uuid, key))
+    f_tmp.flush()
+    os.rename(tmpname, key_file)
+    os.chmod(key_file, stat.S_IRUSR | stat.S_IWUSR)
+  except IOError, e:
+    raise error_fn("Cannot override key file due to error '%s'" % e)
+  finally:
+    f_tmp.close()
+
+
 def QueryPubKeyFile(target_uuids, key_file=pathutils.SSH_PUB_KEYS,
                     error_fn=errors.ProgrammerError):
   """Retrieves a map of keys for the requested node UUIDs.
@@ -551,6 +583,7 @@ def QueryPubKeyFile(target_uuids, key_file=pathutils.SSH_PUB_KEYS,
   @return: dictionary mapping node uuids to their ssh keys
 
   """
+  all_keys = target_uuids is None
   if isinstance(target_uuids, str):
     target_uuids = [target_uuids]
   result = {}
@@ -560,7 +593,7 @@ def QueryPubKeyFile(target_uuids, key_file=pathutils.SSH_PUB_KEYS,
       (uuid, key) = _ParseKeyLine(line, error_fn)
       if not uuid:
         continue
-      if uuid in target_uuids:
+      if all_keys or (uuid in target_uuids):
         if uuid not in result:
           result[uuid] = []
         result[uuid].append(key)
@@ -603,7 +636,7 @@ def InitPubKeyFile(master_uuid, key_file=pathutils.SSH_PUB_KEYS):
 
   """
   _, pub_key, _ = GetUserFiles(constants.SSH_LOGIN_USER)
-  utils.WriteFile(key_file, data="", mode=0600)
+  ClearPubKeyFile(key_file=key_file)
   key = utils.ReadFile(pub_key)
   AddPublicKey(master_uuid, key, key_file=key_file)
 
