@@ -2,6 +2,31 @@ News
 ====
 
 
+Version 2.11.0 rc1
+------------------
+
+*(Released Thu, 20 Mar 2014)*
+
+Since 2.11.0 beta1:
+
+- Convert int to float when checking config. consistency
+- Rename compression option in gnt-backup export
+
+Inherited from the 2.9 branch:
+
+- Fix error introduced during merge
+- gnt-cluster copyfile: accept relative paths
+
+Inherited from the 2.8 branch:
+
+- Improve RAPI detection of the watcher
+- Add patching QA configuration files on buildbots
+- Enable a timeout for instance shutdown
+- Allow KVM commands to have a timeout
+- Allow xen commands to have a timeout
+- Fix wrong docstring
+
+
 Version 2.11.0 beta1
 --------------------
 
