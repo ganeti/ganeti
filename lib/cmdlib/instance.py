@@ -1552,11 +1552,17 @@ class LUInstanceCreate(LogicalUnit):
             if not image:
               continue
 
+            if iobj.os:
+              dst_io = constants.IEIO_SCRIPT
+              dst_ioargs = ((iobj.disks[idx], iobj), idx)
+            else:
+              dst_io = constants.IEIO_RAW_DISK
+              dst_ioargs = (iobj.disks[idx], iobj)
+
             # FIXME: pass debug option from opcode to backend
             dt = masterd.instance.DiskTransfer("disk/%s" % idx,
                                                constants.IEIO_FILE, (image, ),
-                                               constants.IEIO_SCRIPT,
-                                               ((iobj.disks[idx], iobj), idx),
+                                               dst_io, dst_ioargs,
                                                None)
             transfers.append(dt)
 

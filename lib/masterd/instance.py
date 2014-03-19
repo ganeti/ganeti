@@ -1244,9 +1244,16 @@ class ExportInstanceHelper:
 
       finished_fn = compat.partial(self._TransferFinished, idx)
 
+      if instance.os:
+        src_io = constants.IEIO_SCRIPT
+        src_ioargs = ((dev, instance), idx)
+      else:
+        src_io = constants.IEIO_RAW_DISK
+        src_ioargs = (dev, instance)
+
       # FIXME: pass debug option from opcode to backend
       dt = DiskTransfer("snapshot/%s" % idx,
-                        constants.IEIO_SCRIPT, ((dev, instance), idx),
+                        src_io, src_ioargs,
                         constants.IEIO_FILE, (path, ),
                         finished_fn)
       transfers.append(dt)
@@ -1305,11 +1312,18 @@ class ExportInstanceHelper:
                                            compress=compress,
                                            ipv6=ipv6)
 
+        if instance.os:
+          src_io = constants.IEIO_SCRIPT
+          src_ioargs = ((dev, instance), idx)
+        else:
+          src_io = constants.IEIO_RAW_DISK
+          src_ioargs = (dev, instance)
+
         self._feedback_fn("Sending disk %s to %s:%s" % (idx, host, port))
         finished_fn = compat.partial(self._TransferFinished, idx)
         ieloop.Add(DiskExport(self._lu, instance.primary_node,
                               opts, host, port, instance, "disk%d" % idx,
-                              constants.IEIO_SCRIPT, ((dev, instance), idx),
+                              src_io, src_ioargs,
                               timeouts, cbs, private=(idx, finished_fn)))
 
       ieloop.Run()
@@ -1493,9 +1507,16 @@ def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
                                            compress=compress,
                                            ipv6=ipv6)
 
+        if instance.os:
+          src_io = constants.IEIO_SCRIPT
+          src_ioargs = ((dev, instance), idx)
+        else:
+          src_io = constants.IEIO_RAW_DISK
+          src_ioargs = (dev, instance)
+
         ieloop.Add(DiskImport(lu, instance.primary_node, opts, instance,
                               "disk%d" % idx,
-                              constants.IEIO_SCRIPT, ((dev, instance), idx),
+                              src_io, src_ioargs,
                               timeouts, cbs, private=(idx, )))
 
       ieloop.Run()
