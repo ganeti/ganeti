@@ -628,6 +628,11 @@ class MoveDestExecutor(object):
       for idx, (nic, override) in enumerate(zip(nics, override_nics)):
         nics[idx] = objects.FillDict(nic, override)
 
+    if instance["os"]:
+      os_type = instance["os"]
+    else:
+      os_type = None
+
     # TODO: Should this be the actual up/down status? (run_state)
     start = (instance["config_state"] == "up")
 
@@ -648,7 +653,7 @@ class MoveDestExecutor(object):
 
     return cl.CreateInstance(constants.INSTANCE_REMOTE_IMPORT,
                              name, disk_template, disks, nics,
-                             os=instance["os"],
+                             os=os_type,
                              pnode=pnode,
                              snode=snode,
                              start=start,
