@@ -32,6 +32,7 @@ from ganeti import compat
 from ganeti import ht
 
 import qa_error
+import qa_logging
 
 
 _INSTANCE_CHECK_KEY = "instance-check"
@@ -270,18 +271,16 @@ class _QaConfig(object):
     try:
       full_path = os.path.join(_QA_BASE_PATH, rel_path)
       patch = serializer.LoadJson(utils.ReadFile(full_path))
-      if patch:
-        patch_dict[rel_path] = patch
+      patch_dict[rel_path] = patch
     except IOError:
       pass
 
   @staticmethod
   def LoadPatches():
-    """ Finds and loads all non-empty patches supported by the QA.
+    """ Finds and loads all patches supported by the QA.
 
     @rtype: dict of string to dict
-    @return: A dictionary of relative path to patch content, for non-empty
-             patches.
+    @return: A dictionary of relative path to patch content.
 
     """
     patches = {}
@@ -292,6 +291,29 @@ class _QaConfig(object):
         if filename.endswith(".json"):
           _QaConfig.LoadPatch(patches, os.path.join(_QA_PATCH_DIR, filename))
     return patches
+
+  @staticmethod
+  def ApplyPatch(data, patch_module, patches, patch_path):
+    """Applies a single patch.
+
+    @type data: dict (deserialized json)
+    @param data: The QA configuration
+    @type patch_module: module
+    @param patch_module: The json patch module, loaded dynamically
+    @type patches: dict of string to dict
+    @param patches: The dictionary of patch path to content
+    @type patch_path: string
+    @param patch_path: The path to the patch, relative to the QA directory
+
+    @return: The modified configuration data.
+
+    """
+    patch_content = patches[patch_path]
+    print qa_logging.FormatInfo("Applying patch %s" % patch_path)
+    if not patch_content and patch_path != _QA_DEFAULT_PATCH:
+      print qa_logging.FormatWarning("The patch %s added by the user is empty" %
+                                     patch_path)
+    data = patch_module.apply_patch(data, patch_content)
 
   @staticmethod
   def ApplyPatches(data, patch_module, patches):
@@ -331,16 +353,16 @@ class _QaConfig(object):
       if patch not in patches:
         raise qa_error.Error("Patch %s specified in the ordering file does not "
                              "exist" % patch)
-      data = patch_module.apply_patch(data, patches[patch])
+      _QaConfig.ApplyPatch(data, patch_module, patches, patch)
 
     # Then the other non-default ones
     for patch in sorted(patches):
       if patch != _QA_DEFAULT_PATCH and patch not in ordered_patches:
-        data = patch_module.apply_patch(data, patches[patch])
+        _QaConfig.ApplyPatch(data, patch_module, patches, patch)
 
     # Finally the default one
     if _QA_DEFAULT_PATCH in patches:
-      data = patch_module.apply_patch(data, patches[_QA_DEFAULT_PATCH])
+      _QaConfig.ApplyPatch(data, patch_module, patches, _QA_DEFAULT_PATCH)
 
     return data
 
@@ -359,7 +381,8 @@ class _QaConfig(object):
     # available
     try:
       patches = _QaConfig.LoadPatches()
-      if patches:
+      # Try to use the module only if there is a non-empty patch present
+      if any(patches.values()):
         mod = __import__("jsonpatch", fromlist=[])
         data = _QaConfig.ApplyPatches(data, mod, patches)
     except IOError:
