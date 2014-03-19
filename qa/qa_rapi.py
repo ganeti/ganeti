@@ -43,8 +43,9 @@ import ganeti.rapi.client        # pylint: disable=W0611
 import ganeti.rapi.client_utils
 
 import qa_config
-import qa_utils
 import qa_error
+import qa_logging
+import qa_utils
 
 from qa_instance import IsFailoverSupported
 from qa_instance import IsMigrationSupported
@@ -90,8 +91,8 @@ def Setup(username, password):
 
   if qa_config.UseVirtualCluster():
     # TODO: Implement full support for RAPI on virtual clusters
-    print qa_utils.FormatWarning("RAPI tests are not yet supported on"
-                                 " virtual clusters and will be disabled")
+    print qa_logging.FormatWarning("RAPI tests are not yet supported on"
+                                   " virtual clusters and will be disabled")
 
     assert _rapi_client is None
   else:
@@ -630,8 +631,8 @@ def TestRapiInstanceRemove(instance, use_client):
 def TestRapiInstanceMigrate(instance):
   """Test migrating instance via RAPI"""
   if not IsMigrationSupported(instance):
-    print qa_utils.FormatInfo("Instance doesn't support migration, skipping"
-                              " test")
+    print qa_logging.FormatInfo("Instance doesn't support migration, skipping"
+                                " test")
     return
   # Move to secondary node
   _WaitForRapiJob(_rapi_client.MigrateInstance(instance.name))
@@ -644,8 +645,8 @@ def TestRapiInstanceMigrate(instance):
 def TestRapiInstanceFailover(instance):
   """Test failing over instance via RAPI"""
   if not IsFailoverSupported(instance):
-    print qa_utils.FormatInfo("Instance doesn't support failover, skipping"
-                              " test")
+    print qa_logging.FormatInfo("Instance doesn't support failover, skipping"
+                                " test")
     return
   # Move to secondary node
   _WaitForRapiJob(_rapi_client.FailoverInstance(instance.name))
@@ -685,7 +686,7 @@ def TestRapiInstanceRenameAndBack(rename_source, rename_target):
 def TestRapiInstanceReinstall(instance):
   """Test reinstalling an instance via RAPI"""
   if instance.disk_template == constants.DT_DISKLESS:
-    print qa_utils.FormatInfo("Test not supported for diskless instances")
+    print qa_logging.FormatInfo("Test not supported for diskless instances")
     return
 
   _WaitForRapiJob(_rapi_client.ReinstallInstance(instance.name))
@@ -701,8 +702,8 @@ def TestRapiInstanceReinstall(instance):
 def TestRapiInstanceReplaceDisks(instance):
   """Test replacing instance disks via RAPI"""
   if not IsDiskReplacingSupported(instance):
-    print qa_utils.FormatInfo("Instance doesn't support disk replacing,"
-                              " skipping test")
+    print qa_logging.FormatInfo("Instance doesn't support disk replacing,"
+                                " skipping test")
     return
   fn = _rapi_client.ReplaceInstanceDisks
   _WaitForRapiJob(fn(instance.name,

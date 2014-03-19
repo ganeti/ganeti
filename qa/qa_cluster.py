@@ -33,9 +33,10 @@ from ganeti import utils
 from ganeti import pathutils
 
 import qa_config
-import qa_utils
 import qa_error
 import qa_instance
+import qa_logging
+import qa_utils
 
 from qa_utils import AssertEqual, AssertCommand, GetCommandOutput
 
@@ -254,7 +255,7 @@ def TestClusterRename():
   original_name = qa_config.get("name")
   rename_target = qa_config.get("rename", None)
   if rename_target is None:
-    print qa_utils.FormatError('"rename" entry is missing')
+    print qa_logging.FormatError('"rename" entry is missing')
     return
 
   for data in [
