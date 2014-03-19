@@ -403,6 +403,21 @@ def CheckOSParams(lu, required, node_uuids, osname, osparams, force_variant):
                    osname, lu.cfg.GetNodeName(node_uuid))
 
 
+def CheckImageValidity(image, error_message):
+  """Checks if a given image description is either a valid file path or a URL.
+
+  @type image: string
+  @param image: An absolute path or URL, the assumed location of a disk image.
+  @type error_message: string
+  @param error_message: The error message to show if the image is not valid.
+
+  @raise errors.OpPrereqError: If the validation fails.
+
+  """
+  if image is not None and not (utils.IsUrl(image) or os.path.isabs(image)):
+    raise errors.OpPrereqError(error_message)
+
+
 def CheckOSImage(op):
   """Checks if the OS image in the OS parameters of an opcode is
   valid.
@@ -420,13 +435,8 @@ def CheckOSImage(op):
 
   """
   os_image = objects.GetOSImage(op.osparams)
-
-  if os_image is None:
-    return None
-  elif utils.IsUrl(os_image) or os.path.isabs(os_image):
-    return os_image
-  else:
-    raise errors.OpPrereqError("OS image must be a URL or an absolute path")
+  CheckImageValidity(os_image, "OS image must be a URL or an absolute path")
+  return os_image
 
 
 def CheckHVParams(lu, node_uuids, hvname, hvparams):
