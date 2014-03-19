@@ -1609,14 +1609,16 @@ class LUInstanceCreate(LogicalUnit):
           raise errors.ProgrammerError("Unknown OS initialization mode '%s'"
                                        % self.op.mode)
 
-        # Run rename script on newly imported instance
         assert iobj.name == self.op.instance_name
-        feedback_fn("Running rename script for %s" % self.op.instance_name)
-        result = self.rpc.call_instance_run_rename(self.pnode.uuid, iobj,
-                                                   rename_from,
-                                                   self.op.debug_level)
-        result.Warn("Failed to run rename script for %s on node %s" %
-                    (self.op.instance_name, self.pnode.name), self.LogWarning)
+
+        # Run rename script on newly imported instance
+        if iobj.os:
+          feedback_fn("Running rename script for %s" % self.op.instance_name)
+          result = self.rpc.call_instance_run_rename(self.pnode.uuid, iobj,
+                                                     rename_from,
+                                                     self.op.debug_level)
+          result.Warn("Failed to run rename script for %s on node %s" %
+                      (self.op.instance_name, self.pnode.name), self.LogWarning)
 
     assert not self.owned_locks(locking.LEVEL_NODE_RES)
 
