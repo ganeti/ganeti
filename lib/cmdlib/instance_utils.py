@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -539,3 +539,56 @@ def CheckNicsBridgesExist(lu, nics, node_uuid):
     result.Raise("Error checking bridges on destination node '%s'" %
                  lu.cfg.GetNodeName(node_uuid), prereq=True,
                  ecode=errors.ECODE_ENVIRON)
+
+
+def UpdateMetadata(feedback_fn, rpc, instance,
+                   osparams_public=None,
+                   osparams_private=None,
+                   osparams_secret=None):
+  """Updates instance metadata on the metadata daemon on the
+  instance's primary node.
+
+  In case the RPC fails, this function simply issues a warning and
+  proceeds normally.
+
+  @type feedback_fn: callable
+  @param feedback_fn: function used send feedback back to the caller
+
+  @type rpc: L{rpc.node.RpcRunner}
+  @param rpc: RPC runner
+
+  @type instance: L{objects.Instance}
+  @param instance: instance for which the metadata should be updated
+
+  @type osparams_public: NoneType or dict
+  @param osparams_public: public OS parameters used to override those
+                          defined in L{instance}
+
+  @type osparams_private: NoneType or dict
+  @param osparams_private: private OS parameters used to override those
+                           defined in L{instance}
+
+  @type osparams_secret: NoneType or dict
+  @param osparams_secret: secret OS parameters used to override those
+                          defined in L{instance}
+
+  @rtype: NoneType
+  @return: None
+
+  """
+  data = instance.ToDict()
+
+  if osparams_public is not None:
+    data["osparams_public"] = osparams_public
+
+  if osparams_private is not None:
+    data["osparams_private"] = osparams_private
+
+  if osparams_secret is not None:
+    data["osparams_secret"] = osparams_secret
+  else:
+    data["osparams_secret"] = {}
+
+  result = rpc.call_instance_metadata_modify(instance.primary_node, data)
+  result.Warn("Could not update metadata for instance '%s'" % instance.name,
+              feedback_fn)
