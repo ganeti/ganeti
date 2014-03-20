@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2013 Google Inc.
+# Copyright (C) 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ class Transport:
 
   This is used on the client side.
 
-  This could be replace by any other class that provides the same
+  This could be replaced by any other class that provides the same
   semantics to the Client. This means:
     - can send messages and receive messages
     - safe for multithreading

@@ -47,6 +47,7 @@ import random
 import re
 import shutil
 import signal
+import socket
 import stat
 import tempfile
 import time
@@ -73,6 +74,8 @@ from ganeti import ht
 from ganeti.storage.base import BlockDev
 from ganeti.storage.drbd import DRBD8
 from ganeti import hooksmaster
+from ganeti.rpc import transport
+from ganeti.rpc.errors import NoMasterError, TimeoutError
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -2168,6 +2171,47 @@ def HotplugSupported(instance):
     hyper.HotplugSupported(instance)
   except errors.HotplugError, err:
     _Fail("Hotplug is not supported: %s", err)
+
+
+def ModifyInstanceMetadata(metadata):
+  """Sends instance data to the metadata daemon.
+
+  Uses the Luxi transport layer to communicate with the metadata
+  daemon configuration server.  It starts the metadata daemon if it is
+  not running.
+
+  @type metadata: dict
+  @param metadata: instance metadata obtained by calling
+                   L{objects.Instance.ToDict} on an instance object
+
+  """
+  if not utils.IsDaemonAlive(constants.METAD):
+    result = utils.RunCmd(constants.METAD)
+    if result.failed:
+      raise errors.HypervisorError("Failed to start metadata daemon")
+
+  def _Connect():
+    return transport.Transport(pathutils.SOCKET_DIR + "/ganeti-metad")
+
+  retries = 5
+
+  while True:
+    try:
+      trans = utils.Retry(_Connect, 1.0, constants.LUXI_DEF_CTMO)
+      break
+    except utils.RetryTimeout:
+      raise TimeoutError("Connection to metadata daemon timed out")
+    except (socket.error, NoMasterError), err:
+      if retries == 0:
+        raise TimeoutError("Failed to connect to metadata daemon: %s" % err)
+      else:
+        retries -= 1
+
+  data = serializer.DumpJson(metadata,
+                             private_encoder=serializer.EncodeWithPrivateFields)
+
+  trans.Send(data)
+  trans.Close()
 
 
 def BlockdevCreate(disk, size, owner, on_primary, info, excl_stor):
