@@ -296,6 +296,9 @@ _INSTANCE_CALLS = [
   ("hotplug_supported", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("instance", ED_INST_DICT, "Instance object"),
     ], None, None, "Check if hotplug is supported"),
+  ("instance_metadata_modify", SINGLE, None, constants.RPC_TMO_URGENT, [
+    ("instance", None, "Instance object"),
+    ], None, None, "Modify instance metadata"),
   ]
 
 _IMPEXP_CALLS = [

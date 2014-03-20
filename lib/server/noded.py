@@ -640,6 +640,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.HotplugSupported(instance)
 
   @staticmethod
+  def perspective_instance_metadata_modify(params):
+    """Modify instance metadata.
+
+    """
+    instance = params[0]
+    return backend.ModifyInstanceMetadata(instance)
+
+  @staticmethod
   def perspective_migration_info(params):
     """Gather information about an instance to be migrated.
 
