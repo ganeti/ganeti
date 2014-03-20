@@ -75,7 +75,8 @@ def ShowOSInfo(opts, args):
   """
   op = opcodes.OpOsDiagnose(output_fields=["name", "valid", "variants",
                                            "parameters", "api_versions",
-                                           "blacklisted", "hidden"],
+                                           "blacklisted", "hidden", "os_hvp",
+                                           "osparams"],
                             names=[])
   result = SubmitOpCode(op, opts=opts)
 
@@ -85,7 +86,13 @@ def ShowOSInfo(opts, args):
 
   do_filter = bool(args)
 
-  for (name, valid, variants, parameters, api_versions, blk, hid) in result:
+  total_os_hvp = {}
+  total_osparams = {}
+
+  for (name, valid, variants, parameters, api_versions, blk, hid, os_hvp,
+       osparams) in result:
+    total_os_hvp.update(os_hvp)
+    total_osparams.update(osparams)
     if do_filter:
       if name not in args:
         continue
@@ -108,8 +115,18 @@ def ShowOSInfo(opts, args):
     ToStdout("")
 
   if args:
+    all_names = total_os_hvp.keys() + total_osparams.keys()
     for name in args:
-      ToStdout("%s: ", name)
+      if not name in all_names:
+        ToStdout("%s: ", name)
+      else:
+        info = [
+          (name, [
+            ("OS-specific hypervisor parameters", total_os_hvp.get(name, {})),
+            ("OS parameters", total_osparams.get(name, {})),
+            ]),
+          ]
+        PrintGenericInfo(info)
       ToStdout("")
 
   return 0

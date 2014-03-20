@@ -104,7 +104,8 @@ class OsQuery(QueryBase):
     for (os_name, os_data) in pol.items():
       info = query.OsInfo(name=os_name, valid=True, node_status=os_data,
                           hidden=(os_name in cluster.hidden_os),
-                          blacklisted=(os_name in cluster.blacklisted_os))
+                          blacklisted=(os_name in cluster.blacklisted_os),
+                          os_hvp={}, osparams={})
 
       variants = set()
       parameters = set()
@@ -130,6 +131,13 @@ class OsQuery(QueryBase):
       info.variants = list(variants)
       info.parameters = list(parameters)
       info.api_versions = list(api_versions)
+
+      for variant in variants:
+        name = "+".join([os_name, variant])
+        if name in cluster.os_hvp.keys():
+          info.os_hvp[name] = cluster.os_hvp.get(name)
+        if name in cluster.osparams.keys():
+          info.osparams[name] = cluster.osparams.get(name)
 
       data[os_name] = info
 

@@ -2446,6 +2446,8 @@ class OsInfo(objects.ConfigObject):
     "api_versions",
     "parameters",
     "node_status",
+    "os_hvp",
+    "osparams"
     ]
 
 
@@ -2478,6 +2480,12 @@ def _BuildOsFields():
     (_MakeField("node_status", "NodeStatus", QFT_OTHER,
                 "Status from node"),
      None, 0, _GetItemAttr("node_status")),
+    (_MakeField("os_hvp", "OsHypervisorParams", QFT_OTHER,
+                "Operating system specific hypervisor parameters"),
+     None, 0, _GetItemAttr("os_hvp")),
+    (_MakeField("osparams", "OsParameters", QFT_OTHER,
+                "Operating system specific parameters"),
+     None, 0, _GetItemAttr("osparams")),
     ]
 
   return _PrepareFieldList(fields, [])
