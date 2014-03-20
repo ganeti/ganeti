@@ -1,4 +1,4 @@
-{-| Metadata daemon.
+{-| Metadata daemon server, which controls the configuration and web servers.
 
 -}
 
@@ -22,27 +22,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 02110-1301, USA.
 
 -}
+module Ganeti.Metad.Server (start) where
 
-module Main (main) where
+import Control.Concurrent
+import qualified Data.Map (empty)
 
-import qualified Ganeti.Constants as Constants
-import Ganeti.Daemon (OptType)
-import qualified Ganeti.Daemon as Daemon
-import qualified Ganeti.Metad.Server as Server
-import qualified Ganeti.Runtime as Runtime
+import Ganeti.Daemon (DaemonOptions)
+import qualified Ganeti.Metad.ConfigServer as ConfigServer
+import qualified Ganeti.Metad.WebServer as WebServer
 
-options :: [OptType]
-options =
-  [ Daemon.oBindAddress
-  , Daemon.oDebug
-  , Daemon.oNoDaemonize
-  , Daemon.oNoUserChecks
-  , Daemon.oPort Constants.defaultMetadPort
-  ]
-
-main :: IO ()
-main =
-  Daemon.genericMain Runtime.GanetiMetad options
-    (\_ -> return . Right $ ())
-    (\_ _ -> return ())
-    (\opts _ _ -> Server.start opts)
+start :: DaemonOptions -> IO ()
+start opts =
+  do config <- newMVar Data.Map.empty
+     _ <- forkIO $ WebServer.start opts config
+     ConfigServer.start opts config
