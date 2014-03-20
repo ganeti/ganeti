@@ -121,6 +121,7 @@ DIRS = \
 	lib/watcher \
 	man \
 	qa \
+	qa/patch \
 	test \
 	test/data \
 	test/data/bdev-rbd \
