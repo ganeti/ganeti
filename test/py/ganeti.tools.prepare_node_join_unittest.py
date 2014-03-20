@@ -34,7 +34,6 @@ import unittest
 import shutil
 import tempfile
 import os.path
-import OpenSSL
 
 from ganeti import errors
 from ganeti import constants
@@ -43,30 +42,31 @@ from ganeti import pathutils
 from ganeti import compat
 from ganeti import utils
 from ganeti.tools import prepare_node_join
+from ganeti.tools import common
 
 import testutils
 
 
 _JoinError = prepare_node_join.JoinError
-
+_DATA_CHECK = prepare_node_join._DATA_CHECK
 
 class TestLoadData(unittest.TestCase):
   def testNoJson(self):
-    self.assertRaises(errors.ParseError, prepare_node_join.LoadData, "")
-    self.assertRaises(errors.ParseError, prepare_node_join.LoadData, "}")
+    self.assertRaises(errors.ParseError, common.LoadData, "", _DATA_CHECK)
+    self.assertRaises(errors.ParseError, common.LoadData, "}", _DATA_CHECK)
 
   def testInvalidDataStructure(self):
     raw = serializer.DumpJson({
       "some other thing": False,
       })
-    self.assertRaises(errors.ParseError, prepare_node_join.LoadData, raw)
+    self.assertRaises(errors.ParseError, common.LoadData, raw, _DATA_CHECK)
 
     raw = serializer.DumpJson([])
-    self.assertRaises(errors.ParseError, prepare_node_join.LoadData, raw)
+    self.assertRaises(errors.ParseError, common.LoadData, raw, _DATA_CHECK)
 
   def testEmptyDict(self):
     raw = serializer.DumpJson({})
-    self.assertEqual(prepare_node_join.LoadData(raw), {})
+    self.assertEqual(common.LoadData(raw, _DATA_CHECK), {})
 
   def testValidData(self):
     key_list = [[constants.SSHK_DSA, "private foo", "public bar"]]
@@ -78,7 +78,7 @@ class TestLoadData(unittest.TestCase):
         {"nodeuuid01234": ["foo"],
          "nodeuuid56789": ["bar"]}}
     raw = serializer.DumpJson(data_dict)
-    self.assertEqual(prepare_node_join.LoadData(raw), data_dict)
+    self.assertEqual(common.LoadData(raw, _DATA_CHECK), data_dict)
 
 
 class TestVerifyCertificate(testutils.GanetiTestCase):
@@ -91,20 +91,21 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
     shutil.rmtree(self.tmpdir)
 
   def testNoCert(self):
-    prepare_node_join.VerifyCertificate({}, _verify_fn=NotImplemented)
+    common.VerifyCertificate({}, error_fn=prepare_node_join.JoinError,
+                             _verify_fn=NotImplemented)
 
   def testGivenPrivateKey(self):
     cert_filename = testutils.TestDataFilename("cert2.pem")
     cert_pem = utils.ReadFile(cert_filename)
 
-    self.assertRaises(_JoinError, prepare_node_join._VerifyCertificate,
-                      cert_pem, _check_fn=NotImplemented)
+    self.assertRaises(_JoinError, common._VerifyCertificate,
+                      cert_pem, _JoinError, _check_fn=NotImplemented)
 
   def testInvalidCertificate(self):
     self.assertRaises(errors.X509CertError,
-                      prepare_node_join._VerifyCertificate,
+                      common._VerifyCertificate,
                       "Something that's not a certificate",
-                      _check_fn=NotImplemented)
+                      _JoinError, _check_fn=NotImplemented)
 
   @staticmethod
   def _Check(cert):
@@ -113,7 +114,8 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
   def testSuccessfulCheck(self):
     cert_filename = testutils.TestDataFilename("cert1.pem")
     cert_pem = utils.ReadFile(cert_filename)
-    prepare_node_join._VerifyCertificate(cert_pem, _check_fn=self._Check)
+    common._VerifyCertificate(cert_pem, _JoinError,
+      _check_fn=self._Check)
 
 
 class TestVerifyClusterName(unittest.TestCase):
@@ -126,8 +128,8 @@ class TestVerifyClusterName(unittest.TestCase):
     shutil.rmtree(self.tmpdir)
 
   def testNoName(self):
-    self.assertRaises(_JoinError, prepare_node_join.VerifyClusterName,
-                      {}, _verify_fn=NotImplemented)
+    self.assertRaises(_JoinError, common.VerifyClusterName,
+                      {}, _JoinError, _verify_fn=NotImplemented)
 
   @staticmethod
   def _FailingVerify(name):
@@ -139,8 +141,8 @@ class TestVerifyClusterName(unittest.TestCase):
       constants.SSHS_CLUSTER_NAME: "cluster.example.com",
       }
 
-    self.assertRaises(errors.GenericError, prepare_node_join.VerifyClusterName,
-                      data, _verify_fn=self._FailingVerify)
+    self.assertRaises(errors.GenericError, common.VerifyClusterName,
+                      data, _JoinError, _verify_fn=self._FailingVerify)
 
 
 class TestUpdateSshDaemon(unittest.TestCase):

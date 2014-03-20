@@ -36,17 +36,15 @@ import os.path
 import optparse
 import sys
 import logging
-import OpenSSL
 
 from ganeti import cli
 from ganeti import constants
 from ganeti import errors
 from ganeti import pathutils
 from ganeti import utils
-from ganeti import serializer
 from ganeti import ht
 from ganeti import ssh
-from ganeti import ssconf
+from ganeti.tools import common
 
 
 _SSH_KEY_LIST_ITEM = \
@@ -91,65 +89,7 @@ def ParseOptions():
 
   (opts, args) = parser.parse_args()
 
-  return VerifyOptions(parser, opts, args)
-
-
-def VerifyOptions(parser, opts, args):
-  """Verifies options and arguments for correctness.
-
-  """
-  if args:
-    parser.error("No arguments are expected")
-
-  return opts
-
-
-def _VerifyCertificate(cert_pem, _check_fn=utils.CheckNodeCertificate):
-  """Verifies a certificate against the local node daemon certificate.
-
-  @type cert_pem: string
-  @param cert_pem: Certificate in PEM format (no key)
-
-  """
-  try:
-    OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-  except OpenSSL.crypto.Error, err:
-    pass
-  else:
-    raise JoinError("No private key may be given")
-
-  try:
-    cert = \
-      OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-  except Exception, err:
-    raise errors.X509CertError("(stdin)",
-                               "Unable to load certificate: %s" % err)
-
-  _check_fn(cert)
-
-
-def VerifyCertificate(data, _verify_fn=_VerifyCertificate):
-  """Verifies cluster certificate.
-
-  @type data: dict
-
-  """
-  cert = data.get(constants.SSHS_NODE_DAEMON_CERTIFICATE)
-  if cert:
-    _verify_fn(cert)
-
-
-def VerifyClusterName(data, _verify_fn=ssconf.VerifyClusterName):
-  """Verifies cluster name.
-
-  @type data: dict
-
-  """
-  name = data.get(constants.SSHS_CLUSTER_NAME)
-  if name:
-    _verify_fn(name)
-  else:
-    raise JoinError("Cluster name must be specified")
+  return common.VerifyOptions(parser, opts, args)
 
 
 def _UpdateKeyFiles(keys, dry_run, keyfiles):
@@ -250,15 +190,6 @@ def UpdateSshRoot(data, dry_run, _homedir_fn=None):
         ssh.AddAuthorizedKeys(auth_keys_file, all_authorized_keys)
 
 
-def LoadData(raw):
-  """Parses and verifies input data.
-
-  @rtype: dict
-
-  """
-  return serializer.LoadAndVerifyJson(raw, _DATA_CHECK)
-
-
 def Main():
   """Main routine.
 
@@ -268,11 +199,11 @@ def Main():
   utils.SetupToolLogging(opts.debug, opts.verbose)
 
   try:
-    data = LoadData(sys.stdin.read())
+    data = common.LoadData(sys.stdin.read(), _DATA_CHECK)
 
     # Check if input data is correct
-    VerifyClusterName(data)
-    VerifyCertificate(data)
+    common.VerifyClusterName(data, JoinError)
+    common.VerifyCertificate(data, JoinError)
 
     # Update SSH files
     UpdateSshDaemon(data, opts.dry_run)
