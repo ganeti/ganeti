@@ -31,6 +31,7 @@ DAEMONS=(
   ganeti-wconfd
   ganeti-noded
   ganeti-masterd
+  ganeti-metad
   ganeti-rapi
   ganeti-luxid
   )
@@ -174,13 +175,17 @@ list_start_daemons() {
   local name
 
   for name in "${DAEMONS[@]}"; do
-    echo "$name"
+    if [[ "$name" != ganeti-metad ]]; then
+      echo "$name"
+    fi
   done
 }
 
 # Prints a list of all daemons in the order in which they should be stopped
 list_stop_daemons() {
-  list_start_daemons | tac
+  for name in "${DAEMONS[@]}"; do
+    echo "$name"
+  done | tac
 }
 
 # Checks whether a daemon name is known

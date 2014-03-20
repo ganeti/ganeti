@@ -37,7 +37,7 @@ if ! grep -q '^ENABLE_MOND = ' lib/_constants.py; then
 fi
 
 DAEMONS_LIST="wconfd noded masterd rapi luxid"
-STOPDAEMONS_LIST="luxid rapi masterd noded wconfd"
+STOPDAEMONS_LIST="luxid rapi metad masterd noded wconfd"
 
 if grep -q '^ENABLE_CONFD = True' lib/_constants.py; then
   DAEMONS_LIST="$DAEMONS_LIST confd"
