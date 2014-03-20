@@ -62,8 +62,7 @@ from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   NICToTuple, CheckNodeNotDrained, RemoveInstance, CopyLockList, \
   ReleaseLocks, CheckNodeVmCapable, CheckTargetNodeIPolicy, \
   GetInstanceInfoText, RemoveDisks, CheckNodeFreeMemory, \
-  CheckInstanceBridgesExist, CheckNicsBridgesExist
-
+  CheckInstanceBridgesExist, CheckNicsBridgesExist, UpdateMetadata
 import ganeti.masterd.instance
 
 
@@ -1631,6 +1630,10 @@ class LUInstanceCreate(LogicalUnit):
       result = self.rpc.call_instance_start(self.pnode.uuid, (iobj, None, None),
                                             False, self.op.reason)
       result.Raise("Could not start instance")
+
+    UpdateMetadata(feedback_fn, self.rpc, iobj,
+                   osparams_private=self.op.osparams_private,
+                   osparams_secret=self.op.osparams_secret)
 
     return self.cfg.GetNodeNames(list(iobj.all_nodes))
 
@@ -3814,6 +3817,8 @@ class LUInstanceSetParams(LogicalUnit):
       # Mark instance as online, but stopped
       self.cfg.MarkInstanceDown(self.instance.uuid)
       result.append(("admin_state", constants.ADMINST_DOWN))
+
+    UpdateMetadata(feedback_fn, self.rpc, self.instance)
 
     assert not (self.owned_locks(locking.LEVEL_NODE_RES) or
                 self.owned_locks(locking.LEVEL_NODE)), \

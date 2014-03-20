@@ -41,7 +41,7 @@ from ganeti.cmdlib.common import INSTANCE_ONLINE, INSTANCE_DOWN, \
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
   ShutdownInstanceDisks, ImageDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
-  CheckInstanceBridgesExist, CheckNodeFreeMemory
+  CheckInstanceBridgesExist, CheckNodeFreeMemory, UpdateMetadata
 from ganeti.hypervisor import hv_base
 
 
@@ -329,6 +329,9 @@ class LUInstanceReinstall(LogicalUnit):
       os_params_secret=params_secret
     )
 
+    self.osparams_private = params_private
+    self.osparams_secret = params_secret
+
     CheckOSParams(self, True, node_uuids, instance_os, self.osparams,
                   self.op.force_variant)
 
@@ -391,6 +394,11 @@ class LUInstanceReinstall(LogicalUnit):
         if os_type:
           self._ReinstallOSScripts(self.instance, self.osparams,
                                    self.op.debug_level)
+
+        UpdateMetadata(feedback_fn, self.rpc, self.instance,
+                       osparams_public=self.osparams,
+                       osparams_private=self.osparams_private,
+                       osparams_secret=self.osparams_secret)
       finally:
         ShutdownInstanceDisks(self, self.instance)
 
