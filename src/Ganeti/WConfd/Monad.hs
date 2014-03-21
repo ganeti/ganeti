@@ -50,6 +50,7 @@ module Ganeti.WConfd.Monad
   ) where
 
 import Control.Applicative
+import Control.Arrow ((&&&))
 import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error
@@ -57,6 +58,7 @@ import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Data.IORef.Lifted
 import Data.Tuple (swap)
+import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
@@ -203,8 +205,10 @@ modifyLockAllocation :: (GanetiLockAllocation -> (GanetiLockAllocation, a))
                      -> WConfdMonad a
 modifyLockAllocation f = do
   dh <- lift . WConfdMonadInt $ ask
-  r <- atomicModifyIORef (dhDaemonState dh)
-                         (swap . traverseOf dsLockAllocationL (swap . f))
+  let f' = swap . (fst &&& id) . f
+  (lockAlloc, r) <- atomicModifyIORef (dhDaemonState dh)
+                                      (swap . traverseOf dsLockAllocationL f')
+  logDebug $ "Current lock status: " ++ J.encode lockAlloc
   logDebug "Triggering lock state write"
   liftBase . triggerAndWait . dhSaveLocksWorker $ dh
   logDebug "Lock write finished"
