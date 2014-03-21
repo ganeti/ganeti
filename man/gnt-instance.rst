@@ -804,6 +804,16 @@ machine\_version
     machine version (due to e.g. outdated drivers). In case it's not set
     the default version supported by your version of kvm is used.
 
+migration\_caps
+    Valid for the KVM hypervisor.
+
+    Enable specific migration capabilities by providing a ":" separated
+    list of supported capabilites. QEMU version 1.7.0 defines
+    x-rdma-pin-all, auto-converge, zero-blocks, and xbzrle. Please note
+    that while a combination of xbzrle and auto-converge might speed up
+    the migration process significantly, the first may cause BSOD on
+    Windows8r2 instances running on drbd.
+
 kvm\_path
     Valid for the KVM hypervisor.
 

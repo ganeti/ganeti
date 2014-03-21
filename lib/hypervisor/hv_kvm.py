@@ -115,6 +115,8 @@ _RUNTIME_ENTRY = {
   constants.HOTPLUG_TARGET_DISK: lambda d, e: (d, e, None)
   }
 
+_MIGRATION_CAPS_DELIM = ":"
+
 
 def _GenerateDeviceKVMId(dev_type, dev):
   """Helper function to generate a unique device name used by KVM
@@ -743,6 +745,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_VGA: hv_base.NO_CHECK,
     constants.HV_KVM_EXTRA: hv_base.NO_CHECK,
     constants.HV_KVM_MACHINE_VERSION: hv_base.NO_CHECK,
+    constants.HV_KVM_MIGRATION_CAPS: hv_base.NO_CHECK,
     constants.HV_VNET_HDR: hv_base.NO_CHECK,
     }
 
@@ -2573,6 +2576,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     migrate_command = ("migrate_set_downtime %dms" %
                        instance.hvparams[constants.HV_MIGRATION_DOWNTIME])
     self._CallMonitorCommand(instance_name, migrate_command)
+
+    migration_caps = instance.hvparams[constants.HV_KVM_MIGRATION_CAPS]
+    if migration_caps:
+      for c in migration_caps.split(_MIGRATION_CAPS_DELIM):
+        migrate_command = ("migrate_set_capability %s on" % c)
+        self._CallMonitorCommand(instance_name, migrate_command)
 
     migrate_command = "migrate -d tcp:%s:%s" % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
