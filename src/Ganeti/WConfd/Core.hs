@@ -31,7 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.WConfd.Core where
 
-import Control.Monad (liftM, when)
+import Control.Monad (liftM, unless, when)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Language.Haskell.TH (Name)
@@ -44,7 +44,7 @@ import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock), LockLevel(LevelConfig)
 import Ganeti.Objects (ConfigData)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
-import Ganeti.WConfd.ConfigWriter
+import qualified Ganeti.WConfd.ConfigWriter as CW
 
 -- * Functions available to the RPC module
 
@@ -53,6 +53,24 @@ echo :: String -> WConfdMonad String
 echo = return
 
 -- ** Configuration related functions
+
+checkConfigLock :: ClientId -> L.OwnerState -> WConfdMonad ()
+checkConfigLock cid state = do
+  la <- readLockAllocation
+  unless (L.holdsLock cid ConfigLock state la)
+         . failError $ "Requested lock " ++ show state
+                       ++ " on the configuration missing"
+
+-- | Read the configuration, checking that a shared lock is held.
+-- If not, the call fails.
+readConfig :: ClientId -> WConfdMonad ConfigData
+readConfig ident = checkConfigLock ident L.OwnShared >> CW.readConfig
+
+-- | Write the configuration, checking that an exclusive lock is held.
+-- If not, the call fails.
+writeConfig :: ClientId -> ConfigData -> WConfdMonad ()
+writeConfig ident cdata =
+  checkConfigLock ident L.OwnExclusive >> CW.writeConfig cdata
 
 -- *** Locks on the configuration (only transitional, will be removed later)
 
@@ -75,7 +93,7 @@ lockConfig cid shared = do
                      " already holds a config lock"
   waiting <- tryUpdateLocks cid [(ConfigLock, reqtype)]
   liftM J.MaybeForJSON $ case waiting of
-    []  -> liftM Just readConfig
+    []  -> liftM Just CW.readConfig
     _   -> return Nothing
 
 -- | Release the config lock, if the client currently holds it.
