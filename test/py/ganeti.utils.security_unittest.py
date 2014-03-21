@@ -40,47 +40,6 @@ class TestUuidConversion(unittest.TestCase):
     self.assertEqual(uuid_as_int, int(uuid_as_int))
 
 
-class TestCandidateCerts(unittest.TestCase):
-
-  def setUp(self):
-    self._warn_fn = mock.Mock()
-    self._info_fn = mock.Mock()
-    self._candidate_certs = {}
-
-  def testAddAndRemoveCerts(self):
-    self.assertEqual(0, len(self._candidate_certs))
-
-    node_uuid = "1234"
-    cert_digest = "foobar"
-    security.AddNodeToCandidateCerts(node_uuid, cert_digest,
-      self._candidate_certs, warn_fn=self._warn_fn, info_fn=self._info_fn)
-    self.assertEqual(1, len(self._candidate_certs))
-
-    # Try adding the same cert again
-    security.AddNodeToCandidateCerts(node_uuid, cert_digest,
-      self._candidate_certs, warn_fn=self._warn_fn, info_fn=self._info_fn)
-    self.assertEqual(1, len(self._candidate_certs))
-    self.assertTrue(self._candidate_certs[node_uuid] == cert_digest)
-
-    # Overriding cert
-    other_digest = "barfoo"
-    security.AddNodeToCandidateCerts(node_uuid, other_digest,
-      self._candidate_certs, warn_fn=self._warn_fn, info_fn=self._info_fn)
-    self.assertEqual(1, len(self._candidate_certs))
-    self.assertTrue(self._candidate_certs[node_uuid] == other_digest)
-
-    # Try removing a certificate from a node that is not in the list
-    other_node_uuid = "5678"
-    security.RemoveNodeFromCandidateCerts(
-      other_node_uuid, self._candidate_certs, warn_fn=self._warn_fn)
-    self.assertEqual(1, len(self._candidate_certs))
-
-    # Remove a certificate from a node that is in the list
-    security.RemoveNodeFromCandidateCerts(
-      node_uuid, self._candidate_certs, warn_fn=self._warn_fn)
-    self.assertEqual(0, len(self._candidate_certs))
-
-
 class TestGetCertificateDigest(testutils.GanetiTestCase):
 
   def setUp(self):

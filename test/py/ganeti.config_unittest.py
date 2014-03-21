@@ -626,6 +626,38 @@ class TestConfigRunner(unittest.TestCase):
     expected_key = constants.SS_HVPARAMS_PREF + constants.HT_XEN_PVM
     self.assertTrue(expected_key in ssconf_values)
 
+  def testAddAndRemoveCerts(self):
+    cfg = self._get_object()
+    self.assertEqual(0, len(cfg.GetCandidateCerts()))
+
+    node_uuid = "1234"
+    cert_digest = "foobar"
+    cfg.AddNodeToCandidateCerts(node_uuid, cert_digest,
+                                warn_fn=None, info_fn=None)
+    self.assertEqual(1, len(cfg.GetCandidateCerts()))
+
+    # Try adding the same cert again
+    cfg.AddNodeToCandidateCerts(node_uuid, cert_digest,
+                                warn_fn=None, info_fn=None)
+    self.assertEqual(1, len(cfg.GetCandidateCerts()))
+    self.assertTrue(cfg.GetCandidateCerts()[node_uuid] == cert_digest)
+
+    # Overriding cert
+    other_digest = "barfoo"
+    cfg.AddNodeToCandidateCerts(node_uuid, other_digest,
+                                warn_fn=None, info_fn=None)
+    self.assertEqual(1, len(cfg.GetCandidateCerts()))
+    self.assertTrue(cfg.GetCandidateCerts()[node_uuid] == other_digest)
+
+    # Try removing a certificate from a node that is not in the list
+    other_node_uuid = "5678"
+    cfg.RemoveNodeFromCandidateCerts(other_node_uuid, warn_fn=None)
+    self.assertEqual(1, len(cfg.GetCandidateCerts()))
+
+    # Remove a certificate from a node that is in the list
+    cfg.RemoveNodeFromCandidateCerts(node_uuid, warn_fn=None)
+    self.assertEqual(0, len(cfg.GetCandidateCerts()))
+
 
 def _IsErrorInList(err_str, err_list):
   return any(map(lambda e: err_str in e, err_list))
