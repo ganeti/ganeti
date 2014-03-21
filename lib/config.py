@@ -2939,6 +2939,13 @@ class ConfigWriter(object):
 
     return (None, None)
 
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetCandidateCerts(self):
+    """Returns the candidate certificate map.
+
+    """
+    return self._config_data.cluster.candidate_certs
+
   @locking.ssynchronized(_config_lock)
   def AddNodeToCandidateCerts(self, node_uuid, cert_digest,
                               info_fn=logging.info, warn_fn=logging.warn):
