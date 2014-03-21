@@ -31,14 +31,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.WConfd.Core where
 
-import Control.Monad (liftM)
+import Control.Monad (liftM, when)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Language.Haskell.TH (Name)
 
-import Ganeti.BasicTypes (toErrorStr)
+import Ganeti.BasicTypes
+import qualified Ganeti.JSON as J
 import qualified Ganeti.Locking.Allocation as L
-import Ganeti.Locking.Locks (ClientId, GanetiLocks, lockLevel, LockLevel)
+import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock), LockLevel(LevelConfig)
+                            , lockLevel, LockLevel, ClientId )
+import Ganeti.Objects (ConfigData)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
 import Ganeti.WConfd.ConfigWriter
@@ -50,6 +53,35 @@ echo :: String -> WConfdMonad String
 echo = return
 
 -- ** Configuration related functions
+
+-- *** Locks on the configuration (only transitional, will be removed later)
+
+-- | Tries to acquire 'ConfigLock' for the client.
+-- If the second parameter is set to 'True', the lock is acquired in
+-- shared mode.
+--
+-- If the lock was successfully acquired, returns the current configuration
+-- state.
+lockConfig
+    :: ClientId
+    -> Bool -- ^ set to 'True' if the lock should be shared
+    -> WConfdMonad (J.MaybeForJSON ConfigData)
+lockConfig cid shared = do
+  let reqtype = if shared then ReqShared else ReqExclusive
+  -- warn if we already have the lock, this shouldn't happen
+  la <- readLockAllocation
+  when (L.holdsLock cid ConfigLock L.OwnShared la)
+       . failError $ "Client " ++ show cid ++
+                     " already holds a config lock"
+  waiting <- tryUpdateLocks cid [(ConfigLock, reqtype)]
+  liftM J.MaybeForJSON $ case waiting of
+    []  -> liftM Just readConfig
+    _   -> return Nothing
+
+-- | Release the config lock, if the client currently holds it.
+unlockConfig
+  :: ClientId -> WConfdMonad ()
+unlockConfig cid = freeLocksLevel cid LevelConfig
 
 -- ** Locking related functions
 
@@ -105,6 +137,8 @@ exportedFunctions :: [Name]
 exportedFunctions = [ 'echo
                     , 'readConfig
                     , 'writeConfig
+                    , 'lockConfig
+                    , 'unlockConfig
                     , 'listLocks
                     , 'tryUpdateLocks
                     , 'freeLocks
