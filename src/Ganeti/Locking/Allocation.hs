@@ -29,6 +29,7 @@ module Ganeti.Locking.Allocation
   , OwnerState(..)
   , lockOwners
   , listLocks
+  , holdsLock
   , LockRequest(..)
   , requestExclusive
   , requestShared
@@ -124,6 +125,13 @@ lockOwners = M.keys . laOwned
 -- or OwnExclusive).
 listLocks :: Ord b => b -> LockAllocation a b -> M.Map a OwnerState
 listLocks owner = fromMaybe M.empty . M.lookup owner . laOwned
+
+-- | Returns 'True' if the given owner holds the given lock at the given
+-- ownership level or higher. This means that querying for a shared lock
+-- returns 'True' of the owner holds the lock in shared or exlusive mode.
+holdsLock :: (Ord a, Ord b)
+          => b -> a -> OwnerState -> LockAllocation a b -> Bool
+holdsLock owner lock state = (>= Just state) . M.lookup lock . listLocks owner
 
 -- | Data Type describing a change request on a single lock.
 data LockRequest a = LockRequest { lockAffected :: a
