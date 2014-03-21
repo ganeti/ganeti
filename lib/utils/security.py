@@ -39,57 +39,6 @@ def UuidToInt(uuid):
   return uuid_obj.int # pylint: disable=E1101
 
 
-def AddNodeToCandidateCerts(node_uuid, cert_digest, candidate_certs,
-                            info_fn=logging.info, warn_fn=logging.warn):
-  """Adds an entry to the candidate certificate map.
-
-  @type node_uuid: string
-  @param node_uuid: the node's UUID
-  @type cert_digest: string
-  @param cert_digest: the digest of the node's client SSL certificate
-  @type candidate_certs: dict of strings to strings
-  @param candidate_certs: map of node UUIDs to the digests of their client
-      SSL certificates, will be manipulated in this function
-  @type info_fn: function
-  @param info_fn: logging function for information messages
-  @type warn_fn: function
-  @param warn_fn: logging function for warning messages
-
-  """
-  assert candidate_certs is not None
-
-  if node_uuid in candidate_certs:
-    old_cert_digest = candidate_certs[node_uuid]
-    if old_cert_digest == cert_digest:
-      info_fn("Certificate digest for node %s already in config."
-              "Not doing anything." % node_uuid)
-      return
-    else:
-      warn_fn("Overriding differing certificate digest for node %s"
-              % node_uuid)
-  candidate_certs[node_uuid] = cert_digest
-
-
-def RemoveNodeFromCandidateCerts(node_uuid, candidate_certs,
-                                 warn_fn=logging.warn):
-  """Removes the entry of the given node in the certificate map.
-
-  @type node_uuid: string
-  @param node_uuid: the node's UUID
-  @type candidate_certs: dict of strings to strings
-  @param candidate_certs: map of node UUIDs to the digests of their client
-      SSL certificates, will be manipulated in this function
-  @type warn_fn: function
-  @param warn_fn: logging function for warning messages
-
-  """
-  if node_uuid not in candidate_certs:
-    warn_fn("Cannot remove certifcate for node %s, because it's not in the"
-            "candidate map." % node_uuid)
-    return
-  del candidate_certs[node_uuid]
-
-
 def GetCertificateDigest(cert_filename=pathutils.NODED_CLIENT_CERT_FILE):
   """Reads the SSL certificate and returns the sha1 digest.
 

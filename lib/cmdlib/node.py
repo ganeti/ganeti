@@ -418,18 +418,12 @@ class LUNodeAdd(LogicalUnit):
       self.context.AddNode(self.new_node, self.proc.GetECId())
       RedistributeAncillaryFiles(self)
 
-    cluster = self.cfg.GetClusterInfo()
     # We create a new certificate even if the node is readded
     digest = CreateNewClientCert(self, self.new_node.uuid)
     if self.new_node.master_candidate:
-      utils.AddNodeToCandidateCerts(self.new_node.uuid, digest,
-                                    cluster.candidate_certs)
-      self.cfg.Update(cluster, feedback_fn)
+      self.cfg.AddNodeToCandidateCerts(self.new_node.uuid, digest)
     else:
-      if self.new_node.uuid in cluster.candidate_certs:
-        utils.RemoveNodeFromCandidateCerts(self.new_node.uuid,
-                                           cluster.candidate_certs)
-        self.cfg.Update(cluster, feedback_fn)
+      self.cfg.RemoveNodeFromCandidateCerts(self.new_node.uuid, warn_fn=None)
 
 
 class LUNodeSetParams(LogicalUnit):
@@ -785,15 +779,14 @@ class LUNodeSetParams(LogicalUnit):
 
       # we locked all nodes, we adjust the CP before updating this node
       if self.lock_all:
-        AdjustCandidatePool(self, [node.uuid], feedback_fn)
+        AdjustCandidatePool(self, [node.uuid])
 
-      cluster = self.cfg.GetClusterInfo()
       # if node gets promoted, grant RPC priviledges
       if self.new_role == self._ROLE_CANDIDATE:
-        AddNodeCertToCandidateCerts(self, node.uuid, cluster)
+        AddNodeCertToCandidateCerts(self, self.cfg, node.uuid)
       # if node is demoted, revoke RPC priviledges
       if self.old_role == self._ROLE_CANDIDATE:
-        RemoveNodeCertFromCandidateCerts(node.uuid, cluster)
+        RemoveNodeCertFromCandidateCerts(self.cfg, node.uuid)
 
     if self.op.secondary_ip:
       node.secondary_ip = self.op.secondary_ip
@@ -1484,7 +1477,7 @@ class LUNodeRemove(LogicalUnit):
       "Not owning BGL"
 
     # Promote nodes to master candidate as needed
-    AdjustCandidatePool(self, [self.node.uuid], feedback_fn)
+    AdjustCandidatePool(self, [self.node.uuid])
     self.context.RemoveNode(self.node)
 
     # Run post hooks on the node before it's removed
@@ -1502,9 +1495,7 @@ class LUNodeRemove(LogicalUnit):
 
     # Remove node from candidate certificate list
     if self.node.master_candidate:
-      utils.RemoveNodeFromCandidateCerts(self.node.uuid,
-                                         cluster.candidate_certs)
-      self.cfg.Update(cluster, feedback_fn)
+      self.cfg.RemoveNodeFromCandidateCerts(self.node.uuid)
 
     # Remove node from our /etc/hosts
     if cluster.modify_etc_hosts:

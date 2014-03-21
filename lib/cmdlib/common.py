@@ -460,7 +460,7 @@ def CheckHVParams(lu, node_uuids, hvname, hvparams):
                lu.cfg.GetNodeName(node_uuid))
 
 
-def AdjustCandidatePool(lu, exceptions, feedback_fn):
+def AdjustCandidatePool(lu, exceptions):
   """Adjust the candidate pool after node operations.
 
   """
@@ -470,9 +470,7 @@ def AdjustCandidatePool(lu, exceptions, feedback_fn):
                utils.CommaJoin(node.name for node in mod_list))
     for node in mod_list:
       lu.context.ReaddNode(node)
-      cluster = lu.cfg.GetClusterInfo()
-      AddNodeCertToCandidateCerts(lu, node.uuid, cluster)
-      lu.cfg.Update(cluster, feedback_fn)
+      AddNodeCertToCandidateCerts(lu, lu.cfg, node.uuid)
   mc_now, mc_max, _ = lu.cfg.GetMasterCandidateStats(exceptions)
   if mc_now > mc_max:
     lu.LogInfo("Note: more nodes are candidates (%d) than desired (%d)" %
@@ -1255,13 +1253,15 @@ def IsValidDiskAccessModeCombination(hv, disk_template, mode):
   return False
 
 
-def AddNodeCertToCandidateCerts(lu, node_uuid, cluster):
+def AddNodeCertToCandidateCerts(lu, cfg, node_uuid):
   """Add the node's client SSL certificate digest to the candidate certs.
 
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit
+  @type cfg: L{ConfigWriter}
+  @param cfg: the configuration client to use
   @type node_uuid: string
   @param node_uuid: the node's UUID
-  @type cluster: C{object.Cluster}
-  @param cluster: the cluster's configuration
 
   """
   result = lu.rpc.call_node_crypto_tokens(
@@ -1273,19 +1273,19 @@ def AddNodeCertToCandidateCerts(lu, node_uuid, cluster):
   ((crypto_type, digest), ) = result.payload
   assert crypto_type == constants.CRYPTO_TYPE_SSL_DIGEST
 
-  utils.AddNodeToCandidateCerts(node_uuid, digest, cluster.candidate_certs)
+  cfg.AddNodeToCandidateCerts(node_uuid, digest)
 
 
-def RemoveNodeCertFromCandidateCerts(node_uuid, cluster):
+def RemoveNodeCertFromCandidateCerts(cfg, node_uuid):
   """Removes the node's certificate from the candidate certificates list.
 
+  @type cfg: C{config.ConfigWriter}
+  @param cfg: the cluster's configuration
   @type node_uuid: string
   @param node_uuid: the node's UUID
-  @type cluster: C{objects.Cluster}
-  @param cluster: the cluster's configuration
 
   """
-  utils.RemoveNodeFromCandidateCerts(node_uuid, cluster.candidate_certs)
+  cfg.RemoveNodeFromCandidateCerts(node_uuid)
 
 
 def CreateNewClientCert(lu, node_uuid, filename=None):

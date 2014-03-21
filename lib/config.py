@@ -2938,3 +2938,53 @@ class ConfigWriter(object):
         return (net_info.name, nodegroup_info.networks[net_uuid])
 
     return (None, None)
+
+  @locking.ssynchronized(_config_lock)
+  def AddNodeToCandidateCerts(self, node_uuid, cert_digest,
+                              info_fn=logging.info, warn_fn=logging.warn):
+    """Adds an entry to the candidate certificate map.
+
+    @type node_uuid: string
+    @param node_uuid: the node's UUID
+    @type cert_digest: string
+    @param cert_digest: the digest of the node's client SSL certificate
+    @type info_fn: function
+    @param info_fn: logging function for information messages
+    @type warn_fn: function
+    @param warn_fn: logging function for warning messages
+
+    """
+    cluster = self._config_data.cluster
+    if node_uuid in cluster.candidate_certs:
+      old_cert_digest = cluster.candidate_certs[node_uuid]
+      if old_cert_digest == cert_digest:
+        if info_fn is not None:
+          info_fn("Certificate digest for node %s already in config."
+                  "Not doing anything." % node_uuid)
+        return
+      else:
+        if warn_fn is not None:
+          warn_fn("Overriding differing certificate digest for node %s"
+                  % node_uuid)
+    cluster.candidate_certs[node_uuid] = cert_digest
+    self._WriteConfig()
+
+  @locking.ssynchronized(_config_lock)
+  def RemoveNodeFromCandidateCerts(self, node_uuid,
+                                   warn_fn=logging.warn):
+    """Removes the entry of the given node in the certificate map.
+
+    @type node_uuid: string
+    @param node_uuid: the node's UUID
+    @type warn_fn: function
+    @param warn_fn: logging function for warning messages
+
+    """
+    cluster = self._config_data.cluster
+    if node_uuid not in cluster.candidate_certs:
+      if warn_fn is not None:
+        warn_fn("Cannot remove certifcate for node %s, because it's not"
+                " in the candidate map." % node_uuid)
+      return
+    del cluster.candidate_certs[node_uuid]
+    self._WriteConfig()
