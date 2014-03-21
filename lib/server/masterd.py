@@ -470,8 +470,6 @@ class GanetiContext(object):
       [inst.name for inst in self.cfg.GetAllInstancesInfo().values()],
       self.cfg.GetNetworkList())
 
-    self.cfg.SetContext(self)
-
     # RPC runner
     self.rpc = rpc.RpcRunner(self.cfg, self.glm.AddToLockMonitor)
 

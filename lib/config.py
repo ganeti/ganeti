@@ -46,7 +46,6 @@ from ganeti import errors
 from ganeti import locking
 from ganeti import utils
 from ganeti import constants
-import ganeti.rpc.node as rpc
 import ganeti.wconfd as wc
 from ganeti import objects
 from ganeti import serializer
@@ -244,24 +243,11 @@ class ConfigWriter(object):
     # file than after it was modified
     self._my_hostname = netutils.Hostname.GetSysName()
     self._cfg_id = None
-    self._context = None
     self._wconfd = None
     self._OpenConfig(accept_foreign)
 
   def _ConfigData(self):
     return self._config_data
-
-  def _GetRpc(self, address_list):
-    """Returns RPC runner for configuration.
-
-    """
-    return rpc.ConfigRunner(self._context, address_list)
-
-  def SetContext(self, context):
-    """Sets Ganeti context.
-
-    """
-    self._context = context
 
   # this method needs to be static, so that we can call it on the class
   @staticmethod
