@@ -251,9 +251,8 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   candidate_filter = ["|", ["=", "role", "M"], ["=", "role", "C"]]
   result = cl.Query(constants.QR_NODE, ["uuid"], candidate_filter)
   if len(result.data) < 1:
-    raise errors.OpPrereqError("No master or master candidate nodes are"
-                               " found.")
-  candidates = [uuid for (_, uuid) in result.data[0]]
+    raise errors.OpPrereqError("No master or master candidate node is found.")
+  candidates = [uuid for ((_, uuid),) in result.data]
   candidate_keys = ssh.QueryPubKeyFile(candidates)
 
   if options.force_join:
@@ -278,10 +277,10 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
     constants.SSHS_SSH_AUTHORIZED_KEYS: candidate_keys,
     }
 
-  bootstrap.RunNodeSetupCmd(cluster_name, node, pathutils.PREPARE_NODE_JOIN,
-                            options.debug, options.verbose, False,
-                            options.ssh_key_check, options.ssh_key_check,
-                            ssh_port, data)
+  ssh.RunSshCmdWithStdin(cluster_name, node, pathutils.PREPARE_NODE_JOIN,
+                         options.debug, options.verbose, False,
+                         options.ssh_key_check, options.ssh_key_check,
+                         ssh_port, data, ssconf.SimpleStore())
 
   fetched_keys = _ReadRemoteSshPubKeys(root_keyfiles, node, cluster_name,
                                        ssh_port, options.ssh_key_check,

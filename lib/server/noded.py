@@ -918,6 +918,18 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     (daemon_name, run) = params
     return backend.EnsureDaemon(daemon_name, run)
 
+  @staticmethod
+  def perspective_node_ssh_key_add(params):
+    """Distributes a new node's SSH key if authorized.
+
+    """
+    (node_uuid, node_name, to_authorized_keys,
+     to_public_keys, get_public_keys, ssh_port_map,
+     potential_master_candidates) = params
+    return backend.AddNodeSshKey(node_uuid, node_name, to_authorized_keys,
+                                 to_public_keys, get_public_keys,
+                                 ssh_port_map, potential_master_candidates)
+
   # cluster --------------------------
 
   @staticmethod

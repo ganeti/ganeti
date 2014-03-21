@@ -454,6 +454,12 @@ class FileStoragePathError(GenericError):
   """
 
 
+class SshUpdateError(GenericError):
+  """Error from updating the SSH setup.
+
+  """
+
+
 # errors should be added above
 
 

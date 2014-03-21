@@ -880,3 +880,134 @@ def WriteKnownHostsFile(cfg, file_name):
     data += "%s ssh-dss %s\n" % (cfg.GetClusterName(), cfg.GetDsaHostKey())
 
   utils.WriteFile(file_name, mode=0600, data=data)
+
+
+def _EnsureCorrectGanetiVersion(cmd):
+  """Ensured the correct Ganeti version before running a command via SSH.
+
+  Before a command is run on a node via SSH, it makes sense in some
+  situations to ensure that this node is indeed running the correct
+  version of Ganeti like the rest of the cluster.
+
+  @type cmd: string
+  @param cmd: string
+  @rtype: list of strings
+  @return: a list of commands with the newly added ones at the beginning
+
+  """
+  logging.debug("Ensure correct Ganeti version: %s", cmd)
+
+  version = constants.DIR_VERSION
+  all_cmds = [["test", "-d", os.path.join(pathutils.PKGLIBDIR, version)]]
+  if constants.HAS_GNU_LN:
+    all_cmds.extend([["ln", "-s", "-f", "-T",
+                      os.path.join(pathutils.PKGLIBDIR, version),
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")],
+                     ["ln", "-s", "-f", "-T",
+                      os.path.join(pathutils.SHAREDIR, version),
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]])
+  else:
+    all_cmds.extend([["rm", "-f",
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")],
+                     ["ln", "-s", "-f",
+                      os.path.join(pathutils.PKGLIBDIR, version),
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")],
+                     ["rm", "-f",
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/share")],
+                     ["ln", "-s", "-f",
+                      os.path.join(pathutils.SHAREDIR, version),
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]])
+  all_cmds.append(cmd)
+  return all_cmds
+
+
+def RunSshCmdWithStdin(cluster_name, node, basecmd, debug, verbose,
+                       use_cluster_key, ask_key, strict_host_check,
+                       port, data, ssconf_store, ensure_version=False):
+  """Runs a command on a remote machine via SSH and provides input in stdin.
+
+  @type cluster_name: string
+  @param cluster_name: Cluster name
+  @type node: string
+  @param node: Node name
+  @type basecmd: string
+  @param basecmd: Base command (path on the remote machine)
+  @type debug: bool
+  @param debug: Enable debug output
+  @type verbose: bool
+  @param verbose: Enable verbose output
+  @type use_cluster_key: bool
+  @param use_cluster_key: See L{ssh.SshRunner.BuildCmd}
+  @type ask_key: bool
+  @param ask_key: See L{ssh.SshRunner.BuildCmd}
+  @type strict_host_check: bool
+  @param strict_host_check: See L{ssh.SshRunner.BuildCmd}
+  @type port: int
+  @param port: The SSH port of the remote machine or None for the default
+  @param data: JSON-serializable input data for script (passed to stdin)
+  @type ssconf_store: C{ssconf.SimpleStore}
+  @param ssconf_store: a SimpleStore object to be queries for ssconf values
+
+  """
+  cmd = [basecmd]
+
+  # Pass --debug/--verbose to the external script if set on our invocation
+  if debug:
+    cmd.append("--debug")
+
+  if verbose:
+    cmd.append("--verbose")
+
+  if ensure_version:
+    all_cmds = _EnsureCorrectGanetiVersion(cmd)
+  else:
+    all_cmds = [cmd]
+
+  if port is None:
+    port = netutils.GetDaemonPort(constants.SSH)
+
+  family = ssconf_store.GetPrimaryIPFamily()
+  srun = SshRunner(cluster_name,
+                   ipv6=(family == netutils.IP6Address.family))
+  scmd = srun.BuildCmd(node, constants.SSH_LOGIN_USER,
+                       utils.ShellQuoteArgs(
+                           utils.ShellCombineCommands(all_cmds)),
+                       batch=False, ask_key=ask_key, quiet=False,
+                       strict_host_check=strict_host_check,
+                       use_cluster_key=use_cluster_key,
+                       port=port)
+
+  tempfh = tempfile.TemporaryFile()
+  try:
+    tempfh.write(serializer.DumpJson(data))
+    tempfh.seek(0)
+
+    result = utils.RunCmd(scmd, interactive=True, input_fd=tempfh)
+  finally:
+    tempfh.close()
+
+  if result.failed:
+    raise errors.OpExecError("Command '%s' failed: %s" %
+                             (result.cmd, result.fail_reason))
+
+
+def GetSshPortMap(nodes, cfg):
+  """Retrieves SSH ports of given nodes from the config.
+
+  @param nodes: the names of nodes
+  @type nodes: a list of strings
+  @param cfg: a configuration object
+  @type cfg: L{ConfigWriter}
+  @return: a map from node names to ssh ports
+  @rtype: a dict from str to int
+
+  """
+  node_port_map = {}
+  node_groups = dict(map(lambda n: (n.name, n.group),
+                         cfg.GetAllNodesInfo().values()))
+  group_port_map = cfg.GetGroupSshPorts()
+  for node in nodes:
+    group_uuid = node_groups.get(node)
+    ssh_port = group_port_map.get(group_uuid)
+    node_port_map[node] = ssh_port
+  return node_port_map

@@ -55,7 +55,9 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
   constants.SSHS_CLUSTER_NAME: ht.TNonEmptyString,
   constants.SSHS_NODE_DAEMON_CERTIFICATE: ht.TNonEmptyString,
   constants.SSHS_SSH_PUBLIC_KEYS:
-    ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString)),
+    ht.TItems(
+      [ht.TElemOf(constants.SSHS_ACTIONS),
+       ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString))]),
   constants.SSHS_SSH_AUTHORIZED_KEYS:
     ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString)),
   })
@@ -122,14 +124,39 @@ def UpdatePubKeyFile(data, dry_run, key_file=pathutils.SSH_PUB_KEYS):
   @param dry_run: Whether to perform a dry run
 
   """
-  public_keys = data.get(constants.SSHS_SSH_PUBLIC_KEYS)
-  if not public_keys:
-    logging.info("No public keys received. Not modifying"
-                 " the public key file at all.")
+  instructions = data.get(constants.SSHS_SSH_PUBLIC_KEYS)
+  if not instructions:
+    logging.info("No instructions to modify public keys received."
+                 " Not modifying the public key file at all.")
     return
-  if dry_run:
-    logging.info("This is a dry run, not modifying %s", key_file)
-  ssh.OverridePubKeyFile(public_keys, key_file=key_file)
+  (action, public_keys) = instructions
+
+  if action == constants.SSHS_OVERRIDE:
+    if dry_run:
+      logging.info("This is a dry run, not overriding %s", key_file)
+    else:
+      ssh.OverridePubKeyFile(public_keys, key_file=key_file)
+  elif action == constants.SSHS_ADD:
+    if dry_run:
+      logging.info("This is a dry run, not adding a key to %s", key_file)
+    else:
+      for uuid, keys in public_keys.items():
+        for key in keys:
+          ssh.AddPublicKey(uuid, key, key_file=key_file)
+  elif action == constants.SSHS_REMOVE:
+    if dry_run:
+      logging.info("This is a dry run, not removing keys from %s", key_file)
+    else:
+      for uuid in public_keys.keys():
+        ssh.RemovePublicKey(uuid, key_file=key_file)
+  elif action == constants.SSHS_CLEAR:
+    if dry_run:
+      logging.info("This is a dry run, not clearing file %s", key_file)
+    else:
+      ssh.ClearPubKeyFile(key_file=key_file)
+  else:
+    raise SshUpdateError("Action '%s' not implemented for public keys."
+                         % action)
 
 
 def Main():

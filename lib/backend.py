@@ -61,6 +61,7 @@ import stat
 import tempfile
 import time
 import zlib
+import copy
 
 from ganeti import errors
 from ganeti import http
@@ -1292,6 +1293,111 @@ def EnsureDaemon(daemon_name, run):
     fn = utils.StopDaemon
 
   return fn(daemon_name)
+
+
+def _InitSshUpdateData(data, noded_cert_file, ssconf_store):
+  (_, noded_cert) = \
+    utils.ExtractX509Certificate(utils.ReadFile(noded_cert_file))
+  data[constants.SSHS_NODE_DAEMON_CERTIFICATE] = noded_cert
+
+  cluster_name = ssconf_store.GetClusterName()
+  data[constants.SSHS_CLUSTER_NAME] = cluster_name
+
+
+def AddNodeSshKey(node_uuid, node_name,
+                  to_authorized_keys, to_public_keys,
+                  get_pub_keys, ssh_port_map,
+                  potential_master_candidates,
+                  pub_key_file=pathutils.SSH_PUB_KEYS,
+                  ssconf_store=None,
+                  noded_cert_file=pathutils.NODED_CERT_FILE,
+                  run_cmd_fn=ssh.RunSshCmdWithStdin):
+  """Distributes a node's public SSH key across the cluster.
+
+  Note that this function should only be executed on the master node, which
+  then will copy the new node's key to all nodes in the cluster via SSH.
+
+  @type node_uuid: str
+  @param node_uuid: the UUID of the node whose key is added
+  @type node_name: str
+  @param node_name: the name of the node whose key is added
+  @type to_authorized_keys: boolean
+  @param to_authorized_keys: whether the key should be added to the
+    C{authorized_keys} file of all nodes
+  @type to_public_keys: boolean
+  @param to_public_keys: whether the keys should be added to the public key file
+  @type get_pub_keys: boolean
+  @param get_pub_keys: whether the node should add the clusters' public keys
+    to its {ganeti_pub_keys} file
+  @type ssh_port_map: dict from str to int
+  @param ssh_port_map: a mapping from node names to SSH port numbers
+  @type potential_master_candidates: list of str
+  @param potential_master_candidates: list of node names of potential master
+    candidates; this should match the list of uuids in the public key file
+
+  """
+  if not ssconf_store:
+    ssconf_store = ssconf.SimpleStore()
+
+  # Check and fix sanity of key file
+  keys_by_name = ssh.QueryPubKeyFile([node_name], key_file=pub_key_file)
+  keys_by_uuid = {}
+  if not keys_by_name or node_name not in keys_by_name:
+    raise errors.SshUpdateError("No keys found for the new node '%s' in the"
+                                " list of public SSH keys." % node_name)
+  else:
+    # Replace the name by UUID in the file as the name should only be used
+    # temporarily
+    ssh.ReplaceNameByUuid(node_uuid, node_name, error_fn=errors.SshUpdateError,
+                          key_file=pub_key_file)
+    keys_by_uuid[node_uuid] = keys_by_name[node_name]
+
+  # Update the master node's key files
+  if to_authorized_keys:
+    (auth_key_file, _) = \
+      ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
+    ssh.AddAuthorizedKeys(auth_key_file, keys_by_uuid[node_uuid])
+
+  base_data = {}
+  _InitSshUpdateData(base_data, noded_cert_file, ssconf_store)
+  cluster_name = base_data[constants.SSHS_CLUSTER_NAME]
+
+  # Update all nodes except master and the target node
+  if to_authorized_keys:
+    base_data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
+      (constants.SSHS_ADD, keys_by_uuid)
+
+  pot_mc_data = copy.deepcopy(base_data)
+  if to_public_keys:
+    pot_mc_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
+      (constants.SSHS_ADD, keys_by_uuid)
+
+  all_nodes = ssconf_store.GetNodeList()
+  master_node = ssconf_store.GetMasterNode()
+
+  for node in all_nodes:
+    if node in [master_node, node_name]:
+      continue
+    if node in potential_master_candidates:
+      run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
+                 True, True, False, False, False,
+                 ssh_port_map.get(node), pot_mc_data, ssconf_store)
+    else:
+      if to_authorized_keys:
+        run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
+                   True, True, False, False, False,
+                   ssh_port_map.get(node), base_data, ssconf_store)
+
+  # Update the target node itself
+  if get_pub_keys:
+    node_data = {}
+    _InitSshUpdateData(node_data, noded_cert_file, ssconf_store)
+    all_keys = ssh.QueryPubKeyFile(None, key_file=pub_key_file)
+    node_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
+      (constants.SSHS_OVERRIDE, all_keys)
+    run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
+               True, True, False, False, False,
+               ssh_port_map.get(node_name), node_data, ssconf_store)
 
 
 def GetBlockDevSizes(devices):

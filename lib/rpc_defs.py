@@ -533,6 +533,18 @@ _NODE_CALLS = [
     ("daemon", None, "Daemon name"),
     ("run", None, "Whether the daemon should be running or stopped"),
     ], None, None, "Ensure daemon is running on the node."),
+  ("node_ssh_key_add", MULTI, None, constants.RPC_TMO_URGENT, [
+    ("node_uuid", None, "UUID of the node whose key is distributed"),
+    ("node_name", None, "Name of the node whose key is distributed"),
+    ("to_authorized_keys", None, "Whether the node's key should be added"
+     " to all nodes' 'authorized_keys' file"),
+    ("to_public_keys", None, "Whether the node's key should be added"
+     " to all nodes' public key file"),
+    ("get_public_keys", None, "Whether the node should get the other nodes'"
+     " public keys"),
+    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
+    ("potential_master_candidates", None, "Potential master candidates")],
+    None, None, "Distribute a new node's public SSH key on the cluster."),
   ]
 
 _MISC_CALLS = [
