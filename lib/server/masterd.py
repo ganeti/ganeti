@@ -489,12 +489,12 @@ class GanetiContext(object):
   def GetWConfdContext(self, ec_id):
     return config.GetWConfdContext(ec_id, self.livelock)
 
-  def AddNode(self, node, ec_id):
+  def AddNode(self, cfg, node, ec_id):
     """Adds a node to the configuration.
 
     """
     # Add it to the configuration
-    self.cfg.AddNode(node, ec_id)
+    cfg.AddNode(node, ec_id)
 
     # If preseeding fails it'll not be added
     self.jobqueue.AddNode(node)
@@ -506,12 +506,12 @@ class GanetiContext(object):
     # Synchronize the queue again
     self.jobqueue.AddNode(node)
 
-  def RemoveNode(self, node):
+  def RemoveNode(self, cfg, node):
     """Removes a node from the configuration and lock manager.
 
     """
     # Remove node from configuration
-    self.cfg.RemoveNode(node.uuid)
+    cfg.RemoveNode(node.uuid)
 
     # Notify job queue
     self.jobqueue.RemoveNode(node.name)

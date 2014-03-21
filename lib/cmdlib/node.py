@@ -415,7 +415,7 @@ class LUNodeAdd(LogicalUnit):
         result.Warn("Node failed to demote itself from master candidate status",
                     self.LogWarning)
     else:
-      self.context.AddNode(self.new_node, self.proc.GetECId())
+      self.context.AddNode(self.cfg, self.new_node, self.proc.GetECId())
       RedistributeAncillaryFiles(self)
 
     # We create a new certificate even if the node is readded
@@ -1478,7 +1478,7 @@ class LUNodeRemove(LogicalUnit):
 
     # Promote nodes to master candidate as needed
     AdjustCandidatePool(self, [self.node.uuid])
-    self.context.RemoveNode(self.node)
+    self.context.RemoveNode(self.cfg, self.node)
 
     # Run post hooks on the node before it's removed
     RunPostHook(self, self.node.name)
