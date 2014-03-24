@@ -660,6 +660,27 @@ def TestRapiNodeGroups():
 
   _WaitForRapiJob(job_id)
 
+  # Test for get/set symmetry
+
+  # Identifying the node - RAPI provides these itself
+  IDENTIFIERS = ["group_name"]
+  # As the name states, not exposed yet
+  NOT_EXPOSED_YET = ["hv_state", "disk_state"]
+
+  # The parameters we do not want to get and set (as that sets the
+  # group-specific params to the filled ones)
+  FILLED_PARAMS = ["ndparams", "ipolicy", "diskparams"]
+
+  # The aliases that we can use to perform this test with the group-specific
+  # params
+  CUSTOM_PARAMS = ["custom_ndparams", "custom_ipolicy", "custom_diskparams"]
+
+  _DoGetPutTests("/2/groups/%s" % group3, "/2/groups/%s/modify" % group3,
+                 opcodes.OpGroupSetParams.OP_PARAMS,
+                 rapi_only_aliases=CUSTOM_PARAMS,
+                 exceptions=(IDENTIFIERS + NOT_EXPOSED_YET),
+                 set_exceptions=FILLED_PARAMS)
+
   # Delete groups
   for group in [group1, group3]:
     (job_id, ) = _DoTests([
