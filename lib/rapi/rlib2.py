@@ -220,6 +220,10 @@ class R_2_info(baserlib.OpcodeResource):
 
   """
   GET_OPCODE = opcodes.OpClusterQuery
+  GET_ALIASES = {
+    "volume_group_name": "vg_name",
+    "drbd_usermode_helper": "drbd_helper",
+    }
 
   def GET(self):
     """Returns cluster information.
