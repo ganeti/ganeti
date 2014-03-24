@@ -304,7 +304,8 @@ class Processor(object):
     self.context = context
     self._ec_id = ec_id
     self._cbs = None
-    self.rpc = context.rpc
+    self.cfg = context.GetConfig(ec_id)
+    self.rpc = context.GetRpc(self.cfg)
     self.hmclass = hooksmaster.HooksMaster
     self._enable_locks = enable_locks
     self.wconfd = wconfd # Indirection to allow testing
@@ -348,12 +349,12 @@ class Processor(object):
       if opportunistic:
         expand_fns = {
           locking.LEVEL_CLUSTER: (lambda: [locking.BGL]),
-          locking.LEVEL_INSTANCE: self.context.cfg.GetInstanceList,
+          locking.LEVEL_INSTANCE: self.cfg.GetInstanceList,
           locking.LEVEL_NODE_ALLOC: (lambda: [locking.NAL]),
-          locking.LEVEL_NODEGROUP: self.context.cfg.GetNodeGroupList,
-          locking.LEVEL_NODE: self.context.cfg.GetNodeList,
-          locking.LEVEL_NODE_RES: self.context.cfg.GetNodeList,
-          locking.LEVEL_NETWORK: self.context.cfg.GetNetworkList,
+          locking.LEVEL_NODEGROUP: self.cfg.GetNodeGroupList,
+          locking.LEVEL_NODE: self.cfg.GetNodeList,
+          locking.LEVEL_NODE_RES: self.cfg.GetNodeList,
+          locking.LEVEL_NETWORK: self.cfg.GetNetworkList,
           }
         names = expand_fns[level]()
       else:
@@ -406,7 +407,7 @@ class Processor(object):
     """Logical Unit execution sequence.
 
     """
-    write_count = self.context.cfg.write_count
+    write_count = self.cfg.write_count
     lu.CheckPrereq()
 
     hm = self.BuildHooksManager(lu)
@@ -434,7 +435,7 @@ class Processor(object):
                                 self.Log, result)
     finally:
       # FIXME: This needs locks if not lu_class.REQ_BGL
-      if write_count != self.context.cfg.write_count:
+      if write_count != self.cfg.write_count:
         hm.RunConfigUpdate()
 
     return result
@@ -607,8 +608,8 @@ class Processor(object):
                                      " disabled" % op.OP_ID)
 
       try:
-        lu = lu_class(self, op, self.context, self.rpc, self._wconfdcontext,
-                      self.wconfd)
+        lu = lu_class(self, op, self.context, self.cfg, self.rpc,
+                      self._wconfdcontext, self.wconfd)
         lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
         lu.ExpandNames()
         assert lu.needed_locks is not None, "needed_locks not set by LU"
@@ -618,7 +619,7 @@ class Processor(object):
                                        calc_timeout)
         finally:
           if self._ec_id:
-            self.context.cfg.DropECReservations(self._ec_id)
+            self.cfg.DropECReservations(self._ec_id)
       finally:
         # Release BGL if owned
         bglname = "%s/%s" % (locking.LEVEL_NAMES[locking.LEVEL_CLUSTER],

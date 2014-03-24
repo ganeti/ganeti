@@ -43,7 +43,6 @@ import threading
 import itertools
 
 from ganeti import errors
-from ganeti import locking
 from ganeti import utils
 from ganeti import constants
 import ganeti.wconfd as wc
@@ -54,35 +53,6 @@ from ganeti import netutils
 from ganeti import runtime
 from ganeti import pathutils
 from ganeti import network
-
-
-_config_lock = locking.SharedLock("ConfigWriter")
-
-def _ConfigSync(shared=0):
-  """Configuration synchronization decorator.
-
-  """
-  def wrap(fn):
-    def sync_function(*args, **kwargs):
-      cw = args[0]
-      assert isinstance(cw, ConfigWriter), \
-             "cannot ssynchronize on non-class method: self not found"
-      _config_lock.acquire(shared=shared)
-      try:
-        return fn(*args, **kwargs)
-      finally:
-        try:
-          if not shared:
-            cw._WriteConfig()
-        except Exception, err:
-          logging.crititcal("Can't write the configuration: %s", str(err))
-        finally:
-          _config_lock.release()
-    return sync_function
-  return wrap
-
-# job id used for resource management at config upgrade time
-_UPGRADE_CONFIG_JID = "jid-cfg-upgrade"
 
 
 def GetWConfdContext(ec_id, livelock):
@@ -102,6 +72,46 @@ def GetWConfdContext(ec_id, livelock):
   return (ec_id,
           threading.current_thread().ident,
           livelock.lockfile.name)
+
+
+def GetConfig(ec_id, livelock, **kwargs):
+  """A utility function for constructing instances of ConfigWriter.
+
+  It prepares a WConfd context and uses it to create a ConfigWriter instance.
+
+  @type ec_id: int, or None
+  @param ec_id: the job ID or None, if the caller isn't a job
+  @type livelock: L{ganeti.utils.livelock.LiveLock}
+  @param livelock: a livelock object holding the lockfile needed for WConfd
+  @type kwargs: dict
+  @param kwargs: Any additional arguments for the ConfigWriter constructor
+  @rtype: L{ConfigWriter}
+  @return: the ConfigWriter context
+
+  """
+  kwargs['wconfdcontext'] = GetWConfdContext(ec_id, livelock)
+  kwargs['wconfd'] = wc.Client()
+  return ConfigWriter(**kwargs)
+
+
+def _ConfigSync(shared=0):
+  """Configuration synchronization decorator.
+
+  """
+  def wrap(fn):
+    def sync_function(*args, **kwargs):
+      with args[0].GetConfigManager(shared):
+        logging.debug("ConfigWriter.%s(%s, %s)",
+                      fn.__name__, str(args), str(kwargs))
+        result = fn(*args, **kwargs)
+        logging.debug("ConfigWriter.%s(...) returned '%s'",
+                      fn.__name__, str(result))
+        return result
+    return sync_function
+  return wrap
+
+# job id used for resource management at config upgrade time
+_UPGRADE_CONFIG_JID = "jid-cfg-upgrade"
 
 
 def _ValidateConfig(data):
@@ -210,6 +220,37 @@ def _CheckInstanceDiskIvNames(disks):
   return result
 
 
+class ConfigManager(object):
+  """Locks the configuration and exposes it to be read or modified.
+
+  """
+  def __init__(self, config_writer, shared=False):
+    assert isinstance(config_writer, ConfigWriter), \
+           "invalid argument: Not a ConfigWriter"
+    self._config_writer = config_writer
+    self._shared = shared
+
+  def __enter__(self):
+    try:
+      self._config_writer._OpenConfig(self._shared) # pylint: disable=W0212
+    except Exception:
+      logging.debug("Opening configuration failed")
+      try:
+        self._config_writer._CloseConfig(False) # pylint: disable=W0212
+      except Exception: # pylint: disable=W0703
+        logging.debug("Closing configuration failed as well")
+      raise
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    # save the configuration, if this was a write opreration that succeeded
+    if exc_type is not None:
+      logging.debug("Configuration operation failed,"
+                    " the changes will not be saved")
+    # pylint: disable=W0212
+    self._config_writer._CloseConfig(not self._shared and exc_type is None)
+    return False
+
+
 class ConfigWriter(object):
   """The interface to the cluster configuration.
 
@@ -218,10 +259,10 @@ class ConfigWriter(object):
 
   """
   def __init__(self, cfg_file=None, offline=False, _getents=runtime.GetEnts,
-               accept_foreign=False):
+               accept_foreign=False, wconfdcontext=None, wconfd=None):
     self.write_count = 0
-    self._lock = _config_lock
     self._config_data = None
+    self._SetConfigData(None)
     self._offline = offline
     if cfg_file is None:
       self._cfg_file = pathutils.CLUSTER_CONF_FILE
@@ -243,11 +284,19 @@ class ConfigWriter(object):
     # file than after it was modified
     self._my_hostname = netutils.Hostname.GetSysName()
     self._cfg_id = None
-    self._wconfd = None
-    self._OpenConfig(accept_foreign)
+    self._wconfdcontext = wconfdcontext
+    self._wconfd = wconfd
+    self._accept_foreign = accept_foreign
+    self._lock_count = 0
 
   def _ConfigData(self):
     return self._config_data
+
+  def _SetConfigData(self, cfg):
+    self._config_data = cfg
+
+  def _GetWConfdContext(self):
+    return self._wconfdcontext
 
   # this method needs to be static, so that we can call it on the class
   @staticmethod
@@ -312,7 +361,9 @@ class ConfigWriter(object):
     @return: A dict with the filled in disk params
 
     """
-    return self._ConfigData().cluster.SimpleFillDP(group.diskparams)
+    data = self._ConfigData().cluster.SimpleFillDP(group.diskparams)
+    assert isinstance(data, dict), "Not a dictionary: " + str(data)
+    return data
 
   def _UnlockedGetNetworkMACPrefix(self, net_uuid):
     """Return the network mac prefix if it exists or the cluster level default.
@@ -1871,8 +1922,7 @@ class ConfigWriter(object):
   def _UnlockedGetInstanceNames(self, inst_uuids):
     return [self._UnlockedGetInstanceName(uuid) for uuid in inst_uuids]
 
-  @_ConfigSync()
-  def AddNode(self, node, ec_id):
+  def _UnlockedAddNode(self, node, ec_id):
     """Add a node to the configuration.
 
     @type node: L{objects.Node}
@@ -1886,8 +1936,19 @@ class ConfigWriter(object):
     node.serial_no = 1
     node.ctime = node.mtime = time.time()
     self._UnlockedAddNodeToGroup(node.uuid, node.group)
+    assert node.uuid in self._ConfigData().nodegroups[node.group].members
     self._ConfigData().nodes[node.uuid] = node
     self._ConfigData().cluster.serial_no += 1
+
+  @_ConfigSync()
+  def AddNode(self, node, ec_id):
+    """Add a node to the configuration.
+
+    @type node: L{objects.Node}
+    @param node: a Node instance
+
+    """
+    self._UnlockedAddNode(node, ec_id)
 
   @_ConfigSync()
   def RemoveNode(self, node_uuid):
@@ -2370,10 +2431,30 @@ class ConfigWriter(object):
             self._AllNICs() +
             [self._ConfigData().cluster])
 
-  def _OpenConfig(self, accept_foreign):
-    """Read the config data from disk.
+  def GetConfigManager(self, shared=False):
+    """Returns a ConfigManager, which is suitable to perform a synchronized
+    block of configuration operations.
+
+    WARNING: This blocks all other configuration operations, so anything that
+    runs inside the block should be very fast, preferably not using any IO.
+    """
+
+    return ConfigManager(self, shared)
+
+  def _AddLockCount(self, count):
+    self._lock_count += count
+    return self._lock_count
+
+  def _LockCount(self):
+    return self._lock_count
+
+  def _OpenConfig(self, shared):
+    """Read the config data from WConfd or disk.
 
     """
+    if self._LockCount() > 0:
+      raise errors.ConfigurationError("Configuration lock isn't reentrant")
+    self._AddLockCount(1)
     # Read the configuration data. If offline, read the file directly.
     # If online, call WConfd.
     if self._offline:
@@ -2382,56 +2463,90 @@ class ConfigWriter(object):
         dict_data = serializer.Load(raw_data)
       except Exception, err:
         raise errors.ConfigurationError(err)
+      self._cfg_id = utils.GetFileID(path=self._cfg_file)
+
+      try:
+        data = objects.ConfigData.FromDict(dict_data)
+      except Exception, err:
+        raise errors.ConfigurationError(err)
+
+      # Make sure the configuration has the right version
+      _ValidateConfig(data)
+
+      if (not hasattr(data, "cluster") or
+          not hasattr(data.cluster, "rsahostkeypub")):
+        raise errors.ConfigurationError("Incomplete configuration"
+                                        " (missing cluster.rsahostkeypub)")
+
+      if not data.cluster.master_node in data.nodes:
+        msg = ("The configuration denotes node %s as master, but does not"
+               " contain information about this node" %
+               data.cluster.master_node)
+        raise errors.ConfigurationError(msg)
+
+      master_info = data.nodes[data.cluster.master_node]
+      if master_info.name != self._my_hostname and not self._accept_foreign:
+        msg = ("The configuration denotes node %s as master, while my"
+               " hostname is %s; opening a foreign configuration is only"
+               " possible in accept_foreign mode" %
+               (master_info.name, self._my_hostname))
+        raise errors.ConfigurationError(msg)
+
+      self._SetConfigData(data)
+
+      # Upgrade configuration if needed
+      self._UpgradeConfig(saveafter=True)
     else:
-      self._wconfd = wc.Client()
-      dict_data = self._wconfd.ReadConfig()
+      # poll until we acquire the lock
+      while True:
+        dict_data = \
+          self._wconfd.LockConfig(self._GetWConfdContext(), bool(shared))
+        logging.debug("Received '%s' from WConfd.LockConfig [shared=%s]",
+                      str(dict_data), bool(shared))
+        if dict_data is not None:
+          break
+        time.sleep(random.random())
 
+      try:
+        self._SetConfigData(objects.ConfigData.FromDict(dict_data))
+      except Exception, err:
+        raise errors.ConfigurationError(err)
+
+      # Transitional fix until ConfigWriter is completely rewritten into
+      # Haskell
+      self._UpgradeConfig()
+
+  def _CloseConfig(self, save):
+    """Release resources relating the config data.
+
+    """
     try:
-      data = objects.ConfigData.FromDict(dict_data)
+      if save:
+        self._WriteConfig()
     except Exception, err:
-      raise errors.ConfigurationError(err)
+      logging.critical("Can't write the configuration: %s", str(err))
+      raise
+    finally:
+      if not self._offline:
+        try:
+          self._wconfd.UnlockConfig(self._GetWConfdContext())
+        except AttributeError:
+          # If the configuration hasn't been initialized yet, just ignore it.
+          pass
+        logging.debug("Configuration in WConfd unlocked")
+      self._AddLockCount(-1)
 
-    # Make sure the configuration has the right version
-    _ValidateConfig(data)
-
-    if (not hasattr(data, "cluster") or
-        not hasattr(data.cluster, "rsahostkeypub")):
-      raise errors.ConfigurationError("Incomplete configuration"
-                                      " (missing cluster.rsahostkeypub)")
-
-    if not data.cluster.master_node in data.nodes:
-      msg = ("The configuration denotes node %s as master, but does not"
-             " contain information about this node" %
-             data.cluster.master_node)
-      raise errors.ConfigurationError(msg)
-
-    master_info = data.nodes[data.cluster.master_node]
-    if master_info.name != self._my_hostname and not accept_foreign:
-      msg = ("The configuration denotes node %s as master, while my"
-             " hostname is %s; opening a foreign configuration is only"
-             " possible in accept_foreign mode" %
-             (master_info.name, self._my_hostname))
-      raise errors.ConfigurationError(msg)
-
-    self._config_data = data
-
-    # Upgrade configuration if needed
-    self._UpgradeConfig()
-
-    self._cfg_id = utils.GetFileID(path=self._cfg_file)
-
-  def _UpgradeConfig(self):
+  # TODO: To WConfd
+  def _UpgradeConfig(self, saveafter=False):
     """Run any upgrade steps.
 
     This method performs both in-object upgrades and also update some data
     elements that need uniqueness across the whole configuration or interact
     with other objects.
 
-    @warning: this function will call L{_WriteConfig()}, but also
-        L{DropECReservations} so it needs to be called only from a
-        "safe" place (the constructor). If one wanted to call it with
-        the lock held, a DropECReservationUnlocked would need to be
-        created first, to avoid causing deadlock.
+    @warning: if 'saveafter' is 'True', this function will call
+        L{_WriteConfig()} so it needs to be called only from a
+        "safe" place.
 
     """
     # Keep a copy of the persistent part of _config_data to check for changes
@@ -2451,7 +2566,7 @@ class ConfigWriter(object):
       self._UnlockedAddNodeGroup(default_nodegroup, _UPGRADE_CONFIG_JID, True)
     for node in self._ConfigData().nodes.values():
       if not node.group:
-        node.group = self.LookupNodeGroup(None)
+        node.group = self._UnlockedLookupNodeGroup(None)
       # This is technically *not* an upgrade, but needs to be done both when
       # nodegroups are being added, and upon normally loading the config,
       # because the members list of a node group is discarded upon
@@ -2459,11 +2574,9 @@ class ConfigWriter(object):
       self._UnlockedAddNodeToGroup(node.uuid, node.group)
 
     modified = (oldconf != self._ConfigData().ToDict())
-    if modified:
+    if modified and saveafter:
       self._WriteConfig()
-      # This is ok even if it acquires the internal lock, as _UpgradeConfig is
-      # only called at config init time, without the lock held
-      self.DropECReservations(_UPGRADE_CONFIG_JID)
+      self._UnlockedDropECReservations(_UPGRADE_CONFIG_JID)
     else:
       config_errors = self._UnlockedVerifyConfig()
       if config_errors:
@@ -2515,7 +2628,8 @@ class ConfigWriter(object):
         os.close(fd)
     else:
       try:
-        self._wconfd.WriteConfig(self._ConfigData().ToDict())
+        self._wconfd.WriteConfig(self._GetWConfdContext(),
+                                 self._ConfigData().ToDict())
       except errors.LockError:
         raise errors.ConfigurationError("The configuration file has been"
                                         " modified since the last write, cannot"
@@ -2722,24 +2836,35 @@ class ConfigWriter(object):
     if self._ConfigData() is None:
       raise errors.ProgrammerError("Configuration file not read,"
                                    " cannot save.")
+
+    def check_serial(target, current):
+      if current is None:
+        raise errors.ConfigurationError("Configuration object unknown")
+      elif current.serial_no != target.serial_no:
+        raise errors.ConfigurationError("Configuration object updated since"
+                                        " it has been read: %d != %d",
+                                        current.serial_no, target.serial_no)
+
+    def replace_in(target, tdict):
+      check_serial(target, tdict.get(target.uuid))
+      tdict[target.uuid] = target
+
     update_serial = False
     if isinstance(target, objects.Cluster):
-      test = target == self._ConfigData().cluster
+      check_serial(target, self._ConfigData().cluster)
+      self._ConfigData().cluster = target
     elif isinstance(target, objects.Node):
-      test = target in self._ConfigData().nodes.values()
+      replace_in(target, self._ConfigData().nodes)
       update_serial = True
     elif isinstance(target, objects.Instance):
-      test = target in self._ConfigData().instances.values()
+      replace_in(target, self._ConfigData().instances)
     elif isinstance(target, objects.NodeGroup):
-      test = target in self._ConfigData().nodegroups.values()
+      replace_in(target, self._ConfigData().nodegroups)
     elif isinstance(target, objects.Network):
-      test = target in self._ConfigData().networks.values()
+      replace_in(target, self._ConfigData().networks)
     else:
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))
-    if not test:
-      raise errors.ConfigurationError("Configuration updated since object"
-                                      " has been read or unknown object")
     target.serial_no += 1
     target.mtime = now = time.time()
 

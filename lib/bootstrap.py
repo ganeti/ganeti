@@ -880,7 +880,8 @@ def FinalizeClusterDestroy(master_uuid):
   begun in cmdlib.LUDestroyOpcode.
 
   """
-  cfg = config.ConfigWriter()
+  livelock = utils.livelock.LiveLock("bootstrap_destroy")
+  cfg = config.GetConfig(None, livelock)
   modify_ssh_setup = cfg.GetClusterInfo().modify_ssh_setup
   runner = rpc.BootstrapRunner()
 
@@ -1002,7 +1003,8 @@ def MasterFailover(no_voting=False):
 
     # instantiate a real config writer, as we now know we have the
     # configuration data
-    cfg = config.ConfigWriter(accept_foreign=True)
+    livelock = utils.livelock.LiveLock("bootstrap_failover")
+    cfg = config.GetConfig(None, livelock, accept_foreign=True)
 
     old_master_node = cfg.GetNodeInfoByName(old_master)
     if old_master_node is None:

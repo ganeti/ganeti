@@ -49,6 +49,9 @@ class LiveLock(object):
     fcntl.fcntl(self.lockfile, fcntl.F_SETLKW,
                 struct.pack('hhllhh', fcntl.F_WRLCK, 0, 0, 0, 0, 0))
 
+  def GetPath(self):
+    return self.lockfile.name
+
   def close(self):
     """Close the lockfile and clean it up.
 

@@ -103,7 +103,8 @@ class LogicalUnit(object):
   HTYPE = None
   REQ_BGL = True
 
-  def __init__(self, processor, op, context, rpc_runner, wconfdcontext, wconfd):
+  def __init__(self, processor, op, context, cfg,
+               rpc_runner, wconfdcontext, wconfd):
     """Constructor for LogicalUnit.
 
     This needs to be overridden in derived classes in order to check op
@@ -119,7 +120,7 @@ class LogicalUnit(object):
     """
     self.proc = processor
     self.op = op
-    self.cfg = context.cfg
+    self.cfg = cfg
     self.wconfdlocks = []
     self.wconfdcontext = wconfdcontext
     self.context = context

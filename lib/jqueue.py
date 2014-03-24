@@ -1656,7 +1656,7 @@ class JobQueue(object):
   """Queue used to manage the jobs.
 
   """
-  def __init__(self, context):
+  def __init__(self, context, cfg):
     """Constructor for JobQueue.
 
     The constructor will initialize the job queue object and then
@@ -1697,7 +1697,7 @@ class JobQueue(object):
 
     # Get initial list of nodes
     self._nodes = dict((n.name, n.primary_ip)
-                       for n in self.context.cfg.GetAllNodesInfo().values()
+                       for n in cfg.GetAllNodesInfo().values()
                        if n.master_candidate)
 
     # Remove master node

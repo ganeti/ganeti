@@ -419,7 +419,9 @@ class ClientOps:
     elif method == luxi.REQ_SET_WATCHER_PAUSE:
       (until, ) = args
 
-      return _SetWatcherPause(context, until)
+      # FIXME!
+      ec_id = None
+      return _SetWatcherPause(context, ec_id, until)
 
     else:
       logging.critical("Request '%s' in luxi.REQ_ALL, but not known", method)
@@ -460,21 +462,16 @@ class GanetiContext(object):
     # Create a livelock file
     self.livelock = utils.livelock.LiveLock("masterd")
 
-    # Create global configuration object
-    self.cfg = config.ConfigWriter()
-
     # Locking manager
+    cfg = self.GetConfig(None)
     self.glm = locking.GanetiLockManager(
-      self.cfg.GetNodeList(),
-      self.cfg.GetNodeGroupList(),
-      [inst.name for inst in self.cfg.GetAllInstancesInfo().values()],
-      self.cfg.GetNetworkList())
-
-    # RPC runner
-    self.rpc = rpc.RpcRunner(self.cfg, self.glm.AddToLockMonitor)
+      cfg.GetNodeList(),
+      cfg.GetNodeGroupList(),
+      [inst.name for inst in cfg.GetAllInstancesInfo().values()],
+      cfg.GetNetworkList())
 
     # Job queue
-    self.jobqueue = jqueue.JobQueue(self)
+    self.jobqueue = jqueue.JobQueue(self, cfg)
 
     # setting this also locks the class against attribute modifications
     self.__class__._instance = self
@@ -488,6 +485,12 @@ class GanetiContext(object):
 
   def GetWConfdContext(self, ec_id):
     return config.GetWConfdContext(ec_id, self.livelock)
+
+  def GetConfig(self, ec_id):
+    return config.GetConfig(ec_id, self.livelock)
+
+  def GetRpc(self, cfg):
+    return rpc.RpcRunner(cfg, self.glm.AddToLockMonitor)
 
   def AddNode(self, cfg, node, ec_id):
     """Adds a node to the configuration.
@@ -517,7 +520,7 @@ class GanetiContext(object):
     self.jobqueue.RemoveNode(node.name)
 
 
-def _SetWatcherPause(context, until):
+def _SetWatcherPause(context, ec_id, until):
   """Creates or removes the watcher pause file.
 
   @type context: L{GanetiContext}
@@ -526,7 +529,7 @@ def _SetWatcherPause(context, until):
   @param until: Unix timestamp saying until when the watcher shouldn't run
 
   """
-  node_names = context.cfg.GetNodeList()
+  node_names = context.GetConfig(ec_id).GetNodeList()
 
   if until is None:
     logging.info("Received request to no longer pause watcher")
@@ -573,8 +576,10 @@ def CheckAgreement():
 
   """
   myself = netutils.Hostname.GetSysName()
+  # Create a livelock file
+  livelock = utils.livelock.LiveLock("masterd_check_agreement")
   #temp instantiation of a config writer, used only to get the node list
-  cfg = config.ConfigWriter()
+  cfg = config.GetConfig(None, livelock)
   node_names = cfg.GetNodeNames(cfg.GetNodeList())
   del cfg
   retries = 6
@@ -615,7 +620,9 @@ def CheckAgreement():
 @rpc.RunWithRPC
 def ActivateMasterIP():
   # activate ip
-  cfg = config.ConfigWriter()
+  # Create a livelock file
+  livelock = utils.livelock.LiveLock("masterd_activate_ip")
+  cfg = config.GetConfig(None, livelock)
   master_params = cfg.GetMasterNetworkParameters()
   ems = cfg.GetUseExternalMipScript()
   runner = rpc.BootstrapRunner()
@@ -651,7 +658,8 @@ def CheckMasterd(options, args):
 
   # Check the configuration is sane before anything else
   try:
-    config.ConfigWriter()
+    livelock = utils.livelock.LiveLock("masterd_check")
+    config.GetConfig(None, livelock)
   except errors.ConfigVersionMismatch, err:
     v1 = "%s.%s.%s" % version.SplitVersion(err.args[0])
     v2 = "%s.%s.%s" % version.SplitVersion(err.args[1])
