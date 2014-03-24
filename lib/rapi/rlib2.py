@@ -847,6 +847,11 @@ class R_2_groups_name_modify(baserlib.OpcodeResource):
 
   """
   PUT_OPCODE = opcodes.OpGroupSetParams
+  PUT_RENAME = {
+    "custom_ndparams": "ndparams",
+    "custom_ipolicy": "ipolicy",
+    "custom_diskparams": "diskparams",
+    }
 
   def GetPutOpInput(self):
     """Changes some parameters of node group.
