@@ -3799,6 +3799,8 @@ class LUInstanceSetParams(LogicalUnit):
         # Show the Private(...) blurb.
         result.append(("os_private/%s" % key, repr(val)))
 
+    self.cfg.Update(self.instance, feedback_fn, self.proc.GetECId())
+
     if self.op.offline is None:
       # Ignore
       pass
@@ -3810,8 +3812,6 @@ class LUInstanceSetParams(LogicalUnit):
       # Mark instance as online, but stopped
       self.cfg.MarkInstanceDown(self.instance.uuid)
       result.append(("admin_state", constants.ADMINST_DOWN))
-
-    self.cfg.Update(self.instance, feedback_fn, self.proc.GetECId())
 
     assert not (self.owned_locks(locking.LEVEL_NODE_RES) or
                 self.owned_locks(locking.LEVEL_NODE)), \
