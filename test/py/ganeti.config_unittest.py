@@ -111,7 +111,8 @@ class TestConfigRunner(unittest.TestCase):
                             disks=[], nics=[],
                             disk_template=constants.DT_DISKLESS,
                             primary_node=self._get_object().GetMasterNode(),
-                            osparams_private=serializer.PrivateDict())
+                            osparams_private=serializer.PrivateDict(),
+                            beparams={})
     return inst
 
   def testEmpty(self):
@@ -358,6 +359,8 @@ class TestConfigRunner(unittest.TestCase):
                      set(["node1-uuid", "node2-uuid",
                           cfg.GetNodeInfoByName(me.name).uuid]))
 
+    (grp1, grp2) = [cfg.GetNodeGroup(grp.uuid) for grp in (grp1, grp2)]
+
     def _VerifySerials():
       self.assertEqual(cfg.GetClusterInfo().serial_no, cluster_serial)
       self.assertEqual(node1.serial_no, node1_serial)
@@ -404,6 +407,8 @@ class TestConfigRunner(unittest.TestCase):
     cfg.AssignGroupNodes([
       (node2.uuid, grp1.uuid),
       ])
+    (grp1, grp2) = [cfg.GetNodeGroup(grp.uuid) for grp in (grp1, grp2)]
+    (node1, node2) =  [cfg.GetNodeInfo(node.uuid) for node in (node1, node2)]
     cluster_serial += 1
     node2_serial += 1
     grp1_serial += 1
@@ -421,6 +426,8 @@ class TestConfigRunner(unittest.TestCase):
       (node1.uuid, grp2.uuid),
       (node2.uuid, grp2.uuid),
       ])
+    (grp1, grp2) = [cfg.GetNodeGroup(grp.uuid) for grp in (grp1, grp2)]
+    (node1, node2) =  [cfg.GetNodeInfo(node.uuid) for node in (node1, node2)]
     cluster_serial += 1
     node1_serial += 1
     node2_serial += 1
@@ -584,11 +591,13 @@ class TestConfigRunner(unittest.TestCase):
     node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
     key = list(constants.NDC_GLOBALS)[0]
     node.ndparams[key] = constants.NDC_DEFAULTS[key]
+    cfg.Update(node, None)
     errs = cfg.VerifyConfig()
     self.assertTrue(len(errs) >= 1)
     self.assertTrue(_IsErrorInList("has some global parameters set", errs))
 
     del node.ndparams[key]
+    cfg.Update(node, None)
     errs = cfg.VerifyConfig()
     self.assertFalse(errs)
 
@@ -606,9 +615,9 @@ class TestConfigRunner(unittest.TestCase):
     hvparams = {"a": "A", "b": "B", "c": "C"}
     hvname = "myhv"
     cfg_writer = self._get_object()
-    cfg_writer._config_data = mock.Mock()
-    cfg_writer._config_data.cluster = mock.Mock()
-    cfg_writer._config_data.cluster.hvparams = {hvname: hvparams}
+    cfg_writer._SetConfigData(mock.Mock())
+    cfg_writer._ConfigData().cluster = mock.Mock()
+    cfg_writer._ConfigData().cluster.hvparams = {hvname: hvparams}
 
     result = cfg_writer._UnlockedGetHvparamsString(hvname)
 

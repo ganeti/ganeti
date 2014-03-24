@@ -52,9 +52,14 @@ class ConfigMock(config.ConfigWriter):
     self._cur_nic_id = 1
     self._cur_net_id = 1
     self._default_os = None
+    self._mocked_config_store = None
 
     super(ConfigMock, self).__init__(cfg_file="/dev/null",
-                                     _getents=_StubGetEntResolver())
+                                     _getents=_StubGetEntResolver(),
+                                     offline=True)
+
+    with self.GetConfigManager():
+      self._CreateConfig()
 
   def _GetUuid(self):
     return str(uuid_module.uuid4())
@@ -106,7 +111,7 @@ class ConfigMock(config.ConfigWriter):
                               networks=networks,
                               members=[])
 
-    self.AddNodeGroup(group, None)
+    self._UnlockedAddNodeGroup(group, None, True)
     return group
 
   # pylint: disable=R0913
@@ -169,7 +174,7 @@ class ConfigMock(config.ConfigWriter):
                         disk_state=disk_state,
                         disk_state_static=disk_state_static)
 
-    self.AddNode(node, None)
+    self._UnlockedAddNode(node, None)
     return node
 
   def AddNewInstance(self,
@@ -540,7 +545,7 @@ class ConfigMock(config.ConfigWriter):
     cluster.enabled_disk_templates = list(enabled_disk_templates)
     cluster.ipolicy[constants.IPOLICY_DTS] = list(enabled_disk_templates)
 
-  def _OpenConfig(self, accept_foreign):
+  def _CreateConfig(self):
     self._config_data = objects.ConfigData(
       version=constants.CONFIG_VERSION,
       cluster=None,
@@ -593,16 +598,16 @@ class ConfigMock(config.ConfigWriter):
       )
     self._cluster.ctime = self._cluster.mtime = time.time()
     self._cluster.UpgradeConfig()
-    self._config_data.cluster = self._cluster
+    self._ConfigData().cluster = self._cluster
 
     self._default_group = self.AddNewNodeGroup(name="default")
     self._master_node = self.AddNewNode(uuid=master_node_uuid)
 
+  def _OpenConfig(self, _accept_foreign):
+    self._config_data = self._mocked_config_store
+
   def _WriteConfig(self, destination=None, feedback_fn=None):
-    pass
+    self._mocked_config_store = self._ConfigData()
 
-  def _DistributeConfig(self, feedback_fn):
-    pass
-
-  def _GetRpc(self, address_list):
+  def _GetRpc(self, _address_list):
     raise AssertionError("This should not be used during tests!")

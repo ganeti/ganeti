@@ -60,14 +60,20 @@ class GanetiContextMock(object):
   def GetWConfdContext(self, _ec_id):
     return (None, None, None)
 
-  def AddNode(self, node, ec_id):
-    self._test_case.cfg.AddNode(node, ec_id)
+  def GetConfig(self, _ec_id):
+    return self._test_case.cfg
+
+  def GetRpc(self, _cfg):
+    return self._test_case.rpc
+
+  def AddNode(self, cfg, node, ec_id):
+    cfg.AddNode(node, ec_id)
 
   def ReaddNode(self, node):
     pass
 
-  def RemoveNode(self, node):
-    self._test_case.cfg.RemoveNode(node.uuid)
+  def RemoveNode(self, cfg, node):
+    cfg.RemoveNode(node.uuid)
 
 
 class MockLU(LogicalUnit):
@@ -207,7 +213,7 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     @return: A mock LU
 
     """
-    return MockLU(self.mcpu, mock.MagicMock(), self.ctx, self.rpc,
+    return MockLU(self.mcpu, mock.MagicMock(), self.ctx, self.cfg, self.rpc,
                   (1234, "/tmp/mock/livelock"), WConfdMock())
 
   def RpcResultsBuilder(self, use_node_names=False):
