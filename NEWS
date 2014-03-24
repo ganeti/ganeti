@@ -93,6 +93,17 @@ This was the first beta release of the 2.11 series. All important changes
 are listed in the latest 2.11 entry.
 
 
+Version 2.10.2
+--------------
+
+*(Released Mon, 24 Mar 2014)*
+
+- Fix conflict between virtio + spice or soundhw (issue 757)
+- accept relative paths in gnt-cluster copyfile (issue 754)
+- Introduce shutdown timeout for 'xm shutdown' command
+- Improve RAPI detection of the watcher (issue 752)
+
+
 Version 2.10.1
 --------------
 

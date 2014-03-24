@@ -42,7 +42,7 @@ UNRELEASED_RE = re.compile(r"^\*\(unreleased\)\*$")
 VERSION_RE = re.compile(r"^Version (\d+(\.\d+)+( (alpha|beta|rc)\d+)?)$")
 
 #: How many days release timestamps may be in the future
-TIMESTAMP_FUTURE_DAYS_MAX = 3
+TIMESTAMP_FUTURE_DAYS_MAX = 5
 
 errors = []
 
