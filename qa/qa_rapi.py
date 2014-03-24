@@ -162,6 +162,65 @@ def _DoTests(uris):
   return results
 
 
+# pylint: disable=W0212
+# Due to _SendRequest usage
+def _DoGetPutTests(get_uri, put_uri, opcode_params, exceptions=None,
+                   set_exceptions=None):
+  """ Test if all params of an object can be retrieved, and set as well.
+
+  @type get_uri: string
+  @param get_uri: The URI from which information about the object can be
+                  retrieved.
+  @type put_uri: string
+  @param put_uri: The URI which can be used to modify the object.
+  @type opcode_params: list of tuple
+  @param opcode_params: The parameters of the underlying opcode, used to
+                        determine which parameters are actually present.
+  @type exceptions: list of string or None
+  @param exceptions: The parameters which have not been exposed and should not
+                     be tested at all.
+  @type set_exceptions: list of string or None
+  @param set_exceptions: The parameters whose setting should not be tested as a
+                         part of this test.
+
+  """
+
+  assert get_uri.startswith("/")
+  assert put_uri.startswith("/")
+
+  if exceptions is None:
+    exceptions = []
+  if set_exceptions is None:
+    set_exceptions = []
+
+  print "Testing get/put symmetry of %s and %s" % (get_uri, put_uri)
+
+  # First we see if all parameters of the opcode are returned through RAPI
+  params_of_interest = map(lambda x: x[0], opcode_params)
+
+  info = _rapi_client._SendRequest("GET", get_uri, None, {})
+
+  missing_params = filter(lambda x: x not in info and x not in exceptions,
+                          params_of_interest)
+  if missing_params:
+    raise qa_error.Error("The parameters %s which can be set through the "
+                         "appropriate opcode are not present in the response "
+                         "from %s" % (','.join(missing_params), get_uri))
+
+  print "GET successful at %s" % get_uri
+
+  # Then if we can perform a set with the same values as received
+  put_payload = {}
+  for param in params_of_interest:
+    if param not in exceptions and param not in set_exceptions:
+      put_payload[param] = info[param]
+
+  _rapi_client._SendRequest("PUT", put_uri, None, put_payload)
+
+  print "PUT successful at %s" % put_uri
+# pylint: enable=W0212
+
+
 def _VerifyReturnsJob(data):
   if not isinstance(data, int):
     AssertMatch(data, r"^\d+$")
