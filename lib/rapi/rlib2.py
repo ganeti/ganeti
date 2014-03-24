@@ -419,6 +419,9 @@ class R_2_nodes_name(baserlib.OpcodeResource):
 
   """
   GET_OPCODE = opcodes.OpNodeQuery
+  GET_ALIASES = {
+    "sip": "secondary_ip",
+    }
 
   def GET(self):
     """Send information about a node.
