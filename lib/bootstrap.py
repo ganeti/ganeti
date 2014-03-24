@@ -1023,6 +1023,30 @@ def MasterFailover(no_voting=False):
     # this will also regenerate the ssconf files, since we updated the
     # cluster info
     cfg.Update(cluster_info, logging.error)
+
+    # if cfg.Update worked, then it means the old master daemon won't be
+    # able now to write its own config file (we rely on locking in both
+    # backend.UploadFile() and ConfigWriter._Write(); hence the next
+    # step is to kill the old master
+
+    logging.info("Stopping the master daemon on node %s", old_master)
+
+    runner = rpc.BootstrapRunner()
+    master_params = cfg.GetMasterNetworkParameters()
+    master_params.uuid = old_master_node.uuid
+    ems = cfg.GetUseExternalMipScript()
+    result = runner.call_node_deactivate_master_ip(old_master,
+                                                   master_params, ems)
+
+    msg = result.fail_msg
+    if msg:
+      logging.warning("Could not disable the master IP: %s", msg)
+
+    result = runner.call_node_stop_master(old_master)
+    msg = result.fail_msg
+    if msg:
+      logging.error("Could not disable the master role on the old master"
+                    " %s, please disable manually: %s", old_master, msg)
   except errors.ConfigurationError, err:
     logging.error("Error while trying to set the new master: %s",
                   str(err))
@@ -1034,30 +1058,6 @@ def MasterFailover(no_voting=False):
       logging.error("Could not stop the configuration daemon,"
                     " command %s had exitcode %s and error %s",
                     result.cmd, result.exit_code, result.output)
-
-  # if cfg.Update worked, then it means the old master daemon won't be
-  # able now to write its own config file (we rely on locking in both
-  # backend.UploadFile() and ConfigWriter._Write(); hence the next
-  # step is to kill the old master
-
-  logging.info("Stopping the master daemon on node %s", old_master)
-
-  runner = rpc.BootstrapRunner()
-  master_params = cfg.GetMasterNetworkParameters()
-  master_params.uuid = old_master_node.uuid
-  ems = cfg.GetUseExternalMipScript()
-  result = runner.call_node_deactivate_master_ip(old_master,
-                                                 master_params, ems)
-
-  msg = result.fail_msg
-  if msg:
-    logging.warning("Could not disable the master IP: %s", msg)
-
-  result = runner.call_node_stop_master(old_master)
-  msg = result.fail_msg
-  if msg:
-    logging.error("Could not disable the master role on the old master"
-                  " %s, please disable manually: %s", old_master, msg)
 
   logging.info("Checking master IP non-reachability...")
 
