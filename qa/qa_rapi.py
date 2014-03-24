@@ -165,8 +165,8 @@ def _DoTests(uris):
 
 # pylint: disable=W0212
 # Due to _SendRequest usage
-def _DoGetPutTests(get_uri, modify_uri, opcode_params, modify_method="PUT",
-                   exceptions=None, set_exceptions=None):
+def _DoGetPutTests(get_uri, modify_uri, opcode_params, rapi_only_aliases=None,
+                   modify_method="PUT", exceptions=None, set_exceptions=None):
   """ Test if all params of an object can be retrieved, and set as well.
 
   @type get_uri: string
@@ -177,6 +177,9 @@ def _DoGetPutTests(get_uri, modify_uri, opcode_params, modify_method="PUT",
   @type opcode_params: list of tuple
   @param opcode_params: The parameters of the underlying opcode, used to
                         determine which parameters are actually present.
+  @type rapi_only_aliases: list of string or None
+  @param rapi_only_aliases: Aliases for parameters which differ from the opcode,
+                            and become renamed before opcode submission.
   @type modify_method: string
   @param modify_method: The method to be used in the modification.
   @type exceptions: list of string or None
@@ -200,6 +203,10 @@ def _DoGetPutTests(get_uri, modify_uri, opcode_params, modify_method="PUT",
 
   # First we see if all parameters of the opcode are returned through RAPI
   params_of_interest = map(lambda x: x[0], opcode_params)
+
+  # The RAPI-specific aliases are to be checked as well
+  if rapi_only_aliases is not None:
+    params_of_interest.extend(rapi_only_aliases)
 
   info = _rapi_client._SendRequest("GET", get_uri, None, {})
 
