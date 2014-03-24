@@ -192,6 +192,7 @@ DIRS = \
 	lib/watcher \
 	man \
 	qa \
+	qa/patch \
 	test \
 	test/data \
 	test/data/bdev-rbd \
@@ -1056,6 +1057,7 @@ qa_scripts = \
 	qa/qa_job.py \
 	qa/qa_job_utils.py \
 	qa/qa_monitoring.py \
+	qa/qa_logging.py \
 	qa/qa_node.py \
 	qa/qa_os.py \
 	qa/qa_rapi.py \

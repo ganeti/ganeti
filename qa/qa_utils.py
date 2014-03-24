@@ -50,11 +50,8 @@ import colors
 import qa_config
 import qa_error
 
+from qa_logging import FormatInfo
 
-_INFO_SEQ = None
-_WARNING_SEQ = None
-_ERROR_SEQ = None
-_RESET_SEQ = None
 
 _MULTIPLEXERS = {}
 
@@ -70,41 +67,6 @@ _QA_OUTPUT = pathutils.GetLogFilename("qa-output")
 
 (FIRST_ARG,
  RETURN_VALUE) = range(1000, 1002)
-
-
-def _SetupColours():
-  """Initializes the colour constants.
-
-  """
-  # pylint: disable=W0603
-  # due to global usage
-  global _INFO_SEQ, _WARNING_SEQ, _ERROR_SEQ, _RESET_SEQ
-
-  # Don't use colours if stdout isn't a terminal
-  if not sys.stdout.isatty():
-    return
-
-  try:
-    import curses
-  except ImportError:
-    # Don't use colours if curses module can't be imported
-    return
-
-  try:
-    curses.setupterm()
-  except curses.error:
-    # Probably a non-standard terminal, don't use colours then
-    return
-
-  _RESET_SEQ = curses.tigetstr("op")
-
-  setaf = curses.tigetstr("setaf")
-  _INFO_SEQ = curses.tparm(setaf, curses.COLOR_GREEN)
-  _WARNING_SEQ = curses.tparm(setaf, curses.COLOR_YELLOW)
-  _ERROR_SEQ = curses.tparm(setaf, curses.COLOR_RED)
-
-
-_SetupColours()
 
 
 def AssertIn(item, sequence, msg=""):
@@ -598,17 +560,6 @@ def GenericQueryFieldsTest(cmd, fields):
   AssertEqual(AssertCommand([cmd, "list-fields", "field/does/not/exist"],
                             fail=True),
               constants.EXIT_UNKNOWN_FIELD)
-
-
-def _FormatWithColor(text, seq):
-  if not seq:
-    return text
-  return "%s%s%s" % (seq, text, _RESET_SEQ)
-
-
-FormatWarning = lambda text: _FormatWithColor(text, _WARNING_SEQ)
-FormatError = lambda text: _FormatWithColor(text, _ERROR_SEQ)
-FormatInfo = lambda text: _FormatWithColor(text, _INFO_SEQ)
 
 
 def AddToEtcHosts(hostnames):

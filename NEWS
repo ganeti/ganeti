@@ -33,10 +33,10 @@ New features
     opportunistic locking when an iallocator is used.
 
 
-Version 2.11.0 beta1
---------------------
+Version 2.11.0 rc1
+------------------
 
-*(Released Wed, 5 Mar 2014)*
+*(Released Thu, 20 Mar 2014)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,6 +82,7 @@ New features
 
 New dependencies
 ~~~~~~~~~~~~~~~~
+
 The following new dependencies have been added:
 
 For Haskell:
@@ -94,6 +95,48 @@ For Haskell:
 - ``lifted-base`` library (http://hackage.haskell.org/package/lifted-base)
 
 - ``lens`` library (http://hackage.haskell.org/package/lens)
+
+Since 2.11.0 beta1
+~~~~~~~~~~~~~~~~~~
+
+This was the first RC release of the 2.11 series. Since 2.11.0 beta1:
+
+- Convert int to float when checking config. consistency
+- Rename compression option in gnt-backup export
+
+Inherited from the 2.9 branch:
+
+- Fix error introduced during merge
+- gnt-cluster copyfile: accept relative paths
+
+Inherited from the 2.8 branch:
+
+- Improve RAPI detection of the watcher
+- Add patching QA configuration files on buildbots
+- Enable a timeout for instance shutdown
+- Allow KVM commands to have a timeout
+- Allow xen commands to have a timeout
+- Fix wrong docstring
+
+
+Version 2.11.0 beta1
+--------------------
+
+*(Released Wed, 5 Mar 2014)*
+
+This was the first beta release of the 2.11 series. All important changes
+are listed in the latest 2.11 entry.
+
+
+Version 2.10.2
+--------------
+
+*(Released Mon, 24 Mar 2014)*
+
+- Fix conflict between virtio + spice or soundhw (issue 757)
+- accept relative paths in gnt-cluster copyfile (issue 754)
+- Introduce shutdown timeout for 'xm shutdown' command
+- Improve RAPI detection of the watcher (issue 752)
 
 
 Version 2.10.1
