@@ -1355,6 +1355,17 @@ class ConfigWriter(object):
     return self._ConfigData().cluster.instance_communication_network
 
   @_ConfigSync()
+  def SetInstanceCommunicationNetwork(self, network_name):
+    """Set cluster instance communication network
+
+    @type network_name: string
+    @param network_name: instance communication network, which is the name of
+                         the network used for instance communication
+
+    """
+    self._ConfigData().cluster.instance_communication_network = network_name
+
+  @_ConfigSync()
   def AddNodeGroup(self, group, ec_id, check_uuid=True):
     """Add a node group to the configuration.
 

@@ -1418,8 +1418,7 @@ class LUClusterSetParams(LogicalUnit):
       return None
 
   @staticmethod
-  def _ModifyInstanceCommunicationNetwork(cfg, cluster, network_name,
-                                          feedback_fn):
+  def _ModifyInstanceCommunicationNetwork(cfg, network_name, feedback_fn):
     """Update the instance communication network stored in the cluster
     configuration.
 
@@ -1431,9 +1430,6 @@ class LUClusterSetParams(LogicalUnit):
 
     @type cfg: L{config.ConfigWriter}
     @param cfg: cluster configuration
-
-    @type cluster: L{ganeti.objects.Cluster}
-    @param cluster: Ganeti cluster
 
     @type network_name: string
     @param network_name: instance communication network name
@@ -1466,7 +1462,7 @@ class LUClusterSetParams(LogicalUnit):
         feedback_fn("Disabling instance communication network, only new"
                     " instances will be affected.")
 
-      cluster.instance_communication_network = network_name
+      cfg.SetInstanceCommunicationNetwork(network_name)
 
       if network_name:
         return LUClusterSetParams._EnsureInstanceCommunicationNetwork(
@@ -1479,13 +1475,20 @@ class LUClusterSetParams(LogicalUnit):
     """Change the parameters of the cluster.
 
     """
+    # re-read the fresh configuration
+    self.cluster = self.cfg.GetClusterInfo()
     if self.op.enabled_disk_templates:
       self.cluster.enabled_disk_templates = \
         list(self.op.enabled_disk_templates)
+    # save the changes
+    self.cfg.Update(self.cluster, feedback_fn)
 
     self._SetVgName(feedback_fn)
     self._SetFileStorageDir(feedback_fn)
     self._SetDrbdHelper(feedback_fn)
+
+    # re-read the fresh configuration
+    self.cluster = self.cfg.GetClusterInfo()
 
     if self.op.hvparams:
       self.cluster.hvparams = self.new_hvparams
@@ -1622,7 +1625,7 @@ class LUClusterSetParams(LogicalUnit):
 
     network_name = self.op.instance_communication_network
     if network_name is not None:
-      return self._ModifyInstanceCommunicationNetwork(self.cfg, self.cluster,
+      return self._ModifyInstanceCommunicationNetwork(self.cfg,
                                                       network_name, feedback_fn)
     else:
       return None
