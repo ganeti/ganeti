@@ -165,18 +165,20 @@ def _DoTests(uris):
 
 # pylint: disable=W0212
 # Due to _SendRequest usage
-def _DoGetPutTests(get_uri, put_uri, opcode_params, exceptions=None,
-                   set_exceptions=None):
+def _DoGetPutTests(get_uri, modify_uri, opcode_params, modify_method="PUT",
+                   exceptions=None, set_exceptions=None):
   """ Test if all params of an object can be retrieved, and set as well.
 
   @type get_uri: string
   @param get_uri: The URI from which information about the object can be
                   retrieved.
-  @type put_uri: string
-  @param put_uri: The URI which can be used to modify the object.
+  @type modify_uri: string
+  @param modify_uri: The URI which can be used to modify the object.
   @type opcode_params: list of tuple
   @param opcode_params: The parameters of the underlying opcode, used to
                         determine which parameters are actually present.
+  @type modify_method: string
+  @param modify_method: The method to be used in the modification.
   @type exceptions: list of string or None
   @param exceptions: The parameters which have not been exposed and should not
                      be tested at all.
@@ -187,14 +189,14 @@ def _DoGetPutTests(get_uri, put_uri, opcode_params, exceptions=None,
   """
 
   assert get_uri.startswith("/")
-  assert put_uri.startswith("/")
+  assert modify_uri.startswith("/")
 
   if exceptions is None:
     exceptions = []
   if set_exceptions is None:
     set_exceptions = []
 
-  print "Testing get/put symmetry of %s and %s" % (get_uri, put_uri)
+  print "Testing get/modify symmetry of %s and %s" % (get_uri, modify_uri)
 
   # First we see if all parameters of the opcode are returned through RAPI
   params_of_interest = map(lambda x: x[0], opcode_params)
@@ -216,9 +218,9 @@ def _DoGetPutTests(get_uri, put_uri, opcode_params, exceptions=None,
     if param not in exceptions and param not in set_exceptions:
       put_payload[param] = info[param]
 
-  _rapi_client._SendRequest("PUT", put_uri, None, put_payload)
+  _rapi_client._SendRequest(modify_method, modify_uri, None, put_payload)
 
-  print "PUT successful at %s" % put_uri
+  print "%s successful at %s" % (modify_method, modify_uri)
 # pylint: enable=W0212
 
 
