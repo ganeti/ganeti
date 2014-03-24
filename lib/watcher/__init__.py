@@ -284,7 +284,8 @@ def _VerifyDisks(cl, uuid, nodes, instances):
   """Run a per-group "gnt-cluster verify-disks".
 
   """
-  job_id = cl.SubmitJob([opcodes.OpGroupVerifyDisks(group_name=uuid)])
+  job_id = cl.SubmitJob([opcodes.OpGroupVerifyDisks(
+      group_name=uuid, priority=constants.OP_PRIO_LOW)])
   ((_, offline_disk_instances, _), ) = \
     cli.PollJob(job_id, cl=cl, feedback_fn=logging.debug)
   cl.ArchiveJob(job_id)
@@ -637,13 +638,15 @@ def _GetGroupData(cl, uuid):
                     fields=["name", "status", "disks_active", "snodes",
                             "pnode.group.uuid", "snodes.group.uuid"],
                     qfilter=[qlang.OP_EQUAL, "pnode.group.uuid", uuid],
-                    use_locking=True),
+                    use_locking=True,
+                    priority=constants.OP_PRIO_LOW),
 
     # Get all nodes in group
     opcodes.OpQuery(what=constants.QR_NODE,
                     fields=["name", "bootid", "offline"],
                     qfilter=[qlang.OP_EQUAL, "group.uuid", uuid],
-                    use_locking=True),
+                    use_locking=True,
+                    priority=constants.OP_PRIO_LOW),
     ]
 
   job_id = cl.SubmitJob(job)
