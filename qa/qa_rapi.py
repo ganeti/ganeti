@@ -518,6 +518,20 @@ def TestNode(node):
     ("/2/nodes?bulk=1", _VerifyNodesBulk, "GET", None),
     ])
 
+  # Not parameters of the node, but controlling opcode behavior
+  LEGITIMATELY_MISSING = ["force", "powered"]
+  # Identifying the node - RAPI provides these itself
+  IDENTIFIERS = ["node_name", "node_uuid"]
+  # As the name states, these can be set but not retrieved yet
+  NOT_EXPOSED_YET = ["hv_state", "disk_state", "auto_promote"]
+
+  _DoGetPutTests("/2/nodes/%s" % node.primary,
+                 "/2/nodes/%s/modify" % node.primary,
+                 opcodes.OpNodeSetParams.OP_PARAMS,
+                 modify_method="POST",
+                 exceptions=(LEGITIMATELY_MISSING + NOT_EXPOSED_YET +
+                             IDENTIFIERS))
+
 
 def _FilterTags(seq):
   """Removes unwanted tags from a sequence.
