@@ -35,6 +35,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import pathutils
 from ganeti import objects
+from ganeti import opcodes
 from ganeti import query
 from ganeti import qlang
 from ganeti import rapi
@@ -301,6 +302,21 @@ def TestEmptyCluster():
       AssertEqual(err.code, 501)
     else:
       raise qa_error.Error("Non-implemented method didn't fail")
+
+  # Test GET/PUT symmetry
+  LEGITIMATELY_MISSING = [
+    "force",       # Standard option
+    "add_uids",    # Modifies UID pool, is not a param itself
+    "remove_uids", # Same as above
+  ]
+  NOT_EXPOSED_YET = ["hv_state", "disk_state", "modify_etc_hosts"]
+  # The nicparams are returned under the default entry, yet accepted as they
+  # are - this is a TODO to fix!
+  DEFAULT_ISSUES = ["nicparams"]
+
+  _DoGetPutTests("/2/info", "/2/modify", opcodes.OpClusterSetParams.OP_PARAMS,
+                 exceptions=(LEGITIMATELY_MISSING + NOT_EXPOSED_YET),
+                 set_exceptions=DEFAULT_ISSUES)
 
 
 def TestRapiQuery():
