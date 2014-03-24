@@ -439,20 +439,6 @@ class TestConfigRunner(unittest.TestCase):
     self.assertFalse(grp1.members)
     self.assertEqual(set(grp2.members), set(["node1-uuid", "node2-uuid"]))
 
-    # Destructive tests
-    orig_group = node2.group
-    try:
-      other_uuid = "68b3d087-6ea5-491c-b81f-0a47d90228c5"
-      assert compat.all(node.group != other_uuid
-                        for node in cfg.GetAllNodesInfo().values())
-      node2.group = "68b3d087-6ea5-491c-b81f-0a47d90228c5"
-      self.assertRaises(errors.ConfigurationError, cfg.AssignGroupNodes, [
-        (node2.uuid, grp2.uuid),
-        ])
-      _VerifySerials()
-    finally:
-      node2.group = orig_group
-
   def _TestVerifyConfigIPolicy(self, ipolicy, ipowner, cfg, isgroup):
     INVALID_KEY = "this_key_cannot_exist"
 
