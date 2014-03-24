@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,22 +23,22 @@
 
 """
 
-import tempfile
+import functools
+import itertools
 import random
 import re
-import itertools
-import functools
+import tempfile
 
-from ganeti import utils
+from ganeti import cli
+from ganeti import compat
 from ganeti import constants
 from ganeti import errors
-from ganeti import cli
-from ganeti import rapi
+from ganeti import pathutils
 from ganeti import objects
 from ganeti import query
-from ganeti import compat
 from ganeti import qlang
-from ganeti import pathutils
+from ganeti import rapi
+from ganeti import utils
 
 import ganeti.rapi.client        # pylint: disable=W0611
 import ganeti.rapi.client_utils
