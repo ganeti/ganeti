@@ -763,6 +763,13 @@ class LUNodeSetParams(LogicalUnit):
         setattr(node, attr, val)
         result.append((attr, str(val)))
 
+    if self.op.secondary_ip:
+      node.secondary_ip = self.op.secondary_ip
+      result.append(("secondary_ip", self.op.secondary_ip))
+
+    # this will trigger configuration file update, if needed
+    self.cfg.Update(node, feedback_fn)
+
     if self.new_role != self.old_role:
       # Tell the node to demote itself, if no longer MC and not offline
       if self.old_role == self._ROLE_CANDIDATE and \
@@ -776,6 +783,7 @@ class LUNodeSetParams(LogicalUnit):
         if of != nf:
           result.append((desc, str(nf)))
       (node.master_candidate, node.drained, node.offline) = new_flags
+      self.cfg.Update(node, feedback_fn)
 
       # we locked all nodes, we adjust the CP before updating this node
       if self.lock_all:
@@ -787,13 +795,6 @@ class LUNodeSetParams(LogicalUnit):
       # if node is demoted, revoke RPC priviledges
       if self.old_role == self._ROLE_CANDIDATE:
         RemoveNodeCertFromCandidateCerts(self.cfg, node.uuid)
-
-    if self.op.secondary_ip:
-      node.secondary_ip = self.op.secondary_ip
-      result.append(("secondary_ip", self.op.secondary_ip))
-
-    # this will trigger configuration file update, if needed
-    self.cfg.Update(node, feedback_fn)
 
     # this will trigger job queue propagation or cleanup if the mc
     # flag changed
