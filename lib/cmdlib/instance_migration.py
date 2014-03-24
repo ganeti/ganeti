@@ -582,8 +582,8 @@ class TLMigrateInstance(Tasklet):
       self.feedback_fn("* instance running on secondary node (%s),"
                        " updating config" %
                        self.cfg.GetNodeName(self.target_node_uuid))
-      self.instance.primary_node = self.target_node_uuid
-      self.cfg.Update(self.instance, self.feedback_fn)
+      self.cfg.SetInstancePrimaryNode(self.instance.uuid,
+                                      self.target_node_uuid)
       demoted_node_uuid = self.source_node_uuid
     else:
       self.feedback_fn("* instance confirmed to be running on its"
@@ -789,10 +789,8 @@ class TLMigrateInstance(Tasklet):
       raise errors.OpExecError("Could not finalize instance migration: %s" %
                                msg)
 
-    self.instance.primary_node = self.target_node_uuid
-
-    # distribute new instance config to the other nodes
-    self.cfg.Update(self.instance, self.feedback_fn)
+    self.cfg.SetInstancePrimaryNode(self.instance.uuid, self.target_node_uuid)
+    self.instance = self.cfg.GetInstanceInfo(self.instance_uuid)
 
     result = self.rpc.call_instance_finalize_migration_dst(
                self.target_node_uuid, self.instance, migration_info, True)
@@ -886,9 +884,8 @@ class TLMigrateInstance(Tasklet):
     if not ShutdownInstanceDisks(self.lu, self.instance, ignore_primary=True):
       raise errors.OpExecError("Can't shut down the instance's disks")
 
-    self.instance.primary_node = self.target_node_uuid
-    # distribute new instance config to the other nodes
-    self.cfg.Update(self.instance, self.feedback_fn)
+    self.cfg.SetInstancePrimaryNode(self.instance.uuid, self.target_node_uuid)
+    self.instance = self.cfg.GetInstanceInfo(self.instance_uuid)
 
     # Only start the instance if it's marked as up
     if self.instance.admin_state == constants.ADMINST_UP:

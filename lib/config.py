@@ -1930,6 +1930,18 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceNames(inst_uuids)
 
+  @_ConfigSync()
+  def SetInstancePrimaryNode(self, inst_uuid, target_node_uuid):
+    """Sets the primary node of an existing instance
+
+    @param inst_uuid: instance UUID
+    @type inst_uuid: string
+    @param target_node_uuid: the new primary node UUID
+    @type target_node_uuid: string
+
+    """
+    self._UnlockedGetInstanceInfo(inst_uuid).primary_node = target_node_uuid
+
   def _UnlockedGetInstanceNames(self, inst_uuids):
     return [self._UnlockedGetInstanceName(uuid) for uuid in inst_uuids]
 
