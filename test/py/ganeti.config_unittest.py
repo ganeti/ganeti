@@ -189,7 +189,7 @@ class TestConfigRunner(unittest.TestCase):
     # For a ConfigObject, None is the same as a missing field
     node.ndparams = None
     oldsaved = utils.ReadFile(self.cfg_file)
-    cfg._UpgradeConfig()
+    cfg._UpgradeConfig(saveafter=True)
     self.assertTrue(node.ndparams is not None)
     newsaved = utils.ReadFile(self.cfg_file)
     # We rely on the fact that at least the serial number changes
@@ -200,14 +200,14 @@ class TestConfigRunner(unittest.TestCase):
     node.ndparams[key] = constants.NDC_DEFAULTS[key]
     cfg._WriteConfig(None)
     oldsaved = utils.ReadFile(self.cfg_file)
-    cfg._UpgradeConfig()
+    cfg._UpgradeConfig(saveafter=True)
     self.assertTrue(node.ndparams.get(key) is None)
     newsaved = utils.ReadFile(self.cfg_file)
     self.assertNotEqual(oldsaved, newsaved)
 
     # Do the upgrade again, this time there should be no update
     oldsaved = newsaved
-    cfg._UpgradeConfig()
+    cfg._UpgradeConfig(saveafter=True)
     newsaved = utils.ReadFile(self.cfg_file)
     self.assertEqual(oldsaved, newsaved)
 
