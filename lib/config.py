@@ -341,7 +341,33 @@ class ConfigWriter(object):
     @return: A dict with the filled in node group params
 
     """
-    return self._ConfigData().cluster.FillNDGroup(nodegroup)
+    return self._UnlockedGetNdGroupParams(nodegroup)
+
+  def _UnlockedGetNdGroupParams(self, group):
+    """Get the ndparams of the group.
+
+    @type group: L{objects.NodeGroup}
+    @param group: The group we want to know the params for
+    @rtype: dict of str to int
+    @return: A dict with the filled in node group params
+
+    """
+    return self._ConfigData().cluster.FillNDGroup(group)
+
+  @_ConfigSync(shared=1)
+  def GetGroupSshPorts(self):
+    """Get a map of group UUIDs to SSH ports.
+
+    @rtype: dict of str to int
+    @return: a dict mapping the UUIDs to the SSH ports
+
+    """
+    port_map = {}
+    for uuid, group in self._config_data.nodegroups.items():
+      ndparams = self._UnlockedGetNdGroupParams(group)
+      port = ndparams.get(constants.ND_SSH_PORT)
+      port_map[uuid] = port
+    return port_map
 
   @_ConfigSync(shared=1)
   def GetInstanceDiskParams(self, instance):
@@ -703,6 +729,20 @@ class ConfigWriter(object):
     data = self._ConfigData().cluster.SimpleFillDP(group.diskparams)
     assert isinstance(data, dict), "Not a dictionary: " + str(data)
     return data
+
+  @_ConfigSync(shared=1)
+  def GetPotentialMasterCandidates(self):
+    """Gets the list of node names of potential master candidates.
+
+    @rtype: list of str
+    @return: list of node names of potential master candidates
+
+    """
+    # FIXME: Note that currently potential master candidates are nodes
+    # but this definition will be extended once RAPI-unmodifiable
+    # parameters are introduced.
+    nodes = self._UnlockedGetAllNodesInfo()
+    return [node_info.name for node_info in nodes.values()]
 
   def GenerateMAC(self, net_uuid, _ec_id):
     """Generate a MAC for an instance.
