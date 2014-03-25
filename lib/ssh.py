@@ -191,16 +191,16 @@ def AddAuthorizedKey(file_obj, key):
   AddAuthorizedKeys(file_obj, [key])
 
 
-def RemoveAuthorizedKey(file_name, key):
-  """Removes an SSH public key from an authorized_keys file.
+def RemoveAuthorizedKeys(file_name, keys):
+  """Removes public SSH keys from an authorized_keys file.
 
   @type file_name: str
   @param file_name: path to authorized_keys file
-  @type key: str
-  @param key: string containing key
+  @type keys: list of str
+  @param keys: list of strings containing keys
 
   """
-  key_fields = _SplitSshKey(key)
+  key_field_list = [_SplitSshKey(key) for key in keys]
 
   fd, tmpname = tempfile.mkstemp(dir=os.path.dirname(file_name))
   try:
@@ -210,7 +210,7 @@ def RemoveAuthorizedKey(file_name, key):
       try:
         for line in f:
           # Ignore whitespace changes while comparing lines
-          if _SplitSshKey(line) != key_fields:
+          if _SplitSshKey(line) not in key_field_list:
             out.write(line)
 
         out.flush()
@@ -222,6 +222,18 @@ def RemoveAuthorizedKey(file_name, key):
   except:
     utils.RemoveFile(tmpname)
     raise
+
+
+def RemoveAuthorizedKey(file_name, key):
+  """Removes an SSH public key from an authorized_keys file.
+
+  @type file_name: str
+  @param file_name: path to authorized_keys file
+  @type key: str
+  @param key: string containing key
+
+  """
+  RemoveAuthorizedKeys(file_name, [key])
 
 
 def _AddPublicKeyProcessLine(new_uuid, new_key, line_uuid, line_key, tmp_file,

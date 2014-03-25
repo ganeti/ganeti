@@ -4532,6 +4532,21 @@ sshsSshPublicKeys = "public_keys"
 sshsNodeDaemonCertificate :: String
 sshsNodeDaemonCertificate = "node_daemon_certificate"
 
+sshsAdd :: String
+sshsAdd = "add"
+
+sshsRemove :: String
+sshsRemove = "remove"
+
+sshsOverride :: String
+sshsOverride = "override"
+
+sshsClear :: String
+sshsClear = "clear"
+
+sshsActions :: FrozenSet String
+sshsActions = ConstantUtils.mkSet [sshsAdd, sshsRemove, sshsOverride, sshsClear]
+
 -- * Key files for SSH daemon
 
 sshHostDsaPriv :: String

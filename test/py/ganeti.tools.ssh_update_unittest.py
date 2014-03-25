@@ -60,10 +60,8 @@ class TestUpdateAuthorizedKeys(testutils.GanetiTestCase):
     self.assertEqual(user, constants.SSH_LOGIN_USER)
     return self.tmpdir
 
-  def testNoKeys(self):
-    data_empty_keys = {
-      constants.SSHS_SSH_AUTHORIZED_KEYS: {},
-      }
+  def testNoop(self):
+    data_empty_keys = {}
 
     for data in [{}, data_empty_keys]:
       for dry_run in [False, True]:
@@ -73,9 +71,9 @@ class TestUpdateAuthorizedKeys(testutils.GanetiTestCase):
 
   def testDryRun(self):
     data = {
-      constants.SSHS_SSH_AUTHORIZED_KEYS: {
+      constants.SSHS_SSH_AUTHORIZED_KEYS: (constants.SSHS_ADD, {
         "node1" : ["key11", "key12", "key13"],
-        "node2" : ["key21", "key22"]},
+        "node2" : ["key21", "key22"]}),
       }
 
     ssh_update.UpdateAuthorizedKeys(data, True,
@@ -83,11 +81,11 @@ class TestUpdateAuthorizedKeys(testutils.GanetiTestCase):
     self.assertEqual(os.listdir(self.tmpdir), [".ssh"])
     self.assertEqual(os.listdir(self.sshdir), [])
 
-  def testUpdate(self):
+  def testAddAndRemove(self):
     data = {
-      constants.SSHS_SSH_AUTHORIZED_KEYS: {
+      constants.SSHS_SSH_AUTHORIZED_KEYS: (constants.SSHS_ADD, {
         "node1": ["key11", "key12"],
-        "node2": ["key21"]},
+        "node2": ["key21"]}),
       }
 
     ssh_update.UpdateAuthorizedKeys(data, False,
@@ -98,6 +96,41 @@ class TestUpdateAuthorizedKeys(testutils.GanetiTestCase):
     self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir,
                                                    "authorized_keys")),
                      "key11\nkey12\nkey21\n")
+    data = {
+      constants.SSHS_SSH_AUTHORIZED_KEYS: (constants.SSHS_REMOVE, {
+        "node1": ["key12"],
+        "node2": ["key21"]}),
+      }
+    ssh_update.UpdateAuthorizedKeys(data, False,
+                                    _homedir_fn=self._GetHomeDir)
+    self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir,
+                                                   "authorized_keys")),
+                     "key11\n")
+
+  def testAddAndRemoveDuplicates(self):
+    data = {
+      constants.SSHS_SSH_AUTHORIZED_KEYS: (constants.SSHS_ADD, {
+        "node1": ["key11", "key12"],
+        "node2": ["key12"]}),
+      }
+
+    ssh_update.UpdateAuthorizedKeys(data, False,
+                                    _homedir_fn=self._GetHomeDir)
+    self.assertEqual(os.listdir(self.tmpdir), [".ssh"])
+    self.assertEqual(sorted(os.listdir(self.sshdir)),
+                     sorted(["authorized_keys"]))
+    self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir,
+                                                   "authorized_keys")),
+                     "key11\nkey12\nkey12\n")
+    data = {
+      constants.SSHS_SSH_AUTHORIZED_KEYS: (constants.SSHS_REMOVE, {
+        "node1": ["key12"]}),
+      }
+    ssh_update.UpdateAuthorizedKeys(data, False,
+                                    _homedir_fn=self._GetHomeDir)
+    self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir,
+                                                   "authorized_keys")),
+                     "key11\n")
 
 
 class TestUpdatePubKeyFile(testutils.GanetiTestCase):
@@ -106,9 +139,7 @@ class TestUpdatePubKeyFile(testutils.GanetiTestCase):
 
   def testNoKeys(self):
     pub_key_file = self._CreateTempFile()
-    data_empty_keys = {
-      constants.SSHS_SSH_PUBLIC_KEYS: {},
-      }
+    data_empty_keys = {}
 
     for data in [{}, data_empty_keys]:
       for dry_run in [False, True]:
@@ -116,16 +147,25 @@ class TestUpdatePubKeyFile(testutils.GanetiTestCase):
                                     key_file=pub_key_file)
     self.assertEqual(utils.ReadFile(pub_key_file), "")
 
-  def testValidKeys(self):
+  def testAddAndRemoveKeys(self):
     pub_key_file = self._CreateTempFile()
     data = {
-      constants.SSHS_SSH_PUBLIC_KEYS: {
+      constants.SSHS_SSH_PUBLIC_KEYS: (constants.SSHS_OVERRIDE, {
         "node1": ["key11", "key12"],
-        "node2": ["key21"]},
+        "node2": ["key21"]}),
       }
     ssh_update.UpdatePubKeyFile(data, False, key_file=pub_key_file)
     self.assertEqual(utils.ReadFile(pub_key_file),
       "node1 key11\nnode1 key12\nnode2 key21\n")
+    data = {
+      constants.SSHS_SSH_PUBLIC_KEYS: (constants.SSHS_REMOVE, {
+        "node1": ["key12"],
+        "node3": ["key21"],
+        "node4": ["key33"]}),
+      }
+    ssh_update.UpdatePubKeyFile(data, False, key_file=pub_key_file)
+    self.assertEqual(utils.ReadFile(pub_key_file),
+     "node2 key21\n")
 
 
 if __name__ == "__main__":

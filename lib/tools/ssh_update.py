@@ -59,7 +59,9 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
       [ht.TElemOf(constants.SSHS_ACTIONS),
        ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString))]),
   constants.SSHS_SSH_AUTHORIZED_KEYS:
-    ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString)),
+    ht.TItems(
+      [ht.TElemOf(constants.SSHS_ACTIONS),
+       ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString))]),
   })
 
 
@@ -97,22 +99,36 @@ def UpdateAuthorizedKeys(data, dry_run, _homedir_fn=None):
   @param dry_run: Whether to perform a dry run
 
   """
-  authorized_keys = data.get(constants.SSHS_SSH_AUTHORIZED_KEYS)
+  instructions = data.get(constants.SSHS_SSH_AUTHORIZED_KEYS)
+  if not instructions:
+    logging.info("No change to the authorized_keys file requested.")
+    return
+  (action, authorized_keys) = instructions
 
-  if authorized_keys:
-    (auth_keys_file, _) = \
-      ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=True,
-                          _homedir_fn=_homedir_fn)
+  (auth_keys_file, _) = \
+    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=True,
+                        _homedir_fn=_homedir_fn)
 
+  key_values = []
+  for key_value in authorized_keys.values():
+    key_values += key_value
+  if action == constants.SSHS_ADD:
     if dry_run:
-      logging.info("This is a dry run, not modifying %s", auth_keys_file)
+      logging.info("This is a dry run, not adding keys to %s",
+                   auth_keys_file)
     else:
-      all_authorized_keys = []
-      for keys in authorized_keys.values():
-        all_authorized_keys += keys
       if not os.path.exists(auth_keys_file):
         utils.WriteFile(auth_keys_file, mode=0600, data="")
-      ssh.AddAuthorizedKeys(auth_keys_file, all_authorized_keys)
+      ssh.AddAuthorizedKeys(auth_keys_file, key_values)
+  elif action == constants.SSHS_REMOVE:
+    if dry_run:
+      logging.info("This is a dry run, not removing keys from %s",
+                   auth_keys_file)
+    else:
+      ssh.RemoveAuthorizedKeys(auth_keys_file, key_values)
+  else:
+    raise SshUpdateError("Action '%s' not implemented for authorized keys."
+                         % action)
 
 
 def UpdatePubKeyFile(data, dry_run, key_file=pathutils.SSH_PUB_KEYS):

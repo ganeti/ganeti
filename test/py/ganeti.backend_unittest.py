@@ -1001,13 +1001,6 @@ class TestAddNodeSshKey(testutils.GanetiTestCase):
 
       self._master_node = "node_name_%s" % (number_of_pot_mcs / 2)
 
-      self._ssconf_store = self._MySsconfStore(
-        self._CLUSTER_NAME, self._all_nodes, self._master_node)
-      self._command_runner = self._MyCommandRunner(
-        self._CLUSTER_NAME, self._master_node, self._all_nodes,
-        self._potential_master_candidates,
-        new_node_master_candidate)
-
   def _TearDownTestData(self):
     os.remove(self._pub_key_file)
 
