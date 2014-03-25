@@ -56,7 +56,7 @@ def _BuildOpcodeAttributes():
 
   """
   return [(method, "%s_OPCODE" % method, "%s_RENAME" % method,
-           "Get%sOpInput" % method.capitalize())
+           "%s_ALIASES" % method, "Get%sOpInput" % method.capitalize())
           for method in _SUPPORTED_METHODS]
 
 
@@ -406,7 +406,7 @@ def GetResourceOpcodes(cls):
 
   """
   return frozenset(filter(None, (getattr(cls, op_attr, None)
-                                 for (_, op_attr, _, _) in OPCODE_ATTRS)))
+                                 for (_, op_attr, _, _, _) in OPCODE_ATTRS)))
 
 
 def GetHandlerAccess(handler, method):
@@ -420,6 +420,22 @@ def GetHandlerAccess(handler, method):
   return getattr(handler, "%s_ACCESS" % method, None)
 
 
+def GetHandler(get_fn, aliases):
+  result = get_fn()
+  if not isinstance(result, dict) or aliases is None:
+    return result
+
+  for (param, alias) in aliases.items():
+    if param in result:
+      if alias in result:
+        raise http.HttpBadRequest("Parameter '%s' has an alias of '%s', but"
+                                  " both values are present in response" %
+                                  (param, alias))
+      result[alias] = result[param]
+
+  return result
+
+
 class _MetaOpcodeResource(type):
   """Meta class for RAPI resources.
 
@@ -431,13 +447,23 @@ class _MetaOpcodeResource(type):
     # Access to private attributes of a client class, pylint: disable=W0212
     obj = type.__call__(mcs, *args, **kwargs)
 
-    for (method, op_attr, rename_attr, fn_attr) in OPCODE_ATTRS:
+    for (method, op_attr, rename_attr, aliases_attr, fn_attr) in OPCODE_ATTRS:
       if hasattr(obj, method):
-        # If the method handler is already defined, "*_RENAME" or "Get*OpInput"
-        # shouldn't be (they're only used by the automatically generated
-        # handler)
+        # If the method handler is already defined, "*_RENAME" or
+        # "Get*OpInput" shouldn't be (they're only used by the automatically
+        # generated handler)
         assert not hasattr(obj, rename_attr)
         assert not hasattr(obj, fn_attr)
+
+        # The aliases are allowed only on GET calls
+        assert not hasattr(obj, aliases_attr) or method == http.HTTP_GET
+
+        # GET methods can add aliases of values they return under a different
+        # name
+        if method == http.HTTP_GET and hasattr(obj, aliases_attr):
+          setattr(obj, method,
+                  compat.partial(GetHandler, getattr(obj, method),
+                                 getattr(obj, aliases_attr)))
       else:
         # Try to generate handler method on handler instance
         try:
@@ -473,6 +499,8 @@ class OpcodeResource(ResourceBase):
     automatically generate a GET handler submitting the opcode
   @cvar GET_RENAME: Set this to rename parameters in the GET handler (see
     L{baserlib.FillOpcode})
+  @cvar GET_ALIASES: Set this to duplicate return values in GET results (see
+    L{baserlib.GetHandler})
   @ivar GetGetOpInput: Define this to override the default method for
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 

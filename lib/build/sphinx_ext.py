@@ -473,7 +473,7 @@ def _GetHandlerMethods(handler):
 
   """
   return sorted(method
-                for (method, op_attr, _, _) in rapi.baserlib.OPCODE_ATTRS
+                for (method, op_attr, _, _, _) in rapi.baserlib.OPCODE_ATTRS
                 # Only if handler supports method
                 if hasattr(handler, method) or hasattr(handler, op_attr))
 
