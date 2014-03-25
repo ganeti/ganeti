@@ -154,13 +154,14 @@ class LUInstanceStartup(LogicalUnit):
 
     """
     if not self.op.no_remember:
-      self.cfg.MarkInstanceUp(self.instance.uuid)
+      self.instance = self.cfg.MarkInstanceUp(self.instance.uuid)
 
     if self.primary_offline:
       assert self.op.ignore_offline_nodes
       self.LogInfo("Primary node offline, marked instance as started")
     else:
       StartInstanceDisks(self, self.instance, self.op.force)
+      self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
       result = \
         self.rpc.call_instance_start(self.instance.primary_node,
