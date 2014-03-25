@@ -545,6 +545,19 @@ _NODE_CALLS = [
     ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
     ("potential_master_candidates", None, "Potential master candidates")],
     None, None, "Distribute a new node's public SSH key on the cluster."),
+  ("node_ssh_key_remove", MULTI, None, constants.RPC_TMO_URGENT, [
+    ("node_uuid", None, "UUID of the node whose key is removed"),
+    ("node_name", None, "Name of the node whose key is removed"),
+    ("from_authorized_keys", None,
+     "If the key should be removed from the 'authorized_keys' file."),
+    ("from_public_keys", None,
+     "If the key should be removed from the public key file."),
+    ("clear_authorized_keys", None,
+     "If the 'authorized_keys' file of the node should be cleared."),
+    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
+    ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
+    ("potential_master_candidates", None, "Potential master candidates")],
+    None, None, "Remove a node's SSH key from the other nodes' key files."),
   ]
 
 _MISC_CALLS = [

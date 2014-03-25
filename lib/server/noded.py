@@ -930,6 +930,21 @@ class NodeRequestHandler(http.server.HttpServerHandler):
                                  to_public_keys, get_public_keys,
                                  ssh_port_map, potential_master_candidates)
 
+  @staticmethod
+  def perspective_node_ssh_key_remove(params):
+    """Removes a node's SSH key from the other nodes' SSH files.
+
+    """
+    (node_uuid, node_name, from_authorized_keys,
+     from_public_keys, clear_authorized_keys,
+     ssh_port_map, master_candidate_uuids,
+     potential_master_candidates) = params
+    return backend.RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
+                                    from_public_keys, clear_authorized_keys,
+                                    ssh_port_map,
+                                    master_candidate_uuids,
+                                    potential_master_candidates)
+
   # cluster --------------------------
 
   @staticmethod

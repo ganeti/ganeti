@@ -837,12 +837,39 @@ class LUNodeSetParams(LogicalUnit):
       if self.old_role == self._ROLE_CANDIDATE:
         RemoveNodeCertFromCandidateCerts(self.cfg, node.uuid)
 
+    EnsureKvmdOnNodes(self, feedback_fn, nodes=[node.uuid])
+
     # this will trigger job queue propagation or cleanup if the mc
     # flag changed
     if [self.old_role, self.new_role].count(self._ROLE_CANDIDATE) == 1:
       self.context.ReaddNode(node)
 
-    EnsureKvmdOnNodes(self, feedback_fn, nodes=[node.uuid])
+      if self.cfg.GetClusterInfo().modify_ssh_setup:
+        potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
+        ssh_port_map = GetSshPortMap(potential_master_candidates, self.cfg)
+        master_node = self.cfg.GetMasterNode()
+        if self.old_role == self._ROLE_CANDIDATE:
+          master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
+          ssh_result = self.rpc.call_node_ssh_key_remove(
+            [master_node],
+            node.uuid, node.name,
+            True, # remove node's key from all nodes' authorized_keys file
+            False, # currently, all nodes are potential master candidates
+            False, # do not clear node's 'authorized_keys'
+            ssh_port_map, master_candidate_uuids, potential_master_candidates)
+          ssh_result[master_node].Raise(
+            "Could not adjust the SSH setup after demoting node '%s'"
+            " (UUID: %s)." % (node.name, node.uuid))
+        if self.new_role == self._ROLE_CANDIDATE:
+          ssh_result = self.rpc.call_node_ssh_key_add(
+            [master_node], node.uuid, node.name,
+            True, # add node's key to all node's 'authorized_keys'
+            True, # all nodes are potential master candidates
+            False, # do not update the node's public keys
+            ssh_port_map, potential_master_candidates)
+          ssh_result[master_node].Raise(
+            "Could not update the SSH setup of node '%s' after promotion"
+            " (UUID: %s)." % (node.name, node.uuid))
 
     return result
 
@@ -1518,6 +1545,28 @@ class LUNodeRemove(LogicalUnit):
 
     assert locking.BGL in self.owned_locks(locking.LEVEL_CLUSTER), \
       "Not owning BGL"
+
+    if modify_ssh_setup:
+      # retrieve the list of potential master candidates before the node is
+      # removed
+      potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
+      potential_master_candidate = \
+        self.op.node_name in potential_master_candidates
+      ssh_port_map = GetSshPortMap(potential_master_candidates, self.cfg)
+      master_candidate_uuids = [uuid for (uuid, node_info)
+                                in self.cfg.GetAllNodesInfo().items()
+                                if node_info.master_candidate]
+      master_node = self.cfg.GetMasterNode()
+      result = self.rpc.call_node_ssh_key_remove(
+        [master_node],
+        self.node.uuid, self.op.node_name,
+        self.node.master_candidate,
+        potential_master_candidate,
+        True, # clear node's 'authorized_keys'
+        ssh_port_map, master_candidate_uuids, potential_master_candidates)
+      result[master_node].Raise(
+        "Could not remove the SSH key of node '%s' (UUID: %s)." %
+        (self.op.node_name, self.node.uuid))
 
     # Promote nodes to master candidate as needed
     AdjustCandidatePool(self, [self.node.uuid])
