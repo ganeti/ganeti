@@ -57,6 +57,9 @@ class GanetiContextMock(object):
     self._test_case = test_case
     self.livelock = LiveLockMock()
 
+  def GetWConfdContext(self, _ec_id):
+    return (None, None, None)
+
   def AddNode(self, node, ec_id):
     self._test_case.cfg.AddNode(node, ec_id)
 
