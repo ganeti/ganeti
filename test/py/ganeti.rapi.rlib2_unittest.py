@@ -1746,7 +1746,7 @@ class TestClusterInfo(unittest.TestCase):
 
     def QueryClusterInfo(self):
       assert self.cluster_info is None
-      self.cluster_info = object()
+      self.cluster_info = {}
       return self.cluster_info
 
   def test(self):
