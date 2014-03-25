@@ -33,7 +33,6 @@ import logging
 import random
 import time
 import itertools
-import threading
 import traceback
 
 from ganeti import opcodes
@@ -309,9 +308,8 @@ class Processor(object):
     self.hmclass = hooksmaster.HooksMaster
     self._enable_locks = enable_locks
     self.wconfd = wconfd # Indirection to allow testing
-    self._wconfdcontext = (ec_id,
-                           threading.current_thread().ident,
-                           self.context.livelock.lockfile.name)
+    self._wconfdcontext = context.GetWConfdContext(ec_id)
+
 
   def _CheckLocksEnabled(self):
     """Checks if locking is enabled.

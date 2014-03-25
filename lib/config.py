@@ -39,6 +39,7 @@ import os
 import random
 import logging
 import time
+import threading
 import itertools
 
 from ganeti import errors
@@ -60,6 +61,25 @@ _config_lock = locking.SharedLock("ConfigWriter")
 
 # job id used for resource management at config upgrade time
 _UPGRADE_CONFIG_JID = "jid-cfg-upgrade"
+
+
+def GetWConfdContext(ec_id, livelock):
+  """Prepare a context for communication with WConfd.
+
+  WConfd needs to know the identity of each caller to properly manage locks and
+  detect job death. This helper function prepares the identity object given a
+  job ID (optional) and a livelock file.
+
+  @type ec_id: int, or None
+  @param ec_id: the job ID or None, if the caller isn't a job
+  @type livelock: L{ganeti.utils.livelock.LiveLock}
+  @param livelock: a livelock object holding the lockfile needed for WConfd
+  @return: the WConfd context
+
+  """
+  return (ec_id,
+          threading.current_thread().ident,
+          livelock.lockfile.name)
 
 
 def _ValidateConfig(data):

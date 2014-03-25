@@ -488,6 +488,9 @@ class GanetiContext(object):
     assert self.__class__._instance is None, "Attempt to modify Ganeti Context"
     object.__setattr__(self, name, value)
 
+  def GetWConfdContext(self, ec_id):
+    return config.GetWConfdContext(ec_id, self.livelock)
+
   def AddNode(self, node, ec_id):
     """Adds a node to the configuration.
 
