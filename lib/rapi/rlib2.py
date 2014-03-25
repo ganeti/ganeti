@@ -1365,6 +1365,11 @@ class R_2_instances_name_modify(baserlib.OpcodeResource):
 
   """
   PUT_OPCODE = opcodes.OpInstanceSetParams
+  PUT_RENAME = {
+    "custom_beparams": "beparams",
+    "custom_hvparams": "hvparams",
+    "custom_nicparams": "nicparams",
+    }
 
   def GetPutOpInput(self):
     """Changes parameters of an instance.
