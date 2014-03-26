@@ -232,7 +232,7 @@ class LUInstanceShutdown(LogicalUnit):
     # If the instance is offline we shouldn't mark it as down, as that
     # resets the offline flag.
     if not self.op.no_remember and self.instance.admin_state in INSTANCE_ONLINE:
-      self.cfg.MarkInstanceDown(self.instance.uuid)
+      self.instance = self.cfg.MarkInstanceDown(self.instance.uuid)
 
     if self.primary_offline:
       assert self.op.ignore_offline_nodes
