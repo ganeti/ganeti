@@ -1278,6 +1278,9 @@ def ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
   If the ignore_primary is false, errors on the primary node are
   ignored.
 
+  Modifies the configuration of the instance, so the caller should re-read the
+  instance configuration, if needed.
+
   """
   all_result = True
 
@@ -1316,6 +1319,9 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
 
   This sets up the block devices on all nodes.
 
+  Modifies the configuration of the instance, so the caller should re-read the
+  instance configuration, if needed.
+
   @type lu: L{LogicalUnit}
   @param lu: the logical unit on whose behalf we execute
   @type instance: L{objects.Instance}
@@ -1339,7 +1345,7 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
 
   if disks is None:
     # only mark instance disks as active if all disks are affected
-    lu.cfg.MarkInstanceDisksActive(instance.uuid)
+    instance = lu.cfg.MarkInstanceDisksActive(instance.uuid)
 
   disks = ExpandCheckDisks(instance, disks)
 
@@ -1406,6 +1412,9 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
 
 def StartInstanceDisks(lu, instance, force):
   """Start the disks of an instance.
+
+  Modifies the configuration of the instance, so the caller should re-read the
+  instance configuration, if needed.
 
   """
   disks_ok, _ = AssembleInstanceDisks(lu, instance,
