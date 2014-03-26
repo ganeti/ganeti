@@ -20,6 +20,7 @@ Design document drafts
    design-hsqueeze.rst
    design-os.rst
    design-node-security.rst
+   design-systemd.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
