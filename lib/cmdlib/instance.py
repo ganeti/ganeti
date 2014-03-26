@@ -1744,6 +1744,8 @@ class LUInstanceRename(LogicalUnit):
                     old_file_storage_dir, new_file_storage_dir))
 
     StartInstanceDisks(self, renamed_inst, None)
+    renamed_inst = self.cfg.GetInstanceInfo(renamed_inst.uuid)
+
     # update info on disks
     info = GetInstanceInfoText(renamed_inst)
     for (idx, disk) in enumerate(renamed_inst.disks):
