@@ -383,6 +383,7 @@ class LUInstanceReinstall(LogicalUnit):
                    " instance's configuration, nothing to install")
     else:
       StartInstanceDisks(self, self.instance, None)
+      self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
       try:
         if os_image:
           ImageDisks(self, self.instance, os_image)
