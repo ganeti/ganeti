@@ -67,7 +67,21 @@ function setup_bridge {
 
 function setup_ovs {
   if [ "$MODE" = "openvswitch" ]; then
+    # Remove stale port
+    ovs-vsctl del-port $INTERFACE || true
+    # Bring interface up
+    ip link set $INTERFACE up
+    # Add port
     ovs-vsctl add-port ${LINK} $INTERFACE
+    # Set up access port
+    # From gnt-instance man page vlan should be either .VLAN_ID or VLAN_ID
+    ACPORT=${VLAN%%:*}  # remove any trunk info
+    [ -n "$ACPORT" ] && ovs-vsctl set port $INTERFACE tag=${ACPORT#.}
+    # Set up trunk port
+    # From gnt-instance man page vlan should be :VLAN_ID[:VLAN_ID2..]
+    TRUNKS=${VLAN#.*:}  # remove any access info
+    [ -n "$TRUNKS" ] && ovs-vsctl set port $INTERFACE trunks=${TRUNKS//:/,}
+
   fi
 }
 
