@@ -474,16 +474,19 @@ class LUInstanceReboot(LogicalUnit):
                                                  self.op.reason)
         result.Raise("Could not shutdown instance for full reboot")
         ShutdownInstanceDisks(self, self.instance)
+        self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
       else:
         self.LogInfo("Instance %s was already stopped, starting now",
                      self.instance.name)
       StartInstanceDisks(self, self.instance, self.op.ignore_secondaries)
+      self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
       result = self.rpc.call_instance_start(current_node_uuid,
                                             (self.instance, None, None), False,
                                             self.op.reason)
       msg = result.fail_msg
       if msg:
         ShutdownInstanceDisks(self, self.instance)
+        self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
         raise errors.OpExecError("Could not start instance for"
                                  " full reboot: %s" % msg)
 
