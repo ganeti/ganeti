@@ -316,6 +316,7 @@ class LUBackupExport(LogicalUnit):
       # Activate the instance disks if we're exporting a stopped instance
       feedback_fn("Activating disks for %s" % self.instance.name)
       StartInstanceDisks(self, self.instance, None)
+      self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     try:
       helper = masterd.instance.ExportInstanceHelper(self, feedback_fn,
