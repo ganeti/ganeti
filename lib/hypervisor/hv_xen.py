@@ -495,6 +495,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     data.write("INTERFACE_UUID=%s\n" % nic.uuid)
     data.write("MODE=%s\n" % nic.nicparams[constants.NIC_MODE])
     data.write("LINK=%s\n" % nic.nicparams[constants.NIC_LINK])
+    data.write("VLAN=%s\n" % nic.nicparams[constants.NIC_VLAN])
 
     try:
       utils.WriteFile(cfg_file, data=data.getvalue())
