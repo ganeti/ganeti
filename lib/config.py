@@ -1610,6 +1610,9 @@ class ConfigWriter(object):
   def _SetInstanceStatus(self, inst_uuid, status, disks_active):
     """Set the instance's status to a given value.
 
+    @rtype: L{objects.Instance}
+    @return: the updated instance object
+
     """
     if inst_uuid not in self._ConfigData().instances:
       raise errors.ConfigurationError("Unknown instance '%s'" %
@@ -1630,6 +1633,7 @@ class ConfigWriter(object):
       instance.disks_active = disks_active
       instance.serial_no += 1
       instance.mtime = time.time()
+    return instance
 
   @_ConfigSync()
   def MarkInstanceUp(self, inst_uuid):
@@ -1637,8 +1641,11 @@ class ConfigWriter(object):
 
     This also sets the instance disks active flag.
 
+    @rtype: L{objects.Instance}
+    @return: the updated instance object
+
     """
-    self._SetInstanceStatus(inst_uuid, constants.ADMINST_UP, True)
+    return self._SetInstanceStatus(inst_uuid, constants.ADMINST_UP, True)
 
   @_ConfigSync()
   def MarkInstanceOffline(self, inst_uuid):
@@ -1646,8 +1653,11 @@ class ConfigWriter(object):
 
     This also clears the instance disks active flag.
 
+    @rtype: L{objects.Instance}
+    @return: the updated instance object
+
     """
-    self._SetInstanceStatus(inst_uuid, constants.ADMINST_OFFLINE, False)
+    return self._SetInstanceStatus(inst_uuid, constants.ADMINST_OFFLINE, False)
 
   @_ConfigSync()
   def RemoveInstance(self, inst_uuid):
@@ -1707,22 +1717,31 @@ class ConfigWriter(object):
     This does not touch the instance disks active flag, as shut down instances
     can still have active disks.
 
+    @rtype: L{objects.Instance}
+    @return: the updated instance object
+
     """
-    self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None)
+    return self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None)
 
   @_ConfigSync()
   def MarkInstanceDisksActive(self, inst_uuid):
     """Mark the status of instance disks active.
 
+    @rtype: L{objects.Instance}
+    @return: the updated instance object
+
     """
-    self._SetInstanceStatus(inst_uuid, None, True)
+    return self._SetInstanceStatus(inst_uuid, None, True)
 
   @_ConfigSync()
   def MarkInstanceDisksInactive(self, inst_uuid):
     """Mark the status of instance disks inactive.
 
+    @rtype: L{objects.Instance}
+    @return: the updated instance object
+
     """
-    self._SetInstanceStatus(inst_uuid, None, False)
+    return self._SetInstanceStatus(inst_uuid, None, False)
 
   def _UnlockedGetInstanceList(self):
     """Get the list of instances.
