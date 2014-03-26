@@ -310,7 +310,6 @@ class Processor(object):
     self.wconfd = wconfd # Indirection to allow testing
     self._wconfdcontext = context.GetWConfdContext(ec_id)
 
-
   def _CheckLocksEnabled(self):
     """Checks if locking is enabled.
 
