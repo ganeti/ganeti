@@ -957,6 +957,100 @@ def _VerifyClientCertificate(cert_file=pathutils.NODED_CLIENT_CERT_FILE):
     return (None, utils.GetCertificateDigest(cert_filename=cert_file))
 
 
+def _VerifySshSetup(node_status_list, my_name):
+  """Verifies the state of the SSH key files.
+
+  @type node_status_list: list of tuples
+  @param node_status_list: list of nodes of the cluster associated with a
+    couple of flags: (uuid, name, is_master_candidate,
+    is_potential_master_candidate, online)
+  @type my_name: str
+  @param my_name: name of this node
+
+  """
+  if node_status_list is None:
+    return ["No node list to check against the pub_key_file received."]
+
+  my_status_list = [(my_uuid, name, mc, pot_mc) for (my_uuid, name, mc, pot_mc)
+                    in node_status_list if name == my_name]
+  if len(my_status_list) == 0:
+    return ["Cannot find node information for node '%s'." % my_name]
+  (my_uuid, _, _, potential_master_candidate) = \
+     my_status_list[0]
+
+  result = []
+  pot_mc_uuids = [uuid for (uuid, _, _, _) in node_status_list]
+  pub_keys = ssh.QueryPubKeyFile(None)
+
+  if potential_master_candidate:
+    # Check that the set of potential master candidates matches the
+    # public key file
+    pub_uuids_set = set(pub_keys.keys())
+    pot_mc_uuids_set = set(pot_mc_uuids)
+    missing_uuids = set([])
+    if pub_uuids_set != pot_mc_uuids_set:
+      unknown_uuids = pub_uuids_set - pot_mc_uuids_set
+      if unknown_uuids:
+        result.append("The following node UUIDs are listed in the public key"
+                      " file on node '%s', but are not potential master"
+                      " candidates: %s."
+                      % (my_name, ", ".join(list(unknown_uuids))))
+      missing_uuids = pot_mc_uuids_set - pub_uuids_set
+      if missing_uuids:
+        result.append("The following node UUIDs of potential master candidates"
+                      " are missing in the public key file on node %s: %s."
+                      % (my_name, ", ".join(list(missing_uuids))))
+
+    (_, key_files) = \
+      ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
+    my_keys = pub_keys[my_uuid]
+    num_keys = 0
+    for (key_type, (_, pub_key_file)) in key_files.items():
+      try:
+        pub_key = utils.ReadFile(pub_key_file)
+        if pub_key.strip() not in my_keys:
+          result.append("The %s key of node %s does not match this node's keys"
+                        " in the pub key file." % (key_type, my_name))
+        num_keys += 1
+      except IOError:
+        # There might not be keys of every type.
+        pass
+    if num_keys != len(my_keys):
+      result.append("The number of keys for node %s in the public key file"
+                    " (%s) does not match the number of keys on the node"
+                    " (%s)." % (my_name, len(my_keys), len(key_files)))
+  else:
+    if len(pub_keys.keys()) > 0:
+      result.append("The public key file of node '%s' is not empty, although"
+                    " the node is not a potential master candidate."
+                    % my_name)
+
+  # Check that all master candidate keys are in the authorized_keys file
+  (auth_key_file, _) = \
+    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
+  for (uuid, name, mc, _) in node_status_list:
+    if uuid in missing_uuids:
+      continue
+    if mc:
+      for key in pub_keys[uuid]:
+        if not ssh.HasAuthorizedKey(auth_key_file, key):
+          result.append("A SSH key of master candidate '%s' (UUID: '%s') is"
+                        " not in the 'authorized_keys' file of node '%s'."
+                        % (name, uuid, my_name))
+    else:
+      for key in pub_keys[uuid]:
+        if name != my_name and ssh.HasAuthorizedKey(auth_key_file, key):
+          result.append("A SSH key of normal node '%s' (UUID: '%s') is in the"
+                        " 'authorized_keys' file of node '%s'."
+                        % (name, uuid, my_name))
+        if name == my_name and not ssh.HasAuthorizedKey(auth_key_file, key):
+          result.append("A SSH key of normal node '%s' (UUID: '%s') is not"
+                        " in the 'authorized_keys' file of itself."
+                        % (my_name, uuid))
+
+  return result
+
+
 def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
   """Verify the status of the local node.
 
@@ -1013,8 +1107,12 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
   if constants.NV_CLIENT_CERT in what:
     result[constants.NV_CLIENT_CERT] = _VerifyClientCertificate()
 
+  if constants.NV_SSH_SETUP in what:
+    result[constants.NV_SSH_SETUP] = \
+      _VerifySshSetup(what[constants.NV_SSH_SETUP], my_name)
+
   if constants.NV_NODELIST in what:
-    (nodes, bynode) = what[constants.NV_NODELIST]
+    (nodes, bynode, mcs) = what[constants.NV_NODELIST]
 
     # Add nodes from other groups (different for each node)
     try:
@@ -1032,10 +1130,16 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
       ssh_port = params["ndparams"].get(constants.ND_SSH_PORT)
       logging.debug("Ssh port %s (None = default) for node %s",
                     str(ssh_port), node)
-      success, message = _GetSshRunner(cluster_name). \
-                            VerifyNodeHostname(node, ssh_port)
-      if not success:
-        val[node] = message
+
+      # We only test if master candidates can communicate to other nodes.
+      # We cannot test if normal nodes cannot communicate with other nodes,
+      # because the administrator might have installed additional SSH keys,
+      # over which Ganeti has no power.
+      if my_name in mcs:
+        success, message = _GetSshRunner(cluster_name). \
+                              VerifyNodeHostname(node, ssh_port)
+        if not success:
+          val[node] = message
 
     result[constants.NV_NODELIST] = val
 

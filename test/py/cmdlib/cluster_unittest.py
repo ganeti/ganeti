@@ -59,29 +59,46 @@ class TestClusterVerifySsh(unittest.TestCase):
   def testMultipleGroups(self):
     fn = cluster.LUClusterVerifyGroup._SelectSshCheckNodes
     mygroupnodes = [
-      objects.Node(name="node20", group="my", offline=False),
-      objects.Node(name="node21", group="my", offline=False),
-      objects.Node(name="node22", group="my", offline=False),
-      objects.Node(name="node23", group="my", offline=False),
-      objects.Node(name="node24", group="my", offline=False),
-      objects.Node(name="node25", group="my", offline=False),
-      objects.Node(name="node26", group="my", offline=True),
+      objects.Node(name="node20", group="my", offline=False,
+                   master_candidate=True),
+      objects.Node(name="node21", group="my", offline=False,
+                   master_candidate=True),
+      objects.Node(name="node22", group="my", offline=False,
+                   master_candidate=False),
+      objects.Node(name="node23", group="my", offline=False,
+                   master_candidate=True),
+      objects.Node(name="node24", group="my", offline=False,
+                   master_candidate=True),
+      objects.Node(name="node25", group="my", offline=False,
+                   master_candidate=False),
+      objects.Node(name="node26", group="my", offline=True,
+                   master_candidate=True),
       ]
     nodes = [
-      objects.Node(name="node1", group="g1", offline=True),
-      objects.Node(name="node2", group="g1", offline=False),
-      objects.Node(name="node3", group="g1", offline=False),
-      objects.Node(name="node4", group="g1", offline=True),
-      objects.Node(name="node5", group="g1", offline=False),
-      objects.Node(name="node10", group="xyz", offline=False),
-      objects.Node(name="node11", group="xyz", offline=False),
-      objects.Node(name="node40", group="alloff", offline=True),
-      objects.Node(name="node41", group="alloff", offline=True),
-      objects.Node(name="node50", group="aaa", offline=False),
+      objects.Node(name="node1", group="g1", offline=True,
+                   master_candidate=True),
+      objects.Node(name="node2", group="g1", offline=False,
+                   master_candidate=False),
+      objects.Node(name="node3", group="g1", offline=False,
+                   master_candidate=True),
+      objects.Node(name="node4", group="g1", offline=True,
+                   master_candidate=True),
+      objects.Node(name="node5", group="g1", offline=False,
+                   master_candidate=True),
+      objects.Node(name="node10", group="xyz", offline=False,
+                   master_candidate=True),
+      objects.Node(name="node11", group="xyz", offline=False,
+                   master_candidate=True),
+      objects.Node(name="node40", group="alloff", offline=True,
+                   master_candidate=True),
+      objects.Node(name="node41", group="alloff", offline=True,
+                   master_candidate=True),
+      objects.Node(name="node50", group="aaa", offline=False,
+                   master_candidate=True),
       ] + mygroupnodes
     assert not utils.FindDuplicates(map(operator.attrgetter("name"), nodes))
 
-    (online, perhost) = fn(mygroupnodes, "my", nodes)
+    (online, perhost, _) = fn(mygroupnodes, "my", nodes)
     self.assertEqual(online, ["node%s" % i for i in range(20, 26)])
     self.assertEqual(set(perhost.keys()), set(online))
 
@@ -97,14 +114,18 @@ class TestClusterVerifySsh(unittest.TestCase):
   def testSingleGroup(self):
     fn = cluster.LUClusterVerifyGroup._SelectSshCheckNodes
     nodes = [
-      objects.Node(name="node1", group="default", offline=True),
-      objects.Node(name="node2", group="default", offline=False),
-      objects.Node(name="node3", group="default", offline=False),
-      objects.Node(name="node4", group="default", offline=True),
+      objects.Node(name="node1", group="default", offline=True,
+                   master_candidate=True),
+      objects.Node(name="node2", group="default", offline=False,
+                   master_candidate=True),
+      objects.Node(name="node3", group="default", offline=False,
+                   master_candidate=True),
+      objects.Node(name="node4", group="default", offline=True,
+                   master_candidate=True),
       ]
     assert not utils.FindDuplicates(map(operator.attrgetter("name"), nodes))
 
-    (online, perhost) = fn(nodes, "default", nodes)
+    (online, perhost, _) = fn(nodes, "default", nodes)
     self.assertEqual(online, ["node2", "node3"])
     self.assertEqual(set(perhost.keys()), set(online))
 

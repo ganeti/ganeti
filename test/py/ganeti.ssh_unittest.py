@@ -174,6 +174,11 @@ class TestSshKeys(testutils.GanetiTestCase):
     finally:
       handle.close()
 
+  def testHasAuthorizedKey(self):
+    self.assertTrue(ssh.HasAuthorizedKey(self.tmpname, self.KEY_A))
+    self.assertFalse(ssh.HasAuthorizedKey(
+      self.tmpname, "I am the key of the pink bunny!"))
+
   def testAddingNewKey(self):
     ssh.AddAuthorizedKey(self.tmpname,
                          "ssh-dss AAAAB3NzaC1kc3MAAACB root@test")

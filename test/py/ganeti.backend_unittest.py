@@ -30,6 +30,7 @@
 
 """Script for testing ganeti.backend"""
 
+import copy
 import mock
 import os
 import shutil
@@ -1284,7 +1285,94 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
   _NODE2_NAME = "name2"
   _NODE3_NAME = "name3"
   _NODE1_KEYS = ["key11", "key12"]
+  _NODE2_KEYS = ["key21"]
+  _NODE3_KEYS = ["key31"]
 
+  _NODE_STATUS_LIST = [
+    (_NODE1_UUID, _NODE1_NAME, True, True),
+    (_NODE2_UUID, _NODE2_NAME, False, True),
+    (_NODE3_UUID, _NODE3_NAME, False, False),
+    ]
+
+  _PUB_KEY_RESULT = {
+    _NODE1_UUID: _NODE1_KEYS,
+    _NODE2_UUID: _NODE2_KEYS,
+    _NODE3_UUID: _NODE3_KEYS,
+    }
+
+  _AUTH_RESULT = {
+    _NODE1_KEYS[0]: True,
+    _NODE1_KEYS[1]: True,
+    _NODE2_KEYS[0]: False,
+    _NODE3_KEYS[0]: False,
+  }
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    self._has_authorized_patcher = testutils \
+      .patch_object(ssh, "HasAuthorizedKey")
+    self._has_authorized_mock = self._has_authorized_patcher.start()
+    self._query_patcher = testutils \
+      .patch_object(ssh, "QueryPubKeyFile")
+    self._query_mock = self._query_patcher.start()
+    self._read_file_patcher = testutils \
+      .patch_object(utils, "ReadFile")
+    self._read_file_mock = self._read_file_patcher.start()
+    self._read_file_mock.return_value = self._NODE1_KEYS[0]
+
+  def tearDown(self):
+    super(testutils.GanetiTestCase, self).tearDown()
+    self._has_authorized_patcher.stop()
+    self._query_patcher.stop()
+    self._read_file_patcher.stop()
+
+  def testValidData(self):
+    self._has_authorized_mock.side_effect = \
+      lambda _, key : self._AUTH_RESULT[key]
+    self._query_mock.return_value = self._PUB_KEY_RESULT
+    result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
+                                     self._NODE1_NAME)
+    self.assertEqual(result, [])
+
+  def testMissingKey(self):
+    self._has_authorized_mock.side_effect = \
+      lambda _, key : self._AUTH_RESULT[key]
+    pub_key_missing = copy.deepcopy(self._PUB_KEY_RESULT)
+    del pub_key_missing[self._NODE2_UUID]
+    self._query_mock.return_value = pub_key_missing
+    result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
+                                     self._NODE1_NAME)
+    self.assertTrue(self._NODE2_UUID in result[0])
+
+  def testUnknownKey(self):
+    self._has_authorized_mock.side_effect = \
+      lambda _, key : self._AUTH_RESULT[key]
+    pub_key_missing = copy.deepcopy(self._PUB_KEY_RESULT)
+    pub_key_missing["unkownnodeuuid"] = "pinkbunny"
+    self._query_mock.return_value = pub_key_missing
+    result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
+                                     self._NODE1_NAME)
+    self.assertTrue("unkownnodeuuid" in result[0])
+
+  def testMissingMasterCandidate(self):
+    auth_result = copy.deepcopy(self._AUTH_RESULT)
+    auth_result["key12"] = False
+    self._has_authorized_mock.side_effect = \
+      lambda _, key : auth_result[key]
+    self._query_mock.return_value = self._PUB_KEY_RESULT
+    result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
+                                     self._NODE1_NAME)
+    self.assertTrue(self._NODE1_UUID in result[0])
+
+  def testSuperfluousNormalNode(self):
+    auth_result = copy.deepcopy(self._AUTH_RESULT)
+    auth_result["key31"] = True
+    self._has_authorized_mock.side_effect = \
+      lambda _, key : auth_result[key]
+    self._query_mock.return_value = self._PUB_KEY_RESULT
+    result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
+                                     self._NODE1_NAME)
+    self.assertTrue(self._NODE3_UUID in result[0])
 
 
 if __name__ == "__main__":

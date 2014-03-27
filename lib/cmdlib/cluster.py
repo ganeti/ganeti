@@ -2698,6 +2698,27 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
             " certificate of another node which is master candidate.",
             node.uuid)
 
+  def _VerifySshSetup(self, nodes, all_nvinfo):
+    """Evaluates the verification results of the SSH setup.
+
+    @param nodes: List of L{objects.Node} objects
+    @param all_nvinfo: RPC results
+
+    """
+    for node in nodes:
+      if not node.offline:
+        nresult = all_nvinfo[node.uuid]
+        if nresult.fail_msg or not nresult.payload:
+          self._ErrorIf(True, constants.CV_ENODESSH, node.name,
+                        "Could not verify the SSH setup of this node.")
+          return
+        result = nresult.payload.get(constants.NV_SSH_SETUP, None)
+        error_msg = ""
+        if isinstance(result, list):
+          error_msg = " ".join(result)
+        self._ErrorIf(result,
+                      constants.CV_ENODESSH, None, error_msg)
+
   def _VerifyFiles(self, nodes, master_node_uuid, all_nvinfo,
                    (files_all, files_opt, files_mc, files_vm)):
     """Verifies file checksums collected from all nodes.
@@ -3302,17 +3323,38 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     We will make nodes contact all nodes in their group, and one node from
     every other group.
 
+    @rtype: tuple of (string, dict of strings to list of strings, string)
+    @return: a tuple containing the list of all online nodes, a dictionary
+      mapping node names to additional nodes of other node groups to which
+      connectivity should be tested, and a list of all online master
+      candidates
+
     @warning: This algorithm has a known issue if one node group is much
       smaller than others (e.g. just one node). In such a case all other
       nodes will talk to the single node.
 
     """
     online_nodes = sorted(node.name for node in group_nodes if not node.offline)
+    online_mcs = sorted(node.name for node in group_nodes
+                        if (node.master_candidate and not node.offline))
     sel = cls._SshNodeSelector(group_uuid, all_nodes)
 
     return (online_nodes,
             dict((name, sorted([i.next() for i in sel]))
-                 for name in online_nodes))
+                 for name in online_nodes),
+            online_mcs)
+
+  def _PrepareSshSetupCheck(self):
+    """Prepare the input data for the SSH setup verification.
+
+    """
+    all_nodes_info = self.cfg.GetAllNodesInfo()
+    potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
+    node_status = [
+      (uuid, node_info.name, node_info.master_candidate,
+       node_info.name in potential_master_candidates)
+      for (uuid, node_info) in all_nodes_info.items()]
+    return node_status
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -3406,6 +3448,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       constants.NV_USERSCRIPTS: user_scripts,
       constants.NV_CLIENT_CERT: None,
       }
+
+    if self.cfg.GetClusterInfo().modify_ssh_setup:
+      node_verify_param[constants.NV_SSH_SETUP] = self._PrepareSshSetupCheck()
 
     if vg_name is not None:
       node_verify_param[constants.NV_VGLIST] = None
@@ -3589,7 +3634,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     feedback_fn("* Verifying configuration file consistency")
 
     self._VerifyClientCertificates(self.my_node_info.values(), all_nvinfo)
-
+    if self.cfg.GetClusterInfo().modify_ssh_setup:
+      self._VerifySshSetup(self.my_node_info.values(), all_nvinfo)
     self._VerifyFiles(vf_node_info, master_node_uuid, vf_nvinfo, filemap)
 
     feedback_fn("* Verifying node status")

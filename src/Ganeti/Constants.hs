@@ -3256,6 +3256,9 @@ nvVglist = "vglist"
 nvVmnodes :: String
 nvVmnodes = "vmnodes"
 
+nvSshSetup :: String
+nvSshSetup = "ssh-setup"
+
 -- * Instance status
 
 inststAdmindown :: String

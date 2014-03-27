@@ -179,6 +179,34 @@ def AddAuthorizedKeys(file_obj, keys):
     f.close()
 
 
+def HasAuthorizedKey(file_obj, key):
+  """Check if a particular key is in the 'authorized_keys' file.
+
+  @type file_obj: str or file handle
+  @param file_obj: path to authorized_keys file
+  @type key: str
+  @param key: string containing key
+
+  """
+  key_fields = _SplitSshKey(key)
+
+  if isinstance(file_obj, basestring):
+    f = open(file_obj, "r")
+  else:
+    f = file_obj
+
+  try:
+    for line in f:
+      # Ignore whitespace changes
+      line_key = _SplitSshKey(line)
+      if line_key == key_fields:
+        return True
+  finally:
+    f.close()
+
+  return False
+
+
 def AddAuthorizedKey(file_obj, key):
   """Adds an SSH public key to an authorized_keys file.
 
