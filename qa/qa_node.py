@@ -32,7 +32,7 @@ import qa_config
 import qa_error
 import qa_utils
 
-from qa_utils import AssertCommand, AssertEqual
+from qa_utils import AssertCommand, AssertEqual, AssertIn, GetCommandOutput
 
 
 def NodeAdd(node, readd=False, group=None):
@@ -452,9 +452,21 @@ def TestNodeListFields():
   qa_utils.GenericQueryFieldsTest("gnt-node", query.NODE_FIELDS.keys())
 
 
-def TestNodeListDrbd(node):
+def TestNodeListDrbd(node, is_drbd):
   """gnt-node list-drbd"""
-  AssertCommand(["gnt-node", "list-drbd", node.primary])
+  master = qa_config.GetMasterNode()
+  result_output = GetCommandOutput(master.primary,
+                                   "gnt-node list-drbd --no-header %s" %
+                                   node.primary)
+  # Meaningful to note: there is but one instance, and the node is either the
+  # primary or one of the secondaries
+  if is_drbd:
+    # Invoked for both primary and secondary
+    drbd_node, _, _, _, _, drbd_peer = result_output.split()
+    AssertIn(node.primary, [drbd_node, drbd_peer])
+  else:
+    # Output should be empty, barring newlines
+    AssertEqual(result_output.strip(), "")
 
 
 def _BuildSetESCmd(action, value, node_name):

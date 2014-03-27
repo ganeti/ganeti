@@ -558,6 +558,42 @@ class TestInstanceDiskGrow(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
+class TestInstanceModify():
+  def testCustomParamRename(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    name = "instant_instance"
+    data = {
+      "custom_beparams": {},
+      "custom_hvparams": {},
+      "custom_nicparams": {},
+      }
+
+    handler = _CreateHandler(rlib2.R_2_instances_name_modify, [name], {}, data,
+                             clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+
+    self.assertTrue(isinstance(op, opcodes.OpInstanceSetParams))
+    self.assertEqual(op.beparams, {})
+    self.assertEqual(op.hvparams, {})
+    self.assertEqual(op.nicparams, {})
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+    # Define both
+    data["beparams"] = {}
+    assert "beparams" in data and "custom_beparams" in data
+    handler = _CreateHandler(rlib2.R_2_instances_name_modify, [name], {}, data,
+                             clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.PUT)
+
+
 class TestBackupPrepare(unittest.TestCase):
   def test(self):
     clfactory = _FakeClientFactory(_FakeClient)
@@ -1588,6 +1624,40 @@ class TestGroupModify(unittest.TestCase):
     self.assertFalse(op.dry_run)
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
+  def testCustomParamRename(self):
+    clfactory = _FakeClientFactory(_FakeClient)
+
+    name = "groupie"
+    data = {
+      "custom_diskparams": {},
+      "custom_ipolicy": {},
+      "custom_ndparams": {},
+      }
+
+    handler = _CreateHandler(rlib2.R_2_groups_name_modify, [name], {}, data,
+                             clfactory)
+    job_id = handler.PUT()
+
+    cl = clfactory.GetNextClient()
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id)
+
+    self.assertTrue(isinstance(op, opcodes.OpGroupSetParams))
+    self.assertEqual(op.diskparams, {})
+    self.assertEqual(op.ipolicy, {})
+    self.assertEqual(op.ndparams, {})
+
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+    # Define both
+    data["diskparams"] = {}
+    assert "diskparams" in data and "custom_diskparams" in data
+    handler = _CreateHandler(rlib2.R_2_groups_name_modify, [name], {}, data,
+                             clfactory)
+    self.assertRaises(http.HttpBadRequest, handler.PUT)
+
 
 class TestGroupAdd(unittest.TestCase):
   def test(self):
@@ -1746,7 +1816,7 @@ class TestClusterInfo(unittest.TestCase):
 
     def QueryClusterInfo(self):
       assert self.cluster_info is None
-      self.cluster_info = object()
+      self.cluster_info = {}
       return self.cluster_info
 
   def test(self):

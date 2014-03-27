@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014 Google Inc.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,22 +23,23 @@
 
 """
 
-import tempfile
+import functools
+import itertools
 import random
 import re
-import itertools
-import functools
+import tempfile
 
-from ganeti import utils
+from ganeti import cli
+from ganeti import compat
 from ganeti import constants
 from ganeti import errors
-from ganeti import cli
-from ganeti import rapi
-from ganeti import objects
-from ganeti import query
-from ganeti import compat
-from ganeti import qlang
 from ganeti import pathutils
+from ganeti import objects
+from ganeti import opcodes
+from ganeti import query
+from ganeti import qlang
+from ganeti import rapi
+from ganeti import utils
 
 from ganeti.http.auth import ParsePasswordFile
 import ganeti.rapi.client        # pylint: disable=W0611
@@ -190,6 +191,74 @@ def _DoTests(uris):
   return results
 
 
+# pylint: disable=W0212
+# Due to _SendRequest usage
+def _DoGetPutTests(get_uri, modify_uri, opcode_params, rapi_only_aliases=None,
+                   modify_method="PUT", exceptions=None, set_exceptions=None):
+  """ Test if all params of an object can be retrieved, and set as well.
+
+  @type get_uri: string
+  @param get_uri: The URI from which information about the object can be
+                  retrieved.
+  @type modify_uri: string
+  @param modify_uri: The URI which can be used to modify the object.
+  @type opcode_params: list of tuple
+  @param opcode_params: The parameters of the underlying opcode, used to
+                        determine which parameters are actually present.
+  @type rapi_only_aliases: list of string or None
+  @param rapi_only_aliases: Aliases for parameters which differ from the opcode,
+                            and become renamed before opcode submission.
+  @type modify_method: string
+  @param modify_method: The method to be used in the modification.
+  @type exceptions: list of string or None
+  @param exceptions: The parameters which have not been exposed and should not
+                     be tested at all.
+  @type set_exceptions: list of string or None
+  @param set_exceptions: The parameters whose setting should not be tested as a
+                         part of this test.
+
+  """
+
+  assert get_uri.startswith("/")
+  assert modify_uri.startswith("/")
+
+  if exceptions is None:
+    exceptions = []
+  if set_exceptions is None:
+    set_exceptions = []
+
+  print "Testing get/modify symmetry of %s and %s" % (get_uri, modify_uri)
+
+  # First we see if all parameters of the opcode are returned through RAPI
+  params_of_interest = map(lambda x: x[0], opcode_params)
+
+  # The RAPI-specific aliases are to be checked as well
+  if rapi_only_aliases is not None:
+    params_of_interest.extend(rapi_only_aliases)
+
+  info = _rapi_client._SendRequest("GET", get_uri, None, {})
+
+  missing_params = filter(lambda x: x not in info and x not in exceptions,
+                          params_of_interest)
+  if missing_params:
+    raise qa_error.Error("The parameters %s which can be set through the "
+                         "appropriate opcode are not present in the response "
+                         "from %s" % (','.join(missing_params), get_uri))
+
+  print "GET successful at %s" % get_uri
+
+  # Then if we can perform a set with the same values as received
+  put_payload = {}
+  for param in params_of_interest:
+    if param not in exceptions and param not in set_exceptions:
+      put_payload[param] = info[param]
+
+  _rapi_client._SendRequest(modify_method, modify_uri, None, put_payload)
+
+  print "%s successful at %s" % (modify_method, modify_uri)
+# pylint: enable=W0212
+
+
 def _VerifyReturnsJob(data):
   if not isinstance(data, int):
     AssertMatch(data, r"^\d+$")
@@ -270,6 +339,21 @@ def TestEmptyCluster():
       AssertEqual(err.code, 501)
     else:
       raise qa_error.Error("Non-implemented method didn't fail")
+
+  # Test GET/PUT symmetry
+  LEGITIMATELY_MISSING = [
+    "force",       # Standard option
+    "add_uids",    # Modifies UID pool, is not a param itself
+    "remove_uids", # Same as above
+  ]
+  NOT_EXPOSED_YET = ["hv_state", "disk_state", "modify_etc_hosts"]
+  # The nicparams are returned under the default entry, yet accepted as they
+  # are - this is a TODO to fix!
+  DEFAULT_ISSUES = ["nicparams"]
+
+  _DoGetPutTests("/2/info", "/2/modify", opcodes.OpClusterSetParams.OP_PARAMS,
+                 exceptions=(LEGITIMATELY_MISSING + NOT_EXPOSED_YET),
+                 set_exceptions=DEFAULT_ISSUES)
 
 
 def TestRapiQuery():
@@ -475,6 +559,20 @@ def TestNode(node):
     ("/2/nodes?bulk=1", _VerifyNodesBulk, "GET", None),
     ])
 
+  # Not parameters of the node, but controlling opcode behavior
+  LEGITIMATELY_MISSING = ["force", "powered"]
+  # Identifying the node - RAPI provides these itself
+  IDENTIFIERS = ["node_name", "node_uuid"]
+  # As the name states, these can be set but not retrieved yet
+  NOT_EXPOSED_YET = ["hv_state", "disk_state", "auto_promote"]
+
+  _DoGetPutTests("/2/nodes/%s" % node.primary,
+                 "/2/nodes/%s/modify" % node.primary,
+                 opcodes.OpNodeSetParams.OP_PARAMS,
+                 modify_method="POST",
+                 exceptions=(LEGITIMATELY_MISSING + NOT_EXPOSED_YET +
+                             IDENTIFIERS))
+
 
 def _FilterTags(seq):
   """Removes unwanted tags from a sequence.
@@ -595,6 +693,27 @@ def TestRapiNodeGroups():
     ])
 
   _WaitForRapiJob(job_id)
+
+  # Test for get/set symmetry
+
+  # Identifying the node - RAPI provides these itself
+  IDENTIFIERS = ["group_name"]
+  # As the name states, not exposed yet
+  NOT_EXPOSED_YET = ["hv_state", "disk_state"]
+
+  # The parameters we do not want to get and set (as that sets the
+  # group-specific params to the filled ones)
+  FILLED_PARAMS = ["ndparams", "ipolicy", "diskparams"]
+
+  # The aliases that we can use to perform this test with the group-specific
+  # params
+  CUSTOM_PARAMS = ["custom_ndparams", "custom_ipolicy", "custom_diskparams"]
+
+  _DoGetPutTests("/2/groups/%s" % group3, "/2/groups/%s/modify" % group3,
+                 opcodes.OpGroupSetParams.OP_PARAMS,
+                 rapi_only_aliases=CUSTOM_PARAMS,
+                 exceptions=(IDENTIFIERS + NOT_EXPOSED_YET),
+                 set_exceptions=FILLED_PARAMS)
 
   # Delete groups
   for group in [group1, group3]:
