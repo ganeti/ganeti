@@ -263,7 +263,8 @@ roleSecondary = "secondary"
 
 -- | Gets the list of DRBD minors for an instance that are related to
 -- a given node.
-getInstMinorsForNode :: String -> Instance
+getInstMinorsForNode :: String -- ^ The UUID of a node.
+                     -> Instance
                      -> [(String, Int, String, String, String, String)]
 getInstMinorsForNode node inst =
   let role = if node == instPrimaryNode inst
