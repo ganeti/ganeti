@@ -119,6 +119,13 @@ def _UpdateKeyFiles(keys, dry_run, keyfiles):
                     backup=True, dry_run=dry_run)
 
 
+def _GenerateRootSshKeys(_homedir_fn=None):
+  """Generates root's SSH keys for this node.
+
+  """
+  ssh.InitSSHSetup(error_fn=JoinError, _homedir_fn=_homedir_fn)
+
+
 def UpdateSshDaemon(data, dry_run, _runcmd_fn=utils.RunCmd,
                     _keyfiles=None):
   """Updates SSH daemon's keys.
@@ -163,31 +170,25 @@ def UpdateSshRoot(data, dry_run, _homedir_fn=None):
   @param dry_run: Whether to perform a dry run
 
   """
-  keys = data.get(constants.SSHS_SSH_ROOT_KEY)
   authorized_keys = data.get(constants.SSHS_SSH_AUTHORIZED_KEYS)
 
-  if keys or authorized_keys:
-    (auth_keys_file, keyfiles) = \
-      ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=True,
-                          _homedir_fn=_homedir_fn)
+  (auth_keys_file, _) = \
+    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=True,
+                        _homedir_fn=_homedir_fn)
 
-    if keys:
-      _UpdateKeyFiles(keys, dry_run, keyfiles)
+  if dry_run:
+    logging.info("This is a dry run, not replacing the SSH keys.")
+  else:
+    _GenerateRootSshKeys(_homedir_fn=_homedir_fn)
 
-      if dry_run:
-        logging.info("This is a dry run, not modifying %s", auth_keys_file)
-      else:
-        for (_, _, public_key) in keys:
-          ssh.AddAuthorizedKey(auth_keys_file, public_key)
-
-    if authorized_keys:
-      if dry_run:
-        logging.info("This is a dry run, not modifying %s", auth_keys_file)
-      else:
-        all_authorized_keys = []
-        for keys in authorized_keys.values():
-          all_authorized_keys += keys
-        ssh.AddAuthorizedKeys(auth_keys_file, all_authorized_keys)
+  if authorized_keys:
+    if dry_run:
+      logging.info("This is a dry run, not modifying %s", auth_keys_file)
+    else:
+      all_authorized_keys = []
+      for keys in authorized_keys.values():
+        all_authorized_keys += keys
+      ssh.AddAuthorizedKeys(auth_keys_file, all_authorized_keys)
 
 
 def Main():

@@ -254,17 +254,6 @@ class TestUpdateSshRoot(unittest.TestCase):
     self.assertEqual(user, constants.SSH_LOGIN_USER)
     return self.tmpdir
 
-  def testNoKeys(self):
-    data_empty_keys = {
-      constants.SSHS_SSH_ROOT_KEY: [],
-      }
-
-    for data in [{}, data_empty_keys]:
-      for dry_run in [False, True]:
-        prepare_node_join.UpdateSshRoot(data, dry_run,
-                                        _homedir_fn=NotImplemented)
-    self.assertEqual(os.listdir(self.tmpdir), [])
-
   def testDryRun(self):
     data = {
       constants.SSHS_SSH_ROOT_KEY: [
@@ -289,13 +278,13 @@ class TestUpdateSshRoot(unittest.TestCase):
     self.assertEqual(os.listdir(self.tmpdir), [".ssh"])
     self.assertEqual(sorted(os.listdir(self.sshdir)),
                      sorted(["authorized_keys", "id_dsa", "id_dsa.pub"]))
-    self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir, "id_dsa")),
-                     "privatedsa")
-    self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir, "id_dsa.pub")),
-                     "ssh-dss pubdsa")
-    self.assertEqual(utils.ReadFile(utils.PathJoin(self.sshdir,
-                                                   "authorized_keys")),
-                     "ssh-dss pubdsa\n")
+    self.assertTrue(utils.ReadFile(utils.PathJoin(self.sshdir, "id_dsa"))
+                    is not None)
+    pub_key = utils.ReadFile(utils.PathJoin(self.sshdir, "id_dsa.pub"))
+    self.assertTrue(pub_key is not None)
+    self.assertEquals(utils.ReadFile(utils.PathJoin(self.sshdir,
+                                                    "authorized_keys")),
+                      pub_key)
 
 
 if __name__ == "__main__":

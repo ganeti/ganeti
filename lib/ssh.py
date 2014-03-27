@@ -614,14 +614,15 @@ def QueryPubKeyFile(target_uuids, key_file=pathutils.SSH_PUB_KEYS,
   return result
 
 
-def InitSSHSetup(error_fn=errors.OpPrereqError):
+def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None):
   """Setup the SSH configuration for the node.
 
   This generates a dsa keypair for root, adds the pub key to the
   permitted hosts and adds the hostkey to its own known hosts.
 
   """
-  priv_key, pub_key, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER)
+  priv_key, pub_key, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER,
+                                              _homedir_fn=_homedir_fn)
 
   for name in priv_key, pub_key:
     if os.path.exists(name):
