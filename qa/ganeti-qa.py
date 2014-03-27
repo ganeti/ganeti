@@ -728,7 +728,8 @@ def RunInstanceTests():
           RunTestIf("cluster-epo", qa_cluster.TestClusterEpo)
           RunDaemonTests(instance)
           for node in inodes:
-            RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, node)
+            RunTestIf("haskell-confd", qa_node.TestNodeListDrbd, node,
+                      templ == constants.DT_DRBD8)
           if len(inodes) > 1:
             RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
                       constants.INITIAL_NODE_GROUP_NAME,

@@ -29,6 +29,7 @@ module Ganeti.Confd.Server
   , prepMain
   ) where
 
+import Control.Applicative((<$>))
 import Control.Concurrent
 import Control.Monad (forever, liftM)
 import Data.IORef
@@ -112,6 +113,20 @@ getNodePipByInstanceIp cfg linkipmap link instip =
         Bad _ -> queryUnknownEntry -- either instance or node not found
         Ok node -> (ReplyStatusOk, J.showJSON (nodePrimaryIp node))
 
+-- | Returns a node name for a given UUID
+uuidToNodeName :: ConfigData -> String -> Result String
+uuidToNodeName cfg uuid = gntErrorToResult $ nodeName <$> getNode cfg uuid
+
+-- | Encodes a list of minors into a JSON representation, converting UUIDs to
+-- names in the process
+encodeMinors :: ConfigData -> (String, Int, String, String, String, String)
+             -> Result J.JSValue
+encodeMinors cfg (node_uuid, a, b, c, d, peer_uuid) = do
+  node_name <- uuidToNodeName cfg node_uuid
+  peer_name <- uuidToNodeName cfg peer_uuid
+  return . J.JSArray $ [J.showJSON node_name, J.showJSON a, J.showJSON b,
+                        J.showJSON c, J.showJSON d, J.showJSON peer_name]
+
 -- | Builds the response to a given query.
 buildResponse :: (ConfigData, LinkIpMap) -> ConfdRequest -> Result StatusAnswer
 buildResponse (cfg, _) (ConfdRequest { confdRqType = ReqPing }) =
@@ -186,11 +201,9 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeDrbd }) = do
                  PlainQuery str -> return str
                  _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
   node <- gntErrorToResult $ getNode cfg node_name
-  let minors = concatMap (getInstMinorsForNode (nodeName node)) .
+  let minors = concatMap (getInstMinorsForNode (nodeUuid node)) .
                M.elems . fromContainer . configInstances $ cfg
-      encoded = [J.JSArray [J.showJSON a, J.showJSON b, J.showJSON c,
-                             J.showJSON d, J.showJSON e, J.showJSON f] |
-                 (a, b, c, d, e, f) <- minors]
+  encoded <- mapM (encodeMinors cfg) minors
   return (ReplyStatusOk, J.showJSON encoded)
 
 -- | Return the list of instances for a node (as ([primary], [secondary])) given
