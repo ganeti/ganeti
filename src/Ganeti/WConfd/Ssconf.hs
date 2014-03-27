@@ -95,7 +95,7 @@ mkSSConf cdata = SSConf $ M.fromList
     toPairs = M.assocs . fromContainer
 
     cluster = configCluster cdata
-    mcs = getMasterCandidates cdata
+    mcs = getMasterOrCandidates cdata
     nodes = niceSortKey nodeName . toList $ configNodes cdata
     (offline, online) = partition nodeOffline nodes
     nodeGroups = niceSortKey groupName . toList $ configNodegroups cdata
