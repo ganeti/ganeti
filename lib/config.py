@@ -69,9 +69,12 @@ def GetWConfdContext(ec_id, livelock):
   @return: the WConfd context
 
   """
-  return (ec_id,
-          threading.current_thread().ident,
-          livelock.lockfile.name)
+  if ec_id is None:
+    return (threading.current_thread().getName(),
+            livelock.lockfile.name)
+  else:
+    return (ec_id,
+            livelock.lockfile.name)
 
 
 def GetConfig(ec_id, livelock, **kwargs):
