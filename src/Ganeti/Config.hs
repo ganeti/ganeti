@@ -35,6 +35,7 @@ module Ganeti.Config
     , getDefaultHypervisor
     , getInstancesIpByLink
     , getMasterCandidates
+    , getMasterOrCandidates
     , getOnlineNodes
     , getNode
     , getInstance
@@ -142,10 +143,16 @@ getNodeRole cfg node
   | nodeOffline node = NROffline
   | otherwise = NRRegular
 
--- | Get the list of master candidates.
+-- | Get the list of master candidates, /not including/ the master itself.
 getMasterCandidates :: ConfigData -> [Node]
 getMasterCandidates cfg = 
   filter ((==) NRCandidate . getNodeRole cfg) . F.toList . configNodes $ cfg
+
+-- | Get the list of master candidates, /including/ the master.
+getMasterOrCandidates :: ConfigData -> [Node]
+getMasterOrCandidates cfg =
+  let isMC r = (r == NRCandidate) || (r == NRMaster)
+  in filter (isMC . getNodeRole cfg) . F.toList . configNodes $ cfg
 
 -- | Get the list of online nodes.
 getOnlineNodes :: ConfigData -> [Node]
