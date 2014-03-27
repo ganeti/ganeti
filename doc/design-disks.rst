@@ -1,0 +1,166 @@
+=====
+Disks
+=====
+
+.. contents:: :depth: 4
+
+This is a design document detailing the implementation of disks as a new
+top-level citizen in the config file (just like instances, nodes etc).
+
+
+Current state and shortcomings
+==============================
+
+Currently, Disks are stored in Ganeti's config file as a list
+(container) of Disk objects under the Instance in which they belong.
+This implementation imposes a number of limitations:
+
+* A Disk object cannot live outside an Instance. This means that one
+  cannot detach a disk from an instance (without destroying the disk)
+  and then reattach it (to the same or even to a different instance).
+
+* Disks are not taggable objects, as only top-level citizens of the
+  config file can be made taggable. Having taggable disks will allow for
+  further customizations.
+
+
+Proposed changes
+================
+
+The implementation is going to be split in four parts:
+
+* Make disks a top-level citizen in config file. The Instance object
+  will no longer contain a list of Disk objects, but a list of disk
+  UUIDs.
+
+* Add locks for Disk objects and make them taggable.
+
+* Allow to attach/detach an existing disk to/from an instance.
+
+* Allow creation/modification/deletion of disks that are not attached to
+  any instance (requires new LUs for disks).
+
+
+Design decisions
+================
+
+Disks as config top-level citizens
+----------------------------------
+
+The first patch-series is going to add a new top-level citizen in the
+config object (namely ``disks``) and separate the disk objects from the
+instances. In doing so there are a number of problems that we have to
+overcome:
+
+* How the Disk object will be represented in the config file and how it
+  is going to be connected with the instance it belongs to.
+
+* How the existing code will get the disks belonging to an instance.
+
+* What it means for a disk to be attached/detached to/from an instance.
+
+* How disks are going to be created/deleted, attached/detached using
+  the existing code.
+
+
+Disk representation
+~~~~~~~~~~~~~~~~~~~
+
+The ``Disk`` object gets two extra slots, ``_TIMESTAMPS`` and
+``serial_no``.
+
+The ``Instance`` object will no longer contain the list of disk objects
+that are attached to it. Instead, an Instance object will refer to its
+disks using their UUIDs. Since the order in which the disks are attached
+to an instance is important we are going to have a list of disk UUIDs
+under the Instance object which will denote the disks attached to the
+instance and their order at the same time. So the Instance's ``disks``
+slot is going to be a list of disk UUIDs. The `Disk` object is not going
+to have a slot pointing to the `Instance` in which it belongs since this
+is redundant.
+
+
+Get instance's disks
+~~~~~~~~~~~~~~~~~~~~
+
+A new function ``GetInstanceDisks`` will be added to the config that given an
+instance will return a list of Disk objects with the disks attached to this
+instance. This list will be exactly the same as 'instance.disks' was before.
+Everywhere in the code we are going to replace the 'instance.disks' (which from
+now one will contain a list of disk UUIDs) with the function
+``GetInstanceDisks``.
+
+Since disks will not be part of the `Instance` object any more, 'all_nodes' and
+'secondary_nodes' can not be `Instance`'s properties. Instead we will use the
+functions ``GetInstanceNodes`` and ``GetInstanceSecondaryNodes`` from the
+config to compute these values.
+
+
+Configuration changes
+~~~~~~~~~~~~~~~~~~~~~
+
+The ``ConfigData`` object gets one extra slot: ``disks``. Also there
+will be two new functions, ``AddDisk`` and ``RemoveDisk`` that will
+create/remove a disk objects from the config.
+
+The ``VerifyConfig`` function will be changed so it can check that there
+are no dangling pointers from instances to disks (i.e. an instance
+points to a disk that doesn't exist in the config).
+
+The 'upgrade' operation for the config should check if disks are top level
+citizens and if not it has to extract the disk objects from the instances and
+replace them with their uuids. In case of the 'downgrade' operation (where
+disks will be made again part of the `Instance` object) all disks that are not
+attached to any instance at all will be ignored (removed from config).
+
+
+Apply Disk modifications
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are four operations that can be performed to a `Disk` object:
+
+* Create a new `Disk` object and save it to the config.
+
+* Remove an existing `Disk` object from the config.
+
+* Attach an existing `Disk` to an existing `Instance`.
+
+* Detach an existing `Disk` from an existing `Instance`.
+
+The first two operations will be performed using the config functions
+``AddDisk`` and ``RemoveDisk`` respectively where the last two operations
+will be performed using the functions ``AttachInstDisk`` and
+``DetachInstDisk``.
+
+Since Ganeti doesn't allow for a `Disk` object to not be attached anywhere (for
+now) we will create two wrapper functions (namely ``AddInstDisk`` and
+``RemoveInstDisk``) which will add and attach a disk at the same time
+(respectively detach and remove a disk).
+
+In addition since Ganeti doesn't allow for a `Disk` object to be attached to
+more than one `Instance` at once, when attaching a disk to an instance we have
+to make sure that the disk is not attached anywhere else.
+
+
+Backend changes
+~~~~~~~~~~~~~~~
+
+The backend needs access to the disks of an `Instance` but doesn't have access to
+the `GetInstanceDisks` function from the config file. Thus we will create a new
+`Instance` slot (namely ``disks_info``) that will get annotated (during RPC)
+with the instance's disk objects. So in the backend we will only have to
+replace the ``disks`` slot with ``disks_info``.
+
+
+.. TODO: Locks for Disk objects
+
+.. TODO: Attach/Detach disks
+
+.. TODO: LUs for disks
+
+
+.. vim: set textwidth=72 :
+.. Local Variables:
+.. mode: rst
+.. fill-column: 72
+.. End:

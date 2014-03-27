@@ -97,6 +97,7 @@ Draft designs
    design-cmdlib-unittests.rst
    design-cpu-pinning.rst
    design-device-uuid-name.rst
+   design-disks.rst
    design-file-based-storage.rst
    design-hroller.rst
    design-hotplug.rst
