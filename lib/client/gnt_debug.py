@@ -643,7 +643,7 @@ def Wconfd(opts, args): # pylint: disable=W0613
       ToStderr("Command 'listlocks' takes precisely one argument.")
       return 1
     wconfdcontext = (int(args[1]),
-                     utils.livelock.GuessLockfileFor("masterd"))
+                     utils.livelock.GuessLockfileFor("masterd_1"))
     result = wconfd.Client().ListLocks(wconfdcontext)
     print "Answer: %s" % (result,)
   else:
