@@ -347,6 +347,7 @@ def TestEmptyCluster():
     "force",       # Standard option
     "add_uids",    # Modifies UID pool, is not a param itself
     "remove_uids", # Same as above
+    "osparams_private_cluster", # Should not be returned
   ]
   NOT_EXPOSED_YET = ["hv_state", "disk_state", "modify_etc_hosts"]
   # The nicparams are returned under the default entry, yet accepted as they
