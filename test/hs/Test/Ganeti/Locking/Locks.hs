@@ -91,7 +91,7 @@ prop_ReadShowLevel = forAll (arbitrary :: Gen LockLevel) $ \a ->
   readJSON (showJSON a) ==? Ok a
 
 instance Arbitrary ClientId where
-  arbitrary = ClientId <$> arbitrary <*> arbitrary <*> arbitrary
+  arbitrary = ClientId <$> arbitrary <*> arbitrary
 
 -- | Verify that readJSON . showJSON = Ok for ClientId
 prop_ReadShow_ClientId :: Property

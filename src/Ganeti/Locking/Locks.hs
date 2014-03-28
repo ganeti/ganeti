@@ -35,7 +35,7 @@ module Ganeti.Locking.Locks
   , lockLevel
   ) where
 
-import Control.Monad ((>=>), liftM)
+import Control.Monad ((>=>))
 import Control.Monad.Base (MonadBase, liftBase)
 import Control.Monad.Error (MonadError, catchError)
 import Data.List (stripPrefix)
@@ -44,7 +44,7 @@ import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Errors (ResultG, GanetiException)
-import Ganeti.JSON (readEitherString, fromJResultE, MaybeForJSON(..))
+import Ganeti.JSON (readEitherString, fromJResultE)
 import Ganeti.Locking.Allocation
 import Ganeti.Locking.Types
 import Ganeti.Logging.Lifted (MonadLog, logDebug, logEmergency)
@@ -189,26 +189,26 @@ instance Lock GanetiLocks where
 -- identifier file.
 --
 -- The JobId isn't enough to identify a client as the master daemon
--- also handles RPC calls that aren't jobs, but which use the configuration.
--- Therefore it's needed to include the identification for threads.
--- An alternative would be to use something like @Either JobId RpcCallId@.
---
--- FIXME: Python threads are only unique wrt running threads, so it's possible
--- that a new thread will get a thread id that has been used before by another
--- finished thread. Since we rely on threads releasing their locks anyway,
--- this isn't a big issue, but in the future it'd be better to have a unique
--- identifier for each operation.
+-- also handles client calls that aren't jobs, but which use the configuration.
+-- These taks are identified by a unique name, reported to WConfD as a string.
 data ClientId = ClientId
-  { ciJobId :: Maybe JobId
-  , ciThreadId :: Integer
+  { ciIdentifier :: Either String JobId
   , ciLockFile :: FilePath
   }
   deriving (Ord, Eq, Show)
 
+-- | Obtain the ClientID from its JSON representation.
+clientIdFromJSON :: J.JSValue -> J.Result ClientId
+clientIdFromJSON (J.JSArray [J.JSString s, J.JSString lf]) =
+  J.Ok . ClientId (Left $ J.fromJSString s) $ J.fromJSString lf
+clientIdFromJSON (J.JSArray [jsjid, J.JSString lf]) =
+  J.readJSON jsjid >>= \jid -> J.Ok (ClientId (Right jid) (J.fromJSString lf))
+clientIdFromJSON x = J.Error $ "malformed client id: " ++ show x
+
 instance J.JSON ClientId where
-  showJSON (ClientId jid tid lf) = J.showJSON (MaybeForJSON jid, tid, lf)
-  readJSON = liftM (\(MaybeForJSON jid, tid, lf) -> ClientId jid tid lf)
-             . J.readJSON
+  showJSON (ClientId (Left name) lf) = J.showJSON (name, lf)
+  showJSON (ClientId (Right jid) lf) = J.showJSON (jid, lf)
+  readJSON = clientIdFromJSON
 
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of
 -- locks are jobs.
