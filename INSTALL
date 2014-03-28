@@ -43,6 +43,8 @@ Before installing, please verify that you have the following programs:
   ``ganeti-listrunner``
 - `affinity Python module <http://pypi.python.org/pypi/affinity/0.1.0>`_,
   optional python package for supporting CPU pinning under KVM
+- `fdsend Python module <https://gitorious.org/python-fdsend>`_,
+  optional Python package for supporting NIC hotplugging under KVM
 - `qemu-img <http://qemu.org/>`_, if you want to use ``ovfconverter``
 - `fping <http://fping.sourceforge.net/>`_
 - `Python IP address manipulation library

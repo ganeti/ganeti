@@ -203,6 +203,7 @@ New features
    - one can not (yet) hotplug a disk using userspace access mode for RBD
    - in case of a downgrade instances should suffer a reboot in order to
      be migratable (due to core change of runtime files)
+   - ``python-fdsend`` is required for NIC hotplugging.
 
 Misc changes
 ~~~~~~~~~~~~
@@ -227,6 +228,8 @@ Python
 
 - The version requirements for ``python-mock`` have increased to at least
   version 1.0.1. It is still used for testing only.
+- ``python-fdsend`` (https://gitorious.org/python-fdsend) is optional
+  but required for KVM NIC hotplugging to work.
 
 Since 2.10.0 rc3
 ~~~~~~~~~~~~~~~~

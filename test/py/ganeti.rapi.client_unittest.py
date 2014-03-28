@@ -1283,13 +1283,15 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
     for mnh in [None, False, True]:
       self.rapi.AddResponse("14470")
       self.assertEqual(14470,
-        self.client.ModifyCluster(maintain_node_health=mnh))
+        self.client.ModifyCluster(maintain_node_health=mnh,
+                                  reason="PinkBunniesInvasion"))
       self.assertHandler(rlib2.R_2_cluster_modify)
       self.assertItems([])
       data = serializer.LoadJson(self.rapi.GetLastRequestData())
       self.assertEqual(len(data), 1)
       self.assertEqual(data["maintain_node_health"], mnh)
       self.assertEqual(self.rapi.CountPending(), 0)
+      self.assertQuery("reason", ["PinkBunniesInvasion"])
 
   def testRedistributeConfig(self):
     self.rapi.AddResponse("3364")
