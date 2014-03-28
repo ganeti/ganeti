@@ -1377,6 +1377,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         _ = _GetFreeSlot(pci_reservations, reserve=True)
       kvm_cmd.extend(["-soundhw", soundhw])
 
+    if hvp[constants.HV_DISK_TYPE] == constants.HT_DISK_SCSI:
+      # The SCSI controller requires another PCI slot.
+      _ = _GetFreeSlot(pci_reservations, reserve=True)
+
     # Add id to ballon and place to the first available slot (3 or 4)
     addr = _GetFreeSlot(pci_reservations, reserve=True)
     pci_info = ",bus=pci.0,addr=%s" % hex(addr)
