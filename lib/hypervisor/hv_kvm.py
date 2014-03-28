@@ -1236,12 +1236,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         data.append(info)
     return data
 
-  def _GenerateKVMBlockDevicesOptions(self, instance, kvm_disks,
+  def _GenerateKVMBlockDevicesOptions(self, instance, up_hvp, kvm_disks,
                                       kvmhelp, devlist):
     """Generate KVM options regarding instance's block devices.
 
     @type instance: L{objects.Instance}
     @param instance: the instance object
+    @type up_hvp: dict
+    @param up_hvp: the instance's runtime hypervisor parameters
     @type kvm_disks: list of tuples
     @param kvm_disks: list of tuples [(disk, link_name, uri)..]
     @type kvmhelp: string
@@ -1252,12 +1254,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @return: list of command line options eventually used by kvm executable
 
     """
-    hvp = instance.hvparams
-    kernel_path = hvp[constants.HV_KERNEL_PATH]
+    kernel_path = up_hvp[constants.HV_KERNEL_PATH]
     if kernel_path:
       boot_disk = False
     else:
-      boot_disk = hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
+      boot_disk = up_hvp[constants.HV_BOOT_ORDER] == constants.HT_BO_DISK
 
     # whether this is an older KVM version that uses the boot=on flag
     # on devices
@@ -1265,7 +1266,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     dev_opts = []
     device_driver = None
-    disk_type = hvp[constants.HV_DISK_TYPE]
+    disk_type = up_hvp[constants.HV_DISK_TYPE]
     if disk_type == constants.HT_DISK_PARAVIRTUAL:
       if_val = ",if=%s" % self._VIRTIO
       try:
@@ -1278,7 +1279,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       if_val = ",if=%s" % disk_type
     # Cache mode
-    disk_cache = hvp[constants.HV_DISK_CACHE]
+    disk_cache = up_hvp[constants.HV_DISK_CACHE]
     if instance.disk_template in constants.DTS_EXT_MIRROR:
       if disk_cache != "none":
         # TODO: make this a hard error, instead of a silent overwrite
@@ -1914,6 +1915,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
 
     bdev_opts = self._GenerateKVMBlockDevicesOptions(instance,
+                                                     up_hvp,
                                                      kvm_disks,
                                                      kvmhelp,
                                                      devlist)
