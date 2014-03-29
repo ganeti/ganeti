@@ -73,7 +73,8 @@ loadConfigFromFile path = withLockedFile path $ \_ -> do
 writeConfigToFile :: (MonadBase IO m, MonadError GanetiException m, MonadLog m)
                   => ConfigData -> FilePath -> FStat -> m FStat
 writeConfigToFile cfg path oldstat = do
-    logDebug "Async. config. writer: Commencing write"
+    logDebug $ "Async. config. writer: Commencing write\
+               \ serial no " ++ show (serialOf cfg)
     r <- toErrorBase $ atomicUpdateLockedFile_ path oldstat doWrite
     logDebug "Async. config. writer: written"
     return r
@@ -161,8 +162,11 @@ distMCsAsyncTask ents cpath cdRef =
                                     \ to master candidates"
        $ do
           cd <- liftBase (csConfigData <$> cdRef) :: ResultG ConfigData
+          logDebug $ "Distributing the configuration to master candidates,\
+                     \ serial no " ++ show (serialOf cd)
           fupload <- prepareRpcCallUploadFile ents cpath
           execRpcCallAndLog (getMasterCandidates cd) fupload
+          logDebug "Successfully finished distributing the configuration"
 
 -- | Construct an asynchronous worker whose action is to construct SSConf
 -- and distribute it to master candidates.
@@ -177,7 +181,12 @@ distSSConfAsyncTask cdRef =
        $ \oldssc -> do
             cd <- liftBase (csConfigData <$> cdRef) :: ResultG ConfigData
             let ssc = mkSSConf cd
-            when (oldssc /= ssc)
-              $ execRpcCallAndLog (getOnlineNodes cd)
+            if oldssc == ssc
+              then logDebug "SSConf unchanged, not distributing"
+              else do
+                logDebug $ "Starting the distribution of SSConf\
+                           \ serial no " ++ show (serialOf cd)
+                execRpcCallAndLog (getOnlineNodes cd)
                                   (RpcCallWriteSsconfFiles ssc)
+                logDebug "Successfully finished distributing SSConf"
             return ssc
