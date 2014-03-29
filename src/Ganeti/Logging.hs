@@ -111,7 +111,7 @@ setupLogging :: Maybe String    -- ^ Log file
 setupLogging logf program debug stderr_logging console syslog = do
   let level = if debug then DEBUG else INFO
       destf = if console then Just ConstantUtils.devConsole else logf
-      fmt = logFormatter program False False
+      fmt = logFormatter program True False
       file_logging = syslog /= SyslogOnly
 
   updateGlobalLogger rootLoggerName (setLevel level)
