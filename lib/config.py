@@ -257,6 +257,9 @@ class ConfigManager(object):
 class ConfigWriter(object):
   """The interface to the cluster configuration.
 
+  WARNING: The class is no longer thread-safe!
+  Each thread must construct a separate instance.
+
   @ivar _temporary_lvs: reservation manager for temporary LVs
   @ivar _all_rms: a list of all temporary reservation managers
 
@@ -291,6 +294,7 @@ class ConfigWriter(object):
     self._wconfd = wconfd
     self._accept_foreign = accept_foreign
     self._lock_count = 0
+    self._lock_current_shared = None
 
   def _ConfigData(self):
     return self._config_data
@@ -2497,9 +2501,16 @@ class ConfigWriter(object):
     """Read the config data from WConfd or disk.
 
     """
-    if self._LockCount() > 0:
-      raise errors.ConfigurationError("Configuration lock isn't reentrant")
-    self._AddLockCount(1)
+    if self._AddLockCount(1) > 1:
+      if self._lock_current_shared and not shared:
+        self._AddLockCount(-1)
+        raise errors.ConfigurationError("Can't request an exclusive"
+                                        " configuration lock while holding"
+                                        " shared")
+      else:
+        return # we already have the lock, do nothing
+    else:
+      self._lock_current_shared = shared
     # Read the configuration data. If offline, read the file directly.
     # If online, call WConfd.
     if self._offline:
@@ -2565,6 +2576,8 @@ class ConfigWriter(object):
     """Release resources relating the config data.
 
     """
+    if self._AddLockCount(-1) > 0:
+      return # we still have the lock, do nothing
     try:
       if save:
         self._WriteConfig()
@@ -2579,7 +2592,6 @@ class ConfigWriter(object):
           # If the configuration hasn't been initialized yet, just ignore it.
           pass
         logging.debug("Configuration in WConfd unlocked")
-      self._AddLockCount(-1)
 
   # TODO: To WConfd
   def _UpgradeConfig(self, saveafter=False):
