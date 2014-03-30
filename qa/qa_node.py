@@ -461,8 +461,17 @@ def TestNodeListDrbd(node, is_drbd):
   # primary or one of the secondaries
   if is_drbd:
     # Invoked for both primary and secondary
-    drbd_node, _, _, _, _, drbd_peer = result_output.split()
-    AssertIn(node.primary, [drbd_node, drbd_peer])
+    per_disk_info = result_output.splitlines()
+    for line in per_disk_info:
+      try:
+        drbd_node, _, _, _, _, drbd_peer = line.split()
+      except ValueError:
+        raise qa_error.Error("Could not examine list-drbd output: expected a"
+                             " single row of 6 entries, found the following:"
+                             " %s" % line)
+
+      AssertIn(node.primary, [drbd_node, drbd_peer],
+               msg="The output %s does not contain the node" % line)
   else:
     # Output should be empty, barring newlines
     AssertEqual(result_output.strip(), "")
