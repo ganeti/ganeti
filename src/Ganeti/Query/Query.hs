@@ -56,12 +56,13 @@ module Ganeti.Query.Query
     , uuidField
     ) where
 
+import Control.Arrow ((&&&))
 import Control.DeepSeq
 import Control.Monad (filterM, foldM, liftM, unless)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import qualified Data.Foldable as Foldable
-import Data.List (intercalate, nub)
+import Data.List (intercalate, nub, find)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
 import qualified Text.JSON as J
@@ -71,8 +72,9 @@ import Ganeti.Config
 import Ganeti.Errors
 import Ganeti.JQueue
 import Ganeti.JSON
+import Ganeti.Locking.Allocation (OwnerState)
+import Ganeti.Locking.Locks (GanetiLocks, ClientId, lockName)
 import Ganeti.Logging
-import qualified Ganeti.Luxi as L
 import Ganeti.Objects
 import Ganeti.Query.Common
 import qualified Ganeti.Query.Export as Export
@@ -86,8 +88,10 @@ import qualified Ganeti.Query.Network as Network
 import qualified Ganeti.Query.Node as Node
 import Ganeti.Query.Types
 import Ganeti.Path
+import Ganeti.THH.HsRPC (runRpcClient)
 import Ganeti.Types
 import Ganeti.Utils
+import Ganeti.WConfd.Client (getWConfdClient, listAllLocksOwners)
 
 -- | Collector type
 data CollectorType a b
@@ -225,6 +229,17 @@ genericQuery fieldsMap collector nameFn configFn getFn cfg
               runtimes
   return QueryResult { qresFields = fdefs, qresData = fdata }
 
+-- | Dummy recollection of the data for a lock from the prefected
+-- data for all locks.
+recollectLocksData :: [(GanetiLocks, [(ClientId, OwnerState)])]
+                   -> Bool -> ConfigData -> [String]
+                   -> IO [(String, Locks.RuntimeData)]
+recollectLocksData allLocks _ _  =
+  let lookuplock lock = (,) lock
+                          . find ((==) lock . lockName . fst)
+                          $ allLocks
+  in return . map lookuplock
+
 -- | Main query execution function.
 query :: ConfigData   -- ^ The current configuration
       -> Bool         -- ^ Whether to collect live data
@@ -232,16 +247,22 @@ query :: ConfigData   -- ^ The current configuration
       -> IO (ErrorResult QueryResult) -- ^ Result
 query cfg live (Query (ItemTypeLuxi QRJob) fields qfilter) =
   queryJobs cfg live fields qfilter
-query _ live (Query (ItemTypeLuxi QRLock) fields qfilter) = runResultT $ do
+query cfg live (Query (ItemTypeLuxi QRLock) fields qfilter) = runResultT $ do
   unless live (failError "Locks can only be queried live")
   cl <- liftIO $ do
-    socketpath <- liftIO defaultMasterSocket
-    logDebug $ "Forwarding live query on locks for " ++ show fields
-                 ++ ", " ++ show qfilter ++ " to " ++ socketpath
-    liftIO $ L.getLuxiClient socketpath
-  answer <- ResultT $ L.callMethod (L.Query (ItemTypeLuxi QRLock)
-                                            fields qfilter) cl
-  fromJResultE "Got unparsable answer from masterd: " $ J.readJSON answer
+     socketpath <- defaultWConfdSocket
+     getWConfdClient socketpath
+  livedata <- runRpcClient listAllLocksOwners cl
+  logDebug $ "Live state of all locks is " ++ show livedata
+  answer <- liftIO $ genericQuery
+             Locks.fieldsMap
+             (CollectorSimple $ recollectLocksData livedata)
+             id
+             (const . GenericContainer . Map.fromList
+              . map ((id &&& id) . lockName) $ map fst livedata)
+             (const Ok)
+             cfg live fields qfilter []
+  toError answer
 
 query cfg live qry = queryInner cfg live qry $ getRequestedNames qry
 
