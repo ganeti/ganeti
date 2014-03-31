@@ -3355,29 +3355,82 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # At this point, we have the in-memory data structures complete,
     # except for the runtime information, which we'll gather next
 
-    # Due to the way our RPC system works, exact response times cannot be
-    # guaranteed (e.g. a broken node could run into a timeout). By keeping the
-    # time before and after executing the request, we can at least have a time
-    # window.
-    nvinfo_starttime = time.time()
-    all_nvinfo = self.rpc.call_node_verify(self.my_node_uuids,
-                                           node_verify_param,
-                                           self.cfg.GetClusterName(),
-                                           self.cfg.GetClusterInfo().hvparams,
-                                           node_group_uuids,
-                                           groups_config)
-    nvinfo_endtime = time.time()
+    # NOTE: Here we lock the configuration for the duration of RPC calls,
+    # which means that the cluster configuration changes are blocked during
+    # this period.
+    # This is something that should be done only exceptionally and only for
+    # justified cases!
+    # In this case, we need the lock as we can only verify the integrity of
+    # configuration files on MCs only if we know nobody else is modifying it.
+    # FIXME: The check for integrity of config.data should be moved to
+    # WConfD, which is the only one who can otherwise ensure nobody
+    # will modify the configuration during the check.
+    with self.cfg.GetConfigManager(shared=True):
+      feedback_fn("* Gathering information about nodes (%s nodes)" %
+                  len(self.my_node_uuids))
+      # Due to the way our RPC system works, exact response times cannot be
+      # guaranteed (e.g. a broken node could run into a timeout). By keeping
+      # the time before and after executing the request, we can at least have
+      # a time window.
+      nvinfo_starttime = time.time()
+      # Get lock on the configuration so that nobody modifies it concurrently.
+      # Otherwise it can be modified by other jobs, failing the consistency
+      # test.
+      # NOTE: This is an exceptional situation, we should otherwise avoid
+      # locking the configuration for something but very fast, pure operations.
+      cluster_name = self.cfg.GetClusterName()
+      hvparams = self.cfg.GetClusterInfo().hvparams
+      all_nvinfo = self.rpc.call_node_verify(self.my_node_uuids,
+                                             node_verify_param,
+                                             cluster_name,
+                                             hvparams,
+                                             node_group_uuids,
+                                             groups_config)
+      nvinfo_endtime = time.time()
 
-    if self.extra_lv_nodes and vg_name is not None:
-      extra_lv_nvinfo = \
-          self.rpc.call_node_verify(self.extra_lv_nodes,
-                                    {constants.NV_LVLIST: vg_name},
-                                    self.cfg.GetClusterName(),
-                                    self.cfg.GetClusterInfo().hvparams,
-                                    node_group_uuids,
-                                    groups_config)
-    else:
-      extra_lv_nvinfo = {}
+      if self.extra_lv_nodes and vg_name is not None:
+        feedback_fn("* Gathering information about extra nodes (%s nodes)" %
+                    len(self.extra_lv_nodes))
+        extra_lv_nvinfo = \
+            self.rpc.call_node_verify(self.extra_lv_nodes,
+                                      {constants.NV_LVLIST: vg_name},
+                                      self.cfg.GetClusterName(),
+                                      self.cfg.GetClusterInfo().hvparams,
+                                      node_group_uuids,
+                                      groups_config)
+      else:
+        extra_lv_nvinfo = {}
+
+      # If not all nodes are being checked, we need to make sure the master
+      # node and a non-checked vm_capable node are in the list.
+      absent_node_uuids = set(self.all_node_info).difference(self.my_node_info)
+      if absent_node_uuids:
+        vf_nvinfo = all_nvinfo.copy()
+        vf_node_info = list(self.my_node_info.values())
+        additional_node_uuids = []
+        if master_node_uuid not in self.my_node_info:
+          additional_node_uuids.append(master_node_uuid)
+          vf_node_info.append(self.all_node_info[master_node_uuid])
+        # Add the first vm_capable node we find which is not included,
+        # excluding the master node (which we already have)
+        for node_uuid in absent_node_uuids:
+          nodeinfo = self.all_node_info[node_uuid]
+          if (nodeinfo.vm_capable and not nodeinfo.offline and
+              node_uuid != master_node_uuid):
+            additional_node_uuids.append(node_uuid)
+            vf_node_info.append(self.all_node_info[node_uuid])
+            break
+        key = constants.NV_FILELIST
+
+        feedback_fn("* Gathering information about the master node")
+        vf_nvinfo.update(self.rpc.call_node_verify(
+           additional_node_uuids, {key: node_verify_param[key]},
+           self.cfg.GetClusterName(), self.cfg.GetClusterInfo().hvparams,
+           node_group_uuids,
+           groups_config))
+      else:
+        vf_nvinfo = all_nvinfo
+        vf_node_info = self.my_node_info.values()
 
     all_drbd_map = self.cfg.ComputeDRBDMap()
 
@@ -3389,34 +3442,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     feedback_fn("* Verifying configuration file consistency")
 
     self._VerifyClientCertificates(self.my_node_info.values(), all_nvinfo)
-    # If not all nodes are being checked, we need to make sure the master node
-    # and a non-checked vm_capable node are in the list.
-    absent_node_uuids = set(self.all_node_info).difference(self.my_node_info)
-    if absent_node_uuids:
-      vf_nvinfo = all_nvinfo.copy()
-      vf_node_info = list(self.my_node_info.values())
-      additional_node_uuids = []
-      if master_node_uuid not in self.my_node_info:
-        additional_node_uuids.append(master_node_uuid)
-        vf_node_info.append(self.all_node_info[master_node_uuid])
-      # Add the first vm_capable node we find which is not included,
-      # excluding the master node (which we already have)
-      for node_uuid in absent_node_uuids:
-        nodeinfo = self.all_node_info[node_uuid]
-        if (nodeinfo.vm_capable and not nodeinfo.offline and
-            node_uuid != master_node_uuid):
-          additional_node_uuids.append(node_uuid)
-          vf_node_info.append(self.all_node_info[node_uuid])
-          break
-      key = constants.NV_FILELIST
-      vf_nvinfo.update(self.rpc.call_node_verify(
-         additional_node_uuids, {key: node_verify_param[key]},
-         self.cfg.GetClusterName(), self.cfg.GetClusterInfo().hvparams,
-         node_group_uuids,
-         groups_config))
-    else:
-      vf_nvinfo = all_nvinfo
-      vf_node_info = self.my_node_info.values()
 
     self._VerifyFiles(vf_node_info, master_node_uuid, vf_nvinfo, filemap)
 
