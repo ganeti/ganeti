@@ -3834,7 +3834,7 @@ class JobExecutor(object):
       return [row[1:3] for row in self.jobs]
 
 
-def FormatParamsDictInfo(param_dict, actual):
+def FormatParamsDictInfo(param_dict, actual, roman=False):
   """Formats a parameter dictionary.
 
   @type param_dict: dict
@@ -3849,9 +3849,10 @@ def FormatParamsDictInfo(param_dict, actual):
   ret = {}
   for (key, data) in actual.items():
     if isinstance(data, dict) and data:
-      ret[key] = FormatParamsDictInfo(param_dict.get(key, {}), data)
+      ret[key] = FormatParamsDictInfo(param_dict.get(key, {}), data, roman)
     else:
-      ret[key] = str(param_dict.get(key, "default (%s)" % data))
+      default_str = "default (%s)" % compat.TryToRoman(data, roman)
+      ret[key] = str(compat.TryToRoman(param_dict.get(key, default_str), roman))
   return ret
 
 
@@ -3863,7 +3864,7 @@ def _FormatListInfoDefault(data, def_data):
   return ret
 
 
-def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
+def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster, roman=False):
   """Formats an instance policy.
 
   @type custom_ipolicy: dict
@@ -3873,6 +3874,8 @@ def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
       cluster
   @type iscluster: bool
   @param iscluster: the policy is at cluster level
+  @type roman: bool
+  @param roman: whether to print the values in roman numerals
   @rtype: list of pairs
   @return: formatted data, suitable for L{PrintGenericInfo}
 
@@ -3886,14 +3889,14 @@ def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
     for (k, minmax) in enumerate(custom_minmax):
       minmax_out.append([
         ("%s/%s" % (key, k),
-         FormatParamsDictInfo(minmax[key], minmax[key]))
+         FormatParamsDictInfo(minmax[key], minmax[key], roman))
         for key in constants.ISPECS_MINMAX_KEYS
         ])
   else:
     for (k, minmax) in enumerate(eff_ipolicy[constants.ISPECS_MINMAX]):
       minmax_out.append([
         ("%s/%s" % (key, k),
-         FormatParamsDictInfo({}, minmax[key]))
+         FormatParamsDictInfo({}, minmax[key], roman))
         for key in constants.ISPECS_MINMAX_KEYS
         ])
   ret = [("bounds specs", minmax_out)]
@@ -3902,7 +3905,7 @@ def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
     stdspecs = custom_ipolicy[constants.ISPECS_STD]
     ret.append(
       (constants.ISPECS_STD,
-       FormatParamsDictInfo(stdspecs, stdspecs))
+       FormatParamsDictInfo(stdspecs, stdspecs, roman))
       )
 
   ret.append(
@@ -3910,8 +3913,11 @@ def FormatPolicyInfo(custom_ipolicy, eff_ipolicy, iscluster):
      _FormatListInfoDefault(custom_ipolicy.get(constants.IPOLICY_DTS),
                             eff_ipolicy[constants.IPOLICY_DTS]))
     )
+  to_roman = compat.TryToRoman
   ret.extend([
-    (key, str(custom_ipolicy.get(key, "default (%s)" % eff_ipolicy[key])))
+    (key, str(to_roman(custom_ipolicy.get(key,
+                                          "default (%s)" % eff_ipolicy[key]),
+                       roman)))
     for key in constants.IPOLICY_PARAMETERS
     ])
   return ret

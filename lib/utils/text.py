@@ -29,6 +29,7 @@ import time
 import collections
 
 from ganeti import errors
+from ganeti import compat
 
 
 #: Unit checker regexp
@@ -131,7 +132,7 @@ def DnsNameGlobPattern(pattern):
   return r"^%s(\..*)?$" % re.sub(r"\*|\?|[^*?]*", _DnsNameGlobHelper, pattern)
 
 
-def FormatUnit(value, units):
+def FormatUnit(value, units, roman=False):
   """Formats an incoming number of MiB with the appropriate unit.
 
   @type value: int
@@ -154,17 +155,19 @@ def FormatUnit(value, units):
   if units == "m" or (units == "h" and value < 1024):
     if units == "h":
       suffix = "M"
-    return "%d%s" % (round(value, 0), suffix)
+    return "%s%s" % (compat.RomanOrRounded(value, 0, roman), suffix)
 
   elif units == "g" or (units == "h" and value < (1024 * 1024)):
     if units == "h":
       suffix = "G"
-    return "%0.1f%s" % (round(float(value) / 1024, 1), suffix)
+    return "%s%s" % (compat.RomanOrRounded(float(value) / 1024, 1, roman),
+                     suffix)
 
   else:
     if units == "h":
       suffix = "T"
-    return "%0.1f%s" % (round(float(value) / 1024 / 1024, 1), suffix)
+    return "%s%s" % (compat.RomanOrRounded(float(value) / 1024 / 1024, 1,
+                                           roman), suffix)
 
 
 def ParseUnit(input_string):

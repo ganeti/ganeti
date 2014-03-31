@@ -933,6 +933,7 @@ def _FormatDiskDetails(dev_type, dev, roman):
   """Formats the logical_id of a disk.
 
   """
+
   if dev_type == constants.DT_DRBD8:
     drbd_info = dev["drbd_info"]
     data = [
@@ -944,7 +945,7 @@ def _FormatDiskDetails(dev_type, dev, roman):
                 (drbd_info["secondary_node"],
                  compat.TryToRoman(drbd_info["secondary_minor"],
                                    convert=roman))),
-      ("port", str(compat.TryToRoman(drbd_info["port"], convert=roman))),
+      ("port", str(compat.TryToRoman(drbd_info["port"], roman))),
       ("auth key", str(drbd_info["secret"])),
       ]
   elif dev_type == constants.DT_PLAIN:
@@ -1036,7 +1037,7 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
   else:
     txt = "child %s" % compat.TryToRoman(idx, convert=roman)
   if isinstance(dev["size"], int):
-    nice_size = utils.FormatUnit(dev["size"], "h")
+    nice_size = utils.FormatUnit(dev["size"], "h", roman)
   else:
     nice_size = str(dev["size"])
   data = [(txt, "%s, size %s" % (dev["dev_type"], nice_size))]
@@ -1071,19 +1072,19 @@ def _FormatBlockDevInfo(idx, top_level, dev, roman):
   return data
 
 
-def _FormatInstanceNicInfo(idx, nic):
+def _FormatInstanceNicInfo(idx, nic, roman=False):
   """Helper function for L{_FormatInstanceInfo()}"""
   (name, uuid, ip, mac, mode, link, vlan, _, netinfo) = nic
   network_name = None
   if netinfo:
     network_name = netinfo["name"]
   return [
-    ("nic/%d" % idx, ""),
+    ("nic/%s" % str(compat.TryToRoman(idx, roman)), ""),
     ("MAC", str(mac)),
     ("IP", str(ip)),
     ("mode", str(mode)),
     ("link", str(link)),
-    ("vlan", str(vlan)),
+    ("vlan", str(compat.TryToRoman(vlan, roman))),
     ("network", str(network_name)),
     ("UUID", str(uuid)),
     ("name", str(name)),
@@ -1150,7 +1151,8 @@ def _FormatInstanceInfo(instance, roman_integers):
     ("Nodes", _FormatInstanceNodesInfo(instance)),
     ("Operating system", instance["os"]),
     ("Operating system parameters",
-     FormatParamsDictInfo(instance["os_instance"], instance["os_actual"])),
+     FormatParamsDictInfo(instance["os_instance"], instance["os_actual"],
+                          roman_integers)),
     ]
 
   if "network_port" in instance:
@@ -1167,11 +1169,13 @@ def _FormatInstanceInfo(instance, roman_integers):
   be_actual["memory"] = be_actual[constants.BE_MAXMEM]
   info.extend([
     ("Hypervisor parameters",
-     FormatParamsDictInfo(instance["hv_instance"], instance["hv_actual"])),
+     FormatParamsDictInfo(instance["hv_instance"], instance["hv_actual"],
+                          roman_integers)),
     ("Back-end parameters",
-     FormatParamsDictInfo(instance["be_instance"], be_actual)),
+     FormatParamsDictInfo(instance["be_instance"], be_actual,
+                          roman_integers)),
     ("NICs", [
-      _FormatInstanceNicInfo(idx, nic)
+      _FormatInstanceNicInfo(idx, nic, roman_integers)
       for (idx, nic) in enumerate(instance["nics"])
       ]),
     ("Disk template", instance["disk_template"]),

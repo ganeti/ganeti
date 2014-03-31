@@ -502,12 +502,14 @@ def ShowClusterConfig(opts, args):
     ("Default hypervisor", result["default_hypervisor"]),
     ("Enabled hypervisors", utils.CommaJoin(enabled_hv)),
 
-    ("Hypervisor parameters", _FormatGroupedParams(hvparams)),
+    ("Hypervisor parameters", _FormatGroupedParams(hvparams,
+                                                   opts.roman_integers)),
 
     ("OS-specific hypervisor parameters",
-     _FormatGroupedParams(result["os_hvp"])),
+     _FormatGroupedParams(result["os_hvp"], opts.roman_integers)),
 
-    ("OS parameters", _FormatGroupedParams(result["osparams"])),
+    ("OS parameters", _FormatGroupedParams(result["osparams"],
+                                           opts.roman_integers)),
 
     ("Hidden OSes", utils.CommaJoin(result["hidden_os"])),
     ("Blacklisted OSes", utils.CommaJoin(result["blacklisted_os"])),
@@ -521,7 +523,8 @@ def ShowClusterConfig(opts, args):
                          convert=opts.roman_integers)),
       ("mac prefix", result["mac_prefix"]),
       ("master netdev", result["master_netdev"]),
-      ("master netmask", result["master_netmask"]),
+      ("master netmask", compat.TryToRoman(result["master_netmask"],
+                                           opts.roman_integers)),
       ("use external master IP address setup script",
        result["use_external_mip_script"]),
       ("lvm volume group", result["volume_group_name"]),
@@ -535,7 +538,8 @@ def ShowClusterConfig(opts, args):
       ("default instance allocator", result["default_iallocator"]),
       ("default instance allocator parameters",
        result["default_iallocator_params"]),
-      ("primary ip version", result["primary_ip_version"]),
+      ("primary ip version", compat.TryToRoman(result["primary_ip_version"],
+                                               opts.roman_integers)),
       ("preallocation wipe disks", result["prealloc_wipe_disks"]),
       ("OS search path", utils.CommaJoin(pathutils.OS_SEARCH_PATH)),
       ("ExtStorage Providers search path",
@@ -559,7 +563,7 @@ def ShowClusterConfig(opts, args):
      _FormatGroupedParams(result["diskparams"], roman=opts.roman_integers)),
 
     ("Instance policy - limits for instances",
-     FormatPolicyInfo(result["ipolicy"], None, True)),
+     FormatPolicyInfo(result["ipolicy"], None, True, opts.roman_integers)),
     ]
 
   PrintGenericInfo(info)

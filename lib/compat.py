@@ -124,6 +124,34 @@ else:
   partial = functools.partial
 
 
+def RomanOrRounded(value, rounding, convert=True):
+  """Try to round the value to the closest integer and return it as a roman
+  numeral. If the conversion is disabled, or if the roman module could not be
+  loaded, round the value to the specified level and return it.
+
+  @type value: number
+  @param value: value to convert
+  @type rounding: integer
+  @param rounding: how many decimal digits the number should be rounded to
+  @type convert: boolean
+  @param convert: if False, don't try conversion at all
+  @rtype: string
+  @return: roman numeral for val, or formatted string representing val if
+           conversion didn't succeed
+
+  """
+  def _FormatOutput(val, r):
+    format_string = "%0." + str(r) + "f"
+    return format_string % val
+
+  if roman is not None and convert:
+    try:
+      return roman.toRoman(round(value, 0))
+    except roman.RomanError:
+      return _FormatOutput(value, rounding)
+  return _FormatOutput(value, rounding)
+
+
 def TryToRoman(val, convert=True):
   """Try to convert a value to roman numerals
 
