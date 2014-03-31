@@ -144,6 +144,17 @@ prop_LocksDisjoint =
      (show a ++ "'s exclusive lock" ++ " is not respected by " ++ show b)
      (S.null $ S.intersection aExclusive bAll)
 
+-- | Verify that the list of active locks indeed contains all locks that
+-- are owned by someone.
+prop_LockslistComplete :: Property
+prop_LockslistComplete =
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll ((arbitrary :: Gen (LockAllocation TestLock TestOwner))
+          `suchThat` (not . M.null . listLocks a)) $ \state ->
+  printTestCase "All owned locks must be mentioned in the all-locks list" $
+    let allLocks = listAllLocks state in
+    all (`elem` allLocks) (M.keys $ listLocks a state)
+
 -- | Verify that exclusive group locks are honored, i.e., verify that if someone
 -- holds a lock, then no one else can hold a lock on an exclusive lock on an
 -- implied lock.
@@ -332,6 +343,7 @@ prop_OwnerSound =
 
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
+ , 'prop_LockslistComplete
  , 'prop_LockImplicationX
  , 'prop_LockImplicationS
  , 'prop_LocksStable
