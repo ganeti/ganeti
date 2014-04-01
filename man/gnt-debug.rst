@@ -143,6 +143,11 @@ printed to the console.
 A request to list the locks owned by the given job id is
 sent to WConfd and the answer is displayed.
 
+| **wconfd** listalllocks
+
+A request to list all locks in use, directly or indirectly, is
+sent to WConfd and the answer is displayed.
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst

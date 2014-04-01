@@ -646,6 +646,12 @@ def Wconfd(opts, args): # pylint: disable=W0613
                      utils.livelock.GuessLockfileFor("masterd_1"))
     result = wconfd.Client().ListLocks(wconfdcontext)
     print "Answer: %s" % (result,)
+  elif args[0] == "listalllocks":
+    if len(args) != 1:
+      ToStderr("Command 'listalllocks' takes no arguments.")
+      return 1
+    result = wconfd.Client().ListAllLocks()
+    print "Answer: %s" % (result,)
   else:
     ToStderr("Command '%s' not supported", args[0])
     return 1
