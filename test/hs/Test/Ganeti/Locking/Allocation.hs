@@ -31,6 +31,7 @@ module Test.Ganeti.Locking.Allocation (testLocking_Allocation) where
 import Control.Applicative
 import qualified Data.Foldable as F
 import qualified Data.Map as M
+import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
 import qualified Text.JSON as J
 
@@ -164,6 +165,18 @@ prop_LocksAllOwnersSubsetLockslist =
                 \ in the locks state" $
   S.isSubsetOf (S.fromList . map fst $ listAllLocksOwners state)
       (S.fromList $ listAllLocks state)
+
+-- | Verify that all locks of all owners are mentioned in the list of all locks'
+-- owner's state.
+prop_LocksAllOwnersComplete :: Property
+prop_LocksAllOwnersComplete =
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll ((arbitrary :: Gen (LockAllocation TestLock TestOwner))
+          `suchThat` (not . M.null . listLocks a)) $ \state ->
+  printTestCase "Owned locks must be mentioned in list of all locks' state" $
+   let allLocksState = listAllLocksOwners state
+   in flip all (M.toList $ listLocks a state) $ \(lock, ownership) ->
+     elem (a, ownership) . fromMaybe [] $ lookup lock allLocksState
 
 -- | Verify that exclusive group locks are honored, i.e., verify that if someone
 -- holds a lock, then no one else can hold a lock on an exclusive lock on an
@@ -355,6 +368,7 @@ testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
  , 'prop_LockslistComplete
  , 'prop_LocksAllOwnersSubsetLockslist
+ , 'prop_LocksAllOwnersComplete
  , 'prop_LockImplicationX
  , 'prop_LockImplicationS
  , 'prop_LocksStable
