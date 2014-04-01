@@ -288,6 +288,19 @@ def _VerifyLocks(lu, _mode_whitelist=_NODE_ALLOC_MODE_WHITELIST,
            " or node resources")
 
 
+def _LockList(names):
+    """If 'names' is a string, make it a single-element list.
+
+    @type names: list or string
+    @param names: Lock names
+    @rtype: a list of strings
+    @return: if 'names' argument is an iterable, a list of it;
+        if it's a string, make it a one-element list
+
+    """
+    return [names] if isinstance(names, basestring) else list(names)
+
+
 class Processor(object):
   """Object which runs OpCodes"""
   DISPATCH_TABLE = _ComputeDispatchTable()
@@ -360,8 +373,7 @@ class Processor(object):
       else:
         names = locking.LOCKSET_NAME
 
-    if isinstance(names, str):
-      names = [names]
+    names = _LockList(names)
 
     levelname = locking.LEVEL_NAMES[level]
 
@@ -500,9 +512,7 @@ class Processor(object):
           lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
         else:
           # Adding locks
-          add_locks = lu.add_locks[level]
-          if isinstance(add_locks, str):
-            add_locks = [add_locks]
+          add_locks = _LockList(lu.add_locks[level])
           lu.remove_locks[level] = add_locks
 
           try:
@@ -536,9 +546,10 @@ class Processor(object):
           result = self._LockAndExecLU(lu, level + 1, calc_timeout)
         finally:
           if level in lu.remove_locks:
+            remove_locks = _LockList(lu.remove_locks[level])
             levelname = locking.LEVEL_NAMES[level]
             request = [["%s/%s" % (levelname, lock), "release"]
-                       for lock in lu.remove_locks[level]]
+                       for lock in remove_locks]
             blocked = \
               self.wconfd.Client().TryUpdateLocks(self._wconfdcontext,
                                                   request)
