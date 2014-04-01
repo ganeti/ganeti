@@ -178,6 +178,17 @@ prop_LocksAllOwnersComplete =
    in flip all (M.toList $ listLocks a state) $ \(lock, ownership) ->
      elem (a, ownership) . fromMaybe [] $ lookup lock allLocksState
 
+-- | Verify that all lock owners mentioned in the list of all locks' owner's
+-- state actually own their lock.
+prop_LocksAllOwnersSound :: Property
+prop_LocksAllOwnersSound =
+  forAll ((arbitrary :: Gen (LockAllocation TestLock TestOwner))
+          `suchThat` (not . null . listAllLocksOwners)) $ \state ->
+  printTestCase "All locks mentioned in listAllLocksOwners must be owned by the\
+                \ mentioned owner" .
+  flip all (listAllLocksOwners state) $ \(lock, owners) ->
+  flip all owners $ \(owner, ownership) -> holdsLock owner lock ownership state
+
 -- | Verify that exclusive group locks are honored, i.e., verify that if someone
 -- holds a lock, then no one else can hold a lock on an exclusive lock on an
 -- implied lock.
@@ -369,6 +380,7 @@ testSuite "Locking/Allocation"
  , 'prop_LockslistComplete
  , 'prop_LocksAllOwnersSubsetLockslist
  , 'prop_LocksAllOwnersComplete
+ , 'prop_LocksAllOwnersSound
  , 'prop_LockImplicationX
  , 'prop_LockImplicationS
  , 'prop_LocksStable
