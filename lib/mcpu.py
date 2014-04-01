@@ -289,16 +289,16 @@ def _VerifyLocks(lu, _mode_whitelist=_NODE_ALLOC_MODE_WHITELIST,
 
 
 def _LockList(names):
-    """If 'names' is a string, make it a single-element list.
+  """If 'names' is a string, make it a single-element list.
 
-    @type names: list or string
-    @param names: Lock names
-    @rtype: a list of strings
-    @return: if 'names' argument is an iterable, a list of it;
-        if it's a string, make it a one-element list
+  @type names: list or string
+  @param names: Lock names
+  @rtype: a list of strings
+  @return: if 'names' argument is an iterable, a list of it;
+      if it's a string, make it a one-element list
 
-    """
-    return [names] if isinstance(names, basestring) else list(names)
+  """
+  return [names] if isinstance(names, basestring) else list(names)
 
 
 class Processor(object):
