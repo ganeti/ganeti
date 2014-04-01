@@ -111,6 +111,10 @@ listLocks cid = liftM (M.toList . L.listLocks cid) readLockAllocation
 listAllLocks :: WConfdMonad [GanetiLocks]
 listAllLocks = liftM L.listAllLocks readLockAllocation
 
+-- | List all active locks with their owners.
+listAllLocksOwners :: WConfdMonad [(GanetiLocks, [(ClientId, L.OwnerState)])]
+listAllLocksOwners = liftM L.listAllLocksOwners readLockAllocation
+
 -- | Try to update the locks of a given owner (i.e., a job-id lockfile pair).
 -- This function always returns immediately. If the lock update was possible,
 -- the empty list is returned; otherwise, the lock status is left completly
@@ -163,6 +167,7 @@ exportedFunctions = [ 'echo
                     , 'unlockConfig
                     , 'listLocks
                     , 'listAllLocks
+                    , 'listAllLocksOwners
                     , 'tryUpdateLocks
                     , 'freeLocks
                     , 'freeLocksLevel
