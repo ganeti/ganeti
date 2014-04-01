@@ -343,13 +343,17 @@ class LUInstanceQueryData(NoHooksLU):
       # we change the snode then (otherwise we use the one passed in)
       if dev.logical_id[0] == instance.primary_node:
         snode_uuid = dev.logical_id[1]
+        snode_minor = dev.logical_id[4]
+        pnode_minor = dev.logical_id[3]
       else:
         snode_uuid = dev.logical_id[0]
+        snode_minor = dev.logical_id[3]
+        pnode_minor = dev.logical_id[4]
       drbd_info = {
         "primary_node": node_uuid2name_fn(instance.primary_node),
-        "primary_minor": dev.logical_id[3],
+        "primary_minor": pnode_minor,
         "secondary_node": node_uuid2name_fn(snode_uuid),
-        "secondary_minor": dev.logical_id[4],
+        "secondary_minor": snode_minor,
         "port": dev.logical_id[2],
         "secret": dev.logical_id[5],
       }
