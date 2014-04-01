@@ -148,6 +148,12 @@ sent to WConfd and the answer is displayed.
 A request to list all locks in use, directly or indirectly, is
 sent to WConfd and the answer is displayed.
 
+| **wconfd** listalllocks
+
+A request to list all locks in use, directly or indirectly, together
+with their respective direct owners is sent to WConfd and the answer
+is displayed.
+
 .. vim: set textwidth=72 :
 .. Local Variables:
 .. mode: rst
