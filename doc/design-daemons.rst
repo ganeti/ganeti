@@ -327,6 +327,48 @@ closing the file would cause the process to release the lock. In
 particular, with jobs as threads, the master daemon wouldn't be able to
 keep locks and operate on job files at the same time.
 
+Job execution
+-------------
+
+As the Luxi daemon will be responsible for executing jobs, it needs to
+start jobs in such a way that it can properly detect if the job dies
+under any circumstances (such as Luxi daemon being restarted in the
+process).
+
+The name of the lock file will be stored in the corresponding job file
+so that anybody is able to check the status of the process corresponding
+to a job.
+
+The proposed procedure:
+
+#. The Luxi daemon saves the name of its own lock file into the job file.
+#. The Luxi daemon forks, creating a bi-directional pipe with the child
+   process.
+#. The child process creates and locks its own, proper lock file and
+   handles its name to the Luxi daemon through the pipe.
+#. The Luxi daemon saves the name of the lock file into the job file and
+   confirms it to the child process.
+#. Only then the child process can replace itself by the actual job
+   process.
+
+If the child process detect that the pipe is broken before receiving the
+confirmation, it must terminate, not starting the actual job.
+This way, the actual job is only started if its ensured that its lock
+file name is written to the job file.
+
+If the Luxi daemon detect that the pipe is broken before successfully
+sending the confirmation in step 4., it assumes that the job has failed.
+If the pipe gets broken after sending the confirmation, no further
+action is necessary. If the child doesn't receive the confirmation,
+it will die and its death will be detected by Luxid eventually.
+
+If the Luxi daemon dies before completing the procedure, the job will
+not be started. If the job file contained the daemon's lock file name,
+it will be detected as dead (because the daemon process died). If the
+job file already contained its proper lock file, it will also be
+detected as dead (because the child process won't start the actual job
+and die).
+
 WConfD details
 --------------
 
