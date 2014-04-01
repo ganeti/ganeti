@@ -155,6 +155,16 @@ prop_LockslistComplete =
     let allLocks = listAllLocks state in
     all (`elem` allLocks) (M.keys $ listLocks a state)
 
+-- | Verify that the list of all locks with states is contained in the list
+-- of all locks.
+prop_LocksAllOwnersSubsetLockslist :: Property
+prop_LocksAllOwnersSubsetLockslist =
+  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
+  printTestCase "The list of all active locks must contain all locks mentioned\
+                \ in the locks state" $
+  S.isSubsetOf (S.fromList . map fst $ listAllLocksOwners state)
+      (S.fromList $ listAllLocks state)
+
 -- | Verify that exclusive group locks are honored, i.e., verify that if someone
 -- holds a lock, then no one else can hold a lock on an exclusive lock on an
 -- implied lock.
@@ -344,6 +354,7 @@ prop_OwnerSound =
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
  , 'prop_LockslistComplete
+ , 'prop_LocksAllOwnersSubsetLockslist
  , 'prop_LockImplicationX
  , 'prop_LockImplicationS
  , 'prop_LocksStable
