@@ -776,6 +776,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Locking/Allocation.hs \
 	src/Ganeti/Locking/Types.hs \
 	src/Ganeti/Locking/Locks.hs \
+	src/Ganeti/Locking/Waiting.hs \
 	src/Ganeti/Logging.hs \
 	src/Ganeti/Logging/Lifted.hs \
 	src/Ganeti/Luxi.hs \
