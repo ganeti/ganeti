@@ -384,7 +384,7 @@ defaultMondPort :: Int
 defaultMondPort = 1815
 
 defaultMetadPort :: Int
-defaultMetadPort = 8080
+defaultMetadPort = 80
 
 defaultNodedPort :: Int
 defaultNodedPort = 1811
