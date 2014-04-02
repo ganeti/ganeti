@@ -154,7 +154,7 @@ holdsLock owner lock state = (>= Just state) . M.lookup lock . listLocks owner
 data LockRequest a = LockRequest { lockAffected :: a
                                  , lockRequestType :: Maybe OwnerState
                                  }
-                     deriving (Eq, Show)
+                     deriving (Eq, Show, Ord)
 
 -- | Lock request for an exclusive lock.
 requestExclusive :: a -> LockRequest a
