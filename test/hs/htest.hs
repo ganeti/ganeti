@@ -58,6 +58,7 @@ import Test.Ganeti.JQueue
 import Test.Ganeti.Kvmd
 import Test.Ganeti.Locking.Allocation
 import Test.Ganeti.Locking.Locks
+import Test.Ganeti.Locking.Waiting
 import Test.Ganeti.Luxi
 import Test.Ganeti.Network
 import Test.Ganeti.Objects
@@ -125,6 +126,7 @@ allTests =
   , testKvmd
   , testLocking_Allocation
   , testLocking_Locks
+  , testLocking_Waiting
   , testLuxi
   , testNetwork
   , testObjects
