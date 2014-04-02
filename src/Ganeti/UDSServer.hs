@@ -46,6 +46,8 @@ module Ganeti.UDSServer
   , closeClient
   , closeServer
   , buildResponse
+  , parseResponse
+  , buildCall
   , parseCall
   , recvMsg
   , recvMsgExt
@@ -79,7 +81,7 @@ import qualified Text.JSON as J
 import Text.JSON.Types
 
 import Ganeti.BasicTypes
-import Ganeti.Errors (GanetiException)
+import Ganeti.Errors (GanetiException(..), ErrorResult)
 import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..))
@@ -265,6 +267,16 @@ recvMsgExt s =
                else RecvError (show e)
 
 
+-- | Serialize a request to String.
+buildCall :: (J.JSON mth, J.JSON args)
+          => mth    -- ^ The method
+          -> args   -- ^ The arguments
+          -> String -- ^ The serialized form
+buildCall mth args =
+  let keyToObj :: (J.JSON a) => MsgKeys -> a -> (String, J.JSValue)
+      keyToObj k v = (strOfKey k, J.showJSON v)
+  in encodeStrict $ toJSObject [ keyToObj Method mth, keyToObj Args args ]
+
 -- | Parse the required keys out of a call.
 parseCall :: (J.JSON mth, J.JSON args) => String -> Result (mth, args)
 parseCall s = do
@@ -284,6 +296,30 @@ buildResponse success args =
            , (strOfKey Result, args)]
       jo = toJSObject ja
   in encodeStrict jo
+
+-- | Try to decode an error from the server response. This function
+-- will always fail, since it's called only on the error path (when
+-- status is False).
+decodeError :: JSValue -> ErrorResult JSValue
+decodeError val =
+  case fromJVal val of
+    Ok e -> Bad e
+    Bad msg -> Bad $ GenericError msg
+
+-- | Check that luxi responses contain the required keys and that the
+-- call was successful.
+parseResponse :: String -> ErrorResult JSValue
+parseResponse s = do
+  when (UTF8.replacement_char `elem` s) $
+      failError "Failed to decode UTF-8,\
+                \ detected replacement char after decoding"
+  oarr <- fromJResultE "Parsing LUXI response" (decodeStrict s)
+  let arr = J.fromJSObject oarr
+  status <- fromObj arr (strOfKey Success)
+  result <- fromObj arr (strOfKey Result)
+  if status
+    then return result
+    else decodeError result
 
 -- | Logs an outgoing message.
 logMsg
