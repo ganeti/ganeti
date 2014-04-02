@@ -28,6 +28,7 @@ module Ganeti.Locking.Waiting
  , emptyWaiting
  , updateLocks
  , updateLocksWaiting
+ , getAllocation
  ) where
 
 import qualified Data.Map as M
@@ -80,6 +81,10 @@ emptyWaiting =
               , lwPending = M.empty
               , lwPendingOwners = M.empty
               }
+
+-- | Get the allocation state from the waiting state
+getAllocation :: LockWaiting a b c -> L.LockAllocation a b
+getAllocation = lwAllocation
 
 -- | Internal function to fulfill one request if possible, and keep track of
 -- the owners to be notified. The type is chosen to be suitable as fold
