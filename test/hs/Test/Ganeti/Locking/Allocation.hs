@@ -26,7 +26,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 -}
 
-module Test.Ganeti.Locking.Allocation (testLocking_Allocation) where
+module Test.Ganeti.Locking.Allocation
+  ( testLocking_Allocation
+  , TestLock
+  , TestOwner
+  ) where
 
 import Control.Applicative
 import qualified Data.Foldable as F
