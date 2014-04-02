@@ -48,7 +48,7 @@ import Ganeti.Locking.Types
 
 Ganeti.Locking.Allocation is polymorphic in the types of locks
 and lock owners. So we can use much simpler types here than Ganeti's
-real locks and lock owners, knowning at polymorphic functions cannot
+real locks and lock owners, knowning that polymorphic functions cannot
 exploit the simplicity of the types they're deling with.
 
 -}
@@ -82,7 +82,7 @@ instance Lock TestLock where
 
 {-
 
-All states of a  LockAllocation every available outside the
+All states of a  LockAllocation ever available outside the
 Ganeti.Locking.Allocation module must be constructed by starting
 with emptyAllocation and applying the exported functions.
 
