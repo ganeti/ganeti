@@ -28,10 +28,14 @@ module Ganeti.Metad.WebServer (start) where
 import Control.Applicative
 import Control.Concurrent (MVar, readMVar)
 import Control.Monad.IO.Class (liftIO)
+import qualified Control.Monad.CatchIO as CatchIO (catch)
+import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.ByteString.Char8 as ByteString (pack, unpack)
 import Snap.Core
+import Snap.Util.FileServe
 import Snap.Http.Server
+import Text.JSON (JSValue, Result(..))
 import qualified Text.JSON as JSON
 
 import Ganeti.Daemon
@@ -49,14 +53,41 @@ error404 = do
   modifyResponse . setResponseStatus 404 $ ByteString.pack "Not found"
   writeBS $ ByteString.pack "Resource not found"
 
+serveOsPackage :: String -> Map String JSValue -> MetaM
+serveOsPackage inst instParams =
+  case Map.lookup inst instParams of
+    Just (JSON.JSObject osParams) -> do
+      let res = getOsPackage osParams
+      case res of
+        Error err ->
+          do liftIO $ Logging.logWarning err
+             error404
+        Ok package ->
+          serveFile package
+          `CatchIO.catch`
+          \err -> do liftIO . Logging.logWarning $
+                       "Could not serve OS package: " ++ show (err :: IOError)
+                     error404
+    _ -> error404
+  where getOsPackage osParams =
+          case lookup "os-package" (JSON.fromJSObject osParams) of
+            Nothing -> Error $ "Could not find OS package for " ++ show inst
+            Just x -> fst <$> (JSON.readJSON x :: Result (String, String))
+
 handleMetadata
   :: MVar InstanceParams -> Method -> String -> String -> String -> MetaM
 handleMetadata _ GET  "ganeti" "latest" "meta_data.json" =
   liftIO $ Logging.logInfo "ganeti metadata"
+handleMetadata params GET  "ganeti" "latest" "os/package" =
+  do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
+     instanceParams <- liftIO $ do
+       Logging.logInfo $ "OS package for " ++ show remoteAddr
+       readMVar params
+     serveOsPackage remoteAddr instanceParams
 handleMetadata params GET  "ganeti" "latest" "os/parameters.json" =
   do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
      instanceParams <- liftIO $ do
-       Logging.logInfo $ "ganeti OS parameter for " ++ show remoteAddr
+       Logging.logInfo $ "OS parameters for " ++ show remoteAddr
        readMVar params
      case Map.lookup remoteAddr instanceParams of
        Nothing ->
