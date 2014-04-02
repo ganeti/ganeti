@@ -108,7 +108,7 @@ class TestOpcodeResource(unittest.TestCase):
   def _GetMethodAttributes(method):
     attrs = ["%s_OPCODE" % method, "%s_RENAME" % method,
              "%s_ALIASES" % method, "Get%sOpInput" % method.capitalize()]
-    assert attrs == dict((opattrs[0], list(opattrs[1:]))
+    assert attrs == dict((opattrs.method, opattrs.GetModifiers())
                          for opattrs in baserlib.OPCODE_ATTRS)[method]
     return attrs
 
@@ -116,8 +116,9 @@ class TestOpcodeResource(unittest.TestCase):
     for method in baserlib._SUPPORTED_METHODS:
       # Empty handler
       obj = self._MakeClass(method, {})(None, {}, None)
-      for attr in itertools.chain(*baserlib.OPCODE_ATTRS):
-        self.assertFalse(hasattr(obj, attr))
+      for m_attr in baserlib.OPCODE_ATTRS:
+        for attr in m_attr.GetAll():
+          self.assertFalse(hasattr(obj, attr))
 
       # Direct handler function
       obj = self._MakeClass(method, {
@@ -153,8 +154,9 @@ class TestOpcodeResource(unittest.TestCase):
 
     obj = _Empty(None, {}, None)
 
-    for attr in itertools.chain(*baserlib.OPCODE_ATTRS):
-      self.assertFalse(hasattr(obj, attr))
+    for m_attr in baserlib.OPCODE_ATTRS:
+        for attr in m_attr.GetAll():
+          self.assertFalse(hasattr(obj, attr))
 
 
 if __name__ == "__main__":

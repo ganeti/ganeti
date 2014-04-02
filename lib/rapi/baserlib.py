@@ -51,13 +51,43 @@ _SUPPORTED_METHODS = compat.UniqueFrozenset([
   ])
 
 
+class OpcodeAttributes(object):
+  """Acts as a structure containing the per-method attribute names.
+
+  """
+  __slots__ = [
+    "method",
+    "opcode",
+    "rename",
+    "aliases",
+    "get_input",
+    ]
+
+  def __init__(self, method_name):
+    """Initializes the opcode attributes for the given method name.
+
+    """
+    self.method = method_name
+    self.opcode = "%s_OPCODE" % method_name
+    self.rename = "%s_RENAME" % method_name
+    self.aliases = "%s_ALIASES" % method_name
+    self.get_input = "Get%sOpInput" % method_name.capitalize()
+
+  def GetModifiers(self):
+    """Returns the names of all the attributes that replace or modify a method.
+
+    """
+    return [self.opcode, self.rename, self.aliases, self.get_input]
+
+  def GetAll(self):
+    return [self.method] + self.GetModifiers()
+
+
 def _BuildOpcodeAttributes():
   """Builds list of attributes used for per-handler opcodes.
 
   """
-  return [(method, "%s_OPCODE" % method, "%s_RENAME" % method,
-           "%s_ALIASES" % method, "Get%sOpInput" % method.capitalize())
-          for method in _SUPPORTED_METHODS]
+  return [OpcodeAttributes(method) for method in _SUPPORTED_METHODS]
 
 
 OPCODE_ATTRS = _BuildOpcodeAttributes()
@@ -396,8 +426,8 @@ def GetResourceOpcodes(cls):
   """Returns all opcodes used by a resource.
 
   """
-  return frozenset(filter(None, (getattr(cls, op_attr, None)
-                                 for (_, op_attr, _, _, _) in OPCODE_ATTRS)))
+  return frozenset(filter(None, (getattr(cls, method_attrs.opcode, None)
+                                 for method_attrs in OPCODE_ATTRS)))
 
 
 def GetHandlerAccess(handler, method):
@@ -438,7 +468,8 @@ class _MetaOpcodeResource(type):
     # Access to private attributes of a client class, pylint: disable=W0212
     obj = type.__call__(mcs, *args, **kwargs)
 
-    for (method, op_attr, rename_attr, aliases_attr, fn_attr) in OPCODE_ATTRS:
+    for m_attrs in OPCODE_ATTRS:
+      method, op_attr, rename_attr, aliases_attr, fn_attr = m_attrs.GetAll()
       if hasattr(obj, method):
         # If the method handler is already defined, "*_RENAME" or
         # "Get*OpInput" shouldn't be (they're only used by the automatically
