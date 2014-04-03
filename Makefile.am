@@ -441,7 +441,8 @@ hypervisor_PYTHON = \
 	lib/hypervisor/hv_xen.py
 
 hypervisor_hv_kvm_PYTHON = \
-  lib/hypervisor/hv_kvm/__init__.py
+  lib/hypervisor/hv_kvm/__init__.py \
+  lib/hypervisor/hv_kvm/monitor.py
 
 storage_PYTHON = \
 	lib/storage/__init__.py \
