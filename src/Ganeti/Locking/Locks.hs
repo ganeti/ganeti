@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Locking.Locks
   ( GanetiLocks(..)
+  , lockName
   , ClientId(..)
   , GanetiLockAllocation
   , loadLockAllocation
