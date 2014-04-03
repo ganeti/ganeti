@@ -825,6 +825,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
 	src/Ganeti/WConfd/ConfigWriter.hs \
+	src/Ganeti/WConfd/Client.hs \
 	src/Ganeti/WConfd/Core.hs \
 	src/Ganeti/WConfd/DeathDetection.hs \
 	src/Ganeti/WConfd/Language.hs \

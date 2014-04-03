@@ -4016,6 +4016,12 @@ luxidMaximalRunningJobsDefault = 20
 wconfdDeathdetectionIntervall :: Int
 wconfdDeathdetectionIntervall = 311
 
+wconfdDefCtmo :: Int
+wconfdDefCtmo = 10
+
+wconfdDefRwto :: Int
+wconfdDefRwto = 60
+
 -- * Confd
 
 confdProtocolVersion :: Int
