@@ -38,12 +38,7 @@ import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error
 import Control.Monad.Reader
-import Data.Char (toLower, toUpper)
-import Data.Functor
-import Data.List (concat)
-import Data.Maybe (fromMaybe)
 import Language.Haskell.TH
-import Language.Haskell.TH.Syntax (liftString)
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes

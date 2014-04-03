@@ -35,6 +35,7 @@ module Ganeti.Luxi
   , makeJobId
   , RecvResult(..)
   , strOfOp
+  , opToArgs
   , getLuxiClient
   , getLuxiServer
   , acceptClient

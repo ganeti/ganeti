@@ -96,7 +96,8 @@ instance Arbitrary Luxi.LuxiOp where
 -- | Simple check that encoding/decoding of LuxiOp works.
 prop_CallEncoding :: Luxi.LuxiOp -> Property
 prop_CallEncoding op =
-  (US.parseCall (Luxi.buildCall op) >>= uncurry Luxi.decodeLuxiCall) ==? Ok op
+  (US.parseCall (US.buildCall (Luxi.strOfOp op) (Luxi.opToArgs op))
+    >>= uncurry Luxi.decodeLuxiCall) ==? Ok op
 
 -- | Server ping-pong helper.
 luxiServerPong :: Luxi.Client -> IO ()
