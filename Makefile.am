@@ -812,6 +812,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Storage/Utils.hs \
 	src/Ganeti/THH.hs \
 	src/Ganeti/THH/Field.hs \
+	src/Ganeti/THH/HsRPC.hs \
 	src/Ganeti/THH/PyRPC.hs \
 	src/Ganeti/THH/PyType.hs \
 	src/Ganeti/THH/Types.hs \
