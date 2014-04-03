@@ -42,6 +42,7 @@ module Ganeti.UDSServer
   -- * Client and server
   , connectClient
   , connectServer
+  , pipeClient
   , acceptClient
   , closeClient
   , closeServer
@@ -75,6 +76,7 @@ import qualified Network.Socket as S
 import System.Directory (removeFile)
 import System.IO (hClose, hFlush, hWaitForInput, Handle, IOMode(..))
 import System.IO.Error (isEOFError)
+import System.Posix.IO (createPipe, fdToHandle)
 import System.Timeout
 import Text.JSON (encodeStrict, decodeStrict)
 import qualified Text.JSON as J
@@ -206,6 +208,21 @@ connectServer conf setOwner path = do
     ExtraGroup DaemonsGroup
   S.listen s 5 -- 5 is the max backlog
   return Server { sSocket=s, sPath=path, serverConfig=conf }
+
+-- | Creates a new bi-directional client pipe. The two returned clients
+-- talk to each other through the pipe.
+pipeClient :: ConnectConfig -> IO (Client, Client)
+pipeClient conf =
+  let newClient r w = do
+        rf <- newIORef B.empty
+        rh <- fdToHandle r
+        wh <- fdToHandle w
+        return Client { rsocket = rh, wsocket = wh
+                      , rbuf = rf, clientConfig = conf }
+  in do
+    (r1, w1) <- createPipe
+    (r2, w2) <- createPipe
+    (,) <$> newClient r1 w2 <*> newClient r2 w1
 
 -- | Closes a server endpoint.
 closeServer :: (MonadBase IO m) => Server -> m ()
