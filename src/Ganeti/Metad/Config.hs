@@ -78,6 +78,14 @@ makeInstanceParams pub priv sec =
     addVisibility param params =
       map (second (JSArray . (:[key param]))) (JSON.fromJSObject params)
 
+getOsParamsWithVisibility :: JSValue -> Result JSValue
+getOsParamsWithVisibility json =
+  do obj <- readJSON json
+     publicOsParams <- getPublicOsParams obj
+     privateOsParams <- getPrivateOsParams obj
+     secretOsParams <- getSecretOsParams obj
+     Ok $ makeInstanceParams publicOsParams privateOsParams secretOsParams
+
 -- | Finds the IP address of the instance communication NIC in the
 -- instance's NICs.
 getInstanceCommunicationIp :: JSObject JSValue -> Result String
@@ -121,11 +129,6 @@ getInstanceParams json =
                   Just (JSString x) -> Ok (JSON.fromJSString x)
                   _ -> Error "Name is not a string"
         ip <- getInstanceCommunicationIp jsonObj
-        publicOsParams <- getPublicOsParams jsonObj
-        privateOsParams <- getPrivateOsParams jsonObj
-        secretOsParams <- getSecretOsParams jsonObj
-        let instanceParams =
-              makeInstanceParams publicOsParams privateOsParams secretOsParams
-        Ok (name, Map.fromList [(ip, instanceParams)])
+        Ok (name, Map.fromList [(ip, json)])
       _ ->
         Error "Expecting a dictionary"

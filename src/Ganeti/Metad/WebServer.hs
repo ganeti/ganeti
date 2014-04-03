@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-| Web server for the metadata daemon.
 
 -}
@@ -27,6 +28,7 @@ module Ganeti.Metad.WebServer (start) where
 
 import Control.Applicative
 import Control.Concurrent (MVar, readMVar)
+import Control.Monad.Error.Class (MonadError, catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
 import qualified Control.Monad.CatchIO as CatchIO (catch)
 import Data.Map (Map)
@@ -35,7 +37,7 @@ import qualified Data.ByteString.Char8 as ByteString (pack, unpack)
 import Snap.Core
 import Snap.Util.FileServe
 import Snap.Http.Server
-import Text.JSON (JSValue, Result(..))
+import Text.JSON (JSValue, Result(..), JSObject)
 import qualified Text.JSON as JSON
 
 import Ganeti.Daemon
@@ -44,14 +46,33 @@ import qualified Ganeti.Logging as Logging
 import Ganeti.Runtime (GanetiDaemon(..), ExtraLogReason(..))
 import qualified Ganeti.Runtime as Runtime
 
+import Ganeti.Metad.Config as Config
 import Ganeti.Metad.Types (InstanceParams)
 
 type MetaM = Snap ()
+
+lookupInstanceParams :: MonadError String m => String -> Map String b -> m b
+lookupInstanceParams inst params =
+  case Map.lookup inst params of
+    Nothing -> throwError $ "Could not get instance params for " ++ show inst
+    Just x -> return x
 
 error404 :: MetaM
 error404 = do
   modifyResponse . setResponseStatus 404 $ ByteString.pack "Not found"
   writeBS $ ByteString.pack "Resource not found"
+
+maybeResult :: MonadError String m => Result t -> (t -> m a) -> m a
+maybeResult (Error err) _ = throwError err
+maybeResult (Ok x) f = f x
+
+serveOsParams :: String -> Map String JSValue -> MetaM
+serveOsParams inst params =
+  do instParams <- lookupInstanceParams inst params
+     maybeResult (Config.getOsParamsWithVisibility instParams) $ \osParams ->
+       writeBS .
+       ByteString.pack .
+       JSON.encode $ osParams
 
 serveOsPackage :: String -> Map String JSValue -> MetaM
 serveOsPackage inst instParams =
@@ -89,13 +110,10 @@ handleMetadata params GET  "ganeti" "latest" "os/parameters.json" =
      instanceParams <- liftIO $ do
        Logging.logInfo $ "OS parameters for " ++ show remoteAddr
        readMVar params
-     case Map.lookup remoteAddr instanceParams of
-       Nothing ->
+     serveOsParams remoteAddr instanceParams `catchError`
+       \err -> do
+         liftIO . Logging.logWarning $ "Could not serve OS parameters: " ++ err
          error404
-       Just osParams ->
-         writeBS .
-         ByteString.pack .
-         JSON.encode $ osParams
 handleMetadata _ GET  "ganeti" "latest" "read" =
   liftIO $ Logging.logInfo "ganeti READ"
 handleMetadata _ POST "ganeti" "latest" "write" =
