@@ -35,7 +35,7 @@ from ganeti import utils
 from ganeti import serializer
 
 
-class QmpMessage:
+class QmpMessage(object):
   """QEMU Messaging Protocol (QMP) message.
 
   """
