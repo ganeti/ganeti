@@ -39,6 +39,7 @@ import Snap.Util.FileServe
 import Snap.Http.Server
 import Text.JSON (JSValue, Result(..), JSObject)
 import qualified Text.JSON as JSON
+import System.FilePath ((</>))
 
 import Ganeti.Daemon
 import qualified Ganeti.Constants as Constants
@@ -50,6 +51,12 @@ import Ganeti.Metad.Config as Config
 import Ganeti.Metad.Types (InstanceParams)
 
 type MetaM = Snap ()
+
+split :: String -> [String]
+split str =
+  case span (/= '/') str of
+    (x, []) -> [x]
+    (x, _:xs) -> x:split xs
 
 lookupInstanceParams :: MonadError String m => String -> Map String b -> m b
 lookupInstanceParams inst params =
@@ -95,6 +102,28 @@ serveOsPackage inst instParams =
             Nothing -> Error $ "Could not find OS package for " ++ show inst
             Just x -> fst <$> (JSON.readJSON x :: Result (String, String))
 
+serveOsScript :: String -> Map String JSValue -> String -> MetaM
+serveOsScript inst params script =
+  do instParams <- lookupInstanceParams inst params
+     maybeResult (getOsType instParams) $ \os ->
+       if null os
+       then throwError $ "There is no OS for " ++ show inst
+       else serveScript os Constants.osSearchPath
+  where getOsType instParams =
+          do obj <- JSON.readJSON instParams :: Result (JSObject JSValue)
+             case lookup "os" (JSON.fromJSObject obj) of
+               Nothing -> Error $ "Could not find OS for " ++ show inst
+               Just x -> JSON.readJSON x :: Result String
+
+        serveScript :: String -> [String] -> MetaM
+        serveScript os [] =
+          throwError $ "Could not find OS script " ++ show (os </> script)
+        serveScript os (d:ds) =
+          serveFile (d </> os </> script)
+          `CatchIO.catch`
+          \err -> do let _ = err :: IOError
+                     serveScript os ds
+
 handleMetadata
   :: MVar InstanceParams -> Method -> String -> String -> String -> MetaM
 handleMetadata _ GET  "ganeti" "latest" "meta_data.json" =
@@ -114,6 +143,22 @@ handleMetadata params GET  "ganeti" "latest" "os/parameters.json" =
        \err -> do
          liftIO . Logging.logWarning $ "Could not serve OS parameters: " ++ err
          error404
+handleMetadata params GET  "ganeti" "latest" script | isScript script =
+  do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
+     instanceParams <- liftIO $ do
+       Logging.logInfo $ "OS package for " ++ show remoteAddr
+       readMVar params
+     serveOsScript remoteAddr instanceParams (last $ split script) `catchError`
+       \err -> do
+         liftIO . Logging.logWarning $ "Could not serve OS scripts: " ++ err
+         error404
+  where isScript =
+          (`elem` [ "os/scripts/create"
+                  , "os/scripts/export"
+                  , "os/scripts/import"
+                  , "os/scripts/rename"
+                  , "os/scripts/verify"
+                  ])
 handleMetadata _ GET  "ganeti" "latest" "read" =
   liftIO $ Logging.logInfo "ganeti READ"
 handleMetadata _ POST "ganeti" "latest" "write" =
