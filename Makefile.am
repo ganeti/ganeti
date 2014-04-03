@@ -779,6 +779,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Logging.hs \
 	src/Ganeti/Logging/Lifted.hs \
 	src/Ganeti/Luxi.hs \
+	src/Ganeti/Metad/Config.hs \
 	src/Ganeti/Metad/ConfigServer.hs \
 	src/Ganeti/Metad/Server.hs \
 	src/Ganeti/Metad/Types.hs \
