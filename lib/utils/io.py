@@ -609,8 +609,8 @@ def FindFile(name, search_path, test=os.path.exists):
 
   @type name: str
   @param name: the name to look for
-  @type search_path: str
-  @param search_path: location to start at
+  @type search_path: iterable of string
+  @param search_path: locations to start at
   @type test: callable
   @param test: a function taking one argument that should return True
       if the a given object is valid; the default value is
