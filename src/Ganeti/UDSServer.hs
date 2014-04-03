@@ -133,8 +133,13 @@ data ConnectConfig = ConnectConfig
                      , sendTmo :: Int
                      }
 
--- | A client encapsulation.
-data Client = Client { socket :: Handle           -- ^ The socket of the client
+-- | A client encapsulation. Note that it has separate read and write handle.
+-- For sockets it is the same handle. It is required for bi-directional
+-- inter-process pipes though.
+data Client = Client { rsocket :: Handle          -- ^ The read part of
+                                                  -- the client socket
+                     , wsocket :: Handle          -- ^ The write part of
+                                                  -- the client socket
                      , rbuf :: IORef B.ByteString -- ^ Already received buffer
                      , clientConfig :: ConnectConfig
                      }
@@ -191,7 +196,7 @@ connectClient
 connectClient conf tmo path = do
   h <- openClientSocket tmo path
   rf <- newIORef B.empty
-  return Client { socket=h, rbuf=rf, clientConfig=conf }
+  return Client { rsocket=h, wsocket=h, rbuf=rf, clientConfig=conf }
 
 -- | Creates and returns a server endpoint.
 connectServer :: ConnectConfig -> Bool -> FilePath -> IO Server
@@ -212,20 +217,23 @@ acceptClient :: Server -> IO Client
 acceptClient s = do
   handle <- acceptSocket (sSocket s)
   new_buffer <- newIORef B.empty
-  return Client { socket=handle
+  return Client { rsocket=handle
+                , wsocket=handle
                 , rbuf=new_buffer
                 , clientConfig=serverConfig s
                 }
 
 -- | Closes the client socket.
 closeClient :: Client -> IO ()
-closeClient = closeClientSocket . socket
+closeClient client = do
+  closeClientSocket . wsocket $ client
+  closeClientSocket . rsocket $ client
 
 -- | Sends a message over a transport.
 sendMsg :: Client -> String -> IO ()
 sendMsg s buf = withTimeout (sendTmo $ clientConfig s) "sending a message" $ do
   let encoded = UTF8L.fromString buf
-      handle = socket s
+      handle = wsocket s
   BL.hPut handle encoded
   B.hPut handle bEOM
   hFlush handle
@@ -253,7 +261,7 @@ recvMsg s = do
   (msg, nbuf) <-
     if B.null ibuf      -- if old buffer didn't contain a full message
                         -- then we read from network:
-      then recvUpdate (clientConfig s) (socket s) cbuf
+      then recvUpdate (clientConfig s) (rsocket s) cbuf
       else return (imsg, B.tail ibuf)   -- else we return data from our buffer
   writeIORef (rbuf s) nbuf
   return $ UTF8.toString msg
