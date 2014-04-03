@@ -31,8 +31,6 @@ import tempfile
 import time
 import logging
 import pwd
-import struct
-import fcntl
 import shutil
 import urllib2
 from bitarray import bitarray
@@ -59,20 +57,11 @@ from ganeti.utils import wrapper as utils_wrapper
 
 from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage, \
                                              MonitorSocket
+from ganeti.hypervisor.hv_kvm.netdev import OpenTap
 
 
 _KVM_NETWORK_SCRIPT = pathutils.CONF_DIR + "/kvm-vif-bridge"
 _KVM_START_PAUSED_FLAG = "-S"
-
-# TUN/TAP driver constants, taken from <linux/if_tun.h>
-# They are architecture-independent and already hardcoded in qemu-kvm source,
-# so we can safely include them here.
-TUNSETIFF = 0x400454ca
-TUNGETIFF = 0x800454d2
-TUNGETFEATURES = 0x800454cf
-IFF_TAP = 0x0002
-IFF_NO_PI = 0x1000
-IFF_VNET_HDR = 0x4000
 
 #: SPICE parameters which depend on L{constants.HV_KVM_SPICE_BIND}
 _SPICE_ADDITIONAL_PARAMS = frozenset([
@@ -242,95 +231,6 @@ def _AnalyzeSerializedRuntime(serialized_runtime):
                for sdisk, link, uri in serialized_disks]
 
   return (kvm_cmd, kvm_nics, hvparams, kvm_disks)
-
-
-def _GetTunFeatures(fd, _ioctl=fcntl.ioctl):
-  """Retrieves supported TUN features from file descriptor.
-
-  @see: L{_ProbeTapVnetHdr}
-
-  """
-  req = struct.pack("I", 0)
-  try:
-    buf = _ioctl(fd, TUNGETFEATURES, req)
-  except EnvironmentError, err:
-    logging.warning("ioctl(TUNGETFEATURES) failed: %s", err)
-    return None
-  else:
-    (flags, ) = struct.unpack("I", buf)
-    return flags
-
-
-def _ProbeTapVnetHdr(fd, _features_fn=_GetTunFeatures):
-  """Check whether to enable the IFF_VNET_HDR flag.
-
-  To do this, _all_ of the following conditions must be met:
-   1. TUNGETFEATURES ioctl() *must* be implemented
-   2. TUNGETFEATURES ioctl() result *must* contain the IFF_VNET_HDR flag
-   3. TUNGETIFF ioctl() *must* be implemented; reading the kernel code in
-      drivers/net/tun.c there is no way to test this until after the tap device
-      has been created using TUNSETIFF, and there is no way to change the
-      IFF_VNET_HDR flag after creating the interface, catch-22! However both
-      TUNGETIFF and TUNGETFEATURES were introduced in kernel version 2.6.27,
-      thus we can expect TUNGETIFF to be present if TUNGETFEATURES is.
-
-   @type fd: int
-   @param fd: the file descriptor of /dev/net/tun
-
-  """
-  flags = _features_fn(fd)
-
-  if flags is None:
-    # Not supported
-    return False
-
-  result = bool(flags & IFF_VNET_HDR)
-
-  if not result:
-    logging.warning("Kernel does not support IFF_VNET_HDR, not enabling")
-
-  return result
-
-
-def _OpenTap(vnet_hdr=True, name=""):
-  """Open a new tap device and return its file descriptor.
-
-  This is intended to be used by a qemu-type hypervisor together with the -net
-  tap,fd=<fd> command line parameter.
-
-  @type vnet_hdr: boolean
-  @param vnet_hdr: Enable the VNET Header
-
-  @type name: string
-  @param name: name for the TAP interface being created; if an empty
-               string is passed, the OS will generate a unique name
-
-  @return: (ifname, tapfd)
-  @rtype: tuple
-
-  """
-  try:
-    tapfd = os.open("/dev/net/tun", os.O_RDWR)
-  except EnvironmentError:
-    raise errors.HypervisorError("Failed to open /dev/net/tun")
-
-  flags = IFF_TAP | IFF_NO_PI
-
-  if vnet_hdr and _ProbeTapVnetHdr(tapfd):
-    flags |= IFF_VNET_HDR
-
-  # The struct ifreq ioctl request (see netdevice(7))
-  ifr = struct.pack("16sh", name, flags)
-
-  try:
-    res = fcntl.ioctl(tapfd, TUNSETIFF, ifr)
-  except EnvironmentError, err:
-    raise errors.HypervisorError("Failed to allocate a new TAP device: %s" %
-                                 err)
-
-  # Get the interface name from the ioctl
-  ifname = struct.unpack("16sh", res)[0].strip("\x00")
-  return (ifname, tapfd)
 
 
 class HeadRequest(urllib2.Request):
@@ -1689,8 +1589,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvm_supports_netdev = self._NETDEV_RE.search(kvmhelp)
 
       for nic_seq, nic in enumerate(kvm_nics):
-        tapname, tapfd = _OpenTap(vnet_hdr=vnet_hdr,
-                                  name=self._GenerateTapName(nic))
+        tapname, tapfd = OpenTap(vnet_hdr=vnet_hdr,
+                                 name=self._GenerateTapName(nic))
         tapfds.append(tapfd)
         taps.append(tapname)
         if kvm_supports_netdev:
@@ -2003,7 +1903,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       cmds += ["device_add virtio-blk-pci,bus=pci.0,addr=%s,drive=%s,id=%s" %
                 (hex(device.pci), kvm_devid, kvm_devid)]
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
-      (tap, fd) = _OpenTap()
+      (tap, fd) = OpenTap()
       self._ConfigureNIC(instance, seq, device, tap)
       self._PassTapFd(instance, fd, device)
       cmds = ["netdev_add tap,id=%s,fd=%s" % (kvm_devid, kvm_devid)]

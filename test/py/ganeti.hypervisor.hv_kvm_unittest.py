@@ -38,6 +38,7 @@ from ganeti import utils
 from ganeti import pathutils
 
 from ganeti.hypervisor import hv_kvm
+import ganeti.hypervisor.hv_kvm.netdev as netdev
 
 import testutils
 
@@ -348,11 +349,11 @@ class TestGetTunFeatures(unittest.TestCase):
   def testWrongIoctl(self):
     tmpfile = tempfile.NamedTemporaryFile()
     # A file does not have the right ioctls, so this must always fail
-    result = hv_kvm._GetTunFeatures(tmpfile.fileno())
+    result = netdev._GetTunFeatures(tmpfile.fileno())
     self.assertTrue(result is None)
 
   def _FakeIoctl(self, features, fd, request, buf):
-    self.assertEqual(request, hv_kvm.TUNGETFEATURES)
+    self.assertEqual(request, netdev.TUNGETFEATURES)
 
     (reqno, ) = struct.unpack("I", buf)
     self.assertEqual(reqno, 0)
@@ -363,9 +364,9 @@ class TestGetTunFeatures(unittest.TestCase):
     tmpfile = tempfile.NamedTemporaryFile()
     fd = tmpfile.fileno()
 
-    for features in [0, hv_kvm.IFF_VNET_HDR]:
+    for features in [0, netdev.IFF_VNET_HDR]:
       fn = compat.partial(self._FakeIoctl, features)
-      result = hv_kvm._GetTunFeatures(fd, _ioctl=fn)
+      result = netdev._GetTunFeatures(fd, _ioctl=fn)
       self.assertEqual(result, features)
 
 
@@ -378,10 +379,10 @@ class TestProbeTapVnetHdr(unittest.TestCase):
     tmpfile = tempfile.NamedTemporaryFile()
     fd = tmpfile.fileno()
 
-    for flags in [0, hv_kvm.IFF_VNET_HDR]:
+    for flags in [0, netdev.IFF_VNET_HDR]:
       fn = compat.partial(self._FakeTunFeatures, fd, flags)
 
-      result = hv_kvm._ProbeTapVnetHdr(fd, _features_fn=fn)
+      result = netdev._ProbeTapVnetHdr(fd, _features_fn=fn)
       if flags == 0:
         self.assertFalse(result)
       else:
@@ -391,7 +392,7 @@ class TestProbeTapVnetHdr(unittest.TestCase):
     tmpfile = tempfile.NamedTemporaryFile()
     fd = tmpfile.fileno()
 
-    self.assertFalse(hv_kvm._ProbeTapVnetHdr(fd, _features_fn=lambda _: None))
+    self.assertFalse(netdev._ProbeTapVnetHdr(fd, _features_fn=lambda _: None))
 
 
 class TestGenerateDeviceKVMId(unittest.TestCase):
