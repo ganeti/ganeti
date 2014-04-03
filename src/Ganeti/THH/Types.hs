@@ -29,8 +29,10 @@ module Ganeti.THH.Types
   ( typeOfFun
   , funArgs
   , tupleArgs
+  , argumentType
   , uncurryVarType
   , uncurryVar
+  , curryN
   , OneTuple(..)
   ) where
 
@@ -77,6 +79,12 @@ tupleArgs = fmap reverse . f []
     f ts (AppT (AppT ArrowT x) t)  = f (t:ts) x
     f _  _                         = Nothing
 
+-- | Given a type of the form @m a@, this function extracts @a@.
+-- If the given type is of another form, it fails with an error message.
+argumentType :: Type -> Q Type
+argumentType (AppT _ t) = return t
+argumentType t          = fail $ "Not a type of the form 'm a': " ++ show t
+
 -- | Generic 'uncurry' that counts the number of function arguments in a type
 -- and constructs the appropriate uncurry function into @i -> o@.
 -- It the type has no arguments, it's converted into @() -> o@.
@@ -99,3 +107,13 @@ uncurryVar :: Name -> Q Exp
 uncurryVar name = do
   t <- typeOfFun name
   appE (uncurryVarType t) (varE name)
+
+-- | Generic 'curry' that constructs a curring function of a given arity.
+curryN :: Int -> Q Exp
+curryN 0 = [| ($ ()) |]
+curryN 1 = [| (. OneTuple) |]
+curryN n = do
+  f <- newName "f"
+  ps <- replicateM n (newName "x")
+  return $ LamE (VarP f : map VarP ps)
+             (AppE (VarE f) (TupE $ map VarE ps))
