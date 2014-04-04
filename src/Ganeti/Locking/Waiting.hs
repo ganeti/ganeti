@@ -29,6 +29,7 @@ module Ganeti.Locking.Waiting
  , updateLocks
  , updateLocksWaiting
  , getAllocation
+ , getPendingOwners
  ) where
 
 import qualified Data.Map as M
@@ -81,6 +82,10 @@ emptyWaiting =
               , lwPending = M.empty
               , lwPendingOwners = M.empty
               }
+
+-- | Get the set of owners with pending lock requests.
+getPendingOwners :: LockWaiting a b c -> S.Set b
+getPendingOwners = M.keysSet . lwPendingOwners
 
 -- | Get the allocation state from the waiting state
 getAllocation :: LockWaiting a b c -> L.LockAllocation a b
