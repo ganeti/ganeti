@@ -28,7 +28,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.Locking.Waiting (testLocking_Waiting) where
 
-import Control.Applicative ((<$>), (<*>))
+import Control.Applicative ((<$>), (<*>), liftA2)
+import qualified Data.Map as M
 import qualified Data.Set as S
 
 import Test.QuickCheck
@@ -36,8 +37,8 @@ import Test.QuickCheck
 import Test.Ganeti.TestHelper
 import Test.Ganeti.Locking.Allocation (TestLock, TestOwner)
 
-import Ganeti.BasicTypes (isBad)
-import Ganeti.Locking.Allocation (LockRequest)
+import Ganeti.BasicTypes (isBad, genericResult)
+import Ganeti.Locking.Allocation (LockRequest, listLocks)
 import Ganeti.Locking.Types (Lock)
 import Ganeti.Locking.Waiting
 
@@ -60,14 +61,16 @@ obtained from @emptyWaiting@ applying one of the update operations.
 
 data UpdateRequest a b c = Update b [LockRequest a]
                          | UpdateWaiting c b [LockRequest a]
+                         | RemovePending b
                          deriving Show
 
 instance (Arbitrary a, Arbitrary b, Arbitrary c)
          => Arbitrary (UpdateRequest a b c) where
   arbitrary =
-    frequency [ (1, Update <$> arbitrary <*> (choose (1, 4) >>= vector))
-              , (2, UpdateWaiting <$> arbitrary <*> arbitrary
+    frequency [ (2, Update <$> arbitrary <*> (choose (1, 4) >>= vector))
+              , (4, UpdateWaiting <$> arbitrary <*> arbitrary
                                   <*> (choose (1, 4) >>= vector))
+              , (1, RemovePending <$> arbitrary)
               ]
 
 -- | Transform an UpdateRequest into the corresponding state transformer.
@@ -76,6 +79,7 @@ asWaitingTrans :: (Lock a, Ord b, Ord c)
 asWaitingTrans state (Update owner req) = fst $ updateLocks owner req state
 asWaitingTrans state (UpdateWaiting prio owner req) =
   fst $ updateLocksWaiting prio owner req state
+asWaitingTrans state (RemovePending owner) = removePendingRequest owner state
 
 
 -- | Fold a sequence of requests to transform a waiting strucutre onto the
@@ -102,6 +106,44 @@ prop_NoActionWithPendingRequests =
   . all (isBad . fst . snd)
   $ [updateLocks, updateLocksWaiting prio] <*> [a] <*> [req] <*> [state]
 
+-- | Quantifier for blocked requests. Quantifies over the generic situation
+-- that there is a state, an owner, and a request that is blocked for that
+-- owner. To obtain such a situation, we use the fact that there must be a
+-- different owner having at least one lock.
+forAllBlocked :: (Testable prop)
+              => (LockWaiting TestLock TestOwner Integer -- State
+                  -> TestOwner -- The owner of the blocked request
+                  -> Integer -- The priority
+                  -> [LockRequest TestLock] -- Request
+                  -> prop)
+              -> Property
+forAllBlocked predicate =
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll (arbitrary :: Gen Integer) $ \prio ->
+  forAll (arbitrary `suchThat` (/=) a) $ \b ->
+  forAll ((arbitrary :: Gen (LockWaiting TestLock TestOwner Integer))
+          `suchThat` foldl (liftA2 (&&)) (const True)
+              [ not . S.member a . getPendingOwners
+              , M.null . listLocks a . getAllocation
+              , not . M.null . listLocks b . getAllocation]) $ \state ->
+  forAll ((arbitrary :: Gen [LockRequest TestLock])
+          `suchThat` (genericResult (const False) (not . S.null)
+                      . fst . snd . flip (updateLocksWaiting prio a) state))
+          $ \req ->
+  predicate state a prio req
+
+-- | Verify that an owner has a pending request after a waiting request
+-- not fullfilled immediately.
+prop_WaitingRequestsGetPending :: Property
+prop_WaitingRequestsGetPending =
+  forAllBlocked $ \state owner prio req ->
+  printTestCase "After a not immediately fulfilled waiting request, owner\
+                \ must have a pending request"
+  . S.member owner . getPendingOwners . fst
+  $ updateLocksWaiting prio owner req state
+
+
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
+ , 'prop_WaitingRequestsGetPending
  ]
