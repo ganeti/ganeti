@@ -195,6 +195,12 @@ data ClientType = ClientOther String
                 | ClientJob JobId
                 deriving (Ord, Eq, Show)
 
+instance J.JSON ClientType where
+  showJSON (ClientOther s) = J.showJSON s
+  showJSON (ClientJob jid) = J.showJSON jid
+  readJSON (J.JSString s) = J.Ok . ClientOther $ J.fromJSString s
+  readJSON jids = J.readJSON jids >>= \jid -> J.Ok (ClientJob jid)
+
 -- | A client is identified as a job id, thread id and path to its process
 -- identifier file.
 --
