@@ -37,6 +37,7 @@ module Ganeti.Locking.Locks
   , lockLevel
   ) where
 
+import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad ((>=>))
 import Control.Monad.Base (MonadBase, liftBase)
 import Control.Monad.Error (MonadError, catchError)
@@ -208,22 +209,19 @@ instance J.JSON ClientType where
 -- also handles client calls that aren't jobs, but which use the configuration.
 -- These taks are identified by a unique name, reported to WConfD as a string.
 data ClientId = ClientId
-  { ciIdentifier :: Either String JobId
+  { ciIdentifier :: ClientType
   , ciLockFile :: FilePath
   }
   deriving (Ord, Eq, Show)
 
 -- | Obtain the ClientID from its JSON representation.
 clientIdFromJSON :: J.JSValue -> J.Result ClientId
-clientIdFromJSON (J.JSArray [J.JSString s, J.JSString lf]) =
-  J.Ok . ClientId (Left $ J.fromJSString s) $ J.fromJSString lf
-clientIdFromJSON (J.JSArray [jsjid, J.JSString lf]) =
-  J.readJSON jsjid >>= \jid -> J.Ok (ClientId (Right jid) (J.fromJSString lf))
+clientIdFromJSON (J.JSArray [clienttp, J.JSString lf]) =
+  ClientId <$> J.readJSON clienttp <*> pure (J.fromJSString lf)
 clientIdFromJSON x = J.Error $ "malformed client id: " ++ show x
 
 instance J.JSON ClientId where
-  showJSON (ClientId (Left name) lf) = J.showJSON (name, lf)
-  showJSON (ClientId (Right jid) lf) = J.showJSON (jid, lf)
+  showJSON (ClientId client lf) = J.showJSON (client, lf)
   readJSON = clientIdFromJSON
 
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of

@@ -48,7 +48,7 @@ type RuntimeData = Maybe (GanetiLocks, [(ClientId, OwnerState)])
 -- | Obtain the owners of a lock from the runtime data.
 getOwners :: RuntimeData -> a -> ResultEntry
 getOwners (Just (_, ownerinfo)) _ =
-  rsNormal . map (either J.encode J.encode . ciIdentifier . fst)
+  rsNormal . map (J.encode . ciIdentifier . fst)
     $ ownerinfo
 getOwners _ _ = rsNormal ([] :: [(ClientId, OwnerState)])
 
