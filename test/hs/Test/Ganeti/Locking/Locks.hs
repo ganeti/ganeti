@@ -90,6 +90,16 @@ prop_ReadShowLevel :: Property
 prop_ReadShowLevel = forAll (arbitrary :: Gen LockLevel) $ \a ->
   readJSON (showJSON a) ==? Ok a
 
+instance Arbitrary ClientType where
+  arbitrary = oneof [ ClientOther <$> arbitrary
+                    , ClientJob <$> arbitrary
+                    ]
+
+-- | Verify that readJSON . showJSON = Ok for ClientType
+prop_ReadShow_ClientType :: Property
+prop_ReadShow_ClientType = forAll (arbitrary :: Gen ClientType) $ \a ->
+  readJSON (showJSON a) ==? Ok a
+
 instance Arbitrary ClientId where
   arbitrary = ClientId <$> arbitrary <*> arbitrary
 
@@ -103,5 +113,6 @@ testSuite "Locking/Locks"
  , 'prop_ImpliedOrder
  , 'prop_ImpliedIntervall
  , 'prop_ReadShowLevel
+ , 'prop_ReadShow_ClientType
  , 'prop_ReadShow_ClientId
  ]
