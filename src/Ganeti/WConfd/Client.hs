@@ -31,7 +31,6 @@ module Ganeti.WConfd.Client where
 
 import Ganeti.THH.HsRPC
 import Ganeti.Constants
-import Ganeti.Runtime (GanetiDaemon(..))
 import Ganeti.UDSServer (ConnectConfig(..), Client, connectClient)
 import Ganeti.WConfd.Core (exportedFunctions)
 
@@ -43,8 +42,7 @@ $(mkRpcCalls exportedFunctions)
 
 -- | The default WConfd client configuration
 wconfdConnectConfig :: ConnectConfig
-wconfdConnectConfig = ConnectConfig { connDaemon = GanetiWConfd
-                                    , recvTmo    = wconfdDefRwto
+wconfdConnectConfig = ConnectConfig { recvTmo    = wconfdDefRwto
                                     , sendTmo    = wconfdDefRwto
                                     }
 

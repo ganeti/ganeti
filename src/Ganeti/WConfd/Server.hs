@@ -70,7 +70,7 @@ prepMain _ _ = do
   socket_path <- Path.defaultWConfdSocket
   cleanupSocket socket_path
   s <- describeError "binding to the socket" Nothing (Just socket_path)
-         $ connectServer connectConfig True socket_path
+         $ connectServer serverConfig True socket_path
 
   -- TODO: Lock the configuration file so that running the daemon twice fails?
   conf_file <- Path.clusterConfFile
@@ -97,8 +97,8 @@ prepMain _ _ = do
 
   return (s, dh)
 
-connectConfig :: ConnectConfig
-connectConfig = ConnectConfig GanetiLuxid 60 60
+serverConfig :: ServerConfig
+serverConfig = ServerConfig GanetiLuxid $ ConnectConfig 60 60
 
 -- | Main function.
 main :: MainFn () PrepResult

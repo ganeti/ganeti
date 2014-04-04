@@ -36,7 +36,7 @@ import Ganeti.Path as Path
 import Ganeti.Daemon (DaemonOptions)
 import qualified Ganeti.Logging as Logging
 import Ganeti.Runtime (GanetiDaemon(..))
-import Ganeti.UDSServer (Client, ConnectConfig(..), Server)
+import Ganeti.UDSServer (Client, ConnectConfig(..), Server, ServerConfig(..))
 import qualified Ganeti.UDSServer as UDSServer
 
 import Ganeti.Metad.Config as Config
@@ -94,4 +94,4 @@ start _ config =
        (acceptClients config server)
        (UDSServer.closeServer server)
   where
-    metadConfig = ConnectConfig GanetiMetad 60 60
+    metadConfig = ServerConfig GanetiMetad $ ConnectConfig 60 60

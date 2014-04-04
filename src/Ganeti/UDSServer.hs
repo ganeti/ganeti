@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.UDSServer
   ( ConnectConfig(..)
+  , ServerConfig(..)
   , Client
   , Server
   , RecvResult(..)
@@ -129,9 +130,15 @@ data MsgKeys = Method
 $(genStrOfKey ''MsgKeys "strOfKey")
 
 
+-- Information required for creating a server connection.
+data ServerConfig = ServerConfig
+                    { connDaemon :: GanetiDaemon
+                    , connConfig :: ConnectConfig
+                    }
+
+-- Information required for creating a client or server connection.
 data ConnectConfig = ConnectConfig
-                     { connDaemon :: GanetiDaemon
-                     , recvTmo :: Int
+                     { recvTmo :: Int
                      , sendTmo :: Int
                      }
 
@@ -201,13 +208,13 @@ connectClient conf tmo path = do
   return Client { rsocket=h, wsocket=h, rbuf=rf, clientConfig=conf }
 
 -- | Creates and returns a server endpoint.
-connectServer :: ConnectConfig -> Bool -> FilePath -> IO Server
-connectServer conf setOwner path = do
+connectServer :: ServerConfig -> Bool -> FilePath -> IO Server
+connectServer sconf setOwner path = do
   s <- openServerSocket path
-  when setOwner . setOwnerAndGroupFromNames path (connDaemon conf) $
+  when setOwner . setOwnerAndGroupFromNames path (connDaemon sconf) $
     ExtraGroup DaemonsGroup
   S.listen s 5 -- 5 is the max backlog
-  return Server { sSocket=s, sPath=path, serverConfig=conf }
+  return Server { sSocket = s, sPath = path, serverConfig = connConfig sconf }
 
 -- | Creates a new bi-directional client pipe. The two returned clients
 -- talk to each other through the pipe.

@@ -171,15 +171,15 @@ $(genAllConstr (drop 3) ''LuxiReq "allLuxiCalls")
 $(genStrOfOp ''LuxiOp "strOfOp")
 
 
-luxiConnectConfig :: ConnectConfig
-luxiConnectConfig = ConnectConfig { connDaemon = GanetiLuxid
-                                  , recvTmo    = luxiDefRwto
-                                  , sendTmo    = luxiDefRwto
-                                  }
+luxiConnectConfig :: ServerConfig
+luxiConnectConfig = ServerConfig GanetiLuxid
+                      ConnectConfig { recvTmo    = luxiDefRwto
+                                    , sendTmo    = luxiDefRwto
+                                    }
 
 -- | Connects to the master daemon and returns a luxi Client.
 getLuxiClient :: String -> IO Client
-getLuxiClient = connectClient luxiConnectConfig luxiDefCtmo
+getLuxiClient = connectClient (connConfig luxiConnectConfig) luxiDefCtmo
 
 -- | Creates and returns a server endpoint.
 getLuxiServer :: Bool -> FilePath -> IO Server
