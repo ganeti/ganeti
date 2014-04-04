@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Locking.Locks
   ( GanetiLocks(..)
   , lockName
+  , ClientType(..)
   , ClientId(..)
   , GanetiLockAllocation
   , loadLockAllocation
@@ -185,6 +186,14 @@ instance Lock GanetiLocks where
   -- access to the configuration
   lockImplications ConfigLock = []
   lockImplications _ = []
+
+-- | Type of entities capable of owning locks. Usually, locks are owned
+-- by jobs. However, occassionally other tasks need locks (currently, e.g.,
+-- to lock the configuration). These are identified by a unique name,
+-- reported to WConfD as a strig.
+data ClientType = ClientOther String
+                | ClientJob JobId
+                deriving (Ord, Eq, Show)
 
 -- | A client is identified as a job id, thread id and path to its process
 -- identifier file.
