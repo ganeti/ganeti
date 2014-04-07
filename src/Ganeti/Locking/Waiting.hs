@@ -30,6 +30,7 @@ module Ganeti.Locking.Waiting
  , updateLocksWaiting
  , getAllocation
  , getPendingOwners
+ , removePendingRequest
  ) where
 
 import qualified Data.Map as M
@@ -186,3 +187,22 @@ updateLocksWaiting prio owner reqs state =
                                 , lwPending = pending
                                 }
   in (state'', (result, notify))
+
+-- | Compute the state of a waiting after an owner gives up
+-- on his pending request.
+removePendingRequest :: (Lock a, Ord b, Ord c)
+                     => b -> LockWaiting a b c -> LockWaiting a b c
+removePendingRequest owner state =
+  let pendingOwners = lwPendingOwners state
+      pending = lwPending state
+  in case M.lookup owner pendingOwners of
+    Nothing -> state
+    Just (blocker, entry) ->
+      let byBlocker = fromMaybe S.empty . M.lookup blocker $ pending
+          byBlocker' = S.delete entry byBlocker
+          pending' = if S.null byBlocker'
+                       then M.delete blocker pending
+                       else M.insert blocker byBlocker' pending
+      in state { lwPendingOwners = M.delete owner pendingOwners
+               , lwPending = pending'
+               }
