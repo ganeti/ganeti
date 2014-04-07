@@ -46,6 +46,7 @@ module Ganeti.UDSServer
   , pipeClient
   , acceptClient
   , closeClient
+  , clientToFd
   , closeServer
   , buildResponse
   , parseResponse
@@ -77,7 +78,8 @@ import qualified Network.Socket as S
 import System.Directory (removeFile)
 import System.IO (hClose, hFlush, hWaitForInput, Handle, IOMode(..))
 import System.IO.Error (isEOFError)
-import System.Posix.IO (createPipe, fdToHandle)
+import System.Posix.Types (Fd)
+import System.Posix.IO (createPipe, fdToHandle, handleToFd)
 import System.Timeout
 import Text.JSON (encodeStrict, decodeStrict)
 import qualified Text.JSON as J
@@ -252,6 +254,19 @@ closeClient :: Client -> IO ()
 closeClient client = do
   closeClientSocket . wsocket $ client
   closeClientSocket . rsocket $ client
+
+-- | Extracts the read (the first) and the write (the second) file descriptor
+-- of a client. This closes the underlying 'Handle's, therefore the original
+-- client is closed and unusable after the call.
+--
+-- The purpose of this function is to keep the communication channel open,
+-- while replacing a 'Client' with some other means.
+clientToFd :: Client -> IO (Fd, Fd)
+clientToFd client | rh == wh  = join (,) <$> handleToFd rh
+                  | otherwise = (,) <$> handleToFd rh <*> handleToFd wh
+  where
+    rh = rsocket client
+    wh = wsocket client
 
 -- | Sends a message over a transport.
 sendMsg :: Client -> String -> IO ()
