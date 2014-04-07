@@ -195,6 +195,9 @@ class QmpConnection(MonitorSocket):
   _ERROR_DESC_KEY = "desc"
   _EXECUTE_KEY = "execute"
   _ARGUMENTS_KEY = "arguments"
+  _VERSION_KEY = "version"
+  _PACKAGE_KEY = "package"
+  _QEMU_KEY = "qemu"
   _CAPABILITIES_COMMAND = "qmp_capabilities"
   _QUERY_COMMANDS = "query-commands"
   _MESSAGE_END_TOKEN = "\r\n"
@@ -222,6 +225,15 @@ class QmpConnection(MonitorSocket):
       self._connected = False
       raise errors.HypervisorError("kvm: QMP communication error (wrong"
                                    " server greeting")
+
+    # Extract the version info from the greeting and make it available to users
+    # of the monitor.
+    version_info = greeting[self._FIRST_MESSAGE_KEY][self._VERSION_KEY]
+
+    self.version = (version_info[self._QEMU_KEY]["major"],
+                    version_info[self._QEMU_KEY]["minor"],
+                    version_info[self._QEMU_KEY]["micro"])
+    self.package = version_info[self._PACKAGE_KEY].strip()
 
     # This is needed because QMP can return more than one greetings
     # see https://groups.google.com/d/msg/ganeti-devel/gZYcvHKDooU/SnukC8dgS5AJ
