@@ -365,6 +365,24 @@ def _QuoteCpuidField(data):
   return "'%s'" % data if data.startswith("host") else data
 
 
+def _ConfigureNIC(instance, seq, nic, tap):
+  """Run the network configuration script for a specified NIC
+
+  See L{hv_base.ConfigureNIC}.
+
+  @type instance: instance object
+  @param instance: instance we're acting on
+  @type seq: int
+  @param seq: nic sequence number
+  @type nic: nic object
+  @param nic: nic we're acting on
+  @type tap: str
+  @param tap: the host's tap interface this NIC corresponds to
+
+  """
+  hv_base.ConfigureNIC(pathutils.XEN_IFUP_OS, instance, seq, nic, tap)
+
+
 class XenHypervisor(hv_base.BaseHypervisor):
   """Xen generic hypervisor interface
 
@@ -547,6 +565,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
         if nic.nicparams[constants.NIC_VLAN]:
           nic_str += "%s" % nic.nicparams[constants.NIC_VLAN]
 
+      if nic.name and \
+            nic.name.startswith(constants.INSTANCE_COMMUNICATION_NIC_PREFIX):
+        tap = hv_base.GenerateTapName()
+        nic_str += ", vifname=%s" % tap
+        nic.name = tap
+
       if hvp[constants.HV_VIF_SCRIPT]:
         nic_str += ", script=%s" % hvp[constants.HV_VIF_SCRIPT]
 
@@ -691,6 +715,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
                                    " config file to %s" %
                                    (instance.name, result.fail_reason,
                                     result.output, stashed_config))
+
+    for nic_seq, nic in enumerate(instance.nics):
+      if nic.name and nic.name.startswith("gnt.com."):
+        _ConfigureNIC(instance, nic_seq, nic, nic.name)
 
   def StopInstance(self, instance, force=False, retry=False, name=None,
                    timeout=None):
