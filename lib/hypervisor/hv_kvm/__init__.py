@@ -1462,7 +1462,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to start instance %s" % name)
 
   @staticmethod
-  def _GenerateTapName(nic):
+  def _GenerateKvmTapName(nic):
     """Generate a TAP network interface name for a NIC.
 
     This helper function generates a special TAP network interface
@@ -1595,7 +1595,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
       for nic_seq, nic in enumerate(kvm_nics):
         tapname, tapfd = OpenTap(vnet_hdr=vnet_hdr,
-                                 name=self._GenerateTapName(nic))
+                                 name=self._GenerateKvmTapName(nic))
         tapfds.append(tapfd)
         taps.append(tapname)
         if kvm_supports_netdev:
