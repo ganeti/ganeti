@@ -2515,7 +2515,8 @@ class ConfigWriter(object):
     # Read the configuration data. If offline, read the file directly.
     # If online, call WConfd.
     if self._offline:
-      raw_data = utils.ReadFile(self._cfg_file)
+      try:
+        raw_data = utils.ReadFile(self._cfg_file)
         data_dict = serializer.Load(raw_data)
         # Make sure the configuration has the right version
         _ValidateConfig(data_dict)
