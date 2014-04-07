@@ -3284,10 +3284,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
       if nimg.vm_capable:
         self._UpdateVerifyNodeLVM(node_i, nresult, vg_name, nimg)
-        self._VerifyNodeDrbd(node_i, nresult, self.all_inst_info, drbd_helper,
-                             all_drbd_map)
+        if constants.DT_DRBD8 in cluster.enabled_disk_templates:
+          self._VerifyNodeDrbd(node_i, nresult, self.all_inst_info, drbd_helper,
+                               all_drbd_map)
 
-        self._UpdateNodeVolumes(node_i, nresult, nimg, vg_name)
+        if (constants.DT_PLAIN in cluster.enabled_disk_templates) or \
+            (constants.DT_DRBD8 in cluster.enabled_disk_templates):
+          self._UpdateNodeVolumes(node_i, nresult, nimg, vg_name)
         self._UpdateNodeInstances(node_i, nresult, nimg)
         self._UpdateNodeInfo(node_i, nresult, nimg, vg_name)
         self._UpdateNodeOS(node_i, nresult, nimg)
