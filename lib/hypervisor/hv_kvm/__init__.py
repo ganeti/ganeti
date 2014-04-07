@@ -664,6 +664,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _ConfigureNIC(instance, seq, nic, tap):
     """Run the network configuration script for a specified NIC
 
+    See L{hv_base.ConfigureNIC}.
+
     @param instance: instance we're acting on
     @type instance: instance object
     @param seq: nic sequence number
@@ -674,41 +676,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type tap: str
 
     """
-    env = {
-      "PATH": "%s:/sbin:/usr/sbin" % os.environ["PATH"],
-      "INSTANCE": instance.name,
-      "MAC": nic.mac,
-      "MODE": nic.nicparams[constants.NIC_MODE],
-      "INTERFACE": tap,
-      "INTERFACE_INDEX": str(seq),
-      "INTERFACE_UUID": nic.uuid,
-      "TAGS": " ".join(instance.GetTags()),
-    }
-
-    if nic.ip:
-      env["IP"] = nic.ip
-
-    if nic.name:
-      env["INTERFACE_NAME"] = nic.name
-
-    if nic.nicparams[constants.NIC_LINK]:
-      env["LINK"] = nic.nicparams[constants.NIC_LINK]
-
-    if nic.nicparams[constants.NIC_VLAN]:
-      env["VLAN"] = nic.nicparams[constants.NIC_VLAN]
-
-    if nic.network:
-      n = objects.Network.FromDict(nic.netinfo)
-      env.update(n.HooksDict())
-
-    if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
-      env["BRIDGE"] = nic.nicparams[constants.NIC_LINK]
-
-    result = utils.RunCmd([pathutils.KVM_IFUP, tap], env=env)
-    if result.failed:
-      raise errors.HypervisorError("Failed to configure interface %s: %s;"
-                                   " network configuration script output: %s" %
-                                   (tap, result.fail_reason, result.output))
+    hv_base.ConfigureNIC([pathutils.KVM_IFUP, tap], instance, seq, nic, tap)
 
   @staticmethod
   def _VerifyAffinityPackage():

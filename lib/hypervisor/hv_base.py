@@ -42,9 +42,10 @@ import re
 import logging
 
 
-from ganeti import errors
-from ganeti import utils
 from ganeti import constants
+from ganeti import errors
+from ganeti import objects
+from ganeti import utils
 
 
 def _IsCpuMaskWellFormed(cpu_mask):
@@ -191,6 +192,58 @@ def GenerateTapName():
     idx = 0
 
   return "gnt.com.%d" % idx
+
+
+def ConfigureNIC(cmd, instance, seq, nic, tap):
+  """Run the network configuration script for a specified NIC
+
+  @type cmd: string
+  @param cmd: command to run
+  @type instance: instance object
+  @param instance: instance we're acting on
+  @type seq: int
+  @param seq: nic sequence number
+  @type nic: nic object
+  @param nic: nic we're acting on
+  @type tap: str
+  @param tap: the host's tap interface this NIC corresponds to
+
+  """
+  env = {
+    "PATH": "%s:/sbin:/usr/sbin" % os.environ["PATH"],
+    "INSTANCE": instance.name,
+    "MAC": nic.mac,
+    "MODE": nic.nicparams[constants.NIC_MODE],
+    "INTERFACE": tap,
+    "INTERFACE_INDEX": str(seq),
+    "INTERFACE_UUID": nic.uuid,
+    "TAGS": " ".join(instance.GetTags()),
+  }
+
+  if nic.ip:
+    env["IP"] = nic.ip
+
+  if nic.name:
+    env["INTERFACE_NAME"] = nic.name
+
+  if nic.nicparams[constants.NIC_LINK]:
+    env["LINK"] = nic.nicparams[constants.NIC_LINK]
+
+  if nic.nicparams[constants.NIC_VLAN]:
+    env["VLAN"] = nic.nicparams[constants.NIC_VLAN]
+
+  if nic.network:
+    n = objects.Network.FromDict(nic.netinfo)
+    env.update(n.HooksDict())
+
+  if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+    env["BRIDGE"] = nic.nicparams[constants.NIC_LINK]
+
+  result = utils.RunCmd(cmd, env=env)
+  if result.failed:
+    raise errors.HypervisorError("Failed to configure interface %s: %s;"
+                                 " network configuration script output: %s" %
+                                 (tap, result.fail_reason, result.output))
 
 
 class HvInstanceState(object):
