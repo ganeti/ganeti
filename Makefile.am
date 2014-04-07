@@ -83,6 +83,7 @@ clientdir = $(pkgpythondir)/client
 cmdlibdir = $(pkgpythondir)/cmdlib
 hypervisordir = $(pkgpythondir)/hypervisor
 hypervisor_hv_kvmdir = $(pkgpythondir)/hypervisor/hv_kvm
+jqueuedir = $(pkgpythondir)/jqueue
 storagedir = $(pkgpythondir)/storage
 httpdir = $(pkgpythondir)/http
 masterddir = $(pkgpythondir)/masterd
@@ -180,6 +181,7 @@ DIRS = \
 	lib/client \
 	lib/cmdlib \
 	lib/confd \
+	lib/jqueue \
 	lib/http \
 	lib/hypervisor \
 	lib/hypervisor/hv_kvm \
@@ -375,7 +377,6 @@ pkgpython_PYTHON = \
 	lib/errors.py \
 	lib/hooksmaster.py \
 	lib/ht.py \
-	lib/jqueue.py \
 	lib/jstore.py \
 	lib/locking.py \
 	lib/luxi.py \
@@ -446,6 +447,9 @@ hypervisor_hv_kvm_PYTHON = \
   lib/hypervisor/hv_kvm/__init__.py \
   lib/hypervisor/hv_kvm/monitor.py \
   lib/hypervisor/hv_kvm/netdev.py
+
+jqueue_PYTHON = \
+	lib/jqueue/__init__.py
 
 storage_PYTHON = \
 	lib/storage/__init__.py \
@@ -1665,6 +1669,7 @@ all_python_code = \
 	$(cmdlib_PYTHON) \
 	$(hypervisor_PYTHON) \
 	$(hypervisor_hv_kvm_PYTHON) \
+	$(jqueue_PYTHON) \
 	$(storage_PYTHON) \
 	$(rapi_PYTHON) \
 	$(server_PYTHON) \
