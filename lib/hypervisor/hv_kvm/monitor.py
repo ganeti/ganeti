@@ -183,11 +183,13 @@ class QmpConnection(MonitorSocket):
   _EXECUTE_KEY = "execute"
   _ARGUMENTS_KEY = "arguments"
   _CAPABILITIES_COMMAND = "qmp_capabilities"
+  _QUERY_COMMANDS = "query-commands"
   _MESSAGE_END_TOKEN = "\r\n"
 
   def __init__(self, monitor_filename):
     super(QmpConnection, self).__init__(monitor_filename)
     self._buf = ""
+    self.supported_commands = frozenset()
 
   def connect(self):
     """Connects to the QMP monitor.
@@ -216,6 +218,7 @@ class QmpConnection(MonitorSocket):
     # command, or else no command will be executable.
     # (As per the QEMU Protocol Specification 0.1 - section 4)
     self.Execute(self._CAPABILITIES_COMMAND)
+    self.supported_commands = self._GetSupportedCommands()
 
   def _ParseMessage(self, buf):
     """Extract and parse a QMP message from the given buffer.
@@ -299,6 +302,13 @@ class QmpConnection(MonitorSocket):
     except socket.error, err:
       raise errors.HypervisorError("Unable to send data from KVM using the"
                                    " QMP protocol: %s" % err)
+
+  def _GetSupportedCommands(self):
+    """Update the list of supported commands.
+
+    """
+    result = self.Execute(self._QUERY_COMMANDS)
+    return frozenset(com["name"] for com in result[self._RETURN_KEY])
 
   def Execute(self, command, arguments=None):
     """Executes a QMP command and returns the response of the server.
