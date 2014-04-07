@@ -39,6 +39,7 @@ from ganeti import pathutils
 
 from ganeti.hypervisor import hv_kvm
 import ganeti.hypervisor.hv_kvm.netdev as netdev
+import ganeti.hypervisor.hv_kvm.monitor as monitor
 
 import testutils
 
@@ -63,6 +64,15 @@ class QmpStub(threading.Thread):
   _EMPTY_RESPONSE = {
     "return": [],
     }
+  _SUPPORTED_COMMANDS = {
+    "return": [
+      {"name": "command"},
+      {"name": "query-kvm"},
+      {"name": "eject"},
+      {"name": "query-status"},
+      {"name": "query-name"},
+    ]
+  }
 
   def __init__(self, socket_filename, server_responses):
     """Creates a QMP stub
@@ -93,6 +103,10 @@ class QmpStub(threading.Thread):
     # Expect qmp_capabilities and return an empty response
     conn.recv(4096)
     conn.send(self.encode_string(self._EMPTY_RESPONSE))
+
+    # Expect query-commands and return the list of supported commands
+    conn.recv(4096)
+    conn.send(self.encode_string(self._SUPPORTED_COMMANDS))
 
     while True:
       # We ignore the expected message, as the purpose of this object is not
@@ -198,6 +212,10 @@ class TestQmp(testutils.GanetiTestCase):
       self.assertEqual(len(str(msg).splitlines()), 1,
                        msg="Got multi-line message")
       self.assertEqual(response, msg)
+
+    self.assertRaises(monitor.QmpCommandNotSupported,
+                      qmp_connection.Execute,
+                      "unsupported-command")
 
 
 class TestConsole(unittest.TestCase):
