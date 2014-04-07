@@ -189,10 +189,10 @@ class TestQmp(testutils.GanetiTestCase):
       ]
 
     expected_responses = [
-      {"return": {"enabled": True, "present": True}},
-      {"return": {}},
-      {"return": [{"name": "quit"}, {"name": "eject"}]},
-      {"return": {"running": True, "singlestep": False}},
+      {"enabled": True, "present": True},
+      {},
+      [{"name": "quit"}, {"name": "eject"}],
+      {"running": True, "singlestep": False},
       ]
 
     # Set up the stub
@@ -207,11 +207,12 @@ class TestQmp(testutils.GanetiTestCase):
 
     # Format the script
     for request, expected_response in zip(requests, expected_responses):
-      response = qmp_connection.Execute(request)
-      msg = hv_kvm.QmpMessage(expected_response)
+      response = qmp_connection.Execute(request["execute"],
+                                        request["arguments"])
+      self.assertEqual(response, expected_response)
+      msg = hv_kvm.QmpMessage({"return": expected_response})
       self.assertEqual(len(str(msg).splitlines()), 1,
                        msg="Got multi-line message")
-      self.assertEqual(response, msg)
 
     self.assertRaises(monitor.QmpCommandNotSupported,
                       qmp_connection.Execute,

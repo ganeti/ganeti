@@ -189,7 +189,7 @@ class QmpConnection(MonitorSocket):
   _FIRST_MESSAGE_KEY = "QMP"
   _EVENT_KEY = "event"
   _ERROR_KEY = "error"
-  _RETURN_KEY = RETURN_KEY = "return"
+  _RETURN_KEY = "return"
   _ACTUAL_KEY = ACTUAL_KEY = "actual"
   _ERROR_CLASS_KEY = "class"
   _ERROR_DESC_KEY = "desc"
@@ -333,7 +333,7 @@ class QmpConnection(MonitorSocket):
 
     """
     result = self.Execute(self._QUERY_COMMANDS)
-    return frozenset(com["name"] for com in result[self._RETURN_KEY])
+    return frozenset(com["name"] for com in result)
 
   def Execute(self, command, arguments=None):
     """Executes a QMP command and returns the response of the server.
@@ -362,8 +362,11 @@ class QmpConnection(MonitorSocket):
       message[self._ARGUMENTS_KEY] = arguments
     self._Send(message)
 
-    # Events can occur between the sending of the command and the reception
-    # of the response, so we need to filter out messages with the event key.
+    # According the the QMP specification, there are only two reply types to a
+    # command: either error (containing the "error" key) or success (containing
+    # the "return" key). There is also a third possibility, that of an
+    # (unrelated to the command) asynchronous event notification, identified by
+    # the "event" key.
     while True:
       response = self._Recv()
       err = response[self._ERROR_KEY]
@@ -374,5 +377,8 @@ class QmpConnection(MonitorSocket):
                                       err[self._ERROR_DESC_KEY],
                                       err[self._ERROR_CLASS_KEY]))
 
-      elif not response[self._EVENT_KEY]:
-        return response
+      elif response[self._EVENT_KEY]:
+        # Filter-out any asynchronous events
+        continue
+
+      return response[self._RETURN_KEY]
