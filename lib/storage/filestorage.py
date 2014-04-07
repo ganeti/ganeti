@@ -443,7 +443,7 @@ def _CheckFileStoragePathExistance(path):
 
   """
   if not os.path.isdir(path):
-    raise errors.FileStoragePathError("Path '%s' is not existing or not a"
+    raise errors.FileStoragePathError("Path '%s' does not exist or is not a"
                                       " directory." % path)
   if not os.access(path, os.W_OK):
     raise errors.FileStoragePathError("Path '%s' is not writable" % path)
@@ -467,6 +467,6 @@ def CheckFileStoragePath(
   except errors.FileStoragePathError as e:
     return str(e)
   if not os.path.isdir(path):
-    return "Path '%s' is not exisiting or not a directory." % path
+    return "Path '%s' is not existing or not a directory." % path
   if not os.access(path, os.W_OK):
     return "Path '%s' is not writable" % path

@@ -118,7 +118,7 @@ _UPGRADE_CONFIG_JID = "jid-cfg-upgrade"
 
 
 def _ValidateConfig(data):
-  """Verifies that a configuration objects looks valid.
+  """Verifies that a configuration dict looks valid.
 
   This only verifies the version of the configuration.
 
@@ -126,8 +126,9 @@ def _ValidateConfig(data):
       we expect
 
   """
-  if data.version != constants.CONFIG_VERSION:
-    raise errors.ConfigVersionMismatch(constants.CONFIG_VERSION, data.version)
+  if data['version'] != constants.CONFIG_VERSION:
+    raise errors.ConfigVersionMismatch(constants.CONFIG_VERSION,
+                                       data['version'])
 
 
 class TemporaryReservationManager:
@@ -2515,19 +2516,16 @@ class ConfigWriter(object):
     # If online, call WConfd.
     if self._offline:
       raw_data = utils.ReadFile(self._cfg_file)
-      try:
-        dict_data = serializer.Load(raw_data)
+        data_dict = serializer.Load(raw_data)
+        # Make sure the configuration has the right version
+        _ValidateConfig(data_dict)
+        data = objects.ConfigData.FromDict(data_dict)
+      except errors.ConfigVersionMismatch:
+        raise
       except Exception, err:
         raise errors.ConfigurationError(err)
+
       self._cfg_id = utils.GetFileID(path=self._cfg_file)
-
-      try:
-        data = objects.ConfigData.FromDict(dict_data)
-      except Exception, err:
-        raise errors.ConfigurationError(err)
-
-      # Make sure the configuration has the right version
-      _ValidateConfig(data)
 
       if (not hasattr(data, "cluster") or
           not hasattr(data.cluster, "rsahostkeypub")):

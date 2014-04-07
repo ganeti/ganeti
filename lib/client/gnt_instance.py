@@ -1339,7 +1339,7 @@ def SetInstanceParams(opts, args):
   for action, _, __ in nics:
     if action == constants.DDM_MODIFY and opts.hotplug and not opts.force:
       usertext = ("You are about to hot-modify a NIC. This will be done"
-                  " by removing the exisiting and then adding a new one."
+                  " by removing the existing NIC and then adding a new one."
                   " Network connection might be lost. Continue?")
       if not AskUser(usertext):
         return 1
