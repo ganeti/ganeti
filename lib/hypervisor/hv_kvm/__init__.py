@@ -1465,12 +1465,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _GenerateKvmTapName(nic):
     """Generate a TAP network interface name for a NIC.
 
-    This helper function generates a special TAP network interface
-    name for NICs that are meant to be used in instance communication.
-    This function checks the existing TAP interfaces in order to find
-    a unique name for the new TAP network interface.  The TAP network
-    interface names are of the form 'gnt.com.%d', where '%d' is a
-    unique number within the node.
+    See L{hv_base.GenerateTapName}.
+
+    For the case of the empty string, see L{OpenTap}
 
     @type nic: ganeti.objects.NIC
     @param nic: NIC object for the name should be generated
@@ -1484,30 +1481,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           nic.name.startswith(constants.INSTANCE_COMMUNICATION_NIC_PREFIX):
       return ""
 
-    result = utils.RunCmd(["ip", "tuntap", "list"])
-
-    if result.failed:
-      raise errors.HypervisorError("Failed to list TUN/TAP interfaces")
-
-    idxs = set()
-
-    for line in result.output.splitlines():
-      parts = line.split(": ", 1)
-
-      if len(parts) < 2:
-        raise errors.HypervisorError("Failed to parse TUN/TAP interfaces")
-
-      r = re.match(r"gnt\.com\.([0-9]+)", parts[0])
-
-      if r is not None:
-        idxs.add(int(r.group(1)))
-
-    if idxs:
-      idx = max(idxs) + 1
-    else:
-      idx = 0
-
-    return "gnt.com.%d" % idx
+    return hv_base.GenerateTapName()
 
   # too many local variables
   # pylint: disable=R0914

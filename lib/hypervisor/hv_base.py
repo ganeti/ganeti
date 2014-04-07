@@ -152,6 +152,47 @@ def ParamInSet(required, my_set):
   return (required, fn, err, None, None)
 
 
+def GenerateTapName():
+  """Generate a TAP network interface name for a NIC.
+
+  This helper function generates a special TAP network interface
+  name for NICs that are meant to be used in instance communication.
+  This function checks the existing TAP interfaces in order to find
+  a unique name for the new TAP network interface.  The TAP network
+  interface names are of the form 'gnt.com.%d', where '%d' is a
+  unique number within the node.
+
+  @rtype: string
+  @return: TAP network interface name, or the empty string if the
+           NIC is not used in instance communication
+
+  """
+  result = utils.RunCmd(["ip", "tuntap", "list"])
+
+  if result.failed:
+    raise errors.HypervisorError("Failed to list TUN/TAP interfaces")
+
+  idxs = set()
+
+  for line in result.output.splitlines():
+    parts = line.split(": ", 1)
+
+    if len(parts) < 2:
+      raise errors.HypervisorError("Failed to parse TUN/TAP interfaces")
+
+    r = re.match(r"gnt\.com\.([0-9]+)", parts[0])
+
+    if r is not None:
+      idxs.add(int(r.group(1)))
+
+  if idxs:
+    idx = max(idxs) + 1
+  else:
+    idx = 0
+
+  return "gnt.com.%d" % idx
+
+
 class HvInstanceState(object):
   RUNNING = 0
   SHUTDOWN = 1
