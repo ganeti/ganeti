@@ -1381,6 +1381,136 @@ class LUInstanceCreate(LogicalUnit):
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance")
 
+  def RunOsScripts(self, feedback_fn, iobj):
+    """Run OS scripts
+
+    If necessary, disks are paused.  It handles instance create,
+    import, and remote import.
+
+    @type feedback_fn: callable
+    @param feedback_fn: function used send feedback back to the caller
+
+    @type iobj: L{objects.Instance}
+    @param iobj: instance object
+
+    """
+    if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
+      disks = self.cfg.GetInstanceDisks(iobj.uuid)
+      if self.op.mode == constants.INSTANCE_CREATE:
+        os_image = objects.GetOSImage(self.op.osparams)
+
+        if os_image is None and not self.op.no_install:
+          pause_sync = (iobj.disk_template in constants.DTS_INT_MIRROR and
+                        not self.op.wait_for_sync)
+          if pause_sync:
+            feedback_fn("* pausing disk sync to install instance OS")
+            result = self.rpc.call_blockdev_pause_resume_sync(self.pnode.uuid,
+                                                              (disks, iobj),
+                                                              True)
+            for idx, success in enumerate(result.payload):
+              if not success:
+                logging.warn("pause-sync of instance %s for disk %d failed",
+                             self.op.instance_name, idx)
+
+          feedback_fn("* running the instance OS create scripts...")
+          # FIXME: pass debug option from opcode to backend
+          os_add_result = \
+            self.rpc.call_instance_os_add(self.pnode.uuid,
+                                          (iobj, self.op.osparams_secret),
+                                          False,
+                                          self.op.debug_level)
+          if pause_sync:
+            feedback_fn("* resuming disk sync")
+            result = self.rpc.call_blockdev_pause_resume_sync(self.pnode.uuid,
+                                                              (disks, iobj),
+                                                              False)
+            for idx, success in enumerate(result.payload):
+              if not success:
+                logging.warn("resume-sync of instance %s for disk %d failed",
+                             self.op.instance_name, idx)
+
+          os_add_result.Raise("Could not add os for instance %s"
+                              " on node %s" % (self.op.instance_name,
+                                               self.pnode.name))
+
+      else:
+        if self.op.mode == constants.INSTANCE_IMPORT:
+          feedback_fn("* running the instance OS import scripts...")
+
+          transfers = []
+
+          for idx, image in enumerate(self.src_images):
+            if not image:
+              continue
+
+            if iobj.os:
+              dst_io = constants.IEIO_SCRIPT
+              dst_ioargs = ((disks[idx], iobj), idx)
+            else:
+              dst_io = constants.IEIO_RAW_DISK
+              dst_ioargs = (disks[idx], iobj)
+
+            # FIXME: pass debug option from opcode to backend
+            dt = masterd.instance.DiskTransfer("disk/%s" % idx,
+                                               constants.IEIO_FILE, (image, ),
+                                               dst_io, dst_ioargs,
+                                               None)
+            transfers.append(dt)
+
+          import_result = \
+            masterd.instance.TransferInstanceData(self, feedback_fn,
+                                                  self.op.src_node_uuid,
+                                                  self.pnode.uuid,
+                                                  self.pnode.secondary_ip,
+                                                  self.op.compress,
+                                                  iobj, transfers)
+          if not compat.all(import_result):
+            self.LogWarning("Some disks for instance %s on node %s were not"
+                            " imported successfully" % (self.op.instance_name,
+                                                        self.pnode.name))
+
+          rename_from = self._old_instance_name
+
+        elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
+          feedback_fn("* preparing remote import...")
+          # The source cluster will stop the instance before attempting to make
+          # a connection. In some cases stopping an instance can take a long
+          # time, hence the shutdown timeout is added to the connection
+          # timeout.
+          connect_timeout = (constants.RIE_CONNECT_TIMEOUT +
+                             self.op.source_shutdown_timeout)
+          timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
+
+          assert iobj.primary_node == self.pnode.uuid
+          disk_results = \
+            masterd.instance.RemoteImport(self, feedback_fn, iobj, self.pnode,
+                                          self.source_x509_ca,
+                                          self._cds, self.op.compress, timeouts)
+          if not compat.all(disk_results):
+            # TODO: Should the instance still be started, even if some disks
+            # failed to import (valid for local imports, too)?
+            self.LogWarning("Some disks for instance %s on node %s were not"
+                            " imported successfully" % (self.op.instance_name,
+                                                        self.pnode.name))
+
+          rename_from = self.source_instance_name
+
+        else:
+          # also checked in the prereq part
+          raise errors.ProgrammerError("Unknown OS initialization mode '%s'"
+                                       % self.op.mode)
+
+        assert iobj.name == self.op.instance_name
+
+        # Run rename script on newly imported instance
+        if iobj.os:
+          feedback_fn("Running rename script for %s" % self.op.instance_name)
+          result = self.rpc.call_instance_run_rename(self.pnode.uuid, iobj,
+                                                     rename_from,
+                                                     self.op.debug_level)
+          result.Warn("Failed to run rename script for %s on node %s" %
+                      (self.op.instance_name, self.pnode.name), self.LogWarning)
+
   def Exec(self, feedback_fn):
     """Create and add the instance to the cluster.
 
@@ -1509,122 +1639,7 @@ class LUInstanceCreate(LogicalUnit):
     # Release all node resource locks
     ReleaseLocks(self, locking.LEVEL_NODE_RES)
 
-    if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
-      disks = self.cfg.GetInstanceDisks(iobj.uuid)
-      if self.op.mode == constants.INSTANCE_CREATE:
-        os_image = objects.GetOSImage(self.op.osparams)
-
-        if os_image is None and not self.op.no_install:
-          pause_sync = (iobj.disk_template in constants.DTS_INT_MIRROR and
-                        not self.op.wait_for_sync)
-          if pause_sync:
-            feedback_fn("* pausing disk sync to install instance OS")
-            result = self.rpc.call_blockdev_pause_resume_sync(self.pnode.uuid,
-                                                              (disks, iobj),
-                                                              True)
-            for idx, success in enumerate(result.payload):
-              if not success:
-                logging.warn("pause-sync of instance %s for disk %d failed",
-                             self.op.instance_name, idx)
-
-          feedback_fn("* running the instance OS create scripts...")
-          # FIXME: pass debug option from opcode to backend
-          os_add_result = \
-            self.rpc.call_instance_os_add(self.pnode.uuid,
-                                          (iobj, self.op.osparams_secret),
-                                          False,
-                                          self.op.debug_level)
-          if pause_sync:
-            feedback_fn("* resuming disk sync")
-            result = self.rpc.call_blockdev_pause_resume_sync(self.pnode.uuid,
-                                                              (disks, iobj),
-                                                              False)
-            for idx, success in enumerate(result.payload):
-              if not success:
-                logging.warn("resume-sync of instance %s for disk %d failed",
-                             self.op.instance_name, idx)
-
-          os_add_result.Raise("Could not add os for instance %s"
-                              " on node %s" % (self.op.instance_name,
-                                               self.pnode.name))
-
-      else:
-        if self.op.mode == constants.INSTANCE_IMPORT:
-          feedback_fn("* running the instance OS import scripts...")
-
-          transfers = []
-
-          for idx, image in enumerate(self.src_images):
-            if not image:
-              continue
-
-            if iobj.os:
-              dst_io = constants.IEIO_SCRIPT
-              dst_ioargs = ((disks[idx], iobj), idx)
-            else:
-              dst_io = constants.IEIO_RAW_DISK
-              dst_ioargs = (disks[idx], iobj)
-
-            # FIXME: pass debug option from opcode to backend
-            dt = masterd.instance.DiskTransfer("disk/%s" % idx,
-                                               constants.IEIO_FILE, (image, ),
-                                               dst_io, dst_ioargs,
-                                               None)
-            transfers.append(dt)
-
-          import_result = \
-            masterd.instance.TransferInstanceData(self, feedback_fn,
-                                                  self.op.src_node_uuid,
-                                                  self.pnode.uuid,
-                                                  self.pnode.secondary_ip,
-                                                  self.op.compress,
-                                                  iobj, transfers)
-          if not compat.all(import_result):
-            self.LogWarning("Some disks for instance %s on node %s were not"
-                            " imported successfully" % (self.op.instance_name,
-                                                        self.pnode.name))
-
-          rename_from = self._old_instance_name
-
-        elif self.op.mode == constants.INSTANCE_REMOTE_IMPORT:
-          feedback_fn("* preparing remote import...")
-          # The source cluster will stop the instance before attempting to make
-          # a connection. In some cases stopping an instance can take a long
-          # time, hence the shutdown timeout is added to the connection
-          # timeout.
-          connect_timeout = (constants.RIE_CONNECT_TIMEOUT +
-                             self.op.source_shutdown_timeout)
-          timeouts = masterd.instance.ImportExportTimeouts(connect_timeout)
-
-          assert iobj.primary_node == self.pnode.uuid
-          disk_results = \
-            masterd.instance.RemoteImport(self, feedback_fn, iobj, self.pnode,
-                                          self.source_x509_ca,
-                                          self._cds, self.op.compress, timeouts)
-          if not compat.all(disk_results):
-            # TODO: Should the instance still be started, even if some disks
-            # failed to import (valid for local imports, too)?
-            self.LogWarning("Some disks for instance %s on node %s were not"
-                            " imported successfully" % (self.op.instance_name,
-                                                        self.pnode.name))
-
-          rename_from = self.source_instance_name
-
-        else:
-          # also checked in the prereq part
-          raise errors.ProgrammerError("Unknown OS initialization mode '%s'"
-                                       % self.op.mode)
-
-        assert iobj.name == self.op.instance_name
-
-        # Run rename script on newly imported instance
-        if iobj.os:
-          feedback_fn("Running rename script for %s" % self.op.instance_name)
-          result = self.rpc.call_instance_run_rename(self.pnode.uuid, iobj,
-                                                     rename_from,
-                                                     self.op.debug_level)
-          result.Warn("Failed to run rename script for %s on node %s" %
-                      (self.op.instance_name, self.pnode.name), self.LogWarning)
+    self.RunOsScripts(feedback_fn, iobj)
 
     assert not self.owned_locks(locking.LEVEL_NODE_RES)
 
