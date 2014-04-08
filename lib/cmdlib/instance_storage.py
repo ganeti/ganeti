@@ -2732,23 +2732,30 @@ class TemporaryDisk():
 
   """
 
-  def __init__(self, lu, instance, size, feedback_fn,
+  def __init__(self, lu, instance, disks, feedback_fn,
                shutdown_timeout=constants.DEFAULT_SHUTDOWN_TIMEOUT):
     """ Constructor storing arguments until used later.
 
     @type lu: L{ganeti.cmdlib.base.LogicalUnit}
     @param lu: The LU within which this disk is created.
+
     @type instance: L{ganeti.objects.Instance}
     @param instance: The instance to which the disk should be added
-    @type size: int
-    @param size: Size in MB
+
+    @type disks: list of triples (disk template, disk access mode, int)
+    @param disks:
+      disk specification, which is a list of triples containing the
+      disk template (e.g., L{constants.DT_PLAIN}), the disk access
+      mode (i.e., L{constants.DISK_RDONLY} or L{constants.DISK_RDWR}),
+      and size in MiB.
+
     @type feedback_fn: function
     @param feedback_fn: Function used to log progress
 
     """
     self._lu = lu
     self._instance = instance
-    self._size = size
+    self._disks = disks
     self._feedback_fn = feedback_fn
     self._shutdown_timeout = shutdown_timeout
 
@@ -2787,29 +2794,36 @@ class TemporaryDisk():
     """
     self._EnsureInstanceDiskState()
 
+    new_disks = []
+
     # The iv_name of the disk intentionally diverges from Ganeti's standards, as
     # this disk should be very temporary and its presence should be reported.
     # With the special iv_name, gnt-cluster verify detects the disk and warns
     # the user of its presence. Removing the disk restores the instance to its
     # proper state, despite an error that appears when the removal is performed.
-    new_disk = objects.Disk()
-    new_disk.dev_type = constants.DT_PLAIN
-    new_disk.iv_name = "disk/-"
-    new_disk.mode = constants.DISK_RDWR
-    new_disk.uuid = "temporary-disk-%s" % self._instance.uuid
-    new_disk.logical_id = (self._lu.cfg.GetVGName(), new_disk.uuid)
-    new_disk.params = {}
-    new_disk.size = self._size
+    for idx, (disk_template, disk_access, disk_size) in enumerate(self._disks):
+      new_disk = objects.Disk()
+      new_disk.dev_type = disk_template
+      new_disk.mode = disk_access
+      new_disk.uuid = self._lu.cfg.GenerateUniqueID(self._lu.proc.GetECId())
+      new_disk.logical_id = (self._lu.cfg.GetVGName(), new_disk.uuid)
+      new_disk.params = {}
+      new_disk.size = disk_size
+
+      new_disks.append(new_disk)
 
     self._feedback_fn("Attempting to create temporary disk")
 
-    self._undoing_info = CreateDisks(self._lu, self._instance, disks=[new_disk])
-    self._lu.cfg.AddInstanceDisk(self._instance.uuid, new_disk, idx=0)
+    self._undoing_info = CreateDisks(self._lu, self._instance, disks=new_disks)
+    for idx, new_disk in enumerate(new_disks):
+      self._lu.cfg.AddInstanceDisk(self._instance.uuid, new_disk, idx=idx)
     self._instance = self._lu.cfg.GetInstanceInfo(self._instance.uuid)
 
     self._feedback_fn("Temporary disk created")
 
-    return new_disk
+    self._new_disks = new_disks
+
+    return new_disks
 
   def __exit__(self, exc_type, _value, _traceback):
     """ Context manager exit function, destroying the disk.
@@ -2824,8 +2838,9 @@ class TemporaryDisk():
       self._EnsureInstanceDiskState()
 
       _UndoCreateDisks(self._lu, self._undoing_info, self._instance)
-      self._lu.cfg.RemoveInstanceDisk(self._instance.uuid,
-                                      self._instance.disk[0])
+
+      for disk in self._new_disks:
+        self._lu.cfg.RemoveInstanceDisk(self._instance.uuid, disk.uuid)
       self._instance = self._lu.cfg.GetInstanceInfo(self._instance.uuid)
 
       self._feedback_fn("Temporary disk removed")

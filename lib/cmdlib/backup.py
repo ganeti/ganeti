@@ -381,7 +381,10 @@ class LUBackupExport(LogicalUnit):
     # Calculate the sum prior to adding the temporary disk
     instance_disks_size_sum = self._InstanceDiskSizeSum()
 
-    with TemporaryDisk(self, self.instance, disk_size, feedback_fn):
+    with TemporaryDisk(self,
+                       self.instance,
+                       [(constants.DT_PLAIN, constants.DISK_RDWR, disk_size)],
+                       feedback_fn):
       feedback_fn("Activating instance disks")
       StartInstanceDisks(self, self.instance, False)
 
