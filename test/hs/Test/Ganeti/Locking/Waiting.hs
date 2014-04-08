@@ -174,9 +174,26 @@ prop_PendingGetNotifiedEventually =
                    \ resources, a pending owner must be notified"
      $ S.member owner notified
 
+-- | Verify that some progress is made after the direct blockers give up their
+-- locks. Note that we cannot guarantee that the original requester gets its
+-- request granted, as someone else might have a more important priority.
+prop_Progress :: Property
+prop_Progress =
+  forAllBlocked $ \state owner prio req ->
+  let (state', (resultBlockers, _)) = updateLocksWaiting prio owner req state
+      blockers = genericResult (const S.empty) id resultBlockers
+      releaseOneOwner (s, tonotify) o =
+        let (s', newnotify) = releaseResources o s
+        in (s', newnotify `S.union` tonotify)
+      (_, notified) = S.foldl releaseOneOwner (state', S.empty) blockers
+  in printTestCase "Some progress must be made after all blockers release\
+                   \ their locks"
+     . not $ S.null notified
+
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
  , 'prop_WaitingRequestsGetPending
  , 'prop_PendingGetFulfilledEventually
  , 'prop_PendingGetNotifiedEventually
+ , 'prop_Progress
  ]
