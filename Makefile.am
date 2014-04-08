@@ -278,6 +278,7 @@ CLEANFILES = \
 	$(manhtml) \
 	tools/kvm-ifup \
 	tools/kvm-ifup-os \
+	tools/xen-ifup-os \
 	tools/vif-ganeti \
 	tools/net-common \
 	tools/users-setup \
@@ -340,7 +341,8 @@ BUILT_EXAMPLES = \
 	doc/examples/hooks/ipsec
 
 dist_ifup_SCRIPTS = \
-	tools/kvm-ifup-os
+	tools/kvm-ifup-os \
+	tools/xen-ifup-os
 
 nodist_pkgpython_PYTHON = \
 	$(built_python_base_sources) \
@@ -1214,6 +1216,7 @@ myexeclib_SCRIPTS = \
 	daemons/daemon-util \
 	tools/kvm-ifup \
 	tools/kvm-ifup-os \
+	tools/xen-ifup-os \
 	tools/vif-ganeti \
 	tools/net-common \
 	$(HS_MYEXECLIB_PROGS)
@@ -1252,7 +1255,7 @@ EXTRA_DIST = \
 	devel/upload \
 	devel/webserver \
 	tools/kvm-ifup.in \
-	tools/kvm-ifup-os.in \
+	tools/ifup-os.in \
 	tools/vif-ganeti.in \
 	tools/net-common.in \
 	tools/vcluster-setup.in \
@@ -1743,8 +1746,12 @@ tools/kvm-ifup: tools/kvm-ifup.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 
-tools/kvm-ifup-os: tools/kvm-ifup-os.in $(REPLACE_VARS_SED)
-	sed -f $(REPLACE_VARS_SED) < $< > $@
+tools/kvm-ifup-os: tools/ifup-os.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) -e "s/ifup-os:/kvm-ifup-os:/" < $< > $@
+	chmod +x $@
+
+tools/xen-ifup-os: tools/ifup-os.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) -e "s/ifup-os:/xen-ifup-os:/" < $< > $@
 	chmod +x $@
 
 tools/vif-ganeti: tools/vif-ganeti.in $(REPLACE_VARS_SED)

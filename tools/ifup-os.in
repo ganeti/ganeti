@@ -121,9 +121,9 @@ function restart_dnsmasq {
 # but... :)
 if [ -z "$INTERFACE" ]
 then
-  echo kvm-vif-bridge: Failed to configure communication mechanism \
+  echo ifup-os: Failed to configure communication mechanism \
       interface because the \'INTERFACE\' environment variable was \
-      not specified to the \'kvm-vif-bridge\' script
+      not specified to the script
   exit 1
 fi
 
@@ -132,9 +132,9 @@ fi
 # See comment about environment variable 'INTERFACE'.
 if [ -z "$MODE" ]
 then
-  echo kvm-vif-bridge: Failed to configure communication mechanism \
+  echo ifup-os: Failed to configure communication mechanism \
       interface because the \'MODE\' environment variable was \
-      not specified to the \'kvm-vif-bridge\' script
+      not specified to the script
   exit 1
 fi
 
@@ -147,9 +147,9 @@ if ! is_instance_communication_tap; then exit 0; fi
 # See comment about environment variable 'INTERFACE'.
 if [ -z "$MAC" ]
 then
-  echo kvm-vif-bridge: Failed to configure communication mechanism \
+  echo ifup-os: Failed to configure communication mechanism \
       interface because the \'MAC\' environment variable was \
-      not specified to the \'kvm-vif-bridge\' script
+      not specified to the script
   exit 1
 fi
 
@@ -158,9 +158,9 @@ fi
 # See comment about environment variable 'INTERFACE'.
 if [ -z "$IP" ]
 then
-  echo kvm-vif-bridge: Failed to configure communication mechanism \
+  echo ifup-os: Failed to configure communication mechanism \
       interface because the \'IP\' environment variable was \
-      not specified to the \'kvm-vif-bridge\' script
+      not specified to the script
   exit 1
 fi
 
@@ -224,7 +224,7 @@ then
 
   if [ -z "$BIND_DYNAMIC" ]
   then
-    echo kvm-vif-bridge: dnsmasq mode \"bind-dynamic\" is not supported
+    echo ifup-os: dnsmasq mode \"bind-dynamic\" is not supported
     exit 1
   fi
 
