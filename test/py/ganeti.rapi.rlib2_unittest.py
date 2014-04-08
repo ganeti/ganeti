@@ -31,6 +31,7 @@ import random
 from ganeti import constants
 from ganeti import opcodes
 from ganeti import compat
+from ganeti import ht
 from ganeti import http
 from ganeti import query
 import ganeti.rpc.errors as rpcerr
@@ -1471,6 +1472,81 @@ class TestPermissions(unittest.TestCase):
                              " should therefore be given as well)" %
                              (handler, method)))
 
+
+class ForbiddenOpcode(opcodes.OpCode):
+  OP_PARAMS = [
+    ("obligatory", None, ht.TString, None),
+    ("forbidden", None, ht.TMaybe(ht.TString), None),
+    ("forbidden_true", None, ht.TMaybe(ht.TBool), None),
+    ]
+
+
+class ForbiddenRAPI(baserlib.OpcodeResource):
+  POST_OPCODE = ForbiddenOpcode
+  POST_FORBIDDEN = [
+    "forbidden",
+    ("forbidden_true", [True]),
+  ]
+  POST_RENAME = {
+    "totally_not_forbidden": "forbidden"
+  }
+
+
+class TestForbiddenParams(RAPITestCase):
+  def testTestOpcode(self):
+    obligatory_value = "a"
+    forbidden_value = "b"
+    forbidden_true_value = True
+    op = ForbiddenOpcode(
+      obligatory=obligatory_value,
+      forbidden=forbidden_value,
+      forbidden_true=forbidden_true_value
+    )
+    self.assertEqualValues(op.obligatory, obligatory_value)
+    self.assertEqualValues(op.forbidden, forbidden_value)
+    self.assertEqualValues(op.forbidden_true, forbidden_true_value)
+
+  def testCorrectRequest(self):
+    value = "o"
+    op = self.getSubmittedOpcode(ForbiddenRAPI, [], {}, {"obligatory": value},
+                                 "POST", ForbiddenOpcode)
+    self.assertEqual(op.obligatory, value)
+
+  def testValueForbidden(self):
+    value = "o"
+    data = {
+      "obligatory": value,
+      "forbidden": value,
+    }
+    handler = _CreateHandler(ForbiddenRAPI, [], {}, data, self._clfactory)
+    self.assertRaises(http.HttpForbidden, handler.POST)
+
+  def testSpecificValueForbidden(self):
+    for value in [True, False, "True"]:
+      data = {
+        "obligatory": "o",
+        "forbidden_true": value,
+      }
+      handler = _CreateHandler(ForbiddenRAPI, [], {}, data, self._clfactory)
+
+      if value == True:
+        self.assertRaises(http.HttpForbidden, handler.POST)
+      elif value == "True":
+        self.assertRaises(http.HttpBadRequest, handler.POST)
+      else:
+        handler.POST()
+        cl = self._clfactory.GetNextClient()
+        (_, (op, )) = cl.GetNextSubmittedJob()
+        self.assertTrue(isinstance(op, ForbiddenOpcode))
+        self.assertEqual(op.forbidden_true, value)
+
+  def testRenameIntoForbidden(self):
+    data = {
+      "obligatory": "o",
+      "totally_not_forbidden": "o",
+    }
+    handler = _CreateHandler(ForbiddenRAPI, [], {}, data, self._clfactory)
+    self.assertRaises(http.HttpForbidden, handler.POST)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
