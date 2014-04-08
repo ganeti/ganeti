@@ -157,8 +157,26 @@ prop_PendingGetFulfilledEventually =
                    \ resources, a pending request must be granted automatically"
      $ all (requestSucceeded finallyOwned) req
 
+-- | Verify that the owner of a pending request gets notified once all blockers
+-- release their resources.
+prop_PendingGetNotifiedEventually :: Property
+prop_PendingGetNotifiedEventually =
+  forAllBlocked $ \state owner prio req ->
+  let oldpending = getPendingOwners state
+      (state', (resultBlockers, _)) = updateLocksWaiting prio owner req state
+      blockers = genericResult (const S.empty) id resultBlockers
+      releaseOneOwner (s, tonotify) o =
+        let (s', newnotify) = releaseResources o s
+        in (s', newnotify `S.union` tonotify)
+      (_, notified) = S.foldl releaseOneOwner (state', S.empty)
+                        $ S.union oldpending blockers
+  in printTestCase "After all blockers and old pending owners give up their\
+                   \ resources, a pending owner must be notified"
+     $ S.member owner notified
+
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
  , 'prop_WaitingRequestsGetPending
  , 'prop_PendingGetFulfilledEventually
+ , 'prop_PendingGetNotifiedEventually
  ]
