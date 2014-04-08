@@ -35,7 +35,7 @@ import qualified Data.Set as S
 import Test.QuickCheck
 
 import Test.Ganeti.TestHelper
-import Test.Ganeti.Locking.Allocation (TestLock, TestOwner)
+import Test.Ganeti.Locking.Allocation (TestLock, TestOwner, requestSucceeded)
 
 import Ganeti.BasicTypes (isBad, genericResult)
 import Ganeti.Locking.Allocation (LockRequest, listLocks)
@@ -142,8 +142,23 @@ prop_WaitingRequestsGetPending =
   . S.member owner . getPendingOwners . fst
   $ updateLocksWaiting prio owner req state
 
+-- | Verify that pending requests get fullfilled once all blockers release
+-- their resources.
+prop_PendingGetFulfilledEventually :: Property
+prop_PendingGetFulfilledEventually =
+  forAllBlocked $ \state owner prio req ->
+  let oldpending = getPendingOwners state
+      (state', (resultBlockers, _)) = updateLocksWaiting prio owner req state
+      blockers = genericResult (const S.empty) id resultBlockers
+      state'' = S.foldl (\s a -> fst $ releaseResources a s) state'
+                  $ S.union oldpending blockers
+      finallyOwned = listLocks  owner $ getAllocation state''
+  in printTestCase "After all blockers and old pending owners give up their\
+                   \ resources, a pending request must be granted automatically"
+     $ all (requestSucceeded finallyOwned) req
 
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
  , 'prop_WaitingRequestsGetPending
+ , 'prop_PendingGetFulfilledEventually
  ]
