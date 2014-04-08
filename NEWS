@@ -228,6 +228,21 @@ before rc1.
 - Issue 623: IPv6 Masterd <-> Luxid communication error
 
 
+Version 2.9.6
+-------------
+
+*(Released Mon, 7 Apr 2014)*
+
+- Improve RAPI detection of the watcher (Issue 752)
+- gnt-cluster copyfile: accept relative paths (Issue 754)
+- Make watcher submit queries low priority (Issue 772)
+- Add reason parameter to RAPI client functions (Issue 776)
+- Fix failing gnt-node list-drbd command (Issue 777)
+- Properly display fake job locks in gnt-debug.
+- Enable timeout for instance shutdown
+- small fixes in documentation
+
+
 Version 2.9.5
 -------------
 
