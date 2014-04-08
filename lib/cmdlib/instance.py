@@ -40,6 +40,7 @@ from ganeti import pathutils
 from ganeti import serializer
 import ganeti.rpc.node as rpc
 from ganeti import utils
+from ganeti.utils import retry
 
 from ganeti.cmdlib.base import NoHooksLU, LogicalUnit, ResultWithJobs
 
@@ -50,13 +51,14 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, CheckOSImage, \
   AnnotateDiskParams, GetUpdatedParams, ExpandInstanceUuidAndName, \
   ComputeIPolicySpecViolation, CheckInstanceState, ExpandNodeUuidAndName, \
-  CheckDiskTemplateEnabled, IsValidDiskAccessModeCombination
+  CheckDiskTemplateEnabled, IsValidDiskAccessModeCombination, \
+  DetermineImageSize, IsInstanceRunning
 from ganeti.cmdlib.instance_storage import CreateDisks, \
   CheckNodesFreeDiskPerVG, WipeDisks, WipeOrCleanupDisks, ImageDisks, \
   WaitForSync, IsExclusiveStorageEnabledNodeUuid, CreateSingleBlockDev, \
   ComputeDisks, CheckRADOSFreeSpace, ComputeDiskSizePerVG, \
   GenerateDiskTemplate, StartInstanceDisks, ShutdownInstanceDisks, \
-  AssembleInstanceDisks, CheckSpindlesExclusiveStorage
+  AssembleInstanceDisks, CheckSpindlesExclusiveStorage, TemporaryDisk
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   GetClusterDomainSecret, BuildInstanceHookEnv, NICListToTuple, \
   NICToTuple, CheckNodeNotDrained, RemoveInstance, CopyLockList, \
@@ -1736,7 +1738,37 @@ class LUInstanceCreate(LogicalUnit):
     # Release all node resource locks
     ReleaseLocks(self, locking.LEVEL_NODE_RES)
 
-    self.RunOsScripts(feedback_fn, iobj)
+    if iobj.os:
+      result = self.rpc.call_os_diagnose([iobj.primary_node])[iobj.primary_node]
+      result.Raise("Failed to get OS '%s'" % iobj.os)
+
+      trusted = None
+
+      for (name, _, _, _, _, _, _, os_trusted) in result.payload:
+        if name == objects.OS.GetName(iobj.os):
+          trusted = os_trusted
+          break
+
+      if trusted is None:
+        raise errors.OpPrereqError("OS '%s' is not available in node '%s'" %
+                                   (iobj.os, iobj.primary_node))
+      elif trusted:
+        self.RunOsScripts(feedback_fn, iobj)
+      else:
+        self.UpdateInstanceOsInstallPackage(feedback_fn, iobj)
+        UpdateMetadata(feedback_fn, self.rpc, iobj,
+                       osparams_private=self.op.osparams_private,
+                       osparams_secret=self.op.osparams_secret)
+        self.RunOsScriptsVirtualized(feedback_fn, iobj)
+        # Instance is modified by 'RunOsScriptsVirtualized',
+        # therefore, it must be retrieved once again from the
+        # configuration, otherwise there will be a config object
+        # version mismatch.
+        iobj = self.cfg.GetInstanceInfo(iobj.uuid)
+    else:
+      UpdateMetadata(feedback_fn, self.rpc, iobj,
+                     osparams_private=self.op.osparams_private,
+                     osparams_secret=self.op.osparams_secret)
 
     assert not self.owned_locks(locking.LEVEL_NODE_RES)
 
@@ -1749,10 +1781,6 @@ class LUInstanceCreate(LogicalUnit):
       result = self.rpc.call_instance_start(self.pnode.uuid, (iobj, None, None),
                                             False, self.op.reason)
       result.Raise("Could not start instance")
-
-    UpdateMetadata(feedback_fn, self.rpc, iobj,
-                   osparams_private=self.op.osparams_private,
-                   osparams_secret=self.op.osparams_secret)
 
     return self.cfg.GetNodeNames(list(self.cfg.GetInstanceNodes(iobj.uuid)))
 
