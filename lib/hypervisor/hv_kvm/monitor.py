@@ -207,6 +207,13 @@ class QmpConnection(MonitorSocket):
     self._buf = ""
     self.supported_commands = None
 
+  def __enter__(self):
+    self.connect()
+    return self
+
+  def __exit__(self, exc_type, exc_value, tb):
+    self.close()
+
   def connect(self):
     """Connects to the QMP monitor.
 

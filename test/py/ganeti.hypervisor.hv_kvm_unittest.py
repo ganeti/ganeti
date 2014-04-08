@@ -86,7 +86,7 @@ class QmpStub(threading.Thread):
     """
     threading.Thread.__init__(self)
     self.socket_filename = socket_filename
-    self.script = server_responses
+    self.script = server_responses[:]
 
     self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     self.socket.bind(self.socket_filename)
@@ -168,37 +168,37 @@ class TestQmpMessage(testutils.GanetiTestCase):
 
 
 class TestQmp(testutils.GanetiTestCase):
+  REQUESTS = [
+    {"execute": "query-kvm", "arguments": []},
+    {"execute": "eject", "arguments": {"device": "ide1-cd0"}},
+    {"execute": "query-status", "arguments": []},
+    {"execute": "query-name", "arguments": []},
+    ]
+
+  SERVER_RESPONSES = [
+    # One message, one send()
+    '{"return": {"enabled": true, "present": true}}\r\n',
+
+    # Message sent using multiple send()
+    ['{"retur', 'n": {}}\r\n'],
+
+    # Multiple messages sent using one send()
+    '{"return": [{"name": "quit"}, {"name": "eject"}]}\r\n'
+    '{"return": {"running": true, "singlestep": false}}\r\n',
+    ]
+
+  EXPECTED_RESPONSES = [
+    {"enabled": True, "present": True},
+    {},
+    [{"name": "quit"}, {"name": "eject"}],
+    {"running": True, "singlestep": False},
+    ]
+
   def testQmp(self):
-    requests = [
-      {"execute": "query-kvm", "arguments": []},
-      {"execute": "eject", "arguments": {"device": "ide1-cd0"}},
-      {"execute": "query-status", "arguments": []},
-      {"execute": "query-name", "arguments": []},
-      ]
-
-    server_responses = [
-      # One message, one send()
-      '{"return": {"enabled": true, "present": true}}\r\n',
-
-      # Message sent using multiple send()
-      ['{"retur', 'n": {}}\r\n'],
-
-      # Multiple messages sent using one send()
-      '{"return": [{"name": "quit"}, {"name": "eject"}]}\r\n'
-      '{"return": {"running": true, "singlestep": false}}\r\n',
-      ]
-
-    expected_responses = [
-      {"enabled": True, "present": True},
-      {},
-      [{"name": "quit"}, {"name": "eject"}],
-      {"running": True, "singlestep": False},
-      ]
-
     # Set up the stub
     socket_file = tempfile.NamedTemporaryFile()
     os.remove(socket_file.name)
-    qmp_stub = QmpStub(socket_file.name, server_responses)
+    qmp_stub = QmpStub(socket_file.name, self.SERVER_RESPONSES)
     qmp_stub.start()
 
     # Set up the QMP connection
@@ -206,7 +206,8 @@ class TestQmp(testutils.GanetiTestCase):
     qmp_connection.connect()
 
     # Format the script
-    for request, expected_response in zip(requests, expected_responses):
+    for request, expected_response in zip(self.REQUESTS,
+                                          self.EXPECTED_RESPONSES):
       response = qmp_connection.Execute(request["execute"],
                                         request["arguments"])
       self.assertEqual(response, expected_response)
@@ -217,6 +218,20 @@ class TestQmp(testutils.GanetiTestCase):
     self.assertRaises(monitor.QmpCommandNotSupported,
                       qmp_connection.Execute,
                       "unsupported-command")
+
+  def testQmpContextManager(self):
+    # Set up the stub
+    socket_file = tempfile.NamedTemporaryFile()
+    os.remove(socket_file.name)
+    qmp_stub = QmpStub(socket_file.name, self.SERVER_RESPONSES)
+    qmp_stub.start()
+
+    # Test the context manager functionality
+    with hv_kvm.QmpConnection(socket_file.name) as qmp:
+      for request, expected_response in zip(self.REQUESTS,
+                                            self.EXPECTED_RESPONSES):
+        response = qmp.Execute(request["execute"], request["arguments"])
+        self.assertEqual(response, expected_response)
 
 
 class TestConsole(unittest.TestCase):
