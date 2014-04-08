@@ -1181,6 +1181,7 @@ def WaitForSync(lu, instance, disks=None, oneshot=False):
           max_time = mstat.estimated_time
         else:
           rem_time = "no time estimate"
+          max_time = 5 # sleep at least a bit between retries
         lu.LogInfo("- device %s: %5.2f%% done, %s",
                    disks[i].iv_name, mstat.sync_percent, rem_time)
 
