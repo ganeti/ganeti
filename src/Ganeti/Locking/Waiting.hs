@@ -31,6 +31,7 @@ module Ganeti.Locking.Waiting
  , getAllocation
  , getPendingOwners
  , removePendingRequest
+ , releaseResources
  ) where
 
 import qualified Data.Map as M
@@ -206,3 +207,15 @@ removePendingRequest owner state =
       in state { lwPendingOwners = M.delete owner pendingOwners
                , lwPending = pending'
                }
+
+-- | Convenience function to release all pending requests and locks
+-- of a given owner. Return the new configuration and the owners to
+-- notify.
+releaseResources :: (Lock a, Ord b, Ord c)
+                 => b -> LockWaiting a b c -> (LockWaiting a b c, S.Set b)
+releaseResources owner state =
+  let state' = removePendingRequest owner state
+      request = map L.requestRelease
+                  . M.keys . L.listLocks owner $ getAllocation state'
+      (state'', (_, notify)) = updateLocks owner request state'
+  in (state'', notify)
