@@ -30,6 +30,7 @@ module Test.Ganeti.Locking.Allocation
   ( testLocking_Allocation
   , TestLock
   , TestOwner
+  , requestSucceeded
   ) where
 
 import Control.Applicative
