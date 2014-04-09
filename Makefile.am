@@ -2302,6 +2302,7 @@ hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	$(HLINT) --utf8 --report=doc/hs-lint.html --cross $$C \
 	  --ignore "Use first" \
 	  --ignore "Use &&&" \
+	  --ignore "Use &&" \
 	  --ignore "Use void" \
 	  --ignore "Reduce duplication" \
 	  --hint src/lint-hints \
