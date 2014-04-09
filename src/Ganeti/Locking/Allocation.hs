@@ -44,7 +44,7 @@ module Ganeti.Locking.Allocation
   , opportunisticLockUnion
   ) where
 
-import Control.Applicative (liftA2, (<$>), (<*>))
+import Control.Applicative (liftA2, (<$>), (<*>), pure)
 import Control.Arrow (second, (***))
 import Control.Monad
 import Data.Foldable (for_, find)
@@ -155,6 +155,18 @@ data LockRequest a = LockRequest { lockAffected :: a
                                  , lockRequestType :: Maybe OwnerState
                                  }
                      deriving (Eq, Show, Ord)
+
+instance J.JSON a => J.JSON (LockRequest a) where
+  showJSON (LockRequest a Nothing) = J.showJSON (a, "release")
+  showJSON (LockRequest a (Just OwnShared)) = J.showJSON (a, "shared")
+  showJSON (LockRequest a (Just OwnExclusive)) = J.showJSON (a, "exclusive")
+  readJSON (J.JSArray [a, J.JSString tp]) =
+    case J.fromJSString tp of
+      "release" -> LockRequest <$> J.readJSON a <*> pure Nothing
+      "shared" -> LockRequest <$> J.readJSON a <*> pure (Just OwnShared)
+      "exclusive" -> LockRequest <$> J.readJSON a <*> pure (Just OwnExclusive)
+      _ -> J.Error $ "malformed request type: " ++ J.fromJSString tp
+  readJSON x = J.Error $ "malformed lock request: " ++ show x
 
 -- | Lock request for an exclusive lock.
 requestExclusive :: a -> LockRequest a
