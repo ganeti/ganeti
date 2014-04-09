@@ -37,7 +37,7 @@ import Test.QuickCheck
 import Test.Ganeti.TestHelper
 import Test.Ganeti.Locking.Allocation (TestLock, TestOwner, requestSucceeded)
 
-import Ganeti.BasicTypes (isBad, genericResult)
+import Ganeti.BasicTypes (isBad, genericResult, runListHead)
 import Ganeti.Locking.Allocation (LockRequest, listLocks)
 import Ganeti.Locking.Types (Lock)
 import Ganeti.Locking.Waiting
@@ -190,10 +190,33 @@ prop_Progress =
                    \ their locks"
      . not . S.null $ notified S.\\ blockers
 
+-- | Verify that the notifications send out are sound, i.e., upon notification
+-- the requests actually are fulfilled. To be sure to have at least one
+-- notification we, again, use the scenario that a request is blocked and then
+-- all the blockers release their resources.
+prop_ProgressSound :: Property
+prop_ProgressSound =
+  forAllBlocked $ \state owner prio req ->
+  let (state', (resultBlockers, _)) = updateLocksWaiting prio owner req state
+      blockers = genericResult (const S.empty) id resultBlockers
+      releaseOneOwner (s, tonotify) o =
+        let (s', newnotify) = releaseResources o s
+        in (s', newnotify `S.union` tonotify)
+      (state'', notified) = S.foldl releaseOneOwner (state', S.empty) blockers
+      requestFulfilled o =
+        runListHead False
+          (\(_, _, r) ->
+              all (requestSucceeded . listLocks o $ getAllocation state'') r)
+          . S.toList . S.filter (\(_, b, _) -> b == o)
+          . getPendingRequests $ state'
+  in printTestCase "If an owner gets notified, his request must be satisfied"
+     . all requestFulfilled . S.toList $ notified S.\\ blockers
+
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
  , 'prop_WaitingRequestsGetPending
  , 'prop_PendingGetFulfilledEventually
  , 'prop_PendingGetNotifiedEventually
  , 'prop_Progress
+ , 'prop_ProgressSound
  ]
