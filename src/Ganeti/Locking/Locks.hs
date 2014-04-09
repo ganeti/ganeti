@@ -38,10 +38,11 @@ module Ganeti.Locking.Locks
   ) where
 
 import Control.Applicative ((<$>), (<*>), pure)
-import Control.Monad ((>=>))
+import Control.Monad ((>=>), liftM)
 import Control.Monad.Base (MonadBase, liftBase)
 import Control.Monad.Error (MonadError, catchError)
 import Data.List (stripPrefix)
+import System.Posix.Types (ProcessID)
 import qualified Text.JSON as J
 
 
@@ -202,8 +203,8 @@ instance J.JSON ClientType where
   readJSON (J.JSString s) = J.Ok . ClientOther $ J.fromJSString s
   readJSON jids = J.readJSON jids >>= \jid -> J.Ok (ClientJob jid)
 
--- | A client is identified as a job id, thread id and path to its process
--- identifier file.
+-- | A client is identified as a job id, thread id, a path to its process
+-- identifier file, and its process id.
 --
 -- The JobId isn't enough to identify a client as the master daemon
 -- also handles client calls that aren't jobs, but which use the configuration.
@@ -211,17 +212,20 @@ instance J.JSON ClientType where
 data ClientId = ClientId
   { ciIdentifier :: ClientType
   , ciLockFile :: FilePath
+  , ciPid :: ProcessID
   }
   deriving (Ord, Eq, Show)
 
 -- | Obtain the ClientID from its JSON representation.
 clientIdFromJSON :: J.JSValue -> J.Result ClientId
-clientIdFromJSON (J.JSArray [clienttp, J.JSString lf]) =
+clientIdFromJSON (J.JSArray [clienttp, J.JSString lf, pid]) =
   ClientId <$> J.readJSON clienttp <*> pure (J.fromJSString lf)
+           <*> liftM fromIntegral (J.readJSON pid :: J.Result Integer)
 clientIdFromJSON x = J.Error $ "malformed client id: " ++ show x
 
 instance J.JSON ClientId where
-  showJSON (ClientId client lf) = J.showJSON (client, lf)
+  showJSON (ClientId client lf pid)
+    = J.showJSON (client, lf, fromIntegral pid :: Integer)
   readJSON = clientIdFromJSON
 
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of

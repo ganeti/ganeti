@@ -29,6 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.Locking.Locks (testLocking_Locks) where
 
 import Control.Applicative ((<$>), (<*>), liftA2)
+import Control.Monad (liftM)
+import System.Posix.Types (CPid)
 
 import Test.QuickCheck
 import Text.JSON
@@ -100,8 +102,11 @@ prop_ReadShow_ClientType :: Property
 prop_ReadShow_ClientType = forAll (arbitrary :: Gen ClientType) $ \a ->
   readJSON (showJSON a) ==? Ok a
 
+instance Arbitrary CPid where
+  arbitrary = liftM fromIntegral (arbitrary :: Gen Integer)
+
 instance Arbitrary ClientId where
-  arbitrary = ClientId <$> arbitrary <*> arbitrary
+  arbitrary = ClientId <$> arbitrary <*> arbitrary <*> arbitrary
 
 -- | Verify that readJSON . showJSON = Ok for ClientId
 prop_ReadShow_ClientId :: Property
