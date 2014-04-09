@@ -1588,6 +1588,7 @@ class Cluster(TaggableObject):
     "enabled_disk_templates",
     "candidate_certs",
     "max_running_jobs",
+    "install_image",
     "instance_communication_network",
     "zeroing_image",
     "compression_tools",
@@ -1727,6 +1728,9 @@ class Cluster(TaggableObject):
 
     if self.instance_communication_network is None:
       self.instance_communication_network = ""
+
+    if self.install_image is None:
+      self.install_image = ""
 
     if self.compression_tools is None:
       self.compression_tools = constants.IEC_DEFAULT_TOOLS

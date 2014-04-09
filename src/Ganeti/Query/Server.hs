@@ -169,6 +169,7 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("hidden_os", showJSON $ clusterHiddenOs cluster)
             , ("blacklisted_os", showJSON $ clusterBlacklistedOs cluster)
             , ("enabled_disk_templates", showJSON diskTemplates)
+            , ("install_image", showJSON $ clusterInstallImage cluster)
             , ("instance_communication_network",
                showJSON (clusterInstanceCommunicationNetwork cluster))
             , ("zeroing_image", showJSON $ clusterZeroingImage cluster)

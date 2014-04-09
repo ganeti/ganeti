@@ -1581,6 +1581,26 @@ class ConfigWriter(object):
     return result
 
   @_ConfigSync(shared=1)
+  def GetInstallImage(self):
+    """Get the install image location
+
+    @rtype: string
+    @return: location of the install image
+
+    """
+    return self._ConfigData().cluster.install_image
+
+  @_ConfigSync()
+  def SetInstallImage(self, install_image):
+    """Set the install image location
+
+    @type install_image: string
+    @param install_image: location of the install image
+
+    """
+    self._ConfigData().cluster.install_image = install_image
+
+  @_ConfigSync(shared=1)
   def GetInstanceCommunicationNetwork(self):
     """Get cluster instance communication network
 

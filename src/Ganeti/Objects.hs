@@ -724,6 +724,7 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "enabled_disk_templates"         [t| [DiskTemplate]         |]
   , simpleField "candidate_certs"                [t| CandidateCertificates  |]
   , simpleField "max_running_jobs"               [t| Int                    |]
+  , simpleField "install_image"                  [t| String                 |]
   , simpleField "instance_communication_network" [t| String                 |]
   , simpleField "zeroing_image"                  [t| String                 |]
   , simpleField "compression_tools"              [t| [String]               |]

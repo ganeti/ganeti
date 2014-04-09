@@ -154,6 +154,8 @@ def UpgradeCluster(config_data):
     cluster["candidate_certs"] = {}
   cluster["instance_communication_network"] = \
     cluster.get("instance_communication_network", "")
+  cluster["install_image"] = \
+    cluster.get("install_image", "")
   cluster["zeroing_image"] = \
     cluster.get("zeroing_image", "")
   cluster["compression_tools"] = \
@@ -453,6 +455,9 @@ def DowngradeCluster(config_data):
 
   if "instance_communication_network" in cluster:
     del cluster["instance_communication_network"]
+
+  if "install_image" in cluster:
+    del cluster["install_image"]
 
   if "zeroing_image" in cluster:
     del cluster["zeroing_image"]

@@ -555,6 +555,7 @@ def ShowClusterConfig(opts, args):
        utils.CommaJoin(pathutils.ES_SEARCH_PATH)),
       ("enabled disk templates",
        utils.CommaJoin(result["enabled_disk_templates"])),
+      ("install image", result["install_image"]),
       ("instance communication network",
        result["instance_communication_network"]),
       ("zeroing image", result["zeroing_image"]),

@@ -206,6 +206,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> genMaybe genName             -- file_storage_dir
           <*> genMaybe genName             -- shared_file_storage_dir
           <*> genMaybe genName             -- gluster_file_storage_dir
+          <*> arbitrary                    -- install_image
           <*> arbitrary                    -- instance_communication_network
           <*> arbitrary                    -- zeroing_image
           <*> arbitrary                    -- compression_tools

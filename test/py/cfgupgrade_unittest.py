@@ -48,6 +48,7 @@ def GetMinimalConfig():
       "default_iallocator_params": {},
       "ndparams": {},
       "candidate_certs": {},
+      "install_image": "",
       "instance_communication_network": "",
       "zeroing_image": "",
       "compression_tools": constants.IEC_DEFAULT_TOOLS,
