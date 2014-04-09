@@ -225,6 +225,18 @@ prop_PendingJustified =
   in printTestCase "Pebding requests must be good and not fulfillable"
      . all isJustified . S.toList $ getPendingRequests state
 
+-- | Verify that extRepr . fromExtRepr = id for all valid extensional
+-- representations.
+prop_extReprPreserved :: Property
+prop_extReprPreserved =
+  forAll (arbitrary :: Gen (LockWaiting TestLock TestOwner Integer)) $ \state ->
+  let rep = extRepr state
+      rep' = extRepr $ fromExtRepr rep
+  in printTestCase "a lock waiting obtained from an extensional representation\
+                   \ must have the same extensional representation"
+     $ rep' == rep
+
+
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
  , 'prop_WaitingRequestsGetPending
@@ -233,4 +245,5 @@ testSuite "Locking/Waiting"
  , 'prop_Progress
  , 'prop_ProgressSound
  , 'prop_PendingJustified
+ , 'prop_extReprPreserved
  ]
