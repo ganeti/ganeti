@@ -117,6 +117,7 @@ __all__ = [
   "IGNORE_SIZE_OPT",
   "INCLUDEDEFAULTS_OPT",
   "INTERVAL_OPT",
+  "INSTALL_IMAGE_OPT",
   "INSTANCE_COMMUNICATION_OPT",
   "INSTANCE_COMMUNICATION_NETWORK_OPT",
   "MAC_PREFIX_OPT",
@@ -1733,6 +1734,14 @@ HOTPLUG_IF_POSSIBLE_OPT = cli_option("--hotplug-if-possible",
                                      action="store_true", default=False,
                                      help="Hotplug devices in case"
                                           " hotplug is supported")
+
+INSTALL_IMAGE_OPT = \
+    cli_option("--install-image",
+               dest="install_image",
+               action="store",
+               type="string",
+               default=None,
+               help="The OS image to use for running the OS scripts safely")
 
 INSTANCE_COMMUNICATION_OPT = \
     cli_option("-c", "--communication",

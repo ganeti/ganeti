@@ -44,6 +44,7 @@ module Ganeti.OpParams
   , SetParamsMods(..)
   , ExportTarget(..)
   , pInstanceName
+  , pInstallImage
   , pInstanceCommunication
   , pOptInstanceCommunication
   , pInstanceUuid
@@ -596,11 +597,16 @@ pClusterGlusterStorageDir =
   renameField "ClusterGlusterStorageDir" $
   optionalStringField "gluster_storage_dir"
 
+pInstallImage :: Field
+pInstallImage =
+  withDoc "OS image for running OS scripts in a safe environment" $
+  optionalStringField "install_image"
+
 pInstanceCommunicationNetwork :: Field
 pInstanceCommunicationNetwork =
   optionalStringField "instance_communication_network"
 
--- | The OS to use when zeroing instance disks
+-- | The OS to use when zeroing instance disks.
 pZeroingImage :: Field
 pZeroingImage =
   optionalStringField "zeroing_image"

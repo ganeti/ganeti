@@ -415,6 +415,7 @@ class LUClusterQuery(NoHooksLU):
       "hidden_os": cluster.hidden_os,
       "blacklisted_os": cluster.blacklisted_os,
       "enabled_disk_templates": cluster.enabled_disk_templates,
+      "install_image": cluster.install_image,
       "instance_communication_network": cluster.instance_communication_network,
       "compression_tools": cluster.compression_tools,
       }
@@ -832,6 +833,10 @@ class LUClusterSetParams(LogicalUnit):
       except errors.OpPrereqError, err:
         raise errors.OpPrereqError("While verify diskparams options: %s" % err,
                                    errors.ECODE_INVAL)
+
+    if self.op.install_image is not None:
+      CheckImageValidity(self.op.install_image,
+                         "Install image must be an absolute path or a URL")
 
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
@@ -1658,6 +1663,9 @@ class LUClusterSetParams(LogicalUnit):
                  master_params.netdev)
       result.Warn("Could not change the master IP netmask", feedback_fn)
       self.cluster.master_netmask = self.op.master_netmask
+
+    if self.op.install_image:
+      self.cluster.install_image = self.op.install_image
 
     if self.op.zeroing_image is not None:
       CheckImageValidity(self.op.zeroing_image,
