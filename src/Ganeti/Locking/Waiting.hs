@@ -32,6 +32,7 @@ module Ganeti.Locking.Waiting
  , getPendingOwners
  , removePendingRequest
  , releaseResources
+ , getPendingRequests
  ) where
 
 import qualified Data.Map as M
@@ -92,6 +93,11 @@ getPendingOwners = M.keysSet . lwPendingOwners
 -- | Get the allocation state from the waiting state
 getAllocation :: LockWaiting a b c -> L.LockAllocation a b
 getAllocation = lwAllocation
+
+-- | Get the list of all pending requests.
+getPendingRequests :: (Ord a, Ord b, Ord c)
+                   => LockWaiting a b c -> S.Set (c, b, [L.LockRequest a])
+getPendingRequests = S.unions . M.elems . lwPending
 
 -- | Internal function to fulfill one request if possible, and keep track of
 -- the owners to be notified. The type is chosen to be suitable as fold
