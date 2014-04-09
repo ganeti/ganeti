@@ -188,7 +188,7 @@ prop_Progress =
       (_, notified) = S.foldl releaseOneOwner (state', S.empty) blockers
   in printTestCase "Some progress must be made after all blockers release\
                    \ their locks"
-     . not $ S.null notified
+     . not . S.null $ notified S.\\ blockers
 
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
