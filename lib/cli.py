@@ -118,6 +118,7 @@ __all__ = [
   "INCLUDEDEFAULTS_OPT",
   "INTERVAL_OPT",
   "INSTANCE_COMMUNICATION_OPT",
+  "INSTANCE_COMMUNICATION_NETWORK_OPT",
   "MAC_PREFIX_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
@@ -186,7 +187,6 @@ __all__ = [
   "REMOVE_UIDS_OPT",
   "RESERVED_LVS_OPT",
   "RQL_OPT",
-  "INSTANCE_COMMUNICATION_NETWORK_OPT",
   "RUNTIME_MEM_OPT",
   "ROMAN_OPT",
   "SECONDARY_IP_OPT",
@@ -1310,12 +1310,6 @@ RQL_OPT = cli_option("--max-running-jobs", dest="max_running_jobs",
                      type="int", help="Set the maximal number of jobs to "
                                       "run simultaneously")
 
-INSTANCE_COMMUNICATION_NETWORK_OPT = \
-    cli_option("--instance-communication-network",
-               dest="instance_communication_network",
-               type="string",
-               help="Set the network name for instance communication")
-
 COMPRESSION_TOOLS_OPT = \
     cli_option("--compression-tools",
                dest="compression_tools", type="string", default=None,
@@ -1745,6 +1739,12 @@ INSTANCE_COMMUNICATION_OPT = \
                dest="instance_communication",
                help=constants.INSTANCE_COMMUNICATION_DOC,
                type="bool")
+
+INSTANCE_COMMUNICATION_NETWORK_OPT = \
+    cli_option("--instance-communication-network",
+               dest="instance_communication_network",
+               type="string",
+               help="Set the network name for instance communication")
 
 ZEROING_IMAGE_OPT = \
     cli_option("--zeroing-image",
