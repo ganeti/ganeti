@@ -39,9 +39,11 @@ module Ganeti.Locking.Waiting
  ) where
 
 import Control.Arrow ((&&&))
+import Control.Monad (liftM)
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
+import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Locking.Allocation as L
@@ -247,3 +249,8 @@ fromExtRepr (alloc, pending) =
             fst $ updateLocksWaiting prio owner req s)
     (emptyWaiting { lwAllocation = alloc })
     pending
+
+instance (Lock a, J.JSON a, Ord b, J.JSON b, Show b, Ord c, J.JSON c)
+         => J.JSON (LockWaiting a b c) where
+  showJSON = J.showJSON . extRepr
+  readJSON = liftM fromExtRepr . J.readJSON
