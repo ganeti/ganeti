@@ -2449,7 +2449,8 @@ class OsInfo(objects.ConfigObject):
     "parameters",
     "node_status",
     "os_hvp",
-    "osparams"
+    "osparams",
+    "trusted"
     ]
 
 
@@ -2488,6 +2489,9 @@ def _BuildOsFields():
     (_MakeField("osparams", "OsParameters", QFT_OTHER,
                 "Operating system specific parameters"),
      None, 0, _GetItemAttr("osparams")),
+    (_MakeField("trusted", "Trusted", QFT_BOOL,
+                "Whether this OS is trusted"),
+     None, 0, _GetItemAttr("trusted")),
     ]
 
   return _PrepareFieldList(fields, [])

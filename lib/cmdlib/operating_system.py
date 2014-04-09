@@ -51,7 +51,7 @@ class OsQuery(QueryBase):
 
   @staticmethod
   def _DiagnoseByOS(rlist):
-    """Remaps a per-node return list into an a per-os per-node dictionary
+    """Remaps a per-node return list into a per-os per-node dictionary
 
     @param rlist: a map with node names as keys and OS objects as values
 
@@ -76,7 +76,7 @@ class OsQuery(QueryBase):
       if nr.fail_msg or not nr.payload:
         continue
       for (name, path, status, diagnose, variants,
-           params, api_versions) in nr.payload:
+           params, api_versions, trusted) in nr.payload:
         if name not in all_os:
           # build a list of nodes for this os containing empty lists
           # for each node in node_list
@@ -85,8 +85,8 @@ class OsQuery(QueryBase):
             all_os[name][nuuid] = []
         # convert params from [name, help] to (name, help)
         params = [tuple(v) for v in params]
-        all_os[name][node_uuid].append((path, status, diagnose,
-                                        variants, params, api_versions))
+        all_os[name][node_uuid].append((path, status, diagnose, variants,
+                                        params, api_versions, trusted))
     return all_os
 
   def _GetQueryData(self, lu):
@@ -110,13 +110,14 @@ class OsQuery(QueryBase):
       variants = set()
       parameters = set()
       api_versions = set()
+      trusted = True
 
       for idx, osl in enumerate(os_data.values()):
         info.valid = bool(info.valid and osl and osl[0][1])
         if not info.valid:
           break
 
-        (node_variants, node_params, node_api) = osl[0][3:6]
+        (node_variants, node_params, node_api, node_trusted) = osl[0][3:7]
         if idx == 0:
           # First entry
           variants.update(node_variants)
@@ -128,9 +129,13 @@ class OsQuery(QueryBase):
           parameters.intersection_update(node_params)
           api_versions.intersection_update(node_api)
 
+        if not node_trusted:
+          trusted = False
+
       info.variants = list(variants)
       info.parameters = list(parameters)
       info.api_versions = list(api_versions)
+      info.trusted = trusted
 
       for variant in variants:
         name = "+".join([os_name, variant])
@@ -181,7 +186,7 @@ class LUOsDiagnose(NoHooksLU):
 
   def CheckArguments(self):
     self.oq = OsQuery(self._BuildFilter(self.op.output_fields, self.op.names),
-                       self.op.output_fields, False)
+                      self.op.output_fields, False)
 
   def ExpandNames(self):
     self.oq.ExpandNames(self)

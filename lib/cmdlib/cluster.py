@@ -2835,7 +2835,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """
     remote_os = nresult.get(constants.NV_OSLIST, None)
     test = (not isinstance(remote_os, list) or
-            not compat.all(isinstance(v, list) and len(v) == 7
+            not compat.all(isinstance(v, list) and len(v) == 8
                            for v in remote_os))
 
     self._ErrorIf(test, constants.CV_ENODEOS, ninfo.name,
@@ -2849,7 +2849,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     os_dict = {}
 
     for (name, os_path, status, diagnose,
-         variants, parameters, api_ver) in nresult[constants.NV_OSLIST]:
+         variants, parameters, api_ver,
+         trusted) in nresult[constants.NV_OSLIST]:
 
       if name not in os_dict:
         os_dict[name] = []
@@ -2858,7 +2859,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # JSON lacking a real tuple type, fix it:
       parameters = [tuple(v) for v in parameters]
       os_dict[name].append((os_path, status, diagnose,
-                            set(variants), set(parameters), set(api_ver)))
+                            set(variants), set(parameters), set(api_ver),
+                            trusted))
 
     nimg.oslist = os_dict
 
@@ -2876,7 +2878,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     beautify_params = lambda l: ["%s: %s" % (k, v) for (k, v) in l]
     for os_name, os_data in nimg.oslist.items():
       assert os_data, "Empty OS status for OS %s?!" % os_name
-      f_path, f_status, f_diag, f_var, f_param, f_api = os_data[0]
+      f_path, f_status, f_diag, f_var, f_param, f_api, f_trusted = os_data[0]
       self._ErrorIf(not f_status, constants.CV_ENODEOS, ninfo.name,
                     "Invalid OS %s (located at %s): %s",
                     os_name, f_path, f_diag)
@@ -2892,7 +2894,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if test:
         continue
       assert base.oslist[os_name], "Base node has empty OS status?"
-      _, b_status, _, b_var, b_param, b_api = base.oslist[os_name][0]
+      _, b_status, _, b_var, b_param, b_api, b_trusted = base.oslist[os_name][0]
       if not b_status:
         # base OS is invalid, skipping
         continue
@@ -2905,6 +2907,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       " [%s] vs. [%s]", kind, os_name,
                       self.cfg.GetNodeName(base.uuid),
                       utils.CommaJoin(sorted(a)), utils.CommaJoin(sorted(b)))
+      for kind, a, b in [("trusted", f_trusted, b_trusted)]:
+        self._ErrorIf(a != b, constants.CV_ENODEOS, ninfo.name,
+                      "OS %s for %s differs from reference node %s:"
+                      " %s vs. %s", kind, os_name,
+                      self.cfg.GetNodeName(base.uuid), a, b)
 
     # check any missing OSes
     missing = set(base.oslist.keys()).difference(nimg.oslist.keys())

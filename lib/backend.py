@@ -2976,11 +2976,13 @@ def DiagnoseOS(top_dirs=None):
           variants = os_inst.supported_variants
           parameters = os_inst.supported_parameters
           api_versions = os_inst.api_versions
+          trusted = False if os_inst.create_script_untrusted else True
         else:
           diagnose = os_inst
           variants = parameters = api_versions = []
+          trusted = True
         result.append((name, os_path, status, diagnose, variants,
-                       parameters, api_versions))
+                       parameters, api_versions, trusted))
 
   return result
 
@@ -3021,6 +3023,9 @@ def _TryOSFromDisk(name, base_dir=None):
   # an optional one
   os_files = dict.fromkeys(constants.OS_SCRIPTS, True)
 
+  os_files[constants.OS_SCRIPT_CREATE] = False
+  os_files[constants.OS_SCRIPT_CREATE_UNTRUSTED] = False
+
   if max(api_versions) >= constants.OS_API_V15:
     os_files[constants.OS_VARIANTS_FILE] = False
 
@@ -3050,6 +3055,15 @@ def _TryOSFromDisk(name, base_dir=None):
         return False, ("File '%s' under path '%s' is not executable" %
                        (filename, os_dir))
 
+  if not constants.OS_SCRIPT_CREATE in os_files and \
+        not constants.OS_SCRIPT_CREATE_UNTRUSTED in os_files:
+    return False, ("A create script (trusted or untrusted) under path '%s'"
+                   " must exist" % os_dir)
+
+  create_script = os_files.get(constants.OS_SCRIPT_CREATE, None)
+  create_script_untrusted = os_files.get(constants.OS_SCRIPT_CREATE_UNTRUSTED,
+                                         None)
+
   variants = []
   if constants.OS_VARIANTS_FILE in os_files:
     variants_file = os_files[constants.OS_VARIANTS_FILE]
@@ -3073,7 +3087,8 @@ def _TryOSFromDisk(name, base_dir=None):
     parameters = [v.split(None, 1) for v in parameters]
 
   os_obj = objects.OS(name=name, path=os_dir,
-                      create_script=os_files[constants.OS_SCRIPT_CREATE],
+                      create_script=create_script,
+                      create_script_untrusted=create_script_untrusted,
                       export_script=os_files[constants.OS_SCRIPT_EXPORT],
                       import_script=os_files[constants.OS_SCRIPT_IMPORT],
                       rename_script=os_files[constants.OS_SCRIPT_RENAME],

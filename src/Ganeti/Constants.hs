@@ -1333,6 +1333,9 @@ rpcConnectTimeout = 5
 osScriptCreate :: String
 osScriptCreate = "create"
 
+osScriptCreateUntrusted :: String
+osScriptCreateUntrusted = "create_untrusted"
+
 osScriptExport :: String
 osScriptExport = "export"
 
@@ -1346,8 +1349,8 @@ osScriptVerify :: String
 osScriptVerify = "verify"
 
 osScripts :: [String]
-osScripts = [osScriptCreate, osScriptExport, osScriptImport, osScriptRename,
-             osScriptVerify]
+osScripts = [osScriptCreate, osScriptCreateUntrusted, osScriptExport,
+             osScriptImport, osScriptRename, osScriptVerify]
 
 osApiFile :: String
 osApiFile = "ganeti_api_version"

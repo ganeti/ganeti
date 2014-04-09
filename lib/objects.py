@@ -1268,6 +1268,7 @@ class OS(ConfigObject):
     "path",
     "api_versions",
     "create_script",
+    "create_script_untrusted",
     "export_script",
     "import_script",
     "rename_script",
@@ -1310,6 +1311,15 @@ class OS(ConfigObject):
 
     """
     return cls.SplitNameVariant(name)[1]
+
+  def IsTrusted(self):
+    """Returns whether this OS is trusted.
+
+    @rtype: bool
+    @return: L{True} if this OS is trusted, L{False} otherwise
+
+    """
+    return not self.create_script_untrusted
 
 
 class ExtStorage(ConfigObject):
