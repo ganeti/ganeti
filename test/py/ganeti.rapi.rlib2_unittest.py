@@ -86,6 +86,56 @@ class _FakeClientFactory:
     return cl
 
 
+class RAPITestCase(testutils.GanetiTestCase):
+  """Provides a few helper methods specific to RAPI testing.
+
+  """
+  def __init__(self, *args, **kwargs):
+    """Creates a fake client factory the test may or may not use.
+
+    """
+    unittest.TestCase.__init__(self, *args, **kwargs)
+    self._clfactory = _FakeClientFactory(_FakeClient)
+
+  def assertNoNextClient(self, clfactory=None):
+    """Insures that no further clients are present.
+
+    """
+    if clfactory is None:
+      clfactory = self._clfactory
+
+    self.assertRaises(IndexError, clfactory.GetNextClient)
+
+  def getSubmittedOpcode(self, rapi_cls, items, query_args, body_data,
+                         method_name, opcode_cls):
+    """Submits a RAPI request and fetches the resulting opcode.
+
+    """
+    handler = _CreateHandler(rapi_cls, items, query_args, body_data,
+                             self._clfactory)
+    self.assertTrue(hasattr(handler, method_name),
+                    "Handler lacks target method %s" % method_name)
+    job_id = getattr(handler, method_name)()
+    try:
+      int(job_id)
+    except ValueError:
+      raise AssertionError("Returned value not job id; received %s" % job_id)
+
+    cl = self._clfactory.GetNextClient()
+    self.assertNoNextClient()
+
+    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
+    self.assertEqual(job_id, exp_job_id,
+                     "Job IDs do not match: %s != %s" % (job_id, exp_job_id))
+    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+
+    self.assertTrue(isinstance(op, opcode_cls),
+                    "Wrong opcode class: expected %s, got %s" %
+                    (opcode_cls.__name__, op.__class__.__name__))
+
+    return op
+
+
 class TestConstants(unittest.TestCase):
   def testConsole(self):
     # Exporting the console field without authentication might expose
@@ -135,251 +185,165 @@ class TestJobSubmitError(unittest.TestCase):
     self.assertRaises(http.HttpServiceUnavailable, handler.PUT)
 
 
-class TestClusterModify(unittest.TestCase):
+class TestClusterModify(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_cluster_modify, [], {}, {
+    body_data = {
       "vg_name": "testvg",
       "candidate_pool_size": 100,
-      }, clfactory)
-    job_id = handler.PUT()
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_cluster_modify, [], {}, body_data,
+                                 "PUT", opcodes.OpClusterSetParams)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpClusterSetParams))
     self.assertEqual(op.vg_name, "testvg")
     self.assertEqual(op.candidate_pool_size, 100)
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
   def testInvalidValue(self):
     for attr in ["vg_name", "candidate_pool_size", "beparams", "_-Unknown#"]:
-      clfactory = _FakeClientFactory(_FakeClient)
       handler = _CreateHandler(rlib2.R_2_cluster_modify, [], {}, {
         attr: True,
-        }, clfactory)
+        }, self._clfactory)
       self.assertRaises(http.HttpBadRequest, handler.PUT)
-      self.assertRaises(IndexError, clfactory.GetNextClient)
+      self.assertNoNextClient()
 
 
-class TestRedistConfig(unittest.TestCase):
+class TestRedistConfig(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_redist_config, [], {}, None, clfactory)
-    job_id = handler.PUT()
-
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpClusterRedistConf))
-
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+    self.getSubmittedOpcode(rlib2.R_2_redist_config, [], {}, None, "PUT",
+                            opcodes.OpClusterRedistConf)
 
 
-class TestNodeMigrate(unittest.TestCase):
+class TestNodeMigrate(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_nodes_name_migrate, ["node1"], {}, {
+    body_data = {
       "iallocator": "fooalloc",
-      }, clfactory)
-    job_id = handler.POST()
-
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpNodeMigrate))
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_nodes_name_migrate, ["node1"], {},
+                                 body_data, "POST", opcodes.OpNodeMigrate)
     self.assertEqual(op.node_name, "node1")
     self.assertEqual(op.iallocator, "fooalloc")
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
   def testQueryArgsConflict(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_nodes_name_migrate, ["node2"], {
+    query_args = {
       "live": True,
       "mode": constants.HT_MIGRATION_NONLIVE,
-      }, None, clfactory)
+      }
+    handler = _CreateHandler(rlib2.R_2_nodes_name_migrate, ["node2"],
+                             query_args, None, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.POST)
-    self.assertRaises(IndexError, clfactory.GetNextClient)
+    self.assertNoNextClient()
 
   def testQueryArgsMode(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    queryargs = {
+    query_args = {
       "mode": [constants.HT_MIGRATION_LIVE],
       }
-    handler = _CreateHandler(rlib2.R_2_nodes_name_migrate, ["node17292"],
-                             queryargs, None, clfactory)
-    job_id = handler.POST()
-
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpNodeMigrate))
+    op = self.getSubmittedOpcode(rlib2.R_2_nodes_name_migrate, ["node17292"],
+                                 query_args, None, "POST",
+                                 opcodes.OpNodeMigrate)
     self.assertEqual(op.node_name, "node17292")
     self.assertEqual(op.mode, constants.HT_MIGRATION_LIVE)
-
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testQueryArgsLive(self):
     clfactory = _FakeClientFactory(_FakeClient)
 
     for live in [False, True]:
-      queryargs = {
+      query_args = {
         "live": [str(int(live))],
         }
-      handler = _CreateHandler(rlib2.R_2_nodes_name_migrate, ["node6940"],
-                               queryargs, None, clfactory)
-      job_id = handler.POST()
+      op = self.getSubmittedOpcode(rlib2.R_2_nodes_name_migrate, ["node6940"],
+                                   query_args, None, "POST",
+                                   opcodes.OpNodeMigrate)
 
-      cl = clfactory.GetNextClient()
-      self.assertRaises(IndexError, clfactory.GetNextClient)
-
-      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-      self.assertEqual(job_id, exp_job_id)
-      self.assertTrue(isinstance(op, opcodes.OpNodeMigrate))
       self.assertEqual(op.node_name, "node6940")
       if live:
         self.assertEqual(op.mode, constants.HT_MIGRATION_LIVE)
       else:
         self.assertEqual(op.mode, constants.HT_MIGRATION_NONLIVE)
 
-      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestNodeEvacuate(unittest.TestCase):
+class TestNodeEvacuate(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_nodes_name_evacuate, ["node92"], {
+    query_args = {
       "dry-run": ["1"],
-      }, {
+      }
+    body_data = {
       "mode": constants.NODE_EVAC_SEC,
-      }, clfactory)
-    job_id = handler.POST()
-
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpNodeEvacuate))
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_nodes_name_evacuate, ["node92"],
+                                 query_args, body_data, "POST",
+                                 opcodes.OpNodeEvacuate)
     self.assertEqual(op.node_name, "node92")
     self.assertEqual(op.mode, constants.NODE_EVAC_SEC)
-    self.assertTrue(op.dry_run)
-
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
-class TestNodePowercycle(unittest.TestCase):
+class TestNodePowercycle(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_nodes_name_powercycle, ["node20744"], {
+    query_args = {
       "force": ["1"],
-      }, None, clfactory)
-    job_id = handler.POST()
-
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpNodePowercycle))
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_nodes_name_powercycle, ["node20744"],
+                                 query_args, None, "POST",
+                                 opcodes.OpNodePowercycle)
     self.assertEqual(op.node_name, "node20744")
     self.assertTrue(op.force)
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestGroupAssignNodes(unittest.TestCase):
+class TestGroupAssignNodes(RAPITestCase):
   def test(self):
     clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_groups_name_assign_nodes, ["grp-a"], {
+    query_args = {
       "dry-run": ["1"],
       "force": ["1"],
-      }, {
+      }
+    body_data = {
       "nodes": ["n2", "n3"],
-      }, clfactory)
-    job_id = handler.PUT()
-
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpGroupAssignNodes))
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_groups_name_assign_nodes, ["grp-a"],
+                                 query_args, body_data, "PUT",
+                                 opcodes.OpGroupAssignNodes)
     self.assertEqual(op.group_name, "grp-a")
     self.assertEqual(op.nodes, ["n2", "n3"])
     self.assertTrue(op.dry_run)
     self.assertTrue(op.force)
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceDelete(unittest.TestCase):
+class TestInstanceDelete(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_instances_name, ["inst30965"], {
+    query_args = {
       "dry-run": ["1"],
-      }, {}, clfactory)
-    job_id = handler.DELETE()
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name, ["inst30965"],
+                                 query_args, {}, "DELETE",
+                                 opcodes.OpInstanceRemove)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceRemove))
     self.assertEqual(op.instance_name, "inst30965")
     self.assertTrue(op.dry_run)
     self.assertFalse(op.ignore_failures)
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceInfo(unittest.TestCase):
+class TestInstanceInfo(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_instances_name_info, ["inst31217"], {
+    query_args = {
       "static": ["1"],
-      }, {}, clfactory)
-    job_id = handler.GET()
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_info, ["inst31217"],
+                                 query_args, {}, "GET",
+                                 opcodes.OpInstanceQueryData)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceQueryData))
     self.assertEqual(op.instances, ["inst31217"])
     self.assertTrue(op.static)
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceReboot(unittest.TestCase):
+class TestInstanceReboot(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_instances_name_reboot, ["inst847"], {
+    query_args = {
       "dry-run": ["1"],
       "ignore_secondaries": ["1"],
       "reason": ["System update"],
-      }, {}, clfactory)
-    job_id = handler.POST()
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_reboot, ["inst847"],
+                                 query_args, {}, "POST",
+                                 opcodes.OpInstanceReboot)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceReboot))
     self.assertEqual(op.instance_name, "inst847")
     self.assertEqual(op.reboot_type, constants.INSTANCE_REBOOT_HARD)
     self.assertTrue(op.ignore_secondaries)
@@ -391,25 +355,18 @@ class TestInstanceReboot(unittest.TestCase):
                                 "instances_name_reboot"))
     self.assertEqual(op.reason[1][1], "")
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceStartup(unittest.TestCase):
+class TestInstanceStartup(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_instances_name_startup, ["inst31083"], {
+    query_args = {
       "force": ["1"],
       "no_remember": ["1"],
       "reason": ["Newly created instance"],
-      }, {}, clfactory)
-    job_id = handler.PUT()
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_startup,
+                                 ["inst31083"], query_args, {}, "PUT",
+                                 opcodes.OpInstanceStartup)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceStartup))
     self.assertEqual(op.instance_name, "inst31083")
     self.assertTrue(op.no_remember)
     self.assertTrue(op.force)
@@ -421,24 +378,17 @@ class TestInstanceStartup(unittest.TestCase):
                                 "instances_name_startup"))
     self.assertEqual(op.reason[1][1], "")
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceShutdown(unittest.TestCase):
+class TestInstanceShutdown(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_instances_name_shutdown, ["inst26791"], {
+    query_args = {
       "no_remember": ["0"],
       "reason": ["Not used anymore"],
-      }, {}, clfactory)
-    job_id = handler.PUT()
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_shutdown,
+                                 ["inst26791"], query_args, {}, "PUT",
+                                 opcodes.OpInstanceShutdown)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceShutdown))
     self.assertEqual(op.instance_name, "inst26791")
     self.assertFalse(op.no_remember)
     self.assertFalse(op.dry_run)
@@ -449,234 +399,147 @@ class TestInstanceShutdown(unittest.TestCase):
                                 "instances_name_shutdown"))
     self.assertEqual(op.reason[1][1], "")
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceActivateDisks(unittest.TestCase):
+class TestInstanceActivateDisks(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_instances_name_activate_disks, ["xyz"], {
+    query_args = {
       "ignore_size": ["1"],
-      }, {}, clfactory)
-    job_id = handler.PUT()
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_activate_disks,
+                                 ["xyz"], query_args, {}, "PUT",
+                                 opcodes.OpInstanceActivateDisks)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceActivateDisks))
     self.assertEqual(op.instance_name, "xyz")
     self.assertTrue(op.ignore_size)
     self.assertFalse(op.dry_run)
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceDeactivateDisks(unittest.TestCase):
+class TestInstanceDeactivateDisks(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_instances_name_deactivate_disks,
-                             ["inst22357"], {}, {}, clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_deactivate_disks,
+                                 ["inst22357"], {}, {}, "PUT",
+                                 opcodes.OpInstanceDeactivateDisks)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceDeactivateDisks))
     self.assertEqual(op.instance_name, "inst22357")
     self.assertFalse(op.dry_run)
     self.assertFalse(op.force)
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceRecreateDisks(unittest.TestCase):
+class TestInstanceRecreateDisks(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_instances_name_recreate_disks,
-                             ["inst22357"], {}, {}, clfactory)
-    job_id = handler.POST()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_recreate_disks,
+                                 ["inst22357"], {}, {}, "POST",
+                                 opcodes.OpInstanceRecreateDisks)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceRecreateDisks))
     self.assertEqual(op.instance_name, "inst22357")
     self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceFailover(unittest.TestCase):
+class TestInstanceFailover(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_instances_name_failover,
-                             ["inst12794"], {}, {}, clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_failover,
+                                 ["inst12794"], {}, {}, "PUT",
+                                 opcodes.OpInstanceFailover)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceFailover))
     self.assertEqual(op.instance_name, "inst12794")
     self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceDiskGrow(unittest.TestCase):
+class TestInstanceDiskGrow(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
     data = {
       "amount": 1024,
       }
-    handler = _CreateHandler(rlib2.R_2_instances_name_disk_grow,
-                             ["inst10742", "3"], {}, data, clfactory)
-    job_id = handler.POST()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_disk_grow,
+                                 ["inst10742", "3"], {}, data, "POST",
+                                 opcodes.OpInstanceGrowDisk)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceGrowDisk))
     self.assertEqual(op.instance_name, "inst10742")
     self.assertEqual(op.disk, 3)
     self.assertEqual(op.amount, 1024)
     self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceModify(unittest.TestCase):
+class TestInstanceModify(RAPITestCase):
   def testCustomParamRename(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "instant_instance"
     data = {
       "custom_beparams": {},
       "custom_hvparams": {},
       }
 
-    handler = _CreateHandler(rlib2.R_2_instances_name_modify, [name], {}, data,
-                             clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_modify, [name], {},
+                                 data, "PUT", opcodes.OpInstanceSetParams)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-
-    self.assertTrue(isinstance(op, opcodes.OpInstanceSetParams))
     self.assertEqual(op.beparams, {})
     self.assertEqual(op.hvparams, {})
-
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
     # Define both
     data["beparams"] = {}
     assert "beparams" in data and "custom_beparams" in data
     handler = _CreateHandler(rlib2.R_2_instances_name_modify, [name], {}, data,
-                             clfactory)
+                             self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.PUT)
 
 
-class TestBackupPrepare(unittest.TestCase):
+class TestBackupPrepare(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    queryargs = {
+    query_args = {
       "mode": constants.EXPORT_MODE_REMOTE,
       }
-    handler = _CreateHandler(rlib2.R_2_instances_name_prepare_export,
-                             ["inst17925"], queryargs, {}, clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_prepare_export,
+                                 ["inst17925"], query_args, {}, "PUT",
+                                 opcodes.OpBackupPrepare)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpBackupPrepare))
     self.assertEqual(op.instance_name, "inst17925")
     self.assertEqual(op.mode, constants.EXPORT_MODE_REMOTE)
     self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestGroupRemove(unittest.TestCase):
+class TestGroupRemove(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    handler = _CreateHandler(rlib2.R_2_groups_name,
-                             ["grp28575"], {}, {}, clfactory)
-    job_id = handler.DELETE()
+    op = self.getSubmittedOpcode(rlib2.R_2_groups_name, ["grp28575"], {}, {},
+                                 "DELETE", opcodes.OpGroupRemove)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpGroupRemove))
     self.assertEqual(op.group_name, "grp28575")
     self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestStorageQuery(unittest.TestCase):
+class TestStorageQuery(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    queryargs = {
+    query_args = {
       "storage_type": constants.ST_LVM_PV,
       "output_fields": "name,other",
       }
-    handler = _CreateHandler(rlib2.R_2_nodes_name_storage,
-                             ["node21075"], queryargs, {}, clfactory)
-    job_id = handler.GET()
+    op = self.getSubmittedOpcode(rlib2.R_2_nodes_name_storage, ["node21075"],
+                                 query_args, {}, "GET",
+                                 opcodes.OpNodeQueryStorage)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpNodeQueryStorage))
     self.assertEqual(op.nodes, ["node21075"])
     self.assertEqual(op.storage_type, constants.ST_LVM_PV)
     self.assertEqual(op.output_fields, ["name", "other"])
     self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
   def testErrors(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     # storage type which does not support space reporting
     queryargs = {
       "storage_type": constants.ST_DISKLESS,
       }
     handler = _CreateHandler(rlib2.R_2_nodes_name_storage,
-                             ["node21273"], queryargs, {}, clfactory)
+                             ["node21273"], queryargs, {}, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.GET)
 
     queryargs = {
       "storage_type": constants.ST_LVM_VG,
       }
     handler = _CreateHandler(rlib2.R_2_nodes_name_storage,
-                             ["node21273"], queryargs, {}, clfactory)
+                             ["node21273"], queryargs, {}, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.GET)
 
     queryargs = {
@@ -684,33 +547,27 @@ class TestStorageQuery(unittest.TestCase):
       "output_fields": "name,other",
       }
     handler = _CreateHandler(rlib2.R_2_nodes_name_storage,
-                             ["node10315"], queryargs, {}, clfactory)
+                             ["node10315"], queryargs, {}, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.GET)
 
 
-class TestStorageModify(unittest.TestCase):
+class TestStorageModify(RAPITestCase):
   def test(self):
     clfactory = _FakeClientFactory(_FakeClient)
 
     for allocatable in [None, "1", "0"]:
-      queryargs = {
+      query_args = {
         "storage_type": constants.ST_LVM_VG,
         "name": "pv-a",
         }
 
       if allocatable is not None:
-        queryargs["allocatable"] = allocatable
+        query_args["allocatable"] = allocatable
 
-      handler = _CreateHandler(rlib2.R_2_nodes_name_storage_modify,
-                               ["node9292"], queryargs, {}, clfactory)
-      job_id = handler.PUT()
+      op = self.getSubmittedOpcode(rlib2.R_2_nodes_name_storage_modify,
+                                   ["node9292"], query_args, {}, "PUT",
+                                   opcodes.OpNodeModifyStorage)
 
-      cl = clfactory.GetNextClient()
-      self.assertRaises(IndexError, clfactory.GetNextClient)
-
-      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-      self.assertEqual(job_id, exp_job_id)
-      self.assertTrue(isinstance(op, opcodes.OpNodeModifyStorage))
       self.assertEqual(op.node_name, "node9292")
       self.assertEqual(op.storage_type, constants.ST_LVM_VG)
       self.assertEqual(op.name, "pv-a")
@@ -724,17 +581,13 @@ class TestStorageModify(unittest.TestCase):
       self.assertFalse(op.dry_run)
       self.assertFalse(hasattr(op, "force"))
 
-      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
   def testErrors(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     # No storage type
     queryargs = {
       "name": "xyz",
       }
     handler = _CreateHandler(rlib2.R_2_nodes_name_storage_modify,
-                             ["node26016"], queryargs, {}, clfactory)
+                             ["node26016"], queryargs, {}, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.PUT)
 
     # No name
@@ -742,7 +595,7 @@ class TestStorageModify(unittest.TestCase):
       "storage_type": constants.ST_LVM_VG,
       }
     handler = _CreateHandler(rlib2.R_2_nodes_name_storage_modify,
-                             ["node21218"], queryargs, {}, clfactory)
+                             ["node21218"], queryargs, {}, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.PUT)
 
     # Invalid value
@@ -752,44 +605,33 @@ class TestStorageModify(unittest.TestCase):
       "allocatable": "noint",
       }
     handler = _CreateHandler(rlib2.R_2_nodes_name_storage_modify,
-                             ["node30685"], queryargs, {}, clfactory)
+                             ["node30685"], queryargs, {}, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.PUT)
 
 
-class TestStorageRepair(unittest.TestCase):
+class TestStorageRepair(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-    queryargs = {
+    query_args = {
       "storage_type": constants.ST_LVM_PV,
       "name": "pv16611",
       }
-    handler = _CreateHandler(rlib2.R_2_nodes_name_storage_repair,
-                             ["node19265"], queryargs, {}, clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_nodes_name_storage_repair,
+                                 ["node19265"], query_args, {}, "PUT",
+                                 opcodes.OpRepairNodeStorage)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpRepairNodeStorage))
     self.assertEqual(op.node_name, "node19265")
     self.assertEqual(op.storage_type, constants.ST_LVM_PV)
     self.assertEqual(op.name, "pv16611")
     self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
   def testErrors(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     # No storage type
     queryargs = {
       "name": "xyz",
       }
     handler = _CreateHandler(rlib2.R_2_nodes_name_storage_repair,
-                             ["node11275"], queryargs, {}, clfactory)
+                             ["node11275"], queryargs, {}, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.PUT)
 
     # No name
@@ -797,11 +639,11 @@ class TestStorageRepair(unittest.TestCase):
       "storage_type": constants.ST_LVM_VG,
       }
     handler = _CreateHandler(rlib2.R_2_nodes_name_storage_repair,
-                             ["node21218"], queryargs, {}, clfactory)
+                             ["node21218"], queryargs, {}, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.PUT)
 
 
-class TestTags(unittest.TestCase):
+class TestTags(RAPITestCase):
   TAG_HANDLERS = [
     rlib2.R_2_instances_name_tags,
     rlib2.R_2_nodes_name_tags,
@@ -810,8 +652,6 @@ class TestTags(unittest.TestCase):
     ]
 
   def testSetAndDelete(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     for method, opcls in [("PUT", opcodes.OpTagsSet),
                           ("DELETE", opcodes.OpTagsDel)]:
       for idx, handler in enumerate(self.TAG_HANDLERS):
@@ -822,15 +662,9 @@ class TestTags(unittest.TestCase):
           "dry-run": str(int(dry_run)),
           }
 
-        handler = _CreateHandler(handler, [name], queryargs, {}, clfactory)
-        job_id = getattr(handler, method)()
+        op = self.getSubmittedOpcode(handler, [name], queryargs, {}, method,
+                                     opcls)
 
-        cl = clfactory.GetNextClient()
-        self.assertRaises(IndexError, clfactory.GetNextClient)
-
-        (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-        self.assertEqual(job_id, exp_job_id)
-        self.assertTrue(isinstance(op, opcls))
         self.assertEqual(op.kind, handler.TAG_LEVEL)
         if handler.TAG_LEVEL == constants.TAG_CLUSTER:
           self.assertTrue(op.name is None)
@@ -840,13 +674,9 @@ class TestTags(unittest.TestCase):
         self.assertEqual(op.dry_run, dry_run)
         self.assertFalse(hasattr(op, "force"))
 
-        self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestInstanceCreation(testutils.GanetiTestCase):
+class TestInstanceCreation(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "inst863.example.com"
 
     disk_variants = [
@@ -903,7 +733,7 @@ class TestInstanceCreation(testutils.GanetiTestCase):
             for beparams in beparam_variants:
               for hvparams in hvparam_variants:
                 for dry_run in [False, True]:
-                  queryargs = {
+                  query_args = {
                     "dry-run": str(int(dry_run)),
                     }
 
@@ -924,18 +754,11 @@ class TestInstanceCreation(testutils.GanetiTestCase):
                   if hvparams is not None:
                     data["hvparams"] = hvparams
 
-                  handler = _CreateHandler(rlib2.R_2_instances, [],
-                                           queryargs, data, clfactory)
-                  job_id = handler.POST()
+                  op = self.getSubmittedOpcode(
+                    rlib2.R_2_instances, [], query_args, data, "POST",
+                    opcodes.OpInstanceCreate
+                  )
 
-                  cl = clfactory.GetNextClient()
-                  self.assertRaises(IndexError, clfactory.GetNextClient)
-
-                  (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-                  self.assertEqual(job_id, exp_job_id)
-                  self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
-                  self.assertTrue(isinstance(op, opcodes.OpInstanceCreate))
                   self.assertEqual(op.instance_name, name)
                   self.assertEqual(op.mode, mode)
                   self.assertEqual(op.disk_template, disk_template)
@@ -965,8 +788,6 @@ class TestInstanceCreation(testutils.GanetiTestCase):
                     self.assertEqualValues(op.hvparams, hvparams)
 
   def testLegacyName(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "inst29128.example.com"
     data = {
       rlib2._REQ_DATA_VERSION: 1,
@@ -977,31 +798,21 @@ class TestInstanceCreation(testutils.GanetiTestCase):
       "disk_template": constants.DT_PLAIN,
       }
 
-    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
-    job_id = handler.POST()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances, [], {}, data, "POST",
+                                 opcodes.OpInstanceCreate)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceCreate))
     self.assertEqual(op.instance_name, name)
     self.assertFalse(hasattr(op, "name"))
     self.assertFalse(op.dry_run)
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
     # Define both
     data["instance_name"] = "other.example.com"
     assert "name" in data and "instance_name" in data
-    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.POST)
-    self.assertRaises(IndexError, clfactory.GetNextClient)
+    self.assertNoNextClient()
 
   def testLegacyOs(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "inst4673.example.com"
     os = "linux29206"
     data = {
@@ -1014,31 +825,21 @@ class TestInstanceCreation(testutils.GanetiTestCase):
       "disk_template": constants.DT_PLAIN,
       }
 
-    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
-    job_id = handler.POST()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances, [], {}, data, "POST",
+                                 opcodes.OpInstanceCreate)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceCreate))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.os_type, os)
     self.assertFalse(hasattr(op, "os"))
     self.assertFalse(op.dry_run)
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
     # Define both
     data["os"] = "linux9584"
     assert "os" in data and "os_type" in data
-    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.POST)
 
   def testErrors(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     # Test all required fields
     reqfields = {
       rlib2._REQ_DATA_VERSION: 1,
@@ -1051,9 +852,10 @@ class TestInstanceCreation(testutils.GanetiTestCase):
     for name in reqfields.keys():
       data = dict(i for i in reqfields.iteritems() if i[0] != name)
 
-      handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+      handler = _CreateHandler(rlib2.R_2_instances, [], {}, data,
+                               self._clfactory)
       self.assertRaises(http.HttpBadRequest, handler.POST)
-      self.assertRaises(IndexError, clfactory.GetNextClient)
+      self.assertNoNextClient()
 
     # Invalid disks and nics
     for field in ["disks", "nics"]:
@@ -1063,13 +865,12 @@ class TestInstanceCreation(testutils.GanetiTestCase):
       for invvalue in invalid_values:
         data = reqfields.copy()
         data[field] = invvalue
-        handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+        handler = _CreateHandler(rlib2.R_2_instances, [], {}, data,
+                                 self._clfactory)
         self.assertRaises(http.HttpBadRequest, handler.POST)
-        self.assertRaises(IndexError, clfactory.GetNextClient)
+        self.assertNoNextClient()
 
   def testVersion(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     # No version field
     data = {
       "name": "inst1.example.com",
@@ -1079,36 +880,26 @@ class TestInstanceCreation(testutils.GanetiTestCase):
       "disk_template": constants.DT_PLAIN,
       }
 
-    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.POST)
 
     # Old and incorrect versions
     for version in [0, -1, 10483, "Hello World"]:
       data[rlib2._REQ_DATA_VERSION] = version
 
-      handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
+      handler = _CreateHandler(rlib2.R_2_instances, [], {}, data,
+                               self._clfactory)
       self.assertRaises(http.HttpBadRequest, handler.POST)
-
-      self.assertRaises(IndexError, clfactory.GetNextClient)
+      self.assertNoNextClient()
 
     # Correct version
     data[rlib2._REQ_DATA_VERSION] = 1
-    handler = _CreateHandler(rlib2.R_2_instances, [], {}, data, clfactory)
-    job_id = handler.POST()
-
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceCreate))
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
+    self.getSubmittedOpcode(rlib2.R_2_instances, [], {}, data, "POST",
+                            opcodes.OpInstanceCreate)
 
 
-class TestBackupExport(unittest.TestCase):
+class TestBackupExport(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "instmoo"
     data = {
       "mode": constants.EXPORT_MODE_REMOTE,
@@ -1119,16 +910,9 @@ class TestBackupExport(unittest.TestCase):
       "destination_x509_ca": "---cert---"
       }
 
-    handler = _CreateHandler(rlib2.R_2_instances_name_export, [name], {},
-                             data, clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_export, [name], {},
+                                 data, "PUT", opcodes.OpBackupExport)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpBackupExport))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.mode, constants.EXPORT_MODE_REMOTE)
     self.assertEqual(op.target_node, [(1, 2, 3), (99, 99, 99)])
@@ -1139,27 +923,16 @@ class TestBackupExport(unittest.TestCase):
     self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
   def testDefaults(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "inst1"
     data = {
       "destination": "node2",
       "shutdown": False,
       }
 
-    handler = _CreateHandler(rlib2.R_2_instances_name_export, [name], {},
-                             data, clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_export, [name], {},
+                                 data, "PUT", opcodes.OpBackupExport)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpBackupExport))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.target_node, "node2")
     self.assertEqual(op.mode, "local")
@@ -1168,22 +941,20 @@ class TestBackupExport(unittest.TestCase):
     self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
   def testErrors(self):
     clfactory = _FakeClientFactory(_FakeClient)
 
     for value in ["True", "False"]:
-      handler = _CreateHandler(rlib2.R_2_instances_name_export, ["err1"], {}, {
+      data = {
         "remove_instance": value,
-        }, clfactory)
+        }
+      handler = _CreateHandler(rlib2.R_2_instances_name_export, ["err1"], {},
+                               data, self._clfactory)
       self.assertRaises(http.HttpBadRequest, handler.PUT)
 
 
-class TestInstanceMigrate(testutils.GanetiTestCase):
+class TestInstanceMigrate(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "instYooho6ek"
 
     for cleanup in [False, True]:
@@ -1193,52 +964,30 @@ class TestInstanceMigrate(testutils.GanetiTestCase):
           "mode": mode,
           }
 
-        handler = _CreateHandler(rlib2.R_2_instances_name_migrate, [name], {},
-                                 data, clfactory)
-        job_id = handler.PUT()
+        op = self.getSubmittedOpcode(rlib2.R_2_instances_name_migrate, [name],
+                                     {}, data, "PUT", opcodes.OpInstanceMigrate)
 
-        cl = clfactory.GetNextClient()
-        self.assertRaises(IndexError, clfactory.GetNextClient)
-
-        (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-        self.assertEqual(job_id, exp_job_id)
-        self.assertTrue(isinstance(op, opcodes.OpInstanceMigrate))
         self.assertEqual(op.instance_name, name)
         self.assertEqual(op.mode, mode)
         self.assertEqual(op.cleanup, cleanup)
         self.assertFalse(op.dry_run)
         self.assertFalse(hasattr(op, "force"))
 
-        self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
   def testDefaults(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "instnohZeex0"
 
-    handler = _CreateHandler(rlib2.R_2_instances_name_migrate, [name], {}, {},
-                             clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_migrate, [name], {},
+                                 {}, "PUT", opcodes.OpInstanceMigrate)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceMigrate))
     self.assertEqual(op.instance_name, name)
     self.assertTrue(op.mode is None)
     self.assertFalse(op.cleanup)
     self.assertFalse(op.dry_run)
     self.assertFalse(hasattr(op, "force"))
 
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
+class TestParseRenameInstanceRequest(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "instij0eeph7"
 
     for new_name in ["ua0aiyoo", "fai3ongi"]:
@@ -1250,16 +999,10 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
             "name_check": name_check,
             }
 
-          handler = _CreateHandler(rlib2.R_2_instances_name_rename, [name],
-                                   {}, data, clfactory)
-          job_id = handler.PUT()
+          op = self.getSubmittedOpcode(rlib2.R_2_instances_name_rename, [name],
+                                       {}, data, "PUT",
+                                       opcodes.OpInstanceRename)
 
-          cl = clfactory.GetNextClient()
-          self.assertRaises(IndexError, clfactory.GetNextClient)
-
-          (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-          self.assertEqual(job_id, exp_job_id)
-          self.assertTrue(isinstance(op, opcodes.OpInstanceRename))
           self.assertEqual(op.instance_name, name)
           self.assertEqual(op.new_name, new_name)
           self.assertEqual(op.ip_check, ip_check)
@@ -1267,11 +1010,7 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
           self.assertFalse(op.dry_run)
           self.assertFalse(hasattr(op, "force"))
 
-          self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
   def testDefaults(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "instahchie3t"
 
     for new_name in ["thag9mek", "quees7oh"]:
@@ -1279,16 +1018,9 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
         "new_name": new_name,
         }
 
-      handler = _CreateHandler(rlib2.R_2_instances_name_rename, [name],
-                               {}, data, clfactory)
-      job_id = handler.PUT()
+      op = self.getSubmittedOpcode(rlib2.R_2_instances_name_rename, [name],
+                                   {}, data, "PUT", opcodes.OpInstanceRename)
 
-      cl = clfactory.GetNextClient()
-      self.assertRaises(IndexError, clfactory.GetNextClient)
-
-      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-      self.assertEqual(job_id, exp_job_id)
-      self.assertTrue(isinstance(op, opcodes.OpInstanceRename))
       self.assertEqual(op.instance_name, name)
       self.assertEqual(op.new_name, new_name)
       self.assertTrue(op.ip_check)
@@ -1296,13 +1028,9 @@ class TestParseRenameInstanceRequest(testutils.GanetiTestCase):
       self.assertFalse(op.dry_run)
       self.assertFalse(hasattr(op, "force"))
 
-      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
-
-class TestParseModifyInstanceRequest(unittest.TestCase):
+class TestParseModifyInstanceRequest(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "instush8gah"
 
     test_disks = [
@@ -1327,16 +1055,11 @@ class TestParseModifyInstanceRequest(unittest.TestCase):
                     "disk_template": disk_template,
                     }
 
-                  handler = _CreateHandler(rlib2.R_2_instances_name_modify,
-                                           [name], {}, data, clfactory)
-                  job_id = handler.PUT()
+                  op = self.getSubmittedOpcode(
+                    rlib2.R_2_instances_name_modify, [name], {}, data, "PUT",
+                    opcodes.OpInstanceSetParams
+                  )
 
-                  cl = clfactory.GetNextClient()
-                  self.assertRaises(IndexError, clfactory.GetNextClient)
-
-                  (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-                  self.assertEqual(job_id, exp_job_id)
-                  self.assertTrue(isinstance(op, opcodes.OpInstanceSetParams))
                   self.assertEqual(op.instance_name, name)
                   self.assertEqual(op.hvparams, hvparams)
                   self.assertEqual(op.beparams, beparams)
@@ -1350,24 +1073,11 @@ class TestParseModifyInstanceRequest(unittest.TestCase):
                   self.assertFalse(op.force_variant)
                   self.assertFalse(op.dry_run)
 
-                  self.assertRaises(IndexError, cl.GetNextSubmittedJob)
-
   def testDefaults(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "instir8aish31"
 
-    handler = _CreateHandler(rlib2.R_2_instances_name_modify,
-                             [name], {}, {}, clfactory)
-    job_id = handler.PUT()
-
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-    self.assertTrue(isinstance(op, opcodes.OpInstanceSetParams))
-    self.assertEqual(op.instance_name, name)
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_modify, [name], {},
+                                 {}, "PUT", opcodes.OpInstanceSetParams)
 
     for i in ["hvparams", "beparams", "osparams", "force", "nics", "disks",
               "disk_template", "remote_node", "os_name", "force_variant"]:
@@ -1429,61 +1139,39 @@ class TestParseInstanceReinstallRequest(testutils.GanetiTestCase):
                       "foo", "not a dictionary")
 
 
-class TestGroupRename(unittest.TestCase):
+class TestGroupRename(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "group608242564"
     data = {
       "new_name": "ua0aiyoo15112",
       }
 
-    handler = _CreateHandler(rlib2.R_2_groups_name_rename, [name], {}, data,
-                             clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_groups_name_rename, [name], {}, data,
+                                 "PUT", opcodes.OpGroupRename)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-
-    self.assertTrue(isinstance(op, opcodes.OpGroupRename))
     self.assertEqual(op.group_name, name)
     self.assertEqual(op.new_name, "ua0aiyoo15112")
     self.assertFalse(op.dry_run)
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testDryRun(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "group28548"
+    query_args = {
+      "dry-run": ["1"],
+      }
     data = {
       "new_name": "ua0aiyoo",
       }
 
-    handler = _CreateHandler(rlib2.R_2_groups_name_rename, [name], {
-      "dry-run": ["1"],
-      }, data, clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_groups_name_rename, [name],
+                                 query_args, data, "PUT", opcodes.OpGroupRename)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-
-    self.assertTrue(isinstance(op, opcodes.OpGroupRename))
     self.assertEqual(op.group_name, name)
     self.assertEqual(op.new_name, "ua0aiyoo")
     self.assertTrue(op.dry_run)
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
-class TestInstanceReplaceDisks(unittest.TestCase):
+class TestInstanceReplaceDisks(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "inst22568"
 
     for disks in [range(1, 4), "1,2,3", "1, 2, 3"]:
@@ -1493,79 +1181,55 @@ class TestInstanceReplaceDisks(unittest.TestCase):
         "iallocator": "myalloc",
         }
 
-      handler = _CreateHandler(rlib2.R_2_instances_name_replace_disks,
-                               [name], {}, data, clfactory)
-      job_id = handler.POST()
+      op = self.getSubmittedOpcode(rlib2.R_2_instances_name_replace_disks,
+                                   [name], {}, data, "POST",
+                                   opcodes.OpInstanceReplaceDisks)
 
-      cl = clfactory.GetNextClient()
-      self.assertRaises(IndexError, clfactory.GetNextClient)
-
-      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-      self.assertEqual(job_id, exp_job_id)
-
-      self.assertTrue(isinstance(op, opcodes.OpInstanceReplaceDisks))
       self.assertEqual(op.instance_name, name)
       self.assertEqual(op.mode, constants.REPLACE_DISK_SEC)
       self.assertEqual(op.disks, [1, 2, 3])
       self.assertEqual(op.iallocator, "myalloc")
-      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testDefaults(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "inst11413"
     data = {
       "mode": constants.REPLACE_DISK_AUTO,
       }
 
-    handler = _CreateHandler(rlib2.R_2_instances_name_replace_disks,
-                             [name], {}, data, clfactory)
-    job_id = handler.POST()
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_replace_disks,
+                                 [name], {}, data, "POST",
+                                 opcodes.OpInstanceReplaceDisks)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-
-    self.assertTrue(isinstance(op, opcodes.OpInstanceReplaceDisks))
     self.assertEqual(op.instance_name, name)
     self.assertEqual(op.mode, constants.REPLACE_DISK_AUTO)
     self.assertTrue(op.iallocator is None)
     self.assertEqual(op.disks, [])
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testNoDisks(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     handler = _CreateHandler(rlib2.R_2_instances_name_replace_disks,
-                             ["inst20661"], {}, {}, clfactory)
+                             ["inst20661"], {}, {}, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.POST)
 
     for disks in [None, "", {}]:
       handler = _CreateHandler(rlib2.R_2_instances_name_replace_disks,
                                ["inst20661"], {}, {
         "disks": disks,
-        }, clfactory)
+        }, self._clfactory)
       self.assertRaises(http.HttpBadRequest, handler.POST)
 
   def testWrong(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     data = {
       "mode": constants.REPLACE_DISK_AUTO,
       "disks": "hello world",
       }
 
     handler = _CreateHandler(rlib2.R_2_instances_name_replace_disks,
-                             ["foo"], {}, data, clfactory)
+                             ["foo"], {}, data, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.POST)
 
 
-class TestGroupModify(unittest.TestCase):
+class TestGroupModify(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "group6002"
 
     for policy in constants.VALID_ALLOC_POLICIES:
@@ -1573,58 +1237,34 @@ class TestGroupModify(unittest.TestCase):
         "alloc_policy": policy,
         }
 
-      handler = _CreateHandler(rlib2.R_2_groups_name_modify, [name], {}, data,
-                               clfactory)
-      job_id = handler.PUT()
+      op = self.getSubmittedOpcode(rlib2.R_2_groups_name_modify, [name], {},
+                                   data, "PUT", opcodes.OpGroupSetParams)
 
-      cl = clfactory.GetNextClient()
-      self.assertRaises(IndexError, clfactory.GetNextClient)
-
-      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-      self.assertEqual(job_id, exp_job_id)
-
-      self.assertTrue(isinstance(op, opcodes.OpGroupSetParams))
       self.assertEqual(op.group_name, name)
       self.assertEqual(op.alloc_policy, policy)
       self.assertFalse(op.dry_run)
-      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testUnknownPolicy(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     data = {
       "alloc_policy": "_unknown_policy_",
       }
 
     handler = _CreateHandler(rlib2.R_2_groups_name_modify, ["xyz"], {}, data,
-                             clfactory)
+                             self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.PUT)
-    self.assertRaises(IndexError, clfactory.GetNextClient)
+    self.assertNoNextClient()
 
   def testDefaults(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "group6679"
 
-    handler = _CreateHandler(rlib2.R_2_groups_name_modify, [name], {}, {},
-                             clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_groups_name_modify, [name], {}, {},
+                                 "PUT", opcodes.OpGroupSetParams)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-
-    self.assertTrue(isinstance(op, opcodes.OpGroupSetParams))
     self.assertEqual(op.group_name, name)
     self.assertTrue(op.alloc_policy is None)
     self.assertFalse(op.dry_run)
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testCustomParamRename(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "groupie"
     data = {
       "custom_diskparams": {},
@@ -1632,35 +1272,24 @@ class TestGroupModify(unittest.TestCase):
       "custom_ndparams": {},
       }
 
-    handler = _CreateHandler(rlib2.R_2_groups_name_modify, [name], {}, data,
-                             clfactory)
-    job_id = handler.PUT()
+    op = self.getSubmittedOpcode(rlib2.R_2_groups_name_modify, [name], {}, data,
+                                 "PUT", opcodes.OpGroupSetParams)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-
-    self.assertTrue(isinstance(op, opcodes.OpGroupSetParams))
     self.assertEqual(op.diskparams, {})
     self.assertEqual(op.ipolicy, {})
     self.assertEqual(op.ndparams, {})
-
-    self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
     # Define both
     data["diskparams"] = {}
     assert "diskparams" in data and "custom_diskparams" in data
     handler = _CreateHandler(rlib2.R_2_groups_name_modify, [name], {}, data,
-                             clfactory)
+                             self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.PUT)
 
 
-class TestGroupAdd(unittest.TestCase):
+class TestGroupAdd(RAPITestCase):
   def test(self):
     name = "group3618"
-    clfactory = _FakeClientFactory(_FakeClient)
 
     for policy in constants.VALID_ALLOC_POLICIES:
       data = {
@@ -1668,94 +1297,64 @@ class TestGroupAdd(unittest.TestCase):
         "alloc_policy": policy,
         }
 
-      handler = _CreateHandler(rlib2.R_2_groups, [], {}, data,
-                               clfactory)
-      job_id = handler.POST()
+      op = self.getSubmittedOpcode(rlib2.R_2_groups, [], {}, data, "POST",
+                                   opcodes.OpGroupAdd)
 
-      cl = clfactory.GetNextClient()
-      self.assertRaises(IndexError, clfactory.GetNextClient)
-
-      (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-      self.assertEqual(job_id, exp_job_id)
-
-      self.assertTrue(isinstance(op, opcodes.OpGroupAdd))
       self.assertEqual(op.group_name, name)
       self.assertEqual(op.alloc_policy, policy)
       self.assertFalse(op.dry_run)
-      self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
   def testUnknownPolicy(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     data = {
       "alloc_policy": "_unknown_policy_",
       }
 
-    handler = _CreateHandler(rlib2.R_2_groups, [], {}, data, clfactory)
+    handler = _CreateHandler(rlib2.R_2_groups, [], {}, data, self._clfactory)
     self.assertRaises(http.HttpBadRequest, handler.POST)
-    self.assertRaises(IndexError, clfactory.GetNextClient)
+    self.assertNoNextClient()
 
   def testDefaults(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "group15395"
     data = {
       "group_name": name,
       }
 
-    handler = _CreateHandler(rlib2.R_2_groups, [], {}, data, clfactory)
-    job_id = handler.POST()
+    op = self.getSubmittedOpcode(rlib2.R_2_groups, [], {}, data, "POST",
+                                 opcodes.OpGroupAdd)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-
-    self.assertTrue(isinstance(op, opcodes.OpGroupAdd))
     self.assertEqual(op.group_name, name)
     self.assertTrue(op.alloc_policy is None)
     self.assertFalse(op.dry_run)
 
   def testLegacyName(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     name = "group29852"
+    query_args = {
+      "dry-run": ["1"],
+      }
     data = {
       "name": name,
       }
 
-    handler = _CreateHandler(rlib2.R_2_groups, [], {
-      "dry-run": ["1"],
-      }, data, clfactory)
-    job_id = handler.POST()
+    op = self.getSubmittedOpcode(rlib2.R_2_groups, [], query_args, data, "POST",
+                                 opcodes.OpGroupAdd)
 
-    cl = clfactory.GetNextClient()
-    self.assertRaises(IndexError, clfactory.GetNextClient)
-
-    (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
-    self.assertEqual(job_id, exp_job_id)
-
-    self.assertTrue(isinstance(op, opcodes.OpGroupAdd))
     self.assertEqual(op.group_name, name)
     self.assertTrue(op.alloc_policy is None)
     self.assertTrue(op.dry_run)
 
 
-class TestNodeRole(unittest.TestCase):
+class TestNodeRole(RAPITestCase):
   def test(self):
-    clfactory = _FakeClientFactory(_FakeClient)
-
     for role in rlib2._NR_MAP.values():
       handler = _CreateHandler(rlib2.R_2_nodes_name_role,
-                               ["node-z"], {}, role, clfactory)
+                               ["node-z"], {}, role, self._clfactory)
       if role == rlib2._NR_MASTER:
         self.assertRaises(http.HttpBadRequest, handler.PUT)
       else:
         job_id = handler.PUT()
 
-        cl = clfactory.GetNextClient()
-        self.assertRaises(IndexError, clfactory.GetNextClient)
+        cl = self._clfactory.GetNextClient()
+        self.assertNoNextClient()
 
         (exp_job_id, (op, )) = cl.GetNextSubmittedJob()
         self.assertEqual(job_id, exp_job_id)
@@ -1786,24 +1385,21 @@ class TestNodeRole(unittest.TestCase):
       self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
-class TestSimpleResources(unittest.TestCase):
-  def setUp(self):
-    self.clfactory = _FakeClientFactory(_FakeClient)
-
+class TestSimpleResources(RAPITestCase):
   def tearDown(self):
-    self.assertRaises(IndexError, self.clfactory.GetNextClient)
+    self.assertNoNextClient()
 
   def testFeatures(self):
-    handler = _CreateHandler(rlib2.R_2_features, [], {}, None, self.clfactory)
+    handler = _CreateHandler(rlib2.R_2_features, [], {}, None, self._clfactory)
     self.assertEqual(set(handler.GET()), rlib2.ALL_FEATURES)
 
   def testEmpty(self):
     for cls in [rlib2.R_root, rlib2.R_2]:
-      handler = _CreateHandler(cls, [], {}, None, self.clfactory)
+      handler = _CreateHandler(cls, [], {}, None, self._clfactory)
       self.assertTrue(handler.GET() is None)
 
   def testVersion(self):
-    handler = _CreateHandler(rlib2.R_version, [], {}, None, self.clfactory)
+    handler = _CreateHandler(rlib2.R_version, [], {}, None, self._clfactory)
     self.assertEqual(handler.GET(), constants.RAPI_VERSION)
 
 
