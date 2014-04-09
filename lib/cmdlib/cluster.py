@@ -1485,10 +1485,14 @@ class LUClusterSetParams(LogicalUnit):
     self.cfg.Update(self.cluster, feedback_fn)
 
     self._SetVgName(feedback_fn)
+
+    self.cluster = self.cfg.GetClusterInfo()
     self._SetFileStorageDir(feedback_fn)
+    self.cfg.Update(self.cluster, feedback_fn)
+
     self._SetDrbdHelper(feedback_fn)
 
-    # re-read the fresh configuration
+    # re-read the fresh configuration again
     self.cluster = self.cfg.GetClusterInfo()
 
     if self.op.hvparams:
