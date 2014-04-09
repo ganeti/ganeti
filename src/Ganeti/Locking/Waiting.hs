@@ -35,6 +35,7 @@ module Ganeti.Locking.Waiting
  , releaseResources
  , getPendingRequests
  , extRepr
+ , fromExtRepr
  ) where
 
 import Control.Arrow ((&&&))
@@ -237,3 +238,12 @@ releaseResources owner state =
                   . M.keys . L.listLocks owner $ getAllocation state'
       (state'', (_, notify)) = updateLocks owner request state'
   in (state'', notify)
+
+-- | Obtain a LockWaiting from its extensional representation.
+fromExtRepr :: (Lock a, Ord b, Ord c)
+            => ExtWaiting a b c -> LockWaiting a b c
+fromExtRepr (alloc, pending) =
+  S.foldl (\s (prio, owner, req) ->
+            fst $ updateLocksWaiting prio owner req s)
+    (emptyWaiting { lwAllocation = alloc })
+    pending
