@@ -380,6 +380,13 @@ prop_OwnerSound =
   . flip all (lockOwners state) $ \owner ->
   not . M.null $ listLocks owner state
 
+-- | Verify that for LockRequest we have readJSON . showJSON = Ok.
+prop_ReadShowRequest :: Property
+prop_ReadShowRequest =
+  forAll (arbitrary :: Gen (LockRequest TestLock)) $ \state ->
+  J.readJSON (J.showJSON state) ==? J.Ok state
+
+
 testSuite "Locking/Allocation"
  [ 'prop_LocksDisjoint
  , 'prop_LockslistComplete
@@ -398,4 +405,5 @@ testSuite "Locking/Allocation"
  , 'prop_ReadShow
  , 'prop_OwnerComplete
  , 'prop_OwnerSound
+ , 'prop_ReadShowRequest
  ]
