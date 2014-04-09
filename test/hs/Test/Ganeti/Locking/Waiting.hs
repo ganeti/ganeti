@@ -29,11 +29,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.Locking.Waiting (testLocking_Waiting) where
 
 import Control.Applicative ((<$>), (<*>), liftA2)
+import Control.Monad (liftM)
 import qualified Data.Map as M
 import qualified Data.Set as S
+import qualified Text.JSON as J
 
 import Test.QuickCheck
 
+import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHelper
 import Test.Ganeti.Locking.Allocation (TestLock, TestOwner, requestSucceeded)
 
@@ -270,6 +273,13 @@ prop_SimulateUpdateLocksWaiting =
            , extRepr finState == extRepr finState'
            ]
 
+-- | Verify that for LockWaiting we have readJSON . showJSON is extensionally
+-- equivalent to Ok.
+prop_ReadShow :: Property
+prop_ReadShow =
+  forAll (arbitrary :: Gen (LockWaiting TestLock TestOwner Integer)) $ \state ->
+  (liftM extRepr . J.readJSON $ J.showJSON state) ==? (J.Ok $ extRepr state)
+
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
  , 'prop_WaitingRequestsGetPending
@@ -281,4 +291,5 @@ testSuite "Locking/Waiting"
  , 'prop_extReprPreserved
  , 'prop_SimulateUpdateLocks
  , 'prop_SimulateUpdateLocksWaiting
+ , 'prop_ReadShow
  ]
