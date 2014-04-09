@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Locking.Waiting
  ( LockWaiting
+ , ExtWaiting
  , emptyWaiting
  , updateLocks
  , updateLocksWaiting
@@ -33,8 +34,10 @@ module Ganeti.Locking.Waiting
  , removePendingRequest
  , releaseResources
  , getPendingRequests
+ , extRepr
  ) where
 
+import Control.Arrow ((&&&))
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
@@ -98,6 +101,15 @@ getAllocation = lwAllocation
 getPendingRequests :: (Ord a, Ord b, Ord c)
                    => LockWaiting a b c -> S.Set (c, b, [L.LockRequest a])
 getPendingRequests = S.unions . M.elems . lwPending
+
+-- | Type of the extensional representation of a LockWaiting.
+type ExtWaiting a b c = (L.LockAllocation a b, S.Set (c, b, [L.LockRequest a]))
+
+-- | Get a representation, comparable by (==), that captures the extensional
+-- behaviour. In other words, @(==) `on` extRepr@ is a bisumlation.
+extRepr :: (Ord a, Ord b, Ord c)
+        => LockWaiting a b c -> ExtWaiting a b c
+extRepr = getAllocation &&& getPendingRequests
 
 -- | Internal function to fulfill one request if possible, and keep track of
 -- the owners to be notified. The type is chosen to be suitable as fold
