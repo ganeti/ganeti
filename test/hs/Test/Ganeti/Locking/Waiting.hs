@@ -39,6 +39,7 @@ import Test.Ganeti.Locking.Allocation (TestLock, TestOwner, requestSucceeded)
 
 import Ganeti.BasicTypes (isBad, genericResult, runListHead)
 import Ganeti.Locking.Allocation (LockRequest, listLocks)
+import qualified Ganeti.Locking.Allocation as L
 import Ganeti.Locking.Types (Lock)
 import Ganeti.Locking.Waiting
 
@@ -212,6 +213,18 @@ prop_ProgressSound =
   in printTestCase "If an owner gets notified, his request must be satisfied"
      . all requestFulfilled . S.toList $ notified S.\\ blockers
 
+-- | Verify that all pending requests are valid and cannot be fulfilled in
+-- the underlying lock allocation.
+prop_PendingJustified :: Property
+prop_PendingJustified =
+  forAll ((arbitrary :: Gen (LockWaiting TestLock TestOwner Integer))
+          `suchThat` (not . S.null . getPendingRequests)) $ \state ->
+  let isJustified (_, b, req) =
+        genericResult (const False) (not . S.null) . snd
+        . L.updateLocks b req $ getAllocation state
+  in printTestCase "Pebding requests must be good and not fulfillable"
+     . all isJustified . S.toList $ getPendingRequests state
+
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
  , 'prop_WaitingRequestsGetPending
@@ -219,4 +232,5 @@ testSuite "Locking/Waiting"
  , 'prop_PendingGetNotifiedEventually
  , 'prop_Progress
  , 'prop_ProgressSound
+ , 'prop_PendingJustified
  ]
