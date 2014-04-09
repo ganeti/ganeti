@@ -252,6 +252,23 @@ prop_SimulateUpdateLocks =
            , notify == notify'
            , extRepr finState == extRepr finState'
            ]
+-- | Verify that any state is indistinguishable from its canonical version
+-- (i.e., the one obtained from the extensional representation) with respect
+-- to updateLocksWaiting.
+prop_SimulateUpdateLocksWaiting :: Property
+prop_SimulateUpdateLocksWaiting =
+  forAll (arbitrary :: Gen (LockWaiting TestLock TestOwner Integer)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \owner ->
+  forAll (arbitrary :: Gen Integer) $ \prio ->
+  forAll (arbitrary :: Gen [LockRequest TestLock]) $ \req ->
+  let state' = fromExtRepr $ extRepr state
+      (finState, (result, notify)) = updateLocksWaiting prio owner req state
+      (finState', (result', notify')) = updateLocksWaiting prio owner req state'
+  in printTestCase "extRepr-equal states must behave equal on updateLocks"
+     $ and [ result == result'
+           , notify == notify'
+           , extRepr finState == extRepr finState'
+           ]
 
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
@@ -263,4 +280,5 @@ testSuite "Locking/Waiting"
  , 'prop_PendingJustified
  , 'prop_extReprPreserved
  , 'prop_SimulateUpdateLocks
+ , 'prop_SimulateUpdateLocksWaiting
  ]
