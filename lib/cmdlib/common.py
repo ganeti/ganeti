@@ -435,7 +435,7 @@ def CheckOSImage(op):
 
   """
   os_image = objects.GetOSImage(op.osparams)
-  CheckImageValidity(os_image, "OS image must be a URL or an absolute path")
+  CheckImageValidity(os_image, "OS image must be an absolute path or a URL")
   return os_image
 
 
