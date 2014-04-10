@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Utils.Livelock
   ( Livelock
   , mkLivelockFile
+  , isDead
   ) where
 
 import qualified Control.Exception as E
@@ -56,3 +57,15 @@ mkLivelockFile prefix = do
                                    ++ ": " ++ msg
           Ok fd     -> return fd
   return (fd, lockfile)
+
+-- | Detect whether a the process identified by the given path
+-- does not exist any more. This function never fails and only
+-- returns True if it has positive knowledge that the process
+-- does not exist any more (i.e., if it managed successfully
+-- obtain a shared lock on the file).
+isDead :: Livelock -> IO Bool
+isDead fpath = fmap (isOk :: Result () -> Bool) . runResultT . liftIO $ do
+  filepresent <- doesFileExist fpath
+  when filepresent
+    $ E.bracket (openFd fpath ReadOnly Nothing defaultFileFlags) closeFd
+                (`setLock` (ReadLock, AbsoluteSeek, 0, 0))

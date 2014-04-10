@@ -31,16 +31,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.WConfd.DeathDetection
-  ( isDead
-  , cleanupLocksTask
+  ( cleanupLocksTask
   ) where
 
 import Control.Concurrent (threadDelay)
-import Control.Exception (bracket, try)
+import qualified Control.Exception as E
 import Control.Monad
-import System.Directory
-import System.IO
-import System.Posix.IO
+import System.Directory (removeFile)
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -48,19 +45,8 @@ import qualified Ganeti.Locking.Allocation as L
 import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Locking.Locks (ClientId(..))
 import Ganeti.Logging.Lifted (logDebug, logInfo)
+import Ganeti.Utils.Livelock
 import Ganeti.WConfd.Monad
-
--- | Detect whether a the process identified by the given path
--- does not exist any more. This function never fails and only
--- returns True if it has positive knowledge that the process
--- does not exist any more (i.e., if it managed successfully
--- obtain a shared lock on the file).
-isDead :: FilePath -> IO Bool
-isDead fpath = fmap (isOk :: Result () -> Bool) . runResultT . liftIO $ do
-  filepresent <- doesFileExist fpath
-  when filepresent
-    $ bracket (openFd fpath ReadOnly Nothing defaultFileFlags) closeFd
-              (`setLock` (ReadLock, AbsoluteSeek, 0, 0))
 
 -- | Interval to run clean-up tasks in microseconds
 cleanupInterval :: Int
@@ -78,7 +64,7 @@ cleanupLocksTask = forever . runResultT $ do
         when died $ do
           logInfo $ show owner ++ " died, releasing locks"
           modifyLockWaiting_ (LW.releaseResources owner)
-          _ <- liftIO . try $ removeFile fpath
+          _ <- liftIO . E.try $ removeFile fpath
                :: WConfdMonad (Either IOError ())
           return ()
   mapM_ cleanupIfDead owners
