@@ -28,6 +28,8 @@ module Ganeti.Path
   , runDir
   , logDir
   , socketDir
+  , livelockDir
+  , livelockFile
   , defaultMasterSocket
   , defaultQuerySocket
   , defaultWConfdSocket
@@ -87,6 +89,15 @@ logDir = addNodePrefix $ AutoConf.localstatedir </> "log" </> "ganeti"
 -- | Directory for Unix sockets.
 socketDir :: IO FilePath
 socketDir = runDir `pjoin` "socket"
+
+-- | Directory for the jobs' livelocks.
+livelockDir :: IO FilePath
+livelockDir = runDir `pjoin` "livelocks"
+
+-- | A helper for building a job's livelock file. It prepends
+-- 'livelockDir' to a given filename.
+livelockFile :: FilePath -> IO FilePath
+livelockFile = pjoin livelockDir
 
 -- | The default path for the master-daemon LUXI socket.
 defaultMasterSocket :: IO FilePath
