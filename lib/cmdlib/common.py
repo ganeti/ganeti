@@ -22,7 +22,9 @@
 """Common functions used by multiple logical units."""
 
 import copy
+import math
 import os
+import urllib2
 
 from ganeti import compat
 from ganeti import constants
@@ -764,7 +766,7 @@ def AnnotateDiskParams(instance, devs, cfg):
   @param devs: The root devices (not any of its children!)
   @param cfg: The config object
   @returns The annotated disk copies
-  @see L{rpc.node.AnnotateDiskParams}
+  @see L{ganeti.rpc.node.AnnotateDiskParams}
 
   """
   return rpc.AnnotateDiskParams(devs, cfg.GetInstanceDiskParams(instance))
@@ -1414,3 +1416,51 @@ def ConnectInstanceCommunicationNetworkOp(group_uuid, network):
     network_mode=constants.INSTANCE_COMMUNICATION_NETWORK_MODE,
     network_link=constants.INSTANCE_COMMUNICATION_NETWORK_LINK,
     conflicts_check=True)
+
+
+def DetermineImageSize(lu, image, node_uuid):
+  """Determines the size of the specified image.
+
+  @type image: string
+  @param image: absolute filepath or URL of the image
+
+  @type node_uuid: string
+  @param node_uuid: if L{image} is a filepath, this is the UUID of the
+    node where the image is located
+
+  @rtype: int
+  @return: size of the image in MB, rounded up
+  @raise OpExecError: if the image does not exist
+
+  """
+  # Check if we are dealing with a URL first
+  class _HeadRequest(urllib2.Request):
+    def get_method(self):
+      return "HEAD"
+
+  if utils.IsUrl(image):
+    try:
+      response = urllib2.urlopen(_HeadRequest(image))
+    except urllib2.URLError:
+      raise errors.OpExecError("Could not retrieve image from given url '%s'" %
+                               image)
+
+    content_length_str = response.info().getheader('content-length')
+
+    if not content_length_str:
+      raise errors.OpExecError("Could not determine image size from given url"
+                               " '%s'" % image)
+
+    byte_size = int(content_length_str)
+  else:
+    # We end up here if a file path is used
+    result = lu.rpc.call_get_file_info(node_uuid, image)
+    result.Raise("Could not determine size of file '%s'" % image)
+
+    success, attributes = result.payload
+    if not success:
+      raise errors.OpExecError("Could not open file '%s'" % image)
+    byte_size = attributes[constants.STAT_SIZE]
+
+  # Finally, the conversion
+  return math.ceil(byte_size / 1024. / 1024.)
