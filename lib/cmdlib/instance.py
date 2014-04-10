@@ -567,6 +567,7 @@ class LUInstanceCreate(LogicalUnit):
 
       if self.op.opportunistic_locking:
         self.opportunistic_locks[locking.LEVEL_NODE] = True
+        self.opportunistic_locks[locking.LEVEL_NODE_RES] = True
     else:
       (self.op.pnode_uuid, self.op.pnode) = \
         ExpandNodeUuidAndName(self.cfg, self.op.pnode_uuid, self.op.pnode)
@@ -621,14 +622,6 @@ class LUInstanceCreate(LogicalUnit):
           self.needed_locks[locking.LEVEL_NODE]))
     self.share_locks[locking.LEVEL_NODEGROUP] = 1
 
-  def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE_RES and \
-      self.opportunistic_locks[locking.LEVEL_NODE]:
-      # Even when using opportunistic locking, we require the same set of
-      # NODE_RES locks as we got NODE locks
-      self.needed_locks[locking.LEVEL_NODE_RES] = \
-        self.owned_locks(locking.LEVEL_NODE)
-
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
 
@@ -636,7 +629,8 @@ class LUInstanceCreate(LogicalUnit):
     if self.op.opportunistic_locking:
       # Only consider nodes for which a lock is held
       node_name_whitelist = self.cfg.GetNodeNames(
-        self.owned_locks(locking.LEVEL_NODE))
+        set(self.owned_locks(locking.LEVEL_NODE)) &
+        set(self.owned_locks(locking.LEVEL_NODE_RES)))
     else:
       node_name_whitelist = None
 
@@ -2006,6 +2000,7 @@ class LUInstanceMultiAlloc(NoHooksLU):
 
       if self.op.opportunistic_locking:
         self.opportunistic_locks[locking.LEVEL_NODE] = True
+        self.opportunistic_locks[locking.LEVEL_NODE_RES] = True
     else:
       nodeslist = []
       for inst in self.op.instances:
@@ -2022,14 +2017,6 @@ class LUInstanceMultiAlloc(NoHooksLU):
       # prevent accidential modification)
       self.needed_locks[locking.LEVEL_NODE_RES] = list(nodeslist)
 
-  def DeclareLocks(self, level):
-    if level == locking.LEVEL_NODE_RES and \
-      self.opportunistic_locks[locking.LEVEL_NODE]:
-      # Even when using opportunistic locking, we require the same set of
-      # NODE_RES locks as we got NODE locks
-      self.needed_locks[locking.LEVEL_NODE_RES] = \
-        self.owned_locks(locking.LEVEL_NODE)
-
   def CheckPrereq(self):
     """Check prerequisite.
 
@@ -2042,7 +2029,8 @@ class LUInstanceMultiAlloc(NoHooksLU):
       if self.op.opportunistic_locking:
         # Only consider nodes for which a lock is held
         node_whitelist = self.cfg.GetNodeNames(
-                           list(self.owned_locks(locking.LEVEL_NODE)))
+          set(self.owned_locks(locking.LEVEL_NODE)) &
+          set(self.owned_locks(locking.LEVEL_NODE_RES)))
       else:
         node_whitelist = None
 

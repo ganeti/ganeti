@@ -558,7 +558,7 @@ class TestInstanceDiskGrow(unittest.TestCase):
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
 
-class TestInstanceModify():
+class TestInstanceModify(unittest.TestCase):
   def testCustomParamRename(self):
     clfactory = _FakeClientFactory(_FakeClient)
 
@@ -566,7 +566,6 @@ class TestInstanceModify():
     data = {
       "custom_beparams": {},
       "custom_hvparams": {},
-      "custom_nicparams": {},
       }
 
     handler = _CreateHandler(rlib2.R_2_instances_name_modify, [name], {}, data,
@@ -582,7 +581,6 @@ class TestInstanceModify():
     self.assertTrue(isinstance(op, opcodes.OpInstanceSetParams))
     self.assertEqual(op.beparams, {})
     self.assertEqual(op.hvparams, {})
-    self.assertEqual(op.nicparams, {})
 
     self.assertRaises(IndexError, cl.GetNextSubmittedJob)
 
