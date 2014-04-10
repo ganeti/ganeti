@@ -837,6 +837,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils.hs \
 	src/Ganeti/Utils/Atomic.hs \
 	src/Ganeti/Utils/AsyncWorker.hs \
+	src/Ganeti/Utils/Livelock.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
 	src/Ganeti/WConfd/ConfigWriter.hs \
