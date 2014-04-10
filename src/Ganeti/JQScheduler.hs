@@ -32,6 +32,7 @@ module Ganeti.JQScheduler
   , setJobPriority
   ) where
 
+import Control.Applicative (liftA2)
 import Control.Arrow
 import Control.Concurrent
 import Control.Exception
@@ -202,12 +203,21 @@ attachWatcher state jWS = when (isNothing $ jINotify jWS) $ do
   _ <- addWatch inotify [Modify, Delete] fpath $ jobWatcher state jWS'
   modifyJobs state . onRunningJobs $ updateJobStatus jWS'
 
+-- | For a queued job, determine whether it is eligible to run, i.e.,
+-- if no jobs it depends on are either enqueued or running.
+jobEligible :: Queue -> JobWithStat -> Bool
+jobEligible queue jWS =
+  let jdeps = getJobDependencies $ jJob jWS
+      blocks = flip elem jdeps . qjId . jJob
+  in not . any blocks . liftA2 (++) qRunning qEnqueued $ queue
+
 -- | Decide on which jobs to schedule next for execution. This is the
 -- pure function doing the scheduling.
 selectJobsToRun :: Int -> Queue -> (Queue, [JobWithStat])
 selectJobsToRun count queue =
   let n = count - length (qRunning queue)
-      (chosen, remain) = splitAt n (qEnqueued queue)
+      chosen = take n . filter (jobEligible queue) $ qEnqueued queue
+      remain = deleteFirstsBy ((==) `on` (qjId . jJob)) (qEnqueued queue) chosen
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
 
 -- | Requeue jobs that were previously selected for execution
