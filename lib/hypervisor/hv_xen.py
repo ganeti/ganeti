@@ -173,9 +173,15 @@ def _GetAllInstanceList(fn, include_node, _timeout=5):
 #
 # An instance is running if it is in the following Xen states:
 # running, blocked, or paused.
+#
+# For some strange reason, Xen once printed 'rb----' which does not
+# make any sense because an instance cannot be both running and
+# blocked.  Fortunately, for Ganeti 'running' or 'blocked' is the same
+# as 'running'.
 def _IsInstanceRunning(instance_info):
   return instance_info == "r-----" \
       or instance_info == "-b----" \
+      or instance_info == "rb----" \
       or instance_info == "--p---"
 
 
