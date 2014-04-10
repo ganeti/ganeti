@@ -111,6 +111,7 @@ module Ganeti.Types
   , JobIdDep(..)
   , JobDependency(..)
   , absoluteJobDependency
+  , getJobIdFromDependency
   , OpSubmitPriority(..)
   , opSubmitPriorityToRaw
   , parseSubmitPriority
@@ -705,6 +706,12 @@ instance JSON JobDependency where
 absoluteJobDependency :: (Monad m) => JobDependency -> JobId -> m JobDependency
 absoluteJobDependency (JobDependency jdep fstats) jid =
   liftM (flip JobDependency fstats) $ absoluteJobIdDep jdep jid
+
+-- | From a job dependency get the absolute job id it depends on,
+-- if given absolutely.
+getJobIdFromDependency :: JobDependency -> [JobId]
+getJobIdFromDependency (JobDependency (JobDepAbsolute jid) _) = [jid]
+getJobIdFromDependency _ = []
 
 -- | Valid opcode priorities for submit.
 $(THH.declareIADT "OpSubmitPriority"
