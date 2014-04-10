@@ -107,7 +107,8 @@ class TestOpcodeResource(unittest.TestCase):
   @staticmethod
   def _GetMethodAttributes(method):
     attrs = ["%s_OPCODE" % method, "%s_RENAME" % method,
-             "%s_ALIASES" % method, "Get%sOpInput" % method.capitalize()]
+             "%s_ALIASES" % method, "%s_FORBIDDEN" % method,
+             "Get%sOpInput" % method.capitalize()]
     assert attrs == dict((opattrs.method, opattrs.GetModifiers())
                          for opattrs in baserlib.OPCODE_ATTRS)[method]
     return attrs

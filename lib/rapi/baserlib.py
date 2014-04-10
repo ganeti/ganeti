@@ -60,6 +60,7 @@ class OpcodeAttributes(object):
     "opcode",
     "rename",
     "aliases",
+    "forbidden",
     "get_input",
     ]
 
@@ -71,13 +72,15 @@ class OpcodeAttributes(object):
     self.opcode = "%s_OPCODE" % method_name
     self.rename = "%s_RENAME" % method_name
     self.aliases = "%s_ALIASES" % method_name
+    self.forbidden = "%s_FORBIDDEN" % method_name
     self.get_input = "Get%sOpInput" % method_name.capitalize()
 
   def GetModifiers(self):
     """Returns the names of all the attributes that replace or modify a method.
 
     """
-    return [self.opcode, self.rename, self.aliases, self.get_input]
+    return [self.opcode, self.rename, self.aliases, self.forbidden,
+            self.get_input]
 
   def GetAll(self):
     return [self.method] + self.GetModifiers()
@@ -469,7 +472,7 @@ class _MetaOpcodeResource(type):
     obj = type.__call__(mcs, *args, **kwargs)
 
     for m_attrs in OPCODE_ATTRS:
-      method, op_attr, rename_attr, aliases_attr, fn_attr = m_attrs.GetAll()
+      method, op_attr, rename_attr, aliases_attr, _, fn_attr = m_attrs.GetAll()
       if hasattr(obj, method):
         # If the method handler is already defined, "*_RENAME" or
         # "Get*OpInput" shouldn't be (they're only used by the automatically
