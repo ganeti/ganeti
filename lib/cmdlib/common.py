@@ -1036,7 +1036,7 @@ def IsInstanceRunning(lu, instance, check_user_shutdown=False):
 
   if check_user_shutdown:
     # One more check to be made - whether the instance was shutdown by the user
-    full_hvparams = lu.cfg.GetClusterInfo().FillHV(lu.instance)
+    full_hvparams = lu.cfg.GetClusterInfo().FillHV(instance)
     inst_info = lu.rpc.call_instance_info(pnode_uuid, instance.name,
                                           instance.hypervisor, full_hvparams)
     inst_info.Raise("Can't retrieve instance information for instance %s" %
