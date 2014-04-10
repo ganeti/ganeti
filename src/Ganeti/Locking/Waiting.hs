@@ -39,10 +39,12 @@ module Ganeti.Locking.Waiting
  , freeLocksPredicate
  , downGradeLocksPredicate
  , intersectLocks
+ , opportunisticLockUnion
  ) where
 
-import Control.Arrow ((&&&), second)
+import Control.Arrow ((&&&), (***), second)
 import Control.Monad (liftM)
+import Data.List (sort)
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
@@ -322,3 +324,24 @@ intersectLocks :: (Lock a, Ord b, Ord c)
                -> b
                -> LockWaiting a b c -> (LockWaiting a b c, S.Set b)
 intersectLocks locks = freeLocksPredicate (not . flip elem locks)
+
+-- | Opprotunistically allocate locks for a given owner; return the set
+-- of newly actually acquired locks (i.e., locks already held before are
+-- not mentioned).
+opportunisticLockUnion :: (Lock a, Ord b, Ord c)
+                       => b
+                       -> [(a, L.OwnerState)]
+                       -> LockWaiting a b c
+                       -> (LockWaiting a b c, ([a], S.Set b))
+opportunisticLockUnion owner reqs state =
+  let locks = L.listLocks owner $ getAllocation state
+      reqs' = sort $ filter (uncurry (<) . (flip M.lookup locks *** Just)) reqs
+      maybeAllocate (s, success) (lock, ownstate) =
+        let (s',  (result, _)) =
+              updateLocks owner
+                          [(if ownstate == L.OwnShared
+                              then L.requestShared
+                              else L.requestExclusive) lock]
+                          s
+        in (s', if result == Ok S.empty then lock:success else success)
+  in second (flip (,) S.empty) $ foldl maybeAllocate (state, []) reqs'
