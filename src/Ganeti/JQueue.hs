@@ -41,6 +41,7 @@ module Ganeti.JQueue
     , advanceTimestamp
     , setReceivedTimestamp
     , extendJobReasonTrail
+    , getJobDependencies
     , opStatusFinalized
     , extractOpSummary
     , calcJobStatus
@@ -136,6 +137,11 @@ advanceTimestamp = first . (+)
 data InputOpCode = ValidOpCode MetaOpCode -- ^ OpCode was parsed successfully
                  | InvalidOpCode JSValue  -- ^ Invalid opcode
                    deriving (Show, Eq)
+
+-- | From an InputOpCode obtain the MetaOpCode, if any.
+toMetaOpCode :: InputOpCode -> [MetaOpCode]
+toMetaOpCode (ValidOpCode mopc) = [mopc]
+toMetaOpCode _ = []
 
 -- | JSON instance for 'InputOpCode', trying to parse it and if
 -- failing, keeping the original JSValue.
@@ -262,6 +268,14 @@ extendJobReasonTrail job =
             zipWith (extendOpCodeReasonTrail jobId timestamp) [0..] $
               qjOps job
         }
+
+-- | From a queued job obtain the list of jobs it depends on.
+getJobDependencies :: QueuedJob -> [JobId]
+getJobDependencies job = do
+  op <- qjOps job
+  mopc <- toMetaOpCode $ qoInput op
+  dep <- fromMaybe [] . opDepends $ metaParams mopc
+  getJobIdFromDependency dep
 
 -- | Change the priority of a QueuedOpCode, if it is not already
 -- finalized.
