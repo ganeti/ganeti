@@ -71,10 +71,10 @@ def GetWConfdContext(ec_id, livelock):
   """
   if ec_id is None:
     return (threading.current_thread().getName(),
-            livelock.lockfile.name, os.getpid())
+            livelock.GetPath(), os.getpid())
   else:
     return (ec_id,
-            livelock.lockfile.name, os.getpid())
+            livelock.GetPath(), os.getpid())
 
 
 def GetConfig(ec_id, livelock, **kwargs):
