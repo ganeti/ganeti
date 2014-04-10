@@ -229,8 +229,7 @@ requeueJobs qstate jobs err = do
       rmJobs = filter ((`notElem` jids) . qjId . jJob)
   logWarning $ "Starting jobs failed: " ++ show err
   logWarning $ "Rescheduling jobs: " ++ jidsString
-  modifyJobs qstate (onRunningJobs rmJobs)
-  modifyJobs qstate (onQueuedJobs $ (++) jobs)
+  modifyJobs qstate $ onQueuedJobs (jobs ++) . onRunningJobs rmJobs
 
 -- | Schedule jobs to be run. This is the IO wrapper around the
 -- pure `selectJobsToRun`.
