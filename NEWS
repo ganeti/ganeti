@@ -2,6 +2,30 @@ News
 ====
 
 
+Version 2.10.3
+--------------
+
+*(Released Mon, 14 Apr 2014)*
+
+- Fix filtering of pending jobs with -o id (issue 778)
+- Make RAPI API calls more symmetric (issue 770)
+- Make parsing of old cluster configuration more robust (issue 783)
+- Fix wrong output of gnt-instance info after migrations
+- Fix reserved PCI slots for KVM hotplugging
+- Use runtime hypervisor parameters to calculate bockdevice options for KVM
+- Fix high node daemon load during disk sync if the sync is paused manually
+  (issue 792)
+- Improve opportunistic locking during instance creation (issue 791)
+
+Inherited from the 2.9 branch:
+
+- Make watcher submit queries low priority (issue 772)
+- Add reason parameter to RAPI client functions (issue 776)
+- Fix failing gnt-node list-drbd command (issue 777)
+- Properly display fake job locks in gnt-debug.
+- small fixes in documentation
+
+
 Version 2.10.2
 --------------
 
