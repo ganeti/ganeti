@@ -611,6 +611,9 @@ class OpcodeResource(ResourceBase):
     automatically generate a GET handler submitting the opcode
   @cvar GET_RENAME: Set this to rename parameters in the GET handler (see
     L{baserlib.FillOpcode})
+  @cvar GET_FORBIDDEN: Set this to disable listed parameters and optionally
+    specific values from being set through the GET handler (see
+    L{baserlib.InspectParams})
   @cvar GET_ALIASES: Set this to duplicate return values in GET results (see
     L{baserlib.GetHandler})
   @ivar GetGetOpInput: Define this to override the default method for
@@ -620,6 +623,9 @@ class OpcodeResource(ResourceBase):
     automatically generate a PUT handler submitting the opcode
   @cvar PUT_RENAME: Set this to rename parameters in the PUT handler (see
     L{baserlib.FillOpcode})
+  @cvar PUT_FORBIDDEN: Set this to disable listed parameters and optionally
+    specific values from being set through the PUT handler (see
+    L{baserlib.InspectParams})
   @ivar GetPutOpInput: Define this to override the default method for
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 
@@ -627,6 +633,9 @@ class OpcodeResource(ResourceBase):
     automatically generate a POST handler submitting the opcode
   @cvar POST_RENAME: Set this to rename parameters in the POST handler (see
     L{baserlib.FillOpcode})
+  @cvar POST_FORBIDDEN: Set this to disable listed parameters and optionally
+    specific values from being set through the POST handler (see
+    L{baserlib.InspectParams})
   @ivar GetPostOpInput: Define this to override the default method for
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 
@@ -634,6 +643,9 @@ class OpcodeResource(ResourceBase):
     automatically generate a DELETE handler submitting the opcode
   @cvar DELETE_RENAME: Set this to rename parameters in the DELETE handler (see
     L{baserlib.FillOpcode})
+  @cvar DELETE_FORBIDDEN: Set this to disable listed parameters and optionally
+    specific values from being set through the DELETE handler (see
+    L{baserlib.InspectParams})
   @ivar GetDeleteOpInput: Define this to override the default method for
     getting opcode parameters (see L{baserlib.OpcodeResource._GetDefaultData})
 
