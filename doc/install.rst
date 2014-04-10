@@ -248,7 +248,7 @@ your instances to DRBD to take advantage of the new features.
 
 .. _DRBD: http://www.drbd.org/
 
-Supported DRBD versions: 8.0-8.3. It's recommended to have at least
+Supported DRBD versions: 8.0-8.4. It's recommended to have at least
 version 8.0.12. Note that for version 8.2 and newer it is needed to pass
 the ``usermode_helper=/bin/true`` parameter to the module, either by
 configuring ``/etc/modules`` or when inserting it manually.

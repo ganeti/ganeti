@@ -111,6 +111,23 @@ def RunTest(fn, *args, **kwargs):
                         color=colors.MAGENTA, mark=">")
 
 
+def ReportTestSkip(desc, testnames):
+  """Reports that tests have been skipped.
+
+  @type desc: string
+  @param desc: string
+  @type testnames: string or list of string
+  @param testnames: either a single test name in the configuration
+      file, or a list of testnames (which will be AND-ed together)
+
+  """
+  tstart = datetime.datetime.now()
+  # TODO: Formatting test names when non-string names are involved
+  print _FormatHeader("%s skipping %s, test(s) %s disabled" %
+                      (tstart, desc, testnames),
+                      color=colors.BLUE, mark="*")
+
+
 def RunTestIf(testnames, fn, *args, **kwargs):
   """Runs a test conditionally.
 
@@ -121,12 +138,8 @@ def RunTestIf(testnames, fn, *args, **kwargs):
   if qa_config.TestEnabled(testnames):
     RunTest(fn, *args, **kwargs)
   else:
-    tstart = datetime.datetime.now()
     desc = _DescriptionOf(fn)
-    # TODO: Formatting test names when non-string names are involved
-    print _FormatHeader("%s skipping %s, test(s) %s disabled" %
-                        (tstart, desc, testnames),
-                        color=colors.BLUE, mark="*")
+    ReportTestSkip(desc, testnames)
 
 
 def RunTestBlock(fn, *args, **kwargs):
@@ -825,6 +838,12 @@ def RunInstanceTests():
       finally:
         qa_config.ReleaseManyNodes(inodes)
       qa_cluster.AssertClusterVerify()
+    else:
+      test_desc = "Creating instances of template %s" % templ
+      if not qa_config.TestEnabled(test_name):
+        ReportTestSkip(test_desc, test_name)
+      else:
+        ReportTestSkip(test_desc, "disk template %s" % templ)
 
 
 def RunMonitoringTests():

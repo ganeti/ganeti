@@ -72,6 +72,10 @@ To run commands on all nodes, the `distributed shell (dsh)
 
     $ tar czf /var/lib/ganeti-$(date +\%FT\%T).tar.gz -C /var/lib ganeti
 
+    (``/var/lib/ganeti`` can also contain exported instances, so make sure to
+    backup only files you are interested in. Use ``--exclude export`` for
+    example)
+
 #. Install new Ganeti version on all nodes
 #. Run cfgupgrade on the master node::
 

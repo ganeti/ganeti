@@ -69,42 +69,47 @@ _QA_OUTPUT = pathutils.GetLogFilename("qa-output")
  RETURN_VALUE) = range(1000, 1002)
 
 
-def AssertIn(item, sequence, msg=""):
+def _RaiseWithInfo(msg, error_desc):
+  """Raises a QA error with the given content, and adds a message if present.
+
+  """
+  if msg:
+    output = "%s: %s" % (msg, error_desc)
+  else:
+    output = error_desc
+  raise qa_error.Error(output)
+
+
+def AssertIn(item, sequence, msg=None):
   """Raises an error when item is not in sequence.
 
   """
   if item not in sequence:
-    if msg:
-      raise qa_error.Error("%s: %r not in %r" % (msg, item, sequence))
-    else:
-      raise qa_error.Error("%r not in %r" % (item, sequence))
+    _RaiseWithInfo(msg, "%r not in %r" % (item, sequence))
 
 
-def AssertNotIn(item, sequence):
+def AssertNotIn(item, sequence, msg=None):
   """Raises an error when item is in sequence.
 
   """
   if item in sequence:
-    raise qa_error.Error("%r in %r" % (item, sequence))
+    _RaiseWithInfo(msg, "%r in %r" % (item, sequence))
 
 
-def AssertEqual(first, second, msg=""):
+def AssertEqual(first, second, msg=None):
   """Raises an error when values aren't equal.
 
   """
   if not first == second:
-    if msg:
-      raise qa_error.Error("%s: %r == %r" % (msg, first, second))
-    else:
-      raise qa_error.Error("%r == %r" % (first, second))
+    _RaiseWithInfo(msg, "%r == %r" % (first, second))
 
 
-def AssertMatch(string, pattern):
+def AssertMatch(string, pattern, msg=None):
   """Raises an error when string doesn't match regexp pattern.
 
   """
   if not re.match(pattern, string):
-    raise qa_error.Error("%r doesn't match /%r/" % (string, pattern))
+    _RaiseWithInfo(msg, "%r doesn't match /%r/" % (string, pattern))
 
 
 def _GetName(entity, fn):
