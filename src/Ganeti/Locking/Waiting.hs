@@ -38,6 +38,7 @@ module Ganeti.Locking.Waiting
  , fromExtRepr
  , freeLocksPredicate
  , downGradeLocksPredicate
+ , intersectLocks
  ) where
 
 import Control.Arrow ((&&&), second)
@@ -314,3 +315,10 @@ downGradeLocksPredicate :: (Lock a, Ord b, Ord c)
                         -> b
                         -> LockWaiting a b c -> (LockWaiting a b c, S.Set b)
 downGradeLocksPredicate = manipulateLocksPredicate L.requestShared
+
+-- | Intersect locks to a given set.
+intersectLocks :: (Lock a, Ord b, Ord c)
+               => [a]
+               -> b
+               -> LockWaiting a b c -> (LockWaiting a b c, S.Set b)
+intersectLocks locks = freeLocksPredicate (not . flip elem locks)
