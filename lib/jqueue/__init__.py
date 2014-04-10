@@ -2290,6 +2290,23 @@ class JobQueue(object):
     return helper(self._GetJobPath(job_id), load_fn,
                   fields, prev_job_info, prev_log_serial, timeout)
 
+  def HasJobBeenFinalized(self, job_id):
+    """Checks if a job has been finalized.
+
+    @type job_id: int
+    @param job_id: Job identifier
+    @rtype: boolean
+    @return: True if the job has been finalized,
+        False if the timeout has been reached,
+        None if the job doesn't exist
+
+    """
+    job = self.SafeLoadJobFromDisk(job_id, True, writable=False)
+    if job is not None:
+      return job.CalcStatus() in constants.JOBS_FINALIZED
+    else:
+      return None
+
   @locking.ssynchronized(_LOCK)
   @_RequireOpenQueue
   def CancelJob(self, job_id):
