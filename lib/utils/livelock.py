@@ -34,6 +34,20 @@ from ganeti.utils.algo import NiceSort
 from ganeti import pathutils
 
 
+class LiveLockName(object):
+  def __init__(self, name):
+    self._name = name
+
+  def GetPath(self):
+    return self._name
+
+  def close(self):
+    """Clean up the lockfile.
+
+    """
+    os.remove(self._name)
+
+
 class LiveLock(object):
   """Utility for a lockfile needed to request resources from WconfD.
 
