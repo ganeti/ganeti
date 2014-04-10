@@ -36,9 +36,11 @@ module Ganeti.Locking.Waiting
  , getPendingRequests
  , extRepr
  , fromExtRepr
+ , freeLocksPredicate
+ , downGradeLocksPredicate
  ) where
 
-import Control.Arrow ((&&&))
+import Control.Arrow ((&&&), second)
 import Control.Monad (liftM)
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
@@ -282,3 +284,33 @@ instance (Lock a, J.JSON a, Ord b, J.JSON b, Show b, Ord c, J.JSON c)
          => J.JSON (LockWaiting a b c) where
   showJSON = J.showJSON . extRepr
   readJSON = liftM fromExtRepr . J.readJSON
+
+-- | Manipulate a all locks of an owner that have a given property. Also
+-- drop all pending requests.
+manipulateLocksPredicate :: (Lock a, Ord b, Ord c)
+                         => (a -> L.LockRequest a)
+                         -> (a -> Bool)
+                         -> b
+                         -> LockWaiting a b c -> (LockWaiting a b c, S.Set b)
+manipulateLocksPredicate req prop owner state =
+  second snd . flip (updateLocks owner) (removePendingRequest owner state)
+    . map req . filter prop . M.keys
+    . L.listLocks owner $ getAllocation state
+
+-- | Free all Locks of a given owner satisfying a given predicate. As this
+-- operation is supposed to unconditionally suceed, all pending requests
+-- are dropped as well.
+freeLocksPredicate :: (Lock a, Ord b, Ord c)
+                   => (a -> Bool)
+                   -> b
+                   -> LockWaiting a b c -> (LockWaiting a b c, S.Set b)
+freeLocksPredicate = manipulateLocksPredicate L.requestRelease
+
+-- | Downgrade all locks of  a given owner that satisfy a given predicate. As
+-- this operation is supposed to unconditionally suceed, all pending requests
+-- are dropped as well.
+downGradeLocksPredicate :: (Lock a, Ord b, Ord c)
+                        => (a -> Bool)
+                        -> b
+                        -> LockWaiting a b c -> (LockWaiting a b c, S.Set b)
+downGradeLocksPredicate = manipulateLocksPredicate L.requestShared
