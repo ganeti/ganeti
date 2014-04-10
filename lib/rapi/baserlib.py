@@ -460,6 +460,80 @@ def GetHandler(get_fn, aliases):
   return result
 
 
+# Constant used to denote that a parameter cannot be set
+ALL_VALUES_FORBIDDEN = "all_values_forbidden"
+
+
+def ProduceForbiddenParamDict(class_name, method_name, param_list):
+  """Turns a list of parameter names and possibly values into a dictionary.
+
+  @type class_name: string
+  @param class_name: The name of the handler class
+  @type method_name: string
+  @param method_name: The name of the HTTP method
+  @type param_list: list of string or tuple of (string, list of any)
+  @param param_list: A list of forbidden parameters, specified in the RAPI
+                     handler class
+
+  @return: The dictionary of forbidden param names to values or
+           ALL_VALUES_FORBIDDEN
+
+  """
+  # A simple error-raising function
+  def _RaiseError(message):
+    raise errors.ProgrammerError(
+      "While examining the %s_FORBIDDEN field of class %s: %s" %
+      (method_name, class_name, message)
+    )
+
+  param_dict = {}
+  for value in param_list:
+    if isinstance(value, basestring):
+      param_dict[value] = ALL_VALUES_FORBIDDEN
+    elif isinstance(value, tuple):
+      if len(value) != 2:
+        _RaiseError("Tuples of only length 2 allowed")
+      param_name, forbidden_values = value
+      param_dict[param_name] = forbidden_values
+    else:
+      _RaiseError("Only strings or tuples allowed, found %s" % value)
+
+  return param_dict
+
+
+def InspectParams(params_dict, forbidden_params, rename_dict):
+  """Inspects a dictionary of params, looking for forbidden values.
+
+  @type params_dict: dict of string to anything
+  @param params_dict: A dictionary of supplied parameters
+  @type forbidden_params: dict of string to string or list of any
+  @param forbidden_params: The forbidden parameters, with a list of forbidden
+                           values or the constant ALL_VALUES_FORBIDDEN
+                           signifying that all values are forbidden
+  @type rename_dict: None or dict of string to string
+  @param rename_dict: The list of parameter renamings used by the method
+
+  @raise http.HttpForbidden: If a forbidden param has been set
+
+  """
+  for param in params_dict:
+    # Check for possible renames to ensure nothing slips through
+    if rename_dict is not None and param in rename_dict:
+      param = rename_dict[param]
+
+    # Now see if there are restrictions on this parameter
+    if param in forbidden_params:
+      forbidden_values = forbidden_params[param]
+      if forbidden_values == ALL_VALUES_FORBIDDEN:
+        raise http.HttpForbidden("The parameter %s cannot be set via RAPI" %
+                                 param)
+
+      param_value = params_dict[param]
+      if param_value in forbidden_values:
+        raise http.HttpForbidden("The parameter %s cannot be set to the value"
+                                 " %s via RAPI" % (param, param_value))
+
+
 class _MetaOpcodeResource(type):
   """Meta class for RAPI resources.
 
@@ -500,6 +574,19 @@ class _MetaOpcodeResource(type):
                   compat.partial(obj._GenericHandler, opcode,
                                  getattr(obj, rename_attr, None),
                                  getattr(obj, fn_attr, obj._GetDefaultData)))
+
+      # Finally, the method (generated or not) should be wrapped to handle
+      # forbidden values
+      if hasattr(obj, m_attrs.forbidden):
+        forbidden_dict = ProduceForbiddenParamDict(
+          obj.__class__.__name__, method, getattr(obj, m_attrs.forbidden)
+        )
+        setattr(
+          obj, method, compat.partial(obj._ForbiddenHandler,
+                                      getattr(obj, method),
+                                      forbidden_dict,
+                                      getattr(obj, m_attrs.rename))
+        )
 
     return obj
 
@@ -552,6 +639,14 @@ class OpcodeResource(ResourceBase):
 
   """
   __metaclass__ = _MetaOpcodeResource
+
+  def _ForbiddenHandler(self, method_fn, forbidden_params, rename_dict):
+    """Examines provided parameters for forbidden values.
+
+    """
+    InspectParams(self.queryargs, forbidden_params, rename_dict)
+    InspectParams(self.request_body, forbidden_params, rename_dict)
+    return method_fn()
 
   def _GetDefaultData(self):
     return (self.request_body, None)
