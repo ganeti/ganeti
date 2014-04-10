@@ -109,6 +109,9 @@ ipPath = "IP_PATH"
 socatPath :: String
 socatPath = "SOCAT_PATH"
 
+pythonPath :: String
+pythonPath = "PYTHON_PATH"
+
 socatUseEscape :: Bool
 socatUseEscape = SOCAT_USE_ESCAPE
 

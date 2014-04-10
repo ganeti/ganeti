@@ -1944,6 +1944,7 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DKVM_PATH="$(KVM_PATH)" \
 	    -DIP_PATH="$(IP_PATH)" \
 	    -DSOCAT_PATH="$(SOCAT)" \
+	    -DPYTHON_PATH="$(PYTHON)" \
 	    -DSOCAT_USE_ESCAPE="$(SOCAT_USE_ESCAPE)" \
 	    -DSOCAT_USE_COMPRESS="$(SOCAT_USE_COMPRESS)" \
 	    -DLVM_STRIPECOUNT="$(LVM_STRIPECOUNT)" \
