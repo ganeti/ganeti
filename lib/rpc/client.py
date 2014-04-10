@@ -248,7 +248,8 @@ class AbstractStubClient(AbstractClient):
     attribute is defined (in the stub class).
     """
 
-    super(AbstractStubClient, self).__init__(timeouts, transport)
+    super(AbstractStubClient, self).__init__(timeouts=timeouts,
+                                             transport=transport)
 
   def _GenericInvoke(self, method, *args):
     return self.CallMethod(method, args)
