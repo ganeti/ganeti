@@ -450,7 +450,7 @@ class GanetiContext(object):
   # we do want to ensure a singleton here
   _instance = None
 
-  def __init__(self):
+  def __init__(self, livelock=None):
     """Constructs a new GanetiContext object.
 
     There should be only a GanetiContext object at any time, so this
@@ -460,7 +460,10 @@ class GanetiContext(object):
     assert self.__class__._instance is None, "double GanetiContext instance"
 
     # Create a livelock file
-    self.livelock = utils.livelock.LiveLock("masterd")
+    if livelock is None:
+      self.livelock = utils.livelock.LiveLock("masterd")
+    else:
+      self.livelock = livelock
 
     # Locking manager
     cfg = self.GetConfig(None)
@@ -471,6 +474,7 @@ class GanetiContext(object):
       cfg.GetNetworkList())
 
     # Job queue
+    logging.debug("Creating the job queue")
     self.jobqueue = jqueue.JobQueue(self, cfg)
 
     # setting this also locks the class against attribute modifications
