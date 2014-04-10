@@ -41,6 +41,7 @@ import qualified Ganeti.JSON as J
 import qualified Ganeti.Locking.Allocation as L
 import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock), LockLevel(LevelConfig)
                             , lockLevel, LockLevel, ClientId )
+import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Objects (ConfigData)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
@@ -124,38 +125,34 @@ tryUpdateLocks :: ClientId -> GanetiLockRequest -> WConfdMonad [ClientId]
 tryUpdateLocks cid req =
   liftM S.toList
   . (>>= toErrorStr)
-  $ modifyLockAllocation (L.updateLocks cid (fromGanetiLockRequest req))
+  $ modifyLockWaiting (LW.updateLocks cid (fromGanetiLockRequest req))
 
 -- | Free all locks of a given owner (i.e., a job-id lockfile pair).
 freeLocks :: ClientId -> WConfdMonad ()
 freeLocks cid =
-  modifyLockAllocation_ (`L.freeLocks` cid)
+  modifyLockWaiting_ $ LW.releaseResources cid
 
 -- | Free all locks of a given owner (i.e., a job-id lockfile pair)
 -- of a given level in the Ganeti sense (e.g., "cluster", "node").
 freeLocksLevel :: ClientId -> LockLevel -> WConfdMonad ()
 freeLocksLevel cid level =
-  modifyLockAllocation_ (L.freeLocksPredicate ((==) level . lockLevel)
-                           `flip` cid)
+  modifyLockWaiting_ $ LW.freeLocksPredicate ((==) level . lockLevel) cid
 
 -- | Downgrade all locks of the given level to shared.
 downGradeLocksLevel :: ClientId -> LockLevel -> WConfdMonad ()
 downGradeLocksLevel cid level =
-  modifyLockAllocation_ $ L.downGradePredicate ((==) level . lockLevel) cid
+  modifyLockWaiting_ $ LW.downGradeLocksPredicate ((==) level . lockLevel) cid
 
 -- | Intersect the possesed locks of an owner with a given set.
 intersectLocks :: ClientId -> [GanetiLocks] -> WConfdMonad ()
-intersectLocks cid =
- modifyLockAllocation_ . L.intersectLocks cid
+intersectLocks cid locks = modifyLockWaiting_ $ LW.intersectLocks locks cid
 
 -- | Opportunistically allocate locks for a given owner.
 opportunisticLockUnion :: ClientId
                        -> [(GanetiLocks, L.OwnerState)]
                        -> WConfdMonad [GanetiLocks]
 opportunisticLockUnion cid req =
-  liftM S.toList
-  . modifyLockAllocation
-  $ L.opportunisticLockUnion cid req
+  modifyLockWaiting $ LW.opportunisticLockUnion cid req
 
 -- * The list of all functions exported to RPC.
 

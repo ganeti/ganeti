@@ -45,6 +45,7 @@ import System.Posix.IO
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Locking.Allocation as L
+import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Locking.Locks (ClientId(..))
 import Ganeti.Logging.Lifted (logDebug, logInfo)
 import Ganeti.WConfd.Monad
@@ -76,7 +77,7 @@ cleanupLocksTask = forever . runResultT $ do
         died <- liftIO (isDead fpath)
         when died $ do
           logInfo $ show owner ++ " died, releasing locks"
-          modifyLockAllocation_ (`L.freeLocks` owner)
+          modifyLockWaiting_ (LW.releaseResources owner)
           _ <- liftIO . try $ removeFile fpath
                :: WConfdMonad (Either IOError ())
           return ()

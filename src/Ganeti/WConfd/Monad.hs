@@ -44,26 +44,29 @@ module Ganeti.WConfd.Monad
   , daemonHandle
   , modifyConfigState
   , readConfigState
-  , modifyLockAllocation
-  , modifyLockAllocation_
+  , modifyLockWaiting
+  , modifyLockWaiting_
   , readLockAllocation
   ) where
 
 import Control.Applicative
-import Control.Arrow ((&&&))
+import Control.Arrow ((&&&), second)
 import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Data.IORef.Lifted
+import qualified Data.Set as S
 import Data.Tuple (swap)
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
 import Ganeti.Lens
+import Ganeti.Locking.Allocation (LockAllocation)
 import Ganeti.Locking.Locks
+import Ganeti.Locking.Waiting (getAllocation)
 import Ganeti.Logging
 import Ganeti.Utils.AsyncWorker
 import Ganeti.WConfd.ConfigState
@@ -74,7 +77,7 @@ import Ganeti.WConfd.ConfigState
 -- locking state.
 data DaemonState = DaemonState
   { dsConfigState :: ConfigState
-  , dsLockAllocation :: GanetiLockAllocation
+  , dsLockWaiting :: GanetiLockWaiting
   }
 
 $(makeCustomLenses ''DaemonState)
@@ -93,7 +96,7 @@ data DaemonHandle = DaemonHandle
 
 mkDaemonHandle :: FilePath
                -> ConfigState
-               -> GanetiLockAllocation
+               -> GanetiLockWaiting
                -> (IO ConfigState -> ResultG (AsyncWorker ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the configuration to the master file.
@@ -103,7 +106,7 @@ mkDaemonHandle :: FilePath
                -> (IO ConfigState -> ResultG (AsyncWorker ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- distributes SSConf to nodes
-               -> (IO GanetiLockAllocation -> ResultG (AsyncWorker ()))
+               -> (IO GanetiLockWaiting -> ResultG (AsyncWorker ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the lock allocation state.
                -> ResultG DaemonHandle
@@ -117,7 +120,7 @@ mkDaemonHandle cpath cstat lstat
   ssconfWorker <- distSSConfWorkerFn readConfigIO
   distMCsWorker <- distMCsWorkerFn readConfigIO
 
-  saveLockWorker <- saveLockWorkerFn $ dsLockAllocation `liftM` readIORef ds
+  saveLockWorker <- saveLockWorkerFn $ dsLockWaiting `liftM` readIORef ds
 
   return $ DaemonHandle ds cpath saveWorker distMCsWorker ssconfWorker
                                  saveLockWorker
@@ -200,27 +203,33 @@ modifyConfigState f = do
     return ()
   return r
 
--- | Atomically modifies the lock allocation state in WConfdMonad.
-modifyLockAllocation :: (GanetiLockAllocation -> (GanetiLockAllocation, a))
+-- | Atomically modifies the lock waiting state in WConfdMonad.
+modifyLockWaiting :: (GanetiLockWaiting -> ( GanetiLockWaiting
+                                           , (a, S.Set ClientId) ))
                      -> WConfdMonad a
-modifyLockAllocation f = do
+modifyLockWaiting f = do
   dh <- lift . WConfdMonadInt $ ask
   let f' = swap . (fst &&& id) . f
-  (lockAlloc, r) <- atomicModifyIORef (dhDaemonState dh)
-                                      (swap . traverseOf dsLockAllocationL f')
+  (lockAlloc, (r, nfy)) <- atomicModifyIORef
+                             (dhDaemonState dh)
+                             (swap . traverseOf dsLockWaitingL f')
   logDebug $ "Current lock status: " ++ J.encode lockAlloc
   logDebug "Triggering lock state write"
   liftBase . triggerAndWait . dhSaveLocksWorker $ dh
   logDebug "Lock write finished"
+  unless (S.null nfy) $ do
+    logDebug . (++) "Locks became available for " . show $ S.toList nfy
+    logWarning "Process notification not yet implemented"
   return r
 
 -- | Atomically modifies the lock allocation state in WConfdMonad, not
 -- producing any result
-modifyLockAllocation_ :: (GanetiLockAllocation -> GanetiLockAllocation)
+modifyLockWaiting_ :: (GanetiLockWaiting -> (GanetiLockWaiting, S.Set ClientId))
                       -> WConfdMonad ()
-modifyLockAllocation_ = modifyLockAllocation . (flip (,) () .)
+modifyLockWaiting_ = modifyLockWaiting . ((second $ (,) ()) .)
 
--- | Read the lock allocation state.
-readLockAllocation :: WConfdMonad GanetiLockAllocation
-readLockAllocation = liftM dsLockAllocation . readIORef . dhDaemonState
+-- | Read the underlying lock allocation.
+readLockAllocation :: WConfdMonad (LockAllocation GanetiLocks ClientId)
+readLockAllocation = liftM (getAllocation . dsLockWaiting)
+                     . readIORef . dhDaemonState
                      =<< daemonHandle

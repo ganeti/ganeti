@@ -40,8 +40,8 @@ import System.Directory (doesFileExist)
 import Ganeti.BasicTypes
 import Ganeti.Daemon
 import Ganeti.Logging (logInfo, logDebug)
-import Ganeti.Locking.Allocation
 import Ganeti.Locking.Locks
+import Ganeti.Locking.Waiting
 import qualified Ganeti.Path as Path
 import Ganeti.THH.RPC
 import Ganeti.UDSServer
@@ -84,7 +84,7 @@ prepMain _ _ = do
     (cdata, cstat) <- loadConfigFromFile conf_file
     lock <- if lock_file_present
               then loadLockAllocation lock_file
-              else return emptyAllocation
+              else return emptyWaiting
     mkDaemonHandle conf_file
                    (mkConfigState cdata)
                    lock
