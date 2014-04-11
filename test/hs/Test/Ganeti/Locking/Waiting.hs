@@ -66,6 +66,8 @@ obtained from @emptyWaiting@ applying one of the update operations.
 data UpdateRequest a b c = Update b [LockRequest a]
                          | UpdateWaiting c b [LockRequest a]
                          | RemovePending b
+                         | IntersectRequest b [a]
+                         | OpportunisticUnion b [(a, L.OwnerState)]
                          deriving Show
 
 instance (Arbitrary a, Arbitrary b, Arbitrary c)
@@ -75,6 +77,10 @@ instance (Arbitrary a, Arbitrary b, Arbitrary c)
               , (4, UpdateWaiting <$> arbitrary <*> arbitrary
                                   <*> (choose (1, 4) >>= vector))
               , (1, RemovePending <$> arbitrary)
+              , (1, IntersectRequest <$> arbitrary
+                                     <*> (choose (1, 4) >>= vector))
+              , (1, OpportunisticUnion <$> arbitrary
+                                       <*> (choose (1, 4) >>= vector))
               ]
 
 -- | Transform an UpdateRequest into the corresponding state transformer.
@@ -84,6 +90,10 @@ asWaitingTrans state (Update owner req) = fst $ updateLocks owner req state
 asWaitingTrans state (UpdateWaiting prio owner req) =
   fst $ updateLocksWaiting prio owner req state
 asWaitingTrans state (RemovePending owner) = removePendingRequest owner state
+asWaitingTrans state (IntersectRequest owner locks) =
+  fst $ intersectLocks locks owner state
+asWaitingTrans state (OpportunisticUnion owner locks) =
+  fst $ opportunisticLockUnion owner locks state
 
 
 -- | Fold a sequence of requests to transform a waiting strucutre onto the
