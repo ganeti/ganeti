@@ -102,6 +102,7 @@ import Ganeti.Luxi
 import Ganeti.Objects (ConfigData, Node)
 import Ganeti.OpCodes
 import Ganeti.Path
+import Ganeti.Query.Exec as Exec
 import Ganeti.Rpc (executeRpcCall, ERpcError, logRpcErrors,
                    RpcCallJobqueueUpdate(..), RpcCallJobqueueRename(..))
 import Ganeti.THH
@@ -565,15 +566,20 @@ allocateJobId mastercandidates lock = do
 isQueueOpen :: IO Bool
 isQueueOpen = liftM not (jobQueueDrainFile >>= doesFileExist)
 
--- | Start enqueued jobs, currently by handing them over to masterd.
-startJobs :: [QueuedJob] -> IO ()
-startJobs jobs = do
-  socketpath <- defaultMasterSocket
-  client <- getLuxiClient socketpath
-  pickupResults <- mapM (flip callMethod client . PickupJob . qjId) jobs
-  let failures = map show $ justBad pickupResults
-  unless (null failures)
-   . logWarning . (++) "Failed to notify masterd: " . commaJoin $ failures
+-- | Start enqueued jobs by executing the Python code.
+startJobs :: ConfigData
+          -> Livelock -- ^ Luxi's livelock path
+          -> [QueuedJob] -- ^ the list of jobs to start
+          -> IO [ErrorResult QueuedJob]
+startJobs cfg luxiLivelock jobs = do
+  qdir <- queueDir
+  let updateJobLivelock job llfile =
+        () <$ writeAndReplicateJob cfg qdir (job { qjLivelock = Just llfile })
+  let runJob job = do
+        llfile <- Exec.forkJobProcess (qjId job) luxiLivelock
+                                      (updateJobLivelock job)
+        return $ job { qjLivelock = Just llfile }
+  mapM (runResultT . runJob) jobs
 
 -- | Try to cancel a job that has already been handed over to execution,
 -- currently by asking masterd to cancel it.
