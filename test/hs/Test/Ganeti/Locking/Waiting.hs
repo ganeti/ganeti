@@ -290,6 +290,20 @@ prop_ReadShow =
   forAll (arbitrary :: Gen (LockWaiting TestLock TestOwner Integer)) $ \state ->
   (liftM extRepr . J.readJSON $ J.showJSON state) ==? (J.Ok $ extRepr state)
 
+-- | Verify that opportunistic union only increases the locks held.
+prop_OpportunisticMonotone :: Property
+prop_OpportunisticMonotone =
+  forAll (arbitrary :: Gen (LockWaiting TestLock TestOwner Integer)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll ((choose (1,3) >>= vector) :: Gen [(TestLock, L.OwnerState)]) $ \req ->
+  let (state', _) = opportunisticLockUnion a req state
+      oldOwned = listLocks a $ getAllocation state
+      oldLocks = M.keys oldOwned
+      newOwned = listLocks a $ getAllocation state'
+  in printTestCase "Opportunistic union may only increase the set of locks held"
+     . flip all oldLocks $ \lock ->
+       M.lookup lock newOwned >= M.lookup lock oldOwned
+
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
  , 'prop_WaitingRequestsGetPending
@@ -302,4 +316,5 @@ testSuite "Locking/Waiting"
  , 'prop_SimulateUpdateLocks
  , 'prop_SimulateUpdateLocksWaiting
  , 'prop_ReadShow
+ , 'prop_OpportunisticMonotone
  ]
