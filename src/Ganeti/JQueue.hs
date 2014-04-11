@@ -62,6 +62,7 @@ module Ganeti.JQueue
     , allocateJobId
     , writeJobToDisk
     , replicateManyJobs
+    , writeAndReplicateJob
     , isQueueOpen
     , startJobs
     , cancelJob
@@ -485,6 +486,14 @@ replicateJob rootdir mastercandidates job = do
 replicateManyJobs :: FilePath -> [Node] -> [QueuedJob] -> IO ()
 replicateManyJobs rootdir mastercandidates =
   mapM_ (replicateJob rootdir mastercandidates)
+
+-- | Writes a job to a file and replicates it to master candidates.
+writeAndReplicateJob :: (Error e)
+                     => ConfigData -> FilePath -> QueuedJob
+                     -> ResultT e IO [(Node, ERpcError ())]
+writeAndReplicateJob cfg rootdir job = do
+  mkResultT $ writeJobToDisk rootdir job
+  liftIO $ replicateJob rootdir (Config.getMasterCandidates cfg) job
 
 -- | Read the job serial number from disk.
 readSerialFromDisk :: IO (Result JobId)

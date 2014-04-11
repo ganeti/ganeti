@@ -231,14 +231,12 @@ handleCall _ _ cfg (QueryExports nodes lock) =
     (map Left nodes) ["node", "export"] lock
 
 handleCall qlock qstat cfg (SubmitJobToDrainedQueue ops) = runResultT $ do
-    let mcs = Config.getMasterCandidates cfg
-    jid <- mkResultT $ allocateJobId mcs qlock
+    jid <- mkResultT $ allocateJobId (Config.getMasterCandidates cfg) qlock
     ts <- liftIO currentTimestamp
     job <- liftM (extendJobReasonTrail . setReceivedTimestamp ts)
              $ queuedJobFromOpCodes jid ops
     qDir <- liftIO queueDir
-    mkResultT $ writeJobToDisk qDir job
-    liftIO $ replicateManyJobs qDir mcs [job]
+    _ <- writeAndReplicateJob cfg qDir job
     _ <- liftIO . forkIO $ enqueueNewJobs qstat [job]
     return . showJSON . fromJobId $ jid
 
@@ -331,26 +329,19 @@ handleCall _ qstat  cfg (CancelJob jid) = do
   let jName = (++) "job " . show $ fromJobId jid
   dequeueResult <- dequeueJob qstat jid
   case dequeueResult of
-    Ok True -> do
-      logDebug $ jName ++ " dequeued, marking as canceled"
-      qDir <- queueDir
-      readResult <- loadJobFromDisk qDir True jid
-      let jobFileFailed = return . Ok . showJSON . (,) False
-                            . (++) ("Dequeued " ++ jName
-                                    ++ ", but failed to mark as cancelled: ")
-                          :: String -> IO (ErrorResult JSValue)
-      case readResult of
-        Bad s -> jobFileFailed s
-        Ok (job, _) -> do
-          now <- currentTimestamp
-          let job' = cancelQueuedJob now job
-              mcs = Config.getMasterCandidates cfg
-          write_result <- writeJobToDisk qDir job'
-          case write_result of
-            Bad s -> jobFileFailed s
-            Ok () -> do
-              replicateManyJobs qDir mcs [job']
-              return . Ok . showJSON $ (True, "Dequeued " ++ jName)
+    Ok True ->
+      let jobFileFailed = (,) False
+                          . (++) ("Dequeued " ++ jName
+                                  ++ ", but failed to mark as cancelled: ")
+          jobFileSucceeded _ = (True, "Dequeued " ++ jName)
+      in liftM (Ok . showJSON . genericResult jobFileFailed jobFileSucceeded)
+         . runResultT $ do
+            logDebug $ jName ++ " dequeued, marking as canceled"
+            qDir <- liftIO queueDir
+            (job, _) <- ResultT $ loadJobFromDisk qDir True jid
+            now <- liftIO currentTimestamp
+            let job' = cancelQueuedJob now job
+            writeAndReplicateJob cfg qDir job'
     Ok False -> do
       logDebug $ jName ++ " not queued; trying to cancel directly"
       cancelJob jid
