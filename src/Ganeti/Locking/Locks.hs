@@ -238,7 +238,7 @@ loadLockAllocation =
   liftIO . readFile
   >=> fromJResultE "parsing lock waiting structure" . J.decodeStrict
 
--- | Write lock allocation to disk, overwriting any previously lock
+-- | Write lock allocation to disk, overwriting any previous lock
 -- allocation stored there.
 writeLocks :: (MonadBase IO m, MonadError GanetiException m, MonadLog m)
            => FilePath -> GanetiLockWaiting -> m ()
