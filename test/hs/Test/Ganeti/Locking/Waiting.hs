@@ -304,6 +304,36 @@ prop_OpportunisticMonotone =
      . flip all oldLocks $ \lock ->
        M.lookup lock newOwned >= M.lookup lock oldOwned
 
+-- | Verify the result list of the opportunistic union: if a lock is not in
+-- the result that, than its state has not changed, and if it is, it is as
+-- requested. The latter property is tested in that liberal way, so that we
+-- really can take arbitrary requests, including those that require both, shared
+-- and exlusive state for the same lock.
+prop_OpportunisticAnswer :: Property
+prop_OpportunisticAnswer =
+  forAll (arbitrary :: Gen (LockWaiting TestLock TestOwner Integer)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \a ->
+  forAll ((choose (1,3) >>= vector) :: Gen [(TestLock, L.OwnerState)]) $ \req ->
+  let (state', (result, _)) = opportunisticLockUnion a req state
+      oldOwned = listLocks a $ getAllocation state
+      newOwned = listLocks a $ getAllocation state'
+      involvedLocks = M.keys oldOwned ++ map fst req
+  in conjoin [ printTestCase ("Locks not in the answer set " ++ show result
+                                ++ " may not be changed, but found "
+                                ++ show state')
+               . flip all involvedLocks $ \lock ->
+                 (lock `elem` result)
+                 || (M.lookup lock oldOwned == M.lookup lock newOwned)
+             , printTestCase ("Locks not in the answer set " ++ show result
+                               ++ " must be as requested, but found "
+                               ++ show state')
+               . flip all involvedLocks $ \lock ->
+                 notElem lock result
+                 || maybe False (flip elem req . (,) lock)
+                      (M.lookup lock newOwned)
+             ]
+
+
 testSuite "Locking/Waiting"
  [ 'prop_NoActionWithPendingRequests
  , 'prop_WaitingRequestsGetPending
@@ -317,4 +347,5 @@ testSuite "Locking/Waiting"
  , 'prop_SimulateUpdateLocksWaiting
  , 'prop_ReadShow
  , 'prop_OpportunisticMonotone
+ , 'prop_OpportunisticAnswer
  ]
