@@ -118,14 +118,14 @@ extRepr = getAllocation &&& getPendingRequests
 -- the owners to be notified. The type is chosen to be suitable as fold
 -- operation.
 --
--- This function calls the later defined updateLocksWaiting, as they are
+-- This function calls the later defined updateLocksWaiting', as they are
 -- mutually recursive.
 tryFulfillRequest :: (Lock a, Ord b, Ord c)
                   => (LockWaiting a b c, S.Set b)
                   -> (c, b, [L.LockRequest a])
                   -> (LockWaiting a b c, S.Set b)
 tryFulfillRequest (waiting, toNotify) (prio, owner, req) =
-  let (waiting', (_, newNotify)) = updateLocksWaiting prio owner req waiting
+  let (waiting', (_, newNotify)) = updateLocksWaiting' prio owner req waiting
   in (waiting', toNotify `S.union` newNotify)
 
 -- | Internal function to recursively follow the consequences of a change.
@@ -156,16 +156,16 @@ revisitRequests notify todo state =
 -- | Update the locks on an onwer according to the given request, if possible.
 -- Additionally (if the request succeeds) fulfill any pending requests that
 -- became possible through this request. Return the new state of the waiting
--- structure, the result of the operation, and a list of nodes to be notified
--- that their locks are available now. The result is, as for lock allocation,
--- the set of owners the request is blocked on. Again, the type is chosen to be
--- suitable for use in atomicModifyIORef.
-updateLocks :: (Lock a, Ord b, Ord c)
-            => b
-            -> [L.LockRequest a]
-            -> LockWaiting a b c
-            -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
-updateLocks owner reqs state =
+-- structure, the result of the operation, and a list of owner whose requests
+-- have been fulfilled. The result is, as for lock allocation, the set of owners
+-- the request is blocked on. Again, the type is chosen to be suitable for use
+-- in atomicModifyIORef.
+updateLocks' :: (Lock a, Ord b, Ord c)
+             => b
+             -> [L.LockRequest a]
+             -> LockWaiting a b c
+             -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
+updateLocks' owner reqs state =
   let (allocation', result) = L.updateLocks owner reqs (lwAllocation state)
       state' = state { lwAllocation = allocation' }
       (notify, state'') = revisitRequests S.empty (S.singleton owner) state'
@@ -184,15 +184,15 @@ updateLocks owner reqs state =
 -- | Update locks as soon as possible. If the request cannot be fulfilled
 -- immediately add the request to the waiting queue. The first argument is
 -- the priority at which the owner is waiting, the remaining are as for
--- updateLocks, and so is the output.
-updateLocksWaiting :: (Lock a, Ord b, Ord c)
-                   => c
-                   -> b
-                   -> [L.LockRequest a]
-                   -> LockWaiting a b c
-                   -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
-updateLocksWaiting prio owner reqs state =
-  let (state', (result, notify)) = updateLocks owner reqs state
+-- updateLocks', and so is the output.
+updateLocksWaiting' :: (Lock a, Ord b, Ord c)
+                    => c
+                    -> b
+                    -> [L.LockRequest a]
+                    -> LockWaiting a b c
+                    -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
+updateLocksWaiting' prio owner reqs state =
+  let (state', (result, notify)) = updateLocks' owner reqs state
       state'' = case result of
         Bad _ -> state' -- bad requests cannot be queued
         Ok empty | S.null empty -> state'
@@ -209,6 +209,34 @@ updateLocksWaiting prio owner reqs state =
                                 , lwPending = pending
                                 }
   in (state'', (result, notify))
+
+-- | Update the locks on an onwer according to the given request, if possible.
+-- Additionally (if the request succeeds) fulfill any pending requests that
+-- became possible through this request. Return the new state of the waiting
+-- structure, the result of the operation, and a list of owners to be notified.
+-- The result is, as for lock allocation, the set of owners the request is
+-- blocked on. Again, the type is chosen to be suitable for use in
+-- atomicModifyIORef.
+updateLocks :: (Lock a, Ord b, Ord c)
+            => b
+            -> [L.LockRequest a]
+            -> LockWaiting a b c
+            -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
+updateLocks owner req state =
+  second (second $ S.delete owner) $ updateLocks' owner req state
+
+-- | Update locks as soon as possible. If the request cannot be fulfilled
+-- immediately add the request to the waiting queue. The first argument is
+-- the priority at which the owner is waiting, the remaining are as for
+-- updateLocks, and so is the output.
+updateLocksWaiting :: (Lock a, Ord b, Ord c)
+                   => c
+                   -> b
+                   -> [L.LockRequest a]
+                   -> LockWaiting a b c
+                   -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
+updateLocksWaiting prio owner req state =
+  second (second $ S.delete owner) $ updateLocksWaiting' prio owner req state
 
 -- | Compute the state of a waiting after an owner gives up
 -- on his pending request.
