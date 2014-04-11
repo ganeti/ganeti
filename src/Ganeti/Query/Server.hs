@@ -63,11 +63,13 @@ import qualified Ganeti.Query.Cluster as QCluster
 import Ganeti.Path ( queueDir, jobQueueLockFile, jobQueueDrainFile
                    , defaultMasterSocket)
 import Ganeti.Rpc
+import qualified Ganeti.Query.Exec as Exec
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
 import Ganeti.Types
 import qualified Ganeti.UDSServer as U (Handler(..), listener)
-import Ganeti.Utils (lockFile, exitIfBad, watchFile, safeRenameFile)
+import Ganeti.Utils ( lockFile, exitIfBad, exitUnless, watchFile
+                    , safeRenameFile )
 import qualified Ganeti.Version as Version
 
 -- | Helper for classic queries.
@@ -442,6 +444,9 @@ checkMain _ = return $ Right ()
 -- | Prepare function for luxid.
 prepMain :: PrepFn () PrepResult
 prepMain _ _ = do
+  Exec.isForkSupported
+    >>= flip exitUnless "The daemon must be compiled without -threaded"
+
   socket_path <- Path.defaultQuerySocket
   cleanupSocket socket_path
   s <- describeError "binding to the Luxi socket"
