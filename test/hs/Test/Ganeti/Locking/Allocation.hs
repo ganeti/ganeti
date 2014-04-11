@@ -100,18 +100,12 @@ instance Arbitrary a => Arbitrary (LockRequest a) where
   arbitrary = LockRequest <$> arbitrary <*> genMaybe arbitrary
 
 data UpdateRequest b a = UpdateRequest b [LockRequest a]
-                       | IntersectRequest b [a]
-                       | OpportunisticUnion b [(a, OwnerState)]
                        | FreeLockRequest b
                        deriving Show
 
 instance (Arbitrary a, Arbitrary b) => Arbitrary (UpdateRequest a b) where
   arbitrary =
     frequency [ (4, UpdateRequest <$> arbitrary <*> (choose (1, 4) >>= vector))
-              , (2, IntersectRequest <$> arbitrary
-                                     <*> (choose (1, 4) >>= vector))
-              , (2, OpportunisticUnion <$> arbitrary
-                                       <*> (choose (1, 4) >>= vector))
               , (1, FreeLockRequest <$> arbitrary)
               ]
 
@@ -120,10 +114,6 @@ asAllocTrans :: (Lock a, Ord b, Show b)
               => LockAllocation a b -> UpdateRequest b a -> LockAllocation a b
 asAllocTrans state (UpdateRequest owner updates) =
   fst $ updateLocks owner updates state
-asAllocTrans state (IntersectRequest owner locks) =
-  intersectLocks owner locks state
-asAllocTrans state (OpportunisticUnion owner locks) =
-  fst $ opportunisticLockUnion owner locks state
 asAllocTrans state (FreeLockRequest owner) = freeLocks state owner
 
 -- | Fold a sequence of requests to transform a lock allocation onto the empty
@@ -308,49 +298,6 @@ prop_BlockNecessary =
         . F.foldl freeLocks state
         $ S.filter (/= blocker) blockers
 
--- | Verify that opportunistic union only increases the locks held.
-prop_OpportunisticMonotone :: Property
-prop_OpportunisticMonotone =
-  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
-  forAll (arbitrary :: Gen TestOwner) $ \a ->
-  forAll ((choose (1,3) >>= vector) :: Gen [(TestLock, OwnerState)]) $ \req ->
-  let (state', _) = opportunisticLockUnion a req state
-      oldOwned = listLocks a state
-      oldLocks = M.keys oldOwned
-      newOwned = listLocks a state'
-  in printTestCase "Opportunistic union may only increase the set of locks held"
-     . flip all oldLocks $ \lock ->
-       M.lookup lock newOwned >= M.lookup lock oldOwned
-
--- | Verify the result list of the opportunistic union: if a lock is not in
--- the result that, than its state has not changed, and if it is, it is as
--- requested. The latter property is tested in that liberal way, so that we
--- really can take arbitrary requests, including those that require both, shared
--- and exlusive state for the same lock.
-prop_OpportunisticAnswer :: Property
-prop_OpportunisticAnswer =
-  forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
-  forAll (arbitrary :: Gen TestOwner) $ \a ->
-  forAll ((choose (1,3) >>= vector) :: Gen [(TestLock, OwnerState)]) $ \req ->
-  let (state', result) = opportunisticLockUnion a req state
-      oldOwned = listLocks a state
-      newOwned = listLocks a state'
-      involvedLocks = M.keys oldOwned ++ map fst req
-  in conjoin [ printTestCase ("Locks not in the answer set " ++ show result
-                                ++ " may not be changed, but found "
-                                ++ show state')
-               . flip all involvedLocks $ \lock ->
-                 (lock `S.member` result)
-                 || (M.lookup lock oldOwned == M.lookup lock newOwned)
-             , printTestCase ("Locks not in the answer set " ++ show result
-                               ++ " must be as requested, but found "
-                               ++ show state')
-               . flip all involvedLocks $ \lock ->
-                 (lock `S.notMember` result)
-                 || maybe False (flip elem req . (,) lock)
-                      (M.lookup lock newOwned)
-             ]
-
 instance J.JSON TestOwner where
   showJSON (TestOwner x) = J.showJSON x
   readJSON = (>>= return . TestOwner) . J.readJSON
@@ -400,8 +347,6 @@ testSuite "Locking/Allocation"
  , 'prop_LockReleaseSucceeds
  , 'prop_BlockSufficient
  , 'prop_BlockNecessary
- , 'prop_OpportunisticMonotone
- , 'prop_OpportunisticAnswer
  , 'prop_ReadShow
  , 'prop_OwnerComplete
  , 'prop_OwnerSound
