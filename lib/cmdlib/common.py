@@ -1034,18 +1034,21 @@ def IsInstanceRunning(lu, instance, check_user_shutdown=False):
   if instance.name not in instance_list.payload:
     return False
 
-  if check_user_shutdown:
-    # One more check to be made - whether the instance was shutdown by the user
-    full_hvparams = lu.cfg.GetClusterInfo().FillHV(instance)
-    inst_info = lu.rpc.call_instance_info(pnode_uuid, instance.name,
-                                          instance.hypervisor, full_hvparams)
-    inst_info.Raise("Can't retrieve instance information for instance %s" %
-                    instance.name, prereq=True, ecode=errors.ECODE_ENVIRON)
-
-    return inst_info.payload["state"] != \
-           hypervisor.hv_base.HvInstanceState.SHUTDOWN
-  else:
+  if not check_user_shutdown:
     return True
+
+  # One more check to be made - whether the instance was shutdown by the user
+  full_hvparams = lu.cfg.GetClusterInfo().FillHV(instance)
+  inst_info = lu.rpc.call_instance_info(pnode_uuid, instance.name,
+                                        instance.hypervisor, full_hvparams)
+  inst_info.Raise("Can't retrieve instance information for instance %s" %
+                  instance.name, prereq=True, ecode=errors.ECODE_ENVIRON)
+
+  if inst_info.payload:
+    return inst_info.payload["state"] != \
+        hypervisor.hv_base.HvInstanceState.SHUTDOWN
+  else:
+    return False
 
 
 def CheckInstanceState(lu, instance, req_states, msg=None):
