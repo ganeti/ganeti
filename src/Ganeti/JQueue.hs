@@ -34,6 +34,7 @@ module Ganeti.JQueue
     , changeOpCodePriority
     , changeJobPriority
     , cancelQueuedJob
+    , failQueuedJob
     , Timestamp
     , fromClockTime
     , noTimestamp
@@ -308,7 +309,19 @@ changeJobPriority prio job =
 cancelQueuedJob :: Timestamp -> QueuedJob -> QueuedJob
 cancelQueuedJob now job =
   let ops' = map (cancelOpCode now) $ qjOps job
-  in job { qjOps = ops', qjEndTimestamp = Just now}
+  in job { qjOps = ops', qjEndTimestamp = Just now }
+
+-- | Set the state of a QueuedOpCode to canceled.
+failOpCode :: Timestamp -> QueuedOpCode -> QueuedOpCode
+failOpCode now op =
+  op { qoStatus = OP_STATUS_ERROR, qoEndTimestamp = Just now }
+
+-- | Transform a QueuedJob that has not been started into its canceled form.
+failQueuedJob :: Timestamp -> QueuedJob -> QueuedJob
+failQueuedJob now job =
+  -- TODO: Add a reason trail message
+  let ops' = map (failOpCode now) $ qjOps job
+  in job { qjOps = ops', qjEndTimestamp = Just now }
 
 -- | Job file prefix.
 jobFilePrefix :: String
