@@ -449,7 +449,8 @@ hypervisor_hv_kvm_PYTHON = \
   lib/hypervisor/hv_kvm/netdev.py
 
 jqueue_PYTHON = \
-	lib/jqueue/__init__.py
+	lib/jqueue/__init__.py \
+	lib/jqueue/exec.py
 
 storage_PYTHON = \
 	lib/storage/__init__.py \
@@ -803,6 +804,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/PyValue.hs \
 	src/Ganeti/Query/Cluster.hs \
 	src/Ganeti/Query/Common.hs \
+	src/Ganeti/Query/Exec.hs \
 	src/Ganeti/Query/Export.hs \
 	src/Ganeti/Query/Filter.hs \
 	src/Ganeti/Query/Group.hs \

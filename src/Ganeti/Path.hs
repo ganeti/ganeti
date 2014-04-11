@@ -46,6 +46,7 @@ module Ganeti.Path
   , jobQueueArchiveSubDir
   , instanceReasonDir
   , getInstReasonFilename
+  , jqueueExecutorPy
   ) where
 
 import System.FilePath
@@ -164,3 +165,8 @@ instanceReasonDir = runDir `pjoin` "instance-reason"
 -- instance name.
 getInstReasonFilename :: String -> IO FilePath
 getInstReasonFilename instName = instanceReasonDir `pjoin` instName
+
+-- | The path to the Python executable for starting jobs.
+jqueueExecutorPy :: IO FilePath
+jqueueExecutorPy = return $ versionedsharedir
+                            </> "ganeti" </> "jqueue" </> "exec.py"
