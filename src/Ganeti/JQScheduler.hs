@@ -52,6 +52,7 @@ import Ganeti.Objects
 import Ganeti.Path
 import Ganeti.Types
 import Ganeti.Utils
+import Ganeti.Utils.Livelock
 
 data JobWithStat = JobWithStat { jINotify :: Maybe INotify
                                , jStat :: FStat
@@ -72,13 +73,15 @@ both, in particular when scheduling jobs to be handed over for execution.
 data JQStatus = JQStatus
   { jqJobs :: IORef Queue
   , jqConfig :: IORef (Result ConfigData)
+  , jqLivelock :: Livelock
   }
 
 
 emptyJQStatus :: IORef (Result ConfigData) -> IO JQStatus
 emptyJQStatus config = do
   jqJ <- newIORef Queue { qEnqueued = [], qRunning = []}
-  return JQStatus { jqJobs = jqJ, jqConfig = config }
+  (_, livelock) <- mkLivelockFile C.luxiLivelockPrefix
+  return JQStatus { jqJobs = jqJ, jqConfig = config, jqLivelock = livelock }
 
 -- | Apply a function on the running jobs.
 onRunningJobs :: ([JobWithStat] -> [JobWithStat]) -> Queue -> Queue

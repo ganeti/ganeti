@@ -4666,6 +4666,10 @@ luxiDefRwto = 60
 luxiWfjcTimeout :: Int
 luxiWfjcTimeout = (luxiDefRwto - 1) `div` 2
 
+-- | The prefix of the LUXI livelock file name
+luxiLivelockPrefix :: String
+luxiLivelockPrefix = "luxi-daemon"
+
 -- * Query language constants
 
 -- ** Logic operators with one or more operands, each of which is a
