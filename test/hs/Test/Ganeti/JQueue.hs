@@ -72,7 +72,7 @@ genQueuedOpCode =
 emptyJob :: (Monad m) => m QueuedJob
 emptyJob = do
   jid0 <- makeJobId 0
-  return $ QueuedJob jid0 [] justNoTs justNoTs justNoTs
+  return $ QueuedJob jid0 [] justNoTs justNoTs justNoTs Nothing Nothing
 
 -- | Generates a job ID.
 genJobId :: Gen JobId
@@ -94,7 +94,7 @@ prop_JobPriority =
   forAll (listOf1 (genQueuedOpCode `suchThat`
                    (not . opStatusFinalized . qoStatus))) $ \ops -> do
   jid0 <- makeJobId 0
-  let job = QueuedJob jid0 ops justNoTs justNoTs justNoTs
+  let job = QueuedJob jid0 ops justNoTs justNoTs justNoTs Nothing Nothing
   calcJobPriority job ==? minimum (map qoPriority ops)
 
 -- | Tests default job status.
@@ -108,7 +108,7 @@ prop_JobStatus :: Property
 prop_JobStatus =
   forAll genJobId $ \jid ->
   forAll genQueuedOpCode $ \op ->
-  let job1 = QueuedJob jid [op] justNoTs justNoTs justNoTs
+  let job1 = QueuedJob jid [op] justNoTs justNoTs justNoTs Nothing Nothing
       st1 = calcJobStatus job1
       op_succ = op { qoStatus = OP_STATUS_SUCCESS }
       op_err  = op { qoStatus = OP_STATUS_ERROR }
@@ -139,7 +139,8 @@ case_JobStatusPri_py_equiv = do
                        num_ops <- choose (1, 5)
                        ops <- vectorOf num_ops genQueuedOpCode
                        jid <- genJobId
-                       return $ QueuedJob jid ops justNoTs justNoTs justNoTs)
+                       return $ QueuedJob jid ops justNoTs justNoTs justNoTs
+                                          Nothing Nothing)
   let serialized = encode jobs
   -- check for non-ASCII fields, usually due to 'arbitrary :: String'
   mapM_ (\job -> when (any (not . isAscii) (encode job)) .
@@ -197,7 +198,7 @@ prop_LoadJobs :: Property
 prop_LoadJobs = monadicIO $ do
   ops <- pick $ resize 5 (listOf1 genQueuedOpCode)
   jid <- pick genJobId
-  let job = QueuedJob jid ops justNoTs justNoTs justNoTs
+  let job = QueuedJob jid ops justNoTs justNoTs justNoTs Nothing Nothing
       job_s = encode job
   -- check that jobs in the right directories are parsed correctly
   (missing, current, archived, missing_current, broken) <-

@@ -222,7 +222,9 @@ class _QueuedJob(object):
   # pylint: disable=W0212
   __slots__ = ["queue", "id", "ops", "log_serial", "ops_iter", "cur_opctx",
                "received_timestamp", "start_timestamp", "end_timestamp",
-               "__weakref__", "processor_lock", "writable", "archived"]
+               "processor_lock", "writable", "archived",
+               "livelock", "process_id",
+               "__weakref__"]
 
   def AddReasons(self, pickup=False):
     """Extend the reason trail
@@ -271,6 +273,8 @@ class _QueuedJob(object):
     self.start_timestamp = None
     self.end_timestamp = None
     self.archived = False
+    self.livelock = None
+    self.process_id = None
 
     self._InitInMemory(self, writable)
 
@@ -321,6 +325,10 @@ class _QueuedJob(object):
     obj.start_timestamp = state.get("start_timestamp", None)
     obj.end_timestamp = state.get("end_timestamp", None)
     obj.archived = archived
+    obj.livelock = state.get("livelock", None)
+    obj.process_id = state.get("process_id", None)
+    if obj.process_id is not None:
+      obj.process_id = int(obj.process_id)
 
     obj.ops = []
     obj.log_serial = 0
@@ -347,6 +355,8 @@ class _QueuedJob(object):
       "start_timestamp": self.start_timestamp,
       "end_timestamp": self.end_timestamp,
       "received_timestamp": self.received_timestamp,
+      "livelock": self.livelock,
+      "process_id": self.process_id,
       }
 
   def CalcStatus(self):

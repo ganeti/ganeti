@@ -104,9 +104,11 @@ import Ganeti.Path
 import Ganeti.Rpc (executeRpcCall, ERpcError, logRpcErrors,
                    RpcCallJobqueueUpdate(..), RpcCallJobqueueRename(..))
 import Ganeti.THH
+import Ganeti.THH.Field
 import Ganeti.Types
 import Ganeti.Utils
 import Ganeti.Utils.Atomic
+import Ganeti.Utils.Livelock (Livelock)
 import Ganeti.VCluster (makeVirtualPath)
 
 -- * Data types
@@ -192,6 +194,9 @@ $(buildObject "QueuedJob" "qj"
     simpleField "start_timestamp"    [t| Timestamp      |]
   , optionalNullSerField $
     simpleField "end_timestamp"      [t| Timestamp      |]
+  , optionalField $
+    simpleField "livelock"           [t| FilePath      |]
+  , optionalField $ processIdField "process_id"
   ])
 
 -- | Convenience function to obtain a QueuedOpCode from a MetaOpCode
@@ -219,6 +224,8 @@ queuedJobFromOpCodes jobid ops = do
                    , qjReceivedTimestamp = Nothing
                    , qjStartTimestamp = Nothing
                    , qjEndTimestamp = Nothing
+                   , qjLivelock = Nothing
+                   , qjProcessId = Nothing
                    }
 
 -- | Attach a received timestamp to a Queued Job.
