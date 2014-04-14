@@ -22,6 +22,7 @@ Design document drafts
    design-move-instance-improvements.rst
    design-node-security.rst
    design-systemd.rst
+   design-cpu-speed.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:

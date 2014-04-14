@@ -558,6 +558,7 @@ docinput = \
 	doc/design-chained-jobs.rst \
 	doc/design-cmdlib-unittests.rst \
 	doc/design-cpu-pinning.rst \
+	doc/design-cpu-speed.rst \
 	doc/design-daemons.rst \
 	doc/design-device-uuid-name.rst \
 	doc/design-draft.rst \
