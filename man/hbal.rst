@@ -118,6 +118,11 @@ following components:
   in 2-node clusters
 - standard deviation of the ratio of virtual-to-physical cpus (for
   primary instances of the node)
+- standard deviation of the fraction of the available spindles
+  (in dedicated mode, spindles represent physical spindles; otherwise
+  this oversubscribable measure for IO load, and the oversubscription
+  factor is taken into account when computing the number of available
+  spindles)
 - standard deviation of the dynamic load on the nodes, for cpus,
   memory, disk and network
 
