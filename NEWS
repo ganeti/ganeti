@@ -5,7 +5,7 @@ News
 Version 2.10.3
 --------------
 
-*(Released Mon, 14 Apr 2014)*
+*(Released Wed, 16 Apr 2014)*
 
 - Fix filtering of pending jobs with -o id (issue 778)
 - Make RAPI API calls more symmetric (issue 770)
