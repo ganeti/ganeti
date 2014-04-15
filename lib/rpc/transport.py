@@ -107,7 +107,7 @@ class Transport:
     except socket.error, err:
       error_code = err.args[0]
       if error_code in (errno.ENOENT, errno.ECONNREFUSED):
-        raise errors.NoMasterError(address)
+        raise utils.RetryAgain()
       elif error_code in (errno.EPERM, errno.EACCES):
         raise errors.PermissionError(address)
       elif error_code == errno.EAGAIN:
