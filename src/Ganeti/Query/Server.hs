@@ -284,6 +284,7 @@ handleCall _ _ cfg (WaitForJobChange jid fields prev_job prev_log tmout) = do
   -- verify if the job is finalized, and return immediately in this case
   jobresult <- loadJobFromDisk qDir False jid
   case jobresult of
+    Bad s -> return . Bad $ JobLost s
     Ok (job, _) | not (jobFinalized job) -> do
       let jobfile = liveJobFile qDir jid
       answer <- watchFile jobfile (min tmout C.luxiWfjcTimeout)
