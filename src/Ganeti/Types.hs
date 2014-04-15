@@ -878,6 +878,12 @@ $(THH.declareLADT ''String "ImportExportCompression"
     ("None", "none")
     -- gzip compression
   , ("GZip", "gzip")
+  -- fast gzip compression
+  , ("GZipFast", "gzip-fast")
+  -- slow gzip compression
+  , ("GZipSlow", "gzip-slow")
+  -- lzop compression
+  , ("LZop", "lzop")
   ])
 $(THH.makeJSONInstance ''ImportExportCompression)
 

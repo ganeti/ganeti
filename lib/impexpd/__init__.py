@@ -298,16 +298,29 @@ class CommandBuilder(object):
     if self._mode == constants.IEM_IMPORT:
       parts.append(socat_cmd)
 
-      if compr == constants.IEC_GZIP:
+      if compr in [constants.IEC_GZIP, constants.IEC_GZIP_FAST,
+                   constants.IEC_GZIP_SLOW]:
         parts.append("gunzip -c")
+      elif compr == constants.IEC_LZOP:
+        parts.append("lzop -d -c")
+      else:
+        # No compression
+        pass
 
       parts.append(dd_cmd)
 
     elif self._mode == constants.IEM_EXPORT:
       parts.append(dd_cmd)
 
-      if compr == constants.IEC_GZIP:
+      if compr == constants.IEC_GZIP_SLOW:
         parts.append("gzip -c")
+      elif compr in [constants.IEC_GZIP_FAST, constants.IEC_GZIP]:
+        parts.append("gzip -1 -c")
+      elif compr == constants.IEC_LZOP:
+        parts.append("lzop -c")
+      else:
+        # No compression
+        pass
 
       parts.append(socat_cmd)
 

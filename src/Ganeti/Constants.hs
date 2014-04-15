@@ -586,11 +586,20 @@ iemImport = "import"
 iecGzip :: String
 iecGzip = "gzip"
 
+iecGzipFast :: String
+iecGzipFast = "gzip-fast"
+
+iecGzipSlow :: String
+iecGzipSlow = "gzip-slow"
+
+iecLzop :: String
+iecLzop = "lzop"
+
 iecNone :: String
 iecNone = "none"
 
 iecAll :: [String]
-iecAll = [iecGzip, iecNone]
+iecAll = [iecGzip, iecGzipFast, iecGzipSlow, iecLzop, iecNone]
 
 ieCustomSize :: String
 ieCustomSize = "fd"
