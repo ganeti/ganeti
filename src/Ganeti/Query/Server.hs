@@ -42,6 +42,7 @@ import qualified Text.JSON as J
 import Text.JSON (encode, showJSON, JSValue(..))
 import System.Info (arch)
 import System.Directory
+import System.Posix.Signals as P
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as ConstantUtils (unFrozenSet)
@@ -459,6 +460,8 @@ main _ _ (server, cref, jq) = do
   qlockFile <- jobQueueLockFile
   _ <- lockFile qlockFile >>= exitIfBad "Failed to obtain the job-queue lock"
   qlock <- newMVar ()
+
+  _ <- P.installHandler P.sigCHLD P.Ignore Nothing
 
   finally
     (forever $ U.listener (luxiHandler (qlock, jq, creader)) server)
