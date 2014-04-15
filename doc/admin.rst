@@ -1167,19 +1167,19 @@ uses.
 First is listing the backend storage and their space situation::
 
   $ gnt-node list-storage
-  Node  Name        Size Used   Free
-  node1 /dev/sda7 673.8G   0M 673.8G
-  node1 /dev/sdb1 698.6G 1.5G 697.1G
-  node2 /dev/sda7 673.8G   0M 673.8G
-  node2 /dev/sdb1 698.6G 1.0G 697.6G
+  Node  Type   Name  Size Used Free Allocatable
+  node1 lvm-vg xenvg 3.6T   0M 3.6T Y
+  node2 lvm-vg xenvg 3.6T   0M 3.6T Y
+  node3 lvm-vg xenvg 3.6T 2.0G 3.6T Y
 
 The default is to list LVM physical volumes. It's also possible to list
 the LVM volume groups::
 
   $ gnt-node list-storage -t lvm-vg
-  Node  Name  Size
-  node1 xenvg 1.3T
-  node2 xenvg 1.3T
+  Node  Type   Name  Size Used Free Allocatable
+  node1 lvm-vg xenvg 3.6T   0M 3.6T Y
+  node2 lvm-vg xenvg 3.6T   0M 3.6T Y
+  node3 lvm-vg xenvg 3.6T 2.0G 3.6T Y
 
 Next is repairing storage units, which is currently only implemented for
 volume groups and does the equivalent of ``vgreduce --removemissing``::
@@ -1270,6 +1270,7 @@ commands as follows:
 For detailed option list see the :manpage:`gnt-cluster(8)` man page.
 
 The cluster version can be obtained via the ``version`` command::
+
   $ gnt-cluster version
   Software version: 2.1.0
   Internode protocol: 20
