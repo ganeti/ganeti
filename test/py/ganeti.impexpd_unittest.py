@@ -63,13 +63,22 @@ def CheckCmdWord(cmd, word):
 
 class TestCommandBuilder(unittest.TestCase):
   def test(self):
+
+    # The commands various compressions should use
+    compress_import = {
+      constants.IEC_GZIP: "gunzip",
+      }
+    compress_export = {
+      constants.IEC_GZIP: "gzip",
+      }
+
     for mode in [constants.IEM_IMPORT, constants.IEM_EXPORT]:
       if mode == constants.IEM_IMPORT:
-        comprcmd = "gunzip"
+        compress_dict = compress_import
       elif mode == constants.IEM_EXPORT:
-        comprcmd = "gzip"
+        compress_dict = compress_export
 
-      for compress in [constants.IEC_NONE, constants.IEC_GZIP]:
+      for compress in constants.IEC_ALL:
         for magic in [None, 10 * "-", "HelloWorld", "J9plh4nFo2",
                       "24A02A81-2264-4B51-A882-A2AB9D85B420"]:
           opts = CmdBuilderConfig(magic=magic, compress=compress)
@@ -100,8 +109,8 @@ class TestCommandBuilder(unittest.TestCase):
                 cmd = builder.GetCommand()
                 self.assert_(isinstance(cmd, list))
 
-                if compress == constants.IEC_GZIP:
-                  self.assert_(CheckCmdWord(cmd, comprcmd))
+                if compress != constants.IEC_NONE:
+                  self.assert_(CheckCmdWord(cmd, compress_dict[compress]))
 
                 if cmd_prefix is not None:
                   self.assert_(compat.any(cmd_prefix in i for i in cmd))
