@@ -47,6 +47,7 @@ module Ganeti.BasicTypes
   , failError
   , catchErrorT
   , handleErrorT
+  , orElse
   , iterateOk
   , select
   , runListHead
@@ -306,6 +307,12 @@ catchErrorT :: (Monad m, Error e)
             => ResultT e' m a -> (e' -> ResultT e m a) -> ResultT e m a
 catchErrorT = flip handleErrorT
 {-# INLINE catchErrorT #-}
+
+-- | If the first computation fails, run the second one.
+-- Unlike 'mplus' instance for 'ResultT', this doesn't require
+-- the 'Monoid' constrait.
+orElse :: (MonadError e m) => m a -> m a -> m a
+orElse x y = catchError x (const y)
 
 -- | Iterate while Ok.
 iterateOk :: (a -> GenericResult b a) -> a -> [a]
