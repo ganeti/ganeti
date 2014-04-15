@@ -55,11 +55,15 @@ import Control.Concurrent
 import Control.Exception.Lifted (finally)
 import Control.Monad
 import Control.Monad.Error
+import Data.Functor
 import qualified Data.Map as M
+import Data.Maybe (listToMaybe, mapMaybe)
+import System.Directory (getDirectoryContents)
 import System.Environment
+import System.IO.Error (tryIOError)
 import System.Posix.Process
 import System.Posix.IO
-import System.Posix.Types (ProcessID)
+import System.Posix.Types (Fd, ProcessID)
 import System.Time
 import Text.Printf
 
@@ -78,6 +82,22 @@ connectConfig :: ConnectConfig
 connectConfig = ConnectConfig { recvTmo    = 30
                               , sendTmo    = 30
                               }
+
+-- Returns the list of all open file descriptors of the current process.
+listOpenFds :: (Error e) => ResultT e IO [Fd]
+listOpenFds = liftM filterReadable
+                $ liftIO (getDirectoryContents "/proc/self/fd") `orElse`
+                  liftIO (getDirectoryContents "/dev/fd") `orElse`
+                  ([] <$ logInfo "Listing open file descriptors isn't\
+                                 \ supported by the system,\
+                                 \ not cleaning them up!")
+                  -- FIXME: If we can't get the list of file descriptors,
+                  -- try to determine the maximum value and just return
+                  -- the full range.
+                  -- See http://stackoverflow.com/a/918469/1333025
+  where
+    filterReadable :: (Read a) => [String] -> [a]
+    filterReadable = mapMaybe (fmap fst . listToMaybe . reads)
 
 -- Code that is executed in a @fork@-ed process and that the replaces iteself
 -- with the actual job process
@@ -111,6 +131,10 @@ runJobProcess jid s = withErrorLogAt CRITICAL (show jid) $
     logDebug "Closing the old file descriptors"
     closeFd clFdR
     closeFd clFdW
+
+    fds <- (filter (> 2) . filter (/= fd)) <$> toErrorBase listOpenFds
+    logDebug $ "Closing every superfluous file descriptor: " ++ show fds
+    mapM_ (tryIOError . closeFd) fds
 
     -- the master process will send the job id and the livelock file name
     -- using the same protocol to the job process
