@@ -466,6 +466,9 @@ _OS_CALLS = [
     ("params", None, None),
     ("force_variant", None, None),
     ], None, None, "Run a validation routine for a given OS"),
+  ("os_export", SINGLE, None, constants.RPC_TMO_FAST, [
+    ("instance", ED_INST_DICT, None),
+    ], None, None, "Export an OS for a given instance"),
   ]
 
 _EXTSTORAGE_CALLS = [

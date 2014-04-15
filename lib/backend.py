@@ -3876,6 +3876,55 @@ def ValidateOS(required, osname, checks, osparams, force_variant):
   return True
 
 
+def ExportOS(instance):
+  """Creates a GZIPed tarball with an OS definition and environment.
+
+  The archive contains a file with the environment variables needed by
+  the OS scripts.
+
+  @type instance: L{objects.Instance}
+  @param instance: instance for which the OS definition is exported
+
+  @rtype: string
+  @return: filepath of the archive
+
+  """
+  assert instance
+  assert instance.os
+
+  temp_dir = tempfile.mkdtemp()
+  inst_os = OSFromDisk(instance.os)
+
+  result = utils.RunCmd(["ln", "-s", inst_os.path,
+                         utils.PathJoin(temp_dir, "os")])
+  if result.failed:
+    _Fail("Failed to copy OS package '%s' to '%s': %s, output '%s'",
+          inst_os, temp_dir, result.fail_reason, result.output)
+
+  env = OSEnvironment(instance, inst_os)
+  with open(utils.PathJoin(temp_dir, "environment"), "w") as f:
+    for var in env:
+      f.write(var + "=" + env[var] + "\n")
+
+  (fd, os_package) = tempfile.mkstemp(suffix=".tgz")
+  os.close(fd)
+
+  result = utils.RunCmd(["tar", "--dereference", "-czv",
+                         "-f", os_package,
+                         "-C", temp_dir,
+                         "."])
+  if result.failed:
+    _Fail("Failed to create OS archive '%s': %s, output '%s'",
+          os_package, result.fail_reason, result.output)
+
+  result = utils.RunCmd(["rm", "-rf", temp_dir])
+  if result.failed:
+    _Fail("Failed to remove copy of OS package '%s' in '%s': %s, output '%s'",
+          inst_os, temp_dir, result.fail_reason, result.output)
+
+  return os_package
+
+
 def DemoteFromMC():
   """Demotes the current node from master candidate role.
 
