@@ -36,6 +36,8 @@ module Ganeti.HTools.Loader
   , lookupGroup
   , eitherLive
   , commonSuffix
+  , extractExTags
+  , updateExclTags
   , RqType(..)
   , Request(..)
   , ClusterData(..)
