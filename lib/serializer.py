@@ -111,7 +111,7 @@ def WrapPrivateValues(json):
         if field in constants.PRIVATE_PARAMETERS_BLACKLIST:
           if not field.endswith("_cluster"):
             data[field] = PrivateDict(value)
-          else:
+          elif data[field] is not None:
             for os in data[field]:
               value[os] = PrivateDict(value[os])
         else:
