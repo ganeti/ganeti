@@ -47,8 +47,7 @@ getOsParams :: String -> String -> JSObject JSValue -> Result (JSObject JSValue)
 getOsParams key msg jsonObj =
   case lookup key (fromJSObject jsonObj) of
     Nothing -> Error $ "Could not find " ++ msg ++ " OS parameters"
-    Just (JSObject x) -> Ok x
-    _ -> Error "OS params is not a JSON object"
+    Just x -> readJSON x
 
 getPublicOsParams :: JSObject JSValue -> Result (JSObject JSValue)
 getPublicOsParams = getOsParams "osparams" "public"

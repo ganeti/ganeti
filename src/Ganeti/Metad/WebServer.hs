@@ -81,26 +81,18 @@ serveOsParams inst params =
        ByteString.pack .
        JSON.encode $ osParams
 
-serveOsPackage :: String -> Map String JSValue -> MetaM
-serveOsPackage inst instParams =
-  case Map.lookup inst instParams of
-    Just (JSON.JSObject osParams) -> do
-      let res = getOsPackage osParams
-      case res of
-        Error err ->
-          do liftIO $ Logging.logWarning err
-             error404
-        Ok package ->
-          serveFile package
-          `CatchIO.catch`
-          \err -> do liftIO . Logging.logWarning $
-                       "Could not serve OS package: " ++ show (err :: IOError)
-                     error404
-    _ -> error404
+serveOsPackage :: String -> Map String JSValue -> String -> MetaM
+serveOsPackage inst params key =
+  do instParams <- lookupInstanceParams inst params
+     maybeResult (JSON.readJSON instParams >>=
+                  Config.getPublicOsParams >>=
+                  getOsPackage) $ \package ->
+       serveFile package `CatchIO.catch` \err ->
+         throwError $ "Could not serve OS package: " ++ show (err :: IOError)
   where getOsPackage osParams =
-          case lookup "os-package" (JSON.fromJSObject osParams) of
+          case lookup key (JSON.fromJSObject osParams) of
             Nothing -> Error $ "Could not find OS package for " ++ show inst
-            Just x -> fst <$> (JSON.readJSON x :: Result (String, String))
+            Just x -> JSON.readJSON x
 
 serveOsScript :: String -> Map String JSValue -> String -> MetaM
 serveOsScript inst params script =
@@ -128,12 +120,23 @@ handleMetadata
   :: MVar InstanceParams -> Method -> String -> String -> String -> MetaM
 handleMetadata _ GET  "ganeti" "latest" "meta_data.json" =
   liftIO $ Logging.logInfo "ganeti metadata"
+handleMetadata params GET  "ganeti" "latest" "os/os-install-package" =
+  do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
+     instanceParams <- liftIO $ do
+       Logging.logInfo $ "OS install package for " ++ show remoteAddr
+       readMVar params
+     serveOsPackage remoteAddr instanceParams "os-install-package"
+       `catchError`
+       \err -> do
+         liftIO .
+           Logging.logWarning $ "Could not serve OS install package: " ++ err
+         error404
 handleMetadata params GET  "ganeti" "latest" "os/package" =
   do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
      instanceParams <- liftIO $ do
        Logging.logInfo $ "OS package for " ++ show remoteAddr
        readMVar params
-     serveOsPackage remoteAddr instanceParams
+     serveOsPackage remoteAddr instanceParams "os-package"
 handleMetadata params GET  "ganeti" "latest" "os/parameters.json" =
   do remoteAddr <- ByteString.unpack . rqRemoteAddr <$> getRequest
      instanceParams <- liftIO $ do
