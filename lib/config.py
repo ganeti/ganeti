@@ -350,6 +350,76 @@ class ConfigWriter(object):
     nodegroup = self._UnlockedGetNodeGroup(node.group)
     return self._UnlockedGetGroupDiskParams(nodegroup)
 
+  def _AllInstanceNodes(self, inst_uuid):
+    """Compute the set of all disk-related nodes for an instance.
+
+    This abstracts away some work from '_UnlockedGetInstanceNodes'
+    and '_UnlockedGetInstanceSecondaryNodes'.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance we want to get nodes for
+    @rtype: set of strings
+    @return: A set of names for all the nodes of the instance
+
+    """
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
+
+    instance_disks = instance.disks
+    all_nodes = []
+    for disk in instance_disks:
+      all_nodes.extend(disk.all_nodes)
+    return (set(all_nodes), instance)
+
+  def _UnlockedGetInstanceNodes(self, inst_uuid):
+    """Get all disk-related nodes for an instance.
+
+    For non-DRBD, this will be empty, for DRBD it will contain both
+    the primary and the secondaries.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance we want to get nodes for
+    @rtype: list of strings
+    @return: A list of names for all the nodes of the instance
+
+    """
+    (all_nodes, instance) = self._AllInstanceNodes(inst_uuid)
+    # ensure that primary node is always the first
+    all_nodes.discard(instance.primary_node)
+    return (instance.primary_node, ) + tuple(all_nodes)
+
+  @_ConfigSync(shared=1)
+  def GetInstanceNodes(self, inst_uuid):
+    """Get all disk-related nodes for an instance.
+
+    This is just a wrapper over L{_UnlockedGetInstanceNodes}
+
+    """
+    return self._UnlockedGetInstanceNodes(inst_uuid)
+
+  def _UnlockedGetInstanceSecondaryNodes(self, inst_uuid):
+    """Get the list of secondary nodes.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance we want to get nodes for
+    @rtype: list of strings
+    @return: A list of names for all the secondary nodes of the instance
+
+    """
+    (all_nodes, instance) = self._AllInstanceNodes(inst_uuid)
+    all_nodes.discard(instance.primary_node)
+    return tuple(all_nodes)
+
+  @_ConfigSync(shared=1)
+  def GetInstanceSecondaryNodes(self, inst_uuid):
+    """Get the list of secondary nodes.
+
+    This is a simple wrapper over L{_UnlockedGetInstanceSecondaryNodes}.
+
+    """
+    return self._UnlockedGetInstanceSecondaryNodes(inst_uuid)
+
   @_ConfigSync(shared=1)
   def GetGroupDiskParams(self, group):
     """Get the disk params populated with inherit chain.
