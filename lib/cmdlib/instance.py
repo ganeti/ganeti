@@ -1442,7 +1442,7 @@ class LUInstanceCreate(LogicalUnit):
     else:
       feedback_fn("* creating instance disks...")
       try:
-        CreateDisks(self, iobj)
+        CreateDisks(self, iobj, instance_disks=iobj.disks)
       except errors.OpExecError:
         self.LogWarning("Device creation failed")
         self.cfg.ReleaseDRBDMinors(instance_uuid)
