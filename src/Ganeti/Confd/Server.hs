@@ -221,6 +221,17 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeInstances }) = do
       instances = getNodeInstances cfg node_uuid
   return (ReplyStatusOk, J.showJSON instances)
 
+-- | Return the list of disks for an instance given the instance uuid.
+buildResponse cdata req@(ConfdRequest { confdRqType = ReqInstanceDisks }) = do
+  let cfg = fst cdata
+  inst_uuid <-
+    case confdRqQuery req of
+      PlainQuery str -> return str
+      _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
+  case getInstDisksByName cfg inst_uuid of
+    Ok disks -> return (ReplyStatusOk, J.showJSON disks)
+    Bad e -> fail $ "Could not retrieve disks: " ++ show e
+
 -- | Creates a ConfdReply from a given answer.
 serializeResponse :: Result StatusAnswer -> ConfdReply
 serializeResponse r =

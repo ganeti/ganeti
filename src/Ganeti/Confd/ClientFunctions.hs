@@ -25,8 +25,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Confd.ClientFunctions
   ( getInstances
+  , getInstanceDisks
   ) where
 
+import Control.Monad (liftM)
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes as BT
@@ -42,12 +44,39 @@ getInstances
   :: String
   -> Maybe String
   -> Maybe Int
-  -> IO (BT.Result ([Ganeti.Objects.Instance], [Ganeti.Objects.Instance]))
+  -> BT.ResultT String IO ([Ganeti.Objects.Instance], [Ganeti.Objects.Instance])
 getInstances node srvAddr srvPort = do
-  client <- getConfdClient srvAddr srvPort
-  reply <- query client ReqNodeInstances $ PlainQuery node
-  return $
-    case fmap (J.readJSON . confdReplyAnswer) reply of
-      Just (J.Ok instances) -> BT.Ok instances
-      Just (J.Error msg) -> BT.Bad msg
-      Nothing -> BT.Bad "No answer from the Confd server"
+  client <- liftIO $ getConfdClient srvAddr srvPort
+  reply <- liftIO . query client ReqNodeInstances $ PlainQuery node
+  case fmap (J.readJSON . confdReplyAnswer) reply of
+    Just (J.Ok instances) -> return instances
+    Just (J.Error msg) -> fail msg
+    Nothing -> fail "No answer from the Confd server"
+
+-- | Get the list of disks that belong to a given instance
+-- The server address and the server port parameters are mainly intended
+-- for testing purposes. If they are Nothing, the default values will be used.
+getDisks
+  :: Ganeti.Objects.Instance
+  -> Maybe String
+  -> Maybe Int
+  -> BT.ResultT String IO [Ganeti.Objects.Disk]
+getDisks inst srvAddr srvPort = do
+  client <- liftIO $ getConfdClient srvAddr srvPort
+  reply <- liftIO . query client ReqInstanceDisks . PlainQuery . instUuid $ inst
+  case fmap (J.readJSON . confdReplyAnswer) reply of
+    Just (J.Ok disks) -> return disks
+    Just (J.Error msg) -> fail msg
+    Nothing -> fail "No answer from the Confd server"
+
+-- | Get the list of instances on the given node along with their disks
+-- The server address and the server port parameters are mainly intended
+-- for testing purposes. If they are Nothing, the default values will be used.
+getInstanceDisks
+  :: String
+  -> Maybe String
+  -> Maybe Int
+  -> BT.ResultT String IO [(Ganeti.Objects.Instance, [Ganeti.Objects.Disk])]
+getInstanceDisks node srvAddr srvPort =
+  liftM (uncurry (++)) (getInstances node srvAddr srvPort) >>=
+    mapM (\i -> liftM ((,) i) (getDisks i srvAddr srvPort))
