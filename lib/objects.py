@@ -1168,35 +1168,6 @@ class Instance(TaggableObject):
     "serial_no",
     ] + _TIMESTAMPS + _UUID
 
-  def _ComputeAllNodes(self):
-    """Compute the list of all nodes.
-
-    Since the data is already there (in the drbd disks), keeping it as
-    a separate normal attribute is redundant and if not properly
-    synchronised can cause problems. Thus it's better to compute it
-    dynamically.
-
-    """
-    def _Helper(nodes, device):
-      """Recursively computes nodes given a top device."""
-      if device.dev_type in constants.DTS_DRBD:
-        nodea, nodeb = device.logical_id[:2]
-        nodes.add(nodea)
-        nodes.add(nodeb)
-      if device.children:
-        for child in device.children:
-          _Helper(nodes, child)
-
-    all_nodes = set()
-    for device in self.disks:
-      _Helper(all_nodes, device)
-    # ensure that the primary node is always the first
-    all_nodes.discard(self.primary_node)
-    return (self.primary_node, ) + tuple(all_nodes)
-
-  all_nodes = property(_ComputeAllNodes, None, None,
-                       "List of names of all the nodes of the instance")
-
   def MapLVsByNode(self, lvmap=None, devs=None, node_uuid=None):
     """Provide a mapping of nodes to LVs this instance owns.
 

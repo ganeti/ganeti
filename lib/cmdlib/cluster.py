@@ -944,9 +944,10 @@ class LUClusterSetParams(LogicalUnit):
       all_instances = self.cfg.GetAllInstancesInfo().values()
       violations = set()
       for group in self.cfg.GetAllNodeGroupsInfo().values():
-        instances = frozenset([inst for inst in all_instances
-                               if compat.any(nuuid in group.members
-                                             for nuuid in inst.all_nodes)])
+        instances = frozenset(
+          [inst for inst in all_instances
+           if compat.any(nuuid in group.members
+           for nuuid in self.cfg.GetInstanceNodes(inst.uuid))])
         new_ipolicy = objects.FillIPolicy(self.new_ipolicy, group.ipolicy)
         ipol = masterd.instance.CalculateGroupIPolicy(cluster, group)
         new = ComputeNewInstanceViolations(ipol, new_ipolicy, instances,
@@ -2035,7 +2036,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     for inst in self.my_inst_info.values():
       if inst.disk_template in constants.DTS_INT_MIRROR:
-        for nuuid in inst.all_nodes:
+        inst_nodes = self.cfg.GetInstanceNodes(inst.uuid)
+        for nuuid in inst_nodes:
           if self.all_node_info[nuuid].group != self.group_uuid:
             extra_lv_nodes.add(nuuid)
 
@@ -2389,7 +2391,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                   utils.CommaJoin(secondary_nodes),
                   code=self.ETYPE_WARNING)
 
-    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, instance.all_nodes)
+    inst_nodes = self.cfg.GetInstanceNodes(instance.uuid)
+    es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, inst_nodes)
     if any(es_flags.values()):
       if instance.disk_template not in constants.DTS_EXCL_STORAGE:
         # Disk template not compatible with exclusive_storage: no instance
@@ -2410,7 +2413,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       " gnt-cluster repair-disk-sizes", idx)
 
     if instance.disk_template in constants.DTS_INT_MIRROR:
-      instance_nodes = utils.NiceSort(instance.all_nodes)
+      instance_nodes = utils.NiceSort(inst_nodes)
       instance_groups = {}
 
       for node_uuid in instance_nodes:
@@ -2447,7 +2450,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                   instance.name, "instance has offline secondary node(s) %s",
                   utils.CommaJoin(self.cfg.GetNodeNames(inst_nodes_offline)))
     # ... or ghost/non-vm_capable nodes
-    for node_uuid in instance.all_nodes:
+    for node_uuid in inst_nodes:
       self._ErrorIf(node_image[node_uuid].ghost, constants.CV_EINSTANCEBADNODE,
                     instance.name, "instance lives on ghost node %s",
                     self.cfg.GetNodeName(node_uuid))
@@ -3147,7 +3150,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       instdisk[inst_uuid] = {}
 
     assert compat.all(len(statuses) == len(instanceinfo[inst].disks) and
-                      len(nuuids) <= len(instanceinfo[inst].all_nodes) and
+                      len(nuuids) <= len(
+                        self.cfg.GetInstanceNodes(instanceinfo[inst].uuid)) and
                       compat.all(isinstance(s, (tuple, list)) and
                                  len(s) == 2 for s in statuses)
                       for inst, nuuids in instdisk.items()
@@ -3347,7 +3351,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if instance.admin_state == constants.ADMINST_OFFLINE:
         i_offline += 1
 
-      for nuuid in instance.all_nodes:
+      inst_nodes = self.cfg.GetInstanceNodes(instance.uuid)
+      for nuuid in inst_nodes:
         if nuuid not in node_image:
           gnode = self.NodeImage(uuid=nuuid)
           gnode.ghost = (nuuid not in self.all_node_info)

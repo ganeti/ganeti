@@ -588,6 +588,9 @@ class _FakeConfigForComputeIPolicyInstanceViolation:
       constants.ND_EXCLUSIVE_STORAGE: self.excl_stor,
       }
 
+  def GetInstanceNodes(self, instance_uuid):
+    return ("pnode_uuid", )
+
 
 class TestComputeIPolicyInstanceViolation(unittest.TestCase):
   def test(self):
@@ -599,6 +602,7 @@ class TestComputeIPolicyInstanceViolation(unittest.TestCase):
     disks = [objects.Disk(size=512, spindles=13)]
     cfg = _FakeConfigForComputeIPolicyInstanceViolation(beparams, False)
     instance = objects.Instance(beparams=beparams, disks=disks, nics=[],
+                                primary_node="pnode_uuid",
                                 disk_template=constants.DT_PLAIN)
     stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 4,
                                             constants.DT_PLAIN)
@@ -606,6 +610,7 @@ class TestComputeIPolicyInstanceViolation(unittest.TestCase):
                                                  cfg, _compute_fn=stub)
     self.assertEqual(ret, [])
     instance2 = objects.Instance(beparams={}, disks=disks, nics=[],
+                                 primary_node="pnode_uuid",
                                  disk_template=constants.DT_PLAIN)
     ret = common.ComputeIPolicyInstanceViolation(NotImplemented, instance2,
                                                  cfg, _compute_fn=stub)

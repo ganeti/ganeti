@@ -226,7 +226,16 @@ def CreateDisks(lu, instance, to_skip=None, target_node_uuid=None, disks=None):
   info = GetInstanceInfoText(instance)
   if target_node_uuid is None:
     pnode_uuid = instance.primary_node
-    all_node_uuids = instance.all_nodes
+    # We cannot use config's 'GetInstanceNodes' here as 'CreateDisks'
+    # is used by 'LUInstanceCreate' and the instance object is not
+    # stored in the config yet.
+    all_node_uuids = []
+    for disk in instance.disks:
+      all_node_uuids.extend(disk.all_nodes)
+    all_node_uuids = set(all_node_uuids)
+    # ensure that primary node is always the first
+    all_node_uuids.discard(instance.primary_node)
+    all_node_uuids = [pnode_uuid] + list(all_node_uuids)
   else:
     pnode_uuid = target_node_uuid
     all_node_uuids = [pnode_uuid]
@@ -610,7 +619,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
 
     ial.Run(self.op.iallocator)
 
-    assert req.RequiredNodes() == len(self.instance.all_nodes)
+    assert req.RequiredNodes() == \
+      len(self.cfg.GetInstanceNodes(self.instance.uuid))
 
     if not ial.success:
       raise errors.OpPrereqError("Can't compute nodes using iallocator '%s':"
@@ -711,7 +721,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
     """Build hooks nodes.
 
     """
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
+    nl = [self.cfg.GetMasterNode()] + \
+      list(self.cfg.GetInstanceNodes(self.instance.uuid))
     return (nl, nl)
 
   def CheckPrereq(self):
@@ -724,10 +735,11 @@ class LUInstanceRecreateDisks(LogicalUnit):
     assert instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
     if self.op.node_uuids:
-      if len(self.op.node_uuids) != len(instance.all_nodes):
+      inst_nodes = self.cfg.GetInstanceNodes(instance.uuid)
+      if len(self.op.node_uuids) != len(inst_nodes):
         raise errors.OpPrereqError("Instance %s currently has %d nodes, but"
                                    " %d replacement nodes were specified" %
-                                   (instance.name, len(instance.all_nodes),
+                                   (instance.name, len(inst_nodes),
                                     len(self.op.node_uuids)),
                                    errors.ECODE_INVAL)
       assert instance.disk_template != constants.DT_DRBD8 or \
@@ -787,7 +799,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     if self.op.node_uuids:
       node_uuids = self.op.node_uuids
     else:
-      node_uuids = instance.all_nodes
+      node_uuids = self.cfg.GetInstanceNodes(instance.uuid)
     excl_stor = compat.any(
       rpc.GetExclusiveStorageForNodes(self.cfg, node_uuids).values()
       )
@@ -852,7 +864,8 @@ class LUInstanceRecreateDisks(LogicalUnit):
 
     # All touched nodes must be locked
     mylocks = self.owned_locks(locking.LEVEL_NODE)
-    assert mylocks.issuperset(frozenset(self.instance.all_nodes))
+    inst_nodes = self.cfg.GetInstanceNodes(self.instance.uuid)
+    assert mylocks.issuperset(frozenset(inst_nodes))
     new_disks = CreateDisks(self, self.instance, to_skip=to_skip)
 
     # TODO: Release node locks before wiping, or explain why it's not possible
@@ -1471,7 +1484,8 @@ class LUInstanceGrowDisk(LogicalUnit):
     """Build hooks nodes.
 
     """
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
+    nl = [self.cfg.GetMasterNode()] + \
+      list(self.cfg.GetInstanceNodes(self.instance.uuid))
     return (nl, nl)
 
   def CheckPrereq(self):
@@ -1483,7 +1497,7 @@ class LUInstanceGrowDisk(LogicalUnit):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    node_uuids = list(self.instance.all_nodes)
+    node_uuids = list(self.cfg.GetInstanceNodes(self.instance.uuid))
     for node_uuid in node_uuids:
       CheckNodeOnline(self, node_uuid)
     self.node_es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, node_uuids)
@@ -1544,7 +1558,8 @@ class LUInstanceGrowDisk(LogicalUnit):
                  utils.FormatUnit(self.target, "h")))
 
     # First run all grow ops in dry-run mode
-    for node_uuid in self.instance.all_nodes:
+    inst_nodes = self.cfg.GetInstanceNodes(self.instance.uuid)
+    for node_uuid in inst_nodes:
       result = self.rpc.call_blockdev_grow(node_uuid,
                                            (self.disk, self.instance),
                                            self.delta, True, True,
@@ -1576,7 +1591,7 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     # We know that (as far as we can test) operations across different
     # nodes will succeed, time to run it for real on the backing storage
-    for node_uuid in self.instance.all_nodes:
+    for node_uuid in inst_nodes:
       result = self.rpc.call_blockdev_grow(node_uuid,
                                            (self.disk, self.instance),
                                            self.delta, False, True,
@@ -1992,7 +2007,7 @@ class TLReplaceDisks(Tasklet):
     @return: True if they are activated, False otherwise
 
     """
-    node_uuids = instance.all_nodes
+    node_uuids = self.cfg.GetInstanceNodes(instance.uuid)
 
     for idx, dev in enumerate(instance.disks):
       for node_uuid in node_uuids:

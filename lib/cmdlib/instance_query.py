@@ -207,7 +207,8 @@ class LUInstanceQueryData(NoHooksLU):
 
     cluster = self.cfg.GetClusterInfo()
 
-    node_uuids = itertools.chain(*(i.all_nodes for i in self.wanted_instances))
+    node_uuids = itertools.chain(*(self.cfg.GetInstanceNodes(i.uuid)
+                                   for i in self.wanted_instances))
     nodes = dict(self.cfg.GetMultiNodeInfo(node_uuids))
 
     groups = dict(self.cfg.GetMultiNodeGroupInfo(node.group

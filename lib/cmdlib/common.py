@@ -614,7 +614,8 @@ def ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
   be_full = cfg.GetClusterInfo().FillBE(instance)
   mem_size = be_full[constants.BE_MAXMEM]
   cpu_count = be_full[constants.BE_VCPUS]
-  es_flags = rpc.GetExclusiveStorageForNodes(cfg, instance.all_nodes)
+  inst_nodes = cfg.GetInstanceNodes(instance.uuid)
+  es_flags = rpc.GetExclusiveStorageForNodes(cfg, inst_nodes)
   if any(es_flags.values()):
     # With exclusive storage use the actual spindles
     try:
@@ -856,7 +857,8 @@ def CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_node_uuids,
 
   """
   for (uuid, inst) in instances.items():
-    assert owned_node_uuids.issuperset(inst.all_nodes), \
+    inst_nodes = cfg.GetInstanceNodes(inst.uuid)
+    assert owned_node_uuids.issuperset(inst_nodes), \
       "Instance %s's nodes changed while we kept the lock" % inst.name
 
     inst_groups = CheckInstanceNodeGroups(cfg, uuid, owned_groups)

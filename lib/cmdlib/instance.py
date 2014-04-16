@@ -1629,7 +1629,7 @@ class LUInstanceCreate(LogicalUnit):
                    osparams_private=self.op.osparams_private,
                    osparams_secret=self.op.osparams_secret)
 
-    return self.cfg.GetNodeNames(list(iobj.all_nodes))
+    return self.cfg.GetNodeNames(list(self.cfg.GetInstanceNodes(iobj.uuid)))
 
 
 class LUInstanceRename(LogicalUnit):
@@ -1662,7 +1662,8 @@ class LUInstanceRename(LogicalUnit):
     """Build hooks nodes.
 
     """
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
+    nl = [self.cfg.GetMasterNode()] + \
+      list(self.cfg.GetInstanceNodes(self.instance.uuid))
     return (nl, nl)
 
   def CheckPrereq(self):
@@ -1746,7 +1747,7 @@ class LUInstanceRename(LogicalUnit):
     # update info on disks
     info = GetInstanceInfoText(renamed_inst)
     for (idx, disk) in enumerate(renamed_inst.disks):
-      for node_uuid in renamed_inst.all_nodes:
+      for node_uuid in self.cfg.GetInstanceNodes(renamed_inst.uuid):
         result = self.rpc.call_blockdev_setinfo(node_uuid,
                                                 (disk, renamed_inst), info)
         result.Warn("Error setting info on node %s for disk %s" %
@@ -1805,7 +1806,7 @@ class LUInstanceRemove(LogicalUnit):
 
     """
     nl = [self.cfg.GetMasterNode()]
-    nl_post = list(self.instance.all_nodes) + nl
+    nl_post = list(self.cfg.GetInstanceNodes(self.instance.uuid)) + nl
     return (nl, nl_post)
 
   def CheckPrereq(self):
@@ -1841,7 +1842,7 @@ class LUInstanceRemove(LogicalUnit):
 
     assert (self.owned_locks(locking.LEVEL_NODE) ==
             self.owned_locks(locking.LEVEL_NODE_RES))
-    assert not (set(self.instance.all_nodes) -
+    assert not (set(self.cfg.GetInstanceNodes(self.instance.uuid)) -
                 self.owned_locks(locking.LEVEL_NODE)), \
       "Not owning correct locks"
 
@@ -2679,7 +2680,8 @@ class LUInstanceSetParams(LogicalUnit):
     """Build hooks nodes.
 
     """
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
+    nl = [self.cfg.GetMasterNode()] + \
+        list(self.cfg.GetInstanceNodes(self.instance.uuid))
     return (nl, nl)
 
   def _PrepareNicModification(self, params, private, old_ip, old_net_uuid,
@@ -2894,9 +2896,9 @@ class LUInstanceSetParams(LogicalUnit):
     """
     self.diskparams = self.cfg.GetInstanceDiskParams(self.instance)
 
+    inst_nodes = self.cfg.GetInstanceNodes(self.instance.uuid)
     excl_stor = compat.any(
-      rpc.GetExclusiveStorageForNodes(self.cfg,
-                                      self.instance.all_nodes).values()
+      rpc.GetExclusiveStorageForNodes(self.cfg, inst_nodes).values()
       )
 
     # Check disk modifications. This is done here and not in CheckArguments
@@ -3060,7 +3062,7 @@ class LUInstanceSetParams(LogicalUnit):
                                    errors.ECODE_STATE)
 
     assert pnode_uuid in self.owned_locks(locking.LEVEL_NODE)
-    node_uuids = list(self.instance.all_nodes)
+    node_uuids = list(self.cfg.GetInstanceNodes(self.instance.uuid))
     pnode_info = self.cfg.GetNodeInfo(pnode_uuid)
 
     #_CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups)
@@ -3163,7 +3165,8 @@ class LUInstanceSetParams(LogicalUnit):
         hvspecs = [(self.instance.hypervisor,
                     self.cfg.GetClusterInfo()
                       .hvparams[self.instance.hypervisor])]
-        _CheckNodesPhysicalCPUs(self, self.instance.all_nodes,
+        _CheckNodesPhysicalCPUs(self,
+                                self.cfg.GetInstanceNodes(self.instance.uuid),
                                 max_requested_cpu + 1,
                                 hvspecs)
 
@@ -3739,7 +3742,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     if self.op.disk_template:
       if __debug__:
-        check_nodes = set(self.instance.all_nodes)
+        check_nodes = set(self.cfg.GetInstanceNodes(self.instance.uuid))
         if self.op.remote_node_uuid:
           check_nodes.add(self.op.remote_node_uuid)
         for level in [locking.LEVEL_NODE, locking.LEVEL_NODE_RES]:
@@ -3901,7 +3904,8 @@ class LUInstanceChangeGroup(LogicalUnit):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
 
     # Check if node groups for locked instance are still correct
-    assert owned_nodes.issuperset(self.instance.all_nodes), \
+    instance_all_nodes = self.cfg.GetInstanceNodes(self.instance.uuid)
+    assert owned_nodes.issuperset(instance_all_nodes), \
       ("Instance %s's nodes changed while we kept the lock" %
        self.op.instance_name)
 

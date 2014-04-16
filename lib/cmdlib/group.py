@@ -276,8 +276,7 @@ class LUGroupAssignNodes(NoHooksLU):
 
     self.cfg.AssignGroupNodes(mods)
 
-  @staticmethod
-  def CheckAssignmentForSplitInstances(changes, node_data, instance_data):
+  def CheckAssignmentForSplitInstances(self, changes, node_data, instance_data):
     """Check for split instances after a node assignment.
 
     This method considers a series of node assignments as an atomic operation,
@@ -310,12 +309,13 @@ class LUGroupAssignNodes(NoHooksLU):
       if inst.disk_template not in constants.DTS_INT_MIRROR:
         continue
 
+      inst_nodes = self.cfg.GetInstanceNodes(inst.uuid)
       if len(set(node_data[node_uuid].group
-                 for node_uuid in inst.all_nodes)) > 1:
+                 for node_uuid in inst_nodes)) > 1:
         previously_split_instances.add(inst.uuid)
 
       if len(set(changed_nodes.get(node_uuid, node_data[node_uuid].group)
-                 for node_uuid in inst.all_nodes)) > 1:
+                 for node_uuid in inst_nodes)) > 1:
         all_split_instances.add(inst.uuid)
 
     return (list(all_split_instances - previously_split_instances),

@@ -1959,7 +1959,7 @@ class ConfigWriter(object):
     if primary_only:
       nodes = [instance.primary_node]
     else:
-      nodes = instance.all_nodes
+      nodes = self._UnlockedGetInstanceNodes(instance.uuid)
 
     return frozenset(self._UnlockedGetNodeInfo(node_uuid).group
                      for node_uuid in nodes)
@@ -2228,7 +2228,7 @@ class ConfigWriter(object):
     if primary_only:
       nodes_fn = lambda inst: [inst.primary_node]
     else:
-      nodes_fn = lambda inst: inst.all_nodes
+      nodes_fn = lambda inst: self._UnlockedGetInstanceNodes(inst.uuid)
 
     return frozenset(inst.uuid
                      for inst in self._ConfigData().instances.values()
