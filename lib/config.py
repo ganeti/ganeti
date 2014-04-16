@@ -1140,7 +1140,7 @@ class ConfigWriter(object):
           result.append("Instance '%s' has invalid disk '%s'" %
                         (instance.name, disk_uuid))
 
-      instance_disks = self._UnlockedGetInstanceDisks(instance)
+      instance_disks = self._UnlockedGetInstanceDisks(instance.uuid)
       # gather the drbd ports for duplicate checks
       for (idx, dsk) in enumerate(instance_disks):
         if dsk.dev_type in constants.DTS_DRBD:

@@ -132,7 +132,7 @@ instance Arbitrary Instance where
       -- nics
       <*> arbitrary
       -- disks
-      <*> vectorOf 5 genDisk
+      <*> vectorOf 5 arbitrary
       -- disk template
       <*> arbitrary
       -- disks active

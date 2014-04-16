@@ -36,7 +36,6 @@ from ganeti import utils
 from ganeti import netutils
 from ganeti import compat
 from ganeti import serializer
-from ganeti.cmdlib import instance
 
 from ganeti.config import TemporaryReservationManager
 
@@ -157,12 +156,15 @@ class TestConfigRunner(unittest.TestCase):
     inst = self._create_instance(cfg)
     disks = [
       objects.Disk(dev_type=constants.DT_PLAIN, size=128,
-                   logical_id=("myxenvg", "disk25494")),
+                   logical_id=("myxenvg", "disk25494"),
+                   uuid="disk0"),
       objects.Disk(dev_type=constants.DT_PLAIN, size=512,
-                   logical_id=("myxenvg", "disk29071")),
+                   logical_id=("myxenvg", "disk29071"),
+                   uuid="disk1"),
       ]
-    inst.disks = disks
     cfg.AddInstance(inst, "my-job")
+    for disk in disks:
+      cfg.AddInstanceDisk(inst.uuid, disk)
 
     # Plain disks
     all_nodes = cfg.GetInstanceNodes(inst.uuid)
@@ -191,14 +193,17 @@ class TestConfigRunner(unittest.TestCase):
                                12300, 0, 0, "secret"),
                    children=[
                      objects.Disk(dev_type=constants.DT_PLAIN, size=786432,
-                                  logical_id=("myxenvg", "disk0")),
+                                  logical_id=("myxenvg", "disk0"),
+                                  uuid="data0"),
                      objects.Disk(dev_type=constants.DT_PLAIN, size=128,
-                                  logical_id=("myxenvg", "meta0"))
+                                  logical_id=("myxenvg", "meta0"),
+                                  uuid="meta0")
                    ],
-                   iv_name="disk/0")
+                   iv_name="disk/0", uuid="disk0")
       ]
-    inst.disks = disks
     cfg.AddInstance(inst, "my-job")
+    for disk in disks:
+      cfg.AddInstanceDisk(inst.uuid, disk)
 
     # Drbd Disks
     all_nodes = cfg.GetInstanceNodes(inst.uuid)
@@ -616,7 +621,7 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
   def testNoError(self):
     disks = self._MakeDisks(["disk/0", "disk/1"])
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
-    instance._UpdateIvNames(0, disks)
+    config._UpdateIvNames(0, disks)
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
   def testWrongNames(self):
@@ -627,7 +632,7 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
       ])
 
     # Fix names
-    instance._UpdateIvNames(0, disks)
+    config._UpdateIvNames(0, disks)
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
 

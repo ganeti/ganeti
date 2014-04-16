@@ -716,6 +716,16 @@ class _FakeConfigForRpcRunner:
 
   def __init__(self, cluster=NotImplemented):
     self._cluster = cluster
+    self._disks = [
+      objects.Disk(dev_type=constants.DT_PLAIN, size=4096,
+                   logical_id=("vg", "disk6120"),
+                   uuid="disk_uuid_1"),
+      objects.Disk(dev_type=constants.DT_PLAIN, size=1024,
+                   logical_id=("vg", "disk8508"),
+                   uuid="disk_uuid_2"),
+      ]
+    for disk in self._disks:
+      disk.UpgradeConfig()
 
   def GetNodeInfo(self, name):
     return objects.Node(name=name)
@@ -731,6 +741,9 @@ class _FakeConfigForRpcRunner:
 
   def GetInstanceSecondaryNodes(self, _):
     return []
+
+  def GetInstanceDisks(self, _):
+    return self._disks
 
 
 class TestRpcRunner(unittest.TestCase):
@@ -813,12 +826,8 @@ class TestRpcRunner(unittest.TestCase):
           }),
         ],
       disk_template=constants.DT_PLAIN,
-      disks=[
-        objects.Disk(dev_type=constants.DT_PLAIN, size=4096,
-                     logical_id=("vg", "disk6120")),
-        objects.Disk(dev_type=constants.DT_PLAIN, size=1024,
-                     logical_id=("vg", "disk8508")),
-        ])
+      disks=["disk_uuid_1", "disk_uuid_2"]
+      )
     inst.UpgradeConfig()
 
     cfg = _FakeConfigForRpcRunner(cluster=cluster)
@@ -898,6 +907,7 @@ class TestRpcRunner(unittest.TestCase):
       "logical_id": ("vg", "disk6120"),
       "params": constants.DISK_DT_DEFAULTS[inst.disk_template],
       "serial_no": 1,
+      "uuid": "disk_uuid_1",
       }, {
       "dev_type": constants.DT_PLAIN,
       "dynamic_params": {},
@@ -905,9 +915,11 @@ class TestRpcRunner(unittest.TestCase):
       "logical_id": ("vg", "disk8508"),
       "params": constants.DISK_DT_DEFAULTS[inst.disk_template],
       "serial_no": 1,
+      "uuid": "disk_uuid_2",
       }])
 
-    self.assertTrue(compat.all(disk.params == {} for disk in inst.disks),
+    inst_disks = cfg.GetInstanceDisks(inst.uuid)
+    self.assertTrue(compat.all(disk.params == {} for disk in inst_disks),
                     msg="Configuration objects were modified")
 
 

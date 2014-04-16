@@ -32,6 +32,7 @@ import operator
 
 from ganeti import backend
 from ganeti import compat
+from ganeti import config
 from ganeti import constants
 from ganeti import errors
 from ganeti import ht
@@ -1054,7 +1055,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       self.assertTrue(disk.children is None)
 
     self._CheckIvNames(result, base_index, base_index + len(disk_info))
-    instance._UpdateIvNames(base_index, result)
+    config._UpdateIvNames(base_index, result)
     self._CheckIvNames(result, base_index, base_index + len(disk_info))
 
     return result
@@ -1220,7 +1221,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       self.assertEqual(disk.children[1].size, constants.DRBD_META_SIZE)
 
     self._CheckIvNames(result, 0, len(disk_info))
-    instance._UpdateIvNames(0, result)
+    config._UpdateIvNames(0, result)
     self._CheckIvNames(result, 0, len(disk_info))
 
     self.assertEqual(map(operator.attrgetter("logical_id"), result), [
@@ -1238,7 +1239,8 @@ class _DiskPauseTracker:
     self.history = []
 
   def __call__(self, (disks, instance), pause):
-    assert not (set(disks) - set(instance.disks))
+    disk_uuids = [d.uuid for d in disks]
+    assert not (set(disk_uuids) - set(instance.disks))
 
     self.history.extend((i.logical_id, i.size, pause)
                         for i in disks)
@@ -1247,12 +1249,16 @@ class _DiskPauseTracker:
 
 
 class _ConfigForDiskWipe:
-  def __init__(self, exp_node_uuid):
+  def __init__(self, exp_node_uuid, disks):
     self._exp_node_uuid = exp_node_uuid
+    self._disks = disks
 
   def GetNodeName(self, node_uuid):
     assert node_uuid == self._exp_node_uuid
     return "name.of.expected.node"
+
+  def GetInstanceDisks(self, _):
+    return self._disks
 
 
 class _RpcForDiskWipe:
@@ -1311,20 +1317,20 @@ class TestWipeDisks(unittest.TestCase):
   def testPauseFailure(self):
     node_name = "node1372.example.com"
 
+    disks = [
+      objects.Disk(dev_type=constants.DT_PLAIN, uuid="disk0"),
+      objects.Disk(dev_type=constants.DT_PLAIN, uuid="disk1"),
+      objects.Disk(dev_type=constants.DT_PLAIN, uuid="disk2"),
+      ]
+
     lu = _FakeLU(rpc=_RpcForDiskWipe(node_name, self._FailingPauseCb,
                                      NotImplemented),
-                 cfg=_ConfigForDiskWipe(node_name))
-
-    disks = [
-      objects.Disk(dev_type=constants.DT_PLAIN),
-      objects.Disk(dev_type=constants.DT_PLAIN),
-      objects.Disk(dev_type=constants.DT_PLAIN),
-      ]
+                 cfg=_ConfigForDiskWipe(node_name, disks))
 
     inst = objects.Instance(name="inst21201",
                             primary_node=node_name,
                             disk_template=constants.DT_PLAIN,
-                            disks=disks)
+                            disks=[d.uuid for d in disks])
 
     self.assertRaises(errors.OpExecError, instance.WipeDisks, lu, inst)
 
@@ -1337,21 +1343,22 @@ class TestWipeDisks(unittest.TestCase):
     node_uuid = "node13445-uuid"
     pt = _DiskPauseTracker()
 
-    lu = _FakeLU(rpc=_RpcForDiskWipe(node_uuid, pt, self._FailingWipeCb),
-                 cfg=_ConfigForDiskWipe(node_uuid))
-
     disks = [
       objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk0",
-                   size=100 * 1024),
+                   size=100 * 1024, uuid="disk0"),
       objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk1",
-                   size=500 * 1024),
-      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk2", size=256),
+                   size=500 * 1024, uuid="disk1"),
+      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk2",
+                   size=256, uuid="disk2"),
       ]
+
+    lu = _FakeLU(rpc=_RpcForDiskWipe(node_uuid, pt, self._FailingWipeCb),
+                 cfg=_ConfigForDiskWipe(node_uuid, disks))
 
     inst = objects.Instance(name="inst562",
                             primary_node=node_uuid,
                             disk_template=constants.DT_PLAIN,
-                            disks=disks)
+                            disks=[d.uuid for d in disks])
 
     try:
       instance.WipeDisks(lu, inst)
@@ -1376,23 +1383,25 @@ class TestWipeDisks(unittest.TestCase):
     progresst = _DiskWipeProgressTracker(start_offset)
 
     lu = _FakeLU(rpc=_RpcForDiskWipe(node_name, pauset, progresst),
-                 cfg=_ConfigForDiskWipe(node_name))
+                 cfg=_ConfigForDiskWipe(node_name, disks))
 
     instance = objects.Instance(name="inst3560",
                                 primary_node=node_name,
                                 disk_template=constants.DT_PLAIN,
-                                disks=disks)
+                                disks=[d.uuid for d in disks])
 
     return (lu, instance, pauset, progresst)
 
   def testNormalWipe(self):
     disks = [
-      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk0", size=1024),
+      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk0",
+                   size=1024, uuid="disk0"),
       objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk1",
-                   size=500 * 1024),
-      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk2", size=128),
+                   size=500 * 1024, uuid="disk1"),
+      objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk2",
+                   size=128, uuid="disk2"),
       objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk3",
-                   size=constants.MAX_WIPE_CHUNK),
+                   size=constants.MAX_WIPE_CHUNK, uuid="disk3"),
       ]
 
     (lu, inst, pauset, progresst) = self._PrepareWipeTest(0, disks)
@@ -1418,9 +1427,9 @@ class TestWipeDisks(unittest.TestCase):
     for start_offset in [0, 280, 8895, 1563204]:
       disks = [
         objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk0",
-                     size=128),
+                     size=128, uuid="disk0"),
         objects.Disk(dev_type=constants.DT_PLAIN, logical_id="disk1",
-                     size=start_offset + (100 * 1024)),
+                     size=start_offset + (100 * 1024), uuid="disk1"),
         ]
 
       (lu, inst, pauset, progresst) = \
@@ -2325,9 +2334,12 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
 
   def testConvertDRBDToPlain(self):
-    self.inst.disks = [self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
-                                           primary_node=self.master,
-                                           secondary_node=self.snode)]
+    for disk_uuid in self.inst.disks:
+      self.cfg.RemoveInstanceDisk(self.inst.uuid, disk_uuid)
+    disk = self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
+                               primary_node=self.master,
+                               secondary_node=self.snode)
+    self.cfg.AddInstanceDisk(self.inst.uuid, disk)
     self.inst.disk_template = constants.DT_DRBD8
     self.rpc.call_blockdev_shutdown.return_value = \
       self.RpcResultsBuilder() \

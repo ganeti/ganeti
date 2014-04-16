@@ -1550,22 +1550,25 @@ class TestLUClusterVerifyGroupVerifyInstance(TestLUClusterVerifyGroupMethods):
     self.master_img.volumes = ["/".join(disk.logical_id)
                                for inst in [self.running_inst,
                                             self.diskless_inst]
-                               for disk in inst.disks]
+                               for disk in
+                                 self.cfg.GetInstanceDisks(inst.uuid)]
+    drbd_inst_disks = self.cfg.GetInstanceDisks(self.drbd_inst.uuid)
     self.master_img.volumes.extend(
-      ["/".join(disk.logical_id) for disk in self.drbd_inst.disks[0].children])
+      ["/".join(disk.logical_id) for disk in drbd_inst_disks[0].children])
     self.master_img.instances = [self.running_inst.uuid]
     self.node1_img = \
       cluster.LUClusterVerifyGroup.NodeImage(uuid=self.node1.uuid)
     self.node1_img.volumes = \
-      ["/".join(disk.logical_id) for disk in self.drbd_inst.disks[0].children]
+      ["/".join(disk.logical_id) for disk in drbd_inst_disks[0].children]
     self.node_imgs = {
       self.master_uuid: self.master_img,
       self.node1.uuid: self.node1_img
     }
+    running_inst_disks = self.cfg.GetInstanceDisks(self.running_inst.uuid)
     self.diskstatus = {
       self.master_uuid: [
         (True, objects.BlockDevStatus(ldisk_status=constants.LDS_OKAY))
-        for _ in self.running_inst.disks
+        for _ in running_inst_disks
       ]
     }
 
@@ -1633,7 +1636,10 @@ class TestLUClusterVerifyGroupVerifyInstance(TestLUClusterVerifyGroupMethods):
   @withLockedLU
   def testExclusiveStorageWithValidInstance(self, lu):
     self.master.ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
-    self.running_inst.disks[0].spindles = 1
+    running_inst_disks = self.cfg.GetInstanceDisks(self.running_inst.uuid)
+    running_inst_disks[0].spindles = 1
+    feedback_fn = lambda _: None
+    self.cfg.Update(running_inst_disks[0], feedback_fn)
     lu._VerifyInstance(self.running_inst, self.node_imgs, self.diskstatus)
     self.mcpu.assertLogIsEmpty()
 
