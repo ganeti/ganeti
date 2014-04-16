@@ -420,6 +420,61 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceSecondaryNodes(inst_uuid)
 
+  def _UnlockedGetInstanceLVsByNode(self, inst_uuid, lvmap=None):
+    """Provide a mapping of node to LVs a given instance owns.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance we want to
+        compute the LVsByNode for
+    @type lvmap: dict
+    @param lvmap: Optional dictionary to receive the
+        'node' : ['lv', ...] data.
+    @rtype: dict or None
+    @return: None if lvmap arg is given, otherwise, a dictionary of
+        the form { 'node_uuid' : ['volume1', 'volume2', ...], ... };
+        volumeN is of the form "vg_name/lv_name", compatible with
+        GetVolumeList()
+
+    """
+    def _MapLVsByNode(lvmap, devices, node_uuid):
+      """Recursive helper function."""
+      if not node_uuid in lvmap:
+        lvmap[node_uuid] = []
+
+      for dev in devices:
+        if dev.dev_type == constants.DT_PLAIN:
+          lvmap[node_uuid].append(dev.logical_id[0] + "/" + dev.logical_id[1])
+
+        elif dev.dev_type in constants.DTS_DRBD:
+          if dev.children:
+            _MapLVsByNode(lvmap, dev.children, dev.logical_id[0])
+            _MapLVsByNode(lvmap, dev.children, dev.logical_id[1])
+
+        elif dev.children:
+          _MapLVsByNode(lvmap, dev.children, node_uuid)
+
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
+
+    if lvmap is None:
+      lvmap = {}
+      ret = lvmap
+    else:
+      ret = None
+
+    _MapLVsByNode(lvmap, instance.disks, instance.primary_node)
+    return ret
+
+  @_ConfigSync(shared=1)
+  def GetInstanceLVsByNode(self, inst_uuid, lvmap=None):
+    """Provide a mapping of node to LVs a given instance owns.
+
+    This is a simple wrapper over L{_UnlockedGetInstanceLVsByNode}
+
+    """
+    return self._UnlockedGetInstanceLVsByNode(inst_uuid, lvmap=lvmap)
+
   @_ConfigSync(shared=1)
   def GetGroupDiskParams(self, group):
     """Get the disk params populated with inherit chain.
