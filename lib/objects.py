@@ -1162,6 +1162,7 @@ class Instance(TaggableObject):
     "admin_state",
     "nics",
     "disks",
+    "disks_info",
     "disk_template",
     "disks_active",
     "network_port",
@@ -1203,7 +1204,7 @@ class Instance(TaggableObject):
     if _with_private:
       bo["osparams_private"] = self.osparams_private.Unprivate()
 
-    for attr in "nics", "disks":
+    for attr in "nics", "disks", "disks_info":
       alist = bo.get(attr, None)
       if alist:
         nlist = outils.ContainerToDicts(alist)
@@ -1227,6 +1228,7 @@ class Instance(TaggableObject):
     obj = super(Instance, cls).FromDict(val)
     obj.nics = outils.ContainerFromDicts(obj.nics, list, NIC)
     obj.disks = outils.ContainerFromDicts(obj.disks, list, Disk)
+    obj.disks_info = outils.ContainerFromDicts(obj.disks_info, list, Disk)
     return obj
 
   def UpgradeConfig(self):

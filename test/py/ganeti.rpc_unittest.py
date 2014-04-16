@@ -887,11 +887,11 @@ class TestRpcRunner(unittest.TestCase):
     self.assertEqual(result["hvparams"][constants.HT_KVM], {
       constants.HV_BOOT_ORDER: "xyz",
       })
-    del result["disks"][0]["ctime"]
-    del result["disks"][0]["mtime"]
-    del result["disks"][1]["ctime"]
-    del result["disks"][1]["mtime"]
-    self.assertEqual(result["disks"], [{
+    del result["disks_info"][0]["ctime"]
+    del result["disks_info"][0]["mtime"]
+    del result["disks_info"][1]["ctime"]
+    del result["disks_info"][1]["mtime"]
+    self.assertEqual(result["disks_info"], [{
       "dev_type": constants.DT_PLAIN,
       "dynamic_params": {},
       "size": 4096,

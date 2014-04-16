@@ -1519,7 +1519,7 @@ def GetInstanceMigratable(instance):
   if iname not in hyper.ListInstances(instance.hvparams):
     _Fail("Instance %s is not running", iname)
 
-  for idx in range(len(instance.disks)):
+  for idx in range(len(instance.disks_info)):
     link_name = _GetBlockDevSymlinkPath(iname, idx)
     if not os.path.islink(link_name):
       logging.warning("Instance %s is missing symlink %s for disk %d",
@@ -1805,7 +1805,7 @@ def _GatherAndLinkBlockDevs(instance):
 
   """
   block_devices = []
-  for idx, disk in enumerate(instance.disks):
+  for idx, disk in enumerate(instance.disks_info):
     device = _RecursiveFindBD(disk)
     if device is None:
       raise errors.BlockDeviceError("Block device '%s' is not set up." %
@@ -1853,7 +1853,7 @@ def StartInstance(instance, startup_paused, reason, store_reason=True):
   except errors.BlockDeviceError, err:
     _Fail("Block device error: %s", err, exc=True)
   except errors.HypervisorError, err:
-    _RemoveBlockDevLinks(instance.name, instance.disks)
+    _RemoveBlockDevLinks(instance.name, instance.disks_info)
     _Fail("Hypervisor error: %s", err, exc=True)
 
 
@@ -1929,7 +1929,7 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
   except errors.HypervisorError, err:
     logging.warning("Failed to execute post-shutdown cleanup step: %s", err)
 
-  _RemoveBlockDevLinks(iname, instance.disks)
+  _RemoveBlockDevLinks(iname, instance.disks_info)
 
 
 def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
@@ -2040,7 +2040,7 @@ def AcceptInstance(instance, info, target):
     hyper.AcceptInstance(instance, info, target)
   except errors.HypervisorError, err:
     if instance.disk_template in constants.DTS_EXT_MIRROR:
-      _RemoveBlockDevLinks(instance.name, instance.disks)
+      _RemoveBlockDevLinks(instance.name, instance.disks_info)
     _Fail("Failed to accept instance: %s", err, exc=True)
 
 
@@ -3178,13 +3178,13 @@ def OSEnvironment(instance, inst_os, debug=0):
     result["INSTANCE_%s" % attr.upper()] = str(getattr(instance, attr))
 
   result["HYPERVISOR"] = instance.hypervisor
-  result["DISK_COUNT"] = "%d" % len(instance.disks)
+  result["DISK_COUNT"] = "%d" % len(instance.disks_info)
   result["NIC_COUNT"] = "%d" % len(instance.nics)
   result["INSTANCE_SECONDARY_NODES"] = \
       ("%s" % " ".join(instance.secondary_nodes))
 
   # Disks
-  for idx, disk in enumerate(instance.disks):
+  for idx, disk in enumerate(instance.disks_info):
     real_disk = _OpenRealBD(disk)
     result["DISK_%d_PATH" % idx] = real_disk.dev_path
     result["DISK_%d_ACCESS" % idx] = disk.mode
