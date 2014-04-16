@@ -293,34 +293,40 @@ def RunWithLocks(fn, locks, timeout, block, *args, **kwargs):
   # Find out the lock names prior to starting the delay function
   lock_name_map = _FindLockNames(locks)
 
-  termination_socket = _StartDelayFunction(locks, timeout)
-
-  qa_thread = threading.Thread(target=fn, args=args, kwargs=kwargs)
-  qa_thread.start()
-
   blocking_owned_locks = []
   test_blocked = False
 
+  termination_socket = _StartDelayFunction(locks, timeout)
+  delay_fn_terminated = False
+
   try:
+    qa_thread = QAThread(fn, args, kwargs)
+    qa_thread.start()
+
     while qa_thread.isAlive():
       blocking_locks = _GetBlockingLocks()
       blocking_owned_locks = \
         set(blocking_locks).intersection(set(lock_name_map))
 
       if blocking_owned_locks:
-        test_blocked = True
+        # Set the flag first - if the termination attempt fails, we do not want
+        # to redo it in the finally block
+        delay_fn_terminated = True
         _TerminateDelayFunction(termination_socket)
+        test_blocked = True
         break
 
-      # The sleeping time has been set arbitrarily
-      time.sleep(5)
-  except:
-    # If anything goes wrong here, we should be responsible and terminate the
-    # delay job
-    _TerminateDelayFunction(termination_socket)
-    raise
+      time.sleep(5) # Set arbitrarily
 
-  qa_thread.join()
+    # The thread should be either finished or unblocked at this point
+    qa_thread.join()
+
+    # Raise any errors that might have occured in the thread
+    qa_thread.reraise()
+
+  finally:
+    if not delay_fn_terminated:
+      _TerminateDelayFunction(termination_socket)
 
   blocking_lock_names = ", ".join(map(lock_name_map.get, blocking_owned_locks))
   if not block and test_blocked:
@@ -330,7 +336,7 @@ def RunWithLocks(fn, locks, timeout, block, *args, **kwargs):
     raise qa_error.Error("QA test succeded, but was not blocked as it was "
                          "expected to by locks: %s" % blocking_lock_names)
   else:
-    _TerminateDelayFunction(termination_socket)
+    pass
 
   # Revive the watcher
   AssertCommand(["gnt-cluster", "watcher", "continue"])
