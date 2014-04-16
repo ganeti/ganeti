@@ -531,11 +531,22 @@ class NIC(ConfigObject):
 
 class Disk(ConfigObject):
   """Config object representing a block device."""
-  __slots__ = (["name", "dev_type", "logical_id", "children", "iv_name",
-                "size", "mode", "params", "spindles", "pci"] + _UUID +
-               # dynamic_params is special. It depends on the node this instance
-               # is sent to, and should not be persisted.
-               ["dynamic_params"])
+  __slots__ = [
+    "name",
+    "dev_type",
+    "logical_id",
+    "children",
+    "iv_name",
+    "size",
+    "mode",
+    "params",
+    "spindles",
+    "pci",
+    "serial_no",
+    # dynamic_params is special. It depends on the node this instance
+    # is sent to, and should not be persisted.
+    "dynamic_params"
+    ] + _UUID + _TIMESTAMPS
 
   def _ComputeAllNodes(self):
     """Compute the list of all nodes covered by a device and its children."""
@@ -877,6 +888,12 @@ class Disk(ConfigObject):
       self.params = {}
 
     # add here config upgrade for this disk
+    if self.serial_no is None:
+      self.serial_no = 1
+    if self.mtime is None:
+      self.mtime = time.time()
+    if self.ctime is None:
+      self.ctime = time.time()
 
     # map of legacy device types (mapping differing LD constants to new
     # DT constants)

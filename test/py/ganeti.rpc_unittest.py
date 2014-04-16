@@ -884,18 +884,24 @@ class TestRpcRunner(unittest.TestCase):
     self.assertEqual(result["hvparams"][constants.HT_KVM], {
       constants.HV_BOOT_ORDER: "xyz",
       })
+    del result["disks"][0]["ctime"]
+    del result["disks"][0]["mtime"]
+    del result["disks"][1]["ctime"]
+    del result["disks"][1]["mtime"]
     self.assertEqual(result["disks"], [{
       "dev_type": constants.DT_PLAIN,
       "dynamic_params": {},
       "size": 4096,
       "logical_id": ("vg", "disk6120"),
       "params": constants.DISK_DT_DEFAULTS[inst.disk_template],
+      "serial_no": 1,
       }, {
       "dev_type": constants.DT_PLAIN,
       "dynamic_params": {},
       "size": 1024,
       "logical_id": ("vg", "disk8508"),
       "params": constants.DISK_DT_DEFAULTS[inst.disk_template],
+      "serial_no": 1,
       }])
 
     self.assertTrue(compat.all(disk.params == {} for disk in inst.disks),

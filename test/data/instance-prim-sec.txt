@@ -17,7 +17,10 @@
              "df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_data"
            ],
            "size": 1024,
-           "uuid": "eaff6322-1bfb-4d59-b306-4535730917cc"
+           "uuid": "eaff6322-1bfb-4d59-b306-4535730917cc",
+           "serial_no": 1,
+           "ctime": 1372838946.2599809,
+           "mtime": 1372838946.2599809
          },
          {
            "dev_type": "plain",
@@ -31,7 +34,10 @@
              "df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_meta"
            ],
            "size": 128,
-           "uuid": "bf512e95-2a49-4cb3-8d1f-30a503f6bf1b"
+           "uuid": "bf512e95-2a49-4cb3-8d1f-30a503f6bf1b",
+           "serial_no": 1,
+           "ctime": 1372838946.2599809,
+           "mtime": 1372838946.2599809
          }
        ],
        "dev_type": "drbd",
@@ -55,7 +61,10 @@
          "9bdb15fb7ab6bb4610a313d654ed4d0d2433713e"
        ],
        "size": 1024,
-       "uuid": "5d61e205-bf89-4ba8-a319-589b7bb7419e"
+       "uuid": "5d61e205-bf89-4ba8-a319-589b7bb7419e",
+       "serial_no": 1,
+       "ctime": 1372838946.2599809,
+       "mtime": 1372838946.2599809
      }
    ],
    "disks_active": true,

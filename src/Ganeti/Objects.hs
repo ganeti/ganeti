@@ -405,6 +405,9 @@ data Disk = Disk
   , diskName       :: Maybe String
   , diskSpindles   :: Maybe Int
   , diskUuid       :: String
+  , diskSerial     :: Int
+  , diskCtime      :: ClockTime
+  , diskMtime      :: ClockTime
   } deriving (Show, Eq)
 
 $(buildObjectSerialisation "Disk" $
@@ -417,7 +420,9 @@ $(buildObjectSerialisation "Disk" $
   , optionalField $ simpleField "name" [t| String |]
   , optionalField $ simpleField "spindles" [t| Int |]
   ]
-  ++ uuidFields)
+  ++ uuidFields
+  ++ serialFields
+  ++ timeStampFields)
 
 instance UuidObject Disk where
   uuidOf = diskUuid

@@ -51,6 +51,7 @@ import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
 import GHC.Exts (IsString(..))
+import System.Time (ClockTime(..))
 import qualified Text.JSON as J
 
 import Test.Ganeti.TestHelper
@@ -92,6 +93,7 @@ instance Arbitrary DiskLogicalId where
 -- generating recursive datastructures is a bit more work.
 instance Arbitrary Disk where
   arbitrary = Disk <$> arbitrary <*> pure [] <*> arbitrary
+                   <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary
 
@@ -185,8 +187,10 @@ genDiskWithChildren num_children = do
   name <- genMaybe genName
   spindles <- arbitrary
   uuid <- genName
-  let disk = Disk logicalid children ivname size mode name spindles uuid
-  return disk
+  serial <- arbitrary
+  time <- arbitrary
+  return $
+    Disk logicalid children ivname size mode name spindles uuid serial time time
 
 genDisk :: Gen Disk
 genDisk = genDiskWithChildren 3
@@ -555,9 +559,10 @@ caseIncludeLogicalIdPlain :: HUnit.Assertion
 caseIncludeLogicalIdPlain =
   let vg_name = "xenvg" :: String
       lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
+      time = TOD 0 0
       d =
         Disk (LIDPlain vg_name lv_name) [] "diskname" 1000 DiskRdWr
-          Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
+          Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
       includesLogicalId vg_name lv_name d
@@ -567,15 +572,16 @@ caseIncludeLogicalIdDrbd :: HUnit.Assertion
 caseIncludeLogicalIdDrbd =
   let vg_name = "xenvg" :: String
       lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
+      time = TOD 0 0
       d =
         Disk
           (LIDDrbd8 "node1.example.com" "node2.example.com" 2000 1 5 "secret")
           [ Disk (LIDPlain "onevg" "onelv") [] "disk1" 1000 DiskRdWr Nothing
-              Nothing "145145-asdf-sdf2-2134-asfd-534g2x"
+              Nothing "145145-asdf-sdf2-2134-asfd-534g2x" 0 time time
           , Disk (LIDPlain vg_name lv_name) [] "disk2" 1000 DiskRdWr Nothing
-              Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse"
+              Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse" 0 time time
           ] "diskname" 1000 DiskRdWr Nothing Nothing
-          "asdfgr-1234-5123-daf3-sdfw-134f43"
+          "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
       includesLogicalId vg_name lv_name d
@@ -585,9 +591,10 @@ caseNotIncludeLogicalIdPlain :: HUnit.Assertion
 caseNotIncludeLogicalIdPlain =
   let vg_name = "xenvg" :: String
       lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
+      time = TOD 0 0
       d =
         Disk (LIDPlain "othervg" "otherlv") [] "diskname" 1000 DiskRdWr
-          Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
+          Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
       not (includesLogicalId vg_name lv_name d)
