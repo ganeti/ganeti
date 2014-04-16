@@ -111,6 +111,7 @@ module Ganeti.OpParams
   , pClusterGlusterStorageDir
   , pInstanceCommunicationNetwork
   , pZeroingImage
+  , pCompressionTools
   , pVgName
   , pEnabledHypervisors
   , pHypervisor
@@ -603,6 +604,12 @@ pInstanceCommunicationNetwork =
 pZeroingImage :: Field
 pZeroingImage =
   optionalStringField "zeroing_image"
+
+-- | The additional tools that can be used to compress data in transit
+pCompressionTools :: Field
+pCompressionTools =
+  withDoc "List of enabled compression tools" . optionalField $
+  simpleField "compression_tools" [t| [NonEmptyString] |]
 
 -- | Volume group name.
 pVgName :: Field

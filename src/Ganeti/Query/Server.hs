@@ -173,6 +173,8 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("instance_communication_network",
                showJSON (clusterInstanceCommunicationNetwork cluster))
             , ("zeroing_image", showJSON $ clusterZeroingImage cluster)
+            , ("compression_tools",
+               showJSON $ clusterCompressionTools cluster)
             ]
 
   in case master of

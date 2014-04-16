@@ -1612,6 +1612,28 @@ class ConfigWriter(object):
     """
     return self._config_data.cluster.zeroing_image
 
+  @_ConfigSync(shared=1)
+  def GetCompressionTools(self):
+    """Get cluster compression tools
+
+    @rtype: list of string
+    @return: a list of tools that are cleared for use in this cluster for the
+             purpose of compressing data
+
+    """
+    return self._ConfigData().cluster.compression_tools
+
+  @_ConfigSync()
+  def SetCompressionTools(self, tools):
+    """Set cluster compression tools
+
+    @type tools: list of string
+    @param tools: a list of tools that are cleared for use in this cluster for
+                  the purpose of compressing data
+
+    """
+    self._ConfigData().cluster.compression_tools = tools
+
   @_ConfigSync()
   def AddNodeGroup(self, group, ec_id, check_uuid=True):
     """Add a node group to the configuration.

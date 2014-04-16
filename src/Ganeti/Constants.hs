@@ -601,6 +601,9 @@ iecNone = "none"
 iecAll :: [String]
 iecAll = [iecGzip, iecGzipFast, iecGzipSlow, iecLzop, iecNone]
 
+iecDefaultTools :: [String]
+iecDefaultTools = [iecGzip, iecGzipFast, iecGzipSlow]
+
 iecCompressionUtilities :: Map String String
 iecCompressionUtilities =
   Map.fromList

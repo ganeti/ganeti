@@ -416,6 +416,7 @@ class LUClusterQuery(NoHooksLU):
       "blacklisted_os": cluster.blacklisted_os,
       "enabled_disk_templates": cluster.enabled_disk_templates,
       "instance_communication_network": cluster.instance_communication_network,
+      "compression_tools": cluster.compression_tools,
       }
 
     return result
@@ -765,6 +766,33 @@ def CheckSharedFileStoragePathVsEnabledDiskTemplates(
   CheckFileBasedStoragePathVsEnabledDiskTemplates(
       logging_warn_fn, file_storage_dir, enabled_disk_templates,
       constants.DT_SHARED_FILE)
+
+
+def CheckCompressionTools(tools):
+  """Check whether the provided compression tools look like executables.
+
+  @type tools: list of string
+  @param tools: The tools provided as opcode input
+
+  """
+  regex = re.compile('^[-_a-zA-Z0-9]+$')
+  illegal_tools = [t for t in tools if not regex.match(t)]
+
+  if illegal_tools:
+    raise errors.OpPrereqError(
+      "The tools '%s' contain illegal characters: only alphanumeric values,"
+      " dashes, and underscores are allowed" % ", ".join(illegal_tools)
+    )
+
+  if constants.IEC_GZIP not in tools:
+    raise errors.OpPrereqError("For compatibility reasons, the %s utility must"
+                               " be present among the compression tools" %
+                               constants.IEC_GZIP)
+
+  if constants.IEC_NONE in tools:
+    raise errors.OpPrereqError("%s is a reserved value used for no compression,"
+                               " and cannot be used as the name of a tool" %
+                               constants.IEC_NONE)
 
 
 class LUClusterSetParams(LogicalUnit):
@@ -1273,6 +1301,9 @@ class LUClusterSetParams(LogicalUnit):
         network = self.cfg.GetNetwork(network_uuid)
         self._CheckInstanceCommunicationNetwork(network, self.LogWarning)
 
+    if self.op.compression_tools:
+      CheckCompressionTools(self.op.compression_tools)
+
   def _BuildOSParams(self, cluster):
     "Calculate the new OS parameters for this operation."
 
@@ -1644,6 +1675,9 @@ class LUClusterSetParams(LogicalUnit):
                                                      master_params, ems)
       result.Warn("Could not re-enable the master ip on the master,"
                   " please restart manually", self.LogWarning)
+
+    if self.op.compression_tools is not None:
+      self.cfg.SetCompressionTools(self.op.compression_tools)
 
     network_name = self.op.instance_communication_network
     if network_name is not None:

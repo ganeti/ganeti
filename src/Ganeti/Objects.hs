@@ -725,6 +725,7 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "max_running_jobs"               [t| Int                    |]
   , simpleField "instance_communication_network" [t| String                 |]
   , simpleField "zeroing_image"                  [t| String                 |]
+  , simpleField "compression_tools"              [t| [String]               |]
  ]
  ++ timeStampFields
  ++ uuidFields

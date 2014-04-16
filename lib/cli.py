@@ -71,6 +71,7 @@ __all__ = [
   "CLUSTER_DOMAIN_SECRET_OPT",
   "CONFIRM_OPT",
   "CP_SIZE_OPT",
+  "COMPRESSION_TOOLS_OPT",
   "DEBUG_OPT",
   "DEBUG_SIMERR_OPT",
   "DISKIDX_OPT",
@@ -1314,6 +1315,12 @@ INSTANCE_COMMUNICATION_NETWORK_OPT = \
                dest="instance_communication_network",
                type="string",
                help="Set the network name for instance communication")
+
+COMPRESSION_TOOLS_OPT = \
+    cli_option("--compression-tools",
+               dest="compression_tools", type="string", default=None,
+               help="Comma-separated list of compression tools which are"
+                    " allowed to be used by Ganeti in various operations")
 
 VG_NAME_OPT = cli_option("--vg-name", dest="vg_name",
                          help=("Enables LVM and specifies the volume group"

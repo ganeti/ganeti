@@ -156,6 +156,8 @@ def UpgradeCluster(config_data):
     cluster.get("instance_communication_network", "")
   cluster["zeroing_image"] = \
     cluster.get("zeroing_image", "")
+  cluster["compression_tools"] = \
+    cluster.get("compression_tools", constants.IEC_DEFAULT_TOOLS)
 
 
 def UpgradeGroups(config_data):
@@ -454,6 +456,9 @@ def DowngradeCluster(config_data):
 
   if "zeroing_image" in cluster:
     del cluster["zeroing_image"]
+
+  if "compression_tools" in cluster:
+    del cluster["compression_tools"]
 
 
 def DowngradeGroups(config_data):

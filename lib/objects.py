@@ -1589,7 +1589,8 @@ class Cluster(TaggableObject):
     "candidate_certs",
     "max_running_jobs",
     "instance_communication_network",
-    "zeroing_image"
+    "zeroing_image",
+    "compression_tools",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -1726,6 +1727,9 @@ class Cluster(TaggableObject):
 
     if self.instance_communication_network is None:
       self.instance_communication_network = ""
+
+    if self.compression_tools is None:
+      self.compression_tools = constants.IEC_DEFAULT_TOOLS
 
   @property
   def primary_hypervisor(self):

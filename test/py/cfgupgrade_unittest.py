@@ -50,6 +50,7 @@ def GetMinimalConfig():
       "candidate_certs": {},
       "instance_communication_network": "",
       "zeroing_image": "",
+      "compression_tools": constants.IEC_DEFAULT_TOOLS,
     },
     "instances": {},
     "disks": {},

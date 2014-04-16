@@ -241,6 +241,7 @@ $(genOpCode "OpCode"
      , pClusterGlusterStorageDir
      , pInstanceCommunicationNetwork
      , pZeroingImage
+     , pCompressionTools
      ],
      [])
   , ("OpClusterRedistConf",
