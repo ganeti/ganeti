@@ -1125,7 +1125,7 @@ def ImageDisks(lu, instance, image, disks=None):
   if disks is None:
     disks = [(0, instance.disks[0])]
   else:
-    disks = map(lambda idx: instance.disks[idx], disks)
+    disks = map(lambda idx: (idx, instance.disks[idx]), disks)
 
   logging.info("Pausing synchronization of disks of instance '%s'",
                instance.name)
