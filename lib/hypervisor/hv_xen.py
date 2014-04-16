@@ -173,10 +173,16 @@ def _GetAllInstanceList(fn, include_node, _timeout=5):
 #
 # An instance is running if it is in the following Xen states:
 # running, blocked, or paused.
+#
+# A state of nothing '------' means that the domain is runnable but it
+# is not currently running.  That means it is in the queue behind
+# other domains waiting to be scheduled to run.
+#   http://old-list-archives.xenproject.org/xen-users/2007-06/msg00849.html
 def _IsInstanceRunning(instance_info):
   return instance_info == "r-----" \
       or instance_info == "-b----" \
-      or instance_info == "--p---"
+      or instance_info == "--p---" \
+      or instance_info == "------"
 
 
 def _IsInstanceShutdown(instance_info):
