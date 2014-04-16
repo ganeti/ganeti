@@ -534,6 +534,7 @@ docinput = \
 	doc/design-optables.rst \
 	doc/design-ovf-support.rst \
 	doc/design-partitioned.rst \
+	doc/design-performance-tests.rst \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
 	doc/design-reason-trail.rst \
