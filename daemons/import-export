@@ -438,14 +438,6 @@ def ParseOptions():
   return (status_file_path, mode)
 
 
-# Compression utility mapping, for compression types whose name does not match
-# the name of the utility to invoke
-COMPRESSION_UTILITIES = {
-  "gzip-fast": "gzip",
-  "gzip-slow": "gzip",
-  }
-
-
 # Return code signifying that no program was found
 PROGRAM_NOT_FOUND_RCODE = 127
 
@@ -493,7 +485,8 @@ def VerifyOptions():
 
   """
   if options.compress != constants.IEC_NONE:
-    utility_name = COMPRESSION_UTILITIES.get(options.compress, options.compress)
+    utility_name = constants.IEC_COMPRESSION_UTILITIES.get(options.compress,
+                                                           options.compress)
     timed_out, rcode = \
       _RunWithTimeout([utility_name, CHECK_SWITCH], 2, silent=True)
 

@@ -297,10 +297,11 @@ class CommandBuilder(object):
       parts.append(socat_cmd)
 
       if compr in [constants.IEC_GZIP, constants.IEC_GZIP_FAST,
-                   constants.IEC_GZIP_SLOW]:
-        parts.append("gunzip -c")
-      elif compr == constants.IEC_LZOP:
-        parts.append("lzop -d -c")
+                   constants.IEC_GZIP_SLOW, constants.IEC_LZOP]:
+        utility_name = constants.IEC_COMPRESSION_UTILITIES.get(compr, compr)
+        parts.append("%s -d -c" % utility_name)
+      elif compr != constants.IEC_NONE:
+        parts.append("%s -d" % compr)
       else:
         # No compression
         pass
@@ -310,12 +311,13 @@ class CommandBuilder(object):
     elif self._mode == constants.IEM_EXPORT:
       parts.append(dd_cmd)
 
-      if compr == constants.IEC_GZIP_SLOW:
-        parts.append("gzip -c")
+      if compr in [constants.IEC_GZIP_SLOW, constants.IEC_LZOP]:
+        utility_name = constants.IEC_COMPRESSION_UTILITIES.get(compr, compr)
+        parts.append("%s -c" % utility_name)
       elif compr in [constants.IEC_GZIP_FAST, constants.IEC_GZIP]:
         parts.append("gzip -1 -c")
-      elif compr == constants.IEC_LZOP:
-        parts.append("lzop -c")
+      elif compr != constants.IEC_NONE:
+        parts.append(compr)
       else:
         # No compression
         pass

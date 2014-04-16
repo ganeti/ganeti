@@ -601,6 +601,13 @@ iecNone = "none"
 iecAll :: [String]
 iecAll = [iecGzip, iecGzipFast, iecGzipSlow, iecLzop, iecNone]
 
+iecCompressionUtilities :: Map String String
+iecCompressionUtilities =
+  Map.fromList
+  [ (iecGzipFast, iecGzip)
+  , (iecGzipSlow, iecGzip)
+  ]
+
 ieCustomSize :: String
 ieCustomSize = "fd"
 

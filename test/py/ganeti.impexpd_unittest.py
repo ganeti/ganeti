@@ -66,9 +66,9 @@ class TestCommandBuilder(unittest.TestCase):
 
     # The commands various compressions should use
     compress_import = {
-      constants.IEC_GZIP: "gunzip",
-      constants.IEC_GZIP_FAST: "gunzip",
-      constants.IEC_GZIP_SLOW: "gunzip",
+      constants.IEC_GZIP: "gzip -d",
+      constants.IEC_GZIP_FAST: "gzip -d",
+      constants.IEC_GZIP_SLOW: "gzip -d",
       constants.IEC_LZOP: "lzop -d",
       }
     compress_export = {
