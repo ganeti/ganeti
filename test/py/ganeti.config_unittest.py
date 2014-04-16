@@ -104,13 +104,13 @@ class TestConfigRunner(unittest.TestCase):
     bootstrap.InitConfig(constants.CONFIG_VERSION,
                          cluster_config, master_node_config, self.cfg_file)
 
-  def _create_instance(self):
+  def _create_instance(self, cfg):
     """Create and return an instance object"""
     inst = objects.Instance(name="test.example.com",
                             uuid="test-uuid",
                             disks=[], nics=[],
                             disk_template=constants.DT_DISKLESS,
-                            primary_node=self._get_object().GetMasterNode(),
+                            primary_node=cfg.GetMasterNode(),
                             osparams_private=serializer.PrivateDict(),
                             beparams={})
     return inst
@@ -163,7 +163,7 @@ class TestConfigRunner(unittest.TestCase):
     """Test updates on one instance object"""
     cfg = self._get_object()
     # construct a fake instance
-    inst = self._create_instance()
+    inst = self._create_instance(cfg)
     fake_instance = objects.Instance()
     # fail if we didn't read the config
     self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance,
