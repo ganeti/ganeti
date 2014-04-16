@@ -39,6 +39,7 @@ module Ganeti.Config
     , getOnlineNodes
     , getNode
     , getInstance
+    , getDisk
     , getGroup
     , getGroupNdParams
     , getGroupIpolicy
@@ -49,6 +50,8 @@ module Ganeti.Config
     , getInstPrimaryNode
     , getInstMinorsForNode
     , getInstAllNodes
+    , getInstDisks
+    , getInstDisksFromObj
     , getFilledInstHvParams
     , getFilledInstBeParams
     , getFilledInstOsParams
@@ -216,6 +219,12 @@ getInstance cfg name =
                               (instName . (M.!) instances) instances
                 in getItem "Instance" name by_name
 
+-- | Looks up a disk by uuid.
+getDisk :: ConfigData -> String -> ErrorResult Disk
+getDisk cfg name =
+  let disks = fromContainer (configDisks cfg)
+  in getItem "Disk" name disks
+
 -- | Looks up a node group by name or uuid.
 getGroup :: ConfigData -> String -> ErrorResult NodeGroup
 getGroup cfg name =
@@ -333,6 +342,18 @@ getInstAllNodes cfg name = do
   let diskNodes = concatMap (getDrbdDiskNodes cfg) $ instDisks inst
   pNode <- getInstPrimaryNode cfg name
   return . nub $ pNode:diskNodes
+
+-- | Get disks for a given instance.
+-- The instance is specified by name or uuid.
+getInstDisks :: ConfigData -> String -> ErrorResult [Disk]
+getInstDisks cfg =
+  -- getInstance cfg iname >>= mapM (getDisk cfg) . instDisks
+  liftM instDisks . getInstance cfg
+
+-- | Get disks for a given instance object.
+getInstDisksFromObj :: ConfigData -> Instance -> ErrorResult [Disk]
+getInstDisksFromObj cfg =
+  getInstDisks cfg . instUuid
 
 -- | Filters DRBD minors for a given node.
 getDrbdMinorsForNode :: String -> Disk -> [(Int, String)]

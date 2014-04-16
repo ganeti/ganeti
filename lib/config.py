@@ -350,6 +350,57 @@ class ConfigWriter(object):
     nodegroup = self._UnlockedGetNodeGroup(node.group)
     return self._UnlockedGetGroupDiskParams(nodegroup)
 
+  def _UnlockedGetInstanceDisks(self, inst_uuid):
+    """Return the disks' info for the given instance
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance we want to know the disks for
+
+    @rtype: List of L{objects.Disk}
+    @return: A list with all the disks' info
+
+    """
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
+
+    return [self._UnlockedGetDiskInfo(disk_uuid)
+            for disk_uuid in instance.disks]
+
+  @_ConfigSync(shared=1)
+  def GetInstanceDisks(self, inst_uuid):
+    """Return the disks' info for the given instance
+
+    This is a simple wrapper over L{_UnlockedGetInstanceDisks}.
+
+    """
+    return self._UnlockedGetInstanceDisks(inst_uuid)
+
+  def _UnlockedGetDiskInfo(self, disk_uuid):
+    """Returns information about a disk.
+
+    It takes the information from the configuration file.
+
+    @param disk_uuid: UUID of the disk
+
+    @rtype: L{objects.Disk}
+    @return: the disk object
+
+    """
+    if disk_uuid not in self._ConfigData().disks:
+      return None
+
+    return self._ConfigData().disks[disk_uuid]
+
+  @_ConfigSync(shared=1)
+  def GetDiskInfo(self, disk_uuid):
+    """Returns information about a disk.
+
+    This is a simple wrapper over L{_UnlockedGetDiskInfo}.
+
+    """
+    return self._UnlockedGetDiskInfo(disk_uuid)
+
   def _AllInstanceNodes(self, inst_uuid):
     """Compute the set of all disk-related nodes for an instance.
 
