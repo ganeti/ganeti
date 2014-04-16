@@ -671,7 +671,7 @@ class ConfigWriter(object):
     """
     lvnames = set()
     for instance in self._ConfigData().instances.values():
-      node_data = instance.MapLVsByNode()
+      node_data = self._UnlockedGetInstanceLVsByNode(instance.uuid)
       for lv_list in node_data.values():
         lvnames.update(lv_list)
     return lvnames
@@ -1702,10 +1702,6 @@ class ConfigWriter(object):
     """
     if not isinstance(instance, objects.Instance):
       raise errors.ProgrammerError("Invalid type passed to AddInstance")
-
-    if instance.disk_template != constants.DT_DISKLESS:
-      all_lvs = instance.MapLVsByNode()
-      logging.info("Instance '%s' DISK_LAYOUT: %s", instance.name, all_lvs)
 
     all_macs = self._AllMACs()
     for nic in instance.nics:

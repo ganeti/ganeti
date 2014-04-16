@@ -874,6 +874,7 @@ class LUGroupVerifyDisks(NoHooksLU):
   def _VerifyInstanceLvs(self, node_errors, offline_disk_instance_names,
                          missing_disks):
     node_lv_to_inst = MapInstanceLvsToNodes(
+      self.cfg,
       [inst for inst in self.instances.values() if inst.disks_active])
     if node_lv_to_inst:
       node_uuids = utils.NiceSort(set(self.owned_locks(locking.LEVEL_NODE)) &

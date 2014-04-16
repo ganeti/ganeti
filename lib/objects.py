@@ -1168,57 +1168,6 @@ class Instance(TaggableObject):
     "serial_no",
     ] + _TIMESTAMPS + _UUID
 
-  def MapLVsByNode(self, lvmap=None, devs=None, node_uuid=None):
-    """Provide a mapping of nodes to LVs this instance owns.
-
-    This function figures out what logical volumes should belong on
-    which nodes, recursing through a device tree.
-
-    @type lvmap: dict
-    @param lvmap: optional dictionary to receive the
-        'node' : ['lv', ...] data.
-    @type devs: list of L{Disk}
-    @param devs: disks to get the LV name for. If None, all disk of this
-        instance are used.
-    @type node_uuid: string
-    @param node_uuid: UUID of the node to get the LV names for. If None, the
-        primary node of this instance is used.
-    @return: None if lvmap arg is given, otherwise, a dictionary of
-        the form { 'node_uuid' : ['volume1', 'volume2', ...], ... };
-        volumeN is of the form "vg_name/lv_name", compatible with
-        GetVolumeList()
-
-    """
-    if node_uuid is None:
-      node_uuid = self.primary_node
-
-    if lvmap is None:
-      lvmap = {
-        node_uuid: [],
-        }
-      ret = lvmap
-    else:
-      if not node_uuid in lvmap:
-        lvmap[node_uuid] = []
-      ret = None
-
-    if not devs:
-      devs = self.disks
-
-    for dev in devs:
-      if dev.dev_type == constants.DT_PLAIN:
-        lvmap[node_uuid].append(dev.logical_id[0] + "/" + dev.logical_id[1])
-
-      elif dev.dev_type in constants.DTS_DRBD:
-        if dev.children:
-          self.MapLVsByNode(lvmap, dev.children, dev.logical_id[0])
-          self.MapLVsByNode(lvmap, dev.children, dev.logical_id[1])
-
-      elif dev.children:
-        self.MapLVsByNode(lvmap, dev.children, node_uuid)
-
-    return ret
-
   def FindDisk(self, idx):
     """Find a disk given having a specified index.
 

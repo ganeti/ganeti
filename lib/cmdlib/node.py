@@ -1246,7 +1246,7 @@ class LUNodeQueryvols(NoHooksLU):
     volumes = self.rpc.call_node_volumes(node_uuids)
 
     ilist = self.cfg.GetAllInstancesInfo()
-    vol2inst = MapInstanceLvsToNodes(ilist.values())
+    vol2inst = MapInstanceLvsToNodes(self.cfg, ilist.values())
 
     output = []
     for node_uuid in node_uuids:

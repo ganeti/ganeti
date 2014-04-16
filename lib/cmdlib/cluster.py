@@ -2323,7 +2323,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     groupinfo = self.cfg.GetAllNodeGroupsInfo()
 
     node_vol_should = {}
-    instance.MapLVsByNode(node_vol_should)
+    self.cfg.GetInstanceLVsByNode(instance.uuid, lvmap=node_vol_should)
 
     cluster = self.cfg.GetClusterInfo()
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
@@ -3358,7 +3358,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           gnode.ghost = (nuuid not in self.all_node_info)
           node_image[nuuid] = gnode
 
-      instance.MapLVsByNode(node_vol_should)
+      self.cfg.GetInstanceLVsByNode(instance.uuid, lvmap=node_vol_should)
 
       pnode = instance.primary_node
       node_image[pnode].pinst.append(instance.uuid)
@@ -3583,7 +3583,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       for secondary in self.cfg.GetInstanceSecondaryNodes(instance.uuid):
         if (secondary in self.my_node_info
             and instance.name not in self.my_inst_info):
-          instance.MapLVsByNode(node_vol_should)
+          self.cfg.GetInstanceLVsByNode(instance.uuid, lvmap=node_vol_should)
           break
 
     self._VerifyOrphanVolumes(node_vol_should, node_image, reserved)

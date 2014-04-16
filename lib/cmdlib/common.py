@@ -953,18 +953,21 @@ def _SetOpEarlyRelease(early_release, op):
   return op
 
 
-def MapInstanceLvsToNodes(instances):
+def MapInstanceLvsToNodes(cfg, instances):
   """Creates a map from (node, volume) to instance name.
 
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
   @type instances: list of L{objects.Instance}
   @rtype: dict; tuple of (node uuid, volume name) as key, L{objects.Instance}
           object as value
 
   """
-  return dict(((node_uuid, vol), inst)
-              for inst in instances
-              for (node_uuid, vols) in inst.MapLVsByNode().items()
-              for vol in vols)
+  return dict(
+    ((node_uuid, vol), inst)
+     for inst in instances
+     for (node_uuid, vols) in cfg.GetInstanceLVsByNode(inst.uuid).items()
+     for vol in vols)
 
 
 def CheckParamsNotGlobal(params, glob_pars, kind, bad_levels, good_levels):
