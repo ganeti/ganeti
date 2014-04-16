@@ -114,19 +114,22 @@ computeDiskNodes dsk =
 -- | Computes all disk-related nodes of an instance. For non-DRBD,
 -- this will be empty, for DRBD it will contain both the primary and
 -- the secondaries.
-instDiskNodes :: Instance -> S.Set String
-instDiskNodes = S.unions . map computeDiskNodes . instDisks
+instDiskNodes :: ConfigData -> Instance -> S.Set String
+instDiskNodes cfg inst =
+  case getInstDisksFromObj cfg inst of
+    Ok disks -> S.unions $ map computeDiskNodes disks
+    Bad _ -> S.empty
 
 -- | Computes all nodes of an instance.
-instNodes :: Instance -> S.Set String
-instNodes inst = instPrimaryNode inst `S.insert` instDiskNodes inst
+instNodes :: ConfigData -> Instance -> S.Set String
+instNodes cfg inst = instPrimaryNode inst `S.insert` instDiskNodes cfg inst
 
 -- | Computes the secondary nodes of an instance. Since this is valid
 -- only for DRBD, we call directly 'instDiskNodes', skipping over the
 -- extra primary insert.
-instSecondaryNodes :: Instance -> S.Set String
-instSecondaryNodes inst =
-  instPrimaryNode inst `S.delete` instDiskNodes inst
+instSecondaryNodes :: ConfigData -> Instance -> S.Set String
+instSecondaryNodes cfg inst =
+  instPrimaryNode inst `S.delete` instDiskNodes cfg inst
 
 -- | Get instances of a given node.
 -- The node is specified through its UUID.
@@ -134,7 +137,7 @@ getNodeInstances :: ConfigData -> String -> ([Instance], [Instance])
 getNodeInstances cfg nname =
     let all_inst = M.elems . fromContainer . configInstances $ cfg
         pri_inst = filter ((== nname) . instPrimaryNode) all_inst
-        sec_inst = filter ((nname `S.member`) . instSecondaryNodes) all_inst
+        sec_inst = filter ((nname `S.member`) . instSecondaryNodes cfg) all_inst
     in (pri_inst, sec_inst)
 
 -- | Computes the role of a node.
@@ -338,8 +341,8 @@ getDrbdDiskNodes cfg disk =
 -- the primary node has to be appended to the results.
 getInstAllNodes :: ConfigData -> String -> ErrorResult [Node]
 getInstAllNodes cfg name = do
-  inst <- getInstance cfg name
-  let diskNodes = concatMap (getDrbdDiskNodes cfg) $ instDisks inst
+  inst_disks <- getInstDisks cfg name
+  let diskNodes = concatMap (getDrbdDiskNodes cfg) inst_disks
   pNode <- getInstPrimaryNode cfg name
   return . nub $ pNode:diskNodes
 
@@ -377,21 +380,25 @@ roleSecondary = "secondary"
 
 -- | Gets the list of DRBD minors for an instance that are related to
 -- a given node.
-getInstMinorsForNode :: String -- ^ The UUID of a node.
+getInstMinorsForNode :: ConfigData
+                     -> String -- ^ The UUID of a node.
                      -> Instance
                      -> [(String, Int, String, String, String, String)]
-getInstMinorsForNode node inst =
+getInstMinorsForNode cfg node inst =
   let role = if node == instPrimaryNode inst
                then rolePrimary
                else roleSecondary
       iname = instName inst
+      inst_disks = case getInstDisksFromObj cfg inst of
+                     Ok disks -> disks
+                     Bad _ -> []
   -- FIXME: the disk/ build there is hack-ish; unify this in a
   -- separate place, or reuse the iv_name (but that is deprecated on
   -- the Python side)
   in concatMap (\(idx, dsk) ->
             [(node, minor, iname, "disk/" ++ show idx, role, peer)
                | (minor, peer) <- getDrbdMinorsForNode node dsk]) .
-     zip [(0::Int)..] . instDisks $ inst
+     zip [(0::Int)..] $ inst_disks
 
 -- | Builds link -> ip -> instname map.
 --
