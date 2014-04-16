@@ -405,19 +405,20 @@ class ConfigData(ConfigObject):
     "nodegroups",
     "instances",
     "networks",
+    "disks",
     "serial_no",
     ] + _TIMESTAMPS
 
   def ToDict(self, _with_private=False):
     """Custom function for top-level config data.
 
-    This just replaces the list of instances, nodes and the cluster
-    with standard python types.
+    This just replaces the list of nodes, instances, nodegroups,
+    networks, disks and the cluster with standard python types.
 
     """
     mydict = super(ConfigData, self).ToDict(_with_private=_with_private)
     mydict["cluster"] = mydict["cluster"].ToDict()
-    for key in "nodes", "instances", "nodegroups", "networks":
+    for key in "nodes", "instances", "nodegroups", "networks", "disks":
       mydict[key] = outils.ContainerToDicts(mydict[key])
 
     return mydict
@@ -435,6 +436,7 @@ class ConfigData(ConfigObject):
     obj.nodegroups = \
       outils.ContainerFromDicts(obj.nodegroups, dict, NodeGroup)
     obj.networks = outils.ContainerFromDicts(obj.networks, dict, Network)
+    obj.disks = outils.ContainerFromDicts(obj.disks, dict, Disk)
     return obj
 
   def HasAnyDiskOfType(self, dev_type):
@@ -475,6 +477,8 @@ class ConfigData(ConfigObject):
       self.networks = {}
     for network in self.networks.values():
       network.UpgradeConfig()
+    for disk in self.disks.values():
+      disk.UpgradeConfig()
 
   def _UpgradeEnabledDiskTemplates(self):
     """Upgrade the cluster's enabled disk templates by inspecting the currently

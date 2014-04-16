@@ -868,6 +868,7 @@ def InitConfig(version, cluster_config, master_node_config,
                                    nodes=nodes,
                                    instances={},
                                    networks={},
+                                   disks={},
                                    serial_no=1,
                                    ctime=now, mtime=now)
   utils.WriteFile(cfg_file,

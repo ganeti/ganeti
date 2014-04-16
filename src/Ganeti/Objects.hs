@@ -758,6 +758,7 @@ $(buildObject "ConfigData" "config" $
   , simpleField "nodegroups" [t| Container NodeGroup |]
   , simpleField "instances"  [t| Container Instance  |]
   , simpleField "networks"   [t| Container Network   |]
+  , simpleField "disks"      [t| Container Disk      |]
   ]
   ++ timeStampFields
   ++ serialFields)
