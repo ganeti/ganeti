@@ -1794,7 +1794,9 @@ class LUInstanceRemove(LogicalUnit):
     This runs on master, primary and secondary nodes of the instance.
 
     """
-    env = BuildInstanceHookEnvByObject(self, self.instance)
+    env = BuildInstanceHookEnvByObject(self, self.instance,
+                                       secondary_nodes=self.secondary_nodes,
+                                       disks=self.inst_disks)
     env["SHUTDOWN_TIMEOUT"] = self.op.shutdown_timeout
     return env
 
@@ -1815,6 +1817,8 @@ class LUInstanceRemove(LogicalUnit):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
+    self.secondary_nodes = self.instance.secondary_nodes
+    self.inst_disks = self.instance.disks
 
   def Exec(self, feedback_fn):
     """Remove the instance.

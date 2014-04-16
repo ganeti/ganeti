@@ -147,7 +147,8 @@ def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
   return env
 
 
-def BuildInstanceHookEnvByObject(lu, instance, override=None):
+def BuildInstanceHookEnvByObject(lu, instance, secondary_nodes=None,
+                                 disks=None, override=None):
   """Builds instance related env variables for hooks from an object.
 
   @type lu: L{LogicalUnit}
@@ -165,10 +166,19 @@ def BuildInstanceHookEnvByObject(lu, instance, override=None):
   cluster = lu.cfg.GetClusterInfo()
   bep = cluster.FillBE(instance)
   hvp = cluster.FillHV(instance)
+
+  # Override secondary_nodes
+  if secondary_nodes is None:
+    secondary_nodes = instance.secondary_nodes
+
+  # Override disks
+  if disks is None:
+    disks = instance.disks
+
   args = {
     "name": instance.name,
     "primary_node_name": lu.cfg.GetNodeName(instance.primary_node),
-    "secondary_node_names": lu.cfg.GetNodeNames(instance.secondary_nodes),
+    "secondary_node_names": lu.cfg.GetNodeNames(secondary_nodes),
     "os_type": instance.os,
     "status": instance.admin_state,
     "maxmem": bep[constants.BE_MAXMEM],
@@ -177,7 +187,7 @@ def BuildInstanceHookEnvByObject(lu, instance, override=None):
     "nics": NICListToTuple(lu, instance.nics),
     "disk_template": instance.disk_template,
     "disks": [(disk.name, disk.uuid, disk.size, disk.mode)
-              for disk in instance.disks],
+              for disk in disks],
     "bep": bep,
     "hvp": hvp,
     "hypervisor_name": instance.hypervisor,

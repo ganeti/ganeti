@@ -173,7 +173,9 @@ class LUBackupExport(LogicalUnit):
       "REMOVE_INSTANCE": str(bool(self.op.remove_instance)),
       }
 
-    env.update(BuildInstanceHookEnvByObject(self, self.instance))
+    env.update(BuildInstanceHookEnvByObject(
+      self, self.instance,
+      secondary_nodes=self.secondary_nodes, disks=self.inst_disks))
 
     return env
 
@@ -311,6 +313,9 @@ class LUBackupExport(LogicalUnit):
           self.op.zeroing_timeout_per_mib is not None):
         raise errors.OpPrereqError("Zeroing timeout options can only be used"
                                    " only with the --zero-free-space option")
+
+    self.secondary_nodes = self.instance.secondary_nodes
+    self.inst_disks = self.instance.disks
 
   def _CleanupExports(self, feedback_fn):
     """Removes exports of current instance from all other nodes.
