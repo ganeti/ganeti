@@ -448,10 +448,9 @@ class ConfigData(ConfigObject):
     @return: boolean indicating if a disk of the given type was found or not
 
     """
-    for instance in self.instances.values():
-      for disk in instance.disks:
-        if disk.IsBasedOnDiskType(dev_type):
-          return True
+    for disk in self.disks.values():
+      if disk.IsBasedOnDiskType(dev_type):
+        return True
     return False
 
   def UpgradeConfig(self):
@@ -1176,8 +1175,8 @@ class Instance(TaggableObject):
 
     @type idx: int
     @param idx: the disk index
-    @rtype: L{Disk}
-    @return: the corresponding disk
+    @rtype: string
+    @return: the corresponding disk's uuid
     @raise errors.OpPrereqError: when the given index is not valid
 
     """
@@ -1204,7 +1203,7 @@ class Instance(TaggableObject):
     if _with_private:
       bo["osparams_private"] = self.osparams_private.Unprivate()
 
-    for attr in "nics", "disks", "disks_info":
+    for attr in "nics", "disks_info":
       alist = bo.get(attr, None)
       if alist:
         nlist = outils.ContainerToDicts(alist)
@@ -1227,7 +1226,6 @@ class Instance(TaggableObject):
       del val["admin_up"]
     obj = super(Instance, cls).FromDict(val)
     obj.nics = outils.ContainerFromDicts(obj.nics, list, NIC)
-    obj.disks = outils.ContainerFromDicts(obj.disks, list, Disk)
     obj.disks_info = outils.ContainerFromDicts(obj.disks_info, list, Disk)
     return obj
 
@@ -1237,8 +1235,8 @@ class Instance(TaggableObject):
     """
     for nic in self.nics:
       nic.UpgradeConfig()
-    for disk in self.disks:
-      disk.UpgradeConfig()
+    if self.disks is None:
+      self.disks = []
     if self.hvparams:
       for key in constants.HVC_GLOBALS:
         try:

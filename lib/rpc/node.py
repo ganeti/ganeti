@@ -887,7 +887,8 @@ class RpcRunner(_RpcClientBase,
     idict["osparams"] = cluster.SimpleFillOS(instance.os, instance.osparams)
     if osp is not None:
       idict["osparams"].update(osp)
-    idict["disks_info"] = self._DisksDictDP(node, (instance.disks, instance))
+    disks = self._cfg.GetInstanceDisks(instance.uuid)
+    idict["disks_info"] = self._DisksDictDP(node, (disks, instance))
     for nic in idict["nics"]:
       nic["nicparams"] = objects.FillDict(
         cluster.nicparams[constants.PP_DEFAULT],

@@ -611,7 +611,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
       pnode = instance.primary_node
       if pnode not in per_node_disks:
         per_node_disks[pnode] = []
-      for idx, disk in enumerate(instance.disks):
+      for idx, disk in enumerate(self.cfg.GetInstanceDisks(instance.uuid)):
         per_node_disks[pnode].append((instance, idx, disk))
 
     assert not (frozenset(per_node_disks.keys()) -
@@ -663,7 +663,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
                        " correcting: recorded %d, actual %d", idx,
                        instance.name, disk.size, size)
           disk.size = size
-          self.cfg.Update(instance, feedback_fn)
+          self.cfg.Update(disk, feedback_fn)
           changed.append((instance.name, idx, "size", size))
         if es_flags[node_uuid]:
           if spindles is None:
@@ -675,10 +675,10 @@ class LUClusterRepairDiskSizes(NoHooksLU):
                          " correcting: recorded %s, actual %s",
                          idx, instance.name, disk.spindles, spindles)
             disk.spindles = spindles
-            self.cfg.Update(instance, feedback_fn)
+            self.cfg.Update(disk, feedback_fn)
             changed.append((instance.name, idx, "spindles", disk.spindles))
         if self._EnsureChildSizes(disk):
-          self.cfg.Update(instance, feedback_fn)
+          self.cfg.Update(disk, feedback_fn)
           changed.append((instance.name, idx, "size", disk.size))
     return changed
 
@@ -2405,7 +2405,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                     " that have exclusive storage set: %s",
                     instance.disk_template,
                     utils.CommaJoin(self.cfg.GetNodeNames(es_nodes)))
-      for (idx, disk) in enumerate(instance.disks):
+      for (idx, disk) in enumerate(self.cfg.GetInstanceDisks(instance.uuid)):
         self._ErrorIf(disk.spindles is None,
                       constants.CV_EINSTANCEMISSINGCFGPARAMETER, instance.name,
                       "number of spindles not configured for disk %s while"
@@ -3083,7 +3083,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                                 if instanceinfo[uuid].disk_template == diskless)
       disks = [(inst_uuid, disk)
                for inst_uuid in node_inst_uuids
-               for disk in instanceinfo[inst_uuid].disks]
+               for disk in self.cfg.GetInstanceDisks(inst_uuid)]
 
       if not disks:
         nodisk_instances.update(uuid for uuid in node_inst_uuids

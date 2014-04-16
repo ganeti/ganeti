@@ -915,7 +915,8 @@ class LUGroupVerifyDisks(NoHooksLU):
         node_to_inst.setdefault(node_uuid, []).append(inst)
 
     for (node_uuid, insts) in node_to_inst.items():
-      node_disks = [(inst.disks, inst) for inst in insts]
+      node_disks = [(self.cfg.GetInstanceDisks(inst.uuid), inst)
+                    for inst in insts]
       node_res = self.rpc.call_drbd_needs_activation(node_uuid, node_disks)
       msg = node_res.fail_msg
       if msg:
@@ -926,7 +927,8 @@ class LUGroupVerifyDisks(NoHooksLU):
 
       faulty_disk_uuids = set(node_res.payload)
       for inst in self.instances.values():
-        inst_disk_uuids = set([disk.uuid for disk in inst.disks])
+        disks = self.cfg.GetInstanceDisks(inst.uuid)
+        inst_disk_uuids = set([disk.uuid for disk in disks])
         if inst_disk_uuids.intersection(faulty_disk_uuids):
           offline_disk_instance_names.add(inst.name)
 

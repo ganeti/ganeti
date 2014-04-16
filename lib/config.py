@@ -557,7 +557,7 @@ class ConfigWriter(object):
     if instance is None:
       raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
 
-    instance_disks = instance.disks
+    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
     all_nodes = []
     for disk in instance_disks:
       all_nodes.extend(disk.all_nodes)
@@ -654,7 +654,9 @@ class ConfigWriter(object):
     else:
       ret = None
 
-    _MapLVsByNode(lvmap, instance.disks, instance.primary_node)
+    _MapLVsByNode(lvmap,
+                  self._UnlockedGetInstanceDisks(instance.uuid),
+                  instance.primary_node)
     return ret
 
   @_ConfigSync(shared=1)
@@ -867,26 +869,6 @@ class ConfigWriter(object):
         lvnames.update(lv_list)
     return lvnames
 
-  def _AllDisks(self):
-    """Compute the list of all Disks (recursively, including children).
-
-    """
-    def DiskAndAllChildren(disk):
-      """Returns a list containing the given disk and all of his children.
-
-      """
-      disks = [disk]
-      if disk.children:
-        for child_disk in disk.children:
-          disks.extend(DiskAndAllChildren(child_disk))
-      return disks
-
-    disks = []
-    for instance in self._ConfigData().instances.values():
-      for disk in instance.disks:
-        disks.extend(DiskAndAllChildren(disk))
-    return disks
-
   def _AllNICs(self):
     """Compute the list of all NICs.
 
@@ -969,34 +951,36 @@ class ConfigWriter(object):
           helper(child, result)
 
     result = []
-    for instance in self._ConfigData().instances.values():
-      for disk in instance.disks:
-        helper(disk, result)
+    for disk in self._ConfigData().disks.values():
+      helper(disk, result)
 
     return result
 
-  def _CheckDiskIDs(self, disk, l_ids):
-    """Compute duplicate disk IDs
+  @staticmethod
+  def _VerifyDisks(data, result):
+    """Per-disk verification checks
 
-    @type disk: L{objects.Disk}
-    @param disk: the disk at which to start searching
-    @type l_ids: list
-    @param l_ids: list of current logical ids
-    @rtype: list
-    @return: a list of error messages
+    Extends L{result} with diagnostic information about the disks.
+
+    @type data: see L{_ConfigData}
+    @param data: configuration data
+
+    @type result: list of strings
+    @param result: list containing diagnostic messages
 
     """
-    result = []
-    if disk.logical_id is not None:
-      if disk.logical_id in l_ids:
-        result.append("duplicate logical id %s" % str(disk.logical_id))
-      else:
-        l_ids.append(disk.logical_id)
-
-    if disk.children:
-      for child in disk.children:
-        result.extend(self._CheckDiskIDs(child, l_ids))
-    return result
+    instance_disk_uuids = [d for insts in data.instances.values()
+                           for d in insts.disks]
+    for disk_uuid in data.disks:
+      disk = data.disks[disk_uuid]
+      result.extend(["disk %s error: %s" % (disk.uuid, msg)
+                     for msg in disk.Verify()])
+      if disk.uuid != disk_uuid:
+        result.append("disk '%s' is indexed by wrong UUID '%s'" %
+                      (disk.name, disk_uuid))
+      if disk.uuid not in instance_disk_uuids:
+        result.append("disk '%s' is not attached to any instance" %
+                      disk.uuid)
 
   def _UnlockedVerifyConfig(self):
     """Verify function.
@@ -1012,7 +996,6 @@ class ConfigWriter(object):
     ports = {}
     data = self._ConfigData()
     cluster = data.cluster
-    seen_lids = []
 
     # global cluster checks
     if not cluster.enabled_hypervisors:
@@ -1113,6 +1096,8 @@ class ConfigWriter(object):
           )
         )
 
+    self._VerifyDisks(data, result)
+
     # per-instance checks
     for instance_uuid in data.instances:
       instance = data.instances[instance_uuid]
@@ -1149,8 +1134,15 @@ class ConfigWriter(object):
         _helper("instance %s" % instance.name, "beparams",
                 cluster.FillBE(instance), constants.BES_PARAMETER_TYPES)
 
+      # check that disks exists
+      for disk_uuid in instance.disks:
+        if disk_uuid not in data.disks:
+          result.append("Instance '%s' has invalid disk '%s'" %
+                        (instance.name, disk_uuid))
+
+      instance_disks = self._UnlockedGetInstanceDisks(instance)
       # gather the drbd ports for duplicate checks
-      for (idx, dsk) in enumerate(instance.disks):
+      for (idx, dsk) in enumerate(instance_disks):
         if dsk.dev_type in constants.DTS_DRBD:
           tcp_port = dsk.logical_id[2]
           if tcp_port not in ports:
@@ -1163,13 +1155,7 @@ class ConfigWriter(object):
           ports[net_port] = []
         ports[net_port].append((instance.name, "network port"))
 
-      # instance disk verify
-      for idx, disk in enumerate(instance.disks):
-        result.extend(["instance '%s' disk %d error: %s" %
-                       (instance.name, idx, msg) for msg in disk.Verify()])
-        result.extend(self._CheckDiskIDs(disk, seen_lids))
-
-      wrong_names = _CheckInstanceDiskIvNames(instance.disks)
+      wrong_names = _CheckInstanceDiskIvNames(instance_disks)
       if wrong_names:
         tmp = "; ".join(("name of disk %s should be '%s', but is '%s'" %
                          (idx, exp_name, actual_name))
@@ -1386,7 +1372,7 @@ class ConfigWriter(object):
     duplicates = []
     my_dict = dict((node_uuid, {}) for node_uuid in self._ConfigData().nodes)
     for instance in self._ConfigData().instances.itervalues():
-      for disk in instance.disks:
+      for disk in self._UnlockedGetInstanceDisks(instance.uuid):
         duplicates.extend(_AppendUsedMinors(self._UnlockedGetNodeName,
                                             instance, disk, my_dict))
     for (node_uuid, minor), inst_uuid in self._temporary_drbds.iteritems():
@@ -2029,7 +2015,8 @@ class ConfigWriter(object):
     inst = self._ConfigData().instances[inst_uuid]
     inst.name = new_name
 
-    for (_, disk) in enumerate(inst.disks):
+    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
+    for (_, disk) in enumerate(instance_disks):
       if disk.dev_type in [constants.DT_FILE, constants.DT_SHARED_FILE]:
         # rename the file paths in logical and physical id
         file_storage_dir = os.path.dirname(os.path.dirname(disk.logical_id[1]))
@@ -2799,7 +2786,7 @@ class ConfigWriter(object):
             self._ConfigData().nodes.values() +
             self._ConfigData().nodegroups.values() +
             self._ConfigData().networks.values() +
-            self._AllDisks() +
+            self._ConfigData().disks.values() +
             self._AllNICs() +
             [self._ConfigData().cluster])
 

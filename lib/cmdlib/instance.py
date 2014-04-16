@@ -1365,6 +1365,8 @@ class LUInstanceCreate(LogicalUnit):
 
     if disk_abort:
       RemoveDisks(self, instance)
+      for disk_uuid in instance.disks:
+        self.cfg.RemoveInstanceDisk(instance.uuid, disk_uuid)
       self.cfg.RemoveInstance(instance.uuid)
       # Make sure the instance lock gets removed
       self.remove_locks[locking.LEVEL_INSTANCE] = instance.name
@@ -1411,7 +1413,7 @@ class LUInstanceCreate(LogicalUnit):
                             uuid=instance_uuid,
                             os=os_type,
                             primary_node=self.pnode.uuid,
-                            nics=self.nics, disks=disks,
+                            nics=self.nics, disks=[],
                             disk_template=self.op.disk_template,
                             disks_active=False,
                             admin_state=constants.ADMINST_DOWN,
@@ -1442,15 +1444,21 @@ class LUInstanceCreate(LogicalUnit):
     else:
       feedback_fn("* creating instance disks...")
       try:
-        CreateDisks(self, iobj, instance_disks=iobj.disks)
+        CreateDisks(self, iobj, instance_disks=disks)
       except errors.OpExecError:
         self.LogWarning("Device creation failed")
         self.cfg.ReleaseDRBDMinors(instance_uuid)
         raise
 
     feedback_fn("adding instance %s to cluster config" % self.op.instance_name)
-
     self.cfg.AddInstance(iobj, self.proc.GetECId())
+
+    feedback_fn("adding disks to cluster config")
+    for disk in disks:
+      self.cfg.AddInstanceDisk(iobj.uuid, disk)
+
+    # re-read the instance from the configuration
+    iobj = self.cfg.GetInstanceInfo(iobj.uuid)
 
     # Declare that we don't want to remove the instance lock anymore, as we've
     # added the instance to the config
@@ -1498,6 +1506,7 @@ class LUInstanceCreate(LogicalUnit):
     ReleaseLocks(self, locking.LEVEL_NODE_RES)
 
     if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
+      disks = self.cfg.GetInstanceDisks(iobj.uuid)
       if self.op.mode == constants.INSTANCE_CREATE:
         os_image = objects.GetOSImage(self.op.osparams)
 
@@ -1507,8 +1516,8 @@ class LUInstanceCreate(LogicalUnit):
           if pause_sync:
             feedback_fn("* pausing disk sync to install instance OS")
             result = self.rpc.call_blockdev_pause_resume_sync(self.pnode.uuid,
-                                                              (iobj.disks,
-                                                               iobj), True)
+                                                              (disks, iobj),
+                                                              True)
             for idx, success in enumerate(result.payload):
               if not success:
                 logging.warn("pause-sync of instance %s for disk %d failed",
@@ -1524,8 +1533,8 @@ class LUInstanceCreate(LogicalUnit):
           if pause_sync:
             feedback_fn("* resuming disk sync")
             result = self.rpc.call_blockdev_pause_resume_sync(self.pnode.uuid,
-                                                              (iobj.disks,
-                                                               iobj), False)
+                                                              (disks, iobj),
+                                                              False)
             for idx, success in enumerate(result.payload):
               if not success:
                 logging.warn("resume-sync of instance %s for disk %d failed",
@@ -1547,10 +1556,10 @@ class LUInstanceCreate(LogicalUnit):
 
             if iobj.os:
               dst_io = constants.IEIO_SCRIPT
-              dst_ioargs = ((iobj.disks[idx], iobj), idx)
+              dst_ioargs = ((disks[idx], iobj), idx)
             else:
               dst_io = constants.IEIO_RAW_DISK
-              dst_ioargs = (iobj.disks[idx], iobj)
+              dst_ioargs = (disks[idx], iobj)
 
             # FIXME: pass debug option from opcode to backend
             dt = masterd.instance.DiskTransfer("disk/%s" % idx,
@@ -1717,8 +1726,8 @@ class LUInstanceRename(LogicalUnit):
     if (self.instance.disk_template in (constants.DT_FILE,
                                         constants.DT_SHARED_FILE) and
         self.op.new_name != self.instance.name):
-      old_file_storage_dir = os.path.dirname(
-                               self.instance.disks[0].logical_id[1])
+      disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+      old_file_storage_dir = os.path.dirname(disks[0].logical_id[1])
       rename_file_storage = True
 
     self.cfg.RenameInstance(self.instance.uuid, self.op.new_name)
@@ -1729,10 +1738,10 @@ class LUInstanceRename(LogicalUnit):
 
     # re-read the instance from the configuration after rename
     renamed_inst = self.cfg.GetInstanceInfo(self.instance.uuid)
+    disks = self.cfg.GetInstanceDisks(renamed_inst.uuid)
 
     if rename_file_storage:
-      new_file_storage_dir = os.path.dirname(
-                               renamed_inst.disks[0].logical_id[1])
+      new_file_storage_dir = os.path.dirname(disks[0].logical_id[1])
       result = self.rpc.call_file_storage_dir_rename(renamed_inst.primary_node,
                                                      old_file_storage_dir,
                                                      new_file_storage_dir)
@@ -1746,7 +1755,7 @@ class LUInstanceRename(LogicalUnit):
 
     # update info on disks
     info = GetInstanceInfoText(renamed_inst)
-    for (idx, disk) in enumerate(renamed_inst.disks):
+    for (idx, disk) in enumerate(disks):
       for node_uuid in self.cfg.GetInstanceNodes(renamed_inst.uuid):
         result = self.rpc.call_blockdev_setinfo(node_uuid,
                                                 (disk, renamed_inst), info)
@@ -1820,7 +1829,7 @@ class LUInstanceRemove(LogicalUnit):
       "Cannot retrieve locked instance %s" % self.op.instance_name
     self.secondary_nodes = \
       self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
-    self.inst_disks = self.instance.disks
+    self.inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
 
   def Exec(self, feedback_fn):
     """Remove the instance.
@@ -1926,7 +1935,8 @@ class LUInstanceMove(LogicalUnit):
     cluster = self.cfg.GetClusterInfo()
     bep = cluster.FillBE(self.instance)
 
-    for idx, dsk in enumerate(self.instance.disks):
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    for idx, dsk in enumerate(disks):
       if dsk.dev_type not in (constants.DT_PLAIN, constants.DT_FILE,
                               constants.DT_SHARED_FILE, constants.DT_GLUSTER):
         raise errors.OpPrereqError("Instance disk %d has a complex layout,"
@@ -1993,7 +2003,8 @@ class LUInstanceMove(LogicalUnit):
     errs = []
     transfers = []
     # activate, get path, create transfer jobs
-    for idx, disk in enumerate(self.instance.disks):
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    for idx, disk in enumerate(disks):
       # FIXME: pass debug option from opcode to backend
       dt = masterd.instance.DiskTransfer("disk/%s" % idx,
                                          constants.IEIO_RAW_DISK,
@@ -2002,6 +2013,7 @@ class LUInstanceMove(LogicalUnit):
                                          (disk, self.instance),
                                          None)
       transfers.append(dt)
+      self.cfg.Update(disk, feedback_fn)
 
     import_result = \
       masterd.instance.TransferInstanceData(self, feedback_fn,
@@ -2416,16 +2428,6 @@ def _ApplyContainerMods(kind, container, chgdesc, mods,
 
     if not (chgdesc is None or changes is None):
       chgdesc.extend(changes)
-
-
-def _UpdateIvNames(base_index, disks):
-  """Updates the C{iv_name} attribute of disks.
-
-  @type disks: list of L{objects.Disk}
-
-  """
-  for (idx, disk) in enumerate(disks):
-    disk.iv_name = "disk/%s" % (base_index + idx, )
 
 
 class LUInstanceSetParams(LogicalUnit):
@@ -2858,7 +2860,7 @@ class LUInstanceSetParams(LogicalUnit):
       assert self.instance.disk_template == constants.DT_PLAIN
       disks = [{constants.IDISK_SIZE: d.size,
                 constants.IDISK_VG: d.logical_id[0]}
-               for d in self.instance.disks]
+               for d in self.cfg.GetInstanceDisks(self.instance.uuid)]
       required = ComputeDiskSizePerVG(self.op.disk_template, disks)
       CheckNodesFreeDiskPerVG(self, [self.op.remote_node_uuid], required)
 
@@ -2955,7 +2957,8 @@ class LUInstanceSetParams(LogicalUnit):
       disk.name = params.get(constants.IDISK_NAME, None)
 
     # Verify disk changes (operating on a copy)
-    disks = copy.deepcopy(self.instance.disks)
+    inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    disks = copy.deepcopy(inst_disks)
     _ApplyContainerMods("disk", disks, None, self.diskmod, None,
                         _PrepareDiskMod, None)
     utils.ValidateDeviceNames("disk", disks)
@@ -2963,7 +2966,7 @@ class LUInstanceSetParams(LogicalUnit):
       raise errors.OpPrereqError("Instance has too many disks (%d), cannot add"
                                  " more" % constants.MAX_DISKS,
                                  errors.ECODE_STATE)
-    disk_sizes = [disk.size for disk in self.instance.disks]
+    disk_sizes = [disk.size for disk in inst_disks]
     disk_sizes.extend(params["size"] for (op, idx, params, private) in
                       self.diskmod if op == constants.DDM_ADD)
     ispec[constants.ISPEC_DISK_COUNT] = len(disk_sizes)
@@ -3389,11 +3392,12 @@ class LUInstanceSetParams(LogicalUnit):
 
     assert self.instance.disk_template == constants.DT_PLAIN
 
+    old_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     # create a fake disk info for _GenerateDiskTemplate
     disk_info = [{constants.IDISK_SIZE: d.size, constants.IDISK_MODE: d.mode,
                   constants.IDISK_VG: d.logical_id[0],
                   constants.IDISK_NAME: d.name}
-                 for d in self.instance.disks]
+                 for d in old_disks]
     new_disks = GenerateDiskTemplate(self, self.op.disk_template,
                                      self.instance.uuid, pnode_uuid,
                                      [snode_uuid], disk_info, None, None, 0,
@@ -3415,7 +3419,7 @@ class LUInstanceSetParams(LogicalUnit):
     # old ones
     feedback_fn("Renaming original volumes...")
     rename_list = [(o, n.children[0].logical_id)
-                   for (o, n) in zip(self.instance.disks, new_disks)]
+                   for (o, n) in zip(old_disks, new_disks)]
     result = self.rpc.call_blockdev_rename(pnode_uuid, rename_list)
     result.Raise("Failed to rename original LVs")
 
@@ -3432,15 +3436,26 @@ class LUInstanceSetParams(LogicalUnit):
       feedback_fn("Initializing of DRBD devices failed;"
                   " renaming back original volumes...")
       rename_back_list = [(n.children[0], o.logical_id)
-                          for (n, o) in zip(new_disks, self.instance.disks)]
+                          for (n, o) in zip(new_disks, old_disks)]
       result = self.rpc.call_blockdev_rename(pnode_uuid, rename_back_list)
       result.Raise("Failed to rename LVs back after error %s" % str(e))
       raise
 
-    # at this point, the instance has been modified
+    # Remove the old disks from the instance
+    for old_disk in old_disks:
+      self.cfg.RemoveInstanceDisk(self.instance.uuid, old_disk.uuid)
+
+    # Update instance structure
+    self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
     self.instance.disk_template = constants.DT_DRBD8
-    self.instance.disks = new_disks
     self.cfg.Update(self.instance, feedback_fn)
+
+    # Attach the new disks to the instance
+    for (idx, new_disk) in enumerate(new_disks):
+      self.cfg.AddInstanceDisk(self.instance.uuid, new_disk, idx=idx)
+
+    # re-read the instance from the configuration
+    self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     # Release node locks while waiting for sync
     ReleaseLocks(self, locking.LEVEL_NODE)
@@ -3466,8 +3481,9 @@ class LUInstanceSetParams(LogicalUnit):
     snode_uuid = secondary_nodes[0]
     feedback_fn("Converting template to plain")
 
-    old_disks = AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
-    new_disks = [d.children[0] for d in self.instance.disks]
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    old_disks = AnnotateDiskParams(self.instance, disks, self.cfg)
+    new_disks = [d.children[0] for d in disks]
 
     # copy over size, mode and name
     for parent, child in zip(old_disks, new_disks):
@@ -3481,11 +3497,21 @@ class LUInstanceSetParams(LogicalUnit):
       tcp_port = disk.logical_id[2]
       self.cfg.AddTcpUdpPort(tcp_port)
 
-    # update instance structure
-    self.instance.disks = new_disks
+    # Remove the old disks from the instance
+    for old_disk in old_disks:
+      self.cfg.RemoveInstanceDisk(self.instance.uuid, old_disk.uuid)
+
+    # Update instance structure
+    self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
     self.instance.disk_template = constants.DT_PLAIN
-    _UpdateIvNames(0, self.instance.disks)
     self.cfg.Update(self.instance, feedback_fn)
+
+    # Attach the new disks to the instance
+    for (idx, new_disk) in enumerate(new_disks):
+      self.cfg.AddInstanceDisk(self.instance.uuid, new_disk, idx=idx)
+
+    # re-read the instance from the configuration
+    self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     # Release locks in case removing disks takes a while
     ReleaseLocks(self, locking.LEVEL_NODE)
@@ -3528,8 +3554,9 @@ class LUInstanceSetParams(LogicalUnit):
 
     """
     # add a new disk
+    instance_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     if self.instance.disk_template in constants.DTS_FILEBASED:
-      (file_driver, file_path) = self.instance.disks[0].logical_id
+      (file_driver, file_path) = instance_disks[0].logical_id
       file_path = os.path.dirname(file_path)
     else:
       file_driver = file_path = None
@@ -3542,6 +3569,10 @@ class LUInstanceSetParams(LogicalUnit):
                            file_driver, idx, self.Log, self.diskparams)[0]
 
     new_disks = CreateDisks(self, self.instance, disks=[disk])
+    self.cfg.AddInstanceDisk(self.instance.uuid, disk, idx)
+
+    # re-read the instance from the configuration
+    self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     if self.cluster.prealloc_wipe_disks:
       # Wipe new disk
@@ -3608,6 +3639,9 @@ class LUInstanceSetParams(LogicalUnit):
           disk.params[key] = value
         changes.append(("disk.params:%s/%d" % (key, idx), value))
 
+    # Update disk object
+    self.cfg.Update(disk, self.feedback_fn)
+
     return changes
 
   def _RemoveDisk(self, idx, root, _):
@@ -3634,6 +3668,12 @@ class LUInstanceSetParams(LogicalUnit):
     # if this is a DRBD disk, return its port to the pool
     if root.dev_type in constants.DTS_DRBD:
       self.cfg.AddTcpUdpPort(root.logical_id[2])
+
+    # Remove disk from config
+    self.cfg.RemoveInstanceDisk(self.instance.uuid, root.uuid)
+
+    # re-read the instance from the configuration
+    self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     return hotmsg
 
@@ -3710,6 +3750,7 @@ class LUInstanceSetParams(LogicalUnit):
     All parameters take effect only at the next restart of the instance.
 
     """
+    self.feedback_fn = feedback_fn
     # Process here the warnings from CheckPrereq, as we don't have a
     # feedback_fn there.
     # TODO: Replace with self.LogWarning
@@ -3735,10 +3776,10 @@ class LUInstanceSetParams(LogicalUnit):
       result.append(("runtime_memory", self.op.runtime_mem))
 
     # Apply disk changes
-    _ApplyContainerMods("disk", self.instance.disks, result, self.diskmod,
+    inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    _ApplyContainerMods("disk", inst_disks, result, self.diskmod,
                         self._CreateNewDisk, self._ModifyDisk,
                         self._RemoveDisk, post_add_fn=self._PostAddDisk)
-    _UpdateIvNames(0, self.instance.disks)
 
     if self.op.disk_template:
       if __debug__:

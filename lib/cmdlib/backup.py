@@ -277,7 +277,7 @@ class LUBackupExport(LogicalUnit):
 
     # instance disk type verification
     # TODO: Implement export support for file-based disks
-    for disk in self.instance.disks:
+    for disk in self.cfg.GetInstanceDisks(self.instance.uuid):
       if disk.dev_type in constants.DTS_FILEBASED:
         raise errors.OpPrereqError("Export not supported for instances with"
                                    " file-based disks", errors.ECODE_INVAL)
@@ -316,7 +316,7 @@ class LUBackupExport(LogicalUnit):
 
     self.secondary_nodes = \
       self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
-    self.inst_disks = self.instance.disks
+    self.inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
 
   def _CleanupExports(self, feedback_fn):
     """Removes exports of current instance from all other nodes.
@@ -402,7 +402,8 @@ class LUBackupExport(LogicalUnit):
     @return: Size of the disks in MiB
 
     """
-    return sum([d.size for d in self.instance.disks])
+    inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    return sum([d.size for d in inst_disks])
 
   def ZeroFreeSpace(self, feedback_fn):
     """Zeroes the free space on a shutdown instance.

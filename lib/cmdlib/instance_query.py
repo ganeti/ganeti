@@ -247,7 +247,7 @@ class LUInstanceQueryData(NoHooksLU):
 
       disks = map(compat.partial(self._ComputeDiskStatus, instance,
                                  node_uuid2name_fn),
-                  instance.disks)
+                  self.cfg.GetInstanceDisks(instance.uuid))
 
       secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
       snodes_group_uuids = [nodes[snode_uuid].group

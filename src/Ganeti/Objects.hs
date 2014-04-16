@@ -461,7 +461,7 @@ $(buildObject "Instance" "inst" $
   , simpleField "osparams_private" [t| OsParamsPrivate    |]
   , simpleField "admin_state"      [t| AdminState         |]
   , simpleField "nics"             [t| [PartialNic]       |]
-  , simpleField "disks"            [t| [Disk]             |]
+  , simpleField "disks"            [t| [String]           |]
   , simpleField "disk_template"    [t| DiskTemplate       |]
   , simpleField "disks_active"     [t| Bool               |]
   , optionalField $ simpleField "network_port" [t| Int  |]

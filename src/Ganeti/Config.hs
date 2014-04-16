@@ -349,9 +349,8 @@ getInstAllNodes cfg name = do
 -- | Get disks for a given instance.
 -- The instance is specified by name or uuid.
 getInstDisks :: ConfigData -> String -> ErrorResult [Disk]
-getInstDisks cfg =
-  -- getInstance cfg iname >>= mapM (getDisk cfg) . instDisks
-  liftM instDisks . getInstance cfg
+getInstDisks cfg iname =
+  getInstance cfg iname >>= mapM (getDisk cfg) . instDisks
 
 -- | Get disks for a given instance object.
 getInstDisksFromObj :: ConfigData -> Instance -> ErrorResult [Disk]
