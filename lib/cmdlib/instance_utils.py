@@ -169,7 +169,7 @@ def BuildInstanceHookEnvByObject(lu, instance, secondary_nodes=None,
 
   # Override secondary_nodes
   if secondary_nodes is None:
-    secondary_nodes = instance.secondary_nodes
+    secondary_nodes = lu.cfg.GetInstanceSecondaryNodes(instance.uuid)
 
   # Override disks
   if disks is None:

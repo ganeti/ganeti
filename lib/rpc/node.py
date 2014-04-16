@@ -877,6 +877,8 @@ class RpcRunner(_RpcClientBase,
     idict = instance.ToDict()
     cluster = self._cfg.GetClusterInfo()
     idict["hvparams"] = cluster.FillHV(instance)
+    idict["secondary_nodes"] = \
+      self._cfg.GetInstanceSecondaryNodes(instance.uuid)
     if hvp is not None:
       idict["hvparams"].update(hvp)
     idict["beparams"] = cluster.FillBE(instance)

@@ -858,7 +858,8 @@ def _GetNodeSecondaryInstances(cfg, node_uuid):
 
   """
   return _GetNodeInstancesInner(cfg,
-                                lambda inst: node_uuid in inst.secondary_nodes)
+                                lambda inst: node_uuid in
+                                  cfg.GetInstanceSecondaryNodes(inst.uuid))
 
 
 def _GetNodeInstances(cfg, node_uuid):

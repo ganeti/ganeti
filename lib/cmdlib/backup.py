@@ -314,7 +314,8 @@ class LUBackupExport(LogicalUnit):
         raise errors.OpPrereqError("Zeroing timeout options can only be used"
                                    " only with the --zero-free-space option")
 
-    self.secondary_nodes = self.instance.secondary_nodes
+    self.secondary_nodes = \
+      self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
     self.inst_disks = self.instance.disks
 
   def _CleanupExports(self, feedback_fn):

@@ -1986,7 +1986,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         # Important: access only the instances whose lock is owned
         instance = self.cfg.GetInstanceInfoByName(inst_name)
         if instance.disk_template in constants.DTS_INT_MIRROR:
-          nodes.update(instance.secondary_nodes)
+          nodes.update(self.cfg.GetInstanceSecondaryNodes(instance.uuid))
 
       self.needed_locks[locking.LEVEL_NODE] = nodes
 
@@ -2382,10 +2382,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                   "instance %s, connection to primary node failed",
                   instance.name)
 
-    self._ErrorIf(len(instance.secondary_nodes) > 1,
+    secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
+    self._ErrorIf(len(secondary_nodes) > 1,
                   constants.CV_EINSTANCELAYOUT, instance.name,
                   "instance has multiple secondary nodes: %s",
-                  utils.CommaJoin(instance.secondary_nodes),
+                  utils.CommaJoin(secondary_nodes),
                   code=self.ETYPE_WARNING)
 
     es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, instance.all_nodes)
@@ -2431,7 +2432,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                     code=self.ETYPE_WARNING)
 
     inst_nodes_offline = []
-    for snode in instance.secondary_nodes:
+    for snode in secondary_nodes:
       s_img = node_image[snode]
       self._ErrorIf(s_img.rpc_fail and not s_img.offline, constants.CV_ENODERPC,
                     self.cfg.GetNodeName(snode),
@@ -3357,7 +3358,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       pnode = instance.primary_node
       node_image[pnode].pinst.append(instance.uuid)
 
-      for snode in instance.secondary_nodes:
+      for snode in self.cfg.GetInstanceSecondaryNodes(instance.uuid):
         nimg = node_image[snode]
         nimg.sinst.append(instance.uuid)
         if pnode not in nimg.sbp:
@@ -3574,7 +3575,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # is secondary for an instance whose primary is in another group. To avoid
     # them, we find these instances and add their volumes to node_vol_should.
     for instance in self.all_inst_info.values():
-      for secondary in instance.secondary_nodes:
+      for secondary in self.cfg.GetInstanceSecondaryNodes(instance.uuid):
         if (secondary in self.my_node_info
             and instance.name not in self.my_inst_info):
           instance.MapLVsByNode(node_vol_should)

@@ -146,7 +146,8 @@ class LUInstanceFailover(LogicalUnit):
       }
 
     if instance.disk_template in constants.DTS_INT_MIRROR:
-      env["OLD_SECONDARY"] = self.cfg.GetNodeName(instance.secondary_nodes[0])
+      secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
+      env["OLD_SECONDARY"] = self.cfg.GetNodeName(secondary_nodes[0])
       env["NEW_SECONDARY"] = self.cfg.GetNodeName(source_node_uuid)
     else:
       env["OLD_SECONDARY"] = env["NEW_SECONDARY"] = ""
@@ -160,7 +161,8 @@ class LUInstanceFailover(LogicalUnit):
 
     """
     instance = self._migrater.instance
-    nl = [self.cfg.GetMasterNode()] + list(instance.secondary_nodes)
+    secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
+    nl = [self.cfg.GetMasterNode()] + list(secondary_nodes)
     nl.append(self._migrater.target_node_uuid)
     return (nl, nl + [instance.primary_node])
 
@@ -211,7 +213,8 @@ class LUInstanceMigrate(LogicalUnit):
       })
 
     if instance.disk_template in constants.DTS_INT_MIRROR:
-      env["OLD_SECONDARY"] = self.cfg.GetNodeName(instance.secondary_nodes[0])
+      secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
+      env["OLD_SECONDARY"] = self.cfg.GetNodeName(secondary_nodes[0])
       env["NEW_SECONDARY"] = self.cfg.GetNodeName(source_node_uuid)
     else:
       env["OLD_SECONDARY"] = env["NEW_SECONDARY"] = ""
@@ -223,7 +226,8 @@ class LUInstanceMigrate(LogicalUnit):
 
     """
     instance = self._migrater.instance
-    snode_uuids = list(instance.secondary_nodes)
+    secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
+    snode_uuids = list(secondary_nodes)
     nl = [self.cfg.GetMasterNode(), instance.primary_node] + snode_uuids
     nl.append(self._migrater.target_node_uuid)
     return (nl, nl)
@@ -347,7 +351,8 @@ class TLMigrateInstance(Tasklet):
         ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
     else:
-      secondary_node_uuids = self.instance.secondary_nodes
+      secondary_node_uuids = \
+        self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
       if not secondary_node_uuids:
         raise errors.ConfigurationError("No secondary node but using"
                                         " %s disk template" %
@@ -922,7 +927,8 @@ class TLMigrateInstance(Tasklet):
 
     # FIXME: if we implement migrate-to-any in DRBD, this needs fixing
     if self.instance.disk_template in constants.DTS_INT_MIRROR:
-      self.target_node_uuid = self.instance.secondary_nodes[0]
+      secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
+      self.target_node_uuid = secondary_nodes[0]
       # Otherwise self.target_node has been populated either
       # directly, or through an iallocator.
 

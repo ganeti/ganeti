@@ -908,8 +908,9 @@ class LUGroupVerifyDisks(NoHooksLU):
       if not inst.disks_active or inst.disk_template != constants.DT_DRBD8:
         continue
 
+      secondary_nodes = self.cfg.GetInstanceSecondaryNodes(inst.uuid)
       for node_uuid in itertools.chain([inst.primary_node],
-                                       inst.secondary_nodes):
+                                       secondary_nodes):
         node_to_inst.setdefault(node_uuid, []).append(inst)
 
     for (node_uuid, insts) in node_to_inst.items():

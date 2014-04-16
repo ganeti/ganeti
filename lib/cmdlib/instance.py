@@ -1817,7 +1817,8 @@ class LUInstanceRemove(LogicalUnit):
     self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
-    self.secondary_nodes = self.instance.secondary_nodes
+    self.secondary_nodes = \
+      self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
     self.inst_disks = self.instance.disks
 
   def Exec(self, feedback_fn):
@@ -3201,7 +3202,8 @@ class LUInstanceSetParams(LogicalUnit):
       mem_check_list = [pnode_uuid]
       if be_new[constants.BE_AUTO_BALANCE]:
         # either we changed auto_balance to yes or it was from before
-        mem_check_list.extend(self.instance.secondary_nodes)
+        mem_check_list.extend(
+          self.cfg.GetInstanceSecondaryNodes(self.instance.uuid))
       instance_info = self.rpc.call_instance_info(
           pnode_uuid, self.instance.name, self.instance.hypervisor,
           cluster_hvparams)
@@ -3243,8 +3245,10 @@ class LUInstanceSetParams(LogicalUnit):
                                        miss_mem, errors.ECODE_NORES)
 
       if be_new[constants.BE_AUTO_BALANCE]:
+        secondary_nodes = \
+          self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
         for node_uuid, nres in nodeinfo.items():
-          if node_uuid not in self.instance.secondary_nodes:
+          if node_uuid not in secondary_nodes:
             continue
           nres.Raise("Can't get info from secondary node %s" %
                      self.cfg.GetNodeName(node_uuid), prereq=True,
@@ -3451,11 +3455,12 @@ class LUInstanceSetParams(LogicalUnit):
     """Converts an instance from drbd to plain.
 
     """
-    assert len(self.instance.secondary_nodes) == 1
+    secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
+    assert len(secondary_nodes) == 1
     assert self.instance.disk_template == constants.DT_DRBD8
 
     pnode_uuid = self.instance.primary_node
-    snode_uuid = self.instance.secondary_nodes[0]
+    snode_uuid = secondary_nodes[0]
     feedback_fn("Converting template to plain")
 
     old_disks = AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
@@ -3526,10 +3531,11 @@ class LUInstanceSetParams(LogicalUnit):
     else:
       file_driver = file_path = None
 
+    secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
     disk = \
       GenerateDiskTemplate(self, self.instance.disk_template,
                            self.instance.uuid, self.instance.primary_node,
-                           self.instance.secondary_nodes, [params], file_path,
+                           secondary_nodes, [params], file_path,
                            file_driver, idx, self.Log, self.diskparams)[0]
 
     new_disks = CreateDisks(self, self.instance, disks=[disk])

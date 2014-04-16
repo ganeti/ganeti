@@ -264,8 +264,9 @@ class IAReqRelocate(IARequestBase):
       raise errors.OpPrereqError("Can't relocate non-mirrored instances",
                                  errors.ECODE_INVAL)
 
+    secondary_nodes = cfg.GetInstanceSecondaryNodes(instance.uuid)
     if (instance.disk_template in constants.DTS_INT_MIRROR and
-        len(instance.secondary_nodes) != 1):
+        len(secondary_nodes) != 1):
       raise errors.OpPrereqError("Instance has not exactly one secondary node",
                                  errors.ECODE_STATE)
 
@@ -748,7 +749,8 @@ class IAllocator(object):
         "spindle_use": beinfo[constants.BE_SPINDLE_USE],
         "os": iinfo.os,
         "nodes": [cfg.GetNodeName(iinfo.primary_node)] +
-                 cfg.GetNodeNames(iinfo.secondary_nodes),
+                 cfg.GetNodeNames(
+                   cfg.GetInstanceSecondaryNodes(iinfo.uuid)),
         "nics": nic_data,
         "disks": [{constants.IDISK_SIZE: dsk.size,
                    constants.IDISK_MODE: dsk.mode,

@@ -1370,7 +1370,8 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
                                              instance.name, False, idx)
       msg = result.fail_msg
       if msg:
-        is_offline_secondary = (node_uuid in instance.secondary_nodes and
+        secondary_nodes = lu.cfg.GetInstanceSecondaryNodes(instance.uuid)
+        is_offline_secondary = (node_uuid in secondary_nodes and
                                 result.offline)
         lu.LogWarning("Could not prepare block device %s on node %s"
                       " (is_primary=False, pass=1): %s",
@@ -1730,10 +1731,11 @@ class LUInstanceReplaceDisks(LogicalUnit):
 
     """
     instance = self.replacer.instance
+    secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
     env = {
       "MODE": self.op.mode,
       "NEW_SECONDARY": self.op.remote_node,
-      "OLD_SECONDARY": self.cfg.GetNodeName(instance.secondary_nodes[0]),
+      "OLD_SECONDARY": self.cfg.GetNodeName(secondary_nodes[0]),
       }
     env.update(BuildInstanceHookEnvByObject(self, instance))
     return env
@@ -2020,20 +2022,21 @@ class TLReplaceDisks(Tasklet):
       raise errors.OpPrereqError("Can only run replace disks for DRBD8-based"
                                  " instances", errors.ECODE_INVAL)
 
-    if len(self.instance.secondary_nodes) != 1:
+    secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
+    if len(secondary_nodes) != 1:
       raise errors.OpPrereqError("The instance has a strange layout,"
                                  " expected one secondary but found %d" %
-                                 len(self.instance.secondary_nodes),
+                                 len(secondary_nodes),
                                  errors.ECODE_FAULT)
 
-    secondary_node_uuid = self.instance.secondary_nodes[0]
+    secondary_node_uuid = secondary_nodes[0]
 
     if self.iallocator_name is None:
       remote_node_uuid = self.remote_node_uuid
     else:
       remote_node_uuid = self._RunAllocator(self.lu, self.iallocator_name,
                                             self.instance.uuid,
-                                            self.instance.secondary_nodes)
+                                            secondary_nodes)
 
     if remote_node_uuid is None:
       self.remote_node_info = None
@@ -2188,9 +2191,9 @@ class TLReplaceDisks(Tasklet):
                 (utils.CommaJoin(self.disks), self.instance.name))
     feedback_fn("Current primary node: %s" %
                 self.cfg.GetNodeName(self.instance.primary_node))
+    secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
     feedback_fn("Current seconary node: %s" %
-                utils.CommaJoin(self.cfg.GetNodeNames(
-                                  self.instance.secondary_nodes)))
+                utils.CommaJoin(self.cfg.GetNodeNames(secondary_nodes)))
 
     activate_disks = not self.instance.disks_active
 

@@ -931,7 +931,7 @@ class ConfigWriter(object):
       if instance.primary_node not in data.nodes:
         result.append("instance '%s' has invalid primary node '%s'" %
                       (instance.name, instance.primary_node))
-      for snode in instance.secondary_nodes:
+      for snode in self._UnlockedGetInstanceSecondaryNodes(instance.uuid):
         if snode not in data.nodes:
           result.append("instance '%s' has invalid secondary node '%s'" %
                         (instance.name, snode))
@@ -2211,7 +2211,7 @@ class ConfigWriter(object):
     for inst in self._ConfigData().instances.values():
       if inst.primary_node == node_uuid:
         pri.append(inst.uuid)
-      if node_uuid in inst.secondary_nodes:
+      if node_uuid in self._UnlockedGetInstanceSecondaryNodes(inst.uuid):
         sec.append(inst.uuid)
     return (pri, sec)
 

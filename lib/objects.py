@@ -1152,6 +1152,7 @@ class Instance(TaggableObject):
   __slots__ = [
     "name",
     "primary_node",
+    "secondary_nodes",
     "os",
     "hypervisor",
     "hvparams",
@@ -1166,19 +1167,6 @@ class Instance(TaggableObject):
     "network_port",
     "serial_no",
     ] + _TIMESTAMPS + _UUID
-
-  def _ComputeSecondaryNodes(self):
-    """Compute the list of secondary nodes.
-
-    This is a simple wrapper over _ComputeAllNodes.
-
-    """
-    all_nodes = set(self._ComputeAllNodes())
-    all_nodes.discard(self.primary_node)
-    return tuple(all_nodes)
-
-  secondary_nodes = property(_ComputeSecondaryNodes, None, None,
-                             "List of names of secondary nodes")
 
   def _ComputeAllNodes(self):
     """Compute the list of all nodes.

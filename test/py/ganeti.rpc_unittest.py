@@ -729,6 +729,9 @@ class _FakeConfigForRpcRunner:
   def GetInstanceDiskParams(self, _):
     return constants.DISK_DT_DEFAULTS
 
+  def GetInstanceSecondaryNodes(self, _):
+    return []
+
 
 class TestRpcRunner(unittest.TestCase):
   def testUploadFile(self):

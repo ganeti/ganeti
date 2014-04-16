@@ -372,7 +372,7 @@ class LUTestAllocator(NoHooksLU):
       (self.inst_uuid, self.op.name) = ExpandInstanceUuidAndName(self.cfg, None,
                                                                  self.op.name)
       self.relocate_from_node_uuids = \
-          list(self.cfg.GetInstanceInfo(self.inst_uuid).secondary_nodes)
+          list(self.cfg.GetInstanceSecondaryNodes(self.inst_uuid))
     elif self.op.mode in (constants.IALLOCATOR_MODE_CHG_GROUP,
                           constants.IALLOCATOR_MODE_NODE_EVAC):
       if not self.op.instances:
