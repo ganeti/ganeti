@@ -125,6 +125,93 @@ class TestConfigRunner(unittest.TestCase):
     self.failUnlessEqual(1, len(cfg.GetNodeList()))
     self.failUnlessEqual(0, len(cfg.GetInstanceList()))
 
+  def _GenericNodesCheck(self, iobj, all_nodes, secondary_nodes):
+    for i in [all_nodes, secondary_nodes]:
+      self.assertTrue(isinstance(i, (list, tuple)),
+                      msg="Data type doesn't guarantee order")
+
+    self.assertTrue(iobj.primary_node not in secondary_nodes)
+    self.assertEqual(all_nodes[0], iobj.primary_node,
+                     msg="Primary node not first node in list")
+
+  def testInstNodesNoDisks(self):
+    """Test all_nodes/secondary_nodes when there are no disks"""
+    # construct instance
+    cfg = self._get_object()
+    inst = self._create_instance(cfg)
+    cfg.AddInstance(inst, "my-job")
+
+    # No disks
+    all_nodes = cfg.GetInstanceNodes(inst.uuid)
+    secondary_nodes = cfg.GetInstanceSecondaryNodes(inst.uuid)
+    self._GenericNodesCheck(inst, all_nodes, secondary_nodes)
+    self.assertEqual(len(secondary_nodes), 0)
+    self.assertEqual(set(all_nodes), set([inst.primary_node]))
+    self.assertEqual(cfg.GetInstanceLVsByNode(inst.uuid), {
+      inst.primary_node: [],
+      })
+
+  def testInstNodesPlainDisks(self):
+    # construct instance
+    cfg = self._get_object()
+    inst = self._create_instance(cfg)
+    disks = [
+      objects.Disk(dev_type=constants.DT_PLAIN, size=128,
+                   logical_id=("myxenvg", "disk25494")),
+      objects.Disk(dev_type=constants.DT_PLAIN, size=512,
+                   logical_id=("myxenvg", "disk29071")),
+      ]
+    inst.disks = disks
+    cfg.AddInstance(inst, "my-job")
+
+    # Plain disks
+    all_nodes = cfg.GetInstanceNodes(inst.uuid)
+    secondary_nodes = cfg.GetInstanceSecondaryNodes(inst.uuid)
+    self._GenericNodesCheck(inst, all_nodes, secondary_nodes)
+    self.assertEqual(len(secondary_nodes), 0)
+    self.assertEqual(set(all_nodes), set([inst.primary_node]))
+    self.assertEqual(cfg.GetInstanceLVsByNode(inst.uuid), {
+      inst.primary_node: ["myxenvg/disk25494", "myxenvg/disk29071"],
+      })
+
+  def testInstNodesDrbdDisks(self):
+    # construct a second node
+    cfg = self._get_object()
+    node_group = cfg.LookupNodeGroup(None)
+    master_uuid = cfg.GetMasterNode()
+    node2 = objects.Node(name="node2.example.com", group=node_group,
+                         ndparams={}, uuid="node2-uuid")
+    cfg.AddNode(node2, "my-job")
+
+    # construct instance
+    inst = self._create_instance(cfg)
+    disks = [
+      objects.Disk(dev_type=constants.DT_DRBD8, size=786432,
+                   logical_id=(master_uuid, node2.uuid,
+                               12300, 0, 0, "secret"),
+                   children=[
+                     objects.Disk(dev_type=constants.DT_PLAIN, size=786432,
+                                  logical_id=("myxenvg", "disk0")),
+                     objects.Disk(dev_type=constants.DT_PLAIN, size=128,
+                                  logical_id=("myxenvg", "meta0"))
+                   ],
+                   iv_name="disk/0")
+      ]
+    inst.disks = disks
+    cfg.AddInstance(inst, "my-job")
+
+    # Drbd Disks
+    all_nodes = cfg.GetInstanceNodes(inst.uuid)
+    secondary_nodes = cfg.GetInstanceSecondaryNodes(inst.uuid)
+    self._GenericNodesCheck(inst, all_nodes, secondary_nodes)
+    self.assertEqual(set(secondary_nodes), set([node2.uuid]))
+    self.assertEqual(set(all_nodes),
+                     set([inst.primary_node, node2.uuid]))
+    self.assertEqual(cfg.GetInstanceLVsByNode(inst.uuid), {
+      master_uuid: ["myxenvg/disk0", "myxenvg/meta0"],
+      node2.uuid: ["myxenvg/disk0", "myxenvg/meta0"],
+      })
+
   def testUpdateCluster(self):
     """Test updates on the cluster object"""
     cfg = self._get_object()

@@ -324,46 +324,7 @@ class TestOS(unittest.TestCase):
 
 
 class TestInstance(unittest.TestCase):
-  def _GenericCheck(self, inst):
-    for i in [inst.all_nodes, inst.secondary_nodes]:
-      self.assertTrue(isinstance(inst.all_nodes, (list, tuple)),
-                      msg="Data type doesn't guarantee order")
-
-    self.assertTrue(inst.primary_node not in inst.secondary_nodes)
-    self.assertEqual(inst.all_nodes[0], inst.primary_node,
-                     msg="Primary node not first node in list")
-
-  def testNodesNoDisks(self):
-    inst = objects.Instance(name="fakeinst.example.com",
-      primary_node="pnode.example.com",
-      disks=[
-        ])
-
-    self._GenericCheck(inst)
-    self.assertEqual(len(inst.secondary_nodes), 0)
-    self.assertEqual(set(inst.all_nodes), set([inst.primary_node]))
-    self.assertEqual(inst.MapLVsByNode(), {
-      inst.primary_node: [],
-      })
-
-  def testNodesPlainDisks(self):
-    inst = objects.Instance(name="fakeinstplain.example.com",
-      primary_node="node3.example.com",
-      disks=[
-        objects.Disk(dev_type=constants.DT_PLAIN, size=128,
-                     logical_id=("myxenvg", "disk25494")),
-        objects.Disk(dev_type=constants.DT_PLAIN, size=512,
-                     logical_id=("myxenvg", "disk29071")),
-        ])
-
-    self._GenericCheck(inst)
-    self.assertEqual(len(inst.secondary_nodes), 0)
-    self.assertEqual(set(inst.all_nodes), set([inst.primary_node]))
-    self.assertEqual(inst.MapLVsByNode(), {
-      inst.primary_node: ["myxenvg/disk25494", "myxenvg/disk29071"],
-      })
-
-  def testNodesDrbdDisks(self):
+  def testFindDisk(self):
     inst = objects.Instance(name="fakeinstdrbd.example.com",
       primary_node="node20.example.com",
       disks=[
@@ -378,15 +339,6 @@ class TestInstance(unittest.TestCase):
           ],
           iv_name="disk/0")
         ])
-
-    self._GenericCheck(inst)
-    self.assertEqual(set(inst.secondary_nodes), set(["node15.example.com"]))
-    self.assertEqual(set(inst.all_nodes),
-                     set([inst.primary_node, "node15.example.com"]))
-    self.assertEqual(inst.MapLVsByNode(), {
-      inst.primary_node: ["myxenvg/disk0", "myxenvg/meta0"],
-      "node15.example.com": ["myxenvg/disk0", "myxenvg/meta0"],
-      })
 
     self.assertEqual(inst.FindDisk(0), inst.disks[0])
     self.assertRaises(errors.OpPrereqError, inst.FindDisk, "hello")
