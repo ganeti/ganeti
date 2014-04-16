@@ -537,6 +537,23 @@ class Disk(ConfigObject):
                # is sent to, and should not be persisted.
                ["dynamic_params"])
 
+  def _ComputeAllNodes(self):
+    """Compute the list of all nodes covered by a device and its children."""
+    def _Helper(nodes, device):
+      """Recursively compute nodes given a top device."""
+      if device.dev_type in constants.DTS_DRBD:
+        nodes.extend(device.logical_id[:2])
+      if device.children:
+        for child in device.children:
+          _Helper(nodes, child)
+
+    all_nodes = list()
+    _Helper(all_nodes, self)
+    return tuple(set(all_nodes))
+
+  all_nodes = property(_ComputeAllNodes, None, None,
+                       "List of names of all the nodes of a disk")
+
   def CreateOnSecondary(self):
     """Test if this device needs to be created on a secondary node."""
     return self.dev_type in (constants.DT_DRBD8, constants.DT_PLAIN)
