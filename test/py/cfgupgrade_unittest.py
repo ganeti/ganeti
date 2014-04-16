@@ -52,6 +52,7 @@ def GetMinimalConfig():
       "zeroing_image": "",
     },
     "instances": {},
+    "disks": {},
     "networks": {},
     "nodegroups": {},
     "nodes": {
