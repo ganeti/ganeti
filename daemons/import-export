@@ -438,6 +438,76 @@ def ParseOptions():
   return (status_file_path, mode)
 
 
+# Compression utility mapping, for compression types whose name does not match
+# the name of the utility to invoke
+COMPRESSION_UTILITIES = {
+  "gzip-fast": "gzip",
+  "gzip-slow": "gzip",
+  }
+
+
+# Return code signifying that no program was found
+PROGRAM_NOT_FOUND_RCODE = 127
+
+
+def _RunWithTimeout(cmd, timeout, silent=False):
+  """Runs a command, killing it if a timeout was reached.
+
+  Uses the alarm signal, not thread-safe. Waits regardless of whether the
+  command exited early.
+
+  @type timeout: number
+  @param timeout: Timeout, in seconds
+  @type silent: Boolean
+  @param silent: Whether command output should be suppressed
+  @rtype: tuple of (bool, int)
+  @return: Whether the command timed out, and the return code
+
+  """
+  try:
+    if silent:
+      with open(os.devnull, 'wb') as null_fd:
+        p = subprocess.Popen(cmd, stdout=null_fd, stderr=null_fd)
+    else:
+      p = subprocess.Popen(cmd)
+
+  except OSError:
+    return False, PROGRAM_NOT_FOUND_RCODE
+
+  time.sleep(timeout)
+
+  timed_out = False
+  status = p.poll()
+  if status is None:
+    timed_out = True
+    p.kill()
+
+  return timed_out, p.wait()
+
+
+CHECK_SWITCH = "-h"
+
+
+def VerifyOptions():
+  """Performs various runtime checks to make sure the options are valid.
+
+  """
+  if options.compress != constants.IEC_NONE:
+    utility_name = COMPRESSION_UTILITIES.get(options.compress, options.compress)
+    timed_out, rcode = \
+      _RunWithTimeout([utility_name, CHECK_SWITCH], 2, silent=True)
+
+    if timed_out:
+      raise Exception("The invoked utility has timed out - the %s switch to"
+                      " check for presence must be supported" % CHECK_SWITCH)
+
+    if rcode != 0:
+      raise Exception("Verification attempt of selected compression method %s"
+                      " failed - check that %s is present and can be invoked"
+                      " safely with the %s switch" %
+                      (options.compress, utility_name, CHECK_SWITCH))
+
+
 class ChildProcess(subprocess.Popen):
   def __init__(self, env, cmd, noclose_fds):
     """Initializes this class.
@@ -510,6 +580,9 @@ def main():
   status_file = StatusFile(status_file_path)
   try:
     try:
+      # Option verification
+      VerifyOptions()
+
       # Pipe to receive socat's stderr output
       (socat_stderr_read_fd, socat_stderr_write_fd) = os.pipe()
 
