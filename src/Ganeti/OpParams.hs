@@ -1349,14 +1349,14 @@ pMoveTargetNodeUuid =
 pMoveCompress :: Field
 pMoveCompress =
   withDoc "Compression mode to use during instance moves" .
-  defaultField [| None |] $
-  simpleField "compress" [t| ImportExportCompression |]
+  defaultField [| C.iecNone |] $
+  simpleField "compress" [t| String |]
 
 pBackupCompress :: Field
 pBackupCompress =
   withDoc "Compression mode to use for moves during backups/imports" .
-  defaultField [| None |] $
-  simpleField "compress" [t| ImportExportCompression |]
+  defaultField [| C.iecNone |] $
+  simpleField "compress" [t| String |]
 
 pIgnoreDiskSize :: Field
 pIgnoreDiskSize =

@@ -1421,13 +1421,12 @@ TIMEOUT_OPT = cli_option("--timeout", dest="timeout", type="int",
                          help="Maximum time to wait")
 
 COMPRESS_OPT = cli_option("--compress", dest="compress",
-                          default=constants.IEC_NONE,
-                          help="The compression mode to use",
-                          choices=list(constants.IEC_ALL))
+                          type="string", default=constants.IEC_NONE,
+                          help="The compression mode to use")
 
 TRANSPORT_COMPRESSION_OPT = \
     cli_option("--transport-compression", dest="transport_compression",
-               default=constants.IEC_NONE, choices=list(constants.IEC_ALL),
+               type="string", default=constants.IEC_NONE,
                help="The compression mode to use during transport")
 
 SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",

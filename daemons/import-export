@@ -384,9 +384,8 @@ def ParseOptions():
                     type="int", default=DEFAULT_CONNECT_TIMEOUT,
                     help="Timeout for connection to be established (seconds)")
   parser.add_option("--compress", dest="compress", action="store",
-                    type="choice", help="Compression method",
-                    metavar="[%s]" % "|".join(constants.IEC_ALL),
-                    choices=list(constants.IEC_ALL), default=constants.IEC_GZIP)
+                    type="string", help="Compression method",
+                    default=constants.IEC_GZIP)
   parser.add_option("--expected-size", dest="exp_size", action="store",
                     type="string", default=None,
                     help="Expected import/export size (MiB)")

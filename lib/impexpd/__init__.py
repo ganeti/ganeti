@@ -291,8 +291,6 @@ class CommandBuilder(object):
 
     compr = self._opts.compress
 
-    assert compr in constants.IEC_ALL
-
     parts = []
 
     if self._mode == constants.IEM_IMPORT:
