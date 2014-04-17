@@ -180,6 +180,7 @@ class TestClusterObject(unittest.TestCase):
         constants.ND_OVS_LINK: "eth2",
         constants.ND_OVS_NAME: "openvswitch",
         constants.ND_SSH_PORT: 122,
+        constants.ND_CPU_SPEED: 1.1,
         }
     fake_group = objects.NodeGroup(name="testgroup",
                                    ndparams=group_ndparams)
@@ -195,6 +196,7 @@ class TestClusterObject(unittest.TestCase):
         constants.ND_OVS_LINK: "eth2",
         constants.ND_OVS_NAME: "openvswitch",
         constants.ND_SSH_PORT: 222,
+        constants.ND_CPU_SPEED: 1.1,
         }
     fake_node = objects.Node(name="test",
                              ndparams=node_ndparams,
@@ -213,6 +215,7 @@ class TestClusterObject(unittest.TestCase):
         constants.ND_OVS_LINK: "eth2",
         constants.ND_OVS_NAME: "openvswitch",
         constants.ND_SSH_PORT: 322,
+        constants.ND_CPU_SPEED: 1.1,
         }
     fake_node = objects.Node(name="test",
                              ndparams=node_ndparams,

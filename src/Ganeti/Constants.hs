@@ -2056,6 +2056,9 @@ ndOvsName = "ovs_name"
 ndSshPort :: String
 ndSshPort = "ssh_port"
 
+ndCpuSpeed :: String
+ndCpuSpeed = "cpu_speed"
+
 ndsParameterTypes :: Map String VType
 ndsParameterTypes =
   Map.fromList
@@ -2065,7 +2068,8 @@ ndsParameterTypes =
    (ndOvsLink, VTypeMaybeString),
    (ndOvsName, VTypeMaybeString),
    (ndSpindleCount, VTypeInt),
-   (ndSshPort, VTypeInt)]
+   (ndSshPort, VTypeInt),
+   (ndCpuSpeed, VTypeFloat)]
 
 ndsParameters :: FrozenSet String
 ndsParameters = ConstantUtils.mkSet (Map.keys ndsParameterTypes)
@@ -3822,6 +3826,7 @@ ndcDefaults =
   , (ndOvsName,          PyValueEx defaultOvs)
   , (ndOvsLink,          PyValueEx "")
   , (ndSshPort,          PyValueEx (22 :: Int))
+  , (ndCpuSpeed,         PyValueEx (1 :: Double))
   ]
 
 ndcGlobals :: FrozenSet String

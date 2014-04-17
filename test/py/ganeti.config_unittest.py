@@ -249,6 +249,7 @@ class TestConfigRunner(unittest.TestCase):
         constants.ND_OVS_NAME: "openvswitch",
         constants.ND_OVS_LINK: "eth1",
         constants.ND_SSH_PORT: 22,
+        constants.ND_CPU_SPEED: 1.0,
         }
 
     cfg = self._get_object()
@@ -277,6 +278,7 @@ class TestConfigRunner(unittest.TestCase):
       constants.ND_OVS_NAME: "openvswitch",
       constants.ND_OVS_LINK: "eth3",
       constants.ND_SSH_PORT: 222,
+      constants.ND_CPU_SPEED: 1.0,
       }
     cfg = self._get_object()
     node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
