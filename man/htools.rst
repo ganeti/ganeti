@@ -182,6 +182,8 @@ support all options. Some common options are:
   - exclusive storage value (``Y`` if active, ``N`` otherwise)
   - node free spindles
   - virtual CPUs used by the node OS
+  - CPU speed relative to that of a ``standard node`` in the node
+    group the node belongs to
 
   The third section contains instance data, with the fields:
 
