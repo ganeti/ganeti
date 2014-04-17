@@ -79,7 +79,9 @@ prepMain _ _ = do
   lock_file_present <- doesFileExist lock_file
   unless lock_file_present
     $ logInfo "No saved lock status; assuming all locks free"
-  dhOpt <- runResultT $ do
+  dh <- toErrorBase
+        . withErrorT (strMsg . ("Initialization of the daemon failed" ++)
+                             . show) $ do
     ents <- getEnts
     (cdata, cstat) <- loadConfigFromFile conf_file
     lock <- if lock_file_present
@@ -92,8 +94,6 @@ prepMain _ _ = do
                    (distMCsAsyncTask ents conf_file)
                    distSSConfAsyncTask
                    (writeLocksAsyncTask lock_file)
-  dh <- withError (strMsg . ("Initialization of the daemon failed" ++) . show)
-                  dhOpt
 
   return (s, dh)
 
