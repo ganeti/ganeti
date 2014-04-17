@@ -36,6 +36,7 @@ import weakref
 import threading
 import itertools
 import operator
+import os
 
 try:
   # pylint: disable=E0611
@@ -559,6 +560,24 @@ class _QueuedJob(object):
                        " changed to %s" % (self.id, priority)))
       else:
         return (False, "Job %s had no pending opcodes" % self.id)
+
+  def SetPid(self, pid):
+    """Sets the job's process ID
+
+    @type pid: int
+    @param pid: the process ID
+
+    """
+    status = self.CalcStatus()
+
+    if status in (constants.JOB_STATUS_QUEUED,
+                  constants.JOB_STATUS_WAITING):
+      if self.process_id is not None:
+        logging.warning("Replacing the process id %s of job %s with %s",
+                        self.process_id, self.id, pid)
+      self.process_id = pid
+    else:
+      logging.warning("Can set pid only for queued/waiting jobs")
 
 
 class _OpExecCallbacks(mcpu.OpExecCbBase):
@@ -1744,6 +1763,7 @@ class JobQueue(object):
 
     status = job.CalcStatus()
     if status == constants.JOB_STATUS_QUEUED:
+      job.SetPid(os.getpid())
       self._EnqueueJobsUnlocked([job])
       logging.info("Restarting job %s", job.id)
 
@@ -1754,6 +1774,7 @@ class JobQueue(object):
 
       if status == constants.JOB_STATUS_WAITING:
         job.MarkUnfinishedOps(constants.OP_STATUS_QUEUED, None)
+        job.SetPid(os.getpid())
         self._EnqueueJobsUnlocked([job])
         logging.info("Restarting job %s", job.id)
       else:
