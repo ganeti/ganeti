@@ -55,8 +55,7 @@ def _GetOutputFromMaster(cmd, use_multiplexer=True, log_cmd=True):
   # buildbot
   cmdstr += " 2>&1"
 
-  return GetCommandOutput(qa_config.GetMasterNode().primary, cmdstr,
-                          use_multiplexer=use_multiplexer, log_cmd=log_cmd)
+  return GetCommandOutput(qa_config.GetMasterNode().primary, cmdstr)
 
 
 def ExecuteJobProducingCommand(cmd):
