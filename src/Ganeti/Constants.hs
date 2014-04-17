@@ -4670,6 +4670,11 @@ luxiWfjcTimeout = (luxiDefRwto - 1) `div` 2
 luxiLivelockPrefix :: String
 luxiLivelockPrefix = "luxi-daemon"
 
+-- | The LUXI daemon waits this number of seconds for ensuring that a canceled
+-- job terminates before giving up.
+luxiCancelJobTimeout :: Int
+luxiCancelJobTimeout = (luxiDefRwto - 1) `div` 4
+
 -- * Query language constants
 
 -- ** Logic operators with one or more operands, each of which is a
