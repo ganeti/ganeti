@@ -206,6 +206,16 @@ class TestClusterModify(RAPITestCase):
       self.assertRaises(http.HttpBadRequest, handler.PUT)
       self.assertNoNextClient()
 
+  def testForbiddenParams(self):
+    for attr, value in [
+      ("compression_tools", ["lzop"]),
+      ]:
+      handler = _CreateHandler(rlib2.R_2_cluster_modify, [], {}, {
+        attr: value,
+        }, self._clfactory)
+      self.assertRaises(http.HttpForbidden, handler.PUT)
+      self.assertNoNextClient()
+
 
 class TestRedistConfig(RAPITestCase):
   def test(self):

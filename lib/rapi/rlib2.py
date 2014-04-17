@@ -288,6 +288,9 @@ class R_2_cluster_modify(baserlib.OpcodeResource):
 
   """
   PUT_OPCODE = opcodes.OpClusterSetParams
+  PUT_FORBIDDEN = [
+    "compression_tools",
+    ]
 
 
 class R_2_jobs(baserlib.ResourceBase):
