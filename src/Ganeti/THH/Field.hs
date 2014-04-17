@@ -37,13 +37,14 @@ module Ganeti.THH.Field
   , TagSet
   , tagsFields
   , fileModeAsIntField
+  , processIdField
   ) where
 
 import Control.Monad
 import qualified Data.Set as Set
 import Language.Haskell.TH
 import qualified Text.JSON as JSON
-import System.Posix.Types (FileMode)
+import System.Posix.Types (FileMode, ProcessID)
 import System.Time (ClockTime(..))
 
 import Ganeti.JSON
@@ -123,3 +124,7 @@ tagsFields = [ defaultField [| Set.empty |] $
 -- POSIX file mode representation. The Haskell type of the field is 'FileMode'.
 fileModeAsIntField :: String -> Field
 fileModeAsIntField = integralField [t| FileMode |]
+
+-- | Creates a new mandatory field that contains a POSIX process ID.
+processIdField :: String -> Field
+processIdField = integralField [t| ProcessID |]
