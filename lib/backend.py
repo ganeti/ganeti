@@ -2907,7 +2907,7 @@ def _OSOndiskAPIVersion(os_dir):
   @param os_dir: the directory in which we should look for the OS
   @rtype: tuple
   @return: tuple (status, data) with status denoting the validity and
-      data holding either the vaid versions or an error message
+      data holding either the valid versions or an error message
 
   """
   api_file = utils.PathJoin(os_dir, constants.OS_API_FILE)
