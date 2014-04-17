@@ -585,7 +585,7 @@ class _MetaOpcodeResource(type):
           obj, method, compat.partial(obj._ForbiddenHandler,
                                       getattr(obj, method),
                                       forbidden_dict,
-                                      getattr(obj, m_attrs.rename))
+                                      getattr(obj, m_attrs.rename, None))
         )
 
     return obj
