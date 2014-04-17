@@ -102,7 +102,7 @@ def TestJobCancellation():
   FIRST_COMMAND_DELAY = 10.0
   AssertCommand(["gnt-debug", "delay", "--submit", str(FIRST_COMMAND_DELAY)])
 
-  SECOND_COMMAND_DELAY = 1.0
+  SECOND_COMMAND_DELAY = 3.0
   master = qa_config.GetMasterNode()
 
   # Forcing tty usage does not work on buildbot, so force all output of this
