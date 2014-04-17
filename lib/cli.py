@@ -353,6 +353,7 @@ _QFT_NAMES = {
   constants.QFT_TEXT: "Text",
   constants.QFT_BOOL: "Boolean",
   constants.QFT_NUMBER: "Number",
+  constants.QFT_NUMBER_FLOAT: "Floating-point number",
   constants.QFT_UNIT: "Storage size",
   constants.QFT_TIMESTAMP: "Timestamp",
   constants.QFT_OTHER: "Custom",

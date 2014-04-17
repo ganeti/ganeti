@@ -122,6 +122,7 @@ checkResultType fdef (ResultEntry RSNormal (Just v)) =
     (QFTText      , JSString {})   -> passTest
     (QFTBool      , JSBool {})     -> passTest
     (QFTNumber    , JSRational {}) -> passTest
+    (QFTNumberFloat , JSRational {}) -> passTest
     (QFTTimestamp , JSRational {}) -> passTest
     (QFTUnit      , JSRational {}) -> passTest
     (QFTOther     , _)             -> passTest -- meh, QFT not precise...

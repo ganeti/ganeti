@@ -134,6 +134,12 @@ def ForceDictType(target, key_types, allowed_values=None):
       except (ValueError, TypeError):
         msg = "'%s' (value %s) is not a valid integer" % (key, target[key])
         raise errors.TypeEnforcementError(msg)
+    elif ktype == constants.VTYPE_FLOAT:
+      try:
+        target[key] = float(target[key])
+      except (ValueError, TypeError):
+        msg = "'%s' (value %s) is not a valid float" % (key, target[key])
+        raise errors.TypeEnforcementError(msg)
 
 
 def ValidateServiceName(name):

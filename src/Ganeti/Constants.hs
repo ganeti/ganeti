@@ -1435,6 +1435,9 @@ vtypeBool = VTypeBool
 vtypeInt :: VType
 vtypeInt = VTypeInt
 
+vtypeFloat :: VType
+vtypeFloat = VTypeFloat
+
 vtypeMaybeString :: VType
 vtypeMaybeString = VTypeMaybeString
 
@@ -3476,6 +3479,9 @@ qftBool = "bool"
 qftNumber :: String
 qftNumber = "number"
 
+qftNumberFloat :: String
+qftNumberFloat = "float"
+
 qftOther :: String
 qftOther = "other"
 
@@ -3495,6 +3501,7 @@ qftAll :: FrozenSet String
 qftAll =
   ConstantUtils.mkSet [qftBool,
                        qftNumber,
+                       qftNumberFloat,
                        qftOther,
                        qftText,
                        qftTimestamp,

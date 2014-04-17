@@ -99,6 +99,7 @@ $(declareSADT "FieldType"
   , ("QFTText",      'C.qftText )
   , ("QFTBool",      'C.qftBool )
   , ("QFTNumber",    'C.qftNumber )
+  , ("QFTNumberFloat", 'C.qftNumberFloat )
   , ("QFTUnit",      'C.qftUnit )
   , ("QFTTimestamp", 'C.qftTimestamp )
   , ("QFTOther",     'C.qftOther )

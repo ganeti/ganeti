@@ -68,8 +68,8 @@ from ganeti import jstore
 from ganeti.hypervisor import hv_base
 
 from ganeti.constants import (QFT_UNKNOWN, QFT_TEXT, QFT_BOOL, QFT_NUMBER,
-                              QFT_UNIT, QFT_TIMESTAMP, QFT_OTHER,
-                              RS_NORMAL, RS_UNKNOWN, RS_NODATA,
+                              QFT_NUMBER_FLOAT, QFT_UNIT, QFT_TIMESTAMP,
+                              QFT_OTHER, RS_NORMAL, RS_UNKNOWN, RS_NODATA,
                               RS_UNAVAIL, RS_OFFLINE)
 
 (NETQ_CONFIG,
@@ -127,6 +127,7 @@ _VERIFY_FN = {
   QFT_TEXT: ht.TString,
   QFT_BOOL: ht.TBool,
   QFT_NUMBER: ht.TInt,
+  QFT_NUMBER_FLOAT: ht.TFloat,
   QFT_UNIT: ht.TInt,
   QFT_TIMESTAMP: ht.TNumber,
   QFT_OTHER: lambda _: True,
@@ -154,6 +155,7 @@ _VTToQFT = {
   constants.VTYPE_BOOL: QFT_BOOL,
   constants.VTYPE_SIZE: QFT_UNIT,
   constants.VTYPE_INT: QFT_NUMBER,
+  constants.VTYPE_FLOAT: QFT_NUMBER_FLOAT,
   }
 
 _SERIAL_NO_DOC = "%s object serial number, incremented on each modification"
