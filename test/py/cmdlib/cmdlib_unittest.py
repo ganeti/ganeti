@@ -592,8 +592,7 @@ class _FakeConfigForComputeIPolicyInstanceViolation:
     return ("pnode_uuid", )
 
   def GetInstanceDisks(self, _):
-    disks = [objects.Disk(size=512, spindles=13, uuid="disk_uuid")]
-    return disks
+    return [objects.Disk(size=512, spindles=13, uuid="disk_uuid")]
 
 
 class TestComputeIPolicyInstanceViolation(unittest.TestCase):
