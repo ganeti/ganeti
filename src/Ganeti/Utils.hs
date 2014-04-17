@@ -564,11 +564,13 @@ formatOrdinal num
 
 -- | Attempt, in a non-blocking way, to obtain a lock on a given file; report
 -- back success.
-lockFile :: FilePath -> IO (Result ())
+-- Returns the file descriptor so that the lock can be released by closing
+lockFile :: FilePath -> IO (Result Fd)
 lockFile path = runResultT . liftIO $ do
   handle <- openFile path WriteMode
   fd <- handleToFd handle
   setLock fd (WriteLock, AbsoluteSeek, 0, 0)
+  return fd
 
 -- | File stat identifier.
 type FStat = (EpochTime, FileID, FileOffset)

@@ -466,7 +466,7 @@ main _ _ (server, cref, jq) = do
   initJQScheduler jq
 
   qlockFile <- jobQueueLockFile
-  lockFile qlockFile >>= exitIfBad "Failed to obtain the job-queue lock"
+  _ <- lockFile qlockFile >>= exitIfBad "Failed to obtain the job-queue lock"
   qlock <- newMVar ()
 
   finally
