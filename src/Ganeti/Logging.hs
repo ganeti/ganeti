@@ -57,6 +57,7 @@ import Control.Monad.Reader
 import qualified Control.Monad.RWS.Strict as RWSS
 import qualified Control.Monad.State.Strict as SS
 import Control.Monad.Trans.Identity
+import Control.Monad.Trans.Maybe
 import Data.Monoid
 import System.Log.Logger
 import System.Log.Handler.Simple
@@ -144,6 +145,9 @@ instance MonadLog IO where
   logAt = logM rootLoggerName
 
 instance (MonadLog m) => MonadLog (IdentityT m) where
+  logAt p = lift . logAt p
+
+instance (MonadLog m) => MonadLog (MaybeT m) where
   logAt p = lift . logAt p
 
 instance (MonadLog m) => MonadLog (ReaderT r m) where
