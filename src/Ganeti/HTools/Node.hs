@@ -44,6 +44,7 @@ module Ganeti.HTools.Node
   , setMdsk
   , setMcpu
   , setPolicy
+  , setCpuSpeed
   -- * Tag maps
   , addTags
   , delTags
@@ -426,6 +427,10 @@ computeNewPDsk node new_free_sp new_free_dsk =
   else computePDsk new_free_dsk $ tDsk node
 
 -- * Update functions
+
+-- | Set the CPU speed
+setCpuSpeed :: Node -> Double -> Node
+setCpuSpeed n f = n { tCpuSpeed = f }
 
 -- | Sets the free memory.
 setFmem :: Node -> Int -> Node
