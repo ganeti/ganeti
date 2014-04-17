@@ -39,6 +39,7 @@ import System.Posix.Types (Fd)
 import System.Time (ClockTime(..), getClockTime)
 
 import Ganeti.BasicTypes
+import Ganeti.Logging
 import Ganeti.Path (livelockFile)
 import Ganeti.Utils (lockFile)
 
@@ -67,5 +68,8 @@ isDead :: Livelock -> IO Bool
 isDead fpath = fmap (isOk :: Result () -> Bool) . runResultT . liftIO $ do
   filepresent <- doesFileExist fpath
   when filepresent
-    $ E.bracket (openFd fpath ReadOnly Nothing defaultFileFlags) closeFd
-                (`setLock` (ReadLock, AbsoluteSeek, 0, 0))
+    . E.bracket (openFd fpath ReadOnly Nothing defaultFileFlags) closeFd
+                $ \fd -> do
+                    logDebug $ "Attempting to get a lock of " ++ fpath
+                    setLock fd (ReadLock, AbsoluteSeek, 0, 0)
+                    logDebug "Got the lock, the process is dead"
