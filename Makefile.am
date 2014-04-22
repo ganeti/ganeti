@@ -134,6 +134,7 @@ HS_DIRS = \
 	src/Ganeti/Monitoring \
 	src/Ganeti/Metad \
 	src/Ganeti/Objects \
+	src/Ganeti/OpCodes \
 	src/Ganeti/Query \
 	src/Ganeti/Storage \
 	src/Ganeti/Storage/Diskstats \
@@ -801,6 +802,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Objects.hs \
 	src/Ganeti/Objects/Lens.hs \
 	src/Ganeti/OpCodes.hs \
+	src/Ganeti/OpCodes/Lens.hs \
 	src/Ganeti/OpParams.hs \
 	src/Ganeti/Path.hs \
 	src/Ganeti/Parsers.hs \
