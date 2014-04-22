@@ -203,6 +203,7 @@ INIT
 | [\--drbd-usermode-helper *helper*]
 | [\--enabled-disk-templates *template* [,*template*...]]
 | [\--zeroing-image *image*]
+| [\--compression-tools [*tool*, [*tool*]]]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -597,6 +598,22 @@ or a URL. In the case that a file path is used, nodes are expected to
 have the zeroing image located at the given path, although that is
 enforced during a zeroing operation only.
 
+The ``--compression-tools`` option specifies the tools that can be used
+to compress the disk data of instances in transfer. The default tools
+are: 'gzip', 'gzip-slow', and 'gzip-fast'. For compatibility reasons,
+the 'gzip' tool cannot be excluded from the list of compression tools.
+Ganeti knows how to use certain tools, but does not provide them as a
+default as they are not commonly present: currently only 'lzop'. The
+user should indicate their presence by specifying them through this
+option.
+Any other custom tool specified must have a simple executable name
+('[-_a-zA-Z0-9]+'), accept input on stdin, and produce output on
+stdout. The '-d' flag specifies that decompression rather than
+compression is taking place. The '-h' flag must be supported as a means
+of testing whether the executable exists. These requirements are
+compatible with the gzip command line options, allowing many tools to
+be easily wrapped and used.
+
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
@@ -668,6 +685,7 @@ MODIFY
 | [\--drbd-usermode-helper *helper*]
 | [\--file-storage-dir *dir*]
 | [\--shared-file-storage-dir *dir*]
+| [\--compression-tools [*tool*, [*tool*]]]
 
 
 Modify the options for the cluster.
@@ -678,8 +696,8 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters``,
 ``--mac-prefix``, ``--master-netdev``, ``--master-netmask``,
 ``--use-external-mip-script``, ``--drbd-usermode-helper``,
-``--file-storage-dir``, ``--shared-file-storage-dir``, and
-``--enabled-disk-templates`` options are described in the **init** command.
+``--file-storage-dir``, ``--shared-file-storage-dir``,
+``--compression-tools``, and ``--enabled-disk-templates`` options are described in the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**\(7).

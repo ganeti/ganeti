@@ -1986,8 +1986,8 @@ long time for big disks (similar to replace-disks for a drbd
 instance).
 
 The ``--compress`` option is used to specify which compression mode
-is used during the move. Valid values are 'none' (the default) and
-'gzip'.
+is used during the move. Valid values are 'none' (the default) and any
+values specified in the 'compression_tools' cluster parameter.
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (e.g. ``xm destroy`` in XEN, killing the
