@@ -600,3 +600,26 @@ def UpdateMetadata(feedback_fn, rpc, instance,
   result = rpc.call_instance_metadata_modify(instance.primary_node, data)
   result.Warn("Could not update metadata for instance '%s'" % instance.name,
               feedback_fn)
+
+
+def CheckCompressionTool(lu, compression_tool):
+  """ Checks if the provided compression tool is allowed to be used.
+
+  @type compression_tool: string
+  @param compression_tool: Compression tool to use for importing or exporting
+    the instance
+
+  @rtype: NoneType
+  @return: None
+
+  @raise errors.OpPrereqError: If the tool is not enabled by Ganeti or
+                               whitelisted
+
+  """
+  allowed_tools = lu.cfg.GetCompressionTools()
+  if (compression_tool != constants.IEC_NONE and
+      compression_tool not in allowed_tools):
+    raise errors.OpPrereqError(
+      "Compression tool not allowed, tools allowed are [%s]"
+      % ", ".join(allowed_tools)
+    )

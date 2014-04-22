@@ -40,7 +40,8 @@ from ganeti.cmdlib.common import CheckNodeOnline, ExpandNodeUuidAndName, \
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
   ShutdownInstanceDisks, TemporaryDisk, ImageDisks
 from ganeti.cmdlib.instance_utils import GetClusterDomainSecret, \
-  BuildInstanceHookEnvByObject, CheckNodeNotDrained, RemoveInstance
+  BuildInstanceHookEnvByObject, CheckNodeNotDrained, RemoveInstance, \
+  CheckCompressionTool
 
 
 class LUBackupPrepare(NoHooksLU):
@@ -317,6 +318,9 @@ class LUBackupExport(LogicalUnit):
     self.secondary_nodes = \
       self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
     self.inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+
+    # Check if the compression tool is whitelisted
+    CheckCompressionTool(self, self.op.compress)
 
   def _CleanupExports(self, feedback_fn):
     """Removes exports of current instance from all other nodes.

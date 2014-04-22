@@ -62,7 +62,8 @@ from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   NICToTuple, CheckNodeNotDrained, RemoveInstance, CopyLockList, \
   ReleaseLocks, CheckNodeVmCapable, CheckTargetNodeIPolicy, \
   GetInstanceInfoText, RemoveDisks, CheckNodeFreeMemory, \
-  CheckInstanceBridgesExist, CheckNicsBridgesExist, UpdateMetadata
+  CheckInstanceBridgesExist, CheckNicsBridgesExist, UpdateMetadata, \
+  CheckCompressionTool
 import ganeti.masterd.instance
 
 
@@ -1306,6 +1307,8 @@ class LUInstanceCreate(LogicalUnit):
                   self.op.force_variant)
 
     CheckNicsBridgesExist(self, self.nics, self.pnode.uuid)
+
+    CheckCompressionTool(self, self.op.compress)
 
     #TODO: _CheckExtParams (remotely)
     # Check parameters for extstorage
