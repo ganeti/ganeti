@@ -2079,7 +2079,7 @@ class ImportExportOptions(ConfigObject):
 
   @ivar key_name: X509 key name (None for cluster certificate)
   @ivar ca_pem: Remote peer CA in PEM format (None for cluster certificate)
-  @ivar compress: Compression method (one of L{constants.IEC_ALL})
+  @ivar compress: Compression tool to use
   @ivar magic: Used to ensure the connection goes to the right disk
   @ivar ipv6: Whether to use IPv6
   @ivar connect_timeout: Number of seconds for establishing connection
