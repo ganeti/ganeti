@@ -777,6 +777,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Hs2Py/GenOpCodes.hs \
 	src/Ganeti/Hs2Py/OpDoc.hs \
 	src/Ganeti/JQueue.hs \
+	src/Ganeti/JQueue/Lens.hs \
 	src/Ganeti/JQueue/Objects.hs \
 	src/Ganeti/JQScheduler.hs \
 	src/Ganeti/JSON.hs \
