@@ -1205,6 +1205,18 @@ class LUClusterSetParams(LogicalUnit):
       else:
         self.cluster.file_storage_dir = self.op.file_storage_dir
 
+  def _SetSharedFileStorageDir(self, feedback_fn):
+    """Set the shared file storage directory.
+
+    """
+    if self.op.shared_file_storage_dir is not None:
+      if self.cluster.shared_file_storage_dir == \
+          self.op.shared_file_storage_dir:
+        feedback_fn("Global shared file storage dir already set to value '%s'"
+                    % self.cluster.shared_file_storage_dir)
+      else:
+        self.cluster.shared_file_storage_dir = self.op.shared_file_storage_dir
+
   def _SetDrbdHelper(self, feedback_fn):
     """Set the DRBD usermode helper.
 
@@ -1232,6 +1244,7 @@ class LUClusterSetParams(LogicalUnit):
 
     self._SetVgName(feedback_fn)
     self._SetFileStorageDir(feedback_fn)
+    self._SetSharedFileStorageDir(feedback_fn)
     self._SetDrbdHelper(feedback_fn)
 
     if self.op.hvparams:
