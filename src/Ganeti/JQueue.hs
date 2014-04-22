@@ -40,6 +40,7 @@ module Ganeti.JQueue
     , noTimestamp
     , currentTimestamp
     , advanceTimestamp
+    , reasonTrailTimestamp
     , setReceivedTimestamp
     , extendJobReasonTrail
     , getJobDependencies
