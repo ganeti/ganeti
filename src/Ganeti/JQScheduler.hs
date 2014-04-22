@@ -320,7 +320,10 @@ checkForDeath state jobWS = do
       jobWS' <- mkResultT $ readJobFromDisk jid
       now <- liftIO currentTimestamp
       qDir <- liftIO queueDir
-      let failedJob = failQueuedJob now $ jJob jobWS'
+      let reason = ( "gnt:daemon:wconfd:deathdetection"
+                   , "detected death of job " ++ sjid
+                   , reasonTrailTimestamp now )
+          failedJob = failQueuedJob reason now $ jJob jobWS'
       cfg <- mkResultT . readIORef $ jqConfig state
       writeAndReplicateJob cfg qDir failedJob
 

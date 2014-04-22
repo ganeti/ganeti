@@ -76,6 +76,7 @@ import Control.Arrow (first, second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar
 import Control.Exception
+import Control.Lens (over)
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
@@ -99,12 +100,14 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Config as Config
 import qualified Ganeti.Constants as C
 import Ganeti.Errors (ErrorResult, ResultG)
+import Ganeti.JQueue.Lens (qoInputL, validOpCodeL)
 import Ganeti.JQueue.Objects
 import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Luxi
 import Ganeti.Objects (ConfigData, Node)
 import Ganeti.OpCodes
+import Ganeti.OpCodes.Lens (metaParamsL, opReasonL)
 import Ganeti.Path
 import Ganeti.Query.Exec as Exec
 import Ganeti.Rpc (executeRpcCall, ERpcError, logRpcErrors,
@@ -268,15 +271,15 @@ cancelQueuedJob now job =
   in job { qjOps = ops', qjEndTimestamp = Just now }
 
 -- | Set the state of a QueuedOpCode to canceled.
-failOpCode :: Timestamp -> QueuedOpCode -> QueuedOpCode
-failOpCode now op =
+failOpCode :: ReasonElem -> Timestamp -> QueuedOpCode -> QueuedOpCode
+failOpCode reason now op =
+  over (qoInputL . validOpCodeL . metaParamsL . opReasonL) (++ [reason])
   op { qoStatus = OP_STATUS_ERROR, qoEndTimestamp = Just now }
 
 -- | Transform a QueuedJob that has not been started into its canceled form.
-failQueuedJob :: Timestamp -> QueuedJob -> QueuedJob
-failQueuedJob now job =
-  -- TODO: Add a reason trail message
-  let ops' = map (failOpCode now) $ qjOps job
+failQueuedJob :: ReasonElem -> Timestamp -> QueuedJob -> QueuedJob
+failQueuedJob reason now job =
+  let ops' = map (failOpCode reason now) $ qjOps job
   in job { qjOps = ops', qjEndTimestamp = Just now }
 
 -- | Job file prefix.
