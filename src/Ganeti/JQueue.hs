@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 {-| Implementation of the job queue.
 
 -}
@@ -26,16 +24,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.JQueue
-    ( QueuedOpCode(..)
-    , QueuedJob(..)
-    , InputOpCode(..)
-    , queuedOpCodeFromMetaOpCode
+    ( queuedOpCodeFromMetaOpCode
     , queuedJobFromOpCodes
     , changeOpCodePriority
     , changeJobPriority
     , cancelQueuedJob
     , failQueuedJob
-    , Timestamp
     , fromClockTime
     , noTimestamp
     , currentTimestamp
@@ -70,6 +64,11 @@ module Ganeti.JQueue
     , cancelJob
     , queueDirPermissions
     , archiveJobs
+    -- re-export
+    , Timestamp
+    , InputOpCode(..)
+    , QueuedOpCode(..)
+    , QueuedJob(..)
     ) where
 
 import Control.Applicative (liftA2, (<|>))
@@ -100,6 +99,7 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Config as Config
 import qualified Ganeti.Constants as C
 import Ganeti.Errors (ErrorResult, ResultG)
+import Ganeti.JQueue.Objects
 import Ganeti.JSON
 import Ganeti.Logging
 import Ganeti.Luxi
@@ -109,8 +109,6 @@ import Ganeti.Path
 import Ganeti.Query.Exec as Exec
 import Ganeti.Rpc (executeRpcCall, ERpcError, logRpcErrors,
                    RpcCallJobqueueUpdate(..), RpcCallJobqueueRename(..))
-import Ganeti.THH
-import Ganeti.THH.Field
 import Ganeti.Types
 import Ganeti.Utils
 import Ganeti.Utils.Atomic
@@ -118,11 +116,6 @@ import Ganeti.Utils.Livelock (Livelock, isDead)
 import Ganeti.VCluster (makeVirtualPath)
 
 -- * Data types
-
--- | The ganeti queue timestamp type. It represents the time as the pair
--- of seconds since the epoch and microseconds since the beginning of the
--- second.
-type Timestamp = (Int, Int)
 
 -- | Missing timestamp type.
 noTimestamp :: Timestamp
@@ -142,24 +135,11 @@ currentTimestamp = fromClockTime `liftM` getClockTime
 advanceTimestamp :: Int -> Timestamp -> Timestamp
 advanceTimestamp = first . (+)
 
--- | An input opcode.
-data InputOpCode = ValidOpCode MetaOpCode -- ^ OpCode was parsed successfully
-                 | InvalidOpCode JSValue  -- ^ Invalid opcode
-                   deriving (Show, Eq)
 
 -- | From an InputOpCode obtain the MetaOpCode, if any.
 toMetaOpCode :: InputOpCode -> [MetaOpCode]
 toMetaOpCode (ValidOpCode mopc) = [mopc]
 toMetaOpCode _ = []
-
--- | JSON instance for 'InputOpCode', trying to parse it and if
--- failing, keeping the original JSValue.
-instance Text.JSON.JSON InputOpCode where
-  showJSON (ValidOpCode mo) = Text.JSON.showJSON mo
-  showJSON (InvalidOpCode inv) = inv
-  readJSON v = case Text.JSON.readJSON v of
-                 Text.JSON.Error _ -> return $ InvalidOpCode v
-                 Text.JSON.Ok mo -> return $ ValidOpCode mo
 
 -- | Invalid opcode summary.
 invalidOp :: String
@@ -175,35 +155,6 @@ extractOpSummary (InvalidOpCode (JSObject o)) =
     Just s -> drop 3 s -- drop the OP_ prefix
     Nothing -> invalidOp
 extractOpSummary _ = invalidOp
-
-$(buildObject "QueuedOpCode" "qo"
-  [ simpleField "input"           [t| InputOpCode |]
-  , simpleField "status"          [t| OpStatus    |]
-  , simpleField "result"          [t| JSValue     |]
-  , defaultField [| [] |] $
-    simpleField "log"             [t| [(Int, Timestamp, ELogType, JSValue)] |]
-  , simpleField "priority"        [t| Int         |]
-  , optionalNullSerField $
-    simpleField "start_timestamp" [t| Timestamp   |]
-  , optionalNullSerField $
-    simpleField "exec_timestamp"  [t| Timestamp   |]
-  , optionalNullSerField $
-    simpleField "end_timestamp"   [t| Timestamp   |]
-  ])
-
-$(buildObject "QueuedJob" "qj"
-  [ simpleField "id"                 [t| JobId          |]
-  , simpleField "ops"                [t| [QueuedOpCode] |]
-  , optionalNullSerField $
-    simpleField "received_timestamp" [t| Timestamp      |]
-  , optionalNullSerField $
-    simpleField "start_timestamp"    [t| Timestamp      |]
-  , optionalNullSerField $
-    simpleField "end_timestamp"      [t| Timestamp      |]
-  , optionalField $
-    simpleField "livelock"           [t| FilePath      |]
-  , optionalField $ processIdField "process_id"
-  ])
 
 -- | Convenience function to obtain a QueuedOpCode from a MetaOpCode
 queuedOpCodeFromMetaOpCode :: MetaOpCode -> QueuedOpCode
