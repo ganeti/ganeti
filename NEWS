@@ -35,6 +35,8 @@ New features
 - The build system creates sample systemd unit files, available under
   doc/examples/systemd. These unit files allow systemd to natively
   manage and supervise all Ganeti processes.
+- Different types of compression can be applied during instance moves, including
+  user-specified ones.
 
 
 Version 2.11.0
