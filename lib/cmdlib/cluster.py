@@ -2973,6 +2973,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if cluster.IsFileStorageEnabled():
         node_verify_param[constants.NV_FILE_STORAGE_PATH] = \
           cluster.file_storage_dir
+      if cluster.IsSharedFileStorageEnabled():
+        node_verify_param[constants.NV_SHARED_FILE_STORAGE_PATH] = \
+          cluster.shared_file_storage_dir
 
     # bridge checks
     # FIXME: this needs to be changed per node-group, not cluster-wide
