@@ -27,8 +27,17 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.JQueue.Lens where
 
+import Control.Lens.Prism (Prism', prism')
+
 import Ganeti.JQueue.Objects
 import Ganeti.Lens (makeCustomLenses)
+import Ganeti.OpCodes (MetaOpCode)
+
+validOpCodeL :: Prism' InputOpCode MetaOpCode
+validOpCodeL = prism' ValidOpCode $ \op ->
+  case op of
+    ValidOpCode mop -> Just mop
+    _ -> Nothing
 
 $(makeCustomLenses ''QueuedOpCode)
 
