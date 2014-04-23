@@ -119,7 +119,8 @@ queryNodesMsg =
      ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
       "ctotal", "cnos", "offline", "drained", "vm_capable",
       "ndp/spindle_count", "group.uuid", "tags",
-      "ndp/exclusive_storage", "sptotal", "spfree"] Qlang.EmptyFilter
+      "ndp/exclusive_storage", "sptotal", "spfree", "ndp/cpu_speed"]
+     Qlang.EmptyFilter
 
 -- | The input data for instance query.
 queryInstancesMsg :: L.LuxiOp
@@ -205,7 +206,7 @@ getNodes ktg arr = extractArray arr >>= mapM (parseNode ktg)
 parseNode :: NameAssoc -> [(JSValue, JSValue)] -> Result (String, Node.Node)
 parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
               , ctotal, cnos, offline, drained, vm_capable, spindles, g_uuid
-              , tags, excl_stor, sptotal, spfree ]
+              , tags, excl_stor, sptotal, spfree, cpu_speed ]
     = do
   xname <- annotateResult "Parsing new node" (fromJValWithStatus name)
   let convert a = genericConvert "Node" xname a
@@ -215,6 +216,7 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xgdx   <- convert "group.uuid" g_uuid >>= lookupGroup ktg xname
   xtags <- convert "tags" tags
   xexcl_stor <- convert "exclusive_storage" excl_stor
+  xcpu_speed <- convert "cpu_speed" cpu_speed
   let live = not xoffline && xvm_capable
       lvconvert def n d = eitherLive live def $ convert n d
   xsptotal <- if xexcl_stor
@@ -228,7 +230,8 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xdfree <- lvconvert 0 "dfree" dfree
   xctotal <- lvconvert 0.0 "ctotal" ctotal
   xcnos <- lvconvert 0 "cnos" cnos
-  let node = flip Node.setNodeTags xtags $
+  let node = flip Node.setCpuSpeed xcpu_speed .
+             flip Node.setNodeTags xtags $
              Node.create xname xmtotal xmnode xmfree xdtotal xdfree
              xctotal xcnos (not live || xdrained) xsptotal xspfree
              xgdx xexcl_stor
