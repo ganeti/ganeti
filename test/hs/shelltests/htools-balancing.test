@@ -137,3 +137,8 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 ./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --ignore-dynu
 >>>/Cluster is already well balanced/
 >>>=0
+
+# Test CPU speed is taken into account
+./test/hs/hbal -t$TESTDATA_DIR/hbal-cpu-speed.data --ignore-dynu
+>>>/inst[12] node-slow:node-fast => node-fast:node-slow/
+>>>=0

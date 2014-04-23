@@ -1,0 +1,11 @@
+group-01|fake-uuid-01|preferred||
+
+node-slow|1600|0|1400|100000|96000|8|M|fake-uuid-01|8||N|8|1|1.0
+node-fast|1600|0|1400|100000|96000|8|N|fake-uuid-01|8||N|8|1|3.0
+
+inst1|100|1000|8|running|Y|node-slow|node-fast|drbd|
+inst2|100|1000|8|running|Y|node-slow|node-fast|drbd|
+inst3|100|1000|8|running|Y|node-fast|node-slow|drbd|
+inst4|100|1000|8|running|Y|node-fast|node-slow|drbd|
+
+

@@ -1365,6 +1365,7 @@ TEST_FILES = \
 	test/data/htools/hail-invalid-reloc.json \
 	test/data/htools/hail-node-evac.json \
 	test/data/htools/hail-reloc-drbd.json \
+	test/data/htools/hbal-cpu-speed.data \
 	test/data/htools/hbal-dyn.data \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-split-insts.data \
