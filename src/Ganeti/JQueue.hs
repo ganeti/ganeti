@@ -545,13 +545,17 @@ waitForJob jid tmout = do
   qDir <- liftIO queueDir
   let jobfile = liveJobFile qDir jid
       load = liftM fst <$> loadJobFromDisk qDir False jid
-  jobR <- liftIO $ watchFileBy jobfile tmout
-                               (genericResult (const False) jobFinalized) load
+      finalizedR = genericResult (const False) jobFinalized
+  jobR <- liftIO $ watchFileBy jobfile tmout finalizedR load
   case calcJobStatus <$> jobR of
     Ok s | s == JOB_STATUS_CANCELED ->
              return (True, "Job successfully cancelled")
+         | finalizedR jobR ->
+            return (False, "Job exited before it could have been canceled,\
+                           \ status " ++ show s)
          | otherwise ->
-             return (False, "Job exited with status " ++ show s)
+             return (False, "Job could not have been cancelel, status "
+                            ++ show s)
     Bad e -> failError $ "Can't read job status: " ++ e
 
 -- | Try to cancel a job that has already been handed over to execution,
