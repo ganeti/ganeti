@@ -69,9 +69,11 @@ def main():
 
     logging.debug("Registering a SIGTERM handler")
 
+    cancel = [False]
+
     def _TermHandler(signum, _frame):
       logging.info("Killed by signal %d", signum)
-      context.jobqueue.CancelJob(job_id)
+      cancel[0] = True
     signal.signal(signal.SIGTERM, _TermHandler)
 
     logging.debug("Picking up job %d", job_id)
@@ -80,6 +82,11 @@ def main():
     # waiting for the job to finish
     time.sleep(1)
     while not context.jobqueue.HasJobBeenFinalized(job_id):
+      if cancel[0]:
+        logging.debug("Got cancel request, cancelling job %d", job_id)
+        r = context.jobqueue.CancelJob(job_id)
+        logging.debug("CancelJob result for job %d: %s", job_id, r)
+        cancel[0] = False
       time.sleep(1)
 
     # wait until the queue finishes
