@@ -560,8 +560,10 @@ waitForJob jid tmout = do
 
 -- | Try to cancel a job that has already been handed over to execution,
 -- by terminating the process.
-cancelJob :: JobId -> IO (ErrorResult (Bool, String))
-cancelJob jid = runResultT $ do
+cancelJob :: Livelock -- ^ Luxi's livelock path
+          -> JobId -- ^ the job to cancel
+          -> IO (ErrorResult (Bool, String))
+cancelJob luxiLivelock jid = runResultT $ do
   -- we can't terminate the job if it's just being started, so
   -- retry several times in such a case
   result <- runMaybeT . msum . flip map [0..5 :: Int] $ \tryNo -> do
@@ -573,7 +575,9 @@ cancelJob jid = runResultT $ do
     qDir <- liftIO queueDir
     (job, _) <- lift . mkResultT $ loadJobFromDisk qDir True jid
     let jName = ("Job " ++) . show . fromJobId . qjId $ job
-    dead <- maybe (return False) (liftIO . isDead) (qjLivelock job)
+    dead <- maybe (return False) (liftIO . isDead)
+            . mfilter (/= luxiLivelock)
+            $ qjLivelock job
     case qjProcessId job of
       _ | dead ->
         return (True, jName ++ " has been already dead")

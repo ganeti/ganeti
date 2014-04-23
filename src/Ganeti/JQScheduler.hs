@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.JQScheduler
   ( JQStatus
+  , jqLivelock
   , emptyJQStatus
   , initJQScheduler
   , enqueueNewJobs
