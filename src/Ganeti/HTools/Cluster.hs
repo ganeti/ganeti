@@ -366,8 +366,8 @@ compDetailedCV all_nodes =
       -- helps with evacuation/failover of primary instances on
       -- 2-node clusters with one node offline)
       off_pri_score = fromIntegral offline_ipri::Double
-      cpu_l = map Node.pCpu nodes
-      -- metric: covariance of vcpu/pcpu ratio
+      cpu_l = map Node.pCpuEff nodes
+      -- metric: covariance of effective vcpu/pcpu ratio
       cpu_cv = stdDev cpu_l
       -- metrics: covariance of cpu, memory, disk and network load
       (c_load, m_load, d_load, n_load) =
