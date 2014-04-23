@@ -137,8 +137,8 @@ readJobStatus jWS@(JobWithStat {jStat=fstat, jJob=job})  = do
           logWarning $ "Failed to read job " ++ jids ++ ": " ++ s
           return Nothing
         Ok (job', _) -> do
-          logDebug
-            $ "Read job " ++ jids ++ ", staus is " ++ show (calcJobStatus job')
+          logDebug $ "Read job " ++ jids ++ ", status is "
+                     ++ show (calcJobStatus job')
           return . Just $ jWS {jStat=fstat', jJob=job'}
                           -- jINotify unchanged
 
