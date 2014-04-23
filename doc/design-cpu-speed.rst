@@ -1,6 +1,6 @@
-===============================================
-Taking relative CPU and disk speed into account
-===============================================
+======================================
+Taking relative CPU speed into account
+======================================
 
 .. contents:: :depth: 4
 
