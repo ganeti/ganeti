@@ -405,11 +405,18 @@ def UpgradeAll(config_data):
 
 # DOWNGRADE ------------------------------------------------------------
 
+def DowngradeNodeParams(config_object):
+  if "ndparams" in config_object:
+    if "cpu_speed" in config_object["ndparams"]:
+      del config_object["ndparams"]["cpu_speed"]
+
 
 def DowngradeCluster(config_data):
   cluster = config_data.get("cluster", None)
   if not cluster:
     raise Error("Cannot find the 'cluster' key in the configuration")
+
+  DowngradeNodeParams(cluster)
 
   if "osparams_private_cluster" in cluster:
     del cluster["osparams_private_cluster"]
@@ -419,6 +426,16 @@ def DowngradeCluster(config_data):
 
   if "zeroing_image" in cluster:
     del cluster["zeroing_image"]
+
+
+def DowngradeGroups(config_data):
+  for group in config_data["nodegroups"].values():
+    DowngradeNodeParams(group)
+
+
+def DowngradeNodes(config_data):
+  for group in config_data["nodes"].values():
+    DowngradeNodeParams(group)
 
 
 def DowngradeInstances(config_data):
@@ -437,6 +454,8 @@ def DowngradeAll(config_data):
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
   DowngradeCluster(config_data)
+  DowngradeGroups(config_data)
+  DowngradeNodes(config_data)
   DowngradeInstances(config_data)
 
 
