@@ -28,7 +28,8 @@ import sys
 import threading
 import time
 
-from ganeti import constants
+# (only used in later branches)
+# from ganeti import constants
 from ganeti import locking
 from ganeti import utils
 from ganeti.utils import retry
@@ -42,7 +43,10 @@ from qa_utils import AssertCommand, GetCommandOutput, GetObjectInfo
 AVAILABLE_LOCKS = [locking.LEVEL_NODE, ]
 
 
-def _GetOutputFromMaster(cmd, use_multiplexer=True, log_cmd=True):
+def _GetOutputFromMaster(cmd,
+                         # pylint: disable=W0613
+                         # (only in later branches required)
+                         use_multiplexer=True, log_cmd=True):
   """ Gets the output of a command executed on master.
 
   """
@@ -92,8 +96,9 @@ def _RetrieveTerminationInfo(job_id):
   if not execution_logs:
     return None
 
+  # ELOG_DELAY_TEST constant is only introduced in later branches
   is_termination_info_fn = \
-    lambda e: e["Content"][1] == constants.ELOG_DELAY_TEST
+    lambda e: e["Content"][1] == "delay-test" # constants.ELOG_DELAY_TEST
 
   filtered_logs = filter(is_termination_info_fn, execution_logs)
 
