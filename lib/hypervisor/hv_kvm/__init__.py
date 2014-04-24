@@ -1699,7 +1699,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           or utils.IsDaemonAlive(constants.KVMD):
       return
 
-    result = utils.RunCmd(constants.KVMD)
+    result = utils.RunCmd([pathutils.DAEMON_UTIL, "start", constants.KVMD])
 
     if result.failed:
       raise errors.HypervisorError("Failed to start KVM daemon")
