@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-| Implementation of a reader for the job queue.
 
 -}
@@ -51,6 +52,7 @@ import Ganeti.BasicTypes
 import Ganeti.Constants as C
 import Ganeti.Errors
 import Ganeti.JQueue as JQ
+import Ganeti.Lens hiding (chosen)
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.Path
@@ -62,6 +64,9 @@ data JobWithStat = JobWithStat { jINotify :: Maybe INotify
                                , jStat :: FStat
                                , jJob :: QueuedJob
                                }
+
+$(makeCustomLenses' ''JobWithStat ['jJob])
+
 data Queue = Queue { qEnqueued :: [JobWithStat], qRunning :: [JobWithStat] }
 
 {-| Representation of the job queue
@@ -254,13 +259,20 @@ failJobs :: ConfigData -> JQStatus -> [(JobWithStat, GanetiException)]
          -> IO ()
 failJobs cfg qstate jobs = do
   qdir <- queueDir
+  now <- currentTimestamp
   jids <- logFailedJobs jobs
+  let sjobs = intercalate "." . map (show . fromJobId) $ S.toList jids
   let rmJobs = filter ((`S.notMember` jids) . qjId . jJob)
-  logWarning "Failing jobs"
+  logWarning $ "Failing jobs " ++ sjobs
   modifyJobs qstate $ onRunningJobs rmJobs
   let trySaveJob :: JobWithStat -> ResultT String IO ()
       trySaveJob = (() <$) . writeAndReplicateJob cfg qdir . jJob
-  mapM_ (runResultT . trySaveJob . fst) jobs
+      reason jid = ( "gnt:daemon:luxid:startjobs"
+                   , "job " ++ show (fromJobId jid) ++ " failed to start"
+                   , reasonTrailTimestamp now )
+      failJob job = failQueuedJob (reason $ qjId job) now job
+  mapM_ (runResultT . trySaveJob . over jJobL failJob . fst) jobs
+  logDebug $ "Failed jobs " ++ sjobs
 
 -- | Schedule jobs to be run. This is the IO wrapper around the
 -- pure `selectJobsToRun`.
