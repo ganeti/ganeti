@@ -3113,6 +3113,7 @@ _DEFAULT_FORMAT_QUERY = {
   constants.QFT_TEXT: (str, False),
   constants.QFT_BOOL: (_FormatBool, False),
   constants.QFT_NUMBER: (str, True),
+  constants.QFT_NUMBER_FLOAT: (str, True),
   constants.QFT_TIMESTAMP: (utils.FormatTime, False),
   constants.QFT_OTHER: (str, False),
   constants.QFT_UNKNOWN: (str, False),
