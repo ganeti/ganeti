@@ -47,6 +47,9 @@ class LiveLockName(object):
     """
     os.remove(self._name)
 
+  def __str__(self):
+    return "LiveLockName(" + self.GetPath() + ")"
+
 
 class LiveLock(object):
   """Utility for a lockfile needed to request resources from WconfD.
@@ -72,6 +75,9 @@ class LiveLock(object):
     """
     self.lockfile.close()
     os.remove(self.lockfile.name)
+
+  def __str__(self):
+    return "LiveLock(" + self.GetPath() + ")"
 
 
 def GuessLockfileFor(name):
