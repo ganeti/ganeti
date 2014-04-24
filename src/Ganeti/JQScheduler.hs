@@ -321,7 +321,9 @@ checkForDeath state jobWS = do
       sjid = show $ fromJobId jid
       livelock = qjLivelock job
   logDebug $ "Livelock of job " ++ sjid ++ " is " ++ show livelock
-  died <- maybe (return False) isDead livelock
+  died <- maybe (return False) isDead
+          . mfilter (/= jqLivelock state)
+          $ livelock
   when died $ do
     logInfo $ "Detected death of job " ++ sjid
     -- if we manage to remove the job from the queue, we own the job file
