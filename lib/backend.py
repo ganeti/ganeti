@@ -2186,7 +2186,7 @@ def ModifyInstanceMetadata(metadata):
 
   """
   if not utils.IsDaemonAlive(constants.METAD):
-    result = utils.RunCmd(constants.METAD)
+    result = utils.RunCmd([pathutils.DAEMON_UTIL, "start", constants.METAD])
     if result.failed:
       raise errors.HypervisorError("Failed to start metadata daemon")
 
