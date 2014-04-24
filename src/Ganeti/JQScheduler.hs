@@ -194,7 +194,7 @@ jobWatcher state jWS e = do
   let jid = qjId $ jJob jWS
       jids = show $ fromJobId jid
   logInfo $ "Scheduler notified of change of job " ++ jids
-  logDebug $ "Scheulder notify event for " ++ jids ++ ": " ++ show e
+  logDebug $ "Scheduler notify event for " ++ jids ++ ": " ++ show e
   let inotify = jINotify jWS
   when (e == Ignored  && isJust inotify) $ do
     qdir <- queueDir
