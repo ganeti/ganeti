@@ -331,6 +331,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_USE_LOCALTIME: hv_base.NO_CHECK,
     constants.HV_DISK_CACHE:
       hv_base.ParamInSet(True, constants.HT_VALID_CACHE_TYPES),
+    constants.HV_KVM_DISK_AIO:
+      hv_base.ParamInSet(False, constants.HT_KVM_VALID_AIO_TYPES),
     constants.HV_SECURITY_MODEL:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_SM_TYPES),
     constants.HV_SECURITY_DOMAIN: hv_base.NO_CHECK,
@@ -895,6 +897,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         pass
     else:
       if_val = ",if=%s" % disk_type
+    # AIO mode
+    aio_mode = up_hvp[constants.HV_KVM_DISK_AIO]
+    if aio_mode == constants.HT_KVM_AIO_NATIVE:
+      aio_val = ",aio=%s" % aio_mode
+    else:
+      aio_val = ""
     # Cache mode
     disk_cache = up_hvp[constants.HV_DISK_CACHE]
     if instance.disk_template in constants.DTS_EXT_MIRROR:
@@ -927,8 +935,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         drive_uri = link_name
 
-      drive_val = "file=%s,format=raw%s%s%s" % \
-                  (drive_uri, if_val, boot_val, cache_val)
+      drive_val = "file=%s,format=raw%s%s%s%s" % \
+                  (drive_uri, if_val, boot_val, cache_val, aio_val)
 
       if device_driver:
         # kvm_disks are the 4th entry of runtime file that did not exist in

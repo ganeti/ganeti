@@ -586,6 +586,14 @@ disk\_cache
     version of KVM used and disk type (always raw file under Ganeti),
     please refer to the KVM documentation for more details.
 
+disk\_aio
+    Valid for the KVM hypervisor.
+
+    This is an optional parameter that specifies the aio mode
+    for the disks. KVM default is to use the 'threads' mode,
+    so if not explicitly specified, the native mode will not
+    be used. Possible values are: threads or native.
+
 security\_model
     Valid for the KVM hypervisor.
 

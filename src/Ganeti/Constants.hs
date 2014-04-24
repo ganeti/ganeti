@@ -1565,6 +1565,9 @@ hvKvmMigrationCaps = "migration_caps"
 hvKvmPath :: String
 hvKvmPath = "kvm_path"
 
+hvKvmDiskAio :: String
+hvKvmDiskAio = "disk_aio"
+
 hvKvmSpiceAudioCompr :: String
 hvKvmSpiceAudioCompr = "spice_playback_compression"
 
@@ -1749,6 +1752,7 @@ hvsParameterTypes = Map.fromList
   , (hvKvmMachineVersion,               VTypeString)
   , (hvKvmMigrationCaps,                VTypeString)
   , (hvKvmPath,                         VTypeString)
+  , (hvKvmDiskAio,                      VTypeString)
   , (hvKvmSpiceAudioCompr,              VTypeBool)
   , (hvKvmSpiceBind,                    VTypeString)
   , (hvKvmSpiceIpVersion,               VTypeInt)
@@ -2587,6 +2591,17 @@ htValidCacheTypes =
                        htCacheNone,
                        htCacheWback,
                        htCacheWthrough]
+
+htKvmAioThreads :: String
+htKvmAioThreads = "threads"
+
+htKvmAioNative :: String
+htKvmAioNative = "native"
+
+htKvmValidAioTypes :: FrozenSet String
+htKvmValidAioTypes =
+  ConstantUtils.mkSet [htKvmAioThreads,
+                       htKvmAioNative]
 
 -- * Mouse types
 
@@ -3765,6 +3780,7 @@ hvcDefaults =
           , (hvNicType,                         PyValueEx htNicParavirtual)
           , (hvDiskType,                        PyValueEx htDiskParavirtual)
           , (hvKvmCdromDiskType,                PyValueEx "")
+          , (hvKvmDiskAio,                      PyValueEx htKvmAioThreads)
           , (hvUsbMouse,                        PyValueEx "")
           , (hvKeymap,                          PyValueEx "")
           , (hvMigrationPort,                   PyValueEx (8102 :: Int))
