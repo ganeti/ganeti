@@ -1291,6 +1291,18 @@ class LUClusterSetParams(LogicalUnit):
       else:
         self.cluster.file_storage_dir = self.op.file_storage_dir
 
+  def _SetSharedFileStorageDir(self, feedback_fn):
+    """Set the shared file storage directory.
+
+    """
+    if self.op.shared_file_storage_dir is not None:
+      if self.cluster.shared_file_storage_dir == \
+          self.op.shared_file_storage_dir:
+        feedback_fn("Global shared file storage dir already set to value '%s'"
+                    % self.cluster.shared_file_storage_dir)
+      else:
+        self.cluster.shared_file_storage_dir = self.op.shared_file_storage_dir
+
   def _SetDrbdHelper(self, feedback_fn):
     """Set the DRBD usermode helper.
 
@@ -1318,6 +1330,7 @@ class LUClusterSetParams(LogicalUnit):
 
     self._SetVgName(feedback_fn)
     self._SetFileStorageDir(feedback_fn)
+    self._SetSharedFileStorageDir(feedback_fn)
     self._SetDrbdHelper(feedback_fn)
 
     if self.op.hvparams:
@@ -3103,6 +3116,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if cluster.IsFileStorageEnabled():
         node_verify_param[constants.NV_FILE_STORAGE_PATH] = \
           cluster.file_storage_dir
+      if cluster.IsSharedFileStorageEnabled():
+        node_verify_param[constants.NV_SHARED_FILE_STORAGE_PATH] = \
+          cluster.shared_file_storage_dir
 
     # bridge checks
     # FIXME: this needs to be changed per node-group, not cluster-wide

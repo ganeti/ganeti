@@ -1114,7 +1114,8 @@ def SetClusterParams(opts, args):
           opts.ipolicy_vcpu_ratio is not None or
           opts.ipolicy_spindle_ratio is not None or
           opts.modify_etc_hosts is not None or
-          opts.file_storage_dir is not None):
+          opts.file_storage_dir is not None or
+          opts.shared_file_storage_dir is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1225,6 +1226,7 @@ def SetClusterParams(opts, args):
     enabled_disk_templates=enabled_disk_templates,
     force=opts.force,
     file_storage_dir=opts.file_storage_dir,
+    shared_file_storage_dir=opts.shared_file_storage_dir,
     )
   SubmitOrSend(op, opts)
   return 0
@@ -2191,7 +2193,7 @@ commands = {
      USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] +
      SUBMIT_OPTS +
      [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT] +
-     INSTANCE_POLICY_OPTS + [GLOBAL_FILEDIR_OPT],
+     INSTANCE_POLICY_OPTS + [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

@@ -1000,6 +1000,7 @@ qa_scripts = \
 	qa/qa_instance.py \
 	qa/qa_instance_utils.py \
 	qa/qa_job.py \
+	qa/qa_job_utils.py \
 	qa/qa_monitoring.py \
 	qa/qa_logging.py \
 	qa/qa_node.py \
