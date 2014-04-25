@@ -77,7 +77,9 @@ vg
 
 metavg
    This options specifies a different VG for the metadata device. This
-   works only for DRBD devices
+   works only for DRBD devices. If not specified, the default metavg
+   of the node-group (possibly inherited from the cluster-wide settings)
+   will be used.
 
 When creating ExtStorage disks, also arbitrary parameters can be passed,
 to the ExtStorage provider. Those parameters are passed as additional

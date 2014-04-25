@@ -213,7 +213,7 @@ parseData now body = do
               rname     <- extrReq "name"
               req_nodes <- extrReq "required_nodes"
               inew      <- parseBaseInstance rname request
-              let io = snd inew
+              let io = updateExclTags (extractExTags ctags) $ snd inew
               return $ Allocate io req_nodes
         | optype == C.iallocatorModeReloc ->
             do
@@ -248,7 +248,8 @@ parseData now body = do
                                  rname     <- extrFromReq r "name"
                                  req_nodes <- extrFromReq r "required_nodes"
                                  inew      <- parseBaseInstance rname r
-                                 let io = snd inew
+                                 let io = updateExclTags (extractExTags ctags)
+                                            $ snd inew
                                  return (io, req_nodes)) inst_reqs
               return $ MultiAllocate prqs
         | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")

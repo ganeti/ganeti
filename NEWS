@@ -33,10 +33,10 @@ New features
     opportunistic locking when an iallocator is used.
 
 
-Version 2.11.0 rc1
-------------------
+Version 2.11.0
+--------------
 
-*(Released Thu, 20 Mar 2014)*
+*(Released Fri, 25 Apr 2014)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -96,8 +96,75 @@ For Haskell:
 
 - ``lens`` library (http://hackage.haskell.org/package/lens)
 
-Since 2.11.0 beta1
-~~~~~~~~~~~~~~~~~~
+Since 2.11.0 rc1
+~~~~~~~~~~~~~~~~
+
+- Fix Xen instance state
+
+Inherited from the 2.10 branch:
+
+- Fix conflict between virtio + spice or soundhw
+- Fix bitarray ops wrt PCI slots
+- Allow releases scheduled 5 days in advance
+- Make watcher submit queries low priority
+- Fix specification of TIDiskParams
+- Add unittests for instance modify parameter renaming
+- Add renaming of instance custom params
+- Add RAPI symmetry tests for groups
+- Extend RAPI symmetry tests with RAPI-only aliases
+- Add test for group custom parameter renaming
+- Add renaming of group custom ndparams, ipolicy, diskparams
+- Add the RAPI symmetry test for nodes
+- Add aliases for nodes
+- Allow choice of HTTP method for modification
+- Add cluster RAPI symmetry test
+- Fix failing cluster query test
+- Add aliases for cluster parameters
+- Add support for value aliases to RAPI
+- Provide tests for GET/PUT symmetry
+- Sort imports
+- Also consider filter fields for deciding if using live data
+- Document the python-fdsend dependency
+- Verify configuration version number before parsing
+- KVM: use running HVPs to calc blockdev options
+- KVM: reserve a PCI slot for the SCSI controller
+- Check for LVM-based verification results only when enabled
+- Fix "existing" typos
+- Fix output of gnt-instance info after migration
+- Warn in UPGRADE about not tar'ing exported insts
+- Fix non-running test and remove custom_nicparams rename
+- Account for NODE_RES lock in opportunistic locking
+- Fix request flooding of noded during disk sync
+
+Inherited from the 2.9 branch:
+
+- Make watcher submit queries low priority
+- Fix failing gnt-node list-drbd command
+- Update installation guide wrt to DRBD version
+- Fix list-drbd QA test
+- Add messages about skipped QA disk template tests
+- Allow QA asserts to produce more messages
+- Set exclusion tags correctly in requested instance
+- Export extractExTags and updateExclTags
+- Document spindles in the hbal man page
+- Sample logrotate conf breaks permissions with split users
+- Fix 'gnt-cluster' and 'gnt-node list-storage' outputs
+
+Inherited from the 2.8 branch:
+
+- Add reason parameter to RAPI client functions
+- Include qa/patch in Makefile
+- Handle empty patches better
+- Move message formatting functions to separate file
+- Add optional ordering of QA patch files
+- Allow multiple QA patches
+- Refactor current patching code
+
+
+Version 2.11.0 rc1
+------------------
+
+*(Released Thu, 20 Mar 2014)*
 
 This was the first RC release of the 2.11 series. Since 2.11.0 beta1:
 
@@ -131,7 +198,7 @@ are listed in the latest 2.11 entry.
 Version 2.10.3
 --------------
 
-*(Released Mon, 14 Apr 2014)*
+*(Released Wed, 16 Apr 2014)*
 
 - Fix filtering of pending jobs with -o id (issue 778)
 - Make RAPI API calls more symmetric (issue 770)

@@ -1132,7 +1132,8 @@ def SetClusterParams(opts, args):
           opts.modify_etc_hosts is not None or
           opts.file_storage_dir is not None or
           opts.instance_communication_network is not None or
-          opts.zeroing_image is not None):
+          opts.zeroing_image is not None or
+          opts.shared_file_storage_dir is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1246,6 +1247,7 @@ def SetClusterParams(opts, args):
     file_storage_dir=opts.file_storage_dir,
     instance_communication_network=opts.instance_communication_network,
     zeroing_image=opts.zeroing_image
+    shared_file_storage_dir=opts.shared_file_storage_dir,
     )
   return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
@@ -2194,7 +2196,8 @@ commands = {
      USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] +
      SUBMIT_OPTS +
      [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT] +
-     INSTANCE_POLICY_OPTS + [GLOBAL_FILEDIR_OPT, ZEROING_IMAGE_OPT],
+     INSTANCE_POLICY_OPTS +
+     [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

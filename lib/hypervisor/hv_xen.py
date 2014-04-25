@@ -180,6 +180,7 @@ def _GetAllInstanceList(fn, include_node, _timeout=5):
 #   http://old-list-archives.xenproject.org/xen-users/2007-06/msg00849.html
 def _IsInstanceRunning(instance_info):
   return instance_info == "r-----" \
+      or instance_info == "rb----" \
       or instance_info == "-b----" \
       or instance_info == "--p---" \
       or instance_info == "------"

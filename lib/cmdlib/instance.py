@@ -1445,7 +1445,7 @@ class LUInstanceCreate(LogicalUnit):
         CreateDisks(self, iobj)
       except errors.OpExecError:
         self.LogWarning("Device creation failed")
-        self.cfg.ReleaseDRBDMinors(self.op.instance_name)
+        self.cfg.ReleaseDRBDMinors(instance_uuid)
         raise
 
     feedback_fn("adding instance %s to cluster config" % self.op.instance_name)
