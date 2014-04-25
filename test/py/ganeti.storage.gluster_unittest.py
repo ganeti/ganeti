@@ -65,7 +65,7 @@ class TestGlusterVolume(testutils.GanetiTestCase):
 
   def testHostnameResolution(self):
     vol_1 = TestGlusterVolume._MakeVolume(addr="localhost")
-    self.assertEqual(vol_1.server_ip, "127.0.0.1")
+    self.assertIn(vol_1.server_ip, ("127.0.0.1", "::1"))
     self.assertRaises(errors.ResolverError, lambda: \
       TestGlusterVolume._MakeVolume(addr="E_NOENT"))
 
@@ -95,9 +95,10 @@ class TestGlusterVolume(testutils.GanetiTestCase):
     vol_3 = TestGlusterVolume._MakeVolume(addr="localhost",
                                           port=9001,
                                           vol_name="testvol")
-    self.assertEqual(
+    self.assertIn(
       vol_3.GetKVMMountString("dir/a.img"),
-      "gluster://127.0.0.1:9001/testvol/dir/a.img"
+      ("gluster://127.0.0.1:9001/testvol/dir/a.img",
+       "gluster://[::1]:9001/testvol/dir/a.img")
     )
 
   def testFUSEMountStrings(self):
@@ -121,9 +122,9 @@ class TestGlusterVolume(testutils.GanetiTestCase):
     vol_3 = TestGlusterVolume._MakeVolume(addr="localhost",
                                           port=9001,
                                           vol_name="testvol")
-    self.assertEqual(
+    self.assertIn(
       vol_3._GetFUSEMountString(),
-      "127.0.0.1:9001:testvol"
+      ("127.0.0.1:9001:testvol", "::1:9001:testvol")
     )
 
 
