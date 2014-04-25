@@ -141,7 +141,10 @@ runJobProcess jid s = withErrorLogAt CRITICAL (show jid) $
     -- we pass the job id as the first argument to the process;
     -- while the process never uses it, it's very convenient when listing
     -- job processes
-    env <- (M.insert "PYTHONPATH" AC.versionedsharedir . M.fromList)
+    use_debug <- isDebugMode
+    env <- (M.insert "GNT_DEBUG" (if use_debug then "1" else "0")
+            . M.insert "PYTHONPATH" AC.versionedsharedir
+            . M.fromList)
            `liftM` getEnvironment
     execPy <- P.jqueueExecutorPy
     logDebug $ "Executing " ++ AC.pythonPath ++ " " ++ execPy

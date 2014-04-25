@@ -57,12 +57,15 @@ def _GetMasterInfo():
 
 
 def main():
+
+  debug = int (os.environ["GNT_DEBUG"])
+
   logname = pathutils.GetLogFilename("jobs")
-  utils.SetupLogging(logname, "job-startup", debug=True) # TODO
+  utils.SetupLogging(logname, "job-startup", debug=debug)
 
   (job_id, livelock_name) = _GetMasterInfo()
 
-  utils.SetupLogging(logname, "job-%s" % (job_id,), debug=True) # TODO
+  utils.SetupLogging(logname, "job-%s" % (job_id,), debug=debug)
 
   exit_code = 1
   try:
