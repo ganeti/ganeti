@@ -58,7 +58,7 @@ def _GetMasterInfo():
 
 def main():
 
-  debug = int (os.environ["GNT_DEBUG"])
+  debug = int(os.environ["GNT_DEBUG"])
 
   logname = pathutils.GetLogFilename("jobs")
   utils.SetupLogging(logname, "job-startup", debug=debug)
