@@ -31,9 +31,15 @@ DAEMONS=(
   ganeti-wconfd
   ganeti-noded
   ganeti-masterd
-  ganeti-metad
   ganeti-rapi
   ganeti-luxid
+  )
+
+# This is the list of daemons that are loaded on demand; they should only be
+# stopped, not started.
+ON_DEMAND_DAEMONS=(
+  ganeti-metad
+  ganeti-kvmd
   )
 
 _confd_enabled() {
@@ -51,6 +57,9 @@ _mond_enabled() {
 if _mond_enabled; then
   DAEMONS+=( ganeti-mond )
 fi
+
+# The full list of all daemons we know about
+ALL_DAEMONS=( ${DAEMONS[@]} ${ON_DEMAND_DAEMONS[@]} )
 
 NODED_ARGS=
 MASTERD_ARGS=
@@ -175,15 +184,13 @@ list_start_daemons() {
   local name
 
   for name in "${DAEMONS[@]}"; do
-    if [[ "$name" != ganeti-metad ]]; then
-      echo "$name"
-    fi
+    echo "$name"
   done
 }
 
 # Prints a list of all daemons in the order in which they should be stopped
 list_stop_daemons() {
-  for name in "${DAEMONS[@]}"; do
+  for name in "${ALL_DAEMONS[@]}"; do
     echo "$name"
   done | tac
 }
@@ -197,7 +204,7 @@ is_daemon_name() {
 
   local name="$1"; shift
 
-  for i in "${DAEMONS[@]}"; do
+  for i in "${ALL_DAEMONS[@]}"; do
     if [[ "$i" == "$name" ]]; then
       return 0
     fi
