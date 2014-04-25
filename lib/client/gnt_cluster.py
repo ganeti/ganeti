@@ -1246,7 +1246,7 @@ def SetClusterParams(opts, args):
     force=opts.force,
     file_storage_dir=opts.file_storage_dir,
     instance_communication_network=opts.instance_communication_network,
-    zeroing_image=opts.zeroing_image
+    zeroing_image=opts.zeroing_image,
     shared_file_storage_dir=opts.shared_file_storage_dir,
     )
   return base.GetResult(None, opts, SubmitOrSend(op, opts))
