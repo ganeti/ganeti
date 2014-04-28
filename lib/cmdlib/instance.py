@@ -1540,6 +1540,74 @@ class LUInstanceCreate(LogicalUnit):
 
       feedback_fn("Created OS install package '%s'" % result.payload)
 
+  def RunOsScriptsVirtualized(self, feedback_fn, instance):
+    """Runs the OS scripts inside a safe virtualized environment.
+
+    The virtualized environment reuses the instance and temporarily
+    creates a disk onto which the image of the helper VM is dumped.
+    The temporary disk is used to boot the helper VM.  The OS scripts
+    are passed to the helper VM through the metadata daemon and the OS
+    install package.
+
+    @type feedback_fn: callable
+    @param feedback_fn: function used send feedback back to the caller
+
+    @type instance: L{objects.Instance}
+    @param instance: instance for which the OS scripts must be run
+                     inside the virtualized environment
+
+    """
+    install_image = self.cfg.GetInstallImage()
+
+    if not install_image:
+      raise errors.OpExecError("Cannot create install instance because an"
+                               " install image has not been specified")
+
+    disk_size = DetermineImageSize(self, install_image, instance.primary_node)
+
+    # KVM does not support readonly disks
+    if instance.hypervisor == constants.HT_KVM:
+      disk_access = constants.DISK_RDWR
+    else:
+      disk_access = constants.DISK_RDONLY
+
+    with TemporaryDisk(self,
+                       instance,
+                       [(constants.DT_PLAIN, disk_access, disk_size)],
+                       feedback_fn):
+      feedback_fn("Activating instance disks")
+      StartInstanceDisks(self, instance, False)
+
+      feedback_fn("Imaging disk with install image")
+      ImageDisks(self, instance, install_image)
+
+      feedback_fn("Starting instance with install image")
+      result = self.rpc.call_instance_start(instance.primary_node,
+                                            (instance, [], []),
+                                            False, self.op.reason)
+      result.Raise("Could not start instance '%s' with the install image '%s'"
+                   % (instance.name, install_image))
+
+      # First wait for the instance to start up
+      running_check = lambda: IsInstanceRunning(self, instance,
+                                                check_user_shutdown=True)
+      instance_up = retry.SimpleRetry(True, running_check, 5.0,
+                                      self.op.helper_startup_timeout)
+      if not instance_up:
+        raise errors.OpExecError("Could not boot instance using install image"
+                                 " '%s'" % install_image)
+
+      feedback_fn("Instance is up, now awaiting shutdown")
+
+      # Then for it to be finished, detected by its shutdown
+      instance_up = retry.SimpleRetry(False, running_check, 20.0,
+                                      self.op.helper_shutdown_timeout)
+      if instance_up:
+        self.LogWarning("Installation not completed prior to timeout, shutting"
+                        " down instance forcibly")
+
+    feedback_fn("Installation complete")
+
   def Exec(self, feedback_fn):
     """Create and add the instance to the cluster.
 
