@@ -438,6 +438,13 @@ class LUInstanceCreate(LogicalUnit):
                            constants.INIC_NETWORK:
                              self.cfg.GetInstanceCommunicationNetwork()})
 
+    # timeouts for unsafe OS installs
+    if self.op.helper_startup_timeout is None:
+      self.op.helper_startup_timeout = constants.HELPER_VM_STARTUP
+
+    if self.op.helper_shutdown_timeout is None:
+      self.op.helper_shutdown_timeout = constants.HELPER_VM_SHUTDOWN
+
     # check nics' parameter names
     for nic in self.op.nics:
       utils.ForceDictType(nic, constants.INIC_PARAMS_TYPES)

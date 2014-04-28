@@ -460,6 +460,8 @@ $(genOpCode "OpCode"
      , pStartInstance
      , pInstTags
      , pInstanceCommunication
+     , pHelperStartupTimeout
+     , pHelperShutdownTimeout
      ],
      "instance_name")
   , ("OpInstanceMultiAlloc",

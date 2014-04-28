@@ -298,6 +298,8 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                       -- start
           <*> (genTags >>= mapM mkNonEmpty)   -- tags
           <*> arbitrary                       -- instance_communication
+          <*> arbitrary                       -- helper_startup_timeout
+          <*> arbitrary                       -- helper_shutdown_timeout
       "OP_INSTANCE_MULTI_ALLOC" ->
         OpCodes.OpInstanceMultiAlloc <$> arbitrary <*> genMaybe genNameNE <*>
         pure []

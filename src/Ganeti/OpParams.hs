@@ -222,6 +222,8 @@ module Ganeti.OpParams
   , pX509KeyName
   , pX509DestCA
   , pZeroFreeSpace
+  , pHelperStartupTimeout
+  , pHelperShutdownTimeout
   , pZeroingTimeoutFixed
   , pZeroingTimeoutPerMiB
   , pTagSearchPattern
@@ -1505,6 +1507,16 @@ pZeroFreeSpace :: Field
 pZeroFreeSpace =
   withDoc "Whether to zero the free space on the disks of the instance" $
   defaultFalse "zero_free_space"
+
+pHelperStartupTimeout :: Field
+pHelperStartupTimeout =
+  withDoc "Startup timeout for the helper VM" .
+  optionalField $ simpleField "helper_startup_timeout" [t| Int |]
+
+pHelperShutdownTimeout :: Field
+pHelperShutdownTimeout =
+  withDoc "Shutdown timeout for the helper VM" .
+  optionalField $ simpleField "helper_shutdown_timeout" [t| Int |]
 
 pZeroingTimeoutFixed :: Field
 pZeroingTimeoutFixed =

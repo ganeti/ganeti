@@ -4945,13 +4945,18 @@ statSize = "size"
 
 -- * Helper VM-related timeouts
 
--- | The default fixed timeout - needed to startup the helper VM
+-- | The default fixed timeout needed to startup the helper VM.
 helperVmStartup :: Int
 helperVmStartup = 5 * 60
 
+-- | The default fixed timeout needed until the helper VM is finally
+-- shutdown, for example, after installing the OS.
+helperVmShutdown :: Int
+helperVmShutdown = 2 * 60 * 60
+
 -- | The zeroing timeout per MiB of disks to zero
 --
--- Determined by estimating that a disk writes at a relatively slow speed of 1/5
--- of the max speed of current drives
+-- Determined by estimating that a disk writes at a relatively slow
+-- speed of 1/5 of the max speed of current drives.
 zeroingTimeoutPerMib :: Double
 zeroingTimeoutPerMib = 1.0 / (100.0 / 5.0)

@@ -232,6 +232,8 @@ __all__ = [
   "YES_DOIT_OPT",
   "ZEROING_IMAGE_OPT",
   "ZERO_FREE_SPACE_OPT",
+  "HELPER_STARTUP_TIMEOUT_OPT",
+  "HELPER_SHUTDOWN_TIMEOUT_OPT",
   "ZEROING_TIMEOUT_FIXED_OPT",
   "ZEROING_TIMEOUT_PER_MIB_OPT",
   "DISK_STATE_OPT",
@@ -1766,6 +1768,16 @@ ZERO_FREE_SPACE_OPT = \
                help="Whether to zero the free space on the disks of the "
                     "instance prior to the export")
 
+HELPER_STARTUP_TIMEOUT_OPT = \
+    cli_option("--helper-startup-timeout",
+               dest="helper_startup_timeout", action="store", type="int",
+               help="Startup timeout for the helper VM")
+
+HELPER_SHUTDOWN_TIMEOUT_OPT = \
+    cli_option("--helper-shutdown-timeout",
+               dest="helper_shutdown_timeout", action="store", type="int",
+               help="Shutdown timeout for the helper VM")
+
 ZEROING_TIMEOUT_FIXED_OPT = \
     cli_option("--zeroing-timeout-fixed",
                dest="zeroing_timeout_fixed", action="store", type="int",
@@ -2815,6 +2827,9 @@ def GenericInstanceCreate(mode, opts, args):
   osparams_private = opts.osparams_private or serializer.PrivateDict()
   osparams_secret = opts.osparams_secret or serializer.PrivateDict()
 
+  helper_startup_timeout = opts.helper_startup_timeout
+  helper_shutdown_timeout = opts.helper_shutdown_timeout
+
   if mode == constants.INSTANCE_CREATE:
     start = opts.start
     os_type = opts.os
@@ -2870,7 +2885,9 @@ def GenericInstanceCreate(mode, opts, args):
                                 no_install=no_install,
                                 identify_defaults=identify_defaults,
                                 ignore_ipolicy=opts.ignore_ipolicy,
-                                instance_communication=instance_communication)
+                                instance_communication=instance_communication,
+                                helper_startup_timeout=helper_startup_timeout,
+                                helper_shutdown_timeout=helper_shutdown_timeout)
 
   SubmitOrSend(op, opts)
   return 0
