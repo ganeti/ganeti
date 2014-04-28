@@ -405,12 +405,6 @@ class TestCfgupgrade(unittest.TestCase):
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadTestDataConfig(oldconfname)
     newconf = self._LoadConfig()
-    old = open('/tmp/old', 'w')
-    old.write(json.dumps(oldconf))
-    old.close()
-    new = open('/tmp/new', 'w')
-    new.write(json.dumps(newconf))
-    new.close()
     self.assertEqual(oldconf, newconf)
 
   def testDowngradeFullConfigBackwardFrom_2_7(self):
