@@ -54,11 +54,11 @@ args = None
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 12
+TARGET_MINOR = 13
 #: Target major version for downgrade
 DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
-DOWNGRADE_MINOR = 11
+DOWNGRADE_MINOR = 12
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -405,58 +405,11 @@ def UpgradeAll(config_data):
 
 # DOWNGRADE ------------------------------------------------------------
 
-def DowngradeNodeParams(config_object):
-  if "ndparams" in config_object:
-    if "cpu_speed" in config_object["ndparams"]:
-      del config_object["ndparams"]["cpu_speed"]
-
-
-def DowngradeCluster(config_data):
-  cluster = config_data.get("cluster", None)
-  if not cluster:
-    raise Error("Cannot find the 'cluster' key in the configuration")
-
-  DowngradeNodeParams(cluster)
-
-  if "osparams_private_cluster" in cluster:
-    del cluster["osparams_private_cluster"]
-
-  if "instance_communication_network" in cluster:
-    del cluster["instance_communication_network"]
-
-  if "zeroing_image" in cluster:
-    del cluster["zeroing_image"]
-
-
-def DowngradeGroups(config_data):
-  for group in config_data["nodegroups"].values():
-    DowngradeNodeParams(group)
-
-
-def DowngradeNodes(config_data):
-  for group in config_data["nodes"].values():
-    DowngradeNodeParams(group)
-
-
-def DowngradeInstances(config_data):
-  instances = config_data.get("instances", None)
-  if instances is None:
-    raise Error("Cannot find the 'instances' key in the configuration")
-
-  for (_, iobj) in instances.items():
-    if "osparams_private" in iobj:
-      del iobj["osparams_private"]
-
-
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
-  DowngradeCluster(config_data)
-  DowngradeGroups(config_data)
-  DowngradeNodes(config_data)
-  DowngradeInstances(config_data)
 
 
 def main():
@@ -578,8 +531,8 @@ def main():
                    config_minor, config_revision))
     DowngradeAll(config_data)
 
-  # Upgrade from 2.{0..10} to 2.12
-  elif config_major == 2 and config_minor in range(0, 12):
+  # Upgrade from 2.{0..12} to 2.13
+  elif config_major == 2 and config_minor in range(0, 13):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
     UpgradeAll(config_data)

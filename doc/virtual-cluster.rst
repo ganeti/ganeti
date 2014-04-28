@@ -1,7 +1,7 @@
 Virtual cluster support
 =======================
 
-Documents Ganeti version 2.12
+Documents Ganeti version 2.13
 
 .. contents::
 
