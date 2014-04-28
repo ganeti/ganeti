@@ -1511,6 +1511,35 @@ class LUInstanceCreate(LogicalUnit):
           result.Warn("Failed to run rename script for %s on node %s" %
                       (self.op.instance_name, self.pnode.name), self.LogWarning)
 
+  def UpdateInstanceOsInstallPackage(self, feedback_fn, instance):
+    """Updates the OS parameter 'os-install-package' for an instance.
+
+    The OS install package is an archive containing an OS definition
+    and a file containing the environment variables needed to run the
+    scripts.
+
+    The OS install package is served by the metadata daemon to the
+    instances, so the OS scripts can run inside the virtualized
+    environment.
+
+    @type feedback_fn: callable
+    @param feedback_fn: function used send feedback back to the caller
+
+    @type instance: L{objects.Instance}
+    @param instance: instance for which the OS parameter
+                     'os-install-package' is updated
+
+    """
+    if "os-install-package" in instance.osparams:
+      feedback_fn("Using OS install package '%s'" %
+                  instance.osparams["os-install-package"])
+    else:
+      result = self.rpc.call_os_export(instance.primary_node, instance)
+      result.Raise("Could not export OS '%s'" % instance.os)
+      instance.osparams["os-install-package"] = result.payload
+
+      feedback_fn("Created OS install package '%s'" % result.payload)
+
   def Exec(self, feedback_fn):
     """Create and add the instance to the cluster.
 
