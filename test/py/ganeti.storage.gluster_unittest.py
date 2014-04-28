@@ -65,7 +65,8 @@ class TestGlusterVolume(testutils.GanetiTestCase):
 
   def testHostnameResolution(self):
     vol_1 = TestGlusterVolume._MakeVolume(addr="localhost")
-    self.assertIn(vol_1.server_ip, ("127.0.0.1", "::1"))
+    self.assertTrue(vol_1.server_ip in ["127.0.0.1", "::1"],
+                    msg="%s not an IP of localhost" % (vol_1.server_ip,))
     self.assertRaises(errors.ResolverError, lambda: \
       TestGlusterVolume._MakeVolume(addr="E_NOENT"))
 
@@ -95,10 +96,12 @@ class TestGlusterVolume(testutils.GanetiTestCase):
     vol_3 = TestGlusterVolume._MakeVolume(addr="localhost",
                                           port=9001,
                                           vol_name="testvol")
-    self.assertIn(
-      vol_3.GetKVMMountString("dir/a.img"),
-      ("gluster://127.0.0.1:9001/testvol/dir/a.img",
-       "gluster://[::1]:9001/testvol/dir/a.img")
+    kvmMountString = vol_3.GetKVMMountString("dir/a.img")
+    self.assertTrue(
+      kvmMountString in
+      ["gluster://127.0.0.1:9001/testvol/dir/a.img",
+       "gluster://[::1]:9001/testvol/dir/a.img"],
+      msg="%s is not volume testvol/dir/a.img on localhost" % (kvmMountString,)
     )
 
   def testFUSEMountStrings(self):
@@ -122,10 +125,10 @@ class TestGlusterVolume(testutils.GanetiTestCase):
     vol_3 = TestGlusterVolume._MakeVolume(addr="localhost",
                                           port=9001,
                                           vol_name="testvol")
-    self.assertIn(
-      vol_3._GetFUSEMountString(),
-      ("127.0.0.1:9001:testvol", "::1:9001:testvol")
-    )
+    fuseMountString = vol_3._GetFUSEMountString()
+    self.assertTrue(fuseMountString in
+                    ["127.0.0.1:9001:testvol", "::1:9001:testvol"],
+                    msg="%s not testvol on localhost:9001" % (fuseMountString,))
 
 
 if __name__ == "__main__":
