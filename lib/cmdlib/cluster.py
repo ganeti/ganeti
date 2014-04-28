@@ -1500,8 +1500,8 @@ class LUClusterSetParams(LogicalUnit):
 
     self.cluster = self.cfg.GetClusterInfo()
     self._SetFileStorageDir(feedback_fn)
-    self._SetDrbdHelper(feedback_fn)
     self.cfg.Update(self.cluster, feedback_fn)
+    self._SetDrbdHelper(feedback_fn)
 
     # re-read the fresh configuration again
     self.cluster = self.cfg.GetClusterInfo()
