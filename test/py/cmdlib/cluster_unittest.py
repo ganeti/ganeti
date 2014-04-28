@@ -1849,9 +1849,10 @@ class TestLUClusterVerifyGroupVerifyNodeOs(TestLUClusterVerifyGroupMethods):
     ndata = {
       constants.NV_OSLIST: [
         ["mock_OS", "/mocked/path", True, "", ["default"], [],
-         [constants.OS_API_V20]],
+         [constants.OS_API_V20], True],
         ["Another_Mock", "/random", True, "", ["var1", "var2"],
-         [{"param1": "val1"}, {"param2": "val2"}], constants.OS_API_VERSIONS]
+         [{"param1": "val1"}, {"param2": "val2"}], constants.OS_API_VERSIONS,
+         True]
       ]
     }
     nimage = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
@@ -1867,27 +1868,29 @@ class TestLUClusterVerifyGroupVerifyNodeOs(TestLUClusterVerifyGroupMethods):
     nimg_root.os_fail = False
     nimg_root.oslist = {
       "mock_os": [("/mocked/path", True, "", set(["default"]), set(),
-                   set([constants.OS_API_V20]))],
+                   set([constants.OS_API_V20]), True)],
       "broken_base_os": [("/broken", False, "", set(), set(),
-                         set([constants.OS_API_V20]))],
-      "only_on_root": [("/random", True, "", set(), set(), set())],
+                         set([constants.OS_API_V20]), True)],
+      "only_on_root": [("/random", True, "", set(), set(), set(), True)],
       "diffing_os": [("/pinky", True, "", set(["var1", "var2"]),
                       set([("param1", "val1"), ("param2", "val2")]),
-                      set([constants.OS_API_V20]))]
+                      set([constants.OS_API_V20]), True)],
+      "trust_os": [("/trust/mismatch", True, "", set(), set(), set(), True)],
     }
     nimg.os_fail = False
     nimg.oslist = {
       "mock_os": [("/mocked/path", True, "", set(["default"]), set(),
-                   set([constants.OS_API_V20]))],
-      "only_on_test": [("/random", True, "", set(), set(), set())],
+                   set([constants.OS_API_V20]), True)],
+      "only_on_test": [("/random", True, "", set(), set(), set(), True)],
       "diffing_os": [("/bunny", True, "", set(["var1", "var3"]),
                       set([("param1", "val1"), ("param3", "val3")]),
-                      set([constants.OS_API_V15]))],
+                      set([constants.OS_API_V15]), True)],
       "broken_os": [("/broken", False, "", set(), set(),
-                     set([constants.OS_API_V20]))],
+                     set([constants.OS_API_V20]), True)],
       "multi_entries": [
-        ("/multi1", True, "", set(), set(), set([constants.OS_API_V20])),
-        ("/multi2", True, "", set(), set(), set([constants.OS_API_V20]))]
+        ("/multi1", True, "", set(), set(), set([constants.OS_API_V20]), True),
+        ("/multi2", True, "", set(), set(), set([constants.OS_API_V20]), True)],
+      "trust_os": [("/trust/mismatch", True, "", set(), set(), set(), False)],
     }
 
     lu._VerifyNodeOS(node, nimg, nimg_root)
@@ -1902,7 +1905,8 @@ class TestLUClusterVerifyGroupVerifyNodeOs(TestLUClusterVerifyGroupMethods):
       "Invalid OS broken_os",
       "Extra OS broken_os not present on reference node",
       "OS 'multi_entries' has multiple entries",
-      "Extra OS multi_entries not present on reference node"
+      "Extra OS multi_entries not present on reference node",
+      "OS trusted for trust_os differs from reference node "
     ]
 
     self.assertEqual(len(expected_msgs), len(self.mcpu.GetLogMessages()))
