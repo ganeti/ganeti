@@ -28,6 +28,16 @@ This will carry out the steps described below in the section on upgrades from
 2.1 and above. Downgrades to the previous minor version can be done in the same
 way, specifiying the smaller version on the ``--to`` argument.
 
+Note that ``gnt-cluster upgrade`` only manages the actual switch between
+versions as described below on upgrades from 2.1 and above. It does not install
+or remove any binaries. Having the new binaries installed is a prerequisite of
+calling ``gnt-cluster upgrade`` (and the command will abort if the prerequisite
+is not met). The old binaries can be used to downgrade back to the previous
+version; once the system administrator decides that going back to the old
+version is not needed any more, they can be removed. Addition and removal of
+the Ganeti binaries should happen in the same way as for all other binaries on
+your system.
+
 
 2.11
 ----
