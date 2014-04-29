@@ -542,6 +542,7 @@ docinput = \
 	doc/design-multi-version-tests.rst \
 	doc/design-network.rst \
 	doc/design-node-add.rst \
+	doc/design-node-security.rst \
 	doc/design-oob.rst \
 	doc/design-openvswitch.rst \
 	doc/design-opportunistic-locking.rst \
