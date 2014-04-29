@@ -32,6 +32,10 @@ New features
   - The move-instance tool can now attempt to allocate an instance by using
     opportunistic locking when an iallocator is used.
 
+- The build system creates sample systemd unit files, available under
+  doc/examples/systemd. These unit files allow systemd to natively
+  manage and supervise all Ganeti processes.
+
 
 Version 2.11.0
 --------------
