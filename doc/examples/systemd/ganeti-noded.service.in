@@ -1,0 +1,19 @@
+[Unit]
+Description = Ganeti node daemon (noded)
+Documentation = man:ganeti-noded(8)
+After = ganeti-common.service
+Requires = ganeti-common.service
+PartOf = ganeti-node.target
+ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/server.pem
+
+[Service]
+Type = simple
+User = @GNTNODEDUSER@
+Group = @GNTNODEDGROUP@
+ExecStart = @SBINDIR@/ganeti-noded -f
+Restart = on-failure
+# Important: do not kill any KVM processes
+KillMode = process
+
+[Install]
+WantedBy = ganeti-node.target ganeti.target

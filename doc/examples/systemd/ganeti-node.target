@@ -1,0 +1,8 @@
+[Unit]
+Description = Ganeti node functionality
+Documentation = man:ganeti(7)
+After = syslog.service
+PartOf = ganeti.target
+
+[Install]
+WantedBy = ganeti.target

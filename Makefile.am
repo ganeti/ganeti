@@ -173,6 +173,7 @@ DIRS = \
 	doc/examples \
 	doc/examples/gnt-debug \
 	doc/examples/hooks \
+	doc/examples/systemd \
 	doc/users \
 	test/data/htools \
 	test/data/htools/rapi \
@@ -342,7 +343,17 @@ BUILT_EXAMPLES = \
 	doc/examples/ganeti-master-role.ocf \
 	doc/examples/ganeti-node-role.ocf \
 	doc/examples/gnt-config-backup \
-	doc/examples/hooks/ipsec
+	doc/examples/hooks/ipsec \
+	doc/examples/systemd/ganeti-common.service \
+	doc/examples/systemd/ganeti-confd.service \
+	doc/examples/systemd/ganeti-kvmd.service \
+	doc/examples/systemd/ganeti-luxid.service \
+	doc/examples/systemd/ganeti-masterd.service \
+	doc/examples/systemd/ganeti-metad.service \
+	doc/examples/systemd/ganeti-mond.service \
+	doc/examples/systemd/ganeti-noded.service \
+	doc/examples/systemd/ganeti-rapi.service \
+	doc/examples/systemd/ganeti-wconfd.service
 
 dist_ifup_SCRIPTS = \
 	tools/kvm-ifup-os \

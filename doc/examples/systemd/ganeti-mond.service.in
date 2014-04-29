@@ -1,0 +1,16 @@
+[Unit]
+Description = Ganeti monitoring daemon (mond)
+Documentation = man:ganeti-mond(8)
+Requires = ganeti-common.service
+After = ganeti-common.service
+PartOf = ganeti-node.target
+
+[Service]
+Type = simple
+User = @GNTMONDUSER@
+Group = @GNTMONDGROUP@
+ExecStart = @SBINDIR@/ganeti-mond -f
+Restart = on-failure
+
+[Install]
+WantedBy = ganeti-node.target ganeti.target

@@ -83,6 +83,7 @@
 /doc/examples/ganeti-node-role.ocf
 /doc/examples/gnt-config-backup
 /doc/examples/hooks/ipsec
+/doc/examples/systemd/ganeti-*.service
 
 # lib
 /lib/_constants.py
