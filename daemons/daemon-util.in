@@ -331,6 +331,11 @@ check_and_start() {
   local name="$1"
 
   if ! check $name; then
+    if use_systemctl; then
+      echo "${name} supervised by systemd but not running, will not restart."
+      return 1
+    fi
+
     start $name
   fi
 }
