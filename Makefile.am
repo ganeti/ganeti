@@ -1643,6 +1643,7 @@ haskell_tests = test/hs/htest
 dist_TESTS = \
 	test/py/check-cert-expired_unittest.bash \
 	test/py/daemon-util_unittest.bash \
+	test/py/systemd_unittest.bash \
 	test/py/ganeti-cleaner_unittest.bash \
 	test/py/import-export_unittest.bash \
 	test/py/cli-test.bash \
@@ -1715,6 +1716,7 @@ srclink_files = \
 	man/footer.rst \
 	test/py/check-cert-expired_unittest.bash \
 	test/py/daemon-util_unittest.bash \
+	test/py/systemd_unittest.bash \
 	test/py/ganeti-cleaner_unittest.bash \
 	test/py/import-export_unittest.bash \
 	test/py/cli-test.bash \
@@ -1764,6 +1766,8 @@ pep8_python_code = \
 	$(python_test_support)
 
 test/py/daemon-util_unittest.bash: daemons/daemon-util
+
+test/py/systemd_unittest.bash: daemons/daemon-util $(BUILT_EXAMPLES)
 
 test/py/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 
