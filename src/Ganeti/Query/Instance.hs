@@ -629,6 +629,7 @@ liveInstanceStatus (instInfo, foundOnPrimary) inst
       InstanceStateRunning | adminState == AdminUp -> Running
                            | otherwise -> ErrorUp
       InstanceStateShutdown | adminState == AdminUp && allowDown -> UserDown
+                            | adminState == AdminUp -> ErrorDown
                             | otherwise -> StatusDown
   where adminState = instAdminState inst
         instanceState = instInfoState instInfo
