@@ -383,9 +383,10 @@ def ShowJobs(opts, args):
         # Arranged in this curious way to preserve the brevity for multiple
         # logs. This content cannot be exposed as a 4-tuple, as time contains
         # the colon, causing some YAML parsers to fail.
-        exec_log_info = [("Time", time_txt),
-                         ("Content", (serial, log_type, encoded,)),
-                        ]
+        exec_log_info = [
+          ("Time", time_txt),
+          ("Content", (serial, log_type, encoded,)),
+          ]
         exec_log_container.append(exec_log_info)
       opcode_info.append(("Execution log", exec_log_container))
 
