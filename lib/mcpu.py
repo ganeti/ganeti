@@ -517,18 +517,7 @@ class Processor(object):
                            calc_timeout())
         lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
 
-        try:
-          result = self._LockAndExecLU(lu, level + 1, calc_timeout)
-        finally:
-          if level in lu.remove_locks:
-            remove_locks = _LockList(lu.remove_locks[level])
-            levelname = locking.LEVEL_NAMES[level]
-            request = [["%s/%s" % (levelname, lock), "release"]
-                       for lock in remove_locks]
-            blocked = \
-              self.wconfd.Client().TryUpdateLocks(self._wconfdcontext,
-                                                  request)
-            assert blocked == [], "Release may not fail"
+        result = self._LockAndExecLU(lu, level + 1, calc_timeout)
       finally:
         levelname = locking.LEVEL_NAMES[level]
         logging.debug("Freeing locks at level %s for %s",
