@@ -33,6 +33,7 @@ import qa_config
 import qa_error
 from qa_instance_utils import GetGenericAddParameters
 import qa_job_utils
+import qa_utils
 
 
 class _JobQueueDriver(object):
@@ -382,3 +383,27 @@ def TestParallelInstanceOperations(instances):
     _SubmitNextOperation(instance, start % len(OPS), 0, job_driver, None)
 
   job_driver.WaitForCompletion()
+
+
+def TestParallelInstanceQueries(instances):
+  """PERFORMANCE: Parallel instance queries.
+
+  @type instances: list of L{qa_config._QaInstance}
+  @param instances: list of instances to issue queries against
+
+  """
+  threads = []
+  for instance in instances:
+    cmd = ["gnt-instance", "info", instance.name]
+    info_thread = qa_job_utils.QAThread(qa_utils.AssertCommand, [cmd], {})
+    info_thread.start()
+    threads.append(info_thread)
+
+    cmd = ["gnt-instance", "list"]
+    list_thread = qa_job_utils.QAThread(qa_utils.AssertCommand, [cmd], {})
+    list_thread.start()
+    threads.append(list_thread)
+
+  for thread in threads:
+    thread.join()
+    thread.reraise()

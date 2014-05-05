@@ -794,6 +794,7 @@ def RunPerformanceTests():
 
     RunTest(qa_performance.TestParallelModify, instances)
     RunTest(qa_performance.TestParallelInstanceOperations, instances)
+    RunTest(qa_performance.TestParallelInstanceQueries, instances)
 
     qa_performance.RemoveAllInstances(instances)
 
