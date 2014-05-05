@@ -790,6 +790,12 @@ def RunPerformanceTests():
     RunTest(qa_performance.TestParallelInstanceCreationPerformance)
     RunTest(qa_performance.TestParallelNodeCountInstanceCreationPerformance)
 
+    instances = qa_performance.CreateAllInstances()
+
+    RunTest(qa_performance.TestParallelModify, instances)
+
+    qa_performance.RemoveAllInstances(instances)
+
 
 def RunQa():
   """Main QA body.

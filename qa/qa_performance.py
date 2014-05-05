@@ -124,7 +124,7 @@ class _JobQueueDriver(object):
     error_jobs = self._GetJobsInStatuses([constants.JOB_STATUS_ERROR])
     if error_jobs:
       raise qa_error.Error(
-        "Jobs %s are in error state!" % error_jobs)
+        "Jobs %s are in error state!" % [job.job_id for job in error_jobs])
 
     for job in self._GetJobsInStatuses([constants.JOB_STATUS_RUNNING,
                                         constants.JOB_STATUS_SUCCESS]):
@@ -269,3 +269,65 @@ def TestParallelNodeCountInstanceCreationPerformance():
 
   job_driver.WaitForCompletion()
   qa_config.ReleaseManyNodes(nodes)
+
+
+def CreateAllInstances():
+  """Create all instances configured in QA config in the cluster.
+
+  @rtype: list of L{qa_config._QaInstance}
+  @return: list of instances created in the cluster
+
+  """
+  job_driver = _JobQueueDriver()
+  instances = list(_AcquireAllInstances())
+  for instance in instances:
+    job_id = _SubmitInstanceCreationJob(instance)
+    job_driver.AddJob(job_id)
+
+  job_driver.WaitForCompletion()
+  return instances
+
+
+def RemoveAllInstances(instances):
+  """Removes all given instances from the cluster.
+
+  @type instances: list of L{qa_config._QaInstance}
+  @param instances:
+
+  """
+  job_driver = _JobQueueDriver()
+  for instance in instances:
+    job_id = _SubmitInstanceRemoveJob(instance)
+    job_driver.AddJob(job_id)
+
+  job_driver.WaitForCompletion()
+
+
+def TestParallelModify(instances):
+  """PERFORMANCE: Parallel instance modify
+
+  @type instances: list of L{qa_config._QaInstance}
+  @param instances: list of instances to issue modify commands against
+
+  """
+  job_driver = _JobQueueDriver()
+  # set min mem to same value as max mem
+  new_min_mem = qa_config.get(constants.BE_MAXMEM)
+  for instance in instances:
+    cmd = (["gnt-instance", "modify", "--submit",
+            "-B", "%s=%s" % (constants.BE_MINMEM, new_min_mem)])
+    cmd.append(instance.name)
+    job_driver.AddJob(qa_job_utils.ExecuteJobProducingCommand(cmd))
+
+    cmd = (["gnt-instance", "modify", "--submit",
+            "-O", "fake_os_param=fake_value"])
+    cmd.append(instance.name)
+    job_driver.AddJob(_ExecuteJobSubmittingCmd(cmd))
+
+    cmd = (["gnt-instance", "modify", "--submit",
+            "-O", "fake_os_param=fake_value",
+            "-B", "%s=%s" % (constants.BE_MINMEM, new_min_mem)])
+    cmd.append(instance.name)
+    job_driver.AddJob(_ExecuteJobSubmittingCmd(cmd))
+
+  job_driver.WaitForCompletion()
