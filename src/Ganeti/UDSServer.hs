@@ -457,7 +457,7 @@ handleClient handler client = do
     logAlert "POSSIBLE LEAKING OF CONFIDENTIAL PARAMETERS. \
              \Daemon is running in debug mode. \
              \The text of the request has been logged."
-  logDebug $ "Received message: " ++ show msg
+  logDebug $ "Received message (truncated): " ++ take 500 (show msg)
 
   case msg of
     RecvConnClosed -> logDebug "Connection closed" >>
