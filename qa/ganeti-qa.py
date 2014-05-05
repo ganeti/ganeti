@@ -788,6 +788,7 @@ def RunMonitoringTests():
 def RunPerformanceTests():
   if qa_config.TestEnabled("jobqueue-performance"):
     RunTest(qa_performance.TestParallelInstanceCreationPerformance)
+    RunTest(qa_performance.TestParallelNodeCountInstanceCreationPerformance)
 
 
 def RunQa():

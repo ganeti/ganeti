@@ -23,8 +23,9 @@
 
 """
 
-import time
 import functools
+import itertools
+import time
 
 from ganeti import constants
 
@@ -176,6 +177,20 @@ def _AcquireAllInstances():
     pass
 
 
+def _AcquireAllNodes():
+  """Generator for acquiring all nodes in the QA config.
+
+  """
+  exclude = []
+  try:
+    while True:
+      node = qa_config.AcquireNode(exclude=exclude)
+      exclude.append(node)
+      yield node
+  except qa_error.OutOfNodesError:
+    pass
+
+
 def _SubmitInstanceCreationJob(instance):
   """Submit an instance creation job.
 
@@ -233,3 +248,24 @@ def TestParallelInstanceCreationPerformance():
                       success_fn=functools.partial(_CreateSuccessFn, instance))
 
   job_driver.WaitForCompletion()
+
+
+def TestParallelNodeCountInstanceCreationPerformance():
+  """PERFORMANCE: Parallel instance creation (instance count = node count).
+
+  """
+  job_driver = _JobQueueDriver()
+
+  def _CreateSuccessFn(instance, job_driver, _):
+    job_id = _SubmitInstanceRemoveJob(instance)
+    job_driver.AddJob(job_id)
+
+  nodes = list(_AcquireAllNodes())
+  instances = itertools.islice(_AcquireAllInstances(), len(nodes))
+  for instance in instances:
+    job_id = _SubmitInstanceCreationJob(instance)
+    job_driver.AddJob(
+      job_id, success_fn=functools.partial(_CreateSuccessFn, instance))
+
+  job_driver.WaitForCompletion()
+  qa_config.ReleaseManyNodes(nodes)
