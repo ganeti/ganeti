@@ -506,41 +506,16 @@ class Processor(object):
         if acquiring_locks:
           # Acquiring locks
           needed_locks = lu.needed_locks[level]
-
-          self._AcquireLocks(level, needed_locks, share, opportunistic,
-                             calc_timeout())
-          lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
+          use_opportunistic = opportunistic
         else:
           # Adding locks
-          add_locks = _LockList(lu.add_locks[level])
-          lu.remove_locks[level] = add_locks
+          needed_locks = _LockList(lu.add_locks[level])
+          lu.remove_locks[level] = needed_locks
+          use_opportunistic = False
 
-          try:
-            levelname = locking.LEVEL_NAMES[level]
-
-            if share:
-              mode = "shared"
-            else:
-              mode = "exclusive"
-
-            request = [["%s/%s" % (levelname, lock), mode]
-                       for lock in add_locks]
-
-            logging.debug("Requesting %s for %s",
-                          request, self._wconfdcontext)
-            blocked = self.wconfd.Client().TryUpdateLocks(self._wconfdcontext,
-                                                          request)
-            assert blocked == [], "Allocating newly 'created' locks failed"
-            lu.wconfdlocks = \
-              self.wconfd.Client().ListLocks(self._wconfdcontext)
-          except errors.GenericError:
-            # TODO: verify what actually caused the error
-            logging.exception("Detected lock error in level %s for locks"
-                              " %s, shared=%s", level, add_locks, share)
-            raise errors.OpPrereqError(
-              "Couldn't add locks (%s), most likely because of another"
-              " job who added them first" % add_locks,
-              errors.ECODE_NOTUNIQUE)
+        self._AcquireLocks(level, needed_locks, share, use_opportunistic,
+                           calc_timeout())
+        lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
 
         try:
           result = self._LockAndExecLU(lu, level + 1, calc_timeout)
