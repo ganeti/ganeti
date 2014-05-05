@@ -107,8 +107,7 @@ def _ConfigSync(shared=0):
         logging.debug("ConfigWriter.%s(%s, %s)",
                       fn.__name__, str(args), str(kwargs))
         result = fn(*args, **kwargs)
-        logging.debug("ConfigWriter.%s(...) returned '%s'",
-                      fn.__name__, str(result))
+        logging.debug("ConfigWriter.%s(...) returned", fn.__name__)
         return result
     return sync_function
   return wrap
@@ -2865,8 +2864,8 @@ class ConfigWriter(object):
       while True:
         dict_data = \
           self._wconfd.LockConfig(self._GetWConfdContext(), bool(shared))
-        logging.debug("Received '%s' from WConfd.LockConfig [shared=%s]",
-                      str(dict_data), bool(shared))
+        logging.debug("Received config from WConfd.LockConfig [shared=%s]",
+                      bool(shared))
         if dict_data is not None:
           break
         time.sleep(random.random())
