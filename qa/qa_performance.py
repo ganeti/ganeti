@@ -224,16 +224,20 @@ def _ExecuteJobSubmittingCmd(cmd):
   return result
 
 
-def _SubmitInstanceCreationJob(instance):
+def _SubmitInstanceCreationJob(instance, disk_template=None):
   """Submit an instance creation job.
 
   @type instance: L{qa_config._QaInstance}
   @param instance: instance to submit a create command for
+  @type disk_template: string
+  @param disk_template: disk template for the new instance or C{None} which
+                        causes the default disk template to be used
   @rtype: int
   @return: job id of the submitted creation job
 
   """
-  disk_template = qa_config.GetDefaultDiskTemplate()
+  if disk_template is None:
+    disk_template = qa_config.GetDefaultDiskTemplate()
   try:
     cmd = (["gnt-instance", "add", "--submit",
             "--os-type=%s" % qa_config.get("os"),
@@ -267,8 +271,15 @@ def _SubmitInstanceRemoveJob(instance):
     instance.Release()
 
 
-def TestParallelInstanceCreationPerformance():
-  """PERFORMANCE: Parallel instance creation.
+def _TestParallelInstanceCreationAndRemoval(max_instances=None,
+                                            disk_template=None):
+  """Tests parallel creation and immediate removal of instances.
+
+  @type max_instances: int
+  @param max_instances: maximum number of instances to create
+  @type disk_template: string
+  @param disk_template: disk template for the new instances or C{None} which
+                        causes the default disk template to be used
 
   """
   job_driver = _JobQueueDriver()
@@ -277,32 +288,31 @@ def TestParallelInstanceCreationPerformance():
     job_id = _SubmitInstanceRemoveJob(instance)
     job_driver.AddJob(job_id)
 
-  for instance in _AcquireAllInstances():
-    job_id = _SubmitInstanceCreationJob(instance)
+  instance_generator = _AcquireAllInstances()
+  if max_instances is not None:
+    instance_generator = itertools.islice(instance_generator, max_instances)
+
+  for instance in instance_generator:
+    job_id = _SubmitInstanceCreationJob(instance, disk_template=disk_template)
     job_driver.AddJob(job_id,
                       success_fn=functools.partial(_CreateSuccessFn, instance))
 
   job_driver.WaitForCompletion()
 
 
+def TestParallelMaxInstanceCreationPerformance():
+  """PERFORMANCE: Parallel instance creation (instance count = max).
+
+  """
+  _TestParallelInstanceCreationAndRemoval()
+
+
 def TestParallelNodeCountInstanceCreationPerformance():
   """PERFORMANCE: Parallel instance creation (instance count = node count).
 
   """
-  job_driver = _JobQueueDriver()
-
-  def _CreateSuccessFn(instance, job_driver, _):
-    job_id = _SubmitInstanceRemoveJob(instance)
-    job_driver.AddJob(job_id)
-
   nodes = list(_AcquireAllNodes())
-  instances = itertools.islice(_AcquireAllInstances(), len(nodes))
-  for instance in instances:
-    job_id = _SubmitInstanceCreationJob(instance)
-    job_driver.AddJob(
-      job_id, success_fn=functools.partial(_CreateSuccessFn, instance))
-
-  job_driver.WaitForCompletion()
+  _TestParallelInstanceCreationAndRemoval(max_instances=len(nodes))
   qa_config.ReleaseManyNodes(nodes)
 
 
@@ -511,3 +521,16 @@ def TestJobQueueSubmissionPerformance():
                          max_seconds=MAX_CLUSTER_INFO_SECONDS)
 
   job_driver.WaitForCompletion()
+
+
+def TestParallelDRBDInstanceCreationPerformance():
+  """PERFORMANCE: Parallel DRBD backed instance creation.
+
+  """
+  if not qa_config.IsTemplateSupported(constants.DT_DRBD8):
+    print(qa_logging.FormatInfo("DRBD disk template not supported, skipping"))
+
+  nodes = list(_AcquireAllNodes())
+  _TestParallelInstanceCreationAndRemoval(max_instances=len(nodes) * 2,
+                                          disk_template=constants.DT_DRBD8)
+  qa_config.ReleaseManyNodes(nodes)
