@@ -798,6 +798,8 @@ def RunPerformanceTests():
 
     qa_performance.RemoveAllInstances(instances)
 
+    RunTest(qa_performance.TestJobQueueSubmissionPerformance)
+
 
 def RunQa():
   """Main QA body.

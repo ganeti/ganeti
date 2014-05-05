@@ -24,6 +24,7 @@
 """
 
 import copy
+import datetime
 import operator
 import os
 import random
@@ -140,7 +141,7 @@ def _AssertRetCode(rcode, fail, cmdstr, nodename):
                          (cmdstr, nodename, rcode))
 
 
-def AssertCommand(cmd, fail=False, node=None, log_cmd=True):
+def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
   """Checks that a remote command succeeds.
 
   @param cmd: either a string (the command to execute) or a list (to
@@ -152,6 +153,9 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True):
       dict or a string)
   @param log_cmd: if False, the command won't be logged (simply passed to
       StartSSH)
+  @type max_seconds: double
+  @param max_seconds: fail if the command takes more than C{max_seconds}
+      seconds
   @return: the return code of the command
   @raise qa_error.Error: if the command fails when it shouldn't or vice versa
 
@@ -166,8 +170,16 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True):
   else:
     cmdstr = utils.ShellQuoteArgs(cmd)
 
+  start = datetime.datetime.now()
   rcode = StartSSH(nodename, cmdstr, log_cmd=log_cmd).wait()
+  duration_seconds = TimedeltaToTotalSeconds(datetime.datetime.now() - start)
   _AssertRetCode(rcode, fail, cmdstr, nodename)
+
+  if max_seconds is not None:
+    if duration_seconds > max_seconds:
+      raise qa_error.Error(
+        "Cmd '%s' took %f seconds, maximum of %f was exceeded" %
+        (cmdstr, duration_seconds, max_seconds))
 
   return rcode
 
@@ -870,3 +882,19 @@ def ParseIPolicy(policy):
     else:
       ret_policy[key] = val
   return (ret_policy, ret_specs)
+
+
+def TimedeltaToTotalSeconds(td):
+  """Returns the total seconds in a C{datetime.timedelta} object.
+
+  This performs the same task as the C{datetime.timedelta.total_seconds()}
+  method which is present in Python 2.7 onwards.
+
+  @type td: datetime.timedelta
+  @param td: timedelta object to convert
+  @rtype float
+  @return: total seconds in the timedelta object
+
+  """
+  return ((td.microseconds + (td.seconds + td.days * 24.0 * 3600.0) * 10 ** 6) /
+          10 ** 6)
