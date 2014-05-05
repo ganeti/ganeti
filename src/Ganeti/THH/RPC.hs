@@ -65,7 +65,7 @@ dispatch :: (Monad m)
 dispatch fs =
   US.Handler { US.hParse         = decodeRequest
              , US.hInputLogShort = rMethod
-             , US.hInputLogLong  = show
+             , US.hInputLogLong  = rMethod
              , US.hExec          = liftToHandler . exec
              }
   where
