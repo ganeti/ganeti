@@ -42,6 +42,7 @@ import qa_monitoring
 import qa_network
 import qa_node
 import qa_os
+import qa_performance
 import qa_job
 import qa_rapi
 import qa_tags
@@ -784,6 +785,11 @@ def RunMonitoringTests():
     RunTest(qa_monitoring.TestInstStatusCollector)
 
 
+def RunPerformanceTests():
+  if qa_config.TestEnabled("jobqueue-performance"):
+    RunTest(qa_performance.TestParallelInstanceCreationPerformance)
+
+
 def RunQa():
   """Main QA body.
 
@@ -918,6 +924,8 @@ def RunQa():
     qa_cluster.AssertClusterVerify()
 
   RunMonitoringTests()
+
+  RunPerformanceTests()
 
   RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)
 

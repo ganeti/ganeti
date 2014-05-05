@@ -43,10 +43,10 @@ from qa_utils import AssertCommand, GetCommandOutput, GetObjectInfo
 AVAILABLE_LOCKS = [locking.LEVEL_NODE, ]
 
 
-def _GetOutputFromMaster(cmd,
-                         # pylint: disable=W0613
-                         # (only in later branches required)
-                         use_multiplexer=True, log_cmd=True):
+def GetOutputFromMaster(cmd,
+                        # pylint: disable=W0613
+                        # (only in later branches required)
+                        use_multiplexer=True, log_cmd=True):
   """ Gets the output of a command executed on master.
 
   """
@@ -69,7 +69,7 @@ def ExecuteJobProducingCommand(cmd):
   @param cmd: The command to execute, broken into constituent components.
 
   """
-  job_id_output = _GetOutputFromMaster(cmd)
+  job_id_output = GetOutputFromMaster(cmd)
 
   possible_job_ids = re.findall("JobID: ([0-9]+)", job_id_output)
   if len(possible_job_ids) != 1:
@@ -154,7 +154,7 @@ def _GetNodeUUIDMap(nodes):
   """
   cmd = ["gnt-node", "list", "--no-header", "-o", "name,uuid"]
   cmd.extend(nodes)
-  output = _GetOutputFromMaster(cmd)
+  output = GetOutputFromMaster(cmd)
   return dict(map(lambda x: x.split(), output.splitlines()))
 
 
@@ -204,7 +204,7 @@ def _GetBlockingLocks():
   # Due to mysterious issues when a SSH multiplexer is being used by two
   # threads, we turn it off, and block most of the logging to improve the
   # visibility of the other thread's output
-  locks_output = _GetOutputFromMaster("gnt-debug locks", use_multiplexer=False,
+  locks_output = GetOutputFromMaster("gnt-debug locks", use_multiplexer=False,
                                       log_cmd=False)
 
   # The first non-empty line is the header, which we do not need
