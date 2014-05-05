@@ -272,7 +272,8 @@ def _SubmitInstanceRemoveJob(instance):
 
 
 def _TestParallelInstanceCreationAndRemoval(max_instances=None,
-                                            disk_template=None):
+                                            disk_template=None,
+                                            custom_job_driver=None):
   """Tests parallel creation and immediate removal of instances.
 
   @type max_instances: int
@@ -280,9 +281,13 @@ def _TestParallelInstanceCreationAndRemoval(max_instances=None,
   @type disk_template: string
   @param disk_template: disk template for the new instances or C{None} which
                         causes the default disk template to be used
+  @type custom_job_driver: _JobQueueDriver
+  @param custom_job_driver: a custom L{_JobQueueDriver} to use if not L{None}.
+                            If one is specified, C{WaitForCompletion} is _not_
+                            called on it.
 
   """
-  job_driver = _JobQueueDriver()
+  job_driver = custom_job_driver or _JobQueueDriver()
 
   def _CreateSuccessFn(instance, job_driver, _):
     job_id = _SubmitInstanceRemoveJob(instance)
@@ -294,10 +299,11 @@ def _TestParallelInstanceCreationAndRemoval(max_instances=None,
 
   for instance in instance_generator:
     job_id = _SubmitInstanceCreationJob(instance, disk_template=disk_template)
-    job_driver.AddJob(job_id,
-                      success_fn=functools.partial(_CreateSuccessFn, instance))
+    job_driver.AddJob(
+      job_id, success_fn=functools.partial(_CreateSuccessFn, instance))
 
-  job_driver.WaitForCompletion()
+  if custom_job_driver is None:
+    job_driver.WaitForCompletion()
 
 
 def TestParallelMaxInstanceCreationPerformance():
@@ -378,8 +384,8 @@ def TestParallelModify(instances):
   job_driver.WaitForCompletion()
 
 
-def TestParallelInstanceOperations(instances):
-  """PERFORMANCE: Parallel instance operations.
+def TestParallelInstanceOSOperations(instances):
+  """PERFORMANCE: Parallel instance OS operations.
 
   Note: This test leaves the instances either running or stopped, there's no
   guarantee on the actual status.
@@ -534,3 +540,112 @@ def TestParallelDRBDInstanceCreationPerformance():
   _TestParallelInstanceCreationAndRemoval(max_instances=len(nodes) * 2,
                                           disk_template=constants.DT_DRBD8)
   qa_config.ReleaseManyNodes(nodes)
+
+
+def TestParallelPlainInstanceCreationPerformance():
+  """PERFORMANCE: Parallel plain backed instance creation.
+
+  """
+  if not qa_config.IsTemplateSupported(constants.DT_PLAIN):
+    print(qa_logging.FormatInfo("Plain disk template not supported, skipping"))
+
+  nodes = list(_AcquireAllNodes())
+  _TestParallelInstanceCreationAndRemoval(max_instances=len(nodes) * 2,
+                                          disk_template=constants.DT_PLAIN)
+  qa_config.ReleaseManyNodes(nodes)
+
+
+def _TestInstanceOperationInParallelToInstanceCreation(*cmds):
+  """Run the given test command in parallel to an instance creation.
+
+  @type cmds: list of list of strings
+  @param cmds: commands to execute in parallel to an instance creation. Each
+               command in the list is executed once the previous job starts
+               to run.
+
+  """
+  def _SubmitNextCommand(cmd_idx, job_driver, _):
+    if cmd_idx >= len(cmds):
+      return
+    job_id = _ExecuteJobSubmittingCmd(cmds[cmd_idx])
+    job_driver.AddJob(
+      job_id, running_fn=functools.partial(_SubmitNextCommand, cmd_idx + 1))
+
+  if not qa_config.IsTemplateSupported(constants.DT_DRBD8):
+    print(qa_logging.FormatInfo("DRBD disk template not supported, skipping"))
+
+  assert len(cmds) > 0
+
+  job_driver = _JobQueueDriver()
+  _SubmitNextCommand(0, job_driver, None)
+
+  _TestParallelInstanceCreationAndRemoval(max_instances=1,
+                                          disk_template=constants.DT_DRBD8,
+                                          custom_job_driver=job_driver)
+
+  job_driver.WaitForCompletion()
+
+
+def TestParallelInstanceFailover(instance):
+  """PERFORMANCE: Instance failover with parallel instance creation.
+
+  """
+  _TestInstanceOperationInParallelToInstanceCreation(
+    ["gnt-instance", "failover", "--submit", "-f", "--shutdown-timeout=0",
+     instance.name])
+
+
+def TestParallelInstanceMigration(instance):
+  """PERFORMANCE: Instance migration with parallel instance creation.
+
+  """
+  _TestInstanceOperationInParallelToInstanceCreation(
+    ["gnt-instance", "migrate", "--submit", "-f", instance.name])
+
+
+def TestParallelInstanceReplaceDisks(instance):
+  """PERFORMANCE: Instance replace-disks with parallel instance creation.
+
+  """
+  _TestInstanceOperationInParallelToInstanceCreation(
+    ["gnt-instance", "replace-disks", "--submit", "--early-release", "-p",
+     instance.name])
+
+
+def TestParallelInstanceReboot(instance):
+  """PERFORMANCE: Instance reboot with parallel instance creation.
+
+  """
+  _TestInstanceOperationInParallelToInstanceCreation(
+    ["gnt-instance", "reboot", "--submit", instance.name])
+
+
+def TestParallelInstanceReinstall(instance):
+  """PERFORMANCE: Instance reinstall with parallel instance creation.
+
+  """
+  # instance reinstall requires the instance to be down
+  qa_utils.AssertCommand(["gnt-instance", "stop", instance.name])
+
+  _TestInstanceOperationInParallelToInstanceCreation(
+    ["gnt-instance", "reinstall", "--submit", "-f", instance.name])
+
+  qa_utils.AssertCommand(["gnt-instance", "start", instance.name])
+
+
+def TestParallelInstanceRename(instance):
+  """PERFORMANCE: Instance rename with parallel instance creation.
+
+  """
+  # instance rename requires the instance to be down
+  qa_utils.AssertCommand(["gnt-instance", "stop", instance.name])
+
+  new_instance = qa_config.AcquireInstance()
+  try:
+    _TestInstanceOperationInParallelToInstanceCreation(
+      ["gnt-instance", "rename", "--submit", instance.name, new_instance.name],
+      ["gnt-instance", "rename", "--submit", new_instance.name, instance.name])
+  finally:
+    new_instance.Release()
+
+  qa_utils.AssertCommand(["gnt-instance", "start", instance.name])
