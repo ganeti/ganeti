@@ -1,0 +1,18 @@
+[Unit]
+Description = Ganeti query daemon (luxid)
+Documentation = man:ganeti-luxid(8)
+Requires = ganeti-common.service
+After = ganeti-common.service
+PartOf = ganeti-master.target
+ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/config.data
+
+[Service]
+Type = simple
+User = @GNTLUXIDUSER@
+Group = @GNTLUXIDGROUP@
+ExecStart = @SBINDIR@/ganeti-luxid -f
+Restart = on-failure
+SuccessExitStatus = 0 11
+
+[Install]
+WantedBy = ganeti-master.target ganeti.target

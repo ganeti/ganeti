@@ -1,0 +1,18 @@
+[Unit]
+Description = Ganeti config writer daemon (wconfd)
+Documentation = man:ganeti-wconfd(8)
+Requires = ganeti-common.service
+After = ganeti-common.service
+PartOf = ganeti-master.target
+ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/config.data
+
+[Service]
+Type = simple
+User = @GNTWCONFDUSER@
+Group = @GNTWCONFDGROUP@
+ExecStart = @SBINDIR@/ganeti-wconfd -f
+Restart = on-failure
+SuccessExitStatus = 0 11
+
+[Install]
+WantedBy = ganeti-master.target ganeti.target

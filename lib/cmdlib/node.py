@@ -483,7 +483,7 @@ class LUNodeSetParams(LogicalUnit):
 
     """
     return (instance.disk_template in constants.DTS_INT_MIRROR and
-            self.op.node_uuid in instance.all_nodes)
+            self.op.node_uuid in self.cfg.GetInstanceNodes(instance.uuid))
 
   def ExpandNames(self):
     if self.lock_all:
@@ -858,7 +858,8 @@ def _GetNodeSecondaryInstances(cfg, node_uuid):
 
   """
   return _GetNodeInstancesInner(cfg,
-                                lambda inst: node_uuid in inst.secondary_nodes)
+                                lambda inst: node_uuid in
+                                  cfg.GetInstanceSecondaryNodes(inst.uuid))
 
 
 def _GetNodeInstances(cfg, node_uuid):
@@ -866,7 +867,9 @@ def _GetNodeInstances(cfg, node_uuid):
 
   """
 
-  return _GetNodeInstancesInner(cfg, lambda inst: node_uuid in inst.all_nodes)
+  return _GetNodeInstancesInner(cfg,
+                                lambda inst: node_uuid in
+                                  cfg.GetInstanceNodes(inst.uuid.uuid))
 
 
 class LUNodeEvacuate(NoHooksLU):
@@ -1243,7 +1246,7 @@ class LUNodeQueryvols(NoHooksLU):
     volumes = self.rpc.call_node_volumes(node_uuids)
 
     ilist = self.cfg.GetAllInstancesInfo()
-    vol2inst = MapInstanceLvsToNodes(ilist.values())
+    vol2inst = MapInstanceLvsToNodes(self.cfg, ilist.values())
 
     output = []
     for node_uuid in node_uuids:
@@ -1458,7 +1461,7 @@ class LUNodeRemove(LogicalUnit):
                                  " node is required", errors.ECODE_INVAL)
 
     for _, instance in self.cfg.GetAllInstancesInfo().items():
-      if node.uuid in instance.all_nodes:
+      if node.uuid in self.cfg.GetInstanceNodes(instance.uuid):
         raise errors.OpPrereqError("Instance %s is still running on the node,"
                                    " please remove first" % instance.name,
                                    errors.ECODE_INVAL)
@@ -1557,7 +1560,7 @@ class LURepairNodeStorage(NoHooksLU):
     for inst in _GetNodeInstances(self.cfg, self.op.node_uuid):
       if not inst.disks_active:
         continue
-      check_nodes = set(inst.all_nodes)
+      check_nodes = set(self.cfg.GetInstanceNodes(inst.uuid))
       check_nodes.discard(self.op.node_uuid)
       for inst_node_uuid in check_nodes:
         self._CheckFaultyDisks(inst, inst_node_uuid)

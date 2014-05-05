@@ -107,8 +107,7 @@ def _ConfigSync(shared=0):
         logging.debug("ConfigWriter.%s(%s, %s)",
                       fn.__name__, str(args), str(kwargs))
         result = fn(*args, **kwargs)
-        logging.debug("ConfigWriter.%s(...) returned '%s'",
-                      fn.__name__, str(result))
+        logging.debug("ConfigWriter.%s(...) returned", fn.__name__)
         return result
     return sync_function
   return wrap
@@ -255,6 +254,16 @@ class ConfigManager(object):
     return False
 
 
+def _UpdateIvNames(base_idx, disks):
+  """Update the C{iv_name} attribute of disks.
+
+  @type disks: list of L{objects.Disk}
+
+  """
+  for (idx, disk) in enumerate(disks):
+    disk.iv_name = "disk/%s" % (base_idx + idx)
+
+
 class ConfigWriter(object):
   """The interface to the cluster configuration.
 
@@ -349,6 +358,314 @@ class ConfigWriter(object):
     node = self._UnlockedGetNodeInfo(instance.primary_node)
     nodegroup = self._UnlockedGetNodeGroup(node.group)
     return self._UnlockedGetGroupDiskParams(nodegroup)
+
+  def _UnlockedGetInstanceDisks(self, inst_uuid):
+    """Return the disks' info for the given instance
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance we want to know the disks for
+
+    @rtype: List of L{objects.Disk}
+    @return: A list with all the disks' info
+
+    """
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
+
+    return [self._UnlockedGetDiskInfo(disk_uuid)
+            for disk_uuid in instance.disks]
+
+  @_ConfigSync(shared=1)
+  def GetInstanceDisks(self, inst_uuid):
+    """Return the disks' info for the given instance
+
+    This is a simple wrapper over L{_UnlockedGetInstanceDisks}.
+
+    """
+    return self._UnlockedGetInstanceDisks(inst_uuid)
+
+  def _UnlockedAddDisk(self, disk):
+    """Add a disk to the config.
+
+    @type disk: L{objects.Disk}
+    @param disk: The disk object
+
+    """
+    if not isinstance(disk, objects.Disk):
+      raise errors.ProgrammerError("Invalid type passed to _UnlockedAddDisk")
+
+    logging.info("Adding disk %s to configuration", disk.uuid)
+
+    self._CheckUniqueUUID(disk, include_temporary=False)
+    disk.serial_no = 1
+    disk.ctime = disk.mtime = time.time()
+    disk.UpgradeConfig()
+    self._ConfigData().disks[disk.uuid] = disk
+    self._ConfigData().cluster.serial_no += 1
+
+  def _UnlockedAttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
+    """Attach a disk to an instance.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance object
+    @type disk_uuid: string
+    @param disk_uuid: The UUID of the disk object
+    @type idx: int
+    @param idx: the index of the newly attached disk; if not
+      passed, the disk will be attached as the last one.
+
+    """
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Instance %s doesn't exist"
+                                      % inst_uuid)
+    if disk_uuid not in self._ConfigData().disks:
+      raise errors.ConfigurationError("Disk %s doesn't exist" % disk_uuid)
+
+    if idx is None:
+      idx = len(instance.disks)
+    else:
+      if idx < 0:
+        raise IndexError("Not accepting negative indices other than -1")
+      elif idx > len(instance.disks):
+        raise IndexError("Got disk index %s, but there are only %s" %
+                         (idx, len(instance.disks)))
+
+    # Disk must not be attached anywhere else
+    for inst in self._ConfigData().instances.values():
+      if disk_uuid in inst.disks:
+        raise errors.ReservationError("Disk %s already attached to instance %s"
+                                      % (disk_uuid, inst.name))
+
+    instance.disks.insert(idx, disk_uuid)
+    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
+    _UpdateIvNames(idx, instance_disks[idx:])
+    instance.serial_no += 1
+    instance.mtime = time.time()
+
+  @_ConfigSync()
+  def AddInstanceDisk(self, inst_uuid, disk, idx=None):
+    """Add a disk to the config and attach it to instance.
+
+    This is a simple wrapper over L{_UnlockedAddDisk} and
+    L{_UnlockedAttachInstanceDisk}.
+
+    """
+    self._UnlockedAddDisk(disk)
+    self._UnlockedAttachInstanceDisk(inst_uuid, disk.uuid, idx)
+
+  def _UnlockedDetachInstanceDisk(self, inst_uuid, disk_uuid):
+    """Detach a disk from an instance.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance object
+    @type disk_uuid: string
+    @param disk_uuid: The UUID of the disk object
+
+    """
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Instance %s doesn't exist"
+                                      % inst_uuid)
+    if disk_uuid not in self._ConfigData().disks:
+      raise errors.ConfigurationError("Disk %s doesn't exist" % disk_uuid)
+
+    # Check if disk is attached to the instance
+    if disk_uuid not in instance.disks:
+      raise errors.ProgrammerError("Disk %s is not attached to an instance"
+                                   % disk_uuid)
+
+    idx = instance.disks.index(disk_uuid)
+    instance.disks.remove(disk_uuid)
+    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
+    _UpdateIvNames(idx, instance_disks[idx:])
+    instance.serial_no += 1
+    instance.mtime = time.time()
+
+  def _UnlockedRemoveDisk(self, disk_uuid):
+    """Remove the disk from the configuration.
+
+    @type disk_uuid: string
+    @param disk_uuid: The UUID of the disk object
+
+    """
+    if disk_uuid not in self._ConfigData().disks:
+      raise errors.ConfigurationError("Disk %s doesn't exist" % disk_uuid)
+
+    # Disk must not be attached anywhere
+    for inst in self._ConfigData().instances.values():
+      if disk_uuid in inst.disks:
+        raise errors.ReservationError("Cannot remove disk %s. Disk is"
+                                      " attached to instance %s"
+                                      % (disk_uuid, inst.name))
+
+    # Remove disk from config file
+    del self._ConfigData().disks[disk_uuid]
+    self._ConfigData().cluster.serial_no += 1
+
+  @_ConfigSync()
+  def RemoveInstanceDisk(self, inst_uuid, disk_uuid):
+    """Detach a disk from an instance and remove it from the config.
+
+    This is a simple wrapper over L{_UnlockedDetachInstanceDisk} and
+    L{_UnlockedRemoveDisk}.
+
+    """
+    self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
+    self._UnlockedRemoveDisk(disk_uuid)
+
+  def _UnlockedGetDiskInfo(self, disk_uuid):
+    """Returns information about a disk.
+
+    It takes the information from the configuration file.
+
+    @param disk_uuid: UUID of the disk
+
+    @rtype: L{objects.Disk}
+    @return: the disk object
+
+    """
+    if disk_uuid not in self._ConfigData().disks:
+      return None
+
+    return self._ConfigData().disks[disk_uuid]
+
+  @_ConfigSync(shared=1)
+  def GetDiskInfo(self, disk_uuid):
+    """Returns information about a disk.
+
+    This is a simple wrapper over L{_UnlockedGetDiskInfo}.
+
+    """
+    return self._UnlockedGetDiskInfo(disk_uuid)
+
+  def _AllInstanceNodes(self, inst_uuid):
+    """Compute the set of all disk-related nodes for an instance.
+
+    This abstracts away some work from '_UnlockedGetInstanceNodes'
+    and '_UnlockedGetInstanceSecondaryNodes'.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance we want to get nodes for
+    @rtype: set of strings
+    @return: A set of names for all the nodes of the instance
+
+    """
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
+
+    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
+    all_nodes = []
+    for disk in instance_disks:
+      all_nodes.extend(disk.all_nodes)
+    return (set(all_nodes), instance)
+
+  def _UnlockedGetInstanceNodes(self, inst_uuid):
+    """Get all disk-related nodes for an instance.
+
+    For non-DRBD, this will be empty, for DRBD it will contain both
+    the primary and the secondaries.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance we want to get nodes for
+    @rtype: list of strings
+    @return: A list of names for all the nodes of the instance
+
+    """
+    (all_nodes, instance) = self._AllInstanceNodes(inst_uuid)
+    # ensure that primary node is always the first
+    all_nodes.discard(instance.primary_node)
+    return (instance.primary_node, ) + tuple(all_nodes)
+
+  @_ConfigSync(shared=1)
+  def GetInstanceNodes(self, inst_uuid):
+    """Get all disk-related nodes for an instance.
+
+    This is just a wrapper over L{_UnlockedGetInstanceNodes}
+
+    """
+    return self._UnlockedGetInstanceNodes(inst_uuid)
+
+  def _UnlockedGetInstanceSecondaryNodes(self, inst_uuid):
+    """Get the list of secondary nodes.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance we want to get nodes for
+    @rtype: list of strings
+    @return: A list of names for all the secondary nodes of the instance
+
+    """
+    (all_nodes, instance) = self._AllInstanceNodes(inst_uuid)
+    all_nodes.discard(instance.primary_node)
+    return tuple(all_nodes)
+
+  @_ConfigSync(shared=1)
+  def GetInstanceSecondaryNodes(self, inst_uuid):
+    """Get the list of secondary nodes.
+
+    This is a simple wrapper over L{_UnlockedGetInstanceSecondaryNodes}.
+
+    """
+    return self._UnlockedGetInstanceSecondaryNodes(inst_uuid)
+
+  def _UnlockedGetInstanceLVsByNode(self, inst_uuid, lvmap=None):
+    """Provide a mapping of node to LVs a given instance owns.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance we want to
+        compute the LVsByNode for
+    @type lvmap: dict
+    @param lvmap: Optional dictionary to receive the
+        'node' : ['lv', ...] data.
+    @rtype: dict or None
+    @return: None if lvmap arg is given, otherwise, a dictionary of
+        the form { 'node_uuid' : ['volume1', 'volume2', ...], ... };
+        volumeN is of the form "vg_name/lv_name", compatible with
+        GetVolumeList()
+
+    """
+    def _MapLVsByNode(lvmap, devices, node_uuid):
+      """Recursive helper function."""
+      if not node_uuid in lvmap:
+        lvmap[node_uuid] = []
+
+      for dev in devices:
+        if dev.dev_type == constants.DT_PLAIN:
+          lvmap[node_uuid].append(dev.logical_id[0] + "/" + dev.logical_id[1])
+
+        elif dev.dev_type in constants.DTS_DRBD:
+          if dev.children:
+            _MapLVsByNode(lvmap, dev.children, dev.logical_id[0])
+            _MapLVsByNode(lvmap, dev.children, dev.logical_id[1])
+
+        elif dev.children:
+          _MapLVsByNode(lvmap, dev.children, node_uuid)
+
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
+
+    if lvmap is None:
+      lvmap = {}
+      ret = lvmap
+    else:
+      ret = None
+
+    _MapLVsByNode(lvmap,
+                  self._UnlockedGetInstanceDisks(instance.uuid),
+                  instance.primary_node)
+    return ret
+
+  @_ConfigSync(shared=1)
+  def GetInstanceLVsByNode(self, inst_uuid, lvmap=None):
+    """Provide a mapping of node to LVs a given instance owns.
+
+    This is a simple wrapper over L{_UnlockedGetInstanceLVsByNode}
+
+    """
+    return self._UnlockedGetInstanceLVsByNode(inst_uuid, lvmap=lvmap)
 
   @_ConfigSync(shared=1)
   def GetGroupDiskParams(self, group):
@@ -546,30 +863,10 @@ class ConfigWriter(object):
     """
     lvnames = set()
     for instance in self._ConfigData().instances.values():
-      node_data = instance.MapLVsByNode()
+      node_data = self._UnlockedGetInstanceLVsByNode(instance.uuid)
       for lv_list in node_data.values():
         lvnames.update(lv_list)
     return lvnames
-
-  def _AllDisks(self):
-    """Compute the list of all Disks (recursively, including children).
-
-    """
-    def DiskAndAllChildren(disk):
-      """Returns a list containing the given disk and all of his children.
-
-      """
-      disks = [disk]
-      if disk.children:
-        for child_disk in disk.children:
-          disks.extend(DiskAndAllChildren(child_disk))
-      return disks
-
-    disks = []
-    for instance in self._ConfigData().instances.values():
-      for disk in instance.disks:
-        disks.extend(DiskAndAllChildren(disk))
-    return disks
 
   def _AllNICs(self):
     """Compute the list of all NICs.
@@ -653,34 +950,36 @@ class ConfigWriter(object):
           helper(child, result)
 
     result = []
-    for instance in self._ConfigData().instances.values():
-      for disk in instance.disks:
-        helper(disk, result)
+    for disk in self._ConfigData().disks.values():
+      helper(disk, result)
 
     return result
 
-  def _CheckDiskIDs(self, disk, l_ids):
-    """Compute duplicate disk IDs
+  @staticmethod
+  def _VerifyDisks(data, result):
+    """Per-disk verification checks
 
-    @type disk: L{objects.Disk}
-    @param disk: the disk at which to start searching
-    @type l_ids: list
-    @param l_ids: list of current logical ids
-    @rtype: list
-    @return: a list of error messages
+    Extends L{result} with diagnostic information about the disks.
+
+    @type data: see L{_ConfigData}
+    @param data: configuration data
+
+    @type result: list of strings
+    @param result: list containing diagnostic messages
 
     """
-    result = []
-    if disk.logical_id is not None:
-      if disk.logical_id in l_ids:
-        result.append("duplicate logical id %s" % str(disk.logical_id))
-      else:
-        l_ids.append(disk.logical_id)
-
-    if disk.children:
-      for child in disk.children:
-        result.extend(self._CheckDiskIDs(child, l_ids))
-    return result
+    instance_disk_uuids = [d for insts in data.instances.values()
+                           for d in insts.disks]
+    for disk_uuid in data.disks:
+      disk = data.disks[disk_uuid]
+      result.extend(["disk %s error: %s" % (disk.uuid, msg)
+                     for msg in disk.Verify()])
+      if disk.uuid != disk_uuid:
+        result.append("disk '%s' is indexed by wrong UUID '%s'" %
+                      (disk.name, disk_uuid))
+      if disk.uuid not in instance_disk_uuids:
+        result.append("disk '%s' is not attached to any instance" %
+                      disk.uuid)
 
   def _UnlockedVerifyConfig(self):
     """Verify function.
@@ -696,7 +995,6 @@ class ConfigWriter(object):
     ports = {}
     data = self._ConfigData()
     cluster = data.cluster
-    seen_lids = []
 
     # global cluster checks
     if not cluster.enabled_hypervisors:
@@ -797,6 +1095,8 @@ class ConfigWriter(object):
           )
         )
 
+    self._VerifyDisks(data, result)
+
     # per-instance checks
     for instance_uuid in data.instances:
       instance = data.instances[instance_uuid]
@@ -806,7 +1106,7 @@ class ConfigWriter(object):
       if instance.primary_node not in data.nodes:
         result.append("instance '%s' has invalid primary node '%s'" %
                       (instance.name, instance.primary_node))
-      for snode in instance.secondary_nodes:
+      for snode in self._UnlockedGetInstanceSecondaryNodes(instance.uuid):
         if snode not in data.nodes:
           result.append("instance '%s' has invalid secondary node '%s'" %
                         (instance.name, snode))
@@ -833,8 +1133,15 @@ class ConfigWriter(object):
         _helper("instance %s" % instance.name, "beparams",
                 cluster.FillBE(instance), constants.BES_PARAMETER_TYPES)
 
+      # check that disks exists
+      for disk_uuid in instance.disks:
+        if disk_uuid not in data.disks:
+          result.append("Instance '%s' has invalid disk '%s'" %
+                        (instance.name, disk_uuid))
+
+      instance_disks = self._UnlockedGetInstanceDisks(instance.uuid)
       # gather the drbd ports for duplicate checks
-      for (idx, dsk) in enumerate(instance.disks):
+      for (idx, dsk) in enumerate(instance_disks):
         if dsk.dev_type in constants.DTS_DRBD:
           tcp_port = dsk.logical_id[2]
           if tcp_port not in ports:
@@ -847,13 +1154,7 @@ class ConfigWriter(object):
           ports[net_port] = []
         ports[net_port].append((instance.name, "network port"))
 
-      # instance disk verify
-      for idx, disk in enumerate(instance.disks):
-        result.extend(["instance '%s' disk %d error: %s" %
-                       (instance.name, idx, msg) for msg in disk.Verify()])
-        result.extend(self._CheckDiskIDs(disk, seen_lids))
-
-      wrong_names = _CheckInstanceDiskIvNames(instance.disks)
+      wrong_names = _CheckInstanceDiskIvNames(instance_disks)
       if wrong_names:
         tmp = "; ".join(("name of disk %s should be '%s', but is '%s'" %
                          (idx, exp_name, actual_name))
@@ -1070,7 +1371,7 @@ class ConfigWriter(object):
     duplicates = []
     my_dict = dict((node_uuid, {}) for node_uuid in self._ConfigData().nodes)
     for instance in self._ConfigData().instances.itervalues():
-      for disk in instance.disks:
+      for disk in self._UnlockedGetInstanceDisks(instance.uuid):
         duplicates.extend(_AppendUsedMinors(self._UnlockedGetNodeName,
                                             instance, disk, my_dict))
     for (node_uuid, minor), inst_uuid in self._temporary_drbds.iteritems():
@@ -1578,10 +1879,6 @@ class ConfigWriter(object):
     if not isinstance(instance, objects.Instance):
       raise errors.ProgrammerError("Invalid type passed to AddInstance")
 
-    if instance.disk_template != constants.DT_DISKLESS:
-      all_lvs = instance.MapLVsByNode()
-      logging.info("Instance '%s' DISK_LAYOUT: %s", instance.name, all_lvs)
-
     all_macs = self._AllMACs()
     for nic in instance.nics:
       if nic.mac in all_macs:
@@ -1717,7 +2014,8 @@ class ConfigWriter(object):
     inst = self._ConfigData().instances[inst_uuid]
     inst.name = new_name
 
-    for (_, disk) in enumerate(inst.disks):
+    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
+    for (_, disk) in enumerate(instance_disks):
       if disk.dev_type in [constants.DT_FILE, constants.DT_SHARED_FILE]:
         # rename the file paths in logical and physical id
         file_storage_dir = os.path.dirname(os.path.dirname(disk.logical_id[1]))
@@ -1834,7 +2132,7 @@ class ConfigWriter(object):
     if primary_only:
       nodes = [instance.primary_node]
     else:
-      nodes = instance.all_nodes
+      nodes = self._UnlockedGetInstanceNodes(instance.uuid)
 
     return frozenset(self._UnlockedGetNodeInfo(node_uuid).group
                      for node_uuid in nodes)
@@ -2086,7 +2384,7 @@ class ConfigWriter(object):
     for inst in self._ConfigData().instances.values():
       if inst.primary_node == node_uuid:
         pri.append(inst.uuid)
-      if node_uuid in inst.secondary_nodes:
+      if node_uuid in self._UnlockedGetInstanceSecondaryNodes(inst.uuid):
         sec.append(inst.uuid)
     return (pri, sec)
 
@@ -2103,7 +2401,7 @@ class ConfigWriter(object):
     if primary_only:
       nodes_fn = lambda inst: [inst.primary_node]
     else:
-      nodes_fn = lambda inst: inst.all_nodes
+      nodes_fn = lambda inst: self._UnlockedGetInstanceNodes(inst.uuid)
 
     return frozenset(inst.uuid
                      for inst in self._ConfigData().instances.values()
@@ -2487,7 +2785,7 @@ class ConfigWriter(object):
             self._ConfigData().nodes.values() +
             self._ConfigData().nodegroups.values() +
             self._ConfigData().networks.values() +
-            self._AllDisks() +
+            self._ConfigData().disks.values() +
             self._AllNICs() +
             [self._ConfigData().cluster])
 
@@ -2566,8 +2864,8 @@ class ConfigWriter(object):
       while True:
         dict_data = \
           self._wconfd.LockConfig(self._GetWConfdContext(), bool(shared))
-        logging.debug("Received '%s' from WConfd.LockConfig [shared=%s]",
-                      str(dict_data), bool(shared))
+        logging.debug("Received config from WConfd.LockConfig [shared=%s]",
+                      bool(shared))
         if dict_data is not None:
           break
         time.sleep(random.random())
@@ -2928,6 +3226,8 @@ class ConfigWriter(object):
       replace_in(target, self._ConfigData().nodegroups)
     elif isinstance(target, objects.Network):
       replace_in(target, self._ConfigData().networks)
+    elif isinstance(target, objects.Disk):
+      replace_in(target, self._ConfigData().disks)
     else:
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))

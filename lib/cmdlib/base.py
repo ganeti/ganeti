@@ -472,7 +472,8 @@ class LogicalUnit(object):
     for _, instance in self.cfg.GetMultiInstanceInfoByName(locked_i):
       wanted_node_uuids.append(instance.primary_node)
       if not primary_only:
-        wanted_node_uuids.extend(instance.secondary_nodes)
+        wanted_node_uuids.extend(
+          self.cfg.GetInstanceSecondaryNodes(instance.uuid))
 
     if self.recalculate_locks[level] == constants.LOCKS_REPLACE:
       self.needed_locks[level] = wanted_node_uuids

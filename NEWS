@@ -29,8 +29,12 @@ New features
   - Attempting to override public parameters with private or secret parameters
     results in an error. Similarly, you may not use secret parameters to
     override private parameters.
-  - The move-instance tool can now attempt to allocate an instance by using
-    opportunistic locking when an iallocator is used.
+
+- The move-instance tool can now attempt to allocate an instance by using
+  opportunistic locking when an iallocator is used.
+- The build system creates sample systemd unit files, available under
+  doc/examples/systemd. These unit files allow systemd to natively
+  manage and supervise all Ganeti processes.
 
 
 Version 2.11.0

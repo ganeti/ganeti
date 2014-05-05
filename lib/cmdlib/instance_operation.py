@@ -86,7 +86,8 @@ class LUInstanceStartup(LogicalUnit):
     """Build hooks nodes.
 
     """
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
+    nl = [self.cfg.GetMasterNode()] + \
+        list(self.cfg.GetInstanceNodes(self.instance.uuid))
     return (nl, nl)
 
   def CheckPrereq(self):
@@ -108,8 +109,8 @@ class LUInstanceStartup(LogicalUnit):
       filled_hvp.update(self.op.hvparams)
       hv_type = hypervisor.GetHypervisorClass(self.instance.hypervisor)
       hv_type.CheckParameterSyntax(filled_hvp)
-      CheckHVParams(self, self.instance.all_nodes, self.instance.hypervisor,
-                    filled_hvp)
+      CheckHVParams(self, self.cfg.GetInstanceNodes(self.instance.uuid),
+                    self.instance.hypervisor, filled_hvp)
 
     CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
 
@@ -199,7 +200,8 @@ class LUInstanceShutdown(LogicalUnit):
     """Build hooks nodes.
 
     """
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
+    nl = [self.cfg.GetMasterNode()] + \
+      list(self.cfg.GetInstanceNodes(self.instance.uuid))
     return (nl, nl)
 
   def CheckPrereq(self):
@@ -275,7 +277,8 @@ class LUInstanceReinstall(LogicalUnit):
     """Build hooks nodes.
 
     """
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
+    nl = [self.cfg.GetMasterNode()] + \
+      list(self.cfg.GetInstanceNodes(self.instance.uuid))
     return (nl, nl)
 
   def CheckPrereq(self):
@@ -303,7 +306,7 @@ class LUInstanceReinstall(LogicalUnit):
 
   def _MergeValidateOsParams(self, instance):
     "Handle the OS parameter merging and validation for the target instance."
-    node_uuids = list(instance.all_nodes)
+    node_uuids = list(self.cfg.GetInstanceNodes(instance.uuid))
 
     self.op.osparams = self.op.osparams or {}
     self.op.osparams_private = self.op.osparams_private or {}
@@ -434,7 +437,8 @@ class LUInstanceReboot(LogicalUnit):
     """Build hooks nodes.
 
     """
-    nl = [self.cfg.GetMasterNode()] + list(self.instance.all_nodes)
+    nl = [self.cfg.GetMasterNode()] + \
+      list(self.cfg.GetInstanceNodes(self.instance.uuid))
     return (nl, nl)
 
   def CheckPrereq(self):

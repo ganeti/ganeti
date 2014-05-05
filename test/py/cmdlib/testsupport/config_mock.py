@@ -258,11 +258,13 @@ class ConfigMock(config.ConfigWriter):
                             osparams_private=osparams_private,
                             admin_state=admin_state,
                             nics=nics,
-                            disks=disks,
+                            disks=[],
                             disk_template=disk_template,
                             disks_active=disks_active,
                             network_port=network_port)
     self.AddInstance(inst, None)
+    for disk in disks:
+      self.AddInstanceDisk(inst.uuid, disk)
     return inst
 
   def AddNewNetwork(self,
@@ -552,7 +554,8 @@ class ConfigMock(config.ConfigWriter):
       nodegroups={},
       nodes={},
       instances={},
-      networks={})
+      networks={},
+      disks={})
 
     master_node_uuid = self._GetUuid()
 

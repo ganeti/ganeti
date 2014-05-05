@@ -207,7 +207,8 @@ class LUInstanceQueryData(NoHooksLU):
 
     cluster = self.cfg.GetClusterInfo()
 
-    node_uuids = itertools.chain(*(i.all_nodes for i in self.wanted_instances))
+    node_uuids = itertools.chain(*(self.cfg.GetInstanceNodes(i.uuid)
+                                   for i in self.wanted_instances))
     nodes = dict(self.cfg.GetMultiNodeInfo(node_uuids))
 
     groups = dict(self.cfg.GetMultiNodeGroupInfo(node.group
@@ -246,10 +247,11 @@ class LUInstanceQueryData(NoHooksLU):
 
       disks = map(compat.partial(self._ComputeDiskStatus, instance,
                                  node_uuid2name_fn),
-                  instance.disks)
+                  self.cfg.GetInstanceDisks(instance.uuid))
 
+      secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
       snodes_group_uuids = [nodes[snode_uuid].group
-                            for snode_uuid in instance.secondary_nodes]
+                            for snode_uuid in secondary_nodes]
 
       result[instance.name] = {
         "name": instance.name,
@@ -258,7 +260,7 @@ class LUInstanceQueryData(NoHooksLU):
         "pnode": pnode.name,
         "pnode_group_uuid": pnode.group,
         "pnode_group_name": group2name_fn(pnode.group),
-        "snodes": map(node_uuid2name_fn, instance.secondary_nodes),
+        "snodes": map(node_uuid2name_fn, secondary_nodes),
         "snodes_group_uuids": snodes_group_uuids,
         "snodes_group_names": map(group2name_fn, snodes_group_uuids),
         "os": instance.os,

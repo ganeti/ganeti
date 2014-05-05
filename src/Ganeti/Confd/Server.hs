@@ -201,7 +201,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeDrbd }) = do
                  PlainQuery str -> return str
                  _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
   node <- gntErrorToResult $ getNode cfg node_name
-  let minors = concatMap (getInstMinorsForNode (nodeUuid node)) .
+  let minors = concatMap (getInstMinorsForNode cfg (nodeUuid node)) .
                M.elems . fromContainer . configInstances $ cfg
   encoded <- mapM (encodeMinors cfg) minors
   return (ReplyStatusOk, J.showJSON encoded)
@@ -220,6 +220,17 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeInstances }) = do
   let node_uuid = nodeUuid node
       instances = getNodeInstances cfg node_uuid
   return (ReplyStatusOk, J.showJSON instances)
+
+-- | Return the list of disks for an instance given the instance uuid.
+buildResponse cdata req@(ConfdRequest { confdRqType = ReqInstanceDisks }) = do
+  let cfg = fst cdata
+  inst_uuid <-
+    case confdRqQuery req of
+      PlainQuery str -> return str
+      _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
+  case getInstDisks cfg inst_uuid of
+    Ok disks -> return (ReplyStatusOk, J.showJSON disks)
+    Bad e -> fail $ "Could not retrieve disks: " ++ show e
 
 -- | Creates a ConfdReply from a given answer.
 serializeResponse :: Result StatusAnswer -> ConfdReply

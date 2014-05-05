@@ -1,0 +1,17 @@
+[Unit]
+Description = Ganeti configuration daemon (confd)
+Documentation = man:ganeti-confd(8)
+Requires = ganeti-common.service
+After = ganeti-common.service
+PartOf = ganeti-node.target
+ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/config.data
+
+[Service]
+Type = simple
+User = @GNTCONFDUSER@
+Group = @GNTCONFDGROUP@
+ExecStart = @SBINDIR@/ganeti-confd -f
+Restart = on-failure
+
+[Install]
+WantedBy = ganeti-node.target ganeti.target

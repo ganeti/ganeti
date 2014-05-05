@@ -180,7 +180,7 @@ computeGlobalStatus instStatusList =
 buildInstStatusReport :: Maybe String -> Maybe Int -> IO DCReport
 buildInstStatusReport srvAddr srvPort = do
   node <- getHostName
-  answer <- getInstances node srvAddr srvPort
+  answer <- runResultT $ getInstances node srvAddr srvPort
   inst <- exitIfBad "Can't get instance info from ConfD" answer
   d <- getInferredDomInfo
   reportData <-

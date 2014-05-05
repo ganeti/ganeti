@@ -129,12 +129,12 @@ There are four operations that can be performed to a `Disk` object:
 
 The first two operations will be performed using the config functions
 ``AddDisk`` and ``RemoveDisk`` respectively where the last two operations
-will be performed using the functions ``AttachInstDisk`` and
-``DetachInstDisk``.
+will be performed using the functions ``AttachInstanceDisk`` and
+``DetachInstanceDisk``.
 
 Since Ganeti doesn't allow for a `Disk` object to not be attached anywhere (for
-now) we will create two wrapper functions (namely ``AddInstDisk`` and
-``RemoveInstDisk``) which will add and attach a disk at the same time
+now) we will create two wrapper functions (namely ``AddInstanceDisk`` and
+``RemoveInstanceDisk``) which will add and attach a disk at the same time
 (respectively detach and remove a disk).
 
 In addition since Ganeti doesn't allow for a `Disk` object to be attached to

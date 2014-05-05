@@ -122,51 +122,55 @@ getLvInfo inputFile = do
         ++ show contexts ++ "\n" ++ errorMessage
     A.Done _ lvinfoD -> return lvinfoD
 
--- | Get the list of instances on the current node (both primary and secondary)
+-- | Get the list of instances on the current node along with their disks,
 -- either from a provided file or by querying Confd.
-getInstanceList :: Options -> IO ([Instance], [Instance])
-getInstanceList opts = do
-  let srvAddr = optConfdAddr opts
-      srvPort = optConfdPort opts
-      instFile = optInstances opts
-      fromConfdUnchecked :: IO (BT.Result ([Instance], [Instance]))
-      fromConfdUnchecked = getHostName >>= \n -> getInstances n srvAddr srvPort
-      fromConfd :: IO (BT.Result ([Instance], [Instance]))
-      fromConfd =
-        liftM (either (BT.Bad . show) id) (E.try fromConfdUnchecked :: 
-          IO (Either IOError (BT.Result ([Instance], [Instance]))))
-      fromFile :: FilePath -> IO (BT.Result ([Instance], [Instance]))
-      fromFile inputFile = do
-        contents <-
-          ((E.try $ readFile inputFile) :: IO (Either IOError String))
-            >>= exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
-        return . fromJResult "Not a list of instances" $ J.decode contents
-  instances <- maybe fromConfd fromFile instFile
+getInstDiskList :: Options -> IO [(Instance, [Disk])]
+getInstDiskList opts = do
+  instances <- maybe fromConfd fromFile $ optInstances opts
   exitIfBad "Unable to obtain the list of instances" instances
+  where
+    fromConfdUnchecked :: IO (BT.Result [(Instance, [Disk])])
+    fromConfdUnchecked = do
+      let srvAddr = optConfdAddr opts
+          srvPort = optConfdPort opts
+      getHostName >>= \n -> BT.runResultT $ getInstanceDisks n srvAddr srvPort
+
+    fromConfd :: IO (BT.Result [(Instance, [Disk])])
+    fromConfd =
+      liftM (either (BT.Bad . show) id)
+      (E.try fromConfdUnchecked ::
+          IO (Either IOError (BT.Result [(Instance, [Disk])])))
+
+    fromFile :: FilePath -> IO (BT.Result [(Instance, [Disk])])
+    fromFile inputFile = do
+      contents <-
+        ((E.try $ readFile inputFile) :: IO (Either IOError String))
+        >>= exitIfBad "reading from file" . either (BT.Bad . show) BT.Ok
+      return . fromJResult "Not a list of instances" $ J.decode contents
 
 -- | Adds the name of the instance to the information about one logical volume.
-addInstNameToOneLv :: [Instance] -> LVInfo -> LVInfo
-addInstNameToOneLv instances lvInfo =
-  let vg_name = lviVgName lvInfo
-      lv_name = lviName lvInfo
-      instanceHasDisk = any (includesLogicalId vg_name lv_name) . instDisks
-      rightInstance = find instanceHasDisk instances
-    in 
-      case rightInstance of
-        Nothing -> lvInfo
-        Just i -> lvInfo { lviInstance = Just $ instName i }
+addInstNameToOneLv :: [(Instance, [Disk])] -> LVInfo -> LVInfo
+addInstNameToOneLv instDiskList lvInfo =
+ let vg_name = lviVgName lvInfo
+     lv_name = lviName lvInfo
+     instanceHasDisk = any (includesLogicalId vg_name lv_name) . snd
+     rightInstance = find instanceHasDisk instDiskList
+   in
+     case rightInstance of
+       Nothing -> lvInfo
+       Just (i, _) -> lvInfo { lviInstance = Just $ instName i }
 
 -- | Adds the name of the instance to the information about logical volumes.
-addInstNameToLv :: [Instance] -> [LVInfo] -> [LVInfo]
-addInstNameToLv instances = map (addInstNameToOneLv instances)
+addInstNameToLv :: [(Instance, [Disk])] -> [LVInfo] -> [LVInfo]
+addInstNameToLv instDisksList = map (addInstNameToOneLv instDisksList)
 
 -- | This function computes the JSON representation of the LV status.
 buildJsonReport :: Options -> IO J.JSValue
 buildJsonReport opts = do
   let inputFile = optInputFile opts
   lvInfo <- getLvInfo inputFile
-  (prim, sec) <- getInstanceList opts
-  return . J.showJSON $ addInstNameToLv (prim ++ sec) lvInfo
+  instDiskList <- getInstDiskList opts
+  return . J.showJSON $ addInstNameToLv instDiskList lvInfo
 
 -- | This function computes the DCReport for the logical volumes.
 buildDCReport :: Options -> IO DCReport

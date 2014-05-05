@@ -877,6 +877,8 @@ class RpcRunner(_RpcClientBase,
     idict = instance.ToDict()
     cluster = self._cfg.GetClusterInfo()
     idict["hvparams"] = cluster.FillHV(instance)
+    idict["secondary_nodes"] = \
+      self._cfg.GetInstanceSecondaryNodes(instance.uuid)
     if hvp is not None:
       idict["hvparams"].update(hvp)
     idict["beparams"] = cluster.FillBE(instance)
@@ -885,7 +887,8 @@ class RpcRunner(_RpcClientBase,
     idict["osparams"] = cluster.SimpleFillOS(instance.os, instance.osparams)
     if osp is not None:
       idict["osparams"].update(osp)
-    idict["disks"] = self._DisksDictDP(node, (instance.disks, instance))
+    disks = self._cfg.GetInstanceDisks(instance.uuid)
+    idict["disks_info"] = self._DisksDictDP(node, (disks, instance))
     for nic in idict["nics"]:
       nic["nicparams"] = objects.FillDict(
         cluster.nicparams[constants.PP_DEFAULT],

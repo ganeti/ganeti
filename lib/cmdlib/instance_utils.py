@@ -147,7 +147,8 @@ def BuildInstanceHookEnv(name, primary_node_name, secondary_node_names, os_type,
   return env
 
 
-def BuildInstanceHookEnvByObject(lu, instance, override=None):
+def BuildInstanceHookEnvByObject(lu, instance, secondary_nodes=None,
+                                 disks=None, override=None):
   """Builds instance related env variables for hooks from an object.
 
   @type lu: L{LogicalUnit}
@@ -165,10 +166,19 @@ def BuildInstanceHookEnvByObject(lu, instance, override=None):
   cluster = lu.cfg.GetClusterInfo()
   bep = cluster.FillBE(instance)
   hvp = cluster.FillHV(instance)
+
+  # Override secondary_nodes
+  if secondary_nodes is None:
+    secondary_nodes = lu.cfg.GetInstanceSecondaryNodes(instance.uuid)
+
+  # Override disks
+  if disks is None:
+    disks = lu.cfg.GetInstanceDisks(instance.uuid)
+
   args = {
     "name": instance.name,
     "primary_node_name": lu.cfg.GetNodeName(instance.primary_node),
-    "secondary_node_names": lu.cfg.GetNodeNames(instance.secondary_nodes),
+    "secondary_node_names": lu.cfg.GetNodeNames(secondary_nodes),
     "os_type": instance.os,
     "status": instance.admin_state,
     "maxmem": bep[constants.BE_MAXMEM],
@@ -177,7 +187,7 @@ def BuildInstanceHookEnvByObject(lu, instance, override=None):
     "nics": NICListToTuple(lu, instance.nics),
     "disk_template": instance.disk_template,
     "disks": [(disk.name, disk.uuid, disk.size, disk.mode)
-              for disk in instance.disks],
+              for disk in disks],
     "bep": bep,
     "hvp": hvp,
     "hypervisor_name": instance.hypervisor,
@@ -234,8 +244,11 @@ def RemoveInstance(lu, feedback_fn, instance, ignore_failures):
       raise errors.OpExecError("Can't remove instance's disks")
     feedback_fn("Warning: can't remove instance's disks")
 
-  logging.info("Removing instance %s out of cluster config", instance.name)
+  logging.info("Removing instance's disks")
+  for disk in instance.disks:
+    lu.cfg.RemoveInstanceDisk(instance.uuid, disk)
 
+  logging.info("Removing instance %s out of cluster config", instance.name)
   lu.cfg.RemoveInstance(instance.uuid)
 
   assert not lu.remove_locks.get(locking.LEVEL_INSTANCE), \
@@ -267,7 +280,8 @@ def RemoveDisks(lu, instance, target_node_uuid=None, ignore_failures=False):
 
   all_result = True
   ports_to_release = set()
-  anno_disks = AnnotateDiskParams(instance, instance.disks, lu.cfg)
+  inst_disks = lu.cfg.GetInstanceDisks(instance.uuid)
+  anno_disks = AnnotateDiskParams(instance, inst_disks, lu.cfg)
   for (idx, device) in enumerate(anno_disks):
     if target_node_uuid:
       edata = [(target_node_uuid, device)]
@@ -293,8 +307,8 @@ def RemoveDisks(lu, instance, target_node_uuid=None, ignore_failures=False):
   CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), instance.disk_template)
 
   if instance.disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]:
-    if len(instance.disks) > 0:
-      file_storage_dir = os.path.dirname(instance.disks[0].logical_id[1])
+    if len(inst_disks) > 0:
+      file_storage_dir = os.path.dirname(inst_disks[0].logical_id[1])
     else:
       if instance.disk_template == constants.DT_SHARED_FILE:
         file_storage_dir = utils.PathJoin(lu.cfg.GetSharedFileStorageDir(),

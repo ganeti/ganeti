@@ -36,7 +36,6 @@ from ganeti import utils
 from ganeti import netutils
 from ganeti import compat
 from ganeti import serializer
-from ganeti.cmdlib import instance
 
 from ganeti.config import TemporaryReservationManager
 
@@ -104,13 +103,13 @@ class TestConfigRunner(unittest.TestCase):
     bootstrap.InitConfig(constants.CONFIG_VERSION,
                          cluster_config, master_node_config, self.cfg_file)
 
-  def _create_instance(self):
+  def _create_instance(self, cfg):
     """Create and return an instance object"""
     inst = objects.Instance(name="test.example.com",
                             uuid="test-uuid",
                             disks=[], nics=[],
                             disk_template=constants.DT_DISKLESS,
-                            primary_node=self._get_object().GetMasterNode(),
+                            primary_node=cfg.GetMasterNode(),
                             osparams_private=serializer.PrivateDict(),
                             beparams={})
     return inst
@@ -124,6 +123,99 @@ class TestConfigRunner(unittest.TestCase):
     cfg = self._get_object()
     self.failUnlessEqual(1, len(cfg.GetNodeList()))
     self.failUnlessEqual(0, len(cfg.GetInstanceList()))
+
+  def _GenericNodesCheck(self, iobj, all_nodes, secondary_nodes):
+    for i in [all_nodes, secondary_nodes]:
+      self.assertTrue(isinstance(i, (list, tuple)),
+                      msg="Data type doesn't guarantee order")
+
+    self.assertTrue(iobj.primary_node not in secondary_nodes)
+    self.assertEqual(all_nodes[0], iobj.primary_node,
+                     msg="Primary node not first node in list")
+
+  def testInstNodesNoDisks(self):
+    """Test all_nodes/secondary_nodes when there are no disks"""
+    # construct instance
+    cfg = self._get_object()
+    inst = self._create_instance(cfg)
+    cfg.AddInstance(inst, "my-job")
+
+    # No disks
+    all_nodes = cfg.GetInstanceNodes(inst.uuid)
+    secondary_nodes = cfg.GetInstanceSecondaryNodes(inst.uuid)
+    self._GenericNodesCheck(inst, all_nodes, secondary_nodes)
+    self.assertEqual(len(secondary_nodes), 0)
+    self.assertEqual(set(all_nodes), set([inst.primary_node]))
+    self.assertEqual(cfg.GetInstanceLVsByNode(inst.uuid), {
+      inst.primary_node: [],
+      })
+
+  def testInstNodesPlainDisks(self):
+    # construct instance
+    cfg = self._get_object()
+    inst = self._create_instance(cfg)
+    disks = [
+      objects.Disk(dev_type=constants.DT_PLAIN, size=128,
+                   logical_id=("myxenvg", "disk25494"),
+                   uuid="disk0"),
+      objects.Disk(dev_type=constants.DT_PLAIN, size=512,
+                   logical_id=("myxenvg", "disk29071"),
+                   uuid="disk1"),
+      ]
+    cfg.AddInstance(inst, "my-job")
+    for disk in disks:
+      cfg.AddInstanceDisk(inst.uuid, disk)
+
+    # Plain disks
+    all_nodes = cfg.GetInstanceNodes(inst.uuid)
+    secondary_nodes = cfg.GetInstanceSecondaryNodes(inst.uuid)
+    self._GenericNodesCheck(inst, all_nodes, secondary_nodes)
+    self.assertEqual(len(secondary_nodes), 0)
+    self.assertEqual(set(all_nodes), set([inst.primary_node]))
+    self.assertEqual(cfg.GetInstanceLVsByNode(inst.uuid), {
+      inst.primary_node: ["myxenvg/disk25494", "myxenvg/disk29071"],
+      })
+
+  def testInstNodesDrbdDisks(self):
+    # construct a second node
+    cfg = self._get_object()
+    node_group = cfg.LookupNodeGroup(None)
+    master_uuid = cfg.GetMasterNode()
+    node2 = objects.Node(name="node2.example.com", group=node_group,
+                         ndparams={}, uuid="node2-uuid")
+    cfg.AddNode(node2, "my-job")
+
+    # construct instance
+    inst = self._create_instance(cfg)
+    disks = [
+      objects.Disk(dev_type=constants.DT_DRBD8, size=786432,
+                   logical_id=(master_uuid, node2.uuid,
+                               12300, 0, 0, "secret"),
+                   children=[
+                     objects.Disk(dev_type=constants.DT_PLAIN, size=786432,
+                                  logical_id=("myxenvg", "disk0"),
+                                  uuid="data0"),
+                     objects.Disk(dev_type=constants.DT_PLAIN, size=128,
+                                  logical_id=("myxenvg", "meta0"),
+                                  uuid="meta0")
+                   ],
+                   iv_name="disk/0", uuid="disk0")
+      ]
+    cfg.AddInstance(inst, "my-job")
+    for disk in disks:
+      cfg.AddInstanceDisk(inst.uuid, disk)
+
+    # Drbd Disks
+    all_nodes = cfg.GetInstanceNodes(inst.uuid)
+    secondary_nodes = cfg.GetInstanceSecondaryNodes(inst.uuid)
+    self._GenericNodesCheck(inst, all_nodes, secondary_nodes)
+    self.assertEqual(set(secondary_nodes), set([node2.uuid]))
+    self.assertEqual(set(all_nodes),
+                     set([inst.primary_node, node2.uuid]))
+    self.assertEqual(cfg.GetInstanceLVsByNode(inst.uuid), {
+      master_uuid: ["myxenvg/disk0", "myxenvg/meta0"],
+      node2.uuid: ["myxenvg/disk0", "myxenvg/meta0"],
+      })
 
   def testUpdateCluster(self):
     """Test updates on the cluster object"""
@@ -163,7 +255,7 @@ class TestConfigRunner(unittest.TestCase):
     """Test updates on one instance object"""
     cfg = self._get_object()
     # construct a fake instance
-    inst = self._create_instance()
+    inst = self._create_instance(cfg)
     fake_instance = objects.Instance()
     # fail if we didn't read the config
     self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance,
@@ -529,7 +621,7 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
   def testNoError(self):
     disks = self._MakeDisks(["disk/0", "disk/1"])
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
-    instance._UpdateIvNames(0, disks)
+    config._UpdateIvNames(0, disks)
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
   def testWrongNames(self):
@@ -540,7 +632,7 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
       ])
 
     # Fix names
-    instance._UpdateIvNames(0, disks)
+    config._UpdateIvNames(0, disks)
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
 

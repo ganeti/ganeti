@@ -1166,7 +1166,8 @@ class ExportInstanceHelper:
     src_node = instance.primary_node
     src_node_name = self._lu.cfg.GetNodeName(src_node)
 
-    for idx, disk in enumerate(instance.disks):
+    inst_disks = self._lu.cfg.GetInstanceDisks(instance.uuid)
+    for idx, disk in enumerate(inst_disks):
       self._feedback_fn("Creating a snapshot of disk/%s on node %s" %
                         (idx, src_node_name))
 
@@ -1294,6 +1295,7 @@ class ExportInstanceHelper:
 
     """
     instance = self._instance
+    inst_disks = self._lu.cfg.GetInstanceDisks(instance.uuid)
 
     assert len(disk_info) == len(instance.disks)
 
@@ -1301,7 +1303,7 @@ class ExportInstanceHelper:
 
     ieloop = ImportExportLoop(self._lu)
     try:
-      for idx, (dev, (host, port, magic)) in enumerate(zip(instance.disks,
+      for idx, (dev, (host, port, magic)) in enumerate(zip(inst_disks,
                                                            disk_info)):
         # Decide whether to use IPv6
         ipv6 = netutils.IP6Address.IsValid(host)
@@ -1496,8 +1498,9 @@ def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
                           len(instance.disks), pnode.primary_ip)
 
     ieloop = ImportExportLoop(lu)
+    inst_disks = lu.cfg.GetInstanceDisks(instance.uuid)
     try:
-      for idx, dev in enumerate(instance.disks):
+      for idx, dev in enumerate(inst_disks):
         magic = _GetInstDiskMagic(magic_base, instance.name, idx)
 
         # Import daemon options

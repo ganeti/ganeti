@@ -173,6 +173,7 @@ DIRS = \
 	doc/examples \
 	doc/examples/gnt-debug \
 	doc/examples/hooks \
+	doc/examples/systemd \
 	doc/users \
 	test/data/htools \
 	test/data/htools/rapi \
@@ -342,7 +343,17 @@ BUILT_EXAMPLES = \
 	doc/examples/ganeti-master-role.ocf \
 	doc/examples/ganeti-node-role.ocf \
 	doc/examples/gnt-config-backup \
-	doc/examples/hooks/ipsec
+	doc/examples/hooks/ipsec \
+	doc/examples/systemd/ganeti-common.service \
+	doc/examples/systemd/ganeti-confd.service \
+	doc/examples/systemd/ganeti-kvmd.service \
+	doc/examples/systemd/ganeti-luxid.service \
+	doc/examples/systemd/ganeti-masterd.service \
+	doc/examples/systemd/ganeti-metad.service \
+	doc/examples/systemd/ganeti-mond.service \
+	doc/examples/systemd/ganeti-noded.service \
+	doc/examples/systemd/ganeti-rapi.service \
+	doc/examples/systemd/ganeti-wconfd.service
 
 dist_ifup_SCRIPTS = \
 	tools/kvm-ifup-os \
@@ -845,6 +856,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils/Atomic.hs \
 	src/Ganeti/Utils/AsyncWorker.hs \
 	src/Ganeti/Utils/Livelock.hs \
+	src/Ganeti/Utils/MonadPlus.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
 	src/Ganeti/WConfd/ConfigWriter.hs \
@@ -1437,7 +1449,7 @@ TEST_FILES = \
 	test/data/cluster_config_2.11.json \
 	test/data/cluster_config_2.12.json \
 	test/data/instance-minor-pairing.txt \
-	test/data/instance-prim-sec.txt \
+	test/data/instance-disks.txt \
 	test/data/ip-addr-show-dummy0.txt \
 	test/data/ip-addr-show-lo-ipv4.txt \
 	test/data/ip-addr-show-lo-ipv6.txt \
@@ -1632,6 +1644,7 @@ haskell_tests = test/hs/htest
 dist_TESTS = \
 	test/py/check-cert-expired_unittest.bash \
 	test/py/daemon-util_unittest.bash \
+	test/py/systemd_unittest.bash \
 	test/py/ganeti-cleaner_unittest.bash \
 	test/py/import-export_unittest.bash \
 	test/py/cli-test.bash \
@@ -1704,6 +1717,7 @@ srclink_files = \
 	man/footer.rst \
 	test/py/check-cert-expired_unittest.bash \
 	test/py/daemon-util_unittest.bash \
+	test/py/systemd_unittest.bash \
 	test/py/ganeti-cleaner_unittest.bash \
 	test/py/import-export_unittest.bash \
 	test/py/cli-test.bash \
@@ -1753,6 +1767,8 @@ pep8_python_code = \
 	$(python_test_support)
 
 test/py/daemon-util_unittest.bash: daemons/daemon-util
+
+test/py/systemd_unittest.bash: daemons/daemon-util $(BUILT_EXAMPLES)
 
 test/py/ganeti-cleaner_unittest.bash: daemons/ganeti-cleaner
 

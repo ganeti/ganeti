@@ -47,7 +47,6 @@ module Ganeti.Objects
   , fillBeParams
   , allBeParamFields
   , Instance(..)
-  , getDiskSizeRequirements
   , PartialNDParams(..)
   , FilledNDParams(..)
   , fillNDParams
@@ -405,6 +404,9 @@ data Disk = Disk
   , diskName       :: Maybe String
   , diskSpindles   :: Maybe Int
   , diskUuid       :: String
+  , diskSerial     :: Int
+  , diskCtime      :: ClockTime
+  , diskMtime      :: ClockTime
   } deriving (Show, Eq)
 
 $(buildObjectSerialisation "Disk" $
@@ -417,7 +419,9 @@ $(buildObjectSerialisation "Disk" $
   , optionalField $ simpleField "name" [t| String |]
   , optionalField $ simpleField "spindles" [t| Int |]
   ]
-  ++ uuidFields)
+  ++ uuidFields
+  ++ serialFields
+  ++ timeStampFields)
 
 instance UuidObject Disk where
   uuidOf = diskUuid
@@ -457,7 +461,7 @@ $(buildObject "Instance" "inst" $
   , simpleField "osparams_private" [t| OsParamsPrivate    |]
   , simpleField "admin_state"      [t| AdminState         |]
   , simpleField "nics"             [t| [PartialNic]       |]
-  , simpleField "disks"            [t| [Disk]             |]
+  , simpleField "disks"            [t| [String]           |]
   , simpleField "disk_template"    [t| DiskTemplate       |]
   , simpleField "disks_active"     [t| Bool               |]
   , optionalField $ simpleField "network_port" [t| Int  |]
@@ -479,19 +483,6 @@ instance SerialNoObject Instance where
 
 instance TagsObject Instance where
   tagsOf = instTags
-
--- | Retrieves the real disk size requirements for all the disks of the
--- instance. This includes the metadata etc. and is different from the values
--- visible to the instance.
-getDiskSizeRequirements :: Instance -> Int
-getDiskSizeRequirements inst =
-  sum . map
-    (\disk -> case instDiskTemplate inst of
-                DTDrbd8    -> diskSize disk + C.drbdMetaSize
-                DTDiskless -> 0
-                DTBlock    -> 0
-                _          -> diskSize disk )
-    $ instDisks inst
 
 -- * IPolicy definitions
 
@@ -758,6 +749,7 @@ $(buildObject "ConfigData" "config" $
   , simpleField "nodegroups" [t| Container NodeGroup |]
   , simpleField "instances"  [t| Container Instance  |]
   , simpleField "networks"   [t| Container Network   |]
+  , simpleField "disks"      [t| Container Disk      |]
   ]
   ++ timeStampFields
   ++ serialFields)

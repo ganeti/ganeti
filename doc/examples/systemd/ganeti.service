@@ -1,0 +1,18 @@
+# This is a dummy service, provided only for compatibility with SysV.
+# Systemd will automatically create a SysV service called
+# ganeti.service, attempting to start the initscript. Since there is no
+# way to tell systemd that the initscript acts as ganeti.target (and not
+# ganeti.service), we create a stub service requiring ganeti.target.
+#
+# This service is for compatibility only and so will not be marked for
+# installation.
+
+[Unit]
+Description = Dummy Ganeti SysV compatibility service
+Documentation = man:ganeti(7)
+After = ganeti.target
+Requires = ganeti.target
+
+[Service]
+Type = oneshot
+ExecStart = /bin/true

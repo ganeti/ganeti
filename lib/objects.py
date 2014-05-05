@@ -405,19 +405,20 @@ class ConfigData(ConfigObject):
     "nodegroups",
     "instances",
     "networks",
+    "disks",
     "serial_no",
     ] + _TIMESTAMPS
 
   def ToDict(self, _with_private=False):
     """Custom function for top-level config data.
 
-    This just replaces the list of instances, nodes and the cluster
-    with standard python types.
+    This just replaces the list of nodes, instances, nodegroups,
+    networks, disks and the cluster with standard python types.
 
     """
     mydict = super(ConfigData, self).ToDict(_with_private=_with_private)
     mydict["cluster"] = mydict["cluster"].ToDict()
-    for key in "nodes", "instances", "nodegroups", "networks":
+    for key in "nodes", "instances", "nodegroups", "networks", "disks":
       mydict[key] = outils.ContainerToDicts(mydict[key])
 
     return mydict
@@ -435,6 +436,7 @@ class ConfigData(ConfigObject):
     obj.nodegroups = \
       outils.ContainerFromDicts(obj.nodegroups, dict, NodeGroup)
     obj.networks = outils.ContainerFromDicts(obj.networks, dict, Network)
+    obj.disks = outils.ContainerFromDicts(obj.disks, dict, Disk)
     return obj
 
   def HasAnyDiskOfType(self, dev_type):
@@ -446,10 +448,9 @@ class ConfigData(ConfigObject):
     @return: boolean indicating if a disk of the given type was found or not
 
     """
-    for instance in self.instances.values():
-      for disk in instance.disks:
-        if disk.IsBasedOnDiskType(dev_type):
-          return True
+    for disk in self.disks.values():
+      if disk.IsBasedOnDiskType(dev_type):
+        return True
     return False
 
   def UpgradeConfig(self):
@@ -475,6 +476,8 @@ class ConfigData(ConfigObject):
       self.networks = {}
     for network in self.networks.values():
       network.UpgradeConfig()
+    for disk in self.disks.values():
+      disk.UpgradeConfig()
 
   def _UpgradeEnabledDiskTemplates(self):
     """Upgrade the cluster's enabled disk templates by inspecting the currently
@@ -527,11 +530,39 @@ class NIC(ConfigObject):
 
 class Disk(ConfigObject):
   """Config object representing a block device."""
-  __slots__ = (["name", "dev_type", "logical_id", "children", "iv_name",
-                "size", "mode", "params", "spindles", "pci"] + _UUID +
-               # dynamic_params is special. It depends on the node this instance
-               # is sent to, and should not be persisted.
-               ["dynamic_params"])
+  __slots__ = [
+    "name",
+    "dev_type",
+    "logical_id",
+    "children",
+    "iv_name",
+    "size",
+    "mode",
+    "params",
+    "spindles",
+    "pci",
+    "serial_no",
+    # dynamic_params is special. It depends on the node this instance
+    # is sent to, and should not be persisted.
+    "dynamic_params"
+    ] + _UUID + _TIMESTAMPS
+
+  def _ComputeAllNodes(self):
+    """Compute the list of all nodes covered by a device and its children."""
+    def _Helper(nodes, device):
+      """Recursively compute nodes given a top device."""
+      if device.dev_type in constants.DTS_DRBD:
+        nodes.extend(device.logical_id[:2])
+      if device.children:
+        for child in device.children:
+          _Helper(nodes, child)
+
+    all_nodes = list()
+    _Helper(all_nodes, self)
+    return tuple(set(all_nodes))
+
+  all_nodes = property(_ComputeAllNodes, None, None,
+                       "List of names of all the nodes of a disk")
 
   def CreateOnSecondary(self):
     """Test if this device needs to be created on a secondary node."""
@@ -856,6 +887,12 @@ class Disk(ConfigObject):
       self.params = {}
 
     # add here config upgrade for this disk
+    if self.serial_no is None:
+      self.serial_no = 1
+    if self.mtime is None:
+      self.mtime = time.time()
+    if self.ctime is None:
+      self.ctime = time.time()
 
     # map of legacy device types (mapping differing LD constants to new
     # DT constants)
@@ -1114,6 +1151,7 @@ class Instance(TaggableObject):
   __slots__ = [
     "name",
     "primary_node",
+    "secondary_nodes",
     "os",
     "hypervisor",
     "hvparams",
@@ -1123,104 +1161,12 @@ class Instance(TaggableObject):
     "admin_state",
     "nics",
     "disks",
+    "disks_info",
     "disk_template",
     "disks_active",
     "network_port",
     "serial_no",
     ] + _TIMESTAMPS + _UUID
-
-  def _ComputeSecondaryNodes(self):
-    """Compute the list of secondary nodes.
-
-    This is a simple wrapper over _ComputeAllNodes.
-
-    """
-    all_nodes = set(self._ComputeAllNodes())
-    all_nodes.discard(self.primary_node)
-    return tuple(all_nodes)
-
-  secondary_nodes = property(_ComputeSecondaryNodes, None, None,
-                             "List of names of secondary nodes")
-
-  def _ComputeAllNodes(self):
-    """Compute the list of all nodes.
-
-    Since the data is already there (in the drbd disks), keeping it as
-    a separate normal attribute is redundant and if not properly
-    synchronised can cause problems. Thus it's better to compute it
-    dynamically.
-
-    """
-    def _Helper(nodes, device):
-      """Recursively computes nodes given a top device."""
-      if device.dev_type in constants.DTS_DRBD:
-        nodea, nodeb = device.logical_id[:2]
-        nodes.add(nodea)
-        nodes.add(nodeb)
-      if device.children:
-        for child in device.children:
-          _Helper(nodes, child)
-
-    all_nodes = set()
-    for device in self.disks:
-      _Helper(all_nodes, device)
-    # ensure that the primary node is always the first
-    all_nodes.discard(self.primary_node)
-    return (self.primary_node, ) + tuple(all_nodes)
-
-  all_nodes = property(_ComputeAllNodes, None, None,
-                       "List of names of all the nodes of the instance")
-
-  def MapLVsByNode(self, lvmap=None, devs=None, node_uuid=None):
-    """Provide a mapping of nodes to LVs this instance owns.
-
-    This function figures out what logical volumes should belong on
-    which nodes, recursing through a device tree.
-
-    @type lvmap: dict
-    @param lvmap: optional dictionary to receive the
-        'node' : ['lv', ...] data.
-    @type devs: list of L{Disk}
-    @param devs: disks to get the LV name for. If None, all disk of this
-        instance are used.
-    @type node_uuid: string
-    @param node_uuid: UUID of the node to get the LV names for. If None, the
-        primary node of this instance is used.
-    @return: None if lvmap arg is given, otherwise, a dictionary of
-        the form { 'node_uuid' : ['volume1', 'volume2', ...], ... };
-        volumeN is of the form "vg_name/lv_name", compatible with
-        GetVolumeList()
-
-    """
-    if node_uuid is None:
-      node_uuid = self.primary_node
-
-    if lvmap is None:
-      lvmap = {
-        node_uuid: [],
-        }
-      ret = lvmap
-    else:
-      if not node_uuid in lvmap:
-        lvmap[node_uuid] = []
-      ret = None
-
-    if not devs:
-      devs = self.disks
-
-    for dev in devs:
-      if dev.dev_type == constants.DT_PLAIN:
-        lvmap[node_uuid].append(dev.logical_id[0] + "/" + dev.logical_id[1])
-
-      elif dev.dev_type in constants.DTS_DRBD:
-        if dev.children:
-          self.MapLVsByNode(lvmap, dev.children, dev.logical_id[0])
-          self.MapLVsByNode(lvmap, dev.children, dev.logical_id[1])
-
-      elif dev.children:
-        self.MapLVsByNode(lvmap, dev.children, node_uuid)
-
-    return ret
 
   def FindDisk(self, idx):
     """Find a disk given having a specified index.
@@ -1229,8 +1175,8 @@ class Instance(TaggableObject):
 
     @type idx: int
     @param idx: the disk index
-    @rtype: L{Disk}
-    @return: the corresponding disk
+    @rtype: string
+    @return: the corresponding disk's uuid
     @raise errors.OpPrereqError: when the given index is not valid
 
     """
@@ -1257,7 +1203,7 @@ class Instance(TaggableObject):
     if _with_private:
       bo["osparams_private"] = self.osparams_private.Unprivate()
 
-    for attr in "nics", "disks":
+    for attr in "nics", "disks_info":
       alist = bo.get(attr, None)
       if alist:
         nlist = outils.ContainerToDicts(alist)
@@ -1280,7 +1226,7 @@ class Instance(TaggableObject):
       del val["admin_up"]
     obj = super(Instance, cls).FromDict(val)
     obj.nics = outils.ContainerFromDicts(obj.nics, list, NIC)
-    obj.disks = outils.ContainerFromDicts(obj.disks, list, Disk)
+    obj.disks_info = outils.ContainerFromDicts(obj.disks_info, list, Disk)
     return obj
 
   def UpgradeConfig(self):
@@ -1289,8 +1235,8 @@ class Instance(TaggableObject):
     """
     for nic in self.nics:
       nic.UpgradeConfig()
-    for disk in self.disks:
-      disk.UpgradeConfig()
+    if self.disks is None:
+      self.disks = []
     if self.hvparams:
       for key in constants.HVC_GLOBALS:
         try:

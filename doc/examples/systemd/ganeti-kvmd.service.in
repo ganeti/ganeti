@@ -1,0 +1,15 @@
+[Unit]
+Description = Ganeti KVM daemon (kvmd)
+Documentation = man:ganeti-kvmd(8)
+Requires = ganeti-common.service
+After = ganeti-common.service
+PartOf = ganeti-noded.target
+
+[Service]
+Type = simple
+Group = @GNTDAEMONSGROUP@
+ExecStart = @SBINDIR@/ganeti-kvmd -f
+Restart = on-failure
+
+# ganeti-kvmd is started on-demand by noded, so there must be no Install
+# section.

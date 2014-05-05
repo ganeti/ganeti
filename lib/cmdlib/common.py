@@ -614,11 +614,13 @@ def ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
   be_full = cfg.GetClusterInfo().FillBE(instance)
   mem_size = be_full[constants.BE_MAXMEM]
   cpu_count = be_full[constants.BE_VCPUS]
-  es_flags = rpc.GetExclusiveStorageForNodes(cfg, instance.all_nodes)
+  inst_nodes = cfg.GetInstanceNodes(instance.uuid)
+  es_flags = rpc.GetExclusiveStorageForNodes(cfg, inst_nodes)
+  disks = cfg.GetInstanceDisks(instance.uuid)
   if any(es_flags.values()):
     # With exclusive storage use the actual spindles
     try:
-      spindle_use = sum([disk.spindles for disk in instance.disks])
+      spindle_use = sum([disk.spindles for disk in disks])
     except TypeError:
       ret.append("Number of spindles not configured for disks of instance %s"
                  " while exclusive storage is enabled, try running gnt-cluster"
@@ -627,8 +629,8 @@ def ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
       spindle_use = None
   else:
     spindle_use = be_full[constants.BE_SPINDLE_USE]
-  disk_count = len(instance.disks)
-  disk_sizes = [disk.size for disk in instance.disks]
+  disk_count = len(disks)
+  disk_sizes = [disk.size for disk in disks]
   nic_count = len(instance.nics)
   disk_template = instance.disk_template
 
@@ -856,7 +858,8 @@ def CheckInstancesNodeGroups(cfg, instances, owned_groups, owned_node_uuids,
 
   """
   for (uuid, inst) in instances.items():
-    assert owned_node_uuids.issuperset(inst.all_nodes), \
+    inst_nodes = cfg.GetInstanceNodes(inst.uuid)
+    assert owned_node_uuids.issuperset(inst_nodes), \
       "Instance %s's nodes changed while we kept the lock" % inst.name
 
     inst_groups = CheckInstanceNodeGroups(cfg, uuid, owned_groups)
@@ -951,18 +954,21 @@ def _SetOpEarlyRelease(early_release, op):
   return op
 
 
-def MapInstanceLvsToNodes(instances):
+def MapInstanceLvsToNodes(cfg, instances):
   """Creates a map from (node, volume) to instance name.
 
+  @type cfg: L{config.ConfigWriter}
+  @param cfg: The cluster configuration
   @type instances: list of L{objects.Instance}
   @rtype: dict; tuple of (node uuid, volume name) as key, L{objects.Instance}
           object as value
 
   """
-  return dict(((node_uuid, vol), inst)
-              for inst in instances
-              for (node_uuid, vols) in inst.MapLVsByNode().items()
-              for vol in vols)
+  return dict(
+    ((node_uuid, vol), inst)
+     for inst in instances
+     for (node_uuid, vols) in cfg.GetInstanceLVsByNode(inst.uuid).items()
+     for vol in vols)
 
 
 def CheckParamsNotGlobal(params, glob_pars, kind, bad_levels, good_levels):
@@ -1110,8 +1116,9 @@ def CheckIAllocatorOrNode(lu, iallocator_slot, node_slot):
 def FindFaultyInstanceDisks(cfg, rpc_runner, instance, node_uuid, prereq):
   faulty = []
 
+  disks = cfg.GetInstanceDisks(instance.uuid)
   result = rpc_runner.call_blockdev_getmirrorstatus(
-             node_uuid, (instance.disks, instance))
+             node_uuid, (disks, instance))
   result.Raise("Failed to get disk status from node %s" %
                cfg.GetNodeName(node_uuid),
                prereq=prereq, ecode=errors.ECODE_ENVIRON)

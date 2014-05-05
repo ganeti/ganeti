@@ -1,0 +1,6 @@
+[Unit]
+Description = Ganeti one-off setup
+
+[Service]
+Type = oneshot
+ExecStart = @PKGLIBDIR@/ensure-dirs

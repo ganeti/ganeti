@@ -177,42 +177,38 @@ instanceFields =
   [ (FieldDefinition "disk_usage" "DiskUsage" QFTUnit
      "Total disk space used by instance on each of its nodes; this is not the\
      \ disk size visible to the instance, but the usage on the node",
-     FieldSimple (rsNormal . getDiskSizeRequirements), QffNormal)
+     FieldConfig getDiskSizeRequirements, QffNormal)
   , (FieldDefinition "disk.count" "Disks" QFTNumber
      "Number of disks",
      FieldSimple (rsNormal . length . instDisks), QffNormal)
   , (FieldDefinition "disk.sizes" "Disk_sizes" QFTOther
      "List of disk sizes",
-     FieldSimple (rsNormal . map diskSize . instDisks), QffNormal)
+     FieldConfig getDiskSizes, QffNormal)
   , (FieldDefinition "disk.spindles" "Disk_spindles" QFTOther
      "List of disk spindles",
-     FieldSimple (rsNormal . map (MaybeForJSON . diskSpindles) .
-                  instDisks),
-     QffNormal)
+     FieldConfig getDiskSpindles, QffNormal)
   , (FieldDefinition "disk.names" "Disk_names" QFTOther
      "List of disk names",
-     FieldSimple (rsNormal . map (MaybeForJSON . diskName) .
-                  instDisks),
-     QffNormal)
+     FieldConfig getDiskNames, QffNormal)
   , (FieldDefinition "disk.uuids" "Disk_UUIDs" QFTOther
      "List of disk UUIDs",
-     FieldSimple (rsNormal . map diskUuid . instDisks), QffNormal)
+     FieldConfig getDiskUuids, QffNormal)
   ] ++
 
   -- Per-disk parameter fields
   instantiateIndexedFields C.maxDisks
   [ (fieldDefinitionCompleter "disk.size/%d" "Disk/%d" QFTUnit
-     "Disk size of %s disk",
-     getIndexedField instDisks diskSize, QffNormal)
+    "Disk size of %s disk",
+    getIndexedConfField getInstDisksFromObj diskSize, QffNormal)
   , (fieldDefinitionCompleter "disk.spindles/%d" "DiskSpindles/%d" QFTNumber
-     "Spindles of %s disk",
-     getIndexedOptionalField instDisks diskSpindles, QffNormal)
+    "Spindles of %s disk",
+    getIndexedOptionalConfField getInstDisksFromObj diskSpindles, QffNormal)
   , (fieldDefinitionCompleter "disk.name/%d" "DiskName/%d" QFTText
-     "Name of %s disk",
-     getIndexedOptionalField instDisks diskName, QffNormal)
+    "Name of %s disk",
+    getIndexedOptionalConfField getInstDisksFromObj diskName, QffNormal)
   , (fieldDefinitionCompleter "disk.uuid/%d" "DiskUUID/%d" QFTText
-     "UUID of %s disk",
-     getIndexedField instDisks diskUuid, QffNormal)
+    "UUID of %s disk",
+    getIndexedConfField getInstDisksFromObj diskUuid, QffNormal)
   ] ++
 
   -- Aggregate nic parameter fields
@@ -357,6 +353,70 @@ fillNicParamsFromConfig cfg = fillNicParams (getDefaultNicParams cfg)
 getDefaultNicParams :: ConfigData -> FilledNicParams
 getDefaultNicParams cfg =
   (Map.!) (fromContainer . clusterNicparams . configCluster $ cfg) C.ppDefault
+
+-- | Retrieves the real disk size requirements for all the disks of the
+-- instance. This includes the metadata etc. and is different from the values
+-- visible to the instance.
+getDiskSizeRequirements :: ConfigData -> Instance -> ResultEntry
+getDiskSizeRequirements cfg inst =
+  rsErrorNoData . liftA (sum . map getSizes) . getInstDisksFromObj cfg $ inst
+ where
+  getSizes :: Disk -> Int
+  getSizes disk =
+    case instDiskTemplate inst of
+      DTDrbd8 -> diskSize disk + C.drbdMetaSize
+      DTDiskless -> 0
+      DTBlock    -> 0
+      _          -> diskSize disk
+
+-- | Get a list of disk sizes for an instance
+getDiskSizes :: ConfigData -> Instance -> ResultEntry
+getDiskSizes cfg =
+  rsErrorNoData . liftA (map diskSize) . getInstDisksFromObj cfg
+
+-- | Get a list of disk spindles
+getDiskSpindles :: ConfigData -> Instance -> ResultEntry
+getDiskSpindles cfg =
+  rsErrorNoData . liftA (map (MaybeForJSON . diskSpindles)) .
+    getInstDisksFromObj cfg
+
+-- | Get a list of disk names for an instance
+getDiskNames :: ConfigData -> Instance -> ResultEntry
+getDiskNames cfg =
+  rsErrorNoData . liftA (map (MaybeForJSON . diskName)) .
+    getInstDisksFromObj cfg
+
+-- | Get a list of disk UUIDs for an instance
+getDiskUuids :: ConfigData -> Instance -> ResultEntry
+getDiskUuids cfg =
+  rsErrorNoData . liftA (map diskUuid) . getInstDisksFromObj cfg
+
+-- | Creates a functions which produces a FieldConfig 'FieldGetter' when fed
+-- an index. Works for fields that may not return a value, expressed through
+-- the Maybe monad.
+getIndexedOptionalConfField :: (J.JSON b)
+                            => (ConfigData -> Instance -> ErrorResult [a])
+                                              -- ^ Extracts a list of objects
+                            -> (a -> Maybe b) -- ^ Possibly gets a property
+                                              -- from an object
+                            -> Int            -- ^ Index in list to use
+                            -> FieldGetter Instance Runtime -- ^ Result
+getIndexedOptionalConfField extractor optPropertyGetter index =
+  let getProperty x = maybeAt index x >>= optPropertyGetter
+  in FieldConfig (\cfg ->
+    rsErrorMaybeUnavail . liftA getProperty . extractor cfg)
+
+-- | Creates a function which produces a FieldConfig 'FieldGetter' when fed
+-- an index. Works only for fields that surely return a value.
+getIndexedConfField :: (J.JSON b)
+                    => (ConfigData -> Instance -> ErrorResult [a])
+                                  -- ^ Extracts a list of objects
+                    -> (a -> b)   -- ^ Gets a property from an object
+                    -> Int        -- ^ Index in list to use
+                    -> FieldGetter Instance Runtime -- ^ Result
+getIndexedConfField extractor propertyGetter index =
+  let optPropertyGetter = Just . propertyGetter
+  in getIndexedOptionalConfField extractor optPropertyGetter index
 
 -- | Returns a field that retrieves a given NIC's network name.
 getIndexedNicNetworkNameField :: Int -> FieldGetter Instance Runtime

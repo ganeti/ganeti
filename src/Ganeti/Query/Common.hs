@@ -31,6 +31,7 @@ module Ganeti.Query.Common
   , rsMaybeNoData
   , rsMaybeUnavail
   , rsErrorNoData
+  , rsErrorMaybeUnavail
   , rsUnknown
   , missingRuntime
   , rpcErrorToStatus
@@ -114,6 +115,16 @@ rsErrorNoData res = case res of
 -- was an error, consider using 'rsMaybe' instead.
 rsMaybeUnavail :: (JSON a) => Maybe a -> ResultEntry
 rsMaybeUnavail = maybe rsUnavail rsNormal
+
+-- | Helper to declare a result from 'ErrorResult Maybe'. This version
+-- should be used if an error signals there was no data and at the same
+-- time when we have optional fields that may not be setted (i.e. we
+-- want to return a 'RSUnavail' in case of 'Nothing').
+rsErrorMaybeUnavail :: (JSON a) => ErrorResult (Maybe a) -> ResultEntry
+rsErrorMaybeUnavail res =
+  case res of
+    Ok  x -> rsMaybeUnavail x
+    Bad _ -> rsNoData
 
 -- | Helper for unknown field result.
 rsUnknown :: ResultEntry

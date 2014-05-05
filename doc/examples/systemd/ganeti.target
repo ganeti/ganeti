@@ -1,0 +1,8 @@
+[Unit]
+Description = Ganeti virtualization cluster manager
+Documentation = man:ganeti(7)
+PartOf = ganeti.service
+
+[Install]
+WantedBy = multi-user.target
+Also = ganeti-node.target ganeti-master.target

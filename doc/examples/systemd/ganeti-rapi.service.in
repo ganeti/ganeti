@@ -1,0 +1,19 @@
+[Unit]
+Description = Ganeti RAPI daemon (rapi)
+Documentation = man:ganeti-rapi(8)
+Requires = ganeti-common.service
+Requisite = ganeti-masterd.service
+After = ganeti-common.service
+PartOf = ganeti-master.target
+ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/rapi.pem
+
+[Service]
+Type = simple
+User = @GNTRAPIUSER@
+Group = @GNTRAPIGROUP@
+ExecStart = @SBINDIR@/ganeti-rapi -f
+SuccessExitStatus = 0 11
+Restart = on-failure
+
+[Install]
+WantedBy = ganeti-master.target ganeti.target
