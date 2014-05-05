@@ -208,6 +208,8 @@ def _SubmitInstanceCreationJob(instance):
            GetGenericAddParameters(instance, disk_template))
     cmd.append(instance.name)
 
+    instance.SetDiskTemplate(disk_template)
+
     return qa_job_utils.ExecuteJobProducingCommand(cmd)
   except:
     instance.Release()
@@ -304,7 +306,7 @@ def RemoveAllInstances(instances):
 
 
 def TestParallelModify(instances):
-  """PERFORMANCE: Parallel instance modify
+  """PERFORMANCE: Parallel instance modify.
 
   @type instances: list of L{qa_config._QaInstance}
   @param instances: list of instances to issue modify commands against
@@ -329,5 +331,54 @@ def TestParallelModify(instances):
             "-B", "%s=%s" % (constants.BE_MINMEM, new_min_mem)])
     cmd.append(instance.name)
     job_driver.AddJob(_ExecuteJobSubmittingCmd(cmd))
+
+  job_driver.WaitForCompletion()
+
+
+def TestParallelInstanceOperations(instances):
+  """PERFORMANCE: Parallel instance operations.
+
+  Note: This test leaves the instances either running or stopped, there's no
+  guarantee on the actual status.
+
+  @type instances: list of L{qa_config._QaInstance}
+  @param instances: list of instances to issue lifecycle commands against
+
+  """
+  OPS = ["start", "shutdown", "reboot", "reinstall"]
+  job_driver = _JobQueueDriver()
+
+  def _SubmitNextOperation(instance, start, idx, job_driver, _):
+    if idx == len(OPS):
+      return
+    op_idx = (start + idx) % len(OPS)
+
+    next_fn = functools.partial(_SubmitNextOperation, instance, start, idx + 1)
+
+    if OPS[op_idx] == "reinstall" and \
+        instance.disk_template == constants.DT_DISKLESS:
+      # no reinstall possible with diskless instances
+      next_fn(job_driver, None)
+      return
+    elif OPS[op_idx] == "reinstall":
+      # the instance has to be shut down for reinstall to work
+      shutdown_cmd = ["gnt-instance", "shutdown", "--submit", instance.name]
+      cmd = ["gnt-instance", "reinstall", "--submit", "-f", instance.name]
+
+      job_driver.AddJob(_ExecuteJobSubmittingCmd(shutdown_cmd),
+                        running_fn=lambda _, __: job_driver.AddJob(
+                          _ExecuteJobSubmittingCmd(cmd),
+                          running_fn=next_fn))
+    else:
+      cmd = ["gnt-instance", OPS[op_idx], "--submit"]
+      if OPS[op_idx] == "reinstall":
+        cmd.append("-f")
+      cmd.append(instance.name)
+
+      job_id = _ExecuteJobSubmittingCmd(cmd)
+      job_driver.AddJob(job_id, running_fn=next_fn)
+
+  for start, instance in enumerate(instances):
+    _SubmitNextOperation(instance, start % len(OPS), 0, job_driver, None)
 
   job_driver.WaitForCompletion()

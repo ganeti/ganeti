@@ -71,7 +71,10 @@ def ExecuteJobProducingCommand(cmd):
   """
   job_id_output = GetOutputFromMaster(cmd)
 
-  possible_job_ids = re.findall("JobID: ([0-9]+)", job_id_output)
+  # Usually, the output contains "JobID: <job_id>", but for instance related
+  # commands, the output is of the form "<job_id>: <instance_name>"
+  possible_job_ids = re.findall("JobID: ([0-9]+)", job_id_output) or \
+                     re.findall("([0-9]+): .+", job_id_output)
   if len(possible_job_ids) != 1:
     raise qa_error.Error("Cannot parse command output to find job id: output "
                          "is %s" % job_id_output)
