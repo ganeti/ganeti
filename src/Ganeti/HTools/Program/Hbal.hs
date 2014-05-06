@@ -73,6 +73,7 @@ options = do
     , oPrintCommands
     , oDataFile
     , oEvacMode
+    , oRestrictedMigrate
     , oRapiMaster
     , luxi
     , oIAllocSrc
@@ -122,6 +123,7 @@ iterateDepth :: Bool             -- ^ Whether to print moves
              -> Int              -- ^ Remaining length
              -> Bool             -- ^ Allow disk moves
              -> Bool             -- ^ Allow instance moves
+             -> Bool             -- ^ Resrict migration
              -> Int              -- ^ Max node name len
              -> Int              -- ^ Max instance name len
              -> [MoveJob]        -- ^ Current command list
@@ -131,13 +133,13 @@ iterateDepth :: Bool             -- ^ Whether to print moves
              -> Bool             -- ^ Enable evacuation mode
              -> IO (Cluster.Table, [MoveJob]) -- ^ The resulting table
                                               -- and commands
-iterateDepth printmove ini_tbl max_rounds disk_moves inst_moves nmlen imlen
-             cmd_strs min_score mg_limit min_gain evac_mode =
+iterateDepth printmove ini_tbl max_rounds disk_moves inst_moves rest_mig nmlen
+             imlen cmd_strs min_score mg_limit min_gain evac_mode =
   let Cluster.Table ini_nl ini_il _ _ = ini_tbl
       allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
       m_fin_tbl = if allowed_next
                     then Cluster.tryBalance ini_tbl disk_moves inst_moves
-                         evac_mode mg_limit min_gain
+                         evac_mode rest_mig mg_limit min_gain
                     else Nothing
   in case m_fin_tbl of
        Just fin_tbl ->
@@ -154,7 +156,7 @@ iterateDepth printmove ini_tbl max_rounds disk_moves inst_moves nmlen imlen
                putStrLn sol_line
                hFlush stdout
            iterateDepth printmove fin_tbl max_rounds disk_moves inst_moves
-                        nmlen imlen upd_cmd_strs min_score
+                        rest_mig nmlen imlen upd_cmd_strs min_score
                         mg_limit min_gain evac_mode
        Nothing -> return (ini_tbl, cmd_strs)
 
@@ -389,6 +391,7 @@ main opts args = do
   (fin_tbl, cmd_strs) <- iterateDepth True ini_tbl (optMaxLength opts)
                          (optDiskMoves opts)
                          (optInstMoves opts)
+                         (optRestrictedMigrate opts)
                          nmlen imlen [] min_cv
                          (optMinGainLim opts) (optMinGain opts)
                          (optEvacMode opts)

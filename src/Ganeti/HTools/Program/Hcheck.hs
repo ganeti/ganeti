@@ -261,6 +261,7 @@ executeSimulation opts ini_tbl min_cv gidx nl il = do
                                     (optMaxLength opts)
                                     (optDiskMoves opts)
                                     (optInstMoves opts)
+                                    False
                                     nmlen imlen [] min_cv
                                     (optMinGainLim opts) (optMinGain opts)
                                     (optEvacMode opts)
