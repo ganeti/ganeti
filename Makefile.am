@@ -1229,6 +1229,7 @@ TEST_FILES = \
 	test/data/htools/hail-node-evac.json \
 	test/data/htools/hail-reloc-drbd.json \
 	test/data/htools/hbal-dyn.data \
+	test/data/htools/hbal-evac.data \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-split-insts.data \
 	test/data/htools/hspace-tiered-dualspec-exclusive.data \
@@ -1258,6 +1259,7 @@ TEST_FILES = \
 	test/hs/shelltests/htools-dynutil.test \
 	test/hs/shelltests/htools-excl.test \
 	test/hs/shelltests/htools-hail.test \
+	test/hs/shelltests/htools-hbal-evac.test \
 	test/hs/shelltests/htools-hroller.test \
 	test/hs/shelltests/htools-hspace.test \
 	test/hs/shelltests/htools-invalid.test \
