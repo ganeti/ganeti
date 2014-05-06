@@ -373,8 +373,9 @@ def ChangeNodeIndices(config_data, old_key_field, new_key_field):
     inst["primary_node"] = GetNewNodeIndex(nodes_by_old_key,
                                            inst["primary_node"],
                                            new_key_field)
-    for disk in inst["disks"]:
-      ChangeDiskNodeIndices(disk)
+
+  for disk in config_data["disks"].values():
+    ChangeDiskNodeIndices(disk)
 
 
 def ChangeInstanceIndices(config_data, old_key_field, new_key_field):
@@ -425,9 +426,9 @@ def UpgradeAll(config_data):
   UpgradeCluster(config_data)
   UpgradeGroups(config_data)
   UpgradeInstances(config_data)
+  UpgradeTopLevelDisks(config_data)
   UpgradeNodeIndices(config_data)
   UpgradeInstanceIndices(config_data)
-  UpgradeTopLevelDisks(config_data)
 
 
 # DOWNGRADE ------------------------------------------------------------
