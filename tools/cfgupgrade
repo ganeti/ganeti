@@ -509,8 +509,8 @@ def DowngradeAll(config_data):
   DowngradeCluster(config_data)
   DowngradeGroups(config_data)
   DowngradeNodes(config_data)
-  DowngradeInstances(config_data)
   DowngradeTopLevelDisks(config_data)
+  DowngradeInstances(config_data)
 
 
 def main():
