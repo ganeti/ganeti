@@ -478,6 +478,17 @@ def DowngradeInstances(config_data):
 
 def DowngradeTopLevelDisks(config_data):
   """Downgrade the disks from config top level citizens."""
+  def RemoveSerialNumber(disk):
+    if "serial_no" in disk:
+      del disk["serial_no"]
+    if "ctime" in disk:
+      del disk["ctime"]
+    if "mtime" in disk:
+      del disk["mtime"]
+    if "children" in disk:
+      for subdisk in disk["children"]:
+        RemoveSerialNumber(subdisk)
+
   if "instances" not in config_data:
     raise Error("Can't find the 'instances' key in the configuration!")
 
@@ -489,9 +500,7 @@ def DowngradeTopLevelDisks(config_data):
     disks = list()
     for disk_uuid in iobj["disks"]:
       disk_obj = config_data["disks"][disk_uuid]
-      del disk_obj["serial_no"]
-      del disk_obj["ctime"]
-      del disk_obj["mtime"]
+      RemoveSerialNumber(disk_obj)
       disks.append(disk_obj)
       del config_data["disks"][disk_uuid]
     iobj["disks"] = disks
