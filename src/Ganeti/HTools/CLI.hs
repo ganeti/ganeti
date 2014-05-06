@@ -51,6 +51,7 @@ module Ganeti.HTools.CLI
   , oMonD
   , oMonDDataFile
   , oEvacMode
+  , oRestrictedMigrate
   , oExInst
   , oExTags
   , oExecJobs
@@ -129,6 +130,7 @@ data Options = Options
   , optMonDFile    :: Maybe FilePath -- ^ Optional file with data provided
                                      -- ^ by MonDs
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
+  , optRestrictedMigrate :: Bool     -- ^ Disallow replace-primary moves
   , optExInst      :: [String]       -- ^ Instances to be excluded
   , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
   , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
@@ -186,6 +188,7 @@ defaultOptions  = Options
   , optMonD        = False
   , optMonDFile = Nothing
   , optEvacMode    = False
+  , optRestrictedMigrate = False
   , optExInst      = []
   , optExTags      = Nothing
   , optExecJobs    = False
@@ -357,6 +360,14 @@ oEvacMode =
    (NoArg (\opts -> Ok opts { optEvacMode = True }))
    "enable evacuation mode, where the algorithm only moves\
    \ instances away from offline and drained nodes",
+   OptComplNone)
+
+oRestrictedMigrate :: OptType
+oRestrictedMigrate =
+  (Option "" ["restricted-migration"]
+   (NoArg (\opts -> Ok opts { optRestrictedMigrate =  True }))
+   "disallow replace-primary moves (aka frf-moves); in evacuation mode, this\
+   \ will ensure that the only migrations are off the drained nodes",
    OptComplNone)
 
 oExInst :: OptType
