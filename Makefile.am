@@ -871,7 +871,8 @@ HS_LIB_SRCS = \
 	src/Ganeti/WConfd/Language.hs \
 	src/Ganeti/WConfd/Monad.hs \
 	src/Ganeti/WConfd/Server.hs \
-	src/Ganeti/WConfd/Ssconf.hs
+	src/Ganeti/WConfd/Ssconf.hs \
+	src/Ganeti/WConfd/TempRes.hs
 
 HS_TEST_SRCS = \
 	test/hs/Test/AutoConf.hs \
