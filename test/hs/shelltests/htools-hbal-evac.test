@@ -9,3 +9,9 @@
 (.|
 )*Solution length=3/
 >>>= 0
+
+./test/hs/hbal --evac-mode --restricted-migration -t $TESTDATA_DIR/hbal-evac.data
+>>>/a=f r:node-1
+(.|
+)*Solution length=3/
+>>>= 0
