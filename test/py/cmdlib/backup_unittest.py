@@ -143,6 +143,16 @@ class TestLUBackupExportLocalExport(TestLUBackupExportBase):
     op = self.CopyOpCode(self.op, remove_instance=True)
     self.ExecOpCode(op)
 
+  def testValidCompressionTool(self):
+    op = self.CopyOpCode(self.op, compress="lzop")
+    self.cfg.SetCompressionTools(["gzip", "lzop"])
+    self.ExecOpCode(op)
+
+  def testInvalidCompressionTool(self):
+    op = self.CopyOpCode(self.op, compress="invalid")
+    self.cfg.SetCompressionTools(["gzip", "lzop"])
+    self.ExecOpCodeExpectOpPrereqError(op, "Compression tool not allowed")
+
 
 class TestLUBackupExportRemoteExport(TestLUBackupExportBase):
   def setUp(self):

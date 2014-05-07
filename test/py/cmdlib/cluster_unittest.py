@@ -28,6 +28,7 @@ import OpenSSL
 import copy
 import unittest
 import operator
+import re
 
 from ganeti.cmdlib import cluster
 from ganeti import constants
@@ -979,6 +980,23 @@ class TestLUClusterSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
 
     self.mcpu.assertLogContainsRegex("Could not disable the master ip")
+
+  def testCompressionToolSuccess(self):
+    compression_tools = ["certainly_not_a_default", "gzip"]
+    op = opcodes.OpClusterSetParams(compression_tools=compression_tools)
+    self.ExecOpCode(op)
+    self.assertEqual(compression_tools, self.cluster.compression_tools)
+
+  def testCompressionToolCompatibility(self):
+    compression_tools = ["not_gzip", "not_not_not_gzip"]
+    op = opcodes.OpClusterSetParams(compression_tools=compression_tools)
+    self.ExecOpCodeExpectOpPrereqError(op, ".*the gzip utility must be.*")
+
+  def testCompressionToolForbiddenValues(self):
+    for value in ["none", "\"rm -rf all.all\"", "ls$IFS-la"]:
+      compression_tools = [value, "gzip"]
+      op = opcodes.OpClusterSetParams(compression_tools=compression_tools)
+      self.ExecOpCodeExpectOpPrereqError(op, re.escape(value))
 
 
 class TestLUClusterVerify(CmdlibTestCase):
