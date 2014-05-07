@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 {-| All RPC calls are run within this monad.
@@ -58,7 +58,6 @@ import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Data.IORef.Lifted
 import qualified Data.Set as S
-import Data.Tuple (swap)
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
@@ -69,6 +68,7 @@ import Ganeti.Locking.Locks
 import Ganeti.Locking.Waiting (getAllocation)
 import Ganeti.Logging
 import Ganeti.Utils.AsyncWorker
+import Ganeti.Utils.IORef
 import Ganeti.WConfd.ConfigState
 
 -- * Pure data types used in the monad
@@ -187,8 +187,7 @@ modifyConfigState f = do
   dh <- daemonHandle
   let modCS cs = let (cs', r) = f cs
                   in ((r, cs /= cs'), cs')
-  let mf = traverseOf dsConfigStateL modCS
-  (r, modified) <- atomicModifyIORef (dhDaemonState dh) (swap . mf)
+  (r, modified) <- atomicModifyWithLens (dhDaemonState dh) dsConfigStateL modCS
   when modified $ do
     -- trigger the config. saving worker and wait for it
     logDebug "Triggering config write"
@@ -209,10 +208,9 @@ modifyLockWaiting :: (GanetiLockWaiting -> ( GanetiLockWaiting
                      -> WConfdMonad a
 modifyLockWaiting f = do
   dh <- lift . WConfdMonadInt $ ask
-  let f' = swap . (fst &&& id) . f
-  (lockAlloc, (r, nfy)) <- atomicModifyIORef
-                             (dhDaemonState dh)
-                             (swap . traverseOf dsLockWaitingL f')
+  let f' = (id &&& fst) . f
+  (lockAlloc, (r, nfy)) <- atomicModifyWithLens
+                             (dhDaemonState dh) dsLockWaitingL f'
   logDebug $ "Current lock status: " ++ J.encode lockAlloc
   logDebug "Triggering lock state write"
   liftBase . triggerAndWait . dhSaveLocksWorker $ dh
