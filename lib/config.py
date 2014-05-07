@@ -1238,10 +1238,7 @@ class ConfigWriter(object):
                 constants.NDS_PARAMETER_TYPES)
 
     # drbd minors check
-    _, duplicates = self._UnlockedComputeDRBDMap()
-    for node, minor, instance_a, instance_b in duplicates:
-      result.append("DRBD minor %d on node %s is assigned twice to instances"
-                    " %s and %s" % (minor, node, instance_a, instance_b))
+    logging.debug("The check for DRBD map needs to be implemented in WConfd")
 
     # IP checks
     default_nicparams = cluster.nicparams[constants.PP_DEFAULT]
@@ -1338,70 +1335,28 @@ class ConfigWriter(object):
       self._ConfigData().cluster.highest_used_port = port
     return port
 
-  def _UnlockedComputeDRBDMap(self):
-    """Compute the used DRBD minor/nodes.
-
-    @rtype: (dict, list)
-    @return: dictionary of node_uuid: dict of minor: instance_uuid;
-        the returned dict will have all the nodes in it (even if with
-        an empty list), and a list of duplicates; if the duplicates
-        list is not empty, the configuration is corrupted and its caller
-        should raise an exception
-
-    """
-    def _AppendUsedMinors(get_node_name_fn, instance, disk, used):
-      duplicates = []
-      if disk.dev_type == constants.DT_DRBD8 and len(disk.logical_id) >= 5:
-        node_a, node_b, _, minor_a, minor_b = disk.logical_id[:5]
-        for node_uuid, minor in ((node_a, minor_a), (node_b, minor_b)):
-          assert node_uuid in used, \
-            ("Node '%s' of instance '%s' not found in node list" %
-             (get_node_name_fn(node_uuid), instance.name))
-          if minor in used[node_uuid]:
-            duplicates.append((node_uuid, minor, instance.uuid,
-                               used[node_uuid][minor]))
-          else:
-            used[node_uuid][minor] = instance.uuid
-      if disk.children:
-        for child in disk.children:
-          duplicates.extend(_AppendUsedMinors(get_node_name_fn, instance, child,
-                                              used))
-      return duplicates
-
-    duplicates = []
-    my_dict = dict((node_uuid, {}) for node_uuid in self._ConfigData().nodes)
-    for instance in self._ConfigData().instances.itervalues():
-      for disk in self._UnlockedGetInstanceDisks(instance.uuid):
-        duplicates.extend(_AppendUsedMinors(self._UnlockedGetNodeName,
-                                            instance, disk, my_dict))
-    for (node_uuid, minor), inst_uuid in self._temporary_drbds.iteritems():
-      if minor in my_dict[node_uuid] and my_dict[node_uuid][minor] != inst_uuid:
-        duplicates.append((node_uuid, minor, inst_uuid,
-                           my_dict[node_uuid][minor]))
-      else:
-        my_dict[node_uuid][minor] = inst_uuid
-    return my_dict, duplicates
-
   @_ConfigSync()
   def ComputeDRBDMap(self):
     """Compute the used DRBD minor/nodes.
 
-    This is just a wrapper over L{_UnlockedComputeDRBDMap}.
+    This is just a wrapper over a call to WConfd.
 
     @return: dictionary of node_uuid: dict of minor: instance_uuid;
         the returned dict will have all the nodes in it (even if with
         an empty list).
 
     """
-    d_map, duplicates = self._UnlockedComputeDRBDMap()
-    if duplicates:
-      raise errors.ConfigurationError("Duplicate DRBD ports detected: %s" %
-                                      str(duplicates))
-    return d_map
+    if self._offline:
+      raise errors.ProgrammerError("Can't call ComputeDRBDMap in offline mode")
+    else:
+      return dict(map(lambda (k, v): (k, dict(v)),
+                      self._wconfd.ComputeDRBDMap()))
 
   @_ConfigSync()
   def AllocateDRBDMinor(self, node_uuids, inst_uuid):
     """Allocate a drbd minor.
+
+    This is just a wrapper over a call to WConfd.
 
     The free minor will be automatically computed from the existing
     devices. A node can be given multiple times in order to allocate
@@ -1415,48 +1370,19 @@ class ConfigWriter(object):
     assert isinstance(inst_uuid, basestring), \
            "Invalid argument '%s' passed to AllocateDRBDMinor" % inst_uuid
 
-    d_map, duplicates = self._UnlockedComputeDRBDMap()
-    if duplicates:
-      raise errors.ConfigurationError("Duplicate DRBD ports detected: %s" %
-                                      str(duplicates))
-    result = []
-    for nuuid in node_uuids:
-      ndata = d_map[nuuid]
-      if not ndata:
-        # no minors used, we can start at 0
-        result.append(0)
-        ndata[0] = inst_uuid
-        self._temporary_drbds[(nuuid, 0)] = inst_uuid
-        continue
-      keys = ndata.keys()
-      keys.sort()
-      ffree = utils.FirstFree(keys)
-      if ffree is None:
-        # return the next minor
-        # TODO: implement high-limit check
-        minor = keys[-1] + 1
-      else:
-        minor = ffree
-      # double-check minor against current instances
-      assert minor not in d_map[nuuid], \
-             ("Attempt to reuse allocated DRBD minor %d on node %s,"
-              " already allocated to instance %s" %
-              (minor, nuuid, d_map[nuuid][minor]))
-      ndata[minor] = inst_uuid
-      # double-check minor against reservation
-      r_key = (nuuid, minor)
-      assert r_key not in self._temporary_drbds, \
-             ("Attempt to reuse reserved DRBD minor %d on node %s,"
-              " reserved for instance %s" %
-              (minor, nuuid, self._temporary_drbds[r_key]))
-      self._temporary_drbds[r_key] = inst_uuid
-      result.append(minor)
+    if self._offline:
+      raise errors.ProgrammerError("Can't call AllocateDRBDMinor"
+                                   " in offline mode")
+
+    result = self._wconfd.AllocateDRBDMinor(inst_uuid, node_uuids)
     logging.debug("Request to allocate drbd minors, input: %s, returning %s",
                   node_uuids, result)
     return result
 
   def _UnlockedReleaseDRBDMinors(self, inst_uuid):
     """Release temporary drbd minors allocated for a given instance.
+
+    This is just a wrapper over a call to WConfd.
 
     @type inst_uuid: string
     @param inst_uuid: the instance for which temporary minors should be
@@ -1465,9 +1391,11 @@ class ConfigWriter(object):
     """
     assert isinstance(inst_uuid, basestring), \
            "Invalid argument passed to ReleaseDRBDMinors"
-    for key, uuid in self._temporary_drbds.items():
-      if uuid == inst_uuid:
-        del self._temporary_drbds[key]
+    # in offline mode we allow the calls to release DRBD minors,
+    # because then nothing can be allocated anyway;
+    # this is useful for testing
+    if not self._offline:
+      self._wconfd.ReleaseDRBDMinors(inst_uuid)
 
   @_ConfigSync()
   def ReleaseDRBDMinors(self, inst_uuid):
