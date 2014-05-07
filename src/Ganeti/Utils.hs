@@ -28,6 +28,7 @@ module Ganeti.Utils
   , debugFn
   , debugXy
   , sepSplit
+  , findFirst
   , stdDev
   , if'
   , select
@@ -91,6 +92,8 @@ import Data.Function (on)
 import Data.IORef
 import Data.List
 import qualified Data.Map as M
+import Data.Maybe (fromMaybe)
+import qualified Data.Set as S
 import Foreign.C.Types (CTime(..))
 import Numeric (showOct)
 import System.Directory (renameFile, createDirectoryIfMissing)
@@ -146,6 +149,15 @@ sepSplit sep s
   | otherwise = x:sepSplit sep ys
   where (x, xs) = break (== sep) s
         ys = drop 1 xs
+
+-- | Finds the first unused element in a set starting from a given base.
+findFirst :: (Ord a, Enum a) => a -> S.Set a -> a
+findFirst base xs =
+  case S.splitMember base xs of
+    (_, False, _) -> base
+    (_, True, ys) -> fromMaybe (succ base) $
+      (fmap fst . find (uncurry (<)) . zip [succ base..] . S.toAscList $ ys)
+      `mplus` fmap (succ . fst) (S.maxView ys)
 
 -- | Simple pluralize helper
 plural :: Int -> String -> String -> String
