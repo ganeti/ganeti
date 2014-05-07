@@ -32,6 +32,7 @@ Algorithm options:
 **[ -U *util-file* ]**
 **[ \--ignore-dynu ]**
 **[ \--evac-mode ]**
+**[ \--restricted-migration ]**
 **[ \--select-instances *inst...* ]**
 **[ \--exclude-instances *inst...* ]**
 
@@ -305,6 +306,15 @@ The options that can be passed to the program are as follows:
   to the ones living on offline/drained nodes. It can be used as a
   (bulk) replacement for Ganeti's own *gnt-node evacuate*, with the
   note that it doesn't guarantee full evacuation.
+
+\--restricted-migration
+  This parameter disallows any replace-primary moves (frf), as well as
+  those replace-and-failover moves (rf) where the primary node of the
+  instance is not drained. If used together with the ``--evac-mode``
+  option, the only migrations that hbal will do are migrations of
+  instances off a drained node. This can be useful if during a reinstall
+  of the base operating system migration is only possible from the old
+  OS to the new OS.
 
 \--select-instances=*instances*
   This parameter marks the given instances (as a comma-separated list)
