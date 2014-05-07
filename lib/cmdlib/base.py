@@ -133,7 +133,6 @@ class LogicalUnit(object):
     self.opportunistic_locks = dict.fromkeys(locking.LEVELS, False)
 
     self.add_locks = {}
-    self.remove_locks = {}
 
     # Used to force good behavior when calling helper functions
     self.recalculate_locks = {}

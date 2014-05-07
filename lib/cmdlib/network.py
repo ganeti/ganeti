@@ -196,7 +196,6 @@ class LUNetworkAdd(LogicalUnit):
         nobj.AddTag(tag)
 
     self.cfg.AddNetwork(nobj, self.proc.GetECId(), check_uuid=False)
-    del self.remove_locks[locking.LEVEL_NETWORK]
 
 
 class LUNetworkRemove(LogicalUnit):

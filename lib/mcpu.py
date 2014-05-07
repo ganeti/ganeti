@@ -510,7 +510,6 @@ class Processor(object):
         else:
           # Adding locks
           needed_locks = _LockList(lu.add_locks[level])
-          lu.remove_locks[level] = needed_locks
           use_opportunistic = False
 
         self._AcquireLocks(level, needed_locks, share, use_opportunistic,
