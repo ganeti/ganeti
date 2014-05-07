@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Utils.IORef
   ( atomicModifyWithLens
+  , atomicModifyIORefErr
   ) where
 
 import Control.Monad.Base
@@ -38,3 +39,12 @@ import Ganeti.Lens
 atomicModifyWithLens :: (MonadBase IO m)
                      => IORef a -> Lens a a b c -> (b -> (r, c)) -> m r
 atomicModifyWithLens ref l f = atomicModifyIORef ref (swap . traverseOf l f)
+
+-- | Atomically modifies an 'IORef' using a function that can possibly fail.
+-- If it fails, the value of the 'IORef' is preserved.
+atomicModifyIORefErr :: (MonadBase IO m)
+                     => IORef a -> (a -> GenericResult e (a, b))
+                     -> ResultT e m b
+atomicModifyIORefErr ref f =
+  let f' x = genericResult ((,) x . Bad) (fmap Ok) (f x)
+   in ResultT $ atomicModifyIORef ref f'

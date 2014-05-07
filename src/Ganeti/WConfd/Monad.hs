@@ -47,6 +47,9 @@ module Ganeti.WConfd.Monad
   , modifyLockWaiting
   , modifyLockWaiting_
   , readLockAllocation
+  , modifyTempResState
+  , modifyTempResStateErr
+  , readTempResState
   ) where
 
 import Control.Applicative
@@ -55,9 +58,13 @@ import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error
 import Control.Monad.Reader
+import Control.Monad.State
 import Control.Monad.Trans.Control
+import Data.Functor.Compose (Compose(..))
+import Data.Functor.Identity
 import Data.IORef.Lifted
 import qualified Data.Set as S
+import Data.Tuple (swap)
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
@@ -67,9 +74,11 @@ import Ganeti.Locking.Allocation (LockAllocation)
 import Ganeti.Locking.Locks
 import Ganeti.Locking.Waiting (getAllocation)
 import Ganeti.Logging
+import Ganeti.Objects (ConfigData)
 import Ganeti.Utils.AsyncWorker
 import Ganeti.Utils.IORef
 import Ganeti.WConfd.ConfigState
+import Ganeti.WConfd.TempRes
 
 -- * Pure data types used in the monad
 
@@ -78,6 +87,7 @@ import Ganeti.WConfd.ConfigState
 data DaemonState = DaemonState
   { dsConfigState :: ConfigState
   , dsLockWaiting :: GanetiLockWaiting
+  , dsTempRes :: TempResState
   }
 
 $(makeCustomLenses ''DaemonState)
@@ -113,7 +123,7 @@ mkDaemonHandle :: FilePath
 mkDaemonHandle cpath cstat lstat
                saveWorkerFn distMCsWorkerFn distSSConfWorkerFn
                saveLockWorkerFn = do
-  ds <- newIORef $ DaemonState cstat lstat
+  ds <- newIORef $ DaemonState cstat lstat emptyTempResState
   let readConfigIO = dsConfigState `liftM` readIORef ds :: IO ConfigState
 
   saveWorker <- saveWorkerFn readConfigIO
@@ -201,6 +211,31 @@ modifyConfigState f = do
                                          ]
     return ()
   return r
+
+-- | Atomically modifies the state of temporary reservations in
+-- WConfdMonad in the presence of possible errors.
+modifyTempResStateErr
+  :: (ConfigData -> StateT TempResState ErrorResult a) -> WConfdMonad a
+modifyTempResStateErr f = do
+  -- we use Compose to traverse the composition of applicative functors
+  -- @ErrorResult@ and @(,) a@
+  let f' ds = getCompose $ traverseOf dsTempResL
+              (Compose . runStateT (f (csConfigData . dsConfigState $ ds))) ds
+  dh <- daemonHandle
+  toErrorBase $ atomicModifyIORefErr (dhDaemonState dh) (liftM swap . f')
+
+-- | Atomically modifies the state of temporary reservations in
+-- WConfdMonad.
+modifyTempResState :: (ConfigData -> State TempResState a) -> WConfdMonad a
+modifyTempResState f =
+  modifyTempResStateErr (mapStateT (return . runIdentity) . f)
+
+-- | Reads the state of of the configuration and temporary reservations
+-- in WConfdMonad.
+readTempResState :: WConfdMonad (ConfigData, TempResState)
+readTempResState = liftM (csConfigData . dsConfigState &&& dsTempRes)
+                     . readIORef . dhDaemonState
+                   =<< daemonHandle
 
 -- | Atomically modifies the lock waiting state in WConfdMonad.
 modifyLockWaiting :: (GanetiLockWaiting -> ( GanetiLockWaiting
