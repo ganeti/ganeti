@@ -2,7 +2,7 @@
 Description = Ganeti RAPI daemon (rapi)
 Documentation = man:ganeti-rapi(8)
 Requires = ganeti-common.service
-Requisite = ganeti-masterd.service
+Requisite = ganeti-luxid.service
 After = ganeti-common.service
 PartOf = ganeti-master.target
 ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/rapi.pem

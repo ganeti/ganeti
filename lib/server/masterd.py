@@ -29,16 +29,13 @@ inheritance from parent classes requires it.
 # pylint: disable=C0103
 # C0103: Invalid name ganeti-masterd
 
-import grp
 import os
-import pwd
 import sys
 import socket
 import time
 import tempfile
 import logging
 
-from optparse import OptionParser
 
 from ganeti import config
 from ganeti import constants
@@ -51,19 +48,13 @@ from ganeti import luxi
 import ganeti.rpc.errors as rpcerr
 from ganeti import utils
 from ganeti import errors
-from ganeti import ssconf
 from ganeti import workerpool
 import ganeti.rpc.node as rpc
 import ganeti.rpc.client as rpccl
-from ganeti import bootstrap
-from ganeti import netutils
 from ganeti import objects
 from ganeti import query
 from ganeti import runtime
-from ganeti import pathutils
 from ganeti import ht
-
-from ganeti.utils import version
 
 
 CLIENT_REQUEST_WORKERS = 16
@@ -556,208 +547,3 @@ def _SetWatcherPause(context, ec_id, until):
                              " on the following node(s): %s" % errmsg)
 
   return until
-
-
-@rpc.RunWithRPC
-def CheckAgreement():
-  """Check the agreement on who is the master.
-
-  The function uses a very simple algorithm: we must get more positive
-  than negative answers. Since in most of the cases we are the master,
-  we'll use our own config file for getting the node list. In the
-  future we could collect the current node list from our (possibly
-  obsolete) known nodes.
-
-  In order to account for cold-start of all nodes, we retry for up to
-  a minute until we get a real answer as the top-voted one. If the
-  nodes are more out-of-sync, for now manual startup of the master
-  should be attempted.
-
-  Note that for a even number of nodes cluster, we need at least half
-  of the nodes (beside ourselves) to vote for us. This creates a
-  problem on two-node clusters, since in this case we require the
-  other node to be up too to confirm our status.
-
-  """
-  myself = netutils.Hostname.GetSysName()
-  # Create a livelock file
-  livelock = utils.livelock.LiveLock("masterd_check_agreement")
-  #temp instantiation of a config writer, used only to get the node list
-  cfg = config.GetConfig(None, livelock)
-  node_names = cfg.GetNodeNames(cfg.GetNodeList())
-  del cfg
-  retries = 6
-  while retries > 0:
-    votes = bootstrap.GatherMasterVotes(node_names)
-    if not votes:
-      # empty node list, this is a one node cluster
-      return True
-    if votes[0][0] is None:
-      retries -= 1
-      time.sleep(10)
-      continue
-    break
-  if retries == 0:
-    logging.critical("Cluster inconsistent, most of the nodes didn't answer"
-                     " after multiple retries. Aborting startup")
-    logging.critical("Use the --no-voting option if you understand what"
-                     " effects it has on the cluster state")
-    return False
-  # here a real node is at the top of the list
-  all_votes = sum(item[1] for item in votes)
-  top_node, top_votes = votes[0]
-
-  result = False
-  if top_node != myself:
-    logging.critical("It seems we are not the master (top-voted node"
-                     " is %s with %d out of %d votes)", top_node, top_votes,
-                     all_votes)
-  elif top_votes < all_votes - top_votes:
-    logging.critical("It seems we are not the master (%d votes for,"
-                     " %d votes against)", top_votes, all_votes - top_votes)
-  else:
-    result = True
-
-  return result
-
-
-@rpc.RunWithRPC
-def ActivateMasterIP():
-  # activate ip
-  # Create a livelock file
-  livelock = utils.livelock.LiveLock("masterd_activate_ip")
-  cfg = config.GetConfig(None, livelock)
-  master_params = cfg.GetMasterNetworkParameters()
-  ems = cfg.GetUseExternalMipScript()
-  runner = rpc.BootstrapRunner()
-  # we use the node name, as the configuration is only available here yet
-  result = runner.call_node_activate_master_ip(
-             cfg.GetNodeName(master_params.uuid), master_params, ems)
-
-  msg = result.fail_msg
-  if msg:
-    logging.error("Can't activate master IP address: %s", msg)
-
-
-def CheckMasterd(options, args):
-  """Initial checks whether to run or exit with a failure.
-
-  """
-  if args: # masterd doesn't take any arguments
-    print >> sys.stderr, ("Usage: %s [-f] [-d]" % sys.argv[0])
-    sys.exit(constants.EXIT_FAILURE)
-
-  ssconf.CheckMaster(options.debug)
-
-  try:
-    options.uid = pwd.getpwnam(constants.MASTERD_USER).pw_uid
-    options.gid = grp.getgrnam(constants.DAEMONS_GROUP).gr_gid
-  except KeyError:
-    print >> sys.stderr, ("User or group not existing on system: %s:%s" %
-                          (constants.MASTERD_USER, constants.DAEMONS_GROUP))
-    sys.exit(constants.EXIT_FAILURE)
-
-  # Determine static runtime architecture information
-  runtime.InitArchInfo()
-
-  # Check the configuration is sane before anything else
-  try:
-    livelock = utils.livelock.LiveLock("masterd_check")
-    config.GetConfig(None, livelock)
-  except errors.ConfigVersionMismatch, err:
-    v1 = "%s.%s.%s" % version.SplitVersion(err.args[0])
-    v2 = "%s.%s.%s" % version.SplitVersion(err.args[1])
-    print >> sys.stderr,  \
-        ("Configuration version mismatch. The current Ganeti software"
-         " expects version %s, but the on-disk configuration file has"
-         " version %s. This is likely the result of upgrading the"
-         " software without running the upgrade procedure. Please contact"
-         " your cluster administrator or complete the upgrade using the"
-         " cfgupgrade utility, after reading the upgrade notes." %
-         (v1, v2))
-    sys.exit(constants.EXIT_FAILURE)
-  except errors.ConfigurationError, err:
-    print >> sys.stderr, \
-        ("Configuration error while opening the configuration file: %s\n"
-         "This might be caused by an incomplete software upgrade or"
-         " by a corrupted configuration file. Until the problem is fixed"
-         " the master daemon cannot start." % str(err))
-    sys.exit(constants.EXIT_FAILURE)
-
-  # If CheckMaster didn't fail we believe we are the master, but we have to
-  # confirm with the other nodes.
-  if options.no_voting:
-    if not options.yes_do_it:
-      sys.stdout.write("The 'no voting' option has been selected.\n")
-      sys.stdout.write("This is dangerous, please confirm by"
-                       " typing uppercase 'yes': ")
-      sys.stdout.flush()
-
-      confirmation = sys.stdin.readline().strip()
-      if confirmation != "YES":
-        print >> sys.stderr, "Aborting."
-        sys.exit(constants.EXIT_FAILURE)
-
-  else:
-    # CheckAgreement uses RPC and threads, hence it needs to be run in
-    # a separate process before we call utils.Daemonize in the current
-    # process.
-    if not utils.RunInSeparateProcess(CheckAgreement):
-      sys.exit(constants.EXIT_FAILURE)
-
-  # ActivateMasterIP also uses RPC/threads, so we run it again via a
-  # separate process.
-
-  # TODO: decide whether failure to activate the master IP is a fatal error
-  utils.RunInSeparateProcess(ActivateMasterIP)
-
-
-def PrepMasterd(options, _):
-  """Prep master daemon function, executed with the PID file held.
-
-  """
-  # This is safe to do as the pid file guarantees against
-  # concurrent execution.
-  utils.RemoveFile(pathutils.MASTER_SOCKET)
-
-  mainloop = daemon.Mainloop()
-  master = MasterServer(pathutils.MASTER_SOCKET, options.uid, options.gid)
-  return (mainloop, master)
-
-
-def ExecMasterd(options, args, prep_data): # pylint: disable=W0613
-  """Main master daemon function, executed with the PID file held.
-
-  """
-  (mainloop, master) = prep_data
-  try:
-    rpc.Init()
-    try:
-      master.setup_context()
-      try:
-        mainloop.Run(shutdown_wait_fn=master.WaitForShutdown)
-      finally:
-        master.server_cleanup()
-    finally:
-      rpc.Shutdown()
-  finally:
-    utils.RemoveFile(pathutils.MASTER_SOCKET)
-
-  logging.info("Clean master daemon shutdown")
-
-
-def Main():
-  """Main function"""
-  parser = OptionParser(description="Ganeti master daemon",
-                        usage="%prog [-f] [-d]",
-                        version="%%prog (ganeti) %s" %
-                        constants.RELEASE_VERSION)
-  parser.add_option("--no-voting", dest="no_voting",
-                    help="Do not check that the nodes agree on this node"
-                    " being the master and start the daemon unconditionally",
-                    default=False, action="store_true")
-  parser.add_option("--yes-do-it", dest="yes_do_it",
-                    help="Override interactive check for --no-voting",
-                    default=False, action="store_true")
-  daemon.GenericMain(constants.MASTERD, parser, CheckMasterd, PrepMasterd,
-                     ExecMasterd, multithreaded=True)

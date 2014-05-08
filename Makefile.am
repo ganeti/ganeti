@@ -348,7 +348,6 @@ BUILT_EXAMPLES = \
 	doc/examples/systemd/ganeti-confd.service \
 	doc/examples/systemd/ganeti-kvmd.service \
 	doc/examples/systemd/ganeti-luxid.service \
-	doc/examples/systemd/ganeti-masterd.service \
 	doc/examples/systemd/ganeti-metad.service \
 	doc/examples/systemd/ganeti-mond.service \
 	doc/examples/systemd/ganeti-noded.service \
@@ -1080,7 +1079,6 @@ gnt_python_sbin_SCRIPTS = \
 gntpython_SCRIPTS = $(gnt_scripts)
 
 PYTHON_BOOTSTRAP_SBIN = \
-	daemons/ganeti-masterd \
 	daemons/ganeti-noded \
 	daemons/ganeti-rapi \
 	daemons/ganeti-watcher
@@ -1324,7 +1322,6 @@ man_MANS = \
 	man/ganeti-luxid.8 \
 	man/ganeti-listrunner.8 \
 	man/ganeti-kvmd.8 \
-	man/ganeti-masterd.8 \
 	man/ganeti-mond.8 \
 	man/ganeti-noded.8 \
 	man/ganeti-os-interface.7 \

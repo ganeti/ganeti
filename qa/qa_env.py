@@ -49,7 +49,6 @@ def TestGanetiCommands():
           ["gnt-job", "--version"],
           ["gnt-node", "--version"],
           ["gnt-os", "--version"],
-          ["ganeti-masterd", "--version"],
           ["ganeti-noded", "--version"],
           ["ganeti-rapi", "--version"],
           ["ganeti-watcher", "--version"],
