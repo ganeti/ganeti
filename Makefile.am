@@ -538,6 +538,8 @@ HFLAGS = \
 HEXTRA =
 # internal extra flags (used for test/hs/htest mainly)
 HEXTRA_INT =
+# combination of HEXTRA and HEXTRA_CONFIGURE
+HEXTRA_COMBINED = $(HEXTRA) $(HEXTRA_CONFIGURE)
 # exclude options for coverage reports
 HPCEXCL = --exclude Main \
 	--exclude Ganeti.Constants \
@@ -881,7 +883,7 @@ $(HS_ALL_PROGS): %: %.hs $(HS_LIBTESTBUILT_SRCS) Makefile
 	  $(HFLAGS) \
 	  $(HS_PARALLEL3) $(HS_REGEX_PCRE) \
 	  -osuf $(notdir $@).o -hisuf $(notdir $@).hi \
-	  $(HEXTRA) $(HEXTRA_INT) $@
+	  $(HEXTRA_COMBINED) $(HEXTRA_INT) $@
 	@touch "$@"
 
 # for the test/hs/htest binary, we need to enable profiling/coverage

@@ -24,6 +24,15 @@ AC_SUBST([VERSION_REVISION], gnt_version_revision)
 AC_SUBST([VERSION_SUFFIX], gnt_version_suffix)
 AC_SUBST([VERSION_FULL], gnt_version_full)
 
+# --with-haskell-flags=
+AC_ARG_WITH([haskell-flags],
+  [AS_HELP_STRING([--with-haskell-flags=FLAGS],
+    [Extra flags to pass to GHC]
+  )],
+  [hextra_configure="$withval"],
+  [hextra_configure=""])
+AC_SUBST(HEXTRA_CONFIGURE, $hextra_configure)
+
 # --with-ssh-initscript=...
 AC_ARG_WITH([ssh-initscript],
   [AS_HELP_STRING([--with-ssh-initscript=SCRIPT],
