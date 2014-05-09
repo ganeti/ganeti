@@ -1816,65 +1816,6 @@ class TestLUClusterVerifyGroupVerifyFiles(TestLUClusterVerifyGroupMethods):
       self.mcpu.assertLogContainsInLine(expected_msg)
 
 
-class TestLUClusterVerifyGroupVerifyNodeDrbd(TestLUClusterVerifyGroupMethods):
-  def setUp(self):
-    super(TestLUClusterVerifyGroupVerifyNodeDrbd, self).setUp()
-
-    self.node1 = self.cfg.AddNewNode()
-    self.node2 = self.cfg.AddNewNode()
-    self.inst = self.cfg.AddNewInstance(
-      disks=[self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
-                                 primary_node=self.node1,
-                                 secondary_node=self.node2)],
-      admin_state=constants.ADMINST_UP)
-
-  @withLockedLU
-  def testNoDrbdHelper(self, lu):
-    lu._VerifyNodeDrbd(self.master, {}, self.cfg.GetAllInstancesInfo(), None,
-                       self.cfg.ComputeDRBDMap())
-    self.mcpu.assertLogIsEmpty()
-
-  @withLockedLU
-  def testDrbdHelperInvalidNodeResult(self, lu):
-    for ndata, expected in [({}, "no drbd usermode helper returned"),
-                            ({constants.NV_DRBDHELPER: (False, "")},
-                             "drbd usermode helper check unsuccessful"),
-                            ({constants.NV_DRBDHELPER: (True, "/bin/false")},
-                             "wrong drbd usermode helper")]:
-      self.mcpu.ClearLogMessages()
-      lu._VerifyNodeDrbd(self.master, ndata, self.cfg.GetAllInstancesInfo(),
-                         "/bin/true", self.cfg.ComputeDRBDMap())
-      self.mcpu.assertLogContainsRegex(expected)
-
-  @withLockedLU
-  def testNoNodeResult(self, lu):
-    lu._VerifyNodeDrbd(self.node1, {}, self.cfg.GetAllInstancesInfo(),
-                         None, self.cfg.ComputeDRBDMap())
-    self.mcpu.assertLogContainsRegex("drbd minor 1 of .* is not active")
-
-  @withLockedLU
-  def testInvalidNodeResult(self, lu):
-    lu._VerifyNodeDrbd(self.node1, {constants.NV_DRBDLIST: ""},
-                       self.cfg.GetAllInstancesInfo(), None,
-                       self.cfg.ComputeDRBDMap())
-    self.mcpu.assertLogContainsRegex("cannot parse drbd status file")
-
-  @withLockedLU
-  def testWrongMinorInUse(self, lu):
-    lu._VerifyNodeDrbd(self.node1, {constants.NV_DRBDLIST: [2]},
-                       self.cfg.GetAllInstancesInfo(), None,
-                       self.cfg.ComputeDRBDMap())
-    self.mcpu.assertLogContainsRegex("drbd minor 1 of .* is not active")
-    self.mcpu.assertLogContainsRegex("unallocated drbd minor 2 is in use")
-
-  @withLockedLU
-  def testValidResult(self, lu):
-    lu._VerifyNodeDrbd(self.node1, {constants.NV_DRBDLIST: [1]},
-                       self.cfg.GetAllInstancesInfo(), None,
-                       self.cfg.ComputeDRBDMap())
-    self.mcpu.assertLogIsEmpty()
-
-
 class TestLUClusterVerifyGroupVerifyNodeOs(TestLUClusterVerifyGroupMethods):
   @withLockedLU
   def testUpdateNodeOsInvalidNodeResult(self, lu):
