@@ -49,6 +49,9 @@ module Ganeti.Rpc
   , toCompressed
   , getCompressed
 
+  , RpcCallNodeActivateMasterIp(..)
+  , RpcResultNodeActivateMasterIp(..)
+
   , RpcCallInstanceInfo(..)
   , InstanceState(..)
   , InstanceInfo(..)
@@ -788,5 +791,27 @@ instance Rpc RpcCallWriteSsconfFiles RpcResultWriteSsconfFiles where
   rpcResultFill _ res =
     case res of
       J.JSNull -> Right RpcResultWriteSsconfFiles
+      _ -> Left $ JsonDecodeError
+           ("Expected JSNull, got " ++ show (pp_value res))
+
+-- | Activate the master IP address
+
+$(buildObject "RpcCallNodeActivateMasterIp" "rpcCallNodeActivateMasterIp"
+  [ simpleField "params" [t| MasterNetworkParameters |]
+  , simpleField "ems"    [t| Bool |]
+  ])
+
+instance RpcCall RpcCallNodeActivateMasterIp where
+  rpcCallName _          = "node_activate_master_ip"
+  rpcCallTimeout _       = rpcTimeoutToRaw Fast
+  rpcCallAcceptOffline _ = False
+
+$(buildObject "RpcResultNodeActivateMasterIp" "rpcResultNodeActivateMasterIp"
+  [])
+
+instance Rpc RpcCallNodeActivateMasterIp RpcResultNodeActivateMasterIp where
+  rpcResultFill _ res =
+    case res of
+      J.JSNull -> Right RpcResultNodeActivateMasterIp
       _ -> Left $ JsonDecodeError
            ("Expected JSNull, got " ++ show (pp_value res))
