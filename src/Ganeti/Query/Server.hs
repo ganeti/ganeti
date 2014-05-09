@@ -32,7 +32,7 @@ module Ganeti.Query.Server
 import Control.Applicative
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forever, when, zipWithM, liftM)
+import Control.Monad (forever, when, zipWithM, liftM, void)
 import Control.Monad.IO.Class
 import Data.Bits (bitSize)
 import qualified Data.Set as Set (toList)
@@ -436,6 +436,21 @@ luxiHandler cfg = U.Handler { U.hParse         = decodeLuxiCall
 -- | Type alias for prepMain results
 type PrepResult = (Server, IORef (Result ConfigData), JQStatus)
 
+-- | Activate the master IP address.
+activateMasterIP :: IO (Result ())
+activateMasterIP = runResultT $ do
+  liftIO $ logDebug "Activating master IP address"
+  conf_file <- liftIO Path.clusterConfFile
+  config <- mkResultT $ Config.loadConfig conf_file
+  let mnp = Config.getMasterNetworkParameters config
+      masters = Config.getMasterNodes config
+      ems = clusterUseExternalMipScript $ configCluster config
+  liftIO . logDebug $ "Master IP params: " ++ show mnp
+  res <- liftIO . executeRpcCall masters $ RpcCallNodeActivateMasterIp mnp ems
+  _ <- liftIO $ logRpcErrors res
+  liftIO $ logDebug "finished activating master IP address"
+  return ()
+
 -- | Check function for luxid.
 checkMain :: CheckFn ()
 checkMain _ = return $ Right ()
@@ -466,6 +481,8 @@ main _ _ (server, cref, jq) = do
   qlock <- newMVar ()
 
   _ <- P.installHandler P.sigCHLD P.Ignore Nothing
+
+  _ <- forkIO . void $ activateMasterIP
 
   finally
     (forever $ U.listener (luxiHandler (qlock, jq, creader)) server)
