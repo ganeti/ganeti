@@ -90,7 +90,7 @@ monitorDir :: String
 monitorDir = AutoConf.localstatedir </> "run/ganeti/kvm-hypervisor/ctrl/"
 
 monitorExtension :: String
-monitorExtension = ".qmp"
+monitorExtension = ".kvmd"
 
 isMonitorPath :: FilePath -> Bool
 isMonitorPath = (== monitorExtension) . takeExtension

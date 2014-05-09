@@ -1,0 +1,17 @@
+./test/hs/hbal -t $TESTDATA_DIR/hbal-evac.data
+>>>/inst-32. node-3:node-2 => node-2:node-1.*
+(.|
+)*Solution length=4/
+>>>= 0
+
+./test/hs/hbal --evac-mode -t $TESTDATA_DIR/hbal-evac.data
+>>>/a=f r:node-1 f
+(.|
+)*Solution length=3/
+>>>= 0
+
+./test/hs/hbal --evac-mode --restricted-migration -t $TESTDATA_DIR/hbal-evac.data
+>>>/a=f r:node-1
+(.|
+)*Solution length=3/
+>>>= 0

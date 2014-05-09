@@ -110,7 +110,7 @@ balance :: (Node.List, Instance.List)
 balance (nl, il) =
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
-      balanceStep tbl = Cluster.tryBalance tbl True True False 0.0 0.0
+      balanceStep tbl = Cluster.tryBalance tbl True True False False 0.0 0.0
       bTables = map fromJust . takeWhile isJust
                   $ iterate (>>= balanceStep) (Just ini_tbl)
       (Cluster.Table nl' il' _ _) = last bTables

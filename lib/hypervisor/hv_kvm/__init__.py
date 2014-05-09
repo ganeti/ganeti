@@ -553,6 +553,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(cls._CTRL_DIR, "%s.qmp" % instance_name)
 
   @classmethod
+  def _InstanceKvmdMonitor(cls, instance_name):
+    """Returns the instance kvm daemon socket name
+
+    """
+    return utils.PathJoin(cls._CTRL_DIR, "%s.kvmd" % instance_name)
+
+  @classmethod
   def _InstanceShutdownMonitor(cls, instance_name):
     """Returns the instance QMP output filename
 
@@ -1593,6 +1600,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       logging.debug("Enabling QMP")
       kvm_cmd.extend(["-qmp", "unix:%s,server,nowait" %
                       self._InstanceQmpMonitor(instance.name)])
+      # Add a second monitor for kvmd
+      kvm_cmd.extend(["-qmp", "unix:%s,server,nowait" %
+                      self._InstanceKvmdMonitor(instance.name)])
 
     # Configure the network now for starting instances and bridged interfaces,
     # during FinalizeMigration for incoming instances' routed interfaces

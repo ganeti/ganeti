@@ -551,27 +551,39 @@ checkSingleStep ini_tbl target cur_tbl move =
 possibleMoves :: MirrorType -- ^ The mirroring type of the instance
               -> Bool       -- ^ Whether the secondary node is a valid new node
               -> Bool       -- ^ Whether we can change the primary node
+              -> (Bool, Bool) -- ^ Whether migration is restricted and whether
+                              -- the instance primary is offline
               -> Ndx        -- ^ Target node candidate
               -> [IMove]    -- ^ List of valid result moves
 
-possibleMoves MirrorNone _ _ _ = []
+possibleMoves MirrorNone _ _ _ _ = []
 
-possibleMoves MirrorExternal _ False _ = []
+possibleMoves MirrorExternal _ False _  _ = []
 
-possibleMoves MirrorExternal _ True tdx =
+possibleMoves MirrorExternal _ True _ tdx =
   [ FailoverToAny tdx ]
 
-possibleMoves MirrorInternal _ False tdx =
+possibleMoves MirrorInternal _ False _ tdx =
   [ ReplaceSecondary tdx ]
 
-possibleMoves MirrorInternal True True tdx =
+possibleMoves MirrorInternal _ _ (True, False) tdx =
+  [ ReplaceSecondary tdx
+  ]
+
+possibleMoves MirrorInternal True True (False, _) tdx =
   [ ReplaceSecondary tdx
   , ReplaceAndFailover tdx
   , ReplacePrimary tdx
   , FailoverAndReplace tdx
   ]
 
-possibleMoves MirrorInternal False True tdx =
+possibleMoves MirrorInternal True True (True, True) tdx =
+  [ ReplaceSecondary tdx
+  , ReplaceAndFailover tdx
+  , FailoverAndReplace tdx
+  ]
+
+possibleMoves MirrorInternal False True _ tdx =
   [ ReplaceSecondary tdx
   , ReplaceAndFailover tdx
   ]
@@ -580,10 +592,12 @@ possibleMoves MirrorInternal False True tdx =
 checkInstanceMove :: [Ndx]             -- ^ Allowed target node indices
                   -> Bool              -- ^ Whether disk moves are allowed
                   -> Bool              -- ^ Whether instance moves are allowed
+                  -> Bool              -- ^ Whether migration is restricted
                   -> Table             -- ^ Original table
                   -> Instance.Instance -- ^ Instance to move
                   -> Table             -- ^ Best new table for this instance
-checkInstanceMove nodes_idx disk_moves inst_moves ini_tbl target =
+checkInstanceMove nodes_idx disk_moves inst_moves rest_mig
+                  ini_tbl@(Table nl _ _ _) target =
   let opdx = Instance.pNode target
       osdx = Instance.sNode target
       bad_nodes = [opdx, osdx]
@@ -594,9 +608,13 @@ checkInstanceMove nodes_idx disk_moves inst_moves ini_tbl target =
                        -- if drbd and allowed to failover
                        then checkSingleStep ini_tbl target ini_tbl Failover
                        else ini_tbl
+      primary_drained = Node.offline
+                        . flip Container.find nl
+                        $ Instance.pNode target
       all_moves =
         if disk_moves
-          then concatMap (possibleMoves mir_type use_secondary inst_moves)
+          then concatMap (possibleMoves mir_type use_secondary inst_moves
+                          (rest_mig, primary_drained))
                nodes
           else []
     in
@@ -607,10 +625,11 @@ checkInstanceMove nodes_idx disk_moves inst_moves ini_tbl target =
 checkMove :: [Ndx]               -- ^ Allowed target node indices
           -> Bool                -- ^ Whether disk moves are allowed
           -> Bool                -- ^ Whether instance moves are allowed
+          -> Bool                -- ^ Whether migration is restricted
           -> Table               -- ^ The current solution
           -> [Instance.Instance] -- ^ List of instances still to move
           -> Table               -- ^ The new solution
-checkMove nodes_idx disk_moves inst_moves ini_tbl victims =
+checkMove nodes_idx disk_moves inst_moves rest_mig ini_tbl victims =
   let Table _ _ _ ini_plc = ini_tbl
       -- we're using rwhnf from the Control.Parallel.Strategies
       -- package; we don't need to use rnf as that would force too
@@ -618,7 +637,7 @@ checkMove nodes_idx disk_moves inst_moves ini_tbl victims =
       -- multi-threaded case the weak head normal form is enough to
       -- spark the evaluation
       tables = parMap rwhnf (checkInstanceMove nodes_idx disk_moves
-                             inst_moves ini_tbl)
+                             inst_moves rest_mig ini_tbl)
                victims
       -- iterate over all instances, computing the best move
       best_tbl = foldl' compareTables ini_tbl tables
@@ -642,10 +661,11 @@ tryBalance :: Table       -- ^ The starting table
            -> Bool        -- ^ Allow disk moves
            -> Bool        -- ^ Allow instance moves
            -> Bool        -- ^ Only evacuate moves
+           -> Bool        -- ^ Restrict migration
            -> Score       -- ^ Min gain threshold
            -> Score       -- ^ Min gain
            -> Maybe Table -- ^ The resulting table and commands
-tryBalance ini_tbl disk_moves inst_moves evac_mode mg_limit min_gain =
+tryBalance ini_tbl disk_moves inst_moves evac_mode rest_mig mg_limit min_gain =
     let Table ini_nl ini_il ini_cv _ = ini_tbl
         all_inst = Container.elems ini_il
         all_nodes = Container.elems ini_nl
@@ -658,7 +678,8 @@ tryBalance ini_tbl disk_moves inst_moves evac_mode mg_limit min_gain =
         reloc_inst = filter (\i -> Instance.movable i &&
                                    Instance.autoBalance i) all_inst'
         node_idx = map Node.idx online_nodes
-        fin_tbl = checkMove node_idx disk_moves inst_moves ini_tbl reloc_inst
+        fin_tbl = checkMove node_idx disk_moves inst_moves rest_mig
+                            ini_tbl reloc_inst
         (Table _ _ fin_cv _) = fin_tbl
     in
       if fin_cv < ini_cv && (ini_cv > mg_limit || ini_cv - fin_cv >= min_gain)
