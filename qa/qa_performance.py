@@ -533,8 +533,7 @@ def TestParallelDRBDInstanceCreationPerformance():
   """PERFORMANCE: Parallel DRBD backed instance creation.
 
   """
-  if not qa_config.IsTemplateSupported(constants.DT_DRBD8):
-    print(qa_logging.FormatInfo("DRBD disk template not supported, skipping"))
+  assert qa_config.IsTemplateSupported(constants.DT_DRBD8)
 
   nodes = list(_AcquireAllNodes())
   _TestParallelInstanceCreationAndRemoval(max_instances=len(nodes) * 2,
@@ -546,8 +545,7 @@ def TestParallelPlainInstanceCreationPerformance():
   """PERFORMANCE: Parallel plain backed instance creation.
 
   """
-  if not qa_config.IsTemplateSupported(constants.DT_PLAIN):
-    print(qa_logging.FormatInfo("Plain disk template not supported, skipping"))
+  assert qa_config.IsTemplateSupported(constants.DT_PLAIN)
 
   nodes = list(_AcquireAllNodes())
   _TestParallelInstanceCreationAndRemoval(max_instances=len(nodes) * 2,
@@ -571,9 +569,7 @@ def _TestInstanceOperationInParallelToInstanceCreation(*cmds):
     job_driver.AddJob(
       job_id, running_fn=functools.partial(_SubmitNextCommand, cmd_idx + 1))
 
-  if not qa_config.IsTemplateSupported(constants.DT_DRBD8):
-    print(qa_logging.FormatInfo("DRBD disk template not supported, skipping"))
-
+  assert qa_config.IsTemplateSupported(constants.DT_DRBD8)
   assert len(cmds) > 0
 
   job_driver = _JobQueueDriver()
