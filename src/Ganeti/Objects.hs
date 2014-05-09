@@ -90,6 +90,7 @@ module Ganeti.Objects
   , readIp4Address
   , nextIp4Address
   , IAllocatorParams
+  , MasterNetworkParameters(..)
   ) where
 
 import Control.Applicative
@@ -766,3 +767,14 @@ instance SerialNoObject ConfigData where
 instance TimeStampObject ConfigData where
   cTimeOf = configCtime
   mTimeOf = configMtime
+
+-- * Master network parameters
+
+$(buildObject "MasterNetworkParameters" "masterNetworkParameters"
+  [ simpleField "uuid"      [t| String   |]
+  , simpleField "ip"        [t| String   |]
+  , simpleField "netmask"   [t| Int      |]
+  , simpleField "netdev"    [t| String   |]
+  , simpleField "ip_family" [t| IpFamily |]
+  ])
+
