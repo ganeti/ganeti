@@ -108,6 +108,15 @@ AC_ARG_ENABLE([haskell-tests],
 AC_SUBST(HTEST, $HTEST)
 AM_CONDITIONAL([HTEST], [test "$HTEST" = yes])
 
+# --with-haskell-flags=
+AC_ARG_WITH([haskell-flags],
+  [AS_HELP_STRING([--with-haskell-flags=FLAGS],
+    [Extra flags to pass to GHC]
+  )],
+  [hextra_configure="$withval"],
+  [hextra_configure=""])
+AC_SUBST(HEXTRA_CONFIGURE, $hextra_configure)
+
 # --with-ssh-initscript=...
 AC_ARG_WITH([ssh-initscript],
   [AS_HELP_STRING([--with-ssh-initscript=SCRIPT],

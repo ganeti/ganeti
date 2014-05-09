@@ -67,7 +67,7 @@ The following tests are added to the QA:
     return within a reasonable low timeout.
   * For the maximum amount of instances in the cluster, submit add-,
     remove- and list-tags jobs.
-  * Submit 200 `gnt-debug delay` jobs with a delay of 1 seconds. To
+  * Submit 200 `gnt-debug delay` jobs with a delay of 0.1 seconds. To
     speed up submission, perform multiple job submissions in parallel.
     Verify that submitting jobs doesn't significantly slow down during
     the process. Verify that querying cluster information over CLI and
@@ -89,10 +89,14 @@ The following tests are added to the QA:
   * Submitting twice as many instance creation request as there are
     nodes in the cluster, using DRBD as disk template. As soon as a
     creation job succeeds, submit a removal job for this instance.
-  * Create an instance using DRBD. Fail it over, migrate it, recreate
-    its disk, change its secondary node, reboot it and reinstall it
-    while creating an additional instance in parallel to each of those
-    operations.
+  * Submitting twice as many instance creation request as there are
+    nodes in the cluster, using Plain as disk template. As soon as a
+    creation job succeeds, submit a removal job for this instance.
+    This test can make better use of parallelism because only one
+    node must be locked for an instance creation.
+  * Create an instance using DRBD. Fail it over, migrate it, change
+    its secondary node, reboot it and reinstall it while creating an
+    additional instance in parallel to each of those operations.
 
 Future work
 ===========

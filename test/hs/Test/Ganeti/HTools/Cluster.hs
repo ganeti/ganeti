@@ -68,7 +68,7 @@ isNodeBig size node = Node.availDisk node > size * Types.unitDsk
                       && Node.availCpu node > size * Types.unitCpu
 
 canBalance :: Cluster.Table -> Bool -> Bool -> Bool -> Bool
-canBalance tbl dm im evac = isJust $ Cluster.tryBalance tbl dm im evac 0 0
+canBalance tbl dm im evac = isJust $ Cluster.tryBalance tbl dm im evac False 0 0
 
 -- | Assigns a new fresh instance to a cluster; this is not
 -- allocation, so no resource checks are done.

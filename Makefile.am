@@ -658,6 +658,8 @@ HTEST_FLAGS = $(HFLAGS) -fhpc -itest/hs \
 HEXTRA =
 # internal extra flags (used for test/hs/htest mainly)
 HEXTRA_INT =
+# combination of HEXTRA and HEXTRA_CONFIGURE
+HEXTRA_COMBINED = $(HEXTRA) $(HEXTRA_CONFIGURE)
 # exclude options for coverage reports
 HPCEXCL = --exclude Main \
 	--exclude Ganeti.Constants \
@@ -1032,26 +1034,26 @@ endif
 Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
               | $(built_base_sources) $(HS_BUILT_SRCS)
 	$(GHC) -M -dep-makefile $@ -dep-suffix $(HTEST_SUFFIX) $(HFLAGS) -itest/hs \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(HS_MAKEFILE_GHC_SRCS)
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
 
 @include_makefile_ghc@
 
 %.o:
 	@echo '[GHC]: $@ <- $^'
 	@$(GHC) -c $(HFLAGS) \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(@:%.o=%.hs)
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
 %.$(HTEST_SUFFIX)_o:
 	@echo '[GHC]: $@ <- $^'
 	@$(GHC) -c $(HTEST_FLAGS) \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
 
 %.hi: %.o ;
 %.$(HTEST_SUFFIX)_hi: %.$(HTEST_SUFFIX)_o ;
 
 $(HS_SRC_PROGS): %: %.o | stamp-directories
 	$(GHC) $(HFLAGS) \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) --make $(@:%=%.hs)
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
 
@@ -1063,7 +1065,7 @@ $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
 	  exit 1; \
 	fi
 	$(GHC) $(HTEST_FLAGS) \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA) --make $(@:%=%.hs)
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
 
@@ -1279,6 +1281,7 @@ TEST_FILES = \
 	test/data/htools/hail-node-evac.json \
 	test/data/htools/hail-reloc-drbd.json \
 	test/data/htools/hbal-dyn.data \
+	test/data/htools/hbal-evac.data \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-split-insts.data \
 	test/data/htools/hspace-tiered-dualspec-exclusive.data \
@@ -1311,6 +1314,7 @@ TEST_FILES = \
 	test/hs/shelltests/htools-dynutil.test \
 	test/hs/shelltests/htools-excl.test \
 	test/hs/shelltests/htools-hail.test \
+	test/hs/shelltests/htools-hbal-evac.test \
 	test/hs/shelltests/htools-hroller.test \
 	test/hs/shelltests/htools-hspace.test \
 	test/hs/shelltests/htools-hsqueeze.test \
