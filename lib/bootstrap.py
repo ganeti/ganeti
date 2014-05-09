@@ -308,6 +308,30 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
   if verbose:
     cmd.append("--verbose")
 
+  logging.debug("Node setup command: %s", cmd)
+
+  version = constants.DIR_VERSION
+  all_cmds = [["test", "-d", os.path.join(pathutils.PKGLIBDIR, version)]]
+  if constants.HAS_GNU_LN:
+    all_cmds.extend([["ln", "-s", "-f", "-T",
+                      os.path.join(pathutils.PKGLIBDIR, version),
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")],
+                     ["ln", "-s", "-f", "-T",
+                      os.path.join(pathutils.SHAREDIR, version),
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]])
+  else:
+    all_cmds.extend([["rm", "-f",
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")],
+                     ["ln", "-s", "-f",
+                      os.path.join(pathutils.PKGLIBDIR, version),
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")],
+                     ["rm", "-f",
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/share")],
+                     ["ln", "-s", "-f",
+                      os.path.join(pathutils.SHAREDIR, version),
+                      os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]])
+  all_cmds.append(cmd)
+
   if port is None:
     port = netutils.GetDaemonPort(constants.SSH)
 
@@ -315,7 +339,8 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
   srun = ssh.SshRunner(cluster_name,
                        ipv6=(family == netutils.IP6Address.family))
   scmd = srun.BuildCmd(node, constants.SSH_LOGIN_USER,
-                       utils.ShellQuoteArgs(cmd),
+                       utils.ShellQuoteArgs(
+                           utils.ShellCombineCommands(all_cmds)),
                        batch=False, ask_key=ask_key, quiet=False,
                        strict_host_check=strict_host_check,
                        use_cluster_key=use_cluster_key,

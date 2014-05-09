@@ -59,7 +59,7 @@ delayKvmd = threadDelay 1000000
 detectShutdown :: (Handle -> IO ()) -> IO Bool
 detectShutdown putFn =
   do monitorDir <- TestCommon.getTempFileName "ganeti"
-     let monitor = "instance.qmp"
+     let monitor = "instance" <.> Kvmd.monitorExtension
          monitorFile = monitorDir </> monitor
          shutdownFile = Kvmd.shutdownPath monitorFile
      -- ensure the KVM directory exists

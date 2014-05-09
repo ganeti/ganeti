@@ -32,6 +32,7 @@ class ParseVersionTest(unittest.TestCase):
         self.assertEquals(version.ParseVersion("2.10"), (2, 10, 0))
         self.assertEquals(version.ParseVersion("2.10.1"), (2, 10, 1))
         self.assertEquals(version.ParseVersion("2.10.1~beta2"), (2, 10, 1))
+        self.assertEquals(version.ParseVersion("2.10.1-3"), (2, 10, 1))
         self.assertEquals(version.ParseVersion("2"), None)
         self.assertEquals(version.ParseVersion("pink bunny"), None)
 

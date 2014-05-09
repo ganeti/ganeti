@@ -182,7 +182,6 @@ class LUGroupAdd(LogicalUnit):
                                   disk_state_static=self.new_disk_state)
 
     self.cfg.AddNodeGroup(group_obj, self.proc.GetECId(), check_uuid=False)
-    del self.remove_locks[locking.LEVEL_NODEGROUP]
 
     network_name = self.cfg.GetClusterInfo().instance_communication_network
     if network_name:
@@ -569,8 +568,6 @@ class LUGroupRemove(LogicalUnit):
     except errors.ConfigurationError:
       raise errors.OpExecError("Group '%s' with UUID %s disappeared" %
                                (self.op.group_name, self.group_uuid))
-
-    self.remove_locks[locking.LEVEL_NODEGROUP] = self.group_uuid
 
 
 class LUGroupRename(LogicalUnit):

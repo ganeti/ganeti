@@ -251,12 +251,6 @@ def RemoveInstance(lu, feedback_fn, instance, ignore_failures):
   logging.info("Removing instance %s out of cluster config", instance.name)
   lu.cfg.RemoveInstance(instance.uuid)
 
-  assert not lu.remove_locks.get(locking.LEVEL_INSTANCE), \
-    "Instance lock removal conflict"
-
-  # Remove lock for the instance
-  lu.remove_locks[locking.LEVEL_INSTANCE] = instance.name
-
 
 def RemoveDisks(lu, instance, target_node_uuid=None, ignore_failures=False):
   """Remove all disks for an instance.

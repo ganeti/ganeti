@@ -39,6 +39,7 @@ TUNGETIFF = 0x800454d2
 TUNGETFEATURES = 0x800454cf
 IFF_TAP = 0x0002
 IFF_NO_PI = 0x1000
+IFF_ONE_QUEUE = 0x2000
 IFF_VNET_HDR = 0x4000
 
 
@@ -112,7 +113,7 @@ def OpenTap(vnet_hdr=True, name=""):
   except EnvironmentError:
     raise errors.HypervisorError("Failed to open /dev/net/tun")
 
-  flags = IFF_TAP | IFF_NO_PI
+  flags = IFF_TAP | IFF_NO_PI | IFF_ONE_QUEUE
 
   if vnet_hdr and _ProbeTapVnetHdr(tapfd):
     flags |= IFF_VNET_HDR

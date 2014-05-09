@@ -83,6 +83,9 @@ New features
   ``--gluster-storage-dir`` switch.
 - Job scheduling is now handled by luxid, and the maximal number of jobs running
   in parallel is a run-time parameter of the cluster.
+- A new tool for planning dynamic power management, called ``hsqueeze``, has
+  been added. It suggests nodes to power up or down and corresponding instance
+  moves.
 
 New dependencies
 ~~~~~~~~~~~~~~~~

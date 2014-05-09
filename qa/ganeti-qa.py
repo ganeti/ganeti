@@ -44,6 +44,7 @@ import qa_monitoring
 import qa_network
 import qa_node
 import qa_os
+import qa_performance
 import qa_job
 import qa_rapi
 import qa_tags
@@ -851,6 +852,43 @@ def RunMonitoringTests():
     RunTest(qa_monitoring.TestInstStatusCollector)
 
 
+def RunPerformanceTests():
+  if qa_config.TestEnabled("jobqueue-performance"):
+    RunTest(qa_performance.TestParallelMaxInstanceCreationPerformance)
+    RunTest(qa_performance.TestParallelNodeCountInstanceCreationPerformance)
+
+    instances = qa_performance.CreateAllInstances()
+
+    RunTest(qa_performance.TestParallelModify, instances)
+    RunTest(qa_performance.TestParallelInstanceOSOperations, instances)
+    RunTest(qa_performance.TestParallelInstanceQueries, instances)
+
+    qa_performance.RemoveAllInstances(instances)
+
+    RunTest(qa_performance.TestJobQueueSubmissionPerformance)
+
+  if qa_config.TestEnabled("parallel-performance"):
+    RunTest(qa_performance.TestParallelDRBDInstanceCreationPerformance)
+    RunTest(qa_performance.TestParallelPlainInstanceCreationPerformance)
+
+    if qa_config.IsTemplateSupported(constants.DT_DRBD8):
+      inodes = qa_config.AcquireManyNodes(2)
+      try:
+        instance = qa_instance.TestInstanceAddWithDrbdDisk(inodes)
+        try:
+          RunTest(qa_performance.TestParallelInstanceFailover, instance)
+          RunTest(qa_performance.TestParallelInstanceMigration, instance)
+          RunTest(qa_performance.TestParallelInstanceReplaceDisks, instance)
+          RunTest(qa_performance.TestParallelInstanceReboot, instance)
+          RunTest(qa_performance.TestParallelInstanceReinstall, instance)
+          RunTest(qa_performance.TestParallelInstanceRename, instance)
+        finally:
+          qa_instance.TestInstanceRemove(instance)
+          instance.Release()
+      finally:
+        qa_config.ReleaseManyNodes(inodes)
+
+
 def RunQa():
   """Main QA body.
 
@@ -989,6 +1027,8 @@ def RunQa():
     qa_cluster.AssertClusterVerify()
 
   RunTestBlock(RunMonitoringTests)
+
+  RunPerformanceTests()
 
   RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)
 

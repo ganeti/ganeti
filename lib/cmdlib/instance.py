@@ -1368,8 +1368,6 @@ class LUInstanceCreate(LogicalUnit):
       for disk_uuid in instance.disks:
         self.cfg.RemoveInstanceDisk(instance.uuid, disk_uuid)
       self.cfg.RemoveInstance(instance.uuid)
-      # Make sure the instance lock gets removed
-      self.remove_locks[locking.LEVEL_INSTANCE] = instance.name
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance")
 
@@ -1459,10 +1457,6 @@ class LUInstanceCreate(LogicalUnit):
 
     # re-read the instance from the configuration
     iobj = self.cfg.GetInstanceInfo(iobj.uuid)
-
-    # Declare that we don't want to remove the instance lock anymore, as we've
-    # added the instance to the config
-    del self.remove_locks[locking.LEVEL_INSTANCE]
 
     if self.op.mode == constants.INSTANCE_IMPORT:
       # Release unused nodes

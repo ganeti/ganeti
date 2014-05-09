@@ -242,6 +242,13 @@ def ShellQuoteArgs(args):
   return " ".join([ShellQuote(i) for i in args])
 
 
+def ShellCombineCommands(cmdlist):
+  """Out of a list of shell comands construct a single one.
+
+  """
+  return ["/bin/sh", "-c", " && ".join(ShellQuoteArgs(c) for c in cmdlist)]
+
+
 class ShellWriter:
   """Helper class to write scripts with indentation.
 
