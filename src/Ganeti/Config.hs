@@ -36,6 +36,7 @@ module Ganeti.Config
     , getInstancesIpByLink
     , getMasterCandidates
     , getMasterOrCandidates
+    , getMasterNetworkParameters
     , getOnlineNodes
     , getNode
     , getInstance
@@ -160,6 +161,18 @@ getMasterOrCandidates :: ConfigData -> [Node]
 getMasterOrCandidates cfg =
   let isMC r = (r == NRCandidate) || (r == NRMaster)
   in filter (isMC . getNodeRole cfg) . F.toList . configNodes $ cfg
+
+-- | Get the network parameters for the master IP address.
+getMasterNetworkParameters :: ConfigData -> MasterNetworkParameters
+getMasterNetworkParameters cfg =
+  let cluster = configCluster cfg
+  in MasterNetworkParameters
+      { masterNetworkParametersUuid = clusterMasterNode cluster
+      , masterNetworkParametersIp = clusterMasterIp cluster
+      , masterNetworkParametersNetmask = clusterMasterNetmask cluster
+      , masterNetworkParametersNetdev = clusterMasterNetdev cluster
+      , masterNetworkParametersIpFamily = clusterPrimaryIpFamily cluster
+      }
 
 -- | Get the list of online nodes.
 getOnlineNodes :: ConfigData -> [Node]
