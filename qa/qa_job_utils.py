@@ -42,7 +42,7 @@ from qa_utils import AssertCommand, GetCommandOutput, GetObjectInfo
 AVAILABLE_LOCKS = [locking.LEVEL_NODE, ]
 
 
-def _GetOutputFromMaster(cmd, use_multiplexer=True, log_cmd=True):
+def GetOutputFromMaster(cmd, use_multiplexer=True, log_cmd=True):
   """ Gets the output of a command executed on master.
 
   """
@@ -204,7 +204,7 @@ def _GetBlockingLocks():
   # threads, we turn it off, and block most of the logging to improve the
   # visibility of the other thread's output
   locks_output = GetOutputFromMaster("gnt-debug locks", use_multiplexer=False,
-                                      log_cmd=False)
+                                     log_cmd=False)
 
   # The first non-empty line is the header, which we do not need
   lock_lines = locks_output.splitlines()[1:]
