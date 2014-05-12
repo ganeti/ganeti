@@ -34,6 +34,7 @@ module Ganeti.Config
     , getDefaultNicLink
     , getDefaultHypervisor
     , getInstancesIpByLink
+    , getMasterNodes
     , getMasterCandidates
     , getMasterOrCandidates
     , getMasterNetworkParameters
@@ -150,6 +151,11 @@ getNodeRole cfg node
   | nodeDrained node = NRDrained
   | nodeOffline node = NROffline
   | otherwise = NRRegular
+
+-- | Get the list of the master nodes (usually one).
+getMasterNodes :: ConfigData -> [Node]
+getMasterNodes cfg =
+  filter ((==) NRMaster . getNodeRole cfg) . F.toList . configNodes $ cfg
 
 -- | Get the list of master candidates, /not including/ the master itself.
 getMasterCandidates :: ConfigData -> [Node]
