@@ -296,11 +296,8 @@ handleCall _ _ cfg (WaitForJobChange jid fields prev_job prev_log tmout) = do
     _ -> liftM (Ok . showJSON) compute_fn
 
 handleCall _ _ cfg (SetWatcherPause time) = do
-  let mcs = Config.getMasterCandidates cfg
-      masters = genericResult (const []) return
-                  . Config.getNode cfg . clusterMasterNode
-                  $ configCluster cfg
-  _ <- executeRpcCall (masters ++ mcs) $ RpcCallSetWatcherPause time
+  let mcs = Config.getMasterOrCandidates cfg
+  _ <- executeRpcCall mcs $ RpcCallSetWatcherPause time
   return . Ok . maybe JSNull showJSON $ fmap TimeAsDoubleJSON time
 
 handleCall _ _ cfg (SetDrainFlag value) = do
