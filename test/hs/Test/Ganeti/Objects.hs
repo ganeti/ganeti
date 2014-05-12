@@ -95,7 +95,7 @@ instance Arbitrary Disk where
   arbitrary = Disk <$> arbitrary <*> pure [] <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
-                   <*> arbitrary <*> arbitrary
+                   <*> arbitrary <*> arbitrary <*> arbitrary
 
 -- FIXME: we should generate proper values, >=0, etc., but this is
 -- hard for partial ones, where all must be wrapped in a 'Maybe'
@@ -186,11 +186,13 @@ genDiskWithChildren num_children = do
   mode <- arbitrary
   name <- genMaybe genName
   spindles <- arbitrary
+  params <- arbitrary
   uuid <- genName
   serial <- arbitrary
   time <- arbitrary
   return $
-    Disk logicalid children ivname size mode name spindles uuid serial time time
+    Disk logicalid children ivname size mode name
+      spindles params uuid serial time time
 
 genDisk :: Gen Disk
 genDisk = genDiskWithChildren 3
@@ -562,7 +564,8 @@ caseIncludeLogicalIdPlain =
       time = TOD 0 0
       d =
         Disk (LIDPlain vg_name lv_name) [] "diskname" 1000 DiskRdWr
-          Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
+          Nothing Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
+          0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
       includesLogicalId vg_name lv_name d
@@ -577,10 +580,10 @@ caseIncludeLogicalIdDrbd =
         Disk
           (LIDDrbd8 "node1.example.com" "node2.example.com" 2000 1 5 "secret")
           [ Disk (LIDPlain "onevg" "onelv") [] "disk1" 1000 DiskRdWr Nothing
-              Nothing "145145-asdf-sdf2-2134-asfd-534g2x" 0 time time
+              Nothing Nothing "145145-asdf-sdf2-2134-asfd-534g2x" 0 time time
           , Disk (LIDPlain vg_name lv_name) [] "disk2" 1000 DiskRdWr Nothing
-              Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse" 0 time time
-          ] "diskname" 1000 DiskRdWr Nothing Nothing
+              Nothing Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse" 0 time time
+          ] "diskname" 1000 DiskRdWr Nothing Nothing Nothing
           "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
@@ -594,7 +597,8 @@ caseNotIncludeLogicalIdPlain =
       time = TOD 0 0
       d =
         Disk (LIDPlain "othervg" "otherlv") [] "diskname" 1000 DiskRdWr
-          Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
+          Nothing Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
+          0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
       not (includesLogicalId vg_name lv_name d)
