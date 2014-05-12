@@ -55,6 +55,7 @@ def TestGanetiCommands():
           ["ganeti-watcher", "--version"],
           ["ganeti-confd", "--version"],
           ["ganeti-luxid", "--version"],
+          ["ganeti-wconfd", "--version"],
           )
 
   cmd = " && ".join([utils.ShellQuoteArgs(i) for i in cmds])
