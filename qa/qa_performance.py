@@ -429,33 +429,6 @@ def TestParallelInstanceOSOperations(instances):
   job_driver.WaitForCompletion()
 
 
-# TODO(thomasth): move to qa_job_utils.py once stable-2.10 is merged to master
-class _QAThreadGroup(object):
-  """This class manages a list of QAThreads.
-
-  """
-  def __init__(self):
-    self._threads = []
-
-  def Start(self, thread):
-    """Starts the given thread and adds it to this group.
-
-    @type thread: qa_job_utils.QAThread
-    @param thread: the thread to start and to add to this group.
-
-    """
-    thread.start()
-    self._threads.append(thread)
-
-  def JoinAndReraise(self):
-    """Joins all threads in this group and calls their C{reraise} method.
-
-    """
-    for thread in self._threads:
-      thread.join()
-      thread.reraise()
-
-
 def TestParallelInstanceQueries(instances):
   """PERFORMANCE: Parallel instance queries.
 
@@ -463,7 +436,7 @@ def TestParallelInstanceQueries(instances):
   @param instances: list of instances to issue queries against
 
   """
-  threads = _QAThreadGroup()
+  threads = qa_job_utils.QAThreadGroup()
   for instance in instances:
     cmd = ["gnt-instance", "info", instance.name]
     info_thread = qa_job_utils.QAThread(qa_utils.AssertCommand, [cmd], {})
@@ -512,7 +485,7 @@ def TestJobQueueSubmissionPerformance():
 
       job_driver.AddJob(job_id)
 
-  threads = _QAThreadGroup()
+  threads = qa_job_utils.QAThreadGroup()
   for i in range(10):
     thread = qa_job_utils.QAThread(_SubmitDelayJob, [20], {})
     threads.Start(thread)
