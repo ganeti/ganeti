@@ -82,6 +82,24 @@ def ExecuteJobProducingCommand(cmd):
   return int(possible_job_ids[0])
 
 
+def GetJobStatuses(job_ids=None):
+  """ Invokes gnt-job list and extracts an id to status dictionary.
+
+  @type job_ids: list
+  @param job_ids: list of job ids to query the status for; if C{None}, the
+                  status of all current jobs is returned
+  @rtype: dict of string to string
+  @return: A dictionary mapping job ids to matching statuses
+
+  """
+  cmd = ["gnt-job", "list", "--no-headers", "--output=id,status"]
+  if job_ids is not None:
+    cmd.extend(map(str, job_ids))
+
+  list_output = GetOutputFromMaster(cmd)
+  return dict(map(lambda s: s.split(), list_output.splitlines()))
+
+
 def _RetrieveTerminationInfo(job_id):
   """ Retrieves the termination info from a job caused by gnt-debug delay.
 

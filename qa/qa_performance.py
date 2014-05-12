@@ -96,15 +96,11 @@ class _JobQueueDriver(object):
   def _FetchJobStatuses(self):
     """Retrieves status information of the given jobs.
 
-    @rtype: dict of string to list of L{_JobEntry)
-
     """
-    cmd = (["gnt-job", "list", "--no-headers", "-o", "id,status"])
-    cmd.extend(map(str, self._GetJobIds()))
-    job_statuses = [line.split() for line in
-                    qa_job_utils.GetOutputFromMaster(cmd).splitlines()]
+    job_statuses = qa_job_utils.GetJobStatuses(self._GetJobIds())
+
     new_statuses = {}
-    for job_id, status in job_statuses:
+    for job_id, status in job_statuses.items():
       new_statuses.setdefault(status, []).append(self._jobs[int(job_id)])
     self._jobs_per_status = new_statuses
 
