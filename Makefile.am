@@ -1529,7 +1529,7 @@ man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.rst
 	trap 'echo auto-removing $@; rm $@' EXIT; \
 	$(PANDOC) -s -f rst -t man $< man/footer.rst | \
 	  sed -e 's/\\@/@/g' > $@; \
-	if test -n "$(MAN_HAS_WARNINGS)"; then $(CHECK_MAN_WARNINGS) $@; fi; \
+	if test -n "$(MAN_HAS_WARNINGS)"; then LC_ALL=en_US.UTF-8 $(CHECK_MAN_WARNINGS) $@; fi; \
 	$(CHECK_MAN_DASHES) $@; \
 	trap - EXIT
 
