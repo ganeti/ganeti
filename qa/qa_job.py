@@ -23,17 +23,16 @@
 
 """
 
-from ganeti.utils import retry
-from ganeti import constants
-from ganeti import query
-
 import functools
 import re
 
+from ganeti.utils import retry
+from ganeti import constants
+from ganeti import query
 import qa_config
 import qa_error
+import qa_job_utils
 import qa_utils
-
 from qa_utils import AssertCommand, GetCommandOutput
 
 
@@ -48,20 +47,6 @@ def TestJobListFields():
   qa_utils.GenericQueryFieldsTest("gnt-job", query.JOB_FIELDS.keys())
 
 
-def _GetJobStatuses():
-  """ Invokes gnt-job list and extracts an id to status dictionary.
-
-  @rtype: dict of string to string
-  @return: A dictionary mapping job ids to matching statuses
-
-  """
-  master = qa_config.GetMasterNode()
-  list_output = GetCommandOutput(
-    master.primary, "gnt-job list --no-headers --output=id,status"
-  )
-  return dict(map(lambda s: s.split(), list_output.splitlines()))
-
-
 def _GetJobStatus(job_id):
   """ Retrieves the status of a job.
 
@@ -72,7 +57,7 @@ def _GetJobStatus(job_id):
   @return: The job status, or None if not present.
 
   """
-  return _GetJobStatuses().get(job_id, None)
+  return qa_job_utils.GetJobStatuses([job_id]).get(job_id, None)
 
 
 def _RetryingFetchJobStatus(retry_status, job_id):

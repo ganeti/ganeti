@@ -82,6 +82,24 @@ def ExecuteJobProducingCommand(cmd):
   return int(possible_job_ids[0])
 
 
+def GetJobStatuses(job_ids=None):
+  """ Invokes gnt-job list and extracts an id to status dictionary.
+
+  @type job_ids: list
+  @param job_ids: list of job ids to query the status for; if C{None}, the
+                  status of all current jobs is returned
+  @rtype: dict of string to string
+  @return: A dictionary mapping job ids to matching statuses
+
+  """
+  cmd = ["gnt-job", "list", "--no-headers", "--output=id,status"]
+  if job_ids is not None:
+    cmd.extend(map(str, job_ids))
+
+  list_output = GetOutputFromMaster(cmd)
+  return dict(map(lambda s: s.split(), list_output.splitlines()))
+
+
 def _RetrieveTerminationInfo(job_id):
   """ Retrieves the termination info from a job caused by gnt-debug delay.
 
@@ -260,6 +278,32 @@ class QAThread(threading.Thread):
     """
     if self._exc_info is not None:
       raise self._exc_info[0], self._exc_info[1], self._exc_info[2]
+
+
+class QAThreadGroup(object):
+  """This class manages a list of QAThreads.
+
+  """
+  def __init__(self):
+    self._threads = []
+
+  def Start(self, thread):
+    """Starts the given thread and adds it to this group.
+
+    @type thread: qa_job_utils.QAThread
+    @param thread: the thread to start and to add to this group.
+
+    """
+    thread.start()
+    self._threads.append(thread)
+
+  def JoinAndReraise(self):
+    """Joins all threads in this group and calls their C{reraise} method.
+
+    """
+    for thread in self._threads:
+      thread.join()
+      thread.reraise()
 
 
 # TODO: Can this be done as a decorator? Implement as needed.
