@@ -213,7 +213,7 @@ $(genOpCode "OpCode"
      , pOsHvp
      , pClusterOsParams
      , pClusterOsParamsPrivate
-     , pDiskParams
+     , pGroupDiskParams
      , pCandidatePoolSize
      , pMaxRunningJobs
      , pUidPool
@@ -691,7 +691,7 @@ $(genOpCode "OpCode"
      [ pGroupName
      , pNodeGroupAllocPolicy
      , pGroupNodeParams
-     , pDiskParams
+     , pGroupDiskParams
      , pHvState
      , pDiskState
      , withDoc "Group-wide ipolicy specs" pIpolicy
@@ -712,7 +712,7 @@ $(genOpCode "OpCode"
      [ pGroupName
      , pNodeGroupAllocPolicy
      , pGroupNodeParams
-     , pDiskParams
+     , pGroupDiskParams
      , pHvState
      , pDiskState
      , withDoc "Group-wide ipolicy specs" pIpolicy

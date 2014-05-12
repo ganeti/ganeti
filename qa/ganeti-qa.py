@@ -868,8 +868,10 @@ def RunPerformanceTests():
     RunTest(qa_performance.TestJobQueueSubmissionPerformance)
 
   if qa_config.TestEnabled("parallel-performance"):
-    RunTest(qa_performance.TestParallelDRBDInstanceCreationPerformance)
-    RunTest(qa_performance.TestParallelPlainInstanceCreationPerformance)
+    if qa_config.IsTemplateSupported(constants.DT_DRBD8):
+      RunTest(qa_performance.TestParallelDRBDInstanceCreationPerformance)
+    if qa_config.IsTemplateSupported(constants.DT_PLAIN):
+      RunTest(qa_performance.TestParallelPlainInstanceCreationPerformance)
 
     if qa_config.IsTemplateSupported(constants.DT_DRBD8):
       inodes = qa_config.AcquireManyNodes(2)

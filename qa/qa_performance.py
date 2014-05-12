@@ -96,15 +96,11 @@ class _JobQueueDriver(object):
   def _FetchJobStatuses(self):
     """Retrieves status information of the given jobs.
 
-    @rtype: dict of string to list of L{_JobEntry)
-
     """
-    cmd = (["gnt-job", "list", "--no-headers", "-o", "id,status"])
-    cmd.extend(map(str, self._GetJobIds()))
-    job_statuses = [line.split() for line in
-                    qa_job_utils.GetOutputFromMaster(cmd).splitlines()]
+    job_statuses = qa_job_utils.GetJobStatuses(self._GetJobIds())
+
     new_statuses = {}
-    for job_id, status in job_statuses:
+    for job_id, status in job_statuses.items():
       new_statuses.setdefault(status, []).append(self._jobs[int(job_id)])
     self._jobs_per_status = new_statuses
 
@@ -433,33 +429,6 @@ def TestParallelInstanceOSOperations(instances):
   job_driver.WaitForCompletion()
 
 
-# TODO(thomasth): move to qa_job_utils.py once stable-2.10 is merged to master
-class _QAThreadGroup(object):
-  """This class manages a list of QAThreads.
-
-  """
-  def __init__(self):
-    self._threads = []
-
-  def Start(self, thread):
-    """Starts the given thread and adds it to this group.
-
-    @type thread: qa_job_utils.QAThread
-    @param thread: the thread to start and to add to this group.
-
-    """
-    thread.start()
-    self._threads.append(thread)
-
-  def JoinAndReraise(self):
-    """Joins all threads in this group and calls their C{reraise} method.
-
-    """
-    for thread in self._threads:
-      thread.join()
-      thread.reraise()
-
-
 def TestParallelInstanceQueries(instances):
   """PERFORMANCE: Parallel instance queries.
 
@@ -467,7 +436,7 @@ def TestParallelInstanceQueries(instances):
   @param instances: list of instances to issue queries against
 
   """
-  threads = _QAThreadGroup()
+  threads = qa_job_utils.QAThreadGroup()
   for instance in instances:
     cmd = ["gnt-instance", "info", instance.name]
     info_thread = qa_job_utils.QAThread(qa_utils.AssertCommand, [cmd], {})
@@ -516,7 +485,7 @@ def TestJobQueueSubmissionPerformance():
 
       job_driver.AddJob(job_id)
 
-  threads = _QAThreadGroup()
+  threads = qa_job_utils.QAThreadGroup()
   for i in range(10):
     thread = qa_job_utils.QAThread(_SubmitDelayJob, [20], {})
     threads.Start(thread)
@@ -533,8 +502,7 @@ def TestParallelDRBDInstanceCreationPerformance():
   """PERFORMANCE: Parallel DRBD backed instance creation.
 
   """
-  if not qa_config.IsTemplateSupported(constants.DT_DRBD8):
-    print(qa_logging.FormatInfo("DRBD disk template not supported, skipping"))
+  assert qa_config.IsTemplateSupported(constants.DT_DRBD8)
 
   nodes = list(_AcquireAllNodes())
   _TestParallelInstanceCreationAndRemoval(max_instances=len(nodes) * 2,
@@ -546,8 +514,7 @@ def TestParallelPlainInstanceCreationPerformance():
   """PERFORMANCE: Parallel plain backed instance creation.
 
   """
-  if not qa_config.IsTemplateSupported(constants.DT_PLAIN):
-    print(qa_logging.FormatInfo("Plain disk template not supported, skipping"))
+  assert qa_config.IsTemplateSupported(constants.DT_PLAIN)
 
   nodes = list(_AcquireAllNodes())
   _TestParallelInstanceCreationAndRemoval(max_instances=len(nodes) * 2,
@@ -571,9 +538,7 @@ def _TestInstanceOperationInParallelToInstanceCreation(*cmds):
     job_driver.AddJob(
       job_id, running_fn=functools.partial(_SubmitNextCommand, cmd_idx + 1))
 
-  if not qa_config.IsTemplateSupported(constants.DT_DRBD8):
-    print(qa_logging.FormatInfo("DRBD disk template not supported, skipping"))
-
+  assert qa_config.IsTemplateSupported(constants.DT_DRBD8)
   assert len(cmds) > 0
 
   job_driver = _JobQueueDriver()
