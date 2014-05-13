@@ -27,7 +27,11 @@ module Ganeti.WConfd.ConfigState
   ( ConfigState
   , csConfigData
   , mkConfigState
+  , needsFullDist
   ) where
+
+import Control.Applicative
+import Data.Function (on)
 
 import Ganeti.Objects
 
@@ -42,3 +46,12 @@ data ConfigState = ConfigState
 -- This method will expand as more fields are added to 'ConfigState'.
 mkConfigState :: ConfigData -> ConfigState
 mkConfigState = ConfigState
+
+-- | Given two versions of the configuration, determine if its distribution
+-- needs to be fully commited before returning the corresponding call to
+-- WConfD.
+needsFullDist :: ConfigState -> ConfigState -> Bool
+needsFullDist = on (/=) watched
+  where
+    watched = (,) <$> clusterCandidateCerts . configCluster . csConfigData
+                  <*> clusterMasterNode . configCluster . csConfigData
