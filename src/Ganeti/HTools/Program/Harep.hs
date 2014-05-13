@@ -458,7 +458,7 @@ main opts args = do
   unless (null args) $
     exitErr "this program doesn't take any arguments."
 
-  luxiDef <- Path.defaultMasterSocket
+  luxiDef <- Path.defaultQuerySocket
   let master = fromMaybe luxiDef $ optLuxi opts
       opts' = opts { optLuxi = Just master }
 

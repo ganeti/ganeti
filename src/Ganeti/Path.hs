@@ -30,7 +30,6 @@ module Ganeti.Path
   , socketDir
   , livelockDir
   , livelockFile
-  , defaultMasterSocket
   , defaultQuerySocket
   , defaultWConfdSocket
   , confdHmacKey
@@ -99,10 +98,6 @@ livelockDir = runDir `pjoin` "livelocks"
 -- 'livelockDir' to a given filename.
 livelockFile :: FilePath -> IO FilePath
 livelockFile = pjoin livelockDir
-
--- | The default path for the master-daemon LUXI socket.
-defaultMasterSocket :: IO FilePath
-defaultMasterSocket = socketDir `pjoin` "ganeti-master"
 
 -- | The default LUXI socket for queries.
 defaultQuerySocket :: IO FilePath

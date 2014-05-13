@@ -60,8 +60,7 @@ import Ganeti.Logging
 import Ganeti.Luxi
 import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Query.Cluster as QCluster
-import Ganeti.Path ( queueDir, jobQueueLockFile, jobQueueDrainFile
-                   , defaultMasterSocket)
+import Ganeti.Path ( queueDir, jobQueueLockFile, jobQueueDrainFile )
 import Ganeti.Rpc
 import qualified Ganeti.Query.Exec as Exec
 import Ganeti.Query.Query
@@ -320,12 +319,10 @@ handleCall _ qstat cfg (ChangeJobPriority jid prio) = do
       return $ showJSON (True, "Priorities of pending opcodes for job "
                                ++ show (fromJobId jid) ++ " have been changed"
                                ++ " to " ++ show prio)
-    Ok Nothing -> runResultT $ do
+    Ok Nothing ->
       -- Job has already started; so we have to forward the request
-      -- to the job, currently handled by masterd.
-      socketpath <- liftIO defaultMasterSocket
-      cl <- liftIO $ getLuxiClient socketpath
-      ResultT $ callMethod (ChangeJobPriority jid prio) cl
+      -- to the job.
+      runResultT . return $ showJSON (False, "Job already forked off")
 
 handleCall _ qstat  cfg (CancelJob jid) = do
   let jName = (++) "job " . show $ fromJobId jid
