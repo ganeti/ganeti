@@ -76,10 +76,17 @@ vg
    The LVM volume group. This works only for LVM and DRBD devices.
 
 metavg
-   This options specifies a different VG for the metadata device. This
+   This option specifies a different VG for the metadata device. This
    works only for DRBD devices. If not specified, the default metavg
    of the node-group (possibly inherited from the cluster-wide settings)
    will be used.
+
+access
+   If 'userspace', instance will access this disk directly without going
+   through a block device, avoiding expensive context switches with
+   kernel space. This options works only for RBD and Gluster devices. If
+   not specified, the default access of the node-group (possibly
+   inherited from the cluster-wide settings) will be used.
 
 When creating ExtStorage disks, also arbitrary parameters can be passed,
 to the ExtStorage provider. Those parameters are passed as additional
@@ -1241,8 +1248,9 @@ by ballooning it up or down to the new value.
 The ``--disk add:size=*SIZE*,[options..]`` option adds a disk to the
 instance, and ``--disk *N*:add:size=*SIZE*,[options..]`` will add a disk
 to the the instance at a specific index. The available options are the
-same as in the **add** command(``spindles``, ``mode``, ``name``, ``vg``,
-``metavg``). Per default, gnt-instance waits for the disk mirror to sync.
+same as in the **add** command (``spindles``, ``mode``, ``name``, ``vg``,
+``metavg`` and ``access``). Per default, gnt-instance waits for the disk
+mirror to sync.
 If you do not want this behavior, use the ``--no-wait-for-sync`` option.
 When adding an ExtStorage disk, the ``provider=*PROVIDER*`` option is
 also mandatory and specifies the ExtStorage provider. Also, for
