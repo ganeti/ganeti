@@ -2,6 +2,47 @@ News
 ====
 
 
+Version 2.11.1
+--------------
+
+*(Released Wed, 14 May 2014)*
+
+- Add design-node-security.rst to docinput
+- kvm: use a dedicated QMP socket for kvmd
+
+Inherited from the 2.10 branch:
+
+- Set correct Ganeti version on setup commands
+- Add a utility to combine shell commands
+- Add design doc for performance tests
+- Fix failed DRBD disk creation cleanup
+- Hooking up verification for shared file storage
+- Fix --shared-file-storage-dir option of gnt-cluster modify
+- Clarify default setting of 'metavg'
+- Fix invocation of GetCommandOutput in QA
+- Clean up RunWithLocks
+- Add an exception-trapping thread class
+- Wait for delay to provide interruption information
+- Add an expected block option to RunWithLocks
+- Track if a QA test was blocked by locks
+- Add a RunWithLocks QA utility function
+- Add restricted migration
+- Add an example for node evacuation
+- Add a test for parsing version strings
+- Tests for parallel job execution
+- Fail in replace-disks if attaching disks fails
+- Fix passing of ispecs in cluster init during QA
+- Move QAThreadGroup to qa_job_utils.py
+- Extract GetJobStatuses and use an unified version
+- Run disk template specific tests only if possible
+
+Inherited from the 2.9 branch:
+
+- If Automake version > 1.11, force serial tests
+- KVM: set IFF_ONE_QUEUE on created tap interfaces
+- Add configure option to pass GHC flags
+
+
 Version 2.11.0
 --------------
 
