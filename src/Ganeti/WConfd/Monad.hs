@@ -98,25 +98,25 @@ data DaemonHandle = DaemonHandle
   -- all static information that doesn't change during the life-time of the
   -- daemon should go here;
   -- all IDs of threads that do asynchronous work should probably also go here
-  , dhSaveConfigWorker :: AsyncWorker ()
-  , dhDistMCsWorker :: AsyncWorker ()
-  , dhDistSSConfWorker :: AsyncWorker ()
-  , dhSaveLocksWorker :: AsyncWorker ()
+  , dhSaveConfigWorker :: AsyncWorker () ()
+  , dhDistMCsWorker :: AsyncWorker () ()
+  , dhDistSSConfWorker :: AsyncWorker () ()
+  , dhSaveLocksWorker :: AsyncWorker () ()
   }
 
 mkDaemonHandle :: FilePath
                -> ConfigState
                -> GanetiLockWaiting
-               -> (IO ConfigState -> ResultG (AsyncWorker ()))
+               -> (IO ConfigState -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the configuration to the master file.
-               -> (IO ConfigState -> ResultG (AsyncWorker ()))
+               -> (IO ConfigState -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- distributes the configuration to master candidates
-               -> (IO ConfigState -> ResultG (AsyncWorker ()))
+               -> (IO ConfigState -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- distributes SSConf to nodes
-               -> (IO GanetiLockWaiting -> ResultG (AsyncWorker ()))
+               -> (IO GanetiLockWaiting -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the lock allocation state.
                -> ResultG DaemonHandle
@@ -201,14 +201,14 @@ modifyConfigState f = do
   when modified $ do
     -- trigger the config. saving worker and wait for it
     logDebug "Triggering config write"
-    liftBase . triggerAndWait . dhSaveConfigWorker $ dh
+    liftBase . triggerAndWait_ . dhSaveConfigWorker $ dh
     logDebug "Config write finished"
     -- trigger the config. distribution worker synchronously
     -- TODO: figure out what configuration changes need synchronous updates
     -- and otherwise use asynchronous triggers
-    _ <- liftBase . triggerAndWaitMany $ [ dhDistMCsWorker dh
-                                         , dhDistSSConfWorker dh
-                                         ]
+    _ <- liftBase . triggerAndWaitMany_ $ [ dhDistMCsWorker dh
+                                          , dhDistSSConfWorker dh
+                                          ]
     return ()
   return r
 
@@ -248,7 +248,7 @@ modifyLockWaiting f = do
                              (dhDaemonState dh) dsLockWaitingL f'
   logDebug $ "Current lock status: " ++ J.encode lockAlloc
   logDebug "Triggering lock state write"
-  liftBase . triggerAndWait . dhSaveLocksWorker $ dh
+  liftBase . triggerAndWait_ . dhSaveLocksWorker $ dh
   logDebug "Lock write finished"
   unless (S.null nfy) $ do
     logDebug . (++) "Locks became available for " . show $ S.toList nfy

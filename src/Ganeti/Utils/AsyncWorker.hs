@@ -48,9 +48,13 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Utils.AsyncWorker
   ( AsyncWorker
   , mkAsyncWorker
+  , mkAsyncWorker_
   , trigger
+  , trigger_
   , triggerAndWait
+  , triggerAndWait_
   , triggerAndWaitMany
+  , triggerAndWaitMany_
   ) where
 
 import Control.Monad
@@ -60,6 +64,7 @@ import Control.Concurrent (ThreadId)
 import Control.Concurrent.Lifted (fork)
 import Control.Concurrent.MVar.Lifted
 import Data.Functor.Identity
+import Data.Monoid
 import qualified Data.Traversable as T
 import Data.IORef.Lifted
 
@@ -69,27 +74,32 @@ import Data.IORef.Lifted
 -- Note that the action needs to be run even if the list is empty, as it
 -- means that there are pending requests, only nobody needs to be notified of
 -- their results.
-data TriggerState a
+data TriggerState i a
   = Idle
-  | Pending [MVar a]
+  | Pending i [MVar a]
 
 
 -- | Adds a new trigger to the current state (therefore the result is always
 -- 'Pending'), optionally adding a 'MVar' that will receive the output.
-addTrigger :: Maybe (MVar a) -> TriggerState a -> TriggerState a
-addTrigger mmvar state = let rs = recipients state
-                         in Pending $ maybe rs (: rs) mmvar
+addTrigger :: (Monoid i)
+           => i -> Maybe (MVar a) -> TriggerState i a -> TriggerState i a
+addTrigger i mmvar state = let rs = recipients state
+                           in Pending (input state <> i)
+                                      (maybe rs (: rs) mmvar)
   where
-    recipients Idle         = []
-    recipients (Pending rs) = rs
+    recipients Idle           = []
+    recipients (Pending _ rs) = rs
+    input Idle          = mempty
+    input (Pending j _) = j
 
 -- | Represent an asynchronous worker whose single action execution returns a
 -- value of type @a@.
-data AsyncWorker a
-    = AsyncWorker ThreadId (IORef (TriggerState a)) (MVar ())
+data AsyncWorker i a
+    = AsyncWorker ThreadId (IORef (TriggerState i a)) (MVar ())
 
 -- | Given an action, construct an 'AsyncWorker'.
-mkAsyncWorker :: (MonadBaseControl IO m) => m a -> m (AsyncWorker a)
+mkAsyncWorker :: (Monoid i, MonadBaseControl IO m)
+              => (i -> m a) -> m (AsyncWorker i a)
 mkAsyncWorker act = do
     trig <- newMVar ()
     ref <- newIORef Idle
@@ -98,28 +108,38 @@ mkAsyncWorker act = do
         state <- swap ref Idle  -- check the state of pending requests
         -- if there are pending requests, run the action and send them results
         case state of
-          Idle        -> return () -- all trigers have been processed, we've
-                                   -- been woken up by a trigger that has been
-                                   -- already included in the last run
-          Pending rs  -> act >>= forM_ rs . flip tryPutMVar
+          Idle          -> return () -- all trigers have been processed, we've
+                                     -- been woken up by a trigger that has been
+                                     -- already included in the last run
+          Pending i rs  -> act i >>= forM_ rs . flip tryPutMVar
     return $ AsyncWorker thId ref trig
   where
     swap :: (MonadBase IO m) => IORef a -> a -> m a
     swap ref x = atomicModifyIORef ref ((,) x)
 
+-- | Given an action, construct an 'AsyncWorker' with no input.
+mkAsyncWorker_ :: (MonadBaseControl IO m)
+               => m a -> m (AsyncWorker () a)
+mkAsyncWorker_ = mkAsyncWorker . const
+
 -- An internal function for triggering a worker, optionally registering
 -- a callback 'MVar'
-triggerInternal :: (MonadBase IO m)
-                => Maybe (MVar a) -> AsyncWorker a -> m ()
-triggerInternal mmvar (AsyncWorker _ ref trig) = do
-    atomicModifyIORef ref (\ts -> (addTrigger mmvar ts, ()))
+triggerInternal :: (MonadBase IO m, Monoid i)
+                => i -> Maybe (MVar a) -> AsyncWorker i a -> m ()
+triggerInternal i mmvar (AsyncWorker _ ref trig) = do
+    atomicModifyIORef ref (\ts -> (addTrigger i mmvar ts, ()))
     _ <- tryPutMVar trig ()
     return ()
 
 -- | Trigger a worker, letting it run its action asynchronously, but do not
 -- wait for the result.
-trigger :: (MonadBase IO m) => AsyncWorker a -> m ()
-trigger = triggerInternal Nothing
+trigger :: (MonadBase IO m, Monoid i) => i -> AsyncWorker i a -> m ()
+trigger = flip triggerInternal Nothing
+
+-- | Trigger a worker with no input, letting it run its action asynchronously,
+-- but do not wait for the result.
+trigger_ :: (MonadBase IO m) => AsyncWorker () a -> m ()
+trigger_ = trigger ()
 
 -- | Trigger a list of workers and wait until all the actions following these
 -- triggers finish. Returns the results of the actions.
@@ -127,16 +147,29 @@ trigger = triggerInternal Nothing
 -- Note that there is a significant difference between 'triggerAndWaitMany'
 -- and @mapM triggerAndWait@. The latter runs all the actions of the workers
 -- sequentially, while the former runs them in parallel.
-triggerAndWaitMany :: (T.Traversable t, MonadBase IO m)
-                   => t (AsyncWorker a) -> m (t a)
-triggerAndWaitMany workers =
+triggerAndWaitMany :: (T.Traversable t, MonadBase IO m, Monoid i)
+                   => i -> t (AsyncWorker i a) -> m (t a)
+triggerAndWaitMany i workers =
     let trig w = do
                   result <- newEmptyMVar
-                  triggerInternal (Just result) w
+                  triggerInternal i (Just result) w
                   return result
     in T.mapM trig workers >>= T.mapM takeMVar
 
+-- | Trigger a list of workers with no input and wait until all the actions
+-- following these triggers finish. Returns the results of the actions.
+--
+-- See 'triggetAndWaitMany'.
+triggerAndWaitMany_ :: (T.Traversable t, MonadBase IO m)
+                    => t (AsyncWorker () a) -> m (t a)
+triggerAndWaitMany_ = triggerAndWaitMany ()
+
 -- | Trigger a worker and wait until the action following this trigger
 -- finishes. Return the result of the action.
-triggerAndWait :: (MonadBase IO m) => AsyncWorker a -> m a
-triggerAndWait = liftM runIdentity . triggerAndWaitMany . Identity
+triggerAndWait :: (MonadBase IO m, Monoid i) => i -> AsyncWorker i a -> m a
+triggerAndWait i = liftM runIdentity . triggerAndWaitMany i . Identity
+
+-- | Trigger a worker with no input and wait until the action following this
+-- trigger finishes. Return the result of the action.
+triggerAndWait_ :: (MonadBase IO m) => AsyncWorker () a -> m a
+triggerAndWait_ = triggerAndWait ()
