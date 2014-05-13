@@ -1,13 +1,4 @@
 # test the various gnt-commands for common options
-$DAEMONS/ganeti-masterd --help
->>>/Usage:/
->>>2
->>>= 0
-$DAEMONS/ganeti-masterd --version
->>>/^ganeti-/
->>>2
->>>= 0
-
 $DAEMONS/ganeti-noded --help
 >>>/Usage:/
 >>>2
