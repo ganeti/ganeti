@@ -518,6 +518,10 @@ def GenerateDiskTemplate(
         for key in disk:
           if key not in constants.IDISK_PARAMS:
             params[key] = disk[key]
+      # Add IDISK_ACCESS param to disk params
+      if (template_name in constants.DTS_HAVE_ACCESS and
+          constants.IDISK_ACCESS in disk):
+        params[constants.IDISK_ACCESS] = disk[constants.IDISK_ACCESS]
       disk_index = idx + base_index
       size = disk[constants.IDISK_SIZE]
       feedback_fn("* disk %s, size %s" %
@@ -582,6 +586,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     constants.IDISK_METAVG,
     constants.IDISK_PROVIDER,
     constants.IDISK_NAME,
+    constants.IDISK_ACCESS,
     ]))
 
   def _RunAllocator(self):
