@@ -211,6 +211,10 @@ def _SetBaseOpParams(src, defcomment, dst):
   if not getattr(dst, opcodes_base.COMMENT_ATTR, None):
     dst.comment = defcomment
 
+  if hasattr(src, constants.OPCODE_REASON):
+    dst.reason = getattr(dst, constants.OPCODE_REASON, [])
+    dst.reason.extend(getattr(src, constants.OPCODE_REASON, []))
+
 
 def _ProcessResult(submit_fn, op, result):
   """Examines opcode result.
