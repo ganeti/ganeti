@@ -1509,7 +1509,8 @@ class ConfigWriter(object):
       raise errors.ConfigurationError("Cannot add '%s': UUID %s already"
                                       " in use" % (item.name, item.uuid))
 
-  def _SetInstanceStatus(self, inst_uuid, status, disks_active):
+  def _SetInstanceStatus(self, inst_uuid, status, disks_active,
+                         admin_state_source):
     """Set the instance's status to a given value.
 
     """
@@ -1522,14 +1523,18 @@ class ConfigWriter(object):
       status = instance.admin_state
     if disks_active is None:
       disks_active = instance.disks_active
+    if admin_state_source is None:
+      admin_state_source = instance.admin_state_source
 
     assert status in constants.ADMINST_ALL, \
            "Invalid status '%s' passed to SetInstanceStatus" % (status,)
 
     if instance.admin_state != status or \
-       instance.disks_active != disks_active:
+       instance.disks_active != disks_active or \
+       instance.admin_state_source != admin_state_source:
       instance.admin_state = status
       instance.disks_active = disks_active
+      instance.admin_state_source = admin_state_source
       instance.serial_no += 1
       instance.mtime = time.time()
       self._WriteConfig()
@@ -1541,7 +1546,8 @@ class ConfigWriter(object):
     This also sets the instance disks active flag.
 
     """
-    self._SetInstanceStatus(inst_uuid, constants.ADMINST_UP, True)
+    self._SetInstanceStatus(inst_uuid, constants.ADMINST_UP, True,
+                            constants.ADMIN_SOURCE)
 
   @locking.ssynchronized(_config_lock)
   def MarkInstanceOffline(self, inst_uuid):
@@ -1550,7 +1556,8 @@ class ConfigWriter(object):
     This also clears the instance disks active flag.
 
     """
-    self._SetInstanceStatus(inst_uuid, constants.ADMINST_OFFLINE, False)
+    self._SetInstanceStatus(inst_uuid, constants.ADMINST_OFFLINE, False,
+                            constants.ADMIN_SOURCE)
 
   @locking.ssynchronized(_config_lock)
   def RemoveInstance(self, inst_uuid):
@@ -1614,21 +1621,34 @@ class ConfigWriter(object):
     can still have active disks.
 
     """
-    self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None)
+    self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None,
+                            constants.ADMIN_SOURCE)
+
+  @locking.ssynchronized(_config_lock)
+  def MarkInstanceUserDown(self, inst_uuid):
+    """Mark the status of an instance to user down in the configuration.
+
+    This does not touch the instance disks active flag, as user shut
+    down instances can still have active disks.
+
+    """
+
+    self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None,
+                            constants.USER_SOURCE)
 
   @locking.ssynchronized(_config_lock)
   def MarkInstanceDisksActive(self, inst_uuid):
     """Mark the status of instance disks active.
 
     """
-    self._SetInstanceStatus(inst_uuid, None, True)
+    self._SetInstanceStatus(inst_uuid, None, True, None)
 
   @locking.ssynchronized(_config_lock)
   def MarkInstanceDisksInactive(self, inst_uuid):
     """Mark the status of instance disks inactive.
 
     """
-    self._SetInstanceStatus(inst_uuid, None, False)
+    self._SetInstanceStatus(inst_uuid, None, False, None)
 
   def _UnlockedGetInstanceList(self):
     """Get the list of instances.
