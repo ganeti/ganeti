@@ -742,6 +742,7 @@ $(genOpCode "OpCode"
      , pEarlyRelease
      , pIallocator
      , pTargetGroups
+     , pSequential
      ],
      "group_name")
   , ("OpOsDiagnose",

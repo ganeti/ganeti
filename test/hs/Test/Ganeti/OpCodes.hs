@@ -317,7 +317,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpGroupRename <$> genNameNE <*> genNameNE
       "OP_GROUP_EVACUATE" ->
         OpCodes.OpGroupEvacuate <$> genNameNE <*> arbitrary <*>
-          genMaybe genNameNE <*> genMaybe genNamesNE
+          genMaybe genNameNE <*> genMaybe genNamesNE <*> arbitrary
       "OP_OS_DIAGNOSE" ->
         OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
       "OP_EXT_STORAGE_DIAGNOSE" ->

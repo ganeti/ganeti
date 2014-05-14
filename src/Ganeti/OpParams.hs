@@ -251,6 +251,7 @@ module Ganeti.OpParams
   , pDependencies
   , pComment
   , pReason
+  , pSequential
   , pEnabledDiskTemplates
   ) where
 
@@ -472,6 +473,11 @@ pReason :: Field
 pReason =
   withDoc "Reason trail field" $
   simpleField C.opcodeReason [t| ReasonTrail |]
+
+pSequential :: Field
+pSequential =
+  withDoc "Sequential job execution" $
+  defaultFalse C.opcodeSequential
 
 -- * Parameters
 
