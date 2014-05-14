@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-| Pure functions for manipulating the configuration state.
 
 -}
@@ -26,14 +28,19 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.WConfd.ConfigState
   ( ConfigState
   , csConfigData
+  , csConfigDataL
   , mkConfigState
+  , bumpSerial
   , needsFullDist
   ) where
 
 import Control.Applicative
 import Data.Function (on)
+import System.Time (ClockTime(..))
 
+import Ganeti.Lens
 import Ganeti.Objects
+import Ganeti.Objects.Lens
 
 -- | In future this data type will include the current configuration
 -- ('ConfigData') and the last 'FStat' of its file.
@@ -42,10 +49,15 @@ data ConfigState = ConfigState
   }
   deriving (Eq, Show)
 
+$(makeCustomLenses ''ConfigState)
+
 -- | Creates a new configuration state.
 -- This method will expand as more fields are added to 'ConfigState'.
 mkConfigState :: ConfigData -> ConfigState
 mkConfigState = ConfigState
+
+bumpSerial :: (SerialNoObjectL a, TimeStampObjectL a) => ClockTime -> a -> a
+bumpSerial now = set mTimeL now . over serialL succ
 
 -- | Given two versions of the configuration, determine if its distribution
 -- needs to be fully commited before returning the corresponding call to
