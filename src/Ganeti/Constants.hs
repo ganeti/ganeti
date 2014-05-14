@@ -3119,6 +3119,17 @@ adminstUp = Types.adminStateToRaw AdminUp
 adminstAll :: FrozenSet String
 adminstAll = ConstantUtils.mkSet $ map Types.adminStateToRaw [minBound..]
 
+-- * Admin state sources
+
+adminSource :: AdminStateSource
+adminSource = AdminSource
+
+userSource :: AdminStateSource
+userSource = UserSource
+
+adminStateSources :: FrozenSet AdminStateSource
+adminStateSources = ConstantUtils.mkSet [minBound..]
+
 -- * Node roles
 
 nrDrained :: String

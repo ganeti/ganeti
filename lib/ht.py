@@ -541,6 +541,7 @@ TEvacMode = TElemOf(constants.NODE_EVAC_MODES)
 TIAllocatorTestDir = TElemOf(constants.VALID_IALLOCATOR_DIRECTIONS)
 TIAllocatorMode = TElemOf(constants.VALID_IALLOCATOR_MODES)
 TImportExportCompression = TElemOf(constants.IEC_ALL)
+TAdminStateSource = TElemOf(constants.ADMIN_STATE_SOURCES)
 
 
 def TSetParamsMods(fn):

@@ -140,6 +140,9 @@ module Ganeti.Types
   , AdminState(..)
   , adminStateFromRaw
   , adminStateToRaw
+  , AdminStateSource(..)
+  , adminStateSourceFromRaw
+  , adminStateSourceToRaw
   , StorageField(..)
   , storageFieldToRaw
   , DiskAccessMode(..)
@@ -805,6 +808,15 @@ $(THH.declareLADT ''String "AdminState"
   , ("AdminUp",      "up")
   ])
 $(THH.makeJSONInstance ''AdminState)
+
+$(THH.declareLADT ''String "AdminStateSource"
+  [ ("AdminSource", "admin")
+  , ("UserSource",  "user")
+  ])
+$(THH.makeJSONInstance ''AdminStateSource)
+
+instance THH.PyValue AdminStateSource where
+  showValue = THH.showValue . adminStateSourceToRaw
 
 -- * Storage field type
 
