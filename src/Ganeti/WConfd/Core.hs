@@ -45,6 +45,7 @@ import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Objects (ConfigData)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
+import qualified Ganeti.WConfd.TempRes as T
 import qualified Ganeti.WConfd.ConfigWriter as CW
 
 -- * Functions available to the RPC module
@@ -102,6 +103,31 @@ unlockConfig
   :: ClientId -> WConfdMonad ()
 unlockConfig cid = freeLocksLevel cid LevelConfig
 
+-- ** Temporary reservations related functions
+
+computeDRBDMap :: WConfdMonad T.DRBDMap
+computeDRBDMap = uncurry T.computeDRBDMap =<< readTempResState
+
+-- Allocate a drbd minor.
+--
+-- The free minor will be automatically computed from the existing devices.
+-- A node can be given multiple times in order to allocate multiple minors.
+-- The result is the list of minors, in the same order as the passed nodes.
+allocateDRBDMinor
+  :: T.InstanceUUID -> [T.NodeUUID] -> WConfdMonad [T.DRBDMinor]
+allocateDRBDMinor inst nodes =
+  modifyTempResStateErr (\cfg -> T.allocateDRBDMinor cfg inst nodes)
+
+-- Release temporary drbd minors allocated for a given instance using
+-- 'allocateDRBDMinor'.
+--
+-- This should be called on the error paths, on the success paths
+-- it's automatically called by the ConfigWriter add and update
+-- functions.
+releaseDRBDMinors
+  :: T.InstanceUUID -> WConfdMonad ()
+releaseDRBDMinors inst = modifyTempResState (const $ T.releaseDRBDMinors inst)
+
 -- ** Locking related functions
 
 -- | List the locks of a given owner (i.e., a job-id lockfile pair).
@@ -158,10 +184,16 @@ opportunisticLockUnion cid req =
 
 exportedFunctions :: [Name]
 exportedFunctions = [ 'echo
+                    -- config
                     , 'readConfig
                     , 'writeConfig
                     , 'lockConfig
                     , 'unlockConfig
+                    -- temporary reservations
+                    , 'computeDRBDMap
+                    , 'allocateDRBDMinor
+                    , 'releaseDRBDMinors
+                    -- locking
                     , 'listLocks
                     , 'listAllLocks
                     , 'listAllLocksOwners

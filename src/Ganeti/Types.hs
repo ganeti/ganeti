@@ -154,8 +154,6 @@ module Ganeti.Types
   , RpcTimeout(..)
   , rpcTimeoutFromRaw -- FIXME: no used anywhere
   , rpcTimeoutToRaw
-  , ImportExportCompression(..)
-  , importExportCompressionToRaw
   , HotplugTarget(..)
   , hotplugTargetToRaw
   , HotplugAction(..)
@@ -872,17 +870,6 @@ $(THH.declareILADT "RpcTimeout"
   , ("FourHours", 4 * 3600) -- 4 hours
   , ("OneDay",    86400)    -- 1 day
   ])
-
-$(THH.declareLADT ''String "ImportExportCompression"
-  [ -- No compression
-    ("None", "none")
-    -- gzip compression
-  , ("GZip", "gzip")
-  ])
-$(THH.makeJSONInstance ''ImportExportCompression)
-
-instance THH.PyValue ImportExportCompression where
-  showValue = THH.showValue . importExportCompressionToRaw
 
 -- | Hotplug action.
 

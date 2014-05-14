@@ -44,6 +44,7 @@ module Ganeti.OpParams
   , SetParamsMods(..)
   , ExportTarget(..)
   , pInstanceName
+  , pInstallImage
   , pInstanceCommunication
   , pOptInstanceCommunication
   , pInstanceUuid
@@ -111,6 +112,7 @@ module Ganeti.OpParams
   , pClusterGlusterStorageDir
   , pInstanceCommunicationNetwork
   , pZeroingImage
+  , pCompressionTools
   , pVgName
   , pEnabledHypervisors
   , pHypervisor
@@ -220,6 +222,8 @@ module Ganeti.OpParams
   , pX509KeyName
   , pX509DestCA
   , pZeroFreeSpace
+  , pHelperStartupTimeout
+  , pHelperShutdownTimeout
   , pZeroingTimeoutFixed
   , pZeroingTimeoutPerMiB
   , pTagSearchPattern
@@ -596,14 +600,25 @@ pClusterGlusterStorageDir =
   renameField "ClusterGlusterStorageDir" $
   optionalStringField "gluster_storage_dir"
 
+pInstallImage :: Field
+pInstallImage =
+  withDoc "OS image for running OS scripts in a safe environment" $
+  optionalStringField "install_image"
+
 pInstanceCommunicationNetwork :: Field
 pInstanceCommunicationNetwork =
   optionalStringField "instance_communication_network"
 
--- | The OS to use when zeroing instance disks
+-- | The OS to use when zeroing instance disks.
 pZeroingImage :: Field
 pZeroingImage =
   optionalStringField "zeroing_image"
+
+-- | The additional tools that can be used to compress data in transit
+pCompressionTools :: Field
+pCompressionTools =
+  withDoc "List of enabled compression tools" . optionalField $
+  simpleField "compression_tools" [t| [NonEmptyString] |]
 
 -- | Volume group name.
 pVgName :: Field
@@ -1350,14 +1365,14 @@ pMoveTargetNodeUuid =
 pMoveCompress :: Field
 pMoveCompress =
   withDoc "Compression mode to use during instance moves" .
-  defaultField [| None |] $
-  simpleField "compress" [t| ImportExportCompression |]
+  defaultField [| C.iecNone |] $
+  simpleField "compress" [t| String |]
 
 pBackupCompress :: Field
 pBackupCompress =
   withDoc "Compression mode to use for moves during backups/imports" .
-  defaultField [| None |] $
-  simpleField "compress" [t| ImportExportCompression |]
+  defaultField [| C.iecNone |] $
+  simpleField "compress" [t| String |]
 
 pIgnoreDiskSize :: Field
 pIgnoreDiskSize =
@@ -1493,6 +1508,16 @@ pZeroFreeSpace :: Field
 pZeroFreeSpace =
   withDoc "Whether to zero the free space on the disks of the instance" $
   defaultFalse "zero_free_space"
+
+pHelperStartupTimeout :: Field
+pHelperStartupTimeout =
+  withDoc "Startup timeout for the helper VM" .
+  optionalField $ simpleField "helper_startup_timeout" [t| Int |]
+
+pHelperShutdownTimeout :: Field
+pHelperShutdownTimeout =
+  withDoc "Shutdown timeout for the helper VM" .
+  optionalField $ simpleField "helper_shutdown_timeout" [t| Int |]
 
 pZeroingTimeoutFixed :: Field
 pZeroingTimeoutFixed =

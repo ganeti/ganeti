@@ -239,8 +239,10 @@ $(genOpCode "OpCode"
      , pClusterFileStorageDir
      , pClusterSharedFileStorageDir
      , pClusterGlusterStorageDir
+     , pInstallImage
      , pInstanceCommunicationNetwork
      , pZeroingImage
+     , pCompressionTools
      ],
      [])
   , ("OpClusterRedistConf",
@@ -458,6 +460,8 @@ $(genOpCode "OpCode"
      , pStartInstance
      , pInstTags
      , pInstanceCommunication
+     , pHelperStartupTimeout
+     , pHelperShutdownTimeout
      ],
      "instance_name")
   , ("OpInstanceMultiAlloc",

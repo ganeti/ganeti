@@ -42,7 +42,8 @@ def ListOS(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpOsDiagnose(output_fields=["name", "variants"], names=[])
+  op = opcodes.OpOsDiagnose(output_fields=["name", "variants"],
+                            names=[])
   result = SubmitOpCode(op, opts=opts)
 
   if not opts.no_headers:
@@ -76,7 +77,7 @@ def ShowOSInfo(opts, args):
   op = opcodes.OpOsDiagnose(output_fields=["name", "valid", "variants",
                                            "parameters", "api_versions",
                                            "blacklisted", "hidden", "os_hvp",
-                                           "osparams"],
+                                           "osparams", "trusted"],
                             names=[])
   result = SubmitOpCode(op, opts=opts)
 
@@ -90,7 +91,7 @@ def ShowOSInfo(opts, args):
   total_osparams = {}
 
   for (name, valid, variants, parameters, api_versions, blk, hid, os_hvp,
-       osparams) in result:
+       osparams, trusted) in result:
     total_os_hvp.update(os_hvp)
     total_osparams.update(osparams)
     if do_filter:
@@ -112,6 +113,7 @@ def ShowOSInfo(opts, args):
       ToStdout("  - parameters:")
       for pname, pdesc in parameters:
         ToStdout("    - %s: %s", pname, pdesc)
+    ToStdout("  - trusted: %s", trusted)
     ToStdout("")
 
   if args:
@@ -178,7 +180,7 @@ def DiagnoseOS(opts, args):
       nodes_hidden[node_name] = []
       if node_info: # at least one entry in the per-node list
         (fo_path, fo_status, fo_msg, fo_variants,
-         fo_params, fo_api) = node_info.pop(0)
+         fo_params, fo_api, fo_trusted) = node_info.pop(0)
         fo_msg = "%s (path: %s)" % (_OsStatus(fo_status, fo_msg), fo_path)
         if fo_api:
           max_os_api = max(fo_api)
@@ -198,6 +200,10 @@ def DiagnoseOS(opts, args):
                        utils.CommaJoin([v[0] for v in fo_params]))
           else:
             fo_msg += " [no parameters]"
+        if fo_trusted:
+          fo_msg += " [trusted]"
+        else:
+          fo_msg += " [untrusted]"
         if fo_status:
           nodes_valid[node_name] = fo_msg
         else:

@@ -212,9 +212,9 @@ def _SetBaseOpParams(src, defcomment, dst):
   if not getattr(dst, opcodes_base.COMMENT_ATTR, None):
     dst.comment = defcomment
 
-  # FIXME: extend reason trail, showing the derivedness
-  if not getattr(dst, constants.OPCODE_REASON, None):
-    dst.reason = getattr(src, constants.OPCODE_REASON, [])
+  if hasattr(src, constants.OPCODE_REASON):
+    dst.reason = getattr(dst, constants.OPCODE_REASON, [])
+    dst.reason.extend(getattr(src, constants.OPCODE_REASON, []))
 
 
 def _ProcessResult(submit_fn, op, result):

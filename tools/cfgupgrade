@@ -154,8 +154,12 @@ def UpgradeCluster(config_data):
     cluster["candidate_certs"] = {}
   cluster["instance_communication_network"] = \
     cluster.get("instance_communication_network", "")
+  cluster["install_image"] = \
+    cluster.get("install_image", "")
   cluster["zeroing_image"] = \
     cluster.get("zeroing_image", "")
+  cluster["compression_tools"] = \
+    cluster.get("compression_tools", constants.IEC_DEFAULT_TOOLS)
 
 
 def UpgradeGroups(config_data):

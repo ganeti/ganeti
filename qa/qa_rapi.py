@@ -353,10 +353,12 @@ def TestEmptyCluster():
   # The nicparams are returned under the default entry, yet accepted as they
   # are - this is a TODO to fix!
   DEFAULT_ISSUES = ["nicparams"]
+  # Cannot be set over RAPI due to security issues
+  FORBIDDEN_PARAMS = ["compression_tools"]
 
   _DoGetPutTests("/2/info", "/2/modify", opcodes.OpClusterSetParams.OP_PARAMS,
                  exceptions=(LEGITIMATELY_MISSING + NOT_EXPOSED_YET),
-                 set_exceptions=DEFAULT_ISSUES)
+                 set_exceptions=DEFAULT_ISSUES + FORBIDDEN_PARAMS)
 
 
 def TestRapiQuery():

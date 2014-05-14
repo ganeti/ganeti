@@ -1268,6 +1268,7 @@ class OS(ConfigObject):
     "path",
     "api_versions",
     "create_script",
+    "create_script_untrusted",
     "export_script",
     "import_script",
     "rename_script",
@@ -1310,6 +1311,15 @@ class OS(ConfigObject):
 
     """
     return cls.SplitNameVariant(name)[1]
+
+  def IsTrusted(self):
+    """Returns whether this OS is trusted.
+
+    @rtype: bool
+    @return: L{True} if this OS is trusted, L{False} otherwise
+
+    """
+    return not self.create_script_untrusted
 
 
 class ExtStorage(ConfigObject):
@@ -1588,8 +1598,10 @@ class Cluster(TaggableObject):
     "enabled_disk_templates",
     "candidate_certs",
     "max_running_jobs",
+    "install_image",
     "instance_communication_network",
-    "zeroing_image"
+    "zeroing_image",
+    "compression_tools",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -1726,6 +1738,12 @@ class Cluster(TaggableObject):
 
     if self.instance_communication_network is None:
       self.instance_communication_network = ""
+
+    if self.install_image is None:
+      self.install_image = ""
+
+    if self.compression_tools is None:
+      self.compression_tools = constants.IEC_DEFAULT_TOOLS
 
   @property
   def primary_hypervisor(self):
@@ -2079,7 +2097,7 @@ class ImportExportOptions(ConfigObject):
 
   @ivar key_name: X509 key name (None for cluster certificate)
   @ivar ca_pem: Remote peer CA in PEM format (None for cluster certificate)
-  @ivar compress: Compression method (one of L{constants.IEC_ALL})
+  @ivar compress: Compression tool to use
   @ivar magic: Used to ensure the connection goes to the right disk
   @ivar ipv6: Whether to use IPv6
   @ivar connect_timeout: Number of seconds for establishing connection

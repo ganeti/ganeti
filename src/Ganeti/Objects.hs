@@ -90,6 +90,7 @@ module Ganeti.Objects
   , readIp4Address
   , nextIp4Address
   , IAllocatorParams
+  , MasterNetworkParameters(..)
   ) where
 
 import Control.Applicative
@@ -723,8 +724,10 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "enabled_disk_templates"         [t| [DiskTemplate]         |]
   , simpleField "candidate_certs"                [t| CandidateCertificates  |]
   , simpleField "max_running_jobs"               [t| Int                    |]
+  , simpleField "install_image"                  [t| String                 |]
   , simpleField "instance_communication_network" [t| String                 |]
   , simpleField "zeroing_image"                  [t| String                 |]
+  , simpleField "compression_tools"              [t| [String]               |]
  ]
  ++ timeStampFields
  ++ uuidFields
@@ -765,3 +768,14 @@ instance SerialNoObject ConfigData where
 instance TimeStampObject ConfigData where
   cTimeOf = configCtime
   mTimeOf = configMtime
+
+-- * Master network parameters
+
+$(buildObject "MasterNetworkParameters" "masterNetworkParameters"
+  [ simpleField "uuid"      [t| String   |]
+  , simpleField "ip"        [t| String   |]
+  , simpleField "netmask"   [t| Int      |]
+  , simpleField "netdev"    [t| String   |]
+  , simpleField "ip_family" [t| IpFamily |]
+  ])
+

@@ -34,8 +34,10 @@ module Ganeti.Config
     , getDefaultNicLink
     , getDefaultHypervisor
     , getInstancesIpByLink
+    , getMasterNodes
     , getMasterCandidates
     , getMasterOrCandidates
+    , getMasterNetworkParameters
     , getOnlineNodes
     , getNode
     , getInstance
@@ -52,6 +54,7 @@ module Ganeti.Config
     , getInstAllNodes
     , getInstDisks
     , getInstDisksFromObj
+    , getDrbdMinorsForInstance
     , getFilledInstHvParams
     , getFilledInstBeParams
     , getFilledInstOsParams
@@ -149,6 +152,11 @@ getNodeRole cfg node
   | nodeOffline node = NROffline
   | otherwise = NRRegular
 
+-- | Get the list of the master nodes (usually one).
+getMasterNodes :: ConfigData -> [Node]
+getMasterNodes cfg =
+  filter ((==) NRMaster . getNodeRole cfg) . F.toList . configNodes $ cfg
+
 -- | Get the list of master candidates, /not including/ the master itself.
 getMasterCandidates :: ConfigData -> [Node]
 getMasterCandidates cfg = 
@@ -159,6 +167,18 @@ getMasterOrCandidates :: ConfigData -> [Node]
 getMasterOrCandidates cfg =
   let isMC r = (r == NRCandidate) || (r == NRMaster)
   in filter (isMC . getNodeRole cfg) . F.toList . configNodes $ cfg
+
+-- | Get the network parameters for the master IP address.
+getMasterNetworkParameters :: ConfigData -> MasterNetworkParameters
+getMasterNetworkParameters cfg =
+  let cluster = configCluster cfg
+  in MasterNetworkParameters
+      { masterNetworkParametersUuid = clusterMasterNode cluster
+      , masterNetworkParametersIp = clusterMasterIp cluster
+      , masterNetworkParametersNetmask = clusterMasterNetmask cluster
+      , masterNetworkParametersNetdev = clusterMasterNetdev cluster
+      , masterNetworkParametersIpFamily = clusterPrimaryIpFamily cluster
+      }
 
 -- | Get the list of online nodes.
 getOnlineNodes :: ConfigData -> [Node]
@@ -357,6 +377,14 @@ getInstDisksFromObj :: ConfigData -> Instance -> ErrorResult [Disk]
 getInstDisksFromObj cfg =
   getInstDisks cfg . instUuid
 
+-- | Returns the DRBD minors of a given 'Disk'
+getDrbdMinorsForDisk :: Disk -> [(Int, String)]
+getDrbdMinorsForDisk Disk { diskLogicalId = (LIDDrbd8 nA nB _ mnA mnB _)
+                          , diskChildren = ch
+                          } = [(mnA, nA), (mnB, nB)] ++
+                              concatMap getDrbdMinorsForDisk ch
+getDrbdMinorsForDisk d = concatMap getDrbdMinorsForDisk (diskChildren d)
+
 -- | Filters DRBD minors for a given node.
 getDrbdMinorsForNode :: String -> Disk -> [(Int, String)]
 getDrbdMinorsForNode node disk =
@@ -368,6 +396,12 @@ getDrbdMinorsForNode node disk =
             | nodeB == node -> [(minorB, nodeA)]
           _ -> []
   in this_minors ++ child_minors
+
+-- | Returns the DRBD minors of a given instance
+getDrbdMinorsForInstance :: ConfigData -> Instance
+                         -> ErrorResult [(Int, String)]
+getDrbdMinorsForInstance cfg =
+  liftM (concatMap getDrbdMinorsForDisk) . getInstDisksFromObj cfg
 
 -- | String for primary role.
 rolePrimary :: String

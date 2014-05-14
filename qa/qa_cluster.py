@@ -607,6 +607,17 @@ def TestClusterModifyDiskTemplates():
   _RestoreEnabledDiskTemplates()
 
 
+def TestClusterModifyInstallImage():
+  """gnt-cluster modify --install-image=...'"""
+  master = qa_config.GetMasterNode()
+
+  image = \
+      GetCommandOutput(master.primary,
+                       "mktemp --tmpdir ganeti-install-image.XXXXXX").strip()
+  AssertCommand(["gnt-cluster", "modify", "--install-image=%s" % image])
+  AssertCommand(["rm", image])
+
+
 def _RestoreEnabledDiskTemplates():
   """Sets the list of enabled disk templates back to the list of enabled disk
      templates from the QA configuration. This can be used to make sure that

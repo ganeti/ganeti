@@ -69,6 +69,22 @@ class TestComputeIPolicyInstanceSpecViolation(unittest.TestCase):
 
 
 class TestLUInstanceCreate(CmdlibTestCase):
+  def _setupOSDiagnose(self):
+    os_result = [(self.os.name,
+                  self.os.path,
+                  True,
+                  "",
+                  self.os.supported_variants,
+                  self.os.supported_parameters,
+                  self.os.api_versions,
+                  True)]
+    self.rpc.call_os_diagnose.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, os_result) \
+        .AddSuccessfulNode(self.node1, os_result) \
+        .AddSuccessfulNode(self.node2, os_result) \
+        .Build()
+
   def setUp(self):
     super(TestLUInstanceCreate, self).setUp()
 
@@ -90,6 +106,8 @@ class TestLUInstanceCreate(CmdlibTestCase):
         .AddSuccessfulNode(self.node1, hv_info) \
         .AddSuccessfulNode(self.node2, hv_info) \
         .Build()
+
+    self._setupOSDiagnose()
 
     self.rpc.call_blockdev_getmirrorstatus.side_effect = \
       lambda node, _: self.RpcResultsBuilder() \
@@ -622,10 +640,10 @@ class TestLUInstanceCreate(CmdlibTestCase):
     exp_info = """
 [export]
 version=0
-os=mock_os
+os=%s
 [instance]
 name=old_name.example.com
-"""
+""" % self.os.name
 
     self.rpc.call_export_info.return_value = \
       self.RpcResultsBuilder() \
@@ -645,10 +663,10 @@ name=old_name.example.com
     exp_info = """
 [export]
 version=0
-os=mock_os
+os=%s
 [instance]
 name=old_name.example.com
-"""
+""" % self.os.name
 
     self.rpc.call_export_list.return_value = \
       self.RpcResultsBuilder() \
@@ -691,7 +709,7 @@ version=1
     exp_info = """
 [export]
 version=0
-os=mock_os
+os=%s
 [instance]
 name=old_name.example.com
 disk0_size=1024
@@ -710,7 +728,7 @@ memory=1024
 vcpus=8
 [os]
 param1=val1
-"""
+""" % self.os.name
 
     self.rpc.call_export_info.return_value = \
       self.RpcResultsBuilder() \

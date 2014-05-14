@@ -586,11 +586,30 @@ iemImport = "import"
 iecGzip :: String
 iecGzip = "gzip"
 
+iecGzipFast :: String
+iecGzipFast = "gzip-fast"
+
+iecGzipSlow :: String
+iecGzipSlow = "gzip-slow"
+
+iecLzop :: String
+iecLzop = "lzop"
+
 iecNone :: String
 iecNone = "none"
 
 iecAll :: [String]
-iecAll = [iecGzip, iecNone]
+iecAll = [iecGzip, iecGzipFast, iecGzipSlow, iecLzop, iecNone]
+
+iecDefaultTools :: [String]
+iecDefaultTools = [iecGzip, iecGzipFast, iecGzipSlow]
+
+iecCompressionUtilities :: Map String String
+iecCompressionUtilities =
+  Map.fromList
+  [ (iecGzipFast, iecGzip)
+  , (iecGzipSlow, iecGzip)
+  ]
 
 ieCustomSize :: String
 ieCustomSize = "fd"
@@ -1314,6 +1333,9 @@ rpcConnectTimeout = 5
 osScriptCreate :: String
 osScriptCreate = "create"
 
+osScriptCreateUntrusted :: String
+osScriptCreateUntrusted = "create_untrusted"
+
 osScriptExport :: String
 osScriptExport = "export"
 
@@ -1327,8 +1349,8 @@ osScriptVerify :: String
 osScriptVerify = "verify"
 
 osScripts :: [String]
-osScripts = [osScriptCreate, osScriptExport, osScriptImport, osScriptRename,
-             osScriptVerify]
+osScripts = [osScriptCreate, osScriptCreateUntrusted, osScriptExport,
+             osScriptImport, osScriptRename, osScriptVerify]
 
 osApiFile :: String
 osApiFile = "ganeti_api_version"
@@ -4930,13 +4952,18 @@ statSize = "size"
 
 -- * Helper VM-related timeouts
 
--- | The default fixed timeout - needed to startup the helper VM
+-- | The default fixed timeout needed to startup the helper VM.
 helperVmStartup :: Int
 helperVmStartup = 5 * 60
 
+-- | The default fixed timeout needed until the helper VM is finally
+-- shutdown, for example, after installing the OS.
+helperVmShutdown :: Int
+helperVmShutdown = 2 * 60 * 60
+
 -- | The zeroing timeout per MiB of disks to zero
 --
--- Determined by estimating that a disk writes at a relatively slow speed of 1/5
--- of the max speed of current drives
+-- Determined by estimating that a disk writes at a relatively slow
+-- speed of 1/5 of the max speed of current drives.
 zeroingTimeoutPerMib :: Double
 zeroingTimeoutPerMib = 1.0 / (100.0 / 5.0)

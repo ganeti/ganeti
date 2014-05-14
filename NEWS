@@ -35,6 +35,49 @@ New features
 - The build system creates sample systemd unit files, available under
   doc/examples/systemd. These unit files allow systemd to natively
   manage and supervise all Ganeti processes.
+- Different types of compression can be applied during instance moves, including
+  user-specified ones.
+
+
+Version 2.11.1
+--------------
+
+*(Released Wed, 14 May 2014)*
+
+- Add design-node-security.rst to docinput
+- kvm: use a dedicated QMP socket for kvmd
+
+Inherited from the 2.10 branch:
+
+- Set correct Ganeti version on setup commands
+- Add a utility to combine shell commands
+- Add design doc for performance tests
+- Fix failed DRBD disk creation cleanup
+- Hooking up verification for shared file storage
+- Fix --shared-file-storage-dir option of gnt-cluster modify
+- Clarify default setting of 'metavg'
+- Fix invocation of GetCommandOutput in QA
+- Clean up RunWithLocks
+- Add an exception-trapping thread class
+- Wait for delay to provide interruption information
+- Add an expected block option to RunWithLocks
+- Track if a QA test was blocked by locks
+- Add a RunWithLocks QA utility function
+- Add restricted migration
+- Add an example for node evacuation
+- Add a test for parsing version strings
+- Tests for parallel job execution
+- Fail in replace-disks if attaching disks fails
+- Fix passing of ispecs in cluster init during QA
+- Move QAThreadGroup to qa_job_utils.py
+- Extract GetJobStatuses and use an unified version
+- Run disk template specific tests only if possible
+
+Inherited from the 2.9 branch:
+
+- If Automake version > 1.11, force serial tests
+- KVM: set IFF_ONE_QUEUE on created tap interfaces
+- Add configure option to pass GHC flags
 
 
 Version 2.11.0
@@ -200,6 +243,19 @@ Version 2.11.0 beta1
 
 This was the first beta release of the 2.11 series. All important changes
 are listed in the latest 2.11 entry.
+
+
+Version 2.10.4
+--------------
+
+*(Released Thu, 15 May 2014)*
+
+- Support restricted migration in hbal
+- Fix for the --shared-file-storage-dir of gnt-cluster modify (issue 811)
+- Fail in replace-disks if attaching disks fails (issue 814)
+- Set IFF_ONE_QUEUE on created tap interfaces for KVM
+- Small fixes and enhancements in the build system
+- Various documentation fixes (e.g. issue 810)
 
 
 Version 2.10.3

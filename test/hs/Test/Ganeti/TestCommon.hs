@@ -44,6 +44,7 @@ module Test.Ganeti.TestCommon
   , genFQDN
   , genUUID
   , genMaybe
+  , genSublist
   , genTags
   , genFields
   , genUniquesList
@@ -226,6 +227,22 @@ genUUID = do
 -- | Combinator that generates a 'Maybe' using a sub-combinator.
 genMaybe :: Gen a -> Gen (Maybe a)
 genMaybe subgen = frequency [ (1, pure Nothing), (3, Just <$> subgen) ]
+
+-- | Generates a sublist of a given list, keeping the ordering.
+-- The generated elements are always a subset of the list.
+--
+-- In order to better support corner cases, the size of the sublist is
+-- chosen to have the uniform distribution.
+genSublist :: [a] -> Gen [a]
+genSublist xs = choose (0, l) >>= g xs l
+  where
+    l = length xs
+    g _      _ 0 = return []
+    g []     _ _ = return []
+    g ys     n k | k == n = return ys
+    g (y:ys) n k = frequency [ (k,     liftM (y :) (g ys (n - 1) (k - 1)))
+                             , (n - k, g ys (n - 1) k)
+                             ]
 
 -- | Defines a tag type.
 newtype TagChar = TagChar { tagGetChar :: Char }

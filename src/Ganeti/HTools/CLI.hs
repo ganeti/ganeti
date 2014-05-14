@@ -456,7 +456,7 @@ genOLuxiSocket defSocket =
    OptComplFile)
 
 oLuxiSocket :: IO OptType
-oLuxiSocket = liftM genOLuxiSocket Path.defaultMasterSocket
+oLuxiSocket = liftM genOLuxiSocket Path.defaultQuerySocket
 
 oMachineReadable :: OptType
 oMachineReadable =

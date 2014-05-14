@@ -994,6 +994,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     required, name, checks, params, force_variant = params
     return backend.ValidateOS(required, name, checks, params, force_variant)
 
+  @staticmethod
+  def perspective_os_export(params):
+    """Export an OS definition into an instance specific package.
+
+    """
+    instance = objects.Instance.FromDict(params[0])
+    return backend.ExportOS(instance)
+
   # extstorage -----------------------
 
   @staticmethod

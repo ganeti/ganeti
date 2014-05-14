@@ -38,7 +38,8 @@ its configuration will be exported under the
 
 The ``--transport-compression`` option is used to specify which
 compression mode is used to try and speed up moves during the export.
-Valid values are 'none' (the default) and 'gzip'.
+Valid values are 'none', and any values defined in the
+'compression_tools' cluster parameter.
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (xm destroy in xen, killing the kvm

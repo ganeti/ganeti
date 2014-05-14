@@ -1019,7 +1019,7 @@ def TransferInstanceData(lu, feedback_fn, src_node_uuid, dest_node_uuid,
   @type dest_ip: string
   @param dest_ip: IP address of destination node
   @type compress: string
-  @param compress: one of L{constants.IEC_ALL}
+  @param compress: Compression tool to use
   @type instance: L{objects.Instance}
   @param instance: Instance object
   @type all_transfers: list of L{DiskTransfer} instances
@@ -1225,7 +1225,7 @@ class ExportInstanceHelper:
     @type dest_node: L{objects.Node}
     @param dest_node: Destination node
     @type compress: string
-    @param compress: one of L{constants.IEC_ALL}
+    @param compress: Compression tool to use
 
     """
     instance = self._instance
@@ -1289,7 +1289,7 @@ class ExportInstanceHelper:
     @type dest_ca_pem: string
     @param dest_ca_pem: Destination X509 CA in PEM format
     @type compress: string
-    @param compress: one of L{constants.IEC_ALL}
+    @param compress: Compression tool to use
     @type timeouts: L{ImportExportTimeouts}
     @param timeouts: Timeouts for this import
 
@@ -1466,7 +1466,7 @@ def RemoteImport(lu, feedback_fn, instance, pnode, source_x509_ca,
   @type cds: string
   @param cds: Cluster domain secret
   @type compress: string
-  @param compress: one of L{constants.IEC_ALL}
+  @param compress: Compression tool to use
   @type timeouts: L{ImportExportTimeouts}
   @param timeouts: Timeouts for this import
 

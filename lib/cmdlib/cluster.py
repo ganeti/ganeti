@@ -415,7 +415,9 @@ class LUClusterQuery(NoHooksLU):
       "hidden_os": cluster.hidden_os,
       "blacklisted_os": cluster.blacklisted_os,
       "enabled_disk_templates": cluster.enabled_disk_templates,
+      "install_image": cluster.install_image,
       "instance_communication_network": cluster.instance_communication_network,
+      "compression_tools": cluster.compression_tools,
       }
 
     return result
@@ -767,6 +769,33 @@ def CheckSharedFileStoragePathVsEnabledDiskTemplates(
       constants.DT_SHARED_FILE)
 
 
+def CheckCompressionTools(tools):
+  """Check whether the provided compression tools look like executables.
+
+  @type tools: list of string
+  @param tools: The tools provided as opcode input
+
+  """
+  regex = re.compile('^[-_a-zA-Z0-9]+$')
+  illegal_tools = [t for t in tools if not regex.match(t)]
+
+  if illegal_tools:
+    raise errors.OpPrereqError(
+      "The tools '%s' contain illegal characters: only alphanumeric values,"
+      " dashes, and underscores are allowed" % ", ".join(illegal_tools)
+    )
+
+  if constants.IEC_GZIP not in tools:
+    raise errors.OpPrereqError("For compatibility reasons, the %s utility must"
+                               " be present among the compression tools" %
+                               constants.IEC_GZIP)
+
+  if constants.IEC_NONE in tools:
+    raise errors.OpPrereqError("%s is a reserved value used for no compression,"
+                               " and cannot be used as the name of a tool" %
+                               constants.IEC_NONE)
+
+
 class LUClusterSetParams(LogicalUnit):
   """Change the parameters of the cluster.
 
@@ -804,6 +833,10 @@ class LUClusterSetParams(LogicalUnit):
       except errors.OpPrereqError, err:
         raise errors.OpPrereqError("While verify diskparams options: %s" % err,
                                    errors.ECODE_INVAL)
+
+    if self.op.install_image is not None:
+      CheckImageValidity(self.op.install_image,
+                         "Install image must be an absolute path or a URL")
 
   def ExpandNames(self):
     # FIXME: in the future maybe other cluster params won't require checking on
@@ -1273,6 +1306,9 @@ class LUClusterSetParams(LogicalUnit):
         network = self.cfg.GetNetwork(network_uuid)
         self._CheckInstanceCommunicationNetwork(network, self.LogWarning)
 
+    if self.op.compression_tools:
+      CheckCompressionTools(self.op.compression_tools)
+
   def _BuildOSParams(self, cluster):
     "Calculate the new OS parameters for this operation."
 
@@ -1628,6 +1664,9 @@ class LUClusterSetParams(LogicalUnit):
       result.Warn("Could not change the master IP netmask", feedback_fn)
       self.cluster.master_netmask = self.op.master_netmask
 
+    if self.op.install_image:
+      self.cluster.install_image = self.op.install_image
+
     if self.op.zeroing_image is not None:
       CheckImageValidity(self.op.zeroing_image,
                          "Zeroing image must be an absolute path or a URL")
@@ -1644,6 +1683,9 @@ class LUClusterSetParams(LogicalUnit):
                                                      master_params, ems)
       result.Warn("Could not re-enable the master ip on the master,"
                   " please restart manually", self.LogWarning)
+
+    if self.op.compression_tools is not None:
+      self.cfg.SetCompressionTools(self.op.compression_tools)
 
     network_name = self.op.instance_communication_network
     if network_name is not None:
@@ -2793,7 +2835,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """
     remote_os = nresult.get(constants.NV_OSLIST, None)
     test = (not isinstance(remote_os, list) or
-            not compat.all(isinstance(v, list) and len(v) == 7
+            not compat.all(isinstance(v, list) and len(v) == 8
                            for v in remote_os))
 
     self._ErrorIf(test, constants.CV_ENODEOS, ninfo.name,
@@ -2807,7 +2849,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     os_dict = {}
 
     for (name, os_path, status, diagnose,
-         variants, parameters, api_ver) in nresult[constants.NV_OSLIST]:
+         variants, parameters, api_ver,
+         trusted) in nresult[constants.NV_OSLIST]:
 
       if name not in os_dict:
         os_dict[name] = []
@@ -2816,7 +2859,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # JSON lacking a real tuple type, fix it:
       parameters = [tuple(v) for v in parameters]
       os_dict[name].append((os_path, status, diagnose,
-                            set(variants), set(parameters), set(api_ver)))
+                            set(variants), set(parameters), set(api_ver),
+                            trusted))
 
     nimg.oslist = os_dict
 
@@ -2834,7 +2878,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     beautify_params = lambda l: ["%s: %s" % (k, v) for (k, v) in l]
     for os_name, os_data in nimg.oslist.items():
       assert os_data, "Empty OS status for OS %s?!" % os_name
-      f_path, f_status, f_diag, f_var, f_param, f_api = os_data[0]
+      f_path, f_status, f_diag, f_var, f_param, f_api, f_trusted = os_data[0]
       self._ErrorIf(not f_status, constants.CV_ENODEOS, ninfo.name,
                     "Invalid OS %s (located at %s): %s",
                     os_name, f_path, f_diag)
@@ -2850,7 +2894,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if test:
         continue
       assert base.oslist[os_name], "Base node has empty OS status?"
-      _, b_status, _, b_var, b_param, b_api = base.oslist[os_name][0]
+      _, b_status, _, b_var, b_param, b_api, b_trusted = base.oslist[os_name][0]
       if not b_status:
         # base OS is invalid, skipping
         continue
@@ -2863,6 +2907,11 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       " [%s] vs. [%s]", kind, os_name,
                       self.cfg.GetNodeName(base.uuid),
                       utils.CommaJoin(sorted(a)), utils.CommaJoin(sorted(b)))
+      for kind, a, b in [("trusted", f_trusted, b_trusted)]:
+        self._ErrorIf(a != b, constants.CV_ENODEOS, ninfo.name,
+                      "OS %s for %s differs from reference node %s:"
+                      " %s vs. %s", kind, os_name,
+                      self.cfg.GetNodeName(base.uuid), a, b)
 
     # check any missing OSes
     missing = set(base.oslist.keys()).difference(nimg.oslist.keys())

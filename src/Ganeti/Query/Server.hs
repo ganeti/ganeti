@@ -32,7 +32,7 @@ module Ganeti.Query.Server
 import Control.Applicative
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forever, when, zipWithM, liftM)
+import Control.Monad (forever, when, zipWithM, liftM, void)
 import Control.Monad.IO.Class
 import Data.Bits (bitSize)
 import qualified Data.Set as Set (toList)
@@ -60,8 +60,7 @@ import Ganeti.Logging
 import Ganeti.Luxi
 import qualified Ganeti.Query.Language as Qlang
 import qualified Ganeti.Query.Cluster as QCluster
-import Ganeti.Path ( queueDir, jobQueueLockFile, jobQueueDrainFile
-                   , defaultMasterSocket)
+import Ganeti.Path ( queueDir, jobQueueLockFile, jobQueueDrainFile )
 import Ganeti.Rpc
 import qualified Ganeti.Query.Exec as Exec
 import Ganeti.Query.Query
@@ -170,9 +169,12 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("hidden_os", showJSON $ clusterHiddenOs cluster)
             , ("blacklisted_os", showJSON $ clusterBlacklistedOs cluster)
             , ("enabled_disk_templates", showJSON diskTemplates)
+            , ("install_image", showJSON $ clusterInstallImage cluster)
             , ("instance_communication_network",
                showJSON (clusterInstanceCommunicationNetwork cluster))
             , ("zeroing_image", showJSON $ clusterZeroingImage cluster)
+            , ("compression_tools",
+               showJSON $ clusterCompressionTools cluster)
             ]
 
   in case master of
@@ -294,11 +296,8 @@ handleCall _ _ cfg (WaitForJobChange jid fields prev_job prev_log tmout) = do
     _ -> liftM (Ok . showJSON) compute_fn
 
 handleCall _ _ cfg (SetWatcherPause time) = do
-  let mcs = Config.getMasterCandidates cfg
-      masters = genericResult (const []) return
-                  . Config.getNode cfg . clusterMasterNode
-                  $ configCluster cfg
-  _ <- executeRpcCall (masters ++ mcs) $ RpcCallSetWatcherPause time
+  let mcs = Config.getMasterOrCandidates cfg
+  _ <- executeRpcCall mcs $ RpcCallSetWatcherPause time
   return . Ok . maybe JSNull showJSON $ fmap TimeAsDoubleJSON time
 
 handleCall _ _ cfg (SetDrainFlag value) = do
@@ -321,12 +320,10 @@ handleCall _ qstat cfg (ChangeJobPriority jid prio) = do
       return $ showJSON (True, "Priorities of pending opcodes for job "
                                ++ show (fromJobId jid) ++ " have been changed"
                                ++ " to " ++ show prio)
-    Ok Nothing -> runResultT $ do
+    Ok Nothing ->
       -- Job has already started; so we have to forward the request
-      -- to the job, currently handled by masterd.
-      socketpath <- liftIO defaultMasterSocket
-      cl <- liftIO $ getLuxiClient socketpath
-      ResultT $ callMethod (ChangeJobPriority jid prio) cl
+      -- to the job.
+      runResultT . return $ showJSON (False, "Job already forked off")
 
 handleCall _ qstat  cfg (CancelJob jid) = do
   let jName = (++) "job " . show $ fromJobId jid
@@ -437,6 +434,21 @@ luxiHandler cfg = U.Handler { U.hParse         = decodeLuxiCall
 -- | Type alias for prepMain results
 type PrepResult = (Server, IORef (Result ConfigData), JQStatus)
 
+-- | Activate the master IP address.
+activateMasterIP :: IO (Result ())
+activateMasterIP = runResultT $ do
+  liftIO $ logDebug "Activating master IP address"
+  conf_file <- liftIO Path.clusterConfFile
+  config <- mkResultT $ Config.loadConfig conf_file
+  let mnp = Config.getMasterNetworkParameters config
+      masters = Config.getMasterNodes config
+      ems = clusterUseExternalMipScript $ configCluster config
+  liftIO . logDebug $ "Master IP params: " ++ show mnp
+  res <- liftIO . executeRpcCall masters $ RpcCallNodeActivateMasterIp mnp ems
+  _ <- liftIO $ logRpcErrors res
+  liftIO $ logDebug "finished activating master IP address"
+  return ()
+
 -- | Check function for luxid.
 checkMain :: CheckFn ()
 checkMain _ = return $ Right ()
@@ -467,6 +479,8 @@ main _ _ (server, cref, jq) = do
   qlock <- newMVar ()
 
   _ <- P.installHandler P.sigCHLD P.Ignore Nothing
+
+  _ <- forkIO . void $ activateMasterIP
 
   finally
     (forever $ U.listener (luxiHandler (qlock, jq, creader)) server)

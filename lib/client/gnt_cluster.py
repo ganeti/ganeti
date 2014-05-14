@@ -265,10 +265,17 @@ def InitCluster(opts, args):
 
   hv_state = dict(opts.hv_state)
 
+  if opts.install_image:
+    install_image = opts.install_image
+  else:
+    install_image = ""
+
   if opts.zeroing_image:
     zeroing_image = opts.zeroing_image
   else:
     zeroing_image = ""
+
+  compression_tools = _GetCompressionTools(opts)
 
   default_ialloc_params = opts.default_iallocator_params
   bootstrap.InitCluster(cluster_name=args[0],
@@ -301,7 +308,9 @@ def InitCluster(opts, args):
                         hv_state=hv_state,
                         disk_state=disk_state,
                         enabled_disk_templates=enabled_disk_templates,
-                        zeroing_image=zeroing_image
+                        install_image=install_image,
+                        zeroing_image=zeroing_image,
+                        compression_tools=compression_tools
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
@@ -552,9 +561,11 @@ def ShowClusterConfig(opts, args):
        utils.CommaJoin(pathutils.ES_SEARCH_PATH)),
       ("enabled disk templates",
        utils.CommaJoin(result["enabled_disk_templates"])),
+      ("install image", result["install_image"]),
       ("instance communication network",
        result["instance_communication_network"]),
       ("zeroing image", result["zeroing_image"]),
+      ("compression tools", result["compression_tools"]),
       ]),
 
     ("Default node parameters",
@@ -1092,6 +1103,18 @@ def _GetDrbdHelper(opts, enabled_disk_templates):
   return drbd_helper
 
 
+def _GetCompressionTools(opts):
+  """Determine the list of custom compression tools.
+
+  """
+  if opts.compression_tools:
+    return opts.compression_tools.split(",")
+  elif opts.compression_tools is None:
+    return None # To note the parameter was not provided
+  else:
+    return constants.IEC_DEFAULT_TOOLS # Resetting to default
+
+
 def SetClusterParams(opts, args):
   """Modify the cluster.
 
@@ -1131,9 +1154,11 @@ def SetClusterParams(opts, args):
           opts.ipolicy_spindle_ratio is not None or
           opts.modify_etc_hosts is not None or
           opts.file_storage_dir is not None or
+          opts.install_image is not None or
           opts.instance_communication_network is not None or
           opts.zeroing_image is not None or
-          opts.shared_file_storage_dir is not None):
+          opts.shared_file_storage_dir is not None or
+          opts.compression_tools is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1214,6 +1239,8 @@ def SetClusterParams(opts, args):
 
   hv_state = dict(opts.hv_state)
 
+  compression_tools = _GetCompressionTools(opts)
+
   op = opcodes.OpClusterSetParams(
     vg_name=vg_name,
     drbd_helper=drbd_helper,
@@ -1245,9 +1272,11 @@ def SetClusterParams(opts, args):
     enabled_disk_templates=enabled_disk_templates,
     force=opts.force,
     file_storage_dir=opts.file_storage_dir,
+    install_image=opts.install_image,
     instance_communication_network=opts.instance_communication_network,
     zeroing_image=opts.zeroing_image,
     shared_file_storage_dir=opts.shared_file_storage_dir,
+    compression_tools=compression_tools
     )
   return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
@@ -2112,7 +2141,8 @@ commands = {
      PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT,
      GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT,
      HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
-     IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT, ZEROING_IMAGE_OPT]
+     IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT, INSTALL_IMAGE_OPT,
+     ZEROING_IMAGE_OPT, COMPRESSION_TOOLS_OPT]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
@@ -2187,17 +2217,18 @@ commands = {
   "modify": (
     SetClusterParams, ARGS_NONE,
     [FORCE_OPT,
-     BACKEND_OPT, CP_SIZE_OPT, RQL_OPT, INSTANCE_COMMUNICATION_NETWORK_OPT,
-     ENABLED_HV_OPT, HVLIST_OPT, MAC_PREFIX_OPT, MASTER_NETDEV_OPT,
-     MASTER_NETMASK_OPT, NIC_PARAMS_OPT, VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT,
-     UIDPOOL_OPT, ADD_UIDS_OPT, REMOVE_UIDS_OPT, DRBD_HELPER_OPT,
-     DEFAULT_IALLOCATOR_OPT, DEFAULT_IALLOCATOR_PARAMS_OPT, RESERVED_LVS_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT,
-     USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] +
-     SUBMIT_OPTS +
+     BACKEND_OPT, CP_SIZE_OPT, RQL_OPT, INSTALL_IMAGE_OPT,
+     INSTANCE_COMMUNICATION_NETWORK_OPT, ENABLED_HV_OPT, HVLIST_OPT,
+     MAC_PREFIX_OPT, MASTER_NETDEV_OPT, MASTER_NETMASK_OPT, NIC_PARAMS_OPT,
+     VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, ADD_UIDS_OPT,
+     REMOVE_UIDS_OPT, DRBD_HELPER_OPT, DEFAULT_IALLOCATOR_OPT,
+     DEFAULT_IALLOCATOR_PARAMS_OPT, RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT,
+     PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT,
+     DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] + SUBMIT_OPTS +
      [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT] +
      INSTANCE_POLICY_OPTS +
-     [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT],
+     [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
+      COMPRESSION_TOOLS_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

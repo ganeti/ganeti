@@ -49,12 +49,12 @@ def TestGanetiCommands():
           ["gnt-job", "--version"],
           ["gnt-node", "--version"],
           ["gnt-os", "--version"],
-          ["ganeti-masterd", "--version"],
           ["ganeti-noded", "--version"],
           ["ganeti-rapi", "--version"],
           ["ganeti-watcher", "--version"],
           ["ganeti-confd", "--version"],
           ["ganeti-luxid", "--version"],
+          ["ganeti-wconfd", "--version"],
           )
 
   cmd = " && ".join([utils.ShellQuoteArgs(i) for i in cmds])

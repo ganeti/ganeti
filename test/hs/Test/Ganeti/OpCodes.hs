@@ -80,8 +80,6 @@ $(genArbitrary ''OpCodes.ReplaceDisksMode)
 
 $(genArbitrary ''DiskAccess)
 
-$(genArbitrary ''ImportExportCompression)
-
 instance Arbitrary OpCodes.DiskIndex where
   arbitrary = choose (0, C.maxDisks - 1) >>= OpCodes.mkDiskIndex
 
@@ -209,8 +207,10 @@ instance Arbitrary OpCodes.OpCode where
           <*> genMaybe genName             -- file_storage_dir
           <*> genMaybe genName             -- shared_file_storage_dir
           <*> genMaybe genName             -- gluster_file_storage_dir
+          <*> arbitrary                    -- install_image
           <*> arbitrary                    -- instance_communication_network
           <*> arbitrary                    -- zeroing_image
+          <*> arbitrary                    -- compression_tools
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
         pure OpCodes.OpClusterActivateMasterIp
@@ -299,6 +299,8 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                       -- start
           <*> (genTags >>= mapM mkNonEmpty)   -- tags
           <*> arbitrary                       -- instance_communication
+          <*> arbitrary                       -- helper_startup_timeout
+          <*> arbitrary                       -- helper_shutdown_timeout
       "OP_INSTANCE_MULTI_ALLOC" ->
         OpCodes.OpInstanceMultiAlloc <$> arbitrary <*> genMaybe genNameNE <*>
         pure []

@@ -2907,7 +2907,7 @@ def _OSOndiskAPIVersion(os_dir):
   @param os_dir: the directory in which we should look for the OS
   @rtype: tuple
   @return: tuple (status, data) with status denoting the validity and
-      data holding either the vaid versions or an error message
+      data holding either the valid versions or an error message
 
   """
   api_file = utils.PathJoin(os_dir, constants.OS_API_FILE)
@@ -2976,11 +2976,13 @@ def DiagnoseOS(top_dirs=None):
           variants = os_inst.supported_variants
           parameters = os_inst.supported_parameters
           api_versions = os_inst.api_versions
+          trusted = False if os_inst.create_script_untrusted else True
         else:
           diagnose = os_inst
           variants = parameters = api_versions = []
+          trusted = True
         result.append((name, os_path, status, diagnose, variants,
-                       parameters, api_versions))
+                       parameters, api_versions, trusted))
 
   return result
 
@@ -3021,6 +3023,9 @@ def _TryOSFromDisk(name, base_dir=None):
   # an optional one
   os_files = dict.fromkeys(constants.OS_SCRIPTS, True)
 
+  os_files[constants.OS_SCRIPT_CREATE] = False
+  os_files[constants.OS_SCRIPT_CREATE_UNTRUSTED] = False
+
   if max(api_versions) >= constants.OS_API_V15:
     os_files[constants.OS_VARIANTS_FILE] = False
 
@@ -3050,6 +3055,15 @@ def _TryOSFromDisk(name, base_dir=None):
         return False, ("File '%s' under path '%s' is not executable" %
                        (filename, os_dir))
 
+  if not constants.OS_SCRIPT_CREATE in os_files and \
+        not constants.OS_SCRIPT_CREATE_UNTRUSTED in os_files:
+    return False, ("A create script (trusted or untrusted) under path '%s'"
+                   " must exist" % os_dir)
+
+  create_script = os_files.get(constants.OS_SCRIPT_CREATE, None)
+  create_script_untrusted = os_files.get(constants.OS_SCRIPT_CREATE_UNTRUSTED,
+                                         None)
+
   variants = []
   if constants.OS_VARIANTS_FILE in os_files:
     variants_file = os_files[constants.OS_VARIANTS_FILE]
@@ -3073,7 +3087,8 @@ def _TryOSFromDisk(name, base_dir=None):
     parameters = [v.split(None, 1) for v in parameters]
 
   os_obj = objects.OS(name=name, path=os_dir,
-                      create_script=os_files[constants.OS_SCRIPT_CREATE],
+                      create_script=create_script,
+                      create_script_untrusted=create_script_untrusted,
                       export_script=os_files[constants.OS_SCRIPT_EXPORT],
                       import_script=os_files[constants.OS_SCRIPT_IMPORT],
                       rename_script=os_files[constants.OS_SCRIPT_RENAME],
@@ -3147,7 +3162,7 @@ def OSCoreEnv(os_name, inst_os, os_params, debug=0):
 
   # OS params
   for pname, pvalue in os_params.items():
-    result["OSP_%s" % pname.upper()] = pvalue
+    result["OSP_%s" % pname.upper().replace("-", "_")] = pvalue
 
   # Set a default path otherwise programs called by OS scripts (or
   # even hooks called from OS scripts) might break, and we don't want
@@ -3859,6 +3874,55 @@ def ValidateOS(required, osname, checks, osparams, force_variant):
           result.fail_reason, result.output, log=False)
 
   return True
+
+
+def ExportOS(instance):
+  """Creates a GZIPed tarball with an OS definition and environment.
+
+  The archive contains a file with the environment variables needed by
+  the OS scripts.
+
+  @type instance: L{objects.Instance}
+  @param instance: instance for which the OS definition is exported
+
+  @rtype: string
+  @return: filepath of the archive
+
+  """
+  assert instance
+  assert instance.os
+
+  temp_dir = tempfile.mkdtemp()
+  inst_os = OSFromDisk(instance.os)
+
+  result = utils.RunCmd(["ln", "-s", inst_os.path,
+                         utils.PathJoin(temp_dir, "os")])
+  if result.failed:
+    _Fail("Failed to copy OS package '%s' to '%s': %s, output '%s'",
+          inst_os, temp_dir, result.fail_reason, result.output)
+
+  env = OSEnvironment(instance, inst_os)
+  with open(utils.PathJoin(temp_dir, "environment"), "w") as f:
+    for var in env:
+      f.write(var + "=" + env[var] + "\n")
+
+  (fd, os_package) = tempfile.mkstemp(suffix=".tgz")
+  os.close(fd)
+
+  result = utils.RunCmd(["tar", "--dereference", "-czv",
+                         "-f", os_package,
+                         "-C", temp_dir,
+                         "."])
+  if result.failed:
+    _Fail("Failed to create OS archive '%s': %s, output '%s'",
+          os_package, result.fail_reason, result.output)
+
+  result = utils.RunCmd(["rm", "-rf", temp_dir])
+  if result.failed:
+    _Fail("Failed to remove copy of OS package '%s' in '%s': %s, output '%s'",
+          inst_os, temp_dir, result.fail_reason, result.output)
+
+  return os_package
 
 
 def DemoteFromMC():

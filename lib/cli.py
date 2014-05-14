@@ -71,6 +71,7 @@ __all__ = [
   "CLUSTER_DOMAIN_SECRET_OPT",
   "CONFIRM_OPT",
   "CP_SIZE_OPT",
+  "COMPRESSION_TOOLS_OPT",
   "DEBUG_OPT",
   "DEBUG_SIMERR_OPT",
   "DISKIDX_OPT",
@@ -116,7 +117,9 @@ __all__ = [
   "IGNORE_SIZE_OPT",
   "INCLUDEDEFAULTS_OPT",
   "INTERVAL_OPT",
+  "INSTALL_IMAGE_OPT",
   "INSTANCE_COMMUNICATION_OPT",
+  "INSTANCE_COMMUNICATION_NETWORK_OPT",
   "MAC_PREFIX_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
@@ -185,7 +188,6 @@ __all__ = [
   "REMOVE_UIDS_OPT",
   "RESERVED_LVS_OPT",
   "RQL_OPT",
-  "INSTANCE_COMMUNICATION_NETWORK_OPT",
   "RUNTIME_MEM_OPT",
   "ROMAN_OPT",
   "SECONDARY_IP_OPT",
@@ -230,6 +232,8 @@ __all__ = [
   "YES_DOIT_OPT",
   "ZEROING_IMAGE_OPT",
   "ZERO_FREE_SPACE_OPT",
+  "HELPER_STARTUP_TIMEOUT_OPT",
+  "HELPER_SHUTDOWN_TIMEOUT_OPT",
   "ZEROING_TIMEOUT_FIXED_OPT",
   "ZEROING_TIMEOUT_PER_MIB_OPT",
   "DISK_STATE_OPT",
@@ -1309,11 +1313,11 @@ RQL_OPT = cli_option("--max-running-jobs", dest="max_running_jobs",
                      type="int", help="Set the maximal number of jobs to "
                                       "run simultaneously")
 
-INSTANCE_COMMUNICATION_NETWORK_OPT = \
-    cli_option("--instance-communication-network",
-               dest="instance_communication_network",
-               type="string",
-               help="Set the network name for instance communication")
+COMPRESSION_TOOLS_OPT = \
+    cli_option("--compression-tools",
+               dest="compression_tools", type="string", default=None,
+               help="Comma-separated list of compression tools which are"
+                    " allowed to be used by Ganeti in various operations")
 
 VG_NAME_OPT = cli_option("--vg-name", dest="vg_name",
                          help=("Enables LVM and specifies the volume group"
@@ -1421,13 +1425,12 @@ TIMEOUT_OPT = cli_option("--timeout", dest="timeout", type="int",
                          help="Maximum time to wait")
 
 COMPRESS_OPT = cli_option("--compress", dest="compress",
-                          default=constants.IEC_NONE,
-                          help="The compression mode to use",
-                          choices=list(constants.IEC_ALL))
+                          type="string", default=constants.IEC_NONE,
+                          help="The compression mode to use")
 
 TRANSPORT_COMPRESSION_OPT = \
     cli_option("--transport-compression", dest="transport_compression",
-               default=constants.IEC_NONE, choices=list(constants.IEC_ALL),
+               type="string", default=constants.IEC_NONE,
                help="The compression mode to use during transport")
 
 SHUTDOWN_TIMEOUT_OPT = cli_option("--shutdown-timeout",
@@ -1734,11 +1737,25 @@ HOTPLUG_IF_POSSIBLE_OPT = cli_option("--hotplug-if-possible",
                                      help="Hotplug devices in case"
                                           " hotplug is supported")
 
+INSTALL_IMAGE_OPT = \
+    cli_option("--install-image",
+               dest="install_image",
+               action="store",
+               type="string",
+               default=None,
+               help="The OS image to use for running the OS scripts safely")
+
 INSTANCE_COMMUNICATION_OPT = \
     cli_option("-c", "--communication",
                dest="instance_communication",
                help=constants.INSTANCE_COMMUNICATION_DOC,
                type="bool")
+
+INSTANCE_COMMUNICATION_NETWORK_OPT = \
+    cli_option("--instance-communication-network",
+               dest="instance_communication_network",
+               type="string",
+               help="Set the network name for instance communication")
 
 ZEROING_IMAGE_OPT = \
     cli_option("--zeroing-image",
@@ -1750,6 +1767,16 @@ ZERO_FREE_SPACE_OPT = \
                dest="zero_free_space", action="store_true", default=False,
                help="Whether to zero the free space on the disks of the "
                     "instance prior to the export")
+
+HELPER_STARTUP_TIMEOUT_OPT = \
+    cli_option("--helper-startup-timeout",
+               dest="helper_startup_timeout", action="store", type="int",
+               help="Startup timeout for the helper VM")
+
+HELPER_SHUTDOWN_TIMEOUT_OPT = \
+    cli_option("--helper-shutdown-timeout",
+               dest="helper_shutdown_timeout", action="store", type="int",
+               help="Shutdown timeout for the helper VM")
 
 ZEROING_TIMEOUT_FIXED_OPT = \
     cli_option("--zeroing-timeout-fixed",
@@ -2800,6 +2827,9 @@ def GenericInstanceCreate(mode, opts, args):
   osparams_private = opts.osparams_private or serializer.PrivateDict()
   osparams_secret = opts.osparams_secret or serializer.PrivateDict()
 
+  helper_startup_timeout = opts.helper_startup_timeout
+  helper_shutdown_timeout = opts.helper_shutdown_timeout
+
   if mode == constants.INSTANCE_CREATE:
     start = opts.start
     os_type = opts.os
@@ -2855,7 +2885,9 @@ def GenericInstanceCreate(mode, opts, args):
                                 no_install=no_install,
                                 identify_defaults=identify_defaults,
                                 ignore_ipolicy=opts.ignore_ipolicy,
-                                instance_communication=instance_communication)
+                                instance_communication=instance_communication,
+                                helper_startup_timeout=helper_startup_timeout,
+                                helper_shutdown_timeout=helper_shutdown_timeout)
 
   SubmitOrSend(op, opts)
   return 0

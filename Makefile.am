@@ -348,7 +348,6 @@ BUILT_EXAMPLES = \
 	doc/examples/systemd/ganeti-confd.service \
 	doc/examples/systemd/ganeti-kvmd.service \
 	doc/examples/systemd/ganeti-luxid.service \
-	doc/examples/systemd/ganeti-masterd.service \
 	doc/examples/systemd/ganeti-metad.service \
 	doc/examples/systemd/ganeti-mond.service \
 	doc/examples/systemd/ganeti-noded.service \
@@ -860,6 +859,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils.hs \
 	src/Ganeti/Utils/Atomic.hs \
 	src/Ganeti/Utils/AsyncWorker.hs \
+	src/Ganeti/Utils/IORef.hs \
 	src/Ganeti/Utils/Livelock.hs \
 	src/Ganeti/Utils/MonadPlus.hs \
 	src/Ganeti/VCluster.hs \
@@ -871,7 +871,8 @@ HS_LIB_SRCS = \
 	src/Ganeti/WConfd/Language.hs \
 	src/Ganeti/WConfd/Monad.hs \
 	src/Ganeti/WConfd/Server.hs \
-	src/Ganeti/WConfd/Ssconf.hs
+	src/Ganeti/WConfd/Ssconf.hs \
+	src/Ganeti/WConfd/TempRes.hs
 
 HS_TEST_SRCS = \
 	test/hs/Test/AutoConf.hs \
@@ -1078,7 +1079,6 @@ gnt_python_sbin_SCRIPTS = \
 gntpython_SCRIPTS = $(gnt_scripts)
 
 PYTHON_BOOTSTRAP_SBIN = \
-	daemons/ganeti-masterd \
 	daemons/ganeti-noded \
 	daemons/ganeti-rapi \
 	daemons/ganeti-watcher
@@ -1322,7 +1322,6 @@ man_MANS = \
 	man/ganeti-luxid.8 \
 	man/ganeti-listrunner.8 \
 	man/ganeti-kvmd.8 \
-	man/ganeti-masterd.8 \
 	man/ganeti-mond.8 \
 	man/ganeti-noded.8 \
 	man/ganeti-os-interface.7 \
@@ -1866,7 +1865,7 @@ man/%.7.in man/%.8.in man/%.1.in: man/%.gen man/footer.rst
 	trap 'echo auto-removing $@; rm $@' EXIT; \
 	$(PANDOC) -s -f rst -t man $< man/footer.rst | \
 	  sed -e 's/\\@/@/g' > $@; \
-	if test -n "$(MAN_HAS_WARNINGS)"; then $(CHECK_MAN_WARNINGS) $@; fi; \
+	if test -n "$(MAN_HAS_WARNINGS)"; then LC_ALL=en_US.UTF-8 $(CHECK_MAN_WARNINGS) $@; fi; \
 	$(CHECK_MAN_DASHES) $@; \
 	trap - EXIT
 

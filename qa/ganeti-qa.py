@@ -244,6 +244,7 @@ def RunClusterTests():
     ("cluster-modify", qa_cluster.TestClusterModifyDiskTemplates),
     ("cluster-modify", qa_cluster.TestClusterModifyFileStorageDir),
     ("cluster-modify", qa_cluster.TestClusterModifySharedFileStorageDir),
+    ("cluster-modify", qa_cluster.TestClusterModifyInstallImage),
     ("cluster-rename", qa_cluster.TestClusterRename),
     ("cluster-info", qa_cluster.TestClusterVersion),
     ("cluster-info", qa_cluster.TestClusterInfo),

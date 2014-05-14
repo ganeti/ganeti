@@ -30,7 +30,6 @@ readonly defaults_file="$SYSCONFDIR/default/ganeti"
 DAEMONS=(
   ganeti-wconfd
   ganeti-noded
-  ganeti-masterd
   ganeti-rapi
   ganeti-luxid
   )
@@ -62,7 +61,6 @@ fi
 ALL_DAEMONS=( ${DAEMONS[@]} ${ON_DEMAND_DAEMONS[@]} )
 
 NODED_ARGS=
-MASTERD_ARGS=
 CONFD_ARGS=
 WCONFD_ARGS=
 LUXID_ARGS=
@@ -90,9 +88,6 @@ _daemon_executable() {
 
 _daemon_usergroup() {
   case "$1" in
-    masterd)
-      echo "@GNTMASTERUSER@:@GNTMASTERDGROUP@"
-      ;;
     confd)
       echo "@GNTCONFDUSER@:@GNTCONFDGROUP@"
       ;;
@@ -346,7 +341,6 @@ start_master() {
     systemctl start ganeti-master.target
   else
     start ganeti-wconfd
-    start ganeti-masterd
     start ganeti-rapi
     start ganeti-luxid
   fi
@@ -359,7 +353,6 @@ stop_master() {
   else
     stop ganeti-luxid
     stop ganeti-rapi
-    stop ganeti-masterd
     stop ganeti-wconfd
   fi
 }

@@ -22,7 +22,9 @@
 """Common functions used by multiple logical units."""
 
 import copy
+import math
 import os
+import urllib2
 
 from ganeti import compat
 from ganeti import constants
@@ -435,7 +437,7 @@ def CheckOSImage(op):
 
   """
   os_image = objects.GetOSImage(op.osparams)
-  CheckImageValidity(os_image, "OS image must be a URL or an absolute path")
+  CheckImageValidity(os_image, "OS image must be an absolute path or a URL")
   return os_image
 
 
@@ -764,7 +766,7 @@ def AnnotateDiskParams(instance, devs, cfg):
   @param devs: The root devices (not any of its children!)
   @param cfg: The config object
   @returns The annotated disk copies
-  @see L{rpc.node.AnnotateDiskParams}
+  @see L{ganeti.rpc.node.AnnotateDiskParams}
 
   """
   return rpc.AnnotateDiskParams(devs, cfg.GetInstanceDiskParams(instance))
@@ -1034,18 +1036,21 @@ def IsInstanceRunning(lu, instance, check_user_shutdown=False):
   if instance.name not in instance_list.payload:
     return False
 
-  if check_user_shutdown:
-    # One more check to be made - whether the instance was shutdown by the user
-    full_hvparams = lu.cfg.GetClusterInfo().FillHV(lu.instance)
-    inst_info = lu.rpc.call_instance_info(pnode_uuid, instance.name,
-                                          instance.hypervisor, full_hvparams)
-    inst_info.Raise("Can't retrieve instance information for instance %s" %
-                    instance.name, prereq=True, ecode=errors.ECODE_ENVIRON)
-
-    return inst_info.payload["state"] != \
-           hypervisor.hv_base.HvInstanceState.SHUTDOWN
-  else:
+  if not check_user_shutdown:
     return True
+
+  # One more check to be made - whether the instance was shutdown by the user
+  full_hvparams = lu.cfg.GetClusterInfo().FillHV(instance)
+  inst_info = lu.rpc.call_instance_info(pnode_uuid, instance.name,
+                                        instance.hypervisor, full_hvparams)
+  inst_info.Raise("Can't retrieve instance information for instance %s" %
+                  instance.name, prereq=True, ecode=errors.ECODE_ENVIRON)
+
+  if inst_info.payload:
+    return inst_info.payload["state"] != \
+        hypervisor.hv_base.HvInstanceState.SHUTDOWN
+  else:
+    return False
 
 
 def CheckInstanceState(lu, instance, req_states, msg=None):
@@ -1411,3 +1416,51 @@ def ConnectInstanceCommunicationNetworkOp(group_uuid, network):
     network_mode=constants.INSTANCE_COMMUNICATION_NETWORK_MODE,
     network_link=constants.INSTANCE_COMMUNICATION_NETWORK_LINK,
     conflicts_check=True)
+
+
+def DetermineImageSize(lu, image, node_uuid):
+  """Determines the size of the specified image.
+
+  @type image: string
+  @param image: absolute filepath or URL of the image
+
+  @type node_uuid: string
+  @param node_uuid: if L{image} is a filepath, this is the UUID of the
+    node where the image is located
+
+  @rtype: int
+  @return: size of the image in MB, rounded up
+  @raise OpExecError: if the image does not exist
+
+  """
+  # Check if we are dealing with a URL first
+  class _HeadRequest(urllib2.Request):
+    def get_method(self):
+      return "HEAD"
+
+  if utils.IsUrl(image):
+    try:
+      response = urllib2.urlopen(_HeadRequest(image))
+    except urllib2.URLError:
+      raise errors.OpExecError("Could not retrieve image from given url '%s'" %
+                               image)
+
+    content_length_str = response.info().getheader('content-length')
+
+    if not content_length_str:
+      raise errors.OpExecError("Could not determine image size from given url"
+                               " '%s'" % image)
+
+    byte_size = int(content_length_str)
+  else:
+    # We end up here if a file path is used
+    result = lu.rpc.call_get_file_info(node_uuid, image)
+    result.Raise("Could not determine size of file '%s'" % image)
+
+    success, attributes = result.payload
+    if not success:
+      raise errors.OpExecError("Could not open file '%s'" % image)
+    byte_size = attributes[constants.STAT_SIZE]
+
+  # Finally, the conversion
+  return math.ceil(byte_size / 1024. / 1024.)

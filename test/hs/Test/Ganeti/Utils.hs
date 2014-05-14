@@ -34,6 +34,8 @@ import Test.HUnit
 import Data.Char (isSpace)
 import qualified Data.Either as Either
 import Data.List
+import Data.Maybe (listToMaybe)
+import qualified Data.Set as S
 import System.Time
 import qualified Text.JSON as J
 #ifndef NO_REGEX_PCRE
@@ -66,6 +68,21 @@ prop_commaJoinSplit =
 prop_commaSplitJoin :: String -> Property
 prop_commaSplitJoin s =
   commaJoin (sepSplit ',' s) ==? s
+
+-- | Test 'findFirst' on several possible inputs.
+prop_findFirst :: Property
+prop_findFirst =
+  forAll (genSublist [0..5 :: Int]) $ \xs ->
+  forAll (choose (-2, 7)) $ \base ->
+  printTestCase "findFirst utility function" $
+  let r = findFirst base (S.fromList xs)
+      (ss, es) = partition (< r) $ dropWhile (< base) xs
+      -- the prefix must be a range of numbers
+      -- and the suffix must not start with 'r'
+   in conjoin [ and $ zipWith ((==) . (+ 1)) ss (drop 1 ss)
+              , maybe True (> r) (listToMaybe es)
+              ]
+
 
 -- | fromObjWithDefault, we test using the Maybe monad and an integer
 -- value.
@@ -328,6 +345,7 @@ prop_splitRecombineEithers es =
 testSuite "Utils"
             [ 'prop_commaJoinSplit
             , 'prop_commaSplitJoin
+            , 'prop_findFirst
             , 'prop_fromObjWithDefault
             , 'prop_if'if
             , 'prop_select
