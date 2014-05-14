@@ -2939,10 +2939,10 @@ class ConfigWriter(object):
     if destination is None:
       destination = self._cfg_file
 
-    self._BumpSerialNo()
     # Save the configuration data. If offline, write the file directly.
     # If online, call WConfd.
     if self._offline:
+      self._BumpSerialNo()
       txt = serializer.DumpJson(
         self._ConfigData().ToDict(_with_private=True),
         private_encoder=serializer.EncodeWithPrivateFields
