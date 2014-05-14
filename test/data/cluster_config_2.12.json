@@ -14,6 +14,7 @@
     "candidate_certs": {},
     "candidate_pool_size": 10,
     "cluster_name": "cluster.name.example.com",
+    "compression_tools": ["gzip", "gzip-fast", "gzip-slow"],
     "ctime": 1343869045.604884,
     "default_iallocator": "hail",
     "default_iallocator_params": {},
@@ -177,6 +178,7 @@
         "xen_cmd": "xm"
       }
     },
+    "install_image": "",
     "instance_communication_network": "",
     "ipolicy": {
       "disk-templates": [
