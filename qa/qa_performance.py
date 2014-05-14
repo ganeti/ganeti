@@ -214,9 +214,9 @@ def _ExecuteJobSubmittingCmd(cmd):
   result = qa_job_utils.ExecuteJobProducingCommand(cmd)
   duration = qa_utils.TimedeltaToTotalSeconds(datetime.datetime.now() - start)
   if duration > MAX_JOB_SUBMISSION_DURATION:
-    raise qa_error.Error(
-      "Executing '%s' took %f seconds, only %f are allowed" %
-      (cmd, duration, MAX_JOB_SUBMISSION_DURATION))
+    print(qa_logging.FormatWarning(
+      "Executing '%s' took %f seconds, a maximum of %f was expected" %
+      (cmd, duration, MAX_JOB_SUBMISSION_DURATION)))
   return result
 
 

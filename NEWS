@@ -204,6 +204,19 @@ This was the first beta release of the 2.11 series. All important changes
 are listed in the latest 2.11 entry.
 
 
+Version 2.10.4
+--------------
+
+*(Released Thu, 15 May 2014)*
+
+- Support restricted migration in hbal
+- Fix for the --shared-file-storage-dir of gnt-cluster modify (issue 811)
+- Fail in replace-disks if attaching disks fails (issue 814)
+- Set IFF_ONE_QUEUE on created tap interfaces for KVM
+- Small fixes and enhancements in the build system
+- Various documentation fixes (e.g. issue 810)
+
+
 Version 2.10.3
 --------------
 
