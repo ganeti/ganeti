@@ -101,6 +101,8 @@ $(genArbitrary ''PartialBeParams)
 
 $(genArbitrary ''AdminState)
 
+$(genArbitrary ''AdminStateSource)
+
 $(genArbitrary ''PartialNicParams)
 
 $(genArbitrary ''PartialNic)
@@ -124,6 +126,8 @@ instance Arbitrary Instance where
       -- osparams
       <*> pure (GenericContainer Map.empty)
       -- admin_state
+      <*> arbitrary
+      -- admin_state_source
       <*> arbitrary
       -- nics
       <*> arbitrary

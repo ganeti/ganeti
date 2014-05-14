@@ -44,15 +44,17 @@ import Test.HUnit
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
--- | Creates an instance with the desired name, pnode uuid, and AdminState.
--- All other fields are placeholders.
-createInstance :: String -> String -> AdminState -> Instance
-createInstance name pnodeUuid adminState =
+-- | Creates an instance with the desired name, pnode uuid,
+-- 'AdminState', and 'AdminStateSource'.  All other fields are
+-- placeholders.
+createInstance :: String -> String -> AdminState -> AdminStateSource -> Instance
+createInstance name pnodeUuid adminState adminStateSource =
   Instance name pnodeUuid "" Kvm
     (GenericContainer Map.empty)
     (PartialBeParams Nothing Nothing Nothing Nothing Nothing Nothing)
     (GenericContainer Map.empty)
-    adminState [] [] DTDrbd8 False Nothing 0.0 0.0 "" 0 Set.empty
+    adminState adminStateSource [] [] DTDrbd8 False Nothing 0.0 0.0 "" 0
+    Set.empty
 
 -- | A fake InstanceInfo to be used to check values.
 fakeInstanceInfo :: InstanceInfo
@@ -72,7 +74,7 @@ responseSuccess name instNames = (name, Right .
 -- | The instance used for testing. Called Waldo as test cases involve trouble
 -- finding information related to it.
 waldoInstance :: Instance
-waldoInstance = createInstance "Waldo" "prim" AdminUp
+waldoInstance = createInstance "Waldo" "prim" AdminUp AdminSource
 
 -- | Check that an error is thrown when the node is offline
 case_nodeOffline :: Assertion
