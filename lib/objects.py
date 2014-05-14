@@ -1074,6 +1074,7 @@ class Instance(TaggableObject):
     "beparams",
     "osparams",
     "admin_state",
+    "admin_state_source",
     "nics",
     "disks",
     "disk_template",
@@ -1237,6 +1238,8 @@ class Instance(TaggableObject):
     """Fill defaults for missing configuration values.
 
     """
+    if self.admin_state_source is None:
+      self.admin_state_source = constants.ADMIN_SOURCE
     for nic in self.nics:
       nic.UpgradeConfig()
     for disk in self.disks:

@@ -42,10 +42,11 @@ import qualified Data.Map as Map
 import qualified Text.JSON as J
 import Text.Printf (printf)
 
+import Test.Ganeti.Objects ()
+import Test.Ganeti.Query.Language ()
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
-import Test.Ganeti.Query.Language ()
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -260,7 +261,7 @@ instance Arbitrary OpCodes.OpCode where
           pure emptyJSObject <*> arbitrary <*> arbitrary
       "OP_INSTANCE_SHUTDOWN" ->
         OpCodes.OpInstanceShutdown <$> genFQDN <*> return Nothing <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
       "OP_INSTANCE_REBOOT" ->
         OpCodes.OpInstanceReboot <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary

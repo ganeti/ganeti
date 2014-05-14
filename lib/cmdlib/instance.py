@@ -1326,6 +1326,7 @@ class LUInstanceCreate(LogicalUnit):
                             disk_template=self.op.disk_template,
                             disks_active=False,
                             admin_state=constants.ADMINST_DOWN,
+                            admin_state_source=constants.ADMIN_SOURCE,
                             network_port=network_port,
                             beparams=self.op.beparams,
                             hvparams=self.op.hvparams,

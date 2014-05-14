@@ -250,6 +250,9 @@ def UpgradeInstances(config_data):
       if not "spindles" in dobj:
         missing_spindles = True
 
+    if "admin_state_source" not in iobj:
+      iobj["admin_state_source"] = constants.ADMIN_SOURCE
+
   if GetExclusiveStorageValue(config_data) and missing_spindles:
     # We cannot be sure that the instances that are missing spindles have
     # exclusive storage enabled (the check would be more complicated), so we
@@ -401,6 +404,11 @@ def UpgradeAll(config_data):
 
 # DOWNGRADE ------------------------------------------------------------
 
+def DowngradeInstances(config_data):
+  for _, iobj in config_data["instances"].items():
+    if "admin_state_source" in iobj:
+      del iobj["admin_state_source"]
+
 
 def DowngradeCluster(config_data):
   cluster = config_data.get("cluster", None)
@@ -416,6 +424,8 @@ def DowngradeCluster(config_data):
       del cluster[param]
   if "max_running_jobs" in cluster:
     del cluster["max_running_jobs"]
+
+  DowngradeInstances(config_data)
 
 
 def DowngradeGroups(config_data):
