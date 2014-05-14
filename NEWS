@@ -5,7 +5,7 @@ News
 Version 2.10.4
 --------------
 
-*(Released Wed, 14 May 2014)*
+*(Released Thu, 15 May 2014)*
 
 - Support restricted migration in hbal
 - Fix for the --shared-file-storage-dir of gnt-cluster modify (issue 811)
