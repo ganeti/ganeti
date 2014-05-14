@@ -1524,6 +1524,42 @@ def _GetInstLiveData(name):
   return fn
 
 
+def _GetLiveInstStatus(ctx, instance, instance_state):
+  hvparams = ctx.cluster.FillHV(instance, skip_globals=True)
+
+  allow_userdown = \
+      instance.hypervisor != constants.HT_KVM or \
+      hvparams[constants.HV_KVM_USER_SHUTDOWN]
+
+  if instance.uuid in ctx.wrongnode_inst:
+    return constants.INSTST_WRONGNODE
+  else:
+    if hv_base.HvInstanceState.IsShutdown(instance_state):
+      if instance.admin_state == constants.ADMINST_UP and allow_userdown:
+        return constants.INSTST_USERDOWN
+      elif instance.admin_state == constants.ADMINST_UP:
+        return constants.INSTST_ERRORDOWN
+      else:
+        return constants.INSTST_ADMINDOWN
+    else:
+      if instance.admin_state == constants.ADMINST_UP:
+        return constants.INSTST_RUNNING
+      else:
+        return constants.INSTST_ERRORUP
+
+
+def _GetDeadInstStatus(inst):
+  if inst.admin_state == constants.ADMINST_UP:
+    return constants.INSTST_ERRORDOWN
+  elif inst.admin_state == constants.ADMINST_DOWN:
+    if inst.admin_state_source == constants.USER_SOURCE:
+      return constants.INSTST_USERDOWN
+    else:
+      return constants.INSTST_ADMINDOWN
+  else:
+    return constants.INSTST_ADMINOFFLINE
+
+
 def _GetInstStatus(ctx, inst):
   """Get instance status.
 
@@ -1541,28 +1577,9 @@ def _GetInstStatus(ctx, inst):
   instance_live_data = ctx.live_data.get(inst.uuid)
 
   if bool(instance_live_data):
-    instance_state = instance_live_data["state"]
-
-    if inst.uuid in ctx.wrongnode_inst:
-      return constants.INSTST_WRONGNODE
-    else:
-      if hv_base.HvInstanceState.IsShutdown(instance_state):
-        if inst.admin_state == constants.ADMINST_UP:
-          return constants.INSTST_USERDOWN
-        else:
-          return constants.INSTST_ADMINDOWN
-      else:
-        if inst.admin_state == constants.ADMINST_UP:
-          return constants.INSTST_RUNNING
-        else:
-          return constants.INSTST_ERRORUP
-
-  if inst.admin_state == constants.ADMINST_UP:
-    return constants.INSTST_ERRORDOWN
-  elif inst.admin_state == constants.ADMINST_DOWN:
-    return constants.INSTST_ADMINDOWN
-
-  return constants.INSTST_ADMINOFFLINE
+    return _GetLiveInstStatus(ctx, inst, instance_live_data["state"])
+  else:
+    return _GetDeadInstStatus(inst)
 
 
 def _GetInstDisk(index, cb):
@@ -2181,13 +2198,16 @@ def _BuildInstanceFields():
      lambda ctx, inst: map(compat.partial(_GetInstNodeGroup, ctx, None),
                            inst.secondary_nodes)),
     (_MakeField("admin_state", "InstanceState", QFT_TEXT,
-                "Desired state of instance"),
+                "Desired state of the instance"),
      IQ_CONFIG, 0, _GetItemAttr("admin_state")),
     (_MakeField("admin_up", "Autostart", QFT_BOOL,
-                "Desired state of instance"),
+                "Desired state of the instance"),
      IQ_CONFIG, 0, lambda ctx, inst: inst.admin_state == constants.ADMINST_UP),
+    (_MakeField("admin_state_source", "InstanceStateSource", QFT_TEXT,
+                "Who last changed the desired state of the instance"),
+     IQ_CONFIG, 0, _GetItemAttr("admin_state_source")),
     (_MakeField("disks_active", "DisksActive", QFT_BOOL,
-                "Desired state of instance disks"),
+                "Desired state of the instance disks"),
      IQ_CONFIG, 0, _GetItemAttr("disks_active")),
     (_MakeField("tags", "Tags", QFT_OTHER, "Tags"), IQ_CONFIG, 0,
      lambda ctx, inst: list(inst.GetTags())),

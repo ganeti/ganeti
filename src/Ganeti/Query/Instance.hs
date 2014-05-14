@@ -100,6 +100,10 @@ instanceFields =
   [ (FieldDefinition "admin_state" "InstanceState" QFTText
      "Desired state of instance",
      FieldSimple (rsNormal . adminStateToRaw . instAdminState), QffNormal)
+  , (FieldDefinition "admin_state_source" "InstanceStateSource" QFTText
+     "Who last changed the desired state of the instance",
+     FieldSimple (rsNormal . adminStateSourceToRaw . instAdminStateSource),
+     QffNormal)
   , (FieldDefinition "admin_up" "Autostart" QFTBool
      "Desired state of instance",
      FieldSimple (rsNormal . (== AdminUp) . instAdminState), QffNormal)
@@ -621,20 +625,26 @@ isPrimaryOffline cfg inst =
      Bad    _ -> error "Programmer error - result assumed to be OK is Bad!"
 
 -- | Determines the status of a live instance
-liveInstanceStatus :: (InstanceInfo, Bool) -> Instance -> InstanceStatus
-liveInstanceStatus (instInfo, foundOnPrimary) inst
+liveInstanceStatus :: ConfigData
+                   -> (InstanceInfo, Bool)
+                   -> Instance
+                   -> InstanceStatus
+liveInstanceStatus cfg (instInfo, foundOnPrimary) inst
   | not foundOnPrimary = WrongNode
   | otherwise =
     case instanceState of
-      InstanceStateRunning | adminState == AdminUp -> Running
-                           | otherwise -> ErrorUp
-      InstanceStateShutdown | adminState == AdminUp && allowDown -> UserDown
-                            | adminState == AdminUp -> ErrorDown
-                            | otherwise -> StatusDown
+      InstanceStateRunning
+        | adminState == AdminUp -> Running
+        | otherwise -> ErrorUp
+      InstanceStateShutdown
+        | adminState == AdminUp && allowDown -> UserDown
+        | adminState == AdminUp -> ErrorDown
+        | otherwise -> StatusDown
   where adminState = instAdminState inst
         instanceState = instInfoState instInfo
 
-        hvparams = fromContainer $ instHvparams inst
+        hvparams =
+          fromContainer $ getFilledInstHvParams (C.toList C.hvcGlobals) cfg inst
 
         allowDown =
           instHypervisor inst /= Kvm ||
@@ -645,8 +655,9 @@ liveInstanceStatus (instInfo, foundOnPrimary) inst
 deadInstanceStatus :: Instance -> InstanceStatus
 deadInstanceStatus inst =
   case instAdminState inst of
-    AdminUp      -> ErrorDown
-    AdminDown    -> StatusDown
+    AdminUp -> ErrorDown
+    AdminDown | instAdminStateSource inst == UserSource -> UserDown
+              | otherwise -> StatusDown
     AdminOffline -> StatusOffline
 
 -- | Determines the status of the instance, depending on whether it is possible
@@ -660,7 +671,7 @@ determineInstanceStatus cfg res inst
   | isPrimaryOffline cfg inst = NodeOffline
   | otherwise = case res of
       Left _                   -> NodeDown
-      Right (Just liveData, _) -> liveInstanceStatus liveData inst
+      Right (Just liveData, _) -> liveInstanceStatus cfg liveData inst
       Right (Nothing, _)       -> deadInstanceStatus inst
 
 -- | Extracts the instance status, retrieving it using the functions above and
