@@ -196,6 +196,7 @@ __all__ = [
   "IPOLICY_STD_SPECS_OPT",
   "IPOLICY_DISK_TEMPLATES",
   "IPOLICY_VCPU_RATIO",
+  "SEQUENTIAL_OPT",
   "SPICE_CACERT_OPT",
   "SPICE_CERT_OPT",
   "SRC_DIR_OPT",
@@ -842,6 +843,10 @@ PRINT_JOBID_OPT = cli_option("--print-jobid", dest="print_jobid",
                              default=False, action="store_true",
                              help=("Additionally print the job as first line"
                                    " on stdout (for scripting)."))
+
+SEQUENTIAL_OPT = cli_option("--sequential", dest="sequential",
+                            default=False, action="store_true",
+                            help=("Execute all resulting jobs sequentially"))
 
 SYNC_OPT = cli_option("--sync", dest="do_locking",
                       default=False, action="store_true",
