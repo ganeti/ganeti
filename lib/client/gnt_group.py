@@ -242,7 +242,8 @@ def EvacuateGroup(opts, args):
   op = opcodes.OpGroupEvacuate(group_name=group_name,
                                iallocator=opts.iallocator,
                                target_groups=opts.to,
-                               early_release=opts.early_release)
+                               early_release=opts.early_release,
+                               sequential=opts.sequential)
   result = SubmitOrSend(op, opts, cl=cl)
 
   # Keep track of submitted jobs
@@ -358,7 +359,8 @@ commands = {
     "[--dry-run] <group-name> <new-name>", "Rename a node group"),
   "evacuate": (
     EvacuateGroup, [ArgGroup(min=1, max=1)],
-    [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT] + SUBMIT_OPTS,
+    [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT, SEQUENTIAL_OPT]
+    + SUBMIT_OPTS,
     "[-I <iallocator>] [--to <group>]",
     "Evacuate all instances within a group"),
   "list-tags": (

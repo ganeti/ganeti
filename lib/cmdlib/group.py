@@ -856,6 +856,12 @@ class LUGroupEvacuate(LogicalUnit):
     self.LogInfo("Iallocator returned %s job(s) for evacuating node group %s",
                  len(jobs), self.op.group_name)
 
+    if self.op.sequential:
+      self.LogInfo("Jobs will be submitted to run sequentially")
+      for job in jobs[1:]:
+        for op in job:
+          op.depends = [(-1, ["error", "success"])]
+
     return ResultWithJobs(jobs)
 
 
