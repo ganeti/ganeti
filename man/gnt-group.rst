@@ -187,7 +187,7 @@ options.
 EVACUATE
 ~~~~~~~~
 
-| **evacuate** [\--submit] [\--print-job-id]
+| **evacuate** [\--submit] [\--print-job-id] [\--sequential]
 | [\--iallocator *NAME*] [\--to *GROUP*...] {*group*}
 
 This command will move all instances out of the given node group.
@@ -196,6 +196,12 @@ the command line or as a cluster default.
 
 If no specific destination groups are specified using ``--to``, all
 groups except the evacuated group are considered.
+
+The moves of the individual instances are handled as separate jobs
+to allow for maximal parallelism. If the ``--sequential`` option is
+given, the moves of the individual instances will be executed sequentially.
+This can be usefull if the link between the groups is vulnerable to
+congestion.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
