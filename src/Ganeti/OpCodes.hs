@@ -511,6 +511,7 @@ $(genOpCode "OpCode"
      , pIgnoreOfflineNodes
      , pShutdownTimeout'
      , pNoRemember
+     , pAdminStateSource
      ],
      "instance_name")
   , ("OpInstanceReboot",

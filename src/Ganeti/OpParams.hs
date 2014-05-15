@@ -260,6 +260,7 @@ module Ganeti.OpParams
   , pReason
   , pSequential
   , pEnabledDiskTemplates
+  , pAdminStateSource
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -1671,3 +1672,9 @@ pNetworkLink :: Field
 pNetworkLink =
   withDoc "Network link when connecting to a group" $
   simpleField "network_link" [t| NonEmptyString |]
+
+pAdminStateSource :: Field
+pAdminStateSource =
+  withDoc "Who last changed the instance admin state" .
+  optionalField $
+  simpleField "admin_state_source" [t| AdminStateSource |]
