@@ -138,9 +138,12 @@ class Instance(object):
   """Abstraction for a Virtual Machine instance.
 
   """
-  def __init__(self, name, status, disks_active, snodes):
+  def __init__(self, name, status, config_state, config_state_source,
+               disks_active, snodes):
     self.name = name
     self.status = status
+    self.config_state = config_state
+    self.config_state_source = config_state_source
     self.disks_active = disks_active
     self.snodes = snodes
 
@@ -157,6 +160,19 @@ class Instance(object):
     """
     op = opcodes.OpInstanceActivateDisks(instance_name=self.name)
     cli.SubmitOpCode(op, cl=cl)
+
+  def NeedsCleanup(self):
+    """Determines whether the instance needs cleanup.
+
+    Determines whether the instance needs cleanup after having been
+    shutdown by the user.
+
+    @rtype: bool
+    @return: True if the instance needs cleanup, False otherwise.
+
+    """
+    return self.status == constants.INSTST_USERDOWN and \
+        self.config_state != constants.ADMINST_DOWN
 
 
 class Node(object):
@@ -188,7 +204,8 @@ def _CleanupInstance(cl, notepad, inst, locks):
 
   logging.info("Instance '%s' was shutdown by the user, cleaning up instance",
                inst.name)
-  op = opcodes.OpInstanceShutdown(instance_name=inst.name)
+  op = opcodes.OpInstanceShutdown(instance_name=inst.name,
+                                  admin_state_source=constants.USER_SOURCE)
 
   try:
     cli.SubmitOpCode(op, cl=cl)
@@ -208,7 +225,7 @@ def _CheckInstances(cl, notepad, instances, locks):
   started = set()
 
   for inst in instances.values():
-    if inst.status == constants.INSTST_USERDOWN:
+    if inst.NeedsCleanup():
       _CleanupInstance(cl, notepad, inst, locks)
     elif inst.status in BAD_STATES:
       n = notepad.NumberOfRestartAttempts(inst.name)
@@ -675,8 +692,8 @@ def _GetGroupData(qcl, uuid):
 
   queries = [
       (constants.QR_INSTANCE,
-       ["name", "status", "disks_active", "snodes",
-        "pnode.group.uuid", "snodes.group.uuid"],
+       ["name", "status", "admin_state", "admin_state_source", "disks_active",
+        "snodes", "pnode.group.uuid", "snodes.group.uuid"],
        [qlang.OP_EQUAL, "pnode.group.uuid", uuid]),
       (constants.QR_NODE,
        ["name", "bootid", "offline"],
@@ -701,14 +718,15 @@ def _GetGroupData(qcl, uuid):
   instances = []
 
   # Load all instances
-  for (name, status, disks_active, snodes, pnode_group_uuid,
-       snodes_group_uuid) in raw_instances:
+  for (name, status, config_state, config_state_source, disks_active, snodes,
+       pnode_group_uuid, snodes_group_uuid) in raw_instances:
     if snodes and set([pnode_group_uuid]) != set(snodes_group_uuid):
       logging.error("Ignoring split instance '%s', primary group %s, secondary"
                     " groups %s", name, pnode_group_uuid,
                     utils.CommaJoin(snodes_group_uuid))
     else:
-      instances.append(Instance(name, status, disks_active, snodes))
+      instances.append(Instance(name, status, config_state, config_state_source,
+                                disks_active, snodes))
 
       for node in snodes:
         secondaries.setdefault(node, set()).add(name)
