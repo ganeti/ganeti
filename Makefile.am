@@ -806,6 +806,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Locking/Waiting.hs \
 	src/Ganeti/Logging.hs \
 	src/Ganeti/Logging/Lifted.hs \
+	src/Ganeti/Logging/WriterLog.hs \
 	src/Ganeti/Luxi.hs \
 	src/Ganeti/Metad/Config.hs \
 	src/Ganeti/Metad/ConfigServer.hs \
