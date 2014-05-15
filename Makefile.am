@@ -591,6 +591,7 @@ docinput = \
 	doc/design-htools-2.3.rst \
 	doc/design-http-server.rst \
 	doc/design-hugepages-support.rst \
+	doc/design-ifdown.rst \
 	doc/design-impexp2.rst \
 	doc/design-internal-shutdown.rst \
 	doc/design-kvmd.rst \
