@@ -72,11 +72,11 @@ import Text.Printf
 import qualified AutoConf as AC
 import Ganeti.BasicTypes
 import Ganeti.Logging
+import Ganeti.Logging.WriterLog
 import qualified Ganeti.Path as P
 import Ganeti.Types
 import Ganeti.UDSServer
 import Ganeti.Utils
-import Ganeti.Utils.MonadPlus
 
 isForkSupported :: IO Bool
 isForkSupported = return $ not rtsSupportsBoundThreads
@@ -107,36 +107,46 @@ listOpenFds = liftM filterReadable
 runJobProcess :: JobId -> Client -> IO ()
 runJobProcess jid s = withErrorLogAt CRITICAL (show jid) $
   do
-    logInfo $ "Forking a new process for job " ++ show (fromJobId jid)
+    -- Close the standard error to prevent anything being written there
+    -- (for example by exceptions when closing unneeded FDs).
+    closeFd stdError
+
+    -- Currently, we discard any logging messages to prevent problems
+    -- with GHC's fork implementation, and they're kept
+    -- in the code just to document what is happening.
+    -- Later we might direct them to an appropriate file.
+    let logLater _ = return ()
+
+    logLater $ "Forking a new process for job " ++ show (fromJobId jid)
 
     -- Create a livelock file for the job
     (TOD ts _) <- getClockTime
     lockfile <- P.livelockFile $ printf "job_%06d_%d" (fromJobId jid) ts
 
     -- Lock the livelock file
-    logDebug $ "Locking livelock file " ++ show lockfile
+    logLater $ "Locking livelock file " ++ show lockfile
     fd <- lockFile lockfile >>= annotateResult "Can't lock the livelock file"
-    logDebug "Sending the lockfile name to the master process"
+    logLater "Sending the lockfile name to the master process"
     sendMsg s lockfile
 
-    logDebug "Waiting for the master process to confirm the lock"
+    logLater "Waiting for the master process to confirm the lock"
     _ <- recvMsg s
 
     -- close the client
-    logDebug "Closing the client"
+    logLater "Closing the client"
     (clFdR, clFdW) <- clientToFd s
     -- .. and use its file descriptors as stdin/out for the job process;
     -- this way the job process can communicate with the master process
     -- using stdin/out.
-    logDebug "Reconnecting the file descriptors to stdin/out"
+    logLater "Reconnecting the file descriptors to stdin/out"
     _ <- dupTo clFdR stdInput
     _ <- dupTo clFdW stdOutput
-    logDebug "Closing the old file descriptors"
+    logLater "Closing the old file descriptors"
     closeFd clFdR
     closeFd clFdW
 
     fds <- (filter (> 2) . filter (/= fd)) <$> toErrorBase listOpenFds
-    logDebug $ "Closing every superfluous file descriptor: " ++ show fds
+    logLater $ "Closing every superfluous file descriptor: " ++ show fds
     mapM_ (tryIOError . closeFd) fds
 
     -- the master process will send the job id and the livelock file name
@@ -150,7 +160,7 @@ runJobProcess jid s = withErrorLogAt CRITICAL (show jid) $
             . M.fromList)
            `liftM` getEnvironment
     execPy <- P.jqueueExecutorPy
-    logDebug $ "Executing " ++ AC.pythonPath ++ " " ++ execPy
+    logLater $ "Executing " ++ AC.pythonPath ++ " " ++ execPy
                ++ " with PYTHONPATH=" ++ AC.versionedsharedir
     () <- executeFile AC.pythonPath True [execPy, show (fromJobId jid)]
                       (Just $ M.toList env)
@@ -182,17 +192,13 @@ forkJobProcess jid luxiLivelock update = do
   logDebug $ "Setting the lockfile temporarily to " ++ luxiLivelock
   update luxiLivelock
 
-  -- Due to some bug in GHC forking process, we want to retry,
-  -- if the forked process fails to start to communicate.
-  -- If it fails later on, the failure is handled by 'ResultT'
-  -- and no retry is performed.
-  resultOpt <- retryMaybeN 3 $ \_ -> do
+  ResultT . execWriterLogT . runResultT $ do
     (pid, master) <- liftIO $ forkWithPipe connectConfig (runJobProcess jid)
 
     let onError = do
           logDebug "Closing the pipe to the client"
           withErrorLogAt WARNING "Closing the communication pipe failed"
-              (liftIO (closeClient master)) `mplus` return ()
+              (liftIO (closeClient master)) `orElse` return ()
           logDebug $ "Getting the status of job process "
                      ++ show (fromJobId jid)
           status <- liftIO $ getProcessStatus False True pid
@@ -208,12 +214,10 @@ forkJobProcess jid luxiLivelock update = do
       let recv = liftIO $ recvMsg master
           send = liftIO . sendMsg master
       logDebug "Getting the lockfile of the client"
-      -- If we fail to receive a message from the client, fail the MaybeT
-      -- computation here using `mzero` to retry.
-      lockfile <- recv `orElse` mzero
+      lockfile <- recv
 
       logDebug $ "Setting the lockfile to the final " ++ lockfile
-      lift $ update lockfile
+      toErrorBase $ update lockfile
       logDebug "Confirming the client it can start"
       send ""
 
@@ -230,5 +234,3 @@ forkJobProcess jid luxiLivelock update = do
       send lockfile
 
       return (lockfile, pid)
-
-  maybe (failError "The client process timed out repeatedly") return resultOpt
