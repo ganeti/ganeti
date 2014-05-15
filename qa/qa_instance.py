@@ -148,6 +148,28 @@ def _DestroyInstanceDisks(instance):
     pass
 
 
+def _GetInstanceFields(instance, fields):
+  """Get the value of one or more fields of an instance.
+
+  @type instance: string
+  @param instance: instance name
+
+  @type field: list of string
+  @param field: name of the fields
+
+  @rtype: list of string
+  @return: value of the fields
+
+  """
+  master = qa_config.GetMasterNode()
+  infocmd = utils.ShellQuoteArgs(["gnt-instance", "list", "--no-headers",
+                                  "--separator=:", "--units", "m", "-o",
+                                  ",".join(fields), instance])
+  return tuple(qa_utils.GetCommandOutput(master.primary, infocmd)
+               .strip()
+               .split(":"))
+
+
 def _GetInstanceField(instance, field):
   """Get the value of a field of an instance.
 
@@ -158,10 +180,7 @@ def _GetInstanceField(instance, field):
   @rtype: string
 
   """
-  master = qa_config.GetMasterNode()
-  infocmd = utils.ShellQuoteArgs(["gnt-instance", "list", "--no-headers",
-                                  "--units", "m", "-o", field, instance])
-  return qa_utils.GetCommandOutput(master.primary, infocmd).strip()
+  return _GetInstanceFields(instance, [field])[0]
 
 
 def _GetBoolInstanceField(instance, field):
@@ -1097,67 +1116,127 @@ def TestInstanceCreationRestrictedByDiskTemplates():
                  fail=False)
 
 
+def _AssertInstance(instance, status, admin_state, admin_state_source):
+  x, y, z = \
+      _GetInstanceFields(instance.name,
+                         ["status", "admin_state", "admin_state_source"])
+
+  AssertEqual(x, status)
+  AssertEqual(y, admin_state)
+  AssertEqual(z, admin_state_source)
+
+
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
-def _TestInstanceUserDown(instance, master, hv_shutdown_fn):
-  # Shutdown instance and bring instance status to 'USER_down'
+def _TestInstanceUserDown(instance, hv_shutdown_fn):
+  """Test different combinations of user shutdown"""
+
+  # 1. User shutdown
+  # 2. Instance start
   hv_shutdown_fn()
 
-  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
-  result_output = qa_utils.GetCommandOutput(master.primary,
-                                            utils.ShellQuoteArgs(cmd))
-  AssertEqual(result_output.strip(), constants.INSTST_USERDOWN)
+  _AssertInstance(instance,
+                  constants.INSTST_USERDOWN,
+                  constants.ADMINST_UP,
+                  constants.ADMIN_SOURCE)
 
-  # Fail to bring instance status to 'running'
-  AssertCommand(["gnt-instance", "start", instance.name], fail=True)
+  AssertCommand(["gnt-instance", "start", instance.name])
 
-  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
-  result_output = qa_utils.GetCommandOutput(master.primary,
-                                            utils.ShellQuoteArgs(cmd))
-  AssertEqual(result_output.strip(), constants.INSTST_USERDOWN)
+  _AssertInstance(instance,
+                  constants.INSTST_RUNNING,
+                  constants.ADMINST_UP,
+                  constants.ADMIN_SOURCE)
 
-  # Bring instance status to 'ADMIN_down'
+  # 1. User shutdown
+  # 2. Watcher cleanup
+  # 3. Instance start
+  hv_shutdown_fn()
+
+  _AssertInstance(instance,
+                  constants.INSTST_USERDOWN,
+                  constants.ADMINST_UP,
+                  constants.ADMIN_SOURCE)
+
+  qa_daemon.RunWatcherDaemon()
+
+  _AssertInstance(instance,
+                  constants.INSTST_USERDOWN,
+                  constants.ADMINST_DOWN,
+                  constants.USER_SOURCE)
+
+  AssertCommand(["gnt-instance", "start", instance.name])
+
+  _AssertInstance(instance,
+                  constants.INSTST_RUNNING,
+                  constants.ADMINST_UP,
+                  constants.ADMIN_SOURCE)
+
+  # 1. User shutdown
+  # 2. Watcher cleanup
+  # 3. Instance stop
+  # 4. Instance start
+  hv_shutdown_fn()
+
+  _AssertInstance(instance,
+                  constants.INSTST_USERDOWN,
+                  constants.ADMINST_UP,
+                  constants.ADMIN_SOURCE)
+
+  qa_daemon.RunWatcherDaemon()
+
+  _AssertInstance(instance,
+                  constants.INSTST_USERDOWN,
+                  constants.ADMINST_DOWN,
+                  constants.USER_SOURCE)
+
   AssertCommand(["gnt-instance", "shutdown", instance.name])
 
-  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
-  result_output = qa_utils.GetCommandOutput(master.primary,
-                                            utils.ShellQuoteArgs(cmd))
-  AssertEqual(result_output.strip(), constants.INSTST_ADMINDOWN)
+  _AssertInstance(instance,
+                  constants.INSTST_ADMINDOWN,
+                  constants.ADMINST_DOWN,
+                  constants.ADMIN_SOURCE)
 
-  # Bring instance status to 'running'
   AssertCommand(["gnt-instance", "start", instance.name])
 
-  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
-  result_output = qa_utils.GetCommandOutput(master.primary,
-                                            utils.ShellQuoteArgs(cmd))
-  AssertEqual(result_output.strip(), constants.INSTST_RUNNING)
+  _AssertInstance(instance,
+                  constants.INSTST_RUNNING,
+                  constants.ADMINST_UP,
+                  constants.ADMIN_SOURCE)
 
-  # Bring instance status to 'ADMIN_down' forcibly
-  AssertCommand(["gnt-instance", "shutdown", "-f", instance.name])
+  # 1. User shutdown
+  # 2. Instance stop
+  # 3. Instance start
+  hv_shutdown_fn()
 
-  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
-  result_output = qa_utils.GetCommandOutput(master.primary,
-                                            utils.ShellQuoteArgs(cmd))
-  AssertEqual(result_output.strip(), constants.INSTST_ADMINDOWN)
+  _AssertInstance(instance,
+                  constants.INSTST_USERDOWN,
+                  constants.ADMINST_UP,
+                  constants.ADMIN_SOURCE)
 
-  # Bring instance status to 'running'
+  AssertCommand(["gnt-instance", "shutdown", instance.name])
+
+  _AssertInstance(instance,
+                  constants.INSTST_ADMINDOWN,
+                  constants.ADMINST_DOWN,
+                  constants.ADMIN_SOURCE)
+
   AssertCommand(["gnt-instance", "start", instance.name])
 
-  cmd = ["gnt-instance", "list", "--no-headers", "-o", "status", instance.name]
-  result_output = qa_utils.GetCommandOutput(master.primary,
-                                            utils.ShellQuoteArgs(cmd))
-  AssertEqual(result_output.strip(), constants.INSTST_RUNNING)
+  _AssertInstance(instance,
+                  constants.INSTST_RUNNING,
+                  constants.ADMINST_UP,
+                  constants.ADMIN_SOURCE)
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
-def _TestInstanceUserDownXen(instance, master):
+def _TestInstanceUserDownXen(instance):
   primary = _GetInstanceField(instance.name, "pnode")
   fn = lambda: AssertCommand(["xm", "shutdown", "-w", instance.name],
                              node=primary)
-  _TestInstanceUserDown(instance, master, fn)
+  _TestInstanceUserDown(instance, fn)
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
-def _TestInstanceUserDownKvm(instance, master):
+def _TestInstanceUserDownKvm(instance):
   def _StopKVMInstance():
     AssertCommand("pkill -f \"\\-name %s\"" % instance.name, node=primary)
     time.sleep(5)
@@ -1172,10 +1251,10 @@ def _TestInstanceUserDownKvm(instance, master):
   AssertCommand(["gnt-instance", "reboot", instance.name])
 
   primary = _GetInstanceField(instance.name, "pnode")
-  _TestInstanceUserDown(instance, master, _StopKVMInstance)
+  _TestInstanceUserDown(instance, _StopKVMInstance)
 
 
-def TestInstanceUserDown(instance, master):
+def TestInstanceUserDown(instance):
   """Tests user shutdown"""
   enabled_hypervisors = qa_config.GetEnabledHypervisors()
 
@@ -1184,7 +1263,7 @@ def TestInstanceUserDown(instance, master):
                    (constants.HT_KVM, _TestInstanceUserDownKvm)]:
     if hv in enabled_hypervisors:
       qa_daemon.TestPauseWatcher()
-      fn(instance, master)
+      fn(instance)
       qa_daemon.TestResumeWatcher()
     else:
       print "%s hypervisor is not enabled, skipping test for this hypervisor" \

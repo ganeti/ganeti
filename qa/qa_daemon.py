@@ -84,7 +84,7 @@ def _ResetWatcherDaemon():
   AssertCommand(["bash", "-c", "rm -vf %s" % path])
 
 
-def _RunWatcherDaemon():
+def RunWatcherDaemon():
   """Runs the ganeti-watcher daemon on the master node.
 
   """
@@ -128,7 +128,7 @@ def TestInstanceAutomaticRestart(instance):
   _ResetWatcherDaemon()
   _ShutdownInstance(inst_name)
 
-  _RunWatcherDaemon()
+  RunWatcherDaemon()
   time.sleep(5)
 
   if not _InstanceRunning(inst_name):
@@ -148,7 +148,7 @@ def TestInstanceConsecutiveFailures(instance):
 
   for should_start in ([True] * 5) + [False]:
     _ShutdownInstance(inst_name)
-    _RunWatcherDaemon()
+    RunWatcherDaemon()
     time.sleep(5)
 
     if bool(_InstanceRunning(inst_name)) != should_start:
