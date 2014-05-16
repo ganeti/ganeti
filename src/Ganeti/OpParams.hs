@@ -210,6 +210,7 @@ module Ganeti.OpParams
   , pReplaceDisksMode
   , pReplaceDisksList
   , pAllowFailover
+  , pForceFailover
   , pDelayDuration
   , pDelayOnMaster
   , pDelayOnNodes
@@ -1243,6 +1244,11 @@ pAllowFailover :: Field
 pAllowFailover =
   withDoc "Whether we can fallback to failover if migration is not possible" $
   defaultFalse "allow_failover"
+
+pForceFailover :: Field
+pForceFailover =
+  withDoc "Disallow migration moves and always use failovers" $
+  defaultFalse "force_failover"
 
 pMoveTargetNode :: Field
 pMoveTargetNode =

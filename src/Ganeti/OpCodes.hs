@@ -743,6 +743,7 @@ $(genOpCode "OpCode"
      , pIallocator
      , pTargetGroups
      , pSequential
+     , pForceFailover
      ],
      "group_name")
   , ("OpOsDiagnose",
