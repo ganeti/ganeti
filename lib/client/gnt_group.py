@@ -243,7 +243,8 @@ def EvacuateGroup(opts, args):
                                iallocator=opts.iallocator,
                                target_groups=opts.to,
                                early_release=opts.early_release,
-                               sequential=opts.sequential)
+                               sequential=opts.sequential,
+                               force_failover=opts.force_failover)
   result = SubmitOrSend(op, opts, cl=cl)
 
   # Keep track of submitted jobs
@@ -359,7 +360,8 @@ commands = {
     "[--dry-run] <group-name> <new-name>", "Rename a node group"),
   "evacuate": (
     EvacuateGroup, [ArgGroup(min=1, max=1)],
-    [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT, SEQUENTIAL_OPT]
+    [TO_GROUP_OPT, IALLOCATOR_OPT, EARLY_RELEASE_OPT, SEQUENTIAL_OPT,
+     FORCE_FAILOVER_OPT]
     + SUBMIT_OPTS,
     "[-I <iallocator>] [--to <group>]",
     "Evacuate all instances within a group"),
