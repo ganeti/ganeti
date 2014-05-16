@@ -2585,6 +2585,26 @@ class ConfigWriter(object):
     return frozenset(self._UnlockedGetNodeInfo(uuid).group
                      for uuid in node_uuids)
 
+  def _UnlockedGetMasterCandidateUuids(self):
+    """Get the list of UUIDs of master candidates.
+
+    @rtype: list of strings
+    @return: list of UUIDs of all master candidates.
+
+    """
+    return [node.uuid for node in self._ConfigData().nodes.values()
+            if node.master_candidate]
+
+  @_ConfigSync(shared=1)
+  def GetMasterCandidateUuids(self):
+    """Get the list of UUIDs of master candidates.
+
+    @rtype: list of strings
+    @return: list of UUIDs of all master candidates.
+
+    """
+    return self._UnlockedGetMasterCandidateUuids()
+
   def _UnlockedGetMasterCandidateStats(self, exceptions=None):
     """Get the number of current and maximum desired and possible candidates.
 

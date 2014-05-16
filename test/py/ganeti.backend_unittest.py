@@ -1260,12 +1260,6 @@ class TestAddAndRemoveNodeSshKey(testutils.GanetiTestCase):
           constants.SSHS_SSH_AUTHORIZED_KEYS, mc_key),
           "Node %s did not receive request to remove authorized key '%s',"
           " although it should have." % (node_name, mc_key))
-        if from_authorized_keys:
-          self.assertTrue(self._KeyRemoved(
-            calls_per_node, node_name,
-            constants.SSHS_SSH_AUTHORIZED_KEYS, node_key1),
-            "Node %s did receive request to remove its own authorized key '%s',"
-            " although it should not have." % (node_name, node_key1))
       else:
         for node_idx in sample_nodes:
           key = "key%s" % node_idx

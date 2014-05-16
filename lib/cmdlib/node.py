@@ -1572,9 +1572,7 @@ class LUNodeRemove(LogicalUnit):
       potential_master_candidate = \
         self.op.node_name in potential_master_candidates
       ssh_port_map = GetSshPortMap(potential_master_candidates, self.cfg)
-      master_candidate_uuids = [uuid for (uuid, node_info)
-                                in self.cfg.GetAllNodesInfo().items()
-                                if node_info.master_candidate]
+      master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
       master_node = self.cfg.GetMasterNode()
       result = self.rpc.call_node_ssh_key_remove(
         [master_node],

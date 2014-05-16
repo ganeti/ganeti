@@ -1445,16 +1445,22 @@ def AddNodeSshKey(node_uuid, node_name,
 
   # Check and fix sanity of key file
   keys_by_name = ssh.QueryPubKeyFile([node_name], key_file=pub_key_file)
-  keys_by_uuid = {}
-  if not keys_by_name or node_name not in keys_by_name:
-    raise errors.SshUpdateError("No keys found for the new node '%s' in the"
-                                " list of public SSH keys." % node_name)
+  keys_by_uuid = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
+
+  if (not keys_by_name or node_name not in keys_by_name) \
+      and (not keys_by_uuid or node_uuid not in keys_by_uuid):
+    raise errors.SshUpdateError(
+      "No keys found for the new node '%s' (UUID %s) in the list of public"
+      " SSH keys, neither for the name or the UUID" % (node_name, node_uuid))
   else:
-    # Replace the name by UUID in the file as the name should only be used
-    # temporarily
-    ssh.ReplaceNameByUuid(node_uuid, node_name, error_fn=errors.SshUpdateError,
-                          key_file=pub_key_file)
-    keys_by_uuid[node_uuid] = keys_by_name[node_name]
+    if node_name in keys_by_name:
+      keys_by_uuid = {}
+      # Replace the name by UUID in the file as the name should only be used
+      # temporarily
+      ssh.ReplaceNameByUuid(node_uuid, node_name,
+                            error_fn=errors.SshUpdateError,
+                            key_file=pub_key_file)
+      keys_by_uuid[node_uuid] = keys_by_name[node_name]
 
   # Update the master node's key files
   if to_authorized_keys:
@@ -1592,8 +1598,7 @@ def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
                      True, True, False, False, False,
                      ssh_port, base_data, ssconf_store)
 
-  authorized_keys_to_clear = {}
-  if clear_authorized_keys or from_public_keys or from_authorized_keys:
+  if clear_authorized_keys or from_public_keys:
     data = {}
     _InitSshUpdateData(data, noded_cert_file, ssconf_store)
     cluster_name = data[constants.SSHS_CLUSTER_NAME]
@@ -1602,19 +1607,13 @@ def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
       raise errors.OpExecError("No SSH port information available for"
                                " node '%s', which is leaving the cluster.")
 
-    authorized_keys_to_clear = {}
     if clear_authorized_keys:
-      # We never clear a node's key from its own 'authorized_keys' file
       other_master_candidate_uuids = [uuid for uuid in master_candidate_uuids
                                       if uuid != node_uuid]
       candidate_keys = ssh.QueryPubKeyFile(other_master_candidate_uuids,
                                            key_file=pub_key_file)
-      authorized_keys_to_clear = candidate_keys
-    if from_authorized_keys:
-      authorized_keys_to_clear[node_uuid] = keys[node_uuid]
-    if authorized_keys_to_clear:
       data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
-        (constants.SSHS_REMOVE, authorized_keys_to_clear)
+        (constants.SSHS_REMOVE, candidate_keys)
 
     if from_public_keys:
       data[constants.SSHS_SSH_PUBLIC_KEYS] = \
