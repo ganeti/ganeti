@@ -3225,7 +3225,6 @@ class ConfigWriter(object):
     for rm in self._all_rms:
       rm.DropECReservations(ec_id)
 
-  @_ConfigSync()
   def DropECReservations(self, ec_id):
     self._UnlockedDropECReservations(ec_id)
 
