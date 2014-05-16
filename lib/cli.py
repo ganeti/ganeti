@@ -87,6 +87,7 @@ __all__ = [
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
   "FILESTORE_DRIVER_OPT",
+  "FORCE_FAILOVER_OPT",
   "FORCE_FILTER_OPT",
   "FORCE_OPT",
   "FORCE_VARIANT_OPT",
@@ -1056,6 +1057,12 @@ ALLOW_FAILOVER_OPT = cli_option("--allow-failover",
                                 dest="allow_failover",
                                 action="store_true", default=False,
                                 help="If migration is not possible fallback to"
+                                     " failover")
+
+FORCE_FAILOVER_OPT = cli_option("--force-failover",
+                                dest="force_failover",
+                                action="store_true", default=False,
+                                help="Do not use migration, always use"
                                      " failover")
 
 NONLIVE_OPT = cli_option("--non-live", dest="live",
