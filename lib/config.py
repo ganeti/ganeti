@@ -853,6 +853,8 @@ class ConfigWriter(object):
           link = "bridge:%s" % nic_link
         elif nic_mode == constants.NIC_MODE_ROUTED:
           link = "route:%s" % nic_link
+        elif nic_mode == constants.NIC_MODE_OVS:
+          link = "ovs:%s" % nic_link
         else:
           raise errors.ProgrammerError("NIC mode '%s' not handled" % nic_mode)
 
