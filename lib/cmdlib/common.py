@@ -398,7 +398,7 @@ def CheckOSParams(lu, required, node_uuids, osname, osparams):
 def CheckHVParams(lu, node_uuids, hvname, hvparams):
   """Hypervisor parameter validation.
 
-  This function abstract the hypervisor parameter validation to be
+  This function abstracts the hypervisor parameter validation to be
   used in both instance create and instance modify.
 
   @type lu: L{LogicalUnit}
