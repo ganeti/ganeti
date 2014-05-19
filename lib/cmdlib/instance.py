@@ -1518,7 +1518,7 @@ class LUInstanceCreate(LogicalUnit):
 
     The OS install package is an archive containing an OS definition
     and a file containing the environment variables needed to run the
-    scripts.
+    OS scripts.
 
     The OS install package is served by the metadata daemon to the
     instances, so the OS scripts can run inside the virtualized
