@@ -167,10 +167,9 @@ class LUInstanceStartup(LogicalUnit):
                                      (self.instance, self.op.hvparams,
                                       self.op.beparams),
                                      self.op.startup_paused, self.op.reason)
-      msg = result.fail_msg
-      if msg:
+      if result.fail_msg:
         ShutdownInstanceDisks(self, self.instance)
-        raise errors.OpExecError("Could not start instance: %s" % msg)
+        result.Raise("Could not start instance '%s'", self.instance.name)
 
 
 class LUInstanceShutdown(LogicalUnit):
