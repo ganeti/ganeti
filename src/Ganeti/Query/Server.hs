@@ -32,8 +32,10 @@ module Ganeti.Query.Server
 import Control.Applicative
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forever, when, zipWithM, liftM, void)
+import Control.Monad (forever, when, mzero, guard, zipWithM, liftM, void)
 import Control.Monad.IO.Class
+import Control.Monad.Trans (lift)
+import Control.Monad.Trans.Maybe
 import Data.Bits (bitSize)
 import qualified Data.Set as Set (toList)
 import Data.IORef
@@ -69,6 +71,7 @@ import Ganeti.Types
 import qualified Ganeti.UDSServer as U (Handler(..), listener)
 import Ganeti.Utils ( lockFile, exitIfBad, exitUnless, watchFile
                     , safeRenameFile )
+import Ganeti.Utils.MVarLock
 import qualified Ganeti.Version as Version
 
 -- | Helper for classic queries.
@@ -88,7 +91,7 @@ handleClassicQuery cfg qkind names fields _ = do
   return $ showJSON <$> (qr >>= queryCompat)
 
 -- | Minimal wrapper to handle the missing config case.
-handleCallWrapper :: MVar () -> JQStatus ->  Result ConfigData
+handleCallWrapper :: Lock -> JQStatus ->  Result ConfigData
                      -> LuxiOp -> IO (ErrorResult JSValue)
 handleCallWrapper _ _ (Bad msg) _ =
   return . Bad . ConfigurationError $
@@ -97,7 +100,7 @@ handleCallWrapper _ _ (Bad msg) _ =
 handleCallWrapper qlock qstat (Ok config) op = handleCall qlock qstat config op
 
 -- | Actual luxi operation handler.
-handleCall :: MVar () -> JQStatus
+handleCall :: Lock -> JQStatus
               -> ConfigData -> LuxiOp -> IO (ErrorResult JSValue)
 handleCall _ _ cdata QueryClusterInfo =
   let cluster = configCluster cdata
@@ -347,31 +350,24 @@ handleCall _ qstat  cfg (CancelJob jid) = do
       fmap showJSON <$> cancelJob (jqLivelock qstat) jid
     Bad s -> return . Ok . showJSON $ (False, s)
 
-handleCall qlock _ cfg (ArchiveJob jid) = do
-  let archiveFailed = putMVar qlock  () >> (return . Ok $ showJSON False)
-                      :: IO (ErrorResult JSValue)
-  qDir <- queueDir
-  takeMVar qlock
-  result <- loadJobFromDisk qDir False jid
-  case result of
-    Bad _ -> archiveFailed
-    Ok (job, _) -> if jobFinalized job
-                     then do
-                       let mcs = Config.getMasterCandidates cfg
-                           live = liveJobFile qDir jid
-                           archive = archivedJobFile qDir jid
-                       renameResult <- safeRenameFile queueDirPermissions
-                                         live archive
-                       putMVar qlock ()
-                       case renameResult of
-                         Bad s -> return . Bad . JobQueueError
-                                    $ "Archiving failed in an unexpected way: "
-                                        ++ s
-                         Ok () -> do
-                           _ <- executeRpcCall mcs
-                                  $ RpcCallJobqueueRename [(live, archive)]
-                           return . Ok $ showJSON True
-                     else archiveFailed
+handleCall qlock _ cfg (ArchiveJob jid) =
+  -- By adding a layer of MaybeT, we can prematurely end a computation
+  -- using 'mzero' or other 'MonadPlus' primitive and return 'Ok False'.
+  runResultT . liftM (showJSON . fromMaybe False) . runMaybeT $ do
+    qDir <- liftIO queueDir
+    let mcs = Config.getMasterCandidates cfg
+        live = liveJobFile qDir jid
+        archive = archivedJobFile qDir jid
+    withLock qlock $ do
+      (job, _) <- (lift . mkResultT $ loadJobFromDisk qDir False jid)
+                  `orElse` mzero
+      guard $ jobFinalized job
+      lift . withErrorT JobQueueError
+           . annotateError "Archiving failed in an unexpected way"
+           . mkResultT $ safeRenameFile queueDirPermissions live archive
+    _ <- liftIO . executeRpcCall mcs
+                $ RpcCallJobqueueRename [(live, archive)]
+    return True
 
 handleCall qlock _ cfg (AutoArchiveJobs age timeout) = do
   qDir <- queueDir
@@ -379,7 +375,7 @@ handleCall qlock _ cfg (AutoArchiveJobs age timeout) = do
   case resultJids of
     Bad s -> return . Bad . JobQueueError $ show s
     Ok jids -> do
-      result <- bracket_ (takeMVar qlock) (putMVar qlock ())
+      result <- withLock qlock
                   . archiveJobs cfg age timeout
                   $ sortJobIDs jids
       return . Ok $ showJSON result
@@ -413,7 +409,7 @@ computeJobUpdate cfg jid fields prev_log = do
   return (JSArray rfields, rlogs)
 
 
-type LuxiConfig = (MVar (), JQStatus, ConfigReader)
+type LuxiConfig = (Lock, JQStatus, ConfigReader)
 
 luxiExec
     :: LuxiConfig
@@ -476,7 +472,7 @@ main _ _ (server, cref, jq) = do
 
   qlockFile <- jobQueueLockFile
   _ <- lockFile qlockFile >>= exitIfBad "Failed to obtain the job-queue lock"
-  qlock <- newMVar ()
+  qlock <- newLock
 
   _ <- P.installHandler P.sigCHLD P.Ignore Nothing
 

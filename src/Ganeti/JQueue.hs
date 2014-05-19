@@ -74,7 +74,6 @@ module Ganeti.JQueue
 import Control.Applicative (liftA2, (<|>))
 import Control.Arrow (first, second)
 import Control.Concurrent (forkIO, threadDelay)
-import Control.Concurrent.MVar
 import Control.Exception
 import Control.Lens (over)
 import Control.Monad
@@ -116,6 +115,7 @@ import Ganeti.Types
 import Ganeti.Utils
 import Ganeti.Utils.Atomic
 import Ganeti.Utils.Livelock (Livelock, isDead)
+import Ganeti.Utils.MVarLock
 import Ganeti.VCluster (makeVirtualPath)
 
 -- * Data types
@@ -483,18 +483,15 @@ readSerialFromDisk = do
 
 -- | Allocate new job ids.
 -- To avoid races while accessing the serial file, the threads synchronize
--- over a lock, as usual provided by an MVar.
-allocateJobIds :: [Node] -> MVar () -> Int -> IO (Result [JobId])
+-- over a lock, as usual provided by a Lock.
+allocateJobIds :: [Node] -> Lock -> Int -> IO (Result [JobId])
 allocateJobIds mastercandidates lock n =
   if n <= 0
     then return . Bad $ "Can only allocate positive number of job ids"
-    else do
-      takeMVar lock
+    else withLock lock $ do
       rjobid <- readSerialFromDisk
       case rjobid of
-        Bad s -> do
-          putMVar lock ()
-          return . Bad $ s
+        Bad s -> return . Bad $ s
         Ok jid -> do
           let current = fromJobId jid
               serial_content = show (current + n) ++  "\n"
@@ -503,7 +500,6 @@ allocateJobIds mastercandidates lock n =
                           :: IO (Either IOError ())
           case write_result of
             Left e -> do
-              putMVar lock ()
               let msg = "Failed to write serial file: " ++ show e
               logError msg
               return . Bad $ msg
@@ -511,11 +507,10 @@ allocateJobIds mastercandidates lock n =
               serial' <- makeVirtualPath serial
               _ <- executeRpcCall mastercandidates
                      $ RpcCallJobqueueUpdate serial' serial_content
-              putMVar lock ()
               return $ mapM makeJobId [(current+1)..(current+n)]
 
 -- | Allocate one new job id.
-allocateJobId :: [Node] -> MVar () -> IO (Result JobId)
+allocateJobId :: [Node] -> Lock -> IO (Result JobId)
 allocateJobId mastercandidates lock = do
   jids <- allocateJobIds mastercandidates lock 1
   return (jids >>= monadicThe "Failed to allocate precisely one Job ID")
