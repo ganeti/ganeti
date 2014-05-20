@@ -215,11 +215,13 @@ module Ganeti.OpParams
   , pReplaceDisksMode
   , pReplaceDisksList
   , pAllowFailover
+  , pForceFailover
   , pDelayDuration
   , pDelayOnMaster
   , pDelayOnNodes
   , pDelayOnNodeUuids
   , pDelayRepeat
+  , pDelayNoLocks
   , pIAllocatorDirection
   , pIAllocatorMode
   , pIAllocatorReqName
@@ -256,6 +258,7 @@ module Ganeti.OpParams
   , pDependencies
   , pComment
   , pReason
+  , pSequential
   , pEnabledDiskTemplates
   ) where
 
@@ -485,6 +488,11 @@ pReason :: Field
 pReason =
   withDoc "Reason trail field" $
   simpleField C.opcodeReason [t| ReasonTrail |]
+
+pSequential :: Field
+pSequential =
+  withDoc "Sequential job execution" $
+  defaultFalse C.opcodeSequential
 
 -- * Parameters
 
@@ -1267,6 +1275,11 @@ pAllowFailover =
   withDoc "Whether we can fallback to failover if migration is not possible" $
   defaultFalse "allow_failover"
 
+pForceFailover :: Field
+pForceFailover =
+  withDoc "Disallow migration moves and always use failovers" $
+  defaultFalse "force_failover"
+
 pMoveTargetNode :: Field
 pMoveTargetNode =
   withDoc "Target node for instance move" .
@@ -1475,6 +1488,12 @@ pDelayRepeat =
   renameField "DelayRepeat" .
   defaultField [| forceNonNeg (0::Int) |] $
   simpleField "repeat" [t| NonNegative Int |]
+
+pDelayNoLocks :: Field
+pDelayNoLocks =
+  withDoc "Don't take locks during the delay" .
+  renameField "DelayNoLocks" $
+  defaultTrue "no_locks"
 
 pIAllocatorDirection :: Field
 pIAllocatorDirection =

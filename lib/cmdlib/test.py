@@ -54,7 +54,7 @@ class LUTestDelay(NoHooksLU):
     """
     self.needed_locks = {}
 
-    if self.op.on_nodes or self.op.on_master:
+    if not self.op.no_locks and (self.op.on_nodes or self.op.on_master):
       self.needed_locks[locking.LEVEL_NODE] = []
 
     if self.op.on_nodes:
@@ -63,9 +63,10 @@ class LUTestDelay(NoHooksLU):
       # more information.
       (self.op.on_node_uuids, self.op.on_nodes) = \
         GetWantedNodes(self, self.op.on_nodes)
-      self.needed_locks[locking.LEVEL_NODE].extend(self.op.on_node_uuids)
+      if not self.op.no_locks:
+        self.needed_locks[locking.LEVEL_NODE].extend(self.op.on_node_uuids)
 
-    if self.op.on_master:
+    if not self.op.no_locks and self.op.on_master:
       # The node lock should be acquired for the master as well.
       self.needed_locks[locking.LEVEL_NODE].append(self.cfg.GetMasterNode())
 

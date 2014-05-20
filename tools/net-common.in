@@ -60,6 +60,11 @@ function setup_bridge {
 
 function setup_ovs {
   if [ "$MODE" = "openvswitch" ]; then
+    # Remove stale port
+    ovs-vsctl del-port $INTERFACE || true
+    # Bring interface up
+    ip link set $INTERFACE up
+    # Add port
     ovs-vsctl add-port ${LINK} $INTERFACE
   fi
 }

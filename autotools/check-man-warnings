@@ -20,7 +20,13 @@
 
 set -e
 
-! LANG=en_US.UTF-8 MANWIDTH=80 \
+if locale -a | grep -qF 'C.UTF-8'; then
+	loc="C.UTF-8"
+else
+	loc="en_US.UTF-8"
+fi
+
+! LANG="$loc" LC_ALL="$loc" MANWIDTH=80 \
   man --warnings --encoding=utf8 --local-file "$1" 2>&1 >/dev/null | \
   grep -v -e "cannot adjust line" -e "can't break line" | \
   grep .

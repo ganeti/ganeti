@@ -405,7 +405,7 @@ determineJobDirectories rootdir archived = do
 -- FIXME: delete this and just use \'sequence\' instead when Lucid compatibility
 -- will not be required anymore.
 sequencer :: [Either IOError [JobId]] -> Either IOError [[JobId]]
-sequencer l = fmap reverse $ foldl seqFolder (Right []) l
+sequencer l = reverse <$> foldl seqFolder (Right []) l
 
 -- | Folding function for joining multiple [JobIds] into one list.
 seqFolder :: Either IOError [[JobId]]

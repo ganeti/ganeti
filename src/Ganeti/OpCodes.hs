@@ -726,6 +726,8 @@ $(genOpCode "OpCode"
      , pEarlyRelease
      , pIallocator
      , pTargetGroups
+     , pSequential
+     , pForceFailover
      ],
      "group_name")
   , ("OpOsDiagnose",
@@ -812,6 +814,7 @@ $(genOpCode "OpCode"
      , pDelayOnNodes
      , pDelayOnNodeUuids
      , pDelayRepeat
+     , pDelayNoLocks
      ],
      "duration")
   , ("OpTestAllocator",
