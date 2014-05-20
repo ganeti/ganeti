@@ -176,8 +176,8 @@ error404 = do
 -- | Return the report of one collector
 oneReport :: Snap ()
 oneReport = do
-  categoryName <- fmap (maybe mzero unpack) $ getParam "category"
-  collectorName <- fmap (maybe mzero unpack) $ getParam "collector"
+  categoryName <- maybe mzero unpack <$> getParam "category"
+  collectorName <- maybe mzero unpack <$> getParam "collector"
   category <-
     case catFromName categoryName of
       BT.Ok cat -> return cat
