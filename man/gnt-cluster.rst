@@ -912,6 +912,10 @@ should be ignored (e.g.: ``-I ENODEVERSION -I ENODEORPHANLV``). The
 ``--error-codes`` option can be used to determine the error code of a
 given error.
 
+Note that the verification of the configuration file consistency across
+master candidates can fail if there are other concurrently running
+operations that modify the configuration.
+
 List of error codes:
 
 @CONSTANTS_ECODES@
