@@ -84,8 +84,8 @@ metavg
 access
    If 'userspace', instance will access this disk directly without going
    through a block device, avoiding expensive context switches with
-   kernel space. This options works only for RBD and Gluster devices. If
-   not specified, the default access of the node-group (possibly
+   kernel space. This option works only for RBD, Gluster and ExtStorage
+   devices. If not specified, the default access of the node-group (possibly
    inherited from the cluster-wide settings) will be used.
 
 When creating ExtStorage disks, also arbitrary parameters can be passed,
