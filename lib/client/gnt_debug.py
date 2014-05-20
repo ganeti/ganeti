@@ -658,6 +658,12 @@ def Wconfd(opts, args): # pylint: disable=W0613
       return 1
     result = wconfd.Client().ListAllLocksOwners()
     print "Answer: %s" % (result,)
+  elif args[0] == "flushconfig":
+    if len(args) != 1:
+      ToStderr("Command 'flushconfig' takes no arguments.")
+      return 1
+    wconfd.Client().FlushConfig()
+    print "Configuration flushed."
   else:
     ToStderr("Command '%s' not supported", args[0])
     return 1
