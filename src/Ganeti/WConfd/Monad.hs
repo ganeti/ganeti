@@ -43,6 +43,7 @@ module Ganeti.WConfd.Monad
   , WConfdMonad
   , daemonHandle
   , modifyConfigState
+  , forceConfigStateDistribution
   , readConfigState
   , modifyLockWaiting
   , modifyLockWaiting_
@@ -220,6 +221,17 @@ modifyConfigState f = do
         liftBase . trigger (Any False) . dhSaveConfigWorker $ dh
     return ()
   return r
+
+-- | Force the distribution of configuration without actually modifying it.
+--
+-- We need a separate call for this operation, because 'modifyConfigState' only
+-- triggers the distribution when the configuration changes.
+forceConfigStateDistribution :: WConfdMonad ()
+forceConfigStateDistribution  = do
+  logDebug "Forcing synchronous config write together with full distribution"
+  dh <- daemonHandle
+  liftBase . triggerAndWait (Any True) . dhSaveConfigWorker $ dh
+  logDebug "Forced config write and distribution finished"
 
 -- | Atomically modifies the state of temporary reservations in
 -- WConfdMonad in the presence of possible errors.
