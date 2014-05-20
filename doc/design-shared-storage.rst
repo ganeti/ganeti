@@ -266,6 +266,48 @@ will be used to diagnose ExtStorage providers and show information about
 them, similarly to the way  `gnt-os diagose` and `gnt-os info` handle OS
 definitions.
 
+ExtStorage Interface support for userspace access
+=================================================
+
+Overview
+--------
+
+The ExtStorage Interface gets extended to cater for ExtStorage providers
+that support userspace access. This will allow the instances to access
+their external storage devices directly without going through a block
+device, avoiding expensive context switches with kernel space and the
+potential for deadlocks in low memory scenarios. The implementation
+should be backwards compatible and allow existing ExtStorage
+providers to work as is.
+
+Implementation
+--------------
+
+Since the implementation should be backwards compatible we are not going
+to add a new script in the set of scripts an ExtStorage provider should
+ship with. Instead, the 'attach' script, which is currently responsible
+to map the block device and return a valid device path, should also be
+responsible for providing the URIs that will be used by each
+hypervisor. Even though Ganeti currently allows userspace access only
+for the KVM hypervisor, we want the implementation to enable the
+extstorage providers to support more than one hypervisors for future
+compliance.
+
+More specifically, the 'attach' script will be allowed to return more
+than one line. The first line will contain as always the block device
+path. Each one of the extra lines will contain a URI to be used for the
+userspace access by a specific hypervisor. Each URI should be prefixed
+with the hypervisor it corresponds to (e.g. kvm:<uri>). The prefix will
+be case insensitive. If the 'attach' script doesn't return any extra
+lines, we assume that the ExtStorage provider doesn't support userspace
+access (this way we maintain backward compatibility with the existing
+'attach' scripts).
+
+The 'GetUserspaceAccessUri' method of the 'ExtStorageDevice' class will
+parse the output of the 'attach' script and if the provider supports
+userspace access for the requested hypervisor, it will use the
+corresponding URI instead of the block device itself.
+
 Long-term shared storage goals
 ==============================
 
