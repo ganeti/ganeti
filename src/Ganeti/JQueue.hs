@@ -68,7 +68,7 @@ module Ganeti.JQueue
     , archiveJobs
     ) where
 
-import Control.Applicative (liftA2, (<|>))
+import Control.Applicative (liftA2, (<|>), (<$>))
 import Control.Arrow (first, second)
 import Control.Concurrent (forkIO)
 import Control.Concurrent.MVar
