@@ -58,6 +58,7 @@ class ExtStorageDevice(base.BlockDev):
     self.ext_params = params
 
     self.major = self.minor = None
+    self.uris = []
     self.Attach()
 
   @classmethod
@@ -119,10 +120,20 @@ class ExtStorageDevice(base.BlockDev):
 
     # Call the External Storage's attach script,
     # to attach an existing Volume to a block device under /dev
-    self.dev_path = _ExtStorageAction(constants.ES_ACTION_ATTACH,
-                                      self.unique_id, self.ext_params,
-                                      name=self.name, uuid=self.uuid)
+    result = _ExtStorageAction(constants.ES_ACTION_ATTACH,
+                               self.unique_id, self.ext_params,
+                               name=self.name, uuid=self.uuid)
 
+    # Attach script returns the block device path and optionally
+    # the URIs to be used for userspace access (one URI for
+    # each hypervisor supported).
+    # If the provider doesn't support userspace access, then
+    # the 'uris' variable will be an empty list.
+    result = result.split("\n")
+    self.dev_path = result[0]
+    self.uris = result[1:]
+
+    # Verify that dev_path exists and is a block device
     try:
       st = os.stat(self.dev_path)
     except OSError, err:
@@ -216,6 +227,26 @@ class ExtStorageDevice(base.BlockDev):
     _ExtStorageAction(constants.ES_ACTION_SETINFO, self.unique_id,
                       self.ext_params, metadata=text,
                       name=self.name, uuid=self.uuid)
+
+  def GetUserspaceAccessUri(self, hypervisor):
+    """Generate KVM userspace URIs to be used as `-drive file` settings.
+
+    @see: L{base.BlockDev.GetUserspaceAccessUri}
+
+    """
+    if not self.Attach():
+      base.ThrowError("Can't attach to ExtStorage device")
+
+    # If the provider supports userspace access, the attach script has
+    # returned a list of URIs prefixed with the corresponding hypervisor.
+    prefix = hypervisor.lower() + ":"
+    for uri in self.uris:
+      if uri[:len(prefix)].lower() == prefix:
+        return uri[len(prefix):]
+
+    base.ThrowError("Userspace access is not supported by the '%s'"
+                    " ExtStorage provider for the '%s' hypervisor"
+                    % (self.driver, hypervisor))
 
 
 def _ExtStorageAction(action, unique_id, ext_params,
