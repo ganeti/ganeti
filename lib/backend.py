@@ -61,6 +61,7 @@ from ganeti import hypervisor
 from ganeti import constants
 from ganeti.storage import bdev
 from ganeti.storage import drbd
+from ganeti.storage import extstorage
 from ganeti.storage import filestorage
 from ganeti import objects
 from ganeti import ssconf
@@ -3276,7 +3277,7 @@ def DiagnoseExtStorage(top_dirs=None):
         break
       for name in f_names:
         es_path = utils.PathJoin(dir_name, name)
-        status, es_inst = bdev.ExtStorageFromDisk(name, base_dir=dir_name)
+        status, es_inst = extstorage.ExtStorageFromDisk(name, base_dir=dir_name)
         if status:
           diagnose = ""
           parameters = es_inst.supported_parameters

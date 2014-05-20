@@ -472,6 +472,7 @@ storage_PYTHON = \
 	lib/storage/drbd.py \
 	lib/storage/drbd_info.py \
 	lib/storage/drbd_cmdgen.py \
+	lib/storage/extstorage.py \
 	lib/storage/filestorage.py \
 	lib/storage/gluster.py
 
