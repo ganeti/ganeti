@@ -46,6 +46,7 @@ def GetMinimalConfig():
       "master_node": "node1-uuid",
       "ipolicy": None,
       "default_iallocator_params": {},
+      "diskparams": {},
       "ndparams": {},
       "candidate_certs": {},
       "install_image": "",

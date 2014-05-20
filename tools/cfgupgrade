@@ -437,11 +437,27 @@ def UpgradeAll(config_data):
 
 # DOWNGRADE ------------------------------------------------------------
 
+def DowngradeExtAccess(config_data):
+  # Remove 'access' for ext storage from cluster diskparams
+  cluster_extparams = config_data["cluster"]["diskparams"].get("ext", None)
+  if (cluster_extparams is not None and
+      "access" in cluster_extparams):
+    del cluster_extparams["access"]
+
+  # Remove 'access' for ext storage from nodegroup diskparams
+  for group in config_data["nodegroups"].values():
+    group_extparams = group["diskparams"].get("ext", None)
+    if (group_extparams is not None and
+        "access" in group_extparams):
+      del group_extparams["access"]
+
+
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
+  DowngradeExtAccess(config_data)
 
 
 def main():
