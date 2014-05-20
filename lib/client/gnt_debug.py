@@ -66,7 +66,8 @@ def Delay(opts, args):
                            on_master=opts.on_master,
                            on_nodes=opts.on_nodes,
                            repeat=opts.repeat,
-                           interruptible=opts.interruptible)
+                           interruptible=opts.interruptible,
+                           no_locks=opts.no_locks)
   SubmitOrSend(op, opts)
 
   return 0
@@ -684,6 +685,9 @@ commands = {
                 action="store_true",
                 help="Allows the opcode to be interrupted by using a domain "
                      "socket"),
+     cli_option("-l", "--no-locks", default=False, dest="no_locks",
+                action="store_true",
+                help="Don't take locks while performing the delay"),
      DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "[opts...] <duration>", "Executes a TestDelay OpCode"),
   "submit-job": (

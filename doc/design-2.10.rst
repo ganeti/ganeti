@@ -7,6 +7,7 @@ The following design documents have been implemented in Ganeti 2.10.
 - :doc:`design-cmdlib-unittests`
 - :doc:`design-hotplug`
 - :doc:`design-openvswitch`
+- :doc:`design-performance-tests`
 - :doc:`design-storagetypes`
 - :doc:`design-upgrade`
 

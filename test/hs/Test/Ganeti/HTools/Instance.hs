@@ -36,8 +36,8 @@ module Test.Ganeti.HTools.Instance
   ) where
 
 import Control.Arrow ((&&&))
+import Control.Applicative ((<$>))
 import Control.Monad (liftM)
-import Data.Functor ((<$>))
 import Test.QuickCheck hiding (Result)
 
 import Test.Ganeti.TestHelper

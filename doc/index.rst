@@ -118,6 +118,7 @@ Draft designs
    design-os.rst
    design-ovf-support.rst
    design-partitioned
+   design-performance-tests.rst
    design-query2.rst
    design-reason-trail.rst
    design-restricted-commands.rst
