@@ -2664,7 +2664,7 @@ class LUInstanceSetParams(LogicalUnit):
                                                 access_type):
           raise errors.OpPrereqError("Selected hypervisor (%s) cannot be"
                                      " used with %s disk access param" %
-                                     (self.op.hypervisor, access_type),
+                                     (self.instance.hypervisor, access_type),
                                       errors.ECODE_STATE)
 
     elif op == constants.DDM_MODIFY:

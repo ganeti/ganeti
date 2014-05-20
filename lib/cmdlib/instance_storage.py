@@ -366,6 +366,11 @@ def ComputeDisks(op, default_vg):
       if key in disk:
         new_disk[key] = disk[key]
 
+    # Add IDISK_ACCESS parameter for disk templates that support it
+    if (op.disk_template in constants.DTS_HAVE_ACCESS and
+        constants.IDISK_ACCESS in disk):
+      new_disk[constants.IDISK_ACCESS] = disk[constants.IDISK_ACCESS]
+
     # For extstorage, demand the `provider' option and add any
     # additional parameters (ext-params) to the dict
     if op.disk_template == constants.DT_EXT:
