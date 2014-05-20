@@ -385,7 +385,7 @@ failureReason = show . fst . head
 
 -- | Sorts the failure reasons.
 sortReasons :: [(FailMode, Int)] -> [(FailMode, Int)]
-sortReasons = reverse . sortBy (comparing snd)
+sortReasons = sortBy (flip $ comparing snd)
 
 -- | Runs an allocation algorithm and saves cluster state.
 runAllocation :: ClusterData                -- ^ Cluster data
