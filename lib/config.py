@@ -3470,3 +3470,13 @@ class ConfigWriter(object):
                 " in the candidate map." % node_uuid)
       return
     del cluster.candidate_certs[node_uuid]
+
+  def FlushConfig(self):
+    """Force the distribution of configuration to master candidates.
+
+    It is not necessary to hold a lock for this operation, it is handled
+    internally by WConfd.
+
+    """
+    if not self._offline:
+      self._wconfd.FlushConfig()
