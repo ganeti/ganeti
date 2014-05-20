@@ -821,10 +821,12 @@ class Burner(object):
     return opcodes.OpInstanceStartup(instance_name=instance, force=False)
 
   @staticmethod
-  def RenameInstanceOp(instance, instance_new):
+  def RenameInstanceOp(instance, instance_new, name_check, ip_check):
     """Rename instance."""
     return opcodes.OpInstanceRename(instance_name=instance,
-                                    new_name=instance_new)
+                                    new_name=instance_new,
+                                    name_check=name_check,
+                                    ip_check=ip_check)
 
   @_DoCheckInstances
   @_DoBatch(True)
@@ -847,7 +849,7 @@ class Burner(object):
                                     ignore_failures=True)
       self.ExecOrQueue(instance, [op])
 
-  def BurnRename(self):
+  def BurnRename(self, name_check, ip_check):
     """Rename the instances.
 
     Note that this function will not execute in parallel, since we
@@ -860,8 +862,8 @@ class Burner(object):
       Log("instance %s", instance, indent=1)
       op_stop1 = self.StopInstanceOp(instance)
       op_stop2 = self.StopInstanceOp(rename)
-      op_rename1 = self.RenameInstanceOp(instance, rename)
-      op_rename2 = self.RenameInstanceOp(rename, instance)
+      op_rename1 = self.RenameInstanceOp(instance, rename, name_check, ip_check)
+      op_rename2 = self.RenameInstanceOp(rename, instance, name_check, ip_check)
       op_start1 = self.StartInstanceOp(rename)
       op_start2 = self.StartInstanceOp(instance)
       self.ExecOp(False, op_stop1, op_rename1, op_start1)
@@ -903,13 +905,13 @@ class Burner(object):
 
   @_DoCheckInstances
   @_DoBatch(True)
-  def BurnRenameSame(self):
+  def BurnRenameSame(self, name_check, ip_check):
     """Rename the instances to their own name."""
     Log("Renaming the instances to their own name")
     for instance in self.instances:
       Log("instance %s", instance, indent=1)
       op1 = self.StopInstanceOp(instance)
-      op2 = self.RenameInstanceOp(instance, instance)
+      op2 = self.RenameInstanceOp(instance, instance, name_check, ip_check)
       Log("rename to the same name", indent=2)
       op4 = self.StartInstanceOp(instance)
       self.ExecOrQueue(instance, [op1, op2, op4])
@@ -1115,7 +1117,7 @@ class Burner(object):
         self.BurnReboot()
 
       if self.opts.do_renamesame:
-        self.BurnRenameSame()
+        self.BurnRenameSame(self.opts.name_check, self.opts.ip_check)
 
       if self.opts.do_addremove_disks:
         self.BurnAddRemoveDisks()
@@ -1133,7 +1135,7 @@ class Burner(object):
         self.BurnActivateDisks()
 
       if self.opts.rename:
-        self.BurnRename()
+        self.BurnRename(self.opts.name_check, self.opts.ip_check)
 
       if self.opts.do_confd_tests:
         self.BurnConfd()
