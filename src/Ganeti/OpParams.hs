@@ -344,6 +344,7 @@ $(buildObject "INicParams" "inic"
   , optionalField $ simpleField C.inicName   [t| NonEmptyString |]
   , optionalField $ simpleField C.inicVlan   [t| String         |]
   , optionalField $ simpleField C.inicBridge [t| NonEmptyString |]
+  , optionalField $ simpleField C.inicNetwork [t| NonEmptyString |]
   ])
 
 -- | Disk modification definition.
