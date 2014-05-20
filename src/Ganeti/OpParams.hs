@@ -216,6 +216,7 @@ module Ganeti.OpParams
   , pDelayOnNodes
   , pDelayOnNodeUuids
   , pDelayRepeat
+  , pDelayNoLocks
   , pIAllocatorDirection
   , pIAllocatorMode
   , pIAllocatorReqName
@@ -1446,6 +1447,12 @@ pDelayRepeat =
   renameField "DelayRepeat" .
   defaultField [| forceNonNeg (0::Int) |] $
   simpleField "repeat" [t| NonNegative Int |]
+
+pDelayNoLocks :: Field
+pDelayNoLocks =
+  withDoc "Don't take locks during the delay" .
+  renameField "DelayNoLocks" $
+  defaultTrue "no_locks"
 
 pIAllocatorDirection :: Field
 pIAllocatorDirection =

@@ -423,6 +423,7 @@ doRepair client delay instData (rtype, opcodes) =
                             , opDelayOnNodes = []
                             , opDelayOnNodeUuids = Nothing
                             , opDelayRepeat = fromJust $ mkNonNegative 0
+                            , opDelayNoLocks = False
                             } : opcodes
               else
                 opcodes
