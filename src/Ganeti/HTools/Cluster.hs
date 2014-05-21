@@ -1349,14 +1349,20 @@ tieredAlloc nl il limit newinst allocnodes ixes cstats =
                                           . flip (tryAlloc nl' il') allocnodes)
                        newinst
           bigSteps = filter isJust . map suffShrink . reverse $ sortedErrs
+          progress (Ok (_, _, _, newil', _)) (Ok (_, _, _, newil, _)) =
+            length newil' > length newil
+          progress _ _ = False
       in if stop then newsol else
-          case bigSteps of
-            Just newinst':_ -> tieredAlloc nl' il' newlimit
-                               newinst' allocnodes ixes' cstats'
-            _ -> case Instance.shrinkByType newinst . last $ sortedErrs of
-                   Bad _ -> newsol
-                   Ok newinst' -> tieredAlloc nl' il' newlimit
-                                  newinst' allocnodes ixes' cstats'
+           let newsol' = case Instance.shrinkByType newinst . last
+                                $ sortedErrs of
+                 Bad _ -> newsol
+                 Ok newinst' -> tieredAlloc nl' il' newlimit
+                                newinst' allocnodes ixes' cstats'
+           in if progress newsol' newsol then newsol' else
+                case bigSteps of
+                  Just newinst':_ -> tieredAlloc nl' il' newlimit
+                                     newinst' allocnodes ixes' cstats'
+                  _ -> newsol
 
 -- * Formatting functions
 
