@@ -346,6 +346,54 @@ case $DIST_RELEASE in
         lens-3.10.2 \
         'lifted-base>=0.1.2'
 ;;
+
+  jessie)
+
+    in_chroot -- \
+      $APT_INSTALL \
+      autoconf automake \
+      ghc ghc-haddock \
+      cabal-install \
+      libghc-network-{dev,prof} \
+      libghc-test-framework{,-hunit,-quickcheck2}-{dev,prof} \
+      libghc-json-{dev,prof} \
+      libghc-curl-{dev,prof} \
+      libghc-hinotify-{dev,prof} \
+      libghc-parallel-{dev,prof} \
+      libghc-utf8-string-{dev,prof} \
+      libghc-hslogger-{dev,prof} \
+      libghc-crypto-{dev,prof} \
+      libghc-regex-pcre-{dev,prof} \
+      libghc-attoparsec-{dev,prof} \
+      libghc-vector-{dev,prof} \
+      libghc-temporary-{dev,prof} \
+      libghc-base64-bytestring-{dev,prof} \
+      libghc-lifted-base-{dev,prof} \
+      libghc-lens-{dev,prof} \
+      libghc-snap-server-{dev,prof} \
+      libghc-zlib-{dev,prof} \
+      libpcre3 libpcre3-dev \
+      cabal-install \
+      python-setuptools \
+      hscolour hlint pandoc \
+      python-sphinx python-epydoc graphviz \
+      openssl python-openssl \
+      python-pyparsing python-simplejson \
+      python-pyinotify python-pycurl \
+      python-paramiko python-yaml \
+      python-bitarray python-ipaddr \
+      python-mock \
+      qemu-utils \
+      python-coverage pep8 \
+      socat fping fakeroot \
+      shelltestrunner \
+      pylint \
+      python-dev openssh-client vim git git-email
+
+     in_chroot -- \
+       cabal update
+;;
+
   precise)
     # ghc, git-email and other dependencies are hosted in the universe
     # repository, which is not enabled by default.
@@ -476,6 +524,6 @@ rm -f $TEMP_CHROOT_CONF
 rm -rf $TEMP_DATA_DIR
 
 echo "Chroot created. In order to run it:"
-echo " * Copy the file $FINAL_CHROOT_CONF to $CONF_DIR/$FINAL_CHROOT_CONF"
-echo " * Copy the file $COMP_FILEPATH to $CHROOT_DIR/$COMP_FILENAME"
+echo " * sudo cp $FINAL_CHROOT_CONF $CONF_DIR/$FINAL_CHROOT_CONF"
+echo " * sudo cp $COMP_FILEPATH $CHROOT_DIR/$COMP_FILENAME"
 echo "Then run \"schroot -c $CHROOTNAME\""
