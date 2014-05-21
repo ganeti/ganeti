@@ -231,12 +231,14 @@ module Ganeti.OpParams
   , pReplaceDisksMode
   , pReplaceDisksList
   , pAllowFailover
+  , pForceFailover
   , pDelayDuration
   , pDelayOnMaster
   , pDelayOnNodes
   , pDelayOnNodeUuids
   , pDelayRepeat
   , pDelayInterruptible
+  , pDelayNoLocks
   , pIAllocatorDirection
   , pIAllocatorMode
   , pIAllocatorReqName
@@ -273,6 +275,7 @@ module Ganeti.OpParams
   , pDependencies
   , pComment
   , pReason
+  , pSequential
   , pEnabledDiskTemplates
   ) where
 
@@ -362,6 +365,7 @@ $(buildObject "INicParams" "inic"
   , optionalField $ simpleField C.inicName   [t| NonEmptyString |]
   , optionalField $ simpleField C.inicVlan   [t| String         |]
   , optionalField $ simpleField C.inicBridge [t| NonEmptyString |]
+  , optionalField $ simpleField C.inicNetwork [t| NonEmptyString |]
   ])
 
 -- | Disk modification definition.
@@ -503,6 +507,11 @@ pReason :: Field
 pReason =
   withDoc "Reason trail field" $
   simpleField C.opcodeReason [t| ReasonTrail |]
+
+pSequential :: Field
+pSequential =
+  withDoc "Sequential job execution" $
+  defaultFalse C.opcodeSequential
 
 -- * Parameters
 
@@ -1350,6 +1359,11 @@ pAllowFailover =
   withDoc "Whether we can fallback to failover if migration is not possible" $
   defaultFalse "allow_failover"
 
+pForceFailover :: Field
+pForceFailover =
+  withDoc "Disallow migration moves and always use failovers" $
+  defaultFalse "force_failover"
+
 pMoveTargetNode :: Field
 pMoveTargetNode =
   withDoc "Target node for instance move" .
@@ -1592,6 +1606,12 @@ pDelayInterruptible =
   renameField "DelayInterruptible" .
   defaultField [| False |] $
   simpleField "interruptible" [t| Bool |]
+
+pDelayNoLocks :: Field
+pDelayNoLocks =
+  withDoc "Don't take locks during the delay" .
+  renameField "DelayNoLocks" $
+  defaultTrue "no_locks"
 
 pIAllocatorDirection :: Field
 pIAllocatorDirection =

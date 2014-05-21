@@ -43,6 +43,7 @@ module Ganeti.WConfd.Monad
   , WConfdMonad
   , daemonHandle
   , modifyConfigState
+  , forceConfigStateDistribution
   , readConfigState
   , modifyLockWaiting
   , modifyLockWaiting_
@@ -63,8 +64,10 @@ import Control.Monad.Trans.Control
 import Data.Functor.Compose (Compose(..))
 import Data.Functor.Identity
 import Data.IORef.Lifted
+import Data.Monoid (Any(..))
 import qualified Data.Set as S
 import Data.Tuple (swap)
+import System.Time (getClockTime)
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
@@ -98,25 +101,24 @@ data DaemonHandle = DaemonHandle
   -- all static information that doesn't change during the life-time of the
   -- daemon should go here;
   -- all IDs of threads that do asynchronous work should probably also go here
-  , dhSaveConfigWorker :: AsyncWorker ()
-  , dhDistMCsWorker :: AsyncWorker ()
-  , dhDistSSConfWorker :: AsyncWorker ()
-  , dhSaveLocksWorker :: AsyncWorker ()
+  , dhSaveConfigWorker :: AsyncWorker Any ()
+  , dhSaveLocksWorker :: AsyncWorker () ()
   }
 
 mkDaemonHandle :: FilePath
                -> ConfigState
                -> GanetiLockWaiting
-               -> (IO ConfigState -> ResultG (AsyncWorker ()))
+               -> (IO ConfigState -> [AsyncWorker () ()]
+                                  -> ResultG (AsyncWorker Any ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the configuration to the master file.
-               -> (IO ConfigState -> ResultG (AsyncWorker ()))
+               -> (IO ConfigState -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- distributes the configuration to master candidates
-               -> (IO ConfigState -> ResultG (AsyncWorker ()))
+               -> (IO ConfigState -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- distributes SSConf to nodes
-               -> (IO GanetiLockWaiting -> ResultG (AsyncWorker ()))
+               -> (IO GanetiLockWaiting -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the lock allocation state.
                -> ResultG DaemonHandle
@@ -126,14 +128,14 @@ mkDaemonHandle cpath cstat lstat
   ds <- newIORef $ DaemonState cstat lstat emptyTempResState
   let readConfigIO = dsConfigState `liftM` readIORef ds :: IO ConfigState
 
-  saveWorker <- saveWorkerFn readConfigIO
   ssconfWorker <- distSSConfWorkerFn readConfigIO
   distMCsWorker <- distMCsWorkerFn readConfigIO
+  saveWorker <- saveWorkerFn readConfigIO [ distMCsWorker
+                                          , ssconfWorker ]
 
   saveLockWorker <- saveLockWorkerFn $ dsLockWaiting `liftM` readIORef ds
 
-  return $ DaemonHandle ds cpath saveWorker distMCsWorker ssconfWorker
-                                 saveLockWorker
+  return $ DaemonHandle ds cpath saveWorker saveLockWorker
 
 -- * The monad and its instances
 
@@ -195,22 +197,41 @@ readConfigState = liftM dsConfigState . readIORef . dhDaemonState
 modifyConfigState :: (ConfigState -> (ConfigState, a)) -> WConfdMonad a
 modifyConfigState f = do
   dh <- daemonHandle
-  let modCS cs = let (cs', r) = f cs
-                  in ((r, cs /= cs'), cs')
-  (r, modified) <- atomicModifyWithLens (dhDaemonState dh) dsConfigStateL modCS
+  now <- liftIO getClockTime
+  -- If the configuration is modified, we also bump its serial number.
+  -- In order to determine if we need to save, we report if it's modified
+  -- as well as if it needs to be distributed synchronously.
+  let modCS cs = case f cs of
+                  (cs', r)
+                    | cs /= cs' -> ( (r, True, needsFullDist cs cs')
+                                   , over csConfigDataL (bumpSerial now) cs' )
+                    | otherwise -> ((r, False, False), cs')
+  (r, modified, distSync) <- atomicModifyWithLens (dhDaemonState dh)
+                                                  dsConfigStateL modCS
   when modified $ do
-    -- trigger the config. saving worker and wait for it
-    logDebug "Triggering config write"
-    liftBase . triggerAndWait . dhSaveConfigWorker $ dh
-    logDebug "Config write finished"
-    -- trigger the config. distribution worker synchronously
-    -- TODO: figure out what configuration changes need synchronous updates
-    -- and otherwise use asynchronous triggers
-    _ <- liftBase . triggerAndWaitMany $ [ dhDistMCsWorker dh
-                                         , dhDistSSConfWorker dh
-                                         ]
+    if distSync
+      then do
+        logDebug "Triggering synchronous config write\
+                 \ together with full distribution"
+        liftBase . triggerAndWait (Any True) . dhSaveConfigWorker $ dh
+        logDebug "Config write and distribution finished"
+      else do
+        -- trigger the config. saving worker and wait for it
+        logDebug "Triggering config write and distribution"
+        liftBase . trigger (Any False) . dhSaveConfigWorker $ dh
     return ()
   return r
+
+-- | Force the distribution of configuration without actually modifying it.
+--
+-- We need a separate call for this operation, because 'modifyConfigState' only
+-- triggers the distribution when the configuration changes.
+forceConfigStateDistribution :: WConfdMonad ()
+forceConfigStateDistribution  = do
+  logDebug "Forcing synchronous config write together with full distribution"
+  dh <- daemonHandle
+  liftBase . triggerAndWait (Any True) . dhSaveConfigWorker $ dh
+  logDebug "Forced config write and distribution finished"
 
 -- | Atomically modifies the state of temporary reservations in
 -- WConfdMonad in the presence of possible errors.
@@ -248,7 +269,7 @@ modifyLockWaiting f = do
                              (dhDaemonState dh) dsLockWaitingL f'
   logDebug $ "Current lock status: " ++ J.encode lockAlloc
   logDebug "Triggering lock state write"
-  liftBase . triggerAndWait . dhSaveLocksWorker $ dh
+  liftBase . triggerAndWait_ . dhSaveLocksWorker $ dh
   logDebug "Lock write finished"
   unless (S.null nfy) $ do
     logDebug . (++) "Locks became available for " . show $ S.toList nfy

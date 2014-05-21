@@ -27,6 +27,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.JQScheduler
   ( JQStatus
   , jqLivelock
+  , jqForkLock
   , emptyJQStatus
   , initJQScheduler
   , enqueueNewJobs
@@ -59,6 +60,7 @@ import Ganeti.Path
 import Ganeti.Types
 import Ganeti.Utils
 import Ganeti.Utils.Livelock
+import Ganeti.Utils.MVarLock
 
 data JobWithStat = JobWithStat { jINotify :: Maybe INotify
                                , jStat :: FStat
@@ -83,6 +85,7 @@ data JQStatus = JQStatus
   { jqJobs :: IORef Queue
   , jqConfig :: IORef (Result ConfigData)
   , jqLivelock :: Livelock
+  , jqForkLock :: Lock
   }
 
 
@@ -90,7 +93,9 @@ emptyJQStatus :: IORef (Result ConfigData) -> IO JQStatus
 emptyJQStatus config = do
   jqJ <- newIORef Queue { qEnqueued = [], qRunning = []}
   (_, livelock) <- mkLivelockFile C.luxiLivelockPrefix
-  return JQStatus { jqJobs = jqJ, jqConfig = config, jqLivelock = livelock }
+  forkLock <- newLock
+  return JQStatus { jqJobs = jqJ, jqConfig = config, jqLivelock = livelock
+                  , jqForkLock = forkLock }
 
 -- | Apply a function on the running jobs.
 onRunningJobs :: ([JobWithStat] -> [JobWithStat]) -> Queue -> Queue
@@ -291,7 +296,7 @@ scheduleSomeJobs qstate = do
       logError msg
       requeueJobs qstate . map (\x -> (x, strMsg msg)) $ chosen
     Ok cfg -> do
-      result <- JQ.startJobs cfg (jqLivelock qstate) jobs
+      result <- JQ.startJobs cfg (jqLivelock qstate) (jqForkLock qstate) jobs
       let badWith (x, Bad y) = Just (x, y)
           badWith _          = Nothing
       let failed = mapMaybe badWith $ zip chosen result

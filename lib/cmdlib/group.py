@@ -28,6 +28,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import locking
 from ganeti import objects
+from ganeti import opcodes
 from ganeti import utils
 from ganeti.masterd import iallocator
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, ResultWithJobs
@@ -768,6 +769,24 @@ class LUGroupEvacuate(LogicalUnit):
 
     return (run_nodes, run_nodes)
 
+  @staticmethod
+  def _MigrateToFailover(op):
+    """Return an equivalent failover opcode for a migrate one.
+
+    If the argument is not a failover opcode, return it unchanged.
+
+    """
+    if not isinstance(op, opcodes.OpInstanceMigrate):
+      return op
+    else:
+      return opcodes.OpInstanceFailover(
+        instance_name=op.instance_name,
+        instance_uuid=getattr(op, "instance_uuid", None),
+        target_node=getattr(op, "target_node", None),
+        target_node_uuid=getattr(op, "target_node_uuid", None),
+        ignore_ipolicy=op.ignore_ipolicy,
+        cleanup=op.cleanup)
+
   def Exec(self, feedback_fn):
     inst_names = list(self.owned_locks(locking.LEVEL_INSTANCE))
 
@@ -789,6 +808,16 @@ class LUGroupEvacuate(LogicalUnit):
 
     self.LogInfo("Iallocator returned %s job(s) for evacuating node group %s",
                  len(jobs), self.op.group_name)
+
+    if self.op.force_failover:
+      self.LogInfo("Will insist on failovers")
+      jobs = [[self._MigrateToFailover(op) for op in job] for job in jobs]
+
+    if self.op.sequential:
+      self.LogInfo("Jobs will be submitted to run sequentially")
+      for job in jobs[1:]:
+        for op in job:
+          op.depends = [(-1, ["error", "success"])]
 
     return ResultWithJobs(jobs)
 

@@ -42,6 +42,7 @@ import Control.Monad.Base
 import Control.Monad.Error
 import qualified Control.Monad.State.Strict as S
 import Control.Monad.Trans.Control
+import Data.Monoid
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
@@ -106,25 +107,26 @@ finishOrLog logPrio logPrefix =
   genericResult (logAt logPrio . (++) (logPrefix ++ ": ") . show)
 
 -- | Creates a stateless asynchronous task that handles errors in its actions.
-mkStatelessAsyncTask :: (MonadBaseControl IO m, MonadLog m, Show e)
+mkStatelessAsyncTask :: (MonadBaseControl IO m, MonadLog m, Show e, Monoid i)
                      => Priority
                      -> String
-                     -> ResultT e m ()
-                     -> m (AsyncWorker ())
+                     -> (i -> ResultT e m ())
+                     -> m (AsyncWorker i ())
 mkStatelessAsyncTask logPrio logPrefix action =
-    mkAsyncWorker $ runResultT action >>= finishOrLog logPrio logPrefix return
+    mkAsyncWorker $ runResultT . action
+                    >=> finishOrLog logPrio logPrefix return
 
 -- | Creates an asynchronous task that handles errors in its actions.
 -- If an error occurs, it's logged and the internal state remains unchanged.
-mkStatefulAsyncTask :: (MonadBaseControl IO m, MonadLog m, Show e)
+mkStatefulAsyncTask :: (MonadBaseControl IO m, MonadLog m, Show e, Monoid i)
                     => Priority
                     -> String
                     -> s
-                    -> (s -> ResultT e m s)
-                    -> m (AsyncWorker ())
+                    -> (s -> i -> ResultT e m s)
+                    -> m (AsyncWorker i ())
 mkStatefulAsyncTask logPrio logPrefix start action =
-    flip S.evalStateT start . mkAsyncWorker $
-      S.get >>= lift . runResultT . action
+    flip S.evalStateT start . mkAsyncWorker $ \i ->
+      S.get >>= lift . runResultT . flip action i
             >>= finishOrLog logPrio logPrefix S.put -- put on success
 
 -- | Construct an asynchronous worker whose action is to save the
@@ -132,16 +134,27 @@ mkStatefulAsyncTask logPrio logPrefix start action =
 -- The worker's action reads the configuration using the given @IO@ action
 -- and uses 'FStat' to check if the configuration hasn't been modified by
 -- another process.
+--
+-- If 'Any' of the input requests is true, given additional worker
+-- will be executed synchronously after sucessfully writing the configuration
+-- file. Otherwise, they'll be just triggered asynchronously.
 saveConfigAsyncTask :: FilePath -- ^ Path to the config file
                     -> FStat  -- ^ The initial state of the config. file
                     -> IO ConfigState -- ^ An action to read the current config
-                    -> ResultG (AsyncWorker ())
-saveConfigAsyncTask fpath fstat cdRef =
+                    -> [AsyncWorker () ()] -- ^ Workers to be triggered
+                                           -- afterwards
+                    -> ResultG (AsyncWorker Any ())
+saveConfigAsyncTask fpath fstat cdRef workers =
   lift . mkStatefulAsyncTask
            EMERGENCY "Can't write the master configuration file" fstat
-       $ \oldstat -> do
+       $ \oldstat (Any flush) -> do
             cd <- liftBase (csConfigData `liftM` cdRef)
             writeConfigToFile cd fpath oldstat
+              <* if flush then logDebug "Running distribution synchronously"
+                               >> triggerAndWaitMany_ workers
+                          else logDebug "Running distribution asynchronously"
+                               >> mapM trigger_ workers
+
 
 -- | Performs a RPC call on the given list of nodes and logs any failures.
 -- If any of the calls fails, fail the computation with 'failError'.
@@ -156,11 +169,11 @@ execRpcCallAndLog nodes req = do
 distMCsAsyncTask :: RuntimeEnts
                  -> FilePath -- ^ Path to the config file
                  -> IO ConfigState -- ^ An action to read the current config
-                 -> ResultG (AsyncWorker ())
+                 -> ResultG (AsyncWorker () ())
 distMCsAsyncTask ents cpath cdRef =
   lift . mkStatelessAsyncTask ERROR "Can't distribute the configuration\
                                     \ to master candidates"
-       $ do
+       $ \_ -> do
           cd <- liftBase (csConfigData <$> cdRef) :: ResultG ConfigData
           logDebug $ "Distributing the configuration to master candidates,\
                      \ serial no " ++ show (serialOf cd)
@@ -175,10 +188,10 @@ distMCsAsyncTask ents cpath cdRef =
 -- if different, distributes it.
 distSSConfAsyncTask
     :: IO ConfigState -- ^ An action to read the current config
-    -> ResultG (AsyncWorker ())
+    -> ResultG (AsyncWorker () ())
 distSSConfAsyncTask cdRef =
   lift . mkStatefulAsyncTask ERROR "Can't distribute Ssconf" emptySSConf
-       $ \oldssc -> do
+       $ \oldssc _ -> do
             cd <- liftBase (csConfigData <$> cdRef) :: ResultG ConfigData
             let ssc = mkSSConf cd
             if oldssc == ssc

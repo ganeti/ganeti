@@ -4516,6 +4516,10 @@ builtinDataCollectorVersion = "B"
 opcodeReason :: String
 opcodeReason = "reason"
 
+-- | The reason trail opcode parameter name
+opcodeSequential :: String
+opcodeSequential = "sequential"
+
 diskstatsFile :: String
 diskstatsFile = "/proc/diskstats"
 

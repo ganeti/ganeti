@@ -1267,6 +1267,8 @@ class ConfigWriter(object):
           link = "bridge:%s" % nic_link
         elif nic_mode == constants.NIC_MODE_ROUTED:
           link = "route:%s" % nic_link
+        elif nic_mode == constants.NIC_MODE_OVS:
+          link = "ovs:%s" % nic_link
         else:
           raise errors.ProgrammerError("NIC mode '%s' not handled" % nic_mode)
 
@@ -2939,10 +2941,10 @@ class ConfigWriter(object):
     if destination is None:
       destination = self._cfg_file
 
-    self._BumpSerialNo()
     # Save the configuration data. If offline, write the file directly.
     # If online, call WConfd.
     if self._offline:
+      self._BumpSerialNo()
       txt = serializer.DumpJson(
         self._ConfigData().ToDict(_with_private=True),
         private_encoder=serializer.EncodeWithPrivateFields
@@ -3225,7 +3227,6 @@ class ConfigWriter(object):
     for rm in self._all_rms:
       rm.DropECReservations(ec_id)
 
-  @_ConfigSync()
   def DropECReservations(self, ec_id):
     self._UnlockedDropECReservations(ec_id)
 
@@ -3471,3 +3472,13 @@ class ConfigWriter(object):
                 " in the candidate map." % node_uuid)
       return
     del cluster.candidate_certs[node_uuid]
+
+  def FlushConfig(self):
+    """Force the distribution of configuration to master candidates.
+
+    It is not necessary to hold a lock for this operation, it is handled
+    internally by WConfd.
+
+    """
+    if not self._offline:
+      self._wconfd.FlushConfig()

@@ -87,7 +87,7 @@ instance Arbitrary INicParams where
   arbitrary = INicParams <$> genMaybe genNameNE <*> genMaybe genName <*>
               genMaybe genNameNE <*> genMaybe genNameNE <*>
               genMaybe genNameNE <*> genMaybe genName <*>
-              genMaybe genNameNE
+              genMaybe genNameNE <*> genMaybe genNameNE
 
 instance Arbitrary IDiskParams where
   arbitrary = IDiskParams <$> arbitrary <*> arbitrary <*>
@@ -124,7 +124,8 @@ instance Arbitrary OpCodes.OpCode where
     case op_id of
       "OP_TEST_DELAY" ->
         OpCodes.OpTestDelay <$> arbitrary <*> arbitrary <*>
-          genNodeNamesNE <*> return Nothing <*> arbitrary <*> arbitrary
+          genNodeNamesNE <*> return Nothing <*> arbitrary <*> arbitrary <*>
+          arbitrary
       "OP_INSTANCE_REPLACE_DISKS" ->
         OpCodes.OpInstanceReplaceDisks <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary <*> genDiskIndices <*>
@@ -393,7 +394,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpGroupRename <$> genNameNE <*> genNameNE
       "OP_GROUP_EVACUATE" ->
         OpCodes.OpGroupEvacuate <$> genNameNE <*> arbitrary <*>
-          genMaybe genNameNE <*> genMaybe genNamesNE
+          genMaybe genNameNE <*> genMaybe genNamesNE <*> arbitrary <*> arbitrary
       "OP_OS_DIAGNOSE" ->
         OpCodes.OpOsDiagnose <$> genFieldsNE <*> genNamesNE
       "OP_EXT_STORAGE_DIAGNOSE" ->

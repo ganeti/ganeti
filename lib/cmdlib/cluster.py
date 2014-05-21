@@ -1866,6 +1866,9 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     self.bad = False
     self._feedback_fn = feedback_fn
 
+    # Force the configuration to be fully distributed before doing any tests
+    self.cfg.FlushConfig()
+
     feedback_fn("* Verifying cluster config")
 
     for msg in self.cfg.VerifyConfig():

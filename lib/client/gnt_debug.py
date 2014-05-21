@@ -66,7 +66,8 @@ def Delay(opts, args):
                            on_master=opts.on_master,
                            on_nodes=opts.on_nodes,
                            repeat=opts.repeat,
-                           interruptible=opts.interruptible)
+                           interruptible=opts.interruptible,
+                           no_locks=opts.no_locks)
   SubmitOrSend(op, opts)
 
   return 0
@@ -658,6 +659,12 @@ def Wconfd(opts, args): # pylint: disable=W0613
       return 1
     result = wconfd.Client().ListAllLocksOwners()
     print "Answer: %s" % (result,)
+  elif args[0] == "flushconfig":
+    if len(args) != 1:
+      ToStderr("Command 'flushconfig' takes no arguments.")
+      return 1
+    wconfd.Client().FlushConfig()
+    print "Configuration flushed."
   else:
     ToStderr("Command '%s' not supported", args[0])
     return 1
@@ -678,6 +685,9 @@ commands = {
                 action="store_true",
                 help="Allows the opcode to be interrupted by using a domain "
                      "socket"),
+     cli_option("-l", "--no-locks", default=False, dest="no_locks",
+                action="store_true",
+                help="Don't take locks while performing the delay"),
      DRY_RUN_OPT, PRIORITY_OPT] + SUBMIT_OPTS,
     "[opts...] <duration>", "Executes a TestDelay OpCode"),
   "submit-job": (

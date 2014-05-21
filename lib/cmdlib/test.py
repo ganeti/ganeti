@@ -109,9 +109,13 @@ class LUTestDelay(NoHooksLU):
     This expands the node list, if any.
 
     """
+    self.needed_locks = {}
 
     if self.op.duration <= 0:
       raise errors.OpPrereqError("Duration must be greater than zero")
+
+    if not self.op.no_locks and (self.op.on_nodes or self.op.on_master):
+      self.needed_locks[locking.LEVEL_NODE] = []
 
     self.op.on_node_uuids = []
     if self.op.on_nodes:

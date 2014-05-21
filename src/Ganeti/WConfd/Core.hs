@@ -103,6 +103,11 @@ unlockConfig
   :: ClientId -> WConfdMonad ()
 unlockConfig cid = freeLocksLevel cid LevelConfig
 
+-- | Force the distribution of configuration without actually modifying it.
+-- It is not necessary to hold a lock for this operation.
+flushConfig :: WConfdMonad ()
+flushConfig = forceConfigStateDistribution
+
 -- ** Temporary reservations related functions
 
 computeDRBDMap :: WConfdMonad T.DRBDMap
@@ -189,6 +194,7 @@ exportedFunctions = [ 'echo
                     , 'writeConfig
                     , 'lockConfig
                     , 'unlockConfig
+                    , 'flushConfig
                     -- temporary reservations
                     , 'computeDRBDMap
                     , 'allocateDRBDMinor

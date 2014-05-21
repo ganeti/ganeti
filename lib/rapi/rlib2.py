@@ -63,7 +63,6 @@ from ganeti import cli
 from ganeti import rapi
 from ganeti import ht
 from ganeti import compat
-from ganeti import ssconf
 from ganeti.rapi import baserlib
 
 
@@ -1548,21 +1547,17 @@ class _R_Tags(baserlib.OpcodeResource):
     """
     kind = self.TAG_LEVEL
 
-    if kind in (constants.TAG_INSTANCE,
-                constants.TAG_NODEGROUP,
-                constants.TAG_NODE,
-                constants.TAG_NETWORK):
-      if not self.name:
-        raise http.HttpBadRequest("Missing name on tag request")
-
+    if kind in constants.VALID_TAG_TYPES:
       cl = self.GetClient()
-      tags = list(cl.QueryTags(kind, self.name))
-
-    elif kind == constants.TAG_CLUSTER:
-      assert not self.name
-      # TODO: Use query API?
-      ssc = ssconf.SimpleStore()
-      tags = ssc.GetClusterTags()
+      if kind == constants.TAG_CLUSTER:
+        if self.name:
+          raise http.HttpBadRequest("Can't specify a name"
+                                    " for cluster tag request")
+        tags = list(cl.QueryTags(kind, ""))
+      else:
+        if not self.name:
+          raise http.HttpBadRequest("Missing name on tag request")
+        tags = list(cl.QueryTags(kind, self.name))
 
     else:
       raise http.HttpBadRequest("Unhandled tag type!")

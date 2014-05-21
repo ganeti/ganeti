@@ -378,11 +378,13 @@ avoid potential deadlocks_ in low memory scenarios.
 .. _deadlocks: http://tracker.ceph.com/issues/3076
 
 To initialize a cluster with support for this feature, use a command
-such as::
+like the following. Note, that you possibly need to follow the more
+general installation instructions before invoking this command (see
+`Initializing the cluster`_ ).
 
   $ gnt-cluster init \
-      --enabled-disk-templates rbd \
-      --ipolicy-disk-templates rbd \
+      --enabled-disk-templates=rbd \
+      --ipolicy-disk-templates=rbd \
       --enabled-hypervisors=kvm \
       -D rbd:access=userspace
 

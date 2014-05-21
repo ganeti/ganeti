@@ -254,8 +254,8 @@ writeLocks fpath lockWait = do
 writeLocksAsyncTask :: FilePath -- ^ Path to the lock file
                     -> IO GanetiLockWaiting -- ^ An action to read the
                                             -- current lock allocation
-                    -> ResultG (AsyncWorker ())
-writeLocksAsyncTask fpath lockWaitingAction = mkAsyncWorker $
+                    -> ResultG (AsyncWorker () ())
+writeLocksAsyncTask fpath lockWaitingAction = mkAsyncWorker_ $
   catchError (do
     locks <- liftBase lockWaitingAction
     writeLocks fpath locks
