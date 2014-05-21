@@ -27,10 +27,12 @@ module Ganeti.Lens
   ( module Control.Lens
   , makeCustomLenses
   , makeCustomLenses'
+  , traverseOf2
   ) where
 
 import Control.Lens
 import Control.Monad
+import Data.Functor.Compose (Compose(..))
 import qualified Data.Set as S
 import Language.Haskell.TH
 
@@ -55,3 +57,11 @@ makeCustomLenses' name lst = makeCustomLensesFiltered f name
   where
     allowed = S.fromList . map nameBase $ lst
     f = flip S.member allowed
+
+-- | Traverses over a composition of two functors.
+-- Most often the @g@ functor is @(,) r@ and 'traverseOf2' is used to
+-- traverse an effectful computation that also returns an additional output
+-- value.
+traverseOf2 :: Over (->) (Compose f g) s t a b
+            -> (a -> f (g b)) -> s -> f (g t)
+traverseOf2 k f = getCompose . traverseOf k (Compose . f)
