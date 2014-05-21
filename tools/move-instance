@@ -133,7 +133,7 @@ class Abort(Error):
   """
 
 
-class RapiClientFactory:
+class RapiClientFactory(object):
   """Factory class for creating RAPI clients.
 
   @ivar src_cluster_name: Source cluster name

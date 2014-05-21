@@ -106,7 +106,7 @@ class _Request(object):
     self.rcvd = set()
 
 
-class ConfdClient:
+class ConfdClient(object):
   """Send queries to confd, and get back answers.
 
   Since the confd model works by querying multiple master candidates, and
@@ -462,7 +462,7 @@ class ConfdClientRequest(objects.ConfdRequest):
       raise errors.ConfdClientError("Invalid request type")
 
 
-class ConfdFilterCallback:
+class ConfdFilterCallback(object):
   """Callback that calls another callback, but filters duplicate results.
 
   @ivar consistent: a dictionary indexed by salt; for each salt, if
@@ -567,7 +567,7 @@ class ConfdFilterCallback:
       self._callback(up)
 
 
-class ConfdCountingCallback:
+class ConfdCountingCallback(object):
   """Callback that calls another callback, and counts the answers
 
   """
@@ -629,7 +629,7 @@ class ConfdCountingCallback:
     self._callback(up)
 
 
-class StoreResultCallback:
+class StoreResultCallback(object):
   """Callback that simply stores the most recent answer.
 
   @ivar _answers: dict of salt to (have_answer, reply)

@@ -711,7 +711,7 @@ class DRBD8Dev(base.BlockDev):
       base.ThrowError("drbd%d: DRBD disk missing network info in"
                       " DisconnectNet()", self.minor)
 
-    class _DisconnectStatus:
+    class _DisconnectStatus(object):
       def __init__(self, ever_disconnected):
         self.ever_disconnected = ever_disconnected
 

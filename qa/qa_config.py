@@ -666,7 +666,7 @@ def get(name, default=None):
   return GetConfig().get(name, default=default)
 
 
-class Either:
+class Either(object):
   def __init__(self, tests):
     """Initializes this class.
 

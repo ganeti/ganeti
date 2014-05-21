@@ -43,7 +43,7 @@ _DISK_PATTERN = r"\d+"
 CONNECTOR = {}
 
 
-class Mapper:
+class Mapper(object):
   """Map resource to method.
 
   """

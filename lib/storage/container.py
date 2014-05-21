@@ -43,7 +43,7 @@ def _ParseSize(value):
   return int(round(float(value), 0))
 
 
-class _Base:
+class _Base(object):
   """Base class for storage abstraction.
 
   """
@@ -95,6 +95,8 @@ class FileStorage(_Base): # pylint: disable=W0223
     @param paths: List of file storage paths
 
     """
+    super(FileStorage, self).__init__()
+
     self._paths = paths
 
   def List(self, name, fields):

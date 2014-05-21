@@ -659,7 +659,7 @@ def FormatProgress(progress):
   return utils.CommaJoin(parts)
 
 
-class ImportExportLoop:
+class ImportExportLoop(object):
   MIN_DELAY = 1.0
   MAX_DELAY = 20.0
 
@@ -1140,7 +1140,7 @@ class _RemoteExportCb(ImportExportCbBase):
       finished_fn()
 
 
-class ExportInstanceHelper:
+class ExportInstanceHelper(object):
   def __init__(self, lu, feedback_fn, instance):
     """Initializes this class.
 

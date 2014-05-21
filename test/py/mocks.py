@@ -104,7 +104,7 @@ class FakeContext(object):
     self.glm = FakeGLM()
 
 
-class FakeGetentResolver:
+class FakeGetentResolver(object):
   """Fake runtime.GetentResolver"""
 
   def __init__(self):

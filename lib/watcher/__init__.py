@@ -158,7 +158,7 @@ class Instance(object):
     cli.SubmitOpCode(op, cl=cl)
 
 
-class Node:
+class Node(object):
   """Data container representing cluster node.
 
   """
