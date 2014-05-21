@@ -1567,15 +1567,9 @@ class LUInstanceCreate(LogicalUnit):
 
     disk_size = DetermineImageSize(self, install_image, instance.primary_node)
 
-    # KVM does not support readonly disks
-    if instance.hypervisor == constants.HT_KVM:
-      disk_access = constants.DISK_RDWR
-    else:
-      disk_access = constants.DISK_RDONLY
-
     with TemporaryDisk(self,
                        instance,
-                       [(constants.DT_PLAIN, disk_access, disk_size)],
+                       [(constants.DT_PLAIN, constants.DISK_RDWR, disk_size)],
                        feedback_fn):
       feedback_fn("Activating instance disks")
       StartInstanceDisks(self, instance, False)
