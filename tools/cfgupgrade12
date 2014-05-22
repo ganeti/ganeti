@@ -280,16 +280,7 @@ def Disk12To20(drbd_minors, secrets, disk):
       Disk12To20(drbd_minors, secrets, child)
 
 
-def main():
-  """Main program.
-
-  """
-  # pylint: disable=W0603
-  global options, args
-
-  program = os.path.basename(sys.argv[0])
-
-  # Option parsing
+def _ParseOptions():
   parser = optparse.OptionParser(usage="%prog [--debug|--verbose] [--force]")
   parser.add_option("--dry-run", dest="dry_run",
                     action="store_true",
@@ -301,15 +292,52 @@ def main():
   parser.add_option("--path", help="Convert configuration in this"
                     " directory instead of '%s'" % pathutils.DATA_DIR,
                     default=pathutils.DATA_DIR, dest="data_dir")
-  (options, args) = parser.parse_args()
+  return parser.parse_args()
 
+
+def _ComposePaths(oobj):
   # We need to keep filenames locally because they might be renamed between
   # versions.
-  options.data_dir = os.path.abspath(options.data_dir)
-  options.CONFIG_DATA_PATH = options.data_dir + "/config.data"
-  options.SERVER_PEM_PATH = options.data_dir + "/server.pem"
-  options.KNOWN_HOSTS_PATH = options.data_dir + "/known_hosts"
-  options.RAPI_CERT_FILE = options.data_dir + "/rapi.pem"
+  oobj.data_dir = os.path.abspath(oobj.data_dir)
+  oobj.CONFIG_DATA_PATH = oobj.data_dir + "/config.data"
+  oobj.SERVER_PEM_PATH = oobj.data_dir + "/server.pem"
+  oobj.KNOWN_HOSTS_PATH = oobj.data_dir + "/known_hosts"
+  oobj.RAPI_CERT_FILE = oobj.data_dir + "/rapi.pem"
+
+
+def _WriteConfiguration(config_data, known_hosts):
+  try:
+    logging.info("Writing configuration file")
+    WriteFile(options.CONFIG_DATA_PATH, serializer.DumpJson(config_data))
+
+    if known_hosts is not None:
+      logging.info("Writing SSH known_hosts file (%s)", known_hosts.strip())
+      WriteFile(options.KNOWN_HOSTS_PATH, known_hosts)
+
+    if not options.dry_run:
+      if not os.path.exists(options.RAPI_CERT_FILE):
+        logging.debug("Writing RAPI certificate to %s", options.RAPI_CERT_FILE)
+        utils.GenerateSelfSignedSslCert(options.RAPI_CERT_FILE, 1)
+
+  except:
+    logging.critical("Writing configuration failed. It is probably in an"
+                     " inconsistent state and needs manual intervention.")
+    raise
+
+  logging.info("Configuration file updated.")
+
+
+def main():
+  """Main program.
+
+  """
+  # pylint: disable=W0603
+  global options, args
+
+  program = os.path.basename(sys.argv[0])
+
+  (options, args) = _ParseOptions()
+  _ComposePaths(options)
 
   SetupLogging()
 
@@ -394,25 +422,7 @@ def main():
 
     known_hosts = None
 
-  try:
-    logging.info("Writing configuration file")
-    WriteFile(options.CONFIG_DATA_PATH, serializer.DumpJson(config_data))
-
-    if known_hosts is not None:
-      logging.info("Writing SSH known_hosts file (%s)", known_hosts.strip())
-      WriteFile(options.KNOWN_HOSTS_PATH, known_hosts)
-
-    if not options.dry_run:
-      if not os.path.exists(options.RAPI_CERT_FILE):
-        logging.debug("Writing RAPI certificate to %s", options.RAPI_CERT_FILE)
-        utils.GenerateSelfSignedSslCert(options.RAPI_CERT_FILE, 1)
-
-  except:
-    logging.critical("Writing configuration failed. It is probably in an"
-                     " inconsistent state and needs manual intervention.")
-    raise
-
-  logging.info("Configuration file updated.")
+  _WriteConfiguration(config_data, known_hosts)
 
 
 if __name__ == "__main__":
