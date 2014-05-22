@@ -59,6 +59,8 @@ module Ganeti.Config
     , getFilledInstBeParams
     , getFilledInstOsParams
     , getNetwork
+    , MAC
+    , getAllMACs
     , buildLinkIpInstnameMap
     , instNodes
     ) where
@@ -474,6 +476,14 @@ getNetwork cfg name =
                               (fromNonEmpty . networkName . (M.!) networks)
                               networks
                 in getItem "Network" name by_name
+
+-- ** MACs
+
+type MAC = String
+
+-- | Returns all MAC addresses used in the cluster.
+getAllMACs :: ConfigData -> [MAC]
+getAllMACs = F.foldMap (map nicMac . instNics) . configInstances
 
 -- * ND params
 
