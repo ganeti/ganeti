@@ -219,6 +219,46 @@ def UpgradeDiskDevType(disk):
   ChangeDiskDevType(disk, DEV_TYPE_OLD_NEW)
 
 
+def _ConvertNicNameToUuid(iobj, network2uuid):
+  for nic in iobj["nics"]:
+    name = nic.get("network", None)
+    if name:
+      uuid = network2uuid.get(name, None)
+      if uuid:
+        print("NIC with network name %s found."
+              " Substituting with uuid %s." % (name, uuid))
+        nic["network"] = uuid
+
+
+def _ConvertDiskAndCheckMissingSpindles(iobj, instance):
+  missing_spindles = False
+  if "disks" not in iobj:
+    raise Error("Instance '%s' doesn't have a disks entry?!" % instance)
+  disks = iobj["disks"]
+  if not all(isinstance(d, str) for d in disks):
+    #  Disks are not top level citizens
+    for idx, dobj in enumerate(disks):
+      RemovePhysicalId(dobj)
+
+      expected = "disk/%s" % idx
+      current = dobj.get("iv_name", "")
+      if current != expected:
+        logging.warning("Updating iv_name for instance %s/disk %s"
+                        " from '%s' to '%s'",
+                        instance, idx, current, expected)
+        dobj["iv_name"] = expected
+
+      if "dev_type" in dobj:
+        UpgradeDiskDevType(dobj)
+
+      if not "spindles" in dobj:
+        missing_spindles = True
+
+      if not "uuid" in dobj:
+        dobj["uuid"] = utils.io.NewUUID()
+  return missing_spindles
+
+
 def UpgradeInstances(config_data):
   """Upgrades the instances' configuration."""
 
@@ -229,39 +269,9 @@ def UpgradeInstances(config_data):
 
   missing_spindles = False
   for instance, iobj in config_data["instances"].items():
-    for nic in iobj["nics"]:
-      name = nic.get("network", None)
-      if name:
-        uuid = network2uuid.get(name, None)
-        if uuid:
-          print("NIC with network name %s found."
-                " Substituting with uuid %s." % (name, uuid))
-          nic["network"] = uuid
-
-    if "disks" not in iobj:
-      raise Error("Instance '%s' doesn't have a disks entry?!" % instance)
-    disks = iobj["disks"]
-    if not all(isinstance(d, str) for d in disks):
-      #  Disks are not top level citizens
-      for idx, dobj in enumerate(disks):
-        RemovePhysicalId(dobj)
-
-        expected = "disk/%s" % idx
-        current = dobj.get("iv_name", "")
-        if current != expected:
-          logging.warning("Updating iv_name for instance %s/disk %s"
-                          " from '%s' to '%s'",
-                          instance, idx, current, expected)
-          dobj["iv_name"] = expected
-
-        if "dev_type" in dobj:
-          UpgradeDiskDevType(dobj)
-
-        if not "spindles" in dobj:
-          missing_spindles = True
-
-        if not "uuid" in dobj:
-          dobj["uuid"] = utils.io.NewUUID()
+    _ConvertNicNameToUuid(iobj, network2uuid)
+    if _ConvertDiskAndCheckMissingSpindles(iobj, instance):
+      missing_spindles = True
 
   if GetExclusiveStorageValue(config_data) and missing_spindles:
     # We cannot be sure that the instances that are missing spindles have
