@@ -848,6 +848,10 @@ def RunMonitoringTests():
 
 
 def RunPerformanceTests():
+  if not qa_config.TestEnabled("performance"):
+    ReportTestSkip("performance related tests", "performance")
+    return
+
   if qa_config.TestEnabled("jobqueue-performance"):
     RunTest(qa_performance.TestParallelMaxInstanceCreationPerformance)
     RunTest(qa_performance.TestParallelNodeCountInstanceCreationPerformance)

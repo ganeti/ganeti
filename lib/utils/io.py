@@ -71,7 +71,7 @@ def ErrnoOrStr(err):
   return detail
 
 
-class FileStatHelper:
+class FileStatHelper(object):
   """Helper to store file handle's C{fstat}.
 
   Useful in combination with L{ReadFile}'s C{preread} parameter.

@@ -552,6 +552,7 @@ class _QueuedJob(object):
 
 
 class _OpExecCallbacks(mcpu.OpExecCbBase):
+
   def __init__(self, queue, job, op):
     """Initializes this class.
 
@@ -563,6 +564,8 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     @param op: OpCode
 
     """
+    super(_OpExecCallbacks, self).__init__()
+
     assert queue, "Queue is missing"
     assert job, "Job is missing"
     assert op, "Opcode is missing"

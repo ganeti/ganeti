@@ -31,7 +31,7 @@ from ganeti import utils
 from ganeti.cmdlib.common import ExpandInstanceUuidAndName
 
 
-class ResultWithJobs:
+class ResultWithJobs(object):
   """Data container for LU results with jobs.
 
   Instances of this class returned from L{LogicalUnit.Exec} will be recognized
@@ -426,7 +426,7 @@ class NoHooksLU(LogicalUnit): # pylint: disable=W0223
     raise AssertionError("PreparePostHookNodes called for NoHooksLU")
 
 
-class Tasklet:
+class Tasklet(object):
   """Tasklet base class.
 
   Tasklets are subcomponents for LUs. LUs can consist entirely of tasklets or
@@ -472,7 +472,7 @@ class Tasklet:
     raise NotImplementedError
 
 
-class QueryBase:
+class QueryBase(object):
   """Base for query utility classes.
 
   """

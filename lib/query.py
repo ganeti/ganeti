@@ -202,7 +202,7 @@ def GetAllFields(fielddefs):
   return [fdef for (fdef, _, _, _) in fielddefs]
 
 
-class _FilterHints:
+class _FilterHints(object):
   """Class for filter analytics.
 
   When filters are used, the user of the L{Query} class usually doesn't know
@@ -388,7 +388,7 @@ def _MakeComparisonChecks(fn):
     ]
 
 
-class _FilterCompilerHelper:
+class _FilterCompilerHelper(object):
   """Converts a query filter to a callable usable for filtering.
 
   """
@@ -656,7 +656,7 @@ def _CompileFilter(fields, hints, qfilter):
   return _FilterCompilerHelper(fields)(hints, qfilter)
 
 
-class Query:
+class Query(object):
   def __init__(self, fieldlist, selected, qfilter=None, namefield=None):
     """Initializes this class.
 
@@ -1088,7 +1088,7 @@ def _GetItemTimestampFields(datatype):
     ]
 
 
-class NodeQueryData:
+class NodeQueryData(object):
   """Data container for node data queries.
 
   """
@@ -1407,7 +1407,7 @@ def _BuildNodeFields():
   return _PrepareFieldList(fields, [])
 
 
-class InstanceQueryData:
+class InstanceQueryData(object):
   """Data container for instance data queries.
 
   """
@@ -2252,7 +2252,7 @@ def _BuildInstanceFields():
   return _PrepareFieldList(fields, aliases)
 
 
-class LockQueryData:
+class LockQueryData(object):
   """Data container for lock data queries.
 
   """
@@ -2314,7 +2314,7 @@ def _BuildLockFields():
     ], [])
 
 
-class GroupQueryData:
+class GroupQueryData(object):
   """Data container for node group data queries.
 
   """
@@ -2674,7 +2674,7 @@ _CLUSTER_SIMPLE_FIELDS = {
   }
 
 
-class ClusterQueryData:
+class ClusterQueryData(object):
   def __init__(self, cluster, nodes, drain_flag, watcher_pause):
     """Initializes this class.
 
@@ -2746,7 +2746,7 @@ def _BuildClusterFields():
     ("name", "cluster_name")])
 
 
-class NetworkQueryData:
+class NetworkQueryData(object):
   """Data container for network data queries.
 
   """

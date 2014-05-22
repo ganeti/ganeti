@@ -99,7 +99,7 @@ def SetupLogging():
   return child_logger
 
 
-class StatusFile:
+class StatusFile(object):
   """Status file manager.
 
   """

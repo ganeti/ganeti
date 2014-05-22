@@ -145,7 +145,7 @@ class MasterClientHandler(daemon.AsyncTerminatedMessageStream):
     self.server.request_workers.AddTask((self.server, message, self))
 
 
-class _MasterShutdownCheck:
+class _MasterShutdownCheck(object):
   """Logic for master daemon shutdown.
 
   """
@@ -269,7 +269,7 @@ class MasterServer(daemon.AsyncStreamServer):
         self.context.jobqueue.Shutdown()
 
 
-class ClientOps:
+class ClientOps(object):
   """Class holding high-level client operations."""
   def __init__(self, server):
     self.server = server

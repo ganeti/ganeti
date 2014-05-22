@@ -75,7 +75,7 @@ def _ValidateConfig(data):
                                        data['version'])
 
 
-class TemporaryReservationManager:
+class TemporaryReservationManager(object):
   """A temporary resource reservation manager.
 
   This is used to reserve resources in a job, before using them, making sure

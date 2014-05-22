@@ -33,6 +33,8 @@ class LogRecordingCallback(mcpu.OpExecCbBase):
 
   """
   def __init__(self, processor):
+    super(LogRecordingCallback, self).__init__()
+
     self.processor = processor
 
   def Feedback(self, *args):
