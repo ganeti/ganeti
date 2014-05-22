@@ -32,9 +32,11 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.WConfd.Core where
 
 import Control.Monad (liftM, unless, when)
+import Control.Monad.State (modify)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Language.Haskell.TH (Name)
+import qualified System.Random as Rand
 
 import Ganeti.BasicTypes
 import qualified Ganeti.JSON as J
@@ -110,6 +112,12 @@ flushConfig = forceConfigStateDistribution
 
 -- ** Temporary reservations related functions
 
+dropAllReservations :: ClientId -> WConfdMonad ()
+dropAllReservations cid =
+  modifyTempResState (const . modify $ T.dropAllReservations cid)
+
+-- *** DRBD
+
 computeDRBDMap :: WConfdMonad T.DRBDMap
 computeDRBDMap = uncurry T.computeDRBDMap =<< readTempResState
 
@@ -132,6 +140,20 @@ allocateDRBDMinor inst nodes =
 releaseDRBDMinors
   :: T.InstanceUUID -> WConfdMonad ()
 releaseDRBDMinors inst = modifyTempResState (const $ T.releaseDRBDMinors inst)
+
+-- *** MACs
+
+-- Randomly generate a MAC for an instance and reserves it for
+-- a given client.
+generateMAC
+  :: ClientId -> J.MaybeForJSON T.NetworkUUID -> WConfdMonad T.MAC
+generateMAC cid (J.MaybeForJSON netId) = do
+  g <- liftIO Rand.newStdGen
+  modifyTempResStateErr $ T.generateMAC g cid netId
+
+-- Reserves a MAC for an instance in the list of temporary reservations.
+reserveMAC :: ClientId -> T.MAC -> WConfdMonad ()
+reserveMAC = (modifyTempResStateErr .) . T.reserveMAC
 
 -- ** Locking related functions
 
@@ -195,10 +217,15 @@ exportedFunctions = [ 'echo
                     , 'lockConfig
                     , 'unlockConfig
                     , 'flushConfig
-                    -- temporary reservations
+                    -- temporary reservations (common)
+                    , 'dropAllReservations
+                    -- DRBD
                     , 'computeDRBDMap
                     , 'allocateDRBDMinor
                     , 'releaseDRBDMinors
+                    -- MACs
+                    , 'reserveMAC
+                    , 'generateMAC
                     -- locking
                     , 'listLocks
                     , 'listAllLocks
