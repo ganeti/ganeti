@@ -286,12 +286,10 @@ class ConfigWriter(object):
       self._cfg_file = cfg_file
     self._getents = _getents
     self._temporary_ids = TemporaryReservationManager()
-    self._temporary_drbds = {}
-    self._temporary_macs = TemporaryReservationManager()
     self._temporary_secrets = TemporaryReservationManager()
     self._temporary_lvs = TemporaryReservationManager()
     self._temporary_ips = TemporaryReservationManager()
-    self._all_rms = [self._temporary_ids, self._temporary_macs,
+    self._all_rms = [self._temporary_ids,
                      self._temporary_secrets, self._temporary_lvs,
                      self._temporary_ips]
     # Note: in order to prevent errors when resolving our name later,
@@ -690,61 +688,22 @@ class ConfigWriter(object):
     assert isinstance(data, dict), "Not a dictionary: " + str(data)
     return data
 
-  def _UnlockedGetNetworkMACPrefix(self, net_uuid):
-    """Return the network mac prefix if it exists or the cluster level default.
-
-    """
-    prefix = None
-    if net_uuid:
-      nobj = self._UnlockedGetNetwork(net_uuid)
-      if nobj.mac_prefix:
-        prefix = nobj.mac_prefix
-
-    return prefix
-
-  def _GenerateOneMAC(self, prefix=None):
-    """Return a function that randomly generates a MAC suffic
-       and appends it to the given prefix. If prefix is not given get
-       the cluster level default.
-
-    """
-    if not prefix:
-      prefix = self._ConfigData().cluster.mac_prefix
-
-    def GenMac():
-      byte1 = random.randrange(0, 256)
-      byte2 = random.randrange(0, 256)
-      byte3 = random.randrange(0, 256)
-      mac = "%s:%02x:%02x:%02x" % (prefix, byte1, byte2, byte3)
-      return mac
-
-    return GenMac
-
-  @_ConfigSync(shared=1)
-  def GenerateMAC(self, net_uuid, ec_id):
+  def GenerateMAC(self, net_uuid, _ec_id):
     """Generate a MAC for an instance.
 
     This should check the current instances for duplicates.
 
     """
-    existing = self._AllMACs()
-    prefix = self._UnlockedGetNetworkMACPrefix(net_uuid)
-    gen_mac = self._GenerateOneMAC(prefix)
-    return self._temporary_ids.Generate(existing, gen_mac, ec_id)
+    return self._wconfd.GenerateMAC(self._GetWConfdContext(), net_uuid)
 
-  @_ConfigSync(shared=1)
-  def ReserveMAC(self, mac, ec_id):
+  def ReserveMAC(self, mac, _ec_id):
     """Reserve a MAC for an instance.
 
     This only checks instances managed by this cluster, it does not
     check for potential collisions elsewhere.
 
     """
-    all_macs = self._AllMACs()
-    if mac in all_macs:
-      raise errors.ReservationError("mac already in use")
-    else:
-      self._temporary_macs.Reserve(ec_id, mac)
+    self._wconfd.ReserveMAC(self._GetWConfdContext(), mac)
 
   def _UnlockedCommitTemporaryIps(self, ec_id):
     """Commit all reserved IP address to their respective pools
@@ -3220,12 +3179,16 @@ class ConfigWriter(object):
 
     self._WriteConfig(feedback_fn=feedback_fn)
 
-  def _UnlockedDropECReservations(self, ec_id):
+  def _UnlockedDropECReservations(self, _ec_id):
     """Drop per-execution-context reservations
 
     """
+    # FIXME: Remove the following two lines after all reservations are moved to
+    # wconfd.
     for rm in self._all_rms:
-      rm.DropECReservations(ec_id)
+      rm.DropECReservations(_ec_id)
+    if not self._offline:
+      self._wconfd.DropAllReservations(self._GetWConfdContext())
 
   def DropECReservations(self, ec_id):
     self._UnlockedDropECReservations(ec_id)
