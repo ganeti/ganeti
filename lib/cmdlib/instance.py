@@ -2371,7 +2371,7 @@ class LUInstanceMultiAlloc(NoHooksLU):
     return ResultWithJobs(jobs, **self._ConstructPartialResult())
 
 
-class _InstNicModPrivate:
+class _InstNicModPrivate(object):
   """Data structure for network interface modifications.
 
   Used by L{LUInstanceSetParams}.

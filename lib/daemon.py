@@ -457,7 +457,7 @@ class AsyncAwaker(GanetiBaseAsyncoreDispatcher):
       self.out_socket.send(chr(0))
 
 
-class _ShutdownCheck:
+class _ShutdownCheck(object):
   """Logic for L{Mainloop} shutdown.
 
   """

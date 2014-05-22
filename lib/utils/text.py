@@ -249,7 +249,7 @@ def ShellCombineCommands(cmdlist):
   return ["/bin/sh", "-c", " && ".join(ShellQuoteArgs(c) for c in cmdlist)]
 
 
-class ShellWriter:
+class ShellWriter(object):
   """Helper class to write scripts with indentation.
 
   """
@@ -533,7 +533,7 @@ def FormatSeconds(secs):
   return " ".join(parts)
 
 
-class LineSplitter:
+class LineSplitter(object):
   """Splits data chunks into lines separated by newline.
 
   Instances provide a file-like interface.

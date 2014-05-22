@@ -146,7 +146,7 @@ def _FormatHeaders(headers):
   return "\n".join(headers)
 
 
-class FakeCurl:
+class FakeCurl(object):
   """Fake cURL object.
 
   """
@@ -207,7 +207,7 @@ class FakeCurl:
       writefn(resp_body)
 
 
-class _RapiMock:
+class _RapiMock(object):
   """Mocking out the RAPI server parts.
 
   """
@@ -250,7 +250,7 @@ class _RapiMock:
     return (resp_msg.start_line.code, resp_msg.headers, resp_msg.body)
 
 
-class _TestLuxiTransport:
+class _TestLuxiTransport(object):
   """Mocked LUXI transport.
 
   Raises L{errors.RapiTestResult} for all method calls, no matter the
@@ -283,7 +283,7 @@ class _TestLuxiTransport:
     raise errors.RapiTestResult
 
 
-class _LuxiCallRecorder:
+class _LuxiCallRecorder(object):
   """Records all called LUXI client methods.
 
   """
@@ -328,7 +328,7 @@ def _TestWrapper(fn, *args, **kwargs):
     return NotImplemented
 
 
-class InputTestClient:
+class InputTestClient(object):
   """Test version of RAPI client.
 
   Instances of this class can be used to test input arguments for RAPI client

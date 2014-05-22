@@ -106,7 +106,7 @@ def GetAllUserFiles(user, mkdir=False, dircheck=True, _homedir_fn=None):
                for (kind, (privkey, pubkey, _)) in result))
 
 
-class SshRunner:
+class SshRunner(object):
   """Wrapper for SSH commands.
 
   """

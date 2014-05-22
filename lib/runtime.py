@@ -72,7 +72,7 @@ def GetGid(group, _getgrnam):
     raise errors.ConfigurationError("Group '%s' not found (%s)" % (group, err))
 
 
-class GetentResolver:
+class GetentResolver(object):
   """Resolves Ganeti uids and gids by name.
 
   @ivar masterd_uid: The resolved uid of the masterd user

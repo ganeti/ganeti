@@ -50,15 +50,7 @@ from ganeti.tools import burnin
 _OPT_NAME_RE = re.compile(r"^-[a-zA-Z0-9]|--[a-z][-a-z0-9]+$")
 
 
-def WritePreamble(sw, support_debug):
-  """Writes the script preamble.
-
-  Helper functions should be written here.
-
-  """
-  sw.Write("# This script is automatically generated at build time.")
-  sw.Write("# Do not modify manually.")
-
+def _WriteGntLog(sw, support_debug):
   if support_debug:
     sw.Write("_gnt_log() {")
     sw.IncIndent()
@@ -82,6 +74,8 @@ def WritePreamble(sw, support_debug):
       sw.DecIndent()
     sw.Write("}")
 
+
+def _WriteNodes(sw):
   sw.Write("_ganeti_nodes() {")
   sw.IncIndent()
   try:
@@ -91,6 +85,8 @@ def WritePreamble(sw, support_debug):
     sw.DecIndent()
   sw.Write("}")
 
+
+def _WriteInstances(sw):
   sw.Write("_ganeti_instances() {")
   sw.IncIndent()
   try:
@@ -101,6 +97,8 @@ def WritePreamble(sw, support_debug):
     sw.DecIndent()
   sw.Write("}")
 
+
+def _WriteJobs(sw):
   sw.Write("_ganeti_jobs() {")
   sw.IncIndent()
   try:
@@ -113,6 +111,8 @@ def WritePreamble(sw, support_debug):
     sw.DecIndent()
   sw.Write("}")
 
+
+def _WriteOSAndIAllocator(sw):
   for (fnname, paths) in [
     ("os", pathutils.OS_SEARCH_PATH),
     ("iallocator", constants.IALLOCATOR_SEARCH_PATH),
@@ -128,6 +128,8 @@ def WritePreamble(sw, support_debug):
       sw.DecIndent()
     sw.Write("}")
 
+
+def _WriteNodegroup(sw):
   sw.Write("_ganeti_nodegroup() {")
   sw.IncIndent()
   try:
@@ -137,6 +139,8 @@ def WritePreamble(sw, support_debug):
     sw.DecIndent()
   sw.Write("}")
 
+
+def _WriteNetwork(sw):
   sw.Write("_ganeti_network() {")
   sw.IncIndent()
   try:
@@ -146,6 +150,8 @@ def WritePreamble(sw, support_debug):
     sw.DecIndent()
   sw.Write("}")
 
+
+def _WriteFindFirstArg(sw):
   # Params: <offset> <options with values> <options without values>
   # Result variable: $first_arg_idx
   sw.Write("_ganeti_find_first_arg() {")
@@ -175,6 +181,8 @@ def WritePreamble(sw, support_debug):
     sw.DecIndent()
   sw.Write("}")
 
+
+def _WriteListOptions(sw):
   # Params: <list of options separated by space>
   # Input variable: $first_arg_idx
   # Result variables: $arg_idx, $choices
@@ -205,6 +213,8 @@ def WritePreamble(sw, support_debug):
     sw.DecIndent()
   sw.Write("}")
 
+
+def _WriteGntCheckopt(sw, support_debug):
   # Params: <long options with equal sign> <all options>
   # Result variable: $optcur
   sw.Write("_gnt_checkopt() {")
@@ -234,6 +244,8 @@ def WritePreamble(sw, support_debug):
     sw.DecIndent()
   sw.Write("}")
 
+
+def _WriteGntCompgen(sw, support_debug):
   # Params: <compgen options>
   # Result variable: $COMPREPLY
   sw.Write("_gnt_compgen() {")
@@ -247,12 +259,34 @@ def WritePreamble(sw, support_debug):
   sw.Write("}")
 
 
+def WritePreamble(sw, support_debug):
+  """Writes the script preamble.
+
+  Helper functions should be written here.
+
+  """
+  sw.Write("# This script is automatically generated at build time.")
+  sw.Write("# Do not modify manually.")
+
+  _WriteGntLog(sw, support_debug)
+  _WriteNodes(sw)
+  _WriteInstances(sw)
+  _WriteJobs(sw)
+  _WriteOSAndIAllocator(sw)
+  _WriteNodegroup(sw)
+  _WriteNetwork(sw)
+  _WriteFindFirstArg(sw)
+  _WriteListOptions(sw)
+  _WriteGntCheckopt(sw, support_debug)
+  _WriteGntCompgen(sw, support_debug)
+
+
 def WriteCompReply(sw, args, cur="\"$cur\""):
   sw.Write("_gnt_compgen %s -- %s", args, cur)
   sw.Write("return")
 
 
-class CompletionWriter:
+class CompletionWriter(object):
   """Command completion writer class.
 
   """
