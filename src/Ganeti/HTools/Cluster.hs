@@ -318,70 +318,78 @@ computeAllocationDelta cini cfin =
                        }
   in (rini, rfin, runa)
 
+-- | The names and weights of the individual elements in the CV list, together
+-- with their statistical accumulation function and a bit to decide whether it
+-- is a statistics for online nodes.
+detailedCVInfoExt :: [((Double, String), ([Double] -> Statistics, Bool))]
+detailedCVInfoExt = [ ((1,  "free_mem_cv"), (getStdDevStatistics, True))
+                    , ((1,  "free_disk_cv"), (getStdDevStatistics, True))
+                    , ((1,  "n1_cnt"), (getSumStatistics, True))
+                    , ((1,  "reserved_mem_cv"), (getStdDevStatistics, True))
+                    , ((4,  "offline_all_cnt"), (getSumStatistics, False))
+                    , ((16, "offline_pri_cnt"), (getSumStatistics, False))
+                    , ((1,  "vcpu_ratio_cv"), (getStdDevStatistics, True))
+                    , ((1,  "cpu_load_cv"), (getStdDevStatistics, True))
+                    , ((1,  "mem_load_cv"), (getStdDevStatistics, True))
+                    , ((1,  "disk_load_cv"), (getStdDevStatistics, True))
+                    , ((1,  "net_load_cv"), (getStdDevStatistics, True))
+                    , ((2,  "pri_tags_score"), (getSumStatistics, True))
+                    , ((1,  "spindles_cv"), (getStdDevStatistics, True))
+                    ]
+
 -- | The names and weights of the individual elements in the CV list.
 detailedCVInfo :: [(Double, String)]
-detailedCVInfo = [ (1,  "free_mem_cv")
-                 , (1,  "free_disk_cv")
-                 , (1,  "n1_cnt")
-                 , (1,  "reserved_mem_cv")
-                 , (4,  "offline_all_cnt")
-                 , (16, "offline_pri_cnt")
-                 , (1,  "vcpu_ratio_cv")
-                 , (1,  "cpu_load_cv")
-                 , (1,  "mem_load_cv")
-                 , (1,  "disk_load_cv")
-                 , (1,  "net_load_cv")
-                 , (2,  "pri_tags_score")
-                 , (1,  "spindles_cv")
-                 ]
+detailedCVInfo = map fst detailedCVInfoExt
 
 -- | Holds the weights used by 'compCVNodes' for each metric.
 detailedCVWeights :: [Double]
 detailedCVWeights = map fst detailedCVInfo
 
--- | Compute the mem and disk covariance.
-compDetailedCV :: [Node.Node] -> [Double]
-compDetailedCV all_nodes =
+-- | The aggregation functions for the weights
+detailedCVAggregation :: [([Double] -> Statistics, Bool)]
+detailedCVAggregation = map snd detailedCVInfoExt
+
+-- | Compute statistical measures of a single node.
+compDetailedCVNode :: Node.Node -> [Double]
+compDetailedCVNode node =
+  let mem = Node.pMem node
+      dsk = Node.pDsk node
+      n1 = fromIntegral
+           $ if Node.failN1 node
+               then length (Node.sList node) + length (Node.pList node)
+               else 0
+      res = Node.pRem node
+      ipri = fromIntegral . length $ Node.pList node
+      isec = fromIntegral . length $ Node.sList node
+      ioff = ipri + isec
+      cpu = Node.pCpu node
+      DynUtil c1 m1 d1 nn1 = Node.utilLoad node
+      DynUtil c2 m2 d2 nn2 = Node.utilPool node
+      (c_load, m_load, d_load, n_load) = (c1/c2, m1/m2, d1/d2, nn1/nn2)
+      pri_tags = fromIntegral $ Node.conflictingPrimaries node
+      spindles = Node.instSpindles node / Node.hiSpindles node
+  in [ mem, dsk, n1, res, ioff, ipri, cpu
+     , c_load, m_load, d_load, n_load
+     , pri_tags, spindles
+     ]
+
+-- | Compute the statistics of a cluster.
+compClusterStatistics :: [Node.Node] -> [Statistics]
+compClusterStatistics all_nodes =
   let (offline, nodes) = partition Node.offline all_nodes
-      mem_l = map Node.pMem nodes
-      dsk_l = map Node.pDsk nodes
-      -- metric: memory covariance
-      mem_cv = stdDev mem_l
-      -- metric: disk covariance
-      dsk_cv = stdDev dsk_l
-      -- metric: count of instances living on N1 failing nodes
-      n1_score = fromIntegral . sum . map (\n -> length (Node.sList n) +
-                                                 length (Node.pList n)) .
-                 filter Node.failN1 $ nodes :: Double
-      res_l = map Node.pRem nodes
-      -- metric: reserved memory covariance
-      res_cv = stdDev res_l
-      -- offline instances metrics
-      offline_ipri = sum . map (length . Node.pList) $ offline
-      offline_isec = sum . map (length . Node.sList) $ offline
-      -- metric: count of instances on offline nodes
-      off_score = fromIntegral (offline_ipri + offline_isec)::Double
-      -- metric: count of primary instances on offline nodes (this
-      -- helps with evacuation/failover of primary instances on
-      -- 2-node clusters with one node offline)
-      off_pri_score = fromIntegral offline_ipri::Double
-      cpu_l = map Node.pCpu nodes
-      -- metric: covariance of vcpu/pcpu ratio
-      cpu_cv = stdDev cpu_l
-      -- metrics: covariance of cpu, memory, disk and network load
-      (c_load, m_load, d_load, n_load) =
-        unzip4 $ map (\n ->
-                      let DynUtil c1 m1 d1 n1 = Node.utilLoad n
-                          DynUtil c2 m2 d2 n2 = Node.utilPool n
-                      in (c1/c2, m1/m2, d1/d2, n1/n2)) nodes
-      -- metric: conflicting instance count
-      pri_tags_inst = sum $ map Node.conflictingPrimaries nodes
-      pri_tags_score = fromIntegral pri_tags_inst::Double
-      -- metric: spindles %
-      spindles_cv = map (\n -> Node.instSpindles n / Node.hiSpindles n) nodes
-  in [ mem_cv, dsk_cv, n1_score, res_cv, off_score, off_pri_score, cpu_cv
-     , stdDev c_load, stdDev m_load , stdDev d_load, stdDev n_load
-     , pri_tags_score, stdDev spindles_cv ]
+      offline_values = transpose (map compDetailedCVNode offline)
+                       ++ repeat []
+      -- transpose of an empty list is empty and not k times the empty list, as
+      -- would be the transpose of a 0 x k matrix
+      online_values = transpose $ map compDetailedCVNode nodes
+      aggregate (f, True) (onNodes, _) = f onNodes
+      aggregate (f, False) (_, offNodes) = f offNodes
+  in zipWith aggregate detailedCVAggregation
+       $ zip online_values offline_values
+
+-- | Compute cluster statistics
+compDetailedCV :: [Node.Node] -> [Double]
+compDetailedCV = map getStatisticValue . compClusterStatistics
 
 -- | Compute the /total/ variance.
 compCVNodes :: [Node.Node] -> Double
