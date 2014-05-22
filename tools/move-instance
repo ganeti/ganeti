@@ -43,7 +43,6 @@ from ganeti import rapi
 from ganeti import errors
 
 import ganeti.rapi.client # pylint: disable=W0611
-import ganeti.rapi.client_utils
 from ganeti.rapi.client import UsesRapiClient
 
 
@@ -551,6 +550,48 @@ class MoveDestExecutor(object):
       mrt.dest_to_source.release()
 
   @staticmethod
+  def GetDisks(instance):
+    disks = []
+    for idisk in instance["disks"]:
+      odisk = {
+        constants.IDISK_SIZE: idisk["size"],
+        constants.IDISK_MODE: idisk["mode"],
+        constants.IDISK_NAME: str(idisk.get("name")),
+        }
+      spindles = idisk.get("spindles")
+      if spindles is not None:
+        odisk[constants.IDISK_SPINDLES] = spindles
+      disks.append(odisk)
+    return disks
+
+  @staticmethod
+  def GetNics(instance, override_nics):
+    try:
+      nics = [{
+        constants.INIC_IP: ip,
+        constants.INIC_MAC: mac,
+        constants.INIC_MODE: mode,
+        constants.INIC_LINK: link,
+        constants.INIC_VLAN: vlan,
+        constants.INIC_NETWORK: network,
+        constants.INIC_NAME: nic_name
+        } for nic_name, _, ip, mac, mode, link, vlan, network, _
+          in instance["nics"]]
+    except ValueError:
+      raise Error("Received NIC information does not match expected format; "
+                  "Do the versions of this tool and the source cluster match?")
+
+    if len(override_nics) > len(nics):
+      raise Error("Can not create new NICs")
+
+    if override_nics:
+      assert len(override_nics) <= len(nics)
+      for idx, (nic, override) in enumerate(zip(nics, override_nics)):
+        nics[idx] = objects.FillDict(nic, override)
+
+    return nics
+
+  @staticmethod
   def _CreateInstance(cl, name, pnode, snode, compress, iallocator,
                       dest_disk_template, instance, expinfo, override_hvparams,
                       override_beparams, override_osparams, override_nics,
@@ -593,45 +634,9 @@ class MoveDestExecutor(object):
     else:
       disk_template = instance["disk_template"]
 
-    disks = []
-    for idisk in instance["disks"]:
-      odisk = {
-        constants.IDISK_SIZE: idisk["size"],
-        constants.IDISK_MODE: idisk["mode"],
-        constants.IDISK_NAME: str(idisk.get("name")),
-        }
-      spindles = idisk.get("spindles")
-      if spindles is not None:
-        odisk[constants.IDISK_SPINDLES] = spindles
-      disks.append(odisk)
-
-    try:
-      nics = [{
-        constants.INIC_IP: ip,
-        constants.INIC_MAC: mac,
-        constants.INIC_MODE: mode,
-        constants.INIC_LINK: link,
-        constants.INIC_VLAN: vlan,
-        constants.INIC_NETWORK: network,
-        constants.INIC_NAME: nic_name
-        } for nic_name, _, ip, mac, mode, link, vlan, network, _
-          in instance["nics"]]
-    except ValueError:
-      raise Error("Received NIC information does not match expected format; "
-                  "Do the versions of this tool and the source cluster match?")
-
-    if len(override_nics) > len(nics):
-      raise Error("Can not create new NICs")
-
-    if override_nics:
-      assert len(override_nics) <= len(nics)
-      for idx, (nic, override) in enumerate(zip(nics, override_nics)):
-        nics[idx] = objects.FillDict(nic, override)
-
-    if instance["os"]:
-      os_type = instance["os"]
-    else:
-      os_type = None
+    disks = cl.GetDisks(instance)
+    nics = cl.GetNicks(instance, override_nics)
+    os_type = instance.get("os", default=None)
 
     # TODO: Should this be the actual up/down status? (run_state)
     start = (instance["config_state"] == "up")
@@ -639,17 +644,9 @@ class MoveDestExecutor(object):
     assert len(disks) == len(instance["disks"])
     assert len(nics) == len(instance["nics"])
 
-    inst_beparams = instance["be_instance"]
-    if not inst_beparams:
-      inst_beparams = {}
-
-    inst_hvparams = instance["hv_instance"]
-    if not inst_hvparams:
-      inst_hvparams = {}
-
-    inst_osparams = instance["os_instance"]
-    if not inst_osparams:
-      inst_osparams = {}
+    inst_beparams = instance.get("be_instance", default={})
+    inst_hvparams = instance.get("hv_instance", default={})
+    inst_osparams = instance.get("os_instance", default={})
 
     return cl.CreateInstance(constants.INSTANCE_REMOTE_IMPORT,
                              name, disk_template, disks, nics,
@@ -690,7 +687,7 @@ class MoveSourceExecutor(object):
     logging.info("Retrieving instance information from source cluster")
     instinfo = self._GetInstanceInfo(src_client, mrt.PollJob,
                                      mrt.move.src_instance_name)
-    if (instinfo["disk_template"] in constants.DTS_FILEBASED):
+    if instinfo["disk_template"] in constants.DTS_FILEBASED:
       raise Error("Inter-cluster move of file-based instances is not"
                   " supported.")
 
@@ -894,6 +891,56 @@ def ParseOptions():
   return (parser, options, args)
 
 
+def _CheckAllocatorOptions(parser, options):
+  if (bool(options.iallocator) and
+      bool(options.dest_primary_node or options.dest_secondary_node)):
+    parser.error("Destination node and iallocator options exclude each other")
+
+  if not options.iallocator and (options.opportunistic_tries > 0):
+    parser.error("Opportunistic instance creation can only be used with an"
+                 " iallocator")
+
+
+def _CheckOpportunisticLockingOptions(parser, options):
+  tries_specified = options.opportunistic_tries is not None
+  delay_specified = options.opportunistic_delay is not None
+  if tries_specified:
+    if options.opportunistic_tries < 0:
+      parser.error("Number of opportunistic creation attempts must be >= 0")
+    if delay_specified:
+      if options.opportunistic_delay <= 0:
+        parser.error("The delay between two successive creation attempts must"
+                     " be greater than zero")
+  elif delay_specified:
+    parser.error("Opportunistic delay can only be specified when opportunistic"
+                 " tries are used")
+  else:
+    # The default values will be provided later
+    pass
+
+
+def _CheckInstanceOptions(parser, options, instance_names):
+  if len(instance_names) == 1:
+    # Moving one instance only
+    if options.hvparams:
+      utils.ForceDictType(options.hvparams, constants.HVS_PARAMETER_TYPES)
+
+    if options.beparams:
+      utils.ForceDictType(options.beparams, constants.BES_PARAMETER_TYPES)
+
+    if options.nics:
+      options.nics = cli.ParseNicOption(options.nics)
+  else:
+    # Moving more than one instance
+    if (options.dest_instance_name or options.dest_primary_node or
+        options.dest_secondary_node or options.hvparams or
+        options.beparams or options.osparams or options.nics):
+      parser.error("The options --dest-instance-name, --dest-primary-node,"
+                   " --dest-secondary-node, --hypervisor-parameters,"
+                   " --backend-parameters, --os-parameters and --net can"
+                   " only be used when moving exactly one instance")
+
+
 def CheckOptions(parser, options, args):
   """Checks options and arguments for validity.
 
@@ -915,49 +962,9 @@ def CheckOptions(parser, options, args):
   if options.parallel < 1:
     parser.error("Number of simultaneous moves must be >= 1")
 
-  if (bool(options.iallocator) and
-      bool(options.dest_primary_node or options.dest_secondary_node)):
-    parser.error("Destination node and iallocator options exclude each other")
-
-  if (not options.iallocator and (options.opportunistic_tries > 0)):
-    parser.error("Opportunistic instance creation can only be used with an"
-                 " iallocator")
-
-  tries_specified = options.opportunistic_tries is not None
-  delay_specified = options.opportunistic_delay is not None
-  if tries_specified:
-    if options.opportunistic_tries < 0:
-      parser.error("Number of opportunistic creation attempts must be >= 0")
-    if delay_specified:
-      if options.opportunistic_delay <= 0:
-        parser.error("The delay between two successive creation attempts must"
-                     " be greater than zero")
-  elif delay_specified:
-    parser.error("Opportunistic delay can only be specified when opportunistic"
-                 " tries are used")
-  else:
-    # The default values will be provided later
-    pass
-
-  if len(instance_names) == 1:
-    # Moving one instance only
-    if options.hvparams:
-      utils.ForceDictType(options.hvparams, constants.HVS_PARAMETER_TYPES)
-
-    if options.beparams:
-      utils.ForceDictType(options.beparams, constants.BES_PARAMETER_TYPES)
-
-    if options.nics:
-      options.nics = cli.ParseNicOption(options.nics)
-  else:
-    # Moving more than one instance
-    if (options.dest_instance_name or options.dest_primary_node or
-        options.dest_secondary_node or options.hvparams or
-        options.beparams or options.osparams or options.nics):
-      parser.error("The options --dest-instance-name, --dest-primary-node,"
-                   " --dest-secondary-node, --hypervisor-parameters,"
-                   " --backend-parameters, --os-parameters and --net can"
-                   " only be used when moving exactly one instance")
+  _CheckAllocatorOptions(parser, options)
+  _CheckOpportunisticLockingOptions(parser, options)
+  _CheckInstanceOptions(parser, options, instance_names)
 
   return (src_cluster_name, dest_cluster_name, instance_names)
 
@@ -977,6 +984,33 @@ def ExitWithError(message):
   """
   sys.stderr.write("move-instance: error: " + message + "\n")
   sys.exit(constants.EXIT_FAILURE)
+
+
+def _PrepareListOfInstanceMoves(options, instance_names):
+  moves = []
+  for src_instance_name in instance_names:
+    if options.dest_instance_name:
+      assert len(instance_names) == 1
+      # Rename instance
+      dest_instance_name = options.dest_instance_name
+    else:
+      dest_instance_name = src_instance_name
+
+    moves.append(InstanceMove(src_instance_name, dest_instance_name,
+                              options.dest_primary_node,
+                              options.dest_secondary_node,
+                              options.compress,
+                              options.iallocator,
+                              options.dest_disk_template,
+                              options.hvparams,
+                              options.beparams,
+                              options.osparams,
+                              options.nics,
+                              options.opportunistic_tries,
+                              options.opportunistic_delay))
+
+  assert len(moves) == len(instance_names)
+  return moves
 
 
 @UsesRapiClient
@@ -1011,30 +1045,7 @@ def main():
     ExitWithError("Target cluster does not have a default iallocator, "
                   "please specify either destination nodes or an iallocator.")
 
-  # Prepare list of instance moves
-  moves = []
-  for src_instance_name in instance_names:
-    if options.dest_instance_name:
-      assert len(instance_names) == 1
-      # Rename instance
-      dest_instance_name = options.dest_instance_name
-    else:
-      dest_instance_name = src_instance_name
-
-    moves.append(InstanceMove(src_instance_name, dest_instance_name,
-                              options.dest_primary_node,
-                              options.dest_secondary_node,
-                              options.compress,
-                              options.iallocator,
-                              options.dest_disk_template,
-                              options.hvparams,
-                              options.beparams,
-                              options.osparams,
-                              options.nics,
-                              options.opportunistic_tries,
-                              options.opportunistic_delay))
-
-  assert len(moves) == len(instance_names)
+  moves = _PrepareListOfInstanceMoves(options, instance_names)
 
   # Start workerpool
   wp = workerpool.WorkerPool("Move", options.parallel, MoveSourceWorker)
