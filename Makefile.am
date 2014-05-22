@@ -863,6 +863,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils/IORef.hs \
 	src/Ganeti/Utils/Livelock.hs \
 	src/Ganeti/Utils/MonadPlus.hs \
+	src/Ganeti/Utils/MultiMap.hs \
 	src/Ganeti/Utils/MVarLock.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
