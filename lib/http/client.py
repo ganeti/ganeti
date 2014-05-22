@@ -174,7 +174,7 @@ def _StartRequest(curl, req):
   return _PendingRequest(curl, req, resp_buffer.getvalue)
 
 
-class _PendingRequest:
+class _PendingRequest(object):
   def __init__(self, curl, req, resp_buffer_read):
     """Initializes this class.
 
@@ -233,7 +233,7 @@ class _PendingRequest:
       req.completion_cb(req)
 
 
-class _NoOpRequestMonitor: # pylint: disable=W0232
+class _NoOpRequestMonitor(object): # pylint: disable=W0232
   """No-op request monitor.
 
   """
@@ -245,7 +245,7 @@ class _NoOpRequestMonitor: # pylint: disable=W0232
   Disable = acquire
 
 
-class _PendingRequestMonitor:
+class _PendingRequestMonitor(object):
   _LOCK = "_lock"
 
   def __init__(self, owner, pending_fn):

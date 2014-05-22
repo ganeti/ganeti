@@ -54,7 +54,7 @@ def ParseOptions():
   return (opts, args)
 
 
-class State:
+class State(object):
   def __init__(self, thread_count):
     """Initializes this class.
 

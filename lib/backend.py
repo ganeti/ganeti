@@ -1881,7 +1881,7 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
     logging.info("Instance %s not running, doing nothing", iname)
     return
 
-  class _TryShutdown:
+  class _TryShutdown(object):
     def __init__(self):
       self.tried_once = False
 

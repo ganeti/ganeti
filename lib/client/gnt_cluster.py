@@ -1429,7 +1429,7 @@ def _InstanceStart(opts, inst_list, start, no_remember=False):
   return True
 
 
-class _RunWhenNodesReachableHelper:
+class _RunWhenNodesReachableHelper(object):
   """Helper class to make shared internal state sharing easier.
 
   @ivar success: Indicates if all action_cb calls were successful

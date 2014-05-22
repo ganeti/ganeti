@@ -161,6 +161,7 @@
     "os": true,
     "tags": true,
     "rapi": true,
+    "performance": true,
     "test-jobqueue": true,
     "delay": true,
 
@@ -239,6 +240,9 @@
     "instance-communication": true,
 
     "job-list": true,
+
+    "jobqueue-performance": true,
+    "parallel-performance": true,
 
     "# cron/ganeti-watcher should be disabled for these tests": null,
     "instance-automatic-restart": false,

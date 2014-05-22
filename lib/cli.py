@@ -366,7 +366,7 @@ _QFT_NAMES = {
   }
 
 
-class _Argument:
+class _Argument(object):
   def __init__(self, min=0, max=None): # pylint: disable=W0622
     self.min = min
     self.max = max
@@ -2246,7 +2246,7 @@ def GenericPollJob(job_id, cbs, report_cbs):
   raise errors.OpExecError(result)
 
 
-class JobPollCbBase:
+class JobPollCbBase(object):
   """Base class for L{GenericPollJob} callbacks.
 
   """
@@ -2274,7 +2274,7 @@ class JobPollCbBase:
     raise NotImplementedError()
 
 
-class JobPollReportCbBase:
+class JobPollReportCbBase(object):
   """Base class for L{GenericPollJob} reporting callbacks.
 
   """
@@ -2905,7 +2905,7 @@ def GenericInstanceCreate(mode, opts, args):
   return 0
 
 
-class _RunWhileClusterStoppedHelper:
+class _RunWhileClusterStoppedHelper(object):
   """Helper class for L{RunWhileClusterStopped} to simplify state management
 
   """
@@ -3195,7 +3195,7 @@ def _GetColumnFormatter(fdef, override, unit):
   raise NotImplementedError("Can't format column type '%s'" % fdef.kind)
 
 
-class _QueryColumnFormatter:
+class _QueryColumnFormatter(object):
   """Callable class for formatting fields of a query.
 
   """
@@ -3469,7 +3469,7 @@ def GenericListFields(resource, fields, separator, header, cl=None):
   return constants.EXIT_SUCCESS
 
 
-class TableColumn:
+class TableColumn(object):
   """Describes a column for L{FormatTable}.
 
   """

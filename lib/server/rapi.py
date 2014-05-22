@@ -205,7 +205,7 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     return serializer.DumpJson(result)
 
 
-class RapiUsers:
+class RapiUsers(object):
   def __init__(self):
     """Initializes this class.
 

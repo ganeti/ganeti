@@ -157,7 +157,7 @@ def GetHostname(name=None, family=None):
                                (err[0], err[2]), errors.ECODE_RESOLVER)
 
 
-class Hostname:
+class Hostname(object):
   """Class implementing resolver and hostname functionality.
 
   """

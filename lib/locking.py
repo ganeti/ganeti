@@ -971,7 +971,7 @@ class _AcquireTimeout(Exception):
   """
 
 
-class LockSet:
+class LockSet(object):
   """Implements a set of locks.
 
   This abstraction implements a set of shared locks for the same resource type,
