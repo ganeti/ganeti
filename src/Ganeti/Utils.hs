@@ -26,6 +26,11 @@ module Ganeti.Utils
   , debugFn
   , debugXy
   , sepSplit
+  , Statistics
+  , getSumStatistics
+  , getStdDevStatistics
+  , getStatisticValue
+  , updateStatistics
   , stdDev
   , if'
   , select
@@ -143,6 +148,34 @@ stdDev lst =
       mv = sx / ll
       av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
   in sqrt (av / ll) -- stddev
+
+-- | Abstract type of statistical accumulations. They behave as if the given
+-- statistics were computed on the list of values, but they allow a potentially
+-- more efficient update of a given value.
+-- For the time being, we only update the sum efficiently whereas the standard
+-- deviation is recomputed on demand.
+data Statistics = SumStatistics Double | StdDevStatistics [Double] deriving Show
+
+-- | Get a statistics that sums up the values.
+getSumStatistics :: [Double] -> Statistics
+getSumStatistics = SumStatistics . sum
+
+-- | Get a statistics for the standard deviation.
+getStdDevStatistics :: [Double] -> Statistics
+getStdDevStatistics = StdDevStatistics
+
+-- | Obtain the value of a statistics.
+getStatisticValue :: Statistics -> Double
+getStatisticValue (SumStatistics s) = s
+getStatisticValue (StdDevStatistics xs) = stdDev xs
+
+-- | In a given statistics replace on value by another. This
+-- will only give meaningful results, if the original value
+-- was actually part of the statistics.
+updateStatistics :: Statistics -> (Double, Double) -> Statistics
+updateStatistics (SumStatistics s) (x, y) = SumStatistics $ s +  (y - x)
+updateStatistics (StdDevStatistics xs) (x, y) =
+  StdDevStatistics $ (xs \\ [x]) ++ [y]
 
 -- *  Logical functions
 
