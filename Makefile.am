@@ -579,6 +579,7 @@ docinput = \
 	doc/design-cpu-speed.rst \
 	doc/design-daemons.rst \
 	doc/design-device-uuid-name.rst \
+	doc/design-disk-conversion.rst \
 	doc/design-draft.rst \
 	doc/design-file-based-storage.rst \
 	doc/design-glusterfs-ganeti-support.rst \
