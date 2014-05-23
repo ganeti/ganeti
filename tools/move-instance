@@ -637,7 +637,7 @@ class MoveDestExecutor(object):
 
     disks = MoveDestExecutor._GetDisks(instance)
     nics = MoveDestExecutor._GetNics(instance, override_nics)
-    os_type = instance.get("os", default=None)
+    os_type = instance.get("os", None)
 
     # TODO: Should this be the actual up/down status? (run_state)
     start = (instance["config_state"] == "up")
@@ -645,9 +645,9 @@ class MoveDestExecutor(object):
     assert len(disks) == len(instance["disks"])
     assert len(nics) == len(instance["nics"])
 
-    inst_beparams = instance.get("be_instance", default={})
-    inst_hvparams = instance.get("hv_instance", default={})
-    inst_osparams = instance.get("os_instance", default={})
+    inst_beparams = instance.get("be_instance", {})
+    inst_hvparams = instance.get("hv_instance", {})
+    inst_osparams = instance.get("os_instance", {})
 
     return cl.CreateInstance(constants.INSTANCE_REMOTE_IMPORT,
                              name, disk_template, disks, nics,
