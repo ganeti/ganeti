@@ -349,6 +349,11 @@ detailedCVWeights = map fst detailedCVInfo
 detailedCVAggregation :: [([Double] -> Statistics, Bool)]
 detailedCVAggregation = map snd detailedCVInfoExt
 
+-- | The bit vector describing which parts of the statistics are
+-- for online nodes.
+detailedCVOnlineStatus :: [Bool]
+detailedCVOnlineStatus = map snd detailedCVAggregation
+
 -- | Compute statistical measures of a single node.
 compDetailedCVNode :: Node.Node -> [Double]
 compDetailedCVNode node =
@@ -387,9 +392,33 @@ compClusterStatistics all_nodes =
   in zipWith aggregate detailedCVAggregation
        $ zip online_values offline_values
 
+-- | Update a cluster statistics by replacing the contribution of one
+-- node by that of another.
+updateClusterStatistics :: [Statistics]
+                           -> (Node.Node, Node.Node) -> [Statistics]
+updateClusterStatistics stats (old, new) =
+  let update = zip (compDetailedCVNode old) (compDetailedCVNode new)
+      online = not $ Node.offline old
+      updateStat forOnline stat upd = if forOnline == online
+                                        then updateStatistics stat upd
+                                        else stat
+  in zipWith3 updateStat detailedCVOnlineStatus stats update
+
+-- | Update a cluster statistics twice.
+updateClusterStatisticsTwice :: [Statistics]
+                                -> (Node.Node, Node.Node)
+                                -> (Node.Node, Node.Node)
+                                -> [Statistics]
+updateClusterStatisticsTwice s a =
+  updateClusterStatistics (updateClusterStatistics s a)
+
 -- | Compute cluster statistics
 compDetailedCV :: [Node.Node] -> [Double]
 compDetailedCV = map getStatisticValue . compClusterStatistics
+
+-- | Compute the cluster score from its statistics
+compCVfromStats :: [Statistics] -> Double
+compCVfromStats = sum . zipWith (*) detailedCVWeights . map getStatisticValue
 
 -- | Compute the /total/ variance.
 compCVNodes :: [Node.Node] -> Double
@@ -518,9 +547,10 @@ allocateOnSingle nl inst new_pdx =
     return (new_nl, new_inst, [new_p], new_score)
 
 -- | Tries to allocate an instance on a given pair of nodes.
-allocateOnPair :: Node.List -> Instance.Instance -> Ndx -> Ndx
+allocateOnPair :: [Statistics]
+               -> Node.List -> Instance.Instance -> Ndx -> Ndx
                -> OpResult Node.AllocElement
-allocateOnPair nl inst new_pdx new_sdx =
+allocateOnPair stats nl inst new_pdx new_sdx =
   let tgt_p = Container.find new_pdx nl
       tgt_s = Container.find new_sdx nl
   in do
@@ -530,7 +560,9 @@ allocateOnPair nl inst new_pdx new_sdx =
     new_s <- Node.addSec tgt_s inst new_pdx
     let new_inst = Instance.setBoth inst new_pdx new_sdx
         new_nl = Container.addTwo new_pdx new_p new_sdx new_s nl
-    return (new_nl, new_inst, [new_p, new_s], compCV new_nl)
+        new_stats = updateClusterStatisticsTwice stats
+                      (tgt_p, new_p) (tgt_s, new_s)
+    return (new_nl, new_inst, [new_p, new_s], compCVfromStats new_stats)
 
 -- | Tries to perform an instance move and returns the best table
 -- between the original one and the new one.
@@ -801,10 +833,11 @@ tryAlloc :: (Monad m) =>
          -> m AllocSolution   -- ^ Possible solution list
 tryAlloc _  _ _    (Right []) = fail "Not enough online nodes"
 tryAlloc nl _ inst (Right ok_pairs) =
-  let psols = parMap rwhnf (\(p, ss) ->
+  let cstat = compClusterStatistics $ Container.elems nl
+      psols = parMap rwhnf (\(p, ss) ->
                               foldl' (\cstate ->
                                         concatAllocs cstate .
-                                        allocateOnPair nl inst p)
+                                        allocateOnPair cstat nl inst p)
                               emptyAllocSolution ss) ok_pairs
       sols = foldl' sumAllocs emptyAllocSolution psols
   in return $ annotateSolution sols
