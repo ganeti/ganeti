@@ -43,6 +43,7 @@ from ganeti import rapi
 from ganeti import errors
 
 import ganeti.rapi.client # pylint: disable=W0611
+import ganeti.rapi.client_utils
 from ganeti.rapi.client import UsesRapiClient
 
 
