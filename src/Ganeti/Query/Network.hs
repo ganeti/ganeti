@@ -137,14 +137,13 @@ getNicLink nic_params = fromMaybe "-" (nicpLinkP nic_params)
 -- | Retrieves the network's instances' names.
 getInstances :: ConfigData -> String -> [String]
 getInstances cfg network_uuid =
-  map instName (filter (instIsConnected cfg network_uuid)
+  map instName (filter (instIsConnected network_uuid)
     ((Map.elems . fromContainer . configInstances) cfg))
 
 -- | Helper function that checks if an instance is linked to the given network.
-instIsConnected :: ConfigData -> String -> Instance -> Bool
-instIsConnected cfg network_uuid inst =
-  network_uuid `elem` mapMaybe (getNetworkUuid cfg)
-    (mapMaybe nicNetwork (instNics inst))
+instIsConnected :: String -> Instance -> Bool
+instIsConnected network_uuid inst =
+  network_uuid `elem` mapMaybe nicNetwork (instNics inst)
 
 -- | Helper function to look up a network's UUID by its name
 getNetworkUuid :: ConfigData -> String -> Maybe String

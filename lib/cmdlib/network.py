@@ -465,7 +465,7 @@ class NetworkQuery(QueryBase):
       for instance in all_instances.values():
         for nic in instance.nics:
           if nic.network in network_uuids:
-            network_to_instances[nic.network].append(instance.uuid)
+            network_to_instances[nic.network].append(instance.name)
             break
 
     if query.NETQ_STATS in self.requested_data:
