@@ -256,9 +256,16 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpInstanceRename <$> genFQDN <*> return Nothing <*>
           genNodeNameNE <*> arbitrary <*> arbitrary
       "OP_INSTANCE_STARTUP" ->
-        OpCodes.OpInstanceStartup <$> genFQDN <*> return Nothing <*>
-          arbitrary <*> arbitrary <*> pure emptyJSObject <*>
-          pure emptyJSObject <*> arbitrary <*> arbitrary
+        OpCodes.OpInstanceStartup <$>
+          genFQDN <*>             -- instance_name
+          return Nothing <*>      -- instance_uuid
+          arbitrary <*>           -- force
+          arbitrary <*>           -- ignore_offline_nodes
+          pure emptyJSObject <*>  -- hvparams
+          pure emptyJSObject <*>  -- beparams
+          arbitrary <*>           -- no_remember
+          arbitrary <*>           -- startup_paused
+          arbitrary               -- shutdown_timeout
       "OP_INSTANCE_SHUTDOWN" ->
         OpCodes.OpInstanceShutdown <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary

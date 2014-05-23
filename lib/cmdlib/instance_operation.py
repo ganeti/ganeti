@@ -145,12 +145,14 @@ class LUInstanceStartup(LogicalUnit):
       remote_info.Raise("Error checking node %s" %
                         self.cfg.GetNodeName(self.instance.primary_node),
                         prereq=True, ecode=errors.ECODE_ENVIRON)
+
+      self.requires_cleanup = False
+
       if remote_info.payload:
-        if hv_base.HvInstanceState.IsShutdown(remote_info.payload["state"]):
-          raise errors.OpPrereqError("Instance '%s' was shutdown by the user,"
-                                     " please shutdown the instance before"
-                                     " starting it again" % self.instance.name,
-                                     errors.ECODE_INVAL)
+        if _IsInstanceUserDown(self.cfg.GetClusterInfo(),
+                               self.instance,
+                               remote_info.payload):
+          self.requires_cleanup = True
       else: # not running already
         CheckNodeFreeMemory(
             self, self.instance.primary_node,
@@ -169,6 +171,15 @@ class LUInstanceStartup(LogicalUnit):
       assert self.op.ignore_offline_nodes
       self.LogInfo("Primary node offline, marked instance as started")
     else:
+      if self.requires_cleanup:
+        result = self.rpc.call_instance_shutdown(
+          self.instance.primary_node,
+          self.instance,
+          self.op.shutdown_timeout, self.op.reason)
+        result.Raise("Could not shutdown instance '%s'", self.instance.name)
+
+        ShutdownInstanceDisks(self, self.instance)
+
       StartInstanceDisks(self, self.instance, self.op.force)
 
       result = \
