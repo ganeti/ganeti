@@ -551,7 +551,7 @@ class MoveDestExecutor(object):
       mrt.dest_to_source.release()
 
   @staticmethod
-  def GetDisks(instance):
+  def _GetDisks(instance):
     disks = []
     for idisk in instance["disks"]:
       odisk = {
@@ -566,7 +566,7 @@ class MoveDestExecutor(object):
     return disks
 
   @staticmethod
-  def GetNics(instance, override_nics):
+  def _GetNics(instance, override_nics):
     try:
       nics = [{
         constants.INIC_IP: ip,
@@ -635,8 +635,8 @@ class MoveDestExecutor(object):
     else:
       disk_template = instance["disk_template"]
 
-    disks = cl.GetDisks(instance)
-    nics = cl.GetNicks(instance, override_nics)
+    disks = MoveDestExecutor._GetDisks(instance)
+    nics = MoveDestExecutor._GetNics(instance, override_nics)
     os_type = instance.get("os", default=None)
 
     # TODO: Should this be the actual up/down status? (run_state)
