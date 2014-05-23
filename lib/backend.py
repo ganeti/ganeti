@@ -1424,15 +1424,11 @@ def GetInstanceListForHypervisor(hname, hvparams=None,
     - instance2.example.com
 
   """
-  results = []
   try:
-    hv = get_hv_fn(hname)
-    names = hv.ListInstances(hvparams=hvparams)
-    results.extend(names)
+    return get_hv_fn(hname).ListInstances(hvparams=hvparams)
   except errors.HypervisorError, err:
     _Fail("Error enumerating instances (hypervisor %s): %s",
           hname, err, exc=True)
-  return results
 
 
 def GetInstanceList(hypervisor_list, all_hvparams=None,
