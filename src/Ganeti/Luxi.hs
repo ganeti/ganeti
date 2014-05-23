@@ -289,7 +289,7 @@ decodeLuxiCall method args = do
               return $ SetDrainFlag flag
     ReqSetWatcherPause -> do
               let duration = case args of
-                               JSArray [JSRational _ x] 
+                               JSArray [JSRational _ x]
                                  -> Just (fromRational x :: Double)
                                _ -> Nothing
               return $ SetWatcherPause duration
