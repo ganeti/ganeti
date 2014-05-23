@@ -1507,7 +1507,7 @@ def GetInstanceMigratable(instance):
   """
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
   iname = instance.name
-  if iname not in hyper.ListInstances(instance.hvparams):
+  if iname not in hyper.ListInstances(hvparams=instance.hvparams):
     _Fail("Instance %s is not running", iname)
 
   for idx in range(len(instance.disks)):
@@ -1868,7 +1868,7 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
   hyper = hypervisor.GetHypervisor(hv_name)
   iname = instance.name
 
-  if instance.name not in hyper.ListInstances(instance.hvparams):
+  if instance.name not in hyper.ListInstances(hvparams=instance.hvparams):
     logging.info("Instance %s not running, doing nothing", iname)
     return
 
@@ -1877,7 +1877,7 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
       self.tried_once = False
 
     def __call__(self):
-      if iname not in hyper.ListInstances(instance.hvparams):
+      if iname not in hyper.ListInstances(hvparams=instance.hvparams):
         return
 
       try:
@@ -1885,7 +1885,7 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
         if store_reason:
           _StoreInstReasonTrail(instance.name, reason)
       except errors.HypervisorError, err:
-        if iname not in hyper.ListInstances(instance.hvparams):
+        if iname not in hyper.ListInstances(hvparams=instance.hvparams):
           # if the instance is no longer existing, consider this a
           # success and go to cleanup
           return
@@ -1905,14 +1905,14 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
     try:
       hyper.StopInstance(instance, force=True)
     except errors.HypervisorError, err:
-      if iname in hyper.ListInstances(instance.hvparams):
+      if iname in hyper.ListInstances(hvparams=instance.hvparams):
         # only raise an error if the instance still exists, otherwise
         # the error could simply be "instance ... unknown"!
         _Fail("Failed to force stop instance %s: %s", iname, err)
 
     time.sleep(1)
 
-    if iname in hyper.ListInstances(instance.hvparams):
+    if iname in hyper.ListInstances(hvparams=instance.hvparams):
       _Fail("Could not shutdown instance %s even by destroy", iname)
 
   try:
@@ -1981,7 +1981,7 @@ def InstanceBalloonMemory(instance, memory):
 
   """
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
-  running = hyper.ListInstances(instance.hvparams)
+  running = hyper.ListInstances(hvparams=instance.hvparams)
   if instance.name not in running:
     logging.info("Instance %s is not running, cannot balloon", instance.name)
     return
