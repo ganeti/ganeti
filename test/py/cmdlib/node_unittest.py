@@ -242,8 +242,8 @@ class TestLUNodeAdd(CmdlibTestCase):
         .Build()
 
     op = self.CopyOpCode(self.op_add)
-    self.ExecOpCodeExpectOpExecError(op, "Can't get version information from"
-                                     " node %s" % self.node_add.name)
+    self.ExecOpCodeExpectOpPrereqError(op, "Can't get version information from"
+                                       " node %s" % self.node_add.name)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
