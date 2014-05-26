@@ -166,7 +166,7 @@ enhanceInstWithNets inst nets = do
   uuid <- arbitrary
   -- generate some more networks than the given ones
   num_more_nets <- choose (0,3)
-  more_nets <- vectorOf num_more_nets genName
+  more_nets <- vectorOf num_more_nets genUUID
   let genNic net = PartialNic mac ip nicparams net name uuid
       partial_nics = map (genNic . Just)
                          (List.nub (nets ++ more_nets))

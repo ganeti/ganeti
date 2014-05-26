@@ -68,7 +68,9 @@ isNodeBig size node = Node.availDisk node > size * Types.unitDsk
                       && Node.availCpu node > size * Types.unitCpu
 
 canBalance :: Cluster.Table -> Bool -> Bool -> Bool -> Bool
-canBalance tbl dm im evac = isJust $ Cluster.tryBalance tbl dm im evac False 0 0
+canBalance tbl@(Cluster.Table _ _ ini_cv _)  dm im evac =
+  maybe False (\(Cluster.Table _ _ fin_cv _) -> ini_cv - fin_cv > 1e-12)
+  $ Cluster.tryBalance tbl dm im evac False 0 0
 
 -- | Assigns a new fresh instance to a cluster; this is not
 -- allocation, so no resource checks are done.
@@ -147,8 +149,8 @@ prop_Alloc_sane inst =
                  tbl = Cluster.Table xnl il' cv []
              in printTestCase "Cluster can be balanced after allocation"
                   (not (canBalance tbl True True False)) .&&.
-                printTestCase "Solution score differs from actual node list:"
-                  (Cluster.compCV xnl ==? cv)
+                printTestCase "Solution score differs from actual node list"
+                  (abs (Cluster.compCV xnl - cv) < 1e-12)
 
 -- | Checks that on a 2-5 node cluster, we can allocate a random
 -- instance spec via tiered allocation (whatever the original instance
