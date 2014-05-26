@@ -270,6 +270,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> pure emptyJSObject              -- beparams
           <*> arbitrary                       -- disks
           <*> arbitrary                       -- disk_template
+          <*> genMaybe genNameNE              -- group_name
           <*> arbitrary                       -- file_driver
           <*> genMaybe genNameNE              -- file_storage_dir
           <*> pure emptyJSObject              -- hvparams
@@ -416,7 +417,8 @@ instance Arbitrary OpCodes.OpCode where
           (genTags >>= mapM mkNonEmpty) <*>
           arbitrary <*> arbitrary <*> genMaybe genNameNE <*>
           arbitrary <*> genMaybe genNodeNamesNE <*> arbitrary <*>
-          genMaybe genNamesNE <*> arbitrary <*> arbitrary
+          genMaybe genNamesNE <*> arbitrary <*> arbitrary <*>
+          genMaybe genNameNE
       "OP_TEST_JQUEUE" ->
         OpCodes.OpTestJqueue <$> arbitrary <*> arbitrary <*>
           resize 20 (listOf genFQDN) <*> arbitrary

@@ -125,6 +125,7 @@ def _CreateInstanceAllocRequest(op, disks, nics, beparams, node_name_whitelist):
   spindle_use = beparams[constants.BE_SPINDLE_USE]
   return iallocator.IAReqInstanceAlloc(name=op.instance_name,
                                        disk_template=op.disk_template,
+                                       group_name=op.group_name,
                                        tags=op.tags,
                                        os=op.os_type,
                                        vcpus=beparams[constants.BE_VCPUS],

@@ -40,7 +40,8 @@ ADD
 | [--os-parameters-private *param*=*value*... ]
 | [--os-parameters-secret *param*=*value*... ]
 | [\--file-storage-dir *dir\_path*] [\--file-driver {loop \| blktap \| blktap2}]
-| {{-n|\--node} *node[:secondary-node]* \| {-I|\--iallocator} *name*}
+| {{-n|\--node} *node[:secondary-node]* \| {-I|\--iallocator} *name*
+   \| {-g|--node-group} *nodegroup*}
 | {{-o|\--os-type} *os-type*}
 | [\--submit] [\--print-job-id]
 | [\--ignore-ipolicy]
@@ -873,6 +874,9 @@ to use (``.`` means the default allocator). If you pass in this option
 the allocator will select nodes for this instance automatically, so you
 don't need to pass them with the ``-n`` option. For more information
 please refer to the instance allocator documentation.
+
+The ``-g (--node-group)`` option can be used to create the instance
+in a particular node group, specified by name.
 
 The ``-t (--disk-template)`` options specifies the disk layout type
 for the instance. If no disk template is specified, the default disk

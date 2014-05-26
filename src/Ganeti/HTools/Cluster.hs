@@ -29,7 +29,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.HTools.Cluster
   (
     -- * Types
-    AllocSolution(..)
+    AllocDetails(..)
+  , AllocSolution(..)
   , EvacSolution(..)
   , Table(..)
   , CStats(..)
@@ -63,6 +64,7 @@ module Ganeti.HTools.Cluster
   -- * IAllocator functions
   , genAllocNodes
   , tryAlloc
+  , tryGroupAlloc
   , tryMGAlloc
   , tryNodeEvac
   , tryChangeGroup
@@ -77,8 +79,9 @@ module Ganeti.HTools.Cluster
   , splitCluster
   ) where
 
-import Control.Applicative (liftA2)
+import Control.Applicative ((<$>), liftA2)
 import Control.Arrow ((&&&))
+import Control.Monad (unless)
 import qualified Data.IntSet as IntSet
 import Data.List
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
@@ -98,6 +101,12 @@ import Ganeti.Utils
 import Ganeti.Types (EvacMode(..), mkNonEmpty)
 
 -- * Types
+
+-- | Allocation details for an instance, specifying
+-- | required number of nodes, and
+-- | an optional group (name) to allocate to
+data AllocDetails = AllocDetails Int (Maybe String)
+                    deriving (Show)
 
 -- | Allocation\/relocation solution.
 data AllocSolution = AllocSolution
@@ -842,6 +851,12 @@ sortMGResults sols =
                              (extractScore . fromJust . asSolution) sol)
   in sortBy (comparing solScore) sols
 
+-- | Determines if a group is connected to the networks required by the
+-- | instance.
+hasRequiredNetworks :: Group.Group -> Instance.Instance -> Bool
+hasRequiredNetworks ng = all hasNetwork . Instance.nics
+  where hasNetwork = maybe True (`elem` Group.networks ng) . Nic.network
+
 -- | Removes node groups which can't accommodate the instance
 filterValidGroups :: [(Group.Group, (Node.List, Instance.List))]
                   -> Instance.Instance
@@ -849,16 +864,31 @@ filterValidGroups :: [(Group.Group, (Node.List, Instance.List))]
 filterValidGroups [] _ = ([], [])
 filterValidGroups (ng:ngs) inst =
   let (valid_ngs, msgs) = filterValidGroups ngs inst
-      hasNetwork nic = case Nic.network nic of
-        Just net -> net `elem` Group.networks (fst ng)
-        Nothing -> True
-      hasRequiredNetworks = all hasNetwork (Instance.nics inst)
-  in if hasRequiredNetworks
+  in if hasRequiredNetworks (fst ng) inst
       then (ng:valid_ngs, msgs)
       else (valid_ngs,
             ("group " ++ Group.name (fst ng) ++
              " is not connected to a network required by instance " ++
              Instance.name inst):msgs)
+
+-- | Finds an allocation solution for an instance on a group
+findAllocation :: Group.List           -- ^ The group list
+               -> Node.List            -- ^ The node list
+               -> Instance.List        -- ^ The instance list
+               -> Gdx                  -- ^ The group to allocate to
+               -> Instance.Instance    -- ^ The instance to allocate
+               -> Int                  -- ^ Required number of nodes
+               -> Result (AllocSolution, [String])
+findAllocation mggl mgnl mgil gdx inst cnt = do
+  let belongsTo nl' nidx = nidx `elem` map Node.idx (Container.elems nl')
+      nl = Container.filter ((== gdx) . Node.group) mgnl
+      il = Container.filter (belongsTo nl . Instance.pNode) mgil
+      group' = Container.find gdx mggl
+  unless (hasRequiredNetworks group' inst) . failError
+         $ "The group " ++ Group.name group' ++ " is not connected to\
+           \ a network required by instance " ++ Instance.name inst
+  solution <- genAllocNodes mggl nl cnt False >>= tryAlloc nl il inst
+  return (solution, solutionDescription (group', return solution))
 
 -- | Finds the best group for an instance on a multi-group cluster.
 --
@@ -909,6 +939,19 @@ tryMGAlloc mggl mgnl mgil inst cnt = do
       selmsg = "Selected group: " ++ group_name
   return $ solution { asLog = selmsg:all_msgs }
 
+-- | Try to allocate an instance to a group.
+tryGroupAlloc :: Group.List           -- ^ The group list
+              -> Node.List            -- ^ The node list
+              -> Instance.List        -- ^ The instance list
+              -> String               -- ^ The allocation group (name)
+              -> Instance.Instance    -- ^ The instance to allocate
+              -> Int                  -- ^ Required number of nodes
+              -> Result AllocSolution -- ^ Solution
+tryGroupAlloc mggl mgnl ngil gn inst cnt = do
+  gdx <- Group.idx <$> Container.findByName mggl gn
+  (solution, msgs) <- findAllocation mggl mgnl ngil gdx inst cnt
+  return $ solution { asLog = msgs }
+
 -- | Calculate the new instance list after allocation solution.
 updateIl :: Instance.List           -- ^ The original instance list
          -> Maybe Node.AllocElement -- ^ The result of the allocation attempt
@@ -924,16 +967,21 @@ extractNl nl Nothing = nl
 extractNl _ (Just (xnl, _, _, _)) = xnl
 
 -- | Try to allocate a list of instances on a multi-group cluster.
-allocList :: Group.List                  -- ^ The group list
-          -> Node.List                   -- ^ The node list
-          -> Instance.List               -- ^ The instance list
-          -> [(Instance.Instance, Int)]  -- ^ The instance to allocate
-          -> AllocSolutionList           -- ^ Possible solution list
+allocList :: Group.List                                -- ^ The group list
+          -> Node.List                                 -- ^ The node list
+          -> Instance.List                             -- ^ The instance list
+          -> [(Instance.Instance, AllocDetails)]       -- ^ The instance to
+                                                       --   allocate
+          -> AllocSolutionList                         -- ^ Possible solution
+                                                       --   list
           -> Result (Node.List, Instance.List,
-                     AllocSolutionList)  -- ^ The final solution list
+                     AllocSolutionList)                -- ^ The final solution
+                                                       --   list
 allocList _  nl il [] result = Ok (nl, il, result)
-allocList gl nl il ((xi, xicnt):xies) result = do
-  ares <- tryMGAlloc gl nl il xi xicnt
+allocList gl nl il ((xi, AllocDetails xicnt mgn):xies) result = do
+  ares <- case mgn of
+    Nothing -> tryMGAlloc gl nl il xi xicnt
+    Just gn -> tryGroupAlloc gl nl il gn xi xicnt
   let sol = asSolution ares
       nl' = extractNl nl sol
       il' = updateIl il sol

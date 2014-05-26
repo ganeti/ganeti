@@ -211,10 +211,11 @@ parseData now body = do
       _ | optype == C.iallocatorModeAlloc ->
             do
               rname     <- extrReq "name"
+              rgn       <- maybeFromObj request "group_name"
               req_nodes <- extrReq "required_nodes"
               inew      <- parseBaseInstance rname request
               let io = updateExclTags (extractExTags ctags) $ snd inew
-              return $ Allocate io req_nodes
+              return $ Allocate io (Cluster.AllocDetails req_nodes rgn)
         | optype == C.iallocatorModeReloc ->
             do
               rname     <- extrReq "name"
@@ -243,14 +244,16 @@ parseData now body = do
             do
               arry <- extrReq "instances" :: Result [JSObject JSValue]
               let inst_reqs = map fromJSObject arry
-              prqs <- mapM (\r ->
+              prqs <- forM inst_reqs (\r ->
                                do
                                  rname     <- extrFromReq r "name"
+                                 rgn       <- maybeFromObj request "group_name"
                                  req_nodes <- extrFromReq r "required_nodes"
                                  inew      <- parseBaseInstance rname r
                                  let io = updateExclTags (extractExTags ctags)
                                             $ snd inew
-                                 return (io, req_nodes)) inst_reqs
+                                 return (io, Cluster.AllocDetails
+                                               req_nodes rgn))
               return $ MultiAllocate prqs
         | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
   return (msgs, Request rqtype cdata)
@@ -399,8 +402,10 @@ processRequest :: Request -> Result IAllocResult
 processRequest request =
   let Request rqtype (ClusterData gl nl il _ _) = request
   in case rqtype of
-       Allocate xi reqn ->
+       Allocate xi (Cluster.AllocDetails reqn Nothing) ->
          Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate il
+       Allocate xi (Cluster.AllocDetails reqn (Just gn)) ->
+         Cluster.tryGroupAlloc gl nl il gn xi reqn >>= formatAllocate il
        Relocate idx reqn exnodes ->
          processRelocate gl nl il idx reqn exnodes >>= formatRelocate
        ChangeGroup gdxs idxs ->

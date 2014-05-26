@@ -126,6 +126,7 @@ class TestLUTestAllocator(CmdlibTestCase):
                       memory=0,
                       disk_template=constants.DT_DISKLESS,
                       os="mock_os",
+                      group_name="default",
                       vcpus=1)
     self.valid_multi_alloc_op = \
       self.CopyOpCode(self.base_op,
@@ -134,6 +135,7 @@ class TestLUTestAllocator(CmdlibTestCase):
                       memory=0,
                       disk_template=constants.DT_DISKLESS,
                       os="mock_os",
+                      group_name="default",
                       vcpus=1)
     self.valid_reloc_op = \
       self.CopyOpCode(self.base_op,

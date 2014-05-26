@@ -430,6 +430,7 @@ $(genOpCode "OpCode"
      , pInstBeParams
      , pInstDisks
      , pOptDiskTemplate
+     , pOptGroupName
      , pFileDriver
      , pFileStorageDir
      , pInstHvParams
@@ -857,6 +858,7 @@ $(genOpCode "OpCode"
      , pTargetGroups
      , pIAllocatorSpindleUse
      , pIAllocatorCount
+     , pOptGroupName
      ],
      "iallocator")
   , ("OpTestJqueue",

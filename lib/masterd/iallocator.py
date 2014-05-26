@@ -158,6 +158,7 @@ class IAReqInstanceAlloc(IARequestBase):
     ("spindle_use", ht.TNonNegativeInt),
     ("disks", ht.TListOf(ht.TDict)),
     ("disk_template", ht.TString),
+    ("group_name", ht.TMaybe(ht.TNonEmptyString)),
     ("os", ht.TString),
     ("tags", _STRING_LIST),
     ("nics", ht.TListOf(ht.TDict)),
@@ -188,6 +189,7 @@ class IAReqInstanceAlloc(IARequestBase):
     return {
       "name": self.name,
       "disk_template": self.disk_template,
+      "group_name": self.group_name,
       "tags": self.tags,
       "os": self.os,
       "vcpus": self.vcpus,
