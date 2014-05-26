@@ -55,6 +55,7 @@ from ganeti import errors
 from ganeti import utils
 from ganeti import ssh
 from ganeti import hypervisor
+from ganeti.hypervisor import hv_base
 from ganeti import constants
 from ganeti.storage import bdev
 from ganeti.storage import drbd
@@ -1810,6 +1811,18 @@ def _GatherAndLinkBlockDevs(instance):
   return block_devices
 
 
+def _IsInstanceUserDown(instance_info):
+  return instance_info and \
+      "state" in instance_info and \
+      hv_base.HvInstanceState.IsShutdown(instance_info["state"])
+
+
+def _GetInstanceInfo(instance):
+  """Helper function L{GetInstanceInfo}"""
+  return GetInstanceInfo(instance.name, instance.hypervisor,
+                         hvparams=instance.hvparams)
+
+
 def StartInstance(instance, startup_paused, reason, store_reason=True):
   """Start an instance.
 
@@ -1824,11 +1837,10 @@ def StartInstance(instance, startup_paused, reason, store_reason=True):
   @rtype: None
 
   """
-  running_instances = GetInstanceListForHypervisor(instance.hypervisor,
-                                                   instance.hvparams)
+  instance_info = _GetInstanceInfo(instance)
 
-  if instance.name in running_instances:
-    logging.info("Instance %s already running, not starting", instance.name)
+  if instance_info and not _IsInstanceUserDown(instance_info):
+    logging.info("Instance '%s' already running, not starting", instance.name)
     return
 
   try:
@@ -1860,12 +1872,10 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
   @rtype: None
 
   """
-  hv_name = instance.hypervisor
-  hyper = hypervisor.GetHypervisor(hv_name)
-  iname = instance.name
+  hyper = hypervisor.GetHypervisor(instance.hypervisor)
 
-  if instance.name not in hyper.ListInstances(hvparams=instance.hvparams):
-    logging.info("Instance %s not running, doing nothing", iname)
+  if not _GetInstanceInfo(instance):
+    logging.info("Instance '%s' not running, doing nothing", instance.name)
     return
 
   class _TryShutdown(object):
@@ -1873,7 +1883,7 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
       self.tried_once = False
 
     def __call__(self):
-      if iname not in hyper.ListInstances(hvparams=instance.hvparams):
+      if not _GetInstanceInfo(instance):
         return
 
       try:
@@ -1881,12 +1891,12 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
         if store_reason:
           _StoreInstReasonTrail(instance.name, reason)
       except errors.HypervisorError, err:
-        if iname not in hyper.ListInstances(hvparams=instance.hvparams):
-          # if the instance is no longer existing, consider this a
-          # success and go to cleanup
+        # if the instance is no longer existing, consider this a
+        # success and go to cleanup
+        if not _GetInstanceInfo(instance):
           return
 
-        _Fail("Failed to stop instance %s: %s", iname, err)
+        _Fail("Failed to stop instance '%s': %s", instance.name, err)
 
       self.tried_once = True
 
@@ -1896,27 +1906,27 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
     utils.Retry(_TryShutdown(), 5, timeout)
   except utils.RetryTimeout:
     # the shutdown did not succeed
-    logging.error("Shutdown of '%s' unsuccessful, forcing", iname)
+    logging.error("Shutdown of '%s' unsuccessful, forcing", instance.name)
 
     try:
       hyper.StopInstance(instance, force=True)
     except errors.HypervisorError, err:
-      if iname in hyper.ListInstances(hvparams=instance.hvparams):
-        # only raise an error if the instance still exists, otherwise
-        # the error could simply be "instance ... unknown"!
-        _Fail("Failed to force stop instance %s: %s", iname, err)
+      # only raise an error if the instance still exists, otherwise
+      # the error could simply be "instance ... unknown"!
+      if _GetInstanceInfo(instance):
+        _Fail("Failed to force stop instance '%s': %s", instance.name, err)
 
     time.sleep(1)
 
-    if iname in hyper.ListInstances(hvparams=instance.hvparams):
-      _Fail("Could not shutdown instance %s even by destroy", iname)
+    if _GetInstanceInfo(instance):
+      _Fail("Could not shutdown instance '%s' even by destroy", instance.name)
 
   try:
     hyper.CleanupInstance(instance.name)
   except errors.HypervisorError, err:
     logging.warning("Failed to execute post-shutdown cleanup step: %s", err)
 
-  _RemoveBlockDevLinks(iname, instance.disks)
+  _RemoveBlockDevLinks(instance.name, instance.disks)
 
 
 def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
@@ -1942,18 +1952,18 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
   @rtype: None
 
   """
-  running_instances = GetInstanceListForHypervisor(instance.hypervisor,
-                                                   instance.hvparams)
-
-  if instance.name not in running_instances:
-    _Fail("Cannot reboot instance %s that is not running", instance.name)
+  # TODO: this is inconsistent with 'StartInstance' and 'InstanceShutdown'
+  # because those functions simply 'return' on error whereas this one
+  # raises an exception with '_Fail'
+  if not _GetInstanceInfo(instance):
+    _Fail("Cannot reboot instance '%s' that is not running", instance.name)
 
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
   if reboot_type == constants.INSTANCE_REBOOT_SOFT:
     try:
       hyper.RebootInstance(instance)
     except errors.HypervisorError, err:
-      _Fail("Failed to soft reboot instance %s: %s", instance.name, err)
+      _Fail("Failed to soft reboot instance '%s': %s", instance.name, err)
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
       InstanceShutdown(instance, shutdown_timeout, reason, store_reason=False)
@@ -1961,9 +1971,9 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
       _StoreInstReasonTrail(instance.name, reason)
       return result
     except errors.HypervisorError, err:
-      _Fail("Failed to hard reboot instance %s: %s", instance.name, err)
+      _Fail("Failed to hard reboot instance '%s': %s", instance.name, err)
   else:
-    _Fail("Invalid reboot_type received: %s", reboot_type)
+    _Fail("Invalid reboot_type received: '%s'", reboot_type)
 
 
 def InstanceBalloonMemory(instance, memory):
