@@ -68,6 +68,7 @@ module Ganeti.Config
 import Control.Monad (liftM)
 import qualified Data.Foldable as F
 import Data.List (foldl', nub)
+import Data.Monoid
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Text.JSON as J
@@ -365,13 +366,23 @@ getInstDisksFromObj :: ConfigData -> Instance -> ErrorResult [Disk]
 getInstDisksFromObj cfg =
   getInstDisks cfg . instUuid
 
+-- | Collects a value for all DRBD disks
+collectFromDrbdDisks
+  :: (Monoid a)
+  => (String -> String -> Int -> Int -> Int -> DRBDSecret -> a)
+  -- ^ NodeA, NodeB, Port, MinorA, MinorB, Secret
+  -> Disk -> a
+collectFromDrbdDisks f = col
+  where
+    col Disk { diskLogicalId = (LIDDrbd8 nA nB port mA mB secret)
+             , diskChildren = ch
+             } = f nA nB port mA mB secret <> F.foldMap col ch
+    col d = F.foldMap col (diskChildren d)
+
 -- | Returns the DRBD minors of a given 'Disk'
 getDrbdMinorsForDisk :: Disk -> [(Int, String)]
-getDrbdMinorsForDisk Disk { diskLogicalId = (LIDDrbd8 nA nB _ mnA mnB _)
-                          , diskChildren = ch
-                          } = [(mnA, nA), (mnB, nB)] ++
-                              concatMap getDrbdMinorsForDisk ch
-getDrbdMinorsForDisk d = concatMap getDrbdMinorsForDisk (diskChildren d)
+getDrbdMinorsForDisk =
+  collectFromDrbdDisks (\nA nB _ mnA mnB _ -> [(mnA, nA), (mnB, nB)])
 
 -- | Filters DRBD minors for a given node.
 getDrbdMinorsForNode :: String -> Disk -> [(Int, String)]
