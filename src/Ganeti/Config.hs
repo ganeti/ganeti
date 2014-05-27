@@ -61,6 +61,7 @@ module Ganeti.Config
     , getNetwork
     , MAC
     , getAllMACs
+    , getAllDrbdSecrets
     , buildLinkIpInstnameMap
     , instNodes
     ) where
@@ -379,6 +380,10 @@ collectFromDrbdDisks f = col
              } = f nA nB port mA mB secret <> F.foldMap col ch
     col d = F.foldMap col (diskChildren d)
 
+-- | Returns the DRBD secrets of a given 'Disk'
+getDrbdSecretsForDisk :: Disk -> [DRBDSecret]
+getDrbdSecretsForDisk = collectFromDrbdDisks (\_ _ _ _ _ secret -> [secret])
+
 -- | Returns the DRBD minors of a given 'Disk'
 getDrbdMinorsForDisk :: Disk -> [(Int, String)]
 getDrbdMinorsForDisk =
@@ -495,6 +500,11 @@ type MAC = String
 -- | Returns all MAC addresses used in the cluster.
 getAllMACs :: ConfigData -> [MAC]
 getAllMACs = F.foldMap (map nicMac . instNics) . configInstances
+
+-- ** DRBD secrets
+
+getAllDrbdSecrets :: ConfigData -> [DRBDSecret]
+getAllDrbdSecrets = F.foldMap getDrbdSecretsForDisk . configDisks
 
 -- * ND params
 
