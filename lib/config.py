@@ -286,11 +286,10 @@ class ConfigWriter(object):
       self._cfg_file = cfg_file
     self._getents = _getents
     self._temporary_ids = TemporaryReservationManager()
-    self._temporary_secrets = TemporaryReservationManager()
     self._temporary_lvs = TemporaryReservationManager()
     self._temporary_ips = TemporaryReservationManager()
     self._all_rms = [self._temporary_ids,
-                     self._temporary_secrets, self._temporary_lvs,
+                     self._temporary_lvs,
                      self._temporary_ips]
     # Note: in order to prevent errors when resolving our name later,
     # we compute it here once and reuse it; it's
@@ -805,16 +804,13 @@ class ConfigWriter(object):
     else:
       self._temporary_lvs.Reserve(ec_id, lv_name)
 
-  @_ConfigSync(shared=1)
-  def GenerateDRBDSecret(self, ec_id):
+  def GenerateDRBDSecret(self, _ec_id):
     """Generate a DRBD secret.
 
     This checks the current disks for duplicates.
 
     """
-    return self._temporary_secrets.Generate(self._AllDRBDSecrets(),
-                                            utils.GenerateSecret,
-                                            ec_id)
+    return self._wconfd.GenerateDRBDSecret(self._GetWConfdContext())
 
   def _AllLVs(self):
     """Compute the list of all LVs.
