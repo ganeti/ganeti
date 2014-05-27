@@ -341,6 +341,23 @@ prop_splitRecombineEithers es =
         (splitleft, splitright, trail) = splitEithers es
         emptylist = []::[Int]
 
+-- | Test the update function for standard deviations against the naive
+-- implementation.
+prop_stddev_update :: Property
+prop_stddev_update =
+  forAll (choose (0, 6) >>= flip vectorOf (choose (0, 1))) $ \xs ->
+  forAll (choose (0, 1)) $ \a ->
+  forAll (choose (0, 1)) $ \b ->
+  forAll (choose (1, 6) >>= flip vectorOf (choose (0, 1))) $ \ys ->
+  let original = xs ++ [a] ++ ys
+      modified = xs ++ [b] ++ ys
+      with_update = getStatisticValue
+                    $ updateStatistics (getStdDevStatistics original) (a,b)
+      direct = stdDev modified
+  in printTestCase ("Value computed by update " ++ show with_update
+                    ++ " differs too much from correct value " ++ show direct)
+                   (abs (with_update - direct) < 1e-12)
+
 -- | Test list for the Utils module.
 testSuite "Utils"
             [ 'prop_commaJoinSplit
@@ -368,4 +385,5 @@ testSuite "Utils"
             , 'prop_chompPrefix_empty_string
             , 'prop_chompPrefix_nothing
             , 'prop_splitRecombineEithers
+            , 'prop_stddev_update
             ]
