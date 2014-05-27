@@ -38,6 +38,7 @@ module Ganeti.Objects
   , allNicParamFields
   , PartialNic(..)
   , FileDriver(..)
+  , DRBDSecret
   , DiskLogicalId(..)
   , Disk(..)
   , includesLogicalId
@@ -278,13 +279,16 @@ devType = "dev_type"
 -- | The disk parameters type.
 type DiskParams = Container JSValue
 
+-- | An alias for DRBD secrets
+type DRBDSecret = String
+
 -- | The disk configuration type. This includes the disk type itself,
 -- for a more complete consistency. Note that since in the Python
 -- code-base there's no authoritative place where we document the
 -- logical id, this is probably a good reference point.
 data DiskLogicalId
   = LIDPlain String String  -- ^ Volume group, logical volume
-  | LIDDrbd8 String String Int Int Int String
+  | LIDDrbd8 String String Int Int Int DRBDSecret
   -- ^ NodeA, NodeB, Port, MinorA, MinorB, Secret
   | LIDFile FileDriver String -- ^ Driver, path
   | LIDSharedFile FileDriver String -- ^ Driver, path
