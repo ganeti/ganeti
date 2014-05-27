@@ -44,7 +44,7 @@ import qualified Ganeti.Locking.Allocation as L
 import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock), LockLevel(LevelConfig)
                             , lockLevel, LockLevel, ClientId )
 import qualified Ganeti.Locking.Waiting as LW
-import Ganeti.Objects (ConfigData)
+import Ganeti.Objects (ConfigData, DRBDSecret)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
 import qualified Ganeti.WConfd.TempRes as T
@@ -143,7 +143,7 @@ releaseDRBDMinors inst = modifyTempResState (const $ T.releaseDRBDMinors inst)
 
 -- *** MACs
 
--- Randomly generate a MAC for an instance and reserves it for
+-- Randomly generate a MAC for an instance and reserve it for
 -- a given client.
 generateMAC
   :: ClientId -> J.MaybeForJSON T.NetworkUUID -> WConfdMonad T.MAC
@@ -154,6 +154,15 @@ generateMAC cid (J.MaybeForJSON netId) = do
 -- Reserves a MAC for an instance in the list of temporary reservations.
 reserveMAC :: ClientId -> T.MAC -> WConfdMonad ()
 reserveMAC = (modifyTempResStateErr .) . T.reserveMAC
+
+-- *** DRBDSecrets
+
+-- Randomly generate a DRBDSecret for an instance and reserves it for
+-- a given client.
+generateDRBDSecret :: ClientId -> WConfdMonad DRBDSecret
+generateDRBDSecret cid = do
+  g <- liftIO Rand.newStdGen
+  modifyTempResStateErr $ T.generateDRBDSecret g cid
 
 -- ** Locking related functions
 
@@ -226,6 +235,8 @@ exportedFunctions = [ 'echo
                     -- MACs
                     , 'reserveMAC
                     , 'generateMAC
+                    -- DRBD secrets
+                    , 'generateDRBDSecret
                     -- locking
                     , 'listLocks
                     , 'listAllLocks

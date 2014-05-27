@@ -973,6 +973,10 @@ drbdMigrationNetProtocol = "C"
 drbdStatusFile :: String
 drbdStatusFile = "/proc/drbd"
 
+-- | The length of generated DRBD secrets (see also TempRes module).
+drbdSecretLength :: Int
+drbdSecretLength = 20
+
 -- | Size of DRBD meta block device
 drbdMetaSize :: Int
 drbdMetaSize = 128

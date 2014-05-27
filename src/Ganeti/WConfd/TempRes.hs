@@ -41,6 +41,7 @@ module Ganeti.WConfd.TempRes
   , MAC
   , generateMAC
   , reserveMAC
+  , generateDRBDSecret
   , dropAllReservations
   , isReserved
   , reserve
@@ -64,6 +65,7 @@ import System.Random
 
 import Ganeti.BasicTypes
 import Ganeti.Config
+import qualified Ganeti.Constants as C
 import Ganeti.Errors
 import qualified Ganeti.JSON as J
 import Ganeti.Lens
@@ -71,6 +73,7 @@ import Ganeti.Locking.Locks (ClientId)
 import Ganeti.Objects
 import Ganeti.Utils
 import Ganeti.Utils.MonadPlus
+import Ganeti.Utils.Random
 import qualified Ganeti.Utils.MultiMap as MM
 
 -- * The main reservation state
@@ -106,11 +109,12 @@ instance (Ord j, Ord a) => Monoid (TempRes j a) where
 data TempResState = TempResState
   { trsDRBD :: DRBDMap
   , trsMACs :: TempRes ClientId MAC
+  , trsDRBDSecrets :: TempRes ClientId DRBDSecret
   }
   deriving (Eq, Show)
 
 emptyTempResState :: TempResState
-emptyTempResState = TempResState M.empty mempty
+emptyTempResState = TempResState M.empty mempty mempty
 
 $(makeCustomLenses ''TempResState)
 
@@ -235,7 +239,9 @@ generateRand rgen jobid existing genfn tr =
 --
 -- If a new reservation resource type is added, it must be added here as well.
 dropAllReservations :: ClientId -> TempResState -> TempResState
-dropAllReservations jobId = trsMACsL %~ dropReservationsFor jobId
+dropAllReservations jobId =
+    (trsMACsL %~ dropReservationsFor jobId)
+  . (trsDRBDSecretsL %~ dropReservationsFor jobId)
 
 -- ** IDs
 
@@ -276,3 +282,14 @@ reserveMAC jobId mac cd = do
   when (S.member mac existing)
     $ throwError (ReservationError "MAC already in use")
   get >>= traverseOf trsMACsL (reserve jobId mac) >>= put
+
+-- ** DRBD secrets
+
+generateDRBDSecret
+  :: (RandomGen g, MonadError e m, Error e, Functor m)
+  => g -> ClientId -> ConfigData -> StateT TempResState m DRBDSecret
+generateDRBDSecret rgen jobId cd = do
+  let existing = S.fromList $ getAllDrbdSecrets cd
+  StateT $ traverseOf2 trsDRBDSecretsL
+           (generateRand rgen jobId existing
+                         (over _1 Just . generateSecret C.drbdSecretLength))
