@@ -61,7 +61,6 @@ import qualified Data.Map as M
 import Data.Monoid
 import qualified Data.Set as S
 import System.Random
-import Text.Printf
 
 import Ganeti.BasicTypes
 import Ganeti.Config
@@ -241,15 +240,6 @@ dropAllReservations jobId = trsMACsL %~ dropReservationsFor jobId
 -- ** IDs
 
 -- ** MAC addresses
-
--- | Given a prefix, randomly generates a full MAC address.
---
--- See 'generateMAC' for discussion about how this function uses
--- the random generator.
-generateOneMAC :: (RandomGen g) => MAC -> g -> (MAC, g)
-generateOneMAC prefix = runState $
-  let randByte = state (randomR (0, 255 :: Int))
-  in printf "%s:%02x:%02x:%02x" prefix <$> randByte <*> randByte <*> randByte
 
 -- Randomly generate a MAC for an instance.
 -- Checks that the generated MAC isn't used by another instance.

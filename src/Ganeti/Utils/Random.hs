@@ -25,8 +25,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Utils.Random
   ( generateSecret
+  , generateOneMAC
   ) where
 
+import Control.Applicative
 import Control.Monad
 import Control.Monad.State
 import System.Random
@@ -38,3 +40,12 @@ generateSecret :: (RandomGen g) => Int -> g -> (String, g)
 generateSecret n =
   runState . liftM (concatMap $ printf "%02x")
   $ replicateM n (state $ randomR (0 :: Int, 255))
+
+-- | Given a prefix, randomly generates a full MAC address.
+--
+-- See 'generateMAC' for discussion about how this function uses
+-- the random generator.
+generateOneMAC :: (RandomGen g) => String -> g -> (String, g)
+generateOneMAC prefix = runState $
+  let randByte = state (randomR (0, 255 :: Int))
+  in printf "%s:%02x:%02x:%02x" prefix <$> randByte <*> randByte <*> randByte
