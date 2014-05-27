@@ -39,6 +39,7 @@ module Ganeti.Objects
   , PartialNic(..)
   , FileDriver(..)
   , DRBDSecret
+  , LogicalVolume(..)
   , DiskLogicalId(..)
   , Disk(..)
   , includesLogicalId
@@ -95,7 +96,8 @@ module Ganeti.Objects
   ) where
 
 import Control.Applicative
-import Data.List (foldl')
+import Data.Char
+import Data.List (foldl', isPrefixOf, isInfixOf)
 import Data.Maybe
 import qualified Data.Map as Map
 import qualified Data.Set as Set
@@ -112,6 +114,7 @@ import Ganeti.Types
 import Ganeti.THH
 import Ganeti.THH.Field
 import Ganeti.Utils (sepSplit, tryRead, parseUnitAssumeBinary)
+import Ganeti.Utils.Validate
 
 -- * Generic definitions
 
@@ -282,12 +285,70 @@ type DiskParams = Container JSValue
 -- | An alias for DRBD secrets
 type DRBDSecret = String
 
+-- Represents a group name and a volume name.
+--
+-- From @man lvm@:
+--
+-- The following characters are valid for VG and LV names: a-z A-Z 0-9 + _ . -
+--
+-- VG  and LV names cannot begin with a hyphen.  There are also various reserved
+-- names that are used internally by lvm that can not be used as LV or VG names.
+-- A VG cannot be  called  anything  that exists in /dev/ at the time of
+-- creation, nor can it be called '.' or '..'.  A LV cannot be called '.' '..'
+-- 'snapshot' or 'pvmove'. The LV name may also not contain the strings '_mlog'
+-- or '_mimage'
+data LogicalVolume = LogicalVolume { lvGroup :: String
+                                   , lvVolume :: String
+                                   }
+  deriving (Eq, Ord)
+
+instance Show LogicalVolume where
+  showsPrec _ (LogicalVolume g v) =
+    showString g . showString "/" . showString v
+
+-- | Check the constraints for a VG/LV names (except the @/dev/@ check).
+instance Validatable LogicalVolume where
+  validate (LogicalVolume g v) = do
+      let vgn = "Volume group name"
+      -- Group name checks
+      nonEmpty vgn g
+      validChars vgn g
+      notStartsDash vgn g
+      notIn vgn g [".", ".."]
+      -- Volume name checks
+      let lvn = "Volume name"
+      nonEmpty lvn v
+      validChars lvn v
+      notStartsDash lvn v
+      notIn lvn v [".", "..", "snapshot", "pvmove"]
+      reportIf ("_mlog" `isInfixOf` v) $ lvn ++ " must not contain '_mlog'."
+      reportIf ("_mimage" `isInfixOf` v) $ lvn ++ "must not contain '_mimage'."
+    where
+      nonEmpty prefix x = reportIf (null x) $ prefix ++ " must be non-empty"
+      notIn prefix x =
+        mapM_ (\y -> reportIf (x == y)
+                              $ prefix ++ " must not be '" ++ y ++ "'")
+      notStartsDash prefix x = reportIf ("-" `isPrefixOf` x)
+                                 $ prefix ++ " must not start with '-'"
+      validChars prefix x =
+        reportIf (not . all validChar $ x)
+                 $ prefix ++ " must consist only of [a-z][A-Z][0-9][+_.-]"
+      validChar c = isAsciiLower c || isAsciiUpper c || isDigit c
+                    || (c `elem` "+_.-")
+
+instance J.JSON LogicalVolume where
+  showJSON = J.showJSON . show
+  readJSON (J.JSString s) | (g, _ : l) <- break (== '/') (J.fromJSString s) =
+    either fail return . evalValidate . validate' $ LogicalVolume g l
+  readJSON v = fail $ "Invalid JSON value " ++ show v
+                      ++ " for a logical volume"
+
 -- | The disk configuration type. This includes the disk type itself,
 -- for a more complete consistency. Note that since in the Python
 -- code-base there's no authoritative place where we document the
 -- logical id, this is probably a good reference point.
 data DiskLogicalId
-  = LIDPlain String String  -- ^ Volume group, logical volume
+  = LIDPlain LogicalVolume  -- ^ Volume group, logical volume
   | LIDDrbd8 String String Int Int Int DRBDSecret
   -- ^ NodeA, NodeB, Port, MinorA, MinorB, Secret
   | LIDFile FileDriver String -- ^ Driver, path
@@ -313,7 +374,8 @@ lidEncodeType v = [(devType, showJSON . lidDiskType $ v)]
 
 -- | Custom encoder for DiskLogicalId (logical id only).
 encodeDLId :: DiskLogicalId -> JSValue
-encodeDLId (LIDPlain vg lv) = JSArray [showJSON vg, showJSON lv]
+encodeDLId (LIDPlain (LogicalVolume vg lv)) =
+  JSArray [showJSON vg, showJSON lv]
 encodeDLId (LIDDrbd8 nodeA nodeB port minorA minorB key) =
   JSArray [ showJSON nodeA, showJSON nodeB, showJSON port
           , showJSON minorA, showJSON minorB, showJSON key ]
@@ -352,7 +414,7 @@ decodeDLId obj lid = do
         JSArray [vg, lv] -> do
           vg' <- readJSON vg
           lv' <- readJSON lv
-          return $ LIDPlain vg' lv'
+          return $ LIDPlain (LogicalVolume vg' lv')
         _ -> fail "Can't read logical_id for plain type"
     DTFile ->
       case lid of
@@ -439,12 +501,12 @@ instance UuidObject Disk where
 -- | Determines whether a disk or one of his children has the given logical id
 -- (determined by the volume group name and by the logical volume name).
 -- This can be true only for DRBD or LVM disks.
-includesLogicalId :: String -> String -> Disk -> Bool
-includesLogicalId vg_name lv_name disk =
+includesLogicalId :: LogicalVolume -> Disk -> Bool
+includesLogicalId lv disk =
   case diskLogicalId disk of
-    LIDPlain vg lv -> vg_name == vg && lv_name == lv
+    LIDPlain lv' -> lv' == lv
     LIDDrbd8 {} ->
-      any (includesLogicalId vg_name lv_name) $ diskChildren disk
+      any (includesLogicalId lv) $ diskChildren disk
     _ -> False
 
 -- * Instance definitions

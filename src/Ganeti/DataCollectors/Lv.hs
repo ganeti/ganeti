@@ -151,9 +151,8 @@ getInstDiskList opts = do
 -- | Adds the name of the instance to the information about one logical volume.
 addInstNameToOneLv :: [(Instance, [Disk])] -> LVInfo -> LVInfo
 addInstNameToOneLv instDiskList lvInfo =
- let vg_name = lviVgName lvInfo
-     lv_name = lviName lvInfo
-     instanceHasDisk = any (includesLogicalId vg_name lv_name) . snd
+ let lv = LogicalVolume (lviVgName lvInfo) (lviName lvInfo)
+     instanceHasDisk = any (includesLogicalId lv) . snd
      rightInstance = find instanceHasDisk instDiskList
    in
      case rightInstance of
