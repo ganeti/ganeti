@@ -686,6 +686,7 @@ MODIFY
 | [\--file-storage-dir *dir*]
 | [\--shared-file-storage-dir *dir*]
 | [\--compression-tools [*tool*, [*tool*]]]
+| [\--instance-communication-network *network*]
 
 
 Modify the options for the cluster.
@@ -727,6 +728,14 @@ command. To clear the default iallocator parameters, just pass an empty
 string ('').
 
 The ``--ipolicy-...`` options are described in the **init** command.
+
+The ``--instance-communication-network`` enables instance communication
+by specifying the name of the Ganeti network that should be used for
+instance communication.  If the supplied network does not exist, Ganeti
+will create a new network with the supplied name with the default
+parameters for instance communication.  If the supplied network exists,
+Ganeti will check its parameters and warn about unusual configurations,
+but it will still use that network for instance communication.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
