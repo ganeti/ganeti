@@ -76,6 +76,9 @@ module Ganeti.Rpc
   , RpcCallVersion(..)
   , RpcResultVersion(..)
 
+  , RpcCallMasterNodeName(..)
+  , RpcResultMasterNodeName(..)
+
   , RpcCallStorageList(..)
   , RpcResultStorageList(..)
 
@@ -815,3 +818,24 @@ instance Rpc RpcCallNodeActivateMasterIp RpcResultNodeActivateMasterIp where
       J.JSNull -> Right RpcResultNodeActivateMasterIp
       _ -> Left $ JsonDecodeError
            ("Expected JSNull, got " ++ show (pp_value res))
+
+-- | Ask who the node believes is the master.
+
+$(buildObject "RpcCallMasterNodeName" "rpcCallMasterNodeName" [])
+
+instance RpcCall RpcCallMasterNodeName where
+  rpcCallName _           = "master_node_name"
+  rpcCallTimeout _        = rpcTimeoutToRaw Slow
+  rpcCallAcceptOffline _  = True
+
+$(buildObject "RpcResultMasterNodeName" "rpcResultMasterNodeName"
+    [ simpleField "master" [t| String |]
+    ])
+
+instance Rpc RpcCallMasterNodeName RpcResultMasterNodeName where
+  rpcResultFill _ res =
+    case res of
+      J.JSString master -> Right . RpcResultMasterNodeName
+                                     $ J.fromJSString master
+      _ -> Left . JsonDecodeError . (++) "expected string, but got " . show
+                                            $ pp_value res
