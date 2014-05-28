@@ -31,6 +31,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import objects
 from ganeti.network import AddressPool
+from ganeti import utils
 
 import mocks
 
@@ -57,6 +58,7 @@ class ConfigMock(config.ConfigWriter):
     self._mocked_config_store = None
 
     self._temporary_macs = config.TemporaryReservationManager()
+    self._temporary_secrets = config.TemporaryReservationManager()
 
     super(ConfigMock, self).__init__(cfg_file="/dev/null",
                                      _getents=_StubGetEntResolver(),
@@ -667,7 +669,7 @@ class ConfigMock(config.ConfigWriter):
     existing = self._AllMACs()
     prefix = self._UnlockedGetNetworkMACPrefix(net_uuid)
     gen_mac = self._GenerateOneMAC(prefix)
-    return self._temporary_ids.Generate(existing, gen_mac, ec_id)
+    return self._temporary_macs.Generate(existing, gen_mac, ec_id)
 
   def ReserveMAC(self, mac, ec_id):
     """Reserve a MAC for an instance.
@@ -681,3 +683,13 @@ class ConfigMock(config.ConfigWriter):
       raise errors.ReservationError("mac already in use")
     else:
       self._temporary_macs.Reserve(ec_id, mac)
+
+  def GenerateDRBDSecret(self, ec_id):
+    """Generate a DRBD secret.
+
+    This checks the current disks for duplicates.
+
+    """
+    return self._temporary_secrets.Generate(self._AllDRBDSecrets(),
+                                            utils.GenerateSecret,
+                                            ec_id)
