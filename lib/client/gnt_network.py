@@ -246,12 +246,8 @@ def ShowNetworkConfig(_, args):
       ToStdout("  not connected to any node group")
 
     if instances:
-      idata = cl.QueryInstances([], ["uuid", "name"], False)
-      uuid2name = dict(idata)
-
       ToStdout("  used by %d instances:", len(instances))
-      for inst in instances:
-        name = uuid2name[inst]
+      for name in instances:
         ((ips, networks), ) = cl.QueryInstances([name],
                                                 ["nic.ips", "nic.networks"],
                                                 use_locking=False)

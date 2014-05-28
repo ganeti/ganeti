@@ -341,7 +341,6 @@ prop_splitRecombineEithers es =
         (splitleft, splitright, trail) = splitEithers es
         emptylist = []::[Int]
 
--- | Test list for the Utils module.
 testSuite "Utils"
             [ 'prop_commaJoinSplit
             , 'prop_commaSplitJoin

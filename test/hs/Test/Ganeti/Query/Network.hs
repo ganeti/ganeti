@@ -33,7 +33,6 @@ module Test.Ganeti.Query.Network
 import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Query.Network
-import Ganeti.Types
 
 import Test.Ganeti.Objects
 import Test.Ganeti.TestCommon
@@ -67,9 +66,8 @@ prop_instIsConnected :: ConfigData -> Property
 prop_instIsConnected cfg =
   let nets = (fromContainer . configNetworks) cfg
       net_keys = Map.keys nets
-      net_names = map (fromNonEmpty . networkName) (Map.elems nets)
-  in  forAll (genInstWithNets net_names) $ \inst ->
-      True ==? all (\nk -> instIsConnected cfg nk inst) net_keys
+  in  forAll (genInstWithNets net_keys) $ \inst ->
+      True ==? all (`instIsConnected` inst) net_keys
 
 -- | Tests whether instances that are not connected to a network are
 -- correctly classified as such.
@@ -77,10 +75,9 @@ prop_instIsConnected_notFound :: ConfigData -> String -> Property
 prop_instIsConnected_notFound cfg network_uuid =
   let nets = (fromContainer . configNetworks) cfg
       net_keys = Map.keys nets
-      net_names = map (fromNonEmpty . networkName) (Map.elems nets)
   in  notElem network_uuid net_keys ==>
-      forAll (genInstWithNets net_names) $ \inst ->
-        not (instIsConnected cfg network_uuid inst)
+      forAll (genInstWithNets net_keys) $ \inst ->
+        not (instIsConnected network_uuid inst)
 
 testSuite "Query_Network"
   [ 'prop_getGroupConnection

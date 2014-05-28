@@ -219,6 +219,46 @@ def UpgradeDiskDevType(disk):
   ChangeDiskDevType(disk, DEV_TYPE_OLD_NEW)
 
 
+def _ConvertNicNameToUuid(iobj, network2uuid):
+  for nic in iobj["nics"]:
+    name = nic.get("network", None)
+    if name:
+      uuid = network2uuid.get(name, None)
+      if uuid:
+        print("NIC with network name %s found."
+              " Substituting with uuid %s." % (name, uuid))
+        nic["network"] = uuid
+
+
+def _ConvertDiskAndCheckMissingSpindles(iobj, instance):
+  missing_spindles = False
+  if "disks" not in iobj:
+    raise Error("Instance '%s' doesn't have a disks entry?!" % instance)
+  disks = iobj["disks"]
+  if not all(isinstance(d, str) for d in disks):
+    #  Disks are not top level citizens
+    for idx, dobj in enumerate(disks):
+      RemovePhysicalId(dobj)
+
+      expected = "disk/%s" % idx
+      current = dobj.get("iv_name", "")
+      if current != expected:
+        logging.warning("Updating iv_name for instance %s/disk %s"
+                        " from '%s' to '%s'",
+                        instance, idx, current, expected)
+        dobj["iv_name"] = expected
+
+      if "dev_type" in dobj:
+        UpgradeDiskDevType(dobj)
+
+      if not "spindles" in dobj:
+        missing_spindles = True
+
+      if not "uuid" in dobj:
+        dobj["uuid"] = utils.io.NewUUID()
+  return missing_spindles
+
+
 def UpgradeInstances(config_data):
   """Upgrades the instances' configuration."""
 
@@ -229,39 +269,9 @@ def UpgradeInstances(config_data):
 
   missing_spindles = False
   for instance, iobj in config_data["instances"].items():
-    for nic in iobj["nics"]:
-      name = nic.get("network", None)
-      if name:
-        uuid = network2uuid.get(name, None)
-        if uuid:
-          print("NIC with network name %s found."
-                " Substituting with uuid %s." % (name, uuid))
-          nic["network"] = uuid
-
-    if "disks" not in iobj:
-      raise Error("Instance '%s' doesn't have a disks entry?!" % instance)
-    disks = iobj["disks"]
-    if not all(isinstance(d, str) for d in disks):
-      #  Disks are not top level citizens
-      for idx, dobj in enumerate(disks):
-        RemovePhysicalId(dobj)
-
-        expected = "disk/%s" % idx
-        current = dobj.get("iv_name", "")
-        if current != expected:
-          logging.warning("Updating iv_name for instance %s/disk %s"
-                          " from '%s' to '%s'",
-                          instance, idx, current, expected)
-          dobj["iv_name"] = expected
-
-        if "dev_type" in dobj:
-          UpgradeDiskDevType(dobj)
-
-        if not "spindles" in dobj:
-          missing_spindles = True
-
-        if not "uuid" in dobj:
-          dobj["uuid"] = utils.io.NewUUID()
+    _ConvertNicNameToUuid(iobj, network2uuid)
+    if _ConvertDiskAndCheckMissingSpindles(iobj, instance):
+      missing_spindles = True
 
   if GetExclusiveStorageValue(config_data) and missing_spindles:
     # We cannot be sure that the instances that are missing spindles have
@@ -460,13 +470,7 @@ def DowngradeAll(config_data):
   DowngradeExtAccess(config_data)
 
 
-def main():
-  """Main program.
-
-  """
-  global options, args # pylint: disable=W0603
-
-  # Option parsing
+def _ParseOptions():
   parser = optparse.OptionParser(usage="%prog [--debug|--verbose] [--force]")
   parser.add_option("--dry-run", dest="dry_run",
                     action="store_true",
@@ -491,8 +495,10 @@ def main():
   parser.add_option("--downgrade",
                     help="Downgrade to the previous stable version",
                     action="store_true", dest="downgrade", default=False)
-  (options, args) = parser.parse_args()
+  return parser.parse_args()
 
+
+def _ComposePaths():
   # We need to keep filenames locally because they might be renamed between
   # versions.
   options.data_dir = os.path.abspath(options.data_dir)
@@ -511,19 +517,8 @@ def main():
   options.WATCHER_STATEFILE = options.data_dir + "/watcher.data"
   options.FILE_STORAGE_PATHS_FILE = options.conf_dir + "/file-storage-paths"
 
-  SetupLogging()
 
-  # Option checking
-  if args:
-    raise Error("No arguments expected")
-  if options.downgrade and not options.no_verify:
-    options.no_verify = True
-
-  # Check master name
-  if not (CheckHostname(options.SSCONF_MASTER_NODE) or options.ignore_hostname):
-    logging.error("Aborting due to hostname mismatch")
-    sys.exit(constants.EXIT_FAILURE)
-
+def _AskUser():
   if not options.force:
     if options.downgrade:
       usertext = ("The configuration is going to be DOWNGRADED to version %s.%s"
@@ -540,6 +535,76 @@ def main():
                   " configuration?" % constants.RELEASE_VERSION)
     if not cli.AskUser(usertext):
       sys.exit(constants.EXIT_FAILURE)
+
+
+def _Downgrade(config_major, config_minor, config_version, config_data,
+               config_revision):
+  if not ((config_major == TARGET_MAJOR and config_minor == TARGET_MINOR) or
+          (config_major == DOWNGRADE_MAJOR and
+           config_minor == DOWNGRADE_MINOR)):
+    raise Error("Downgrade supported only from the latest version (%s.%s),"
+                " found %s (%s.%s.%s) instead" %
+                (TARGET_MAJOR, TARGET_MINOR, config_version, config_major,
+                 config_minor, config_revision))
+  DowngradeAll(config_data)
+
+
+def _TestLoadingConfigFile():
+  # test loading the config file
+  all_ok = True
+  if not (options.dry_run or options.no_verify):
+    logging.info("Testing the new config file...")
+    cfg = config.ConfigWriter(cfg_file=options.CONFIG_DATA_PATH,
+                              accept_foreign=options.ignore_hostname,
+                              offline=True)
+    # if we reached this, it's all fine
+    vrfy = cfg.VerifyConfig()
+    if vrfy:
+      logging.error("Errors after conversion:")
+      for item in vrfy:
+        logging.error(" - %s", item)
+      all_ok = False
+    else:
+      logging.info("File loaded successfully after upgrading")
+    del cfg
+
+  if options.downgrade:
+    action = "downgraded"
+    out_ver = "%s.%s" % (DOWNGRADE_MAJOR, DOWNGRADE_MINOR)
+  else:
+    action = "upgraded"
+    out_ver = constants.RELEASE_VERSION
+  if all_ok:
+    cli.ToStderr("Configuration successfully %s to version %s.",
+                 action, out_ver)
+  else:
+    cli.ToStderr("Configuration %s to version %s, but there are errors."
+                 "\nPlease review the file.", action, out_ver)
+
+
+def main():
+  """Main program.
+
+  """
+  global options, args # pylint: disable=W0603
+
+  (options, args) = _ParseOptions()
+  _ComposePaths()
+
+  SetupLogging()
+
+  # Option checking
+  if args:
+    raise Error("No arguments expected")
+  if options.downgrade and not options.no_verify:
+    options.no_verify = True
+
+  # Check master name
+  if not (CheckHostname(options.SSCONF_MASTER_NODE) or options.ignore_hostname):
+    logging.error("Aborting due to hostname mismatch")
+    sys.exit(constants.EXIT_FAILURE)
+
+  _AskUser()
 
   # Check whether it's a Ganeti configuration directory
   if not (os.path.isfile(options.CONFIG_DATA_PATH) and
@@ -570,14 +635,8 @@ def main():
 
   # Downgrade to the previous stable version
   if options.downgrade:
-    if not ((config_major == TARGET_MAJOR and config_minor == TARGET_MINOR) or
-            (config_major == DOWNGRADE_MAJOR and
-             config_minor == DOWNGRADE_MINOR)):
-      raise Error("Downgrade supported only from the latest version (%s.%s),"
-                  " found %s (%s.%s.%s) instead" %
-                  (TARGET_MAJOR, TARGET_MINOR, config_version, config_major,
-                   config_minor, config_revision))
-    DowngradeAll(config_data)
+    _Downgrade(config_major, config_minor, config_version, config_data,
+               config_revision)
 
   # Upgrade from 2.{0..12} to 2.13
   elif config_major == 2 and config_minor in range(0, 13):
@@ -615,36 +674,7 @@ def main():
                      " inconsistent state and needs manual intervention.")
     raise
 
-  # test loading the config file
-  all_ok = True
-  if not (options.dry_run or options.no_verify):
-    logging.info("Testing the new config file...")
-    cfg = config.ConfigWriter(cfg_file=options.CONFIG_DATA_PATH,
-                              accept_foreign=options.ignore_hostname,
-                              offline=True)
-    # if we reached this, it's all fine
-    vrfy = cfg.VerifyConfig()
-    if vrfy:
-      logging.error("Errors after conversion:")
-      for item in vrfy:
-        logging.error(" - %s", item)
-      all_ok = False
-    else:
-      logging.info("File loaded successfully after upgrading")
-    del cfg
-
-  if options.downgrade:
-    action = "downgraded"
-    out_ver = "%s.%s" % (DOWNGRADE_MAJOR, DOWNGRADE_MINOR)
-  else:
-    action = "upgraded"
-    out_ver = constants.RELEASE_VERSION
-  if all_ok:
-    cli.ToStderr("Configuration successfully %s to version %s.",
-                 action, out_ver)
-  else:
-    cli.ToStderr("Configuration %s to version %s, but there are errors."
-                 "\nPlease review the file.", action, out_ver)
+  _TestLoadingConfigFile()
 
 
 if __name__ == "__main__":

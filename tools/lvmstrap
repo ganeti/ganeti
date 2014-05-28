@@ -823,6 +823,27 @@ def CreateVG(vgname, disks):
                            (vgname, " ".join(disks), result.output))
 
 
+def _ComputeSysdFreeUsed(sysdisks):
+  sysd_free = []
+  sysd_used = []
+  for name, _, _, parts, used in sysdisks:
+    if used:
+      sysd_used.append(name)
+      for partname, _, _, partused in parts:
+        if partused:
+          sysd_used.append(partname)
+        else:
+          sysd_free.append(partname)
+    else:
+      sysd_free.append(name)
+
+  if not sysd_free:
+    raise PrereqError("no free disks found! (%d in-use disks)" %
+                      len(sysd_used))
+
+  return (sysd_free, sysd_used)
+
+
 def ValidateDiskList(options):
   """Validates or computes the disk list for create.
 
@@ -840,22 +861,9 @@ def ValidateDiskList(options):
   if not sysdisks:
     raise PrereqError("no disks found (I looked for"
                       " non-removable block devices).")
-  sysd_free = []
-  sysd_used = []
-  for name, _, _, parts, used in sysdisks:
-    if used:
-      sysd_used.append(name)
-      for partname, _, _, partused in parts:
-        if partused:
-          sysd_used.append(partname)
-        else:
-          sysd_free.append(partname)
-    else:
-      sysd_free.append(name)
 
-  if not sysd_free:
-    raise PrereqError("no free disks found! (%d in-use disks)" %
-                      len(sysd_used))
+  (sysd_free, sysd_used) = _ComputeSysdFreeUsed(sysdisks)
+
   if options.alldisks:
     disklist = sysd_free
   elif options.disks:

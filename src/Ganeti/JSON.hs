@@ -48,6 +48,7 @@ module Ganeti.JSON
   , toArray
   , optionalJSField
   , optFieldsToObj
+  , lookupContainer
   , readContainer
   , DictObject(..)
   , ArrayObject(..)
@@ -312,6 +313,14 @@ instance F.Traversable (GenericContainer a) where
 
 -- | Type alias for string keys.
 type Container = GenericContainer String
+
+-- | Looks up a value in a container with a default value.
+-- If a key has no value, a given monadic default is returned.
+-- This allows simple error handling, as the default can be
+-- 'mzero', 'failError' etc.
+lookupContainer :: (Monad m, Ord a)
+                => m b -> a -> GenericContainer a b -> m b
+lookupContainer dflt k = maybe dflt return . Map.lookup k . fromContainer
 
 -- | Container loader.
 readContainer :: (Monad m, HasStringRepr a, Ord a, J.JSON b) =>

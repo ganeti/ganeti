@@ -133,21 +133,41 @@ class TestClient(object):
 
     self.opts = options
 
+  @staticmethod
+  def _ProcessNotOk(reply, reqtype, is_timing):
+    Log("Query %s gave non-ok status %s: %s" % (reply.orig_request,
+                                                reply.server_reply.status,
+                                                reply.server_reply))
+    if is_timing:
+      Err("Aborting timing tests")
+    if reqtype == constants.CONFD_REQ_CLUSTER_MASTER:
+      Err("Cannot continue after master query failure")
+    if reqtype == constants.CONFD_REQ_INSTANCES_IPS_LIST:
+      Err("Cannot continue after instance IP list query failure")
+
+  @staticmethod
+  def _ProcessIpList(answer):
+    Log("Instance primary IP query: OK")
+    if not answer:
+      Log("no IPs received", indent=1)
+    else:
+      LogAtMost(answer, 5, indent=1)
+
+  @staticmethod
+  def _ProcessMapping(answer):
+    Log("Instance IP to node IP query: OK")
+    if not answer:
+      Log("no mapping received", indent=1)
+    else:
+      LogAtMost(answer, 5, indent=1)
+
   def ConfdCallback(self, reply):
     """Callback for confd queries"""
     if reply.type == confd_client.UPCALL_REPLY:
       answer = reply.server_reply.answer
       reqtype = reply.orig_request.type
       if reply.server_reply.status != constants.CONFD_REPL_STATUS_OK:
-        Log("Query %s gave non-ok status %s: %s" % (reply.orig_request,
-                                                    reply.server_reply.status,
-                                                    reply.server_reply))
-        if self.is_timing:
-          Err("Aborting timing tests")
-        if reqtype == constants.CONFD_REQ_CLUSTER_MASTER:
-          Err("Cannot continue after master query failure")
-        if reqtype == constants.CONFD_REQ_INSTANCES_IPS_LIST:
-          Err("Cannot continue after instance IP list query failure")
+        self._ProcessNotOk(reply, reqtype, self.is_timing)
         return
       if self.is_timing:
         return
@@ -170,18 +190,9 @@ class TestClient(object):
         Log("Master candidates primary IP query: OK")
         LogAtMost(answer, 5, indent=1)
       elif reqtype == constants.CONFD_REQ_INSTANCES_IPS_LIST:
-        Log("Instance primary IP query: OK")
-        if not answer:
-          Log("no IPs received", indent=1)
-        else:
-          LogAtMost(answer, 5, indent=1)
-        self.instance_ips = answer
+        self.instance_ips = self._ProcessIpList(answer)
       elif reqtype == constants.CONFD_REQ_NODE_PIP_BY_INSTANCE_IP:
-        Log("Instance IP to node IP query: OK")
-        if not answer:
-          Log("no mapping received", indent=1)
-        else:
-          LogAtMost(answer, 5, indent=1)
+        self._ProcessMapping(answer)
       else:
         Log("Unhandled reply %s, please fix the client", reqtype)
         print answer

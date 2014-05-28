@@ -22,11 +22,13 @@
 """Support for mocking the cluster configuration"""
 
 
+import random
 import time
 import uuid as uuid_module
 
 from ganeti import config
 from ganeti import constants
+from ganeti import errors
 from ganeti import objects
 from ganeti.network import AddressPool
 
@@ -53,6 +55,8 @@ class ConfigMock(config.ConfigWriter):
     self._cur_net_id = 1
     self._default_os = None
     self._mocked_config_store = None
+
+    self._temporary_macs = config.TemporaryReservationManager()
 
     super(ConfigMock, self).__init__(cfg_file="/dev/null",
                                      _getents=_StubGetEntResolver(),
@@ -623,3 +627,57 @@ class ConfigMock(config.ConfigWriter):
 
   def _GetRpc(self, _address_list):
     raise AssertionError("This should not be used during tests!")
+
+  def _UnlockedGetNetworkMACPrefix(self, net_uuid):
+    """Return the network mac prefix if it exists or the cluster level default.
+
+    """
+    prefix = None
+    if net_uuid:
+      nobj = self._UnlockedGetNetwork(net_uuid)
+      if nobj.mac_prefix:
+        prefix = nobj.mac_prefix
+
+    return prefix
+
+  def _GenerateOneMAC(self, prefix=None):
+    """Return a function that randomly generates a MAC suffic
+       and appends it to the given prefix. If prefix is not given get
+       the cluster level default.
+
+    """
+    if not prefix:
+      prefix = self._ConfigData().cluster.mac_prefix
+
+    def GenMac():
+      byte1 = random.randrange(0, 256)
+      byte2 = random.randrange(0, 256)
+      byte3 = random.randrange(0, 256)
+      mac = "%s:%02x:%02x:%02x" % (prefix, byte1, byte2, byte3)
+      return mac
+
+    return GenMac
+
+  def GenerateMAC(self, net_uuid, ec_id):
+    """Generate a MAC for an instance.
+
+    This should check the current instances for duplicates.
+
+    """
+    existing = self._AllMACs()
+    prefix = self._UnlockedGetNetworkMACPrefix(net_uuid)
+    gen_mac = self._GenerateOneMAC(prefix)
+    return self._temporary_ids.Generate(existing, gen_mac, ec_id)
+
+  def ReserveMAC(self, mac, ec_id):
+    """Reserve a MAC for an instance.
+
+    This only checks instances managed by this cluster, it does not
+    check for potential collisions elsewhere.
+
+    """
+    all_macs = self._AllMACs()
+    if mac in all_macs:
+      raise errors.ReservationError("mac already in use")
+    else:
+      self._temporary_macs.Reserve(ec_id, mac)

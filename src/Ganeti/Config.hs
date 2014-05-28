@@ -59,6 +59,8 @@ module Ganeti.Config
     , getFilledInstBeParams
     , getFilledInstOsParams
     , getNetwork
+    , MAC
+    , getAllMACs
     , buildLinkIpInstnameMap
     , instNodes
     ) where
@@ -81,9 +83,7 @@ import Ganeti.Types
 -- | Type alias for the link and ip map.
 type LinkIpMap = M.Map String (M.Map String String)
 
--- | Type class denoting objects which have node parameters.
-class NdParamObject a where
-  getNdParamsOf :: ConfigData -> a -> Maybe FilledNDParams
+-- * Operations on the whole configuration
 
 -- | Reads the config file.
 readConfig :: FilePath -> IO (Result String)
@@ -289,18 +289,6 @@ getGroupInstances cfg gname =
       ginsts = map (getNodeInstances cfg) gnodes in
   (concatMap fst ginsts, concatMap snd ginsts)
 
--- | Looks up a network. If looking up by uuid fails, we look up
--- by name.
-getNetwork :: ConfigData -> String -> ErrorResult Network
-getNetwork cfg name =
-  let networks = fromContainer (configNetworks cfg)
-  in case getItem "Network" name networks of
-       Ok net -> Ok net
-       Bad _ -> let by_name = M.mapKeys
-                              (fromNonEmpty . networkName . (M.!) networks)
-                              networks
-                in getItem "Network" name by_name
-
 -- | Retrieves the instance hypervisor params, missing values filled with
 -- cluster defaults.
 getFilledInstHvParams :: [String] -> ConfigData -> Instance -> HvParams
@@ -474,6 +462,34 @@ getNodeNdParams cfg node = do
   group <- getGroupOfNode cfg node
   let gparams = getGroupNdParams cfg group
   return $ fillNDParams gparams (nodeNdparams node)
+
+-- * Network
+
+-- | Looks up a network. If looking up by uuid fails, we look up
+-- by name.
+getNetwork :: ConfigData -> String -> ErrorResult Network
+getNetwork cfg name =
+  let networks = fromContainer (configNetworks cfg)
+  in case getItem "Network" name networks of
+       Ok net -> Ok net
+       Bad _ -> let by_name = M.mapKeys
+                              (fromNonEmpty . networkName . (M.!) networks)
+                              networks
+                in getItem "Network" name by_name
+
+-- ** MACs
+
+type MAC = String
+
+-- | Returns all MAC addresses used in the cluster.
+getAllMACs :: ConfigData -> [MAC]
+getAllMACs = F.foldMap (map nicMac . instNics) . configInstances
+
+-- * ND params
+
+-- | Type class denoting objects which have node parameters.
+class NdParamObject a where
+  getNdParamsOf :: ConfigData -> a -> Maybe FilledNDParams
 
 instance NdParamObject Node where
   getNdParamsOf = getNodeNdParams

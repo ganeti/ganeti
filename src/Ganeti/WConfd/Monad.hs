@@ -61,7 +61,6 @@ import Control.Monad.Error
 import Control.Monad.Reader
 import Control.Monad.State
 import Control.Monad.Trans.Control
-import Data.Functor.Compose (Compose(..))
 import Data.Functor.Identity
 import Data.IORef.Lifted
 import Data.Monoid (Any(..))
@@ -240,8 +239,8 @@ modifyTempResStateErr
 modifyTempResStateErr f = do
   -- we use Compose to traverse the composition of applicative functors
   -- @ErrorResult@ and @(,) a@
-  let f' ds = getCompose $ traverseOf dsTempResL
-              (Compose . runStateT (f (csConfigData . dsConfigState $ ds))) ds
+  let f' ds = traverseOf2 dsTempResL
+              (runStateT (f (csConfigData . dsConfigState $ ds))) ds
   dh <- daemonHandle
   toErrorBase $ atomicModifyIORefErr (dhDaemonState dh) (liftM swap . f')
 

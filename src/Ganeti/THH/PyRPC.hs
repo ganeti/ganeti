@@ -98,6 +98,7 @@ toFunc fname as = do
     varName idx (AppT ListT t)        = listOf idx t
     varName idx (AppT (ConT n) t)
       | n == ''[]                     = listOf idx t
+      | otherwise                     = kind1Of idx n t
     varName idx (AppT (AppT (TupleT 2) t) t')
                                       = pairOf idx t t'
     varName idx (AppT (AppT (ConT n) t) t')
@@ -111,6 +112,11 @@ toFunc fname as = do
     -- a given type.
     listOf :: Int -> Type -> Q Doc
     listOf idx t = (<> text "List") <$> varName idx t
+
+    -- | Create a name for a method argument, knowing that its wrapped in
+    -- a type of kind @* -> *@.
+    kind1Of :: Int -> Name -> Type -> Q Doc
+    kind1Of idx name t = (<> text (nameBase name)) <$> varName idx t
 
     -- | Create a name for a method argument, knowing that its a pair of
     -- the given types.

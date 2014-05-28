@@ -80,6 +80,7 @@ import Test.Ganeti.THH
 import Test.Ganeti.THH.Types
 import Test.Ganeti.Types
 import Test.Ganeti.Utils
+import Test.Ganeti.Utils.Statistics
 
 -- | Our default test options, overring the built-in test-framework
 -- ones (but not the supplied command line parameters).
@@ -145,6 +146,7 @@ allTests =
   , testTHH_Types
   , testTypes
   , testUtils
+  , testUtils_Statistics
   ]
 
 -- | Main function. Note we don't use defaultMain since we want to

@@ -91,7 +91,7 @@ def LogDirUseable(logdir):
     if err.errno != errno.EEXIST:
       raise
   try:
-    logtest = open(testfile, "aw")
+    logtest = open(testfile, "a+")
     logtest.writelines("log file writeability test\n")
     logtest.close()
     os.unlink(testfile)
@@ -174,7 +174,7 @@ def GetHosts(hostsfile):
 def WriteLog(message, logfile):
   """Writes message, terminated by newline, to logfile."""
   try:
-    logfile = open(logfile, "aw")
+    logfile = open(logfile, "a+")
   except IOError, msg:
     print "failed to open log file %s: %s" % (logfile, msg)
     print "log message was: %s" % message
@@ -504,19 +504,7 @@ def ParseOptions():
           opts.password, opts.batch_size)
 
 
-def main():
-  """main."""
-  (logdir, executable, exec_args, hostfile, hostlist,
-   command, use_agent, auxfiles, username,
-   password, batch_size) = ParseOptions()
-
-  ### Unbuffered sys.stdout
-  sys.stdout = os.fdopen(1, "w", 0)
-
-  if LogDirUseable(logdir) is False:
-    print "ERROR: cannot create logfiles in dir %s, aborting" % logdir
-    sys.exit(1)
-
+def _GetPassword(use_agent, password, username):
   if use_agent:
     pass
   elif password:
@@ -530,7 +518,10 @@ def main():
     password = pwvalue
   else:
     password = getpass.getpass("%s's password for all nodes: " % username)
+  return password
 
+
+def _GetHosts(hostfile, hostlist):
   if hostfile:
     hosts = GetHosts(hostfile)
   else:
@@ -539,6 +530,24 @@ def main():
       hosts = hostlist.split(",")
     else:
       hosts = [hostlist]
+  return hosts
+
+
+def main():
+  """main."""
+  (logdir, executable, exec_args, hostfile, hostlist,
+   command, use_agent, auxfiles, username,
+   password, batch_size) = ParseOptions()
+
+  ### Unbuffered sys.stdout
+  sys.stdout = os.fdopen(1, "w", 0)
+
+  if LogDirUseable(logdir) is False:
+    print "ERROR: cannot create logfiles in dir %s, aborting" % logdir
+    sys.exit(1)
+
+  password = _GetPassword(use_agent, password, username)
+  hosts = _GetHosts(hostfile, hostlist)
 
   successes = failures = 0
 
