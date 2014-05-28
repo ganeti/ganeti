@@ -202,6 +202,7 @@ INIT
 | [\--hypervisor-state *hvstate*]
 | [\--drbd-usermode-helper *helper*]
 | [\--enabled-disk-templates *template* [,*template*...]]
+| [\--install-image *image*]
 | [\--zeroing-image *image*]
 | [\--compression-tools [*tool*, [*tool*]]]
 | {*clustername*}
@@ -592,6 +593,13 @@ are still instances using it. The first disk template in the list of
 enabled disk template is the default disk template. It will be used for
 instance creation, if no disk template is requested explicitely.
 
+The ``--install-image`` option specifies the location of the OS image to
+use to run the OS scripts inside a virtualized environment. This can be
+a file path or a URL. In the case that a file path is used, nodes are
+expected to have the install image located at the given path, although
+that is enforced during a instance create with unsafe OS scripts
+operation only.
+
 The ``--zeroing-image`` option specifies the location of the OS image to
 use to zero out the free space of an instance. This can be a file path
 or a URL. In the case that a file path is used, nodes are expected to
@@ -687,6 +695,8 @@ MODIFY
 | [\--shared-file-storage-dir *dir*]
 | [\--compression-tools [*tool*, [*tool*]]]
 | [\--instance-communication-network *network*]
+| [\--install-image *image*]
+| [\--zeroing-image *image*]
 
 
 Modify the options for the cluster.
@@ -736,6 +746,9 @@ will create a new network with the supplied name with the default
 parameters for instance communication.  If the supplied network exists,
 Ganeti will check its parameters and warn about unusual configurations,
 but it will still use that network for instance communication.
+
+See **gnt-cluster init** for a description of ``--install-image`` and
+``--zeroing-image``.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
