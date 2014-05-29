@@ -38,6 +38,7 @@ import Control.Applicative
 import Data.Function (on)
 import System.Time (ClockTime(..))
 
+import Ganeti.Config
 import Ganeti.Lens
 import Ganeti.Objects
 import Ganeti.Objects.Lens
@@ -65,5 +66,8 @@ bumpSerial now = set mTimeL now . over serialL succ
 needsFullDist :: ConfigState -> ConfigState -> Bool
 needsFullDist = on (/=) watched
   where
-    watched = (,) <$> clusterCandidateCerts . configCluster . csConfigData
-                  <*> clusterMasterNode . configCluster . csConfigData
+    watched = (,,,)
+              <$> clusterCandidateCerts . configCluster . csConfigData
+              <*> clusterMasterNode . configCluster . csConfigData
+              <*> getMasterNodes . csConfigData
+              <*> getMasterCandidates . csConfigData
