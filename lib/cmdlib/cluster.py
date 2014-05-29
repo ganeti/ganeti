@@ -1866,9 +1866,6 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
     self.bad = False
     self._feedback_fn = feedback_fn
 
-    # Force the configuration to be fully distributed before doing any tests
-    self.cfg.FlushConfig()
-
     feedback_fn("* Verifying cluster config")
 
     for msg in self.cfg.VerifyConfig():
@@ -3450,6 +3447,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     with self.cfg.GetConfigManager(shared=True):
       feedback_fn("* Gathering information about nodes (%s nodes)" %
                   len(self.my_node_uuids))
+      # Force the configuration to be fully distributed before doing any tests
+      self.cfg.FlushConfig()
       # Due to the way our RPC system works, exact response times cannot be
       # guaranteed (e.g. a broken node could run into a timeout). By keeping
       # the time before and after executing the request, we can at least have
