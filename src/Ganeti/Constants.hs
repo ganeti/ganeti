@@ -4736,6 +4736,17 @@ luxiLivelockPrefix = "luxi-daemon"
 luxiCancelJobTimeout :: Int
 luxiCancelJobTimeout = (luxiDefRwto - 1) `div` 4
 
+-- * Master voting constants
+
+-- | Number of retries to carry out if nodes do not answer
+masterVotingRetries :: Int
+masterVotingRetries = 6
+
+-- | Retry interval (in seconds) in master voting, if not enough answers
+-- could be gathered.
+masterVotingRetryIntervall :: Int
+masterVotingRetryIntervall = 10
+
 -- * Query language constants
 
 -- ** Logic operators with one or more operands, each of which is a
