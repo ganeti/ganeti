@@ -468,7 +468,6 @@ main :: MainFn () PrepResult
 main _ _ (server, cref, jq) = do
   initConfigReader id cref
   let creader = readIORef cref
-  initJQScheduler jq
 
   qlockFile <- jobQueueLockFile
   _ <- lockFile qlockFile >>= exitIfBad "Failed to obtain the job-queue lock"
@@ -477,6 +476,8 @@ main _ _ (server, cref, jq) = do
   _ <- P.installHandler P.sigCHLD P.Ignore Nothing
 
   _ <- forkIO . void $ activateMasterIP
+
+  initJQScheduler jq
 
   finally
     (forever $ U.listener (luxiHandler (qlock, jq, creader)) server)
