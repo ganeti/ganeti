@@ -1513,7 +1513,41 @@ class LUInstanceCreate(LogicalUnit):
           result.Warn("Failed to run rename script for %s on node %s" %
                       (self.op.instance_name, self.pnode.name), self.LogWarning)
 
-  def UpdateInstanceOsInstallPackage(self, feedback_fn, instance):
+  def GetOsInstallPackageEnvironment(self, instance, script):
+    """Returns the OS scripts environment for the helper VM
+
+    @type instance: L{objects.Instance}
+    @param instance: instance for which the OS scripts are run
+
+    @type script: string
+    @param script: script to run (e.g.,
+                   constants.OS_SCRIPT_CREATE_UNTRUSTED)
+
+    @rtype: dict of string to string
+    @return: OS scripts environment for the helper VM
+
+    """
+    env = {"OS_SCRIPT": script}
+
+    # We pass only the instance's disks, not the helper VM's disks.
+    if instance.hypervisor == constants.HT_KVM:
+      prefix = "/dev/vd"
+    elif instance.hypervisor in [constants.HT_XEN_PVM, constants.HT_XEN_HVM]:
+      prefix = "/dev/xvd"
+    else:
+      raise errors.OpExecError("Cannot run OS scripts in a virtualized"
+                               " environment for hypervisor '%s'"
+                               % instance.hypervisor)
+
+    num_disks = len(self.cfg.GetInstanceDisks(instance.uuid))
+
+    for idx, disk_label in enumerate(utils.GetDiskLabels(prefix, num_disks + 1,
+                                                         start=1)):
+      env["DISK_%d_PATH" % idx] = disk_label
+
+    return env
+
+  def UpdateInstanceOsInstallPackage(self, feedback_fn, instance, override_env):
     """Updates the OS parameter 'os-install-package' for an instance.
 
     The OS install package is an archive containing an OS definition
@@ -1531,12 +1565,17 @@ class LUInstanceCreate(LogicalUnit):
     @param instance: instance for which the OS parameter
                      'os-install-package' is updated
 
+    @type override_env: dict of string to string
+    @param override_env: if supplied, it overrides the environment of
+                         the export OS scripts archive
+
     """
     if "os-install-package" in instance.osparams:
       feedback_fn("Using OS install package '%s'" %
                   instance.osparams["os-install-package"])
     else:
-      result = self.rpc.call_os_export(instance.primary_node, instance)
+      result = self.rpc.call_os_export(instance.primary_node, instance,
+                                       override_env)
       result.Raise("Could not export OS '%s'" % instance.os)
       instance.osparams["os-install-package"] = result.payload
 
@@ -1566,6 +1605,14 @@ class LUInstanceCreate(LogicalUnit):
                                " install image has not been specified")
 
     disk_size = DetermineImageSize(self, install_image, instance.primary_node)
+
+    env = self.GetOsInstallPackageEnvironment(
+      instance,
+      constants.OS_SCRIPT_CREATE_UNTRUSTED)
+    self.UpdateInstanceOsInstallPackage(feedback_fn, instance, env)
+    UpdateMetadata(feedback_fn, self.rpc, instance,
+                   osparams_private=self.op.osparams_private,
+                   osparams_secret=self.op.osparams_secret)
 
     with TemporaryDisk(self,
                        instance,
@@ -1749,20 +1796,18 @@ class LUInstanceCreate(LogicalUnit):
       elif trusted:
         self.RunOsScripts(feedback_fn, iobj)
       else:
-        self.UpdateInstanceOsInstallPackage(feedback_fn, iobj)
-        UpdateMetadata(feedback_fn, self.rpc, iobj,
-                       osparams_private=self.op.osparams_private,
-                       osparams_secret=self.op.osparams_secret)
         self.RunOsScriptsVirtualized(feedback_fn, iobj)
         # Instance is modified by 'RunOsScriptsVirtualized',
         # therefore, it must be retrieved once again from the
         # configuration, otherwise there will be a config object
         # version mismatch.
         iobj = self.cfg.GetInstanceInfo(iobj.uuid)
-    else:
-      UpdateMetadata(feedback_fn, self.rpc, iobj,
-                     osparams_private=self.op.osparams_private,
-                     osparams_secret=self.op.osparams_secret)
+
+    # Update instance metadata so that it can be reached from the
+    # metadata service.
+    UpdateMetadata(feedback_fn, self.rpc, iobj,
+                   osparams_private=self.op.osparams_private,
+                   osparams_secret=self.op.osparams_secret)
 
     assert not self.owned_locks(locking.LEVEL_NODE_RES)
 
