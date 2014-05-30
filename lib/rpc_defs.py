@@ -468,6 +468,7 @@ _OS_CALLS = [
     ], None, None, "Run a validation routine for a given OS"),
   ("os_export", SINGLE, None, constants.RPC_TMO_FAST, [
     ("instance", ED_INST_DICT, None),
+    ("override_env", None, None),
     ], None, None, "Export an OS for a given instance"),
   ]
 

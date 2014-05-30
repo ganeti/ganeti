@@ -1000,7 +1000,8 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
     """
     instance = objects.Instance.FromDict(params[0])
-    return backend.ExportOS(instance)
+    override_env = params[1]
+    return backend.ExportOS(instance, override_env)
 
   # extstorage -----------------------
 

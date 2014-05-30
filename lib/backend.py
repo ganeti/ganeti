@@ -3876,7 +3876,7 @@ def ValidateOS(required, osname, checks, osparams, force_variant):
   return True
 
 
-def ExportOS(instance):
+def ExportOS(instance, override_env):
   """Creates a GZIPed tarball with an OS definition and environment.
 
   The archive contains a file with the environment variables needed by
@@ -3884,6 +3884,10 @@ def ExportOS(instance):
 
   @type instance: L{objects.Instance}
   @param instance: instance for which the OS definition is exported
+
+  @type override_env: dict of string to string
+  @param override_env: if supplied, it overrides the environment on a
+                       key-by-key basis that is part of the archive
 
   @rtype: string
   @return: filepath of the archive
@@ -3902,6 +3906,8 @@ def ExportOS(instance):
           inst_os, temp_dir, result.fail_reason, result.output)
 
   env = OSEnvironment(instance, inst_os)
+  env.update(override_env)
+
   with open(utils.PathJoin(temp_dir, "environment"), "w") as f:
     for var in env:
       f.write(var + "=" + env[var] + "\n")
