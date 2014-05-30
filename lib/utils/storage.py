@@ -173,3 +173,36 @@ def LookupSpaceInfoByStorageType(storage_space_info, storage_type):
         logging.warning("Storage space information requested for"
                         " ambiguous storage type '%s'.", storage_type)
   return result
+
+
+def GetDiskLabels(prefix, num_disks, start=0):
+  """Generate disk labels for a number of disks
+
+  Note that disk labels are generated in the range [start..num_disks[
+  (e.g., as in range(start, num_disks))
+
+  @type prefix: string
+  @param prefix: disk label prefix (e.g., "/dev/sd")
+
+  @type num_disks: int
+  @param num_disks: number of disks (i.e., disk labels)
+
+  @type start: int
+  @param start: optional start index
+
+  @rtype: generator
+  @return: generator for the disk labels
+
+  """
+  def _GetDiskSuffix(i):
+    n = ord('z') - ord('a') + 1
+    if i < n:
+      return chr(ord('a') + i)
+    else:
+      mod = int(i % n)
+      pref = _GetDiskSuffix((i - mod) / (n + 1))
+      suf = _GetDiskSuffix(mod)
+      return pref + suf
+
+  for i in range(start, num_disks):
+    yield prefix + _GetDiskSuffix(i)
