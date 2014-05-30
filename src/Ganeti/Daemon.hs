@@ -39,6 +39,8 @@ module Ganeti.Daemon
   , oBindAddress
   , oSyslogUsage
   , oForceNode
+  , oNoVoting
+  , oYesDoIt
   , parseArgs
   , parseAddress
   , cleanupSocket
@@ -102,6 +104,8 @@ data DaemonOptions = DaemonOptions
   , optBindAddress  :: Maybe String   -- ^ Override for the bind address
   , optSyslogUsage  :: Maybe SyslogUsage -- ^ Override for Syslog usage
   , optForceNode    :: Bool           -- ^ Ignore node checks
+  , optNoVoting     :: Bool           -- ^ skip voting for master
+  , optYesDoIt      :: Bool           -- ^ force dangerous options
   }
 
 -- | Default values for the command line options.
@@ -117,6 +121,8 @@ defaultOptions  = DaemonOptions
   , optBindAddress  = Nothing
   , optSyslogUsage  = Nothing
   , optForceNode    = False
+  , optNoVoting     = False
+  , optYesDoIt      = False
   }
 
 instance StandardOptions DaemonOptions where
@@ -194,6 +200,20 @@ oForceNode =
   (Option "" ["force-node"]
    (NoArg (\ opts -> Ok opts { optForceNode = True }))
    "Force the daemon to run on a different node than the master",
+   OptComplNone)
+
+oNoVoting :: OptType
+oNoVoting =
+  (Option "" ["no-voting"]
+   (NoArg (\ opts -> Ok opts { optNoVoting = True }))
+   "Skip node agreement check (dangerous)",
+   OptComplNone)
+
+oYesDoIt :: OptType
+oYesDoIt =
+  (Option "" ["yes-do-it"]
+   (NoArg (\ opts -> Ok opts { optYesDoIt = True }))
+   "Force a dangerous operation",
    OptComplNone)
 
 -- | Generic options.
