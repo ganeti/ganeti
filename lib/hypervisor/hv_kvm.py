@@ -1217,7 +1217,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type instance_name: string
     @param instance_name: the instance name
     @type hvparams: dict of strings
-    @param hvparams: hvparams to be used with this instance
+    @param hvparams: hypervisor parameters to be used with this instance
     @rtype: tuple of strings
     @return: (name, id, memory, vcpus, stat, times)
 
@@ -1250,7 +1250,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Get properties of all instances.
 
     @type hvparams: dict of strings
-    @param hvparams: hypervisor parameter
+    @param hvparams: hypervisor parameters
     @return: list of tuples (name, id, memory, vcpus, stat, times)
 
     """
@@ -2040,6 +2040,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _StartKvmd(hvparams):
     """Ensure that the Kvm daemon is running.
 
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters
+
     """
     if hvparams is None \
           or not hvparams[constants.HV_KVM_USER_SHUTDOWN] \
@@ -2660,8 +2663,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def CheckParameterSyntax(cls, hvparams):
     """Check the given parameters for validity.
 
-    @type hvparams:  dict
-    @param hvparams: dictionary with parameter names/value
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters
     @raise errors.HypervisorError: when a parameter is not valid
 
     """
@@ -2733,8 +2736,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def ValidateParameters(cls, hvparams):
     """Check the given parameters for validity.
 
-    @type hvparams:  dict
-    @param hvparams: dictionary with parameter names/value
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters
     @raise errors.HypervisorError: when a parameter is not valid
 
     """
@@ -2795,7 +2798,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """KVM powercycle, just a wrapper over Linux powercycle.
 
     @type hvparams: dict of strings
-    @param hvparams: hypervisor params to be used on this node
+    @param hvparams: hypervisor parameters to be used on this node
 
     """
     cls.LinuxPowercycle()
