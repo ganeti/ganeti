@@ -485,7 +485,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     @param ssl_verify_peer: Whether to require client certificate
         and compare it with our certificate
     @type request_executor_class: class
-    @param request_executor_class: an class derived from the
+    @param request_executor_class: a class derived from the
         HttpServerRequestExecutor class
 
     """
