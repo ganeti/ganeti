@@ -212,8 +212,9 @@ def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
       nic_ip = ip
 
     # TODO: check the ip address for uniqueness
-    if nic_mode == constants.NIC_MODE_ROUTED and not nic_ip:
-      raise errors.OpPrereqError("Routed nic mode requires an ip address",
+    if nic_mode == constants.NIC_MODE_ROUTED and not nic_ip and not net:
+      raise errors.OpPrereqError("Routed nic mode requires an ip address"
+                                 " if not attached to a network",
                                  errors.ECODE_INVAL)
 
     # MAC address verification
@@ -2896,9 +2897,10 @@ class LUInstanceSetParams(LogicalUnit):
 
     elif new_mode == constants.NIC_MODE_ROUTED:
       ip = params.get(constants.INIC_IP, old_ip)
-      if ip is None:
+      if ip is None and not new_net_uuid:
         raise errors.OpPrereqError("Cannot set the NIC IP address to None"
-                                   " on a routed NIC", errors.ECODE_INVAL)
+                                   " on a routed NIC if not attached to a"
+                                   " network", errors.ECODE_INVAL)
 
     elif new_mode == constants.NIC_MODE_OVS:
       # TODO: check OVS link
