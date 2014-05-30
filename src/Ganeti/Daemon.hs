@@ -44,6 +44,7 @@ module Ganeti.Daemon
   , cleanupSocket
   , describeError
   , genericMain
+  , getFQDN
   ) where
 
 import Control.Concurrent
