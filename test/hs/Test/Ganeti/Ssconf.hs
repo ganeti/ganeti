@@ -29,12 +29,14 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Test.Ganeti.Ssconf (testSsconf) where
 
 import Test.QuickCheck
+import qualified Test.HUnit as HUnit
 
 import Data.List
 
 import Test.Ganeti.TestHelper
 
 import qualified Ganeti.Ssconf as Ssconf
+import qualified Ganeti.Types as Types
 
 -- * Ssconf tests
 
@@ -45,6 +47,34 @@ prop_filename key =
   printTestCase "Key doesn't start with correct prefix" $
     Ssconf.sSFilePrefix `isPrefixOf` Ssconf.keyToFilename "" key
 
+caseParseNodesVmCapable :: HUnit.Assertion
+caseParseNodesVmCapable = do
+  let str = "node1.example.com=True\nnode2.example.com=False"
+      result = Ssconf.parseNodesVmCapable str
+      expected = return
+        [ ("node1.example.com", True)
+        , ("node2.example.com", False)
+        ]
+  HUnit.assertEqual "Mismatch in parsed and expected result" expected result
+
+caseParseHypervisorList :: HUnit.Assertion
+caseParseHypervisorList = do
+  let result = Ssconf.parseHypervisorList "kvm\nxen-pvm\nxen-hvm"
+      expected = return [Types.Kvm, Types.XenPvm, Types.XenHvm]
+  HUnit.assertEqual "Mismatch in parsed and expected result" expected result
+
+caseParseEnabledUserShutdown :: HUnit.Assertion
+caseParseEnabledUserShutdown = do
+  let result1 = Ssconf.parseEnabledUserShutdown "True"
+      result2 = Ssconf.parseEnabledUserShutdown "False"
+  HUnit.assertEqual "Mismatch in parsed and expected result"
+    (return True) result1
+  HUnit.assertEqual "Mismatch in parsed and expected result"
+    (return False) result2
+
 testSuite "Ssconf"
   [ 'prop_filename
+  , 'caseParseNodesVmCapable
+  , 'caseParseHypervisorList
+  , 'caseParseEnabledUserShutdown
   ]

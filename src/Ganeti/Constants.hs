@@ -3570,6 +3570,9 @@ ssNodePrimaryIps = "node_primary_ips"
 ssNodeSecondaryIps :: String
 ssNodeSecondaryIps = "node_secondary_ips"
 
+ssNodeVmCapable :: String
+ssNodeVmCapable = "node_vm_capable"
+
 ssOfflineNodes :: String
 ssOfflineNodes = "offline_nodes"
 
@@ -3636,6 +3639,9 @@ validSsHvparamsKeys =
 
 ssFilePerms :: Int
 ssFilePerms = 0o444
+
+ssEnabledUserShutdown :: String
+ssEnabledUserShutdown = "enabled_user_shutdown"
 
 -- | Cluster wide default parameters
 defaultEnabledHypervisor :: String

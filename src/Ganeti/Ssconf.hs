@@ -30,14 +30,21 @@ module Ganeti.Ssconf
   , sSKeyToRaw
   , sSKeyFromRaw
   , getPrimaryIPFamily
+  , parseNodesVmCapable
+  , getNodesVmCapable
   , getMasterCandidatesIps
   , getMasterNode
+  , parseHypervisorList
+  , getHypervisorList
+  , parseEnabledUserShutdown
+  , getEnabledUserShutdown
   , keyToFilename
   , sSFilePrefix
   ) where
 
+import Control.Applicative ((<$>))
 import Control.Exception
-import Control.Monad (liftM)
+import Control.Monad (forM, liftM)
 import Data.Maybe (fromMaybe)
 import qualified Network.Socket as Socket
 import System.FilePath ((</>))
@@ -48,6 +55,8 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Path as Path
 import Ganeti.THH
+import Ganeti.Types (Hypervisor)
+import qualified Ganeti.Types as Types
 import Ganeti.Utils
 
 -- | Maximum ssconf file size we support.
@@ -73,6 +82,7 @@ $(declareSADT "SSKey"
   , ("SSNodeList",             'C.ssNodeList)
   , ("SSNodePrimaryIps",       'C.ssNodePrimaryIps)
   , ("SSNodeSecondaryIps",     'C.ssNodeSecondaryIps)
+  , ("SSNodeVmCapable",        'C.ssNodeVmCapable)
   , ("SSOfflineNodes",         'C.ssOfflineNodes)
   , ("SSOnlineNodes",          'C.ssOnlineNodes)
   , ("SSPrimaryIpFamily",      'C.ssPrimaryIpFamily)
@@ -82,6 +92,7 @@ $(declareSADT "SSKey"
   , ("SSMaintainNodeHealth",   'C.ssMaintainNodeHealth)
   , ("SSUidPool",              'C.ssUidPool)
   , ("SSNodegroups",           'C.ssNodegroups)
+  , ("SSEnabledUserShutdown",  'C.ssEnabledUserShutdown)
   ])
 
 -- | Convert a ssconf key into a (full) file path.
@@ -118,6 +129,14 @@ readSSConfFile optpath def key = do
             keyToFilename (fromMaybe dpath optpath) $ key
   return (liftM (take maxFileSize) result)
 
+-- | Parses a key-value pair of the form "key=value" from 'str', fails
+-- with 'desc' otherwise.
+parseKeyValue :: Monad m => String -> String -> m (String, String)
+parseKeyValue desc str =
+  case sepSplit '=' str of
+    [key, value] -> return (key, value)
+    _ -> fail $ "Failed to parse key-value pair for " ++ desc
+
 -- | Parses a string containing an IP family
 parseIPFamily :: Int -> Result Socket.Family
 parseIPFamily fam | fam == AutoConf.pyAfInet4 = Ok Socket.AF_INET
@@ -133,6 +152,19 @@ getPrimaryIPFamily optpath = do
   return (liftM rStripSpace result >>=
           tryRead "Parsing af_family" >>= parseIPFamily)
 
+-- | Parse the nodes vm capable value from a 'String'.
+parseNodesVmCapable :: String -> Result [(String, Bool)]
+parseNodesVmCapable str =
+  forM (lines str) $ \line -> do
+    (key, val) <- parseKeyValue "Parsing node_vm_capable" line
+    val' <- tryRead "Parsing value of node_vm_capable" val
+    return (key, val')
+
+-- | Read and parse the nodes vm capable.
+getNodesVmCapable :: Maybe FilePath -> IO (Result [(String, Bool)])
+getNodesVmCapable optPath =
+  (parseNodesVmCapable =<<) <$> readSSConfFile optPath Nothing SSNodeVmCapable
+
 -- | Read the list of IP addresses of the master candidates of the cluster.
 getMasterCandidatesIps :: Maybe FilePath -> IO (Result [String])
 getMasterCandidatesIps optPath = do
@@ -143,4 +175,26 @@ getMasterCandidatesIps optPath = do
 getMasterNode :: Maybe FilePath -> IO (Result String)
 getMasterNode optPath = do
   result <- readSSConfFile optPath Nothing SSMasterNode
-  return (liftM rStripSpace result)
+  return $ liftM rStripSpace result
+
+-- | Parse the list of enabled hypervisors from a 'String'.
+parseHypervisorList :: String -> Result [Hypervisor]
+parseHypervisorList str =
+  mapM Types.hypervisorFromRaw $ lines str
+
+-- | Read and parse the list of enabled hypervisors.
+getHypervisorList :: Maybe FilePath -> IO (Result [Hypervisor])
+getHypervisorList optPath =
+  (parseHypervisorList =<<) <$>
+    readSSConfFile optPath Nothing SSHypervisorList
+
+-- | Parse whether user shutdown is enabled from a 'String'.
+parseEnabledUserShutdown :: String -> Result Bool
+parseEnabledUserShutdown str =
+  tryRead "Parsing enabled_user_shutdown" (rStripSpace str)
+
+-- | Read and parse whether user shutdown is enabled.
+getEnabledUserShutdown :: Maybe FilePath -> IO (Result Bool)
+getEnabledUserShutdown optPath =
+  (parseEnabledUserShutdown =<<) <$>
+    readSSConfFile optPath Nothing SSEnabledUserShutdown

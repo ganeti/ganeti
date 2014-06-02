@@ -57,6 +57,7 @@ _VALID_KEYS = compat.UniqueFrozenset([
   constants.SS_NODE_LIST,
   constants.SS_NODE_PRIMARY_IPS,
   constants.SS_NODE_SECONDARY_IPS,
+  constants.SS_NODE_VM_CAPABLE,
   constants.SS_OFFLINE_NODES,
   constants.SS_ONLINE_NODES,
   constants.SS_PRIMARY_IP_FAMILY,
@@ -73,6 +74,7 @@ _VALID_KEYS = compat.UniqueFrozenset([
   constants.SS_HVPARAMS_XEN_KVM,
   constants.SS_HVPARAMS_XEN_CHROOT,
   constants.SS_HVPARAMS_XEN_LXC,
+  constants.SS_ENABLED_USER_SHUTDOWN,
   ])
 
 #: Maximum size for ssconf files
@@ -321,6 +323,20 @@ class SimpleStore(object):
     nl = data.splitlines(False)
     return nl
 
+  def GetNodesVmCapable(self):
+    """Return the cluster nodes' vm capable value.
+
+    @rtype: dict of string to bool
+    @return: mapping of node names to vm capable values
+
+    """
+    data = self._ReadFile(constants.SS_NODE_VM_CAPABLE)
+    vm_capable = {}
+    for line in data.splitlines(False):
+      (node_uuid, node_vm_capable) = line.split("=")
+      vm_capable[node_uuid] = node_vm_capable == "True"
+    return vm_capable
+
   def GetNodegroupList(self):
     """Return the list of nodegroups.
 
@@ -414,6 +430,15 @@ class SimpleStore(object):
     except (ValueError, TypeError), err:
       raise errors.ConfigurationError("Error while trying to parse primary IP"
                                       " family: %s" % err)
+
+  def GetEnabledUserShutdown(self):
+    """Return whether user shutdown is enabled.
+
+    @rtype: bool
+    @return: 'True' if user shutdown is enabled, 'False' otherwise
+
+    """
+    return self._ReadFile(constants.SS_ENABLED_USER_SHUTDOWN) == "True"
 
 
 def WriteSsconfFiles(values, dry_run=False):

@@ -221,6 +221,32 @@ class TestSimpleStore(unittest.TestCase):
 
       self.assertEqual(os.listdir(self.ssdir), [])
 
+  def testEnabledUserShutdown(self):
+    self.sstore._ReadFile = mock.Mock(return_value="True")
+    result = self.sstore.GetEnabledUserShutdown()
+    self.assertTrue(isinstance(result, bool))
+    self.assertEqual(result, True)
+
+    self.sstore._ReadFile = mock.Mock(return_value="False")
+    result = self.sstore.GetEnabledUserShutdown()
+    self.assertTrue(isinstance(result, bool))
+    self.assertEqual(result, False)
+
+  def testGetNodesVmCapable(self):
+    def _ToBool(x):
+      return x == "True"
+
+    vm_capable = [("node1.example.com", "True"), ("node2.example.com", "False")]
+    ssconf_file_content = '\n'.join("%s=%s" % (key, value) for (key, value)
+                                    in vm_capable)
+    self.sstore._ReadFile = mock.Mock(return_value=ssconf_file_content)
+    result = self.sstore.GetNodesVmCapable()
+    for (key, value) in vm_capable:
+      self.assertTrue(isinstance(key, str))
+      self.assertTrue(key in result)
+      self.assertTrue(isinstance(result[key], bool))
+      self.assertEqual(_ToBool(value), result[key])
+
   def testGetHvparamsForHypervisor(self):
     hvparams = [("a", "A"), ("b", "B"), ("c", "C")]
     ssconf_file_content = '\n'.join("%s=%s" % (key, value) for (key, value)

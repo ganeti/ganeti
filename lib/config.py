@@ -2614,6 +2614,8 @@ class ConfigWriter(object):
                     for ninfo in node_infos]
     node_snd_ips = ["%s %s" % (ninfo.name, ninfo.secondary_ip)
                     for ninfo in node_infos]
+    node_vm_capable = ["%s=%s" % (ninfo.name, str(ninfo.vm_capable))
+                       for ninfo in node_infos]
 
     instance_data = fn(instance_names)
     off_data = fn(node.name for node in node_infos if node.offline)
@@ -2624,6 +2626,7 @@ class ConfigWriter(object):
     node_data = fn(node_names)
     node_pri_ips_data = fn(node_pri_ips)
     node_snd_ips_data = fn(node_snd_ips)
+    node_vm_capable_data = fn(node_vm_capable)
 
     cluster = self._config_data.cluster
     cluster_tags = fn(cluster.GetTags())
@@ -2660,6 +2663,7 @@ class ConfigWriter(object):
       constants.SS_NODE_LIST: node_data,
       constants.SS_NODE_PRIMARY_IPS: node_pri_ips_data,
       constants.SS_NODE_SECONDARY_IPS: node_snd_ips_data,
+      constants.SS_NODE_VM_CAPABLE: node_vm_capable_data,
       constants.SS_OFFLINE_NODES: off_data,
       constants.SS_ONLINE_NODES: on_data,
       constants.SS_PRIMARY_IP_FAMILY: str(cluster.primary_ip_family),
@@ -2670,6 +2674,7 @@ class ConfigWriter(object):
       constants.SS_UID_POOL: uid_pool,
       constants.SS_NODEGROUPS: nodegroups_data,
       constants.SS_NETWORKS: networks_data,
+      constants.SS_ENABLED_USER_SHUTDOWN: str(cluster.enabled_user_shutdown),
       }
     ssconf_values = self._ExtendByAllHvparamsStrings(ssconf_values,
                                                      all_hvparams)

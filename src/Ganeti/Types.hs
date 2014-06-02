@@ -75,6 +75,7 @@ module Ganeti.Types
   , CVErrorCode(..)
   , cVErrorCodeToRaw
   , Hypervisor(..)
+  , hypervisorFromRaw
   , hypervisorToRaw
   , OobCommand(..)
   , oobCommandToRaw
