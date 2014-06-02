@@ -180,6 +180,45 @@ updateJob state jb = do
     cleanupFinishedJobs state
     scheduleSomeJobs state
 
+-- | Move a job from one part of the queue to another.
+-- Return the job that was moved, or 'Nothing' if it wasn't found in
+-- the queue.
+moveJob :: Lens' Queue [JobWithStat] -- ^ from queue
+        -> Lens' Queue [JobWithStat] -- ^ to queue
+        -> JobId
+        -> Queue
+        -> (Queue, Maybe JobWithStat)
+moveJob fromQ toQ jid queue =
+    -- traverse over the @(,) [JobWithStats]@ functor to extract the job
+    case traverseOf fromQ (partition ((== jid) . qjId . jJob)) queue of
+      (job : _, queue') -> (over toQ (++ [job]) queue', Just job)
+      _                 -> (queue, Nothing)
+
+-- | Atomically move a job from one part of the queue to another.
+-- Return the job that was moved, or 'Nothing' if it wasn't found in
+-- the queue.
+moveJobAtomic :: Lens' Queue [JobWithStat] -- ^ from queue
+              -> Lens' Queue [JobWithStat] -- ^ to queue
+              -> JobId
+              -> JQStatus
+              -> IO (Maybe JobWithStat)
+moveJobAtomic fromQ toQ jid qstat =
+  atomicModifyIORef (jqJobs qstat) (moveJob fromQ toQ jid)
+
+-- | Manipulate a running job by atomically moving it from 'qRunning'
+-- into 'qManipulated', running a given IO action and then atomically
+-- returning it back.
+--
+-- Returns the result of the IO action, or 'Nothing', if the job wasn't found
+-- in the queue.
+manipulateRunningJob :: JQStatus -> JobId -> IO a -> IO (Maybe a)
+manipulateRunningJob qstat jid k = do
+  jobOpt <- moveJobAtomic qRunningL qManipulatedL jid qstat
+  case jobOpt of
+    Nothing -> return Nothing
+    Just _  -> (Just `liftM` k)
+               `finally` moveJobAtomic qManipulatedL qRunningL jid qstat
+
 -- | Sort out the finished jobs from the monitored part of the queue.
 -- This is the pure part, splitting the queue into a remaining queue
 -- and the jobs that were removed.
