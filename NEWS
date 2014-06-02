@@ -204,6 +204,36 @@ This was the first beta release of the 2.11 series. All important changes
 are listed in the latest 2.11 entry.
 
 
+Version 2.10.5
+--------------
+
+*(Released Mon, 2 Jun 2014)*
+
+- Two new options have been added to gnt-group evacuate.
+  The 'sequential' option forces all the evacuation steps to
+  be carried out sequentially, thus avoiding congestion on a
+  slow link between node groups. The 'force-failover' option
+  disallows migrations and forces failovers to be used instead.
+  In this way evacuation to a group with vastly differnet
+  hypervisor is possible.
+- In tiered allocation, when looking for ways on how to shrink
+  an instance, the canoncial path is tried first, i.e., in each
+  step reduce on the resource most placements are blocked on. Only
+  if no smaller fitting instance can be found shrinking a single
+  resource till fit is tried.
+- For finding the placement of an instance, the duplicate computations
+  in the computation of the various cluster scores are computed only
+  once. This significantly improves the performance of hspace for DRBD
+  on large clusters; for other clusters, a slight performance decrease
+  might occur. Moreover, due to the changed order, floating point
+  number inaccuracies accumulate differently, thus resulting in different
+  cluster scores. It has been verified that the effect of these different
+  roundings is less than 1e-12.
+- network queries fixed with respect to instances
+- relax too strict prerequisite in LUClusterSetParams for DRBD helpers
+- VArious improvements to QA and build-time tests
+
+
 Version 2.10.4
 --------------
 
