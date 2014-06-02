@@ -355,15 +355,6 @@ showQueue (Queue {qEnqueued=waiting, qRunning=running}) =
   in "Waiting jobs: " ++ showids waiting 
        ++ "; running jobs: " ++ showids running
 
--- | Pure function to remove a job from the list of running
--- jobs, if it is still there. Return whether it was still among
--- the running jobs.
-rmFromRunning :: JobId -> Queue -> (Queue, Bool)
-rmFromRunning jid queue =
-  let running = qRunning queue
-      (running', removed) = partition ((/=) jid . qjId . jJob) running
-  in ( queue { qRunning = running' }, not $ null removed)
-
 -- | Check if a job died, and clean up if so.
 checkForDeath :: JQStatus -> JobWithStat -> IO ()
 checkForDeath state jobWS = do
@@ -379,19 +370,19 @@ checkForDeath state jobWS = do
     logInfo $ "Detected death of job " ++ sjid
     -- if we manage to remove the job from the queue, we own the job file
     -- and can manipulate it.
-    removed <- atomicModifyIORef (jqJobs state) $ rmFromRunning jid
-    when removed . void . runResultT $ do
-      logDebug $ "Removed job " ++ sjid ++ " from the list of running"
-        :: ResultG ()
-      jobWS' <- mkResultT $ readJobFromDisk jid
-      now <- liftIO currentTimestamp
-      qDir <- liftIO queueDir
-      let reason = ( "gnt:daemon:wconfd:deathdetection"
-                   , "detected death of job " ++ sjid
-                   , reasonTrailTimestamp now )
-          failedJob = failQueuedJob reason now $ jJob jobWS'
-      cfg <- mkResultT . readIORef $ jqConfig state
-      writeAndReplicateJob cfg qDir failedJob
+    void . manipulateRunningJob state jid . runResultT $ do
+      jobWS' <- mkResultT $ readJobFromDisk jid :: ResultG JobWithStat
+      unless (jobFinalized . jJob $ jobWS') . void $ do
+        -- If the job isn't finalized, but dead, add a corresponding
+        -- failed status.
+        now <- liftIO currentTimestamp
+        qDir <- liftIO queueDir
+        let reason = ( "gnt:daemon:wconfd:deathdetection"
+                     , "detected death of job " ++ sjid
+                     , reasonTrailTimestamp now )
+            failedJob = failQueuedJob reason now $ jJob jobWS'
+        cfg <- mkResultT . readIORef $ jqConfig state
+        writeAndReplicateJob cfg qDir failedJob
 
 -- | Time-based watcher for updating the job queue.
 onTimeWatcher :: JQStatus -> IO ()
