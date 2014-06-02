@@ -265,6 +265,12 @@ def InitCluster(opts, args):
   hv_state = dict(opts.hv_state)
 
   default_ialloc_params = opts.default_iallocator_params
+
+  if opts.enabled_user_shutdown:
+    enabled_user_shutdown = True
+  else:
+    enabled_user_shutdown = False
+
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
@@ -295,6 +301,7 @@ def InitCluster(opts, args):
                         hv_state=hv_state,
                         disk_state=disk_state,
                         enabled_disk_templates=enabled_disk_templates,
+                        enabled_user_shutdown=enabled_user_shutdown,
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
@@ -540,6 +547,7 @@ def ShowClusterConfig(opts, args):
        utils.CommaJoin(pathutils.ES_SEARCH_PATH)),
       ("enabled disk templates",
        utils.CommaJoin(result["enabled_disk_templates"])),
+      ("enabled user shutdown", result["enabled_user_shutdown"]),
       ]),
 
     ("Default node parameters",
@@ -1115,7 +1123,8 @@ def SetClusterParams(opts, args):
           opts.ipolicy_spindle_ratio is not None or
           opts.modify_etc_hosts is not None or
           opts.file_storage_dir is not None or
-          opts.shared_file_storage_dir is not None):
+          opts.shared_file_storage_dir is not None or
+          opts.enabled_user_shutdown is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1227,6 +1236,7 @@ def SetClusterParams(opts, args):
     force=opts.force,
     file_storage_dir=opts.file_storage_dir,
     shared_file_storage_dir=opts.shared_file_storage_dir,
+    enabled_user_shutdown=opts.enabled_user_shutdown,
     )
   SubmitOrSend(op, opts)
   return 0
@@ -2109,7 +2119,8 @@ commands = {
      PRIMARY_IP_VERSION_OPT, PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT,
      GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT,
      HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
-     IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT]
+     ENABLED_USER_SHUTDOWN_OPT, IPOLICY_STD_SPECS_OPT,
+     GLOBAL_GLUSTER_FILEDIR_OPT]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
@@ -2192,7 +2203,8 @@ commands = {
      DRY_RUN_OPT, PRIORITY_OPT, PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT,
      USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] +
      SUBMIT_OPTS +
-     [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT] +
+     [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT,
+      ENABLED_USER_SHUTDOWN_OPT] +
      INSTANCE_POLICY_OPTS + [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),

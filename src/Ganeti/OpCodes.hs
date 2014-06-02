@@ -236,6 +236,7 @@ $(genOpCode "OpCode"
      , pClusterFileStorageDir
      , pClusterSharedFileStorageDir
      , pClusterGlusterStorageDir
+     , pEnabledUserShutdown
      ],
      [])
   , ("OpClusterRedistConf",

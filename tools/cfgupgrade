@@ -151,6 +151,8 @@ def UpgradeCluster(config_data):
   if not ial_params:
     cluster["default_iallocator_params"] = {}
   cluster["candidate_certs"] = cluster.get("candidate_certs", {})
+  if "enabled_user_shutdown" not in cluster:
+    cluster["enabled_user_shutdown"] = False
 
 
 def UpgradeGroups(config_data):
@@ -423,6 +425,8 @@ def DowngradeCluster(config_data):
       del cluster[param]
   if "max_running_jobs" in cluster:
     del cluster["max_running_jobs"]
+  if "enabled_user_shutdown" in cluster:
+    del cluster["enabled_user_shutdown"]
 
   DowngradeInstances(config_data)
 

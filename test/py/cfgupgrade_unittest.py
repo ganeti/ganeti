@@ -47,6 +47,7 @@ def GetMinimalConfig():
       "default_iallocator_params": {},
       "ndparams": {},
       "candidate_certs": {},
+      "enabled_user_shutdown": False,
     },
     "instances": {},
     "networks": {},

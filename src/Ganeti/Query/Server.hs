@@ -165,6 +165,8 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("hidden_os", showJSON $ clusterHiddenOs cluster)
             , ("blacklisted_os", showJSON $ clusterBlacklistedOs cluster)
             , ("enabled_disk_templates", showJSON diskTemplates)
+            , ("enabled_user_shutdown",
+               showJSON $ clusterEnabledUserShutdown cluster)
             ]
 
   in case master of

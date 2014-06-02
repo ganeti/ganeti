@@ -670,6 +670,7 @@ class TestInstanceQuery(unittest.TestCase):
                           query.IQ_CONSOLE, query.IQ_NODES, query.IQ_NETWORKS]))
 
     cluster = objects.Cluster(cluster_name="testcluster",
+      enabled_user_shutdown=True,
       hvparams=constants.HVC_DEFAULTS,
       beparams={
         constants.PP_DEFAULT: constants.BEC_DEFAULTS,

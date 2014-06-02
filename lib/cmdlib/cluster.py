@@ -434,6 +434,7 @@ class LUClusterQuery(NoHooksLU):
       "hidden_os": cluster.hidden_os,
       "blacklisted_os": cluster.blacklisted_os,
       "enabled_disk_templates": cluster.enabled_disk_templates,
+      "enabled_user_shutdown": cluster.enabled_user_shutdown,
       }
 
     return result
@@ -1395,6 +1396,9 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.use_external_mip_script is not None:
       self.cluster.use_external_mip_script = self.op.use_external_mip_script
+
+    if self.op.enabled_user_shutdown is not None:
+      self.cluster.enabled_user_shutdown = self.op.enabled_user_shutdown
 
     def helper_os(aname, mods, desc):
       desc += " OS list"
