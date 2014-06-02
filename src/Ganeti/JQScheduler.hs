@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, RankNTypes #-}
 {-| Implementation of a reader for the job queue.
 
 -}
@@ -69,7 +69,14 @@ data JobWithStat = JobWithStat { jINotify :: Maybe INotify
 
 $(makeCustomLenses' ''JobWithStat ['jJob])
 
-data Queue = Queue { qEnqueued :: [JobWithStat], qRunning :: [JobWithStat] }
+data Queue = Queue { qEnqueued :: [JobWithStat]
+                   , qRunning :: [JobWithStat]
+                   , qManipulated :: [JobWithStat] -- ^ running jobs that are
+                                                   -- being manipulated by
+                                                   -- some thread
+                   }
+
+$(makeCustomLenses ''Queue)
 
 {-| Representation of the job queue
 
@@ -91,7 +98,7 @@ data JQStatus = JQStatus
 
 emptyJQStatus :: IORef (Result ConfigData) -> IO JQStatus
 emptyJQStatus config = do
-  jqJ <- newIORef Queue { qEnqueued = [], qRunning = []}
+  jqJ <- newIORef Queue { qEnqueued = [], qRunning = [], qManipulated = [] }
   (_, livelock) <- mkLivelockFile C.luxiLivelockPrefix
   forkLock <- newLock
   return JQStatus { jqJobs = jqJ, jqConfig = config, jqLivelock = livelock
@@ -99,11 +106,11 @@ emptyJQStatus config = do
 
 -- | Apply a function on the running jobs.
 onRunningJobs :: ([JobWithStat] -> [JobWithStat]) -> Queue -> Queue
-onRunningJobs f queue = queue {qRunning=f $ qRunning queue}
+onRunningJobs = over qRunningL
 
 -- | Apply a function on the queued jobs.
 onQueuedJobs :: ([JobWithStat] -> [JobWithStat]) -> Queue -> Queue
-onQueuedJobs f queue = queue {qEnqueued=f $ qEnqueued queue}
+onQueuedJobs = over qEnqueuedL
 
 -- | Obtain a JobWithStat from a QueuedJob.
 unreadJob :: QueuedJob -> JobWithStat
