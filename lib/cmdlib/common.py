@@ -1279,3 +1279,65 @@ def CreateNewClientCert(lu, node_uuid, filename=None):
   ((crypto_type, new_digest), ) = result.payload
   assert crypto_type == constants.CRYPTO_TYPE_SSL_DIGEST
   return new_digest
+
+
+def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None):
+  """Ensure KVM daemon is running on nodes with KVM instances.
+
+  If user shutdown is enabled in the cluster:
+    - The KVM daemon will be started on VM capable nodes containing
+      KVM instances.
+    - The KVM daemon will be stopped on non VM capable nodes.
+
+  If user shutdown is disabled in the cluster:
+    - The KVM daemon will be stopped on all nodes
+
+  Issues a warning for each failed RPC call.
+
+  @type lu: L{LogicalUnit}
+  @param lu: logical unit on whose behalf we execute
+
+  @type feedback_fn: callable
+  @param feedback_fn: feedback function
+
+  @type nodes: list of string
+  @param nodes: if supplied, it overrides the node uuids to start/stop;
+                this is used mainly for optimization
+
+  """
+  cluster = lu.cfg.GetClusterInfo()
+
+  # Either use the passed nodes or consider all cluster nodes
+  if nodes is not None:
+    node_uuids = set(nodes)
+  else:
+    node_uuids = lu.cfg.GetNodeList()
+
+  # Determine in which nodes should the KVM daemon be started/stopped
+  if constants.HT_KVM in cluster.enabled_hypervisors and \
+        cluster.enabled_user_shutdown:
+    start_nodes = []
+    stop_nodes = []
+
+    for node_uuid in node_uuids:
+      if lu.cfg.GetNodeInfo(node_uuid).vm_capable:
+        start_nodes.append(node_uuid)
+      else:
+        stop_nodes.append(node_uuid)
+  else:
+    start_nodes = []
+    stop_nodes = node_uuids
+
+  # Start KVM where necessary
+  if start_nodes:
+    results = lu.rpc.call_node_ensure_daemon(start_nodes, constants.KVMD, True)
+    for node_uuid in start_nodes:
+      results[node_uuid].Warn("Failed to start KVM daemon in node '%s'" %
+                              node_uuid, feedback_fn)
+
+  # Stop KVM where necessary
+  if stop_nodes:
+    results = lu.rpc.call_node_ensure_daemon(stop_nodes, constants.KVMD, False)
+    for node_uuid in stop_nodes:
+      results[node_uuid].Warn("Failed to stop KVM daemon in node '%s'" %
+                              node_uuid, feedback_fn)

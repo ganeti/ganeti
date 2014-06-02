@@ -43,7 +43,8 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   AdjustCandidatePool, CheckIAllocatorOrNode, LoadNodeEvacResult, \
   GetWantedNodes, MapInstanceLvsToNodes, RunPostHook, \
   FindFaultyInstanceDisks, CheckStorageTypeEnabled, CreateNewClientCert, \
-  AddNodeCertToCandidateCerts, RemoveNodeCertFromCandidateCerts
+  AddNodeCertToCandidateCerts, RemoveNodeCertFromCandidateCerts, \
+  EnsureKvmdOnNodes
 
 
 def _DecideSelfPromotion(lu, exceptions=None):
@@ -432,6 +433,8 @@ class LUNodeAdd(LogicalUnit):
                                            cluster.candidate_certs)
         self.cfg.Update(cluster, feedback_fn)
 
+    EnsureKvmdOnNodes(self, feedback_fn, nodes=[self.new_node.uuid])
+
 
 class LUNodeSetParams(LogicalUnit):
   """Modifies the parameters of a node.
@@ -807,6 +810,8 @@ class LUNodeSetParams(LogicalUnit):
     # flag changed
     if [self.old_role, self.new_role].count(self._ROLE_CANDIDATE) == 1:
       self.context.ReaddNode(node)
+
+    EnsureKvmdOnNodes(self, feedback_fn, nodes=[node.uuid])
 
     return result
 

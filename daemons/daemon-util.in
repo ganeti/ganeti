@@ -32,6 +32,7 @@ DAEMONS=(
   ganeti-masterd
   ganeti-rapi
   ganeti-luxid
+  ganeti-kvmd
   )
 
 _confd_enabled() {

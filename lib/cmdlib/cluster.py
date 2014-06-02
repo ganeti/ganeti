@@ -56,7 +56,7 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   CheckOSParams, CheckHVParams, AdjustCandidatePool, CheckNodePVs, \
   ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
-  CheckDiskAccessModeConsistency, CreateNewClientCert
+  CheckDiskAccessModeConsistency, CreateNewClientCert, EnsureKvmdOnNodes
 
 import ganeti.masterd.instance
 
@@ -1332,6 +1332,8 @@ class LUClusterSetParams(LogicalUnit):
     self._SetSharedFileStorageDir(feedback_fn)
     self._SetDrbdHelper(feedback_fn)
 
+    ensure_kvmd = False
+
     if self.op.hvparams:
       self.cluster.hvparams = self.new_hvparams
     if self.op.os_hvp:
@@ -1339,6 +1341,7 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.enabled_hypervisors is not None:
       self.cluster.hvparams = self.new_hvparams
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
+      ensure_kvmd = True
     if self.op.beparams:
       self.cluster.beparams[constants.PP_DEFAULT] = self.new_beparams
     if self.op.nicparams:
@@ -1397,8 +1400,10 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.use_external_mip_script is not None:
       self.cluster.use_external_mip_script = self.op.use_external_mip_script
 
-    if self.op.enabled_user_shutdown is not None:
+    if self.op.enabled_user_shutdown is not None and \
+          self.cluster.enabled_user_shutdown != self.op.enabled_user_shutdown:
       self.cluster.enabled_user_shutdown = self.op.enabled_user_shutdown
+      ensure_kvmd = True
 
     def helper_os(aname, mods, desc):
       desc += " OS list"
@@ -1462,6 +1467,13 @@ class LUClusterSetParams(LogicalUnit):
                                                      master_params, ems)
       result.Warn("Could not re-enable the master ip on the master,"
                   " please restart manually", self.LogWarning)
+
+    # Even though 'self.op.enabled_user_shutdown' is being tested
+    # above, the RPCs can only be done after 'self.cfg.Update' because
+    # this will update the cluster object and sync 'Ssconf', and kvmd
+    # uses 'Ssconf'.
+    if ensure_kvmd:
+      EnsureKvmdOnNodes(self, feedback_fn)
 
 
 class LUClusterVerify(NoHooksLU):
