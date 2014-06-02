@@ -122,6 +122,7 @@ HS_DIRS = \
 	src/Ganeti/Curl \
 	src/Ganeti/Cpu \
 	src/Ganeti/DataCollectors \
+	src/Ganeti/Daemon \
 	src/Ganeti/Hs2Py \
 	src/Ganeti/HTools \
 	src/Ganeti/HTools/Backend \
@@ -749,6 +750,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Cpu/Types.hs \
 	src/Ganeti/Curl/Multi.hs \
 	src/Ganeti/Daemon.hs \
+	src/Ganeti/Daemon/Utils.hs \
 	src/Ganeti/DataCollectors/CLI.hs \
 	src/Ganeti/DataCollectors/CPUload.hs \
 	src/Ganeti/DataCollectors/Diskstats.hs \

@@ -32,17 +32,13 @@ module Ganeti.Query.Server
 import Control.Applicative
 import Control.Concurrent
 import Control.Exception
-import Control.Monad (forever, when, mzero, guard, zipWithM, liftM, void,
-                      unless)
+import Control.Monad (forever, when, mzero, guard, zipWithM, liftM, void)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
 import Data.Bits (bitSize)
-import Data.Either (rights)
-import qualified Data.Foldable as F
 import qualified Data.Set as Set (toList)
 import Data.IORef
-import Data.List (partition)
 import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.JSON (encode, showJSON, JSValue(..))
@@ -56,6 +52,7 @@ import qualified Ganeti.ConstantUtils as ConstantUtils (unFrozenSet)
 import Ganeti.Errors
 import qualified Ganeti.Path as Path
 import Ganeti.Daemon
+import Ganeti.Daemon.Utils (verifyMaster)
 import Ganeti.Objects
 import qualified Ganeti.Config as Config
 import Ganeti.ConfigReader
@@ -449,48 +446,6 @@ activateMasterIP = runResultT $ do
   _ <- liftIO $ logRpcErrors res
   liftIO $ logDebug "finished activating master IP address"
   return ()
-
--- | Gather votes from all nodes and verify that we we are
--- the master. Return True if the voting is won, False if
--- not enough
-verifyMasterVotes :: IO (Result Bool)
-verifyMasterVotes = runResultT $ do
-  liftIO $ logDebug "Gathering votes for the master node"
-  myName <- liftIO getFQDN
-  liftIO . logDebug $ "My hostname is " ++ myName
-  conf_file <- liftIO Path.clusterConfFile
-  config <- mkResultT $ Config.loadConfig conf_file
-  let nodes = F.toList $ configNodes config
-  votes <- liftIO . executeRpcCall nodes $ RpcCallMasterNodeName
-  let (missing, valid) = partition (isLeft . snd) votes
-      noDataNodes = map (nodeName . fst) missing
-      validVotes = map rpcResultMasterNodeNameMaster . rights $ map snd valid
-      inFavor = length $ filter (== myName) validVotes
-      voters = length nodes
-      unknown = length missing
-  liftIO . unless (null noDataNodes) . logWarning
-    . (++) "No voting RPC result from " $ show noDataNodes
-  liftIO . logDebug . (++) "Valid votes: " $ show validVotes
-  if 2 * inFavor > voters
-    then return True
-    else if 2 * (inFavor + unknown) > voters
-           then return False
-           else fail $ "Voting cannot be won by " ++ myName
-                       ++ ", valid votes of " ++ show voters
-                       ++ " are " ++ show validVotes
-
--- | Verify, by voting, that this node is the master. Bad if we're not.
--- Allow the given number of retries to wait for not available nodes.
-verifyMaster :: Int -> IO (Result ())
-verifyMaster retries = runResultT $ do
-  won <- mkResultT verifyMasterVotes
-  unless won $
-    if retries <= 0
-      then fail "Couldn't gather voting results of enough nodes"
-      else do
-        liftIO $ logDebug "Voting not final due to missing votes."
-        liftIO . threadDelay $ C.masterVotingRetryIntervall * 1000000
-        mkResultT $ verifyMaster (retries - 1)
 
 -- | Check function for luxid.
 checkMain :: CheckFn ()
