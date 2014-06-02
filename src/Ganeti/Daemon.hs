@@ -307,8 +307,9 @@ parseAddress opts defport = do
 vClusterHostNameEnvVar :: String
 vClusterHostNameEnvVar = "GANETI_HOSTNAME"
 
-getFQDN :: IO String
-getFQDN = do
+-- | Get the real full qualified host name.
+getFQDN' :: IO String
+getFQDN' = do
   hostname <- getHostName
   addrInfos <- Socket.getAddrInfo Nothing (Just hostname) Nothing
   let address = listToMaybe addrInfos >>= (Just . Socket.addrAddress)
@@ -318,17 +319,22 @@ getFQDN = do
       return (fromMaybe hostname fqdn)
     Nothing -> return hostname
 
--- | Returns if the current node is the master node.
-isMaster :: IO Bool
-isMaster = do
+-- | Return the full qualified host name, honoring the vcluster setup.
+getFQDN :: IO String
+getFQDN = do
   let ioErrorToNothing :: IOError -> IO (Maybe String)
       ioErrorToNothing _ = return Nothing
   vcluster_node <- Control.Exception.catch
                      (liftM Just (getEnv vClusterHostNameEnvVar))
                      ioErrorToNothing
-  curNode <- case vcluster_node of
+  case vcluster_node of
     Just node_name -> return node_name
-    Nothing -> getFQDN
+    Nothing -> getFQDN'
+
+-- | Returns if the current node is the master node.
+isMaster :: IO Bool
+isMaster = do
+  curNode <- getFQDN
   masterNode <- Ssconf.getMasterNode Nothing
   case masterNode of
     Ok n -> return (curNode == n)
