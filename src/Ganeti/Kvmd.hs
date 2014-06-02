@@ -66,9 +66,13 @@ import System.IO.Error (isEOFError)
 import System.INotify
 
 import qualified AutoConf
+import qualified Ganeti.BasicTypes as BasicTypes
 import qualified Ganeti.Constants as Constants
+import qualified Ganeti.Daemon as Daemon (getFQDN)
 import qualified Ganeti.Logging as Logging
 import qualified Ganeti.UDSServer as UDSServer
+import qualified Ganeti.Ssconf as Ssconf
+import qualified Ganeti.Types as Types
 
 type Lock = MVar ()
 type Monitors = MVar (Set FilePath)
@@ -305,4 +309,26 @@ startWith dir =
      withINotify (rewatchDir lock dir)
 
 start :: IO ()
-start = startWith monitorDir
+start =
+  do fqdn <- Daemon.getFQDN
+     hypervisors <- Ssconf.getHypervisorList Nothing
+     userShutdown <- Ssconf.getEnabledUserShutdown Nothing
+     vmCapable <- Ssconf.getNodesVmCapable Nothing
+     BasicTypes.genericResult
+       Logging.logInfo
+       (const $ startWith monitorDir) $ do
+         isKvm =<< hypervisors
+         isUserShutdown =<< userShutdown
+         isVmCapable fqdn =<< vmCapable
+  where
+    isKvm hs
+      | Types.Kvm `elem` hs = return ()
+      | otherwise = fail "KVM not enabled, exiting"
+
+    isUserShutdown True = return ()
+    isUserShutdown _ = fail "User shutdown not enabled, exiting"
+
+    isVmCapable node vmCapables =
+      case lookup node vmCapables of
+        Just True -> return ()
+        _ -> fail $ "Node " ++ show node ++ " is not VM capable, exiting"

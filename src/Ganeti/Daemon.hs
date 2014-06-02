@@ -41,6 +41,7 @@ module Ganeti.Daemon
   , parseArgs
   , parseAddress
   , cleanupSocket
+  , getFQDN
   , describeError
   , genericMain
   ) where
