@@ -401,14 +401,14 @@ class Processor(object):
         pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
         if not pending:
           break
-        time.sleep(random.random())
+        time.sleep(10.0 * random.random())
     else:
       logging.debug("Trying %ss to request %s for %s",
                     timeout, request, self._wconfdcontext)
       # TODO: use correct priority instead of 0
       self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, 0, request)
       pending = utils.SimpleRetry(False, self.wconfd.Client().HasPendingRequest,
-                                  0.1, timeout, args=[self._wconfdcontext])
+                                  1.0, timeout, args=[self._wconfdcontext])
       if pending:
         # drop the pending request and all locks potentially obtained in the
         # time since the last poll.

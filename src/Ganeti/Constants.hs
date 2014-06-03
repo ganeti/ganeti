@@ -3420,10 +3420,10 @@ locksReplace = "replace"
 -- given that we start from the default priority level.
 
 lockAttemptsMaxwait :: Double
-lockAttemptsMaxwait = 15.0
+lockAttemptsMaxwait = 75.0
 
 lockAttemptsMinwait :: Double
-lockAttemptsMinwait = 1.0
+lockAttemptsMinwait = 5.0
 
 lockAttemptsTimeout :: Int
 lockAttemptsTimeout = (10 * 3600) `div` (opPrioDefault - opPrioHighest)
