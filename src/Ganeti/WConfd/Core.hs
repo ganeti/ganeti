@@ -189,6 +189,16 @@ tryUpdateLocks cid req =
   . (>>= toErrorStr)
   $ modifyLockWaiting (LW.updateLocks cid (fromGanetiLockRequest req))
 
+-- | Try to update the locks of a given owner and make that a pending
+-- request if not immediately possible.
+updateLocksWaiting :: ClientId -> Integer
+                      -> GanetiLockRequest -> WConfdMonad [ClientId]
+updateLocksWaiting cid prio req =
+  liftM S.toList
+  . (>>= toErrorStr)
+  . modifyLockWaiting
+  $ LW.updateLocksWaiting prio cid (fromGanetiLockRequest req)
+
 -- | Tell whether a given owner has pending requests.
 hasPendingRequest :: ClientId -> WConfdMonad Bool
 hasPendingRequest cid = liftM (LW.hasPendingRequest cid) readLockWaiting
@@ -246,6 +256,7 @@ exportedFunctions = [ 'echo
                     , 'listAllLocks
                     , 'listAllLocksOwners
                     , 'tryUpdateLocks
+                    , 'updateLocksWaiting
                     , 'freeLocks
                     , 'freeLocksLevel
                     , 'downGradeLocksLevel
