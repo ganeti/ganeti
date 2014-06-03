@@ -31,6 +31,7 @@ module Ganeti.Locking.Waiting
  , updateLocksWaiting
  , getAllocation
  , getPendingOwners
+ , hasPendingRequest
  , removePendingRequest
  , releaseResources
  , getPendingRequests
@@ -100,6 +101,10 @@ emptyWaiting =
 -- | Get the set of owners with pending lock requests.
 getPendingOwners :: LockWaiting a b c -> S.Set b
 getPendingOwners = M.keysSet . lwPendingOwners
+
+-- | Predicate on whether an owner has a pending lock request.
+hasPendingRequest :: Ord b => b -> LockWaiting a b c -> Bool
+hasPendingRequest owner = M.member owner . lwPendingOwners
 
 -- | Get the allocation state from the waiting state
 getAllocation :: LockWaiting a b c -> L.LockAllocation a b
