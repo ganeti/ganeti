@@ -352,11 +352,13 @@ class Processor(object):
     """
     self._CheckLocksEnabled()
 
-    # TODO: honor priority in lock allocation
     if self._cbs:
       priority = self._cbs.CurrentPriority() # pylint: disable=W0612
     else:
       priority = None
+
+    if priority is None:
+      priority = constants.OP_PRIO_DEFAULT
 
     if names == locking.ALL_SET:
       if opportunistic:
@@ -395,8 +397,8 @@ class Processor(object):
       locks = self.wconfd.Client().OpportunisticLockUnion(self._wconfdcontext,
                                                           request)
     elif timeout is None:
-      # TODO: use correct priority instead of 0
-      self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, 0, request)
+      self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, priority,
+                                              request)
       while True:
         pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
         if not pending:
@@ -406,7 +408,8 @@ class Processor(object):
       logging.debug("Trying %ss to request %s for %s",
                     timeout, request, self._wconfdcontext)
       # TODO: use correct priority instead of 0
-      self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, 0, request)
+      self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, priority,
+                                              request)
       pending = utils.SimpleRetry(False, self.wconfd.Client().HasPendingRequest,
                                   1.0, timeout, args=[self._wconfdcontext])
       if pending:
