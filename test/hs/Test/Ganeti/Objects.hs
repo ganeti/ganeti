@@ -358,6 +358,21 @@ prop_fillDict defaults custom =
                (fillDict d_map c_map (d_keys++c_keys) == Map.empty)
              ]
 
+prop_LogicalVolume_serialisation :: LogicalVolume -> Property
+prop_LogicalVolume_serialisation = testSerialisation
+
+prop_LogicalVolume_deserialisationFail :: Property
+prop_LogicalVolume_deserialisationFail =
+  conjoin . map (testDeserialisationFail (LogicalVolume "" "")) $
+    [ J.JSArray []
+    , J.JSString $ J.toJSString "/abc"
+    , J.JSString $ J.toJSString "abc/"
+    , J.JSString $ J.toJSString "../."
+    , J.JSString $ J.toJSString "g/snapshot"
+    , J.JSString $ J.toJSString "g/a_mimagex"
+    , J.JSString $ J.toJSString "g/r;3"
+    ]
+
 -- | Test that the serialisation of 'DiskLogicalId', which is
 -- implemented manually, is idempotent. Since we don't have a
 -- standalone JSON instance for DiskLogicalId (it's a data type that
@@ -620,6 +635,8 @@ caseNotIncludeLogicalIdPlain =
 
 testSuite "Objects"
   [ 'prop_fillDict
+  , 'prop_LogicalVolume_serialisation
+  , 'prop_LogicalVolume_deserialisationFail
   , 'prop_Disk_serialisation
   , 'prop_Disk_array_serialisation
   , 'prop_Inst_serialisation
