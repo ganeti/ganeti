@@ -42,6 +42,7 @@ module Ganeti.WConfd.TempRes
   , generateMAC
   , reserveMAC
   , generateDRBDSecret
+  , reserveLV
   , dropAllReservations
   , isReserved
   , reserve
@@ -110,11 +111,12 @@ data TempResState = TempResState
   { trsDRBD :: DRBDMap
   , trsMACs :: TempRes ClientId MAC
   , trsDRBDSecrets :: TempRes ClientId DRBDSecret
+  , trsLVs :: TempRes ClientId LogicalVolume
   }
   deriving (Eq, Show)
 
 emptyTempResState :: TempResState
-emptyTempResState = TempResState M.empty mempty mempty
+emptyTempResState = TempResState M.empty mempty mempty mempty
 
 $(makeCustomLenses ''TempResState)
 
@@ -242,6 +244,7 @@ dropAllReservations :: ClientId -> TempResState -> TempResState
 dropAllReservations jobId =
     (trsMACsL %~ dropReservationsFor jobId)
   . (trsDRBDSecretsL %~ dropReservationsFor jobId)
+  . (trsLVsL %~ dropReservationsFor jobId)
 
 -- ** IDs
 
@@ -293,3 +296,14 @@ generateDRBDSecret rgen jobId cd = do
   StateT $ traverseOf2 trsDRBDSecretsL
            (generateRand rgen jobId existing
                          (over _1 Just . generateSecret C.drbdSecretLength))
+
+-- ** LVs
+
+reserveLV
+  :: (MonadError GanetiException m, MonadState TempResState m, Functor m)
+  => ClientId -> LogicalVolume -> ConfigData -> m ()
+reserveLV jobId lv cd = do
+  existing <- toError $ getAllLVs cd
+  when (S.member lv existing)
+    $ throwError (ReservationError "MAC already in use")
+  get >>= traverseOf trsLVsL (reserve jobId lv) >>= put
