@@ -38,6 +38,7 @@ module Ganeti.Utils.MultiMap
   , lookup
   , member
   , insert
+  , fromList
   , delete
   , deleteAll
   , values
@@ -96,6 +97,9 @@ null = M.null . getMultiMap
 
 insert :: (Ord k, Ord v) => k -> v -> MultiMap k v -> MultiMap k v
 insert k v = set (multiMapValueL k v) True
+
+fromList :: (Ord k, Ord v) => [(k, v)] -> MultiMap k v
+fromList = foldr (uncurry insert) mempty
 
 delete :: (Ord k, Ord v) => k -> v -> MultiMap k v -> MultiMap k v
 delete k v = set (multiMapValueL k v) False
