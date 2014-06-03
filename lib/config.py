@@ -270,7 +270,6 @@ class ConfigWriter(object):
   WARNING: The class is no longer thread-safe!
   Each thread must construct a separate instance.
 
-  @ivar _temporary_lvs: reservation manager for temporary LVs
   @ivar _all_rms: a list of all temporary reservation managers
 
   """
@@ -286,10 +285,8 @@ class ConfigWriter(object):
       self._cfg_file = cfg_file
     self._getents = _getents
     self._temporary_ids = TemporaryReservationManager()
-    self._temporary_lvs = TemporaryReservationManager()
     self._temporary_ips = TemporaryReservationManager()
     self._all_rms = [self._temporary_ids,
-                     self._temporary_lvs,
                      self._temporary_ips]
     # Note: in order to prevent errors when resolving our name later,
     # we compute it here once and reuse it; it's
@@ -791,18 +788,14 @@ class ConfigWriter(object):
       return self._UnlockedReserveIp(net_uuid, address, ec_id, check)
 
   @_ConfigSync(shared=1)
-  def ReserveLV(self, lv_name, ec_id):
+  def ReserveLV(self, lv_name, _ec_id):
     """Reserve an VG/LV pair for an instance.
 
     @type lv_name: string
     @param lv_name: the logical volume name to reserve
 
     """
-    all_lvs = self._AllLVs()
-    if lv_name in all_lvs:
-      raise errors.ReservationError("LV already in use")
-    else:
-      self._temporary_lvs.Reserve(ec_id, lv_name)
+    return self._wconfd.ReserveLV(self._GetWConfdContext(), lv_name)
 
   def GenerateDRBDSecret(self, _ec_id):
     """Generate a DRBD secret.
@@ -812,6 +805,7 @@ class ConfigWriter(object):
     """
     return self._wconfd.GenerateDRBDSecret(self._GetWConfdContext())
 
+  # FIXME: After _AllIDs is removed, move it to config_mock.py
   def _AllLVs(self):
     """Compute the list of all LVs.
 
