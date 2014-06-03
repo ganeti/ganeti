@@ -44,7 +44,7 @@ import qualified Ganeti.Locking.Allocation as L
 import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock), LockLevel(LevelConfig)
                             , lockLevel, LockLevel, ClientId )
 import qualified Ganeti.Locking.Waiting as LW
-import Ganeti.Objects (ConfigData, DRBDSecret)
+import Ganeti.Objects (ConfigData, DRBDSecret, LogicalVolume)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
 import qualified Ganeti.WConfd.TempRes as T
@@ -164,6 +164,11 @@ generateDRBDSecret cid = do
   g <- liftIO Rand.newStdGen
   modifyTempResStateErr $ T.generateDRBDSecret g cid
 
+-- *** LVs
+
+reserveLV :: ClientId -> LogicalVolume -> WConfdMonad ()
+reserveLV jobId lv = modifyTempResStateErr $ T.reserveLV jobId lv
+
 -- ** Locking related functions
 
 -- | List the locks of a given owner (i.e., a job-id lockfile pair).
@@ -251,6 +256,8 @@ exportedFunctions = [ 'echo
                     , 'generateMAC
                     -- DRBD secrets
                     , 'generateDRBDSecret
+                    -- LVs
+                    , 'reserveLV
                     -- locking
                     , 'listLocks
                     , 'listAllLocks
