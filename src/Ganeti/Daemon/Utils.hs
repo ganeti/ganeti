@@ -25,6 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Daemon.Utils
   ( verifyMaster
+  , handleMasterVerificationOptions
   ) where
 
 import Control.Concurrent (threadDelay)
@@ -32,11 +33,12 @@ import Control.Monad (unless)
 import Data.Either (rights)
 import qualified Data.Foldable as F
 import Data.List (partition)
+import System.Exit (ExitCode(..))
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Config as Config
 import qualified Ganeti.Constants as C
-import Ganeti.Daemon (getFQDN)
+import Ganeti.Daemon (getFQDN, DaemonOptions, optNoVoting, optYesDoIt)
 import Ganeti.Logging
 import Ganeti.Objects
 import qualified Ganeti.Path as Path
@@ -83,3 +85,24 @@ verifyMaster retries = runResultT $ do
         liftIO $ logDebug "Voting not final due to missing votes."
         liftIO . threadDelay $ C.masterVotingRetryIntervall * 1000000
         mkResultT $ verifyMaster (retries - 1)
+
+-- | Verify master position according to the options provided, usually
+-- by carrying out a voting. Either return unit on success, or a suggested
+-- exit code.
+handleMasterVerificationOptions :: DaemonOptions -> IO (Either ExitCode ())
+handleMasterVerificationOptions opts =
+  if optNoVoting opts
+    then if optYesDoIt opts
+           then return $ Right ()
+           else do
+             logError "The no-voting option is dangerous and cannot be\
+                      \ given without providing yes-do-it as well."
+             return . Left $ ExitFailure C.exitFailure
+    else do
+      masterStatus <- verifyMaster C.masterVotingRetries
+      case masterStatus of
+        Bad s -> do
+          logError $ "Failed to verify master status: " ++ s
+          return . Left $ ExitFailure C.exitFailure
+        Ok _ -> return $ Right ()
+

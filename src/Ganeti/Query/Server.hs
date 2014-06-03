@@ -44,7 +44,6 @@ import qualified Text.JSON as J
 import Text.JSON (encode, showJSON, JSValue(..))
 import System.Info (arch)
 import System.Directory
-import System.Exit (ExitCode(..))
 import System.Posix.Signals as P
 
 import qualified Ganeti.Constants as C
@@ -52,7 +51,7 @@ import qualified Ganeti.ConstantUtils as ConstantUtils (unFrozenSet)
 import Ganeti.Errors
 import qualified Ganeti.Path as Path
 import Ganeti.Daemon
-import Ganeti.Daemon.Utils (verifyMaster)
+import Ganeti.Daemon.Utils (handleMasterVerificationOptions)
 import Ganeti.Objects
 import qualified Ganeti.Config as Config
 import Ganeti.ConfigReader
@@ -449,21 +448,7 @@ activateMasterIP = runResultT $ do
 
 -- | Check function for luxid.
 checkMain :: CheckFn ()
-checkMain opts =
-  if optNoVoting opts
-    then if optYesDoIt opts
-           then return $ Right ()
-           else do
-             logError "The no-voting option is dangerous and cannot be\
-                      \ given without providing yes-do-it as well."
-             return . Left $ ExitFailure C.exitFailure
-    else do
-      masterStatus <- verifyMaster C.masterVotingRetries
-      case masterStatus of
-        Bad s -> do
-          logError $ "Failed to verify master status: " ++ s
-          return . Left $ ExitFailure C.exitFailure
-        Ok _ -> return $ Right ()
+checkMain = handleMasterVerificationOptions
 
 -- | Prepare function for luxid.
 prepMain :: PrepFn () PrepResult
