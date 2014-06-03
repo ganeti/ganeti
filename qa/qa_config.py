@@ -297,7 +297,7 @@ class _QaConfig(object):
     """Applies a single patch.
 
     @type data: dict (deserialized json)
-    @param data: The QA configuration
+    @param data: The QA configuration to modify
     @type patch_module: module
     @param patch_module: The json patch module, loaded dynamically
     @type patches: dict of string to dict
@@ -305,15 +305,13 @@ class _QaConfig(object):
     @type patch_path: string
     @param patch_path: The path to the patch, relative to the QA directory
 
-    @return: The modified configuration data.
-
     """
     patch_content = patches[patch_path]
     print qa_logging.FormatInfo("Applying patch %s" % patch_path)
     if not patch_content and patch_path != _QA_DEFAULT_PATCH:
       print qa_logging.FormatWarning("The patch %s added by the user is empty" %
                                      patch_path)
-    data = patch_module.apply_patch(data, patch_content)
+    patch_module.apply_patch(data, patch_content, in_place=True)
 
   @staticmethod
   def ApplyPatches(data, patch_module, patches):
@@ -326,13 +324,11 @@ class _QaConfig(object):
     top-level QA directory is applied.
 
     @type data: dict (deserialized json)
-    @param data: The QA configuration
+    @param data: The QA configuration to modify
     @type patch_module: module
     @param patch_module: The json patch module, loaded dynamically
     @type patches: dict of string to dict
     @param patches: The dictionary of patch path to content
-
-    @return: The modified configuration data.
 
     """
     ordered_patches = []
@@ -364,8 +360,6 @@ class _QaConfig(object):
     if _QA_DEFAULT_PATCH in patches:
       _QaConfig.ApplyPatch(data, patch_module, patches, _QA_DEFAULT_PATCH)
 
-    return data
-
   @classmethod
   def Load(cls, filename):
     """Loads a configuration file and produces a configuration object.
@@ -384,7 +378,7 @@ class _QaConfig(object):
       # Try to use the module only if there is a non-empty patch present
       if any(patches.values()):
         mod = __import__("jsonpatch", fromlist=[])
-        data = _QaConfig.ApplyPatches(data, mod, patches)
+        _QaConfig.ApplyPatches(data, mod, patches)
     except IOError:
       pass
     except ImportError:
