@@ -278,7 +278,7 @@ jobEligible queue jWS =
 -- pure function doing the scheduling.
 selectJobsToRun :: Int -> Queue -> (Queue, [JobWithStat])
 selectJobsToRun count queue =
-  let n = count - length (qRunning queue)
+  let n = count - length (qRunning queue) - length (qManipulated queue)
       chosen = take n . filter (jobEligible queue) $ qEnqueued queue
       remain = deleteFirstsBy ((==) `on` (qjId . jJob)) (qEnqueued queue) chosen
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
