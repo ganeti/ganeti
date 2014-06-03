@@ -189,6 +189,10 @@ tryUpdateLocks cid req =
   . (>>= toErrorStr)
   $ modifyLockWaiting (LW.updateLocks cid (fromGanetiLockRequest req))
 
+-- | Tell whether a given owner has pending requests.
+hasPendingRequest :: ClientId -> WConfdMonad Bool
+hasPendingRequest cid = liftM (LW.hasPendingRequest cid) readLockWaiting
+
 -- | Free all locks of a given owner (i.e., a job-id lockfile pair).
 freeLocks :: ClientId -> WConfdMonad ()
 freeLocks cid =
@@ -247,4 +251,5 @@ exportedFunctions = [ 'echo
                     , 'downGradeLocksLevel
                     , 'intersectLocks
                     , 'opportunisticLockUnion
+                    , 'hasPendingRequest
                     ]
