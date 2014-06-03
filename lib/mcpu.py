@@ -395,22 +395,24 @@ class Processor(object):
       locks = self.wconfd.Client().OpportunisticLockUnion(self._wconfdcontext,
                                                           request)
     elif timeout is None:
+      # TODO: use correct priority instead of 0
+      self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, 0, request)
       while True:
-        ## TODO: use asynchronous wait instead of polling
-        blockedon = self.wconfd.Client().TryUpdateLocks(self._wconfdcontext,
-                                                        request)
-        logging.debug("Requesting %s for %s blocked on %s",
-                      request, self._wconfdcontext, blockedon)
-        if not blockedon:
+        pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
+        if not pending:
           break
         time.sleep(random.random())
     else:
       logging.debug("Trying %ss to request %s for %s",
                     timeout, request, self._wconfdcontext)
-      ## TODO: use blocking wait instead of polling
-      blocked = utils.SimpleRetry([], self.wconfd.Client().TryUpdateLocks, 0.1,
-                                  timeout, args=[self._wconfdcontext, request])
-      if blocked:
+      # TODO: use correct priority instead of 0
+      self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, 0, request)
+      pending = utils.SimpleRetry(False, self.wconfd.Client().HasPendingRequest,
+                                  0.1, timeout, args=[self._wconfdcontext])
+      if pending:
+        # drop the pending request and all locks potentially obtained in the
+        # time since the last poll.
+        self.wconfd.Client().FreeLocksLevel(self._wconfdcontext, levelname)
         raise LockAcquireTimeout()
 
     return locks
