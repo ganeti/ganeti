@@ -1025,9 +1025,10 @@ def MasterFailover(no_voting=False):
   logging.info("Setting master to %s, old master: %s", new_master, old_master)
 
   try:
-    # Start WConfd so that we can access the configuration
+    # Forcefully start WConfd so that we can access the configuration
     result = utils.RunCmd([pathutils.DAEMON_UTIL,
-                           "start", constants.WCONFD, "--force-node"])
+                           "start", constants.WCONFD, "--force-node",
+                           "--no-voting", "--yes-do-it"])
     if result.failed:
       raise errors.OpPrereqError("Could not start the configuration daemon,"
                                  " command %s had exitcode %s and error %s" %
