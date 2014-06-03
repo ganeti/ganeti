@@ -47,6 +47,7 @@ module Ganeti.WConfd.Monad
   , readConfigState
   , modifyLockWaiting
   , modifyLockWaiting_
+  , readLockWaiting
   , readLockAllocation
   , modifyTempResState
   , modifyTempResStateErr
@@ -281,8 +282,13 @@ modifyLockWaiting_ :: (GanetiLockWaiting -> (GanetiLockWaiting, S.Set ClientId))
                       -> WConfdMonad ()
 modifyLockWaiting_ = modifyLockWaiting . ((second $ (,) ()) .)
 
+-- | Read the lock waiting state in WConfdMonad.
+readLockWaiting :: WConfdMonad GanetiLockWaiting
+readLockWaiting = liftM dsLockWaiting
+                  . readIORef . dhDaemonState
+                  =<< daemonHandle
+
+
 -- | Read the underlying lock allocation.
 readLockAllocation :: WConfdMonad (LockAllocation GanetiLocks ClientId)
-readLockAllocation = liftM (getAllocation . dsLockWaiting)
-                     . readIORef . dhDaemonState
-                     =<< daemonHandle
+readLockAllocation = liftM getAllocation readLockWaiting
