@@ -1849,7 +1849,8 @@ class ConfigWriter(object):
       raise errors.ConfigurationError("Cannot add '%s': UUID %s already"
                                       " in use" % (item.name, item.uuid))
 
-  def _SetInstanceStatus(self, inst_uuid, status, disks_active):
+  def _SetInstanceStatus(self, inst_uuid, status, disks_active,
+                         admin_state_source):
     """Set the instance's status to a given value.
 
     @rtype: L{objects.Instance}
@@ -1865,14 +1866,18 @@ class ConfigWriter(object):
       status = instance.admin_state
     if disks_active is None:
       disks_active = instance.disks_active
+    if admin_state_source is None:
+      admin_state_source = instance.admin_state_source
 
     assert status in constants.ADMINST_ALL, \
            "Invalid status '%s' passed to SetInstanceStatus" % (status,)
 
     if instance.admin_state != status or \
-       instance.disks_active != disks_active:
+       instance.disks_active != disks_active or \
+       instance.admin_state_source != admin_state_source:
       instance.admin_state = status
       instance.disks_active = disks_active
+      instance.admin_state_source = admin_state_source
       instance.serial_no += 1
       instance.mtime = time.time()
     return instance
@@ -1887,7 +1892,8 @@ class ConfigWriter(object):
     @return: the updated instance object
 
     """
-    return self._SetInstanceStatus(inst_uuid, constants.ADMINST_UP, True)
+    return self._SetInstanceStatus(inst_uuid, constants.ADMINST_UP, True,
+                                   constants.ADMIN_SOURCE)
 
   @_ConfigSync()
   def MarkInstanceOffline(self, inst_uuid):
@@ -1899,7 +1905,8 @@ class ConfigWriter(object):
     @return: the updated instance object
 
     """
-    return self._SetInstanceStatus(inst_uuid, constants.ADMINST_OFFLINE, False)
+    return self._SetInstanceStatus(inst_uuid, constants.ADMINST_OFFLINE, False,
+                                   constants.ADMIN_SOURCE)
 
   @_ConfigSync()
   def RemoveInstance(self, inst_uuid):
@@ -1964,7 +1971,20 @@ class ConfigWriter(object):
     @return: the updated instance object
 
     """
-    return self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None)
+    return self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None,
+                                   constants.ADMIN_SOURCE)
+
+  @_ConfigSync()
+  def MarkInstanceUserDown(self, inst_uuid):
+    """Mark the status of an instance to user down in the configuration.
+
+    This does not touch the instance disks active flag, as user shut
+    down instances can still have active disks.
+
+    """
+
+    self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None,
+                            constants.USER_SOURCE)
 
   @_ConfigSync()
   def MarkInstanceDisksActive(self, inst_uuid):
@@ -1974,7 +1994,7 @@ class ConfigWriter(object):
     @return: the updated instance object
 
     """
-    return self._SetInstanceStatus(inst_uuid, None, True)
+    return self._SetInstanceStatus(inst_uuid, None, True, None)
 
   @_ConfigSync()
   def MarkInstanceDisksInactive(self, inst_uuid):
@@ -1984,7 +2004,7 @@ class ConfigWriter(object):
     @return: the updated instance object
 
     """
-    return self._SetInstanceStatus(inst_uuid, None, False)
+    return self._SetInstanceStatus(inst_uuid, None, False, None)
 
   def _UnlockedGetInstanceList(self):
     """Get the list of instances.

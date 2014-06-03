@@ -1220,11 +1220,13 @@ class LUInstanceCreate(LogicalUnit):
                                      lv_name, errors.ECODE_NOTUNIQUE)
 
       vg_names = self.rpc.call_vg_list([pnode.uuid])[pnode.uuid]
-      vg_names.Raise("Cannot get VG information from node %s" % pnode.name)
+      vg_names.Raise("Cannot get VG information from node %s" % pnode.name,
+                     prereq=True)
 
       node_lvs = self.rpc.call_lv_list([pnode.uuid],
                                        vg_names.payload.keys())[pnode.uuid]
-      node_lvs.Raise("Cannot get LV information from node %s" % pnode.name)
+      node_lvs.Raise("Cannot get LV information from node %s" % pnode.name,
+                     prereq=True)
       node_lvs = node_lvs.payload
 
       delta = all_lvs.difference(node_lvs.keys())
@@ -1262,7 +1264,7 @@ class LUInstanceCreate(LogicalUnit):
       node_disks = self.rpc.call_bdev_sizes([pnode.uuid],
                                             list(all_disks))[pnode.uuid]
       node_disks.Raise("Cannot get block device information from node %s" %
-                       pnode.name)
+                       pnode.name, prereq=True)
       node_disks = node_disks.payload
       delta = all_disks.difference(node_disks.keys())
       if delta:
@@ -1355,7 +1357,6 @@ class LUInstanceCreate(LogicalUnit):
     @param disk_abort:
       True if disks are degraded, False to first check if disks are
       degraded
-
     @type instance: L{objects.Instance}
     @param instance: instance containing the disks to check
 
@@ -1695,6 +1696,7 @@ class LUInstanceCreate(LogicalUnit):
                             disk_template=self.op.disk_template,
                             disks_active=False,
                             admin_state=constants.ADMINST_DOWN,
+                            admin_state_source=constants.ADMIN_SOURCE,
                             network_port=network_port,
                             beparams=self.op.beparams,
                             hvparams=self.op.hvparams,
@@ -3462,7 +3464,8 @@ class LUInstanceSetParams(LogicalUnit):
          self.instance.hypervisor,
          cluster_hvparams)
       remote_info.Raise("Error checking node %s" %
-                        self.cfg.GetNodeName(self.instance.primary_node))
+                        self.cfg.GetNodeName(self.instance.primary_node),
+                        prereq=True)
       if not remote_info.payload: # not running already
         raise errors.OpPrereqError("Instance %s is not running" %
                                    self.instance.name, errors.ECODE_STATE)

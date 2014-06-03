@@ -272,6 +272,8 @@ def UpgradeInstances(config_data):
     _ConvertNicNameToUuid(iobj, network2uuid)
     if _ConvertDiskAndCheckMissingSpindles(iobj, instance):
       missing_spindles = True
+    if "admin_state_source" not in iobj:
+      iobj["admin_state_source"] = constants.ADMIN_SOURCE
 
   if GetExclusiveStorageValue(config_data) and missing_spindles:
     # We cannot be sure that the instances that are missing spindles have
@@ -451,7 +453,6 @@ def DowngradeNodeParams(config_object):
   if "ndparams" in config_object:
     if "cpu_speed" in config_object["ndparams"]:
       del config_object["ndparams"]["cpu_speed"]
-
 
 def DowngradeCluster(config_data):
   cluster = config_data.get("cluster", None)

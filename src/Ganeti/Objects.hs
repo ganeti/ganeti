@@ -470,6 +470,7 @@ $(buildObject "Instance" "inst" $
   , simpleField "osparams"         [t| OsParams           |]
   , simpleField "osparams_private" [t| OsParamsPrivate    |]
   , simpleField "admin_state"      [t| AdminState         |]
+  , simpleField "admin_state_source" [t| AdminStateSource   |]
   , simpleField "nics"             [t| [PartialNic]       |]
   , simpleField "disks"            [t| [String]           |]
   , simpleField "disk_template"    [t| DiskTemplate       |]

@@ -514,6 +514,8 @@ $(genOpCode "OpCode"
      , pTempBeParams
      , pNoRemember
      , pStartupPaused
+       -- timeout to cleanup a user down instance
+     , pShutdownTimeout
      ],
      "instance_name")
   , ("OpInstanceShutdown",
@@ -525,6 +527,7 @@ $(genOpCode "OpCode"
      , pIgnoreOfflineNodes
      , pShutdownTimeout'
      , pNoRemember
+     , pAdminStateSource
      ],
      "instance_name")
   , ("OpInstanceReboot",

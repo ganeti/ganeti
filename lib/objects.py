@@ -1159,6 +1159,7 @@ class Instance(TaggableObject):
     "osparams",
     "osparams_private",
     "admin_state",
+    "admin_state_source",
     "nics",
     "disks",
     "disks_info",
@@ -1233,6 +1234,8 @@ class Instance(TaggableObject):
     """Fill defaults for missing configuration values.
 
     """
+    if self.admin_state_source is None:
+      self.admin_state_source = constants.ADMIN_SOURCE
     for nic in self.nics:
       nic.UpgradeConfig()
     if self.disks is None:

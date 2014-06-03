@@ -122,6 +122,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "down",
+      "admin_state_source": "admin",
       "disk_template": "drbd",
       "memory": 128,
       "nodes": [
@@ -153,6 +154,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "down",
+      "admin_state_source": "admin",
       "disk_template": "plain",
       "memory": 128,
       "nodes": [
@@ -183,6 +185,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "down",
+      "admin_state_source": "admin",
       "disk_template": "plain",
       "memory": 8192,
       "nodes": [
@@ -213,6 +216,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "down",
+      "admin_state_source": "admin",
       "disk_template": "drbd",
       "memory": 128,
       "nodes": [
@@ -244,6 +248,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "up",
+      "admin_state_source": "admin",
       "disk_template": "drbd",
       "memory": 128,
       "nodes": [
@@ -280,6 +285,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "down",
+      "admin_state_source": "admin",
       "disk_template": "plain",
       "memory": 128,
       "nodes": [
@@ -310,6 +316,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "down",
+      "admin_state_source": "admin",
       "disk_template": "drbd",
       "memory": 128,
       "nodes": [
@@ -341,6 +348,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "down",
+      "admin_state_source": "admin",
       "disk_template": "plain",
       "memory": 128,
       "nodes": [
@@ -373,6 +381,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "down",
+      "admin_state_source": "admin",
       "disk_template": "drbd",
       "memory": 128,
       "nodes": [
@@ -404,6 +413,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "down",
+      "admin_state_source": "admin",
       "disk_template": "plain",
       "memory": 128,
       "nodes": [

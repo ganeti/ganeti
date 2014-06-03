@@ -194,6 +194,7 @@ class ConfigMock(config.ConfigWriter):
                      osparams=None,
                      osparams_private=None,
                      admin_state=None,
+                     admin_state_source=None,
                      nics=None,
                      disks=None,
                      disk_template=None,
@@ -233,6 +234,8 @@ class ConfigMock(config.ConfigWriter):
       osparams_private = {}
     if admin_state is None:
       admin_state = constants.ADMINST_DOWN
+    if admin_state_source is None:
+      admin_state_source = constants.ADMIN_SOURCE
     if nics is None:
       nics = [self.CreateNic()]
     if disk_template is None:
@@ -263,6 +266,7 @@ class ConfigMock(config.ConfigWriter):
                             osparams=osparams,
                             osparams_private=osparams_private,
                             admin_state=admin_state,
+                            admin_state_source=admin_state_source,
                             nics=nics,
                             disks=[],
                             disk_template=disk_template,

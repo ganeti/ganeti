@@ -45,6 +45,15 @@ from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
 from ganeti.hypervisor import hv_base
 
 
+def _IsInstanceUserDown(cluster, instance, instance_info):
+  hvparams = cluster.FillHV(instance, skip_globals=True)
+  return instance_info and \
+      "state" in instance_info and \
+      hv_base.HvInstanceState.IsShutdown(instance_info["state"]) and \
+      (instance.hypervisor != constants.HT_KVM or
+       hvparams[constants.HV_KVM_USER_SHUTDOWN])
+
+
 class LUInstanceStartup(LogicalUnit):
   """Starts an instance.
 
@@ -137,12 +146,14 @@ class LUInstanceStartup(LogicalUnit):
       remote_info.Raise("Error checking node %s" %
                         self.cfg.GetNodeName(self.instance.primary_node),
                         prereq=True, ecode=errors.ECODE_ENVIRON)
+
+      self.requires_cleanup = False
+
       if remote_info.payload:
-        if hv_base.HvInstanceState.IsShutdown(remote_info.payload["state"]):
-          raise errors.OpPrereqError("Instance '%s' was shutdown by the user,"
-                                     " please shutdown the instance before"
-                                     " starting it again" % self.instance.name,
-                                     errors.ECODE_INVAL)
+        if _IsInstanceUserDown(self.cfg.GetClusterInfo(),
+                               self.instance,
+                               remote_info.payload):
+          self.requires_cleanup = True
       else: # not running already
         CheckNodeFreeMemory(
             self, self.instance.primary_node,
@@ -161,6 +172,15 @@ class LUInstanceStartup(LogicalUnit):
       assert self.op.ignore_offline_nodes
       self.LogInfo("Primary node offline, marked instance as started")
     else:
+      if self.requires_cleanup:
+        result = self.rpc.call_instance_shutdown(
+          self.instance.primary_node,
+          self.instance,
+          self.op.shutdown_timeout, self.op.reason)
+        result.Raise("Could not shutdown instance '%s'", self.instance.name)
+
+        ShutdownInstanceDisks(self, self.instance)
+
       StartInstanceDisks(self, self.instance, self.op.force)
       self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
@@ -169,10 +189,9 @@ class LUInstanceStartup(LogicalUnit):
                                      (self.instance, self.op.hvparams,
                                       self.op.beparams),
                                      self.op.startup_paused, self.op.reason)
-      msg = result.fail_msg
-      if msg:
+      if result.fail_msg:
         ShutdownInstanceDisks(self, self.instance)
-        raise errors.OpExecError("Could not start instance: %s" % msg)
+        result.Raise("Could not start instance '%s'", self.instance.name)
 
 
 class LUInstanceShutdown(LogicalUnit):
@@ -185,6 +204,17 @@ class LUInstanceShutdown(LogicalUnit):
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+
+  def CheckArguments(self):
+    """Check arguments.
+
+    """
+    if self.op.no_remember and self.op.admin_state_source:
+      self.LogWarning("Parameter 'admin_state_source' has no effect if used"
+                      " with parameter 'no_remember'")
+
+    if not self.op.admin_state_source:
+      self.op.admin_state_source = constants.ADMIN_SOURCE
 
   def BuildHooksEnv(self):
     """Build hooks env.
@@ -214,10 +244,10 @@ class LUInstanceShutdown(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
-    if not self.op.force:
-      CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
-    else:
+    if self.op.force:
       self.LogWarning("Ignoring offline instance check")
+    else:
+      CheckInstanceState(self, self.instance, INSTANCE_ONLINE)
 
     self.primary_offline = \
       self.cfg.GetNodeInfo(self.instance.primary_node).offline
@@ -226,6 +256,23 @@ class LUInstanceShutdown(LogicalUnit):
       self.LogWarning("Ignoring offline primary node")
     else:
       CheckNodeOnline(self, self.instance.primary_node)
+
+    if self.op.admin_state_source == constants.USER_SOURCE:
+      cluster = self.cfg.GetClusterInfo()
+
+      result = self.rpc.call_instance_info(
+        self.instance.primary_node,
+        self.instance.name,
+        self.instance.hypervisor,
+        cluster.hvparams[self.instance.hypervisor])
+      result.Raise("Error checking instance '%s'" % self.instance.name,
+                   prereq=True)
+
+      if not _IsInstanceUserDown(cluster,
+                                 self.instance,
+                                 result.payload):
+        raise errors.OpPrereqError("Instance '%s' was not shutdown by the user"
+                                   % self.instance.name)
 
   def Exec(self, feedback_fn):
     """Shutdown the instance.
@@ -236,6 +283,11 @@ class LUInstanceShutdown(LogicalUnit):
     if not self.op.no_remember and self.instance.admin_state in INSTANCE_ONLINE:
       self.instance = self.cfg.MarkInstanceDown(self.instance.uuid)
 
+      if self.op.admin_state_source == constants.ADMIN_SOURCE:
+        self.cfg.MarkInstanceDown(self.instance.uuid)
+      elif self.op.admin_state_source == constants.USER_SOURCE:
+        self.cfg.MarkInstanceUserDown(self.instance.uuid)
+
     if self.primary_offline:
       assert self.op.ignore_offline_nodes
       self.LogInfo("Primary node offline, marked instance as stopped")
@@ -244,9 +296,7 @@ class LUInstanceShutdown(LogicalUnit):
         self.instance.primary_node,
         self.instance,
         self.op.timeout, self.op.reason)
-      msg = result.fail_msg
-      if msg:
-        self.LogWarning("Could not shutdown instance: %s", msg)
+      result.Raise("Could not shutdown instance '%s'", self.instance.name)
 
       ShutdownInstanceDisks(self, self.instance)
 

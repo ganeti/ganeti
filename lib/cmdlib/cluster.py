@@ -1142,7 +1142,8 @@ class LUClusterSetParams(LogicalUnit):
 
     drbd_enabled = constants.DT_DRBD8 in enabled_disk_templates
     drbd_gets_enabled = constants.DT_DRBD8 in new_enabled_disk_templates
-    self._CheckDrbdHelper(node_uuids, drbd_enabled, drbd_gets_enabled)
+    self._CheckDrbdHelper(vm_capable_node_uuids,
+                          drbd_enabled, drbd_gets_enabled)
 
     # validate params changes
     if self.op.beparams:

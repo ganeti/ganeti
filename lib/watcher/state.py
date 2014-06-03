@@ -158,11 +158,7 @@ class WatcherState(object):
 
     """
     idata = self._data["instance"]
-
-    if instance_name in idata:
-      return idata[instance_name][KEY_RESTART_COUNT]
-
-    return 0
+    return idata.get(instance_name, {}).get(KEY_RESTART_COUNT, 0)
 
   def NumberOfCleanupAttempts(self, instance_name):
     """Returns number of previous cleanup attempts.
@@ -172,11 +168,7 @@ class WatcherState(object):
 
     """
     idata = self._data["instance"]
-
-    if instance_name in idata:
-      return idata[instance_name][KEY_CLEANUP_COUNT]
-
-    return 0
+    return idata.get(instance_name, {}).get(KEY_CLEANUP_COUNT, 0)
 
   def MaintainInstanceList(self, instances):
     """Perform maintenance on the recorded instances.
