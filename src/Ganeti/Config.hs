@@ -62,11 +62,16 @@ module Ganeti.Config
     , MAC
     , getAllMACs
     , getAllDrbdSecrets
+    , NodeLVsMap
+    , getInstanceLVsByNode
+    , getAllLVs
     , buildLinkIpInstnameMap
     , instNodes
     ) where
 
-import Control.Monad (liftM)
+import Control.Applicative
+import Control.Monad
+import Control.Monad.State
 import qualified Data.Foldable as F
 import Data.List (foldl', nub)
 import Data.Monoid
@@ -81,6 +86,7 @@ import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Types
+import qualified Ganeti.Utils.MultiMap as MM
 
 -- | Type alias for the link and ip map.
 type LinkIpMap = M.Map String (M.Map String String)
@@ -505,6 +511,34 @@ getAllMACs = F.foldMap (map nicMac . instNics) . configInstances
 
 getAllDrbdSecrets :: ConfigData -> [DRBDSecret]
 getAllDrbdSecrets = F.foldMap getDrbdSecretsForDisk . configDisks
+
+-- ** LVs
+
+-- | A map from node UUIDs to
+--
+-- FIXME: After adding designated types for UUIDs,
+-- use them to replace 'String' here.
+type NodeLVsMap = MM.MultiMap String LogicalVolume
+
+getInstanceLVsByNode :: ConfigData -> Instance -> ErrorResult NodeLVsMap
+getInstanceLVsByNode cd inst =
+    (MM.fromList . lvsByNode (instPrimaryNode inst))
+    <$> getInstDisksFromObj cd inst
+  where
+    lvsByNode :: String -> [Disk] -> [(String, LogicalVolume)]
+    lvsByNode node = concatMap (lvsByNode1 node)
+    lvsByNode1 :: String -> Disk -> [(String, LogicalVolume)]
+    lvsByNode1 _    Disk { diskLogicalId = (LIDDrbd8 nA nB _ _ _ _)
+                         , diskChildren = ch
+                         } = lvsByNode nA ch ++ lvsByNode nB ch
+    lvsByNode1 node Disk { diskLogicalId = (LIDPlain lv) }
+                           = [(node, lv)]
+    lvsByNode1 node Disk { diskChildren = ch }
+                           = lvsByNode node ch
+
+getAllLVs :: ConfigData -> ErrorResult (S.Set LogicalVolume)
+getAllLVs cd = mconcat <$> mapM (liftM MM.values . getInstanceLVsByNode cd)
+                                (F.toList $ configInstances cd)
 
 -- * ND params
 
