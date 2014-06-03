@@ -454,6 +454,7 @@ def DowngradeNodeParams(config_object):
     if "cpu_speed" in config_object["ndparams"]:
       del config_object["ndparams"]["cpu_speed"]
 
+
 def DowngradeCluster(config_data):
   cluster = config_data.get("cluster", None)
   if not cluster:
