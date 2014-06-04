@@ -72,7 +72,7 @@ import Ganeti.Config
 import Ganeti.Errors
 import Ganeti.JQueue
 import Ganeti.JSON
-import Ganeti.Locking.Allocation (OwnerState)
+import Ganeti.Locking.Allocation (OwnerState, LockRequest(..), OwnerState(..))
 import Ganeti.Locking.Locks (GanetiLocks, ClientId, lockName)
 import Ganeti.Logging
 import Ganeti.Objects
@@ -91,7 +91,7 @@ import Ganeti.Path
 import Ganeti.THH.HsRPC (runRpcClient)
 import Ganeti.Types
 import Ganeti.Utils
-import Ganeti.WConfd.Client (getWConfdClient, listAllLocksOwners)
+import Ganeti.WConfd.Client (getWConfdClient, listLocksWaitingStatus)
 
 -- | Collector type
 data CollectorType a b
@@ -231,12 +231,22 @@ genericQuery fieldsMap collector nameFn configFn getFn cfg
 
 -- | Dummy recollection of the data for a lock from the prefected
 -- data for all locks.
-recollectLocksData :: [(GanetiLocks, [(ClientId, OwnerState)])]
+recollectLocksData :: ( [(GanetiLocks, [(ClientId, OwnerState)])]
+                      , [(Integer, ClientId, [LockRequest GanetiLocks])]
+                      )
                    -> Bool -> ConfigData -> [String]
                    -> IO [(String, Locks.RuntimeData)]
-recollectLocksData allLocks _ _  =
-  let lookuplock lock =  (,) lock
-                          . fmap (\(l, c) -> (l, c, []))
+recollectLocksData (allLocks, pending) _ _  =
+  let getPending lock = pending >>= \(_, cid, req) ->
+        let req' = filter ((==) lock . lockName . lockAffected) req
+        in case () of
+          _ | any ((==) (Just OwnExclusive) . lockRequestType) req'
+              -> [(cid, OwnExclusive)]
+          _ | any ((==) (Just OwnShared) . lockRequestType) req'
+              -> [(cid, OwnShared)]
+          _ -> []
+      lookuplock lock =  (,) lock
+                          . fmap (\(l, c) ->  (l, c, getPending lock))
                           . find ((==) lock . lockName . fst)
                           $ allLocks
   in return . map lookuplock
@@ -253,14 +263,14 @@ query cfg live (Query (ItemTypeLuxi QRLock) fields qfilter) = runResultT $ do
   cl <- liftIO $ do
      socketpath <- defaultWConfdSocket
      getWConfdClient socketpath
-  livedata <- runRpcClient listAllLocksOwners cl
+  livedata <- runRpcClient listLocksWaitingStatus cl
   logDebug $ "Live state of all locks is " ++ show livedata
   answer <- liftIO $ genericQuery
              Locks.fieldsMap
              (CollectorSimple $ recollectLocksData livedata)
              id
              (const . GenericContainer . Map.fromList
-              . map ((id &&& id) . lockName) $ map fst livedata)
+              . map ((id &&& id) . lockName . fst) $ fst livedata)
              (const Ok)
              cfg live fields qfilter []
   toError answer
