@@ -802,7 +802,7 @@ def RunInstanceTests():
         instance = RunTest(create_fun, inodes)
         try:
           RunTestIf("instance-user-down", qa_instance.TestInstanceUserDown,
-                    instance, qa_config.GetMasterNode())
+                    instance)
           RunTestIf("instance-communication",
                     qa_instance.TestInstanceCommunication,
                     instance,
