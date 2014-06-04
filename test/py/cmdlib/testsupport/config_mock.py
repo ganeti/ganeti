@@ -59,6 +59,7 @@ class ConfigMock(config.ConfigWriter):
 
     self._temporary_macs = config.TemporaryReservationManager()
     self._temporary_secrets = config.TemporaryReservationManager()
+    self._temporary_lvs = config.TemporaryReservationManager()
 
     super(ConfigMock, self).__init__(cfg_file="/dev/null",
                                      _getents=_StubGetEntResolver(),
@@ -697,3 +698,16 @@ class ConfigMock(config.ConfigWriter):
     return self._temporary_secrets.Generate(self._AllDRBDSecrets(),
                                             utils.GenerateSecret,
                                             ec_id)
+
+  def ReserveLV(self, lv_name, ec_id):
+    """Reserve an VG/LV pair for an instance.
+
+    @type lv_name: string
+    @param lv_name: the logical volume name to reserve
+
+    """
+    all_lvs = self._AllLVs()
+    if lv_name in all_lvs:
+      raise errors.ReservationError("LV already in use")
+    else:
+      self._temporary_lvs.Reserve(ec_id, lv_name)
