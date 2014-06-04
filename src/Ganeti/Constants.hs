@@ -299,6 +299,11 @@ cpuPinningAllKvm = 0xFFFFFFFF
 ddCmd :: String
 ddCmd = "dd"
 
+-- | 1 MiB
+-- The default block size for the 'dd' command
+ddBlockSize :: Int
+ddBlockSize = 1024^2
+
 -- | 1GB
 maxWipeChunk :: Int
 maxWipeChunk = 1024

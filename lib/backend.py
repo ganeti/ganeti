@@ -2311,7 +2311,7 @@ def _DumpDevice(source_path, target_path, offset, size, truncate):
   # Internal sizes are always in Mebibytes; if the following "dd" command
   # should use a different block size the offset and size given to this
   # function must be adjusted accordingly before being passed to "dd".
-  block_size = 1024 * 1024
+  block_size = constants.DD_BLOCK_SIZE
 
   cmd = [constants.DD_CMD, "if=%s" % source_path, "seek=%d" % offset,
          "bs=%s" % block_size, "oflag=direct", "of=%s" % target_path,
@@ -4078,13 +4078,13 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
       # wrong path; we use notrunc to no attempt truncate on an LV device
       suffix = utils.BuildShellCmd("| dd of=%s conv=nocreat,notrunc bs=%s",
                                    real_disk.dev_path,
-                                   str(1024 * 1024)) # 1 MB
+                                   str(constants.DD_BLOCK_SIZE)) # 1 MB
 
     elif mode == constants.IEM_EXPORT:
       # the block size on the read dd is 1MiB to match our units
       prefix = utils.BuildShellCmd("dd if=%s bs=%s count=%s |",
                                    real_disk.dev_path,
-                                   str(1024 * 1024), # 1 MB
+                                   str(constants.DD_BLOCK_SIZE), # 1 MB
                                    str(disk.size))
       exp_size = disk.size
 

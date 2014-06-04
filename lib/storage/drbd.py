@@ -1013,7 +1013,8 @@ class DRBD8Dev(base.BlockDev):
     # can be bigger
     result = utils.RunCmd([constants.DD_CMD,
                            "if=/dev/zero", "of=%s" % dev_path,
-                           "bs=1048576", "count=128", "oflag=direct"])
+                           "bs=%s" % constants.DD_BLOCK_SIZE, "count=128",
+                           "oflag=direct"])
     if result.failed:
       base.ThrowError("Can't wipe the meta device: %s", result.output)
 
