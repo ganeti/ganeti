@@ -31,6 +31,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.WConfd.Core where
 
+import Control.Arrow ((&&&))
 import Control.Monad (liftM, unless, when)
 import Control.Monad.State (modify)
 import qualified Data.Map as M
@@ -183,6 +184,16 @@ listAllLocks = liftM L.listAllLocks readLockAllocation
 listAllLocksOwners :: WConfdMonad [(GanetiLocks, [(ClientId, L.OwnerState)])]
 listAllLocksOwners = liftM L.listAllLocksOwners readLockAllocation
 
+-- | Get full information of the lock waiting status, i.e., provide
+-- the information about all locks owners and all pending requests.
+listLocksWaitingStatus :: WConfdMonad
+                            ( [(GanetiLocks, [(ClientId, L.OwnerState)])]
+                            , [(Integer, ClientId, [L.LockRequest GanetiLocks])]
+                            )
+listLocksWaitingStatus = liftM ( (L.listAllLocksOwners . LW.getAllocation)
+                                 &&& (S.toList . LW.getPendingRequests) )
+                         readLockWaiting
+
 -- | Try to update the locks of a given owner (i.e., a job-id lockfile pair).
 -- This function always returns immediately. If the lock update was possible,
 -- the empty list is returned; otherwise, the lock status is left completly
@@ -262,6 +273,7 @@ exportedFunctions = [ 'echo
                     , 'listLocks
                     , 'listAllLocks
                     , 'listAllLocksOwners
+                    , 'listLocksWaitingStatus
                     , 'tryUpdateLocks
                     , 'updateLocksWaiting
                     , 'freeLocks
