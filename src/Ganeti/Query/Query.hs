@@ -235,7 +235,8 @@ recollectLocksData :: [(GanetiLocks, [(ClientId, OwnerState)])]
                    -> Bool -> ConfigData -> [String]
                    -> IO [(String, Locks.RuntimeData)]
 recollectLocksData allLocks _ _  =
-  let lookuplock lock = (,) lock
+  let lookuplock lock =  (,) lock
+                          . fmap (\(l, c) -> (l, c, []))
                           . find ((==) lock . lockName . fst)
                           $ allLocks
   in return . map lookuplock

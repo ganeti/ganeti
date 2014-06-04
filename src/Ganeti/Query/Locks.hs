@@ -43,18 +43,21 @@ import Ganeti.Query.Types
 -- is handled by WConfD, the actual information is obtained as live data.
 -- The type represents the information for a single lock, even though all
 -- locks are queried simultaneously, ahead of time.
-type RuntimeData = Maybe (GanetiLocks, [(ClientId, OwnerState)])
+type RuntimeData = Maybe ( GanetiLocks
+                         , [(ClientId, OwnerState)] -- current state
+                         , [(ClientId, OwnerState)] -- pending requests
+                         )
 
 -- | Obtain the owners of a lock from the runtime data.
 getOwners :: RuntimeData -> a -> ResultEntry
-getOwners (Just (_, ownerinfo)) _ =
+getOwners (Just (_, ownerinfo, _)) _ =
   rsNormal . map (J.encode . ciIdentifier . fst)
     $ ownerinfo
 getOwners _ _ = rsNormal ([] :: [ClientId])
 
 -- | Obtain the mode of a lock from the runtime data.
 getMode :: RuntimeData -> a -> ResultEntry
-getMode (Just (_, ownerinfo)) _
+getMode (Just (_, ownerinfo, _)) _
   | null ownerinfo = rsNormal J.JSNull
   | any ((==) OwnExclusive . snd) ownerinfo = rsNormal "exclusive"
   | otherwise = rsNormal "shared"
