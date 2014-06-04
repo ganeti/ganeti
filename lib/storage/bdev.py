@@ -829,6 +829,15 @@ class PersistentBlockDevice(base.BlockDev):
     """
     base.ThrowError("Grow is not supported for PersistentBlockDev storage")
 
+  def Import(self):
+    """Builds the shell command for importing data to device.
+
+    @see: L{BlockDev.Import} for details
+
+    """
+    base.ThrowError("Importing data is not supported for the"
+                    " PersistentBlockDevice template")
+
 
 class RADOSBlockDevice(base.BlockDev):
   """A RADOS Block Device (rbd).
