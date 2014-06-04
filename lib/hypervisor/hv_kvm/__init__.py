@@ -796,7 +796,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     result = []
     for name in os.listdir(self._PIDS_DIR):
-      if self._InstancePidAlive(name)[2] or self._IsUserShutdown(name):
+      if self._InstancePidAlive(name)[2]:
         result.append(name)
     return result
 

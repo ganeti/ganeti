@@ -39,11 +39,14 @@ module Ganeti.Daemon
   , oBindAddress
   , oSyslogUsage
   , oForceNode
+  , oNoVoting
+  , oYesDoIt
   , parseArgs
   , parseAddress
   , cleanupSocket
   , describeError
   , genericMain
+  , getFQDN
   ) where
 
 import Control.Concurrent
@@ -101,6 +104,8 @@ data DaemonOptions = DaemonOptions
   , optBindAddress  :: Maybe String   -- ^ Override for the bind address
   , optSyslogUsage  :: Maybe SyslogUsage -- ^ Override for Syslog usage
   , optForceNode    :: Bool           -- ^ Ignore node checks
+  , optNoVoting     :: Bool           -- ^ skip voting for master
+  , optYesDoIt      :: Bool           -- ^ force dangerous options
   }
 
 -- | Default values for the command line options.
@@ -116,6 +121,8 @@ defaultOptions  = DaemonOptions
   , optBindAddress  = Nothing
   , optSyslogUsage  = Nothing
   , optForceNode    = False
+  , optNoVoting     = False
+  , optYesDoIt      = False
   }
 
 instance StandardOptions DaemonOptions where
@@ -193,6 +200,20 @@ oForceNode =
   (Option "" ["force-node"]
    (NoArg (\ opts -> Ok opts { optForceNode = True }))
    "Force the daemon to run on a different node than the master",
+   OptComplNone)
+
+oNoVoting :: OptType
+oNoVoting =
+  (Option "" ["no-voting"]
+   (NoArg (\ opts -> Ok opts { optNoVoting = True }))
+   "Skip node agreement check (dangerous)",
+   OptComplNone)
+
+oYesDoIt :: OptType
+oYesDoIt =
+  (Option "" ["yes-do-it"]
+   (NoArg (\ opts -> Ok opts { optYesDoIt = True }))
+   "Force a dangerous operation",
    OptComplNone)
 
 -- | Generic options.
@@ -309,8 +330,9 @@ parseAddress opts defport = do
 vClusterHostNameEnvVar :: String
 vClusterHostNameEnvVar = "GANETI_HOSTNAME"
 
-getFQDN :: IO String
-getFQDN = do
+-- | Get the real full qualified host name.
+getFQDN' :: IO String
+getFQDN' = do
   hostname <- getHostName
   addrInfos <- Socket.getAddrInfo Nothing (Just hostname) Nothing
   let address = listToMaybe addrInfos >>= (Just . Socket.addrAddress)
@@ -320,17 +342,22 @@ getFQDN = do
       return (fromMaybe hostname fqdn)
     Nothing -> return hostname
 
--- | Returns if the current node is the master node.
-isMaster :: IO Bool
-isMaster = do
+-- | Return the full qualified host name, honoring the vcluster setup.
+getFQDN :: IO String
+getFQDN = do
   let ioErrorToNothing :: IOError -> IO (Maybe String)
       ioErrorToNothing _ = return Nothing
   vcluster_node <- Control.Exception.catch
                      (liftM Just (getEnv vClusterHostNameEnvVar))
                      ioErrorToNothing
-  curNode <- case vcluster_node of
+  case vcluster_node of
     Just node_name -> return node_name
-    Nothing -> getFQDN
+    Nothing -> getFQDN'
+
+-- | Returns if the current node is the master node.
+isMaster :: IO Bool
+isMaster = do
+  curNode <- getFQDN
   masterNode <- Ssconf.getMasterNode Nothing
   case masterNode of
     Ok n -> return (curNode == n)

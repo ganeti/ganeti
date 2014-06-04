@@ -1222,11 +1222,13 @@ class LUInstanceCreate(LogicalUnit):
                                      lv_name, errors.ECODE_NOTUNIQUE)
 
       vg_names = self.rpc.call_vg_list([pnode.uuid])[pnode.uuid]
-      vg_names.Raise("Cannot get VG information from node %s" % pnode.name)
+      vg_names.Raise("Cannot get VG information from node %s" % pnode.name,
+                     prereq=True)
 
       node_lvs = self.rpc.call_lv_list([pnode.uuid],
                                        vg_names.payload.keys())[pnode.uuid]
-      node_lvs.Raise("Cannot get LV information from node %s" % pnode.name)
+      node_lvs.Raise("Cannot get LV information from node %s" % pnode.name,
+                     prereq=True)
       node_lvs = node_lvs.payload
 
       delta = all_lvs.difference(node_lvs.keys())
@@ -1264,7 +1266,7 @@ class LUInstanceCreate(LogicalUnit):
       node_disks = self.rpc.call_bdev_sizes([pnode.uuid],
                                             list(all_disks))[pnode.uuid]
       node_disks.Raise("Cannot get block device information from node %s" %
-                       pnode.name)
+                       pnode.name, prereq=True)
       node_disks = node_disks.payload
       delta = all_disks.difference(node_disks.keys())
       if delta:
@@ -1358,7 +1360,6 @@ class LUInstanceCreate(LogicalUnit):
     @param disk_abort:
       True if disks are degraded, False to first check if disks are
       degraded
-
     @type instance: L{objects.Instance}
     @param instance: instance containing the disks to check
 
@@ -1516,12 +1517,46 @@ class LUInstanceCreate(LogicalUnit):
           result.Warn("Failed to run rename script for %s on node %s" %
                       (self.op.instance_name, self.pnode.name), self.LogWarning)
 
-  def UpdateInstanceOsInstallPackage(self, feedback_fn, instance):
+  def GetOsInstallPackageEnvironment(self, instance, script):
+    """Returns the OS scripts environment for the helper VM
+
+    @type instance: L{objects.Instance}
+    @param instance: instance for which the OS scripts are run
+
+    @type script: string
+    @param script: script to run (e.g.,
+                   constants.OS_SCRIPT_CREATE_UNTRUSTED)
+
+    @rtype: dict of string to string
+    @return: OS scripts environment for the helper VM
+
+    """
+    env = {"OS_SCRIPT": script}
+
+    # We pass only the instance's disks, not the helper VM's disks.
+    if instance.hypervisor == constants.HT_KVM:
+      prefix = "/dev/vd"
+    elif instance.hypervisor in [constants.HT_XEN_PVM, constants.HT_XEN_HVM]:
+      prefix = "/dev/xvd"
+    else:
+      raise errors.OpExecError("Cannot run OS scripts in a virtualized"
+                               " environment for hypervisor '%s'"
+                               % instance.hypervisor)
+
+    num_disks = len(self.cfg.GetInstanceDisks(instance.uuid))
+
+    for idx, disk_label in enumerate(utils.GetDiskLabels(prefix, num_disks + 1,
+                                                         start=1)):
+      env["DISK_%d_PATH" % idx] = disk_label
+
+    return env
+
+  def UpdateInstanceOsInstallPackage(self, feedback_fn, instance, override_env):
     """Updates the OS parameter 'os-install-package' for an instance.
 
     The OS install package is an archive containing an OS definition
     and a file containing the environment variables needed to run the
-    scripts.
+    OS scripts.
 
     The OS install package is served by the metadata daemon to the
     instances, so the OS scripts can run inside the virtualized
@@ -1534,12 +1569,17 @@ class LUInstanceCreate(LogicalUnit):
     @param instance: instance for which the OS parameter
                      'os-install-package' is updated
 
+    @type override_env: dict of string to string
+    @param override_env: if supplied, it overrides the environment of
+                         the export OS scripts archive
+
     """
     if "os-install-package" in instance.osparams:
       feedback_fn("Using OS install package '%s'" %
                   instance.osparams["os-install-package"])
     else:
-      result = self.rpc.call_os_export(instance.primary_node, instance)
+      result = self.rpc.call_os_export(instance.primary_node, instance,
+                                       override_env)
       result.Raise("Could not export OS '%s'" % instance.os)
       instance.osparams["os-install-package"] = result.payload
 
@@ -1570,15 +1610,17 @@ class LUInstanceCreate(LogicalUnit):
 
     disk_size = DetermineImageSize(self, install_image, instance.primary_node)
 
-    # KVM does not support readonly disks
-    if instance.hypervisor == constants.HT_KVM:
-      disk_access = constants.DISK_RDWR
-    else:
-      disk_access = constants.DISK_RDONLY
+    env = self.GetOsInstallPackageEnvironment(
+      instance,
+      constants.OS_SCRIPT_CREATE_UNTRUSTED)
+    self.UpdateInstanceOsInstallPackage(feedback_fn, instance, env)
+    UpdateMetadata(feedback_fn, self.rpc, instance,
+                   osparams_private=self.op.osparams_private,
+                   osparams_secret=self.op.osparams_secret)
 
     with TemporaryDisk(self,
                        instance,
-                       [(constants.DT_PLAIN, disk_access, disk_size)],
+                       [(constants.DT_PLAIN, constants.DISK_RDWR, disk_size)],
                        feedback_fn):
       feedback_fn("Activating instance disks")
       StartInstanceDisks(self, instance, False)
@@ -1657,6 +1699,7 @@ class LUInstanceCreate(LogicalUnit):
                             disk_template=self.op.disk_template,
                             disks_active=False,
                             admin_state=constants.ADMINST_DOWN,
+                            admin_state_source=constants.ADMIN_SOURCE,
                             network_port=network_port,
                             beparams=self.op.beparams,
                             hvparams=self.op.hvparams,
@@ -1758,20 +1801,18 @@ class LUInstanceCreate(LogicalUnit):
       elif trusted:
         self.RunOsScripts(feedback_fn, iobj)
       else:
-        self.UpdateInstanceOsInstallPackage(feedback_fn, iobj)
-        UpdateMetadata(feedback_fn, self.rpc, iobj,
-                       osparams_private=self.op.osparams_private,
-                       osparams_secret=self.op.osparams_secret)
         self.RunOsScriptsVirtualized(feedback_fn, iobj)
         # Instance is modified by 'RunOsScriptsVirtualized',
         # therefore, it must be retrieved once again from the
         # configuration, otherwise there will be a config object
         # version mismatch.
         iobj = self.cfg.GetInstanceInfo(iobj.uuid)
-    else:
-      UpdateMetadata(feedback_fn, self.rpc, iobj,
-                     osparams_private=self.op.osparams_private,
-                     osparams_secret=self.op.osparams_secret)
+
+    # Update instance metadata so that it can be reached from the
+    # metadata service.
+    UpdateMetadata(feedback_fn, self.rpc, iobj,
+                   osparams_private=self.op.osparams_private,
+                   osparams_secret=self.op.osparams_secret)
 
     assert not self.owned_locks(locking.LEVEL_NODE_RES)
 
@@ -3452,7 +3493,8 @@ class LUInstanceSetParams(LogicalUnit):
          self.instance.hypervisor,
          cluster_hvparams)
       remote_info.Raise("Error checking node %s" %
-                        self.cfg.GetNodeName(self.instance.primary_node))
+                        self.cfg.GetNodeName(self.instance.primary_node),
+                        prereq=True)
       if not remote_info.payload: # not running already
         raise errors.OpPrereqError("Instance %s is not running" %
                                    self.instance.name, errors.ECODE_STATE)

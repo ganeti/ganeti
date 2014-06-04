@@ -447,7 +447,8 @@ class TLMigrateInstance(Tasklet):
           self.instance.primary_node, self.instance.name,
           self.instance.hypervisor, cluster.hvparams[self.instance.hypervisor])
       remote_info.Raise("Error checking instance on node %s" %
-                        self.cfg.GetNodeName(self.instance.primary_node))
+                        self.cfg.GetNodeName(self.instance.primary_node),
+                        prereq=True)
       instance_running = bool(remote_info.payload)
       if instance_running:
         self.current_mem = int(remote_info.payload["memory"])

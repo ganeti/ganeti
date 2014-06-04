@@ -1716,7 +1716,6 @@ class JobQueue(object):
     # Job dependencies
     self.depmgr = _JobDependencyManager(self._GetJobStatusForDependencies,
                                         self._EnqueueJobs)
-    self.context.glm.AddToLockMonitor(self.depmgr)
 
     # Setup worker pool
     self._wpool = _JobQueueWorkerPool(self)

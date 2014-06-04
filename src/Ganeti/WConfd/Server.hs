@@ -39,6 +39,7 @@ import System.Directory (doesFileExist)
 
 import Ganeti.BasicTypes
 import Ganeti.Daemon
+import Ganeti.Daemon.Utils (handleMasterVerificationOptions)
 import Ganeti.Logging (logInfo, logDebug)
 import Ganeti.Locking.Locks
 import Ganeti.Locking.Waiting
@@ -62,7 +63,7 @@ type PrepResult = (Server, DaemonHandle)
 
 -- | Check function for luxid.
 checkMain :: CheckFn ()
-checkMain _ = return $ Right ()
+checkMain = handleMasterVerificationOptions
 
 -- | Prepare function for luxid.
 prepMain :: PrepFn () PrepResult
@@ -118,4 +119,6 @@ options =
   , oDebug
   , oSyslogUsage
   , oForceNode
+  , oNoVoting
+  , oYesDoIt
   ]

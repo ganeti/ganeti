@@ -973,6 +973,10 @@ drbdMigrationNetProtocol = "C"
 drbdStatusFile :: String
 drbdStatusFile = "/proc/drbd"
 
+-- | The length of generated DRBD secrets (see also TempRes module).
+drbdSecretLength :: Int
+drbdSecretLength = 20
+
 -- | Size of DRBD meta block device
 drbdMetaSize :: Int
 drbdMetaSize = 128
@@ -3198,6 +3202,17 @@ adminstUp = Types.adminStateToRaw AdminUp
 adminstAll :: FrozenSet String
 adminstAll = ConstantUtils.mkSet $ map Types.adminStateToRaw [minBound..]
 
+-- * Admin state sources
+
+adminSource :: AdminStateSource
+adminSource = AdminSource
+
+userSource :: AdminStateSource
+userSource = UserSource
+
+adminStateSources :: FrozenSet AdminStateSource
+adminStateSources = ConstantUtils.mkSet [minBound..]
+
 -- * Node roles
 
 nrDrained :: String
@@ -3409,10 +3424,10 @@ locksReplace = "replace"
 -- given that we start from the default priority level.
 
 lockAttemptsMaxwait :: Double
-lockAttemptsMaxwait = 15.0
+lockAttemptsMaxwait = 75.0
 
 lockAttemptsMinwait :: Double
-lockAttemptsMinwait = 1.0
+lockAttemptsMinwait = 5.0
 
 lockAttemptsTimeout :: Int
 lockAttemptsTimeout = (10 * 3600) `div` (opPrioDefault - opPrioHighest)
@@ -4739,6 +4754,17 @@ luxiLivelockPrefix = "luxi-daemon"
 -- job terminates before giving up.
 luxiCancelJobTimeout :: Int
 luxiCancelJobTimeout = (luxiDefRwto - 1) `div` 4
+
+-- * Master voting constants
+
+-- | Number of retries to carry out if nodes do not answer
+masterVotingRetries :: Int
+masterVotingRetries = 6
+
+-- | Retry interval (in seconds) in master voting, if not enough answers
+-- could be gathered.
+masterVotingRetryIntervall :: Int
+masterVotingRetryIntervall = 10
 
 -- * Query language constants
 

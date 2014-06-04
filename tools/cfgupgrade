@@ -272,6 +272,8 @@ def UpgradeInstances(config_data):
     _ConvertNicNameToUuid(iobj, network2uuid)
     if _ConvertDiskAndCheckMissingSpindles(iobj, instance):
       missing_spindles = True
+    if "admin_state_source" not in iobj:
+      iobj["admin_state_source"] = constants.ADMIN_SOURCE
 
   if GetExclusiveStorageValue(config_data) and missing_spindles:
     # We cannot be sure that the instances that are missing spindles have

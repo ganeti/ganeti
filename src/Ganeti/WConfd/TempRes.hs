@@ -41,6 +41,8 @@ module Ganeti.WConfd.TempRes
   , MAC
   , generateMAC
   , reserveMAC
+  , generateDRBDSecret
+  , reserveLV
   , dropAllReservations
   , isReserved
   , reserve
@@ -61,10 +63,10 @@ import qualified Data.Map as M
 import Data.Monoid
 import qualified Data.Set as S
 import System.Random
-import Text.Printf
 
 import Ganeti.BasicTypes
 import Ganeti.Config
+import qualified Ganeti.Constants as C
 import Ganeti.Errors
 import qualified Ganeti.JSON as J
 import Ganeti.Lens
@@ -72,6 +74,7 @@ import Ganeti.Locking.Locks (ClientId)
 import Ganeti.Objects
 import Ganeti.Utils
 import Ganeti.Utils.MonadPlus
+import Ganeti.Utils.Random
 import qualified Ganeti.Utils.MultiMap as MM
 
 -- * The main reservation state
@@ -107,11 +110,13 @@ instance (Ord j, Ord a) => Monoid (TempRes j a) where
 data TempResState = TempResState
   { trsDRBD :: DRBDMap
   , trsMACs :: TempRes ClientId MAC
+  , trsDRBDSecrets :: TempRes ClientId DRBDSecret
+  , trsLVs :: TempRes ClientId LogicalVolume
   }
   deriving (Eq, Show)
 
 emptyTempResState :: TempResState
-emptyTempResState = TempResState M.empty mempty
+emptyTempResState = TempResState M.empty mempty mempty mempty
 
 $(makeCustomLenses ''TempResState)
 
@@ -236,20 +241,14 @@ generateRand rgen jobid existing genfn tr =
 --
 -- If a new reservation resource type is added, it must be added here as well.
 dropAllReservations :: ClientId -> TempResState -> TempResState
-dropAllReservations jobId = trsMACsL %~ dropReservationsFor jobId
+dropAllReservations jobId =
+    (trsMACsL %~ dropReservationsFor jobId)
+  . (trsDRBDSecretsL %~ dropReservationsFor jobId)
+  . (trsLVsL %~ dropReservationsFor jobId)
 
 -- ** IDs
 
 -- ** MAC addresses
-
--- | Given a prefix, randomly generates a full MAC address.
---
--- See 'generateMAC' for discussion about how this function uses
--- the random generator.
-generateOneMAC :: (RandomGen g) => MAC -> g -> (MAC, g)
-generateOneMAC prefix = runState $
-  let randByte = state (randomR (0, 255 :: Int))
-  in printf "%s:%02x:%02x:%02x" prefix <$> randByte <*> randByte <*> randByte
 
 -- Randomly generate a MAC for an instance.
 -- Checks that the generated MAC isn't used by another instance.
@@ -286,3 +285,25 @@ reserveMAC jobId mac cd = do
   when (S.member mac existing)
     $ throwError (ReservationError "MAC already in use")
   get >>= traverseOf trsMACsL (reserve jobId mac) >>= put
+
+-- ** DRBD secrets
+
+generateDRBDSecret
+  :: (RandomGen g, MonadError e m, Error e, Functor m)
+  => g -> ClientId -> ConfigData -> StateT TempResState m DRBDSecret
+generateDRBDSecret rgen jobId cd = do
+  let existing = S.fromList $ getAllDrbdSecrets cd
+  StateT $ traverseOf2 trsDRBDSecretsL
+           (generateRand rgen jobId existing
+                         (over _1 Just . generateSecret C.drbdSecretLength))
+
+-- ** LVs
+
+reserveLV
+  :: (MonadError GanetiException m, MonadState TempResState m, Functor m)
+  => ClientId -> LogicalVolume -> ConfigData -> m ()
+reserveLV jobId lv cd = do
+  existing <- toError $ getAllLVs cd
+  when (S.member lv existing)
+    $ throwError (ReservationError "MAC already in use")
+  get >>= traverseOf trsLVsL (reserve jobId lv) >>= put

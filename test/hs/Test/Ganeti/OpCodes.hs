@@ -42,10 +42,11 @@ import qualified Data.Map as Map
 import qualified Text.JSON as J
 import Text.Printf (printf)
 
+import Test.Ganeti.Objects ()
+import Test.Ganeti.Query.Language ()
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
-import Test.Ganeti.Query.Language ()
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -317,12 +318,19 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpInstanceRename <$> genFQDN <*> return Nothing <*>
           genNodeNameNE <*> arbitrary <*> arbitrary
       "OP_INSTANCE_STARTUP" ->
-        OpCodes.OpInstanceStartup <$> genFQDN <*> return Nothing <*>
-          arbitrary <*> arbitrary <*> pure emptyJSObject <*>
-          pure emptyJSObject <*> arbitrary <*> arbitrary
+        OpCodes.OpInstanceStartup <$>
+          genFQDN <*>             -- instance_name
+          return Nothing <*>      -- instance_uuid
+          arbitrary <*>           -- force
+          arbitrary <*>           -- ignore_offline_nodes
+          pure emptyJSObject <*>  -- hvparams
+          pure emptyJSObject <*>  -- beparams
+          arbitrary <*>           -- no_remember
+          arbitrary <*>           -- startup_paused
+          arbitrary               -- shutdown_timeout
       "OP_INSTANCE_SHUTDOWN" ->
         OpCodes.OpInstanceShutdown <$> genFQDN <*> return Nothing <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
       "OP_INSTANCE_REBOOT" ->
         OpCodes.OpInstanceReboot <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary

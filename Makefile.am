@@ -122,6 +122,7 @@ HS_DIRS = \
 	src/Ganeti/Curl \
 	src/Ganeti/Cpu \
 	src/Ganeti/DataCollectors \
+	src/Ganeti/Daemon \
 	src/Ganeti/Hs2Py \
 	src/Ganeti/HTools \
 	src/Ganeti/HTools/Backend \
@@ -751,6 +752,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Cpu/Types.hs \
 	src/Ganeti/Curl/Multi.hs \
 	src/Ganeti/Daemon.hs \
+	src/Ganeti/Daemon/Utils.hs \
 	src/Ganeti/DataCollectors/CLI.hs \
 	src/Ganeti/DataCollectors/CPUload.hs \
 	src/Ganeti/DataCollectors/Diskstats.hs \
@@ -868,7 +870,9 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils/MonadPlus.hs \
 	src/Ganeti/Utils/MultiMap.hs \
 	src/Ganeti/Utils/MVarLock.hs \
+	src/Ganeti/Utils/Random.hs \
 	src/Ganeti/Utils/Statistics.hs \
+	src/Ganeti/Utils/Validate.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
 	src/Ganeti/WConfd/ConfigWriter.hs \
@@ -1645,7 +1649,6 @@ python_test_support = \
 	test/py/cmdlib/testsupport/config_mock.py \
 	test/py/cmdlib/testsupport/iallocator_mock.py \
 	test/py/cmdlib/testsupport/livelock_mock.py \
-	test/py/cmdlib/testsupport/lock_manager_mock.py \
 	test/py/cmdlib/testsupport/netutils_mock.py \
 	test/py/cmdlib/testsupport/processor_mock.py \
 	test/py/cmdlib/testsupport/rpc_runner_mock.py \

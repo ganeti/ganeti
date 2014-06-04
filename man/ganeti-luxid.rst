@@ -35,6 +35,13 @@ The daemon will refuse to start if the user and group do not match the
 one defined at build time; this behaviour can be overridden by the
 ``--no-user-checks`` option.
 
+The daemon will refuse to start if it cannot verify that the majority
+of cluster nodes believes that it is running on the master node. To
+allow failover in a two-node cluster, this can be overridden by the
+``--no-voting`` option. As it this is dangerous, the ``--yes-do-it``
+option has to be given as well.
+
+
 ROLE
 ~~~~
 

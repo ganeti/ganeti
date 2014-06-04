@@ -216,6 +216,7 @@ class LUInstanceQueryData(NoHooksLU):
 
     for instance in self.wanted_instances:
       pnode = nodes[instance.primary_node]
+      hvparams = cluster.FillHV(instance, skip_globals=True)
 
       if self.op.static or pnode.offline:
         remote_state = None
@@ -229,18 +230,29 @@ class LUInstanceQueryData(NoHooksLU):
             cluster.hvparams[instance.hypervisor])
         remote_info.Raise("Error checking node %s" % pnode.name)
         remote_info = remote_info.payload
+
+        allow_userdown = \
+            instance.hypervisor != constants.HT_KVM or \
+            hvparams[constants.HV_KVM_USER_SHUTDOWN]
+
         if remote_info and "state" in remote_info:
-          if hv_base.HvInstanceState.IsShutdown(remote_info["state"]) \
-                and (instance.hypervisor != constants.HT_KVM
-                       or instance.hvparams[constants.HV_KVM_USER_SHUTDOWN]):
-            remote_state = "user down"
+          if hv_base.HvInstanceState.IsShutdown(remote_info["state"]):
+            if allow_userdown:
+              remote_state = "user down"
+            else:
+              remote_state = "down"
           else:
             remote_state = "up"
         else:
           if instance.admin_state == constants.ADMINST_UP:
             remote_state = "down"
+          elif instance.admin_state == constants.ADMINST_DOWN:
+            if instance.admin_state_source == constants.USER_SOURCE:
+              remote_state = "user down"
+            else:
+              remote_state = "down"
           else:
-            remote_state = instance.admin_state
+            remote_state = "offline"
 
       group2name_fn = lambda uuid: groups[uuid].name
       node_uuid2name_fn = lambda uuid: nodes[uuid].name
@@ -271,7 +283,7 @@ class LUInstanceQueryData(NoHooksLU):
         "hypervisor": instance.hypervisor,
         "network_port": instance.network_port,
         "hv_instance": instance.hvparams,
-        "hv_actual": cluster.FillHV(instance, skip_globals=True),
+        "hv_actual": hvparams,
         "be_instance": instance.beparams,
         "be_actual": cluster.FillBE(instance),
         "os_instance": instance.osparams,

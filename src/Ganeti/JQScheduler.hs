@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, RankNTypes #-}
 {-| Implementation of a reader for the job queue.
 
 -}
@@ -69,7 +69,14 @@ data JobWithStat = JobWithStat { jINotify :: Maybe INotify
 
 $(makeCustomLenses' ''JobWithStat ['jJob])
 
-data Queue = Queue { qEnqueued :: [JobWithStat], qRunning :: [JobWithStat] }
+data Queue = Queue { qEnqueued :: [JobWithStat]
+                   , qRunning :: [JobWithStat]
+                   , qManipulated :: [JobWithStat] -- ^ running jobs that are
+                                                   -- being manipulated by
+                                                   -- some thread
+                   }
+
+$(makeCustomLenses ''Queue)
 
 {-| Representation of the job queue
 
@@ -91,7 +98,7 @@ data JQStatus = JQStatus
 
 emptyJQStatus :: IORef (Result ConfigData) -> IO JQStatus
 emptyJQStatus config = do
-  jqJ <- newIORef Queue { qEnqueued = [], qRunning = []}
+  jqJ <- newIORef Queue { qEnqueued = [], qRunning = [], qManipulated = [] }
   (_, livelock) <- mkLivelockFile C.luxiLivelockPrefix
   forkLock <- newLock
   return JQStatus { jqJobs = jqJ, jqConfig = config, jqLivelock = livelock
@@ -99,11 +106,11 @@ emptyJQStatus config = do
 
 -- | Apply a function on the running jobs.
 onRunningJobs :: ([JobWithStat] -> [JobWithStat]) -> Queue -> Queue
-onRunningJobs f queue = queue {qRunning=f $ qRunning queue}
+onRunningJobs = over qRunningL
 
 -- | Apply a function on the queued jobs.
 onQueuedJobs :: ([JobWithStat] -> [JobWithStat]) -> Queue -> Queue
-onQueuedJobs f queue = queue {qEnqueued=f $ qEnqueued queue}
+onQueuedJobs = over qEnqueuedL
 
 -- | Obtain a JobWithStat from a QueuedJob.
 unreadJob :: QueuedJob -> JobWithStat
@@ -173,6 +180,45 @@ updateJob state jb = do
     cleanupFinishedJobs state
     scheduleSomeJobs state
 
+-- | Move a job from one part of the queue to another.
+-- Return the job that was moved, or 'Nothing' if it wasn't found in
+-- the queue.
+moveJob :: Lens' Queue [JobWithStat] -- ^ from queue
+        -> Lens' Queue [JobWithStat] -- ^ to queue
+        -> JobId
+        -> Queue
+        -> (Queue, Maybe JobWithStat)
+moveJob fromQ toQ jid queue =
+    -- traverse over the @(,) [JobWithStats]@ functor to extract the job
+    case traverseOf fromQ (partition ((== jid) . qjId . jJob)) queue of
+      (job : _, queue') -> (over toQ (++ [job]) queue', Just job)
+      _                 -> (queue, Nothing)
+
+-- | Atomically move a job from one part of the queue to another.
+-- Return the job that was moved, or 'Nothing' if it wasn't found in
+-- the queue.
+moveJobAtomic :: Lens' Queue [JobWithStat] -- ^ from queue
+              -> Lens' Queue [JobWithStat] -- ^ to queue
+              -> JobId
+              -> JQStatus
+              -> IO (Maybe JobWithStat)
+moveJobAtomic fromQ toQ jid qstat =
+  atomicModifyIORef (jqJobs qstat) (moveJob fromQ toQ jid)
+
+-- | Manipulate a running job by atomically moving it from 'qRunning'
+-- into 'qManipulated', running a given IO action and then atomically
+-- returning it back.
+--
+-- Returns the result of the IO action, or 'Nothing', if the job wasn't found
+-- in the queue.
+manipulateRunningJob :: JQStatus -> JobId -> IO a -> IO (Maybe a)
+manipulateRunningJob qstat jid k = do
+  jobOpt <- moveJobAtomic qRunningL qManipulatedL jid qstat
+  case jobOpt of
+    Nothing -> return Nothing
+    Just _  -> (Just `liftM` k)
+               `finally` moveJobAtomic qManipulatedL qRunningL jid qstat
+
 -- | Sort out the finished jobs from the monitored part of the queue.
 -- This is the pure part, splitting the queue into a remaining queue
 -- and the jobs that were removed.
@@ -232,7 +278,7 @@ jobEligible queue jWS =
 -- pure function doing the scheduling.
 selectJobsToRun :: Int -> Queue -> (Queue, [JobWithStat])
 selectJobsToRun count queue =
-  let n = count - length (qRunning queue)
+  let n = count - length (qRunning queue) - length (qManipulated queue)
       chosen = take n . filter (jobEligible queue) $ qEnqueued queue
       remain = deleteFirstsBy ((==) `on` (qjId . jJob)) (qEnqueued queue) chosen
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
@@ -309,15 +355,6 @@ showQueue (Queue {qEnqueued=waiting, qRunning=running}) =
   in "Waiting jobs: " ++ showids waiting 
        ++ "; running jobs: " ++ showids running
 
--- | Pure function to remove a job from the list of running
--- jobs, if it is still there. Return whether it was still among
--- the running jobs.
-rmFromRunning :: JobId -> Queue -> (Queue, Bool)
-rmFromRunning jid queue =
-  let running = qRunning queue
-      (running', removed) = partition ((/=) jid . qjId . jJob) running
-  in ( queue { qRunning = running' }, not $ null removed)
-
 -- | Check if a job died, and clean up if so.
 checkForDeath :: JQStatus -> JobWithStat -> IO ()
 checkForDeath state jobWS = do
@@ -333,19 +370,19 @@ checkForDeath state jobWS = do
     logInfo $ "Detected death of job " ++ sjid
     -- if we manage to remove the job from the queue, we own the job file
     -- and can manipulate it.
-    removed <- atomicModifyIORef (jqJobs state) $ rmFromRunning jid
-    when removed . void . runResultT $ do
-      logDebug $ "Removed job " ++ sjid ++ " from the list of running"
-        :: ResultG ()
-      jobWS' <- mkResultT $ readJobFromDisk jid
-      now <- liftIO currentTimestamp
-      qDir <- liftIO queueDir
-      let reason = ( "gnt:daemon:wconfd:deathdetection"
-                   , "detected death of job " ++ sjid
-                   , reasonTrailTimestamp now )
-          failedJob = failQueuedJob reason now $ jJob jobWS'
-      cfg <- mkResultT . readIORef $ jqConfig state
-      writeAndReplicateJob cfg qDir failedJob
+    void . manipulateRunningJob state jid . runResultT $ do
+      jobWS' <- mkResultT $ readJobFromDisk jid :: ResultG JobWithStat
+      unless (jobFinalized . jJob $ jobWS') . void $ do
+        -- If the job isn't finalized, but dead, add a corresponding
+        -- failed status.
+        now <- liftIO currentTimestamp
+        qDir <- liftIO queueDir
+        let reason = ( "gnt:daemon:wconfd:deathdetection"
+                     , "detected death of job " ++ sjid
+                     , reasonTrailTimestamp now )
+            failedJob = failQueuedJob reason now $ jJob jobWS'
+        cfg <- mkResultT . readIORef $ jqConfig state
+        writeAndReplicateJob cfg qDir failedJob
 
 -- | Time-based watcher for updating the job queue.
 onTimeWatcher :: JQStatus -> IO ()

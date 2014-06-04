@@ -42,6 +42,7 @@ module Ganeti.BasicTypes
   , justOk
   , justBad
   , eitherToResult
+  , isLeft
   , annotateResult
   , annotateError
   , failError
@@ -273,6 +274,12 @@ justBad = mapMaybe (genericResult Just (const Nothing))
 eitherToResult :: Either a b -> GenericResult a b
 eitherToResult (Left  s) = Bad s
 eitherToResult (Right v) = Ok  v
+
+-- | Check if an either is Left. Equivalent to isLeft from Data.Either
+-- version 4.7.0.0 or higher.
+isLeft :: Either a b -> Bool
+isLeft (Left _) = True
+isLeft _        = False
 
 -- | Annotate an error with an ownership information, lifting it to a
 -- 'MonadError'. Since 'Result' is an instance of 'MonadError' itself,

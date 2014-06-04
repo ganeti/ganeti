@@ -51,6 +51,7 @@ import qualified Ganeti.ConstantUtils as ConstantUtils (unFrozenSet)
 import Ganeti.Errors
 import qualified Ganeti.Path as Path
 import Ganeti.Daemon
+import Ganeti.Daemon.Utils (handleMasterVerificationOptions)
 import Ganeti.Objects
 import qualified Ganeti.Config as Config
 import Ganeti.ConfigReader
@@ -447,7 +448,7 @@ activateMasterIP = runResultT $ do
 
 -- | Check function for luxid.
 checkMain :: CheckFn ()
-checkMain _ = return $ Right ()
+checkMain = handleMasterVerificationOptions
 
 -- | Prepare function for luxid.
 prepMain :: PrepFn () PrepResult
@@ -468,7 +469,6 @@ main :: MainFn () PrepResult
 main _ _ (server, cref, jq) = do
   initConfigReader id cref
   let creader = readIORef cref
-  initJQScheduler jq
 
   qlockFile <- jobQueueLockFile
   _ <- lockFile qlockFile >>= exitIfBad "Failed to obtain the job-queue lock"
@@ -477,6 +477,8 @@ main _ _ (server, cref, jq) = do
   _ <- P.installHandler P.sigCHLD P.Ignore Nothing
 
   _ <- forkIO . void $ activateMasterIP
+
+  initJQScheduler jq
 
   finally
     (forever $ U.listener (luxiHandler (qlock, jq, creader)) server)

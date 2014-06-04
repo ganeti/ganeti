@@ -350,6 +350,7 @@
   "instances": {
     "4e091bdc-e205-4ed7-8a47-0c9130a6619f": {
       "admin_state": "up",
+      "admin_state_source": "admin",
       "beparams": {},
       "ctime": 1354038435.343601,
       "disk_template": "plain",
@@ -376,6 +377,7 @@
     },
     "6c078d22-3eb6-4780-857d-81772e09eef1": {
       "admin_state": "up",
+      "admin_state_source": "admin",
       "beparams": {},
       "ctime": 1363620258.608976,
       "disk_template": "drbd",
@@ -401,6 +403,7 @@
     },
     "8fde9f6d-e1f1-4850-9e9c-154966f622f5": {
       "admin_state": "up",
+      "admin_state_source": "admin",
       "beparams": {},
       "ctime": 1355186880.451181,
       "disk_template": "plain",

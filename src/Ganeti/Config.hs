@@ -61,13 +61,20 @@ module Ganeti.Config
     , getNetwork
     , MAC
     , getAllMACs
+    , getAllDrbdSecrets
+    , NodeLVsMap
+    , getInstanceLVsByNode
+    , getAllLVs
     , buildLinkIpInstnameMap
     , instNodes
     ) where
 
-import Control.Monad (liftM)
+import Control.Applicative
+import Control.Monad
+import Control.Monad.State
 import qualified Data.Foldable as F
 import Data.List (foldl', nub)
+import Data.Monoid
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Text.JSON as J
@@ -79,6 +86,7 @@ import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.Objects
 import Ganeti.Types
+import qualified Ganeti.Utils.MultiMap as MM
 
 -- | Type alias for the link and ip map.
 type LinkIpMap = M.Map String (M.Map String String)
@@ -365,13 +373,27 @@ getInstDisksFromObj :: ConfigData -> Instance -> ErrorResult [Disk]
 getInstDisksFromObj cfg =
   getInstDisks cfg . instUuid
 
+-- | Collects a value for all DRBD disks
+collectFromDrbdDisks
+  :: (Monoid a)
+  => (String -> String -> Int -> Int -> Int -> DRBDSecret -> a)
+  -- ^ NodeA, NodeB, Port, MinorA, MinorB, Secret
+  -> Disk -> a
+collectFromDrbdDisks f = col
+  where
+    col Disk { diskLogicalId = (LIDDrbd8 nA nB port mA mB secret)
+             , diskChildren = ch
+             } = f nA nB port mA mB secret <> F.foldMap col ch
+    col d = F.foldMap col (diskChildren d)
+
+-- | Returns the DRBD secrets of a given 'Disk'
+getDrbdSecretsForDisk :: Disk -> [DRBDSecret]
+getDrbdSecretsForDisk = collectFromDrbdDisks (\_ _ _ _ _ secret -> [secret])
+
 -- | Returns the DRBD minors of a given 'Disk'
 getDrbdMinorsForDisk :: Disk -> [(Int, String)]
-getDrbdMinorsForDisk Disk { diskLogicalId = (LIDDrbd8 nA nB _ mnA mnB _)
-                          , diskChildren = ch
-                          } = [(mnA, nA), (mnB, nB)] ++
-                              concatMap getDrbdMinorsForDisk ch
-getDrbdMinorsForDisk d = concatMap getDrbdMinorsForDisk (diskChildren d)
+getDrbdMinorsForDisk =
+  collectFromDrbdDisks (\nA nB _ mnA mnB _ -> [(mnA, nA), (mnB, nB)])
 
 -- | Filters DRBD minors for a given node.
 getDrbdMinorsForNode :: String -> Disk -> [(Int, String)]
@@ -484,6 +506,39 @@ type MAC = String
 -- | Returns all MAC addresses used in the cluster.
 getAllMACs :: ConfigData -> [MAC]
 getAllMACs = F.foldMap (map nicMac . instNics) . configInstances
+
+-- ** DRBD secrets
+
+getAllDrbdSecrets :: ConfigData -> [DRBDSecret]
+getAllDrbdSecrets = F.foldMap getDrbdSecretsForDisk . configDisks
+
+-- ** LVs
+
+-- | A map from node UUIDs to
+--
+-- FIXME: After adding designated types for UUIDs,
+-- use them to replace 'String' here.
+type NodeLVsMap = MM.MultiMap String LogicalVolume
+
+getInstanceLVsByNode :: ConfigData -> Instance -> ErrorResult NodeLVsMap
+getInstanceLVsByNode cd inst =
+    (MM.fromList . lvsByNode (instPrimaryNode inst))
+    <$> getInstDisksFromObj cd inst
+  where
+    lvsByNode :: String -> [Disk] -> [(String, LogicalVolume)]
+    lvsByNode node = concatMap (lvsByNode1 node)
+    lvsByNode1 :: String -> Disk -> [(String, LogicalVolume)]
+    lvsByNode1 _    Disk { diskLogicalId = (LIDDrbd8 nA nB _ _ _ _)
+                         , diskChildren = ch
+                         } = lvsByNode nA ch ++ lvsByNode nB ch
+    lvsByNode1 node Disk { diskLogicalId = (LIDPlain lv) }
+                           = [(node, lv)]
+    lvsByNode1 node Disk { diskChildren = ch }
+                           = lvsByNode node ch
+
+getAllLVs :: ConfigData -> ErrorResult (S.Set LogicalVolume)
+getAllLVs cd = mconcat <$> mapM (liftM MM.values . getInstanceLVsByNode cd)
+                                (F.toList $ configInstances cd)
 
 -- * ND params
 

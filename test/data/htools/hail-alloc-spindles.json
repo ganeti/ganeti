@@ -169,6 +169,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "up",
+      "admin_state_source": "admin",
       "disk_template": "plain",
       "memory": 1024,
       "nodes": [
@@ -199,6 +200,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "up",
+      "admin_state_source": "admin",
       "disk_template": "plain",
       "memory": 1024,
       "nodes": [
@@ -229,6 +231,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "up",
+      "admin_state_source": "admin",
       "disk_template": "plain",
       "memory": 1024,
       "nodes": [
@@ -259,6 +262,7 @@
       "vcpus": 1,
       "spindle_use": 1,
       "admin_state": "up",
+      "admin_state_source": "admin",
       "disk_template": "plain",
       "memory": 1024,
       "nodes": [

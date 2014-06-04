@@ -650,10 +650,17 @@ class XenHypervisor(hv_base.BaseHypervisor):
   def ListInstances(self, hvparams=None):
     """Get the list of running instances.
 
+    @type hvparams: dict of strings
+    @param hvparams: the instance's hypervisor params
+
+    @rtype: list of strings
+    @return: names of running instances
+
     """
-    instance_list = self._GetInstanceList(False, hvparams)
-    names = [info[0] for info in instance_list]
-    return names
+    instance_list = _GetRunningInstanceList(
+      lambda: self._RunXen(["list"], hvparams),
+      False)
+    return [info[0] for info in instance_list]
 
   def GetInstanceInfo(self, instance_name, hvparams=None):
     """Get instance properties.

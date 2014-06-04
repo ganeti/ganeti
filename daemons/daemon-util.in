@@ -28,8 +28,8 @@ readonly defaults_file="$SYSCONFDIR/default/ganeti"
 # order is important as there are dependencies between them. On shutdown,
 # they're stopped in reverse order.
 DAEMONS=(
-  ganeti-wconfd
   ganeti-noded
+  ganeti-wconfd
   ganeti-rapi
   ganeti-luxid
   )

@@ -30,6 +30,8 @@ class MockClient(object):
     self.wconfdmock = wconfdmock
 
   def TryUpdateLocks(self, _cid, req):
+    # Note that UpdateLocksWaiting in this mock
+    # relies on TryUpdateLocks to always succeed.
     for lockrq in req:
       if lockrq[1] == "release":
         if lockrq[0] in self.wconfdmock.mylocks:
@@ -37,6 +39,14 @@ class MockClient(object):
       else:
         self.wconfdmock.mylocks[lockrq[0]] = lockrq[1]
     return []
+
+  def UpdateLocksWaiting(self, cid, _prio, req):
+    # as our mock TryUpdateLocks always suceeds, we can
+    # just use it
+    return self.TryUpdateLocks(cid, req)
+
+  def HasPendingRequest(self, _cid):
+    return False
 
   def ListLocks(self, *_):
     result = []

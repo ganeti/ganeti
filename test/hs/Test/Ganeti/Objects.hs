@@ -79,8 +79,14 @@ $(genArbitrary ''BlockDriver)
 
 $(genArbitrary ''DiskMode)
 
+instance Arbitrary LogicalVolume where
+  arbitrary = LogicalVolume <$> validName <*> validName
+    where
+      validName = -- we intentionally omit '.' and '-' to avoid forbidden names
+        listOf1 $ elements (['a'..'z'] ++ ['A'..'Z'] ++ ['0'..'9'] ++ "+_")
+
 instance Arbitrary DiskLogicalId where
-  arbitrary = oneof [ LIDPlain <$> arbitrary <*> arbitrary
+  arbitrary = oneof [ LIDPlain <$> arbitrary
                     , LIDDrbd8 <$> genFQDN <*> genFQDN <*> arbitrary
                                <*> arbitrary <*> arbitrary <*> arbitrary
                     , LIDFile  <$> arbitrary <*> arbitrary
@@ -102,6 +108,8 @@ instance Arbitrary Disk where
 $(genArbitrary ''PartialBeParams)
 
 $(genArbitrary ''AdminState)
+
+$(genArbitrary ''AdminStateSource)
 
 $(genArbitrary ''PartialNicParams)
 
@@ -128,6 +136,8 @@ instance Arbitrary Instance where
       -- osparams_private
       <*> pure (GenericContainer Map.empty)
       -- admin_state
+      <*> arbitrary
+      -- admin_state_source
       <*> arbitrary
       -- nics
       <*> arbitrary
@@ -348,6 +358,21 @@ prop_fillDict defaults custom =
                (fillDict d_map c_map (d_keys++c_keys) == Map.empty)
              ]
 
+prop_LogicalVolume_serialisation :: LogicalVolume -> Property
+prop_LogicalVolume_serialisation = testSerialisation
+
+prop_LogicalVolume_deserialisationFail :: Property
+prop_LogicalVolume_deserialisationFail =
+  conjoin . map (testDeserialisationFail (LogicalVolume "" "")) $
+    [ J.JSArray []
+    , J.JSString $ J.toJSString "/abc"
+    , J.JSString $ J.toJSString "abc/"
+    , J.JSString $ J.toJSString "../."
+    , J.JSString $ J.toJSString "g/snapshot"
+    , J.JSString $ J.toJSString "g/a_mimagex"
+    , J.JSString $ J.toJSString "g/r;3"
+    ]
+
 -- | Test that the serialisation of 'DiskLogicalId', which is
 -- implemented manually, is idempotent. Since we don't have a
 -- standalone JSON instance for DiskLogicalId (it's a data type that
@@ -556,19 +581,24 @@ casePyCompatInstances = do
   mapM_ (uncurry (HUnit.assertEqual "Different result after encoding/decoding")
         ) $ zip instances decoded
 
+-- | A helper function for creating 'LIDPlain' values.
+mkLIDPlain :: String -> String -> DiskLogicalId
+mkLIDPlain = (LIDPlain .) . LogicalVolume
+
 -- | Tests that the logical ID is correctly found in a plain disk
 caseIncludeLogicalIdPlain :: HUnit.Assertion
 caseIncludeLogicalIdPlain =
   let vg_name = "xenvg" :: String
       lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
+      lv = LogicalVolume vg_name lv_name
       time = TOD 0 0
       d =
-        Disk (LIDPlain vg_name lv_name) [] "diskname" 1000 DiskRdWr
+        Disk (LIDPlain lv) [] "diskname" 1000 DiskRdWr
           Nothing Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
           0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
-      includesLogicalId vg_name lv_name d
+      includesLogicalId lv d
 
 -- | Tests that the logical ID is correctly found in a DRBD disk
 caseIncludeLogicalIdDrbd :: HUnit.Assertion
@@ -579,15 +609,15 @@ caseIncludeLogicalIdDrbd =
       d =
         Disk
           (LIDDrbd8 "node1.example.com" "node2.example.com" 2000 1 5 "secret")
-          [ Disk (LIDPlain "onevg" "onelv") [] "disk1" 1000 DiskRdWr Nothing
+          [ Disk (mkLIDPlain "onevg" "onelv") [] "disk1" 1000 DiskRdWr Nothing
               Nothing Nothing "145145-asdf-sdf2-2134-asfd-534g2x" 0 time time
-          , Disk (LIDPlain vg_name lv_name) [] "disk2" 1000 DiskRdWr Nothing
+          , Disk (mkLIDPlain vg_name lv_name) [] "disk2" 1000 DiskRdWr Nothing
               Nothing Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse" 0 time time
           ] "diskname" 1000 DiskRdWr Nothing Nothing Nothing
           "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
-      includesLogicalId vg_name lv_name d
+      includesLogicalId (LogicalVolume vg_name lv_name) d
 
 -- | Tests that the logical ID is correctly NOT found in a plain disk
 caseNotIncludeLogicalIdPlain :: HUnit.Assertion
@@ -596,15 +626,17 @@ caseNotIncludeLogicalIdPlain =
       lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
       time = TOD 0 0
       d =
-        Disk (LIDPlain "othervg" "otherlv") [] "diskname" 1000 DiskRdWr
+        Disk (mkLIDPlain "othervg" "otherlv") [] "diskname" 1000 DiskRdWr
           Nothing Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
           0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
-      not (includesLogicalId vg_name lv_name d)
+      not (includesLogicalId (LogicalVolume vg_name lv_name) d)
 
 testSuite "Objects"
   [ 'prop_fillDict
+  , 'prop_LogicalVolume_serialisation
+  , 'prop_LogicalVolume_deserialisationFail
   , 'prop_Disk_serialisation
   , 'prop_Disk_array_serialisation
   , 'prop_Inst_serialisation

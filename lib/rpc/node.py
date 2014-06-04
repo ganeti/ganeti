@@ -971,7 +971,7 @@ class JobQueueRunner(_RpcClientBase, _generated_rpc.RpcClientJobQueue):
   """RPC wrappers for job queue.
 
   """
-  def __init__(self, context, address_list):
+  def __init__(self, _context, address_list):
     """Initializes this class.
 
     """
@@ -982,7 +982,7 @@ class JobQueueRunner(_RpcClientBase, _generated_rpc.RpcClientJobQueue):
       resolver = _StaticResolver(address_list)
 
     _RpcClientBase.__init__(self, resolver, _ENCODERS.get,
-                            lock_monitor_cb=context.glm.AddToLockMonitor)
+                            lock_monitor_cb=lambda _: None)
     _generated_rpc.RpcClientJobQueue.__init__(self)
 
 
@@ -1023,15 +1023,12 @@ class ConfigRunner(_RpcClientBase, _generated_rpc.RpcClientConfig):
   """RPC wrappers for L{config}.
 
   """
-  def __init__(self, context, address_list, _req_process_fn=None,
+  def __init__(self, _context, address_list, _req_process_fn=None,
                _getents=None):
     """Initializes this class.
 
     """
-    if context:
-      lock_monitor_cb = context.glm.AddToLockMonitor
-    else:
-      lock_monitor_cb = None
+    lock_monitor_cb = None
 
     if address_list is None:
       resolver = compat.partial(_SsconfResolver, True)

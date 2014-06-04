@@ -44,7 +44,7 @@ import qualified Ganeti.Locking.Allocation as L
 import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock), LockLevel(LevelConfig)
                             , lockLevel, LockLevel, ClientId )
 import qualified Ganeti.Locking.Waiting as LW
-import Ganeti.Objects (ConfigData)
+import Ganeti.Objects (ConfigData, DRBDSecret, LogicalVolume)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
 import qualified Ganeti.WConfd.TempRes as T
@@ -143,7 +143,7 @@ releaseDRBDMinors inst = modifyTempResState (const $ T.releaseDRBDMinors inst)
 
 -- *** MACs
 
--- Randomly generate a MAC for an instance and reserves it for
+-- Randomly generate a MAC for an instance and reserve it for
 -- a given client.
 generateMAC
   :: ClientId -> J.MaybeForJSON T.NetworkUUID -> WConfdMonad T.MAC
@@ -154,6 +154,20 @@ generateMAC cid (J.MaybeForJSON netId) = do
 -- Reserves a MAC for an instance in the list of temporary reservations.
 reserveMAC :: ClientId -> T.MAC -> WConfdMonad ()
 reserveMAC = (modifyTempResStateErr .) . T.reserveMAC
+
+-- *** DRBDSecrets
+
+-- Randomly generate a DRBDSecret for an instance and reserves it for
+-- a given client.
+generateDRBDSecret :: ClientId -> WConfdMonad DRBDSecret
+generateDRBDSecret cid = do
+  g <- liftIO Rand.newStdGen
+  modifyTempResStateErr $ T.generateDRBDSecret g cid
+
+-- *** LVs
+
+reserveLV :: ClientId -> LogicalVolume -> WConfdMonad ()
+reserveLV jobId lv = modifyTempResStateErr $ T.reserveLV jobId lv
 
 -- ** Locking related functions
 
@@ -179,6 +193,20 @@ tryUpdateLocks cid req =
   liftM S.toList
   . (>>= toErrorStr)
   $ modifyLockWaiting (LW.updateLocks cid (fromGanetiLockRequest req))
+
+-- | Try to update the locks of a given owner and make that a pending
+-- request if not immediately possible.
+updateLocksWaiting :: ClientId -> Integer
+                      -> GanetiLockRequest -> WConfdMonad [ClientId]
+updateLocksWaiting cid prio req =
+  liftM S.toList
+  . (>>= toErrorStr)
+  . modifyLockWaiting
+  $ LW.updateLocksWaiting prio cid (fromGanetiLockRequest req)
+
+-- | Tell whether a given owner has pending requests.
+hasPendingRequest :: ClientId -> WConfdMonad Bool
+hasPendingRequest cid = liftM (LW.hasPendingRequest cid) readLockWaiting
 
 -- | Free all locks of a given owner (i.e., a job-id lockfile pair).
 freeLocks :: ClientId -> WConfdMonad ()
@@ -226,14 +254,20 @@ exportedFunctions = [ 'echo
                     -- MACs
                     , 'reserveMAC
                     , 'generateMAC
+                    -- DRBD secrets
+                    , 'generateDRBDSecret
+                    -- LVs
+                    , 'reserveLV
                     -- locking
                     , 'listLocks
                     , 'listAllLocks
                     , 'listAllLocksOwners
                     , 'tryUpdateLocks
+                    , 'updateLocksWaiting
                     , 'freeLocks
                     , 'freeLocksLevel
                     , 'downGradeLocksLevel
                     , 'intersectLocks
                     , 'opportunisticLockUnion
+                    , 'hasPendingRequest
                     ]

@@ -1,4 +1,5 @@
 [[{"admin_state": "up",
+   "admin_state_source": "user",
    "beparams": {},
    "ctime": 1372838883.9710441,
    "disk_template": "drbd",

@@ -281,7 +281,8 @@ class LUNodeAdd(LogicalUnit):
     #       it a property on the base class.
     rpcrunner = rpc.DnsOnlyRunner()
     result = rpcrunner.call_version([node_name])[node_name]
-    result.Raise("Can't get version information from node %s" % node_name)
+    result.Raise("Can't get version information from node %s" % node_name,
+                 prereq=True)
     if constants.PROTOCOL_VERSION == result.payload:
       logging.info("Communication to node %s fine, sw version %s match",
                    node_name, result.payload)
@@ -771,19 +772,21 @@ class LUNodeSetParams(LogicalUnit):
     self.cfg.Update(node, feedback_fn)
 
     if self.new_role != self.old_role:
-      # Tell the node to demote itself, if no longer MC and not offline
-      if self.old_role == self._ROLE_CANDIDATE and \
-          self.new_role != self._ROLE_OFFLINE:
-        msg = self.rpc.call_node_demote_from_mc(node.name).fail_msg
-        if msg:
-          self.LogWarning("Node failed to demote itself: %s", msg)
-
       new_flags = self._R2F[self.new_role]
       for of, nf, desc in zip(self.old_flags, new_flags, self._FLAGS):
         if of != nf:
           result.append((desc, str(nf)))
       (node.master_candidate, node.drained, node.offline) = new_flags
       self.cfg.Update(node, feedback_fn)
+
+      # Tell the node to demote itself, if no longer MC and not offline.
+      # This must be done only after the configuration is updated so that
+      # it's ensured the node won't receive any further configuration updates.
+      if self.old_role == self._ROLE_CANDIDATE and \
+          self.new_role != self._ROLE_OFFLINE:
+        msg = self.rpc.call_node_demote_from_mc(node.name).fail_msg
+        if msg:
+          self.LogWarning("Node failed to demote itself: %s", msg)
 
       # we locked all nodes, we adjust the CP before updating this node
       if self.lock_all:

@@ -31,6 +31,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import objects
 from ganeti.network import AddressPool
+from ganeti import utils
 
 import mocks
 
@@ -57,6 +58,8 @@ class ConfigMock(config.ConfigWriter):
     self._mocked_config_store = None
 
     self._temporary_macs = config.TemporaryReservationManager()
+    self._temporary_secrets = config.TemporaryReservationManager()
+    self._temporary_lvs = config.TemporaryReservationManager()
 
     super(ConfigMock, self).__init__(cfg_file="/dev/null",
                                      _getents=_StubGetEntResolver(),
@@ -192,6 +195,7 @@ class ConfigMock(config.ConfigWriter):
                      osparams=None,
                      osparams_private=None,
                      admin_state=None,
+                     admin_state_source=None,
                      nics=None,
                      disks=None,
                      disk_template=None,
@@ -231,6 +235,8 @@ class ConfigMock(config.ConfigWriter):
       osparams_private = {}
     if admin_state is None:
       admin_state = constants.ADMINST_DOWN
+    if admin_state_source is None:
+      admin_state_source = constants.ADMIN_SOURCE
     if nics is None:
       nics = [self.CreateNic()]
     if disk_template is None:
@@ -261,6 +267,7 @@ class ConfigMock(config.ConfigWriter):
                             osparams=osparams,
                             osparams_private=osparams_private,
                             admin_state=admin_state,
+                            admin_state_source=admin_state_source,
                             nics=nics,
                             disks=[],
                             disk_template=disk_template,
@@ -667,7 +674,7 @@ class ConfigMock(config.ConfigWriter):
     existing = self._AllMACs()
     prefix = self._UnlockedGetNetworkMACPrefix(net_uuid)
     gen_mac = self._GenerateOneMAC(prefix)
-    return self._temporary_ids.Generate(existing, gen_mac, ec_id)
+    return self._temporary_macs.Generate(existing, gen_mac, ec_id)
 
   def ReserveMAC(self, mac, ec_id):
     """Reserve a MAC for an instance.
@@ -681,3 +688,26 @@ class ConfigMock(config.ConfigWriter):
       raise errors.ReservationError("mac already in use")
     else:
       self._temporary_macs.Reserve(ec_id, mac)
+
+  def GenerateDRBDSecret(self, ec_id):
+    """Generate a DRBD secret.
+
+    This checks the current disks for duplicates.
+
+    """
+    return self._temporary_secrets.Generate(self._AllDRBDSecrets(),
+                                            utils.GenerateSecret,
+                                            ec_id)
+
+  def ReserveLV(self, lv_name, ec_id):
+    """Reserve an VG/LV pair for an instance.
+
+    @type lv_name: string
+    @param lv_name: the logical volume name to reserve
+
+    """
+    all_lvs = self._AllLVs()
+    if lv_name in all_lvs:
+      raise errors.ReservationError("LV already in use")
+    else:
+      self._temporary_lvs.Reserve(ec_id, lv_name)

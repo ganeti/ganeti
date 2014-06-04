@@ -43,7 +43,6 @@ from ganeti import daemon
 from ganeti import mcpu
 from ganeti import opcodes
 from ganeti import jqueue
-from ganeti import locking
 from ganeti import luxi
 import ganeti.rpc.errors as rpcerr
 from ganeti import utils
@@ -343,10 +342,7 @@ class ClientOps(object):
       result = self._Query(opcodes.OpQuery(what=what, fields=fields,
                                            qfilter=qfilter))
     elif what == constants.QR_LOCK:
-      if qfilter is not None:
-        raise errors.OpPrereqError("Lock queries can't be filtered",
-                                   errors.ECODE_INVAL)
-      result = self.server.context.glm.QueryLocks(fields)
+      raise errors.OpPrereqError("Lock queries cannot be asked to jobs")
     elif what == constants.QR_JOB:
       result = queue.QueryJobs(fields, qfilter)
     elif what in constants.QR_VIA_LUXI:
@@ -504,15 +500,8 @@ class GanetiContext(object):
     else:
       self.livelock = livelock
 
-    # Locking manager
-    cfg = self.GetConfig(None)
-    self.glm = locking.GanetiLockManager(
-      cfg.GetNodeList(),
-      cfg.GetNodeGroupList(),
-      [inst.name for inst in cfg.GetAllInstancesInfo().values()],
-      cfg.GetNetworkList())
-
     # Job queue
+    cfg = self.GetConfig(None)
     logging.debug("Creating the job queue")
     self.jobqueue = jqueue.JobQueue(self, cfg)
 
@@ -532,8 +521,10 @@ class GanetiContext(object):
   def GetConfig(self, ec_id):
     return config.GetConfig(ec_id, self.livelock)
 
+  # pylint: disable=R0201
+  # method could be a function, but keep interface backwards compatible
   def GetRpc(self, cfg):
-    return rpc.RpcRunner(cfg, self.glm.AddToLockMonitor)
+    return rpc.RpcRunner(cfg, lambda _: None)
 
   def AddNode(self, cfg, node, ec_id):
     """Adds a node to the configuration.
