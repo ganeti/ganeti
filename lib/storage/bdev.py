@@ -1187,6 +1187,64 @@ class RADOSBlockDevice(base.BlockDev):
       base.ThrowError("rbd resize failed (%s): %s",
                       result.fail_reason, result.output)
 
+  def Import(self):
+    """Builds the shell command for importing data to device.
+
+    @see: L{BlockDev.Import} for details
+
+    """
+    if not self.minor and not self.Attach():
+      # The rbd device doesn't exist.
+      base.ThrowError("Can't attach to rbd device during Import()")
+
+    rbd_pool = self.params[constants.LDP_POOL]
+    rbd_name = self.unique_id[1]
+
+    # Currently, the 'rbd import' command imports data only to non-existing
+    # volumes. If the rbd volume exists the command will fail.
+    # The disk conversion mechanism though, has already created the new rbd
+    # volume at the time we perform the data copy, so we have to first remove
+    # the volume before starting to import its data. The 'rbd import' will
+    # re-create the rbd volume. We choose to remove manually the rbd device
+    # instead of calling its 'Remove()' method to avoid affecting the 'self.'
+    # parameters of the device. Also, this part of the removal code will go
+    # away once 'rbd import' has support for importing into an existing volume.
+    # TODO: update this method when the 'rbd import' command supports the
+    # '--force' option, which will allow importing to an existing volume.
+
+    # Unmap the block device from the Volume.
+    self._UnmapVolumeFromBlockdev(self.unique_id)
+
+    # Remove the actual Volume (Image) from the RADOS cluster.
+    cmd = [constants.RBD_CMD, "rm", "-p", rbd_pool, rbd_name]
+    result = utils.RunCmd(cmd)
+    if result.failed:
+      base.ThrowError("Can't remove Volume from cluster with rbd rm: %s - %s",
+                      result.fail_reason, result.output)
+
+    # We use "-" for importing from stdin
+    return [constants.RBD_CMD, "import",
+            "-p", rbd_pool,
+            "-", rbd_name]
+
+  def Export(self):
+    """Builds the shell command for exporting data from device.
+
+    @see: L{BlockDev.Export} for details
+
+    """
+    if not self.minor and not self.Attach():
+      # The rbd device doesn't exist.
+      base.ThrowError("Can't attach to rbd device during Export()")
+
+    rbd_pool = self.params[constants.LDP_POOL]
+    rbd_name = self.unique_id[1]
+
+    # We use "-" for exporting to stdout.
+    return [constants.RBD_CMD, "export",
+            "-p", rbd_pool,
+            rbd_name, "-"]
+
   def GetUserspaceAccessUri(self, hypervisor):
     """Generate KVM userspace URIs to be used as `-drive file` settings.
 
