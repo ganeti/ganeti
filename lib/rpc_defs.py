@@ -380,7 +380,7 @@ _BLOCKDEV_CALLS = [
     ], None, None, "Request a pause/resume of given block device"),
   ("blockdev_assemble", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("disk", ED_SINGLE_DISK_DICT_DP, None),
-    ("owner", None, None),
+    ("instance", ED_INST_DICT, None),
     ("on_primary", None, None),
     ("idx", None, None),
     ], None, None, "Request assembling of a given block device"),

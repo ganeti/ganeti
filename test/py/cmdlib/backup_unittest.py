@@ -105,7 +105,8 @@ class TestLUBackupExportBase(CmdlibTestCase):
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, ("/dev/mock_path",
-                                                  "/dev/mock_link_name"))
+                                                  "/dev/mock_link_name",
+                                                  None))
 
     self.rpc.call_blockdev_shutdown.return_value = \
       self.RpcResultsBuilder() \

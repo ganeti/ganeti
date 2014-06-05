@@ -1485,7 +1485,8 @@ class TestLUInstanceMove(CmdlibTestCase):
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.node, ("/dev/mocked_path",
-                                    "/var/run/ganeti/instance-disks/mocked_d"))
+                                    "/var/run/ganeti/instance-disks/mocked_d",
+                                    None))
     self.rpc.call_blockdev_export.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, "")
@@ -1601,7 +1602,7 @@ class TestLUInstanceRename(CmdlibTestCase):
   def testFileInstance(self):
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
-        .CreateSuccessfulNodeResult(self.master, (None, None))
+        .CreateSuccessfulNodeResult(self.master, (None, None, None))
     self.rpc.call_blockdev_shutdown.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, None)
@@ -2195,7 +2196,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master, ("/dev/mocked_path",
-                                    "/var/run/ganeti/instance-disks/mocked_d"))
+                                    "/var/run/ganeti/instance-disks/mocked_d",
+                                    None))
     op = self.CopyOpCode(self.op,
                          disks=[[constants.DDM_ADD, -1,
                                  {

@@ -1295,7 +1295,7 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
         node_disk = node_disk.Copy()
         node_disk.UnsetSize()
       result = lu.rpc.call_blockdev_assemble(node_uuid, (node_disk, instance),
-                                             instance.name, False, idx)
+                                             instance, False, idx)
       msg = result.fail_msg
       if msg:
         is_offline_secondary = (node_uuid in instance.secondary_nodes and
@@ -1320,7 +1320,7 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
         node_disk = node_disk.Copy()
         node_disk.UnsetSize()
       result = lu.rpc.call_blockdev_assemble(node_uuid, (node_disk, instance),
-                                             instance.name, True, idx)
+                                             instance, True, idx)
       msg = result.fail_msg
       if msg:
         lu.LogWarning("Could not prepare block device %s on node %s"
@@ -1328,7 +1328,7 @@ def AssembleInstanceDisks(lu, instance, disks=None, ignore_secondaries=False,
                       inst_disk.iv_name, lu.cfg.GetNodeName(node_uuid), msg)
         disks_ok = False
       else:
-        dev_path, _ = result.payload
+        dev_path, _, __ = result.payload
 
     device_info.append((lu.cfg.GetNodeName(instance.primary_node),
                         inst_disk.iv_name, dev_path))
