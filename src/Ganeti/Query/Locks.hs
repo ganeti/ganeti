@@ -33,6 +33,9 @@ module Ganeti.Query.Locks
 
 import qualified Text.JSON as J
 
+import Control.Arrow (first)
+import Data.Tuple (swap)
+
 import Ganeti.Locking.Allocation (OwnerState(..))
 import Ganeti.Locking.Locks (GanetiLocks, ClientId, ciIdentifier)
 import Ganeti.Query.Common
@@ -63,6 +66,12 @@ getMode (Just (_, ownerinfo, _)) _
   | otherwise = rsNormal "shared"
 getMode _ _ = rsNormal J.JSNull
 
+-- | Obtain the pending requests from the runtime data.
+getPending :: RuntimeData -> a -> ResultEntry
+getPending (Just (_, _, pending)) _ =
+  rsNormal . map (swap . first ((:[]) . J.encode . ciIdentifier)) $ pending
+getPending _ _ = rsNormal ([]:: [(OwnerState, [ClientId])])
+
 -- | List of all lock fields.
 lockFields :: FieldList String RuntimeData
 lockFields =
@@ -75,8 +84,7 @@ lockFields =
   , (FieldDefinition "owner" "Owner" QFTOther "Current lock owner(s)",
      FieldRuntime getOwners, QffNormal)
   , (FieldDefinition "pending" "Pending" QFTOther "Jobs waiting for the lock",
-     FieldSimple (const $ rsNormal ([] :: [ClientId])), QffNormal)
-    -- TODO: as soon as jobs stop polling, report the pending locks
+     FieldRuntime getPending, QffNormal)
   ]
 
 -- | The lock fields map.
