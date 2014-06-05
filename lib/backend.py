@@ -1247,6 +1247,32 @@ def GetCryptoTokens(token_requests):
   return tokens
 
 
+def EnsureDaemon(daemon_name, run):
+  """Ensures the given daemon is running or stopped.
+
+  @type daemon_name: string
+  @param daemon_name: name of the daemon (e.g., constants.KVMD)
+
+  @type run: bool
+  @param run: whether to start or stop the daemon
+
+  @rtype: bool
+  @return: 'True' if daemon successfully started/stopped,
+           'False' otherwise
+
+  """
+  allowed_daemons = [constants.KVMD]
+
+  if daemon_name not in allowed_daemons:
+    fn = lambda _: False
+  elif run:
+    fn = utils.EnsureDaemon
+  else:
+    fn = utils.StopDaemon
+
+  return fn(daemon_name)
+
+
 def GetBlockDevSizes(devices):
   """Return the size of the given block devices
 

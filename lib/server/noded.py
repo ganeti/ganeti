@@ -872,6 +872,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     token_requests = params[0]
     return backend.GetCryptoTokens(token_requests)
 
+  @staticmethod
+  def perspective_node_ensure_daemon(params):
+    """Ensure daemon is running.
+
+    """
+    (daemon_name, run) = params
+    return backend.EnsureDaemon(daemon_name, run)
+
   # cluster --------------------------
 
   @staticmethod

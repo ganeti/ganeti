@@ -469,6 +469,13 @@ def WaitForFdCondition(fdobj, event, timeout):
 def EnsureDaemon(name):
   """Check for and start daemon if not alive.
 
+  @type name: string
+  @param name: daemon name
+
+  @rtype: bool
+  @return: 'True' if daemon successfully started,
+           'False' otherwise
+
   """
   result = RunCmd([pathutils.DAEMON_UTIL, "check-and-start", name])
   if result.failed:
@@ -481,6 +488,13 @@ def EnsureDaemon(name):
 
 def StopDaemon(name):
   """Stop daemon
+
+  @type name: string
+  @param name: daemon name
+
+  @rtype: bool
+  @return: 'True' if daemon successfully stopped,
+           'False' otherwise
 
   """
   result = RunCmd([pathutils.DAEMON_UTIL, "stop", name])
