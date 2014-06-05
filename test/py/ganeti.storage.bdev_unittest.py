@@ -37,6 +37,9 @@ import testutils
 
 
 class TestRADOSBlockDevice(testutils.GanetiTestCase):
+  """Tests for bdev.RADOSBlockDevice volumes
+
+  """
   def setUp(self):
     """Set up input data"""
     testutils.GanetiTestCase.setUp(self)
@@ -67,6 +70,10 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
     self.output_invalid = testutils.ReadTestData("bdev-rbd/output_invalid.txt")
 
     self.volume_name = "d7ab910a-4933-4ffe-88d0-faf2ce31390a.rbd.disk0"
+    self.test_unique_id = ("rbd", self.volume_name)
+    self.test_params = {
+      constants.LDP_POOL: "fake_pool"
+      }
 
   def test_ParseRbdShowmappedJson(self):
     parse_function = bdev.RADOSBlockDevice._ParseRbdShowmappedJson
@@ -103,6 +110,43 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
                       self.plain_output_old_extra_matches, self.volume_name)
     self.assertRaises(errors.BlockDeviceError, parse_function,
                       self.output_invalid, self.volume_name)
+
+  @testutils.patch_object(utils, "RunCmd")
+  @testutils.patch_object(bdev.RADOSBlockDevice, "_UnmapVolumeFromBlockdev")
+  @testutils.patch_object(bdev.RADOSBlockDevice, "Attach")
+  def testRADOSBlockDeviceImport(self, attach_mock, unmap_mock, run_cmd_mock):
+    """Test for bdev.RADOSBlockDevice.Import()"""
+    # Set up the mock objects return values
+    attach_mock.return_value = True
+    run_cmd_mock.return_value = \
+        utils.RunResult(0, None, "", "", "", utils.process._TIMEOUT_NONE, 0)
+
+    # Create a fake rbd volume
+    inst = bdev.RADOSBlockDevice(self.test_unique_id, [], 1024,
+                                 self.test_params, {})
+    # Desired output command
+    import_cmd = [constants.RBD_CMD, "import",
+                  "-p", inst.rbd_pool,
+                  "-", inst.rbd_name]
+
+    self.assertEqual(inst.Import(), import_cmd)
+
+  @testutils.patch_object(bdev.RADOSBlockDevice, "Attach")
+  def testRADOSBlockDeviceExport(self, attach_mock):
+    """Test for bdev.RADOSBlockDevice.Export()"""
+    # Set up the mock object return value
+    attach_mock.return_value = True
+
+    # Create a fake rbd volume
+    inst = bdev.RADOSBlockDevice(self.test_unique_id, [], 1024,
+                                 self.test_params, {})
+    # Desired output command
+    export_cmd = [constants.RBD_CMD, "export",
+                  "-p", inst.rbd_pool,
+                  inst.rbd_name, "-"]
+
+    self.assertEqual(inst.Export(), export_cmd)
+
 
 class TestExclusiveStoragePvs(unittest.TestCase):
   """Test cases for functions dealing with LVM PV and exclusive storage"""
@@ -266,6 +310,57 @@ class TestLogicalVolume(unittest.TestCase):
       fake_cmd = self._FakeRunCmd(True, multi_lines)
       multi_res = bdev.LogicalVolume._GetLvInfo("fake_path", _run_cmd=fake_cmd)
       self.assertEqual(multi_res, one_res)
+
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testLogicalVolumeImport(self, attach_mock):
+    """Tests for bdev.LogicalVolume.Import()"""
+    # Set up the mock object return value
+    attach_mock.return_value = True
+
+    # Create a fake logical volume
+    test_unique_id = ("ganeti",  "31225655-5775-4356-c212-e8b1e137550a.disk0")
+    inst = bdev.LogicalVolume(test_unique_id, [], 1024, {}, {})
+
+    # Desired output command
+    import_cmd = [constants.DD_CMD,
+                  "of=%s" % inst.dev_path,
+                  "bs=%s" % constants.DD_BLOCK_SIZE,
+                  "oflag=direct", "conv=notrunc"]
+
+    self.assertEqual(inst.Import(), import_cmd)
+
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testLogicalVolumeExport(self, attach_mock):
+    """Test for bdev.LogicalVolume.Export()"""
+    # Set up the mock object return value
+    attach_mock.return_value = True
+
+    # Create a fake logical volume
+    test_unique_id = ("ganeti",  "31225655-5775-4356-c212-e8b1e137550a.disk0")
+    inst = bdev.LogicalVolume(test_unique_id, [], 1024, {}, {})
+
+    # Desired output command
+    export_cmd = [constants.DD_CMD,
+                  "if=%s" % inst.dev_path,
+                  "bs=%s" % constants.DD_BLOCK_SIZE,
+                  "count=%s" % inst.size,
+                  "iflag=direct"]
+
+    self.assertEqual(inst.Export(), export_cmd)
+
+
+class TestPersistentBlockDevice(testutils.GanetiTestCase):
+  """Tests for bdev.PersistentBlockDevice volumes
+
+  """
+  def testPersistentBlockDeviceImport(self):
+    """Test case for bdev.PersistentBlockDevice.Import()"""
+    # Create a fake block device
+    test_unique_id = (constants.BLOCKDEV_DRIVER_MANUAL, "/dev/abc")
+    inst = bdev.PersistentBlockDevice(test_unique_id, [], 1024, {}, {})
+
+    self.assertRaises(errors.BlockDeviceError,
+                      bdev.PersistentBlockDevice.Import, inst)
 
 
 if __name__ == "__main__":
