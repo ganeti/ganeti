@@ -158,7 +158,7 @@ getNetworkUuid cfg name =
 -- This doesn't use the netmask for validation of the length, instead
 -- simply iterating over the reservations string.
 getReservations :: Ip4Network -> String -> [Ip4Address]
-getReservations (Ip4Network net _) =
+getReservations net =
   reverse .
   fst .
   foldl' (\(accu, addr) c ->
@@ -169,7 +169,7 @@ getReservations (Ip4Network net _) =
                           _ -> -- FIXME: the reservations string
                                -- should be a proper type
                                accu
-            in (accu', addr')) ([], net)
+            in (accu', addr')) ([], ip4netAddr net)
 
 -- | Computes the external reservations as string for a network.
 getExtReservationsString :: Network -> ResultEntry

@@ -50,6 +50,7 @@ import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as Set
+import Data.Word (Word32)
 import GHC.Exts (IsString(..))
 import System.Time (ClockTime(..))
 import qualified Text.JSON as J
@@ -278,7 +279,7 @@ genValidNetwork = do
   uuid <- arbitrary
   ctime <- arbitrary
   mtime <- arbitrary
-  let n = Network name mac_prefix (Ip4Network net netmask) net6 gateway
+  let n = Network name mac_prefix (mkIp4Network net netmask) net6 gateway
           gateway6 res ext_res uuid ctime mtime 0 Set.empty
   return n
 
@@ -516,21 +517,28 @@ genNodeGroup = do
 instance Arbitrary NodeGroup where
   arbitrary = genNodeGroup
 
-$(genArbitrary ''Ip4Address)
+instance Arbitrary Ip4Address where
+  arbitrary = liftM mkIp4Address $ (,,,) <$> choose (0, 255)
+                                         <*> choose (0, 255)
+                                         <*> choose (0, 255)
+                                         <*> choose (0, 255)
 
 $(genArbitrary ''Ip4Network)
 
--- | Helper to compute absolute value of an IPv4 address.
-ip4AddrValue :: Ip4Address -> Integer
-ip4AddrValue (Ip4Address a b c d) =
-  fromIntegral a * (2^(24::Integer)) +
-  fromIntegral b * (2^(16::Integer)) +
-  fromIntegral c * (2^(8::Integer)) + fromIntegral d
+-- | Tests conversions of ip addresses from/to numbers.
+prop_ip4AddressAsNum :: Ip4Address -> Property
+prop_ip4AddressAsNum ip4 =
+  ip4AddressFromNumber (ip4AddressToNumber ip4) ==? ip4
 
--- | Tests that any difference between IPv4 consecutive addresses is 1.
-prop_nextIp4Address :: Ip4Address -> Property
-prop_nextIp4Address ip4 =
-  ip4AddrValue (nextIp4Address ip4) ==? ip4AddrValue ip4 + 1
+-- | Tests that the number produced by 'ip4AddressToNumber' has the correct
+-- order of bytes.
+prop_ip4AddressToNumber :: Word32 -> Property
+prop_ip4AddressToNumber w =
+  let byte :: Int -> Word32
+      byte i = (w `div` (256^i)) `mod` 256
+      ipaddr = List.intercalate "." $ map (show . byte) [3,2..0]
+  in ip4AddressToNumber <$> readIp4Address ipaddr
+     ==? (return (toInteger w) :: Either String Integer)
 
 -- | IsString instance for 'Ip4Address', to help write the tests.
 instance IsString Ip4Address where
@@ -646,7 +654,8 @@ testSuite "Objects"
   , 'casePyCompatNetworks
   , 'casePyCompatNodegroups
   , 'casePyCompatInstances
-  , 'prop_nextIp4Address
+  , 'prop_ip4AddressAsNum
+  , 'prop_ip4AddressToNumber
   , 'caseNextIp4Address
   , 'caseIncludeLogicalIdPlain
   , 'caseIncludeLogicalIdDrbd
