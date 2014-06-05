@@ -137,7 +137,7 @@ applyIf b f x = if b then f x else x
 commaJoin :: [String] -> String
 commaJoin = intercalate ","
 
--- | Split a list on a separator and return an array.
+-- | Split a list on a separator and return a list of lists.
 sepSplit :: Eq a => a -> [a] -> [[a]]
 sepSplit sep s
   | null s    = []
@@ -237,7 +237,7 @@ if' _    _ y = y
 -- * Parsing utility functions
 
 -- | Parse results from readsPrec.
-parseChoices :: (Monad m, Read a) => String -> String -> [(a, String)] -> m a
+parseChoices :: Monad m => String -> String -> [(a, String)] -> m a
 parseChoices _ _ ((v, ""):[]) = return v
 parseChoices name s ((_, e):[]) =
     fail $ name ++ ": leftover characters when parsing '"
