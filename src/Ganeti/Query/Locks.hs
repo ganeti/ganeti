@@ -37,7 +37,7 @@ import Control.Arrow (first)
 import Data.Tuple (swap)
 
 import Ganeti.Locking.Allocation (OwnerState(..))
-import Ganeti.Locking.Locks (GanetiLocks, ClientId, ciIdentifier)
+import Ganeti.Locking.Locks (ClientId, ciIdentifier)
 import Ganeti.Query.Common
 import Ganeti.Query.Language
 import Ganeti.Query.Types
@@ -46,31 +46,27 @@ import Ganeti.Query.Types
 -- is handled by WConfD, the actual information is obtained as live data.
 -- The type represents the information for a single lock, even though all
 -- locks are queried simultaneously, ahead of time.
-type RuntimeData = Maybe ( GanetiLocks
-                         , [(ClientId, OwnerState)] -- current state
-                         , [(ClientId, OwnerState)] -- pending requests
-                         )
+type RuntimeData = ( [(ClientId, OwnerState)] -- current state
+                   , [(ClientId, OwnerState)] -- pending requests
+                   )
 
 -- | Obtain the owners of a lock from the runtime data.
 getOwners :: RuntimeData -> a -> ResultEntry
-getOwners (Just (_, ownerinfo, _)) _ =
+getOwners (ownerinfo, _) _ =
   rsNormal . map (J.encode . ciIdentifier . fst)
     $ ownerinfo
-getOwners _ _ = rsNormal ([] :: [ClientId])
 
 -- | Obtain the mode of a lock from the runtime data.
 getMode :: RuntimeData -> a -> ResultEntry
-getMode (Just (_, ownerinfo, _)) _
+getMode (ownerinfo, _) _
   | null ownerinfo = rsNormal J.JSNull
   | any ((==) OwnExclusive . snd) ownerinfo = rsNormal "exclusive"
   | otherwise = rsNormal "shared"
-getMode _ _ = rsNormal J.JSNull
 
 -- | Obtain the pending requests from the runtime data.
 getPending :: RuntimeData -> a -> ResultEntry
-getPending (Just (_, _, pending)) _ =
+getPending (_, pending) _ =
   rsNormal . map (swap . first ((:[]) . J.encode . ciIdentifier)) $ pending
-getPending _ _ = rsNormal ([]:: [(OwnerState, [ClientId])])
 
 -- | List of all lock fields.
 lockFields :: FieldList String RuntimeData

@@ -247,7 +247,8 @@ recollectLocksData (allLocks, pending) _ _  =
               -> [(cid, OwnShared)]
           _ -> []
       lookuplock lock =  (,) lock
-                          . fmap (\(l, c) ->  (l, c, getPending lock))
+                          . maybe ([], getPending lock)
+                                  (\(_, c) ->  (c, getPending lock))
                           . find ((==) lock . lockName . fst)
                           $ allLocks
   in return . map lookuplock
