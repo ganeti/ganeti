@@ -1200,8 +1200,7 @@ class LUClusterSetParams(LogicalUnit):
 
     # changes to the hypervisor list
     if self.op.enabled_hypervisors is not None:
-      self.hv_list = self.op.enabled_hypervisors
-      for hv in self.hv_list:
+      for hv in self.op.enabled_hypervisors:
         # if the hypervisor doesn't already exist in the cluster
         # hvparams, we initialize it to empty, and then (in both
         # cases) we make sure to fill the defaults, as we might not
@@ -1211,8 +1210,6 @@ class LUClusterSetParams(LogicalUnit):
           new_hvp[hv] = {}
         new_hvp[hv] = objects.FillDict(constants.HVC_DEFAULTS[hv], new_hvp[hv])
         utils.ForceDictType(new_hvp[hv], constants.HVS_PARAMETER_TYPES)
-    else:
-      self.hv_list = cluster.enabled_hypervisors
 
     if self.op.hvparams or self.op.enabled_hypervisors is not None:
       # either the enabled list has changed, or the parameters have, validate
