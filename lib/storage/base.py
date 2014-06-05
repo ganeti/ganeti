@@ -186,6 +186,53 @@ class BlockDev(object):
     """
     raise NotImplementedError
 
+  def Import(self):
+    """Builds the shell command for importing data to device.
+
+    This method returns the command that will be used by the caller to
+    import data to the target device during the disk template conversion
+    operation.
+
+    Block devices that provide a more efficient way to transfer their
+    data can override this method to use their specific utility.
+
+    @rtype: list of strings
+    @return: List containing the import command for device
+
+    """
+    if not self.minor and not self.Attach():
+      ThrowError("Can't attach to target device during Import()")
+
+    # we use the 'notrunc' argument to not attempt to truncate on the
+    # given device
+    return [constants.DD_CMD,
+            "of=%s" % self.dev_path,
+            "bs=%s" % constants.DD_BLOCK_SIZE,
+            "oflag=direct", "conv=notrunc"]
+
+  def Export(self):
+    """Builds the shell command for exporting data from device.
+
+    This method returns the command that will be used by the caller to
+    export data from the source device during the disk template conversion
+    operation.
+
+    Block devices that provide a more efficient way to transfer their
+    data can override this method to use their specific utility.
+
+    @rtype: list of strings
+    @return: List containing the export command for device
+
+    """
+    if not self.minor and not self.Attach():
+      ThrowError("Can't attach to source device during Import()")
+
+    return [constants.DD_CMD,
+            "if=%s" % self.dev_path,
+            "bs=%s" % constants.DD_BLOCK_SIZE,
+            "count=%s" % self.size,
+            "iflag=direct"]
+
   def SetSyncParams(self, params):
     """Adjust the synchronization parameters of the mirror.
 
