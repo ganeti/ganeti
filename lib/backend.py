@@ -556,10 +556,7 @@ def LeaveCluster(modify_ssh_setup):
   except: # pylint: disable=W0702
     logging.exception("Error while removing cluster secrets")
 
-  result = utils.RunCmd([pathutils.DAEMON_UTIL, "stop", constants.CONFD])
-  if result.failed:
-    logging.error("Command %s failed with exitcode %s and error %s",
-                  result.cmd, result.exit_code, result.output)
+  utils.StopDaemon(constants.CONFD)
 
   # Raise a custom exception (handled in ganeti-noded)
   raise errors.QuitGanetiException(True, "Shutdown scheduled")
