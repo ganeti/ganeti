@@ -2379,6 +2379,44 @@ def _DownloadAndDumpDevice(source_url, target_path, size):
   target_file.close()
 
 
+def BlockdevConvert(src_disk, target_disk):
+  """Copies data from source block device to target.
+
+  This function gets the export and import commands from the source and
+  target devices respectively, and then concatenates them to a single
+  command using a pipe ("|"). Finally, executes the unified command that
+  will transfer the data between the devices during the disk template
+  conversion operation.
+
+  @type src_disk: L{objects.Disk}
+  @param src_disk: the disk object we want to copy from
+  @type target_disk: L{objects.Disk}
+  @param target_disk: the disk object we want to copy to
+
+  @rtype: NoneType
+  @return: None
+  @raise RPCFail: in case of failure
+
+  """
+  src_dev = _RecursiveFindBD(src_disk)
+  if src_dev is None:
+    _Fail("Cannot copy from device '%s': device not found", src_disk.uuid)
+
+  dest_dev = _RecursiveFindBD(target_disk)
+  if dest_dev is None:
+    _Fail("Cannot copy to device '%s': device not found", target_disk.uuid)
+
+  src_cmd = src_dev.Export()
+  dest_cmd = dest_dev.Import()
+  command = "%s | %s" % (utils.ShellQuoteArgs(src_cmd),
+                         utils.ShellQuoteArgs(dest_cmd))
+
+  result = utils.RunCmd(command)
+  if result.failed:
+    _Fail("Disk conversion command '%s' exited with error: %s; output: %s",
+          result.cmd, result.fail_reason, result.output)
+
+
 def BlockdevWipe(disk, offset, size):
   """Wipes a block device.
 

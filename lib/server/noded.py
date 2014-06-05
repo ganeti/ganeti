@@ -215,6 +215,16 @@ class NodeRequestHandler(http.server.HttpServerHandler):
                                   excl_stor)
 
   @staticmethod
+  def perspective_blockdev_convert(params):
+    """Copy data from source block device to target.
+
+    """
+    disk_src, disk_dest = params
+    bdev_src = objects.Disk.FromDict(disk_src)
+    bdev_dest = objects.Disk.FromDict(disk_dest)
+    return backend.BlockdevConvert(bdev_src, bdev_dest)
+
+  @staticmethod
   def perspective_blockdev_pause_resume_sync(params):
     """Pause/resume sync of a block device.
 

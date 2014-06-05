@@ -361,6 +361,11 @@ _BLOCKDEV_CALLS = [
     ("info", None, None),
     ("exclusive_storage", None, None),
     ], None, None, "Request creation of a given block device"),
+  ("blockdev_convert", SINGLE, None, constants.RPC_TMO_SLOW, [
+    ("bdev_src", ED_SINGLE_DISK_DICT_DP, None),
+    ("bdev_dest", ED_SINGLE_DISK_DICT_DP, None),
+    ], None, None,
+    "Request the copy of the source block device to the destination one"),
   ("blockdev_image", SINGLE, None, constants.RPC_TMO_SLOW, [
     ("bdev", ED_SINGLE_DISK_DICT_DP, None),
     ("image", None, None),
