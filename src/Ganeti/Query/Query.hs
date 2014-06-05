@@ -65,6 +65,7 @@ import qualified Data.Foldable as Foldable
 import Data.List (intercalate, nub, find)
 import Data.Maybe (fromMaybe)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
@@ -265,12 +266,16 @@ query cfg live (Query (ItemTypeLuxi QRLock) fields qfilter) = runResultT $ do
      getWConfdClient socketpath
   livedata <- runRpcClient listLocksWaitingStatus cl
   logDebug $ "Live state of all locks is " ++ show livedata
+  let allLocks = Set.toList . Set.unions
+                 $ (Set.fromList . map fst $ fst livedata)
+                   : map (\(_, _, req) -> Set.fromList $ map lockAffected req)
+                      (snd livedata)
   answer <- liftIO $ genericQuery
              Locks.fieldsMap
              (CollectorSimple $ recollectLocksData livedata)
              id
              (const . GenericContainer . Map.fromList
-              . map ((id &&& id) . lockName . fst) $ fst livedata)
+              . map ((id &&& id) . lockName) $ allLocks)
              (const Ok)
              cfg live fields qfilter []
   toError answer
