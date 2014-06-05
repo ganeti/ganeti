@@ -25,6 +25,7 @@
 
 import re
 import tempfile
+import time
 import os.path
 
 from ganeti import _constants
@@ -1003,6 +1004,105 @@ def TestClusterModifyISpecs():
     AssertCommand(modcmd)
     new_initcmd = GetCommandOutput(mnode.primary, "gnt-cluster show-ispecs-cmd")
     AssertEqual(initcmd, new_initcmd)
+
+
+def _TestClusterModifyUserShutdownXen(nodes):
+  """Tests user shutdown cluster wide for the KVM hypervisor.
+
+  Note that for the Xen hypervisor, the KVM daemon should never run.
+
+  """
+  AssertCommand(["gnt-cluster", "modify", "--user-shutdown=true"])
+
+  # Give time for kvmd to start and stop on all nodes
+  time.sleep(5)
+
+  for node in nodes:
+    AssertCommand("pgrep ganeti-kvmd", node=node, fail=True)
+
+  AssertCommand(["gnt-cluster", "modify", "--user-shutdown=false"])
+
+  for node in nodes:
+    AssertCommand("pgrep ganeti-kvmd", node=node, fail=True)
+
+
+def _TestClusterModifyUserShutdownKvm(nodes):
+  """Tests user shutdown cluster wide for the KVM hypervisor.
+
+  Note that for the KVM hypervisor, the KVM daemon should run
+  according to '--user-shutdown' and whether the node is VM capable.
+
+  """
+  # How much time to wait for kvmd to start/stop
+  kvmd_cycle_time = 4
+
+  # Start kvmd on all nodes
+  AssertCommand(["gnt-cluster", "modify", "--user-shutdown=true"])
+  time.sleep(kvmd_cycle_time)
+  for node in nodes:
+    AssertCommand("pgrep ganeti-kvmd", node=node)
+
+  # Test VM capable node attribute
+  test_node = None
+
+  for node in nodes:
+    node_info = qa_utils.GetObjectInfo(["gnt-node", "info", node.primary])[0]
+    if "vm_capable" in node_info and node_info["vm_capable"]:
+      test_node = node
+      break
+
+  if test_node is None:
+    raise qa_error.Error("Failed to find viable node for this test")
+
+  # Stop kvmd by disabling vm capable
+  AssertCommand(["gnt-node", "modify", "--vm-capable=no", test_node.primary])
+  time.sleep(kvmd_cycle_time)
+  AssertCommand("pgrep ganeti-kvmd", node=test_node, fail=True)
+
+  # Start kvmd by enabling vm capable
+  AssertCommand(["gnt-node", "modify", "--vm-capable=yes", test_node.primary])
+  time.sleep(kvmd_cycle_time)
+  AssertCommand("pgrep ganeti-kvmd", node=test_node)
+
+  # Stop kvmd on all nodes by removing KVM from the enabled hypervisors
+  enabled_hypervisors = qa_config.GetEnabledHypervisors()
+
+  AssertCommand(["gnt-cluster", "modify", "--enabled-hypervisors=xen-pvm"])
+  time.sleep(kvmd_cycle_time)
+  for node in nodes:
+    AssertCommand("pgrep ganeti-kvmd", node=node, fail=True)
+
+  # Start kvmd on all nodes by restoring KVM to the enabled hypervisors
+  AssertCommand(["gnt-cluster", "modify",
+                 "--enabled-hypervisors=%s" % ",".join(enabled_hypervisors)])
+  time.sleep(kvmd_cycle_time)
+  for node in nodes:
+    AssertCommand("pgrep ganeti-kvmd", node=node)
+
+  # Stop kvmd on all nodes
+  AssertCommand(["gnt-cluster", "modify", "--user-shutdown=false"])
+  time.sleep(kvmd_cycle_time)
+  for node in nodes:
+    AssertCommand("pgrep ganeti-kvmd", node=node, fail=True)
+
+
+def TestClusterModifyUserShutdown():
+  """Tests user shutdown cluster wide.
+
+  """
+  enabled_hypervisors = qa_config.GetEnabledHypervisors()
+  nodes = qa_config.get("nodes")
+
+  for (hv, fn) in [(constants.HT_XEN_PVM, _TestClusterModifyUserShutdownXen),
+                   (constants.HT_XEN_HVM, _TestClusterModifyUserShutdownXen),
+                   (constants.HT_KVM, _TestClusterModifyUserShutdownKvm)]:
+    if hv in enabled_hypervisors:
+      qa_daemon.TestPauseWatcher()
+      fn(nodes)
+      qa_daemon.TestResumeWatcher()
+    else:
+      print "%s hypervisor is not enabled, skipping test for this hypervisor" \
+          % hv
 
 
 def TestClusterInfo():
