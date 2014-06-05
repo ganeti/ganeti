@@ -50,7 +50,7 @@ getOwners :: RuntimeData -> a -> ResultEntry
 getOwners (Just (_, ownerinfo)) _ =
   rsNormal . map (J.encode . ciIdentifier . fst)
     $ ownerinfo
-getOwners _ _ = rsNormal ([] :: [(ClientId, OwnerState)])
+getOwners _ _ = rsNormal ([] :: [ClientId])
 
 -- | Obtain the mode of a lock from the runtime data.
 getMode :: RuntimeData -> a -> ResultEntry
