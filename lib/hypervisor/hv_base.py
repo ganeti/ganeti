@@ -109,6 +109,10 @@ _MULTI_CPU_MASK_CHECK = (_IsMultiCpuMaskWellFormed,
 _NET_PORT_CHECK = (lambda x: 0 < x < 65535, "invalid port number",
                    None, None)
 
+# Check if number of queues is in safe range
+_VIRTIO_NET_QUEUES_CHECK = (lambda x: 0 < x < 9, "invalid number of queues",
+                            None, None)
+
 # Check that an integer is non negative
 _NONNEGATIVE_INT_CHECK = (lambda x: x >= 0, "cannot be negative", None, None)
 
@@ -121,6 +125,8 @@ REQ_DIR_CHECK = (True, ) + _DIR_CHECK
 OPT_DIR_CHECK = (False, ) + _DIR_CHECK
 REQ_NET_PORT_CHECK = (True, ) + _NET_PORT_CHECK
 OPT_NET_PORT_CHECK = (False, ) + _NET_PORT_CHECK
+REQ_VIRTIO_NET_QUEUES_CHECK = (True, ) + _VIRTIO_NET_QUEUES_CHECK
+OPT_VIRTIO_NET_QUEUES_CHECK = (False, ) + _VIRTIO_NET_QUEUES_CHECK
 REQ_CPU_MASK_CHECK = (True, ) + _CPU_MASK_CHECK
 OPT_CPU_MASK_CHECK = (False, ) + _CPU_MASK_CHECK
 REQ_MULTI_CPU_MASK_CHECK = (True, ) + _MULTI_CPU_MASK_CHECK

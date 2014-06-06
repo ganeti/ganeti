@@ -1696,6 +1696,9 @@ hvVga = "vga"
 hvVhostNet :: String
 hvVhostNet = "vhost_net"
 
+hvVirtioNetQueues :: String
+hvVirtioNetQueues = "virtio_net_queues"
+
 hvVifScript :: String
 hvVifScript = "vif_script"
 
@@ -1813,6 +1816,7 @@ hvsParameterTypes = Map.fromList
   , (hvUseLocaltime,                    VTypeBool)
   , (hvVga,                             VTypeString)
   , (hvVhostNet,                        VTypeBool)
+  , (hvVirtioNetQueues,                 VTypeInt)
   , (hvVifScript,                       VTypeString)
   , (hvVifType,                         VTypeString)
   , (hvViridian,                        VTypeBool)
@@ -3830,6 +3834,7 @@ hvcDefaults =
           , (hvSecurityDomain,                  PyValueEx "")
           , (hvKvmFlag,                         PyValueEx "")
           , (hvVhostNet,                        PyValueEx False)
+          , (hvVirtioNetQueues,                 PyValueEx (1 :: Int))
           , (hvKvmUseChroot,                    PyValueEx False)
           , (hvKvmUserShutdown,                 PyValueEx False)
           , (hvMemPath,                         PyValueEx "")

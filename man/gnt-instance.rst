@@ -842,6 +842,25 @@ vnet\_hdr
 
     It is set to ``true`` by default.
 
+virtio\_net\_queues
+    Valid for the KVM hypervisor.
+
+    Set a number of queues (file descriptors) for tap device to
+    parallelize packets sending or receiving. Tap devices will be
+    created with MULTI_QUEUE (IFF_MULTI_QUEUE) support. This only
+    works with KVM paravirtual nics (virtio-net) and the maximum
+    number of queues is limited to ``8``. Tehnically this is an
+    extension of ``vnet_hdr`` which must be enabled for multiqueue
+    support.
+
+    If set to ``1`` queue, it effectively disables multiqueue support
+    on the tap and virio-net devices.
+
+    For instances it is necessary to manually set number of queues (on
+    Linux using: ``ethtool -L ethX combined $queues``).
+
+    It is set to ``1`` by default.
+
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depends on the OS
 being used, but the syntax is the same key=value. For example, setting
