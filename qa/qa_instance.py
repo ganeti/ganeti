@@ -1253,6 +1253,9 @@ def _TestInstanceUserDownKvm(instance):
   primary = _GetInstanceField(instance.name, "pnode")
   _TestInstanceUserDown(instance, _StopKVMInstance)
 
+  AssertCommand(["gnt-instance", "modify", "-H", "user_shutdown=false",
+                 instance.name])
+
 
 def TestInstanceUserDown(instance):
   """Tests user shutdown"""
