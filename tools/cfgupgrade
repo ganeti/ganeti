@@ -150,8 +150,7 @@ def UpgradeCluster(config_data):
   ial_params = cluster.get("default_iallocator_params", None)
   if not ial_params:
     cluster["default_iallocator_params"] = {}
-  if not "candidate_certs" in cluster:
-    cluster["candidate_certs"] = {}
+  cluster["candidate_certs"] = cluster.get("candidate_certs", {})
 
 
 def UpgradeGroups(config_data):
