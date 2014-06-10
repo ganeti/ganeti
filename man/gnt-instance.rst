@@ -822,9 +822,9 @@ vnet\_hdr
     It is set to ``true`` by default.
 
 The ``-O (--os-parameters)`` option allows customisation of the OS
-parameters. The actual parameter names and values depends on the OS
-being used, but the syntax is the same key=value. For example, setting
-a hypothetical ``dhcp`` parameter to yes can be achieved by::
+parameters. The actual parameter names and values depend on the OS being
+used, but the syntax is the same key=value. For example, setting a
+hypothetical ``dhcp`` parameter to yes can be achieved by::
 
     gnt-instance add -O dhcp=yes ...
 

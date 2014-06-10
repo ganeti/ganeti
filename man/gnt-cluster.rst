@@ -202,6 +202,7 @@ INIT
 | [\--hypervisor-state *hvstate*]
 | [\--drbd-usermode-helper *helper*]
 | [\--enabled-disk-templates *template* [,*template*...]]
+| [\--user-shutdown {yes \| no}]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -309,6 +310,13 @@ fake
 Either a single hypervisor name or a comma-separated list of
 hypervisor names can be specified. If this option is not specified,
 only the xen-pvm hypervisor is enabled by default.
+
+The ``--user-shutdown`` option enables or disables user shutdown
+detection at the cluster level.  User shutdown detection allows users to
+initiate instance poweroff from inside the instance, and Ganeti will
+report the instance status as 'USER_down' (as opposed, to 'ERROR_down')
+and the watcher will not restart these instances, thus preserving their
+instance status.
 
 The ``-H (--hypervisor-parameters)`` option allows you to set default
 hypervisor specific parameters for the cluster. The format of this
@@ -660,6 +668,7 @@ MODIFY
 | [\--drbd-usermode-helper *helper*]
 | [\--file-storage-dir *dir*]
 | [\--shared-file-storage-dir *dir*]
+| [\--user-shutdown {yes \| no}]
 
 
 Modify the options for the cluster.
@@ -670,7 +679,8 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``--prealloc-wipe-disks``, ``--uid-pool``, ``--node-parameters``,
 ``--master-netdev``, ``--master-netmask``, ``--use-external-mip-script``,
 ``--drbd-usermode-helper``, ``--file-storage-dir``,
-``--shared-file-storage-dir``, and ``--enabled-disk-templates`` options are
+``--shared-file-storage-dir``, ``--enabled-disk-templates``, and
+``--user-shutdown`` options are
 described in the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
