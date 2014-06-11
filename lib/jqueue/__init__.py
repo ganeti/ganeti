@@ -2504,11 +2504,9 @@ class JobQueue(object):
   def PrepareShutdown(self):
     """Prepare to stop the job queue.
 
-    Disables execution of jobs in the workerpool and returns whether there are
-    any jobs currently running. If the latter is the case, the job queue is not
-    yet ready for shutdown. Once this function returns C{True} L{Shutdown} can
-    be called without interfering with any job. Queued and unfinished jobs will
-    be resumed next time.
+    Returns whether there are any jobs currently running. If the latter is the
+    case, the job queue is not yet ready for shutdown. Once this function
+    returns C{True} L{Shutdown} can be called without interfering with any job.
 
     @rtype: bool
     @return: Whether there are any running jobs
@@ -2516,9 +2514,6 @@ class JobQueue(object):
     """
     if self._accepting_jobs:
       self._accepting_jobs = False
-
-      # Tell worker pool to stop processing pending tasks
-      self._wpool.SetActive(False)
 
     return self._wpool.HasRunningTasks()
 
