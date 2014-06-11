@@ -55,7 +55,7 @@ import Control.Concurrent
 import Control.Exception.Lifted (onException)
 import Control.Monad
 import Control.Monad.Error
-import Control.Monad.Trans.Maybe ()
+import Control.Monad.Trans.Maybe
 import Data.Functor
 import qualified Data.Map as M
 import Data.Maybe (listToMaybe, mapMaybe)
@@ -71,12 +71,15 @@ import Text.Printf
 
 import qualified AutoConf as AC
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import Ganeti.Logging
 import Ganeti.Logging.WriterLog
 import qualified Ganeti.Path as P
 import Ganeti.Types
 import Ganeti.UDSServer
 import Ganeti.Utils
+import Ganeti.Utils.MonadPlus
+import Ganeti.Utils.Random (delayRandom)
 
 isForkSupported :: IO Bool
 isForkSupported = return $ not rtsSupportsBoundThreads
@@ -192,7 +195,17 @@ forkJobProcess jid luxiLivelock update = do
   logDebug $ "Setting the lockfile temporarily to " ++ luxiLivelock
   update luxiLivelock
 
-  ResultT . execWriterLogT . runResultT $ do
+  -- Due to a bug in GHC forking process, we want to retry,
+  -- if the forked process fails to start.
+  -- If it fails later on, the failure is handled by 'ResultT'
+  -- and no retry is performed.
+  let execWriterLogInside =
+        MaybeT . ResultT . execWriterLogT . runResultT . runMaybeT
+  resultOpt <- retryMaybeN C.luxidRetryForkCount
+               $ \tryNo -> execWriterLogInside $ do
+    let maxWaitUS = 2^(tryNo - 1) * C.luxidRetryForkStepUS
+    when (tryNo >= 2) . liftIO $ delayRandom (0, maxWaitUS)
+
     (pid, master) <- liftIO $ forkWithPipe connectConfig (runJobProcess jid)
 
     let onError = do
@@ -214,7 +227,7 @@ forkJobProcess jid luxiLivelock update = do
       let recv = liftIO $ recvMsg master
           send = liftIO . sendMsg master
       logDebug "Getting the lockfile of the client"
-      lockfile <- recv
+      lockfile <- recv `orElse` mzero
 
       logDebug $ "Setting the lockfile to the final " ++ lockfile
       toErrorBase $ update lockfile
@@ -234,3 +247,6 @@ forkJobProcess jid luxiLivelock update = do
       send lockfile
 
       return (lockfile, pid)
+
+  maybe (failError "Unable to start the client process\
+                   \ - fork timed out repeatedly") return resultOpt

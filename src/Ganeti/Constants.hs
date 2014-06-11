@@ -1701,6 +1701,9 @@ hvVga = "vga"
 hvVhostNet :: String
 hvVhostNet = "vhost_net"
 
+hvVirtioNetQueues :: String
+hvVirtioNetQueues = "virtio_net_queues"
+
 hvVifScript :: String
 hvVifScript = "vif_script"
 
@@ -1818,6 +1821,7 @@ hvsParameterTypes = Map.fromList
   , (hvUseLocaltime,                    VTypeBool)
   , (hvVga,                             VTypeString)
   , (hvVhostNet,                        VTypeBool)
+  , (hvVirtioNetQueues,                 VTypeInt)
   , (hvVifScript,                       VTypeString)
   , (hvVifType,                         VTypeString)
   , (hvViridian,                        VTypeBool)
@@ -3839,6 +3843,7 @@ hvcDefaults =
           , (hvSecurityDomain,                  PyValueEx "")
           , (hvKvmFlag,                         PyValueEx "")
           , (hvVhostNet,                        PyValueEx False)
+          , (hvVirtioNetQueues,                 PyValueEx (1 :: Int))
           , (hvKvmUseChroot,                    PyValueEx False)
           , (hvKvmUserShutdown,                 PyValueEx False)
           , (hvMemPath,                         PyValueEx "")
@@ -4082,6 +4087,19 @@ luxidJobqueuePollInterval = 307
 -- only started, once some of the other jobs have finished.
 luxidMaximalRunningJobsDefault :: Int
 luxidMaximalRunningJobsDefault = 20
+
+-- | The number of retries when trying to @fork@ a new job.
+-- Due to a bug in GHC, this can fail even though we synchronize all forks
+-- and restrain from other @IO@ operations in the thread.
+luxidRetryForkCount :: Int
+luxidRetryForkCount = 5
+
+-- | The average time period (in /us/) to wait between two @fork@ attempts.
+-- The forking thread wait a random time period between @0@ and twice the
+-- number, and with each attempt it doubles the step.
+-- See 'luxidRetryForkCount'.
+luxidRetryForkStepUS :: Int
+luxidRetryForkStepUS = 500000
 
 -- * WConfD
 

@@ -339,6 +339,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KVM_FLAG:
       hv_base.ParamInSet(False, constants.HT_KVM_FLAG_VALUES),
     constants.HV_VHOST_NET: hv_base.NO_CHECK,
+    constants.HV_VIRTIO_NET_QUEUES: hv_base.OPT_VIRTIO_NET_QUEUES_CHECK,
     constants.HV_KVM_USE_CHROOT: hv_base.NO_CHECK,
     constants.HV_KVM_USER_SHUTDOWN: hv_base.NO_CHECK,
     constants.HV_MEM_PATH: hv_base.OPT_DIR_CHECK,
@@ -385,6 +386,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _QMP_RE = re.compile(r"^-qmp\s", re.M)
   _SPICE_RE = re.compile(r"^-spice\s", re.M)
   _VHOST_RE = re.compile(r"^-net\s.*,vhost=on|off", re.M)
+  _VIRTIO_NET_QUEUES_RE = re.compile(r"^-net\s.*,fds=x:y:...:z", re.M)
   _ENABLE_KVM_RE = re.compile(r"^-enable-kvm\s", re.M)
   _DISABLE_KVM_RE = re.compile(r"^-disable-kvm\s", re.M)
   _NETDEV_RE = re.compile(r"^-netdev\s", re.M)
@@ -1466,6 +1468,55 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return hv_base.GenerateTapName()
 
+  def _GetNetworkDeviceFeatures(self, up_hvp, devlist, kvmhelp):
+    """Get network device options to properly enable supported features.
+
+    Return tuple of supported and enabled tap features with nic_model.
+    This function is called before opening a new tap device.
+
+    @return: (nic_model, vnet_hdr, virtio_net_queues, tap_extra, nic_extra)
+    @rtype: tuple
+
+    """
+    virtio_net_queues = 1
+    nic_extra = ""
+    nic_type = up_hvp[constants.HV_NIC_TYPE]
+    tap_extra = ""
+    vnet_hdr = False
+    if nic_type == constants.HT_NIC_PARAVIRTUAL:
+      nic_model = self._VIRTIO
+      try:
+        if self._VIRTIO_NET_RE.search(devlist):
+          nic_model = self._VIRTIO_NET_PCI
+          vnet_hdr = up_hvp[constants.HV_VNET_HDR]
+      except errors.HypervisorError, _:
+        # Older versions of kvm don't support DEVICE_LIST, but they don't
+        # have new virtio syntax either.
+        pass
+
+      if up_hvp[constants.HV_VHOST_NET]:
+        # Check for vhost_net support.
+        if self._VHOST_RE.search(kvmhelp):
+          tap_extra = ",vhost=on"
+        else:
+          raise errors.HypervisorError("vhost_net is configured"
+                                       " but it is not available")
+        if up_hvp[constants.HV_VIRTIO_NET_QUEUES] > 1:
+          # Check for multiqueue virtio-net support.
+          if self._VIRTIO_NET_QUEUES_RE.search(kvmhelp):
+            virtio_net_queues = up_hvp[constants.HV_VIRTIO_NET_QUEUES]
+            # As advised at http://www.linux-kvm.org/page/Multiqueue formula
+            # for calculating vector size is: vectors=2*N+1 where N is the
+            # number of queues (HV_VIRTIO_NET_QUEUES).
+            nic_extra = ",mq=on,vectors=%d" % (2 * virtio_net_queues + 1)
+          else:
+            raise errors.HypervisorError("virtio_net_queues is configured"
+                                         " but it is not available")
+    else:
+      nic_model = nic_type
+
+    return (nic_model, vnet_hdr, virtio_net_queues, tap_extra, nic_extra)
+
   # too many local variables
   # pylint: disable=R0914
   def _ExecuteKVMRuntime(self, instance, kvm_runtime, kvmhelp, incoming=None):
@@ -1524,37 +1575,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not kvm_nics:
       kvm_cmd.extend(["-net", "none"])
     else:
-      vnet_hdr = False
-      tap_extra = ""
-      nic_type = up_hvp[constants.HV_NIC_TYPE]
-      if nic_type == constants.HT_NIC_PARAVIRTUAL:
-        nic_model = self._VIRTIO
-        try:
-          if self._VIRTIO_NET_RE.search(devlist):
-            nic_model = self._VIRTIO_NET_PCI
-            vnet_hdr = up_hvp[constants.HV_VNET_HDR]
-        except errors.HypervisorError, _:
-          # Older versions of kvm don't support DEVICE_LIST, but they don't
-          # have new virtio syntax either.
-          pass
-
-        if up_hvp[constants.HV_VHOST_NET]:
-          # check for vhost_net support
-          if self._VHOST_RE.search(kvmhelp):
-            tap_extra = ",vhost=on"
-          else:
-            raise errors.HypervisorError("vhost_net is configured"
-                                         " but it is not available")
-      else:
-        nic_model = nic_type
-
+      (nic_model, vnet_hdr,
+       virtio_net_queues, tap_extra,
+       nic_extra) = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
       kvm_supports_netdev = self._NETDEV_RE.search(kvmhelp)
-
       for nic_seq, nic in enumerate(kvm_nics):
-        tapname, tapfd = OpenTap(vnet_hdr=vnet_hdr,
-                                 name=self._GenerateKvmTapName(nic))
-        tapfds.append(tapfd)
+        tapname, nic_tapfds = OpenTap(vnet_hdr=vnet_hdr,
+                                      virtio_net_queues=virtio_net_queues,
+                                      name=self._GenerateKvmTapName(nic))
+        tapfds.extend(nic_tapfds)
         taps.append(tapname)
+        tapfd = "%s%s" % ("fds=" if len(nic_tapfds) > 1 else "fd=",
+                          ":".join(str(fd) for fd in nic_tapfds))
         if kvm_supports_netdev:
           nic_val = "%s,mac=%s" % (nic_model, nic.mac)
           try:
@@ -1565,14 +1597,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
             nic_val += (",id=%s,bus=pci.0,addr=%s" % (kvm_devid, hex(nic.pci)))
           except errors.HotplugError:
             netdev = "netdev%d" % nic_seq
-          nic_val += (",netdev=%s" % netdev)
-          tap_val = ("type=tap,id=%s,fd=%d%s" %
+          nic_val += (",netdev=%s%s" % (netdev, nic_extra))
+          tap_val = ("type=tap,id=%s,%s%s" %
                      (netdev, tapfd, tap_extra))
           kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
         else:
           nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq,
                                                          nic.mac, nic_model)
-          tap_val = "tap,vlan=%s,fd=%d" % (nic_seq, tapfd)
+          tap_val = "tap,vlan=%s,%s" % (nic_seq, tapfd)
           kvm_cmd.extend(["-net", tap_val, "-net", nic_val])
 
     if incoming:
@@ -1869,12 +1901,23 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       cmds += ["device_add virtio-blk-pci,bus=pci.0,addr=%s,drive=%s,id=%s" %
                 (hex(device.pci), kvm_devid, kvm_devid)]
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
-      (tap, fd) = OpenTap()
+      kvmpath = instance.hvparams[constants.HV_KVM_PATH]
+      kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
+      devlist = self._GetKVMOutput(kvmpath, self._KVMOPT_DEVICELIST)
+      up_hvp = runtime[2]
+      (_, vnet_hdr,
+       virtio_net_queues, tap_extra,
+       nic_extra) = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
+      (tap, fds) = OpenTap(vnet_hdr=vnet_hdr,
+                           virtio_net_queues=virtio_net_queues)
+      # netdev_add don't support "fds=" when multiple fds are
+      # requested, generate separate "fd=" string for every fd
+      tapfd = ",".join(["fd=%s" % fd for fd in fds])
       self._ConfigureNIC(instance, seq, device, tap)
-      self._PassTapFd(instance, fd, device)
-      cmds = ["netdev_add tap,id=%s,fd=%s" % (kvm_devid, kvm_devid)]
-      args = "virtio-net-pci,bus=pci.0,addr=%s,mac=%s,netdev=%s,id=%s" % \
-               (hex(device.pci), device.mac, kvm_devid, kvm_devid)
+      self._PassTapFd(instance, fds, device)
+      cmds = ["netdev_add tap,id=%s,%s%s" % (kvm_devid, tapfd, tap_extra)]
+      args = "virtio-net-pci,bus=pci.0,addr=%s,mac=%s,netdev=%s,id=%s%s" % \
+               (hex(device.pci), device.mac, kvm_devid, kvm_devid, nic_extra)
       cmds += ["device_add %s" % args]
       utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
 
@@ -1924,7 +1967,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       device.pci = self.HotDelDevice(instance, dev_type, device, _, seq)
       self.HotAddDevice(instance, dev_type, device, _, seq)
 
-  def _PassTapFd(self, instance, fd, nic):
+  def _PassTapFd(self, instance, fds, nic):
     """Pass file descriptor to kvm process via monitor socket using SCM_RIGHTS
 
     """
@@ -1932,7 +1975,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     #       squash common parts between monitor and qmp
     kvm_devid = _GenerateDeviceKVMId(constants.HOTPLUG_TARGET_NIC, nic)
     command = "getfd %s\n" % kvm_devid
-    fds = [fd]
     logging.info("%s", fds)
     try:
       monsock = MonitorSocket(self._InstanceMonitor(instance.name))

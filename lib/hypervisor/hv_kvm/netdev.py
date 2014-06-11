@@ -41,6 +41,7 @@ IFF_TAP = 0x0002
 IFF_NO_PI = 0x1000
 IFF_ONE_QUEUE = 0x2000
 IFF_VNET_HDR = 0x4000
+IFF_MULTI_QUEUE = 0x0100
 
 
 def _GetTunFeatures(fd, _ioctl=fcntl.ioctl):
@@ -91,42 +92,82 @@ def _ProbeTapVnetHdr(fd, _features_fn=_GetTunFeatures):
   return result
 
 
-def OpenTap(vnet_hdr=True, name=""):
+def _ProbeTapMqVirtioNet(fd, _features_fn=_GetTunFeatures):
+  """Check whether to enable the IFF_MULTI_QUEUE flag.
+
+  This flag was introduced in Linux kernel 3.8.
+
+   @type fd: int
+   @param fd: the file descriptor of /dev/net/tun
+
+  """
+  flags = _features_fn(fd)
+
+  if flags is None:
+    # Not supported
+    return False
+
+  result = bool(flags & IFF_MULTI_QUEUE)
+
+  if not result:
+    logging.warning("Kernel does not support IFF_MULTI_QUEUE, not enabling")
+
+  return result
+
+
+def OpenTap(vnet_hdr=True, virtio_net_queues=1, name=""):
   """Open a new tap device and return its file descriptor.
 
   This is intended to be used by a qemu-type hypervisor together with the -net
-  tap,fd=<fd> command line parameter.
+  tap,fd=<fd> or -net tap,fds=x:y:...:z command line parameter.
 
   @type vnet_hdr: boolean
   @param vnet_hdr: Enable the VNET Header
+
+  @type virtio_net_queues: int
+  @param virtio_net_queues: Set number of tap queues but not more than 8,
+                            queues only work with virtio-net device;
+                            disabled by default (one queue).
 
   @type name: string
   @param name: name for the TAP interface being created; if an empty
                string is passed, the OS will generate a unique name
 
-  @return: (ifname, tapfd)
+  @return: (ifname, [tapfds])
   @rtype: tuple
 
   """
-  try:
-    tapfd = os.open("/dev/net/tun", os.O_RDWR)
-  except EnvironmentError:
-    raise errors.HypervisorError("Failed to open /dev/net/tun")
+  tapfds = []
 
-  flags = IFF_TAP | IFF_NO_PI | IFF_ONE_QUEUE
+  for _ in range(virtio_net_queues):
+    try:
+      tapfd = os.open("/dev/net/tun", os.O_RDWR)
+    except EnvironmentError:
+      raise errors.HypervisorError("Failed to open /dev/net/tun")
 
-  if vnet_hdr and _ProbeTapVnetHdr(tapfd):
-    flags |= IFF_VNET_HDR
+    flags = IFF_TAP | IFF_NO_PI
 
-  # The struct ifreq ioctl request (see netdevice(7))
-  ifr = struct.pack("16sh", name, flags)
+    if vnet_hdr and _ProbeTapVnetHdr(tapfd):
+      flags |= IFF_VNET_HDR
 
-  try:
-    res = fcntl.ioctl(tapfd, TUNSETIFF, ifr)
-  except EnvironmentError, err:
-    raise errors.HypervisorError("Failed to allocate a new TAP device: %s" %
-                                 err)
+    # Check if it's ok to enable IFF_MULTI_QUEUE
+    if virtio_net_queues > 1 and _ProbeTapMqVirtioNet(tapfd):
+      flags |= IFF_MULTI_QUEUE
+    else:
+      flags |= IFF_ONE_QUEUE
+
+    # The struct ifreq ioctl request (see netdevice(7))
+    ifr = struct.pack("16sh", name, flags)
+
+    try:
+      res = fcntl.ioctl(tapfd, TUNSETIFF, ifr)
+    except EnvironmentError, err:
+      raise errors.HypervisorError("Failed to allocate a new TAP device: %s" %
+                                   err)
+
+    tapfds.append(tapfd)
 
   # Get the interface name from the ioctl
   ifname = struct.unpack("16sh", res)[0].strip("\x00")
-  return (ifname, tapfd)
+
+  return (ifname, tapfds)
