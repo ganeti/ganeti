@@ -70,6 +70,7 @@ import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
 import Data.Attoparsec () -- Needed to prevent spurious GHC 7.4 linking errors.
   -- See issue #683 and https://ghc.haskell.org/trac/ghc/ticket/4899
 import Data.Char
+import Data.Function (on)
 import Data.List
 import Data.Maybe
 import qualified Data.Map as M
@@ -1049,9 +1050,8 @@ genLoadObject sname = do
 -- | Generates code for loading an object's field.
 loadObjectField :: [Field] -> Field -> Q Exp
 loadObjectField allFields field = do
-  let name = fieldVariable field
-      names = map fieldVariable allFields
-      otherNames = listE . map stringE $ names \\ [name]
+  let otherNames = fieldsDictKeysQ . filter (on (/=) fieldName field)
+                                   $ allFields
   -- these are used in all patterns below
   let objvar = varE objVarName
       objfield = stringE (fieldName field)
@@ -1066,8 +1066,32 @@ loadObjectField allFields field = do
             -- they're just extracted from the list of other fields.
             (Nothing, AndRestArguments) ->
                   [| return . M.fromList
-                     $ filter (not . (`elem` $otherNames) . fst) $objvar |]
+                     . filter (not . (`S.member` $(otherNames)) . fst)
+                     $ $objvar |]
             _ ->  loadFnOpt field [| maybeFromObj $objvar $objfield |] objvar
+
+-- | Generates the set of all used JSON dictionary keys for a field
+fieldDictKeys :: Field -> Exp
+fieldDictKeys field = AppE (VarE 'S.fromList)
+  . ListE . map (LitE . StringL) $ liftA2 (:) fieldName fieldExtraKeys field
+
+-- | Generates the list of all used JSON dictionary keys for a list of fields
+fieldsDictKeys :: [Field] -> Exp
+fieldsDictKeys fields =
+  AppE (VarE 'S.unions) . ListE . map fieldDictKeys $ fields
+
+-- | Generates the list of all used JSON dictionary keys for a list of fields
+fieldsDictKeysQ :: [Field] -> Q Exp
+fieldsDictKeysQ = return . fieldsDictKeys
+
+
+-- | Generates the list of all used JSON dictionary keys for a list of fields,
+-- depending on if any of them has 'AndRestArguments' flag.
+fieldsUsedKeysQ :: [Field] -> Q Exp
+fieldsUsedKeysQ fields
+  | any ((==) AndRestArguments . fieldIsOptional) fields
+              = [| allUsedKeys |]
+  | otherwise = [| mkUsedKeys $(fieldsDictKeysQ fields) |]
 
 -- | Builds the readJSON instance for a given object name.
 objectReadJSON :: String -> Q Dec
