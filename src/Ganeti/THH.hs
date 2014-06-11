@@ -276,9 +276,11 @@ checkNonOptDef _ = return ()
 parseFn :: Field   -- ^ The field definition
         -> Q Exp   -- ^ The entire object in JSON object format
         -> Q Exp   -- ^ The resulting function that parses a JSON message
-parseFn field o
-  = maybe [| readJSONWithDesc $(stringE $ fieldName field) False |]
-          (`appE` o) (fieldRead field)
+parseFn field o =
+  let fnType = [t| JSON.JSValue -> JSON.Result $(fieldType field) |]
+      expr = maybe [| readJSONWithDesc $(stringE $ fieldName field) False |]
+                   (`appE` o) (fieldRead field)
+  in sigE expr fnType
 
 -- | Produces the expression that will de-serialise a given
 -- field. Since some custom parsing functions might need to use the
@@ -1017,12 +1019,14 @@ genSaveObject sname = do
 -- | Generates the code for saving an object's field, handling the
 -- various types of fields that we have.
 saveObjectField :: Name -> Field -> Q Exp
-saveObjectField fvar field =
+saveObjectField fvar field = do
   let formatFn = fromMaybe [| JSON.showJSON &&& (const []) |] $
                            fieldShow field
-      formatCode v = [| let (actual, extra) = $formatFn $(v)
+      formatFnTyped = sigE formatFn
+        [t| $(fieldType field) -> (JSON.JSValue, [(String, JSON.JSValue)]) |]
+  let formatCode v = [| let (actual, extra) = $formatFnTyped $(v)
                          in ($nameE, actual) : extra |]
-  in case fieldIsOptional field of
+  case fieldIsOptional field of
     OptionalOmitNull ->       [| case $(fvarE) of
                                    Nothing -> []
                                    Just v  -> $(formatCode [| v |])
