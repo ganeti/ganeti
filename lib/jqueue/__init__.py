@@ -83,12 +83,6 @@ class CancelJob(Exception):
   """
 
 
-class QueueShutdown(Exception):
-  """Special exception to abort a job when the job queue is shutting down.
-
-  """
-
-
 def TimeStampNow():
   """Returns the current timestamp.
 
@@ -611,11 +605,6 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     if self._op.status == constants.OP_STATUS_CANCELING:
       logging.debug("Canceling opcode")
       raise CancelJob()
-
-    # See if queue is shutting down
-    if not self._queue.AcceptingJobsUnlocked():
-      logging.debug("Queue is shutting down")
-      raise QueueShutdown()
 
   @locking.ssynchronized(_QUEUE, shared=1)
   def NotifyStart(self):
@@ -1168,24 +1157,12 @@ class _JobProcessor(object):
       if op.status == constants.OP_STATUS_CANCELING:
         return (constants.OP_STATUS_CANCELING, None)
 
-      # Queue is shutting down, return to queued
-      if not self.queue.AcceptingJobsUnlocked():
-        return (constants.OP_STATUS_QUEUED, None)
-
       # Stay in waitlock while trying to re-acquire lock
       return (constants.OP_STATUS_WAITING, None)
     except CancelJob:
       logging.exception("%s: Canceling job", opctx.log_prefix)
       assert op.status == constants.OP_STATUS_CANCELING
       return (constants.OP_STATUS_CANCELING, None)
-
-    except QueueShutdown:
-      logging.exception("%s: Queue is shutting down", opctx.log_prefix)
-
-      assert op.status == constants.OP_STATUS_WAITING
-
-      # Job hadn't been started yet, so it should return to the queue
-      return (constants.OP_STATUS_QUEUED, None)
 
     except Exception, err: # pylint: disable=W0703
       logging.exception("%s: Caught exception in %s",
@@ -1664,9 +1641,6 @@ class JobQueue(object):
 
     self.acquire = self._lock.acquire
     self.release = self._lock.release
-
-    # Accept jobs by default
-    self._accepting_jobs = True
 
     # Read serial file
     self._last_serial = jstore.ReadSerial()
@@ -2512,21 +2486,7 @@ class JobQueue(object):
     @return: Whether there are any running jobs
 
     """
-    if self._accepting_jobs:
-      self._accepting_jobs = False
-
     return self._wpool.HasRunningTasks()
-
-  def AcceptingJobsUnlocked(self):
-    """Returns whether jobs are accepted.
-
-    Once L{PrepareShutdown} has been called, no new jobs are accepted and the
-    queue is shutting down.
-
-    @rtype: bool
-
-    """
-    return self._accepting_jobs
 
   @locking.ssynchronized(_LOCK)
   def Shutdown(self):
