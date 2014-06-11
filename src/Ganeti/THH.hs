@@ -67,6 +67,8 @@ import Control.Arrow ((&&&))
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
+import Control.Monad.Writer (tell)
+import qualified Control.Monad.Trans as MT
 import Data.Attoparsec () -- Needed to prevent spurious GHC 7.4 linking errors.
   -- See issue #683 and https://ghc.haskell.org/trac/ghc/ticket/4899
 import Data.Char
@@ -74,6 +76,7 @@ import Data.Function (on)
 import Data.List
 import Data.Maybe
 import qualified Data.Map as M
+import qualified Data.Set as S
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (lift)
 
@@ -991,14 +994,15 @@ genDictObject save_fn load_fn sname fields = do
       tdexp = [| concat $(listE $ zipWith save_fn fnames fields) |]
   tdclause <- clause [pat] (normalB tdexp) []
   -- fromDict
-  fdexp <- loadConstructor name load_fn fields
+  fdexp <- [| MT.lift $(loadConstructor name load_fn fields)
+              <* tell $(fieldsUsedKeysQ fields) |]
   let fdclause = Clause [VarP objVarName] (NormalB fdexp) []
   -- the ArrayObject instance generated from DictObject
   arrdec <- genArrayObjectInstance name fields
   -- the final instance
   return $ [InstanceD [] (AppT (ConT ''DictObject) (ConT name))
              [ FunD 'toDict [tdclause]
-             , FunD 'fromDict [fdclause]
+             , FunD 'fromDictWKeys [fdclause]
              ]]
          ++ [arrdec]
 
