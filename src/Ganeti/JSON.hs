@@ -51,6 +51,8 @@ module Ganeti.JSON
   , lookupContainer
   , readContainer
   , DictObject(..)
+  , showJSONtoDict
+  , readJSONfromDict
   , ArrayObject(..)
   , HasStringRepr(..)
   , GenericContainer(..)
@@ -355,6 +357,18 @@ instance (HasStringRepr a, Ord a, J.JSON b) =>
 class DictObject a where
   toDict :: a -> [(String, J.JSValue)]
   fromDict :: [(String, J.JSValue)] -> J.Result a
+
+-- | A default implementation of 'showJSON' using 'toDict'.
+showJSONtoDict :: (DictObject a) => a -> J.JSValue
+showJSONtoDict = J.makeObj . toDict
+
+-- | A default implementation of 'readJSON' using 'fromDict'.
+-- Checks that the input value is a JSON object and
+-- converts it using 'fromDict'.
+-- Also checks the input contains only the used keys returned by 'fromDict'.
+readJSONfromDict :: (DictObject a)
+                 => J.JSValue -> J.Result a
+readJSONfromDict = fromDict <=< liftM J.fromJSObject . J.readJSON
 
 -- | Class of objects that can be converted from and to @[JSValue]@ with
 -- a fixed length and order.

@@ -1007,7 +1007,7 @@ genSaveObject :: String -> Q [Dec]
 genSaveObject sname = do
   let fname = mkName ("save" ++ sname)
   sigt <- [t| $(conT $ mkName sname) -> JSON.JSValue |]
-  cclause <- [| $makeObjE . $(varE $ 'toDict) |]
+  cclause <- [| showJSONtoDict |]
   return [SigD fname sigt, ValD (VarP fname) (NormalB cclause) []]
 
 -- | Generates the code for saving an object's field, handling the
@@ -1043,7 +1043,7 @@ genLoadObject :: String -> Q (Dec, Dec)
 genLoadObject sname = do
   let fname = mkName $ "load" ++ sname
   sigt <- [t| JSON.JSValue -> JSON.Result $(conT $ mkName sname) |]
-  cclause <- [| fromDict <=< liftM JSON.fromJSObject . JSON.readJSON |]
+  cclause <- [| readJSONfromDict |]
   return $ (SigD fname sigt,
             FunD fname [Clause [] (NormalB cclause) []])
 
