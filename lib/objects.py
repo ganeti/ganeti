@@ -1204,7 +1204,7 @@ class Instance(TaggableObject):
     if _with_private:
       bo["osparams_private"] = self.osparams_private.Unprivate()
 
-    for attr in "nics", "disks_info":
+    for attr in "nics", :
       alist = bo.get(attr, None)
       if alist:
         nlist = outils.ContainerToDicts(alist)
@@ -1227,7 +1227,13 @@ class Instance(TaggableObject):
       del val["admin_up"]
     obj = super(Instance, cls).FromDict(val)
     obj.nics = outils.ContainerFromDicts(obj.nics, list, NIC)
-    obj.disks_info = outils.ContainerFromDicts(obj.disks_info, list, Disk)
+
+    # attribute 'disks_info' is only present when deserializing from a RPC
+    # call in the backend
+    disks_info = getattr(obj, "disks_info", None)
+    if disks_info:
+      obj.disks_info = outils.ContainerFromDicts(disks_info, list, Disk)
+
     return obj
 
   def UpgradeConfig(self):
