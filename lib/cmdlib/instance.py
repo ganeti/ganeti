@@ -717,9 +717,9 @@ class LUInstanceCreate(LogicalUnit):
       vcpus=self.be_full[constants.BE_VCPUS],
       nics=NICListToTuple(self, self.nics),
       disk_template=self.op.disk_template,
-      disks=[(d[constants.IDISK_NAME], d.get("uuid", ""),
-              d[constants.IDISK_SIZE], d[constants.IDISK_MODE])
-             for d in self.disks],
+      # Note that self.disks here is not a list with objects.Disk
+      # but with dicts as returned by ComputeDisks.
+      disks=self.disks,
       bep=self.be_full,
       hvp=self.hv_full,
       hypervisor_name=self.op.hypervisor,

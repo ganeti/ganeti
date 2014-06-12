@@ -290,10 +290,13 @@ INSTANCE_NICn_NETWORK,
 INSTANCE_NICn_NETWORK_UUID, INSTANCE_NICn_NETWORK_SUBNET,
 INSTANCE_NICn_NETWORK_GATEWAY, INSTANCE_NICn_NETWORK_SUBNET6,
 INSTANCE_NICn_NETWORK_GATEWAY6, INSTANCE_NICn_NETWORK_MAC_PREFIX,
-INSTANCE_DISK_COUNT, INSTANCE_DISKn_SIZE, INSTANCE_DISKn_MODE.
+INSTANCE_DISK_COUNT, INSTANCE_DISKn_SIZE, INSTANCE_DISKn_MODE,
+INSTANCE_DISKn_NAME, INSTANCE_DISKn_UUID, INSTANCE_DISKn_DEV_TYPE.
 
 The INSTANCE_NICn_* and INSTANCE_DISKn_* variables represent the
 properties of the *n* -th NIC and disk, and are zero-indexed.
+Depending on the disk template, Ganeti exports some info related to
+the logical id of the disk, that is basically its driver and id.
 
 The INSTANCE_NICn_NETWORK_* variables are only passed if a NIC's network
 parameter is set (that is if the NIC is associated to a network defined
