@@ -814,34 +814,6 @@ genSaveOpCode :: [LuxiConstructor]             -- ^ Object definition
               -> Q [Clause]
 genSaveOpCode opdefs fn = mapM fn opdefs
 
--- | Generates the main save opcode function.
---
--- This builds a per-constructor match clause that contains the
--- respective constructor-serialisation code.
-genSaveOpCode' :: Name                          -- ^ Object type
-              -> String                        -- ^ To 'JSValue' function name
-              -> String                        -- ^ To 'JSObject' function name
-              -> [LuxiConstructor]             -- ^ Object definition
-              -> (LuxiConstructor -> Q Clause) -- ^ Constructor save fn
-              -> Bool                          -- ^ Whether to generate
-                                               -- obj or just a
-                                               -- list\/tuple of values
-              -> Q [Dec]
-genSaveOpCode' tname jvalstr tdstr opdefs fn gen_object = do
-  tdclauses <- mapM fn opdefs
-  let typecon = ConT tname
-      jvalname = mkName jvalstr
-      jvalsig = AppT  (AppT ArrowT typecon) (ConT ''JSON.JSValue)
-      tdname = mkName tdstr
-  tdsig <- [t| $(return typecon) -> [(String, JSON.JSValue)] |]
-  jvalclause <- if gen_object
-                  then [| $makeObjE . $(varE tdname) |]
-                  else [| JSON.showJSON . map snd . $(varE tdname) |]
-  return [ SigD tdname tdsig
-         , FunD tdname tdclauses
-         , SigD jvalname jvalsig
-         , ValD (VarP jvalname) (NormalB jvalclause) []]
-
 -- | Generates load code for a single constructor of the opcode data type.
 loadConstructor :: Name -> (Field -> Q Exp) -> [Field] -> Q Exp
 loadConstructor name loadfn fields = do
@@ -915,12 +887,22 @@ genLuxiOp name cons = do
                     return $ NormalC (mkName cname) fields'')
             cons
   let declD = DataD [] (mkName name) [] decl_d [''Show, ''Eq]
-  save_decs <- genSaveOpCode' tname "opToArgs" "opToDict"
-               cons saveLuxiConstructor False
+  -- generate DictObject instance
+  dictObjInst <- genOpCodeDictObject tname saveLuxiConstructor
+                                     loadOpConstructor cons
+  -- .. and use it to construct 'opToArgs' of 'toDict'
+  -- (as we know that the output of 'toDict' is always in the proper order)
+  opToArgsType <- [t| $(conT tname) -> JSON.JSValue |]
+  opToArgsExp <- [| JSON.showJSON . map snd . toDict |]
+  let opToArgsName = mkName "opToArgs"
+      opToArgsDecs = [ SigD opToArgsName opToArgsType
+                     , ValD (VarP opToArgsName) (NormalB opToArgsExp) []
+                     ]
+  -- rest
   req_defs <- declareSADT "LuxiReq" .
               map (\(str, _) -> ("Req" ++ str, mkName ("luxiReq" ++ str))) $
                   cons
-  return $ declD:save_decs ++ req_defs
+  return $ [declD] ++ dictObjInst ++ opToArgsDecs ++ req_defs
 
 -- | Generates the \"save\" clause for entire LuxiOp constructor.
 saveLuxiConstructor :: LuxiConstructor -> Q Clause
