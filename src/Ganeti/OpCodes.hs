@@ -47,14 +47,15 @@ module Ganeti.OpCodes
   , setOpPriority
   ) where
 
+import Control.Applicative
 import Data.List (intercalate)
 import Data.Map (Map)
 import qualified Text.JSON
-import Text.JSON (readJSON, JSObject, JSON, JSValue(..), makeObj, fromJSObject)
+import Text.JSON (readJSON, JSObject, JSON, JSValue(..), fromJSObject)
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Hs2Py.OpDoc as OpDoc
-import Ganeti.JSON (DictObject(..))
+import Ganeti.JSON (DictObject(..), readJSONfromDict, showJSONtoDict)
 import Ganeti.OpParams
 import Ganeti.PyValue ()
 import Ganeti.Query.Language (queryTypeOpToRaw)
@@ -944,8 +945,8 @@ $(genAllOpIDs ''OpCode "allOpIDs")
 $(genOpLowerStrip (C.opcodeReasonSrcOpcode ++ ":") ''OpCode "opReasonSrcID")
 
 instance JSON OpCode where
-  readJSON = loadOpCode
-  showJSON = saveOpCode
+  readJSON = readJSONfromDict
+  showJSON = showJSONtoDict
 
 -- | Generates the summary value for an opcode.
 opSummaryVal :: OpCode -> Maybe String
@@ -1049,23 +1050,14 @@ resolveDependencies mopc jid = do
   mpar <- resolveDependsCommon (metaParams mopc) jid
   return (mopc { metaParams = mpar })
 
--- | JSON serialisation for 'MetaOpCode'.
-showMeta :: MetaOpCode -> JSValue
-showMeta (MetaOpCode params op) =
-  let objparams = toDict params
-      objop = toDictOpCode op
-  in makeObj (objparams ++ objop)
-
--- | JSON deserialisation for 'MetaOpCode'
-readMeta :: JSValue -> Text.JSON.Result MetaOpCode
-readMeta v = do
-  meta <- readJSON v
-  op <- readJSON v
-  return $ MetaOpCode meta op
+instance DictObject MetaOpCode where
+  toDict (MetaOpCode meta op) = toDict meta ++ toDict op
+  fromDictWKeys dict = MetaOpCode <$> fromDictWKeys dict
+                                  <*> fromDictWKeys dict
 
 instance JSON MetaOpCode where
-  showJSON = showMeta
-  readJSON = readMeta
+  readJSON = readJSONfromDict
+  showJSON = showJSONtoDict
 
 -- | Wraps an 'OpCode' with the default parameters to build a
 -- 'MetaOpCode'.

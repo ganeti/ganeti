@@ -722,8 +722,22 @@ pyClasses cons =
           clause [] (normalB (ListE <$> mapM pyClass c)) []
 
 -- | Converts from an opcode constructor to a Luxi constructor.
-opcodeConsToLuxiCons :: (a, b, c, d, e) -> (a, d)
+opcodeConsToLuxiCons :: OpCodeConstructor -> LuxiConstructor
 opcodeConsToLuxiCons (x, _, _, y, _) = (x, y)
+
+-- | Generates 'DictObject' instance for an op-code.
+genOpCodeDictObject :: Name                -- ^ Type name to use
+                    -> (LuxiConstructor -> Q Clause) -- ^ saving function
+                    -> (LuxiConstructor -> Q Exp) -- ^ loading function
+                    -> [LuxiConstructor] -- ^ Constructors
+                    -> Q [Dec]
+genOpCodeDictObject tname savefn loadfn cons = do
+  tdclauses <- genSaveOpCode cons savefn
+  fdclauses <- genLoadOpCode cons loadfn
+  return [ InstanceD [] (AppT (ConT ''DictObject) (ConT tname))
+           [ FunD 'toDict tdclauses
+           , FunD 'fromDictWKeys fdclauses
+           ]]
 
 -- | Generates the OpCode data type.
 --
@@ -743,11 +757,13 @@ genOpCode name cons = do
             cons
   let declD = DataD [] tname [] decl_d [''Show, ''Eq]
   let (allfsig, allffn) = genAllOpFields "allOpFields" cons
-  save_decs <- genSaveOpCode tname "saveOpCode" "toDictOpCode"
-               (map opcodeConsToLuxiCons cons) saveConstructor True
-  (loadsig, loadfn) <- genLoadOpCode cons
+  -- DictObject
+  let luxiCons = map opcodeConsToLuxiCons cons
+  dictObjInst <- genOpCodeDictObject tname saveConstructor loadOpConstructor
+                                     luxiCons
+  -- rest
   pyDecls <- pyClasses cons
-  return $ [declD, allfsig, allffn, loadsig, loadfn] ++ save_decs ++ pyDecls
+  return $ [declD, allfsig, allffn] ++ dictObjInst ++ pyDecls
 
 -- | Generates the function pattern returning the list of fields for a
 -- given constructor.
@@ -789,11 +805,20 @@ saveConstructor (sname, fields) = do
       flist' = [| concat $flist |]
   clause [pat] (normalB flist') []
 
+-- | Generates the main save opcode function, serializing as a dictionary.
+--
+-- This builds a per-constructor match clause that contains the
+-- respective constructor-serialisation code.
+genSaveOpCode :: [LuxiConstructor]             -- ^ Object definition
+              -> (LuxiConstructor -> Q Clause) -- ^ Constructor save fn
+              -> Q [Clause]
+genSaveOpCode opdefs fn = mapM fn opdefs
+
 -- | Generates the main save opcode function.
 --
 -- This builds a per-constructor match clause that contains the
 -- respective constructor-serialisation code.
-genSaveOpCode :: Name                          -- ^ Object ype
+genSaveOpCode' :: Name                          -- ^ Object type
               -> String                        -- ^ To 'JSValue' function name
               -> String                        -- ^ To 'JSObject' function name
               -> [LuxiConstructor]             -- ^ Object definition
@@ -802,7 +827,7 @@ genSaveOpCode :: Name                          -- ^ Object ype
                                                -- obj or just a
                                                -- list\/tuple of values
               -> Q [Dec]
-genSaveOpCode tname jvalstr tdstr opdefs fn gen_object = do
+genSaveOpCode' tname jvalstr tdstr opdefs fn gen_object = do
   tdclauses <- mapM fn opdefs
   let typecon = ConT tname
       jvalname = mkName jvalstr
@@ -830,32 +855,32 @@ loadConstructor name loadfn fields = do
   return $ DoE (fstmts ++ retstmt)
 
 -- | Generates load code for a single constructor of the opcode data type.
-loadOpConstructor :: OpCodeConstructor -> Q Exp
-loadOpConstructor (sname, _, _, fields, _) =
+loadOpConstructor :: LuxiConstructor -> Q Exp
+loadOpConstructor (sname, fields) =
   loadConstructor (mkName sname) (loadObjectField fields) fields
 
 -- | Generates the loadOpCode function.
-genLoadOpCode :: [OpCodeConstructor] -> Q (Dec, Dec)
-genLoadOpCode opdefs = do
-  let fname = mkName "loadOpCode"
-      arg1 = mkName "v"
-      objname = objVarName
+genLoadOpCode :: [LuxiConstructor]
+              -> (LuxiConstructor -> Q Exp) -- ^ Constructor load fn
+              -> Q [Clause]
+genLoadOpCode opdefs fn = do
+  let objname = objVarName
       opid = mkName "op_id"
-  st1 <- bindS (varP objname) [| liftM JSON.fromJSObject
-                                 (JSON.readJSON $(varE arg1)) |]
-  st2 <- bindS (varP opid) [| $fromObjE $(varE objname) $(stringE "OP_ID") |]
+  st <- bindS (varP opid) [| $fromObjE $(varE objname) $(stringE "OP_ID") |]
   -- the match results (per-constructor blocks)
-  mexps <- mapM loadOpConstructor opdefs
+  mexps <- mapM fn opdefs
   fails <- [| fail $ "Unknown opcode " ++ $(varE opid) |]
-  let mpats = map (\(me, (consName, _, _, _, _)) ->
-                       let mp = LitP . StringL . deCamelCase $ consName
+  let mpats = map (\(me, op) ->
+                       let mp = LitP . StringL . deCamelCase . fst $ op
                        in Match mp (NormalB me) []
                   ) $ zip mexps opdefs
       defmatch = Match WildP (NormalB fails) []
       cst = NoBindS $ CaseE (VarE opid) $ mpats++[defmatch]
-      body = DoE [st1, st2, cst]
-  sigt <- [t| JSON.JSValue -> JSON.Result $(conT (mkName "OpCode")) |]
-  return $ (SigD fname sigt, FunD fname [Clause [VarP arg1] (NormalB body) []])
+      body = DoE [st, cst]
+  -- TODO: Instead of just saying that opcodes use all keys,
+  -- properly determine which keys they actually use (including OP_ID).
+  lifted <- [| MT.lift $(return body) <* tell allUsedKeys |]
+  return [Clause [VarP objname] (NormalB lifted) []]
 
 -- * Template code for luxi
 
@@ -890,7 +915,7 @@ genLuxiOp name cons = do
                     return $ NormalC (mkName cname) fields'')
             cons
   let declD = DataD [] (mkName name) [] decl_d [''Show, ''Eq]
-  save_decs <- genSaveOpCode tname "opToArgs" "opToDict"
+  save_decs <- genSaveOpCode' tname "opToArgs" "opToDict"
                cons saveLuxiConstructor False
   req_defs <- declareSADT "LuxiReq" .
               map (\(str, _) -> ("Req" ++ str, mkName ("luxiReq" ++ str))) $
