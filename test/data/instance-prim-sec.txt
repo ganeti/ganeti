@@ -12,10 +12,6 @@
              "df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_data"
            ],
            "params": {},
-           "physical_id": [
-             "xenvg",
-             "df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_data"
-           ],
            "size": 1024,
            "uuid": "eaff6322-1bfb-4d59-b306-4535730917cc"
          },
@@ -26,10 +22,6 @@
              "df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_meta"
            ],
            "params": {},
-           "physical_id": [
-             "xenvg",
-             "df9ff3f6-a833-48ff-8bd5-bff2eaeab759.disk0_meta"
-           ],
            "size": 128,
            "uuid": "bf512e95-2a49-4cb3-8d1f-30a503f6bf1b"
          }
@@ -46,14 +38,6 @@
        ],
        "mode": "rw",
        "params": {},
-       "physical_id": [
-         "172.16.241.3",
-         11000,
-         "172.16.241.2",
-         11000,
-         0,
-         "9bdb15fb7ab6bb4610a313d654ed4d0d2433713e"
-       ],
        "size": 1024,
        "uuid": "5d61e205-bf89-4ba8-a319-589b7bb7419e"
      }
