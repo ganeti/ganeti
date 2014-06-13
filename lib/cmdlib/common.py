@@ -45,11 +45,6 @@ INSTANCE_DOWN = [constants.ADMINST_DOWN]
 INSTANCE_ONLINE = [constants.ADMINST_DOWN, constants.ADMINST_UP]
 INSTANCE_NOT_RUNNING = [constants.ADMINST_DOWN, constants.ADMINST_OFFLINE]
 
-#: Instance status in which an instance can be marked as offline/online
-CAN_CHANGE_INSTANCE_OFFLINE = (frozenset(INSTANCE_DOWN) | frozenset([
-  constants.ADMINST_OFFLINE,
-  ]))
-
 
 def _ExpandItemName(expand_fn, name, kind):
   """Expand an item name.
