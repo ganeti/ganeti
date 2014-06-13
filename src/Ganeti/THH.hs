@@ -815,6 +815,7 @@ genSaveOpCode :: [LuxiConstructor]             -- ^ Object definition
 genSaveOpCode opdefs fn = mapM fn opdefs
 
 -- | Generates load code for a single constructor of the opcode data type.
+-- The type of the resulting expression is @WriterT UsedKeys J.Result a@.
 loadConstructor :: Name -> (Field -> Q Exp) -> [Field] -> Q Exp
 loadConstructor name loadfn fields = do
   fnames <- mapM (newName . ("r_" ++) . fieldName) fields
@@ -824,7 +825,8 @@ loadConstructor name loadfn fields = do
       retstmt = [NoBindS (AppE (VarE 'return) cexp)]
       -- FIXME: should we require an empty dict for an empty type?
       -- this allows any JSValue right now
-  return $ DoE (fstmts ++ retstmt)
+  [| MT.lift $(return $ DoE (fstmts ++ retstmt))
+     <* tell $(fieldsUsedKeysQ fields) |]
 
 -- | Generates load code for a single constructor of the opcode data type.
 loadOpConstructor :: LuxiConstructor -> Q Exp
@@ -837,8 +839,9 @@ genLoadOpCode :: [LuxiConstructor]
               -> Q [Clause]
 genLoadOpCode opdefs fn = do
   let objname = objVarName
-      opid = mkName "op_id"
-  st <- bindS (varP opid) [| $fromObjE $(varE objname) $(stringE "OP_ID") |]
+      opidKey = "OP_ID"
+      opid = mkName $ map toLower opidKey
+  st <- bindS (varP opid) [| $fromObjE $(varE objname) $(stringE opidKey) |]
   -- the match results (per-constructor blocks)
   mexps <- mapM fn opdefs
   fails <- [| fail $ "Unknown opcode " ++ $(varE opid) |]
@@ -849,10 +852,10 @@ genLoadOpCode opdefs fn = do
       defmatch = Match WildP (NormalB fails) []
       cst = NoBindS $ CaseE (VarE opid) $ mpats++[defmatch]
       body = DoE [st, cst]
-  -- TODO: Instead of just saying that opcodes use all keys,
-  -- properly determine which keys they actually use (including OP_ID).
-  lifted <- [| MT.lift $(return body) <* tell allUsedKeys |]
-  return [Clause [VarP objname] (NormalB lifted) []]
+  -- include "OP_ID" to the list of used keys
+  bodyAndOpId <- [| $(return body)
+                    <* tell (mkUsedKeys $ S.singleton opidKey) |]
+  return [Clause [VarP objname] (NormalB bodyAndOpId) []]
 
 -- * Template code for luxi
 
@@ -1003,8 +1006,7 @@ genDictObject save_fn load_fn sname fields = do
       tdexp = [| concat $(listE $ zipWith save_fn fnames fields) |]
   tdclause <- clause [pat] (normalB tdexp) []
   -- fromDict
-  fdexp <- [| MT.lift $(loadConstructor name load_fn fields)
-              <* tell $(fieldsUsedKeysQ fields) |]
+  fdexp <- loadConstructor name load_fn fields
   let fdclause = Clause [VarP objVarName] (NormalB fdexp) []
   -- the ArrayObject instance generated from DictObject
   arrdec <- genArrayObjectInstance name fields
