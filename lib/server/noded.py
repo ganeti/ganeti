@@ -273,11 +273,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Assemble a block device.
 
     """
-    bdev_s, owner, on_primary, idx = params
+    bdev_s, idict, on_primary, idx = params
     bdev = objects.Disk.FromDict(bdev_s)
+    instance = objects.Instance.FromDict(idict)
     if bdev is None:
       raise ValueError("can't unserialize data!")
-    return backend.BlockdevAssemble(bdev, owner, on_primary, idx)
+    return backend.BlockdevAssemble(bdev, instance, on_primary, idx)
 
   @staticmethod
   def perspective_blockdev_shutdown(params):
@@ -898,6 +899,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     token_requests = params[0]
     return backend.GetCryptoTokens(token_requests)
+
+  @staticmethod
+  def perspective_node_ensure_daemon(params):
+    """Ensure daemon is running.
+
+    """
+    (daemon_name, run) = params
+    return backend.EnsureDaemon(daemon_name, run)
 
   # cluster --------------------------
 

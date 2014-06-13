@@ -36,8 +36,8 @@ if ! grep -q '^ENABLE_MOND = ' lib/_constants.py; then
   err "Please update $0, mond enable feature is missing"
 fi
 
-DAEMONS_LIST="noded wconfd rapi luxid"
-STOPDAEMONS_LIST="luxid rapi wconfd noded"
+DAEMONS_LIST="noded wconfd rapi luxid kvmd"
+STOPDAEMONS_LIST="kvmd luxid rapi wconfd noded"
 
 if grep -q '^ENABLE_CONFD = True' lib/_constants.py; then
   DAEMONS_LIST="$DAEMONS_LIST confd"
@@ -49,7 +49,7 @@ if grep -q '^ENABLE_MOND = True' lib/_constants.py; then
   STOPDAEMONS_LIST="mond $STOPDAEMONS_LIST"
 fi
 
-STOPDAEMONS_LIST="kvmd metad $STOPDAEMONS_LIST"
+STOPDAEMONS_LIST="metad $STOPDAEMONS_LIST"
 
 DAEMONS=$(echo $(for d in $DAEMONS_LIST; do echo "ganeti-$d"; done))
 STOPDAEMONS=$(echo $(for d in $STOPDAEMONS_LIST; do echo "ganeti-$d"; done))

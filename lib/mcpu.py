@@ -47,6 +47,8 @@ from ganeti import compat
 from ganeti import wconfd
 
 
+sighupReceived = [False]
+
 _OP_PREFIX = "Op"
 _LU_PREFIX = "LU"
 
@@ -407,11 +409,35 @@ class Processor(object):
     else:
       logging.debug("Trying %ss to request %s for %s",
                     timeout, request, self._wconfdcontext)
-      # TODO: use correct priority instead of 0
+      ## Expect a signal
+      if sighupReceived[0]:
+        logging.warning("Ignoring unexpected SIGHUP")
+      sighupReceived[0] = False
+
+      # Request locks
       self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, priority,
                                               request)
-      pending = utils.SimpleRetry(False, self.wconfd.Client().HasPendingRequest,
-                                  1.0, timeout, args=[self._wconfdcontext])
+      pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
+
+      if pending:
+        def _HasPending():
+          if sighupReceived[0]:
+            return self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
+          else:
+            return True
+
+        pending = utils.SimpleRetry(False, _HasPending, 0.05, timeout)
+
+        signal = sighupReceived[0]
+
+        if pending:
+          pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
+
+        if pending and signal:
+          logging.warning("Ignoring unexpected SIGHUP")
+        sighupReceived[0] = False
+
+      logging.debug("Finished trying. Pending: %s", pending)
       if pending:
         # drop the pending request and all locks potentially obtained in the
         # time since the last poll.

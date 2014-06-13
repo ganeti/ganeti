@@ -128,7 +128,8 @@ class TestLUInstanceFailover(CmdlibTestCase):
         .CreateSuccessfulNodeResult(self.master, True)
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
-        .CreateSuccessfulNodeResult(self.snode, ("/dev/mock", "/var/mock"))
+        .CreateSuccessfulNodeResult(self.snode,
+                                    ("/dev/mock", "/var/mock", None))
     self.rpc.call_instance_start.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.snode, True)

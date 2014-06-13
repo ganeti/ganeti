@@ -83,12 +83,6 @@ class CancelJob(Exception):
   """
 
 
-class QueueShutdown(Exception):
-  """Special exception to abort a job when the job queue is shutting down.
-
-  """
-
-
 def TimeStampNow():
   """Returns the current timestamp.
 
@@ -611,11 +605,6 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     if self._op.status == constants.OP_STATUS_CANCELING:
       logging.debug("Canceling opcode")
       raise CancelJob()
-
-    # See if queue is shutting down
-    if not self._queue.AcceptingJobsUnlocked():
-      logging.debug("Queue is shutting down")
-      raise QueueShutdown()
 
   @locking.ssynchronized(_QUEUE, shared=1)
   def NotifyStart(self):
@@ -1168,24 +1157,12 @@ class _JobProcessor(object):
       if op.status == constants.OP_STATUS_CANCELING:
         return (constants.OP_STATUS_CANCELING, None)
 
-      # Queue is shutting down, return to queued
-      if not self.queue.AcceptingJobsUnlocked():
-        return (constants.OP_STATUS_QUEUED, None)
-
       # Stay in waitlock while trying to re-acquire lock
       return (constants.OP_STATUS_WAITING, None)
     except CancelJob:
       logging.exception("%s: Canceling job", opctx.log_prefix)
       assert op.status == constants.OP_STATUS_CANCELING
       return (constants.OP_STATUS_CANCELING, None)
-
-    except QueueShutdown:
-      logging.exception("%s: Queue is shutting down", opctx.log_prefix)
-
-      assert op.status == constants.OP_STATUS_WAITING
-
-      # Job hadn't been started yet, so it should return to the queue
-      return (constants.OP_STATUS_QUEUED, None)
 
     except Exception, err: # pylint: disable=W0703
       logging.exception("%s: Caught exception in %s",
@@ -1634,31 +1611,6 @@ class _JobDependencyManager:
       self._enqueue_fn(jobs)
 
 
-def _RequireNonDrainedQueue(fn):
-  """Decorator checking for a non-drained queue.
-
-  To be used with functions submitting new jobs.
-
-  """
-  def wrapper(self, *args, **kwargs):
-    """Wrapper function.
-
-    @raise errors.JobQueueDrainError: if the job queue is marked for draining
-
-    """
-    # Ok when sharing the big job queue lock, as the drain file is created when
-    # the lock is exclusive.
-    # Needs access to protected member, pylint: disable=W0212
-    if self._drained:
-      raise errors.JobQueueDrainError("Job queue is drained, refusing job")
-
-    if not self._accepting_jobs:
-      raise errors.JobQueueError("Job queue is shutting down, refusing job")
-
-    return fn(self, *args, **kwargs)
-  return wrapper
-
-
 class JobQueue(object):
   """Queue used to manage the jobs.
 
@@ -1690,9 +1642,6 @@ class JobQueue(object):
     self.acquire = self._lock.acquire
     self.release = self._lock.release
 
-    # Accept jobs by default
-    self._accepting_jobs = True
-
     # Read serial file
     self._last_serial = jstore.ReadSerial()
     assert self._last_serial is not None, ("Serial file was modified between"
@@ -1711,7 +1660,6 @@ class JobQueue(object):
     self._queue_size = None
     self._UpdateQueueSizeUnlocked()
     assert ht.TInt(self._queue_size)
-    self._drained = jstore.CheckDrainFlag()
 
     # Job dependencies
     self.depmgr = _JobDependencyManager(self._GetJobStatusForDependencies,
@@ -1812,10 +1760,6 @@ class JobQueue(object):
         logging.error("Failed to upload file %s to node %s: %s",
                       file_name, node_name, msg)
 
-    # Set queue drained flag
-    result = \
-      self._GetRpc(addrs).call_jobqueue_set_drain_flag([node_name],
-                                                       self._drained)
     msg = result[node_name].fail_msg
     if msg:
       logging.error("Failed to set queue drained flag on node %s: %s",
@@ -2106,28 +2050,6 @@ class JobQueue(object):
 
     """
     self._queue_size = len(self._GetJobIDsUnlocked(sort=False))
-
-  @locking.ssynchronized(_LOCK)
-  def SetDrainFlag(self, drain_flag):
-    """Sets the drain flag for the queue.
-
-    @type drain_flag: boolean
-    @param drain_flag: Whether to set or unset the drain flag
-
-    """
-    # Change flag locally
-    jstore.SetDrainFlag(drain_flag)
-
-    self._drained = drain_flag
-
-    # ... and on all nodes
-    (names, addrs) = self._GetNodeIp()
-    result = \
-      self._GetRpc(addrs).call_jobqueue_set_drain_flag(names, drain_flag)
-    self._CheckRpcResult(result, self._nodes,
-                         "Setting queue drain flag to %s" % drain_flag)
-
-    return True
 
   @classmethod
   def SubmitJob(cls, ops):
@@ -2556,37 +2478,15 @@ class JobQueue(object):
   def PrepareShutdown(self):
     """Prepare to stop the job queue.
 
-    Disables execution of jobs in the workerpool and returns whether there are
-    any jobs currently running. If the latter is the case, the job queue is not
-    yet ready for shutdown. Once this function returns C{True} L{Shutdown} can
-    be called without interfering with any job. Queued and unfinished jobs will
-    be resumed next time.
-
-    Once this function has been called no new job submissions will be accepted
-    (see L{_RequireNonDrainedQueue}).
+    Returns whether there are any jobs currently running. If the latter is the
+    case, the job queue is not yet ready for shutdown. Once this function
+    returns C{True} L{Shutdown} can be called without interfering with any job.
 
     @rtype: bool
     @return: Whether there are any running jobs
 
     """
-    if self._accepting_jobs:
-      self._accepting_jobs = False
-
-      # Tell worker pool to stop processing pending tasks
-      self._wpool.SetActive(False)
-
     return self._wpool.HasRunningTasks()
-
-  def AcceptingJobsUnlocked(self):
-    """Returns whether jobs are accepted.
-
-    Once L{PrepareShutdown} has been called, no new jobs are accepted and the
-    queue is shutting down.
-
-    @rtype: bool
-
-    """
-    return self._accepting_jobs
 
   @locking.ssynchronized(_LOCK)
   def Shutdown(self):

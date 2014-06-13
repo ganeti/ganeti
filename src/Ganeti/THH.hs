@@ -67,12 +67,16 @@ import Control.Arrow ((&&&))
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
+import Control.Monad.Writer (tell)
+import qualified Control.Monad.Trans as MT
 import Data.Attoparsec () -- Needed to prevent spurious GHC 7.4 linking errors.
   -- See issue #683 and https://ghc.haskell.org/trac/ghc/ticket/4899
 import Data.Char
+import Data.Function (on)
 import Data.List
 import Data.Maybe
 import qualified Data.Map as M
+import qualified Data.Set as S
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (lift)
 
@@ -272,9 +276,11 @@ checkNonOptDef _ = return ()
 parseFn :: Field   -- ^ The field definition
         -> Q Exp   -- ^ The entire object in JSON object format
         -> Q Exp   -- ^ The resulting function that parses a JSON message
-parseFn field o
-  = maybe [| readJSONWithDesc $(stringE $ fieldName field) False |]
-          (`appE` o) (fieldRead field)
+parseFn field o =
+  let fnType = [t| JSON.JSValue -> JSON.Result $(fieldType field) |]
+      expr = maybe [| readJSONWithDesc $(stringE $ fieldName field) False |]
+                   (`appE` o) (fieldRead field)
+  in sigE expr fnType
 
 -- | Produces the expression that will de-serialise a given
 -- field. Since some custom parsing functions might need to use the
@@ -716,8 +722,22 @@ pyClasses cons =
           clause [] (normalB (ListE <$> mapM pyClass c)) []
 
 -- | Converts from an opcode constructor to a Luxi constructor.
-opcodeConsToLuxiCons :: (a, b, c, d, e) -> (a, d)
+opcodeConsToLuxiCons :: OpCodeConstructor -> LuxiConstructor
 opcodeConsToLuxiCons (x, _, _, y, _) = (x, y)
+
+-- | Generates 'DictObject' instance for an op-code.
+genOpCodeDictObject :: Name                -- ^ Type name to use
+                    -> (LuxiConstructor -> Q Clause) -- ^ saving function
+                    -> (LuxiConstructor -> Q Exp) -- ^ loading function
+                    -> [LuxiConstructor] -- ^ Constructors
+                    -> Q [Dec]
+genOpCodeDictObject tname savefn loadfn cons = do
+  tdclauses <- genSaveOpCode cons savefn
+  fdclauses <- genLoadOpCode cons loadfn
+  return [ InstanceD [] (AppT (ConT ''DictObject) (ConT tname))
+           [ FunD 'toDict tdclauses
+           , FunD 'fromDictWKeys fdclauses
+           ]]
 
 -- | Generates the OpCode data type.
 --
@@ -737,11 +757,13 @@ genOpCode name cons = do
             cons
   let declD = DataD [] tname [] decl_d [''Show, ''Eq]
   let (allfsig, allffn) = genAllOpFields "allOpFields" cons
-  save_decs <- genSaveOpCode tname "saveOpCode" "toDictOpCode"
-               (map opcodeConsToLuxiCons cons) saveConstructor True
-  (loadsig, loadfn) <- genLoadOpCode cons
+  -- DictObject
+  let luxiCons = map opcodeConsToLuxiCons cons
+  dictObjInst <- genOpCodeDictObject tname saveConstructor loadOpConstructor
+                                     luxiCons
+  -- rest
   pyDecls <- pyClasses cons
-  return $ [declD, allfsig, allffn, loadsig, loadfn] ++ save_decs ++ pyDecls
+  return $ [declD, allfsig, allffn] ++ dictObjInst ++ pyDecls
 
 -- | Generates the function pattern returning the list of fields for a
 -- given constructor.
@@ -783,35 +805,17 @@ saveConstructor (sname, fields) = do
       flist' = [| concat $flist |]
   clause [pat] (normalB flist') []
 
--- | Generates the main save opcode function.
+-- | Generates the main save opcode function, serializing as a dictionary.
 --
 -- This builds a per-constructor match clause that contains the
 -- respective constructor-serialisation code.
-genSaveOpCode :: Name                          -- ^ Object ype
-              -> String                        -- ^ To 'JSValue' function name
-              -> String                        -- ^ To 'JSObject' function name
-              -> [LuxiConstructor]             -- ^ Object definition
+genSaveOpCode :: [LuxiConstructor]             -- ^ Object definition
               -> (LuxiConstructor -> Q Clause) -- ^ Constructor save fn
-              -> Bool                          -- ^ Whether to generate
-                                               -- obj or just a
-                                               -- list\/tuple of values
-              -> Q [Dec]
-genSaveOpCode tname jvalstr tdstr opdefs fn gen_object = do
-  tdclauses <- mapM fn opdefs
-  let typecon = ConT tname
-      jvalname = mkName jvalstr
-      jvalsig = AppT  (AppT ArrowT typecon) (ConT ''JSON.JSValue)
-      tdname = mkName tdstr
-  tdsig <- [t| $(return typecon) -> [(String, JSON.JSValue)] |]
-  jvalclause <- if gen_object
-                  then [| $makeObjE . $(varE tdname) |]
-                  else [| JSON.showJSON . map snd . $(varE tdname) |]
-  return [ SigD tdname tdsig
-         , FunD tdname tdclauses
-         , SigD jvalname jvalsig
-         , ValD (VarP jvalname) (NormalB jvalclause) []]
+              -> Q [Clause]
+genSaveOpCode opdefs fn = mapM fn opdefs
 
 -- | Generates load code for a single constructor of the opcode data type.
+-- The type of the resulting expression is @WriterT UsedKeys J.Result a@.
 loadConstructor :: Name -> (Field -> Q Exp) -> [Field] -> Q Exp
 loadConstructor name loadfn fields = do
   fnames <- mapM (newName . ("r_" ++) . fieldName) fields
@@ -821,35 +825,37 @@ loadConstructor name loadfn fields = do
       retstmt = [NoBindS (AppE (VarE 'return) cexp)]
       -- FIXME: should we require an empty dict for an empty type?
       -- this allows any JSValue right now
-  return $ DoE (fstmts ++ retstmt)
+  [| MT.lift $(return $ DoE (fstmts ++ retstmt))
+     <* tell $(fieldsUsedKeysQ fields) |]
 
 -- | Generates load code for a single constructor of the opcode data type.
-loadOpConstructor :: OpCodeConstructor -> Q Exp
-loadOpConstructor (sname, _, _, fields, _) =
+loadOpConstructor :: LuxiConstructor -> Q Exp
+loadOpConstructor (sname, fields) =
   loadConstructor (mkName sname) (loadObjectField fields) fields
 
 -- | Generates the loadOpCode function.
-genLoadOpCode :: [OpCodeConstructor] -> Q (Dec, Dec)
-genLoadOpCode opdefs = do
-  let fname = mkName "loadOpCode"
-      arg1 = mkName "v"
-      objname = objVarName
-      opid = mkName "op_id"
-  st1 <- bindS (varP objname) [| liftM JSON.fromJSObject
-                                 (JSON.readJSON $(varE arg1)) |]
-  st2 <- bindS (varP opid) [| $fromObjE $(varE objname) $(stringE "OP_ID") |]
+genLoadOpCode :: [LuxiConstructor]
+              -> (LuxiConstructor -> Q Exp) -- ^ Constructor load fn
+              -> Q [Clause]
+genLoadOpCode opdefs fn = do
+  let objname = objVarName
+      opidKey = "OP_ID"
+      opid = mkName $ map toLower opidKey
+  st <- bindS (varP opid) [| $fromObjE $(varE objname) $(stringE opidKey) |]
   -- the match results (per-constructor blocks)
-  mexps <- mapM loadOpConstructor opdefs
+  mexps <- mapM fn opdefs
   fails <- [| fail $ "Unknown opcode " ++ $(varE opid) |]
-  let mpats = map (\(me, (consName, _, _, _, _)) ->
-                       let mp = LitP . StringL . deCamelCase $ consName
+  let mpats = map (\(me, op) ->
+                       let mp = LitP . StringL . deCamelCase . fst $ op
                        in Match mp (NormalB me) []
                   ) $ zip mexps opdefs
       defmatch = Match WildP (NormalB fails) []
       cst = NoBindS $ CaseE (VarE opid) $ mpats++[defmatch]
-      body = DoE [st1, st2, cst]
-  sigt <- [t| JSON.JSValue -> JSON.Result $(conT (mkName "OpCode")) |]
-  return $ (SigD fname sigt, FunD fname [Clause [VarP arg1] (NormalB body) []])
+      body = DoE [st, cst]
+  -- include "OP_ID" to the list of used keys
+  bodyAndOpId <- [| $(return body)
+                    <* tell (mkUsedKeys $ S.singleton opidKey) |]
+  return [Clause [VarP objname] (NormalB bodyAndOpId) []]
 
 -- * Template code for luxi
 
@@ -884,12 +890,22 @@ genLuxiOp name cons = do
                     return $ NormalC (mkName cname) fields'')
             cons
   let declD = DataD [] (mkName name) [] decl_d [''Show, ''Eq]
-  save_decs <- genSaveOpCode tname "opToArgs" "opToDict"
-               cons saveLuxiConstructor False
+  -- generate DictObject instance
+  dictObjInst <- genOpCodeDictObject tname saveLuxiConstructor
+                                     loadOpConstructor cons
+  -- .. and use it to construct 'opToArgs' of 'toDict'
+  -- (as we know that the output of 'toDict' is always in the proper order)
+  opToArgsType <- [t| $(conT tname) -> JSON.JSValue |]
+  opToArgsExp <- [| JSON.showJSON . map snd . toDict |]
+  let opToArgsName = mkName "opToArgs"
+      opToArgsDecs = [ SigD opToArgsName opToArgsType
+                     , ValD (VarP opToArgsName) (NormalB opToArgsExp) []
+                     ]
+  -- rest
   req_defs <- declareSADT "LuxiReq" .
               map (\(str, _) -> ("Req" ++ str, mkName ("luxiReq" ++ str))) $
                   cons
-  return $ declD:save_decs ++ req_defs
+  return $ [declD] ++ dictObjInst ++ opToArgsDecs ++ req_defs
 
 -- | Generates the \"save\" clause for entire LuxiOp constructor.
 saveLuxiConstructor :: LuxiConstructor -> Q Clause
@@ -997,7 +1013,7 @@ genDictObject save_fn load_fn sname fields = do
   -- the final instance
   return $ [InstanceD [] (AppT (ConT ''DictObject) (ConT name))
              [ FunD 'toDict [tdclause]
-             , FunD 'fromDict [fdclause]
+             , FunD 'fromDictWKeys [fdclause]
              ]]
          ++ [arrdec]
 
@@ -1006,18 +1022,20 @@ genSaveObject :: String -> Q [Dec]
 genSaveObject sname = do
   let fname = mkName ("save" ++ sname)
   sigt <- [t| $(conT $ mkName sname) -> JSON.JSValue |]
-  cclause <- [| $makeObjE . $(varE $ 'toDict) |]
+  cclause <- [| showJSONtoDict |]
   return [SigD fname sigt, ValD (VarP fname) (NormalB cclause) []]
 
 -- | Generates the code for saving an object's field, handling the
 -- various types of fields that we have.
 saveObjectField :: Name -> Field -> Q Exp
-saveObjectField fvar field =
+saveObjectField fvar field = do
   let formatFn = fromMaybe [| JSON.showJSON &&& (const []) |] $
                            fieldShow field
-      formatCode v = [| let (actual, extra) = $formatFn $(v)
+      formatFnTyped = sigE formatFn
+        [t| $(fieldType field) -> (JSON.JSValue, [(String, JSON.JSValue)]) |]
+  let formatCode v = [| let (actual, extra) = $formatFnTyped $(v)
                          in ($nameE, actual) : extra |]
-  in case fieldIsOptional field of
+  case fieldIsOptional field of
     OptionalOmitNull ->       [| case $(fvarE) of
                                    Nothing -> []
                                    Just v  -> $(formatCode [| v |])
@@ -1042,16 +1060,15 @@ genLoadObject :: String -> Q (Dec, Dec)
 genLoadObject sname = do
   let fname = mkName $ "load" ++ sname
   sigt <- [t| JSON.JSValue -> JSON.Result $(conT $ mkName sname) |]
-  cclause <- [| fromDict <=< liftM JSON.fromJSObject . JSON.readJSON |]
+  cclause <- [| readJSONfromDict |]
   return $ (SigD fname sigt,
             FunD fname [Clause [] (NormalB cclause) []])
 
 -- | Generates code for loading an object's field.
 loadObjectField :: [Field] -> Field -> Q Exp
 loadObjectField allFields field = do
-  let name = fieldVariable field
-      names = map fieldVariable allFields
-      otherNames = listE . map stringE $ names \\ [name]
+  let otherNames = fieldsDictKeysQ . filter (on (/=) fieldName field)
+                                   $ allFields
   -- these are used in all patterns below
   let objvar = varE objVarName
       objfield = stringE (fieldName field)
@@ -1066,8 +1083,32 @@ loadObjectField allFields field = do
             -- they're just extracted from the list of other fields.
             (Nothing, AndRestArguments) ->
                   [| return . M.fromList
-                     $ filter (not . (`elem` $otherNames) . fst) $objvar |]
+                     . filter (not . (`S.member` $(otherNames)) . fst)
+                     $ $objvar |]
             _ ->  loadFnOpt field [| maybeFromObj $objvar $objfield |] objvar
+
+-- | Generates the set of all used JSON dictionary keys for a field
+fieldDictKeys :: Field -> Exp
+fieldDictKeys field = AppE (VarE 'S.fromList)
+  . ListE . map (LitE . StringL) $ liftA2 (:) fieldName fieldExtraKeys field
+
+-- | Generates the list of all used JSON dictionary keys for a list of fields
+fieldsDictKeys :: [Field] -> Exp
+fieldsDictKeys fields =
+  AppE (VarE 'S.unions) . ListE . map fieldDictKeys $ fields
+
+-- | Generates the list of all used JSON dictionary keys for a list of fields
+fieldsDictKeysQ :: [Field] -> Q Exp
+fieldsDictKeysQ = return . fieldsDictKeys
+
+
+-- | Generates the list of all used JSON dictionary keys for a list of fields,
+-- depending on if any of them has 'AndRestArguments' flag.
+fieldsUsedKeysQ :: [Field] -> Q Exp
+fieldsUsedKeysQ fields
+  | any ((==) AndRestArguments . fieldIsOptional) fields
+              = [| allUsedKeys |]
+  | otherwise = [| mkUsedKeys $(fieldsDictKeysQ fields) |]
 
 -- | Builds the readJSON instance for a given object name.
 objectReadJSON :: String -> Q Dec

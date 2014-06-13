@@ -58,7 +58,8 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
   CheckDiskAccessModeConsistency, CreateNewClientCert, \
   AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp, \
-  CheckImageValidity
+  CheckImageValidity, \
+  CheckDiskAccessModeConsistency, CreateNewClientCert, EnsureKvmdOnNodes
 
 import ganeti.masterd.instance
 
@@ -418,6 +419,7 @@ class LUClusterQuery(NoHooksLU):
       "install_image": cluster.install_image,
       "instance_communication_network": cluster.instance_communication_network,
       "compression_tools": cluster.compression_tools,
+      "enabled_user_shutdown": cluster.enabled_user_shutdown,
       }
 
     return result
@@ -1245,8 +1247,7 @@ class LUClusterSetParams(LogicalUnit):
 
     # changes to the hypervisor list
     if self.op.enabled_hypervisors is not None:
-      self.hv_list = self.op.enabled_hypervisors
-      for hv in self.hv_list:
+      for hv in self.op.enabled_hypervisors:
         # if the hypervisor doesn't already exist in the cluster
         # hvparams, we initialize it to empty, and then (in both
         # cases) we make sure to fill the defaults, as we might not
@@ -1256,8 +1257,6 @@ class LUClusterSetParams(LogicalUnit):
           new_hvp[hv] = {}
         new_hvp[hv] = objects.FillDict(constants.HVC_DEFAULTS[hv], new_hvp[hv])
         utils.ForceDictType(new_hvp[hv], constants.HVS_PARAMETER_TYPES)
-    else:
-      self.hv_list = cluster.enabled_hypervisors
 
     if self.op.hvparams or self.op.enabled_hypervisors is not None:
       # either the enabled list has changed, or the parameters have, validate
@@ -1544,6 +1543,8 @@ class LUClusterSetParams(LogicalUnit):
     # re-read the fresh configuration again
     self.cluster = self.cfg.GetClusterInfo()
 
+    ensure_kvmd = False
+
     if self.op.hvparams:
       self.cluster.hvparams = self.new_hvparams
     if self.op.os_hvp:
@@ -1551,6 +1552,7 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.enabled_hypervisors is not None:
       self.cluster.hvparams = self.new_hvparams
       self.cluster.enabled_hypervisors = self.op.enabled_hypervisors
+      ensure_kvmd = True
     if self.op.beparams:
       self.cluster.beparams[constants.PP_DEFAULT] = self.new_beparams
     if self.op.nicparams:
@@ -1610,6 +1612,11 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.use_external_mip_script is not None:
       self.cluster.use_external_mip_script = self.op.use_external_mip_script
+
+    if self.op.enabled_user_shutdown is not None and \
+          self.cluster.enabled_user_shutdown != self.op.enabled_user_shutdown:
+      self.cluster.enabled_user_shutdown = self.op.enabled_user_shutdown
+      ensure_kvmd = True
 
     def helper_os(aname, mods, desc):
       desc += " OS list"
@@ -1684,6 +1691,13 @@ class LUClusterSetParams(LogicalUnit):
                                                      master_params, ems)
       result.Warn("Could not re-enable the master ip on the master,"
                   " please restart manually", self.LogWarning)
+
+    # Even though 'self.op.enabled_user_shutdown' is being tested
+    # above, the RPCs can only be done after 'self.cfg.Update' because
+    # this will update the cluster object and sync 'Ssconf', and kvmd
+    # uses 'Ssconf'.
+    if ensure_kvmd:
+      EnsureKvmdOnNodes(self, feedback_fn)
 
     if self.op.compression_tools is not None:
       self.cfg.SetCompressionTools(self.op.compression_tools)

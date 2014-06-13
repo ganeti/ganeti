@@ -745,6 +745,18 @@ type IAllocatorParams = Container JSValue
 -- | The master candidate client certificate digests
 type CandidateCertificates = Container String
 
+-- | Disk state parameters.
+--
+-- As according to the documentation this option is unused by Ganeti,
+-- the content is just a 'JSValue'.
+type DiskState = Container JSValue
+
+-- | Hypervisor state parameters.
+--
+-- As according to the documentation this option is unused by Ganeti,
+-- the content is just a 'JSValue'.
+type HypervisorState = Container JSValue
+
 -- * Cluster definitions
 $(buildObject "Cluster" "cluster" $
   [ simpleField "rsahostkeypub"                  [t| String                 |]
@@ -788,6 +800,8 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "primary_ip_family"              [t| IpFamily               |]
   , simpleField "prealloc_wipe_disks"            [t| Bool                   |]
   , simpleField "ipolicy"                        [t| FilledIPolicy          |]
+  , simpleField "hv_state_static"                [t| HypervisorState        |]
+  , simpleField "disk_state_static"              [t| DiskState              |]
   , simpleField "enabled_disk_templates"         [t| [DiskTemplate]         |]
   , simpleField "candidate_certs"                [t| CandidateCertificates  |]
   , simpleField "max_running_jobs"               [t| Int                    |]
@@ -795,6 +809,7 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "instance_communication_network" [t| String                 |]
   , simpleField "zeroing_image"                  [t| String                 |]
   , simpleField "compression_tools"              [t| [String]               |]
+  , simpleField "enabled_user_shutdown"          [t| Bool                   |]
  ]
  ++ timeStampFields
  ++ uuidFields

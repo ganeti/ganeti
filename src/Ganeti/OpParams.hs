@@ -277,6 +277,7 @@ module Ganeti.OpParams
   , pReason
   , pSequential
   , pEnabledDiskTemplates
+  , pEnabledUserShutdown
   , pAdminStateSource
   ) where
 
@@ -792,6 +793,12 @@ pEnabledDiskTemplates =
   withDoc "List of enabled disk templates" .
   optionalField $
   simpleField "enabled_disk_templates" [t| [DiskTemplate] |]
+
+pEnabledUserShutdown :: Field
+pEnabledUserShutdown =
+  withDoc "Whether user shutdown is enabled cluster wide" .
+  optionalField $
+  simpleField "enabled_user_shutdown" [t| Bool |]
 
 pQueryWhat :: Field
 pQueryWhat =

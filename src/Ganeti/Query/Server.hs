@@ -179,6 +179,8 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("zeroing_image", showJSON $ clusterZeroingImage cluster)
             , ("compression_tools",
                showJSON $ clusterCompressionTools cluster)
+            , ("enabled_user_shutdown",
+               showJSON $ clusterEnabledUserShutdown cluster)
             ]
 
   in case master of

@@ -50,7 +50,11 @@ module Ganeti.JSON
   , optFieldsToObj
   , lookupContainer
   , readContainer
+  , mkUsedKeys
+  , allUsedKeys
   , DictObject(..)
+  , showJSONtoDict
+  , readJSONfromDict
   , ArrayObject(..)
   , HasStringRepr(..)
   , GenericContainer(..)
@@ -60,13 +64,15 @@ module Ganeti.JSON
   )
   where
 
+import Control.Applicative
 import Control.DeepSeq
-import Control.Monad (liftM)
 import Control.Monad.Error.Class
+import Control.Monad.Writer
 import qualified Data.Foldable as F
 import qualified Data.Traversable as F
 import Data.Maybe (fromMaybe, catMaybes)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import System.Time (ClockTime(..))
 import Text.Printf (printf)
 
@@ -350,11 +356,49 @@ instance (HasStringRepr a, Ord a, J.JSON b) =>
 
 -- * Types that (de)serialize in a special form of JSON
 
+newtype UsedKeys = UsedKeys (Maybe (Set.Set String))
+
+instance Monoid UsedKeys where
+  mempty = UsedKeys (Just Set.empty)
+  mappend (UsedKeys xs) (UsedKeys ys) = UsedKeys $ liftA2 Set.union xs ys
+
+mkUsedKeys :: Set.Set String -> UsedKeys
+mkUsedKeys = UsedKeys . Just
+
+allUsedKeys :: UsedKeys
+allUsedKeys = UsedKeys Nothing
+
 -- | Class of objects that can be converted from and to 'JSObject'
 -- lists-format.
 class DictObject a where
   toDict :: a -> [(String, J.JSValue)]
+  fromDictWKeys :: [(String, J.JSValue)] -> WriterT UsedKeys J.Result a
   fromDict :: [(String, J.JSValue)] -> J.Result a
+  fromDict = liftM fst . runWriterT . fromDictWKeys
+
+-- | A default implementation of 'showJSON' using 'toDict'.
+showJSONtoDict :: (DictObject a) => a -> J.JSValue
+showJSONtoDict = J.makeObj . toDict
+
+-- | A default implementation of 'readJSON' using 'fromDict'.
+-- Checks that the input value is a JSON object and
+-- converts it using 'fromDict'.
+-- Also checks the input contains only the used keys returned by 'fromDict'.
+readJSONfromDict :: (DictObject a)
+                 => J.JSValue -> J.Result a
+readJSONfromDict jsv = do
+  dict <- liftM J.fromJSObject $ J.readJSON jsv
+  (r, UsedKeys keys) <- runWriterT $ fromDictWKeys dict
+  -- check that no superfluous dictionary keys are present
+  case keys of
+    Just allowedSet | not (Set.null superfluous) ->
+        fail $ "Superfluous dictionary keys: "
+               ++ show (Set.toAscList superfluous) ++ ", but only "
+               ++ show (Set.toAscList allowedSet) ++ " allowed."
+      where
+        superfluous = Set.fromList (map fst dict) Set.\\ allowedSet
+    _ -> return ()
+  return r
 
 -- | Class of objects that can be converted from and to @[JSValue]@ with
 -- a fixed length and order.

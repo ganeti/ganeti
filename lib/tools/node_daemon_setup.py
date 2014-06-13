@@ -117,10 +117,18 @@ def _VerifyCertificate(cert_pem, _check_fn=utils.CheckNodeCertificate):
   # (no-op if that doesn't exist)
   _check_fn(cert)
 
+  key_encoded = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key)
+  cert_encoded = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                                 cert)
+  complete_cert_encoded = key_encoded + cert_encoded
+  if not cert_pem == complete_cert_encoded:
+    logging.error("The certificate differs after being reencoded. Please"
+                  " renew the certificates cluster-wide to prevent future"
+                  " inconsistencies.")
+
   # Format for storing on disk
   buf = StringIO()
-  buf.write(OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key))
-  buf.write(OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
+  buf.write(cert_pem)
   return buf.getvalue()
 
 

@@ -32,13 +32,13 @@ DAEMONS=(
   ganeti-wconfd
   ganeti-rapi
   ganeti-luxid
+  ganeti-kvmd
   )
 
 # This is the list of daemons that are loaded on demand; they should only be
 # stopped, not started.
 ON_DEMAND_DAEMONS=(
   ganeti-metad
-  ganeti-kvmd
   )
 
 _confd_enabled() {

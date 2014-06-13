@@ -100,6 +100,8 @@ def StartNodeDaemons():
   # start mond as well: all nodes need monitoring
   if constants.ENABLE_MOND:
     utils.EnsureDaemon(constants.MOND)
+  # start kvmd, which will quit if not needed to run
+  utils.EnsureDaemon(constants.KVMD)
 
 
 def RunWatcherHooks():

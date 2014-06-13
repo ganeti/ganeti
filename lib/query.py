@@ -1530,8 +1530,9 @@ def _GetLiveInstStatus(ctx, instance, instance_state):
   hvparams = ctx.cluster.FillHV(instance, skip_globals=True)
 
   allow_userdown = \
-      instance.hypervisor != constants.HT_KVM or \
-      hvparams[constants.HV_KVM_USER_SHUTDOWN]
+      ctx.cluster.enabled_user_shutdown and \
+      (instance.hypervisor != constants.HT_KVM or
+       hvparams[constants.HV_KVM_USER_SHUTDOWN])
 
   if instance.uuid in ctx.wrongnode_inst:
     return constants.INSTST_WRONGNODE

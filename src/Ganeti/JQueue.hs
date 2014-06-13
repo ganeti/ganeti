@@ -62,6 +62,7 @@ module Ganeti.JQueue
     , isQueueOpen
     , startJobs
     , cancelJob
+    , notifyJob
     , queueDirPermissions
     , archiveJobs
     -- re-export
@@ -90,7 +91,8 @@ import System.Directory
 import System.FilePath
 import System.IO.Error (isDoesNotExistError)
 import System.Posix.Files
-import System.Posix.Signals (sigTERM, signalProcess)
+import System.Posix.Signals (sigHUP, sigTERM, signalProcess)
+import System.Posix.Types (ProcessID)
 import System.Time
 import qualified Text.JSON
 import Text.JSON.Types
@@ -584,6 +586,13 @@ cancelJob luxiLivelock jid = runResultT $ do
         logDebug $ jName ++ " in its startup phase, retrying"
         mzero
   return $ fromMaybe (False, "Timeout: job still in its startup phase") result
+
+-- | Notify a job that something relevant happened, e.g., a lock became
+-- available. We do this by sending sigHUP to the process.
+notifyJob :: ProcessID  -> IO (ErrorResult ())
+notifyJob pid = runResultT $ do
+  logDebug $ "Signalling process " ++ show pid
+  liftIO $ signalProcess sigHUP pid
 
 -- | Permissions for the archive directories.
 queueDirPermissions :: FilePermissions

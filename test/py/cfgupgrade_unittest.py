@@ -53,6 +53,7 @@ def GetMinimalConfig():
       "instance_communication_network": "",
       "zeroing_image": "",
       "compression_tools": constants.IEC_DEFAULT_TOOLS,
+      "enabled_user_shutdown": False,
     },
     "instances": {},
     "disks": {},
