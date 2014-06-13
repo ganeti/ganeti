@@ -3364,16 +3364,16 @@ class LUInstanceSetParams(LogicalUnit):
     if self.op.hotplug:
       result = self.rpc.call_blockdev_assemble(self.instance.primary_node,
                                                (disk, self.instance),
-                                               self.instance.name, True, idx)
+                                               self.instance, True, idx)
       if result.fail_msg:
         changes.append(("disk/%d" % idx, "assemble:failed"))
         self.LogWarning("Can't assemble newly created disk %d: %s",
                         idx, result.fail_msg)
       else:
-        _, link_name = result.payload
+        _, link_name, uri = result.payload
         msg = self._HotplugDevice(constants.HOTPLUG_ACTION_ADD,
                                   constants.HOTPLUG_TARGET_DISK,
-                                  disk, link_name, idx)
+                                  disk, (link_name, uri), idx)
         changes.append(("disk/%d" % idx, msg))
 
     return (disk, changes)
