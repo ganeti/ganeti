@@ -72,7 +72,7 @@ def main():
     logging.debug("Preparing the context and the configuration")
     context = masterd.GanetiContext(livelock_name)
 
-    logging.debug("Registering a SIGTERM handler")
+    logging.debug("Registering signal handlers")
 
     cancel = [False]
 
@@ -80,6 +80,10 @@ def main():
       logging.info("Killed by signal %d", signum)
       cancel[0] = True
     signal.signal(signal.SIGTERM, _TermHandler)
+
+    def _HupHandler(signum, _frame):
+      logging.info("Received signal %d, ignoring", signum)
+    signal.signal(signal.SIGHUP, _HupHandler)
 
     logging.debug("Picking up job %d", job_id)
     context.jobqueue.PickupJob(job_id)
