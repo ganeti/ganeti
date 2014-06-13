@@ -72,6 +72,7 @@ import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
+import Ganeti.JQueue (notifyJob)
 import Ganeti.Lens
 import Ganeti.Locking.Allocation (LockAllocation)
 import Ganeti.Locking.Locks
@@ -273,7 +274,8 @@ modifyLockWaiting f = do
   logDebug "Lock write finished"
   unless (S.null nfy) $ do
     logDebug . (++) "Locks became available for " . show $ S.toList nfy
-    logWarning "Process notification not yet implemented"
+    liftIO . mapM_ (notifyJob . ciPid) $ S.toList nfy
+    logDebug "Finished notifying processes"
   return r
 
 -- | Atomically modifies the lock allocation state in WConfdMonad, not
