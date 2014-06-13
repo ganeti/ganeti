@@ -39,7 +39,6 @@ DAEMONS=(
 # stopped, not started.
 ON_DEMAND_DAEMONS=(
   ganeti-metad
-  ganeti-kvmd
   )
 
 _confd_enabled() {
