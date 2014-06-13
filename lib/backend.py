@@ -565,10 +565,8 @@ def LeaveCluster(modify_ssh_setup):
   except: # pylint: disable=W0702
     logging.exception("Error while removing cluster secrets")
 
-  result = utils.RunCmd([pathutils.DAEMON_UTIL, "stop", constants.CONFD])
-  if result.failed:
-    logging.error("Command %s failed with exitcode %s and error %s",
-                  result.cmd, result.exit_code, result.output)
+  utils.StopDaemon(constants.CONFD)
+  utils.StopDaemon(constants.KVMD)
 
   # Raise a custom exception (handled in ganeti-noded)
   raise errors.QuitGanetiException(True, "Shutdown scheduled")
@@ -1257,6 +1255,32 @@ def GetCryptoTokens(token_requests):
         tokens.append((token_type,
                        utils.GetCertificateDigest()))
   return tokens
+
+
+def EnsureDaemon(daemon_name, run):
+  """Ensures the given daemon is running or stopped.
+
+  @type daemon_name: string
+  @param daemon_name: name of the daemon (e.g., constants.KVMD)
+
+  @type run: bool
+  @param run: whether to start or stop the daemon
+
+  @rtype: bool
+  @return: 'True' if daemon successfully started/stopped,
+           'False' otherwise
+
+  """
+  allowed_daemons = [constants.KVMD]
+
+  if daemon_name not in allowed_daemons:
+    fn = lambda _: False
+  elif run:
+    fn = utils.EnsureDaemon
+  else:
+    fn = utils.StopDaemon
+
+  return fn(daemon_name)
 
 
 def GetBlockDevSizes(devices):
@@ -2143,8 +2167,8 @@ def HotplugDevice(instance, action, dev_type, device, extra, seq):
   @param dev_type: the device type to hotplug
   @type device: either L{objects.NIC} or L{objects.Disk}
   @param device: the device object to hotplug
-  @type extra: string
-  @param extra: extra info used by hotplug code (e.g. disk link)
+  @type extra: tuple
+  @param extra: extra info used for disk hotplug (disk link, drive uri)
   @type seq: int
   @param seq: the index of the device from master perspective
   @raise RPCFail: in case instance does not have KVM hypervisor
@@ -2581,7 +2605,7 @@ def _RecursiveAssembleBD(disk, owner, as_primary):
   return result
 
 
-def BlockdevAssemble(disk, owner, as_primary, idx):
+def BlockdevAssemble(disk, instance, as_primary, idx):
   """Activate a block device for an instance.
 
   This is a wrapper over _RecursiveAssembleBD.
@@ -2592,13 +2616,15 @@ def BlockdevAssemble(disk, owner, as_primary, idx):
 
   """
   try:
-    result = _RecursiveAssembleBD(disk, owner, as_primary)
+    result = _RecursiveAssembleBD(disk, instance.name, as_primary)
     if isinstance(result, BlockDev):
       # pylint: disable=E1103
       dev_path = result.dev_path
       link_name = None
+      uri = None
       if as_primary:
-        link_name = _SymlinkBlockDev(owner, dev_path, idx)
+        link_name = _SymlinkBlockDev(instance.name, dev_path, idx)
+        uri = _CalculateDeviceURI(instance, disk, result)
     elif result:
       return result, result
     else:
@@ -2608,7 +2634,7 @@ def BlockdevAssemble(disk, owner, as_primary, idx):
   except OSError, err:
     _Fail("Error while symlinking disk: %s", err, exc=True)
 
-  return dev_path, link_name
+  return dev_path, link_name, uri
 
 
 def BlockdevShutdown(disk):

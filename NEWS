@@ -39,6 +39,33 @@ New features
   user-specified ones.
 
 
+Version 2.11.2
+--------------
+
+*(Released Fri, 13 Jun 2014)*
+
+- Improvements to KVM wrt to the kvmd and instance shutdown behavior.
+  WARNING: In contrast to our standard policy, this bug fix update
+  introduces new parameters to the configuration. This means in
+  particular that after an upgrade from 2.11.0 or 2.11.1, 'cfgupgrade'
+  needs to be run, either manually or explicitly by running
+  'gnt-cluster upgrade --to 2.11.2' (which requires that they
+  had configured the cluster with --enable-full-version).
+  This also means, that it is not easily possible to downgrade from
+  2.11.2 to 2.11.1 or 2.11.0. The only way is to go back to 2.10 and
+  back.
+
+Inherited from the 2.10 branch:
+
+- Check for SSL encoding inconsistencies
+- Check drbd helper only in VM capable nodes
+- Improvements in statistics utils
+
+Inherited from the 2.9 branch:
+
+- check-man-warnings: use C.UTF-8 and set LC_ALL
+
+
 Version 2.11.1
 --------------
 

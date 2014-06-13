@@ -212,6 +212,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                    -- instance_communication_network
           <*> arbitrary                    -- zeroing_image
           <*> arbitrary                    -- compression_tools
+          <*> arbitrary                    -- enabled_user_shutdown
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
         pure OpCodes.OpClusterActivateMasterIp

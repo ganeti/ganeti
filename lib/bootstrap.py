@@ -553,14 +553,20 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 primary_ip_version=None, ipolicy=None,
                 prealloc_wipe_disks=False, use_external_mip_script=False,
                 hv_state=None, disk_state=None, enabled_disk_templates=None,
-                install_image=None, zeroing_image=None, compression_tools=None):
+                install_image=None, zeroing_image=None, compression_tools=None,
+                enabled_user_shutdown=False):
   """Initialise the cluster.
 
   @type candidate_pool_size: int
   @param candidate_pool_size: master candidate pool size
+
   @type enabled_disk_templates: list of string
   @param enabled_disk_templates: list of disk_templates to be used in this
     cluster
+
+  @type enabled_user_shutdown: bool
+  @param enabled_user_shutdown: whether user shutdown is enabled cluster
+                                wide
 
   """
   # TODO: complete the docstring
@@ -827,7 +833,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     osparams_private_cluster={},
     install_image=install_image,
     zeroing_image=zeroing_image,
-    compression_tools=compression_tools
+    compression_tools=compression_tools,
+    enabled_user_shutdown=enabled_user_shutdown,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,

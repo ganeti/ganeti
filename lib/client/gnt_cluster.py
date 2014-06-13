@@ -278,6 +278,12 @@ def InitCluster(opts, args):
   compression_tools = _GetCompressionTools(opts)
 
   default_ialloc_params = opts.default_iallocator_params
+
+  if opts.enabled_user_shutdown:
+    enabled_user_shutdown = True
+  else:
+    enabled_user_shutdown = False
+
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
@@ -310,7 +316,8 @@ def InitCluster(opts, args):
                         enabled_disk_templates=enabled_disk_templates,
                         install_image=install_image,
                         zeroing_image=zeroing_image,
-                        compression_tools=compression_tools
+                        compression_tools=compression_tools,
+                        enabled_user_shutdown=enabled_user_shutdown,
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
@@ -566,6 +573,7 @@ def ShowClusterConfig(opts, args):
        result["instance_communication_network"]),
       ("zeroing image", result["zeroing_image"]),
       ("compression tools", result["compression_tools"]),
+      ("enabled user shutdown", result["enabled_user_shutdown"]),
       ]),
 
     ("Default node parameters",
@@ -1158,7 +1166,9 @@ def SetClusterParams(opts, args):
           opts.instance_communication_network is not None or
           opts.zeroing_image is not None or
           opts.shared_file_storage_dir is not None or
-          opts.compression_tools is not None):
+          opts.compression_tools is not None or
+          opts.shared_file_storage_dir is not None or
+          opts.enabled_user_shutdown is not None):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1276,7 +1286,8 @@ def SetClusterParams(opts, args):
     instance_communication_network=opts.instance_communication_network,
     zeroing_image=opts.zeroing_image,
     shared_file_storage_dir=opts.shared_file_storage_dir,
-    compression_tools=compression_tools
+    compression_tools=compression_tools,
+    enabled_user_shutdown=opts.enabled_user_shutdown,
     )
   return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
@@ -2142,7 +2153,9 @@ commands = {
      GLOBAL_SHARED_FILEDIR_OPT, USE_EXTERNAL_MIP_SCRIPT, DISK_PARAMS_OPT,
      HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
      IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT, INSTALL_IMAGE_OPT,
-     ZEROING_IMAGE_OPT, COMPRESSION_TOOLS_OPT]
+     ZEROING_IMAGE_OPT, COMPRESSION_TOOLS_OPT,
+     ENABLED_USER_SHUTDOWN_OPT,
+     ]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
   "destroy": (
@@ -2225,7 +2238,8 @@ commands = {
      DEFAULT_IALLOCATOR_PARAMS_OPT, RESERVED_LVS_OPT, DRY_RUN_OPT, PRIORITY_OPT,
      PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT,
      DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] + SUBMIT_OPTS +
-     [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT] +
+     [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT,
+      ENABLED_USER_SHUTDOWN_OPT] +
      INSTANCE_POLICY_OPTS +
      [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
       COMPRESSION_TOOLS_OPT],

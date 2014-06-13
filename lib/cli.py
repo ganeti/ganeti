@@ -85,6 +85,7 @@ __all__ = [
   "EARLY_RELEASE_OPT",
   "ENABLED_HV_OPT",
   "ENABLED_DISK_TEMPLATES_OPT",
+  "ENABLED_USER_SHUTDOWN_OPT",
   "ERROR_CODES_OPT",
   "FAILURE_ONLY_OPT",
   "FIELDS_OPT",
@@ -1312,6 +1313,12 @@ ENABLED_DISK_TEMPLATES_OPT = cli_option("--enabled-disk-templates",
                                         help="Comma-separated list of "
                                              "disk templates",
                                         type="string", default=None)
+
+ENABLED_USER_SHUTDOWN_OPT = cli_option("--user-shutdown",
+                                       default=None,
+                                       dest="enabled_user_shutdown",
+                                       help="Whether user shutdown is enabled",
+                                       type="bool")
 
 NIC_PARAMS_OPT = cli_option("-N", "--nic-parameters", dest="nicparams",
                             type="keyval", default={},

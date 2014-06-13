@@ -382,7 +382,7 @@ _BLOCKDEV_CALLS = [
     ], None, None, "Request a pause/resume of given block device"),
   ("blockdev_assemble", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("disk", ED_SINGLE_DISK_DICT_DP, None),
-    ("owner", None, None),
+    ("instance", ED_INST_DICT, None),
     ("on_primary", None, None),
     ("idx", None, None),
     ], None, None, "Request assembling of a given block device"),
@@ -513,6 +513,10 @@ _NODE_CALLS = [
     ("token_request", None,
      "List of tuples of requested crypto token types, actions"),
     ], None, None, "Handle crypto tokens of the node."),
+  ("node_ensure_daemon", MULTI, None, constants.RPC_TMO_URGENT, [
+    ("daemon", None, "Daemon name"),
+    ("run", None, "Whether the daemon should be running or stopped"),
+    ], None, None, "Ensure daemon is running on the node."),
   ]
 
 _MISC_CALLS = [

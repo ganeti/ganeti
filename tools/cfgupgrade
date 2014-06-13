@@ -160,6 +160,8 @@ def UpgradeCluster(config_data):
     cluster.get("zeroing_image", "")
   cluster["compression_tools"] = \
     cluster.get("compression_tools", constants.IEC_DEFAULT_TOOLS)
+  if "enabled_user_shutdown" not in cluster:
+    cluster["enabled_user_shutdown"] = False
 
 
 def UpgradeGroups(config_data):

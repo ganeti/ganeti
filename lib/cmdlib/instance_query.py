@@ -232,8 +232,9 @@ class LUInstanceQueryData(NoHooksLU):
         remote_info = remote_info.payload
 
         allow_userdown = \
-            instance.hypervisor != constants.HT_KVM or \
-            hvparams[constants.HV_KVM_USER_SHUTDOWN]
+            cluster.enabled_user_shutdown and \
+            (instance.hypervisor != constants.HT_KVM or
+             hvparams[constants.HV_KVM_USER_SHUTDOWN])
 
         if remote_info and "state" in remote_info:
           if hv_base.HvInstanceState.IsShutdown(remote_info["state"]):

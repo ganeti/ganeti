@@ -101,10 +101,31 @@ _RUNTIME_DEVICE = {
   }
 _RUNTIME_ENTRY = {
   constants.HOTPLUG_TARGET_NIC: lambda d, e: d,
-  constants.HOTPLUG_TARGET_DISK: lambda d, e: (d, e, None)
+  constants.HOTPLUG_TARGET_DISK: lambda d, e: (d, e[0], e[1])
   }
 
 _MIGRATION_CAPS_DELIM = ":"
+
+
+def _GetDriveURI(disk, link, uri):
+  """Helper function to get the drive uri to be used in --drive kvm option
+
+  @type disk: L{objects.Disk}
+  @param disk: A disk configuration object
+  @type link: string
+  @param link: The device link as returned by _SymlinkBlockDev()
+  @type uri: string
+  @param uri: The drive uri as returned by _CalculateDeviceURI()
+
+  """
+  access_mode = disk.params.get(constants.LDP_ACCESS,
+                                constants.DISK_KERNELSPACE)
+  if (uri and access_mode == constants.DISK_USERSPACE):
+    drive_uri = uri
+  else:
+    drive_uri = link
+
+  return drive_uri
 
 
 def _GenerateDeviceKVMId(dev_type, dev):
@@ -816,7 +837,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type instance_name: string
     @param instance_name: the instance name
     @type hvparams: dict of strings
-    @param hvparams: hvparams to be used with this instance
+    @param hvparams: hypervisor parameters to be used with this instance
     @rtype: tuple of strings
     @return: (name, id, memory, vcpus, stat, times)
 
@@ -849,7 +870,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Get properties of all instances.
 
     @type hvparams: dict of strings
-    @param hvparams: hypervisor parameter
+    @param hvparams: hypervisor parameters
     @return: list of tuples (name, id, memory, vcpus, stat, times)
 
     """
@@ -937,12 +958,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
           boot_val = ",boot=on"
 
-      access_mode = cfdev.params.get(constants.LDP_ACCESS,
-                                     constants.DISK_KERNELSPACE)
-      if (uri and access_mode == constants.DISK_USERSPACE):
-        drive_uri = uri
-      else:
-        drive_uri = link_name
+      drive_uri = _GetDriveURI(cfdev, link_name, uri)
 
       drive_val = "file=%s,format=raw%s%s%s%s" % \
                   (drive_uri, if_val, boot_val, cache_val, aio_val)
@@ -1735,6 +1751,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _StartKvmd(hvparams):
     """Ensure that the Kvm daemon is running.
 
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters
+
     """
     if hvparams is None \
           or not hvparams[constants.HV_KVM_USER_SHUTDOWN] \
@@ -1896,8 +1915,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_devid = _GenerateDeviceKVMId(dev_type, device)
     runtime = self._LoadKVMRuntime(instance)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
+      drive_uri = _GetDriveURI(device, extra[0], extra[1])
       cmds = ["drive_add dummy file=%s,if=none,id=%s,format=raw" %
-                (extra, kvm_devid)]
+                (drive_uri, kvm_devid)]
       cmds += ["device_add virtio-blk-pci,bus=pci.0,addr=%s,drive=%s,id=%s" %
                 (hex(device.pci), kvm_devid, kvm_devid)]
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
@@ -2371,8 +2391,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def CheckParameterSyntax(cls, hvparams):
     """Check the given parameters for validity.
 
-    @type hvparams:  dict
-    @param hvparams: dictionary with parameter names/value
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters
     @raise errors.HypervisorError: when a parameter is not valid
 
     """
@@ -2444,8 +2464,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def ValidateParameters(cls, hvparams):
     """Check the given parameters for validity.
 
-    @type hvparams:  dict
-    @param hvparams: dictionary with parameter names/value
+    @type hvparams: dict of strings
+    @param hvparams: hypervisor parameters
     @raise errors.HypervisorError: when a parameter is not valid
 
     """
@@ -2506,7 +2526,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """KVM powercycle, just a wrapper over Linux powercycle.
 
     @type hvparams: dict of strings
-    @param hvparams: hypervisor params to be used on this node
+    @param hvparams: hypervisor parameters to be used on this node
 
     """
     cls.LinuxPowercycle()

@@ -1605,6 +1605,7 @@ class Cluster(TaggableObject):
     "instance_communication_network",
     "zeroing_image",
     "compression_tools",
+    "enabled_user_shutdown",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -1747,6 +1748,9 @@ class Cluster(TaggableObject):
 
     if self.compression_tools is None:
       self.compression_tools = constants.IEC_DEFAULT_TOOLS
+
+    if self.enabled_user_shutdown is None:
+      self.enabled_user_shutdown = False
 
   @property
   def primary_hypervisor(self):

@@ -1292,6 +1292,7 @@ def _TestInstanceUserDownKvm(instance):
     AssertCommand("pkill -f \"\\-name %s\"" % instance.name, node=primary)
     time.sleep(10)
 
+  AssertCommand(["gnt-cluster", "modify", "--user-shutdown=true"])
   AssertCommand(["gnt-instance", "modify", "-H", "user_shutdown=true",
                  instance.name])
 
@@ -1303,6 +1304,10 @@ def _TestInstanceUserDownKvm(instance):
 
   primary = _GetInstanceField(instance.name, "pnode")
   _TestInstanceUserDown(instance, _StopKVMInstance)
+
+  AssertCommand(["gnt-instance", "modify", "-H", "user_shutdown=false",
+                 instance.name])
+  AssertCommand(["gnt-cluster", "modify", "--user-shutdown=false"])
 
 
 def TestInstanceUserDown(instance):

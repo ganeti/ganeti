@@ -209,11 +209,11 @@ class LUInstanceShutdown(LogicalUnit):
     """Check arguments.
 
     """
-    if self.op.no_remember and self.op.admin_state_source:
+    if self.op.no_remember and self.op.admin_state_source is not None:
       self.LogWarning("Parameter 'admin_state_source' has no effect if used"
                       " with parameter 'no_remember'")
 
-    if not self.op.admin_state_source:
+    if self.op.admin_state_source is None:
       self.op.admin_state_source = constants.ADMIN_SOURCE
 
   def BuildHooksEnv(self):

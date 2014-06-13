@@ -243,6 +243,7 @@ $(genOpCode "OpCode"
      , pInstanceCommunicationNetwork
      , pZeroingImage
      , pCompressionTools
+     , pEnabledUserShutdown
      ],
      [])
   , ("OpClusterRedistConf",
