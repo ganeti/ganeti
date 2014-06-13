@@ -339,13 +339,32 @@ class LUNodeAdd(LogicalUnit):
       result.Raise("Failed to initialize OpenVSwitch on new node")
 
   def _SshUpdate(self, new_node_uuid, new_node_name, is_master_candidate,
-                 is_potential_master_candidate, rpcrunner):
+                 is_potential_master_candidate, rpcrunner, readd):
     """Update the SSH setup of all nodes after adding a new node.
+
+    @type readd: boolean
+    @param readd: whether or not this node is readded
 
     """
     potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
     master_node = self.cfg.GetMasterNode()
     port_map = GetSshPortMap(potential_master_candidates, self.cfg)
+
+    if readd:
+      # clear previous keys
+      master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
+      remove_result = rpcrunner.call_node_ssh_key_remove(
+        [master_node],
+        new_node_uuid, new_node_name,
+        True, # from authorized keys
+        True, # from public keys
+        False, # clear authorized keys
+        port_map,
+        master_candidate_uuids,
+        potential_master_candidates)
+      remove_result[master_node].Raise(
+        "Could not remove SSH keys of node %s before readding,"
+        " (UUID: %s)." % (new_node_name, new_node_uuid))
 
     result = rpcrunner.call_node_ssh_key_add(
       [master_node], new_node_uuid, new_node_name,
@@ -462,7 +481,7 @@ class LUNodeAdd(LogicalUnit):
       # FIXME: so far, all nodes are considered potential master candidates
       self._SshUpdate(self.new_node.uuid, self.new_node.name,
                       self.new_node.master_candidate, True,
-                      self.rpc)
+                      self.rpc, self.op.readd)
 
 
 class LUNodeSetParams(LogicalUnit):
