@@ -32,6 +32,7 @@ import signal
 import sys
 import time
 
+from ganeti import mcpu
 from ganeti.server import masterd
 from ganeti.rpc import transport
 from ganeti import utils
@@ -82,7 +83,9 @@ def main():
     signal.signal(signal.SIGTERM, _TermHandler)
 
     def _HupHandler(signum, _frame):
-      logging.info("Received signal %d, ignoring", signum)
+      logging.debug("Received signal %d, old flag was %s, will set to True",
+                    signum, mcpu.sighupReceived)
+      mcpu.sighupReceived[0] = True
     signal.signal(signal.SIGHUP, _HupHandler)
 
     logging.debug("Picking up job %d", job_id)
