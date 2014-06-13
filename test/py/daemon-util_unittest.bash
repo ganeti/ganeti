@@ -49,7 +49,7 @@ if grep -q '^ENABLE_MOND = True' lib/_constants.py; then
   STOPDAEMONS_LIST="mond $STOPDAEMONS_LIST"
 fi
 
-STOPDAEMONS_LIST="kvmd metad $STOPDAEMONS_LIST"
+STOPDAEMONS_LIST="metad $STOPDAEMONS_LIST"
 
 DAEMONS=$(echo $(for d in $DAEMONS_LIST; do echo "ganeti-$d"; done))
 STOPDAEMONS=$(echo $(for d in $STOPDAEMONS_LIST; do echo "ganeti-$d"; done))
