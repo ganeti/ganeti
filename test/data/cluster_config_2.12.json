@@ -58,6 +58,7 @@
     "enabled_hypervisors": [
       "xen-pvm"
     ],
+    "enabled_user_shutdown": false,
     "file_storage_dir": "",
     "hidden_os": [],
     "highest_used_port": 32105,
