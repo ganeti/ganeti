@@ -571,6 +571,7 @@ class LUNetworkConnect(LogicalUnit):
     self.group_name = self.op.group_name
     self.network_mode = self.op.network_mode
     self.network_link = self.op.network_link
+    self.network_vlan = ""
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
@@ -621,7 +622,9 @@ class LUNetworkConnect(LogicalUnit):
     self.netparams = {
       constants.NIC_MODE: self.network_mode,
       constants.NIC_LINK: self.network_link,
+      constants.NIC_VLAN: self.network_vlan,
       }
+
     objects.NIC.CheckParameterSyntax(self.netparams)
 
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
