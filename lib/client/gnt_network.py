@@ -160,8 +160,9 @@ def ListNetworks(opts, args):
   desired_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
   fmtoverride = {
     "group_list":
-      (lambda data: utils.CommaJoin("%s (%s, %s)" % (name, mode, link)
-                                    for (name, mode, link) in data),
+      (lambda data:
+        utils.CommaJoin("%s (%s, %s, %s)" % (name, mode, link, vlan)
+                        for (name, mode, link, vlan) in data),
        False),
     "inst_list": (",".join, False),
     "tags": (",".join, False),
@@ -240,8 +241,9 @@ def ShowNetworkConfig(_, args):
 
     if group_list:
       ToStdout("  connected to node groups:")
-      for group, nic_mode, nic_link in group_list:
-        ToStdout("    %s (%s on %s)", group, nic_mode, nic_link)
+      for group, nic_mode, nic_link, nic_vlan in group_list:
+        ToStdout("    %s (mode:%s link:%s vlan:%s)",
+                 group, nic_mode, nic_link, nic_vlan)
     else:
       ToStdout("  not connected to any node group")
 
