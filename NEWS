@@ -13,7 +13,7 @@ Version 2.11.2
   particular that after an upgrade from 2.11.0 or 2.11.1, 'cfgupgrade'
   needs to be run, either manually or explicitly by running
   'gnt-cluster upgrade --to 2.11.2' (which requires that they
-  had configured the cluster with --enable-full-version).
+  had configured the cluster with --enable-versionfull).
   This also means, that it is not easily possible to downgrade from
   2.11.2 to 2.11.1 or 2.11.0. The only way is to go back to 2.10 and
   back.
