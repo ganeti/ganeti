@@ -245,7 +245,7 @@ Connects a network to a nodegroup.
 
 :directory: network-connect
 :env. vars: GROUP_NAME, NETWORK_NAME,
-            GROUP_NETWORK_MODE, GROUP_NETWORK_LINK,
+            GROUP_NETWORK_MODE, GROUP_NETWORK_LINK, GROUP_NETWORK_VLAN,
             NETWORK_SUBNET, NETWORK_GATEWAY, NETWORK_SUBNET6,
             NETWORK_GATEWAY6, NETWORK_MAC_PREFIX, NETWORK_TAGS
 :pre-execution: nodegroup nodes
@@ -259,7 +259,7 @@ Disconnects a network from a nodegroup.
 
 :directory: network-disconnect
 :env. vars: GROUP_NAME, NETWORK_NAME,
-            GROUP_NETWORK_MODE, GROUP_NETWORK_LINK,
+            GROUP_NETWORK_MODE, GROUP_NETWORK_LINK, GROUP_NETWORK_VLAN,
             NETWORK_SUBNET, NETWORK_GATEWAY, NETWORK_SUBNET6,
             NETWORK_GATEWAY6, NETWORK_MAC_PREFIX, NETWORK_TAGS
 :pre-execution: nodegroup nodes
