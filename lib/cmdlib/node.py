@@ -427,6 +427,7 @@ class LUNodeAdd(LogicalUnit):
     else:
       self.cfg.RemoveNodeFromCandidateCerts(self.new_node.uuid, warn_fn=None)
 
+    self.cfg.FlushConfig()
     EnsureKvmdOnNodes(self, feedback_fn, nodes=[self.new_node.uuid])
 
 
@@ -807,6 +808,7 @@ class LUNodeSetParams(LogicalUnit):
     if [self.old_role, self.new_role].count(self._ROLE_CANDIDATE) == 1:
       self.context.ReaddNode(node)
 
+    self.cfg.FlushConfig()
     EnsureKvmdOnNodes(self, feedback_fn, nodes=[node.uuid])
 
     return result
