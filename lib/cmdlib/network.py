@@ -572,7 +572,7 @@ class LUNetworkConnect(LogicalUnit):
     self.group_name = self.op.group_name
     self.network_mode = self.op.network_mode
     self.network_link = self.op.network_link
-    self.network_vlan = ""
+    self.network_vlan = self.op.network_vlan
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)

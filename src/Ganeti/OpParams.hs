@@ -247,6 +247,7 @@ module Ganeti.OpParams
   , pNetworkRemoveRsvdIps
   , pNetworkMode
   , pNetworkLink
+  , pNetworkVlan
   , pDryRun
   , pDebugLevel
   , pOpPriority
@@ -1630,3 +1631,8 @@ pNetworkLink :: Field
 pNetworkLink =
   withDoc "Network link when connecting to a group" $
   simpleField "network_link" [t| NonEmptyString |]
+
+pNetworkVlan :: Field
+pNetworkVlan =
+  withDoc "Network vlan when connecting to a group" $
+  simpleField "network_vlan" [t| String |]
