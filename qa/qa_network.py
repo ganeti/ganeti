@@ -102,12 +102,11 @@ def TestNetworkConnect():
   AssertCommand(["gnt-group", "add", group1])
   AssertCommand(["gnt-network", "add", "--network", "192.0.2.0/24", network1])
 
-  AssertCommand(["gnt-network", "connect", network1, mode, link, group1])
+  AssertCommand(["gnt-network", "connect", "--nic-parameters", nicparams,
+                network1, group1])
 
   TestNetworkList()
 
-  AssertCommand(["gnt-network", "connect", "--nic-parameters", nicparams,
-                network1, group1])
   AssertCommand(["gnt-network", "disconnect", network1, group1])
 
   AssertCommand(["gnt-group", "remove", group1])
