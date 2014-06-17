@@ -35,9 +35,9 @@ import shutil
 import urllib2
 from bitarray import bitarray
 try:
-  import affinity   # pylint: disable=F0401
+  import psutil   # pylint: disable=F0401
 except ImportError:
-  affinity = None
+  psutil = None
 try:
   import fdsend   # pylint: disable=F0401
 except ImportError:
@@ -710,31 +710,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     hv_base.ConfigureNIC([pathutils.KVM_IFUP, tap], instance, seq, nic, tap)
 
-  @staticmethod
-  def _VerifyAffinityPackage():
-    if affinity is None:
-      raise errors.HypervisorError("affinity Python package not"
-                                   " found; cannot use CPU pinning under KVM")
-
-  @staticmethod
-  def _BuildAffinityCpuMask(cpu_list):
-    """Create a CPU mask suitable for sched_setaffinity from a list of
-    CPUs.
-
-    See man taskset for more info on sched_setaffinity masks.
-    For example: [ 0, 2, 5, 6 ] will return 101 (0x65, 0..01100101).
-
-    @type cpu_list: list of int
-    @param cpu_list: list of physical CPU numbers to map to vCPUs in order
-    @rtype: int
-    @return: a bit mask of CPU affinities
-
-    """
-    if cpu_list == constants.CPU_PINNING_OFF:
-      return constants.CPU_PINNING_ALL_KVM
-    else:
-      return sum(2 ** cpu for cpu in cpu_list)
-
   @classmethod
   def _SetProcessAffinity(cls, process_id, cpus):
     """Sets the affinity of a process to the given CPUs.
@@ -744,9 +719,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param cpus: The list of CPUs the process ID may use.
 
     """
-    cls._VerifyAffinityPackage()
-    affinity.set_process_affinity_mask(process_id,
-                                       cls._BuildAffinityCpuMask(cpus))
+    if psutil is None:
+      raise errors.HypervisorError("psutil Python package not"
+                                   " found; cannot use CPU pinning under KVM")
+
+    target_process = psutil.Process(process_id)
+    if cpus == constants.CPU_PINNING_OFF:
+      target_process.set_cpu_affinity(range(psutil.NUM_CPUS))
+    else:
+      target_process.set_cpu_affinity(cpus)
 
   @classmethod
   def _AssignCpuAffinity(cls, cpu_mask, process_id, thread_dict):
