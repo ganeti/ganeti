@@ -736,6 +736,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       return sum(2 ** cpu for cpu in cpu_list)
 
   @classmethod
+  def _SetProcessAffinity(cls, process_id, cpus):
+    """Sets the affinity of a process to the given CPUs.
+
+    @type process_id: int
+    @type cpus: list of int
+    @param cpus: The list of CPUs the process ID may use.
+
+    """
+    cls._VerifyAffinityPackage()
+    affinity.set_process_affinity_mask(process_id,
+                                       cls._BuildAffinityCpuMask(cpus))
+
+  @classmethod
   def _AssignCpuAffinity(cls, cpu_mask, process_id, thread_dict):
     """Change CPU affinity for running VM according to given CPU mask.
 
@@ -759,20 +772,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         # If CPU pinning has one non-all entry, map the entire VM to
         # one set of physical CPUs
-        cls._VerifyAffinityPackage()
-        affinity.set_process_affinity_mask(
-          process_id, cls._BuildAffinityCpuMask(all_cpu_mapping))
+        cls._SetProcessAffinity(process_id, all_cpu_mapping)
     else:
       # The number of vCPUs mapped should match the number of vCPUs
       # reported by KVM. This was already verified earlier, so
       # here only as a sanity check.
       assert len(thread_dict) == len(cpu_list)
-      cls._VerifyAffinityPackage()
 
       # For each vCPU, map it to the proper list of physical CPUs
-      for vcpu, i in zip(cpu_list, range(len(cpu_list))):
-        affinity.set_process_affinity_mask(thread_dict[i],
-                                           cls._BuildAffinityCpuMask(vcpu))
+      for i, vcpu in enumerate(cpu_list):
+        cls._SetProcessAffinity(thread_dict[i], vcpu)
 
   def _GetVcpuThreadIds(self, instance_name):
     """Get a mapping of vCPU no. to thread IDs for the instance
