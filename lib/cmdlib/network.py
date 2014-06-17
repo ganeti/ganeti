@@ -390,6 +390,7 @@ class LUNetworkSetParams(LogicalUnit):
 
     self.cfg.Update(self.network, feedback_fn)
 
+
 def _FmtNetworkConflict(details):
   """Utility for L{_NetworkConflictCheck}.
 

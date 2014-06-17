@@ -112,7 +112,6 @@ def ConnectNetwork(opts, args):
 
   """
   cl = GetClient()
-  qcl = GetClient(query=True)
 
   network = args[0]
   nicparams = objects.FillDict(constants.NICC_DEFAULTS, opts.nicparams)
