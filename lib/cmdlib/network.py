@@ -390,7 +390,6 @@ class LUNetworkSetParams(LogicalUnit):
 
     self.cfg.Update(self.network, feedback_fn)
 
-
 def _FmtNetworkConflict(details):
   """Utility for L{_NetworkConflictCheck}.
 
@@ -449,6 +448,7 @@ class LUNetworkConnect(LogicalUnit):
     self.group_name = self.op.group_name
     self.network_mode = self.op.network_mode
     self.network_link = self.op.network_link
+    self.network_vlan = self.op.network_vlan
 
     self.network_uuid = self.cfg.LookupNetwork(self.network_name)
     self.group_uuid = self.cfg.LookupNodeGroup(self.group_name)
@@ -479,6 +479,7 @@ class LUNetworkConnect(LogicalUnit):
       "GROUP_NAME": self.group_name,
       "GROUP_NETWORK_MODE": self.network_mode,
       "GROUP_NETWORK_LINK": self.network_link,
+      "GROUP_NETWORK_VLAN": self.network_vlan,
       }
     return ret
 
@@ -499,7 +500,9 @@ class LUNetworkConnect(LogicalUnit):
     self.netparams = {
       constants.NIC_MODE: self.network_mode,
       constants.NIC_LINK: self.network_link,
+      constants.NIC_VLAN: self.network_vlan,
       }
+
     objects.NIC.CheckParameterSyntax(self.netparams)
 
     self.group = self.cfg.GetNodeGroup(self.group_uuid)
@@ -562,6 +565,13 @@ class LUNetworkDisconnect(LogicalUnit):
     ret = {
       "GROUP_NAME": self.group_name,
       }
+
+    if self.connected:
+      ret.update({
+        "GROUP_NETWORK_MODE": self.netparams[constants.NIC_MODE],
+        "GROUP_NETWORK_LINK": self.netparams[constants.NIC_LINK],
+        "GROUP_NETWORK_VLAN": self.netparams[constants.NIC_VLAN],
+        })
     return ret
 
   def BuildHooksNodes(self):
@@ -590,6 +600,7 @@ class LUNetworkDisconnect(LogicalUnit):
         self, lambda nic: nic.network == self.network_uuid, "disconnect from",
         [instance_info for (_, instance_info) in
          self.cfg.GetMultiInstanceInfoByName(owned_instances)])
+      self.netparams = self.group.networks.get(self.network_uuid)
 
   def Exec(self, feedback_fn):
     # Disconnect the network and update the group only if network is connected

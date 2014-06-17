@@ -32,6 +32,7 @@ from ganeti import constants
 from ganeti import opcodes
 from ganeti import utils
 from ganeti import errors
+from ganeti import objects
 
 
 #: default list of fields for L{ListNetworks}
@@ -113,15 +114,18 @@ def ConnectNetwork(opts, args):
   cl = GetClient()
   qcl = GetClient(query=True)
 
-  (network, mode, link) = args[:3]
-  groups = _GetDefaultGroups(qcl, args[3:])
+  network = args[0]
+  nicparams = objects.FillDict(constants.NICC_DEFAULTS, opts.nicparams)
+
+  groups = _GetDefaultGroups(cl, args[1:])
 
   # TODO: Change logic to support "--submit"
   for group in groups:
     op = opcodes.OpNetworkConnect(group_name=group,
                                   network_name=network,
-                                  network_mode=mode,
-                                  network_link=link,
+                                  network_mode=nicparams[constants.NIC_MODE],
+                                  network_link=nicparams[constants.NIC_LINK],
+                                  network_vlan=nicparams[constants.NIC_VLAN],
                                   conflicts_check=opts.conflicts_check)
     SubmitOpCode(op, opts=opts, cl=cl)
 
@@ -162,8 +166,9 @@ def ListNetworks(opts, args):
   desired_fields = ParseFields(opts.output, _LIST_DEF_FIELDS)
   fmtoverride = {
     "group_list":
-      (lambda data: utils.CommaJoin("%s (%s, %s)" % (name, mode, link)
-                                    for (name, mode, link) in data),
+      (lambda data:
+        utils.CommaJoin("%s (%s, %s, %s)" % (name, mode, link, vlan)
+                        for (name, mode, link, vlan) in data),
        False),
     "inst_list": (",".join, False),
     "tags": (",".join, False),
@@ -242,8 +247,9 @@ def ShowNetworkConfig(_, args):
 
     if group_list:
       ToStdout("  connected to node groups:")
-      for group, nic_mode, nic_link in group_list:
-        ToStdout("    %s (%s on %s)", group, nic_mode, nic_link)
+      for group, nic_mode, nic_link, nic_vlan in group_list:
+        ToStdout("    %s (mode:%s link:%s vlan:%s)",
+                 group, nic_mode, nic_link, nic_vlan)
     else:
       ToStdout("  not connected to any node group")
 
@@ -340,10 +346,8 @@ commands = {
   "connect": (
     ConnectNetwork,
     [ArgNetwork(min=1, max=1),
-     ArgChoice(min=1, max=1, choices=constants.NIC_VALID_MODES),
-     ArgUnknown(min=1, max=1),
      ArgGroup()],
-    [NOCONFLICTSCHECK_OPT, PRIORITY_OPT],
+    [NOCONFLICTSCHECK_OPT, PRIORITY_OPT, NIC_PARAMS_OPT],
     "<network_name> <mode> <link> [<node_group>...]",
     "Map a given network to the specified node group"
     " with given mode and link (netparams)"),

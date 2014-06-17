@@ -1521,6 +1521,9 @@ class NodeGroup(TaggableObject):
     if self.networks is None:
       self.networks = {}
 
+    for network, netparams in self.networks.items():
+      self.networks[network] = FillDict(constants.NICC_DEFAULTS, netparams)
+
   def FillND(self, node):
     """Return filled out ndparams for L{objects.Node}
 

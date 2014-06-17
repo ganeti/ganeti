@@ -252,6 +252,7 @@ module Ganeti.OpParams
   , pNetworkRemoveRsvdIps
   , pNetworkMode
   , pNetworkLink
+  , pNetworkVlan
   , pDryRun
   , pDebugLevel
   , pOpPriority
@@ -1685,3 +1686,8 @@ pAdminStateSource =
   withDoc "Who last changed the instance admin state" .
   optionalField $
   simpleField "admin_state_source" [t| AdminStateSource |]
+
+pNetworkVlan :: Field
+pNetworkVlan =
+  withDoc "Network vlan when connecting to a group" $
+  simpleField "network_vlan" [t| String |]

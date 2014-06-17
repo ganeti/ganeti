@@ -1098,6 +1098,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if nic.nicparams[constants.NIC_LINK]:
       env["LINK"] = nic.nicparams[constants.NIC_LINK]
 
+    if nic.nicparams[constants.NIC_VLAN]:
+      env["VLAN"] = nic.nicparams[constants.NIC_VLAN]
+
     if nic.network:
       n = objects.Network.FromDict(nic.netinfo)
       env.update(n.HooksDict())
