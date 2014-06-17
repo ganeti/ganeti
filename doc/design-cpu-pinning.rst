@@ -202,10 +202,13 @@ details.
 For example, to run a specific thread-id on CPUs 1 or 3 the mask is
 0x0000000A.
 
-We will control process and thread affinity using the python affinity
-package (http://pypi.python.org/pypi/affinity). This package is a Python
-wrapper around the two affinity system calls, and has no other
-requirements.
+As of 2.12, the psutil python package
+(https://github.com/giampaolo/psutil) will be used to control process
+and thread affinity. The affinity python package
+(http://pypi.python.org/pypi/affinity) was used before, but it was not
+invoking the two underlying system calls appropriately, using a cast
+instead of the CPU_SET macro, causing failures for masks referencing
+more than 63 CPUs.
 
 Alternative Design Options
 --------------------------
