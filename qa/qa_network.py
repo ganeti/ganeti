@@ -97,10 +97,13 @@ def TestNetworkConnect():
     mode = default_mode
     link = default_link
 
+  nicparams = "mode=%s,link=%s" % (mode, link)
+
   AssertCommand(["gnt-group", "add", group1])
   AssertCommand(["gnt-network", "add", "--network", "192.0.2.0/24", network1])
 
-  AssertCommand(["gnt-network", "connect", network1, mode, link, group1])
+  AssertCommand(["gnt-network", "connect", "--nic-parameters", nicparams,
+                network1, group1])
 
   TestNetworkList()
 

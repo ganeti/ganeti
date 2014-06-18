@@ -445,7 +445,7 @@ instance Arbitrary OpCodes.OpCode where
           genMaybe (listOf genIPv4Address)
       "OP_NETWORK_CONNECT" ->
         OpCodes.OpNetworkConnect <$> genNameNE <*> genNameNE <*>
-          arbitrary <*> genNameNE <*> arbitrary
+          arbitrary <*> genNameNE <*> arbitrary <*> arbitrary
       "OP_NETWORK_DISCONNECT" ->
         OpCodes.OpNetworkDisconnect <$> genNameNE <*> genNameNE
       "OP_RESTRICTED_COMMAND" ->

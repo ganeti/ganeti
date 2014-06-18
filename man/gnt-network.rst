@@ -147,14 +147,18 @@ CONNECT
 
 | **connect**
 | [\--no-conflicts-check]
-| {*network*} {*mode*} {*link*} [*groups*...]
+| [{-N|\--nic-parameters} *nic-param*=*value*[,*nic-param*=*value*...]]
+| {*network*} [*groups*...]
 
 Connect a network to given node groups (all if not specified) with the
-network parameters *mode* and *link*. Every network interface will
-inherit those parameters if assigned in a network.
+network parameters defined via the ``--nic-parameters`` option. Every
+network interface will inherit those parameters if assigned to a network.
 
 The ``--no-conflicts-check`` option can be used to skip the check for
 conflicting IP addresses.
+
+Passing *mode* and *link* as possitional arguments along with
+*network* and *groups* is deprecated and not supported any more.
 
 DISCONNECT
 ~~~~~~~~~~
