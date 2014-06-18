@@ -14,6 +14,9 @@ Incompatible/important changes
   when launched in debug mode. Some debug logging violates some of the new
   invariants in the system (see "New features"). The logging has been kept as
   it aids diagnostics and development.
+- The KVM CPU pinning no longer uses the affinity python package, but psutil
+  instead. The package is still optional and needed only if the feature is to
+  be used.
 
 New features
 ~~~~~~~~~~~~
@@ -50,7 +53,7 @@ Version 2.11.2
   particular that after an upgrade from 2.11.0 or 2.11.1, 'cfgupgrade'
   needs to be run, either manually or explicitly by running
   'gnt-cluster upgrade --to 2.11.2' (which requires that they
-  had configured the cluster with --enable-full-version).
+  had configured the cluster with --enable-versionfull).
   This also means, that it is not easily possible to downgrade from
   2.11.2 to 2.11.1 or 2.11.0. The only way is to go back to 2.10 and
   back.

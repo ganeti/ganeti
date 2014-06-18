@@ -2018,8 +2018,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     return self._SendRequest(HTTP_POST, "/%s/networks" % GANETI_RAPI_VERSION,
                              query, body)
 
-  def ConnectNetwork(self, network_name, group_name, mode, link, dry_run=False,
-                     reason=None):
+  def ConnectNetwork(self, network_name, group_name, mode, link,
+                     vlan="", dry_run=False, reason=None):
     """Connects a Network to a NodeGroup with the given netparams
 
     """
@@ -2027,6 +2027,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
       "group_name": group_name,
       "network_mode": mode,
       "network_link": link,
+      "network_vlan": vlan,
       }
 
     query = []

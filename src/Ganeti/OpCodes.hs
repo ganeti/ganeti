@@ -924,6 +924,7 @@ $(genOpCode "OpCode"
      , pNetworkName
      , pNetworkMode
      , pNetworkLink
+     , pNetworkVlan
      , pIpConflictsCheck
      ],
      "network_name")
