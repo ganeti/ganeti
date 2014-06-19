@@ -1,12 +1,10 @@
-{-# LANGUAGE TemplateHaskell, FunctionalDependencies #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
-{-| Implementation of the Ganeti Instance config object.
-
--}
+{-| Common functions for partial parameters -}
 
 {-
 
-Copyright (C) 2014 Google Inc.
+Copyright (C) 2012 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,26 +32,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -}
 
-module Ganeti.Objects.Nic where
+module Ganeti.PartialParams
+  ( PartialParams(..)
+  ) where
 
-import Ganeti.THH
-import Ganeti.THH.Field
-import Ganeti.Types
-
-$(buildParam "Nic" "nicp"
-  [ simpleField "mode" [t| NICMode |]
-  , simpleField "link" [t| String  |]
-  , simpleField "vlan" [t| String |]
-  ])
-
-$(buildObject "PartialNic" "nic" $
-  [ simpleField "mac" [t| String |]
-  , optionalField $ simpleField "ip" [t| String |]
-  , simpleField "nicparams" [t| PartialNicParams |]
-  , optionalField $ simpleField "network" [t| String |]
-  , optionalField $ simpleField "name" [t| String |]
-  ] ++ uuidFields)
-
-instance UuidObject PartialNic where
-  uuidOf = nicUuid
-
+-- | Represents that data type @p@ provides partial values for
+-- data type @f@.
+--
+-- Note: To avoid needless type annotations, the functional dependencies
+-- currently include @f -> p@. However, in theory it'd be possible for one
+-- filled data type to have several partially filled ones.
+--
+-- Laws:
+--
+-- 1. @fillParams (fillParams f p) p = fillParams f p@.
+class PartialParams f p | p -> f, f -> p where
+  -- | Fill @f@ with any data that are set in @p@.
+  -- Leave other parts of @f@ unchanged.
+  fillParams :: f -> p -> f

@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, StandaloneDeriving #-}
+{-# LANGUAGE TemplateHaskell, FunctionalDependencies #-}
 
 {-| Implementation of the Ganeti config objects.
 
@@ -40,7 +40,6 @@ module Ganeti.Objects
   , OsParamsPrivate
   , PartialNicParams(..)
   , FilledNicParams(..)
-  , fillNicParams
   , allNicParamFields
   , PartialNic(..)
   , FileDriver(..)
@@ -57,14 +56,12 @@ module Ganeti.Objects
   , PartialNDParams(..)
   , emptyPartialNDParams
   , FilledNDParams(..)
-  , fillNDParams
   , allNDParamFields
   , Node(..)
   , AllocPolicy(..)
   , FilledISpecParams(..)
   , PartialISpecParams(..)
   , emptyPartialISpecParams
-  , fillISpecParams
   , allISpecParamFields
   , MinMaxISpecs(..)
   , FilledIPolicy(..)
@@ -112,6 +109,7 @@ module Ganeti.Objects
   , nextIp4Address
   , IAllocatorParams
   , MasterNetworkParameters(..)
+  , module Ganeti.PartialParams
   ) where
 
 import Control.Applicative
@@ -139,6 +137,7 @@ import Ganeti.Objects.BitArray (BitArray)
 import Ganeti.Objects.Nic
 import Ganeti.Objects.Instance
 import Ganeti.Query.Language
+import Ganeti.PartialParams
 import Ganeti.Types
 import Ganeti.THH
 import Ganeti.THH.Field
@@ -600,7 +599,7 @@ fillIPolicy (FilledIPolicy { ipolicyMinMaxISpecs  = fminmax
   FilledIPolicy { ipolicyMinMaxISpecs  = fromMaybe fminmax pminmax
                 , ipolicyStdSpec       = case pstd of
                                          Nothing -> fstd
-                                         Just p -> fillISpecParams fstd p
+                                         Just p -> fillParams fstd p
                 , ipolicySpindleRatio  = fromMaybe fspindleRatio pspindleRatio
                 , ipolicyVcpuRatio     = fromMaybe fvcpuRatio pvcpuRatio
                 , ipolicyDiskTemplates = fromMaybe fdiskTemplates

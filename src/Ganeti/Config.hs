@@ -295,7 +295,7 @@ getGroup cfg name =
 -- | Computes a node group's node params.
 getGroupNdParams :: ConfigData -> NodeGroup -> FilledNDParams
 getGroupNdParams cfg ng =
-  fillNDParams (clusterNdparams $ configCluster cfg) (groupNdparams ng)
+  fillParams (clusterNdparams $ configCluster cfg) (groupNdparams ng)
 
 -- | Computes a node group's ipolicy.
 getGroupIpolicy :: ConfigData -> NodeGroup -> FilledIPolicy
@@ -352,7 +352,7 @@ getFilledInstBeParams :: ConfigData -> Instance -> ErrorResult FilledBeParams
 getFilledInstBeParams cfg inst = do
   let beParamMap = fromContainer . clusterBeparams . configCluster $ cfg
   parentParams <- getItem "FilledBeParams" C.ppDefault beParamMap
-  return $ fillBeParams parentParams (instBeparams inst)
+  return $ fillParams parentParams (instBeparams inst)
 
 -- | Retrieves the instance os params, missing values filled with cluster
 -- defaults. This does NOT include private and secret parameters.
@@ -497,7 +497,7 @@ buildLinkIpInstnameMap cfg =
              instances
   in foldl' (\accum (iname, nic) ->
                let pparams = nicNicparams nic
-                   fparams = fillNicParams defparams pparams
+                   fparams = fillParams defparams pparams
                    link = nicpLink fparams
                in case nicIp nic of
                     Nothing -> accum
@@ -519,7 +519,7 @@ getNodeNdParams :: ConfigData -> Node -> Maybe FilledNDParams
 getNodeNdParams cfg node = do
   group <- getGroupOfNode cfg node
   let gparams = getGroupNdParams cfg group
-  return $ fillNDParams gparams (nodeNdparams node)
+  return $ fillParams gparams (nodeNdparams node)
 
 -- * Network
 

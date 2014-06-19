@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, FunctionalDependencies #-}
 
 {-| Implementation of the Ganeti Instance config object.
 

@@ -364,7 +364,7 @@ getNicVlan params
 
 -- | Fill partial NIC params by using the defaults from the configuration.
 fillNicParamsFromConfig :: ConfigData -> PartialNicParams -> FilledNicParams
-fillNicParamsFromConfig cfg = fillNicParams (getDefaultNicParams cfg)
+fillNicParamsFromConfig cfg = fillParams (getDefaultNicParams cfg)
 
 -- | Retrieves the default network interface parameters.
 getDefaultNicParams :: ConfigData -> FilledNicParams
@@ -458,7 +458,7 @@ getOptionalIndexedNicField :: (J.JSON a)
                            -> FieldGetter Instance Runtime
 getOptionalIndexedNicField =
   getIndexedFieldWithDefault
-    (map nicNicparams . instNics) (\x _ -> getDefaultNicParams x) fillNicParams
+    (map nicNicparams . instNics) (\x _ -> getDefaultNicParams x) fillParams
 
 -- | Creates a function which produces a 'FieldGetter' when fed an index. Works
 -- for fields that should be filled out through the use of a default.

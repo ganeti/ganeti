@@ -99,6 +99,7 @@ import qualified Text.JSON as JSON
 import Text.JSON.Pretty (pp_value)
 
 import Ganeti.JSON
+import Ganeti.PartialParams
 import Ganeti.PyValue
 import Ganeti.THH.PyType
 
@@ -1365,19 +1366,18 @@ fillParam sname field_pfx fields = do
       oname_p = "pobj"
       name_f = mkName sname_f
       name_p = mkName sname_p
-      fun_name = mkName $ "fill" ++ sname ++ "Params"
       le_full = ValD (ConP name_f (map (VarP . mkName . ("f_" ++)) fnames))
                 (NormalB . VarE . mkName $ oname_f) []
       le_part = ValD (ConP name_p (map (VarP . mkName . ("p_" ++)) fnames))
                 (NormalB . VarE . mkName $ oname_p) []
       obj_new = appCons name_f $ map (VarE . mkName . ("n_" ++)) fnames
   le_new <- mapM buildFromMaybe fnames
-  funt <- [t| $(conT name_f) -> $(conT name_p) -> $(conT name_f) |]
-  let sig = SigD fun_name funt
-      fclause = Clause [VarP (mkName oname_f), VarP (mkName oname_p)]
+  let fclause = Clause [VarP (mkName oname_f), VarP (mkName oname_p)]
                 (NormalB $ LetE (le_full:le_part:le_new) obj_new) []
-      fun = FunD fun_name [fclause]
-  return [sig, fun]
+  let instType = AppT (AppT (ConT ''PartialParams) (ConT name_f)) (ConT name_p)
+  return [ InstanceD [] instType
+                     [ FunD 'fillParams [fclause]
+                     ]]
 
 -- * Template code for exceptions
 

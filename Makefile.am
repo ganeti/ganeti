@@ -941,6 +941,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Query/Query.hs \
 	src/Ganeti/Query/Server.hs \
 	src/Ganeti/Query/Types.hs \
+	src/Ganeti/PartialParams.hs \
 	src/Ganeti/Rpc.hs \
 	src/Ganeti/Runtime.hs \
 	src/Ganeti/SlotMap.hs \
