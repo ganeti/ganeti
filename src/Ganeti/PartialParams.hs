@@ -34,7 +34,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.PartialParams
   ( PartialParams(..)
+  , isComplete
   ) where
+
+import Data.Maybe (isJust)
 
 -- | Represents that data type @p@ provides partial values for
 -- data type @f@.
@@ -46,7 +49,18 @@ module Ganeti.PartialParams
 -- Laws:
 --
 -- 1. @fillParams (fillParams f p) p = fillParams f p@.
+-- 2. @fillParams _ (toPartial x) = x@.
+-- 3. @toFilled (toPartial x) = Just x@.
 class PartialParams f p | p -> f, f -> p where
   -- | Fill @f@ with any data that are set in @p@.
   -- Leave other parts of @f@ unchanged.
   fillParams :: f -> p -> f
+  -- | Fill all fields of @p@ from @f@.
+  toPartial :: f -> p
+  -- | If all fields of @p@ are filled, convert it into @f@.
+  toFilled :: p -> Maybe f
+
+-- | Returns 'True' if a given partial parameters are complete.
+-- See 'toFilled'.
+isComplete :: (PartialParams f p) => p -> Bool
+isComplete = isJust . toFilled

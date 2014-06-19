@@ -1370,10 +1370,18 @@ fillParam sname field_pfx fields = do
   let fromMaybeExp fn pn = AppE (AppE (VarE 'fromMaybe) (VarE fn)) (VarE pn)
       fupdates = appCons name_f $ zipWith fromMaybeExp fbinds pbinds
       fclause = Clause [fConP, pConP] (NormalB fupdates) []
+  -- toPartial
+  let tpupdates = appCons name_p $ map (AppE (ConE 'Just) . VarE) fbinds
+      tpclause = Clause [fConP] (NormalB tpupdates) []
+  -- toFilled
+  let tfupdates = appConsApp name_f $ map VarE pbinds
+      tfclause = Clause [pConP] (NormalB tfupdates) []
   -- the instance
   let instType = AppT (AppT (ConT ''PartialParams) (ConT name_f)) (ConT name_p)
   return [ InstanceD [] instType
                      [ FunD 'fillParams [fclause]
+                     , FunD 'toPartial [tpclause]
+                     , FunD 'toFilled [tfclause]
                      ]]
 
 -- * Template code for exceptions

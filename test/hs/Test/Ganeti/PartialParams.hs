@@ -34,6 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.PartialParams
   ( testFillParamsLaw1
+  , testToParamsLaw2
+  , testToFilledLaw3
   ) where
 
 import Test.QuickCheck
@@ -46,3 +48,11 @@ import Test.Ganeti.TestCommon
 testFillParamsLaw1 :: (PartialParams f p, Show f, Eq f)
                    => f -> p -> Property
 testFillParamsLaw1 f p = fillParams (fillParams f p) p ==? fillParams f p
+
+-- | Tests that filling partial parameters satisfies the law.
+testToParamsLaw2 :: (PartialParams f p, Show f, Eq f) => f -> f -> Property
+testToParamsLaw2 x f = fillParams x (toPartial f) ==? f
+
+-- | Tests that converting partial to filled parameters satisfies the law.
+testToFilledLaw3 :: (PartialParams f p, Show f, Eq f) => f -> Property
+testToFilledLaw3 f = toFilled (toPartial f) ==? Just f

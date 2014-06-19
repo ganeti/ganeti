@@ -125,6 +125,22 @@ prop_fillWithPartialParams =
 prop_fillPartialLaw1 :: FilledTestParams -> PartialTestParams -> Property
 prop_fillPartialLaw1 = testFillParamsLaw1
 
+-- | Tests that filling partial parameters works as expected.
+prop_toParams :: Property
+prop_toParams =
+  let filled = FilledTestParams 2 "42"
+      expected = FilledTestParams 4 "42"
+  in toPartial (FilledTestParams 2 "42") ==?
+     PartialTestParams (Just 2) (Just "42")
+
+-- | Tests that filling partial parameters satisfies the law.
+prop_fillPartialLaw2 :: FilledTestParams -> FilledTestParams -> Property
+prop_fillPartialLaw2 = testToParamsLaw2
+
+-- | Tests that filling partial parameters satisfies the law.
+prop_fillPartialLaw3 :: FilledTestParams -> Property
+prop_fillPartialLaw3 = testToFilledLaw3
+
 testSuite "THH"
             [ 'prop_OptFields
             , 'prop_TestObj_serialization
@@ -133,4 +149,7 @@ testSuite "THH"
             , 'prop_UnitObj_deserialisationFail
             , 'prop_fillWithPartialParams
             , 'prop_fillPartialLaw1
+            , 'prop_toParams
+            , 'prop_fillPartialLaw2
+            , 'prop_fillPartialLaw3
             ]
