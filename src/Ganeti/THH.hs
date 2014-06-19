@@ -1263,13 +1263,17 @@ paramTypeNames :: String -> (String, String)
 paramTypeNames root = ("Filled"  ++ root ++ "Params",
                        "Partial" ++ root ++ "Params")
 
+-- | Compute the name of a full and a partial parameter field.
+paramFieldNames :: String -> Field -> (Name, Name)
+paramFieldNames field_pfx fd =
+  let base = field_pfx ++ fieldRecordName fd
+   in (mkName base, mkName (base ++ "P"))
+
 -- | Compute information about the type of a parameter field.
-paramFieldTypeInfo :: String -> Field -> Q (Name, Strict, Type)
+paramFieldTypeInfo :: String -> Field -> VarStrictTypeQ
 paramFieldTypeInfo field_pfx fd = do
   t <- actualFieldType fd
-  let n = mkName . (++ "P") . (field_pfx ++) .
-          fieldRecordName $ fd
-  return (n, NotStrict, AppT (ConT ''Maybe) t)
+  return (snd $ paramFieldNames field_pfx fd, NotStrict, AppT (ConT ''Maybe) t)
 
 -- | Build a parameter declaration.
 --
@@ -1348,32 +1352,25 @@ loadPParamField field = do
       loadexp = [| $(varE 'maybeFromObj) $objvar $objfield |]
   loadFnOpt field loadexp objvar
 
--- | Builds a simple declaration of type @n_x = fromMaybe f_x p_x@.
-buildFromMaybe :: String -> Q Dec
-buildFromMaybe fname =
-  valD (varP (mkName $ "n_" ++ fname))
-         (normalB [| $(varE 'fromMaybe)
-                        $(varNameE $ "f_" ++ fname)
-                        $(varNameE $ "p_" ++ fname) |]) []
-
 -- | Builds a function that executes the filling of partial parameter
 -- from a full copy (similar to Python's fillDict).
 fillParam :: String -> String -> [Field] -> Q [Dec]
 fillParam sname field_pfx fields = do
-  let fnames = map (\fd -> field_pfx ++ fieldRecordName fd) fields
-      (sname_f, sname_p) = paramTypeNames sname
-      oname_f = "fobj"
-      oname_p = "pobj"
+  let (sname_f, sname_p) = paramTypeNames sname
       name_f = mkName sname_f
       name_p = mkName sname_p
-      le_full = ValD (ConP name_f (map (VarP . mkName . ("f_" ++)) fnames))
-                (NormalB . VarE . mkName $ oname_f) []
-      le_part = ValD (ConP name_p (map (VarP . mkName . ("p_" ++)) fnames))
-                (NormalB . VarE . mkName $ oname_p) []
-      obj_new = appCons name_f $ map (VarE . mkName . ("n_" ++)) fnames
-  le_new <- mapM buildFromMaybe fnames
-  let fclause = Clause [VarP (mkName oname_f), VarP (mkName oname_p)]
-                (NormalB $ LetE (le_full:le_part:le_new) obj_new) []
+  let (fnames, pnames) = unzip $ map (paramFieldNames field_pfx) fields
+  -- due to apparent bugs in some older GHC versions, we need to add these
+  -- prefixes to avoid "binding shadows ..." errors
+  fbinds <- mapM (newName . ("f_" ++) . nameBase) fnames
+  let fConP = ConP name_f (map VarP fbinds)
+  pbinds <- mapM (newName . ("p_" ++) . nameBase) pnames
+  let pConP = ConP name_p (map VarP pbinds)
+  -- fillParams
+  let fromMaybeExp fn pn = AppE (AppE (VarE 'fromMaybe) (VarE fn)) (VarE pn)
+      fupdates = appCons name_f $ zipWith fromMaybeExp fbinds pbinds
+      fclause = Clause [fConP, pConP] (NormalB fupdates) []
+  -- the instance
   let instType = AppT (AppT (ConT ''PartialParams) (ConT name_f)) (ConT name_p)
   return [ InstanceD [] instType
                      [ FunD 'fillParams [fclause]
