@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, FunctionalDependencies #-}
+{-# OPTIONS -fno-warn-unused-binds #-}
 
 {-| Unittests for our template-haskell generated code.
 
@@ -43,7 +44,9 @@ import Test.QuickCheck
 import Text.JSON
 
 import Ganeti.THH
+import Ganeti.PartialParams
 
+import Test.Ganeti.PartialParams
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
@@ -102,10 +105,32 @@ prop_UnitObj_deserialisationFail =
   forAll ((arbitrary :: Gen [(String, Int)]) `suchThat` (not . null))
   $ testDeserialisationFail UnitObj . encJSDict
 
+$(buildParam "Test" "tparam"
+  [ simpleField "c" [t| Int |]
+  , simpleField "d" [t| String  |]
+  ])
+
+$(genArbitrary ''FilledTestParams)
+$(genArbitrary ''PartialTestParams)
+
+-- | Tests that filling partial parameters works as expected.
+prop_fillWithPartialParams :: Property
+prop_fillWithPartialParams =
+  let partial = PartialTestParams (Just 4) Nothing
+      filled = FilledTestParams 2 "42"
+      expected = FilledTestParams 4 "42"
+  in fillParams filled partial ==? expected
+
+-- | Tests that filling partial parameters satisfies the law.
+prop_fillPartialLaw1 :: FilledTestParams -> PartialTestParams -> Property
+prop_fillPartialLaw1 = testFillParamsLaw1
+
 testSuite "THH"
             [ 'prop_OptFields
             , 'prop_TestObj_serialization
             , 'prop_TestObj_deserialisationFail
             , 'prop_UnitObj_serialization
             , 'prop_UnitObj_deserialisationFail
+            , 'prop_fillWithPartialParams
+            , 'prop_fillPartialLaw1
             ]

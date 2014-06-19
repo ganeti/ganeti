@@ -1028,6 +1028,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Locking/Locks.hs \
 	test/hs/Test/Ganeti/Locking/Waiting.hs \
 	test/hs/Test/Ganeti/Network.hs \
+	test/hs/Test/Ganeti/PartialParams.hs \
 	test/hs/Test/Ganeti/Objects.hs \
 	test/hs/Test/Ganeti/Objects/BitArray.hs \
 	test/hs/Test/Ganeti/OpCodes.hs \
