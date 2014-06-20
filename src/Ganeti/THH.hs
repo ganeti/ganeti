@@ -377,6 +377,16 @@ appFn :: Exp -> Exp -> Exp
 appFn f x | f == VarE 'id = x
           | otherwise = AppE f x
 
+-- | Apply a constructor to a list of expressions
+appCons :: Name -> [Exp] -> Exp
+appCons cname = foldl AppE (ConE cname)
+
+-- | Apply a constructor to a list of applicative expressions
+appConsApp :: Name -> [Exp] -> Exp
+appConsApp cname =
+  foldl (\accu e -> InfixE (Just accu) (VarE '(<*>)) (Just e))
+          (AppE (VarE 'pure) (ConE cname))
+
 -- | Builds a field for a normal constructor.
 buildConsField :: Q Type -> StrictTypeQ
 buildConsField ftype = do
@@ -817,15 +827,8 @@ genSaveOpCode opdefs fn = mapM fn opdefs
 -- | Generates load code for a single constructor of the opcode data type.
 -- The type of the resulting expression is @WriterT UsedKeys J.Result a@.
 loadConstructor :: Name -> (Field -> Q Exp) -> [Field] -> Q Exp
-loadConstructor name loadfn fields = do
-  fnames <- mapM (newName . ("r_" ++) . fieldName) fields
-  fexps <- mapM loadfn fields
-  let fstmts = zipWith (BindS . VarP) fnames fexps
-      cexp = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) fnames
-      retstmt = [NoBindS (AppE (VarE 'return) cexp)]
-      -- FIXME: should we require an empty dict for an empty type?
-      -- this allows any JSValue right now
-  [| MT.lift $(return $ DoE (fstmts ++ retstmt))
+loadConstructor name loadfn fields =
+  [| MT.lift $(appConsApp name <$> mapM loadfn fields)
      <* tell $(fieldsUsedKeysQ fields) |]
 
 -- | Generates load code for a single constructor of the opcode data type.
@@ -1226,8 +1229,7 @@ fillParam sname field_pfx fields = do
                 (NormalB . VarE . mkName $ oname_f) []
       le_part = ValD (ConP name_p (map (VarP . mkName . ("p_" ++)) fnames))
                 (NormalB . VarE . mkName $ oname_p) []
-      obj_new = foldl (\accu vname -> AppE accu (VarE vname)) (ConE name_f)
-                $ map (mkName . ("n_" ++)) fnames
+      obj_new = appCons name_f $ map (VarE . mkName . ("n_" ++)) fnames
   le_new <- mapM buildFromMaybe fnames
   funt <- [t| $(conT name_f) -> $(conT name_p) -> $(conT name_f) |]
   let sig = SigD fun_name funt
@@ -1291,7 +1293,7 @@ loadExcConstructor inname sname fields = do
   let binds = case f_names of
                 [x] -> BindS (ListP [VarP x])
                 _   -> BindS (TupP (map VarP f_names))
-      cval = foldl (\accu fn -> AppE accu (VarE fn)) (ConE name) f_names
+      cval = appCons name $ map VarE f_names
   return $ DoE [binds read_args, NoBindS (AppE (VarE 'return) cval)]
 
 {-| Generates the loadException function.
