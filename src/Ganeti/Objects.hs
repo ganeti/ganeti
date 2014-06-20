@@ -66,7 +66,6 @@ module Ganeti.Objects
   , MinMaxISpecs(..)
   , FilledIPolicy(..)
   , PartialIPolicy(..)
-  , fillIPolicy
   , GroupDiskParams
   , NodeGroup(..)
   , FilterAction(..)
@@ -585,8 +584,9 @@ $(buildObject "FilledIPolicy" "ipolicy"
   ])
 
 -- | Custom filler for the ipolicy types.
-fillIPolicy :: FilledIPolicy -> PartialIPolicy -> FilledIPolicy
-fillIPolicy (FilledIPolicy { ipolicyMinMaxISpecs  = fminmax
+instance PartialParams FilledIPolicy PartialIPolicy where
+  fillParams
+            (FilledIPolicy { ipolicyMinMaxISpecs  = fminmax
                            , ipolicyStdSpec       = fstd
                            , ipolicySpindleRatio  = fspindleRatio
                            , ipolicyVcpuRatio     = fvcpuRatio
@@ -596,15 +596,34 @@ fillIPolicy (FilledIPolicy { ipolicyMinMaxISpecs  = fminmax
                             , ipolicySpindleRatioP  = pspindleRatio
                             , ipolicyVcpuRatioP     = pvcpuRatio
                             , ipolicyDiskTemplatesP = pdiskTemplates}) =
-  FilledIPolicy { ipolicyMinMaxISpecs  = fromMaybe fminmax pminmax
-                , ipolicyStdSpec       = case pstd of
-                                         Nothing -> fstd
-                                         Just p -> fillParams fstd p
+    FilledIPolicy
+                { ipolicyMinMaxISpecs  = fromMaybe fminmax pminmax
+                , ipolicyStdSpec       = maybe fstd (fillParams fstd) pstd
                 , ipolicySpindleRatio  = fromMaybe fspindleRatio pspindleRatio
                 , ipolicyVcpuRatio     = fromMaybe fvcpuRatio pvcpuRatio
                 , ipolicyDiskTemplates = fromMaybe fdiskTemplates
                                          pdiskTemplates
                 }
+  toPartial (FilledIPolicy { ipolicyMinMaxISpecs  = fminmax
+                           , ipolicyStdSpec       = fstd
+                           , ipolicySpindleRatio  = fspindleRatio
+                           , ipolicyVcpuRatio     = fvcpuRatio
+                           , ipolicyDiskTemplates = fdiskTemplates}) =
+    PartialIPolicy
+                { ipolicyMinMaxISpecsP  = Just fminmax
+                , ipolicyStdSpecP       = Just $ toPartial fstd
+                , ipolicySpindleRatioP  = Just fspindleRatio
+                , ipolicyVcpuRatioP     = Just fvcpuRatio
+                , ipolicyDiskTemplatesP = Just fdiskTemplates
+                }
+  toFilled (PartialIPolicy { ipolicyMinMaxISpecsP  = pminmax
+                           , ipolicyStdSpecP       = pstd
+                           , ipolicySpindleRatioP  = pspindleRatio
+                           , ipolicyVcpuRatioP     = pvcpuRatio
+                           , ipolicyDiskTemplatesP = pdiskTemplates}) =
+    FilledIPolicy <$> pminmax <*> (toFilled =<< pstd) <*>  pspindleRatio
+                  <*> pvcpuRatio <*> pdiskTemplates
+
 -- * Node definitions
 
 $(buildParam "ND" "ndp"

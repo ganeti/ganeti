@@ -300,7 +300,7 @@ getGroupNdParams cfg ng =
 -- | Computes a node group's ipolicy.
 getGroupIpolicy :: ConfigData -> NodeGroup -> FilledIPolicy
 getGroupIpolicy cfg ng =
-  fillIPolicy (clusterIpolicy $ configCluster cfg) (groupIpolicy ng)
+  fillParams (clusterIpolicy $ configCluster cfg) (groupIpolicy ng)
 
 -- | Computes a group\'s (merged) disk params.
 getGroupDiskParams :: ConfigData -> NodeGroup -> GroupDiskParams
