@@ -54,14 +54,12 @@ module Ganeti.Objects
   , FilledBeParams(..)
   , module Ganeti.Objects.Instance
   , PartialNDParams(..)
-  , emptyPartialNDParams
   , FilledNDParams(..)
   , allNDParamFields
   , Node(..)
   , AllocPolicy(..)
   , FilledISpecParams(..)
   , PartialISpecParams(..)
-  , emptyPartialISpecParams
   , allISpecParamFields
   , MinMaxISpecs(..)
   , FilledIPolicy(..)

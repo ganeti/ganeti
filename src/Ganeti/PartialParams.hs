@@ -51,6 +51,12 @@ import Data.Maybe (isJust)
 -- 1. @fillParams (fillParams f p) p = fillParams f p@.
 -- 2. @fillParams _ (toPartial x) = x@.
 -- 3. @toFilled (toPartial x) = Just x@.
+--
+-- If @p@ is also a 'Monoid' (or just 'Semigroup'), 'fillParams' is a monoid
+-- (semigroup) action on @f@, therefore it should additionally satisfy:
+--
+-- - @fillParams f mempty = f@
+-- - @fillParams f (p1 <> p2) = fillParams (fillParams f p1) p2@
 class PartialParams f p | p -> f, f -> p where
   -- | Fill @f@ with any data that are set in @p@.
   -- Leave other parts of @f@ unchanged.

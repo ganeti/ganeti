@@ -91,6 +91,7 @@ import Data.Function (on)
 import Data.List
 import Data.Maybe
 import qualified Data.Map as M
+import Data.Monoid
 import qualified Data.Set as S
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (lift)
@@ -1297,14 +1298,8 @@ buildParam sname field_pfx fields = do
   ser_decls_f <- buildObjectSerialisation sname_f fields
   ser_decls_p <- buildPParamSerialisation sname_p fields
   fill_decls <- fillParam sname field_pfx fields
-  let empty_name = mkName $ "empty" ++ sname_p
-      empty_exp = foldl (flip . const $ flip AppE (ConE 'Nothing)) (ConE name_p)
-                        fields
-      emptyDecl = [ SigD empty_name (ConT name_p)
-                  , ValD (VarP empty_name) (NormalB empty_exp) []
-                  ]
   return $ [declF, declP] ++ ser_decls_f ++ ser_decls_p ++ fill_decls ++
-           buildParamAllFields sname fields ++ emptyDecl
+           buildParamAllFields sname fields
 
 -- | Builds a list of all fields of a parameter.
 buildParamAllFields :: String -> [Field] -> [Dec]
@@ -1366,6 +1361,7 @@ fillParam sname field_pfx fields = do
   let fConP = ConP name_f (map VarP fbinds)
   pbinds <- mapM (newName . ("p_" ++) . nameBase) pnames
   let pConP = ConP name_p (map VarP pbinds)
+  -- PartialParams instance --------
   -- fillParams
   let fromMaybeExp fn pn = AppE (AppE (VarE 'fromMaybe) (VarE fn)) (VarE pn)
       fupdates = appCons name_f $ zipWith fromMaybeExp fbinds pbinds
@@ -1378,10 +1374,28 @@ fillParam sname field_pfx fields = do
       tfclause = Clause [pConP] (NormalB tfupdates) []
   -- the instance
   let instType = AppT (AppT (ConT ''PartialParams) (ConT name_f)) (ConT name_p)
+  -- Monoid instance for the partial part ----
+  -- mempty
+  let memptyExp = appCons name_p $ map (const $ VarE 'empty) fields
+      memptyClause = Clause [] (NormalB memptyExp) []
+  -- mappend
+  pbinds2 <- mapM (newName . ("p2_" ++) . nameBase) pnames
+  let pConP2 = ConP name_p (map VarP pbinds2)
+  -- note the reversal of 'l' and 'r' in the call to <|>
+  -- as we want the result to be the rightmost value
+  let altExp = zipWith (\l r -> AppE (AppE (VarE '(<|>)) (VarE r)) (VarE l))
+      mappendExp = appCons name_p $ altExp pbinds pbinds2
+      mappendClause = Clause [pConP, pConP2] (NormalB mappendExp) []
+  let monoidType = AppT (ConT ''Monoid) (ConT name_p)
+  -- the instances combined
   return [ InstanceD [] instType
                      [ FunD 'fillParams [fclause]
                      , FunD 'toPartial [tpclause]
                      , FunD 'toFilled [tfclause]
+                     ]
+         , InstanceD [] monoidType
+                     [ FunD 'mempty [memptyClause]
+                     , FunD 'mappend [mappendClause]
                      ]]
 
 -- * Template code for exceptions

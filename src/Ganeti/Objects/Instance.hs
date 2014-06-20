@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Objects.Instance where
 
+import Data.Monoid
+
 import Ganeti.JSON (emptyContainer)
 import Ganeti.Objects.Nic
 import Ganeti.THH
@@ -61,7 +63,7 @@ $(buildObjectWithForthcoming "Instance" "inst" $
   , simpleField "hypervisor"       [t| Hypervisor         |]
   , defaultField [| emptyContainer |]
       $ simpleField "hvparams"     [t| HvParams           |]
-  , defaultField [| emptyPartialBeParams |]
+  , defaultField [| mempty |]
       $ simpleField "beparams"     [t| PartialBeParams    |]
   , defaultField [| emptyContainer |]
       $ simpleField "osparams"     [t| OsParams           |]

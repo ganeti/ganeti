@@ -141,6 +141,15 @@ prop_fillPartialLaw2 = testToParamsLaw2
 prop_fillPartialLaw3 :: FilledTestParams -> Property
 prop_fillPartialLaw3 = testToFilledLaw3
 
+-- | Tests that the monoid action laws are satisfied.
+prop_fillPartialMonoidLaw1 :: FilledTestParams -> Property
+prop_fillPartialMonoidLaw1 = testToFilledMonoidLaw1
+
+-- | Tests that the monoid action laws are satisfied.
+prop_fillPartialMonoidLaw2
+  :: FilledTestParams -> PartialTestParams -> PartialTestParams -> Property
+prop_fillPartialMonoidLaw2 = testToFilledMonoidLaw2
+
 testSuite "THH"
             [ 'prop_OptFields
             , 'prop_TestObj_serialization
@@ -152,4 +161,6 @@ testSuite "THH"
             , 'prop_toParams
             , 'prop_fillPartialLaw2
             , 'prop_fillPartialLaw3
+            , 'prop_fillPartialMonoidLaw1
+            , 'prop_fillPartialMonoidLaw2
             ]
