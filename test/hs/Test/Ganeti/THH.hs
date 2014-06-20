@@ -67,7 +67,36 @@ prop_OptFields to =
                           Just x -> showJSON x)]
   in showJSON to ==? makeObj (a_member ++ b_member)
 
+-- | Test serialization of TestObj.
+prop_TestObj_serialization :: TestObj -> Property
+prop_TestObj_serialization = testArraySerialisation
+
+-- | Test that all superfluous keys will fail to parse.
+prop_TestObj_deserialisationFail :: Property
+prop_TestObj_deserialisationFail =
+  forAll ((arbitrary :: Gen [(String, Int)])
+          `suchThat` any (flip notElem ["a", "b"] . fst))
+  $ testDeserialisationFail (TestObj Nothing Nothing) . encJSDict
+
+-- | A unit-like data type.
+$(buildObject "UnitObj" "uobj" [])
+
+$(genArbitrary ''UnitObj)
+
+-- | Test serialization of UnitObj.
+prop_UnitObj_serialization :: UnitObj -> Property
+prop_UnitObj_serialization = testArraySerialisation
+
+-- | Test that all superfluous keys will fail to parse.
+prop_UnitObj_deserialisationFail :: Property
+prop_UnitObj_deserialisationFail =
+  forAll ((arbitrary :: Gen [(String, Int)]) `suchThat` (not . null))
+  $ testDeserialisationFail UnitObj . encJSDict
 
 testSuite "THH"
             [ 'prop_OptFields
+            , 'prop_TestObj_serialization
+            , 'prop_TestObj_deserialisationFail
+            , 'prop_UnitObj_serialization
+            , 'prop_UnitObj_deserialisationFail
             ]
