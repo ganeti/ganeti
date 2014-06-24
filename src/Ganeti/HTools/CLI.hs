@@ -61,6 +61,7 @@ module Ganeti.HTools.CLI
   , oIAllocSrc
   , oIgnoreDyn 
   , oIgnoreNonRedundant
+  , oIndependentGroups
   , oInstMoves
   , oJobDelay
   , genOLuxiSocket
@@ -126,6 +127,7 @@ data Options = Options
   , optSpindleUse  :: Maybe Int      -- ^ Override for the spindle usage
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
   , optIgnoreDynu  :: Bool           -- ^ Do not use dynamic use data
+  , optIndependentGroups :: Bool     -- ^ consider groups independently
   , optMonD        :: Bool           -- ^ Query MonDs
   , optMonDFile    :: Maybe FilePath -- ^ Optional file with data provided
                                      -- ^ by MonDs
@@ -181,6 +183,7 @@ defaultOptions  = Options
   { optDataFile    = Nothing
   , optDiskMoves   = True
   , optInstMoves   = True
+  , optIndependentGroups = False
   , optDiskTemplate = Nothing
   , optSpindleUse  = Nothing
   , optIgnoreDynu  = False
@@ -352,6 +355,13 @@ oIgnoreDyn =
   (Option "" ["ignore-dynu"]
    (NoArg (\ opts -> Ok opts {optIgnoreDynu = True}))
    "Ignore any dynamic utilisation information",
+   OptComplNone)
+
+oIndependentGroups :: OptType
+oIndependentGroups =
+  (Option "" ["independent-groups"]
+   (NoArg (\ opts -> Ok opts {optIndependentGroups = True}))
+   "Consider groups independently",
    OptComplNone)
 
 oEvacMode :: OptType
