@@ -447,19 +447,6 @@ class _QueuedJob(object):
 
     return entries
 
-  def GetInfo(self, fields):
-    """Returns information about a job.
-
-    @type fields: list
-    @param fields: names of fields to return
-    @rtype: list
-    @return: list with one element for each field
-    @raise errors.OpExecError: when an invalid field
-        has been passed
-
-    """
-    return _SimpleJobQuery(fields)(self)
-
   def MarkUnfinishedOps(self, status, result):
     """Mark unfinished opcodes with a given status and result.
 
