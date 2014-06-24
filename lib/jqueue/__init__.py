@@ -1816,23 +1816,6 @@ class JobQueue(object):
     self._queue_size = len(self._GetJobIDsUnlocked(sort=False))
 
   @classmethod
-  def SubmitJob(cls, ops):
-    """Create and store a new job.
-
-    """
-    return luxi.Client(address=pathutils.QUERY_SOCKET).SubmitJob(ops)
-
-  @classmethod
-  def SubmitJobToDrainedQueue(cls, ops):
-    """Forcefully create and store a new job.
-
-    Do so, even if the job queue is drained.
-
-    """
-    return luxi.Client(address=pathutils.QUERY_SOCKET)\
-        .SubmitJobToDrainedQueue(ops)
-
-  @classmethod
   def SubmitManyJobs(cls, jobs):
     """Create and store multiple jobs.
 
