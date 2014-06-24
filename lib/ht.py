@@ -433,7 +433,8 @@ def TTupleOf(*val_types):
 
   """
   desc = WithDesc("Tuple of %s" % (Parens(val_types), ))
-  return desc(TAnd(TTuple, TIsLength(len(val_types)), TItems(val_types)))
+  return desc(TAnd(TOr(TTuple, TList), TIsLength(len(val_types)),
+                   TItems(val_types)))
 
 
 def TSetOf(val_type):
