@@ -487,6 +487,9 @@ main opts args = do
   allocnodes <- exitIfBad "failure during allocation" $
                 Cluster.genAllocNodes gl nl req_nodes True
 
+  when (verbose > 3)
+    . hPrintf stderr "Allocatable nodes: %s\n" $ show allocnodes
+
   -- Run the tiered allocation
 
   let minmaxes = iPolicyMinMaxISpecs ipol
