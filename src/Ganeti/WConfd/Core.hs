@@ -46,6 +46,7 @@ import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock), LockLevel(LevelConfig)
                             , lockLevel, LockLevel, ClientId )
 import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Objects (ConfigData, DRBDSecret, LogicalVolume)
+import qualified Ganeti.WConfd.ConfigVerify as V
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
 import qualified Ganeti.WConfd.TempRes as T
@@ -74,8 +75,15 @@ readConfig ident = checkConfigLock ident L.OwnShared >> CW.readConfig
 -- | Write the configuration, checking that an exclusive lock is held.
 -- If not, the call fails.
 writeConfig :: ClientId -> ConfigData -> WConfdMonad ()
-writeConfig ident cdata =
-  checkConfigLock ident L.OwnExclusive >> CW.writeConfig cdata
+writeConfig ident cdata = do
+  checkConfigLock ident L.OwnExclusive
+  -- V.verifyConfigErr cdata
+  CW.writeConfig cdata
+
+-- | Explicitly run verification of the configuration.
+-- The caller doesn't need to hold the configuration lock.
+verifyConfig :: WConfdMonad ()
+verifyConfig = CW.readConfig >>= V.verifyConfigErr
 
 -- *** Locks on the configuration (only transitional, will be removed later)
 
@@ -253,6 +261,7 @@ exportedFunctions = [ 'echo
                     -- config
                     , 'readConfig
                     , 'writeConfig
+                    , 'verifyConfig
                     , 'lockConfig
                     , 'unlockConfig
                     , 'flushConfig

@@ -945,6 +945,17 @@ class ConfigWriter(object):
     data = self._ConfigData()
     cluster = data.cluster
 
+    # First call WConfd to perform its checks, if we're not offline
+    if not self._offline:
+      try:
+        self._wconfd.VerifyConfig()
+      except errors.ConfigVerifyError, err:
+        try:
+          for msg in err.args[1]:
+            result.append(msg)
+        except IndexError:
+          pass
+
     # global cluster checks
     if not cluster.enabled_hypervisors:
       result.append("enabled hypervisors list doesn't have any entries")
