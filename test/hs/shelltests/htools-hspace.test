@@ -56,3 +56,29 @@
 # VCPU-dominated allocation
 ./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-vcpu.data > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '32768,65536,4,12=4 32768,65536,2,12=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 10"
 >>>=0
+
+# Presence of overfull group
+./test/hs/hspace -t $TESTDATA_DIR/hspace-groups-one.data
+>>>/0 instances allocated/
+>>>=0
+
+./test/hs/hspace --independent-groups -t $TESTDATA_DIR/hspace-groups-one.data
+>>>/0 instances allocated/
+>>>=0
+
+./test/hs/hspace --accept-existing -t $TESTDATA_DIR/hspace-groups-one.data
+>>>/2 instances allocated/
+>>>=0
+
+./test/hs/hspace -t $TESTDATA_DIR/hspace-groups-two.data
+>>>/0 instances allocated/
+>>>=0
+
+./test/hs/hspace --independent-groups -t $TESTDATA_DIR/hspace-groups-two.data
+>>>/2 instances allocated/
+>>>=0
+
+./test/hs/hspace --accept-existing -t $TESTDATA_DIR/hspace-groups-two.data
+>>>/2 instances allocated/
+>>>=0
+

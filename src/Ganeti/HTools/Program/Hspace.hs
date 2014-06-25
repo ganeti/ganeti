@@ -32,6 +32,7 @@ module Ganeti.HTools.Program.Hspace
 import Control.Monad
 import Data.Char (toUpper, toLower)
 import Data.Function (on)
+import qualified Data.IntMap as IntMap
 import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Ord (comparing)
@@ -41,6 +42,7 @@ import Text.Printf (printf, hPrintf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 
@@ -67,6 +69,8 @@ options = do
     , oIAllocSrc
     , oVerbose
     , oQuiet
+    , oIndependentGroups
+    , oAcceptExisting
     , oOfflineNode
     , oMachineReadable
     , oMaxCpu
@@ -447,6 +451,8 @@ main opts args = do
 
   let verbose = optVerbose opts
       machine_r = optMachineReadable opts
+      independent_grps = optIndependentGroups opts
+      accept_existing = optAcceptExisting opts
 
   orig_cdata@(ClusterData gl fixed_nl il _ ipol) <- loadExternalData opts
   nl <- setNodeStatus opts fixed_nl
@@ -477,15 +483,26 @@ main opts args = do
   printCluster machine_r (Cluster.totalResources nl) (length all_nodes)
     (Node.haveExclStorage nl)
 
-  let stop_allocation = case Cluster.computeBadItems nl il of
-                          ([], _) -> Nothing
+  let (bad_nodes, _)  = Cluster.computeBadItems nl il
+      gl' = if accept_existing
+              then gl
+              else foldl (flip $ IntMap.adjust Group.setUnallocable) gl
+                     (map Node.group bad_nodes)
+      grps_remaining = any Group.isAllocable $ IntMap.elems gl'
+      stop_allocation = case () of
+                          _ | accept_existing-> Nothing
+                          _ | independent_grps && grps_remaining -> Nothing
+                          _ | null bad_nodes -> Nothing
                           _ -> Just ([(FailN1, 1)]::FailStats, nl, il, [], [])
       alloclimit = if optMaxLength opts == -1
                    then Nothing
                    else Just (optMaxLength opts)
 
   allocnodes <- exitIfBad "failure during allocation" $
-                Cluster.genAllocNodes gl nl req_nodes True
+                Cluster.genAllocNodes gl' nl req_nodes True
+
+  when (verbose > 3)
+    . hPrintf stderr "Allocatable nodes: %s\n" $ show allocnodes
 
   -- Run the tiered allocation
 

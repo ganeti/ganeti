@@ -1,0 +1,16 @@
+group-01|fake-uuid-01|preferred||
+group-02|fake-uuid-02|preferred||
+
+node-01-001|2049|0|1|3073|1|16|N|fake-uuid-01|1||N|0|1
+node-01-002|2049|0|1025|3073|1|16|N|fake-uuid-01|1||N|0|1
+node-02-001|2049|0|2049|2049|2049|16|N|fake-uuid-02|1||N|0|1
+node-02-002|2049|0|2049|2049|2049|16|N|fake-uuid-02|1||N|0|1
+
+old-0|1024|1024|1|running|Y|node-01-001|node-01-002|drbd||1|1
+old-1|1024|1024|1|running|Y|node-01-002|node-01-001|drbd||1|1
+old-2|1024|1024|1|running|Y|node-01-001|node-01-002|drbd||1|1
+
+
+|1024,1,1024,1,1,1|1024,1,1024,1,1,1;2048,8,2048,16,8,12|drbd|4.0|32.0
+group-01|128,1,1024,1,1,1|128,1,1024,1,1,1;32768,8,1048576,16,8,12|diskless,file,sharedfile,plain,blockdev,drbd,rbd,ext|4.0|32.0
+group-02|128,1,1024,1,1,1|128,1,1024,1,1,1;32768,8,1048576,16,8,12|diskless,file,sharedfile,plain,blockdev,drbd,rbd,ext|4.0|32.0

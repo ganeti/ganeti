@@ -31,6 +31,7 @@ module Ganeti.HTools.Group
   , create
   , setIdx
   , isAllocable
+  , setUnallocable
   ) where
 
 import qualified Ganeti.HTools.Container as Container
@@ -100,3 +101,7 @@ setName t s = t { name = s }
 -- | Checks if a group is allocable.
 isAllocable :: Group -> Bool
 isAllocable = (/= T.AllocUnallocable) . allocPolicy
+
+-- | Makes the group unallocatable
+setUnallocable :: Group -> Group
+setUnallocable t = t { allocPolicy = T.AllocUnallocable }
