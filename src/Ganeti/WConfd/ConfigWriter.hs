@@ -2,14 +2,11 @@
 
 {-| Implementation of functions specific to configuration management.
 
-TODO: Detect changes in SSConf and distribute only if it changes
-TODO: distribute ssconf configuration, if it has changed
-
 -}
 
 {-
 
-Copyright (C) 2013 Google Inc.
+Copyright (C) 2013, 2014 Google Inc.
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
