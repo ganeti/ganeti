@@ -873,6 +873,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils/Validate.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
+	src/Ganeti/WConfd/ConfigVerify.hs \
 	src/Ganeti/WConfd/ConfigWriter.hs \
 	src/Ganeti/WConfd/Client.hs \
 	src/Ganeti/WConfd/Core.hs \
