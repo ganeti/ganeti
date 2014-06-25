@@ -175,6 +175,10 @@ openClientSocket tmo path = do
               S.connect sock (S.SockAddrUnix path)
   S.socketToHandle sock ReadWriteMode
 
+-- | Closes the handle.
+-- Performing the operation on a handle that has already been closed has no
+-- effect; doing so is not an error.
+-- All other operations on a closed handle will fail.
 closeClientSocket :: Handle -> IO ()
 closeClientSocket = hClose
 
@@ -250,6 +254,9 @@ acceptClient s = do
                 }
 
 -- | Closes the client socket.
+-- Performing the operation on a client that has already been closed has no
+-- effect; doing so is not an error.
+-- All other operations on a closed client will fail with an exception.
 closeClient :: Client -> IO ()
 closeClient client = do
   closeClientSocket . wsocket $ client
