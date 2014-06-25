@@ -70,6 +70,7 @@ options = do
     , oVerbose
     , oQuiet
     , oIndependentGroups
+    , oAcceptExisting
     , oOfflineNode
     , oMachineReadable
     , oMaxCpu
@@ -451,6 +452,7 @@ main opts args = do
   let verbose = optVerbose opts
       machine_r = optMachineReadable opts
       independent_grps = optIndependentGroups opts
+      accept_existing = optAcceptExisting opts
 
   orig_cdata@(ClusterData gl fixed_nl il _ ipol) <- loadExternalData opts
   nl <- setNodeStatus opts fixed_nl
@@ -482,10 +484,13 @@ main opts args = do
     (Node.haveExclStorage nl)
 
   let (bad_nodes, _)  = Cluster.computeBadItems nl il
-      gl' = foldl (flip $ IntMap.adjust Group.setUnallocable) gl
-              $ map Node.group bad_nodes
+      gl' = if accept_existing
+              then gl
+              else foldl (flip $ IntMap.adjust Group.setUnallocable) gl
+                     (map Node.group bad_nodes)
       grps_remaining = any Group.isAllocable $ IntMap.elems gl'
       stop_allocation = case () of
+                          _ | accept_existing-> Nothing
                           _ | independent_grps && grps_remaining -> Nothing
                           _ | null bad_nodes -> Nothing
                           _ -> Just ([(FailN1, 1)]::FailStats, nl, il, [], [])
