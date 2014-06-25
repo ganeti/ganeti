@@ -379,6 +379,9 @@ class Processor(object):
 
     names = _LockList(names)
 
+    # For locks of the same level, the lock order is lexicographic
+    names.sort()
+
     levelname = locking.LEVEL_NAMES[level]
 
     locks = ["%s/%s" % (levelname, lock) for lock in list(names)]
@@ -399,13 +402,19 @@ class Processor(object):
       locks = self.wconfd.Client().OpportunisticLockUnion(self._wconfdcontext,
                                                           request)
     elif timeout is None:
-      self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, priority,
-                                              request)
-      while True:
-        pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
-        if not pending:
-          break
-        time.sleep(10.0 * random.random())
+      logging.info("Definitely requesting %s for %s",
+                   request, self._wconfdcontext)
+      ## The only way to be sure of not getting starved is to sequentially
+      ## acquire the locks one by one (in lock order).
+      for r in request:
+        logging.debug("Definite request %s for %s", r, self._wconfdcontext)
+        self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, priority,
+                                                [r])
+        while True:
+          pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
+          if not pending:
+            break
+          time.sleep(10.0 * random.random())
     else:
       logging.debug("Trying %ss to request %s for %s",
                     timeout, request, self._wconfdcontext)

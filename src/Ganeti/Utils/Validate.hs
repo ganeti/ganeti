@@ -32,6 +32,7 @@ module Ganeti.Utils.Validate
   , ValidationMonad
   , report
   , reportIf
+  , runValidate
   , runValidateT
   , execValidateT
   , execValidate
@@ -86,6 +87,11 @@ runValidateT = liftM (second F.toList) . runWriterT . runValidationMonad
 
 -- | An utility function that runs a monadic validation action
 -- and returns the list of errors.
+runValidate :: ValidationMonad a -> (a, [String])
+runValidate = runIdentity . runValidateT
+
+-- | An utility function that runs a monadic validation action
+-- and returns the list of errors.
 execValidateT :: (Monad m) => ValidationMonadT m () -> m [String]
 execValidateT = liftM F.toList . execWriterT . runValidationMonad
 
@@ -104,7 +110,7 @@ throwIfErrors (_, es) = throwError (strMsg $ "Validation errors: "
 -- | Runs a validation action and if there are errors, combine them
 -- into an exception.
 evalValidate :: (MonadError e m, Error e) => ValidationMonad a -> m a
-evalValidate = throwIfErrors . runIdentity . runValidateT
+evalValidate = throwIfErrors . runValidate
 
 -- | Runs a validation action and if there are errors, combine them
 -- into an exception.

@@ -945,30 +945,16 @@ class ConfigWriter(object):
     data = self._ConfigData()
     cluster = data.cluster
 
-    # global cluster checks
-    if not cluster.enabled_hypervisors:
-      result.append("enabled hypervisors list doesn't have any entries")
-    invalid_hvs = set(cluster.enabled_hypervisors) - constants.HYPER_TYPES
-    if invalid_hvs:
-      result.append("enabled hypervisors contains invalid entries: %s" %
-                    utils.CommaJoin(invalid_hvs))
-    missing_hvp = (set(cluster.enabled_hypervisors) -
-                   set(cluster.hvparams.keys()))
-    if missing_hvp:
-      result.append("hypervisor parameters missing for the enabled"
-                    " hypervisor(s) %s" % utils.CommaJoin(missing_hvp))
-
-    if not cluster.enabled_disk_templates:
-      result.append("enabled disk templates list doesn't have any entries")
-    invalid_disk_templates = set(cluster.enabled_disk_templates) \
-                               - constants.DISK_TEMPLATES
-    if invalid_disk_templates:
-      result.append("enabled disk templates list contains invalid entries:"
-                    " %s" % utils.CommaJoin(invalid_disk_templates))
-
-    if cluster.master_node not in data.nodes:
-      result.append("cluster has invalid primary node '%s'" %
-                    cluster.master_node)
+    # First call WConfd to perform its checks, if we're not offline
+    if not self._offline:
+      try:
+        self._wconfd.VerifyConfig()
+      except errors.ConfigVerifyError, err:
+        try:
+          for msg in err.args[1]:
+            result.append(msg)
+        except IndexError:
+          pass
 
     def _helper(owner, attr, value, template):
       try:

@@ -47,12 +47,14 @@ import qualified Ganeti.Path as Path
 import Ganeti.THH.RPC
 import Ganeti.UDSServer
 
+import Ganeti.Errors (formatError)
 import Ganeti.Runtime
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.ConfigWriter
 import Ganeti.WConfd.Core
 import Ganeti.WConfd.DeathDetection (cleanupLocksTask)
 import Ganeti.WConfd.Monad
+import Ganeti.WConfd.ConfigVerify
 
 handler :: DaemonHandle -> RpcServer WConfdMonadInt
 handler ch = $( mkRpcM exportedFunctions )
@@ -82,9 +84,10 @@ prepMain _ _ = do
     $ logInfo "No saved lock status; assuming all locks free"
   dh <- toErrorBase
         . withErrorT (strMsg . ("Initialization of the daemon failed" ++)
-                             . show) $ do
+                             . formatError) $ do
     ents <- getEnts
     (cdata, cstat) <- loadConfigFromFile conf_file
+    verifyConfigErr cdata
     lock <- if lock_file_present
               then loadLockAllocation lock_file
               else return emptyWaiting

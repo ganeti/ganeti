@@ -114,6 +114,15 @@ class ConfigVersionMismatch(ConfigurationError):
   """
 
 
+class ConfigVerifyError(ConfigurationError):
+  """Error reported by configuration verification
+
+  The error has two arguments: the main error message and a list of errors
+  found.
+
+  """
+
+
 class AddressPoolError(GenericError):
   """Errors related to IP address pools.
 

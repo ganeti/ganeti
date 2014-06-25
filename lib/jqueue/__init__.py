@@ -101,25 +101,6 @@ def _CallJqUpdate(runner, names, file_name, content):
   return runner.call_jobqueue_update(names, virt_file_name, content)
 
 
-class _SimpleJobQuery:
-  """Wrapper for job queries.
-
-  Instance keeps list of fields cached, useful e.g. in L{_JobChangesChecker}.
-
-  """
-  def __init__(self, fields):
-    """Initializes this class.
-
-    """
-    self._query = query.Query(query.JOB_FIELDS, fields)
-
-  def __call__(self, job):
-    """Executes a job query using cached field list.
-
-    """
-    return self._query.OldStyleQuery([(job.id, job)], sort_by_name=False)[0]
-
-
 class _QueuedOpCode(object):
   """Encapsulates an opcode object.
 
@@ -447,19 +428,6 @@ class _QueuedJob(object):
 
     return entries
 
-  def GetInfo(self, fields):
-    """Returns information about a job.
-
-    @type fields: list
-    @param fields: names of fields to return
-    @rtype: list
-    @return: list with one element for each field
-    @raise errors.OpExecError: when an invalid field
-        has been passed
-
-    """
-    return _SimpleJobQuery(fields)(self)
-
   def MarkUnfinishedOps(self, status, result):
     """Mark unfinished opcodes with a given status and result.
 
@@ -677,210 +645,6 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     """
     # Locking is done in job queue
     return self._queue.SubmitManyJobs(jobs)
-
-
-class _JobChangesChecker(object):
-  def __init__(self, fields, prev_job_info, prev_log_serial):
-    """Initializes this class.
-
-    @type fields: list of strings
-    @param fields: Fields requested by LUXI client
-    @type prev_job_info: string
-    @param prev_job_info: previous job info, as passed by the LUXI client
-    @type prev_log_serial: string
-    @param prev_log_serial: previous job serial, as passed by the LUXI client
-
-    """
-    self._squery = _SimpleJobQuery(fields)
-    self._prev_job_info = prev_job_info
-    self._prev_log_serial = prev_log_serial
-
-  def __call__(self, job):
-    """Checks whether job has changed.
-
-    @type job: L{_QueuedJob}
-    @param job: Job object
-
-    """
-    assert not job.writable, "Expected read-only job"
-
-    status = job.CalcStatus()
-    job_info = self._squery(job)
-    log_entries = job.GetLogEntries(self._prev_log_serial)
-
-    # Serializing and deserializing data can cause type changes (e.g. from
-    # tuple to list) or precision loss. We're doing it here so that we get
-    # the same modifications as the data received from the client. Without
-    # this, the comparison afterwards might fail without the data being
-    # significantly different.
-    # TODO: we just deserialized from disk, investigate how to make sure that
-    # the job info and log entries are compatible to avoid this further step.
-    # TODO: Doing something like in testutils.py:UnifyValueType might be more
-    # efficient, though floats will be tricky
-    job_info = serializer.LoadJson(serializer.DumpJson(job_info))
-    log_entries = serializer.LoadJson(serializer.DumpJson(log_entries))
-
-    # Don't even try to wait if the job is no longer running, there will be
-    # no changes.
-    if (status not in (constants.JOB_STATUS_QUEUED,
-                       constants.JOB_STATUS_RUNNING,
-                       constants.JOB_STATUS_WAITING) or
-        job_info != self._prev_job_info or
-        (log_entries and self._prev_log_serial != log_entries[0][0])):
-      logging.debug("Job %s changed", job.id)
-      return (job_info, log_entries)
-
-    return None
-
-
-class _JobFileChangesWaiter(object):
-  def __init__(self, filename, _inotify_wm_cls=pyinotify.WatchManager):
-    """Initializes this class.
-
-    @type filename: string
-    @param filename: Path to job file
-    @raises errors.InotifyError: if the notifier cannot be setup
-
-    """
-    self._wm = _inotify_wm_cls()
-    self._inotify_handler = \
-      asyncnotifier.SingleFileEventHandler(self._wm, self._OnInotify, filename)
-    self._notifier = \
-      pyinotify.Notifier(self._wm, default_proc_fun=self._inotify_handler)
-    try:
-      self._inotify_handler.enable()
-    except Exception:
-      # pyinotify doesn't close file descriptors automatically
-      self._notifier.stop()
-      raise
-
-  def _OnInotify(self, notifier_enabled):
-    """Callback for inotify.
-
-    """
-    if not notifier_enabled:
-      self._inotify_handler.enable()
-
-  def Wait(self, timeout):
-    """Waits for the job file to change.
-
-    @type timeout: float
-    @param timeout: Timeout in seconds
-    @return: Whether there have been events
-
-    """
-    assert timeout >= 0
-    have_events = self._notifier.check_events(timeout * 1000)
-    if have_events:
-      self._notifier.read_events()
-    self._notifier.process_events()
-    return have_events
-
-  def Close(self):
-    """Closes underlying notifier and its file descriptor.
-
-    """
-    self._notifier.stop()
-
-
-class _JobChangesWaiter(object):
-  def __init__(self, filename, _waiter_cls=_JobFileChangesWaiter):
-    """Initializes this class.
-
-    @type filename: string
-    @param filename: Path to job file
-
-    """
-    self._filewaiter = None
-    self._filename = filename
-    self._waiter_cls = _waiter_cls
-
-  def Wait(self, timeout):
-    """Waits for a job to change.
-
-    @type timeout: float
-    @param timeout: Timeout in seconds
-    @return: Whether there have been events
-
-    """
-    if self._filewaiter:
-      return self._filewaiter.Wait(timeout)
-
-    # Lazy setup: Avoid inotify setup cost when job file has already changed.
-    # If this point is reached, return immediately and let caller check the job
-    # file again in case there were changes since the last check. This avoids a
-    # race condition.
-    self._filewaiter = self._waiter_cls(self._filename)
-
-    return True
-
-  def Close(self):
-    """Closes underlying waiter.
-
-    """
-    if self._filewaiter:
-      self._filewaiter.Close()
-
-
-class _WaitForJobChangesHelper(object):
-  """Helper class using inotify to wait for changes in a job file.
-
-  This class takes a previous job status and serial, and alerts the client when
-  the current job status has changed.
-
-  """
-  @staticmethod
-  def _CheckForChanges(counter, job_load_fn, check_fn):
-    if counter.next() > 0:
-      # If this isn't the first check the job is given some more time to change
-      # again. This gives better performance for jobs generating many
-      # changes/messages.
-      time.sleep(0.1)
-
-    job = job_load_fn()
-    if not job:
-      raise errors.JobLost()
-
-    result = check_fn(job)
-    if result is None:
-      raise utils.RetryAgain()
-
-    return result
-
-  def __call__(self, filename, job_load_fn,
-               fields, prev_job_info, prev_log_serial, timeout,
-               _waiter_cls=_JobChangesWaiter):
-    """Waits for changes on a job.
-
-    @type filename: string
-    @param filename: File on which to wait for changes
-    @type job_load_fn: callable
-    @param job_load_fn: Function to load job
-    @type fields: list of strings
-    @param fields: Which fields to check for changes
-    @type prev_job_info: list or None
-    @param prev_job_info: Last job information returned
-    @type prev_log_serial: int
-    @param prev_log_serial: Last job message serial number
-    @type timeout: float
-    @param timeout: maximum time to wait in seconds
-
-    """
-    counter = itertools.count()
-    try:
-      check_fn = _JobChangesChecker(fields, prev_job_info, prev_log_serial)
-      waiter = _waiter_cls(filename)
-      try:
-        return utils.Retry(compat.partial(self._CheckForChanges,
-                                          counter, job_load_fn, check_fn),
-                           utils.RETRY_REMAINING_TIME, timeout,
-                           wait_fn=waiter.Wait)
-      finally:
-        waiter.Close()
-    except errors.JobLost:
-      return None
-    except utils.RetryTimeout:
-      return constants.JOB_NOTCHANGED
 
 
 def _EncodeOpError(err):
@@ -2052,23 +1816,6 @@ class JobQueue(object):
     self._queue_size = len(self._GetJobIDsUnlocked(sort=False))
 
   @classmethod
-  def SubmitJob(cls, ops):
-    """Create and store a new job.
-
-    """
-    return luxi.Client(address=pathutils.QUERY_SOCKET).SubmitJob(ops)
-
-  @classmethod
-  def SubmitJobToDrainedQueue(cls, ops):
-    """Forcefully create and store a new job.
-
-    Do so, even if the job queue is drained.
-
-    """
-    return luxi.Client(address=pathutils.QUERY_SOCKET)\
-        .SubmitJobToDrainedQueue(ops)
-
-  @classmethod
   def SubmitManyJobs(cls, jobs):
     """Create and store multiple jobs.
 
@@ -2179,38 +1926,6 @@ class JobQueue(object):
     data = serializer.DumpJson(job.Serialize())
     logging.debug("Writing job %s to %s", job.id, filename)
     self._UpdateJobQueueFile(filename, data, replicate)
-
-  def WaitForJobChanges(self, job_id, fields, prev_job_info, prev_log_serial,
-                        timeout):
-    """Waits for changes in a job.
-
-    @type job_id: int
-    @param job_id: Job identifier
-    @type fields: list of strings
-    @param fields: Which fields to check for changes
-    @type prev_job_info: list or None
-    @param prev_job_info: Last job information returned
-    @type prev_log_serial: int
-    @param prev_log_serial: Last job message serial number
-    @type timeout: float
-    @param timeout: maximum time to wait in seconds
-    @rtype: tuple (job info, log entries)
-    @return: a tuple of the job information as required via
-        the fields parameter, and the log entries as a list
-
-        if the job has not changed and the timeout has expired,
-        we instead return a special value,
-        L{constants.JOB_NOTCHANGED}, which should be interpreted
-        as such by the clients
-
-    """
-    load_fn = compat.partial(self.SafeLoadJobFromDisk, job_id, True,
-                             writable=False)
-
-    helper = _WaitForJobChangesHelper()
-
-    return helper(self._GetJobPath(job_id), load_fn,
-                  fields, prev_job_info, prev_log_serial, timeout)
 
   def HasJobBeenFinalized(self, job_id):
     """Checks if a job has been finalized.
@@ -2337,82 +2052,6 @@ class JobQueue(object):
     # archived jobs to fix this.
     self._UpdateQueueSizeUnlocked()
     return len(archive_jobs)
-
-  @locking.ssynchronized(_LOCK)
-  def ArchiveJob(self, job_id):
-    """Archives a job.
-
-    This is just a wrapper over L{_ArchiveJobsUnlocked}.
-
-    @type job_id: int
-    @param job_id: Job ID of job to be archived.
-    @rtype: bool
-    @return: Whether job was archived
-
-    """
-    logging.info("Archiving job %s", job_id)
-
-    job = self._LoadJobUnlocked(job_id)
-    if not job:
-      logging.debug("Job %s not found", job_id)
-      return False
-
-    return self._ArchiveJobsUnlocked([job]) == 1
-
-  @locking.ssynchronized(_LOCK)
-  def AutoArchiveJobs(self, age, timeout):
-    """Archives all jobs based on age.
-
-    The method will archive all jobs which are older than the age
-    parameter. For jobs that don't have an end timestamp, the start
-    timestamp will be considered. The special '-1' age will cause
-    archival of all jobs (that are not running or queued).
-
-    @type age: int
-    @param age: the minimum age in seconds
-
-    """
-    logging.info("Archiving jobs with age more than %s seconds", age)
-
-    now = time.time()
-    end_time = now + timeout
-    archived_count = 0
-    last_touched = 0
-
-    all_job_ids = self._GetJobIDsUnlocked()
-    pending = []
-    for idx, job_id in enumerate(all_job_ids):
-      last_touched = idx + 1
-
-      # Not optimal because jobs could be pending
-      # TODO: Measure average duration for job archival and take number of
-      # pending jobs into account.
-      if time.time() > end_time:
-        break
-
-      # Returns None if the job failed to load
-      job = self._LoadJobUnlocked(job_id)
-      if job:
-        if job.end_timestamp is None:
-          if job.start_timestamp is None:
-            job_age = job.received_timestamp
-          else:
-            job_age = job.start_timestamp
-        else:
-          job_age = job.end_timestamp
-
-        if age == -1 or now - job_age[0] > age:
-          pending.append(job)
-
-          # Archive 10 jobs at a time
-          if len(pending) >= 10:
-            archived_count += self._ArchiveJobsUnlocked(pending)
-            pending = []
-
-    if pending:
-      archived_count += self._ArchiveJobsUnlocked(pending)
-
-    return (archived_count, len(all_job_ids) - last_touched)
 
   def _Query(self, fields, qfilter):
     qobj = query.Query(query.JOB_FIELDS, fields, qfilter=qfilter,

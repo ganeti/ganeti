@@ -876,6 +876,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils/Validate.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
+	src/Ganeti/WConfd/ConfigVerify.hs \
 	src/Ganeti/WConfd/ConfigWriter.hs \
 	src/Ganeti/WConfd/Client.hs \
 	src/Ganeti/WConfd/Core.hs \
@@ -1400,6 +1401,8 @@ TEST_FILES = \
 	test/data/htools/hbal-evac.data \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-split-insts.data \
+	test/data/htools/hspace-groups-one.data \
+	test/data/htools/hspace-groups-two.data \
 	test/data/htools/hspace-tiered-dualspec-exclusive.data \
 	test/data/htools/hspace-tiered-dualspec.data \
 	test/data/htools/hspace-tiered-exclusive.data \
