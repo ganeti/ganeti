@@ -62,6 +62,7 @@ module Ganeti.HTools.CLI
   , oIgnoreDyn 
   , oIgnoreNonRedundant
   , oIndependentGroups
+  , oAcceptExisting
   , oInstMoves
   , oJobDelay
   , genOLuxiSocket
@@ -128,6 +129,7 @@ data Options = Options
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
   , optIgnoreDynu  :: Bool           -- ^ Do not use dynamic use data
   , optIndependentGroups :: Bool     -- ^ consider groups independently
+  , optAcceptExisting :: Bool        -- ^ accept existing N+1 violations
   , optMonD        :: Bool           -- ^ Query MonDs
   , optMonDFile    :: Maybe FilePath -- ^ Optional file with data provided
                                      -- ^ by MonDs
@@ -184,6 +186,7 @@ defaultOptions  = Options
   , optDiskMoves   = True
   , optInstMoves   = True
   , optIndependentGroups = False
+  , optAcceptExisting = False
   , optDiskTemplate = Nothing
   , optSpindleUse  = Nothing
   , optIgnoreDynu  = False
@@ -362,6 +365,13 @@ oIndependentGroups =
   (Option "" ["independent-groups"]
    (NoArg (\ opts -> Ok opts {optIndependentGroups = True}))
    "Consider groups independently",
+   OptComplNone)
+
+oAcceptExisting :: OptType
+oAcceptExisting =
+  (Option "" ["accept-existing-errors"]
+   (NoArg (\ opts -> Ok opts {optAcceptExisting = True}))
+   "Accept existing N+1 violations; just don't add new ones",
    OptComplNone)
 
 oEvacMode :: OptType
