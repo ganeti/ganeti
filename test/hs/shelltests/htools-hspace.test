@@ -66,6 +66,10 @@
 >>>/0 instances allocated/
 >>>=0
 
+./test/hs/hspace --accept-existing -t $TESTDATA_DIR/hspace-groups-one.data
+>>>/2 instances allocated/
+>>>=0
+
 ./test/hs/hspace -t $TESTDATA_DIR/hspace-groups-two.data
 >>>/0 instances allocated/
 >>>=0
@@ -73,3 +77,8 @@
 ./test/hs/hspace --independent-groups -t $TESTDATA_DIR/hspace-groups-two.data
 >>>/2 instances allocated/
 >>>=0
+
+./test/hs/hspace --accept-existing -t $TESTDATA_DIR/hspace-groups-two.data
+>>>/2 instances allocated/
+>>>=0
+
