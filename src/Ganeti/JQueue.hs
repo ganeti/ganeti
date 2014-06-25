@@ -552,7 +552,7 @@ waitForJob jid tmout = do
             return (False, "Job exited before it could have been canceled,\
                            \ status " ++ show s)
          | otherwise ->
-             return (False, "Job could not have been cancelel, status "
+             return (False, "Job could not be canceled, status "
                             ++ show s)
     Bad e -> failError $ "Can't read job status: " ++ e
 
