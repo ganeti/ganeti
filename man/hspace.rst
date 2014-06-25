@@ -239,6 +239,13 @@ The options that can be passed to the program are as follows:
   groups. The default is to not try allocation at all, if some not N+1
   happy node is found.
 
+\--accept-existing-errors
+  This is a strengthened form of \--independent-groups. It tells hspace
+  to ignore the presence of not N+1 happy nodes and just allocate on
+  all other nodes without introducing new N+1 violations. Note that this
+  tends to overestimate the capacity, as instances still have to be
+  moved away from the existing not N+1 happy nodes.
+
 -l *rounds*, \--max-length=*rounds*
   Restrict the number of instance allocations to this length. This is
   not very useful in practice, but can be used for testing hspace
