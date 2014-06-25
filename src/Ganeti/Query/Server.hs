@@ -316,6 +316,7 @@ handleCall _ _ cfg (SetDrainFlag value) = do
   return . Ok . showJSON $ True
 
 handleCall _ qstat cfg (ChangeJobPriority jid prio) = do
+  let jName = (++) "job " . show $ fromJobId jid
   maybeJob <- setJobPriority qstat jid prio
   case maybeJob of
     Bad s -> return . Ok $ showJSON (False, s)
@@ -323,13 +324,12 @@ handleCall _ qstat cfg (ChangeJobPriority jid prio) = do
       let mcs = Config.getMasterCandidates cfg
       qDir <- liftIO queueDir
       liftIO $ replicateManyJobs qDir mcs [job]
-      return $ showJSON (True, "Priorities of pending opcodes for job "
-                               ++ show (fromJobId jid) ++ " have been changed"
+      return $ showJSON (True, "Priorities of pending opcodes for "
+                               ++ jName ++ " have been changed"
                                ++ " to " ++ show prio)
-    Ok Nothing ->
-      -- Job has already started; so we have to forward the request
-      -- to the job.
-      runResultT . return $ showJSON (False, "Job already forked off")
+    Ok Nothing -> do
+      logDebug $ jName ++ " started, will signal"
+      fmap showJSON <$> tellJobPriority (jqLivelock qstat) jid prio
 
 handleCall _ qstat  cfg (CancelJob jid) = do
   let jName = (++) "job " . show $ fromJobId jid
