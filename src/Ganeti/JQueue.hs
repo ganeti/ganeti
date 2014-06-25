@@ -62,6 +62,7 @@ module Ganeti.JQueue
     , isQueueOpen
     , startJobs
     , cancelJob
+    , tellJobPriority
     , notifyJob
     , queueDirPermissions
     , archiveJobs
@@ -91,7 +92,7 @@ import System.Directory
 import System.FilePath
 import System.IO.Error (isDoesNotExistError)
 import System.Posix.Files
-import System.Posix.Signals (sigHUP, sigTERM, signalProcess)
+import System.Posix.Signals (sigHUP, sigTERM, sigUSR1, signalProcess)
 import System.Posix.Types (ProcessID)
 import System.Time
 import qualified Text.JSON
@@ -593,6 +594,30 @@ cancelJob luxiLivelock jid = runResultT $ do
         logDebug $ jName ++ " in its startup phase, retrying"
         mzero
   return $ fromMaybe (False, "Timeout: job still in its startup phase") result
+
+-- | Inform a job that it is requested to change its priority. This is done
+-- by writing the new priority to a file and sending SIGUSR1.
+tellJobPriority :: Livelock -- ^ Luxi's livelock path
+                -> JobId -- ^ the job to inform
+                -> Int -- ^ the new priority
+                -> IO (ErrorResult (Bool, String))
+tellJobPriority luxiLivelock jid prio = runResultT $ do
+  let  jidS = show $ fromJobId jid
+       jName = "Job " ++ jidS
+  mDir <- liftIO luxidMessageDir
+  let prioFile = mDir </> jidS ++ ".prio"
+  liftIO . atomicWriteFile prioFile $ show prio
+  qDir <- liftIO queueDir
+  (job, _) <- mkResultT $ loadJobFromDisk qDir True jid
+  dead <- isQueuedJobDead luxiLivelock job
+  case qjProcessId job of
+    _ | dead -> do
+      liftIO $ removeFile prioFile
+      return (False, jName ++ " is dead")
+    Just pid -> do
+      liftIO $ signalProcess sigUSR1 pid
+      return (True, jName ++ " with pid " ++ show pid ++ " signaled")
+    _ -> return (False, jName ++ "'s pid unknown")
 
 -- | Notify a job that something relevant happened, e.g., a lock became
 -- available. We do this by sending sigHUP to the process.
