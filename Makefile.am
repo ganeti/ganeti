@@ -1284,6 +1284,8 @@ TEST_FILES = \
 	test/data/htools/hbal-evac.data \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-split-insts.data \
+	test/data/htools/hspace-groups-one.data \
+	test/data/htools/hspace-groups-two.data \
 	test/data/htools/hspace-tiered-dualspec-exclusive.data \
 	test/data/htools/hspace-tiered-dualspec.data \
 	test/data/htools/hspace-tiered-exclusive.data \

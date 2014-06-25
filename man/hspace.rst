@@ -25,6 +25,7 @@ Algorithm options:
 **[ \--max-cpu *cpu-ratio* ]**
 **[ \--min-disk *disk-ratio* ]**
 **[ -O *name...* ]**
+**[ \--independent-groups ]**
 
 
 Request options:
@@ -231,6 +232,19 @@ The options that can be passed to the program are as follows:
   The minimum amount of free disk space remaining, as a floating point
   number. For example, specifying *disk-ratio* as **0.25** means that
   at least one quarter of disk space should be left free on nodes.
+
+\--independent-groups
+  Consider all groups independent. That is, if a node that is not N+1
+  happy is found, ignore its group, but still do allocation in the other
+  groups. The default is to not try allocation at all, if some not N+1
+  happy node is found.
+
+\--accept-existing-errors
+  This is a strengthened form of \--independent-groups. It tells hspace
+  to ignore the presence of not N+1 happy nodes and just allocate on
+  all other nodes without introducing new N+1 violations. Note that this
+  tends to overestimate the capacity, as instances still have to be
+  moved away from the existing not N+1 happy nodes.
 
 -l *rounds*, \--max-length=*rounds*
   Restrict the number of instance allocations to this length. This is

@@ -1008,7 +1008,7 @@ IPOLICY_STD_SPECS_STR = "--ipolicy-std-specs"
 IPOLICY_STD_SPECS_OPT = cli_option(IPOLICY_STD_SPECS_STR,
                                    dest="ipolicy_std_specs",
                                    type="keyval", default=None,
-                                   help="Complte standard instance specs")
+                                   help="Complete standard instance specs")
 
 IPOLICY_DISK_TEMPLATES = cli_option("--ipolicy-disk-templates",
                                     dest="ipolicy_disk_templates",
