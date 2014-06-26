@@ -589,7 +589,10 @@ cancelJob luxiLivelock jid = runResultT $ do
         return (True, jName ++ " has been already dead")
       Just pid -> do
         liftIO $ signalProcess sigTERM pid
-        lift $ waitForJob jid C.luxiCancelJobTimeout
+        if calcJobStatus job > JOB_STATUS_WAITING
+          then return (False, "Job no longer waiting, can't cancel\
+                              \ (informed it anyway)")
+          else lift $ waitForJob jid C.luxiCancelJobTimeout
       _ -> do
         logDebug $ jName ++ " in its startup phase, retrying"
         mzero
