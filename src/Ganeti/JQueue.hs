@@ -537,6 +537,15 @@ startJobs cfg luxiLivelock forkLock jobs = do
         return $ job { qjLivelock = Just llfile }
   mapM (runResultT . runJob) jobs
 
+-- | Try to prove that a queued job is dead. This function needs to know
+-- the livelock of the caller (i.e., luxid) to avoid considering a job dead
+-- that is in the process of forking off.
+isQueuedJobDead :: MonadIO m => Livelock -> QueuedJob -> m Bool
+isQueuedJobDead ownlivelock =
+  maybe (return False) (liftIO . isdDead)
+  . mfilter (/= ownlivelock)
+  . qjLiveLock
+
 -- | Waits for a job to finalize its execution.
 waitForJob :: JobId -> Int -> ResultG (Bool, String)
 waitForJob jid tmout = do
@@ -573,9 +582,7 @@ cancelJob luxiLivelock jid = runResultT $ do
     qDir <- liftIO queueDir
     (job, _) <- lift . mkResultT $ loadJobFromDisk qDir True jid
     let jName = ("Job " ++) . show . fromJobId . qjId $ job
-    dead <- maybe (return False) (liftIO . isDead)
-            . mfilter (/= luxiLivelock)
-            $ qjLivelock job
+    dead <- isQueuedJobDead luxiLivelock job
     case qjProcessId job of
       _ | dead ->
         return (True, jName ++ " has been already dead")
