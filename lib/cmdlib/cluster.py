@@ -3378,7 +3378,28 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """
     return ([], list(self.my_node_info.keys()))
 
-  def Exec(self, feedback_fn): # pylint: disable=R0915
+  @staticmethod
+  def _VerifyOtherNotes(feedback_fn, i_non_redundant, i_non_a_balanced,
+                        i_offline, n_offline, n_drained):
+    feedback_fn("* Other Notes")
+    if i_non_redundant:
+      feedback_fn("  - NOTICE: %d non-redundant instance(s) found."
+                  % len(i_non_redundant))
+
+    if i_non_a_balanced:
+      feedback_fn("  - NOTICE: %d non-auto-balanced instance(s) found."
+                  % len(i_non_a_balanced))
+
+    if i_offline:
+      feedback_fn("  - NOTICE: %d offline instance(s) found." % i_offline)
+
+    if n_offline:
+      feedback_fn("  - NOTICE: %d offline node(s) found." % n_offline)
+
+    if n_drained:
+      feedback_fn("  - NOTICE: %d drained node(s) found." % n_drained)
+
+  def Exec(self, feedback_fn):
     """Verify integrity of the node group, performing various test on nodes.
 
     """
@@ -3756,23 +3777,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       feedback_fn("* Verifying N+1 Memory redundancy")
       self._VerifyNPlusOneMemory(node_image, self.my_inst_info)
 
-    feedback_fn("* Other Notes")
-    if i_non_redundant:
-      feedback_fn("  - NOTICE: %d non-redundant instance(s) found."
-                  % len(i_non_redundant))
-
-    if i_non_a_balanced:
-      feedback_fn("  - NOTICE: %d non-auto-balanced instance(s) found."
-                  % len(i_non_a_balanced))
-
-    if i_offline:
-      feedback_fn("  - NOTICE: %d offline instance(s) found." % i_offline)
-
-    if n_offline:
-      feedback_fn("  - NOTICE: %d offline node(s) found." % n_offline)
-
-    if n_drained:
-      feedback_fn("  - NOTICE: %d drained node(s) found." % n_drained)
+    self._VerifyOtherNotes(feedback_fn, i_non_redundant, i_non_a_balanced,
+                           i_offline, n_offline, n_drained)
 
     return not self.bad
 
