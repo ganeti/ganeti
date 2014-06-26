@@ -173,7 +173,10 @@ def _BuildOpcodeParams(op_id, include, exclude, alias):
     if has_default or has_test:
       buf.write(" (")
       if has_default:
-        buf.write("defaults to ``%s``" % (default,))
+        if default == "":
+          buf.write("defaults to the empty string")
+        else:
+          buf.write("defaults to ``%s``" % (default,))
         if has_test:
           buf.write(", ")
       if has_test:
