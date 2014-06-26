@@ -543,9 +543,9 @@ startJobs cfg luxiLivelock forkLock jobs = do
 -- that is in the process of forking off.
 isQueuedJobDead :: MonadIO m => Livelock -> QueuedJob -> m Bool
 isQueuedJobDead ownlivelock =
-  maybe (return False) (liftIO . isdDead)
+  maybe (return False) (liftIO . isDead)
   . mfilter (/= ownlivelock)
-  . qjLiveLock
+  . qjLivelock
 
 -- | Waits for a job to finalize its execution.
 waitForJob :: JobId -> Int -> ResultG (Bool, String)
