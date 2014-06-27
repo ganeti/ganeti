@@ -202,8 +202,7 @@ def _UndoCreateDisks(lu, disks_created, instance):
                 (disk, lu.cfg.GetNodeName(node_uuid)), logging.warning)
 
 
-def CreateDisks(lu, instance, instance_disks=None,
-                to_skip=None, target_node_uuid=None, disks=None):
+def CreateDisks(lu, instance, to_skip=None, target_node_uuid=None, disks=None):
   """Create all disks for an instance.
 
   This abstracts away some work from AddInstance.
@@ -216,9 +215,6 @@ def CreateDisks(lu, instance, instance_disks=None,
   @param lu: the logical unit on whose behalf we execute
   @type instance: L{objects.Instance}
   @param instance: the instance whose disks we should create
-  @type instance_disks: list of L{objects.Disk}
-  @param instance_disks: the disks that belong to the instance; if not
-      specified, retrieve them from config file
   @type to_skip: list
   @param to_skip: list of indices to skip
   @type target_node_uuid: string
@@ -232,15 +228,17 @@ def CreateDisks(lu, instance, instance_disks=None,
 
   """
   info = GetInstanceInfoText(instance)
-  if instance_disks is None:
-    instance_disks = lu.cfg.GetInstanceDisks(instance.uuid)
+
+  if disks is None:
+    disks = lu.cfg.GetInstanceDisks(instance.uuid)
+
   if target_node_uuid is None:
     pnode_uuid = instance.primary_node
     # We cannot use config's 'GetInstanceNodes' here as 'CreateDisks'
     # is used by 'LUInstanceCreate' and the instance object is not
     # stored in the config yet.
     all_node_uuids = []
-    for disk in instance_disks:
+    for disk in disks:
       all_node_uuids.extend(disk.all_nodes)
     all_node_uuids = set(all_node_uuids)
     # ensure that primary node is always the first
@@ -250,13 +248,10 @@ def CreateDisks(lu, instance, instance_disks=None,
     pnode_uuid = target_node_uuid
     all_node_uuids = [pnode_uuid]
 
-  if disks is None:
-    disks = instance_disks
-
   CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), instance.disk_template)
 
   if instance.disk_template in constants.DTS_FILEBASED:
-    file_storage_dir = os.path.dirname(instance_disks[0].logical_id[1])
+    file_storage_dir = os.path.dirname(disks[0].logical_id[1])
     result = lu.rpc.call_file_storage_dir_create(pnode_uuid, file_storage_dir)
 
     result.Raise("Failed to create directory '%s' on"
