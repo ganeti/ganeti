@@ -1806,5 +1806,5 @@ pAdminStateSource =
 
 pNetworkVlan :: Field
 pNetworkVlan =
-  withDoc "Network vlan when connecting to a group" $
-  simpleField "network_vlan" [t| String |]
+  withDoc "Network vlan when connecting to a group" .
+  defaultField [| "" |] $ stringField "network_vlan"
