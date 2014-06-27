@@ -247,17 +247,28 @@ def RemoveInstance(lu, feedback_fn, instance, ignore_failures):
   lu.cfg.RemoveInstance(instance.uuid)
 
 
-def RemoveDisks(lu, instance, target_node_uuid=None, ignore_failures=False):
-  """Remove all disks for an instance.
+def RemoveDisks(lu, instance, disk_template=None, disks=None,
+                target_node_uuid=None, ignore_failures=False):
+  """Remove all or a subset of disks for an instance.
 
   This abstracts away some work from `AddInstance()` and
   `RemoveInstance()`. Note that in case some of the devices couldn't
   be removed, the removal will continue with the other ones.
 
+  This function is also used by the disk template conversion mechanism to
+  remove the old block devices of the instance. Since the instance has
+  changed its template at the time we remove the original disks, we must
+  specify the template of the disks we are about to remove as an argument.
+
   @type lu: L{LogicalUnit}
   @param lu: the logical unit on whose behalf we execute
   @type instance: L{objects.Instance}
   @param instance: the instance whose disks we should remove
+  @type disk_template: string
+  @param disk_template: if passed, overrides the instance's disk_template
+  @type disks: list of L{objects.Disk}
+  @param disks: the disks to remove; if not specified, all the disks of the
+          instance are removed
   @type target_node_uuid: string
   @param target_node_uuid: used to override the node on which to remove the
           disks
@@ -269,8 +280,15 @@ def RemoveDisks(lu, instance, target_node_uuid=None, ignore_failures=False):
 
   all_result = True
   ports_to_release = set()
-  inst_disks = lu.cfg.GetInstanceDisks(instance.uuid)
-  anno_disks = AnnotateDiskParams(instance, inst_disks, lu.cfg)
+
+  disk_count = len(instance.disks)
+  if disks is None:
+    disks = lu.cfg.GetInstanceDisks(instance.uuid)
+
+  if disk_template is None:
+    disk_template = instance.disk_template
+
+  anno_disks = AnnotateDiskParams(instance, disks, lu.cfg)
   for (idx, device) in enumerate(anno_disks):
     if target_node_uuid:
       edata = [(target_node_uuid, device)]
@@ -293,13 +311,14 @@ def RemoveDisks(lu, instance, target_node_uuid=None, ignore_failures=False):
     for port in ports_to_release:
       lu.cfg.AddTcpUdpPort(port)
 
-  CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), instance.disk_template)
+  CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), disk_template)
 
-  if instance.disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]:
-    if len(inst_disks) > 0:
-      file_storage_dir = os.path.dirname(inst_disks[0].logical_id[1])
+  if (len(disks) == disk_count and
+      disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]):
+    if len(disks) > 0:
+      file_storage_dir = os.path.dirname(disks[0].logical_id[1])
     else:
-      if instance.disk_template == constants.DT_SHARED_FILE:
+      if disk_template == constants.DT_SHARED_FILE:
         file_storage_dir = utils.PathJoin(lu.cfg.GetSharedFileStorageDir(),
                                           instance.name)
       else:
