@@ -3605,11 +3605,144 @@ class LUInstanceSetParams(LogicalUnit):
                 utils.CommaJoin(set(res_max + res_min))))
         raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
+  def _ConvertInstanceTemplate(self, feedback_fn):
+    """Converts the disk template of an instance.
+
+    This function converts the disk template of an instance. It supports
+    conversions among all the available disk templates except conversions
+    between the LVM-based disk templates, that use their separate code path.
+    Also, this method does not support conversions that include the 'diskless'
+    template and those targeting the 'blockdev' template.
+
+    @type feedback_fn: callable
+    @param feedback_fn: function used to send feedback back to the caller
+
+    @rtype: NoneType
+    @return: None
+    @raise errors.OpPrereqError: in case of failure
+
+    """
+    feedback_fn("Converting disk template from '%s' to '%s'" %
+                (self.instance.disk_template, self.op.disk_template))
+
+    assert not (self.op.disk_template in (constants.DT_BLOCK,
+                                          constants.DT_DISKLESS) or
+                self.instance.disk_template == constants.DT_DISKLESS), \
+      ("Unsupported disk template conversion from '%s' to '%s'" %
+       (self.instance.disk_template, self.op.disk_template))
+
+    pnode_uuid = self.instance.primary_node
+    snode_uuid = []
+    if self.op.remote_node_uuid:
+      snode_uuid = [self.op.remote_node_uuid]
+
+    old_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+
+    feedback_fn("Generating new '%s' disk template..." % self.op.disk_template)
+    new_disks = GenerateDiskTemplate(self,
+                                     self.op.disk_template,
+                                     self.instance.uuid,
+                                     pnode_uuid,
+                                     snode_uuid,
+                                     self.disks_info,
+                                     None, # to be updated with the file_path
+                                     None, # to be updated with the file_driver
+                                     0,
+                                     feedback_fn,
+                                     self.diskparams)
+
+    # Create the new block devices for the instance.
+    feedback_fn("Creating new empty disks of type '%s'..." %
+                self.op.disk_template)
+    try:
+      CreateDisks(self, self.instance, disk_template=self.op.disk_template,
+                  disks=new_disks)
+    except errors.OpExecError:
+      self.LogWarning("Device creation failed")
+      self.cfg.ReleaseDRBDMinors(self.instance.uuid)
+      raise
+
+    # Transfer the data from the old to the newly created disks of the instance.
+    feedback_fn("Populating the new empty disks of type '%s'..." %
+                self.op.disk_template)
+    for idx, (old, new) in enumerate(zip(old_disks, new_disks)):
+      feedback_fn(" - copying data from disk %s (%s), size %s" %
+                  (idx, self.instance.disk_template,
+                   utils.FormatUnit(new.size, "h")))
+      if self.instance.disk_template == constants.DT_DRBD8:
+        old = old.children[0]
+      result = self.rpc.call_blockdev_convert(pnode_uuid, (old, self.instance),
+                                              (new, self.instance))
+      msg = result.fail_msg
+      if msg:
+        # A disk failed to copy. Abort the conversion operation and rollback
+        # the modifications to the previous state. The instance will remain
+        # intact.
+        if self.op.disk_template == constants.DT_DRBD8:
+          new = new.children[0]
+        self.Log(" - ERROR: Could not copy disk '%s' to '%s'" %
+                 (old.logical_id[1], new.logical_id[1]))
+        try:
+          self.LogInfo("Some disks failed to copy")
+          self.LogInfo("The instance will not be affected, aborting operation")
+          self.LogInfo("Removing newly created disks of type '%s'..." %
+                       self.op.disk_template)
+          RemoveDisks(self, self.instance, disk_template=self.op.disk_template,
+                      disks=new_disks)
+          self.LogInfo("Newly created disks removed successfully")
+        finally:
+          self.cfg.ReleaseDRBDMinors(self.instance.uuid)
+          result.Raise("Error while converting the instance's template")
+
+    # In case of DRBD disk, return its port to the pool
+    if self.instance.disk_template == constants.DT_DRBD8:
+      for disk in old_disks:
+        tcp_port = disk.logical_id[2]
+        self.cfg.AddTcpUdpPort(tcp_port)
+
+    # Remove old disks from the instance.
+    feedback_fn("Detaching old disks (%s) from the instance and removing"
+                " them from cluster config" % self.instance.disk_template)
+    for old_disk in old_disks:
+      self.cfg.RemoveInstanceDisk(self.instance.uuid, old_disk.uuid)
+
+    # The old disk_template will be needed to remove the old block devices.
+    old_disk_template = self.instance.disk_template
+
+    # Update the disk template of the instance
+    self.cfg.SetInstanceDiskTemplate(self.instance.uuid, self.op.disk_template)
+
+    # Attach the new disks to the instance.
+    feedback_fn("Adding new disks (%s) to cluster config and attaching"
+                " them to the instance" % self.op.disk_template)
+    for (idx, new_disk) in enumerate(new_disks):
+      self.cfg.AddInstanceDisk(self.instance.uuid, new_disk, idx=idx)
+
+    # Re-read the instance from the configuration.
+    self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
+
+    # Release node locks while waiting for sync and disks removal.
+    ReleaseLocks(self, locking.LEVEL_NODE)
+
+    disk_abort = not WaitForSync(self, self.instance,
+                                 oneshot=not self.op.wait_for_sync)
+    if disk_abort:
+      raise errors.OpExecError("There are some degraded disks for"
+                               " this instance, please cleanup manually")
+
+    feedback_fn("Removing old block devices of type '%s'..." %
+                old_disk_template)
+    RemoveDisks(self, self.instance, disk_template=old_disk_template,
+                disks=old_disks)
+
+    # Node resource locks will be released by the caller.
+
   def _ConvertPlainToDrbd(self, feedback_fn):
     """Converts an instance from plain to drbd.
 
     """
-    feedback_fn("Converting template to drbd")
+    feedback_fn("Converting disk template from 'plain' to 'drbd'")
+
     pnode_uuid = self.instance.primary_node
     snode_uuid = self.op.remote_node_uuid
 
@@ -3695,7 +3828,7 @@ class LUInstanceSetParams(LogicalUnit):
     assert self.instance.disk_template == constants.DT_DRBD8
 
     snode_uuid = secondary_nodes[0]
-    feedback_fn("Converting template to plain")
+    feedback_fn("Converting disk template from 'drbd' to 'plain'")
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     old_disks = AnnotateDiskParams(self.instance, disks, self.cfg)
