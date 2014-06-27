@@ -1038,7 +1038,7 @@ class LUInstanceCreate(LogicalUnit):
 
     # disk checks/pre-build
     default_vg = self.cfg.GetVGName()
-    self.disks = ComputeDisks(self.op, default_vg)
+    self.disks = ComputeDisks(self.op.disks, self.op.disk_template, default_vg)
 
     if self.op.mode == constants.INSTANCE_IMPORT:
       disk_images = []
@@ -2344,7 +2344,9 @@ class LUInstanceMultiAlloc(NoHooksLU):
       else:
         node_whitelist = None
 
-      insts = [_CreateInstanceAllocRequest(op, ComputeDisks(op, default_vg),
+      insts = [_CreateInstanceAllocRequest(op, ComputeDisks(op.disks,
+                                                            op.disk_template,
+                                                            default_vg),
                                            _ComputeNics(op, cluster, None,
                                                         self.cfg, ec_id),
                                            _ComputeFullBeParams(op, cluster),

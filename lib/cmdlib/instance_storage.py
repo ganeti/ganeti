@@ -317,17 +317,21 @@ def ComputeDiskSizePerVG(disk_template, disks):
   return req_size_dict[disk_template]
 
 
-def ComputeDisks(op, default_vg):
+def ComputeDisks(disks, disk_template, default_vg):
   """Computes the instance disks.
 
-  @param op: The instance opcode
+  @type disks: list of dictionaries
+  @param disks: The disks' input dictionary
+  @type disk_template: string
+  @param disk_template: The disk template of the instance
+  @type default_vg: string
   @param default_vg: The default_vg to assume
 
   @return: The computed disks
 
   """
-  disks = []
-  for disk in op.disks:
+  new_disks = []
+  for disk in disks:
     mode = disk.get(constants.IDISK_MODE, constants.DISK_RDWR)
     if mode not in constants.DISK_ACCESS_SET:
       raise errors.OpPrereqError("Invalid disk access mode '%s'" %
@@ -342,11 +346,11 @@ def ComputeDisks(op, default_vg):
                                  errors.ECODE_INVAL)
 
     ext_provider = disk.get(constants.IDISK_PROVIDER, None)
-    if ext_provider and op.disk_template != constants.DT_EXT:
+    if ext_provider and disk_template != constants.DT_EXT:
       raise errors.OpPrereqError("The '%s' option is only valid for the %s"
                                  " disk template, not %s" %
                                  (constants.IDISK_PROVIDER, constants.DT_EXT,
-                                  op.disk_template), errors.ECODE_INVAL)
+                                  disk_template), errors.ECODE_INVAL)
 
     data_vg = disk.get(constants.IDISK_VG, default_vg)
     name = disk.get(constants.IDISK_NAME, None)
@@ -368,13 +372,13 @@ def ComputeDisks(op, default_vg):
         new_disk[key] = disk[key]
 
     # Add IDISK_ACCESS parameter for disk templates that support it
-    if (op.disk_template in constants.DTS_HAVE_ACCESS and
+    if (disk_template in constants.DTS_HAVE_ACCESS and
         constants.IDISK_ACCESS in disk):
       new_disk[constants.IDISK_ACCESS] = disk[constants.IDISK_ACCESS]
 
     # For extstorage, demand the `provider' option and add any
     # additional parameters (ext-params) to the dict
-    if op.disk_template == constants.DT_EXT:
+    if disk_template == constants.DT_EXT:
       if ext_provider:
         new_disk[constants.IDISK_PROVIDER] = ext_provider
         for key in disk:
@@ -384,9 +388,70 @@ def ComputeDisks(op, default_vg):
         raise errors.OpPrereqError("Missing provider for template '%s'" %
                                    constants.DT_EXT, errors.ECODE_INVAL)
 
-    disks.append(new_disk)
+    new_disks.append(new_disk)
 
-  return disks
+  return new_disks
+
+
+def ComputeDisksInfo(disks, disk_template, default_vg, ext_params):
+  """Computes the new instance's disks for the template conversion.
+
+  This method is used by the disks template conversion mechanism. Using the
+  'ComputeDisks' method as an auxiliary method computes the disks that will be
+  used for generating the new disk template of the instance. It computes the
+  size, mode, and name parameters from the instance's current disks, such as
+  the volume group and the access parameters for the templates that support
+  them. For conversions targeting an extstorage template, the mandatory
+  provider's name or any user-provided extstorage parameters will also be
+  included in the result.
+
+  @type disks: list of {objects.Disk}
+  @param disks: The current disks of the instance
+  @type disk_template: string
+  @param disk_template: The disk template of the instance
+  @type default_vg: string
+  @param default_vg: The default volume group to assume
+  @type ext_params: dict
+  @param ext_params: The extstorage parameters
+
+  @rtype: list of dictionaries
+  @return: The computed disks' information for the new template
+
+  """
+  # Ensure 'ext_params' does not violate existing disks' params
+  for key in ext_params.keys():
+    if key != constants.IDISK_PROVIDER:
+      assert key not in constants.IDISK_PARAMS, \
+        "Invalid extstorage parameter '%s'" % key
+
+  # Prepare the disks argument for the 'ComputeDisks' method.
+  inst_disks = [dict((key, value) for key, value in disk.iteritems()
+                     if key in constants.IDISK_PARAMS)
+                for disk in map(objects.Disk.ToDict, disks)]
+
+  # Update disks with the user-provided 'ext_params'.
+  for disk in inst_disks:
+    disk.update(ext_params)
+
+  # Compute the new disks' information.
+  new_disks = ComputeDisks(inst_disks, disk_template, default_vg)
+
+  # Add missing parameters to the previously computed disks.
+  for disk, new_disk in zip(disks, new_disks):
+    # Add IDISK_ACCESS parameter for conversions between disk templates that
+    # support it.
+    if (disk_template in constants.DTS_HAVE_ACCESS and
+        constants.IDISK_ACCESS in disk.params):
+      new_disk[constants.IDISK_ACCESS] = disk.params[constants.IDISK_ACCESS]
+
+    # For LVM-based conversions (plain <-> drbd) use the same volume group.
+    if disk_template in constants.DTS_LVM:
+      if disk.dev_type == constants.DT_PLAIN:
+        new_disk[constants.IDISK_VG] = disk.logical_id[0]
+      elif disk.dev_type == constants.DT_DRBD8:
+        new_disk[constants.IDISK_VG] = disk.children[0].logical_id[0]
+
+  return new_disks
 
 
 def CheckRADOSFreeSpace():
