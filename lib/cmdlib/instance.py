@@ -56,7 +56,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
 from ganeti.cmdlib.instance_storage import CreateDisks, \
   CheckNodesFreeDiskPerVG, WipeDisks, WipeOrCleanupDisks, ImageDisks, \
   WaitForSync, IsExclusiveStorageEnabledNodeUuid, CreateSingleBlockDev, \
-  ComputeDisks, CheckRADOSFreeSpace, ComputeDiskSizePerVG, \
+  ComputeDisks, ComputeDisksInfo, CheckRADOSFreeSpace, ComputeDiskSizePerVG, \
   GenerateDiskTemplate, StartInstanceDisks, ShutdownInstanceDisks, \
   AssembleInstanceDisks, CheckSpindlesExclusiveStorage, TemporaryDisk
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
@@ -3056,6 +3056,15 @@ class LUInstanceSetParams(LogicalUnit):
                                  errors.ECODE_INVAL)
     CheckInstanceState(self, self.instance, INSTANCE_DOWN,
                        msg="cannot change disk template")
+
+    # The 'ext_params' variable is temporary. It will be replaced in the next
+    # patch series by the 'self.op.ext_params' variable
+    ext_params = {}
+    default_vg = self.cfg.GetVGName()
+    inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    self.disks_info = ComputeDisksInfo(inst_disks, self.op.disk_template,
+                                       default_vg, ext_params)
+
     if self.op.disk_template in constants.DTS_INT_MIRROR:
       if self.op.remote_node_uuid == pnode_uuid:
         raise errors.OpPrereqError("Given new secondary node %s is the same"
@@ -3065,10 +3074,7 @@ class LUInstanceSetParams(LogicalUnit):
       CheckNodeNotDrained(self, self.op.remote_node_uuid)
       # FIXME: here we assume that the old instance type is DT_PLAIN
       assert self.instance.disk_template == constants.DT_PLAIN
-      disks = [{constants.IDISK_SIZE: d.size,
-                constants.IDISK_VG: d.logical_id[0]}
-               for d in self.cfg.GetInstanceDisks(self.instance.uuid)]
-      required = ComputeDiskSizePerVG(self.op.disk_template, disks)
+      required = ComputeDiskSizePerVG(self.op.disk_template, self.disks_info)
       CheckNodesFreeDiskPerVG(self, [self.op.remote_node_uuid], required)
 
       snode_info = self.cfg.GetNodeInfo(self.op.remote_node_uuid)
@@ -3610,14 +3616,10 @@ class LUInstanceSetParams(LogicalUnit):
     assert self.instance.disk_template == constants.DT_PLAIN
 
     old_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
-    # create a fake disk info for _GenerateDiskTemplate
-    disk_info = [{constants.IDISK_SIZE: d.size, constants.IDISK_MODE: d.mode,
-                  constants.IDISK_VG: d.logical_id[0],
-                  constants.IDISK_NAME: d.name}
-                 for d in old_disks]
     new_disks = GenerateDiskTemplate(self, self.op.disk_template,
                                      self.instance.uuid, pnode_uuid,
-                                     [snode_uuid], disk_info, None, None, 0,
+                                     [snode_uuid], self.disks_info,
+                                     None, None, 0,
                                      feedback_fn, self.diskparams)
     anno_disks = rpc.AnnotateDiskParams(new_disks, self.diskparams)
     p_excl_stor = IsExclusiveStorageEnabledNodeUuid(self.cfg, pnode_uuid)
