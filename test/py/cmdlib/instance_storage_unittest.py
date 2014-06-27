@@ -27,6 +27,7 @@ import unittest
 from ganeti import constants
 from ganeti.cmdlib import instance_storage
 from ganeti import errors
+from ganeti import objects
 
 import testutils
 import mock
@@ -110,6 +111,73 @@ class TestCheckNodesFreeDiskOnVG(unittest.TestCase):
         errors.OpPrereqError,
         instance_storage._CheckVgCapacityForNode,
         self.node_name, node_info, self.vg, NotImplemented)
+
+
+class TestCheckComputeDisksInfo(unittest.TestCase):
+  """Tests for instance_storage.ComputeDisksInfo()
+
+  """
+  def setUp(self):
+    """Set up input data"""
+    self.disks = [
+      objects.Disk(dev_type=constants.DT_PLAIN, size=1024,
+                   logical_id=("ganeti", "disk01234"),
+                   name="disk-0", mode="rw", params={},
+                   children=[], uuid="disk0"),
+      objects.Disk(dev_type=constants.DT_PLAIN, size=2048,
+                   logical_id=("ganeti", "disk56789"),
+                   name="disk-1", mode="ro", params={},
+                   children=[], uuid="disk1")
+      ]
+
+    self.ext_params = {
+      "provider": "pvdr",
+      "param1"  : "value1",
+      "param2"  : "value2"
+      }
+
+    self.default_vg = "ganeti-vg"
+
+  def testComputeDisksInfo(self):
+    """Test instance_storage.ComputeDisksInfo() method"""
+    disks_info = instance_storage.ComputeDisksInfo(self.disks,
+                                                   constants.DT_EXT,
+                                                   self.default_vg,
+                                                   self.ext_params)
+
+    for disk, d in zip(disks_info, self.disks):
+      self.assertEqual(disk.get("size"), d.size)
+      self.assertEqual(disk.get("mode"), d.mode)
+      self.assertEqual(disk.get("name"), d.name)
+      self.assertEqual(disk.get("param1"), self.ext_params.get("param1"))
+      self.assertEqual(disk.get("param2"), self.ext_params.get("param2"))
+      self.assertEqual(disk.get("provider"), self.ext_params.get("provider"))
+
+  def testComputeDisksInfoPlainToDrbd(self):
+    disks = [{constants.IDISK_SIZE: d.size,
+              constants.IDISK_MODE: d.mode,
+              constants.IDISK_VG: d.logical_id[0],
+              constants.IDISK_NAME: d.name}
+             for d in self.disks]
+
+    disks_info = instance_storage.ComputeDisksInfo(self.disks,
+                                                   constants.DT_DRBD8,
+                                                   self.default_vg, {})
+    self.assertEqual(disks, disks_info)
+
+  def testComputeDisksInfoFails(self):
+    """Test instance_storage.ComputeDisksInfo() method fails"""
+    self.assertRaises(
+      errors.OpPrereqError, instance_storage.ComputeDisksInfo,
+      self.disks, constants.DT_EXT, self.default_vg, {})
+    self.assertRaises(
+      errors.OpPrereqError, instance_storage.ComputeDisksInfo,
+      self.disks, constants.DT_DRBD8, self.default_vg, self.ext_params)
+
+    self.ext_params.update({"size": 128})
+    self.assertRaises(
+      AssertionError, instance_storage.ComputeDisksInfo,
+      self.disks, constants.DT_EXT, self.default_vg, self.ext_params)
 
 
 if __name__ == "__main__":

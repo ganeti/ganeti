@@ -217,6 +217,20 @@ class TestConfigRunner(unittest.TestCase):
       node2.uuid: ["myxenvg/disk0", "myxenvg/meta0"],
       })
 
+  def testSetInstanceDiskTemplate(self):
+    """Test that instance's disk template updates succcessfully"""
+    # Construct an instance with 'diskless' template
+    cfg = self._get_object()
+    inst = self._create_instance(cfg)
+    cfg.AddInstance(inst, "my-job")
+    self.assertEqual(inst.disk_template, constants.DT_DISKLESS)
+
+    # Modify the disk template, e.g., 'plain'
+    cfg.SetInstanceDiskTemplate(inst.uuid, constants.DT_PLAIN)
+    # re-read the instance from configuration
+    inst = cfg.GetInstanceInfo(inst.uuid)
+    self.assertEqual(inst.disk_template, constants.DT_PLAIN)
+
   def testUpdateCluster(self):
     """Test updates on the cluster object"""
     cfg = self._get_object()
