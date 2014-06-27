@@ -3696,7 +3696,6 @@ class LUInstanceSetParams(LogicalUnit):
     assert len(secondary_nodes) == 1
     assert self.instance.disk_template == constants.DT_DRBD8
 
-    pnode_uuid = self.instance.primary_node
     snode_uuid = secondary_nodes[0]
     feedback_fn("Converting template to plain")
 
@@ -3736,21 +3735,15 @@ class LUInstanceSetParams(LogicalUnit):
     ReleaseLocks(self, locking.LEVEL_NODE)
 
     feedback_fn("Removing volumes on the secondary node...")
-    for disk in old_disks:
-      result = self.rpc.call_blockdev_remove(snode_uuid, (disk, self.instance))
-      result.Warn("Could not remove block device %s on node %s,"
-                  " continuing anyway" %
-                  (disk.iv_name, self.cfg.GetNodeName(snode_uuid)),
-                  self.LogWarning)
+    RemoveDisks(self, self.instance, disk_template=constants.DT_DRBD8,
+                disks=old_disks, target_node_uuid=snode_uuid)
 
     feedback_fn("Removing unneeded volumes on the primary node...")
+    meta_disks = []
     for idx, disk in enumerate(old_disks):
-      meta = disk.children[1]
-      result = self.rpc.call_blockdev_remove(pnode_uuid, (meta, self.instance))
-      result.Warn("Could not remove metadata for disk %d on node %s,"
-                  " continuing anyway" %
-                  (idx, self.cfg.GetNodeName(pnode_uuid)),
-                  self.LogWarning)
+      meta_disks.append(disk.children[1])
+    RemoveDisks(self, self.instance, disk_template=constants.DT_DRBD8,
+                disks=meta_disks)
 
   def _HotplugDevice(self, action, dev_type, device, extra, seq):
     self.LogInfo("Trying to hotplug device...")
@@ -3874,15 +3867,7 @@ class LUInstanceSetParams(LogicalUnit):
                                    root, None, idx)
       ShutdownInstanceDisks(self, self.instance, [root])
 
-    (anno_disk,) = AnnotateDiskParams(self.instance, [root], self.cfg)
-    for node_uuid, disk in anno_disk.ComputeNodeTree(
-                             self.instance.primary_node):
-      msg = self.rpc.call_blockdev_remove(node_uuid, (disk, self.instance)) \
-              .fail_msg
-      if msg:
-        self.LogWarning("Could not remove disk/%d on node '%s': %s,"
-                        " continuing anyway", idx,
-                        self.cfg.GetNodeName(node_uuid), msg)
+    RemoveDisks(self, self.instance, disks=[root])
 
     # if this is a DRBD disk, return its port to the pool
     if root.dev_type in constants.DTS_DRBD:
