@@ -3664,10 +3664,8 @@ class LUInstanceSetParams(LogicalUnit):
     for old_disk in old_disks:
       self.cfg.RemoveInstanceDisk(self.instance.uuid, old_disk.uuid)
 
-    # Update instance structure
-    self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
-    self.instance.disk_template = constants.DT_DRBD8
-    self.cfg.Update(self.instance, feedback_fn)
+    # Update the disk template of the instance
+    self.cfg.SetInstanceDiskTemplate(self.instance.uuid, constants.DT_DRBD8)
 
     # Attach the new disks to the instance
     for (idx, new_disk) in enumerate(new_disks):
@@ -3719,10 +3717,8 @@ class LUInstanceSetParams(LogicalUnit):
     for old_disk in old_disks:
       self.cfg.RemoveInstanceDisk(self.instance.uuid, old_disk.uuid)
 
-    # Update instance structure
-    self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
-    self.instance.disk_template = constants.DT_PLAIN
-    self.cfg.Update(self.instance, feedback_fn)
+    # Update the disk template of the instance
+    self.cfg.SetInstanceDiskTemplate(self.instance.uuid, constants.DT_PLAIN)
 
     # Attach the new disks to the instance
     for (idx, new_disk) in enumerate(new_disks):
