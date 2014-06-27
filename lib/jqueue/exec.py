@@ -76,6 +76,7 @@ def main():
     logging.debug("Registering signal handlers")
 
     cancel = [False]
+    prio_change = [False]
 
     def _TermHandler(signum, _frame):
       logging.info("Killed by signal %d", signum)
@@ -88,6 +89,11 @@ def main():
       mcpu.sighupReceived[0] = True
     signal.signal(signal.SIGHUP, _HupHandler)
 
+    def _User1Handler(signum, _frame):
+      logging.info("Received signal %d, indicating priority change", signum)
+      prio_change[0] = True
+    signal.signal(signal.SIGUSR1, _User1Handler)
+
     logging.debug("Picking up job %d", job_id)
     context.jobqueue.PickupJob(job_id)
 
@@ -99,6 +105,20 @@ def main():
         r = context.jobqueue.CancelJob(job_id)
         logging.debug("CancelJob result for job %d: %s", job_id, r)
         cancel[0] = False
+      if prio_change[0]:
+        logging.debug("Received priority-change request")
+        try:
+          fname = os.path.join(pathutils.LUXID_MESSAGE_DIR, "%d.prio" % job_id)
+          new_prio = int(utils.ReadFile(fname))
+          utils.RemoveFile(fname)
+          logging.debug("Changing priority of job %d to %d", job_id, new_prio)
+          r = context.jobqueue.ChangeJobPriority(job_id, new_prio)
+          logging.debug("Result of changing priority of %d to %d: %s", job_id,
+                        new_prio, r)
+        except Exception: # pylint: disable=W0703
+          logging.warning("Informed of priority change, but could not"
+                          " read new priority")
+        prio_change[0] = False
       time.sleep(1)
 
     # wait until the queue finishes

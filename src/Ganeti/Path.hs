@@ -28,6 +28,7 @@ module Ganeti.Path
   , runDir
   , logDir
   , socketDir
+  , luxidMessageDir
   , livelockDir
   , livelockFile
   , defaultQuerySocket
@@ -93,6 +94,11 @@ socketDir = runDir `pjoin` "socket"
 -- | Directory for the jobs' livelocks.
 livelockDir :: IO FilePath
 livelockDir = runDir `pjoin` "livelocks"
+
+-- | Directory for luxid to write messages to running jobs, like
+-- requests to change the priority.
+luxidMessageDir :: IO FilePath
+luxidMessageDir = runDir `pjoin` "luxidmessages"
 
 -- | A helper for building a job's livelock file. It prepends
 -- 'livelockDir' to a given filename.

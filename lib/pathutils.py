@@ -86,6 +86,7 @@ INSTANCE_REASON_DIR = RUN_DIR + "/instance-reason"
 #: this directory)
 UIDPOOL_LOCKDIR = RUN_DIR + "/uid-pool"
 LIVELOCK_DIR = RUN_DIR + "/livelocks"
+LUXID_MESSAGE_DIR = RUN_DIR + "/luxidmessages"
 
 SSCONF_LOCK_FILE = LOCK_DIR + "/ganeti-ssconf.lock"
 

@@ -62,6 +62,7 @@ module Ganeti.JQueue
     , isQueueOpen
     , startJobs
     , cancelJob
+    , tellJobPriority
     , notifyJob
     , queueDirPermissions
     , archiveJobs
@@ -91,7 +92,7 @@ import System.Directory
 import System.FilePath
 import System.IO.Error (isDoesNotExistError)
 import System.Posix.Files
-import System.Posix.Signals (sigHUP, sigTERM, signalProcess)
+import System.Posix.Signals (sigHUP, sigTERM, sigUSR1, signalProcess)
 import System.Posix.Types (ProcessID)
 import System.Time
 import qualified Text.JSON
@@ -537,6 +538,15 @@ startJobs cfg luxiLivelock forkLock jobs = do
         return $ job { qjLivelock = Just llfile }
   mapM (runResultT . runJob) jobs
 
+-- | Try to prove that a queued job is dead. This function needs to know
+-- the livelock of the caller (i.e., luxid) to avoid considering a job dead
+-- that is in the process of forking off.
+isQueuedJobDead :: MonadIO m => Livelock -> QueuedJob -> m Bool
+isQueuedJobDead ownlivelock =
+  maybe (return False) (liftIO . isDead)
+  . mfilter (/= ownlivelock)
+  . qjLivelock
+
 -- | Waits for a job to finalize its execution.
 waitForJob :: JobId -> Int -> ResultG (Bool, String)
 waitForJob jid tmout = do
@@ -552,7 +562,7 @@ waitForJob jid tmout = do
             return (False, "Job exited before it could have been canceled,\
                            \ status " ++ show s)
          | otherwise ->
-             return (False, "Job could not have been cancelel, status "
+             return (False, "Job could not be canceled, status "
                             ++ show s)
     Bad e -> failError $ "Can't read job status: " ++ e
 
@@ -573,19 +583,44 @@ cancelJob luxiLivelock jid = runResultT $ do
     qDir <- liftIO queueDir
     (job, _) <- lift . mkResultT $ loadJobFromDisk qDir True jid
     let jName = ("Job " ++) . show . fromJobId . qjId $ job
-    dead <- maybe (return False) (liftIO . isDead)
-            . mfilter (/= luxiLivelock)
-            $ qjLivelock job
+    dead <- isQueuedJobDead luxiLivelock job
     case qjProcessId job of
       _ | dead ->
         return (True, jName ++ " has been already dead")
       Just pid -> do
         liftIO $ signalProcess sigTERM pid
-        lift $ waitForJob jid C.luxiCancelJobTimeout
+        if calcJobStatus job > JOB_STATUS_WAITING
+          then return (False, "Job no longer waiting, can't cancel\
+                              \ (informed it anyway)")
+          else lift $ waitForJob jid C.luxiCancelJobTimeout
       _ -> do
         logDebug $ jName ++ " in its startup phase, retrying"
         mzero
   return $ fromMaybe (False, "Timeout: job still in its startup phase") result
+
+-- | Inform a job that it is requested to change its priority. This is done
+-- by writing the new priority to a file and sending SIGUSR1.
+tellJobPriority :: Livelock -- ^ Luxi's livelock path
+                -> JobId -- ^ the job to inform
+                -> Int -- ^ the new priority
+                -> IO (ErrorResult (Bool, String))
+tellJobPriority luxiLivelock jid prio = runResultT $ do
+  let  jidS = show $ fromJobId jid
+       jName = "Job " ++ jidS
+  mDir <- liftIO luxidMessageDir
+  let prioFile = mDir </> jidS ++ ".prio"
+  liftIO . atomicWriteFile prioFile $ show prio
+  qDir <- liftIO queueDir
+  (job, _) <- mkResultT $ loadJobFromDisk qDir True jid
+  dead <- isQueuedJobDead luxiLivelock job
+  case qjProcessId job of
+    _ | dead -> do
+      liftIO $ removeFile prioFile
+      return (False, jName ++ " is dead")
+    Just pid -> do
+      liftIO $ signalProcess sigUSR1 pid
+      return (True, jName ++ " with pid " ++ show pid ++ " signaled")
+    _ -> return (False, jName ++ "'s pid unknown")
 
 -- | Notify a job that something relevant happened, e.g., a lock became
 -- available. We do this by sending sigHUP to the process.

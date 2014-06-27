@@ -209,6 +209,8 @@ def GetPaths():
     (pathutils.INSTANCE_REASON_DIR, DIR, 0755, getent.noded_uid,
      getent.noded_gid),
     (pathutils.LIVELOCK_DIR, DIR, 0750, getent.masterd_uid, getent.daemons_gid),
+    (pathutils.LUXID_MESSAGE_DIR, DIR, 0750, getent.masterd_uid,
+     getent.daemons_gid),
     ])
 
   return paths
