@@ -202,7 +202,8 @@ def _UndoCreateDisks(lu, disks_created, instance):
                 (disk, lu.cfg.GetNodeName(node_uuid)), logging.warning)
 
 
-def CreateDisks(lu, instance, to_skip=None, target_node_uuid=None, disks=None):
+def CreateDisks(lu, instance, disk_template=None,
+                to_skip=None, target_node_uuid=None, disks=None):
   """Create all disks for an instance.
 
   This abstracts away some work from AddInstance.
@@ -211,10 +212,17 @@ def CreateDisks(lu, instance, to_skip=None, target_node_uuid=None, disks=None):
   function can not query the config file for the instance's disks; in that
   case they need to be passed as an argument.
 
+  This function is also used by the disk template conversion mechanism to
+  create the new disks of the instance. Since the instance will have the
+  old template at the time we create the new disks, the new template must
+  be passed as an extra argument.
+
   @type lu: L{LogicalUnit}
   @param lu: the logical unit on whose behalf we execute
   @type instance: L{objects.Instance}
   @param instance: the instance whose disks we should create
+  @type disk_template: string
+  @param disk_template: if provided, overrides the instance's disk_template
   @type to_skip: list
   @param to_skip: list of indices to skip
   @type target_node_uuid: string
@@ -248,9 +256,12 @@ def CreateDisks(lu, instance, to_skip=None, target_node_uuid=None, disks=None):
     pnode_uuid = target_node_uuid
     all_node_uuids = [pnode_uuid]
 
-  CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), instance.disk_template)
+  if disk_template is None:
+    disk_template = instance.disk_template
 
-  if instance.disk_template in constants.DTS_FILEBASED:
+  CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), disk_template)
+
+  if disk_template in constants.DTS_FILEBASED:
     file_storage_dir = os.path.dirname(disks[0].logical_id[1])
     result = lu.rpc.call_file_storage_dir_create(pnode_uuid, file_storage_dir)
 
