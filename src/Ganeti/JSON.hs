@@ -49,6 +49,7 @@ module Ganeti.JSON
   , optionalJSField
   , optFieldsToObj
   , lookupContainer
+  , alterContainerL
   , readContainer
   , mkUsedKeys
   , allUsedKeys
@@ -327,6 +328,18 @@ type Container = GenericContainer String
 lookupContainer :: (Monad m, Ord a)
                 => m b -> a -> GenericContainer a b -> m b
 lookupContainer dflt k = maybe dflt return . Map.lookup k . fromContainer
+
+-- | Updates a value inside a container.
+-- The signature of the function is crafted so that it can be directly
+-- used as a lens.
+alterContainerL :: (Functor f, Ord a)
+                => a
+                -> (Maybe b -> f (Maybe b))
+                -> GenericContainer a b
+                -> f (GenericContainer a b)
+alterContainerL key f (GenericContainer m) =
+  fmap (\v -> GenericContainer $ Map.update (const v) key m)
+       (f $ Map.lookup key m)
 
 -- | Container loader.
 readContainer :: (Monad m, HasStringRepr a, Ord a, J.JSON b) =>
