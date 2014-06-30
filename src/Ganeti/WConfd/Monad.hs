@@ -45,6 +45,7 @@ module Ganeti.WConfd.Monad
   , modifyConfigState
   , forceConfigStateDistribution
   , readConfigState
+  , modifyConfigDataErr_
   , modifyLockWaiting
   , modifyLockWaiting_
   , readLockWaiting
@@ -78,6 +79,7 @@ import Ganeti.Locking.Allocation (LockAllocation)
 import Ganeti.Locking.Locks
 import Ganeti.Locking.Waiting (getAllocation)
 import Ganeti.Logging
+import Ganeti.Logging.WriterLog
 import Ganeti.Objects (ConfigData)
 import Ganeti.Utils.AsyncWorker
 import Ganeti.Utils.IORef
@@ -190,6 +192,9 @@ runWConfdMonadInt (WConfdMonadInt k) = runReaderT k
 -- | The complete monad with error handling.
 type WConfdMonad = ResultT GanetiException WConfdMonadInt
 
+-- | A pure monad that logs and reports errors used for atomic modifications.
+type AtomicModifyMonad a = ResultT GanetiException WriterLog a
+
 -- * Basic functions in the monad
 
 -- | Returns the daemon handle.
@@ -201,21 +206,26 @@ readConfigState :: WConfdMonad ConfigState
 readConfigState = liftM dsConfigState . readIORef . dhDaemonState
                   =<< daemonHandle
 
--- | Atomically modifies the configuration state in the WConfdMonad.
-modifyConfigState :: (ConfigState -> (ConfigState, a)) -> WConfdMonad a
-modifyConfigState f = do
+-- | Atomically modifies the configuration state in the WConfdMonad
+-- with a computation that can possibly fail.
+modifyConfigStateErr
+  :: (TempResState -> ConfigState -> AtomicModifyMonad (a, ConfigState))
+  -> WConfdMonad a
+modifyConfigStateErr f = do
   dh <- daemonHandle
   now <- liftIO getClockTime
+
   -- If the configuration is modified, we also bump its serial number.
   -- In order to determine if we need to save, we report if it's modified
   -- as well as if it needs to be distributed synchronously.
-  let modCS cs = case f cs of
-                  (cs', r)
-                    | cs /= cs' -> ( (r, True, needsFullDist cs cs')
-                                   , over csConfigDataL (bumpSerial now) cs' )
-                    | otherwise -> ((r, False, False), cs')
-  (r, modified, distSync) <- atomicModifyWithLens (dhDaemonState dh)
-                                                  dsConfigStateL modCS
+  let unpackResult cs (r, cs')
+                    | cs /= cs' = ( (r, True, needsFullDist cs cs')
+                                  , over csConfigDataL (bumpSerial now) cs' )
+                    | otherwise = ((r, False, False), cs')
+  let modCS ds@(DaemonState { dsTempRes = tr }) =
+        mapMOf2 dsConfigStateL (\cs -> liftM (unpackResult cs) (f tr cs)) ds
+  (r, modified, distSync) <- atomicModifyIORefErrLog (dhDaemonState dh)
+                                                     (liftM swap . modCS)
   when modified $ do
     if distSync
       then do
@@ -231,6 +241,17 @@ modifyConfigState f = do
     return ()
   return r
 
+-- | Atomically modifies the configuration state in the WConfdMonad
+-- with a computation that can possibly fail.
+modifyConfigStateErr_
+  :: (TempResState -> ConfigState -> AtomicModifyMonad ConfigState)
+  -> WConfdMonad ()
+modifyConfigStateErr_ f = modifyConfigStateErr ((liftM ((,) ()) .) . f)
+
+-- | Atomically modifies the configuration state in the WConfdMonad.
+modifyConfigState :: (ConfigState -> (a, ConfigState)) -> WConfdMonad a
+modifyConfigState f = modifyConfigStateErr ((return .) . const f)
+
 -- | Force the distribution of configuration without actually modifying it.
 --
 -- We need a separate call for this operation, because 'modifyConfigState' only
@@ -241,6 +262,14 @@ forceConfigStateDistribution  = do
   dh <- daemonHandle
   liftBase . triggerAndWait (Any True) . dhSaveConfigWorker $ dh
   logDebug "Forced config write and distribution finished"
+
+-- | Atomically modifies the configuration data in the WConfdMonad
+-- with a computation that can possibly fail.
+modifyConfigDataErr_
+  :: (TempResState -> ConfigData -> AtomicModifyMonad ConfigData)
+  -> WConfdMonad ()
+modifyConfigDataErr_ f =
+  modifyConfigStateErr_ (traverseOf csConfigDataL . f)
 
 -- | Atomically modifies the state of temporary reservations in
 -- WConfdMonad in the presence of possible errors.
