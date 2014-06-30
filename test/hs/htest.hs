@@ -62,6 +62,7 @@ import Test.Ganeti.Locking.Waiting
 import Test.Ganeti.Luxi
 import Test.Ganeti.Network
 import Test.Ganeti.Objects
+import Test.Ganeti.Objects.BitArray
 import Test.Ganeti.OpCodes
 import Test.Ganeti.Query.Aliases
 import Test.Ganeti.Query.Filter
@@ -131,6 +132,7 @@ allTests =
   , testLuxi
   , testNetwork
   , testObjects
+  , testObjects_BitArray
   , testOpCodes
   , testQuery_Aliases
   , testQuery_Filter

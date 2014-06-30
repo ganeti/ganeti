@@ -157,6 +157,7 @@ HS_DIRS = \
 	test/hs/Test/Ganeti/Hypervisor \
 	test/hs/Test/Ganeti/Hypervisor/Xen \
 	test/hs/Test/Ganeti/Locking \
+	test/hs/Test/Ganeti/Objects \
 	test/hs/Test/Ganeti/Query \
 	test/hs/Test/Ganeti/THH \
 	test/hs/Test/Ganeti/Utils
@@ -819,6 +820,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Monitoring/Server.hs \
 	src/Ganeti/Network.hs \
 	src/Ganeti/Objects.hs \
+	src/Ganeti/Objects/BitArray.hs \
 	src/Ganeti/Objects/Lens.hs \
 	src/Ganeti/OpCodes.hs \
 	src/Ganeti/OpCodes/Lens.hs \
@@ -919,6 +921,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Locking/Waiting.hs \
 	test/hs/Test/Ganeti/Network.hs \
 	test/hs/Test/Ganeti/Objects.hs \
+	test/hs/Test/Ganeti/Objects/BitArray.hs \
 	test/hs/Test/Ganeti/OpCodes.hs \
 	test/hs/Test/Ganeti/Query/Aliases.hs \
 	test/hs/Test/Ganeti/Query/Filter.hs \
