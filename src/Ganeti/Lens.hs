@@ -31,10 +31,11 @@ module Ganeti.Lens
   , makeCustomLenses
   , makeCustomLenses'
   , traverseOf2
+  , mapMOf2
   , atSet
   ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), WrappedMonad(..))
 import Control.Lens
 import Control.Monad
 import Data.Functor.Compose (Compose(..))
@@ -75,6 +76,12 @@ makeCustomLenses' name lst = makeCustomLensesFiltered f name
 traverseOf2 :: Over (->) (Compose f g) s t a b
             -> (a -> f (g b)) -> s -> f (g t)
 traverseOf2 k f = getCompose . traverseOf k (Compose . f)
+
+-- | Traverses over a composition of a monad and a functor.
+-- See 'traverseOf2'.
+mapMOf2 :: Over (->) (Compose (WrappedMonad m) g) s t a b
+        -> (a -> m (g b)) -> s -> m (g t)
+mapMOf2 k f = unwrapMonad . traverseOf2 k (WrapMonad . f)
 
 -- | A helper lens over sets.
 -- While a similar lens exists in the package (as @Lens' Set (Maybe ())@@),
