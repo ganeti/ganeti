@@ -4039,11 +4039,11 @@ class LUInstanceSetParams(LogicalUnit):
       pass
     elif self.op.offline:
       # Mark instance as offline
-      self.cfg.MarkInstanceOffline(self.instance.uuid)
+      self.instance = self.cfg.MarkInstanceOffline(self.instance.uuid)
       result.append(("admin_state", constants.ADMINST_OFFLINE))
     else:
       # Mark instance as online, but stopped
-      self.cfg.MarkInstanceDown(self.instance.uuid)
+      self.instance = self.cfg.MarkInstanceDown(self.instance.uuid)
       result.append(("admin_state", constants.ADMINST_DOWN))
 
     UpdateMetadata(feedback_fn, self.rpc, self.instance)
