@@ -30,6 +30,7 @@ module Ganeti.HTools.Program.Hbal
   , iterateDepth
   ) where
 
+import Control.Arrow ((&&&))
 import Control.Exception (bracket)
 import Control.Monad
 import Data.List
@@ -317,9 +318,23 @@ checkGroup verbose gname nl il = do
              "Initial check done: %d bad nodes, %d bad instances.\n"
              (length bad_nodes) (length bad_instances)
 
+  let other_nodes = filter (not . (`elem` bad_nodes)) $ Container.elems nl
+      node_status = map (Node.name &&& Node.getPolicyHealth) other_nodes
+      policy_bad = filter (isBad . snd) node_status
+
+  when (verbose > 4) $ do
+    printf "Bad nodes: %s\n" . show $ map Node.name bad_nodes :: IO ()
+    printf "N+1 happy nodes: %s\n" . show $ map Node.name other_nodes :: IO ()
+    printf "Node policy status: %s\n" $ show node_status :: IO ()
+
   unless (null bad_nodes) $
          putStrLn "Cluster is not N+1 happy, continuing but no guarantee \
                   \that the cluster will end N+1 happy."
+
+  unless (null policy_bad) $
+    printf "The cluster contains %d policy-violating nodes. Continuing, but\
+           \ the set of moves considered might be too restricted.\n"
+      $ length policy_bad :: IO ()
 
 -- | Check that we actually need to rebalance.
 checkNeedRebalance :: Options -> Score -> IO ()
