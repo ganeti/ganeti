@@ -50,6 +50,8 @@ module Ganeti.HTools.Node
   , addTags
   , delTags
   , rejectAddTags
+  -- * Diagnostic commands
+  , getPolicyHealth
   -- * Instance (re)location
   , removePri
   , removeSec
@@ -431,6 +433,17 @@ computeNewPDsk node new_free_sp new_free_dsk =
   if exclStorage node
   then computePDsk new_free_sp . fromIntegral $ tSpindles node
   else computePDsk new_free_dsk $ tDsk node
+
+-- * Diagnostic functions
+
+-- | For a node diagnose whether it conforms with all policies. The type
+-- is chosen to represent that of a no-op node operation.
+getPolicyHealth :: Node -> T.OpResult ()
+getPolicyHealth n =
+  case () of
+    _ | instSpindles n > hiSpindles n -> Bad T.FailDisk
+      | pCpu n > T.iPolicyVcpuRatio (iPolicy n) -> Bad T.FailCPU
+      | otherwise -> Ok ()
 
 -- * Update functions
 
