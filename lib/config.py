@@ -285,9 +285,7 @@ class ConfigWriter(object):
       self._cfg_file = cfg_file
     self._getents = _getents
     self._temporary_ids = TemporaryReservationManager()
-    self._temporary_ips = TemporaryReservationManager()
-    self._all_rms = [self._temporary_ids,
-                     self._temporary_ips]
+    self._all_rms = [self._temporary_ids]
     # Note: in order to prevent errors when resolving our name later,
     # we compute it here once and reuse it; it's
     # better to raise an error before starting to modify the config
@@ -701,93 +699,60 @@ class ConfigWriter(object):
     """
     self._wconfd.ReserveMAC(self._GetWConfdContext(), mac)
 
-  def _UnlockedCommitTemporaryIps(self, ec_id):
+  def _UnlockedCommitTemporaryIps(self, _ec_id):
     """Commit all reserved IP address to their respective pools
 
     """
-    for action, address, net_uuid in self._temporary_ips.GetECReserved(ec_id):
+    if self._offline:
+      raise errors.ProgrammerError("Can't call CommitTemporaryIps"
+                                   " in offline mode")
+    ips = self._wconfd.ListReservedIps(self._GetWConfdContext())
+    for action, address, net_uuid in ips:
       self._UnlockedCommitIp(action, net_uuid, address)
 
   def _UnlockedCommitIp(self, action, net_uuid, address):
     """Commit a reserved IP address to an IP pool.
 
-    The IP address is taken from the network's IP pool and marked as reserved.
+    The IP address is taken from the network's IP pool and marked as free.
 
     """
     nobj = self._UnlockedGetNetwork(net_uuid)
+    if nobj is None:
+      raise errors.ProgrammerError("Network '%s' not found" % (net_uuid, ))
     pool = network.AddressPool(nobj)
     if action == constants.RESERVE_ACTION:
       pool.Reserve(address)
     elif action == constants.RELEASE_ACTION:
       pool.Release(address)
 
-  def _UnlockedReleaseIp(self, net_uuid, address, ec_id):
+  def ReleaseIp(self, net_uuid, address, _ec_id):
     """Give a specific IP address back to an IP pool.
 
-    The IP address is returned to the IP pool designated by pool_id and marked
-    as reserved.
-
-    """
-    self._temporary_ips.Reserve(ec_id,
-                                (constants.RELEASE_ACTION, address, net_uuid))
-
-  @_ConfigSync(shared=1)
-  def ReleaseIp(self, net_uuid, address, ec_id):
-    """Give a specified IP address back to an IP pool.
-
-    This is just a wrapper around _UnlockedReleaseIp.
+    The IP address is returned to the IP pool and marked as reserved.
 
     """
     if net_uuid:
-      self._UnlockedReleaseIp(net_uuid, address, ec_id)
+      if self._offline:
+        raise errors.ProgrammerError("Can't call ReleaseIp in offline mode")
+      self._wconfd.ReleaseIp(self._GetWConfdContext(), net_uuid, address)
 
-  @_ConfigSync(shared=1)
-  def GenerateIp(self, net_uuid, ec_id):
+  def GenerateIp(self, net_uuid, _ec_id):
     """Find a free IPv4 address for an instance.
 
     """
-    nobj = self._UnlockedGetNetwork(net_uuid)
-    pool = network.AddressPool(nobj)
+    if self._offline:
+      raise errors.ProgrammerError("Can't call GenerateIp in offline mode")
+    return self._wconfd.GenerateIp(self._GetWConfdContext(), net_uuid)
 
-    def gen_one():
-      try:
-        ip = pool.GenerateFree()
-      except errors.AddressPoolError:
-        raise errors.ReservationError("Cannot generate IP. Network is full")
-      return (constants.RESERVE_ACTION, ip, net_uuid)
-
-    _, address, _ = self._temporary_ips.Generate([], gen_one, ec_id)
-    return address
-
-  def _UnlockedReserveIp(self, net_uuid, address, ec_id, check=True):
+  def ReserveIp(self, net_uuid, address, _ec_id, check=True):
     """Reserve a given IPv4 address for use by an instance.
 
     """
-    nobj = self._UnlockedGetNetwork(net_uuid)
-    pool = network.AddressPool(nobj)
-    try:
-      isreserved = pool.IsReserved(address)
-      isextreserved = pool.IsReserved(address, external=True)
-    except errors.AddressPoolError:
-      raise errors.ReservationError("IP address not in network")
-    if isreserved:
-      raise errors.ReservationError("IP address already in use")
-    if check and isextreserved:
-      raise errors.ReservationError("IP is externally reserved")
+    if self._offline:
+      raise errors.ProgrammerError("Can't call ReserveIp in offline mode")
+    return self._wconfd.ReserveIp(self._GetWConfdContext(), net_uuid, address,
+                                  check)
 
-    return self._temporary_ips.Reserve(ec_id,
-                                       (constants.RESERVE_ACTION,
-                                        address, net_uuid))
-
-  @_ConfigSync(shared=1)
-  def ReserveIp(self, net_uuid, address, ec_id, check=True):
-    """Reserve a given IPv4 address for use by an instance.
-
-    """
-    if net_uuid:
-      return self._UnlockedReserveIp(net_uuid, address, ec_id, check)
-
-  @_ConfigSync(shared=1)
   def ReserveLV(self, lv_name, _ec_id):
     """Reserve an VG/LV pair for an instance.
 
@@ -1289,7 +1254,6 @@ class ConfigWriter(object):
       return dict(map(lambda (k, v): (k, dict(v)),
                       self._wconfd.ComputeDRBDMap()))
 
-  @_ConfigSync()
   def AllocateDRBDMinor(self, node_uuids, inst_uuid):
     """Allocate a drbd minor.
 
@@ -1800,6 +1764,8 @@ class ConfigWriter(object):
     self._ConfigData().instances[instance.uuid] = instance
     self._ConfigData().cluster.serial_no += 1
     self._UnlockedReleaseDRBDMinors(instance.uuid)
+    # FIXME: After RemoveInstance is moved to WConfd, use its internal
+    # function from TempRes module instead.
     self._UnlockedCommitTemporaryIps(ec_id)
 
   def _EnsureUUID(self, item, ec_id):
@@ -1905,6 +1871,8 @@ class ConfigWriter(object):
 
     instance = self._UnlockedGetInstanceInfo(inst_uuid)
 
+    # FIXME: After RemoveInstance is moved to WConfd, use its internal
+    # function from TempRes module.
     for nic in instance.nics:
       if nic.network and nic.ip:
         # Return all IP addresses to the respective address pools
@@ -3176,6 +3144,8 @@ class ConfigWriter(object):
 
     if ec_id is not None:
       # Commit all ips reserved by OpInstanceSetParams and OpGroupSetParams
+      # FIXME: After RemoveInstance is moved to WConfd, use its internal
+      # functions from TempRes module.
       self._UnlockedCommitTemporaryIps(ec_id)
 
     self._WriteConfig(feedback_fn=feedback_fn)
