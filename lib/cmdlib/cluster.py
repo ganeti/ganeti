@@ -106,11 +106,15 @@ def _UpdateMasterClientCert(
 class LUClusterRenewCrypto(NoHooksLU):
   """Renew the cluster's crypto tokens.
 
-  Note that most of this operation is done in gnt_cluster.py, this LU only
-  takes care of the renewal of the client SSL certificates.
-
   """
-  def Exec(self, feedback_fn):
+
+  def _RenewNodeSslCertificates(self):
+    """Renews the nodes' SSL certificates.
+
+    Note that most of this operation is done in gnt_cluster.py, this LU only
+    takes care of the renewal of the client SSL certificates.
+
+    """
     master_uuid = self.cfg.GetMasterNode()
 
     server_digest = utils.GetCertificateDigest(
@@ -136,7 +140,10 @@ class LUClusterRenewCrypto(NoHooksLU):
           self.cfg.AddNodeToCandidateCerts(node_uuid, new_digest)
     self.cfg.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid)
     self.cfg.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid)
-    # Trigger another update of the config now with the new master cert
+
+  def Exec(self, feedback_fn):
+    if self.op.node_certificates:
+      self._RenewNodeSslCertificates()
 
 
 class LUClusterActivateMasterIp(NoHooksLU):

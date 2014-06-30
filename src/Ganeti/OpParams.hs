@@ -293,6 +293,7 @@ module Ganeti.OpParams
   , pAdminStateSource
   , pEnabledDataCollectors
   , pDataCollectorInterval
+  , pNodeSslCerts
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -1852,3 +1853,9 @@ pDataCollectorInterval =
   withDoc "Sets the interval in that data collectors are run" .
   optionalField $
   simpleField C.dataCollectorsIntervalName [t| GenericContainer String Int |]
+
+pNodeSslCerts :: Field
+pNodeSslCerts =
+  withDoc "Whether to renew node SSL certificates" .
+  defaultField [| False |] $
+  simpleField "node_certificates" [t| Bool |]

@@ -1085,7 +1085,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
 
   if new_node_cert:
     cl = GetClient()
-    renew_op = opcodes.OpClusterRenewCrypto()
+    renew_op = opcodes.OpClusterRenewCrypto(node_certificates=new_node_cert)
     SubmitOpCode(renew_op, cl=cl)
 
   return 0
