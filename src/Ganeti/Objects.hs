@@ -87,6 +87,7 @@ module Ganeti.Objects
   , DictObject(..) -- re-exported from THH
   , TagSet -- re-exported from THH
   , Network(..)
+  , AddressPool(..)
   , Ip4Address()
   , mkIp4Address
   , Ip4Network()
@@ -120,6 +121,7 @@ import qualified AutoConf
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
+import Ganeti.Objects.BitArray (BitArray)
 import Ganeti.Types
 import Ganeti.THH
 import Ganeti.THH.Field
@@ -237,10 +239,26 @@ instance JSON Ip4Network where
       _ -> fail $ "Can't parse IPv4 network from string " ++ fromJSString s
   readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for an IPv4 network"
 
+-- ** Address pools
+
+-- | Currently address pools just wrap a reservation 'BitArray'.
+--
+-- In future, 'Network' might be extended to include several address pools
+-- and address pools might include their own ranges of addresses.
+newtype AddressPool = AddressPool { apReservations :: BitArray }
+  deriving (Eq, Ord, Show)
+
+instance JSON AddressPool where
+  showJSON = showJSON . apReservations
+  readJSON = liftM AddressPool . readJSON
+
 -- ** Ganeti \"network\" config object.
 
 -- FIXME: Not all types might be correct here, since they
 -- haven't been exhaustively deduced from the python code yet.
+--
+-- FIXME: When parsing, check that the ext_reservations and reservations
+-- have the same length
 $(buildObject "Network" "network" $
   [ simpleField "name"             [t| NonEmptyString |]
   , optionalField $
@@ -253,9 +271,9 @@ $(buildObject "Network" "network" $
   , optionalField $
     simpleField "gateway6"         [t| String |]
   , optionalField $
-    simpleField "reservations"     [t| String |]
+    simpleField "reservations"     [t| AddressPool |]
   , optionalField $
-    simpleField "ext_reservations" [t| String |]
+    simpleField "ext_reservations" [t| AddressPool |]
   ]
   ++ uuidFields
   ++ timeStampFields

@@ -5017,3 +5017,16 @@ helperVmShutdown = 2 * 60 * 60
 -- speed of 1/5 of the max speed of current drives.
 zeroingTimeoutPerMib :: Double
 zeroingTimeoutPerMib = 1.0 / (100.0 / 5.0)
+
+-- * Networking
+
+-- The minimum size of a network.
+ipv4NetworkMinSize :: Int
+ipv4NetworkMinSize = 30
+
+-- The maximum size of a network.
+--
+-- FIXME: This limit is for performance reasons. Remove when refactoring
+-- for performance tuning was successful.
+ipv4NetworkMaxSize :: Int
+ipv4NetworkMaxSize = 30

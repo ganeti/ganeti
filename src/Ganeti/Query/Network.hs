@@ -61,14 +61,14 @@ networkFields =
      FieldSimple (rsMaybeUnavail . networkMacPrefix), QffNormal)
   , (FieldDefinition "free_count" "FreeCount" QFTNumber "Number of available\
                                                        \ addresses",
-     FieldSimple (rsMaybeNoData . fmap getFreeCount . createAddressPool),
+     FieldSimple (rsNormal . getFreeCount),
      QffNormal)
   , (FieldDefinition "map" "Map" QFTText "Actual mapping",
-     FieldSimple (rsMaybeNoData . fmap getMap . createAddressPool),
+     FieldSimple (rsNormal . getMap),
      QffNormal)
   , (FieldDefinition "reserved_count" "ReservedCount" QFTNumber
        "Number of reserved addresses",
-     FieldSimple (rsMaybeNoData . fmap getReservedCount . createAddressPool),
+     FieldSimple (rsNormal . getReservedCount),
      QffNormal)
   , (FieldDefinition "group_list" "GroupList" QFTOther
        "List of nodegroups (group name, NIC mode, NIC link)",
@@ -175,5 +175,5 @@ getReservations net =
 getExtReservationsString :: Network -> ResultEntry
 getExtReservationsString net =
   let addrs = getReservations (networkNetwork net)
-              (fromMaybe "" $ networkExtReservations net)
+              (maybe "" show $ networkExtReservations net)
   in rsNormal . intercalate ", " $ map show addrs

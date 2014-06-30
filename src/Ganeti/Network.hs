@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes #-}
+
 {-| Implementation of the Ganeti network objects.
 
 This is does not (yet) cover all methods that are provided in the
@@ -27,79 +29,197 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Network
-  ( AddressPool(..)
-  , createAddressPool
-  , bitStringToBitVector
-  , allReservations
+  ( PoolPart(..)
+  , netIpv4NumHosts
   , getReservedCount
   , getFreeCount
   , isFull
   , getMap
-  , networkIsValid
+  , isReserved
+  , reserve
+  , release
+  , findFree
+  , allReservations
+  , reservations
+  , extReservations
   ) where
 
-import qualified Data.Vector.Unboxed as V
+import Control.Monad
+import Control.Monad.Error
+import Control.Monad.State
+import Data.Function (on)
 
+import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
+import Ganeti.Lens
 import Ganeti.Objects
+import Ganeti.Objects.Lens
+import qualified Ganeti.Objects.BitArray as BA
 
--- | An address pool, holding a network plus internal and external
--- reservations.
-data AddressPool = AddressPool { network :: Network,
-                                 reservations :: V.Vector Bool,
-                                 extReservations :: V.Vector Bool }
-                                 deriving (Show)
+ipv4NumHosts :: (Integral n) => n -> Integer
+ipv4NumHosts mask = 2^(32 - mask)
 
--- | Create an address pool from a network.
-createAddressPool :: Network -> Maybe AddressPool
-createAddressPool n
-  | networkIsValid n =
-      let res = maybeStr2BitVec $ networkReservations n
-          ext_res = maybeStr2BitVec $ networkExtReservations n
-      in  Just AddressPool { reservations = res
-                           , extReservations = ext_res
-                           , network = n }
-  | otherwise = Nothing
+ipv4NetworkMinNumHosts :: Integer
+ipv4NetworkMinNumHosts = ipv4NumHosts C.ipv4NetworkMinSize
 
--- | Checks the consistency of the network object. So far, only checks the
--- length of the reservation strings.
-networkIsValid :: Network -> Bool
-networkIsValid n =
-  sameLength (networkReservations n) (networkExtReservations n)
+ipv4NetworkMaxNumHosts :: Integer
+ipv4NetworkMaxNumHosts = ipv4NumHosts C.ipv4NetworkMaxSize
 
--- | Checks if two maybe strings are both nothing or of equal length.
-sameLength :: Maybe String -> Maybe String -> Bool
-sameLength Nothing Nothing = True
-sameLength (Just s1) (Just s2) = length s1 == length s2
-sameLength _ _ = False
+data PoolPart = PoolInstances | PoolExt
 
--- | Converts a maybe bit string to a bit vector. Returns an empty bit vector on
--- nothing.
-maybeStr2BitVec :: Maybe String -> V.Vector Bool
-maybeStr2BitVec (Just s) = bitStringToBitVector s
-maybeStr2BitVec Nothing = V.fromList ([]::[Bool])
+addressPoolIso :: Iso' AddressPool BA.BitArray
+addressPoolIso = iso apReservations AddressPool
 
--- | Converts a string to a bit vector. The character '0' is interpreted
--- as 'False', all others as 'True'.
-bitStringToBitVector :: String -> V.Vector Bool
-bitStringToBitVector = V.fromList . map (/= '0')
+poolLens :: PoolPart -> Lens' Network (Maybe AddressPool)
+poolLens PoolInstances = networkReservationsL
+poolLens PoolExt = networkExtReservationsL
+
+poolArrayLens :: PoolPart -> Lens' Network (Maybe BA.BitArray)
+poolArrayLens part = poolLens part . mapping addressPoolIso
+
+netIpv4NumHosts :: Network -> Integer
+netIpv4NumHosts = ipv4NumHosts . ip4netMask . networkNetwork
+
+-- | Creates a new bit array pool of the appropriate size
+newPoolArray :: (MonadError e m, Error e) => Network -> m BA.BitArray
+newPoolArray net = do
+  let numhosts = netIpv4NumHosts net
+  when (numhosts > ipv4NetworkMaxNumHosts) . failError $
+    "A big network with " ++ show numhosts ++ " host(s) is currently"
+    ++ " not supported, please specify at most a /"
+    ++ show ipv4NetworkMaxNumHosts ++ " network"
+  when (numhosts < ipv4NetworkMinNumHosts) . failError $
+    "A network with only " ++ show numhosts ++ " host(s) is too small,"
+    ++ " please specify at least a /"
+    ++ show ipv4NetworkMinNumHosts ++ " network"
+  return $ BA.zeroes (fromInteger numhosts)
+
+-- | Creates a new bit array pool of the appropriate size
+newPool :: (MonadError e m, Error e) => Network -> m AddressPool
+newPool = liftM AddressPool . newPoolArray
+
+-- | A helper function that creates a bit array pool, of it's missing.
+orNewPool :: (MonadError e m, Error e)
+          => Network -> Maybe AddressPool -> m AddressPool
+orNewPool net = maybe (newPool net) return
+
+withPool :: (MonadError e m, Error e)
+         => PoolPart -> (Network -> BA.BitArray -> m (a, BA.BitArray))
+         -> StateT Network m a
+withPool part f = StateT $ \n -> mapMOf2 (poolLens part) (f' n) n
+  where
+    f' net = liftM (over _2 Just)
+             . mapMOf2 addressPoolIso (f net)
+             <=< orNewPool net
+
+withPool_ :: (MonadError e m, Error e)
+          => PoolPart -> (Network -> BA.BitArray -> m BA.BitArray)
+          -> Network -> m Network
+withPool_ part f = execStateT $ withPool part ((liftM ((,) ()) .) . f)
+
+readPool :: PoolPart -> Network -> Maybe BA.BitArray
+readPool = view . poolArrayLens
+
+readPoolE :: (MonadError e m, Error e)
+          => PoolPart -> Network -> m BA.BitArray
+readPoolE part net =
+  liftM apReservations $ orNewPool net ((view . poolLens) part net)
+
+readAllE :: (MonadError e m, Error e)
+         => Network -> m BA.BitArray
+readAllE net = do
+  let toRes = liftM apReservations . orNewPool net
+  res <- toRes $ networkReservations net
+  ext <- toRes $ networkExtReservations net
+  return $ res BA.-|- ext
+
+reservations :: Network -> Maybe BA.BitArray
+reservations = readPool PoolInstances
+
+extReservations :: Network -> Maybe BA.BitArray
+extReservations = readPool PoolExt
 
 -- | Get a bit vector of all reservations (internal and external) combined.
-allReservations :: AddressPool -> V.Vector Bool
-allReservations a = V.zipWith (||) (reservations a) (extReservations a)
+allReservations :: Network -> Maybe BA.BitArray
+allReservations a = (BA.-|-) `liftM` reservations a `ap` extReservations a
 
 -- | Get the count of reserved addresses.
-getReservedCount :: AddressPool -> Int
-getReservedCount = V.length . V.filter (== True) . allReservations
+getReservedCount :: Network -> Int
+getReservedCount = maybe 0 BA.count1 . allReservations
 
 -- | Get the count of free addresses.
-getFreeCount :: AddressPool -> Int
-getFreeCount = V.length . V.filter (== False) . allReservations
+getFreeCount :: Network -> Int
+getFreeCount = maybe 0 BA.count0 . allReservations
 
 -- | Check whether the network is full.
-isFull :: AddressPool -> Bool
-isFull = V.and . allReservations
+isFull :: Network -> Bool
+isFull = (0 ==) . getFreeCount
 
 -- | Return a textual representation of the network's occupation status.
-getMap :: AddressPool -> String
-getMap = V.toList . V.map mapPixel . allReservations
-  where mapPixel c = if c then 'X' else '.'
+getMap :: Network -> String
+getMap = maybe "" (BA.asString '.' 'X') . allReservations
+
+-- * Functions used for manipulating the reservations
+
+-- | Returns an address index wrt a network.
+-- Fails if the address isn't in the network range.
+addrIndex :: (MonadError e m, Error e) => Ip4Address -> Network -> m Int
+addrIndex addr net = do
+  let n = networkNetwork net
+      i = on (-) ip4AddressToNumber addr (ip4netAddr n)
+  when ((i < 0) || (i >= ipv4NumHosts (ip4netMask n))) . failError
+    $ "Address '" ++ show addr ++ "' not in the network '" ++ show net ++ "'"
+  return $ fromInteger i
+
+-- | Returns an address of a given index wrt a network.
+-- Fails if the index isn't in the network range.
+addrAt :: (MonadError e m, Error e) => Int -> Network -> m Ip4Address
+addrAt i net | (i' < 0) || (i' >= ipv4NumHosts (ip4netMask n)) =
+    failError $ "Requested index " ++ show i
+                ++ " outside the range of network '" ++ show net ++ "'"
+             | otherwise =
+    return $ ip4AddressFromNumber (ip4AddressToNumber (ip4netAddr n) + i')
+  where
+    n = networkNetwork net
+    i' = toInteger i
+
+-- | Checks if a given address is reserved.
+-- Fails if the address isn't in the network range.
+isReserved :: (MonadError e m, Error e) =>
+              PoolPart -> Ip4Address -> Network -> m Bool
+isReserved part addr net =
+  (BA.!) `liftM` readPoolE part net `ap` addrIndex addr net
+
+-- | Marks an address as used.
+reserve :: (MonadError e m, Error e) =>
+           PoolPart -> Ip4Address -> Network -> m Network
+reserve part addr =
+    withPool_ part $ \net ba -> do
+      idx <- addrIndex addr net
+      let addrs = show addr
+      when (ba BA.! idx) . failError $ case part of
+        PoolExt -> "IP " ++ addrs ++ " is already externally reserved"
+        PoolInstances -> "IP " ++ addrs ++ " is already used by an instance"
+      BA.setAt idx True ba
+
+-- | Marks an address as unused.
+release :: (MonadError e m, Error e) =>
+           PoolPart -> Ip4Address -> Network -> m Network
+release part addr =
+    withPool_ part $ \net ba -> do
+      idx <- addrIndex addr net
+      let addrs = show addr
+      unless (ba BA.! idx) . failError $ case part of
+        PoolExt -> "IP " ++ addrs ++ " is not externally reserved"
+        PoolInstances -> "IP " ++ addrs ++ " is not used by an instance"
+      BA.setAt idx False ba
+
+-- | Get the first free address in the network
+-- that satisfies a given predicate.
+findFree :: (MonadError e m, Error e)
+         => (Ip4Address -> Bool) -> Network -> m (Maybe Ip4Address)
+findFree p net = readAllE net >>= BA.foldr f (return Nothing)
+  where
+    addrAtEither = addrAt :: Int -> Network -> Either String Ip4Address
+    f False i _ | Right a <- addrAtEither i net, p a = return (Just a)
+    f _ _ x = x
