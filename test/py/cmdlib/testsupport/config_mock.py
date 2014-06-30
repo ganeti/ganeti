@@ -29,11 +29,15 @@ import uuid as uuid_module
 from ganeti import config
 from ganeti import constants
 from ganeti import errors
-from ganeti import objects
 from ganeti.network import AddressPool
+from ganeti import objects
 from ganeti import utils
 
 import mocks
+
+
+RESERVE_ACTION = "reserve"
+RELEASE_ACTION = "release"
 
 
 def _StubGetEntResolver():
@@ -46,7 +50,7 @@ class ConfigMock(config.ConfigWriter):
 
   """
 
-  def __init__(self):
+  def __init__(self, cfg_file="/dev/null"):
     self._cur_group_id = 1
     self._cur_node_id = 1
     self._cur_inst_id = 1
@@ -60,8 +64,9 @@ class ConfigMock(config.ConfigWriter):
     self._temporary_macs = config.TemporaryReservationManager()
     self._temporary_secrets = config.TemporaryReservationManager()
     self._temporary_lvs = config.TemporaryReservationManager()
+    self._temporary_ips = config.TemporaryReservationManager()
 
-    super(ConfigMock, self).__init__(cfg_file="/dev/null",
+    super(ConfigMock, self).__init__(cfg_file=cfg_file,
                                      _getents=_StubGetEntResolver(),
                                      offline=True)
 
@@ -711,3 +716,85 @@ class ConfigMock(config.ConfigWriter):
       raise errors.ReservationError("LV already in use")
     else:
       self._temporary_lvs.Reserve(ec_id, lv_name)
+
+  def _UnlockedCommitTemporaryIps(self, ec_id):
+    """Commit all reserved IP address to their respective pools
+
+    """
+    for action, address, net_uuid in self._temporary_ips.GetECReserved(ec_id):
+      self._UnlockedCommitIp(action, net_uuid, address)
+
+  def _UnlockedCommitIp(self, action, net_uuid, address):
+    """Commit a reserved IP address to an IP pool.
+
+    The IP address is taken from the network's IP pool and marked as reserved.
+
+    """
+    nobj = self._UnlockedGetNetwork(net_uuid)
+    pool = AddressPool(nobj)
+    if action == RESERVE_ACTION:
+      pool.Reserve(address)
+    elif action == RELEASE_ACTION:
+      pool.Release(address)
+
+  def _UnlockedReleaseIp(self, net_uuid, address, ec_id):
+    """Give a specific IP address back to an IP pool.
+
+    The IP address is returned to the IP pool designated by pool_id and marked
+    as reserved.
+
+    """
+    self._temporary_ips.Reserve(ec_id,
+                                (RELEASE_ACTION, address, net_uuid))
+
+  def ReleaseIp(self, net_uuid, address, ec_id):
+    """Give a specified IP address back to an IP pool.
+
+    This is just a wrapper around _UnlockedReleaseIp.
+
+    """
+    if net_uuid:
+      self._UnlockedReleaseIp(net_uuid, address, ec_id)
+
+  def GenerateIp(self, net_uuid, ec_id):
+    """Find a free IPv4 address for an instance.
+
+    """
+    nobj = self._UnlockedGetNetwork(net_uuid)
+    pool = AddressPool(nobj)
+
+    def gen_one():
+      try:
+        ip = pool.GenerateFree()
+      except errors.AddressPoolError:
+        raise errors.ReservationError("Cannot generate IP. Network is full")
+      return (RESERVE_ACTION, ip, net_uuid)
+
+    _, address, _ = self._temporary_ips.Generate([], gen_one, ec_id)
+    return address
+
+  def _UnlockedReserveIp(self, net_uuid, address, ec_id, check=True):
+    """Reserve a given IPv4 address for use by an instance.
+
+    """
+    nobj = self._UnlockedGetNetwork(net_uuid)
+    pool = AddressPool(nobj)
+    try:
+      isreserved = pool.IsReserved(address)
+      isextreserved = pool.IsReserved(address, external=True)
+    except errors.AddressPoolError:
+      raise errors.ReservationError("IP address not in network")
+    if isreserved:
+      raise errors.ReservationError("IP address already in use")
+    if check and isextreserved:
+      raise errors.ReservationError("IP is externally reserved")
+    return self._temporary_ips.Reserve(ec_id,
+                                       (RESERVE_ACTION,
+                                        address, net_uuid))
+
+  def ReserveIp(self, net_uuid, address, ec_id, check=True):
+    """Reserve a given IPv4 address for use by an instance.
+
+    """
+    if net_uuid:
+      return self._UnlockedReserveIp(net_uuid, address, ec_id, check)
