@@ -108,6 +108,28 @@ class LUClusterRenewCrypto(NoHooksLU):
 
   """
 
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {
+      locking.LEVEL_NODE: locking.ALL_SET,
+      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
+    }
+    self.share_locks = ShareAll()
+    self.share_locks[locking.LEVEL_NODE] = 0
+    self.share_locks[locking.LEVEL_NODE_ALLOC] = 0
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This checks whether the cluster is empty.
+
+    Any errors are signaled by raising errors.OpPrereqError.
+
+    """
+    self._ssh_renewal_suppressed = \
+      not self.cfg.GetClusterInfo().modify_ssh_setup and self.op.ssh_keys
+
   def _RenewNodeSslCertificates(self):
     """Renews the nodes' SSL certificates.
 
@@ -141,9 +163,35 @@ class LUClusterRenewCrypto(NoHooksLU):
     self.cfg.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid)
     self.cfg.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid)
 
+  def _RenewSshKeys(self):
+    """Renew all nodes' SSH keys.
+
+    """
+    master_uuid = self.cfg.GetMasterNode()
+
+    nodes = self.cfg.GetAllNodesInfo()
+    nodes_uuid_names = [(node_uuid, node_info.name) for (node_uuid, node_info)
+                        in nodes.items() if not node_info.offline]
+    node_names = [name for (_, name) in nodes_uuid_names]
+    node_uuids = [uuid for (uuid, _) in nodes_uuid_names]
+    port_map = ssh.GetSshPortMap(node_names, self.cfg)
+    potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
+    master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
+    result = self.rpc.call_node_ssh_keys_renew(
+      [master_uuid],
+      node_uuids, node_names, port_map,
+      master_candidate_uuids,
+      potential_master_candidates)
+    result[master_uuid].Raise("Could not renew the SSH keys of all nodes")
+
   def Exec(self, feedback_fn):
     if self.op.node_certificates:
       self._RenewNodeSslCertificates()
+    if self.op.ssh_keys and not self._ssh_renewal_suppressed:
+      self._RenewSshKeys()
+    elif self._ssh_renewal_suppressed:
+      feedback_fn("Cannot renew SSH keys if the cluster is configured to not"
+                  " modify the SSH setup.")
 
 
 class LUClusterActivateMasterIp(NoHooksLU):

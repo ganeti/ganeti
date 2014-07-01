@@ -146,6 +146,7 @@ __all__ = [
   "NETWORK6_OPT",
   "NEW_CLUSTER_CERT_OPT",
   "NEW_NODE_CERT_OPT",
+  "NEW_SSH_KEY_OPT",
   "NEW_CLUSTER_DOMAIN_SECRET_OPT",
   "NEW_CONFD_HMAC_KEY_OPT",
   "NEW_RAPI_CERT_OPT",
@@ -265,6 +266,7 @@ __all__ = [
   "GetClient",
   "GetOnlineNodes",
   "GetNodesSshPorts",
+  "GetNodeUUIDs",
   "JobExecutor",
   "JobSubmittedException",
   "ParseTimespec",
@@ -1499,6 +1501,10 @@ NEW_CLUSTER_CERT_OPT = cli_option("--new-cluster-certificate",
 NEW_NODE_CERT_OPT = cli_option(
   "--new-node-certificates", dest="new_node_cert", default=False,
   action="store_true", help="Generate new node certificates (for all nodes)")
+
+NEW_SSH_KEY_OPT = cli_option(
+  "--new-ssh-keys", dest="new_ssh_keys", default=False,
+  action="store_true", help="Generate new node SSH keys (for all nodes)")
 
 RAPI_CERT_OPT = cli_option("--rapi-certificate", dest="rapi_cert",
                            default=None,
@@ -3747,10 +3753,28 @@ def GetNodesSshPorts(nodes, cl):
   @type cl: L{ganeti.luxi.Client}
   @return: the list of SSH ports corresponding to the nodes
   @rtype: a list of tuples
+
   """
   return map(lambda t: t[0],
              cl.QueryNodes(names=nodes,
                            fields=["ndp/ssh_port"],
+                           use_locking=False))
+
+
+def GetNodeUUIDs(nodes, cl):
+  """Retrieves the UUIDs of given nodes.
+
+  @param nodes: the names of nodes
+  @type nodes: a list of string
+  @param cl: a client to use for the query
+  @type cl: L{ganeti.luxi.Client}
+  @return: the list of UUIDs corresponding to the nodes
+  @rtype: a list of tuples
+
+  """
+  return map(lambda t: t[0],
+             cl.QueryNodes(names=nodes,
+                           fields=["uuid"],
                            use_locking=False))
 
 

@@ -931,6 +931,17 @@ class NodeRequestHandler(http.server.HttpServerHandler):
                                  ssh_port_map, potential_master_candidates)
 
   @staticmethod
+  def perspective_node_ssh_keys_renew(params):
+    """Generates a new root SSH key pair on the node.
+
+    """
+    (node_uuids, node_names, ssh_port_map,
+     master_candidate_uuids, potential_master_candidates) = params
+    return backend.RenewSshKeys(node_uuids, node_names, ssh_port_map,
+                                master_candidate_uuids,
+                                potential_master_candidates)
+
+  @staticmethod
   def perspective_node_ssh_key_remove(params):
     """Removes a node's SSH key from the other nodes' SSH files.
 

@@ -558,6 +558,13 @@ _NODE_CALLS = [
     ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
     ("potential_master_candidates", None, "Potential master candidates")],
     None, None, "Remove a node's SSH key from the other nodes' key files."),
+  ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_URGENT, [
+    ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),
+    ("node_names", None, "Names of the nodes whose key is renewed"),
+    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
+    ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
+    ("potential_master_candidates", None, "Potential master candidates")],
+    None, None, "Renew all SSH key pairs of all nodes nodes."),
   ]
 
 _MISC_CALLS = [

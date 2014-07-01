@@ -39,6 +39,27 @@ the Ganeti binaries should happen in the same way as for all other binaries on
 your system.
 
 
+2.13
+----
+
+When upgrading to 2.13, first apply the instructions of ``2.11 and
+above``. 2.13 comes with the new feature of enhanced SSH security
+through individual SSH keys. This features needs to be enabled
+after the upgrade by::
+
+   $ gnt-cluster renew-crypt --new-ssh-keys --no-ssh-key-check
+
+Note that new SSH keys are generated automatically without warning when
+upgrading with ``gnt-cluster upgrade``.
+
+If you instructed Ganeti to not touch the SSH setup (by using the
+``--no-ssh-init`` option of ``gnt-cluster init``, the changes in the
+handling of SSH keys will not affect your cluster.
+
+If you want to be prompted for each newly created SSH key, leave out
+the ``--no-ssh-key-check`` option in the command listed above.
+
+
 2.11
 ----
 

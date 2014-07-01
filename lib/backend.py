@@ -1480,7 +1480,7 @@ def AddNodeSshKey(node_uuid, node_name,
   pot_mc_data = copy.deepcopy(base_data)
   if to_public_keys:
     pot_mc_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-      (constants.SSHS_ADD, keys_by_uuid)
+      (constants.SSHS_REPLACE_OR_ADD, keys_by_uuid)
 
   all_nodes = ssconf_store.GetNodeList()
   master_node = ssconf_store.GetMasterNode()
@@ -1627,6 +1627,117 @@ def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
       logging.info("Removing SSH keys from node '%s' failed. This can happen"
                    " when the node is already unreachable. Error: %s",
                    node_name, e)
+
+
+def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
+                        pub_key_file=pathutils.SSH_PUB_KEYS,
+                        ssconf_store=None,
+                        noded_cert_file=pathutils.NODED_CERT_FILE,
+                        run_cmd_fn=ssh.RunSshCmdWithStdin):
+  """Generates the root SSH key pair on the node.
+
+  @type node_uuid: str
+  @param node_uuid: UUID of the node whose key is removed
+  @type node_name: str
+  @param node_name: name of the node whose key is remove
+  @type ssh_port_map: dict of str to int
+  @param ssh_port_map: mapping of node names to their SSH port
+
+  """
+  if not ssconf_store:
+    ssconf_store = ssconf.SimpleStore()
+
+  keys_by_uuid = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
+  if not keys_by_uuid or node_uuid not in keys_by_uuid:
+    raise errors.SshUpdateError("Node %s (UUID: %s) whose key is requested to"
+                                " be regenerated is not registered in the"
+                                " public keys file." % (node_name, node_uuid))
+
+  data = {}
+  _InitSshUpdateData(data, noded_cert_file, ssconf_store)
+  cluster_name = data[constants.SSHS_CLUSTER_NAME]
+  data[constants.SSHS_GENERATE] = True
+
+  run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
+             True, True, False, False, False,
+             ssh_port_map.get(node_name), data, ssconf_store)
+
+
+def RenewSshKeys(node_uuids, node_names, ssh_port_map,
+                 master_candidate_uuids,
+                 potential_master_candidates,
+                 pub_key_file=pathutils.SSH_PUB_KEYS,
+                 ssconf_store=None,
+                 noded_cert_file=pathutils.NODED_CERT_FILE,
+                 run_cmd_fn=ssh.RunSshCmdWithStdin):
+  """Renews all SSH keys and updates authorized_keys and ganeti_pub_keys.
+
+  """
+  if not ssconf_store:
+    ssconf_store = ssconf.SimpleStore()
+  cluster_name = ssconf_store.GetClusterName()
+
+  if not len(node_uuids) == len(node_names):
+    raise errors.ProgrammerError("List of nodes UUIDs and node names"
+                                 " does not match in length.")
+
+  (_, root_keyfiles) = \
+    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
+
+  node_uuid_name_map = zip(node_uuids, node_names)
+
+  master_node_name = ssconf_store.GetMasterNode()
+  # process non-master nodes
+  for node_uuid, node_name in node_uuid_name_map:
+    if node_name == master_node_name:
+      continue
+    master_candidate = node_uuid in master_candidate_uuids
+    potential_master_candidate = node_name in potential_master_candidates
+
+    keys_by_uuid = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
+    if not keys_by_uuid:
+      raise errors.SshUpdateError("No public key of node %s (UUID %s) found,"
+                                  " not generating a new key."
+                                  % (node_name, node_uuid))
+
+    RemoveNodeSshKey(node_uuid, node_name,
+                     master_candidate, # from authorized keys
+                     False, # Don't remove (yet) from public keys
+                     False, # Don't clear authorized_keys
+                     ssh_port_map,
+                     master_candidate_uuids,
+                     potential_master_candidates)
+
+    _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
+                        pub_key_file=pub_key_file,
+                        ssconf_store=ssconf_store,
+                        noded_cert_file=noded_cert_file,
+                        run_cmd_fn=run_cmd_fn)
+
+    fetched_keys = ssh.ReadRemoteSshPubKeys(root_keyfiles, node_name,
+                                            cluster_name,
+                                            ssh_port_map[node_name],
+                                            False, # ask_key
+                                            False) # key_check
+    if not fetched_keys:
+      raise errors.SshUpdateError("Could not fetch key of node %s"
+                                  " (UUID %s)" % (node_name, node_uuid))
+
+    if potential_master_candidate:
+      ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
+      for pub_key in fetched_keys.values():
+        ssh.AddPublicKey(node_uuid, pub_key, key_file=pub_key_file)
+
+    AddNodeSshKey(node_uuid, node_name,
+                  master_candidate, # Add to authorized_keys file
+                  potential_master_candidate, # Add to public_keys
+                  True, # Get public keys
+                  ssh_port_map, potential_master_candidates,
+                  pub_key_file=pub_key_file, ssconf_store=ssconf_store,
+                  noded_cert_file=noded_cert_file,
+                  run_cmd_fn=run_cmd_fn)
+
+  # FIXME: Update master key as well
 
 
 def GetBlockDevSizes(devices):

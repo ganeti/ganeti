@@ -963,7 +963,7 @@ def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
 def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
                  rapi_cert_filename, new_spice_cert, spice_cert_filename,
                  spice_cacert_filename, new_confd_hmac_key, new_cds,
-                 cds_filename, force, new_node_cert):
+                 cds_filename, force, new_node_cert, new_ssh_keys):
   """Renews cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -987,8 +987,10 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   @param cds_filename: Path to file containing new cluster domain secret
   @type force: bool
   @param force: Whether to ask user for confirmation
-  @type new_node_cert: string
+  @type new_node_cert: bool
   @param new_node_cert: Whether to generate new node certificates
+  @type new_ssh_keys: bool
+  @param new_ssh_keys: Whether to generate new node SSH keys
 
   """
   if new_rapi_cert and rapi_cert_filename:
@@ -1083,18 +1085,75 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   ToStdout("All requested certificates and keys have been replaced."
            " Running \"gnt-cluster verify\" now is recommended.")
 
-  if new_node_cert:
+  if new_node_cert or new_ssh_keys:
     cl = GetClient()
-    renew_op = opcodes.OpClusterRenewCrypto(node_certificates=new_node_cert)
+    renew_op = opcodes.OpClusterRenewCrypto(node_certificates=new_node_cert,
+                                            ssh_keys=new_ssh_keys)
     SubmitOpCode(renew_op, cl=cl)
 
   return 0
+
+
+def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
+                        get_online_nodes_fn=GetOnlineNodes,
+                        get_nodes_ssh_ports_fn=GetNodesSshPorts,
+                        get_node_uuids_fn=GetNodeUUIDs,
+                        homedir_fn=None):
+  """Recreates the 'ganeti_pub_key' file by polling all nodes.
+
+  """
+  if os.path.exists(pub_key_file):
+    utils.CreateBackup(pub_key_file)
+    utils.RemoveFile(pub_key_file)
+
+  ssh.ClearPubKeyFile(pub_key_file)
+
+  if not cl:
+    cl = GetClient()
+
+  (cluster_name, master_node) = \
+    cl.QueryConfigValues(["cluster_name", "master_node"])
+
+  online_nodes = get_online_nodes_fn([], cl=cl)
+  ssh_ports = get_nodes_ssh_ports_fn(online_nodes + [master_node], cl)
+  ssh_port_map = dict(zip(online_nodes + [master_node], ssh_ports))
+
+  node_uuids = get_node_uuids_fn(online_nodes + [master_node], cl)
+  node_uuid_map = dict(zip(online_nodes + [master_node], node_uuids))
+
+  nonmaster_nodes = [name for name in online_nodes
+                     if name != master_node]
+
+  (_, root_keyfiles) = \
+    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False,
+                        _homedir_fn=homedir_fn)
+
+  # get the key file of the master node
+  for (_, (_, public_key_file)) in root_keyfiles.items():
+    try:
+      pub_key = utils.ReadFile(public_key_file)
+      ssh.AddPublicKey(node_uuid_map[master_node], pub_key,
+                       key_file=pub_key_file)
+    except IOError:
+      # Not all types of keys might be existing
+      pass
+
+  # get the key files of all non-master nodes
+  for node in nonmaster_nodes:
+    fetched_keys = ssh.ReadRemoteSshPubKeys(root_keyfiles, node, cluster_name,
+                                            ssh_port_map[node],
+                                            options.ssh_key_check,
+                                            options.ssh_key_check)
+    for pub_key in fetched_keys.values():
+      ssh.AddPublicKey(node_uuid_map[node], pub_key, key_file=pub_key_file)
 
 
 def RenewCrypto(opts, args):
   """Renews cluster certificates, keys and secrets.
 
   """
+  if opts.new_ssh_keys:
+    _BuildGanetiPubKeys(opts)
   return _RenewCrypto(opts.new_cluster_cert,
                       opts.new_rapi_cert,
                       opts.rapi_cert,
@@ -1105,7 +1164,8 @@ def RenewCrypto(opts, args):
                       opts.new_cluster_domain_secret,
                       opts.cluster_domain_secret,
                       opts.force,
-                      opts.new_node_cert)
+                      opts.new_node_cert,
+                      opts.new_ssh_keys)
 
 
 def _GetEnabledDiskTemplates(opts):
@@ -2351,7 +2411,7 @@ commands = {
      NEW_CONFD_HMAC_KEY_OPT, FORCE_OPT,
      NEW_CLUSTER_DOMAIN_SECRET_OPT, CLUSTER_DOMAIN_SECRET_OPT,
      NEW_SPICE_CERT_OPT, SPICE_CERT_OPT, SPICE_CACERT_OPT,
-     NEW_NODE_CERT_OPT],
+     NEW_NODE_CERT_OPT, NEW_SSH_KEY_OPT, NOSSH_KEYCHECK_OPT],
     "[opts...]",
     "Renews cluster certificates, keys and secrets"),
   "epo": (

@@ -62,6 +62,7 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
     ht.TItems(
       [ht.TElemOf(constants.SSHS_ACTIONS),
        ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString))]),
+  constants.SSHS_GENERATE: ht.TBool,
   })
 
 
@@ -152,11 +153,14 @@ def UpdatePubKeyFile(data, dry_run, key_file=pathutils.SSH_PUB_KEYS):
       logging.info("This is a dry run, not overriding %s", key_file)
     else:
       ssh.OverridePubKeyFile(public_keys, key_file=key_file)
-  elif action == constants.SSHS_ADD:
+  elif action in [constants.SSHS_ADD, constants.SSHS_REPLACE_OR_ADD]:
     if dry_run:
-      logging.info("This is a dry run, not adding a key to %s", key_file)
+      logging.info("This is a dry run, not adding or replacing a key to %s",
+                   key_file)
     else:
       for uuid, keys in public_keys.items():
+        if action == constants.SSHS_REPLACE_OR_ADD:
+          ssh.RemovePublicKey(uuid, key_file=key_file)
         for key in keys:
           ssh.AddPublicKey(uuid, key, key_file=key_file)
   elif action == constants.SSHS_REMOVE:
@@ -175,6 +179,23 @@ def UpdatePubKeyFile(data, dry_run, key_file=pathutils.SSH_PUB_KEYS):
                          % action)
 
 
+def GenerateRootSshKeys(data, dry_run):
+  """(Re-)generates the root SSH keys.
+
+  @type data: dict
+  @param data: Input data
+  @type dry_run: boolean
+  @param dry_run: Whether to perform a dry run
+
+  """
+  generate = data.get(constants.SSHS_GENERATE)
+  if generate:
+    if dry_run:
+      logging.info("This is a dry run, not generating any files.")
+    else:
+      common.GenerateRootSshKeys(SshUpdateError)
+
+
 def Main():
   """Main routine.
 
@@ -190,9 +211,10 @@ def Main():
     common.VerifyClusterName(data, SshUpdateError)
     common.VerifyCertificate(data, SshUpdateError)
 
-    # Update SSH files
+    # Update / Generate SSH files
     UpdateAuthorizedKeys(data, opts.dry_run)
     UpdatePubKeyFile(data, opts.dry_run)
+    GenerateRootSshKeys(data, opts.dry_run)
 
     logging.info("Setup finished successfully")
   except Exception, err: # pylint: disable=W0703

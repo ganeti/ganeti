@@ -32,12 +32,17 @@
 
 import unittest
 import optparse
+import os
+import shutil
+import tempfile
 
 from ganeti import errors
 from ganeti.client import gnt_cluster
 from ganeti import utils
 from ganeti import compat
 from ganeti import constants
+from ganeti import ssh
+from ganeti import cli
 
 import mock
 import testutils
@@ -361,6 +366,103 @@ class GetDrbdHelper(DrbdHelperTestCase):
     opts.drbd_helper = "/bin/true"
     helper = gnt_cluster._GetDrbdHelper(opts, self.enabled_disk_templates)
     self.assertEquals(opts.drbd_helper, helper)
+
+
+class TestBuildGanetiPubKeys(testutils.GanetiTestCase):
+
+  _SOME_KEY_DICT = {"rsa": "key_rsa",
+                    "dsa": "key_dsa"}
+  _MASTER_NODE_NAME = "master_node"
+  _MASTER_NODE_UUID = "master_uuid"
+  _NUM_NODES = 2 # excluding master node
+  _ONLINE_NODE_NAMES = ["node%s_name" % i for i in range(_NUM_NODES)]
+  _ONLINE_NODE_UUIDS = ["node%s_uuid" % i for i in range(_NUM_NODES)]
+  _CLUSTER_NAME = "cluster_name"
+  _PRIV_KEY = "master_private_key"
+  _PUB_KEY = "master_public_key"
+  _AUTH_KEYS = "a\nb\nc"
+
+  def _setUpFakeKeys(self):
+    os.makedirs(os.path.join(self.tmpdir, ".ssh"))
+
+    for key_type in ["rsa", "dsa"]:
+      self.priv_filename = os.path.join(self.tmpdir, ".ssh", "id_%s" % key_type)
+      utils.WriteFile(self.priv_filename, data=self._PRIV_KEY)
+
+      self.pub_filename = os.path.join(
+        self.tmpdir, ".ssh", "id_%s.pub" % key_type)
+      utils.WriteFile(self.pub_filename, data=self._PUB_KEY)
+
+    self.auth_filename = os.path.join(self.tmpdir, ".ssh", "authorized_keys")
+    utils.WriteFile(self.auth_filename, data=self._AUTH_KEYS)
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    self.tmpdir = tempfile.mkdtemp()
+    self.pub_key_filename = os.path.join(self.tmpdir, "ganeti_test_pub_keys")
+    self._setUpFakeKeys()
+
+    self._ssh_read_remote_ssh_pub_keys_patcher = testutils \
+      .patch_object(ssh, "ReadRemoteSshPubKeys")
+    self._ssh_read_remote_ssh_pub_keys_mock = \
+      self._ssh_read_remote_ssh_pub_keys_patcher.start()
+    self._ssh_read_remote_ssh_pub_keys_mock.return_value = self._SOME_KEY_DICT
+
+    self.mock_cl = mock.Mock()
+    self.mock_cl.QueryConfigValues = mock.Mock()
+    self.mock_cl.QueryConfigValues.return_value = \
+      (self._CLUSTER_NAME, self._MASTER_NODE_NAME)
+
+    self._get_online_nodes_mock = mock.Mock()
+    self._get_online_nodes_mock.return_value = \
+      self._ONLINE_NODE_NAMES
+
+    self._get_nodes_ssh_ports_mock = mock.Mock()
+    self._get_nodes_ssh_ports_mock.return_value = \
+      [22 for i in range(self._NUM_NODES + 1)]
+
+    self._get_node_uuids_mock = mock.Mock()
+    self._get_node_uuids_mock.return_value = \
+      self._ONLINE_NODE_UUIDS + [self._MASTER_NODE_UUID]
+
+    self._options = mock.Mock()
+    self._options.ssh_key_check = False
+
+  def _GetTempHomedir(self, _):
+    return self.tmpdir
+
+  def tearDown(self):
+    super(testutils.GanetiTestCase, self).tearDown()
+    shutil.rmtree(self.tmpdir)
+    self._ssh_read_remote_ssh_pub_keys_patcher.stop()
+
+  def testNewPubKeyFile(self):
+    gnt_cluster._BuildGanetiPubKeys(
+      self._options,
+      pub_key_file=self.pub_key_filename,
+      cl=self.mock_cl,
+      get_online_nodes_fn=self._get_online_nodes_mock,
+      get_nodes_ssh_ports_fn=self._get_nodes_ssh_ports_mock,
+      get_node_uuids_fn=self._get_node_uuids_mock,
+      homedir_fn=self._GetTempHomedir)
+    key_file_result = utils.ReadFile(self.pub_key_filename)
+    for node_uuid in self._ONLINE_NODE_UUIDS + [self._MASTER_NODE_UUID]:
+      self.assertTrue(node_uuid in key_file_result)
+    self.assertTrue(self._PUB_KEY in key_file_result)
+
+  def testOverridePubKeyFile(self):
+    fd = open(self.pub_key_filename, "w")
+    fd.write("Pink Bunny")
+    fd.close()
+    gnt_cluster._BuildGanetiPubKeys(
+      self._options,
+      pub_key_file=self.pub_key_filename,
+      cl=self.mock_cl,
+      get_online_nodes_fn=self._get_online_nodes_mock,
+      get_nodes_ssh_ports_fn=self._get_nodes_ssh_ports_mock,
+      get_node_uuids_fn=self._get_node_uuids_mock,
+      homedir_fn=self._GetTempHomedir)
+    self.assertFalse("Pink Bunny" in self.pub_key_filename)
 
 
 if __name__ == "__main__":

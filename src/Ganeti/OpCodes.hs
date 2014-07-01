@@ -278,6 +278,7 @@ $(genOpCode "OpCode"
      [t| () |],
      OpDoc.opClusterRenewCrypto,
      [ pNodeSslCerts
+     , pSshKeys
      ],
      [])
   , ("OpQuery",

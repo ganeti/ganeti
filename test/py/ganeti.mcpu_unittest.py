@@ -55,7 +55,6 @@ REQ_BGL_WHITELIST = compat.UniqueFrozenset([
   opcodes.OpClusterDestroy,
   opcodes.OpClusterPostInit,
   opcodes.OpClusterRename,
-  opcodes.OpClusterRenewCrypto,
   opcodes.OpNodeAdd,
   opcodes.OpNodeRemove,
   opcodes.OpTestAllocator,

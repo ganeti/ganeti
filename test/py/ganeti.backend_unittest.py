@@ -950,7 +950,7 @@ class TestSpaceReportingConstants(unittest.TestCase):
       self.assertEqual(None, backend._STORAGE_TYPE_INFO_FN[storage_type])
 
 
-class TestAddAndRemoveNodeSshKey(testutils.GanetiTestCase):
+class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
   _CLUSTER_NAME = "mycluster"
   _SSH_PORT = 22
@@ -1033,7 +1033,8 @@ class TestAddAndRemoveNodeSshKey(testutils.GanetiTestCase):
                    expected_key):
     return self._KeyOperationExecuted(
       key_data, node_name, expected_type, expected_key,
-      [constants.SSHS_ADD, constants.SSHS_OVERRIDE])
+      [constants.SSHS_ADD, constants.SSHS_OVERRIDE,
+       constants.SSHS_REPLACE_OR_ADD])
 
   def _KeyRemoved(self, key_data, node_name, expected_type,
                   expected_key):
@@ -1059,6 +1060,25 @@ class TestAddAndRemoveNodeSshKey(testutils.GanetiTestCase):
         calls_per_node[node] = []
       calls_per_node[node].append(data)
     return calls_per_node
+
+  def testGenerateKey(self):
+    test_node_name = "node_name_7"
+    test_node_uuid = "node_uuid_7"
+
+    self._SetupTestData()
+
+    backend._GenerateNodeSshKey(test_node_uuid, test_node_name,
+                                self._ssh_port_map,
+                                pub_key_file=self._pub_key_file,
+                                ssconf_store=self._ssconf_mock,
+                                noded_cert_file=self.noded_cert_file,
+                                run_cmd_fn=self._run_cmd_mock)
+
+    calls_per_node = self._GetCallsPerNode()
+    for node, calls in calls_per_node.items():
+      self.assertEquals(node, test_node_name)
+      for call in calls:
+        self.assertTrue(constants.SSHS_GENERATE in call)
 
   def testAddNodeSshKeyValid(self):
     new_node_name = "new_node_name"

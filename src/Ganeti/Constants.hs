@@ -4538,6 +4538,9 @@ sshsNodeDaemonCertificate = "node_daemon_certificate"
 sshsAdd :: String
 sshsAdd = "add"
 
+sshsReplaceOrAdd :: String
+sshsReplaceOrAdd = "replace_or_add"
+
 sshsRemove :: String
 sshsRemove = "remove"
 
@@ -4547,8 +4550,15 @@ sshsOverride = "override"
 sshsClear :: String
 sshsClear = "clear"
 
+sshsGenerate :: String
+sshsGenerate = "generate"
+
 sshsActions :: FrozenSet String
-sshsActions = ConstantUtils.mkSet [sshsAdd, sshsRemove, sshsOverride, sshsClear]
+sshsActions = ConstantUtils.mkSet [ sshsAdd
+                                  , sshsRemove
+                                  , sshsOverride
+                                  , sshsClear
+                                  , sshsReplaceOrAdd]
 
 -- * Key files for SSH daemon
 

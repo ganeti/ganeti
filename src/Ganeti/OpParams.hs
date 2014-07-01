@@ -294,6 +294,7 @@ module Ganeti.OpParams
   , pEnabledDataCollectors
   , pDataCollectorInterval
   , pNodeSslCerts
+  , pSshKeys
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -1859,3 +1860,9 @@ pNodeSslCerts =
   withDoc "Whether to renew node SSL certificates" .
   defaultField [| False |] $
   simpleField "node_certificates" [t| Bool |]
+
+pSshKeys :: Field
+pSshKeys =
+  withDoc "Whether to renew SSH keys" .
+  defaultField [| False |] $
+  simpleField "ssh_keys" [t| Bool |]
