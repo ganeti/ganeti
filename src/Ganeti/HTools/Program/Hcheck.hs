@@ -70,6 +70,7 @@ options = do
     , oMinGain
     , oMinGainLim
     , oMinScore
+    , oIgnoreSoftErrors
     , oNoSimulation
     , oOfflineNode
     , oQuiet
@@ -257,7 +258,7 @@ executeSimulation opts ini_tbl min_cv gidx nl il = do
   let imlen = maximum . map (length . Instance.alias) $ Container.elems il
       nmlen = maximum . map (length . Node.alias) $ Container.elems nl
 
-  (fin_tbl, _) <- Hbal.iterateDepth False ini_tbl
+  (fin_tbl, _) <- Hbal.iterateDepth (optIgnoreSoftErrors opts) False ini_tbl
                                     (optMaxLength opts)
                                     (optDiskMoves opts)
                                     (optInstMoves opts)

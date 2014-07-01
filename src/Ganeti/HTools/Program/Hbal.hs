@@ -92,6 +92,7 @@ options = do
     , oDiskMoves
     , oSelInst
     , oInstMoves
+    , oIgnoreSoftErrors
     , oDynuFile
     , oIgnoreDyn 
     , oMonD
@@ -119,7 +120,8 @@ annotateOpCode =
 we find a valid solution or we exceed the maximum depth.
 
 -}
-iterateDepth :: Bool             -- ^ Whether to print moves
+iterateDepth :: Bool -- ^ ignore soft errors
+             -> Bool             -- ^ Whether to print moves
              -> Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Remaining length
              -> Bool             -- ^ Allow disk moves
@@ -134,13 +136,13 @@ iterateDepth :: Bool             -- ^ Whether to print moves
              -> Bool             -- ^ Enable evacuation mode
              -> IO (Cluster.Table, [MoveJob]) -- ^ The resulting table
                                               -- and commands
-iterateDepth printmove ini_tbl max_rounds disk_moves inst_moves rest_mig nmlen
-             imlen cmd_strs min_score mg_limit min_gain evac_mode =
+iterateDepth force printmove ini_tbl max_rounds disk_moves inst_moves rest_mig
+             nmlen imlen cmd_strs min_score mg_limit min_gain evac_mode =
   let Cluster.Table ini_nl ini_il _ _ = ini_tbl
       allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
       m_fin_tbl = if allowed_next
-                    then Cluster.tryBalance ini_tbl disk_moves inst_moves
-                         evac_mode rest_mig mg_limit min_gain
+                    then Cluster.tryBalanceEx force ini_tbl disk_moves
+                           inst_moves evac_mode rest_mig mg_limit min_gain
                     else Nothing
   in case m_fin_tbl of
        Just fin_tbl ->
@@ -156,7 +158,7 @@ iterateDepth printmove ini_tbl max_rounds disk_moves inst_moves rest_mig nmlen
            when printmove $ do
                putStrLn sol_line
                hFlush stdout
-           iterateDepth printmove fin_tbl max_rounds disk_moves inst_moves
+           iterateDepth force printmove fin_tbl max_rounds disk_moves inst_moves
                         rest_mig nmlen imlen upd_cmd_strs min_score
                         mg_limit min_gain evac_mode
        Nothing -> return (ini_tbl, cmd_strs)
@@ -305,8 +307,8 @@ checkCluster verbose nl il = do
        printf "Note: Stripping common suffix of '%s' from names\n" csf
 
 -- | Do a few checks on the selected group data.
-checkGroup :: Int -> String -> Node.List -> Instance.List -> IO ()
-checkGroup verbose gname nl il = do
+checkGroup :: Bool -> Int -> String -> Node.List -> Instance.List -> IO ()
+checkGroup force verbose gname nl il = do
   printf "Group size %d nodes, %d instances\n"
              (Container.size nl)
              (Container.size il)::IO ()
@@ -331,10 +333,13 @@ checkGroup verbose gname nl il = do
          putStrLn "Cluster is not N+1 happy, continuing but no guarantee \
                   \that the cluster will end N+1 happy."
 
-  unless (null policy_bad) $
-    printf "The cluster contains %d policy-violating nodes. Continuing, but\
-           \ the set of moves considered might be too restricted.\n"
+  unless (null policy_bad) $ do
+    printf "The cluster contains %d policy-violating nodes.\n"
       $ length policy_bad :: IO ()
+    if force
+      then putStrLn "Continuing, ignoring soft errors."
+      else putStrLn "Continuing, but the set of moves might be too restricted;\
+                    \ consider using the --ignore-soft-errors option."
 
 -- | Check that we actually need to rebalance.
 checkNeedRebalance :: Options -> Score -> IO ()
@@ -354,6 +359,7 @@ main opts args = do
   let verbose = optVerbose opts
       shownodes = optShowNodes opts
       showinsts = optShowInsts opts
+      force = optIgnoreSoftErrors opts
 
   ini_cdata@(ClusterData gl fixed_nl ilf ctags ipol) <- loadExternalData opts
 
@@ -368,7 +374,7 @@ main opts args = do
 
   (gname, (nl, il)) <- selectGroup opts gl nlf ilf
 
-  checkGroup verbose gname nl il
+  checkGroup force verbose gname nl il
 
   maybePrintInsts showinsts "Initial" (Cluster.printInsts nl il)
 
@@ -389,7 +395,7 @@ main opts args = do
   let imlen = maximum . map (length . Instance.alias) $ Container.elems il
       nmlen = maximum . map (length . Node.alias) $ Container.elems nl
 
-  (fin_tbl, cmd_strs) <- iterateDepth True ini_tbl (optMaxLength opts)
+  (fin_tbl, cmd_strs) <- iterateDepth force True ini_tbl (optMaxLength opts)
                          (optDiskMoves opts)
                          (optInstMoves opts)
                          (optRestrictedMigrate opts)
