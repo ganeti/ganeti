@@ -142,3 +142,18 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 ./test/hs/hbal -t$TESTDATA_DIR/hbal-cpu-speed.data --ignore-dynu
 >>>/inst[12] node-slow:node-fast => node-fast:node-slow/
 >>>=0
+
+# By default, hbal should not take any action in an overloaded cluster
+./test/hs/hbal -t$TESTDATA_DIR/hbal-soft-errors.data
+>>>/Solution length=0/
+>>>=0
+
+# ...and suggest to the user to weaken movement restrictions;
+./test/hs/hbal -t$TESTDATA_DIR/hbal-soft-errors.data
+>>>/consider using the --ignore-soft-errors option/
+>>>=0
+
+# allowing soft errors, an improvement should be found.
+./test/hs/hbal -t$TESTDATA_DIR/hbal-soft-errors.data --ignore-soft-errors
+>>>/Solution length=[1-9]/
+>>>=0
