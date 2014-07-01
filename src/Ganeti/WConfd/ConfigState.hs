@@ -64,10 +64,14 @@ bumpSerial now = set mTimeL now . over serialL succ
 -- needs to be fully commited before returning the corresponding call to
 -- WConfD.
 needsFullDist :: ConfigState -> ConfigState -> Bool
-needsFullDist = on (/=) watched
+needsFullDist = on (/=) (watched . csConfigData)
   where
-    watched = (,,,)
-              <$> clusterCandidateCerts . configCluster . csConfigData
-              <*> clusterMasterNode . configCluster . csConfigData
-              <*> getMasterNodes . csConfigData
-              <*> getMasterCandidates . csConfigData
+    watched = (,,,,,,)
+              <$> clusterCandidateCerts . configCluster
+              <*> clusterMasterNode . configCluster
+              <*> getMasterNodes
+              <*> getMasterCandidates
+              -- kvmd is running depending on the following:
+              <*> clusterEnabledUserShutdown . configCluster
+              <*> clusterEnabledHypervisors . configCluster
+              <*> fmap nodeVmCapable . configNodes

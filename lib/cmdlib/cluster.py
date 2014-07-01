@@ -1697,7 +1697,6 @@ class LUClusterSetParams(LogicalUnit):
     # this will update the cluster object and sync 'Ssconf', and kvmd
     # uses 'Ssconf'.
     if ensure_kvmd:
-      self.cfg.FlushConfig()
       EnsureKvmdOnNodes(self, feedback_fn)
 
     if self.op.compression_tools is not None:

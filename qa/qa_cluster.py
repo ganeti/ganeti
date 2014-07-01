@@ -1490,7 +1490,8 @@ def TestInstanceCommunication():
          network_name]
   result_output = qa_utils.GetCommandOutput(master.primary,
                                             utils.ShellQuoteArgs(cmd))
-  AssertEqual(result_output.strip(), "default (routed, communication_rt)",
+  # <nodegroup> (<mode>, <link>, <vlan>), for this test, VLAN is nothing
+  AssertEqual(result_output.strip(), "default (routed, communication_rt, )",
               msg="Checking network connected groups")
 
   # Check that the network has the parameters necessary for instance
@@ -1540,13 +1541,13 @@ def TestInstanceCommunication():
                                             utils.ShellQuoteArgs(cmd))
 
   try:
-    r1 = "mygroup (routed, communication_rt)," \
-         " default (routed, communication_rt)"
+    r1 = "mygroup (routed, communication_rt, )," \
+         " default (routed, communication_rt, )"
     AssertEqual(result_output.strip(), r1,
                 msg="Checking network connected groups")
   except qa_error.Error:
-    r2 = "default (routed, communication_rt)," \
-         " mygroup (routed, communication_rt)"
+    r2 = "default (routed, communication_rt, )," \
+         " mygroup (routed, communication_rt, )"
     AssertEqual(result_output.strip(), r2,
                 msg="Checking network connected groups")
 

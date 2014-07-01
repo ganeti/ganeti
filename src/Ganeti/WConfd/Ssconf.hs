@@ -69,6 +69,8 @@ mkSSConf cdata = SSConf $ M.fromList
                                   nodes )
     , (SSNodeSecondaryIps, mapLines (spcPair . (nodeName &&& nodeSecondaryIp))
                                     nodes )
+    , (SSNodeVmCapable,  mapLines (eqPair . (nodeName &&& show . nodeVmCapable))
+                                  nodes)
     , (SSOfflineNodes, mapLines nodeName offline )
     , (SSOnlineNodes, mapLines nodeName online )
     , (SSPrimaryIpFamily, return . show . ipFamilyToRaw
@@ -86,6 +88,8 @@ mkSSConf cdata = SSConf $ M.fromList
     , (SSNetworks, mapLines (spcPair . (networkUuid
                                         &&& (fromNonEmpty . networkName)))
                    . configNetworks $ cdata)
+    , (SSEnabledUserShutdown, return . show . clusterEnabledUserShutdown
+                              $ cluster)
     ]
   where
     mapLines :: (Foldable f) => (a -> String) -> f a -> [String]
