@@ -129,6 +129,7 @@ module Ganeti.OpParams
   , pInstOsParamsSecret
   , pCandidatePoolSize
   , pMaxRunningJobs
+  , pMaxTrackedJobs
   , pUidPool
   , pAddUids
   , pRemoveUids
@@ -694,6 +695,12 @@ pMaxRunningJobs :: Field
 pMaxRunningJobs =
   withDoc "Maximal number of jobs to run simultaneously" .
   optionalField $ simpleField "max_running_jobs" [t| Positive Int |]
+
+pMaxTrackedJobs :: Field
+pMaxTrackedJobs =
+  withDoc "Maximal number of jobs tracked in the job queue" .
+  optionalField $ simpleField "max_tracked_jobs" [t| Positive Int |]
+
 
 pUidPool :: Field
 pUidPool =
