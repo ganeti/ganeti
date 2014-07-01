@@ -62,6 +62,7 @@ module Ganeti.HTools.CLI
   , oIAllocSrc
   , oIgnoreDyn
   , oIgnoreNonRedundant
+  , oIgnoreSoftErrors
   , oIndependentGroups
   , oAcceptExisting
   , oInstMoves
@@ -131,6 +132,7 @@ data Options = Options
   , optSpindleUse  :: Maybe Int      -- ^ Override for the spindle usage
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
   , optIgnoreDynu  :: Bool           -- ^ Do not use dynamic use data
+  , optIgnoreSoftErrors :: Bool      -- ^ Ignore soft errors in balancing moves
   , optIndependentGroups :: Bool     -- ^ consider groups independently
   , optAcceptExisting :: Bool        -- ^ accept existing N+1 violations
   , optMonD        :: Bool           -- ^ Query MonDs
@@ -195,6 +197,7 @@ defaultOptions  = Options
   , optDiskTemplate = Nothing
   , optSpindleUse  = Nothing
   , optIgnoreDynu  = False
+  , optIgnoreSoftErrors = False
   , optDynuFile    = Nothing
   , optMonD        = False
   , optMonDFile = Nothing
@@ -367,6 +370,13 @@ oIgnoreDyn =
   (Option "" ["ignore-dynu"]
    (NoArg (\ opts -> Ok opts {optIgnoreDynu = True}))
    "Ignore any dynamic utilisation information",
+   OptComplNone)
+
+oIgnoreSoftErrors :: OptType
+oIgnoreSoftErrors =
+  (Option "" ["ignore-soft-errors"]
+   (NoArg (\ opts -> Ok opts {optIgnoreSoftErrors = True}))
+   "Ignore any soft restrictions in balancing",
    OptComplNone)
 
 oIndependentGroups :: OptType
