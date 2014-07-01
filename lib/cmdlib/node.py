@@ -255,17 +255,18 @@ class LUNodeAdd(LogicalUnit):
     else:
       self.master_candidate = False
 
-    node_group = self.cfg.LookupNodeGroup(self.op.group)
-
+    self.node_group = None
     if self.op.readd:
       self.new_node = existing_node_info
+      self.node_group = existing_node_info.group
     else:
+      self.node_group = self.cfg.LookupNodeGroup(self.op.group)
       self.new_node = objects.Node(name=node_name,
                                    primary_ip=self.op.primary_ip,
                                    secondary_ip=secondary_ip,
                                    master_candidate=self.master_candidate,
                                    offline=False, drained=False,
-                                   group=node_group, ndparams={})
+                                   group=self.node_group, ndparams={})
 
     if self.op.ndparams:
       utils.ForceDictType(self.op.ndparams, constants.NDS_PARAMETER_TYPES)
@@ -301,7 +302,7 @@ class LUNodeAdd(LogicalUnit):
       result = rpcrunner.call_node_verify_light(
           [node_name], vparams, cname,
           self.cfg.GetClusterInfo().hvparams,
-          {node_name: node_group},
+          {node_name: self.node_group},
           self.cfg.GetAllNodeGroupsInfoDict()
         )[node_name]
       (errmsgs, _) = CheckNodePVs(result.payload, excl_stor)
@@ -391,7 +392,7 @@ class LUNodeAdd(LogicalUnit):
                node_verifier_uuids, node_verify_param,
                self.cfg.GetClusterName(),
                self.cfg.GetClusterInfo().hvparams,
-               {self.new_node.name: self.cfg.LookupNodeGroup(self.op.group)},
+               {self.new_node.name: self.cfg.LookupNodeGroup(self.node_group)},
                self.cfg.GetAllNodeGroupsInfoDict()
                )
     for verifier in node_verifier_uuids:

@@ -275,6 +275,20 @@ This was the first beta release of the 2.11 series. All important changes
 are listed in the latest 2.11 entry.
 
 
+Version 2.10.6
+--------------
+
+*(Released Mon, 30 Jun 2014)*
+
+- Make Ganeti tolerant towards differnt openssl library
+  version on different nodes (issue 853).
+- Allow hspace to make useful predictions in multi-group
+  clusters with one group overfull (isse 861).
+- Various gnt-network related fixes.
+- Fix disk hotplug with userspace access.
+- Various documentation errors fixed.
+
+
 Version 2.10.5
 --------------
 
