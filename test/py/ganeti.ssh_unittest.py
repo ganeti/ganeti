@@ -451,6 +451,14 @@ class TestGetUserFiles(testutils.GanetiTestCase):
     self.assertFileContentNotEqual(self.priv_filename, self._PRIV_KEY)
     self.assertFileContentNotEqual(self.pub_filename, self._PUB_KEY)
 
+  def testSuffix(self):
+    suffix = "_pinkbunny"
+    ssh.InitSSHSetup(_homedir_fn=self._GetTempHomedir, _suffix=suffix)
+    self.assertFileContent(self.priv_filename, self._PRIV_KEY)
+    self.assertFileContent(self.pub_filename, self._PUB_KEY)
+    self.assertTrue(os.path.exists(self.priv_filename + suffix))
+    self.assertTrue(os.path.exists(self.priv_filename + suffix + ".pub"))
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

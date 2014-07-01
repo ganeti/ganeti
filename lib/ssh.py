@@ -642,7 +642,8 @@ def QueryPubKeyFile(target_uuids, key_file=pathutils.SSH_PUB_KEYS,
   return result
 
 
-def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None):
+def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None,
+                 _suffix=""):
   """Setup the SSH configuration for the node.
 
   This generates a dsa keypair for root, adds the pub key to the
@@ -655,16 +656,20 @@ def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None):
   for name in priv_key, pub_key:
     if os.path.exists(name):
       utils.CreateBackup(name)
-    utils.RemoveFile(name)
+    if len(_suffix) == 0:
+      utils.RemoveFile(name)
+
+  new_priv_key_name = priv_key + _suffix
+  new_pub_key_name = priv_key + _suffix + ".pub"
 
   result = utils.RunCmd(["ssh-keygen", "-t", "dsa",
-                         "-f", priv_key,
+                         "-f", new_priv_key_name,
                          "-q", "-N", ""])
   if result.failed:
     raise error_fn("Could not generate ssh keypair, error %s" %
                    result.output)
 
-  AddAuthorizedKey(auth_keys, utils.ReadFile(pub_key))
+  AddAuthorizedKey(auth_keys, utils.ReadFile(new_pub_key_name))
 
 
 def InitPubKeyFile(master_uuid, key_file=pathutils.SSH_PUB_KEYS):
