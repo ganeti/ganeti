@@ -193,47 +193,6 @@ def _ReadSshKeys(keyfiles, _tostderr_fn=ToStderr):
   return result
 
 
-def _ReadRemoteSshPubKeys(keyfiles, node, cluster_name, port, ask_key,
-                          strict_host_check, _tosterr_fn=ToStderr):
-  """Fetches the public SSH keys from a node via SSH.
-
-  @type keyfiles: dict from string to (string, string) tuples
-  @param keyfiles: a dictionary mapping the type of key (e.g. rsa, dsa) to a
-    tuple consisting of the file name of the private and public key
-
-  """
-  family = ssconf.SimpleStore().GetPrimaryIPFamily()
-  ssh_runner = ssh.SshRunner(cluster_name,
-                             ipv6=(family == netutils.IP6Address.family))
-
-  failed_results = {}
-  fetched_keys = {}
-  for (kind, (_, public_key_file)) in keyfiles.items():
-    cmd = ["cat", public_key_file]
-    ssh_cmd = ssh_runner.BuildCmd(node, constants.SSH_LOGIN_USER,
-                                  utils.ShellQuoteArgs(cmd),
-                                  batch=False, ask_key=ask_key, quiet=False,
-                                  strict_host_check=strict_host_check,
-                                  use_cluster_key=False,
-                                  port=port)
-
-    result = utils.RunCmd(ssh_cmd)
-    if result.failed:
-      failed_results[kind] = (result.cmd, result.fail_reason)
-    else:
-      fetched_keys[kind] = result.stdout
-
-  if len(fetched_keys.keys()) < 1:
-    error_msg = "Could not fetch any public SSH key."
-    for (kind, (cmd, fail_reason)) in failed_results.items():
-      error_msg += "Could not fetch the public '%s' SSH key from node '%s':" \
-                   " ran command '%s', failure reason: '%s'. " % \
-                   (kind, node, cmd, fail_reason)
-    raise errors.OpPrereqError(error_msg)
-
-  return fetched_keys
-
-
 def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   """Configures a destination node's SSH daemon.
 
@@ -282,9 +241,9 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
                          options.ssh_key_check, options.ssh_key_check,
                          ssh_port, data, ssconf.SimpleStore())
 
-  fetched_keys = _ReadRemoteSshPubKeys(root_keyfiles, node, cluster_name,
-                                       ssh_port, options.ssh_key_check,
-                                       options.ssh_key_check)
+  fetched_keys = ssh.ReadRemoteSshPubKeys(root_keyfiles, node, cluster_name,
+                                          ssh_port, options.ssh_key_check,
+                                          options.ssh_key_check)
   for pub_key in fetched_keys.values():
     # Unfortunately, we have to add the key with the node name rather than
     # the node's UUID here, because at this point, we do not have a UUID yet.
