@@ -2,6 +2,9 @@
 
 {-| Pure functions for manipulating reservations of temporary objects
 
+NOTE: Reservations aren't released specifically, they're just all
+released at the end of a job. This could be improved in the future.
+
 -}
 
 {-
@@ -43,6 +46,14 @@ module Ganeti.WConfd.TempRes
   , reserveMAC
   , generateDRBDSecret
   , reserveLV
+  , IPv4ResAction(..)
+  , IPv4Reservation(..)
+  , reserveIp
+  , releaseIp
+  , generateIp
+  , commitReleaseIp
+  , commitReservedIps
+  , listReservedIps
   , dropAllReservations
   , isReserved
   , reserve
@@ -70,9 +81,12 @@ import qualified Ganeti.Constants as C
 import Ganeti.Errors
 import qualified Ganeti.JSON as J
 import Ganeti.Lens
+import qualified Ganeti.Network as N
 import Ganeti.Locking.Locks (ClientId)
+import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.THH
+import Ganeti.Objects.Lens (configNetworksL)
 import Ganeti.Utils
 import Ganeti.Utils.MonadPlus
 import Ganeti.Utils.Random
@@ -98,6 +112,33 @@ type DRBDMap' = Map NodeUUID (Map DRBDMinor [InstanceUUID])
 
 -- * The state data structure
 
+-- | Types of IPv4 reservation actions.
+data IPv4ResAction = IPv4Reserve | IPv4Release
+  deriving (Eq, Ord, Show, Bounded, Enum)
+
+instance J.JSON IPv4ResAction where
+  showJSON IPv4Reserve = J.JSString . J.toJSString $ C.reserveAction
+  showJSON IPv4Release = J.JSString . J.toJSString $ C.releaseAction
+  readJSON = J.readEitherString
+             >=> \s -> case () of
+                    _ | s == C.reserveAction -> return IPv4Reserve
+                      | s == C.releaseAction -> return IPv4Release
+                      | otherwise -> fail $ "Invalid IP reservation action: "
+                                           ++ s
+
+-- | The values stored in the IPv4 reservation table.
+data IPv4Reservation = IPv4Res
+  { ipv4ResAction :: IPv4ResAction
+  , ipv4ResNetwork :: NetworkUUID
+  , ipv4ResAddr :: Ip4Address
+  } deriving (Eq, Ord, Show)
+
+instance J.JSON IPv4Reservation where
+  -- Notice that addr and net are in a different order, to be compatible
+  -- with the original Python representation (while it's used).
+  showJSON (IPv4Res a net addr) = J.showJSON (a, addr, net)
+  readJSON = fmap (\(a, addr, net) -> IPv4Res a net addr) . J.readJSON
+
 -- | A polymorphic data structure for managing temporary resources assigned
 -- to jobs.
 newtype TempRes j a = TempRes { getTempRes :: MM.MultiMap j a }
@@ -112,15 +153,16 @@ instance (J.JSON j, Ord j, J.JSON a, Ord a) => J.JSON (TempRes j a) where
   readJSON = liftM TempRes . J.readJSON
 
 -- | The state of the temporary reservations
-$(buildObject "TempResState" "trs" $
+$(buildObject "TempResState" "trs"
   [ simpleField "dRBD"             [t| DRBDMap |]
   , simpleField "mACs"             [t| TempRes ClientId MAC |]
   , simpleField "dRBDSecrets"      [t| TempRes ClientId DRBDSecret |]
   , simpleField "lVs"              [t| TempRes ClientId LogicalVolume |]
+  , simpleField "iPv4s"            [t| TempRes ClientId IPv4Reservation |]
   ])
 
 emptyTempResState :: TempResState
-emptyTempResState = TempResState M.empty mempty mempty mempty
+emptyTempResState = TempResState M.empty mempty mempty mempty mempty
 
 $(makeCustomLenses ''TempResState)
 
@@ -130,13 +172,18 @@ $(makeCustomLenses ''TempResState)
 resError :: (MonadError GanetiException m) => String -> m a
 resError = throwError . ReservationError
 
+-- | Converts 'GenericError' into a 'ReservationError'.
+toResError :: (MonadError GanetiException m) => m a -> m a
+toResError = flip catchError (throwError . f)
+  where
+    f (GenericError msg) = ReservationError msg
+    f e = e
+
 -- | Filter values from the nested map and remove any nested maps
 -- that become empty.
 filterNested :: (Ord a, Ord b)
              => (c -> Bool) -> Map a (Map b c) -> Map a (Map b c)
 filterNested p = M.filter (not . M.null) . fmap (M.filter p)
-
--- * DRBDs
 
 -- | Converts a lens that works on maybe values into a lens that works
 -- on regular ones. A missing value on the input is replaced by
@@ -221,6 +268,9 @@ reserve jobid x tr = do
 dropReservationsFor :: (Ord a, Ord j) => j -> TempRes j a -> TempRes j a
 dropReservationsFor jobid = TempRes . MM.deleteAll jobid . getTempRes
 
+reservedFor :: (Ord a, Ord j) => j -> TempRes j a -> S.Set a
+reservedFor jobid = MM.lookup jobid . getTempRes
+
 reserved :: (Ord a, Ord j) => TempRes j a -> S.Set a
 reserved = MM.values . getTempRes
 
@@ -276,6 +326,7 @@ dropAllReservations jobId = modify $
     (trsMACsL %~ dropReservationsFor jobId)
   . (trsDRBDSecretsL %~ dropReservationsFor jobId)
   . (trsLVsL %~ dropReservationsFor jobId)
+  . (trsIPv4sL %~ dropReservationsFor jobId)
 
 -- | Looks up a network by its UUID.
 lookupNetwork :: (MonadError GanetiException m)
@@ -343,3 +394,89 @@ reserveLV jobId lv cd = do
   when (S.member lv existing)
     $ resError "MAC already in use"
   modifyM $ traverseOf trsLVsL (reserve jobId lv)
+
+-- ** IPv4 addresses
+
+-- | Lists all IPv4 addresses reserved for a given network.
+usedIPv4Addrs :: NetworkUUID -> S.Set IPv4Reservation -> S.Set Ip4Address
+usedIPv4Addrs netuuid =
+  S.map ipv4ResAddr . S.filter ((== netuuid) . ipv4ResNetwork)
+
+-- | Reserve a given IPv4 address for use by an instance.
+reserveIp
+  :: (MonadError GanetiException m, MonadState TempResState m, Functor m)
+  => ClientId -> NetworkUUID -> Ip4Address
+  -> Bool -- ^ whether to check externally reserved IPs
+  -> ConfigData -> m ()
+reserveIp jobId netuuid addr checkExt cd = toResError $ do
+    net <- lookupNetwork cd netuuid
+    isres <- N.isReserved N.PoolInstances addr net
+    when isres . resError $ "IP address already in use"
+    when checkExt $ do
+      isextres <- N.isReserved N.PoolExt addr net
+      when isextres . resError $ "IP is externally reserved"
+    let action = IPv4Res IPv4Reserve netuuid addr
+    modifyM $ traverseOf trsIPv4sL (reserve jobId action)
+
+-- | Give a specific IP address back to an IP pool.
+-- The IP address is returned to the IP pool designated by network id
+-- and marked as reserved.
+releaseIp
+  :: (MonadError GanetiException m, MonadState TempResState m, Functor m)
+  => ClientId -> NetworkUUID -> Ip4Address -> m ()
+releaseIp jobId netuuid addr =
+  let action = IPv4Res { ipv4ResAction = IPv4Release
+                       , ipv4ResNetwork = netuuid
+                       , ipv4ResAddr = addr }
+  in modifyM $ traverseOf trsIPv4sL (reserve jobId action)
+
+-- Find a free IPv4 address for an instance and reserve it.
+generateIp
+  :: (MonadError GanetiException m, MonadState TempResState m, Functor m)
+  => ClientId -> NetworkUUID -> ConfigData -> m Ip4Address
+generateIp jobId netuuid cd = toResError $ do
+    net <- lookupNetwork cd netuuid
+    let f res = do
+          let ips = usedIPv4Addrs netuuid res
+          addr <- N.findFree (`S.notMember` ips) net
+          maybe (resError "Cannot generate IP. Network is full")
+                (return . IPv4Res IPv4Reserve netuuid) addr
+    liftM ipv4ResAddr . stateM $ traverseOf2 trsIPv4sL (withReserved jobId f)
+
+-- | Commit a reserved/released IP address to an IP pool.
+-- The IP address is taken from the network's IP pool and marked as
+-- reserved/free for instances.
+commitIp
+  :: (MonadError GanetiException m, Functor m)
+  => IPv4Reservation -> ConfigData -> m ConfigData
+commitIp (IPv4Res actType netuuid addr) cd = toResError $ do
+    let call = case actType of
+                IPv4Reserve -> N.reserve
+                IPv4Release -> N.release
+        f Nothing = resError $ "Network '" ++ show netuuid ++ "' not found"
+        f (Just net) = Just `liftM` call N.PoolInstances addr net
+    traverseOf (configNetworksL . J.alterContainerL netuuid) f cd
+
+-- | Immediately release an IP address, without using the reservations pool.
+commitReleaseIp
+  :: (MonadError GanetiException m, Functor m)
+  => NetworkUUID -> Ip4Address -> ConfigData -> m ConfigData
+commitReleaseIp netuuid addr =
+  commitIp (IPv4Res IPv4Release netuuid addr)
+
+-- | Commit all reserved/released IP address to an IP pool.
+-- The IP addresses are taken from the network's IP pool and marked as
+-- reserved/free for instances.
+--
+-- Note that the reservations are kept, they are supposed to be cleaned
+-- when a job finishes.
+commitReservedIps
+  :: (MonadError GanetiException m, Functor m, MonadLog m)
+  => ClientId -> TempResState -> ConfigData -> m ConfigData
+commitReservedIps jobId tr cd = do
+  let res = reservedFor jobId (trsIPv4s tr)
+  logDebug $ "Commiting reservations: " ++ show res
+  F.foldrM commitIp cd res
+
+listReservedIps :: ClientId -> TempResState -> S.Set IPv4Reservation
+listReservedIps jobid = reservedFor jobid . trsIPv4s
