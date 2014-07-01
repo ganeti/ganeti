@@ -479,6 +479,9 @@ def DowngradeCluster(config_data):
   if "compression_tools" in cluster:
     del cluster["compression_tools"]
 
+  if "max_tracked_jobs" in cluster:
+    del cluster["max_tracked_jobs"]
+
 
 def DowngradeGroups(config_data):
   for group in config_data["nodegroups"].values():
