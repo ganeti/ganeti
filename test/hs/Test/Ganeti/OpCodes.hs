@@ -185,6 +185,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> genMaybe genEmptyContainer   -- diskparams
           <*> genMaybe arbitrary           -- candidate_pool_size
           <*> genMaybe arbitrary           -- max_running_jobs
+          <*> genMaybe arbitrary           -- max_tracked_jobs
           <*> arbitrary                    -- uid_pool
           <*> arbitrary                    -- add_uids
           <*> arbitrary                    -- remove_uids

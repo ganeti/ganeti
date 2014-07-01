@@ -1580,6 +1580,9 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.max_running_jobs is not None:
       self.cluster.max_running_jobs = self.op.max_running_jobs
 
+    if self.op.max_tracked_jobs is not None:
+      self.cluster.max_tracked_jobs = self.op.max_tracked_jobs
+
     if self.op.maintain_node_health is not None:
       if self.op.maintain_node_health and not constants.ENABLE_CONFD:
         feedback_fn("Note: CONFD was disabled at build time, node health"
