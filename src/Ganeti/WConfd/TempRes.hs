@@ -127,6 +127,10 @@ $(makeCustomLenses ''TempResState)
 
 -- ** Utility functions
 
+-- | Issues a reservation error.
+resError :: (MonadError GanetiException m) => String -> m a
+resError = throwError . ReservationError
+
 -- | Filter values from the nested map and remove any nested maps
 -- that become empty.
 filterNested :: (Ord a, Ord b)
@@ -173,7 +177,7 @@ computeDRBDMap :: (MonadError GanetiException m)
 computeDRBDMap cfg trs = do
   m <- computeDRBDMap' cfg trs
   let dups = filterNested ((>= 2) . length) m
-  unless (M.null dups) . failError
+  unless (M.null dups) . resError
     $ "Duplicate DRBD ports detected: " ++ show (M.toList $ fmap M.toList dups)
   return $ fmap (fmap head . M.filter ((== 1) . length)) m
            `M.union` (fmap (const mempty) . J.fromContainer . configNodes $ cfg)
@@ -208,10 +212,10 @@ isReserved :: (Ord a, Ord j) => a -> TempRes j a -> Bool
 isReserved x = MM.elem x . getTempRes
 
 -- | Tries to reserve a given value for a given job.
-reserve :: (MonadError e m, Error e, Show a, Ord a, Ord j)
+reserve :: (MonadError GanetiException m, Show a, Ord a, Ord j)
         => j -> a -> TempRes j a -> m (TempRes j a)
 reserve jobid x tr = do
-  when (isReserved x tr) . failError $ "Duplicate reservation for resource '"
+  when (isReserved x tr) . resError $ "Duplicate reservation for resource '"
                                        ++ show x ++ "'"
   return . TempRes . MM.insert jobid x $ getTempRes tr
 
@@ -221,7 +225,7 @@ dropReservationsFor jobid = TempRes . MM.deleteAll jobid . getTempRes
 reserved :: (Ord a, Ord j) => TempRes j a -> S.Set a
 reserved = MM.values . getTempRes
 
-generate :: (MonadError e m, Error e, Show a, Ord a, Ord j)
+generate :: (MonadError GanetiException m, Show a, Ord a, Ord j)
          => j -> S.Set a -> m (Maybe a) -> TempRes j a -> m (a, TempRes j a)
 generate jobid existing genfn tr = do
   let retries = 64
@@ -234,9 +238,10 @@ generate jobid existing genfn tr = do
     Just x  -> (,) x `liftM` reserve jobid x tr
 
 -- | A variant of 'generate' for randomized computations.
-generateRand :: (MonadError e m, Error e, Show a, Ord a, Ord j, RandomGen g)
-             => g -> j -> S.Set a -> (g -> (Maybe a, g)) -> TempRes j a
-             -> m (a, TempRes j a)
+generateRand
+  :: (MonadError GanetiException m, Show a, Ord a, Ord j, RandomGen g)
+  => g -> j -> S.Set a -> (g -> (Maybe a, g)) -> TempRes j a
+  -> m (a, TempRes j a)
 generateRand rgen jobid existing genfn tr =
   evalStateT (generate jobid existing (state genfn) tr) rgen
 
@@ -264,7 +269,7 @@ dropAllReservations jobId = modify $
 -- approach we take is to instead use 'newStdGen' and discard the split
 -- generator afterwards.
 generateMAC
-  :: (RandomGen g, MonadError e m, Error e, Functor m)
+  :: (RandomGen g, MonadError GanetiException m, Functor m)
   => g -> ClientId -> Maybe NetworkUUID -> ConfigData
   -> StateT TempResState m MAC
 generateMAC rgen jobId netId cd = do
@@ -288,13 +293,13 @@ reserveMAC
 reserveMAC jobId mac cd = do
   let existing = S.fromList $ getAllMACs cd
   when (S.member mac existing)
-    $ throwError (ReservationError "MAC already in use")
+    $ resError "MAC already in use"
   get >>= traverseOf trsMACsL (reserve jobId mac) >>= put
 
 -- ** DRBD secrets
 
 generateDRBDSecret
-  :: (RandomGen g, MonadError e m, Error e, Functor m)
+  :: (RandomGen g, MonadError GanetiException m, Functor m)
   => g -> ClientId -> ConfigData -> StateT TempResState m DRBDSecret
 generateDRBDSecret rgen jobId cd = do
   let existing = S.fromList $ getAllDrbdSecrets cd
@@ -310,5 +315,5 @@ reserveLV
 reserveLV jobId lv cd = do
   existing <- toError $ getAllLVs cd
   when (S.member lv existing)
-    $ throwError (ReservationError "MAC already in use")
+    $ resError "MAC already in use"
   get >>= traverseOf trsLVsL (reserve jobId lv) >>= put
