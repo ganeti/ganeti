@@ -31,6 +31,7 @@ Algorithm options:
 **[ \--no-disk-moves ]**
 **[ \--no-instance-moves ]**
 **[ -U *util-file* ]**
+**[ \--ignore-soft-errors ]**
 **[ \--evac-mode ]**
 **[ \--select-instances *inst...* ]**
 **[ \--exclude-instances *inst...* ]**

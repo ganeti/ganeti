@@ -31,6 +31,7 @@ Algorithm options:
 **[ \--no-instance-moves ]**
 **[ -U *util-file* ]**
 **[ \--ignore-dynu ]**
+**[ \--ignore-soft-errors ]**
 **[ \--mond *yes|no* ]**
 **[ \--evac-mode ]**
 **[ \--restricted-migration ]**
@@ -350,6 +351,12 @@ The options that can be passed to the program are as follows:
   assuming it to be 0. This option will take precedence over any data
   passed by the ``-U`` option or by the MonDs with the ``--mond`` and
   the ``--mond-data`` option.
+
+\--ignore-soft-errors
+  If given, all checks for soft errors will be ommitted when considering
+  balancing moves. In this way, progress can be made in a cluster where
+  all nodes are in a policy-wise bad state, like exceeding oversubscription
+  ratios on CPU or spindles.
 
 -S *filename*, \--save-cluster=*filename*
   If given, the state of the cluster before the balancing is saved to
