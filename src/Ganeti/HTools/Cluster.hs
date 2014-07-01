@@ -56,6 +56,7 @@ module Ganeti.HTools.Cluster
   , checkMove
   , doNextBalance
   , tryBalance
+  , tryBalanceEx
   , compCV
   , compCVNodes
   , compDetailedCV
@@ -451,15 +452,16 @@ compareTables a@(Table _ _ a_cv _) b@(Table _ _ b_cv _ ) =
   if a_cv > b_cv then b else a
 
 -- | Applies an instance move to a given node list and instance.
-applyMove :: Node.List -> Instance.Instance
-          -> IMove -> OpResult (Node.List, Instance.Instance, Ndx, Ndx)
+applyMoveEx :: Bool -- ^ whether to ignore soft errors
+               -> Node.List -> Instance.Instance
+               -> IMove -> OpResult (Node.List, Instance.Instance, Ndx, Ndx)
 -- Failover (f)
-applyMove nl inst Failover =
+applyMoveEx force nl inst Failover =
   let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
       new_nl = do -- Maybe monad
-        new_p <- Node.addPriEx (Node.offline old_p) int_s inst
+        new_p <- Node.addPriEx (Node.offline old_p || force) int_s inst
         new_s <- Node.addSec int_p inst old_sdx
         let new_inst = Instance.setBoth inst old_sdx old_pdx
         return (Container.addTwo old_pdx new_s old_sdx new_p nl,
@@ -467,10 +469,10 @@ applyMove nl inst Failover =
   in new_nl
 
 -- Failover to any (fa)
-applyMove nl inst (FailoverToAny new_pdx) = do
+applyMoveEx force nl inst (FailoverToAny new_pdx) = do
   let (old_pdx, old_sdx, old_pnode, _) = instanceNodes nl inst
       new_pnode = Container.find new_pdx nl
-      force_failover = Node.offline old_pnode
+      force_failover = Node.offline old_pnode || force
   new_pnode' <- Node.addPriEx force_failover new_pnode inst
   let old_pnode' = Node.removePri old_pnode inst
       inst' = Instance.setPri inst new_pdx
@@ -478,12 +480,12 @@ applyMove nl inst (FailoverToAny new_pdx) = do
   return (nl', inst', new_pdx, old_sdx)
 
 -- Replace the primary (f:, r:np, f)
-applyMove nl inst (ReplacePrimary new_pdx) =
+applyMoveEx force nl inst (ReplacePrimary new_pdx) =
   let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       tgt_n = Container.find new_pdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
-      force_p = Node.offline old_p
+      force_p = Node.offline old_p || force
       new_nl = do -- Maybe monad
                   -- check that the current secondary can host the instance
                   -- during the migration
@@ -498,13 +500,13 @@ applyMove nl inst (ReplacePrimary new_pdx) =
   in new_nl
 
 -- Replace the secondary (r:ns)
-applyMove nl inst (ReplaceSecondary new_sdx) =
+applyMoveEx force nl inst (ReplaceSecondary new_sdx) =
   let old_pdx = Instance.pNode inst
       old_sdx = Instance.sNode inst
       old_s = Container.find old_sdx nl
       tgt_n = Container.find new_sdx nl
       int_s = Node.removeSec old_s inst
-      force_s = Node.offline old_s
+      force_s = Node.offline old_s || force
       new_inst = Instance.setSec inst new_sdx
       new_nl = Node.addSecEx force_s tgt_n inst old_pdx >>=
                \new_s -> return (Container.addTwo new_sdx
@@ -513,12 +515,12 @@ applyMove nl inst (ReplaceSecondary new_sdx) =
   in new_nl
 
 -- Replace the secondary and failover (r:np, f)
-applyMove nl inst (ReplaceAndFailover new_pdx) =
+applyMoveEx force nl inst (ReplaceAndFailover new_pdx) =
   let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       tgt_n = Container.find new_pdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
-      force_s = Node.offline old_s
+      force_s = Node.offline old_s || force
       new_nl = do -- Maybe monad
         new_p <- Node.addPri tgt_n inst
         new_s <- Node.addSecEx force_s int_p inst new_pdx
@@ -529,12 +531,12 @@ applyMove nl inst (ReplaceAndFailover new_pdx) =
   in new_nl
 
 -- Failver and replace the secondary (f, r:ns)
-applyMove nl inst (FailoverAndReplace new_sdx) =
+applyMoveEx force nl inst (FailoverAndReplace new_sdx) =
   let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       tgt_n = Container.find new_sdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
-      force_p = Node.offline old_p
+      force_p = Node.offline old_p || force
       new_nl = do -- Maybe monad
         new_p <- Node.addPriEx force_p int_s inst
         new_s <- Node.addSecEx force_p tgt_n inst old_sdx
@@ -543,6 +545,11 @@ applyMove nl inst (FailoverAndReplace new_sdx) =
                 Container.addTwo old_sdx new_p old_pdx int_p nl,
                 new_inst, old_sdx, new_sdx)
   in new_nl
+
+-- | Applies an instance move to a given node list and instance.
+applyMove :: Node.List -> Instance.Instance
+          -> IMove -> OpResult (Node.List, Instance.Instance, Ndx, Ndx)
+applyMove = applyMoveEx False
 
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: Node.List -> Instance.Instance -> Ndx
@@ -577,14 +584,15 @@ allocateOnPair stats nl inst new_pdx new_sdx =
 
 -- | Tries to perform an instance move and returns the best table
 -- between the original one and the new one.
-checkSingleStep :: Table -- ^ The original table
+checkSingleStep :: Bool -- ^ Whether to unconditionally ignore soft errors
+                -> Table -- ^ The original table
                 -> Instance.Instance -- ^ The instance to move
                 -> Table -- ^ The current best table
                 -> IMove -- ^ The move to apply
                 -> Table -- ^ The final best table
-checkSingleStep ini_tbl target cur_tbl move =
+checkSingleStep force ini_tbl target cur_tbl move =
   let Table ini_nl ini_il _ ini_plc = ini_tbl
-      tmp_resu = applyMove ini_nl target move
+      tmp_resu = applyMoveEx force ini_nl target move
   in case tmp_resu of
        Bad _ -> cur_tbl
        Ok (upd_nl, new_inst, pri_idx, sec_idx) ->
@@ -639,14 +647,15 @@ possibleMoves MirrorInternal False True _ tdx =
   ]
 
 -- | Compute the best move for a given instance.
-checkInstanceMove :: [Ndx]             -- ^ Allowed target node indices
+checkInstanceMove :: Bool              -- ^ Whether to ignore soft errors
+                  -> [Ndx]             -- ^ Allowed target node indices
                   -> Bool              -- ^ Whether disk moves are allowed
                   -> Bool              -- ^ Whether instance moves are allowed
                   -> Bool              -- ^ Whether migration is restricted
                   -> Table             -- ^ Original table
                   -> Instance.Instance -- ^ Instance to move
                   -> Table             -- ^ Best new table for this instance
-checkInstanceMove nodes_idx disk_moves inst_moves rest_mig
+checkInstanceMove force nodes_idx disk_moves inst_moves rest_mig
                   ini_tbl@(Table nl _ _ _) target =
   let opdx = Instance.pNode target
       osdx = Instance.sNode target
@@ -656,7 +665,8 @@ checkInstanceMove nodes_idx disk_moves inst_moves rest_mig
       use_secondary = elem osdx nodes_idx && inst_moves
       aft_failover = if mir_type == MirrorInternal && use_secondary
                        -- if drbd and allowed to failover
-                       then checkSingleStep ini_tbl target ini_tbl Failover
+                       then checkSingleStep force ini_tbl target ini_tbl
+                              Failover
                        else ini_tbl
       primary_drained = Node.offline
                         . flip Container.find nl
@@ -669,7 +679,33 @@ checkInstanceMove nodes_idx disk_moves inst_moves rest_mig
           else []
     in
       -- iterate over the possible nodes for this instance
-      foldl' (checkSingleStep ini_tbl target) aft_failover all_moves
+      foldl' (checkSingleStep force ini_tbl target) aft_failover all_moves
+
+-- | Compute the best next move.
+checkMoveEx :: Bool                   -- ^ Ignore soft errors
+               -> [Ndx]               -- ^ Allowed target node indices
+               -> Bool                -- ^ Whether disk moves are allowed
+               -> Bool                -- ^ Whether instance moves are allowed
+               -> Bool                -- ^ Whether migration is restricted
+               -> Table               -- ^ The current solution
+               -> [Instance.Instance] -- ^ List of instances still to move
+               -> Table               -- ^ The new solution
+checkMoveEx force nodes_idx disk_moves inst_moves rest_mig ini_tbl victims =
+  let Table _ _ _ ini_plc = ini_tbl
+      -- we're using rwhnf from the Control.Parallel.Strategies
+      -- package; we don't need to use rnf as that would force too
+      -- much evaluation in single-threaded cases, and in
+      -- multi-threaded case the weak head normal form is enough to
+      -- spark the evaluation
+      tables = parMap rwhnf (checkInstanceMove force nodes_idx disk_moves
+                             inst_moves rest_mig ini_tbl)
+               victims
+      -- iterate over all instances, computing the best move
+      best_tbl = foldl' compareTables ini_tbl tables
+      Table _ _ _ best_plc = best_tbl
+  in if length best_plc == length ini_plc
+       then ini_tbl -- no advancement
+       else best_tbl
 
 -- | Compute the best next move.
 checkMove :: [Ndx]               -- ^ Allowed target node indices
@@ -679,22 +715,7 @@ checkMove :: [Ndx]               -- ^ Allowed target node indices
           -> Table               -- ^ The current solution
           -> [Instance.Instance] -- ^ List of instances still to move
           -> Table               -- ^ The new solution
-checkMove nodes_idx disk_moves inst_moves rest_mig ini_tbl victims =
-  let Table _ _ _ ini_plc = ini_tbl
-      -- we're using rwhnf from the Control.Parallel.Strategies
-      -- package; we don't need to use rnf as that would force too
-      -- much evaluation in single-threaded cases, and in
-      -- multi-threaded case the weak head normal form is enough to
-      -- spark the evaluation
-      tables = parMap rwhnf (checkInstanceMove nodes_idx disk_moves
-                             inst_moves rest_mig ini_tbl)
-               victims
-      -- iterate over all instances, computing the best move
-      best_tbl = foldl' compareTables ini_tbl tables
-      Table _ _ _ best_plc = best_tbl
-  in if length best_plc == length ini_plc
-       then ini_tbl -- no advancement
-       else best_tbl
+checkMove = checkMoveEx False
 
 -- | Check if we are allowed to go deeper in the balancing.
 doNextBalance :: Table     -- ^ The starting table
@@ -707,15 +728,17 @@ doNextBalance ini_tbl max_rounds min_score =
   in (max_rounds < 0 || ini_plc_len < max_rounds) && ini_cv > min_score
 
 -- | Run a balance move.
-tryBalance :: Table       -- ^ The starting table
-           -> Bool        -- ^ Allow disk moves
-           -> Bool        -- ^ Allow instance moves
-           -> Bool        -- ^ Only evacuate moves
-           -> Bool        -- ^ Restrict migration
-           -> Score       -- ^ Min gain threshold
-           -> Score       -- ^ Min gain
-           -> Maybe Table -- ^ The resulting table and commands
-tryBalance ini_tbl disk_moves inst_moves evac_mode rest_mig mg_limit min_gain =
+tryBalanceEx :: Bool           -- ^ Ignore soft errors
+                -> Table       -- ^ The starting table
+                -> Bool        -- ^ Allow disk moves
+                -> Bool        -- ^ Allow instance moves
+                -> Bool        -- ^ Only evacuate moves
+                -> Bool        -- ^ Restrict migration
+                -> Score       -- ^ Min gain threshold
+                -> Score       -- ^ Min gain
+                -> Maybe Table -- ^ The resulting table and commands
+tryBalanceEx force ini_tbl disk_moves inst_moves evac_mode rest_mig mg_limit
+             min_gain =
     let Table ini_nl ini_il ini_cv _ = ini_tbl
         all_inst = Container.elems ini_il
         all_nodes = Container.elems ini_nl
@@ -728,13 +751,25 @@ tryBalance ini_tbl disk_moves inst_moves evac_mode rest_mig mg_limit min_gain =
         reloc_inst = filter (\i -> Instance.movable i &&
                                    Instance.autoBalance i) all_inst'
         node_idx = map Node.idx online_nodes
-        fin_tbl = checkMove node_idx disk_moves inst_moves rest_mig
-                            ini_tbl reloc_inst
+        fin_tbl = checkMoveEx force node_idx disk_moves inst_moves rest_mig
+                              ini_tbl reloc_inst
         (Table _ _ fin_cv _) = fin_tbl
     in
       if fin_cv < ini_cv && (ini_cv > mg_limit || ini_cv - fin_cv >= min_gain)
       then Just fin_tbl -- this round made success, return the new table
       else Nothing
+
+-- | Run a balance move.
+tryBalance :: Table       -- ^ The starting table
+           -> Bool        -- ^ Allow disk moves
+           -> Bool        -- ^ Allow instance moves
+           -> Bool        -- ^ Only evacuate moves
+           -> Bool        -- ^ Restrict migration
+           -> Score       -- ^ Min gain threshold
+           -> Score       -- ^ Min gain
+           -> Maybe Table -- ^ The resulting table and commands
+tryBalance = tryBalanceEx False
+
 
 -- * Allocation functions
 
