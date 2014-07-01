@@ -224,17 +224,31 @@ dropReservationsFor jobid = TempRes . MM.deleteAll jobid . getTempRes
 reserved :: (Ord a, Ord j) => TempRes j a -> S.Set a
 reserved = MM.values . getTempRes
 
+-- | Computes the set of all reserved resources and passes it to
+-- the given function.
+-- This allows it to avoid resources that are already in use.
+withReserved :: (MonadError GanetiException m, Show a, Ord a, Ord j)
+             => j -> (S.Set a -> m a) -> TempRes j a -> m (a, TempRes j a)
+withReserved jobid genfn tr = do
+  x <- genfn (reserved tr)
+  (,) x `liftM` reserve jobid x tr
+
+-- | Repeatedly tries to run a given monadic function until it succeeds
+-- and the returned value is free to reserve.
+-- If such a value is found, it's reserved and returned.
+-- Otherwise fails with an error.
 generate :: (MonadError GanetiException m, Show a, Ord a, Ord j)
          => j -> S.Set a -> m (Maybe a) -> TempRes j a -> m (a, TempRes j a)
-generate jobid existing genfn tr = do
-  let retries = 64
-  let vals = reserved tr `S.union` existing
-  xOpt <- retryMaybeN retries
-                      (\_ -> mfilter (`S.notMember` vals) (MaybeT genfn))
-  case xOpt of
-    Nothing -> failError "Not able generate new resource"
-                         -- TODO: (last tried: " ++ %s)" % new_resource
-    Just x  -> (,) x `liftM` reserve jobid x tr
+generate jobid existing genfn = withReserved jobid f
+  where
+    retries = 64 :: Int
+    f res = do
+      let vals = res `S.union` existing
+      xOpt <- retryMaybeN retries
+                          (\_ -> mfilter (`S.notMember` vals) (MaybeT genfn))
+      maybe (resError "Not able generate new resource")
+                       -- TODO: (last tried: " ++ %s)" % new_resource
+            return xOpt
 
 -- | A variant of 'generate' for randomized computations.
 generateRand
@@ -243,6 +257,14 @@ generateRand
   -> m (a, TempRes j a)
 generateRand rgen jobid existing genfn tr =
   evalStateT (generate jobid existing (state genfn) tr) rgen
+
+-- | Embeds a stateful computation in a stateful monad.
+stateM :: (MonadState s m) => (s -> m (a, s)) -> m a
+stateM f = get >>= f >>= \(x, s) -> liftM (const x) (put s)
+
+-- | Embeds a state-modifying computation in a stateful monad.
+modifyM :: (MonadState s m) => (s -> m s) -> m ()
+modifyM f = get >>= f >>= put
 
 -- ** Functions common to all reservations
 
@@ -254,6 +276,13 @@ dropAllReservations jobId = modify $
     (trsMACsL %~ dropReservationsFor jobId)
   . (trsDRBDSecretsL %~ dropReservationsFor jobId)
   . (trsLVsL %~ dropReservationsFor jobId)
+
+-- | Looks up a network by its UUID.
+lookupNetwork :: (MonadError GanetiException m)
+              => ConfigData -> NetworkUUID -> m Network
+lookupNetwork cd netId =
+  J.lookupContainer (resError $ "Network '" ++ show netId ++ "' not found")
+                    netId (configNetworks cd)
 
 -- ** IDs
 
@@ -273,9 +302,7 @@ generateMAC
   -> StateT TempResState m MAC
 generateMAC rgen jobId netId cd = do
   net <- case netId of
-    Just n -> Just <$> J.lookupContainer (failError $ "Network '" ++ show netId
-                                             ++ "' not found")
-                                         n (configNetworks cd)
+    Just n -> Just <$> lookupNetwork cd n
     Nothing -> return Nothing
   let prefix = fromMaybe (clusterMacPrefix . configCluster $ cd)
                          (networkMacPrefix =<< net)
@@ -293,7 +320,7 @@ reserveMAC jobId mac cd = do
   let existing = S.fromList $ getAllMACs cd
   when (S.member mac existing)
     $ resError "MAC already in use"
-  get >>= traverseOf trsMACsL (reserve jobId mac) >>= put
+  modifyM $ traverseOf trsMACsL (reserve jobId mac)
 
 -- ** DRBD secrets
 
@@ -315,4 +342,4 @@ reserveLV jobId lv cd = do
   existing <- toError $ getAllLVs cd
   when (S.member lv existing)
     $ resError "MAC already in use"
-  get >>= traverseOf trsLVsL (reserve jobId lv) >>= put
+  modifyM $ traverseOf trsLVsL (reserve jobId lv)
