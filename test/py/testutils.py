@@ -114,6 +114,7 @@ class GanetiTestProgram(unittest.TestProgram):
     return unittest.TestProgram.runTests(self)
 
 
+# pylint: disable=R0904
 class GanetiTestCase(unittest.TestCase):
   """Helper class for unittesting.
 
@@ -142,6 +143,18 @@ class GanetiTestCase(unittest.TestCase):
     """
     actual_content = utils.ReadFile(file_name)
     self.assertEqual(actual_content, expected_content)
+
+  def assertFileContentNotEqual(self, file_name, reference_content):
+    """Checks that the content of a file is different to the reference.
+
+    @type file_name: str
+    @param file_name: the file whose contents we should check
+    @type reference_content: str
+    @param reference_content: the content we use as reference
+
+    """
+    actual_content = utils.ReadFile(file_name)
+    self.assertNotEqual(actual_content, reference_content)
 
   def assertFileMode(self, file_name, expected_mode):
     """Checks that the mode of a file is what we expect.
@@ -203,6 +216,8 @@ class GanetiTestCase(unittest.TestCase):
     os.close(fh)
     self._temp_files.append(fname)
     return fname
+
+# pylint: enable=R0904
 
 
 def patch_object(*args, **kwargs):

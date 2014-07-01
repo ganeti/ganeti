@@ -416,5 +416,41 @@ class TestPublicSshKeys(testutils.GanetiTestCase):
       "789-ABC ssh-dss AAAAB3NzaC1w5256closdj32mZaQU root@key-a\n")
 
 
+class TestGetUserFiles(testutils.GanetiTestCase):
+
+  _PRIV_KEY = "my private key"
+  _PUB_KEY = "my public key"
+  _AUTH_KEYS = "a\nb\nc"
+
+  def _setUpFakeKeys(self):
+    ssh_tmpdir = os.path.join(self.tmpdir, ".ssh")
+    os.makedirs(ssh_tmpdir)
+
+    self.priv_filename = os.path.join(ssh_tmpdir, "id_dsa")
+    utils.WriteFile(self.priv_filename, data=self._PRIV_KEY)
+
+    self.pub_filename = os.path.join(ssh_tmpdir, "id_dsa.pub")
+    utils.WriteFile(self.pub_filename, data=self._PUB_KEY)
+
+    self.auth_filename = os.path.join(ssh_tmpdir, "authorized_keys")
+    utils.WriteFile(self.auth_filename, data=self._AUTH_KEYS)
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    self.tmpdir = tempfile.mkdtemp()
+    self._setUpFakeKeys()
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def _GetTempHomedir(self, _):
+    return self.tmpdir
+
+  def testNewKeysOverrideOldKeys(self):
+    ssh.InitSSHSetup(_homedir_fn=self._GetTempHomedir)
+    self.assertFileContentNotEqual(self.priv_filename, self._PRIV_KEY)
+    self.assertFileContentNotEqual(self.pub_filename, self._PUB_KEY)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
