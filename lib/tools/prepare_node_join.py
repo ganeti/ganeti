@@ -119,13 +119,6 @@ def _UpdateKeyFiles(keys, dry_run, keyfiles):
                     backup=True, dry_run=dry_run)
 
 
-def _GenerateRootSshKeys(_homedir_fn=None):
-  """Generates root's SSH keys for this node.
-
-  """
-  ssh.InitSSHSetup(error_fn=JoinError, _homedir_fn=_homedir_fn)
-
-
 def UpdateSshDaemon(data, dry_run, _runcmd_fn=utils.RunCmd,
                     _keyfiles=None):
   """Updates SSH daemon's keys.
@@ -179,7 +172,7 @@ def UpdateSshRoot(data, dry_run, _homedir_fn=None):
   if dry_run:
     logging.info("This is a dry run, not replacing the SSH keys.")
   else:
-    _GenerateRootSshKeys(_homedir_fn=_homedir_fn)
+    common.GenerateRootSshKeys(error_fn=JoinError, _homedir_fn=_homedir_fn)
 
   if authorized_keys:
     if dry_run:

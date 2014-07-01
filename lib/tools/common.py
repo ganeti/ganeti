@@ -38,6 +38,7 @@ from ganeti import errors
 from ganeti import utils
 from ganeti import serializer
 from ganeti import ssconf
+from ganeti import ssh
 
 
 def VerifyOptions(parser, opts, args):
@@ -107,3 +108,10 @@ def LoadData(raw, data_check):
 
   """
   return serializer.LoadAndVerifyJson(raw, data_check)
+
+
+def GenerateRootSshKeys(error_fn, _homedir_fn=None):
+  """Generates root's SSH keys for this node.
+
+  """
+  ssh.InitSSHSetup(error_fn=error_fn, _homedir_fn=_homedir_fn)
