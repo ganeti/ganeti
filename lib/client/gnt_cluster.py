@@ -1140,6 +1140,7 @@ def SetClusterParams(opts, args):
           opts.ndparams or opts.diskparams or
           opts.candidate_pool_size is not None or
           opts.max_running_jobs is not None or
+          opts.max_tracked_jobs is not None or
           opts.uid_pool is not None or
           opts.maintain_node_health is not None or
           opts.add_uids is not None or
@@ -1264,6 +1265,7 @@ def SetClusterParams(opts, args):
     ipolicy=ipolicy,
     candidate_pool_size=opts.candidate_pool_size,
     max_running_jobs=opts.max_running_jobs,
+    max_tracked_jobs=opts.max_tracked_jobs,
     maintain_node_health=mnh,
     modify_etc_hosts=opts.modify_etc_hosts,
     uid_pool=uid_pool,
@@ -2230,7 +2232,7 @@ commands = {
   "modify": (
     SetClusterParams, ARGS_NONE,
     [FORCE_OPT,
-     BACKEND_OPT, CP_SIZE_OPT, RQL_OPT, INSTALL_IMAGE_OPT,
+     BACKEND_OPT, CP_SIZE_OPT, RQL_OPT, MAX_TRACK_OPT, INSTALL_IMAGE_OPT,
      INSTANCE_COMMUNICATION_NETWORK_OPT, ENABLED_HV_OPT, HVLIST_OPT,
      MAC_PREFIX_OPT, MASTER_NETDEV_OPT, MASTER_NETMASK_OPT, NIC_PARAMS_OPT,
      VG_NAME_OPT, MAINTAIN_NODE_HEALTH_OPT, UIDPOOL_OPT, ADD_UIDS_OPT,
