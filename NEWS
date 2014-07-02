@@ -40,6 +40,13 @@ New features
   manage and supervise all Ganeti processes.
 - Different types of compression can be applied during instance moves, including
   user-specified ones.
+- Ganeti jobs now run as separate processes. A consequence is that more jobs can
+  run in parallel; the number is run-time configurable, see "New features" entry
+  of 2.11.0. To avoid luxid being overloaded with tracking running jobs, it
+  backs of and only occasionally, in a sequential way, checks if jobs have
+  finished and schedules new ones. In this way, luxid keeps responsive under
+  high cluster load. The limit as when to start backing of is also run-time
+  configurable.
 
 
 Version 2.11.2
