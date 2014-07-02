@@ -881,6 +881,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/WConfd/DeathDetection.hs \
 	src/Ganeti/WConfd/Language.hs \
 	src/Ganeti/WConfd/Monad.hs \
+	src/Ganeti/WConfd/Persistent.hs \
 	src/Ganeti/WConfd/Server.hs \
 	src/Ganeti/WConfd/Ssconf.hs \
 	src/Ganeti/WConfd/TempRes.hs

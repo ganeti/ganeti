@@ -35,14 +35,11 @@ import Control.Concurrent (forkIO)
 import Control.Exception
 import Control.Monad
 import Control.Monad.Error
-import System.Directory (doesFileExist)
 
 import Ganeti.BasicTypes
 import Ganeti.Daemon
 import Ganeti.Daemon.Utils (handleMasterVerificationOptions)
-import Ganeti.Logging (logInfo, logDebug)
-import Ganeti.Locking.Locks
-import Ganeti.Locking.Waiting
+import Ganeti.Logging (logDebug)
 import qualified Ganeti.Path as Path
 import Ganeti.THH.RPC
 import Ganeti.UDSServer
@@ -50,11 +47,12 @@ import Ganeti.UDSServer
 import Ganeti.Errors (formatError)
 import Ganeti.Runtime
 import Ganeti.WConfd.ConfigState
+import Ganeti.WConfd.ConfigVerify
 import Ganeti.WConfd.ConfigWriter
 import Ganeti.WConfd.Core
 import Ganeti.WConfd.DeathDetection (cleanupLocksTask)
 import Ganeti.WConfd.Monad
-import Ganeti.WConfd.ConfigVerify
+import Ganeti.WConfd.Persistent
 
 handler :: DaemonHandle -> RpcServer WConfdMonadInt
 handler ch = $( mkRpcM exportedFunctions )
@@ -78,26 +76,20 @@ prepMain _ _ = do
   -- TODO: Lock the configuration file so that running the daemon twice fails?
   conf_file <- Path.clusterConfFile
 
-  lock_file <- Path.lockStatusFile
-  lock_file_present <- doesFileExist lock_file
-  unless lock_file_present
-    $ logInfo "No saved lock status; assuming all locks free"
   dh <- toErrorBase
         . withErrorT (strMsg . ("Initialization of the daemon failed" ++)
                              . formatError) $ do
     ents <- getEnts
     (cdata, cstat) <- loadConfigFromFile conf_file
     verifyConfigErr cdata
-    lock <- if lock_file_present
-              then loadLockAllocation lock_file
-              else return emptyWaiting
+    lock <- readPersistent persistentLocks
     mkDaemonHandle conf_file
                    (mkConfigState cdata)
                    lock
                    (saveConfigAsyncTask conf_file cstat)
                    (distMCsAsyncTask ents conf_file)
                    distSSConfAsyncTask
-                   (writeLocksAsyncTask lock_file)
+                   (writePersistentAsyncTask persistentLocks)
 
   return (s, dh)
 

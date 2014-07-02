@@ -42,11 +42,11 @@ import System.Directory (removeFile)
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.Locking.Allocation as L
-import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Locking.Locks (ClientId(..))
 import Ganeti.Logging.Lifted (logDebug, logInfo)
 import Ganeti.Utils.Livelock
 import Ganeti.WConfd.Monad
+import Ganeti.WConfd.Persistent
 
 -- | Interval to run clean-up tasks in microseconds
 cleanupInterval :: Int
@@ -63,7 +63,7 @@ cleanupLocksTask = forever . runResultT $ do
         died <- liftIO (isDead fpath)
         when died $ do
           logInfo $ show owner ++ " died, releasing locks"
-          modifyLockWaiting_ (LW.releaseResources owner)
+          persCleanup persistentLocks owner
           _ <- liftIO . E.try $ removeFile fpath
                :: WConfdMonad (Either IOError ())
           return ()
