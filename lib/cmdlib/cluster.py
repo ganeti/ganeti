@@ -394,6 +394,7 @@ class LUClusterQuery(NoHooksLU):
       "diskparams": cluster.diskparams,
       "candidate_pool_size": cluster.candidate_pool_size,
       "max_running_jobs": cluster.max_running_jobs,
+      "max_tracked_jobs": cluster.max_tracked_jobs,
       "mac_prefix": cluster.mac_prefix,
       "master_netdev": cluster.master_netdev,
       "master_netmask": cluster.master_netmask,
