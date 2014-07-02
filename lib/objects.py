@@ -1610,6 +1610,7 @@ class Cluster(TaggableObject):
     "enabled_disk_templates",
     "candidate_certs",
     "max_running_jobs",
+    "max_tracked_jobs",
     "install_image",
     "instance_communication_network",
     "zeroing_image",
@@ -1748,6 +1749,9 @@ class Cluster(TaggableObject):
 
     if self.max_running_jobs is None:
       self.max_running_jobs = constants.LUXID_MAXIMAL_RUNNING_JOBS_DEFAULT
+
+    if self.max_tracked_jobs is None:
+      self.max_tracked_jobs = constants.LUXID_MAXIMAL_TRACKED_JOBS_DEFAULT
 
     if self.instance_communication_network is None:
       self.instance_communication_network = ""

@@ -394,6 +394,7 @@ class LUClusterQuery(NoHooksLU):
       "diskparams": cluster.diskparams,
       "candidate_pool_size": cluster.candidate_pool_size,
       "max_running_jobs": cluster.max_running_jobs,
+      "max_tracked_jobs": cluster.max_tracked_jobs,
       "mac_prefix": cluster.mac_prefix,
       "master_netdev": cluster.master_netdev,
       "master_netmask": cluster.master_netmask,
@@ -1579,6 +1580,9 @@ class LUClusterSetParams(LogicalUnit):
 
     if self.op.max_running_jobs is not None:
       self.cluster.max_running_jobs = self.op.max_running_jobs
+
+    if self.op.max_tracked_jobs is not None:
+      self.cluster.max_tracked_jobs = self.op.max_tracked_jobs
 
     if self.op.maintain_node_health is not None:
       if self.op.maintain_node_health and not constants.ENABLE_CONFD:

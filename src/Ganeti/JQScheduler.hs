@@ -120,13 +120,28 @@ unreadJob job = JobWithStat {jJob=job, jStat=nullFStat, jINotify=Nothing}
 watchInterval :: Int
 watchInterval = C.luxidJobqueuePollInterval * 1000000 
 
+-- | Read a cluster parameter from the configuration, using a default if the
+-- configuration is not available.
+getConfigValue :: (Cluster -> a) -> a -> JQStatus -> IO a
+getConfigValue param defaultvalue =
+  liftM (genericResult (const defaultvalue) (param . configCluster))
+  . readIORef . jqConfig
+
 -- | Get the maximual number of jobs to be run simultaneously from the
 -- configuration. If the configuration is not available, be conservative
 -- and use the smallest possible value, i.e., 1.
 getMaxRunningJobs :: JQStatus -> IO Int
-getMaxRunningJobs =
-  liftM (genericResult (const 1) (clusterMaxRunningJobs . configCluster))
-  . readIORef . jqConfig
+getMaxRunningJobs = getConfigValue clusterMaxRunningJobs 1
+
+-- | Get the maximual number of jobs to be tracked simultaneously from the
+-- configuration. If the configuration is not available, be conservative
+-- and use the smallest possible value, i.e., 1.
+getMaxTrackedJobs :: JQStatus -> IO Int
+getMaxTrackedJobs = getConfigValue clusterMaxTrackedJobs 1
+
+-- | Get the number of jobs currently running.
+getRQL :: JQStatus -> IO Int
+getRQL = liftM (length . qRunning) . readIORef . jqJobs
 
 -- | Wrapper function to atomically update the jobs in the queue status.
 modifyJobs :: JQStatus -> (Queue -> Queue) -> IO ()
@@ -258,13 +273,20 @@ jobWatcher state jWS e = do
 -- | Attach the job watcher to a running job.
 attachWatcher :: JQStatus -> JobWithStat -> IO ()
 attachWatcher state jWS = when (isNothing $ jINotify jWS) $ do
-  inotify <- initINotify
-  qdir <- queueDir
-  let fpath = liveJobFile qdir . qjId $ jJob jWS
-      jWS' = jWS { jINotify=Just inotify }
-  logDebug $ "Attaching queue watcher for " ++ fpath
-  _ <- addWatch inotify [Modify, Delete] fpath $ jobWatcher state jWS'
-  modifyJobs state . onRunningJobs $ updateJobStatus jWS'
+  max_watch <- getMaxTrackedJobs state
+  rql <- getRQL state
+  if rql < max_watch
+   then do
+     inotify <- initINotify
+     qdir <- queueDir
+     let fpath = liveJobFile qdir . qjId $ jJob jWS
+         jWS' = jWS { jINotify=Just inotify }
+     logDebug $ "Attaching queue watcher for " ++ fpath
+     _ <- addWatch inotify [Modify, Delete] fpath $ jobWatcher state jWS'
+     modifyJobs state . onRunningJobs $ updateJobStatus jWS'
+   else logDebug $ "Not attaching watcher for job "
+                   ++ (show . fromJobId . qjId $ jJob jWS)
+                   ++ ", run queue length is " ++ show rql
 
 -- | For a queued job, determine whether it is eligible to run, i.e.,
 -- if no jobs it depends on are either enqueued or running.

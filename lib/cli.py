@@ -126,6 +126,7 @@ __all__ = [
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
   "MASTER_NETMASK_OPT",
+  "MAX_TRACK_OPT",
   "MC_OPT",
   "MIGRATION_MODE_OPT",
   "MODIFY_ETCHOSTS_OPT",
@@ -1331,6 +1332,11 @@ CP_SIZE_OPT = cli_option("-C", "--candidate-pool-size", default=None,
 RQL_OPT = cli_option("--max-running-jobs", dest="max_running_jobs",
                      type="int", help="Set the maximal number of jobs to "
                                       "run simultaneously")
+
+MAX_TRACK_OPT = cli_option("--max-tracked-jobs", dest="max_tracked_jobs",
+                           type="int", help="Set the maximal number of jobs to "
+                                            "be tracked simultaneously for "
+                                            "scheduling")
 
 COMPRESSION_TOOLS_OPT = \
     cli_option("--compression-tools",

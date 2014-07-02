@@ -4086,6 +4086,14 @@ luxidJobqueuePollInterval = 307
 luxidMaximalRunningJobsDefault :: Int
 luxidMaximalRunningJobsDefault = 20
 
+-- | The default value for the maximal number of jobs that luxid tracks via
+-- inotify. If the number of running jobs exceeds this limit (which only happens
+-- if the user increases the default value of maximal running jobs), new forked
+-- jobs are no longer tracked by inotify; progress will still be noticed on the
+-- regular polls.
+luxidMaximalTrackedJobsDefault :: Int
+luxidMaximalTrackedJobsDefault = 25
+
 -- | The number of retries when trying to @fork@ a new job.
 -- Due to a bug in GHC, this can fail even though we synchronize all forks
 -- and restrain from other @IO@ operations in the thread.
