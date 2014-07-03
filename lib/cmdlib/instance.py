@@ -1633,7 +1633,7 @@ class LUInstanceCreate(LogicalUnit):
                    % (instance.name, install_image))
 
       # First wait for the instance to start up
-      running_check = lambda: IsInstanceRunning(self, instance)
+      running_check = lambda: IsInstanceRunning(self, instance, prereq=False)
       instance_up = retry.SimpleRetry(True, running_check, 5.0,
                                       self.op.helper_startup_timeout)
       if not instance_up:

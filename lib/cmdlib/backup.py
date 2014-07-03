@@ -399,7 +399,8 @@ class LUBackupExport(LogicalUnit):
                    "%s" % (self.instance.name, zeroing_image))
 
       # First wait for the instance to start up
-      running_check = lambda: IsInstanceRunning(self, self.instance)
+      running_check = lambda: IsInstanceRunning(self, self.instance,
+                                                prereq=False)
       instance_up = retry.SimpleRetry(True, running_check, 5.0,
                                       self.op.shutdown_timeout)
       if not instance_up:

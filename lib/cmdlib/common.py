@@ -1011,7 +1011,7 @@ def IsExclusiveStorageEnabledNode(cfg, node):
   return cfg.GetNdParams(node)[constants.ND_EXCLUSIVE_STORAGE]
 
 
-def IsInstanceRunning(lu, instance):
+def IsInstanceRunning(lu, instance, prereq=True):
   """Given an instance object, checks if the instance is running.
 
   This function asks the backend whether the instance is running and
@@ -1033,7 +1033,7 @@ def IsInstanceRunning(lu, instance):
   # TODO: This 'prepreq=True' is a problem if this function is called
   #       within the 'Exec' method of a LU.
   result.Raise("Can't retrieve instance information for instance '%s'" %
-               instance.name, prereq=True, ecode=errors.ECODE_ENVIRON)
+               instance.name, prereq=prereq, ecode=errors.ECODE_ENVIRON)
 
   return result.payload and \
       "state" in result.payload and \
