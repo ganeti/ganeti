@@ -336,10 +336,10 @@ checkGroup force verbose gname nl il = do
   unless (null policy_bad) $ do
     printf "The cluster contains %d policy-violating nodes.\n"
       $ length policy_bad :: IO ()
-    if force
-      then putStrLn "Continuing, ignoring soft errors."
-      else putStrLn "Continuing, but the set of moves might be too restricted;\
-                    \ consider using the --ignore-soft-errors option."
+    putStrLn $ if force
+      then "Continuing, ignoring soft errors."
+      else "Continuing, but the set of moves might be too restricted;\
+           \ consider using the --ignore-soft-errors option."
 
 -- | Check that we actually need to rebalance.
 checkNeedRebalance :: Options -> Score -> IO ()
