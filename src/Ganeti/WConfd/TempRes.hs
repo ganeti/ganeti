@@ -63,6 +63,7 @@ import qualified Data.Map as M
 import Data.Monoid
 import qualified Data.Set as S
 import System.Random
+import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Config
@@ -72,6 +73,7 @@ import qualified Ganeti.JSON as J
 import Ganeti.Lens
 import Ganeti.Locking.Locks (ClientId)
 import Ganeti.Objects
+import Ganeti.THH
 import Ganeti.Utils
 import Ganeti.Utils.MonadPlus
 import Ganeti.Utils.Random
@@ -106,14 +108,17 @@ instance (Ord j, Ord a) => Monoid (TempRes j a) where
   mempty = TempRes mempty
   mappend (TempRes x) (TempRes y) = TempRes $ x <> y
 
+instance (J.JSON j, Ord j, J.JSON a, Ord a) => J.JSON (TempRes j a) where
+  showJSON = J.showJSON . getTempRes
+  readJSON = liftM TempRes . J.readJSON
+
 -- | The state of the temporary reservations
-data TempResState = TempResState
-  { trsDRBD :: DRBDMap
-  , trsMACs :: TempRes ClientId MAC
-  , trsDRBDSecrets :: TempRes ClientId DRBDSecret
-  , trsLVs :: TempRes ClientId LogicalVolume
-  }
-  deriving (Eq, Show)
+$(buildObject "TempResState" "trs" $
+  [ simpleField "dRBD"             [t| DRBDMap |]
+  , simpleField "mACs"             [t| TempRes ClientId MAC |]
+  , simpleField "dRBDSecrets"      [t| TempRes ClientId DRBDSecret |]
+  , simpleField "lVs"              [t| TempRes ClientId LogicalVolume |]
+  ])
 
 emptyTempResState :: TempResState
 emptyTempResState = TempResState M.empty mempty mempty mempty
