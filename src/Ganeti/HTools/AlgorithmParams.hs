@@ -28,7 +28,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.HTools.AlgorithmParams
   ( AlgorithmOptions(..)
+  , fromCLIOptions
   ) where
+
+import qualified Ganeti.HTools.CLI as CLI
 
 data AlgorithmOptions = AlgorithmOptions
   { algDiskMoves :: Bool            -- ^ Whether disk moves are allowed
@@ -38,4 +41,16 @@ data AlgorithmOptions = AlgorithmOptions
   , algEvacMode :: Bool             -- ^ Consider only eavacation moves
   , algMinGain :: Double            -- ^ Minimal gain per balancing step
   , algMinGainLimit :: Double       -- ^ Limit below which minimal gain is used
+  }
+
+-- | Obtain the relevant algorithmic option from the commandline options
+fromCLIOptions :: CLI.Options -> AlgorithmOptions
+fromCLIOptions opts = AlgorithmOptions
+  { algDiskMoves = CLI.optDiskMoves opts
+  , algInstanceMoves = CLI.optInstMoves opts
+  , algRestrictedMigration = CLI.optRestrictedMigrate opts
+  , algIgnoreSoftErrors = CLI.optIgnoreSoftErrors opts
+  , algEvacMode = CLI.optEvacMode opts
+  , algMinGain = CLI.optMinGain opts
+  , algMinGainLimit = CLI.optMinGainLim opts
   }
