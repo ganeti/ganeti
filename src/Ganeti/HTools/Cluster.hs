@@ -56,7 +56,6 @@ module Ganeti.HTools.Cluster
   , checkMove
   , doNextBalance
   , tryBalance
-  , tryBalanceEx
   , compCV
   , compCVNodes
   , compDetailedCV
@@ -728,16 +727,16 @@ doNextBalance ini_tbl max_rounds min_score =
   in (max_rounds < 0 || ini_plc_len < max_rounds) && ini_cv > min_score
 
 -- | Run a balance move.
-tryBalanceEx :: Bool           -- ^ Ignore soft errors
-                -> Table       -- ^ The starting table
-                -> Bool        -- ^ Allow disk moves
-                -> Bool        -- ^ Allow instance moves
-                -> Bool        -- ^ Only evacuate moves
-                -> Bool        -- ^ Restrict migration
-                -> Score       -- ^ Min gain threshold
-                -> Score       -- ^ Min gain
-                -> Maybe Table -- ^ The resulting table and commands
-tryBalanceEx force ini_tbl disk_moves inst_moves evac_mode rest_mig mg_limit
+tryBalance :: Bool           -- ^ Ignore soft errors
+              -> Table       -- ^ The starting table
+              -> Bool        -- ^ Allow disk moves
+              -> Bool        -- ^ Allow instance moves
+              -> Bool        -- ^ Only evacuate moves
+              -> Bool        -- ^ Restrict migration
+              -> Score       -- ^ Min gain threshold
+              -> Score       -- ^ Min gain
+              -> Maybe Table -- ^ The resulting table and commands
+tryBalance force ini_tbl disk_moves inst_moves evac_mode rest_mig mg_limit
              min_gain =
     let Table ini_nl ini_il ini_cv _ = ini_tbl
         all_inst = Container.elems ini_il
@@ -758,18 +757,6 @@ tryBalanceEx force ini_tbl disk_moves inst_moves evac_mode rest_mig mg_limit
       if fin_cv < ini_cv && (ini_cv > mg_limit || ini_cv - fin_cv >= min_gain)
       then Just fin_tbl -- this round made success, return the new table
       else Nothing
-
--- | Run a balance move.
-tryBalance :: Table       -- ^ The starting table
-           -> Bool        -- ^ Allow disk moves
-           -> Bool        -- ^ Allow instance moves
-           -> Bool        -- ^ Only evacuate moves
-           -> Bool        -- ^ Restrict migration
-           -> Score       -- ^ Min gain threshold
-           -> Score       -- ^ Min gain
-           -> Maybe Table -- ^ The resulting table and commands
-tryBalance = tryBalanceEx False
-
 
 -- * Allocation functions
 

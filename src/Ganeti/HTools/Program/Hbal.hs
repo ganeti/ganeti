@@ -141,7 +141,7 @@ iterateDepth force printmove ini_tbl max_rounds disk_moves inst_moves rest_mig
   let Cluster.Table ini_nl ini_il _ _ = ini_tbl
       allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
       m_fin_tbl = if allowed_next
-                    then Cluster.tryBalanceEx force ini_tbl disk_moves
+                    then Cluster.tryBalance force ini_tbl disk_moves
                            inst_moves evac_mode rest_mig mg_limit min_gain
                     else Nothing
   in case m_fin_tbl of
