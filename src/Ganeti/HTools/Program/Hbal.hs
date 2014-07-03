@@ -43,6 +43,7 @@ import System.Posix.Signals
 
 import Text.Printf (printf)
 
+import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), fromCLIOptions)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Group as Group
@@ -120,29 +121,22 @@ annotateOpCode =
 we find a valid solution or we exceed the maximum depth.
 
 -}
-iterateDepth :: Bool -- ^ ignore soft errors
-             -> Bool             -- ^ Whether to print moves
+iterateDepth :: Bool             -- ^ Whether to print moves
+             -> AlgorithmOptions -- ^ Algorithmic options to apply
              -> Cluster.Table    -- ^ The starting table
              -> Int              -- ^ Remaining length
-             -> Bool             -- ^ Allow disk moves
-             -> Bool             -- ^ Allow instance moves
-             -> Bool             -- ^ Resrict migration
              -> Int              -- ^ Max node name len
              -> Int              -- ^ Max instance name len
              -> [MoveJob]        -- ^ Current command list
              -> Score            -- ^ Score at which to stop
-             -> Score            -- ^ Min gain limit
-             -> Score            -- ^ Min score gain
-             -> Bool             -- ^ Enable evacuation mode
              -> IO (Cluster.Table, [MoveJob]) -- ^ The resulting table
                                               -- and commands
-iterateDepth force printmove ini_tbl max_rounds disk_moves inst_moves rest_mig
-             nmlen imlen cmd_strs min_score mg_limit min_gain evac_mode =
+iterateDepth printmove algOpts ini_tbl max_rounds nmlen imlen cmd_strs
+             min_score =
   let Cluster.Table ini_nl ini_il _ _ = ini_tbl
       allowed_next = Cluster.doNextBalance ini_tbl max_rounds min_score
       m_fin_tbl = if allowed_next
-                    then Cluster.tryBalance force ini_tbl disk_moves
-                           inst_moves evac_mode rest_mig mg_limit min_gain
+                    then Cluster.tryBalance algOpts ini_tbl
                     else Nothing
   in case m_fin_tbl of
        Just fin_tbl ->
@@ -158,9 +152,8 @@ iterateDepth force printmove ini_tbl max_rounds disk_moves inst_moves rest_mig
            when printmove $ do
                putStrLn sol_line
                hFlush stdout
-           iterateDepth force printmove fin_tbl max_rounds disk_moves inst_moves
-                        rest_mig nmlen imlen upd_cmd_strs min_score
-                        mg_limit min_gain evac_mode
+           iterateDepth printmove algOpts fin_tbl max_rounds
+                        nmlen imlen upd_cmd_strs min_score
        Nothing -> return (ini_tbl, cmd_strs)
 
 -- | Displays the cluster stats.
@@ -395,13 +388,9 @@ main opts args = do
   let imlen = maximum . map (length . Instance.alias) $ Container.elems il
       nmlen = maximum . map (length . Node.alias) $ Container.elems nl
 
-  (fin_tbl, cmd_strs) <- iterateDepth force True ini_tbl (optMaxLength opts)
-                         (optDiskMoves opts)
-                         (optInstMoves opts)
-                         (optRestrictedMigrate opts)
+  (fin_tbl, cmd_strs) <- iterateDepth True (fromCLIOptions opts) ini_tbl
+                         (optMaxLength opts)
                          nmlen imlen [] min_cv
-                         (optMinGainLim opts) (optMinGain opts)
-                         (optEvacMode opts)
   let (Cluster.Table fin_nl fin_il fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
       sol_msg = case () of

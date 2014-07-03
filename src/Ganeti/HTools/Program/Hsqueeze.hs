@@ -39,6 +39,7 @@ import Text.Printf (printf)
 
 import Ganeti.BasicTypes
 import Ganeti.Common
+import qualified Ganeti.HTools.AlgorithmParams as Alg
 import Ganeti.HTools.CLI
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
@@ -110,8 +111,9 @@ balance :: (Node.List, Instance.List)
 balance (nl, il) =
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
-      balanceStep tbl = Cluster.tryBalance False tbl True True False False
-                                           0.0 0.0
+      balanceStep = Cluster.tryBalance
+                      (Alg.defaultOptions { Alg.algMinGain = 0.0
+                                          , Alg.algMinGainLimit = 0.0})
       bTables = map fromJust . takeWhile isJust
                   $ iterate (>>= balanceStep) (Just ini_tbl)
       (Cluster.Table nl' il' _ _) = last bTables

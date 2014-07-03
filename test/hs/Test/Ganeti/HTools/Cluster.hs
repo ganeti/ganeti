@@ -41,6 +41,7 @@ import Test.Ganeti.HTools.Instance ( genInstanceSmallerThanNode
 import Test.Ganeti.HTools.Node (genOnlineNode, genNode)
 
 import Ganeti.BasicTypes
+import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
@@ -70,7 +71,11 @@ isNodeBig size node = Node.availDisk node > size * Types.unitDsk
 canBalance :: Cluster.Table -> Bool -> Bool -> Bool -> Bool
 canBalance tbl@(Cluster.Table _ _ ini_cv _)  dm im evac =
   maybe False (\(Cluster.Table _ _ fin_cv _) -> ini_cv - fin_cv > 1e-12)
-  $ Cluster.tryBalance tbl dm im evac False 0 0
+  $ Cluster.tryBalance (Alg.defaultOptions { Alg.algMinGain = 0.0
+                                           , Alg.algMinGainLimit = 0.0
+                                           , Alg.algDiskMoves = dm
+                                           , Alg.algInstanceMoves = im
+                                           , Alg.algEvacMode = evac}) tbl
 
 -- | Assigns a new fresh instance to a cluster; this is not
 -- allocation, so no resource checks are done.

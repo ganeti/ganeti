@@ -89,6 +89,7 @@ import Data.Ord (comparing)
 import Text.Printf (printf)
 
 import Ganeti.BasicTypes
+import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..))
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Nic as Nic
@@ -727,18 +728,18 @@ doNextBalance ini_tbl max_rounds min_score =
   in (max_rounds < 0 || ini_plc_len < max_rounds) && ini_cv > min_score
 
 -- | Run a balance move.
-tryBalance :: Bool           -- ^ Ignore soft errors
-              -> Table       -- ^ The starting table
-              -> Bool        -- ^ Allow disk moves
-              -> Bool        -- ^ Allow instance moves
-              -> Bool        -- ^ Only evacuate moves
-              -> Bool        -- ^ Restrict migration
-              -> Score       -- ^ Min gain threshold
-              -> Score       -- ^ Min gain
-              -> Maybe Table -- ^ The resulting table and commands
-tryBalance force ini_tbl disk_moves inst_moves evac_mode rest_mig mg_limit
-             min_gain =
-    let Table ini_nl ini_il ini_cv _ = ini_tbl
+tryBalance :: AlgorithmOptions  -- ^ Algorithmic options for balancing
+              -> Table          -- ^ The starting table
+              -> Maybe Table    -- ^ The resulting table and commands
+tryBalance opts ini_tbl =
+    let force = algIgnoreSoftErrors opts
+        disk_moves = algDiskMoves opts
+        inst_moves = algInstanceMoves opts
+        evac_mode = algEvacMode opts
+        rest_mig = algRestrictedMigration opts
+        mg_limit = algMinGainLimit opts
+        min_gain = algMinGain opts
+        Table ini_nl ini_il ini_cv _ = ini_tbl
         all_inst = Container.elems ini_il
         all_nodes = Container.elems ini_nl
         (offline_nodes, online_nodes) = partition Node.offline all_nodes

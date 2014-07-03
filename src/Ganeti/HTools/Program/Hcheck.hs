@@ -34,6 +34,7 @@ import Data.List (transpose)
 import System.Exit
 import Text.Printf (printf)
 
+import Ganeti.HTools.AlgorithmParams (fromCLIOptions)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Group as Group
@@ -258,14 +259,9 @@ executeSimulation opts ini_tbl min_cv gidx nl il = do
   let imlen = maximum . map (length . Instance.alias) $ Container.elems il
       nmlen = maximum . map (length . Node.alias) $ Container.elems nl
 
-  (fin_tbl, _) <- Hbal.iterateDepth (optIgnoreSoftErrors opts) False ini_tbl
+  (fin_tbl, _) <- Hbal.iterateDepth False (fromCLIOptions opts) ini_tbl
                                     (optMaxLength opts)
-                                    (optDiskMoves opts)
-                                    (optInstMoves opts)
-                                    False
                                     nmlen imlen [] min_cv
-                                    (optMinGainLim opts) (optMinGain opts)
-                                    (optEvacMode opts)
 
   let (Cluster.Table fin_nl fin_il _ _) = fin_tbl
   return (gidx, (fin_nl, fin_il))
