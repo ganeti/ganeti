@@ -28,6 +28,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.HTools.AlgorithmParams
   ( AlgorithmOptions(..)
+  , defaultOptions
   , fromCLIOptions
   ) where
 
@@ -54,3 +55,7 @@ fromCLIOptions opts = AlgorithmOptions
   , algMinGain = CLI.optMinGain opts
   , algMinGainLimit = CLI.optMinGainLim opts
   }
+
+-- | Default options for the balancing algorithm
+defaultOptions :: AlgorithmOptions
+defaultOptions = fromCLIOptions CLI.defaultOptions
