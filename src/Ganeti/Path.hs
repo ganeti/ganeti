@@ -36,6 +36,7 @@ module Ganeti.Path
   , confdHmacKey
   , clusterConfFile
   , lockStatusFile
+  , tempResStatusFile
   , watcherPauseFile
   , nodedCertFile
   , nodedClientCertFile
@@ -124,6 +125,10 @@ clusterConfFile  = dataDirP "config.data"
 -- | Path to the file representing the lock status.
 lockStatusFile :: IO FilePath
 lockStatusFile  = dataDirP "locks.data"
+
+-- | Path to the file representing the lock status.
+tempResStatusFile :: IO FilePath
+tempResStatusFile  = dataDirP "tempres.data"
 
 -- | Path to the watcher pause file.
 watcherPauseFile :: IO FilePath

@@ -33,7 +33,6 @@ module Ganeti.WConfd.Core where
 
 import Control.Arrow ((&&&))
 import Control.Monad (liftM, unless, when)
-import Control.Monad.State (modify)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Language.Haskell.TH (Name)
@@ -123,7 +122,7 @@ flushConfig = forceConfigStateDistribution
 
 dropAllReservations :: ClientId -> WConfdMonad ()
 dropAllReservations cid =
-  modifyTempResState (const . modify $ T.dropAllReservations cid)
+  modifyTempResState (const $ T.dropAllReservations cid)
 
 -- *** DRBD
 

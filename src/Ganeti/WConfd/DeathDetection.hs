@@ -62,7 +62,8 @@ cleanupLocksTask = forever . runResultT $ do
         let fpath = ciLockFile owner
         died <- liftIO (isDead fpath)
         when died $ do
-          logInfo $ show owner ++ " died, releasing locks"
+          logInfo $ show owner ++ " died, releasing locks and reservations"
+          persCleanup persistentTempRes owner
           persCleanup persistentLocks owner
           _ <- liftIO . E.try $ removeFile fpath
                :: WConfdMonad (Either IOError ())

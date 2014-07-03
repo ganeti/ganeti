@@ -245,8 +245,8 @@ generateRand rgen jobid existing genfn tr =
 -- | Removes all resources reserved by a given job.
 --
 -- If a new reservation resource type is added, it must be added here as well.
-dropAllReservations :: ClientId -> TempResState -> TempResState
-dropAllReservations jobId =
+dropAllReservations :: ClientId -> State TempResState ()
+dropAllReservations jobId = modify $
     (trsMACsL %~ dropReservationsFor jobId)
   . (trsDRBDSecretsL %~ dropReservationsFor jobId)
   . (trsLVsL %~ dropReservationsFor jobId)

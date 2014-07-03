@@ -83,13 +83,16 @@ prepMain _ _ = do
     (cdata, cstat) <- loadConfigFromFile conf_file
     verifyConfigErr cdata
     lock <- readPersistent persistentLocks
+    tempres <- readPersistent persistentTempRes
     mkDaemonHandle conf_file
                    (mkConfigState cdata)
                    lock
+                   tempres
                    (saveConfigAsyncTask conf_file cstat)
                    (distMCsAsyncTask ents conf_file)
                    distSSConfAsyncTask
                    (writePersistentAsyncTask persistentLocks)
+                   (writePersistentAsyncTask persistentTempRes)
 
   return (s, dh)
 

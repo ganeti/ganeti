@@ -34,6 +34,7 @@ module Ganeti.WConfd.Persistent
   , writePersistentAsyncTask
   , readPersistent
   , persistentLocks
+  , persistentTempRes
   ) where
 
 import Control.Monad.Error
@@ -47,8 +48,9 @@ import Ganeti.Locking.Waiting (emptyWaiting)
 import Ganeti.Locking.Locks (ClientId(..), GanetiLockWaiting)
 import Ganeti.Logging
 import qualified Ganeti.Path as Path
-import Ganeti.WConfd.Core (freeLocks)
+import Ganeti.WConfd.Core (freeLocks, dropAllReservations)
 import Ganeti.WConfd.Monad
+import Ganeti.WConfd.TempRes (TempResState, emptyTempResState)
 import Ganeti.Utils.Atomic
 import Ganeti.Utils.AsyncWorker
 
@@ -111,4 +113,14 @@ persistentLocks = Persistent
   , persPath = Path.lockStatusFile
   , persEmpty = emptyWaiting
   , persCleanup = freeLocks
+  }
+
+-- ** Temporary reservations
+
+persistentTempRes :: Persistent TempResState
+persistentTempRes = Persistent
+  { persName = "temporary reservations"
+  , persPath = Path.tempResStatusFile
+  , persEmpty = emptyTempResState
+  , persCleanup = dropAllReservations
   }

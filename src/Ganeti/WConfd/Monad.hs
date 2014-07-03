@@ -104,11 +104,13 @@ data DaemonHandle = DaemonHandle
   -- all IDs of threads that do asynchronous work should probably also go here
   , dhSaveConfigWorker :: AsyncWorker Any ()
   , dhSaveLocksWorker :: AsyncWorker () ()
+  , dhSaveTempResWorker :: AsyncWorker () ()
   }
 
 mkDaemonHandle :: FilePath
                -> ConfigState
                -> GanetiLockWaiting
+               -> TempResState
                -> (IO ConfigState -> [AsyncWorker () ()]
                                   -> ResultG (AsyncWorker Any ()))
                   -- ^ A function that creates a worker that asynchronously
@@ -122,11 +124,14 @@ mkDaemonHandle :: FilePath
                -> (IO GanetiLockWaiting -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the lock allocation state.
+               -> (IO TempResState -> ResultG (AsyncWorker () ()))
+                  -- ^ A function that creates a worker that asynchronously
+                  -- saves the temporary reservations state.
                -> ResultG DaemonHandle
-mkDaemonHandle cpath cstat lstat
+mkDaemonHandle cpath cstat lstat trstat
                saveWorkerFn distMCsWorkerFn distSSConfWorkerFn
-               saveLockWorkerFn = do
-  ds <- newIORef $ DaemonState cstat lstat emptyTempResState
+               saveLockWorkerFn saveTempResWorkerFn = do
+  ds <- newIORef $ DaemonState cstat lstat trstat
   let readConfigIO = dsConfigState `liftM` readIORef ds :: IO ConfigState
 
   ssconfWorker <- distSSConfWorkerFn readConfigIO
@@ -136,7 +141,9 @@ mkDaemonHandle cpath cstat lstat
 
   saveLockWorker <- saveLockWorkerFn $ dsLockWaiting `liftM` readIORef ds
 
-  return $ DaemonHandle ds cpath saveWorker saveLockWorker
+  saveTempResWorker <- saveTempResWorkerFn $ dsTempRes `liftM` readIORef ds
+
+  return $ DaemonHandle ds cpath saveWorker saveLockWorker saveTempResWorker
 
 -- * The monad and its instances
 
@@ -245,7 +252,13 @@ modifyTempResStateErr f = do
   let f' ds = traverseOf2 dsTempResL
               (runStateT (f (csConfigData . dsConfigState $ ds))) ds
   dh <- daemonHandle
-  toErrorBase $ atomicModifyIORefErr (dhDaemonState dh) (liftM swap . f')
+  r <- toErrorBase $ atomicModifyIORefErr (dhDaemonState dh)
+                                          (liftM swap . f')
+  -- logDebug $ "Current temporary reservations: " ++ J.encode tr
+  logDebug "Triggering temporary reservations write"
+  liftBase . triggerAndWait_ . dhSaveTempResWorker $ dh
+  logDebug "Temporary reservations write finished"
+  return r
 
 -- | Atomically modifies the state of temporary reservations in
 -- WConfdMonad.
