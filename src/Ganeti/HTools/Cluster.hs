@@ -53,7 +53,6 @@ module Ganeti.HTools.Cluster
   , printNodes
   , printInsts
   -- * Balacing functions
-  , checkMove
   , doNextBalance
   , tryBalance
   , compCV
@@ -706,16 +705,6 @@ checkMoveEx force nodes_idx disk_moves inst_moves rest_mig ini_tbl victims =
   in if length best_plc == length ini_plc
        then ini_tbl -- no advancement
        else best_tbl
-
--- | Compute the best next move.
-checkMove :: [Ndx]               -- ^ Allowed target node indices
-          -> Bool                -- ^ Whether disk moves are allowed
-          -> Bool                -- ^ Whether instance moves are allowed
-          -> Bool                -- ^ Whether migration is restricted
-          -> Table               -- ^ The current solution
-          -> [Instance.Instance] -- ^ List of instances still to move
-          -> Table               -- ^ The new solution
-checkMove = checkMoveEx False
 
 -- | Check if we are allowed to go deeper in the balancing.
 doNextBalance :: Table     -- ^ The starting table
