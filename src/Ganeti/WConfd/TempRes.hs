@@ -48,7 +48,6 @@ module Ganeti.WConfd.TempRes
   , reserve
   , dropReservationsFor
   , reserved
-  , generate
   ) where
 
 import Control.Applicative
