@@ -163,6 +163,49 @@ case_drbd84 = testParser (drbdStatusParser []) "proc_drbd84.txt" $
         Nothing
     ]
 
+-- | Test a DRBD 8.4 file with the first resource empty.
+case_drbd84_emptyfirst :: Assertion
+case_drbd84_emptyfirst = testParser (drbdStatusParser [])
+  "proc_drbd84_emptyfirst.txt" $ DRBDStatus
+    ( VersionInfo (Just "8.4.2") (Just "1") (Just "86-101") Nothing
+      (Just "7ad5f850d711223713d6dcadc3dd48860321070c")
+      (Just "root@example.com, 2013-04-10 07:45:25")
+    )
+    [ DeviceInfo 1 Connected (LocalRemote Secondary Primary)
+        (LocalRemote UpToDate UpToDate) 'C' "r-----"
+        (PerfIndicators 0 1048576 1048576 0 0 64 0 0 0 0 (Just 1)
+          (Just 'f') (Just 0))
+        Nothing
+        Nothing
+        Nothing
+        Nothing,
+      UnconfiguredDevice 2,
+      DeviceInfo 4 WFConnection (LocalRemote Primary Unknown)
+        (LocalRemote UpToDate DUnknown) 'C' "r-----"
+        (PerfIndicators 0 0 0 200 0 0 0 0 0 0 (Just 1)
+          (Just 'f') (Just 1048320))
+        Nothing
+        Nothing
+        Nothing
+        Nothing,
+      DeviceInfo 6 Connected (LocalRemote Secondary Primary)
+        (LocalRemote Diskless UpToDate) 'C' "r-----"
+        (PerfIndicators 0 0 0 0 0 0 0 0 0 0 (Just 1) (Just 'b')
+          (Just 0))
+        Nothing
+        Nothing
+        Nothing
+        Nothing,
+      DeviceInfo 8 StandAlone (LocalRemote Secondary Unknown)
+        (LocalRemote UpToDate DUnknown) ' ' "r-----"
+        (PerfIndicators 0 0 0 200 0 0 0 0 0 0 (Just 1)
+          (Just 'f') (Just 1048320))
+        Nothing
+        Nothing
+        Nothing
+        Nothing
+    ]
+
 -- | Test a DRBD 8.3 file with a NULL caracter inside.
 case_drbd83_sync_krnl2_6_39 :: Assertion
 case_drbd83_sync_krnl2_6_39 = testParser (drbdStatusParser [])
@@ -477,6 +520,7 @@ testSuite "Block/Drbd/Parser"
             'case_drbd80_emptyversion,
             'case_drbd84_sync,
             'case_drbd84,
+            'case_drbd84_emptyfirst,
             'case_drbd83_sync_krnl2_6_39,
             'case_drbd83_sync,
             'case_drbd83_sync_want,

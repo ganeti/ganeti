@@ -1,0 +1,15 @@
+version: 8.4.2 (api:1/proto:86-101)
+GIT-hash: 7ad5f850d711223713d6dcadc3dd48860321070c build by root@example.com, 2013-04-10 07:45:25
+
+ 1: cs:Connected ro:Secondary/Primary ds:UpToDate/UpToDate C r-----
+    ns:0 nr:1048576 dw:1048576 dr:0 al:0 bm:64 lo:0 pe:0 ua:0 ap:0 ep:1 wo:f oos:0
+ 2: cs:Unconfigured
+
+ 4: cs:WFConnection ro:Primary/Unknown ds:UpToDate/DUnknown C r-----
+    ns:0 nr:0 dw:0 dr:200 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:f oos:1048320
+
+ 6: cs:Connected ro:Secondary/Primary ds:Diskless/UpToDate C r-----
+    ns:0 nr:0 dw:0 dr:0 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:b oos:0
+
+ 8: cs:StandAlone ro:Secondary/Unknown ds:UpToDate/DUnknown   r-----
+    ns:0 nr:0 dw:0 dr:200 al:0 bm:0 lo:0 pe:0 ua:0 ap:0 ep:1 wo:f oos:1048320
