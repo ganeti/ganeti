@@ -646,17 +646,17 @@ possibleMoves MirrorInternal False True _ tdx =
   ]
 
 -- | Compute the best move for a given instance.
-checkInstanceMove :: Bool              -- ^ Whether to ignore soft errors
+checkInstanceMove ::  AlgorithmOptions -- ^ Algorithmic options for balancing
                   -> [Ndx]             -- ^ Allowed target node indices
-                  -> Bool              -- ^ Whether disk moves are allowed
-                  -> Bool              -- ^ Whether instance moves are allowed
-                  -> Bool              -- ^ Whether migration is restricted
                   -> Table             -- ^ Original table
                   -> Instance.Instance -- ^ Instance to move
                   -> Table             -- ^ Best new table for this instance
-checkInstanceMove force nodes_idx disk_moves inst_moves rest_mig
-                  ini_tbl@(Table nl _ _ _) target =
-  let opdx = Instance.pNode target
+checkInstanceMove opts nodes_idx ini_tbl@(Table nl _ _ _) target =
+  let force = algIgnoreSoftErrors opts
+      disk_moves = algDiskMoves opts
+      inst_moves = algInstanceMoves opts
+      rest_mig = algRestrictedMigration opts
+      opdx = Instance.pNode target
       osdx = Instance.sNode target
       bad_nodes = [opdx, osdx]
       nodes = filter (`notElem` bad_nodes) nodes_idx
@@ -681,23 +681,19 @@ checkInstanceMove force nodes_idx disk_moves inst_moves rest_mig
       foldl' (checkSingleStep force ini_tbl target) aft_failover all_moves
 
 -- | Compute the best next move.
-checkMoveEx :: Bool                   -- ^ Ignore soft errors
-               -> [Ndx]               -- ^ Allowed target node indices
-               -> Bool                -- ^ Whether disk moves are allowed
-               -> Bool                -- ^ Whether instance moves are allowed
-               -> Bool                -- ^ Whether migration is restricted
-               -> Table               -- ^ The current solution
-               -> [Instance.Instance] -- ^ List of instances still to move
-               -> Table               -- ^ The new solution
-checkMoveEx force nodes_idx disk_moves inst_moves rest_mig ini_tbl victims =
+checkMove :: AlgorithmOptions       -- ^ Algorithmic options for balancing
+             -> [Ndx]               -- ^ Allowed target node indices
+             -> Table               -- ^ The current solution
+             -> [Instance.Instance] -- ^ List of instances still to move
+             -> Table               -- ^ The new solution
+checkMove opts nodes_idx ini_tbl victims =
   let Table _ _ _ ini_plc = ini_tbl
       -- we're using rwhnf from the Control.Parallel.Strategies
       -- package; we don't need to use rnf as that would force too
       -- much evaluation in single-threaded cases, and in
       -- multi-threaded case the weak head normal form is enough to
       -- spark the evaluation
-      tables = parMap rwhnf (checkInstanceMove force nodes_idx disk_moves
-                             inst_moves rest_mig ini_tbl)
+      tables = parMap rwhnf (checkInstanceMove opts nodes_idx ini_tbl)
                victims
       -- iterate over all instances, computing the best move
       best_tbl = foldl' compareTables ini_tbl tables
@@ -721,11 +717,7 @@ tryBalance :: AlgorithmOptions  -- ^ Algorithmic options for balancing
               -> Table          -- ^ The starting table
               -> Maybe Table    -- ^ The resulting table and commands
 tryBalance opts ini_tbl =
-    let force = algIgnoreSoftErrors opts
-        disk_moves = algDiskMoves opts
-        inst_moves = algInstanceMoves opts
-        evac_mode = algEvacMode opts
-        rest_mig = algRestrictedMigration opts
+    let evac_mode = algEvacMode opts
         mg_limit = algMinGainLimit opts
         min_gain = algMinGain opts
         Table ini_nl ini_il ini_cv _ = ini_tbl
@@ -740,8 +732,7 @@ tryBalance opts ini_tbl =
         reloc_inst = filter (\i -> Instance.movable i &&
                                    Instance.autoBalance i) all_inst'
         node_idx = map Node.idx online_nodes
-        fin_tbl = checkMoveEx force node_idx disk_moves inst_moves rest_mig
-                              ini_tbl reloc_inst
+        fin_tbl = checkMove opts node_idx ini_tbl reloc_inst
         (Table _ _ fin_cv _) = fin_tbl
     in
       if fin_cv < ini_cv && (ini_cv > mg_limit || ini_cv - fin_cv >= min_gain)
