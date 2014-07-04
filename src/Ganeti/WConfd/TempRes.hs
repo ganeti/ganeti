@@ -29,7 +29,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.WConfd.TempRes
-  ( TempResState(..)
+  ( TempRes
+  , mkTempRes
+  , TempResState(..)
   , emptyTempResState
   , NodeUUID
   , InstanceUUID
@@ -151,6 +153,10 @@ instance (Ord j, Ord a) => Monoid (TempRes j a) where
 instance (J.JSON j, Ord j, J.JSON a, Ord a) => J.JSON (TempRes j a) where
   showJSON = J.showJSON . getTempRes
   readJSON = liftM TempRes . J.readJSON
+
+-- | Create a temporary reservations from a given multi-map.
+mkTempRes :: MM.MultiMap j a -> TempRes j a
+mkTempRes = TempRes
 
 -- | The state of the temporary reservations
 $(buildObject "TempResState" "trs"

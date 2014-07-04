@@ -83,6 +83,7 @@ import Test.Ganeti.Types
 import Test.Ganeti.Utils
 import Test.Ganeti.Utils.MultiMap
 import Test.Ganeti.Utils.Statistics
+import Test.Ganeti.WConfd.TempRes
 
 -- | Our default test options, overring the built-in test-framework
 -- ones (but not the supplied command line parameters).
@@ -151,6 +152,7 @@ allTests =
   , testUtils
   , testUtils_MultiMap
   , testUtils_Statistics
+  , testWConfd_TempRes
   ]
 
 -- | Main function. Note we don't use defaultMain since we want to
