@@ -11,7 +11,8 @@ Design document drafts
    design-http-server.rst
    design-impexp2.rst
    design-resource-model.rst
-   design-query-splitting.rst
+   design-storagetypes.rst
+   design-internal-shutdown.rst
    design-glusterfs-ganeti-support.rst
    design-hugepages-support.rst
    design-optables.rst
