@@ -114,6 +114,7 @@ versionInfoParser = do
 -- | The parser for a (multi-line) string representing a device.
 deviceParser :: [DrbdInstMinor] -> Parser DeviceInfo
 deviceParser instMinor = do
+  _ <- additionalEOL
   deviceNum <- skipSpaces *> A.decimal <* A.char ':'
   cs <- skipSpacesAndString "cs:" connStateParser
   if cs == Unconfigured
