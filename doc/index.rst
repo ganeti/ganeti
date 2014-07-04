@@ -105,6 +105,7 @@ Draft designs
    design-ovf-support.rst
    design-partitioned
    design-query2.rst
+   design-query-splitting.rst
    design-reason-trail.rst
    design-restricted-commands.rst
    design-shared-storage.rst
