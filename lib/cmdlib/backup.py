@@ -400,7 +400,7 @@ class LUBackupExport(LogicalUnit):
 
       # First wait for the instance to start up
       running_check = lambda: IsInstanceRunning(self, self.instance,
-                                                check_user_shutdown=True)
+                                                prereq=False)
       instance_up = retry.SimpleRetry(True, running_check, 5.0,
                                       self.op.shutdown_timeout)
       if not instance_up:

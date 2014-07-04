@@ -45,11 +45,6 @@ INSTANCE_DOWN = [constants.ADMINST_DOWN]
 INSTANCE_ONLINE = [constants.ADMINST_DOWN, constants.ADMINST_UP]
 INSTANCE_NOT_RUNNING = [constants.ADMINST_DOWN, constants.ADMINST_OFFLINE]
 
-#: Instance status in which an instance can be marked as offline/online
-CAN_CHANGE_INSTANCE_OFFLINE = (frozenset(INSTANCE_DOWN) | frozenset([
-  constants.ADMINST_OFFLINE,
-  ]))
-
 
 def _ExpandItemName(expand_fn, name, kind):
   """Expand an item name.
@@ -1016,41 +1011,33 @@ def IsExclusiveStorageEnabledNode(cfg, node):
   return cfg.GetNdParams(node)[constants.ND_EXCLUSIVE_STORAGE]
 
 
-def IsInstanceRunning(lu, instance, check_user_shutdown=False):
-  """ Given an instance object, checks if the instance is running.
+def IsInstanceRunning(lu, instance, prereq=True):
+  """Given an instance object, checks if the instance is running.
+
+  This function asks the backend whether the instance is running and
+  user shutdown instances are considered not to be running.
+
+  @type lu: L{LogicalUnit}
+  @param lu: LU on behalf of which we make the check
+
+  @type instance: L{objects.Instance}
+  @param instance: instance to check whether it is running
+
+  @rtype: bool
+  @return: 'True' if the instance is running, 'False' otherwise
 
   """
-  pnode_uuid = instance.primary_node
+  hvparams = lu.cfg.GetClusterInfo().FillHV(instance)
+  result = lu.rpc.call_instance_info(instance.primary_node, instance.name,
+                                     instance.hypervisor, hvparams)
+  # TODO: This 'prepreq=True' is a problem if this function is called
+  #       within the 'Exec' method of a LU.
+  result.Raise("Can't retrieve instance information for instance '%s'" %
+               instance.name, prereq=prereq, ecode=errors.ECODE_ENVIRON)
 
-  # We assume that the instance is offline if the node is offline
-  if lu.cfg.GetNodeInfo(pnode_uuid).offline:
-    return False
-
-  all_hvparams = lu.cfg.GetClusterInfo().hvparams
-  instance_list = lu.rpc.call_instance_list([pnode_uuid], [instance.hypervisor],
-                                            all_hvparams)[pnode_uuid]
-  instance_list.Raise("Can't contact node %s for instance information" %
-                      lu.cfg.GetNodeName(pnode_uuid),
-                      prereq=True, ecode=errors.ECODE_ENVIRON)
-
-  if instance.name not in instance_list.payload:
-    return False
-
-  if not check_user_shutdown:
-    return True
-
-  # One more check to be made - whether the instance was shutdown by the user
-  full_hvparams = lu.cfg.GetClusterInfo().FillHV(instance)
-  inst_info = lu.rpc.call_instance_info(pnode_uuid, instance.name,
-                                        instance.hypervisor, full_hvparams)
-  inst_info.Raise("Can't retrieve instance information for instance %s" %
-                  instance.name, prereq=True, ecode=errors.ECODE_ENVIRON)
-
-  if inst_info.payload:
-    return inst_info.payload["state"] != \
-        hypervisor.hv_base.HvInstanceState.SHUTDOWN
-  else:
-    return False
+  return result.payload and \
+      "state" in result.payload and \
+      (result.payload["state"] != hypervisor.hv_base.HvInstanceState.SHUTDOWN)
 
 
 def CheckInstanceState(lu, instance, req_states, msg=None):

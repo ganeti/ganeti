@@ -40,7 +40,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, INSTANCE_NOT_RUNNING, \
   AnnotateDiskParams, CheckIAllocatorOrNode, ExpandNodeUuidAndName, \
   CheckNodeOnline, CheckInstanceNodeGroups, CheckInstanceState, \
   IsExclusiveStorageEnabledNode, FindFaultyInstanceDisks, GetWantedNodes, \
-  CheckDiskTemplateEnabled, IsInstanceRunning
+  CheckDiskTemplateEnabled
 from ganeti.cmdlib.instance_utils import GetInstanceInfoText, \
   CopyLockList, ReleaseLocks, CheckNodeVmCapable, \
   BuildInstanceHookEnvByObject, CheckNodeNotDrained, CheckTargetNodeIPolicy
@@ -2853,14 +2853,13 @@ class TemporaryDisk():
     # The instance needs to be down before any of these actions occur
     # Whether it is must be checked manually through a RPC - configuration
     # reflects only the desired state
-    if IsInstanceRunning(self._lu, self._instance):
-      self._feedback_fn("Shutting down instance")
-      result = self._lu.rpc.call_instance_shutdown(self._instance.primary_node,
-                                                   self._instance,
-                                                   self._shutdown_timeout,
-                                                   self._lu.op.reason)
-      result.Raise("Shutdown of instance %s while removing temporary disk "
-                   "failed" % self._instance.name)
+    self._feedback_fn("Shutting down instance")
+    result = self._lu.rpc.call_instance_shutdown(self._instance.primary_node,
+                                                 self._instance,
+                                                 self._shutdown_timeout,
+                                                 self._lu.op.reason)
+    result.Raise("Shutdown of instance '%s' while removing temporary disk "
+                 "failed" % self._instance.name)
 
     # Disks need to be deactivated prior to being removed
     # The disks_active configuration entry should match the actual state

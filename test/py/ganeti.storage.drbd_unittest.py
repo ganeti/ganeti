@@ -289,6 +289,8 @@ class TestDRBD8Status(testutils.GanetiTestCase):
       testutils.TestDataFilename("proc_drbd83_sync_krnl2.6.39.txt")
     proc84_data = testutils.TestDataFilename("proc_drbd84.txt")
     proc84_sync_data = testutils.TestDataFilename("proc_drbd84_sync.txt")
+    proc84_emptyfirst_data = \
+      testutils.TestDataFilename("proc_drbd84_emptyfirst.txt")
 
     self.proc80ev_data = \
       testutils.TestDataFilename("proc_drbd80-emptyversion.txt")
@@ -303,6 +305,8 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     self.drbd_info84 = drbd.DRBD8Info.CreateFromFile(filename=proc84_data)
     self.drbd_info84_sync = \
       drbd.DRBD8Info.CreateFromFile(filename=proc84_sync_data)
+    self.drbd_info84_emptyfirst = \
+      drbd.DRBD8Info.CreateFromFile(filename=proc84_emptyfirst_data)
 
   def testIOErrors(self):
     """Test handling of errors while reading the proc file."""
@@ -329,6 +333,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
     self.failUnless(not self.drbd_info.HasMinorStatus(9))
     self.failUnless(not self.drbd_info83.HasMinorStatus(9))
     self.failUnless(not self.drbd_info80e.HasMinorStatus(3))
+    self.failUnless(not self.drbd_info84_emptyfirst.HasMinorStatus(0))
 
   def testLineNotMatch(self):
     """Test wrong line passed to drbd_info.DRBD8Status"""
@@ -344,7 +349,8 @@ class TestDRBD8Status(testutils.GanetiTestCase):
 
   def testMinor1(self):
     """Test connected, secondary device"""
-    for info in [self.drbd_info, self.drbd_info83, self.drbd_info84]:
+    for info in [self.drbd_info, self.drbd_info83, self.drbd_info84,
+                 self.drbd_info84_emptyfirst]:
       stats = info.GetMinorStatus(1)
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_connected and stats.is_secondary and
@@ -353,13 +359,15 @@ class TestDRBD8Status(testutils.GanetiTestCase):
   def testMinor2(self):
     """Test unconfigured device"""
     for info in [self.drbd_info, self.drbd_info83,
-                 self.drbd_info80e, self.drbd_info84]:
+                 self.drbd_info80e, self.drbd_info84,
+                 self.drbd_info84_emptyfirst]:
       stats = info.GetMinorStatus(2)
       self.failIf(stats.is_in_use)
 
   def testMinor4(self):
     """Test WFconn device"""
-    for info in [self.drbd_info, self.drbd_info83, self.drbd_info84]:
+    for info in [self.drbd_info, self.drbd_info83,
+                 self.drbd_info84, self.drbd_info84_emptyfirst]:
       stats = info.GetMinorStatus(4)
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_wfconn and stats.is_primary and
@@ -368,7 +376,8 @@ class TestDRBD8Status(testutils.GanetiTestCase):
 
   def testMinor6(self):
     """Test diskless device"""
-    for info in [self.drbd_info, self.drbd_info83, self.drbd_info84]:
+    for info in [self.drbd_info, self.drbd_info83,
+                 self.drbd_info84, self.drbd_info84_emptyfirst]:
       stats = info.GetMinorStatus(6)
       self.failUnless(stats.is_in_use)
       self.failUnless(stats.is_connected and stats.is_secondary and

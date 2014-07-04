@@ -1525,6 +1525,7 @@ TEST_FILES = \
 	test/data/proc_drbd83_sync_want.txt \
 	test/data/proc_drbd83_sync_krnl2.6.39.txt \
 	test/data/proc_drbd84.txt \
+	test/data/proc_drbd84_emptyfirst.txt \
 	test/data/proc_drbd84_sync.txt \
 	test/data/proc_meminfo.txt \
 	test/data/proc_cpuinfo.txt \

@@ -45,7 +45,7 @@ from ganeti.utils import retry
 from ganeti.cmdlib.base import NoHooksLU, LogicalUnit, ResultWithJobs
 
 from ganeti.cmdlib.common import INSTANCE_DOWN, \
-  INSTANCE_NOT_RUNNING, CAN_CHANGE_INSTANCE_OFFLINE, CheckNodeOnline, \
+  INSTANCE_NOT_RUNNING, CheckNodeOnline, \
   ShareAll, GetDefaultIAllocator, CheckInstanceNodeGroups, \
   LoadNodeEvacResult, CheckIAllocatorOrNode, CheckParamsNotGlobal, \
   IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, CheckOSImage, \
@@ -1636,8 +1636,7 @@ class LUInstanceCreate(LogicalUnit):
                    % (instance.name, install_image))
 
       # First wait for the instance to start up
-      running_check = lambda: IsInstanceRunning(self, instance,
-                                                check_user_shutdown=True)
+      running_check = lambda: IsInstanceRunning(self, instance, prereq=False)
       instance_up = retry.SimpleRetry(True, running_check, 5.0,
                                       self.op.helper_startup_timeout)
       if not instance_up:
@@ -3195,7 +3194,7 @@ class LUInstanceSetParams(LogicalUnit):
     ispec[constants.ISPEC_DISK_SIZE] = disk_sizes
 
     if self.op.offline is not None and self.op.offline:
-      CheckInstanceState(self, self.instance, CAN_CHANGE_INSTANCE_OFFLINE,
+      CheckInstanceState(self, self.instance, INSTANCE_NOT_RUNNING,
                          msg="can't change to offline")
 
   @staticmethod
