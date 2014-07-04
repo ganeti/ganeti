@@ -45,6 +45,7 @@ module Test.Ganeti.TestCommon
   , genUUID
   , genMaybe
   , genSublist
+  , genMap
   , genTags
   , genFields
   , genUniquesList
@@ -243,6 +244,10 @@ genSublist xs = choose (0, l) >>= g xs l
     g (y:ys) n k = frequency [ (k,     liftM (y :) (g ys (n - 1) (k - 1)))
                              , (n - k, g ys (n - 1) k)
                              ]
+
+-- | Generates a map given generators for keys and values.
+genMap :: (Ord k, Ord v) => Gen k -> Gen v -> Gen (M.Map k v)
+genMap kg vg = M.fromList <$> listOf ((,) <$> kg <*> vg)
 
 -- | Defines a tag type.
 newtype TagChar = TagChar { tagGetChar :: Char }
