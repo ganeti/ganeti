@@ -81,6 +81,7 @@ import Test.Ganeti.THH
 import Test.Ganeti.THH.Types
 import Test.Ganeti.Types
 import Test.Ganeti.Utils
+import Test.Ganeti.Utils.MultiMap
 import Test.Ganeti.Utils.Statistics
 
 -- | Our default test options, overring the built-in test-framework
@@ -148,6 +149,7 @@ allTests =
   , testTHH_Types
   , testTypes
   , testUtils
+  , testUtils_MultiMap
   , testUtils_Statistics
   ]
 

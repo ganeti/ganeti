@@ -943,6 +943,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/TestHelper.hs \
 	test/hs/Test/Ganeti/Types.hs \
 	test/hs/Test/Ganeti/Utils.hs \
+	test/hs/Test/Ganeti/Utils/MultiMap.hs \
 	test/hs/Test/Ganeti/Utils/Statistics.hs
 
 

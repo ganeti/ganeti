@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Utils.MultiMap
   ( MultiMap()
+  , multiMap
   , multiMapL
   , multiMapValueL
   , null
@@ -72,6 +73,10 @@ instance F.Foldable (MultiMap k) where
 instance (J.JSON k, Ord k, J.JSON v, Ord v) => J.JSON (MultiMap k v) where
   showJSON = J.showJSON . getMultiMap
   readJSON = liftM MultiMap . J.readJSON
+
+-- | Creates a multi-map from a map of sets.
+multiMap :: (Ord k, Ord v) => M.Map k (S.Set v) -> MultiMap k v
+multiMap = MultiMap . M.filter (not . S.null)
 
 -- | A 'Lens' that allows to access a set under a given key in a multi-map.
 multiMapL :: (Ord k, Ord v) => k -> Lens' (MultiMap k v) (S.Set v)
