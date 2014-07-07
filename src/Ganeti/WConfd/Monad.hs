@@ -212,14 +212,15 @@ modifyConfigState f = do
   when modified $ do
     if distSync
       then do
-        logDebug "Triggering synchronous config write\
-                 \ together with full distribution"
+        logDebug "Triggering config write\
+                 \ together with full synchronous distribution"
         liftBase . triggerAndWait (Any True) . dhSaveConfigWorker $ dh
         logDebug "Config write and distribution finished"
       else do
         -- trigger the config. saving worker and wait for it
-        logDebug "Triggering config write and distribution"
-        liftBase . trigger (Any False) . dhSaveConfigWorker $ dh
+        logDebug "Triggering config write\
+                 \ and asynchronous distribution"
+        liftBase . triggerAndWait (Any False) . dhSaveConfigWorker $ dh
     return ()
   return r
 
