@@ -1614,6 +1614,11 @@ PRIORITY_OPT = cli_option("--priority", default=None, dest="priority",
                           callback=_PriorityOptionCb,
                           help="Priority for opcode processing")
 
+OPPORTUNISTIC_OPT = cli_option("--opportunistic-locking",
+                               dest="opportunistic_locking",
+                               action="store_true", default=False,
+                               help="Opportunistically acquire locks")
+
 HID_OS_OPT = cli_option("--hidden", dest="hidden",
                         type="bool", default=None, metavar=_YORNO,
                         help="Sets the hidden flag on the OS")
@@ -1847,6 +1852,7 @@ COMMON_CREATE_OPTS = [
   OSPARAMS_PRIVATE_OPT,
   OSPARAMS_SECRET_OPT,
   OS_SIZE_OPT,
+  OPPORTUNISTIC_OPT,
   SUBMIT_OPT,
   PRINT_JOBID_OPT,
   TAG_ADD_OPT,
@@ -2902,6 +2908,8 @@ def GenericInstanceCreate(mode, opts, args):
                                 osparams_private=osparams_private,
                                 osparams_secret=osparams_secret,
                                 mode=mode,
+                                opportunistic_locking=
+                                  opts.opportunistic_locking,
                                 start=start,
                                 os_type=os_type,
                                 force_variant=force_variant,
