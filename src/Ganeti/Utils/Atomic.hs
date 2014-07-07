@@ -45,6 +45,7 @@ import System.Posix.Types
 import Ganeti.BasicTypes
 import Ganeti.Errors
 import Ganeti.Utils
+import Ganeti.Utils.UniStd (hCloseAndFsync)
 
 -- | Atomically write a file, by first writing the contents into a temporary
 -- file and then renaming it to the old position.
@@ -62,7 +63,8 @@ atomicUpdateFile :: (MonadBaseControl IO m)
 atomicUpdateFile path action = do
   (tmppath, tmphandle) <- liftBase $ openTempFile (takeDirectory path)
                                                   (takeBaseName path)
-  r <- L.finally (action tmppath tmphandle) (liftBase $ hClose tmphandle)
+  r <- L.finally (action tmppath tmphandle)
+                 (liftBase $ hCloseAndFsync tmphandle)
   -- if all went well, rename the file
   liftBase $ renameFile tmppath path
   return r
