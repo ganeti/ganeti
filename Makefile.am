@@ -870,6 +870,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils/MVarLock.hs \
 	src/Ganeti/Utils/Random.hs \
 	src/Ganeti/Utils/Statistics.hs \
+	src/Ganeti/Utils/UniStd.hs \
 	src/Ganeti/Utils/Validate.hs \
 	src/Ganeti/VCluster.hs \
 	src/Ganeti/WConfd/ConfigState.hs \
