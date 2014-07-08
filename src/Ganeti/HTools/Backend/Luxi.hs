@@ -222,7 +222,10 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xsptotal <- if xexcl_stor
               then lvconvert 0 "sptotal" sptotal
               else convert "spindles" spindles
-  xspfree <- lvconvert 0 "spfree" spfree
+  let xspfree = genericResult (const (0 :: Int)) id
+                  $ lvconvert 0 "spfree" spfree
+                  -- "spfree" might be missing, if sharedfile is the only
+                  -- supported disk template
   xmtotal <- lvconvert 0.0 "mtotal" mtotal
   xmnode <- lvconvert 0 "mnode" mnode
   xmfree <- lvconvert 0 "mfree" mfree
