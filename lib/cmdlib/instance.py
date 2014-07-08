@@ -593,6 +593,9 @@ class LUInstanceCreate(LogicalUnit):
       if self.op.opportunistic_locking:
         self.opportunistic_locks[locking.LEVEL_NODE] = True
         self.opportunistic_locks[locking.LEVEL_NODE_RES] = True
+        if self.op.disk_template == constants.DT_DRBD8:
+          self.opportunistic_locks_count[locking.LEVEL_NODE] = 2
+          self.opportunistic_locks_count[locking.LEVEL_NODE_RES] = 2
     else:
       (self.op.pnode_uuid, self.op.pnode) = \
         ExpandNodeUuidAndName(self.cfg, self.op.pnode_uuid, self.op.pnode)
