@@ -80,7 +80,7 @@ execJobSet anno master cref ((opcodes, descr):jobs) = do
                   "Not all jobs completed successfully: " ++ show failures,
                   "Aborting."]
   where metaopcodes = map (map anno) opcodes
-        logfn = putStrLn . ("Got job IDs" ++)
+        logfn = putStrLn . ("Got job IDs " ++)
                 . commaJoin . map (show . fromJobId)
 
 -- | Signal handler for graceful termination.
