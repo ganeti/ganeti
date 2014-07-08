@@ -41,6 +41,7 @@ module Ganeti.Locking.Waiting
  , downGradeLocksPredicate
  , intersectLocks
  , opportunisticLockUnion
+ , guardedOpportunisticLockUnion
  ) where
 
 import Control.Arrow ((&&&), (***), second)
@@ -350,3 +351,17 @@ opportunisticLockUnion owner reqs state =
                           s
         in (s', if result == Ok S.empty then lock:success else success)
   in second (flip (,) S.empty) $ foldl maybeAllocate (state, []) reqs'
+
+-- | A guarded version of opportunisticLockUnion; if the number of fulfilled
+-- requests is not at least the given amount, then do not change anything.
+guardedOpportunisticLockUnion :: (Lock a, Ord b, Ord c)
+                                 => Int
+                                 -> b
+                                 -> [(a, L.OwnerState)]
+                                 -> LockWaiting a b c
+                                 -> (LockWaiting a b c, ([a], S.Set b))
+guardedOpportunisticLockUnion count owner reqs state =
+  let (state', (acquired, toNotify)) = opportunisticLockUnion owner reqs state
+  in if length acquired < count
+        then (state, ([], S.empty))
+        else (state', (acquired, toNotify))
