@@ -25,59 +25,62 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Jobs
   ( submitJobs
+  , Annotator
+  , execWithCancel
   , execJobsWait
   , execJobsWaitOk
   , waitForJobs
   ) where
 
 import Control.Concurrent (threadDelay)
+import Control.Exception (bracket)
 import Data.List
+import Data.IORef
+import System.Exit
+import System.Posix.Process
+import System.Posix.Signals
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
 import qualified Ganeti.Luxi as L
 import Ganeti.OpCodes
 import Ganeti.Types
+import Ganeti.Utils
 
 -- | A simple type alias for clearer signature.
 type Annotator = OpCode -> MetaOpCode
 
--- | Wrapper over execJobSet checking for early termination via an IORef.
-execCancelWrapper :: Annotator -> String -> Node.List
-                  -> Instance.List -> IORef Int -> [JobSet] -> IO (Result ())
-execCancelWrapper _    _      _  _  _    [] = return $ Ok ()
-execCancelWrapper anno master nl il cref alljss = do
+--- | Wrapper over execJobSet checking for early termination via an IORef.
+execCancelWrapper :: Annotator -> String -> IORef Int
+                  -> [([[OpCode]], String)] -> IO (Result ())
+execCancelWrapper _    _      _    [] = return $ Ok ()
+execCancelWrapper anno master cref jobs = do
   cancel <- readIORef cref
   if cancel > 0
     then do
       putStrLn $ "Exiting early due to user request, " ++
-               show (length alljss) ++ " jobset(s) remaining."
+               show (length jobs) ++ " jobset(s) remaining."
       return $ Ok ()
-    else execJobSet anno master nl il cref alljss
+  else execJobSet anno master cref jobs
 
--- | Execute an entire jobset.
-execJobSet :: Annotator -> String -> Node.List
-           -> Instance.List -> IORef Int -> [JobSet] -> IO (Result ())
-execJobSet _    _      _  _  _    [] = return $ Ok ()
-execJobSet anno master nl il cref (js:jss) = do
-  -- map from jobset (htools list of positions) to [[opcodes]]
-  let jobs = map (\(_, idx, move, _) ->
-                    map anno $ Cluster.iMoveToJob nl il idx move) js
-      descr = map (\(_, idx, _, _) -> Container.nameOf il idx) js
-      logfn =
-        putStrLn . ("Got job IDs " ++) . commaJoin . map (show . fromJobId)
-  putStrLn $ "Executing jobset for instances " ++ commaJoin descr
-  jrs <- bracket (L.getLuxiClient master) L.closeClient $
-         Jobs.execJobsWait jobs logfn
-  case jrs of
-    Bad x -> return $ Bad x
-    Ok x -> if null failures
-              then execCancelWrapper anno master nl il cref jss
-              else return . Bad . unlines $ [
-                "Not all jobs completed successfully: " ++ show failures,
-                "Aborting."]
-      where
-        failures = filter ((/= JOB_STATUS_SUCCESS) . snd) x
+--- | Execute an entire jobset.
+execJobSet :: Annotator -> String -> IORef Int
+           -> [([[OpCode]], String)] -> IO (Result ())
+execJobSet _    _      _    [] = return $ Ok ()
+execJobSet anno master cref ((opcodes, descr):jobs) = do
+    putStrLn descr
+    jrs <- bracket (L.getLuxiClient master) L.closeClient $
+           execJobsWait metaopcodes logfn
+    case jrs of
+      Bad x -> return $ Bad x
+      Ok x -> let failures = filter ((/= JOB_STATUS_SUCCESS) . snd) x in
+                if null failures
+                then execCancelWrapper anno master cref jobs
+                else return . Bad . unlines $ [
+                  "Not all jobs completed successfully: " ++ show failures,
+                  "Aborting."]
+  where metaopcodes = map (map anno) opcodes
+        logfn = putStrLn . ("Got job IDs" ++) . commaJoin . map (show . fromJobId)
 
 -- | Signal handler for graceful termination.
 handleSigInt :: IORef Int -> IO ()
@@ -96,13 +99,13 @@ handleSigTerm cref = do
 
 -- | Prepares to run a set of jobsets with handling of signals and early
 -- termination.
-execWithCancel :: Annotator -> String -> Node.List -> Instance.List -> [JobSet]
+execWithCancel :: Annotator -> String -> [([[OpCode]], String)]
                -> IO (Result ())
-execWithCancel anno master fin_nl il cmd_jobs = do
+execWithCancel anno master cmd_jobs = do
   cref <- newIORef 0
   mapM_ (\(hnd, sig) -> installHandler sig (Catch (hnd cref)) Nothing)
     [(handleSigTerm, softwareTermination), (handleSigInt, keyboardSignal)]
-  execCancelWrapper anno master fin_nl il cref cmd_jobs
+  execCancelWrapper anno master cref cmd_jobs
 
 -- | Submits a set of jobs and returns their job IDs without waiting for
 -- completion.
