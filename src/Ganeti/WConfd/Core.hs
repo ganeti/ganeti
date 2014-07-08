@@ -292,6 +292,15 @@ opportunisticLockUnion :: ClientId
 opportunisticLockUnion cid req =
   modifyLockWaiting $ LW.opportunisticLockUnion cid req
 
+-- | Opprtunistially allocate locks for a given owner, requesting a
+-- certain minimum of success.
+guardedOpportunisticLockUnion :: Int
+                                 -> ClientId
+                                 -> [(GanetiLocks, L.OwnerState)]
+                                 -> WConfdMonad [GanetiLocks]
+guardedOpportunisticLockUnion count cid req =
+  modifyLockWaiting $ LW.guardedOpportunisticLockUnion count cid req
+
 -- * The list of all functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -335,5 +344,6 @@ exportedFunctions = [ 'echo
                     , 'downGradeLocksLevel
                     , 'intersectLocks
                     , 'opportunisticLockUnion
+                    , 'guardedOpportunisticLockUnion
                     , 'hasPendingRequest
                     ]
