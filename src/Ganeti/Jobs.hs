@@ -61,7 +61,7 @@ execCancelWrapper anno master cref jobs = do
       putStrLn $ "Exiting early due to user request, " ++
                show (length jobs) ++ " jobset(s) remaining."
       return $ Ok ()
-  else execJobSet anno master cref jobs
+    else execJobSet anno master cref jobs
 
 --- | Execute an entire jobset.
 execJobSet :: Annotator -> String -> IORef Int
@@ -80,7 +80,8 @@ execJobSet anno master cref ((opcodes, descr):jobs) = do
                   "Not all jobs completed successfully: " ++ show failures,
                   "Aborting."]
   where metaopcodes = map (map anno) opcodes
-        logfn = putStrLn . ("Got job IDs" ++) . commaJoin . map (show . fromJobId)
+        logfn = putStrLn . ("Got job IDs" ++)
+                . commaJoin . map (show . fromJobId)
 
 -- | Signal handler for graceful termination.
 handleSigInt :: IORef Int -> IO ()
