@@ -226,7 +226,7 @@ class TestConfigRunner(unittest.TestCase):
   def testSetInstanceDiskTemplate(self):
     """Test that instance's disk template updates succcessfully"""
     # Construct an instance with 'diskless' template
-    cfg = self._get_object()
+    cfg = self._get_object_mock()
     inst = self._create_instance(cfg)
     cfg.AddInstance(inst, "my-job")
     self.assertEqual(inst.disk_template, constants.DT_DISKLESS)
