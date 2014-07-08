@@ -31,15 +31,11 @@ module Ganeti.HTools.Program.Hbal
   ) where
 
 import Control.Arrow ((&&&))
-import Control.Exception (bracket)
 import Control.Monad
 import Data.List
 import Data.Maybe (isNothing)
-import Data.IORef
 import System.Exit
 import System.IO
-import System.Posix.Process
-import System.Posix.Signals
 
 import Text.Printf (printf)
 
@@ -56,13 +52,10 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader
-import Ganeti.OpCodes (wrapOpCode, setOpComment, setOpPriority,
-                       OpCode, MetaOpCode)
+import Ganeti.OpCodes (wrapOpCode, setOpComment, setOpPriority)
 import Ganeti.Jobs as Jobs
-import Ganeti.Types
 import Ganeti.Utils
 
-import qualified Ganeti.Luxi as L
 import Ganeti.Version (version)
 
 -- | Options list and functions.
@@ -110,7 +103,7 @@ arguments = []
 
 -- | Wraps an 'OpCode' in a 'MetaOpCode' while also adding a comment
 -- about what generated the opcode.
-annotateOpCode :: Annotator
+annotateOpCode :: Jobs.Annotator
 annotateOpCode =
   setOpComment ("rebalancing via hbal " ++ version) . wrapOpCode
 
@@ -178,8 +171,13 @@ maybeExecJobs opts ord_plc fin_nl il cmd_jobs =
             Just master ->
               let annotator = maybe id setOpPriority (optPriority opts) .
                               annotateOpCode
-              in execWithCancel annotator master fin_nl il cmd_jobs)
+              in execWithCancel annotator master $
+                  zip (map toOpcodes cmd_jobs) (map toDescr cmd_jobs))
     else return $ Ok ()
+  where toOpcodes = map (\(_, idx, move, _) ->
+                          Cluster.iMoveToJob fin_nl il idx move)
+        toDescr job = "Executing jobset for instances " ++ commaJoin
+                       (map (\(_, idx, _, _) -> Container.nameOf il idx) job)
 
 -- | Select the target node group.
 selectGroup :: Options -> Group.List -> Node.List -> Instance.List
