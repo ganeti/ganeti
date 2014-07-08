@@ -2,6 +2,34 @@ News
 ====
 
 
+Version 2.11.3
+--------------
+
+*(Released Wed, 9 Jul 2014)*
+
+- Readd nodes to their previous node group
+- Remove old-style gnt-network connect
+
+Inherited from the 2.10 branch:
+- Make network_vlan an optional OpParam
+- hspace: support --accept-existing-errors
+- Make hspace support --independent-groups
+- Add a modifier for a group's allocation policy
+- Export VLAN nicparam to NIC configuration scripts
+- Fix gnt-network client to accept vlan info
+- Support disk hotplug with userspace access
+
+Inherited from the 2.9 branch:
+
+- Make htools tolerate missing "spfree" on luxi
+- Move the design for query splitting to the implemented list
+- Add tests for DRBD setups with empty first resource
+
+Inherited from the 2.8 branch:
+
+- DRBD parser: consume initial empty resource lines
+
+
 Version 2.11.2
 --------------
 
