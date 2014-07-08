@@ -31,6 +31,7 @@ module Ganeti.HTools.Program.Hbal
   ) where
 
 import Control.Arrow ((&&&))
+import Control.Lens (over)
 import Control.Monad
 import Data.List
 import Data.Maybe (isNothing)
@@ -53,6 +54,9 @@ import Ganeti.HTools.ExtLoader
 import Ganeti.HTools.Types
 import Ganeti.HTools.Loader
 import Ganeti.OpCodes (wrapOpCode, setOpComment, setOpPriority)
+import Ganeti.OpCodes.Lens (metaParamsL, opReasonL)
+import Ganeti.JQueue (currentTimestamp, reasonTrailTimestamp)
+import Ganeti.JQueue.Objects (Timestamp)
 import Ganeti.Jobs as Jobs
 import Ganeti.Utils
 
@@ -103,9 +107,12 @@ arguments = []
 
 -- | Wraps an 'OpCode' in a 'MetaOpCode' while also adding a comment
 -- about what generated the opcode.
-annotateOpCode :: Jobs.Annotator
-annotateOpCode =
-  setOpComment ("rebalancing via hbal " ++ version) . wrapOpCode
+annotateOpCode :: Timestamp -> Jobs.Annotator
+annotateOpCode ts =
+  over (metaParamsL . opReasonL)
+      (++ [("hbal", "hbal " ++ version ++ " called", reasonTrailTimestamp ts)])
+  . setOpComment ("rebalancing via hbal " ++ version)
+  . wrapOpCode
 
 {- | Start computing the solution at the given depth and recurse until
 we find a valid solution or we exceed the maximum depth.
@@ -168,11 +175,12 @@ maybeExecJobs opts ord_plc fin_nl il cmd_jobs =
     then (case optLuxi opts of
             Nothing ->
               return $ Bad "Execution of commands possible only on LUXI"
-            Just master ->
+            Just master -> do
+              ts <- currentTimestamp
               let annotator = maybe id setOpPriority (optPriority opts) .
-                              annotateOpCode
-              in execWithCancel annotator master $
-                  zip (map toOpcodes cmd_jobs) (map toDescr cmd_jobs))
+                              annotateOpCode ts
+              execWithCancel annotator master $
+                zip (map toOpcodes cmd_jobs) (map toDescr cmd_jobs))
     else return $ Ok ()
   where toOpcodes = map (\(_, idx, move, _) ->
                           Cluster.iMoveToJob fin_nl il idx move)
