@@ -2,7 +2,7 @@
 Design document drafts
 ======================
 
-.. Last updated for Ganeti 2.11
+.. Last updated for Ganeti 2.12
 
 .. toctree::
    :maxdepth: 2
@@ -16,12 +16,10 @@ Design document drafts
    design-hugepages-support.rst
    design-optables.rst
    design-ceph-ganeti-support.rst
-   design-daemons.rst
    design-hsqueeze.rst
    design-os.rst
    design-move-instance-improvements.rst
    design-node-security.rst
-   design-systemd.rst
    design-cpu-speed.rst
 
 .. vim: set textwidth=72 :
