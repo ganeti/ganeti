@@ -61,14 +61,14 @@ networkFields =
      FieldSimple (rsMaybeUnavail . networkMacPrefix), QffNormal)
   , (FieldDefinition "free_count" "FreeCount" QFTNumber "Number of available\
                                                        \ addresses",
-     FieldSimple (rsMaybeNoData . fmap getFreeCount . createAddressPool),
+     FieldSimple (rsNormal . getFreeCount),
      QffNormal)
   , (FieldDefinition "map" "Map" QFTText "Actual mapping",
-     FieldSimple (rsMaybeNoData . fmap getMap . createAddressPool),
+     FieldSimple (rsNormal . getMap),
      QffNormal)
   , (FieldDefinition "reserved_count" "ReservedCount" QFTNumber
        "Number of reserved addresses",
-     FieldSimple (rsMaybeNoData . fmap getReservedCount . createAddressPool),
+     FieldSimple (rsNormal . getReservedCount),
      QffNormal)
   , (FieldDefinition "group_list" "GroupList" QFTOther
        "List of nodegroups (group name, NIC mode, NIC link)",
@@ -158,7 +158,7 @@ getNetworkUuid cfg name =
 -- This doesn't use the netmask for validation of the length, instead
 -- simply iterating over the reservations string.
 getReservations :: Ip4Network -> String -> [Ip4Address]
-getReservations (Ip4Network net _) =
+getReservations net =
   reverse .
   fst .
   foldl' (\(accu, addr) c ->
@@ -169,11 +169,11 @@ getReservations (Ip4Network net _) =
                           _ -> -- FIXME: the reservations string
                                -- should be a proper type
                                accu
-            in (accu', addr')) ([], net)
+            in (accu', addr')) ([], ip4netAddr net)
 
 -- | Computes the external reservations as string for a network.
 getExtReservationsString :: Network -> ResultEntry
 getExtReservationsString net =
   let addrs = getReservations (networkNetwork net)
-              (fromMaybe "" $ networkExtReservations net)
+              (maybe "" show $ networkExtReservations net)
   in rsNormal . intercalate ", " $ map show addrs

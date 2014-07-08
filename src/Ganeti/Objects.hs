@@ -87,20 +87,31 @@ module Ganeti.Objects
   , DictObject(..) -- re-exported from THH
   , TagSet -- re-exported from THH
   , Network(..)
-  , Ip4Address(..)
-  , Ip4Network(..)
+  , AddressPool(..)
+  , Ip4Address()
+  , mkIp4Address
+  , Ip4Network()
+  , mkIp4Network
+  , ip4netAddr
+  , ip4netMask
   , readIp4Address
+  , ip4AddressToList
+  , ip4AddressToNumber
+  , ip4AddressFromNumber
   , nextIp4Address
   , IAllocatorParams
   , MasterNetworkParameters(..)
   ) where
 
 import Control.Applicative
+import Control.Arrow (first)
+import Control.Monad.State
 import Data.Char
-import Data.List (foldl', isPrefixOf, isInfixOf)
+import Data.List (foldl', isPrefixOf, isInfixOf, intercalate)
 import Data.Maybe
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import Data.Tuple (swap)
 import Data.Word
 import System.Time (ClockTime(..))
 import Text.JSON (showJSON, readJSON, JSON, JSValue(..), fromJSString)
@@ -110,6 +121,7 @@ import qualified AutoConf
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
+import Ganeti.Objects.BitArray (BitArray)
 import Ganeti.Types
 import Ganeti.THH
 import Ganeti.THH.Field
@@ -156,15 +168,15 @@ class TagsObject a where
 
 -- ** Ipv4 types
 
--- | Custom type for a simple IPv4 address.
 data Ip4Address = Ip4Address Word8 Word8 Word8 Word8
-                  deriving Eq
+  deriving (Eq, Ord)
+
+mkIp4Address :: (Word8, Word8, Word8, Word8) -> Ip4Address
+mkIp4Address (a, b, c, d) = Ip4Address a b c d
 
 instance Show Ip4Address where
-  show (Ip4Address a b c d) = show a ++ "." ++ show b ++ "." ++
-                              show c ++ "." ++ show d
+  show (Ip4Address a b c d) = intercalate "." $ map show [a, b, c, d]
 
--- | Parses an IPv4 address from a string.
 readIp4Address :: (Applicative m, Monad m) => String -> m Ip4Address
 readIp4Address s =
   case sepSplit '.' s of
@@ -175,28 +187,39 @@ readIp4Address s =
                       tryRead "fourth octet" d
     _ -> fail $ "Can't parse IPv4 address from string " ++ s
 
--- | JSON instance for 'Ip4Address'.
 instance JSON Ip4Address where
   showJSON = showJSON . show
   readJSON (JSString s) = readIp4Address (fromJSString s)
   readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for an IPv4 address"
 
--- | \"Next\" address implementation for IPv4 addresses.
---
--- Note that this loops! Note also that this is a very dumb
--- implementation.
+-- Converts an address to a list of numbers
+ip4AddressToList :: Ip4Address -> [Word8]
+ip4AddressToList (Ip4Address a b c d) = [a, b, c, d]
+
+-- | Converts an address into its ordinal number.
+-- This is needed for indexing IP adresses in reservation pools.
+ip4AddressToNumber :: Ip4Address -> Integer
+ip4AddressToNumber = foldl (\n i -> 256 * n + toInteger i) 0 . ip4AddressToList
+
+-- | Converts a number into an address.
+-- This is needed for indexing IP adresses in reservation pools.
+ip4AddressFromNumber :: Integer -> Ip4Address
+ip4AddressFromNumber n =
+  let s = state $ first fromInteger . swap . (`divMod` 256)
+      (d, c, b, a) = evalState ((,,,) <$> s <*> s <*> s <*> s) n
+   in Ip4Address a b c d
+
 nextIp4Address :: Ip4Address -> Ip4Address
-nextIp4Address (Ip4Address a b c d) =
-  let inc xs y = if all (==0) xs then y + 1 else y
-      d' = d + 1
-      c' = inc [d'] c
-      b' = inc [c', d'] b
-      a' = inc [b', c', d'] a
-  in Ip4Address a' b' c' d'
+nextIp4Address = ip4AddressFromNumber . (+ 1) . ip4AddressToNumber
 
 -- | Custom type for an IPv4 network.
-data Ip4Network = Ip4Network Ip4Address Word8
-                  deriving Eq
+data Ip4Network = Ip4Network { ip4netAddr :: Ip4Address
+                             , ip4netMask :: Word8
+                             }
+                  deriving (Eq)
+
+mkIp4Network :: Ip4Address -> Word8 -> Ip4Network
+mkIp4Network = Ip4Network
 
 instance Show Ip4Network where
   show (Ip4Network ip netmask) = show ip ++ "/" ++ show netmask
@@ -216,10 +239,26 @@ instance JSON Ip4Network where
       _ -> fail $ "Can't parse IPv4 network from string " ++ fromJSString s
   readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for an IPv4 network"
 
+-- ** Address pools
+
+-- | Currently address pools just wrap a reservation 'BitArray'.
+--
+-- In future, 'Network' might be extended to include several address pools
+-- and address pools might include their own ranges of addresses.
+newtype AddressPool = AddressPool { apReservations :: BitArray }
+  deriving (Eq, Ord, Show)
+
+instance JSON AddressPool where
+  showJSON = showJSON . apReservations
+  readJSON = liftM AddressPool . readJSON
+
 -- ** Ganeti \"network\" config object.
 
 -- FIXME: Not all types might be correct here, since they
 -- haven't been exhaustively deduced from the python code yet.
+--
+-- FIXME: When parsing, check that the ext_reservations and reservations
+-- have the same length
 $(buildObject "Network" "network" $
   [ simpleField "name"             [t| NonEmptyString |]
   , optionalField $
@@ -232,9 +271,9 @@ $(buildObject "Network" "network" $
   , optionalField $
     simpleField "gateway6"         [t| String |]
   , optionalField $
-    simpleField "reservations"     [t| String |]
+    simpleField "reservations"     [t| AddressPool |]
   , optionalField $
-    simpleField "ext_reservations" [t| String |]
+    simpleField "ext_reservations" [t| AddressPool |]
   ]
   ++ uuidFields
   ++ timeStampFields

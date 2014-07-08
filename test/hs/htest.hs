@@ -62,6 +62,7 @@ import Test.Ganeti.Locking.Waiting
 import Test.Ganeti.Luxi
 import Test.Ganeti.Network
 import Test.Ganeti.Objects
+import Test.Ganeti.Objects.BitArray
 import Test.Ganeti.OpCodes
 import Test.Ganeti.Query.Aliases
 import Test.Ganeti.Query.Filter
@@ -80,7 +81,9 @@ import Test.Ganeti.THH
 import Test.Ganeti.THH.Types
 import Test.Ganeti.Types
 import Test.Ganeti.Utils
+import Test.Ganeti.Utils.MultiMap
 import Test.Ganeti.Utils.Statistics
+import Test.Ganeti.WConfd.TempRes
 
 -- | Our default test options, overring the built-in test-framework
 -- ones (but not the supplied command line parameters).
@@ -131,6 +134,7 @@ allTests =
   , testLuxi
   , testNetwork
   , testObjects
+  , testObjects_BitArray
   , testOpCodes
   , testQuery_Aliases
   , testQuery_Filter
@@ -146,7 +150,9 @@ allTests =
   , testTHH_Types
   , testTypes
   , testUtils
+  , testUtils_MultiMap
   , testUtils_Statistics
+  , testWConfd_TempRes
   ]
 
 -- | Main function. Note we don't use defaultMain since we want to

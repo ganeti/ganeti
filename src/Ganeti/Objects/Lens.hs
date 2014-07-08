@@ -49,6 +49,8 @@ class SerialNoObject a => SerialNoObjectL a where
 class TagsObject a => TagsObjectL a where
   tagsL :: Lens' a (Set.Set String)
 
+$(makeCustomLenses ''AddressPool)
+
 $(makeCustomLenses ''Network)
 
 instance SerialNoObjectL Network where

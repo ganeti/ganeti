@@ -89,7 +89,7 @@ readConfig = csConfigData <$> readConfigState
 
 -- Replaces the current configuration state within the 'WConfdMonad'.
 writeConfig :: ConfigData -> WConfdMonad ()
-writeConfig cd = modifyConfigState $ const (mkConfigState cd, ())
+writeConfig cd = modifyConfigState $ const ((), mkConfigState cd)
 
 -- * Asynchronous tasks
 

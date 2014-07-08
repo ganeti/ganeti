@@ -33,7 +33,6 @@ module Ganeti.WConfd.Core where
 
 import Control.Arrow ((&&&))
 import Control.Monad (liftM, unless, when)
-import Control.Monad.State (modify)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Language.Haskell.TH (Name)
@@ -45,7 +44,7 @@ import qualified Ganeti.Locking.Allocation as L
 import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock), LockLevel(LevelConfig)
                             , lockLevel, LockLevel, ClientId )
 import qualified Ganeti.Locking.Waiting as LW
-import Ganeti.Objects (ConfigData, DRBDSecret, LogicalVolume)
+import Ganeti.Objects (ConfigData, DRBDSecret, LogicalVolume, Ip4Address)
 import qualified Ganeti.WConfd.ConfigVerify as V
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
@@ -123,7 +122,7 @@ flushConfig = forceConfigStateDistribution
 
 dropAllReservations :: ClientId -> WConfdMonad ()
 dropAllReservations cid =
-  modifyTempResState (const . modify $ T.dropAllReservations cid)
+  modifyTempResState (const $ T.dropAllReservations cid)
 
 -- *** DRBD
 
@@ -177,6 +176,45 @@ generateDRBDSecret cid = do
 
 reserveLV :: ClientId -> LogicalVolume -> WConfdMonad ()
 reserveLV jobId lv = modifyTempResStateErr $ T.reserveLV jobId lv
+
+-- *** IPv4s
+
+-- | Reserve a given IPv4 address for use by an instance.
+reserveIp :: ClientId -> T.NetworkUUID -> Ip4Address -> Bool -> WConfdMonad ()
+reserveIp = (((modifyTempResStateErr .) .) .) . T.reserveIp
+
+-- | Give a specific IP address back to an IP pool.
+-- The IP address is returned to the IP pool designated by network id
+-- and marked as reserved.
+releaseIp :: ClientId -> T.NetworkUUID -> Ip4Address -> WConfdMonad ()
+releaseIp = (((modifyTempResStateErr .) const .) .) . T.releaseIp
+
+-- Find a free IPv4 address for an instance and reserve it.
+generateIp :: ClientId -> T.NetworkUUID -> WConfdMonad Ip4Address
+generateIp = (modifyTempResStateErr .) . T.generateIp
+
+-- | Commit all reserved/released IP address to an IP pool.
+-- The IP addresses are taken from the network's IP pool and marked as
+-- reserved/free for instances.
+--
+-- Note that the reservations are kept, they are supposed to be cleaned
+-- when a job finishes.
+commitTemporaryIps :: ClientId -> WConfdMonad ()
+commitTemporaryIps = modifyConfigDataErr_ . T.commitReservedIps
+
+-- | Immediately release an IP address, without using the reservations pool.
+commitReleaseTemporaryIp
+  :: T.NetworkUUID -> Ip4Address -> WConfdMonad ()
+commitReleaseTemporaryIp net_uuid addr =
+  modifyConfigDataErr_ (const $ T.commitReleaseIp net_uuid addr)
+
+-- | List all IP reservations for the current client.
+--
+-- This function won't be needed once the corresponding calls are moved to
+-- WConfd.
+listReservedIps :: ClientId -> WConfdMonad [T.IPv4Reservation]
+listReservedIps jobId =
+  liftM (S.toList . T.listReservedIps jobId . snd) readTempResState
 
 -- ** Locking related functions
 
@@ -278,6 +316,13 @@ exportedFunctions = [ 'echo
                     , 'generateDRBDSecret
                     -- LVs
                     , 'reserveLV
+                    -- IPv4s
+                    , 'reserveIp
+                    , 'releaseIp
+                    , 'generateIp
+                    , 'commitTemporaryIps
+                    , 'commitReleaseTemporaryIp
+                    , 'listReservedIps
                     -- locking
                     , 'listLocks
                     , 'listAllLocks

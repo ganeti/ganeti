@@ -42,6 +42,7 @@ from ganeti.config import TemporaryReservationManager
 import testutils
 import mocks
 import mock
+from cmdlib.testsupport.config_mock import ConfigMock
 
 
 def _StubGetEntResolver():
@@ -65,6 +66,11 @@ class TestConfigRunner(unittest.TestCase):
     """Returns an instance of ConfigWriter"""
     cfg = config.ConfigWriter(cfg_file=self.cfg_file, offline=True,
                               _getents=_StubGetEntResolver)
+    return cfg
+
+  def _get_object_mock(self):
+    """Returns a mocked instance of ConfigWriter"""
+    cfg = ConfigMock(cfg_file=self.cfg_file)
     return cfg
 
   def _init_cluster(self, cfg):
@@ -136,7 +142,7 @@ class TestConfigRunner(unittest.TestCase):
   def testInstNodesNoDisks(self):
     """Test all_nodes/secondary_nodes when there are no disks"""
     # construct instance
-    cfg = self._get_object()
+    cfg = self._get_object_mock()
     inst = self._create_instance(cfg)
     cfg.AddInstance(inst, "my-job")
 
@@ -152,7 +158,7 @@ class TestConfigRunner(unittest.TestCase):
 
   def testInstNodesPlainDisks(self):
     # construct instance
-    cfg = self._get_object()
+    cfg = self._get_object_mock()
     inst = self._create_instance(cfg)
     disks = [
       objects.Disk(dev_type=constants.DT_PLAIN, size=128,
@@ -178,7 +184,7 @@ class TestConfigRunner(unittest.TestCase):
 
   def testInstNodesDrbdDisks(self):
     # construct a second node
-    cfg = self._get_object()
+    cfg = self._get_object_mock()
     node_group = cfg.LookupNodeGroup(None)
     master_uuid = cfg.GetMasterNode()
     node2 = objects.Node(name="node2.example.com", group=node_group,
@@ -267,7 +273,7 @@ class TestConfigRunner(unittest.TestCase):
 
   def testUpdateInstance(self):
     """Test updates on one instance object"""
-    cfg = self._get_object()
+    cfg = self._get_object_mock()
     # construct a fake instance
     inst = self._create_instance(cfg)
     fake_instance = objects.Instance()

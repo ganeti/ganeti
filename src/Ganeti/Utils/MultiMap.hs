@@ -30,6 +30,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Utils.MultiMap
   ( MultiMap()
+  , multiMap
   , multiMapL
   , multiMapValueL
   , null
@@ -52,6 +53,7 @@ import qualified Data.Map as M
 import Data.Maybe (fromMaybe, isJust)
 import Data.Monoid
 import qualified Data.Set as S
+import qualified Text.JSON as J
 
 import Ganeti.Lens
 
@@ -67,6 +69,14 @@ instance (Ord v, Ord k) => Monoid (MultiMap k v) where
 
 instance F.Foldable (MultiMap k) where
   foldMap f = F.foldMap (F.foldMap f) . getMultiMap
+
+instance (J.JSON k, Ord k, J.JSON v, Ord v) => J.JSON (MultiMap k v) where
+  showJSON = J.showJSON . getMultiMap
+  readJSON = liftM MultiMap . J.readJSON
+
+-- | Creates a multi-map from a map of sets.
+multiMap :: (Ord k, Ord v) => M.Map k (S.Set v) -> MultiMap k v
+multiMap = MultiMap . M.filter (not . S.null)
 
 -- | A 'Lens' that allows to access a set under a given key in a multi-map.
 multiMapL :: (Ord k, Ord v) => k -> Lens' (MultiMap k v) (S.Set v)

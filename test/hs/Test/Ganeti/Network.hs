@@ -6,72 +6,22 @@ module Test.Ganeti.Network
   , genBitStringMaxLen
   ) where
 
+import Data.Maybe (fromMaybe)
+
 import Test.QuickCheck
 
 import Ganeti.Network as Network
 import Ganeti.Objects as Objects
+import Ganeti.Objects.BitArray as BA
 
-import Test.Ganeti.Objects
-  ( genBitStringMaxLen
-  , genValidNetwork )
-import Test.Ganeti.TestHelper
+import Test.Ganeti.Objects ( genBitStringMaxLen )
 import Test.Ganeti.TestCommon
-
-import qualified Data.Vector.Unboxed as V
-
--- * Generators and arbitrary instances
-
--- | Generates address pools. The size of the network is intentionally
--- decoupled from the size of the bit vectors, to avoid slowing down
--- the tests by generating unnecessary bit strings.
-genAddressPool :: Int -> Gen AddressPool
-genAddressPool maxLenBitVec = do
-  -- Generating networks with netmask of minimum /24 to avoid too long
-  -- bit strings being generated.
-  net <- genValidNetwork
-  lenBitVec <- choose (0, maxLenBitVec)
-  res <- genBitVector lenBitVec
-  ext_res <- genBitVector lenBitVec
-  return AddressPool { network = net
-                     , reservations = res
-                     , extReservations = ext_res }
-
--- | Generates an arbitrary bit vector of the given length.
-genBitVector :: Int -> Gen (V.Vector Bool)
-genBitVector len = do
-  boolList <- vector len::Gen [Bool]
-  return $ V.fromList boolList
-
-instance Arbitrary AddressPool where
-  arbitrary = genAddressPool ((2::Int)^(8::Int))
+import Test.Ganeti.TestHelper
 
 -- * Test cases
 
--- | Check the mapping of bit strings to bit vectors
-prop_bitStringToBitVector :: Property
-prop_bitStringToBitVector =
-  forAll (genBitStringMaxLen 256) $ \bs ->
-  let bitList = V.toList $ Network.bitStringToBitVector bs
-      bitCharList = Prelude.zip bitList bs
-  in  Prelude.all checkBit bitCharList
-
--- | Check whether an element of a bit vector is consistent with an element
--- of a bit string (containing '0' and '1' characters).
-checkBit :: (Bool, Char) -> Bool
-checkBit (False, '0') = True
-checkBit (True, '1') = True
-checkBit _ = False
-
--- | Check creation of an address pool when a network is given.
-prop_createAddressPool :: Objects.Network -> Property
-prop_createAddressPool n =
-  let valid = networkIsValid n
-  in  case createAddressPool n of
-        Just _ -> True ==? valid
-        Nothing -> False ==? valid
-
 -- | Check that the address pool's properties are calculated correctly.
-prop_addressPoolProperties :: AddressPool -> Property
+prop_addressPoolProperties :: Network -> Property
 prop_addressPoolProperties a =
   conjoin
     [ printTestCase
@@ -93,40 +43,38 @@ prop_addressPoolProperties a =
          show a) (checkGetMap a)
     ]
 
+-- | Checks for the subset relation on 'Maybe' values.
+subsetMaybe :: Maybe BitArray -> Maybe BitArray -> Bool
+subsetMaybe (Just x) (Just y) = subset x y
+subsetMaybe x y = x == y -- only if they're both Nothing
+
 -- | Check that all internally reserved ips are included in 'allReservations'.
-allReservationsSubsumesInternal :: AddressPool -> Bool
+allReservationsSubsumesInternal :: Network -> Bool
 allReservationsSubsumesInternal a =
-  bitVectorSubsumes (allReservations a) (reservations a)
+  reservations a `subsetMaybe` allReservations a
 
 -- | Check that all externally reserved ips are included in 'allReservations'.
-allReservationsSubsumesExternal :: AddressPool -> Bool
+allReservationsSubsumesExternal :: Network -> Bool
 allReservationsSubsumesExternal a =
-  bitVectorSubsumes (allReservations a) (extReservations a)
-
--- | Checks if one bit vector subsumes the other one.
-bitVectorSubsumes :: V.Vector Bool -> V.Vector Bool -> Bool
-bitVectorSubsumes v1 v2 = V.and $
-                          V.zipWith (\a b -> not b || a) v1 v2
+  extReservations a `subsetMaybe` allReservations a
 
 -- | Check that the counts of free and reserved ips add up.
-checkCounts :: AddressPool -> Bool
+checkCounts :: Network -> Property
 checkCounts a =
-  let res = reservations a
-  in  V.length res == getFreeCount a + getReservedCount a
+  netIpv4NumHosts a ==? toInteger (getFreeCount a + getReservedCount a)
 
 -- | Check that the detection of a full network works correctly.
-checkIsFull :: AddressPool -> Bool
-checkIsFull a = isFull a == V.notElem False (allReservations a)
+checkIsFull :: Network -> Property
+checkIsFull a =
+  isFull a ==? maybe True (and . toList) (allReservations a)
 
 -- | Check that the map representation of the network corresponds to the
 -- network's reservations.
-checkGetMap :: AddressPool -> Bool
+checkGetMap :: Network -> Property
 checkGetMap a =
-  allReservations a == V.fromList (Prelude.map (== 'X') (getMap a))
+  fromMaybe BA.empty (allReservations a)
+  ==? fromList (Prelude.map (== 'X') (getMap a))
 
 testSuite "Network"
-  [ 'prop_bitStringToBitVector
-  , 'prop_createAddressPool
-  , 'prop_addressPoolProperties
+  [ 'prop_addressPoolProperties
   ]
-

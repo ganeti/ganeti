@@ -28,8 +28,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Ganeti.Logging.WriterLog
   ( WriterLogT
+  , WriterLog
   , runWriterLogT
+  , runWriterLog
+  , dumpLogSeq
   , execWriterLogT
+  , execWriterLog
   ) where
 
 import Control.Applicative
@@ -39,6 +43,7 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Control
 import Control.Monad.Writer
 import qualified Data.Foldable as F
+import Data.Functor.Identity
 import Data.Sequence
 
 import Ganeti.Logging
@@ -53,9 +58,15 @@ type WriterSeq = WriterT LogSeq
 newtype WriterLogT m a =
   WriterLogT { unwrapWriterLogT :: WriterSeq m a }
 
+type WriterLog = WriterLogT Identity
+
 -- Runs a 'WriterLogT', returning the result and accumulated messages.
 runWriterLogT :: WriterLogT m a -> m (a, LogSeq)
 runWriterLogT = runWriterT . unwrapWriterLogT
+
+-- Runs a 'WriterLog', returning the result and accumulated messages.
+runWriterLog :: WriterLog a -> (a, LogSeq)
+runWriterLog = runIdentity . runWriterLogT
 
 -- | Runs a 'WriterLogT', and when it finishes, resends all log messages
 -- to the underlying monad that implements 'MonadLog'.
@@ -66,6 +77,18 @@ execWriterLogT :: (MonadLog m) => WriterLogT m a -> m a
 execWriterLogT k = do
   (r, msgs) <- runWriterLogT k
   F.mapM_ (uncurry logAt) msgs
+  return r
+
+-- | Sends all log messages to the a monad that implements 'MonadLog'.
+dumpLogSeq :: (MonadLog m) => LogSeq -> m ()
+dumpLogSeq = F.mapM_ (uncurry logAt)
+
+-- | Runs a 'WriterLog', and when it finishes, resends all log messages
+-- to the a monad that implements 'MonadLog'.
+execWriterLog :: (MonadLog m) => WriterLog a -> m a
+execWriterLog k = do
+  let (r, msgs) = runWriterLog k
+  dumpLogSeq msgs
   return r
 
 instance (Monad m) => Functor (WriterLogT m) where

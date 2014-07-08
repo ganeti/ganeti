@@ -31,30 +31,20 @@ module Ganeti.Locking.Locks
   , ClientType(..)
   , ClientId(..)
   , GanetiLockWaiting
-  , loadLockAllocation
-  , writeLocksAsyncTask
   , LockLevel(..)
   , lockLevel
   ) where
 
 import Control.Applicative ((<$>), (<*>), pure)
 import Control.Monad ((>=>), liftM)
-import Control.Monad.Base (MonadBase, liftBase)
-import Control.Monad.Error (MonadError, catchError)
 import Data.List (stripPrefix)
 import System.Posix.Types (ProcessID)
 import qualified Text.JSON as J
 
-
-import Ganeti.BasicTypes
-import Ganeti.Errors (ResultG, GanetiException)
-import Ganeti.JSON (readEitherString, fromJResultE)
+import Ganeti.JSON (readEitherString)
 import Ganeti.Locking.Types
 import Ganeti.Locking.Waiting
-import Ganeti.Logging.Lifted (MonadLog, logDebug, logEmergency)
 import Ganeti.Types
-import Ganeti.Utils.Atomic
-import Ganeti.Utils.AsyncWorker
 
 -- | The type of Locks available in Ganeti. The order of this type
 -- is the lock oder.
@@ -231,32 +221,3 @@ instance J.JSON ClientId where
 -- | The type of lock Allocations in Ganeti. In Ganeti, the owner of
 -- locks are jobs.
 type GanetiLockWaiting = LockWaiting GanetiLocks ClientId Integer
-
--- | Load a lock allocation from disk.
-loadLockAllocation :: FilePath -> ResultG GanetiLockWaiting
-loadLockAllocation =
-  liftIO . readFile
-  >=> fromJResultE "parsing lock waiting structure" . J.decodeStrict
-
--- | Write lock allocation to disk, overwriting any previous lock
--- allocation stored there.
-writeLocks :: (MonadBase IO m, MonadError GanetiException m, MonadLog m)
-           => FilePath -> GanetiLockWaiting -> m ()
-writeLocks fpath lockWait = do
-  logDebug "Async. lock status writer: Starting write"
-  toErrorBase . liftIO . atomicWriteFile fpath $ J.encode lockWait
-  logDebug "Async. lock status writer: written"
-
--- | Construct an asynchronous worker whose action is to save the
--- current state of the lock allocation.
--- The worker's action reads the lock allocation using the given @IO@
--- action. Any inbetween changes to the file are tacitly ignored.
-writeLocksAsyncTask :: FilePath -- ^ Path to the lock file
-                    -> IO GanetiLockWaiting -- ^ An action to read the
-                                            -- current lock allocation
-                    -> ResultG (AsyncWorker () ())
-writeLocksAsyncTask fpath lockWaitingAction = mkAsyncWorker_ $
-  catchError (do
-    locks <- liftBase lockWaitingAction
-    writeLocks fpath locks
-  ) (logEmergency . (++) "Can't write lock allocation status: " . show)

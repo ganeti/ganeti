@@ -26,14 +26,18 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 module Ganeti.Utils.IORef
   ( atomicModifyWithLens
   , atomicModifyIORefErr
+  , atomicModifyIORefErrLog
   ) where
 
+import Control.Monad
 import Control.Monad.Base
 import Data.IORef.Lifted
 import Data.Tuple (swap)
 
 import Ganeti.BasicTypes
 import Ganeti.Lens
+import Ganeti.Logging
+import Ganeti.Logging.WriterLog
 
 -- | Atomically modifies an 'IORef' using a lens
 atomicModifyWithLens :: (MonadBase IO m)
@@ -48,3 +52,19 @@ atomicModifyIORefErr :: (MonadBase IO m)
 atomicModifyIORefErr ref f =
   let f' x = genericResult ((,) x . Bad) (fmap Ok) (f x)
    in ResultT $ atomicModifyIORef ref f'
+
+-- | Atomically modifies an 'IORef' using a function that can possibly fail
+-- and log errors.
+-- If it fails, the value of the 'IORef' is preserved.
+-- Any log messages are passed to the outer monad.
+atomicModifyIORefErrLog :: (MonadBase IO m, MonadLog m)
+                        => IORef a -> (a -> ResultT e WriterLog (a, b))
+                        -> ResultT e m b
+atomicModifyIORefErrLog ref f = ResultT $ do
+  let f' x = let ((a, b), w) = runWriterLog
+                              . liftM (genericResult ((,) x . Bad) (fmap Ok))
+                              . runResultT $ f x
+             in (a, (b, w))
+  (b, w) <- atomicModifyIORef ref f'
+  dumpLogSeq w
+  return b
