@@ -131,6 +131,7 @@ class LogicalUnit(object):
     self.needed_locks = None
     self.share_locks = dict.fromkeys(locking.LEVELS, 0)
     self.opportunistic_locks = dict.fromkeys(locking.LEVELS, False)
+    self.opportunistic_locks_count = dict.fromkeys(locking.LEVELS, 1)
 
     self.add_locks = {}
 
