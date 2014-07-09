@@ -87,8 +87,12 @@ number of instances and parallel jobs can be tested realistically.
 The following tests are added to the QA:
 
   * Submitting twice as many instance creation request as there are
-    nodes in the cluster, using DRBD as disk template. As soon as a
-    creation job succeeds, submit a removal job for this instance.
+    nodes in the cluster, using DRBD as disk template.
+    The job parameters are chosen according to best practice for
+    parallel instance creation without running the risk of instance
+    creation failing for too many parallel creation attempts.
+    As soon as a creation job succeeds, submit a removal job for
+    this instance.
   * Submitting twice as many instance creation request as there are
     nodes in the cluster, using Plain as disk template. As soon as a
     creation job succeeds, submit a removal job for this instance.
