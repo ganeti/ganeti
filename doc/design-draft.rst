@@ -24,6 +24,7 @@ Design document drafts
    design-disk-conversion.rst
    design-ifdown.rst
    design-location.rst
+   design-reservations.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
