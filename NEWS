@@ -11,6 +11,7 @@ Version 2.11.3
 - Remove old-style gnt-network connect
 
 Inherited from the 2.10 branch:
+
 - Make network_vlan an optional OpParam
 - hspace: support --accept-existing-errors
 - Make hspace support --independent-groups
