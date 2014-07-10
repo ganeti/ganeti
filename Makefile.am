@@ -101,6 +101,12 @@ pytoolsdir = $(pkgpythondir)/tools
 docdir = $(versiondir)$(datadir)/doc/$(PACKAGE)
 ifupdir = $(sysconfdir)/ganeti
 
+if USE_BACKUP_DIR
+backup_dir = $(BACKUP_DIR)
+else
+backup_dir = $(localstatedir)/lib
+endif
+
 SYMLINK_TARGET_DIRS = \
 	$(sysconfdir)/ganeti \
 	$(libdir)/ganeti/iallocators \
@@ -1985,6 +1991,7 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DSSH_LOGIN_USER="$(SSH_LOGIN_USER)" \
 	    -DSSH_CONSOLE_USER="$(SSH_CONSOLE_USER)" \
 	    -DEXPORT_DIR="$(EXPORT_DIR)" \
+	    -DBACKUP_DIR="$(backup_dir)" \
 	    -DOS_SEARCH_PATH="\"$(OS_SEARCH_PATH)\"" \
 	    -DES_SEARCH_PATH="\"$(ES_SEARCH_PATH)\"" \
 	    -DXEN_BOOTLOADER="$(XEN_BOOTLOADER)" \

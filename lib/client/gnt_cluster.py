@@ -1932,9 +1932,10 @@ def _UpgradeBeforeConfigurationChange(versionstring):
     ToStderr("Failed to stop daemons on %s." % (", ".join(badnodes),))
     return (False, rollback)
 
-  backuptar = os.path.join(pathutils.LOCALSTATEDIR,
-                           "lib/ganeti%d.tar" % time.time())
+  backuptar = os.path.join(pathutils.BACKUP_DIR, "ganeti%d.tar" % time.time())
   ToStdout("Backing up configuration as %s" % backuptar)
+  if not _RunCommandAndReport(["mkdir", "-p", pathutils.BACKUP_DIR]):
+    return (False, rollback)
   if not _RunCommandAndReport(["tar", "cf", backuptar,
                                pathutils.DATA_DIR]):
     return (False, rollback)
