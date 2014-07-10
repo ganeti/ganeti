@@ -73,6 +73,9 @@ sshConsoleUser = "SSH_CONSOLE_USER"
 exportDir :: String
 exportDir = "EXPORT_DIR"
 
+backupDir :: String
+backupDir = "BACKUP_DIR"
+
 osSearchPath :: [String]
 osSearchPath = split OS_SEARCH_PATH
 

@@ -35,6 +35,7 @@ DEFAULT_SHARED_FILE_STORAGE_DIR = "/srv/ganeti/shared-file-storage"
 DEFAULT_SHARED_FILE_STORAGE_DIR = \
     vcluster.AddNodePrefix(DEFAULT_SHARED_FILE_STORAGE_DIR)
 EXPORT_DIR = vcluster.AddNodePrefix(_constants.EXPORT_DIR)
+BACKUP_DIR = vcluster.AddNodePrefix(_constants.BACKUP_DIR)
 OS_SEARCH_PATH = _constants.OS_SEARCH_PATH
 ES_SEARCH_PATH = _constants.ES_SEARCH_PATH
 SSH_CONFIG_DIR = _constants.SSH_CONFIG_DIR
