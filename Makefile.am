@@ -95,6 +95,12 @@ iallocatorsdir = $(pkglibdir)/iallocators
 pytoolsdir = $(pkgpythondir)/tools
 docdir = $(versiondir)$(datadir)/doc/$(PACKAGE)
 
+if USE_BACKUP_DIR
+backup_dir = $(BACKUP_DIR)
+else
+backup_dir = $(localstatedir)/lib
+endif
+
 SYMLINK_TARGET_DIRS = \
 	$(sysconfdir)/ganeti \
 	$(libdir)/ganeti/iallocators \

@@ -88,6 +88,21 @@ AC_ARG_WITH([export-dir],
   [export_dir="/srv/ganeti/export"])
 AC_SUBST(EXPORT_DIR, $export_dir)
 
+# --with-backup-dir=...
+AC_ARG_WITH([backup-dir],
+  [AS_HELP_STRING([--with-backup-dir=DIR],
+    [directory to use for configuration backups]
+    [ on Ganeti upgrades (default is $(localstatedir)/lib)]
+  )],
+  [backup_dir="$withval"
+   USE_BACKUP_DIR=yes
+  ],
+  [backup_dir=
+   USE_BACKUP_DIR=no
+  ])
+AC_SUBST(BACKUP_DIR, $backup_dir)
+AM_CONDITIONAL([USE_BACKUP_DIR], [test "$USE_BACKUP_DIR" = yes])
+
 # --with-ssh-config-dir=...
 AC_ARG_WITH([ssh-config-dir],
   [AS_HELP_STRING([--with-ssh-config-dir=DIR],
