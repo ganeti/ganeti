@@ -316,7 +316,9 @@ detection at the cluster level.  User shutdown detection allows users to
 initiate instance poweroff from inside the instance, and Ganeti will
 report the instance status as 'USER_down' (as opposed, to 'ERROR_down')
 and the watcher will not restart these instances, thus preserving their
-instance status.
+instance status.  This option is disabled by default.  After enabled,
+the hypervisor parameter ``user_shutdown`` must also be set, either at
+the cluster level or on a per-instance basis (see **gnt-instance**\(8)).
 
 The ``-H (--hypervisor-parameters)`` option allows you to set default
 hypervisor specific parameters for the cluster. The format of this
