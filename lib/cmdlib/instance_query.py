@@ -137,8 +137,8 @@ class InstanceQuery(QueryBase):
             if inst_name in insts_by_name:
               instance = insts_by_name[inst_name]
               if instance.primary_node == node_uuid:
-                for iname in result.payload:
-                  live_data[insts_by_name[iname].uuid] = result.payload[iname]
+                live_data[insts_by_name[inst_name].uuid] = \
+                  result.payload[inst_name]
               else:
                 wrongnode_inst_uuids.add(instance.uuid)
             else:
