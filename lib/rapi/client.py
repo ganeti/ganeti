@@ -1216,7 +1216,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
   def ReplaceInstanceDisks(self, instance, disks=None, mode=REPLACE_DISK_AUTO,
-                           remote_node=None, iallocator=None, reason=None):
+                           remote_node=None, iallocator=None, reason=None,
+                           early_release=None):
     """Replaces disks on an instance.
 
     @type instance: str
@@ -1233,6 +1234,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                        replace_auto mode)
     @type reason: string
     @param reason: the reason for executing this operation
+    @type early_release: bool
+    @param early_release: whether to release locks as soon as possible
 
     @rtype: string
     @return: job id
@@ -1251,6 +1254,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     _AppendIf(query, remote_node is not None, ("remote_node", remote_node))
     _AppendIf(query, iallocator is not None, ("iallocator", iallocator))
     _AppendReason(query, reason)
+    _AppendIf(query, early_release is not None,
+              ("early_release", early_release))
 
     return self._SendRequest(HTTP_POST,
                              ("/%s/instances/%s/replace-disks" %
