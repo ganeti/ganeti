@@ -2145,12 +2145,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hvp = instance.hvparams
       security_model = hvp[constants.HV_SECURITY_MODEL]
       use_chroot = hvp[constants.HV_KVM_USE_CHROOT]
-      if use_chroot:
-        raise errors.HotplugError("Disk hotplug is not supported"
-                                  " in case of chroot.")
-      if security_model != constants.HT_SM_NONE:
-        raise errors.HotplugError("Disk Hotplug is not supported in case"
-                                  " security models are used.")
+      if action == constants.HOTPLUG_ACTION_ADD:
+        if use_chroot:
+          raise errors.HotplugError("Disk hotplug is not supported"
+                                    " in case of chroot.")
+        if security_model != constants.HT_SM_NONE:
+          raise errors.HotplugError("Disk Hotplug is not supported in case"
+                                    " security models are used.")
 
     if (dev_type == constants.HOTPLUG_TARGET_NIC and
         action == constants.HOTPLUG_ACTION_ADD and not fdsend):
