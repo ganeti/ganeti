@@ -3419,7 +3419,7 @@ def BlockdevSnapshot(disk):
       _Fail("Cannot find block device %s", disk)
   else:
     _Fail("Cannot snapshot non-lvm block device '%s' of type '%s'",
-          disk.unique_id, disk.dev_type)
+          disk.logical_id, disk.dev_type)
 
 
 def BlockdevSetInfo(disk, info):

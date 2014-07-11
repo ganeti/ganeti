@@ -43,9 +43,15 @@ import Ganeti.Utils.MultiMap as MM
 
 instance (Arbitrary k, Ord k, Arbitrary v, Ord v)
          => Arbitrary (MultiMap k v) where
-  arbitrary =
-    let set = S.fromList <$> listOf arbitrary
-    in (multiMap . M.fromList) <$> listOf ((,) <$> arbitrary <*> set)
+  arbitrary = frequency
+    [ (1, (multiMap . M.fromList)
+          <$> listOf ((,) <$> arbitrary
+                          <*> (S.fromList <$> listOf arbitrary)))
+    , (4, MM.insert <$> arbitrary <*> arbitrary <*> arbitrary)
+    , (1, MM.fromList <$> listOf ((,) <$> arbitrary <*> arbitrary))
+    , (3, MM.delete <$> arbitrary <*> arbitrary <*> arbitrary)
+    , (1, MM.deleteAll <$> arbitrary <*> arbitrary)
+    ]
 
 -- | A data type for testing extensional equality.
 data Three = One | Two | Three

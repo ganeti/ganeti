@@ -88,6 +88,9 @@ hasGnuLn = AutoConf.hasGnuLn
 exportDir :: String
 exportDir = AutoConf.exportDir
 
+backupDir :: String
+backupDir = AutoConf.backupDir
+
 osSearchPath :: [String]
 osSearchPath = AutoConf.osSearchPath
 

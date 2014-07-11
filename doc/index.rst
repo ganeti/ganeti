@@ -77,6 +77,7 @@ and draft versions (which are either incomplete or not implemented).
    design-2.9.rst
    design-2.10.rst
    design-2.11.rst
+   design-2.12.rst
 
 Draft designs
 -------------
@@ -97,6 +98,7 @@ Draft designs
    design-cmdlib-unittests.rst
    design-cpu-pinning.rst
    design-device-uuid-name.rst
+   design-daemons.rst
    design-disks.rst
    design-file-based-storage.rst
    design-hroller.rst
@@ -126,6 +128,7 @@ Draft designs
    design-shared-storage.rst
    design-ssh-ports.rst
    design-storagetypes.rst
+   design-systemd.rst
    design-upgrade.rst
    design-virtual-clusters.rst
    devnotes.rst

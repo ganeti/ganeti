@@ -210,12 +210,18 @@ def HandleItemQueryErrors(fn, *args, **kwargs):
 
   """
   try:
-    return fn(*args, **kwargs)
+    result = fn(*args, **kwargs)
   except errors.OpPrereqError, err:
     if len(err.args) == 2 and err.args[1] == errors.ECODE_NOENT:
       raise http.HttpNotFound()
 
     raise
+
+  # In case split query mechanism is used
+  if not result:
+    raise http.HttpNotFound()
+
+  return result
 
 
 def FeedbackFn(msg):
