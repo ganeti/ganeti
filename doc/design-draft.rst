@@ -12,7 +12,6 @@ Design document drafts
    design-impexp2.rst
    design-resource-model.rst
    design-storagetypes.rst
-   design-internal-shutdown.rst
    design-glusterfs-ganeti-support.rst
    design-hugepages-support.rst
    design-optables.rst
