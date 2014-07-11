@@ -358,6 +358,11 @@ after shutting down an instance, execute the following::
    on an instance Ganeti will automatically restart it (via
    the :command:`ganeti-watcher(8)` command which is launched via cron).
 
+Instances can also be shutdown by the user from within the instance, in
+which case they will marked accordingly and the
+:command:`ganeti-watcher(8)` will not restart them.  See
+:manpage:`gnt-cluster(8)` for details.
+
 Querying instances
 ~~~~~~~~~~~~~~~~~~
 
