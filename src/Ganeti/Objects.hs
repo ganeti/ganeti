@@ -392,6 +392,7 @@ data DiskLogicalId
   -- ^ NodeA, NodeB, Port, MinorA, MinorB, Secret
   | LIDFile FileDriver String -- ^ Driver, path
   | LIDSharedFile FileDriver String -- ^ Driver, path
+  | LIDGluster FileDriver String -- ^ Driver, path
   | LIDBlockDev BlockDriver String -- ^ Driver, path (must be under /dev)
   | LIDRados String String -- ^ Unused, path
   | LIDExt String String -- ^ ExtProvider, unique name
@@ -403,6 +404,7 @@ lidDiskType (LIDPlain {}) = DTPlain
 lidDiskType (LIDDrbd8 {}) = DTDrbd8
 lidDiskType (LIDFile  {}) = DTFile
 lidDiskType (LIDSharedFile  {}) = DTSharedFile
+lidDiskType (LIDGluster  {}) = DTGluster
 lidDiskType (LIDBlockDev {}) = DTBlock
 lidDiskType (LIDRados {}) = DTRbd
 lidDiskType (LIDExt {}) = DTExt
@@ -422,6 +424,7 @@ encodeDLId (LIDRados pool name) = JSArray [showJSON pool, showJSON name]
 encodeDLId (LIDFile driver name) = JSArray [showJSON driver, showJSON name]
 encodeDLId (LIDSharedFile driver name) =
   JSArray [showJSON driver, showJSON name]
+encodeDLId (LIDGluster driver name) = JSArray [showJSON driver, showJSON name]
 encodeDLId (LIDBlockDev driver name) = JSArray [showJSON driver, showJSON name]
 encodeDLId (LIDExt extprovider name) =
   JSArray [showJSON extprovider, showJSON name]
@@ -474,7 +477,7 @@ decodeDLId obj lid = do
         JSArray [driver, path] -> do
           driver' <- readJSON driver
           path'   <- readJSON path
-          return $ LIDSharedFile driver' path'
+          return $ LIDGluster driver' path'
         _ -> fail "Can't read logical_id for shared file type"
     DTBlock ->
       case lid of
