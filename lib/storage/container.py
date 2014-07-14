@@ -471,6 +471,7 @@ _STORAGE_TYPES = {
   constants.ST_LVM_PV: LvmPvStorage,
   constants.ST_LVM_VG: LvmVgStorage,
   constants.ST_SHARED_FILE: FileStorage,
+  constants.ST_GLUSTER: FileStorage,
   }
 
 

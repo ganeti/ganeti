@@ -1147,13 +1147,9 @@ def _GetStorageTypeArgs(cfg, storage_type):
   if storage_type == constants.ST_FILE:
     return [[cfg.GetFileStorageDir()]]
   elif storage_type == constants.ST_SHARED_FILE:
-    dts = cfg.GetClusterInfo().enabled_disk_templates
-    paths = []
-    if constants.DT_SHARED_FILE in dts:
-      paths.append(cfg.GetSharedFileStorageDir())
-    if constants.DT_GLUSTER in dts:
-      paths.append(cfg.GetGlusterStorageDir())
-    return [paths]
+    return [[cfg.GetSharedFileStorageDir()]]
+  elif storage_type == constants.ST_GLUSTER:
+    return [[cfg.GetGlusterStorageDir()]]
   else:
     return []
 
