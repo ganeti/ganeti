@@ -728,8 +728,9 @@ def CheckFileBasedStoragePathVsEnabledDiskTemplates(
 
   """
   assert (file_disk_template in utils.storage.GetDiskTemplatesOfStorageTypes(
-            constants.ST_FILE, constants.ST_SHARED_FILE
+            constants.ST_FILE, constants.ST_SHARED_FILE, constants.ST_GLUSTER
          ))
+
   file_storage_enabled = file_disk_template in enabled_disk_templates
   if file_storage_dir is not None:
     if file_storage_dir == "":
@@ -770,6 +771,18 @@ def CheckSharedFileStoragePathVsEnabledDiskTemplates(
   CheckFileBasedStoragePathVsEnabledDiskTemplates(
       logging_warn_fn, file_storage_dir, enabled_disk_templates,
       constants.DT_SHARED_FILE)
+
+
+def CheckGlusterStoragePathVsEnabledDiskTemplates(
+    logging_warn_fn, file_storage_dir, enabled_disk_templates):
+  """Checks whether the given gluster storage directory is acceptable.
+
+  @see: C{CheckFileBasedStoragePathVsEnabledDiskTemplates}
+
+  """
+  CheckFileBasedStoragePathVsEnabledDiskTemplates(
+      logging_warn_fn, file_storage_dir, enabled_disk_templates,
+      constants.DT_GLUSTER)
 
 
 def CheckCompressionTools(tools):
@@ -2987,7 +3000,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     """
     assert (file_disk_template in utils.storage.GetDiskTemplatesOfStorageTypes(
-              constants.ST_FILE, constants.ST_SHARED_FILE
+              constants.ST_FILE, constants.ST_SHARED_FILE, constants.ST_GLUSTER
            ))
 
     cluster = self.cfg.GetClusterInfo()
@@ -3019,6 +3032,17 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         ninfo, nresult, constants.DT_SHARED_FILE,
         constants.NV_SHARED_FILE_STORAGE_PATH,
         constants.CV_ENODESHAREDFILESTORAGEPATHUNUSABLE)
+
+  def _VerifyGlusterStoragePaths(self, ninfo, nresult):
+    """Verifies (file) storage paths.
+
+    @see: C{_VerifyStoragePaths}
+
+    """
+    self._VerifyStoragePaths(
+        ninfo, nresult, constants.DT_GLUSTER,
+        constants.NV_GLUSTER_STORAGE_PATH,
+        constants.CV_ENODEGLUSTERSTORAGEPATHUNUSABLE)
 
   def _VerifyOob(self, ninfo, nresult):
     """Verifies out of band functionality of a node.
@@ -3289,7 +3313,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     """
     return ([], list(self.my_node_info.keys()))
 
-  def Exec(self, feedback_fn):
+  def Exec(self, feedback_fn): # pylint: disable=R0915
     """Verify integrity of the node group, performing various test on nodes.
 
     """
@@ -3588,6 +3612,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                                            node_i.uuid == master_node_uuid)
       self._VerifyFileStoragePaths(node_i, nresult)
       self._VerifySharedFileStoragePaths(node_i, nresult)
+      self._VerifyGlusterStoragePaths(node_i, nresult)
 
       if nimg.vm_capable:
         self._UpdateVerifyNodeLVM(node_i, nresult, vg_name, nimg)
