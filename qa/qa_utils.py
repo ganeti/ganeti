@@ -320,6 +320,15 @@ def CloseMultiplexers():
     utils.RemoveFile(sname)
 
 
+def _GetCommandStdout(proc):
+  """Extract the stored standard error, print it and return it.
+
+  """
+  out = proc.stdout.read()
+  sys.stdout.write(out)
+  return out
+
+
 def GetCommandOutput(node, cmd, tty=None, use_multiplexer=True, log_cmd=True,
                      fail=False):
   """Returns the output of a command executed on the given node.
@@ -343,8 +352,9 @@ def GetCommandOutput(node, cmd, tty=None, use_multiplexer=True, log_cmd=True,
                                       use_multiplexer=use_multiplexer),
                         stdout=subprocess.PIPE, log_cmd=log_cmd)
   rcode = p.wait()
+  out = _GetCommandStdout(p)
   _AssertRetCode(rcode, fail, cmd, node)
-  return p.stdout.read()
+  return out
 
 
 def GetObjectInfo(infocmd):
@@ -385,7 +395,7 @@ def UploadFile(node, src):
     AssertEqual(p.wait(), 0)
 
     # Return temporary filename
-    return p.stdout.read().strip()
+    return _GetCommandStdout(p).strip()
   finally:
     f.close()
 
@@ -414,7 +424,7 @@ def UploadData(node, data, mode=0600, filename=None):
   AssertEqual(p.wait(), 0)
 
   # Return temporary filename
-  return p.stdout.read().strip()
+  return _GetCommandStdout(p).strip()
 
 
 def BackupFile(node, path):
