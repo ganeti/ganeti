@@ -235,7 +235,7 @@ def _SubmitInstanceCreationJob(instance, disk_template=None):
   if disk_template is None:
     disk_template = qa_config.GetDefaultDiskTemplate()
   try:
-    cmd = (["gnt-instance", "add", "--submit", "--opportunisitic-locking",
+    cmd = (["gnt-instance", "add", "--submit", "--opportunistic-locking",
             "--os-type=%s" % qa_config.get("os"),
             "--disk-template=%s" % disk_template] +
            GetGenericAddParameters(instance, disk_template))
