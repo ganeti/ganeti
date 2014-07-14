@@ -2864,11 +2864,8 @@ class ConfigWriter(object):
       self._WriteConfig()
       self._UnlockedDropECReservations(_UPGRADE_CONFIG_JID)
     else:
-      config_errors = self._UnlockedVerifyConfig()
-      if config_errors:
-        errmsg = ("Loaded configuration data is not consistent: %s" %
-                  (utils.CommaJoin(config_errors)))
-        logging.critical(errmsg)
+      if self._offline:
+        self._UnlockedVerifyConfigAndLog()
 
   def _WriteConfig(self, destination=None):
     """Write the configuration data to persistent storage.
