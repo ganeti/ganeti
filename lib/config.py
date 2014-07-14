@@ -1138,7 +1138,7 @@ class ConfigWriter(object):
                 constants.NDS_PARAMETER_TYPES)
 
     # drbd minors check
-    logging.debug("The check for DRBD map needs to be implemented in WConfd")
+    # FIXME: The check for DRBD map needs to be implemented in WConfd
 
     # IP checks
     default_nicparams = cluster.nicparams[constants.PP_DEFAULT]
