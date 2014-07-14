@@ -1200,7 +1200,7 @@ class ConfigWriter(object):
     # configuration has already been modified, and we can't revert;
     # the best we can do is to warn the user and save as is, leaving
     # recovery to the user
-    config_errors = _UnlockedVerifyConfig
+    config_errors = self._UnlockedVerifyConfig()
     if config_errors:
       errmsg = ("Configuration data is not consistent: %s" %
                 (utils.CommaJoin(config_errors)))
