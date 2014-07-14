@@ -64,6 +64,13 @@ class TestGetStorageUnitForDiskTemplate(unittest.TestCase):
     self.assertEqual(storage_type, constants.ST_SHARED_FILE)
     self.assertEqual(storage_key, self._cluster.shared_file_storage_dir)
 
+  def testGetDefaultStorageUnitForDiskTemplateGluster(self):
+    (storage_type, storage_key) = \
+        storage._GetDefaultStorageUnitForDiskTemplate(self._cfg,
+                                                      constants.DT_GLUSTER)
+    self.assertEqual(storage_type, constants.ST_GLUSTER)
+    self.assertEqual(storage_key, self._cluster.gluster_storage_dir)
+
   def testGetDefaultStorageUnitForDiskTemplateDiskless(self):
     (storage_type, storage_key) = \
         storage._GetDefaultStorageUnitForDiskTemplate(self._cfg,
@@ -80,9 +87,10 @@ class TestGetStorageUnits(unittest.TestCase):
     self._cfg = mock.Mock()
 
   def testGetStorageUnits(self):
-    disk_templates = constants.DTS_FILEBASED - frozenset(
-      storage.GetDiskTemplatesOfStorageTypes(constants.ST_SHARED_FILE)
-    )
+    sts_non_reporting = \
+      storage.GetDiskTemplatesOfStorageTypes(constants.ST_GLUSTER,
+                                             constants.ST_SHARED_FILE)
+    disk_templates = constants.DTS_FILEBASED - frozenset(sts_non_reporting)
     storage_units = storage.GetStorageUnits(self._cfg, disk_templates)
     self.assertEqual(len(storage_units), len(disk_templates))
 
