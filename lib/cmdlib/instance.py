@@ -1845,6 +1845,8 @@ class LUInstanceRename(LogicalUnit):
       raise errors.OpPrereqError("IP address check requires a name check",
                                  errors.ECODE_INVAL)
 
+    self._new_name_resolved = False
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -1862,6 +1864,22 @@ class LUInstanceRename(LogicalUnit):
     nl = [self.cfg.GetMasterNode()] + \
       list(self.cfg.GetInstanceNodes(self.instance.uuid))
     return (nl, nl)
+
+  def _PerformChecksAndResolveNewName(self):
+    """Checks and resolves the new name, storing the FQDN, if permitted.
+
+    """
+    if self._new_name_resolved or not self.op.name_check:
+      return
+
+    hostname = _CheckHostnameSane(self, self.op.new_name)
+    self.op.new_name = hostname.name
+    if (self.op.ip_check and
+        netutils.TcpPing(hostname.ip, constants.DEFAULT_NODED_PORT)):
+      raise errors.OpPrereqError("IP %s of instance %s already in use" %
+                                 (hostname.ip, self.op.new_name),
+                                 errors.ECODE_NOTUNIQUE)
+    self._new_name_resolved = True
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -1888,21 +1906,20 @@ class LUInstanceRename(LogicalUnit):
                        msg="cannot rename")
     self.instance = instance
 
-    new_name = self.op.new_name
-    if self.op.name_check:
-      hostname = _CheckHostnameSane(self, new_name)
-      new_name = self.op.new_name = hostname.name
-      if (self.op.ip_check and
-          netutils.TcpPing(hostname.ip, constants.DEFAULT_NODED_PORT)):
-        raise errors.OpPrereqError("IP %s of instance %s already in use" %
-                                   (hostname.ip, new_name),
-                                   errors.ECODE_NOTUNIQUE)
+    self._PerformChecksAndResolveNewName()
 
-    if new_name != instance.name:
-      CheckInstanceExistence(self, new_name)
+    if self.op.new_name != instance.name:
+      CheckInstanceExistence(self, self.op.new_name)
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
+
+    # Note that this call might not resolve anything if name checks have been
+    # disabled in the opcode. In this case, we might have a renaming collision
+    # if a shortened name and a full name are used simultaneously, as we will
+    # have two different locks. However, at that point the user has taken away
+    # the tools necessary to detect this issue.
+    self._PerformChecksAndResolveNewName()
 
     # Used to prevent instance namespace collisions.
     if self.op.new_name != self.op.instance_name:
