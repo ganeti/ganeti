@@ -637,3 +637,18 @@ def CheckCompressionTool(lu, compression_tool):
       "Compression tool not allowed, tools allowed are [%s]"
       % ", ".join(allowed_tools)
     )
+
+
+def CheckInstanceExistence(lu, instance_name):
+  """Raises an error if an instance with the given name exists already.
+
+  @type instance_name: string
+  @param instance_name: The name of the instance.
+
+  To be used in the locking phase.
+
+  """
+  if instance_name in \
+     [inst.name for inst in lu.cfg.GetAllInstancesInfo().values()]:
+    raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
+                               instance_name, errors.ECODE_EXISTS)

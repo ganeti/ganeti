@@ -74,7 +74,7 @@ from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   ReleaseLocks, CheckNodeVmCapable, CheckTargetNodeIPolicy, \
   GetInstanceInfoText, RemoveDisks, CheckNodeFreeMemory, \
   CheckInstanceBridgesExist, CheckNicsBridgesExist, UpdateMetadata, \
-  CheckCompressionTool
+  CheckCompressionTool, CheckInstanceExistence
 import ganeti.masterd.instance
 
 
@@ -585,10 +585,7 @@ class LUInstanceCreate(LogicalUnit):
 
     # this is just a preventive check, but someone might still add this
     # instance in the meantime, and creation will fail at lock-add time
-    if self.op.instance_name in\
-      [inst.name for inst in self.cfg.GetAllInstancesInfo().values()]:
-      raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
-                                 self.op.instance_name, errors.ECODE_EXISTS)
+    CheckInstanceExistence(self, self.op.instance_name)
 
     self.add_locks[locking.LEVEL_INSTANCE] = self.op.instance_name
 
@@ -1906,11 +1903,8 @@ class LUInstanceRename(LogicalUnit):
                                    (hostname.ip, new_name),
                                    errors.ECODE_NOTUNIQUE)
 
-    instance_names = [inst.name for
-                      inst in self.cfg.GetAllInstancesInfo().values()]
-    if new_name in instance_names and new_name != instance.name:
-      raise errors.OpPrereqError("Instance '%s' is already in the cluster" %
-                                 new_name, errors.ECODE_EXISTS)
+    if new_name != instance.name:
+      CheckInstanceExistence(self, new_name)
 
   def Exec(self, feedback_fn):
     """Rename the instance.
