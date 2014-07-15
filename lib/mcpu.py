@@ -341,6 +341,60 @@ class Processor(object):
     if not self._enable_locks:
       raise errors.ProgrammerError("Attempted to use disabled locks")
 
+  def _RequestAndWait(self, request, timeout):
+    """Request locks from WConfD and wait for them to be granted.
+
+    @type request: list
+    @param request: the lock request to be sent to WConfD
+    @type timeout: float
+    @param timeout: the time to wait for the request to be granted
+    @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
+        amount of time; in this case, locks still might be acquired or a request
+        pending.
+
+    """
+    logging.debug("Trying %ss to request %s for %s",
+                  timeout, request, self._wconfdcontext)
+    if self._cbs:
+      priority = self._cbs.CurrentPriority() # pylint: disable=W0612
+    else:
+      priority = None
+
+    if priority is None:
+      priority = constants.OP_PRIO_DEFAULT
+
+    ## Expect a signal
+    if sighupReceived[0]:
+      logging.warning("Ignoring unexpected SIGHUP")
+    sighupReceived[0] = False
+
+    # Request locks
+    self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, priority,
+                                            request)
+    pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
+
+    if pending:
+      def _HasPending():
+        if sighupReceived[0]:
+          return self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
+        else:
+          return True
+
+      pending = utils.SimpleRetry(False, _HasPending, 0.05, timeout)
+
+      signal = sighupReceived[0]
+
+      if pending:
+        pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
+
+      if pending and signal:
+        logging.warning("Ignoring unexpected SIGHUP")
+      sighupReceived[0] = False
+
+    logging.debug("Finished trying. Pending: %s", pending)
+    if pending:
+      raise LockAcquireTimeout()
+
   def _AcquireLocks(self, level, names, shared, opportunistic, timeout,
                     opportunistic_count=1):
     """Acquires locks via the Ganeti lock manager.
@@ -356,7 +410,8 @@ class Processor(object):
     @type timeout: None or float
     @param timeout: Timeout for acquiring the locks
     @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
-        amount of time
+        amount of time; in this case, locks still might be acquired or a request
+        pending.
 
     """
     self._CheckLocksEnabled()
@@ -432,42 +487,7 @@ class Processor(object):
       if locks == []:
         raise LockAcquireTimeout()
     else:
-      logging.debug("Trying %ss to request %s for %s",
-                    timeout, request, self._wconfdcontext)
-      ## Expect a signal
-      if sighupReceived[0]:
-        logging.warning("Ignoring unexpected SIGHUP")
-      sighupReceived[0] = False
-
-      # Request locks
-      self.wconfd.Client().UpdateLocksWaiting(self._wconfdcontext, priority,
-                                              request)
-      pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
-
-      if pending:
-        def _HasPending():
-          if sighupReceived[0]:
-            return self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
-          else:
-            return True
-
-        pending = utils.SimpleRetry(False, _HasPending, 0.05, timeout)
-
-        signal = sighupReceived[0]
-
-        if pending:
-          pending = self.wconfd.Client().HasPendingRequest(self._wconfdcontext)
-
-        if pending and signal:
-          logging.warning("Ignoring unexpected SIGHUP")
-        sighupReceived[0] = False
-
-      logging.debug("Finished trying. Pending: %s", pending)
-      if pending:
-        # drop the pending request and all locks potentially obtained in the
-        # time since the last poll.
-        self.wconfd.Client().FreeLocksLevel(self._wconfdcontext, levelname)
-        raise LockAcquireTimeout()
+      self._RequestAndWait(request, timeout)
 
     return locks
 
