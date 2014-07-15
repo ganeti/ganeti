@@ -24,7 +24,11 @@ set -o pipefail
 export PYTHON=${PYTHON:=python}
 
 GNTC=daemons/ganeti-cleaner
-CCE=tools/check-cert-expired
+CCE=$PWD/tools/check-cert-expired
+
+if [ "x$PYTHONPATH" = "x." ]
+then export PYTHONPATH=$PWD
+fi
 
 err() {
   echo "$@"
