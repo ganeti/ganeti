@@ -340,11 +340,14 @@ failJobs cfg qstate jobs = do
   modifyJobs qstate $ onRunningJobs rmJobs
   let trySaveJob :: JobWithStat -> ResultT String IO ()
       trySaveJob = (() <$) . writeAndReplicateJob cfg qdir . jJob
-      reason jid = ( "gnt:daemon:luxid:startjobs"
-                   , "job " ++ show (fromJobId jid) ++ " failed to start"
-                   , reasonTrailTimestamp now )
-      failJob job = failQueuedJob (reason $ qjId job) now job
-  mapM_ (runResultT . trySaveJob . over jJobL failJob . fst) jobs
+      reason jid msg =
+        ( "gnt:daemon:luxid:startjobs"
+        , "job " ++ show (fromJobId jid) ++ " failed to start: " ++ msg
+        , reasonTrailTimestamp now )
+      failJob err job = failQueuedJob (reason (qjId job) (show err)) now job
+      failAndSaveJobWithStat (jws, err) =
+        trySaveJob . over jJobL (failJob err) $ jws
+  mapM_ (runResultT . failAndSaveJobWithStat) jobs
   logDebug $ "Failed jobs " ++ sjobs
 
 -- | Schedule jobs to be run. This is the IO wrapper around the

@@ -273,13 +273,16 @@ cancelQueuedJob now job =
   let ops' = map (cancelOpCode now) $ qjOps job
   in job { qjOps = ops', qjEndTimestamp = Just now }
 
--- | Set the state of a QueuedOpCode to canceled.
+-- | Set the state of a QueuedOpCode to failed
+-- and set the Op result using the given reason message.
 failOpCode :: ReasonElem -> Timestamp -> QueuedOpCode -> QueuedOpCode
-failOpCode reason now op =
+failOpCode reason@(_, msg, _) now op =
   over (qoInputL . validOpCodeL . metaParamsL . opReasonL) (++ [reason])
-  op { qoStatus = OP_STATUS_ERROR, qoEndTimestamp = Just now }
+  op { qoStatus = OP_STATUS_ERROR
+     , qoResult = Text.JSON.JSString . Text.JSON.toJSString $ msg
+     , qoEndTimestamp = Just now }
 
--- | Transform a QueuedJob that has not been started into its canceled form.
+-- | Transform a QueuedJob that has not been started into its failed form.
 failQueuedJob :: ReasonElem -> Timestamp -> QueuedJob -> QueuedJob
 failQueuedJob reason now job =
   let ops' = map (failOpCode reason now) $ qjOps job
