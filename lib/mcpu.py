@@ -396,7 +396,7 @@ class Processor(object):
       raise LockAcquireTimeout()
 
   def _AcquireLocks(self, level, names, shared, opportunistic, timeout,
-                    opportunistic_count=1):
+                    opportunistic_count=1, request_only=False):
     """Acquires locks via the Ganeti lock manager.
 
     @type level: int
@@ -409,6 +409,8 @@ class Processor(object):
     @param opportunistic: Whether to acquire opportunistically
     @type timeout: None or float
     @param timeout: Timeout for acquiring the locks
+    @type request_only: bool
+    @param request_only: do not acquire the locks, just return the request
     @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
         amount of time; in this case, locks still might be acquired or a request
         pending.
@@ -457,6 +459,10 @@ class Processor(object):
       request = [[lock, "shared"] for lock in locks]
     else:
       request = [[lock, "exclusive"] for lock in locks]
+
+    if request_only:
+      logging.debug("Lock request for level %s is %s", level, request)
+      return request
 
     if timeout is None:
       ## Note: once we are so desperate for locks to request them
@@ -531,7 +537,7 @@ class Processor(object):
   def BuildHooksManager(self, lu):
     return self.hmclass.BuildFromLu(lu.rpc.call_hooks_runner, lu)
 
-  def _LockAndExecLU(self, lu, level, calc_timeout):
+  def _LockAndExecLU(self, lu, level, calc_timeout, pending=None):
     """Execute a Logical Unit, with the needed locks.
 
     This is a recursive function that starts locking the given level, and
@@ -539,10 +545,20 @@ class Processor(object):
     given LU and its opcodes.
 
     """
+    pending = pending or []
+    logging.debug("Looking at locks of level %s, still need to obtain %s",
+                  level, pending)
     adding_locks = level in lu.add_locks
     acquiring_locks = level in lu.needed_locks
 
     if level not in locking.LEVELS:
+      if pending:
+        self._RequestAndWait(pending, calc_timeout())
+        lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
+        pending = []
+
+      logging.debug("Finished acquiring locks")
+
       _VerifyLocks(lu)
 
       if self._cbs:
@@ -565,6 +581,13 @@ class Processor(object):
 
     # Determine if the acquiring is opportunistic up front
     opportunistic = lu.opportunistic_locks[level]
+
+    dont_collate = lu.dont_collate_locks[level]
+
+    if dont_collate and pending:
+      self._RequestAndWait(pending, calc_timeout())
+      lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
+      pending = []
 
     if adding_locks and opportunistic:
       # We could simultaneously acquire locks opportunistically and add new
@@ -596,19 +619,30 @@ class Processor(object):
         if adding_locks:
           needed_locks.extend(_LockList(lu.add_locks[level]))
 
-        self._AcquireLocks(level, needed_locks, share, opportunistic,
-                           calc_timeout(),
-                           opportunistic_count=opportunistic_count)
-        lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
+        timeout = calc_timeout()
+        if timeout is not None and not opportunistic:
+          pending = pending + self._AcquireLocks(level, needed_locks, share,
+                                                 opportunistic, timeout,
+                                                 request_only=True)
+        else:
+          if pending:
+            self._RequestAndWait(pending, calc_timeout())
+            lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
+            pending = []
+          self._AcquireLocks(level, needed_locks, share, opportunistic,
+                             timeout,
+                             opportunistic_count=opportunistic_count)
+          lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
 
-        result = self._LockAndExecLU(lu, level + 1, calc_timeout)
+        result = self._LockAndExecLU(lu, level + 1, calc_timeout,
+                                     pending=pending)
       finally:
         levelname = locking.LEVEL_NAMES[level]
         logging.debug("Freeing locks at level %s for %s",
                       levelname, self._wconfdcontext)
         self.wconfd.Client().FreeLocksLevel(self._wconfdcontext, levelname)
     else:
-      result = self._LockAndExecLU(lu, level + 1, calc_timeout)
+      result = self._LockAndExecLU(lu, level + 1, calc_timeout, pending=pending)
 
     return result
 
