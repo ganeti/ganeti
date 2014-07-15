@@ -1840,6 +1840,7 @@ class LUInstanceRename(LogicalUnit):
   """
   HPATH = "instance-rename"
   HTYPE = constants.HTYPE_INSTANCE
+  REQ_BGL = False
 
   def CheckArguments(self):
     """Check arguments.
@@ -1906,6 +1907,14 @@ class LUInstanceRename(LogicalUnit):
     if new_name != instance.name:
       CheckInstanceExistence(self, new_name)
 
+  def ExpandNames(self):
+    self._ExpandAndLockInstance()
+
+    # Used to prevent instance namespace collisions.
+    if self.op.new_name != self.op.instance_name:
+      CheckInstanceExistence(self, self.op.new_name)
+      self.add_locks[locking.LEVEL_INSTANCE] = self.op.new_name
+
   def Exec(self, feedback_fn):
     """Rename the instance.
 
@@ -1921,10 +1930,10 @@ class LUInstanceRename(LogicalUnit):
       rename_file_storage = True
 
     self.cfg.RenameInstance(self.instance.uuid, self.op.new_name)
-    # Change the instance lock. This is definitely safe while we hold the BGL.
-    # Otherwise the new lock would have to be added in acquired mode.
-    assert self.REQ_BGL
-    assert locking.BGL in self.owned_locks(locking.LEVEL_CLUSTER)
+
+    # Assert that we have both the locks needed
+    assert old_name in self.owned_locks(locking.LEVEL_INSTANCE)
+    assert self.op.new_name in self.owned_locks(locking.LEVEL_INSTANCE)
 
     # re-read the instance from the configuration after rename
     renamed_inst = self.cfg.GetInstanceInfo(self.instance.uuid)
