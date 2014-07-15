@@ -302,14 +302,20 @@ def _VerifyLocks(lu, _mode_whitelist=_NODE_ALLOC_MODE_WHITELIST,
 def _LockList(names):
   """If 'names' is a string, make it a single-element list.
 
-  @type names: list or string
+  @type names: list or string or NoneType
   @param names: Lock names
   @rtype: a list of strings
   @return: if 'names' argument is an iterable, a list of it;
-      if it's a string, make it a one-element list
+      if it's a string, make it a one-element list;
+      if L{locking.ALL_SET}, L{locking.ALL_SET}
 
   """
-  return [names] if isinstance(names, basestring) else list(names)
+  if names == locking.ALL_SET:
+    return names
+  elif isinstance(names, basestring):
+    return [names]
+  else:
+    return list(names)
 
 
 class Processor(object):
