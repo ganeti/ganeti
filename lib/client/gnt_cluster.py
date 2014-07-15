@@ -1881,7 +1881,8 @@ def _UpgradeBeforeConfigurationChange(versionstring):
   ToStdout("Backing up configuration as %s" % backuptar)
   if not _RunCommandAndReport(["mkdir", "-p", pathutils.BACKUP_DIR]):
     return (False, rollback)
-  if not _RunCommandAndReport(["tar", "cf", backuptar,
+  if not _RunCommandAndReport(["tar", "-cf", backuptar,
+                               "--exclude=queue/archive",
                                pathutils.DATA_DIR]):
     return (False, rollback)
 
