@@ -550,35 +550,42 @@ class Processor(object):
         raise errors.OpExecError("Internal assertion error: please report"
                                  " this as a bug.\nError message: '%s';"
                                  " location:\n%s" % (str(err), err_info[-1]))
+      return result
 
-    elif adding_locks and acquiring_locks:
-      # We could both acquire and add locks at the same level, but for now we
-      # don't need this, so we'll avoid the complicated code needed.
-      raise NotImplementedError("Can't declare locks to acquire when adding"
-                                " others")
+    # Determine if the acquiring is opportunistic up front
+    opportunistic = lu.opportunistic_locks[level]
 
-    elif adding_locks or acquiring_locks:
+    if adding_locks and opportunistic:
+      # We could simultaneously acquire locks opportunistically and add new
+      # ones, but that would require altering the API, and no use cases are
+      # present in the system at the moment.
+      raise NotImplementedError("Can't opportunistically acquire locks when"
+                                " adding new ones")
+
+    if adding_locks and acquiring_locks and \
+       lu.needed_locks[level] == locking.ALL_SET:
+      # It would also probably be possible to acquire all locks of a certain
+      # type while adding new locks, but there is no use case at the moment.
+      raise NotImplementedError("Can't request all locks of a certain level"
+                                " and add new locks")
+
+    if adding_locks or acquiring_locks:
       self._CheckLocksEnabled()
 
       lu.DeclareLocks(level)
       share = lu.share_locks[level]
-      opportunistic = lu.opportunistic_locks[level]
       opportunistic_count = lu.opportunistic_locks_count[level]
 
       try:
-        assert adding_locks ^ acquiring_locks, \
-          "Locks must be either added or acquired"
-
         if acquiring_locks:
-          # Acquiring locks
-          needed_locks = lu.needed_locks[level]
-          use_opportunistic = opportunistic
+          needed_locks = _LockList(lu.needed_locks[level])
         else:
-          # Adding locks
-          needed_locks = _LockList(lu.add_locks[level])
-          use_opportunistic = False
+          needed_locks = []
 
-        self._AcquireLocks(level, needed_locks, share, use_opportunistic,
+        if adding_locks:
+          needed_locks.extend(_LockList(lu.add_locks[level]))
+
+        self._AcquireLocks(level, needed_locks, share, opportunistic,
                            calc_timeout(),
                            opportunistic_count=opportunistic_count)
         lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
