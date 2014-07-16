@@ -844,6 +844,8 @@ class LUGroupVerifyDisks(NoHooksLU):
       # acquire the node allocation lock as well.
       locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
       }
+    self.dont_collate_locks[locking.LEVEL_NODEGROUP] = True
+    self.dont_collate_locks[locking.LEVEL_NODE] = True
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_INSTANCE:
