@@ -113,6 +113,9 @@ exec >>$LOG_FILE 2>&1
 
 echo "Cleaner started at $(date)"
 
+# Switch to a working directory accessible to the cleaner
+cd $CLEANER_LOG_DIR
+
 # Remove old cleaner log files
 find $CLEANER_LOG_DIR -maxdepth 1 -type f | sort | head -n -$KEEP_LOGS | \
 xargs -r rm -vf
