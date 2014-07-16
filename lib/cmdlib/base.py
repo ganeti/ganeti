@@ -80,7 +80,7 @@ class LUWConfdClient(object):
       self.lu.wconfd.Client().ListLocks(self.lu.wconfdcontext)
 
 
-class LogicalUnit(object):
+class LogicalUnit(object): # pylint: disable=R0902
   """Logical Unit base class.
 
   Subclasses must follow these rules:
@@ -99,6 +99,9 @@ class LogicalUnit(object):
       in dry-run mode (signalled by opcode dry_run parameter)
 
   """
+  # This class has more than 20 instance variables, but at most have sensible
+  # defaults and are used in a declartive way, this is not a problem.
+
   HPATH = None
   HTYPE = None
   REQ_BGL = True
@@ -132,6 +135,7 @@ class LogicalUnit(object):
     self.share_locks = dict.fromkeys(locking.LEVELS, 0)
     self.opportunistic_locks = dict.fromkeys(locking.LEVELS, False)
     self.opportunistic_locks_count = dict.fromkeys(locking.LEVELS, 1)
+    self.dont_collate_locks = dict.fromkeys(locking.LEVELS, False)
 
     self.add_locks = {}
 
