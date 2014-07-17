@@ -66,6 +66,9 @@ class LUInstanceQueryData(NoHooksLU):
       self.needed_locks[locking.LEVEL_NODE] = []
       self.needed_locks[locking.LEVEL_NETWORK] = []
       self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+      self.dont_collate_locks[locking.LEVEL_NODEGROUP] = True
+      self.dont_collate_locks[locking.LEVEL_NODE] = True
+      self.dont_collate_locks[locking.LEVEL_NETWORK] = True
 
   def DeclareLocks(self, level):
     if self.op.use_locking:
