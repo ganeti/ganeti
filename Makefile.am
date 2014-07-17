@@ -308,6 +308,7 @@ CLEANFILES = \
 	src/ganeti-confd \
 	src/ganeti-wconfd \
 	src/ganeti-luxid \
+	src/ganeti-metad \
 	src/ganeti-mond \
 	.hpc/*.mix src/*.tix test/hs/*.tix *.tix \
 	doc/hs-lint.html
@@ -1223,7 +1224,14 @@ dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
 
 nodist_sbin_SCRIPTS = \
-	daemons/ganeti-cleaner
+	daemons/ganeti-cleaner \
+  src/ganeti-kvmd \
+  src/ganeti-luxid \
+  src/ganeti-metad \
+  src/ganeti-wconfd
+
+src/ganeti-luxid: src/hluxid
+	cp -f $< $@
 
 # strip path prefixes off the sbin scripts
 all_sbin_scripts = \
@@ -1234,14 +1242,7 @@ if ENABLE_CONFD
 src/ganeti-confd: src/hconfd
 	cp -f $< $@
 
-src/ganeti-luxid: src/hluxid
-	cp -f $< $@
-
 nodist_sbin_SCRIPTS += src/ganeti-confd
-nodist_sbin_SCRIPTS += src/ganeti-wconfd
-nodist_sbin_SCRIPTS += src/ganeti-luxid
-nodist_sbin_SCRIPTS += src/ganeti-kvmd
-nodist_sbin_SCRIPTS += src/ganeti-metad
 endif
 
 if ENABLE_MOND
