@@ -633,6 +633,18 @@ class _QaConfig(object):
     else:
       return None
 
+  def GetModifySshSetup(self):
+    """Return whether to modify the SSH setup or not.
+
+    This specified whether Ganeti should create and distribute SSH
+    keys for the nodes or not. The default is 'True'.
+
+    """
+    if self.get("modify_ssh_setup") is None:
+      return True
+    else:
+      return self.get("modify_ssh_setup")
+
 
 def Load(path):
   """Loads the passed configuration file.
@@ -779,6 +791,13 @@ def GetDefaultDiskTemplate(*args):
 
   """
   return GetConfig().GetDefaultDiskTemplate(*args)
+
+
+def GetModifySshSetup(*args):
+  """Wrapper for L{_QaConfig.GetModifySshSetup}.
+
+  """
+  return GetConfig().GetModifySshSetup(*args)
 
 
 def GetMasterNode():

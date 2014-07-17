@@ -108,6 +108,8 @@
   "# Repository containing additional files for the QA": null,
   "# qa-storage": "http://example.com",
 
+  "modify_ssh_setup": true,
+
   "nodes": [
     {
       "# Master node": null,
