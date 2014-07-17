@@ -326,6 +326,9 @@ endif
 if ENABLE_MOND
 HS_GENERATED_FILES += src/ganeti-mond
 endif
+if ENABLE_METADATA
+HS_GENERATED_FILES += src/ganeti-metad
+endif
 
 built_base_sources = \
 	stamp-directories \
@@ -669,7 +672,6 @@ endif
 # Haskell programs to be compiled by "make really-all"
 HS_COMPILE_PROGS = \
 	src/ganeti-kvmd \
-	src/ganeti-metad \
 	src/ganeti-wconfd \
 	src/hluxid \
 	src/hs2py \
@@ -679,6 +681,9 @@ HS_COMPILE_PROGS += src/hconfd
 endif
 if ENABLE_MOND
 HS_COMPILE_PROGS += src/ganeti-mond
+endif
+if ENABLE_METADATA
+HS_COMPILE_PROGS += src/ganeti-metad
 endif
 
 # All Haskell non-test programs to be compiled but not automatically installed
@@ -1227,7 +1232,6 @@ nodist_sbin_SCRIPTS = \
 	daemons/ganeti-cleaner \
   src/ganeti-kvmd \
   src/ganeti-luxid \
-  src/ganeti-metad \
   src/ganeti-wconfd
 
 src/ganeti-luxid: src/hluxid
@@ -1247,6 +1251,10 @@ endif
 
 if ENABLE_MOND
 nodist_sbin_SCRIPTS += src/ganeti-mond
+endif
+
+if ENABLE_METADATA
+nodist_sbin_SCRIPTS += src/ganeti-metad
 endif
 
 python_scripts = \
@@ -2070,6 +2078,7 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DENABLE_CONFD="$(ENABLE_CONFD)" \
 	    -DXEN_CMD="$(XEN_CMD)" \
 	    -DENABLE_RESTRICTED_COMMANDS="$(ENABLE_RESTRICTED_COMMANDS)" \
+	    -DENABLE_METADATA="$(ENABLE_METADATA)" \
 	    -DENABLE_MOND="$(ENABLE_MOND)" \
 	    -DHAS_GNU_LN="$(HAS_GNU_LN)" \
 	    -DMAN_PAGES="$$(for i in $(notdir $(man_MANS)); do \

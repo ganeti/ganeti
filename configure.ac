@@ -586,6 +586,14 @@ AC_ARG_ENABLE([monitoring],
   [],
   [enable_monitoring=check])
 
+# --enable-metadata
+ENABLE_METADATA=
+AC_ARG_ENABLE([metadata],
+  [AS_HELP_STRING([--enable-metadata],
+  [enable the ganeti metadata daemon (default: check)])],
+  [],
+  [enable_metadata=check])
+
 # Check for ghc
 AC_ARG_VAR(GHC, [ghc path])
 AC_PATH_PROG(GHC, [ghc], [])
@@ -709,6 +717,31 @@ if test "$has_monitoring_pkg" = True -a "$has_monitoring_dep" = True; then
 fi
 AC_SUBST(ENABLE_MOND, $has_monitoring)
 AM_CONDITIONAL([ENABLE_MOND], [test "$has_monitoring" = True])
+
+# extra modules for metad functionality; also needed for tests
+METAD_PKG=
+AC_GHC_PKG_CHECK([snap-server], [],
+                 [NS_NODEV=1; METAD_PKG="$METAD_PKG snap-server"])
+has_metad=False
+if test "$enable_metadata" != no; then
+  if test -z "$METAD_PKG"; then
+    has_metad=True
+  elif test "$enable_metadata" = check; then
+    AC_MSG_WARN(m4_normalize([The required extra libraries for metad were
+                              not found ($METAD_PKG), metad disabled]))
+  else
+    AC_MSG_FAILURE(m4_normalize([The metadata functionality was requested, but
+                                 required libraries were not found:
+                                 $METAD_PKG]))
+  fi
+fi
+AC_SUBST(HS_REGEX_PCRE)
+if test "$has_metad" = True; then
+  AC_MSG_NOTICE([Enabling metadata usage])
+fi
+AC_SUBST(ENABLE_METADATA, $has_metad)
+AM_CONDITIONAL([ENABLE_METADATA], [test x$has_metad = xTrue])
+
 
 # development modules
 AC_GHC_PKG_CHECK([QuickCheck-2.*], [], [HS_NODEV=1], t)

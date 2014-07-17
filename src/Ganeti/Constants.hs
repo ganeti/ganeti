@@ -323,6 +323,9 @@ enableConfd = AutoConf.enableConfd
 enableMond :: Bool
 enableMond = AutoConf.enableMond
 
+enableMetad :: Bool
+enableMetad = AutoConf.enableMetad
+
 enableRestrictedCommands :: Bool
 enableRestrictedCommands = AutoConf.enableRestrictedCommands
 
