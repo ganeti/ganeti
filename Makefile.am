@@ -589,6 +589,7 @@ docinput = \
 	doc/design-cpu-speed.rst \
 	doc/design-daemons.rst \
 	doc/design-device-uuid-name.rst \
+	doc/design-disks.rst \
 	doc/design-draft.rst \
 	doc/design-file-based-storage.rst \
 	doc/design-glusterfs-ganeti-support.rst \
@@ -604,6 +605,7 @@ docinput = \
 	doc/design-linuxha.rst \
 	doc/design-lu-generated-jobs.rst \
 	doc/design-monitoring-agent.rst \
+	doc/design-move-instance-improvements.rst \
 	doc/design-multi-reloc.rst \
 	doc/design-multi-version-tests.rst \
 	doc/design-network.rst \
@@ -626,6 +628,7 @@ docinput = \
 	doc/design-shared-storage.rst \
 	doc/design-ssh-ports.rst \
 	doc/design-storagetypes.rst \
+	doc/design-systemd.rst \
 	doc/design-upgrade.rst \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
