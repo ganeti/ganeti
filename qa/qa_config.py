@@ -645,6 +645,29 @@ class _QaConfig(object):
     else:
       return self.get("modify_ssh_setup")
 
+  def GetSshConfig(self):
+    """Returns the SSH configuration necessary to create keys etc.
+
+    @rtype: tuple of (string, string, string, string, string)
+    @return: tuple containing key type ('dsa' or 'rsa'), ssh directory
+      (default '/root/.ssh/'), file path of the private key, file path
+      of the public key, file path of the 'authorized_keys' file
+
+    """
+    key_type = "dsa"
+    if self.get("ssh_key_type") is not None:
+      key_type = self.get("ssh_key_type")
+
+    ssh_dir = "/root/.ssh/"
+    if self.get("ssh_dir") is not None:
+      ssh_dir = self.get("ssh_dir")
+
+    priv_key_file = os.path.join(ssh_dir, "id_%s" % (key_type))
+    pub_key_file = "%s.pub" % priv_key_file
+    auth_key_file = os.path.join(ssh_dir, "authorized_keys")
+
+    return (key_type, ssh_dir, priv_key_file, pub_key_file, auth_key_file)
+
 
 def Load(path):
   """Loads the passed configuration file.
@@ -798,6 +821,13 @@ def GetModifySshSetup(*args):
 
   """
   return GetConfig().GetModifySshSetup(*args)
+
+
+def GetSshConfig(*args):
+  """Wrapper for L{_QaConfig.GetSshConfig}.
+
+  """
+  return GetConfig().GetSshConfig(*args)
 
 
 def GetMasterNode():

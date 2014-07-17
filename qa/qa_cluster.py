@@ -191,6 +191,21 @@ def TestClusterInit(rapi_user, rapi_secret):
   finally:
     fh.close()
 
+  # If we don't modify the SSH setup by Ganeti, we have to ensure connectivity
+  # before
+  if not qa_config.GetModifySshSetup():
+    (key_type, _, priv_key_file, pub_key_file, auth_key_path) = \
+      qa_config.GetSshConfig()
+    AssertCommand("echo -e 'y\n' | ssh-keygen -t %s -f %s -q -N ''"
+                  % (key_type, priv_key_file))
+    AssertCommand("cat %s >> %s" % (pub_key_file, auth_key_path))
+    for node in qa_config.get("nodes"):
+      if node != master:
+        for key_file in [priv_key_file, pub_key_file]:
+          AssertCommand("scp %s %s:%s" % (key_file, node.primary, key_file))
+        AssertCommand("ssh %s \'cat %s >> %s\'"
+                      % (node.primary, pub_key_file, auth_key_path))
+
   # Initialize cluster
   enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
   cmd = [
