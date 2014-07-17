@@ -146,7 +146,7 @@ parseRpc "instance_info"      f =
 parseRpc "all_instances_info" f =
   fromJResult "parsing rpc" (decode f) >>= Ok . KRAllInstancesInfo
 parseRpc "console_instance_info" f =
-  fromJResult "parsing rpc" (decode f) >>= Ok . KRConsoleInstanceInfo
+  fromJResult "parsing rpc" (decode f) >>= Ok . KRInstanceConsoleInfo
 parseRpc "instance_list"      f =
   fromJResult "parsing rpc" (decode f) >>= Ok . KRInstanceList
 parseRpc "node_info"          f =
@@ -167,7 +167,7 @@ parseRpc s _                  = Bad $ "Unknown rpc '" ++ s ++ "'"
 execRpc :: [Node] -> KnownRpc -> IO [[String]]
 execRpc n (KRInstanceInfo        v) = formatRpcRes `fmap` executeRpcCall n v
 execRpc n (KRAllInstancesInfo    v) = formatRpcRes `fmap` executeRpcCall n v
-execRpc n (KRConsoleInstanceInfo v) = formatRpcRes `fmap` executeRpcCall n v
+execRpc n (KRInstanceConsoleInfo v) = formatRpcRes `fmap` executeRpcCall n v
 execRpc n (KRInstanceList        v) = formatRpcRes `fmap` executeRpcCall n v
 execRpc n (KRNodeInfo            v) = formatRpcRes `fmap` executeRpcCall n v
 execRpc n (KRVersion             v) = formatRpcRes `fmap` executeRpcCall n v

@@ -1267,6 +1267,11 @@ def TestClusterMasterFailover():
   master = qa_config.GetMasterNode()
   failovermaster = qa_config.AcquireNode(exclude=master)
 
+  # Flush the configuration to prevent race conditions when loading it
+  # on another node
+  print qa_logging.FormatInfo("Flushing the configuration on the master node")
+  AssertCommand(["gnt-debug", "wconfd", "flushconfig"])
+
   cmd = ["gnt-cluster", "master-failover"]
   node_list_cmd = ["gnt-node", "list"]
   try:

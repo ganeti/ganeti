@@ -725,7 +725,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     target_process = psutil.Process(process_id)
     if cpus == constants.CPU_PINNING_OFF:
-      target_process.set_cpu_affinity(range(psutil.NUM_CPUS))
+      target_process.set_cpu_affinity(range(psutil.cpu_count()))
     else:
       target_process.set_cpu_affinity(cpus)
 

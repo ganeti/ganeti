@@ -308,6 +308,7 @@ CLEANFILES = \
 	src/ganeti-confd \
 	src/ganeti-wconfd \
 	src/ganeti-luxid \
+	src/ganeti-metad \
 	src/ganeti-mond \
 	.hpc/*.mix src/*.tix test/hs/*.tix *.tix \
 	doc/hs-lint.html
@@ -324,6 +325,9 @@ HS_GENERATED_FILES += src/hconfd src/ganeti-confd
 endif
 if ENABLE_MOND
 HS_GENERATED_FILES += src/ganeti-mond
+endif
+if ENABLE_METADATA
+HS_GENERATED_FILES += src/ganeti-metad
 endif
 
 built_base_sources = \
@@ -591,6 +595,7 @@ docinput = \
 	doc/design-daemons.rst \
 	doc/design-device-uuid-name.rst \
 	doc/design-disk-conversion.rst \
+	doc/design-disks.rst \
 	doc/design-draft.rst \
 	doc/design-file-based-storage.rst \
 	doc/design-glusterfs-ganeti-support.rst \
@@ -607,6 +612,7 @@ docinput = \
 	doc/design-linuxha.rst \
 	doc/design-lu-generated-jobs.rst \
 	doc/design-monitoring-agent.rst \
+	doc/design-move-instance-improvements.rst \
 	doc/design-multi-reloc.rst \
 	doc/design-multi-version-tests.rst \
 	doc/design-network.rst \
@@ -629,6 +635,7 @@ docinput = \
 	doc/design-shared-storage.rst \
 	doc/design-ssh-ports.rst \
 	doc/design-storagetypes.rst \
+	doc/design-systemd.rst \
 	doc/design-upgrade.rst \
 	doc/design-virtual-clusters.rst \
 	doc/design-x509-ca.rst \
@@ -668,7 +675,6 @@ endif
 # Haskell programs to be compiled by "make really-all"
 HS_COMPILE_PROGS = \
 	src/ganeti-kvmd \
-	src/ganeti-metad \
 	src/ganeti-wconfd \
 	src/hluxid \
 	src/hs2py \
@@ -678,6 +684,9 @@ HS_COMPILE_PROGS += src/hconfd
 endif
 if ENABLE_MOND
 HS_COMPILE_PROGS += src/ganeti-mond
+endif
+if ENABLE_METADATA
+HS_COMPILE_PROGS += src/ganeti-metad
 endif
 
 # All Haskell non-test programs to be compiled but not automatically installed
@@ -709,8 +718,12 @@ HFLAGS = \
 	-fwarn-tabs \
 	$(GHC_BYVERSION_FLAGS)
 
+HTEST_SUFFIX = hpc
+HPROF_SUFFIX = prof
+
 if HPROFILE
-HFLAGS += -prof -auto-all
+HPROFFLAGS = -prof -fprof-auto-top -osuf $(HPROF_SUFFIX)_o \
+	-hisuf $(HPROF_SUFFIX)_hi -rtsopts
 endif
 if HCOVERAGE
 HFLAGS += -fhpc
@@ -718,8 +731,6 @@ endif
 if HTEST
 HFLAGS += -DTEST
 endif
-
-HTEST_SUFFIX = hpc
 
 HTEST_FLAGS = $(HFLAGS) -fhpc -itest/hs \
 	-osuf .$(HTEST_SUFFIX)_o \
@@ -1161,7 +1172,8 @@ HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
 endif
 Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
               | $(built_base_sources) $(HS_BUILT_SRCS)
-	$(GHC) -M -dep-makefile $@ -dep-suffix $(HTEST_SUFFIX) $(HFLAGS) -itest/hs \
+	$(GHC) -M -dep-makefile $@ -dep-suffix $(HPROF_SUFFIX) \
+		-dep-suffix $(HTEST_SUFFIX) $(HFLAGS) -itest/hs \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
 
 @include_makefile_ghc@
@@ -1171,16 +1183,35 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
 	@$(GHC) -c $(HFLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
+# For TH+profiling we need to compile twice: Once without profiling,
+# and then once with profiling. See
+# http://www.haskell.org/ghc/docs/7.0.4/html/users_guide/template-haskell.html#id636646
+if HPROFILE
+%.$(HPROF_SUFFIX)_o: %.o
+	@echo '[GHC|prof]: $@ <- $^'
+	@$(GHC) -c $(HFLAGS) \
+	  $(HPROFFLAGS) \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) \
+		$(@:%.$(HPROF_SUFFIX)_o=%.hs)
+endif
+
 %.$(HTEST_SUFFIX)_o:
-	@echo '[GHC]: $@ <- $^'
+	@echo '[GHC|test]: $@ <- $^'
 	@$(GHC) -c $(HTEST_FLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
 
 %.hi: %.o ;
 %.$(HTEST_SUFFIX)_hi: %.$(HTEST_SUFFIX)_o ;
+%.$(HPROF_SUFFIX)_hi: %.$(HPROF_SUFFIX)_o ;
 
+if HPROFILE
+$(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
+else
 $(HS_SRC_PROGS): %: %.o | stamp-directories
+endif
+	@echo '[GHC-link]: $@'
 	$(GHC) $(HFLAGS) \
+		$(HPROFFLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
@@ -1192,6 +1223,7 @@ $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
 	       " libraries (see devnotes.rst)" 1>&2; \
 	  exit 1; \
 	fi
+	@echo '[GHC-link|test]: $@'
 	$(GHC) $(HTEST_FLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
@@ -1201,7 +1233,13 @@ dist_sbin_SCRIPTS = \
 	tools/ganeti-listrunner
 
 nodist_sbin_SCRIPTS = \
-	daemons/ganeti-cleaner
+	daemons/ganeti-cleaner \
+  src/ganeti-kvmd \
+  src/ganeti-luxid \
+  src/ganeti-wconfd
+
+src/ganeti-luxid: src/hluxid
+	cp -f $< $@
 
 # strip path prefixes off the sbin scripts
 all_sbin_scripts = \
@@ -1212,18 +1250,15 @@ if ENABLE_CONFD
 src/ganeti-confd: src/hconfd
 	cp -f $< $@
 
-src/ganeti-luxid: src/hluxid
-	cp -f $< $@
-
 nodist_sbin_SCRIPTS += src/ganeti-confd
-nodist_sbin_SCRIPTS += src/ganeti-wconfd
-nodist_sbin_SCRIPTS += src/ganeti-luxid
-nodist_sbin_SCRIPTS += src/ganeti-kvmd
-nodist_sbin_SCRIPTS += src/ganeti-metad
 endif
 
 if ENABLE_MOND
 nodist_sbin_SCRIPTS += src/ganeti-mond
+endif
+
+if ENABLE_METADATA
+nodist_sbin_SCRIPTS += src/ganeti-metad
 endif
 
 python_scripts = \
@@ -2049,6 +2084,7 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DENABLE_CONFD="$(ENABLE_CONFD)" \
 	    -DXEN_CMD="$(XEN_CMD)" \
 	    -DENABLE_RESTRICTED_COMMANDS="$(ENABLE_RESTRICTED_COMMANDS)" \
+	    -DENABLE_METADATA="$(ENABLE_METADATA)" \
 	    -DENABLE_MOND="$(ENABLE_MOND)" \
 	    -DHAS_GNU_LN="$(HAS_GNU_LN)" \
 	    -DMAN_PAGES="$$(for i in $(notdir $(man_MANS)); do \

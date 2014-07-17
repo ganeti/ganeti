@@ -10,8 +10,10 @@
 *~
 *.o
 *.hpc_o
+*.prof_o
 *.hi
 *.hpc_hi
+*.prof_hi
 *.hp
 *.tix
 *.prof

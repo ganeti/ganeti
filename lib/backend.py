@@ -2211,12 +2211,17 @@ def ModifyInstanceMetadata(metadata):
   Uses the Luxi transport layer to communicate with the metadata
   daemon configuration server.  It starts the metadata daemon if it is
   not running.
+  The daemon must be enabled during at configuration time.
 
   @type metadata: dict
   @param metadata: instance metadata obtained by calling
                    L{objects.Instance.ToDict} on an instance object
 
   """
+  if not constants.ENABLE_METAD:
+    raise errors.ProgrammerError("The metadata deamon is disabled, yet"
+                                 " ModifyInstanceMetadata has been called")
+
   if not utils.IsDaemonAlive(constants.METAD):
     result = utils.RunCmd([pathutils.DAEMON_UTIL, "start", constants.METAD])
     if result.failed:

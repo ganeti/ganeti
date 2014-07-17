@@ -1155,7 +1155,7 @@ class ConfigWriter(object):
                 constants.NDS_PARAMETER_TYPES)
 
     # drbd minors check
-    logging.debug("The check for DRBD map needs to be implemented in WConfd")
+    # FIXME: The check for DRBD map needs to be implemented in WConfd
 
     # IP checks
     default_nicparams = cluster.nicparams[constants.PP_DEFAULT]
@@ -1198,6 +1198,33 @@ class ConfigWriter(object):
                       (ip, utils.CommaJoin(owners)))
 
     return result
+
+  def _UnlockedVerifyConfigAndLog(self, feedback_fn=None):
+    """Verify the configuration and log any errors.
+
+    The errors get logged as critical errors and also to the feedback function,
+    if given.
+
+    @param feedback_fn: Callable feedback function
+    @rtype: list
+    @return: a list of error messages; a non-empty list signifies
+        configuration errors
+
+    """
+    assert feedback_fn is None or callable(feedback_fn)
+
+    # Warn on config errors, but don't abort the save - the
+    # configuration has already been modified, and we can't revert;
+    # the best we can do is to warn the user and save as is, leaving
+    # recovery to the user
+    config_errors = self._UnlockedVerifyConfig()
+    if config_errors:
+      errmsg = ("Configuration data is not consistent: %s" %
+                (utils.CommaJoin(config_errors)))
+      logging.critical(errmsg)
+      if feedback_fn:
+        feedback_fn(errmsg)
+    return config_errors
 
   @_ConfigSync(shared=1)
   def VerifyConfig(self):
@@ -2854,30 +2881,13 @@ class ConfigWriter(object):
       self._WriteConfig()
       self._UnlockedDropECReservations(_UPGRADE_CONFIG_JID)
     else:
-      config_errors = self._UnlockedVerifyConfig()
-      if config_errors:
-        errmsg = ("Loaded configuration data is not consistent: %s" %
-                  (utils.CommaJoin(config_errors)))
-        logging.critical(errmsg)
+      if self._offline:
+        self._UnlockedVerifyConfigAndLog()
 
-  def _WriteConfig(self, destination=None, feedback_fn=None):
+  def _WriteConfig(self, destination=None):
     """Write the configuration data to persistent storage.
 
     """
-    assert feedback_fn is None or callable(feedback_fn)
-
-    # Warn on config errors, but don't abort the save - the
-    # configuration has already been modified, and we can't revert;
-    # the best we can do is to warn the user and save as is, leaving
-    # recovery to the user
-    config_errors = self._UnlockedVerifyConfig()
-    if config_errors:
-      errmsg = ("Configuration data is not consistent: %s" %
-                (utils.CommaJoin(config_errors)))
-      logging.critical(errmsg)
-      if feedback_fn:
-        feedback_fn(errmsg)
-
     if destination is None:
       destination = self._cfg_file
 
@@ -3165,7 +3175,9 @@ class ConfigWriter(object):
       # functions from TempRes module.
       self._UnlockedCommitTemporaryIps(ec_id)
 
-    self._WriteConfig(feedback_fn=feedback_fn)
+    # Just verify the configuration with our feedback function.
+    # It will get written automatically by the decorator.
+    self._UnlockedVerifyConfigAndLog(feedback_fn=feedback_fn)
 
   def _UnlockedDropECReservations(self, _ec_id):
     """Drop per-execution-context reservations

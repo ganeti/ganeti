@@ -232,6 +232,9 @@ enableRestrictedCommands = ENABLE_RESTRICTED_COMMANDS
 enableMond :: Bool
 enableMond = ENABLE_MOND
 
+enableMetad :: Bool
+enableMetad = ENABLE_METADATA
+
 hasGnuLn :: Bool
 hasGnuLn = HAS_GNU_LN
 
