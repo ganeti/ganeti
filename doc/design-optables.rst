@@ -205,3 +205,27 @@ jobs. Everybody with appropriate credentials can modify the filter
 rules, not just the originator of a rule. To avoid accidental
 lock-out, requests modifying the queue are executed directly and not
 going through the queue themselves.
+
+
+Additional Ad-Hoc Rate Limiting
+===============================
+
+Besides a general policy to control the job queue, it is often very
+useful to have a lightweight way for one-off rate-limiting. One
+example would be evacuating a node but limiting the number of
+simultaneous instance moves to no overload the replication network.
+
+Therefore, an additional rate limiting is done over the
+:doc:`design-reason-trail` as follows. ``reason`` fields in a reason
+3-tuple starting with ``rate-limit:n:`` where ``n`` is a positive
+integer are considered rate-limiting buckets. A job belongs to a
+rate-limiting bucket if it contains at least one op-code with at least
+one reason-trail 3-tuple with that particular ``reason`` field. The
+scheduler will ensure that, for each rate-limiting bucket, there are
+at most ``n`` jobs belonging to that bucket that are running in
+parallel.
+
+The limiting in the initial example can then be done as follows.
+::
+
+  # gnt-node evacuate --reason='rate-limit:7:operation pink bunny' node1
