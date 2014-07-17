@@ -46,6 +46,7 @@ import Data.Functor ((<$))
 import Data.IORef
 import Data.List
 import Data.Maybe
+import Data.Ord (comparing)
 import qualified Data.Set as S
 import System.INotify
 
@@ -301,7 +302,10 @@ jobEligible queue jWS =
 selectJobsToRun :: Int -> Queue -> (Queue, [JobWithStat])
 selectJobsToRun count queue =
   let n = count - length (qRunning queue) - length (qManipulated queue)
-      chosen = take n . filter (jobEligible queue) $ qEnqueued queue
+      chosen = take n
+               . sortBy (comparing (calcJobPriority . jJob))
+               . filter (jobEligible queue)
+               $ qEnqueued queue
       remain = deleteFirstsBy ((==) `on` (qjId . jJob)) (qEnqueued queue) chosen
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
 
