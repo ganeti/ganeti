@@ -24,7 +24,12 @@ set -o pipefail
 export PYTHON=${PYTHON:=python}
 
 GNTC=daemons/ganeti-cleaner
-CCE=tools/check-cert-expired
+CCE=$PWD/tools/check-cert-expired
+
+# Expand relative PYTHONPATH passed as passed by the test environment.
+if [ "x$PYTHONPATH" = "x.:./test/py" ]
+then export PYTHONPATH=$PWD:$PWD/test/py
+fi
 
 err() {
   echo "$@"
