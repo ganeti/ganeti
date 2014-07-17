@@ -556,6 +556,8 @@ def UpdateMetadata(feedback_fn, rpc, instance,
   """Updates instance metadata on the metadata daemon on the
   instance's primary node.
 
+  If the daemon isn't available (not compiled), do nothing.
+
   In case the RPC fails, this function simply issues a warning and
   proceeds normally.
 
@@ -584,6 +586,9 @@ def UpdateMetadata(feedback_fn, rpc, instance,
   @return: None
 
   """
+  if not constants.ENABLE_METAD:
+    return
+
   data = instance.ToDict()
 
   if osparams_public is not None:
