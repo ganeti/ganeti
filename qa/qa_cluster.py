@@ -200,6 +200,10 @@ def TestClusterInit(rapi_user, rapi_secret):
     "--enabled-disk-templates=%s" %
       ",".join(enabled_disk_templates),
     ]
+
+  if not qa_config.GetModifySshSetup():
+    cmd.append("--no-ssh-init")
+
   if constants.DT_FILE in enabled_disk_templates:
     cmd.append(
         "--file-storage-dir=%s" %

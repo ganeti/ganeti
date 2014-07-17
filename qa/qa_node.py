@@ -48,6 +48,10 @@ def NodeAdd(node, readd=False, group=None):
     cmd.append("--readd")
   if group is not None:
     cmd.extend(["--node-group", group])
+
+  if not qa_config.GetModifySshSetup():
+    cmd.append("--no-node-setup")
+
   cmd.append(node.primary)
 
   AssertCommand(cmd)
@@ -482,6 +486,8 @@ def _BuildSetESCmd(action, value, node_name):
   cmd = ["gnt-node"]
   if action == "add":
     cmd.extend(["add", "--readd"])
+    if not qa_config.GetModifySshSetup():
+      cmd.append("--no-node-setup")
   else:
     cmd.append("modify")
   cmd.extend(["--node-parameters", "exclusive_storage=%s" % value, node_name])
