@@ -200,7 +200,7 @@ function install_cabal {
       http://www.haskell.org/cabal/release/cabal-install-${CABAL_INSTALL_VERSION}/cabal-install-${CABAL_INSTALL_VERSION}.tar.gz
     tar xzf cabal-install.tar.gz
     cd cabal-install-${CABAL_INSTALL_VERSION}
-    ./bootstrap.sh --global
+    EXTRA_CONFIGURE_OPTS="--enable-library-profiling" ./bootstrap.sh --global
   }
   popd
   [ -d "$TDIR" ] && rm -rf "$TDIR"
@@ -259,8 +259,9 @@ case $DIST_RELEASE in
     in_chroot -- \
       cabal update
 
+    # sinec we're using Cabal >=1.16, we can use the parallel install option
     in_chroot -- \
-      cabal install --global \
+      cabal install --global -j --enable-library-profiling \
         attoparsec-0.11.1.0 \
         base64-bytestring-1.0.0.1 \
         blaze-builder-0.3.3.2 \
