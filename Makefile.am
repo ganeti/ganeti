@@ -706,8 +706,12 @@ HFLAGS = \
 	-fwarn-tabs \
 	$(GHC_BYVERSION_FLAGS)
 
+HTEST_SUFFIX = hpc
+HPROF_SUFFIX = prof
+
 if HPROFILE
-HFLAGS += -prof -auto-all
+HPROFFLAGS = -prof -fprof-auto-top -osuf $(HPROF_SUFFIX)_o \
+	-hisuf $(HPROF_SUFFIX)_hi -rtsopts
 endif
 if HCOVERAGE
 HFLAGS += -fhpc
@@ -715,8 +719,6 @@ endif
 if HTEST
 HFLAGS += -DTEST
 endif
-
-HTEST_SUFFIX = hpc
 
 HTEST_FLAGS = $(HFLAGS) -fhpc -itest/hs \
 	-osuf .$(HTEST_SUFFIX)_o \
@@ -1157,7 +1159,8 @@ HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
 endif
 Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
               | $(built_base_sources) $(HS_BUILT_SRCS)
-	$(GHC) -M -dep-makefile $@ -dep-suffix $(HTEST_SUFFIX) $(HFLAGS) -itest/hs \
+	$(GHC) -M -dep-makefile $@ -dep-suffix $(HPROF_SUFFIX) \
+		-dep-suffix $(HTEST_SUFFIX) $(HFLAGS) -itest/hs \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
 
 @include_makefile_ghc@
@@ -1167,16 +1170,35 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
 	@$(GHC) -c $(HFLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
+# For TH+profiling we need to compile twice: Once without profiling,
+# and then once with profiling. See
+# http://www.haskell.org/ghc/docs/7.0.4/html/users_guide/template-haskell.html#id636646
+if HPROFILE
+%.$(HPROF_SUFFIX)_o: %.o
+	@echo '[GHC|prof]: $@ <- $^'
+	@$(GHC) -c $(HFLAGS) \
+	  $(HPROFFLAGS) \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) \
+		$(@:%.$(HPROF_SUFFIX)_o=%.hs)
+endif
+
 %.$(HTEST_SUFFIX)_o:
-	@echo '[GHC]: $@ <- $^'
+	@echo '[GHC|test]: $@ <- $^'
 	@$(GHC) -c $(HTEST_FLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
 
 %.hi: %.o ;
 %.$(HTEST_SUFFIX)_hi: %.$(HTEST_SUFFIX)_o ;
+%.$(HPROF_SUFFIX)_hi: %.$(HPROF_SUFFIX)_o ;
 
+if HPROFILE
+$(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
+else
 $(HS_SRC_PROGS): %: %.o | stamp-directories
+endif
+	@echo '[GHC-link]: $@'
 	$(GHC) $(HFLAGS) \
+		$(HPROFFLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
@@ -1188,6 +1210,7 @@ $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
 	       " libraries (see devnotes.rst)" 1>&2; \
 	  exit 1; \
 	fi
+	@echo '[GHC-link|test]: $@'
 	$(GHC) $(HTEST_FLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
