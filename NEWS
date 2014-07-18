@@ -14,6 +14,13 @@ Incompatible/important changes
   locking did not acquire nodes with enough free resources. The internal retry
   will not use opportunistic locking. In particular, instance creation, even
   if opportunistic locking is set, will never fail with ECODE_TEMP_NORES.
+- The handling of SSH security had undergone a significant change. From
+  this version on, each node has an individual SSH key pair instead of
+  sharing one with all nodes of the cluster. From now on, we also
+  restrict SSH access to master candidates. This means that only master
+  candidates can ssh into other cluster nodes and all
+  non-master-candidates cannot. Refer to the UPGRADE notes
+  for further instructions on the creation and distribution of the keys.
 
 New features
 ~~~~~~~~~~~~
