@@ -66,6 +66,8 @@ module Ganeti.HTools.Node
   , iMem
   , iDsk
   , conflictingPrimaries
+  -- * Generate OpCodes
+  , genPowerOnOpCodes
   -- * Formatting
   , defaultFields
   , showHeader
@@ -92,6 +94,9 @@ import qualified Data.Map as Map
 import Data.Ord (comparing)
 import Text.Printf (printf)
 
+import qualified Ganeti.Constants as C
+import qualified Ganeti.OpCodes as OpCodes
+import Ganeti.Types (OobCommand(..), mkNonEmpty)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.PeerMap as P
@@ -798,6 +803,47 @@ showHeader field =
 -- | String converter for the node list functionality.
 list :: [String] -> Node -> [String]
 list fields t = map (showField t) fields
+
+-- | Generate OpCode for setting a node's offline status
+genOpSetOffline :: (Monad m) => Node -> Bool -> m OpCodes.OpCode
+genOpSetOffline node offlineStatus = do
+  nodeName <- mkNonEmpty (name node)
+  return OpCodes.OpNodeSetParams
+           { OpCodes.opNodeName = nodeName
+           , OpCodes.opNodeUuid = Nothing
+           , OpCodes.opForce = False
+           , OpCodes.opHvState = Nothing
+           , OpCodes.opDiskState = Nothing
+           , OpCodes.opMasterCandidate = Nothing
+           , OpCodes.opOffline = Just offlineStatus
+           , OpCodes.opDrained = Nothing
+           , OpCodes.opAutoPromote = False
+           , OpCodes.opMasterCapable = Nothing
+           , OpCodes.opVmCapable = Nothing
+           , OpCodes.opSecondaryIp = Nothing
+           , OpCodes.opgenericNdParams = Nothing
+           , OpCodes.opPowered = Nothing
+           }
+
+-- | Generate OpCode for applying a OobCommand to the given nodes
+genOobCommand :: (Monad m) => [Node] -> OobCommand -> m OpCodes.OpCode
+genOobCommand nodes command = do
+  names <- mapM (mkNonEmpty . name) nodes
+  return OpCodes.OpOobCommand
+    { OpCodes.opNodeNames = names
+    , OpCodes.opNodeUuids = Nothing
+    , OpCodes.opOobCommand = command
+    , OpCodes.opOobTimeout = C.oobTimeout
+    , OpCodes.opIgnoreStatus = False
+    , OpCodes.opPowerDelay = C.oobPowerDelay
+    }
+
+-- | Generate OpCode for powering on a list of nodes
+genPowerOnOpCodes :: (Monad m) => [Node] -> m [OpCodes.OpCode]
+genPowerOnOpCodes nodes = do
+  opSetParams <- mapM (`genOpSetOffline` False) nodes
+  oobCommand <- genOobCommand nodes OobPowerOn
+  return $ opSetParams ++ [oobCommand]
 
 -- | Constant holding the fields we're displaying by default.
 defaultFields :: [String]

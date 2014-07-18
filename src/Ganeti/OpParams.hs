@@ -846,14 +846,14 @@ pNodeUuids =
 
 pOobCommand :: Field
 pOobCommand =
-  withDoc "OOB command to run" $
-  simpleField "command" [t| OobCommand |]
+  withDoc "OOB command to run" .
+  renameField "OobCommand" $ simpleField "command" [t| OobCommand |]
 
 pOobTimeout :: Field
 pOobTimeout =
   withDoc "Timeout before the OOB helper will be terminated" .
-  defaultField [| C.oobTimeout |] $
-  simpleField "timeout" [t| Int |]
+  defaultField [| C.oobTimeout |] .
+  renameField "OobTimeout" $ simpleField "timeout" [t| Int |]
 
 pIgnoreStatus :: Field
 pIgnoreStatus =
