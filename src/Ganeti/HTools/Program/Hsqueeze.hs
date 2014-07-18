@@ -30,6 +30,7 @@ module Ganeti.HTools.Program.Hsqueeze
   ) where
 
 import Control.Applicative
+import Control.Lens (over)
 import Control.Monad
 import Data.Function
 import Data.List
@@ -48,7 +49,14 @@ import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Loader
 import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Types
+import Ganeti.JQueue (currentTimestamp, reasonTrailTimestamp)
+import Ganeti.JQueue.Objects (Timestamp)
+import qualified Ganeti.Jobs as Jobs
+import Ganeti.OpCodes
+import Ganeti.OpCodes.Lens (metaParamsL, opReasonL)
 import Ganeti.Utils
+
+import Ganeti.Version (version)
 
 -- | Options list and functions.
 options :: IO [OptType]
@@ -57,6 +65,7 @@ options = do
   return
     [ luxi
     , oDataFile
+    , oExecJobs
     , oMinResources
     , oTargetResources
     , oSaveCluster
@@ -68,6 +77,18 @@ options = do
 -- | The list of arguments supported by the program.
 arguments :: [ArgCompletion]
 arguments = []
+
+-- | Wraps an 'OpCode' in a 'MetaOpCode' while also adding a comment
+-- about what generated the opcode.
+annotateOpCode :: Timestamp -> String -> Jobs.Annotator
+annotateOpCode ts comment =
+  over (metaParamsL . opReasonL)
+      (++ [("hsqueeze"
+           , "hsqueeze " ++ version ++ " called"
+           , reasonTrailTimestamp ts
+           )])
+  . setOpComment (comment ++ " " ++ version)
+  . wrapOpCode
 
 -- | The tag-prefix indicating that hsqueeze should consider a node
 -- as being standby.
@@ -198,6 +219,54 @@ instanceFromSpecAndFactor name f spec =
     (floor (f * fromIntegral (iSpecSpindleUse spec)))
     []
 
+-- | Get opcodes for the given move job.
+getMoveOpCodes :: Node.List
+               -> Instance.List
+               -> [JobSet]
+               -> Result [([[OpCode]], String)]
+getMoveOpCodes nl il js = return $ zip (map opcodes js) (map descr js)
+  where opcodes = map (\(_, idx, move, _) ->
+                      Cluster.iMoveToJob nl il idx move)
+        descr job = "Moving instances " ++ commaJoin
+                       (map (\(_, idx, _, _) -> Container.nameOf il idx) job)
+
+-- | Get opcodes for tagging nodes with standby.
+getTagOpCodes ::  [Node.Node] -> Result [([[OpCode]], String)]
+getTagOpCodes nl = return $ zip (map opCode nl) (map descr nl)
+  where
+    opCode node = [[Node.genAddTagsOpCode node ["htools:standby:auto"]]]
+    descr node = "Tagging node " ++ Node.name node ++ " with standby"
+
+-- | Get opcodes for powering off nodes
+getPowerOffOpCodes :: [Node.Node] -> Result [([[OpCode]], String)]
+getPowerOffOpCodes nl = do
+  opcodes <- Node.genPowerOffOpCodes nl
+  return [([opcodes], "Powering off nodes")]
+
+-- | Get opcodes for powering on nodes
+getPowerOnOpCodes :: [Node.Node] -> Result [([[OpCode]], String)]
+getPowerOnOpCodes nl = do
+  opcodes <- Node.genPowerOnOpCodes nl
+  return [([opcodes], "Powering on nodes")]
+
+maybeExecJobs :: Options
+              -> String
+              -> Result [([[OpCode]], String)]
+              -> IO (Result ())
+maybeExecJobs opts comment opcodes =
+  if optExecJobs opts
+    then (case optLuxi opts of
+            Nothing ->
+              return $ Bad "Execution of commands possible only on LUXI"
+            Just master -> do
+              ts <- currentTimestamp
+              let annotator = maybe id setOpPriority (optPriority opts) .
+                              annotateOpCode ts comment
+              case opcodes of
+                Bad msg -> error msg
+                Ok codes -> Jobs.execWithCancel annotator master codes)
+    else return $ Ok ()
+
 -- | Main function.
 main :: Options -> [String] -> IO ()
 main opts args = do
@@ -233,6 +302,11 @@ main opts args = do
       final_off_cdata =
         ini_cdata { cdNodes = fin_off_nl, cdInstances = fin_off_il }
       off_jobs = Cluster.splitJobs off_mvs
+      off_opcodes = liftM concat $ sequence
+                    [ getMoveOpCodes nlf ilf off_jobs
+                    , getTagOpCodes toOffline
+                    , getPowerOffOpCodes toOffline
+                    ]
       off_cmd =
         Cluster.formatCmds off_jobs
         ++ "\necho Tagging Commands\n"
@@ -247,6 +321,8 @@ main opts args = do
       final_on_cdata =
         ini_cdata { cdNodes = fin_on_nl, cdInstances = fin_on_il }
       on_jobs = Cluster.splitJobs on_mvs
+      on_opcodes = liftM2 (++) (getPowerOnOpCodes nodesToOnline)
+                               (getMoveOpCodes nlf ilf on_jobs)
       on_cmd =
         "echo Power Commands\n"
         ++ (nodesToOnline >>= printf "  gnt-node power -f on %s\n" . Node.alias)
@@ -266,6 +342,8 @@ main opts args = do
       when (verbose > 1 && isNothing toOnline) . putStrLn $
         "Onlining all nodes will not yield enough capacity"
       maybeSaveCommands "Commands to run:" opts on_cmd
+      let comment = printf "expanding by %d nodes" (length nodesToOnline)
+      exitIfBad "hsqueeze" =<< maybeExecJobs opts comment on_opcodes
       maybeSaveData (optSaveCluster opts)
          "squeezed" "after hsqueeze expansion" final_on_cdata
     else
@@ -281,5 +359,7 @@ main opts args = do
             putStrLn "'Nodes to offline'"
           mapM_ (putStrLn . Node.name) toOffline
           maybeSaveCommands "Commands to run:" opts off_cmd
+          let comment = printf "condensing by %d nodes" (length toOffline)
+          exitIfBad "hsqueeze" =<< maybeExecJobs opts comment off_opcodes
           maybeSaveData (optSaveCluster opts)
             "squeezed" "after hsqueeze run" final_off_cdata
