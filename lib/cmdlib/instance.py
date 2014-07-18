@@ -2853,6 +2853,9 @@ class LUInstanceSetParams(LogicalUnit):
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
     # Look node group to look up the ipolicy
     self.share_locks[locking.LEVEL_NODEGROUP] = 1
+    self.dont_collate_locks[locking.LEVEL_NODEGROUP] = True
+    self.dont_collate_locks[locking.LEVEL_NODE] = True
+    self.dont_collate_locks[locking.LEVEL_NODE_RES] = True
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODEGROUP:
