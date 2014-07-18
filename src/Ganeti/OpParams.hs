@@ -1574,7 +1574,8 @@ pTagsName =
 
 pTagsList :: Field
 pTagsList =
-  withDoc "List of tag names" $
+  withDoc "List of tag names" .
+  renameField "TagsList" $
   simpleField "tags" [t| [String] |]
 
 -- FIXME: this should be compiled at load time?

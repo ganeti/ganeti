@@ -69,6 +69,7 @@ module Ganeti.HTools.Node
   -- * Generate OpCodes
   , genPowerOnOpCodes
   , genPowerOffOpCodes
+  , genAddTagsOpCode
   -- * Formatting
   , defaultFields
   , showHeader
@@ -97,7 +98,7 @@ import Text.Printf (printf)
 
 import qualified Ganeti.Constants as C
 import qualified Ganeti.OpCodes as OpCodes
-import Ganeti.Types (OobCommand(..), mkNonEmpty)
+import Ganeti.Types (OobCommand(..), TagKind(..), mkNonEmpty)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.PeerMap as P
@@ -852,6 +853,14 @@ genPowerOffOpCodes nodes = do
   opSetParams <- mapM (`genOpSetOffline` True) nodes
   oobCommand <- genOobCommand nodes OobPowerOff
   return $ opSetParams ++ [oobCommand]
+
+-- | Generate OpCodes for adding tags to a node
+genAddTagsOpCode :: Node -> [String] -> OpCodes.OpCode
+genAddTagsOpCode node tags = OpCodes.OpTagsSet
+                               { OpCodes.opKind = TagKindNode
+                               , OpCodes.opTagsList = tags
+                               , OpCodes.opTagsGetName = Just $ name node
+                               }
 
 -- | Constant holding the fields we're displaying by default.
 defaultFields :: [String]
