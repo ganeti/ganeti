@@ -68,6 +68,7 @@ module Ganeti.HTools.Node
   , conflictingPrimaries
   -- * Generate OpCodes
   , genPowerOnOpCodes
+  , genPowerOffOpCodes
   -- * Formatting
   , defaultFields
   , showHeader
@@ -843,6 +844,13 @@ genPowerOnOpCodes :: (Monad m) => [Node] -> m [OpCodes.OpCode]
 genPowerOnOpCodes nodes = do
   opSetParams <- mapM (`genOpSetOffline` False) nodes
   oobCommand <- genOobCommand nodes OobPowerOn
+  return $ opSetParams ++ [oobCommand]
+
+-- | Generate OpCodes for powering off a list of nodes
+genPowerOffOpCodes :: (Monad m) => [Node] -> m [OpCodes.OpCode]
+genPowerOffOpCodes nodes = do
+  opSetParams <- mapM (`genOpSetOffline` True) nodes
+  oobCommand <- genOobCommand nodes OobPowerOff
   return $ opSetParams ++ [oobCommand]
 
 -- | Constant holding the fields we're displaying by default.
