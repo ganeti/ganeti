@@ -1999,6 +1999,8 @@ class LUInstanceRemove(LogicalUnit):
     self.needed_locks[locking.LEVEL_NODE] = []
     self.needed_locks[locking.LEVEL_NODE_RES] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+    self.dont_collate_locks[locking.LEVEL_NODE] = True
+    self.dont_collate_locks[locking.LEVEL_NODE_RES] = True
 
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODE:
