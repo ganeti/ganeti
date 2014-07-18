@@ -15,7 +15,7 @@ SYNOPSIS
 
 Backend options:
 
-{ **-L[** *path* **]** | **-t** *data-file* }
+{ **-L[** *path* **]** [-X]** | **-t** *data-file* }
 
 Algorithm options:
 
@@ -60,6 +60,13 @@ OPTIONS
   Backend specification: collect data directly from the master daemon,
   which is to be contacted via LUXI (an internal Ganeti protocol). The
   option is described in the man page **htools**\(1).
+
+-X
+  When using the Luxi backend, hsqueeze can also execute the given
+  commands.
+
+  The execution of the job series can be interrupted, see below for
+  signal handling.
 
 -S *filename*, \--save-cluster=*filename*
   If given, the state of the cluster before the squeezing is saved to
