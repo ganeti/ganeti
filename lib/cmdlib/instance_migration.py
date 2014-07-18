@@ -53,13 +53,16 @@ def _ExpandNamesForMigration(lu):
 
   lu.needed_locks[locking.LEVEL_NODE] = []
   lu.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
+  lu.dont_collate_locks[locking.LEVEL_NODE] = True
 
   lu.needed_locks[locking.LEVEL_NODE_RES] = []
   lu.recalculate_locks[locking.LEVEL_NODE_RES] = constants.LOCKS_REPLACE
+  lu.dont_collate_locks[locking.LEVEL_NODE_RES] = True
 
   # The node allocation lock is actually only needed for externally replicated
   # instances (e.g. sharedfile or RBD) and if an iallocator is used.
   lu.needed_locks[locking.LEVEL_NODE_ALLOC] = []
+  lu.dont_collate_locks[locking.LEVEL_NODE_ALLOC] = True
 
 
 def _DeclareLocksForMigration(lu, level):
