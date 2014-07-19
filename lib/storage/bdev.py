@@ -592,28 +592,34 @@ class LogicalVolume(base.BlockDev):
     """
     pass
 
-  def Snapshot(self, size):
+  def Snapshot(self, snap_name=None, snap_size=None):
     """Create a snapshot copy of an lvm block device.
 
     @returns: tuple (vg, lv)
 
     """
-    snap_name = self._lv_name + ".snap"
+    if not snap_name:
+      snap_name = self._lv_name + ".snap"
+
+    if not snap_size:
+      # FIXME: choose a saner value for the snapshot size
+      # let's stay on the safe side and ask for the full size, for now
+      snap_size = self.size
 
     # remove existing snapshot if found
-    snap = LogicalVolume((self._vg_name, snap_name), None, size, self.params,
-                         self.dyn_params)
+    snap = LogicalVolume((self._vg_name, snap_name), None, snap_size,
+                         self.params, self.dyn_params)
     base.IgnoreError(snap.Remove)
 
     vg_info = self.GetVGInfo([self._vg_name], False)
     if not vg_info:
       base.ThrowError("Can't compute VG info for vg %s", self._vg_name)
     free_size, _, _ = vg_info[0]
-    if free_size < size:
+    if free_size < snap_size:
       base.ThrowError("Not enough free space: required %s,"
-                      " available %s", size, free_size)
+                      " available %s", snap_size, free_size)
 
-    _CheckResult(utils.RunCmd(["lvcreate", "-L%dm" % size, "-s",
+    _CheckResult(utils.RunCmd(["lvcreate", "-L%dm" % snap_size, "-s",
                                "-n%s" % snap_name, self.dev_path]))
 
     return (self._vg_name, snap_name)

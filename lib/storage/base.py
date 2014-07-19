@@ -233,6 +233,22 @@ class BlockDev(object):
             "count=%s" % self.size,
             "iflag=direct"]
 
+  def Snapshot(self, snap_name, snap_size):
+    """Creates a snapshot of the block device.
+
+    Currently this is used only during LUInstanceExport.
+
+    @type snap_name: string
+    @param snap_name: The name of the snapshot.
+    @type snap_size: int
+    @param snap_size: The size of the snapshot.
+    @rtype: tuple
+    @return: The logical id of the newly created disk.
+
+    """
+    ThrowError("Snapshot is not supported for disk %s of type %s.",
+               self.unique_id, self.__class__.__name__)
+
   def SetSyncParams(self, params):
     """Adjust the synchronization parameters of the mirror.
 

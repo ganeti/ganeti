@@ -3410,19 +3410,20 @@ def BlockdevSnapshot(disk):
   @return: snapshot disk ID as (vg, lv)
 
   """
+  def _DiskSnapshot(disk, snap_name=None, snap_size=None):
+    r_dev = _RecursiveFindBD(disk)
+    if r_dev is not None:
+      return r_dev.Snapshot(snap_name=snap_name, snap_size=snap_size)
+    else:
+      _Fail("Cannot find block device %s", disk)
+
   if disk.dev_type == constants.DT_DRBD8:
     if not disk.children:
       _Fail("DRBD device '%s' without backing storage cannot be snapshotted",
             disk.unique_id)
     return BlockdevSnapshot(disk.children[0])
   elif disk.dev_type == constants.DT_PLAIN:
-    r_dev = _RecursiveFindBD(disk)
-    if r_dev is not None:
-      # FIXME: choose a saner value for the snapshot size
-      # let's stay on the safe side and ask for the full size, for now
-      return r_dev.Snapshot(disk.size)
-    else:
-      _Fail("Cannot find block device %s", disk)
+    return _DiskSnapshot(disk)
   else:
     _Fail("Cannot snapshot non-lvm block device '%s' of type '%s'",
           disk.logical_id, disk.dev_type)
