@@ -22,7 +22,7 @@ REFERENCE
 ---------
 
 There are eight required files: *create*, *attach*, *detach*, *remove*,
-*grow*, *setinfo*, *verify* (executables) and *parameters.list*
+*grow*, *setinfo*, *verify*, *snapshot* (executables) and *parameters.list*
 (text file).
 
 Common environment
@@ -68,6 +68,12 @@ VOL_CNAME
 
 VOL_UUID
     The uuid of the Disk config object.
+
+VOL_SNAPSHOT_NAME
+    The name of the volume's snapshot.
+
+VOL_SNAPSHOT_SIZE
+    The size of the volume's size
 
 EXECUTABLE SCRIPTS
 ------------------
@@ -199,6 +205,20 @@ Currently, the script is not invoked by Ganeti, but should be present
 for future use and consistency with gnt-os-interface's verify script.
 
 The script should return ``0`` on success.
+
+snapshot
+~~~~~~~~
+
+The *snapshot* script is used to take a snapshot of the given volume.
+
+The ``VOL_SNAPSHOT_NAME`` and ``VOL_SNAPSHOT_SIZE`` variables contain
+the name and size of the snapshot that is about to be taken.
+
+Currently this operation is used only during gnt-backup export and
+Ganeti sets those values to ``VOL_NAME.snap`` and ``VOL_SIZE``
+respectively (see above).
+
+The script returns ``0`` on success.
 
 TEXT FILES
 ----------

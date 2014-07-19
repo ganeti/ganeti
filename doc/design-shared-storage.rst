@@ -185,6 +185,7 @@ An “ExtStorage provider” will have to provide the following methods:
 - Detach a disk from a given node
 - SetInfo to a disk (add metadata)
 - Verify its supported parameters
+- Snapshot a disk (currently used during gnt-backup export)
 
 The proposed ExtStorage interface borrows heavily from the OS
 interface and follows a one-script-per-function approach. An ExtStorage
@@ -197,6 +198,7 @@ provider is expected to provide the following scripts:
 - ``detach``
 - ``setinfo``
 - ``verify``
+- ``snapshot``
 
 All scripts will be called with no arguments and get their input via
 environment variables. A common set of variables will be exported for
@@ -216,6 +218,14 @@ all commands, and some of them might have extra ones.
 ``VOL_METADATA``
   A string containing metadata to be set for the volume.
   This is exported only to the ``setinfo`` script.
+``VOL_CNAME``
+  The human readable name of the disk (if any).
+``VOL_SNAPSHOT_NAME``
+  The name of the volume's snapshot to be taken.
+  Available only to the `snapshot` script.
+``VOL_SNAPSHOT_SIZE``
+  The size of the volume's snapshot to be taken.
+  Available only to the `snapshot` script.
 
 All scripts except `attach` should return 0 on success and non-zero on
 error, accompanied by an appropriate error message on stderr. The
