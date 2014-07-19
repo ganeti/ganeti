@@ -1185,8 +1185,14 @@ class ExportInstanceHelper(object):
                             " result '%s'", idx, src_node_name, result.payload)
       else:
         disk_id = tuple(result.payload)
-        disk_params = constants.DISK_LD_DEFAULTS[constants.DT_PLAIN].copy()
-        new_dev = objects.Disk(dev_type=constants.DT_PLAIN, size=disk.size,
+        # Snapshot is currently supported for ExtStorage and LogicalVolume.
+        # In case disk is of type drbd the snapshot will be of type plain.
+        if disk.dev_type == constants.DT_EXT:
+          dev_type = constants.DT_EXT
+        else:
+          dev_type = constants.DT_PLAIN
+        disk_params = constants.DISK_LD_DEFAULTS[dev_type].copy()
+        new_dev = objects.Disk(dev_type=dev_type, size=disk.size,
                                logical_id=disk_id, iv_name=disk.iv_name,
                                params=disk_params)
 

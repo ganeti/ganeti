@@ -1402,6 +1402,9 @@ esActionSetinfo = "setinfo"
 esActionVerify :: String
 esActionVerify = "verify"
 
+esActionSnapshot :: String
+esActionSnapshot = "snapshot"
+
 esScriptCreate :: String
 esScriptCreate = esActionCreate
 
@@ -1423,6 +1426,9 @@ esScriptSetinfo = esActionSetinfo
 esScriptVerify :: String
 esScriptVerify = esActionVerify
 
+esScriptSnapshot :: String
+esScriptSnapshot = esActionSnapshot
+
 esScripts :: FrozenSet String
 esScripts =
   ConstantUtils.mkSet [esScriptAttach,
@@ -1431,7 +1437,8 @@ esScripts =
                        esScriptGrow,
                        esScriptRemove,
                        esScriptSetinfo,
-                       esScriptVerify]
+                       esScriptVerify,
+                       esScriptSnapshot]
 
 esParametersFile :: String
 esParametersFile = "parameters.list"

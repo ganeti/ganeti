@@ -248,10 +248,26 @@ class ExtStorageDevice(base.BlockDev):
                     " ExtStorage provider for the '%s' hypervisor"
                     % (self.driver, hypervisor))
 
+  def Snapshot(self, snap_name=None, snap_size=None):
+    """Take a snapshot of the block device.
+
+    """
+    provider, vol_name = self.unique_id
+    if not snap_name:
+      snap_name = vol_name + ".snap"
+    if not snap_size:
+      snap_size = self.size
+
+    _ExtStorageAction(constants.ES_ACTION_SNAPSHOT, self.unique_id,
+                      self.ext_params, snap_name=snap_name, snap_size=snap_size)
+
+    return (provider, snap_name)
+
 
 def _ExtStorageAction(action, unique_id, ext_params,
                       size=None, grow=None, metadata=None,
-                      name=None, uuid=None):
+                      name=None, uuid=None,
+                      snap_name=None, snap_size=None):
   """Take an External Storage action.
 
   Take an External Storage action concerning or affecting
@@ -259,7 +275,7 @@ def _ExtStorageAction(action, unique_id, ext_params,
 
   @type action: string
   @param action: which action to perform. One of:
-                 create / remove / grow / attach / detach
+                 create / remove / grow / attach / detach / snapshot
   @type unique_id: tuple (driver, vol_name)
   @param unique_id: a tuple containing the type of ExtStorage (driver)
                     and the Volume name
@@ -274,6 +290,10 @@ def _ExtStorageAction(action, unique_id, ext_params,
   @type name: string
   @param name: name of the Volume (objects.Disk.name)
   @type uuid: string
+  @type snap_size: integer
+  @param snap_size: the size of the snapshot
+  @type snap_name: string
+  @param snap_name: the name of the snapshot
   @param uuid: uuid of the Volume (objects.Disk.uuid)
   @rtype: None or a block device path (during attach)
 
@@ -287,7 +307,8 @@ def _ExtStorageAction(action, unique_id, ext_params,
 
   # Create the basic environment for the driver's scripts
   create_env = _ExtStorageEnvironment(unique_id, ext_params, size,
-                                      grow, metadata, name, uuid)
+                                      grow, metadata, name, uuid,
+                                      snap_name, snap_size)
 
   # Do not use log file for action `attach' as we need
   # to get the output from RunResult
@@ -399,13 +420,15 @@ def ExtStorageFromDisk(name, base_dir=None):
                        detach_script=es_files[constants.ES_SCRIPT_DETACH],
                        setinfo_script=es_files[constants.ES_SCRIPT_SETINFO],
                        verify_script=es_files[constants.ES_SCRIPT_VERIFY],
+                       snapshot_script=es_files[constants.ES_SCRIPT_SNAPSHOT],
                        supported_parameters=parameters)
   return True, es_obj
 
 
 def _ExtStorageEnvironment(unique_id, ext_params,
                            size=None, grow=None, metadata=None,
-                           name=None, uuid=None):
+                           name=None, uuid=None,
+                           snap_name=None, snap_size=None):
   """Calculate the environment for an External Storage script.
 
   @type unique_id: tuple (driver, vol_name)
@@ -422,6 +445,10 @@ def _ExtStorageEnvironment(unique_id, ext_params,
   @param name: name of the Volume (objects.Disk.name)
   @type uuid: string
   @param uuid: uuid of the Volume (objects.Disk.uuid)
+  @type snap_size: integer
+  @param snap_size: the size of the snapshot
+  @type snap_name: string
+  @param snap_name: the name of the snapshot
   @rtype: dict
   @return: dict of environment variables
 
@@ -449,6 +476,12 @@ def _ExtStorageEnvironment(unique_id, ext_params,
 
   if uuid is not None:
     result["VOL_UUID"] = uuid
+
+  if snap_name is not None:
+    result["VOL_SNAPSHOT_NAME"] = snap_name
+
+  if snap_size is not None:
+    result["VOL_SNAPSHOT_SIZE"] = snap_size
 
   return result
 

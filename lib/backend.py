@@ -3424,8 +3424,10 @@ def BlockdevSnapshot(disk):
     return BlockdevSnapshot(disk.children[0])
   elif disk.dev_type == constants.DT_PLAIN:
     return _DiskSnapshot(disk)
+  elif disk.dev_type == constants.DT_EXT:
+    return _DiskSnapshot(disk)
   else:
-    _Fail("Cannot snapshot non-lvm block device '%s' of type '%s'",
+    _Fail("Cannot snapshot block device '%s' of type '%s'",
           disk.logical_id, disk.dev_type)
 
 
