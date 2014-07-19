@@ -198,7 +198,7 @@ provider is expected to provide the following scripts:
 - ``detach``
 - ``setinfo``
 - ``verify``
-- ``snapshot``
+- ``snapshot`` (optional)
 
 All scripts will be called with no arguments and get their input via
 environment variables. A common set of variables will be exported for
@@ -232,6 +232,10 @@ error, accompanied by an appropriate error message on stderr. The
 `attach` script should return a string on stdout on success, which is
 the block device's full path, after it has been successfully attached to
 the host node. On error it should return non-zero.
+
+To keep backwards compatibility we let the ``snapshot`` script be
+optional. If present then the provider will support instance backup
+export as well.
 
 Implementation
 --------------

@@ -220,6 +220,10 @@ respectively (see above).
 
 The script returns ``0`` on success.
 
+Please note that this script is optional and not all providers should
+implement it. Of course if it is not present, instance backup export
+will not be supported for the given provider.
+
 TEXT FILES
 ----------
 

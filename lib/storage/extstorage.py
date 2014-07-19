@@ -322,6 +322,13 @@ def _ExtStorageAction(action, unique_id, ext_params,
     base.ThrowError("Action '%s' doesn't result in a valid ExtStorage script" %
                     action)
 
+  # Explicitly check if the script is valid
+  try:
+    _CheckExtStorageFile(inst_es.path, action)
+  except errors.BlockDeviceError:
+    base.ThrowError("Action '%s' is not supported by provider '%s'" %
+                    (action, driver))
+
   # Find out which external script to run according the given action
   script_name = action + "_script"
   script = getattr(inst_es, script_name)
@@ -349,6 +356,38 @@ def _ExtStorageAction(action, unique_id, ext_params,
 
   if action == constants.ES_ACTION_ATTACH:
     return result.stdout
+
+
+def _CheckExtStorageFile(base_dir, filename):
+  """Check prereqs for an ExtStorage file.
+
+  Check if file exists, if it is a regular file and in case it is
+  one of extstorage scripts if it is executable.
+
+  @type base_dir: string
+  @param base_dir: Base directory containing ExtStorage installations.
+  @type filename: string
+  @param filename: The basename of the ExtStorage file.
+
+  @raises BlockDeviceError: In case prereqs are not met.
+
+  """
+
+  file_path = utils.PathJoin(base_dir, filename)
+  try:
+    st = os.stat(file_path)
+  except EnvironmentError, err:
+    base.ThrowError("File '%s' under path '%s' is missing (%s)" %
+                    (filename, base_dir, utils.ErrnoOrStr(err)))
+
+  if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
+    base.ThrowError("File '%s' under path '%s' is not a regular file" %
+                    (filename, base_dir))
+
+  if filename in constants.ES_SCRIPTS:
+    if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
+      base.ThrowError("File '%s' under path '%s' is not executable" %
+                      (filename, base_dir))
 
 
 def ExtStorageFromDisk(name, base_dir=None):
@@ -381,25 +420,18 @@ def ExtStorageFromDisk(name, base_dir=None):
   # an optional one
   es_files = dict.fromkeys(constants.ES_SCRIPTS, True)
 
+  # Let the snapshot script be optional
+  es_files[constants.ES_SCRIPT_SNAPSHOT] = False
+
   es_files[constants.ES_PARAMETERS_FILE] = True
 
-  for (filename, _) in es_files.items():
+  for (filename, required) in es_files.items():
     es_files[filename] = utils.PathJoin(es_dir, filename)
-
     try:
-      st = os.stat(es_files[filename])
-    except EnvironmentError, err:
-      return False, ("File '%s' under path '%s' is missing (%s)" %
-                     (filename, es_dir, utils.ErrnoOrStr(err)))
-
-    if not stat.S_ISREG(stat.S_IFMT(st.st_mode)):
-      return False, ("File '%s' under path '%s' is not a regular file" %
-                     (filename, es_dir))
-
-    if filename in constants.ES_SCRIPTS:
-      if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
-        return False, ("File '%s' under path '%s' is not executable" %
-                       (filename, es_dir))
+      _CheckExtStorageFile(es_dir, filename)
+    except errors.BlockDeviceError, err:
+      if required:
+        return False, err
 
   parameters = []
   if constants.ES_PARAMETERS_FILE in es_files:

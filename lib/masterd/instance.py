@@ -1157,7 +1157,9 @@ class ExportInstanceHelper(object):
     self._removed_snaps = [False] * len(instance.disks)
 
   def CreateSnapshots(self):
-    """Creates an LVM snapshot for every disk of the instance.
+    """Creates a snapshot for every disk of the instance.
+
+    Currently support drbd, plain and ext disk templates.
 
     """
     assert not self._snap_disks
