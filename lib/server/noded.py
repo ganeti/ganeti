@@ -369,13 +369,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
   def perspective_blockdev_snapshot(params):
     """Create a snapshot device.
 
-    Note that this is only valid for LVM disks, if we get passed
+    Note that this is only valid for LVM and ExtStorage disks, if we get passed
     something else we raise an exception. The snapshot device can be
     remove by calling the generic block device remove call.
 
     """
-    cfbd = objects.Disk.FromDict(params[0])
-    return backend.BlockdevSnapshot(cfbd)
+    (disk, snap_name, snap_size) = params
+    cfbd = objects.Disk.FromDict(disk)
+    return backend.BlockdevSnapshot(cfbd, snap_name, snap_size)
 
   @staticmethod
   def perspective_blockdev_grow(params):
