@@ -166,7 +166,13 @@ Some of these are also available as package in Debian/Ubuntu::
                     libghc-hinotify-dev libghc-regex-pcre-dev \
                     libpcre3-dev \
                     libghc-attoparsec-dev libghc-vector-dev \
-                    libghc6-zlib-dev
+                    libghc-zlib-dev
+
+Debian Jessie also includes recent enough versions of these libraries::
+
+  $ apt-get install libghc-base64-bytestring-dev \
+                    libghc-lens-dev \
+                    libghc-lifted-base-dev
 
 In Fedora, some of them are available via packages as well::
 
@@ -201,7 +207,8 @@ Haskell optional features
 
 Optionally, more functionality can be enabled if your build machine has
 a few more Haskell libraries enabled: the ``ganeti-confd`` daemon
-(``--enable-confd``) and the monitoring daemon (``--enable-mond``).
+(``--enable-confd``), the monitoring daemon (``--enable-mond``) and
+the meta-data daemon (``--enable-metadata``).
 The extra dependency for these is:
 
 - `snap-server` <http://hackage.haskell.org/package/snap-server>`_, version
