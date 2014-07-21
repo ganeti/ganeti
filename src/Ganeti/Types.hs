@@ -764,7 +764,8 @@ $(THH.declareLADT ''String "ELogType"
   ])
 $(THH.makeJSONInstance ''ELogType)
 
--- | Type of one element of a reason trail.
+-- | Type of one element of a reason trail, of form
+-- @(source, reason, timestamp)@.
 type ReasonElem = (String, String, Integer)
 
 -- | Type representing a reason trail.
