@@ -65,7 +65,7 @@ instance (Ord k, Arbitrary k, Arbitrary a) => Arbitrary (Map.Map k a) where
 arbitraryOpTagsGet :: Gen OpCodes.OpCode
 arbitraryOpTagsGet = do
   kind <- arbitrary
-  OpCodes.OpTagsSet kind <$> arbitrary <*> genOpCodesTagName kind
+  OpCodes.OpTagsSet kind <$> genTags <*> genOpCodesTagName kind
 
 arbitraryOpTagsSet :: Gen OpCodes.OpCode
 arbitraryOpTagsSet = do
@@ -176,7 +176,7 @@ instance Arbitrary OpCodes.OpCode where
           <$> arbitrary                    -- force
           <*> emptyMUD                     -- hv_state
           <*> emptyMUD                     -- disk_state
-          <*> arbitrary                    -- vg_name
+          <*> genMaybe genName             -- vg_name
           <*> genMaybe arbitrary           -- enabled_hypervisors
           <*> genMaybe genEmptyContainer   -- hvparams
           <*> emptyMUD                     -- beparams
@@ -195,25 +195,37 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                    -- nicparams
           <*> emptyMUD                     -- ndparams
           <*> emptyMUD                     -- ipolicy
-          <*> arbitrary                    -- drbd_helper
-          <*> arbitrary                    -- default_iallocator
+          <*> genMaybe genPrintableAsciiString
+                                           -- drbd_helper
+          <*> genMaybe genPrintableAsciiString
+                                           -- default_iallocator
           <*> emptyMUD                     -- default_iallocator_params
           <*> genMaybe genMacPrefix        -- mac_prefix
-          <*> arbitrary                    -- master_netdev
+          <*> genMaybe genPrintableAsciiString
+                                           -- master_netdev
           <*> arbitrary                    -- master_netmask
-          <*> arbitrary                    -- reserved_lvs
-          <*> arbitrary                    -- hidden_os
-          <*> arbitrary                    -- blacklisted_os
+          <*> genMaybe (listOf genPrintableAsciiStringNE)
+                                           -- reserved_lvs
+          <*> genMaybe (listOf ((,) <$> arbitrary
+                                    <*> genPrintableAsciiStringNE))
+                                           -- hidden_os
+          <*> genMaybe (listOf ((,) <$> arbitrary
+                                    <*> genPrintableAsciiStringNE))
+                                           -- blacklisted_os
           <*> arbitrary                    -- use_external_mip_script
           <*> arbitrary                    -- enabled_disk_templates
           <*> arbitrary                    -- modify_etc_hosts
           <*> genMaybe genName             -- file_storage_dir
           <*> genMaybe genName             -- shared_file_storage_dir
           <*> genMaybe genName             -- gluster_file_storage_dir
-          <*> arbitrary                    -- install_image
-          <*> arbitrary                    -- instance_communication_network
-          <*> arbitrary                    -- zeroing_image
-          <*> arbitrary                    -- compression_tools
+          <*> genMaybe genPrintableAsciiString
+                                           -- install_image
+          <*> genMaybe genPrintableAsciiString
+                                           -- instance_communication_network
+          <*> genMaybe genPrintableAsciiString
+                                           -- zeroing_image
+          <*> genMaybe (listOf genPrintableAsciiStringNE)
+                                           -- compression_tools
           <*> arbitrary                    -- enabled_user_shutdown
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
@@ -221,10 +233,10 @@ instance Arbitrary OpCodes.OpCode where
       "OP_CLUSTER_DEACTIVATE_MASTER_IP" ->
         pure OpCodes.OpClusterDeactivateMasterIp
       "OP_QUERY" ->
-        OpCodes.OpQuery <$> arbitrary <*> arbitrary <*> arbitrary <*>
+        OpCodes.OpQuery <$> arbitrary <*> arbitrary <*> genNamesNE <*>
         pure Nothing
       "OP_QUERY_FIELDS" ->
-        OpCodes.OpQueryFields <$> arbitrary <*> arbitrary
+        OpCodes.OpQueryFields <$> arbitrary <*> genMaybe genNamesNE
       "OP_OOB_COMMAND" ->
         OpCodes.OpOobCommand <$> genNodeNamesNE <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary <*>
@@ -236,9 +248,9 @@ instance Arbitrary OpCodes.OpCode where
           genMaybe genNameNE <*> genMaybe genNameNE <*> arbitrary <*>
           genMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD
       "OP_NODE_QUERYVOLS" ->
-        OpCodes.OpNodeQueryvols <$> arbitrary <*> genNodeNamesNE
+        OpCodes.OpNodeQueryvols <$> genNamesNE <*> genNodeNamesNE
       "OP_NODE_QUERY_STORAGE" ->
-        OpCodes.OpNodeQueryStorage <$> arbitrary <*> arbitrary <*>
+        OpCodes.OpNodeQueryStorage <$> genNamesNE <*> arbitrary <*>
           genNodeNamesNE <*> genMaybe genNameNE
       "OP_NODE_MODIFY_STORAGE" ->
         OpCodes.OpNodeModifyStorage <$> genNodeNameNE <*> return Nothing <*>
@@ -300,7 +312,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> return Nothing                  -- src_node
           <*> genMaybe genNodeNameNE          -- src_node_uuid
           <*> genMaybe genNameNE              -- src_path
-          <*> arbitrary                       -- compress
+          <*> genPrintableAsciiString         -- compress
           <*> arbitrary                       -- start
           <*> (genTags >>= mapM mkNonEmpty)   -- tags
           <*> arbitrary                       -- instance_communication
@@ -339,7 +351,7 @@ instance Arbitrary OpCodes.OpCode where
       "OP_INSTANCE_MOVE" ->
         OpCodes.OpInstanceMove <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> genNodeNameNE <*> return Nothing <*>
-          arbitrary <*> arbitrary
+          genPrintableAsciiString <*> arbitrary
       "OP_INSTANCE_CONSOLE" -> OpCodes.OpInstanceConsole <$> genFQDN <*>
           return Nothing
       "OP_INSTANCE_ACTIVATE_DISKS" ->
@@ -414,7 +426,8 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpBackupPrepare <$> genFQDN <*> return Nothing <*> arbitrary
       "OP_BACKUP_EXPORT" ->
         OpCodes.OpBackupExport <$> genFQDN <*> return Nothing <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> return Nothing <*>
+          genPrintableAsciiString <*>
+          arbitrary <*> arbitrary <*> return Nothing <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
           genMaybe (pure []) <*> genMaybe genNameNE <*> arbitrary <*>
           arbitrary <*> arbitrary
@@ -449,7 +462,7 @@ instance Arbitrary OpCodes.OpCode where
           genMaybe (listOf genIPv4Address)
       "OP_NETWORK_CONNECT" ->
         OpCodes.OpNetworkConnect <$> genNameNE <*> genNameNE <*>
-          arbitrary <*> genNameNE <*> arbitrary <*> arbitrary
+          arbitrary <*> genNameNE <*> genPrintableAsciiString <*> arbitrary
       "OP_NETWORK_DISCONNECT" ->
         OpCodes.OpNetworkDisconnect <$> genNameNE <*> genNameNE
       "OP_RESTRICTED_COMMAND" ->
