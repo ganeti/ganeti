@@ -602,10 +602,13 @@ def TestInstanceModify(instance):
       ])
   elif default_hv == constants.HT_KVM and \
     qa_config.TestEnabled("instance-device-hotplug"):
+    # FIXME: Fix issue 885 and then re-enable the tests below
+    #args.extend([
+    #  ["--net", "-1:add", "--hotplug"],
+    #  ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--hotplug", "--force"],
+    #  ["--net", "-1:remove", "--hotplug"],
+    #  ])
     args.extend([
-      ["--net", "-1:add", "--hotplug"],
-      ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--hotplug", "--force"],
-      ["--net", "-1:remove", "--hotplug"],
       ["--disk", "-1:add,size=1G", "--hotplug"],
       ["--disk", "-1:remove", "--hotplug"],
       ])
