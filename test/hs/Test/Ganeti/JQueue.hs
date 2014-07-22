@@ -43,7 +43,7 @@ import Text.JSON
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHelper
 import Test.Ganeti.Types ()
-import Test.Ganeti.OpCodes
+import Test.Ganeti.OpCodes ()
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -63,7 +63,7 @@ justNoTs = Just noTimestamp
 -- | Generates a simple queued opcode.
 genQueuedOpCode :: Gen QueuedOpCode
 genQueuedOpCode =
-  QueuedOpCode <$> pure (ValidOpCode $ wrapOpCode OpClusterQuery) <*>
+  QueuedOpCode <$> (ValidOpCode <$> arbitrary) <*>
     arbitrary <*> pure JSNull <*> pure [] <*>
     choose (C.opPrioLowest, C.opPrioHighest) <*>
     pure justNoTs <*> pure justNoTs <*> pure justNoTs
