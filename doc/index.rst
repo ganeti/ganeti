@@ -96,6 +96,7 @@ Draft designs
    design-bulk-create.rst
    design-chained-jobs.rst
    design-cmdlib-unittests.rst
+   design-cpu-speed.rst
    design-cpu-pinning.rst
    design-device-uuid-name.rst
    design-daemons.rst
