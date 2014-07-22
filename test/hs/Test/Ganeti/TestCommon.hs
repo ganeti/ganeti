@@ -40,6 +40,9 @@ module Test.Ganeti.TestCommon
   , runPython
   , checkPythonResult
   , DNSChar(..)
+  , genPrintableAsciiChar
+  , genPrintableAsciiString
+  , genPrintableAsciiStringNE
   , genName
   , genFQDN
   , genUUID
@@ -192,6 +195,24 @@ instance Arbitrary DNSChar where
 
 instance Show DNSChar where
   show = show . dnsGetChar
+
+-- * Generators
+
+-- | Generates printable ASCII characters (from ' ' to '~').
+genPrintableAsciiChar :: Gen Char
+genPrintableAsciiChar = choose ('\x20', '\x7e')
+
+-- | Generates a short string (0 <= n <= 40 chars) from printable ASCII.
+genPrintableAsciiString :: Gen String
+genPrintableAsciiString = do
+  n <- choose (0, 40)
+  vectorOf n genPrintableAsciiChar
+
+-- | Generates a short string (1 <= n <= 40 chars) from printable ASCII.
+genPrintableAsciiStringNE :: Gen NonEmptyString
+genPrintableAsciiStringNE = do
+  n <- choose (1, 40)
+  vectorOf n genPrintableAsciiChar >>= mkNonEmpty
 
 -- | Generates a single name component.
 genName :: Gen String
