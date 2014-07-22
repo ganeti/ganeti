@@ -484,7 +484,11 @@ main opts args = do
     (Node.haveExclStorage nl)
 
   let (bad_nodes, _)  = Cluster.computeBadItems nl il
-      gl' = if accept_existing
+
+  when ((verbose > 3) && (not . null $ bad_nodes))
+    . hPrintf stderr "Bad nodes: %s\n" . show . map Node.name $ bad_nodes
+
+  let gl' = if accept_existing
               then gl
               else foldl (flip $ IntMap.adjust Group.setUnallocable) gl
                      (map Node.group bad_nodes)
