@@ -1807,6 +1807,10 @@ class LUInstanceReplaceDisks(LogicalUnit):
 
     self.needed_locks[locking.LEVEL_NODE_RES] = []
 
+    self.dont_collate_locks[locking.LEVEL_NODEGROUP] = True
+    self.dont_collate_locks[locking.LEVEL_NODE] = True
+    self.dont_collate_locks[locking.LEVEL_NODE_RES] = True
+
     self.replacer = TLReplaceDisks(self, self.op.instance_uuid,
                                    self.op.instance_name, self.op.mode,
                                    self.op.iallocator, self.op.remote_node_uuid,
