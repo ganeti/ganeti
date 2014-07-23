@@ -87,6 +87,7 @@ __all__ = [
   "ENABLED_DISK_TEMPLATES_OPT",
   "ENABLED_USER_SHUTDOWN_OPT",
   "ERROR_CODES_OPT",
+  "EXT_PARAMS_OPT",
   "FAILURE_ONLY_OPT",
   "FIELDS_OPT",
   "FILESTORE_DIR_OPT",
@@ -924,6 +925,12 @@ DISK_TEMPLATE_OPT = cli_option("-t", "--disk-template", dest="disk_template",
                                      utils.CommaJoin(constants.DISK_TEMPLATES)),
                                default=None, metavar="TEMPL",
                                choices=list(constants.DISK_TEMPLATES))
+
+EXT_PARAMS_OPT = cli_option("-e", "--ext-params", dest="ext_params",
+                            default={}, type="keyval",
+                            help="Parameters for ExtStorage template"
+                            " conversions in the format:"
+                            " provider=prvdr[,param1=val1,param2=val2,...]")
 
 NONICS_OPT = cli_option("--no-nics", default=False, action="store_true",
                         help="Do not create any network cards for"

@@ -105,6 +105,7 @@ module Ganeti.OpParams
   , pInstDisks
   , pDiskTemplate
   , pOptDiskTemplate
+  , pExtParams
   , pFileDriver
   , pFileStorageDir
   , pClusterFileStorageDir
@@ -1101,6 +1102,13 @@ pDiskTemplate :: Field
 pDiskTemplate =
   withDoc "Disk template" $
   simpleField "disk_template" [t| DiskTemplate |]
+
+pExtParams :: Field
+pExtParams =
+  withDoc "List of ExtStorage parameters" .
+  renameField "InstExtParams" .
+  defaultField [| toJSObject [] |] $
+  simpleField "ext_params" [t| JSObject JSValue |]
 
 pFileDriver :: Field
 pFileDriver =
