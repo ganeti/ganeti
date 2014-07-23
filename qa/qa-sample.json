@@ -54,6 +54,7 @@
   "# Default file storage directories": null,
   "default-file-storage-dir": "/srv/ganeti/file-storage",
   "default-shared-file-storage-dir": "/srv/ganeti/shared-file-storage",
+  "default-gluster-storage-dir": "/srv/ganeti/gluster-file-storage",
 
   "# Additional arguments for initializing cluster": null,
   "cluster-init-args": [],
@@ -224,6 +225,8 @@
     "instance-add-shared-file": true,
     "instance-add-drbd-disk": true,
     "instance-add-diskless": true,
+    "instance-add-rbd": true,
+    "instance-add-gluster": true,
     "instance-add-restricted-by-disktemplates": true,
     "instance-convert-disk": true,
     "instance-plain-rapi-common-tests": true,

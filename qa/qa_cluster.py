@@ -224,6 +224,16 @@ def TestClusterInit(rapi_user, rapi_secret):
         "--file-storage-dir=%s" %
         qa_config.get("default-file-storage-dir",
                       pathutils.DEFAULT_FILE_STORAGE_DIR))
+  if constants.DT_SHARED_FILE in enabled_disk_templates:
+    cmd.append(
+        "--shared-file-storage-dir=%s" %
+        qa_config.get("default-shared-file-storage-dir",
+                      pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR))
+  if constants.DT_GLUSTER in enabled_disk_templates:
+    cmd.append(
+        "--gluster-storage-dir=%s" %
+        qa_config.get("default-gluster-storage-dir",
+                      pathutils.DEFAULT_GLUSTER_STORAGE_DIR))
 
   for spec_type in ("mem-size", "disk-size", "disk-count", "cpu-count",
                     "nic-count"):

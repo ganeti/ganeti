@@ -314,6 +314,22 @@ def TestInstanceAddDiskless(nodes):
     return CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_DISKLESS)
 
 
+@InstanceCheck(None, INST_UP, RETURN_VALUE)
+def TestInstanceAddRADOSBlockDevice(nodes):
+  """gnt-instance add -t rbd"""
+  assert len(nodes) == 1
+  if constants.DT_RBD in qa_config.GetEnabledDiskTemplates():
+    return CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_RBD)
+
+
+@InstanceCheck(None, INST_UP, RETURN_VALUE)
+def TestInstanceAddGluster(nodes):
+  """gnt-instance add -t gluster"""
+  assert len(nodes) == 1
+  if constants.DT_GLUSTER in qa_config.GetEnabledDiskTemplates():
+    return CreateInstanceByDiskTemplateOneNode(nodes, constants.DT_GLUSTER)
+
+
 @InstanceCheck(None, INST_DOWN, FIRST_ARG)
 def TestInstanceRemove(instance):
   """gnt-instance remove"""
@@ -1474,4 +1490,8 @@ available_instance_tests = [
    TestInstanceAddFile, 1),
   ("instance-add-shared-file", constants.DT_SHARED_FILE,
    TestInstanceAddSharedFile, 1),
+  ("instance-add-rbd", constants.DT_RBD,
+   TestInstanceAddRADOSBlockDevice, 1),
+  ("instance-add-gluster", constants.DT_GLUSTER,
+   TestInstanceAddGluster, 1),
   ]
