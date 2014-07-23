@@ -633,26 +633,21 @@ class Processor(object):
         raise errors.ProgrammerError("Opcode '%s' requires BGL, but locks are"
                                      " disabled" % op.OP_ID)
 
-      try:
-        lu = lu_class(self, op, self.context, self.cfg, self.rpc,
-                      self._wconfdcontext, self.wconfd)
-        lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
-        lu.ExpandNames()
-        assert lu.needed_locks is not None, "needed_locks not set by LU"
+      lu = lu_class(self, op, self.context, self.cfg, self.rpc,
+                    self._wconfdcontext, self.wconfd)
+      lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
+      lu.ExpandNames()
+      assert lu.needed_locks is not None, "needed_locks not set by LU"
 
-        try:
-          result = self._LockAndExecLU(lu, locking.LEVEL_CLUSTER + 1,
-                                       calc_timeout)
-        finally:
-          if self._ec_id:
-            self.cfg.DropECReservations(self._ec_id)
+      try:
+        result = self._LockAndExecLU(lu, locking.LEVEL_CLUSTER + 1,
+                                     calc_timeout)
       finally:
-        # Release BGL if owned
-        bglname = "%s/%s" % (locking.LEVEL_NAMES[locking.LEVEL_CLUSTER],
-                             locking.BGL)
-        self.wconfd.Client().TryUpdateLocks(self._wconfdcontext,
-                                            [[bglname, "release"]])
+        if self._ec_id:
+          self.cfg.DropECReservations(self._ec_id)
     finally:
+      self.wconfd.Client().FreeLocksLevel(
+        self._wconfdcontext, locking.LEVEL_NAMES[locking.LEVEL_CLUSTER])
       self._cbs = None
 
     self._CheckLUResult(op, result)
