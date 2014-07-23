@@ -380,6 +380,9 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                       -- runtime_mem
           <*> pure emptyJSObject              -- hvparams
           <*> arbitrary                       -- disk_template
+          <*> pure emptyJSObject              -- ext_params
+          <*> arbitrary                       -- file_driver
+          <*> genMaybe genNameNE              -- file_storage_dir
           <*> genMaybe genNodeNameNE          -- pnode
           <*> return Nothing                  -- pnode_uuid
           <*> genMaybe genNodeNameNE          -- remote_node

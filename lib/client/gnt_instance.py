@@ -1281,6 +1281,27 @@ def _ConvertNicDiskModifications(mods):
   return result
 
 
+def _ParseExtStorageParams(params):
+  """Parses the disk params for ExtStorage conversions.
+
+  """
+  if params:
+    if constants.IDISK_PROVIDER not in params:
+      raise errors.OpPrereqError("Missing required parameter '%s' when"
+                                 " converting to an ExtStorage disk template" %
+                                 constants.IDISK_PROVIDER, errors.ECODE_INVAL)
+    else:
+      for param in params.keys():
+        if (param != constants.IDISK_PROVIDER and
+            param in constants.IDISK_PARAMS):
+          raise errors.OpPrereqError("Invalid parameter '%s' when converting"
+                                     " to an ExtStorage template (it is not"
+                                     " allowed modifying existing disk"
+                                     " parameters)" % param, errors.ECODE_INVAL)
+
+  return params
+
+
 def _ParseDiskSizes(mods):
   """Parses disk sizes in parameters.
 
@@ -1346,12 +1367,32 @@ def SetInstanceParams(opts, args):
 
   disks = _ParseDiskSizes(_ConvertNicDiskModifications(opts.disks))
 
-  if (opts.disk_template and
-      opts.disk_template in constants.DTS_INT_MIRROR and
-      not opts.node):
-    ToStderr("Changing the disk template to a mirrored one requires"
-             " specifying a secondary node")
+  # verify the user provided parameters for disk template conversions
+  if opts.disk_template:
+    if (not opts.node and
+        opts.disk_template in constants.DTS_INT_MIRROR):
+      ToStderr("Changing the disk template to a mirrored one requires"
+               " specifying a secondary node")
+      return 1
+    elif (opts.ext_params and
+          opts.disk_template != constants.DT_EXT):
+      ToStderr("Specifying ExtStorage parameters requires converting"
+               " to the '%s' disk template" % constants.DT_EXT)
+      return 1
+    elif (not opts.ext_params and
+          opts.disk_template == constants.DT_EXT):
+      ToStderr("Provider option is missing, use either the"
+               " '--ext-params' or '-e' option")
+      return 1
+
+  if ((opts.file_driver or
+       opts.file_storage_dir) and
+      not opts.disk_template in constants.DTS_FILEBASED):
+    ToStderr("Specifying file-based configuration arguments requires"
+             " converting to a file-based disk template")
     return 1
+
+  ext_params = _ParseExtStorageParams(opts.ext_params)
 
   if opts.offline_inst:
     offline = True
@@ -1368,6 +1409,9 @@ def SetInstanceParams(opts, args):
                                    hotplug=opts.hotplug,
                                    hotplug_if_possible=opts.hotplug_if_possible,
                                    disk_template=opts.disk_template,
+                                   ext_params=ext_params,
+                                   file_driver=opts.file_driver,
+                                   file_storage_dir=opts.file_storage_dir,
                                    remote_node=opts.node,
                                    pnode=opts.new_primary_node,
                                    hvparams=opts.hvparams,
@@ -1582,7 +1626,8 @@ commands = {
      OSPARAMS_OPT, OSPARAMS_PRIVATE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT,
      OFFLINE_INST_OPT, ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
      NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT,
-     HOTPLUG_IF_POSSIBLE_OPT, INSTANCE_COMMUNICATION_OPT],
+     HOTPLUG_IF_POSSIBLE_OPT, INSTANCE_COMMUNICATION_OPT,
+     EXT_PARAMS_OPT, FILESTORE_DRIVER_OPT, FILESTORE_DIR_OPT],
     "<instance>", "Alters the parameters of an instance"),
   "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],

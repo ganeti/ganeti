@@ -658,6 +658,9 @@ $(genOpCode "OpCode"
      , pRuntimeMem
      , pInstHvParams
      , pOptDiskTemplate
+     , pExtParams
+     , pFileDriver
+     , pFileStorageDir
      , pPrimaryNode
      , pPrimaryNodeUuid
      , withDoc "Secondary node (used when changing disk template)" pRemoteNode
