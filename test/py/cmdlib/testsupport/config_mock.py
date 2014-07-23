@@ -398,6 +398,8 @@ class ConfigMock(config.ConfigWriter):
       uuid = self._GetUuid()
     if name is None:
       name = "mock_disk_%d" % disk_id
+    if params is None:
+      params = {}
 
     if dev_type == constants.DT_DRBD8:
       pnode_uuid = self._GetObjUuid(primary_node)
@@ -434,14 +436,18 @@ class ConfigMock(config.ConfigWriter):
       if logical_id is None:
         logical_id = (constants.BLOCKDEV_DRIVER_MANUAL,
                       "/dev/disk/disk%d" % disk_id)
+    elif dev_type == constants.DT_EXT:
+      if logical_id is None:
+        provider = params.get(constants.IDISK_PROVIDER, None)
+        if provider is None:
+          raise AssertionError("You must specify a 'provider' for 'ext' disks")
+        logical_id = (provider, "mock_disk_%d" % disk_id)
     elif logical_id is None:
       raise NotImplementedError
     if children is None:
       children = []
     if iv_name is None:
       iv_name = "disk/%d" % instance_disk_index
-    if params is None:
-      params = {}
 
     return objects.Disk(uuid=uuid,
                         name=name,

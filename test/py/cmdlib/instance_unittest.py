@@ -2330,11 +2330,51 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCodeExpectOpPrereqError(
       op, "Disk template .* is not enabled for this cluster")
 
-  def testInvalidDiskTemplateConversion(self):
+  def testConvertToExtWithMissingProvider(self):
     op = self.CopyOpCode(self.op,
                          disk_template=constants.DT_EXT)
     self.ExecOpCodeExpectOpPrereqError(
-      op, "Unsupported disk template conversion from .* to .*")
+      op, "Missing provider for template .*")
+
+  def testConvertToNotExtWithProvider(self):
+    op = self.CopyOpCode(self.op,
+                         disk_template=constants.DT_FILE,
+                         ext_params={constants.IDISK_PROVIDER: "pvdr"})
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "The 'provider' option is only valid for the ext disk"
+          " template, not .*")
+
+  def testConvertToExtWithSameProvider(self):
+    for disk_uuid in self.inst.disks:
+      self.cfg.RemoveInstanceDisk(self.inst.uuid, disk_uuid)
+    disk = self.cfg.CreateDisk(dev_type=constants.DT_EXT,
+                               params={constants.IDISK_PROVIDER: "pvdr"})
+    self.cfg.AddInstanceDisk(self.inst.uuid, disk)
+    self.inst.disk_template = constants.DT_EXT
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=self.inst.name,
+                         disk_template=constants.DT_EXT,
+                         ext_params={constants.IDISK_PROVIDER: "pvdr"})
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Not converting, 'disk/0' of type ExtStorage already using"
+          " provider 'pvdr'")
+
+  def testConvertToInvalidDiskTemplate(self):
+    for disk_template in constants.DTS_NOT_CONVERTIBLE_TO:
+      op = self.CopyOpCode(self.op,
+                           disk_template=disk_template)
+      self.ExecOpCodeExpectOpPrereqError(
+        op, "Conversion to the .* disk template is not supported")
+
+  def testConvertFromInvalidDiskTemplate(self):
+    for disk_template in constants.DTS_NOT_CONVERTIBLE_FROM:
+      inst = self.cfg.AddNewInstance(disk_template=disk_template)
+      op = self.CopyOpCode(self.op,
+                           instance_name=inst.name,
+                           disk_template=constants.DT_PLAIN)
+      self.ExecOpCodeExpectOpPrereqError(
+        op, "Conversion from the .* disk template is not supported")
 
   def testConvertToDRBDWithSecondarySameAsPrimary(self):
     op = self.CopyOpCode(self.op,
