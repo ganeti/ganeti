@@ -698,20 +698,47 @@ def TestInstanceStoppedModify(instance):
 
 
 @InstanceCheck(INST_DOWN, INST_DOWN, FIRST_ARG)
-def TestInstanceConvertDiskToPlain(instance, inodes):
+def TestInstanceConvertDiskTemplate(instance, requested_conversions):
   """gnt-instance modify -t"""
+  def _BuildConvertCommand(disk_template, node):
+    cmd = ["gnt-instance", "modify", "-t", disk_template]
+    if disk_template == constants.DT_DRBD8:
+      cmd.extend(["-n", node])
+    cmd.append(name)
+    return cmd
+
+  if len(requested_conversions) < 2:
+    print qa_utils.FormatInfo("You must specify more than one convertible"
+                              " disk templates in order to test the conversion"
+                              " feature")
+    return
+
   name = instance.name
 
   template = instance.disk_template
-  if template != constants.DT_DRBD8:
+  if template in constants.DTS_NOT_CONVERTIBLE_FROM:
     print qa_utils.FormatInfo("Unsupported template %s, skipping conversion"
                               " test" % template)
     return
 
-  assert len(inodes) == 2
-  AssertCommand(["gnt-instance", "modify", "-t", constants.DT_PLAIN, name])
-  AssertCommand(["gnt-instance", "modify", "-t", constants.DT_DRBD8,
-                 "-n", inodes[1].primary, name])
+  inodes = qa_config.AcquireManyNodes(2)
+  master = qa_config.GetMasterNode()
+
+  snode = inodes[0].primary
+  if master.primary == snode:
+    snode = inodes[1].primary
+
+  enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
+
+  for templ in requested_conversions:
+    if (templ == template or
+        templ not in enabled_disk_templates or
+        templ in constants.DTS_NOT_CONVERTIBLE_TO):
+      continue
+    AssertCommand(_BuildConvertCommand(templ, snode))
+
+  # Before we return, convert to the original template
+  AssertCommand(_BuildConvertCommand(template, snode))
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)

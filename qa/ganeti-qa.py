@@ -794,6 +794,9 @@ def IsExclusiveStorageInstanceTestEnabled():
 def RunInstanceTests():
   """Create and exercise instances."""
 
+  requested_conversions = qa_config.get("convert-disk-templates", [])
+  supported_conversions = \
+      set(requested_conversions).difference(constants.DTS_NOT_CONVERTIBLE_TO)
   for (test_name, templ, create_fun, num_nodes) in \
       qa_instance.available_instance_tests:
     if (qa_config.TestEnabled(test_name) and
@@ -817,11 +820,21 @@ def RunInstanceTests():
             RunTestIf("group-rwops", qa_group.TestAssignNodesIncludingSplit,
                       constants.INITIAL_NODE_GROUP_NAME,
                       inodes[0].primary, inodes[1].primary)
+          # This test will run once but it will cover all the supported
+          # user-provided disk template conversions
           if qa_config.TestEnabled("instance-convert-disk"):
-            RunTest(qa_instance.TestInstanceShutdown, instance)
-            RunTest(qa_instance.TestInstanceConvertDiskToPlain,
-                    instance, inodes)
-            RunTest(qa_instance.TestInstanceStartup, instance)
+            if (len(supported_conversions) > 1 and
+                instance.disk_template in supported_conversions):
+              RunTest(qa_instance.TestInstanceShutdown, instance)
+              RunTest(qa_instance.TestInstanceConvertDiskTemplate, instance,
+                      supported_conversions)
+              RunTest(qa_instance.TestInstanceStartup, instance)
+              # At this point we clear the set because the requested conversions
+              # has been tested
+              supported_conversions.clear()
+            else:
+              test_desc = "Converting instance of template %s" % templ
+              ReportTestSkip(test_desc, "conversion feature")
           RunTestIf("instance-modify-disks",
                     qa_instance.TestInstanceModifyDisks, instance)
           RunCommonInstanceTests(instance, inodes)

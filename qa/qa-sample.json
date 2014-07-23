@@ -44,6 +44,13 @@
     "diskless"
   ],
 
+  "# Only test the following disk template conversions": null,
+  "convert-disk-templates": [
+    "plain",
+    "drbd",
+    "diskless"
+  ],
+
   "# Default file storage directories": null,
   "default-file-storage-dir": "/srv/ganeti/file-storage",
   "default-shared-file-storage-dir": "/srv/ganeti/shared-file-storage",
