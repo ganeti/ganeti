@@ -766,6 +766,10 @@ class LUInstanceRecreateDisks(LogicalUnit):
 
     self.needed_locks[locking.LEVEL_NODE_RES] = []
 
+    self.dont_collate_locks[locking.LEVEL_NODEGROUP] = True
+    self.dont_collate_locks[locking.LEVEL_NODE] = True
+    self.dont_collate_locks[locking.LEVEL_NODE_RES] = True
+
   def DeclareLocks(self, level):
     if level == locking.LEVEL_NODEGROUP:
       assert self.op.iallocator is not None
