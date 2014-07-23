@@ -1081,7 +1081,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if nic.nicparams[constants.NIC_LINK]:
       env["LINK"] = nic.nicparams[constants.NIC_LINK]
 
-    if nic.nicparams[constants.NIC_VLAN]:
+    if constants.NIC_VLAN in nic.nicparams:
       env["VLAN"] = nic.nicparams[constants.NIC_VLAN]
 
     if nic.network:
