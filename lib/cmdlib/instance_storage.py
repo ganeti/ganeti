@@ -444,6 +444,16 @@ def ComputeDisksInfo(disks, disk_template, default_vg, ext_params):
 
   # Add missing parameters to the previously computed disks.
   for disk, new_disk in zip(disks, new_disks):
+    # Conversions between ExtStorage templates allowed only for different
+    # providers.
+    if (disk.dev_type == disk_template and
+        disk_template == constants.DT_EXT):
+      provider = new_disk[constants.IDISK_PROVIDER]
+      if provider == disk.params[constants.IDISK_PROVIDER]:
+        raise errors.OpPrereqError("Not converting, '%s' of type ExtStorage"
+                                   " already using provider '%s'" %
+                                   (disk.iv_name, provider), errors.ECODE_INVAL)
+
     # Add IDISK_ACCESS parameter for conversions between disk templates that
     # support it.
     if (disk_template in constants.DTS_HAVE_ACCESS and
