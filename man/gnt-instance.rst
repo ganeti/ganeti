@@ -1233,7 +1233,11 @@ MODIFY
 |  \--disk *N*:add,size=*SIZE*,provider=*PROVIDER*[,options...][,param=*value*... ] \|
 |  \--disk *ID*:modify[,options...]
 |  \--disk [*ID*:]remove]
-| [{-t|\--disk-template} plain \| {-t|\--disk-template} drbd -n *new_secondary*] [\--no-wait-for-sync]
+| [\{-t|\--disk-template} { plain | rbd } \|
+|  \{-t|\--disk-template} drbd -n *new_secondary*] [\--no-wait-for-sync] \|
+|  \{-t|\--disk-template} ext {-e|--ext-params} {provider=*PROVIDER*}[,param=*value*... ] \|
+|  \{-t|\--disk-template} { file | sharedfile | gluster }
+|  \| [--file-storage-dir dir_path] [--file-driver {loop | blktap | blktap2}]
 | [\--new-primary=*node*]
 | [\--os-type=*OS* [\--force-variant]]
 | [{-O|\--os-parameters} *param*=*value*... ]
@@ -1256,13 +1260,29 @@ OS parameter options in the form of name=value[,...]. For details
 which options can be specified, see the **add** command.
 
 The ``-t (--disk-template)`` option will change the disk template of
-the instance.  Currently only conversions between the plain and drbd
-disk templates are supported, and the instance must be stopped before
+the instance.  Currently, conversions between all the available
+templates are supported, except the ``diskless`` and the ``blockdev``
+templates. For the ``blockdev`` disk template, only partial support is
+provided and acts only as a source template. Since these volumes are
+adopted pre-existent block devices, conversions targeting this template
+are not supported. Also, there is no support for conversions to or from
+the ``diskless`` template. The instance must be stopped before
 attempting the conversion. When changing from the plain to the drbd
 disk template, a new secondary node must be specified via the ``-n``
 option. The option ``--no-wait-for-sync`` can be used when converting
 to the ``drbd`` template in order to make the instance available for
-startup before DRBD has finished resyncing.
+startup before DRBD has finished resyncing. When changing to a
+file-based disk template, i.e., ``file``, ``sharedfile`` and
+``gluster``, the file storage directory and the file driver can be
+specified via the ``--file-storage-dir`` and ``--file-driver`` options,
+respectively. For more details on these options please refer to the
+**add** command section. When changing to an ``ext`` template, the
+provider's name must be specified. Also, arbitrary parameters can be
+passed, as additional comma separated options. Those parameters along
+with the ExtStorage provider must be passed using either the
+``--ext-params`` or ``-e`` option. It is not allowed specifying existing
+disk parameters such as the size, mode, name, access, adopt, vg, metavg,
+provider, or spindles options.
 
 The ``-m (--runtime-memory)`` option will change an instance's runtime
 memory to the given size (in MB if a different suffix is not specified),
