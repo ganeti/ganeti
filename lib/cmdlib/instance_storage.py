@@ -460,6 +460,55 @@ def ComputeDisksInfo(disks, disk_template, default_vg, ext_params):
   return new_disks
 
 
+def CalculateFileStorageDir(lu):
+  """Calculate final instance file storage dir.
+
+  @type lu: L{LogicalUnit}
+  @param lu: the logical unit on whose behalf we execute
+
+  @rtype: string
+  @return: The file storage directory for the instance
+
+  """
+  # file storage dir calculation/check
+  instance_file_storage_dir = None
+  if lu.op.disk_template in constants.DTS_FILEBASED:
+    # build the full file storage dir path
+    joinargs = []
+
+    cfg_storage = None
+    if lu.op.disk_template == constants.DT_FILE:
+      cfg_storage = lu.cfg.GetFileStorageDir()
+    elif lu.op.disk_template == constants.DT_SHARED_FILE:
+      cfg_storage = lu.cfg.GetSharedFileStorageDir()
+    elif lu.op.disk_template == constants.DT_GLUSTER:
+      cfg_storage = lu.cfg.GetGlusterStorageDir()
+
+    if not cfg_storage:
+      raise errors.OpPrereqError(
+        "Cluster file storage dir for {tpl} storage type not defined".format(
+          tpl=repr(lu.op.disk_template)
+        ),
+        errors.ECODE_STATE
+    )
+
+    joinargs.append(cfg_storage)
+
+    if lu.op.file_storage_dir is not None:
+      joinargs.append(lu.op.file_storage_dir)
+
+    if lu.op.disk_template != constants.DT_GLUSTER:
+      joinargs.append(lu.op.instance_name)
+
+    if len(joinargs) > 1:
+      # pylint: disable=W0142
+      instance_file_storage_dir = utils.PathJoin(*joinargs)
+    else:
+      instance_file_storage_dir = joinargs[0]
+
+  return instance_file_storage_dir
+
+
 def CheckRADOSFreeSpace():
   """Compute disk size requirements inside the RADOS cluster.
 

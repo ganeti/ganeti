@@ -58,7 +58,8 @@ from ganeti.cmdlib.instance_storage import CreateDisks, \
   WaitForSync, IsExclusiveStorageEnabledNodeUuid, CreateSingleBlockDev, \
   ComputeDisks, ComputeDisksInfo, CheckRADOSFreeSpace, ComputeDiskSizePerVG, \
   GenerateDiskTemplate, StartInstanceDisks, ShutdownInstanceDisks, \
-  AssembleInstanceDisks, CheckSpindlesExclusiveStorage, TemporaryDisk
+  AssembleInstanceDisks, CheckSpindlesExclusiveStorage, TemporaryDisk, \
+  CalculateFileStorageDir
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   GetClusterDomainSecret, BuildInstanceHookEnv, NICListToTuple, \
   NICToTuple, CheckNodeNotDrained, RemoveInstance, CopyLockList, \
@@ -911,46 +912,6 @@ class LUInstanceCreate(LogicalUnit):
       if name in os_defs_ and os_defs_[name] == self.op.osparams_private[name]:
         del self.op.osparams_private[name]
 
-  def _CalculateFileStorageDir(self):
-    """Calculate final instance file storage dir.
-
-    """
-    # file storage dir calculation/check
-    self.instance_file_storage_dir = None
-    if self.op.disk_template in constants.DTS_FILEBASED:
-      # build the full file storage dir path
-      joinargs = []
-
-      cfg_storage = None
-      if self.op.disk_template == constants.DT_FILE:
-        cfg_storage = self.cfg.GetFileStorageDir()
-      elif self.op.disk_template == constants.DT_SHARED_FILE:
-        cfg_storage = self.cfg.GetSharedFileStorageDir()
-      elif self.op.disk_template == constants.DT_GLUSTER:
-        cfg_storage = self.cfg.GetGlusterStorageDir()
-
-      if not cfg_storage:
-        raise errors.OpPrereqError(
-          "Cluster file storage dir for {tpl} storage type not defined".format(
-            tpl=repr(self.op.disk_template)
-          ),
-          errors.ECODE_STATE
-      )
-
-      joinargs.append(cfg_storage)
-
-      if self.op.file_storage_dir is not None:
-        joinargs.append(self.op.file_storage_dir)
-
-      if self.op.disk_template != constants.DT_GLUSTER:
-        joinargs.append(self.op.instance_name)
-
-      if len(joinargs) > 1:
-        # pylint: disable=W0142
-        self.instance_file_storage_dir = utils.PathJoin(*joinargs)
-      else:
-        self.instance_file_storage_dir = joinargs[0]
-
   def CheckPrereq(self): # pylint: disable=R0914
     """Check prerequisites.
 
@@ -970,7 +931,7 @@ class LUInstanceCreate(LogicalUnit):
                                   utils.CommaJoin(owned_groups)),
                                  errors.ECODE_STATE)
 
-    self._CalculateFileStorageDir()
+    self.instance_file_storage_dir = CalculateFileStorageDir(self)
 
     if self.op.mode == constants.INSTANCE_IMPORT:
       export_info = self._ReadExportInfo()
