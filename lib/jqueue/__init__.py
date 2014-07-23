@@ -1081,19 +1081,14 @@ class _JobProcessor(object):
           finalize = False
 
         elif op.status == constants.OP_STATUS_ERROR:
-          # Ensure failed opcode has an exception as its result
-          assert errors.GetEncodedError(job.ops[opctx.index].result)
-
+          # If we get here, we cannot afford to check for any consistency
+          # any more, we just want to clean up.
+          # TODO: Actually, it wouldn't be a bad idea to start a timer
+          # here to kill the whole process.
           to_encode = errors.OpExecError("Preceding opcode failed")
           job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
                                 _EncodeOpError(to_encode))
           finalize = True
-
-          # Consistency check
-          assert compat.all(i.status == constants.OP_STATUS_ERROR and
-                            errors.GetEncodedError(i.result)
-                            for i in job.ops[opctx.index:])
-
         elif op.status == constants.OP_STATUS_CANCELING:
           job.MarkUnfinishedOps(constants.OP_STATUS_CANCELED,
                                 "Job canceled by request")
