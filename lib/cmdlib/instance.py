@@ -2784,17 +2784,33 @@ class LUInstanceSetParams(LogicalUnit):
     self.op.nics = self._UpgradeDiskNicMods(
       "NIC", self.op.nics, ht.TSetParamsMods(ht.TINicParams))
 
-    if self.op.disks and self.op.disk_template is not None:
-      raise errors.OpPrereqError("Disk template conversion and other disk"
-                                 " changes not supported at the same time",
-                                 errors.ECODE_INVAL)
+    # Check disk template modifications
+    if self.op.disk_template:
+      if self.op.disks:
+        raise errors.OpPrereqError("Disk template conversion and other disk"
+                                   " changes not supported at the same time",
+                                   errors.ECODE_INVAL)
 
-    if (self.op.disk_template and
-        self.op.disk_template in constants.DTS_INT_MIRROR and
-        self.op.remote_node is None):
-      raise errors.OpPrereqError("Changing the disk template to a mirrored"
-                                 " one requires specifying a secondary node",
-                                 errors.ECODE_INVAL)
+      # mirrored template node checks
+      if self.op.disk_template in constants.DTS_INT_MIRROR:
+        if not self.op.remote_node:
+          raise errors.OpPrereqError("Changing the disk template to a mirrored"
+                                     " one requires specifying a secondary"
+                                     " node", errors.ECODE_INVAL)
+      elif self.op.remote_node:
+        self.LogWarning("Changing the disk template to a non-mirrored one,"
+                        " the secondary node will be ignored")
+        # the secondary node must be cleared in order to be ignored, otherwise
+        # the operation will fail, in the GenerateDiskTemplate method
+        self.op.remote_node = None
+
+      # file-based template checks
+      if self.op.disk_template in constants.DTS_FILEBASED:
+        if not self.op.file_driver:
+          self.op.file_driver = constants.FD_LOOP
+        elif self.op.file_driver not in constants.FILE_DRIVER:
+          raise errors.OpPrereqError("Invalid file driver name '%s'" %
+                                     self.op.file_driver, errors.ECODE_INVAL)
 
     # Check NIC modifications
     self._CheckMods("NIC", self.op.nics, constants.INIC_PARAMS_TYPES,
@@ -3027,32 +3043,46 @@ class LUInstanceSetParams(LogicalUnit):
     """CheckPrereq checks related to a new disk template."""
     # Arguments are passed to avoid configuration lookups
     pnode_uuid = self.instance.primary_node
-    if self.instance.disk_template == self.op.disk_template:
+
+    if self.instance.disk_template in constants.DTS_NOT_CONVERTIBLE_FROM:
+      raise errors.OpPrereqError("Conversion from the '%s' disk template is"
+                                 " not supported" % self.instance.disk_template,
+                                 errors.ECODE_INVAL)
+
+    elif self.op.disk_template in constants.DTS_NOT_CONVERTIBLE_TO:
+      raise errors.OpPrereqError("Conversion to the '%s' disk template is"
+                                 " not supported" % self.op.disk_template,
+                                 errors.ECODE_INVAL)
+
+    if (self.op.disk_template != constants.DT_EXT and
+        self.instance.disk_template == self.op.disk_template):
       raise errors.OpPrereqError("Instance already has disk template %s" %
                                  self.instance.disk_template,
                                  errors.ECODE_INVAL)
 
     if not self.cluster.IsDiskTemplateEnabled(self.op.disk_template):
+      enabled_dts = utils.CommaJoin(self.cluster.enabled_disk_templates)
       raise errors.OpPrereqError("Disk template '%s' is not enabled for this"
-                                 " cluster." % self.op.disk_template)
+                                 " cluster (enabled templates: %s)" %
+                                 (self.op.disk_template, enabled_dts),
+                                  errors.ECODE_STATE)
 
-    if (self.instance.disk_template,
-        self.op.disk_template) not in self._DISK_CONVERSIONS:
-      raise errors.OpPrereqError("Unsupported disk template conversion from"
-                                 " %s to %s" % (self.instance.disk_template,
-                                                self.op.disk_template),
-                                 errors.ECODE_INVAL)
+    default_vg = self.cfg.GetVGName()
+    if (not default_vg and
+        self.op.disk_template not in constants.DTS_NOT_LVM):
+      raise errors.OpPrereqError("Disk template conversions to lvm-based"
+                                 " instances are not supported by the cluster",
+                                 errors.ECODE_STATE)
+
     CheckInstanceState(self, self.instance, INSTANCE_DOWN,
                        msg="cannot change disk template")
 
-    # The 'ext_params' variable is temporary. It will be replaced in the next
-    # patch series by the 'self.op.ext_params' variable
-    ext_params = {}
-    default_vg = self.cfg.GetVGName()
+    # compute new disks' information
     inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     self.disks_info = ComputeDisksInfo(inst_disks, self.op.disk_template,
-                                       default_vg, ext_params)
+                                       default_vg, self.op.ext_params)
 
+    # mirror node verification
     if self.op.disk_template in constants.DTS_INT_MIRROR:
       if self.op.remote_node_uuid == pnode_uuid:
         raise errors.OpPrereqError("Given new secondary node %s is the same"
@@ -3060,10 +3090,7 @@ class LUInstanceSetParams(LogicalUnit):
                                    self.op.remote_node, errors.ECODE_STATE)
       CheckNodeOnline(self, self.op.remote_node_uuid)
       CheckNodeNotDrained(self, self.op.remote_node_uuid)
-      # FIXME: here we assume that the old instance type is DT_PLAIN
-      assert self.instance.disk_template == constants.DT_PLAIN
-      required = ComputeDiskSizePerVG(self.op.disk_template, self.disks_info)
-      CheckNodesFreeDiskPerVG(self, [self.op.remote_node_uuid], required)
+      CheckNodeVmCapable(self, self.op.remote_node_uuid)
 
       snode_info = self.cfg.GetNodeInfo(self.op.remote_node_uuid)
       snode_group = self.cfg.GetNodeGroup(snode_info.group)
@@ -3077,6 +3104,17 @@ class LUInstanceSetParams(LogicalUnit):
                         " from the first disk's node group will be"
                         " used")
 
+    # check that the template is in the primary node group's allowed templates
+    pnode_group = self.cfg.GetNodeGroup(pnode_info.group)
+    ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(self.cluster,
+                                                            pnode_group)
+    allowed_dts = ipolicy[constants.IPOLICY_DTS]
+    if self.op.disk_template not in allowed_dts:
+      raise errors.OpPrereqError("Disk template '%s' in not allowed (allowed"
+                                 " templates: %s)" % (self.op.disk_template,
+                                 utils.CommaJoin(allowed_dts)),
+                                 errors.ECODE_STATE)
+
     if not self.op.disk_template in constants.DTS_EXCL_STORAGE:
       # Make sure none of the nodes require exclusive storage
       nodes = [pnode_info]
@@ -3089,6 +3127,35 @@ class LUInstanceSetParams(LogicalUnit):
                   " storage is enabled" % (self.instance.disk_template,
                                            self.op.disk_template))
         raise errors.OpPrereqError(errmsg, errors.ECODE_STATE)
+
+    # node capacity checks
+    if (self.op.disk_template == constants.DT_PLAIN and
+        self.instance.disk_template == constants.DT_DRBD8):
+      # we ensure that no capacity checks will be made for conversions from
+      # the 'drbd' to the 'plain' disk template
+      pass
+    elif (self.op.disk_template == constants.DT_DRBD8 and
+          self.instance.disk_template == constants.DT_PLAIN):
+      # for conversions from the 'plain' to the 'drbd' disk template, check
+      # only the remote node's capacity
+      req_sizes = ComputeDiskSizePerVG(self.op.disk_template, self.disks_info)
+      CheckNodesFreeDiskPerVG(self, [self.op.remote_node_uuid], req_sizes)
+    elif self.op.disk_template in constants.DTS_LVM:
+      # rest lvm-based capacity checks
+      node_uuids = [pnode_uuid]
+      if self.op.remote_node_uuid:
+        node_uuids.append(self.op.remote_node_uuid)
+      req_sizes = ComputeDiskSizePerVG(self.op.disk_template, self.disks_info)
+      CheckNodesFreeDiskPerVG(self, node_uuids, req_sizes)
+    elif self.op.disk_template == constants.DT_RBD:
+      # CheckRADOSFreeSpace() is simply a placeholder
+      CheckRADOSFreeSpace()
+    elif self.op.disk_template == constants.DT_EXT:
+      # FIXME: Capacity checks for extstorage template, if exists
+      pass
+    else:
+      # FIXME: Checks about other non lvm-based disk templates
+      pass
 
   def _PreCheckDisks(self, ispec):
     """CheckPrereq checks related to disk changes.
@@ -3316,6 +3383,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     if self.op.disk_template:
       self._PreCheckDiskTemplate(pnode_info)
+      self.instance_file_storage_dir = CalculateFileStorageDir(self)
 
     self._PreCheckDisks(ispec)
 
@@ -3633,8 +3701,8 @@ class LUInstanceSetParams(LogicalUnit):
                                      pnode_uuid,
                                      snode_uuid,
                                      self.disks_info,
-                                     None, # to be updated with the file_path
-                                     None, # to be updated with the file_driver
+                                     self.instance_file_storage_dir,
+                                     self.op.file_driver,
                                      0,
                                      feedback_fn,
                                      self.diskparams)
@@ -3829,7 +3897,6 @@ class LUInstanceSetParams(LogicalUnit):
       child.name = parent.name
 
     # this is a DRBD disk, return its port to the pool
-    # NOTE: this must be done right before the call to cfg.Update!
     for disk in old_disks:
       tcp_port = disk.logical_id[2]
       self.cfg.AddTcpUdpPort(tcp_port)
@@ -4119,7 +4186,10 @@ class LUInstanceSetParams(LogicalUnit):
                                  " proceed with disk template conversion")
       mode = (self.instance.disk_template, self.op.disk_template)
       try:
-        self._DISK_CONVERSIONS[mode](self, feedback_fn)
+        if mode in self._DISK_CONVERSIONS:
+          self._DISK_CONVERSIONS[mode](self, feedback_fn)
+        else:
+          self._ConvertInstanceTemplate(feedback_fn)
       except:
         self.cfg.ReleaseDRBDMinors(self.instance.uuid)
         raise
