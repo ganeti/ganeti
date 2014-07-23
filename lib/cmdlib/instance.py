@@ -3678,8 +3678,13 @@ class LUInstanceSetParams(LogicalUnit):
     @raise errors.OpPrereqError: in case of failure
 
     """
+    template_info = self.op.disk_template
+    if self.op.disk_template == constants.DT_EXT:
+      template_info = ":".join([self.op.disk_template,
+                                self.op.ext_params["provider"]])
+
     feedback_fn("Converting disk template from '%s' to '%s'" %
-                (self.instance.disk_template, self.op.disk_template))
+                (self.instance.disk_template, template_info))
 
     assert not (self.instance.disk_template in
                 constants.DTS_NOT_CONVERTIBLE_FROM or
@@ -3694,7 +3699,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     old_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
 
-    feedback_fn("Generating new '%s' disk template..." % self.op.disk_template)
+    feedback_fn("Generating new '%s' disk template..." % template_info)
     new_disks = GenerateDiskTemplate(self,
                                      self.op.disk_template,
                                      self.instance.uuid,
@@ -3708,8 +3713,7 @@ class LUInstanceSetParams(LogicalUnit):
                                      self.diskparams)
 
     # Create the new block devices for the instance.
-    feedback_fn("Creating new empty disks of type '%s'..." %
-                self.op.disk_template)
+    feedback_fn("Creating new empty disks of type '%s'..." % template_info)
     try:
       CreateDisks(self, self.instance, disk_template=self.op.disk_template,
                   disks=new_disks)
@@ -3720,7 +3724,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     # Transfer the data from the old to the newly created disks of the instance.
     feedback_fn("Populating the new empty disks of type '%s'..." %
-                self.op.disk_template)
+                template_info)
     for idx, (old, new) in enumerate(zip(old_disks, new_disks)):
       feedback_fn(" - copying data from disk %s (%s), size %s" %
                   (idx, self.instance.disk_template,
@@ -3742,7 +3746,7 @@ class LUInstanceSetParams(LogicalUnit):
           self.LogInfo("Some disks failed to copy")
           self.LogInfo("The instance will not be affected, aborting operation")
           self.LogInfo("Removing newly created disks of type '%s'..." %
-                       self.op.disk_template)
+                       template_info)
           RemoveDisks(self, self.instance, disk_template=self.op.disk_template,
                       disks=new_disks)
           self.LogInfo("Newly created disks removed successfully")
@@ -3770,7 +3774,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     # Attach the new disks to the instance.
     feedback_fn("Adding new disks (%s) to cluster config and attaching"
-                " them to the instance" % self.op.disk_template)
+                " them to the instance" % template_info)
     for (idx, new_disk) in enumerate(new_disks):
       self.cfg.AddInstanceDisk(self.instance.uuid, new_disk, idx=idx)
 
