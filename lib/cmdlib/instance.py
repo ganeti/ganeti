@@ -3613,9 +3613,9 @@ class LUInstanceSetParams(LogicalUnit):
     feedback_fn("Converting disk template from '%s' to '%s'" %
                 (self.instance.disk_template, self.op.disk_template))
 
-    assert not (self.op.disk_template in (constants.DT_BLOCK,
-                                          constants.DT_DISKLESS) or
-                self.instance.disk_template == constants.DT_DISKLESS), \
+    assert not (self.instance.disk_template in
+                constants.DTS_NOT_CONVERTIBLE_FROM or
+                self.op.disk_template in constants.DTS_NOT_CONVERTIBLE_TO), \
       ("Unsupported disk template conversion from '%s' to '%s'" %
        (self.instance.disk_template, self.op.disk_template))
 

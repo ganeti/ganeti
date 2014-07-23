@@ -967,6 +967,18 @@ dtsHaveAccess :: FrozenSet String
 dtsHaveAccess = ConstantUtils.mkSet $
   map Types.diskTemplateToRaw [DTRbd, DTGluster, DTExt]
 
+-- | The set of disk templates that cannot convert from
+dtsNotConvertibleFrom :: FrozenSet String
+dtsNotConvertibleFrom =
+  ConstantUtils.mkSet $
+  map Types.diskTemplateToRaw [DTDiskless]
+
+-- | The set of disk templates that cannot convert to
+dtsNotConvertibleTo :: FrozenSet String
+dtsNotConvertibleTo =
+  ConstantUtils.mkSet $
+  map Types.diskTemplateToRaw [DTDiskless, DTBlock]
+
 -- * Drbd
 
 drbdHmacAlg :: String
