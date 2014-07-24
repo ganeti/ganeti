@@ -104,11 +104,7 @@ def _ConfigSync(shared=0):
   def wrap(fn):
     def sync_function(*args, **kwargs):
       with args[0].GetConfigManager(shared):
-        logging.debug("ConfigWriter.%s(%s, %s)",
-                      fn.__name__, str(args), str(kwargs))
-        result = fn(*args, **kwargs)
-        logging.debug("ConfigWriter.%s(...) returned", fn.__name__)
-        return result
+        return fn(*args, **kwargs)
     return sync_function
   return wrap
 
