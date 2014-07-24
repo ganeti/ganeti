@@ -23,9 +23,14 @@
 
 """
 
+import logging
+import random
+import time
+
 import ganeti.rpc.client as cl
 import ganeti.rpc.stub.wconfd as stub
 from ganeti.rpc.transport import Transport
+from ganeti.rpc import errors
 
 
 class Client(cl.AbstractStubClient, stub.ClientRpcStub):
@@ -43,4 +48,15 @@ class Client(cl.AbstractStubClient, stub.ClientRpcStub):
     """
     cl.AbstractStubClient.__init__(self, timeouts, transport)
     stub.ClientRpcStub.__init__(self)
-    self._InitTransport()
+
+    retries = 10
+    for try_no in range(0, retries):
+      try:
+        self._InitTransport()
+        return
+      except errors.TimeoutError:
+        logging.debug("Timout trying to connect to WConfD")
+        if try_no == retries -1:
+          raise
+        logging.debug("Will retry")
+        time.sleep(10 * random.random())
