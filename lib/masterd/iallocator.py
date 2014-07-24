@@ -448,6 +448,7 @@ class IAllocator(object):
       "enabled_hypervisors": list(cluster_info.enabled_hypervisors),
       "ipolicy": cluster_info.ipolicy,
       }
+    ginfo = self.cfg.GetAllNodeGroupsInfo()
     ninfo = self.cfg.GetAllNodesInfo()
     iinfo = self.cfg.GetAllInstancesInfo().values()
     i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo]
@@ -476,7 +477,7 @@ class IAllocator(object):
                                        cluster_info.enabled_hypervisors,
                                        cluster_info.hvparams)
 
-    data["nodegroups"] = self._ComputeNodeGroupData(self.cfg)
+    data["nodegroups"] = self._ComputeNodeGroupData(cluster_info, ginfo)
 
     config_ndata = self._ComputeBasicNodeData(self.cfg, ninfo, node_whitelist)
     data["nodes"] = self._ComputeDynamicNodeData(
@@ -490,11 +491,10 @@ class IAllocator(object):
     self.in_data = data
 
   @staticmethod
-  def _ComputeNodeGroupData(cfg):
+  def _ComputeNodeGroupData(cluster, ginfo):
     """Compute node groups data.
 
     """
-    cluster = cfg.GetClusterInfo()
     ng = dict((guuid, {
       "name": gdata.name,
       "alloc_policy": gdata.alloc_policy,
@@ -502,7 +502,7 @@ class IAllocator(object):
       "ipolicy": gmi.CalculateGroupIPolicy(cluster, gdata),
       "tags": list(gdata.GetTags()),
       })
-      for guuid, gdata in cfg.GetAllNodeGroupsInfo().items())
+      for guuid, gdata in ginfo.items())
 
     return ng
 
