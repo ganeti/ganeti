@@ -450,8 +450,8 @@ class IAllocator(object):
       }
     ginfo = self.cfg.GetAllNodeGroupsInfo()
     ninfo = self.cfg.GetAllNodesInfo()
-    iinfo = self.cfg.GetAllInstancesInfo().values()
-    i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo]
+    iinfo = self.cfg.GetAllInstancesInfo()
+    i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo.values()]
 
     # node data
     node_list = [n.uuid for n in ninfo.values() if n.vm_capable]
@@ -460,7 +460,7 @@ class IAllocator(object):
       hypervisor_name = self.req.hypervisor
       node_whitelist = self.req.node_whitelist
     elif isinstance(self.req, IAReqRelocate):
-      hypervisor_name = self.cfg.GetInstanceInfo(self.req.inst_uuid).hypervisor
+      hypervisor_name = iinfo[self.req.inst_uuid].hypervisor
       node_whitelist = None
     else:
       hypervisor_name = cluster_info.primary_hypervisor
