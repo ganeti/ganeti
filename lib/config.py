@@ -3087,6 +3087,14 @@ class ConfigWriter(object):
     """
     return self._ConfigData().HasAnyDiskOfType(dev_type)
 
+  @_ConfigSync(shared=1)
+  def GetDetachedConfig(self):
+    """Returns a detached version of a ConfigManager, which represents
+    a read-only snapshot of the configuration at this particular time.
+
+    """
+    return DetachedConfig(self._ConfigData())
+
   @_ConfigSync()
   def Update(self, target, feedback_fn, ec_id=None):
     """Notify function to be called after updates.
@@ -3424,3 +3432,22 @@ class ConfigWriter(object):
     """
     if not self._offline:
       self._wconfd.FlushConfig()
+
+
+class DetachedConfig(ConfigWriter):
+  def __init__(self, config_data):
+    super(DetachedConfig, self).__init__(self, offline=True)
+    self._SetConfigData(config_data)
+
+  @staticmethod
+  def _WriteCallError():
+    raise errors.ProgrammerError("DetachedConfig supports only read-only"
+                                 " operations")
+
+  def _OpenConfig(self, shared):
+    if not shared:
+      DetachedConfig._WriteCallError()
+
+  def _CloseConfig(self, save):
+    if save:
+      DetachedConfig._WriteCallError()
