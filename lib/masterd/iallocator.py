@@ -439,18 +439,19 @@ class IAllocator(object):
     @param disk_template: the disk templates of the instances to be allocated
 
     """
-    cluster_info = self.cfg.GetClusterInfo()
+    cfg = self.cfg.GetDetachedConfig()
+    cluster_info = cfg.GetClusterInfo()
     # cluster data
     data = {
       "version": constants.IALLOCATOR_VERSION,
-      "cluster_name": self.cfg.GetClusterName(),
+      "cluster_name": cluster_info.cluster_name,
       "cluster_tags": list(cluster_info.GetTags()),
       "enabled_hypervisors": list(cluster_info.enabled_hypervisors),
       "ipolicy": cluster_info.ipolicy,
       }
-    ginfo = self.cfg.GetAllNodeGroupsInfo()
-    ninfo = self.cfg.GetAllNodesInfo()
-    iinfo = self.cfg.GetAllInstancesInfo()
+    ginfo = cfg.GetAllNodeGroupsInfo()
+    ninfo = cfg.GetAllNodesInfo()
+    iinfo = cfg.GetAllInstancesInfo()
     i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo.values()]
 
     # node data
@@ -479,14 +480,13 @@ class IAllocator(object):
 
     data["nodegroups"] = self._ComputeNodeGroupData(cluster_info, ginfo)
 
-    config_ndata = self._ComputeBasicNodeData(self.cfg, ninfo, node_whitelist)
+    config_ndata = self._ComputeBasicNodeData(cfg, ninfo, node_whitelist)
     data["nodes"] = self._ComputeDynamicNodeData(
         ninfo, node_data, node_iinfo, i_list, config_ndata, disk_template)
     assert len(data["nodes"]) == len(ninfo), \
         "Incomplete node data computed"
 
-    data["instances"] = self._ComputeInstanceData(self.cfg, cluster_info,
-                                                  i_list)
+    data["instances"] = self._ComputeInstanceData(cfg, cluster_info, i_list)
 
     self.in_data = data
 
