@@ -308,7 +308,9 @@ recvMsg s = do
     if B.null ibuf      -- if old buffer didn't contain a full message
                         -- then we read from network:
       then recvUpdate (clientConfig s) (rsocket s) cbuf
-      else return (imsg, B.tail ibuf)   -- else we return data from our buffer
+      -- else we return data from our buffer, copying it so that the whole
+      -- message isn't retained and can be garbage collected
+      else return (imsg, B.copy (B.tail ibuf))
   writeIORef (rbuf s) nbuf
   return $ UTF8.toString msg
 
