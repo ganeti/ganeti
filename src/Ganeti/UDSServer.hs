@@ -297,7 +297,7 @@ recvUpdate conf handle obuf = do
       newbuf = B.append obuf msg
   if B.null remaining
     then recvUpdate conf handle newbuf
-    else return (newbuf, B.tail remaining)
+    else return (newbuf, B.copy (B.tail remaining))
 
 -- | Waits for a message over a transport.
 recvMsg :: Client -> IO String
