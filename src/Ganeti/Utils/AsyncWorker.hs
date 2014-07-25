@@ -61,7 +61,7 @@ import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Trans.Control
 import Control.Concurrent (ThreadId)
-import Control.Concurrent.Lifted (fork)
+import Control.Concurrent.Lifted (fork, yield)
 import Control.Concurrent.MVar.Lifted
 import Data.Functor.Identity
 import Data.Monoid
@@ -112,6 +112,9 @@ mkAsyncWorker act = do
                                      -- been woken up by a trigger that has been
                                      -- already included in the last run
           Pending i rs  -> act i >>= forM_ rs . flip tryPutMVar
+        -- Give other threads a chance to do work while we're waiting for
+        -- something to happen.
+        yield
     return $ AsyncWorker thId ref trig
   where
     swap :: (MonadBase IO m) => IORef a -> a -> m a

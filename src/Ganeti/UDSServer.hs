@@ -62,7 +62,7 @@ module Ganeti.UDSServer
   ) where
 
 import Control.Applicative
-import Control.Concurrent.Lifted (fork)
+import Control.Concurrent.Lifted (fork, yield)
 import Control.Monad.Base
 import Control.Monad.Trans.Control
 import Control.Exception (catch)
@@ -488,8 +488,14 @@ clientLoop
     -> m ()
 clientLoop handler client = do
   result <- handleClient handler client
+  {- It's been observed sometimes that reading immediately after sending
+     a response leads to worse performance, as there is nothing to read and
+     the system calls are just wasted. Thus yielding before reading gives
+     other threads a chance to proceed and provides a natural pause, leading
+     to a bit more efficient communication.
+  -}
   if result
-    then clientLoop handler client
+    then yield >> clientLoop handler client
     else liftBase $ closeClient client
 
 -- | Main listener loop: accepts clients, forks an I/O thread to handle
