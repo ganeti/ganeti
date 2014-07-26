@@ -1928,9 +1928,9 @@ tools/users-setup: Makefile $(userspecs)
 	  echo 'read confirm'; \
 	  echo 'if [ "x$$confirm" != "xy" ]; then exit 0; fi'; \
 	  echo 'fi'; \
-	  $(AWK) -- '{print "addgroup --system",$$1}' doc/users/groups; \
-	  $(AWK) -- '{if (NF > 1) {print "adduser --system --ingroup",$$2,$$1} else {print "adduser --system",$$1}}' doc/users/users; \
-	  $(AWK) -- '{print "adduser",$$1,$$2}' doc/users/groupmemberships; \
+	  $(AWK) -- '{print "groupadd --system",$$1}' doc/users/groups; \
+	  $(AWK) -- '{if (NF > 1) {print "useradd --system --gid",$$2,$$1} else {print "useradd --system",$$1}}' doc/users/users; \
+	  $(AWK) -- '{print "usermod --append --groups",$$2,$$1}' doc/users/groupmemberships; \
 	} > $@
 	chmod +x $@
 
