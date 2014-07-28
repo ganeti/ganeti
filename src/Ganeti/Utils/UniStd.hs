@@ -28,23 +28,25 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 -}
 
 module Ganeti.Utils.UniStd
-  ( hCloseAndFsync
+  ( fsyncFile
   ) where
 
+import Control.Exception (bracket)
 import Foreign.C
-import System.IO
-import System.IO.Error
 import System.Posix.IO
 import System.Posix.Types
 
+import Ganeti.BasicTypes
+
 foreign import ccall "fsync" fsync :: CInt -> IO CInt
 
-
--- | Flush, close and fsync(2) a file handle.
-hCloseAndFsync :: Handle -> IO ()
-hCloseAndFsync handle = do
-  Fd fd <- handleToFd handle -- side effect of closing the handle and flushing
-                             -- its write buffer, if necessary.
-  _ <- fsync fd
-  _ <- tryIOError $ closeFd (Fd fd)
-  return ()
+-- Opens a file and calls fsync(2) on the file descriptor.
+--
+-- Because of a bug in GHC 7.6.3 (at least), calling 'hIsClosed' on a handle
+-- to get the file descriptor leaks memory. Therefore we open a given file
+-- just to sync it and close it again.
+fsyncFile :: (Error e) => FilePath -> ResultT e IO ()
+fsyncFile path = liftIO
+  $ bracket (openFd path ReadOnly Nothing defaultFileFlags) closeFd callfsync
+  where
+    callfsync (Fd fd) = throwErrnoPathIfMinus1_ "fsyncFile" path $ fsync fd

@@ -160,6 +160,11 @@ class _QaNode(object):
   def __init__(self, primary, secondary):
     """Initializes instances of this class.
 
+    @type primary: string
+    @param primary: the primary network address of this node
+    @type secondary: string
+    @param secondary: the secondary network address of this node
+
     """
     self.primary = primary
     self.secondary = secondary

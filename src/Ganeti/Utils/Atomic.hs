@@ -44,14 +44,24 @@ import System.Posix.Types
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
+import Ganeti.Logging (logAlert)
 import Ganeti.Utils
-import Ganeti.Utils.UniStd (hCloseAndFsync)
+import Ganeti.Utils.UniStd (fsyncFile)
 
 -- | Atomically write a file, by first writing the contents into a temporary
 -- file and then renaming it to the old position.
 atomicWriteFile :: FilePath -> String -> IO ()
 atomicWriteFile path contents = atomicUpdateFile path
                                   (\_ fh -> hPutStr fh contents)
+
+-- | Calls fsync(2) on a given file.
+-- If the operation fails, issue an alert log message and continue.
+-- Doesn't throw an exception.
+fsyncFileChecked :: FilePath -> IO ()
+fsyncFileChecked path =
+    runResultT (fsyncFile path) >>= genericResult logMsg return
+  where
+    logMsg e = logAlert $ "Can't fsync file '" ++ path ++ "': " ++ e
 
 -- | Atomically update a file, by first creating a temporary file, running the
 -- given action on it, and then renaming it to the old position.
@@ -61,10 +71,10 @@ atomicWriteFile path contents = atomicUpdateFile path
 atomicUpdateFile :: (MonadBaseControl IO m)
                  => FilePath -> (FilePath -> Handle -> m a) -> m a
 atomicUpdateFile path action = do
-  (tmppath, tmphandle) <- liftBase $ openTempFile (takeDirectory path)
-                                                  (takeBaseName path)
+  (tmppath, tmphandle) <- liftBase $ openBinaryTempFile (takeDirectory path)
+                                                        (takeBaseName path)
   r <- L.finally (action tmppath tmphandle)
-                 (liftBase $ hCloseAndFsync tmphandle)
+                 (liftBase (hClose tmphandle >> fsyncFileChecked tmppath))
   -- if all went well, rename the file
   liftBase $ renameFile tmppath path
   return r

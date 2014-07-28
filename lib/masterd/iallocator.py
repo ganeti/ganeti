@@ -441,18 +441,20 @@ class IAllocator(object):
     @param disk_template: the disk templates of the instances to be allocated
 
     """
-    cluster_info = self.cfg.GetClusterInfo()
+    cfg = self.cfg.GetDetachedConfig()
+    cluster_info = cfg.GetClusterInfo()
     # cluster data
     data = {
       "version": constants.IALLOCATOR_VERSION,
-      "cluster_name": self.cfg.GetClusterName(),
+      "cluster_name": cluster_info.cluster_name,
       "cluster_tags": list(cluster_info.GetTags()),
       "enabled_hypervisors": list(cluster_info.enabled_hypervisors),
       "ipolicy": cluster_info.ipolicy,
       }
-    ninfo = self.cfg.GetAllNodesInfo()
-    iinfo = self.cfg.GetAllInstancesInfo().values()
-    i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo]
+    ginfo = cfg.GetAllNodeGroupsInfo()
+    ninfo = cfg.GetAllNodesInfo()
+    iinfo = cfg.GetAllInstancesInfo()
+    i_list = [(inst, cluster_info.FillBE(inst)) for inst in iinfo.values()]
 
     # node data
     node_list = [n.uuid for n in ninfo.values() if n.vm_capable]
@@ -461,7 +463,7 @@ class IAllocator(object):
       hypervisor_name = self.req.hypervisor
       node_whitelist = self.req.node_whitelist
     elif isinstance(self.req, IAReqRelocate):
-      hypervisor_name = self.cfg.GetInstanceInfo(self.req.inst_uuid).hypervisor
+      hypervisor_name = iinfo[self.req.inst_uuid].hypervisor
       node_whitelist = None
     else:
       hypervisor_name = cluster_info.primary_hypervisor
@@ -478,25 +480,23 @@ class IAllocator(object):
                                        cluster_info.enabled_hypervisors,
                                        cluster_info.hvparams)
 
-    data["nodegroups"] = self._ComputeNodeGroupData(self.cfg)
+    data["nodegroups"] = self._ComputeNodeGroupData(cluster_info, ginfo)
 
-    config_ndata = self._ComputeBasicNodeData(self.cfg, ninfo, node_whitelist)
+    config_ndata = self._ComputeBasicNodeData(cfg, ninfo, node_whitelist)
     data["nodes"] = self._ComputeDynamicNodeData(
         ninfo, node_data, node_iinfo, i_list, config_ndata, disk_template)
     assert len(data["nodes"]) == len(ninfo), \
         "Incomplete node data computed"
 
-    data["instances"] = self._ComputeInstanceData(self.cfg, cluster_info,
-                                                  i_list)
+    data["instances"] = self._ComputeInstanceData(cfg, cluster_info, i_list)
 
     self.in_data = data
 
   @staticmethod
-  def _ComputeNodeGroupData(cfg):
+  def _ComputeNodeGroupData(cluster, ginfo):
     """Compute node groups data.
 
     """
-    cluster = cfg.GetClusterInfo()
     ng = dict((guuid, {
       "name": gdata.name,
       "alloc_policy": gdata.alloc_policy,
@@ -504,7 +504,7 @@ class IAllocator(object):
       "ipolicy": gmi.CalculateGroupIPolicy(cluster, gdata),
       "tags": list(gdata.GetTags()),
       })
-      for guuid, gdata in cfg.GetAllNodeGroupsInfo().items())
+      for guuid, gdata in ginfo.items())
 
     return ng
 

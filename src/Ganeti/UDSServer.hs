@@ -62,7 +62,7 @@ module Ganeti.UDSServer
   ) where
 
 import Control.Applicative
-import Control.Concurrent.Lifted (fork)
+import Control.Concurrent.Lifted (fork, yield)
 import Control.Monad.Base
 import Control.Monad.Trans.Control
 import Control.Exception (catch)
@@ -297,7 +297,7 @@ recvUpdate conf handle obuf = do
       newbuf = B.append obuf msg
   if B.null remaining
     then recvUpdate conf handle newbuf
-    else return (newbuf, B.tail remaining)
+    else return (newbuf, B.copy (B.tail remaining))
 
 -- | Waits for a message over a transport.
 recvMsg :: Client -> IO String
@@ -308,7 +308,9 @@ recvMsg s = do
     if B.null ibuf      -- if old buffer didn't contain a full message
                         -- then we read from network:
       then recvUpdate (clientConfig s) (rsocket s) cbuf
-      else return (imsg, B.tail ibuf)   -- else we return data from our buffer
+      -- else we return data from our buffer, copying it so that the whole
+      -- message isn't retained and can be garbage collected
+      else return (imsg, B.copy (B.tail ibuf))
   writeIORef (rbuf s) nbuf
   return $ UTF8.toString msg
 
@@ -486,8 +488,14 @@ clientLoop
     -> m ()
 clientLoop handler client = do
   result <- handleClient handler client
+  {- It's been observed sometimes that reading immediately after sending
+     a response leads to worse performance, as there is nothing to read and
+     the system calls are just wasted. Thus yielding before reading gives
+     other threads a chance to proceed and provides a natural pause, leading
+     to a bit more efficient communication.
+  -}
   if result
-    then clientLoop handler client
+    then yield >> clientLoop handler client
     else liftBase $ closeClient client
 
 -- | Main listener loop: accepts clients, forks an I/O thread to handle
