@@ -61,8 +61,8 @@ atomicWriteFile path contents = atomicUpdateFile path
 atomicUpdateFile :: (MonadBaseControl IO m)
                  => FilePath -> (FilePath -> Handle -> m a) -> m a
 atomicUpdateFile path action = do
-  (tmppath, tmphandle) <- liftBase $ openTempFile (takeDirectory path)
-                                                  (takeBaseName path)
+  (tmppath, tmphandle) <- liftBase $ openBinaryTempFile (takeDirectory path)
+                                                        (takeBaseName path)
   r <- L.finally (action tmppath tmphandle)
                  (liftBase $ hCloseAndFsync tmphandle)
   -- if all went well, rename the file
