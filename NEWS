@@ -2,6 +2,30 @@ News
 ====
 
 
+Version 2.11.4
+--------------
+
+*(Released Wed, 30 Jul 2014)*
+
+- Improved documentation of the instance shutdown behavior.
+
+Inherited from the 2.10 branch:
+
+- KVM: fix NIC configuration with absent NIC VLAN (Issue 893)
+- Adapt relative path expansion in PATH to new environment
+- Exclude archived jobs from configuration backup
+- Expose early_release for ReplaceInstanceDisks
+- Add backup directory for configuration backups for upgrades
+- Fix BlockdevSnapshot in case of non lvm-based disk
+- Improve RAPI error handling for queries in non-existing items
+- Allow disk hot-remove even with chroot or SM
+- Remove superflous loop in instance queries (Issue 875)
+
+Inherited from the 2.9 branch:
+
+- Make ganeti-cleaner switch to save working directory (Issue 880)
+
+
 Version 2.11.3
 --------------
 
