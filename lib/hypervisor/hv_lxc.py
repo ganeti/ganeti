@@ -54,6 +54,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
   """
   _ROOT_DIR = pathutils.RUN_DIR + "/lxc"
+  _LOG_DIR = pathutils.LOG_DIR + "/lxc"
   _CGROUP_ROOT_DIR = _ROOT_DIR + "/cgroup"
   _PROC_CGROUPS_FILE = "/proc/cgroups"
   _PROC_SELF_CGROUP_FILE = "/proc/self/cgroup"
@@ -90,7 +91,10 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
-    utils.EnsureDirs([(self._ROOT_DIR, self._DIR_MODE)])
+    utils.EnsureDirs([
+      (self._ROOT_DIR, self._DIR_MODE),
+      (self._LOG_DIR, 0750),
+      ])
 
   @staticmethod
   def _GetMountSubdirs(path):
@@ -128,7 +132,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     filename = "%s.%s.log" % (instance.name, instance.uuid)
-    return utils.PathJoin(cls._ROOT_DIR, filename)
+    return utils.PathJoin(cls._LOG_DIR, filename)
 
   @classmethod
   def _InstanceStashFilePath(cls, instance_name):
