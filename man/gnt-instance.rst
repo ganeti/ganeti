@@ -869,6 +869,16 @@ virtio\_net\_queues
 
     It is set to ``1`` by default.
 
+lxc\_startup\_wait
+    Valid for the LXC hypervisor.
+
+    This integer option specifies the number of seconds to wait
+    for the state of an LXC container changes to "RUNNING" after
+    startup, as reported by lxc-wait.
+    Otherwise we assume an error has occurred and report it.
+
+    It is set to ``30`` by default.
+
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depend on the OS being
 used, but the syntax is the same key=value. For example, setting a

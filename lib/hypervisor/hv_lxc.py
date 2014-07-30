@@ -80,6 +80,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
   PARAMETERS = {
     constants.HV_CPU_MASK: hv_base.OPT_CPU_MASK_CHECK,
+    constants.HV_LXC_STARTUP_WAIT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     }
 
   def __init__(self):
@@ -384,6 +385,55 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       stash[cls._STASH_KEY_ALLOCATED_LOOP_DEV] = loop_dev_path
       return dm_dev_paths[0]
 
+  @classmethod
+  def _WaitForInstanceState(cls, instance_name, state, timeout):
+    """Wait for an instance state transition within timeout
+
+    Return True if an instance state changed to the desired state within
+    timeout secs.
+
+    """
+    result = utils.RunCmd(["lxc-wait", "-n", instance_name, "-s", state],
+                          timeout=timeout)
+    if result.failed_by_timeout:
+      return False
+    elif result.failed:
+      raise HypervisorError("Failure while waiting for instance state"
+                            " transition: %s" % result.output)
+    else:
+      return True
+
+  def _SpawnLXC(self, instance, log_file, conf_file):
+    """Execute lxc-start and wait until container health is confirmed.
+
+    """
+    lxc_start_cmd = [
+      "lxc-start",
+      "-n", instance.name,
+      "-o", log_file,
+      "-l", "DEBUG",
+      "-f", conf_file,
+      "-d"
+      ]
+
+    result = utils.RunCmd(lxc_start_cmd)
+    if result.failed:
+      raise HypervisorError("Failed to start instance %s : %s" %
+                            (instance.name, result.output))
+
+    lxc_startup_wait = instance.hvparams[constants.HV_LXC_STARTUP_WAIT]
+    if not self._WaitForInstanceState(instance.name,
+                                      constants.LXC_STATE_RUNNING,
+                                      lxc_startup_wait):
+      raise HypervisorError("Instance %s state didn't change to RUNNING within"
+                            " %s secs" % (instance.name, lxc_startup_wait))
+
+    # Ensure that the instance is running correctly after being daemonized
+    if not self._IsInstanceAlive(instance.name):
+      raise HypervisorError("Failed to start instance %s :"
+                            " lxc process exited after being daemonized" %
+                            instance.name)
+
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
@@ -419,16 +469,13 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       conf = self._CreateConfigFile(instance, sda_dev_path)
       utils.WriteFile(conf_file, data=conf)
 
-      logging.info("Running lxc-start")
-      result = utils.RunCmd(["lxc-start",
-                             "-n", instance.name,
-                             "-o", log_file,
-                             "-l", "DEBUG",
-                             "-f", conf_file,
-                             "-d"])
-      if result.failed:
-        raise HypervisorError("Running the lxc-start failed: %s" %
-                              result.output)
+      logging.info("Starting LXC container")
+      try:
+        self._SpawnLXC(instance, log_file, conf_file)
+      except:
+        logging.error("Failed to start instance %s. Please take a look at %s to"
+                      " see LXC errors.", instance.name, log_file)
+        raise
     except:
       # Save the original error
       exc_info = sys.exc_info()
