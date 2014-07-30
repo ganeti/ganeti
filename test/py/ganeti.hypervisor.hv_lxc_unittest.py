@@ -32,6 +32,10 @@ from ganeti.hypervisor import hv_lxc
 import testutils
 
 
+def RunResultOk(stdout):
+  return utils.RunResult(0, None, stdout, "", [], None, None)
+
+
 class TestConsole(unittest.TestCase):
   def test(self):
     instance = objects.Instance(name="lxc.example.com",
