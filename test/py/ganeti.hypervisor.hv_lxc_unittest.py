@@ -137,7 +137,7 @@ class TestCgroupReadData(unittest.TestCase):
   def testGetCgroupMountPoint(self):
     self.assertEqual(self.hv._GetCgroupMountPoint(), self.cgroot)
 
-  @patch_object(LXCHypervisor, "_PROC_CGROUP_FILE",
+  @patch_object(LXCHypervisor, "_PROC_SELF_CGROUP_FILE",
                 testutils.TestDataFilename("proc_cgroup.txt"))
   def testGetCurrentCgroupSubsysGroups(self):
     expected_groups = {

@@ -1667,6 +1667,9 @@ hvKvmUserShutdown = "user_shutdown"
 hvLxcStartupWait :: String
 hvLxcStartupWait = "lxc_startup_wait"
 
+hvLxcCgroupUse :: String
+hvLxcCgroupUse = "lxc_cgroup_use"
+
 hvMemPath :: String
 hvMemPath = "mem_path"
 
@@ -1829,6 +1832,7 @@ hvsParameterTypes = Map.fromList
   , (hvKvmSpiceZlibGlzImgCompr,         VTypeString)
   , (hvKvmUseChroot,                    VTypeBool)
   , (hvKvmUserShutdown,                 VTypeBool)
+  , (hvLxcCgroupUse,                    VTypeString)
   , (hvLxcStartupWait,                  VTypeInt)
   , (hvMemPath,                         VTypeString)
   , (hvMigrationBandwidth,              VTypeInt)
@@ -3910,6 +3914,7 @@ hvcDefaults =
   , (Chroot, Map.fromList [(hvInitScript, PyValueEx "/ganeti-chroot")])
   , (Lxc, Map.fromList
           [ (hvCpuMask,        PyValueEx "")
+          , (hvLxcCgroupUse,   PyValueEx "")
           , (hvLxcStartupWait, PyValueEx (30 :: Int))
           ])
   ]

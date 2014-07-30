@@ -879,6 +879,28 @@ lxc\_startup\_wait
 
     It is set to ``30`` by default.
 
+lxc\_cgroup\_use
+    Valid for the LXC hypervisor.
+
+    This option specifies the list of cgroup subsystems that need to
+    be mounted before starting LXC containers.
+    Since LXC version >= 1.0.0, the LXC strictly requires all cgroup
+    subsystems mounted before starting a container.
+    Users can control the list of desired cgroup subsystems for LXC
+    containers by specifying lxc.cgroup.use parameter in LXC system
+    configuration file(see: **lxc.system.conf**\(5)), its default value
+    is "@kernel" which means all cgroup kernel subsystems.
+    The LXC hypervisor of Ganeti tries to mount all cgroup subsystems
+    needed to start a LXC container.
+    This parameter can be used to control the list of cgroup
+    subsystems that should be ensured by Ganeti before starting a LXC
+    container.
+    The value of this parameter should be a list of cgroup subsystems
+    separated by a comma(e.g., "cpuset,devices,memory").
+
+    If this parameter is not specified, a list will be built from info
+    in /proc/cgroups.
+
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depend on the OS being
 used, but the syntax is the same key=value. For example, setting a
