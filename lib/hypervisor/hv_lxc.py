@@ -251,7 +251,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
         data.append(info)
     return data
 
-  def _CreateConfigFile(self, instance, root_dir):
+  def _CreateConfigFile(self, instance, sda_dev_path):
     """Create an lxc.conf file for an instance.
 
     """
@@ -274,7 +274,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     out.append("lxc.console = %s" % console_log)
 
     # root FS
-    out.append("lxc.rootfs = %s" % root_dir)
+    out.append("lxc.rootfs = %s" % sda_dev_path)
 
     # TODO: additional mounts, if we disable CAP_SYS_ADMIN
 
@@ -342,9 +342,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     except errors.GenericError, err:
       raise HypervisorError("Creating instance directory failed: %s", str(err))
 
-    conf_file = self._InstanceConfFile(instance.name)
-    utils.WriteFile(conf_file, data=self._CreateConfigFile(instance, root_dir))
-
     log_file = self._InstanceLogFile(instance.name)
     if not os.path.exists(log_file):
       try:
@@ -354,15 +351,14 @@ class LXCHypervisor(hv_base.BaseHypervisor):
                                      " instance %s failed: %s" %
                                      (log_file, instance.name, err))
 
-    if not os.path.ismount(root_dir):
-      if not block_devices:
-        raise HypervisorError("LXC needs at least one disk")
+    if not block_devices:
+      raise HypervisorError("LXC needs at least one disk")
 
-      sda_dev_path = block_devices[0][1]
-      result = utils.RunCmd(["mount", sda_dev_path, root_dir])
-      if result.failed:
-        raise HypervisorError("Mounting the root dir of LXC instance %s"
-                              " failed: %s" % (instance.name, result.output))
+    sda_dev_path = block_devices[0][1]
+    conf_file = self._InstanceConfFile(instance.name)
+    conf = self._CreateConfigFile(instance, sda_dev_path)
+    utils.WriteFile(conf_file, data=conf)
+
     result = utils.RunCmd(["lxc-start", "-n", instance.name,
                            "-o", log_file,
                            "-l", "DEBUG",
@@ -397,31 +393,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
         result = utils.RunCmd(lxc_stop_cmd, timeout=timeout)
         if result.failed:
           logging.error("Failed to stop instance %s: %s", name, result.output)
-
-    timeout_cmd = []
-    if timeout is not None:
-      timeout_cmd.extend(["timeout", str(timeout)])
-
-    root_dir = self._InstanceDir(name)
-    if not os.path.exists(root_dir):
-      return
-
-    if not os.path.ismount(root_dir):
-      return
-
-    for mpath in self._GetMountSubdirs(root_dir):
-      result = utils.RunCmd(timeout_cmd.extend(["umount", mpath]))
-      if result.failed:
-        logging.warning("Error while umounting subpath %s for instance %s: %s",
-                        mpath, name, result.output)
-
-    result = utils.RunCmd(timeout_cmd.extend(["umount", root_dir]))
-    if result.failed and force:
-      msg = ("Processes still alive in the chroot: %s" %
-             utils.RunCmd("fuser -vm %s" % root_dir).output)
-      logging.error(msg)
-      raise HypervisorError("Unmounting the chroot dir failed: %s (%s)" %
-                            (result.output, msg))
 
   def RebootInstance(self, instance):
     """Reboot an instance.
