@@ -54,6 +54,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
   """
   _ROOT_DIR = pathutils.RUN_DIR + "/lxc"
+  _CGROUP_ROOT_DIR = _ROOT_DIR + "/cgroup"
   _DEVS = [
     "c 1:3",   # /dev/null
     "c 1:5",   # /dev/zero
@@ -157,6 +158,33 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       raise HypervisorError("Failed to load instance stash file %s : %s" %
                             (stash_file, err))
 
+  @classmethod
+  def _MountCgroupSubsystem(cls, subsystem):
+    """Mount the cgroup subsystem fs under the cgroup root dir.
+
+    @type subsystem: string
+    @param subsystem: cgroup subsystem name to mount
+    @rtype string
+    @return path of subsystem mount point
+
+    """
+    subsys_dir = utils.PathJoin(cls._GetCgroupMountPoint(), subsystem)
+    if not os.path.isdir(subsys_dir):
+      try:
+        os.makedirs(subsys_dir)
+      except EnvironmentError, err:
+        raise HypervisorError("Failed to create directory %s: %s" %
+                              (subsys_dir, err))
+
+    mount_cmd = ["mount", "-t", "cgroup", "-o", subsystem, subsystem,
+                 subsys_dir]
+    result = utils.RunCmd(mount_cmd)
+    if result.failed:
+      raise HypervisorError("Failed to mount cgroup subsystem '%s': %s" %
+                            (subsystem, result.output))
+
+    return subsys_dir
+
   def _CleanupInstance(self, instance_name, stash):
     """Actual implementation of the instance cleanup procedure.
 
@@ -184,17 +212,33 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
   @classmethod
   def _GetCgroupMountPoint(cls):
-    for _, mountpoint, fstype, _ in utils.GetMounts():
-      if fstype == "cgroup":
-        return mountpoint
-    raise errors.HypervisorError("The cgroup filesystem is not mounted")
+    """Return the directory that should be the base of cgroup fs.
+
+    """
+    return cls._CGROUP_ROOT_DIR
+
+  @classmethod
+  def _GetOrPrepareCgroupSubsysMountPoint(cls, subsystem):
+    """Prepare cgroup subsystem mount point.
+
+    @type subsystem: string
+    @param subsystem: cgroup subsystem name to mount
+    @rtype string
+    @return path of subsystem mount point
+
+    """
+    for _, mpoint, fstype, options in utils.GetMounts():
+      if fstype == "cgroup" and subsystem in options.split(","):
+        return mpoint
+
+    return cls._MountCgroupSubsystem(subsystem)
 
   @classmethod
   def _GetCgroupCpuList(cls, instance_name):
     """Return the list of CPU ids for an instance.
 
     """
-    cgroup = cls._GetCgroupMountPoint()
+    cgroup = cls._GetOrPrepareCgroupSubsysMountPoint("cpuset")
     try:
       cpus = utils.ReadFile(utils.PathJoin(cgroup, 'lxc',
                                            instance_name,
@@ -210,7 +254,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """Return the memory limit for an instance
 
     """
-    cgroup = cls._GetCgroupMountPoint()
+    cgroup = cls._GetOrPrepareCgroupSubsysMountPoint("memory")
     try:
       memory = int(utils.ReadFile(utils.PathJoin(cgroup, 'lxc',
                                                  instance_name,
@@ -325,7 +369,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     # Memory
     # Conditionally enable, memory resource controller might be disabled
-    cgroup = self._GetCgroupMountPoint()
+    cgroup = self._GetOrPrepareCgroupSubsysMountPoint("memory")
     if os.path.exists(utils.PathJoin(cgroup, "memory.limit_in_bytes")):
       out.append("lxc.cgroup.memory.limit_in_bytes = %dM" %
                  instance.beparams[constants.BE_MAXMEM])
