@@ -451,7 +451,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     if name is None:
       name = instance.name
 
-    if name in self.ListInstances():
+    if self._IsInstanceAlive(instance.name):
       lxc_stop_cmd = ["lxc-stop", "-n", name]
 
       if force:
