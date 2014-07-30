@@ -109,14 +109,14 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(cls._ROOT_DIR, instance_name)
 
   @classmethod
-  def _InstanceConfFile(cls, instance_name):
+  def _InstanceConfFilePath(cls, instance_name):
     """Return the configuration file for an instance.
 
     """
     return utils.PathJoin(cls._ROOT_DIR, instance_name + ".conf")
 
   @classmethod
-  def _InstanceLogFile(cls, instance_name):
+  def _InstanceLogFilePath(cls, instance_name):
     """Return the log file for an instance.
 
     """
@@ -448,7 +448,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     except errors.GenericError, err:
       raise HypervisorError("Creating instance directory failed: %s", str(err))
 
-    log_file = self._InstanceLogFile(instance.name)
+    log_file = self._InstanceLogFilePath(instance.name)
     if not os.path.exists(log_file):
       try:
         utils.WriteFile(log_file, data="", mode=constants.SECURE_FILE_MODE)
@@ -465,7 +465,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       # LXC needs to use partition mapping devices to access each partition
       # of the storage
       sda_dev_path = self._PrepareInstanceRootFsBdev(sda_dev_path, stash)
-      conf_file = self._InstanceConfFile(instance.name)
+      conf_file = self._InstanceConfFilePath(instance.name)
       conf = self._CreateConfigFile(instance, sda_dev_path)
       utils.WriteFile(conf_file, data=conf)
 
