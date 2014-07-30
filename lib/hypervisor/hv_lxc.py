@@ -226,6 +226,18 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     return [iinfo[0] for iinfo in self.GetAllInstancesInfo()]
 
+  @classmethod
+  def _IsInstanceAlive(cls, instance_name):
+    """Return True if instance is alive.
+
+    """
+    result = utils.RunCmd(["lxc-ls", "--running"])
+    if result.failed:
+      raise HypervisorError("Failed to get running LXC containers list: %s" %
+                            result.output)
+
+    return instance_name in result.stdout.split()
+
   def GetInstanceInfo(self, instance_name, hvparams=None):
     """Get instance properties.
 
