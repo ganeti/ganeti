@@ -121,11 +121,14 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(cls._ROOT_DIR, instance_name + ".conf")
 
   @classmethod
-  def _InstanceLogFilePath(cls, instance_name):
+  def _InstanceLogFilePath(cls, instance):
     """Return the log file for an instance.
 
+    @type instance: L{objects.Instance}
+
     """
-    return utils.PathJoin(cls._ROOT_DIR, instance_name + ".log")
+    filename = "%s.%s.log" % (instance.name, instance.uuid)
+    return utils.PathJoin(cls._ROOT_DIR, filename)
 
   @classmethod
   def _InstanceStashFilePath(cls, instance_name):
@@ -584,7 +587,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     except errors.GenericError, err:
       raise HypervisorError("Creating instance directory failed: %s", str(err))
 
-    log_file = self._InstanceLogFilePath(instance.name)
+    log_file = self._InstanceLogFilePath(instance)
     if not os.path.exists(log_file):
       try:
         utils.WriteFile(log_file, data="", mode=constants.SECURE_FILE_MODE)
