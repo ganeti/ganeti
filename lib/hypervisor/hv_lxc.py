@@ -73,6 +73,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     "sys_time",        # Set  system  clock, set real-time (hardware) clock
     ]
   _DIR_MODE = 0755
+  _UNIQ_SUFFIX = ".conf"
 
   PARAMETERS = {
     constants.HV_CPU_MASK: hv_base.OPT_CPU_MASK_CHECK,
@@ -200,9 +201,14 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     data = []
-    for name in os.listdir(self._ROOT_DIR):
+    for filename in os.listdir(self._ROOT_DIR):
+      if not filename.endswith(self._UNIQ_SUFFIX):
+        # listing all files in root directory will include instance root
+        # directories, console files, etc, so use .conf as a filter of instance
+        # listings.
+        continue
       try:
-        info = self.GetInstanceInfo(name)
+        info = self.GetInstanceInfo(filename[0:-len(self._UNIQ_SUFFIX)])
       except errors.HypervisorError:
         continue
       if info:
