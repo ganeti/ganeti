@@ -253,11 +253,11 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # Memory
     # Conditionally enable, memory resource controller might be disabled
     cgroup = self._GetCgroupMountPoint()
-    if os.path.exists(utils.PathJoin(cgroup, 'memory.limit_in_bytes')):
+    if os.path.exists(utils.PathJoin(cgroup, "memory.limit_in_bytes")):
       out.append("lxc.cgroup.memory.limit_in_bytes = %dM" %
                  instance.beparams[constants.BE_MAXMEM])
 
-    if os.path.exists(utils.PathJoin(cgroup, 'memory.memsw.limit_in_bytes')):
+    if os.path.exists(utils.PathJoin(cgroup, "memory.memsw.limit_in_bytes")):
       out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
                  instance.beparams[constants.BE_MAXMEM])
 
