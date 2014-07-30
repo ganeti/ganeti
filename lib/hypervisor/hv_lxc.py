@@ -32,6 +32,7 @@ from ganeti import errors # pylint: disable=W0611
 from ganeti import utils
 from ganeti import objects
 from ganeti import pathutils
+from ganeti import serializer
 from ganeti.hypervisor import hv_base
 from ganeti.errors import HypervisorError
 
@@ -117,6 +118,41 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     return utils.PathJoin(cls._ROOT_DIR, instance_name + ".log")
+
+  @classmethod
+  def _InstanceStashFilePath(cls, instance_name):
+    """Return the stash file path for an instance.
+
+    The stash file is used to keep information needed to clean up after the
+    destruction of the instance.
+
+    """
+    return utils.PathJoin(cls._ROOT_DIR, instance_name + ".stash")
+
+  def _SaveInstanceStash(self, instance_name, data):
+    """Save data to the instance stash file in serialized format.
+
+    """
+    stash_file = self._InstanceStashFilePath(instance_name)
+    serialized = serializer.Dump(data)
+    try:
+      utils.WriteFile(stash_file, data=serialized,
+                      mode=constants.SECURE_FILE_MODE)
+    except EnvironmentError, err:
+      raise HypervisorError("Failed to save instance stash file %s : %s" %
+                            (stash_file, err))
+
+  def _LoadInstanceStash(self, instance_name):
+    """Load information stashed in file which was created by
+    L{_SaveInstanceStash}.
+
+    """
+    stash_file = self._InstanceStashFilePath(instance_name)
+    try:
+      return serializer.Load(utils.ReadFile(stash_file))
+    except (EnvironmentError, ValueError), err:
+      raise HypervisorError("Failed to load instance stash file %s : %s" %
+                            (stash_file, err))
 
   @classmethod
   def _GetCgroupMountPoint(cls):
