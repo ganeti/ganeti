@@ -25,14 +25,6 @@ Inherited from the 2.9 branch:
 
 - Make ganeti-cleaner switch to save working directory (Issue 880)
 
-Known issues
-~~~~~~~~~~~~
-
-The following issue is present in this release and will be fixed before
-the next release.
-
-- Issue 889: Unhandled Xen state '-------'
-
 
 Version 2.11.3
 --------------
