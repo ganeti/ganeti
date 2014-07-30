@@ -251,15 +251,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     # TODO: read container info from the cgroup mountpoint
 
-    result = utils.RunCmd(["lxc-info", "-s", "-n", instance_name])
-    if result.failed:
-      raise errors.HypervisorError("Running lxc-info failed: %s" %
-                                   result.output)
-    # lxc-info output examples:
-    # 'state: STOPPED
-    # 'state: RUNNING
-    _, state = result.stdout.rsplit(None, 1)
-    if state != "RUNNING":
+    if not self._IsInstanceAlive(instance_name):
       return None
 
     cpu_list = self._GetCgroupCpuList(instance_name)
