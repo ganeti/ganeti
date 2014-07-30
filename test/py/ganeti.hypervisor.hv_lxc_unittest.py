@@ -33,6 +33,7 @@ from ganeti.hypervisor import hv_lxc
 from ganeti.hypervisor.hv_lxc import LXCHypervisor
 
 import mock
+import os
 import shutil
 import tempfile
 import testutils
@@ -99,6 +100,85 @@ class TestLXCHypervisorGetInstanceInfo(unittest.TestCase):
   def testInactiveOrNonexistentInstance(self, isalive_mock):
     isalive_mock.return_value = False
     self.assertIsNone(self.hv.GetInstanceInfo("inst1"))
+
+
+class TestCgroupMount(unittest.TestCase):
+  @patch_object(utils, "GetMounts")
+  @patch_object(LXCHypervisor, "_MountCgroupSubsystem")
+  def testGetOrPrepareCgroupSubsysMountPoint(self, mntcgsub_mock, getmnt_mock):
+    getmnt_mock.return_value = [
+      ("/dev/foo", "/foo", "foo", "cpuset"),
+      ("cpuset", "/sys/fs/cgroup/cpuset", "cgroup", "rw,relatime,cpuset"),
+      ("devices", "/sys/fs/cgroup/devices", "cgroup", "rw,devices,relatime"),
+      ("cpumem", "/sys/fs/cgroup/cpumem", "cgroup", "cpu,memory,rw,relatime"),
+      ]
+    mntcgsub_mock.return_value = "/foo"
+    hv = LXCHypervisor()
+    self.assertEqual(hv._GetOrPrepareCgroupSubsysMountPoint("cpuset"),
+                     "/sys/fs/cgroup/cpuset")
+    self.assertEqual(hv._GetOrPrepareCgroupSubsysMountPoint("devices"),
+                     "/sys/fs/cgroup/devices")
+    self.assertEqual(hv._GetOrPrepareCgroupSubsysMountPoint("cpu"),
+                     "/sys/fs/cgroup/cpumem")
+    self.assertEqual(hv._GetOrPrepareCgroupSubsysMountPoint("memory"),
+                     "/sys/fs/cgroup/cpumem")
+    self.assertEqual(hv._GetOrPrepareCgroupSubsysMountPoint("freezer"),
+                     "/foo")
+    mntcgsub_mock.assert_called_with("freezer")
+
+
+class TestCgroupReadData(unittest.TestCase):
+  cgroot = os.path.abspath(testutils.TestDataFilename("cgroup_root"))
+
+  def setUp(self):
+    self.hv = LXCHypervisor()
+
+  @patch_object(LXCHypervisor, "_CGROUP_ROOT_DIR", cgroot)
+  def testGetCgroupMountPoint(self):
+    self.assertEqual(self.hv._GetCgroupMountPoint(), self.cgroot)
+
+  @patch_object(LXCHypervisor, "_PROC_CGROUP_FILE",
+                testutils.TestDataFilename("proc_cgroup.txt"))
+  def testGetCurrentCgroupSubsysGroups(self):
+    expected_groups = {
+      "memory": "", # root
+      "cpuset": "some_group",
+      "devices": "some_group",
+      }
+    self.assertEqual(self.hv._GetCurrentCgroupSubsysGroups(), expected_groups)
+
+  @patch_object(LXCHypervisor, "_GetOrPrepareCgroupSubsysMountPoint")
+  @patch_object(LXCHypervisor, "_GetCurrentCgroupSubsysGroups")
+  def testGetCgroupInstanceSubsysDir(self, getcgg_mock, getmp_mock):
+    getmp_mock.return_value = "/cg"
+    getcgg_mock.return_value = {"cpuset": "grp"}
+    self.assertEqual(self.hv._GetCgroupInstanceSubsysDir("instance1", "memory"),
+                     "/cg/lxc/instance1")
+    self.assertEqual(self.hv._GetCgroupInstanceSubsysDir("instance1", "cpuset"),
+                     "/cg/grp/lxc/instance1")
+
+  @patch_object(LXCHypervisor, "_GetCgroupInstanceSubsysDir")
+  def testGetCgroupInstanceValue(self, getdir_mock):
+    getdir_mock.return_value = utils.PathJoin(self.cgroot, "memory", "lxc",
+                                              "instance1")
+    self.assertEqual(self.hv._GetCgroupInstanceValue("instance1", "memory",
+                                                     "memory.limit_in_bytes"),
+                     "128")
+    getdir_mock.return_value = utils.PathJoin(self.cgroot, "cpuset",
+                                              "some_group", "lxc", "instance1")
+    self.assertEqual(self.hv._GetCgroupInstanceValue("instance1", "cpuset",
+                                                     "cpuset.cpus"),
+                     "0-1")
+
+  @patch_object(LXCHypervisor, "_GetCgroupInstanceValue")
+  def testGetCgroupCpuList(self, getval_mock):
+    getval_mock.return_value = "0-1"
+    self.assertEqual(self.hv._GetCgroupCpuList("instance1"), [0, 1])
+
+  @patch_object(LXCHypervisor, "_GetCgroupInstanceValue")
+  def testGetCgroupMemoryLimit(self, getval_mock):
+    getval_mock.return_value = "128"
+    self.assertEqual(self.hv._GetCgroupMemoryLimit("instance1"), 128)
 
 
 if __name__ == "__main__":

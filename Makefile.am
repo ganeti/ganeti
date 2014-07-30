@@ -218,6 +218,18 @@ DIRS = \
 	test/data/bdev-rbd \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
+	test/data/cgroup_root \
+        test/data/cgroup_root/memory \
+        test/data/cgroup_root/memory/lxc \
+        test/data/cgroup_root/memory/lxc/instance1 \
+        test/data/cgroup_root/cpuset \
+        test/data/cgroup_root/cpuset/some_group \
+        test/data/cgroup_root/cpuset/some_group/lxc \
+        test/data/cgroup_root/cpuset/some_group/lxc/instance1 \
+        test/data/cgroup_root/devices \
+        test/data/cgroup_root/devices/some_group \
+        test/data/cgroup_root/devices/some_group/lxc \
+        test/data/cgroup_root/devices/some_group/lxc/instance1 \
 	test/py \
 	test/py/cmdlib \
 	test/py/cmdlib/testsupport \
@@ -1525,6 +1537,9 @@ TEST_FILES = \
 	test/data/bdev-rbd/output_invalid.txt \
 	test/data/cert1.pem \
 	test/data/cert2.pem \
+        test/data/cgroup_root/memory/lxc/instance1/memory.limit_in_bytes \
+        test/data/cgroup_root/cpuset/some_group/lxc/instance1/cpuset.cpus \
+        test/data/cgroup_root/devices/some_group/lxc/instance1/devices.list \
 	test/data/cluster_config_2.7.json \
 	test/data/cluster_config_2.8.json \
 	test/data/cluster_config_2.9.json \
@@ -1575,7 +1590,8 @@ TEST_FILES = \
 	test/data/ovfdata/wrong_manifest.ovf \
 	test/data/ovfdata/wrong_ova.ova \
 	test/data/ovfdata/wrong_xml.ovf \
-	test/data/proc_diskstats.txt \
+	test/data/proc_cgroup.txt \
+        test/data/proc_diskstats.txt \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd80-emptyversion.txt \
