@@ -347,7 +347,7 @@ commands = {
     [ArgNetwork(min=1, max=1),
      ArgGroup()],
     [NOCONFLICTSCHECK_OPT, PRIORITY_OPT, NIC_PARAMS_OPT],
-    "<network_name> <mode> <link> [<node_group>...]",
+    "<network_name> [<node_group>...]",
     "Map a given network to the specified node group"
     " with given mode and link (netparams)"),
   "disconnect": (

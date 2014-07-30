@@ -169,20 +169,32 @@ def _GetAllInstanceList(fn, include_node, _timeout=5):
   return _ParseInstanceList(lines, include_node)
 
 
-# Determine whether an instance is running
-#
-# An instance is running if it is in the following Xen states:
-# running, blocked, or paused.
-#
-# For some strange reason, Xen once printed 'rb----' which does not
-# make any sense because an instance cannot be both running and
-# blocked.  Fortunately, for Ganeti 'running' or 'blocked' is the same
-# as 'running'.
 def _IsInstanceRunning(instance_info):
+  """Determine whether an instance is running.
+
+  An instance is running if it is in the following Xen states:
+  running, blocked, or paused.
+
+  For some strange reason, Xen once printed 'rb----' which does not make any
+  sense because an instance cannot be both running and blocked.  Fortunately,
+  for Ganeti 'running' or 'blocked' is the same as 'running'.
+
+  A state of nothing '------' means that the domain is runnable but it is not
+  currently running.  That means it is in the queue behind other domains waiting
+  to be scheduled to run.
+  http://old-list-archives.xenproject.org/xen-users/2007-06/msg00849.html
+
+  @type instance_info: string
+  @param instance_info: Information about instance, as supplied by Xen.
+  @rtype: bool
+  @return: Whether an instance is running.
+
+  """
   return instance_info == "r-----" \
-      or instance_info == "-b----" \
       or instance_info == "rb----" \
-      or instance_info == "--p---"
+      or instance_info == "-b----" \
+      or instance_info == "--p---" \
+      or instance_info == "------"
 
 
 def _IsInstanceShutdown(instance_info):
