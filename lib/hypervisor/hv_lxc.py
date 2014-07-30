@@ -234,36 +234,52 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return cls._MountCgroupSubsystem(subsystem)
 
   @classmethod
+  def _GetCgroupInstanceValue(cls, instance_name, subsystem, param):
+    """Return the value of the specified cgroup parameter.
+
+    @type instance_name: string
+    @param instance_name: instance name
+    @type subsystem: string
+    @param subsystem: cgroup subsystem name
+    @type param: string
+    @param param: cgroup subsystem parameter name
+    @rtype string
+    @return value read from cgroup subsystem fs
+
+    """
+    subsys_dir = cls._GetOrPrepareCgroupSubsysMountPoint(subsystem)
+    param_file = utils.PathJoin(subsys_dir, "lxc", instance_name, param)
+    return utils.ReadFile(param_file).rstrip("\n")
+
+  @classmethod
   def _GetCgroupCpuList(cls, instance_name):
     """Return the list of CPU ids for an instance.
 
     """
-    cgroup = cls._GetOrPrepareCgroupSubsysMountPoint("cpuset")
     try:
-      cpus = utils.ReadFile(utils.PathJoin(cgroup, 'lxc',
-                                           instance_name,
-                                           "cpuset.cpus"))
+      cpumask = cls._GetCgroupInstanceValue(instance_name,
+                                            "cpuset", "cpuset.cpus")
     except EnvironmentError, err:
       raise errors.HypervisorError("Getting CPU list for instance"
                                    " %s failed: %s" % (instance_name, err))
 
-    return utils.ParseCpuMask(cpus)
+    return utils.ParseCpuMask(cpumask)
 
   @classmethod
   def _GetCgroupMemoryLimit(cls, instance_name):
     """Return the memory limit for an instance
 
     """
-    cgroup = cls._GetOrPrepareCgroupSubsysMountPoint("memory")
     try:
-      memory = int(utils.ReadFile(utils.PathJoin(cgroup, 'lxc',
-                                                 instance_name,
-                                                 "memory.limit_in_bytes")))
+      mem_limit = cls._GetCgroupInstanceValue(instance_name,
+                                              "memory",
+                                              "memory.limit_in_bytes")
+      mem_limit = int(mem_limit)
     except EnvironmentError:
       # memory resource controller may be disabled, ignore
-      memory = 0
+      mem_limit = 0
 
-    return memory
+    return mem_limit
 
   def ListInstances(self, hvparams=None):
     """Get the list of running instances.
