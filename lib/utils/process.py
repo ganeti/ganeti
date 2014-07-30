@@ -78,11 +78,14 @@ class RunResult(object):
   @type failed: boolean
   @ivar failed: True in case the program was
       terminated by a signal or exited with a non-zero exit code
+  @type failed_by_timeout: boolean
+  @ivar failed_by_timeout: True in case the program was
+      terminated by timeout
   @ivar fail_reason: a string detailing the termination reason
 
   """
   __slots__ = ["exit_code", "signal", "stdout", "stderr",
-               "failed", "fail_reason", "cmd"]
+               "failed", "failed_by_timeout", "fail_reason", "cmd"]
 
   def __init__(self, exit_code, signal_, stdout, stderr, cmd, timeout_action,
                timeout):
@@ -92,6 +95,7 @@ class RunResult(object):
     self.stdout = stdout
     self.stderr = stderr
     self.failed = (signal_ is not None or exit_code != 0)
+    self.failed_by_timeout = timeout_action != _TIMEOUT_NONE
 
     fail_msgs = []
     if self.signal is not None:

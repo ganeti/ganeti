@@ -259,6 +259,16 @@ class TestRunCmd(testutils.GanetiTestCase):
     self.assertEqual(result.signal, 15)
     self.assertEqual(result.output, "")
 
+  def testTimeoutFlagTrue(self):
+    result = utils.RunCmd(["sleep", "2"], timeout=0.1)
+    self.assertTrue(result.failed)
+    self.assertTrue(result.failed_by_timeout)
+
+  def testTimeoutFlagFalse(self):
+    result = utils.RunCmd(["false"], timeout=5)
+    self.assertTrue(result.failed)
+    self.assertFalse(result.failed_by_timeout)
+
   def testTimeoutClean(self):
     cmd = ("trap 'exit 0' TERM; echo >&%d; read < %s" %
            (self.proc_ready_helper.write_fd, self.fifo_file))
