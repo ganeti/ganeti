@@ -26,6 +26,7 @@
 import os
 import os.path
 import logging
+import sys
 
 from ganeti import constants
 from ganeti import errors # pylint: disable=W0611
@@ -75,6 +76,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     ]
   _DIR_MODE = 0755
   _UNIQ_SUFFIX = ".conf"
+  _STASH_KEY_ALLOCATED_LOOP_DEV = "allocated_loopdev"
 
   PARAMETERS = {
     constants.HV_CPU_MASK: hv_base.OPT_CPU_MASK_CHECK,
@@ -153,6 +155,31 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     except (EnvironmentError, ValueError), err:
       raise HypervisorError("Failed to load instance stash file %s : %s" %
                             (stash_file, err))
+
+  def _CleanupInstance(self, instance_name, stash):
+    """Actual implementation of the instance cleanup procedure.
+
+    @type instance_name: string
+    @param instance_name: instance name
+    @type stash: dict(string:any)
+    @param stash: dict that contains desired information for instance cleanup
+
+    """
+    try:
+      if self._STASH_KEY_ALLOCATED_LOOP_DEV in stash:
+        loop_dev_path = stash[self._STASH_KEY_ALLOCATED_LOOP_DEV]
+        utils.ReleaseBdevPartitionMapping(loop_dev_path)
+    except errors.CommandError, err:
+      raise HypervisorError("Failed to cleanup partition mapping : %s" % err)
+
+    utils.RemoveFile(self._InstanceStashFilePath(instance_name))
+
+  def CleanupInstance(self, instance_name):
+    """Cleanup after a stopped instance.
+
+    """
+    stash = self._LoadInstanceStash(instance_name)
+    self._CleanupInstance(instance_name, stash)
 
   @classmethod
   def _GetCgroupMountPoint(cls):
@@ -329,6 +356,30 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     return "\n".join(out) + "\n"
 
+  @classmethod
+  def _PrepareInstanceRootFsBdev(cls, storage_path, stash):
+    """Return mountable path for storage_path.
+
+    This function creates a partition mapping for storage_path and returns the
+    first partition device path as a rootfs partition, and stashes the loopback
+    device path.
+    If storage_path is not a multi-partition block device, just return
+    storage_path.
+
+    """
+    try:
+      ret = utils.CreateBdevPartitionMapping(storage_path)
+    except errors.CommandError, err:
+      raise HypervisorError("Failed to create partition mapping for %s"
+                            ": %s" % (storage_path, err))
+
+    if ret is None:
+      return storage_path
+    else:
+      loop_dev_path, dm_dev_paths = ret
+      stash[cls._STASH_KEY_ALLOCATED_LOOP_DEV] = loop_dev_path
+      return dm_dev_paths[0]
+
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
@@ -336,6 +387,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     We use volatile containers.
 
     """
+    stash = {}
     root_dir = self._InstanceDir(instance.name)
     try:
       utils.EnsureDirs([(root_dir, self._DIR_MODE)])
@@ -351,21 +403,39 @@ class LXCHypervisor(hv_base.BaseHypervisor):
                                      " instance %s failed: %s" %
                                      (log_file, instance.name, err))
 
-    if not block_devices:
-      raise HypervisorError("LXC needs at least one disk")
+    try:
+      if not block_devices:
+        raise HypervisorError("LXC needs at least one disk")
 
-    sda_dev_path = block_devices[0][1]
-    conf_file = self._InstanceConfFile(instance.name)
-    conf = self._CreateConfigFile(instance, sda_dev_path)
-    utils.WriteFile(conf_file, data=conf)
+      sda_dev_path = block_devices[0][1]
+      # LXC needs to use partition mapping devices to access each partition
+      # of the storage
+      sda_dev_path = self._PrepareInstanceRootFsBdev(sda_dev_path, stash)
+      conf_file = self._InstanceConfFile(instance.name)
+      conf = self._CreateConfigFile(instance, sda_dev_path)
+      utils.WriteFile(conf_file, data=conf)
 
-    result = utils.RunCmd(["lxc-start", "-n", instance.name,
-                           "-o", log_file,
-                           "-l", "DEBUG",
-                           "-f", conf_file, "-d"])
-    if result.failed:
-      raise HypervisorError("Running the lxc-start script failed: %s" %
-                            result.output)
+      logging.info("Running lxc-start")
+      result = utils.RunCmd(["lxc-start",
+                             "-n", instance.name,
+                             "-o", log_file,
+                             "-l", "DEBUG",
+                             "-f", conf_file,
+                             "-d"])
+      if result.failed:
+        raise HypervisorError("Running the lxc-start failed: %s" %
+                              result.output)
+    except:
+      # Save the original error
+      exc_info = sys.exc_info()
+      try:
+        self._CleanupInstance(instance.name, stash)
+      except HypervisorError, err:
+        logging.warn("Cleanup for instance %s incomplete: %s",
+                     instance.name, err)
+      raise exc_info[0], exc_info[1], exc_info[2]
+
+    self._SaveInstanceStash(instance.name, stash)
 
   def StopInstance(self, instance, force=False, retry=False, name=None,
                    timeout=None):
