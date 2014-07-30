@@ -25,6 +25,9 @@
 import logging
 
 from ganeti import constants
+from ganeti import errors
+from ganeti.utils import io as utils_io
+from ganeti.utils import process as utils_process
 
 
 def GetDiskTemplatesOfStorageTypes(*storage_types):
@@ -206,3 +209,68 @@ def GetDiskLabels(prefix, num_disks, start=0):
 
   for i in range(start, num_disks):
     yield prefix + _GetDiskSuffix(i)
+
+
+def CreateBdevPartitionMapping(image_path):
+  """Create dm device for each partition of disk image.
+
+  This operation will allocate a loopback and a device-mapper device to map
+  partitions.
+  You must call L{ReleaseBdevPartitionMapping} to clean up resources allocated
+  by this function call.
+
+  @type image_path: string
+  @param image_path: path of multi-partition disk image
+  @rtype: tuple(string, list(string)) or NoneType
+  @return: returns the tuple(loopback_device, list(device_mapper_files)) if
+    image_path is a multi-partition disk image. otherwise, returns None.
+
+  """
+  # Unfortunately, there are two different losetup commands in this world.
+  # One has the '-s' switch and the other has the '--show' switch to provide the
+  # same functionality.
+  result = utils_process.RunCmd(["losetup", "-f", "-s", image_path])
+  if result.failed and "invalid option -- 's'" in result.stderr:
+    result = utils_process.RunCmd(["losetup", "-f", "--show", image_path])
+  if result.failed:
+    raise errors.CommandError("Failed to setup loop device for %s: %s" %
+                              (image_path, result.output))
+  loop_dev_path = result.stdout.strip()
+  logging.debug("Loop dev %s allocated for %s", loop_dev_path, image_path)
+
+  result = utils_process.RunCmd(["kpartx", "-a", "-v", loop_dev_path])
+  if result.failed:
+    # Just try to cleanup allocated loop device
+    utils_process.RunCmd(["losetup", "-d", loop_dev_path])
+    raise errors.CommandError("Failed to add partition mapping for %s: %s" %
+                              (image_path, result.output))
+  dm_devs = [x.split(" ") for x in result.stdout.split("\n") if x]
+  if dm_devs:
+    dm_dev_paths = [utils_io.PathJoin("/dev/mapper", x[2]) for x in dm_devs]
+    return (loop_dev_path, dm_dev_paths)
+  else:
+    # image_path is not a multi partition disk image, no need to use
+    # device-mapper.
+    logging.debug("Release loop dev %s allocated for %s",
+                  loop_dev_path, image_path)
+    ReleaseBdevPartitionMapping(loop_dev_path)
+    return None
+
+
+def ReleaseBdevPartitionMapping(loop_dev_path):
+  """Release allocated dm devices and loopback devices.
+
+  @type loop_dev_path: string
+  @param loop_dev_path: path of loopback device returned by
+  L{CreateBdevPartitionMapping}
+
+  """
+  result = utils_process.RunCmd(["kpartx", "-d", loop_dev_path])
+  if result.failed:
+    raise errors.CommandError("Failed to release partition mapping of %s: %s" %
+                              (loop_dev_path, result.output))
+
+  result = utils_process.RunCmd(["losetup", "-d", loop_dev_path])
+  if result.failed:
+    raise errors.CommandError("Failed to detach %s: %s" %
+                              (loop_dev_path, result.output))
