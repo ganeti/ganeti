@@ -26,10 +26,13 @@ import unittest
 from ganeti import constants
 from ganeti import objects
 from ganeti import hypervisor
+from ganeti import utils
 
 from ganeti.hypervisor import hv_lxc
+from ganeti.hypervisor.hv_lxc import LXCHypervisor
 
 import testutils
+from testutils import patch_object
 
 
 def RunResultOk(stdout):
@@ -49,6 +52,18 @@ class TestConsole(unittest.TestCase):
     self.assertEqual(cons.kind, constants.CONS_SSH)
     self.assertEqual(cons.host, node.name)
     self.assertEqual(cons.command[-1], instance.name)
+
+
+class TestLXCIsInstanceAlive(unittest.TestCase):
+  @patch_object(utils, "RunCmd")
+  def testActive(self, runcmd_mock):
+    runcmd_mock.return_value = RunResultOk("inst1 inst2 inst3\ninst4 inst5")
+    self.assertTrue(LXCHypervisor._IsInstanceAlive("inst4"))
+
+  @patch_object(utils, "RunCmd")
+  def testInactive(self, runcmd_mock):
+    runcmd_mock.return_value = RunResultOk("inst1 inst2foo")
+    self.assertFalse(LXCHypervisor._IsInstanceAlive("inst2"))
 
 
 if __name__ == "__main__":
