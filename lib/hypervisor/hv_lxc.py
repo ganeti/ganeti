@@ -25,7 +25,6 @@
 
 import os
 import os.path
-import time
 import logging
 
 from ganeti import constants
@@ -334,16 +333,28 @@ class LXCHypervisor(hv_base.BaseHypervisor):
                    timeout=None):
     """Stop an instance.
 
-    This method has complicated cleanup tests, as we must:
-      - try to kill all leftover processes
-      - try to unmount any additional sub-mountpoints
-      - finally unmount the instance dir
-
     """
     assert(timeout is None or force is not None)
 
     if name is None:
       name = instance.name
+
+    if name in self.ListInstances():
+      lxc_stop_cmd = ["lxc-stop", "-n", name]
+
+      if force:
+        lxc_stop_cmd.append("--kill")
+        result = utils.RunCmd(lxc_stop_cmd, timeout=timeout)
+        if result.failed:
+          raise HypervisorError("Failed to kill instance %s: %s" %
+                                (name, result.output))
+      else:
+        # The --timeout=-1 option is needed to prevent lxc-stop performs
+        # hard-stop(kill) for the container after the default timing out.
+        lxc_stop_cmd.extend(["--nokill", "--timeout", "-1"])
+        result = utils.RunCmd(lxc_stop_cmd, timeout=timeout)
+        if result.failed:
+          logging.error("Failed to stop instance %s: %s", name, result.output)
 
     timeout_cmd = []
     if timeout is not None:
@@ -352,19 +363,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     root_dir = self._InstanceDir(name)
     if not os.path.exists(root_dir):
       return
-
-    if name in self.ListInstances():
-      # Signal init to shutdown; this is a hack
-      if not retry and not force:
-        result = utils.RunCmd(["chroot", root_dir, "poweroff"])
-        if result.failed:
-          raise HypervisorError("Running 'poweroff' on the instance"
-                                " failed: %s" % result.output)
-      time.sleep(2)
-      result = utils.RunCmd(timeout_cmd.extend(["lxc-stop", "-n", name]))
-      if result.failed:
-        logging.warning("Error while doing lxc-stop for %s: %s", name,
-                        result.output)
 
     if not os.path.ismount(root_dir):
       return
