@@ -24,6 +24,7 @@
 import unittest
 
 from ganeti import constants
+from ganeti import errors
 from ganeti import objects
 from ganeti import hypervisor
 from ganeti import utils
@@ -179,6 +180,56 @@ class TestCgroupReadData(unittest.TestCase):
   def testGetCgroupMemoryLimit(self, getval_mock):
     getval_mock.return_value = "128"
     self.assertEqual(self.hv._GetCgroupMemoryLimit("instance1"), 128)
+
+
+class TestVerifyLXCCommands(unittest.TestCase):
+  def setUp(self):
+    runcmd_mock = mock.Mock(return_value="")
+    self.RunCmdPatch = patch_object(utils, "RunCmd", runcmd_mock)
+    self.RunCmdPatch.start()
+    version_patch = patch_object(LXCHypervisor, "_LXC_MIN_VERSION_REQUIRED",
+                                 "1.2.3")
+    self._LXC_MIN_VERSION_REQUIRED_Patch = version_patch
+    self._LXC_MIN_VERSION_REQUIRED_Patch.start()
+    self.hvc = LXCHypervisor
+
+  def tearDown(self):
+    self.RunCmdPatch.stop()
+    self._LXC_MIN_VERSION_REQUIRED_Patch.stop()
+
+  def testParseLXCVersion(self):
+    self.assertEqual(self.hvc._ParseLXCVersion("1.0.0"), (1, 0, 0))
+    self.assertEqual(self.hvc._ParseLXCVersion("1.0.0.alpha1"), (1, 0, 0))
+    self.assertEqual(self.hvc._ParseLXCVersion("1.0"), None)
+    self.assertEqual(self.hvc._ParseLXCVersion("1.2a.0"), None)
+
+  @patch_object(LXCHypervisor, "_LXC_COMMANDS_REQUIRED", ["lxc-stop"])
+  def testCommandVersion(self):
+    utils.RunCmd.return_value = RunResultOk("1.2.3\n")
+    self.assertFalse(self.hvc._VerifyLXCCommands())
+    utils.RunCmd.return_value = RunResultOk("1.10.0\n")
+    self.assertFalse(self.hvc._VerifyLXCCommands())
+    utils.RunCmd.return_value = RunResultOk("1.2.2\n")
+    self.assertTrue(self.hvc._VerifyLXCCommands())
+
+  @patch_object(LXCHypervisor, "_LXC_COMMANDS_REQUIRED", ["lxc-stop"])
+  def testCommandVersionInvalid(self):
+    utils.RunCmd.return_value = utils.RunResult(1, None, "", "", [], None, None)
+    self.assertTrue(self.hvc._VerifyLXCCommands())
+    utils.RunCmd.return_value = RunResultOk("1.2a.0\n")
+    self.assertTrue(self.hvc._VerifyLXCCommands())
+
+  @patch_object(LXCHypervisor, "_LXC_COMMANDS_REQUIRED", ["lxc-stop"])
+  def testCommandNotExists(self):
+    utils.RunCmd.side_effect = errors.OpExecError
+    self.assertTrue(self.hvc._VerifyLXCCommands())
+
+  @patch_object(LXCHypervisor, "_LXC_COMMANDS_REQUIRED", ["lxc-ls"])
+  def testVerifyLXCLs(self):
+    utils.RunCmd.return_value = RunResultOk("garbage\n--running\ngarbage")
+    self.assertFalse(self.hvc._VerifyLXCCommands())
+    utils.RunCmd.return_value = RunResultOk("foo")
+    self.assertTrue(self.hvc._VerifyLXCCommands())
 
 
 if __name__ == "__main__":

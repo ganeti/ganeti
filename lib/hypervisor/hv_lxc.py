@@ -27,6 +27,7 @@ import os
 import os.path
 import logging
 import sys
+import re
 
 from ganeti import constants
 from ganeti import errors # pylint: disable=W0611
@@ -59,6 +60,15 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   _PROC_CGROUPS_FILE = "/proc/cgroups"
   _PROC_SELF_CGROUP_FILE = "/proc/self/cgroup"
 
+  _LXC_MIN_VERSION_REQUIRED = "1.0.0"
+  _LXC_COMMANDS_REQUIRED = [
+    "lxc-console",
+    "lxc-ls",
+    "lxc-start",
+    "lxc-stop",
+    "lxc-wait",
+    ]
+
   _DEVS = [
     "c 1:3",   # /dev/null
     "c 1:5",   # /dev/zero
@@ -88,6 +98,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     constants.HV_LXC_CGROUP_USE: hv_base.NO_CHECK,
     constants.HV_LXC_STARTUP_WAIT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     }
+
+  # Let beta version following micro version, but don't care about it
+  _LXC_VERSION_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
@@ -702,6 +715,61 @@ class LXCHypervisor(hv_base.BaseHypervisor):
                                    user=constants.SSH_CONSOLE_USER,
                                    command=["lxc-console", "-n", instance.name])
 
+  @classmethod
+  def _ParseLXCVersion(cls, version_string):
+    """Return a parsed result of lxc version string.
+
+    @return: tuple of major, minor and micro version number
+    @rtype: tuple(int, int, int)
+
+    """
+    match = cls._LXC_VERSION_RE.match(version_string)
+    return tuple(map(int, match.groups())) if match else None
+
+  @classmethod
+  def _VerifyLXCCommands(cls):
+    """Verify the validity of lxc command line tools.
+
+    @rtype: list(str)
+    @return: list of problem descriptions. the blank list will be returned if
+             there is no problem.
+
+    """
+    version_required = cls._ParseLXCVersion(cls._LXC_MIN_VERSION_REQUIRED)
+    msgs = []
+    for cmd in cls._LXC_COMMANDS_REQUIRED:
+      try:
+        # lxc-ls needs special checking procedure.
+        # there are two different version of lxc-ls, one is written in python
+        # and the other is written in shell script.
+        # we have to ensure the python version of lxc-ls is installed.
+        if cmd == "lxc-ls":
+          help_string = utils.RunCmd(["lxc-ls", "--help"]).output
+          if "--running" not in help_string:
+            # shell script version has no --running switch
+            msgs.append("The python version of 'lxc-ls' is required."
+                        " Maybe lxc was installed without --enable-python")
+        else:
+          result = utils.RunCmd([cmd, "--version"])
+          if result.failed:
+            msgs.append("Can't get version info from %s: %s" %
+                        (cmd, result.output))
+          else:
+            version_str = result.stdout.strip()
+            version = cls._ParseLXCVersion(version_str)
+            if version:
+              if version < version_required:
+                msgs.append("LXC version >= %s is required but command %s has"
+                            " version %s" %
+                            (cls._LXC_MIN_VERSION_REQUIRED, cmd, version_str))
+            else:
+              msgs.append("Can't parse version info from %s output: %s" %
+                          (cmd, version_str))
+      except errors.OpExecError:
+        msgs.append("Required command %s not found" % cmd)
+
+    return msgs
+
   def Verify(self, hvparams=None):
     """Verify the hypervisor.
 
@@ -723,6 +791,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       self._EnsureCgroupMounts(hvparams)
     except errors.HypervisorError, err:
       msgs.append(str(err))
+
+    msgs.extend(self._VerifyLXCCommands())
 
     return self._FormatVerifyResults(msgs)
 
