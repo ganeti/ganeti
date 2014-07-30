@@ -28,11 +28,28 @@ from ganeti import objects
 from ganeti import hypervisor
 from ganeti import utils
 
+from ganeti.hypervisor import hv_base
 from ganeti.hypervisor import hv_lxc
 from ganeti.hypervisor.hv_lxc import LXCHypervisor
 
+import mock
+import shutil
+import tempfile
 import testutils
 from testutils import patch_object
+
+
+def setUpModule():
+  # Creating instance of LXCHypervisor will fail by permission issue of
+  # instance directories
+  global temp_dir
+  temp_dir = tempfile.mkdtemp()
+  LXCHypervisor._ROOT_DIR = utils.PathJoin(temp_dir, "root")
+  LXCHypervisor._LOG_DIR = utils.PathJoin(temp_dir, "log")
+
+
+def tearDownModule():
+  shutil.rmtree(temp_dir)
 
 
 def RunResultOk(stdout):
@@ -64,6 +81,24 @@ class TestLXCIsInstanceAlive(unittest.TestCase):
   def testInactive(self, runcmd_mock):
     runcmd_mock.return_value = RunResultOk("inst1 inst2foo")
     self.assertFalse(LXCHypervisor._IsInstanceAlive("inst2"))
+
+
+class TestLXCHypervisorGetInstanceInfo(unittest.TestCase):
+  def setUp(self):
+    self.hv = LXCHypervisor()
+    self.hv._GetCgroupCpuList = mock.Mock(return_value=[1, 3])
+    self.hv._GetCgroupMemoryLimit = mock.Mock(return_value=128*(1024**2))
+
+  @patch_object(LXCHypervisor, "_IsInstanceAlive")
+  def testRunningInstance(self, isalive_mock):
+    isalive_mock.return_value = True
+    self.assertEqual(self.hv.GetInstanceInfo("inst1"),
+                     ("inst1", 0, 128, 2, hv_base.HvInstanceState.RUNNING, 0))
+
+  @patch_object(LXCHypervisor, "_IsInstanceAlive")
+  def testInactiveOrNonexistentInstance(self, isalive_mock):
+    isalive_mock.return_value = False
+    self.assertIsNone(self.hv.GetInstanceInfo("inst1"))
 
 
 if __name__ == "__main__":
