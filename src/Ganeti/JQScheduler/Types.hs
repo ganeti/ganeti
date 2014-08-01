@@ -35,7 +35,7 @@ import Ganeti.Utils
 data JobWithStat = JobWithStat { jINotify :: Maybe INotify
                                , jStat :: FStat
                                , jJob :: QueuedJob
-                               }
+                               } deriving (Eq, Show)
 
 $(makeCustomLenses' ''JobWithStat ['jJob])
 
@@ -44,6 +44,6 @@ data Queue = Queue { qEnqueued :: [JobWithStat]
                    , qManipulated :: [JobWithStat] -- ^ running jobs that are
                                                    -- being manipulated by
                                                    -- some thread
-                   }
+                   } deriving (Eq, Show)
 
 $(makeCustomLenses ''Queue)
