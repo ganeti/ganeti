@@ -222,16 +222,12 @@ instance (JSON.JSON a, Num a, Ord a, Show a) => JSON.JSON (Negative a) where
 
 -- | Type that holds a non-null list.
 newtype NonEmpty a = NonEmpty { fromNonEmpty :: [a] }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- | Smart constructor for 'NonEmpty'.
 mkNonEmpty :: (Monad m) => [a] -> m (NonEmpty a)
 mkNonEmpty [] = fail "Received empty value for non-empty list"
 mkNonEmpty xs = return (NonEmpty xs)
-
-instance (Eq a, Ord a) => Ord (NonEmpty a) where
-  NonEmpty { fromNonEmpty = x1 } `compare` NonEmpty { fromNonEmpty = x2 } =
-    x1 `compare` x2
 
 instance (JSON.JSON a) => JSON.JSON (NonEmpty a) where
   showJSON = JSON.showJSON . fromNonEmpty
