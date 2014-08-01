@@ -59,9 +59,6 @@ import Ganeti.JSON
 
 -- * Arbitrary instances
 
-instance (Ord k, Arbitrary k, Arbitrary a) => Arbitrary (Map.Map k a) where
-  arbitrary = Map.fromList <$> arbitrary
-
 arbitraryOpTagsGet :: Gen OpCodes.OpCode
 arbitraryOpTagsGet = do
   kind <- arbitrary

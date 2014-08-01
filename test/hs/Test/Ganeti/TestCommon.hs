@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
+
 {-| Common helper functions and instances for all Ganeti tests.
 
 -}
@@ -101,6 +103,12 @@ import Numeric
 import qualified Ganeti.BasicTypes as BasicTypes
 import Ganeti.JSON (ArrayObject(..))
 import Ganeti.Types
+
+-- * Arbitrary orphan instances
+
+instance (Ord k, Arbitrary k, Arbitrary a) => Arbitrary (M.Map k a) where
+  arbitrary = M.fromList <$> arbitrary
+
 
 -- * Constants
 
