@@ -29,6 +29,7 @@ module Ganeti.JQScheduler
   , jqLivelock
   , jqForkLock
   , emptyJQStatus
+  , selectJobsToRun
   , initJQScheduler
   , enqueueNewJobs
   , dequeueJob

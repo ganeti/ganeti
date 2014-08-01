@@ -942,6 +942,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Hypervisor/Xen/XmParser.hs \
 	test/hs/Test/Ganeti/JSON.hs \
 	test/hs/Test/Ganeti/Jobs.hs \
+	test/hs/Test/Ganeti/JQScheduler.hs \
 	test/hs/Test/Ganeti/JQueue.hs \
 	test/hs/Test/Ganeti/JQueue/Objects.hs \
 	test/hs/Test/Ganeti/Kvmd.hs \
