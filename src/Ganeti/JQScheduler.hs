@@ -299,7 +299,10 @@ jobEligible queue jWS =
 
 -- | Decide on which jobs to schedule next for execution. This is the
 -- pure function doing the scheduling.
-selectJobsToRun :: Int -> Queue -> (Queue, [JobWithStat])
+selectJobsToRun :: Int  -- ^ How many jobs are allowed to run at the
+                        -- same time.
+                -> Queue
+                -> (Queue, [JobWithStat])
 selectJobsToRun count queue =
   let n = count - length (qRunning queue) - length (qManipulated queue)
       chosen = take n
