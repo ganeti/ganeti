@@ -108,6 +108,7 @@ import Ganeti.Types
 
 instance (Ord k, Arbitrary k, Arbitrary a) => Arbitrary (M.Map k a) where
   arbitrary = M.fromList <$> arbitrary
+  shrink m = M.fromList <$> shrink (M.toList m)
 
 
 -- * Constants
