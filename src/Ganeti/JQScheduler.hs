@@ -54,6 +54,7 @@ import Ganeti.BasicTypes
 import Ganeti.Constants as C
 import Ganeti.Errors
 import Ganeti.JQScheduler.Types
+import Ganeti.JQScheduler.ReasonRateLimiting (reasonRateLimit)
 import Ganeti.JQueue as JQ
 import Ganeti.Lens hiding (chosen)
 import Ganeti.Logging
@@ -292,6 +293,7 @@ selectJobsToRun :: Int  -- ^ How many jobs are allowed to run at the
 selectJobsToRun count queue =
   let n = count - length (qRunning queue) - length (qManipulated queue)
       chosen = take n
+               . reasonRateLimit queue
                . sortBy (comparing (calcJobPriority . jJob))
                . filter (jobEligible queue)
                $ qEnqueued queue
