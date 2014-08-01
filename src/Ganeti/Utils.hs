@@ -36,6 +36,7 @@ module Ganeti.Utils
   , commaJoin
   , ensureQuoted
   , tryRead
+  , readMaybe
   , formatTable
   , printTable
   , parseUnit
@@ -217,6 +218,15 @@ parseChoices name s _ = fail $ name ++ ": cannot parse string '" ++ s ++ "'"
 -- | Safe 'read' function returning data encapsulated in a Result.
 tryRead :: (Monad m, Read a) => String -> String -> m a
 tryRead name s = parseChoices name s $ reads s
+
+-- | Parse a string using the 'Read' instance.
+-- Succeeds if there is exactly one valid result.
+--
+-- /Backport from Text.Read introduced in base-4.6.0.0/
+readMaybe :: Read a => String -> Maybe a
+readMaybe s = case reads s of
+  [(a, "")] -> Just a
+  _         -> Nothing
 
 -- | Format a table of strings to maintain consistent length.
 formatTable :: [[String]] -> [Bool] -> [[String]]
