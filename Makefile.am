@@ -135,6 +135,7 @@ HS_DIRS = \
 	src/Ganeti/HTools/Program \
 	src/Ganeti/Hypervisor \
 	src/Ganeti/Hypervisor/Xen \
+	src/Ganeti/JQScheduler \
 	src/Ganeti/JQueue \
 	src/Ganeti/Locking \
 	src/Ganeti/Logging \
@@ -822,6 +823,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Hs2Py/GenOpCodes.hs \
 	src/Ganeti/Hs2Py/OpDoc.hs \
 	src/Ganeti/JQScheduler.hs \
+	src/Ganeti/JQScheduler/Types.hs \
 	src/Ganeti/JQueue.hs \
 	src/Ganeti/JQueue/Lens.hs \
 	src/Ganeti/JQueue/Objects.hs \

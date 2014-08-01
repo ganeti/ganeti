@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, RankNTypes #-}
+{-# LANGUAGE RankNTypes #-}
 {-| Implementation of a reader for the job queue.
 
 -}
@@ -53,6 +53,7 @@ import System.INotify
 import Ganeti.BasicTypes
 import Ganeti.Constants as C
 import Ganeti.Errors
+import Ganeti.JQScheduler.Types
 import Ganeti.JQueue as JQ
 import Ganeti.Lens hiding (chosen)
 import Ganeti.Logging
@@ -63,21 +64,6 @@ import Ganeti.Utils
 import Ganeti.Utils.Livelock
 import Ganeti.Utils.MVarLock
 
-data JobWithStat = JobWithStat { jINotify :: Maybe INotify
-                               , jStat :: FStat
-                               , jJob :: QueuedJob
-                               }
-
-$(makeCustomLenses' ''JobWithStat ['jJob])
-
-data Queue = Queue { qEnqueued :: [JobWithStat]
-                   , qRunning :: [JobWithStat]
-                   , qManipulated :: [JobWithStat] -- ^ running jobs that are
-                                                   -- being manipulated by
-                                                   -- some thread
-                   }
-
-$(makeCustomLenses ''Queue)
 
 {-| Representation of the job queue
 
