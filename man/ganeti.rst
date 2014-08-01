@@ -275,6 +275,10 @@ The ``--submit`` option is used to send the job to the master daemon but
 not wait for its completion. The job ID will be shown so that it can be
 examined using **gnt-job info**.
 
+The ``--reason`` option allows to specify a reason for the submitted
+job. It is inherited by all jobs created by this job and intended
+to make it easier to track the reason why any given job exists.
+
 The ``--print-job-id`` option makes the command print the job id as first
 line on stdout, so that it is easy to parse by other programs.
 
