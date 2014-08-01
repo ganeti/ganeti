@@ -27,7 +27,6 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
 
 module Test.Ganeti.JQueue (testJQueue) where
 
-import Control.Applicative
 import Control.Monad (when)
 import Data.Char (isAscii)
 import Data.List (nub, sort)
@@ -43,7 +42,6 @@ import Text.JSON
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHelper
 import Test.Ganeti.Types ()
-import Test.Ganeti.OpCodes ()
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -51,34 +49,10 @@ import Ganeti.JQueue
 import Ganeti.OpCodes
 import Ganeti.Path
 import Ganeti.Types as Types
+import Test.Ganeti.JQueue.Objects (justNoTs, genQueuedOpCode, emptyJob,
+                                   genJobId)
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
-
--- * Helpers
-
--- | noTimestamp in Just form.
-justNoTs :: Maybe Timestamp
-justNoTs = Just noTimestamp
-
--- | Generates a simple queued opcode.
-genQueuedOpCode :: Gen QueuedOpCode
-genQueuedOpCode =
-  QueuedOpCode <$> (ValidOpCode <$> arbitrary) <*>
-    arbitrary <*> pure JSNull <*> pure [] <*>
-    choose (C.opPrioLowest, C.opPrioHighest) <*>
-    pure justNoTs <*> pure justNoTs <*> pure justNoTs
-
--- | Generates an static, empty job.
-emptyJob :: (Monad m) => m QueuedJob
-emptyJob = do
-  jid0 <- makeJobId 0
-  return $ QueuedJob jid0 [] justNoTs justNoTs justNoTs Nothing Nothing
-
--- | Generates a job ID.
-genJobId :: Gen JobId
-genJobId = do
-  p <- arbitrary::Gen (Types.NonNegative Int)
-  makeJobId $ fromNonNegative p
 
 -- * Test cases
 
