@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, StandaloneDeriving #-}
 
 {-| Implementation of opcodes parameters.
 
@@ -373,6 +373,8 @@ $(buildObject "INicParams" "inic"
   , optionalField $ simpleField C.inicNetwork [t| NonEmptyString |]
   ])
 
+deriving instance Ord INicParams
+
 -- | Disk modification definition.
 $(buildObject "IDiskParams" "idisk"
   [ specialNumericalField 'parseUnitAssumeBinary . optionalField
@@ -388,6 +390,8 @@ $(buildObject "IDiskParams" "idisk"
   , andRestArguments "opaque"
   ])
 
+deriving instance Ord IDiskParams
+
 -- | Disk changes type for OpInstanceRecreateDisks. This is a bit
 -- strange, because the type in Python is something like Either
 -- [DiskIndex] [DiskChanges], but we can't represent the type of an
@@ -397,7 +401,7 @@ data RecreateDisksInfo
   = RecreateDisksAll
   | RecreateDisksIndices (NonEmpty DiskIndex)
   | RecreateDisksParams (NonEmpty (DiskIndex, IDiskParams))
-    deriving (Eq, Show)
+    deriving (Eq, Show, Ord)
 
 readRecreateDisks :: JSValue -> Text.JSON.Result RecreateDisksInfo
 readRecreateDisks (JSArray []) = return RecreateDisksAll
@@ -419,7 +423,7 @@ instance JSON RecreateDisksInfo where
 -- | Simple type for old-style ddm changes.
 data DdmOldChanges = DdmOldIndex (NonNegative Int)
                    | DdmOldMod DdmSimple
-                     deriving (Eq, Show)
+                     deriving (Eq, Show, Ord)
 
 readDdmOldChanges :: JSValue -> Text.JSON.Result DdmOldChanges
 readDdmOldChanges v =
@@ -441,7 +445,7 @@ data SetParamsMods a
   | SetParamsDeprecated (NonEmpty (DdmOldChanges, a))
   | SetParamsNew (NonEmpty (DdmFull, Int, a))
   | SetParamsNewName (NonEmpty (DdmFull, String, a))
-    deriving (Eq, Show)
+    deriving (Eq, Show, Ord)
 
 -- | Custom deserialiser for 'SetParamsMods'.
 readSetParams :: (JSON a) => JSValue -> Text.JSON.Result (SetParamsMods a)
@@ -464,7 +468,7 @@ instance (JSON a) => JSON (SetParamsMods a) where
 -- tests). But the proper type could be parsed if we wanted.
 data ExportTarget = ExportTargetLocal NonEmptyString
                   | ExportTargetRemote [JSValue]
-                    deriving (Eq, Show)
+                    deriving (Eq, Show, Ord)
 
 -- | Custom reader for 'ExportTarget'.
 readExportTarget :: JSValue -> Text.JSON.Result ExportTarget

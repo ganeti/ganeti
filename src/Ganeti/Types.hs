@@ -180,7 +180,7 @@ import Ganeti.Utils
 
 -- | Type that holds a non-negative value.
 newtype NonNegative a = NonNegative { fromNonNegative :: a }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- | Smart constructor for 'NonNegative'.
 mkNonNegative :: (Monad m, Num a, Ord a, Show a) => a -> m (NonNegative a)
@@ -194,7 +194,7 @@ instance (JSON.JSON a, Num a, Ord a, Show a) => JSON.JSON (NonNegative a) where
 
 -- | Type that holds a positive value.
 newtype Positive a = Positive { fromPositive :: a }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- | Smart constructor for 'Positive'.
 mkPositive :: (Monad m, Num a, Ord a, Show a) => a -> m (Positive a)
@@ -208,7 +208,7 @@ instance (JSON.JSON a, Num a, Ord a, Show a) => JSON.JSON (Positive a) where
 
 -- | Type that holds a negative value.
 newtype Negative a = Negative { fromNegative :: a }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- | Smart constructor for 'Negative'.
 mkNegative :: (Monad m, Num a, Ord a, Show a) => a -> m (Negative a)
@@ -239,7 +239,7 @@ type NonEmptyString = NonEmpty Char
 type QueryResultCode = Int
 
 newtype IPv4Address = IPv4Address { fromIPv4Address :: String }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- FIXME: this should check that 'address' is a valid ip
 mkIPv4Address :: Monad m => String -> m IPv4Address
@@ -251,7 +251,7 @@ instance JSON.JSON IPv4Address where
   readJSON v = JSON.readJSON v >>= mkIPv4Address
 
 newtype IPv4Network = IPv4Network { fromIPv4Network :: String }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- FIXME: this should check that 'address' is a valid ip
 mkIPv4Network :: Monad m => String -> m IPv4Network
@@ -263,7 +263,7 @@ instance JSON.JSON IPv4Network where
   readJSON v = JSON.readJSON v >>= mkIPv4Network
 
 newtype IPv6Address = IPv6Address { fromIPv6Address :: String }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- FIXME: this should check that 'address' is a valid ip
 mkIPv6Address :: Monad m => String -> m IPv6Address
@@ -275,7 +275,7 @@ instance JSON.JSON IPv6Address where
   readJSON v = JSON.readJSON v >>= mkIPv6Address
 
 newtype IPv6Network = IPv6Network { fromIPv6Network :: String }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 -- FIXME: this should check that 'address' is a valid ip
 mkIPv6Network :: Monad m => String -> m IPv6Network
@@ -682,7 +682,7 @@ type RelativeJobId = Negative Int
 -- | Job ID dependency.
 data JobIdDep = JobDepRelative RelativeJobId
               | JobDepAbsolute JobId
-                deriving (Show, Eq)
+                deriving (Show, Eq, Ord)
 
 instance JSON.JSON JobIdDep where
   showJSON (JobDepRelative i) = showJSON i
@@ -701,7 +701,7 @@ absoluteJobIdDep (JobDepRelative rjid) jid =
 
 -- | Job Dependency type.
 data JobDependency = JobDependency JobIdDep [FinalizedJobStatus]
-                     deriving (Show, Eq)
+                     deriving (Show, Eq, Ord)
 
 instance JSON JobDependency where
   showJSON (JobDependency dep status) = showJSON (dep, status)
@@ -910,7 +910,7 @@ $(THH.makeJSONInstance ''HotplugTarget)
 -- | A container for values that should be happy to be manipulated yet
 -- refuses to be shown unless explicitly requested.
 newtype Private a = Private { getPrivate :: a }
-  deriving Eq
+  deriving (Eq, Ord)
 
 instance (Show a, JSON.JSON a) => JSON.JSON (Private a) where
   readJSON = liftM Private . JSON.readJSON

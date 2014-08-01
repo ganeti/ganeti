@@ -419,7 +419,7 @@ lookupName l s = foldr (chooseLookupResult s)
 -- opcode generation to transform a Haskell 'Set' into a Python 'list'
 -- without duplicate elements.
 newtype ListSet a = ListSet { unListSet :: Set a }
-  deriving (Eq, Show)
+  deriving (Eq, Show, Ord)
 
 instance (Ord a, JSON a) => JSON (ListSet a) where
   showJSON = JSON.showJSON . unListSet

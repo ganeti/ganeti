@@ -1,4 +1,4 @@
-{-# LANGUAGE ExistentialQuantification, TemplateHaskell #-}
+{-# LANGUAGE ExistentialQuantification, TemplateHaskell, StandaloneDeriving #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Implementation of the opcodes.
@@ -941,6 +941,8 @@ $(genOpCode "OpCode"
      "network_name")
   ])
 
+deriving instance Ord OpCode
+
 -- | Returns the OP_ID for a given opcode value.
 $(genOpID ''OpCode "opID")
 
@@ -1028,6 +1030,8 @@ $(buildObject "CommonOpParams" "op"
   , pReason
   ])
 
+deriving instance Ord CommonOpParams
+
 -- | Default common parameter values.
 defOpParams :: CommonOpParams
 defOpParams =
@@ -1049,7 +1053,7 @@ resolveDependsCommon p _ = return p
 -- | The top-level opcode type.
 data MetaOpCode = MetaOpCode { metaParams :: CommonOpParams
                              , metaOpCode :: OpCode
-                             } deriving (Show, Eq)
+                             } deriving (Show, Eq, Ord)
 
 -- | Resolve relative dependencies to absolute ones, given the job Id.
 resolveDependencies :: (Monad m) => MetaOpCode -> JobId -> m MetaOpCode

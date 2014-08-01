@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, StandaloneDeriving #-}
 
 {-| Objects in the job queue.
 
@@ -49,7 +49,7 @@ type Timestamp = (Int, Int)
 -- | An input opcode.
 data InputOpCode = ValidOpCode MetaOpCode -- ^ OpCode was parsed successfully
                  | InvalidOpCode JSValue  -- ^ Invalid opcode
-                   deriving (Show, Eq)
+                   deriving (Show, Eq, Ord)
 
 -- | JSON instance for 'InputOpCode', trying to parse it and if
 -- failing, keeping the original JSValue.
@@ -75,6 +75,8 @@ $(buildObject "QueuedOpCode" "qo"
     simpleField "end_timestamp"   [t| Timestamp   |]
   ])
 
+deriving instance Ord QueuedOpCode
+
 $(buildObject "QueuedJob" "qj"
   [ simpleField "id"                 [t| JobId          |]
   , simpleField "ops"                [t| [QueuedOpCode] |]
@@ -89,3 +91,4 @@ $(buildObject "QueuedJob" "qj"
   , optionalField $ processIdField "process_id"
   ])
 
+deriving instance Ord QueuedJob

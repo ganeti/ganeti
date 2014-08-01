@@ -304,7 +304,7 @@ instance HasStringRepr String where
 -- | The container type, a wrapper over Data.Map
 newtype GenericContainer a b =
   GenericContainer { fromContainer :: Map.Map a b }
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 instance (NFData a, NFData b) => NFData (GenericContainer a b) where
   rnf = rnf . Map.toList . fromContainer
