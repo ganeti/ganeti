@@ -278,6 +278,22 @@ examined using **gnt-job info**.
 The ``--reason`` option allows to specify a reason for the submitted
 job. It is inherited by all jobs created by this job and intended
 to make it easier to track the reason why any given job exists.
+Some reason strings have special meanings:
+
+  rate-limit:*n*:*label*
+      Assigns the job to a rate-limiting bucket identified by the
+      combination of (``n``, ``label``); that is ``rate-limit:4:mylabel``
+      and ``rate-limit:5:mylabel`` are different buckets.
+      ``n`` must be a positive integer; ``label`` is an arbitrary ASCII
+      string.
+      The job scheduler will ensure that, for each rate-limiting bucket,
+      there are at most ``n`` jobs belonging to that bucket that are
+      running in parallel.
+
+The special-cases for reason strings above must be given in exactly
+the specified format; if they are preceded by other characters
+(whitespace included), they become normal reasons and have no special
+effect.
 
 The ``--print-job-id`` option makes the command print the job id as first
 line on stdout, so that it is easy to parse by other programs.
