@@ -81,6 +81,7 @@ module Ganeti.Utils
   , safeRenameFile
   , FilePermissions(..)
   , ensurePermissions
+  , ordNub
   ) where
 
 import Control.Concurrent
@@ -739,3 +740,12 @@ safeRenameFile perms from to = do
         _ <- ensurePermissions dir perms
         renameFile from to
       return $ either (Bad . show) Ok (result :: Either IOError ())
+
+-- | Removes duplicates, preserving order.
+ordNub :: (Ord a) => [a] -> [a]
+ordNub =
+  let go _ [] = []
+      go s (x:xs) = if x `S.member` s
+        then go s xs
+        else x : go (S.insert x s) xs
+  in go S.empty
