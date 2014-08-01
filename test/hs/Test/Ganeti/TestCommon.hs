@@ -1,4 +1,4 @@
-{-| Unittest helpers for ganeti-htools.
+{-| Common helper functions and instances for all Ganeti tests.
 
 -}
 
