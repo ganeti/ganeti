@@ -39,6 +39,12 @@ data JobWithStat = JobWithStat { jINotify :: Maybe INotify
 
 $(makeCustomLenses' ''JobWithStat ['jJob])
 
+
+-- | A job without `INotify` and `FStat`.
+nullJobWithStat :: QueuedJob -> JobWithStat
+nullJobWithStat = JobWithStat Nothing nullFStat
+
+
 data Queue = Queue { qEnqueued :: [JobWithStat]
                    , qRunning :: [JobWithStat]
                    , qManipulated :: [JobWithStat] -- ^ running jobs that are
