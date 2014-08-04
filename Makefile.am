@@ -186,6 +186,7 @@ HS_DIRS_NOROOT = $(filter-out src,$(filter-out test/hs,$(HS_DIRS)))
 DIRS = \
 	$(HS_DIRS) \
 	autotools \
+	cabal \
 	daemons \
 	devel \
 	devel/data \
@@ -261,6 +262,7 @@ BUILDTIME_DIR_AUTOCREATE = \
 
 BUILDTIME_DIRS = \
 	$(BUILDTIME_DIR_AUTOCREATE) \
+	apps \
 	doc/html \
 	doc/man-html
 
@@ -296,6 +298,8 @@ CLEANFILES = \
 	$(addsuffix /*.o,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_hi,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
+	$(CABAL_EXECUTABLES_APPS_STAMPS) \
+	ganeti.cabal \
 	Makefile.ghc \
 	Makefile.ghc.bak \
 	$(PYTHON_BOOTSTRAP) \
@@ -350,6 +354,7 @@ GENERATED_FILES = \
 
 clean-local:
 	rm -rf tools/shebang
+	rm -rf apps
 
 HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid
 if ENABLE_CONFD
@@ -1486,6 +1491,7 @@ EXTRA_DIST += \
 	autotools/sphinx-wrapper \
 	autotools/testrunner \
 	autotools/wrong-hardcoded-paths \
+	cabal/cabal-from-modules.py \
 	$(RUN_IN_TEMPDIR) \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
@@ -1515,6 +1521,8 @@ EXTRA_DIST += \
 	doc/users/groupmemberships.in \
 	doc/users/groups.in \
 	doc/users/users.in \
+	ganeti.cabal \
+	cabal/ganeti.template.cabal \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
 	$(python_test_support) \
@@ -2842,6 +2850,39 @@ gitignore-check:
 # target to rebuild all man pages (both groff and html output)
 .PHONY: man
 man: $(man_MANS) $(manhtml)
+
+CABAL_EXECUTABLES = $(HS_DEFAULT_PROGS)
+CABAL_EXECUTABLES_HS = $(patsubst %,%.hs,$(CABAL_EXECUTABLES))
+CABAL_EXECUTABLES_APPS_STAMPS = $(patsubst src/%,apps/%.hs.stamp,$(patsubst test/hs/%,apps/%.hs.stamp,$(CABAL_EXECUTABLES)))
+
+# Executable symlinks
+apps/%.hs.stamp: Makefile
+	mkdir -p apps
+	rm -f $(basename $@)
+	ln -s ../$(filter %/$(basename $(notdir $@)),$(CABAL_EXECUTABLES_HS)) $(basename $@)
+	touch $@
+
+# Builds the cabal file
+ganeti.cabal: cabal/ganeti.template.cabal Makefile cabal/cabal-from-modules.py $(CABAL_EXECUTABLES_APPS_STAMPS)
+	@echo $(subst /,.,$(patsubst %.hs,%,$(patsubst test/hs/%,%,$(patsubst src/%,%,$(HS_SRCS))))) \
+	  | python $(abs_top_srcdir)/cabal/cabal-from-modules.py $(abs_top_srcdir)/cabal/ganeti.template.cabal > $@
+
+	for p in $(CABAL_EXECUTABLES); do \
+	  echo                                   >> $@; \
+	  echo "executable `basename $$p`"       >> $@; \
+	  echo "  hs-source-dirs: apps"          >> $@; \
+	  echo "  main-is: `basename $$p`.hs"    >> $@; \
+	  echo "  default-language: Haskell2010" >> $@; \
+	  echo "  build-depends:"                >> $@; \
+	  echo "      base"                      >> $@; \
+	  echo "    , ganeti"                    >> $@; \
+	  if [ $$p == test/hs/htest ]; then \
+	    echo "    , hslogger"                  >> $@; \
+	    echo "    , test-framework"            >> $@; \
+	  elif [ $$p == src/rpc-test ]; then \
+	    echo "    , json"                      >> $@; \
+	  fi \
+	done
 
 # Target that builds all binaries (including those that are not
 # rebuilt except when running the tests)
