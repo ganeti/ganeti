@@ -1864,9 +1864,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if (int(v_major), int(v_min)) < (1, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.0")
 
-  def _CallHotplugCommands(self, name, cmds):
+  @classmethod
+  def _CallHotplugCommands(cls, instance_name, cmds):
     for c in cmds:
-      self._CallMonitorCommand(name, c)
+      cls._CallMonitorCommand(instance_name, c)
       time.sleep(1)
 
   def _VerifyHotplugCommand(self, instance_name, device, dev_type,
@@ -1925,7 +1926,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # requested, generate separate "fd=" string for every fd
       tapfd = ",".join(["fd=%s" % fd for fd in fds])
       self._ConfigureNIC(instance, seq, device, tap)
-      self._PassTapFd(instance, fds, device)
+      self._HMPPassFd(instance.name, fds, kvm_devid)
       cmds = ["netdev_add tap,id=%s,%s%s" % (kvm_devid, tapfd, tap_extra)]
       args = "virtio-net-pci,bus=pci.0,addr=%s,mac=%s,netdev=%s,id=%s%s" % \
                (hex(device.pci), device.mac, kvm_devid, kvm_devid, nic_extra)
@@ -1978,21 +1979,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       device.pci = self.HotDelDevice(instance, dev_type, device, _, seq)
       self.HotAddDevice(instance, dev_type, device, _, seq)
 
-  def _PassTapFd(self, instance, fds, nic):
+  @classmethod
+  def _HMPPassFd(cls, instance_name, fds, kvm_devid):
     """Pass file descriptor to kvm process via monitor socket using SCM_RIGHTS
 
+    Wrapper of MonitorSocket.GetFd()
+
     """
-    # TODO: factor out code related to unix sockets.
-    #       squash common parts between monitor and qmp
-    kvm_devid = _GenerateDeviceKVMId(constants.HOTPLUG_TARGET_NIC, nic)
-    command = "getfd %s\n" % kvm_devid
-    logging.info("%s", fds)
+    mon = MonitorSocket(cls._InstanceMonitor(instance_name))
     try:
-      monsock = MonitorSocket(self._InstanceMonitor(instance.name))
-      monsock.connect()
-      fdsend.sendfds(monsock.sock, command, fds=fds)
+      mon.connect()
+      mon.GetFd(fds, kvm_devid)
     finally:
-      monsock.close()
+      mon.close()
 
   @classmethod
   def _ParseKVMVersion(cls, text):
