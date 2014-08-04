@@ -107,8 +107,12 @@ _RUNTIME_ENTRY = {
 _MIGRATION_CAPS_DELIM = ":"
 
 
-def _GetDriveURI(disk, link, uri):
+def _GetDriveURI(disk, link, uri, qmp=None):
   """Helper function to get the drive uri to be used in --drive kvm option
+
+  Invoked during startup and hot-add. In latter case if kernelspace is used
+  we get the fd of the disk, pass it to the instance via SCM rights and qmp
+  monitor, and return the proper path (/dev/fdset/<fdset>)
 
   @type disk: L{objects.Disk}
   @param disk: A disk configuration object
@@ -116,16 +120,39 @@ def _GetDriveURI(disk, link, uri):
   @param link: The device link as returned by _SymlinkBlockDev()
   @type uri: string
   @param uri: The drive uri as returned by _CalculateDeviceURI()
+  @type qmp: L{QmpConnection}
+  @param qmp: The qmp connection used to pass the drive's fd
+
+  @return: (the drive uri to use, the corresponing fdset if any) tuple
 
   """
+  fdset = None
   access_mode = disk.params.get(constants.LDP_ACCESS,
                                 constants.DISK_KERNELSPACE)
+  # If uri is available, use it during startup/hot-add
   if (uri and access_mode == constants.DISK_USERSPACE):
     drive_uri = uri
+  # During hot-add get the disk's fd and pass it to qemu via SCM rights
+  elif qmp:
+    try:
+      fd = os.open(link, os.O_RDWR)
+      fdset = qmp.AddFd([fd])
+      os.close(fd)
+    except OSError:
+      logging.warning("Cannot open disk with link %s in order to"
+                      " pass its fd to qmp monitor", link)
+      fdset = None
+
+    # fd passing succeeded
+    if fdset is not None:
+      drive_uri = "/dev/fdset/%s" % fdset
+    else:
+      drive_uri = link
+  # Otherwise use the link previously created
   else:
     drive_uri = link
 
-  return drive_uri
+  return drive_uri, fdset
 
 
 def _GenerateDeviceKVMId(dev_type, dev):
@@ -948,7 +975,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
           boot_val = ",boot=on"
 
-      drive_uri = _GetDriveURI(cfdev, link_name, uri)
+      drive_uri, _ = _GetDriveURI(cfdev, link_name, uri)
 
       drive_val = "file=%s,format=raw%s%s%s%s" % \
                   (drive_uri, if_val, boot_val, cache_val, aio_val)
@@ -1906,12 +1933,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self._GetFreePCISlot(instance, device)
     kvm_devid = _GenerateDeviceKVMId(dev_type, device)
     runtime = self._LoadKVMRuntime(instance)
+    fdset = None
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      drive_uri = _GetDriveURI(device, extra[0], extra[1])
+      # Create a shared qmp connection because
+      # fdsets get cleaned up on monitor disconnect
+      # See qemu commit efb87c1
+      qmp = QmpConnection(self._InstanceQmpMonitor(instance.name))
+      qmp.connect()
+      drive_uri, fdset = _GetDriveURI(device, extra[0], extra[1], qmp)
       cmds = ["drive_add dummy file=%s,if=none,id=%s,format=raw" %
                 (drive_uri, kvm_devid)]
       cmds += ["device_add virtio-blk-pci,bus=pci.0,addr=%s,drive=%s,id=%s" %
                 (hex(device.pci), kvm_devid, kvm_devid)]
+      self._CallHotplugCommands(instance.name, cmds)
+      if fdset is not None:
+        qmp.RemoveFdset(fdset)
+      qmp.close()
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       kvmpath = instance.hvparams[constants.HV_KVM_PATH]
       kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
@@ -1932,8 +1969,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                (hex(device.pci), device.mac, kvm_devid, kvm_devid, nic_extra)
       cmds += ["device_add %s" % args]
       utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
+      self._CallHotplugCommands(instance.name, cmds)
 
-    self._CallHotplugCommands(instance.name, cmds)
     self._VerifyHotplugCommand(instance.name, device, dev_type, True)
     # update relevant entries in runtime file
     index = _DEVICE_RUNTIME_INDEX[dev_type]
