@@ -1376,12 +1376,13 @@ during this operation are ignored.
 If ``--hotplug`` is given any disk and NIC modifications will take
 effect without the need of actual reboot. Please note that this feature
 is currently supported only for KVM hypervisor and there are some
-restrictions: a) KVM versions >= 1.0 support it b) instances with chroot
-or uid pool security model do not support disk hotplug c) RBD disks with
-userspace access mode can not be hotplugged (yet) d) if hotplug fails
-(for any reason) a warning is printed but execution is continued e)
-for existing NIC modification interactive verification is needed unless
-``--force`` option is passed.
+restrictions: a) NIC/Disk hot-remove should work for QEMU versions >= 1.0
+b) instances with chroot or pool/user security model support disk
+hot-add only for QEMU version > 1.7 where add-fd QMP command exists c) For
+the previous case as well as for NIC hot-add, python-fdsend package must
+be installed d) if hotplug fails (for any reason) a warning is printed
+but execution is continued e) for existing NIC modification interactive
+verification is needed unless ``--force`` option is passed.
 
 If ``--hotplug-if-possible`` is given then ganeti won't abort in case
 hotplug is not supported. It will continue execution and modification

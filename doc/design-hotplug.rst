@@ -239,7 +239,7 @@ pool we can let the hypervisor code temporarily ``chown()`` the  device
 before the actual hotplug. Still this is insufficient in case of chroot.
 In this case, we need to ``mknod()`` the device inside the chroot. Both
 workarounds can be avoided, if we make use of the ``add-fd`` qemu
-monitor command, that was introduced in version 1.3. This command is the
+monitor command, that was introduced in version 1.7. This command is the
 equivalent of NICs' `get-fd`` for disks and will allow disk hotplug in
 every case. So, if the qemu monitor does not support the ``add-fd``
 command, we will not allow disk hotplug for chroot and uid security
