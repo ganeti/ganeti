@@ -29,6 +29,11 @@ import stat
 import errno
 import socket
 import StringIO
+import logging
+try:
+  import fdsend   # pylint: disable=F0401
+except ImportError:
+  fdsend = None
 
 from ganeti import errors
 from ganeti import utils
@@ -180,6 +185,16 @@ class MonitorSocket(object):
 
     """
     self.sock.close()
+
+  def GetFd(self, fds, kvm_devid):
+    """Pass file descriptor to kvm process via monitor socket using SCM_RIGHTS
+
+    """
+    self._check_connection()
+
+    command = "getfd %s\n" % kvm_devid
+    logging.info("Passing %s fds to %s", fds, self.monitor_filename)
+    fdsend.sendfds(self.sock, command, fds=fds)
 
 
 class QmpConnection(MonitorSocket):
@@ -369,6 +384,16 @@ class QmpConnection(MonitorSocket):
       message[self._ARGUMENTS_KEY] = arguments
     self._Send(message)
 
+    return self._GetResponse(command)
+
+  def _GetResponse(self, command):
+    """Parse the QMP response
+
+    If error key found in the response message raise HypervisorError.
+    Ignore any async event and thus return the response message
+    related to command.
+
+    """
     # According the the QMP specification, there are only two reply types to a
     # command: either error (containing the "error" key) or success (containing
     # the "return" key). There is also a third possibility, that of an
@@ -389,3 +414,52 @@ class QmpConnection(MonitorSocket):
         continue
 
       return response[self._RETURN_KEY]
+
+  def AddFd(self, fds):
+    """Pass file descriptor to kvm process via qmp socket using SCM_RIGHTS
+
+    Add the fds to an fdset so that they can be used later by hot-add commands
+
+    @type fds: list
+    @param fds: The list of file descriptors to pass
+
+    @return: The fdset ID that the fds have been added to
+      (None if operation fails)
+
+    """
+    self._check_connection()
+
+    if not fdsend or "add-fd" not in self.supported_commands:
+      return None
+
+    try:
+      # Omit fdset-id and let qemu create a new one (see qmp-commands.hx)
+      command = {"execute": "add-fd"}
+      fdsend.sendfds(self.sock, serializer.Dump(command), fds=fds)
+      # Get the response out of the buffer
+      response = self._GetResponse("add-fd")
+      fdset = response["fdset-id"]
+      logging.info("Sent fds %s and added to fdset %s", fds, fdset)
+    except errors.HypervisorError, err:
+      # In case _GetResponse() fails
+      fdset = None
+      logging.info("Sending fds %s failed: %s", fds, err)
+
+    return fdset
+
+  def RemoveFdset(self, fdset):
+    """Remove the file descriptor previously passed
+
+    After qemu has dup'd the fd (e.g. during disk hotplug),
+    it can be safely removed.
+
+    """
+    self._check_connection()
+    # Omit the fd to cleanup all fds in the fdset (see qmp-commands.hx)
+    command = "remove-fd"
+    arguments = {"fdset-id": fdset}
+    logging.info("Removing fdset %s", fdset)
+    try:
+      self.Execute(command, arguments=arguments)
+    except errors.HypervisorError, err:
+      logging.info("Removing %s fdset failed: %s", fdset, err)
