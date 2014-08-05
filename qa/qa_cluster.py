@@ -202,7 +202,8 @@ def TestClusterInit(rapi_user, rapi_secret):
     for node in qa_config.get("nodes"):
       if node != master:
         for key_file in [priv_key_file, pub_key_file]:
-          AssertCommand("scp %s %s:%s" % (key_file, node.primary, key_file))
+          AssertCommand("scp -oStrictHostKeyChecking=no %s %s:%s" %
+                        (key_file, node.primary, key_file))
         AssertCommand("ssh %s \'cat %s >> %s\'"
                       % (node.primary, pub_key_file, auth_key_path))
 
