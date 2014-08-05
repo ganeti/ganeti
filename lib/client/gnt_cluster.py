@@ -1863,7 +1863,7 @@ def _UpgradeBeforeConfigurationChange(versionstring):
 
   # Create the archive in a safe manner, as it contains sensitive
   # information.
-  (fd, tmp_name) = tempfile.mkstemp(prefix=backuptar, dir=pathutils.BACKUP_DIR)
+  (_, tmp_name) = tempfile.mkstemp(prefix=backuptar, dir=pathutils.BACKUP_DIR)
   if not _RunCommandAndReport(["tar", "-cf", tmp_name,
                                "--exclude=queue/archive",
                                pathutils.DATA_DIR]):
