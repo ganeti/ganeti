@@ -974,7 +974,7 @@ def VerifyNode(what, cluster_name, all_hvparams):
   result = {}
   my_name = netutils.Hostname.GetSysName()
   port = netutils.GetDaemonPort(constants.NODED)
-  vm_capable = my_name not in what.get(constants.NV_VMNODES, [])
+  vm_capable = my_name not in what.get(constants.NV_NONVMNODES, [])
 
   _VerifyHypervisors(what, vm_capable, result, all_hvparams)
   _VerifyHvparams(what, vm_capable, result)

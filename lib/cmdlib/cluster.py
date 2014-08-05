@@ -2960,7 +2960,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       constants.NV_TIME: None,
       constants.NV_MASTERIP: (self.cfg.GetMasterNodeName(), master_ip),
       constants.NV_OSLIST: None,
-      constants.NV_VMNODES: self.cfg.GetNonVmCapableNodeNameList(),
+      constants.NV_NONVMNODES: self.cfg.GetNonVmCapableNodeNameList(),
       constants.NV_USERSCRIPTS: user_scripts,
       }
 
