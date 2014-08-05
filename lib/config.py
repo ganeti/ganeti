@@ -1981,12 +1981,21 @@ class ConfigWriter(object):
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetNonVmCapableNodeList(self):
-    """Return the list of nodes which are not vm capable.
+    """Return the list of nodes' uuids which are not vm capable.
 
     """
     all_nodes = [self._UnlockedGetNodeInfo(node)
                  for node in self._UnlockedGetNodeList()]
     return [node.uuid for node in all_nodes if not node.vm_capable]
+
+  @locking.ssynchronized(_config_lock, shared=1)
+  def GetNonVmCapableNodeNameList(self):
+    """Return the list of nodes' names which are not vm capable.
+
+    """
+    all_nodes = [self._UnlockedGetNodeInfo(node)
+                 for node in self._UnlockedGetNodeList()]
+    return [node.name for node in all_nodes if not node.vm_capable]
 
   @locking.ssynchronized(_config_lock, shared=1)
   def GetMultiNodeInfo(self, node_uuids):
