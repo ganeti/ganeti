@@ -85,6 +85,25 @@ import Ganeti.Utils.MVarLock
 import qualified Ganeti.Version as Version
 
 -- | Helper for classic queries.
+handleQuery :: [Qlang.ItemType -> Qlang.FilterField] -- ^ Fields to put into
+                                                     -- the query
+            -> ConfigData      -- ^ Cluster config
+            -> Qlang.ItemType  -- ^ Query type
+            -> [Either String Integer] -- ^ Requested names
+                                       -- (empty means all)
+            -> [String]        -- ^ Requested fields
+            -> Bool            -- ^ Whether to do sync queries or not
+            -> IO (GenericResult GanetiException JSValue)
+handleQuery _ _ _ _ _ True =
+  return . Bad $ OpPrereqError "Sync queries are not allowed" ECodeInval
+handleQuery filterFields cfg qkind names fields _ = do
+  let simpleNameFilter field = makeSimpleFilter (field qkind) names
+      flt = Qlang.OrFilter $ map simpleNameFilter filterFields
+  qr <- query cfg True (Qlang.Query qkind fields flt)
+  return $ showJSON <$> (qr >>= queryCompat)
+
+-- | Helper for classic queries.
+-- Queries `name` and `uuid` fields.
 handleClassicQuery :: ConfigData      -- ^ Cluster config
                    -> Qlang.ItemType  -- ^ Query type
                    -> [Either String Integer] -- ^ Requested names
@@ -92,13 +111,7 @@ handleClassicQuery :: ConfigData      -- ^ Cluster config
                    -> [String]        -- ^ Requested fields
                    -> Bool            -- ^ Whether to do sync queries or not
                    -> IO (GenericResult GanetiException JSValue)
-handleClassicQuery _ _ _ _ True =
-  return . Bad $ OpPrereqError "Sync queries are not allowed" ECodeInval
-handleClassicQuery cfg qkind names fields _ = do
-  let simpleNameFilter field = makeSimpleFilter (field qkind) names
-      flt = Qlang.OrFilter $ map simpleNameFilter [nameField, uuidField]
-  qr <- query cfg True (Qlang.Query qkind fields flt)
-  return $ showJSON <$> (qr >>= queryCompat)
+handleClassicQuery = handleQuery [nameField, uuidField]
 
 -- | Minimal wrapper to handle the missing config case.
 handleCallWrapper :: Lock -> JQStatus ->  Result ConfigData
