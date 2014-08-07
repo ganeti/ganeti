@@ -147,9 +147,11 @@ dcListItem :: DataCollector -> J.JSValue
 dcListItem dc =
   J.JSArray
     [ J.showJSON $ dName dc
-    , maybe J.JSNull J.showJSON $ dCategory dc
+    , maybe defaultCategory J.showJSON $ dCategory dc
     , J.showJSON $ dKind dc
     ]
+    where
+      defaultCategory = J.showJSON C.mondDefaultCategory
 
 -- | Handler for returning lists.
 listHandler :: Snap ()

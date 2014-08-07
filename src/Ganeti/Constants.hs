@@ -4648,6 +4648,9 @@ mondTimeInterval = 5
 mondLatestApiVersion :: Int
 mondLatestApiVersion = 1
 
+mondDefaultCategory :: String
+mondDefaultCategory = "default"
+
 -- * Disk access modes
 
 diskUserspace :: String
