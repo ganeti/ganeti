@@ -52,7 +52,8 @@ module Ganeti.Query.Exec
   ) where
 
 import Control.Concurrent
-import Control.Exception.Lifted (onException)
+import Control.Exception.Lifted (onException, throwIO)
+import qualified Control.Exception.Lifted as E
 import Control.Monad
 import Control.Monad.Error
 import Control.Monad.Trans.Maybe
@@ -61,7 +62,7 @@ import qualified Data.Map as M
 import Data.Maybe (listToMaybe, mapMaybe)
 import System.Directory (getDirectoryContents)
 import System.Environment
-import System.IO.Error (tryIOError)
+import System.IO.Error (tryIOError, annotateIOError)
 import System.Posix.Process
 import System.Posix.IO
 import System.Posix.Signals (sigTERM, signalProcess)
@@ -104,6 +105,14 @@ listOpenFds = liftM filterReadable
   where
     filterReadable :: (Read a) => [String] -> [a]
     filterReadable = mapMaybe (fmap fst . listToMaybe . reads)
+
+
+-- | Catches a potential `IOError` and sets its description via
+-- `annotateIOError`. This makes exceptions more informative when they
+-- are thrown from an unnamed `Handle`.
+rethrowAnnotateIOError :: IO a -> String -> IO a
+rethrowAnnotateIOError f desc =
+  E.catch f (\e -> throwIO $ annotateIOError e desc Nothing Nothing)
 
 -- Code that is executed in a @fork@-ed process and that the replaces iteself
 -- with the actual job process
@@ -225,10 +234,12 @@ forkJobProcess jid luxiLivelock update = do
 
     flip onException onError $ do
       let recv = liftIO $ recvMsg master
+                   `rethrowAnnotateIOError` "ganeti job process input pipe"
                    `onException`
                    logError "recv from ganeti job process pipe failed"
 
           send x = liftIO $ sendMsg master x
+                     `rethrowAnnotateIOError` "ganeti job process output pipe"
                      `onException`
                      logError "send to ganeti job process pipe failed"
 
