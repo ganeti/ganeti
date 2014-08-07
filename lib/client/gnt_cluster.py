@@ -30,6 +30,7 @@ from cStringIO import StringIO
 import os
 import time
 import OpenSSL
+import tempfile
 import itertools
 
 from ganeti.cli import *
@@ -1881,11 +1882,16 @@ def _UpgradeBeforeConfigurationChange(versionstring):
   ToStdout("Backing up configuration as %s" % backuptar)
   if not _RunCommandAndReport(["mkdir", "-p", pathutils.BACKUP_DIR]):
     return (False, rollback)
-  if not _RunCommandAndReport(["tar", "-cf", backuptar,
+
+  # Create the archive in a safe manner, as it contains sensitive
+  # information.
+  (_, tmp_name) = tempfile.mkstemp(prefix=backuptar, dir=pathutils.BACKUP_DIR)
+  if not _RunCommandAndReport(["tar", "-cf", tmp_name,
                                "--exclude=queue/archive",
                                pathutils.DATA_DIR]):
     return (False, rollback)
 
+  os.rename(tmp_name, backuptar)
   return (True, rollback)
 
 
