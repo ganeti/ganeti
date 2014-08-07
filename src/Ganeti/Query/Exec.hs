@@ -225,7 +225,13 @@ forkJobProcess jid luxiLivelock update = do
 
     flip onException onError $ do
       let recv = liftIO $ recvMsg master
-          send = liftIO . sendMsg master
+                   `onException`
+                   logError "recv from ganeti job process pipe failed"
+
+          send x = liftIO $ sendMsg master x
+                     `onException`
+                     logError "send to ganeti job process pipe failed"
+
       logDebug "Getting the lockfile of the client"
       lockfile <- recv `orElse` mzero
 
