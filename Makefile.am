@@ -1360,6 +1360,10 @@ EXTRA_DIST = \
 	doc/examples/gnt-debug/README \
 	doc/examples/gnt-debug/delay0.json \
 	doc/examples/gnt-debug/delay50.json \
+	doc/examples/systemd/ganeti-master.target \
+	doc/examples/systemd/ganeti-node.target \
+	doc/examples/systemd/ganeti.service \
+	doc/examples/systemd/ganeti.target \
 	doc/users/groupmemberships.in \
 	doc/users/groups.in \
 	doc/users/users.in \
