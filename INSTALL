@@ -154,7 +154,7 @@ deploy Ganeti on production machines). More specifically:
 - `lifted-base <http://hackage.haskell.org/package/lifted-base>`_,
   version 0.1.1 and above.
 - `lens <http://hackage.haskell.org/package/lens>`_,
-  version 3.0 and above.
+  version 3.10 and above.
 
 Some of these are also available as package in Debian/Ubuntu::
 
