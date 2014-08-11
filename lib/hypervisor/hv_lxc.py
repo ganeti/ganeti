@@ -104,10 +104,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
-    utils.EnsureDirs([
-      (self._ROOT_DIR, self._DIR_MODE),
-      (self._LOG_DIR, 0750),
-      ])
+    self._EnsureDirectoryExistence()
 
   @staticmethod
   def _GetMountSubdirs(path):
@@ -156,6 +153,15 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     return utils.PathJoin(cls._ROOT_DIR, instance_name + ".stash")
+
+  def _EnsureDirectoryExistence(self):
+    """Ensures all the directories needed for LXC use exist.
+
+    """
+    utils.EnsureDirs([
+      (self._ROOT_DIR, self._DIR_MODE),
+      (self._LOG_DIR, 0750),
+      ])
 
   def _SaveInstanceStash(self, instance_name, data):
     """Save data to the instance stash file in serialized format.

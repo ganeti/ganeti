@@ -58,6 +58,19 @@ def RunResultOk(stdout):
   return utils.RunResult(0, None, stdout, "", [], None, None)
 
 
+class LXCHypervisorTestCase(unittest.TestCase):
+  """Used to test classes instantiating the LXC hypervisor class.
+
+  """
+  def setUp(self):
+    self.ensure_fn = LXCHypervisor._EnsureDirectoryExistence
+    LXCHypervisor._EnsureDirectoryExistence = mock.Mock(return_value=False)
+    self.hv = LXCHypervisor()
+
+  def tearDown(self):
+    LXCHypervisor._EnsureDirectoryExistence = self.ensure_fn
+
+
 class TestConsole(unittest.TestCase):
   def test(self):
     instance = objects.Instance(name="lxc.example.com",
@@ -85,9 +98,9 @@ class TestLXCIsInstanceAlive(unittest.TestCase):
     self.assertFalse(LXCHypervisor._IsInstanceAlive("inst2"))
 
 
-class TestLXCHypervisorGetInstanceInfo(unittest.TestCase):
+class TestLXCHypervisorGetInstanceInfo(LXCHypervisorTestCase):
   def setUp(self):
-    self.hv = LXCHypervisor()
+    super(TestLXCHypervisorGetInstanceInfo, self).setUp()
     self.hv._GetCgroupCpuList = mock.Mock(return_value=[1, 3])
     self.hv._GetCgroupMemoryLimit = mock.Mock(return_value=128*(1024**2))
 
@@ -100,10 +113,10 @@ class TestLXCHypervisorGetInstanceInfo(unittest.TestCase):
   @patch_object(LXCHypervisor, "_IsInstanceAlive")
   def testInactiveOrNonexistentInstance(self, isalive_mock):
     isalive_mock.return_value = False
-    self.assertIsNone(self.hv.GetInstanceInfo("inst1"))
+    self.assertEqual(self.hv.GetInstanceInfo("inst1"), None)
 
 
-class TestCgroupMount(unittest.TestCase):
+class TestCgroupMount(LXCHypervisorTestCase):
   @patch_object(utils, "GetMounts")
   @patch_object(LXCHypervisor, "_MountCgroupSubsystem")
   def testGetOrPrepareCgroupSubsysMountPoint(self, mntcgsub_mock, getmnt_mock):
@@ -114,25 +127,21 @@ class TestCgroupMount(unittest.TestCase):
       ("cpumem", "/sys/fs/cgroup/cpumem", "cgroup", "cpu,memory,rw,relatime"),
       ]
     mntcgsub_mock.return_value = "/foo"
-    hv = LXCHypervisor()
-    self.assertEqual(hv._GetOrPrepareCgroupSubsysMountPoint("cpuset"),
+    self.assertEqual(self.hv._GetOrPrepareCgroupSubsysMountPoint("cpuset"),
                      "/sys/fs/cgroup/cpuset")
-    self.assertEqual(hv._GetOrPrepareCgroupSubsysMountPoint("devices"),
+    self.assertEqual(self.hv._GetOrPrepareCgroupSubsysMountPoint("devices"),
                      "/sys/fs/cgroup/devices")
-    self.assertEqual(hv._GetOrPrepareCgroupSubsysMountPoint("cpu"),
+    self.assertEqual(self.hv._GetOrPrepareCgroupSubsysMountPoint("cpu"),
                      "/sys/fs/cgroup/cpumem")
-    self.assertEqual(hv._GetOrPrepareCgroupSubsysMountPoint("memory"),
+    self.assertEqual(self.hv._GetOrPrepareCgroupSubsysMountPoint("memory"),
                      "/sys/fs/cgroup/cpumem")
-    self.assertEqual(hv._GetOrPrepareCgroupSubsysMountPoint("freezer"),
+    self.assertEqual(self.hv._GetOrPrepareCgroupSubsysMountPoint("freezer"),
                      "/foo")
     mntcgsub_mock.assert_called_with("freezer")
 
 
-class TestCgroupReadData(unittest.TestCase):
+class TestCgroupReadData(LXCHypervisorTestCase):
   cgroot = os.path.abspath(testutils.TestDataFilename("cgroup_root"))
-
-  def setUp(self):
-    self.hv = LXCHypervisor()
 
   @patch_object(LXCHypervisor, "_CGROUP_ROOT_DIR", cgroot)
   def testGetCgroupMountPoint(self):
