@@ -1,0 +1,149 @@
+#!/usr/bin/python
+#
+
+# Copyright (C) 2014 Google Inc.
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+# 02110-1301, USA.
+
+
+"""Tool to query the cluster configuration over RConfD
+
+"""
+# tool name shouldn't follow module naming.
+# pylint: disable=C0103
+
+
+import optparse
+import sys
+
+from ganeti import constants
+from ganeti import cli
+from ganeti import utils
+from ganeti import pathutils
+
+from ganeti.confd import client as confd_client
+
+USAGE = ("\tquery-config [--addr=host] [--hmac=key] QUERY [QUERY...]")
+
+OPTIONS = [
+  cli.cli_option("--hmac", dest="hmac", default=None,
+                 help="Specify HMAC key instead of reading"
+                 " it from the filesystem",
+                 metavar="<KEY>"),
+  cli.cli_option("-a", "--address", dest="mc", default="127.0.0.1",
+                 help="Server IP to query (default: 127.0.0.1)",
+                 metavar="<ADDRESS>")
+  ]
+
+
+def Err(msg, exit_code=1):
+  """Simple error logging that prints to stderr.
+
+  """
+  sys.stderr.write(msg + "\n")
+  sys.stderr.flush()
+  sys.exit(exit_code)
+
+
+def Usage():
+  """Shows program usage information and exits the program.
+
+  """
+
+  print >> sys.stderr, "Usage:"
+  print >> sys.stderr, USAGE
+  sys.exit(2)
+
+
+class QueryClient(object):
+  """Confd client for querying the configuration JSON.
+
+  """
+  def __init__(self):
+    """Constructor.
+
+    """
+    self.opts = None
+    self.cluster_master = None
+    self.instance_ips = None
+    self.is_timing = False
+    self.ParseOptions()
+
+  def ParseOptions(self):
+    """Parses the command line options.
+
+    In case of command line errors, it will show the usage and exit the
+    program.
+
+    @return: a tuple (options, args), as returned by OptionParser.parse_args
+
+    """
+    parser = optparse.OptionParser(usage="\n%s" % USAGE,
+                                   version=("%%prog (ganeti) %s" %
+                                            constants.RELEASE_VERSION),
+                                   option_list=OPTIONS)
+
+    options, args = parser.parse_args()
+    if args == []:
+      Usage()
+
+    self.paths = args
+
+    if options.hmac is None:
+      options.hmac = utils.ReadFile(pathutils.CONFD_HMAC_KEY)
+
+    self.hmac_key = options.hmac
+
+    self.mc_list = [options.mc]
+
+    self.opts = options
+
+  def Run(self):
+    self.store_callback = confd_client.StoreResultCallback()
+
+    self.confd_client = confd_client.ConfdClient(
+        self.hmac_key, self.mc_list, self.store_callback)
+
+    responses = []
+    for path in self.paths:
+      req = confd_client.ConfdClientRequest(
+        type=constants.CONFD_REQ_CONFIG_QUERY, query=path)
+      _, response = self.DoConfdRequestReply(req)
+      responses.append(str(response.server_reply.answer))
+    table = zip(self.paths, responses)
+    longest_path = max(len(p) for p in self.paths)
+    for p, a in table:
+      print "%s\t%s" % (p.ljust(longest_path), a)
+
+  def DoConfdRequestReply(self, req):
+    """Send request to Confd and await all responses.
+
+    """
+    self.confd_client.SendRequest(req, async=False)
+    if not self.confd_client.ReceiveReply():
+      Err("Did not receive all expected confd replies")
+    return self.store_callback.GetResponse(req.rsalt)
+
+
+def main():
+  """Application entry point.
+
+  """
+  QueryClient().Run()
+
+
+if __name__ == "__main__":
+  main()

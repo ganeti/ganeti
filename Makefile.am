@@ -1292,7 +1292,8 @@ python_scripts = \
 	tools/move-instance \
 	tools/ovfconverter \
 	tools/post-upgrade \
-	tools/sanitize-config
+	tools/sanitize-config \
+	tools/query-config
 
 dist_tools_SCRIPTS = \
 	tools/kvm-console-wrapper \
