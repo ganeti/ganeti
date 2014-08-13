@@ -2002,6 +2002,22 @@ def UpgradeGanetiCommand(opts, args):
              " has to be given")
     return 1
 
+  # If we're not told to resume, verify there is no upgrade
+  # in progress.
+  if not opts.resume:
+    oldversion, versionstring = _ReadIntentToUpgrade()
+    if versionstring is not None:
+      # An upgrade is going on; verify whether the target matches
+      if versionstring == opts.to:
+        ToStderr("An upgrade is already in progress. Target version matches,"
+                 " resuming.")
+        opts.resume = True
+        opts.to = None
+      else:
+        ToStderr("An upgrade from %s to %s is in progress; use --resume to"
+                 " finish it first" % (oldversion, versionstring))
+        return 1
+
   oldversion = constants.RELEASE_VERSION
 
   if opts.resume:
