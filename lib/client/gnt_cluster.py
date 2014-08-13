@@ -1841,6 +1841,10 @@ def _UpgradeBeforeConfigurationChange(versionstring):
     ToStderr("Failed to completely empty the queue.")
     return (False, rollback)
 
+  ToStdout("Pausing the watcher for one hour.")
+  rollback.append(lambda: GetClient().SetWatcherPause(None))
+  GetClient().SetWatcherPause(time.time() + 60 * 60)
+
   ToStdout("Stopping daemons on master node.")
   if not _RunCommandAndReport([pathutils.DAEMON_UTIL, "stop-all"]):
     return (False, rollback)
@@ -1969,6 +1973,10 @@ def _UpgradeAfterConfigurationChange(oldversion):
 
   ToStdout("Running post-upgrade hooks")
   if not _RunCommandAndReport([pathutils.POST_UPGRADE, oldversion]):
+    returnvalue = 1
+
+  ToStdout("Unpasuing the watcher.")
+  if not _RunCommandAndReport(["gnt-cluster", "watcher", "continue"]):
     returnvalue = 1
 
   ToStdout("Verifying cluster.")
