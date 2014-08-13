@@ -52,7 +52,7 @@ import Ganeti.Utils (getCurrentTime)
 
 -- | The possible classes a data collector can belong to.
 data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor
-  deriving (Show, Eq, Read)
+  deriving (Show, Eq, Read, Enum, Bounded)
 
 -- | Get the category name and return it as a string.
 getCategoryName :: DCCategory -> String
@@ -60,7 +60,7 @@ getCategoryName dcc = map toLower . drop 2 . show $ dcc
 
 categoryNames :: Map.Map String DCCategory
 categoryNames =
-  let l = [DCInstance, DCStorage, DCDaemon, DCHypervisor]
+  let l = [minBound ..]
   in Map.fromList $ zip (map getCategoryName l) l
 
 -- | The JSON instance for DCCategory.
