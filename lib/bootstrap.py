@@ -48,6 +48,7 @@ from ganeti import luxi
 from ganeti import jstore
 from ganeti import pathutils
 from ganeti import runtime
+from ganeti import vcluster
 
 
 # ec_id for InitConfig's temporary reservation manager
@@ -573,6 +574,22 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   if config.ConfigWriter.IsCluster():
     raise errors.OpPrereqError("Cluster is already initialised",
                                errors.ECODE_STATE)
+
+  data_dir = vcluster.AddNodePrefix(pathutils.DATA_DIR)
+  if os.path.isdir(data_dir):
+    for entry in os.listdir(data_dir):
+      if not os.path.isdir(os.path.join(data_dir, entry)):
+        raise errors.OpPrereqError(
+          "%s contains non-directory enries like %s. Remove left-overs of an"
+          " old cluster before initialising a new one" % (data_dir, entry),
+          errors.ECODE_STATE)
+
+  queue_dir = vcluster.AddNodePrefix(pathutils.QUEUE_DIR)
+  if os.path.isdir(queue_dir) and os.listdir(queue_dir):
+    raise errors.OpPrereqError(
+      "%s not empty. Remove left-overs of an old cluster before initialising"
+      " a new one" % queue_dir,
+      errors.ECODE_STATE)
 
   if not enabled_hypervisors:
     raise errors.OpPrereqError("Enabled hypervisors list must contain at"
