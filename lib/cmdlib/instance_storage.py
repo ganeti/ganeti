@@ -2239,6 +2239,8 @@ class TLReplaceDisks(Tasklet):
     # Activate the instance disks if we're replacing them on a down instance
     if activate_disks:
       StartInstanceDisks(self.lu, self.instance, True)
+      # Re-read the instance object modified by the previous call
+      self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     try:
       # Should we replace the secondary node?
