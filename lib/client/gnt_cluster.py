@@ -30,6 +30,7 @@ from cStringIO import StringIO
 import os
 import time
 import OpenSSL
+import tempfile
 import itertools
 
 from ganeti.cli import *
@@ -1917,6 +1918,10 @@ def _UpgradeBeforeConfigurationChange(versionstring):
     ToStderr("Failed to completely empty the queue.")
     return (False, rollback)
 
+  ToStdout("Pausing the watcher for one hour.")
+  rollback.append(lambda: GetClient().SetWatcherPause(None))
+  GetClient().SetWatcherPause(time.time() + 60 * 60)
+
   ToStdout("Stopping daemons on master node.")
   if not _RunCommandAndReport([pathutils.DAEMON_UTIL, "stop-all"]):
     return (False, rollback)
@@ -1936,11 +1941,16 @@ def _UpgradeBeforeConfigurationChange(versionstring):
   ToStdout("Backing up configuration as %s" % backuptar)
   if not _RunCommandAndReport(["mkdir", "-p", pathutils.BACKUP_DIR]):
     return (False, rollback)
-  if not _RunCommandAndReport(["tar", "-cf", backuptar,
+
+  # Create the archive in a safe manner, as it contains sensitive
+  # information.
+  (_, tmp_name) = tempfile.mkstemp(prefix=backuptar, dir=pathutils.BACKUP_DIR)
+  if not _RunCommandAndReport(["tar", "-cf", tmp_name,
                                "--exclude=queue/archive",
                                pathutils.DATA_DIR]):
     return (False, rollback)
 
+  os.rename(tmp_name, backuptar)
   return (True, rollback)
 
 
@@ -2063,6 +2073,10 @@ def _UpgradeAfterConfigurationChange(oldversion):
   if not _RunCommandAndReport([pathutils.POST_UPGRADE, oldversion]):
     returnvalue = 1
 
+  ToStdout("Unpasuing the watcher.")
+  if not _RunCommandAndReport(["gnt-cluster", "watcher", "continue"]):
+    returnvalue = 1
+
   ToStdout("Verifying cluster.")
   if not _RunCommandAndReport(["gnt-cluster", "verify"]):
     returnvalue = 1
@@ -2085,6 +2099,22 @@ def UpgradeGanetiCommand(opts, args):
     ToStderr("Precisely one of the options --to and --resume"
              " has to be given")
     return 1
+
+  # If we're not told to resume, verify there is no upgrade
+  # in progress.
+  if not opts.resume:
+    oldversion, versionstring = _ReadIntentToUpgrade()
+    if versionstring is not None:
+      # An upgrade is going on; verify whether the target matches
+      if versionstring == opts.to:
+        ToStderr("An upgrade is already in progress. Target version matches,"
+                 " resuming.")
+        opts.resume = True
+        opts.to = None
+      else:
+        ToStderr("An upgrade from %s to %s is in progress; use --resume to"
+                 " finish it first" % (oldversion, versionstring))
+        return 1
 
   oldversion = constants.RELEASE_VERSION
 

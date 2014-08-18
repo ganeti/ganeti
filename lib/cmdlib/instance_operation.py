@@ -177,7 +177,7 @@ class LUInstanceStartup(LogicalUnit):
           self.instance.primary_node,
           self.instance,
           self.op.shutdown_timeout, self.op.reason)
-        result.Raise("Could not shutdown instance '%s'", self.instance.name)
+        result.Raise("Could not shutdown instance '%s'" % self.instance.name)
 
         ShutdownInstanceDisks(self, self.instance)
 
@@ -191,7 +191,7 @@ class LUInstanceStartup(LogicalUnit):
                                      self.op.startup_paused, self.op.reason)
       if result.fail_msg:
         ShutdownInstanceDisks(self, self.instance)
-        result.Raise("Could not start instance '%s'", self.instance.name)
+        result.Raise("Could not start instance '%s'" % self.instance.name)
 
 
 class LUInstanceShutdown(LogicalUnit):
@@ -296,7 +296,7 @@ class LUInstanceShutdown(LogicalUnit):
         self.instance.primary_node,
         self.instance,
         self.op.timeout, self.op.reason)
-      result.Raise("Could not shutdown instance '%s'", self.instance.name)
+      result.Raise("Could not shutdown instance '%s'" % self.instance.name)
 
       ShutdownInstanceDisks(self, self.instance)
 

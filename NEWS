@@ -72,6 +72,49 @@ before rc1:
   inresponsive
 
 
+Version 2.11.5
+--------------
+
+*(Released Thu, 7 Aug 2014)*
+
+Inherited from the 2.10 branch:
+
+Important security release. In 2.10.0, the
+'gnt-cluster upgrade' command was introduced. Before
+performing an upgrade, the configuration directory of
+the cluster is backed up. Unfortunately, the archive was
+written with permissions that make it possible for
+non-privileged users to read the archive and thus have
+access to cluster and RAPI keys. After this release,
+the archive will be created with privileged access only.
+
+We strongly advise you to restrict the permissions of
+previously created archives. The archives are found in
+/var/lib/ganeti*.tar (unless otherwise configured with
+--localstatedir or --with-backup-dir).
+
+If you suspect that non-privileged users have accessed
+your archives already, we advise you to renew the
+cluster's crypto keys using 'gnt-cluster renew-crypto'
+and to reset the RAPI credentials by editing
+/var/lib/ganeti/rapi_users (respectively under a
+different path if configured differently with
+--localstatedir).
+
+Other changes included in this release:
+
+- Fix handling of Xen instance states.
+- Fix NIC configuration with absent NIC VLAN
+- Adapt relative path expansion in PATH to new environment
+- Exclude archived jobs from configuration backups
+- Fix RAPI for split query setup
+- Allow disk hot-remove even with chroot or SM
+
+Inherited from the 2.9 branch:
+
+- Make htools tolerate missing 'spfree' on luxi
+
+
 Version 2.11.4
 --------------
 
@@ -356,6 +399,47 @@ Version 2.11.0 beta1
 
 This was the first beta release of the 2.11 series. All important changes
 are listed in the latest 2.11 entry.
+
+
+Version 2.10.7
+--------------
+
+*(Released Thu, 7 Aug 2014)*
+
+Important security release. In 2.10.0, the
+'gnt-cluster upgrade' command was introduced. Before
+performing an upgrade, the configuration directory of
+the cluster is backed up. Unfortunately, the archive was
+written with permissions that make it possible for
+non-privileged users to read the archive and thus have
+access to cluster and RAPI keys. After this release,
+the archive will be created with privileged access only.
+
+We strongly advise you to restrict the permissions of
+previously created archives. The archives are found in
+/var/lib/ganeti*.tar (unless otherwise configured with
+--localstatedir or --with-backup-dir).
+
+If you suspect that non-privileged users have accessed
+your archives already, we advise you to renew the
+cluster's crypto keys using 'gnt-cluster renew-crypto'
+and to reset the RAPI credentials by editing
+/var/lib/ganeti/rapi_users (respectively under a
+different path if configured differently with
+--localstatedir).
+
+Other changes included in this release:
+
+- Fix handling of Xen instance states.
+- Fix NIC configuration with absent NIC VLAN
+- Adapt relative path expansion in PATH to new environment
+- Exclude archived jobs from configuration backups
+- Fix RAPI for split query setup
+- Allow disk hot-remove even with chroot or SM
+
+Inherited from the 2.9 branch:
+
+- Make htools tolerate missing 'spfree' on luxi
 
 
 Version 2.10.6

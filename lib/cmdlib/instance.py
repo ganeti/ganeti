@@ -3128,11 +3128,11 @@ class LUInstanceSetParams(LogicalUnit):
                                       constants.DT_EXT),
                                      errors.ECODE_INVAL)
 
-    if not self.op.wait_for_sync and self.instance.disks_active:
+    if not self.op.wait_for_sync and not self.instance.disks_active:
       for mod in self.diskmod:
         if mod[0] == constants.DDM_ADD:
           raise errors.OpPrereqError("Can't add a disk to an instance with"
-                                     " activated disks and"
+                                     " deactivated disks and"
                                      " --no-wait-for-sync given.",
                                      errors.ECODE_INVAL)
 
