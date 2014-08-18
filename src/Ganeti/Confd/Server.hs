@@ -232,6 +232,19 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqInstanceDisks }) = do
     Ok disks -> return (ReplyStatusOk, J.showJSON disks)
     Bad e -> fail $ "Could not retrieve disks: " ++ show e
 
+-- | Return arbitrary configuration value given by a path.
+buildResponse cdata req@(ConfdRequest { confdRqType = ReqConfigQuery
+                                      , confdRqQuery = pathQ }) = do
+  let cfg = fst cdata
+  path <-
+    case pathQ of
+      PlainQuery path -> return path
+      _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
+  let configValue = extractJSONPath path cfg
+  case configValue of
+    J.Ok jsvalue -> return (ReplyStatusOk, jsvalue)
+    J.Error _ -> return queryArgumentError
+
 -- | Creates a ConfdReply from a given answer.
 serializeResponse :: Result StatusAnswer -> ConfdReply
 serializeResponse r =

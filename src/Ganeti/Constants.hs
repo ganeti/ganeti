@@ -4217,6 +4217,9 @@ confdReqNodeInstances = Types.confdRequestTypeToRaw ReqNodeInstances
 confdReqInstanceDisks :: Int
 confdReqInstanceDisks = Types.confdRequestTypeToRaw ReqInstanceDisks
 
+confdReqConfigQuery :: Int
+confdReqConfigQuery = Types.confdRequestTypeToRaw ReqConfigQuery
+
 confdReqs :: FrozenSet Int
 confdReqs =
   ConstantUtils.mkSet .
