@@ -2218,9 +2218,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                    constants.IDISK_SIZE: 1024
                                  }]],
                          wait_for_sync=False)
-    self.ExecOpCodeExpectOpPrereqError(
-      op, "Can't add a disk to an instance with activated disks"
-          " and --no-wait-for-sync given.")
+    self.ExecOpCode(op)
+    self.assertFalse(self.rpc.call_blockdev_shutdown.called)
 
   def testAddDiskDownInstance(self):
     op = self.CopyOpCode(self.op,
@@ -2231,6 +2230,17 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
 
     self.assertTrue(self.rpc.call_blockdev_shutdown.called)
+
+  def testAddDiskDownInstanceNoWaitForSync(self):
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_ADD, -1,
+                                 {
+                                   constants.IDISK_SIZE: 1024
+                                 }]],
+                         wait_for_sync=False)
+    self.ExecOpCodeExpectOpPrereqError(
+      op, "Can't add a disk to an instance with deactivated disks"
+          " and --no-wait-for-sync given.")
 
   def testAddDiskRunningInstance(self):
     op = self.CopyOpCode(self.running_op,
