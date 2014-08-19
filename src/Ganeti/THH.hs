@@ -69,7 +69,8 @@ import Control.Monad
 import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
 import Control.Monad.Writer (tell)
 import qualified Control.Monad.Trans as MT
-import Data.Attoparsec () -- Needed to prevent spurious GHC 7.4 linking errors.
+import Data.Attoparsec.Text ()
+  -- Needed to prevent spurious GHC 7.4 linking errors.
   -- See issue #683 and https://ghc.haskell.org/trac/ghc/ticket/4899
 import Data.Char
 import Data.Function (on)
