@@ -82,7 +82,7 @@ class ExtStorageDevice(base.BlockDev):
     # Call the External Storage's create script,
     # to provision a new Volume inside the External Storage
     _ExtStorageAction(constants.ES_ACTION_CREATE, unique_id,
-                      params, size=str(size), name=name, uuid=uuid)
+                      params, size=size, name=name, uuid=uuid)
 
     return ExtStorageDevice(unique_id, children, size, params, dyn_params,
                             *args)
@@ -208,7 +208,7 @@ class ExtStorageDevice(base.BlockDev):
     # Call the External Storage's grow script,
     # to grow an existing Volume inside the External Storage
     _ExtStorageAction(constants.ES_ACTION_GROW, self.unique_id,
-                      self.ext_params, size=str(self.size), grow=str(new_size),
+                      self.ext_params, size=self.size, grow=new_size,
                       name=self.name, uuid=self.uuid)
 
   def SetInfo(self, text):
@@ -467,9 +467,9 @@ def _ExtStorageEnvironment(unique_id, ext_params,
   @param unique_id: ExtStorage pool and name of the Volume
   @type ext_params: dict
   @param ext_params: the EXT parameters
-  @type size: string
+  @type size: integer
   @param size: size of the Volume (in mebibytes)
-  @type grow: string
+  @type grow: integer
   @param grow: new size of Volume after grow (in mebibytes)
   @type metadata: string
   @param metadata: metadata info of the Volume
@@ -495,10 +495,10 @@ def _ExtStorageEnvironment(unique_id, ext_params,
     result["EXTP_%s" % pname.upper()] = str(pvalue)
 
   if size is not None:
-    result["VOL_SIZE"] = size
+    result["VOL_SIZE"] = str(size)
 
   if grow is not None:
-    result["VOL_NEW_SIZE"] = grow
+    result["VOL_NEW_SIZE"] = str(grow)
 
   if metadata is not None:
     result["VOL_METADATA"] = metadata
@@ -513,7 +513,7 @@ def _ExtStorageEnvironment(unique_id, ext_params,
     result["VOL_SNAPSHOT_NAME"] = snap_name
 
   if snap_size is not None:
-    result["VOL_SNAPSHOT_SIZE"] = snap_size
+    result["VOL_SNAPSHOT_SIZE"] = str(snap_size)
 
   return result
 
