@@ -61,23 +61,26 @@ collectors =
     xenHypervisor = flip elem [XenPvm, XenHvm]
     xenCluster _ cfg =
       any xenHypervisor . clusterEnabledHypervisors $ configCluster cfg
-    activeConfig name cfg =
+    collectorConfig name cfg =
       let config = fromContainer . clusterDataCollectors $ configCluster cfg
-          collectorConfig = findWithDefault mempty name config
-      in  dataCollectorActive collectorConfig
+      in  findWithDefault mempty name config
+    updateInterval name cfg = dataCollectorInterval $ collectorConfig name cfg
+    activeConfig name cfg = dataCollectorActive $ collectorConfig name cfg
     diskStatsCollector =
       DataCollector Diskstats.dcName Diskstats.dcCategory
         Diskstats.dcKind (StatelessR Diskstats.dcReport) Nothing activeConfig
+        updateInterval
     drdbCollector =
       DataCollector Drbd.dcName Drbd.dcCategory Drbd.dcKind
-        (StatelessR Drbd.dcReport) Nothing activeConfig
+        (StatelessR Drbd.dcReport) Nothing activeConfig updateInterval
     instStatusCollector =
       DataCollector InstStatus.dcName InstStatus.dcCategory
         InstStatus.dcKind (StatelessR InstStatus.dcReport) Nothing
-        $ xenCluster .&&. activeConfig
+        (xenCluster .&&. activeConfig)  updateInterval
     lvCollector =
       DataCollector Lv.dcName Lv.dcCategory Lv.dcKind
-        (StatelessR Lv.dcReport) Nothing activeConfig
+        (StatelessR Lv.dcReport) Nothing activeConfig updateInterval
     cpuLoadCollector =
       DataCollector CPUload.dcName CPUload.dcCategory CPUload.dcKind
         (StatefulR CPUload.dcReport) (Just CPUload.dcUpdate) activeConfig
+        updateInterval

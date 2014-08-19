@@ -292,6 +292,7 @@ module Ganeti.OpParams
   , pEnabledUserShutdown
   , pAdminStateSource
   , pEnabledDataCollectors
+  , pDataCollectorInterval
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -1845,3 +1846,9 @@ pEnabledDataCollectors =
   withDoc "Set the active data collectors" .
   optionalField $
   simpleField "enabled_data_collectors" [t| GenericContainer String Bool |]
+
+pDataCollectorInterval :: Field
+pDataCollectorInterval =
+  withDoc "Sets the interval in that data collectors are run" .
+  optionalField $
+  simpleField "data_collector_interval" [t| GenericContainer String Int |]

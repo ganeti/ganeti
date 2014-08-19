@@ -256,6 +256,7 @@ $(genOpCode "OpCode"
      , pCompressionTools
      , pEnabledUserShutdown
      , pEnabledDataCollectors
+     , pDataCollectorInterval
      ],
      [])
   , ("OpClusterRedistConf",

@@ -49,6 +49,7 @@ import Data.Maybe (fromMaybe)
 import Data.List (find)
 import Data.Monoid (mempty)
 import qualified Data.Map as Map
+import qualified Data.PSQueue as Queue
 import Snap.Core
 import Snap.Http.Server
 import qualified Text.JSON as J
@@ -56,6 +57,7 @@ import Control.Concurrent
 
 import qualified Ganeti.BasicTypes as BT
 import Ganeti.Confd.Client
+import Ganeti.Confd.Types
 import qualified Ganeti.Confd.Types as CT
 import Ganeti.Daemon
 import qualified Ganeti.DataCollectors as DC
@@ -63,9 +65,13 @@ import Ganeti.DataCollectors.Types
 import qualified Ganeti.JSON as GJ
 import Ganeti.Objects (DataCollectorConfig(..))
 import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as CU
 import Ganeti.Runtime
+import Ganeti.Utils (getCurrentTimeUSec)
 
 -- * Types and constants definitions
+
+type ConfigAccess = String -> DataCollectorConfig
 
 -- | Type alias for checkMain results.
 type CheckResult = ()
@@ -112,22 +118,23 @@ versionQ :: Snap ()
 versionQ = writeBS . pack $ J.encode [latestAPIVersion]
 
 -- | Version 1 of the monitoring HTTP API.
-version1Api :: MVar CollectorMap -> Snap ()
-version1Api mvar =
+version1Api :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
+version1Api mvar mvarConfig =
   let returnNull = writeBS . pack $ J.encode J.JSNull :: Snap ()
   in ifTop returnNull <|>
      route
-       [ ("list", listHandler)
-       , ("report", reportHandler mvar)
+       [ ("list", listHandler mvarConfig)
+       , ("report", reportHandler mvar mvarConfig)
        ]
 
-collectorConfigs :: IO (String -> DataCollectorConfig)
-collectorConfigs = do
-    confdClient <- getConfdClient Nothing Nothing
+-- | Gives a lookup function for DataCollectorConfig that corresponds to the
+-- configuration known to RConfD.
+collectorConfigs :: ConfdClient -> IO ConfigAccess
+collectorConfigs confdClient = do
     response <- query confdClient CT.ReqDataCollectors CT.EmptyQuery
     return $ lookupConfig response
   where
-    lookupConfig :: Maybe CT.ConfdReply -> String -> DataCollectorConfig
+    lookupConfig :: Maybe ConfdReply -> String -> DataCollectorConfig
     lookupConfig response name = fromMaybe (mempty :: DataCollectorConfig) $ do
       confdReply <- response
       let answer = CT.confdReplyAnswer confdReply
@@ -135,9 +142,9 @@ collectorConfigs = do
         J.Error _ -> Nothing
         J.Ok container -> GJ.lookupContainer Nothing name container
 
-activeCollectors :: IO [DataCollector]
-activeCollectors = do
-  configs <- collectorConfigs
+activeCollectors :: MVar ConfigAccess -> IO [DataCollector]
+activeCollectors mvarConfig = do
+  configs <- readMVar mvarConfig
   return $ filter (dataCollectorActive . configs . dName) DC.collectors
 
 -- | Get the JSON representation of a data collector to be used in the collector
@@ -153,25 +160,24 @@ dcListItem dc =
       defaultCategory = J.showJSON C.mondDefaultCategory
 
 -- | Handler for returning lists.
-listHandler :: Snap ()
-listHandler = dir "collectors" $ do
-  collectors' <- liftIO activeCollectors
+listHandler :: MVar ConfigAccess -> Snap ()
+listHandler mvarConfig = dir "collectors" $ do
+  collectors' <- liftIO $ activeCollectors mvarConfig
   writeBS . pack . J.encode $ map dcListItem collectors'
 
-
 -- | Handler for returning data collector reports.
-reportHandler :: MVar CollectorMap -> Snap ()
-reportHandler mvar =
+reportHandler :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
+reportHandler mvar mvarConfig =
   route
-    [ ("all", allReports mvar)
-    , (":category/:collector", oneReport mvar)
+    [ ("all", allReports mvar mvarConfig)
+    , (":category/:collector", oneReport mvar mvarConfig)
     ] <|>
   errorReport
 
 -- | Return the report of all the available collectors.
-allReports :: MVar CollectorMap -> Snap ()
-allReports mvar = do
-  collectors' <- liftIO activeCollectors
+allReports :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
+allReports mvar mvarConfig = do
+  collectors' <- liftIO $ activeCollectors mvarConfig
   reports <- mapM (liftIO . getReport mvar) collectors'
   writeBS . pack . J.encode $ reports
 
@@ -213,9 +219,9 @@ error404 = do
   writeBS "Resource not found"
 
 -- | Return the report of one collector.
-oneReport :: MVar CollectorMap -> Snap ()
-oneReport mvar = do
-  collectors' <- liftIO activeCollectors
+oneReport :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
+oneReport mvar mvarConfig = do
+  collectors' <- liftIO $ activeCollectors mvarConfig
   categoryName <- maybe mzero unpack <$> getParam "category"
   collectorName <- maybe mzero unpack <$> getParam "collector"
   category <-
@@ -232,10 +238,10 @@ oneReport mvar = do
   writeBS . pack . J.encode $ dcr
 
 -- | The function implementing the HTTP API of the monitoring agent.
-monitoringApi :: MVar CollectorMap -> Snap ()
-monitoringApi mvar =
+monitoringApi :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
+monitoringApi mvar mvarConfig =
   ifTop versionQ <|>
-  dir "1" (version1Api mvar) <|>
+  dir "1" (version1Api mvar mvarConfig) <|>
   error404
 
 -- | The function collecting data for each data collector providing a dcUpdate
@@ -251,22 +257,54 @@ collect m collector =
       return $ Map.insert name new_data m
 
 -- | Invokes collect for each data collector.
-collection :: CollectorMap -> IO CollectorMap
-collection m = liftIO activeCollectors >>= foldM collect m
+collection :: CollectorMap -> MVar ConfigAccess -> IO CollectorMap
+collection m mvarConfig = do
+  collectors <- activeCollectors mvarConfig
+  foldM collect m collectors
+
+-- | Convert seconds to microseconds
+seconds :: Int -> Integer
+seconds = (* 1000000) . fromIntegral
 
 -- | The thread responsible for the periodical collection of data for each data
--- data collector.
-collectord :: MVar CollectorMap -> IO ()
-collectord mvar =
-  forever $ do
-    m <- takeMVar mvar
-    m' <- collection m
-    putMVar mvar m'
-    threadDelay $ 10^(6 :: Int) * C.mondTimeInterval
+-- data collector. Note that even though the collectors might be deactivated,
+-- they will still be collected to provide a complete history.
+collectord :: MVar CollectorMap -> MVar ConfigAccess -> IO ()
+collectord mvar mvarConfig = do
+    let queue = Queue.fromAscList . map (Queue.:-> 0)
+                                  $ CU.toList C.dataCollectorNames
+    foldM_ update queue [0::Integer ..]
+  where
+    resetTimer configs = Queue.adjustWithKey ((+) . dataCollectorInterval
+                                                  . configs)
+    resetAll configs = foldr (resetTimer configs)
+    keyInList = flip . const . flip elem
+    update q _ = do
+      t <- getCurrentTimeUSec
+      configs <- readMVar mvarConfig
+      m <- takeMVar mvar
+      let dueNames = map Queue.key $ Queue.atMost t q
+          dueEntries = Map.filterWithKey (keyInList dueNames) m
+      m' <- collection dueEntries mvarConfig
+      let m'' = m' `Map.union` m
+      putMVar mvar m''
+      let q' = resetAll configs q dueNames
+          maxSleep = seconds C.mondTimeInterval
+          nextWakeup = fromMaybe maxSleep . liftM Queue.prio $ Queue.findMin q'
+          delay = min maxSleep nextWakeup
+      threadDelay $ fromInteger delay
+      return q'
 
 -- | Main function.
 main :: MainFn CheckResult PrepResult
 main _ _ httpConf = do
-  mvar <- newMVar Map.empty
-  _ <- forkIO $ collectord mvar
-  httpServe httpConf . method GET $ monitoringApi mvar
+  mvarCollectorMap <- newMVar Map.empty
+  mvarConfig <- newEmptyMVar
+  confdClient <- getConfdClient Nothing Nothing
+  void . forkIO . forever $ do
+    configs <- collectorConfigs confdClient
+    putMVar mvarConfig configs
+    threadDelay . fromInteger $ seconds C.mondConfigTimeInterval
+    takeMVar mvarConfig
+  void . forkIO $ collectord mvarCollectorMap mvarConfig
+  httpServe httpConf . method GET $ monitoringApi mvarCollectorMap mvarConfig

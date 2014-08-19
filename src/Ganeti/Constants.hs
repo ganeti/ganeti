@@ -4706,6 +4706,10 @@ cpuavgloadWindowSize = 600
 mondTimeInterval :: Int
 mondTimeInterval = 5
 
+-- | Mond's waiting time for requesting the current configuration.
+mondConfigTimeInterval :: Int
+mondConfigTimeInterval = 15
+
 -- | Mond's latest API version
 mondLatestApiVersion :: Int
 mondLatestApiVersion = 1
@@ -5181,6 +5185,9 @@ dataCollectorLv         = "lv"
 
 dataCollectorInstStatus :: String
 dataCollectorInstStatus = "inst-status-xen"
+
+dataCollectorParameterInterval :: String
+dataCollectorParameterInterval = "interval"
 
 dataCollectorNames :: FrozenSet String
 dataCollectorNames =

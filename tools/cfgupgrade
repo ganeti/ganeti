@@ -172,7 +172,8 @@ def UpgradeCluster(config_data):
   if "enabled_user_shutdown" not in cluster:
     cluster["enabled_user_shutdown"] = False
   cluster["data_collectors"] = dict(
-    (name, dict(active=True)) for name in constants.DATA_COLLECTOR_NAMES)
+    (name, dict(active=True, interval=constants.MOND_TIME_INTERVAL * 1e6))
+    for name in constants.DATA_COLLECTOR_NAMES)
 
 
 def UpgradeGroups(config_data):

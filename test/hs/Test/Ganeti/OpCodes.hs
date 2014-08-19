@@ -132,6 +132,12 @@ arbitraryDataCollector = do
   activation <- vector $ length els
   return . GenericContainer . Map.fromList $ zip els activation
 
+arbitraryDataCollectorInterval :: Gen (Maybe (Container Int))
+arbitraryDataCollectorInterval = do
+  els <-  listOf . elements $ CU.toList C.dataCollectorNames
+  intervals <- vector $ length els
+  genMaybe . return . containerFromList $ zip els intervals
+
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
     op_id <- elements OpCodes.allOpIDs
@@ -241,6 +247,7 @@ instance Arbitrary OpCodes.OpCode where
                                            -- compression_tools
           <*> arbitrary                    -- enabled_user_shutdown
           <*> genMaybe arbitraryDataCollector   -- enabled_data_collectors
+          <*> arbitraryDataCollectorInterval   -- data_collector_interval
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
         pure OpCodes.OpClusterActivateMasterIp

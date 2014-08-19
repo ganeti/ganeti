@@ -1577,6 +1577,11 @@ class LUClusterSetParams(LogicalUnit):
       for name, val in self.op.enabled_data_collectors.items():
         self.cluster.data_collectors[name][active] = val
 
+    if self.op.data_collector_interval:
+      internal = constants.DATA_COLLECTOR_PARAMETER_INTERVAL
+      for name, val in self.op.data_collector_interval.items():
+        self.cluster.data_collectors[name][internal] = int(val)
+
     if self.op.hvparams:
       self.cluster.hvparams = self.new_hvparams
     if self.op.os_hvp:

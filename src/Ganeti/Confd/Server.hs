@@ -256,10 +256,12 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqConfigQuery
     J.Ok jsvalue -> return (ReplyStatusOk, jsvalue)
     J.Error _ -> return queryArgumentError
 
--- | Returns activation state of data collectors.
+-- | Return activation state of data collectors
 buildResponse (cdata,_) (ConfdRequest { confdRqType = ReqDataCollectors }) = do
   let mkConfig col =
-        (dName col, DataCollectorConfig $ dActive col (dName col) cdata)
+        (dName col, DataCollectorConfig
+                   (dActive col (dName col) cdata)
+                   (dInterval col (dName col) cdata))
       datacollectors = containerFromList $ map mkConfig collectors
   return (ReplyStatusOk, J.showJSON datacollectors)
 

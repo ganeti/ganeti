@@ -323,15 +323,21 @@ $(buildObject "PartialNic" "nic" $
 instance UuidObject PartialNic where
   uuidOf = nicUuid
 
+type MicroSeconds = Integer
+
 -- * Datacollector definitions
 -- | The configuration regarding a single data collector.
 $(buildObject "DataCollectorConfig" "dataCollector" [
-  simpleField "active" [t| Bool|]
+  simpleField "active" [t| Bool|],
+  simpleField "interval" [t| MicroSeconds |]
   ])
 
 -- | Central default values of the data collector config.
 instance Monoid DataCollectorConfig where
-  mempty = DataCollectorConfig { dataCollectorActive = True }
+  mempty = DataCollectorConfig
+    { dataCollectorActive = True
+    , dataCollectorInterval = 10^(6::Integer) * fromIntegral C.mondTimeInterval
+    }
   mappend _ a = a
 
 -- * Disk definitions

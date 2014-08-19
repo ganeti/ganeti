@@ -82,7 +82,8 @@ instance Arbitrary (Container DataCollectorConfig) where
   arbitrary = do
     let names = CU.toList C.dataCollectorNames
     activations <- vector $ length names
-    let configs = map DataCollectorConfig activations
+    timeouts <- vector $ length names
+    let configs = zipWith DataCollectorConfig activations timeouts
     return GenericContainer {
       fromContainer = Map.fromList $ zip names configs }
 

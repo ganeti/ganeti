@@ -208,4 +208,6 @@ data DataCollector = DataCollector
                                  -- ^ Update operation for stateful collectors.
   , dActive   :: Name -> ConfigData -> Bool
                     -- ^ Checks if the collector applies for the cluster.
+  , dInterval :: Name -> ConfigData -> Integer
+                    -- ^ Interval between collection in microseconds
   }
