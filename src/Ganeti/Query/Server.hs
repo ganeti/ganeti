@@ -195,6 +195,9 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("enabled_data_collectors",
                showJSON . fmap dataCollectorActive
                         $ clusterDataCollectors cluster)
+            , ("data_collector_interval",
+               showJSON . fmap dataCollectorInterval
+                        $ clusterDataCollectors cluster)
             ]
 
   in case master of

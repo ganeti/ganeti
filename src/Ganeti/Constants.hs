@@ -5200,3 +5200,9 @@ dataCollectorNames =
 
 dataCollectorStateActive :: String
 dataCollectorStateActive = "active"
+
+dataCollectorsEnabledName :: String
+dataCollectorsEnabledName = "enabled_data_collectors"
+
+dataCollectorsIntervalName :: String
+dataCollectorsIntervalName = "data_collector_interval"

@@ -84,6 +84,11 @@ TO_OPT = cli_option("--to", default=None, type="string",
 RESUME_OPT = cli_option("--resume", default=False, action="store_true",
                         help="Resume any pending Ganeti upgrades")
 
+DATA_COLLECTOR_INTERVAL_OPT = cli_option(
+    "--data-collector-interval", default={}, type="keyval",
+    help="Set collection intervals in seconds of data collectors.")
+
+
 _EPO_PING_INTERVAL = 30 # 30 seconds between pings
 _EPO_PING_TIMEOUT = 1 # 1 second
 _EPO_REACHABLE_TIMEOUT = 15 * 60 # 15 minutes
@@ -491,6 +496,26 @@ def _FormatGroupedParams(paramsdict, roman=False):
   return ret
 
 
+def _FormatDataCollectors(paramsdict):
+  """Format Grouped parameters (be, nic, disk) by group.
+
+  @type paramsdict: dict of dicts
+  @param paramsdict: response of QueryClusterInfo
+  @rtype: dict of dicts
+  @return: parameter grouped by data collector
+
+  """
+
+  enabled = paramsdict[constants.DATA_COLLECTORS_ENABLED_NAME]
+  interval = paramsdict[constants.DATA_COLLECTORS_INTERVAL_NAME]
+
+  ret = {}
+  for key in enabled:
+    ret[key] = dict(active=enabled[key],
+                    interval="%.3fs" % (interval[key] / 1e6))
+  return ret
+
+
 def ShowClusterConfig(opts, args):
   """Shows cluster information.
 
@@ -603,9 +628,7 @@ def ShowClusterConfig(opts, args):
 
     ("Instance policy - limits for instances",
      FormatPolicyInfo(result["ipolicy"], None, True, opts.roman_integers)),
-    ("Data collectors",
-     _FormatGroupedParams(result["enabled_data_collectors"],
-                          roman=opts.roman_integers)),
+    ("Data collectors", _FormatDataCollectors(result)),
     ]
 
   PrintGenericInfo(info)
@@ -1186,6 +1209,7 @@ def SetClusterParams(opts, args):
           opts.compression_tools is not None or
           opts.shared_file_storage_dir is not None or
           opts.enabled_user_shutdown is not None or
+          opts.data_collector_interval or
           opts.enabled_data_collectors):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -1279,6 +1303,17 @@ def SetClusterParams(opts, args):
   if unrecognized_data_collectors:
     ToStderr("Data collector names not recognized: %s" %
              ", ".join(unrecognized_data_collectors))
+
+  try:
+    data_collector_interval = dict(
+        (k, long(1e6 * float(v)))
+        for (k, v) in opts.data_collector_interval.items())
+  except ValueError:
+    ToStderr("Can't transform all values to integers: {}".format(
+        opts.data_collector_interval))
+    return 1
+  if any(v <= 0 for v in data_collector_interval):
+    ToStderr("Some interval times where not above zero.")
     return 1
 
   op = opcodes.OpClusterSetParams(
@@ -1320,6 +1355,7 @@ def SetClusterParams(opts, args):
     compression_tools=compression_tools,
     enabled_user_shutdown=opts.enabled_user_shutdown,
     enabled_data_collectors=enabled_data_collectors,
+    data_collector_interval=data_collector_interval,
     )
   return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
@@ -2306,7 +2342,7 @@ commands = {
      INSTANCE_POLICY_OPTS +
      [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
       COMPRESSION_TOOLS_OPT] +
-     [ENABLED_DATA_COLLECTORS_OPT],
+     [ENABLED_DATA_COLLECTORS_OPT, DATA_COLLECTOR_INTERVAL_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (
