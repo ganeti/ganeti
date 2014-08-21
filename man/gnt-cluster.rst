@@ -682,6 +682,7 @@ MODIFY
 | [\--add-uids *user-id pool definition*]
 | [\--remove-uids *user-id pool definition*]
 | [{-C|\--candidate-pool-size} *candidate\_pool\_size*]
+| [--max-running-jobs *count* ]
 | [\--maintain-node-health {yes \| no}]
 | [\--prealloc-wipe-disks {yes \| no}]
 | [{-I|\--default-iallocator} *default instance allocator*]
@@ -728,6 +729,10 @@ described in the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**\(7).
+
+The ``--max-running-jobs`` options allows to set limit on the
+number of jobs in non-finished jobs that are not queued, i.e.,
+the number of jobs that are in waiting or running state.
 
 The ``--add-uids`` and ``--remove-uids`` options can be used to
 modify the user-id pool by adding/removing a list of user-ids or
