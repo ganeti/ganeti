@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell, FunctionalDependencies, FlexibleContexts,
-             GeneralizedNewtypeDeriving #-}
+             GeneralizedNewtypeDeriving, TypeFamilies #-}
 -- {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 
 {-| Creates a client out of list of RPC server components.
@@ -48,6 +48,7 @@ import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error
 import Control.Monad.Reader
+import Control.Monad.Trans.Control
 import Language.Haskell.TH
 import qualified Text.JSON as J
 
@@ -68,6 +69,12 @@ newtype RpcClientMonad a =
   deriving (Functor, Applicative, Monad, MonadIO, MonadBase IO,
             MonadError GanetiException)
 
+instance MonadBaseControl IO RpcClientMonad where
+  newtype StM RpcClientMonad b = StMRpcClientMonad
+    { runStMRpcClientMonad :: StM (ReaderT Client ResultG) b }
+  liftBaseWith f = RpcClientMonad . liftBaseWith
+                   $ \r -> f (liftM StMRpcClientMonad . r . runRpcClientMonad)
+  restoreM = RpcClientMonad . restoreM . runStMRpcClientMonad
 
 -- * The TH functions to construct RPC client functions from RPC server ones
 
