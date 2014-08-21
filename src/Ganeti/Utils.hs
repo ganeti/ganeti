@@ -60,6 +60,7 @@ module Ganeti.Utils
   , logWarningIfBad
   , rStripSpace
   , newUUID
+  , isUUID
   , getCurrentTime
   , getCurrentTimeUSec
   , clockTimeToString
@@ -94,10 +95,13 @@ module Ganeti.Utils
   , ordNub
   ) where
 
+import Control.Applicative
 import Control.Concurrent
 import Control.Exception (try, bracket)
 import Control.Monad
 import Control.Monad.Error
+import qualified Data.Attoparsec as A
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import qualified Data.Either as E
 import Data.Function (on)
@@ -408,6 +412,24 @@ newUUID :: IO String
 newUUID = do
   contents <- readFile ConstantUtils.randomUuidFile
   return $! rStripSpace $ take 128 contents
+
+-- | Parser that doesn't fail on a valid UUIDs (same as
+-- "Ganeti.Constants.uuidRegex").
+uuidCheckParser :: A.Parser ()
+uuidCheckParser = do
+  -- Not using Attoparsec.Char8 because "all attempts to use characters
+  -- above code point U+00FF will give wrong answers" and we don't
+  -- want such things to be accepted as UUIDs.
+  let lowerHex = A.satisfy (\c -> (48 <= c && c <= 57) ||  -- 0-9
+                                  (97 <= c && c <= 102))   -- a-f
+      hx n = A.count n lowerHex
+      d = A.word8 45  -- '-'
+  void $ hx 8 >> d >> hx 4 >> d >> hx 4 >> d >> hx 4 >> d >> hx 12
+
+-- | Checks if the string is a valid UUID as in "Ganeti.Constants.uuidRegex".
+isUUID :: String -> Bool
+isUUID =
+  isRight . A.parseOnly (uuidCheckParser <* A.endOfInput) . UTF8.fromString
 
 -- | Returns the current time as an 'Integer' representing the number
 -- of seconds from the Unix epoch.

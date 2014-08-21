@@ -59,6 +59,9 @@ import qualified Ganeti.Constants as C
 import qualified Ganeti.JSON as JSON
 import Ganeti.Utils
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
+
 -- | Helper to generate a small string that doesn't contain commas.
 genNonCommaString :: Gen String
 genNonCommaString = do
@@ -260,12 +263,18 @@ prop_rStripSpace (NonEmpty str) =
               rStripSpace "" ==? ""
           ]
 
-#ifndef NO_REGEX_PCRE
-{-# ANN case_new_uuid "HLint: ignore Use camelCase" #-}
-
 -- | Tests that the newUUID function produces valid UUIDs.
 case_new_uuid :: Assertion
 case_new_uuid = do
+  uuid <- newUUID
+  assertBool "newUUID" $ isUUID uuid
+
+#ifndef NO_REGEX_PCRE
+{-# ANN case_new_uuid_regex "HLint: ignore Use camelCase" #-}
+
+-- | Tests that the newUUID function produces valid UUIDs.
+case_new_uuid_regex :: Assertion
+case_new_uuid_regex = do
   uuid <- newUUID
   assertBool "newUUID" $ uuid =~ C.uuidRegex
 #endif
@@ -367,8 +376,9 @@ testSuite "Utils"
             , 'prop_niceSortKey_equiv
             , 'prop_rStripSpace
             , 'prop_trim
-#ifndef NO_REGEX_PCRE
             , 'case_new_uuid
+#ifndef NO_REGEX_PCRE
+            , 'case_new_uuid_regex
 #endif
             , 'prop_clockTimeToString
             , 'prop_chompPrefix_normal
