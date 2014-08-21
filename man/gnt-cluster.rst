@@ -683,6 +683,7 @@ MODIFY
 | [\--remove-uids *user-id pool definition*]
 | [{-C|\--candidate-pool-size} *candidate\_pool\_size*]
 | [--max-running-jobs *count* ]
+| [--max-tracked-jobs *count* ]
 | [\--maintain-node-health {yes \| no}]
 | [\--prealloc-wipe-disks {yes \| no}]
 | [{-I|\--default-iallocator} *default instance allocator*]
@@ -733,6 +734,11 @@ detail in **ganeti**\(7).
 The ``--max-running-jobs`` options allows to set limit on the
 number of jobs in non-finished jobs that are not queued, i.e.,
 the number of jobs that are in waiting or running state.
+The ``--max-tracked-jobs`` options allows to set the limit on
+the tracked jobs. Normally, Ganeti will watch waiting and running
+jobs by tracking their job file with inotify. If this limit is
+exceeded, however, Ganeti will back off and only periodically
+pull for updates.
 
 The ``--add-uids`` and ``--remove-uids`` options can be used to
 modify the user-id pool by adding/removing a list of user-ids or
