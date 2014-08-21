@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.12.0 beta1
---------------------
+Version 2.12.0 rc1
+------------------
 
-*(Released Mon, 21 Jul 2014)*
+*(Released Wed, 20 Aug 2014)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,6 +50,8 @@ New features
   partial implementation of the OS-installs design. It allows pass
   information to OS install scripts or to instances.
   It is also possible to run Ganeti without the daemon, if desired.
+- Detection of user shutdown of instances has been implemented for Xen
+  as well.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
@@ -58,18 +60,44 @@ New dependencies
   instead. The package is still optional and needed only if the feature is to
   be used.
 
-Known issues
-~~~~~~~~~~~~
+Since 2.12.0 beta1
+~~~~~~~~~~~~~~~~~~
 
-The following issues are known to be present in the beta and will be fixed
-before rc1:
+The following issues have been fixed:
 
 - Issue 881: Handle communication errors in mcpu
 - Issue 883: WConfd leaks memory for some long operations
 - Issue 884: Under heavy load the IAllocator fails with a "missing
   instance" error
+
+Inherited from the 2.10 branch:
+
+- Improve the recognition of Xen domU states
+- Automatic upgrades:
+  - Create the config backup archive in a safe way
+  - On upgrades, check for upgrades to resume first
+  - Pause watcher during upgrade
+- Allow instance disks to be added with --no-wait-for-sync
+
+Incomplete features
+~~~~~~~~~~~~~~~~~~~
+
+The following issues are related to features which are not completely
+implemented in 2.12:
+
 - Issue 885: Network hotplugging on KVM sometimes makes an instance
-  inresponsive
+  unresponsive
+- Issues 708 and 602: The secret parameters are currently still written
+  to disk in the job queue.
+
+
+Version 2.12.0 beta1
+--------------------
+
+*(Released Mon, 21 Jul 2014)*
+
+This was the first beta release of the 2.12 series. All important changes
+are listed in the latest 2.12 entry.
 
 
 Version 2.11.5

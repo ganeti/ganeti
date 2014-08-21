@@ -338,7 +338,7 @@ alterContainerL :: (Functor f, Ord a)
                 -> GenericContainer a b
                 -> f (GenericContainer a b)
 alterContainerL key f (GenericContainer m) =
-  fmap (\v -> GenericContainer $ Map.update (const v) key m)
+  fmap (\v -> GenericContainer $ Map.alter (const v) key m)
        (f $ Map.lookup key m)
 
 -- | Container loader.

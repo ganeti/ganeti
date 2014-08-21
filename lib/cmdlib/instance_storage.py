@@ -1481,14 +1481,16 @@ def ShutdownInstanceDisks(lu, instance, disks=None, ignore_primary=False):
   return all_result
 
 
-def _SafeShutdownInstanceDisks(lu, instance, disks=None):
+def _SafeShutdownInstanceDisks(lu, instance, disks=None, req_states=None):
   """Shutdown block devices of an instance.
 
   This function checks if an instance is running, before calling
   _ShutdownInstanceDisks.
 
   """
-  CheckInstanceState(lu, instance, INSTANCE_DOWN, msg="cannot shutdown disks")
+  if req_states is None:
+    req_states = INSTANCE_DOWN
+  CheckInstanceState(lu, instance, req_states, msg="cannot shutdown disks")
   ShutdownInstanceDisks(lu, instance, disks=disks)
 
 
@@ -2389,6 +2391,8 @@ class TLReplaceDisks(Tasklet):
     # Activate the instance disks if we're replacing them on a down instance
     if activate_disks:
       StartInstanceDisks(self.lu, self.instance, True)
+      # Re-read the instance object modified by the previous call
+      self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     try:
       # Should we replace the secondary node?
@@ -2402,7 +2406,8 @@ class TLReplaceDisks(Tasklet):
       # Deactivate the instance disks if we're replacing them on a
       # down instance
       if activate_disks:
-        _SafeShutdownInstanceDisks(self.lu, self.instance)
+        _SafeShutdownInstanceDisks(self.lu, self.instance,
+                                   req_states=INSTANCE_NOT_RUNNING)
 
     assert not self.lu.owned_locks(locking.LEVEL_NODE)
 
