@@ -38,8 +38,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.Client where
 
+import Control.Exception.Lifted (bracket)
+
 import Ganeti.THH.HsRPC
 import Ganeti.Constants
+import Ganeti.JSON (unMaybeForJSON)
+import Ganeti.Locking.Locks (ClientId)
+import Ganeti.Objects (ConfigData)
 import Ganeti.UDSServer (ConnectConfig(..), Client, connectClient)
 import Ganeti.WConfd.Core (exportedFunctions)
 
@@ -59,3 +64,25 @@ wconfdConnectConfig = ConnectConfig { recvTmo    = wconfdDefRwto
 -- configuration and timeout.
 getWConfdClient :: FilePath -> IO Client
 getWConfdClient = connectClient wconfdConnectConfig wconfdDefCtmo
+
+-- * Helper functions for getting a remote lock
+
+-- | Calls the `lockConfig` RPC until the lock is obtained.
+waitLockConfig :: ClientId
+               -> Bool  -- ^ whether the lock shall be in shared mode
+               -> RpcClientMonad ConfigData
+waitLockConfig c shared = do
+  mConfigData <- lockConfig c shared
+  case unMaybeForJSON mConfigData of
+    Just configData -> return configData
+    Nothing         -> waitLockConfig c shared
+
+-- | Calls the `lockConfig` RPC until the lock is obtained,
+-- runs a function on the obtained config, and calls `unlockConfig`.
+withLockedConfig :: ClientId
+                 -> Bool  -- ^ whether the lock shall be in shared mode
+                 -> (ConfigData -> RpcClientMonad a)  -- ^ action to run
+                 -> RpcClientMonad a
+withLockedConfig c shared =
+  -- Unlock config even if something throws.
+  bracket (waitLockConfig c shared) (const $ unlockConfig c)
