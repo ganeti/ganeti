@@ -38,6 +38,8 @@ module Ganeti.DataCollectors.Types
   , buildReport
   , mergeStatuses
   , getCategoryName
+  , ReportBuilder(..)
+  , DataCollector(..)
   ) where
 
 import Data.Char
@@ -47,6 +49,7 @@ import qualified Data.Sequence as Seq
 import Text.JSON
 
 import Ganeti.Constants as C
+import Ganeti.Objects (ConfigData)
 import Ganeti.THH
 import Ganeti.Utils (getCurrentTime)
 
@@ -177,3 +180,23 @@ buildReport name version format_version category kind jsonData = do
   return $
     DCReport name version format_version timestamp category kind
       jsonData
+
+-- | A report of a data collector might be stateful or stateless.
+data ReportBuilder = StatelessR (IO DCReport)
+                   | StatefulR (Maybe CollectorData -> IO DCReport)
+
+type Name = String
+
+-- | Type describing a data collector basic information
+data DataCollector = DataCollector
+  { dName     :: Name           -- ^ Name of the data collector
+  , dCategory :: Maybe DCCategory -- ^ Category (storage, instance, ecc)
+                                 --   of the collector
+  , dKind     :: DCKind         -- ^ Kind (performance or status reporting) of
+                                 --   the data collector
+  , dReport   :: ReportBuilder  -- ^ Report produced by the collector
+  , dUpdate   :: Maybe (Maybe CollectorData -> IO CollectorData)
+                                 -- ^ Update operation for stateful collectors.
+  , dActive   :: Name -> ConfigData -> Bool
+                    -- ^ Checks if the collector applies for the cluster.
+  }

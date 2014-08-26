@@ -66,7 +66,7 @@ defaultCharNum = 80*20
 
 -- | The name of this data collector.
 dcName :: String
-dcName = "diskstats"
+dcName = C.dataCollectorDiskStats
 
 -- | The version of this data collector.
 dcVersion :: DCVersion

@@ -35,6 +35,7 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 hiding (map, filter, find)
+import Data.Maybe (fromMaybe)
 import Data.List
 import qualified Data.Map as Map
 import Snap.Core
@@ -43,13 +44,13 @@ import qualified Text.JSON as J
 import Control.Concurrent
 
 import qualified Ganeti.BasicTypes as BT
+import Ganeti.Confd.Client
+import qualified Ganeti.Confd.Types as CT
 import Ganeti.Daemon
-import qualified Ganeti.DataCollectors.CPUload as CPUload
-import qualified Ganeti.DataCollectors.Diskstats as Diskstats
-import qualified Ganeti.DataCollectors.Drbd as Drbd
-import qualified Ganeti.DataCollectors.InstStatus as InstStatus
-import qualified Ganeti.DataCollectors.Lv as Lv
+import qualified Ganeti.DataCollectors as DC
 import Ganeti.DataCollectors.Types
+import qualified Ganeti.JSON as GJ
+import Ganeti.Objects (DataCollectorConfig(..))
 import qualified Ganeti.Constants as C
 import Ganeti.Runtime
 
@@ -64,38 +65,6 @@ type PrepResult = Config Snap ()
 -- | Version of the latest supported http API.
 latestAPIVersion :: Int
 latestAPIVersion = C.mondLatestApiVersion
-
--- | A report of a data collector might be stateful or stateless.
-data Report = StatelessR (IO DCReport)
-            | StatefulR (Maybe CollectorData -> IO DCReport)
-
--- | Type describing a data collector basic information
-data DataCollector = DataCollector
-  { dName     :: String           -- ^ Name of the data collector
-  , dCategory :: Maybe DCCategory -- ^ Category (storage, instance, ecc)
-                                  --   of the collector
-  , dKind     :: DCKind           -- ^ Kind (performance or status reporting) of
-                                  --   the data collector
-  , dReport   :: Report           -- ^ Report produced by the collector
-  , dUpdate   :: Maybe (Maybe CollectorData -> IO CollectorData)
-                                  -- ^ Update operation for stateful collectors.
-  }
-
-
--- | The list of available builtin data collectors.
-collectors :: [DataCollector]
-collectors =
-  [ DataCollector Diskstats.dcName Diskstats.dcCategory Diskstats.dcKind
-      (StatelessR Diskstats.dcReport) Nothing
-  , DataCollector Drbd.dcName Drbd.dcCategory Drbd.dcKind
-      (StatelessR Drbd.dcReport) Nothing
-  , DataCollector InstStatus.dcName InstStatus.dcCategory InstStatus.dcKind
-      (StatelessR InstStatus.dcReport) Nothing
-  , DataCollector Lv.dcName Lv.dcCategory Lv.dcKind
-      (StatelessR Lv.dcReport) Nothing
-  , DataCollector CPUload.dcName CPUload.dcCategory CPUload.dcKind
-      (StatefulR CPUload.dcReport) (Just CPUload.dcUpdate)
-  ]
 
 -- * Configuration handling
 
@@ -141,6 +110,23 @@ version1Api mvar =
        , ("report", reportHandler mvar)
        ]
 
+activeCollectors :: IO [DataCollector]
+activeCollectors = do
+    confdClient <- getConfdClient Nothing Nothing
+    response <- query confdClient CT.ReqDataCollectors CT.EmptyQuery
+    let isActive = fromMaybe True . parseActive response
+    return $ filter isActive DC.collectors
+  where
+    parseActive :: Maybe CT.ConfdReply -> DataCollector -> Maybe Bool
+    parseActive response dc = do
+      confdReply <- response
+      let answer = CT.confdReplyAnswer confdReply
+      case J.readJSON answer :: J.Result (GJ.Container DataCollectorConfig) of
+        J.Error _ -> Nothing
+        J.Ok container -> do
+          config <- GJ.lookupContainer Nothing (dName dc) container
+          return $ dataCollectorActive config
+
 -- | Get the JSON representation of a data collector to be used in the collector
 -- list.
 dcListItem :: DataCollector -> J.JSValue
@@ -155,8 +141,10 @@ dcListItem dc =
 
 -- | Handler for returning lists.
 listHandler :: Snap ()
-listHandler =
-  dir "collectors" . writeBS . pack . J.encode $ map dcListItem collectors
+listHandler = dir "collectors" $ do
+  collectors' <- liftIO activeCollectors
+  writeBS . pack . J.encode $ map dcListItem collectors'
+
 
 -- | Handler for returning data collector reports.
 reportHandler :: MVar CollectorMap -> Snap ()
@@ -170,7 +158,8 @@ reportHandler mvar =
 -- | Return the report of all the available collectors.
 allReports :: MVar CollectorMap -> Snap ()
 allReports mvar = do
-  reports <- mapM (liftIO . getReport mvar) collectors
+  collectors' <- liftIO activeCollectors
+  reports <- mapM (liftIO . getReport mvar) collectors'
   writeBS . pack . J.encode $ reports
 
 -- | Takes the CollectorMap and a DataCollector and returns the report for this
@@ -213,6 +202,7 @@ error404 = do
 -- | Return the report of one collector.
 oneReport :: MVar CollectorMap -> Snap ()
 oneReport mvar = do
+  collectors' <- liftIO activeCollectors
   categoryName <- maybe mzero unpack <$> getParam "category"
   collectorName <- maybe mzero unpack <$> getParam "collector"
   category <-
@@ -222,7 +212,7 @@ oneReport mvar = do
   collector <-
     case
       find (\col -> collectorName == dName col) $
-        filter (\c -> category == dCategory c) collectors of
+        filter (\c -> category == dCategory c) collectors' of
       Just col -> return col
       Nothing -> fail "Unable to find the requested collector"
   dcr <- liftIO $ getReport mvar collector
@@ -249,7 +239,7 @@ collect m collector =
 
 -- | Invokes collect for each data collector.
 collection :: CollectorMap -> IO CollectorMap
-collection m = foldM collect m collectors
+collection m = liftIO activeCollectors >>= foldM collect m
 
 -- | The thread responsible for the periodical collection of data for each data
 -- data collector.

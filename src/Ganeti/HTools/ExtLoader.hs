@@ -65,7 +65,7 @@ import Ganeti.HTools.Loader (mergeData, checkData, ClusterData(..)
 
 import Ganeti.BasicTypes
 import Ganeti.Cpu.Types
-import Ganeti.DataCollectors.Types
+import Ganeti.DataCollectors.Types hiding (DataCollector(..))
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.JSON

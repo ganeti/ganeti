@@ -69,7 +69,7 @@ defaultCharNum = 80*20
 
 -- | The name of this data collector.
 dcName :: String
-dcName = "cpu-avg-load"
+dcName = C.dataCollectorCPULoad
 
 -- | The version of this data collector.
 dcVersion :: DCVersion

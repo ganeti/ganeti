@@ -4220,6 +4220,9 @@ confdReqInstanceDisks = Types.confdRequestTypeToRaw ReqInstanceDisks
 confdReqConfigQuery :: Int
 confdReqConfigQuery = Types.confdRequestTypeToRaw ReqConfigQuery
 
+confdReqDataCollectors :: Int
+confdReqDataCollectors = Types.confdRequestTypeToRaw ReqDataCollectors
+
 confdReqs :: FrozenSet Int
 confdReqs =
   ConstantUtils.mkSet .
@@ -5105,3 +5108,29 @@ ipv4NetworkMinSize = 30
 -- for performance tuning was successful.
 ipv4NetworkMaxSize :: Int
 ipv4NetworkMaxSize = 30
+
+-- * Data Collectors
+
+dataCollectorCPULoad    :: String
+dataCollectorCPULoad    = "cpu-avg-load"
+
+dataCollectorDiskStats  :: String
+dataCollectorDiskStats  = "diskstats"
+
+dataCollectorDrbd       :: String
+dataCollectorDrbd       = "drbd"
+
+dataCollectorLv         :: String
+dataCollectorLv         = "lv"
+
+dataCollectorInstStatus :: String
+dataCollectorInstStatus = "inst-status-xen"
+
+dataCollectorNames :: FrozenSet String
+dataCollectorNames =
+  ConstantUtils.mkSet [ dataCollectorCPULoad
+                      , dataCollectorDiskStats
+                      , dataCollectorDrbd
+                      , dataCollectorLv
+                      , dataCollectorInstStatus
+                      ]

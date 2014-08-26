@@ -60,6 +60,7 @@ import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
 
 import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as CU
 import Ganeti.Network
 import Ganeti.Objects as Objects
 import qualified Ganeti.Objects.BitArray as BA
@@ -67,6 +68,14 @@ import Ganeti.JSON
 import Ganeti.Types
 
 -- * Arbitrary instances
+
+instance Arbitrary (Container DataCollectorConfig) where
+  arbitrary = do
+    let names = CU.toList C.dataCollectorNames
+    activations <- vector $ length names
+    let configs = map DataCollectorConfig activations
+    return GenericContainer {
+      fromContainer = Map.fromList $ zip names configs }
 
 $(genArbitrary ''PartialNDParams)
 

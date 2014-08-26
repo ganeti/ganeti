@@ -46,6 +46,7 @@ import qualified Text.JSON as J
 import Ganeti.BasicTypes as BT
 import Ganeti.Confd.ClientFunctions
 import Ganeti.Common
+import qualified Ganeti.Constants as C
 import Ganeti.DataCollectors.CLI
 import Ganeti.DataCollectors.InstStatusTypes
 import Ganeti.DataCollectors.Types
@@ -60,7 +61,7 @@ import Ganeti.Utils
 
 -- | The name of this data collector.
 dcName :: String
-dcName = "inst-status-xen"
+dcName = C.dataCollectorInstStatus
 
 -- | The version of this data collector.
 dcVersion :: DCVersion

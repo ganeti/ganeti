@@ -39,6 +39,7 @@ module Ganeti.Objects
   , PartialNic(..)
   , FileDriver(..)
   , DRBDSecret
+  , DataCollectorConfig(..)
   , LogicalVolume(..)
   , DiskLogicalId(..)
   , Disk(..)
@@ -110,6 +111,7 @@ import Data.Char
 import Data.List (foldl', isPrefixOf, isInfixOf, intercalate)
 import Data.Maybe
 import qualified Data.Map as Map
+import Data.Monoid
 import qualified Data.Set as Set
 import Data.Tuple (swap)
 import Data.Word
@@ -311,6 +313,17 @@ $(buildObject "PartialNic" "nic" $
 
 instance UuidObject PartialNic where
   uuidOf = nicUuid
+
+-- * Datacollector definitions
+-- | The configuration regarding a single data collector.
+$(buildObject "DataCollectorConfig" "dataCollector" [
+  simpleField "active" [t| Bool|]
+  ])
+
+-- | Central default values of the data collector config.
+instance Monoid DataCollectorConfig where
+  mempty = DataCollectorConfig { dataCollectorActive = True }
+  mappend _ a = a
 
 -- * Disk definitions
 
@@ -801,58 +814,59 @@ type HypervisorState = Container JSValue
 
 -- * Cluster definitions
 $(buildObject "Cluster" "cluster" $
-  [ simpleField "rsahostkeypub"                  [t| String                 |]
+  [ simpleField "rsahostkeypub"                  [t| String                  |]
   , optionalField $
-    simpleField "dsahostkeypub"                  [t| String                 |]
-  , simpleField "highest_used_port"              [t| Int                    |]
-  , simpleField "tcpudp_port_pool"               [t| [Int]                  |]
-  , simpleField "mac_prefix"                     [t| String                 |]
+    simpleField "dsahostkeypub"                  [t| String                  |]
+  , simpleField "highest_used_port"              [t| Int                     |]
+  , simpleField "tcpudp_port_pool"               [t| [Int]                   |]
+  , simpleField "mac_prefix"                     [t| String                  |]
   , optionalField $
-    simpleField "volume_group_name"              [t| String                 |]
-  , simpleField "reserved_lvs"                   [t| [String]               |]
+    simpleField "volume_group_name"              [t| String                  |]
+  , simpleField "reserved_lvs"                   [t| [String]                |]
   , optionalField $
-    simpleField "drbd_usermode_helper"           [t| String                 |]
-  , simpleField "master_node"                    [t| String                 |]
-  , simpleField "master_ip"                      [t| String                 |]
-  , simpleField "master_netdev"                  [t| String                 |]
-  , simpleField "master_netmask"                 [t| Int                    |]
-  , simpleField "use_external_mip_script"        [t| Bool                   |]
-  , simpleField "cluster_name"                   [t| String                 |]
-  , simpleField "file_storage_dir"               [t| String                 |]
-  , simpleField "shared_file_storage_dir"        [t| String                 |]
-  , simpleField "gluster_storage_dir"            [t| String                 |]
-  , simpleField "enabled_hypervisors"            [t| [Hypervisor]           |]
-  , simpleField "hvparams"                       [t| ClusterHvParams        |]
-  , simpleField "os_hvp"                         [t| OsHvParams             |]
-  , simpleField "beparams"                       [t| ClusterBeParams        |]
-  , simpleField "osparams"                       [t| ClusterOsParams        |]
-  , simpleField "osparams_private_cluster"       [t| ClusterOsParamsPrivate |]
-  , simpleField "nicparams"                      [t| ClusterNicParams       |]
-  , simpleField "ndparams"                       [t| FilledNDParams         |]
-  , simpleField "diskparams"                     [t| GroupDiskParams        |]
-  , simpleField "candidate_pool_size"            [t| Int                    |]
-  , simpleField "modify_etc_hosts"               [t| Bool                   |]
-  , simpleField "modify_ssh_setup"               [t| Bool                   |]
-  , simpleField "maintain_node_health"           [t| Bool                   |]
-  , simpleField "uid_pool"                       [t| UidPool                |]
-  , simpleField "default_iallocator"             [t| String                 |]
-  , simpleField "default_iallocator_params"      [t| IAllocatorParams       |]
-  , simpleField "hidden_os"                      [t| [String]               |]
-  , simpleField "blacklisted_os"                 [t| [String]               |]
-  , simpleField "primary_ip_family"              [t| IpFamily               |]
-  , simpleField "prealloc_wipe_disks"            [t| Bool                   |]
-  , simpleField "ipolicy"                        [t| FilledIPolicy          |]
-  , simpleField "hv_state_static"                [t| HypervisorState        |]
-  , simpleField "disk_state_static"              [t| DiskState              |]
-  , simpleField "enabled_disk_templates"         [t| [DiskTemplate]         |]
-  , simpleField "candidate_certs"                [t| CandidateCertificates  |]
-  , simpleField "max_running_jobs"               [t| Int                    |]
-  , simpleField "max_tracked_jobs"               [t| Int                    |]
-  , simpleField "install_image"                  [t| String                 |]
-  , simpleField "instance_communication_network" [t| String                 |]
-  , simpleField "zeroing_image"                  [t| String                 |]
-  , simpleField "compression_tools"              [t| [String]               |]
-  , simpleField "enabled_user_shutdown"          [t| Bool                   |]
+    simpleField "drbd_usermode_helper"           [t| String                  |]
+  , simpleField "master_node"                    [t| String                  |]
+  , simpleField "master_ip"                      [t| String                  |]
+  , simpleField "master_netdev"                  [t| String                  |]
+  , simpleField "master_netmask"                 [t| Int                     |]
+  , simpleField "use_external_mip_script"        [t| Bool                    |]
+  , simpleField "cluster_name"                   [t| String                  |]
+  , simpleField "file_storage_dir"               [t| String                  |]
+  , simpleField "shared_file_storage_dir"        [t| String                  |]
+  , simpleField "gluster_storage_dir"            [t| String                  |]
+  , simpleField "enabled_hypervisors"            [t| [Hypervisor]            |]
+  , simpleField "hvparams"                       [t| ClusterHvParams         |]
+  , simpleField "os_hvp"                         [t| OsHvParams              |]
+  , simpleField "beparams"                       [t| ClusterBeParams         |]
+  , simpleField "osparams"                       [t| ClusterOsParams         |]
+  , simpleField "osparams_private_cluster"       [t| ClusterOsParamsPrivate  |]
+  , simpleField "nicparams"                      [t| ClusterNicParams        |]
+  , simpleField "ndparams"                       [t| FilledNDParams          |]
+  , simpleField "diskparams"                     [t| GroupDiskParams         |]
+  , simpleField "candidate_pool_size"            [t| Int                     |]
+  , simpleField "modify_etc_hosts"               [t| Bool                    |]
+  , simpleField "modify_ssh_setup"               [t| Bool                    |]
+  , simpleField "maintain_node_health"           [t| Bool                    |]
+  , simpleField "uid_pool"                       [t| UidPool                 |]
+  , simpleField "default_iallocator"             [t| String                  |]
+  , simpleField "default_iallocator_params"      [t| IAllocatorParams        |]
+  , simpleField "hidden_os"                      [t| [String]                |]
+  , simpleField "blacklisted_os"                 [t| [String]                |]
+  , simpleField "primary_ip_family"              [t| IpFamily                |]
+  , simpleField "prealloc_wipe_disks"            [t| Bool                    |]
+  , simpleField "ipolicy"                        [t| FilledIPolicy           |]
+  , simpleField "hv_state_static"                [t| HypervisorState         |]
+  , simpleField "disk_state_static"              [t| DiskState               |]
+  , simpleField "enabled_disk_templates"         [t| [DiskTemplate]          |]
+  , simpleField "candidate_certs"                [t| CandidateCertificates   |]
+  , simpleField "max_running_jobs"               [t| Int                     |]
+  , simpleField "max_tracked_jobs"               [t| Int                     |]
+  , simpleField "install_image"                  [t| String                  |]
+  , simpleField "instance_communication_network" [t| String                  |]
+  , simpleField "zeroing_image"                  [t| String                  |]
+  , simpleField "compression_tools"              [t| [String]                |]
+  , simpleField "enabled_user_shutdown"          [t| Bool                    |]
+  , simpleField "data_collectors"         [t| Container DataCollectorConfig  |]
  ]
  ++ timeStampFields
  ++ uuidFields

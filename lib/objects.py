@@ -407,6 +407,7 @@ class ConfigData(ConfigObject):
     "networks",
     "disks",
     "serial_no",
+    "datacollectors",
     ] + _TIMESTAMPS
 
   def ToDict(self, _with_private=False):

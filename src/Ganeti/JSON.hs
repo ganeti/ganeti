@@ -48,6 +48,7 @@ module Ganeti.JSON
   , toArray
   , optionalJSField
   , optFieldsToObj
+  , containerFromList
   , lookupContainer
   , alterContainerL
   , readContainer
@@ -320,6 +321,10 @@ instance F.Traversable (GenericContainer a) where
 
 -- | Type alias for string keys.
 type Container = GenericContainer String
+
+-- | Creates a GenericContainer from a list of key-value pairs.
+containerFromList :: Ord a => [(a,b)] -> GenericContainer a b
+containerFromList = GenericContainer . Map.fromList
 
 -- | Looks up a value in a container with a default value.
 -- If a key has no value, a given monadic default is returned.

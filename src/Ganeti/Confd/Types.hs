@@ -65,6 +65,7 @@ $(declareILADT "ConfdRequestType"
   , ("ReqNodeInstances",     8)
   , ("ReqInstanceDisks",     9)
   , ("ReqConfigQuery",      10)
+  , ("ReqDataCollectors",   11)
   ])
 $(makeJSONInstance ''ConfdRequestType)
 

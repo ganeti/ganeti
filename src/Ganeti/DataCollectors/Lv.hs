@@ -47,6 +47,7 @@ import qualified Text.JSON as J
 
 import qualified Ganeti.BasicTypes as BT
 import Ganeti.Common
+import qualified Ganeti.Constants as C
 import Ganeti.Confd.ClientFunctions
 import Ganeti.DataCollectors.CLI
 import Ganeti.DataCollectors.Types
@@ -66,7 +67,7 @@ defaultCharNum = 80*20
 
 -- | The name of this data collector.
 dcName :: String
-dcName = "lv"
+dcName = C.dataCollectorLv
 
 -- | The version of this data collector.
 dcVersion :: DCVersion

@@ -71,7 +71,7 @@ defaultCharNum = 80*20
 
 -- | The name of this data collector.
 dcName :: String
-dcName = "drbd"
+dcName = C.dataCollectorDrbd
 
 -- | The version of this data collector.
 dcVersion :: DCVersion
