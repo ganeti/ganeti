@@ -1179,7 +1179,7 @@ evacOneNodeOnly opts nl il inst gdx avail_nodes = do
   (nl', inst', _, ndx) <- annotateResult "Can't find any good node" .
                           eitherToResult $
                           foldl' (evacOneNodeInner opts nl inst gdx op_fn)
-                          (Left "no nodes available") avail_nodes
+                          (Left "") avail_nodes
   let idx = Instance.idx inst
       il' = Container.add idx inst' il
       ops = iMoveToJob nl' il' idx (op_fn ndx)
@@ -1206,9 +1206,9 @@ evacOneNodeInner :: AlgorithmOptions
                  -> EvacInnerState    -- ^ New best solution
 evacOneNodeInner opts nl inst gdx op_fn accu ndx =
   case applyMoveEx (algIgnoreSoftErrors opts) nl inst (op_fn ndx) of
-    Bad fm -> let fail_msg = "Node " ++ Container.nameOf nl ndx ++
-                             " failed: " ++ show fm
-              in either (const $ Left fail_msg) (const accu) accu
+    Bad fm -> let fail_msg = " Node " ++ Container.nameOf nl ndx ++
+                             " failed: " ++ show fm ++ ";"
+              in either (Left . (++ fail_msg)) Right accu
     Ok (nl', inst', _, _) ->
       let nodes = Container.elems nl'
           -- The fromJust below is ugly (it can fail nastily), but
