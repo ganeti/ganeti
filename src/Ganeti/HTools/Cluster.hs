@@ -88,7 +88,7 @@ import Data.Ord (comparing)
 import Text.Printf (printf)
 
 import Ganeti.BasicTypes
-import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..))
+import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), defaultOptions)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Nic as Nic
@@ -1134,7 +1134,8 @@ nodeEvacInstance nl il ChangeAll
         annotateResult "Can't find any good nodes for relocation" .
         eitherToResult $
         foldl'
-        (\accu nodes -> case evacDrbdAllInner nl il inst gdx nodes of
+        (\accu nodes -> case evacDrbdAllInner defaultOptions
+                                              nl il inst gdx nodes of
                           Bad msg ->
                               case accu of
                                 Right _ -> accu
@@ -1228,7 +1229,8 @@ evacOneNodeInner nl inst gdx op_fn accu ndx =
 -- required steps and assuming all operations succceed, will return
 -- the modified node and instance lists, the opcodes needed for this
 -- and the new group score.
-evacDrbdAllInner :: Node.List         -- ^ Cluster node list
+evacDrbdAllInner :: AlgorithmOptions
+                 -> Node.List         -- ^ Cluster node list
                  -> Instance.List     -- ^ Cluster instance list
                  -> Instance.Instance -- ^ The instance to be moved
                  -> Gdx               -- ^ The target group index
@@ -1238,16 +1240,17 @@ evacDrbdAllInner :: Node.List         -- ^ Cluster node list
                  -> (Ndx, Ndx)        -- ^ Tuple of new
                                       -- primary\/secondary nodes
                  -> Result (Node.List, Instance.List, [OpCodes.OpCode], Score)
-evacDrbdAllInner nl il inst gdx (t_pdx, t_sdx) = do
+evacDrbdAllInner opts nl il inst gdx (t_pdx, t_sdx) = do
   let primary = Container.find (Instance.pNode inst) nl
       idx = Instance.idx inst
+      apMove = applyMoveEx $ algIgnoreSoftErrors opts
   -- if the primary is offline, then we first failover
   (nl1, inst1, ops1) <-
     if Node.offline primary
       then do
         (nl', inst', _, _) <-
           annotateResult "Failing over to the secondary" .
-          opToResult $ applyMove nl inst Failover
+          opToResult $ apMove nl inst Failover
         return (nl', inst', [Failover])
       else return (nl, inst, [])
   let (o1, o2, o3) = (ReplaceSecondary t_pdx,
@@ -1258,17 +1261,17 @@ evacDrbdAllInner nl il inst gdx (t_pdx, t_sdx) = do
   (nl2, inst2, _, _) <-
     annotateResult "Changing secondary to new primary" .
     opToResult $
-    applyMove nl1 inst1 o1
+    apMove nl1 inst1 o1
   let ops2 = o1:ops1
   -- we now execute another failover, the primary stays fixed now
   (nl3, inst3, _, _) <- annotateResult "Failing over to new primary" .
-                        opToResult $ applyMove nl2 inst2 o2
+                        opToResult $ apMove nl2 inst2 o2
   let ops3 = o2:ops2
   -- and finally another replace secondary, to the final secondary
   (nl4, inst4, _, _) <-
     annotateResult "Changing secondary to final secondary" .
     opToResult $
-    applyMove nl3 inst3 o3
+    apMove nl3 inst3 o3
   let ops4 = o3:ops3
       il' = Container.add idx inst4 il
       ops = concatMap (iMoveToJob nl4 il' idx) $ reverse ops4
