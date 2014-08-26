@@ -98,6 +98,11 @@ The options that can be passed to the program are as follows:
   passed by the MonDs with the ``--mond`` and the ``--mond-data``
   option.
 
+\--ignore-soft-errors
+  If given, all checks for soft errors will be ommitted when searching
+  for possible allocations. In this way a useful decission can be made
+  even in overloaded clusters.
+
 \--simulate *description*
   Backend specification: similar to the **-t** option, this allows
   overriding the cluster data with a simulated cluster. For details
