@@ -1050,7 +1050,8 @@ failOnSecondaryChange _ _ = return ()
 -- evacuations (in all modes) and inter-group evacuations (in the
 -- 'ChangeAll' mode). Of course, this requires that the correct list
 -- of target nodes is passed.
-nodeEvacInstance :: Node.List         -- ^ The node list (cluster-wide)
+nodeEvacInstance :: AlgorithmOptions
+                 -> Node.List         -- ^ The node list (cluster-wide)
                  -> Instance.List     -- ^ Instance list (cluster-wide)
                  -> EvacMode          -- ^ The evacuation mode
                  -> Instance.Instance -- ^ The instance to be evacuated
@@ -1058,51 +1059,51 @@ nodeEvacInstance :: Node.List         -- ^ The node list (cluster-wide)
                  -> [Ndx]             -- ^ The list of available nodes
                                       -- for allocation
                  -> Result (Node.List, Instance.List, [OpCodes.OpCode])
-nodeEvacInstance nl il mode inst@(Instance.Instance
-                                  {Instance.diskTemplate = dt@DTDiskless})
+nodeEvacInstance _ nl il mode inst@(Instance.Instance
+                                    {Instance.diskTemplate = dt@DTDiskless})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
                    evacOneNodeOnly nl il inst gdx avail_nodes
 
-nodeEvacInstance _ _ _ (Instance.Instance
-                        {Instance.diskTemplate = DTPlain}) _ _ =
+nodeEvacInstance _ _ _ _ (Instance.Instance
+                          {Instance.diskTemplate = DTPlain}) _ _ =
                   fail "Instances of type plain cannot be relocated"
 
-nodeEvacInstance _ _ _ (Instance.Instance
-                        {Instance.diskTemplate = DTFile}) _ _ =
+nodeEvacInstance _ _ _ _ (Instance.Instance
+                          {Instance.diskTemplate = DTFile}) _ _ =
                   fail "Instances of type file cannot be relocated"
 
-nodeEvacInstance nl il mode inst@(Instance.Instance
-                                  {Instance.diskTemplate = dt@DTSharedFile})
+nodeEvacInstance _ nl il mode inst@(Instance.Instance
+                                    {Instance.diskTemplate = dt@DTSharedFile})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
                    evacOneNodeOnly nl il inst gdx avail_nodes
 
-nodeEvacInstance nl il mode inst@(Instance.Instance
-                                  {Instance.diskTemplate = dt@DTBlock})
+nodeEvacInstance _ nl il mode inst@(Instance.Instance
+                                    {Instance.diskTemplate = dt@DTBlock})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
                    evacOneNodeOnly nl il inst gdx avail_nodes
 
-nodeEvacInstance nl il mode inst@(Instance.Instance
-                                  {Instance.diskTemplate = dt@DTRbd})
+nodeEvacInstance _ nl il mode inst@(Instance.Instance
+                                    {Instance.diskTemplate = dt@DTRbd})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
                    evacOneNodeOnly nl il inst gdx avail_nodes
 
-nodeEvacInstance nl il mode inst@(Instance.Instance
-                                  {Instance.diskTemplate = dt@DTExt})
+nodeEvacInstance _ nl il mode inst@(Instance.Instance
+                                    {Instance.diskTemplate = dt@DTExt})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
                    evacOneNodeOnly nl il inst gdx avail_nodes
 
-nodeEvacInstance nl il mode inst@(Instance.Instance
-                                  {Instance.diskTemplate = dt@DTGluster})
+nodeEvacInstance _ nl il mode inst@(Instance.Instance
+                                    {Instance.diskTemplate = dt@DTGluster})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
                    evacOneNodeOnly nl il inst gdx avail_nodes
 
-nodeEvacInstance nl il ChangePrimary
+nodeEvacInstance _ nl il ChangePrimary
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
                  _ _ =
   do
@@ -1112,7 +1113,7 @@ nodeEvacInstance nl il ChangePrimary
         ops = iMoveToJob nl' il' idx Failover
     return (nl', il', ops)
 
-nodeEvacInstance nl il ChangeSecondary
+nodeEvacInstance _ nl il ChangeSecondary
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
                  gdx avail_nodes =
   evacOneNodeOnly nl il inst gdx avail_nodes
@@ -1124,7 +1125,7 @@ nodeEvacInstance nl il ChangeSecondary
 --   the final node list state and group score
 -- * select the best choice via a foldl that uses the same Either
 --   String solution as the ChangeSecondary mode
-nodeEvacInstance nl il ChangeAll
+nodeEvacInstance opts nl il ChangeAll
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
                  gdx avail_nodes =
   do
@@ -1134,8 +1135,7 @@ nodeEvacInstance nl il ChangeAll
         annotateResult "Can't find any good nodes for relocation" .
         eitherToResult $
         foldl'
-        (\accu nodes -> case evacDrbdAllInner defaultOptions
-                                              nl il inst gdx nodes of
+        (\accu nodes -> case evacDrbdAllInner opts nl il inst gdx nodes of
                           Bad msg ->
                               case accu of
                                 Right _ -> accu
@@ -1313,13 +1313,14 @@ updateEvacSolution (_, _, es) idx (Ok (nl, il, opcodes)) =
                       Instance.allNodes inst)
 
 -- | Node-evacuation IAllocator mode main function.
-tryNodeEvac :: Group.List    -- ^ The cluster groups
+tryNodeEvac :: AlgorithmOptions
+            -> Group.List    -- ^ The cluster groups
             -> Node.List     -- ^ The node list (cluster-wide, not per group)
             -> Instance.List -- ^ Instance list (cluster-wide)
             -> EvacMode      -- ^ The evacuation mode
             -> [Idx]         -- ^ List of instance (indices) to be evacuated
             -> Result (Node.List, Instance.List, EvacSolution)
-tryNodeEvac _ ini_nl ini_il mode idxs =
+tryNodeEvac opts _ ini_nl ini_il mode idxs =
   let evac_ndx = nodesToEvacuate ini_il mode idxs
       offline = map Node.idx . filter Node.offline $ Container.elems ini_nl
       excl_ndx = foldl' (flip IntSet.insert) evac_ndx offline
@@ -1333,7 +1334,7 @@ tryNodeEvac _ ini_nl ini_il mode idxs =
                   updateEvacSolution state (Instance.idx inst) $
                   availableGroupNodes group_ndx
                     (IntSet.insert pdx excl_ndx) gdx >>=
-                      nodeEvacInstance nl il mode inst gdx
+                      nodeEvacInstance opts nl il mode inst gdx
                )
         (ini_nl, ini_il, emptyEvacSolution)
         (map (`Container.find` ini_il) idxs)
@@ -1386,7 +1387,8 @@ tryChangeGroup gl ini_nl ini_il gdxs idxs =
                         let gdx = Group.idx grp
                         av_nodes <- availableGroupNodes group_ndx
                                     excl_ndx gdx
-                        nodeEvacInstance nl il ChangeAll inst gdx av_nodes
+                        nodeEvacInstance defaultOptions
+                                         nl il ChangeAll inst gdx av_nodes
                   in updateEvacSolution state (Instance.idx inst) solution
                )
         (ini_nl, ini_il, emptyEvacSolution)

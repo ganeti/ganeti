@@ -33,6 +33,7 @@ import Control.Monad
 import Data.Maybe (fromMaybe, isJust)
 import System.IO
 
+import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Cluster as Cluster
 
 import Ganeti.Common
@@ -100,7 +101,7 @@ main opts args = do
 
   maybeSaveData savecluster "pre-ialloc" "before iallocator run" cdata
 
-  let (maybe_ni, resp) = runIAllocator request
+  let (maybe_ni, resp) = runIAllocator (Alg.fromCLIOptions opts) request
       (fin_nl, fin_il) = fromMaybe (cdNodes cdata, cdInstances cdata) maybe_ni
   putStrLn resp
 

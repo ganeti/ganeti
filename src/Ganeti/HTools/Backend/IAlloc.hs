@@ -46,6 +46,7 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Nic as Nic
 import qualified Ganeti.Constants as C
+import Ganeti.HTools.AlgorithmParams (AlgorithmOptions)
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
@@ -328,14 +329,15 @@ formatNodeEvac gl nl il (fin_nl, fin_il, es) =
 -- result it got (in the nodes field) is actually consistent, as
 -- tryNodeEvac is designed to output primarily an opcode list, not a
 -- node list.
-processRelocate :: Group.List      -- ^ The group list
+processRelocate :: AlgorithmOptions
+                -> Group.List      -- ^ The group list
                 -> Node.List       -- ^ The node list
                 -> Instance.List   -- ^ The instance list
                 -> Idx             -- ^ The index of the instance to move
                 -> Int             -- ^ The number of nodes required
                 -> [Ndx]           -- ^ Nodes which should not be used
                 -> Result (Node.List, Instance.List, [Ndx]) -- ^ Solution list
-processRelocate gl nl il idx 1 exndx = do
+processRelocate opts gl nl il idx 1 exndx = do
   let orig = Container.find idx il
       sorig = Instance.sNode orig
       porig = Instance.pNode orig
@@ -351,7 +353,7 @@ processRelocate gl nl il idx 1 exndx = do
        fail $ "Unsupported request: excluded nodes not equal to\
               \ instance's " ++  node_type ++ "(" ++ show exp_node
               ++ " versus " ++ show exndx ++ ")"
-  (nl', il', esol) <- Cluster.tryNodeEvac gl nl il reloc_type [idx]
+  (nl', il', esol) <- Cluster.tryNodeEvac opts gl nl il reloc_type [idx]
   nodes <- case lookup idx (Cluster.esFailed esol) of
              Just msg -> fail msg
              Nothing ->
@@ -387,7 +389,7 @@ processRelocate gl nl il idx 1 exndx = do
                  show nodes ++ ") versus instance node (" ++ show pnode ++ ")"
   return (nl', il', nodes')
 
-processRelocate _ _ _ _ reqn _ =
+processRelocate _ _ _ _ _ reqn _ =
   fail $ "Exchange " ++ show reqn ++ " nodes mode is not implemented"
 
 formatRelocate :: (Node.List, Instance.List, [Ndx])
@@ -398,8 +400,8 @@ formatRelocate (nl, il, ndxs) =
   in Ok ("success", showJSON names, nl, il)
 
 -- | Process a request and return new node lists.
-processRequest :: Request -> Result IAllocResult
-processRequest request =
+processRequest :: AlgorithmOptions -> Request -> Result IAllocResult
+processRequest opts request =
   let Request rqtype (ClusterData gl nl il _ _) = request
   in case rqtype of
        Allocate xi (Cluster.AllocDetails reqn Nothing) ->
@@ -407,12 +409,12 @@ processRequest request =
        Allocate xi (Cluster.AllocDetails reqn (Just gn)) ->
          Cluster.tryGroupAlloc gl nl il gn xi reqn >>= formatAllocate il
        Relocate idx reqn exnodes ->
-         processRelocate gl nl il idx reqn exnodes >>= formatRelocate
+         processRelocate opts gl nl il idx reqn exnodes >>= formatRelocate
        ChangeGroup gdxs idxs ->
          Cluster.tryChangeGroup gl nl il idxs gdxs >>=
                 formatNodeEvac gl nl il
        NodeEvacuate xi mode ->
-         Cluster.tryNodeEvac gl nl il mode xi >>=
+         Cluster.tryNodeEvac opts gl nl il mode xi >>=
                 formatNodeEvac gl nl il
        MultiAllocate xies ->
          Cluster.allocList gl nl il xies [] >>= formatMultiAlloc
@@ -429,10 +431,11 @@ readRequest fp = do
     Ok (fix_msgs, rq) -> maybeShowWarnings fix_msgs >> return rq
 
 -- | Main iallocator pipeline.
-runIAllocator :: Request -> (Maybe (Node.List, Instance.List), String)
-runIAllocator request =
+runIAllocator :: AlgorithmOptions
+              -> Request -> (Maybe (Node.List, Instance.List), String)
+runIAllocator opts request =
   let (ok, info, result, cdata) =
-        case processRequest request of
+        case processRequest opts request of
           Ok (msg, r, nl, il) -> (True, "Request successful: " ++ msg, r,
                                   Just (nl, il))
           Bad msg -> (False, "Request failed: " ++ msg, JSArray [], Nothing)

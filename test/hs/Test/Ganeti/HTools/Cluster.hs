@@ -217,7 +217,7 @@ prop_AllocRelocate =
   case genClusterAlloc count node inst of
     Bad msg -> failTest msg
     Ok (nl, il, inst') ->
-      case IAlloc.processRelocate defGroupList nl il
+      case IAlloc.processRelocate Alg.defaultOptions defGroupList nl il
              (Instance.idx inst) 1
              [(if Instance.diskTemplate inst' == Types.DTDrbd8
                  then Instance.sNode
@@ -261,7 +261,8 @@ prop_AllocEvacuate =
     Bad msg -> failTest msg
     Ok (nl, il, inst') ->
       conjoin . map (\mode -> check_EvacMode defGroup inst' $
-                              Cluster.tryNodeEvac defGroupList nl il mode
+                              Cluster.tryNodeEvac Alg.defaultOptions
+                                defGroupList nl il mode
                                 [Instance.idx inst']) .
                               evacModeOptions .
                               Instance.mirrorType $ inst'
