@@ -54,6 +54,7 @@ options =
     , oNodeSim
     , oVerbose
     , oIgnoreDyn
+    , oIgnoreSoftErrors
     , oMonD
     ]
 
