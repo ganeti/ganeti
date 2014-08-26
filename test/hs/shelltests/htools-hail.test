@@ -133,6 +133,14 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 >>> /Files .* and .* differ/
 >>>= 0
 
+./test/hs/hail $TESTDATA_DIR/hail-reloc-drbd-crowded.json
+>>> /"success":false,/
+>>>= 0
+
+./test/hs/hail --ignore-soft-errors $TESTDATA_DIR/hail-reloc-drbd-crowded.json
+>>> /"success":true,/
+>>>= 0
+
 # evac tests
 ./test/hs/hail $T/hail-node-evac.json.primary-only
 >>> /"success":true,"info":"Request successful: 0 instances failed to move and 1 were moved successfully"/
