@@ -1059,11 +1059,11 @@ nodeEvacInstance :: AlgorithmOptions
                  -> [Ndx]             -- ^ The list of available nodes
                                       -- for allocation
                  -> Result (Node.List, Instance.List, [OpCodes.OpCode])
-nodeEvacInstance _ nl il mode inst@(Instance.Instance
+nodeEvacInstance opts nl il mode inst@(Instance.Instance
                                     {Instance.diskTemplate = dt@DTDiskless})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
-                   evacOneNodeOnly nl il inst gdx avail_nodes
+                   evacOneNodeOnly opts nl il inst gdx avail_nodes
 
 nodeEvacInstance _ _ _ _ (Instance.Instance
                           {Instance.diskTemplate = DTPlain}) _ _ =
@@ -1073,35 +1073,35 @@ nodeEvacInstance _ _ _ _ (Instance.Instance
                           {Instance.diskTemplate = DTFile}) _ _ =
                   fail "Instances of type file cannot be relocated"
 
-nodeEvacInstance _ nl il mode inst@(Instance.Instance
+nodeEvacInstance opts nl il mode inst@(Instance.Instance
                                     {Instance.diskTemplate = dt@DTSharedFile})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
-                   evacOneNodeOnly nl il inst gdx avail_nodes
+                   evacOneNodeOnly opts nl il inst gdx avail_nodes
 
-nodeEvacInstance _ nl il mode inst@(Instance.Instance
+nodeEvacInstance opts nl il mode inst@(Instance.Instance
                                     {Instance.diskTemplate = dt@DTBlock})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
-                   evacOneNodeOnly nl il inst gdx avail_nodes
+                   evacOneNodeOnly opts nl il inst gdx avail_nodes
 
-nodeEvacInstance _ nl il mode inst@(Instance.Instance
+nodeEvacInstance opts nl il mode inst@(Instance.Instance
                                     {Instance.diskTemplate = dt@DTRbd})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
-                   evacOneNodeOnly nl il inst gdx avail_nodes
+                   evacOneNodeOnly opts nl il inst gdx avail_nodes
 
-nodeEvacInstance _ nl il mode inst@(Instance.Instance
+nodeEvacInstance opts nl il mode inst@(Instance.Instance
                                     {Instance.diskTemplate = dt@DTExt})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
-                   evacOneNodeOnly nl il inst gdx avail_nodes
+                   evacOneNodeOnly opts nl il inst gdx avail_nodes
 
-nodeEvacInstance _ nl il mode inst@(Instance.Instance
+nodeEvacInstance opts nl il mode inst@(Instance.Instance
                                     {Instance.diskTemplate = dt@DTGluster})
                  gdx avail_nodes =
                    failOnSecondaryChange mode dt >>
-                   evacOneNodeOnly nl il inst gdx avail_nodes
+                   evacOneNodeOnly opts nl il inst gdx avail_nodes
 
 nodeEvacInstance _ nl il ChangePrimary
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
@@ -1113,10 +1113,10 @@ nodeEvacInstance _ nl il ChangePrimary
         ops = iMoveToJob nl' il' idx Failover
     return (nl', il', ops)
 
-nodeEvacInstance _ nl il ChangeSecondary
+nodeEvacInstance opts nl il ChangeSecondary
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
                  gdx avail_nodes =
-  evacOneNodeOnly nl il inst gdx avail_nodes
+  evacOneNodeOnly opts nl il inst gdx avail_nodes
 
 -- The algorithm for ChangeAll is as follows:
 --
@@ -1163,21 +1163,22 @@ nodeEvacInstance opts nl il ChangeAll
 -- its sub-patterns. It folds the inner function 'evacOneNodeInner'
 -- over the list of available nodes, which results in the best choice
 -- for relocation.
-evacOneNodeOnly :: Node.List         -- ^ The node list (cluster-wide)
+evacOneNodeOnly :: AlgorithmOptions
+                -> Node.List         -- ^ The node list (cluster-wide)
                 -> Instance.List     -- ^ Instance list (cluster-wide)
                 -> Instance.Instance -- ^ The instance to be evacuated
                 -> Gdx               -- ^ The group we're targetting
                 -> [Ndx]             -- ^ The list of available nodes
                                       -- for allocation
                 -> Result (Node.List, Instance.List, [OpCodes.OpCode])
-evacOneNodeOnly nl il inst gdx avail_nodes = do
+evacOneNodeOnly opts nl il inst gdx avail_nodes = do
   op_fn <- case Instance.mirrorType inst of
              MirrorNone -> Bad "Can't relocate/evacuate non-mirrored instances"
              MirrorInternal -> Ok ReplaceSecondary
              MirrorExternal -> Ok FailoverToAny
   (nl', inst', _, ndx) <- annotateResult "Can't find any good node" .
                           eitherToResult $
-                          foldl' (evacOneNodeInner nl inst gdx op_fn)
+                          foldl' (evacOneNodeInner opts nl inst gdx op_fn)
                           (Left "no nodes available") avail_nodes
   let idx = Instance.idx inst
       il' = Container.add idx inst' il
@@ -1195,15 +1196,16 @@ evacOneNodeOnly nl il inst gdx avail_nodes = do
 -- represents a valid solution; it holds the modified node list, the
 -- modified instance (after evacuation), the score of that solution,
 -- and the new secondary node index.
-evacOneNodeInner :: Node.List         -- ^ Cluster node list
+evacOneNodeInner :: AlgorithmOptions
+                 -> Node.List         -- ^ Cluster node list
                  -> Instance.Instance -- ^ Instance being evacuated
                  -> Gdx               -- ^ The group index of the instance
                  -> (Ndx -> IMove)    -- ^ Operation constructor
                  -> EvacInnerState    -- ^ Current best solution
                  -> Ndx               -- ^ Node we're evaluating as target
                  -> EvacInnerState    -- ^ New best solution
-evacOneNodeInner nl inst gdx op_fn accu ndx =
-  case applyMove nl inst (op_fn ndx) of
+evacOneNodeInner opts nl inst gdx op_fn accu ndx =
+  case applyMoveEx (algIgnoreSoftErrors opts) nl inst (op_fn ndx) of
     Bad fm -> let fail_msg = "Node " ++ Container.nameOf nl ndx ++
                              " failed: " ++ show fm
               in either (const $ Left fail_msg) (const accu) accu
