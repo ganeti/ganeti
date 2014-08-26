@@ -246,6 +246,8 @@ $(genOpCode "OpCode"
      , pZeroingImage
      , pCompressionTools
      , pEnabledUserShutdown
+     , pEnableDataCollectors
+     , pDisableDataCollectors
      ],
      [])
   , ("OpClusterRedistConf",

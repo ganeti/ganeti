@@ -407,7 +407,6 @@ class ConfigData(ConfigObject):
     "networks",
     "disks",
     "serial_no",
-    "datacollectors",
     ] + _TIMESTAMPS
 
   def ToDict(self, _with_private=False):
@@ -1618,6 +1617,7 @@ class Cluster(TaggableObject):
     "zeroing_image",
     "compression_tools",
     "enabled_user_shutdown",
+    "data_collectors",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):

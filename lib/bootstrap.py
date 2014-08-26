@@ -812,6 +812,10 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   if compression_tools is not None:
     cluster.CheckCompressionTools(compression_tools)
 
+  data_collectors = dict(
+      (name, dict(active=True))
+      for name in constants.DATA_COLLECTOR_NAMES)
+
   # init of cluster config file
   cluster_config = objects.Cluster(
     serial_no=1,
@@ -841,6 +845,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     ctime=now,
     mtime=now,
     maintain_node_health=maintain_node_health,
+    data_collectors=data_collectors,
     drbd_usermode_helper=drbd_helper,
     default_iallocator=default_iallocator,
     default_iallocator_params=default_iallocator_params,

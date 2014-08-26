@@ -39,6 +39,7 @@ import Control.Monad
 import Data.Char
 import Data.List
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import qualified Text.JSON as J
 import Text.Printf (printf)
 
@@ -50,6 +51,7 @@ import Test.Ganeti.Types ()
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as CU
 import qualified Ganeti.OpCodes as OpCodes
 import Ganeti.Types
 import Ganeti.OpParams
@@ -115,6 +117,11 @@ instance Arbitrary ExportTarget where
   arbitrary = oneof [ ExportTargetLocal <$> genNodeNameNE
                     , ExportTargetRemote <$> pure []
                     ]
+
+arbitraryDataCollector :: Gen (ListSet String)
+arbitraryDataCollector = do
+  els <-  listOf . elements $ CU.toList C.dataCollectorNames
+  return . ListSet $ Set.fromList els
 
 instance Arbitrary OpCodes.OpCode where
   arbitrary = do
@@ -224,6 +231,8 @@ instance Arbitrary OpCodes.OpCode where
           <*> genMaybe (listOf genPrintableAsciiStringNE)
                                            -- compression_tools
           <*> arbitrary                    -- enabled_user_shutdown
+          <*> arbitraryDataCollector   -- activate_data_collectors
+          <*> arbitraryDataCollector   -- deactivate_data_collectors
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
         pure OpCodes.OpClusterActivateMasterIp

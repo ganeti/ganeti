@@ -5134,3 +5134,6 @@ dataCollectorNames =
                       , dataCollectorLv
                       , dataCollectorInstStatus
                       ]
+
+dataCollectorStateActive :: String
+dataCollectorStateActive = "active"

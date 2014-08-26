@@ -282,6 +282,8 @@ module Ganeti.OpParams
   , pEnabledDiskTemplates
   , pEnabledUserShutdown
   , pAdminStateSource
+  , pEnableDataCollectors
+  , pDisableDataCollectors
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -1829,3 +1831,15 @@ pNetworkVlan :: Field
 pNetworkVlan =
   withDoc "Network vlan when connecting to a group" .
   defaultField [| "" |] $ stringField "network_vlan"
+
+pEnableDataCollectors :: Field
+pEnableDataCollectors =
+  withDoc "Reactivate the data collectors" .
+  defaultField [| emptyListSet |] $
+  simpleField "enable_data_collectors" [t| ListSet String |]
+
+pDisableDataCollectors :: Field
+pDisableDataCollectors =
+  withDoc "Deactivate the data collectors" .
+  defaultField [| emptyListSet |] $
+  simpleField "disable_data_collectors" [t| ListSet String |]

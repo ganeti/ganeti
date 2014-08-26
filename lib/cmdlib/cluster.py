@@ -1559,6 +1559,13 @@ class LUClusterSetParams(LogicalUnit):
 
     ensure_kvmd = False
 
+    active = constants.DATA_COLLECTOR_STATE_ACTIVE
+    for name in self.op.enable_data_collectors:
+      self.cluster.data_collectors[name][active] = True
+
+    for name in self.op.disable_data_collectors:
+      self.cluster.data_collectors[name][active] = False
+
     if self.op.hvparams:
       self.cluster.hvparams = self.new_hvparams
     if self.op.os_hvp:

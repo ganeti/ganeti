@@ -54,6 +54,13 @@ def GetMinimalConfig():
       "zeroing_image": "",
       "compression_tools": constants.IEC_DEFAULT_TOOLS,
       "enabled_user_shutdown": False,
+      "data_collectors": {
+        "diskstats": { "active": True },
+        "drbd": { "active": True },
+        "lv": { "active": True },
+        "inst-status-xen": { "active": True },
+        "cpu-avg-load": { "active": True },
+      },
     },
     "instances": {},
     "disks": {},
