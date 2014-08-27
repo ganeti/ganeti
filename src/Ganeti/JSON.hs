@@ -429,6 +429,10 @@ class ArrayObject a where
 -- | A Maybe newtype that allows for serialization more appropriate to the
 -- semantics of Maybe and JSON in our calls. Does not produce needless
 -- and confusing dictionaries.
+--
+-- In particular, `J.JSNull` corresponds to `Nothing`.
+-- This also means that this `Maybe a` newtype should not be used with `a`
+-- values that themselves can serialize to `null`.
 newtype MaybeForJSON a = MaybeForJSON { unMaybeForJSON :: Maybe a }
   deriving (Show, Eq, Ord)
 instance (J.JSON a) => J.JSON (MaybeForJSON a) where
