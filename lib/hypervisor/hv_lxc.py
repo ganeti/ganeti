@@ -85,20 +85,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     hv_base.BaseHypervisor.__init__(self)
     self._EnsureDirectoryExistence()
 
-  @staticmethod
-  def _GetMountSubdirs(path):
-    """Return the list of mountpoints under a given path.
-
-    """
-    result = []
-    for _, mountpoint, _, _ in utils.GetMounts():
-      if (mountpoint.startswith(path) and
-          mountpoint != path):
-        result.append(mountpoint)
-
-    result.sort(key=lambda x: x.count("/"), reverse=True)
-    return result
-
   @classmethod
   def _InstanceDir(cls, instance_name):
     """Return the root directory for an instance.
