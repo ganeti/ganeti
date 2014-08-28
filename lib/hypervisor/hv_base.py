@@ -532,6 +532,23 @@ class BaseHypervisor(object):
     return start_mem
 
   @classmethod
+  def _IsParamValueUnspecified(cls, param_value):
+    """Check if the parameter value is a kind of value meaning unspecified.
+
+    This function checks if the parameter value is a kind of value meaning
+    unspecified.
+
+    @type param_value: any
+    @param param_value: the parameter value that needs to be checked
+    @rtype: bool
+    @return: True if the parameter value is a kind of value meaning unspecified,
+      False otherwise
+
+    """
+    return param_value is None \
+      or isinstance(param_value, basestring) and param_value == ""
+
+  @classmethod
   def CheckParameterSyntax(cls, hvparams):
     """Check the given parameters for validity.
 
@@ -552,9 +569,9 @@ class BaseHypervisor(object):
       if name not in hvparams:
         raise errors.HypervisorError("Parameter '%s' is missing" % name)
       value = hvparams[name]
-      if not required and not value:
+      if not required and cls._IsParamValueUnspecified(value):
         continue
-      if not value:
+      if cls._IsParamValueUnspecified(value):
         raise errors.HypervisorError("Parameter '%s' is required but"
                                      " is currently not defined" % (name, ))
       if check_fn is not None and not check_fn(value):
@@ -576,7 +593,7 @@ class BaseHypervisor(object):
     """
     for name, (required, _, _, check_fn, errstr) in cls.PARAMETERS.items():
       value = hvparams[name]
-      if not required and not value:
+      if not required and cls._IsParamValueUnspecified(value):
         continue
       if check_fn is not None and not check_fn(value):
         raise errors.HypervisorError("Parameter '%s' fails"
