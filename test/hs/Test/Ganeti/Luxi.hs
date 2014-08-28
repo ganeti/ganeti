@@ -38,10 +38,10 @@ import Control.Concurrent (forkIO)
 import Control.Exception (bracket)
 import qualified Text.JSON as J
 
-import Test.Ganeti.TestHelper
-import Test.Ganeti.TestCommon
-import Test.Ganeti.Query.Language (genFilter)
 import Test.Ganeti.OpCodes ()
+import Test.Ganeti.Query.Language (genFilter)
+import Test.Ganeti.TestCommon
+import Test.Ganeti.TestHelper
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Luxi as Luxi
