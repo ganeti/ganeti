@@ -103,12 +103,14 @@ class TestLXCHypervisorGetInstanceInfo(LXCHypervisorTestCase):
     super(TestLXCHypervisorGetInstanceInfo, self).setUp()
     self.hv._GetCgroupCpuList = mock.Mock(return_value=[1, 3])
     self.hv._GetCgroupMemoryLimit = mock.Mock(return_value=128*(1024**2))
+    self.hv._GetCgroupCpuUsage = mock.Mock(return_value=5.01)
 
   @patch_object(LXCHypervisor, "_IsInstanceAlive")
   def testRunningInstance(self, isalive_mock):
     isalive_mock.return_value = True
     self.assertEqual(self.hv.GetInstanceInfo("inst1"),
-                     ("inst1", 0, 128, 2, hv_base.HvInstanceState.RUNNING, 0))
+                     ("inst1", 0, 128, 2, hv_base.HvInstanceState.RUNNING,
+                      5.01))
 
   @patch_object(LXCHypervisor, "_IsInstanceAlive")
   def testInactiveOrNonexistentInstance(self, isalive_mock):
