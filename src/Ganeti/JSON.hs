@@ -114,12 +114,12 @@ readJSONWithDesc :: (J.JSON a)
                                               --   error messages
                  -> J.JSValue                 -- ^ input value
                  -> J.Result a
-readJSONWithDesc typ incInput input =
+readJSONWithDesc name incInput input =
   case J.readJSON input of
     J.Ok r    -> J.Ok r
     J.Error e -> J.Error $ if incInput then msg ++ " from " ++ show input
                                        else msg
-      where msg = "Can't parse value for type " ++ typ ++ ": " ++ e
+      where msg = "Can't parse value for '" ++ name ++ "': " ++ e
 
 -- | Converts a JSON Result into a monadic value.
 fromJResult :: Monad m => String -> J.Result a -> m a
