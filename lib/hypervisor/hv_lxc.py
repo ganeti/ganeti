@@ -329,6 +329,33 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return utils.ReadFile(param_path).rstrip("\n")
 
   @classmethod
+  def _SetCgroupInstanceValue(cls, instance_name, param_name, param_value):
+    """Set the value to the specified instance cgroup parameter.
+
+    @type instance_name: string
+    @param instance_name: instance name
+    @type param_name: string
+    @param param_name: cgroup subsystem parameter name
+    @type param_value: string
+    @param param_value: cgroup subsystem parameter value to be set
+
+    """
+    param_path = cls._GetCgroupInstanceParamPath(instance_name, param_name)
+    # When interacting with cgroup fs, errno is quite important information
+    # to see what happened when setting a cgroup parameter, so just throw
+    # an error to the upper level.
+    # e.g., we could know that the container can't reclaim its memory by
+    #       checking if the errno is EBUSY when setting the
+    #       memory.memsw.limit_in_bytes.
+    fd = -1
+    try:
+      fd = os.open(param_path, os.O_WRONLY)
+      os.write(fd, param_value)
+    finally:
+      if fd != -1:
+        os.close(fd)
+
+  @classmethod
   def _GetCgroupCpuList(cls, instance_name):
     """Return the list of CPU ids for an instance.
 
