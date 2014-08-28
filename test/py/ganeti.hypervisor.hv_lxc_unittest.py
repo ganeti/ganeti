@@ -171,12 +171,12 @@ class TestCgroupReadData(LXCHypervisorTestCase):
   def testGetCgroupInstanceValue(self, getdir_mock):
     getdir_mock.return_value = utils.PathJoin(self.cgroot, "memory", "lxc",
                                               "instance1")
-    self.assertEqual(self.hv._GetCgroupInstanceValue("instance1", "memory",
+    self.assertEqual(self.hv._GetCgroupInstanceValue("instance1",
                                                      "memory.limit_in_bytes"),
                      "128")
     getdir_mock.return_value = utils.PathJoin(self.cgroot, "cpuset",
                                               "some_group", "lxc", "instance1")
-    self.assertEqual(self.hv._GetCgroupInstanceValue("instance1", "cpuset",
+    self.assertEqual(self.hv._GetCgroupInstanceValue("instance1",
                                                      "cpuset.cpus"),
                      "0-1")
 

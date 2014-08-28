@@ -298,22 +298,35 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(subsys_dir, base_group, "lxc", instance_name)
 
   @classmethod
-  def _GetCgroupInstanceValue(cls, instance_name, subsystem, param):
+  def _GetCgroupInstanceParamPath(cls, instance_name, param_name):
+    """Return the path of the specified cgroup parameter file.
+
+    @type instance_name: string
+    @param instance_name: instance name
+    @type param_name: string
+    @param param_name: cgroup subsystem parameter name
+    @rtype string
+    @return path of the cgroup subsystem parameter file
+
+    """
+    subsystem = param_name.split(".", 1)[0]
+    subsys_dir = cls._GetCgroupInstanceSubsysDir(instance_name, subsystem)
+    return utils.PathJoin(subsys_dir, param_name)
+
+  @classmethod
+  def _GetCgroupInstanceValue(cls, instance_name, param_name):
     """Return the value of the specified cgroup parameter.
 
     @type instance_name: string
     @param instance_name: instance name
-    @type subsystem: string
-    @param subsystem: cgroup subsystem name
-    @type param: string
-    @param param: cgroup subsystem parameter name
+    @type param_name: string
+    @param param_name: cgroup subsystem parameter name
     @rtype string
     @return value read from cgroup subsystem fs
 
     """
-    subsys_dir = cls._GetCgroupInstanceSubsysDir(instance_name, subsystem)
-    param_file = utils.PathJoin(subsys_dir, param)
-    return utils.ReadFile(param_file).rstrip("\n")
+    param_path = cls._GetCgroupInstanceParamPath(instance_name, param_name)
+    return utils.ReadFile(param_path).rstrip("\n")
 
   @classmethod
   def _GetCgroupCpuList(cls, instance_name):
@@ -321,8 +334,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     try:
-      cpumask = cls._GetCgroupInstanceValue(instance_name,
-                                            "cpuset", "cpuset.cpus")
+      cpumask = cls._GetCgroupInstanceValue(instance_name, "cpuset.cpus")
     except EnvironmentError, err:
       raise errors.HypervisorError("Getting CPU list for instance"
                                    " %s failed: %s" % (instance_name, err))
@@ -336,7 +348,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     try:
       mem_limit = cls._GetCgroupInstanceValue(instance_name,
-                                              "memory",
                                               "memory.limit_in_bytes")
       mem_limit = int(mem_limit)
     except EnvironmentError:
