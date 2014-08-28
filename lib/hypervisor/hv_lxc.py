@@ -94,6 +94,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
   # Let beta version following micro version, but don't care about it
   _LXC_VERSION_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
+  _REBOOT_TIMEOUT = 120 # secs
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
@@ -686,12 +687,20 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   def RebootInstance(self, instance):
     """Reboot an instance.
 
-    This is not (yet) implemented (in Ganeti) for the LXC hypervisor.
-
     """
-    # TODO: implement reboot
-    raise HypervisorError("The LXC hypervisor doesn't implement the"
-                          " reboot functionality")
+    if "sys_boot" in self._GetInstanceDropCapabilities(instance.hvparams):
+      raise HypervisorError("The LXC container can't perform a reboot with the"
+                            " SYS_BOOT capability dropped.")
+
+    # We can't use the --timeout=-1 approach as same as the StopInstance due to
+    # the following patch was applied in lxc-1.0.5 and we are supporting
+    # LXC >= 1.0.0.
+    # http://lists.linuxcontainers.org/pipermail/lxc-devel/2014-July/009742.html
+    result = utils.RunCmd(["lxc-stop", "-n", instance.name, "--reboot",
+                           "--timeout", str(self._REBOOT_TIMEOUT)])
+    if result.failed:
+      raise HypervisorError("Failed to reboot instance %s: %s" %
+                            (instance.name, result.output))
 
   def BalloonInstanceMemory(self, instance, mem):
     """Balloon an instance memory to a certain value.
