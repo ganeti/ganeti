@@ -3438,7 +3438,7 @@ class LUInstanceSetParams(LogicalUnit):
                                    errors.ECODE_INVAL)
 
       # Only perform this test if a new CPU mask is given
-      if constants.HV_CPU_MASK in self.hv_new:
+      if constants.HV_CPU_MASK in self.hv_new and cpu_list:
         # Calculate the largest CPU number requested
         max_requested_cpu = max(map(max, cpu_list))
         # Check that all of the instance's nodes have enough physical CPUs to
