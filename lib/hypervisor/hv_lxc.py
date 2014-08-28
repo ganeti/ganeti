@@ -96,6 +96,11 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   # Let beta version following micro version, but don't care about it
   _LXC_VERSION_RE = re.compile(r"^(\d+)\.(\d+)\.(\d+)")
   _REBOOT_TIMEOUT = 120 # secs
+  _REQUIRED_CGROUP_SUBSYSTEMS = [
+    "cpuset",
+    "memory",
+    "devices",
+    ]
 
   def __init__(self):
     hv_base.BaseHypervisor.__init__(self)
@@ -555,6 +560,11 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """Ensures all cgroup subsystems required to run LXC container are mounted.
 
     """
+    # Check cgroup subsystems required by the Ganeti LXC hypervisor
+    for subsystem in cls._REQUIRED_CGROUP_SUBSYSTEMS:
+      cls._GetOrPrepareCgroupSubsysMountPoint(subsystem)
+
+    # Check cgroup subsystems required by the LXC
     if hvparams is None or not hvparams[constants.HV_LXC_CGROUP_USE]:
       enable_subsystems = cls._GetCgroupEnabledKernelSubsystems()
     else:
