@@ -90,6 +90,20 @@ implemented in 2.12:
 - Issues 708 and 602: The secret parameters are currently still written
   to disk in the job queue.
 
+Known issues
+~~~~~~~~~~~~
+
+- *Wrong UDP checksums in DHCP network packets:*
+  If an instance communicates with the metadata daemon and uses DHCP to
+  obtain its IP address on the provided virtual network interface,
+  it can happen that UDP packets have a wrong checksum, due to
+  a bug in virtio. See for example https://bugs.launchpad.net/bugs/930962
+
+  Ganeti works around this bug by disabling the UDP checksums on the way
+  from a host to instances (only on the special metadata communication
+  network interface) using the ethtool command. Therefore if using
+  the metadata daemon the host nodes should have this tool available.
+
 
 Version 2.12.0 beta1
 --------------------
