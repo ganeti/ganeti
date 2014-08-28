@@ -23,6 +23,7 @@
 
 """
 
+import errno
 import os
 import os.path
 import logging
@@ -749,8 +750,35 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     @param mem: actual memory size to use for instance runtime
 
     """
-    # Currently lxc instances don't have memory limits
-    pass
+    mem_in_bytes = mem * 1024 ** 2
+    current_mem_usage = self._GetCgroupMemoryLimit(instance.name)
+    shrinking = mem_in_bytes <= current_mem_usage
+
+    # memory.memsw.limit_in_bytes is the superlimit of the memory.limit_in_bytes
+    # so the order of setting these parameters is quite important.
+    cgparams = ["memory.memsw.limit_in_bytes", "memory.limit_in_bytes"]
+    if shrinking:
+      cgparams.reverse()
+
+    for i, cgparam in enumerate(cgparams):
+      try:
+        self._SetCgroupInstanceValue(instance.name, cgparam, str(mem_in_bytes))
+      except EnvironmentError, err:
+        if shrinking and err.errno == errno.EBUSY:
+          logging.warn("Unable to reclaim memory or swap usage from instance"
+                       " %s", instance.name)
+        # Restore changed parameters for an atomicity
+        for restore_param in cgparams[0:i]:
+          try:
+            self._SetCgroupInstanceValue(instance.name, restore_param,
+                                         str(current_mem_usage))
+          except EnvironmentError, restore_err:
+            logging.warn("Can't restore the cgroup parameter %s of %s: %s",
+                         restore_param, instance.name, restore_err)
+
+        raise HypervisorError("Failed to balloon the memory of %s, can't set"
+                              " cgroup parameter %s: %s" %
+                              (instance.name, cgparam, err))
 
   def GetNodeInfo(self, hvparams=None):
     """Return information about the node.
