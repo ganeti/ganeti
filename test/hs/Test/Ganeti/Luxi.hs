@@ -148,7 +148,7 @@ case_AllDefined = do
       extra_hs = hs_ops \\ py_ops
   assertBool ("Luxi calls missing from Haskell code:\n" ++
               unlines extra_py) (null extra_py)
-  assertBool ("Extra Luxi calls in the Haskell code code:\n" ++
+  assertBool ("Extra Luxi calls in the Haskell code:\n" ++
               unlines extra_hs) (null extra_hs)
 
 
