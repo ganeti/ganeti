@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances,
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, TupleSections,
              GeneralizedNewtypeDeriving, DeriveTraversable #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -73,6 +73,7 @@ module Ganeti.JSON
   , Container
   , MaybeForJSON(..)
   , TimeAsDoubleJSON(..)
+  , Tuple5(..)
   )
   where
 
@@ -459,3 +460,27 @@ instance J.JSON TimeAsDoubleJSON where
       pico = 10^(12 :: Int)
   showJSON (TimeAsDoubleJSON (TOD ss ps)) = J.showJSON
       (fromIntegral ss + fromIntegral ps / 10^(12 :: Int) :: Double)
+
+-- Text.JSON from the JSON package only has instances for tuples up to size 4.
+-- We use these newtypes so that we don't get a breakage once the 'json'
+-- package adds instances for larger tuples (or have to resort to CPP).
+
+newtype Tuple5 a b c d e = Tuple5 { unTuple5 :: (a, b, c, d, e) }
+
+instance (J.JSON a, J.JSON b, J.JSON c, J.JSON d, J.JSON e)
+         => J.JSON (Tuple5 a b c d e) where
+  readJSON (J.JSArray [a,b,c,d,e]) =
+    Tuple5 <$> ((,,,,) <$> J.readJSON a
+                       <*> J.readJSON b
+                       <*> J.readJSON c
+                       <*> J.readJSON d
+                       <*> J.readJSON e)
+  readJSON _ = fail "Unable to read Tuple5"
+  showJSON (Tuple5 (a, b, c, d, e)) =
+    J.JSArray
+      [ J.showJSON a
+      , J.showJSON b
+      , J.showJSON c
+      , J.showJSON d
+      , J.showJSON e
+      ]
