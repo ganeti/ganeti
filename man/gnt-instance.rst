@@ -951,6 +951,17 @@ lxc\_extra\_config
 
     This parameter is not set by default.
 
+lxc\_tty
+    Valid for the LXC hypervisor.
+
+    This option specifies the number of ttys(actually ptys) that
+    should be allocated for the LXC container.
+    You can disable pty devices allocation for the LXC container by
+    setting this parameter to 0, but you can't use
+    **gnt-instance console** in this case.
+
+    It is set to ``6`` by default.
+
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depend on the OS being
 used, but the syntax is the same key=value. For example, setting a

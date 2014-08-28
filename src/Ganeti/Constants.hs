@@ -1701,6 +1701,9 @@ hvLxcDropCapabilities = "lxc_drop_capabilities"
 hvLxcExtraConfig :: String
 hvLxcExtraConfig = "lxc_extra_config"
 
+hvLxcTty :: String
+hvLxcTty = "lxc_tty"
+
 hvMemPath :: String
 hvMemPath = "mem_path"
 
@@ -1867,6 +1870,7 @@ hvsParameterTypes = Map.fromList
   , (hvLxcDevices,                      VTypeString)
   , (hvLxcDropCapabilities,             VTypeString)
   , (hvLxcExtraConfig,                  VTypeString)
+  , (hvLxcTty,                          VTypeInt)
   , (hvLxcStartupWait,                  VTypeInt)
   , (hvMemPath,                         VTypeString)
   , (hvMigrationBandwidth,              VTypeInt)
@@ -3952,6 +3956,7 @@ hvcDefaults =
           , (hvLxcDevices,          PyValueEx lxcDevicesDefault)
           , (hvLxcDropCapabilities, PyValueEx lxcDropCapabilitiesDefault)
           , (hvLxcExtraConfig,      PyValueEx "")
+          , (hvLxcTty,              PyValueEx (6 :: Int))
           , (hvLxcStartupWait,      PyValueEx (30 :: Int))
           ])
   ]
