@@ -941,6 +941,16 @@ lxc\_devices
     /dev/console, /dev/ptmx and first block of Unix98 PTY slaves) with
     read-writable(rw) access.
 
+lxc\_extra\_config
+    Valid for the LXC hypervisor.
+
+    This option specifies the list of extra config parameters which
+    are not supported by the Ganeti LXC hypervisor natively.
+    Each value of this option must be valid a line of the LXC
+    container config file(see: **lxc.container.conf**\(5)).
+
+    This parameter is not set by default.
+
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depend on the OS being
 used, but the syntax is the same key=value. For example, setting a

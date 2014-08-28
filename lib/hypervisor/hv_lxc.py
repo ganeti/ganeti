@@ -68,6 +68,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     constants.HV_LXC_CGROUP_USE: hv_base.NO_CHECK,
     constants.HV_LXC_DEVICES: hv_base.NO_CHECK,
     constants.HV_LXC_DROP_CAPABILITIES: hv_base.NO_CHECK,
+    constants.HV_LXC_EXTRA_CONFIG: hv_base.NO_CHECK,
     constants.HV_LXC_STARTUP_WAIT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     }
 
@@ -517,6 +518,16 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # Capabilities
     for cap in self._GetInstanceDropCapabilities(instance.hvparams):
       out.append("lxc.cap.drop = %s" % cap)
+
+    # Extra config
+    # TODO: Currently a configuration parameter that includes comma
+    # in its value can't be added via this parameter.
+    # Make this parameter able to read from a file once the
+    # "parameter from a file" feature added.
+    extra_configs = instance.hvparams[constants.HV_LXC_EXTRA_CONFIG]
+    if extra_configs:
+      out.append("# User defined configs")
+      out.extend(extra_configs.split(","))
 
     return "\n".join(out) + "\n"
 
