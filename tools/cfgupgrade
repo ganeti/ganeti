@@ -162,6 +162,8 @@ def UpgradeCluster(config_data):
     cluster.get("compression_tools", constants.IEC_DEFAULT_TOOLS)
   if "enabled_user_shutdown" not in cluster:
     cluster["enabled_user_shutdown"] = False
+  cluster["data_collectors"] = dict(
+    (name, dict(active=True)) for name in constants.DATA_COLLECTOR_NAMES)
 
 
 def UpgradeGroups(config_data):
@@ -466,12 +468,19 @@ def DowngradeExtAccess(config_data):
       del group_extparams["access"]
 
 
+def DowngradeDataCollectors(config_data):
+  cluster = config_data["cluster"]
+  if "data_collectors" in cluster:
+    del cluster["data_collectors"]
+
+
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
   DowngradeExtAccess(config_data)
+  DowngradeDataCollectors(config_data)
 
 
 def _ParseOptions():

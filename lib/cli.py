@@ -110,6 +110,7 @@ __all__ = [
   "IALLOCATOR_OPT",
   "DEFAULT_IALLOCATOR_OPT",
   "DEFAULT_IALLOCATOR_PARAMS_OPT",
+  "ENABLED_DATA_COLLECTORS_OPT",
   "IDENTIFY_DEFAULTS_OPT",
   "IGNORE_CONSIST_OPT",
   "IGNORE_ERRORS_OPT",
@@ -1826,6 +1827,15 @@ ZEROING_TIMEOUT_PER_MIB_OPT = \
                dest="zeroing_timeout_per_mib", action="store", type="float",
                help="The amount of time to wait per MiB of data to zero, in "
                     "addition to the fixed timeout")
+
+ENABLED_DATA_COLLECTORS_OPT = \
+    cli_option("--enabled-data-collectors",
+               dest="enabled_data_collectors", type="keyval",
+               default={},
+               help="Deactivate or reactivate a data collector for reporting, "
+               "in the format collector=bool, where collector is one of %s."
+               % ", ".join(constants.DATA_COLLECTOR_NAMES))
+
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]

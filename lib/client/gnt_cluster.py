@@ -75,16 +75,6 @@ TO_OPT = cli_option("--to", default=None, type="string",
 RESUME_OPT = cli_option("--resume", default=False, action="store_true",
                         help="Resume any pending Ganeti upgrades")
 
-ENABLE_DATA_COLLECTOR = cli_option(
-    "--enable-data-collector",
-    action="append", choices=list(constants.DATA_COLLECTOR_NAMES),
-    help="Reactivate a data collector for reporting.")
-
-DISABLE_DATA_COLLECTOR = cli_option(
-    "--disable-data-collector",
-    action="append", choices=list(constants.DATA_COLLECTOR_NAMES),
-    help="Deactivate a data collector for reporting.")
-
 _EPO_PING_INTERVAL = 30 # 30 seconds between pings
 _EPO_PING_TIMEOUT = 1 # 1 second
 _EPO_REACHABLE_TIMEOUT = 15 * 60 # 15 minutes
@@ -1184,8 +1174,7 @@ def SetClusterParams(opts, args):
           opts.compression_tools is not None or
           opts.shared_file_storage_dir is not None or
           opts.enabled_user_shutdown is not None or
-          opts.enable_data_collector is not None or
-          opts.disable_data_collector is not None):
+          opts.enabled_data_collectors):
     ToStderr("Please give at least one of the parameters.")
     return 1
 
@@ -1268,12 +1257,16 @@ def SetClusterParams(opts, args):
 
   compression_tools = _GetCompressionTools(opts)
 
-  enable_dcs = set(opts.enable_data_collector or [])
-  disable_dcs = set(opts.disable_data_collector or [])
-  enable_and_disable = enable_dcs & disable_dcs
-  if enable_and_disable:
-    ToStderr("Can't enable and disable %s at the same time." %
-             sorted(enable_and_disable))
+  enabled_data_collectors = dict(
+      (k, v.lower().startswith("t"))
+      for k, v in opts.enabled_data_collectors.items())
+
+  unrecognized_data_collectors = [
+      k for k in enabled_data_collectors.keys()
+      if k not in constants.DATA_COLLECTOR_NAMES]
+  if unrecognized_data_collectors:
+    ToStderr("Data collector names not recognized: %s" %
+             ", ".join(unrecognized_data_collectors))
     return 1
 
   op = opcodes.OpClusterSetParams(
@@ -1314,8 +1307,7 @@ def SetClusterParams(opts, args):
     shared_file_storage_dir=opts.shared_file_storage_dir,
     compression_tools=compression_tools,
     enabled_user_shutdown=opts.enabled_user_shutdown,
-    enable_data_collectors=list(enable_dcs),
-    disable_data_collectors=list(disable_dcs),
+    enabled_data_collectors=enabled_data_collectors,
     )
   return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
@@ -2302,8 +2294,7 @@ commands = {
      INSTANCE_POLICY_OPTS +
      [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
       COMPRESSION_TOOLS_OPT] +
-     [ENABLE_DATA_COLLECTOR,
-      DISABLE_DATA_COLLECTOR],
+     [ENABLED_DATA_COLLECTORS_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (

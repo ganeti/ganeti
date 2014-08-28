@@ -1560,11 +1560,9 @@ class LUClusterSetParams(LogicalUnit):
     ensure_kvmd = False
 
     active = constants.DATA_COLLECTOR_STATE_ACTIVE
-    for name in self.op.enable_data_collectors:
-      self.cluster.data_collectors[name][active] = True
-
-    for name in self.op.disable_data_collectors:
-      self.cluster.data_collectors[name][active] = False
+    if self.op.enabled_data_collectors is not None:
+      for name, val in self.op.enabled_data_collectors.items():
+        self.cluster.data_collectors[name][active] = val
 
     if self.op.hvparams:
       self.cluster.hvparams = self.new_hvparams

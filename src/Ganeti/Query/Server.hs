@@ -183,8 +183,9 @@ handleCall _ _ cdata QueryClusterInfo =
                showJSON $ clusterCompressionTools cluster)
             , ("enabled_user_shutdown",
                showJSON $ clusterEnabledUserShutdown cluster)
-            , ("data_collectors",
-               showJSON $ clusterDataCollectors cluster)
+            , ("enabled_data_collectors",
+               showJSON . fmap dataCollectorActive 
+                        $ clusterDataCollectors cluster)
             ]
 
   in case master of
