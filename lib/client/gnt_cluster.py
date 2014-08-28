@@ -594,6 +594,9 @@ def ShowClusterConfig(opts, args):
 
     ("Instance policy - limits for instances",
      FormatPolicyInfo(result["ipolicy"], None, True, opts.roman_integers)),
+    ("Data collectors",
+     _FormatGroupedParams(result["enabled_data_collectors"],
+                          roman=opts.roman_integers)),
     ]
 
   PrintGenericInfo(info)
