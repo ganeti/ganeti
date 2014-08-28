@@ -103,6 +103,9 @@ sharedFileStorageDir = "SHARED_FILE_STORAGE_DIR"
 iallocatorSearchPath :: [String]
 iallocatorSearchPath = split IALLOCATOR_SEARCH_PATH
 
+defaultBridge :: String
+defaultBridge = "DEFAULT_BRIDGE"
+
 kvmPath :: String
 kvmPath = "KVM_PATH"
 

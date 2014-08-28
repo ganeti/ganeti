@@ -1234,7 +1234,7 @@ maxTagsPerObj = 4096
 -- * Others
 
 defaultBridge :: String
-defaultBridge = "xen-br0"
+defaultBridge = AutoConf.defaultBridge
 
 defaultOvs :: String
 defaultOvs = "switch1"
