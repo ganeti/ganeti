@@ -11,9 +11,9 @@ The project aims to improve Ceph RBD support in Ganeti. It can be
 primarily divided into following tasks.
 
 - Use Qemu/KVM RBD driver to provide instances with direct RBD
-  support.
-- Allow Ceph RBDs' configuration through Ganeti.
-- Write a data collector to monitor Ceph nodes.
+  support. [implemented as of Ganeti 2.10]
+- Allow Ceph RBDs' configuration through Ganeti. [unimplemented]
+- Write a data collector to monitor Ceph nodes. [unimplemented]
 
 Background
 ==========
