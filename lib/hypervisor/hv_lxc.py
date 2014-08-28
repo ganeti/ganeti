@@ -70,18 +70,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     "lxc-wait",
     ]
 
-  _DEVS = [
-    "c 1:3",   # /dev/null
-    "c 1:5",   # /dev/zero
-    "c 1:7",   # /dev/full
-    "c 1:8",   # /dev/random
-    "c 1:9",   # /dev/urandom
-    "c 1:10",  # /dev/aio
-    "c 5:0",   # /dev/tty
-    "c 5:1",   # /dev/console
-    "c 5:2",   # /dev/ptmx
-    "c 136:*", # first block of Unix98 PTY slaves
-    ]
   _DIR_MODE = 0755
   _UNIQ_SUFFIX = ".conf"
   _STASH_KEY_ALLOCATED_LOOP_DEV = "allocated_loopdev"
@@ -89,6 +77,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   PARAMETERS = {
     constants.HV_CPU_MASK: hv_base.OPT_CPU_MASK_CHECK,
     constants.HV_LXC_CGROUP_USE: hv_base.NO_CHECK,
+    constants.HV_LXC_DEVICES: hv_base.NO_CHECK,
     constants.HV_LXC_DROP_CAPABILITIES: hv_base.NO_CHECK,
     constants.HV_LXC_STARTUP_WAIT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     }
@@ -518,8 +507,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # Device control
     # deny direct device access
     out.append("lxc.cgroup.devices.deny = a")
-    for devinfo in self._DEVS:
-      out.append("lxc.cgroup.devices.allow = %s rw" % devinfo)
+    dev_specs = instance.hvparams[constants.HV_LXC_DEVICES]
+    for dev_spec in dev_specs.split(","):
+      out.append("lxc.cgroup.devices.allow = %s" % dev_spec)
 
     # Networking
     for idx, nic in enumerate(instance.nics):

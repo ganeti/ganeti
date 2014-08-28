@@ -520,6 +520,21 @@ socatUseEscape :: Bool
 socatUseEscape = AutoConf.socatUseEscape
 
 -- * LXC
+-- If you are trying to change the value of these default constants, you also
+-- need to edit the default value declaration in man/gnt-instance.rst.
+lxcDevicesDefault :: String
+lxcDevicesDefault =
+     "c 1:3 rw"     -- /dev/null
+  ++ ",c 1:5 rw"    -- /dev/zero
+  ++ ",c 1:7 rw"    -- /dev/full
+  ++ ",c 1:8 rw"    -- /dev/random
+  ++ ",c 1:9 rw"    -- /dev/urandom
+  ++ ",c 1:10 rw"   -- /dev/aio
+  ++ ",c 5:0 rw"    -- /dev/tty
+  ++ ",c 5:1 rw"    -- /dev/console
+  ++ ",c 5:2 rw"    -- /dev/ptmx
+  ++ ",c 136:* rw"  -- first block of Unix98 PTY slaves
+
 lxcDropCapabilitiesDefault :: String
 lxcDropCapabilitiesDefault =
      "mac_override" -- Allow MAC configuration or state changes
@@ -1677,6 +1692,9 @@ hvLxcStartupWait = "lxc_startup_wait"
 hvLxcCgroupUse :: String
 hvLxcCgroupUse = "lxc_cgroup_use"
 
+hvLxcDevices :: String
+hvLxcDevices = "lxc_devices"
+
 hvLxcDropCapabilities :: String
 hvLxcDropCapabilities = "lxc_drop_capabilities"
 
@@ -1843,6 +1861,7 @@ hvsParameterTypes = Map.fromList
   , (hvKvmUseChroot,                    VTypeBool)
   , (hvKvmUserShutdown,                 VTypeBool)
   , (hvLxcCgroupUse,                    VTypeString)
+  , (hvLxcDevices,                      VTypeString)
   , (hvLxcDropCapabilities,             VTypeString)
   , (hvLxcStartupWait,                  VTypeInt)
   , (hvMemPath,                         VTypeString)
@@ -3926,6 +3945,7 @@ hvcDefaults =
   , (Lxc, Map.fromList
           [ (hvCpuMask,             PyValueEx "")
           , (hvLxcCgroupUse,        PyValueEx "")
+          , (hvLxcDevices,          PyValueEx lxcDevicesDefault)
           , (hvLxcDropCapabilities, PyValueEx lxcDropCapabilitiesDefault)
           , (hvLxcStartupWait,      PyValueEx (30 :: Int))
           ])

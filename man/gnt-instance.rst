@@ -918,6 +918,29 @@ lxc\_drop\_capabilities
 
     The default value is ``mac_override,sys_boot,sys_module,sys_time``.
 
+lxc\_devices
+    Valid for the LXC hypervisor.
+
+    This option specifies the list of devices that can be accessed
+    from inside of the LXC container.
+    Each value of this option must have the same form as the
+    lxc.cgroup.devices.allow configuration parameter of
+    **lxc.container.conf**\(5). It consists of the type(a: all,
+    b: block, c: character), the major-minor pair, and the access type
+    sequence(r: read, w: write, m: mknod), e.g. "c 1:3 rw".
+    If you'd like to allow the LXC container to access /dev/null and
+    /dev/zero with read-write access, you can set this parameter to:
+    "c 1:3 rw,c 1:5 rw".
+    The LXC hypervisor drops all direct device access by default, so
+    if you want to allow the LXC container to access an additional
+    device which is not included in the default value of this
+    parameter, you have to set this parameter manually.
+
+    By default, this parameter contains (/dev/null, /dev/zero,
+    /dev/full, /dev/random, /dev/urandom, /dev/aio, /dev/tty,
+    /dev/console, /dev/ptmx and first block of Unix98 PTY slaves) with
+    read-writable(rw) access.
+
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depend on the OS being
 used, but the syntax is the same key=value. For example, setting a
