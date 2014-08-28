@@ -184,6 +184,18 @@ fi
 # parameters does not produce an error.
 ifconfig $INTERFACE 169.254.169.254 netmask $NETMASK up
 
+# There is a known bug where UDP packets comming from a host to a XEN
+# guest are missing checksums. There are several ways how to tackle the
+# issue, for example fixing the checksums using iptables (requires a
+# newer version):
+#
+# iptables -A POSTROUTING -t mangle -p udp --dport bootpc -j CHECKSUM \
+#   --checksum-fill
+#
+# The easiest one currently seems to be to just turn checksumming off
+# for this direction:
+ethtool -K $INTERFACE tx off || true
+
 # Configure the routing table
 #
 # Given that all TAP network interfaces in the instance communication

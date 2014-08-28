@@ -21,10 +21,10 @@ broken and to generate a sequence of jobs that will fix it, in accordance to the
 policies set by the administrator.
 
 Harep is able to recognize what state an instance is in (healthy, suspended,
-needs repair, repair disallowed, pending repair, repair disallowed, repair
-failed) and to lead it through a sequence of steps that will bring the instance
+needs repair, repair disallowed, pending repair, repair failed)
+and to lead it through a sequence of steps that will bring the instance
 back to the healthy state. Therefore, harep is mainly meant to be run regularly
-and frequently using a cron job, so that is can actually follow the instance
+and frequently using a cron job, so that it can actually follow the instance
 along all the process. At every run, harep will update the tags it adds to
 instances that describe its repair status, and will submit jobs that actually
 perform the required repair operations.
