@@ -46,7 +46,7 @@ import Test.Ganeti.Objects ()
 import Test.Ganeti.Query.Language ()
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
-import Test.Ganeti.Types ()
+import Test.Ganeti.Types (genReasonTrail)
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -477,16 +477,6 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpRestrictedCommand <$> arbitrary <*> genNodeNamesNE <*>
           return Nothing <*> genNameNE
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
-
--- | Generates one element of a reason trail
-genReasonElem :: Gen ReasonElem
-genReasonElem = (,,) <$> genFQDN <*> genFQDN <*> arbitrary
-
--- | Generates a reason trail
-genReasonTrail :: Gen ReasonTrail
-genReasonTrail = do
-  size <- choose (0, 10)
-  vectorOf size genReasonElem
 
 instance Arbitrary OpCodes.CommonOpParams where
   arbitrary = OpCodes.CommonOpParams <$> arbitrary <*> arbitrary <*>

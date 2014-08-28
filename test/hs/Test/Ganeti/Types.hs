@@ -35,6 +35,7 @@ module Test.Ganeti.Types
   , NonEmpty(..)
   , Hypervisor(..)
   , JobId(..)
+  , genReasonTrail
   ) where
 
 import Control.Applicative
@@ -155,6 +156,16 @@ $(genArbitrary ''OpSubmitPriority)
 $(genArbitrary ''OpStatus)
 
 $(genArbitrary ''ELogType)
+
+-- | Generates one element of a reason trail
+genReasonElem :: Gen ReasonElem
+genReasonElem = (,,) <$> genFQDN <*> genFQDN <*> arbitrary
+
+-- | Generates a reason trail
+genReasonTrail :: Gen ReasonTrail
+genReasonTrail = do
+  size <- choose (0, 10)
+  vectorOf size genReasonElem
 
 -- * Properties
 
