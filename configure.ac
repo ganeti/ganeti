@@ -201,6 +201,15 @@ AC_ARG_WITH([iallocator-search-path],
   [iallocator_search_path="$libdir/$PACKAGE_NAME/iallocators"])
 AC_SUBST(IALLOCATOR_SEARCH_PATH, $iallocator_search_path)
 
+# --with-default-bridge=...
+AC_ARG_WITH([default-bridge],
+  [AS_HELP_STRING([--with-default-bridge=BRIDGE],
+    [default bridge (default is xen-br0)]
+  )],
+  [default_bridge="$withval"],
+  [default_bridge="xen-br0"])
+AC_SUBST(DEFAULT_BRIDGE, $default_bridge)
+
 # --with-xen-bootloader=...
 AC_ARG_WITH([xen-bootloader],
   [AS_HELP_STRING([--with-xen-bootloader=PATH],
