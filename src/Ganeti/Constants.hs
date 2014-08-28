@@ -520,6 +520,13 @@ socatUseEscape :: Bool
 socatUseEscape = AutoConf.socatUseEscape
 
 -- * LXC
+lxcDropCapabilitiesDefault :: String
+lxcDropCapabilitiesDefault =
+     "mac_override" -- Allow MAC configuration or state changes
+  ++ ",sys_boot"    -- Use reboot(2) and kexec_load(2)
+  ++ ",sys_module"  -- Load and unload kernel modules
+  ++ ",sys_time"    -- Set system clock, set real-time (hardware) clock
+
 lxcStateRunning :: String
 lxcStateRunning = "RUNNING"
 
@@ -1670,6 +1677,9 @@ hvLxcStartupWait = "lxc_startup_wait"
 hvLxcCgroupUse :: String
 hvLxcCgroupUse = "lxc_cgroup_use"
 
+hvLxcDropCapabilities :: String
+hvLxcDropCapabilities = "lxc_drop_capabilities"
+
 hvMemPath :: String
 hvMemPath = "mem_path"
 
@@ -1833,6 +1843,7 @@ hvsParameterTypes = Map.fromList
   , (hvKvmUseChroot,                    VTypeBool)
   , (hvKvmUserShutdown,                 VTypeBool)
   , (hvLxcCgroupUse,                    VTypeString)
+  , (hvLxcDropCapabilities,             VTypeString)
   , (hvLxcStartupWait,                  VTypeInt)
   , (hvMemPath,                         VTypeString)
   , (hvMigrationBandwidth,              VTypeInt)
@@ -3913,9 +3924,10 @@ hvcDefaults =
   , (Fake, Map.fromList [(hvMigrationMode, PyValueEx htMigrationLive)])
   , (Chroot, Map.fromList [(hvInitScript, PyValueEx "/ganeti-chroot")])
   , (Lxc, Map.fromList
-          [ (hvCpuMask,        PyValueEx "")
-          , (hvLxcCgroupUse,   PyValueEx "")
-          , (hvLxcStartupWait, PyValueEx (30 :: Int))
+          [ (hvCpuMask,             PyValueEx "")
+          , (hvLxcCgroupUse,        PyValueEx "")
+          , (hvLxcDropCapabilities, PyValueEx lxcDropCapabilitiesDefault)
+          , (hvLxcStartupWait,      PyValueEx (30 :: Int))
           ])
   ]
 

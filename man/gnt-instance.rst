@@ -901,6 +901,23 @@ lxc\_cgroup\_use
     If this parameter is not specified, a list will be built from info
     in /proc/cgroups.
 
+lxc\_drop\_capabilities
+    Valid for the LXC hypervisor.
+
+    This option specifies the list of capabilities which should be
+    dropped for a LXC container.
+    Each value of this option must be in the same form as the
+    lxc.cap.drop configuration parameter of
+    **lxc.container.conf**\(5). It is the lower case of the capability
+    name without the "CAP\_" prefix (e.g., "sys_module,sys_time").
+    See **capabilities**\(7) for more details about Linux capabilities.
+    Note that some capabilities are required by the LXC container
+    (see: **lxc.container.conf**\(5)).
+    Also note that the CAP_SYS_BOOT is required(should not be dropped)
+    to perform the soft reboot for the LXC container.
+
+    The default value is ``mac_override,sys_boot,sys_module,sys_time``.
+
 The ``-O (--os-parameters)`` option allows customisation of the OS
 parameters. The actual parameter names and values depend on the OS being
 used, but the syntax is the same key=value. For example, setting a

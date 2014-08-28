@@ -81,14 +81,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     "c 5:2",   # /dev/ptmx
     "c 136:*", # first block of Unix98 PTY slaves
     ]
-  _DENIED_CAPABILITIES = [
-    "mac_override",    # Allow MAC configuration or state changes
-    # TODO: remove sys_admin too, for safety
-    #"sys_admin",       # Perform  a range of system administration operations
-    "sys_boot",        # Use reboot(2) and kexec_load(2)
-    "sys_module",      # Load  and  unload kernel modules
-    "sys_time",        # Set  system  clock, set real-time (hardware) clock
-    ]
   _DIR_MODE = 0755
   _UNIQ_SUFFIX = ".conf"
   _STASH_KEY_ALLOCATED_LOOP_DEV = "allocated_loopdev"
@@ -96,6 +88,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   PARAMETERS = {
     constants.HV_CPU_MASK: hv_base.OPT_CPU_MASK_CHECK,
     constants.HV_LXC_CGROUP_USE: hv_base.NO_CHECK,
+    constants.HV_LXC_DROP_CAPABILITIES: hv_base.NO_CHECK,
     constants.HV_LXC_STARTUP_WAIT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     }
 
@@ -413,6 +406,19 @@ class LXCHypervisor(hv_base.BaseHypervisor):
         data.append(info)
     return data
 
+  @classmethod
+  def _GetInstanceDropCapabilities(cls, hvparams):
+    """Get and parse the drop capabilities list from the instance hvparams.
+
+    @type hvparams: dict of strings
+    @param hvparams: instance hvparams
+    @rtype list(string)
+    @return list of drop capabilities
+
+    """
+    drop_caps = hvparams[constants.HV_LXC_DROP_CAPABILITIES]
+    return drop_caps.split(",")
+
   def _CreateConfigFile(self, instance, sda_dev_path):
     """Create an lxc.conf file for an instance.
 
@@ -486,7 +492,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       out.append("lxc.network.flags = up")
 
     # Capabilities
-    for cap in self._DENIED_CAPABILITIES:
+    for cap in self._GetInstanceDropCapabilities(instance.hvparams):
       out.append("lxc.cap.drop = %s" % cap)
 
     return "\n".join(out) + "\n"
