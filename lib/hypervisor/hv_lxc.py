@@ -361,12 +361,10 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     try:
       mem_limit = cls._GetCgroupInstanceValue(instance_name,
                                               "memory.limit_in_bytes")
-      mem_limit = int(mem_limit)
-    except EnvironmentError:
-      # memory resource controller may be disabled, ignore
-      mem_limit = 0
-
-    return mem_limit
+      return int(mem_limit)
+    except EnvironmentError, err:
+      raise HypervisorError("Can't get instance memory limit of %s: %s" %
+                            (instance_name, err))
 
   def ListInstances(self, hvparams=None):
     """Get the list of running instances.
