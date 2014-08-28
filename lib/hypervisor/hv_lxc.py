@@ -43,17 +43,6 @@ from ganeti.errors import HypervisorError
 class LXCHypervisor(hv_base.BaseHypervisor):
   """LXC-based virtualization.
 
-  TODO:
-    - move hardcoded parameters into hypervisor parameters, once we
-      have the container-parameter support
-
-  Problems/issues:
-    - LXC is very temperamental; in daemon mode, it succeeds or fails
-      in launching the instance silently, without any error
-      indication, and when failing it can leave network interfaces
-      around, and future successful startups will list the instance
-      twice
-
   """
   _ROOT_DIR = pathutils.RUN_DIR + "/lxc"
   _LOG_DIR = pathutils.LOG_DIR + "/lxc"
