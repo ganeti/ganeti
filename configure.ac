@@ -201,6 +201,15 @@ AC_ARG_WITH([iallocator-search-path],
   [iallocator_search_path="$libdir/$PACKAGE_NAME/iallocators"])
 AC_SUBST(IALLOCATOR_SEARCH_PATH, $iallocator_search_path)
 
+# --with-default-vg=...
+AC_ARG_WITH([default-vg],
+  [AS_HELP_STRING([--with-default-vg=VOLUMEGROUP],
+    [default volume group (default is xenvg)]
+  )],
+  [default_vg="$withval"],
+  [default_vg="xenvg"])
+AC_SUBST(DEFAULT_VG, $default_vg)
+
 # --with-default-bridge=...
 AC_ARG_WITH([default-bridge],
   [AS_HELP_STRING([--with-default-bridge=BRIDGE],
