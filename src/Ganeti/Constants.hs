@@ -1268,7 +1268,7 @@ tcpPingTimeout :: Int
 tcpPingTimeout = 10
 
 defaultVg :: String
-defaultVg = "xenvg"
+defaultVg = AutoConf.defaultVg
 
 defaultDrbdHelper :: String
 defaultDrbdHelper = "/bin/true"
