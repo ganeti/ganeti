@@ -1370,6 +1370,10 @@ def SetInstanceParams(opts, args):
              " only at the next (re)start of the instance initiated by"
              " ganeti; restarting from within the instance will"
              " not be enough.")
+    if opts.hvparams:
+      ToStdout("Note that changing hypervisor parameters without performing a"
+               " restart might lead to a crash while performing a live"
+               " migration. This will be addressed in future Ganeti versions.")
   return 0
 
 
