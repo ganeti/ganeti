@@ -479,7 +479,6 @@ ARGS_MANY_GROUPS = [ArgGroup()]
 ARGS_ONE_INSTANCE = [ArgInstance(min=1, max=1)]
 ARGS_ONE_NETWORK = [ArgNetwork(min=1, max=1)]
 ARGS_ONE_NODE = [ArgNode(min=1, max=1)]
-# TODO
 ARGS_ONE_GROUP = [ArgGroup(min=1, max=1)]
 ARGS_ONE_OS = [ArgOs(min=1, max=1)]
 
