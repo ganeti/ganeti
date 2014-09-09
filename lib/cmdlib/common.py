@@ -1187,16 +1187,20 @@ def CheckDiskAccessModeConsistency(parameters, cfg, group=None):
 
     for entry in inst_uuids:
       inst = cfg.GetInstanceInfo(entry)
-      hv = inst.hypervisor
-      dt = inst.disk_template
+      inst_template = inst.disk_template
 
-      if not IsValidDiskAccessModeCombination(hv, dt, access):
+      if inst_template != disk_template:
+        continue
+
+      hv = inst.hypervisor
+
+      if not IsValidDiskAccessModeCombination(hv, inst_template, access):
         raise errors.OpPrereqError("Instance {i}: cannot use '{a}' access"
                                    " setting with {h} hypervisor and {d} disk"
                                    " type.".format(i=inst.name,
                                                    a=access,
                                                    h=hv,
-                                                   d=dt))
+                                                   d=inst_template))
 
 
 def IsValidDiskAccessModeCombination(hv, disk_template, mode):
