@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-overlapping-patterns #-}
 {-| @/proc/stat@ data collector.
 
 -}
@@ -36,6 +37,7 @@ module Ganeti.DataCollectors.CPUload
 import Control.Arrow (first)
 import qualified Control.Exception as E
 import Data.Attoparsec.Text.Lazy as A
+import Data.Maybe (fromMaybe)
 import Data.Text.Lazy (pack, unpack)
 import qualified Text.JSON as J
 import qualified Data.Sequence as Seq
@@ -92,12 +94,10 @@ dcKind = DCKPerf
 -- | The data exported by the data collector, taken from the default location.
 dcReport :: Maybe CollectorData -> IO DCReport
 dcReport colData =
-  let cpuLoadData =
-        case colData of
-          Nothing -> Seq.empty
-          Just colData' ->
-            case colData' of
-              CPULoadData v -> v
+  let extractColData c = case c of
+        (CPULoadData v) -> Just v
+        _ -> Nothing
+      cpuLoadData = fromMaybe Seq.empty $ colData >>= extractColData
   in buildDCReport cpuLoadData
 
 -- | Data stored by the collector in mond's memory.
@@ -148,12 +148,11 @@ updateEntry newBuffer mapEntry =
 dcUpdate :: Maybe CollectorData -> IO CollectorData
 dcUpdate mcd = do
   v <- dcCollect
-  let new_v =
-        case mcd of
-          Nothing -> v
-          Just cd ->
-            case cd of
-              CPULoadData old_v -> updateEntry v old_v
+  let new_v = fromMaybe v $ do
+        cd <- mcd
+        case cd of
+          CPULoadData old_v -> return $ updateEntry v old_v
+          _ -> Nothing
   new_v `seq` return $ CPULoadData new_v
 
 -- | Computes the average load for every CPU and the overall from data read

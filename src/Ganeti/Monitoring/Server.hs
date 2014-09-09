@@ -29,6 +29,7 @@ module Ganeti.Monitoring.Server
   ( main
   , checkMain
   , prepMain
+  , DataCollector(..)
   ) where
 
 import Control.Applicative
@@ -37,6 +38,7 @@ import Control.Monad.IO.Class
 import Data.ByteString.Char8 (pack, unpack)
 import Data.Maybe (fromMaybe)
 import Data.List (find)
+import Data.Monoid (mempty)
 import qualified Data.Map as Map
 import Snap.Core
 import Snap.Http.Server
@@ -110,22 +112,24 @@ version1Api mvar =
        , ("report", reportHandler mvar)
        ]
 
-activeCollectors :: IO [DataCollector]
-activeCollectors = do
+collectorConfigs :: IO (String -> DataCollectorConfig)
+collectorConfigs = do
     confdClient <- getConfdClient Nothing Nothing
     response <- query confdClient CT.ReqDataCollectors CT.EmptyQuery
-    let isActive = fromMaybe True . parseActive response
-    return $ filter isActive DC.collectors
+    return $ lookupConfig response
   where
-    parseActive :: Maybe CT.ConfdReply -> DataCollector -> Maybe Bool
-    parseActive response dc = do
+    lookupConfig :: Maybe CT.ConfdReply -> String -> DataCollectorConfig
+    lookupConfig response name = fromMaybe (mempty :: DataCollectorConfig) $ do
       confdReply <- response
       let answer = CT.confdReplyAnswer confdReply
       case J.readJSON answer :: J.Result (GJ.Container DataCollectorConfig) of
         J.Error _ -> Nothing
-        J.Ok container -> do
-          config <- GJ.lookupContainer Nothing (dName dc) container
-          return $ dataCollectorActive config
+        J.Ok container -> GJ.lookupContainer Nothing name container
+
+activeCollectors :: IO [DataCollector]
+activeCollectors = do
+  configs <- collectorConfigs
+  return $ filter (dataCollectorActive . configs . dName) DC.collectors
 
 -- | Get the JSON representation of a data collector to be used in the collector
 -- list.
@@ -244,12 +248,12 @@ collection m = liftIO activeCollectors >>= foldM collect m
 -- | The thread responsible for the periodical collection of data for each data
 -- data collector.
 collectord :: MVar CollectorMap -> IO ()
-collectord mvar = do
-  m <- takeMVar mvar
-  m' <- collection m
-  putMVar mvar m'
-  threadDelay $ 10^(6 :: Int) * C.mondTimeInterval
-  collectord mvar
+collectord mvar =
+  forever $ do
+    m <- takeMVar mvar
+    m' <- collection m
+    putMVar mvar m'
+    threadDelay $ 10^(6 :: Int) * C.mondTimeInterval
 
 -- | Main function.
 main :: MainFn CheckResult PrepResult
