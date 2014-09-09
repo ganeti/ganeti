@@ -33,12 +33,14 @@ module Ganeti.DataCollectors.CPUload
   , dcUpdate
   ) where
 
+import Control.Arrow (first)
 import qualified Control.Exception as E
 import Data.Attoparsec.Text.Lazy as A
 import Data.Text.Lazy (pack, unpack)
 import qualified Text.JSON as J
 import qualified Data.Sequence as Seq
 import System.Posix.Unistd (getSysVar, SysVar(ClockTick))
+import System.Time (ClockTime(..), getClockTime)
 
 import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
@@ -97,8 +99,9 @@ dcReport colData =
             case colData' of
               CPULoadData v -> v
   in buildDCReport cpuLoadData
+
 -- | Data stored by the collector in mond's memory.
-type Buffer = Seq.Seq (Integer, [Int])
+type Buffer = Seq.Seq (ClockTime, [Int])
 
 -- | Compute the load from a CPU.
 computeLoad :: CPUstat -> Int
@@ -108,7 +111,7 @@ computeLoad cpuData =
   + csSteal cpuData + csGuest cpuData + csGuestNice cpuData
 
 -- | Reads and Computes the load for each CPU.
-dcCollectFromFile :: FilePath -> IO (Integer, [Int])
+dcCollectFromFile :: FilePath -> IO (ClockTime, [Int])
 dcCollectFromFile inputFile = do
   contents <-
     ((E.try $ readFile inputFile) :: IO (Either IOError String)) >>=
@@ -119,9 +122,8 @@ dcCollectFromFile inputFile = do
         show (Prelude.take defaultCharNum $ unpack unparsedText) ++ "\n"
           ++ show contexts ++ "\n" ++ errorMessage
       A.Done _ cpustatD -> return cpustatD
-  now <- getCurrentTime
-  let timestamp = now :: Integer
-  return (timestamp, map computeLoad cpustatData)
+  now <- getClockTime
+  return (now, map computeLoad cpustatData)
 
 -- | Returns the collected data in the appropriate type.
 dcCollect :: IO Buffer
@@ -158,15 +160,17 @@ dcUpdate mcd = do
 -- from the map.
 computeAverage :: Buffer -> Integer -> Integer -> [Double]
 computeAverage s w ticks =
-  let window = Seq.takeWhileL ((> w) . fst) s
+  let inUSec = fmap (first clockTimeToUSec) s
+      window = Seq.takeWhileL ((> w) . fst)  inUSec
       go Seq.EmptyL          _                    = []
       go _                   Seq.EmptyR           = []
       go (leftmost Seq.:< _) (_ Seq.:> rightmost) = do
         let (timestampL, listL) = leftmost
             (timestampR, listR) = rightmost
             work = zipWith (-) listL listR
-            overall = (timestampL - timestampR) * ticks
-        map (\x -> fromIntegral x / fromIntegral overall) work
+            timediff = timestampL - timestampR
+            overall = fromInteger (timediff * ticks) / 1000000 :: Double
+        map (\x -> fromIntegral x / overall) work
   in go (Seq.viewl window) (Seq.viewr window)
 
 -- | This function computes the JSON representation of the CPU load.

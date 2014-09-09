@@ -55,6 +55,7 @@ module Ganeti.Utils
   , getCurrentTimeUSec
   , clockTimeToString
   , clockTimeToCTime
+  , clockTimeToUSec
   , cTimeToClockTime
   , chompPrefix
   , warn
@@ -409,11 +410,7 @@ getCurrentTime = do
 -- | Returns the current time as an 'Integer' representing the number
 -- of microseconds from the Unix epoch (hence the need for 'Integer').
 getCurrentTimeUSec :: IO Integer
-getCurrentTimeUSec = do
-  TOD ctime pico <- getClockTime
-  -- pico: 10^-12, micro: 10^-6, so we have to shift seconds left and
-  -- picoseconds right
-  return $ ctime * 1000000 + pico `div` 1000000
+getCurrentTimeUSec = liftM clockTimeToUSec getClockTime
 
 -- | Convert a ClockTime into a (seconds-only) timestamp.
 clockTimeToString :: ClockTime -> String
@@ -422,6 +419,13 @@ clockTimeToString (TOD t _) = show t
 -- | Convert a ClockTime into a (seconds-only) 'EpochTime' (AKA @time_t@).
 clockTimeToCTime :: ClockTime -> EpochTime
 clockTimeToCTime (TOD secs _) = fromInteger secs
+
+-- | Convert a ClockTime the number of microseconds since the epoch.
+clockTimeToUSec :: ClockTime -> Integer
+clockTimeToUSec (TOD ctime pico) =
+  -- pico: 10^-12, micro: 10^-6, so we have to shift seconds left and
+  -- picoseconds right
+  ctime * 1000000 + pico `div` 1000000
 
 -- | Convert a ClockTime into a (seconds-only) 'EpochTime' (AKA @time_t@).
 cTimeToClockTime :: EpochTime -> ClockTime

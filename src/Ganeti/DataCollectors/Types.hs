@@ -46,12 +46,12 @@ import Data.Char
 import Data.Ratio
 import qualified Data.Map as Map
 import qualified Data.Sequence as Seq
+import System.Time (ClockTime(..))
 import Text.JSON
-
 import Ganeti.Constants as C
 import Ganeti.Objects (ConfigData)
 import Ganeti.THH
-import Ganeti.Utils (getCurrentTime)
+import Ganeti.Utils (getCurrentTimeUSec)
 
 -- | The possible classes a data collector can belong to.
 data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor
@@ -130,7 +130,7 @@ instance JSON DCVersion where
   readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for type DCVersion"
 
 -- | Type for the value field of the above map.
-data CollectorData = CPULoadData (Seq.Seq (Integer, [Int]))
+data CollectorData = CPULoadData (Seq.Seq (ClockTime, [Int]))
 
 -- | Type for the map storing the data of the statefull DataCollectors.
 type CollectorMap = Map.Map String CollectorData
@@ -175,8 +175,8 @@ mergeStatuses (newStat, newStr) (storedStat, storedStrs) =
 buildReport :: String -> DCVersion -> Int -> Maybe DCCategory -> DCKind
             -> JSValue -> IO DCReport
 buildReport name version format_version category kind jsonData = do
-  now <- getCurrentTime
-  let timestamp = now * 1000000000 :: Integer
+  usecs <- getCurrentTimeUSec
+  let timestamp = usecs * 1000 :: Integer
   return $
     DCReport name version format_version timestamp category kind
       jsonData
