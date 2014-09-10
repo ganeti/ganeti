@@ -560,17 +560,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     raise NotImplementedError
 
-  def _WriteNicConfig(self, config, instance, hvp, nic_type=None):
-    if nic_type is None:
-      nic_type = ""
-
+  def _WriteNicConfig(self, config, instance, hvp, nic_type_str=""):
     vif_data = []
 
     for idx, nic in enumerate(instance.nics):
-      if nic_type:
-        nic_str = "mac=%s, %s" % (nic.mac, nic_type)
-      else:
-        nic_str = "mac=%s" % nic.mac
+      nic_str = "mac=%s%s" % (nic.mac, nic_type_str)
 
       ip = getattr(nic, "ip", None)
       if ip is not None:
@@ -1421,7 +1415,7 @@ class XenHvmHypervisor(XenHypervisor):
       nic_type_str = ", model=%s, type=%s" % \
         (nic_type, constants.HT_HVM_VIF_IOEMU)
 
-    self._WriteNicConfig(config, instance, hvp, nic_type=nic_type_str)
+    self._WriteNicConfig(config, instance, hvp, nic_type_str=nic_type_str)
 
     disk_data = \
       _GetConfigFileDiskData(block_devices, hvp[constants.HV_BLOCKDEV_PREFIX])
