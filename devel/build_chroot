@@ -293,6 +293,7 @@ case $DIST_RELEASE in
         test-framework-quickcheck2-0.3.0.2 \
         \
         snap-server-0.9.4.0 \
+        PSQueue-1.1 \
         \
         cabal-file-th-0.2.3 \
         shelltestrunner
@@ -318,7 +319,7 @@ case $DIST_RELEASE in
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
-      libghc-zlib-dev \
+      libghc-zlib-dev libghc-psqueue-dev \
       cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-paramiko \
@@ -360,7 +361,7 @@ case $DIST_RELEASE in
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
-      libghc-zlib-dev \
+      libghc-zlib-dev libghc-psqueue-dev \
       libghc-base64-bytestring-dev libghc-lens-dev libghc-lifted-base-dev \
       cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
@@ -388,7 +389,7 @@ EOF
       libghc-parallel-dev libghc-utf8-string-dev \
       libghc-hslogger-dev libghc-crypto-dev \
       libghc-regex-pcre-dev libghc-attoparsec-dev \
-      libghc-vector-dev libghc-temporary-dev \
+      libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
@@ -422,7 +423,7 @@ EOF
       libghc-parallel-dev libghc-utf8-string-dev \
       libghc-hslogger-dev libghc-crypto-dev \
       libghc-regex-pcre-dev libghc-attoparsec-dev \
-      libghc-vector-dev libghc-temporary-dev \
+      libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
       libghc-lifted-base-dev \
       libghc-base64-bytestring-dev \

@@ -228,21 +228,23 @@ Optionally, more functionality can be enabled if your build machine has
 a few more Haskell libraries enabled: the ``ganeti-confd`` daemon
 (``--enable-confd``), the monitoring daemon (``--enable-monitoring``) and
 the meta-data daemon (``--enable-metadata``).
-The extra dependency for these is:
+The extra dependencies for these are:
 
 - `snap-server` <http://hackage.haskell.org/package/snap-server>`_, version
   0.8.1 and above.
+- `PSQueue <http://hackage.haskell.org/package/PSQueue>`_,
+  version 1.0 and above.
 
-This library is available in Debian Wheezy or later, so you can use
+These libraries are available in Debian Wheezy or later, so you can use
 either apt::
 
-  $ apt-get install libghc-snap-server-dev
+  $ apt-get install libghc-snap-server-dev libghc-psqueue-dev
 
 or ``cabal``::
 
-  $ cabal install snap-server
+  $ cabal install snap-server PSQueue
 
-to install it.
+to install them.
 
 .. _cabal-note:
 .. note::

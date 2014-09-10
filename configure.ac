@@ -696,6 +696,8 @@ AM_CONDITIONAL([ENABLE_CONFD], [test x$has_confd = xTrue])
 MONITORING_PKG=
 AC_GHC_PKG_CHECK([snap-server], [],
                  [NS_NODEV=1; MONITORING_PKG="$MONITORING_PKG snap-server"])
+AC_GHC_PKG_CHECK([PSQueue], [],
+                 [NS_NODEV=1; MONITORING_PKG="$MONITORING_PKG PSQueue"])
 
 has_monitoring=False
 if test "$enable_monitoring" != no; then
