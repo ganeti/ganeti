@@ -48,6 +48,7 @@ import qualified Ganeti.BasicTypes as BT
 import qualified Ganeti.Constants as C
 import Ganeti.Cpu.LoadParser(cpustatParser)
 import Ganeti.DataCollectors.Types
+import qualified Ganeti.JSON as GJ
 import Ganeti.Utils
 import Ganeti.Cpu.Types
 
@@ -156,28 +157,33 @@ dcUpdate mcd = do
   new_v `seq` return $ CPULoadData new_v
 
 -- | Computes the average load for every CPU and the overall from data read
--- from the map.
-computeAverage :: Buffer -> Integer -> Integer -> [Double]
+-- from the map. Returns Bad if there are not enough values to compute it.
+computeAverage :: Buffer -> Integer -> Integer -> BT.Result [Double]
 computeAverage s w ticks =
   let inUSec = fmap (first clockTimeToUSec) s
       window = Seq.takeWhileL ((> w) . fst)  inUSec
-      go Seq.EmptyL          _                    = []
-      go _                   Seq.EmptyR           = []
+      go Seq.EmptyL          _                    = BT.Bad "Empty buffer"
+      go _                   Seq.EmptyR           = BT.Bad "Empty buffer"
       go (leftmost Seq.:< _) (_ Seq.:> rightmost) = do
         let (timestampL, listL) = leftmost
             (timestampR, listR) = rightmost
-            work = zipWith (-) listL listR
+            workInWindow = zipWith (-) listL listR
             timediff = timestampL - timestampR
             overall = fromInteger (timediff * ticks) / 1000000 :: Double
-        map (\x -> fromIntegral x / overall) work
+        if overall > 0
+          then BT.Ok $ map (flip (/) overall . fromIntegral) workInWindow
+          else BT.Bad $ "Time covered by data is not sufficient."
+                      ++ "The window considered is " ++ show w
   in go (Seq.viewl window) (Seq.viewr window)
+
 
 -- | This function computes the JSON representation of the CPU load.
 buildJsonReport :: Buffer -> IO J.JSValue
 buildJsonReport v = do
   ticks <- getSysVar ClockTick
   let res = computeAverage v windowSize ticks
-  return . J.showJSON $ formatData res
+      showError s = J.showJSON $ GJ.containerFromList [("error", s)]
+  return $ BT.genericResult showError (J.showJSON . formatData) res
 
 -- | This function computes the DCReport for the CPU load.
 buildDCReport :: Buffer -> IO DCReport
