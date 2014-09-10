@@ -34,9 +34,9 @@ module Ganeti.Monitoring.Server
 import Control.Applicative
 import Control.Monad
 import Control.Monad.IO.Class
-import Data.ByteString.Char8 hiding (map, filter, find)
+import Data.ByteString.Char8 (pack, unpack)
 import Data.Maybe (fromMaybe)
-import Data.List
+import Data.List (find)
 import qualified Data.Map as Map
 import Snap.Core
 import Snap.Http.Server
