@@ -2849,9 +2849,14 @@ class LUInstanceSetParams(LogicalUnit):
     ispec[constants.ISPEC_DISK_COUNT] = len(disk_sizes)
     ispec[constants.ISPEC_DISK_SIZE] = disk_sizes
 
-    if self.op.offline is not None and self.op.offline:
+    # either --online or --offline was passed
+    if self.op.offline is not None:
+      if self.op.offline:
+        msg = "can't change to offline without being down first"
+      else:
+        msg = "can't change to online (down) without being offline first"
       CheckInstanceState(self, self.instance, CAN_CHANGE_INSTANCE_OFFLINE,
-                         msg="can't change to offline")
+                         msg=msg)
 
   def CheckPrereq(self):
     """Check prerequisites.

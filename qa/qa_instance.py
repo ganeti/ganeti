@@ -554,8 +554,9 @@ def TestInstanceModify(instance):
   AssertCommand(["gnt-instance", "modify", "--offline", instance.name],
                  fail=True)
 
-  # ...while making it online is ok, and should work
-  AssertCommand(["gnt-instance", "modify", "--online", instance.name])
+  # ...while making it online fails too (needs to be offline first)
+  AssertCommand(["gnt-instance", "modify", "--online", instance.name],
+                 fail=True)
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
