@@ -23,6 +23,11 @@ This implementation imposes a number of limitations:
   config file can be made taggable. Having taggable disks will allow for
   further customizations.
 
+* All disks of an instance have to be of the same template. Dropping
+  this constraint would allow mixing different kinds of storage (e.g. an
+  instance might have a local ``plain`` storage for the OS and a
+  remotely replicated ``sharedstorage`` for the data).
+
 
 Proposed changes
 ================
@@ -39,6 +44,11 @@ The implementation is going to be split in four parts:
 
 * Allow creation/modification/deletion of disks that are not attached to
   any instance (requires new LUs for disks).
+
+* Allow disks of a single instance to be of different templates.
+
+* Remove all unnecessary distinction between disk templates and disk
+  types.
 
 
 Design decisions
@@ -70,8 +80,10 @@ The ``Disk`` object gets two extra slots, ``_TIMESTAMPS`` and
 ``serial_no``.
 
 The ``Instance`` object will no longer contain the list of disk objects
-that are attached to it. Instead, an Instance object will refer to its
-disks using their UUIDs. Since the order in which the disks are attached
+that are attached to it or a disk template.
+Instead, an Instance object will refer to its
+disks using their UUIDs and the disks will contain their own template.
+Since the order in which the disks are attached
 to an instance is important we are going to have a list of disk UUIDs
 under the Instance object which will denote the disks attached to the
 instance and their order at the same time. So the Instance's ``disks``
@@ -108,10 +120,14 @@ are no dangling pointers from instances to disks (i.e. an instance
 points to a disk that doesn't exist in the config).
 
 The 'upgrade' operation for the config should check if disks are top level
-citizens and if not it has to extract the disk objects from the instances and
-replace them with their uuids. In case of the 'downgrade' operation (where
+citizens and if not it has to extract the disk objects from the instances,
+replace them with their uuids, and copy the disk template. In case of the 'downgrade' operation (where
 disks will be made again part of the `Instance` object) all disks that are not
 attached to any instance at all will be ignored (removed from config).
+The disk template of the
+instance is set to the disk template of any disk attached to it. If
+there are multiple disk templates present, the downgrade fails and the
+user is requested to detach disks from the instances.
 
 
 Apply Disk modifications
@@ -119,7 +135,8 @@ Apply Disk modifications
 
 There are four operations that can be performed to a `Disk` object:
 
-* Create a new `Disk` object and save it to the config.
+* Create a new `Disk` object of a given template and save it to the
+  config.
 
 * Remove an existing `Disk` object from the config.
 
