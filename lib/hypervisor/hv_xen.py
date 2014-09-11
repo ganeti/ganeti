@@ -560,8 +560,23 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     raise NotImplementedError
 
-  def _WriteNicConfig(self, config, instance, hvp, nic_type_str=""):
+  def _WriteNicConfig(self, config, instance, hvp):
     vif_data = []
+
+    # only XenHvmHypervisor has these hvparams
+    nic_type = hvp.get(constants.HV_NIC_TYPE, None)
+    vif_type = hvp.get(constants.HV_VIF_TYPE, None)
+    nic_type_str = ""
+    if nic_type or vif_type:
+      if nic_type is None:
+        if vif_type:
+          nic_type_str = ", type=%s" % vif_type
+      elif nic_type == constants.HT_NIC_PARAVIRTUAL:
+        nic_type_str = ", type=paravirtualized"
+      else:
+        # parameter 'model' is only valid with type 'ioemu'
+        nic_type_str = ", model=%s, type=%s" % \
+          (nic_type, constants.HT_HVM_VIF_IOEMU)
 
     for idx, nic in enumerate(instance.nics):
       nic_str = "mac=%s%s" % (nic.mac, nic_type_str)
@@ -1401,21 +1416,7 @@ class XenHvmHypervisor(XenHypervisor):
     if hvp[constants.HV_USE_LOCALTIME]:
       config.write("localtime = 1\n")
 
-    nic_type = hvp[constants.HV_NIC_TYPE]
-    if nic_type is None:
-      vif_type_str = ""
-      if hvp[constants.HV_VIF_TYPE]:
-        vif_type_str = ", type=%s" % hvp[constants.HV_VIF_TYPE]
-      # ensure old instances don't change
-      nic_type_str = vif_type_str
-    elif nic_type == constants.HT_NIC_PARAVIRTUAL:
-      nic_type_str = ", type=paravirtualized"
-    else:
-      # parameter 'model' is only valid with type 'ioemu'
-      nic_type_str = ", model=%s, type=%s" % \
-        (nic_type, constants.HT_HVM_VIF_IOEMU)
-
-    self._WriteNicConfig(config, instance, hvp, nic_type_str=nic_type_str)
+    self._WriteNicConfig(config, instance, hvp)
 
     disk_data = \
       _GetConfigFileDiskData(block_devices, hvp[constants.HV_BLOCKDEV_PREFIX])
