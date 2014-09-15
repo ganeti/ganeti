@@ -65,14 +65,13 @@ Filter rules are given by the following data.
   automatically upon addition of the filter.
 
 - A priority. This is a non-negative integer. Filters are processed
-  in order of increasing priority until a rule applies. While there
+  in order of increasing priority. While there
   is a well-defined order in which rules of the same priority are
   evaluated (increasing watermark, then the uuid, are taken as tie
   breakers), it is not recommended to have rules of the same priority
   that overlap and have different actions associated.
 
-- A list of predicates. The rule fires, if all of them hold true
-  for the job.
+- A list of predicates to be matched against the job.
 
 - An action. For the time being, one of the following, but more
   actions might be added in the future (in particular, future
@@ -102,9 +101,19 @@ Filter rules are given by the following data.
     is limited to ``n`` once the jobs running at rule addition have
     finished.
 
-- A reason trail, in the same format as reason trails for opcodes. 
+- A reason trail, in the same format as reason trails for opcodes.
   This allows to find out, which maintenance (or other reason) caused
   the addition of this filter rule.
+
+When a filter rule applies
+--------------------------
+
+A filter rule in a filter chain *applies* to a job if it is the first rule
+in the chain of which all predicates *match* the job, and if its action is not
+CONTINUE.
+
+Filter chains are processed in increasing order of priority (lowest number
+means highest priority), then watermark, then uuid.
 
 Predicates available for the filter rules
 -----------------------------------------
