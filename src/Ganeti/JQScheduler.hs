@@ -321,16 +321,6 @@ logFailedJobs jobs = do
                ++ show (map snd jobs)
   return jids
 
--- | Requeue jobs that were previously selected for execution
--- but couldn't be started.
-requeueJobs :: JQStatus -> [(JobWithStat, GanetiException)] -> IO ()
-requeueJobs qstate jobs = do
-  jids <- logFailedJobs jobs
-  let rmJobs = filter ((`S.notMember` jids) . qjId . jJob)
-  logWarning "Rescheduling jobs"
-  modifyJobs qstate $ onQueuedJobs (map fst jobs ++)
-                      . onRunningJobs rmJobs
-
 -- | Fail jobs that were previously selected for execution
 -- but couldn't be started.
 failJobs :: ConfigData -> JQStatus -> [(JobWithStat, GanetiException)]
@@ -359,19 +349,23 @@ failJobs cfg qstate jobs = do
 -- pure `selectJobsToRun`.
 scheduleSomeJobs :: JQStatus -> IO ()
 scheduleSomeJobs qstate = do
-  count <- getMaxRunningJobs qstate
-  chosen <- atomicModifyIORef (jqJobs qstate) (selectJobsToRun count)
-  let jobs = map jJob chosen
-  unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
-    $ map (show . fromJobId . qjId) jobs
-  mapM_ (attachWatcher qstate) chosen
   cfgR <- readIORef (jqConfig qstate)
   case cfgR of
     Bad err -> do
       let msg = "Configuration unavailable: " ++ err
       logError msg
-      requeueJobs qstate . map (\x -> (x, strMsg msg)) $ chosen
     Ok cfg -> do
+      -- Select the jobs to run.
+      count <- getMaxRunningJobs qstate
+      chosen <- atomicModifyIORef (jqJobs qstate) (selectJobsToRun count)
+      let jobs = map jJob chosen
+      unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
+        $ map (show . fromJobId . qjId) jobs
+
+      -- Attach the watcher.
+      mapM_ (attachWatcher qstate) chosen
+
+      -- Start the jobs.
       result <- JQ.startJobs cfg (jqLivelock qstate) (jqForkLock qstate) jobs
       let badWith (x, Bad y) = Just (x, y)
           badWith _          = Nothing
