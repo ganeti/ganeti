@@ -39,6 +39,7 @@ module Test.Ganeti.JSON (testJSON) where
 
 import Control.Monad
 import Data.List
+import Test.HUnit
 import Test.QuickCheck
 
 import qualified Text.JSON as J
@@ -48,7 +49,10 @@ import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
 
 import qualified Ganeti.BasicTypes as BasicTypes
+import Ganeti.JSON (nestedAccessByKey, nestedAccessByKeyDotted)
 import qualified Ganeti.JSON as JSON
+
+{-# ANN module "HLint: ignore Use camelCase" #-}
 
 instance (Arbitrary a) => Arbitrary (JSON.MaybeForJSON a) where
   arbitrary = liftM JSON.MaybeForJSON arbitrary
@@ -99,6 +103,35 @@ prop_MaybeForJSON_serialisation = testSerialisation
 prop_TimeAsDoubleJSON_serialisation :: JSON.TimeAsDoubleJSON -> Property
 prop_TimeAsDoubleJSON_serialisation = testSerialisation
 
+isJError :: J.Result a -> Bool
+isJError (J.Error _) = True
+isJError _           = False
+
+case_nestedAccessByKey :: Assertion
+case_nestedAccessByKey = do
+  J.Ok v <- return $ J.decode "{\"key1\": {\"key2\": \"val\"}}"
+
+  nestedAccessByKey [] v @?= J.Ok v
+
+  nestedAccessByKey ["key1", "key2"] v
+    @?= J.Ok (J.JSString $ J.toJSString "val")
+
+  assertBool "access to nonexistent key should fail"
+    . isJError $ nestedAccessByKey ["key1", "nonexistent"] v
+
+case_nestedAccessByKeyDotted :: Assertion
+case_nestedAccessByKeyDotted = do
+  J.Ok v <- return $ J.decode "{\"key1\": {\"key2\": \"val\"}}"
+
+  assertBool "access to empty key should fail"
+    . isJError $ nestedAccessByKeyDotted "" v
+
+  nestedAccessByKeyDotted "key1.key2" v
+    @?= J.Ok (J.JSString $ J.toJSString "val")
+
+  assertBool "access to nonexistent key should fail"
+    . isJError $ nestedAccessByKeyDotted "key1.nonexistent" v
+
 testSuite "JSON"
           [ 'prop_toArray
           , 'prop_toArrayFail
@@ -106,4 +139,6 @@ testSuite "JSON"
           , 'prop_arrayMaybeFromObjFail
           , 'prop_MaybeForJSON_serialisation
           , 'prop_TimeAsDoubleJSON_serialisation
+          , 'case_nestedAccessByKey
+          , 'case_nestedAccessByKeyDotted
           ]

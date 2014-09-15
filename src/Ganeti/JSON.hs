@@ -74,6 +74,8 @@ module Ganeti.JSON
   , MaybeForJSON(..)
   , TimeAsDoubleJSON(..)
   , Tuple5(..)
+  , nestedAccessByKey
+  , nestedAccessByKeyDotted
   )
   where
 
@@ -82,6 +84,7 @@ import Control.DeepSeq
 import Control.Monad.Error.Class
 import Control.Monad.Writer
 import qualified Data.Foldable as F
+import qualified Data.Text as T
 import qualified Data.Traversable as F
 import Data.Maybe (fromMaybe, catMaybes)
 import qualified Data.Map as Map
@@ -484,3 +487,23 @@ instance (J.JSON a, J.JSON b, J.JSON c, J.JSON d, J.JSON e)
       , J.showJSON d
       , J.showJSON e
       ]
+
+
+-- | Look up a value in a JSON object. Accessing @["a", "b", "c"]@ on an
+-- object is equivalent as accessing @myobject.a.b.c@ on a JavaScript object.
+--
+-- An error is returned if the object doesn't have such an accessor or if
+-- any value during the nested access is not an object at all.
+nestedAccessByKey :: [String] -> J.JSValue -> J.Result J.JSValue
+nestedAccessByKey keys json = case keys of
+  []   -> return json
+  k:ks -> case json of
+            J.JSObject obj -> J.valFromObj k obj >>= nestedAccessByKey ks
+            _ -> J.Error $ "Cannot access non-object with key '" ++ k ++ "'"
+
+
+-- | Same as `nestedAccessByKey`, but accessing with a dotted string instead
+-- (like @nestedAccessByKeyDotted "a.b.c"@).
+nestedAccessByKeyDotted :: String -> J.JSValue -> J.Result J.JSValue
+nestedAccessByKeyDotted s =
+  nestedAccessByKey (map T.unpack . T.splitOn (T.pack ".") . T.pack $ s)
