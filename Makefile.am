@@ -858,6 +858,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Hs2Py/GenOpCodes.hs \
 	src/Ganeti/Hs2Py/OpDoc.hs \
 	src/Ganeti/JQScheduler.hs \
+	src/Ganeti/JQScheduler/Filtering.hs \
 	src/Ganeti/JQScheduler/ReasonRateLimiting.hs \
 	src/Ganeti/JQScheduler/Types.hs \
 	src/Ganeti/JQueue.hs \

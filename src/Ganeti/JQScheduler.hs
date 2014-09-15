@@ -39,6 +39,7 @@ module Ganeti.JQScheduler
   , jqForkLock
   , emptyJQStatus
   , selectJobsToRun
+  , scheduleSomeJobs
   , initJQScheduler
   , enqueueNewJobs
   , dequeueJob
@@ -46,7 +47,7 @@ module Ganeti.JQScheduler
   , cleanupIfDead
   ) where
 
-import Control.Applicative (liftA2)
+import Control.Applicative (liftA2, (<$>))
 import Control.Arrow
 import Control.Concurrent
 import Control.Exception
@@ -57,16 +58,20 @@ import Data.Functor ((<$))
 import Data.IORef
 import Data.List
 import Data.Maybe
+import qualified Data.Map as Map
 import Data.Ord (comparing)
+import Data.Set (Set)
 import qualified Data.Set as S
 import System.INotify
 
 import Ganeti.BasicTypes
 import Ganeti.Constants as C
 import Ganeti.Errors
+import Ganeti.JQScheduler.Filtering (applyingFilter, jobFiltering)
 import Ganeti.JQScheduler.Types
 import Ganeti.JQScheduler.ReasonRateLimiting (reasonRateLimit)
 import Ganeti.JQueue as JQ
+import Ganeti.JSON (fromContainer)
 import Ganeti.Lens hiding (chosen)
 import Ganeti.Logging
 import Ganeti.Objects
@@ -299,11 +304,13 @@ jobEligible queue jWS =
 -- pure function doing the scheduling.
 selectJobsToRun :: Int  -- ^ How many jobs are allowed to run at the
                         -- same time.
+                -> Set FilterRule -- ^ Filter rules to respect for scheduling
                 -> Queue
                 -> (Queue, [JobWithStat])
-selectJobsToRun count queue =
+selectJobsToRun count filters queue =
   let n = count - length (qRunning queue) - length (qManipulated queue)
       chosen = take n
+               . jobFiltering queue filters
                . reasonRateLimit queue
                . sortBy (comparing (calcJobPriority . jJob))
                . filter (jobEligible queue)
@@ -346,6 +353,44 @@ failJobs cfg qstate jobs = do
   mapM_ (runResultT . failAndSaveJobWithStat) jobs
   logDebug $ "Failed jobs " ++ sjobs
 
+
+-- | Checks if any jobs match a REJECT filter rule, and cancels them.
+cancelRejectedJobs :: JQStatus -> ConfigData -> Set FilterRule -> IO ()
+cancelRejectedJobs qstate cfg filters = do
+
+  enqueuedJobs <- map jJob . qEnqueued <$> readIORef (jqJobs qstate)
+
+  -- Determine which jobs are rejected.
+  let jobsToCancel =
+        [ (job, fr) | job <- enqueuedJobs
+                    , Just fr <- [applyingFilter filters job]
+                    , frAction fr == Reject ]
+
+  -- Cancel them.
+  qDir <- queueDir
+  forM_ jobsToCancel $ \(job, fr) -> do
+    let jid = qjId job
+    logDebug $ "Cancelling job " ++ show (fromJobId jid)
+               ++ " because it was REJECTed by filter rule " ++ frUuid fr
+    -- First dequeue, then cancel.
+    dequeueResult <- dequeueJob qstate jid
+    case dequeueResult of
+      Ok True -> do
+        now <- currentTimestamp
+        r <- runResultT
+               $ writeAndReplicateJob cfg qDir (cancelQueuedJob now job)
+        case r of
+          Ok _ -> return ()
+          Bad err -> logError $
+            "Failed to write config when cancelling job: " ++ err
+      Ok False -> do
+        logDebug $ "Job " ++ show (fromJobId jid)
+                   ++ " not queued; trying to cancel directly"
+        _ <- cancelJob False (jqLivelock qstate) jid  -- sigTERM-kill only
+        return ()
+      Bad s -> logError s -- passing a nonexistent job ID is an error here
+
+
 -- | Schedule jobs to be run. This is the IO wrapper around the
 -- pure `selectJobsToRun`.
 scheduleSomeJobs :: JQStatus -> IO ()
@@ -356,9 +401,15 @@ scheduleSomeJobs qstate = do
       let msg = "Configuration unavailable: " ++ err
       logError msg
     Ok cfg -> do
+      let filters = S.fromList . Map.elems . fromContainer $ configFilters cfg
+
+      -- Check if jobs are rejected by a REJECT filter, and cancel them.
+      cancelRejectedJobs qstate cfg filters
+
       -- Select the jobs to run.
       count <- getMaxRunningJobs qstate
-      chosen <- atomicModifyIORef (jqJobs qstate) (selectJobsToRun count)
+      chosen <- atomicModifyIORef (jqJobs qstate)
+                                  (selectJobsToRun count filters)
       let jobs = map jJob chosen
       unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
         $ map (show . fromJobId . qjId) jobs
