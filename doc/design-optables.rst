@@ -93,7 +93,7 @@ Filter rules are given by the following data.
     rule. Such a rule will never have any direct or indirect effect,
     but it can serve as documentation for a "normally present, but
     currently disabled" rule.
-  - RATELIMIT ``n``, where ``n`` is a positive integer. The job will
+  - RATE_LIMIT ``n``, where ``n`` is a positive integer. The job will
     be held in the queue while ``n`` or more jobs where this rule
     applies are running. Jobs that are forked off from luxid are
     considered running. Jobs already running when this rule is added
