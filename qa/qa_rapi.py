@@ -386,6 +386,7 @@ def TestRapiQuery():
     namefield = {
       constants.QR_JOB: "id",
       constants.QR_EXPORT: "export",
+      constants.QR_FILTER: "uuid",
     }.get(what, "name")
 
     all_fields = query.ALL_FIELDS[what].keys()

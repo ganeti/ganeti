@@ -462,7 +462,8 @@ client_PYTHON = \
 	lib/client/gnt_node.py \
 	lib/client/gnt_network.py \
 	lib/client/gnt_os.py \
-	lib/client/gnt_storage.py
+	lib/client/gnt_storage.py \
+	lib/client/gnt_filter.py
 
 cmdlib_PYTHON = \
 	lib/cmdlib/__init__.py \
@@ -892,6 +893,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Query/Exec.hs \
 	src/Ganeti/Query/Export.hs \
 	src/Ganeti/Query/Filter.hs \
+	src/Ganeti/Query/FilterRules.hs \
 	src/Ganeti/Query/Group.hs \
 	src/Ganeti/Query/Instance.hs \
 	src/Ganeti/Query/Job.hs \
@@ -1156,7 +1158,8 @@ gnt_scripts = \
 	scripts/gnt-network \
 	scripts/gnt-node \
 	scripts/gnt-os \
-	scripts/gnt-storage
+	scripts/gnt-storage \
+	scripts/gnt-filter
 
 gnt_scripts_basenames = \
 	$(patsubst scripts/%,%,$(patsubst daemons/%,%,$(gnt_scripts) $(gnt_python_sbin_SCRIPTS)))
@@ -1457,6 +1460,7 @@ man_MANS = \
 	man/gnt-node.8 \
 	man/gnt-os.8 \
 	man/gnt-storage.8 \
+	man/gnt-filter.8 \
 	man/hail.1 \
 	man/harep.1 \
 	man/hbal.1 \

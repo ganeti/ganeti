@@ -51,6 +51,7 @@ module Ganeti.Config
     , getNode
     , getInstance
     , getDisk
+    , getFilterRule
     , getGroup
     , getGroupNdParams
     , getGroupIpolicy
@@ -264,6 +265,12 @@ getDisk :: ConfigData -> String -> ErrorResult Disk
 getDisk cfg name =
   let disks = fromContainer (configDisks cfg)
   in getItem "Disk" name disks
+
+-- | Looks up a filter by uuid.
+getFilterRule :: ConfigData -> String -> ErrorResult FilterRule
+getFilterRule cfg name =
+  let filters = fromContainer (configFilters cfg)
+  in getItem "Filter" name filters
 
 -- | Looks up a node group by name or uuid.
 getGroup :: ConfigData -> String -> ErrorResult NodeGroup

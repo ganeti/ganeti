@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 {-| Implementation of the Ganeti Query2 server.
 
 -}
@@ -41,7 +43,10 @@ module Ganeti.Query.Server
 import Control.Applicative
 import Control.Concurrent
 import Control.Exception
+import Control.Lens ((.~))
 import Control.Monad (forever, when, mzero, guard, zipWithM, liftM, void)
+import Control.Monad.Base (MonadBase, liftBase)
+import Control.Monad.Error (MonadError)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
@@ -53,6 +58,7 @@ import qualified Text.JSON as J
 import Text.JSON (encode, showJSON, JSValue(..))
 import System.Info (arch)
 import System.Directory
+import System.Posix.Process (getProcessID)
 import System.Posix.Signals as P
 
 import qualified Ganeti.Constants as C
@@ -62,12 +68,14 @@ import qualified Ganeti.Path as Path
 import Ganeti.Daemon
 import Ganeti.Daemon.Utils (handleMasterVerificationOptions)
 import Ganeti.Objects
+import Ganeti.Objects.Lens (configFiltersL)
 import qualified Ganeti.Config as Config
 import Ganeti.ConfigReader
 import Ganeti.BasicTypes
 import Ganeti.JQueue
 import Ganeti.JQScheduler
-import Ganeti.JSON (TimeAsDoubleJSON(..))
+import Ganeti.JSON (TimeAsDoubleJSON(..), alterContainerL, lookupContainer)
+import Ganeti.Locking.Locks (ClientId(..), ClientType(ClientOther))
 import Ganeti.Logging
 import Ganeti.Luxi
 import qualified Ganeti.Query.Language as Qlang
@@ -77,12 +85,50 @@ import Ganeti.Rpc
 import qualified Ganeti.Query.Exec as Exec
 import Ganeti.Query.Query
 import Ganeti.Query.Filter (makeSimpleFilter)
+import Ganeti.THH.HsRPC (runRpcClient, RpcClientMonad)
 import Ganeti.Types
 import qualified Ganeti.UDSServer as U (Handler(..), listener)
 import Ganeti.Utils ( lockFile, exitIfBad, exitUnless, watchFile
-                    , safeRenameFile )
+                    , safeRenameFile, newUUID, isUUID )
 import Ganeti.Utils.MVarLock
 import qualified Ganeti.Version as Version
+import Ganeti.WConfd.Client (getWConfdClient, withLockedConfig, writeConfig)
+
+
+-- | Creates a `ClientId` that identifies the current luxi
+-- (process, thread).
+--
+-- This means that this `ClientId` will be different for each request
+-- handled by luxid.
+makeLuxidClientId :: JQStatus -> IO ClientId
+makeLuxidClientId status = do
+  pid <- getProcessID
+  tid <- myThreadId
+  return ClientId
+           { ciIdentifier = ClientOther $ "luxid-" ++ show tid
+           , ciLockFile = jqLivelock status
+           , ciPid = pid
+           }
+
+-- | Creates a connection to WConfd and locks the config, allowing
+-- to run some WConfd RPC commands given the locked config.
+--
+-- This is needed when luxid wants to change the config.
+--
+-- Example:
+--
+-- > cid <- makeLuxidClientId ...
+-- > withLockedWconfdConfig cid $ \lockedCfg -> do
+-- >   -- some (IO) action that needs to be run inside having the lock
+-- >   writeConfig cid (updateConfig lockedCfg)
+withLockedWconfdConfig
+  :: (MonadBase IO m, MonadError GanetiException m)
+  => ClientId
+  -> (ConfigData -> RpcClientMonad a)
+  -> m a
+withLockedWconfdConfig cid f = do
+  wconfdClient <- liftBase $ getWConfdClient =<< Path.defaultWConfdSocket
+  runRpcClient (withLockedConfig cid False f) wconfdClient
 
 -- | Helper for classic queries.
 handleQuery :: [Qlang.ItemType -> Qlang.FilterField] -- ^ Fields to put into
@@ -112,6 +158,16 @@ handleClassicQuery :: ConfigData      -- ^ Cluster config
                    -> Bool            -- ^ Whether to do sync queries or not
                    -> IO (GenericResult GanetiException JSValue)
 handleClassicQuery = handleQuery [nameField, uuidField]
+
+-- | Like `handleClassicQuery`, but filters only by UUID.
+handleUuidQuery :: ConfigData      -- ^ Cluster config
+                -> Qlang.ItemType  -- ^ Query type
+                -> [Either String Integer] -- ^ Requested names
+                                           -- (empty means all)
+                -> [String]        -- ^ Requested fields
+                -> Bool            -- ^ Whether to do sync queries or not
+                -> IO (GenericResult GanetiException JSValue)
+handleUuidQuery = handleQuery [uuidField]
 
 -- | Minimal wrapper to handle the missing config case.
 handleCallWrapper :: Lock -> JQStatus ->  Result ConfigData
@@ -249,6 +305,64 @@ handleCall _ _ cfg (QueryGroups names fields lock) =
 handleCall _ _ cfg (QueryJobs names fields) =
   handleClassicQuery cfg (Qlang.ItemTypeLuxi Qlang.QRJob)
     (map (Right . fromIntegral . fromJobId) names)  fields False
+
+handleCall _ _ cfg (QueryFilters uuids fields) =
+  handleUuidQuery cfg (Qlang.ItemTypeLuxi Qlang.QRFilter)
+    (map Left uuids) fields False
+
+handleCall _ status _ (ReplaceFilter mUuid priority predicates action
+                                     reason) =
+  -- Handles both adding new filter and changing existing ones.
+  runResultT $ do
+
+    -- Check that uuid `String` is actually a UUID.
+    uuid <- case mUuid of
+      Nothing -> liftIO newUUID  -- Request to add a new filter
+      Just u                     -- Request to edit an existing filter
+        | isUUID u  -> return u
+        | otherwise -> fail "Unable to parse UUID"
+
+    timestamp <- liftIO $ reasonTrailTimestamp <$> currentTimestamp
+    let luxidReason = ("luxid", "", timestamp)
+
+    -- Ask WConfd to change the config for us.
+    cid <- liftIO $ makeLuxidClientId status
+    withLockedWconfdConfig cid $ \lockedCfg -> do
+      -- Reading the latest JobID inside the Wconfd lock to really get the
+      -- most recent one (locking may block us for some time).
+      serial <- liftIO readSerialFromDisk
+      case serial of
+        Bad err -> fail $ "AddFilter: reading current JobId failed: " ++ err
+        Ok watermark -> do
+          let rule = FilterRule { frWatermark = watermark
+                                , frPriority = priority
+                                , frPredicates = predicates
+                                , frAction = action
+                                , frReasonTrail = reason ++ [luxidReason]
+                                , frUuid = uuid
+                                }
+          writeConfig cid
+            . (configFiltersL . alterContainerL uuid .~ Just rule)
+            $ lockedCfg
+
+    -- Return UUID of added/replaced filter.
+    return $ showJSON uuid
+
+handleCall _ status cfg (DeleteFilter uuid) = runResultT $ do
+  -- Check if filter exists.
+  _ <- lookupContainer
+    (failError $ "Filter rule with UUID " ++ uuid ++ " does not exist")
+    uuid
+    (configFilters cfg)
+
+  -- Ask WConfd to change the config for us.
+  cid <- liftIO $ makeLuxidClientId status
+  withLockedWconfdConfig cid $ \lockedCfg ->
+    writeConfig cid
+      . (configFiltersL . alterContainerL uuid .~ Nothing)
+      $ lockedCfg
+
+  return JSNull
 
 handleCall _ _ cfg (QueryNetworks names fields lock) =
   handleClassicQuery cfg (Qlang.ItemTypeOpCode Qlang.QRNetwork)

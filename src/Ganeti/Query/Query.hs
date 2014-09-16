@@ -88,6 +88,7 @@ import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.Query.Common
 import qualified Ganeti.Query.Export as Export
+import qualified Ganeti.Query.FilterRules as FilterRules
 import Ganeti.Query.Filter
 import qualified Ganeti.Query.Instance as Instance
 import qualified Ganeti.Query.Job as Query.Job
@@ -326,6 +327,10 @@ queryInner cfg live (Query (ItemTypeOpCode QRExport) fields qfilter) wanted =
   genericQuery Export.fieldsMap (CollectorSimple Export.collectLiveData)
                nodeName configNodes getNode cfg live fields qfilter wanted
 
+queryInner cfg live (Query (ItemTypeLuxi QRFilter) fields qfilter) wanted =
+  genericQuery FilterRules.fieldsMap (CollectorSimple dummyCollectLiveData)
+               frUuid configFilters getFilterRule cfg live fields qfilter wanted
+
 queryInner _ _ (Query qkind _ _) _ =
   return . Bad . GenericError $ "Query '" ++ show qkind ++ "' not supported"
 
@@ -412,6 +417,9 @@ queryFields (QueryFields (ItemTypeOpCode QRInstance) fields) =
 
 queryFields (QueryFields (ItemTypeLuxi QRLock) fields) =
   Ok $ fieldsExtractor Locks.fieldsMap fields
+
+queryFields (QueryFields (ItemTypeLuxi QRFilter) fields) =
+  Ok $ fieldsExtractor FilterRules.fieldsMap fields
 
 queryFields (QueryFields qkind _) =
   Bad . GenericError $ "QueryFields '" ++ show qkind ++ "' not supported"

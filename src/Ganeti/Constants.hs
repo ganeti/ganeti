@@ -3603,6 +3603,9 @@ qrLock = "lock"
 qrNetwork :: String
 qrNetwork = "network"
 
+qrFilter :: String
+qrFilter = "filter"
+
 qrNode :: String
 qrNode = "node"
 
@@ -3624,7 +3627,8 @@ qrViaLuxi = ConstantUtils.mkSet [qrGroup,
                                  qrJob,
                                  qrLock,
                                  qrNetwork,
-                                 qrNode]
+                                 qrNode,
+                                 qrFilter]
 
 -- | List of resources which can be queried using RAPI
 qrViaRapi :: FrozenSet String
@@ -3632,7 +3636,7 @@ qrViaRapi = qrViaLuxi
 
 -- | List of resources which can be queried via RAPI including PUT requests
 qrViaRapiPut :: FrozenSet String
-qrViaRapiPut = ConstantUtils.mkSet [qrLock, qrJob]
+qrViaRapiPut = ConstantUtils.mkSet [qrLock, qrJob, qrFilter]
 
 -- * Query field types
 
@@ -4867,6 +4871,15 @@ luxiReqQueryFields = "QueryFields"
 luxiReqQueryJobs :: String
 luxiReqQueryJobs = "QueryJobs"
 
+luxiReqQueryFilters :: String
+luxiReqQueryFilters = "QueryFilters"
+
+luxiReqReplaceFilter :: String
+luxiReqReplaceFilter = "ReplaceFilter"
+
+luxiReqDeleteFilter :: String
+luxiReqDeleteFilter = "DeleteFilter"
+
 luxiReqQueryInstances :: String
 luxiReqQueryInstances = "QueryInstances"
 
@@ -4922,6 +4935,9 @@ luxiReqAll =
   , luxiReqSubmitManyJobs
   , luxiReqWaitForJobChange
   , luxiReqPickupJob
+  , luxiReqQueryFilters
+  , luxiReqReplaceFilter
+  , luxiReqDeleteFilter
   ]
 
 luxiDefCtmo :: Int

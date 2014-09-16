@@ -34,10 +34,12 @@
 import sys
 import textwrap
 import os.path
+import re
 import time
 import logging
 import errno
 import itertools
+import simplejson
 import shlex
 from cStringIO import StringIO
 
@@ -297,12 +299,14 @@ __all__ = [
   "ARGS_MANY_NODES",
   "ARGS_MANY_GROUPS",
   "ARGS_MANY_NETWORKS",
+  "ARGS_MANY_FILTERS",
   "ARGS_NONE",
   "ARGS_ONE_INSTANCE",
   "ARGS_ONE_NODE",
   "ARGS_ONE_GROUP",
   "ARGS_ONE_OS",
   "ARGS_ONE_NETWORK",
+  "ARGS_ONE_FILTER",
   "ArgChoice",
   "ArgCommand",
   "ArgFile",
@@ -314,6 +318,7 @@ __all__ = [
   "ArgNode",
   "ArgOs",
   "ArgExtStorage",
+  "ArgFilter",
   "ArgSuggest",
   "ArgUnknown",
   "OPT_COMPL_INST_ADD_NODES",
@@ -325,6 +330,7 @@ __all__ = [
   "OPT_COMPL_ONE_NETWORK",
   "OPT_COMPL_ONE_OS",
   "OPT_COMPL_ONE_EXTSTORAGE",
+  "OPT_COMPL_ONE_FILTER",
   "cli_option",
   "FixHvParams",
   "SplitNodeOption",
@@ -483,16 +489,24 @@ class ArgExtStorage(_Argument):
   """
 
 
+class ArgFilter(_Argument):
+  """Filter UUID argument.
+
+  """
+
+
 ARGS_NONE = []
 ARGS_MANY_INSTANCES = [ArgInstance()]
 ARGS_MANY_NETWORKS = [ArgNetwork()]
 ARGS_MANY_NODES = [ArgNode()]
 ARGS_MANY_GROUPS = [ArgGroup()]
+ARGS_MANY_FILTERS = [ArgFilter()]
 ARGS_ONE_INSTANCE = [ArgInstance(min=1, max=1)]
 ARGS_ONE_NETWORK = [ArgNetwork(min=1, max=1)]
 ARGS_ONE_NODE = [ArgNode(min=1, max=1)]
 ARGS_ONE_GROUP = [ArgGroup(min=1, max=1)]
 ARGS_ONE_OS = [ArgOs(min=1, max=1)]
+ARGS_ONE_FILTER = [ArgFilter(min=1, max=1)]
 
 
 def _ExtractTagsObject(opts, args):
@@ -785,6 +799,32 @@ def check_maybefloat(option, opt, value): # pylint: disable=W0613
     return float(value)
 
 
+def check_json(option, opt, value): # pylint: disable=W0613
+  """Custom parser for JSON arguments.
+
+  Takes a string containing JSON, returns a Python object.
+
+  """
+  return simplejson.loads(value)
+
+
+def check_filteraction(option, opt, value): # pylint: disable=W0613
+  """Custom parser for filter rule actions.
+
+  Takes a string, returns an action as a Python object (list or string).
+
+  The string "RATE_LIMIT n" becomes `["RATE_LIMIT", n]`.
+  All other strings stay as they are.
+
+  """
+  match = re.match(r"RATE_LIMIT\s+(\d+)", value)
+  if match:
+    n = int(match.group(1))
+    return ["RATE_LIMIT", n]
+  else:
+    return value
+
+
 # completion_suggestion is normally a list. Using numeric values not evaluating
 # to False for dynamic completion.
 (OPT_COMPL_MANY_NODES,
@@ -792,10 +832,11 @@ def check_maybefloat(option, opt, value): # pylint: disable=W0613
  OPT_COMPL_ONE_INSTANCE,
  OPT_COMPL_ONE_OS,
  OPT_COMPL_ONE_EXTSTORAGE,
+ OPT_COMPL_ONE_FILTER,
  OPT_COMPL_ONE_IALLOCATOR,
  OPT_COMPL_ONE_NETWORK,
  OPT_COMPL_INST_ADD_NODES,
- OPT_COMPL_ONE_NODEGROUP) = range(100, 109)
+ OPT_COMPL_ONE_NODEGROUP) = range(100, 110)
 
 OPT_COMPL_ALL = compat.UniqueFrozenset([
   OPT_COMPL_MANY_NODES,
@@ -803,6 +844,7 @@ OPT_COMPL_ALL = compat.UniqueFrozenset([
   OPT_COMPL_ONE_INSTANCE,
   OPT_COMPL_ONE_OS,
   OPT_COMPL_ONE_EXTSTORAGE,
+  OPT_COMPL_ONE_FILTER,
   OPT_COMPL_ONE_IALLOCATOR,
   OPT_COMPL_ONE_NETWORK,
   OPT_COMPL_INST_ADD_NODES,
@@ -826,6 +868,8 @@ class CliOption(Option):
     "bool",
     "list",
     "maybefloat",
+    "json",
+    "filteraction",
     )
   TYPE_CHECKER = Option.TYPE_CHECKER.copy()
   TYPE_CHECKER["multilistidentkeyval"] = check_multilist_ident_key_val
@@ -836,6 +880,8 @@ class CliOption(Option):
   TYPE_CHECKER["bool"] = check_bool
   TYPE_CHECKER["list"] = check_list
   TYPE_CHECKER["maybefloat"] = check_maybefloat
+  TYPE_CHECKER["json"] = check_json
+  TYPE_CHECKER["filteraction"] = check_filteraction
 
 
 # optparse.py sets make_option, so we do it for our own option class, too
@@ -1623,7 +1669,7 @@ FAILURE_ONLY_OPT = cli_option("--failure-only", default=False,
                               help=("Hide successful results and show failures"
                                     " only (determined by the exit code)"))
 
-REASON_OPT = cli_option("--reason", default=None,
+REASON_OPT = cli_option("--reason", default=[],
                         help="The reason for executing the command")
 
 

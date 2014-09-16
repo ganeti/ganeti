@@ -62,6 +62,9 @@ REQ_AUTO_ARCHIVE_JOBS = constants.LUXI_REQ_AUTO_ARCHIVE_JOBS
 REQ_QUERY = constants.LUXI_REQ_QUERY
 REQ_QUERY_FIELDS = constants.LUXI_REQ_QUERY_FIELDS
 REQ_QUERY_JOBS = constants.LUXI_REQ_QUERY_JOBS
+REQ_QUERY_FILTERS = constants.LUXI_REQ_QUERY_FILTERS
+REQ_REPLACE_FILTER = constants.LUXI_REQ_REPLACE_FILTER
+REQ_DELETE_FILTER = constants.LUXI_REQ_DELETE_FILTER
 REQ_QUERY_INSTANCES = constants.LUXI_REQ_QUERY_INSTANCES
 REQ_QUERY_NODES = constants.LUXI_REQ_QUERY_NODES
 REQ_QUERY_GROUPS = constants.LUXI_REQ_QUERY_GROUPS
@@ -213,6 +216,16 @@ class Client(cl.AbstractClient):
 
   def QueryJobs(self, job_ids, fields):
     return self.CallMethod(REQ_QUERY_JOBS, (job_ids, fields))
+
+  def QueryFilters(self, uuids, fields):
+    return self.CallMethod(REQ_QUERY_FILTERS, (uuids, fields))
+
+  def ReplaceFilter(self, uuid, priority, predicates, action, reason):
+    return self.CallMethod(REQ_REPLACE_FILTER,
+                           (uuid, priority, predicates, action, reason))
+
+  def DeleteFilter(self, uuid):
+    return self.CallMethod(REQ_DELETE_FILTER, (uuid, ))
 
   def QueryInstances(self, names, fields, use_locking):
     return self.CallMethod(REQ_QUERY_INSTANCES, (names, fields, use_locking))

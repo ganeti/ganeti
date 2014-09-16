@@ -170,6 +170,34 @@ class TestInputTestClient(unittest.TestCase):
     result = self.cl.WaitForJobChange("1", ["id"], None, None)
     self.assertTrue(result is NotImplemented)
 
+  def testGetFilters(self):
+    self.assertTrue(self.cl.GetFilters() is NotImplemented)
+
+  def testGetFilter(self):
+    result = self.cl.GetFilter("4364c043-f232-41e3-837f-f1ce846f21d2")
+    self.assertTrue(result is NotImplemented)
+
+  def testReplaceFilter(self):
+    self.assertTrue(self.cl.ReplaceFilter(
+      uuid="c6a70f02-facb-4e37-b344-54f146dd0396",
+      priority=1,
+      predicates=[["jobid", [">", "id", "watermark"]]],
+      action="CONTINUE",
+      reason_trail=["testReplaceFilter", "myreason", utils.EpochNano()],
+    ) is NotImplemented)
+
+  def testAddFilter(self):
+    self.assertTrue(self.cl.AddFilter(
+      priority=1,
+      predicates=[["jobid", [">", "id", "watermark"]]],
+      action="CONTINUE",
+      reason_trail=["testAddFilter", "myreason", utils.EpochNano()],
+    ) is NotImplemented)
+
+  def testDeleteFilter(self):
+    self.assertTrue(self.cl.DeleteFilter(
+      uuid="c6a70f02-facb-4e37-b344-54f146dd0396",
+    ) is NotImplemented)
 
 class CustomTestRunner(unittest.TextTestRunner):
   def run(self, *args):

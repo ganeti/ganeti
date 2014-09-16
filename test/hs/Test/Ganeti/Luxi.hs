@@ -51,6 +51,7 @@ import Test.Ganeti.OpCodes ()
 import Test.Ganeti.Query.Language (genFilter)
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHelper
+import Test.Ganeti.Types (genReasonTrail)
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Luxi as Luxi
@@ -76,6 +77,11 @@ instance Arbitrary Luxi.LuxiOp where
                              arbitrary <*> arbitrary
       Luxi.ReqQueryInstances -> Luxi.QueryInstances <$> listOf genFQDN <*>
                                 genFields <*> arbitrary
+      Luxi.ReqQueryFilters -> Luxi.QueryFilters <$> arbitrary <*> genFields
+      Luxi.ReqReplaceFilter -> Luxi.ReplaceFilter <$> genMaybe genUUID <*>
+                               arbitrary <*> arbitrary <*> arbitrary <*>
+                               genReasonTrail
+      Luxi.ReqDeleteFilter -> Luxi.DeleteFilter <$> genUUID
       Luxi.ReqQueryJobs -> Luxi.QueryJobs <$> arbitrary <*> genFields
       Luxi.ReqQueryExports -> Luxi.QueryExports <$>
                               listOf genFQDN <*> arbitrary

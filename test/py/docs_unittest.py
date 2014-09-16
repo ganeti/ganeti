@@ -199,11 +199,13 @@ class TestRapiDocs(unittest.TestCase):
     network_name = re.escape("[network_name]")
     job_id = re.escape("[job_id]")
     disk_index = re.escape("[disk_index]")
+    filter_uuid = re.escape("[filter_uuid]")
     query_res = re.escape("[resource]")
 
     resources = connector.GetHandlers(node_name, instance_name,
                                       group_name, network_name,
-                                      job_id, disk_index, query_res)
+                                      job_id, disk_index, filter_uuid,
+                                      query_res)
 
     handler_dups = utils.FindDuplicates(resources.values())
     self.assertFalse(handler_dups,
@@ -217,6 +219,7 @@ class TestRapiDocs(unittest.TestCase):
       re.compile(network_name): "network5550",
       re.compile(job_id): "9409",
       re.compile(disk_index): "123",
+      re.compile(filter_uuid): "c863fbb5-f248-47bf-869b-cea259890061",
       re.compile(query_res): "lock",
       }
 

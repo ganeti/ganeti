@@ -474,6 +474,161 @@ features:
   a new-style result (see resource description)
 
 
+.. _rapi-res-filters:
+
+``/2/filters``
++++++++++++++++
+
+The filters resource.
+
+.. rapi_resource_details:: /2/filters
+
+
+.. _rapi-res-filters+get:
+
+``GET``
+~~~~~~~
+
+Returns a list of all existing filters.
+
+Example::
+
+    [
+      {
+        "id": "8b53f7de-f8e2-4470-99bd-1efe746e434f",
+        "uri": "/2/filters/8b53f7de-f8e2-4470-99bd-1efe746e434f"
+      },
+      {
+        "id": "b296f0c9-4809-46a8-b928-5ccf7720fa8c",
+        "uri": "/2/filters/b296f0c9-4809-46a8-b928-5ccf7720fa8c"
+      }
+    ]
+
+If the optional bool *bulk* argument is provided and set to a true value
+(i.e ``?bulk=1``), the output contains detailed information about filters
+as a list.
+
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.FILTER_RULE_FIELDS))`.
+
+Example::
+
+    [
+      {
+        "uuid": "8b53f7de-f8e2-4470-99bd-1efe746e434f",
+        "watermark": 12534,
+        "reason_trail": [
+          ["luxid", "someFilterReason", 1409249801259897000]
+        ],
+        "priority": 0,
+        "action": "REJECT",
+        "predicates": [
+          ["jobid", [">", "id", "watermark"]]
+        ]
+      },
+      {
+        "uuid": "b296f0c9-4809-46a8-b928-5ccf7720fa8c",
+        "watermark": 12534,
+        "reason_trail": [
+          ["luxid", "someFilterReason", 1409249917268978000]
+        ],
+        "priority": 1,
+        "action": "REJECT",
+        "predicates": [
+          ["opcode", ["=", "OP_ID", "OP_INSTANCE_CREATE"]]
+        ]
+      }
+    ]
+
+
+.. _rapi-res-filters+post:
+
+``POST``
+~~~~~~~~
+
+Creates a filter.
+
+Body parameters:
+
+``priority`` (int, defaults to ``0``)
+  Must be non-negative. Lower numbers mean higher filter priority.
+
+``predicates`` (list, defaults to ``[]``)
+  The first element is the name (``str``) of the predicate and the
+  rest are parameters suitable for that predicate.
+  Most predicates take a single parameter: A boolean expression
+  in the Ganeti query language.
+
+``action`` (defaults to ``"CONTINUE"``)
+  The effect of the filter. Can be one of ``"ACCEPT"``, ``"PAUSE"``,
+  ``"REJECT"``, ``"CONTINUE"`` and ``["RATE_LIMIT", n]``, where ``n``
+  is a positive integer.
+
+``reason`` (list, defaults to ``[]``)
+  An initial reason trail for this filter. Each element in this list
+  is a list with 3 elements: ``[source, reason, timestamp]``, where
+  ``source`` and ``reason`` are strings and ``timestamp`` is a time
+  since the UNIX epoch in nanoseconds as an integer.
+
+Returns:
+
+A filter UUID (``str``) that can be used for accessing the filter later.
+
+
+.. _rapi-res-filters-filter_uuid:
+
+``/2/filters/[filter_uuid]``
+++++++++++++++++++++++++++++++
+
+Returns information about a filter.
+
+.. rapi_resource_details:: /2/filters/[filter_uuid]
+
+
+.. _rapi-res-filters-filter_uuid+get:
+
+``GET``
+~~~~~~~
+
+Returns information about a filter, similar to the bulk output from
+the filter list.
+
+Returned fields: :pyeval:`utils.CommaJoin(sorted(rlib2.FILTER_RULE_FIELDS))`.
+
+
+.. _rapi-res-filters-filter_uuid+put:
+
+``PUT``
+~~~~~~~
+
+Replaces a filter with given UUID, or creates it with the given UUID
+if it doesn't already exist.
+
+Body parameters:
+
+All parameters for adding a new filter via ``POST``, plus the following:
+
+``uuid``: (string)
+  The UUID of the filter to replace or create.
+
+Returns:
+
+The filter UUID (``str``) of the replaced or created filter.
+This will be the ``uuid`` body parameter if given, and a freshly generated
+UUID otherwise.
+
+
+.. _rapi-res-filters-filter_uuid+delete:
+
+``DELETE``
+~~~~~~~~~~
+
+Deletes a filter.
+
+Returns:
+
+``None``
+
+
 .. _rapi-res-modify:
 
 ``/2/modify``

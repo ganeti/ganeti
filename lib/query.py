@@ -2911,6 +2911,28 @@ def _BuildNetworkFields():
 
   return _PrepareFieldList(fields, [])
 
+
+_FILTER_SIMPLE_FIELDS = {
+  "watermark": ("Watermark", QFT_NUMBER, 0, "Watermark"),
+  "priority": ("Priority", QFT_NUMBER, 0, "Priority"),
+  "predicates": ("Predicates", QFT_OTHER, 0, "Predicates"),
+  "action": ("Action", QFT_OTHER, 0, "Action"),
+  "reason_trail": ("ReasonTrail", QFT_OTHER, 0, "Reason trail"),
+  "uuid": ("UUID", QFT_TEXT, 0, "Network UUID"),
+  }
+
+
+def _BuildFilterFields():
+  """Builds list of fields for job filter queries.
+
+  """
+  fields = [
+    (_MakeField(name, title, kind, doc), None, 0, _GetItemMaybeAttr(name))
+    for (name, (title, kind, _, doc)) in _FILTER_SIMPLE_FIELDS.items()
+    ]
+
+  return _PrepareFieldList(fields, [])
+
 #: Fields for cluster information
 CLUSTER_FIELDS = _BuildClusterFields()
 
@@ -2941,6 +2963,9 @@ EXPORT_FIELDS = _BuildExportFields()
 #: Fields available for network queries
 NETWORK_FIELDS = _BuildNetworkFields()
 
+#: Fields available for job filter queries
+FILTER_FIELDS = _BuildFilterFields()
+
 #: All available resources
 ALL_FIELDS = {
   constants.QR_CLUSTER: CLUSTER_FIELDS,
@@ -2953,6 +2978,7 @@ ALL_FIELDS = {
   constants.QR_JOB: JOB_FIELDS,
   constants.QR_EXPORT: EXPORT_FIELDS,
   constants.QR_NETWORK: NETWORK_FIELDS,
+  constants.QR_FILTER: FILTER_FIELDS,
   }
 
 #: All available field lists

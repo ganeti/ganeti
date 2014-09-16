@@ -426,6 +426,12 @@ def UpgradeInstanceIndices(config_data):
   ChangeInstanceIndices(config_data, "name", "uuid")
 
 
+def UpgradeFilters(config_data):
+  filters = config_data.get("filters", None)
+  if not filters:
+    config_data["filters"] = {}
+
+
 def UpgradeTopLevelDisks(config_data):
   """Upgrades the disks as config top level citizens."""
   if "instances" not in config_data:
@@ -459,6 +465,7 @@ def UpgradeAll(config_data):
   UpgradeTopLevelDisks(config_data)
   UpgradeNodeIndices(config_data)
   UpgradeInstanceIndices(config_data)
+  UpgradeFilters(config_data)
 
 
 # DOWNGRADE ------------------------------------------------------------
@@ -484,6 +491,11 @@ def DowngradeDataCollectors(config_data):
     del cluster["data_collectors"]
 
 
+def DowngradeFilters(config_data):
+  if "filters" in config_data:
+    del config_data["filters"]
+
+
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
@@ -491,6 +503,7 @@ def DowngradeAll(config_data):
                                                 DOWNGRADE_MINOR, 0)
   DowngradeExtAccess(config_data)
   DowngradeDataCollectors(config_data)
+  DowngradeFilters(config_data)
 
 
 def _ParseOptions():

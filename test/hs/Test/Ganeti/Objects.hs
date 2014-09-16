@@ -64,6 +64,7 @@ import GHC.Exts (IsString(..))
 import System.Time (ClockTime(..))
 import qualified Text.JSON as J
 
+import Test.Ganeti.Query.Language ()
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
@@ -284,6 +285,30 @@ instance Arbitrary AddressPool where
 instance Arbitrary Network where
   arbitrary = genValidNetwork
 
+instance Arbitrary FilterAction where
+  arbitrary = oneof
+    [ pure Accept
+    , pure Pause
+    , pure Reject
+    , pure Continue
+    , RateLimit . fromPositive <$> arbitrary
+    ]
+
+instance Arbitrary FilterPredicate where
+  arbitrary = oneof
+    [ FPJobId <$> arbitrary
+    , FPOpCode <$> arbitrary
+    , FPReason <$> arbitrary
+    ]
+
+instance Arbitrary FilterRule where
+  arbitrary = FilterRule <$> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+                         <*> arbitrary
+                         <*> genUUID
+
 -- | Generates a network instance with minimum netmasks of /24. Generating
 -- bigger networks slows down the tests, because long bit strings are generated
 -- for the reservations.
@@ -338,6 +363,7 @@ genEmptyCluster ncount = do
       continsts = GenericContainer Map.empty
       networks = GenericContainer Map.empty
       disks = GenericContainer Map.empty
+      filters = GenericContainer Map.empty
   let contgroups = GenericContainer $ Map.singleton guuid grp
   serial <- arbitrary
   -- timestamp fields
@@ -345,7 +371,7 @@ genEmptyCluster ncount = do
   mtime <- arbitrary
   cluster <- resize 8 arbitrary
   let c = ConfigData version cluster contnodes contgroups continsts networks
-            disks ctime mtime serial
+            disks filters ctime mtime serial
   return c
 
 -- | FIXME: make an even simpler base version of creating a cluster.
@@ -425,6 +451,14 @@ prop_AddressPool_serialisation = testSerialisation
 -- | Check that network serialisation is idempotent.
 prop_Network_serialisation :: Network -> Property
 prop_Network_serialisation = testSerialisation
+
+-- | Check that filter action serialisation is idempotent.
+prop_FilterAction_serialisation :: FilterAction -> Property
+prop_FilterAction_serialisation = testSerialisation
+
+-- | Check that filter predicate serialisation is idempotent.
+prop_FilterPredicate_serialisation :: FilterPredicate -> Property
+prop_FilterPredicate_serialisation = testSerialisation
 
 -- | Check config serialisation.
 prop_Config_serialisation :: Property
@@ -677,6 +711,8 @@ testSuite "Objects"
   , 'prop_Network_serialisation
   , 'prop_Node_serialisation
   , 'prop_Config_serialisation
+  , 'prop_FilterAction_serialisation
+  , 'prop_FilterPredicate_serialisation
   , 'casePyCompatNetworks
   , 'casePyCompatNodegroups
   , 'casePyCompatInstances

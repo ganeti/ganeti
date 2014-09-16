@@ -62,7 +62,8 @@ from socket import AF_INET
 
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
-           "OS", "Node", "NodeGroup", "Cluster", "FillDict", "Network"]
+           "OS", "Node", "NodeGroup", "Cluster", "FillDict", "Network",
+           "Filter"]
 
 _TIMESTAMPS = ["ctime", "mtime"]
 _UUID = ["uuid"]
@@ -415,6 +416,7 @@ class ConfigData(ConfigObject):
     "instances",
     "networks",
     "disks",
+    "filters",
     "serial_no",
     ] + _TIMESTAMPS
 
@@ -427,7 +429,8 @@ class ConfigData(ConfigObject):
     """
     mydict = super(ConfigData, self).ToDict(_with_private=_with_private)
     mydict["cluster"] = mydict["cluster"].ToDict()
-    for key in "nodes", "instances", "nodegroups", "networks", "disks":
+    for key in ("nodes", "instances", "nodegroups", "networks", "disks",
+                "filters"):
       mydict[key] = outils.ContainerToDicts(mydict[key])
 
     return mydict
@@ -446,6 +449,7 @@ class ConfigData(ConfigObject):
       outils.ContainerFromDicts(obj.nodegroups, dict, NodeGroup)
     obj.networks = outils.ContainerFromDicts(obj.networks, dict, Network)
     obj.disks = outils.ContainerFromDicts(obj.disks, dict, Disk)
+    obj.filters = outils.ContainerFromDicts(obj.filters, dict, Filter)
     return obj
 
   def HasAnyDiskOfType(self, dev_type):
@@ -487,6 +491,8 @@ class ConfigData(ConfigObject):
       network.UpgradeConfig()
     for disk in self.disks.values():
       disk.UpgradeConfig()
+    if self.filters is None:
+      self.filters = {}
 
   def _UpgradeEnabledDiskTemplates(self):
     """Upgrade the cluster's enabled disk templates by inspecting the currently
@@ -535,6 +541,12 @@ class NIC(ConfigObject):
     if (mode == constants.NIC_MODE_BRIDGED and
         not nicparams[constants.NIC_LINK]):
       raise errors.ConfigurationError("Missing bridged NIC link")
+
+
+class Filter(ConfigObject):
+  """Config object representing a filter rule."""
+  __slots__ = ["watermark", "priority",
+               "predicates", "action", "reason_trail"] + _UUID
 
 
 class Disk(ConfigObject):

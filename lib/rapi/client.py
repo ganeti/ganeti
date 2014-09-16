@@ -204,6 +204,16 @@ class CertificateError(GanetiApiError):
   pass
 
 
+def EpochNano():
+  """Return the current timestamp expressed as number of nanoseconds since the
+  unix epoch
+
+  @return: nanoseconds since the Unix epoch
+
+  """
+  return int(time.time() * 1000000000)
+
+
 def _AppendIf(container, condition, value):
   """Appends to a list if a condition evaluates to truth.
 
@@ -2466,3 +2476,118 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     return self._SendRequest(HTTP_GET,
                              ("/%s/query/%s/fields" %
                               (GANETI_RAPI_VERSION, what)), query, None)
+
+  def GetFilters(self, bulk=False):
+    """Gets all filter rules in the cluster.
+
+    @type bulk: bool
+    @param bulk: whether to return all information about the networks
+
+    @rtype: list of dict or str
+    @return: if bulk is true, a list of dictionaries with info about all
+             filter rules in the cluster, else a list of UUIDs of those
+             filters
+
+    """
+    query = []
+    _AppendIf(query, bulk, ("bulk", 1))
+
+    filters = self._SendRequest(HTTP_GET, "/%s/filters" % GANETI_RAPI_VERSION,
+                                query, None)
+    if bulk:
+      return filters
+    else:
+      return [f["uuid"] for f in filters]
+
+  def GetFilter(self, filter_uuid):
+    """Gets information about a filter rule.
+
+    @type filter_uuid: str
+    @param filter_uuid: UUID of the filter whose info to return
+
+    @rtype: dict
+    @return: info about the filter
+
+    """
+    query = []
+
+    return self._SendRequest(HTTP_GET,
+                             "/%s/filters/%s" % (GANETI_RAPI_VERSION,
+                                                 filter_uuid),
+                             query, None)
+
+  def AddFilter(self, priority, predicates, action, reason_trail=None):
+    """Adds a filter rule
+
+    @type reason_trail: list of (str, str, int) triples
+    @param reason_trail: the reason trail for executing this operation,
+                         or None
+
+    @rtype: string
+    @return: filter UUID of the added filter
+
+    """
+    if reason_trail is None:
+      reason_trail = []
+
+    assert isinstance(reason_trail, list)
+
+    reason_trail.append(("gnt:client", "", EpochNano(),))  # add client reason
+
+    body = {
+      "priority": priority,
+      "predicates": predicates,
+      "action": action,
+      "reason": reason_trail,
+      }
+
+    query = []
+
+    return self._SendRequest(HTTP_POST,
+                             ("/%s/filters" % (GANETI_RAPI_VERSION)),
+                             query, body)
+
+  def ReplaceFilter(self, uuid, priority, predicates, action,
+                    reason_trail=None):
+    """Replaces a filter rule, or creates one if it doesn't already exist
+
+    @type reason_trail: list of (str, str, int) triples
+    @param reason_trail: the reason trail for executing this operation,
+                         or None
+
+    @rtype: string
+    @return: filter UUID of the replaced/added filter
+
+    """
+    if reason_trail is None:
+      reason_trail = []
+
+    assert isinstance(reason_trail, list)
+
+    reason_trail.append(("gnt:client", "", EpochNano(),))  # add client reason
+
+    body = {
+      "priority": priority,
+      "predicates": predicates,
+      "action": action,
+      "reason": reason_trail,
+      }
+
+    query = []
+
+    return self._SendRequest(HTTP_PUT,
+                             ("/%s/filters/%s" % (GANETI_RAPI_VERSION, uuid)),
+                             query, body)
+
+  def DeleteFilter(self, uuid):
+    """Deletes a filter rule
+
+    @return: None
+
+    """
+    body = {}
+    query = []
+
+    return self._SendRequest(HTTP_DELETE,
+                             ("/%s/filters/%s" % (GANETI_RAPI_VERSION, uuid)),
+                             query, body)

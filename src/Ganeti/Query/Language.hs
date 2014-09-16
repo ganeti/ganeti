@@ -132,6 +132,7 @@ $(makeJSONInstance ''QueryTypeOp)
 $(declareSADT "QueryTypeLuxi"
   [ ("QRLock",     'C.qrLock )
   , ("QRJob",      'C.qrJob )
+  , ("QRFilter",   'C.qrFilter )
   ])
 $(makeJSONInstance ''QueryTypeLuxi)
 
@@ -351,6 +352,10 @@ instance Show FilterRegex where
 -- | 'Eq' instance: we only compare the string versions of the regexes.
 instance Eq FilterRegex where
   (FilterRegex re1 _) == (FilterRegex re2 _) = re1 == re2
+
+-- | 'Ord' instance: we only compare the string versions of the regexes.
+instance Ord FilterRegex where
+  (FilterRegex re1 _) `compare` (FilterRegex re2 _) = re1 `compare` re2
 
 -- | 'JSON' instance: like for show and read instances, we work only
 -- with the string component.

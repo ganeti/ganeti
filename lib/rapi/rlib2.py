@@ -122,6 +122,15 @@ G_FIELDS = [
   "custom_ndparams",
   ] + _COMMON_FIELDS
 
+FILTER_RULE_FIELDS = [
+  "watermark",
+  "priority",
+  "predicates",
+  "action",
+  "reason_trail",
+  "uuid",
+  ]
+
 J_FIELDS_BULK = [
   "id", "ops", "status", "summary",
   "opstatus",
@@ -299,6 +308,124 @@ class R_2_cluster_modify(baserlib.OpcodeResource):
   PUT_FORBIDDEN = [
     "compression_tools",
     ]
+
+
+def checkFilterParameters(data):
+  """Checks and extracts filter rule parameters from a request body.
+
+  @return: the checked parameters: (priority, predicates, action).
+
+  """
+
+  if not isinstance(data, dict):
+    raise http.HttpBadRequest("Invalid body contents, not a dictionary")
+
+  # Forbid unknown parameters
+  allowed_params = set(["priority", "predicates", "action", "reason"])
+  for param in data:
+    if param not in allowed_params:
+      raise http.HttpBadRequest("Invalid body parameters: filter rule doesn't"
+                                " support the parameter '%s'" % param)
+
+  priority = baserlib.CheckParameter(
+    data, "priority", exptype=int, default=0)
+
+  # We leave the deeper check into the predicates list to the server.
+  predicates = baserlib.CheckParameter(
+    data, "predicates", exptype=list, default=[])
+
+  # The action can be a string or a list; we leave the check to the server.
+  action = baserlib.CheckParameter(data, "action", default="CONTINUE")
+
+  reason = baserlib.CheckParameter(data, "reason", exptype=list, default=[])
+
+  return (priority, predicates, action, reason)
+
+
+class R_2_filters(baserlib.ResourceBase):
+  """/2/filters resource.
+
+  """
+
+  def GET(self):
+    """Returns a list of all filter rules.
+
+    @return: a dictionary with filter rule UUID and uri.
+
+    """
+    client = self.GetClient()
+
+    if self.useBulk():
+      bulkdata = client.QueryFilters(None, FILTER_RULE_FIELDS)
+      return baserlib.MapBulkFields(bulkdata, FILTER_RULE_FIELDS)
+    else:
+      jobdata = map(compat.fst, client.QueryFilters(None, ["uuid"]))
+      return baserlib.BuildUriList(jobdata, "/2/filters/%s",
+                                   uri_fields=("uuid", "uri"))
+
+  def POST(self):
+    """Adds a filter rule.
+
+    @return: the UUID of the newly created filter rule.
+
+    """
+    priority, predicates, action, reason = \
+      checkFilterParameters(self.request_body)
+
+    # ReplaceFilter(None, ...) inserts a new filter.
+    return self.GetClient().ReplaceFilter(None, priority, predicates, action,
+                                          reason)
+
+
+class R_2_filters_uuid(baserlib.ResourceBase):
+  """/2/filters/[filter_uuid] resource.
+
+  """
+  def GET(self):
+    """Returns a filter rule.
+
+    @return: a dictionary with job parameters.
+        The result includes:
+            - uuid: unique filter ID string
+            - watermark: highest job ID ever used as a number
+            - priority: filter priority as a non-negative number
+            - predicates: filter predicates, each one being a list
+              with the first element being the name of the predicate
+              and the rest being parameters suitable for that predicate
+            - action: effect of the filter as a string
+            - reason_trail: reasons for the addition of this filter as a
+              list of lists
+
+    """
+    uuid = self.items[0]
+
+    result = baserlib.HandleItemQueryErrors(self.GetClient().QueryFilters,
+                                            uuids=[uuid],
+                                            fields=FILTER_RULE_FIELDS)
+
+    return baserlib.MapFields(FILTER_RULE_FIELDS, result[0])
+
+  def PUT(self):
+    """Replaces an existing filter rule, or creates one if it doesn't
+    exist already.
+
+    @return: the UUID of the changed or created filter rule.
+
+    """
+    uuid = self.items[0]
+
+    priority, predicates, action, reason = \
+      checkFilterParameters(self.request_body)
+
+    return self.GetClient().ReplaceFilter(uuid, priority, predicates, action,
+                                          reason)
+
+  def DELETE(self):
+    """Deletes a filter rule.
+
+    """
+    uuid = self.items[0]
+    return self.GetClient().DeleteFilter(uuid)
 
 
 class R_2_jobs(baserlib.ResourceBase):

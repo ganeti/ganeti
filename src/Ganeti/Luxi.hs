@@ -73,6 +73,7 @@ import Ganeti.Constants
 import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.UDSServer
+import Ganeti.Objects
 import Ganeti.OpParams (pTagsObject)
 import Ganeti.OpCodes
 import qualified Ganeti.Query.Language as Qlang
@@ -113,6 +114,22 @@ $(genLuxiOp "LuxiOp"
      [ simpleField "names"  [t| [String] |]
      , simpleField "fields" [t| [String] |]
      , simpleField "lock"   [t| Bool     |]
+     ])
+  , (luxiReqQueryFilters,
+     [ simpleField "uuids"  [t| [String] |]
+     , simpleField "fields" [t| [String] |]
+     ])
+  , (luxiReqReplaceFilter,
+     -- UUID is missing for insert, present for upsert
+     [ optionalNullSerField
+         $ simpleField "uuid"   [t| String            |]
+     , simpleField "priority"   [t| NonNegative Int   |]
+     , simpleField "predicates" [t| [FilterPredicate] |]
+     , simpleField "action"     [t| FilterAction      |]
+     , simpleField "reason"     [t| ReasonTrail       |]
+     ])
+  , (luxiReqDeleteFilter,
+     [ simpleField "uuid"   [t| String   |]
      ])
   , (luxiReqQueryJobs,
      [ simpleField "ids"    [t| [JobId]  |]
@@ -206,6 +223,24 @@ decodeLuxiCall :: JSValue -> JSValue -> Result LuxiOp
 decodeLuxiCall method args = do
   call <- fromJResult "Unable to parse LUXI request method" $ J.readJSON method
   case call of
+    ReqQueryFilters -> do
+              (uuids, fields) <- fromJVal args
+              uuids' <- case uuids of
+                          JSNull -> return []
+                          _ -> fromJVal uuids
+              return $ QueryFilters uuids' fields
+    ReqReplaceFilter -> do
+              Tuple5 ( uuid
+                     , priority
+                     , predicates
+                     , action
+                     , reason) <- fromJVal args
+              return $
+                ReplaceFilter (unMaybeForJSON uuid) priority predicates
+                              action reason
+    ReqDeleteFilter -> do
+              [uuid] <- fromJVal args
+              return $ DeleteFilter uuid
     ReqQueryJobs -> do
               (jids, jargs) <- fromJVal args
               jids' <- case jids of

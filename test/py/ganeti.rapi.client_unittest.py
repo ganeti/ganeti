@@ -1518,6 +1518,81 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
 
         self.assertEqual(self.rapi.CountPending(), 0)
 
+  def testGetFilters(self):
+    self.rapi.AddResponse(
+      "[ { \"uuid\": \"4364c043-f232-41e3-837f-f1ce846f21d2\","
+      " \"uri\": \"uri1\" },"
+      " { \"uuid\": \"eceb3f7f-fee8-447a-8277-031b32a20e6b\","
+      " \"uri\": \"uri2\" } ]")
+    self.assertEqual(["4364c043-f232-41e3-837f-f1ce846f21d2",
+                      "eceb3f7f-fee8-447a-8277-031b32a20e6b",
+                     ],
+                     self.client.GetFilters())
+    self.assertHandler(rlib2.R_2_filters)
+
+    self.rapi.AddResponse(
+      "[ { \"uuid\": \"4364c043-f232-41e3-837f-f1ce846f21d2\","
+      " \"uri\": \"uri1\" },"
+      " { \"uuid\": \"eceb3f7f-fee8-447a-8277-031b32a20e6b\","
+      " \"uri\": \"uri2\" } ]")
+    self.assertEqual([{"uuid": "4364c043-f232-41e3-837f-f1ce846f21d2",
+                       "uri": "uri1"},
+                      {"uuid": "eceb3f7f-fee8-447a-8277-031b32a20e6b",
+                       "uri": "uri2"},
+                     ],
+                     self.client.GetFilters(bulk=True))
+    self.assertHandler(rlib2.R_2_filters)
+    self.assertBulk()
+
+  def testGetFilter(self):
+    filter_rule = {
+      "uuid": "4364c043-f232-41e3-837f-f1ce846f21d2",
+      "priority": 1,
+      "predicates": [["jobid", [">", "id", "watermark"]]],
+      "action": "CONTINUE",
+      "reason_trail": ["testReplaceFilter", "myreason", 1412159589686391000],
+    }
+    self.rapi.AddResponse(serializer.DumpJson(filter_rule))
+    self.assertEqual(
+      filter_rule,
+      self.client.GetFilter("4364c043-f232-41e3-837f-f1ce846f21d2")
+    )
+    self.assertHandler(rlib2.R_2_filters_uuid)
+    self.assertItems(["4364c043-f232-41e3-837f-f1ce846f21d2"])
+
+  def testAddFilter(self):
+    self.rapi.AddResponse("\"4364c043-f232-41e3-837f-f1ce846f21d2\"")
+    self.assertEqual("4364c043-f232-41e3-837f-f1ce846f21d2",
+                     self.client.AddFilter(
+                       priority=1,
+                       predicates=[["jobid", [">", "id", "watermark"]]],
+                       action="CONTINUE",
+                       reason_trail=["testAddFilter", "myreason",
+                                     utils.EpochNano()],
+                     ))
+    self.assertHandler(rlib2.R_2_filters)
+
+  def testReplaceFilter(self):
+    self.rapi.AddResponse("\"4364c043-f232-41e3-837f-f1ce846f21d2\"")
+    self.assertEqual("4364c043-f232-41e3-837f-f1ce846f21d2",
+                     self.client.ReplaceFilter(
+                       uuid="4364c043-f232-41e3-837f-f1ce846f21d2",
+                       priority=1,
+                       predicates=[["jobid", [">", "id", "watermark"]]],
+                       action="CONTINUE",
+                       reason_trail=["testReplaceFilter", "myreason",
+                                     utils.EpochNano()],
+                     ))
+    self.assertHandler(rlib2.R_2_filters_uuid)
+
+  def testDeleteFilter(self):
+    self.rapi.AddResponse("null")
+    self.assertEqual(None,
+                     self.client.DeleteFilter(
+                       uuid="4364c043-f232-41e3-837f-f1ce846f21d2",
+                     ))
+    self.assertHandler(rlib2.R_2_filters_uuid)
+
 
 class RapiTestRunner(unittest.TextTestRunner):
   def run(self, *args):

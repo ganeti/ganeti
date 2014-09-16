@@ -129,7 +129,7 @@ class UriPattern(object):
 
 def GetHandlers(node_name_pattern, instance_name_pattern,
                 group_name_pattern, network_name_pattern,
-                job_id_pattern, disk_pattern,
+                job_id_pattern, disk_pattern, filter_pattern,
                 query_res_pattern,
                 translate=None):
   """Returns all supported resources and their handlers.
@@ -156,6 +156,7 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
   network_name = UriPattern(network_name_pattern)
   job_id = UriPattern(job_id_pattern)
   disk = UriPattern(disk_pattern)
+  filter_uuid = UriPattern(filter_pattern)
   query_res = UriPattern(query_res_pattern)
 
   # Important note: New resources should always be added under /2. During a
@@ -277,10 +278,14 @@ def GetHandlers(node_name_pattern, instance_name_pattern,
       rlib2.R_2_query,
     translate_fn("/2/query/", query_res, "/fields"):
       rlib2.R_2_query_fields,
+
+    "/2/filters": rlib2.R_2_filters,
+    translate_fn("/2/filters/", filter_uuid):
+      rlib2.R_2_filters_uuid,
     }
 
 
 CONNECTOR.update(GetHandlers(_NAME_PATTERN, _NAME_PATTERN,
                              _NAME_PATTERN, _NAME_PATTERN,
                              constants.JOB_ID_TEMPLATE, _DISK_PATTERN,
-                             _NAME_PATTERN))
+                             _NAME_PATTERN, _NAME_PATTERN))

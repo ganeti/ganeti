@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Unittests for ganeti-htools.
@@ -56,6 +56,9 @@ import Ganeti.Query.Language
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
+
+instance Arbitrary (Filter FilterField) where
+  arbitrary = genFilter
 
 -- | Custom 'Filter' generator (top-level), which enforces a
 -- (sane) limit on the depth of the generated filters.

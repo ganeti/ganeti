@@ -518,7 +518,8 @@ class _RapiHandlersForDocsHelper(object):
     resources = \
       rapi.connector.GetHandlers("[node_name]", "[instance_name]",
                                  "[group_name]", "[network_name]", "[job_id]",
-                                 "[disk_index]", "[resource]",
+                                 "[disk_index]", "[filter_uuid]",
+                                 "[resource]",
                                  translate=cls._TranslateResourceUri)
 
     return resources

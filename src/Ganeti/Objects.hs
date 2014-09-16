@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, StandaloneDeriving #-}
 
 {-| Implementation of the Ganeti config objects.
 
@@ -75,6 +75,9 @@ module Ganeti.Objects
   , fillIPolicy
   , GroupDiskParams
   , NodeGroup(..)
+  , FilterAction(..)
+  , FilterPredicate(..)
+  , FilterRule(..)
   , IpFamily(..)
   , ipFamilyToRaw
   , ipFamilyToVersion
@@ -121,11 +124,13 @@ import Data.List (foldl', isPrefixOf, isInfixOf, intercalate)
 import Data.Maybe
 import qualified Data.Map as Map
 import Data.Monoid
+import Data.Ratio (numerator, denominator)
 import qualified Data.Set as Set
 import Data.Tuple (swap)
 import Data.Word
 import System.Time (ClockTime(..))
-import Text.JSON (showJSON, readJSON, JSON, JSValue(..), fromJSString)
+import Text.JSON (showJSON, readJSON, JSON, JSValue(..), fromJSString,
+                  toJSString)
 import qualified Text.JSON as J
 
 import qualified AutoConf
@@ -133,6 +138,7 @@ import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
 import Ganeti.Objects.BitArray (BitArray)
+import Ganeti.Query.Language
 import Ganeti.Types
 import Ganeti.THH
 import Ganeti.THH.Field
@@ -769,6 +775,81 @@ instance SerialNoObject NodeGroup where
 instance TagsObject NodeGroup where
   tagsOf = groupTags
 
+-- * Job scheduler filtering definitions
+
+-- | Actions that can be performed when a filter matches.
+data FilterAction
+  = Accept
+  | Pause
+  | Reject
+  | Continue
+  | RateLimit Int
+  deriving (Eq, Ord, Show)
+
+instance JSON FilterAction where
+  showJSON fa = case fa of
+    Accept      -> JSString (toJSString "ACCEPT")
+    Pause       -> JSString (toJSString "PAUSE")
+    Reject      -> JSString (toJSString "REJECT")
+    Continue    -> JSString (toJSString "CONTINUE")
+    RateLimit n -> JSArray [ JSString (toJSString "RATE_LIMIT")
+                           , JSRational False (fromIntegral n)
+                           ]
+  readJSON v = case v of
+    -- `FilterAction`s are case-sensitive.
+    JSString s | fromJSString s == "ACCEPT"   -> return Accept
+    JSString s | fromJSString s == "PAUSE"    -> return Pause
+    JSString s | fromJSString s == "REJECT"   -> return Reject
+    JSString s | fromJSString s == "CONTINUE" -> return Continue
+    JSArray (JSString s : rest) | fromJSString s == "RATE_LIMIT" ->
+      case rest of
+        [JSRational False n] | denominator n == 1 && numerator n > 0 ->
+          return . RateLimit . fromIntegral $ numerator n
+        _ -> fail "RATE_LIMIT argument must be a positive integer"
+    x -> fail $ "malformed FilterAction JSON: " ++ J.showJSValue x ""
+
+
+data FilterPredicate
+  = FPJobId (Filter FilterField)
+  | FPOpCode (Filter FilterField)
+  | FPReason (Filter FilterField)
+  deriving (Eq, Ord, Show)
+
+
+instance JSON FilterPredicate where
+  showJSON fp = case fp of
+    FPJobId expr  -> JSArray [string "jobid",  showJSON expr]
+    FPOpCode expr -> JSArray [string "opcode", showJSON expr]
+    FPReason expr -> JSArray [string "reason", showJSON expr]
+    where
+      string = JSString . toJSString
+
+  readJSON v = case v of
+    -- Predicate names are case-sensitive.
+    JSArray [JSString name, expr]
+      | name == toJSString "jobid"  -> FPJobId <$> readJSON expr
+      | name == toJSString "opcode" -> FPOpCode <$> readJSON expr
+      | name == toJSString "reason" -> FPReason <$> readJSON expr
+    JSArray (JSString name:params) ->
+      fail $ "malformed FilterPredicate: bad parameter list for\
+             \ '" ++ fromJSString name ++ "' predicate: "
+             ++ J.showJSArray params ""
+    _ -> fail "malformed FilterPredicate: must be a list with the first\
+              \ entry being a string describing the predicate type"
+
+
+$(buildObject "FilterRule" "fr" $
+  [ simpleField "watermark"    [t| JobId             |]
+  , simpleField "priority"     [t| NonNegative Int   |]
+  , simpleField "predicates"   [t| [FilterPredicate] |]
+  , simpleField "action"       [t| FilterAction      |]
+  , simpleField "reason_trail" [t| ReasonTrail       |]
+  ]
+  ++ uuidFields)
+
+instance UuidObject FilterRule where
+  uuidOf = frUuid
+
 -- | IP family type
 $(declareIADT "IpFamily"
   [ ("IpFamilyV4", 'AutoConf.pyAfInet4)
@@ -912,6 +993,7 @@ $(buildObject "ConfigData" "config" $
   , simpleField "instances"  [t| Container Instance  |]
   , simpleField "networks"   [t| Container Network   |]
   , simpleField "disks"      [t| Container Disk      |]
+  , simpleField "filters"    [t| Container FilterRule |]
   ]
   ++ timeStampFields
   ++ serialFields)

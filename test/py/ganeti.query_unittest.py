@@ -33,6 +33,7 @@
 import re
 import unittest
 import random
+import uuid as uuid_module
 
 from ganeti import constants
 from ganeti import utils
@@ -1308,6 +1309,7 @@ class TestQueryFilter(unittest.TestCase):
         randvals = ["x17361", "x22015", "x13193", "x15215"]
         namefield = {
           constants.QR_EXPORT: "export",
+          constants.QR_FILTER: "uuid",
         }.get(what, "name")
 
       assert namefield in fielddefs
@@ -1387,6 +1389,7 @@ class TestQueryFilter(unittest.TestCase):
       namefield, nameval = {
         constants.QR_JOB: ("id", 123),
         constants.QR_EXPORT: ("export", "value"),
+        constants.QR_FILTER: ("uuid", str(uuid_module.uuid4())),
       }.get(what, ("name", "value"))
 
       checks = [

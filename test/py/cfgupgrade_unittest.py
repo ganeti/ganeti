@@ -74,6 +74,7 @@ def GetMinimalConfig():
     "instances": {},
     "disks": {},
     "networks": {},
+    "filters": {},
     "nodegroups": {},
     "nodes": {
       "node1-uuid": {
