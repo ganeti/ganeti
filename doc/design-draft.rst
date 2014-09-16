@@ -24,6 +24,7 @@ Design document drafts
    design-ifdown.rst
    design-location.rst
    design-reservations.rst
+   design-sync-rate-throttling.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
