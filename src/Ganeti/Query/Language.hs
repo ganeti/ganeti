@@ -43,6 +43,7 @@ module Ganeti.Query.Language
     , mkRegex
     , stringRegex
     , compiledRegex
+    , showFilterValue
     , Fields
     , Query(..)
     , QueryResult(..)

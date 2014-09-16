@@ -57,6 +57,7 @@ module Ganeti.Query.Filter
   ( compileFilter
   , evaluateQueryFilter
   , evaluateFilterM
+  , evaluateFilterJSON
   , requestedNames
   , makeSimpleFilter
   , Comparator
@@ -267,6 +268,17 @@ evaluateQueryFilter c mb a =
   )
   where
     wrap = wrapGetter c mb a
+
+
+-- | Evaluates a `Filter` on a JSON object.
+evaluateFilterJSON :: Filter JSValue -> ErrorResult Bool
+evaluateFilterJSON =
+  evaluateFilterM $ \op -> case op of
+    Comp cmp -> let compFun = toCompFun cmp
+                in \json fv -> pure $ json `compFun` showFilterValue fv
+    Truth    -> \field () -> trueFilter field
+    Regex    -> flip regexpFilter
+    Contains -> flip containsFilter
 
 
 -- | Runs a getter with potentially missing runtime context.
