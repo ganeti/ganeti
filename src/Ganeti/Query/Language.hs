@@ -190,7 +190,7 @@ data Filter a
     | GEFilter       a FilterValue  -- ^ @>=@ /field/ /value/
     | RegexpFilter   a FilterRegex  -- ^ @=~@ /field/ /regexp/
     | ContainsFilter a FilterValue  -- ^ @=[]@ /list-field/ /value/
-      deriving (Show, Eq, Functor, Foldable, Traversable)
+      deriving (Show, Eq, Ord, Functor, Foldable, Traversable)
 
 -- | Serialiser for the 'Filter' data type.
 showFilter :: (JSON a) => Filter a -> JSValue
@@ -293,7 +293,7 @@ type FilterField = String
 -- | Value to compare the field value to, for filtering purposes.
 data FilterValue = QuotedString String
                  | NumericValue Integer
-                   deriving (Show, Eq)
+                   deriving (Show, Eq, Ord)
 
 -- | Serialiser for 'FilterValue'. The Python code just sends this to
 -- JSON as-is, so we'll do the same.
