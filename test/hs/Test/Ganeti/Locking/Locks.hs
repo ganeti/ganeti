@@ -55,7 +55,7 @@ instance Arbitrary GanetiLocks where
   arbitrary = oneof [ return BGL
                     , return ClusterLockSet
                     , return InstanceLockSet
-                    , Instance <$> genUUID
+                    , Instance <$> genFQDN
                     , return NodeGroupLockSet
                     , NodeGroup <$> genUUID
                     , return NAL
