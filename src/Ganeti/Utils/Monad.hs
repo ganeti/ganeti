@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -}
 
-module Ganeti.Utils.MonadPlus
+module Ganeti.Utils.Monad
   ( mretryN
   , retryMaybeN
   ) where

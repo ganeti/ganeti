@@ -88,7 +88,7 @@ import qualified Ganeti.Path as P
 import Ganeti.Types
 import Ganeti.UDSServer
 import Ganeti.Utils
-import Ganeti.Utils.MonadPlus
+import Ganeti.Utils.Monad
 import Ganeti.Utils.Random (delayRandom)
 
 isForkSupported :: IO Bool

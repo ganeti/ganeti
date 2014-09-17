@@ -99,7 +99,7 @@ import Ganeti.Objects
 import Ganeti.THH
 import Ganeti.Objects.Lens (configNetworksL)
 import Ganeti.Utils
-import Ganeti.Utils.MonadPlus
+import Ganeti.Utils.Monad
 import Ganeti.Utils.Random
 import qualified Ganeti.Utils.MultiMap as MM
 

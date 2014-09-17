@@ -909,7 +909,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Utils/AsyncWorker.hs \
 	src/Ganeti/Utils/IORef.hs \
 	src/Ganeti/Utils/Livelock.hs \
-	src/Ganeti/Utils/MonadPlus.hs \
+	src/Ganeti/Utils/Monad.hs \
 	src/Ganeti/Utils/MultiMap.hs \
 	src/Ganeti/Utils/MVarLock.hs \
 	src/Ganeti/Utils/Random.hs \
