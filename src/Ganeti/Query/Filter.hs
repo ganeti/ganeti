@@ -1,4 +1,4 @@
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes, GADTs, StandaloneDeriving #-}
 
 {-| Implementation of the Ganeti Query2 filterning.
 
@@ -56,8 +56,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Query.Filter
   ( compileFilter
   , evaluateFilter
+  , evaluateFilterM
   , requestedNames
   , makeSimpleFilter
+  , Comparator
+  , Comparison(..)
+  , toCompFun
+  , FilterOp(..)
   ) where
 
 import Control.Applicative
@@ -180,6 +185,57 @@ containsFilter (NumericValue val) lst = do
   lst' <- fromJVal lst
   return $! val `elem` lst'
 
+
+-- | Ways we can compare things in the filter language.
+data Comparison = Eq | Lt | Le | Gt | Ge
+  deriving (Eq, Ord, Show)
+
+
+-- | Turns a comparison into the corresponding Haskell function.
+toCompFun :: Comparison -> Comparator
+toCompFun cmp = case cmp of
+  Eq -> (==)
+  Lt -> (<)
+  Le -> (<=)
+  Gt -> (>)
+  Ge -> (>=)
+
+
+-- | Operations in the leaves of the Ganeti filter language.
+data FilterOp field val where
+  Truth    ::               FilterOp field ()
+  Comp     :: Comparison -> FilterOp field FilterValue
+  Regex    ::               FilterOp field FilterRegex
+  Contains ::               FilterOp field FilterValue
+
+deriving instance Eq (FilterOp field val)
+deriving instance Show (FilterOp field val)
+
+
+-- | Verifies if a given item passes a filter.
+-- Useful monads @m@ for this are `ErrorResult` and `Maybe`.
+evaluateFilterM :: (Monad m, Applicative m)
+                  => (forall val .
+                        FilterOp field val -> field -> val -> m Bool)
+                  -> Filter field
+                  -> m Bool
+evaluateFilterM opFun fil = case fil of
+  EmptyFilter              -> return True
+  AndFilter flts           -> allM recurse flts
+  OrFilter flts            -> anyM recurse flts
+  NotFilter flt            -> not <$> recurse flt
+  TrueFilter field         -> opFun Truth     field ()
+  EQFilter field val       -> opFun (Comp Eq) field val
+  LTFilter field val       -> opFun (Comp Lt) field val
+  LEFilter field val       -> opFun (Comp Le) field val
+  GTFilter field val       -> opFun (Comp Gt) field val
+  GEFilter field val       -> opFun (Comp Ge) field val
+  RegexpFilter field re    -> opFun Regex     field re
+  ContainsFilter field val -> opFun Contains  field val
+  where
+    recurse = evaluateFilterM opFun
+
+
 -- | Verifies if a given item passes a filter. The runtime context
 -- might be missing, in which case most of the filters will consider
 -- this as passing the filter.
@@ -201,6 +257,7 @@ evaluateFilter c mb a fil = case fil of
   ContainsFilter getter val    -> wrap getter $ containsFilter val
   where
     wrap = wrapGetter c mb a
+
 
 -- | Runs a getter with potentially missing runtime context.
 tryGetter :: ConfigData -> Maybe b -> a -> FieldGetter a b -> Maybe ResultEntry
