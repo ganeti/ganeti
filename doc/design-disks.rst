@@ -169,6 +169,34 @@ with the instance's disk objects. So in the backend we will only have to
 replace the ``disks`` slot with ``disks_info``.
 
 
+Eliminating the disk template from the instance
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to remove the disk template from the instance model, all
+current uses of the disk template there need to be replaced. These uses
+fall into the following general categories:
+
+1. The configuration needs to reflect the new model. `cfgupgrade` and
+   `bootstrap` need to be fixed, creating and modifying instances and
+   disks for instances needs to be fixed.
+2. The query interface will no longer be able to return an instance disk
+   template.
+3. Several checks for the DISKLESS template will be replaced by checking
+   if any disks are attached.
+4. If an operation works disk by disk, the operation will dispatch for
+   the functionality by disk instead of by instance. If an operation
+   requires that all disks are of the same kind (e.g. a query if the
+   instance is DRBD backed) then the assumption is checked beforehand.
+   Since this is a user visible change, it will have to be announced in
+   the NEWS file specifying the calls changed.
+5. Operations that operate on the instance and extract the disk template
+   e.g. for creation of a new disk will require an additional parameter
+   for the disk template. Several instances already provide an optional
+   parameter to override the instance setting, those will become
+   required. This is incompatible as well and will need to be listed in
+   the NEWS file.
+
+
 .. TODO: Locks for Disk objects
 
 .. TODO: Attach/Detach disks
