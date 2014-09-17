@@ -536,7 +536,7 @@ kernel\_args
     Valid for the Xen PVM and KVM hypervisors.
 
     This options specifies extra arguments to the kernel that will be
-    loaded. device. This is always used for Xen PVM, while for KVM it
+    loaded. This is always used for Xen PVM, while for KVM it
     is only used if the ``kernel_path`` option is also specified.
 
     The default setting for this value is simply ``"ro"``, which
