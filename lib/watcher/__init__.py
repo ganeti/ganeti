@@ -46,6 +46,7 @@ import errno
 from optparse import OptionParser
 
 from ganeti import utils
+from ganeti import wconfd
 from ganeti import constants
 from ganeti import compat
 from ganeti import errors
@@ -426,6 +427,25 @@ def IsRapiResponding(hostname):
     return master_version == constants.RAPI_VERSION
 
 
+def IsWconfdResponding():
+  """Probes an echo RPC to WConfD.
+
+  """
+  probe_string = "ganeti watcher probe %d" % time.time()
+
+  try:
+    result = wconfd.Client().Echo(probe_string)
+  except Exception, err: # pylint: disable=W0703
+    logging.warning("WConfd connection error: %s", err)
+    return False
+
+  if result != probe_string:
+    logging.warning("WConfd echo('%s') returned '%s'", probe_string, result)
+    return False
+
+  return True
+
+
 def ParseOptions():
   """Parse the command line options.
 
@@ -685,6 +705,16 @@ def _GlobalWatcher(opts):
     if not IsRapiResponding(constants.IP4_ADDRESS_LOCALHOST):
       logging.fatal("RAPI is not responding")
   logging.debug("Successfully talked to remote API")
+
+  # If WConfD isn't responding to queries, try one restart
+  logging.debug("Attempting to talk to WConfD")
+  if not IsWconfdResponding():
+    logging.warning("WConfD not responsive, restarting daemon")
+    utils.StopDaemon(constants.WCONFD)
+    utils.EnsureDaemon(constants.WCONFD)
+    logging.debug("Second attempt to talk to WConfD")
+    if not IsWconfdResponding():
+      logging.fatal("WConfD is not responding")
 
   _CheckMaster(client)
   _ArchiveJobs(client, opts.job_age)
