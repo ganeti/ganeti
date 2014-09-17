@@ -163,6 +163,9 @@ class Instance(object):
 
     """
     op = opcodes.OpInstanceStartup(instance_name=self.name, force=False)
+    op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
+                  "Restarting instance %s" % self.name,
+                  utils.EpochNano())]
     cli.SubmitOpCode(op, cl=cl)
 
   def ActivateDisks(self, cl):
@@ -170,6 +173,9 @@ class Instance(object):
 
     """
     op = opcodes.OpInstanceActivateDisks(instance_name=self.name)
+    op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
+                  "Activating disks for instance %s" % self.name,
+                  utils.EpochNano())]
     cli.SubmitOpCode(op, cl=cl)
 
   def NeedsCleanup(self):
@@ -218,6 +224,9 @@ def _CleanupInstance(cl, notepad, inst, locks):
   op = opcodes.OpInstanceShutdown(instance_name=inst.name,
                                   admin_state_source=constants.USER_SOURCE)
 
+  op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
+                "Cleaning up instance %s" % inst.name,
+                utils.EpochNano())]
   try:
     cli.SubmitOpCode(op, cl=cl)
     if notepad.NumberOfCleanupAttempts(inst.name):
