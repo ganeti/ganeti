@@ -35,6 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Utils.Monad
   ( mretryN
   , retryMaybeN
+  , anyM
+  , allM
   ) where
 
 import Control.Monad
@@ -49,3 +51,14 @@ mretryN n = msum . flip map [1..n]
 -- The action signals failure by 'mzero'.
 retryMaybeN :: (Monad m) => Int -> (Int -> MaybeT m a) -> m (Maybe a)
 retryMaybeN = (runMaybeT .) . mretryN
+
+
+-- From monad-loops (until we can / want to depend on it):
+
+-- | Short-circuit 'any' with a monadic predicate.
+anyM :: (Monad m) => (a -> m Bool) -> [a] -> m Bool
+anyM p = foldM (\v x -> if v then return True else p x) False
+
+-- | Short-circuit 'all' with a monadic predicate.
+allM :: (Monad m) => (a -> m Bool) -> [a] -> m Bool
+allM p = foldM (\v x -> if v then p x else return False) True
