@@ -55,7 +55,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Query.Filter
   ( compileFilter
-  , evaluateFilter
+  , evaluateQueryFilter
   , evaluateFilterM
   , requestedNames
   , makeSimpleFilter
@@ -239,10 +239,10 @@ evaluateFilterM opFun fil = case fil of
 -- | Verifies if a given item passes a filter. The runtime context
 -- might be missing, in which case most of the filters will consider
 -- this as passing the filter.
-evaluateFilter :: ConfigData -> Maybe b -> a
-               -> Filter (FieldGetter a b, QffMode)
-               -> ErrorResult Bool
-evaluateFilter c mb a =
+evaluateQueryFilter :: ConfigData -> Maybe b -> a
+                    -> Filter (FieldGetter a b, QffMode)
+                    -> ErrorResult Bool
+evaluateQueryFilter c mb a =
   evaluateFilterM $ \op -> case op of
     Truth    -> \gQff ()  -> wrap gQff trueFilter
     -- We're special casing comparison for host names.

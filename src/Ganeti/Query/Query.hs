@@ -227,8 +227,8 @@ genericQuery fieldsMap collector nameFn configFn getFn cfg
              _  -> mapM (getFn cfg) wanted
   -- Run the first pass of the filter, without a runtime context; this will
   -- limit the objects that we'll contact for exports
-  fobjects <- toError $ filterM (\n -> evaluateFilter cfg Nothing n cfilter)
-                        objects
+  fobjects <- toError $
+    filterM (\n -> evaluateQueryFilter cfg Nothing n cfilter) objects
   -- Gather the runtime data
   runtimes <- case collector of
     CollectorSimple     collFn -> lift $ collFn live' cfg fobjects
@@ -360,7 +360,7 @@ queryJobs cfg live fields qfilter = runResultT $ do
   -- runs first pass of the filter, without a runtime context; this
   -- will limit the jobs that we'll load from disk
   jids <- toError $
-          filterM (\jid -> evaluateFilter cfg Nothing jid cfilter) rjids
+    filterM (\jid -> evaluateQueryFilter cfg Nothing jid cfilter) rjids
   -- here we run the runtime data gathering, filtering and evaluation,
   -- all in the same step, so that we don't keep jobs in memory longer
   -- than we need; we can't be fully lazy due to the multiple monad
@@ -372,7 +372,7 @@ queryJobs cfg live fields qfilter = runResultT $ do
               job <- lift $ if live'
                               then loadJobFromDisk qdir True jid
                               else return disabled_data
-              pass <- toError $ evaluateFilter cfg (Just job) jid cfilter
+              pass <- toError $ evaluateQueryFilter cfg (Just job) jid cfilter
               let nlst = if pass
                            then let row = map (execGetter cfg job jid) fgetters
                                 in rnf row `seq` row:lst
