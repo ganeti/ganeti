@@ -242,21 +242,17 @@ evaluateFilterM opFun fil = case fil of
 evaluateFilter :: ConfigData -> Maybe b -> a
                -> Filter (FieldGetter a b, QffMode)
                -> ErrorResult Bool
-evaluateFilter c mb a fil = case fil of
-  EmptyFilter                  -> Ok True
-  AndFilter flts               -> allM (evaluateFilter c mb a) flts
-  OrFilter flts                -> anyM (evaluateFilter c mb a) flts
-  NotFilter flt                -> not <$> evaluateFilter c mb a flt
-  TrueFilter getter            -> wrap getter trueFilter
-  EQFilter getter@(_, qff) val -> wrap getter $ eqFilter qff val
-  LTFilter getter val          -> wrap getter $ binOpFilter (<) val
-  LEFilter getter val          -> wrap getter $ binOpFilter (<=) val
-  GTFilter getter val          -> wrap getter $ binOpFilter (>) val
-  GEFilter getter val          -> wrap getter $ binOpFilter (>=) val
-  RegexpFilter getter re       -> wrap getter $ regexpFilter re
-  ContainsFilter getter val    -> wrap getter $ containsFilter val
-  where
-    wrap = wrapGetter c mb a
+evaluateFilter c mb a =
+  evaluateFilterM $ \op -> case op of
+    Truth    -> \gQff ()  -> wrap gQff trueFilter
+    -- We're special casing comparison for host names.
+    -- All other comparisons behave as usual.
+    Comp Eq  -> \gQff val -> wrap gQff $ eqFilter (snd gQff) val
+    Comp cmp -> \gQff val -> wrap gQff $ binOpFilter (toCompFun cmp) val
+    Regex    -> \gQff re  -> wrap gQff $ regexpFilter re
+    Contains -> \gQff val -> wrap gQff $ containsFilter val
+    where
+      wrap = wrapGetter c mb a
 
 
 -- | Runs a getter with potentially missing runtime context.
