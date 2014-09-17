@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, DeriveFunctor #-}
 
 {-| Utility Template Haskell functions for working with types.
 
@@ -55,9 +55,7 @@ import qualified Text.JSON as J
 -- sent as a list of values, and therefore for 1-argument functions we need
 -- this wrapper, which packs/unpacks 1-element lists.
 newtype OneTuple a = OneTuple { getOneTuple :: a }
-  deriving (Eq, Ord, Show)
-instance Functor OneTuple where
-  fmap f (OneTuple x) = OneTuple (f x)
+  deriving (Eq, Ord, Show, Functor)
 -- The value is stored in @JSON@ as a 1-element list.
 instance J.JSON a => J.JSON (OneTuple a) where
   showJSON (OneTuple a) = J.JSArray [J.showJSON a]

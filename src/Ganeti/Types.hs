@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, DeriveFunctor #-}
 
 {-| Some common Ganeti types.
 
@@ -920,7 +920,7 @@ $(THH.makeJSONInstance ''HotplugTarget)
 -- | A container for values that should be happy to be manipulated yet
 -- refuses to be shown unless explicitly requested.
 newtype Private a = Private { getPrivate :: a }
-  deriving (Eq, Ord)
+  deriving (Eq, Ord, Functor)
 
 instance (Show a, JSON.JSON a) => JSON.JSON (Private a) where
   readJSON = liftM Private . JSON.readJSON
@@ -935,9 +935,6 @@ instance Show a => Show (Private a) where
 
 instance THH.PyValue a => THH.PyValue (Private a) where
   showValue (Private x) = "Private(" ++ THH.showValue x ++ ")"
-
-instance Functor Private where
-  fmap f (Private x) = Private $ f x
 
 instance Applicative Private where
   pure = Private

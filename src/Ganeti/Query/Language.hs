@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell, CPP #-}
+{-# LANGUAGE TemplateHaskell, CPP, DeriveFunctor, DeriveFoldable,
+             DeriveTraversable #-}
 
 {-| Implementation of the Ganeti Query2 language.
 
@@ -65,7 +66,7 @@ module Ganeti.Query.Language
 import Control.Applicative
 import Control.DeepSeq
 import Data.Foldable
-import Data.Traversable (Traversable, traverse, fmapDefault, foldMapDefault)
+import Data.Traversable (Traversable)
 import Data.Ratio (numerator, denominator)
 import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types
@@ -189,7 +190,7 @@ data Filter a
     | GEFilter       a FilterValue  -- ^ @>=@ /field/ /value/
     | RegexpFilter   a FilterRegex  -- ^ @=~@ /field/ /regexp/
     | ContainsFilter a FilterValue  -- ^ @=[]@ /list-field/ /value/
-      deriving (Show, Eq)
+      deriving (Show, Eq, Functor, Foldable, Traversable)
 
 -- | Serialiser for the 'Filter' data type.
 showFilter :: (JSON a) => Filter a -> JSValue
@@ -279,30 +280,6 @@ readFilterArray op args
 instance (JSON a) => JSON (Filter a) where
   showJSON = showFilter
   readJSON = readFilter
-
--- Traversable implementation for 'Filter'.
-traverseFlt :: (Applicative f) => (a -> f b) -> Filter a -> f (Filter b)
-traverseFlt _ EmptyFilter       = pure EmptyFilter
-traverseFlt f (AndFilter flts)  = AndFilter <$> traverse (traverseFlt f) flts
-traverseFlt f (OrFilter  flts)  = OrFilter  <$> traverse (traverseFlt f) flts
-traverseFlt f (NotFilter flt)   = NotFilter <$> traverseFlt f flt
-traverseFlt f (TrueFilter a)    = TrueFilter <$> f a
-traverseFlt f (EQFilter a fval) = EQFilter <$> f a <*> pure fval
-traverseFlt f (LTFilter a fval) = LTFilter <$> f a <*> pure fval
-traverseFlt f (GTFilter a fval) = GTFilter <$> f a <*> pure fval
-traverseFlt f (LEFilter a fval) = LEFilter <$> f a <*> pure fval
-traverseFlt f (GEFilter a fval) = GEFilter <$> f a <*> pure fval
-traverseFlt f (RegexpFilter a re)     = RegexpFilter <$> f a <*> pure re
-traverseFlt f (ContainsFilter a fval) = ContainsFilter <$> f a <*> pure fval
-
-instance Traversable Filter where
-  traverse = traverseFlt
-
-instance Functor Filter where
-  fmap = fmapDefault
-
-instance Foldable Filter where
-  foldMap = foldMapDefault
 
 -- | Field name to filter on.
 type FilterField = String

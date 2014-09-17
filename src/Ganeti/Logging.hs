@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, StandaloneDeriving,
+             GeneralizedNewtypeDeriving #-}
 
 {-| Implementation of the Ganeti logging functionality.
 
@@ -153,8 +154,7 @@ class Monad m => MonadLog m where
 instance MonadLog IO where
   logAt = logM rootLoggerName
 
-instance (MonadLog m) => MonadLog (IdentityT m) where
-  logAt p = lift . logAt p
+deriving instance (MonadLog m) => MonadLog (IdentityT m)
 
 instance (MonadLog m) => MonadLog (MaybeT m) where
   logAt p = lift . logAt p

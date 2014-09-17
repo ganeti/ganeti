@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell, FunctionalDependencies, FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell, FunctionalDependencies, FlexibleContexts,
+             GeneralizedNewtypeDeriving #-}
 -- {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 
 {-| Creates a client out of list of RPC server components.
@@ -64,28 +65,9 @@ import Ganeti.UDSServer
 -- result or the error.
 newtype RpcClientMonad a =
   RpcClientMonad { runRpcClientMonad :: ReaderT Client ResultG a }
+  deriving (Functor, Applicative, Monad, MonadIO, MonadBase IO,
+            MonadError GanetiException)
 
-instance Functor RpcClientMonad where
-  fmap f = RpcClientMonad . fmap f . runRpcClientMonad
-
-instance Applicative RpcClientMonad where
-  pure = RpcClientMonad . pure
-  (RpcClientMonad f) <*> (RpcClientMonad k) = RpcClientMonad (f <*> k)
-
-instance Monad RpcClientMonad where
-  return = RpcClientMonad . return
-  (RpcClientMonad k) >>= f = RpcClientMonad (k >>= runRpcClientMonad . f)
-
-instance MonadBase IO RpcClientMonad where
-  liftBase = RpcClientMonad . liftBase
-
-instance MonadIO RpcClientMonad where
-  liftIO = RpcClientMonad . liftIO
-
-instance MonadError GanetiException RpcClientMonad where
-  throwError = RpcClientMonad . throwError
-  catchError (RpcClientMonad k) h =
-    RpcClientMonad (catchError k (runRpcClientMonad . h))
 
 -- * The TH functions to construct RPC client functions from RPC server ones
 

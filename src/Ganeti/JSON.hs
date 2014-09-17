@@ -1,4 +1,5 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances,
+             GeneralizedNewtypeDeriving, DeriveTraversable #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| JSON utility functions. -}
@@ -95,6 +96,10 @@ import Text.JSON.Pretty (pp_value)
 -- build many other modules.
 
 import Ganeti.BasicTypes
+
+-- Remove after we require >= 1.8.58
+-- See: https://github.com/ndmitchell/hlint/issues/24
+{-# ANN module "HLint: ignore Unused LANGUAGE pragma" #-}
 
 -- * JSON-related functions
 
@@ -314,19 +319,10 @@ instance HasStringRepr String where
 -- | The container type, a wrapper over Data.Map
 newtype GenericContainer a b =
   GenericContainer { fromContainer :: Map.Map a b }
-  deriving (Show, Eq, Ord)
+  deriving (Show, Eq, Ord, Functor, F.Foldable, F.Traversable)
 
 instance (NFData a, NFData b) => NFData (GenericContainer a b) where
   rnf = rnf . Map.toList . fromContainer
-
-instance Functor (GenericContainer a) where
-  fmap f = GenericContainer . fmap f . fromContainer
-
-instance F.Foldable (GenericContainer a) where
-  foldMap f = F.foldMap f . fromContainer
-
-instance F.Traversable (GenericContainer a) where
-  traverse f = fmap GenericContainer . F.traverse f . fromContainer
 
 -- | Type alias for string keys.
 type Container = GenericContainer String

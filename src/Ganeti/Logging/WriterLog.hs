@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleInstances, FlexibleContexts, TypeFamilies,
-             MultiParamTypeClasses #-}
+             MultiParamTypeClasses, GeneralizedNewtypeDeriving,
+             StandaloneDeriving #-}
 
 {-| A pure implementation of MonadLog using MonadWriter
 
@@ -66,6 +67,10 @@ type WriterSeq = WriterT LogSeq
 -- | A monad transformer that adds pure logging capability.
 newtype WriterLogT m a =
   WriterLogT { unwrapWriterLogT :: WriterSeq m a }
+  deriving (Functor, Applicative, Alternative, Monad, MonadPlus, MonadIO,
+            MonadTrans)
+
+deriving instance (MonadBase IO m) => MonadBase IO (WriterLogT m)
 
 type WriterLog = WriterLogT Identity
 
@@ -100,36 +105,8 @@ execWriterLog k = do
   dumpLogSeq msgs
   return r
 
-instance (Monad m) => Functor (WriterLogT m) where
-  fmap = liftM
-
-instance (Monad m) => Applicative (WriterLogT m) where
-  pure = return
-  (<*>) = ap
-
-instance (MonadPlus m) => Alternative (WriterLogT m) where
-  empty = mzero
-  (<|>) = mplus
-
-instance (Monad m) => Monad (WriterLogT m) where
-  return = WriterLogT . return
-  (WriterLogT k) >>= f = WriterLogT $ k >>= (unwrapWriterLogT . f)
-
 instance (Monad m) => MonadLog (WriterLogT m) where
   logAt = curry (WriterLogT . tell . singleton)
-
-instance (MonadIO m) => MonadIO (WriterLogT m) where
-  liftIO = WriterLogT . liftIO
-
-instance (MonadPlus m) => MonadPlus (WriterLogT m) where
-  mzero = lift mzero
-  mplus (WriterLogT x) (WriterLogT y) = WriterLogT $ mplus x y
-
-instance (MonadBase IO m) => MonadBase IO (WriterLogT m) where
-  liftBase = WriterLogT . liftBase
-
-instance MonadTrans WriterLogT where
-  lift = WriterLogT . lift
 
 instance MonadTransControl WriterLogT where
     newtype StT WriterLogT a =

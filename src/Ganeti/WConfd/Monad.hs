@@ -1,4 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies,
+             GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 {-| All RPC calls are run within this monad.
@@ -165,23 +166,7 @@ type WConfdMonadIntType = ReaderT DaemonHandle IO
 -- | The internal part of the monad without error handling.
 newtype WConfdMonadInt a = WConfdMonadInt
   { getWConfdMonadInt :: WConfdMonadIntType a }
-
-instance Functor WConfdMonadInt where
-  fmap f = WConfdMonadInt . fmap f . getWConfdMonadInt
-
-instance Applicative WConfdMonadInt where
-  pure = WConfdMonadInt . pure
-  WConfdMonadInt f <*> WConfdMonadInt k = WConfdMonadInt $ f <*> k
-
-instance Monad WConfdMonadInt where
-  return = WConfdMonadInt . return
-  (WConfdMonadInt k) >>= f = WConfdMonadInt $ k >>= getWConfdMonadInt . f
-
-instance MonadIO WConfdMonadInt where
-  liftIO = WConfdMonadInt . liftIO
-
-instance MonadBase IO WConfdMonadInt where
-  liftBase = WConfdMonadInt . liftBase
+  deriving (Functor, Applicative, Monad, MonadIO, MonadBase IO, MonadLog)
 
 instance MonadBaseControl IO WConfdMonadInt where
   newtype StM WConfdMonadInt b = StMWConfdMonadInt
@@ -189,9 +174,6 @@ instance MonadBaseControl IO WConfdMonadInt where
   liftBaseWith f = WConfdMonadInt . liftBaseWith
                    $ \r -> f (liftM StMWConfdMonadInt . r . getWConfdMonadInt)
   restoreM = WConfdMonadInt . restoreM . runStMWConfdMonadInt
-
-instance MonadLog WConfdMonadInt where
-  logAt p = WConfdMonadInt . logAt p
 
 -- | Runs the internal part of the WConfdMonad monad on a given daemon
 -- handle.

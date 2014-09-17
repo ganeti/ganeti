@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, GeneralizedNewtypeDeriving #-}
 
 {-| A validation monad and corresponding utilities
 
@@ -64,18 +64,7 @@ import Data.Sequence
 -- | Monad for running validation checks.
 newtype ValidationMonadT m a =
   ValidationMonad { runValidationMonad :: WriterT (Seq String) m a }
-
-instance (Monad m) => Functor (ValidationMonadT m) where
-  fmap = liftM
-
-instance (Monad m) => Applicative (ValidationMonadT m) where
-  pure = return
-  (<*>) = ap
-
-instance (Monad m) => Monad (ValidationMonadT m) where
-  return = ValidationMonad . return
-  (ValidationMonad k) >>= f = ValidationMonad $ k >>= (runValidationMonad . f)
-  fail = ValidationMonad . fail
+  deriving (Functor, Applicative, Monad)
 
 type ValidationMonad = ValidationMonadT Identity
 

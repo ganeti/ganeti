@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE DeriveFunctor #-}
 
 {-
 
@@ -88,6 +89,10 @@ import qualified Data.Set as Set (empty)
 import Text.JSON (JSON)
 import qualified Text.JSON as JSON (readJSON, showJSON)
 
+-- Remove after we require >= 1.8.58
+-- See: https://github.com/ndmitchell/hlint/issues/24
+{-# ANN module "HLint: ignore Unused LANGUAGE pragma" #-}
+
 -- | Generic monad for our error handling mechanisms.
 data GenericResult a b
   = Bad a
@@ -145,6 +150,7 @@ instance (Error a, Monoid a) => Alternative (GenericResult a) where
 -- If 'mplus' combines two failing operations, errors of both of them
 -- are combined.
 newtype ResultT a m b = ResultT {runResultT :: m (GenericResult a b)}
+  deriving (Functor)
 
 -- | Eliminates a 'ResultT' value given appropriate continuations
 elimResultT :: (Monad m)
@@ -158,10 +164,7 @@ elimResultT l r = ResultT . (runResultT . result <=< runResultT)
     result (Bad e)  = l e
 {-# INLINE elimResultT #-}
 
-instance (Monad f) => Functor (ResultT a f) where
-  fmap f = ResultT . liftM (fmap f) . runResultT
-
-instance (Monad m, Error a) => Applicative (ResultT a m) where
+instance (Applicative m, Monad m, Error a) => Applicative (ResultT a m) where
   pure = return
   (<*>) = ap
 
@@ -218,7 +221,8 @@ instance (Monad m, Error a, Monoid a) => MonadPlus (ResultT a m) where
   mplus x y = elimResultT combine return x
     where combine x' = ResultT $ liftM (mplus (Bad x')) (runResultT y)
 
-instance (Monad m, Error a, Monoid a) => Alternative (ResultT a m) where
+instance (Alternative m, Monad m, Error a, Monoid a)
+         => Alternative (ResultT a m) where
   empty = mzero
   (<|>) = mplus
 
