@@ -773,10 +773,11 @@ cpu\_sockets
     Number of emulated CPU sockets.
 
 soundhw
-    Valid for the KVM and XEN hypervisors.
+    Valid for Xen PVM, Xen HVM and KVM hypervisors.
 
     Comma separated list of emulated sounds cards, or "all" to enable
-    all the available ones.
+    all the available ones. See the **qemu**\(1) manpage for valid options and
+    additional details.
 
 cpuid
     Valid for the XEN hypervisor.
