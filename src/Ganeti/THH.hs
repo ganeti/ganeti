@@ -355,14 +355,6 @@ ensureUpper (x:xs) = toUpper x:xs
 varNameE :: String -> Q Exp
 varNameE = varE . mkName
 
--- | showJSON as an expression, for reuse.
-showJSONE :: Q Exp
-showJSONE = varE 'JSON.showJSON
-
--- | makeObj as an expression, for reuse.
-makeObjE :: Q Exp
-makeObjE = varE 'JSON.makeObj
-
 -- | fromObj (Ganeti specific) as an expression, for reuse.
 fromObjE :: Q Exp
 fromObjE = varE 'fromObj
@@ -378,14 +370,6 @@ fromRawName = mkName . (++ "FromRaw") . ensureLower
 -- | Converts a name to it's varE\/litE representations.
 reprE :: Either String Name -> Q Exp
 reprE = either stringE varE
-
--- | Smarter function application.
---
--- This does simply f x, except that if is 'id', it will skip it, in
--- order to generate more readable code when using -ddump-splices.
-appFn :: Exp -> Exp -> Exp
-appFn f x | f == VarE 'id = x
-          | otherwise = AppE f x
 
 -- | Apply a constructor to a list of expressions
 appCons :: Name -> [Exp] -> Exp
@@ -660,9 +644,6 @@ genAllConstr trans_fun name vstr = do
 genAllOpIDs :: Name -> String -> Q [Dec]
 genAllOpIDs = genAllConstr deCamelCase
 
--- | OpCode parameter (field) type.
-type OpParam = (String, Q Type, Q Exp)
-
 -- * Python code generation
 
 data OpCodeField = OpCodeField { ocfName :: String
@@ -719,8 +700,7 @@ pyField f = genPyType f >>= \t ->
 -- necessary information on how to build the Python class string.
 pyClass :: OpCodeConstructor -> Q Exp
 pyClass (consName, consType, consDoc, consFields, consDscField) =
-  do let pyClassVar = varNameE "showPyClass"
-         consName' = stringE consName
+  do let consName' = stringE consName
      consType' <- genPyType' NotOptional consType
      let consDoc' = stringE consDoc
      [| OpCodeDescriptor $consName'

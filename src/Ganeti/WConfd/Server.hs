@@ -64,7 +64,7 @@ import Ganeti.WConfd.Monad
 import Ganeti.WConfd.Persistent
 
 handler :: DaemonHandle -> RpcServer WConfdMonadInt
-handler ch = $( mkRpcM exportedFunctions )
+handler _ = $( mkRpcM exportedFunctions )
 
 
 -- | Type alias for prepMain results

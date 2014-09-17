@@ -56,7 +56,6 @@ module Ganeti.Objects.BitArray
   ) where
 
 import Prelude hiding (foldr)
-import qualified Prelude as P
 
 import Control.Monad
 import Control.Monad.Error
