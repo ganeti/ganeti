@@ -103,22 +103,18 @@ wrapGetter :: ConfigData
            -> Maybe b
            -> a
            -> (FieldGetter a b, QffMode)
-           -> (QffMode -> JSValue -> ErrorResult Bool)
+           -> (JSValue -> ErrorResult Bool)
            -> ErrorResult Bool
 wrapGetter cfg b a (getter, qff) faction =
   case tryGetter cfg b a getter of
     Nothing -> Ok True -- runtime missing, accepting the value
     Just v ->
       case v of
-        ResultEntry RSNormal (Just fval) -> qffField qff fval >>= faction qff
+        ResultEntry RSNormal (Just fval) -> qffField qff fval >>= faction
         ResultEntry RSNormal Nothing ->
           Bad $ ProgrammerError
                 "Internal error: Getter returned RSNormal/Nothing"
         _ -> Ok True -- filter has no data to work, accepting it
-
--- | Wrapper alias over field functions to ignore their first Qff argument.
-ignoreMode :: a -> QffMode -> a
-ignoreMode = const
 
 -- | Helper to evaluate a filter getter (and the value it generates) in
 -- a boolean context.
@@ -137,20 +133,20 @@ type Comparator = (Eq a, Ord a) => a -> a -> Bool
 --
 -- This will handle hostnames correctly, if the mode is set to
 -- 'QffHostname'.
-eqFilter :: FilterValue -> QffMode -> JSValue -> ErrorResult Bool
+eqFilter :: QffMode -> FilterValue -> JSValue -> ErrorResult Bool
 -- send 'QffNormal' queries to 'binOpFilter'
-eqFilter flv QffNormal    jsv = binOpFilter (==) flv jsv
+eqFilter QffNormal    flv jsv = binOpFilter (==) flv jsv
 -- and 'QffTimestamp' as well
-eqFilter flv QffTimestamp jsv = binOpFilter (==) flv jsv
+eqFilter QffTimestamp flv jsv = binOpFilter (==) flv jsv
 -- error out if we set 'QffHostname' on a non-string field
-eqFilter _ QffHostname (JSRational _ _) =
+eqFilter QffHostname _ (JSRational _ _) =
   Bad . ProgrammerError $ "QffHostname field returned a numeric value"
 -- test strings via 'compareNameComponent'
-eqFilter (QuotedString y) QffHostname (JSString x) =
+eqFilter QffHostname (QuotedString y) (JSString x) =
   Ok $ goodLookupResult (fromJSString x `compareNameComponent` y)
 -- send all other combinations (all errors) to 'binOpFilter', which
 -- has good error messages
-eqFilter flv _ jsv = binOpFilter (==) flv jsv
+eqFilter _ flv jsv = binOpFilter (==) flv jsv
 
 -- | Helper to evaluate a filder getter (and the value it generates)
 -- in a boolean context. Note the order of arguments is reversed from
@@ -191,18 +187,18 @@ evaluateFilter :: ConfigData -> Maybe b -> a
                -> Filter (FieldGetter a b, QffMode)
                -> ErrorResult Bool
 evaluateFilter c mb a fil = case fil of
-  EmptyFilter               -> Ok True
-  AndFilter flts            -> allM (evaluateFilter c mb a) flts
-  OrFilter flts             -> anyM (evaluateFilter c mb a) flts
-  NotFilter flt             -> not <$> evaluateFilter c mb a flt
-  TrueFilter getter         -> wrap getter $ ignoreMode trueFilter
-  EQFilter getter val       -> wrap getter $ eqFilter val
-  LTFilter getter val       -> wrap getter $ ignoreMode (binOpFilter (<) val)
-  LEFilter getter val       -> wrap getter $ ignoreMode (binOpFilter (<=) val)
-  GTFilter getter val       -> wrap getter $ ignoreMode (binOpFilter (>) val)
-  GEFilter getter val       -> wrap getter $ ignoreMode (binOpFilter (>=) val)
-  RegexpFilter getter re    -> wrap getter $ ignoreMode (regexpFilter re)
-  ContainsFilter getter val -> wrap getter $ ignoreMode (containsFilter val)
+  EmptyFilter                  -> Ok True
+  AndFilter flts               -> allM (evaluateFilter c mb a) flts
+  OrFilter flts                -> anyM (evaluateFilter c mb a) flts
+  NotFilter flt                -> not <$> evaluateFilter c mb a flt
+  TrueFilter getter            -> wrap getter trueFilter
+  EQFilter getter@(_, qff) val -> wrap getter $ eqFilter qff val
+  LTFilter getter val          -> wrap getter $ binOpFilter (<) val
+  LEFilter getter val          -> wrap getter $ binOpFilter (<=) val
+  GTFilter getter val          -> wrap getter $ binOpFilter (>) val
+  GEFilter getter val          -> wrap getter $ binOpFilter (>=) val
+  RegexpFilter getter re       -> wrap getter $ regexpFilter re
+  ContainsFilter getter val    -> wrap getter $ containsFilter val
   where
     wrap = wrapGetter c mb a
 
