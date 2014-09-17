@@ -73,6 +73,7 @@ import Ganeti.Errors
 import Ganeti.Objects
 import Ganeti.Query.Language
 import Ganeti.Query.Types
+import Ganeti.Utils.Monad (anyM, allM)
 import Ganeti.JSON
 
 -- | Compiles a filter based on field names to one based on getters.
@@ -186,46 +187,24 @@ containsFilter (NumericValue val) lst = do
 -- | Verifies if a given item passes a filter. The runtime context
 -- might be missing, in which case most of the filters will consider
 -- this as passing the filter.
---
--- Note: we use explicit recursion to reduce unneeded memory use;
--- 'any' and 'all' do not play nice with monadic values, resulting in
--- either too much memory use or in too many thunks being created.
 evaluateFilter :: ConfigData -> Maybe b -> a
                -> Filter (FieldGetter a b, QffMode)
                -> ErrorResult Bool
-evaluateFilter _ _  _ EmptyFilter = Ok True
-evaluateFilter c mb a (AndFilter flts) = helper flts
-  where helper [] = Ok True
-        helper (f:fs) = do
-          v <- evaluateFilter c mb a f
-          if v
-            then helper fs
-            else Ok False
-evaluateFilter c mb a (OrFilter flts) = helper flts
-  where helper [] = Ok False
-        helper (f:fs) = do
-          v <- evaluateFilter c mb a f
-          if v
-            then Ok True
-            else helper fs
-evaluateFilter c mb a (NotFilter flt)  =
-  not <$> evaluateFilter c mb a flt
-evaluateFilter c mb a (TrueFilter getter)  =
-  wrapGetter c mb a getter $ ignoreMode trueFilter
-evaluateFilter c mb a (EQFilter getter val) =
-  wrapGetter c mb a getter (eqFilter val)
-evaluateFilter c mb a (LTFilter getter val) =
-  wrapGetter c mb a getter $ ignoreMode (binOpFilter (<) val)
-evaluateFilter c mb a (LEFilter getter val) =
-  wrapGetter c mb a getter $ ignoreMode (binOpFilter (<=) val)
-evaluateFilter c mb a (GTFilter getter val) =
-  wrapGetter c mb a getter $ ignoreMode (binOpFilter (>) val)
-evaluateFilter c mb a (GEFilter getter val) =
-  wrapGetter c mb a getter $ ignoreMode (binOpFilter (>=) val)
-evaluateFilter c mb a (RegexpFilter getter re) =
-  wrapGetter c mb a getter $ ignoreMode (regexpFilter re)
-evaluateFilter c mb a (ContainsFilter getter val) =
-  wrapGetter c mb a getter $ ignoreMode (containsFilter val)
+evaluateFilter c mb a fil = case fil of
+  EmptyFilter               -> Ok True
+  AndFilter flts            -> allM (evaluateFilter c mb a) flts
+  OrFilter flts             -> anyM (evaluateFilter c mb a) flts
+  NotFilter flt             -> not <$> evaluateFilter c mb a flt
+  TrueFilter getter         -> wrap getter $ ignoreMode trueFilter
+  EQFilter getter val       -> wrap getter $ eqFilter val
+  LTFilter getter val       -> wrap getter $ ignoreMode (binOpFilter (<) val)
+  LEFilter getter val       -> wrap getter $ ignoreMode (binOpFilter (<=) val)
+  GTFilter getter val       -> wrap getter $ ignoreMode (binOpFilter (>) val)
+  GEFilter getter val       -> wrap getter $ ignoreMode (binOpFilter (>=) val)
+  RegexpFilter getter re    -> wrap getter $ ignoreMode (regexpFilter re)
+  ContainsFilter getter val -> wrap getter $ ignoreMode (containsFilter val)
+  where
+    wrap = wrapGetter c mb a
 
 -- | Runs a getter with potentially missing runtime context.
 tryGetter :: ConfigData -> Maybe b -> a -> FieldGetter a b -> Maybe ResultEntry
