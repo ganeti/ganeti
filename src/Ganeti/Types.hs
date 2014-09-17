@@ -175,6 +175,7 @@ module Ganeti.Types
   , showPrivateJSObject
   ) where
 
+import Control.Applicative
 import Control.Monad (liftM)
 import qualified Text.JSON as JSON
 import Text.JSON (JSON, readJSON, showJSON)
@@ -937,6 +938,10 @@ instance THH.PyValue a => THH.PyValue (Private a) where
 
 instance Functor Private where
   fmap f (Private x) = Private $ f x
+
+instance Applicative Private where
+  pure = Private
+  Private f <*> Private x = Private (f x)
 
 instance Monad Private where
   (Private x) >>= f = f x
