@@ -46,6 +46,7 @@ import errno
 from optparse import OptionParser
 
 from ganeti import utils
+from ganeti import wconfd
 from ganeti import constants
 from ganeti import compat
 from ganeti import errors
@@ -163,6 +164,9 @@ class Instance(object):
 
     """
     op = opcodes.OpInstanceStartup(instance_name=self.name, force=False)
+    op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
+                  "Restarting instance %s" % self.name,
+                  utils.EpochNano())]
     cli.SubmitOpCode(op, cl=cl)
 
   def ActivateDisks(self, cl):
@@ -170,6 +174,9 @@ class Instance(object):
 
     """
     op = opcodes.OpInstanceActivateDisks(instance_name=self.name)
+    op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
+                  "Activating disks for instance %s" % self.name,
+                  utils.EpochNano())]
     cli.SubmitOpCode(op, cl=cl)
 
   def NeedsCleanup(self):
@@ -218,6 +225,9 @@ def _CleanupInstance(cl, notepad, inst, locks):
   op = opcodes.OpInstanceShutdown(instance_name=inst.name,
                                   admin_state_source=constants.USER_SOURCE)
 
+  op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
+                "Cleaning up instance %s" % inst.name,
+                utils.EpochNano())]
   try:
     cli.SubmitOpCode(op, cl=cl)
     if notepad.NumberOfCleanupAttempts(inst.name):
@@ -415,6 +425,25 @@ def IsRapiResponding(hostname):
   else:
     logging.debug("Reported RAPI version %s", master_version)
     return master_version == constants.RAPI_VERSION
+
+
+def IsWconfdResponding():
+  """Probes an echo RPC to WConfD.
+
+  """
+  probe_string = "ganeti watcher probe %d" % time.time()
+
+  try:
+    result = wconfd.Client().Echo(probe_string)
+  except Exception, err: # pylint: disable=W0703
+    logging.warning("WConfd connection error: %s", err)
+    return False
+
+  if result != probe_string:
+    logging.warning("WConfd echo('%s') returned '%s'", probe_string, result)
+    return False
+
+  return True
 
 
 def ParseOptions():
@@ -663,6 +692,7 @@ def _GlobalWatcher(opts):
 
   # we are on master now
   utils.EnsureDaemon(constants.RAPI)
+  utils.EnsureDaemon(constants.WCONFD)
 
   # If RAPI isn't responding to queries, try one restart
   logging.debug("Attempting to talk to remote API on %s",
@@ -675,6 +705,16 @@ def _GlobalWatcher(opts):
     if not IsRapiResponding(constants.IP4_ADDRESS_LOCALHOST):
       logging.fatal("RAPI is not responding")
   logging.debug("Successfully talked to remote API")
+
+  # If WConfD isn't responding to queries, try one restart
+  logging.debug("Attempting to talk to WConfD")
+  if not IsWconfdResponding():
+    logging.warning("WConfD not responsive, restarting daemon")
+    utils.StopDaemon(constants.WCONFD)
+    utils.EnsureDaemon(constants.WCONFD)
+    logging.debug("Second attempt to talk to WConfD")
+    if not IsWconfdResponding():
+      logging.fatal("WConfD is not responding")
 
   _CheckMaster(client)
   _ArchiveJobs(client, opts.job_age)

@@ -187,7 +187,8 @@ class LogicalUnit(object): # pylint: disable=R0902
                 if lock[0].startswith(levelprefix)])
     expand_fns = {
       locking.LEVEL_CLUSTER: (lambda: [locking.BGL]),
-      locking.LEVEL_INSTANCE: self.cfg.GetInstanceList,
+      locking.LEVEL_INSTANCE:
+        lambda: self.cfg.GetInstanceNames(self.cfg.GetInstanceList()),
       locking.LEVEL_NODE_ALLOC: (lambda: [locking.NAL]),
       locking.LEVEL_NODEGROUP: self.cfg.GetNodeGroupList,
       locking.LEVEL_NODE: self.cfg.GetNodeList,

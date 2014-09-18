@@ -4597,6 +4597,9 @@ opcodeReasonSrcOpcode = "gnt:opcode"
 opcodeReasonSrcPickup :: String
 opcodeReasonSrcPickup = _opcodeReasonSrcMasterd ++ ":pickup"
 
+opcodeReasonSrcWatcher :: String
+opcodeReasonSrcWatcher = "gnt:watcher"
+
 opcodeReasonSrcRlib2 :: String
 opcodeReasonSrcRlib2 = "gnt:library:rlib2"
 
@@ -4609,6 +4612,7 @@ opcodeReasonSources =
                        opcodeReasonSrcNoded,
                        opcodeReasonSrcOpcode,
                        opcodeReasonSrcPickup,
+                       opcodeReasonSrcWatcher,
                        opcodeReasonSrcRlib2,
                        opcodeReasonSrcUser]
 

@@ -584,9 +584,7 @@ class LUClusterRepairDiskSizes(NoHooksLU):
 
     """
     if self.wanted_names is None:
-      self.wanted_names = \
-          map(self.cfg.GetInstanceName,
-              self.owned_locks(locking.LEVEL_INSTANCE))
+      self.wanted_names = self.owned_locks(locking.LEVEL_INSTANCE)
 
     self.wanted_instances = \
         map(compat.snd, self.cfg.GetMultiInstanceInfoByName(self.wanted_names))
