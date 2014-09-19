@@ -582,6 +582,19 @@ class Processor(object):
 
       try:
         result = self._ExecLU(lu)
+      except errors.OpPrereqError, err:
+        (_, ecode) = err.args
+        if ecode != errors.ECODE_TEMP_NORES:
+          raise
+        logging.debug("Temporarily out of resources; will retry internally")
+        try:
+          lu.PrepareRetry(self.Log)
+          if self._cbs:
+            self._cbs.NotifyRetry()
+        except errors.OpRetryNotSupportedError:
+          logging.debug("LU does not know how to retry.")
+          raise err
+        raise LockAcquireTimeout()
       except AssertionError, err:
         # this is a bit ugly, as we don't know from which phase
         # (prereq, exec) this comes; but it's better than an exception
