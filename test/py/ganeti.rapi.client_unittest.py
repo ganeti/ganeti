@@ -1335,9 +1335,11 @@ class GanetiRapiClientTests(testutils.GanetiTestCase):
 
   def testRecreateInstanceDisks(self):
     self.rapi.AddResponse("13553")
-    job_id = self.client.RecreateInstanceDisks("inst23153")
+    job_id = self.client.RecreateInstanceDisks("inst23153", iallocator="hail")
     self.assertEqual(job_id, 13553)
     self.assertItems(["inst23153"])
+    data = serializer.LoadJson(self.rapi.GetLastRequestData())
+    self.assertEqual("hail", data["iallocator"])
     self.assertHandler(rlib2.R_2_instances_name_recreate_disks)
     self.assertFalse(self.rapi.GetLastHandler().queryargs)
 
