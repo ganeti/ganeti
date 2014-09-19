@@ -453,7 +453,19 @@ class TestInstanceRecreateDisks(RAPITestCase):
 
     self.assertEqual(op.instance_name, "inst22357")
     self.assertFalse(op.dry_run)
+    self.assertTrue(op.iallocator is None)
     self.assertFalse(hasattr(op, "force"))
+
+  def testCustomParameters(self):
+    data = {
+      "iallocator": "hail",
+      }
+    op = self.getSubmittedOpcode(rlib2.R_2_instances_name_recreate_disks,
+                                 ["inst22357"], {}, data, "POST",
+                                 opcodes.OpInstanceRecreateDisks)
+    self.assertEqual(op.instance_name, "inst22357")
+    self.assertEqual(op.iallocator, "hail")
+    self.assertFalse(op.dry_run)
 
 
 class TestInstanceFailover(RAPITestCase):
