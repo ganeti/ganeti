@@ -1281,7 +1281,7 @@ class R_2_instances_name_recreate_disks(baserlib.OpcodeResource):
     """Recreate disks for an instance.
 
     """
-    return ({}, {
+    return (self.request_body, {
       "instance_name": self.items[0],
       })
 
