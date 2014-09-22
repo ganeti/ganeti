@@ -388,10 +388,10 @@ def TestRapiQuery():
       trivial_filter = [qlang.OP_GE, namefield, 0]
     elif what == constants.QR_EXPORT:
       namefield = "export"
-      trivial_filter = [qlang.OP_REGEXP, ".*", namefield]
+      trivial_filter = [qlang.OP_REGEXP, namefield, ".*"]
     else:
       namefield = "name"
-      trivial_filter = [qlang.OP_REGEXP, ".*", namefield]
+      trivial_filter = [qlang.OP_REGEXP, namefield, ".*"]
 
     all_fields = query.ALL_FIELDS[what].keys()
     rnd.shuffle(all_fields)
@@ -482,17 +482,8 @@ def TestRapiQuery():
            }),
         ])
 
-    if what == constants.QR_LOCK:
-      # Locks can't be filtered
-      try:
-        _CheckFilter()
-      except rapi.client.GanetiApiError, err:
-        AssertEqual(err.code, 500)
-      else:
-        raise qa_error.Error("Filtering locks didn't fail")
-    else:
-      if what in constants.QR_VIA_RAPI_PUT:
-        _CheckFilter()
+    if what in constants.QR_VIA_RAPI_PUT:
+      _CheckFilter()
 
     if what == constants.QR_NODE:
       # Test with filter
