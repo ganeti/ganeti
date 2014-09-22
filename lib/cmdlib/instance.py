@@ -682,6 +682,8 @@ class LUInstanceCreate(LogicalUnit):
       # When opportunistic locks are used only a temporary failure is generated
       if self.op.opportunistic_locking:
         ecode = errors.ECODE_TEMP_NORES
+        self.LogInfo("IAllocator '%s' failed on opportunistically acquired"
+                     " nodes: %s", self.op.iallocator, ial.info)
       else:
         ecode = errors.ECODE_NORES
 
