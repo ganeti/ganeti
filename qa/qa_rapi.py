@@ -417,7 +417,8 @@ def TestRapiQuery():
     # Try once more, this time without the client
     _DoTests([
       ("/2/query/%s/fields" % what, None, "GET", None),
-      ("/2/query/%s/fields?fields=name,name,%s" % (what, all_fields[0]),
+      ("/2/query/%s/fields?fields=%s,%s,%s" % (what, namefield, namefield,
+                                               all_fields[0]),
        None, "GET", None),
       ])
 
