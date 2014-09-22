@@ -163,6 +163,13 @@ class OpExecCbBase(object): # pylint: disable=W0232
 
     """
 
+  def NotifyRetry(self):
+    """Called when we are about to reset an LU to retry again.
+
+    This function is called after PrepareRetry successfully completed.
+
+    """
+
   def Feedback(self, *args):
     """Sends feedback from the LU code to the end-user.
 
