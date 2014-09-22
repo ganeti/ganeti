@@ -2,6 +2,24 @@ News
 ====
 
 
+Version 2.11.6
+--------------
+
+*(Released Mon, 22 Sep 2014)*
+
+- Ganeti is now distributed under the 2-clause BSD license.
+  See the COPYING file.
+- Fix userspace access checks.
+- Various documentation fixes have been added.
+
+Inherited from the 2.10 branch:
+
+- The --online option now works as documented.
+- The watcher is paused during cluster upgrades; also, upgrade
+  checks for upgrades to resume first.
+- Instance disks can be added with --no-wait-for-sync.
+
+
 Version 2.11.5
 --------------
 
