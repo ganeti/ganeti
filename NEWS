@@ -2,14 +2,16 @@ News
 ====
 
 
-Version 2.12.0 rc1
+Version 2.12.0 rc2
 ------------------
 
-*(Released Wed, 20 Aug 2014)*
+*(Released Mon, 22 Sep 2014)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- Ganeti is now distributed under the 2-clause BSD license.
+  See the COPYING file.
 - Do not use debug mode in production. Certain daemons will issue warnings
   when launched in debug mode. Some debug logging violates some of the new
   invariants in the system (see "New features"). The logging has been kept as
@@ -60,6 +62,58 @@ New dependencies
   instead. The package is still optional and needed only if the feature is to
   be used.
 
+Since 2.12.0 rc1
+~~~~~~~~~~~~~~~~~~
+
+The following issues have been fixed:
+
+- Watcher now checks if WConfd is running and functional.
+- Watcher now properly adds reason trail entries.
+- Fixed NIC options in Xen's config files.
+
+Inherited from the 2.10 branch:
+
+- Fixed handling of the --online option
+- Add warning against hvparam changes with live migrations, which might
+  lead to dangerous situations for instances.
+- Only the LVs in the configured VG are checked during cluster verify.
+
+Incomplete features
+~~~~~~~~~~~~~~~~~~~
+
+The following issues are related to features which are not completely
+implemented in 2.12:
+
+- Issue 885: Network hotplugging on KVM sometimes makes an instance
+  unresponsive
+- Issues 708 and 602: The secret parameters are currently still written
+  to disk in the job queue.
+- Setting up the metadata network interface under Xen isn't fully
+  implemented yet.
+
+Known issues
+~~~~~~~~~~~~
+
+- *Wrong UDP checksums in DHCP network packets:*
+  If an instance communicates with the metadata daemon and uses DHCP to
+  obtain its IP address on the provided virtual network interface,
+  it can happen that UDP packets have a wrong checksum, due to
+  a bug in virtio. See for example https://bugs.launchpad.net/bugs/930962
+
+  Ganeti works around this bug by disabling the UDP checksums on the way
+  from a host to instances (only on the special metadata communication
+  network interface) using the ethtool command. Therefore if using
+  the metadata daemon the host nodes should have this tool available.
+
+
+Version 2.12.0 rc1
+------------------
+
+*(Released Wed, 20 Aug 2014)*
+
+This was the first release candidate of the 2.12 series.
+All important changes are listed in the latest 2.12 entry.
+
 Since 2.12.0 beta1
 ~~~~~~~~~~~~~~~~~~
 
@@ -78,31 +132,6 @@ Inherited from the 2.10 branch:
   - On upgrades, check for upgrades to resume first
   - Pause watcher during upgrade
 - Allow instance disks to be added with --no-wait-for-sync
-
-Incomplete features
-~~~~~~~~~~~~~~~~~~~
-
-The following issues are related to features which are not completely
-implemented in 2.12:
-
-- Issue 885: Network hotplugging on KVM sometimes makes an instance
-  unresponsive
-- Issues 708 and 602: The secret parameters are currently still written
-  to disk in the job queue.
-
-Known issues
-~~~~~~~~~~~~
-
-- *Wrong UDP checksums in DHCP network packets:*
-  If an instance communicates with the metadata daemon and uses DHCP to
-  obtain its IP address on the provided virtual network interface,
-  it can happen that UDP packets have a wrong checksum, due to
-  a bug in virtio. See for example https://bugs.launchpad.net/bugs/930962
-
-  Ganeti works around this bug by disabling the UDP checksums on the way
-  from a host to instances (only on the special metadata communication
-  network interface) using the ethtool command. Therefore if using
-  the metadata daemon the host nodes should have this tool available.
 
 
 Version 2.12.0 beta1
