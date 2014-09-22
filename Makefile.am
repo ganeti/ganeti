@@ -1165,12 +1165,15 @@ qa_scripts = \
 	qa/qa_group.py \
 	qa/qa_instance.py \
 	qa/qa_instance_utils.py \
+	qa/qa_iptables.py \
 	qa/qa_job.py \
 	qa/qa_job_utils.py \
-	qa/qa_monitoring.py \
 	qa/qa_logging.py \
+	qa/qa_monitoring.py \
+	qa/qa_network.py \
 	qa/qa_node.py \
 	qa/qa_os.py \
+	qa/qa_performance.py \
 	qa/qa_rapi.py \
 	qa/qa_tags.py \
 	qa/qa_utils.py \
