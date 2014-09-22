@@ -202,6 +202,12 @@ class OpResultError(GenericError):
   """
 
 
+class OpRetryNotSupportedError(GenericError):
+  """This opcode does not support retries
+
+  """
+
+
 class DeviceCreationError(GenericError):
   """Error during the creation of a device.
 
