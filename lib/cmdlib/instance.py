@@ -1799,6 +1799,16 @@ class LUInstanceCreate(LogicalUnit):
 
     return self.cfg.GetNodeNames(list(self.cfg.GetInstanceNodes(iobj.uuid)))
 
+  def PrepareRetry(self, feedback_fn):
+    # A temporary lack of resources can only happen if opportunistic locking
+    # is used.
+    assert self.op.opportunistic_locking
+
+    logging.info("Opportunistic locking did not suceed, falling back to"
+                 " full lock allocation")
+    feedback_fn("* falling back to full lock allocation")
+    self.op.opportunistic_locking = False
+
 
 class LUInstanceRename(LogicalUnit):
   """Rename an instance.
