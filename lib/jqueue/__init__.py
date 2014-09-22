@@ -609,6 +609,17 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     self._queue.UpdateJobUnlocked(self._job)
 
   @locking.ssynchronized(_QUEUE, shared=1)
+  def NotifyRetry(self):
+    """Mark opcode again as lock-waiting.
+
+    This is called from the mcpu code just after calling PrepareRetry.
+    The opcode will now again acquire locks (more, hopefully).
+
+    """
+    self._op.status = constants.OP_STATUS_WAITING
+    logging.debug("Opcode will be retried. Back to waiting.")
+
+  @locking.ssynchronized(_QUEUE, shared=1)
   def _AppendFeedback(self, timestamp, log_type, log_msg):
     """Internal feedback append function, with locks
 
