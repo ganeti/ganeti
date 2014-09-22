@@ -354,6 +354,18 @@ class LogicalUnit(object): # pylint: disable=R0902
     else:
       raise NotImplementedError
 
+  def PrepareRetry(self, _feedback_fn):
+    """Prepare the LU to run again.
+
+    This method is called if the Exec failed for temporarily lacking resources.
+    It is expected to change the state of the LU so that it can be tried again,
+    and also change its locking policy to acquire more resources to have a
+    better chance of suceeding in the retry.
+
+    """
+    # pylint: disable=R0201
+    raise errors.OpRetryNotSupportedError()
+
   def BuildHooksEnv(self):
     """Build hooks environment for this LU.
 
