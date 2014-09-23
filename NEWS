@@ -2,6 +2,20 @@ News
 ====
 
 
+Version 2.13.0
+--------------
+
+*(unreleased)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Ganeti now internally retries the instance creation opcode if opportunistic
+  locking did not acquire nodes with enough free resources. The internal retry
+  will not use opportunistic locking. In particular, instance creation, even
+  if opportunistic locking is set, will never fail with ECODE_TEMP_NORES.
+
+
 Version 2.12.0 rc2
 ------------------
 
