@@ -304,7 +304,7 @@ AC_ARG_WITH([user-prefix],
    user_metad="${withval}metad";
    user_rapi="${withval}rapi";
    user_confd="${withval}confd";
-   user_wconfd="${withval}wconfd";
+   user_wconfd="${withval}masterd";
    user_kvmd="$user_default";
    user_luxid="${withval}masterd";
    user_noded="$user_default";
