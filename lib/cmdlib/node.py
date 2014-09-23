@@ -293,7 +293,7 @@ class LUNodeAdd(LogicalUnit):
     rpcrunner = rpc.DnsOnlyRunner()
     result = rpcrunner.call_version([node_name])[node_name]
     result.Raise("Can't get version information from node %s" % node_name,
-                 prereq=True)
+                 prereq=True, ecode=errors.ECODE_ENVIRON)
     if constants.PROTOCOL_VERSION == result.payload:
       logging.info("Communication to node %s fine, sw version %s match",
                    node_name, result.payload)
