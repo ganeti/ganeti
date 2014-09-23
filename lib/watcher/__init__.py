@@ -351,8 +351,12 @@ def _VerifyDisks(cl, uuid, nodes, instances):
   """Run a per-group "gnt-cluster verify-disks".
 
   """
-  job_id = cl.SubmitJob([opcodes.OpGroupVerifyDisks(
-      group_name=uuid, priority=constants.OP_PRIO_LOW)])
+  op = opcodes.OpGroupVerifyDisks(
+    group_name=uuid, priority=constants.OP_PRIO_LOW)
+  op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
+                "Verifying disks of group %s" % uuid,
+                utils.EpochNano())]
+  job_id = cl.SubmitJob([op])
   ((_, offline_disk_instances, _), ) = \
     cli.PollJob(job_id, cl=cl, feedback_fn=logging.debug)
   cl.ArchiveJob(job_id)
