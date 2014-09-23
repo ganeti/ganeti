@@ -1212,9 +1212,10 @@ def CheckIpolicyVsDiskTemplates(ipolicy, enabled_disk_templates):
   allowed_disk_templates = ipolicy[constants.IPOLICY_DTS]
   not_enabled = set(allowed_disk_templates) - set(enabled_disk_templates)
   if not_enabled:
-    raise errors.OpPrereqError("The following disk template are allowed"
+    raise errors.OpPrereqError("The following disk templates are allowed"
                                " by the ipolicy, but not enabled on the"
-                               " cluster: %s" % utils.CommaJoin(not_enabled))
+                               " cluster: %s" % utils.CommaJoin(not_enabled),
+                               errors.ECODE_INVAL)
 
 
 def CheckDiskAccessModeValidity(parameters):
