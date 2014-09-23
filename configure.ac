@@ -301,7 +301,7 @@ AC_ARG_WITH([user-prefix],
     [ to change the default)]
   )],
   [user_masterd="${withval}masterd";
-   user_metad="${withval}metad";
+   user_metad="$user_default";
    user_rapi="${withval}rapi";
    user_confd="${withval}confd";
    user_wconfd="${withval}masterd";
