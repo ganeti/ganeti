@@ -649,7 +649,7 @@ def CheckCompressionTool(lu, compression_tool):
       compression_tool not in allowed_tools):
     raise errors.OpPrereqError(
       "Compression tool not allowed, tools allowed are [%s]"
-      % ", ".join(allowed_tools)
+      % ", ".join(allowed_tools), errors.ECODE_INVAL
     )
 
 
