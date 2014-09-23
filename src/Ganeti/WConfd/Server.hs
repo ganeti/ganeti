@@ -106,7 +106,7 @@ prepMain _ _ = do
   return (s, dh)
 
 serverConfig :: ServerConfig
-serverConfig = ServerConfig GanetiLuxid $ ConnectConfig 60 60
+serverConfig = ServerConfig GanetiWConfd $ ConnectConfig 60 60
 
 -- | Main function.
 main :: MainFn () PrepResult
