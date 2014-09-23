@@ -62,7 +62,7 @@ module Ganeti.Luxi
   , allLuxiCalls
   ) where
 
-import Control.Applicative (optional)
+import Control.Applicative (optional, liftA, (<|>))
 import Control.Monad
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
@@ -79,6 +79,7 @@ import qualified Ganeti.Query.Language as Qlang
 import Ganeti.Runtime (GanetiDaemon(..))
 import Ganeti.THH
 import Ganeti.THH.Field
+import Ganeti.THH.Types (getOneTuple)
 import Ganeti.Types
 
 
@@ -156,8 +157,9 @@ $(genLuxiOp "LuxiOp"
      , simpleField "tmout" [t| Int |]
      ])
   , (luxiReqCancelJob,
-     [ simpleField "job" [t| JobId |] ]
-    )
+     [ simpleField "job" [t| JobId |]
+     , simpleField "kill" [t| Bool |]
+     ])
   , (luxiReqChangeJobPriority,
      [ simpleField "job"      [t| JobId |]
      , simpleField "priority" [t| Int |] ]
@@ -279,8 +281,10 @@ decodeLuxiCall method args = do
               (kind, name) <- fromJVal args
               return $ QueryTags kind name
     ReqCancelJob -> do
-              [jid] <- fromJVal args
-              return $ CancelJob jid
+              (jid, kill) <- fromJVal args
+                             <|> liftA (flip (,) False . getOneTuple)
+                                       (fromJVal args)
+              return $ CancelJob jid kill
     ReqChangeJobPriority -> do
               (jid, priority) <- fromJVal args
               return $ ChangeJobPriority jid priority

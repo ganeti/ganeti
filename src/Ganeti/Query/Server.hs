@@ -345,7 +345,7 @@ handleCall _ qstat cfg (ChangeJobPriority jid prio) = do
       logDebug $ jName ++ " started, will signal"
       fmap showJSON <$> tellJobPriority (jqLivelock qstat) jid prio
 
-handleCall _ qstat  cfg (CancelJob jid) = do
+handleCall _ qstat  cfg (CancelJob jid _) = do
   let jName = (++) "job " . show $ fromJobId jid
   dequeueResult <- dequeueJob qstat jid
   case dequeueResult of

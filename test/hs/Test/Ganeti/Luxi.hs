@@ -96,7 +96,7 @@ instance Arbitrary Luxi.LuxiOp where
       Luxi.ReqArchiveJob -> Luxi.ArchiveJob <$> arbitrary
       Luxi.ReqAutoArchiveJobs -> Luxi.AutoArchiveJobs <$> arbitrary <*>
                                  arbitrary
-      Luxi.ReqCancelJob -> Luxi.CancelJob <$> arbitrary
+      Luxi.ReqCancelJob -> Luxi.CancelJob <$> arbitrary <*> arbitrary
       Luxi.ReqChangeJobPriority -> Luxi.ChangeJobPriority <$> arbitrary <*>
                                    arbitrary
       Luxi.ReqSetDrainFlag -> Luxi.SetDrainFlag <$> arbitrary
