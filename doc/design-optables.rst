@@ -149,9 +149,9 @@ Examples
 Draining the queue.
 ::
 
-   {'priority': 0,
-    'predicates': [['jobid', ['>', 'id', 'watermark']]],
-    'action': 'REJECT'}
+   {"priority": 0,
+    "predicates": [["jobid", [">", "id", "watermark"]]],
+    "action": "REJECT"}
 
 Soft draining could be achieved by replacing ``REJECT`` by ``PAUSE`` in the
 above example.
@@ -159,25 +159,25 @@ above example.
 Pausing all new jobs not belonging to a specific maintenance.
 ::
 
-   {'priority': 1,
-    'predicates': [['jobid', ['>', 'id', 'watermark']],
-                   ['reason', ['!', ['=~', 'reason', 'maintenance pink bunny']]]],
-    'action': 'PAUSE'}
+   {"priority": 1,
+    "predicates": [["jobid", [">", "id", "watermark"]],
+                   ["reason", ["!", ["=~", "reason", "maintenance pink bunny"]]]],
+    "action": "PAUSE"}
 
 Canceling all queued instance creations and disallowing new such jobs.
 ::
 
-  {'priority': 1,
-   'predicates': [['opcode', ['=', 'OP_ID', 'OP_INSTANCE_CREATE']]],
-   'action': 'REJECT'}
+  {"priority": 1,
+   "predicates": [["opcode", ["=", "OP_ID", "OP_INSTANCE_CREATE"]]],
+   "action": "REJECT"}
 
 Limit the number of simultaneous instance disk replacements to 10 in order
 to throttle replication traffic.
 ::
 
-  {'priority': 99,
-   'predicates': [['opcode', ['=', 'OP_ID', 'OP_INSTNCE_REPLACE_DISKS']]],
-   'action': ['RATE_LIMIT', 10]}
+  {"priority": 99,
+   "predicates": [["opcode", ["=", "OP_ID", "OP_INSTNCE_REPLACE_DISKS"]]],
+   "action": ["RATE_LIMIT", 10]}
 
 
 
