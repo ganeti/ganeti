@@ -745,7 +745,8 @@ def CheckFileBasedStoragePathVsEnabledDiskTemplates(
         raise errors.OpPrereqError(
             "Unsetting the '%s' storage directory while having '%s' storage"
             " enabled is not permitted." %
-            (file_disk_template, file_disk_template))
+            (file_disk_template, file_disk_template),
+            errors.ECODE_INVAL)
     else:
       if not file_storage_enabled:
         logging_warn_fn(
@@ -905,12 +906,14 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.vg_name == '':
       if lvm_is_enabled:
         raise errors.OpPrereqError("Cannot unset volume group if lvm-based"
-                                   " disk templates are or get enabled.")
+                                   " disk templates are or get enabled.",
+                                   errors.ECODE_INVAL)
 
     if self.op.vg_name is None:
       if current_vg_name is None and lvm_is_enabled:
         raise errors.OpPrereqError("Please specify a volume group when"
-                                   " enabling lvm-based disk-templates.")
+                                   " enabling lvm-based disk-templates.",
+                                   errors.ECODE_INVAL)
 
     if self.op.vg_name is not None and not self.op.vg_name:
       if self.cfg.HasAnyDiskOfType(constants.DT_PLAIN):
