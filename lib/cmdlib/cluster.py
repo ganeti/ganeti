@@ -805,18 +805,19 @@ def CheckCompressionTools(tools):
   if illegal_tools:
     raise errors.OpPrereqError(
       "The tools '%s' contain illegal characters: only alphanumeric values,"
-      " dashes, and underscores are allowed" % ", ".join(illegal_tools)
+      " dashes, and underscores are allowed" % ", ".join(illegal_tools),
+      errors.ECODE_INVAL
     )
 
   if constants.IEC_GZIP not in tools:
     raise errors.OpPrereqError("For compatibility reasons, the %s utility must"
                                " be present among the compression tools" %
-                               constants.IEC_GZIP)
+                               constants.IEC_GZIP, errors.ECODE_INVAL)
 
   if constants.IEC_NONE in tools:
     raise errors.OpPrereqError("%s is a reserved value used for no compression,"
                                " and cannot be used as the name of a tool" %
-                               constants.IEC_NONE)
+                               constants.IEC_NONE, errors.ECODE_INVAL)
 
 
 class LUClusterSetParams(LogicalUnit):
@@ -1062,7 +1063,7 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.drbd_helper == '':
       if drbd_enabled:
         raise errors.OpPrereqError("Cannot disable drbd helper while"
-                                   " DRBD is enabled.")
+                                   " DRBD is enabled.", errors.ECODE_STATE)
       if self.cfg.HasAnyDiskOfType(constants.DT_DRBD8):
         raise errors.OpPrereqError("Cannot disable drbd helper while"
                                    " drbd-based instances exist",
@@ -1078,7 +1079,8 @@ class LUClusterSetParams(LogicalUnit):
             self._CheckDrbdHelperOnNodes(current_drbd_helper, node_uuids)
           else:
             raise errors.OpPrereqError("Cannot enable DRBD without a"
-                                       " DRBD usermode helper set.")
+                                       " DRBD usermode helper set.",
+                                       errors.ECODE_STATE)
 
   def _CheckInstancesOfDisabledDiskTemplates(
       self, disabled_disk_templates):
@@ -1093,7 +1095,8 @@ class LUClusterSetParams(LogicalUnit):
       if self.cfg.HasAnyDiskOfType(disk_template):
         raise errors.OpPrereqError(
             "Cannot disable disk template '%s', because there is at least one"
-            " instance using it." % disk_template)
+            " instance using it." % disk_template,
+            errors.ECODE_STATE)
 
   @staticmethod
   def _CheckInstanceCommunicationNetwork(network, warning_fn):
