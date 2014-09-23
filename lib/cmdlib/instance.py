@@ -3372,7 +3372,7 @@ class LUInstanceSetParams(LogicalUnit):
       if result.fail_msg:
         if self.op.hotplug:
           result.Raise("Hotplug is not possible: %s" % result.fail_msg,
-                       prereq=True)
+                       prereq=True, ecode=errors.ECODE_STATE)
         else:
           self.LogWarning(result.fail_msg)
           self.op.hotplug = False
