@@ -42,7 +42,7 @@ CANCEL
 ~~~~~~
 
 | **cancel**
-| {[\--force] {\--pending | \--queued | \--waiting} |
+| {[\--force] [\--kill] {\--pending | \--queued | \--waiting} |
 |  *job-id* ...}
 
 Cancel the job(s) identified by the given *job id*. Only jobs that have
@@ -50,6 +50,11 @@ not yet started to run can be canceled; that is, jobs in either the
 *queued* or *waiting* state. To skip a confirmation, pass ``--force``.
 ``--queued`` and ``waiting`` can be used to cancel all jobs in the
 respective state, ``--pending`` includes both.
+
+If the ``--kill`` option is given, jobs will be killed, even if in *running*
+state, using SIGKILL in the latter case. This is dangerous, as the job will
+not have the chance to do any clean up; so it will most likely leave any
+objects it touched in an inconsistent state.
 
 CHANGE-PRIORITY
 ~~~~~~~~~~~~~~~
