@@ -411,7 +411,7 @@ checkForDeath state jobWS = do
         -- failed status.
         now <- liftIO currentTimestamp
         qDir <- liftIO queueDir
-        let reason = ( "gnt:daemon:wconfd:deathdetection"
+        let reason = ( "gnt:daemon:luxid:deathdetection"
                      , "detected death of job " ++ sjid
                      , reasonTrailTimestamp now )
             failedJob = failQueuedJob reason now $ jJob jobWS'
