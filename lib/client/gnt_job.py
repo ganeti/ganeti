@@ -262,6 +262,9 @@ def CancelJobs(opts, args, cl=None, _stdout_fn=ToStdout, _ask_fn=AskUser):
   """
   if opts.kill:
     action_name = "KILL"
+    if not opts.yes_do_it:
+      raise errors.OpPrereqError("The --kill option must be confirmed"
+                                 " with --yes-do-it", errors.ECODE_INVAL)
   else:
     action_name = "Cancel"
   return _MultiJobAction(opts, args, cl, _stdout_fn, _ask_fn,
@@ -466,6 +469,9 @@ _KILL_OPT = \
              action="store_true", dest="kill",
              help="Kill running jobs with SIGKILL")
 
+_YES_DOIT_OPT = cli_option("--yes-do-it", "--ya-rly", dest="yes_do_it",
+                           help="Really use --kill", action="store_true")
+
 _PENDING_OPT = \
   cli_option("--pending", default=None,
              action="store_const", dest="status_filter",
@@ -541,7 +547,8 @@ commands = {
     "<age>", "Auto archive jobs older than the given age"),
   "cancel": (
     CancelJobs, [ArgJobId()],
-    [FORCE_OPT, _KILL_OPT, _PENDING_OPT, _QUEUED_OPT, _WAITING_OPT],
+    [FORCE_OPT, _KILL_OPT, _PENDING_OPT, _QUEUED_OPT, _WAITING_OPT,
+     _YES_DOIT_OPT],
     "{[--force] [--kill] {--pending | --queued | --waiting} |"
     " <job-id> [<job-id> ...]}",
     "Cancel jobs"),
