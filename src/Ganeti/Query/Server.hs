@@ -364,7 +364,9 @@ handleCall _ qstat  cfg (CancelJob jid kill) = do
             writeAndReplicateJob cfg qDir job'
     Ok False -> do
       logDebug $ jName ++ " not queued; trying to cancel directly"
-      fmap showJSON <$> cancelJob kill (jqLivelock qstat) jid
+      result <- fmap showJSON <$> cancelJob kill (jqLivelock qstat) jid
+      when kill . void . forkIO $ cleanupIfDead qstat jid
+      return result
     Bad s -> return . Ok . showJSON $ (False, s)
 
 handleCall qlock _ cfg (ArchiveJob jid) =
