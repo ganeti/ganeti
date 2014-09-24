@@ -51,7 +51,7 @@ class _ClientForCancelJob:
     self._cancel_cb = cancel_cb
     self._query_cb = query_cb
 
-  def CancelJob(self, job_id):
+  def CancelJob(self, job_id, kill=False):
     self.cancelled.append(job_id)
     return self._cancel_cb(job_id)
 
@@ -79,7 +79,8 @@ class TestCancelJob(unittest.TestCase):
     return answer
 
   def testStatusFilterAndArguments(self):
-    opts = optparse.Values(dict(status_filter=frozenset()))
+    opts = optparse.Values(dict(status_filter=frozenset(), force=False,
+                                kill=False))
     try:
       gnt_job.CancelJobs(opts, ["a"], cl=NotImplemented,
                          _stdout_fn=NotImplemented, _ask_fn=NotImplemented)
@@ -89,7 +90,7 @@ class TestCancelJob(unittest.TestCase):
       self.fail("Did not raise exception")
 
   def _TestArguments(self, force):
-    opts = optparse.Values(dict(status_filter=None, force=force))
+    opts = optparse.Values(dict(status_filter=None, force=force, kill=False))
 
     def _CancelCb(job_id):
       self.assertTrue(job_id in ("24185", "3252"))
@@ -113,7 +114,7 @@ class TestCancelJob(unittest.TestCase):
     self._TestArguments(False)
 
   def testArgumentsWithError(self):
-    opts = optparse.Values(dict(status_filter=None, force=True))
+    opts = optparse.Values(dict(status_filter=None, force=True, kill=False))
 
     def _CancelCb(job_id):
       if job_id == "10788":
@@ -135,7 +136,7 @@ class TestCancelJob(unittest.TestCase):
 
   def testFilterPending(self):
     opts = optparse.Values(dict(status_filter=constants.JOBS_PENDING,
-                                force=False))
+                                force=False, kill=False))
 
     def _Query(qfilter):
       # Need to sort as constants.JOBS_PENDING has no stable order
