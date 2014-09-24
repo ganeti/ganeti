@@ -260,9 +260,14 @@ def CancelJobs(opts, args, cl=None, _stdout_fn=ToStdout, _ask_fn=AskUser):
   @return: the desired exit code
 
   """
+  if opts.kill:
+    action_name = "KILL"
+  else:
+    action_name = "Cancel"
   return _MultiJobAction(opts, args, cl, _stdout_fn, _ask_fn,
-                         "Cancel job(s) listed above?",
-                         lambda cl, job_id: cl.CancelJob(job_id))
+                         "%s job(s) listed above?" % action_name,
+                         lambda cl, job_id: cl.CancelJob(job_id,
+                                                         kill=opts.kill))
 
 
 def ChangePriority(opts, args):
@@ -456,6 +461,10 @@ def WaitJob(opts, args):
 
   return retcode
 
+_KILL_OPT = \
+  cli_option("--kill", default=False,
+             action="store_true", dest="kill",
+             help="Kill running jobs with SIGKILL")
 
 _PENDING_OPT = \
   cli_option("--pending", default=None,
@@ -532,8 +541,8 @@ commands = {
     "<age>", "Auto archive jobs older than the given age"),
   "cancel": (
     CancelJobs, [ArgJobId()],
-    [FORCE_OPT, _PENDING_OPT, _QUEUED_OPT, _WAITING_OPT],
-    "{[--force] {--pending | --queued | --waiting} |"
+    [FORCE_OPT, _KILL_OPT, _PENDING_OPT, _QUEUED_OPT, _WAITING_OPT],
+    "{[--force] [--kill] {--pending | --queued | --waiting} |"
     " <job-id> [<job-id> ...]}",
     "Cancel jobs"),
   "info": (
