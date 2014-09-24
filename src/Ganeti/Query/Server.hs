@@ -345,7 +345,7 @@ handleCall _ qstat cfg (ChangeJobPriority jid prio) = do
       logDebug $ jName ++ " started, will signal"
       fmap showJSON <$> tellJobPriority (jqLivelock qstat) jid prio
 
-handleCall _ qstat  cfg (CancelJob jid _) = do
+handleCall _ qstat  cfg (CancelJob jid kill) = do
   let jName = (++) "job " . show $ fromJobId jid
   dequeueResult <- dequeueJob qstat jid
   case dequeueResult of
@@ -364,7 +364,7 @@ handleCall _ qstat  cfg (CancelJob jid _) = do
             writeAndReplicateJob cfg qDir job'
     Ok False -> do
       logDebug $ jName ++ " not queued; trying to cancel directly"
-      fmap showJSON <$> cancelJob (jqLivelock qstat) jid
+      fmap showJSON <$> cancelJob kill (jqLivelock qstat) jid
     Bad s -> return . Ok . showJSON $ (False, s)
 
 handleCall qlock _ cfg (ArchiveJob jid) =

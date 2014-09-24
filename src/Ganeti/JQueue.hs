@@ -101,7 +101,7 @@ import System.Directory
 import System.FilePath
 import System.IO.Error (isDoesNotExistError)
 import System.Posix.Files
-import System.Posix.Signals (sigHUP, sigTERM, sigUSR1, signalProcess)
+import System.Posix.Signals (sigHUP, sigTERM, sigUSR1, sigKILL, signalProcess)
 import System.Posix.Types (ProcessID)
 import System.Time
 import qualified Text.JSON
@@ -580,10 +580,11 @@ waitForJob jid tmout = do
 
 -- | Try to cancel a job that has already been handed over to execution,
 -- by terminating the process.
-cancelJob :: Livelock -- ^ Luxi's livelock path
+cancelJob :: Bool -- ^ if True, use sigKILL instead of sigTERM
+          -> Livelock -- ^ Luxi's livelock path
           -> JobId -- ^ the job to cancel
           -> IO (ErrorResult (Bool, String))
-cancelJob luxiLivelock jid = runResultT $ do
+cancelJob kill luxiLivelock jid = runResultT $ do
   -- we can't terminate the job if it's just being started, so
   -- retry several times in such a case
   result <- runMaybeT . msum . flip map [0..5 :: Int] $ \tryNo -> do
@@ -600,11 +601,13 @@ cancelJob luxiLivelock jid = runResultT $ do
       _ | dead ->
         return (True, jName ++ " has been already dead")
       Just pid -> do
-        liftIO $ signalProcess sigTERM pid
-        if calcJobStatus job > JOB_STATUS_WAITING
-          then return (False, "Job no longer waiting, can't cancel\
-                              \ (informed it anyway)")
-          else lift $ waitForJob jid C.luxiCancelJobTimeout
+        liftIO $ signalProcess (if kill then sigKILL else sigTERM) pid
+        if not kill then
+          if calcJobStatus job > JOB_STATUS_WAITING
+            then return (False, "Job no longer waiting, can't cancel\
+                                \ (informed it anyway)")
+            else lift $ waitForJob jid C.luxiCancelJobTimeout
+          else return (True, "SIGKILL send to the process")
       _ -> do
         logDebug $ jName ++ " in its startup phase, retrying"
         mzero
