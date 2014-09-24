@@ -43,6 +43,7 @@ module Ganeti.JQScheduler
   , enqueueNewJobs
   , dequeueJob
   , setJobPriority
+  , cleanupIfDead
   ) where
 
 import Control.Applicative (liftA2)
@@ -407,6 +408,14 @@ checkForDeath state jobWS = do
             failedJob = failQueuedJob reason now $ jJob jobWS'
         cfg <- mkResultT . readIORef $ jqConfig state
         writeAndReplicateJob cfg qDir failedJob
+
+-- | Trigger job detection for the job with the given job id.
+cleanupIfDead :: JQStatus -> JobId -> IO ()
+cleanupIfDead state jid = do
+  logDebug $ "Extra job-death detection for " ++ show (fromJobId jid)
+  jobs <- readIORef (jqJobs state)
+  let jobWS = find ((==) jid . qjId . jJob) $ qRunning jobs
+  maybe (return ()) (checkForDeath state) jobWS
 
 -- | Time-based watcher for updating the job queue.
 onTimeWatcher :: JQStatus -> IO ()
