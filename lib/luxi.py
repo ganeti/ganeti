@@ -137,9 +137,9 @@ class Client(cl.AbstractClient):
                          " expected integer, got value %s" %
                          (request_name, job_id))
 
-  def CancelJob(self, job_id):
+  def CancelJob(self, job_id, kill=False):
     job_id = Client._PrepareJobId(REQ_CANCEL_JOB, job_id)
-    return self.CallMethod(REQ_CANCEL_JOB, (job_id, ))
+    return self.CallMethod(REQ_CANCEL_JOB, (job_id, kill))
 
   def ArchiveJob(self, job_id):
     job_id = Client._PrepareJobId(REQ_ARCHIVE_JOB, job_id)
