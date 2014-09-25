@@ -181,3 +181,24 @@ def IsBefore(version, major, minor, revision):
     return True
 
   return version < (major, minor, revision)
+
+
+def HVVersionsLikelySafeForMigration(src, target):
+  """Decide if migration is likely to suceed for hypervisor versions.
+
+  Given two versions of a hypervisor, give a guess whether live migration
+  from the one version to the other version is likely to succeed. The current
+  heuristics is, that an increase by one on the second digit is OK. This is
+  in line with the current numbering of Xen.
+
+  @type src: list or tuple
+  @type target: list or tuple
+  @rtype: bool
+  """
+  if src == target:
+    return True
+
+  if len(src) < 2 or len(target) < 2:
+    return False
+
+  return src[0] == target[0] and target[1] in [src[1], src[1] + 1]
