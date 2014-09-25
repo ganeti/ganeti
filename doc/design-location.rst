@@ -67,3 +67,42 @@ not have any other effect. In particular, as opposed to exclusion tags,
 no hard guarantees are made: ``hail`` will try allocate an instance in
 a common-failure avoiding way if possible, but still allocate the instance
 if not.
+
+Additional migration restrictions
+=================================
+
+Inequality between nodes can also restrict the set of instance migrations
+possible. Here, the most prominent example is updating the hypervisor where
+usually migrations from the new to the old hypervisor version is not possible.
+
+Migration tags
+--------------
+
+As for exclusion tags, cluster tags will determine which tags are considered
+restricting migration. More precisely, a cluster tag of the form
+*htools:migration:x* will make node tags starting with *x:* a migration relevant
+node property. Additionally, cluster tags of the form
+*htools:allowmigration:y::z* where *y* and *z* are migration tags not containing
+*::* specify a unidirectional migration possibility from *y* to *z*.
+
+Restriction
+-----------
+
+An instance migration will only be considered by ``htools``, if for all
+migration tags *y* present on the node migrated from, either the tag
+is also present on the node migrated to or there is a cluster tag
+*htools::allowmigration:y::z* and the target node is tagged *z* (or both).
+
+Example
+-------
+
+For the simple hypervisor upgrade, where migration from old to new is possible,
+but not the other way round, tagging all already upgraded nodes suffices.
+
+
+Advise only
+-----------
+
+These tags are of advisory nature only. That is, all ``htools`` will strictly
+obey the restrictions imposed by those tags, but Ganeti will not prevent users
+from manually instructing other migrations.
