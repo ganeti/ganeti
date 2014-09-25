@@ -105,9 +105,13 @@ on cluster and node group levels, but they take effect for nodes only.
 Currently we support the following node parameters:
 
 oob_program
-    Path to an executable used as the out-of-band helper as described in
-    the `Ganeti Node OOB Management Framework <design-oob.rst>`_ design
-    document.
+    Path to an executable used as the out-of-band helper. It needs to implement
+    the corresponding interface; in particular, in needs to support the
+    ``power-on``, ``power-off``, ``power-cycle``, ``power-status``, and
+    ``health`` commands. The full specification can be found in the
+    `Ganeti Node OOB Management Framework` design document (implemented
+    in Ganeti 2.4). Design documents are also available online on
+    ``http://docs.ganeti.org/``.
 
 spindle_count
     This should reflect the I/O performance of local attached storage
@@ -119,10 +123,11 @@ spindle_count
 exclusive_storage
     When this Boolean flag is enabled, physical disks on the node are
     assigned to instance disks in an exclusive manner, so as to lower I/O
-    interference between instances. See the `Partitioned Ganeti
-    <design-partitioned.rst>`_ design document for more details. This
+    interference between instances. This
     parameter cannot be set on individual nodes, as its value must be
     the same within each node group.
+    The `Partitioned Ganeti` design document (implemented in Ganeti 2.9)
+    contains more details.
 
 ovs
     When this Boolean flag is enabled, OpenvSwitch will be used as the
@@ -151,8 +156,7 @@ ssh_port
 Hypervisor State Parameters
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Using ``--hypervisor-state`` you can set hypervisor specific states as
-pointed out in ``Ganeti Resource Model <design-resource-model.rst>``.
+Using ``--hypervisor-state`` you can set hypervisor specific states.
 
 The format is: ``hypervisor:option=value``.
 
@@ -182,8 +186,7 @@ recorded but will not influence the Ganeti operation.
 Disk State Parameters
 ~~~~~~~~~~~~~~~~~~~~~
 
-Using ``--disk-state`` you can set disk specific states as pointed out
-in ``Ganeti Resource Model <design-resource-model.rst>``.
+Using ``--disk-state`` you can set disk specific states.
 
 The format is: ``storage_type/identifier:option=value``. Where we
 currently just support ``lvm`` as storage type. The identifier in this
