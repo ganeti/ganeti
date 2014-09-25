@@ -66,8 +66,11 @@ module Ganeti.Query.Filter
   ) where
 
 import Control.Applicative
-import Control.Monad (liftM)
+import Control.Monad (liftM, mzero)
+import Control.Monad.Trans.Maybe (MaybeT, runMaybeT)
+import Control.Monad.Trans.Class (lift)
 import qualified Data.Map as Map
+import Data.Maybe
 import Data.Traversable (traverse)
 import Text.JSON (JSValue(..), fromJSString)
 import Text.JSON.Pretty (pp_value)
@@ -103,17 +106,17 @@ qffField QffTimestamp v =
 
 -- | Wraps a getter, filter pair. If the getter is 'FieldRuntime' but
 -- we don't have a runtime context, we skip the filtering, returning
--- \"pass\". Otherwise, we pass the actual value to the filter.
+-- `Nothing` in the MaybeT. Otherwise, we pass the actual value to the filter.
 wrapGetter :: ConfigData
            -> Maybe b
            -> a
            -> (FieldGetter a b, QffMode)
            -> (JSValue -> ErrorResult Bool)
-           -> ErrorResult Bool
+           -> MaybeT ErrorResult Bool
 wrapGetter cfg b a (getter, qff) faction =
   case tryGetter cfg b a getter of
-    Nothing -> Ok True -- runtime missing, accepting the value
-    Just v ->
+    Nothing -> mzero -- runtime missing, signalling that with MaybeT Nothing
+    Just v -> lift $
       case v of
         ResultEntry RSNormal (Just fval) -> qffField qff fval >>= faction
         ResultEntry RSNormal Nothing ->
@@ -243,7 +246,9 @@ evaluateQueryFilter :: ConfigData -> Maybe b -> a
                     -> Filter (FieldGetter a b, QffMode)
                     -> ErrorResult Bool
 evaluateQueryFilter c mb a =
-  evaluateFilterM $ \op -> case op of
+  -- `Nothing` in the MaybeT means "missing but needed runtime context".
+  -- Turn those cases into True (let the filter pass).
+  fmap (fromMaybe True) . runMaybeT . evaluateFilterM (\op -> case op of
     Truth    -> \gQff ()  -> wrap gQff trueFilter
     -- We're special casing comparison for host names.
     -- All other comparisons behave as usual.
@@ -251,8 +256,9 @@ evaluateQueryFilter c mb a =
     Comp cmp -> \gQff val -> wrap gQff $ binOpFilter (toCompFun cmp) val
     Regex    -> \gQff re  -> wrap gQff $ regexpFilter re
     Contains -> \gQff val -> wrap gQff $ containsFilter val
-    where
-      wrap = wrapGetter c mb a
+  )
+  where
+    wrap = wrapGetter c mb a
 
 
 -- | Runs a getter with potentially missing runtime context.
