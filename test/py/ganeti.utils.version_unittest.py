@@ -92,5 +92,23 @@ class IsBeforeTest(unittest.TestCase):
         self.assertFalse(version.IsBefore((2, 11, 0), 2, 10, 3))
 
 
+class HVVersionsLikelySafeForMigrationTest(unittest.TestCase):
+    def testHVVersionsLikelySafeForMigration(self):
+        self.assertTrue(
+            version.HVVersionsLikelySafeForMigration([4, 0], [4, 1]))
+        self.assertFalse(
+            version.HVVersionsLikelySafeForMigration([4, 1], [4, 0]))
+        self.assertFalse(
+            version.HVVersionsLikelySafeForMigration([4, 0], [4, 2]))
+        self.assertTrue(
+            version.HVVersionsLikelySafeForMigration([4, 2, 7], [4, 2, 9]))
+        self.assertTrue(
+            version.HVVersionsLikelySafeForMigration([4, 2, 9], [4, 2, 7]))
+        self.assertTrue(
+            version.HVVersionsLikelySafeForMigration([4], [4]))
+        self.assertFalse(
+            version.HVVersionsLikelySafeForMigration([4], [5]))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
