@@ -456,9 +456,6 @@ class _FilterCompilerHelper(object):
 
     # Binary operators
     qlang.OP_EQUAL: (_OPTYPE_BINARY, _EQUALITY_CHECKS),
-    qlang.OP_NOT_EQUAL:
-      (_OPTYPE_BINARY, [(flags, compat.partial(_WrapNot, fn), valprepfn)
-                        for (flags, fn, valprepfn) in _EQUALITY_CHECKS]),
     qlang.OP_LT: (_OPTYPE_BINARY, _MakeComparisonChecks(operator.lt)),
     qlang.OP_LE: (_OPTYPE_BINARY, _MakeComparisonChecks(operator.le)),
     qlang.OP_GT: (_OPTYPE_BINARY, _MakeComparisonChecks(operator.gt)),
