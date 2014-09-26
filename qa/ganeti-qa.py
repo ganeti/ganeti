@@ -46,6 +46,7 @@ import qa_config
 import qa_daemon
 import qa_env
 import qa_error
+import qa_filters
 import qa_group
 import qa_instance
 import qa_iptables
@@ -427,6 +428,23 @@ def RunNetworkTests():
   RunTestIf("network", qa_network.TestNetworkAddRemove)
   RunTestIf("network", qa_network.TestNetworkConnect)
   RunTestIf(["network", "tags"], qa_network.TestNetworkTags)
+
+
+def RunFilterTests():
+  """Run tests for job filter management.
+
+  """
+  RunTestIf("filters", qa_filters.TestFilterList)
+  RunTestIf("filters", qa_filters.TestFilterListFields)
+  RunTestIf("filters", qa_filters.TestFilterAddRemove)
+  RunTestIf("filters", qa_filters.TestFilterReject)
+  RunTestIf("filters", qa_filters.TestFilterOpCode)
+  RunTestIf("filters", qa_filters.TestFilterReasonChain)
+  RunTestIf("filters", qa_filters.TestFilterContinue)
+  RunTestIf("filters", qa_filters.TestFilterAcceptPause)
+  RunTestIf("filters", qa_filters.TestFilterWatermark)
+  RunTestIf("filters", qa_filters.TestFilterRateLimit)
+  RunTestIf("filters", qa_filters.TestAdHocReasonRateLimit)
 
 
 def RunGroupRwTests():
@@ -948,6 +966,7 @@ def RunQa():
   RunTestBlock(RunGroupListTests)
   RunTestBlock(RunGroupRwTests)
   RunTestBlock(RunNetworkTests)
+  RunTestBlock(RunFilterTests)
 
   # The master shouldn't be readded or put offline; "delay" needs a non-master
   # node to test
@@ -1031,6 +1050,9 @@ def RunQa():
 
   finally:
     pnode.Release()
+
+  if qa_rapi.Enabled():
+    RunTestIf("filters", qa_rapi.TestFilters)
 
   RunTestIf("cluster-upgrade", qa_cluster.TestUpgrade)
 

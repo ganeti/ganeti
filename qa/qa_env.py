@@ -60,6 +60,7 @@ def TestGanetiCommands():
           ["gnt-node", "--version"],
           ["gnt-os", "--version"],
           ["gnt-storage", "--version"],
+          ["gnt-filter", "--version"],
           ["ganeti-noded", "--version"],
           ["ganeti-rapi", "--version"],
           ["ganeti-watcher", "--version"],

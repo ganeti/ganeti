@@ -1193,6 +1193,7 @@ qa_scripts = \
 	qa/qa_daemon.py \
 	qa/qa_env.py \
 	qa/qa_error.py \
+	qa/qa_filters.py \
 	qa/qa_group.py \
 	qa/qa_instance.py \
 	qa/qa_instance_utils.py \

@@ -32,11 +32,13 @@
 
 """
 
+import copy
 import functools
 import itertools
 import random
 import re
 import tempfile
+import uuid as uuid_module
 
 from ganeti import cli
 from ganeti import compat
@@ -166,6 +168,15 @@ JOB_FIELDS = compat.UniqueFrozenset([
   "id", "ops", "status", "summary",
   "opstatus", "opresult", "oplog",
   "received_ts", "start_ts", "end_ts",
+  ])
+
+FILTER_FIELDS = compat.UniqueFrozenset([
+  "watermark",
+  "priority",
+  "predicates",
+  "action",
+  "reason_trail",
+  "uuid",
   ])
 
 LIST_FIELDS = ("id", "uri")
@@ -320,6 +331,11 @@ def TestEmptyCluster():
       for field in GROUP_FIELDS:
         AssertIn(field, group)
 
+  def _VerifyFiltersBulk(data):
+    for group in data:
+      for field in FILTER_FIELDS:
+        AssertIn(field, group)
+
   _DoTests([
     ("/", None, "GET", None),
     ("/2/info", _VerifyInfo, "GET", None),
@@ -331,6 +347,8 @@ def TestEmptyCluster():
     ("/2/instances", [], "GET", None),
     ("/2/instances?bulk=1", [], "GET", None),
     ("/2/os", None, "GET", None),
+    ("/2/filters", [], "GET", None),
+    ("/2/filters?bulk=1", _VerifyFiltersBulk, "GET", None),
     ])
 
   # Test HTTP Not Found
@@ -1097,3 +1115,51 @@ def TestInterClusterInstanceMove(src_instance, dest_instance,
   _InvokeMoveInstance(src_instance.name, dest_instance.name, rapi_pw_file.name,
                       master.primary, perform_checks,
                       target_nodes=(pnode.primary, snode.primary))
+
+
+def TestFilters():
+  """Testing filter management via the remote API.
+
+  """
+
+  body = {
+    "priority": 10,
+    "predicates": [],
+    "action": "CONTINUE",
+    "reason": [(constants.OPCODE_REASON_SRC_USER,
+               "reason1",
+               utils.EpochNano())],
+  }
+
+  body1 = copy.deepcopy(body)
+  body1["priority"] = 20
+
+  # Query filters
+  _DoTests([("/2/filters", [], "GET", None)])
+
+  # Add a filter via POST and delete it again
+  uuid = _DoTests([("/2/filters", None, "POST", body)])[0]
+  uuid_module.UUID(uuid)  # Check if uuid is a valid UUID
+  _DoTests([("/2/filters/%s" % uuid, lambda r: r is None, "DELETE", None)])
+
+  _DoTests([
+    # Check PUT-inserting a nonexistent filter with given UUID
+    ("/2/filters/%s" % uuid, lambda u: u == uuid, "PUT", body),
+    # Check PUT-inserting an existent filter with given UUID
+    ("/2/filters/%s" % uuid, lambda u: u == uuid, "PUT", body1),
+    # Check that the update changed the filter
+    ("/2/filters/%s" % uuid, lambda f: f["priority"] == 20, "GET", None),
+    # Delete it again
+    ("/2/filters/%s" % uuid, lambda r: r is None, "DELETE", None),
+    ])
+
+  # Add multiple filters, query and delete them
+  uuids = _DoTests([
+    ("/2/filters", None, "POST", body),
+    ("/2/filters", None, "POST", body),
+    ("/2/filters", None, "POST", body),
+    ])
+  _DoTests([("/2/filters", lambda rs: [r["uuid"] for r in rs] == uuids,
+             "GET", None)])
+  for u in uuids:
+    _DoTests([("/2/filters/%s" % u, lambda r: r is None, "DELETE", None)])
