@@ -133,7 +133,7 @@ class LUInstanceFailover(LogicalUnit):
       TLMigrateInstance(self, self.op.instance_uuid, self.op.instance_name,
                         self.op.cleanup, True, False,
                         self.op.ignore_consistency, True,
-                        self.op.shutdown_timeout, self.op.ignore_ipolicy)
+                        self.op.shutdown_timeout, self.op.ignore_ipolicy, True)
 
     self.tasklets = [self._migrater]
 
@@ -199,7 +199,7 @@ class LUInstanceMigrate(LogicalUnit):
                         self.op.cleanup, False, self.op.allow_failover, False,
                         self.op.allow_runtime_changes,
                         constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                        self.op.ignore_ipolicy)
+                        self.op.ignore_ipolicy, False)
 
     self.tasklets = [self._migrater]
 
@@ -270,6 +270,8 @@ class TLMigrateInstance(Tasklet):
   @ivar shutdown_timeout: In case of failover timeout of the shutdown
   @type ignore_ipolicy: bool
   @ivar ignore_ipolicy: If true, we can ignore instance policy when migrating
+  @type ignore_hvversions: bool
+  @ivar ignore_hvversions: If true, accept incompatible hypervisor versions
 
   """
 
@@ -279,7 +281,7 @@ class TLMigrateInstance(Tasklet):
 
   def __init__(self, lu, instance_uuid, instance_name, cleanup, failover,
                fallback, ignore_consistency, allow_runtime_changes,
-               shutdown_timeout, ignore_ipolicy):
+               shutdown_timeout, ignore_ipolicy, ignore_hvversions):
     """Initializes this class.
 
     """
@@ -296,6 +298,7 @@ class TLMigrateInstance(Tasklet):
     self.shutdown_timeout = shutdown_timeout
     self.ignore_ipolicy = ignore_ipolicy
     self.allow_runtime_changes = allow_runtime_changes
+    self.ignore_hvversions = ignore_hvversions
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -695,6 +698,19 @@ class TLMigrateInstance(Tasklet):
         self.feedback_fn("* warning: hypervisor version mismatch between"
                          " source (%s) and target (%s) node" %
                          (src_version, dst_version))
+        if utils.HVVersionsLikelySafeForMigration(src_version, dst_version):
+          self.feedback_fn("  migrating from hypervisor version %s to %s should"
+                           " be safe" % (src_version, dst_version))
+        else:
+          self.feedback_fn("  migrating from hypervisor version %s to %s is"
+                           " likely unsupported" % (src_version, dst_version))
+          if self.ignore_hvversions:
+            self.feedback_fn("  continuing anyway (told to ignore version"
+                             " mismatch)")
+          else:
+            raise errors.OpExecError("Unsupported migration between hypervisor"
+                                     " versions (%s to %s)" %
+                                     (src_version, dst_version))
 
     self.feedback_fn("* checking disk consistency between source and target")
     for (idx, dev) in enumerate(self.cfg.GetInstanceDisks(self.instance.uuid)):
