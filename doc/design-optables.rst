@@ -159,9 +159,11 @@ above example.
 Pausing all new jobs not belonging to a specific maintenance.
 ::
 
+   {"priority": 0,
+    "predicates": [["reason", ["=~", "reason", "maintenance pink bunny"]]],
+    "action": "ACCEPT"}
    {"priority": 1,
-    "predicates": [["jobid", [">", "id", "watermark"]],
-                   ["reason", ["!", ["=~", "reason", "maintenance pink bunny"]]]],
+    "predicates": [["jobid", [">", "id", "watermark"]]],
     "action": "PAUSE"}
 
 Canceling all queued instance creations and disallowing new such jobs.
