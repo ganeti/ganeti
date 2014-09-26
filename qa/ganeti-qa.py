@@ -629,7 +629,7 @@ def RunCustomSshPortTests():
 
     for node in nodes:
       qa_node.NodeRemove(node)
-    with qa_iptables.RulesContext(nodes) as r:
+    with qa_iptables.RulesContext() as r:
       with qa_group.NewGroupCtx() as group:
         qa_group.ModifyGroupSshPort(r, group, nodes, port)
 

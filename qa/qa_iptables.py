@@ -35,9 +35,6 @@ conditions.
 
 import uuid
 
-import qa_config
-import qa_utils
-
 from qa_utils import AssertCommand
 
 # String used as a comment for produced `iptables` results
@@ -45,17 +42,17 @@ IPTABLES_COMMENT_MARKER = "ganeti_qa_script"
 
 
 class RulesContext(object):
-  def __init__(self, nodes):
+  def __init__(self):
     self._nodes = set()
 
   def __enter__(self):
-    self._marker = IPTABLES_COMMENT_MARKER + "_" + str(uuid.uuid4())
+    self.marker = IPTABLES_COMMENT_MARKER + "_" + str(uuid.uuid4())
     return Rules(self)
 
   def __exit__(self, ext_type, exc_val, exc_tb):
-    CleanRules(self._nodes, self._marker)
+    CleanRules(self._nodes, self.marker)
 
-  def _AddNode(self, node):
+  def AddNode(self, node):
     self._nodes.add(node)
 
 
@@ -68,13 +65,13 @@ class Rules(object):
   def __init__(self, ctx=None):
     self._ctx = ctx
     if self._ctx is not None:
-      self._marker = self._ctx._marker
+      self.marker = self._ctx.marker
     else:
-      self._marker = IPTABLES_COMMENT_MARKER
+      self.marker = IPTABLES_COMMENT_MARKER
 
-  def _AddNode(self, node):
+  def AddNode(self, node):
     if self._ctx is not None:
-      self._ctx._AddNode(node)
+      self._ctx.AddNode(node)
 
   def AppendRule(self, node, chain, rule, table="filter"):
     """Appends an `iptables` rule to a given node
@@ -82,9 +79,9 @@ class Rules(object):
     AssertCommand(["iptables", "-t", table, "-A", chain] +
                   rule +
                   ["-m", "comment",
-                   "--comment", self._marker],
+                   "--comment", self.marker],
                   node=node)
-    self._AddNode(node)
+    self.AddNode(node)
 
   def RedirectPort(self, node, host, port, new_port):
     """Adds a rule to a master node that makes a destination host+port visible

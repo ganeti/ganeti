@@ -495,7 +495,7 @@ def TestJobQueueSubmissionPerformance():
       job_driver.AddJob(job_id)
 
   threads = qa_job_utils.QAThreadGroup()
-  for i in range(10):
+  for _ in range(10):
     thread = qa_job_utils.QAThread(_SubmitDelayJob, [20], {})
     threads.Start(thread)
 
