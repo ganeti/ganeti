@@ -215,7 +215,15 @@ deriving instance Eq (FilterOp field val)
 deriving instance Show (FilterOp field val)
 
 
--- | Verifies if a given item passes a filter.
+-- | Checks if a filter matches.
+--
+-- The leaves of the filter are evaluated against an object using the passed
+-- `opFun`; that is why the object need not be passed in.
+--
+-- The `field` type describes the "accessors" that are used to query
+-- values from the object; those values are to be matched against the
+-- `val` type in the filter leaves.
+--
 -- Useful monads @m@ for this are `ErrorResult` and `Maybe`.
 evaluateFilterM :: (Monad m, Applicative m)
                   => (forall val .
