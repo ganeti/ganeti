@@ -124,6 +124,7 @@ __all__ = [
   "IGNORE_CONSIST_OPT",
   "IGNORE_ERRORS_OPT",
   "IGNORE_FAILURES_OPT",
+  "IGNORE_HVVERSIONS_OPT",
   "IGNORE_OFFLINE_OPT",
   "IGNORE_REMOVE_FAILURES_OPT",
   "IGNORE_SECONDARIES_OPT",
@@ -1128,6 +1129,12 @@ IGNORE_CONSIST_OPT = cli_option("--ignore-consistency",
                                 action="store_true", default=False,
                                 help="Ignore the consistency of the disks on"
                                 " the secondary")
+
+IGNORE_HVVERSIONS_OPT = cli_option("--ignore-hvversions",
+                                   dest="ignore_hvversions",
+                                   action="store_true", default=False,
+                                   help="Ignore imcompatible hypervisor"
+                                   " versions between source and target")
 
 ALLOW_FAILOVER_OPT = cli_option("--allow-failover",
                                 dest="allow_failover",
