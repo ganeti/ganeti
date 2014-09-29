@@ -718,8 +718,11 @@ HS_DEFAULT_PROGS = \
 	$(HS_BIN_PROGS) \
 	test/hs/hpc-htools \
 	test/hs/hpc-mon-collector \
-	test/hs/htest \
 	$(HS_COMPILE_PROGS)
+
+if HTEST
+HS_DEFAULT_PROGS += test/hs/htest
+endif
 
 HS_ALL_PROGS = $(HS_DEFAULT_PROGS) $(HS_MYEXECLIB_PROGS)
 
