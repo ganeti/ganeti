@@ -52,6 +52,7 @@ import qualified Data.Map as Map
 
 import Ganeti.Lens hiding (chosen)
 import Ganeti.JQScheduler.Types
+import Ganeti.JQueue (QueuedJob)
 import Ganeti.JQueue.Lens
 import Ganeti.OpCodes.Lens
 import Ganeti.Utils
@@ -102,10 +103,10 @@ joinSlotMap = Map.unionWith (+)
 -- run sequentially, so a job can only take 1 slot.
 -- Thus a job takes part in a set of buckets, requiring 1 slot in
 -- each of them.
-slotMapFromJob :: JobWithStat -> SlotMap
+slotMapFromJob :: QueuedJob -> SlotMap
 slotMapFromJob job =
   let reasonsStrings =
-        job ^.. jJobL . qjOpsL . traverse . qoInputL . validOpCodeL
+        job ^.. qjOpsL . traverse . qoInputL . validOpCodeL
                 . metaParamsL . opReasonL . traverse . _2
 
       buckets = ordNub . mapMaybe parseRateLimit $ reasonsStrings
@@ -138,15 +139,15 @@ reasonRateLimit queue =
       -- for the jobs that are currently running.
       -- Both `qRunning` and `qManipulated` count to the rate limit.
       initSlotMap :: SlotMap
-      initSlotMap = Map.unionsWith (+) . map slotMapFromJob $
-                      qRunning queue ++ qManipulated queue
+      initSlotMap = Map.unionsWith (+) . map (slotMapFromJob . jJob)
+                      $ qRunning queue ++ qManipulated queue
 
       -- A job can be run (fits) if all buckets it takes part in have
       -- a free slot. If yes, accept the job and update the slotMap.
       -- Note: If the slotMap is overfull in some slots, but the job
       -- doesn't take part in any of those, it is to be accepted.
       accumFittingJobs slotMap job =
-        let jobSlots = slotMapFromJob job
+        let jobSlots = slotMapFromJob (jJob job)
         in if slotMap `hasSlotsFor` jobSlots
           then (jobSlots `joinSlotMap` slotMap, Just job) -- job fits
           else (slotMap, Nothing)                  -- job doesn't fit
