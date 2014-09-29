@@ -122,6 +122,14 @@ slotMap `hasSlotsFor` newSlots =
   in not $ isOverfull (newSlots `joinSlotMap` relevantSlots)
 
 
+--- | Map of how many slots are in use for a given bucket,
+--- for the jobs that are currently running in the queue.
+--- Both `qRunning` and `qManipulated` count to the rate limit.
+queueSlotMap :: Queue -> SlotMap
+queueSlotMap queue = Map.unionsWith (+) . map (slotMapFromJob . jJob)
+                       $ qRunning queue ++ qManipulated queue
+
+
 -- | Implements ad-hoc rate limiting using the reason trail as specified
 -- in `doc/design-optables.rst`.
 --
@@ -134,13 +142,7 @@ slotMap `hasSlotsFor` newSlots =
 -- (< 100).
 reasonRateLimit :: Queue -> [JobWithStat] -> [JobWithStat]
 reasonRateLimit queue =
-  let
-      -- Map of how many slots are in use for a given bucket,
-      -- for the jobs that are currently running.
-      -- Both `qRunning` and `qManipulated` count to the rate limit.
-      initSlotMap :: SlotMap
-      initSlotMap = Map.unionsWith (+) . map (slotMapFromJob . jJob)
-                      $ qRunning queue ++ qManipulated queue
+  let initSlotMap = queueSlotMap queue
 
       -- A job can be run (fits) if all buckets it takes part in have
       -- a free slot. If yes, accept the job and update the slotMap.
