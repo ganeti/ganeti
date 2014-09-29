@@ -68,6 +68,7 @@ module Ganeti.OpParams
   , pShutdownInstance
   , pForce
   , pIgnoreOfflineNodes
+  , pIgnoreHVVersions
   , pNodeName
   , pNodeUuid
   , pNodeNames
@@ -986,6 +987,11 @@ pIgnoreConsistency :: Field
 pIgnoreConsistency =
   withDoc "Whether to ignore disk consistency" $
   defaultFalse "ignore_consistency"
+
+pIgnoreHVVersions :: Field
+pIgnoreHVVersions =
+  withDoc "Whether to ignore incompatible Hypervisor versions" $
+  defaultFalse "ignore_hvversions"
 
 pMasterCandidate :: Field
 pMasterCandidate =
