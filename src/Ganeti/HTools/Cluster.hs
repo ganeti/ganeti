@@ -1685,7 +1685,9 @@ iMoveToJob nl il idx move =
               , OpCodes.opIgnoreIpolicy       = False
               , OpCodes.opMigrationCleanup    = False
               , OpCodes.opIallocator          = Nothing
-              , OpCodes.opAllowFailover       = True }
+              , OpCodes.opAllowFailover       = True
+              , OpCodes.opIgnoreHvversions    = True
+              }
       opFA n = opF { OpCodes.opTargetNode = lookNode n } -- not drbd
       opR n = OpCodes.OpInstanceReplaceDisks
                 { OpCodes.opInstanceName     = iname

@@ -599,6 +599,7 @@ $(genOpCode "OpCode"
      , pMigrationCleanup
      , pIallocator
      , pAllowFailover
+     , pIgnoreHVVersions
      ],
      "instance_name")
   , ("OpInstanceMove",

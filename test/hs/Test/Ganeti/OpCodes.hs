@@ -158,7 +158,7 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpInstanceMigrate <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary <*> genMaybe genNodeNameNE <*>
           return Nothing <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          genMaybe genNameNE <*> arbitrary
+          genMaybe genNameNE <*> arbitrary <*> arbitrary
       "OP_TAGS_GET" ->
         arbitraryOpTagsGet
       "OP_TAGS_SEARCH" ->
