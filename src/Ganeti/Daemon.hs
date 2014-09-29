@@ -356,7 +356,6 @@ daemonize logfile action = do
     setupDaemonEnv "/" (unionFileModes groupModes otherModes)
     setupDaemonFDs (Just logfile) `Control.Exception.catch`
       handlePrepErr False wpipe'
-    _ <- installHandler lostConnection (Catch (handleSigHup logfile)) Nothing
     -- second fork, launches the actual child code; standard
     -- double-fork technique
     _ <- forkProcess (action wpipe')
@@ -407,6 +406,7 @@ genericMain daemon options check_fn prep_fn exec_fn = do
   let processFn = if optDaemonize opts
                     then daemonize log_file
                     else \action -> action Nothing
+  _ <- installHandler lostConnection (Catch (handleSigHup log_file)) Nothing
   processFn $ innerMain daemon opts syslog check_result' prep_fn exec_fn
 
 -- | Full prepare function.
