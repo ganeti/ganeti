@@ -860,7 +860,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/Metad/Server.hs \
 	src/Ganeti/Metad/Types.hs \
 	src/Ganeti/Metad/WebServer.hs \
-	src/Ganeti/Monitoring/Server.hs \
 	src/Ganeti/Network.hs \
 	src/Ganeti/Objects.hs \
 	src/Ganeti/Objects/BitArray.hs \
@@ -930,6 +929,10 @@ HS_LIB_SRCS = \
 	src/Ganeti/WConfd/Server.hs \
 	src/Ganeti/WConfd/Ssconf.hs \
 	src/Ganeti/WConfd/TempRes.hs
+
+if ENABLE_MOND
+	HS_LIB_SRCS += src/Ganeti/Monitoring/Server.hs
+endif
 
 HS_TEST_SRCS = \
 	test/hs/Test/AutoConf.hs \
