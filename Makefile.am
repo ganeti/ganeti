@@ -20,6 +20,8 @@ strip_hsroot = $(patsubst src/%,%,$(patsubst test/hs/%,%,$(1)))
 # Use bash in order to be able to use pipefail
 SHELL=/bin/bash
 
+EXTRA_DIST=
+
 # Enable colors in shelltest
 SHELLTESTARGS = "-c"
 
@@ -935,7 +937,9 @@ HS_LIB_SRCS = \
 	src/Ganeti/WConfd/TempRes.hs
 
 if ENABLE_MOND
-	HS_LIB_SRCS += src/Ganeti/Monitoring/Server.hs
+HS_LIB_SRCS += src/Ganeti/Monitoring/Server.hs
+else
+EXTRA_DIST += src/Ganeti/Monitoring/Server.hs
 endif
 
 HS_TEST_SRCS = \
@@ -1355,7 +1359,7 @@ myexeclib_SCRIPTS = \
 myexeclib_scripts_basenames = \
 	$(patsubst tools/%,%,$(patsubst daemons/%,%,$(patsubst src/%,%,$(myexeclib_SCRIPTS))))
 
-EXTRA_DIST = \
+EXTRA_DIST += \
 	NEWS \
 	UPGRADE \
 	epydoc.conf.in \
