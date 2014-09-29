@@ -813,7 +813,8 @@ def MigrateInstance(opts, args):
                                  target_node=target_node,
                                  allow_failover=opts.allow_failover,
                                  allow_runtime_changes=opts.allow_runtime_chgs,
-                                 ignore_ipolicy=opts.ignore_ipolicy)
+                                 ignore_ipolicy=opts.ignore_ipolicy,
+                                 ignore_hvversions=opts.ignore_hvversions)
   SubmitOrSend(op, cl=cl, opts=opts)
   return 0
 
@@ -1575,7 +1576,8 @@ commands = {
     MigrateInstance, ARGS_ONE_INSTANCE,
     [FORCE_OPT, NONLIVE_OPT, MIGRATION_MODE_OPT, CLEANUP_OPT, DRY_RUN_OPT,
      PRIORITY_OPT, DST_NODE_OPT, IALLOCATOR_OPT, ALLOW_FAILOVER_OPT,
-     IGNORE_IPOLICY_OPT, NORUNTIME_CHGS_OPT] + SUBMIT_OPTS,
+     IGNORE_IPOLICY_OPT, IGNORE_HVVERSIONS_OPT, NORUNTIME_CHGS_OPT]
+    + SUBMIT_OPTS,
     "[-f] <instance>", "Migrate instance to its secondary node"
     " (only for mirrored instances)"),
   "move": (
