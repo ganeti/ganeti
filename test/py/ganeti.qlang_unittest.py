@@ -100,6 +100,7 @@ class TestParseFilter(unittest.TestCase):
                [qlang.OP_OR, [qlang.OP_TRUE, "master"],
                              [qlang.OP_TRUE, "field"]])
     self._Test("mem == 128", [qlang.OP_EQUAL, "mem", 128])
+    self._Test("negfield != -1", [qlang.OP_NOT_EQUAL, "negfield", -1])
     self._Test("master", [qlang.OP_TRUE, "master"],
                expect_filter=False)
     self._Test("not master", [qlang.OP_NOT, [qlang.OP_TRUE, "master"]])

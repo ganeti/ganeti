@@ -4960,6 +4960,9 @@ qlangOpLe = "<="
 qlangOpLt :: String
 qlangOpLt = "<"
 
+qlangOpNotEqual :: String
+qlangOpNotEqual = "!="
+
 qlangOpRegexp :: String
 qlangOpRegexp = "=~"
 
