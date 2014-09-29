@@ -890,6 +890,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Query/Types.hs \
 	src/Ganeti/Rpc.hs \
 	src/Ganeti/Runtime.hs \
+	src/Ganeti/SlotMap.hs \
 	src/Ganeti/Ssconf.hs \
 	src/Ganeti/Storage/Diskstats/Parser.hs \
 	src/Ganeti/Storage/Diskstats/Types.hs \
@@ -982,6 +983,7 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Query/Query.hs \
 	test/hs/Test/Ganeti/Rpc.hs \
 	test/hs/Test/Ganeti/Runtime.hs \
+	test/hs/Test/Ganeti/SlotMap.hs \
 	test/hs/Test/Ganeti/Ssconf.hs \
 	test/hs/Test/Ganeti/Storage/Diskstats/Parser.hs \
 	test/hs/Test/Ganeti/Storage/Drbd/Parser.hs \

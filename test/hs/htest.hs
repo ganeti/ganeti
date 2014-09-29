@@ -82,6 +82,7 @@ import Test.Ganeti.Query.Network
 import Test.Ganeti.Query.Query
 import Test.Ganeti.Rpc
 import Test.Ganeti.Runtime
+import Test.Ganeti.SlotMap
 import Test.Ganeti.Ssconf
 import Test.Ganeti.Storage.Diskstats.Parser
 import Test.Ganeti.Storage.Drbd.Parser
@@ -155,6 +156,7 @@ allTests =
   , testQuery_Query
   , testRpc
   , testRuntime
+  , testSlotMap
   , testSsconf
   , testStorage_Lvm_LVParser
   , testTHH

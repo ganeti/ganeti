@@ -36,104 +36,84 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.JQScheduler.ReasonRateLimiting
   ( reasonRateLimit
   -- * For testing only
-  , RateLimitBucket(bucketCount)
-  , parseRateLimit
-  , SlotMap
-  , isOverfull
-  , joinSlotMap
-  , slotMapFromJob
-  , hasSlotsFor
+  , parseReasonRateLimit
+  , countMapFromJob
+  , slotMapFromJobs
   ) where
 
 import Data.List
 import Data.Maybe
-import Data.Map (Map)
 import qualified Data.Map as Map
 
 import Ganeti.Lens hiding (chosen)
 import Ganeti.JQScheduler.Types
-import Ganeti.JQueue (QueuedJob)
+import Ganeti.JQueue (QueuedJob(..))
 import Ganeti.JQueue.Lens
 import Ganeti.OpCodes.Lens
+import Ganeti.SlotMap
 import Ganeti.Utils
 
+
+
 -- | Ad-hoc rate limiting buckets are identified by the /combination/
--- `(BUCKETLABEL, n)`, so `("mybucket", 3)` and `("mybucket", 4)` are
--- /different/ buckets).
-data RateLimitBucket = RateLimitBucket
-  { _bucketLabel :: String
-  , bucketCount :: Int
-  } deriving (Eq, Ord, Show)
+-- `REASONSTRING:n`, so "mybucket:3" and "mybucket:4" are /different/ buckets.
+type AdHocReasonKey = String
 
 
 -- | Parses an ad-hoc rate limit from a reason trail, as defined under
 -- "Ad-Hoc Rate Limiting" in `doc/design-optables.rst`.
 --
--- The parse succeeds only on reasons of form `rate-limit:n:BUCKETLABEL`
--- where `n` is a positive integer and `BUCKETLABEL` is an arbitrary
+-- The parse succeeds only on reasons of form `rate-limit:n:REASONSTRING`
+-- where `n` is a positive integer and `REASONSTRING` is an arbitrary
 -- string (may include spaces).
-parseRateLimit :: (Monad m) => String -> m RateLimitBucket
-parseRateLimit reason = case sepSplit ':' reason of
+parseReasonRateLimit :: (Monad m) => String -> m (String, Int)
+parseReasonRateLimit reason = case sepSplit ':' reason of
   "rate-limit":nStr:rest
     | Just n <- readMaybe nStr
-    , n > 0 -> return $ RateLimitBucket (intercalate ":" rest) n
+    , n > 0 -> return (intercalate ":" (nStr:rest), n)
   _ -> fail $ "'" ++ reason ++ "' is not a valid ad-hoc rate limit reason"
 
 
--- | A set of buckets and how many slots are (to be) taken per bucket.
---
--- Some buckets can be overfull (more slots taken than available.)
-type SlotMap = Map RateLimitBucket Int
-
-
--- | Whether any more slots are taken than available.
-isOverfull :: SlotMap -> Bool
-isOverfull m = or [ j > bucketCount b | (b, j) <- Map.toList m ]
-
-
--- | Combine two `SlotMap`s by adding the occupied bucket slots.
-joinSlotMap :: SlotMap -> SlotMap -> SlotMap
-joinSlotMap = Map.unionWith (+)
-
-
--- | Computes the bucket slots required by a job.
+-- | Computes the bucket slots required by a job, also extracting how many
+-- slots are available from the reason rate limits in the job reason trails.
 --
 -- A job can have multiple `OpCode`s, and the `ReasonTrail`s
 -- can be different for each `OpCode`. The `OpCode`s of a job are
 -- run sequentially, so a job can only take 1 slot.
 -- Thus a job takes part in a set of buckets, requiring 1 slot in
 -- each of them.
-slotMapFromJob :: QueuedJob -> SlotMap
-slotMapFromJob job =
+labelCountMapFromJob :: QueuedJob -> CountMap (String, Int)
+labelCountMapFromJob job =
   let reasonsStrings =
         job ^.. qjOpsL . traverse . qoInputL . validOpCodeL
                 . metaParamsL . opReasonL . traverse . _2
 
-      buckets = ordNub . mapMaybe parseRateLimit $ reasonsStrings
+      buckets = ordNub . mapMaybe parseReasonRateLimit $ reasonsStrings
 
-  in Map.fromList $ map (, 1) buckets  -- buckets are already unique
-
-
--- | Whether the first `SlotMap` has enough slots free to accomodate the
--- bucket slots of the second `SlotMap`.
-hasSlotsFor :: SlotMap -> SlotMap -> Bool
-slotMap `hasSlotsFor` newSlots =
-  let relevantSlots = slotMap `Map.intersection` newSlots
-  in not $ isOverfull (newSlots `joinSlotMap` relevantSlots)
+  -- Buckets are already unique from `ordNub`.
+  in Map.fromList $ map (, 1) buckets
 
 
---- | Map of how many slots are in use for a given bucket,
---- for the jobs that are currently running in the queue.
---- Both `qRunning` and `qManipulated` count to the rate limit.
-queueSlotMap :: Queue -> SlotMap
-queueSlotMap queue = Map.unionsWith (+) . map (slotMapFromJob . jJob)
-                       $ qRunning queue ++ qManipulated queue
+-- | Computes the bucket slots required by a job.
+countMapFromJob :: QueuedJob -> CountMap AdHocReasonKey
+countMapFromJob = Map.mapKeys (\(str, n) -> str ++ ":" ++ show n)
+                    . labelCountMapFromJob
+
+
+-- | Map of how many slots are in use for a given bucket, for a list of jobs.
+-- The slot limits are taken from the ad-hoc reason rate limiting strings.
+slotMapFromJobs :: [QueuedJob] -> SlotMap AdHocReasonKey
+slotMapFromJobs jobs =
+  Map.mapKeys (\(str, n) -> str ++ ":" ++ show n)
+    . Map.mapWithKey (\(_str, limit) occup -> Slot occup limit)
+    . Map.unionsWith (+) . map labelCountMapFromJob
+    $ jobs
 
 
 -- | Implements ad-hoc rate limiting using the reason trail as specified
 -- in `doc/design-optables.rst`.
 --
--- Reasons of form `rate-limit:n:BUCKETLABEL` define buckets that limit
+-- Reasons of form `rate-limit:n:REASONSTRING` define buckets that limit
 -- how many jobs with that reason can be running at the same time to
 -- a positive integer n of available slots.
 --
@@ -142,16 +122,19 @@ queueSlotMap queue = Map.unionsWith (+) . map (slotMapFromJob . jJob)
 -- (< 100).
 reasonRateLimit :: Queue -> [JobWithStat] -> [JobWithStat]
 reasonRateLimit queue =
-  let initSlotMap = queueSlotMap queue
+  let -- Reason rate limiting slot map of the jobs in the queue.
+      -- Both `qRunning` and `qManipulated` count to the rate limit.
+      initSlotMap =
+        slotMapFromJobs . map jJob $ qRunning queue ++ qManipulated queue
 
       -- A job can be run (fits) if all buckets it takes part in have
       -- a free slot. If yes, accept the job and update the slotMap.
       -- Note: If the slotMap is overfull in some slots, but the job
       -- doesn't take part in any of those, it is to be accepted.
       accumFittingJobs slotMap job =
-        let jobSlots = slotMapFromJob (jJob job)
-        in if slotMap `hasSlotsFor` jobSlots
-          then (jobSlots `joinSlotMap` slotMap, Just job) -- job fits
-          else (slotMap, Nothing)                  -- job doesn't fit
+        let jobBuckets = countMapFromJob (jJob job)
+        in if slotMap `hasSlotsFor` jobBuckets
+          then (slotMap `occupySlots` jobBuckets, Just job) -- job fits
+          else (slotMap, Nothing)                           -- job doesn't fit
 
   in catMaybes . snd . mapAccumL accumFittingJobs initSlotMap
