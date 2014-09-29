@@ -2026,7 +2026,7 @@ MIGRATE
 ^^^^^^^
 
 | **migrate** [-f] [\--allow-failover] [\--non-live]
-| [\--migration-mode=live\|non-live] [\--ignore-ipolicy]
+| [\--migration-mode=live\|non-live] [\--ignore-ipolicy] [\--ignore-hvversions]
 | [\--no-runtime-changes] [\--submit] [\--print-job-id]
 | [{-n|\--target-node} *node* \| {-I|\--iallocator} *name*] {*instance*}
 
@@ -2081,6 +2081,10 @@ during execution. If a migration fails during execution it still fails.
 
 If ``--ignore-ipolicy`` is given any instance policy violations occuring
 during this operation are ignored.
+
+Normally, Ganeti will verify that the hypervisor versions on source
+and target are compatible and error out if they are not. If
+``--ignore-hvversions`` is given, Ganeti will only warn in this case.
 
 The ``--no-runtime-changes`` option forbids migrate to alter an
 instance's runtime before migrating it (eg. ballooning an instance
