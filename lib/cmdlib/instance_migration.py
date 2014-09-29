@@ -199,7 +199,7 @@ class LUInstanceMigrate(LogicalUnit):
                         self.op.cleanup, False, self.op.allow_failover, False,
                         self.op.allow_runtime_changes,
                         constants.DEFAULT_SHUTDOWN_TIMEOUT,
-                        self.op.ignore_ipolicy, False)
+                        self.op.ignore_ipolicy, self.op.ignore_hvversions)
 
     self.tasklets = [self._migrater]
 
