@@ -5,6 +5,12 @@
 # - All directories must be listed DIRS.
 # - Use autogen.sh to generate Makefile.in and configure script.
 
+# For distcheck we need the haskell tests to be enabled. Note:
+# The "correct" way would be to define AM_DISTCHECK_CONFIGURE_FLAGS.
+# However, we still have to support older versions of autotools,
+# so we cannot use that yet, hence we fall back to..
+DISTCHECK_CONFIGURE_FLAGS = --enable-haskell-tests
+
 # Automake doesn't export these variables before version 1.10.
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
