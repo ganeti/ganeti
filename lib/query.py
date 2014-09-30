@@ -323,7 +323,8 @@ class _FilterHints(object):
 
     # If any operator other than equality was used, all names need to be
     # retrieved
-    if op == qlang.OP_EQUAL and name == self._namefield:
+    EQ_OPS = [qlang.OP_EQUAL, qlang.OP_EQUAL_LEGACY]
+    if op in EQ_OPS and name == self._namefield:
       if self._names is None:
         self._names = []
       self._names.append(value)
@@ -456,6 +457,7 @@ class _FilterCompilerHelper(object):
 
     # Binary operators
     qlang.OP_EQUAL: (_OPTYPE_BINARY, _EQUALITY_CHECKS),
+    qlang.OP_EQUAL_LEGACY: (_OPTYPE_BINARY, _EQUALITY_CHECKS),
     qlang.OP_NOT_EQUAL:
       (_OPTYPE_BINARY, [(flags, compat.partial(_WrapNot, fn), valprepfn)
                         for (flags, fn, valprepfn) in _EQUALITY_CHECKS]),

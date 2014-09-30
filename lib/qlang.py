@@ -56,6 +56,7 @@ OP_AND = constants.QLANG_OP_AND
 OP_NOT = constants.QLANG_OP_NOT
 OP_TRUE = constants.QLANG_OP_TRUE
 OP_EQUAL = constants.QLANG_OP_EQUAL
+OP_EQUAL_LEGACY = constants.QLANG_OP_EQUAL_LEGACY
 OP_NOT_EQUAL = constants.QLANG_OP_NOT_EQUAL
 OP_LT = constants.QLANG_OP_LT
 OP_LE = constants.QLANG_OP_LE
@@ -162,7 +163,8 @@ def BuildFilterParser():
   # Simple binary conditions
   binopstbl = {
     "==": OP_EQUAL,
-    "!=": OP_NOT_EQUAL,
+    "=": OP_EQUAL,  # legacy support
+    "!=": OP_NOT_EQUAL,  # legacy support
     "<": OP_LT,
     "<=": OP_LE,
     ">": OP_GT,

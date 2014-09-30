@@ -53,9 +53,10 @@ class TestMakeSimpleFilter(unittest.TestCase):
     self._Test("name", None, None, parse_exp=[])
     self._Test("name", [], None)
     self._Test("name", ["node1.example.com"],
-               ["|", ["=", "name", "node1.example.com"]])
+               ["|", ["==", "name", "node1.example.com"]])
     self._Test("xyz", ["a", "b", "c"],
-               ["|", ["=", "xyz", "a"], ["=", "xyz", "b"], ["=", "xyz", "c"]])
+               ["|",
+                ["==", "xyz", "a"], ["==", "xyz", "b"], ["==", "xyz", "c"]])
 
 
 class TestParseFilter(unittest.TestCase):
@@ -69,6 +70,10 @@ class TestParseFilter(unittest.TestCase):
   def test(self):
     self._Test("name==\"foobar\"", [qlang.OP_EQUAL, "name", "foobar"])
     self._Test("name=='foobar'", [qlang.OP_EQUAL, "name", "foobar"])
+
+    # Legacy "="
+    self._Test("name=\"foobar\"", [qlang.OP_EQUAL, "name", "foobar"])
+    self._Test("name='foobar'", [qlang.OP_EQUAL, "name", "foobar"])
 
     self._Test("valA==1 and valB==2 or valC==3",
                [qlang.OP_OR,
