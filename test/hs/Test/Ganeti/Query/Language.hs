@@ -54,6 +54,9 @@ import Test.Ganeti.TestCommon
 import Ganeti.JSON
 import Ganeti.Query.Language
 
+{-# ANN module "HLint: ignore Use camelCase" #-}
+
+
 -- | Custom 'Filter' generator (top-level), which enforces a
 -- (sane) limit on the depth of the generated filters.
 genFilter :: Gen (Filter FilterField)
