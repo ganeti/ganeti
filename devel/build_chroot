@@ -137,9 +137,13 @@ fi
 in_chroot -- \
   apt-get update
 
+
+# Functions for downloading and checking Haskell core components.
+# The functions run commands within the schroot.
+
 # arguments : file_name expected_sha1
 function verify_sha1 {
-  local SUM="$( sha1sum "$1" | awk '{print $1;exit}' )"
+  local SUM="$( in_chroot -- sha1sum "$1" | awk '{print $1;exit}' )"
   if [ "$SUM" != "$2" ] ; then
     echo "ERROR: The SHA1 sum $SUM of $1 doesn't match $2." >&2
     return 1
@@ -147,66 +151,57 @@ function verify_sha1 {
     echo "SHA1 of $1 verified correct."
   fi
 }
-export -f verify_sha1
 
 # arguments: URL
 function lookup_sha1 {
   grep -o "${1##*/}"'\s\+[0-9a-fA-F]*' <<<"$SHA1_LIST" | awk '{print $2;exit}'
 }
-export -f lookup_sha1
 
 # arguments : file_name URL
 function download {
   local FNAME="$1"
   local URL="$2"
-  wget --output-document="$FNAME" "$URL"
+  in_chroot -- wget --output-document="$FNAME" "$URL"
   verify_sha1 "$FNAME" "$( lookup_sha1 "$URL" )"
 }
-export -f download
 
 function install_ghc {
-  set -e
-  local TDIR=$( mktemp -d ) ;
-  pushd "$TDIR"
-  {
-    local GHC_ARCH=$ARCH
-    if [ "$ARCH" == "amd64" ] ; then
-      download ghc.tar.bz2 \
-        http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_VERSION}-x86_64-unknown-linux.tar.bz2
-    elif [ "$ARCH" == "i386" ] ; then
-      download ghc.tar.bz2 \
-        http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_VERSION}-i386-unknown-linux.tar.bz2
-    else
-      echo "Don't know what GHC to download for architecture $ARCH" >&2
-      return 1
-    fi
+  local GHC_ARCH=$ARCH
+  local TDIR=$( schroot -c $CHNAME -d / -- mktemp -d )
+  [ -n "$TDIR" ]
+  if [ "$ARCH" == "amd64" ] ; then
+    download "$TDIR"/ghc.tar.bz2 \
+      http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_VERSION}-x86_64-unknown-linux.tar.bz2
+  elif [ "$ARCH" == "i386" ] ; then
+    download "$TDIR"/ghc.tar.bz2 \
+      http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_VERSION}-i386-unknown-linux.tar.bz2
+  else
+    echo "Don't know what GHC to download for architecture $ARCH" >&2
+    return 1
+  fi
+  schroot -c $CHNAME -d "$TDIR" -- \
     tar xjf ghc.tar.bz2
-    cd ghc-${GHC_VERSION}
+  schroot -c $CHNAME -d "$TDIR/ghc-${GHC_VERSION}" -- \
     ./configure --prefix=/usr/local
-    make install
-  }
-  popd
-  [ -d "$TDIR" ] && rm -rf "$TDIR"
+  schroot -c $CHNAME -d "$TDIR/ghc-${GHC_VERSION}" -- \
+     make install
+  schroot -c $CHNAME -d "/" -- \
+    rm -rf "$TDIR"
 }
-# export everything so that the function can be called in a sub-shell
-export -f install_ghc
 
 function install_cabal {
-  set -e
-  local TDIR=$( mktemp -d )
-  pushd "$TDIR"
-  {
-    download cabal-install.tar.gz \
-      http://www.haskell.org/cabal/release/cabal-install-${CABAL_INSTALL_VERSION}/cabal-install-${CABAL_INSTALL_VERSION}.tar.gz
+  local TDIR=$( schroot -c $CHNAME -d / -- mktemp -d )
+  [ -n "$TDIR" ]
+  download "$TDIR"/cabal-install.tar.gz \
+    http://www.haskell.org/cabal/release/cabal-install-${CABAL_INSTALL_VERSION}/cabal-install-${CABAL_INSTALL_VERSION}.tar.gz
+  schroot -c $CHNAME -d "$TDIR" -- \
     tar xzf cabal-install.tar.gz
-    cd cabal-install-${CABAL_INSTALL_VERSION}
-    EXTRA_CONFIGURE_OPTS="--enable-library-profiling" ./bootstrap.sh --global
-  }
-  popd
-  [ -d "$TDIR" ] && rm -rf "$TDIR"
+  schroot -c $CHNAME -d "$TDIR/cabal-install-${CABAL_INSTALL_VERSION}" -- \
+    bash -c 'EXTRA_CONFIGURE_OPTS="--enable-library-profiling" ./bootstrap.sh --global'
+  schroot -c $CHNAME -d "/" -- \
+    rm -rf "$TDIR"
 }
-# export everything so that the function can be called in a sub-shell
-export -f install_cabal
+
 
 case $DIST_RELEASE in
 
@@ -250,11 +245,9 @@ case $DIST_RELEASE in
         coverage==3.4 \
         bitarray==0.8.0
 
-    in_chroot -p -- \
-      bash -c install_ghc
+    install_ghc
 
-    in_chroot -p -- \
-      bash -c install_cabal
+    install_cabal
 
     in_chroot -- \
       cabal update

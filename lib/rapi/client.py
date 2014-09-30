@@ -972,7 +972,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
   def RecreateInstanceDisks(self, instance, disks=None, nodes=None,
-                            reason=None):
+                            reason=None, iallocator=None):
     """Recreate an instance's disks.
 
     @type instance: string
@@ -983,6 +983,8 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     @param nodes: New instance nodes, if relocation is desired
     @type reason: string
     @param reason: the reason for executing this operation
+    @type iallocator: str or None
+    @param iallocator: instance allocator plugin to use
     @rtype: string
     @return: job id
 
@@ -990,6 +992,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
     body = {}
     _SetItemIf(body, disks is not None, "disks", disks)
     _SetItemIf(body, nodes is not None, "nodes", nodes)
+    _SetItemIf(body, iallocator is not None, "iallocator", iallocator)
 
     query = []
     _AppendReason(query, reason)
