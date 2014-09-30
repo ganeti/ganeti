@@ -4946,7 +4946,10 @@ qlangOpContains :: String
 qlangOpContains = "=[]"
 
 qlangOpEqual :: String
-qlangOpEqual = "="
+qlangOpEqual = "=="
+
+qlangOpEqualLegacy :: String
+qlangOpEqualLegacy = "="
 
 qlangOpGe :: String
 qlangOpGe = ">="

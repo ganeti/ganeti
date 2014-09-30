@@ -269,6 +269,9 @@ readFilterArray op args
   | op == C.qlangOpNot      = readFilterArg        NotFilter args
   | op == C.qlangOpTrue     = readFilterField      TrueFilter args
   | op == C.qlangOpEqual    = readFilterFieldValue EQFilter args
+  -- Legacy filters:
+  -- - "=" is a legacy short-cut for "==".
+  | op == C.qlangOpEqualLegacy = readFilterFieldValue EQFilter args
   | op == C.qlangOpLt       = readFilterFieldValue LTFilter args
   | op == C.qlangOpGt       = readFilterFieldValue GTFilter args
   | op == C.qlangOpLe       = readFilterFieldValue LEFilter args
