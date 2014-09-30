@@ -37,6 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.JQScheduler.Filtering
   ( applyingFilter
   , jobFiltering
+  -- * For testing only
+  , matchPredicate
+  , matches
   ) where
 
 import Data.List
