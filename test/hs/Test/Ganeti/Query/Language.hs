@@ -41,6 +41,7 @@ module Test.Ganeti.Query.Language
   , genJSValue
   ) where
 
+import Test.HUnit (Assertion, assertEqual)
 import Test.QuickCheck
 
 import Control.Applicative
@@ -50,6 +51,7 @@ import Text.JSON
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 
+import Ganeti.JSON
 import Ganeti.Query.Language
 
 -- | Custom 'Filter' generator (top-level), which enforces a
@@ -165,6 +167,34 @@ prop_fieldsresult_serialisation =
 prop_itemtype_serialisation :: ItemType -> Property
 prop_itemtype_serialisation = testSerialisation
 
+-- | Tests basic cases of filter parsing, including legacy ones.
+case_filterParsing :: Assertion
+case_filterParsing = do
+  let check :: String -> Filter String -> Assertion
+      check str expected = do
+        jsval <- fromJResult "could not parse filter" $ decode str
+        assertEqual str expected jsval
+
+      val = QuotedString "val"
+
+  valRegex <- mkRegex "val"
+
+  check "null" EmptyFilter
+  check "[\"&\", null, null]"           $ AndFilter [EmptyFilter, EmptyFilter]
+  check "[\"|\", null, null]"           $ OrFilter [EmptyFilter, EmptyFilter]
+  check "[\"!\", null]"                 $ NotFilter EmptyFilter
+  check "[\"?\",   \"field\"]"          $ TrueFilter "field"
+  check "[\"==\",  \"field\", \"val\"]" $ EQFilter "field" val
+  check "[\"<\",   \"field\", \"val\"]" $ LTFilter "field" val
+  check "[\">\",   \"field\", \"val\"]" $ GTFilter "field" val
+  check "[\"<=\",  \"field\", \"val\"]" $ LEFilter "field" val
+  check "[\">=\",  \"field\", \"val\"]" $ GEFilter "field" val
+  check "[\"=~\",  \"field\", \"val\"]" $ RegexpFilter "field" valRegex
+  check "[\"=[]\", \"field\", \"val\"]" $ ContainsFilter "field" val
+  -- Legacy filters
+  check "[\"=\",   \"field\", \"val\"]" $ EQFilter "field" val
+  check "[\"!=\",  \"field\", \"val\"]" $ NotFilter (EQFilter "field" val)
+
 testSuite "Query/Language"
   [ 'prop_filter_serialisation
   , 'prop_filterregex_instances
@@ -174,4 +204,5 @@ testSuite "Query/Language"
   , 'prop_resultentry_serialisation
   , 'prop_fieldsresult_serialisation
   , 'prop_itemtype_serialisation
+  , 'case_filterParsing
   ]
