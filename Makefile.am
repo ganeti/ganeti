@@ -730,6 +730,8 @@ HS_DEFAULT_PROGS = \
 
 if HTEST
 HS_DEFAULT_PROGS += test/hs/htest
+else
+EXTRA_DIST += test/hs/htest.hs
 endif
 
 HS_ALL_PROGS = $(HS_DEFAULT_PROGS) $(HS_MYEXECLIB_PROGS)
