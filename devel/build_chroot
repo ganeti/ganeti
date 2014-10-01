@@ -1,7 +1,7 @@
 #!/bin/bash
 #Configuration
 : ${ARCH:=amd64}
-: ${DIST_RELEASE:=squeeze}
+: ${DIST_RELEASE:=wheezy}
 : ${CONF_DIR:=/etc/schroot/chroot.d}
 : ${CHROOT_DIR:=/srv/chroot}
 : ${ALTERNATIVE_EDITOR:=/usr/bin/vim.basic}
