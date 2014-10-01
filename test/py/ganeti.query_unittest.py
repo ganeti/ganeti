@@ -1306,10 +1306,9 @@ class TestQueryFilter(unittest.TestCase):
         namevalempty = ""
         genval = lambda i: "x%s" % i
         randvals = ["x17361", "x22015", "x13193", "x15215"]
-        if what == constants.QR_EXPORT:
-          namefield = "export"
-        else:
-          namefield = "name"
+        namefield = {
+          constants.QR_EXPORT: "export",
+        }.get(what, "name")
 
       assert namefield in fielddefs
 
@@ -1385,15 +1384,10 @@ class TestQueryFilter(unittest.TestCase):
     levels_max = query._FilterCompilerHelper._LEVELS_MAX
 
     for (what, fielddefs) in query.ALL_FIELDS.items():
-      if what == constants.QR_JOB:
-        namefield = "id"
-        nameval = 123
-      elif what == constants.QR_EXPORT:
-        namefield = "export"
-        nameval = "value"
-      else:
-        namefield = "name"
-        nameval = "value"
+      namefield, nameval = {
+        constants.QR_JOB: ("id", 123),
+        constants.QR_EXPORT: ("export", "value"),
+      }.get(what, ("name", "value"))
 
       checks = [
         [], ["="], ["=", "foo"], ["unknownop"], ["!"],
