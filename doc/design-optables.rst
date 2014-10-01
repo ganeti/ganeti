@@ -67,7 +67,7 @@ Filter rules are given by the following data.
 - A priority. This is a non-negative integer. Filters are processed
   in order of increasing priority. While there
   is a well-defined order in which rules of the same priority are
-  evaluated (increasing watermark, then the uuid, are taken as tie
+  evaluated (increasing watermark, then the UUID, are taken as tie
   breakers), it is not recommended to have rules of the same priority
   that overlap and have different actions associated.
 
@@ -87,7 +87,7 @@ Filter rules are given by the following data.
     possible, at the latest when the currently running opcode has
     finished. The job queue will take care of this.
   - REJECT. The job is rejected. If it is already in the queue,
-    it will be marked as cancelled.
+    it will be cancelled.
   - CONTINUE. The filtering continues processing with the next
     rule. Such a rule will never have any direct or indirect effect,
     but it can serve as documentation for a "normally present, but
@@ -113,7 +113,7 @@ in the chain of which all predicates *match* the job, and if its action is not
 CONTINUE.
 
 Filter chains are processed in increasing order of priority (lowest number
-means highest priority), then watermark, then uuid.
+means highest priority), then watermark, then UUID.
 
 Predicates available for the filter rules
 -----------------------------------------
@@ -132,7 +132,7 @@ in the future.
   filtered. In all value positions, the string ``watermark`` will be
   replaced by the value of the watermark.
 
-- ``opcode``. Only parameter is boolean expresion. For this expression, ``OP_ID``
+- ``opcode``. Only parameter is a boolean expression. For this expression, ``OP_ID``
   and all other fields present in the opcode are available. This predicate
   will hold true, if the expression is true for at least one opcode in
   the job.
@@ -149,9 +149,9 @@ Examples
 Draining the queue.
 ::
 
-   {"priority": 0,
-    "predicates": [["jobid", [">", "id", "watermark"]]],
-    "action": "REJECT"}
+  {"priority": 0,
+   "predicates": [["jobid", [">", "id", "watermark"]]],
+   "action": "REJECT"}
 
 Soft draining could be achieved by replacing ``REJECT`` by ``PAUSE`` in the
 above example.
@@ -159,21 +159,21 @@ above example.
 Pausing all new jobs not belonging to a specific maintenance.
 ::
 
-   {"priority": 0,
-    "predicates": [["reason", ["=~", "reason", "maintenance pink bunny"]]],
-    "action": "ACCEPT"}
-   {"priority": 1,
-    "predicates": [["jobid", [">", "id", "watermark"]]],
-    "action": "PAUSE"}
+  {"priority": 0,
+   "predicates": [["reason", ["=~", "reason", "maintenance pink bunny"]]],
+   "action": "ACCEPT"}
+  {"priority": 1,
+   "predicates": [["jobid", [">", "id", "watermark"]]],
+   "action": "PAUSE"}
 
-Canceling all queued instance creations and disallowing new such jobs.
+Cancelling all queued instance creations and disallowing new such jobs.
 ::
 
   {"priority": 1,
    "predicates": [["opcode", ["=", "OP_ID", "OP_INSTANCE_CREATE"]]],
    "action": "REJECT"}
 
-Limit the number of simultaneous instance disk replacements to 10 in order
+Limiting the number of simultaneous instance disk replacements to 10 in order
 to throttle replication traffic.
 ::
 
