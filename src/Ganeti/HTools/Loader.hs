@@ -68,7 +68,6 @@ import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Cluster as Cluster
 
 import Ganeti.BasicTypes
-import qualified Ganeti.Constants as C
 import qualified Ganeti.HTools.Tags as Tags
 import Ganeti.HTools.Types
 import Ganeti.Utils
@@ -225,8 +224,8 @@ setArPolicy ctags gl nl il time =
 getArPolicy :: [String] -> ClockTime -> Maybe AutoRepairPolicy
 getArPolicy tags time =
   let enabled = mapMaybe (autoRepairTypeFromRaw <=<
-                          chompPrefix C.autoRepairTagEnabled) tags
-      suspended = mapMaybe (chompPrefix C.autoRepairTagSuspended) tags
+                          chompPrefix Tags.autoRepairTagEnabled) tags
+      suspended = mapMaybe (chompPrefix Tags.autoRepairTagSuspended) tags
       futureTs = filter (> time) . map (flip TOD 0) $
                    mapMaybe (tryRead "auto-repair suspend time") suspended
   in

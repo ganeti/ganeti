@@ -38,6 +38,11 @@ module Ganeti.HTools.Tags
   ( exTagsPrefix
   , standbyAuto
   , hasStandbyTag
+  , autoRepairTagPrefix
+  , autoRepairTagEnabled
+  , autoRepairTagPending
+  , autoRepairTagResult
+  , autoRepairTagSuspended
   ) where
 
 import Data.List (isPrefixOf)
@@ -60,6 +65,22 @@ standbyPrefix = "htools:standby:"
 -- | The tag to be added to nodes that were shutdown by hsqueeze.
 standbyAuto :: String
 standbyAuto = "htools:standby:auto"
+
+-- | Auto-repair tag prefix
+autoRepairTagPrefix :: String
+autoRepairTagPrefix = "ganeti:watcher:autorepair:"
+
+autoRepairTagEnabled :: String
+autoRepairTagEnabled = autoRepairTagPrefix
+
+autoRepairTagPending :: String
+autoRepairTagPending = autoRepairTagPrefix ++ "pending:"
+
+autoRepairTagResult :: String
+autoRepairTagResult = autoRepairTagPrefix ++ "result:"
+
+autoRepairTagSuspended :: String
+autoRepairTagSuspended = autoRepairTagPrefix ++ "suspend:"
 
 -- * Predicates
 

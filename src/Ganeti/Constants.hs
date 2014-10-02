@@ -54,8 +54,8 @@ import qualified AutoConf
 import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
                              buildVersion)
 import qualified Ganeti.ConstantUtils as ConstantUtils
-import Ganeti.HTools.Types (AutoRepairResult(..), AutoRepairType(..))
 import qualified Ganeti.HTools.Types as Types
+import Ganeti.HTools.Types (AutoRepairResult(..), AutoRepairType(..))
 import Ganeti.Logging (SyslogUsage(..))
 import qualified Ganeti.Logging as Logging (syslogUsageToRaw)
 import qualified Ganeti.Runtime as Runtime
@@ -4658,22 +4658,6 @@ opcodeReasonSources =
 randomUuidFile :: String
 randomUuidFile = ConstantUtils.randomUuidFile
 
--- * Auto-repair tag prefixes
-
-autoRepairTagPrefix :: String
-autoRepairTagPrefix = "ganeti:watcher:autorepair:"
-
-autoRepairTagEnabled :: String
-autoRepairTagEnabled = autoRepairTagPrefix
-
-autoRepairTagPending :: String
-autoRepairTagPending = autoRepairTagPrefix ++ "pending:"
-
-autoRepairTagResult :: String
-autoRepairTagResult = autoRepairTagPrefix ++ "result:"
-
-autoRepairTagSuspended :: String
-autoRepairTagSuspended = autoRepairTagPrefix ++ "suspend:"
 
 -- * Auto-repair levels
 
@@ -4710,6 +4694,8 @@ autoRepairSuccess = Types.autoRepairResultToRaw ArSuccess
 autoRepairAllResults :: FrozenSet String
 autoRepairAllResults =
   ConstantUtils.mkSet [autoRepairEnoperm, autoRepairFailure, autoRepairSuccess]
+
+
 
 -- | The version identifier for builtin data collectors
 builtinDataCollectorVersion :: String

@@ -63,6 +63,7 @@ import qualified Ganeti.Path as Path
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.ExtLoader
+import qualified Ganeti.HTools.Tags as Tags
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
@@ -93,13 +94,13 @@ data InstanceData = InstanceData { arInstance :: Instance.Instance
 parseInitTag :: String -> Maybe AutoRepairData
 parseInitTag tag =
   let parsePending = do
-        subtag <- chompPrefix C.autoRepairTagPending tag
+        subtag <- chompPrefix Tags.autoRepairTagPending tag
         case sepSplit ':' subtag of
           [rtype, uuid, ts, jobs] -> makeArData rtype uuid ts jobs
           _                       -> fail ("Invalid tag: " ++ show tag)
 
       parseResult = do
-        subtag <- chompPrefix C.autoRepairTagResult tag
+        subtag <- chompPrefix Tags.autoRepairTagResult tag
         case sepSplit ':' subtag of
           [rtype, uuid, ts, result, jobs] -> do
             arData <- makeArData rtype uuid ts jobs
@@ -252,8 +253,8 @@ updateTag arData =
       end = [intercalate "+" . map (show . fromJobId) $ arJobs arData]
       (pfx, middle) =
          case arResult arData of
-          Nothing -> (C.autoRepairTagPending, [])
-          Just rs -> (C.autoRepairTagResult, [autoRepairResultToRaw rs])
+          Nothing -> (Tags.autoRepairTagPending, [])
+          Just rs -> (Tags.autoRepairTagResult, [autoRepairResultToRaw rs])
   in
    arData { arTag = pfx ++ intercalate ":" (ini ++ middle ++ end) }
 
