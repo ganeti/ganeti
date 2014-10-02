@@ -69,15 +69,10 @@ import qualified Ganeti.HTools.Cluster as Cluster
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import qualified Ganeti.HTools.Tags as Tags
 import Ganeti.HTools.Types
 import Ganeti.Utils
 import Ganeti.Types (EvacMode)
-
--- * Constants
-
--- | The exclusion tag prefix.
-exTagsPrefix :: String
-exTagsPrefix = "htools:iextags:"
 
 -- * Types
 
@@ -256,7 +251,7 @@ longestDomain (x:xs) =
 
 -- | Extracts the exclusion tags from the cluster configuration.
 extractExTags :: [String] -> [String]
-extractExTags = filter (not . null) . mapMaybe (chompPrefix exTagsPrefix)
+extractExTags = filter (not . null) . mapMaybe (chompPrefix Tags.exTagsPrefix)
 
 -- | Extracts the common suffix from node\/instance names.
 commonSuffix :: Node.List -> Instance.List -> String
