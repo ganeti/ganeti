@@ -36,7 +36,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.HTools.Tags
   ( exTagsPrefix
+  , standbyAuto
+  , hasStandbyTag
   ) where
+
+import Data.List (isPrefixOf)
+
+import qualified Ganeti.HTools.Node as Node
 
 -- * Constants
 
@@ -45,4 +51,19 @@ module Ganeti.HTools.Tags
 -- same service at not places on the same node.
 exTagsPrefix :: String
 exTagsPrefix = "htools:iextags:"
+
+-- | The tag-prefix indicating that hsqueeze should consider a node
+-- as being standby.
+standbyPrefix :: String
+standbyPrefix = "htools:standby:"
+
+-- | The tag to be added to nodes that were shutdown by hsqueeze.
+standbyAuto :: String
+standbyAuto = "htools:standby:auto"
+
+-- * Predicates
+
+-- | Predicate of having a standby tag.
+hasStandbyTag :: Node.Node -> Bool
+hasStandbyTag = any (standbyPrefix `isPrefixOf`) . Node.nTags
 

@@ -57,6 +57,7 @@ import Ganeti.HTools.ExtLoader
 import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Loader
 import qualified Ganeti.HTools.Node as Node
+import Ganeti.HTools.Tags (hasStandbyTag, standbyAuto)
 import Ganeti.HTools.Types
 import Ganeti.JQueue (currentTimestamp, reasonTrailTimestamp)
 import Ganeti.JQueue.Objects (Timestamp)
@@ -98,15 +99,6 @@ annotateOpCode ts comment =
            )])
   . setOpComment (comment ++ " " ++ version)
   . wrapOpCode
-
--- | The tag-prefix indicating that hsqueeze should consider a node
--- as being standby.
-standbyPrefix :: String
-standbyPrefix = "htools:standby:"
-
--- | Predicate of having a standby tag.
-hasStandbyTag :: Node.Node -> Bool
-hasStandbyTag = any (standbyPrefix `isPrefixOf`) . Node.nTags
 
 -- | Within a cluster configuration, decide if the node hosts only
 -- externally-mirrored instances.
@@ -243,7 +235,7 @@ getMoveOpCodes nl il js = return $ zip (map opcodes js) (map descr js)
 getTagOpCodes ::  [Node.Node] -> Result [([[OpCode]], String)]
 getTagOpCodes nl = return $ zip (map opCode nl) (map descr nl)
   where
-    opCode node = [[Node.genAddTagsOpCode node ["htools:standby:auto"]]]
+    opCode node = [[Node.genAddTagsOpCode node [standbyAuto]]]
     descr node = "Tagging node " ++ Node.name node ++ " with standby"
 
 -- | Get opcodes for powering off nodes
@@ -319,7 +311,8 @@ main opts args = do
       off_cmd =
         Cluster.formatCmds off_jobs
         ++ "\necho Tagging Commands\n"
-        ++ (toOffline >>= printf "  gnt-node add-tags %s htools:standby:auto\n" 
+        ++ (toOffline >>= (printf "  gnt-node add-tags %s %s\n"
+                             `flip` standbyAuto)
                           . Node.alias)
         ++ "\necho Power Commands\n"
         ++ (toOffline >>= printf "  gnt-node power -f off %s\n" . Node.alias)
