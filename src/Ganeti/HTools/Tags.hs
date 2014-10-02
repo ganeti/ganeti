@@ -43,9 +43,14 @@ module Ganeti.HTools.Tags
   , autoRepairTagPending
   , autoRepairTagResult
   , autoRepairTagSuspended
+  , getMigRestrictions
+  , getRecvMigRestrictions
   ) where
 
-import Data.List (isPrefixOf)
+import Control.Monad (guard, (>=>))
+import Data.List (isPrefixOf, isInfixOf, stripPrefix)
+import Data.Maybe (mapMaybe)
+import qualified Data.Set as S
 
 import qualified Ganeti.HTools.Node as Node
 
@@ -61,6 +66,14 @@ exTagsPrefix = "htools:iextags:"
 -- as being standby.
 standbyPrefix :: String
 standbyPrefix = "htools:standby:"
+
+-- | The prefix for migration tags
+migrationPrefix :: String
+migrationPrefix = "htools:migration:"
+
+-- | Prefix of tags allowing migration
+allowMigrationPrefix :: String
+allowMigrationPrefix = "htools:allowmigration:"
 
 -- | The tag to be added to nodes that were shutdown by hsqueeze.
 standbyAuto :: String
@@ -88,3 +101,42 @@ autoRepairTagSuspended = autoRepairTagPrefix ++ "suspend:"
 hasStandbyTag :: Node.Node -> Bool
 hasStandbyTag = any (standbyPrefix `isPrefixOf`) . Node.nTags
 
+-- * Migration restriction tags
+
+-- | Given the cluster tags extract the migration restrictions
+-- from a node tag, as a list.
+getMigRestrictionsList :: [String] -> [String] -> [String]
+getMigRestrictionsList ctags ntags =
+  mapMaybe (stripPrefix migrationPrefix) ctags >>= \ prefix ->
+  filter (prefix `isPrefixOf`) ntags
+
+-- | Given the cluster tags extract the migration restrictions
+-- from a node tag.
+getMigRestrictions :: [String] -> [String] -> S.Set String
+getMigRestrictions ctags = S.fromList . getMigRestrictionsList ctags
+
+-- | Maybe split a string on the first single occurence of "::" return
+-- the parts before and after.
+splitAtColons :: String -> Maybe (String, String)
+
+splitAtColons (':':':':xs) = do
+  guard $ not ("::" `isInfixOf` xs)
+  return ("", xs)
+
+splitAtColons (x:xs) = do
+  (as, bs) <- splitAtColons xs
+  return (x:as, bs)
+
+splitAtColons _ = Nothing
+
+-- | Get the pairs of allowed migrations from a set of cluster tags.
+migrations :: [String] -> [(String, String)]
+migrations = mapMaybe $ stripPrefix allowMigrationPrefix >=> splitAtColons
+
+-- | Given the cluster tags, extract the set of migration restrictions
+-- a node is able to receive from its node tags.
+getRecvMigRestrictions :: [String] -> [String] -> S.Set String
+getRecvMigRestrictions ctags ntags =
+  let migs = migrations ctags
+      closure tag = (:) tag . map fst $ filter ((==) tag . snd) migs
+  in S.fromList $ getMigRestrictionsList ctags ntags >>= closure
