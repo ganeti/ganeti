@@ -40,7 +40,7 @@ from ganeti import utils
 
 from ganeti.hypervisor import hv_base
 from ganeti.hypervisor import hv_lxc
-from ganeti.hypervisor.hv_lxc import LXCHypervisor
+from ganeti.hypervisor.hv_lxc import LXCHypervisor, LXCVersion
 
 import mock
 import os
@@ -65,6 +65,14 @@ def tearDownModule():
 
 def RunResultOk(stdout):
   return utils.RunResult(0, None, stdout, "", [], None, None)
+
+
+class TestLXCVersion(unittest.TestCase):
+  def testParseLXCVersion(self):
+    self.assertEqual(LXCVersion("1.0.0"), (1, 0, 0))
+    self.assertEqual(LXCVersion("1.0.0.alpha1"), (1, 0, 0))
+    self.assertRaises(ValueError, LXCVersion, "1.0")
+    self.assertRaises(ValueError, LXCVersion, "1.2a.0")
 
 
 class LXCHypervisorTestCase(unittest.TestCase):
@@ -208,7 +216,7 @@ class TestVerifyLXCCommands(unittest.TestCase):
     self.RunCmdPatch = patch_object(utils, "RunCmd", runcmd_mock)
     self.RunCmdPatch.start()
     version_patch = patch_object(LXCHypervisor, "_LXC_MIN_VERSION_REQUIRED",
-                                 "1.2.3")
+                                 LXCVersion("1.2.3"))
     self._LXC_MIN_VERSION_REQUIRED_Patch = version_patch
     self._LXC_MIN_VERSION_REQUIRED_Patch.start()
     self.hvc = LXCHypervisor
@@ -216,12 +224,6 @@ class TestVerifyLXCCommands(unittest.TestCase):
   def tearDown(self):
     self.RunCmdPatch.stop()
     self._LXC_MIN_VERSION_REQUIRED_Patch.stop()
-
-  def testParseLXCVersion(self):
-    self.assertEqual(self.hvc._ParseLXCVersion("1.0.0"), (1, 0, 0))
-    self.assertEqual(self.hvc._ParseLXCVersion("1.0.0.alpha1"), (1, 0, 0))
-    self.assertEqual(self.hvc._ParseLXCVersion("1.0"), None)
-    self.assertEqual(self.hvc._ParseLXCVersion("1.2a.0"), None)
 
   @patch_object(LXCHypervisor, "_LXC_COMMANDS_REQUIRED", ["lxc-stop"])
   def testCommandVersion(self):
