@@ -606,13 +606,19 @@ def TestInstanceModify(instance):
     ["-B", "%s=%s" % (constants.BE_ALWAYS_FAILOVER, constants.VALUE_TRUE)],
     ["-B", "%s=%s" % (constants.BE_ALWAYS_FAILOVER, constants.VALUE_DEFAULT)],
 
-    ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, test_kernel)],
-    ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, constants.VALUE_DEFAULT)],
-
     # TODO: bridge tests
     #["--bridge", "xen-br1"],
     #["--bridge", orig_bridge],
     ]
+
+  # Not all hypervisors support kernel_path(e.g, LXC)
+  if default_hv in (constants.HT_XEN_PVM,
+                    constants.HT_XEN_HVM,
+                    constants.HT_KVM):
+    args.extend([
+      ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, test_kernel)],
+      ["-H", "%s=%s" % (constants.HV_KERNEL_PATH, constants.VALUE_DEFAULT)],
+      ])
 
   if default_hv == constants.HT_XEN_PVM:
     args.extend([
