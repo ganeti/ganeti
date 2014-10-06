@@ -216,7 +216,7 @@ def AssertRedirectedCommand(cmd, fail=False, node=None, log_cmd=True):
                        fail=fail, node=node, log_cmd=log_cmd)
 
 
-def GetSSHCommand(node, cmd, strict=True, opts=None, tty=None,
+def GetSSHCommand(node, cmd, strict=True, opts=None, tty=False,
                   use_multiplexer=True):
   """Builds SSH command to be executed.
 
@@ -338,7 +338,7 @@ def _GetCommandStdout(proc):
   return out
 
 
-def GetCommandOutput(node, cmd, tty=None, use_multiplexer=True, log_cmd=True,
+def GetCommandOutput(node, cmd, tty=False, use_multiplexer=True, log_cmd=True,
                      fail=False):
   """Returns the output of a command executed on the given node.
 
