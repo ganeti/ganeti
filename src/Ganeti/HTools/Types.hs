@@ -359,6 +359,7 @@ data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailCPU  -- ^ Failed due to not enough CPU capacity
               | FailN1   -- ^ Failed due to not passing N1 checks
               | FailTags -- ^ Failed due to tag exclusion
+              | FailMig  -- ^ Failed due to migration restrictions
               | FailDiskCount -- ^ Failed due to wrong number of disks
               | FailSpindles -- ^ Failed due to wrong/missing spindles
               | FailInternal -- ^ Internal error
