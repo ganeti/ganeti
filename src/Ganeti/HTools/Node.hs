@@ -70,6 +70,7 @@ module Ganeti.HTools.Node
   , addPriEx
   , addSec
   , addSecEx
+  , checkMigration
   -- * Stats
   , availDisk
   , availMem
@@ -644,6 +645,13 @@ addSecEx force t inst pdx =
                      , fSpindles = new_free_sp
                      }
            in Ok r
+
+-- | Predicate on whether migration is supported between two nodes.
+checkMigration :: Node -> Node -> T.OpResult ()
+checkMigration nsrc ntarget =
+  if migTags nsrc `Set.isSubsetOf` rmigTags ntarget
+    then Ok ()
+    else Bad T.FailMig
 
 -- * Stats functions
 
