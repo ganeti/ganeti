@@ -36,6 +36,7 @@ import time
 from ganeti import constants
 from ganeti import errors
 from ganeti import locking
+from ganeti import hypervisor
 from ganeti.masterd import iallocator
 from ganeti import utils
 from ganeti.cmdlib.base import LogicalUnit, Tasklet
@@ -698,7 +699,8 @@ class TLMigrateInstance(Tasklet):
         self.feedback_fn("* warning: hypervisor version mismatch between"
                          " source (%s) and target (%s) node" %
                          (src_version, dst_version))
-        if utils.HVVersionsLikelySafeForMigration(src_version, dst_version):
+        hv = hypervisor.GetHypervisor(self.instance.hypervisor)
+        if hv.VersionsSafeForMigration(src_version, dst_version):
           self.feedback_fn("  migrating from hypervisor version %s to %s should"
                            " be safe" % (src_version, dst_version))
         else:
