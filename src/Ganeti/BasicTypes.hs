@@ -53,6 +53,7 @@ module Ganeti.BasicTypes
   , justBad
   , eitherToResult
   , isLeft
+  , isRight
   , annotateResult
   , annotateError
   , failError
@@ -293,6 +294,11 @@ eitherToResult (Right v) = Ok  v
 isLeft :: Either a b -> Bool
 isLeft (Left _) = True
 isLeft _        = False
+
+-- | Check if an either is Right. Equivalent to isRight from Data.Either
+-- version 4.7.0.0 or higher.
+isRight :: Either a b -> Bool
+isRight = not . isLeft
 
 -- | Annotate an error with an ownership information, lifting it to a
 -- 'MonadError'. Since 'Result' is an instance of 'MonadError' itself,
