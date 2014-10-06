@@ -55,6 +55,8 @@ module Ganeti.HTools.Node
   , setMcpu
   , setPolicy
   , setCpuSpeed
+  , setMigrationTags
+  , setRecvMigrationTags
   -- * Tag maps
   , addTags
   , delTags
@@ -103,6 +105,7 @@ import qualified Data.IntMap as IntMap
 import Data.List hiding (group)
 import qualified Data.Map as Map
 import Data.Ord (comparing)
+import qualified Data.Set as Set
 import Text.Printf (printf)
 
 import qualified Ganeti.Constants as C
@@ -167,6 +170,8 @@ data Node = Node
   , group    :: T.Gdx     -- ^ The node's group (index)
   , iPolicy  :: T.IPolicy -- ^ The instance policy (of the node's group)
   , exclStorage :: Bool   -- ^ Effective value of exclusive_storage
+  , migTags  :: Set.Set String -- ^ migration-relevant tags
+  , rmigTags :: Set.Set String -- ^ migration tags able to receive
   } deriving (Show, Eq)
 {- A note on how we handle spindles
 
@@ -309,6 +314,8 @@ create name_init mem_t_init mem_n_init mem_f_init
        , group = group_init
        , iPolicy = T.defIPolicy
        , exclStorage = excl_stor
+       , migTags = Set.empty
+       , rmigTags = Set.empty
        }
 
 -- | Conversion formula from mDsk\/tDsk to loDsk.
@@ -346,6 +353,14 @@ setMaster t val = t { isMaster = val }
 -- | Sets the node tags attribute
 setNodeTags :: Node -> [String] -> Node
 setNodeTags t val = t { nTags = val }
+
+-- | Set migration tags
+setMigrationTags :: Node -> Set.Set String -> Node
+setMigrationTags t val = t { migTags = val }
+
+-- | Set the migration tags a node is able to receive
+setRecvMigrationTags :: Node -> Set.Set String -> Node
+setRecvMigrationTags t val = t { rmigTags = val }
 
 -- | Sets the unnaccounted memory.
 setXmem :: Node -> Int -> Node
