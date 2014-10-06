@@ -259,6 +259,16 @@ commonSuffix nl il =
       inst_names = map Instance.name $ Container.elems il
   in longestDomain (node_names ++ inst_names)
 
+-- | Set the migration-related tags on a node given the cluster tags;
+-- this assumes that the node tags are already set on that node.
+addMigrationTags :: [String]  -- ^ cluster tags
+                 -> Node.Node -> Node.Node
+addMigrationTags ctags node =
+  let ntags = Node.nTags node
+      migTags = Tags.getMigRestrictions ctags ntags
+      rmigTags = Tags.getRecvMigRestrictions ctags ntags
+  in Node.setRecvMigrationTags (Node.setMigrationTags node migTags) rmigTags
+
 -- | Initializer function that loads the data from a node and instance
 -- list and massages it into the correct format.
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
@@ -294,8 +304,9 @@ mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
                            computeAlias common_suffix .
                            (`Node.buildPeers` il4)) nl2
       il5 = Container.map (disableSplitMoves nl3) il4
+      nl4 = Container.map (addMigrationTags ctags) nl3
   in if' (null lkp_unknown)
-         (Ok cdata { cdNodes = nl3, cdInstances = il5 })
+         (Ok cdata { cdNodes = nl4, cdInstances = il5 })
          (Bad $ "Unknown instance(s): " ++ show(map lrContent lkp_unknown))
 
 -- | In a cluster description, clear dynamic utilisation information.
