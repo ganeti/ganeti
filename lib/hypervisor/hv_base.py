@@ -426,6 +426,19 @@ class BaseHypervisor(object):
     """
     raise NotImplementedError
 
+  @staticmethod
+  def VersionsSafeForMigration(src, target):
+    """Decide if migration between those version is likely to suceed.
+
+    Given two versions of a hypervisor, give a guess whether live migration
+    from the one version to the other version is likely to succeed. The current
+
+    """
+    if src == target:
+      return True
+
+    return False
+
   def MigrationInfo(self, instance): # pylint: disable=R0201,W0613
     """Get instance information to perform a migration.
 
