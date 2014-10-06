@@ -859,8 +859,7 @@ def RunInstanceTests():
 
 
 def RunMonitoringTests():
-  if qa_config.TestEnabled("mon-collector"):
-    RunTest(qa_monitoring.TestInstStatusCollector)
+  RunTestIf("mon-collector", qa_monitoring.TestInstStatusCollector)
 
 
 PARALLEL_TEST_DICT = {
