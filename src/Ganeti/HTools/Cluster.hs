@@ -468,7 +468,8 @@ applyMoveEx force nl inst Failover =
   let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
-      new_nl = do -- Maybe monad
+      new_nl = do -- OpResult
+        Node.checkMigration old_p old_s
         new_p <- Node.addPriEx (Node.offline old_p || force) int_s inst
         new_s <- Node.addSec int_p inst old_sdx
         let new_inst = Instance.setBoth inst old_sdx old_pdx
@@ -481,6 +482,7 @@ applyMoveEx force nl inst (FailoverToAny new_pdx) = do
   let (old_pdx, old_sdx, old_pnode, _) = instanceNodes nl inst
       new_pnode = Container.find new_pdx nl
       force_failover = Node.offline old_pnode || force
+  Node.checkMigration old_pnode new_pnode
   new_pnode' <- Node.addPriEx force_failover new_pnode inst
   let old_pnode' = Node.removePri old_pnode inst
       inst' = Instance.setPri inst new_pdx
@@ -494,9 +496,11 @@ applyMoveEx force nl inst (ReplacePrimary new_pdx) =
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
       force_p = Node.offline old_p || force
-      new_nl = do -- Maybe monad
+      new_nl = do -- OpResult
                   -- check that the current secondary can host the instance
                   -- during the migration
+        Node.checkMigration old_p old_s
+        Node.checkMigration old_s tgt_n
         tmp_s <- Node.addPriEx force_p int_s inst
         let tmp_s' = Node.removePri tmp_s inst
         new_p <- Node.addPriEx force_p tgt_n inst
@@ -529,7 +533,8 @@ applyMoveEx force nl inst (ReplaceAndFailover new_pdx) =
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
       force_s = Node.offline old_s || force
-      new_nl = do -- Maybe monad
+      new_nl = do -- OpResult
+        Node.checkMigration old_p tgt_n
         new_p <- Node.addPri tgt_n inst
         new_s <- Node.addSecEx force_s int_p inst new_pdx
         let new_inst = Instance.setBoth inst new_pdx old_pdx
@@ -545,7 +550,8 @@ applyMoveEx force nl inst (FailoverAndReplace new_sdx) =
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
       force_p = Node.offline old_p || force
-      new_nl = do -- Maybe monad
+      new_nl = do -- OpResult
+        Node.checkMigration old_p old_s
         new_p <- Node.addPriEx force_p int_s inst
         new_s <- Node.addSecEx force_p tgt_n inst old_sdx
         let new_inst = Instance.setBoth inst old_sdx new_sdx
