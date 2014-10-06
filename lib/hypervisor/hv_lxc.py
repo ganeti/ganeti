@@ -533,10 +533,20 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     lxc_ttys = instance.hvparams[constants.HV_LXC_TTY]
     if lxc_ttys: # if it is the number greater than 0
       out.append("lxc.tty = %s" % lxc_ttys)
+
     # console log file
-    console_log_path = self._InstanceConsoleLogFilePath(instance.name)
-    _CreateBlankFile(console_log_path, constants.SECURE_FILE_MODE)
-    out.append("lxc.console = %s" % console_log_path)
+    # After the following patch was applied, we lost the console log file output
+    # until the lxc.console.logfile parameter was introduced in 1.0.6.
+    # https://
+    # lists.linuxcontainers.org/pipermail/lxc-devel/2014-March/008470.html
+    lxc_version = self._GetLXCVersionFromCmd("lxc-start")
+    if lxc_version >= LXCVersion("1.0.6"):
+      console_log_path = self._InstanceConsoleLogFilePath(instance.name)
+      _CreateBlankFile(console_log_path, constants.SECURE_FILE_MODE)
+      out.append("lxc.console.logfile = %s" % console_log_path)
+    else:
+      logging.warn("Console log file is not supported in LXC version %s,"
+                   " disabling.", lxc_version)
 
     # root FS
     out.append("lxc.rootfs = %s" % sda_dev_path)
