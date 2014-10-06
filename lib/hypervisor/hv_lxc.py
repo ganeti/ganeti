@@ -525,15 +525,10 @@ class LXCHypervisor(hv_base.BaseHypervisor):
                  instance.hvparams[constants.HV_CPU_MASK])
 
     # Memory
-    # Conditionally enable, memory resource controller might be disabled
-    cgroup = self._GetOrPrepareCgroupSubsysMountPoint("memory")
-    if os.path.exists(utils.PathJoin(cgroup, "memory.limit_in_bytes")):
-      out.append("lxc.cgroup.memory.limit_in_bytes = %dM" %
-                 instance.beparams[constants.BE_MAXMEM])
-
-    if os.path.exists(utils.PathJoin(cgroup, "memory.memsw.limit_in_bytes")):
-      out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
-                 instance.beparams[constants.BE_MAXMEM])
+    out.append("lxc.cgroup.memory.limit_in_bytes = %dM" %
+               instance.beparams[constants.BE_MAXMEM])
+    out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
+               instance.beparams[constants.BE_MAXMEM])
 
     # Device control
     # deny direct device access
