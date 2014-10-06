@@ -49,6 +49,19 @@ from ganeti.hypervisor import hv_base
 from ganeti.errors import HypervisorError
 
 
+def _CreateBlankFile(path, mode):
+  """Create blank file.
+
+  Create a blank file for the path with specified mode.
+  An existing file will be overwritten.
+
+  """
+  try:
+    utils.WriteFile(path, data="", mode=mode)
+  except EnvironmentError, err:
+    raise HypervisorError("Failed to create file %s: %s" % (path, err))
+
+
 class LXCHypervisor(hv_base.BaseHypervisor):
   """LXC-based virtualization.
 
@@ -466,12 +479,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       out.append("lxc.tty = %s" % lxc_ttys)
     # console log file
     console_log = utils.PathJoin(self._ROOT_DIR, instance.name + ".console")
-    try:
-      utils.WriteFile(console_log, data="", mode=constants.SECURE_FILE_MODE)
-    except EnvironmentError, err:
-      raise errors.HypervisorError("Creating console log file %s for"
-                                   " instance %s failed: %s" %
-                                   (console_log, instance.name, err))
+    _CreateBlankFile(console_log, constants.SECURE_FILE_MODE)
     out.append("lxc.console = %s" % console_log)
 
     # root FS
@@ -667,12 +675,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     log_file = self._InstanceLogFilePath(instance)
     if not os.path.exists(log_file):
-      try:
-        utils.WriteFile(log_file, data="", mode=constants.SECURE_FILE_MODE)
-      except EnvironmentError, err:
-        raise errors.HypervisorError("Creating hypervisor log file %s for"
-                                     " instance %s failed: %s" %
-                                     (log_file, instance.name, err))
+      _CreateBlankFile(log_file, constants.SECURE_FILE_MODE)
 
     try:
       if not block_devices:
