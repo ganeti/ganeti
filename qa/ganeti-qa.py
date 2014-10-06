@@ -863,6 +863,16 @@ def RunMonitoringTests():
     RunTest(qa_monitoring.TestInstStatusCollector)
 
 
+PARALLEL_TEST_DICT = {
+  "parallel-failover": qa_performance.TestParallelInstanceFailover,
+  "parallel-migration": qa_performance.TestParallelInstanceMigration,
+  "parallel-replace-disks": qa_performance.TestParallelInstanceReplaceDisks,
+  "parallel-reboot": qa_performance.TestParallelInstanceReboot,
+  "parallel-reinstall": qa_performance.TestParallelInstanceReinstall,
+  "parallel-rename": qa_performance.TestParallelInstanceRename,
+  }
+
+
 def RunPerformanceTests():
   if not qa_config.TestEnabled("performance"):
     ReportTestSkip("performance related tests", "performance")
@@ -888,22 +898,20 @@ def RunPerformanceTests():
     if qa_config.IsTemplateSupported(constants.DT_PLAIN):
       RunTest(qa_performance.TestParallelPlainInstanceCreationPerformance)
 
-    if qa_config.IsTemplateSupported(constants.DT_DRBD8):
-      inodes = qa_config.AcquireManyNodes(2)
+  # Preparations need to be made only if some of these tests are enabled
+  if qa_config.IsTemplateSupported(constants.DT_DRBD8) and \
+     qa_config.TestEnabled(qa_config.Either(PARALLEL_TEST_DICT.keys())):
+    inodes = qa_config.AcquireManyNodes(2)
+    try:
+      instance = qa_instance.TestInstanceAddWithDrbdDisk(inodes)
       try:
-        instance = qa_instance.TestInstanceAddWithDrbdDisk(inodes)
-        try:
-          RunTest(qa_performance.TestParallelInstanceFailover, instance)
-          RunTest(qa_performance.TestParallelInstanceMigration, instance)
-          RunTest(qa_performance.TestParallelInstanceReplaceDisks, instance)
-          RunTest(qa_performance.TestParallelInstanceReboot, instance)
-          RunTest(qa_performance.TestParallelInstanceReinstall, instance)
-          RunTest(qa_performance.TestParallelInstanceRename, instance)
-        finally:
-          instance.Release()
-        qa_instance.TestInstanceRemove(instance)
+        for (test_name, test_fn) in PARALLEL_TEST_DICT.items():
+          RunTestIf(test_name, test_fn, instance)
       finally:
-        qa_config.ReleaseManyNodes(inodes)
+        instance.Release()
+      qa_instance.TestInstanceRemove(instance)
+    finally:
+      qa_config.ReleaseManyNodes(inodes)
 
 
 def RunQa():
