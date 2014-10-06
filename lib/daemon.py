@@ -810,7 +810,23 @@ def GenericMain(daemon_name, optionparser,
   log_filename = constants.DAEMONS_LOGFILES[daemon_name]
 
   if options.fork:
-    utils.CloseFDs()
+    # Newer GnuTLS versions (>= 3.3.0) use a library constructor for
+    # initialization and open /dev/urandom on library load time, way before we
+    # fork(). Closing /dev/urandom causes subsequent ganeti.http.client
+    # requests to fail and the process to receive a SIGABRT. As we cannot
+    # reliably detect GnuTLS's socket, we work our way around this by keeping
+    # all fds referring to /dev/urandom open.
+    noclose_fds = []
+    for fd in os.listdir("/proc/self/fd"):
+      try:
+        if os.readlink(os.path.join("/proc/self/fd", fd)) == "/dev/urandom":
+          noclose_fds.append(int(fd))
+      except EnvironmentError:
+        # The fd might have disappeared (although it shouldn't as we're running
+        # single-threaded).
+        continue
+
+    utils.CloseFDs(noclose_fds=noclose_fds)
     (wpipe, stdio_reopen_fn) = utils.Daemonize(logfile=log_filename)
   else:
     (wpipe, stdio_reopen_fn) = (None, None)

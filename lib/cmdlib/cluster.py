@@ -2024,8 +2024,9 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     for node_uuid, ndata in node_verify_infos.items():
       nresult = ndata.payload
       if nresult:
-        version = nresult.get(constants.NV_DRBDVERSION, "Missing DRBD version")
-        node_versions[node_uuid] = version
+        version = nresult.get(constants.NV_DRBDVERSION, None)
+        if version:
+          node_versions[node_uuid] = version
 
     if len(set(node_versions.values())) > 1:
       for node_uuid, version in sorted(node_versions.items()):
@@ -3115,7 +3116,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       constants.NV_TIME: None,
       constants.NV_MASTERIP: (self.cfg.GetMasterNodeName(), master_ip),
       constants.NV_OSLIST: None,
-      constants.NV_VMNODES: self.cfg.GetNonVmCapableNodeList(),
+      constants.NV_NONVMNODES: self.cfg.GetNonVmCapableNodeNameList(),
       constants.NV_USERSCRIPTS: user_scripts,
       constants.NV_CLIENT_CERT: None,
       }
