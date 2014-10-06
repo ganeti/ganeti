@@ -901,6 +901,7 @@ def RunPerformanceTests():
           RunTest(qa_performance.TestParallelInstanceRename, instance)
         finally:
           instance.Release()
+        qa_instance.TestInstanceRemove(instance)
       finally:
         qa_config.ReleaseManyNodes(inodes)
 
