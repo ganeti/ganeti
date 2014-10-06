@@ -643,6 +643,13 @@ def TestInstanceModify(instance):
       ["--disk", "-1:add,size=1G", "--hotplug"],
       ["--disk", "-1:remove", "--hotplug"],
       ])
+  elif default_hv == constants.HT_LXC:
+    args.extend([
+      ["-H", "%s=0" % constants.HV_CPU_MASK],
+      ["-H", "%s=%s" % (constants.HV_CPU_MASK, constants.VALUE_DEFAULT)],
+      ["-H", "%s=0" % constants.HV_LXC_TTY],
+      ["-H", "%s=%s" % (constants.HV_LXC_TTY, constants.VALUE_DEFAULT)],
+      ])
 
   url = "http://example.com/busybox.img"
   args.extend([
