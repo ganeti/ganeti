@@ -68,6 +68,27 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   """
   _ROOT_DIR = pathutils.RUN_DIR + "/lxc"
   _LOG_DIR = pathutils.LOG_DIR + "/lxc"
+
+  # The instance directory has to be structured in a way that would allow it to
+  # be passed as an argument of the --lxcpath option in lxc- commands.
+  # This means that:
+  # Each LXC instance should have a directory carrying their name under this
+  # directory.
+  # Each instance directory should contain the "config" file that contains the
+  # LXC container configuration of an instance.
+  #
+  # Therefore the structure of the directory tree should be:
+  #
+  #   _INSTANCE_DIR
+  #   \_ instance1
+  #      \_ config
+  #   \_ instance2
+  #      \_ config
+  #
+  # Other instance specific files can also be placed under an instance
+  # directory.
+  _INSTANCE_DIR = _ROOT_DIR + "/instance"
+
   _CGROUP_ROOT_DIR = _ROOT_DIR + "/cgroup"
   _PROC_CGROUPS_FILE = "/proc/cgroups"
   _PROC_SELF_CGROUP_FILE = "/proc/self/cgroup"
@@ -82,7 +103,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     ]
 
   _DIR_MODE = 0755
-  _UNIQ_SUFFIX = ".conf"
   _STASH_KEY_ALLOCATED_LOOP_DEV = "allocated_loopdev"
 
   PARAMETERS = {
@@ -114,14 +134,14 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """Return the root directory for an instance.
 
     """
-    return utils.PathJoin(cls._ROOT_DIR, instance_name)
+    return utils.PathJoin(cls._INSTANCE_DIR, instance_name)
 
   @classmethod
   def _InstanceConfFilePath(cls, instance_name):
     """Return the configuration file for an instance.
 
     """
-    return utils.PathJoin(cls._ROOT_DIR, instance_name + ".conf")
+    return utils.PathJoin(cls._InstanceDir(instance_name), "config")
 
   @classmethod
   def _InstanceLogFilePath(cls, instance):
@@ -134,6 +154,13 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(cls._LOG_DIR, filename)
 
   @classmethod
+  def _InstanceConsoleLogFilePath(cls, instance_name):
+    """Return the console log file path for an instance.
+
+    """
+    return utils.PathJoin(cls._InstanceDir(instance_name), "console.log")
+
+  @classmethod
   def _InstanceStashFilePath(cls, instance_name):
     """Return the stash file path for an instance.
 
@@ -141,7 +168,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     destruction of the instance.
 
     """
-    return utils.PathJoin(cls._ROOT_DIR, instance_name + ".stash")
+    return utils.PathJoin(cls._InstanceDir(instance_name), "stash")
 
   def _EnsureDirectoryExistence(self):
     """Ensures all the directories needed for LXC use exist.
@@ -150,6 +177,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     utils.EnsureDirs([
       (self._ROOT_DIR, self._DIR_MODE),
       (self._LOG_DIR, 0750),
+      (self._INSTANCE_DIR, 0750),
       ])
 
   def _SaveInstanceStash(self, instance_name, data):
@@ -436,14 +464,10 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     data = []
-    for filename in os.listdir(self._ROOT_DIR):
-      if not filename.endswith(self._UNIQ_SUFFIX):
-        # listing all files in root directory will include instance root
-        # directories, console files, etc, so use .conf as a filter of instance
-        # listings.
-        continue
+    filter_fn = lambda x: os.path.isdir(utils.PathJoin(self._INSTANCE_DIR, x))
+    for dirname in filter(filter_fn, os.listdir(self._INSTANCE_DIR)):
       try:
-        info = self.GetInstanceInfo(filename[0:-len(self._UNIQ_SUFFIX)])
+        info = self.GetInstanceInfo(dirname)
       except errors.HypervisorError:
         continue
       if info:
@@ -478,9 +502,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     if lxc_ttys: # if it is the number greater than 0
       out.append("lxc.tty = %s" % lxc_ttys)
     # console log file
-    console_log = utils.PathJoin(self._ROOT_DIR, instance.name + ".console")
-    _CreateBlankFile(console_log, constants.SECURE_FILE_MODE)
-    out.append("lxc.console = %s" % console_log)
+    console_log_path = self._InstanceConsoleLogFilePath(instance.name)
+    _CreateBlankFile(console_log_path, constants.SECURE_FILE_MODE)
+    out.append("lxc.console = %s" % console_log_path)
 
     # root FS
     out.append("lxc.rootfs = %s" % sda_dev_path)
