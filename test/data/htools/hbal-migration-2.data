@@ -1,0 +1,15 @@
+group-01|fake-uuid-01|preferred||
+
+node-01|16384|0|12288|409600|204800|16|N|fake-uuid-01|1|hv:new
+node-02|16384|0|16384|409600|306600|16|N|fake-uuid-01|1|hv:new
+node-03|16384|0|16384|409600|306600|16|N|fake-uuid-01|1|hv:new
+node-04|16384|0|16384|409600|306600|16|N|fake-uuid-01|1|
+
+inst121|1024|51200|1|running|Y|node-01|node-02|drbd||1
+inst122|1024|51200|1|running|Y|node-01|node-02|drbd||1
+inst131|1024|51200|1|running|Y|node-01|node-03|drbd||1
+inst132|1024|51200|1|running|Y|node-01|node-03|drbd||1
+inst141|1024|51200|1|running|Y|node-01|node-04|drbd||1
+inst142|1024|51200|1|running|Y|node-01|node-04|drbd||1
+
+htools:migration:hv

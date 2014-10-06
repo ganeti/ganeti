@@ -1510,6 +1510,9 @@ TEST_FILES = \
 	test/data/htools/hbal-dyn.data \
 	test/data/htools/hbal-evac.data \
 	test/data/htools/hbal-excl-tags.data \
+	test/data/htools/hbal-migration-1.data \
+	test/data/htools/hbal-migration-2.data \
+	test/data/htools/hbal-migration-3.data \
 	test/data/htools/hbal-soft-errors.data \
 	test/data/htools/hbal-split-insts.data \
 	test/data/htools/hspace-groups-one.data \
@@ -1545,6 +1548,7 @@ TEST_FILES = \
 	test/hs/shelltests/htools-excl.test \
 	test/hs/shelltests/htools-hail.test \
 	test/hs/shelltests/htools-hbal-evac.test \
+	test/hs/shelltests/htools-hbal.test \
 	test/hs/shelltests/htools-hroller.test \
 	test/hs/shelltests/htools-hspace.test \
 	test/hs/shelltests/htools-hsqueeze.test \
