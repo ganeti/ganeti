@@ -217,6 +217,31 @@ cluster tags *htools:iextags:a*, *htools:iextags:b*
 Both the above forms mean that two instances both having (e.g.) the
 tag *a:foo* or *b:bar* won't end on the same node.
 
+MIGRATION TAGS
+~~~~~~~~~~~~~~
+
+If Ganeti is deployed on a heterogeneous cluster, migration might
+not be possible between all nodes of a node group. One example of
+such a situation is upgrading the hypervisor node by node. To make
+hbal aware of those restrictions, the following cluster tags are used.
+
+cluster tags *htools:migration:a*, *htools:migration:b*, etc
+  This make make node tags of the form *a:\**, *b:\**, etc be considered
+  migration restriction. More precisely, the suffix of cluster tags starting
+  with *htools:migration:* will become the prefix of the migration tags.
+  Only those migrations will be taken into consideration where all migration
+  tags of the source node are also present on the target node.
+
+cluster tags *htools:allowmigration:x::y* for migration tags *x* and *y*
+  This asserts that a node taged *y* is able to receive instances in
+  the same way as if they had an *x* tag.
+
+So in the simple case of a hypervisor upgrade, tagging all the nodes
+that have been upgraded with a migration tag suffices. In more complicated
+situations, it is always possible to use a different migration tag for
+each hypervisor used and explictly state the allowed migration directions
+by means of *htools:allowmigration:* tags.
+
 OPTIONS
 -------
 
