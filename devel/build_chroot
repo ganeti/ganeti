@@ -1,4 +1,15 @@
 #!/bin/bash
+
+#Requirements for this script to work:
+#* Make sure that the user who uses the chroot is in group 'src', or change
+#  the ${GROUP} variable to a group that contains the user.
+#* Add any path of the host system that you want to access inside the chroot
+#  to the /etc/schroot/default/fstab file. This is important in particular if
+#  your homedir is not in /home.
+#* Add this to your /etc/fstab:
+#  tmpfs /var/lib/schroot/mount tmpfs defaults,size=3G 0 0
+#  tmpfs /var/lib/schroot/unpack tmpfs defaults,size=3G 0 0
+
 #Configuration
 : ${ARCH:=amd64}
 : ${DIST_RELEASE:=squeeze}
@@ -6,6 +17,7 @@
 : ${CHROOT_DIR:=/srv/chroot}
 : ${ALTERNATIVE_EDITOR:=/usr/bin/vim.basic}
 : ${CHROOT_FINAL_HOOK:=/bin/true}
+: ${GROUP:=src}
 # Additional Variables taken from the environmen
 # DATA_DIR
 # CHROOT_EXTRA_DEBIAN_PACKAGES
@@ -54,7 +66,7 @@ then
   cat <<END >$ACTUAL_DATA_DIR/final.schroot.conf.in
 [${CHROOTNAME}]
 description=Debian ${DIST_RELEASE} ${ARCH}
-groups=src
+groups=${GROUP}
 source-root-groups=root
 type=file
 file=${CHROOT_DIR}/${COMP_FILENAME}
@@ -70,7 +82,7 @@ then
 [${CHNAME}]
 description=Debian ${DIST_RELEASE} ${ARCH}
 directory=${CHDIR}
-groups=src
+groups=${GROUP}
 users=root
 type=directory
 END
