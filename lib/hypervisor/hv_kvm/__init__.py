@@ -499,6 +499,16 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     dirs = [(dname, constants.RUN_DIRS_MODE) for dname in self._DIRS]
     utils.EnsureDirs(dirs)
 
+  @staticmethod
+  def VersionsSafeForMigration(src, target):
+    """Predict if migration is safe between those versions
+
+    """
+    # Actually, it is not that easy. However, with the kvm machine_version
+    # feature, migration suceeds in most cases. So we try not to block
+    # legitimate migrations.
+    return True
+
   @classmethod
   def _InstancePidFile(cls, instance_name):
     """Returns the instance pidfile.
