@@ -971,6 +971,18 @@ class _TestXenHypervisor(object):
     self.assertTrue(hv.GetNodeInfo() is None)
 
 
+class TestXenVersionsSafeForMigration(unittest.TestCase):
+  def testHVVersionsLikelySafeForMigration(self):
+    hv = hv_xen.XenHypervisor()
+    self.assertTrue(hv.VersionsSafeForMigration([4, 0], [4, 1]))
+    self.assertFalse(hv.VersionsSafeForMigration([4, 1], [4, 0]))
+    self.assertFalse(hv.VersionsSafeForMigration([4, 0], [4, 2]))
+    self.assertTrue(hv.VersionsSafeForMigration([4, 2, 7], [4, 2, 9]))
+    self.assertTrue(hv.VersionsSafeForMigration([4, 2, 9], [4, 2, 7]))
+    self.assertTrue(hv.VersionsSafeForMigration([4], [4]))
+    self.assertFalse(hv.VersionsSafeForMigration([4], [5]))
+
+
 def _MakeTestClass(cls, cmd):
   """Makes a class for testing.
 

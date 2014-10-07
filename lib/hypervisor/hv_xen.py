@@ -548,6 +548,27 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Cannot write Xen instance configuration"
                                    " file %s: %s" % (cfg_file, err))
 
+  @staticmethod
+  def VersionsSafeForMigration(src, target):
+    """Decide if migration is likely to suceed for hypervisor versions.
+
+    Given two versions of a hypervisor, give a guess whether live migration
+    from the one version to the other version is likely to succeed. For Xen,
+    the heuristics is, that an increase by one on the second digit is OK. This
+    fits with the current numbering scheme.
+
+    @type src: list or tuple
+    @type target: list or tuple
+    @rtype: bool
+    """
+    if src == target:
+      return True
+
+    if len(src) < 2 or len(target) < 2:
+      return False
+
+    return src[0] == target[0] and target[1] in [src[1], src[1] + 1]
+
   @classmethod
   def _InstanceNICDir(cls, instance_name):
     """Returns the directory holding the tap device files for a given instance.
