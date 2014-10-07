@@ -90,7 +90,7 @@ def ShowOSInfo(opts, args):
                             names=[])
   result = SubmitOpCode(op, opts=opts)
 
-  if not result:
+  if result is None:
     ToStderr("Can't get the OS list")
     return 1
 
@@ -175,7 +175,7 @@ def DiagnoseOS(opts, args):
                                            "blacklisted"], names=[])
   result = SubmitOpCode(op, opts=opts)
 
-  if not result:
+  if result is None:
     ToStderr("Can't get the OS list")
     return 1
 
