@@ -2394,6 +2394,14 @@ hs-tests: test/hs/htest
 	@rm -f htest.tix
 	./test/hs/htest
 
+.PHONY: py-tests
+py-tests: $(python_tests) ganeti $(built_python_sources)
+	error=; \
+	for file in $(python_tests); \
+	  do if ! $(TESTS_ENVIRONMENT) $$file; then error=1; fi; \
+	done; \
+	test -z "$$error"
+
 .PHONY: hs-shell-%
 hs-shell-%: test/hs/hpc-htools test/hs/hpc-mon-collector \
             $(HS_BUILT_TEST_HELPERS)
