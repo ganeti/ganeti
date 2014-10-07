@@ -79,6 +79,7 @@ int-import-graph =
 max-line-length = 80
 max-module-lines = 4500
 indent-string = "  "
+indent-after-paren = 2
 
 [MISCELLANEOUS]
 notes = FIXME,XXX,TODO
