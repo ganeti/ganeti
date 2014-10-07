@@ -420,6 +420,7 @@ pkgpython_PYTHON = \
 	lib/backend.py \
 	lib/bootstrap.py \
 	lib/cli.py \
+	lib/cli_opts.py \
 	lib/compat.py \
 	lib/config.py \
 	lib/constants.py \

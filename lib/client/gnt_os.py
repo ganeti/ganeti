@@ -265,7 +265,12 @@ def ModifyOS(opts, args):
   @return: the desired exit code
 
   """
-  os = args[0]
+  # We have to disable pylint for this assignment because of a Pylint bug:
+  # Even though there is no `os` in scope, it claims
+  #   Redefining name 'os' from outer scope
+  # It is supposed to come from `from ganeti.cli import *`, but that doesn't
+  # export `os` since it has `__all__` set.
+  os = args[0]  # pylint: disable=W0621
 
   if opts.hvparams:
     os_hvp = {os: dict(opts.hvparams)}
