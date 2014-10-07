@@ -93,6 +93,9 @@ occupySlots sm counts = Map.unionWith
 -- The `SlotMap` is allowed to be overfull in some keys; this function
 -- still returns True as long as as adding the counts to the `SlotMap` would
 -- not *create or increase* overfull keys.
+--
+-- Adding counts > 0 for a key which is not in the `SlotMap` does create
+-- overfull keys.
 hasSlotsFor :: (Ord a) => SlotMap a -> CountMap a -> Bool
 slotMap `hasSlotsFor` counts =
   let relevantSlots = slotMap `Map.intersection` counts

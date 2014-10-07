@@ -217,6 +217,9 @@ case_hasSlotsFor_examples = do
   assertBool "empty not fitting"
     . not $ Map.empty `hasSlotsFor` Map.fromList [("a", 1), ("b", 100)]
 
+  assertBool "empty not fitting"
+    . not $ Map.empty `hasSlotsFor` Map.fromList [("a", 1)]
+
 
 -- | Tests properties of `hasSlotsFor` on `SlotMap`s that are known to
 -- respect their limits.
