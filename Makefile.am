@@ -1678,6 +1678,7 @@ python_tests = \
 	test/py/ganeti.backend_unittest.py \
 	test/py/ganeti.bootstrap_unittest.py \
 	test/py/ganeti.cli_unittest.py \
+	test/py/ganeti.cli_opts_unittest.py \
 	test/py/ganeti.client.gnt_cluster_unittest.py \
 	test/py/ganeti.client.gnt_instance_unittest.py \
 	test/py/ganeti.client.gnt_job_unittest.py \
