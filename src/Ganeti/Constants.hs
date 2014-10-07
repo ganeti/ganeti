@@ -173,6 +173,9 @@ osApiV20 = 20
 osApiVersions :: FrozenSet Int
 osApiVersions = ConstantUtils.mkSet [osApiV10, osApiV15, osApiV20]
 
+-- | The version of the backup/export instance description file format we are
+-- producing when exporting and accepting when importing. The two are currently
+-- tightly intertwined.
 exportVersion :: Int
 exportVersion = 0
 

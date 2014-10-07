@@ -3935,7 +3935,7 @@ def FinalizeExport(instance, snap_disks):
   config = objects.SerializableConfigParser()
 
   config.add_section(constants.INISECT_EXP)
-  config.set(constants.INISECT_EXP, "version", "0")
+  config.set(constants.INISECT_EXP, "version", str(constants.EXPORT_VERSION))
   config.set(constants.INISECT_EXP, "timestamp", "%d" % int(time.time()))
   config.set(constants.INISECT_EXP, "source", instance.primary_node)
   config.set(constants.INISECT_EXP, "os", instance.os)
