@@ -466,19 +466,29 @@ def DowngradeNodeParams(config_object):
       del config_object["ndparams"]["cpu_speed"]
 
 
-def DowngradeHVParams(cluster):
+def DowngradeKvmHvParams(params):
+  """Remove hypervisor parameters added in 2.12"""
+  if "migration_caps" in params:
+    del params["migration_caps"]
+
+  if "disk_aio" in params:
+    del params["disk_aio"]
+
+  if "virtio_net_queues" in params:
+    del params["virtio_net_queues"]
+
+
+def DowngradeClusterHVParams(cluster):
   """Downgrade newly introduced HV parameters"""
-  if "kvm" in cluster["hvparams"]:
-    kvm_params = cluster["hvparams"]["kvm"]
+  if "hvparams" in cluster:
+    if "kvm" in cluster["hvparams"]:
+      DowngradeKvmHvParams(cluster["hvparams"]["kvm"])
 
-    if "migration_caps" in kvm_params:
-      del kvm_params["migration_caps"]
 
-    if "disk_aio" in kvm_params:
-      del kvm_params["disk_aio"]
-
-    if "virtio_net_queues" in kvm_params:
-      del kvm_params["virtio_net_queues"]
+def DowngradeInstanceHVParams(instance):
+  """Downgrade newly introduced HV parameters"""
+  if "hvparams" in instance:
+    DowngradeKvmHvParams(instance["hvparams"])
 
 
 def DowngradeCluster(config_data):
@@ -487,7 +497,7 @@ def DowngradeCluster(config_data):
     raise Error("Cannot find the 'cluster' key in the configuration")
 
   DowngradeNodeParams(cluster)
-  DowngradeHVParams(cluster)
+  DowngradeClusterHVParams(cluster)
 
   if "osparams_private_cluster" in cluster:
     del cluster["osparams_private_cluster"]
@@ -526,6 +536,8 @@ def DowngradeInstances(config_data):
   for (_, iobj) in instances.items():
     if "osparams_private" in iobj:
       del iobj["osparams_private"]
+
+    DowngradeInstanceHVParams(iobj)
 
 
 def DowngradeTopLevelDisks(config_data):
