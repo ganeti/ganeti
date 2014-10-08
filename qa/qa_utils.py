@@ -157,8 +157,9 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
 
   @param cmd: either a string (the command to execute) or a list (to
       be converted using L{utils.ShellQuoteArgs} into a string)
-  @type fail: boolean
-  @param fail: if the command is expected to fail instead of succeeding
+  @type fail: boolean or None
+  @param fail: if the command is expected to fail instead of succeeding,
+               or None if we don't care
   @param node: if passed, it should be the node on which the command
       should be executed, instead of the master node (can be either a
       dict or a string)
@@ -187,7 +188,8 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
   stdout, stderr = popen.communicate()
   rcode = popen.returncode
   duration_seconds = TimedeltaToTotalSeconds(datetime.datetime.now() - start)
-  _AssertRetCode(rcode, fail, cmdstr, nodename)
+  if fail is not None:
+    _AssertRetCode(rcode, fail, cmdstr, nodename)
 
   if max_seconds is not None:
     if duration_seconds > max_seconds:
