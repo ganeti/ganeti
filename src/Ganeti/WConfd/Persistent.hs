@@ -53,13 +53,13 @@ import qualified Text.JSON as J
 import Ganeti.BasicTypes
 import Ganeti.Errors
 import qualified Ganeti.JSON as J
-import Ganeti.Locking.Waiting (emptyWaiting)
+import Ganeti.Locking.Waiting (emptyWaiting, releaseResources)
 import Ganeti.Locking.Locks (ClientId(..), GanetiLockWaiting)
 import Ganeti.Logging
 import qualified Ganeti.Path as Path
-import Ganeti.WConfd.Core (freeLocks, dropAllReservations)
 import Ganeti.WConfd.Monad
-import Ganeti.WConfd.TempRes (TempResState, emptyTempResState)
+import Ganeti.WConfd.TempRes ( TempResState, emptyTempResState
+                             , dropAllReservations)
 import Ganeti.Utils.Atomic
 import Ganeti.Utils.AsyncWorker
 
@@ -121,7 +121,7 @@ persistentLocks = Persistent
   { persName = "lock allocation state"
   , persPath = Path.lockStatusFile
   , persEmpty = emptyWaiting
-  , persCleanup = freeLocks
+  , persCleanup = modifyLockWaiting_ . releaseResources
   }
 
 -- ** Temporary reservations
@@ -131,5 +131,5 @@ persistentTempRes = Persistent
   { persName = "temporary reservations"
   , persPath = Path.tempResStatusFile
   , persEmpty = emptyTempResState
-  , persCleanup = dropAllReservations
+  , persCleanup = modifyTempResState . const . dropAllReservations
   }
