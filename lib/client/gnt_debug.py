@@ -648,6 +648,12 @@ def Wconfd(opts, args): # pylint: disable=W0613
       return 1
     result = wconfd.Client().Echo(args[1])
     print "Answer: %s" % (result,)
+  elif args[0] == "cleanuplocks":
+    if len(args) != 1:
+      ToStderr("Command 'cleanuplocks' takes no arguments.")
+      return 1
+    wconfd.Client().CleanupLocks()
+    print "Stale locks cleaned up."
   elif args[0] == "listlocks":
     if len(args) != 2:
       ToStderr("Command 'listlocks' takes precisely one argument.")
