@@ -58,6 +58,7 @@ import Ganeti.JQueue.Lens
 import Ganeti.JQueue.Objects
 import Ganeti.OpCodes.Lens
 import Ganeti.SlotMap
+import Ganeti.Types (makeJobId)
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -142,6 +143,52 @@ prop_slotMapFromJob_conflicting_buckets = do
                                                  , (lab2, Slot 1 0)   ]
 
 
+-- | Tests some basic cases for reason rate limiting.
+case_reasonRateLimit :: Assertion
+case_reasonRateLimit = do
+
+  let mkJobWithReason jobNum reasonTrail = do
+        opc <- genSample genQueuedOpCode
+        jid <- makeJobId jobNum
+        let opc' = opc & (qoInputL . validOpCodeL . metaParamsL . opReasonL)
+                       .~ reasonTrail
+        return . nullJobWithStat
+          $ QueuedJob
+              { qjId = jid
+              , qjOps = [opc']
+              , qjReceivedTimestamp = Nothing
+              , qjStartTimestamp = Nothing
+              , qjEndTimestamp = Nothing
+              , qjLivelock = Nothing
+              , qjProcessId = Nothing
+              }
+
+  -- 3 jobs, limited to 2 of them running.
+  j1 <- mkJobWithReason 1 [("source1", "rate-limit:2:hello", 0)]
+  j2 <- mkJobWithReason 2 [("source1", "rate-limit:2:hello", 0)]
+  j3 <- mkJobWithReason 3 [("source1", "rate-limit:2:hello", 0)]
+
+  assertEqual "[j1] should not be rate-limited"
+    [j1]
+    (reasonRateLimit (Queue [j1] [] []) [j1])
+
+  assertEqual "[j1, j2] should not be rate-limited"
+    [j1, j2]
+    (reasonRateLimit (Queue [j1, j2] [] []) [j1, j2])
+
+  assertEqual "j3 should be rate-limited 1"
+    [j1, j2]
+    (reasonRateLimit (Queue [j1, j2, j3] [] []) [j1, j2, j3])
+
+  assertEqual "j3 should be rate-limited 2"
+    [j2]
+    (reasonRateLimit (Queue [j2, j3] [j1] []) [j2, j3])
+
+  assertEqual "j3 should be rate-limited 3"
+    []
+    (reasonRateLimit (Queue [j3] [j1] [j2]) [j3])
+
+
 -- | Tests the specified properties of `reasonRateLimit`, as defined in
 -- `doc/design-optables.rst`.
 prop_reasonRateLimit :: Property
@@ -192,5 +239,6 @@ prop_reasonRateLimit =
 testSuite "JQScheduler"
             [ 'case_parseReasonRateLimit
             , 'prop_slotMapFromJob_conflicting_buckets
+            , 'case_reasonRateLimit
             , 'prop_reasonRateLimit
             ]

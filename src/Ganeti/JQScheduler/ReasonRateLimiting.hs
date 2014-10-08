@@ -110,6 +110,13 @@ slotMapFromJobs jobs =
     $ jobs
 
 
+-- | Like `slotMapFromJobs`, but setting all occupation counts to 0.
+-- Useful to find what the bucket limits of a set of jobs are.
+unoccupiedSlotMapFromJobs :: [QueuedJob] -> SlotMap AdHocReasonKey
+unoccupiedSlotMapFromJobs = Map.map (\s -> s{ slotOccupied = 0 })
+                              . slotMapFromJobs
+
+
 -- | Implements ad-hoc rate limiting using the reason trail as specified
 -- in `doc/design-optables.rst`.
 --
@@ -121,11 +128,17 @@ slotMapFromJobs jobs =
 -- invocations because the number of running jobs is typically small
 -- (< 100).
 reasonRateLimit :: Queue -> [JobWithStat] -> [JobWithStat]
-reasonRateLimit queue =
-  let -- Reason rate limiting slot map of the jobs in the queue.
-      -- Both `qRunning` and `qManipulated` count to the rate limit.
-      initSlotMap =
-        slotMapFromJobs . map jJob $ qRunning queue ++ qManipulated queue
+reasonRateLimit queue jobs =
+  let -- For the purpose of rate limiting, manipulated jobs count as running.
+      running    = map jJob $ qRunning queue ++ qManipulated queue
+      candidates = map jJob jobs
+
+      -- Reason rate limiting slot map of the jobs running in the queue.
+      -- All jobs determine the reason buckets, but only running jobs count
+      -- to the initial limits.
+      initSlotMap = unoccupiedSlotMapFromJobs (running ++ candidates)
+                    `occupySlots`
+                    toCountMap (slotMapFromJobs running)
 
       -- A job can be run (fits) if all buckets it takes part in have
       -- a free slot. If yes, accept the job and update the slotMap.
@@ -137,4 +150,4 @@ reasonRateLimit queue =
           then (slotMap `occupySlots` jobBuckets, Just job) -- job fits
           else (slotMap, Nothing)                           -- job doesn't fit
 
-  in catMaybes . snd . mapAccumL accumFittingJobs initSlotMap
+  in catMaybes . snd . mapAccumL accumFittingJobs initSlotMap $ jobs
