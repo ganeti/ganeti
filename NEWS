@@ -24,6 +24,8 @@ Incompatible/important changes
 - Ganeti now checks hypervisor version compatibility before trying an instance
   migration. It errors out if the versions are not compatible. Add the option
   --ignore-hvversions to restore the old behavior of only warning.
+- Node tags starting with htools:migration: or htools:allowmigration: now have
+  a special meaning to htools(1). See hbal(1) for details.
 
 New features
 ~~~~~~~~~~~~
