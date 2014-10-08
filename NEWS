@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.12.0 rc2
-------------------
+Version 2.12.0
+--------------
 
-*(Released Mon, 22 Sep 2014)*
+*(Released Thu, 9 Oct 2014)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -62,22 +62,6 @@ New dependencies
   instead. The package is still optional and needed only if the feature is to
   be used.
 
-Since 2.12.0 rc1
-~~~~~~~~~~~~~~~~~~
-
-The following issues have been fixed:
-
-- Watcher now checks if WConfd is running and functional.
-- Watcher now properly adds reason trail entries.
-- Fixed NIC options in Xen's config files.
-
-Inherited from the 2.10 branch:
-
-- Fixed handling of the --online option
-- Add warning against hvparam changes with live migrations, which might
-  lead to dangerous situations for instances.
-- Only the LVs in the configured VG are checked during cluster verify.
-
 Incomplete features
 ~~~~~~~~~~~~~~~~~~~
 
@@ -104,6 +88,51 @@ Known issues
   from a host to instances (only on the special metadata communication
   network interface) using the ethtool command. Therefore if using
   the metadata daemon the host nodes should have this tool available.
+- The metadata daemon is run as root in the split-user mode, to be able
+  to bind to port 80.
+  This should be improved in future versions, see issue #949.
+
+Since 2.12.0 rc2
+~~~~~~~~~~~~~~~~
+
+The following issues have been fixed:
+
+- Fixed passing additional parameters to RecreateInstanceDisks over
+  RAPI.
+- Fixed the permissions of WConfd when running in the split-user mode.
+  As WConfd takes over the previous master daemon to manage the
+  configuration, it currently runs under the masterd user.
+- Fixed the permissions of the metadata daemon  wn running in the
+  split-user mode (see Known issues).
+- Watcher now properly adds a reason trail entry when initiating disk
+  checks.
+- Fixed removing KVM parameters introduced in 2.12 when downgrading a
+  cluster to 2.11: "migration_caps", "disk_aio" and "virtio_net_queues".
+
+
+Version 2.12.0 rc2
+------------------
+
+*(Released Mon, 22 Sep 2014)*
+
+This was the second release candidate of the 2.12 series.
+All important changes are listed in the latest 2.12 entry.
+
+Since 2.12.0 rc1
+~~~~~~~~~~~~~~~~
+
+The following issues have been fixed:
+
+- Watcher now checks if WConfd is running and functional.
+- Watcher now properly adds reason trail entries.
+- Fixed NIC options in Xen's config files.
+
+Inherited from the 2.10 branch:
+
+- Fixed handling of the --online option
+- Add warning against hvparam changes with live migrations, which might
+  lead to dangerous situations for instances.
+- Only the LVs in the configured VG are checked during cluster verify.
 
 
 Version 2.12.0 rc1
