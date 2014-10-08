@@ -55,6 +55,7 @@ import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock), LockLevel(LevelConfig)
 import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Objects (ConfigData, DRBDSecret, LogicalVolume, Ip4Address)
 import qualified Ganeti.WConfd.ConfigVerify as V
+import Ganeti.WConfd.DeathDetection (cleanupLocks)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
 import qualified Ganeti.WConfd.TempRes as T
@@ -314,6 +315,7 @@ guardedOpportunisticLockUnion count cid req =
 
 exportedFunctions :: [Name]
 exportedFunctions = [ 'echo
+                    , 'cleanupLocks
                     -- config
                     , 'readConfig
                     , 'writeConfig
