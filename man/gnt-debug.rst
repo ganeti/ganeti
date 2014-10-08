@@ -138,6 +138,10 @@ Tests the WConf daemon by invoking its ``echo`` function.
 A given text is sent to WConfd through RPC, echoed back by WConfd and
 printed to the console.
 
+| **wconfd** cleanuplocks
+
+A request to clean up all stale locks is sent to WConfd.
+
 | **wconfd** listlocks *jid*
 
 A request to list the locks owned by the given job id is
