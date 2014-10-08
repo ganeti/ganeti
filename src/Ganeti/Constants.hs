@@ -3256,8 +3256,8 @@ nvVersion = "version"
 nvVglist :: String
 nvVglist = "vglist"
 
-nvVmnodes :: String
-nvVmnodes = "vmnodes"
+nvNonvmnodes :: String
+nvNonvmnodes = "nonvmnodes"
 
 nvSshSetup :: String
 nvSshSetup = "ssh-setup"

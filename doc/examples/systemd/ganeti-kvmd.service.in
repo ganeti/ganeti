@@ -11,5 +11,5 @@ Group = @GNTDAEMONSGROUP@
 ExecStart = @SBINDIR@/ganeti-kvmd -f
 Restart = on-failure
 
-# ganeti-kvmd is started on-demand by noded, so there must be no Install
-# section.
+[Install]
+WantedBy = ganeti-node.target ganeti.target

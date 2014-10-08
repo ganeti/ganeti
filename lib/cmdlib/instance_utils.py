@@ -759,7 +759,6 @@ def BuildDiskEnv(idx, disk):
 
   return ret
 
-
 def CheckInstanceExistence(lu, instance_name):
   """Raises an error if an instance with the given name exists already.
 
