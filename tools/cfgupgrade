@@ -470,8 +470,15 @@ def DowngradeHVParams(cluster):
   """Downgrade newly introduced HV parameters"""
   if "kvm" in cluster["hvparams"]:
     kvm_params = cluster["hvparams"]["kvm"]
+
     if "migration_caps" in kvm_params:
       del kvm_params["migration_caps"]
+
+    if "disk_aio" in kvm_params:
+      del kvm_params["disk_aio"]
+
+    if "virtio_net_queues" in kvm_params:
+      del kvm_params["virtio_net_queues"]
 
 
 def DowngradeCluster(config_data):
