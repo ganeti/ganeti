@@ -466,12 +466,21 @@ def DowngradeNodeParams(config_object):
       del config_object["ndparams"]["cpu_speed"]
 
 
+def DowngradeHVParams(cluster):
+  """Downgrade newly introduced HV parameters"""
+  if "kvm" in cluster["hvparams"]:
+    kvm_params = cluster["hvparams"]["kvm"]
+    if "migration_caps" in kvm_params:
+      del kvm_params["migration_caps"]
+
+
 def DowngradeCluster(config_data):
   cluster = config_data.get("cluster", None)
   if not cluster:
     raise Error("Cannot find the 'cluster' key in the configuration")
 
   DowngradeNodeParams(cluster)
+  DowngradeHVParams(cluster)
 
   if "osparams_private_cluster" in cluster:
     del cluster["osparams_private_cluster"]
