@@ -41,6 +41,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.DeathDetection
   ( cleanupLocksTask
+  , cleanupLocks
   ) where
 
 import Control.Concurrent (threadDelay)
@@ -61,10 +62,9 @@ import Ganeti.WConfd.Persistent
 cleanupInterval :: Int
 cleanupInterval = C.wconfdDeathdetectionIntervall * 1000000
 
--- | Thread periodically cleaning up locks of lock owners that died.
-cleanupLocksTask :: WConfdMonadInt ()
-cleanupLocksTask = forever . runResultT $ do
-  logDebug "Death detection timer fired"
+-- | Go through all owners once and clean them up, if they're dead.
+cleanupLocks :: WConfdMonad ()
+cleanupLocks = do
   owners <- liftM L.lockOwners readLockAllocation
   logDebug $ "Current lock owners: " ++ show owners
   let cleanupIfDead owner = do
@@ -78,4 +78,10 @@ cleanupLocksTask = forever . runResultT $ do
                :: WConfdMonad (Either IOError ())
           return ()
   mapM_ cleanupIfDead owners
+
+-- | Thread periodically cleaning up locks of lock owners that died.
+cleanupLocksTask :: WConfdMonadInt ()
+cleanupLocksTask = forever . runResultT $ do
+  logDebug "Death detection timer fired"
+  cleanupLocks
   liftIO $ threadDelay cleanupInterval
