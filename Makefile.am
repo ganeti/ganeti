@@ -616,6 +616,7 @@ docinput = \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
 	doc/design-ceph-ganeti-support.rst \
+	doc/design-configlock.rst \
 	doc/design-chained-jobs.rst \
 	doc/design-cmdlib-unittests.rst \
 	doc/design-cpu-pinning.rst \
