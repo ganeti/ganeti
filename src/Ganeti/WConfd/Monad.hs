@@ -229,6 +229,7 @@ modifyConfigStateErr f = do
         logDebug "Triggering config write\
                  \ and asynchronous distribution"
         liftBase . triggerAndWait (Any False) . dhSaveConfigWorker $ dh
+        logDebug "Config writer finished with local task"
     return ()
   return r
 
