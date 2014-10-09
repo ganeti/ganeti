@@ -2055,6 +2055,17 @@ class LUInstanceRemove(LogicalUnit):
 class LUInstanceMove(LogicalUnit):
   """Move an instance by data-copying.
 
+  This LU is only used if the instance needs to be moved by copying the data
+  from one node in the cluster to another. The instance is shut down and
+  the data is copied to the new node and the configuration change is propagated,
+  then the instance is started again.
+
+  See also:
+  L{LUInstanceFailover} for moving an instance on shared storage (no copying
+  required).
+
+  L{LUInstanceMigrate} for the live migration of an instance (no shutdown
+  required).
   """
   HPATH = "instance-move"
   HTYPE = constants.HTYPE_INSTANCE

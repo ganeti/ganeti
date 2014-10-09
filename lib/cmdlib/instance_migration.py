@@ -114,6 +114,14 @@ def _DeclareLocksForMigration(lu, level):
 class LUInstanceFailover(LogicalUnit):
   """Failover an instance.
 
+  This is migration by shutting the instance down, but with the disks
+  of the instance already available on the new node.
+
+  See also:
+  L{LUInstanceMove} for moving an instance by copying the data.
+
+  L{LUInstanceMigrate} for the live migration of an instance (no shutdown
+  required).
   """
   HPATH = "instance-failover"
   HTYPE = constants.HTYPE_INSTANCE
@@ -183,9 +191,14 @@ class LUInstanceFailover(LogicalUnit):
 class LUInstanceMigrate(LogicalUnit):
   """Migrate an instance.
 
-  This is migration without shutting down, compared to the failover,
-  which is done with shutdown.
+  This is migration without shutting down (live migration) and the disks are
+  already available on the new node.
 
+  See also:
+  L{LUInstanceMove} for moving an instance by copying the data.
+
+  L{LUInstanceFailover} for the migration of an instance where a shutdown is
+  required.
   """
   HPATH = "instance-migrate"
   HTYPE = constants.HTYPE_INSTANCE
