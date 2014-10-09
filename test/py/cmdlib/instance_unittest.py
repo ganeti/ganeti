@@ -1566,7 +1566,8 @@ class TestLUInstanceMove(CmdlibTestCase):
     op = opcodes.OpInstanceMove(instance_name=inst.name,
                                 target_node=self.node.name)
     self.ExecOpCodeExpectOpPrereqError(
-      op, "Disk template sharedfile not suitable for copying")
+      op, "Instance disk 0 has disk type sharedfile and is not suitable"
+      " for copying")
 
   def testAlreadyOnTargetNode(self):
     inst = self.cfg.AddNewInstance()

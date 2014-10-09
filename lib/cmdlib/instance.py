@@ -2111,10 +2111,12 @@ class LUInstanceMove(LogicalUnit):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
-    if self.instance.disk_template not in constants.DTS_COPYABLE:
-      raise errors.OpPrereqError("Disk template %s not suitable for copying" %
-                                 self.instance.disk_template,
-                                 errors.ECODE_STATE)
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    for idx, dsk in enumerate(disks):
+      if dsk.dev_type not in constants.DTS_COPYABLE:
+        raise errors.OpPrereqError("Instance disk %d has disk type %s and is"
+                                   " not suitable for copying"
+                                   % (idx, dsk.dev_type), errors.ECODE_STATE)
 
     target_node = self.cfg.GetNodeInfo(self.op.target_node_uuid)
     assert target_node is not None, \
@@ -2128,13 +2130,6 @@ class LUInstanceMove(LogicalUnit):
 
     cluster = self.cfg.GetClusterInfo()
     bep = cluster.FillBE(self.instance)
-
-    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
-    for idx, dsk in enumerate(disks):
-      if dsk.dev_type not in (constants.DT_PLAIN, constants.DT_FILE,
-                              constants.DT_SHARED_FILE, constants.DT_GLUSTER):
-        raise errors.OpPrereqError("Instance disk %d has a complex layout,"
-                                   " cannot copy" % idx, errors.ECODE_STATE)
 
     CheckNodeOnline(self, target_node.uuid)
     CheckNodeNotDrained(self, target_node.uuid)
