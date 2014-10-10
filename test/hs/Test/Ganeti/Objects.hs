@@ -350,7 +350,8 @@ genEmptyCluster ncount = do
   grp <- arbitrary
   let guuid = groupUuid grp
       nodes' = zipWith (\n idx ->
-                          let newname = nodeName n ++ "-" ++ show idx
+                          let newname = takeWhile (/= '.') (nodeName n)
+                                        ++ "-" ++ show idx
                           in (newname, n { nodeGroup = guuid,
                                            nodeName = newname}))
                nodes [(1::Int)..]

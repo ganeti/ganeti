@@ -218,7 +218,8 @@ class AbstractClient(object):
         logging.debug("RPC peer disconnected, retrying")
       self._InitTransport()
       return self.transport.Call(data)
-    return t.Transport.RetryOnBrokenPipe(send, lambda _: self._CloseTransport())
+    return t.Transport.RetryOnNetworkError(send,
+                                           lambda _: self._CloseTransport())
 
   def Close(self):
     """Close the underlying connection.
