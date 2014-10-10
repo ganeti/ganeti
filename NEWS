@@ -5,7 +5,7 @@ News
 Version 2.12.0
 --------------
 
-*(Released Thu, 9 Oct 2014)*
+*(Released Fri, 10 Oct 2014)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -108,6 +108,7 @@ The following issues have been fixed:
   checks.
 - Fixed removing KVM parameters introduced in 2.12 when downgrading a
   cluster to 2.11: "migration_caps", "disk_aio" and "virtio_net_queues".
+- Improved retrying of RPC calls that fail due to network errors.
 
 
 Version 2.12.0 rc2
