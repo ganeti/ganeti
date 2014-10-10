@@ -93,6 +93,7 @@ module Ganeti.Utils
   , FilePermissions(..)
   , ensurePermissions
   , ordNub
+  , isSubsequenceOf
   ) where
 
 import Control.Applicative
@@ -784,3 +785,10 @@ ordNub =
         then go s xs
         else x : go (S.insert x s) xs
   in go S.empty
+
+-- | `isSubsequenceOf a b`: Checks if a is a subsequence of b.
+isSubsequenceOf :: (Eq a) => [a] -> [a] -> Bool
+isSubsequenceOf []    _                    = True
+isSubsequenceOf _     []                   = False
+isSubsequenceOf a@(x:a') (y:b) | x == y    = isSubsequenceOf a' b
+                               | otherwise = isSubsequenceOf a b
