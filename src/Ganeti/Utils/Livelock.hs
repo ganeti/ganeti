@@ -35,13 +35,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Utils.Livelock
   ( Livelock
   , mkLivelockFile
+  , listLiveLocks
   , isDead
   ) where
 
 import qualified Control.Exception as E
 import Control.Monad
 import Control.Monad.Error
-import System.Directory (doesFileExist)
+import System.Directory (doesFileExist, getDirectoryContents)
+import System.FilePath.Posix ((</>))
 import System.IO
 import System.Posix.IO
 import System.Posix.Types (Fd)
@@ -49,7 +51,7 @@ import System.Time (ClockTime(..), getClockTime)
 
 import Ganeti.BasicTypes
 import Ganeti.Logging
-import Ganeti.Path (livelockFile)
+import Ganeti.Path (livelockFile, livelockDir)
 import Ganeti.Utils (lockFile)
 
 type Livelock = FilePath
@@ -67,6 +69,16 @@ mkLivelockFile prefix = do
                                    ++ ": " ++ msg
           Ok fd     -> return fd
   return (fd, lockfile)
+
+-- | List currently existing livelocks. Underapproximate if
+-- some error occurs.
+listLiveLocks :: IO [FilePath]
+listLiveLocks =
+  fmap (genericResult (const [] :: IOError -> [FilePath]) id)
+  . runResultT . liftIO $ do
+    dir <- livelockDir
+    entries <- getDirectoryContents dir
+    filterM doesFileExist $ map (dir </>) entries
 
 -- | Detect whether a the process identified by the given path
 -- does not exist any more. This function never fails and only
