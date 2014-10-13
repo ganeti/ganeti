@@ -478,63 +478,61 @@ decodeDLId obj lid = do
   case dtype of
     DTDrbd8 ->
       case lid of
-        JSArray [nA, nB, p, mA, mB, k] -> do
-          nA' <- readJSON nA
-          nB' <- readJSON nB
-          p'  <- readJSON p
-          mA' <- readJSON mA
-          mB' <- readJSON mB
-          k'  <- readJSON k
-          return $ LIDDrbd8 nA' nB' p' mA' mB' k'
+        JSArray [nA, nB, p, mA, mB, k] ->
+          LIDDrbd8
+            <$> readJSON nA
+            <*> readJSON nB
+            <*> readJSON p
+            <*> readJSON mA
+            <*> readJSON mB
+            <*> readJSON k
         _ -> fail "Can't read logical_id for DRBD8 type"
     DTPlain ->
       case lid of
-        JSArray [vg, lv] -> do
-          vg' <- readJSON vg
-          lv' <- readJSON lv
-          return $ LIDPlain (LogicalVolume vg' lv')
+        JSArray [vg, lv] -> LIDPlain <$>
+          (LogicalVolume <$> readJSON vg <*> readJSON lv)
         _ -> fail "Can't read logical_id for plain type"
     DTFile ->
       case lid of
-        JSArray [driver, path] -> do
-          driver' <- readJSON driver
-          path'   <- readJSON path
-          return $ LIDFile driver' path'
+        JSArray [driver, path] ->
+          LIDFile
+            <$> readJSON driver
+            <*> readJSON path
         _ -> fail "Can't read logical_id for file type"
     DTSharedFile ->
       case lid of
-        JSArray [driver, path] -> do
-          driver' <- readJSON driver
-          path'   <- readJSON path
-          return $ LIDSharedFile driver' path'
+        JSArray [driver, path] ->
+          LIDSharedFile
+            <$> readJSON driver
+            <*> readJSON path
         _ -> fail "Can't read logical_id for shared file type"
     DTGluster ->
       case lid of
-        JSArray [driver, path] -> do
-          driver' <- readJSON driver
-          path'   <- readJSON path
-          return $ LIDGluster driver' path'
+        JSArray [driver, path] ->
+          LIDGluster
+            <$> readJSON driver
+            <*> readJSON path
         _ -> fail "Can't read logical_id for shared file type"
     DTBlock ->
       case lid of
-        JSArray [driver, path] -> do
-          driver' <- readJSON driver
-          path'   <- readJSON path
-          return $ LIDBlockDev driver' path'
+        JSArray [driver, path] ->
+          LIDBlockDev
+            <$> readJSON driver
+            <*> readJSON path
         _ -> fail "Can't read logical_id for blockdev type"
     DTRbd ->
       case lid of
-        JSArray [driver, path] -> do
-          driver' <- readJSON driver
-          path'   <- readJSON path
-          return $ LIDRados driver' path'
+        JSArray [driver, path] ->
+          LIDRados
+            <$> readJSON driver
+            <*> readJSON path
         _ -> fail "Can't read logical_id for rdb type"
     DTExt ->
       case lid of
-        JSArray [extprovider, name] -> do
-          extprovider' <- readJSON extprovider
-          name'   <- readJSON name
-          return $ LIDExt extprovider' name'
+        JSArray [extprovider, name] ->
+          LIDExt
+            <$> readJSON extprovider
+            <*> readJSON name
         _ -> fail "Can't read logical_id for extstorage type"
     DTDiskless ->
       fail "Retrieved 'diskless' disk."

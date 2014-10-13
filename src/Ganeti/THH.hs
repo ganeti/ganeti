@@ -72,7 +72,7 @@ module Ganeti.THH ( declareSADT
                   , excErrMsg
                   ) where
 
-import Control.Arrow ((&&&))
+import Control.Arrow ((&&&), second)
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
@@ -492,7 +492,7 @@ declareADT fn traw sname cons = do
   let name = mkName sname
       ddecl = strADTDecl name (map fst cons)
       -- process cons in the format expected by genToRaw
-      cons' = map (\(a, b) -> (a, fn b)) cons
+      cons' = map (second fn) cons
   toraw <- genToRaw traw (toRawName sname) name cons'
   fromraw <- genFromRaw traw (fromRawName sname) name cons'
   return $ ddecl:toraw ++ fromraw
