@@ -190,10 +190,10 @@ passTest = property True
 -- The underlying issue is tracked at
 -- https://github.com/nick8325/quickcheck/issues/26
 stableCover :: Testable prop => Bool -> Int -> String -> prop -> Property
-stableCover pred percent label prop =
-  let newlabel = "(stabilized to at least 10%) " ++ label
+stableCover p percent s prop =
+  let newlabel = "(stabilized to at least 10%) " ++ s
   in forAll (frequency [(1, return True), (9, return False)]) $ \ basechance ->
-     cover (basechance || pred) (10 + (percent * 9 `div` 10)) newlabel prop
+     cover (basechance || p) (10 + (percent * 9 `div` 10)) newlabel prop
 
 -- | Return the python binary to use. If the PYTHON environment
 -- variable is defined, use its value, otherwise use just \"python\".
