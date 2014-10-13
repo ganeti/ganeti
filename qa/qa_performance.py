@@ -545,7 +545,7 @@ def _TestInstanceOperationInParallelToInstanceCreation(*cmds):
       return
     job_id = _ExecuteJobSubmittingCmd(cmds[cmd_idx])
     job_driver.AddJob(
-      job_id, running_fn=functools.partial(_SubmitNextCommand, cmd_idx + 1))
+      job_id, success_fn=functools.partial(_SubmitNextCommand, cmd_idx + 1))
 
   assert qa_config.IsTemplateSupported(constants.DT_DRBD8)
   assert len(cmds) > 0

@@ -84,4 +84,14 @@ cleanupLocksTask :: WConfdMonadInt ()
 cleanupLocksTask = forever . runResultT $ do
   logDebug "Death detection timer fired"
   cleanupLocks
+  remainingFiles <- liftIO listLiveLocks
+  logDebug $ "Livelockfiles remaining: " ++ show remainingFiles
+  let cleanupStaleIfDead fpath = do
+        died <- liftIO (isDead fpath)
+        when died $ do
+          logInfo $ "Cleaning up stale file " ++ fpath
+          _ <- liftIO . E.try $ removeFile fpath
+               :: WConfdMonad (Either IOError ())
+          return ()
+  mapM_ cleanupStaleIfDead remainingFiles
   liftIO $ threadDelay cleanupInterval
