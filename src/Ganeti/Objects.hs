@@ -78,6 +78,7 @@ module Ganeti.Objects
   , FilterAction(..)
   , FilterPredicate(..)
   , FilterRule(..)
+  , filterRuleOrder
   , IpFamily(..)
   , ipFamilyToRaw
   , ipFamilyToVersion
@@ -124,6 +125,7 @@ import Data.List (foldl', isPrefixOf, isInfixOf, intercalate)
 import Data.Maybe
 import qualified Data.Map as Map
 import Data.Monoid
+import Data.Ord (comparing)
 import Data.Ratio (numerator, denominator)
 import qualified Data.Set as Set
 import Data.Tuple (swap)
@@ -849,6 +851,31 @@ $(buildObject "FilterRule" "fr" $
 
 instance UuidObject FilterRule where
   uuidOf = frUuid
+
+
+-- | Order in which filter rules are evaluated, according to
+-- `doc/design-optables.rst`.
+-- For `FilterRule` fields not specified as important for the order,
+-- we choose an arbitrary ordering effect (after the ones from the spec).
+--
+-- The `Ord` instance for `FilterRule` agrees with this function.
+-- Yet it is recommended to use this function instead of `compare` to be
+-- explicit that the spec order is used.
+filterRuleOrder :: FilterRule -> FilterRule -> Ordering
+filterRuleOrder = compare
+
+
+instance Ord FilterRule where
+  -- It is important that the Ord instance respects the ordering given in
+  -- `doc/design-optables.rst` for the fields defined in there. The other
+  -- fields may be ordered arbitrarily.
+  -- Use `filterRuleOrder` when relying on the spec order.
+  compare =
+    comparing $ \(FilterRule watermark prio predicates action reason uuid) ->
+      ( prio, watermark, uuid -- spec part
+      , predicates, action, reason -- arbitrary part
+      )
+
 
 -- | IP family type
 $(declareIADT "IpFamily"
