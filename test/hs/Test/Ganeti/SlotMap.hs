@@ -74,9 +74,9 @@ instance Arbitrary Slot where
 
 
 -- | Generates a number typical for the occupied count of a `Slot`.
--- Useful for construction `CountMap`s.
-genCount :: Gen Int
-genCount = slotOccupied <$> arbitrary
+-- Useful for constructing `CountMap`s.
+genSlotCount :: Gen Int
+genSlotCount = slotOccupied <$> arbitrary
 
 
 -- | Takes a slot and resamples its `slotOccupied` count to fit the limit.
@@ -118,7 +118,7 @@ genSlotMap keyGen = do
 genCountMap :: (Ord a) => Gen a -> Gen (CountMap a)
 genCountMap keyGen = do
   n <- listSizeGen  -- don't create huge `CountMap`s
-  Map.fromList <$> vectorOf n ((,) <$> keyGen <*> genCount)
+  Map.fromList <$> vectorOf n ((,) <$> keyGen <*> genSlotCount)
 
 
 -- | Tells which keys of a `SlotMap` are overfull.
