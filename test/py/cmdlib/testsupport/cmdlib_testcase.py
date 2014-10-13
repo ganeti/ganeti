@@ -35,6 +35,7 @@ import inspect
 import mock
 import re
 import traceback
+import functools
 
 from cmdlib.testsupport.config_mock import ConfigMock
 from cmdlib.testsupport.iallocator_mock import patchIAllocator
@@ -396,6 +397,7 @@ def withLockedLU(func):
   the LU right before the test method is called.
 
   """
+  @functools.wraps(func)
   def wrapper(*args, **kwargs):
     test = args[0]
     assert isinstance(test, CmdlibTestCase)
