@@ -65,6 +65,7 @@ import System.Time (ClockTime(..))
 import qualified Text.JSON as J
 
 import Test.Ganeti.Query.Language ()
+import Test.Ganeti.SlotMap (genSlotLimit)
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.Types ()
@@ -291,7 +292,7 @@ instance Arbitrary FilterAction where
     , pure Pause
     , pure Reject
     , pure Continue
-    , RateLimit . fromPositive <$> arbitrary
+    , RateLimit <$> genSlotLimit
     ]
 
 instance Arbitrary FilterPredicate where

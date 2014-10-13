@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.SlotMap
   ( testSlotMap
+  , genSlotLimit
   , genTestKey
   , overfullKeys
   ) where
@@ -63,12 +64,18 @@ import Ganeti.SlotMap
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
 
+-- | Generates a number typical for the limit of a `Slot`.
+-- Useful for constructing resource bounds when not directly constructing
+-- the relevant `Slot`s.
+genSlotLimit :: Gen Int
+genSlotLimit = frequency [ (9, choose (1, 5))
+                         , (1, choose (1, 100))
+                         ] -- Don't create huge slot limits.
+
+
 instance Arbitrary Slot where
   arbitrary = do
-    -- Don't create huge slot limits.
-    limit :: Int <- frequency [ (9, choose (1, 5))
-                              , (1, choose (1, 100))
-                              ]
+    limit <- genSlotLimit
     occ <- choose (0, limit * 2)
     return $ Slot occ limit
 
