@@ -197,12 +197,14 @@ prop_reasonRateLimit =
 
     let slotMapFromJobWithStat = slotMapFromJobs . map jJob
 
-        toRun = reasonRateLimit q (qEnqueued q)
+        enqueued = qEnqueued q
+
+        toRun    = reasonRateLimit q enqueued
 
         oldSlots         = slotMapFromJobWithStat (qRunning q)
         newSlots         = slotMapFromJobWithStat (qRunning q ++ toRun)
         -- What would happen without rate limiting.
-        newSlotsNoLimits = slotMapFromJobWithStat (qRunning q ++ qEnqueued q)
+        newSlotsNoLimits = slotMapFromJobWithStat (qRunning q ++ enqueued)
 
     in -- Ensure it's unlikely that jobs are all in different buckets.
        cover
@@ -219,7 +221,7 @@ prop_reasonRateLimit =
 
        $ conjoin
            [ printTestCase "order must be preserved" $
-               toRun ==? filter (`elem` toRun) (qEnqueued q)
+               toRun ==? filter (`elem` toRun) enqueued
 
            -- This is the key property:
            , printTestCase "no job may exceed its bucket limits, except from\
