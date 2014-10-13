@@ -310,6 +310,7 @@ checkMain opts = do
 prepMain :: PrepFn (S.Family, S.SockAddr) PrepResult
 prepMain _ (af_family, bindaddr) = do
   s <- S.socket af_family S.Datagram S.defaultProtocol
+  S.setSocketOption s S.ReuseAddr 1
   S.bindSocket s bindaddr
   cref <- newIORef (Bad "Configuration not yet loaded")
   return (s, cref)
