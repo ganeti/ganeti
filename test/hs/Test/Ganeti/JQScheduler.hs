@@ -59,6 +59,7 @@ import Ganeti.JQueue.Objects
 import Ganeti.OpCodes.Lens
 import Ganeti.SlotMap
 import Ganeti.Types (makeJobId)
+import Ganeti.Utils (isSubsequenceOf)
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -220,8 +221,8 @@ prop_reasonRateLimit =
            "queued jobs cannot be started because of rate limiting"
 
        $ conjoin
-           [ printTestCase "order must be preserved" $
-               toRun ==? filter (`elem` toRun) enqueued
+           [ printTestCase "scheduled jobs must be subsequence" $
+               toRun `isSubsequenceOf` enqueued
 
            -- This is the key property:
            , printTestCase "no job may exceed its bucket limits, except from\
