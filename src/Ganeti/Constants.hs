@@ -4224,6 +4224,19 @@ luxidRetryForkCount = 5
 luxidRetryForkStepUS :: Int
 luxidRetryForkStepUS = 500000
 
+-- * Luxid job death testing
+
+-- | The number of attempts to prove that a job is dead after sending it a
+-- KILL signal.
+luxidJobDeathDetectionRetries :: Int
+luxidJobDeathDetectionRetries = 3
+
+-- | Time to delay (in /us/) after unsucessfully verifying the death of a
+-- job we believe to be dead. This is best choosen to be the average time
+-- sending a SIGKILL to take effect.
+luxidJobDeathDelay :: Int
+luxidJobDeathDelay = 100000
+
 -- * WConfD
 
 -- | Time itnervall in seconds between checks that all lock owners are still
