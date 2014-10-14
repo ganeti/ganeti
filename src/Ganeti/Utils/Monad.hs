@@ -38,6 +38,8 @@ module Ganeti.Utils.Monad
   , anyM
   , allM
   , orM
+  , unfoldrM
+  , unfoldrM'
   ) where
 
 import Control.Monad
@@ -67,3 +69,19 @@ allM p = foldM (\v x -> if v then p x else return False) True
 -- | Short-circuit 'or' for values of type Monad m => m Bool
 orM :: (Monad m) => [m Bool] -> m Bool
 orM = anyM id
+
+-- |See 'Data.List.unfoldr'.  This is a monad-friendly version of that.
+unfoldrM :: (Monad m) => (a -> m (Maybe (b,a))) -> a -> m [b]
+unfoldrM = unfoldrM'
+
+-- | See 'Data.List.unfoldr'. This is a monad-friendly version of that, with a
+-- twist. Rather than returning a list, it returns any MonadPlus type of your
+-- choice.
+unfoldrM' :: (Monad m, MonadPlus f) => (a -> m (Maybe (b,a))) -> a -> m (f b)
+unfoldrM' f z = do
+        x <- f z
+        case x of
+                Nothing         -> return mzero
+                Just (x', z')   -> do
+                        xs <- unfoldrM' f z'
+                        return (return x' `mplus` xs)
