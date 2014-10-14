@@ -53,6 +53,7 @@ import Control.Monad.Trans.Maybe
 import Data.Bits (bitSize)
 import qualified Data.Set as Set (toList)
 import Data.IORef
+import Data.List (intersperse)
 import Data.Maybe (fromMaybe)
 import qualified Text.JSON as J
 import Text.JSON (encode, showJSON, JSValue(..))
@@ -90,6 +91,7 @@ import Ganeti.Types
 import qualified Ganeti.UDSServer as U (Handler(..), listener)
 import Ganeti.Utils ( lockFile, exitIfBad, exitUnless, watchFile
                     , safeRenameFile, newUUID, isUUID )
+import Ganeti.Utils.Monad (orM)
 import Ganeti.Utils.MVarLock
 import qualified Ganeti.Version as Version
 import Ganeti.WConfd.Client ( getWConfdClient, withLockedConfig, writeConfig
@@ -497,7 +499,10 @@ handleCall _ qstat  cfg (CancelJob jid kill) = do
       logDebug $ jName ++ " not queued; trying to cancel directly"
       result <- fmap showJSON <$> cancelJob kill (jqLivelock qstat) jid
       when kill . void . forkIO $ do
-        _ <- cleanupIfDead qstat jid
+        _ <- orM
+             . intersperse (threadDelay C.luxidJobDeathDelay >> return False)
+             . replicate C.luxidJobDeathDetectionRetries
+             $ cleanupIfDead qstat jid
         wconfdsocket <- Path.defaultWConfdSocket
         wconfdclient <- getWConfdClient wconfdsocket
         void . runResultT $ runRpcClient cleanupLocks wconfdclient
