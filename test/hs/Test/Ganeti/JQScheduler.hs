@@ -95,8 +95,15 @@ instance Arbitrary JobWithStat where
 
 instance Arbitrary Queue where
   arbitrary = do
-    let jobListGen = listOf arbitrary
-    Queue <$> jobListGen <*> jobListGen <*> jobListGen
+
+    let genJobsUniqueJIDs :: [JobWithStat] -> Gen [JobWithStat]
+        genJobsUniqueJIDs = listOfUniqueBy arbitrary (qjId . jJob)
+
+    queued  <- genJobsUniqueJIDs []
+    running <- genJobsUniqueJIDs queued
+    manip   <- genJobsUniqueJIDs (queued ++ running)
+
+    return $ Queue queued running manip
   shrink q =
     [ q { qEnqueued = x }    | x <- shrink (qEnqueued q) ] ++
     [ q { qRunning = x }     | x <- shrink (qRunning q) ] ++
