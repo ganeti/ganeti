@@ -37,6 +37,7 @@ module Ganeti.Utils.Monad
   , retryMaybeN
   , anyM
   , allM
+  , orM
   ) where
 
 import Control.Monad
@@ -62,3 +63,7 @@ anyM p = foldM (\v x -> if v then return True else p x) False
 -- | Short-circuit 'all' with a monadic predicate.
 allM :: (Monad m) => (a -> m Bool) -> [a] -> m Bool
 allM p = foldM (\v x -> if v then p x else return False) True
+
+-- | Short-circuit 'or' for values of type Monad m => m Bool
+orM :: (Monad m) => [m Bool] -> m Bool
+orM = anyM id
