@@ -87,6 +87,7 @@ module Test.Ganeti.TestCommon
   , genNonNegative
   , relativeError
   , getTempFileName
+  , listOfUniqueBy
   ) where
 
 import Control.Applicative
@@ -113,6 +114,7 @@ import Numeric
 import qualified Ganeti.BasicTypes as BasicTypes
 import Ganeti.JSON (ArrayObject(..))
 import Ganeti.Types
+import Ganeti.Utils.Monad (unfoldrM)
 
 -- * Arbitrary orphan instances
 
@@ -543,3 +545,37 @@ getTempFileName filename = do
   _ <- hClose handle
   removeFile fpath
   return fpath
+
+
+-- | @listOfUniqueBy gen keyFun forbidden@: Generates a list of random length,
+-- where all generated elements will be unique by the keying function
+-- @keyFun@. They will also be distinct from all elements in @forbidden@ by
+-- the keying function.
+--
+-- As for 'listOf', the maximum output length depends on the size parameter.
+--
+-- Example:
+--
+-- > listOfUniqueBy (arbitrary :: Gen String) (length) ["hey"]
+-- > -- Generates a list of strings of different length, but not of length 3.
+--
+-- The passed @gen@ should not make key collisions too likely, since the
+-- implementation uses `suchThat`, looping until enough unique elements
+-- have been generated. If the @gen@ makes collisions likely, this function
+-- will consequently be slow, or not terminate if it is not possible to
+-- generate enough elements, like in:
+--
+-- > listOfUniqueBy (arbitrary :: Gen Int) (`mod` 2) []
+-- > -- May not terminate depending on the size parameter of the Gen,
+-- > -- since there are only 2 unique keys (0 and 1).
+listOfUniqueBy :: (Ord b) => Gen a -> (a -> b) -> [a] -> Gen [a]
+listOfUniqueBy gen keyFun forbidden = do
+  let keysOf = Set.fromList . map keyFun
+
+  k <- sized $ \n -> choose (0, n)
+  flip unfoldrM (0, keysOf forbidden) $ \(i, usedKeys) ->
+    if i == k
+      then return Nothing
+      else do
+        x <- gen `suchThat` ((`Set.notMember` usedKeys) . keyFun)
+        return $ Just (x, (i + 1, Set.insert (keyFun x) usedKeys))
