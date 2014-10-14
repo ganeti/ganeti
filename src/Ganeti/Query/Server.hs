@@ -497,7 +497,7 @@ handleCall _ qstat  cfg (CancelJob jid kill) = do
       logDebug $ jName ++ " not queued; trying to cancel directly"
       result <- fmap showJSON <$> cancelJob kill (jqLivelock qstat) jid
       when kill . void . forkIO $ do
-        cleanupIfDead qstat jid
+        _ <- cleanupIfDead qstat jid
         wconfdsocket <- Path.defaultWConfdSocket
         wconfdclient <- getWConfdClient wconfdsocket
         void . runResultT $ runRpcClient cleanupLocks wconfdclient

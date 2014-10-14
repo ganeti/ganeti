@@ -380,8 +380,9 @@ showQueue (Queue {qEnqueued=waiting, qRunning=running}) =
   in "Waiting jobs: " ++ showids waiting 
        ++ "; running jobs: " ++ showids running
 
--- | Check if a job died, and clean up if so.
-checkForDeath :: JQStatus -> JobWithStat -> IO ()
+-- | Check if a job died, and clean up if so. Return True, if
+-- the job was found dead.
+checkForDeath :: JQStatus -> JobWithStat -> IO Bool
 checkForDeath state jobWS = do
   let job = jJob jobWS
       jid = qjId job
@@ -409,14 +410,16 @@ checkForDeath state jobWS = do
             failedJob = failQueuedJob reason now $ jJob jobWS'
         cfg <- mkResultT . readIORef $ jqConfig state
         writeAndReplicateJob cfg qDir failedJob
+  return died
 
 -- | Trigger job detection for the job with the given job id.
-cleanupIfDead :: JQStatus -> JobId -> IO ()
+-- Return True, if the job is dead.
+cleanupIfDead :: JQStatus -> JobId -> IO Bool
 cleanupIfDead state jid = do
   logDebug $ "Extra job-death detection for " ++ show (fromJobId jid)
   jobs <- readIORef (jqJobs state)
   let jobWS = find ((==) jid . qjId . jJob) $ qRunning jobs
-  maybe (return ()) (checkForDeath state) jobWS
+  maybe (return True) (checkForDeath state) jobWS
 
 -- | Time-based watcher for updating the job queue.
 onTimeWatcher :: JQStatus -> IO ()
