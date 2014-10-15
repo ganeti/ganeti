@@ -119,6 +119,7 @@ import System.Directory
 import System.Posix.Files ( modificationTime, accessTime, fileOwner
                           , fileGroup, fileMode, getFileStatus)
 
+import Network.BSD (getServiceByName, servicePort)
 import Network.Curl hiding (content)
 import qualified Ganeti.Path as P
 
@@ -201,23 +202,22 @@ isIpV6 :: String -> Bool
 isIpV6 = (':' `elem`)
 
 -- | Prepare url for the HTTP request.
-prepareUrl :: (RpcCall a) => Node -> a -> String
-prepareUrl node call =
+prepareUrl :: (RpcCall a) => Int -> Node -> a -> String
+prepareUrl port node call =
   let node_ip = nodePrimaryIp node
       node_address = if isIpV6 node_ip
                      then "[" ++ node_ip ++ "]"
                      else node_ip
-      port = C.defaultNodedPort
       path_prefix = "https://" ++ node_address ++ ":" ++ show port
   in path_prefix ++ "/" ++ rpcCallName call
 
 -- | Create HTTP request for a given node provided it is online,
 -- otherwise create empty response.
-prepareHttpRequest :: (RpcCall a) => [CurlOption] -> Node -> a
+prepareHttpRequest :: (RpcCall a) => Int -> [CurlOption] -> Node -> a
                    -> ERpcError HttpClientRequest
-prepareHttpRequest opts node call
+prepareHttpRequest port opts node call
   | rpcCallAcceptOffline call || not (nodeOffline node) =
-      Right HttpClientRequest { requestUrl  = prepareUrl node call
+      Right HttpClientRequest { requestUrl  = prepareUrl port node call
                               , requestData = rpcCallData node call
                               , requestOpts = opts ++ curlOpts
                               }
@@ -269,9 +269,16 @@ getOptionsForCall cert_path client_cert_path call =
   , CurlCAInfo cert_path
   ]
 
+-- | Determine to port to call noded at.
+getNodedPort :: IO Int
+getNodedPort = withDefaultOnIOError C.defaultNodedPort
+               . liftM (fromIntegral . servicePort)
+               $ getServiceByName C.noded "tcp"
+
 -- | Execute multiple RPC calls in parallel
 executeRpcCalls :: (Rpc a b) => [(Node, a)] -> IO [(Node, ERpcError b)]
 executeRpcCalls nodeCalls = do
+  port <- getNodedPort
   cert_file <- P.nodedCertFile
   client_cert_file_name <- P.nodedClientCertFile
   client_file_exists <- doesFileExist client_cert_file_name
@@ -283,7 +290,7 @@ executeRpcCalls nodeCalls = do
       (nodes, calls) = unzip nodeCalls
       opts = map (getOptionsForCall cert_file client_cert_file) calls
       opts_urls = zipWith3 (\n c o ->
-                         case prepareHttpRequest o n c of
+                         case prepareHttpRequest port o n c of
                            Left v -> Left v
                            Right request ->
                              Right (CurlPostFields [requestData request]:
