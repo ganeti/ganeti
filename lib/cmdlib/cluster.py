@@ -2138,7 +2138,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       for inst_name in self.owned_locks(locking.LEVEL_INSTANCE):
         # Important: access only the instances whose lock is owned
         instance = self.cfg.GetInstanceInfoByName(inst_name)
-        if instance.disk_template in constants.DTS_INT_MIRROR:
+        disks = self.cfg.GetInstanceDisks(instance.uuid)
+        if any(d.dev_type in constants.DTS_INT_MIRROR for d in disks):
           nodes.update(self.cfg.GetInstanceSecondaryNodes(instance.uuid))
 
       self.needed_locks[locking.LEVEL_NODE] = nodes
@@ -2187,7 +2188,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     extra_lv_nodes = set()
 
     for inst in self.my_inst_info.values():
-      if inst.disk_template in constants.DTS_INT_MIRROR:
+      disks = self.cfg.GetInstanceDisks(inst.uuid)
+      if any(d.dev_type in constants.DTS_INT_MIRROR for d in disks):
         inst_nodes = self.cfg.GetInstanceNodes(inst.uuid)
         for nuuid in inst_nodes:
           if self.all_node_info[nuuid].group != self.group_uuid:
@@ -2546,26 +2548,29 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     inst_nodes = self.cfg.GetInstanceNodes(instance.uuid)
     es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, inst_nodes)
+    disks = self.cfg.GetInstanceDisks(instance.uuid)
     if any(es_flags.values()):
-      if instance.disk_template not in constants.DTS_EXCL_STORAGE:
+      if any(d.dev_type not in constants.DTS_EXCL_STORAGE for d in disks):
         # Disk template not compatible with exclusive_storage: no instance
         # node should have the flag set
         es_nodes = [n
                     for (n, es) in es_flags.items()
                     if es]
+        unsupported = [d.dev_type for d in disks
+                       if d.dev_type not in constants.DTS_EXCL_STORAGE]
         self._Error(constants.CV_EINSTANCEUNSUITABLENODE, instance.name,
-                    "instance has template %s, which is not supported on nodes"
-                    " that have exclusive storage set: %s",
-                    instance.disk_template,
+                    "instance uses disk types %s, which are not supported on"
+                    " nodes that have exclusive storage set: %s",
+                    utils.CommaJoin(unsupported),
                     utils.CommaJoin(self.cfg.GetNodeNames(es_nodes)))
-      for (idx, disk) in enumerate(self.cfg.GetInstanceDisks(instance.uuid)):
+      for (idx, disk) in enumerate(disks):
         self._ErrorIf(disk.spindles is None,
                       constants.CV_EINSTANCEMISSINGCFGPARAMETER, instance.name,
                       "number of spindles not configured for disk %s while"
                       " exclusive storage is enabled, try running"
                       " gnt-cluster repair-disk-sizes", idx)
 
-    if instance.disk_template in constants.DTS_INT_MIRROR:
+    if any(d.dev_type in constants.DTS_INT_MIRROR for d in disks):
       instance_nodes = utils.NiceSort(inst_nodes)
       instance_groups = {}
 
@@ -3805,9 +3810,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         feedback_fn("* Verifying instance %s" % instance.name)
       self._VerifyInstance(instance, node_image, instdisk[inst_uuid])
 
-      # If the instance is non-redundant we cannot survive losing its primary
-      # node, so we are not N+1 compliant.
-      if instance.disk_template not in constants.DTS_MIRRORED:
+      # If the instance is not fully redundant we cannot survive losing its
+      # primary node, so we are not N+1 compliant.
+      inst_disks = self.cfg.GetInstanceDisks(instance.uuid)
+      if any(d.dev_type not in constants.DTS_MIRRORED for d in inst_disks):
         i_non_redundant.append(instance)
 
       if not cluster.FillBE(instance)[constants.BE_AUTO_BALANCE]:
