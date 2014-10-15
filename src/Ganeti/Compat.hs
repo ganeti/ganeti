@@ -40,9 +40,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Compat
   ( rwhnf
   , Control.Parallel.Strategies.parMap
+  , finiteBitSize
   ) where
 
 import qualified Control.Parallel.Strategies
+import qualified Data.Bits
 
 -- | Wrapper over the function exported from
 -- "Control.Parallel.Strategies".
@@ -55,3 +57,13 @@ rwhnf = Control.Parallel.Strategies.rseq
 #else
 rwhnf = Control.Parallel.Strategies.rwhnf
 #endif
+
+
+#if __GLASGOW_HASKELL__ < 707
+finiteBitSize :: (Data.Bits.Bits a) => a -> Int
+finiteBitSize = Data.Bits.bitSize
+#else
+finiteBitSize :: (Data.Bits.FiniteBits a) => a -> Int
+finiteBitSize = Data.Bits.finiteBitSize
+#endif
+{-# INLINE finiteBitSize #-}
