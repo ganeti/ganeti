@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
 
 {-| Utility functions. -}
 
@@ -81,6 +81,7 @@ module Ganeti.Utils
   , setOwnerWGroupR
   , formatOrdinal
   , tryAndLogIOError
+  , withDefaultOnIOError
   , lockFile
   , FStat
   , nullFStat
@@ -357,6 +358,12 @@ tryAndLogIOError io msg okfn =
        logError combinedmsg
        return . Bad $ combinedmsg)
    (return . okfn)
+
+-- | Try an IO interaction and return a default value if the interaction
+-- throws an IOError.
+withDefaultOnIOError :: a -> IO a -> IO a
+withDefaultOnIOError a io =
+  try io >>= either (\ (_ :: IOError) -> return a) return
 
 -- | Print a warning, but do not exit.
 warn :: String -> IO ()
