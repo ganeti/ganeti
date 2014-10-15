@@ -421,7 +421,8 @@ instance J.JSON LogicalVolume where
 -- | The disk configuration type. This includes the disk type itself,
 -- for a more complete consistency. Note that since in the Python
 -- code-base there's no authoritative place where we document the
--- logical id, this is probably a good reference point.
+-- logical id, this is probably a good reference point. There is a bijective
+-- correspondence between the 'DiskLogicalId' constructors and 'DiskTemplate'.
 data DiskLogicalId
   = LIDPlain LogicalVolume  -- ^ Volume group, logical volume
   | LIDDrbd8 String String Int Int Int DRBDSecret

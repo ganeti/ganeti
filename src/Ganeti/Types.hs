@@ -298,7 +298,9 @@ instance JSON.JSON IPv6Network where
 
 -- * Ganeti types
 
--- | Instance disk template type.
+-- | Instance disk template type. The disk template is a name for the
+-- constructor of the disk configuration 'DiskLogicalId' used for
+-- serialization, configuration values, etc.
 $(THH.declareLADT ''String "DiskTemplate"
        [ ("DTDiskless",   "diskless")
        , ("DTFile",       "file")
