@@ -295,7 +295,7 @@ class LUGroupAssignNodes(NoHooksLU):
     In particular, it returns information about newly split instances, and
     instances that were already split, and remain so after the change.
 
-    Only instances whose disk template is listed in constants.DTS_INT_MIRROR are
+    Only disks whose template is listed in constants.DTS_INT_MIRROR are
     considered.
 
     @type changes: list of (node_uuid, new_group_uuid) pairs.
@@ -315,7 +315,8 @@ class LUGroupAssignNodes(NoHooksLU):
     previously_split_instances = set()
 
     for inst in instance_data.values():
-      if inst.disk_template not in constants.DTS_INT_MIRROR:
+      inst_disks = self.cfg.GetInstanceDisks(inst.uuid)
+      if any(d.dev_type not in constants.DTS_INT_MIRROR for d in inst_disks):
         continue
 
       inst_nodes = self.cfg.GetInstanceNodes(inst.uuid)
@@ -943,7 +944,9 @@ class LUGroupVerifyDisks(NoHooksLU):
   def _VerifyDrbdStates(self, node_errors, offline_disk_instance_names):
     node_to_inst = {}
     for inst in self.instances.values():
-      if not inst.disks_active or inst.disk_template != constants.DT_DRBD8:
+      disks = self.cfg.GetInstanceDisks(inst.uuid)
+      if not (inst.disks_active and
+              any(d.dev_type == constants.DT_DRBD8 for d in disks)):
         continue
 
       secondary_nodes = self.cfg.GetInstanceSecondaryNodes(inst.uuid)
