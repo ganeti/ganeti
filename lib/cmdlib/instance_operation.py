@@ -352,7 +352,7 @@ class LUInstanceReinstall(LogicalUnit):
     CheckNodeOnline(self, instance.primary_node, "Instance primary node"
                     " offline, cannot reinstall")
 
-    if instance.disk_template == constants.DT_DISKLESS:
+    if not instance.disks:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name,
                                  errors.ECODE_INVAL)

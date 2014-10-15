@@ -3266,20 +3266,19 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     node_disks_dev_inst_only = {}
     diskless_instances = set()
     nodisk_instances = set()
-    diskless = constants.DT_DISKLESS
 
     for nuuid in node_uuids:
       node_inst_uuids = list(itertools.chain(node_image[nuuid].pinst,
                                              node_image[nuuid].sinst))
       diskless_instances.update(uuid for uuid in node_inst_uuids
-                                if instanceinfo[uuid].disk_template == diskless)
+                                if not instanceinfo[uuid].disks)
       disks = [(inst_uuid, disk)
                for inst_uuid in node_inst_uuids
                for disk in self.cfg.GetInstanceDisks(inst_uuid)]
 
       if not disks:
         nodisk_instances.update(uuid for uuid in node_inst_uuids
-                                if instanceinfo[uuid].disk_template != diskless)
+                                if instanceinfo[uuid].disks)
         # No need to collect data
         continue
 

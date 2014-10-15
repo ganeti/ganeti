@@ -582,7 +582,7 @@ def ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
     (constants.ISPEC_SPINDLE_USE, "", spindle_use),
     ] + [(constants.ISPEC_DISK_SIZE, str(idx), d)
          for idx, d in enumerate(disk_sizes)]
-  if disk_template != constants.DT_DISKLESS:
+  if disk_count != 0:
     # This check doesn't make sense for diskless instances
     test_settings.append((constants.ISPEC_DISK_COUNT, "", disk_count))
   ret = []

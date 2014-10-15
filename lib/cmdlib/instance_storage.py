@@ -917,7 +917,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     if not self.op.iallocator:
       CheckNodeOnline(self, primary_node)
 
-    if instance.disk_template == constants.DT_DISKLESS:
+    if not instance.disks:
       raise errors.OpPrereqError("Instance '%s' has no disks" %
                                  self.op.instance_name, errors.ECODE_INVAL)
 

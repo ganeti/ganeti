@@ -1372,7 +1372,7 @@ class LUInstanceCreate(LogicalUnit):
     @param iobj: instance object
 
     """
-    if iobj.disk_template != constants.DT_DISKLESS and not self.adopt_disks:
+    if iobj.disks and not self.adopt_disks:
       disks = self.cfg.GetInstanceDisks(iobj.uuid)
       if self.op.mode == constants.INSTANCE_CREATE:
         os_image = objects.GetOSImage(self.op.osparams)
@@ -3253,7 +3253,7 @@ class LUInstanceSetParams(LogicalUnit):
                                      " --no-wait-for-sync given.",
                                      errors.ECODE_INVAL)
 
-    if self.op.disks and self.instance.disk_template == constants.DT_DISKLESS:
+    if self.op.disks and not self.instance.disks:
       raise errors.OpPrereqError("Disk operations not supported for"
                                  " diskless instances", errors.ECODE_INVAL)
 
