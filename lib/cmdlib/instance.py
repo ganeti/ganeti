@@ -1378,8 +1378,9 @@ class LUInstanceCreate(LogicalUnit):
         os_image = objects.GetOSImage(self.op.osparams)
 
         if os_image is None and not self.op.no_install:
-          pause_sync = (iobj.disk_template in constants.DTS_INT_MIRROR and
-                        not self.op.wait_for_sync)
+          pause_sync = (not self.op.wait_for_sync and
+                        any(d.dev_type in constants.DTS_INT_MIRROR
+                            for d in disks))
           if pause_sync:
             feedback_fn("* pausing disk sync to install instance OS")
             result = self.rpc.call_blockdev_pause_resume_sync(self.pnode.uuid,
@@ -1878,10 +1879,12 @@ class LUInstanceRename(LogicalUnit):
     # It should actually not happen that an instance is running with a disabled
     # disk template, but in case it does, the renaming of file-based instances
     # will fail horribly. Thus, we test it before.
-    if (instance.disk_template in constants.DTS_FILEBASED and
-        self.op.new_name != instance.name):
-      CheckDiskTemplateEnabled(self.cfg.GetClusterInfo(),
-                               instance.disk_template)
+    for disk in self.cfg.GetInstanceDisks(instance.uuid):
+      if (disk.dev_type in constants.DTS_FILEBASED and
+          self.op.new_name != instance.name):
+        # TODO: when disks are separate objects, this should check for disk
+        # types, not disk templates.
+        CheckDiskTemplateEnabled(self.cfg.GetClusterInfo(), disk.dev_type)
 
     CheckNodeOnline(self, instance.primary_node)
     CheckInstanceState(self, instance, INSTANCE_NOT_RUNNING,
@@ -1915,9 +1918,11 @@ class LUInstanceRename(LogicalUnit):
     old_name = self.instance.name
 
     rename_file_storage = False
-    if (self.instance.disk_template in (constants.DT_FILE,
-                                        constants.DT_SHARED_FILE) and
-        self.op.new_name != self.instance.name):
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    renamed_storage = [d for d in disks
+                       if (d.dev_type in constants.DTS_FILEBASED and
+                           d.dev_type != constants.DT_GLUSTER)]
+    if (renamed_storage and self.op.new_name != self.instance.name):
       disks = self.cfg.GetInstanceDisks(self.instance.uuid)
       old_file_storage_dir = os.path.dirname(disks[0].logical_id[1])
       rename_file_storage = True
@@ -2714,15 +2719,16 @@ class LUInstanceSetParams(LogicalUnit):
       CheckSpindlesExclusiveStorage(params, excl_stor, True)
 
       # Check disk access param (only for specific disks)
-      if self.instance.disk_template in constants.DTS_HAVE_ACCESS:
-        access_type = params.get(constants.IDISK_ACCESS, group_access_type)
-        if not IsValidDiskAccessModeCombination(self.instance.hypervisor,
-                                                self.instance.disk_template,
-                                                access_type):
-          raise errors.OpPrereqError("Selected hypervisor (%s) cannot be"
-                                     " used with %s disk access param" %
-                                     (self.instance.hypervisor, access_type),
-                                      errors.ECODE_STATE)
+      for disk in self.cfg.GetInstanceDisks(self.instance.uuid):
+        template = disk.dev_type
+        if template in constants.DTS_HAVE_ACCESS:
+          access_type = params.get(constants.IDISK_ACCESS, group_access_type)
+          if not IsValidDiskAccessModeCombination(self.instance.hypervisor,
+                                                  template, access_type):
+            raise errors.OpPrereqError("Selected hypervisor (%s) cannot be"
+                                       " used with %s disk access param" %
+                                       (self.instance.hypervisor, access_type),
+                                        errors.ECODE_STATE)
 
     elif op == constants.DDM_MODIFY:
       if constants.IDISK_SIZE in params:
@@ -3071,7 +3077,9 @@ class LUInstanceSetParams(LogicalUnit):
     # Arguments are passed to avoid configuration lookups
     pnode_uuid = self.instance.primary_node
 
-    if self.instance.disk_template in constants.DTS_NOT_CONVERTIBLE_FROM:
+    inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    if not inst_disks or any(d.dev_type in constants.DTS_NOT_CONVERTIBLE_FROM
+                             for d in inst_disks):
       raise errors.OpPrereqError("Conversion from the '%s' disk template is"
                                  " not supported" % self.instance.disk_template,
                                  errors.ECODE_INVAL)
@@ -3082,7 +3090,7 @@ class LUInstanceSetParams(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     if (self.op.disk_template != constants.DT_EXT and
-        self.instance.disk_template == self.op.disk_template):
+        all(d.dev_type == self.op.disk_template for d in inst_disks)):
       raise errors.OpPrereqError("Instance already has disk template %s" %
                                  self.instance.disk_template,
                                  errors.ECODE_INVAL)
@@ -3105,7 +3113,6 @@ class LUInstanceSetParams(LogicalUnit):
                        msg="cannot change disk template")
 
     # compute new disks' information
-    inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     self.disks_info = ComputeDisksInfo(inst_disks, self.op.disk_template,
                                        default_vg, self.op.ext_params)
 
@@ -3155,14 +3162,15 @@ class LUInstanceSetParams(LogicalUnit):
                                            self.op.disk_template))
         raise errors.OpPrereqError(errmsg, errors.ECODE_STATE)
 
+    # TODO remove setting the disk template after DiskSetParams exists.
     # node capacity checks
     if (self.op.disk_template == constants.DT_PLAIN and
-        self.instance.disk_template == constants.DT_DRBD8):
+        all(d.dev_type == constants.DT_DRBD8 for d in inst_disks)):
       # we ensure that no capacity checks will be made for conversions from
       # the 'drbd' to the 'plain' disk template
       pass
     elif (self.op.disk_template == constants.DT_DRBD8 and
-          self.instance.disk_template == constants.DT_PLAIN):
+          all(d.dev_type == constants.DT_PLAIN for d in inst_disks)):
       # for conversions from the 'plain' to the 'drbd' disk template, check
       # only the remote node's capacity
       req_sizes = ComputeDiskSizePerVG(self.op.disk_template, self.disks_info)
