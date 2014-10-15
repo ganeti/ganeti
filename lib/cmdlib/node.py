@@ -540,7 +540,9 @@ class LUNodeSetParams(LogicalUnit):
     """Filter for getting affected instances.
 
     """
-    return (instance.disk_template in constants.DTS_INT_MIRROR and
+    disks = self.cfg.GetInstanceDisks(instance.disks)
+    any_mirrored = any(d.dev_type in constants.DTS_INT_MIRROR for d in disks)
+    return (any_mirrored and
             self.op.node_uuid in self.cfg.GetInstanceNodes(instance.uuid))
 
   def ExpandNames(self):
