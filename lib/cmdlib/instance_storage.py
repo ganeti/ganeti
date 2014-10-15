@@ -907,10 +907,11 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                    (instance.name, len(inst_nodes),
                                     len(self.op.node_uuids)),
                                    errors.ECODE_INVAL)
-      assert instance.disk_template != constants.DT_DRBD8 or \
-             len(self.op.node_uuids) == 2
-      assert instance.disk_template != constants.DT_PLAIN or \
-             len(self.op.node_uuids) == 1
+      disks = self.cfg.GetInstanceDisks(instance.uuid)
+      assert (not any(d.dev_type == constants.DT_DRBD8 for d in disks) or
+              len(self.op.node_uuids) == 2)
+      assert (not any(d.dev_type == constants.DT_PLAIN for d in disks) or
+              len(self.op.node_uuids) == 1)
       primary_node = self.op.node_uuids[0]
     else:
       primary_node = instance.primary_node
@@ -1681,11 +1682,12 @@ class LUInstanceGrowDisk(LogicalUnit):
       CheckNodeOnline(self, node_uuid)
     self.node_es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, node_uuids)
 
-    if self.instance.disk_template not in constants.DTS_GROWABLE:
-      raise errors.OpPrereqError("Instance's disk layout does not support"
-                                 " growing", errors.ECODE_INVAL)
-
     self.disk = self.cfg.GetDiskInfo(self.instance.FindDisk(self.op.disk))
+
+    if self.disk.dev_type not in constants.DTS_GROWABLE:
+      raise errors.OpPrereqError(
+          "Instance's disk layout %s does not support"
+          " growing" % self.disk.dev_type, errors.ECODE_INVAL)
 
     if self.op.absolute:
       self.target = self.op.amount
@@ -1707,8 +1709,8 @@ class LUInstanceGrowDisk(LogicalUnit):
     self._CheckDiskSpace(node_uuids, self.disk.ComputeGrowth(self.delta))
 
   def _CheckDiskSpace(self, node_uuids, req_vgspace):
-    template = self.instance.disk_template
-    if (template not in (constants.DTS_NO_FREE_SPACE_CHECK) and
+    template = self.disk.dev_type
+    if (template not in constants.DTS_NO_FREE_SPACE_CHECK and
         not any(self.node_es_flags.values())):
       # TODO: check the free disk space for file, when that feature will be
       # supported
@@ -2218,10 +2220,6 @@ class TLReplaceDisks(Tasklet):
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.instance_name
 
-    if self.instance.disk_template != constants.DT_DRBD8:
-      raise errors.OpPrereqError("Can only run replace disks for DRBD8-based"
-                                 " instances", errors.ECODE_INVAL)
-
     secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
     if len(secondary_nodes) != 1:
       raise errors.OpPrereqError("The instance has a strange layout,"
@@ -2326,6 +2324,13 @@ class TLReplaceDisks(Tasklet):
       # If not specified all disks should be replaced
       if not self.disks:
         self.disks = range(len(self.instance.disks))
+
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    if any(d.dev_type != constants.DT_DRBD8
+           for i, d in enumerate(disks)
+           if i in self.disks):
+      raise errors.OpPrereqError("Can only run replace disks for DRBD8-based"
+                                 " instances", errors.ECODE_INVAL)
 
     # TODO: This is ugly, but right now we can't distinguish between internal
     # submitted opcode and external one. We should fix that.
