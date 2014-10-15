@@ -3341,49 +3341,14 @@ class LUInstanceSetParams(LogicalUnit):
     else:
       return None
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This only checks the instance list against the existing names.
-
-    """
-    assert self.op.instance_name in self.owned_locks(locking.LEVEL_INSTANCE)
-    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
-    self.cluster = self.cfg.GetClusterInfo()
-    cluster_hvparams = self.cluster.hvparams[self.instance.hypervisor]
-
-    assert self.instance is not None, \
-      "Cannot retrieve locked instance %s" % self.op.instance_name
-
+  def _GetInstanceInfo(self, cluster_hvparams):
     pnode_uuid = self.instance.primary_node
+    instance_info = self.rpc.call_instance_info(
+        pnode_uuid, self.instance.name, self.instance.hypervisor,
+        cluster_hvparams)
+    return instance_info
 
-    self.warn = []
-
-    if (self.op.pnode_uuid is not None and self.op.pnode_uuid != pnode_uuid and
-        not self.op.force):
-      # verify that the instance is not up
-      instance_info = self.rpc.call_instance_info(
-          pnode_uuid, self.instance.name, self.instance.hypervisor,
-          cluster_hvparams)
-      if instance_info.fail_msg:
-        self.warn.append("Can't get instance runtime information: %s" %
-                         instance_info.fail_msg)
-      elif instance_info.payload:
-        raise errors.OpPrereqError("Instance is still running on %s" %
-                                   self.cfg.GetNodeName(pnode_uuid),
-                                   errors.ECODE_STATE)
-
-    assert pnode_uuid in self.owned_locks(locking.LEVEL_NODE)
-    node_uuids = list(self.cfg.GetInstanceNodes(self.instance.uuid))
-    pnode_info = self.cfg.GetNodeInfo(pnode_uuid)
-
-    #_CheckInstanceNodeGroups(self.cfg, self.op.instance_name, owned_groups)
-    assert pnode_info.group in self.owned_locks(locking.LEVEL_NODEGROUP)
-    group_info = self.cfg.GetNodeGroup(pnode_info.group)
-
-    # dictionary with instance information after the modification
-    ispec = {}
-
+  def _CheckHotplug(self):
     if self.op.hotplug or self.op.hotplug_if_possible:
       result = self.rpc.call_hotplug_supported(self.instance.primary_node,
                                                self.instance)
@@ -3398,7 +3363,7 @@ class LUInstanceSetParams(LogicalUnit):
       else:
         self.op.hotplug = True
 
-    # Prepare NIC modifications
+  def _PrepareNicCommunication(self):
     # add or remove NIC for instance communication
     if self.op.instance_communication is not None:
       mod = self._InstanceCommunicationDDM(self.cfg,
@@ -3409,17 +3374,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     self.nicmod = _PrepareContainerMods(self.op.nics, _InstNicModPrivate)
 
-    # disks processing
-    assert not (self.op.disk_template and self.op.disks), \
-      "Can't modify disk template and apply disk changes at the same time"
-
-    if self.op.disk_template:
-      self._PreCheckDiskTemplate(pnode_info)
-      self.instance_file_storage_dir = CalculateFileStorageDir(self)
-
-    self._PreCheckDisks(ispec)
-
-    # hvparams processing
+  def _ProcessHVParams(self, node_uuids):
     if self.op.hvparams:
       hv_type = self.instance.hypervisor
       i_hvdict = GetUpdatedParams(self.instance.hvparams, self.op.hvparams)
@@ -3437,7 +3392,7 @@ class LUInstanceSetParams(LogicalUnit):
                                                    self.instance.hvparams)
       self.hv_new = self.hv_inst = {}
 
-    # beparams processing
+  def _ProcessBeParams(self):
     if self.op.beparams:
       i_bedict = GetUpdatedParams(self.instance.beparams, self.op.beparams,
                                   use_none=True)
@@ -3449,8 +3404,9 @@ class LUInstanceSetParams(LogicalUnit):
     else:
       self.be_new = self.be_inst = {}
       self.be_proposed = self.cluster.SimpleFillBE(self.instance.beparams)
-    be_old = self.cluster.FillBE(self.instance)
+    return self.cluster.FillBE(self.instance)
 
+  def _ValidateCpuParams(self):
     # CPU param validation -- checking every time a parameter is
     # changed to cover all cases where either CPU mask or vcpus have
     # changed
@@ -3483,11 +3439,11 @@ class LUInstanceSetParams(LogicalUnit):
                                 max_requested_cpu + 1,
                                 hvspecs)
 
+  def _ProcessOsParams(self, node_uuids):
     # osparams processing
-    if self.op.os_name and not self.op.force:
-      instance_os = self.op.os_name
-    else:
-      instance_os = self.instance.os
+    instance_os = (self.op.os_name
+                   if self.op.os_name and not self.op.force
+                   else self.instance.os)
 
     if self.op.osparams or self.op.osparams_private:
       public_parms = self.op.osparams or {}
@@ -3512,17 +3468,16 @@ class LUInstanceSetParams(LogicalUnit):
       self.os_inst = {}
       self.os_inst_private = {}
 
+  def _ProcessMem(self, cluster_hvparams, be_old, pnode_uuid):
     #TODO(dynmem): do the appropriate check involving MINMEM
     if (constants.BE_MAXMEM in self.op.beparams and not self.op.force and
-        be_new[constants.BE_MAXMEM] > be_old[constants.BE_MAXMEM]):
+        self.be_new[constants.BE_MAXMEM] > be_old[constants.BE_MAXMEM]):
       mem_check_list = [pnode_uuid]
-      if be_new[constants.BE_AUTO_BALANCE]:
+      if self.be_new[constants.BE_AUTO_BALANCE]:
         # either we changed auto_balance to yes or it was from before
         mem_check_list.extend(
           self.cfg.GetInstanceSecondaryNodes(self.instance.uuid))
-      instance_info = self.rpc.call_instance_info(
-          pnode_uuid, self.instance.name, self.instance.hypervisor,
-          cluster_hvparams)
+      instance_info = self._GetInstanceInfo(cluster_hvparams)
       hvspecs = [(self.instance.hypervisor,
                   cluster_hvparams)]
       nodeinfo = self.rpc.call_node_info(mem_check_list, None,
@@ -3552,7 +3507,7 @@ class LUInstanceSetParams(LogicalUnit):
             # TODO: Describe race condition
             current_mem = 0
           #TODO(dynmem): do the appropriate check involving MINMEM
-          miss_mem = (be_new[constants.BE_MAXMEM] - current_mem -
+          miss_mem = (self.be_new[constants.BE_MAXMEM] - current_mem -
                       pnhvinfo["memory_free"])
           if miss_mem > 0:
             raise errors.OpPrereqError("This change will prevent the instance"
@@ -3560,7 +3515,7 @@ class LUInstanceSetParams(LogicalUnit):
                                        " missing on its primary node" %
                                        miss_mem, errors.ECODE_NORES)
 
-      if be_new[constants.BE_AUTO_BALANCE]:
+      if self.be_new[constants.BE_AUTO_BALANCE]:
         secondary_nodes = \
           self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
         for node_uuid, nres in nodeinfo.items():
@@ -3576,7 +3531,7 @@ class LUInstanceSetParams(LogicalUnit):
                                        self.cfg.GetNodeName(node_uuid),
                                        errors.ECODE_STATE)
           #TODO(dynmem): do the appropriate check involving MINMEM
-          elif be_new[constants.BE_MAXMEM] > nhvinfo["memory_free"]:
+          elif self.be_new[constants.BE_MAXMEM] > nhvinfo["memory_free"]:
             raise errors.OpPrereqError("This change will prevent the instance"
                                        " from failover to its secondary node"
                                        " %s, due to not enough memory" %
@@ -3614,6 +3569,68 @@ class LUInstanceSetParams(LogicalUnit):
             "ballooning memory for instance %s" % self.instance.name, delta,
             self.instance.hypervisor,
             self.cfg.GetClusterInfo().hvparams[self.instance.hypervisor])
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    This only checks the instance list against the existing names.
+
+    """
+    assert self.op.instance_name in self.owned_locks(locking.LEVEL_INSTANCE)
+    self.instance = self.cfg.GetInstanceInfo(self.op.instance_uuid)
+    self.cluster = self.cfg.GetClusterInfo()
+    cluster_hvparams = self.cluster.hvparams[self.instance.hypervisor]
+
+    assert self.instance is not None, \
+      "Cannot retrieve locked instance %s" % self.op.instance_name
+
+    self.warn = []
+
+    if (self.op.pnode_uuid is not None and
+        self.op.pnode_uuid != self.instance.primary_node and
+        not self.op.force):
+      instance_info = self._GetInstanceInfo(cluster_hvparams)
+
+      if instance_info.fail_msg:
+        self.warn.append("Can't get instance runtime information: %s" %
+                         instance_info.fail_msg)
+      elif instance_info.payload:
+        raise errors.OpPrereqError(
+            "Instance is still running on %s" %
+            self.cfg.GetNodeName(self.instance.primary_node),
+            errors.ECODE_STATE)
+    pnode_uuid = self.instance.primary_node
+    assert pnode_uuid in self.owned_locks(locking.LEVEL_NODE)
+
+    node_uuids = list(self.cfg.GetInstanceNodes(self.instance.uuid))
+    pnode_info = self.cfg.GetNodeInfo(pnode_uuid)
+
+    assert pnode_info.group in self.owned_locks(locking.LEVEL_NODEGROUP)
+    group_info = self.cfg.GetNodeGroup(pnode_info.group)
+
+    # dictionary with instance information after the modification
+    ispec = {}
+
+    self._CheckHotplug()
+
+    self._PrepareNicCommunication()
+
+    # disks processing
+    assert not (self.op.disk_template and self.op.disks), \
+      "Can't modify disk template and apply disk changes at the same time"
+
+    if self.op.disk_template:
+      self._PreCheckDiskTemplate(pnode_info)
+      self.instance_file_storage_dir = CalculateFileStorageDir(self)
+
+    self._PreCheckDisks(ispec)
+
+    self._ProcessHVParams(node_uuids)
+    be_old = self._ProcessBeParams()
+
+    self._ValidateCpuParams()
+    self._ProcessOsParams(node_uuids)
+    self._ProcessMem(cluster_hvparams, be_old, pnode_uuid)
 
     # make self.cluster visible in the functions below
     cluster = self.cluster
