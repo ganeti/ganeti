@@ -45,6 +45,7 @@ import Data.IORef
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
+import Network.BSD (getServicePortNumber)
 import qualified Network.Socket as S
 import System.Exit
 import System.IO
@@ -323,7 +324,10 @@ type PrepResult = (S.Socket, IORef (Result (ConfigData, LinkIpMap)))
 -- | Check function for confd.
 checkMain :: CheckFn (S.Family, S.SockAddr)
 checkMain opts = do
-  parseresult <- parseAddress opts C.defaultConfdPort
+  defaultPort <- withDefaultOnIOError C.defaultConfdPort
+                 . liftM fromIntegral
+                 $ getServicePortNumber C.confd
+  parseresult <- parseAddress opts defaultPort
   case parseresult of
     Bad msg -> do
       hPutStrLn stderr $ "parsing bind address: " ++ msg
