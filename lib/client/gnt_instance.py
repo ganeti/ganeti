@@ -865,7 +865,8 @@ def ConnectToInstanceConsole(opts, args):
   qcl = GetClient(query=True)
   try:
     cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
-    idata = qcl.QueryInstances([instance_name], ["console", "oper_state"], False)
+    idata = \
+        qcl.QueryInstances([instance_name], ["console", "oper_state"], False)
     if not idata:
       raise errors.OpPrereqError("Instance '%s' does not exist" % instance_name,
                                  errors.ECODE_NOENT)
