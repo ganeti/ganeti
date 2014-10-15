@@ -45,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 module Ganeti.Constants where
 
-import Control.Arrow ((***))
+import Control.Arrow ((***),(&&&))
 import Data.List ((\\))
 import Data.Map (Map)
 import qualified Data.Map as Map (empty, fromList, keys, insert)
@@ -918,16 +918,9 @@ defaultEnabledDiskTemplates = map Types.diskTemplateToRaw [DTDrbd8, DTPlain]
 mapDiskTemplateStorageType :: Map String String
 mapDiskTemplateStorageType =
   Map.fromList $
-  map (Types.diskTemplateToRaw *** Types.storageTypeToRaw)
-  [(DTBlock, StorageBlock),
-   (DTDrbd8, StorageLvmVg),
-   (DTExt, StorageExt),
-   (DTSharedFile, StorageSharedFile),
-   (DTFile, StorageFile),
-   (DTDiskless, StorageDiskless),
-   (DTPlain, StorageLvmVg),
-   (DTRbd, StorageRados),
-   (DTGluster, StorageGluster)]
+  map (   Types.diskTemplateToRaw
+      &&& Types.storageTypeToRaw . diskTemplateToStorageType)
+  [minBound..maxBound]
 
 -- | The set of network-mirrored disk templates
 dtsIntMirror :: FrozenSet String

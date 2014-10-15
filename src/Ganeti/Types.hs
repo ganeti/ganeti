@@ -540,10 +540,7 @@ showSUSimple st sk = show (storageTypeToRaw st, sk, []::[String])
 showSULvm :: StorageType -> StorageKey -> SPExclusiveStorage -> String
 showSULvm st sk es = show (storageTypeToRaw st, sk, [es])
 
--- | Mapping from disk templates to storage types
--- FIXME: This is semantically the same as the constant
--- C.diskTemplatesStorageType, remove this when python constants
--- are generated from haskell constants
+-- | Mapping from disk templates to storage types.
 diskTemplateToStorageType :: DiskTemplate -> StorageType
 diskTemplateToStorageType DTExt = StorageExt
 diskTemplateToStorageType DTFile = StorageFile
