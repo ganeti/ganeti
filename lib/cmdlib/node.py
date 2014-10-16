@@ -358,7 +358,7 @@ class LUNodeAdd(LogicalUnit):
         new_node_uuid, new_node_name,
         True, # from authorized keys
         True, # from public keys
-        False, # clear authorized keys
+        True, # clear authorized keys
         True, # clear public keys
         port_map,
         master_candidate_uuids,
