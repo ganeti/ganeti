@@ -970,8 +970,6 @@ def RunSshCmdWithStdin(cluster_name, node, basecmd, debug, verbose,
   @type port: int
   @param port: The SSH port of the remote machine or None for the default
   @param data: JSON-serializable input data for script (passed to stdin)
-  @type ssconf_store: C{ssconf.SimpleStore}
-  @param ssconf_store: a SimpleStore object to be queries for ssconf values
 
   """
   cmd = [basecmd]
