@@ -282,8 +282,8 @@ executeRpcCalls nodeCalls = do
   cert_file <- P.nodedCertFile
   client_cert_file_name <- P.nodedClientCertFile
   client_file_exists <- doesFileExist client_cert_file_name
-  -- FIXME: This is needed to ensure upgradability to 2.11
-  -- Remove in 2.12.
+  -- This is needed to allow upgrades from 2.10 or earlier;
+  -- note that Ganeti supports jump-upgrades.
   let client_cert_file = if client_file_exists
                          then client_cert_file_name
                          else cert_file

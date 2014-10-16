@@ -237,10 +237,11 @@ def _WaitForMasterDaemon():
                              " %s seconds" % _DAEMON_READY_TIMEOUT)
 
 
-def _WaitForSshDaemon(hostname, port, family):
+def _WaitForSshDaemon(hostname, port):
   """Wait for SSH daemon to become responsive.
 
   """
+  family = ssconf.SimpleStore().GetPrimaryIPFamily()
   hostip = netutils.GetHostname(name=hostname, family=family).ip
 
   def _CheckSshDaemon():
@@ -899,13 +900,12 @@ def SetupNodeDaemon(opts, cluster_name, node, ssh_port):
     }
 
   ssconf_store = ssconf.SimpleStore()
-  family = ssconf_store.GetPrimaryIPFamily()
   ssh.RunSshCmdWithStdin(cluster_name, node, pathutils.NODE_DAEMON_SETUP,
                          opts.debug, opts.verbose,
                          True, opts.ssh_key_check, opts.ssh_key_check,
                          ssh_port, data, ssconf_store, ensure_version=True)
 
-  _WaitForSshDaemon(node, ssh_port, family)
+  _WaitForSshDaemon(node, ssh_port)
   _WaitForNodeDaemon(node)
 
 
