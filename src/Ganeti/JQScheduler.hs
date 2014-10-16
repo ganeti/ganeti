@@ -45,6 +45,7 @@ module Ganeti.JQScheduler
   , dequeueJob
   , setJobPriority
   , cleanupIfDead
+  , configChangeNeedsRescheduling
   ) where
 
 import Control.Applicative (liftA2, (<$>))
@@ -583,3 +584,11 @@ setJobPriority state jid prio = runResultT $ do
       mkResultT $ writeJobToDisk qDir job'
       liftIO $ enqueueNewJobs state [job']
       return $ Just job'
+
+
+-- | Given old and new configs, determines if the changes between them should
+-- trigger the scheduler to run.
+configChangeNeedsRescheduling :: ConfigData -> ConfigData -> Bool
+configChangeNeedsRescheduling _oldConfig _newConfig =
+  or -- Trigger rescheduling if:
+    []

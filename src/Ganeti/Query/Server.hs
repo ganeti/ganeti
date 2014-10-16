@@ -631,7 +631,17 @@ prepMain _ _ = do
 -- | Main function.
 main :: MainFn () PrepResult
 main _ _ (server, cref, jq) = do
-  initConfigReader (writeIORef cref)
+  -- Subscribe to config udpates. If the config changes, write new config and
+  -- check if the changes should trigger the scheduler.
+  initConfigReader $ \newConfig -> do
+
+    runScheduler <- atomicModifyIORef cref $ \oldConfig ->
+      case (oldConfig, newConfig) of
+        (Ok old, Ok new) -> (newConfig, configChangeNeedsRescheduling old new)
+        _                -> (newConfig, True) -- no old or new config, schedule
+
+    when runScheduler (scheduleSomeJobs jq)
+
   let creader = readIORef cref
 
   qlockFile <- jobQueueLockFile
