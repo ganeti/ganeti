@@ -948,7 +948,7 @@ def _EnsureCorrectGanetiVersion(cmd):
 
 def RunSshCmdWithStdin(cluster_name, node, basecmd, debug, verbose,
                        use_cluster_key, ask_key, strict_host_check,
-                       port, data, _ssconf_store, ensure_version=False):
+                       port, data, ensure_version=False):
   """Runs a command on a remote machine via SSH and provides input in stdin.
 
   @type cluster_name: string

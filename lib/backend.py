@@ -1491,12 +1491,12 @@ def AddNodeSshKey(node_uuid, node_name,
     if node in potential_master_candidates:
       run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
                  True, True, False, False, False,
-                 ssh_port_map.get(node), pot_mc_data, ssconf_store)
+                 ssh_port_map.get(node), pot_mc_data)
     else:
       if to_authorized_keys:
         run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
                    True, True, False, False, False,
-                   ssh_port_map.get(node), base_data, ssconf_store)
+                   ssh_port_map.get(node), base_data)
 
   # Update the target node itself
   if get_pub_keys:
@@ -1507,7 +1507,7 @@ def AddNodeSshKey(node_uuid, node_name,
       (constants.SSHS_OVERRIDE, all_keys)
     run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
                True, True, False, False, False,
-               ssh_port_map.get(node_name), node_data, ssconf_store)
+               ssh_port_map.get(node_name), node_data)
 
 
 def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
@@ -1591,12 +1591,12 @@ def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
       if node in potential_master_candidates:
         run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
                    True, True, False, False, False,
-                   ssh_port, pot_mc_data, ssconf_store)
+                   ssh_port, pot_mc_data)
       else:
         if from_authorized_keys:
           run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
                      True, True, False, False, False,
-                     ssh_port, base_data, ssconf_store)
+                     ssh_port, base_data)
 
   if clear_authorized_keys or from_public_keys:
     data = {}
@@ -1622,7 +1622,7 @@ def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
     try:
       run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
                  True, True, False, False, False,
-                 ssh_port, data, ssconf_store)
+                 ssh_port, data)
     except errors.OpExecError, e:
       logging.info("Removing SSH keys from node '%s' failed. This can happen"
                    " when the node is already unreachable. Error: %s",
@@ -1660,7 +1660,7 @@ def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
 
   run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
              True, True, False, False, False,
-             ssh_port_map.get(node_name), data, ssconf_store)
+             ssh_port_map.get(node_name), data)
 
 
 def RenewSshKeys(node_uuids, node_names, ssh_port_map,

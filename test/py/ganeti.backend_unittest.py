@@ -1055,7 +1055,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
   def _GetCallsPerNode(self):
     calls_per_node = {}
     for (pos, keyword) in self._run_cmd_mock.call_args_list:
-      (cluster_name, node, _, _, _, _, _, _, _, data, _) = pos
+      (cluster_name, node, _, _, _, _, _, _, _, data) = pos
       if not node in calls_per_node:
         calls_per_node[node] = []
       calls_per_node[node].append(data)

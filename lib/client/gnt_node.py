@@ -49,7 +49,6 @@ from ganeti import netutils
 from ganeti import pathutils
 from ganeti import ssh
 from ganeti import compat
-from ganeti import ssconf
 
 from ganeti import confd
 from ganeti.confd import client as confd_client
@@ -239,7 +238,7 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   ssh.RunSshCmdWithStdin(cluster_name, node, pathutils.PREPARE_NODE_JOIN,
                          options.debug, options.verbose, False,
                          options.ssh_key_check, options.ssh_key_check,
-                         ssh_port, data, ssconf.SimpleStore())
+                         ssh_port, data)
 
   fetched_keys = ssh.ReadRemoteSshPubKeys(root_keyfiles, node, cluster_name,
                                           ssh_port, options.ssh_key_check,

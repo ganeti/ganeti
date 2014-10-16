@@ -899,11 +899,10 @@ def SetupNodeDaemon(opts, cluster_name, node, ssh_port):
     constants.NDS_START_NODE_DAEMON: True,
     }
 
-  ssconf_store = ssconf.SimpleStore()
   ssh.RunSshCmdWithStdin(cluster_name, node, pathutils.NODE_DAEMON_SETUP,
                          opts.debug, opts.verbose,
                          True, opts.ssh_key_check, opts.ssh_key_check,
-                         ssh_port, data, ssconf_store, ensure_version=True)
+                         ssh_port, data, ensure_version=True)
 
   _WaitForSshDaemon(node, ssh_port)
   _WaitForNodeDaemon(node)
