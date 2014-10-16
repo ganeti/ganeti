@@ -35,7 +35,9 @@
 import time
 
 from ganeti import query
+from ganeti.utils import retry
 
+import qa_job_utils
 import qa_utils
 from qa_utils import AssertCommand, AssertEqual, AssertIn
 
@@ -299,10 +301,9 @@ def TestFilterAcceptPause():
   AssertCommand(["gnt-filter", "delete", uuid1])
   AssertCommand(["gnt-filter", "delete", uuid2])
 
-  # Now the second job should run through
-  time.sleep(0.5)
-  AssertEqual(GetJobStatus(jid1), "success",
-              msg="Deleting PAUSE filter did not let job run through")
+  # Now the second job should run through.
+  retry_fn = lambda: qa_job_utils.RetryingUntilJobStatus("success", str(jid1))
+  retry.Retry(retry_fn, 1.0, 20)
 
 
 def TestFilterRateLimit():
