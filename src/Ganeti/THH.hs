@@ -64,6 +64,7 @@ module Ganeti.THH ( declareSADT
                   , presentInForthcoming
                   , optionalField
                   , optionalNullSerField
+                  , makeOptional
                   , renameField
                   , customField
                   , buildObject
@@ -240,6 +241,15 @@ optionalField field = field { fieldIsOptional = OptionalOmitNull }
 -- with 'Nothing' serialised explicitly as /null/.
 optionalNullSerField :: Field -> Field
 optionalNullSerField field = field { fieldIsOptional = OptionalSerializeNull }
+
+-- | Make a field optional, if it isn't already.
+makeOptional :: Field -> Field
+makeOptional field = if  and [ fieldIsOptional field == NotOptional
+                             , isNothing $ fieldDefault field
+                             , not $ fieldPresentInForthcoming field
+                             ]
+                        then optionalField field
+                        else field
 
 -- | Sets custom functions on a field.
 customField :: Name      -- ^ The name of the read function
