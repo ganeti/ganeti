@@ -51,7 +51,9 @@ In case you're readding a node after hardware failure, you can use
 the ``--readd`` parameter. In this case, you don't need to pass the
 secondary IP again, it will be reused from the cluster. Also, the
 drained and offline flags of the node will be cleared before
-re-adding it.
+re-adding it. Note that even for readded nodes, a new SSH key is
+generated and distributed and previous Ganeti keys are removed
+from the machine.
 
 The ``-g (--node-group)`` option is used to add the new node into a
 specific node group, specified by UUID or name. If only one node group

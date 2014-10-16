@@ -308,13 +308,18 @@ def AddNode(opts, args):
   # read the cluster name from the master
   (cluster_name, ) = cl.QueryConfigValues(["cluster_name"])
 
-  if not readd and opts.node_setup:
+  if opts.node_setup:
     ToStderr("-- WARNING -- \n"
-             "Performing this operation is going to replace the ssh daemon"
-             " keypair\n"
-             "on the target machine (%s) with the ones of the"
-             " current one\n"
-             "and grant full intra-cluster ssh root access to/from it\n", node)
+             "Performing this operation is going to perform the following\n"
+             "changes to the target machine (%s) and the current cluster\n"
+             "nodes:\n"
+             "* A new SSH daemon key pair is generated is generated on\n"
+             "  the target machine.\n"
+             "* The public SSH keys of all master candidates of the cluster\n"
+             "  are added to the target machine's 'authorized_keys' file.\n"
+             "* In case the target machine is a master candidate, its newly\n"
+             "  generated public SSH key will be distributed to all other\n"
+             "  cluster nodes.\n", node)
 
   if opts.node_setup:
     _SetupSSH(opts, cluster_name, node, ssh_port, cl)
