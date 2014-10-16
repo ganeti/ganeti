@@ -411,6 +411,20 @@ def GetJobStatus(job_id):
   return GetJobStatuses([job_id]).get(job_id, None)
 
 
+def RetryingUntilJobStatus(retry_status, job_id):
+  """ Used with C{retry.Retry}, waits for a given status.
+
+  @type retry_status: string
+  @param retry_status: The job status to wait for.
+  @type job_id: string
+  @param job_id: The job id, represented as a string.
+
+  """
+  status = GetJobStatus(job_id)
+  if status != retry_status:
+    raise retry.RetryAgain()
+
+
 def RetryingWhileJobStatus(retry_status, job_id):
   """ Used with C{retry.Retry}, waits for a status other than the one given.
 
