@@ -948,7 +948,7 @@ def _EnsureCorrectGanetiVersion(cmd):
 
 def RunSshCmdWithStdin(cluster_name, node, basecmd, debug, verbose,
                        use_cluster_key, ask_key, strict_host_check,
-                       port, data, ssconf_store, ensure_version=False):
+                       port, data, _ssconf_store, ensure_version=False):
   """Runs a command on a remote machine via SSH and provides input in stdin.
 
   @type cluster_name: string
@@ -991,9 +991,7 @@ def RunSshCmdWithStdin(cluster_name, node, basecmd, debug, verbose,
   if port is None:
     port = netutils.GetDaemonPort(constants.SSH)
 
-  family = ssconf_store.GetPrimaryIPFamily()
-  srun = SshRunner(cluster_name,
-                   ipv6=(family == netutils.IP6Address.family))
+  srun = SshRunner(cluster_name)
   scmd = srun.BuildCmd(node, constants.SSH_LOGIN_USER,
                        utils.ShellQuoteArgs(
                            utils.ShellCombineCommands(all_cmds)),
@@ -1047,9 +1045,7 @@ def ReadRemoteSshPubKeys(keyfiles, node, cluster_name, port, ask_key,
     tuple consisting of the file name of the private and public key
 
   """
-  family = ssconf.SimpleStore().GetPrimaryIPFamily()
-  ssh_runner = SshRunner(cluster_name,
-                         ipv6=(family == netutils.IP6Address.family))
+  ssh_runner = SshRunner(cluster_name)
 
   failed_results = {}
   fetched_keys = {}
