@@ -29,6 +29,7 @@ ADD
 | [\--node-parameters *ndparams*]
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
+| [\--no-node-setup]
 | {*nodename*}
 
 Adds the given node to the cluster.
@@ -55,6 +56,14 @@ re-adding it.
 The ``-g (--node-group)`` option is used to add the new node into a
 specific node group, specified by UUID or name. If only one node group
 exists you can skip this option, otherwise it's mandatory.
+
+The ``--no-node-setup`` option prevents Ganeti from performing the
+initial SSH setup on the new node. This means that Ganeti will not
+touch the SSH keys or the ``authorized_keys`` file of the node at
+all. Using this option, it lies in the administrators responsibility
+to ensure SSH connectivity between the hosts by other means. Note,
+that the equivalent of this option in ``gnt-cluster init`` is called
+``--no-ssh-init``.
 
 The ``vm_capable``, ``master_capable``, ``ndparams``, ``diskstate`` and
 ``hvstate`` options are described in **ganeti**\(7), and are used to set
