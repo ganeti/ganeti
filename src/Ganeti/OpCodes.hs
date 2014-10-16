@@ -341,6 +341,7 @@ $(genOpCode "OpCode"
      , pMasterCapable
      , pVmCapable
      , pNdParams
+     , pNodeSetup
      ],
      "node_name")
   , ("OpNodeQueryvols",

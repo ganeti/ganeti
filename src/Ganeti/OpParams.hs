@@ -296,6 +296,7 @@ module Ganeti.OpParams
   , pDataCollectorInterval
   , pNodeSslCerts
   , pSshKeys
+  , pNodeSetup
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -1872,3 +1873,9 @@ pSshKeys =
   withDoc "Whether to renew SSH keys" .
   defaultField [| False |] $
   simpleField "ssh_keys" [t| Bool |]
+
+pNodeSetup :: Field
+pNodeSetup =
+  withDoc "Whether to perform a SSH setup on the new node" .
+  defaultField [| False |] $
+  simpleField "node_setup" [t| Bool |]

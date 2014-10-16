@@ -338,7 +338,8 @@ def AddNode(opts, args):
                          vm_capable=opts.vm_capable, ndparams=opts.ndparams,
                          master_capable=opts.master_capable,
                          disk_state=disk_state,
-                         hv_state=hv_state)
+                         hv_state=hv_state,
+                         node_setup=opts.node_setup)
   SubmitOpCode(op, opts=opts)
 
 

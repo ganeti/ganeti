@@ -477,8 +477,7 @@ class LUNodeAdd(LogicalUnit):
     EnsureKvmdOnNodes(self, feedback_fn, nodes=[self.new_node.uuid])
 
     # Update SSH setup of all nodes
-    modify_ssh_setup = self.cfg.GetClusterInfo().modify_ssh_setup
-    if modify_ssh_setup:
+    if self.op.node_setup:
       # FIXME: so far, all nodes are considered potential master candidates
       self._SshUpdate(self.new_node.uuid, self.new_node.name,
                       self.new_node.master_candidate, True,
