@@ -4,6 +4,16 @@ Design for adding a node to a cluster
 .. contents:: :depth: 3
 
 
+Note
+----
+
+Closely related to this design is the more recent design
+:doc:`node security <design-node-security>` which extends and changes
+some of the aspects mentioned in this document. Make sure that you
+read the more recent design as well to get an up to date picture of
+Ganeti's procedure for adding new nodes.
+
+
 Current state and shortcomings
 ------------------------------
 
