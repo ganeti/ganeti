@@ -43,6 +43,7 @@ from ganeti import netutils
 from ganeti import pathutils
 from ganeti import vcluster
 from ganeti import compat
+from ganeti import ssconf
 
 
 def GetUserFiles(user, mkdir=False, dircheck=True, kind=constants.SSHK_DSA,
@@ -119,17 +120,16 @@ class SshRunner(object):
   """Wrapper for SSH commands.
 
   """
-  def __init__(self, cluster_name, ipv6=False):
+  def __init__(self, cluster_name):
     """Initializes this class.
 
     @type cluster_name: str
     @param cluster_name: name of the cluster
-    @type ipv6: bool
-    @param ipv6: If true, force ssh to use IPv6 addresses only
 
     """
     self.cluster_name = cluster_name
-    self.ipv6 = ipv6
+    family = ssconf.SimpleStore().GetPrimaryIPFamily()
+    self.ipv6 = (family == netutils.IP6Address.family)
 
   def _BuildSshOptions(self, batch, ask_key, use_cluster_key,
                        strict_host_check, private_key=None, quiet=True,

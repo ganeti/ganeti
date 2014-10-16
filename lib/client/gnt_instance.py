@@ -864,14 +864,17 @@ def ConnectToInstanceConsole(opts, args):
   cl = GetClient()
   try:
     cluster_name = cl.QueryConfigValues(["cluster_name"])[0]
-    ((console_data, oper_state), ) = \
-      cl.QueryInstances([instance_name], ["console", "oper_state"], False)
+    idata = cl.QueryInstances([instance_name], ["console", "oper_state"], False)
+    if not idata:
+      raise errors.OpPrereqError("Instance '%s' does not exist" % instance_name,
+                                 errors.ECODE_NOENT)
   finally:
     # Ensure client connection is closed while external commands are run
     cl.Close()
 
   del cl
 
+  ((console_data, oper_state), ) = idata
   if not console_data:
     if oper_state:
       # Instance is running

@@ -262,10 +262,11 @@ def _WaitForMasterDaemon():
                              " %s seconds" % _DAEMON_READY_TIMEOUT)
 
 
-def _WaitForSshDaemon(hostname, port, family):
+def _WaitForSshDaemon(hostname, port):
   """Wait for SSH daemon to become responsive.
 
   """
+  family = ssconf.SimpleStore().GetPrimaryIPFamily()
   hostip = netutils.GetHostname(name=hostname, family=family).ip
 
   def _CheckSshDaemon():
@@ -345,9 +346,7 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
   if port is None:
     port = netutils.GetDaemonPort(constants.SSH)
 
-  family = ssconf.SimpleStore().GetPrimaryIPFamily()
-  srun = ssh.SshRunner(cluster_name,
-                       ipv6=(family == netutils.IP6Address.family))
+  srun = ssh.SshRunner(cluster_name)
   scmd = srun.BuildCmd(node, constants.SSH_LOGIN_USER,
                        utils.ShellQuoteArgs(
                            utils.ShellCombineCommands(all_cmds)),
@@ -369,7 +368,7 @@ def RunNodeSetupCmd(cluster_name, node, basecmd, debug, verbose,
     raise errors.OpExecError("Command '%s' failed: %s" %
                              (result.cmd, result.fail_reason))
 
-  _WaitForSshDaemon(node, port, family)
+  _WaitForSshDaemon(node, port)
 
 
 def _InitFileStorageDir(file_storage_dir):
