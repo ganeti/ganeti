@@ -348,7 +348,7 @@ main :: MainFn (S.Family, S.SockAddr) PrepResult
 main _ _ (s, cref) = do
   let cfg_transform :: Result ConfigData -> Result (ConfigData, LinkIpMap)
       cfg_transform = liftM (\cfg -> (cfg, buildLinkIpInstnameMap cfg))
-  initConfigReader cfg_transform cref
+  initConfigReader (writeIORef cref . cfg_transform)
 
   hmac <- getClusterHmac
   -- enter the responder loop

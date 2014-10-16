@@ -631,7 +631,7 @@ prepMain _ _ = do
 -- | Main function.
 main :: MainFn () PrepResult
 main _ _ (server, cref, jq) = do
-  initConfigReader id cref
+  initConfigReader (writeIORef cref)
   let creader = readIORef cref
 
   qlockFile <- jobQueueLockFile

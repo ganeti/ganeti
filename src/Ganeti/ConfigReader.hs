@@ -42,7 +42,6 @@ module Ganeti.ConfigReader
 import Control.Concurrent
 import Control.Exception
 import Control.Monad (unless)
-import Data.IORef
 import System.INotify
 
 import Ganeti.BasicTypes
@@ -283,9 +282,8 @@ onInotify inotify path save_fn mstate _ =
            else return state'
       else return state
 
-initConfigReader :: (Result ConfigData -> a) -> IORef a -> IO ()
-initConfigReader cfg_transform ioref = do
-  let save_fn = writeIORef ioref . cfg_transform
+initConfigReader :: (Result ConfigData -> IO ()) -> IO ()
+initConfigReader save_fn = do
 
   -- Inotify setup
   inotify <- initINotify
