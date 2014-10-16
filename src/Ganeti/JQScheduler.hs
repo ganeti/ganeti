@@ -589,6 +589,7 @@ setJobPriority state jid prio = runResultT $ do
 -- | Given old and new configs, determines if the changes between them should
 -- trigger the scheduler to run.
 configChangeNeedsRescheduling :: ConfigData -> ConfigData -> Bool
-configChangeNeedsRescheduling _oldConfig _newConfig =
+configChangeNeedsRescheduling oldConfig newConfig =
   or -- Trigger rescheduling if:
-    []
+    [ configFilters oldConfig /= configFilters newConfig -- filters changed
+    ]
