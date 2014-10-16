@@ -554,6 +554,8 @@ _NODE_CALLS = [
      "If the key should be removed from the public key file."),
     ("clear_authorized_keys", None,
      "If the 'authorized_keys' file of the node should be cleared."),
+    ("clear_public_keys", None,
+     "If the 'ganeti_pub_keys' file of the node should be cleared."),
     ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
     ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
     ("potential_master_candidates", None, "Potential master candidates")],

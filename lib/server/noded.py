@@ -948,10 +948,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     (node_uuid, node_name, from_authorized_keys,
      from_public_keys, clear_authorized_keys,
+     clear_public_keys,
      ssh_port_map, master_candidate_uuids,
      potential_master_candidates) = params
     return backend.RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
                                     from_public_keys, clear_authorized_keys,
+                                    clear_public_keys,
                                     ssh_port_map,
                                     master_candidate_uuids,
                                     potential_master_candidates)

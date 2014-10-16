@@ -359,6 +359,7 @@ class LUNodeAdd(LogicalUnit):
         True, # from authorized keys
         True, # from public keys
         False, # clear authorized keys
+        True, # clear public keys
         port_map,
         master_candidate_uuids,
         potential_master_candidates)
@@ -875,6 +876,7 @@ class LUNodeSetParams(LogicalUnit):
             True, # remove node's key from all nodes' authorized_keys file
             False, # currently, all nodes are potential master candidates
             False, # do not clear node's 'authorized_keys'
+            False, # do not clear node's 'ganeti_pub_keys'
             ssh_port_map, master_candidate_uuids, potential_master_candidates)
           ssh_result[master_node].Raise(
             "Could not adjust the SSH setup after demoting node '%s'"
@@ -1580,6 +1582,7 @@ class LUNodeRemove(LogicalUnit):
         self.node.master_candidate,
         potential_master_candidate,
         True, # clear node's 'authorized_keys'
+        True, # clear node's 'ganeti_public_keys'
         ssh_port_map, master_candidate_uuids, potential_master_candidates)
       result[master_node].Raise(
         "Could not remove the SSH key of node '%s' (UUID: %s)." %

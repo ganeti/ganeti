@@ -1512,6 +1512,7 @@ def AddNodeSshKey(node_uuid, node_name,
 
 def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
                      from_public_keys, clear_authorized_keys,
+                     clear_public_keys,
                      ssh_port_map, master_candidate_uuids,
                      potential_master_candidates,
                      pub_key_file=pathutils.SSH_PUB_KEYS,
@@ -1533,6 +1534,8 @@ def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
   @type clear_authorized_keys: boolean
   @param clear_authorized_keys: whether or not the C{authorized_keys} file
     should be cleared on the node whose keys are removed
+  @type clear_public_keys: boolean
+  @param clear_public_keys: whether to clear the node's C{ganeti_pub_key} file
   @type ssh_port_map: dict of str to int
   @param ssh_port_map: mapping of node names to their SSH port
   @type master_candidate_uuids: list of str
@@ -1598,7 +1601,7 @@ def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
                      True, True, False, False, False,
                      ssh_port, base_data)
 
-  if clear_authorized_keys or from_public_keys:
+  if clear_authorized_keys or from_public_keys or clear_public_keys:
     data = {}
     _InitSshUpdateData(data, noded_cert_file, ssconf_store)
     cluster_name = data[constants.SSHS_CLUSTER_NAME]
@@ -1608,6 +1611,9 @@ def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
                                " node '%s', which is leaving the cluster.")
 
     if clear_authorized_keys:
+      # The 'authorized_keys' file is not solely managed by Ganeti. Therefore,
+      # we have to specify exactly which keys to clear to leave keys untouched
+      # that were not added by Ganeti.
       other_master_candidate_uuids = [uuid for uuid in master_candidate_uuids
                                       if uuid != node_uuid]
       candidate_keys = ssh.QueryPubKeyFile(other_master_candidate_uuids,
@@ -1615,7 +1621,12 @@ def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
       data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
         (constants.SSHS_REMOVE, candidate_keys)
 
-    if from_public_keys:
+    if clear_public_keys:
+      data[constants.SSHS_SSH_PUBLIC_KEYS] = \
+        (constants.SSHS_CLEAR, None)
+    elif from_public_keys:
+      # Since clearing the public keys subsumes removing just a single key,
+      # we only do it of clear_public_keys is 'False'.
       data[constants.SSHS_SSH_PUBLIC_KEYS] = \
         (constants.SSHS_REMOVE, keys)
 
@@ -1704,6 +1715,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                      master_candidate, # from authorized keys
                      False, # Don't remove (yet) from public keys
                      False, # Don't clear authorized_keys
+                     False, # Don't clear public keys
                      ssh_port_map,
                      master_candidate_uuids,
                      potential_master_candidates)
