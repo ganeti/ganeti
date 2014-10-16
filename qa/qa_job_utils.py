@@ -396,3 +396,34 @@ def RunWithLocks(fn, locks, timeout, block, *args, **kwargs):
 
   # Revive the watcher
   AssertCommand(["gnt-cluster", "watcher", "continue"])
+
+
+def GetJobStatus(job_id):
+  """ Retrieves the status of a job.
+
+  @type job_id: string
+  @param job_id: The job id, represented as a string.
+  @rtype: string or None
+
+  @return: The job status, or None if not present.
+
+  """
+  return GetJobStatuses([job_id]).get(job_id, None)
+
+
+def RetryingWhileJobStatus(retry_status, job_id):
+  """ Used with C{retry.Retry}, waits for a status other than the one given.
+
+  @type retry_status: string
+  @param retry_status: The old job status, expected to change.
+  @type job_id: string
+  @param job_id: The job id, represented as a string.
+
+  @rtype: string or None
+  @return: The new job status, or None if none could be retrieved.
+
+  """
+  status = GetJobStatus(job_id)
+  if status == retry_status:
+    raise retry.RetryAgain()
+  return status

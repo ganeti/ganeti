@@ -56,37 +56,6 @@ def TestJobListFields():
   qa_utils.GenericQueryFieldsTest("gnt-job", query.JOB_FIELDS.keys())
 
 
-def _GetJobStatus(job_id):
-  """ Retrieves the status of a job.
-
-  @type job_id: string
-  @param job_id: The job id, represented as a string.
-  @rtype: string or None
-
-  @return: The job status, or None if not present.
-
-  """
-  return qa_job_utils.GetJobStatuses([job_id]).get(job_id, None)
-
-
-def _RetryingFetchJobStatus(retry_status, job_id):
-  """ Used with C{retry.Retry}, waits for a status other than the one given.
-
-  @type retry_status: string
-  @param retry_status: The old job status, expected to change.
-  @type job_id: string
-  @param job_id: The job id, represented as a string.
-
-  @rtype: string or None
-  @return: The new job status, or None if none could be retrieved.
-
-  """
-  status = _GetJobStatus(job_id)
-  if status == retry_status:
-    raise retry.RetryAgain()
-  return status
-
-
 def TestJobCancellation():
   """gnt-job cancel"""
   # The delay used for the first command should be large enough for the next
@@ -117,12 +86,12 @@ def TestJobCancellation():
   AssertCommand(["gnt-job", "watch", job_id], fail=True)
 
   # Then check for job cancellation
-  job_status = _GetJobStatus(job_id)
+  job_status = qa_job_utils.GetJobStatus(job_id)
   if job_status != constants.JOB_STATUS_CANCELED:
     # Try and see if the job is being cancelled, and wait until the status
     # changes or we hit a timeout
     if job_status == constants.JOB_STATUS_CANCELING:
-      retry_fn = functools.partial(_RetryingFetchJobStatus,
+      retry_fn = functools.partial(qa_job_utils.RetryingWhileJobStatus,
                                    constants.JOB_STATUS_CANCELING, job_id)
       try:
         # The multiplier to use is arbitrary, setting it higher could prevent
