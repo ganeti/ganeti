@@ -234,7 +234,13 @@ In case of readding a node that used to be in the cluster before,
 handling of the SSH keys would basically be the same, in particular also
 a new SSH key pair is generated for the node, because we cannot be sure
 that the old key pair has not been compromised while the node was
-offlined.
+offlined. Note that for reasons of data hygiene, a node's
+``ganeti_pub_keys`` file is cleared before the node is readded.
+Also, Ganeti attempts to remove any Ganeti keys from the ``authorized_keys``
+file before the node is readded. However, since Ganeti does not keep a list
+of all keys ever used in the cluster, this applies only to keys which
+are currently used in the cluster. Note that Ganeti won't touch any keys
+that were added to the ``authorized_keys`` by other systems than Ganeti.
 
 
 Pro- and demoting a node to/from master candidate
@@ -299,7 +305,7 @@ The same behavior should be ensured for the corresponding rapi command.
 Cluster verify
 ~~~~~~~~~~~~~~
 
-So far, 'gnt-cluster verify' checks the SSH connectivity of all nodes to
+So far, ``gnt-cluster verify`` checks the SSH connectivity of all nodes to
 all other nodes. We propose to replace this by the following checks:
 
 - For all master candidates, we check if they can connect any other node
@@ -340,7 +346,7 @@ will be backed up and not simply overridden.
 Downgrades
 ~~~~~~~~~~
 
-These downgrading steps will be implemtented from 2.12 to 2.11:
+These downgrading steps will be implemtented from 2.13 to 2.12:
 
 - The master node's private/public key pair will be distributed to all
   nodes (via SSH) and the individual SSH keys will be backed up.
@@ -351,8 +357,26 @@ These downgrading steps will be implemtented from 2.12 to 2.11:
 Renew-Crypto
 ~~~~~~~~~~~~
 
-The ``gnt-cluster renew-crypto`` command is not affected by the proposed
-changes related to SSH.
+The ``gnt-cluster renew-crypto`` command will be extended by a new
+option ``--new-ssh-keys``, which will renew all SSH keys on all nodes
+and rebuild the ``authorized_keys`` files and the ``ganeti_pub_keys``
+files according to the previous sections. This operation will be
+performed considering the already stated security considerations, for
+example minimizing RPC calls, distribution of keys via SSH only etc.
+
+
+Compliance to --no-ssh-init and --no-node-setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+With this design, Ganeti will do more manipulations of SSH keys and
+``authorized_keys`` files than before. If this is not feasible in
+a Ganeti environment, the administrator has the option to prevent
+Ganeti from performing any manipulations on the SSH setup of the nodes.
+The options for doing so, are ``--no-ssh-init`` for ``gnt-cluster
+init``, and ``--no-node-setup`` for ``gnt-node add``. Note that
+these options already existed before the implementation of this
+design, we just confirm that they will be complied to with the
+new design as well.
 
 
 Proposal regarding node daemon certificates
