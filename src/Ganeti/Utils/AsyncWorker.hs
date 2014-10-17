@@ -19,6 +19,10 @@ Properties:
 - If the caller uses 'triggerAndWait', the call will return just after the
   earliest action following the trigger is finished.
 
+- If the caller uses 'triggerWithResult', it will recive an 'Async' value that
+  can be used to wait for the result (which will be available once the earliest
+  action following the trigger finishes).
+
 - If the worker finishes an action and there are no pending triggers since the
   start of the last action, it becomes idle and waits for a new trigger.
 
@@ -60,10 +64,17 @@ module Ganeti.Utils.AsyncWorker
   , mkAsyncWorker_
   , trigger
   , trigger_
+  , triggerWithResult
+  , triggerWithResult_
+  , triggerWithResultMany
+  , triggerWithResultMany_
   , triggerAndWait
   , triggerAndWait_
   , triggerAndWaitMany
   , triggerAndWaitMany_
+  , Async
+  , wait
+  , waitMany
   ) where
 
 import Control.Monad
@@ -72,10 +83,11 @@ import Control.Monad.Trans.Control
 import Control.Concurrent (ThreadId)
 import Control.Concurrent.Lifted (fork, yield)
 import Control.Concurrent.MVar.Lifted
-import Data.Functor.Identity
 import Data.Monoid
 import qualified Data.Traversable as T
 import Data.IORef.Lifted
+
+-- * The definition and construction of asynchronous workers
 
 -- Represents the state of the requests to the worker. The worker is either
 -- 'Idle', or has 'Pending' triggers to process. After the corresponding
@@ -134,6 +146,20 @@ mkAsyncWorker_ :: (MonadBaseControl IO m)
                => m a -> m (AsyncWorker () a)
 mkAsyncWorker_ = mkAsyncWorker . const
 
+-- * Triggering workers and obtaining their results
+
+-- | An asynchronous result that will eventually yield a value.
+newtype Async a = Async { asyncResult :: MVar a }
+
+-- | Waits for an asynchronous result to finish and yield a value.
+wait :: (MonadBase IO m) => Async a -> m a
+wait = readMVar . asyncResult
+
+-- | Waits for all asynchronous results in a collection to finish and yield a
+-- value.
+waitMany :: (MonadBase IO m, T.Traversable t) => t (Async a) -> m (t a)
+waitMany = T.mapM wait
+
 -- An internal function for triggering a worker, optionally registering
 -- a callback 'MVar'
 triggerInternal :: (MonadBase IO m, Monoid i)
@@ -153,6 +179,40 @@ trigger = flip triggerInternal Nothing
 trigger_ :: (MonadBase IO m) => AsyncWorker () a -> m ()
 trigger_ = trigger ()
 
+-- | Trigger a worker and wait until the action following this trigger
+-- finishes. The returned `Async` value can be used to wait for the result of
+-- the action.
+triggerWithResult :: (MonadBase IO m, Monoid i)
+                  => i -> AsyncWorker i a -> m (Async a)
+triggerWithResult i worker = do
+    result <- newEmptyMVar
+    triggerInternal i (Just result) worker
+    return $ Async result
+
+-- | Trigger a worker and wait until the action following this trigger
+-- finishes.
+--
+-- See 'triggerWithResult'.
+triggerWithResult_ :: (MonadBase IO m) => AsyncWorker () a -> m (Async a)
+triggerWithResult_ = triggerWithResult ()
+
+-- | Trigger a list of workers and wait until all the actions following these
+-- triggers finish. The returned collection of `Async` values can be used to
+-- wait for the results of the actions.
+triggerWithResultMany :: (T.Traversable t, MonadBase IO m, Monoid i)
+                      => i -> t (AsyncWorker i a) -> m (t (Async a))
+triggerWithResultMany i = T.mapM (triggerWithResult i)
+--
+-- | Trigger a list of workers with no inputs and wait until all the actions
+-- following these triggers finish.
+--
+-- See 'triggerWithResultMany'.
+triggerWithResultMany_ :: (T.Traversable t, MonadBase IO m)
+                       => t (AsyncWorker () a) -> m (t (Async a))
+triggerWithResultMany_ = triggerWithResultMany ()
+
+-- * Helper functions for waiting for results just after triggering workers
+
 -- | Trigger a list of workers and wait until all the actions following these
 -- triggers finish. Returns the results of the actions.
 --
@@ -161,16 +221,8 @@ trigger_ = trigger ()
 -- sequentially, while the former runs them in parallel.
 triggerAndWaitMany :: (T.Traversable t, MonadBase IO m, Monoid i)
                    => i -> t (AsyncWorker i a) -> m (t a)
-triggerAndWaitMany i workers =
-    let trig w = do
-                  result <- newEmptyMVar
-                  triggerInternal i (Just result) w
-                  return result
-    in T.mapM trig workers >>= T.mapM takeMVar
+triggerAndWaitMany i = waitMany <=< triggerWithResultMany i
 
--- | Trigger a list of workers with no input and wait until all the actions
--- following these triggers finish. Returns the results of the actions.
---
 -- See 'triggetAndWaitMany'.
 triggerAndWaitMany_ :: (T.Traversable t, MonadBase IO m)
                     => t (AsyncWorker () a) -> m (t a)
@@ -179,7 +231,7 @@ triggerAndWaitMany_ = triggerAndWaitMany ()
 -- | Trigger a worker and wait until the action following this trigger
 -- finishes. Return the result of the action.
 triggerAndWait :: (MonadBase IO m, Monoid i) => i -> AsyncWorker i a -> m a
-triggerAndWait i = liftM runIdentity . triggerAndWaitMany i . Identity
+triggerAndWait i = wait <=< triggerWithResult i
 
 -- | Trigger a worker with no input and wait until the action following this
 -- trigger finishes. Return the result of the action.
