@@ -87,6 +87,24 @@ def KillWaitJobs(job_ids):
     AssertCommand(["gnt-job", "watch", str(jid)], fail=None)
 
 
+def AssertStatusRetry(jid, status, interval=1.0, timeout=20.0):
+  """Keeps polling the given job until a given status is reached.
+
+  @type jid: int
+  @param jid: job ID of the job to poll
+  @type status: string
+  @param status: status to wait for
+  @type interval: float
+  @param interval: polling interval in seconds
+  @type timeout: float
+  @param timeout: polling timeout in seconds
+
+  @raise retry:RetryTimeout: If the status was not reached within the timeout
+  """
+  retry_fn = lambda: qa_job_utils.RetryingUntilJobStatus(status, str(jid))
+  retry.Retry(retry_fn, interval, timeout)
+
+
 def TestFilterList():
   """gnt-filter list"""
   qa_utils.GenericQueryTest("gnt-filter", query.FILTER_FIELDS.keys(),
@@ -292,18 +310,17 @@ def TestFilterAcceptPause():
     "0.01",
   ]))
 
-  time.sleep(0.5)  # give some time to finish
+  time.sleep(0.5)  # give some time to get queued
 
-  AssertEqual(GetJobStatus(jid1), "queued", msg="Job should be paused")
-  AssertEqual(GetJobStatus(jid2), "success", msg="Job should not be paused")
+  AssertStatusRetry(jid1, "queued")  # job should be paused
+  AssertStatusRetry(jid2, "success")  # job should not be paused
 
   # Delete the filters.
   AssertCommand(["gnt-filter", "delete", uuid1])
   AssertCommand(["gnt-filter", "delete", uuid2])
 
-  # Now the second job should run through.
-  retry_fn = lambda: qa_job_utils.RetryingUntilJobStatus("success", str(jid1))
-  retry.Retry(retry_fn, 1.0, 20)
+  # Now the paused job should run through.
+  AssertStatusRetry(jid1, "success")
 
 
 def TestFilterRateLimit():
