@@ -338,11 +338,11 @@ AC_ARG_WITH([group-prefix],
   [group_rapi="${withval}rapi";
    group_admin="${withval}admin";
    group_confd="${withval}confd";
-   group_wconfd="${withval}wconfd";
+   group_wconfd="${withval}masterd";
    group_kvmd="$group_default";
    group_luxid="${withval}luxid";
    group_masterd="${withval}masterd";
-   group_metad="${withval}metad";
+   group_metad="$group_default";
    group_noded="$group_default";
    group_daemons="${withval}daemons";
    group_mond="$group_default"],
