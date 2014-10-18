@@ -1841,8 +1841,8 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DMAN_PAGES="$$(for i in $(notdir $(man_MANS)); do \
 	                    echo -n "$$i" | sed -re 's/^(.*)\.([0-9]+)$$/("\1",\2):/g'; \
 	                    done)" \
-	    -DAF_INET4="$$(PYTHONPATH=. python $(PRINT_PY_CONSTANTS) AF_INET4)" \
-	    -DAF_INET6="$$(PYTHONPATH=. python $(PRINT_PY_CONSTANTS) AF_INET6)" \
+	    -DAF_INET4="$$(PYTHONPATH=. $(PYTHON) $(PRINT_PY_CONSTANTS) AF_INET4)" \
+	    -DAF_INET6="$$(PYTHONPATH=. $(PYTHON) $(PRINT_PY_CONSTANTS) AF_INET6)" \
 	$(abs_top_srcdir)/src/AutoConf.hs.in > $@
 
 lib/_vcsversion.py: Makefile vcs-version | stamp-directories
