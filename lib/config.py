@@ -2873,15 +2873,19 @@ class ConfigWriter(object):
       # Upgrade configuration if needed
       self._UpgradeConfig(saveafter=True)
     else:
-      # poll until we acquire the lock
-      while True:
+      if shared:
         dict_data = \
-          self._wconfd.LockConfig(self._GetWConfdContext(), bool(shared))
-        logging.debug("Received config from WConfd.LockConfig [shared=%s]",
-                      bool(shared))
-        if dict_data is not None:
-          break
-        time.sleep(random.random())
+            self._wconfd.ReadConfig()
+      else:
+        # poll until we acquire the lock
+        while True:
+          dict_data = \
+              self._wconfd.LockConfig(self._GetWConfdContext(), bool(shared))
+          logging.debug("Received config from WConfd.LockConfig [shared=%s]",
+                        bool(shared))
+          if dict_data is not None:
+            break
+          time.sleep(random.random())
 
       try:
         self._SetConfigData(objects.ConfigData.FromDict(dict_data))
@@ -2905,7 +2909,7 @@ class ConfigWriter(object):
       logging.critical("Can't write the configuration: %s", str(err))
       raise
     finally:
-      if not self._offline:
+      if not self._offline and not self._lock_current_shared:
         try:
           self._wconfd.UnlockConfig(self._GetWConfdContext())
         except AttributeError:
