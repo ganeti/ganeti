@@ -1171,6 +1171,17 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
 	$(GHC) -M -dep-makefile $@ -dep-suffix $(HPROF_SUFFIX) \
 		-dep-suffix $(HTEST_SUFFIX) $(HFLAGS) -itest/hs \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
+# Since ghc -M does not generate dependency line for object files, dependencies
+# from a target executable seed object (e.g. src/hluxid.o) to objects which
+# finally will be linked to the target object (e.g. src/Ganeti/Daemon.o) are
+# missing in Makefile.ghc.
+# see: https://www.haskell.org/ghc/docs/7.6.2/html/users_guide/separate-compilation.html#makefile-dependencies
+# Following substitutions will add dependencies between object files which
+# corresponds to the interface file already there as a dependency for each
+# object listed in Makefile.ghc.
+# e.g. src/hluxid.o : src/Ganeti/Daemon.hi
+#        => src/hluxid.o : src/Ganeti/Daemon.hi src/Ganeti/Daemon.o
+	sed -i -re 's/([^ ]+)\.hi$$/\1.hi \1.o/' $@
 
 @include_makefile_ghc@
 
