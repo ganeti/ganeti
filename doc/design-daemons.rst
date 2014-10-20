@@ -437,8 +437,8 @@ Step 2:
 
 Step 3:
   In a later step, the impact of the config lock will be reduced by moving
-  it more and more into an internal detail of WConfD. This process will be
-  detailed in a forthcoming design document.
+  it more and more into an internal detail of WConfD. This forthcoming process
+  of :doc:`design-configlock` is described separately.
 
 
 Locking
