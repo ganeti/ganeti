@@ -76,10 +76,9 @@ checkConfigLock cid state = do
          . failError $ "Requested lock " ++ show state
                        ++ " on the configuration missing"
 
--- | Read the configuration, checking that a shared lock is held.
--- If not, the call fails.
-readConfig :: ClientId -> WConfdMonad ConfigData
-readConfig ident = checkConfigLock ident L.OwnShared >> CW.readConfig
+-- | Read the configuration.
+readConfig :: WConfdMonad ConfigData
+readConfig = CW.readConfig
 
 -- | Write the configuration, checking that an exclusive lock is held.
 -- If not, the call fails.
