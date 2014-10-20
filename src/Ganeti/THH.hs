@@ -68,6 +68,7 @@ module Ganeti.THH ( declareSADT
                   , renameField
                   , customField
                   , buildObject
+                  , buildObjectWithForthcoming
                   , buildObjectSerialisation
                   , buildParam
                   , genException
@@ -950,6 +951,54 @@ buildObject sname field_pfx fields = do
   let declD = DataD [] name [] [decl_d] [''Show, ''Eq]
   ser_decls <- buildObjectSerialisation sname fields
   return $ declD:ser_decls
+
+-- | Build an object that can have a forthcoming variant.
+-- This will create 3 data types: two objects, prefixed by
+-- "Real" and "Forthcoming", respectively, and a sum type
+-- of those. The JSON representation of the latter will
+-- be a JSON object, dispatching on the "forthcoming" key.
+buildObjectWithForthcoming ::
+  String -- ^ Name of the newly defined type
+  -> String -- ^ base prefix for field names; for the real and fortcoming
+            -- variant, with base prefix will be prefixed with "real"
+            -- and forthcoming, respectively.
+  -> [Field] -- ^ List of fields in the real version
+  -> Q [Dec]
+buildObjectWithForthcoming sname field_pfx fields = do
+  let capitalPrefix = ensureUpper field_pfx
+      forth_nm = "Forthcoming" ++ sname
+      forth_data_nm = forth_nm ++ "Data"
+      forth_pfx = "forthcoming" ++ capitalPrefix
+      real_nm =  "Real" ++ sname
+      real_data_nm = real_nm ++ "Data"
+      real_pfx = "real" ++ capitalPrefix
+  concreteDecls <- buildObject real_data_nm real_pfx fields
+  forthcomingDecls <- buildObject forth_data_nm forth_pfx
+                      (map makeOptional fields)
+  let name = mkName sname
+      real_d = NormalC (mkName real_nm)
+                 [(NotStrict, ConT (mkName real_data_nm))]
+      forth_d = NormalC (mkName forth_nm)
+                  [(NotStrict, ConT (mkName forth_data_nm))]
+      declD = DataD [] name [] [real_d, forth_d] [''Show, ''Eq]
+
+  read_body <- [| branchOnField "forthcoming"
+                  (liftM $(conE $ mkName forth_nm) . JSON.readJSON)
+                  (liftM $(conE $ mkName real_nm) . JSON.readJSON) |]
+  x <- newName "x"
+  show_real_body <- [| JSON.showJSON $(varE x) |]
+  show_forth_body <- [| addField ("forthcoming", JSON.JSBool True)
+                          $ JSON.showJSON $(varE x) |]
+  let rdjson = FunD 'JSON.readJSON [Clause [] (NormalB read_body) []]
+      shjson = FunD 'JSON.showJSON
+                 [ Clause [ConP (mkName real_nm) [VarP x]]
+                    (NormalB show_real_body) []
+                 , Clause [ConP (mkName forth_nm) [VarP x]]
+                    (NormalB show_forth_body) []
+                 ]
+      instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
+                 [rdjson, shjson]
+  return $ concreteDecls ++ forthcomingDecls ++ [declD, instdecl]
 
 -- | Generates an object definition: data type and its JSON instance.
 buildObjectSerialisation :: String -> [Field] -> Q [Dec]
