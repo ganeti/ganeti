@@ -436,16 +436,10 @@ Step 2:
      methods to WConfD.
 
 Step 3:
-  #. Remove WConfD's RPC functions for obtaining/releasing the single
-     internal lock from Step 1.
-  #. Remove WConfD's RPC functions for sending/receiving the whole
-     configuration from Step 1.
+  In a later step, the impact of the config lock will be reduced by moving
+  it more and more into an internal detail of WConfD. This process will be
+  detailed in a forthcoming design document.
 
-Future aims:
-
--  Optionally refactor the RPC calls to reduce their number or improve their
-   efficiency (for example by obtaining a larger set of data instead of
-   querying items one by one).
 
 Locking
 +++++++
