@@ -591,25 +591,26 @@ class XenHypervisor(hv_base.BaseHypervisor):
       nic_args = {}
       nic_args["mac"] = "%s%s" % (nic.mac, nic_type_str)
 
-      ip = getattr(nic, "ip", None)
-      if ip is not None:
-        nic_args["ip"] = ip
-
-      if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
-        nic_args["bridge"] = nic.nicparams[constants.NIC_LINK]
-      elif nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_OVS:
-        nic_args["bridge"] = nic.nicparams[constants.NIC_LINK]
-        if nic.nicparams[constants.NIC_VLAN]:
-          nic_args["bridge"] += nic.nicparams[constants.NIC_VLAN]
-
       if nic.name and \
             nic.name.startswith(constants.INSTANCE_COMMUNICATION_NIC_PREFIX):
         tap = hv_base.GenerateTapName()
         nic_args["vifname"] = tap
+        nic_args["script"] = pathutils.XEN_VIF_METAD_SETUP
         nic.name = tap
+      else:
+        ip = getattr(nic, "ip", None)
+        if ip is not None:
+          nic_args["ip"] = ip
 
-      if hvp[constants.HV_VIF_SCRIPT]:
-        nic_args["script"] = hvp[constants.HV_VIF_SCRIPT]
+        if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
+          nic_args["bridge"] = nic.nicparams[constants.NIC_LINK]
+        elif nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_OVS:
+          nic_args["bridge"] = nic.nicparams[constants.NIC_LINK]
+          if nic.nicparams[constants.NIC_VLAN]:
+            nic_args["bridge"] += nic.nicparams[constants.NIC_VLAN]
+
+        if hvp[constants.HV_VIF_SCRIPT]:
+          nic_args["script"] = hvp[constants.HV_VIF_SCRIPT]
 
       nic_str = ", ".join(["%s=%s" % p for p in nic_args.items()])
       vif_data.append("'%s'" % (nic_str, ))
