@@ -183,20 +183,20 @@ def GenerateTapName():
            NIC is not used in instance communication
 
   """
-  result = utils.RunCmd(["ip", "tuntap", "list"])
+  result = utils.RunCmd(["ip", "link", "show"])
 
   if result.failed:
     raise errors.HypervisorError("Failed to list TUN/TAP interfaces")
 
   idxs = set()
 
-  for line in result.output.splitlines():
-    parts = line.split(": ", 1)
+  for line in result.output.splitlines()[0::2]:
+    parts = line.split(": ")
 
     if len(parts) < 2:
       raise errors.HypervisorError("Failed to parse TUN/TAP interfaces")
 
-    r = re.match(r"gnt\.com\.([0-9]+)", parts[0])
+    r = re.match(r"gnt\.com\.([0-9]+)", parts[1])
 
     if r is not None:
       idxs.add(int(r.group(1)))
