@@ -426,7 +426,7 @@ else
   # Note: Character classes ([...]) need to be double quoted due to autoconf
   # using m4
   elif ! echo "$sphinxver" | grep -q -E \
-       '^Sphinx[[[:space:]]]+(\(sphinx-build\)[[[:space:]]]+|v)[[1-9]]\>'; then
+       '^Sphinx([[[:space:]]]+|\(sphinx-build[[1-9]]?\)|v)*[[1-9]]\>'; then
     AC_MSG_ERROR([Sphinx 1.0 or higher is required])
   fi
 fi
