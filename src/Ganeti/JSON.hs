@@ -77,6 +77,7 @@ module Ganeti.JSON
   , nestedAccessByKey
   , nestedAccessByKeyDotted
   , branchOnField
+  , addField
   )
   where
 
@@ -94,6 +95,7 @@ import System.Time (ClockTime(..))
 import Text.Printf (printf)
 
 import qualified Text.JSON as J
+import qualified Text.JSON.Types as JT
 import Text.JSON.Pretty (pp_value)
 
 -- Note: this module should not import any Ganeti-specific modules
@@ -525,3 +527,8 @@ branchOnField k ifTrue ifFalse (J.JSObject jobj) =
        then ifTrue jobj'
        else ifFalse jobj'
 branchOnField k _ _ _ = J.Error $ "Need an object to branch on key " ++ k
+
+-- | Add a field to a JSON object; to nothing, if the argument is not an object.
+addField :: (String, J.JSValue) -> J.JSValue -> J.JSValue
+addField (n,v) (J.JSObject obj) = J.JSObject $ JT.set_field obj n v
+addField _ jsval = jsval
