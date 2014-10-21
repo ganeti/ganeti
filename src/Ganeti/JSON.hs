@@ -76,6 +76,7 @@ module Ganeti.JSON
   , Tuple5(..)
   , nestedAccessByKey
   , nestedAccessByKeyDotted
+  , branchOnField
   )
   where
 
@@ -507,3 +508,20 @@ nestedAccessByKey keys json = case keys of
 nestedAccessByKeyDotted :: String -> J.JSValue -> J.Result J.JSValue
 nestedAccessByKeyDotted s =
   nestedAccessByKey (map T.unpack . T.splitOn (T.pack ".") . T.pack $ s)
+
+
+-- | Branch decoding on a field in a JSON object.
+branchOnField :: String -- ^ fieldname to branch on
+              -> (J.JSValue -> J.Result a)
+                  -- ^ decoding function if field is present and @true@; field
+                  -- will already be removed in the input
+              -> (J.JSValue -> J.Result a)
+                 -- ^ decoding function otherwise
+              -> J.JSValue -> J.Result a
+branchOnField k ifTrue ifFalse (J.JSObject jobj) =
+  let fields = J.fromJSObject jobj
+      jobj' = J.JSObject . J.toJSObject $ filter ((/=) k . fst) fields
+  in if lookup k fields == Just (J.JSBool True)
+       then ifTrue jobj'
+       else ifFalse jobj'
+branchOnField k _ _ _ = J.Error $ "Need an object to branch on key " ++ k
