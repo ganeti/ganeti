@@ -63,11 +63,11 @@ args = None
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 13
+TARGET_MINOR = 14
 #: Target major version for downgrade
 DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
-DOWNGRADE_MINOR = 12
+DOWNGRADE_MINOR = 13
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -470,40 +470,11 @@ def UpgradeAll(config_data):
 
 # DOWNGRADE ------------------------------------------------------------
 
-def DowngradeExtAccess(config_data):
-  # Remove 'access' for ext storage from cluster diskparams
-  cluster_extparams = config_data["cluster"]["diskparams"].get("ext", None)
-  if (cluster_extparams is not None and
-      "access" in cluster_extparams):
-    del cluster_extparams["access"]
-
-  # Remove 'access' for ext storage from nodegroup diskparams
-  for group in config_data["nodegroups"].values():
-    group_extparams = group["diskparams"].get("ext", None)
-    if (group_extparams is not None and
-        "access" in group_extparams):
-      del group_extparams["access"]
-
-
-def DowngradeDataCollectors(config_data):
-  cluster = config_data["cluster"]
-  if "data_collectors" in cluster:
-    del cluster["data_collectors"]
-
-
-def DowngradeFilters(config_data):
-  if "filters" in config_data:
-    del config_data["filters"]
-
-
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
-  DowngradeExtAccess(config_data)
-  DowngradeDataCollectors(config_data)
-  DowngradeFilters(config_data)
 
 
 def _ParseOptions():
@@ -674,8 +645,8 @@ def main():
     _Downgrade(config_major, config_minor, config_version, config_data,
                config_revision)
 
-  # Upgrade from 2.{0..12} to 2.13
-  elif config_major == 2 and config_minor in range(0, 13):
+  # Upgrade from 2.{0..13} to 2.14
+  elif config_major == 2 and config_minor in range(0, 14):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
     UpgradeAll(config_data)
