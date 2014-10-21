@@ -549,8 +549,7 @@ def _ComputeMinMaxSpec(name, qualifier, ispecs, value):
 
 def ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
                                 nic_count, disk_sizes, spindle_use,
-                                disk_template,
-                                _compute_fn=_ComputeMinMaxSpec):
+                                disk_types, _compute_fn=_ComputeMinMaxSpec):
   """Verifies ipolicy against provided specs.
 
   @type ipolicy: dict
@@ -567,13 +566,15 @@ def ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
   @param disk_sizes: Disk sizes of used disk (len must match C{disk_count})
   @type spindle_use: int
   @param spindle_use: The number of spindles this instance uses
-  @type disk_template: string
-  @param disk_template: The disk template of the instance
+  @type disk_types: list of strings
+  @param disk_types: The disk template of the instance
   @param _compute_fn: The compute function (unittest only)
   @return: A list of violations, or an empty list of no violations are found
 
   """
   assert disk_count == len(disk_sizes)
+  assert isinstance(disk_types, list)
+  assert disk_count == len(disk_types)
 
   test_settings = [
     (constants.ISPEC_MEM_SIZE, "", mem_size),
@@ -586,10 +587,11 @@ def ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
     # This check doesn't make sense for diskless instances
     test_settings.append((constants.ISPEC_DISK_COUNT, "", disk_count))
   ret = []
-  allowed_dts = ipolicy[constants.IPOLICY_DTS]
-  if disk_template not in allowed_dts:
+  allowed_dts = set(ipolicy[constants.IPOLICY_DTS])
+  forbidden_dts = set(disk_types) - allowed_dts
+  if forbidden_dts:
     ret.append("Disk template %s is not allowed (allowed templates: %s)" %
-               (disk_template, utils.CommaJoin(allowed_dts)))
+               (utils.CommaJoin(forbidden_dts), utils.CommaJoin(allowed_dts)))
 
   min_errs = None
   for minmax in ipolicy[constants.ISPECS_MINMAX]:
@@ -638,10 +640,10 @@ def ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
   disk_count = len(disks)
   disk_sizes = [disk.size for disk in disks]
   nic_count = len(instance.nics)
-  disk_template = instance.disk_template
+  disk_types = [d.dev_type for d in disks]
 
   return ret + _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
-                           disk_sizes, spindle_use, disk_template)
+                           disk_sizes, spindle_use, disk_types)
 
 
 def _ComputeViolatingInstances(ipolicy, instances, cfg):
@@ -1267,20 +1269,21 @@ def CheckDiskAccessModeConsistency(parameters, cfg, group=None):
 
     for entry in inst_uuids:
       inst = cfg.GetInstanceInfo(entry)
-      inst_template = inst.disk_template
+      disks = cfg.GetInstanceDisks(entry)
+      for disk in disks:
 
-      if inst_template != disk_template:
-        continue
+        if disk.dev_type != disk_template:
+          continue
 
-      hv = inst.hypervisor
+        hv = inst.hypervisor
 
-      if not IsValidDiskAccessModeCombination(hv, inst_template, access):
-        raise errors.OpPrereqError("Instance {i}: cannot use '{a}' access"
-                                   " setting with {h} hypervisor and {d} disk"
-                                   " type.".format(i=inst.name,
-                                                   a=access,
-                                                   h=hv,
-                                                   d=inst_template))
+        if not IsValidDiskAccessModeCombination(hv, disk.dev_type, access):
+          raise errors.OpPrereqError("Instance {i}: cannot use '{a}' access"
+                                     " setting with {h} hypervisor and {d} disk"
+                                     " type.".format(i=inst.name,
+                                                     a=access,
+                                                     h=hv,
+                                                     d=disk.dev_type))
 
 
 def IsValidDiskAccessModeCombination(hv, disk_template, mode):

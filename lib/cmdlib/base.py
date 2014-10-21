@@ -510,6 +510,12 @@ class LogicalUnit(object): # pylint: disable=R0902
 
     del self.recalculate_locks[level]
 
+  def AssertReleasedLocks(self, level):
+    """Raise AssertionError if the LU holds some locks of the given level.
+
+    """
+    assert not self.owned_locks(level)
+
 
 class NoHooksLU(LogicalUnit): # pylint: disable=W0223
   """Simple LU which runs no hooks.

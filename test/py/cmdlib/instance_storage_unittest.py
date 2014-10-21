@@ -37,9 +37,13 @@ from ganeti import constants
 from ganeti.cmdlib import instance_storage
 from ganeti import errors
 from ganeti import objects
+from ganeti import opcodes
 
 import testutils
 import mock
+import time
+
+from testsupport import CmdlibTestCase
 
 
 class TestCheckNodesFreeDiskOnVG(unittest.TestCase):
@@ -188,6 +192,78 @@ class TestCheckComputeDisksInfo(unittest.TestCase):
       AssertionError, instance_storage.ComputeDisksInfo,
       self.disks, constants.DT_EXT, self.default_vg, self.ext_params)
 
+
+class TestLUInstanceReplaceDisks(CmdlibTestCase):
+  """Tests for LUInstanceReplaceDisks."""
+
+  def setUp(self):
+    super(TestLUInstanceReplaceDisks, self).setUp()
+
+    self.MockOut(time, 'sleep')
+
+    self.node1 = self.cfg.AddNewNode()
+    self.node2 = self.cfg.AddNewNode()
+
+  def MakeOpCode(self, disks, early_release=False, ignore_ipolicy=False,
+                 remote_node=False, mode='replace_auto'):
+    return opcodes.OpInstanceReplaceDisks(
+        instance_name=self.instance.name,
+        instance_uuid=self.instance.uuid,
+        early_release=early_release,
+        ignore_ipolicy=ignore_ipolicy,
+        mode=mode,
+        disks=disks,
+        remote_node=self.node2.name if remote_node else None,
+        remote_node_uuid=self.node2.uuid if remote_node else None,
+        iallocator=None)
+
+  def testInvalidTemplate(self):
+    self.instance = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP,
+                                            disk_template='diskless',
+                                            primary_node=self.node1)
+
+    opcode = self.MakeOpCode([])
+    self.ExecOpCodeExpectOpPrereqError(
+        opcode, 'strange layout')
+
+  def SimulateDiskFailure(self, node, disk):
+    def Faulty(node_uuid):
+      disks = self.cfg.GetInstanceDisks(node_uuid)
+      return [i for i,d in enumerate(disks)
+              if i == disk and node.uuid == node_uuid]
+    self.MockOut(instance_storage.TLReplaceDisks, '_FindFaultyDisks',
+                 side_effect=Faulty)
+    self.MockOut(instance_storage.TLReplaceDisks, '_CheckDevices')
+    self.MockOut(instance_storage.TLReplaceDisks, '_CheckVolumeGroup')
+    self.MockOut(instance_storage.TLReplaceDisks, '_CheckDisksExistence')
+    self.MockOut(instance_storage.TLReplaceDisks, '_CheckDisksConsistency')
+    self.MockOut(instance_storage.LUInstanceReplaceDisks, 'AssertReleasedLocks')
+    self.MockOut(instance_storage, 'WaitForSync')
+    self.rpc.call_blockdev_addchildren().fail_msg = None
+
+  def testReplacePrimary(self):
+    self.instance = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP,
+                                            disk_template='drbd',
+                                            primary_node=self.node1,
+                                            secondary_node=self.node2)
+
+    self.SimulateDiskFailure(self.node1, 0)
+
+    opcode = self.MakeOpCode([0], mode='replace_on_primary')
+    self.ExecOpCode(opcode)
+    self.rpc.call_blockdev_rename.assert_any_call(self.node1.uuid, [])
+
+  def testReplaceSecondary(self):
+    self.instance = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP,
+                                            disk_template='drbd',
+                                            primary_node=self.node1,
+                                            secondary_node=self.node2)
+
+    self.SimulateDiskFailure(self.node2, 0)
+
+    opcode = self.MakeOpCode([0], mode='replace_on_secondary')
+    self.ExecOpCode(opcode)
+    self.rpc.call_blockdev_rename.assert_any_call(self.node2.uuid, [])
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

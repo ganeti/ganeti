@@ -52,7 +52,7 @@ from ganeti import utils
 from ganeti.cmdlib import instance
 from ganeti.cmdlib import instance_utils
 
-from cmdlib.cmdlib_unittest import _StubComputeIPolicySpecViolation, _FakeLU
+from cmdlib.cmdlib_unittest import _FakeLU
 
 from testsupport import *
 
@@ -60,8 +60,8 @@ import testutils
 
 
 class TestComputeIPolicyInstanceSpecViolation(unittest.TestCase):
-  def test(self):
-    ispec = {
+  def setUp(self):
+    self.ispec = {
       constants.ISPEC_MEM_SIZE: 2048,
       constants.ISPEC_CPU_COUNT: 2,
       constants.ISPEC_DISK_COUNT: 1,
@@ -69,12 +69,15 @@ class TestComputeIPolicyInstanceSpecViolation(unittest.TestCase):
       constants.ISPEC_NIC_COUNT: 0,
       constants.ISPEC_SPINDLE_USE: 1,
       }
-    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 1,
-                                            constants.DT_PLAIN)
-    ret = instance._ComputeIPolicyInstanceSpecViolation(NotImplemented, ispec,
-                                                        constants.DT_PLAIN,
-                                                        _compute_fn=stub)
+    self.stub = mock.MagicMock()
+    self.stub.return_value = []
+
+  def testPassThrough(self):
+    ret = instance._ComputeIPolicyInstanceSpecViolation(
+        NotImplemented, self.ispec, [constants.DT_PLAIN], _compute_fn=self.stub)
     self.assertEqual(ret, [])
+    self.stub.assert_called_with(NotImplemented, 2048, 2, 1, 0, [512],
+                                 1, [constants.DT_PLAIN])
 
 
 class TestLUInstanceCreate(CmdlibTestCase):
@@ -96,6 +99,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
 
   def setUp(self):
     super(TestLUInstanceCreate, self).setUp()
+    self.ResetMocks()
 
     self.net = self.cfg.AddNewNetwork()
     self.cfg.ConnectNetworkToGroup(self.net, self.group)
@@ -125,7 +129,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
     self.iallocator_cls.return_value.result = [self.node1.name, self.node2.name]
 
     self.diskless_op = opcodes.OpInstanceCreate(
-      instance_name="diskless.test.com",
+      instance_name="diskless.example.com",
       pnode=self.master.name,
       disk_template=constants.DT_DISKLESS,
       mode=constants.INSTANCE_CREATE,
@@ -134,7 +138,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
       os_type=self.os_name_variant)
 
     self.plain_op = opcodes.OpInstanceCreate(
-      instance_name="plain.test.com",
+      instance_name="plain.example.com",
       pnode=self.master.name,
       disk_template=constants.DT_PLAIN,
       mode=constants.INSTANCE_CREATE,
@@ -145,7 +149,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
       os_type=self.os_name_variant)
 
     self.block_op = opcodes.OpInstanceCreate(
-      instance_name="block.test.com",
+      instance_name="block.example.com",
       pnode=self.master.name,
       disk_template=constants.DT_BLOCK,
       mode=constants.INSTANCE_CREATE,
@@ -157,7 +161,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
       os_type=self.os_name_variant)
 
     self.drbd_op = opcodes.OpInstanceCreate(
-      instance_name="drbd.test.com",
+      instance_name="drbd.example.com",
       pnode=self.node1.name,
       snode=self.node2.name,
       disk_template=constants.DT_DRBD8,
@@ -169,7 +173,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
       os_type=self.os_name_variant)
 
     self.file_op = opcodes.OpInstanceCreate(
-      instance_name="file.test.com",
+      instance_name="file.example.com",
       pnode=self.node1.name,
       disk_template=constants.DT_FILE,
       mode=constants.INSTANCE_CREATE,
@@ -179,6 +183,38 @@ class TestLUInstanceCreate(CmdlibTestCase):
       }],
       os_type=self.os_name_variant)
 
+    self.shared_file_op = opcodes.OpInstanceCreate(
+      instance_name="shared-file.example.com",
+      pnode=self.node1.name,
+      disk_template=constants.DT_SHARED_FILE,
+      mode=constants.INSTANCE_CREATE,
+      nics=[{}],
+      disks=[{
+        constants.IDISK_SIZE: 1024
+      }],
+      os_type=self.os_name_variant)
+
+    self.gluster_op = opcodes.OpInstanceCreate(
+      instance_name="gluster.example.com",
+      pnode=self.node1.name,
+      disk_template=constants.DT_GLUSTER,
+      mode=constants.INSTANCE_CREATE,
+      nics=[{}],
+      disks=[{
+        constants.IDISK_SIZE: 1024
+      }],
+      os_type=self.os_name_variant)
+
+    self.rbd_op = opcodes.OpInstanceCreate(
+      instance_name="gluster.example.com",
+      pnode=self.node1.name,
+      disk_template=constants.DT_RBD,
+      mode=constants.INSTANCE_CREATE,
+      nics=[{}],
+      disks=[{
+        constants.IDISK_SIZE: 1024
+      }],
+      os_type=self.os_name_variant)
   def testSimpleCreate(self):
     op = self.CopyOpCode(self.diskless_op)
     self.ExecOpCode(op)
@@ -544,7 +580,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
     self.netutils_mod.TcpPing.return_value = True
     op = self.CopyOpCode(self.diskless_op)
     self.ExecOpCodeExpectOpPrereqError(
-      op, "IP .* of instance diskless.test.com already in use")
+      op, "IP .* of instance diskless.example.com already in use")
 
   def testPrimaryIsSecondaryNode(self):
     op = self.CopyOpCode(self.drbd_op,
@@ -766,6 +802,87 @@ param1=val1
                          mode=constants.INSTANCE_IMPORT,
                          src_node=self.master.name)
     self.ExecOpCode(op)
+
+
+class TestDiskTemplateDiskTypeBijection(TestLUInstanceCreate):
+  """Tests that one disk template corresponds to exactly one disk type."""
+
+  def GetSingleInstance(self):
+    instances = self.cfg.GetInstancesInfoByFilter(lambda _: True)
+    self.assertEqual(len(instances), 1,
+      "Expected 1 instance, got\n%s" % instances)
+    return instances.values()[0]
+
+  def testDiskTemplateLogicalIdBijectionDiskless(self):
+    op = self.CopyOpCode(self.diskless_op)
+    self.ExecOpCode(op)
+    instance = self.GetSingleInstance()
+    self.assertEqual(instance.disk_template, constants.DT_DISKLESS)
+    self.assertEqual(instance.disks, [])
+
+  def testDiskTemplateLogicalIdBijectionPlain(self):
+    op = self.CopyOpCode(self.plain_op)
+    self.ExecOpCode(op)
+    instance = self.GetSingleInstance()
+    self.assertEqual(instance.disk_template, constants.DT_PLAIN)
+    disks = self.cfg.GetInstanceDisks(instance.uuid)
+    self.assertEqual(disks[0].dev_type, constants.DT_PLAIN)
+
+  def testDiskTemplateLogicalIdBijectionBlock(self):
+    self.rpc.call_bdev_sizes.return_value = \
+      self.RpcResultsBuilder() \
+        .AddSuccessfulNode(self.master, {
+          "/dev/disk/block0": 10000
+        }) \
+        .Build()
+    op = self.CopyOpCode(self.block_op)
+    self.ExecOpCode(op)
+    instance = self.GetSingleInstance()
+    self.assertEqual(instance.disk_template, constants.DT_BLOCK)
+    disks = self.cfg.GetInstanceDisks(instance.uuid)
+    self.assertEqual(disks[0].dev_type, constants.DT_BLOCK)
+
+  def testDiskTemplateLogicalIdBijectionDrbd(self):
+    op = self.CopyOpCode(self.drbd_op)
+    self.ExecOpCode(op)
+    instance = self.GetSingleInstance()
+    self.assertEqual(instance.disk_template, constants.DT_DRBD8)
+    disks = self.cfg.GetInstanceDisks(instance.uuid)
+    self.assertEqual(disks[0].dev_type, constants.DT_DRBD8)
+
+  def testDiskTemplateLogicalIdBijectionFile(self):
+    op = self.CopyOpCode(self.file_op)
+    self.ExecOpCode(op)
+    instance = self.GetSingleInstance()
+    self.assertEqual(instance.disk_template, constants.DT_FILE)
+    disks = self.cfg.GetInstanceDisks(instance.uuid)
+    self.assertEqual(disks[0].dev_type, constants.DT_FILE)
+
+  def testDiskTemplateLogicalIdBijectionSharedFile(self):
+    self.cluster.shared_file_storage_dir = '/tmp'
+    op = self.CopyOpCode(self.shared_file_op)
+    self.ExecOpCode(op)
+    instance = self.GetSingleInstance()
+    self.assertEqual(instance.disk_template, constants.DT_SHARED_FILE)
+    disks = self.cfg.GetInstanceDisks(instance.uuid)
+    self.assertEqual(disks[0].dev_type, constants.DT_SHARED_FILE)
+
+  def testDiskTemplateLogicalIdBijectionGluster(self):
+    self.cluster.gluster_storage_dir = '/tmp'
+    op = self.CopyOpCode(self.gluster_op)
+    self.ExecOpCode(op)
+    instance = self.GetSingleInstance()
+    self.assertEqual(instance.disk_template, constants.DT_GLUSTER)
+    disks = self.cfg.GetInstanceDisks(instance.uuid)
+    self.assertEqual(disks[0].dev_type, constants.DT_GLUSTER)
+
+  def testDiskTemplateLogicalIdBijectionRbd(self):
+    op = self.CopyOpCode(self.rbd_op)
+    self.ExecOpCode(op)
+    instance = self.GetSingleInstance()
+    self.assertEqual(instance.disk_template, constants.DT_RBD)
+    disks = self.cfg.GetInstanceDisks(instance.uuid)
+    self.assertEqual(disks[0].dev_type, constants.DT_RBD)
 
 
 class TestCheckOSVariant(CmdlibTestCase):

@@ -31,6 +31,7 @@
 """Script for unittesting the cmdlib module"""
 
 
+import mock
 import unittest
 import itertools
 import copy
@@ -443,42 +444,42 @@ class TestComputeIPolicySpecViolation(unittest.TestCase):
   def test(self):
     compute_fn = _ValidateComputeMinMaxSpec
     ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
-                                             [1024], 1, constants.DT_PLAIN,
+                                             [1024], 1, [constants.DT_PLAIN],
                                              _compute_fn=compute_fn)
     self.assertEqual(ret, [])
 
   def testDiskFull(self):
     compute_fn = _NoDiskComputeMinMaxSpec
     ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
-                                             [1024], 1, constants.DT_PLAIN,
+                                             [1024], 1, [constants.DT_PLAIN],
                                              _compute_fn=compute_fn)
     self.assertEqual(ret, [constants.ISPEC_DISK_COUNT])
 
   def testDiskLess(self):
     compute_fn = _NoDiskComputeMinMaxSpec
-    ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
-                                             [1024], 1, constants.DT_DISKLESS,
+    ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 0, 1,
+                                             [], 1, [],
                                              _compute_fn=compute_fn)
     self.assertEqual(ret, [])
 
   def testWrongTemplates(self):
     compute_fn = _ValidateComputeMinMaxSpec
     ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
-                                             [1024], 1, constants.DT_DRBD8,
+                                             [1024], 1, [constants.DT_DRBD8],
                                              _compute_fn=compute_fn)
     self.assertEqual(len(ret), 1)
     self.assertTrue("Disk template" in ret[0])
 
   def testInvalidArguments(self):
     self.assertRaises(AssertionError, common.ComputeIPolicySpecViolation,
-                      self._MICRO_IPOL, 1024, 1, 1, 1, [], 1,
+                      self._MICRO_IPOL, 1024, 1, 1, 1, constants.DT_DISKLESS, 1,
                       constants.DT_PLAIN,)
 
   def testInvalidSpec(self):
     spec = _SpecWrapper([None, False, "foo", None, "bar", None])
     compute_fn = spec.ComputeMinMaxSpec
     ret = common.ComputeIPolicySpecViolation(self._MICRO_IPOL, 1024, 1, 1, 1,
-                                             [1024], 1, constants.DT_PLAIN,
+                                             [1024], 1, [constants.DT_PLAIN],
                                              _compute_fn=compute_fn)
     self.assertEqual(ret, ["foo", "bar"])
     self.assertFalse(spec.spec)
@@ -537,7 +538,7 @@ class TestComputeIPolicySpecViolation(unittest.TestCase):
       ret = common.ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count,
                                                disk_count, nic_count,
                                                disk_sizes, spindle_use,
-                                               disk_template)
+                                               [disk_template]*disk_count)
       self.assertEqual(len(ret), violations)
 
     AssertComputeViolation(ipolicy1, 0)
@@ -555,31 +556,6 @@ class TestComputeIPolicySpecViolation(unittest.TestCase):
       ispec[par] += 1 # Restore
     ipolicy1[constants.IPOLICY_DTS] = ["another_template"]
     AssertComputeViolation(ipolicy1, 1)
-
-
-class _StubComputeIPolicySpecViolation:
-  def __init__(self, mem_size, cpu_count, disk_count, nic_count, disk_sizes,
-               spindle_use, disk_template):
-    self.mem_size = mem_size
-    self.cpu_count = cpu_count
-    self.disk_count = disk_count
-    self.nic_count = nic_count
-    self.disk_sizes = disk_sizes
-    self.spindle_use = spindle_use
-    self.disk_template = disk_template
-
-  def __call__(self, _, mem_size, cpu_count, disk_count, nic_count, disk_sizes,
-               spindle_use, disk_template):
-    assert self.mem_size == mem_size
-    assert self.cpu_count == cpu_count
-    assert self.disk_count == disk_count
-    assert self.nic_count == nic_count
-    assert self.disk_sizes == disk_sizes
-    assert self.spindle_use == spindle_use
-    assert self.disk_template == disk_template
-
-    return []
-
 
 class _FakeConfigForComputeIPolicyInstanceViolation:
   def __init__(self, be, excl_stor):
@@ -601,40 +577,63 @@ class _FakeConfigForComputeIPolicyInstanceViolation:
     return ("pnode_uuid", )
 
   def GetInstanceDisks(self, _):
-    return [objects.Disk(size=512, spindles=13, uuid="disk_uuid")]
+    return [objects.Disk(size=512, spindles=13, uuid="disk_uuid",
+                         dev_type=constants.DT_PLAIN)]
 
 
 class TestComputeIPolicyInstanceViolation(unittest.TestCase):
-  def test(self):
-    beparams = {
+  def setUp(self):
+    self.beparams = {
       constants.BE_MAXMEM: 2048,
       constants.BE_VCPUS: 2,
       constants.BE_SPINDLE_USE: 4,
       }
-    cfg = _FakeConfigForComputeIPolicyInstanceViolation(beparams, False)
-    instance = objects.Instance(beparams=beparams, disks=["disk_uuid"],
+    self.cfg = _FakeConfigForComputeIPolicyInstanceViolation(
+        self.beparams, False)
+    self.cfg_exclusive = _FakeConfigForComputeIPolicyInstanceViolation(
+        self.beparams, True)
+    self.stub = mock.MagicMock()
+    self.stub.return_value = []
+
+  def testPlain(self):
+    instance = objects.Instance(beparams=self.beparams, disks=["disk_uuid"],
                                 nics=[], primary_node="pnode_uuid",
                                 disk_template=constants.DT_PLAIN)
-    stub = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 4,
-                                            constants.DT_PLAIN)
-    ret = common.ComputeIPolicyInstanceViolation(NotImplemented, instance,
-                                                 cfg, _compute_fn=stub)
+    ret = common.ComputeIPolicyInstanceViolation(
+        NotImplemented, instance, self.cfg, _compute_fn=self.stub)
     self.assertEqual(ret, [])
-    instance2 = objects.Instance(beparams={}, disks=["disk_uuid"],
+    self.stub.assert_called_with(NotImplemented, 2048, 2, 1, 0, [512], 4,
+                                 [constants.DT_PLAIN])
+
+  def testNoBeparams(self):
+    instance = objects.Instance(beparams={}, disks=["disk_uuid"],
                                  nics=[], primary_node="pnode_uuid",
                                  disk_template=constants.DT_PLAIN)
-    ret = common.ComputeIPolicyInstanceViolation(NotImplemented, instance2,
-                                                 cfg, _compute_fn=stub)
+    ret = common.ComputeIPolicyInstanceViolation(
+        NotImplemented, instance, self.cfg, _compute_fn=self.stub)
     self.assertEqual(ret, [])
-    cfg_es = _FakeConfigForComputeIPolicyInstanceViolation(beparams, True)
-    stub_es = _StubComputeIPolicySpecViolation(2048, 2, 1, 0, [512], 13,
-                                               constants.DT_PLAIN)
-    ret = common.ComputeIPolicyInstanceViolation(NotImplemented, instance,
-                                                 cfg_es, _compute_fn=stub_es)
+    self.stub.assert_called_with(NotImplemented, 2048, 2, 1, 0, [512], 4,
+                                 [constants.DT_PLAIN])
+
+  def testExclusiveStorage(self):
+    instance = objects.Instance(beparams=self.beparams, disks=["disk_uuid"],
+                                nics=[], primary_node="pnode_uuid",
+                                disk_template=constants.DT_PLAIN)
+    ret = common.ComputeIPolicyInstanceViolation(
+        NotImplemented, instance, self.cfg_exclusive, _compute_fn=self.stub)
     self.assertEqual(ret, [])
-    ret = common.ComputeIPolicyInstanceViolation(NotImplemented, instance2,
-                                                 cfg_es, _compute_fn=stub_es)
+    self.stub.assert_called_with(NotImplemented, 2048, 2, 1, 0, [512], 13,
+                                 [constants.DT_PLAIN])
+
+  def testExclusiveStorageNoBeparams(self):
+    instance = objects.Instance(beparams={}, disks=["disk_uuid"],
+                                 nics=[], primary_node="pnode_uuid",
+                                 disk_template=constants.DT_PLAIN)
+    ret = common.ComputeIPolicyInstanceViolation(
+        NotImplemented, instance, self.cfg_exclusive, _compute_fn=self.stub)
     self.assertEqual(ret, [])
+    self.stub.assert_called_with(NotImplemented, 2048, 2, 1, 0, [512], 13,
+                                 [constants.DT_PLAIN])
 
 
 class _CallRecorder:

@@ -2418,7 +2418,7 @@ class TLReplaceDisks(Tasklet):
         _SafeShutdownInstanceDisks(self.lu, self.instance,
                                    req_states=INSTANCE_NOT_RUNNING)
 
-    assert not self.lu.owned_locks(locking.LEVEL_NODE)
+    self.lu.AssertReleasedLocks(locking.LEVEL_NODE)
 
     if __debug__:
       # Verify owned locks

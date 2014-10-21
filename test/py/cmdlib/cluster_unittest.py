@@ -1679,7 +1679,7 @@ class TestLUClusterVerifyGroupVerifyInstance(TestLUClusterVerifyGroupMethods):
     self.master.ndparams[constants.ND_EXCLUSIVE_STORAGE] = True
     lu._VerifyInstance(self.drbd_inst, self.node_imgs, self.diskstatus)
     self.mcpu.assertLogContainsRegex(
-      "instance has template drbd, which is not supported")
+        "instance has templates? drbd, which (is|are) not supported")
 
   @withLockedLU
   def testExclusiveStorageWithValidInstance(self, lu):

@@ -36,6 +36,7 @@ import mock
 import re
 import traceback
 import functools
+import sys
 
 from cmdlib.testsupport.config_mock import ConfigMock
 from cmdlib.testsupport.iallocator_mock import patchIAllocator
@@ -145,6 +146,7 @@ class CmdlibTestCase(testutils.GanetiTestCase):
       pass
 
     self.ResetMocks()
+    self._cleanups = []
 
   def _StopPatchers(self):
     if self._iallocator_patcher is not None:
@@ -164,6 +166,14 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     super(CmdlibTestCase, self).tearDown()
 
     self._StopPatchers()
+
+    while self._cleanups:
+      f, args, kwargs = self._cleanups.pop(-1)
+      try:
+        # pylint: disable=W0142
+        f(*args, **kwargs)
+      except BaseException, e:
+        sys.stderr.write('Error in cleanup: %s\n' % e)
 
   def _GetTestModule(self):
     module = inspect.getsourcefile(self.__class__).split("/")[-1]
@@ -383,6 +393,17 @@ class CmdlibTestCase(testutils.GanetiTestCase):
       if group.name == "default":
         return group
     assert False
+
+  def MockOut(self, *args, **kwargs):
+    """Immediately start mock.patch.object."""
+    patcher = mock.patch.object(*args, **kwargs)
+    mocked = patcher.start()
+    self.AddCleanup(patcher.stop)
+    return mocked
+
+  # Simplified backport of 2.7 feature
+  def AddCleanup(self, func, *args, **kwargs):
+    self._cleanups.append((func, args, kwargs))
 
 
 # pylint: disable=C0103

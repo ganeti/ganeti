@@ -283,7 +283,7 @@ def _CheckForConflictingIp(lu, ip, node_uuid):
 
 
 def _ComputeIPolicyInstanceSpecViolation(
-  ipolicy, instance_spec, disk_template,
+  ipolicy, instance_spec, disk_types,
   _compute_fn=ComputeIPolicySpecViolation):
   """Compute if instance specs meets the specs of ipolicy.
 
@@ -291,8 +291,8 @@ def _ComputeIPolicyInstanceSpecViolation(
   @param ipolicy: The ipolicy to verify against
   @param instance_spec: dict
   @param instance_spec: The instance spec to verify
-  @type disk_template: string
-  @param disk_template: the disk template of the instance
+  @type disk_types: list of strings
+  @param disk_types: the disk templates of the instance
   @param _compute_fn: The function to verify ipolicy (unittest only)
   @see: L{ComputeIPolicySpecViolation}
 
@@ -305,7 +305,7 @@ def _ComputeIPolicyInstanceSpecViolation(
   spindle_use = instance_spec.get(constants.ISPEC_SPINDLE_USE, None)
 
   return _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
-                     disk_sizes, spindle_use, disk_template)
+                     disk_sizes, spindle_use, disk_types)
 
 
 def _ComputeInstanceCommunicationNIC(instance_name):
@@ -1280,8 +1280,8 @@ class LUInstanceCreate(LogicalUnit):
 
     group_info = self.cfg.GetNodeGroup(pnode.group)
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
-    res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec,
-                                               self.op.disk_template)
+    disk_types = [self.op.disk_template] * len(self.disks)
+    res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec, disk_types)
     if not self.op.ignore_ipolicy and res:
       msg = ("Instance allocation to group %s (%s) violates policy: %s" %
              (pnode.group, group_info.name, utils.CommaJoin(res)))
@@ -3688,19 +3688,23 @@ class LUInstanceSetParams(LogicalUnit):
 
       # Copy ispec to verify parameters with min/max values separately
       if self.op.disk_template:
-        new_disk_template = self.op.disk_template
+        count = ispec[constants.ISPEC_DISK_COUNT]
+        new_disk_types = [self.op.disk_template] * count
       else:
-        new_disk_template = self.instance.disk_template
+        old_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+        add_disk_count = ispec[constants.ISPEC_DISK_COUNT] - len(old_disks)
+        new_disk_types = ([d.dev_type for d in old_disks] +
+                          [self.instance.disk_template] * add_disk_count)
       ispec_max = ispec.copy()
       ispec_max[constants.ISPEC_MEM_SIZE] = \
         self.be_new.get(constants.BE_MAXMEM, None)
       res_max = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_max,
-                                                     new_disk_template)
+                                                     new_disk_types)
       ispec_min = ispec.copy()
       ispec_min[constants.ISPEC_MEM_SIZE] = \
         self.be_new.get(constants.BE_MINMEM, None)
       res_min = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec_min,
-                                                     new_disk_template)
+                                                     new_disk_types)
 
       if (res_max or res_min):
         # FIXME: Improve error message by including information about whether
