@@ -1162,7 +1162,7 @@ class ExportInstanceHelper(object):
     self._feedback_fn = feedback_fn
     self._instance = instance
 
-    self._snap_disks = []
+    self._snap_disks = {}
     self._removed_snaps = [False] * len(instance.disks)
 
   def CreateSnapshots(self):
@@ -1209,7 +1209,8 @@ class ExportInstanceHelper(object):
                                logical_id=disk_id, iv_name=disk.iv_name,
                                params=disk_params)
 
-      self._snap_disks.append(new_dev)
+      assert idx not in self._snap_disks
+      self._snap_disks[idx] = new_dev
 
     assert len(self._snap_disks) == len(instance.disks)
     assert len(self._removed_snaps) == len(instance.disks)
@@ -1221,7 +1222,7 @@ class ExportInstanceHelper(object):
     @param disk_index: Index of the snapshot to be removed
 
     """
-    disk = self._snap_disks[disk_index]
+    disk = self._snap_disks.get(disk_index)
     if disk and not self._removed_snaps[disk_index]:
       src_node = self._instance.primary_node
       src_node_name = self._lu.cfg.GetNodeName(src_node)
@@ -1254,7 +1255,7 @@ class ExportInstanceHelper(object):
 
     transfers = []
 
-    for idx, dev in enumerate(self._snap_disks):
+    for idx, dev in self._snap_disks.items():
       if not dev:
         transfers.append(None)
         continue
