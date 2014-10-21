@@ -946,9 +946,10 @@ def _EnsureCorrectGanetiVersion(cmd):
   return all_cmds
 
 
-def RunSshCmdWithStdin(cluster_name, node, basecmd, debug, verbose,
-                       use_cluster_key, ask_key, strict_host_check,
-                       port, data, ensure_version=False):
+def RunSshCmdWithStdin(cluster_name, node, basecmd, port, data,
+                       debug=False, verbose=False, use_cluster_key=False,
+                       ask_key=False, strict_host_check=False,
+                       ensure_version=False):
   """Runs a command on a remote machine via SSH and provides input in stdin.
 
   @type cluster_name: string
@@ -957,6 +958,9 @@ def RunSshCmdWithStdin(cluster_name, node, basecmd, debug, verbose,
   @param node: Node name
   @type basecmd: string
   @param basecmd: Base command (path on the remote machine)
+  @type port: int
+  @param port: The SSH port of the remote machine or None for the default
+  @param data: JSON-serializable input data for script (passed to stdin)
   @type debug: bool
   @param debug: Enable debug output
   @type verbose: bool
@@ -967,9 +971,6 @@ def RunSshCmdWithStdin(cluster_name, node, basecmd, debug, verbose,
   @param ask_key: See L{ssh.SshRunner.BuildCmd}
   @type strict_host_check: bool
   @param strict_host_check: See L{ssh.SshRunner.BuildCmd}
-  @type port: int
-  @param port: The SSH port of the remote machine or None for the default
-  @param data: JSON-serializable input data for script (passed to stdin)
 
   """
   cmd = [basecmd]

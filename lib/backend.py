@@ -1500,13 +1500,15 @@ def AddNodeSshKey(node_uuid, node_name,
       continue
     if node in potential_master_candidates:
       run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                 True, True, False, False, False,
-                 ssh_port_map.get(node), pot_mc_data)
+                 ssh_port_map.get(node), pot_mc_data,
+                 debug=False, verbose=False, use_cluster_key=False,
+                 ask_key=False, strict_host_check=False)
     else:
       if to_authorized_keys:
         run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                   True, True, False, False, False,
-                   ssh_port_map.get(node), base_data)
+                   ssh_port_map.get(node), base_data,
+                   debug=False, verbose=False, use_cluster_key=False,
+                   ask_key=False, strict_host_check=False)
 
   # Update the target node itself
   if get_public_keys:
@@ -1516,8 +1518,9 @@ def AddNodeSshKey(node_uuid, node_name,
     node_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
       (constants.SSHS_OVERRIDE, all_keys)
     run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
-               True, True, False, False, False,
-               ssh_port_map.get(node_name), node_data)
+               ssh_port_map.get(node_name), node_data,
+               debug=False, verbose=False, use_cluster_key=False,
+               ask_key=False, strict_host_check=False)
 
 
 def RemoveNodeSshKey(node_uuid, node_name,
@@ -1615,13 +1618,15 @@ def RemoveNodeSshKey(node_uuid, node_name,
                                  " node '%s', map: %s." % (node, ssh_port_map))
       if node in potential_master_candidates:
         run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                   True, True, False, False, False,
-                   ssh_port, pot_mc_data)
+                   ssh_port, pot_mc_data,
+                   debug=False, verbose=False, use_cluster_key=False,
+                   ask_key=False, strict_host_check=False)
       else:
         if from_authorized_keys:
           run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                     True, True, False, False, False,
-                     ssh_port, base_data)
+                     ssh_port, base_data,
+                     debug=False, verbose=False, use_cluster_key=False,
+                     ask_key=False, strict_host_check=False)
 
   if clear_authorized_keys or from_public_keys or clear_public_keys:
     data = {}
@@ -1654,8 +1659,9 @@ def RemoveNodeSshKey(node_uuid, node_name,
 
     try:
       run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
-                 True, True, False, False, False,
-                 ssh_port, data)
+                 ssh_port, data,
+                 debug=False, verbose=False, use_cluster_key=False,
+                 ask_key=False, strict_host_check=False)
     except errors.OpExecError, e:
       logging.info("Removing SSH keys from node '%s' failed. This can happen"
                    " when the node is already unreachable. Error: %s",
@@ -1692,8 +1698,9 @@ def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
   data[constants.SSHS_GENERATE] = True
 
   run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
-             True, True, False, False, False,
-             ssh_port_map.get(node_name), data)
+             ssh_port_map.get(node_name), data,
+             debug=False, verbose=False, use_cluster_key=False,
+             ask_key=False, strict_host_check=False)
 
 
 def RenewSshKeys(node_uuids, node_names, ssh_port_map,

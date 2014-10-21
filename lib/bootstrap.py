@@ -900,9 +900,11 @@ def SetupNodeDaemon(opts, cluster_name, node, ssh_port):
     }
 
   ssh.RunSshCmdWithStdin(cluster_name, node, pathutils.NODE_DAEMON_SETUP,
-                         opts.debug, opts.verbose,
-                         True, opts.ssh_key_check, opts.ssh_key_check,
-                         ssh_port, data, ensure_version=True)
+                         ssh_port, data,
+                         debug=opts.debug, verbose=opts.verbose,
+                         use_cluster_key=True, ask_key=opts.ssh_key_check,
+                         strict_host_check=opts.ssh_key_check,
+                         ensure_version=True)
 
   _WaitForSshDaemon(node, ssh_port)
   _WaitForNodeDaemon(node)

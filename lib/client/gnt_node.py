@@ -236,9 +236,10 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
     }
 
   ssh.RunSshCmdWithStdin(cluster_name, node, pathutils.PREPARE_NODE_JOIN,
-                         options.debug, options.verbose, False,
-                         options.ssh_key_check, options.ssh_key_check,
-                         ssh_port, data)
+                         ssh_port, data,
+                         debug=options.debug, verbose=options.verbose,
+                         use_cluster_key=False, ask_key=options.ssh_key_check,
+                         strict_host_check=options.ssh_key_check)
 
   fetched_keys = ssh.ReadRemoteSshPubKeys(root_keyfiles, node, cluster_name,
                                           ssh_port, options.ssh_key_check,
