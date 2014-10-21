@@ -536,14 +536,14 @@ _NODE_CALLS = [
   ("node_ssh_key_add", MULTI, None, constants.RPC_TMO_URGENT, [
     ("node_uuid", None, "UUID of the node whose key is distributed"),
     ("node_name", None, "Name of the node whose key is distributed"),
+    ("potential_master_candidates", None, "Potential master candidates"),
+    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
     ("to_authorized_keys", None, "Whether the node's key should be added"
      " to all nodes' 'authorized_keys' file"),
     ("to_public_keys", None, "Whether the node's key should be added"
      " to all nodes' public key file"),
     ("get_public_keys", None, "Whether the node should get the other nodes'"
-     " public keys"),
-    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
-    ("potential_master_candidates", None, "Potential master candidates")],
+     " public keys")],
     None, None, "Distribute a new node's public SSH key on the cluster."),
   ("node_ssh_key_remove", MULTI, None, constants.RPC_TMO_URGENT, [
     ("node_uuid", None, "UUID of the node whose key is removed"),

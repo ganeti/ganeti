@@ -369,9 +369,9 @@ class LUNodeAdd(LogicalUnit):
 
     result = rpcrunner.call_node_ssh_key_add(
       [master_node], new_node_uuid, new_node_name,
+      potential_master_candidates, port_map,
       is_master_candidate, is_potential_master_candidate,
-      is_potential_master_candidate, port_map,
-      potential_master_candidates)
+      is_potential_master_candidate)
     result[master_node].Raise("Could not update the node's SSH setup.")
 
   def Exec(self, feedback_fn):
@@ -883,10 +883,10 @@ class LUNodeSetParams(LogicalUnit):
         if self.new_role == self._ROLE_CANDIDATE:
           ssh_result = self.rpc.call_node_ssh_key_add(
             [master_node], node.uuid, node.name,
+            potential_master_candidates, ssh_port_map,
             True, # add node's key to all node's 'authorized_keys'
             True, # all nodes are potential master candidates
-            False, # do not update the node's public keys
-            ssh_port_map, potential_master_candidates)
+            False) # do not update the node's public keys
           ssh_result[master_node].Raise(
             "Could not update the SSH setup of node '%s' after promotion"
             " (UUID: %s)." % (node.name, node.uuid))

@@ -923,12 +923,13 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Distributes a new node's SSH key if authorized.
 
     """
-    (node_uuid, node_name, to_authorized_keys,
-     to_public_keys, get_public_keys, ssh_port_map,
-     potential_master_candidates) = params
-    return backend.AddNodeSshKey(node_uuid, node_name, to_authorized_keys,
-                                 to_public_keys, get_public_keys,
-                                 ssh_port_map, potential_master_candidates)
+    (node_uuid, node_name, potential_master_candidates, ssh_port_map,
+     to_authorized_keys, to_public_keys, get_public_keys) = params
+    return backend.AddNodeSshKey(node_uuid, node_name,
+                                 potential_master_candidates, ssh_port_map,
+                                 to_authorized_keys=to_authorized_keys,
+                                 to_public_keys=to_public_keys,
+                                 get_public_keys=get_public_keys)
 
   @staticmethod
   def perspective_node_ssh_keys_renew(params):

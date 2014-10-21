@@ -1101,11 +1101,11 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
       self._ssh_port_map[new_node_name] = self._SSH_PORT
 
       backend.AddNodeSshKey(new_node_uuid, new_node_name,
-                            to_authorized_keys,
-                            to_public_keys,
-                            get_public_keys,
-                            self._ssh_port_map,
                             self._potential_master_candidates,
+                            self._ssh_port_map,
+                            to_authorized_keys=to_authorized_keys,
+                            to_public_keys=to_public_keys,
+                            get_public_keys=get_public_keys,
                             pub_key_file=self._pub_key_file,
                             ssconf_store=self._ssconf_mock,
                             noded_cert_file=self.noded_cert_file,

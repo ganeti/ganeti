@@ -1409,9 +1409,11 @@ def _InitSshUpdateData(data, noded_cert_file, ssconf_store):
 
 
 def AddNodeSshKey(node_uuid, node_name,
-                  to_authorized_keys, to_public_keys,
-                  get_pub_keys, ssh_port_map,
                   potential_master_candidates,
+                  ssh_port_map,
+                  to_authorized_keys=False,
+                  to_public_keys=False,
+                  get_public_keys=False,
                   pub_key_file=pathutils.SSH_PUB_KEYS,
                   ssconf_store=None,
                   noded_cert_file=pathutils.NODED_CERT_FILE,
@@ -1421,25 +1423,33 @@ def AddNodeSshKey(node_uuid, node_name,
   Note that this function should only be executed on the master node, which
   then will copy the new node's key to all nodes in the cluster via SSH.
 
+  Also note: at least one of the flags C{to_authorized_keys},
+  C{to_public_keys}, and C{get_public_keys} has to be set to C{True} for
+  the function to actually perform any actions.
+
   @type node_uuid: str
   @param node_uuid: the UUID of the node whose key is added
   @type node_name: str
   @param node_name: the name of the node whose key is added
-  @type to_authorized_keys: boolean
-  @param to_authorized_keys: whether the key should be added to the
-    C{authorized_keys} file of all nodes
-  @type to_public_keys: boolean
-  @param to_public_keys: whether the keys should be added to the public key file
-  @type get_pub_keys: boolean
-  @param get_pub_keys: whether the node should add the clusters' public keys
-    to its {ganeti_pub_keys} file
   @type ssh_port_map: dict from str to int
   @param ssh_port_map: a mapping from node names to SSH port numbers
   @type potential_master_candidates: list of str
   @param potential_master_candidates: list of node names of potential master
     candidates; this should match the list of uuids in the public key file
+  @type to_authorized_keys: boolean
+  @param to_authorized_keys: whether the key should be added to the
+    C{authorized_keys} file of all nodes
+  @type to_public_keys: boolean
+  @param to_public_keys: whether the keys should be added to the public key file
+  @type get_public_keys: boolean
+  @param get_public_keys: whether the node should add the clusters' public keys
+    to its {ganeti_pub_keys} file
 
   """
+  # assure that at least one of those flags is true, as the function would
+  # not do anything otherwise
+  assert (to_authorized_keys or to_public_keys or get_public_keys)
+
   if not ssconf_store:
     ssconf_store = ssconf.SimpleStore()
 
@@ -1499,7 +1509,7 @@ def AddNodeSshKey(node_uuid, node_name,
                    ssh_port_map.get(node), base_data)
 
   # Update the target node itself
-  if get_pub_keys:
+  if get_public_keys:
     node_data = {}
     _InitSshUpdateData(node_data, noded_cert_file, ssconf_store)
     all_keys = ssh.QueryPubKeyFile(None, key_file=pub_key_file)
@@ -1741,10 +1751,11 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
         ssh.AddPublicKey(node_uuid, pub_key, key_file=pub_key_file)
 
     AddNodeSshKey(node_uuid, node_name,
-                  master_candidate, # Add to authorized_keys file
-                  potential_master_candidate, # Add to public_keys
-                  True, # Get public keys
-                  ssh_port_map, potential_master_candidates,
+                  potential_master_candidates,
+                  ssh_port_map,
+                  to_authorized_keys=master_candidate,
+                  to_public_keys=potential_master_candidate,
+                  get_public_keys=True,
                   pub_key_file=pub_key_file, ssconf_store=ssconf_store,
                   noded_cert_file=noded_cert_file,
                   run_cmd_fn=run_cmd_fn)
