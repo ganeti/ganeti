@@ -295,6 +295,7 @@ CLEANFILES = \
 	tools/kvm-ifup-os \
 	tools/xen-ifup-os \
 	tools/vif-ganeti \
+	tools/vif-ganeti-metad \
 	tools/net-common \
 	tools/users-setup \
 	tools/vcluster-setup \
@@ -1324,6 +1325,7 @@ myexeclib_SCRIPTS = \
 	tools/kvm-ifup-os \
 	tools/xen-ifup-os \
 	tools/vif-ganeti \
+	tools/vif-ganeti-metad \
 	tools/net-common \
 	$(HS_MYEXECLIB_PROGS)
 
@@ -1363,6 +1365,7 @@ EXTRA_DIST = \
 	tools/kvm-ifup.in \
 	tools/ifup-os.in \
 	tools/vif-ganeti.in \
+	tools/vif-ganeti-metad.in \
 	tools/net-common.in \
 	tools/vcluster-setup.in \
 	$(docinput) \
@@ -1874,6 +1877,10 @@ tools/xen-ifup-os: tools/ifup-os.in $(REPLACE_VARS_SED)
 	chmod +x $@
 
 tools/vif-ganeti: tools/vif-ganeti.in $(REPLACE_VARS_SED)
+	sed -f $(REPLACE_VARS_SED) < $< > $@
+	chmod +x $@
+
+tools/vif-ganeti-metad: tools/vif-ganeti-metad.in $(REPLACE_VARS_SED)
 	sed -f $(REPLACE_VARS_SED) < $< > $@
 	chmod +x $@
 

@@ -69,6 +69,8 @@ XEN_CONSOLE_WRAPPER = _constants.PKGLIBDIR + "/tools/xen-console-wrapper"
 CFGUPGRADE = _constants.PKGLIBDIR + "/tools/cfgupgrade"
 POST_UPGRADE = _constants.PKGLIBDIR + "/tools/post-upgrade"
 ENSURE_DIRS = _constants.PKGLIBDIR + "/ensure-dirs"
+# Script to configure the metadata virtual network interface with Xen
+XEN_VIF_METAD_SETUP = _constants.PKGLIBDIR + "/vif-ganeti-metad"
 ETC_HOSTS = vcluster.ETC_HOSTS
 
 # Top-level paths
