@@ -1205,13 +1205,13 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         self._master_candidate_uuids.append(node_uuid)
 
       backend.RemoveNodeSshKey(node_uuid, node_name,
-                               from_authorized_keys,
-                               from_public_keys,
-                               clear_authorized_keys,
-                               clear_public_keys,
-                               self._ssh_port_map,
                                self._master_candidate_uuids,
                                self._potential_master_candidates,
+                               self._ssh_port_map,
+                               from_authorized_keys=from_authorized_keys,
+                               from_public_keys=from_public_keys,
+                               clear_authorized_keys=clear_authorized_keys,
+                               clear_public_keys=clear_public_keys,
                                pub_key_file=self._pub_key_file,
                                ssconf_store=self._ssconf_mock,
                                noded_cert_file=self.noded_cert_file,

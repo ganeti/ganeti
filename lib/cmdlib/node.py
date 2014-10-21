@@ -356,13 +356,13 @@ class LUNodeAdd(LogicalUnit):
       remove_result = rpcrunner.call_node_ssh_key_remove(
         [master_node],
         new_node_uuid, new_node_name,
+        master_candidate_uuids,
+        potential_master_candidates,
+        port_map,
         True, # from authorized keys
         True, # from public keys
         True, # clear authorized keys
-        True, # clear public keys
-        port_map,
-        master_candidate_uuids,
-        potential_master_candidates)
+        True) # clear public keys
       remove_result[master_node].Raise(
         "Could not remove SSH keys of node %s before readding,"
         " (UUID: %s)." % (new_node_name, new_node_uuid))
@@ -872,11 +872,11 @@ class LUNodeSetParams(LogicalUnit):
           ssh_result = self.rpc.call_node_ssh_key_remove(
             [master_node],
             node.uuid, node.name,
+            master_candidate_uuids, potential_master_candidates, ssh_port_map,
             True, # remove node's key from all nodes' authorized_keys file
             False, # currently, all nodes are potential master candidates
             False, # do not clear node's 'authorized_keys'
-            False, # do not clear node's 'ganeti_pub_keys'
-            ssh_port_map, master_candidate_uuids, potential_master_candidates)
+            False) # do not clear node's 'ganeti_pub_keys'
           ssh_result[master_node].Raise(
             "Could not adjust the SSH setup after demoting node '%s'"
             " (UUID: %s)." % (node.name, node.uuid))
@@ -1578,11 +1578,11 @@ class LUNodeRemove(LogicalUnit):
       result = self.rpc.call_node_ssh_key_remove(
         [master_node],
         self.node.uuid, self.op.node_name,
-        self.node.master_candidate,
-        potential_master_candidate,
+        master_candidate_uuids, potential_master_candidates, ssh_port_map,
+        self.node.master_candidate, # from_authorized_keys
+        potential_master_candidate, # from_public_keys
         True, # clear node's 'authorized_keys'
-        True, # clear node's 'ganeti_public_keys'
-        ssh_port_map, master_candidate_uuids, potential_master_candidates)
+        True) # clear node's 'ganeti_public_keys'
       result[master_node].Raise(
         "Could not remove the SSH key of node '%s' (UUID: %s)." %
         (self.op.node_name, self.node.uuid))

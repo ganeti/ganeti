@@ -947,17 +947,18 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Removes a node's SSH key from the other nodes' SSH files.
 
     """
-    (node_uuid, node_name, from_authorized_keys,
-     from_public_keys, clear_authorized_keys,
-     clear_public_keys,
-     ssh_port_map, master_candidate_uuids,
-     potential_master_candidates) = params
-    return backend.RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
-                                    from_public_keys, clear_authorized_keys,
-                                    clear_public_keys,
-                                    ssh_port_map,
+    (node_uuid, node_name,
+     master_candidate_uuids, potential_master_candidates, ssh_port_map,
+     from_authorized_keys, from_public_keys, clear_authorized_keys,
+     clear_public_keys) = params
+    return backend.RemoveNodeSshKey(node_uuid, node_name,
                                     master_candidate_uuids,
-                                    potential_master_candidates)
+                                    potential_master_candidates,
+                                    ssh_port_map,
+                                    from_authorized_keys=from_authorized_keys,
+                                    from_public_keys=from_public_keys,
+                                    clear_authorized_keys=clear_authorized_keys,
+                                    clear_public_keys=clear_public_keys)
 
   # cluster --------------------------
 

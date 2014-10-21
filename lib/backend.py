@@ -1520,21 +1520,36 @@ def AddNodeSshKey(node_uuid, node_name,
                ssh_port_map.get(node_name), node_data)
 
 
-def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
-                     from_public_keys, clear_authorized_keys,
-                     clear_public_keys,
-                     ssh_port_map, master_candidate_uuids,
+def RemoveNodeSshKey(node_uuid, node_name,
+                     master_candidate_uuids,
                      potential_master_candidates,
+                     ssh_port_map,
+                     from_authorized_keys=False,
+                     from_public_keys=False,
+                     clear_authorized_keys=False,
+                     clear_public_keys=False,
                      pub_key_file=pathutils.SSH_PUB_KEYS,
                      ssconf_store=None,
                      noded_cert_file=pathutils.NODED_CERT_FILE,
                      run_cmd_fn=ssh.RunSshCmdWithStdin):
   """Removes the node's SSH keys from the key files and distributes those.
 
+  Note that at least one of the flags C{from_authorized_keys},
+  C{from_public_keys}, C{clear_authorized_keys}, and C{clear_public_keys}
+  has to be set to C{True} for the function to perform any action at all.
+  Not doing so will trigger an assertion in the function.
+
   @type node_uuid: str
   @param node_uuid: UUID of the node whose key is removed
   @type node_name: str
   @param node_name: name of the node whose key is remove
+  @type master_candidate_uuids: list of str
+  @param master_candidate_uuids: list of UUIDs of the current master candidates
+  @type potential_master_candidates: list of str
+  @param potential_master_candidates: list of names of potential master
+    candidates
+  @type ssh_port_map: dict of str to int
+  @param ssh_port_map: mapping of node names to their SSH port
   @type from_authorized_keys: boolean
   @param from_authorized_keys: whether or not the key should be removed
     from the C{authorized_keys} file
@@ -1546,15 +1561,12 @@ def RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
     should be cleared on the node whose keys are removed
   @type clear_public_keys: boolean
   @param clear_public_keys: whether to clear the node's C{ganeti_pub_key} file
-  @type ssh_port_map: dict of str to int
-  @param ssh_port_map: mapping of node names to their SSH port
-  @type master_candidate_uuids: list of str
-  @param master_candidate_uuids: list of UUIDs of the current master candidates
-  @type potential_master_candidates: list of str
-  @param potential_master_candidates: list of names of potential master
-    candidates
 
   """
+  # Make sure at least one of these flags is true.
+  assert (from_authorized_keys or from_public_keys or clear_authorized_keys
+          or clear_public_keys)
+
   if not ssconf_store:
     ssconf_store = ssconf.SimpleStore()
 
@@ -1721,14 +1733,15 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                                   " not generating a new key."
                                   % (node_name, node_uuid))
 
-    RemoveNodeSshKey(node_uuid, node_name,
-                     master_candidate, # from authorized keys
-                     False, # Don't remove (yet) from public keys
-                     False, # Don't clear authorized_keys
-                     False, # Don't clear public keys
-                     ssh_port_map,
-                     master_candidate_uuids,
-                     potential_master_candidates)
+    if master_candidate:
+      RemoveNodeSshKey(node_uuid, node_name,
+                       master_candidate_uuids,
+                       potential_master_candidates,
+                       ssh_port_map,
+                       from_authorized_keys=master_candidate,
+                       from_public_keys=False,
+                       clear_authorized_keys=False,
+                       clear_public_keys=False)
 
     _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
                         pub_key_file=pub_key_file,
