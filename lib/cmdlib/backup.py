@@ -457,7 +457,10 @@ class LUBackupExport(LogicalUnit):
       helper = masterd.instance.ExportInstanceHelper(self, feedback_fn,
                                                      self.instance)
 
-      helper.CreateSnapshots()
+      will_be_shut_down = (self.instance.admin_state != constants.ADMINST_UP or
+                           self.op.shutdown)
+      if (not will_be_shut_down or self.op.mode == constants.EXPORT_MODE_LOCAL):
+        helper.CreateSnapshots()
       try:
         if (self.op.shutdown and
             self.instance.admin_state == constants.ADMINST_UP and
