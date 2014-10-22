@@ -952,6 +952,33 @@ buildObject sname field_pfx fields = do
   ser_decls <- buildObjectSerialisation sname fields
   return $ declD:ser_decls
 
+-- | Build an accessor function for a field of an object
+-- that can have a forthcoming variant.
+buildAccessor :: Name -- ^ name of the forthcoming constructor
+              -> String -- ^ prefix for the forthcoming field
+              -> Name -- ^ name of the real constructor
+              -> String -- ^ prefix for the real field
+              -> Name -- ^ name of the generated accessor
+              -> String -- ^ prefix of the generated accessor
+              -> Field -- ^ field description
+              -> Q [Dec]
+buildAccessor fnm fpfx rnm rpfx nm pfx field = do
+  let optField = makeOptional field
+  x <- newName "x"
+  (rpfx_name, _, _) <- fieldTypeInfo rpfx field
+  (fpfx_name, _, ftype) <- fieldTypeInfo fpfx optField
+  (pfx_name, _, _) <- fieldTypeInfo pfx field
+  let r_body_core = AppE (VarE rpfx_name) $ VarE x
+      r_body = if fieldIsOptional field == fieldIsOptional optField
+                 then r_body_core
+                 else AppE (VarE 'return) r_body_core
+      f_body = AppE (VarE fpfx_name) $ VarE x
+  return $ [ SigD pfx_name $ ArrowT `AppT` ConT nm `AppT` ftype
+           , FunD pfx_name
+             [ Clause [ConP rnm [VarP x]] (NormalB r_body) []
+             , Clause [ConP fnm [VarP x]] (NormalB f_body) []
+             ]]
+
 -- | Build an object that can have a forthcoming variant.
 -- This will create 3 data types: two objects, prefixed by
 -- "Real" and "Forthcoming", respectively, and a sum type
@@ -998,7 +1025,11 @@ buildObjectWithForthcoming sname field_pfx fields = do
                  ]
       instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
                  [rdjson, shjson]
-  return $ concreteDecls ++ forthcomingDecls ++ [declD, instdecl]
+  accessors <- liftM concat . flip mapM fields
+                 $ buildAccessor (mkName forth_nm) forth_pfx
+                                 (mkName real_nm) real_pfx
+                                 name field_pfx
+  return $ concreteDecls ++ forthcomingDecls ++ [declD, instdecl] ++ accessors
 
 -- | Generates an object definition: data type and its JSON instance.
 buildObjectSerialisation :: String -> [Field] -> Q [Dec]
