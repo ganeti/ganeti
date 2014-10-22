@@ -117,7 +117,7 @@ serialFields =
 
 -- | UUID fields description.
 uuidFields :: [Field]
-uuidFields = [ simpleField "uuid" [t| String |] ]
+uuidFields = [ presentInForthcoming $ simpleField "uuid" [t| String |] ]
 
 -- | Tag set type alias.
 type TagSet = Set.Set String
