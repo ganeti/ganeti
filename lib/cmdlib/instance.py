@@ -2834,7 +2834,7 @@ class LUInstanceSetParams(LogicalUnit):
       # file-based template checks
       if self.op.disk_template in constants.DTS_FILEBASED:
         if not self.op.file_driver:
-          self.op.file_driver = constants.FD_LOOP
+          self.op.file_driver = constants.FD_DEFAULT
         elif self.op.file_driver not in constants.FILE_DRIVER:
           raise errors.OpPrereqError("Invalid file driver name '%s'" %
                                      self.op.file_driver, errors.ECODE_INVAL)
