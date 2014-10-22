@@ -2413,4 +2413,9 @@ really-all: all $(check_SCRIPTS) $(haskell_tests) $(HS_ALL_PROGS)
 
 -include ./Makefile.local
 
+# support inspecting the value of a make variable
+
+print-%:
+	@echo $($*)
+
 # vim: set noet :
