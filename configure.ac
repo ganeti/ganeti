@@ -28,22 +28,6 @@ AC_SUBST([BINDIR], $bindir)
 AC_SUBST([SBINDIR], $sbindir)
 AC_SUBST([MANDIR], $mandir)
 
-# --enable-developer-mode
-AC_ARG_ENABLE([developer-mode],
-  [AS_HELP_STRING([--enable-developer-mode],
-                  m4_normalize([do a developper build with additional
-                  checks and fatal warnings]))],
-  [[if test "$enableval" != no; then
-      DEVELOPER_MODE=yes
-    else
-      DEVELOPER_MODE=no
-    fi
-  ]],
-  [DEVELOPER_MODE=no
-  ])
-AC_SUBST(DEVELOPER_MODE, $DEVELOPER_MODE)
-AM_CONDITIONAL([DEVELOPER_MODE], [test "$DEVELOPER_MODE" = yes])
-
 # --enable-versionfull
 AC_ARG_ENABLE([versionfull],
   [AS_HELP_STRING([--enable-versionfull],
@@ -123,6 +107,24 @@ AC_ARG_ENABLE([haskell-tests],
   ])
 AC_SUBST(HTEST, $HTEST)
 AM_CONDITIONAL([HTEST], [test "$HTEST" = yes])
+
+# --enable-developer-mode
+AC_ARG_ENABLE([developer-mode],
+  [AS_HELP_STRING([--enable-developer-mode],
+                  m4_normalize([do a developper build with additional
+                  checks and fatal warnings; this is implied by enabling
+                  the haskell tests]))],
+  [[if test "$enableval" != no; then
+      DEVELOPER_MODE=yes
+    else
+      DEVELOPER_MODE=no
+    fi
+  ]],
+  [DEVELOPER_MODE=no
+  ])
+AC_SUBST(DEVELOPER_MODE, $DEVELOPER_MODE)
+AM_CONDITIONAL([DEVELOPER_MODE],
+               [test "$DEVELOPER_MODE" = yes -o "$HTEST" = yes])
 
 # --with-haskell-flags=
 AC_ARG_WITH([haskell-flags],
