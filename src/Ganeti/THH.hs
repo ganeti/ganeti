@@ -61,6 +61,7 @@ module Ganeti.THH ( declareSADT
                   , andRestArguments
                   , withDoc
                   , defaultField
+                  , presentInForthcoming
                   , optionalField
                   , optionalNullSerField
                   , renameField
@@ -181,6 +182,7 @@ data Field = Field { fieldName        :: String
                      -- ^ determines if a field is optional, and if yes,
                      -- how
                    , fieldDoc         :: String
+                   , fieldPresentInForthcoming :: Bool
                    }
 
 -- | Generates a simple field.
@@ -195,6 +197,7 @@ simpleField fname ftype =
         , fieldConstr      = Nothing
         , fieldIsOptional  = NotOptional
         , fieldDoc         = ""
+        , fieldPresentInForthcoming = False
         }
 
 -- | Generate an AndRestArguments catch-all field.
@@ -209,6 +212,7 @@ andRestArguments fname =
         , fieldConstr      = Nothing
         , fieldIsOptional  = AndRestArguments
         , fieldDoc         = ""
+        , fieldPresentInForthcoming = True
         }
 
 withDoc :: String -> Field -> Field
@@ -223,6 +227,10 @@ renameField constrName field = field { fieldConstr = Just constrName }
 -- default value).
 defaultField :: Q Exp -> Field -> Field
 defaultField defval field = field { fieldDefault = Just defval }
+
+-- | Mark a field as present in the forthcoming variant.
+presentInForthcoming :: Field -> Field
+presentInForthcoming field = field { fieldPresentInForthcoming = True }
 
 -- | Marks a field optional (turning its base type into a Maybe).
 optionalField :: Field -> Field
