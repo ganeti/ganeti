@@ -113,7 +113,8 @@ timeStampFields = map (defaultField [| TOD 0 0 |] . timeAsDoubleField)
 -- | Serial number fields description.
 serialFields :: [Field]
 serialFields =
-    [ renameField  "Serial" $ simpleField "serial_no" [t| Int |] ]
+    [ presentInForthcoming . renameField  "Serial"
+        $ simpleField "serial_no" [t| Int |] ]
 
 -- | UUID fields description.
 uuidFields :: [Field]
