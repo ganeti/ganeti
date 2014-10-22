@@ -613,10 +613,13 @@ HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_DEFAULT_PROGS)) src/mon-collector.hs
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/hs/%) test/hs/hail
 
 HFLAGS = \
-	-O -Wall -Werror -isrc \
+	-O -Wall -isrc \
 	-fwarn-monomorphism-restriction \
 	-fwarn-tabs \
 	$(GHC_BYVERSION_FLAGS)
+if DEVELOPER_MODE
+HFLAGS += -Werror
+endif
 
 # extra flags that can be overriden on the command line (e.g. -Wwarn, etc.)
 HEXTRA =
