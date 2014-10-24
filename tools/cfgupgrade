@@ -453,6 +453,64 @@ def UpgradeTopLevelDisks(config_data):
     iobj["disks"] = disk_uuids
 
 
+# The following function is based on a method of class Disk with the same name,
+# but adjusted to work with dicts and sets.
+def _ComputeAllNodes(disk):
+  """Recursively compute nodes given a top device."""
+  nodes = set()
+  if disk["dev_type"] in constants.DTS_DRBD:
+    nodes = set(disk["logical_id"][:2])
+  for child in disk.get("children", []):
+    nodes |= _ComputeAllNodes(child)
+  return nodes
+
+
+def _RecursiveUpdateNodes(disk, nodes):
+  disk["nodes"] = nodes
+  for child in disk.get("children", []):
+    _RecursiveUpdateNodes(child, nodes)
+
+
+def UpgradeDiskNodes(config_data):
+  """Specify the nodes from which a disk is accessible in its definition.
+
+  For every disk that is attached to an instance, get the UUIDs of the nodes
+  that it's accessible from. There are three main cases:
+  1) Internally mirrored disks (DRBD):
+  These disks are accessible from two nodes, so the nodes list will include
+  these. Their children (data, meta) are also accessible from two nodes,
+  therefore they will inherit the nodes of the parent.
+  2) Externally mirrored disks (Blockdev, Ext, Gluster, RBD, Shared File):
+  These disks should be accessible from any node in the cluster, therefore the
+  nodes list will be empty.
+  3) Single-node disks (Plain, File):
+  These disks are accessible from one node only, therefore the nodes list will
+  consist only of the primary instance node.
+  """
+  disks = config_data["disks"]
+  for instance in config_data["instances"].itervalues():
+    # Get all disk nodes for an instance
+    instance_node = set([instance["primary_node"]])
+    disk_nodes = set()
+    for disk_uuid in instance["disks"]:
+      disk_nodes |= _ComputeAllNodes(disks[disk_uuid])
+    all_nodes = list(instance_node | disk_nodes)
+
+    # Populate the `nodes` list field of each disk.
+    for disk_uuid in instance["disks"]:
+      disk = disks[disk_uuid]
+      if "nodes" in disk:
+        # The "nodes" field has already been added for this disk.
+        continue
+
+      if disk["dev_type"] in constants.DTS_INT_MIRROR:
+        _RecursiveUpdateNodes(disk, all_nodes)
+      elif disk["dev_type"] in (constants.DT_PLAIN, constants.DT_FILE):
+        disk["nodes"] = all_nodes
+      else:
+        disk["nodes"] = []
+
+
 def UpgradeAll(config_data):
   config_data["version"] = version.BuildVersion(TARGET_MAJOR, TARGET_MINOR, 0)
   UpgradeRapiUsers()
@@ -466,15 +524,31 @@ def UpgradeAll(config_data):
   UpgradeNodeIndices(config_data)
   UpgradeInstanceIndices(config_data)
   UpgradeFilters(config_data)
+  UpgradeDiskNodes(config_data)
 
 
 # DOWNGRADE ------------------------------------------------------------
+
+def _RecursiveRemoveNodes(disk):
+  if "nodes" in disk:
+    del disk["nodes"]
+  for disk in disk.get("children", []):
+    _RecursiveRemoveNodes(disk)
+
+
+def DowngradeDiskNodes(config_data):
+  if "disks" not in config_data:
+    raise Error("Can't find the 'disks' dictionary in the configuration.")
+  for disk in config_data["disks"].itervalues():
+    _RecursiveRemoveNodes(disk)
+
 
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
+  DowngradeDiskNodes(config_data)
 
 
 def _ParseOptions():
