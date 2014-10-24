@@ -536,27 +536,29 @@ _NODE_CALLS = [
   ("node_ssh_key_add", MULTI, None, constants.RPC_TMO_URGENT, [
     ("node_uuid", None, "UUID of the node whose key is distributed"),
     ("node_name", None, "Name of the node whose key is distributed"),
+    ("potential_master_candidates", None, "Potential master candidates"),
+    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
     ("to_authorized_keys", None, "Whether the node's key should be added"
      " to all nodes' 'authorized_keys' file"),
     ("to_public_keys", None, "Whether the node's key should be added"
      " to all nodes' public key file"),
     ("get_public_keys", None, "Whether the node should get the other nodes'"
-     " public keys"),
-    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
-    ("potential_master_candidates", None, "Potential master candidates")],
+     " public keys")],
     None, None, "Distribute a new node's public SSH key on the cluster."),
   ("node_ssh_key_remove", MULTI, None, constants.RPC_TMO_URGENT, [
     ("node_uuid", None, "UUID of the node whose key is removed"),
     ("node_name", None, "Name of the node whose key is removed"),
+    ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
+    ("potential_master_candidates", None, "Potential master candidates"),
+    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
     ("from_authorized_keys", None,
      "If the key should be removed from the 'authorized_keys' file."),
     ("from_public_keys", None,
      "If the key should be removed from the public key file."),
     ("clear_authorized_keys", None,
      "If the 'authorized_keys' file of the node should be cleared."),
-    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
-    ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
-    ("potential_master_candidates", None, "Potential master candidates")],
+    ("clear_public_keys", None,
+     "If the 'ganeti_pub_keys' file of the node should be cleared.")],
     None, None, "Remove a node's SSH key from the other nodes' key files."),
   ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_URGENT, [
     ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),

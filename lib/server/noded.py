@@ -923,12 +923,13 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Distributes a new node's SSH key if authorized.
 
     """
-    (node_uuid, node_name, to_authorized_keys,
-     to_public_keys, get_public_keys, ssh_port_map,
-     potential_master_candidates) = params
-    return backend.AddNodeSshKey(node_uuid, node_name, to_authorized_keys,
-                                 to_public_keys, get_public_keys,
-                                 ssh_port_map, potential_master_candidates)
+    (node_uuid, node_name, potential_master_candidates, ssh_port_map,
+     to_authorized_keys, to_public_keys, get_public_keys) = params
+    return backend.AddNodeSshKey(node_uuid, node_name,
+                                 potential_master_candidates, ssh_port_map,
+                                 to_authorized_keys=to_authorized_keys,
+                                 to_public_keys=to_public_keys,
+                                 get_public_keys=get_public_keys)
 
   @staticmethod
   def perspective_node_ssh_keys_renew(params):
@@ -946,15 +947,18 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Removes a node's SSH key from the other nodes' SSH files.
 
     """
-    (node_uuid, node_name, from_authorized_keys,
-     from_public_keys, clear_authorized_keys,
-     ssh_port_map, master_candidate_uuids,
-     potential_master_candidates) = params
-    return backend.RemoveNodeSshKey(node_uuid, node_name, from_authorized_keys,
-                                    from_public_keys, clear_authorized_keys,
-                                    ssh_port_map,
+    (node_uuid, node_name,
+     master_candidate_uuids, potential_master_candidates, ssh_port_map,
+     from_authorized_keys, from_public_keys, clear_authorized_keys,
+     clear_public_keys) = params
+    return backend.RemoveNodeSshKey(node_uuid, node_name,
                                     master_candidate_uuids,
-                                    potential_master_candidates)
+                                    potential_master_candidates,
+                                    ssh_port_map,
+                                    from_authorized_keys=from_authorized_keys,
+                                    from_public_keys=from_public_keys,
+                                    clear_authorized_keys=clear_authorized_keys,
+                                    clear_public_keys=clear_public_keys)
 
   # cluster --------------------------
 

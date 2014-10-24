@@ -268,7 +268,8 @@ instance Arbitrary OpCodes.OpCode where
       "OP_NODE_ADD" ->
         OpCodes.OpNodeAdd <$> genNodeNameNE <*> emptyMUD <*> emptyMUD <*>
           genMaybe genNameNE <*> genMaybe genNameNE <*> arbitrary <*>
-          genMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD
+          genMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD <*>
+          arbitrary
       "OP_NODE_QUERYVOLS" ->
         OpCodes.OpNodeQueryvols <$> genNamesNE <*> genNodeNamesNE
       "OP_NODE_QUERY_STORAGE" ->

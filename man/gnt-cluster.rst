@@ -846,6 +846,7 @@ RENEW-CRYPTO
 | [\--new-rapi-certificate] [\--rapi-certificate *rapi-cert*]
 | [\--new-spice-certificate | \--spice-certificate *spice-cert*
 | \--spice-ca-certificate *spice-ca-cert*]
+| [\--new-ssh-keys]
 | [\--new-cluster-domain-secret] [\--cluster-domain-secret *filename*]
 
 This command will stop all Ganeti daemons in the cluster and start
@@ -869,6 +870,10 @@ connections to the KVM hypervisor, specify the
 ``--new-spice-certificate`` option. If you want to provide a
 certificate, pass its filename to ``--spice-certificate`` and pass the
 signing CA certificate to ``--spice-ca-certificate``.
+
+The option ``--new-ssh-keys`` renews all SSH keys of all nodes
+and updates the ``authorized_keys`` files of all nodes to contain
+only the (new) public keys of all master candidates.
 
 Finally ``--new-cluster-domain-secret`` generates a new, random
 cluster domain secret, and ``--cluster-domain-secret`` reads the

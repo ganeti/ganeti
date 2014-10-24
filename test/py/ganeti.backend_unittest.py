@@ -1055,7 +1055,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
   def _GetCallsPerNode(self):
     calls_per_node = {}
     for (pos, keyword) in self._run_cmd_mock.call_args_list:
-      (cluster_name, node, _, _, _, _, _, _, _, data) = pos
+      (cluster_name, node, _, _, data) = pos
       if not node in calls_per_node:
         calls_per_node[node] = []
       calls_per_node[node].append(data)
@@ -1101,11 +1101,11 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
       self._ssh_port_map[new_node_name] = self._SSH_PORT
 
       backend.AddNodeSshKey(new_node_uuid, new_node_name,
-                            to_authorized_keys,
-                            to_public_keys,
-                            get_public_keys,
-                            self._ssh_port_map,
                             self._potential_master_candidates,
+                            self._ssh_port_map,
+                            to_authorized_keys=to_authorized_keys,
+                            to_public_keys=to_public_keys,
+                            get_public_keys=get_public_keys,
                             pub_key_file=self._pub_key_file,
                             ssconf_store=self._ssconf_mock,
                             noded_cert_file=self.noded_cert_file,
@@ -1179,13 +1179,14 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     node_key2 = "node_key2"
 
     for (from_authorized_keys, from_public_keys,
-         clear_authorized_keys) in \
-       [(True, True, False),
-        (True, False, False),
-        (False, True, False),
-        (False, True, True),
-        (False, False, True),
-        (True, True, True),
+         clear_authorized_keys, clear_public_keys) in \
+       [(True, True, False, False),
+        (True, False, False, False),
+        (False, True, False, False),
+        (False, True, True, False),
+        (False, False, True, False),
+        (True, True, True, False),
+        (True, True, True, True),
        ]:
 
       self._SetupTestData()
@@ -1204,12 +1205,13 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         self._master_candidate_uuids.append(node_uuid)
 
       backend.RemoveNodeSshKey(node_uuid, node_name,
-                               from_authorized_keys,
-                               from_public_keys,
-                               clear_authorized_keys,
-                               self._ssh_port_map,
                                self._master_candidate_uuids,
                                self._potential_master_candidates,
+                               self._ssh_port_map,
+                               from_authorized_keys=from_authorized_keys,
+                               from_public_keys=from_public_keys,
+                               clear_authorized_keys=clear_authorized_keys,
+                               clear_public_keys=clear_public_keys,
                                pub_key_file=self._pub_key_file,
                                ssconf_store=self._ssconf_mock,
                                noded_cert_file=self.noded_cert_file,
@@ -1288,6 +1290,17 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
             constants.SSHS_SSH_AUTHORIZED_KEYS, key),
             "Node %s did receive request to remove authorized key '%s',"
             " although it should not have." % (node_name, key))
+
+      if clear_public_keys:
+        # Checks if the node is cleared of all other potential master candidate
+        # nodes' public keys
+        for node_idx in pot_sample_nodes:
+          key = "key%s" % node_idx
+          self.assertTrue(self._KeyRemoved(
+            calls_per_node, node_name,
+            constants.SSHS_SSH_PUBLIC_KEYS, mc_key),
+            "Node %s did not receive request to remove public key '%s',"
+            " although it should have." % (node_name, key))
 
 
 class TestVerifySshSetup(testutils.GanetiTestCase):

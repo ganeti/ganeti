@@ -47,6 +47,7 @@ import qa_config
 import qa_daemon
 import qa_error
 import qa_instance
+import qa_job_utils
 import qa_logging
 import qa_utils
 
@@ -394,24 +395,25 @@ def TestClusterEpo():
   # Unless --all is given master is not allowed to be in the list
   AssertCommand(["gnt-cluster", "epo", "-f", master.primary], fail=True)
 
-  # This shouldn't fail
-  AssertCommand(["gnt-cluster", "epo", "-f", "--all"])
+  with qa_job_utils.PausedWatcher():
+    # This shouldn't fail
+    AssertCommand(["gnt-cluster", "epo", "-f", "--all"])
 
-  # All instances should have been stopped now
-  result_output = GetCommandOutput(master.primary,
-                                   "gnt-instance list --no-headers -o status")
-  # ERROR_down because the instance is stopped but not recorded as such
-  AssertEqual(compat.all(status == "ERROR_down"
-                         for status in result_output.splitlines()), True)
+    # All instances should have been stopped now
+    result_output = GetCommandOutput(master.primary,
+                                     "gnt-instance list --no-headers -o status")
+    # ERROR_down because the instance is stopped but not recorded as such
+    AssertEqual(compat.all(status == "ERROR_down"
+                           for status in result_output.splitlines()), True)
 
-  # Now start everything again
-  AssertCommand(["gnt-cluster", "epo", "--on", "-f", "--all"])
+    # Now start everything again
+    AssertCommand(["gnt-cluster", "epo", "--on", "-f", "--all"])
 
-  # All instances should have been started now
-  result_output = GetCommandOutput(master.primary,
-                                   "gnt-instance list --no-headers -o status")
-  AssertEqual(compat.all(status == "running"
-                         for status in result_output.splitlines()), True)
+    # All instances should have been started now
+    result_output = GetCommandOutput(master.primary,
+                                     "gnt-instance list --no-headers -o status")
+    AssertEqual(compat.all(status == "running"
+                           for status in result_output.splitlines()), True)
 
 
 def TestClusterVerify():
