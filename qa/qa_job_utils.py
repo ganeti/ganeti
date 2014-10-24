@@ -43,6 +43,7 @@ from ganeti import utils
 from ganeti.utils import retry
 
 import qa_config
+import qa_logging
 import qa_error
 
 from qa_utils import AssertCommand, GetCommandOutput, GetObjectInfo
@@ -309,6 +310,26 @@ class QAThreadGroup(object):
     for thread in self._threads:
       thread.join()
       thread.reraise()
+
+
+class PausedWatcher(object):
+  """Pauses the watcher for the duration of the inner code
+
+  """
+  def __enter__(self):
+    AssertCommand(["gnt-cluster", "watcher", "pause", "12h"])
+
+  def __exit__(self, _ex_type, ex_value, _ex_traceback):
+    try:
+      AssertCommand(["gnt-cluster", "watcher", "continue"])
+    except qa_error.Error, err:
+      # If an exception happens during 'continue', re-raise it only if there
+      # is no exception from the inner block:
+      if ex_value is None:
+        raise
+      else:
+        print qa_logging.FormatError('Re-enabling watcher failed: %s' %
+                                     (err, ))
 
 
 # TODO: Can this be done as a decorator? Implement as needed.

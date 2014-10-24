@@ -750,10 +750,13 @@ HS_PROG_SRCS = $(patsubst %,%.hs,$(HS_DEFAULT_PROGS)) src/mon-collector.hs
 HS_BUILT_TEST_HELPERS = $(HS_BIN_ROLES:%=test/hs/%) test/hs/hail
 
 HFLAGS = \
-	-O -Wall -Werror -isrc \
+	-O -Wall -isrc \
 	-fwarn-monomorphism-restriction \
 	-fwarn-tabs \
 	$(GHC_BYVERSION_FLAGS)
+if DEVELOPER_MODE
+HFLAGS += -Werror
+endif
 
 HTEST_SUFFIX = hpc
 HPROF_SUFFIX = prof
@@ -2178,8 +2181,8 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DMAN_PAGES="$$(for i in $(notdir $(man_MANS)); do \
 	                    echo -n "$$i" | sed -re 's/^(.*)\.([0-9]+)$$/("\1",\2):/g'; \
 	                    done)" \
-	    -DAF_INET4="$$(PYTHONPATH=. python $(PRINT_PY_CONSTANTS) AF_INET4)" \
-	    -DAF_INET6="$$(PYTHONPATH=. python $(PRINT_PY_CONSTANTS) AF_INET6)" \
+	    -DAF_INET4="$$(PYTHONPATH=. $(PYTHON) $(PRINT_PY_CONSTANTS) AF_INET4)" \
+	    -DAF_INET6="$$(PYTHONPATH=. $(PYTHON) $(PRINT_PY_CONSTANTS) AF_INET6)" \
 	$(abs_top_srcdir)/src/AutoConf.hs.in > $@
 
 lib/_vcsversion.py: Makefile vcs-version | stamp-directories
@@ -2775,5 +2778,10 @@ really-all: all $(check_SCRIPTS) $(haskell_tests) $(HS_ALL_PROGS)
 %: SCCS/s.%
 
 -include ./Makefile.local
+
+# support inspecting the value of a make variable
+
+print-%:
+	@echo $($*)
 
 # vim: set noet :
