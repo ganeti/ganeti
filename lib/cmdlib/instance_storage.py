@@ -547,11 +547,13 @@ def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
 
   dev_data = objects.Disk(dev_type=constants.DT_PLAIN, size=size,
                           logical_id=(vgnames[0], names[0]),
+                          nodes=[primary_uuid, secondary_uuid],
                           params={})
   dev_data.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
   dev_meta = objects.Disk(dev_type=constants.DT_PLAIN,
                           size=constants.DRBD_META_SIZE,
                           logical_id=(vgnames[1], names[1]),
+                          nodes=[primary_uuid, secondary_uuid],
                           params={})
   dev_meta.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
   drbd_dev = objects.Disk(dev_type=constants.DT_DRBD8, size=size,
@@ -559,6 +561,7 @@ def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
                                       p_minor, s_minor,
                                       shared_secret),
                           children=[dev_data, dev_meta],
+                          nodes=[primary_uuid, secondary_uuid],
                           iv_name=iv_name, params={})
   drbd_dev.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
   return drbd_dev
@@ -619,12 +622,15 @@ def GenerateDiskTemplate(
       names = _GenerateUniqueNames(lu, ["%s.disk%s" %
                                         (name_prefix, base_index + i)
                                         for i in range(disk_count)])
+    disk_nodes = []
 
     if template_name == constants.DT_PLAIN:
 
       def logical_id_fn(idx, _, disk):
         vg = disk.get(constants.IDISK_VG, vgname)
         return (vg, names[idx])
+
+      disk_nodes = [primary_node_uuid]
 
     elif template_name == constants.DT_GLUSTER:
       logical_id_fn = lambda _1, disk_index, _2: \
@@ -636,6 +642,9 @@ def GenerateDiskTemplate(
         lambda _, disk_index, disk: (file_driver,
                                      "%s/%s" % (file_storage_dir,
                                                 names[idx]))
+      if template_name == constants.DT_FILE:
+        disk_nodes = [primary_node_uuid]
+
     elif template_name == constants.DT_BLOCK:
       logical_id_fn = \
         lambda idx, disk_index, disk: (constants.BLOCKDEV_DRIVER_MANUAL,
@@ -675,7 +684,7 @@ def GenerateDiskTemplate(
                               logical_id=logical_id_fn(idx, disk_index, disk),
                               iv_name="disk/%d" % disk_index,
                               mode=disk[constants.IDISK_MODE],
-                              params=params,
+                              params=params, nodes=disk_nodes,
                               spindles=disk.get(constants.IDISK_SPINDLES))
       disk_dev.name = disk.get(constants.IDISK_NAME, None)
       disk_dev.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
