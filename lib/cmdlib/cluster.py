@@ -2520,17 +2520,20 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                     "couldn't retrieve status for disk/%s on %s: %s",
                     idx, self.cfg.GetNodeName(nname), bdev_status)
 
-      if instance.disks_active and success and \
-         (bdev_status.is_degraded or
-          bdev_status.ldisk_status != constants.LDS_OKAY):
-        msg = "disk/%s on %s" % (idx, self.cfg.GetNodeName(nname))
-        if bdev_status.is_degraded:
-          msg += " is degraded"
-        if bdev_status.ldisk_status != constants.LDS_OKAY:
-          msg += "; state is '%s'" % \
+      if instance.disks_active and success and bdev_status.is_degraded:
+        msg = "disk/%s on %s is degraded" % (idx, self.cfg.GetNodeName(nname))
+
+        code = self.ETYPE_ERROR
+        accepted_lds = [constants.LDS_OKAY, constants.LDS_SYNC]
+
+        if bdev_status.ldisk_status in accepted_lds:
+          code = self.ETYPE_WARNING
+
+        msg += "; local disk state is '%s'" % \
                  constants.LDS_NAMES[bdev_status.ldisk_status]
 
-        self._Error(constants.CV_EINSTANCEFAULTYDISK, instance.name, msg)
+        self._Error(constants.CV_EINSTANCEFAULTYDISK, instance.name, msg,
+                    code=code)
 
     self._ErrorIf(pnode_img.rpc_fail and not pnode_img.offline,
                   constants.CV_ENODERPC, self.cfg.GetNodeName(pnode_uuid),
