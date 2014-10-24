@@ -1227,6 +1227,9 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       ("xenvg", "ec1-uq0.disk3"),
       ("othervg", "ec1-uq1.disk4"),
       ])
+    self.assertEqual(map(operator.attrgetter("nodes"), result), [
+                     ["node21741.example.com"], ["node21741.example.com"]])
+
 
   def testFile(self):
     # anything != DT_FILE would do here
@@ -1261,7 +1264,17 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
                     for x in (2,3,4)]
         self.assertEqual(map(operator.attrgetter("logical_id"), result),
                          expected)
+        self.assertEqual(map(operator.attrgetter("nodes"), result), [
+          [], [], []])
       else:
+        if disk_template == constants.DT_FILE:
+          self.assertEqual(map(operator.attrgetter("nodes"), result), [
+            ["node21741.example.com"], ["node21741.example.com"],
+            ["node21741.example.com"]])
+        else:
+          self.assertEqual(map(operator.attrgetter("nodes"), result), [
+            [], [], []])
+
         for (idx, disk) in enumerate(result):
           (file_driver, file_storage_dir) = disk.logical_id
           dir_fmt = r"^/tmp/.*\.%s\.disk%d$" % (disk_template, idx + 2)
@@ -1282,6 +1295,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     self.assertEqual(map(operator.attrgetter("logical_id"), result), [
       (constants.BLOCKDEV_DRIVER_MANUAL, "/tmp/some/block/dev"),
       ])
+    self.assertEqual(map(operator.attrgetter("nodes"), result), [[]])
 
   def testRbd(self):
     disk_info = [{
@@ -1299,6 +1313,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       ("rbd", "ec1-uq0.rbd.disk0"),
       ("rbd", "ec1-uq1.rbd.disk1"),
       ])
+    self.assertEqual(map(operator.attrgetter("nodes"), result), [[], []])
 
   def testDrbd8(self):
     gdt = instance.GenerateDiskTemplate
@@ -1331,6 +1346,8 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
         (drbd8_default_metavg, "ec1-uq2.disk2_meta"),
       ]]
 
+    exp_nodes = ["node1334.example.com", "node12272.example.com"]
+
     assert len(exp_logical_ids) == len(disk_info)
 
     map(lambda params: utils.ForceDictType(params,
@@ -1358,9 +1375,11 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
         self.assertTrue(isinstance(disk, objects.Disk))
         self.assertEqual(child.dev_type, constants.DT_PLAIN)
         self.assertTrue(child.children is None)
+        self.assertEqual(child.nodes, exp_nodes)
 
       self.assertEqual(map(operator.attrgetter("logical_id"), disk.children),
                        exp_logical_ids[idx])
+      self.assertEqual(disk.nodes, exp_nodes)
 
       self.assertEqual(len(disk.children), 2)
       self.assertEqual(disk.children[0].size, disk.size)
