@@ -125,6 +125,7 @@ instance Arbitrary Disk where
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
+                   <*> arbitrary
 
 -- FIXME: we should generate proper values, >=0, etc., but this is
 -- hard for partial ones, where all must be wrapped in a 'Maybe'
@@ -214,6 +215,7 @@ genDiskWithChildren :: Int -> Gen Disk
 genDiskWithChildren num_children = do
   logicalid <- arbitrary
   children <- vectorOf num_children (genDiskWithChildren 0)
+  nodes <- arbitrary
   ivname <- genName
   size <- arbitrary
   mode <- arbitrary
@@ -224,7 +226,7 @@ genDiskWithChildren num_children = do
   serial <- arbitrary
   time <- arbitrary
   return $
-    Disk logicalid children ivname size mode name
+    Disk logicalid children nodes ivname size mode name
       spindles params uuid serial time time
 
 genDisk :: Gen Disk
@@ -662,7 +664,7 @@ caseIncludeLogicalIdPlain =
       lv = LogicalVolume vg_name lv_name
       time = TOD 0 0
       d =
-        Disk (LIDPlain lv) [] "diskname" 1000 DiskRdWr
+        Disk (LIDPlain lv) [] ["node1.example.com"] "diskname" 1000 DiskRdWr
           Nothing Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
           0 time time
   in
@@ -678,11 +680,14 @@ caseIncludeLogicalIdDrbd =
       d =
         Disk
           (LIDDrbd8 "node1.example.com" "node2.example.com" 2000 1 5 "secret")
-          [ Disk (mkLIDPlain "onevg" "onelv") [] "disk1" 1000 DiskRdWr Nothing
-              Nothing Nothing "145145-asdf-sdf2-2134-asfd-534g2x" 0 time time
-          , Disk (mkLIDPlain vg_name lv_name) [] "disk2" 1000 DiskRdWr Nothing
+          [ Disk (mkLIDPlain "onevg" "onelv") [] ["node1.example.com",
+              "node2.example.com"] "disk1" 1000 DiskRdWr Nothing Nothing
+              Nothing "145145-asdf-sdf2-2134-asfd-534g2x" 0 time time
+          , Disk (mkLIDPlain vg_name lv_name) [] ["node1.example.com",
+              "node2.example.com"] "disk2" 1000 DiskRdWr Nothing
               Nothing Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse" 0 time time
-          ] "diskname" 1000 DiskRdWr Nothing Nothing Nothing
+          ] ["node1.example.com", "node2.example.com"] "diskname" 1000 DiskRdWr
+          Nothing Nothing Nothing
           "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $
@@ -695,8 +700,9 @@ caseNotIncludeLogicalIdPlain =
       lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
       time = TOD 0 0
       d =
-        Disk (mkLIDPlain "othervg" "otherlv") [] "diskname" 1000 DiskRdWr
-          Nothing Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
+        Disk (mkLIDPlain "othervg" "otherlv") [] ["node1.example.com"]
+          "diskname" 1000 DiskRdWr Nothing Nothing Nothing
+          "asdfgr-1234-5123-daf3-sdfw-134f43"
           0 time time
   in
     HUnit.assertBool "Unable to detect that plain Disk includes logical ID" $

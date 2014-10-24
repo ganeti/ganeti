@@ -556,6 +556,7 @@ class Disk(ConfigObject):
     "dev_type",
     "logical_id",
     "children",
+    "nodes",
     "iv_name",
     "size",
     "mode",

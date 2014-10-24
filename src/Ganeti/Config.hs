@@ -374,9 +374,9 @@ getDrbdDiskNodes cfg disk =
 getInstAllNodes :: ConfigData -> String -> ErrorResult [Node]
 getInstAllNodes cfg name = do
   inst_disks <- getInstDisks cfg name
-  let diskNodes = concatMap (getDrbdDiskNodes cfg) inst_disks
+  let disk_nodes = concatMap (getDrbdDiskNodes cfg) inst_disks
   pNode <- getInstPrimaryNode cfg name
-  return . nub $ pNode:diskNodes
+  return . nub $ pNode:disk_nodes
 
 -- | Get disks for a given instance.
 -- The instance is specified by name or uuid.
