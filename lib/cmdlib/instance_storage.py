@@ -1032,12 +1032,12 @@ class LUInstanceRecreateDisks(LogicalUnit):
 
     # change primary node, if needed
     if self.op.node_uuids:
-      self.instance.primary_node = self.op.node_uuids[0]
       self.LogWarning("Changing the instance's nodes, you will have to"
                       " remove any disks left on the older nodes manually")
-
-    if self.op.node_uuids:
+      self.instance.primary_node = self.op.node_uuids[0]
       self.cfg.Update(self.instance, feedback_fn)
+      for disk in inst_disks:
+        self.cfg.SetDiskNodes(disk.uuid, self.op.node_uuids)
 
     # All touched nodes must be locked
     mylocks = self.owned_locks(locking.LEVEL_NODE)
@@ -2848,6 +2848,8 @@ class TLReplaceDisks(Tasklet):
     for dev, _, new_logical_id in iv_names.itervalues():
       dev.logical_id = new_logical_id
       self.cfg.Update(dev, feedback_fn)
+      self.cfg.SetDiskNodes(dev.uuid, [self.instance.primary_node,
+                                       self.new_node_uuid])
 
     self.cfg.Update(self.instance, feedback_fn)
 

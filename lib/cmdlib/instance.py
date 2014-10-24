@@ -2241,6 +2241,8 @@ class LUInstanceMove(LogicalUnit):
 
     self.instance.primary_node = target_node.uuid
     self.cfg.Update(self.instance, feedback_fn)
+    for disk in disks:
+      self.cfg.SetDiskNodes(disk.uuid, [target_node.uuid])
 
     self.LogInfo("Removing the disks on the original node")
     RemoveDisks(self, self.instance, target_node_uuid=source_node.uuid)
@@ -3955,11 +3957,12 @@ class LUInstanceSetParams(LogicalUnit):
     old_disks = AnnotateDiskParams(self.instance, disks, self.cfg)
     new_disks = [d.children[0] for d in disks]
 
-    # copy over size, mode and name
+    # copy over size, mode and name and set the correct nodes
     for parent, child in zip(old_disks, new_disks):
       child.size = parent.size
       child.mode = parent.mode
       child.name = parent.name
+      child.nodes = [self.instance.primary_node]
 
     # this is a DRBD disk, return its port to the pool
     for disk in old_disks:

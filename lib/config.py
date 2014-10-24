@@ -2261,6 +2261,18 @@ class ConfigWriter(object):
     """
     self._UnlockedGetInstanceInfo(inst_uuid).primary_node = target_node_uuid
 
+  @_ConfigSync()
+  def SetDiskNodes(self, disk_uuid, nodes):
+    """Sets the nodes of an existing disk
+
+    @param disk_uuid: disk UUID
+    @type disk_uuid: string
+    @param nodes: the new nodes for the disk
+    @type nodes: list of node uuids
+
+    """
+    self._UnlockedGetDiskInfo(disk_uuid).nodes = nodes
+
   def _UnlockedGetInstanceNames(self, inst_uuids):
     return [self._UnlockedGetInstanceName(uuid) for uuid in inst_uuids]
 
