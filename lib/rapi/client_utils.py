@@ -103,5 +103,11 @@ def PollJob(rapi_client, job_id, reporter):
   @type reporter: L{cli.JobPollReportCbBase}
   @param reporter: PollJob reporter instance
 
+  @return: The opresult of the job
+  @raise errors.JobLost: If job can't be found
+  @raise errors.OpExecError: if job didn't succeed
+
+  @see: L{ganeti.cli.GenericPollJob}
+
   """
   return cli.GenericPollJob(job_id, RapiJobPollCb(rapi_client), reporter)

@@ -714,6 +714,10 @@ def GenericPollJob(job_id, cbs, report_cbs):
   @type report_cbs: Instance of L{JobPollReportCbBase}
   @param report_cbs: Reporting callbacks
 
+  @return: the opresult of the job
+  @raise errors.JobLost: If job can't be found
+  @raise errors.OpExecError: If job didn't succeed
+
   """
   prev_job_info = None
   prev_logmsg_serial = None
