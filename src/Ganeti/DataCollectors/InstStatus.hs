@@ -143,15 +143,16 @@ computeStatusField AdminOffline _ =
 -- Builds the status of an instance using runtime information about the Xen
 -- Domains, their uptime information and the static information provided by
 -- the ConfD server.
-buildStatus :: Map.Map String Domain -> Map.Map Int UptimeInfo -> Instance
-  -> IO InstStatus
+buildStatus :: Map.Map String Domain -> Map.Map Int UptimeInfo
+               -> RealInstanceData
+               -> IO InstStatus
 buildStatus domains uptimes inst = do
-  let name = instName inst
+  let name = realInstName inst
       currDomain = Map.lookup name domains
       idNum = fmap domId currDomain
       currUInfo = idNum >>= (`Map.lookup` uptimes)
       uptime = fmap uInfoUptime currUInfo
-      adminState = instAdminState inst
+      adminState = realInstAdminState inst
       actualState =
         if adminState == AdminDown && isNothing currDomain
           then ActualShutdown
@@ -166,11 +167,11 @@ buildStatus domains uptimes inst = do
   return $
     InstStatus
       name
-      (instUuid inst)
+      (realInstUuid inst)
       adminState
       actualState
       uptime
-      (instMtime inst)
+      (realInstMtime inst)
       trail
       status
 
@@ -193,11 +194,13 @@ buildInstStatusReport srvAddr srvPort = do
   answer <- runResultT $ getInstances node srvAddr srvPort
   inst <- exitIfBad "Can't get instance info from ConfD" answer
   d <- getInferredDomInfo
+  let toReal (RealInstance i) = Just i
+      toReal _ = Nothing
   reportData <-
     case d of
       BT.Ok domains -> do
         uptimes <- getUptimeInfo
-        let primaryInst =  fst inst
+        let primaryInst =  mapMaybe toReal $ fst inst
         iStatus <- mapM (buildStatus domains uptimes) primaryInst
         let globalStatus = computeGlobalStatus iStatus
         return $ ReportData iStatus globalStatus

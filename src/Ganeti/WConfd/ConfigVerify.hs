@@ -122,7 +122,7 @@ verifyConfig cd = do
     checkUUIDKeys "disk" disks
     -- UUID references
     checkUUIDRefs "node" "nodegroup" (return . nodeGroup) nodes nodegroups
-    checkUUIDRefs "instance" "primary node" (return . instPrimaryNode)
+    checkUUIDRefs "instance" "primary node" (maybe [] return . instPrimaryNode)
                                             instances nodes
     checkUUIDRefs "instance" "disks" instDisks instances disks
 

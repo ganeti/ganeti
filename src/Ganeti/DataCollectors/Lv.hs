@@ -49,6 +49,7 @@ import qualified Control.Exception as E
 import Control.Monad
 import Data.Attoparsec.Text.Lazy as A
 import Data.List
+import Data.Maybe (mapMaybe)
 import Data.Text.Lazy (pack, unpack)
 import Network.BSD (getHostName)
 import System.Process
@@ -132,26 +133,30 @@ getLvInfo inputFile = do
         ++ show contexts ++ "\n" ++ errorMessage
     A.Done _ lvinfoD -> return lvinfoD
 
--- | Get the list of instances on the current node along with their disks,
+-- | Get the list of real instances on the current node along with their disks,
 -- either from a provided file or by querying Confd.
-getInstDiskList :: Options -> IO [(Instance, [Disk])]
+getInstDiskList :: Options -> IO [(RealInstanceData, [Disk])]
 getInstDiskList opts = do
   instances <- maybe fromConfd fromFile $ optInstances opts
   exitIfBad "Unable to obtain the list of instances" instances
   where
-    fromConfdUnchecked :: IO (BT.Result [(Instance, [Disk])])
+    fromConfdUnchecked :: IO (BT.Result [(RealInstanceData, [Disk])])
     fromConfdUnchecked = do
       let srvAddr = optConfdAddr opts
           srvPort = optConfdPort opts
-      getHostName >>= \n -> BT.runResultT $ getInstanceDisks n srvAddr srvPort
+          toReal (RealInstance i, dsks) = Just (i, dsks)
+          toReal _ = Nothing
+      getHostName >>= \n -> BT.runResultT
+                            . liftM (mapMaybe toReal)
+                            $ getInstanceDisks n srvAddr srvPort
 
-    fromConfd :: IO (BT.Result [(Instance, [Disk])])
+    fromConfd :: IO (BT.Result [(RealInstanceData, [Disk])])
     fromConfd =
       liftM (either (BT.Bad . show) id)
       (E.try fromConfdUnchecked ::
-          IO (Either IOError (BT.Result [(Instance, [Disk])])))
+          IO (Either IOError (BT.Result [(RealInstanceData, [Disk])])))
 
-    fromFile :: FilePath -> IO (BT.Result [(Instance, [Disk])])
+    fromFile :: FilePath -> IO (BT.Result [(RealInstanceData, [Disk])])
     fromFile inputFile = do
       contents <-
         ((E.try $ readFile inputFile) :: IO (Either IOError String))
@@ -159,7 +164,7 @@ getInstDiskList opts = do
       return . fromJResult "Not a list of instances" $ J.decode contents
 
 -- | Adds the name of the instance to the information about one logical volume.
-addInstNameToOneLv :: [(Instance, [Disk])] -> LVInfo -> LVInfo
+addInstNameToOneLv :: [(RealInstanceData, [Disk])] -> LVInfo -> LVInfo
 addInstNameToOneLv instDiskList lvInfo =
  let lv = LogicalVolume (lviVgName lvInfo) (lviName lvInfo)
      instanceHasDisk = any (includesLogicalId lv) . snd
@@ -167,10 +172,10 @@ addInstNameToOneLv instDiskList lvInfo =
    in
      case rightInstance of
        Nothing -> lvInfo
-       Just (i, _) -> lvInfo { lviInstance = Just $ instName i }
+       Just (i, _) -> lvInfo { lviInstance = Just $ realInstName i }
 
 -- | Adds the name of the instance to the information about logical volumes.
-addInstNameToLv :: [(Instance, [Disk])] -> [LVInfo] -> [LVInfo]
+addInstNameToLv :: [(RealInstanceData, [Disk])] -> [LVInfo] -> [LVInfo]
 addInstNameToLv instDisksList = map (addInstNameToOneLv instDisksList)
 
 -- | This function computes the JSON representation of the LV status.

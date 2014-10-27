@@ -54,7 +54,7 @@ $(buildParam "Be" "bep"
   , simpleField "spindle_use"     [t| Int  |]
   ])
 
-$(buildObject "Instance" "inst" $
+$(buildObjectWithForthcoming "Instance" "inst" $
   [ simpleField "name"             [t| String             |]
   , simpleField "primary_node"     [t| String             |]
   , simpleField "os"               [t| String             |]

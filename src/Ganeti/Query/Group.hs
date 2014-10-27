@@ -35,6 +35,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Query.Group
   (fieldsMap) where
 
+import Data.Maybe (mapMaybe)
+
 import Ganeti.Config
 import Ganeti.Objects
 import Ganeti.Query.Language
@@ -79,7 +81,7 @@ groupFields =
      QffNormal)
   , (FieldDefinition "pinst_list" "InstanceList" QFTOther
        "List of primary instances",
-     FieldConfig (\cfg -> rsNormal . niceSort . map instName . fst .
+     FieldConfig (\cfg -> rsNormal . niceSort . mapMaybe instName . fst .
                           getGroupInstances cfg . groupUuid), QffNormal)
   ] ++
   map buildNdParamField allNDParamFields ++

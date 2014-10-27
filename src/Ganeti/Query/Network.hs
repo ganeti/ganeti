@@ -147,7 +147,7 @@ getNicVlan nic_params = fromMaybe "-" (nicpVlanP nic_params)
 -- | Retrieves the network's instances' names.
 getInstances :: ConfigData -> String -> [String]
 getInstances cfg network_uuid =
-  map instName (filter (instIsConnected network_uuid)
+  mapMaybe instName (filter (instIsConnected network_uuid)
     ((Map.elems . fromContainer . configInstances) cfg))
 
 -- | Helper function that checks if an instance is linked to the given network.

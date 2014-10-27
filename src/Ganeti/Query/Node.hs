@@ -233,11 +233,11 @@ nodeFields =
      FieldConfig (\cfg -> rsNormal . getNumInstances snd cfg), QffNormal)
   , (FieldDefinition "pinst_list" "PriInstances" QFTOther
        "List of instances with this node as primary",
-     FieldConfig (\cfg -> rsNormal . niceSort . map instName . fst .
+     FieldConfig (\cfg -> rsNormal . niceSort . mapMaybe instName . fst .
                           getNodeInstances cfg . nodeUuid), QffNormal)
   , (FieldDefinition "sinst_list" "SecInstances" QFTOther
        "List of instances with this node as secondary",
-     FieldConfig (\cfg -> rsNormal . niceSort . map instName . snd .
+     FieldConfig (\cfg -> rsNormal . niceSort . mapMaybe instName . snd .
                           getNodeInstances cfg . nodeUuid), QffNormal)
   , (FieldDefinition "role" "Role" QFTText nodeRoleDoc,
      FieldConfig ((rsNormal .) . getNodeRole), QffNormal)

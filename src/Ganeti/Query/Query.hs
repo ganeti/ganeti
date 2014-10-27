@@ -311,7 +311,8 @@ queryInner cfg live (Query (ItemTypeOpCode QRNode) fields qfilter) wanted =
 
 queryInner cfg live (Query (ItemTypeOpCode QRInstance) fields qfilter) wanted =
   genericQuery Instance.fieldsMap (CollectorFieldAware Instance.collectLiveData)
-               instName configInstances getInstance cfg live fields qfilter
+               (fromMaybe "" . instName) configInstances getInstance cfg live
+               fields qfilter
                wanted
 
 queryInner cfg live (Query (ItemTypeOpCode QRGroup) fields qfilter) wanted =

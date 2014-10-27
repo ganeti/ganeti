@@ -139,9 +139,52 @@ $(genArbitrary ''PartialNicParams)
 
 $(genArbitrary ''PartialNic)
 
-instance Arbitrary Instance where
+instance Arbitrary ForthcomingInstanceData where
   arbitrary =
-    Instance
+    ForthcomingInstanceData
+      -- name
+      <$> genMaybe genFQDN
+      -- primary node
+      <*> genMaybe genFQDN
+      -- OS
+      <*> genMaybe genFQDN
+      -- hypervisor
+      <*> arbitrary
+      -- hvparams
+      -- FIXME: add non-empty hvparams when they're a proper type
+      <*> pure (GenericContainer Map.empty)
+      -- beparams
+      <*> arbitrary
+      -- osparams
+      <*> pure (GenericContainer Map.empty)
+      -- osparams_private
+      <*> pure (GenericContainer Map.empty)
+      -- admin_state
+      <*> genMaybe arbitrary
+      -- admin_state_source
+      <*> genMaybe arbitrary
+      -- nics
+      <*> arbitrary
+      -- disks
+      <*> vectorOf 5 arbitrary
+      -- disk template
+      <*> genMaybe arbitrary
+      -- disks active
+      <*> genMaybe arbitrary
+      -- network port
+      <*> arbitrary
+      -- ts
+      <*> arbitrary <*> arbitrary
+      -- uuid
+      <*> arbitrary
+      -- serial
+      <*> arbitrary
+      -- tags
+      <*> (Set.fromList <$> genTags)
+
+instance Arbitrary RealInstanceData where
+  arbitrary =
+    RealInstanceData
       -- name
       <$> genFQDN
       -- primary node
@@ -182,11 +225,16 @@ instance Arbitrary Instance where
       -- tags
       <*> (Set.fromList <$> genTags)
 
+instance Arbitrary Instance where
+  arbitrary = frequency [ (1, ForthcomingInstance <$> arbitrary)
+                        , (3, RealInstance <$> arbitrary)
+                        ]
+
 -- | Generates an instance that is connected to the given networks
 -- and possibly some other networks
 genInstWithNets :: [String] -> Gen Instance
 genInstWithNets nets = do
-  plain_inst <- arbitrary
+  plain_inst <- RealInstance <$> arbitrary
   enhanceInstWithNets plain_inst nets
 
 -- | Generates an instance that is connected to some networks
@@ -208,7 +256,10 @@ enhanceInstWithNets inst nets = do
   let genNic net = PartialNic mac ip nicparams net name uuid
       partial_nics = map (genNic . Just)
                          (List.nub (nets ++ more_nets))
-      new_inst = inst { instNics = partial_nics }
+      new_inst = case inst of
+                   RealInstance rinst ->
+                     RealInstance rinst { realInstNics = partial_nics }
+                   ForthcomingInstance _ -> inst
   return new_inst
 
 genDiskWithChildren :: Int -> Gen Disk

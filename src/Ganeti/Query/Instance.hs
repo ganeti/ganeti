@@ -42,6 +42,7 @@ module Ganeti.Query.Instance
   ) where
 
 import Control.Applicative
+import Control.Monad (liftM, (>=>))
 import Data.Either
 import Data.List
 import Data.Maybe
@@ -108,32 +109,35 @@ instanceFields =
   -- Simple fields
   [ (FieldDefinition "admin_state" "InstanceState" QFTText
      "Desired state of instance",
-     FieldSimple (rsNormal . adminStateToRaw . instAdminState), QffNormal)
+     FieldSimple (rsMaybeNoData . liftM adminStateToRaw . instAdminState),
+     QffNormal)
   , (FieldDefinition "admin_state_source" "InstanceStateSource" QFTText
      "Who last changed the desired state of the instance",
-     FieldSimple (rsNormal . adminStateSourceToRaw . instAdminStateSource),
+     FieldSimple (rsMaybeNoData . liftM adminStateSourceToRaw
+                  . instAdminStateSource),
      QffNormal)
   , (FieldDefinition "admin_up" "Autostart" QFTBool
      "Desired state of instance",
-     FieldSimple (rsNormal . (== AdminUp) . instAdminState), QffNormal)
+     FieldSimple (rsMaybeNoData . liftM (== AdminUp) . instAdminState),
+     QffNormal)
   , (FieldDefinition "disk_template" "Disk_template" QFTText
      "Instance disk template",
-     FieldSimple (rsNormal . instDiskTemplate), QffNormal)
+     FieldSimple (rsMaybeNoData . instDiskTemplate), QffNormal)
   , (FieldDefinition "disks_active" "DisksActive" QFTBool
      "Desired state of instance disks",
-     FieldSimple (rsNormal . instDisksActive), QffNormal)
+     FieldSimple (rsMaybeNoData . instDisksActive), QffNormal)
   , (FieldDefinition "name" "Instance" QFTText
      "Instance name",
-     FieldSimple (rsNormal . instName), QffHostname)
+     FieldSimple (rsMaybeNoData . instName), QffHostname)
   , (FieldDefinition "hypervisor" "Hypervisor" QFTText
      "Hypervisor name",
-     FieldSimple (rsNormal . instHypervisor), QffNormal)
+     FieldSimple (rsMaybeNoData . instHypervisor), QffNormal)
   , (FieldDefinition "network_port" "Network_port" QFTOther
      "Instance network port if available (e.g. for VNC console)",
      FieldSimple (rsMaybeUnavail . instNetworkPort), QffNormal)
   , (FieldDefinition "os" "OS" QFTText
      "Operating system",
-     FieldSimple (rsNormal . instOs), QffNormal)
+     FieldSimple (rsMaybeNoData . instOs), QffNormal)
   , (FieldDefinition "pnode" "Primary_node" QFTText
      "Primary node",
      FieldConfig getPrimaryNodeName, QffHostname)
@@ -377,10 +381,10 @@ getDiskSizeRequirements cfg inst =
   getSizes :: Disk -> Int
   getSizes disk =
     case instDiskTemplate inst of
-      DTDrbd8 -> diskSize disk + C.drbdMetaSize
-      DTDiskless -> 0
-      DTBlock    -> 0
-      _          -> diskSize disk
+      Just DTDrbd8    -> diskSize disk + C.drbdMetaSize
+      Just DTDiskless -> 0
+      Just DTBlock    -> 0
+      _               -> diskSize disk
 
 -- | Get a list of disk sizes for an instance
 getDiskSizes :: ConfigData -> Instance -> ResultEntry
@@ -550,7 +554,9 @@ instantiateIndexedFields listSize fields = do
 
 -- | Helper function for primary node retrieval
 getPrimaryNode :: ConfigData -> Instance -> ErrorResult Node
-getPrimaryNode cfg = getInstPrimaryNode cfg . instName
+getPrimaryNode cfg = maybe (Bad $ ParameterError "no primary node") return
+                       . instName
+                     >=> getInstPrimaryNode cfg
 
 -- | Get primary node hostname
 getPrimaryNodeName :: ConfigData -> Instance -> ResultEntry
@@ -577,7 +583,8 @@ getPrimaryNodeGroupUuid cfg inst =
 getSecondaryNodes :: ConfigData -> Instance -> ErrorResult [Node]
 getSecondaryNodes cfg inst = do
   pNode <- getPrimaryNode cfg inst
-  allNodes <- getInstAllNodes cfg $ instName inst
+  iname <- maybe (Bad $ ParameterError "no name") return $ instName inst
+  allNodes <- getInstAllNodes cfg iname
   return $ delete pNode allNodes
 
 -- | Get attributes of the secondary nodes
@@ -688,7 +695,9 @@ statusDocText =
 -- | Checks if the primary node of an instance is offline
 isPrimaryOffline :: ConfigData -> Instance -> Bool
 isPrimaryOffline cfg inst =
-  let pNodeResult = getNode cfg $ instPrimaryNode inst
+  let pNodeResult = maybe (Bad $ ParameterError "no primary node") return
+                          (instPrimaryNode inst)
+                    >>= getNode cfg
   in case pNodeResult of
      Ok pNode -> nodeOffline pNode
      Bad    _ -> error "Programmer error - result assumed to be OK is Bad!"
@@ -703,11 +712,11 @@ liveInstanceStatus cfg (instInfo, foundOnPrimary) inst
   | otherwise =
     case instanceState of
       InstanceStateRunning
-        | adminState == AdminUp -> Running
+        | adminState == Just AdminUp -> Running
         | otherwise -> ErrorUp
       InstanceStateShutdown
-        | adminState == AdminUp && allowDown -> UserDown
-        | adminState == AdminUp -> ErrorDown
+        | adminState == Just AdminUp && allowDown -> UserDown
+        | adminState == Just AdminUp -> ErrorDown
         | otherwise -> StatusDown
   where adminState = instAdminState inst
         instanceState = instInfoState instInfo
@@ -716,7 +725,7 @@ liveInstanceStatus cfg (instInfo, foundOnPrimary) inst
           fromContainer $ getFilledInstHvParams (C.toList C.hvcGlobals) cfg inst
 
         allowDown =
-          instHypervisor inst /= Kvm ||
+          instHypervisor inst /= Just Kvm ||
           (Map.member C.hvKvmUserShutdown hvparams &&
            hvparams Map.! C.hvKvmUserShutdown == J.JSBool True)
 
@@ -724,10 +733,11 @@ liveInstanceStatus cfg (instInfo, foundOnPrimary) inst
 deadInstanceStatus :: Instance -> InstanceStatus
 deadInstanceStatus inst =
   case instAdminState inst of
-    AdminUp -> ErrorDown
-    AdminDown | instAdminStateSource inst == UserSource -> UserDown
-              | otherwise -> StatusDown
-    AdminOffline -> StatusOffline
+    Just AdminUp -> ErrorDown
+    Just AdminDown | instAdminStateSource inst == Just UserSource -> UserDown
+                   | otherwise -> StatusDown
+    Just AdminOffline -> StatusOffline
+    Nothing -> StatusDown
 
 -- | Determines the status of the instance, depending on whether it is possible
 -- to communicate with its primary node, on which node it is, and its
@@ -787,7 +797,7 @@ findInfoInNodeResult inst nodeResponse =
     Left  _err    -> Nothing
     Right allInfo ->
       let instances = rpcResAllInstInfoInstances allInfo
-          maybeMatch = pickPairUnique (instName inst) instances
+          maybeMatch = instName inst >>= (`pickPairUnique` instances)
       in snd <$> maybeMatch
 
 -- | Retrieves the instance information if it is present anywhere in the all
@@ -797,21 +807,24 @@ getInstanceInfo :: [(String, ERpcError RpcResultAllInstancesInfo)]
                 -> Instance
                 -> ERpcError (Maybe (InstanceInfo, Bool))
 getInstanceInfo uuidList inst =
-  let pNodeUuid = instPrimaryNode inst
-      primarySearchResult =
-        pickPairUnique pNodeUuid uuidList >>= findInfoInNodeResult inst . snd
-  in case primarySearchResult of
-       Just instInfo -> Right . Just $ (instInfo, True)
-       Nothing       ->
-         let allSearchResult =
-               getFirst . mconcat $ map
-               (First . findInfoInNodeResult inst . snd) uuidList
-         in case allSearchResult of
-              Just instInfo -> Right . Just $ (instInfo, False)
-              Nothing       ->
-                case checkForNodeError uuidList pNodeUuid of
-                  Just err -> Left err
-                  Nothing  -> Right Nothing
+  case instPrimaryNode inst of
+    Nothing -> Right Nothing
+    Just pNodeUuid ->
+      let primarySearchResult =
+            pickPairUnique pNodeUuid uuidList >>= findInfoInNodeResult inst
+                                                    . snd
+      in case primarySearchResult of
+           Just instInfo -> Right . Just $ (instInfo, True)
+           Nothing       ->
+             let allSearchResult =
+                   getFirst . mconcat $ map
+                   (First . findInfoInNodeResult inst . snd) uuidList
+             in case allSearchResult of
+                  Just instInfo -> Right . Just $ (instInfo, False)
+                  Nothing       ->
+                    case checkForNodeError uuidList pNodeUuid of
+                      Just err -> Left err
+                      Nothing  -> Right Nothing
 
 -- | Retrieves the console information if present anywhere in the given results
 getConsoleInfo :: [(String, ERpcError RpcResultInstanceConsoleInfo)]
@@ -820,7 +833,7 @@ getConsoleInfo :: [(String, ERpcError RpcResultInstanceConsoleInfo)]
 getConsoleInfo uuidList inst =
   let allValidResults = concatMap rpcResInstConsInfoInstancesInfo .
                         rights . map snd $ uuidList
-  in snd <$> pickPairUnique (instName inst) allValidResults
+  in snd <$> (instName inst >>= flip pickPairUnique allValidResults)
 
 -- | Extracts all the live information that can be extracted.
 extractLiveInfo :: [(Node, ERpcError RpcResultAllInstancesInfo)]
@@ -865,15 +878,18 @@ consoleParamsToCalls params =
             [] -> error "Programmer error: group must have one or more members"
             paramGroup@(y:_) ->
               let node = instConsInfoParamsNode y
-                  packer z = (instName $ instConsInfoParamsInstance z, z)
-              in (node, RpcCallInstanceConsoleInfo . map packer $ paramGroup)
+                  packer z = do
+                              name <- instName $ instConsInfoParamsInstance z
+                              return (name, z)
+              in (node, RpcCallInstanceConsoleInfo . mapMaybe packer
+                          $ paramGroup)
          ) groupedParams
 
 -- | Retrieves a list of all the hypervisors and params used by the given
 -- instances.
 getHypervisorSpecs :: ConfigData -> [Instance] -> [(Hypervisor, HvParams)]
 getHypervisorSpecs cfg instances =
-  let hvs = nub . map instHypervisor $ instances
+  let hvs = nub . mapMaybe instHypervisor $ instances
       hvParamMap = (fromContainer . clusterHvparams . configCluster $ cfg)
   in zip hvs . map ((Map.!) hvParamMap . hypervisorToRaw) $ hvs
 
@@ -888,8 +904,11 @@ collectLiveData liveDataEnabled cfg fields instances
                             RpcResultError $ "Live data disabled"
   | otherwise = do
       let hvSpecs = getHypervisorSpecs cfg instances
-          instanceNodes = nub . justOk $
-                            map (getNode cfg . instPrimaryNode) instances
+          instanceNodes =
+            nub . justOk
+                $ map ( maybe (Bad $ ParameterError "no primary node") return
+                       . instPrimaryNode
+                       >=> getNode cfg) instances
           goodNodes = nodesWithValidConfig cfg instanceNodes
       instInfoRes <- executeRpcCall goodNodes (RpcCallAllInstancesInfo hvSpecs)
       consInfoRes <-

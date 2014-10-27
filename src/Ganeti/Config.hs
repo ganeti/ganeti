@@ -84,6 +84,7 @@ import Control.Monad
 import Control.Monad.State
 import qualified Data.Foldable as F
 import Data.List (foldl', nub)
+import Data.Maybe (fromMaybe)
 import Data.Monoid
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -125,6 +126,11 @@ saveConfig fh = hPutStr fh . encodeConfig
 
 -- * Query functions
 
+-- | Annotate Nothing as missing parameter and apply the given
+-- transformation otherwise
+withMissingParam :: String -> (a -> ErrorResult b) -> Maybe a -> ErrorResult b
+withMissingParam = maybe . Bad . ParameterError
+
 -- | Computes the nodes covered by a disk.
 computeDiskNodes :: Disk -> S.Set String
 computeDiskNodes dsk =
@@ -143,21 +149,22 @@ instDiskNodes cfg inst =
 
 -- | Computes all nodes of an instance.
 instNodes :: ConfigData -> Instance -> S.Set String
-instNodes cfg inst = instPrimaryNode inst `S.insert` instDiskNodes cfg inst
+instNodes cfg inst = maybe id S.insert (instPrimaryNode inst)
+                      $ instDiskNodes cfg inst
 
 -- | Computes the secondary nodes of an instance. Since this is valid
 -- only for DRBD, we call directly 'instDiskNodes', skipping over the
 -- extra primary insert.
 instSecondaryNodes :: ConfigData -> Instance -> S.Set String
 instSecondaryNodes cfg inst =
-  instPrimaryNode inst `S.delete` instDiskNodes cfg inst
+  maybe id S.delete (instPrimaryNode inst) $ instDiskNodes cfg inst
 
 -- | Get instances of a given node.
 -- The node is specified through its UUID.
 getNodeInstances :: ConfigData -> String -> ([Instance], [Instance])
 getNodeInstances cfg nname =
     let all_inst = M.elems . fromContainer . configInstances $ cfg
-        pri_inst = filter ((== nname) . instPrimaryNode) all_inst
+        pri_inst = filter ((== Just nname) . instPrimaryNode) all_inst
         sec_inst = filter ((nname `S.member`) . instSecondaryNodes cfg) all_inst
     in (pri_inst, sec_inst)
 
@@ -256,8 +263,10 @@ getInstance cfg name =
   in case getItem "Instance" name instances of
        -- if not found by uuid, we need to look it up by name
        Ok inst -> Ok inst
-       Bad _ -> let by_name = M.mapKeys
-                              (instName . (M.!) instances) instances
+       Bad _ -> let by_name =
+                      M.delete ""
+                      . M.mapKeys (fromMaybe "" . instName . (M.!) instances)
+                      $ instances
                 in getItem "Instance" name by_name
 
 -- | Looks up a disk by uuid.
@@ -318,14 +327,19 @@ getGroupInstances cfg gname =
 getFilledInstHvParams :: [String] -> ConfigData -> Instance -> HvParams
 getFilledInstHvParams globals cfg inst =
   -- First get the defaults of the parent
-  let hvName = hypervisorToRaw . instHypervisor $ inst
+  let maybeHvName = liftM hypervisorToRaw . instHypervisor $ inst
       hvParamMap = fromContainer . clusterHvparams $ configCluster cfg
-      parentHvParams = maybe M.empty fromContainer $ M.lookup hvName hvParamMap
+      parentHvParams =
+        maybe M.empty fromContainer (maybeHvName >>= flip M.lookup hvParamMap)
   -- Then the os defaults for the given hypervisor
-      osName = instOs inst
+      maybeOsName = instOs inst
       osParamMap = fromContainer . clusterOsHvp $ configCluster cfg
-      osHvParamMap = maybe M.empty fromContainer $ M.lookup osName osParamMap
-      osHvParams = maybe M.empty fromContainer $ M.lookup hvName osHvParamMap
+      osHvParamMap =
+        maybe M.empty (maybe M.empty fromContainer . flip M.lookup osParamMap)
+          maybeOsName
+      osHvParams =
+        maybe M.empty (maybe M.empty fromContainer . flip M.lookup osHvParamMap)
+          maybeHvName
   -- Then the child
       childHvParams = fromContainer . instHvparams $ inst
   -- Helper function
@@ -344,10 +358,12 @@ getFilledInstBeParams cfg inst = do
 -- defaults. This does NOT include private and secret parameters.
 getFilledInstOsParams :: ConfigData -> Instance -> OsParams
 getFilledInstOsParams cfg inst =
-  let osLookupName = takeWhile (/= '+') (instOs inst)
+  let maybeOsLookupName = liftM (takeWhile (/= '+')) (instOs inst)
       osParamMap = fromContainer . clusterOsparams $ configCluster cfg
       childOsParams = instOsparams inst
-  in case getItem "OsParams" osLookupName osParamMap of
+  in case withMissingParam "Instance without OS"
+            (flip (getItem "OsParams") osParamMap)
+            maybeOsLookupName of
        Ok parentOsParams -> GenericContainer $
                               fillDict (fromContainer parentOsParams)
                                        (fromContainer childOsParams) []
@@ -356,7 +372,9 @@ getFilledInstOsParams cfg inst =
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> ErrorResult Node
 getInstPrimaryNode cfg name =
-  liftM instPrimaryNode (getInstance cfg name) >>= getNode cfg
+  getInstance cfg name
+  >>= withMissingParam "Instance without primary node" return . instPrimaryNode
+  >>= getNode cfg
 
 -- | Retrieves all nodes hosting a DRBD disk
 getDrbdDiskNodes :: ConfigData -> Disk -> [Node]
@@ -444,10 +462,10 @@ getInstMinorsForNode :: ConfigData
                      -> Instance
                      -> [(String, Int, String, String, String, String)]
 getInstMinorsForNode cfg node inst =
-  let role = if node == instPrimaryNode inst
+  let role = if Just node == instPrimaryNode inst
                then rolePrimary
                else roleSecondary
-      iname = instName inst
+      iname = fromMaybe "" $ instName inst
       inst_disks = case getInstDisksFromObj cfg inst of
                      Ok disks -> disks
                      Bad _ -> []
@@ -460,6 +478,7 @@ getInstMinorsForNode cfg node inst =
      zip [(0::Int)..] $ inst_disks
 
 -- | Builds link -> ip -> instname map.
+-- For instances without a name, we insert the uuid instead.
 --
 -- TODO: improve this by splitting it into multiple independent functions:
 --
@@ -473,7 +492,8 @@ buildLinkIpInstnameMap cfg =
   let cluster = configCluster cfg
       instances = M.elems . fromContainer . configInstances $ cfg
       defparams = (M.!) (fromContainer $ clusterNicparams cluster) C.ppDefault
-      nics = concatMap (\i -> [(instName i, nic) | nic <- instNics i])
+      nics = concatMap (\i -> [(fromMaybe (instUuid i) $ instName i, nic)
+                                | nic <- instNics i])
              instances
   in foldl' (\accum (iname, nic) ->
                let pparams = nicNicparams nic
@@ -538,8 +558,10 @@ type NodeLVsMap = MM.MultiMap String LogicalVolume
 
 getInstanceLVsByNode :: ConfigData -> Instance -> ErrorResult NodeLVsMap
 getInstanceLVsByNode cd inst =
-    (MM.fromList . lvsByNode (instPrimaryNode inst))
-    <$> getInstDisksFromObj cd inst
+    withMissingParam "Instance without Primary Node"
+      (\i -> return $ MM.fromList . lvsByNode i)
+      (instPrimaryNode inst)
+    <*> getInstDisksFromObj cd inst
   where
     lvsByNode :: String -> [Disk] -> [(String, LogicalVolume)]
     lvsByNode node = concatMap (lvsByNode1 node)

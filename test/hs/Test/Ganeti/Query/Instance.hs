@@ -58,7 +58,7 @@ import Test.HUnit
 -- placeholders.
 createInstance :: String -> String -> AdminState -> AdminStateSource -> Instance
 createInstance name pnodeUuid adminState adminStateSource =
-  Instance name pnodeUuid "" Kvm
+  RealInstance $ RealInstanceData name pnodeUuid "" Kvm
     (GenericContainer Map.empty)
     (PartialBeParams Nothing Nothing Nothing Nothing Nothing Nothing)
     (GenericContainer Map.empty) (GenericContainer Map.empty)

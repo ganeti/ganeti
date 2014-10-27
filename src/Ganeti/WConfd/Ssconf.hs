@@ -45,6 +45,7 @@ module Ganeti.WConfd.Ssconf
 import Control.Arrow ((&&&))
 import Data.Foldable (Foldable(..), toList)
 import Data.List (partition)
+import Data.Maybe (mapMaybe)
 import qualified Data.Map as M
 
 import Ganeti.BasicTypes
@@ -84,7 +85,7 @@ mkSSConf cdata = SSConf $ M.fromList
     , (SSOnlineNodes, mapLines nodeName online )
     , (SSPrimaryIpFamily, return . show . ipFamilyToRaw
                           . clusterPrimaryIpFamily $ cluster)
-    , (SSInstanceList, niceSort . map instName
+    , (SSInstanceList, niceSort . mapMaybe instName
                        . toList . configInstances $ cdata)
     , (SSReleaseVersion, return releaseVersion)
     , (SSHypervisorList, mapLines hypervisorToRaw
