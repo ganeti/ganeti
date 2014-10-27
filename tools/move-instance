@@ -468,6 +468,12 @@ class MoveRuntime(object):
     @param remote_import_fn: Callback for reporting received remote import
                              information
 
+    @return: opreturn of the move job
+    @raise errors.JobLost: If job can't be found
+    @raise errors.OpExecError: If job didn't succeed
+
+    @see: L{ganeti.rapi.client_utils.PollJob}
+
     """
     return rapi.client_utils.PollJob(cl, job_id,
                                      MoveJobPollReportCb(self.CheckAbort,
