@@ -2,9 +2,6 @@
 
 {-| Implementation of the Ganeti config objects.
 
-Some object fields are not implemented yet, and as such they are
-commented out below.
-
 -}
 
 {-
