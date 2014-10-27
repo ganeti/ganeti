@@ -173,6 +173,13 @@ module Ganeti.Types
   , hotplugActionToRaw
   , Private(..)
   , showPrivateJSObject
+  , HvParams
+  , OsParams
+  , OsParamsPrivate
+  , TimeStampObject(..)
+  , UuidObject(..)
+  , SerialNoObject(..)
+  , TagsObject(..)
   ) where
 
 import Control.Applicative
@@ -180,6 +187,8 @@ import Control.Monad (liftM)
 import qualified Text.JSON as JSON
 import Text.JSON (JSON, readJSON, showJSON)
 import Data.Ratio (numerator, denominator)
+import qualified Data.Set as Set
+import System.Time (ClockTime)
 
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
@@ -947,3 +956,33 @@ showPrivateJSObject :: (JSON.JSON a) =>
                        [(String, a)] -> JSON.JSObject (Private JSON.JSValue)
 showPrivateJSObject value = JSON.toJSObject $ map f value
   where f (k, v) = (k, Private $ JSON.showJSON v)
+
+
+-- | The hypervisor parameter type. This is currently a simple map,
+-- without type checking on key/value pairs.
+type HvParams = Container JSON.JSValue
+
+-- | The OS parameters type. This is, and will remain, a string
+-- container, since the keys are dynamically declared by the OSes, and
+-- the values are always strings.
+type OsParams = Container String
+type OsParamsPrivate = Container (Private String)
+
+
+-- | Class of objects that have timestamps.
+class TimeStampObject a where
+  cTimeOf :: a -> ClockTime
+  mTimeOf :: a -> ClockTime
+
+-- | Class of objects that have an UUID.
+class UuidObject a where
+  uuidOf :: a -> String
+
+-- | Class of object that have a serial number.
+class SerialNoObject a where
+  serialOf :: a -> Int
+
+-- | Class of objects that have tags.
+class TagsObject a where
+  tagsOf :: a -> Set.Set String
+

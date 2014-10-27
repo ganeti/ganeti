@@ -53,9 +53,7 @@ module Ganeti.Objects
   , DiskTemplate(..)
   , PartialBeParams(..)
   , FilledBeParams(..)
-  , fillBeParams
-  , allBeParamFields
-  , Instance(..)
+  , module Ganeti.Objects.Instance
   , PartialNDParams(..)
   , FilledNDParams(..)
   , fillNDParams
@@ -91,10 +89,10 @@ module Ganeti.Objects
   , UidRange
   , Cluster(..)
   , ConfigData(..)
-  , TimeStampObject(..)
-  , UuidObject(..)
-  , SerialNoObject(..)
-  , TagsObject(..)
+  , TimeStampObject(..) -- re-exported from Types
+  , UuidObject(..) -- re-exported from Types
+  , SerialNoObject(..) -- re-exported from Types
+  , TagsObject(..) -- re-exported from Types
   , DictObject(..) -- re-exported from THH
   , TagSet -- re-exported from THH
   , Network(..)
@@ -124,7 +122,6 @@ import qualified Data.Map as Map
 import Data.Monoid
 import Data.Ord (comparing)
 import Data.Ratio (numerator, denominator)
-import qualified Data.Set as Set
 import Data.Tuple (swap)
 import Data.Word
 import System.Time (ClockTime(..))
@@ -137,11 +134,13 @@ import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
 import Ganeti.Objects.BitArray (BitArray)
+import Ganeti.Objects.Nic
+import Ganeti.Objects.Instance
 import Ganeti.Query.Language
 import Ganeti.Types
 import Ganeti.THH
 import Ganeti.THH.Field
-import Ganeti.Utils (sepSplit, tryRead, parseUnitAssumeBinary)
+import Ganeti.Utils (sepSplit, tryRead)
 import Ganeti.Utils.Validate
 
 -- * Generic definitions
@@ -153,32 +152,6 @@ fillDict defaults custom skip_keys =
   let updated = Map.union custom defaults
   in foldl' (flip Map.delete) updated skip_keys
 
--- | The hypervisor parameter type. This is currently a simple map,
--- without type checking on key/value pairs.
-type HvParams = Container JSValue
-
--- | The OS parameters type. This is, and will remain, a string
--- container, since the keys are dynamically declared by the OSes, and
--- the values are always strings.
-type OsParams = Container String
-type OsParamsPrivate = Container (Private String)
-
--- | Class of objects that have timestamps.
-class TimeStampObject a where
-  cTimeOf :: a -> ClockTime
-  mTimeOf :: a -> ClockTime
-
--- | Class of objects that have an UUID.
-class UuidObject a where
-  uuidOf :: a -> String
-
--- | Class of object that have a serial number.
-class SerialNoObject a where
-  serialOf :: a -> Int
-
--- | Class of objects that have tags.
-class TagsObject a where
-  tagsOf :: a -> Set.Set String
 
 -- * Network definitions
 
@@ -309,28 +282,10 @@ instance TimeStampObject Network where
   cTimeOf = networkCtime
   mTimeOf = networkMtime
 
--- * NIC definitions
-
-$(buildParam "Nic" "nicp"
-  [ simpleField "mode" [t| NICMode |]
-  , simpleField "link" [t| String  |]
-  , simpleField "vlan" [t| String |]
-  ])
-
-$(buildObject "PartialNic" "nic" $
-  [ simpleField "mac" [t| String |]
-  , optionalField $ simpleField "ip" [t| String |]
-  , simpleField "nicparams" [t| PartialNicParams |]
-  , optionalField $ simpleField "network" [t| String |]
-  , optionalField $ simpleField "name" [t| String |]
-  ] ++ uuidFields)
-
-instance UuidObject PartialNic where
-  uuidOf = nicUuid
-
-type MicroSeconds = Integer
 
 -- * Datacollector definitions
+type MicroSeconds = Integer
+
 -- | The configuration regarding a single data collector.
 $(buildObject "DataCollectorConfig" "dataCollector" [
   simpleField "active" [t| Bool|],
@@ -585,53 +540,6 @@ includesLogicalId lv disk =
       any (includesLogicalId lv) $ diskChildren disk
     _ -> False
 
--- * Instance definitions
-
-$(buildParam "Be" "bep"
-  [ specialNumericalField 'parseUnitAssumeBinary
-      $ simpleField "minmem"      [t| Int  |]
-  , specialNumericalField 'parseUnitAssumeBinary
-      $ simpleField "maxmem"      [t| Int  |]
-  , simpleField "vcpus"           [t| Int  |]
-  , simpleField "auto_balance"    [t| Bool |]
-  , simpleField "always_failover" [t| Bool |]
-  , simpleField "spindle_use"     [t| Int  |]
-  ])
-
-$(buildObject "Instance" "inst" $
-  [ simpleField "name"             [t| String             |]
-  , simpleField "primary_node"     [t| String             |]
-  , simpleField "os"               [t| String             |]
-  , simpleField "hypervisor"       [t| Hypervisor         |]
-  , simpleField "hvparams"         [t| HvParams           |]
-  , simpleField "beparams"         [t| PartialBeParams    |]
-  , simpleField "osparams"         [t| OsParams           |]
-  , simpleField "osparams_private" [t| OsParamsPrivate    |]
-  , simpleField "admin_state"      [t| AdminState         |]
-  , simpleField "admin_state_source" [t| AdminStateSource   |]
-  , simpleField "nics"             [t| [PartialNic]       |]
-  , simpleField "disks"            [t| [String]           |]
-  , simpleField "disk_template"    [t| DiskTemplate       |]
-  , simpleField "disks_active"     [t| Bool               |]
-  , optionalField $ simpleField "network_port" [t| Int  |]
-  ]
-  ++ timeStampFields
-  ++ uuidFields
-  ++ serialFields
-  ++ tagsFields)
-
-instance TimeStampObject Instance where
-  cTimeOf = instCtime
-  mTimeOf = instMtime
-
-instance UuidObject Instance where
-  uuidOf = instUuid
-
-instance SerialNoObject Instance where
-  serialOf = instSerial
-
-instance TagsObject Instance where
-  tagsOf = instTags
 
 -- * IPolicy definitions
 
