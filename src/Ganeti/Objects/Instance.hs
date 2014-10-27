@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Objects.Instance where
 
+import Ganeti.JSON (emptyContainer)
 import Ganeti.Objects.Nic
 import Ganeti.THH
 import Ganeti.THH.Field
@@ -58,7 +59,8 @@ $(buildObject "Instance" "inst" $
   , simpleField "primary_node"     [t| String             |]
   , simpleField "os"               [t| String             |]
   , simpleField "hypervisor"       [t| Hypervisor         |]
-  , simpleField "hvparams"         [t| HvParams           |]
+  , defaultField [| emptyContainer |]
+      $ simpleField "hvparams"     [t| HvParams           |]
   , simpleField "beparams"         [t| PartialBeParams    |]
   , simpleField "osparams"         [t| OsParams           |]
   , simpleField "osparams_private" [t| OsParamsPrivate    |]
