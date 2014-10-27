@@ -68,6 +68,7 @@ module Ganeti.JSON
   , ArrayObject(..)
   , HasStringRepr(..)
   , GenericContainer(..)
+  , emptyContainer
   , Container
   , MaybeForJSON(..)
   , TimeAsDoubleJSON(..)
@@ -326,6 +327,10 @@ instance F.Foldable (GenericContainer a) where
 
 instance F.Traversable (GenericContainer a) where
   traverse f = fmap GenericContainer . F.traverse f . fromContainer
+
+-- | The empty container.
+emptyContainer :: GenericContainer a b
+emptyContainer = GenericContainer Map.empty
 
 -- | Type alias for string keys.
 type Container = GenericContainer String
