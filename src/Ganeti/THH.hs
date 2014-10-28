@@ -77,6 +77,8 @@ module Ganeti.THH ( declareSADT
 
 import Control.Arrow ((&&&), second)
 import Control.Applicative
+import Control.Lens.Type (Lens')
+import Control.Lens (lens, set, element)
 import Control.Monad
 import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
 import Control.Monad.Writer (tell)
@@ -979,6 +981,45 @@ buildAccessor fnm fpfx rnm rpfx nm pfx field = do
              , Clause [ConP fnm [VarP x]] (NormalB f_body) []
              ]]
 
+-- | Build lense declartions for a field, if the type of the field
+-- is the same in the forthcoming and the real variant.
+buildLens :: (Name, Name) -- ^ names of the forthcoming constructors
+          -> (Name, Name) -- ^ names of the real constructors
+          -> Name -- ^ name of the type
+          -> String -- ^ the field prefix
+          -> Int -- ^ arity
+          -> (Field, Int) -- ^ the Field to generate the lens for, and its
+                          -- position
+          -> Q [Dec]
+buildLens (fnm, fdnm) (rnm, rdnm) nm pfx ar (field, i) = do
+  let optField = makeOptional field
+  if fieldIsOptional field /= fieldIsOptional optField
+     then return []
+     else do
+       let lensnm = mkName $ pfx ++ fieldRecordName  field ++ "L"
+       (accnm, _, ftype) <- fieldTypeInfo pfx field
+       vars <- replicateM ar (newName "x")
+       var <- newName "val"
+       context <- newName "val"
+       let body cn cdn = NormalB
+                           . (ConE cn `AppE`)
+                           . foldl (\e (j, x) -> AppE e . VarE
+                                                   $ if i == j then var else x)
+                             (ConE cdn)
+                          $ zip [0..] vars
+       let setterE = LamE [VarP context, VarP var] $ CaseE (VarE context)
+                        [ Match (ConP fnm [ConP fdnm . set (element i) WildP
+                                             $ map VarP vars])
+                                (body fnm fdnm) []
+                        , Match (ConP rnm [ConP rdnm . set (element i) WildP
+                                             $ map VarP vars])
+                                (body rnm rdnm) []
+                        ]
+       return [ SigD lensnm $ ConT ''Lens' `AppT` ConT nm `AppT` ftype
+              , ValD (VarP lensnm)
+                     (NormalB  $ VarE 'lens `AppE` VarE accnm `AppE` setterE) []
+              ]
+
 -- | Build an object that can have a forthcoming variant.
 -- This will create 3 data types: two objects, prefixed by
 -- "Real" and "Forthcoming", respectively, and a sum type
@@ -1029,7 +1070,12 @@ buildObjectWithForthcoming sname field_pfx fields = do
                  $ buildAccessor (mkName forth_nm) forth_pfx
                                  (mkName real_nm) real_pfx
                                  name field_pfx
-  return $ concreteDecls ++ forthcomingDecls ++ [declD, instdecl] ++ accessors
+  lenses <- liftM concat . flip mapM (zip fields [0..])
+              $ buildLens (mkName forth_nm, mkName forth_data_nm)
+                          (mkName real_nm, mkName real_data_nm)
+                          name field_pfx (length fields)
+  return $ concreteDecls ++ forthcomingDecls ++ [declD, instdecl]
+           ++ accessors ++ lenses
 
 -- | Generates an object definition: data type and its JSON instance.
 buildObjectSerialisation :: String -> [Field] -> Q [Dec]
