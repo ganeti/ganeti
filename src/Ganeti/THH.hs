@@ -1231,6 +1231,7 @@ paramFieldTypeInfo field_pfx fd = do
 -- fields are optional. Due to the current record syntax issues, the
 -- fields need to be named differrently for the two structures, so the
 -- partial ones get a /P/ suffix.
+-- Also generate a default value for the partial parameters.
 buildParam :: String -> String -> [Field] -> Q [Dec]
 buildParam sname field_pfx fields = do
   let (sname_f, sname_p) = paramTypeNames sname
@@ -1245,8 +1246,14 @@ buildParam sname field_pfx fields = do
   ser_decls_f <- buildObjectSerialisation sname_f fields
   ser_decls_p <- buildPParamSerialisation sname_p fields
   fill_decls <- fillParam sname field_pfx fields
+  let empty_name = mkName $ "empty" ++ sname_p
+      empty_exp = foldl (flip . const $ flip AppE (ConE 'Nothing)) (ConE name_p)
+                        fields
+      emptyDecl = [ SigD empty_name (ConT name_p)
+                  , ValD (VarP empty_name) (NormalB empty_exp) []
+                  ]
   return $ [declF, declP] ++ ser_decls_f ++ ser_decls_p ++ fill_decls ++
-           buildParamAllFields sname fields
+           buildParamAllFields sname fields ++ emptyDecl
 
 -- | Builds a list of all fields of a parameter.
 buildParamAllFields :: String -> [Field] -> [Dec]
