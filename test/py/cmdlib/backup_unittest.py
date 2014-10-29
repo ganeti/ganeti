@@ -119,13 +119,6 @@ class TestLUBackupExportBase(CmdlibTestCase):
     self.ExecOpCodeExpectOpPrereqError(
       op, "Can not remove instance without shutting it down before")
 
-  def testUnsupportedDiskTemplate(self):
-    inst = self.cfg.AddNewInstance(disk_template=constants.DT_FILE)
-    op = opcodes.OpBackupExport(instance_name=inst.name,
-                                target_node=self.master.name)
-    self.ExecOpCodeExpectOpPrereqError(
-      op, "Export not supported for instances with file-based disks")
-
 
 class TestLUBackupExportLocalExport(TestLUBackupExportBase):
   def setUp(self):
