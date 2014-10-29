@@ -2914,20 +2914,16 @@ class ConfigWriter(object):
     """
     if self._AddLockCount(-1) > 0:
       return # we still have the lock, do nothing
-    try:
-      if save:
-        self._WriteConfig()
-    except Exception, err:
-      logging.critical("Can't write the configuration: %s", str(err))
-      raise
-    finally:
-      if not self._offline and not self._lock_current_shared:
-        try:
-          self._wconfd.UnlockConfig(self._GetWConfdContext())
-        except AttributeError:
-          # If the configuration hasn't been initialized yet, just ignore it.
-          pass
-        logging.debug("Configuration in WConfd unlocked")
+    if save:
+      try:
+        logging.debug("Writing configuration and unlocking it")
+        self._WriteConfig(releaselock=True)
+      except Exception, err:
+        logging.critical("Can't write the configuration: %s", str(err))
+        raise
+    elif not self._offline:
+      logging.debug("Unlocking configuration without writing")
+      self._wconfd.UnlockConfig(self._GetWConfdContext())
 
   # TODO: To WConfd
   def _UpgradeConfig(self, saveafter=False):
@@ -2974,7 +2970,7 @@ class ConfigWriter(object):
       if self._offline:
         self._UnlockedVerifyConfigAndLog()
 
-  def _WriteConfig(self, destination=None):
+  def _WriteConfig(self, destination=None, releaselock=False):
     """Write the configuration data to persistent storage.
 
     """
@@ -3004,8 +3000,12 @@ class ConfigWriter(object):
         os.close(fd)
     else:
       try:
-        self._wconfd.WriteConfig(self._GetWConfdContext(),
-                                 self._ConfigData().ToDict())
+        if releaselock:
+          self._wconfd.WriteConfigAndUnlock(self._GetWConfdContext(),
+                                            self._ConfigData().ToDict())
+        else:
+          self._wconfd.WriteConfig(self._GetWConfdContext(),
+                                   self._ConfigData().ToDict())
       except errors.LockError:
         raise errors.ConfigurationError("The configuration file has been"
                                         " modified since the last write, cannot"

@@ -649,7 +649,7 @@ class ConfigMock(config.ConfigWriter):
   def _OpenConfig(self, _accept_foreign):
     self._config_data = self._mocked_config_store
 
-  def _WriteConfig(self, destination=None):
+  def _WriteConfig(self, destination=None, releaselock=False):
     self._mocked_config_store = self._ConfigData()
 
   def _GetRpc(self, _address_list):
