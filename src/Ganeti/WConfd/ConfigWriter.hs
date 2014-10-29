@@ -38,6 +38,7 @@ module Ganeti.WConfd.ConfigWriter
   ( loadConfigFromFile
   , readConfig
   , writeConfig
+  , writeConfigWithImmediate
   , saveConfigAsyncTask
   , distMCsAsyncTask
   , distSSConfAsyncTask
@@ -99,6 +100,13 @@ readConfig = csConfigData <$> readConfigState
 -- Replaces the current configuration state within the 'WConfdMonad'.
 writeConfig :: ConfigData -> WConfdMonad ()
 writeConfig cd = modifyConfigState $ const ((), mkConfigState cd)
+
+-- Replaces the current configuration state within the 'WConfdMonad',
+-- immediately followed by another action (while config writeout is
+-- still happening).
+writeConfigWithImmediate :: ConfigData -> WConfdMonad () -> WConfdMonad ()
+writeConfigWithImmediate cd act =
+  flip modifyConfigStateWithImmediate act $ const ((), mkConfigState cd)
 
 -- * Asynchronous tasks
 
