@@ -122,6 +122,11 @@ unlockConfig
   :: ClientId -> WConfdMonad ()
 unlockConfig cid = freeLocksLevel cid LevelConfig
 
+-- | Write the configuration, verifying the config lock is held exclusively,
+-- and release the config lock.
+writeConfigAndUnlock :: ClientId -> ConfigData -> WConfdMonad ()
+writeConfigAndUnlock cid cdata = writeConfig cid cdata >> unlockConfig cid
+
 -- | Force the distribution of configuration without actually modifying it.
 -- It is not necessary to hold a lock for this operation.
 flushConfig :: WConfdMonad ()
@@ -321,6 +326,7 @@ exportedFunctions = [ 'echo
                     , 'verifyConfig
                     , 'lockConfig
                     , 'unlockConfig
+                    , 'writeConfigAndUnlock
                     , 'flushConfig
                     -- temporary reservations (common)
                     , 'dropAllReservations
