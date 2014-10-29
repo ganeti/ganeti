@@ -53,6 +53,7 @@ module Ganeti.WConfd.Monad
   , WConfdMonad
   , daemonHandle
   , modifyConfigState
+  , modifyConfigStateWithImmediate
   , forceConfigStateDistribution
   , readConfigState
   , modifyConfigDataErr_
@@ -198,11 +199,14 @@ readConfigState = liftM dsConfigState . readIORef . dhDaemonState
                   =<< daemonHandle
 
 -- | Atomically modifies the configuration state in the WConfdMonad
--- with a computation that can possibly fail.
-modifyConfigStateErr
+-- with a computation that can possibly fail; immediately afterwards,
+-- while config write is still going on, do the followup action. Return
+-- only after replication is finished.
+modifyConfigStateErrWithImmediate
   :: (TempResState -> ConfigState -> AtomicModifyMonad (a, ConfigState))
+  -> WConfdMonad ()
   -> WConfdMonad a
-modifyConfigStateErr f = do
+modifyConfigStateErrWithImmediate f immediateFollowup = do
   dh <- daemonHandle
   now <- liftIO getClockTime
 
@@ -217,21 +221,33 @@ modifyConfigStateErr f = do
         mapMOf2 dsConfigStateL (\cs -> liftM (unpackResult cs) (f tr cs)) ds
   (r, modified, distSync) <- atomicModifyIORefErrLog (dhDaemonState dh)
                                                      (liftM swap . modCS)
-  when modified $ do
-    if distSync
+  if modified
+    then if distSync
       then do
         logDebug "Triggering config write\
                  \ together with full synchronous distribution"
-        liftBase . triggerAndWait (Any True) . dhSaveConfigWorker $ dh
+        res <- liftBase . triggerWithResult (Any True) $ dhSaveConfigWorker dh
+        immediateFollowup
+        wait res
         logDebug "Config write and distribution finished"
       else do
         -- trigger the config. saving worker and wait for it
         logDebug "Triggering config write\
                  \ and asynchronous distribution"
-        liftBase . triggerAndWait (Any False) . dhSaveConfigWorker $ dh
+        res <- liftBase . triggerWithResult (Any False) $ dhSaveConfigWorker dh
+        immediateFollowup
+        wait res
         logDebug "Config writer finished with local task"
-    return ()
+    else
+      immediateFollowup
   return r
+
+-- | Atomically modifies the configuration state in the WConfdMonad
+-- with a computation that can possibly fail.
+modifyConfigStateErr
+  :: (TempResState -> ConfigState -> AtomicModifyMonad (a, ConfigState))
+  -> WConfdMonad a
+modifyConfigStateErr = flip modifyConfigStateErrWithImmediate (return ())
 
 -- | Atomically modifies the configuration state in the WConfdMonad
 -- with a computation that can possibly fail.
@@ -243,6 +259,15 @@ modifyConfigStateErr_ f = modifyConfigStateErr ((liftM ((,) ()) .) . f)
 -- | Atomically modifies the configuration state in the WConfdMonad.
 modifyConfigState :: (ConfigState -> (a, ConfigState)) -> WConfdMonad a
 modifyConfigState f = modifyConfigStateErr ((return .) . const f)
+
+-- | Atomically modifies the configuration state in WConfdMonad; immediately
+-- afterwards (while the config write-out is not necessarily finished) do
+-- another acation.
+modifyConfigStateWithImmediate :: (ConfigState -> (a, ConfigState))
+                                  -> WConfdMonad ()
+                                  -> WConfdMonad a
+modifyConfigStateWithImmediate f =
+  modifyConfigStateErrWithImmediate ((return .) . const f)
 
 -- | Force the distribution of configuration without actually modifying it.
 --
