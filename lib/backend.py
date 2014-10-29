@@ -4854,21 +4854,11 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
   elif ieio == constants.IEIO_RAW_DISK:
     (disk, ) = ieargs
 
-    real_disk = _OpenRealBD(disk)
-
     if mode == constants.IEM_IMPORT:
-      # we use nocreat to fail if the device is not already there or we pass a
-      # wrong path; we use notrunc to no attempt truncate on an LV device
-      suffix = utils.BuildShellCmd("| dd of=%s conv=nocreat,notrunc bs=%s",
-                                   real_disk.dev_path,
-                                   str(constants.DD_BLOCK_SIZE)) # 1 MB
+      suffix = utils.BuildShellCmd("| %s", disk.Import())
 
     elif mode == constants.IEM_EXPORT:
-      # the block size on the read dd is 1MiB to match our units
-      prefix = utils.BuildShellCmd("dd if=%s bs=%s count=%s |",
-                                   real_disk.dev_path,
-                                   str(constants.DD_BLOCK_SIZE), # 1 MB
-                                   str(disk.size))
+      prefix = utils.BuildShellCmd("%s |", disk.Export())
       exp_size = disk.size
 
   elif ieio == constants.IEIO_SCRIPT:
@@ -4937,6 +4927,11 @@ def StartImportExportDaemon(mode, opts, host, port, instance, component,
   @param ieioargs: Input/output arguments
 
   """
+
+  # Use Import/Export over socat.
+  #
+  #   Export() gives a command that produces a flat stream.
+  #   Import() gives a command that reads a flat stream to a disk template.
   if mode == constants.IEM_IMPORT:
     prefix = "import"
 

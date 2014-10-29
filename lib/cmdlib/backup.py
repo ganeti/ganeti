@@ -278,13 +278,6 @@ class LUBackupExport(LogicalUnit):
       raise errors.ProgrammerError("Unhandled export mode %r" %
                                    self.op.mode)
 
-    # instance disk type verification
-    # TODO: Implement export support for file-based disks
-    for disk in self.cfg.GetInstanceDisks(self.instance.uuid):
-      if disk.dev_type in constants.DTS_FILEBASED:
-        raise errors.OpPrereqError("Export not supported for instances with"
-                                   " file-based disks", errors.ECODE_INVAL)
-
     # Check prerequisites for zeroing
     if self.op.zero_free_space:
       # Check that user shutdown detection has been enabled
@@ -423,6 +416,35 @@ class LUBackupExport(LogicalUnit):
 
     feedback_fn("Zeroing completed!")
 
+  def StartInstance(self, feedback_fn, src_node_uuid):
+    """Send the node instructions to start the instance.
+
+    @raise errors.OpExecError: If the instance didn't start up.
+
+    """
+    assert self.instance.disks_active
+    feedback_fn("Starting instance %s" % self.instance.name)
+    result = self.rpc.call_instance_start(src_node_uuid,
+                                          (self.instance, None, None),
+                                          False, self.op.reason)
+    msg = result.fail_msg
+    if msg:
+      feedback_fn("Failed to start instance: %s" % msg)
+      ShutdownInstanceDisks(self, self.instance)
+      raise errors.OpExecError("Could not start instance: %s" % msg)
+
+  def InstanceDown(self):
+    """Returns true iff the instance is shut down during transfer."""
+    return (self.instance.admin_state != constants.ADMINST_UP or
+            self.op.shutdown)
+
+  def DoReboot(self):
+    """Returns true iff the instance needs to be started after transfer."""
+
+    return (self.op.shutdown and
+            self.instance.admin_state == constants.ADMINST_UP and
+            not self.op.remove_instance)
+
   def Exec(self, feedback_fn):
     """Export an instance to an image in the cluster.
 
@@ -454,28 +476,16 @@ class LUBackupExport(LogicalUnit):
       self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     try:
+      snapshot = not self.InstanceDown()
       helper = masterd.instance.ExportInstanceHelper(self, feedback_fn,
-                                                     self.instance)
+                                                     self.instance, snapshot)
 
-      will_be_shut_down = (self.instance.admin_state != constants.ADMINST_UP or
-                           self.op.shutdown)
-      if (not will_be_shut_down or self.op.mode == constants.EXPORT_MODE_LOCAL):
+      if snapshot:
         helper.CreateSnapshots()
-      try:
-        if (self.op.shutdown and
-            self.instance.admin_state == constants.ADMINST_UP and
-            not self.op.remove_instance):
-          assert self.instance.disks_active
-          feedback_fn("Starting instance %s" % self.instance.name)
-          result = self.rpc.call_instance_start(src_node_uuid,
-                                                (self.instance, None, None),
-                                                False, self.op.reason)
-          msg = result.fail_msg
-          if msg:
-            feedback_fn("Failed to start instance: %s" % msg)
-            ShutdownInstanceDisks(self, self.instance)
-            raise errors.OpExecError("Could not start instance: %s" % msg)
 
+      try:
+        if self.DoReboot() and snapshot:
+          self.StartInstance(feedback_fn, src_node_uuid)
         if self.op.mode == constants.EXPORT_MODE_LOCAL:
           (fin_resu, dresults) = helper.LocalExport(self.dst_node,
                                                     self.op.compress)
@@ -493,6 +503,9 @@ class LUBackupExport(LogicalUnit):
                                                      key_name, dest_ca_pem,
                                                      self.op.compress,
                                                      timeouts)
+
+        if self.DoReboot() and not snapshot:
+          self.StartInstance(feedback_fn, src_node_uuid)
       finally:
         helper.Cleanup()
 
