@@ -1149,20 +1149,23 @@ class _RemoteExportCb(ImportExportCbBase):
 
 
 class ExportInstanceHelper(object):
-  def __init__(self, lu, feedback_fn, instance):
+  def __init__(self, lu, feedback_fn, instance, snapshot):
     """Initializes this class.
 
     @param lu: Logical unit instance
     @param feedback_fn: Feedback function
     @type instance: L{objects.Instance}
     @param instance: Instance object
+    @type snapshot: bool
+    @param instance: whether the export should use snapshotting
 
     """
     self._lu = lu
     self._feedback_fn = feedback_fn
     self._instance = instance
+    self._snapshot = snapshot
 
-    self._snap_disks = {}
+    self._disks_to_transfer = {}
     self._removed_snaps = [False] * len(instance.disks)
 
   def CreateSnapshots(self):
@@ -1171,7 +1174,7 @@ class ExportInstanceHelper(object):
     Currently support drbd, plain and ext disk templates.
 
     """
-    assert not self._snap_disks
+    assert not self._disks_to_transfer
 
     instance = self._instance
     src_node = instance.primary_node
@@ -1209,10 +1212,10 @@ class ExportInstanceHelper(object):
                                logical_id=disk_id, iv_name=disk.iv_name,
                                params=disk_params)
 
-      assert idx not in self._snap_disks
-      self._snap_disks[idx] = new_dev
+      assert idx not in self._disks_to_transfer
+      self._disks_to_transfer[idx] = new_dev
 
-    assert len(self._snap_disks) == len(instance.disks)
+    assert len(self._disks_to_transfer) == len(instance.disks)
     assert len(self._removed_snaps) == len(instance.disks)
 
   def _RemoveSnapshot(self, disk_index):
@@ -1222,7 +1225,7 @@ class ExportInstanceHelper(object):
     @param disk_index: Index of the snapshot to be removed
 
     """
-    disk = self._snap_disks.get(disk_index)
+    disk = self._disks_to_transfer.get(disk_index)
     if disk and not self._removed_snaps[disk_index]:
       src_node = self._instance.primary_node
       src_node_name = self._lu.cfg.GetNodeName(src_node)
@@ -1251,11 +1254,15 @@ class ExportInstanceHelper(object):
     instance = self._instance
     src_node_uuid = instance.primary_node
 
-    assert len(self._snap_disks) == len(instance.disks)
+    if not self._snapshot:
+      disks = self._lu.cfg.GetInstanceDisks(instance.uuid)
+      self._disks_to_transfer = dict((i, disk) for i, disk in enumerate(disks))
+
+    assert len(self._disks_to_transfer) == len(instance.disks)
 
     transfers = []
 
-    for idx, dev in self._snap_disks.items():
+    for idx, dev in self._disks_to_transfer.items():
       if not dev:
         transfers.append(None)
         continue
@@ -1290,7 +1297,7 @@ class ExportInstanceHelper(object):
 
     self._feedback_fn("Finalizing export on %s" % dest_node.name)
     result = self._lu.rpc.call_finalize_export(dest_node.uuid, instance,
-                                               self._snap_disks)
+                                               self._disks_to_transfer.values())
     msg = result.fail_msg
     fin_resu = not msg
     if msg:
