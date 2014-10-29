@@ -125,7 +125,9 @@ unlockConfig cid = freeLocksLevel cid LevelConfig
 -- | Write the configuration, verifying the config lock is held exclusively,
 -- and release the config lock.
 writeConfigAndUnlock :: ClientId -> ConfigData -> WConfdMonad ()
-writeConfigAndUnlock cid cdata = writeConfig cid cdata >> unlockConfig cid
+writeConfigAndUnlock cid cdata = do
+  checkConfigLock cid L.OwnExclusive
+  CW.writeConfigWithImmediate cdata $ unlockConfig cid
 
 -- | Force the distribution of configuration without actually modifying it.
 -- It is not necessary to hold a lock for this operation.
