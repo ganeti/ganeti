@@ -761,6 +761,17 @@ endif
 HTEST_SUFFIX = hpc
 HPROF_SUFFIX = prof
 
+DEP_SUFFIXES =
+if GHC_LE_76
+DEP_SUFFIXES += -dep-suffix $(HPROF_SUFFIX) -dep-suffix $(HTEST_SUFFIX)
+else
+# GHC >= 7.8 stopped putting underscores into -dep-suffix by itself
+# (https://ghc.haskell.org/trac/ghc/ticket/9749) so we have to put them.
+# It also needs -dep-suffix "" for the .o file.
+DEP_SUFFIXES += -dep-suffix $(HPROF_SUFFIX)_ -dep-suffix $(HTEST_SUFFIX)_ \
+	-dep-suffix ""
+endif
+
 if HPROFILE
 HPROFFLAGS = -prof -fprof-auto-top -osuf $(HPROF_SUFFIX)_o \
 	-hisuf $(HPROF_SUFFIX)_hi -rtsopts
@@ -1235,8 +1246,7 @@ HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
 endif
 Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
               | $(built_base_sources) $(HS_BUILT_SRCS)
-	$(GHC) -M -dep-makefile $@ -dep-suffix $(HPROF_SUFFIX) \
-		-dep-suffix $(HTEST_SUFFIX) $(HFLAGS) -itest/hs \
+	$(GHC) -M -dep-makefile $@ $(DEP_SUFFIXES) $(HFLAGS) -itest/hs \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
 # Since ghc -M does not generate dependency line for object files, dependencies
 # from a target executable seed object (e.g. src/hluxid.o) to objects which
