@@ -81,7 +81,6 @@ from ganeti.cmdlib.instance import \
   LUInstanceRemove, \
   LUInstanceMove, \
   LUInstanceMultiAlloc, \
-  LUInstanceSetParams, \
   LUInstanceChangeGroup
 from ganeti.cmdlib.instance_storage import \
   LUInstanceRecreateDisks, \
@@ -98,6 +97,8 @@ from ganeti.cmdlib.instance_operation import \
   LUInstanceReinstall, \
   LUInstanceReboot, \
   LUInstanceConsole
+from ganeti.cmdlib.instance_set_params import \
+  LUInstanceSetParams
 from ganeti.cmdlib.instance_query import \
   LUInstanceQueryData
 from ganeti.cmdlib.backup import \
