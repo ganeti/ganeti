@@ -47,7 +47,6 @@ from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
 from ganeti import serializer
-import ganeti.rpc.node as rpc
 from ganeti import utils
 from ganeti.utils import retry
 
@@ -75,17 +74,9 @@ from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   ReleaseLocks, CheckNodeVmCapable, CheckTargetNodeIPolicy, \
   GetInstanceInfoText, RemoveDisks, CheckNodeFreeMemory, \
   CheckInstanceBridgesExist, CheckNicsBridgesExist, UpdateMetadata, \
-  CheckCompressionTool, CheckInstanceExistence
+  CheckCompressionTool, CheckInstanceExistence, CheckForConflictingIp, \
+  ComputeInstanceCommunicationNIC, ComputeIPolicyInstanceSpecViolation
 import ganeti.masterd.instance
-
-
-#: Type description for changes as returned by L{_ApplyContainerMods}'s
-#: callbacks
-_TApplyContModsCbChanges = \
-  ht.TMaybeListOf(ht.TAnd(ht.TIsLength(2), ht.TItems([
-    ht.TNonEmptyString,
-    ht.TAny,
-    ])))
 
 
 def _CheckHostnameSane(lu, name):
@@ -261,71 +252,6 @@ def _ComputeNics(op, cluster, default_ip, cfg, ec_id):
     nics.append(nic_obj)
 
   return nics
-
-
-def _CheckForConflictingIp(lu, ip, node_uuid):
-  """In case of conflicting IP address raise error.
-
-  @type ip: string
-  @param ip: IP address
-  @type node_uuid: string
-  @param node_uuid: node UUID
-
-  """
-  (conf_net, _) = lu.cfg.CheckIPInNodeGroup(ip, node_uuid)
-  if conf_net is not None:
-    raise errors.OpPrereqError(("The requested IP address (%s) belongs to"
-                                " network %s, but the target NIC does not." %
-                                (ip, conf_net)),
-                               errors.ECODE_STATE)
-
-  return (None, None)
-
-
-def _ComputeIPolicyInstanceSpecViolation(
-  ipolicy, instance_spec, disk_types,
-  _compute_fn=ComputeIPolicySpecViolation):
-  """Compute if instance specs meets the specs of ipolicy.
-
-  @type ipolicy: dict
-  @param ipolicy: The ipolicy to verify against
-  @param instance_spec: dict
-  @param instance_spec: The instance spec to verify
-  @type disk_types: list of strings
-  @param disk_types: the disk templates of the instance
-  @param _compute_fn: The function to verify ipolicy (unittest only)
-  @see: L{ComputeIPolicySpecViolation}
-
-  """
-  mem_size = instance_spec.get(constants.ISPEC_MEM_SIZE, None)
-  cpu_count = instance_spec.get(constants.ISPEC_CPU_COUNT, None)
-  disk_count = instance_spec.get(constants.ISPEC_DISK_COUNT, 0)
-  disk_sizes = instance_spec.get(constants.ISPEC_DISK_SIZE, [])
-  nic_count = instance_spec.get(constants.ISPEC_NIC_COUNT, 0)
-  spindle_use = instance_spec.get(constants.ISPEC_SPINDLE_USE, None)
-
-  return _compute_fn(ipolicy, mem_size, cpu_count, disk_count, nic_count,
-                     disk_sizes, spindle_use, disk_types)
-
-
-def _ComputeInstanceCommunicationNIC(instance_name):
-  """Compute the name of the instance NIC used by instance
-  communication.
-
-  With instance communication, a new NIC is added to the instance.
-  This NIC has a special name that identities it as being part of
-  instance communication, and not just a normal NIC.  This function
-  generates the name of the NIC based on a prefix and the instance
-  name
-
-  @type instance_name: string
-  @param instance_name: name of the instance the NIC belongs to
-
-  @rtype: string
-  @return: name of the NIC
-
-  """
-  return constants.INSTANCE_COMMUNICATION_NIC_PREFIX + instance_name
 
 
 class LUInstanceCreate(LogicalUnit):
@@ -1127,7 +1053,7 @@ class LUInstanceCreate(LogicalUnit):
 
       # net is None, ip None or given
       elif self.op.conflicts_check:
-        _CheckForConflictingIp(self, nic.ip, self.pnode.uuid)
+        CheckForConflictingIp(self, nic.ip, self.pnode.uuid)
 
     # mirror node verification
     if self.op.disk_template in constants.DTS_INT_MIRROR:
@@ -1281,7 +1207,7 @@ class LUInstanceCreate(LogicalUnit):
     group_info = self.cfg.GetNodeGroup(pnode.group)
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster, group_info)
     disk_types = [self.op.disk_template] * len(self.disks)
-    res = _ComputeIPolicyInstanceSpecViolation(ipolicy, ispec, disk_types)
+    res = ComputeIPolicyInstanceSpecViolation(ipolicy, ispec, disk_types)
     if not self.op.ignore_ipolicy and res:
       msg = ("Instance allocation to group %s (%s) violates policy: %s" %
              (pnode.group, group_info.name, utils.CommaJoin(res)))
@@ -2445,198 +2371,6 @@ class _InstNicModPrivate(object):
   def __init__(self):
     self.params = None
     self.filled = None
-
-
-def _PrepareContainerMods(mods, private_fn):
-  """Prepares a list of container modifications by adding a private data field.
-
-  @type mods: list of tuples; (operation, index, parameters)
-  @param mods: List of modifications
-  @type private_fn: callable or None
-  @param private_fn: Callable for constructing a private data field for a
-    modification
-  @rtype: list
-
-  """
-  if private_fn is None:
-    fn = lambda: None
-  else:
-    fn = private_fn
-
-  return [(op, idx, params, fn()) for (op, idx, params) in mods]
-
-
-def _CheckNodesPhysicalCPUs(lu, node_uuids, requested, hypervisor_specs):
-  """Checks if nodes have enough physical CPUs
-
-  This function checks if all given nodes have the needed number of
-  physical CPUs. In case any node has less CPUs or we cannot get the
-  information from the node, this function raises an OpPrereqError
-  exception.
-
-  @type lu: C{LogicalUnit}
-  @param lu: a logical unit from which we get configuration data
-  @type node_uuids: C{list}
-  @param node_uuids: the list of node UUIDs to check
-  @type requested: C{int}
-  @param requested: the minimum acceptable number of physical CPUs
-  @type hypervisor_specs: list of pairs (string, dict of strings)
-  @param hypervisor_specs: list of hypervisor specifications in
-      pairs (hypervisor_name, hvparams)
-  @raise errors.OpPrereqError: if the node doesn't have enough CPUs,
-      or we cannot check the node
-
-  """
-  nodeinfo = lu.rpc.call_node_info(node_uuids, None, hypervisor_specs)
-  for node_uuid in node_uuids:
-    info = nodeinfo[node_uuid]
-    node_name = lu.cfg.GetNodeName(node_uuid)
-    info.Raise("Cannot get current information from node %s" % node_name,
-               prereq=True, ecode=errors.ECODE_ENVIRON)
-    (_, _, (hv_info, )) = info.payload
-    num_cpus = hv_info.get("cpu_total", None)
-    if not isinstance(num_cpus, int):
-      raise errors.OpPrereqError("Can't compute the number of physical CPUs"
-                                 " on node %s, result was '%s'" %
-                                 (node_name, num_cpus), errors.ECODE_ENVIRON)
-    if requested > num_cpus:
-      raise errors.OpPrereqError("Node %s has %s physical CPUs, but %s are "
-                                 "required" % (node_name, num_cpus, requested),
-                                 errors.ECODE_NORES)
-
-
-def GetItemFromContainer(identifier, kind, container):
-  """Return the item refered by the identifier.
-
-  @type identifier: string
-  @param identifier: Item index or name or UUID
-  @type kind: string
-  @param kind: One-word item description
-  @type container: list
-  @param container: Container to get the item from
-
-  """
-  # Index
-  try:
-    idx = int(identifier)
-    if idx == -1:
-      # Append
-      absidx = len(container) - 1
-    elif idx < 0:
-      raise IndexError("Not accepting negative indices other than -1")
-    elif idx > len(container):
-      raise IndexError("Got %s index %s, but there are only %s" %
-                       (kind, idx, len(container)))
-    else:
-      absidx = idx
-    return (absidx, container[idx])
-  except ValueError:
-    pass
-
-  for idx, item in enumerate(container):
-    if item.uuid == identifier or item.name == identifier:
-      return (idx, item)
-
-  raise errors.OpPrereqError("Cannot find %s with identifier %s" %
-                             (kind, identifier), errors.ECODE_NOENT)
-
-
-def _ApplyContainerMods(kind, container, chgdesc, mods,
-                        create_fn, modify_fn, remove_fn,
-                        post_add_fn=None):
-  """Applies descriptions in C{mods} to C{container}.
-
-  @type kind: string
-  @param kind: One-word item description
-  @type container: list
-  @param container: Container to modify
-  @type chgdesc: None or list
-  @param chgdesc: List of applied changes
-  @type mods: list
-  @param mods: Modifications as returned by L{_PrepareContainerMods}
-  @type create_fn: callable
-  @param create_fn: Callback for creating a new item (L{constants.DDM_ADD});
-    receives absolute item index, parameters and private data object as added
-    by L{_PrepareContainerMods}, returns tuple containing new item and changes
-    as list
-  @type modify_fn: callable
-  @param modify_fn: Callback for modifying an existing item
-    (L{constants.DDM_MODIFY}); receives absolute item index, item, parameters
-    and private data object as added by L{_PrepareContainerMods}, returns
-    changes as list
-  @type remove_fn: callable
-  @param remove_fn: Callback on removing item; receives absolute item index,
-    item and private data object as added by L{_PrepareContainerMods}
-  @type post_add_fn: callable
-  @param post_add_fn: Callable for post-processing a newly created item after
-    it has been put into the container. It receives the index of the new item
-    and the new item as parameters.
-
-  """
-  for (op, identifier, params, private) in mods:
-    changes = None
-
-    if op == constants.DDM_ADD:
-      # Calculate where item will be added
-      # When adding an item, identifier can only be an index
-      try:
-        idx = int(identifier)
-      except ValueError:
-        raise errors.OpPrereqError("Only possitive integer or -1 is accepted as"
-                                   " identifier for %s" % constants.DDM_ADD,
-                                   errors.ECODE_INVAL)
-      if idx == -1:
-        addidx = len(container)
-      else:
-        if idx < 0:
-          raise IndexError("Not accepting negative indices other than -1")
-        elif idx > len(container):
-          raise IndexError("Got %s index %s, but there are only %s" %
-                           (kind, idx, len(container)))
-        addidx = idx
-
-      if create_fn is None:
-        item = params
-      else:
-        (item, changes) = create_fn(addidx, params, private)
-
-      if idx == -1:
-        container.append(item)
-      else:
-        assert idx >= 0
-        assert idx <= len(container)
-        # list.insert does so before the specified index
-        container.insert(idx, item)
-
-      if post_add_fn is not None:
-        post_add_fn(addidx, item)
-
-    else:
-      # Retrieve existing item
-      (absidx, item) = GetItemFromContainer(identifier, kind, container)
-
-      if op == constants.DDM_REMOVE:
-        assert not params
-
-        changes = [("%s/%s" % (kind, absidx), "remove")]
-
-        if remove_fn is not None:
-          msg = remove_fn(absidx, item, private)
-          if msg:
-            changes.append(("%s/%s" % (kind, absidx), msg))
-
-        assert container[absidx] == item
-        del container[absidx]
-      elif op == constants.DDM_MODIFY:
-        if modify_fn is not None:
-          changes = modify_fn(absidx, item, params, private)
-      else:
-        raise errors.ProgrammerError("Unhandled operation '%s'" % op)
-
-    assert _TApplyContModsCbChanges(changes)
-
-    if not (chgdesc is None or changes is None):
-      chgdesc.extend(changes)
 
 
 class LUInstanceSetParams(LogicalUnit):
