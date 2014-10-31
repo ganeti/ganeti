@@ -77,7 +77,9 @@ int-import-graph =
 
 [FORMAT]
 max-line-length = 80
-max-module-lines = 4500
+# TODO if you hit this limit, split the module, and reduce this number to the
+# next biggest one.
+max-module-lines = 3600
 indent-string = "  "
 indent-after-paren = 2
 
