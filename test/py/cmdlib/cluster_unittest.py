@@ -40,6 +40,7 @@ import operator
 import re
 
 from ganeti.cmdlib import cluster
+from ganeti.cmdlib.cluster import verify
 from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
@@ -57,7 +58,7 @@ import testutils
 
 class TestClusterVerifySsh(unittest.TestCase):
   def testMultipleGroups(self):
-    fn = cluster.LUClusterVerifyGroup._SelectSshCheckNodes
+    fn = verify.LUClusterVerifyGroup._SelectSshCheckNodes
     mygroupnodes = [
       objects.Node(name="node20", group="my", offline=False,
                    master_candidate=True),
@@ -112,7 +113,7 @@ class TestClusterVerifySsh(unittest.TestCase):
       })
 
   def testSingleGroup(self):
-    fn = cluster.LUClusterVerifyGroup._SelectSshCheckNodes
+    fn = verify.LUClusterVerifyGroup._SelectSshCheckNodes
     nodes = [
       objects.Node(name="node1", group="default", offline=True,
                    master_candidate=True),
@@ -1297,7 +1298,7 @@ class TestLUClusterVerifyGroupMethods(CmdlibTestCase):
     lu._exclusive_storage = False
     lu.master_node = self.master_uuid
     lu.group_info = self.group
-    cluster.LUClusterVerifyGroup.all_node_info = \
+    verify.LUClusterVerifyGroup.all_node_info = \
       property(fget=lambda _: self.cfg.GetAllNodesInfo())
 
 
@@ -1416,7 +1417,7 @@ class TestLUClusterVerifyGroupUpdateVerifyNodeLVM(
   def testValidNodeResultExclusiveStorage(self, lu):
     lu._exclusive_storage = True
     lu._UpdateVerifyNodeLVM(self.master, self.VALID_NRESULT, "mock_vg",
-                            cluster.LUClusterVerifyGroup.NodeImage())
+                            verify.LUClusterVerifyGroup.NodeImage())
     self.mcpu.assertLogIsEmpty()
 
 
@@ -1467,7 +1468,7 @@ class TestLUClusterVerifyGroupVerifyGroupLVM(TestLUClusterVerifyGroupMethods):
   @withLockedLU
   def testNoPvInfo(self, lu):
     lu._exclusive_storage = True
-    nimg = cluster.LUClusterVerifyGroup.NodeImage()
+    nimg = verify.LUClusterVerifyGroup.NodeImage()
     lu._VerifyGroupLVM({self.master.uuid: nimg}, "mock_vg")
     self.mcpu.assertLogIsEmpty()
 
@@ -1475,10 +1476,10 @@ class TestLUClusterVerifyGroupVerifyGroupLVM(TestLUClusterVerifyGroupMethods):
   def testValidPvInfos(self, lu):
     lu._exclusive_storage = True
     node2 = self.cfg.AddNewNode()
-    nimg1 = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master.uuid)
+    nimg1 = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master.uuid)
     nimg1.pv_min = 10000
     nimg1.pv_max = 10010
-    nimg2 = cluster.LUClusterVerifyGroup.NodeImage(uuid=node2.uuid)
+    nimg2 = verify.LUClusterVerifyGroup.NodeImage(uuid=node2.uuid)
     nimg2.pv_min = 9998
     nimg2.pv_max = 10005
     lu._VerifyGroupLVM({self.master.uuid: nimg1, node2.uuid: nimg2}, "mock_vg")
@@ -1594,7 +1595,7 @@ class TestLUClusterVerifyGroupVerifyInstance(TestLUClusterVerifyGroupMethods):
     self.diskless_inst = self.cfg.AddNewInstance(disks=[])
 
     self.master_img = \
-      cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+      verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
     self.master_img.volumes = ["/".join(disk.logical_id)
                                for inst in [self.running_inst,
                                             self.diskless_inst]
@@ -1605,7 +1606,7 @@ class TestLUClusterVerifyGroupVerifyInstance(TestLUClusterVerifyGroupMethods):
       ["/".join(disk.logical_id) for disk in drbd_inst_disks[0].children])
     self.master_img.instances = [self.running_inst.uuid]
     self.node1_img = \
-      cluster.LUClusterVerifyGroup.NodeImage(uuid=self.node1.uuid)
+      verify.LUClusterVerifyGroup.NodeImage(uuid=self.node1.uuid)
     self.node1_img.volumes = \
       ["/".join(disk.logical_id) for disk in drbd_inst_disks[0].children]
     self.node_imgs = {
@@ -1711,7 +1712,7 @@ class TestLUClusterVerifyGroupVerifyOrphanVolumes(
         TestLUClusterVerifyGroupMethods):
   @withLockedLU
   def testOrphanedVolume(self, lu):
-    master_img = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    master_img = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
     master_img.volumes = ["mock_vg/disk_0", "mock_vg/disk_1", "mock_vg/disk_2"]
     node_imgs = {
       self.master_uuid: master_img
@@ -1741,14 +1742,14 @@ class TestLUClusterVerifyGroupVerifyNPlusOneMemory(
     inst2 = self.cfg.AddNewInstance()
     inst3 = self.cfg.AddNewInstance()
 
-    node1_img = cluster.LUClusterVerifyGroup.NodeImage(uuid=node1.uuid)
+    node1_img = verify.LUClusterVerifyGroup.NodeImage(uuid=node1.uuid)
     node1_img.sbp = {
       self.master_uuid: [inst1.uuid, inst2.uuid, inst3.uuid]
     }
 
-    node2_img = cluster.LUClusterVerifyGroup.NodeImage(uuid=node2.uuid)
+    node2_img = verify.LUClusterVerifyGroup.NodeImage(uuid=node2.uuid)
 
-    node3_img = cluster.LUClusterVerifyGroup.NodeImage(uuid=node3.uuid)
+    node3_img = verify.LUClusterVerifyGroup.NodeImage(uuid=node3.uuid)
     node3_img.offline = True
 
     node_imgs = {
@@ -1871,7 +1872,7 @@ class TestLUClusterVerifyGroupVerifyNodeOs(TestLUClusterVerifyGroupMethods):
     for ndata in [{}, {constants.NV_OSLIST: ""}, {constants.NV_OSLIST: [""]},
                   {constants.NV_OSLIST: [["1", "2"]]}]:
       self.mcpu.ClearLogMessages()
-      nimage = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+      nimage = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
       lu._UpdateNodeOS(self.master, ndata, nimage)
       self.mcpu.assertLogContainsRegex("node hasn't returned valid OS data")
 
@@ -1886,15 +1887,15 @@ class TestLUClusterVerifyGroupVerifyNodeOs(TestLUClusterVerifyGroupMethods):
          True]
       ]
     }
-    nimage = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    nimage = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
     lu._UpdateNodeOS(self.master, ndata, nimage)
     self.mcpu.assertLogIsEmpty()
 
   @withLockedLU
   def testVerifyNodeOs(self, lu):
     node = self.cfg.AddNewNode()
-    nimg_root = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
-    nimg = cluster.LUClusterVerifyGroup.NodeImage(uuid=node.uuid)
+    nimg_root = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    nimg = verify.LUClusterVerifyGroup.NodeImage(uuid=node.uuid)
 
     nimg_root.os_fail = False
     nimg_root.oslist = {
@@ -2022,7 +2023,7 @@ class TestLUClusterVerifyGroupUpdateNodeVolumes(
   TestLUClusterVerifyGroupMethods):
   def setUp(self):
     super(TestLUClusterVerifyGroupUpdateNodeVolumes, self).setUp()
-    self.nimg = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    self.nimg = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
 
   @withLockedLU
   def testNoVgName(self, lu):
@@ -2056,7 +2057,7 @@ class TestLUClusterVerifyGroupUpdateNodeInstances(
   TestLUClusterVerifyGroupMethods):
   def setUp(self):
     super(TestLUClusterVerifyGroupUpdateNodeInstances, self).setUp()
-    self.nimg = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    self.nimg = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
 
   @withLockedLU
   def testInvalidNodeResult(self, lu):
@@ -2075,7 +2076,7 @@ class TestLUClusterVerifyGroupUpdateNodeInstances(
 class TestLUClusterVerifyGroupUpdateNodeInfo(TestLUClusterVerifyGroupMethods):
   def setUp(self):
     super(TestLUClusterVerifyGroupUpdateNodeInfo, self).setUp()
-    self.nimg = cluster.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
+    self.nimg = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
     self.valid_hvresult = {constants.NV_HVINFO: {"memory_free": 1024}}
 
   @withLockedLU
@@ -2145,15 +2146,15 @@ class TestLUClusterVerifyGroupCollectDiskInfo(TestLUClusterVerifyGroupMethods):
                               secondary_node=self.node2,
                               disk_template=constants.DT_DRBD8)
 
-    self.node1_img = cluster.LUClusterVerifyGroup.NodeImage(
+    self.node1_img = verify.LUClusterVerifyGroup.NodeImage(
                        uuid=self.node1.uuid)
     self.node1_img.pinst = [self.diskless_inst.uuid]
     self.node1_img.sinst = []
-    self.node2_img = cluster.LUClusterVerifyGroup.NodeImage(
+    self.node2_img = verify.LUClusterVerifyGroup.NodeImage(
                        uuid=self.node2.uuid)
     self.node2_img.pinst = [self.plain_inst.uuid]
     self.node2_img.sinst = [self.drbd_inst.uuid]
-    self.node3_img = cluster.LUClusterVerifyGroup.NodeImage(
+    self.node3_img = verify.LUClusterVerifyGroup.NodeImage(
                        uuid=self.node3.uuid)
     self.node3_img.pinst = [self.drbd_inst.uuid]
     self.node3_img.sinst = []

@@ -51,11 +51,12 @@ from ganeti.cmdlib.cluster import \
   LUClusterRename, \
   LUClusterRepairDiskSizes, \
   LUClusterSetParams, \
+  LUClusterRenewCrypto
+from ganeti.cmdlib.cluster.verify import \
   LUClusterVerify, \
   LUClusterVerifyConfig, \
   LUClusterVerifyGroup, \
-  LUClusterVerifyDisks, \
-  LUClusterRenewCrypto
+  LUClusterVerifyDisks
 from ganeti.cmdlib.group import \
   LUGroupAdd, \
   LUGroupAssignNodes, \

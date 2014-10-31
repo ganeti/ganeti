@@ -89,6 +89,7 @@ tools_pythondir = $(versionedsharedir)
 
 clientdir = $(pkgpythondir)/client
 cmdlibdir = $(pkgpythondir)/cmdlib
+cmdlib_clusterdir = $(pkgpythondir)/cmdlib/cluster
 hypervisordir = $(pkgpythondir)/hypervisor
 hypervisor_hv_kvmdir = $(pkgpythondir)/hypervisor/hv_kvm
 jqueuedir = $(pkgpythondir)/jqueue
@@ -203,6 +204,7 @@ DIRS = \
 	lib/build \
 	lib/client \
 	lib/cmdlib \
+	lib/cmdlib/cluster \
 	lib/confd \
 	lib/jqueue \
 	lib/http \
@@ -476,7 +478,6 @@ cmdlib_PYTHON = \
 	lib/cmdlib/__init__.py \
 	lib/cmdlib/backup.py \
 	lib/cmdlib/base.py \
-	lib/cmdlib/cluster.py \
 	lib/cmdlib/common.py \
 	lib/cmdlib/group.py \
 	lib/cmdlib/instance.py \
@@ -494,6 +495,10 @@ cmdlib_PYTHON = \
 	lib/cmdlib/query.py \
 	lib/cmdlib/tags.py \
 	lib/cmdlib/test.py
+
+cmdlib_cluster_PYTHON = \
+	lib/cmdlib/cluster/__init__.py \
+	lib/cmdlib/cluster/verify.py
 
 hypervisor_PYTHON = \
 	lib/hypervisor/__init__.py \
@@ -1920,6 +1925,7 @@ all_python_code = \
 	$(pkgpython_PYTHON) \
 	$(client_PYTHON) \
 	$(cmdlib_PYTHON) \
+	$(cmdlib_cluster_PYTHON) \
 	$(hypervisor_PYTHON) \
 	$(hypervisor_hv_kvm_PYTHON) \
 	$(jqueue_PYTHON) \

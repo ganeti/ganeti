@@ -40,6 +40,7 @@ from ganeti import constants
 from ganeti import mcpu
 from ganeti import cmdlib
 from ganeti.cmdlib import cluster
+from ganeti.cmdlib.cluster import verify
 from ganeti.cmdlib import instance_storage
 from ganeti.cmdlib import instance_utils
 from ganeti.cmdlib import common
@@ -712,9 +713,9 @@ class _OpTestVerifyErrors(opcodes.OpCode):
     ]
 
 
-class _LuTestVerifyErrors(cluster._VerifyErrors):
+class _LuTestVerifyErrors(verify._VerifyErrors):
   def __init__(self, **kwargs):
-    cluster._VerifyErrors.__init__(self)
+    super(_LuTestVerifyErrors, self).__init__()
     self.op = _OpTestVerifyErrors(**kwargs)
     self.op.Validate(True)
     self.msglist = []
