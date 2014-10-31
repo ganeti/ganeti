@@ -76,12 +76,13 @@ from ganeti.cmdlib.node import \
   LUNodeRemove, \
   LURepairNodeStorage
 from ganeti.cmdlib.instance import \
-  LUInstanceCreate, \
   LUInstanceRename, \
   LUInstanceRemove, \
   LUInstanceMove, \
   LUInstanceMultiAlloc, \
   LUInstanceChangeGroup
+from ganeti.cmdlib.instance_create import \
+  LUInstanceCreate
 from ganeti.cmdlib.instance_storage import \
   LUInstanceRecreateDisks, \
   LUInstanceGrowDisk, \

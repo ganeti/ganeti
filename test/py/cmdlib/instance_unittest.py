@@ -50,6 +50,9 @@ from ganeti import objects
 from ganeti.rpc import node as rpc
 from ganeti import utils
 from ganeti.cmdlib import instance
+from ganeti.cmdlib import instance_storage
+from ganeti.cmdlib import instance_create
+from ganeti.cmdlib import instance_set_params
 from ganeti.cmdlib import instance_utils
 
 from cmdlib.cmdlib_unittest import _FakeLU
@@ -100,6 +103,9 @@ class TestLUInstanceCreate(CmdlibTestCase):
   def setUp(self):
     super(TestLUInstanceCreate, self).setUp()
     self.ResetMocks()
+
+    self.MockOut(instance_create, 'netutils', self.netutils_mod)
+    self.MockOut(instance_utils, 'netutils', self.netutils_mod)
 
     self.net = self.cfg.AddNewNetwork()
     self.cfg.ConnectNetworkToGroup(self.net, self.group)
@@ -215,6 +221,7 @@ class TestLUInstanceCreate(CmdlibTestCase):
         constants.IDISK_SIZE: 1024
       }],
       os_type=self.os_name_variant)
+
   def testSimpleCreate(self):
     op = self.CopyOpCode(self.diskless_op)
     self.ExecOpCode(op)
@@ -955,8 +962,8 @@ class TestApplyContainerMods(unittest.TestCase):
   def testEmptyContainer(self):
     container = []
     chgdesc = []
-    instance_utils.ApplyContainerMods("test", container, chgdesc, [], None, None,
-                                      None)
+    instance_utils.ApplyContainerMods("test", container, chgdesc, [], None,
+                                      None, None)
     self.assertEqual(container, [])
     self.assertEqual(chgdesc, [])
 
@@ -1153,7 +1160,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     return copy.deepcopy(constants.DISK_DT_DEFAULTS)
 
   def testWrongDiskTemplate(self):
-    gdt = instance.GenerateDiskTemplate
+    gdt = instance_storage.GenerateDiskTemplate
     disk_template = "##unknown##"
 
     assert disk_template not in constants.DISK_TEMPLATES
@@ -1164,7 +1171,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
                       self.GetDiskParams())
 
   def testDiskless(self):
-    gdt = instance.GenerateDiskTemplate
+    gdt = instance_storage.GenerateDiskTemplate
 
     result = gdt(self.lu, constants.DT_DISKLESS, "inst27734.example.com",
                  "node30113.example.com", [], [],
@@ -1175,7 +1182,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
   def _TestTrivialDisk(self, template, disk_info, base_index, exp_dev_type,
                        file_storage_dir=NotImplemented,
                        file_driver=NotImplemented):
-    gdt = instance.GenerateDiskTemplate
+    gdt = instance_storage.GenerateDiskTemplate
 
     map(lambda params: utils.ForceDictType(params,
                                            constants.IDISK_PARAMS_TYPES),
@@ -1316,7 +1323,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     self.assertEqual(map(operator.attrgetter("nodes"), result), [[], []])
 
   def testDrbd8(self):
-    gdt = instance.GenerateDiskTemplate
+    gdt = instance_storage.GenerateDiskTemplate
     drbd8_defaults = constants.DISK_LD_DEFAULTS[constants.DT_DRBD8]
     drbd8_default_metavg = drbd8_defaults[constants.LDP_DEFAULT_METAVG]
 
@@ -1497,7 +1504,7 @@ class TestWipeDisks(unittest.TestCase):
                             disk_template=constants.DT_PLAIN,
                             disks=[d.uuid for d in disks])
 
-    self.assertRaises(errors.OpExecError, instance.WipeDisks, lu, inst)
+    self.assertRaises(errors.OpExecError, instance_create.WipeDisks, lu, inst)
 
   def _FailingWipeCb(self, (disk, _), offset, size):
     # This should only ever be called for the first disk
@@ -1526,7 +1533,7 @@ class TestWipeDisks(unittest.TestCase):
                             disks=[d.uuid for d in disks])
 
     try:
-      instance.WipeDisks(lu, inst)
+      instance_create.WipeDisks(lu, inst)
     except errors.OpExecError, err:
       self.assertTrue(str(err), "Could not wipe disk 0 at offset 0 ")
     else:
@@ -1571,7 +1578,7 @@ class TestWipeDisks(unittest.TestCase):
 
     (lu, inst, pauset, progresst) = self._PrepareWipeTest(0, disks)
 
-    instance.WipeDisks(lu, inst)
+    instance_create.WipeDisks(lu, inst)
 
     self.assertEqual(pauset.history, [
       ("disk0", 1024, True),
@@ -1601,8 +1608,8 @@ class TestWipeDisks(unittest.TestCase):
         self._PrepareWipeTest(start_offset, disks)
 
       # Test start offset with only one disk
-      instance.WipeDisks(lu, inst,
-                         disks=[(1, disks[1], start_offset)])
+      instance_create.WipeDisks(lu, inst,
+                                disks=[(1, disks[1], start_offset)])
 
       # Only the second disk may have been paused and wiped
       self.assertEqual(pauset.history, [
@@ -1628,12 +1635,12 @@ class TestCheckOpportunisticLocking(unittest.TestCase):
     return op
 
   def testMissingAttributes(self):
-    self.assertRaises(AttributeError, instance._CheckOpportunisticLocking,
+    self.assertRaises(AttributeError, instance.CheckOpportunisticLocking,
                       object())
 
   def testDefaults(self):
     op = self._MakeOp()
-    instance._CheckOpportunisticLocking(op)
+    instance.CheckOpportunisticLocking(op)
 
   def test(self):
     for iallocator in [None, "something", "other"]:
@@ -1642,9 +1649,9 @@ class TestCheckOpportunisticLocking(unittest.TestCase):
                           opportunistic_locking=opplock)
         if opplock and not iallocator:
           self.assertRaises(errors.OpPrereqError,
-                            instance._CheckOpportunisticLocking, op)
+                            instance.CheckOpportunisticLocking, op)
         else:
-          instance._CheckOpportunisticLocking(op)
+          instance.CheckOpportunisticLocking(op)
 
 
 class TestLUInstanceRemove(CmdlibTestCase):
@@ -1780,6 +1787,8 @@ class TestLUInstanceRename(CmdlibTestCase):
   def setUp(self):
     super(TestLUInstanceRename, self).setUp()
 
+    self.MockOut(instance_utils, 'netutils', self.netutils_mod)
+
     self.inst = self.cfg.AddNewInstance()
 
     self.op = opcodes.OpInstanceRename(instance_name=self.inst.name,
@@ -1912,6 +1921,9 @@ class TestLUInstanceMultiAlloc(CmdlibTestCase):
 class TestLUInstanceSetParams(CmdlibTestCase):
   def setUp(self):
     super(TestLUInstanceSetParams, self).setUp()
+
+    self.MockOut(instance_set_params, 'netutils', self.netutils_mod)
+    self.MockOut(instance_utils, 'netutils', self.netutils_mod)
 
     self.inst = self.cfg.AddNewInstance()
     self.op = opcodes.OpInstanceSetParams(instance_name=self.inst.name)

@@ -37,7 +37,9 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import ht
 from ganeti import locking
+from ganeti.masterd import iallocator
 from ganeti import network
+from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
 from ganeti import utils
@@ -1041,3 +1043,178 @@ def CheckNodesPhysicalCPUs(lu, node_uuids, requested, hypervisor_specs):
       raise errors.OpPrereqError("Node %s has %s physical CPUs, but %s are "
                                  "required" % (node_name, num_cpus, requested),
                                  errors.ECODE_NORES)
+
+
+def CheckHostnameSane(lu, name):
+  """Ensures that a given hostname resolves to a 'sane' name.
+
+  The given name is required to be a prefix of the resolved hostname,
+  to prevent accidental mismatches.
+
+  @param lu: the logical unit on behalf of which we're checking
+  @param name: the name we should resolve and check
+  @return: the resolved hostname object
+
+  """
+  hostname = netutils.GetHostname(name=name)
+  if hostname.name != name:
+    lu.LogInfo("Resolved given name '%s' to '%s'", name, hostname.name)
+  if not utils.MatchNameComponent(name, [hostname.name]):
+    raise errors.OpPrereqError(("Resolved hostname '%s' does not look the"
+                                " same as given hostname '%s'") %
+                               (hostname.name, name), errors.ECODE_INVAL)
+  return hostname
+
+
+def CheckOpportunisticLocking(op):
+  """Generate error if opportunistic locking is not possible.
+
+  """
+  if op.opportunistic_locking and not op.iallocator:
+    raise errors.OpPrereqError("Opportunistic locking is only available in"
+                               " combination with an instance allocator",
+                               errors.ECODE_INVAL)
+
+
+def CreateInstanceAllocRequest(op, disks, nics, beparams, node_name_whitelist):
+  """Wrapper around IAReqInstanceAlloc.
+
+  @param op: The instance opcode
+  @param disks: The computed disks
+  @param nics: The computed nics
+  @param beparams: The full filled beparams
+  @param node_name_whitelist: List of nodes which should appear as online to the
+    allocator (unless the node is already marked offline)
+
+  @returns: A filled L{iallocator.IAReqInstanceAlloc}
+
+  """
+  spindle_use = beparams[constants.BE_SPINDLE_USE]
+  return iallocator.IAReqInstanceAlloc(name=op.instance_name,
+                                       disk_template=op.disk_template,
+                                       group_name=op.group_name,
+                                       tags=op.tags,
+                                       os=op.os_type,
+                                       vcpus=beparams[constants.BE_VCPUS],
+                                       memory=beparams[constants.BE_MAXMEM],
+                                       spindle_use=spindle_use,
+                                       disks=disks,
+                                       nics=[n.ToDict() for n in nics],
+                                       hypervisor=op.hypervisor,
+                                       node_whitelist=node_name_whitelist)
+
+
+def ComputeFullBeParams(op, cluster):
+  """Computes the full beparams.
+
+  @param op: The instance opcode
+  @param cluster: The cluster config object
+
+  @return: The fully filled beparams
+
+  """
+  default_beparams = cluster.beparams[constants.PP_DEFAULT]
+  for param, value in op.beparams.iteritems():
+    if value == constants.VALUE_AUTO:
+      op.beparams[param] = default_beparams[param]
+  objects.UpgradeBeParams(op.beparams)
+  utils.ForceDictType(op.beparams, constants.BES_PARAMETER_TYPES)
+  return cluster.SimpleFillBE(op.beparams)
+
+
+def ComputeNics(op, cluster, default_ip, cfg, ec_id):
+  """Computes the nics.
+
+  @param op: The instance opcode
+  @param cluster: Cluster configuration object
+  @param default_ip: The default ip to assign
+  @param cfg: An instance of the configuration object
+  @param ec_id: Execution context ID
+
+  @returns: The build up nics
+
+  """
+  nics = []
+  for nic in op.nics:
+    nic_mode_req = nic.get(constants.INIC_MODE, None)
+    nic_mode = nic_mode_req
+    if nic_mode is None or nic_mode == constants.VALUE_AUTO:
+      nic_mode = cluster.nicparams[constants.PP_DEFAULT][constants.NIC_MODE]
+
+    net = nic.get(constants.INIC_NETWORK, None)
+    link = nic.get(constants.NIC_LINK, None)
+    ip = nic.get(constants.INIC_IP, None)
+    vlan = nic.get(constants.INIC_VLAN, None)
+
+    if net is None or net.lower() == constants.VALUE_NONE:
+      net = None
+    else:
+      if nic_mode_req is not None or link is not None:
+        raise errors.OpPrereqError("If network is given, no mode or link"
+                                   " is allowed to be passed",
+                                   errors.ECODE_INVAL)
+
+    # ip validity checks
+    if ip is None or ip.lower() == constants.VALUE_NONE:
+      nic_ip = None
+    elif ip.lower() == constants.VALUE_AUTO:
+      if not op.name_check:
+        raise errors.OpPrereqError("IP address set to auto but name checks"
+                                   " have been skipped",
+                                   errors.ECODE_INVAL)
+      nic_ip = default_ip
+    else:
+      # We defer pool operations until later, so that the iallocator has
+      # filled in the instance's node(s) dimara
+      if ip.lower() == constants.NIC_IP_POOL:
+        if net is None:
+          raise errors.OpPrereqError("if ip=pool, parameter network"
+                                     " must be passed too",
+                                     errors.ECODE_INVAL)
+
+      elif not netutils.IPAddress.IsValid(ip):
+        raise errors.OpPrereqError("Invalid IP address '%s'" % ip,
+                                   errors.ECODE_INVAL)
+
+      nic_ip = ip
+
+    # TODO: check the ip address for uniqueness
+    if nic_mode == constants.NIC_MODE_ROUTED and not nic_ip and not net:
+      raise errors.OpPrereqError("Routed nic mode requires an ip address"
+                                 " if not attached to a network",
+                                 errors.ECODE_INVAL)
+
+    # MAC address verification
+    mac = nic.get(constants.INIC_MAC, constants.VALUE_AUTO)
+    if mac not in (constants.VALUE_AUTO, constants.VALUE_GENERATE):
+      mac = utils.NormalizeAndValidateMac(mac)
+
+      try:
+        # TODO: We need to factor this out
+        cfg.ReserveMAC(mac, ec_id)
+      except errors.ReservationError:
+        raise errors.OpPrereqError("MAC address %s already in use"
+                                   " in cluster" % mac,
+                                   errors.ECODE_NOTUNIQUE)
+
+    #  Build nic parameters
+    nicparams = {}
+    if nic_mode_req:
+      nicparams[constants.NIC_MODE] = nic_mode
+    if link:
+      nicparams[constants.NIC_LINK] = link
+    if vlan:
+      nicparams[constants.NIC_VLAN] = vlan
+
+    check_params = cluster.SimpleFillNIC(nicparams)
+    objects.NIC.CheckParameterSyntax(check_params)
+    net_uuid = cfg.LookupNetwork(net)
+    name = nic.get(constants.INIC_NAME, None)
+    if name is not None and name.lower() == constants.VALUE_NONE:
+      name = None
+    nic_obj = objects.NIC(mac=mac, ip=nic_ip, name=name,
+                          network=net_uuid, nicparams=nicparams)
+    nic_obj.uuid = cfg.GenerateUniqueID(ec_id)
+    nics.append(nic_obj)
+
+  return nics

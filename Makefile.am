@@ -474,6 +474,7 @@ cmdlib_PYTHON = \
 	lib/cmdlib/common.py \
 	lib/cmdlib/group.py \
 	lib/cmdlib/instance.py \
+	lib/cmdlib/instance_create.py \
 	lib/cmdlib/instance_migration.py \
 	lib/cmdlib/instance_operation.py \
 	lib/cmdlib/instance_query.py \
