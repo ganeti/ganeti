@@ -306,6 +306,9 @@ class ConfigWriter(object):
   def _ConfigData(self):
     return self._config_data
 
+  def OutDate(self):
+    self._config_data = None
+
   def _SetConfigData(self, cfg):
     self._config_data = cfg
 
