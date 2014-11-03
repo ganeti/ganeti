@@ -3636,7 +3636,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # FIXME: The check for integrity of config.data should be moved to
     # WConfD, which is the only one who can otherwise ensure nobody
     # will modify the configuration during the check.
-    with self.cfg.GetConfigManager(shared=True):
+    with self.cfg.GetConfigManager(shared=True, forcelock=True):
       feedback_fn("* Gathering information about nodes (%s nodes)" %
                   len(self.my_node_uuids))
       # Force the configuration to be fully distributed before doing any tests
