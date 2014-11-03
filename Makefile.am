@@ -798,8 +798,8 @@ HFLAGS += -DTEST
 endif
 
 HTEST_FLAGS = $(HFLAGS) -fhpc -itest/hs \
-	-osuf .$(HTEST_SUFFIX)_o \
-	-hisuf .$(HTEST_SUFFIX)_hi
+	-osuf $(HTEST_SUFFIX)_o \
+	-hisuf $(HTEST_SUFFIX)_hi
 if !HPROFILE
 HTEST_FLAGS += $(HFLAGS_NOPROF)
 endif
