@@ -2889,8 +2889,12 @@ class ConfigWriter(object):
       self._UpgradeConfig(saveafter=True)
     else:
       if shared:
-        dict_data = \
-            self._wconfd.ReadConfig()
+        if self._config_data is None:
+          logging.debug("Requesting config, as I have no up-to-date copy")
+          dict_data = self._wconfd.ReadConfig()
+        else:
+          logging.debug("My config copy is up to date.")
+          dict_data = None
       else:
         # poll until we acquire the lock
         while True:
@@ -2903,7 +2907,8 @@ class ConfigWriter(object):
           time.sleep(random.random())
 
       try:
-        self._SetConfigData(objects.ConfigData.FromDict(dict_data))
+        if dict_data is not None:
+          self._SetConfigData(objects.ConfigData.FromDict(dict_data))
       except Exception, err:
         raise errors.ConfigurationError(err)
 
