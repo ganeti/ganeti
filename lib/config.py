@@ -2844,7 +2844,7 @@ class ConfigWriter(object):
       logging.critical("Can't write the configuration: %s", str(err))
       raise
     finally:
-      if not self._offline:
+      if not self._offline and not self._lock_current_shared:
         try:
           self._wconfd.UnlockConfig(self._GetWConfdContext())
         except AttributeError:
