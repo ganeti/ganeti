@@ -412,6 +412,8 @@ class Processor(object):
     else:
       request = [[lock, "exclusive"] for lock in locks]
 
+    self.cfg.OutDate()
+
     if timeout is None:
       ## Note: once we are so desperate for locks to request them
       ## unconditionally, we no longer care about an original plan
