@@ -232,15 +232,18 @@ class ConfigManager(object):
   """Locks the configuration and exposes it to be read or modified.
 
   """
-  def __init__(self, config_writer, shared=False):
+  def __init__(self, config_writer, shared=False, forcelock=False):
     assert isinstance(config_writer, ConfigWriter), \
            "invalid argument: Not a ConfigWriter"
     self._config_writer = config_writer
     self._shared = shared
+    self._forcelock = forcelock
 
   def __enter__(self):
     try:
-      self._config_writer._OpenConfig(self._shared) # pylint: disable=W0212
+      self._config_writer._OpenConfig(# pylint: disable=W0212
+                                      self._shared,
+                                      force=self._forcelock)
     except Exception:
       logging.debug("Opening configuration failed")
       try:
@@ -302,6 +305,7 @@ class ConfigWriter(object):
     self._accept_foreign = accept_foreign
     self._lock_count = 0
     self._lock_current_shared = None
+    self._lock_forced = False
 
   def _ConfigData(self):
     return self._config_data
@@ -2817,7 +2821,7 @@ class ConfigWriter(object):
             self._AllNICs() +
             [self._ConfigData().cluster])
 
-  def GetConfigManager(self, shared=False):
+  def GetConfigManager(self, shared=False, forcelock=False):
     """Returns a ConfigManager, which is suitable to perform a synchronized
     block of configuration operations.
 
@@ -2825,7 +2829,7 @@ class ConfigWriter(object):
     runs inside the block should be very fast, preferably not using any IO.
     """
 
-    return ConfigManager(self, shared=shared)
+    return ConfigManager(self, shared=shared, forcelock=forcelock)
 
   def _AddLockCount(self, count):
     self._lock_count += count
@@ -2834,7 +2838,7 @@ class ConfigWriter(object):
   def _LockCount(self):
     return self._lock_count
 
-  def _OpenConfig(self, shared):
+  def _OpenConfig(self, shared, force=False):
     """Read the config data from WConfd or disk.
 
     """
@@ -2844,10 +2848,12 @@ class ConfigWriter(object):
         raise errors.ConfigurationError("Can't request an exclusive"
                                         " configuration lock while holding"
                                         " shared")
-      else:
+      elif not force or self._lock_forced or not shared or self._offline:
         return # we already have the lock, do nothing
     else:
       self._lock_current_shared = shared
+    if force:
+      self._lock_forced = True
     # Read the configuration data. If offline, read the file directly.
     # If online, call WConfd.
     if self._offline:
@@ -2888,7 +2894,7 @@ class ConfigWriter(object):
       # Upgrade configuration if needed
       self._UpgradeConfig(saveafter=True)
     else:
-      if shared:
+      if shared and not force:
         if self._config_data is None:
           logging.debug("Requesting config, as I have no up-to-date copy")
           dict_data = self._wconfd.ReadConfig()
@@ -2929,9 +2935,11 @@ class ConfigWriter(object):
       except Exception, err:
         logging.critical("Can't write the configuration: %s", str(err))
         raise
-    elif not self._offline and not self._lock_current_shared:
+    elif not self._offline and \
+         not (self._lock_current_shared and not self._lock_forced):
       logging.debug("Unlocking configuration without writing")
       self._wconfd.UnlockConfig(self._GetWConfdContext())
+      self._lock_forced = False
 
   # TODO: To WConfd
   def _UpgradeConfig(self, saveafter=False):
@@ -3563,7 +3571,7 @@ class DetachedConfig(ConfigWriter):
     raise errors.ProgrammerError("DetachedConfig supports only read-only"
                                  " operations")
 
-  def _OpenConfig(self, shared):
+  def _OpenConfig(self, shared, force=None):
     if not shared:
       DetachedConfig._WriteCallError()
 

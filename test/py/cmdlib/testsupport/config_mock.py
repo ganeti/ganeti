@@ -646,7 +646,7 @@ class ConfigMock(config.ConfigWriter):
     self._default_group = self.AddNewNodeGroup(name="default")
     self._master_node = self.AddNewNode(uuid=master_node_uuid)
 
-  def _OpenConfig(self, _accept_foreign):
+  def _OpenConfig(self, _accept_foreign, force=False):
     self._config_data = self._mocked_config_store
 
   def _WriteConfig(self, destination=None, releaselock=False):
