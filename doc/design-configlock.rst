@@ -73,6 +73,14 @@ modifications.
 In a second step, more specialised read functions will be added to ``WConfD``.
 This will reduce the traffic for reads.
 
+Cached Reads
+------------
+
+As jobs synchronize with each other by means of regular locks, the parts
+of the configuration relevant for a job can only change while a job waits
+for new locks. So, if a job has a copy of the configuration and not asked
+for locks afterwards, all read-only access can be done from that copy. While
+this will not affect the ``ConfigLock``, it saves traffic.
 
 Set-and-release action
 ----------------------
