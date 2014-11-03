@@ -219,6 +219,7 @@ DIRCHECK_EXCLUDE = \
 	ganeti-[0-9]*.[0-9]*.[0-9]* \
 	doc/html/_* \
 	doc/man-html/_* \
+	tools/shebang \
 	autom4te.cache
 
 # some helper vars
@@ -266,6 +267,7 @@ CLEANFILES = \
 	tools/net-common \
 	tools/users-setup \
 	tools/vcluster-setup \
+	$(python_scripts_shebang) \
 	stamp-directories \
 	stamp-srclinks \
 	$(nodist_pkgpython_PYTHON) \
@@ -283,6 +285,9 @@ GENERATED_FILES = \
 	$(BUILT_PYTHON_SOURCES) \
 	$(PYTHON_BOOTSTRAP) \
 	$(gnt_python_sbin_SCRIPTS)
+
+clean-local:
+	rm -rf tools/shebang
 
 HS_GENERATED_FILES =
 if WANT_HTOOLS
@@ -1070,20 +1075,31 @@ python_scripts = \
 	tools/post-upgrade \
 	tools/sanitize-config
 
+python_scripts_shebang = \
+	$(patsubst tools/%,tools/shebang/%, $(python_scripts))
+
+tools/shebang/%: tools/%
+	mkdir -p tools/shebang
+	head -1 $< | sed 's|#!/usr/bin/python|#!$(PYTHON)|' > $@
+	echo '# Generated file; do not edit.' >> $@
+	tail -n +2 $< >> $@
+
 dist_tools_SCRIPTS = \
 	tools/kvm-console-wrapper \
 	tools/master-ip-setup \
 	tools/xen-console-wrapper
 
 dist_tools_python_SCRIPTS = \
-	$(python_scripts) \
 	tools/burnin
 
 nodist_tools_python_SCRIPTS = \
-	tools/node-cleanup
+	tools/node-cleanup \
+        $(python_scripts_shebang)
 
-tools_python_basenames = $(patsubst tools/%,%,\
-	$(dist_tools_python_SCRIPTS) $(nodist_tools_python_SCRIPTS))
+tools_python_basenames = \
+	$(patsubst shebang/%,%,\
+	$(patsubst tools/%,%,\
+	$(dist_tools_python_SCRIPTS) $(nodist_tools_python_SCRIPTS)))
 
 nodist_tools_SCRIPTS = \
 	tools/users-setup \
@@ -1148,6 +1164,7 @@ EXTRA_DIST = \
 	tools/vif-ganeti.in \
 	tools/net-common.in \
 	tools/vcluster-setup.in \
+        $(python_scripts) \
 	$(docinput) \
 	doc/html \
 	$(BUILT_EXAMPLES:%=%.in) \
