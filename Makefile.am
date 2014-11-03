@@ -739,6 +739,20 @@ DEP_SUFFIXES += -dep-suffix $(HPROF_SUFFIX)_ -dep-suffix $(HTEST_SUFFIX)_ \
 	-dep-suffix ""
 endif
 
+# Flags that are only for GHC invocations which are not doing profiling
+# compiles.
+# It must be used in all places where HFLAGS is used but not HPROFFLAGS,
+# independent of whether HPROFILE is on or off.
+HFLAGS_NOPROF =
+
+# GHC >= 7.8 needs -dynamic-too when using Template Haskell since its
+# ghci is switched to loading dynamic libraries by default.
+# But this flag must only be used in non-profiling GHC invocations,
+# so we put it in HFLAGS_NOPROF.
+if !GHC_LE_76
+HFLAGS_NOPROF += -dynamic-too
+endif
+
 if HPROFILE
 HPROFFLAGS = -prof -fprof-auto-top -osuf $(HPROF_SUFFIX)_o \
 	-hisuf $(HPROF_SUFFIX)_hi -rtsopts
@@ -753,6 +767,9 @@ endif
 HTEST_FLAGS = $(HFLAGS) -fhpc -itest/hs \
 	-osuf .$(HTEST_SUFFIX)_o \
 	-hisuf .$(HTEST_SUFFIX)_hi
+if !HPROFILE
+HTEST_FLAGS += $(HFLAGS_NOPROF)
+endif
 
 # extra flags that can be overriden on the command line (e.g. -Wwarn, etc.)
 HEXTRA =
@@ -1207,7 +1224,8 @@ HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
 endif
 Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile hs-pkg-versions \
               | $(built_base_sources) $(HS_BUILT_SRCS)
-	$(GHC) -M -dep-makefile $@ $(DEP_SUFFIXES) $(HFLAGS) -itest/hs \
+	$(GHC) -M -dep-makefile $@ $(DEP_SUFFIXES) $(HFLAGS) $(HFLAGS_NOPROF) \
+		-itest/hs \
 	  $(shell cat hs-pkg-versions) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
 # Since ghc -M does not generate dependency line for object files, dependencies
@@ -1226,7 +1244,7 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile hs-pkg-versions \
 
 %.o: hs-pkg-versions
 	@echo '[GHC]: $@ <- $^'
-	@$(GHC) -c $(HFLAGS) \
+	@$(GHC) -c $(HFLAGS) $(HFLAGS_NOPROF) \
 	  $(shell cat hs-pkg-versions) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
@@ -1255,11 +1273,14 @@ endif
 
 if HPROFILE
 $(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
+	@echo '[GHC-link]: $@'
+	$(GHC) $(HFLAGS) $(HPROFFLAGS) \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 else
 $(HS_SRC_PROGS): %: %.o hs-pkg-versions | stamp-directories
 endif
 	@echo '[GHC-link]: $@'
-	$(GHC) $(HFLAGS) \
+	$(GHC) $(HFLAGS) $(HFLAGS_NOPROF) \
 	  $(shell cat hs-pkg-versions) \
 		$(HPROFFLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
