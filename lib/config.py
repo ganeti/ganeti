@@ -2929,7 +2929,7 @@ class ConfigWriter(object):
       except Exception, err:
         logging.critical("Can't write the configuration: %s", str(err))
         raise
-    elif not self._offline:
+    elif not self._offline and not self._lock_current_shared:
       logging.debug("Unlocking configuration without writing")
       self._wconfd.UnlockConfig(self._GetWConfdContext())
 
