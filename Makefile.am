@@ -739,18 +739,15 @@ DEP_SUFFIXES += -dep-suffix $(HPROF_SUFFIX)_ -dep-suffix $(HTEST_SUFFIX)_ \
 	-dep-suffix ""
 endif
 
-# Flags that are only for GHC invocations which are not doing profiling
-# compiles.
-# It must be used in all places where HFLAGS is used but not HPROFFLAGS,
-# independent of whether HPROFILE is on or off.
-HFLAGS_NOPROF =
-
-# GHC >= 7.8 needs -dynamic-too when using Template Haskell since its
+# GHC > 7.6 needs -dynamic-too when using Template Haskell since its
 # ghci is switched to loading dynamic libraries by default.
-# But this flag must only be used in non-profiling GHC invocations,
-# so we put it in HFLAGS_NOPROF.
+# It must only be used in non-profiling GHC invocations.
+# We also don't use it in compilations that use HTEST_SUFFIX (which are
+# compiled with -fhpc) because HPC coverage doesn't interact well with
+# GHCI shared lib loading (https://ghc.haskell.org/trac/ghc/ticket/9762).
+HFLAGS_DYNAMIC =
 if !GHC_LE_76
-HFLAGS_NOPROF += -dynamic-too
+HFLAGS_DYNAMIC += -dynamic-too
 endif
 
 if HPROFILE
@@ -767,9 +764,6 @@ endif
 HTEST_FLAGS = $(HFLAGS) -fhpc -itest/hs \
 	-osuf $(HTEST_SUFFIX)_o \
 	-hisuf $(HTEST_SUFFIX)_hi
-if !HPROFILE
-HTEST_FLAGS += $(HFLAGS_NOPROF)
-endif
 
 # extra flags that can be overriden on the command line (e.g. -Wwarn, etc.)
 HEXTRA =
@@ -1224,7 +1218,7 @@ HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
 endif
 Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile hs-pkg-versions \
               | $(built_base_sources) $(HS_BUILT_SRCS)
-	$(GHC) -M -dep-makefile $@ $(DEP_SUFFIXES) $(HFLAGS) $(HFLAGS_NOPROF) \
+	$(GHC) -M -dep-makefile $@ $(DEP_SUFFIXES) $(HFLAGS) $(HFLAGS_DYNAMIC) \
 		-itest/hs \
 	  $(shell cat hs-pkg-versions) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
@@ -1241,6 +1235,17 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile hs-pkg-versions \
 	sed -i -r -e 's/([^ ]+)\.hi$$/\1.hi \1.o/' -e 's/([^ ]+)_hi$$/\1_hi \1_o/' $@
 
 @include_makefile_ghc@
+
+# Like the %.o rule, but allows access to the test/hs directory.
+# This uses HFLAGS instead of HTEST_FLAGS because it's only for generating
+# object files (.o for GHC <= 7.6, .o/.so for newer GHCs) that are loaded
+# in GHCI when evaluating TH. The actual test-with-coverage .hpc_o files
+# are created in the `%.$(HTEST_SUFFIX)_o` rule.
+test/hs/%.o: hs-pkg-versions
+	@echo '[GHC|test]: $@ <- $^'
+	@$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) -itest/hs \
+	  $(shell cat hs-pkg-versions) \
+		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
 %.o: hs-pkg-versions
 	@echo '[GHC]: $@ <- $^'
@@ -1261,7 +1266,11 @@ if HPROFILE
 		$(@:%.$(HPROF_SUFFIX)_o=%.hs)
 endif
 
-%.$(HTEST_SUFFIX)_o: hs-pkg-versions
+# We depend on the non-test .o file here because we need the corresponding .so
+# file for GHC > 7.6 ghci dynamic loading for TH, and creating the .o file
+# will create the .so file since we use -dynamic-too (using the `test/hs/%.o`
+# rule).
+%.$(HTEST_SUFFIX)_o: %.o hs-pkg-versions
 	@echo '[GHC|test]: $@ <- $^'
 	@$(GHC) -c $(HTEST_FLAGS) \
 	  $(shell cat hs-pkg-versions) \
@@ -1280,7 +1289,7 @@ else
 $(HS_SRC_PROGS): %: %.o hs-pkg-versions | stamp-directories
 endif
 	@echo '[GHC-link]: $@'
-	$(GHC) $(HFLAGS) $(HFLAGS_NOPROF) \
+	$(GHC) $(HFLAGS) $(HFLAGS_DYNAMIC) \
 	  $(shell cat hs-pkg-versions) \
 		$(HPROFFLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
