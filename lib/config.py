@@ -2825,7 +2825,7 @@ class ConfigWriter(object):
     runs inside the block should be very fast, preferably not using any IO.
     """
 
-    return ConfigManager(self, shared)
+    return ConfigManager(self, shared=shared)
 
   def _AddLockCount(self, count):
     self._lock_count += count
