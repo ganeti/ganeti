@@ -189,7 +189,11 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
   rcode = popen.returncode
   duration_seconds = TimedeltaToTotalSeconds(datetime.datetime.now() - start)
   if fail is not None:
-    _AssertRetCode(rcode, fail, cmdstr, nodename)
+    try:
+      _AssertRetCode(rcode, fail, cmdstr, nodename)
+    except:
+      print "Stdout was:\n%s\nStderr was:\n%s\n" % (stdout, stderr)
+      raise
 
   if max_seconds is not None:
     if duration_seconds > max_seconds:
