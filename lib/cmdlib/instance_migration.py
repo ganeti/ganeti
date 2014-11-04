@@ -46,8 +46,7 @@ from ganeti.cmdlib.instance_storage import CheckDiskConsistency, \
   ExpandCheckDisks, ShutdownInstanceDisks, AssembleInstanceDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   CheckTargetNodeIPolicy, ReleaseLocks, CheckNodeNotDrained, \
-  CopyLockList, CheckNodeFreeMemory, CheckInstanceBridgesExist, \
-  AnyDiskOfType
+  CopyLockList, CheckNodeFreeMemory, CheckInstanceBridgesExist
 
 import ganeti.masterd.instance
 
@@ -91,7 +90,7 @@ def _DeclareLocksForMigration(lu, level):
     # Node locks are already declared here rather than at LEVEL_NODE as we need
     # the instance object anyway to declare the node allocation lock.
     disks = lu.cfg.GetInstanceDisks(instance.uuid)
-    if AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
+    if utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
       if lu.op.target_node is None:
         lu.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
         lu.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
@@ -169,7 +168,7 @@ class LUInstanceFailover(LogicalUnit):
       }
 
     disks = self.cfg.GetInstanceDisks(instance.uuid)
-    if AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
+    if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
       secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
       env["OLD_SECONDARY"] = self.cfg.GetNodeName(secondary_nodes[0])
       env["NEW_SECONDARY"] = self.cfg.GetNodeName(source_node_uuid)
@@ -242,7 +241,7 @@ class LUInstanceMigrate(LogicalUnit):
       })
 
     disks = self.cfg.GetInstanceDisks(instance.uuid)
-    if AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
+    if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
       secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
       env["OLD_SECONDARY"] = self.cfg.GetNodeName(secondary_nodes[0])
       env["NEW_SECONDARY"] = self.cfg.GetNodeName(source_node_uuid)

@@ -48,7 +48,6 @@ from ganeti.cmdlib.common import MergeAndVerifyHvState, \
   CheckInstancesNodeGroups, LoadNodeEvacResult, MapInstanceLvsToNodes, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
   CheckDiskAccessModeConsistency, ConnectInstanceCommunicationNetworkOp
-from ganeti.cmdlib.instance_utils import AnyDiskOfType
 
 import ganeti.masterd.instance
 
@@ -317,7 +316,7 @@ class LUGroupAssignNodes(NoHooksLU):
 
     for inst in instance_data.values():
       inst_disks = self.cfg.GetInstanceDisks(inst.uuid)
-      if not AnyDiskOfType(inst_disks, constants.DTS_INT_MIRROR):
+      if not utils.AnyDiskOfType(inst_disks, constants.DTS_INT_MIRROR):
         continue
 
       inst_nodes = self.cfg.GetInstanceNodes(inst.uuid)
@@ -947,7 +946,7 @@ class LUGroupVerifyDisks(NoHooksLU):
     for inst in self.instances.values():
       disks = self.cfg.GetInstanceDisks(inst.uuid)
       if not (inst.disks_active and
-              AnyDiskOfType(disks, [constants.DT_DRBD8])):
+              utils.AnyDiskOfType(disks, [constants.DT_DRBD8])):
         continue
 
       secondary_nodes = self.cfg.GetInstanceSecondaryNodes(inst.uuid)

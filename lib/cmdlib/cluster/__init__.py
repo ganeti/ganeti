@@ -69,7 +69,6 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp, \
   CheckImageValidity, \
   CheckDiskAccessModeConsistency, CreateNewClientCert, EnsureKvmdOnNodes
-from ganeti.cmdlib.instance_utils import AnyDiskOfType, AllDiskOfType
 
 import ganeti.masterd.instance
 

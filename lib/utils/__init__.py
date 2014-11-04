@@ -884,3 +884,52 @@ def ValidateDeviceNames(kind, container):
                                    errors.ECODE_NOTUNIQUE)
       else:
         valid.append(name)
+
+
+def AllDiskOfType(disks_info, dev_types):
+  """Checks if the instance has only disks of any of the dev_types.
+
+  @type disks_info: list of L{Disk}
+  @param disks_info: all the disks of the instance.
+  @type dev_types: list of disk templates
+  @param dev_types: the disk type required.
+
+  @rtype: bool
+  @return: True iff the instance only has disks of type dev_type.
+  """
+
+  assert not isinstance(dev_types, str)
+
+  if not disks_info and constants.DT_DISKLESS not in dev_types:
+    return False
+
+  for disk in disks_info:
+    if disk.dev_type not in dev_types:
+      return False
+
+  return True
+
+
+def AnyDiskOfType(disks_info, dev_types):
+  """Checks if the instance has some disks of any types in dev_types.
+
+  @type disks_info: list of L{Disk}
+  @param disks_info: all the disks of the instance.
+  @type dev_types: list of disk template
+  @param dev_types: the disk type required.
+
+  @rtype: bool
+  @return: True if the instance has disks of type dev_types or the instance has
+    no disks and the dev_types allow DT_DISKLESS.
+  """
+
+  assert not isinstance(dev_types, str)
+
+  if not disks_info and constants.DT_DISKLESS in dev_types:
+    return True
+
+  for disk in disks_info:
+    if disk.dev_type in dev_types:
+      return True
+
+  return False

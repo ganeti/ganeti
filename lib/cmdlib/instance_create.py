@@ -74,8 +74,7 @@ from ganeti.cmdlib.instance_utils import \
   CheckHostnameSane, CheckOpportunisticLocking, \
   ComputeFullBeParams, ComputeNics, GetClusterDomainSecret, \
   CheckInstanceExistence, CreateInstanceAllocRequest, BuildInstanceHookEnv, \
-  NICListToTuple, CheckNicsBridgesExist, CheckCompressionTool, \
-  AnyDiskOfType
+  NICListToTuple, CheckNicsBridgesExist, CheckCompressionTool
 import ganeti.masterd.instance
 
 
@@ -1131,7 +1130,7 @@ class LUInstanceCreate(LogicalUnit):
 
         if os_image is None and not self.op.no_install:
           pause_sync = (not self.op.wait_for_sync and
-                        AnyDiskOfType(disks, constants.DTS_INT_MIRROR))
+                        utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR))
           if pause_sync:
             feedback_fn("* pausing disk sync to install instance OS")
             result = self.rpc.call_blockdev_pause_resume_sync(self.pnode.uuid,

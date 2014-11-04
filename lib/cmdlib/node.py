@@ -54,7 +54,6 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   FindFaultyInstanceDisks, CheckStorageTypeEnabled, CreateNewClientCert, \
   AddNodeCertToCandidateCerts, RemoveNodeCertFromCandidateCerts, \
   EnsureKvmdOnNodes
-from ganeti.cmdlib.instance_utils import AnyDiskOfType
 from ganeti.ssh import GetSshPortMap
 
 
@@ -542,7 +541,7 @@ class LUNodeSetParams(LogicalUnit):
 
     """
     disks = self.cfg.GetInstanceDisks(instance.disks)
-    any_mirrored = AnyDiskOfType(disks, constants.DTS_INT_MIRROR)
+    any_mirrored = utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR)
     return (any_mirrored and
             self.op.node_uuid in self.cfg.GetInstanceNodes(instance.uuid))
 

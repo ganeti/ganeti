@@ -52,8 +52,7 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, INSTANCE_NOT_RUNNING, \
   CheckDiskTemplateEnabled
 from ganeti.cmdlib.instance_utils import GetInstanceInfoText, \
   CopyLockList, ReleaseLocks, CheckNodeVmCapable, \
-  BuildInstanceHookEnvByObject, CheckNodeNotDrained, CheckTargetNodeIPolicy, \
-  AnyDiskOfType, AllDiskOfType
+  BuildInstanceHookEnvByObject, CheckNodeNotDrained, CheckTargetNodeIPolicy
 
 import ganeti.masterd.instance
 
@@ -918,9 +917,9 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                     len(self.op.node_uuids)),
                                    errors.ECODE_INVAL)
       disks = self.cfg.GetInstanceDisks(instance.uuid)
-      assert (not AnyDiskOfType(disks, [constants.DT_DRBD8]) or
+      assert (not utils.AnyDiskOfType(disks, [constants.DT_DRBD8]) or
               len(self.op.node_uuids) == 2)
-      assert (not AnyDiskOfType(disks, [constants.DT_PLAIN]) or
+      assert (not utils.AnyDiskOfType(disks, [constants.DT_PLAIN]) or
               len(self.op.node_uuids) == 1)
       primary_node = self.op.node_uuids[0]
     else:
@@ -2336,8 +2335,9 @@ class TLReplaceDisks(Tasklet):
         self.disks = range(len(self.instance.disks))
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
-    if not AllDiskOfType(
-        map(lambda i: disks[i], self.disks), [constants.DT_DRBD8]):
+    if (not self.disks or
+        not utils.AllDiskOfType(map(lambda i: disks[i], self.disks),
+                                [constants.DT_DRBD8])):
       raise errors.OpPrereqError("Can only run replace disks for DRBD8-based"
                                  " instances", errors.ECODE_INVAL)
 
