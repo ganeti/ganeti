@@ -704,10 +704,6 @@ class LUInstanceSetParams(LogicalUnit):
                                      " --no-wait-for-sync given.",
                                      errors.ECODE_INVAL)
 
-    if self.op.disks and not self.instance.disks:
-      raise errors.OpPrereqError("Disk operations not supported for"
-                                 " diskless instances", errors.ECODE_INVAL)
-
     def _PrepareDiskMod(_, disk, params, __):
       disk.name = params.get(constants.IDISK_NAME, None)
 
