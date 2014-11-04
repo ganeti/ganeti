@@ -57,6 +57,7 @@ module Ganeti.WConfd.Monad
   , forceConfigStateDistribution
   , readConfigState
   , modifyConfigDataErr_
+  , modifyConfigWithLock
   , modifyLockWaiting
   , modifyLockWaiting_
   , readLockWaiting
@@ -68,6 +69,8 @@ module Ganeti.WConfd.Monad
 
 import Control.Applicative
 import Control.Arrow ((&&&), second)
+import Control.Concurrent (forkIO, myThreadId)
+import Control.Exception.Lifted (bracket)
 import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error
@@ -79,6 +82,7 @@ import Data.IORef.Lifted
 import Data.Monoid (Any(..))
 import qualified Data.Set as S
 import Data.Tuple (swap)
+import System.Posix.Process (getProcessID)
 import System.Time (getClockTime, ClockTime)
 import qualified Text.JSON as J
 
@@ -86,14 +90,15 @@ import Ganeti.BasicTypes
 import Ganeti.Errors
 import Ganeti.JQueue (notifyJob)
 import Ganeti.Lens
-import Ganeti.Locking.Allocation (LockAllocation)
+import qualified Ganeti.Locking.Allocation as LA
 import Ganeti.Locking.Locks
-import Ganeti.Locking.Waiting (getAllocation)
+import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Logging
 import Ganeti.Logging.WriterLog
 import Ganeti.Objects (ConfigData)
 import Ganeti.Utils.AsyncWorker
 import Ganeti.Utils.IORef
+import Ganeti.Utils.Livelock (Livelock)
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.TempRes
 
@@ -118,6 +123,7 @@ data DaemonHandle = DaemonHandle
   , dhSaveConfigWorker :: AsyncWorker Any ()
   , dhSaveLocksWorker :: AsyncWorker () ()
   , dhSaveTempResWorker :: AsyncWorker () ()
+  , dhLivelock :: Livelock
   }
 
 mkDaemonHandle :: FilePath
@@ -140,10 +146,11 @@ mkDaemonHandle :: FilePath
                -> (IO TempResState -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the temporary reservations state.
+               -> Livelock
                -> ResultG DaemonHandle
 mkDaemonHandle cpath cstat lstat trstat
                saveWorkerFn distMCsWorkerFn distSSConfWorkerFn
-               saveLockWorkerFn saveTempResWorkerFn = do
+               saveLockWorkerFn saveTempResWorkerFn livelock = do
   ds <- newIORef $ DaemonState cstat lstat trstat
   let readConfigIO = dsConfigState `liftM` readIORef ds :: IO ConfigState
 
@@ -157,6 +164,7 @@ mkDaemonHandle cpath cstat lstat trstat
   saveTempResWorker <- saveTempResWorkerFn $ dsTempRes `liftM` readIORef ds
 
   return $ DaemonHandle ds cpath saveWorker saveLockWorker saveTempResWorker
+                        livelock
 
 -- * The monad and its instances
 
@@ -357,5 +365,46 @@ readLockWaiting = liftM dsLockWaiting
 
 
 -- | Read the underlying lock allocation.
-readLockAllocation :: WConfdMonad (LockAllocation GanetiLocks ClientId)
-readLockAllocation = liftM getAllocation readLockWaiting
+readLockAllocation :: WConfdMonad (LA.LockAllocation GanetiLocks ClientId)
+readLockAllocation = liftM LW.getAllocation readLockWaiting
+
+-- | Modify the configuration while temporarily acquiring
+-- the configuration lock. If the configuration lock is held by
+-- someone else, nothing is changed and Nothing is returned.
+modifyConfigWithLock :: (ConfigState -> ConfigState) -> WConfdMonad (Maybe ())
+modifyConfigWithLock f = do
+  now <- liftIO getClockTime
+  dh <- lift . WConfdMonadInt $ ask
+  pid <- liftIO getProcessID
+  tid <- liftIO myThreadId
+  let cid = ClientId { ciIdentifier = ClientOther $ "wconfd-" ++ show tid
+                     , ciLockFile = dhLivelock dh
+                     , ciPid = pid
+                     }
+  maybeDist <- bracket
+    (atomicModifyWithLens (dhDaemonState dh) dsLockWaitingL
+      $ swap . LW.updateLocks cid [LA.requestExclusive ConfigLock])
+    (\(res, _) -> case res of
+        Ok s | S.null s -> do
+          (_, nfy) <- atomicModifyWithLens (dhDaemonState dh) dsLockWaitingL
+                      $ swap . LW.updateLocks cid [LA.requestRelease ConfigLock]
+          unless (S.null nfy) . liftIO . void . forkIO $ do
+            logDebug . (++) "Locks became available for " . show $ S.toList nfy
+            mapM_ (notifyJob . ciPid) $ S.toList nfy
+            logDebug "Finished notifying processes"
+        _ -> return ())
+    (\(res, _) -> case res of
+        Ok s | S.null s ->do
+          ((), modif, dist) <- atomicModifyWithLens (dhDaemonState dh)
+                                 dsConfigStateL
+                                 (\cs -> unpackConfigResult now cs . (,) ()
+                                          $ f cs)
+          return $ Just (modif, dist)
+        _ -> return Nothing)
+  flip (maybe $ return Nothing) maybeDist $ \(modified, dist) -> do
+    when modified $ do
+      logDebug . (++) "Triggering config write; distribution "
+        $ if dist then "synchronously" else "asynchronously"
+      liftBase . triggerAndWait (Any dist) $ dhSaveConfigWorker dh
+      logDebug "Config write finished"
+    return $ Just ()
