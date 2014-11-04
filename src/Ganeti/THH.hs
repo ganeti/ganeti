@@ -402,7 +402,7 @@ appCons cname = foldl AppE (ConE cname)
 appConsApp :: Name -> [Exp] -> Exp
 appConsApp cname =
   foldl (\accu e -> InfixE (Just accu) (VarE '(<*>)) (Just e))
-          (AppE (VarE 'pure) (ConE cname))
+        (AppE (VarE 'pure) (ConE cname))
 
 -- | Builds a field for a normal constructor.
 buildConsField :: Q Type -> StrictTypeQ
