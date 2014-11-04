@@ -2557,7 +2557,7 @@ def AcceptInstance(instance, info, target):
 
   """
   # TODO: why is this required only for DTS_EXT_MIRROR?
-  if instance.disk_template in constants.DTS_EXT_MIRROR:
+  if utils.AnyDiskOfType(instance.disk_info, constants.DTS_EXT_MIRROR):
     # Create the symlinks, as the disks are not active
     # in any way
     try:
@@ -2569,7 +2569,7 @@ def AcceptInstance(instance, info, target):
   try:
     hyper.AcceptInstance(instance, info, target)
   except errors.HypervisorError, err:
-    if instance.disk_template in constants.DTS_EXT_MIRROR:
+    if utils.AnyDiskOfType(instance.disk_info, constants.DTS_EXT_MIRROR):
       _RemoveBlockDevLinks(instance.name, instance.disks_info)
     _Fail("Failed to accept instance: %s", err, exc=True)
 
