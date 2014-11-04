@@ -1574,8 +1574,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _ExecuteKVMRuntime(self, instance, kvm_runtime, kvmhelp, incoming=None):
     """Execute a KVM cmd, after completing it with some last minute data.
 
+    @type instance: L{objects.Instance} object
+    @param instance: the VM this command acts upon
+    @type kvm_runtime: tuple of (list of str, list of L{objects.NIC} objects,
+        dict of hypervisor options, list of tuples (L{objects.Disk}, str, str)
+    @param kvm_runtime: (kvm command, NICs of the instance, options at startup
+        of the instance, [(disk, link_name, uri)..])
     @type incoming: tuple of strings
-    @param incoming: (target_host_ip, port)
+    @param incoming: (target_host_ip, port) for migration.
     @type kvmhelp: string
     @param kvmhelp: output of kvm --help
 
