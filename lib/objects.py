@@ -452,19 +452,18 @@ class ConfigData(ConfigObject):
     obj.filters = outils.ContainerFromDicts(obj.filters, dict, Filter)
     return obj
 
-  def HasAnyDiskOfType(self, dev_type):
+  def DisksOfType(self, dev_type):
     """Check if in there is at disk of the given type in the configuration.
 
     @type dev_type: L{constants.DTS_BLOCK}
     @param dev_type: the type to look for
-    @rtype: boolean
-    @return: boolean indicating if a disk of the given type was found or not
+    @rtype: list of disks
+    @return: all disks of the dev_type
 
     """
-    for disk in self.disks.values():
-      if disk.IsBasedOnDiskType(dev_type):
-        return True
-    return False
+
+    return [disk for disk in self.disks.values()
+            if disk.IsBasedOnDiskType(dev_type)]
 
   def UpgradeConfig(self):
     """Fill defaults for missing configuration values.

@@ -971,7 +971,7 @@ class LUClusterSetParams(LogicalUnit):
                                    errors.ECODE_INVAL)
 
     if self.op.vg_name is not None and not self.op.vg_name:
-      if self.cfg.HasAnyDiskOfType(constants.DT_PLAIN):
+      if self.cfg.DisksOfType(constants.DT_PLAIN):
         raise errors.OpPrereqError("Cannot disable lvm storage while lvm-based"
                                    " instances exist", errors.ECODE_INVAL)
 
@@ -1122,7 +1122,7 @@ class LUClusterSetParams(LogicalUnit):
       if drbd_enabled:
         raise errors.OpPrereqError("Cannot disable drbd helper while"
                                    " DRBD is enabled.", errors.ECODE_STATE)
-      if self.cfg.HasAnyDiskOfType(constants.DT_DRBD8):
+      if self.cfg.DisksOfType(constants.DT_DRBD8):
         raise errors.OpPrereqError("Cannot disable drbd helper while"
                                    " drbd-based instances exist",
                                    errors.ECODE_INVAL)
@@ -1150,10 +1150,20 @@ class LUClusterSetParams(LogicalUnit):
 
     """
     for disk_template in disabled_disk_templates:
-      if self.cfg.HasAnyDiskOfType(disk_template):
+      disks_with_type = self.cfg.DisksOfType(disk_template)
+      if disks_with_type:
+        disk_desc = []
+        for disk in disks_with_type:
+          instance_uuid = self.cfg.GetInstanceForDisk(disk.uuid)
+          instance = self.cfg.GetInstanceInfo(instance_uuid)
+          if instance:
+            instance_desc = "on " + instance.name
+          else:
+            instance_desc = "detached"
+          disk_desc.append("%s (%s)" % (disk, instance_desc))
         raise errors.OpPrereqError(
             "Cannot disable disk template '%s', because there is at least one"
-            " instance using it." % disk_template,
+            " disk using it:\n * %s" % (disk_template, "\n * ".join(disk_desc)),
             errors.ECODE_STATE)
 
   @staticmethod

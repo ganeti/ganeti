@@ -3102,11 +3102,11 @@ class ConfigWriter(object):
     return self._ConfigData().cluster
 
   @ConfigSync(shared=1)
-  def HasAnyDiskOfType(self, dev_type):
+  def DisksOfType(self, dev_type):
     """Check if in there is at disk of the given type in the configuration.
 
     """
-    return self._ConfigData().HasAnyDiskOfType(dev_type)
+    return self._ConfigData().DisksOfType(dev_type)
 
   @ConfigSync(shared=1)
   def GetDetachedConfig(self):
@@ -3453,6 +3453,37 @@ class ConfigWriter(object):
     """
     if not self._offline:
       self._wconfd.FlushConfig()
+
+  @ConfigSync(shared=1)
+  def GetAllDiskInfo(self):
+    """Get the configuration of all disks.
+
+    @rtype: dict
+    @return: dict of (disk, disk_info), where disk_info is what
+              would GetDiskInfo return for disk
+    """
+    return self._UnlockedGetAllDiskInfo()
+
+  def _UnlockedGetAllDiskInfo(self):
+    return dict((disk_uuid, self._UnlockedGetDiskInfo(disk_uuid))
+                for disk_uuid in self._UnlockedGetDiskList())
+
+  def _UnlockedGetDiskList(self):
+    return self._ConfigData().disks.keys()
+
+  @ConfigSync(shared=1)
+  def GetInstanceForDisk(self, disk_uuid):
+    """Returns the instance the disk is currently attached to.
+
+    @type disk_uuid: string
+    @param disk_uuid: the identifier of the disk in question.
+
+    @rtype: string
+    @return: uuid of instance the disk is attached to.
+    """
+    for inst_uuid, inst_info in self._UnlockedGetAllInstancesInfo().items():
+      if disk_uuid in inst_info.disks:
+        return inst_uuid
 
 
 class DetachedConfig(ConfigWriter):
