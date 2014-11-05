@@ -244,7 +244,7 @@ class TestQmp(testutils.GanetiTestCase):
 
 
 class TestConsole(unittest.TestCase):
-  def _Test(self, instance, node, group, hvparams):
+  def MakeConsole(self, instance, node, group, hvparams):
     cons = hv_kvm.KVMHypervisor.GetInstanceConsole(instance, node, group,
                                                    hvparams, {})
     self.assertEqual(cons.Validate(), None)
@@ -261,7 +261,7 @@ class TestConsole(unittest.TestCase):
       constants.HV_VNC_BIND_ADDRESS: None,
       constants.HV_KVM_SPICE_BIND: None,
       }
-    cons = self._Test(instance, node, group, hvparams)
+    cons = self.MakeConsole(instance, node, group, hvparams)
     self.assertEqual(cons.kind, constants.CONS_SSH)
     self.assertEqual(cons.host, node.name)
     self.assertEqual(cons.command[0], pathutils.KVM_CONSOLE_WRAPPER)
@@ -279,7 +279,7 @@ class TestConsole(unittest.TestCase):
       constants.HV_VNC_BIND_ADDRESS: "192.0.2.1",
       constants.HV_KVM_SPICE_BIND: None,
       }
-    cons = self._Test(instance, node, group, hvparams)
+    cons = self.MakeConsole(instance, node, group, hvparams)
     self.assertEqual(cons.kind, constants.CONS_VNC)
     self.assertEqual(cons.host, "192.0.2.1")
     self.assertEqual(cons.port, constants.VNC_BASE_PORT + 10)
@@ -297,7 +297,7 @@ class TestConsole(unittest.TestCase):
       constants.HV_VNC_BIND_ADDRESS: None,
       constants.HV_KVM_SPICE_BIND: "192.0.2.1",
       }
-    cons = self._Test(instance, node, group, hvparams)
+    cons = self.MakeConsole(instance, node, group, hvparams)
     self.assertEqual(cons.kind, constants.CONS_SPICE)
     self.assertEqual(cons.host, "192.0.2.1")
     self.assertEqual(cons.port, 11000)
@@ -314,7 +314,7 @@ class TestConsole(unittest.TestCase):
       constants.HV_VNC_BIND_ADDRESS: None,
       constants.HV_KVM_SPICE_BIND: None,
       }
-    cons = self._Test(instance, node, group, hvparams)
+    cons = self.MakeConsole(instance, node, group, hvparams)
     self.assertEqual(cons.kind, constants.CONS_MESSAGE)
 
 
