@@ -319,73 +319,89 @@ class TestConsole(unittest.TestCase):
 
 
 class TestVersionChecking(testutils.GanetiTestCase):
-  def testParseVersion(self):
-    parse = hv_kvm.KVMHypervisor._ParseKVMVersion
-    help_112 = testutils.ReadTestData("kvm_1.1.2_help.txt")
-    help_10 = testutils.ReadTestData("kvm_1.0_help.txt")
-    help_01590 = testutils.ReadTestData("kvm_0.15.90_help.txt")
-    help_0125 = testutils.ReadTestData("kvm_0.12.5_help.txt")
-    help_091 = testutils.ReadTestData("kvm_0.9.1_help.txt")
-    self.assertEqual(parse(help_112), ("1.1.2", 1, 1, 2))
-    self.assertEqual(parse(help_10), ("1.0", 1, 0, 0))
-    self.assertEqual(parse(help_01590), ("0.15.90", 0, 15, 90))
-    self.assertEqual(parse(help_0125), ("0.12.5", 0, 12, 5))
-    self.assertEqual(parse(help_091), ("0.9.1", 0, 9, 1))
+  @staticmethod
+  def ParseTestData(name):
+    help = testutils.ReadTestData(name)
+    return hv_kvm.KVMHypervisor._ParseKVMVersion(help)
+
+  def testParseVersion112(self):
+    self.assertEqual(
+        self.ParseTestData("kvm_1.1.2_help.txt"), ("1.1.2", 1, 1, 2))
+
+  def testParseVersion10(self):
+    self.assertEqual(self.ParseTestData("kvm_1.0_help.txt"), ("1.0", 1, 0, 0))
+
+  def testParseVersion01590(self):
+    self.assertEqual(
+        self.ParseTestData("kvm_0.15.90_help.txt"), ("0.15.90", 0, 15, 90))
+
+  def testParseVersion0125(self):
+    self.assertEqual(
+        self.ParseTestData("kvm_0.12.5_help.txt"), ("0.12.5", 0, 12, 5))
+
+  def testParseVersion091(self):
+    self.assertEqual(
+        self.ParseTestData("kvm_0.9.1_help.txt"), ("0.9.1", 0, 9, 1))
 
 
 class TestSpiceParameterList(unittest.TestCase):
-  def test(self):
-    defaults = constants.HVC_DEFAULTS[constants.HT_KVM]
+  def setUp(self):
+    self.defaults = constants.HVC_DEFAULTS[constants.HT_KVM]
 
-    params = \
-      compat.UniqueFrozenset(getattr(constants, name)
-                             for name in dir(constants)
-                             if name.startswith("HV_KVM_SPICE_"))
+  def testAudioCompressionDefaultOn(self):
+    self.assertTrue(self.defaults[constants.HV_KVM_SPICE_AUDIO_COMPR])
 
-    # Parameters whose default value evaluates to True and don't need to be set
-    defaults_true = frozenset(filter(defaults.__getitem__, params))
+  def testVdAgentDefaultOn(self):
+    self.assertTrue(self.defaults[constants.HV_KVM_SPICE_USE_VDAGENT])
 
-    self.assertEqual(defaults_true, frozenset([
-      constants.HV_KVM_SPICE_AUDIO_COMPR,
-      constants.HV_KVM_SPICE_USE_VDAGENT,
-      constants.HV_KVM_SPICE_TLS_CIPHERS,
-      ]))
+  def testTlsCiphersDefaultOn(self):
+    self.assertTrue(self.defaults[constants.HV_KVM_SPICE_TLS_CIPHERS])
 
-    # HV_KVM_SPICE_BIND decides whether the other parameters must be set if
-    # their default evaluates to False
-    assert constants.HV_KVM_SPICE_BIND in params
-    assert constants.HV_KVM_SPICE_BIND not in defaults_true
+  def testBindDefaultOff(self):
+    self.assertFalse(self.defaults[constants.HV_KVM_SPICE_BIND])
 
-    # Exclude some parameters
-    params -= defaults_true | frozenset([
-      constants.HV_KVM_SPICE_BIND,
-      ])
-
-    self.assertEqual(hv_kvm._SPICE_ADDITIONAL_PARAMS, params)
+  def testAdditionalParams(self):
+    params = compat.UniqueFrozenset(
+        getattr(constants, name)
+        for name in dir(constants)
+        if name.startswith("HV_KVM_SPICE_"))
+    fixed = set([
+        constants.HV_KVM_SPICE_BIND, constants.HV_KVM_SPICE_TLS_CIPHERS,
+        constants.HV_KVM_SPICE_USE_VDAGENT, constants.HV_KVM_SPICE_AUDIO_COMPR])
+    self.assertEqual(hv_kvm._SPICE_ADDITIONAL_PARAMS, params - fixed)
 
 
 class TestHelpRegexps(testutils.GanetiTestCase):
-  def testBootRe(self):
-    """Check _BOOT_RE
+  """Check _BOOT_RE
 
-    It has too match -drive.*boot=on|off except if there is another dash-option
-    at the beginning of the line.
+  It has to match -drive.*boot=on|off except if there is another dash-option
+  at the beginning of the line.
 
-    """
+  """
+
+  @staticmethod
+  def SearchTestData(name):
     boot_re = hv_kvm.KVMHypervisor._BOOT_RE
-    help_112 = testutils.ReadTestData("kvm_1.1.2_help.txt")
-    help_10 = testutils.ReadTestData("kvm_1.0_help.txt")
-    help_01590 = testutils.ReadTestData("kvm_0.15.90_help.txt")
-    help_0125 = testutils.ReadTestData("kvm_0.12.5_help.txt")
-    help_091 = testutils.ReadTestData("kvm_0.9.1_help.txt")
-    help_091_fake = testutils.ReadTestData("kvm_0.9.1_help_boot_test.txt")
+    help = testutils.ReadTestData(name)
+    return boot_re.search(help)
 
-    self.assertTrue(boot_re.search(help_091))
-    self.assertTrue(boot_re.search(help_0125))
-    self.assertFalse(boot_re.search(help_091_fake))
-    self.assertFalse(boot_re.search(help_112))
-    self.assertFalse(boot_re.search(help_10))
-    self.assertFalse(boot_re.search(help_01590))
+  def testBootRe112(self):
+    self.assertFalse(self.SearchTestData("kvm_1.1.2_help.txt"))
+
+  def testBootRe10(self):
+    self.assertFalse(self.SearchTestData("kvm_1.0_help.txt"))
+
+  def testBootRe01590(self):
+    self.assertFalse(self.SearchTestData("kvm_0.15.90_help.txt"))
+
+  def testBootRe0125(self):
+    self.assertTrue(self.SearchTestData("kvm_0.12.5_help.txt"))
+
+  def testBootRe091(self):
+    self.assertTrue(self.SearchTestData("kvm_0.9.1_help.txt"))
+
+  def testBootRe091_fake(self):
+    self.assertFalse(self.SearchTestData("kvm_0.9.1_help_boot_test.txt"))
 
 
 class TestGetTunFeatures(unittest.TestCase):
