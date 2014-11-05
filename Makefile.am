@@ -1627,6 +1627,7 @@ TEST_FILES = \
 	test/data/htools/hsqueeze-overutilized.data \
 	test/data/htools/hsqueeze-underutilized.data \
 	test/data/htools/unique-reboot-order.data \
+	test/data/mond-data.txt \
 	test/hs/shelltests/htools-balancing.test \
 	test/hs/shelltests/htools-basic.test \
 	test/hs/shelltests/htools-dynutil.test \

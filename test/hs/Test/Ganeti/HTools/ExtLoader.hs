@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-| Unittests for the MonD data parse function -}
 
 {-
@@ -30,9 +32,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -}
 
-module Test.Ganeti.HTools.ExtLoader where
-
-import Data.Ratio
+module Test.Ganeti.HTools.ExtLoader
+  ( testHTools_ExtLoader
+  ) where
 
 import qualified Test.HUnit as HUnit
 import qualified Text.JSON as J
@@ -45,6 +47,7 @@ import Ganeti.DataCollectors.Types (DCReport(..))
 import Ganeti.HTools.ExtLoader
 import Ganeti.JSON
 import Test.Ganeti.TestCommon
+import Test.Ganeti.TestHelper
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -119,3 +122,7 @@ compareCPUavgload a b =
      && relError (cavCpuTotal a) (cavCpuTotal b)
      && length (cavCpus a) == length (cavCpus b)
      && and (zipWith relError (cavCpus a) (cavCpus b))
+
+testSuite "HTools/ExtLoader"
+          [ 'case_parseMonDData
+          ]
