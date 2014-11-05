@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, OverloadedStrings #-}
 {-| Web server for the metadata daemon.
 
 -}
@@ -73,10 +73,11 @@ lookupInstanceParams inst params =
     Nothing -> throwError $ "Could not get instance params for " ++ show inst
     Just x -> return x
 
+-- | The 404 "not found" error.
 error404 :: MetaM
 error404 = do
-  modifyResponse . setResponseStatus 404 $ ByteString.pack "Not found"
-  writeBS $ ByteString.pack "Resource not found"
+  modifyResponse $ setResponseStatus 404 "Not found"
+  writeBS "Resource not found"
 
 maybeResult :: MonadError String m => Result t -> (t -> m a) -> m a
 maybeResult (Error err) _ = throwError err
