@@ -40,6 +40,8 @@ import Control.Concurrent (MVar, readMVar)
 import Control.Monad.Error.Class (MonadError, catchError, throwError)
 import Control.Monad.IO.Class (liftIO)
 import qualified Control.Monad.CatchIO as CatchIO (catch)
+import qualified Data.CaseInsensitive as CI
+import Data.List (intercalate)
 import Data.Map (Map)
 import qualified Data.Map as Map
 import qualified Data.ByteString.Char8 as ByteString (pack, unpack)
@@ -78,6 +80,12 @@ error404 :: MetaM
 error404 = do
   modifyResponse $ setResponseStatus 404 "Not found"
   writeBS "Resource not found"
+
+-- | The 405 "method not allowed error", including the list of allowed methods.
+error405 :: [Method] -> MetaM
+error405 ms = modifyResponse $
+  addHeader (CI.mk "Allow") (ByteString.pack . intercalate ", " $ map show ms)
+  . setResponseStatus 405 "Method not allowed"
 
 maybeResult :: MonadError String m => Result t -> (t -> m a) -> m a
 maybeResult (Error err) _ = throwError err
@@ -174,8 +182,12 @@ handleMetadata params GET  "ganeti" "latest" script | isScript script =
                   ])
 handleMetadata _ GET  "ganeti" "latest" "read" =
   liftIO $ Logging.logInfo "ganeti READ"
+handleMetadata _ _  "ganeti" "latest" "read" =
+  error405 [GET]
 handleMetadata _ POST "ganeti" "latest" "write" =
   liftIO $ Logging.logInfo "ganeti WRITE"
+handleMetadata _ _ "ganeti" "latest" "write" =
+  error405 [POST]
 handleMetadata _ _ _ _ _ =
   error404
 
