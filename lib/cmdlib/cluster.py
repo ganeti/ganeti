@@ -69,6 +69,7 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp, \
   CheckImageValidity, \
   CheckDiskAccessModeConsistency, CreateNewClientCert, EnsureKvmdOnNodes
+from ganeti.cmdlib.instance_utils import AnyDiskOfType, AllDiskOfType
 
 import ganeti.masterd.instance
 
@@ -2139,7 +2140,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         # Important: access only the instances whose lock is owned
         instance = self.cfg.GetInstanceInfoByName(inst_name)
         disks = self.cfg.GetInstanceDisks(instance.uuid)
-        if any(d.dev_type in constants.DTS_INT_MIRROR for d in disks):
+        if AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
           nodes.update(self.cfg.GetInstanceSecondaryNodes(instance.uuid))
 
       self.needed_locks[locking.LEVEL_NODE] = nodes
@@ -2189,7 +2190,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     for inst in self.my_inst_info.values():
       disks = self.cfg.GetInstanceDisks(inst.uuid)
-      if any(d.dev_type in constants.DTS_INT_MIRROR for d in disks):
+      if AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
         inst_nodes = self.cfg.GetInstanceNodes(inst.uuid)
         for nuuid in inst_nodes:
           if self.all_node_info[nuuid].group != self.group_uuid:
@@ -2550,7 +2551,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     es_flags = rpc.GetExclusiveStorageForNodes(self.cfg, inst_nodes)
     disks = self.cfg.GetInstanceDisks(instance.uuid)
     if any(es_flags.values()):
-      if any(d.dev_type not in constants.DTS_EXCL_STORAGE for d in disks):
+      if not AllDiskOfType(disks, constants.DTS_EXCL_STORAGE):
         # Disk template not compatible with exclusive_storage: no instance
         # node should have the flag set
         es_nodes = [n
@@ -2570,7 +2571,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       " exclusive storage is enabled, try running"
                       " gnt-cluster repair-disk-sizes", idx)
 
-    if any(d.dev_type in constants.DTS_INT_MIRROR for d in disks):
+    if AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
       instance_nodes = utils.NiceSort(inst_nodes)
       instance_groups = {}
 
@@ -3813,7 +3814,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # If the instance is not fully redundant we cannot survive losing its
       # primary node, so we are not N+1 compliant.
       inst_disks = self.cfg.GetInstanceDisks(instance.uuid)
-      if any(d.dev_type not in constants.DTS_MIRRORED for d in inst_disks):
+      if not AllDiskOfType(inst_disks, constants.DTS_MIRRORED):
         i_non_redundant.append(instance)
 
       if not cluster.FillBE(instance)[constants.BE_AUTO_BALANCE]:

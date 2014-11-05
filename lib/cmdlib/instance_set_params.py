@@ -66,7 +66,7 @@ from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
   UpdateMetadata, CheckForConflictingIp, \
   PrepareContainerMods, ComputeInstanceCommunicationNIC, \
   ApplyContainerMods, ComputeIPolicyInstanceSpecViolation, \
-  CheckNodesPhysicalCPUs
+  CheckNodesPhysicalCPUs, AllDiskOfType, AnyDiskOfType
 import ganeti.masterd.instance
 
 
@@ -522,8 +522,7 @@ class LUInstanceSetParams(LogicalUnit):
     pnode_uuid = self.instance.primary_node
 
     inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
-    if not inst_disks or any(d.dev_type in constants.DTS_NOT_CONVERTIBLE_FROM
-                             for d in inst_disks):
+    if AnyDiskOfType(inst_disks, constants.DTS_NOT_CONVERTIBLE_FROM):
       raise errors.OpPrereqError("Conversion from the '%s' disk template is"
                                  " not supported" % self.instance.disk_template,
                                  errors.ECODE_INVAL)
@@ -534,7 +533,7 @@ class LUInstanceSetParams(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     if (self.op.disk_template != constants.DT_EXT and
-        all(d.dev_type == self.op.disk_template for d in inst_disks)):
+        AllDiskOfType(inst_disks, [self.op.disk_template])):
       raise errors.OpPrereqError("Instance already has disk template %s" %
                                  self.instance.disk_template,
                                  errors.ECODE_INVAL)
@@ -609,12 +608,12 @@ class LUInstanceSetParams(LogicalUnit):
     # TODO remove setting the disk template after DiskSetParams exists.
     # node capacity checks
     if (self.op.disk_template == constants.DT_PLAIN and
-        all(d.dev_type == constants.DT_DRBD8 for d in inst_disks)):
+        AllDiskOfType(inst_disks, [constants.DT_DRBD8])):
       # we ensure that no capacity checks will be made for conversions from
       # the 'drbd' to the 'plain' disk template
       pass
     elif (self.op.disk_template == constants.DT_DRBD8 and
-          all(d.dev_type == constants.DT_PLAIN for d in inst_disks)):
+          AllDiskOfType(inst_disks, [constants.DT_PLAIN])):
       # for conversions from the 'plain' to the 'drbd' disk template, check
       # only the remote node's capacity
       req_sizes = ComputeDiskSizePerVG(self.op.disk_template, self.disks_info)
