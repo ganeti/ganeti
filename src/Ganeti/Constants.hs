@@ -4250,6 +4250,10 @@ wconfdDefCtmo = 10
 wconfdDefRwto :: Int
 wconfdDefRwto = 60
 
+-- | The prefix of the WConfD livelock file name.
+wconfLivelockPrefix :: String
+wconfLivelockPrefix = "wconf-daemon"
+
 -- * Confd
 
 confdProtocolVersion :: Int
