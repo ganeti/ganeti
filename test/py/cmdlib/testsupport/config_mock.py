@@ -813,3 +813,14 @@ class ConfigMock(config.ConfigWriter):
     """
     if net_uuid:
       return self._UnlockedReserveIp(net_uuid, address, ec_id, check)
+
+  def AddInstance(self, instance, ec_id):
+    """Add an instance to the config.
+
+    """
+    instance.serial_no = 1
+    instance.ctime = instance.mtime = time.time()
+    self._ConfigData().instances[instance.uuid] = instance
+    self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
+    self._UnlockedReleaseDRBDMinors(instance.uuid)
+    self._UnlockedCommitTemporaryIps(ec_id)

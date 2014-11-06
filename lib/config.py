@@ -1833,8 +1833,7 @@ class ConfigWriter(object):
     """
     return [(uuid, self._UnlockedGetNodeGroup(uuid)) for uuid in group_uuids]
 
-  @_ConfigSync()
-  def AddInstance(self, instance, ec_id):
+  def AddInstance(self, instance, _ec_id):
     """Add an instance to the config.
 
     This should be used after creating a new instance.
@@ -1857,12 +1856,10 @@ class ConfigWriter(object):
 
     instance.serial_no = 1
     instance.ctime = instance.mtime = time.time()
-    self._ConfigData().instances[instance.uuid] = instance
-    self._ConfigData().cluster.serial_no += 1
-    self._UnlockedReleaseDRBDMinors(instance.uuid)
-    # FIXME: After RemoveInstance is moved to WConfd, use its internal
-    # function from TempRes module instead.
-    self._UnlockedCommitTemporaryIps(ec_id)
+
+    utils.SimpleRetry(True, self._wconfd.AddInstance, 0.1, 30,
+                      args=[instance.ToDict(), self._GetWConfdContext()])
+    self.OutDate()
 
   def _EnsureUUID(self, item, ec_id):
     """Ensures a given object has a valid UUID.
