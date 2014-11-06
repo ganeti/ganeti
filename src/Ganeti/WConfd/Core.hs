@@ -2,9 +2,10 @@
 
 {-| The Ganeti WConfd core functions.
 
-As TemplateHaskell require that splices be defined in a separate
-module, we combine all the TemplateHaskell functionality that HTools
-needs in this module (except the one for unittests).
+This module defines all the functions that WConfD exports for
+RPC calls. They are in a separate module so that in a later
+stage, TemplateHaskell can generate, e.g., the python interface
+for those.
 
 -}
 
