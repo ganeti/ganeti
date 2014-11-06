@@ -123,6 +123,7 @@
 /tools/users-setup
 /tools/vcluster-setup
 /tools/vif-ganeti
+/tools/vif-ganeti-metad
 /tools/net-common
 /tools/node-cleanup
 /tools/node-daemon-setup
