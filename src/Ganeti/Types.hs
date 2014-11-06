@@ -874,14 +874,16 @@ $(THH.makeJSONInstance ''DiskAccessMode)
 -- Python code depends on:
 --   DiskStatusOk < DiskStatusUnknown < DiskStatusFaulty
 $(THH.declareILADT "LocalDiskStatus"
-  [ ("DiskStatusFaulty",  3)
-  , ("DiskStatusOk",      1)
-  , ("DiskStatusUnknown", 2)
+  [ ("DiskStatusOk",      1)
+  , ("DiskStatusSync",    2)
+  , ("DiskStatusUnknown", 3)
+  , ("DiskStatusFaulty",  4)
   ])
 
 localDiskStatusName :: LocalDiskStatus -> String
 localDiskStatusName DiskStatusFaulty = "faulty"
 localDiskStatusName DiskStatusOk = "ok"
+localDiskStatusName DiskStatusSync = "syncing"
 localDiskStatusName DiskStatusUnknown = "unknown"
 
 -- | Replace disks type.

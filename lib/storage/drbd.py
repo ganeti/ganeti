@@ -653,6 +653,8 @@ class DRBD8Dev(base.BlockDev):
       ldisk_status = constants.LDS_OKAY
     elif stats.is_diskless:
       ldisk_status = constants.LDS_FAULTY
+    elif stats.is_in_resync:
+      ldisk_status = constants.LDS_SYNC
     else:
       ldisk_status = constants.LDS_UNKNOWN
 

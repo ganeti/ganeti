@@ -862,6 +862,9 @@ ldsOkay = Types.localDiskStatusToRaw DiskStatusOk
 ldsUnknown :: Int
 ldsUnknown = Types.localDiskStatusToRaw DiskStatusUnknown
 
+ldsSync :: Int
+ldsSync = Types.localDiskStatusToRaw DiskStatusSync
+
 ldsNames :: Map Int String
 ldsNames =
   Map.fromList [ (Types.localDiskStatusToRaw ds,

@@ -1670,6 +1670,7 @@ class TestLUClusterVerifyGroupVerifyInstance(TestLUClusterVerifyGroupMethods):
 
   @withLockedLU
   def testNotOkayDiskStatus(self, lu):
+    self.diskstatus[self.master_uuid][0][1].is_degraded = True
     self.diskstatus[self.master_uuid][0][1].ldisk_status = constants.LDS_FAULTY
     lu._VerifyInstance(self.running_inst, self.node_imgs, self.diskstatus)
     self.mcpu.assertLogContainsRegex("instance .* state is 'faulty'")
