@@ -11,7 +11,7 @@ for those.
 
 {-
 
-Copyright (C) 2013 Google Inc.
+Copyright (C) 2013, 2014 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,7 @@ import Ganeti.WConfd.DeathDetection (cleanupLocks)
 import Ganeti.WConfd.Language
 import Ganeti.WConfd.Monad
 import qualified Ganeti.WConfd.TempRes as T
+import qualified Ganeti.WConfd.ConfigModifications as CM
 import qualified Ganeti.WConfd.ConfigWriter as CW
 
 -- * Functions available to the RPC module
@@ -366,3 +367,4 @@ exportedFunctions = [ 'echo
                     , 'guardedOpportunisticLockUnion
                     , 'hasPendingRequest
                     ]
+                    ++ CM.exportedFunctions
