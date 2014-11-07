@@ -324,7 +324,7 @@ prop_rMem inst =
   in case (node_add_ab, node_add_nb, node_del_ab, node_del_nb) of
        (Ok a_ab, Ok a_nb,
         Ok d_ab, Ok d_nb) ->
-         printTestCase "Consistency checks failed" $
+         counterexample "Consistency checks failed" $
            Node.rMem a_ab >  orig_rmem &&
            Node.rMem a_ab - orig_rmem == Instance.mem inst_ab &&
            Node.rMem a_nb == orig_rmem &&

@@ -60,7 +60,7 @@ instance Arbitrary Ssconf.SSConf where
 
 prop_filename :: Ssconf.SSKey -> Property
 prop_filename key =
-  printTestCase "Key doesn't start with correct prefix" $
+  counterexample "Key doesn't start with correct prefix" $
     Ssconf.sSFilePrefix `isPrefixOf` Ssconf.keyToFilename "" key
 
 caseParseNodesVmCapable :: HUnit.Assertion

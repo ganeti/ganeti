@@ -63,7 +63,7 @@ checkQueryResults :: ConfigData -> Query -> String
                   -> [[ResultEntry]] -> Property
 checkQueryResults cfg qr descr expected = monadicIO $ do
   result <- run (query cfg False qr) >>= resultProp
-  stop $ printTestCase ("Inconsistent results in " ++ descr)
+  stop $ counterexample ("Inconsistent results in " ++ descr)
          (qresData result ==? expected)
 
 -- | Makes a node name query, given a filter.
@@ -192,13 +192,13 @@ prop_makeSimpleFilter =
   forAll (resize 10 $ listOf1 genName) $ \names ->
   forAll (resize 10 $ listOf1 arbitrary) $ \ids ->
   forAll genName $ \namefield ->
-  conjoin [ printTestCase "test expected names" $
+  conjoin [ counterexample "test expected names" $
               makeSimpleFilter namefield (map Left names) ==?
               OrFilter (map (EQFilter namefield . QuotedString) names)
-          , printTestCase "test expected IDs" $
+          , counterexample "test expected IDs" $
               makeSimpleFilter namefield (map Right ids) ==?
               OrFilter (map (EQFilter namefield . NumericValue) ids)
-          , printTestCase "test empty names" $
+          , counterexample "test empty names" $
               makeSimpleFilter namefield [] ==? EmptyFilter
           ]
 

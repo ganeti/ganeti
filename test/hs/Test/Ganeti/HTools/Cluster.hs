@@ -157,9 +157,9 @@ prop_Alloc_sane inst =
            Just (xnl, xi, _, cv) ->
              let il' = Container.add (Instance.idx xi) xi il
                  tbl = Cluster.Table xnl il' cv []
-             in printTestCase "Cluster can be balanced after allocation"
+             in counterexample "Cluster can be balanced after allocation"
                   (not (canBalance tbl True True False)) .&&.
-                printTestCase "Solution score differs from actual node list"
+                counterexample "Solution score differs from actual node list"
                   (abs (Cluster.compCV xnl - cv) < 1e-12)
 
 -- | Checks that on a 2-5 node cluster, we can allocate a random
@@ -187,7 +187,7 @@ prop_CanTieredAlloc =
              all_nodes fn = sum $ map fn (Container.elems nl)
              all_res fn = sum $ map fn [ai_alloc, ai_pool, ai_unav]
          in conjoin
-            [ printTestCase "No instances allocated" $ not (null ixes)
+            [ counterexample "No instances allocated" $ not (null ixes)
             , IntMap.size il' ==? length ixes
             , length ixes     ==? length cstats
             , all_res Types.allocInfoVCpus ==? all_nodes Node.hiCpu
@@ -253,7 +253,7 @@ check_EvacMode grp inst result =
                v -> failmsg  ("invalid solution: " ++ show v) False
            ]
   where failmsg :: String -> Bool -> Property
-        failmsg msg = printTestCase ("Failed to evacuate: " ++ msg)
+        failmsg msg = counterexample ("Failed to evacuate: " ++ msg)
         idx = Instance.idx inst
 
 -- | Checks that on a 4-8 node cluster, once we allocate an instance,
@@ -316,7 +316,7 @@ prop_AllocBalance =
          let ynl = Container.add (Node.idx hnode) hnode xnl
              cv = Cluster.compCV ynl
              tbl = Cluster.Table ynl il' cv []
-         in printTestCase "Failed to rebalance" $
+         in counterexample "Failed to rebalance" $
             canBalance tbl True True False
 
 -- | Checks consistency.
@@ -380,9 +380,9 @@ prop_AllocPolicy =
   let rqn = Instance.requiredNodes $ Instance.diskTemplate inst
       node' = Node.setPolicy ipol node
       nl = makeSmallCluster node' count
-  in printTestCase "Allocation check:"
+  in counterexample "Allocation check:"
        (isNothing (canAllocOn (makeSmallCluster node count) rqn inst)) .&&.
-     printTestCase "Policy failure check:" (isJust $ canAllocOn nl rqn inst)
+     counterexample "Policy failure check:" (isJust $ canAllocOn nl rqn inst)
 
 testSuite "HTools/Cluster"
             [ 'prop_Score_Zero
