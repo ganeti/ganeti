@@ -374,10 +374,6 @@ ensureUpper :: String -> String
 ensureUpper [] = []
 ensureUpper (x:xs) = toUpper x:xs
 
--- | Helper for quoted expressions.
-varNameE :: String -> Q Exp
-varNameE = varE . mkName
-
 -- | fromObj (Ganeti specific) as an expression, for reuse.
 fromObjE :: Q Exp
 fromObjE = varE 'fromObj
