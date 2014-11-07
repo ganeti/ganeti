@@ -129,6 +129,7 @@
 /tools/node-daemon-setup
 /tools/prepare-node-join
 /tools/ssh-update
+/tools/shebang/
 
 # scripts
 /scripts/gnt-backup
