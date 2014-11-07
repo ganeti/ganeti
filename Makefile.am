@@ -263,6 +263,7 @@ BUILDTIME_DIR_AUTOCREATE = \
 BUILDTIME_DIRS = \
 	$(BUILDTIME_DIR_AUTOCREATE) \
 	apps \
+	dist \
 	doc/html \
 	doc/man-html
 
@@ -298,8 +299,11 @@ CLEANFILES = \
 	$(addsuffix /*.o,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_hi,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
+	$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	$(CABAL_EXECUTABLES_APPS_STAMPS) \
 	ganeti.cabal \
+	$(HASKELL_PACKAGE_IDS_FILE) \
+	$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	Makefile.ghc \
 	Makefile.ghc.bak \
 	$(PYTHON_BOOTSTRAP) \
@@ -355,6 +359,7 @@ GENERATED_FILES = \
 clean-local:
 	rm -rf tools/shebang
 	rm -rf apps
+	rm -rf dist
 
 HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid
 if ENABLE_CONFD
@@ -1276,10 +1281,12 @@ HS_MAKEFILE_GHC_SRCS = $(HS_SRC_PROGS:%=%.hs)
 if WANT_HSTESTS
 HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
 endif
-Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
+Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile $(HASKELL_PACKAGE_VERSIONS_FILE) \
               | $(built_base_sources) $(HS_BUILT_SRCS)
 	$(GHC) -M -dep-makefile $@ $(DEP_SUFFIXES) $(HFLAGS) $(HFLAGS_DYNAMIC) \
 		-itest/hs \
+		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
 # Since ghc -M does not generate dependency line for object files, dependencies
 # from a target executable seed object (e.g. src/hluxid.o) to objects which
@@ -1295,19 +1302,52 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
 
 @include_makefile_ghc@
 
+# Contains the package-id flags for the current build: "-package-id" followed
+# by the name and hash of the package, one for each dependency.
+# Obtained from the setup-config using the Cabal API
+# (CabalDependenciesMacros.hs) after `cabal configure`.
+# This file is created along with HASKELL_PACKAGE_VERSIONS_FILE; if you want
+# to depend on it in a rule, depend on HASKELL_PACKAGE_VERSIONS_FILE instead.
+HASKELL_PACKAGE_IDS_FILE = ganeti.depsflags
+
+# Defines the MIN_VERSION_* macros for all Haskell packages used in this
+# compilation.
+# The versions are determined using `cabal configure`, which takes them from
+# the ghc-pkg database.
+# At the moment, we don't support cabal sandboxes, so we use cabal configure
+# with the --user flag.
+# Note: `cabal configure` and CabalDependenciesMacros.hs perform no
+# downloading (only `cabal install` can do that).
+HASKELL_PACKAGE_VERSIONS_FILE = cabal_macros.h
+
+$(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
+                                  cabal/CabalDependenciesMacros.hs
+	cabal configure --user \
+	  -f`test $(ENABLE_CONFD) == True && echo "confd" || echo "-confd"` \
+	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
+	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"`
+	runhaskell $(abs_top_srcdir)/cabal/CabalDependenciesMacros.hs \
+	  ganeti.cabal \
+	  $(HASKELL_PACKAGE_IDS_FILE) \
+	  $(HASKELL_PACKAGE_VERSIONS_FILE)
+
 # Like the %.o rule, but allows access to the test/hs directory.
 # This uses HFLAGS instead of HTEST_FLAGS because it's only for generating
 # object files (.o for GHC <= 7.6, .o/.so for newer GHCs) that are loaded
 # in GHCI when evaluating TH. The actual test-with-coverage .hpc_o files
 # are created in the `%.$(HTEST_SUFFIX)_o` rule.
-test/hs/%.o:
+test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@echo '[GHC|test]: $@ <- test/hs/$^'
 	@$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
+		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
-%.o:
+%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@echo '[GHC]: $@ <- $^'
 	@$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
+		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
 # For TH+profiling we need to compile twice: Once without profiling,
@@ -1318,6 +1358,8 @@ if HPROFILE
 	@echo '[GHC|prof]: $@ <- $^'
 	@$(GHC) -c $(HFLAGS) \
 	  $(HPROFFLAGS) \
+		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) \
 		$(@:%.$(HPROF_SUFFIX)_o=%.hs)
 endif
@@ -1329,6 +1371,8 @@ endif
 %.$(HTEST_SUFFIX)_o: %.o
 	@echo '[GHC|test]: $@ <- $^'
 	@$(GHC) -c $(HTEST_FLAGS) \
+		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
 
 %.hi: %.o ;
@@ -1339,11 +1383,15 @@ if HPROFILE
 $(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
 	@echo '[GHC-link]: $@'
 	$(GHC) $(HFLAGS) $(HPROFFLAGS) \
+		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 else
 $(HS_SRC_PROGS): %: %.o | stamp-directories
 	@echo '[GHC-link]: $@'
 	$(GHC) $(HFLAGS) $(HFLAGS_DYNAMIC) \
+		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 endif
 	@rm -f $(notdir $@).tix
@@ -1358,6 +1406,8 @@ $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
 	fi
 	@echo '[GHC-link|test]: $@'
 	$(GHC) $(HTEST_FLAGS) \
+		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
@@ -1523,6 +1573,7 @@ EXTRA_DIST += \
 	doc/users/users.in \
 	ganeti.cabal \
 	cabal/ganeti.template.cabal \
+	cabal/CabalDependenciesMacros.hs \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
 	$(python_test_support) \
@@ -2609,6 +2660,7 @@ hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	  --ignore "Reduce duplication" \
 	  --ignore "Use import/export shortcut" \
 	  --hint src/lint-hints \
+	  --cpp-file=$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	  $(filter-out $(HLINT_EXCLUDES),$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
 	@if [ ! -f doc/hs-lint.html ]; then \
 	  echo "All good" > doc/hs-lint.html; \
@@ -2744,6 +2796,7 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	set -e ; \
 	export LC_ALL=en_US.UTF-8; \
 	OPTGHC="--optghc=-isrc --optghc=-itest/hs"; \
+	OPTGHC="$$OPTGHC --optghc=-optP-include --optghc=-optP$(HASKELL_PACKAGE_VERSIONS_FILE)"; \
 	if [ "$(HS_PARALLEL3)" ]; \
 	then OPTGHC="$$OPTGHC --optghc=$(HS_PARALLEL3)"; \
 	fi; \

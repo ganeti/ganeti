@@ -127,6 +127,9 @@ deploy Ganeti on production machines). More specifically:
 - or even better, `The Haskell Platform
   <http://hackage.haskell.org/platform/>`_ which gives you a simple way
   to bootstrap Haskell
+- `cabal-install <http://hackage.haskell.org/package/json>`_ and
+  `Cabal <http://hackage.haskell.org/package/json>`_, the Common Architecture
+  for Building Haskell Applications and Libraries (executable and library)
 - `json <http://hackage.haskell.org/package/json>`_, a JSON library
 - `network <http://hackage.haskell.org/package/network>`_, a basic
   network library
@@ -163,7 +166,8 @@ deploy Ganeti on production machines). More specifically:
 
 Some of these are also available as package in Debian/Ubuntu::
 
-  $ apt-get install ghc libghc-json-dev libghc-network-dev \
+  $ apt-get install ghc cabal-install libghc-cabal-dev \
+                    libghc-json-dev libghc-network-dev \
                     libghc-parallel-dev \
                     libghc-utf8-string-dev libghc-curl-dev \
                     libghc-hslogger-dev \
@@ -190,36 +194,19 @@ The most recent Fedora doesn't provide ``crypto``, ``inotify``. So these
 need to be installed using ``cabal``.
 
 If using a distribution which does not provide these libraries, first
-install the Haskell platform. You can also install ``cabal`` manually::
+install the Haskell platform. Then run::
 
-  $ apt-get install cabal-install
   $ cabal update
 
 Then install the additional native libraries::
 
   $ apt-get install libpcre3-dev libcurl4-openssl-dev
 
-And finally the libraries required for building the packages (only the
-ones not available in your distribution packages) via ``cabal``::
+And finally the libraries required for building the packages via ``cabal``
+(it will automatically pick only those that are not already installed via your
+distribution packages)::
 
-  $ cabal install json network parallel utf8-string curl hslogger \
-                  Crypto text hinotify==0.3.2 regex-pcre \
-                  attoparsec vector base64-bytestring \
-                  lifted-base==0.2.0.3 lens==3.10
-
-(The specified versions are suitable for Debian Wheezy, for other
-distributions different versions might be needed.)
-
-.. _cabal-order-note:
-.. note::
-  When installing additional libraries using ``cabal``, be sure to first
-  install all the required libraries available in your distribution and
-  only then install the rest using ``cabal``.
-  Otherwise cabal might install different versions of libraries that are
-  available in your distribution, causing conflicts during the
-  compilation.
-  This applies in particular when installing libraries for the optional
-  features.
+  $ cabal install --only-dependencies cabal/ganeti.template.cabal
 
 Haskell optional features
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -242,7 +229,8 @@ either apt::
 
 or ``cabal``::
 
-  $ cabal install snap-server PSQueue
+  $ cabal install --only-dependencies cabal/ganeti.template.cabal \
+                  --flags="confd mond metad"
 
 to install them.
 

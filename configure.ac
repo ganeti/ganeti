@@ -659,6 +659,13 @@ if test -z "$GHC_PKG"; then
   AC_MSG_FAILURE([ghc-pkg not found, compilation will not be possible])
 fi
 
+# Check for cabal
+AC_ARG_VAR(CABAL, [cabal path])
+AC_PATH_PROG(CABAL, [cabal], [])
+if test -z "$CABAL"; then
+  AC_MSG_FAILURE([cabal not found, compilation will not be possible])
+fi
+
 # check for modules, first custom/special checks
 AC_MSG_NOTICE([checking for required haskell modules])
 HS_PARALLEL3=
@@ -667,6 +674,7 @@ AC_GHC_PKG_CHECK([parallel-3.*], [HS_PARALLEL3=-DPARALLEL3],
 AC_SUBST(HS_PARALLEL3)
 
 # and now standard modules
+AC_GHC_PKG_REQUIRE(Cabal)
 AC_GHC_PKG_REQUIRE(curl)
 AC_GHC_PKG_REQUIRE(json)
 AC_GHC_PKG_REQUIRE(network)
