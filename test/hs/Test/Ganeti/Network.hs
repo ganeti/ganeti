@@ -24,21 +24,21 @@ import Test.Ganeti.TestHelper
 prop_addressPoolProperties :: Network -> Property
 prop_addressPoolProperties a =
   conjoin
-    [ printTestCase
+    [ counterexample
         ("Not all reservations are included in 'allReservations' of " ++
          "address pool:" ++ show a) (allReservationsSubsumesInternal a)
-    , printTestCase
+    , counterexample
         ("Not all external reservations are covered by 'allReservations' " ++
          "of address pool: " ++ show a)
         (allReservationsSubsumesExternal a)
-    , printTestCase
+    , counterexample
         ("The counts of free and reserved addresses do not add up for " ++
          "address pool: " ++ show a)
         (checkCounts a)
-    , printTestCase
+    , counterexample
         ("'isFull' wrongly classified the status of the address pool: " ++
          show a) (checkIsFull a)
-    , printTestCase
+    , counterexample
         ("Network map is inconsistent with reservations of address pool: " ++
          show a) (checkGetMap a)
     ]

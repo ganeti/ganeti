@@ -139,7 +139,7 @@ isAlmostEqual (LCList c1) (LCList c2) =
   (length c1 ==? length c2) .&&.
   conjoin (zipWith isAlmostEqual c1 c2)
 isAlmostEqual (LCString s1) (LCString s2) = s1 ==? s2
-isAlmostEqual (LCDouble d1) (LCDouble d2) = printTestCase msg $ rel <= 1e-12
+isAlmostEqual (LCDouble d1) (LCDouble d2) = counterexample msg $ rel <= 1e-12
     where rel = relativeError d1 d2
           msg = "Relative error " ++ show rel ++ " not smaller than 1e-12\n" ++
                 "expected: " ++ show d2 ++ "\n but got: " ++ show d1
@@ -166,7 +166,7 @@ prop_config :: LispConfig -> Property
 prop_config conf =
   case A.parseOnly lispConfigParser . pack . serializeConf $ conf of
         Left msg -> failTest $ "Parsing failed: " ++ msg
-        Right obtained -> printTestCase "Failing almost equal check" $
+        Right obtained -> counterexample "Failing almost equal check" $
                           isAlmostEqual obtained conf
 
 -- | Test whether a randomly generated UptimeInfo text line can be parsed.

@@ -164,7 +164,7 @@ prop_IPolicy_serialisation = testSerialisation
 prop_opToResult :: Types.OpResult Int -> Property
 prop_opToResult op =
   case op of
-    Bad _ -> printTestCase ("expected bad but got " ++ show r) $ isBad r
+    Bad _ -> counterexample ("expected bad but got " ++ show r) $ isBad r
     Ok v  -> case r of
                Bad msg -> failTest ("expected Ok but got Bad " ++ msg)
                Ok v' -> v ==? v'

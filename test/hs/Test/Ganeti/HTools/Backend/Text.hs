@@ -92,8 +92,8 @@ prop_Load_Instance name mem dsk vcpus status
                sbal, pnode, pnode, tags]
   in case inst of
        Bad msg -> failTest $ "Failed to load instance: " ++ msg
-       Ok (_, i) -> printTestCase "Mismatch in some field while\
-                                  \ loading the instance" $
+       Ok (_, i) -> counterexample "Mismatch in some field while\
+                                   \ loading the instance" $
                Instance.name i == name &&
                Instance.vcpus i == vcpus &&
                Instance.mem i == mem &&
@@ -110,7 +110,7 @@ prop_Load_InstanceFail ktn fields =
   length fields < 10 || length fields > 12 ==>
     case Text.loadInst nl fields of
       Ok _ -> failTest "Managed to load instance from invalid data"
-      Bad msg -> printTestCase ("Unrecognised error message: " ++ msg) $
+      Bad msg -> counterexample ("Unrecognised error message: " ++ msg) $
                  "Invalid/incomplete instance data: '" `isPrefixOf` msg
     where nl = Map.fromList ktn
 
@@ -215,7 +215,7 @@ prop_CreateSerialise =
      Cluster.iterateAlloc nl Container.empty (Just maxiter) inst allocn [] []
      of
        Bad msg -> failTest $ "Failed to allocate: " ++ msg
-       Ok (_, _, _, [], _) -> printTestCase
+       Ok (_, _, _, [], _) -> counterexample
                               "Failed to allocate: no allocations" False
        Ok (_, nl', il', _, _) ->
          let cdata = Loader.ClusterData defGroupList nl' il' ctags

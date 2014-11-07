@@ -587,14 +587,14 @@ test on that, by default 500 of those big instances are generated for each
 property. In many cases, it would be sufficient to only generate those 500
 instances once and test all properties on those. To do this, create a property
 that uses ``conjoin`` to combine several properties into one. Use
-``printTestCase`` to add expressive error messages. For example::
+``counterexample`` to add expressive error messages. For example::
 
   prop_myMegaProp :: myBigType -> Property
   prop_myMegaProp b =
     conjoin
-      [ printTestCase
+      [ counterexample
           ("Something failed horribly here: " ++ show b) (subProperty1 b)
-      , printTestCase
+      , counterexample
           ("Something else failed horribly here: " ++ show b)
           (subProperty2 b)
       , -- more properties here ...

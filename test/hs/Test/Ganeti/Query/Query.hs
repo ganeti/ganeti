@@ -88,13 +88,13 @@ prop_queryNode_noUnknown =
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields (ItemTypeOpCode QRNode) [field])
   stop $ conjoin
-         [ printTestCase ("Got unknown fields via query (" ++
-                          show fdefs ++ ")") (hasUnknownFields fdefs)
-         , printTestCase ("Got unknown result status via query (" ++
-                          show fdata ++ ")")
+         [ counterexample ("Got unknown fields via query (" ++
+                           show fdefs ++ ")") (hasUnknownFields fdefs)
+         , counterexample ("Got unknown result status via query (" ++
+                           show fdata ++ ")")
            (all (all ((/= RSUnknown) . rentryStatus)) fdata)
-         , printTestCase ("Got unknown fields via query fields (" ++
-                          show fdefs'++ ")") (hasUnknownFields fdefs')
+         , counterexample ("Got unknown fields via query fields (" ++
+                           show fdefs'++ ")") (hasUnknownFields fdefs')
          ]
 
 -- | Tests that an unknown field is returned as such.
@@ -109,16 +109,16 @@ prop_queryNode_Unknown =
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields (ItemTypeOpCode QRNode) [field])
   stop $ conjoin
-         [ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
+         [ counterexample ("Got known fields via query (" ++ show fdefs ++ ")")
            (not $ hasUnknownFields fdefs)
-         , printTestCase ("Got /= ResultUnknown result status via query (" ++
-                          show fdata ++ ")")
+         , counterexample ("Got /= ResultUnknown result status via query (" ++
+                           show fdata ++ ")")
            (all (all ((== RSUnknown) . rentryStatus)) fdata)
-         , printTestCase ("Got a Just in a result value (" ++
-                          show fdata ++ ")")
+         , counterexample ("Got a Just in a result value (" ++
+                           show fdata ++ ")")
            (all (all (isNothing . rentryValue)) fdata)
-         , printTestCase ("Got known fields via query fields (" ++ show fdefs'
-                          ++ ")") (not $ hasUnknownFields fdefs')
+         , counterexample ("Got known fields via query fields (" ++ show fdefs'
+                           ++ ")") (not $ hasUnknownFields fdefs')
          ]
 
 -- | Checks that a result type is conforming to a field definition.
@@ -155,13 +155,13 @@ prop_queryNode_types =
     run (query cfg False (Query (ItemTypeOpCode QRNode)
                           [field] EmptyFilter)) >>= resultProp
   stop $ conjoin
-         [ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
+         [ counterexample ("Inconsistent result entries (" ++ show fdata ++ ")")
            (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata)
-         , printTestCase "Wrong field definitions length"
+         , counterexample "Wrong field definitions length"
            (length fdefs ==? 1)
-         , printTestCase "Wrong field result rows length"
+         , counterexample "Wrong field result rows length"
            (all ((== 1) . length) fdata)
-         , printTestCase "Wrong number of result rows"
+         , counterexample "Wrong number of result rows"
            (length fdata ==? numnodes)
          ]
 
@@ -201,7 +201,7 @@ prop_queryNode_filter =
       run (query cluster False (Query (ItemTypeOpCode QRNode)
                                 ["name"] flt)) >>= resultProp
     stop $ conjoin
-      [ printTestCase "Invalid node names" $
+      [ counterexample "Invalid node names" $
         map (map rentryValue) fdata ==? map (\f -> [Just (showJSON f)]) fqdns
       ]
 
@@ -218,13 +218,13 @@ prop_queryGroup_noUnknown =
     QueryFieldsResult fdefs' <-
       resultProp $ queryFields (QueryFields (ItemTypeOpCode QRGroup) [field])
     stop $ conjoin
-     [ printTestCase ("Got unknown fields via query (" ++ show fdefs ++ ")")
+     [ counterexample ("Got unknown fields via query (" ++ show fdefs ++ ")")
           (hasUnknownFields fdefs)
-     , printTestCase ("Got unknown result status via query (" ++
-                      show fdata ++ ")")
+     , counterexample ("Got unknown result status via query (" ++
+                       show fdata ++ ")")
        (all (all ((/= RSUnknown) . rentryStatus)) fdata)
-     , printTestCase ("Got unknown fields via query fields (" ++ show fdefs'
-                      ++ ")") (hasUnknownFields fdefs')
+     , counterexample ("Got unknown fields via query fields (" ++ show fdefs'
+                       ++ ")") (hasUnknownFields fdefs')
      ]
 
 prop_queryGroup_Unknown :: Property
@@ -238,16 +238,16 @@ prop_queryGroup_Unknown =
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields (ItemTypeOpCode QRGroup) [field])
   stop $ conjoin
-         [ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
+         [ counterexample ("Got known fields via query (" ++ show fdefs ++ ")")
            (not $ hasUnknownFields fdefs)
-         , printTestCase ("Got /= ResultUnknown result status via query (" ++
-                          show fdata ++ ")")
+         , counterexample ("Got /= ResultUnknown result status via query (" ++
+                           show fdata ++ ")")
            (all (all ((== RSUnknown) . rentryStatus)) fdata)
-         , printTestCase ("Got a Just in a result value (" ++
-                          show fdata ++ ")")
+         , counterexample ("Got a Just in a result value (" ++
+                           show fdata ++ ")")
            (all (all (isNothing . rentryValue)) fdata)
-         , printTestCase ("Got known fields via query fields (" ++ show fdefs'
-                          ++ ")") (not $ hasUnknownFields fdefs')
+         , counterexample ("Got known fields via query fields (" ++ show fdefs'
+                           ++ ")") (not $ hasUnknownFields fdefs')
          ]
 
 prop_queryGroup_types :: Property
@@ -259,10 +259,10 @@ prop_queryGroup_types =
     run (query cfg False (Query (ItemTypeOpCode QRGroup)
                           [field] EmptyFilter)) >>= resultProp
   stop $ conjoin
-         [ printTestCase ("Inconsistent result entries (" ++ show fdata ++ ")")
+         [ counterexample ("Inconsistent result entries (" ++ show fdata ++ ")")
            (conjoin $ map (conjoin . zipWith checkResultType fdefs) fdata)
-         , printTestCase "Wrong field definitions length" (length fdefs ==? 1)
-         , printTestCase "Wrong field result rows length"
+         , counterexample "Wrong field definitions length" (length fdefs ==? 1)
+         , counterexample "Wrong field result rows length"
            (all ((== 1) . length) fdata)
          ]
 
@@ -289,7 +289,7 @@ prop_queryGroup_nodeCount =
       run (query cluster False (Query (ItemTypeOpCode QRGroup)
                                 ["node_cnt"] EmptyFilter)) >>= resultProp
     stop $ conjoin
-      [ printTestCase "Invalid node count" $
+      [ counterexample "Invalid node count" $
         map (map rentryValue) fdata ==? [[Just (showJSON nodes)]]
       ]
 
@@ -312,13 +312,13 @@ prop_queryJob_noUnknown =
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields qtype [field])
   stop $ conjoin
-         [ printTestCase ("Got unknown fields via query (" ++
-                          show fdefs ++ ")") (hasUnknownFields fdefs)
-         , printTestCase ("Got unknown result status via query (" ++
-                          show fdata ++ ")")
+         [ counterexample ("Got unknown fields via query (" ++
+                           show fdefs ++ ")") (hasUnknownFields fdefs)
+         , counterexample ("Got unknown result status via query (" ++
+                           show fdata ++ ")")
            (all (all ((/= RSUnknown) . rentryStatus)) fdata)
-         , printTestCase ("Got unknown fields via query fields (" ++
-                          show fdefs'++ ")") (hasUnknownFields fdefs')
+         , counterexample ("Got unknown fields via query fields (" ++
+                           show fdefs'++ ")") (hasUnknownFields fdefs')
          ]
 
 -- | Tests that an unknown field is returned as such.
@@ -335,16 +335,16 @@ prop_queryJob_Unknown =
   QueryFieldsResult fdefs' <-
     resultProp $ queryFields (QueryFields qtype [field])
   stop $ conjoin
-         [ printTestCase ("Got known fields via query (" ++ show fdefs ++ ")")
+         [ counterexample ("Got known fields via query (" ++ show fdefs ++ ")")
            (not $ hasUnknownFields fdefs)
-         , printTestCase ("Got /= ResultUnknown result status via query (" ++
-                          show fdata ++ ")")
+         , counterexample ("Got /= ResultUnknown result status via query (" ++
+                           show fdata ++ ")")
            (all (all ((== RSUnknown) . rentryStatus)) fdata)
-         , printTestCase ("Got a Just in a result value (" ++
-                          show fdata ++ ")")
+         , counterexample ("Got a Just in a result value (" ++
+                           show fdata ++ ")")
            (all (all (isNothing . rentryValue)) fdata)
-         , printTestCase ("Got known fields via query fields (" ++ show fdefs'
-                          ++ ")") (not $ hasUnknownFields fdefs')
+         , counterexample ("Got known fields via query fields (" ++ show fdefs'
+                           ++ ")") (not $ hasUnknownFields fdefs')
          ]
 
 -- ** Misc other tests
@@ -357,12 +357,12 @@ prop_getRequestedNames =
       q_node1 = QuotedString node1
       eq_name = EQFilter "name"
       eq_node1 = eq_name q_node1
-  in conjoin [ printTestCase "empty filter" $ chk EmptyFilter ==? []
-             , printTestCase "and filter" $ chk (AndFilter [eq_node1]) ==? []
-             , printTestCase "simple equality" $ chk eq_node1 ==? [node1]
-             , printTestCase "non-name field" $
+  in conjoin [ counterexample "empty filter" $ chk EmptyFilter ==? []
+             , counterexample "and filter" $ chk (AndFilter [eq_node1]) ==? []
+             , counterexample "simple equality" $ chk eq_node1 ==? [node1]
+             , counterexample "non-name field" $
                chk (EQFilter "foo" q_node1) ==? []
-             , printTestCase "non-simple filter" $
+             , counterexample "non-simple filter" $
                chk (OrFilter [ eq_node1 , LTFilter "foo" q_node1]) ==? []
              ]
 

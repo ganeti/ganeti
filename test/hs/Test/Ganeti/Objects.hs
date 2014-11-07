@@ -465,11 +465,11 @@ prop_fillDict defaults custom =
       d_keys = map fst defaults
       c_map = Map.fromList custom
       c_keys = map fst custom
-  in conjoin [ printTestCase "Empty custom filling"
+  in conjoin [ counterexample "Empty custom filling"
                (fillDict d_map Map.empty [] == d_map)
-             , printTestCase "Empty defaults filling"
+             , counterexample "Empty defaults filling"
                (fillDict Map.empty c_map [] == c_map)
-             , printTestCase "Delete all keys"
+             , counterexample "Delete all keys"
                (fillDict d_map c_map (d_keys++c_keys) == Map.empty)
              ]
 

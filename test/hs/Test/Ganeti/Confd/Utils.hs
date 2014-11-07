@@ -70,10 +70,10 @@ prop_req_sign key (NonNegative timestamp) (Positive bad_delta)
       bad_timestamp = timestamp + if pm then bad_delta' else (-bad_delta')
       ts_ok = Confd.Utils.parseRequest key signed good_timestamp
       ts_bad = Confd.Utils.parseRequest key signed bad_timestamp
-  in printTestCase "Failed to parse good message"
+  in counterexample "Failed to parse good message"
        (ts_ok ==? BasicTypes.Ok (encoded, crq)) .&&.
-     printTestCase ("Managed to deserialise message with bad\
-                    \ timestamp, got " ++ show ts_bad)
+     counterexample ("Managed to deserialise message with bad\
+                     \ timestamp, got " ++ show ts_bad)
        (ts_bad ==? BasicTypes.Bad "Too old/too new timestamp or clock skew")
 
 -- | Tests that a ConfdReply can be properly encoded, signed and parsed using
@@ -105,7 +105,7 @@ prop_bad_key salt crq =
   forAll (vector 20 `suchThat` (/= key_sign)) $ \key_verify ->
   let signed = Confd.Utils.signMessage key_sign salt (J.encode crq)
       encoded = J.encode signed
-  in printTestCase ("Accepted message signed with different key" ++ encoded) $
+  in counterexample ("Accepted message signed with different key" ++ encoded) $
      (Confd.Utils.parseSignedMessage key_verify encoded
       :: BasicTypes.Result (String, String, Confd.ConfdRequest)) ==?
        BasicTypes.Bad "HMAC verification failed"
