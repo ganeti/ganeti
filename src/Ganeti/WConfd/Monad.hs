@@ -79,7 +79,7 @@ import Data.IORef.Lifted
 import Data.Monoid (Any(..))
 import qualified Data.Set as S
 import Data.Tuple (swap)
-import System.Time (getClockTime)
+import System.Time (getClockTime, ClockTime)
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
@@ -198,6 +198,17 @@ readConfigState :: WConfdMonad ConfigState
 readConfigState = liftM dsConfigState . readIORef . dhDaemonState
                   =<< daemonHandle
 
+-- | From a result of a configuration change, determine if the
+-- configuration was changed and if full distribution is needed.
+-- If so, also bump the serial number.
+unpackConfigResult :: ClockTime -> ConfigState
+                      -> (a, ConfigState) -> ((a, Bool, Bool), ConfigState)
+unpackConfigResult now cs (r, cs')
+                     | cs /= cs' = ( (r, True, needsFullDist cs cs')
+                                   , over csConfigDataL (bumpSerial now) cs'
+                                   )
+                     | otherwise = ((r, False, False), cs')
+
 -- | Atomically modifies the configuration state in the WConfdMonad
 -- with a computation that can possibly fail; immediately afterwards,
 -- while config write is still going on, do the followup action. Return
@@ -210,15 +221,9 @@ modifyConfigStateErrWithImmediate f immediateFollowup = do
   dh <- daemonHandle
   now <- liftIO getClockTime
 
-  -- If the configuration is modified, we also bump its serial number.
-  -- In order to determine if we need to save, we report if it's modified
-  -- as well as if it needs to be distributed synchronously.
-  let unpackResult cs (r, cs')
-                    | cs /= cs' = ( (r, True, needsFullDist cs cs')
-                                  , over csConfigDataL (bumpSerial now) cs' )
-                    | otherwise = ((r, False, False), cs')
   let modCS ds@(DaemonState { dsTempRes = tr }) =
-        mapMOf2 dsConfigStateL (\cs -> liftM (unpackResult cs) (f tr cs)) ds
+        mapMOf2
+          dsConfigStateL (\cs -> liftM (unpackConfigResult now cs) (f tr cs)) ds
   (r, modified, distSync) <- atomicModifyIORefErrLog (dhDaemonState dh)
                                                      (liftM swap . modCS)
   if modified
