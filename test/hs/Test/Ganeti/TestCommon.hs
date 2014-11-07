@@ -593,6 +593,7 @@ listOfUniqueBy gen keyFun forbidden = do
         x <- gen `suchThat` ((`Set.notMember` usedKeys) . keyFun)
         return $ Just (x, (i + 1, Set.insert (keyFun x) usedKeys))
 
+
 #if !MIN_VERSION_QuickCheck(2,7,0)
 counterexample :: Testable prop => String -> prop -> Property
 counterexample = QC.printTestCase

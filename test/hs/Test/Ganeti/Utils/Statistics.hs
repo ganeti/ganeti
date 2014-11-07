@@ -58,8 +58,8 @@ prop_stddev_update =
                     $ updateStatistics (getStdDevStatistics original) (a,b)
       direct = stdDev modified
   in counterexample ("Value computed by update " ++ show with_update
-                    ++ " differs too much from correct value " ++ show direct)
-                   (abs (with_update - direct) < 1e-10)
+                     ++ " differs too much from correct value " ++ show direct)
+                    (abs (with_update - direct) < 1e-10)
 
 testSuite "Utils/Statistics"
   [ 'prop_stddev_update
