@@ -371,8 +371,10 @@ readLockAllocation = liftM LW.getAllocation readLockWaiting
 -- | Modify the configuration while temporarily acquiring
 -- the configuration lock. If the configuration lock is held by
 -- someone else, nothing is changed and Nothing is returned.
-modifyConfigWithLock :: (ConfigState -> ConfigState) -> WConfdMonad (Maybe ())
-modifyConfigWithLock f = do
+modifyConfigWithLock :: (ConfigState -> ConfigState)
+                        -> State TempResState ()
+                        -> WConfdMonad (Maybe ())
+modifyConfigWithLock f tempres = do
   now <- liftIO getClockTime
   dh <- lift . WConfdMonadInt $ ask
   pid <- liftIO getProcessID
@@ -399,6 +401,7 @@ modifyConfigWithLock f = do
                                  dsConfigStateL
                                  (\cs -> unpackConfigResult now cs . (,) ()
                                           $ f cs)
+          atomicModifyWithLens (dhDaemonState dh) dsTempResL $ runState tempres
           return $ Just (modif, dist)
         _ -> return Nothing)
   flip (maybe $ return Nothing) maybeDist $ \(modified, dist) -> do
@@ -407,4 +410,7 @@ modifyConfigWithLock f = do
         $ if dist then "synchronously" else "asynchronously"
       liftBase . triggerAndWait (Any dist) $ dhSaveConfigWorker dh
       logDebug "Config write finished"
+    logDebug "Triggering temporary reservations write"
+    liftBase . triggerAndWait_ . dhSaveTempResWorker $ dh
+    logDebug "Temporary reservations write finished"
     return $ Just ()
