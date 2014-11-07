@@ -155,8 +155,10 @@ prop_slotMapFromJob_conflicting_buckets = do
       (lab2, _   ) <- parseReasonRateLimit s2
       let sm = Map.fromList [(lab1, Slot 1 lim1)]
           cm = Map.fromList [(lab2, 1)]
-       in (sm `occupySlots` cm) ==? Map.fromList [ (lab1, Slot 1 lim1)
-                                                 , (lab2, Slot 1 0)   ]
+       in return $
+            (sm `occupySlots` cm) ==? Map.fromList [ (lab1, Slot 1 lim1)
+                                                   , (lab2, Slot 1 0)
+                                                   ] :: Gen Property
 
 
 -- | Tests some basic cases for reason rate limiting.
@@ -257,12 +259,12 @@ prop_reasonRateLimit =
 -- | Tests that filter rule ordering is determined (solely) by priority,
 -- watermark and UUID, as defined in `doc/design-optables.rst`.
 prop_filterRuleOrder :: Property
-prop_filterRuleOrder = do
+prop_filterRuleOrder = property $ do
   a <- arbitrary
   b <- arbitrary `suchThat` ((frUuid a /=) . frUuid)
-  filterRuleOrder a b ==? (frPriority a, frWatermark a, frUuid a)
-                          `compare`
-                          (frPriority b, frWatermark b, frUuid b)
+  return $ filterRuleOrder a b ==? (frPriority a, frWatermark a, frUuid a)
+                                   `compare`
+                                   (frPriority b, frWatermark b, frUuid b)
 
 
 -- | Tests common inputs for `matchPredicate`, especially the predicates

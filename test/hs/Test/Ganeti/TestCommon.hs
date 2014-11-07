@@ -519,7 +519,7 @@ genPropParser parser s expected =
 -- | Generate an arbitrary non negative integer number
 genNonNegative :: Gen Int
 genNonNegative =
-  fmap fromIntegral (arbitrary::Gen (Test.QuickCheck.NonNegative Int))
+  fmap fromEnum (arbitrary::Gen (Test.QuickCheck.NonNegative Int))
 
 -- | Computes the relative error of two 'Double' numbers.
 --

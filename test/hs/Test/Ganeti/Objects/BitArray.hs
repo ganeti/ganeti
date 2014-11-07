@@ -84,14 +84,14 @@ prop_BitArray_or xs ys =
 
 -- | Check that the counts of 1 bits holds.
 prop_BitArray_counts :: Property
-prop_BitArray_counts = do
+prop_BitArray_counts = property $ do
     n <- choose (0, 3)
     ones <- replicateM n (lst True)
     zrs <- replicateM n (lst False)
     start <- lst False
     let count = sum . map length $ ones
         bs = start ++ concat (zipWith (++) ones zrs)
-    count1 (BA.fromList bs) ==? count
+    return $ count1 (BA.fromList bs) ==? count
   where
     lst x = (`replicate` x) `liftM` choose (0, 2)
 

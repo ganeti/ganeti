@@ -75,10 +75,11 @@ case_JobPriorityDef = do
 prop_JobPriority :: Property
 prop_JobPriority =
   forAll (listOf1 (genQueuedOpCode `suchThat`
-                   (not . opStatusFinalized . qoStatus))) $ \ops -> do
+                   (not . opStatusFinalized . qoStatus)))
+         $ \ops -> property $ do
   jid0 <- makeJobId 0
   let job = QueuedJob jid0 ops justNoTs justNoTs justNoTs Nothing Nothing
-  calcJobPriority job ==? minimum (map qoPriority ops)
+  return $ calcJobPriority job ==? minimum (map qoPriority ops) :: Gen Property
 
 -- | Tests default job status.
 case_JobStatusDef :: Assertion
