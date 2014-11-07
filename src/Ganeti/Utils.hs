@@ -226,8 +226,8 @@ if' _    _ y = y
 
 -- | Parse results from readsPrec.
 parseChoices :: Monad m => String -> String -> [(a, String)] -> m a
-parseChoices _ _ ((v, ""):[]) = return v
-parseChoices name s ((_, e):[]) =
+parseChoices _ _ [(v, "")] = return v
+parseChoices name s [(_, e)] =
     fail $ name ++ ": leftover characters when parsing '"
            ++ s ++ "': '" ++ e ++ "'"
 parseChoices name s _ = fail $ name ++ ": cannot parse string '" ++ s ++ "'"
