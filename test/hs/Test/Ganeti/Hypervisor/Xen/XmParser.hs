@@ -86,7 +86,7 @@ instance Arbitrary LispConfig where
 -- | Determines conservatively whether a string could be a number.
 canBeNumber :: String -> Bool
 canBeNumber [] = False
-canBeNumber (c:[]) = canBeNumberChar c
+canBeNumber [c] = canBeNumberChar c
 canBeNumber (c:xs) = canBeNumberChar c && canBeNumber xs
 
 -- | Determines whether a char can be part of the string representation of a
