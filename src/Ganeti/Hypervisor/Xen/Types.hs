@@ -57,7 +57,7 @@ class FromLispConfig a where
 -- | Instance of FromLispConfig for Int.
 instance FromLispConfig Int where
   fromLispConfig (LCDouble d) = Ok $ floor d
-  fromLispConfig (LCList (LCString _:LCDouble d:[])) = Ok $ floor d
+  fromLispConfig (LCList [LCString _, LCDouble d]) = Ok $ floor d
   fromLispConfig c =
     Bad $ "Unable to extract a Int from this configuration: "
       ++ show c
@@ -65,7 +65,7 @@ instance FromLispConfig Int where
 -- | Instance of FromLispConfig for Double.
 instance FromLispConfig Double where
   fromLispConfig (LCDouble d) = Ok d
-  fromLispConfig (LCList (LCString _:LCDouble d:[])) = Ok d
+  fromLispConfig (LCList [LCString _, LCDouble d]) = Ok d
   fromLispConfig c =
     Bad $ "Unable to extract a Double from this configuration: "
       ++ show c
@@ -73,7 +73,7 @@ instance FromLispConfig Double where
 -- | Instance of FromLispConfig for String
 instance FromLispConfig String where
   fromLispConfig (LCString s) = Ok s
-  fromLispConfig (LCList (LCString _:LCString s:[])) = Ok s
+  fromLispConfig (LCList [LCString _, LCString s]) = Ok s
   fromLispConfig c =
     Bad $ "Unable to extract a String from this configuration: "
       ++ show c
