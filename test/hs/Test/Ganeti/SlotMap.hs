@@ -182,9 +182,9 @@ prop_occupySlots =
   forAll arbitrary $ \(sm :: SlotMap Int, cm :: CountMap Int) ->
     let smOcc = sm `occupySlots` cm
     in conjoin
-         [ printTestCase "input keys are preserved" $
+         [ counterexample "input keys are preserved" $
              all (`member` smOcc) (keyUnion sm cm)
-         , printTestCase "all keys must come from the input keys" $
+         , counterexample "all keys must come from the input keys" $
              all (`Set.member` keyUnion sm cm) (keys smOcc)
          ]
 
@@ -251,12 +251,12 @@ prop_hasSlotsFor =
           oldOverfullBucks = overfullKeys sm1
           newOverfullBucks = overfullKeys smOcc
       in conjoin
-           [ printTestCase "if there's enough extra space, then the new\
+           [ counterexample "if there's enough extra space, then the new\
                             \ overfull keys must be as before" $
              fits ==> (newOverfullBucks ==? oldOverfullBucks)
            -- Note that the other way around does not hold:
            --   (newOverfullBucks == oldOverfullBucks) ==> fits
-           , printTestCase "joining SlotMaps must not change the number of\
+           , counterexample "joining SlotMaps must not change the number of\
                             \ overfull keys (but may change their slot\
                             \ counts"
                . property $ size newOverfullBucks >= size oldOverfullBucks

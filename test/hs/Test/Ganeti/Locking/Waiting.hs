@@ -125,7 +125,7 @@ prop_NoActionWithPendingRequests =
           `suchThat` (S.member a . getPendingOwners)) $ \state ->
   forAll (arbitrary :: Gen [LockRequest TestLock]) $ \req ->
   forAll arbitrary $ \prio ->
-  printTestCase "Owners with pending requests may not update locks"
+  counterexample "Owners with pending requests may not update locks"
   . all (isBad . fst . snd)
   $ [updateLocks, updateLocksWaiting prio] <*> [a] <*> [req] <*> [state]
 
@@ -160,8 +160,8 @@ forAllBlocked predicate =
 prop_WaitingRequestsGetPending :: Property
 prop_WaitingRequestsGetPending =
   forAllBlocked $ \state owner prio req ->
-  printTestCase "After a not immediately fulfilled waiting request, owner\
-                \ must have a pending request"
+  counterexample "After a not immediately fulfilled waiting request, owner\
+                 \ must have a pending request"
   . S.member owner . getPendingOwners . fst
   $ updateLocksWaiting prio owner req state
 
@@ -176,8 +176,9 @@ prop_PendingGetFulfilledEventually =
       state'' = S.foldl (\s a -> fst $ releaseResources a s) state'
                   $ S.union oldpending blockers
       finallyOwned = listLocks  owner $ getAllocation state''
-  in printTestCase "After all blockers and old pending owners give up their\
-                   \ resources, a pending request must be granted automatically"
+  in counterexample "After all blockers and old pending owners give up their\
+                    \ resources, a pending request must be granted\
+                    \ automatically"
      $ all (requestSucceeded finallyOwned) req
 
 -- | Verify that the owner of a pending request gets notified once all blockers
@@ -193,8 +194,8 @@ prop_PendingGetNotifiedEventually =
         in (s', newnotify `S.union` tonotify)
       (_, notified) = S.foldl releaseOneOwner (state', S.empty)
                         $ S.union oldpending blockers
-  in printTestCase "After all blockers and old pending owners give up their\
-                   \ resources, a pending owner must be notified"
+  in counterexample "After all blockers and old pending owners give up their\
+                    \ resources, a pending owner must be notified"
      $ S.member owner notified
 
 -- | Verify that some progress is made after the direct blockers give up their
@@ -209,8 +210,8 @@ prop_Progress =
         let (s', newnotify) = releaseResources o s
         in (s', newnotify `S.union` tonotify)
       (_, notified) = S.foldl releaseOneOwner (state', S.empty) blockers
-  in printTestCase "Some progress must be made after all blockers release\
-                   \ their locks"
+  in counterexample "Some progress must be made after all blockers release\
+                    \ their locks"
      . not . S.null $ notified S.\\ blockers
 
 -- | Verify that the notifications send out are sound, i.e., upon notification
@@ -232,7 +233,7 @@ prop_ProgressSound =
               all (requestSucceeded . listLocks o $ getAllocation state'') r)
           . S.toList . S.filter (\(_, b, _) -> b == o)
           . getPendingRequests $ state'
-  in printTestCase "If an owner gets notified, his request must be satisfied"
+  in counterexample "If an owner gets notified, his request must be satisfied"
      . all requestFulfilled . S.toList $ notified S.\\ blockers
 
 -- | Verify that all pending requests are valid and cannot be fulfilled in
@@ -244,7 +245,7 @@ prop_PendingJustified =
   let isJustified (_, b, req) =
         genericResult (const False) (not . S.null) . snd
         . L.updateLocks b req $ getAllocation state
-  in printTestCase "Pebding requests must be good and not fulfillable"
+  in counterexample "Pending requests must be good and not fulfillable"
      . all isJustified . S.toList $ getPendingRequests state
 
 -- | Verify that extRepr . fromExtRepr = id for all valid extensional
@@ -254,8 +255,8 @@ prop_extReprPreserved =
   forAll (arbitrary :: Gen (LockWaiting TestLock TestOwner Integer)) $ \state ->
   let rep = extRepr state
       rep' = extRepr $ fromExtRepr rep
-  in printTestCase "a lock waiting obtained from an extensional representation\
-                   \ must have the same extensional representation"
+  in counterexample "a lock waiting obtained from an extensional representation\
+                    \ must have the same extensional representation"
      $ rep' == rep
 
 -- | Verify that any state is indistinguishable from its canonical version
@@ -269,7 +270,7 @@ prop_SimulateUpdateLocks =
   let state' = fromExtRepr $ extRepr state
       (finState, (result, notify)) = updateLocks owner req state
       (finState', (result', notify')) = updateLocks owner req state'
-  in printTestCase "extRepr-equal states must behave equal on updateLocks"
+  in counterexample "extRepr-equal states must behave equal on updateLocks"
      $ and [ result == result'
            , notify == notify'
            , extRepr finState == extRepr finState'
@@ -286,7 +287,7 @@ prop_SimulateUpdateLocksWaiting =
   let state' = fromExtRepr $ extRepr state
       (finState, (result, notify)) = updateLocksWaiting prio owner req state
       (finState', (result', notify')) = updateLocksWaiting prio owner req state'
-  in printTestCase "extRepr-equal states must behave equal on updateLocks"
+  in counterexample "extRepr-equal states must behave equal on updateLocks"
      $ and [ result == result'
            , notify == notify'
            , extRepr finState == extRepr finState'
@@ -309,7 +310,8 @@ prop_OpportunisticMonotone =
       oldOwned = listLocks a $ getAllocation state
       oldLocks = M.keys oldOwned
       newOwned = listLocks a $ getAllocation state'
-  in printTestCase "Opportunistic union may only increase the set of locks held"
+  in counterexample "Opportunistic union may only increase the set of locks\
+                    \ held"
      . flip all oldLocks $ \lock ->
        M.lookup lock newOwned >= M.lookup lock oldOwned
 
@@ -327,15 +329,15 @@ prop_OpportunisticAnswer =
       oldOwned = listLocks a $ getAllocation state
       newOwned = listLocks a $ getAllocation state'
       involvedLocks = M.keys oldOwned ++ map fst req
-  in conjoin [ printTestCase ("Locks not in the answer set " ++ show result
-                                ++ " may not be changed, but found "
-                                ++ show state')
+  in conjoin [ counterexample ("Locks not in the answer set " ++ show result
+                                 ++ " may not be changed, but found "
+                                 ++ show state')
                . flip all involvedLocks $ \lock ->
                  (lock `elem` result)
                  || (M.lookup lock oldOwned == M.lookup lock newOwned)
-             , printTestCase ("Locks not in the answer set " ++ show result
-                               ++ " must be as requested, but found "
-                               ++ show state')
+             , counterexample ("Locks not in the answer set " ++ show result
+                                ++ " must be as requested, but found "
+                                ++ show state')
                . flip all involvedLocks $ \lock ->
                  notElem lock result
                  || maybe False (flip elem req . (,) lock)

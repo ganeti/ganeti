@@ -142,7 +142,7 @@ prop_filter_serialisation = forAll genFilter testSerialisation
 -- | Tests that filter regexes are serialised correctly.
 prop_filterregex_instances :: FilterRegex -> Property
 prop_filterregex_instances rex =
-  printTestCase "failed JSON encoding" (testSerialisation rex)
+  counterexample "failed JSON encoding" (testSerialisation rex)
 
 -- | Tests 'ResultStatus' serialisation.
 prop_resultstatus_serialisation :: ResultStatus -> Property

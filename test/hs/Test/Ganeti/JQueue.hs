@@ -103,15 +103,15 @@ prop_JobStatus =
       -- computes status for a job with an added opcode after
       st_post_op pop = calcJobStatus (job1 { qjOps = qjOps job1 ++ [pop] })
   in conjoin
-     [ printTestCase "pre-success doesn't change status"
+     [ counterexample "pre-success doesn't change status"
        (st_pre_op op_succ ==? st1)
-     , printTestCase "post-success doesn't change status"
+     , counterexample "post-success doesn't change status"
        (st_post_op op_succ ==? st1)
-     , printTestCase "pre-error is error"
+     , counterexample "pre-error is error"
        (st_pre_op op_err ==? JOB_STATUS_ERROR)
-     , printTestCase "pre-canceling is canceling"
+     , counterexample "pre-canceling is canceling"
        (st_pre_op op_cnl ==? JOB_STATUS_CANCELING)
-     , printTestCase "pre-canceled is canceled"
+     , counterexample "pre-canceled is canceled"
        (st_pre_op op_cnd ==? JOB_STATUS_CANCELED)
      ]
 
@@ -171,10 +171,10 @@ prop_ListJobIDs = monadicIO $ do
     full_dir <- extractJobIDs $ getJobIDs [tempdir]
     invalid_dir <- getJobIDs [tempdir </> "no-such-dir"]
     return (empty_dir, sortJobIDs full_dir, invalid_dir)
-  stop $ conjoin [ printTestCase "empty directory" $ e ==? []
-                 , printTestCase "directory with valid names" $
+  stop $ conjoin [ counterexample "empty directory" $ e ==? []
+                 , counterexample "directory with valid names" $
                    f ==? sortJobIDs jobs
-                 , printTestCase "invalid directory" $ isBad g
+                 , counterexample "invalid directory" $ isBad g
                  ]
 
 -- | Tests loading jobs from disk.
@@ -211,7 +211,7 @@ prop_LoadJobs = monadicIO $ do
                  , current ==? Ganeti.BasicTypes.Ok (job, False)
                  , archived ==? Ganeti.BasicTypes.Ok (job, True)
                  , missing_current ==? noSuchJob
-                 , printTestCase "broken job" (isBad broken)
+                 , counterexample "broken job" (isBad broken)
                  ]
 
 -- | Tests computing job directories. Creates random directories,
@@ -254,15 +254,15 @@ prop_InputOpCode meta i =
 -- | Tests 'extractOpSummary'.
 prop_extractOpSummary :: MetaOpCode -> Int -> Property
 prop_extractOpSummary meta i =
-  conjoin [ printTestCase "valid opcode" $
+  conjoin [ counterexample "valid opcode" $
             extractOpSummary (ValidOpCode meta)      ==? summary
-          , printTestCase "invalid opcode, correct object" $
+          , counterexample "invalid opcode, correct object" $
             extractOpSummary (InvalidOpCode jsobj)   ==? summary
-          , printTestCase "invalid opcode, empty object" $
+          , counterexample "invalid opcode, empty object" $
             extractOpSummary (InvalidOpCode emptyo)  ==? invalid
-          , printTestCase "invalid opcode, object with invalid OP_ID" $
+          , counterexample "invalid opcode, object with invalid OP_ID" $
             extractOpSummary (InvalidOpCode invobj)  ==? invalid
-          , printTestCase "invalid opcode, not jsobject" $
+          , counterexample "invalid opcode, not jsobject" $
             extractOpSummary (InvalidOpCode jsinval) ==? invalid
           ]
     where summary = opSummary (metaOpCode meta)

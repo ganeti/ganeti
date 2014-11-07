@@ -86,7 +86,7 @@ prop_findFirst :: Property
 prop_findFirst =
   forAll (genSublist [0..5 :: Int]) $ \xs ->
   forAll (choose (-2, 7)) $ \base ->
-  printTestCase "findFirst utility function" $
+  counterexample "findFirst utility function" $
   let r = findFirst base (S.fromList xs)
       (ss, es) = partition (< r) $ dropWhile (< base) xs
       -- the prefix must be a range of numbers
@@ -157,7 +157,7 @@ prop_parseUnit (NonNegative n) =
   , parseUnit (show n ++ "G") ==? (Ok (truncate n_gb)::Result Int)
   , parseUnit (show n ++ "t") ==? (Ok (n*1048576)::Result Int)
   , parseUnit (show n ++ "T") ==? (Ok (truncate n_tb)::Result Int)
-  , printTestCase "Internal error/overflow?"
+  , counterexample "Internal error/overflow?"
     (n_mb >=0 && n_gb >= 0 && n_tb >= 0)
   , property (isBad (parseUnit (show n ++ "x")::Result Int))
   ]
@@ -209,8 +209,8 @@ prop_niceSort_single :: Property
 prop_niceSort_single =
   forAll genName $ \name ->
   conjoin
-  [ printTestCase "single string" $ [name] ==? niceSort [name]
-  , printTestCase "single plus empty" $ ["", name] ==? niceSort [name, ""]
+  [ counterexample "single string" $ [name] ==? niceSort [name]
+  , counterexample "single plus empty" $ ["", name] ==? niceSort [name, ""]
   ]
 
 -- | Tests some generic 'niceSort' properties. Note that the last test
@@ -219,10 +219,10 @@ prop_niceSort_generic :: Property
 prop_niceSort_generic =
   forAll (resize 20 arbitrary) $ \names ->
   let n_sorted = niceSort names in
-  conjoin [ printTestCase "length" $ length names ==? length n_sorted
-          , printTestCase "same strings" $ sort names ==? sort n_sorted
-          , printTestCase "idempotence" $ n_sorted ==? niceSort n_sorted
-          , printTestCase "static prefix" $ n_sorted ==?
+  conjoin [ counterexample "length" $ length names ==? length n_sorted
+          , counterexample "same strings" $ sort names ==? sort n_sorted
+          , counterexample "idempotence" $ n_sorted ==? niceSort n_sorted
+          , counterexample "static prefix" $ n_sorted ==?
               map tail (niceSort $ map (" "++) names)
           ]
 
@@ -240,26 +240,26 @@ prop_niceSortKey_equiv =
   forAll (vectorOf (length names) (arbitrary::Gen Int)) $ \numbers ->
   let n_sorted = niceSort names in
   conjoin
-  [ printTestCase "key id" $ n_sorted ==? niceSortKey id names
-  , printTestCase "key rev" $ niceSort (map reverse names) ==?
-                              map reverse (niceSortKey reverse names)
-  , printTestCase "key snd" $ n_sorted ==? map snd (niceSortKey snd $
-                                                    zip numbers names)
+  [ counterexample "key id" $ n_sorted ==? niceSortKey id names
+  , counterexample "key rev" $ niceSort (map reverse names) ==?
+                               map reverse (niceSortKey reverse names)
+  , counterexample "key snd" $ n_sorted ==? map snd (niceSortKey snd $
+                                                     zip numbers names)
   ]
 
 -- | Tests 'rStripSpace'.
 prop_rStripSpace :: NonEmptyList Char -> Property
 prop_rStripSpace (NonEmpty str) =
   forAll (resize 50 $ listOf1 (arbitrary `suchThat` isSpace)) $ \whitespace ->
-  conjoin [ printTestCase "arb. string last char is not space" $
+  conjoin [ counterexample "arb. string last char is not space" $
               case rStripSpace str of
                 [] -> True
                 xs -> not . isSpace $ last xs
-          , printTestCase "whitespace suffix is stripped" $
+          , counterexample "whitespace suffix is stripped" $
               rStripSpace str ==? rStripSpace (str ++ whitespace)
-          , printTestCase "whitespace reduced to null" $
+          , counterexample "whitespace reduced to null" $
               rStripSpace whitespace ==? ""
-          , printTestCase "idempotent on empty strings" $
+          , counterexample "idempotent on empty strings" $
               rStripSpace "" ==? ""
           ]
 
@@ -324,15 +324,15 @@ prop_trim (NonEmpty str) =
   forAll (listOf1 $ elements " \t\n\r\f") $ \whitespace ->
   forAll (choose (0, length whitespace)) $ \n ->
   let (preWS, postWS) = splitAt n whitespace in
-  conjoin [ printTestCase "arb. string first and last char are not space" $
+  conjoin [ counterexample "arb. string first and last char are not space" $
               case trim str of
                 [] -> True
                 xs -> (not . isSpace . head) xs && (not . isSpace . last) xs
-          , printTestCase "whitespace is striped" $
+          , counterexample "whitespace is striped" $
               trim str ==? trim (preWS ++ str ++ postWS)
-          , printTestCase "whitespace reduced to null" $
+          , counterexample "whitespace reduced to null" $
               trim whitespace ==? ""
-          , printTestCase "idempotent on empty strings" $
+          , counterexample "idempotent on empty strings" $
               trim "" ==? ""
           ]
 
@@ -340,17 +340,17 @@ prop_trim (NonEmpty str) =
 prop_splitRecombineEithers :: [Either Int Int] -> Property
 prop_splitRecombineEithers es =
   conjoin
-  [ printTestCase "only lefts are mapped correctly" $
+  [ counterexample "only lefts are mapped correctly" $
     splitEithers (map Left lefts) ==? (reverse lefts, emptylist, falses)
-  , printTestCase "only rights are mapped correctly" $
+  , counterexample "only rights are mapped correctly" $
     splitEithers (map Right rights) ==? (emptylist, reverse rights, trues)
-  , printTestCase "recombination is no-op" $
+  , counterexample "recombination is no-op" $
     recombineEithers splitleft splitright trail ==? Ok es
-  , printTestCase "fail on too long lefts" $
+  , counterexample "fail on too long lefts" $
     isBad (recombineEithers (0:splitleft) splitright trail)
-  , printTestCase "fail on too long rights" $
+  , counterexample "fail on too long rights" $
     isBad (recombineEithers splitleft (0:splitright) trail)
-  , printTestCase "fail on too long trail" $
+  , counterexample "fail on too long trail" $
     isBad (recombineEithers splitleft splitright (True:trail))
   ]
   where (lefts, rights) = Either.partitionEithers es

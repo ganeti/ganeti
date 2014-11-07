@@ -88,7 +88,7 @@ prop_findByName =
   in conjoin
        [ Container.findByName nl' (Node.name target) ==? Just target
        , Container.findByName nl' (Node.alias target) ==? Just target
-       , printTestCase "Found non-existing name"
+       , counterexample "Found non-existing name"
          (isNothing (Container.findByName nl' othername))
        ]
 

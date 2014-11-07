@@ -238,11 +238,11 @@ prop_reasonRateLimit =
            "queued jobs cannot be started because of rate limiting"
 
        $ conjoin
-           [ printTestCase "scheduled jobs must be subsequence" $
+           [ counterexample "scheduled jobs must be subsequence" $
                toRun `isSubsequenceOf` enqueued
 
            -- This is the key property:
-           , printTestCase "no job may exceed its bucket limits, except from\
+           , counterexample "no job may exceed its bucket limits, except from\
                             \ jobs that were already running with exceeded\
                             \ limits; those must not increase" $
                conjoin
@@ -558,10 +558,10 @@ prop_jobFiltering =
       -- bugs 25 and 27).
       in (enqueued /= []) ==> actionCovers $ conjoin
 
-           [ printTestCase "scheduled jobs must be subsequence" $
+           [ counterexample "scheduled jobs must be subsequence" $
                toRun `isSubsequenceOf` enqueued
 
-           , printTestCase "a reason for each job (not) being scheduled" .
+           , counterexample "a reason for each job (not) being scheduled" .
 
                -- All enqueued jobs must have a reason why they were (not)
                -- scheduled, determined by the filter that applies.

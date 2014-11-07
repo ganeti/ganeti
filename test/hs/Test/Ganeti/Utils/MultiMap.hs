@@ -74,8 +74,8 @@ prop_MultiMap_equality
   :: MultiMap Three Three -> MultiMap Three Three -> Property
 prop_MultiMap_equality m1 m2 =
   let testKey k = MM.lookup k m1 == MM.lookup k m2
-   in printTestCase ("Extensional equality of '" ++ show m1
-                     ++ "' and '" ++ show m2 ++ " doesn't match '=='.")
+   in counterexample ("Extensional equality of '" ++ show m1
+                      ++ "' and '" ++ show m2 ++ " doesn't match '=='.")
       $ all testKey [minBound..maxBound] ==? (m1 == m2)
 
 prop_MultiMap_serialisation :: MultiMap Int Int -> Property
