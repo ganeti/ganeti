@@ -371,9 +371,10 @@ readLockAllocation = liftM LW.getAllocation readLockWaiting
 -- | Modify the configuration while temporarily acquiring
 -- the configuration lock. If the configuration lock is held by
 -- someone else, nothing is changed and Nothing is returned.
-modifyConfigWithLock :: (ConfigState -> ConfigState)
-                        -> State TempResState ()
-                        -> WConfdMonad (Maybe ())
+modifyConfigWithLock
+  :: (TempResState -> ConfigState -> AtomicModifyMonad ConfigState)
+     -> State TempResState ()
+     -> WConfdMonad (Maybe ())
 modifyConfigWithLock f tempres = do
   now <- liftIO getClockTime
   dh <- lift . WConfdMonadInt $ ask
@@ -383,6 +384,11 @@ modifyConfigWithLock f tempres = do
                      , ciLockFile = dhLivelock dh
                      , ciPid = pid
                      }
+  let modCS ds@(DaemonState { dsTempRes = tr }) =
+        mapMOf2
+          dsConfigStateL
+          (\cs -> liftM (unpackConfigResult now cs . (,) ())  (f tr cs))
+          ds
   maybeDist <- bracket
     (atomicModifyWithLens (dhDaemonState dh) dsLockWaitingL
       $ swap . LW.updateLocks cid [LA.requestExclusive ConfigLock])
@@ -397,10 +403,8 @@ modifyConfigWithLock f tempres = do
         _ -> return ())
     (\(res, _) -> case res of
         Ok s | S.null s ->do
-          ((), modif, dist) <- atomicModifyWithLens (dhDaemonState dh)
-                                 dsConfigStateL
-                                 (\cs -> unpackConfigResult now cs . (,) ()
-                                          $ f cs)
+          ((), modif, dist) <- atomicModifyIORefErrLog (dhDaemonState dh)
+                                 (liftM swap . modCS)
           atomicModifyWithLens (dhDaemonState dh) dsTempResL $ runState tempres
           return $ Just (modif, dist)
         _ -> return Nothing)
