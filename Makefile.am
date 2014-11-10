@@ -1287,7 +1287,7 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile $(HASKELL_PACKAGE_VERSIONS_FILE) 
 		-itest/hs \
 		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
+		$(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
 # Since ghc -M does not generate dependency line for object files, dependencies
 # from a target executable seed object (e.g. src/hluxid.o) to objects which
 # finally will be linked to the target object (e.g. src/Ganeti/Daemon.o) are
@@ -1341,14 +1341,14 @@ test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
 		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
+		$(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
 %.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@echo '[GHC]: $@ <- $^'
 	@$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
 		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
+		$(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
 # For TH+profiling we need to compile twice: Once without profiling,
 # and then once with profiling. See
@@ -1360,7 +1360,7 @@ if HPROFILE
 	  $(HPROFFLAGS) \
 		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) \
+		$(HS_REGEX_PCRE) $(HEXTRA_COMBINED) \
 		$(@:%.$(HPROF_SUFFIX)_o=%.hs)
 endif
 
@@ -1373,7 +1373,7 @@ endif
 	@$(GHC) -c $(HTEST_FLAGS) \
 		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
+		$(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
 
 %.hi: %.o ;
 %.$(HTEST_SUFFIX)_hi: %.$(HTEST_SUFFIX)_o ;
@@ -1385,14 +1385,14 @@ $(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
 	$(GHC) $(HFLAGS) $(HPROFFLAGS) \
 		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
+		$(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 else
 $(HS_SRC_PROGS): %: %.o | stamp-directories
 	@echo '[GHC-link]: $@'
 	$(GHC) $(HFLAGS) $(HFLAGS_DYNAMIC) \
 		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
+		$(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 endif
 	@rm -f $(notdir $@).tix
 	@touch "$@"
@@ -1408,7 +1408,7 @@ $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
 	$(GHC) $(HTEST_FLAGS) \
 		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
-		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
+		$(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
 
@@ -2797,9 +2797,6 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	export LC_ALL=en_US.UTF-8; \
 	OPTGHC="--optghc=-isrc --optghc=-itest/hs"; \
 	OPTGHC="$$OPTGHC --optghc=-optP-include --optghc=-optP$(HASKELL_PACKAGE_VERSIONS_FILE)"; \
-	if [ "$(HS_PARALLEL3)" ]; \
-	then OPTGHC="$$OPTGHC --optghc=$(HS_PARALLEL3)"; \
-	fi; \
 	if [ "$(HS_REGEX_PCRE)" ]; \
 	then OPTGHC="$$OPTGHC --optghc=$(HS_REGEX_PCRE)"; \
 	fi; \
@@ -2824,7 +2821,7 @@ TAGS: $(GENERATED_FILES)
 		-osuf tags.o \
 		-hisuf tags.hi \
     -lcurl \
-	  $(HS_PARALLEL3) $(HS_REGEX_PCRE) \
+	  $(HS_REGEX_PCRE) \
 	  $(HS_LIBTEST_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \

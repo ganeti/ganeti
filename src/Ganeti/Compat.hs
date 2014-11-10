@@ -52,7 +52,7 @@ import qualified Data.Bits
 -- This wraps either the old or the new name of the function,
 -- depending on the detected library version.
 rwhnf :: Control.Parallel.Strategies.Strategy a
-#ifdef PARALLEL3
+#if MIN_VERSION_parallel(3,0,0)
 rwhnf = Control.Parallel.Strategies.rseq
 #else
 rwhnf = Control.Parallel.Strategies.rwhnf
