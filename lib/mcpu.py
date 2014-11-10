@@ -487,6 +487,7 @@ class Processor(object):
 
     """
     write_count = self.cfg.write_count
+    lu.cfg.OutDate()
     lu.CheckPrereq()
 
     hm = self.BuildHooksManager(lu)
