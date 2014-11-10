@@ -287,11 +287,12 @@ case_matchPredicate = do
                           , opPriority = OpPrioHigh
                           , opDepends = Just []
                           , opComment = Nothing
-                          , opReason = [("source1", "reason1", 1234)]}
-                          , metaOpCode = OpClusterRename
-                              { opName = clusterName
-                              }
-                        }
+                          , opReason = [("source1", "reason1", 1234)]
+                          }
+                      , metaOpCode = OpClusterRename
+                          { opName = clusterName
+                          }
+                      }
                   , qoStatus = OP_STATUS_QUEUED
                   , qoResult = JSNull
                   , qoLog = []
