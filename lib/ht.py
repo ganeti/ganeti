@@ -458,7 +458,7 @@ def TTupleOf(*val_types):
      elements match the given types.
 
   """
-  desc = WithDesc("Tuple of %s" % (Parens(val_types), ))
+  desc = WithDesc("Tuple of %s" % Parens(', '.join(str(v) for v in val_types)))
   return desc(TAnd(TOr(TTuple, TList), TIsLength(len(val_types)),
                    TItems(val_types)))
 
@@ -556,12 +556,13 @@ def TItems(items):
                                        for (check, i) in zip(items, value)))
 
 
+TMaxValue = lambda max: WithDesc('Less than %s' % max)(lambda val: val < max)
 TAllocPolicy = TElemOf(constants.VALID_ALLOC_POLICIES)
 TCVErrorCode = TElemOf(constants.CV_ALL_ECODES_STRINGS)
 TQueryResultCode = TElemOf(constants.RS_ALL)
 TExportTarget = TOr(TNonEmptyString, TList)
 TExportMode = TElemOf(constants.EXPORT_MODES)
-TDiskIndex = TAnd(TNonNegativeInt, lambda val: val < constants.MAX_DISKS)
+TDiskIndex = TAnd(TNonNegativeInt, TMaxValue(constants.MAX_DISKS))
 TReplaceDisksMode = TElemOf(constants.REPLACE_MODES)
 TDiskTemplate = TElemOf(constants.DISK_TEMPLATES)
 TEvacMode = TElemOf(constants.NODE_EVAC_MODES)
