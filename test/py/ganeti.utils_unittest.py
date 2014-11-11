@@ -33,8 +33,11 @@
 import errno
 import fcntl
 import glob
+import mock
+import operator
 import os
 import os.path
+import random
 import re
 import shutil
 import signal
@@ -44,14 +47,13 @@ import tempfile
 import time
 import unittest
 import warnings
-import random
-import operator
 
 import testutils
 from ganeti import constants
 from ganeti import compat
 from ganeti import utils
 from ganeti import errors
+from ganeti import constants
 from ganeti.utils import RunCmd, \
      FirstFree, \
      RunParts
@@ -168,6 +170,7 @@ class FieldSetTestCase(unittest.TestCase):
     self.failIf(f.Matches("b/1"))
     self.failIf(f.NonMatching(["b12", "c"]))
     self.failUnless(f.NonMatching(["a", "1"]))
+
 
 class TestForceDictType(unittest.TestCase):
   """Test case for ForceDictType"""
@@ -397,6 +400,92 @@ class TestValidateDeviceNames(unittest.TestCase):
     disks = [{constants.IDISK_NAME: "name1"}, {constants.IDISK_NAME: "name1"}]
     self.assertRaises(errors.OpPrereqError, utils.ValidateDeviceNames,
                       "disk", disks)
+
+
+def Disk(dev_type):
+  return mock.Mock(dev_type=dev_type)
+
+
+def Drbd():
+  return Disk(constants.DT_DRBD8)
+
+
+def Rbd():
+  return Disk(constants.DT_RBD)
+
+
+class AllDiskTemplateTest(unittest.TestCase):
+  def testAllDiskless(self):
+    self.assertTrue(utils.AllDiskOfType([], [constants.DT_DISKLESS]))
+
+  def testOrDiskless(self):
+    self.assertTrue(utils.AllDiskOfType(
+        [], [constants.DT_DISKLESS, constants.DT_DRBD8]))
+
+  def testOrDrbd(self):
+    self.assertTrue(utils.AllDiskOfType(
+        [Drbd()], [constants.DT_DISKLESS, constants.DT_DRBD8]))
+
+  def testOrRbd(self):
+    self.assertTrue(utils.AllDiskOfType(
+        [Rbd()], [constants.DT_RBD, constants.DT_DRBD8]))
+
+  def testNotRbd(self):
+    self.assertFalse(utils.AllDiskOfType(
+        [Rbd()], [constants.DT_DRBD8]))
+
+  def testNotDiskless(self):
+    self.assertFalse(utils.AllDiskOfType(
+        [], [constants.DT_DRBD8]))
+
+  def testNotRbdDiskless(self):
+    self.assertFalse(utils.AllDiskOfType(
+        [Rbd()], [constants.DT_DISKLESS]))
+
+  def testHeterogeneous(self):
+    self.assertFalse(utils.AllDiskOfType(
+        [Rbd(), Drbd()], [constants.DT_DRBD8]))
+
+  def testHeterogeneousDiskless(self):
+    self.assertFalse(utils.AllDiskOfType(
+        [Rbd(), Drbd()], [constants.DT_DISKLESS]))
+
+
+class AnyDiskTemplateTest(unittest.TestCase):
+  def testAnyDiskless(self):
+    self.assertTrue(utils.AnyDiskOfType([], [constants.DT_DISKLESS]))
+
+  def testOrDiskless(self):
+    self.assertTrue(utils.AnyDiskOfType(
+        [], [constants.DT_DISKLESS, constants.DT_DRBD8]))
+
+  def testOrDrbd(self):
+    self.assertTrue(utils.AnyDiskOfType(
+        [Drbd()], [constants.DT_DISKLESS, constants.DT_DRBD8]))
+
+  def testOrRbd(self):
+    self.assertTrue(utils.AnyDiskOfType(
+        [Rbd()], [constants.DT_RBD, constants.DT_DRBD8]))
+
+  def testNotRbd(self):
+    self.assertFalse(utils.AnyDiskOfType(
+        [Rbd()], [constants.DT_DRBD8]))
+
+  def testNotDiskless(self):
+    self.assertFalse(utils.AnyDiskOfType(
+        [], [constants.DT_DRBD8]))
+
+  def testNotRbdDiskless(self):
+    self.assertFalse(utils.AnyDiskOfType(
+        [Rbd()], [constants.DT_DISKLESS]))
+
+  def testHeterogeneous(self):
+    self.assertTrue(utils.AnyDiskOfType(
+        [Rbd(), Drbd()], [constants.DT_DRBD8]))
+
+  def testHeterogeneousDiskless(self):
+    self.assertFalse(utils.AnyDiskOfType(
+        [Rbd(), Drbd()], [constants.DT_DISKLESS]))
 
 
 if __name__ == "__main__":
