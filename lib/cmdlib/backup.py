@@ -39,13 +39,12 @@ from ganeti import errors
 from ganeti import locking
 from ganeti import masterd
 from ganeti import utils
-from ganeti.utils import retry
 
 from ganeti.cmdlib.base import NoHooksLU, LogicalUnit
-from ganeti.cmdlib.common import CheckNodeOnline, ExpandNodeUuidAndName, \
-  IsInstanceRunning, DetermineImageSize
+from ganeti.cmdlib.common import CheckNodeOnline, ExpandNodeUuidAndName
+from ganeti.cmdlib.instance_helpervm import RunWithHelperVM
 from ganeti.cmdlib.instance_storage import StartInstanceDisks, \
-  ShutdownInstanceDisks, TemporaryDisk, ImageDisks
+  ShutdownInstanceDisks
 from ganeti.cmdlib.instance_utils import GetClusterDomainSecret, \
   BuildInstanceHookEnvByObject, CheckNodeNotDrained, RemoveInstance, \
   CheckCompressionTool
@@ -374,54 +373,16 @@ class LUBackupExport(LogicalUnit):
     assert self.op.zeroing_timeout_per_mib is not None
 
     zeroing_image = self.cfg.GetZeroingImage()
-    src_node_uuid = self.instance.primary_node
-
-    try:
-      disk_size = DetermineImageSize(self, zeroing_image, src_node_uuid)
-    except errors.OpExecError, err:
-      raise errors.OpExecError("Could not create temporary disk for zeroing:"
-                               " %s", err)
 
     # Calculate the sum prior to adding the temporary disk
     instance_disks_size_sum = self._InstanceDiskSizeSum()
+    timeout = self.op.zeroing_timeout_fixed + \
+              self.op.zeroing_timeout_per_mib * instance_disks_size_sum
 
-    with TemporaryDisk(self,
-                       self.instance,
-                       [(constants.DT_PLAIN, constants.DISK_RDWR, disk_size)],
-                       feedback_fn):
-      feedback_fn("Activating instance disks")
-      StartInstanceDisks(self, self.instance, False)
-
-      feedback_fn("Imaging disk with zeroing image")
-      ImageDisks(self, self.instance, zeroing_image)
-
-      feedback_fn("Starting instance with zeroing image")
-      result = self.rpc.call_instance_start(src_node_uuid,
-                                            (self.instance, [], []),
-                                            False, self.op.reason)
-      result.Raise("Could not start instance %s when using the zeroing image "
-                   "%s" % (self.instance.name, zeroing_image))
-
-      # First wait for the instance to start up
-      running_check = lambda: IsInstanceRunning(self, self.instance,
-                                                prereq=False)
-      instance_up = retry.SimpleRetry(True, running_check, 5.0,
-                                      self.op.shutdown_timeout)
-      if not instance_up:
-        raise errors.OpExecError("Could not boot instance when using the "
-                                 "zeroing image %s" % zeroing_image)
-
-      feedback_fn("Instance is up, now awaiting shutdown")
-
-      # Then for it to be finished, detected by its shutdown
-      timeout = self.op.zeroing_timeout_fixed + \
-                self.op.zeroing_timeout_per_mib * instance_disks_size_sum
-      instance_up = retry.SimpleRetry(False, running_check, 20.0, timeout)
-      if instance_up:
-        self.LogWarning("Zeroing not completed prior to timeout; instance will"
-                        "be shut down forcibly")
-
-    feedback_fn("Zeroing completed!")
+    RunWithHelperVM(self, self.instance, zeroing_image,
+                    self.op.shutdown_timeout, timeout,
+                    log_prefix="Zeroing free disk space",
+                    feedback_fn=feedback_fn)
 
   def StartInstance(self, feedback_fn, src_node_uuid):
     """Send the node instructions to start the instance.

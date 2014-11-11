@@ -45,7 +45,6 @@ from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
 from ganeti import utils
-from ganeti.utils import retry
 from ganeti import serializer
 
 from ganeti.cmdlib.base import LogicalUnit
@@ -56,14 +55,14 @@ from ganeti.cmdlib.common import \
   IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, \
   ExpandNodeUuidAndName, \
   IsValidDiskAccessModeCombination, \
-  CheckDiskTemplateEnabled, CheckIAllocatorOrNode, CheckOSImage, \
-  IsInstanceRunning, DetermineImageSize
+  CheckDiskTemplateEnabled, CheckIAllocatorOrNode, CheckOSImage
+from ganeti.cmdlib.instance_helpervm import RunWithHelperVM
 from ganeti.cmdlib.instance_storage import CalculateFileStorageDir, \
   CheckNodesFreeDiskPerVG, CheckRADOSFreeSpace, CheckSpindlesExclusiveStorage, \
   ComputeDiskSizePerVG, CreateDisks, \
-  GenerateDiskTemplate, CommitDisks, StartInstanceDisks, \
+  GenerateDiskTemplate, CommitDisks, \
   WaitForSync, ComputeDisks, \
-  TemporaryDisk, ImageDisks, WipeDisks
+  ImageDisks, WipeDisks
 from ganeti.cmdlib.instance_utils import \
   CheckNodeNotDrained, CopyLockList, \
   ReleaseLocks, CheckNodeVmCapable, \
@@ -1395,8 +1394,6 @@ class LUInstanceCreate(LogicalUnit):
       raise errors.OpExecError("Cannot create install instance because an"
                                " install image has not been specified")
 
-    disk_size = DetermineImageSize(self, install_image, instance.primary_node)
-
     env = self.GetOsInstallPackageEnvironment(
       instance,
       constants.OS_SCRIPT_CREATE_UNTRUSTED)
@@ -1405,41 +1402,11 @@ class LUInstanceCreate(LogicalUnit):
                    osparams_private=self.op.osparams_private,
                    osparams_secret=self.op.osparams_secret)
 
-    with TemporaryDisk(self,
-                       instance,
-                       [(constants.DT_PLAIN, constants.DISK_RDWR, disk_size)],
-                       feedback_fn):
-      feedback_fn("Activating instance disks")
-      StartInstanceDisks(self, instance, False)
-
-      feedback_fn("Imaging disk with install image")
-      ImageDisks(self, instance, install_image)
-
-      feedback_fn("Starting instance with install image")
-      result = self.rpc.call_instance_start(instance.primary_node,
-                                            (instance, [], []),
-                                            False, self.op.reason)
-      result.Raise("Could not start instance '%s' with the install image '%s'"
-                   % (instance.name, install_image))
-
-      # First wait for the instance to start up
-      running_check = lambda: IsInstanceRunning(self, instance, prereq=False)
-      instance_up = retry.SimpleRetry(True, running_check, 5.0,
-                                      self.op.helper_startup_timeout)
-      if not instance_up:
-        raise errors.OpExecError("Could not boot instance using install image"
-                                 " '%s'" % install_image)
-
-      feedback_fn("Instance is up, now awaiting shutdown")
-
-      # Then for it to be finished, detected by its shutdown
-      instance_up = retry.SimpleRetry(False, running_check, 20.0,
-                                      self.op.helper_shutdown_timeout)
-      if instance_up:
-        self.LogWarning("Installation not completed prior to timeout, shutting"
-                        " down instance forcibly")
-
-    feedback_fn("Installation complete")
+    RunWithHelperVM(self, instance, install_image,
+                    self.op.helper_startup_timeout,
+                    self.op.helper_shutdown_timeout,
+                    log_prefix="Running OS create script",
+                    feedback_fn=feedback_fn)
 
   def Exec(self, feedback_fn):
     """Create and add the instance to the cluster.
