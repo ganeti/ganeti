@@ -2599,6 +2599,7 @@ hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	  --ignore "Use &&" \
 	  --ignore "Use void" \
 	  --ignore "Reduce duplication" \
+	  --ignore "Use import/export shortcut" \
 	  --hint src/lint-hints \
 	  $(filter-out $(HLINT_EXCLUDES),$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
 	@if [ ! -f doc/hs-lint.html ]; then \
