@@ -39,7 +39,7 @@ module Ganeti.Objects.Disk where
 import Control.Applicative ((<*>), (<$>))
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.List (isPrefixOf, isInfixOf)
-import System.Time (ClockTime)
+import Language.Haskell.TH.Syntax
 import Text.JSON (showJSON, readJSON, JSON, JSValue(..))
 import qualified Text.JSON as J
 
@@ -238,29 +238,12 @@ decodeDLId obj lid = do
       fail "Retrieved 'diskless' disk."
 
 -- | Disk data structure.
---
--- This is declared manually as it's a recursive structure, and our TH
--- code currently can't build it.
-data Disk = Disk
-  { diskLogicalId  :: DiskLogicalId
-  , diskChildren   :: [Disk]
-  , diskNodes      :: [String]
-  , diskIvName     :: String
-  , diskSize       :: Int
-  , diskMode       :: DiskMode
-  , diskName       :: Maybe String
-  , diskSpindles   :: Maybe Int
-  , diskParams     :: Maybe DiskParams
-  , diskUuid       :: String
-  , diskSerial     :: Int
-  , diskCtime      :: ClockTime
-  , diskMtime      :: ClockTime
-  } deriving (Show, Eq)
 
-$(buildObjectSerialisation "Disk" $
+$(buildObject "Disk" "disk" $
   [ customField 'decodeDLId 'encodeFullDLId ["dev_type"] $
       simpleField "logical_id"    [t| DiskLogicalId   |]
-  , defaultField  [| [] |] $ simpleField "children" [t| [Disk] |]
+  , defaultField  [| [] |]
+      $ simpleField "children" (return . AppT ListT . ConT $ mkName "Disk")
   , defaultField  [| [] |] $ simpleField "nodes" [t| [String] |]
   , defaultField [| "" |] $ simpleField "iv_name" [t| String |]
   , simpleField "size" [t| Int |]
