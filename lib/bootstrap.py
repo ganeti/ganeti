@@ -487,7 +487,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
       for entry in os.listdir(ddir):
         if not os.path.isdir(os.path.join(ddir, entry)):
           raise errors.OpPrereqError(
-            "%s contains non-directory enries like %s. Remove left-overs of an"
+            "%s contains non-directory entries like %s. Remove left-overs of an"
             " old cluster before initialising a new one" % (ddir, entry),
             errors.ECODE_STATE)
 
