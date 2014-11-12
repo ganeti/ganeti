@@ -236,9 +236,6 @@ to install them.
 
 .. _cabal-note:
 .. note::
-  If one of the cabal packages fails to install due to unfulfilled
-  dependencies, you can try enabling symlinks in ``~/.cabal/config``.
-
   Make sure that your ``~/.cabal/bin`` directory (or whatever else
   is defined as ``bindir``) is in your ``PATH``.
 
