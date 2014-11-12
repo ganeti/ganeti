@@ -1062,8 +1062,8 @@ buildObjectWithForthcoming sname field_pfx fields = do
                  , Clause [ConP (mkName forth_nm) [VarP x]]
                     (NormalB show_forth_body) []
                  ]
-      instdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
-                 [rdjson, shjson]
+      instJSONdecl = InstanceD [] (AppT (ConT ''JSON.JSON) (ConT name))
+                     [rdjson, shjson]
   accessors <- liftM concat . flip mapM fields
                  $ buildAccessor (mkName forth_nm) forth_pfx
                                  (mkName real_nm) real_pfx
@@ -1072,8 +1072,25 @@ buildObjectWithForthcoming sname field_pfx fields = do
               $ buildLens (mkName forth_nm, mkName forth_data_nm)
                           (mkName real_nm, mkName real_data_nm)
                           name field_pfx (length fields)
-  return $ concreteDecls ++ forthcomingDecls ++ [declD, instdecl]
-           ++ accessors ++ lenses
+  xs <- newName "xs"
+  fromDictWKeysbody <- [| if ("forthcoming", JSON.JSBool True) `elem` $(varE xs)
+                            then liftM $(conE $ mkName forth_nm)
+                                   (fromDictWKeys $(varE xs))
+                            else liftM $(conE $ mkName real_nm)
+                                   (fromDictWKeys $(varE xs)) |]
+  todictx_r <- [| toDict $(varE x) |]
+  todictx_f <- [| ("forthcoming", JSON.JSBool True) : toDict $(varE x) |]
+  let todict = FunD 'toDict [ Clause [ConP (mkName real_nm) [VarP x]]
+                               (NormalB todictx_r) []
+                            , Clause [ConP (mkName forth_nm) [VarP x]]
+                               (NormalB todictx_f) []
+                            ]
+      fromdict = FunD 'fromDictWKeys [ Clause [VarP xs]
+                                       (NormalB fromDictWKeysbody) [] ]
+      instDict = InstanceD [] (AppT (ConT ''DictObject) (ConT name))
+                 [todict, fromdict]
+  return $ concreteDecls ++ forthcomingDecls ++ [declD, instJSONdecl]
+           ++ accessors ++ lenses ++ [instDict]
 
 -- | Generates an object definition: data type and its JSON instance.
 buildObjectSerialisation :: String -> [Field] -> Q [Dec]
