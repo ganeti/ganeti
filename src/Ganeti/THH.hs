@@ -1089,8 +1089,10 @@ buildObjectWithForthcoming sname field_pfx fields = do
                                        (NormalB fromDictWKeysbody) [] ]
       instDict = InstanceD [] (AppT (ConT ''DictObject) (ConT name))
                  [todict, fromdict]
+  instArray <- genArrayObjectInstance name
+                 (simpleField "forthcoming" [t| Bool |] : fields)
   return $ concreteDecls ++ forthcomingDecls ++ [declD, instJSONdecl]
-           ++ accessors ++ lenses ++ [instDict]
+           ++ accessors ++ lenses ++ [instDict, instArray]
 
 -- | Generates an object definition: data type and its JSON instance.
 buildObjectSerialisation :: String -> [Field] -> Q [Dec]
