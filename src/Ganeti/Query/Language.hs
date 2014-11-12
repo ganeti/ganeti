@@ -72,7 +72,7 @@ import Data.Ratio (numerator, denominator)
 import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types
 import Text.JSON
-#ifndef NO_REGEX_PCRE
+#ifdef VERSION_regex_pcre
 import qualified Text.Regex.PCRE as PCRE
 #endif
 
@@ -167,7 +167,7 @@ instance JSON ItemType where
 -- * Sub data types for query2 queries and responses.
 
 -- | Internal type of a regex expression (not exported).
-#ifndef NO_REGEX_PCRE
+#ifdef VERSION_regex_pcre
 type RegexType = PCRE.Regex
 #else
 type RegexType = ()
@@ -332,7 +332,7 @@ data FilterRegex = FilterRegex
 -- regular expression on the initialisation of the data structure;
 -- this might fail, if the RE is not well-formed.
 mkRegex :: (Monad m) => String -> m FilterRegex
-#ifndef NO_REGEX_PCRE
+#ifdef VERSION_regex_pcre
 mkRegex str = do
   compiled <- case PCRE.getVersion of
                 Nothing -> fail $ "regex-pcre library compiled without" ++

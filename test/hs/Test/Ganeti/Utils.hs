@@ -47,7 +47,7 @@ import Data.Maybe (listToMaybe)
 import qualified Data.Set as S
 import System.Time
 import qualified Text.JSON as J
-#ifndef NO_REGEX_PCRE
+#ifdef VERSION_regex_pcre
 import Text.Regex.PCRE
 #endif
 
@@ -269,7 +269,7 @@ case_new_uuid = do
   uuid <- newUUID
   assertBool "newUUID" $ isUUID uuid
 
-#ifndef NO_REGEX_PCRE
+#ifdef VERSION_regex_pcre
 {-# ANN case_new_uuid_regex "HLint: ignore Use camelCase" #-}
 
 -- | Tests that the newUUID function produces valid UUIDs.
@@ -390,7 +390,7 @@ testSuite "Utils"
             , 'prop_rStripSpace
             , 'prop_trim
             , 'case_new_uuid
-#ifndef NO_REGEX_PCRE
+#ifdef VERSION_regex_pcre
             , 'case_new_uuid_regex
 #endif
             , 'prop_clockTimeToString

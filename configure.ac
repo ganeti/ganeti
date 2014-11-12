@@ -691,8 +691,7 @@ HS_NODEV=
 CONFD_PKG=
 # if a new confd dependency is needed, add it here like:
 # AC_GHC_PKG_CHECK([somepkg], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG somepkg"])
-HS_REGEX_PCRE=-DNO_REGEX_PCRE
-AC_GHC_PKG_CHECK([regex-pcre], [HS_REGEX_PCRE=],
+AC_GHC_PKG_CHECK([regex-pcre], [],
                  [HS_NODEV=1; CONFD_PKG="$CONFD_PKG regex-pcre"])
 
 has_confd=False
@@ -708,7 +707,6 @@ if test "$enable_confd" != no; then
                                  $CONFD_PKG]))
   fi
 fi
-AC_SUBST(HS_REGEX_PCRE)
 if test "$has_confd" = True; then
   AC_MSG_NOTICE([Enabling confd usage])
 fi
@@ -778,7 +776,6 @@ if test "$enable_metadata" != no; then
                                  $METAD_PKG]))
   fi
 fi
-AC_SUBST(HS_REGEX_PCRE)
 if test "$has_metad" = True; then
   AC_MSG_NOTICE([Enabling metadata usage])
 fi
