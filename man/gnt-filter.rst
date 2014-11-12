@@ -211,7 +211,7 @@ Limiting the number of simultaneous instance disk replacements to 10 in
 order to throttle replication traffic.
 ::
 
-  gnt-filter add '--predicates=[["opcode", ["=", "OP_ID", "OP_INSTNCE_REPLACE_DISKS"]]]' '--action=RATE_LIMIT 10'
+  gnt-filter add '--predicates=[["opcode", ["=", "OP_ID", "OP_INSTANCE_REPLACE_DISKS"]]]' '--action=RATE_LIMIT 10'
 
 .. vim: set textwidth=72 :
 .. Local Variables:
