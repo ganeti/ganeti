@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 {-| Implementation of the Ganeti configuration database.
 
 -}
@@ -80,6 +82,7 @@ module Ganeti.Config
     ) where
 
 import Control.Applicative
+import Control.Arrow ((&&&))
 import Control.Monad
 import Control.Monad.State
 import qualified Data.Foldable as F
@@ -135,7 +138,7 @@ withMissingParam = maybe . Bad . ParameterError
 computeDiskNodes :: Disk -> S.Set String
 computeDiskNodes dsk =
   case diskLogicalId dsk of
-    LIDDrbd8 nodeA nodeB _ _ _ _ -> S.fromList [nodeA, nodeB]
+    Just (LIDDrbd8 nodeA nodeB _ _ _ _) -> S.fromList [nodeA, nodeB]
     _ -> S.empty
 
 -- | Computes all disk-related nodes of an instance. For non-DRBD,
@@ -380,7 +383,7 @@ getInstPrimaryNode cfg name =
 getDrbdDiskNodes :: ConfigData -> Disk -> [Node]
 getDrbdDiskNodes cfg disk =
   let retrieved = case diskLogicalId disk of
-                    LIDDrbd8 nodeA nodeB _ _ _ _ ->
+                    Just (LIDDrbd8 nodeA nodeB _ _ _ _) ->
                       justOk [getNode cfg nodeA, getNode cfg nodeB]
                     _                            -> []
   in retrieved ++ concatMap (getDrbdDiskNodes cfg) (diskChildren disk)
@@ -415,9 +418,9 @@ collectFromDrbdDisks
   -> Disk -> a
 collectFromDrbdDisks f = col
   where
-    col Disk { diskLogicalId = (LIDDrbd8 nA nB port mA mB secret)
-             , diskChildren = ch
-             } = f nA nB port mA mB secret <> F.foldMap col ch
+    col (diskLogicalId &&& diskChildren ->
+           (Just (LIDDrbd8 nA nB port mA mB secret), ch)) =
+             f nA nB port mA mB secret <> F.foldMap col ch
     col d = F.foldMap col (diskChildren d)
 
 -- | Returns the DRBD secrets of a given 'Disk'
@@ -435,7 +438,7 @@ getDrbdMinorsForNode node disk =
   let child_minors = concatMap (getDrbdMinorsForNode node) (diskChildren disk)
       this_minors =
         case diskLogicalId disk of
-          LIDDrbd8 nodeA nodeB _ minorA minorB _
+          Just (LIDDrbd8 nodeA nodeB _ minorA minorB _)
             | nodeA == node -> [(minorA, nodeB)]
             | nodeB == node -> [(minorB, nodeA)]
           _ -> []
@@ -566,13 +569,12 @@ getInstanceLVsByNode cd inst =
     lvsByNode :: String -> [Disk] -> [(String, LogicalVolume)]
     lvsByNode node = concatMap (lvsByNode1 node)
     lvsByNode1 :: String -> Disk -> [(String, LogicalVolume)]
-    lvsByNode1 _    Disk { diskLogicalId = (LIDDrbd8 nA nB _ _ _ _)
-                         , diskChildren = ch
-                         } = lvsByNode nA ch ++ lvsByNode nB ch
-    lvsByNode1 node Disk { diskLogicalId = (LIDPlain lv) }
-                           = [(node, lv)]
-    lvsByNode1 node Disk { diskChildren = ch }
-                           = lvsByNode node ch
+    lvsByNode1 _ (diskLogicalId &&& diskChildren
+                   -> (Just (LIDDrbd8 nA nB _ _ _ _), ch)) =
+                         lvsByNode nA ch ++ lvsByNode nB ch
+    lvsByNode1 node (diskLogicalId -> (Just (LIDPlain lv))) =
+                         [(node, lv)]
+    lvsByNode1 node (diskChildren -> ch) = lvsByNode node ch
 
 getAllLVs :: ConfigData -> ErrorResult (S.Set LogicalVolume)
 getAllLVs cd = mconcat <$> mapM (liftM MM.values . getInstanceLVsByNode cd)

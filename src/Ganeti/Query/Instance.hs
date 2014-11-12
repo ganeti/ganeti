@@ -381,10 +381,10 @@ getDiskSizeRequirements cfg inst =
   getSizes :: Disk -> Int
   getSizes disk =
     case instDiskTemplate inst of
-      Just DTDrbd8    -> diskSize disk + C.drbdMetaSize
+      Just DTDrbd8    -> fromMaybe 0 (diskSize disk) + C.drbdMetaSize
       Just DTDiskless -> 0
       Just DTBlock    -> 0
-      _               -> diskSize disk
+      _               -> fromMaybe 0 (diskSize disk)
 
 -- | Get a list of disk sizes for an instance
 getDiskSizes :: ConfigData -> Instance -> ResultEntry

@@ -239,7 +239,7 @@ decodeDLId obj lid = do
 
 -- | Disk data structure.
 
-$(buildObject "Disk" "disk" $
+$(buildObjectWithForthcoming "Disk" "disk" $
   [ customField 'decodeDLId 'encodeFullDLId ["dev_type"] $
       simpleField "logical_id"    [t| DiskLogicalId   |]
   , defaultField  [| [] |]
@@ -265,7 +265,7 @@ instance UuidObject Disk where
 includesLogicalId :: LogicalVolume -> Disk -> Bool
 includesLogicalId lv disk =
   case diskLogicalId disk of
-    LIDPlain lv' -> lv' == lv
-    LIDDrbd8 {} ->
+    Just (LIDPlain lv') -> lv' == lv
+    Just (LIDDrbd8 {}) ->
       any (includesLogicalId lv) $ diskChildren disk
     _ -> False

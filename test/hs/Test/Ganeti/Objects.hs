@@ -121,11 +121,20 @@ instance Arbitrary DiskLogicalId where
 -- properties, we only generate disks with no children (FIXME), as
 -- generating recursive datastructures is a bit more work.
 instance Arbitrary Disk where
-  arbitrary = Disk <$> arbitrary <*> pure [] <*> arbitrary
+  arbitrary =
+   frequency [ (2, liftM RealDisk $ RealDiskData <$> arbitrary
+                   <*> pure [] <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
                    <*> arbitrary <*> arbitrary <*> arbitrary
-                   <*> arbitrary
+                   <*> arbitrary)
+             , (1, liftM ForthcomingDisk $ ForthcomingDiskData <$> arbitrary
+                   <*> pure [] <*> arbitrary
+                   <*> arbitrary <*> arbitrary <*> arbitrary
+                   <*> arbitrary <*> arbitrary <*> arbitrary
+                   <*> arbitrary <*> arbitrary <*> arbitrary
+                   <*> arbitrary)
+             ]
 
 -- FIXME: we should generate proper values, >=0, etc., but this is
 -- hard for partial ones, where all must be wrapped in a 'Maybe'
@@ -276,8 +285,8 @@ genDiskWithChildren num_children = do
   uuid <- genName
   serial <- arbitrary
   time <- arbitrary
-  return $
-    Disk logicalid children nodes ivname size mode name
+  return . RealDisk $
+    RealDiskData logicalid children nodes ivname size mode name
       spindles params uuid serial time time
 
 genDisk :: Gen Disk
@@ -714,8 +723,9 @@ caseIncludeLogicalIdPlain =
       lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
       lv = LogicalVolume vg_name lv_name
       time = TOD 0 0
-      d =
-        Disk (LIDPlain lv) [] ["node1.example.com"] "diskname" 1000 DiskRdWr
+      d = RealDisk $
+        RealDiskData (LIDPlain lv) [] ["node1.example.com"] "diskname"
+          1000 DiskRdWr
           Nothing Nothing Nothing "asdfgr-1234-5123-daf3-sdfw-134f43"
           0 time time
   in
@@ -728,15 +738,17 @@ caseIncludeLogicalIdDrbd =
   let vg_name = "xenvg" :: String
       lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
       time = TOD 0 0
-      d =
-        Disk
+      d = RealDisk $
+        RealDiskData
           (LIDDrbd8 "node1.example.com" "node2.example.com" 2000 1 5 "secret")
-          [ Disk (mkLIDPlain "onevg" "onelv") [] ["node1.example.com",
-              "node2.example.com"] "disk1" 1000 DiskRdWr Nothing Nothing
-              Nothing "145145-asdf-sdf2-2134-asfd-534g2x" 0 time time
-          , Disk (mkLIDPlain vg_name lv_name) [] ["node1.example.com",
-              "node2.example.com"] "disk2" 1000 DiskRdWr Nothing
-              Nothing Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse" 0 time time
+          [ RealDisk $ RealDiskData (mkLIDPlain "onevg" "onelv") []
+              ["node1.example.com", "node2.example.com"] "disk1" 1000 DiskRdWr
+              Nothing Nothing Nothing "145145-asdf-sdf2-2134-asfd-534g2x"
+              0 time time
+          , RealDisk $ RealDiskData (mkLIDPlain vg_name lv_name) []
+              ["node1.example.com", "node2.example.com"] "disk2" 1000 DiskRdWr
+              Nothing Nothing Nothing "6gd3sd-423f-ag2j-563b-dg34-gj3fse"
+              0 time time
           ] ["node1.example.com", "node2.example.com"] "diskname" 1000 DiskRdWr
           Nothing Nothing Nothing
           "asdfgr-1234-5123-daf3-sdfw-134f43" 0 time time
@@ -750,8 +762,8 @@ caseNotIncludeLogicalIdPlain =
   let vg_name = "xenvg" :: String
       lv_name = "1234sdf-qwef-2134-asff-asd2-23145d.data" :: String
       time = TOD 0 0
-      d =
-        Disk (mkLIDPlain "othervg" "otherlv") [] ["node1.example.com"]
+      d = RealDisk $
+        RealDiskData (mkLIDPlain "othervg" "otherlv") [] ["node1.example.com"]
           "diskname" 1000 DiskRdWr Nothing Nothing Nothing
           "asdfgr-1234-5123-daf3-sdfw-134f43"
           0 time time
