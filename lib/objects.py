@@ -551,6 +551,7 @@ class Filter(ConfigObject):
 class Disk(ConfigObject):
   """Config object representing a block device."""
   __slots__ = [
+    "forthcoming",
     "name",
     "dev_type",
     "logical_id",
