@@ -230,3 +230,23 @@ def SimpleRetry(expected, fn, delay, timeout, args=None, wait_fn=time.sleep,
     assert "result" in rdict
     result = rdict["result"]
   return result
+
+
+def CountRetry(expected, fn, count, args=None):
+  """A wrapper over L{SimpleRetry} implementing a count down.
+
+  Where L{Retry} fixes the time, after which the command is assumed to be
+  failing, this function assumes the total number of tries.
+
+  @see: L{Retry}
+  """
+
+  rdict = {"tries": 0}
+
+  get_tries = lambda: rdict["tries"]
+
+  def inc_tries(t):
+    rdict["tries"] += t
+
+  return SimpleRetry(expected, fn, 1, count, args=args,
+                     wait_fn=inc_tries, _time_fn=get_tries)

@@ -72,6 +72,9 @@ _RUN_UUID = utils.NewUUID()
 _QA_OUTPUT = pathutils.GetLogFilename("qa-output")
 
 
+_RETRIES = 3
+
+
 (INST_DOWN,
  INST_UP) = range(500, 502)
 
@@ -344,6 +347,13 @@ def _GetCommandStdout(proc):
   return out
 
 
+def _NoTimeout(state):
+  """False iff the command timed out."""
+  rcode, out = state
+
+  return rcode == 0 or not ('TimeoutError' in out or 'timed out' in out)
+
+
 def GetCommandOutput(node, cmd, tty=False, use_multiplexer=True, log_cmd=True,
                      fail=False):
   """Returns the output of a command executed on the given node.
@@ -363,11 +373,17 @@ def GetCommandOutput(node, cmd, tty=False, use_multiplexer=True, log_cmd=True,
   @param fail: whether the command is expected to fail
   """
   assert cmd
-  p = StartLocalCommand(GetSSHCommand(node, cmd, tty=tty,
-                                      use_multiplexer=use_multiplexer),
-                        stdout=subprocess.PIPE, log_cmd=log_cmd)
-  rcode = p.wait()
-  out = _GetCommandStdout(p)
+
+  def CallCommand():
+    command = GetSSHCommand(node, cmd, tty=tty,
+                            use_multiplexer=use_multiplexer)
+    p = StartLocalCommand(command, stdout=subprocess.PIPE, log_cmd=log_cmd)
+    rcode = p.wait()
+    out = _GetCommandStdout(p)
+    return rcode, out
+
+  # TODO: make retries configurable
+  rcode, out = utils.CountRetry(_NoTimeout, CallCommand, _RETRIES)
   _AssertRetCode(rcode, fail, cmd, node)
   return out
 
