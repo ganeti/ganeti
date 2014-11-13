@@ -94,7 +94,8 @@ library
 
   if flag(metad)
     build-depends:
-        snap-server                   >= 0.8.1.1    && < 0.10
+        snap-core                     >= 0.8.1      && < 0.10
+      , snap-server                   >= 0.8.1.1    && < 0.10
 
   hs-source-dirs:
     src, test/hs
