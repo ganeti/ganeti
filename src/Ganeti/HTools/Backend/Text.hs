@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 {-| Parsing data from text-files.
 
 This module holds the code for loading the cluster state from text
@@ -122,7 +124,7 @@ serializeInstance nl inst =
       snode = (if sidx == Node.noSecondary
                  then ""
                  else Container.nameOf nl sidx)
-  in printf "%s|%d|%d|%d|%s|%s|%s|%s|%s|%s|%d|%s"
+  in printf "%s|%d|%d|%d|%s|%s|%s|%s|%s|%s|%d|%s|%s"
        iname (Instance.mem inst) (Instance.dsk inst)
        (Instance.vcpus inst) (instanceStatusToRaw (Instance.runSt inst))
        (if Instance.autoBalance inst then "Y" else "N")
@@ -132,6 +134,7 @@ serializeInstance nl inst =
        (case Instance.getTotalSpindles inst of
           Nothing -> "-"
           Just x -> show x)
+       (if Instance.forthcoming inst then "Y" else "N")
 
 -- | Generate instance file data from instance objects.
 serializeInstances :: Node.List -> Instance.List -> String
@@ -278,7 +281,7 @@ loadInst :: NameAssoc -- ^ Association list with the current nodes
                                                -- instance name and
                                                -- the instance object
 loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
-             , dt, tags, su, spindles ] = do
+             , dt, tags, su, spindles, forthcoming_yn ] = do
   pidx <- lookupNode ktn name pnode
   sidx <- if null snode
             then return Node.noSecondary
@@ -298,13 +301,24 @@ loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
   vspindles <- case spindles of
                  "-" -> return Nothing
                  _ -> liftM Just (tryRead name spindles)
+  forthcoming <- case forthcoming_yn of
+                   "Y" -> return True
+                   "N" -> return False
+                   x -> fail $ "Invalid forthcoming value '"
+                               ++ x ++ "' for instance " ++ name
   let disk = Instance.Disk dsize vspindles
   let vtags = commaSplit tags
       newinst = Instance.create name vmem dsize [disk] vvcpus vstatus vtags
-                auto_balance pidx sidx disk_template spindle_use []
+                auto_balance pidx sidx disk_template spindle_use [] forthcoming
   when (Instance.hasSecondary newinst && sidx == pidx) . fail $
     "Instance " ++ name ++ " has same primary and secondary node - " ++ pnode
   return (name, newinst)
+
+loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
+             , dt, tags, su, spindles ] =
+  loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
+               , dt, tags, su, spindles, "N" ] -- older versions were not
+                                               -- forthcoming
 
 loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
              , dt, tags ] = loadInst ktn [ name, mem, dsk, vcpus, status,

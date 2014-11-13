@@ -77,9 +77,10 @@ genInstanceSmallerThan lim_mem lim_dsk lim_cpu lim_spin = do
   spindles <- case lim_spin of
     Nothing -> genMaybe $ choose (0, maxSpindles)
     Just ls -> liftM Just $ choose (0, ls)
+  forthcoming <- arbitrary
   let disk = Instance.Disk dsk spindles
   return $ Instance.create
-    name mem dsk [disk] vcpus run_st [] True pn sn dt 1 []
+    name mem dsk [disk] vcpus run_st [] True pn sn dt 1 [] forthcoming
 
 -- | Generates an instance smaller than a node.
 genInstanceSmallerThanNode :: Node.Node -> Gen Instance.Instance

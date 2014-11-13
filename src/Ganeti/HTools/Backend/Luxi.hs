@@ -202,7 +202,7 @@ parseInstance ktn [ name, disk, mem, vcpus
   xdspindles <- convertArrayMaybe "Instance" xname "disk.spindles" dspindles
   let disks = zipWith Instance.Disk xdsizes xdspindles
       inst = Instance.create xname xmem xdisk disks
-             xvcpus xrunning xtags xauto_balance xpnode snode xdt xsu []
+             xvcpus xrunning xtags xauto_balance xpnode snode xdt xsu [] False
   return (xname, inst)
 
 parseInstance _ v = fail ("Invalid instance query result: " ++ show v)

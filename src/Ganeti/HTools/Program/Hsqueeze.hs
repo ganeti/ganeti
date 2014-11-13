@@ -219,6 +219,7 @@ instanceFromSpecAndFactor name f spec =
     Running [] False Node.noSecondary Node.noSecondary DTExt
     (floor (f * fromIntegral (iSpecSpindleUse spec)))
     []
+    False
 
 -- | Get opcodes for the given move job.
 getMoveOpCodes :: Node.List
