@@ -778,6 +778,7 @@ HFLAGS = \
 	-fwarn-monomorphism-restriction \
 	-fwarn-tabs \
 	-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+	-hide-all-packages \
 	`cat $(HASKELL_PACKAGE_IDS_FILE)`
 	$(GHC_BYVERSION_FLAGS)
 if DEVELOPER_MODE
