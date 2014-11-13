@@ -2821,6 +2821,8 @@ TAGS: $(GENERATED_FILES)
 	rm -f TAGS
 	$(GHC) -e ":etags TAGS_hs" -v0 \
 	  $(filter-out -O -Werror,$(HFLAGS)) \
+	  -optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+	  `cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		-osuf tags.o \
 		-hisuf tags.hi \
     -lcurl \
