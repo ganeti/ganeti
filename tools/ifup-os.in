@@ -37,7 +37,7 @@
 #
 # This script also controls the DHCP server that leases IP address for
 # instances, i.e., the NICs inside the instances, not the TAP
-# interfaces.  The DHCP server is started and restarted (or reHUPed)
+# interfaces.  The DHCP server is started and restarted
 # as necessary and always with up-to-date configuration files.
 #
 # This script expects the following environment variables
@@ -68,56 +68,35 @@ function join {
 # TAP network interfaces to monitor or IP addresses to lease, the DHCP
 # server is terminated through 'SIGTERM'.
 #
-# If there are still instances running, then:
-#  - if the DHCP server is running, a 'SIGHUP' will be sent to the
-#    dnsmasq process which will cause the configuration file to be
-#    re-read, while keeping the process running
-#  - if the DHCP server is not running, it will be started, and the
-#    configuration file will be passed it
+# If there are still instances running, it will be restarted and the
+# configuration file will be passed it.
 function restart_dnsmasq {
-  SIGNAL=
-
-  if [ -z "$ALIVE_INTERFACES" -o -z "$ALIVE_LEASES" ]
-  then
-      SIGNAL=TERM
-  else
-      SIGNAL=HUP
-  fi
-
-  RUNNING=
+  local RUNNING=
+  local PID
 
   if [ -f "$DNSMASQ_PID" ]
   then
       PID=$(cat $DNSMASQ_PID)
       if [ -n "$PID" ] && ps -p "$PID"
       then
-	  RUNNING=yes
+          RUNNING=yes
       fi
   fi
-
-  KILLED=
 
   if [ "$RUNNING" = yes ]
   then
-      kill -$SIGNAL $PID
-
-      if [ "$SIGNAL" = TERM ]
-      then
-	  KILLED=yes
-      fi
-  fi
-
-  if [ "$KILLED" = yes ]
-  then
+      kill -TERM $PID
+      # wait for the process to die
+      while kill -0 $PID 2>/dev/null
+      do
+          sleep 1
+      done
       rm -f $DNSMASQ_PID
   fi
 
-  if [ "$RUNNING" != yes -o "$KILLED" == yes ]
+  if [ -n "$ALIVE_INTERFACES" -a -n "$ALIVE_LEASES" ]
   then
-      if [ -n "$ALIVE_INTERFACES" -a -n "$ALIVE_LEASES" ]
-      then
-	  dnsmasq -C $DNSMASQ_CONF
-      fi
+      dnsmasq -C $DNSMASQ_CONF
   fi
 
   return 0
