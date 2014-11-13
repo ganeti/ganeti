@@ -109,7 +109,7 @@ defGroupAssoc = Map.singleton (Group.uuid defGroup) (Group.idx defGroup)
 createInstance :: Int -> Int -> Int -> Instance.Instance
 createInstance mem dsk vcpus =
   Instance.create "inst-unnamed" mem dsk [Instance.Disk dsk Nothing] vcpus
-    Types.Running [] True (-1) (-1) Types.DTDrbd8 1 []
+    Types.Running [] True (-1) (-1) Types.DTDrbd8 1 [] False
 
 -- | Create a small cluster by repeating a node spec.
 makeSmallCluster :: Node.Node -> Int -> Node.List

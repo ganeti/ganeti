@@ -441,7 +441,7 @@ instFromSpec :: RSpec -> DiskTemplate -> Int -> Instance.Instance
 instFromSpec spx dt su =
   Instance.create "new" (rspecMem spx) (rspecDsk spx)
     [Instance.Disk (rspecDsk spx) (Just $ rspecSpn spx)]
-    (rspecCpu spx) Running [] True (-1) (-1) dt su []
+    (rspecCpu spx) Running [] True (-1) (-1) dt su [] False
 
 combineTiered :: AlgorithmOptions
               -> Maybe Int

@@ -104,6 +104,7 @@ data Instance = Instance
   , exclTags     :: [String]  -- ^ List of instance exclusion tags
   , arPolicy     :: T.AutoRepairPolicy -- ^ Instance's auto-repair policy
   , nics         :: [Nic]     -- ^ NICs of the instance
+  , forthcoming  :: Bool      -- ^ Is the instance is forthcoming?
   } deriving (Show, Eq)
 
 instance T.Element Instance where
@@ -185,9 +186,9 @@ type List = Container.Container Instance
 -- later (via 'setIdx' for example).
 create :: String -> Int -> Int -> [Disk] -> Int -> T.InstanceStatus
        -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Int
-       -> [Nic] -> Instance
+       -> [Nic] -> Bool -> Instance
 create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
-       auto_balance_init pn sn dt su nics_init =
+       auto_balance_init pn sn dt su nics_init forthcoming_init =
   Instance { name = name_init
            , alias = name_init
            , mem = mem_init
@@ -207,6 +208,7 @@ create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
            , exclTags = []
            , arPolicy = T.ArNotEnabled
            , nics = nics_init
+           , forthcoming = forthcoming_init
            }
 
 -- | Changes the index.
