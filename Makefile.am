@@ -301,6 +301,7 @@ CLEANFILES = \
 	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	$(CABAL_EXECUTABLES_APPS_STAMPS) \
+	empty-cabal-config \
 	ganeti.cabal \
 	$(HASKELL_PACKAGE_IDS_FILE) \
 	$(HASKELL_PACKAGE_VERSIONS_FILE) \
@@ -1322,7 +1323,8 @@ HASKELL_PACKAGE_VERSIONS_FILE = cabal_macros.h
 
 $(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
                                   cabal/CabalDependenciesMacros.hs
-	cabal configure --user \
+	touch empty-cabal-config
+	cabal --config-file=empty-cabal-config configure --user \
 	  -f`test $(ENABLE_CONFD) == True && echo "confd" || echo "-confd"` \
 	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
 	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"`
