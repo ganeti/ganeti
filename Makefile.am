@@ -2786,9 +2786,6 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	export LC_ALL=en_US.UTF-8; \
 	OPTGHC="--optghc=-isrc --optghc=-itest/hs"; \
 	OPTGHC="$$OPTGHC --optghc=-optP-include --optghc=-optP$(HASKELL_PACKAGE_VERSIONS_FILE)"; \
-	if [ "$(HS_REGEX_PCRE)" ]; \
-	then OPTGHC="$$OPTGHC --optghc=$(HS_REGEX_PCRE)"; \
-	fi; \
 	for file in $(HS_LIBTESTBUILT_SRCS); do \
 	  f_nosrc=$${file##src/}; \
 	  f_notst=$${f_nosrc##test/hs/}; \
@@ -2810,7 +2807,6 @@ TAGS: $(GENERATED_FILES)
 		-osuf tags.o \
 		-hisuf tags.hi \
     -lcurl \
-	  $(HS_REGEX_PCRE) \
 	  $(HS_LIBTEST_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \
