@@ -777,6 +777,8 @@ HFLAGS = \
 	-O -Wall -isrc \
 	-fwarn-monomorphism-restriction \
 	-fwarn-tabs \
+	-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
+	`cat $(HASKELL_PACKAGE_IDS_FILE)`
 	$(GHC_BYVERSION_FLAGS)
 if DEVELOPER_MODE
 HFLAGS += -Werror
@@ -1287,8 +1289,6 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile $(HASKELL_PACKAGE_VERSIONS_FILE) 
               | $(built_base_sources) $(HS_BUILT_SRCS)
 	$(GHC) -M -dep-makefile $@ $(DEP_SUFFIXES) $(HFLAGS) $(HFLAGS_DYNAMIC) \
 		-itest/hs \
-		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
-		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
 # Since ghc -M does not generate dependency line for object files, dependencies
 # from a target executable seed object (e.g. src/hluxid.o) to objects which
@@ -1342,15 +1342,11 @@ $(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
 test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@echo '[GHC|test]: $@ <- test/hs/$^'
 	@$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
-		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
-		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
 %.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@echo '[GHC]: $@ <- $^'
 	@$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
-		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
 # For TH+profiling we need to compile twice: Once without profiling,
@@ -1361,8 +1357,6 @@ if HPROFILE
 	@echo '[GHC|prof]: $@ <- $^'
 	@$(GHC) -c $(HFLAGS) \
 	  $(HPROFFLAGS) \
-		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
-		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HEXTRA_COMBINED) \
 		$(@:%.$(HPROF_SUFFIX)_o=%.hs)
 endif
@@ -1374,8 +1368,6 @@ endif
 %.$(HTEST_SUFFIX)_o: %.o
 	@echo '[GHC|test]: $@ <- $^'
 	@$(GHC) -c $(HTEST_FLAGS) \
-		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
-		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
 
 %.hi: %.o ;
@@ -1386,15 +1378,11 @@ if HPROFILE
 $(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
 	@echo '[GHC-link]: $@'
 	$(GHC) $(HFLAGS) $(HPROFFLAGS) \
-		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
-		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
 else
 $(HS_SRC_PROGS): %: %.o | stamp-directories
 	@echo '[GHC-link]: $@'
 	$(GHC) $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
-		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
 endif
 	@rm -f $(notdir $@).tix
@@ -1409,8 +1397,6 @@ $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
 	fi
 	@echo '[GHC-link|test]: $@'
 	$(GHC) $(HTEST_FLAGS) \
-		-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
-		`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
@@ -2821,8 +2807,6 @@ TAGS: $(GENERATED_FILES)
 	rm -f TAGS
 	$(GHC) -e ":etags TAGS_hs" -v0 \
 	  $(filter-out -O -Werror,$(HFLAGS)) \
-	  -optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
-	  `cat $(HASKELL_PACKAGE_IDS_FILE)` \
 		-osuf tags.o \
 		-hisuf tags.hi \
     -lcurl \
