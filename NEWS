@@ -7,6 +7,17 @@ Version 2.14.0
 
 *(unreleased)*
 
+New features
+~~~~~~~~~~~~
+
+- The build system now enforces external Haskell dependencies to lie in
+  a supported range as declared by our new ganeti.cabal file.
+
+New dependencies
+~~~~~~~~~~~~~~~~
+
+- Building the Haskell part of Ganeti now requires Cabal and cabal-install.
+
 
 Version 2.13.0
 --------------
