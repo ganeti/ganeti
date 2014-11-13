@@ -252,11 +252,7 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=False,
   if tty:
     args.append("-t")
 
-  if strict:
-    tmp = "yes"
-  else:
-    tmp = "no"
-  args.append("-oStrictHostKeyChecking=%s" % tmp)
+  args.append("-oStrictHostKeyChecking=%s" % ("yes" if strict else "no", ))
   args.append("-oClearAllForwardings=yes")
   args.append("-oForwardAgent=yes")
   if opts:
