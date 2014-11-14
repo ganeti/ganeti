@@ -552,10 +552,28 @@ def DowngradeForthcomingInstances(config_data):
     if instances[uuid].get("forthcoming"):
       del instances[uuid]
 
+
+def DowngradeForthcomingDisks(config_data):
+  if "instances" not in config_data:
+    raise Error("Can't find the 'instances' dictionary in the configuration.")
+  instances = config_data["instances"]
+  if "disks" not in config_data:
+    raise Error("Can't find the 'disks' dictionary in the configuration.")
+  disks = config_data["disks"]
+  uuids = disks.keys()
+  for uuid in uuids:
+    if disks[uuid].get("forthcoming"):
+      del disks[uuid]
+      for inst in instances:
+        if "disk" in inst and uuid in inst["disks"]:
+          inst["disks"].remove(uuid)
+
+
 def DowngradeAll(config_data):
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
   DowngradeForthcomingInstances(config_data)
+  DowngradeForthcomingDisks(config_data)
   DowngradeDiskNodes(config_data)
 
 
