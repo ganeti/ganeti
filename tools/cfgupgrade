@@ -544,8 +544,6 @@ def DowngradeDiskNodes(config_data):
 
 
 def DowngradeAll(config_data):
-  # Any code specific to a particular version should be labeled that way, so
-  # it can be removed when updating to the next version.
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
   DowngradeDiskNodes(config_data)
