@@ -235,9 +235,6 @@ qemuimgPath = "QEMUIMG_PATH"
 htools :: Bool
 htools = True
 
-enableConfd :: Bool
-enableConfd = ENABLE_CONFD
-
 xenCmd :: String
 xenCmd = "XEN_CMD"
 

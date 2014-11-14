@@ -103,8 +103,7 @@ def StartNodeDaemons():
   # on master or not, try to start the node daemon
   utils.EnsureDaemon(constants.NODED)
   # start confd as well. On non candidates it will be in disabled mode.
-  if constants.ENABLE_CONFD:
-    utils.EnsureDaemon(constants.CONFD)
+  utils.EnsureDaemon(constants.CONFD)
   # start mond as well: all nodes need monitoring
   if constants.ENABLE_MOND:
     utils.EnsureDaemon(constants.MOND)

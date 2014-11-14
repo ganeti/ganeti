@@ -334,9 +334,6 @@ adoptableBlockdevRoot = "/dev/disk/"
 
 -- * 'autoconf' enable/disable
 
-enableConfd :: Bool
-enableConfd = AutoConf.enableConfd
-
 enableMond :: Bool
 enableMond = AutoConf.enableMond
 

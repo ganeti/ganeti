@@ -38,6 +38,7 @@ readonly defaults_file="$SYSCONFDIR/default/ganeti"
 # they're stopped in reverse order.
 DAEMONS=(
   ganeti-noded
+  ganeti-confd
   ganeti-wconfd
   ganeti-rapi
   ganeti-luxid
@@ -49,14 +50,6 @@ DAEMONS=(
 ON_DEMAND_DAEMONS=(
   ganeti-metad
   )
-
-_confd_enabled() {
-  [[ "@CUSTOM_ENABLE_CONFD@" == True ]]
-}
-
-if _confd_enabled; then
-  DAEMONS+=( ganeti-confd )
-fi
 
 _mond_enabled() {
   [[ "@CUSTOM_ENABLE_MOND@" == True ]]
@@ -276,12 +269,6 @@ start() {
   local pidfile=$(_daemon_pidfile $name)
   local usergroup=$(_daemon_usergroup $plain_name)
   local daemonexec=$(_daemon_executable $name)
-
-  if [[ "$name" == ganeti-confd ]] \
-      && ! _confd_enabled; then
-    echo 'ganeti-confd disabled at build time' >&2
-    return 1
-  fi
 
   if use_systemctl; then
     systemctl start "${name}.service"

@@ -607,14 +607,6 @@ then
   AC_MSG_WARN([qemu-img not found, using ovfconverter will not be possible])
 fi
 
-# --enable-confd
-ENABLE_CONFD=
-AC_ARG_ENABLE([confd],
-  [AS_HELP_STRING([--enable-confd],
-  [enable the ganeti-confd daemon (default: check)])],
-  [],
-  [enable_confd=check])
-
 ENABLE_MOND=
 AC_ARG_ENABLE([monitoring],
   [AS_HELP_STRING([--enable-monitoring],
@@ -680,35 +672,7 @@ AC_GHC_PKG_REQUIRE(hinotify)
 AC_GHC_PKG_REQUIRE(Crypto)
 AC_GHC_PKG_REQUIRE(lifted-base)
 AC_GHC_PKG_REQUIRE(lens)
-
-# extra modules for confd functionality; also needed for tests
-HS_NODEV=
-CONFD_PKG=
-# if a new confd dependency is needed, add it here like:
-# AC_GHC_PKG_CHECK([somepkg], [], [HS_NODEV=1; CONFD_PKG="$CONFD_PKG somepkg"])
-HS_REGEX_PCRE=-DNO_REGEX_PCRE
-AC_GHC_PKG_CHECK([regex-pcre], [HS_REGEX_PCRE=],
-                 [HS_NODEV=1; CONFD_PKG="$CONFD_PKG regex-pcre"])
-
-has_confd=False
-if test "$enable_confd" != no; then
-  if test -z "$CONFD_PKG"; then
-    has_confd=True
-  elif test "$enable_confd" = check; then
-    AC_MSG_WARN(m4_normalize([The required extra libraries for confd were
-                              not found ($CONFD_PKG), confd disabled]))
-  else
-    AC_MSG_FAILURE(m4_normalize([The confd functionality was requested, but
-                                 required libraries were not found:
-                                 $CONFD_PKG]))
-  fi
-fi
-AC_SUBST(HS_REGEX_PCRE)
-if test "$has_confd" = True; then
-  AC_MSG_NOTICE([Enabling confd usage])
-fi
-AC_SUBST(ENABLE_CONFD, $has_confd)
-AM_CONDITIONAL([ENABLE_CONFD], [test x$has_confd = xTrue])
+AC_GHC_PKG_REQUIRE(regex-pcre)
 
 #extra modules for monitoring daemon functionality; also needed for tests
 MONITORING_PKG=
@@ -720,9 +684,6 @@ AC_GHC_PKG_CHECK([PSQueue], [],
 has_monitoring=False
 if test "$enable_monitoring" != no; then
   MONITORING_DEP=
-  if test "$has_confd" = False; then
-    MONITORING_DEP="$MONITORING_DEP confd"
-  fi
   has_monitoring_pkg=False
   if test -z "$MONITORING_PKG"; then
     has_monitoring_pkg=True
