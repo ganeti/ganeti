@@ -543,9 +543,19 @@ def DowngradeDiskNodes(config_data):
     _RecursiveRemoveNodes(disk)
 
 
+def DowngradeForthcomingInstances(config_data):
+  if "instances" not in config_data:
+    raise Error("Can't find the 'instances' dictionary in the configuration.")
+  instances = config_data["instances"]
+  uuids = instances.keys()
+  for uuid in uuids:
+    if instances[uuid].get("forthcoming"):
+      del instances[uuid]
+
 def DowngradeAll(config_data):
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
+  DowngradeForthcomingInstances(config_data)
   DowngradeDiskNodes(config_data)
 
 
