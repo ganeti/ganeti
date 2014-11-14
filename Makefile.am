@@ -886,11 +886,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/Logging/Lifted.hs \
 	src/Ganeti/Logging/WriterLog.hs \
 	src/Ganeti/Luxi.hs \
-	src/Ganeti/Metad/Config.hs \
-	src/Ganeti/Metad/ConfigServer.hs \
-	src/Ganeti/Metad/Server.hs \
-	src/Ganeti/Metad/Types.hs \
-	src/Ganeti/Metad/WebServer.hs \
 	src/Ganeti/Network.hs \
 	src/Ganeti/Objects.hs \
 	src/Ganeti/Objects/BitArray.hs \
@@ -967,6 +962,22 @@ if ENABLE_MOND
 HS_LIB_SRCS += src/Ganeti/Monitoring/Server.hs
 else
 EXTRA_DIST += src/Ganeti/Monitoring/Server.hs
+endif
+
+if ENABLE_METADATA
+HS_LIB_SRCS += \
+	src/Ganeti/Metad/Config.hs \
+	src/Ganeti/Metad/ConfigServer.hs \
+	src/Ganeti/Metad/Server.hs \
+	src/Ganeti/Metad/Types.hs \
+	src/Ganeti/Metad/WebServer.hs
+else
+EXTRA_DIST += \
+	src/Ganeti/Metad/Config.hs \
+	src/Ganeti/Metad/ConfigServer.hs \
+	src/Ganeti/Metad/Server.hs \
+	src/Ganeti/Metad/Types.hs \
+	src/Ganeti/Metad/WebServer.hs
 endif
 
 HS_TEST_SRCS = \
