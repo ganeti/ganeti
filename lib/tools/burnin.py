@@ -230,7 +230,7 @@ OPTIONS = [
                  const=[], default=[{}]),
   cli.cli_option("--no-confd", dest="do_confd_tests",
                  help="Skip confd queries",
-                 action="store_false", default=constants.ENABLE_CONFD),
+                 action="store_false", default=True),
   cli.cli_option("--rename", dest="rename", default=None,
                  help=("Give one unused instance name which is taken"
                        " to start the renaming sequence"),
@@ -1075,9 +1075,6 @@ class Burner(object):
         self.opts.disk_template not in _SINGLE_NODE_DISK_TEMPLATES):
       Err("When one node is available/selected the disk template must"
           " be one of %s" % utils.CommaJoin(_SINGLE_NODE_DISK_TEMPLATES))
-
-    if self.opts.do_confd_tests and not constants.ENABLE_CONFD:
-      Err("You selected confd tests but confd was disabled at configure time")
 
     has_err = True
     try:

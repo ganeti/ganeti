@@ -1059,11 +1059,6 @@ def ListDrbd(opts, args):
     ToStderr("Please give one (and only one) node.")
     return constants.EXIT_FAILURE
 
-  if not constants.ENABLE_CONFD:
-    ToStderr("Error: this command requires confd support, but it has not"
-             " been enabled at build time.")
-    return constants.EXIT_FAILURE
-
   status = ReplyStatus()
 
   def ListDrbdConfdCallback(reply):

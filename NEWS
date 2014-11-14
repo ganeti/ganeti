@@ -47,6 +47,8 @@ New dependencies
 
 - The monitoring daemon uses the PSQueue library. Be sure to install it
   if you use Mond.
+- The formerly optional regex-pcre is now an unconditional dependency because
+  the new job filter rules have regular expressions as a core feature.
 
 
 Version 2.12.0
