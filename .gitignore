@@ -29,6 +29,7 @@
 /Makefile.local
 /Session.vim
 /TAGS*
+/apps/
 /aclocal.m4
 /autom4te.cache
 /autotools/install-sh
@@ -36,13 +37,18 @@
 /autotools/py-compile
 /autotools/replace_vars.sed
 /autotools/shell-env-init
+/cabal_macros.h
 /config.log
 /config.status
 /configure
 /devel/squeeze-amd64.tar.gz
 /devel/squeeze-amd64.conf
+/dist/
+/empty-cabal-config
 /epydoc.conf
 /ganeti
+/ganeti.cabal
+/ganeti.depsflags
 /stamp-srclinks
 /stamp-directories
 /vcs-version
