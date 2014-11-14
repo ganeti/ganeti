@@ -1171,6 +1171,7 @@ def PutOSImage(osparams, os_image):
 class Instance(TaggableObject):
   """Config object representing an instance."""
   __slots__ = [
+    "forthcoming",
     "name",
     "primary_node",
     "secondary_nodes",
