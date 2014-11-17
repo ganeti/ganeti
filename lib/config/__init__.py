@@ -3451,6 +3451,8 @@ class ConfigWriter(object):
 
 
 class DetachedConfig(ConfigWriter):
+  """Read-only snapshot of the config."""
+
   def __init__(self, config_data):
     super(DetachedConfig, self).__init__(self, offline=True)
     self._SetConfigData(config_data)
