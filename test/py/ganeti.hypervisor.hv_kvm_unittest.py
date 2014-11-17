@@ -50,7 +50,10 @@ from ganeti.hypervisor import hv_kvm
 import ganeti.hypervisor.hv_kvm.netdev as netdev
 import ganeti.hypervisor.hv_kvm.monitor as monitor
 
+import mock
 import testutils
+
+from testutils.config_mock import ConfigMock
 
 
 class QmpStub(threading.Thread):
@@ -500,6 +503,74 @@ class TestGetRuntimeInfo(unittest.TestCase):
     (devinfo, _, __) = hv_kvm._GetExistingDeviceInfo(target, device, runtime)
     self.assertTrue(devinfo.pci==5)
 
+
+class PostfixMatcher(object):
+  def __init__(self, string):
+    self.string = string
+
+  def __eq__(self, other):
+    return other.endswith(self.string)
+
+  def __repr__(self):
+    return "<Postfix %s>" % self.string
+
+class TestKvmRuntime(testutils.GanetiTestCase):
+  """The _ExecuteKvmRuntime is at the core of all KVM operations."""
+
+  def setUp(self):
+    super(TestKvmRuntime, self).setUp()
+    kvm_class = 'ganeti.hypervisor.hv_kvm.KVMHypervisor'
+    self.MockOut('qmp', mock.patch('ganeti.hypervisor.hv_kvm.QmpConnection'))
+    self.MockOut('run_cmd', mock.patch('ganeti.utils.RunCmd'))
+    self.MockOut('ensure_dirs', mock.patch('ganeti.utils.EnsureDirs'))
+    self.MockOut('write_file', mock.patch('ganeti.utils.WriteFile'))
+    self.MockOut(mock.patch(kvm_class + '.ValidateParameters'))
+    self.MockOut(mock.patch('ganeti.hypervisor.hv_kvm.OpenTap',
+                            return_value=('test_nic', [])))
+    self.MockOut(mock.patch(kvm_class + '._ConfigureNIC'))
+    self.MockOut('pid_alive', mock.patch(kvm_class + '._InstancePidAlive',
+                                         return_value=('file', -1, False)))
+    self.MockOut(mock.patch(kvm_class + '._ExecuteCpuAffinity'))
+    self.MockOut(mock.patch(kvm_class + '._CallMonitorCommand'))
+
+    self.cfg = ConfigMock()
+    params = constants.HVC_DEFAULTS[constants.HT_KVM].copy()
+    beparams = constants.BEC_DEFAULTS.copy()
+    self.instance = self.cfg.AddNewInstance(name='name.example.com',
+                                            hypervisor='kvm',
+                                            hvparams=params,
+                                            beparams=beparams)
+
+  def testDirectoriesCreated(self):
+    hypervisor = hv_kvm.KVMHypervisor()
+    self.mocks['ensure_dirs'].assert_called_with([
+        (PostfixMatcher('/run/ganeti/kvm-hypervisor'), 0775),
+        (PostfixMatcher('/run/ganeti/kvm-hypervisor/pid'), 0775),
+        (PostfixMatcher('/run/ganeti/kvm-hypervisor/uid'), 0775),
+        (PostfixMatcher('/run/ganeti/kvm-hypervisor/ctrl'), 0775),
+        (PostfixMatcher('/run/ganeti/kvm-hypervisor/conf'), 0775),
+        (PostfixMatcher('/run/ganeti/kvm-hypervisor/nic'), 0775),
+        (PostfixMatcher('/run/ganeti/kvm-hypervisor/chroot'), 0775),
+        (PostfixMatcher('/run/ganeti/kvm-hypervisor/chroot-quarantine'), 0775),
+        (PostfixMatcher('/run/ganeti/kvm-hypervisor/keymap'), 0775)])
+
+  def testStartInstance(self):
+    hypervisor = hv_kvm.KVMHypervisor()
+    def RunCmd(cmd, **kwargs):
+      if '--help' in cmd:
+        return mock.Mock(
+            failed=False, output=testutils.ReadTestData("kvm_1.1.2_help.txt"))
+      if '-S' in cmd:
+        self.mocks['pid_alive'].return_value = ('file', -1, True)
+        return mock.Mock(failed=False)
+      elif '-M' in cmd:
+        return mock.Mock(failed=False, output='')
+      elif '-device' in cmd:
+        return mock.Mock(failed=False, output='name "virtio-blk-pci"')
+      else:
+        raise errors.ProgrammerError('Unexpected command: %s' % cmd)
+    self.mocks['run_cmd'].side_effect = RunCmd
+    hypervisor.StartInstance(self.instance, [], False)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
