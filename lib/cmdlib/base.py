@@ -440,7 +440,7 @@ class LogicalUnit(object): # pylint: disable=R0902
     # pylint: disable=W0613,R0201
     return lu_result
 
-  def _ExpandAndLockInstance(self):
+  def _ExpandAndLockInstance(self, allow_forthcoming=False):
     """Helper function to expand and lock an instance.
 
     Many LUs that work on an instance take its name in self.op.instance_name
@@ -448,6 +448,10 @@ class LogicalUnit(object): # pylint: disable=R0902
     function does it, and then updates self.op.instance_name to the expanded
     name. It also initializes needed_locks as a dict, if this hasn't been done
     before.
+
+    @param allow_forthcoming: if True, do not insist that the intsance be real;
+        the default behaviour is to raise a prerequisite error if the specified
+        instance is forthcoming.
 
     """
     if self.needed_locks is None:
@@ -459,6 +463,10 @@ class LogicalUnit(object): # pylint: disable=R0902
       ExpandInstanceUuidAndName(self.cfg, self.op.instance_uuid,
                                 self.op.instance_name)
     self.needed_locks[locking.LEVEL_INSTANCE] = self.op.instance_name
+    if not allow_forthcoming:
+      if self.cfg.GetInstanceInfo(self.op.instance_uuid).forthcoming:
+        raise errors.OpPrereqError(
+          "forthcoming instances not supported for this operation")
 
   def _LockInstancesNodes(self, primary_only=False,
                           level=locking.LEVEL_NODE):
