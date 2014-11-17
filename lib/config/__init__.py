@@ -52,6 +52,7 @@ import threading
 import itertools
 
 from ganeti.config.temporary_reservations import TemporaryReservationManager
+from ganeti.config.utils import ConfigSync, ConfigManager
 
 from ganeti import errors
 from ganeti import utils
@@ -108,17 +109,6 @@ def GetConfig(ec_id, livelock, **kwargs):
   return ConfigWriter(**kwargs)
 
 
-def _ConfigSync(shared=0):
-  """Configuration synchronization decorator.
-
-  """
-  def wrap(fn):
-    def sync_function(*args, **kwargs):
-      with args[0].GetConfigManager(shared):
-        return fn(*args, **kwargs)
-    return sync_function
-  return wrap
-
 # job id used for resource management at config upgrade time
 _UPGRADE_CONFIG_JID = "jid-cfg-upgrade"
 
@@ -162,40 +152,6 @@ def _CheckInstanceDiskIvNames(disks):
       result.append((idx, exp_iv_name, disk.iv_name))
 
   return result
-
-
-class ConfigManager(object):
-  """Locks the configuration and exposes it to be read or modified.
-
-  """
-  def __init__(self, config_writer, shared=False, forcelock=False):
-    assert isinstance(config_writer, ConfigWriter), \
-           "invalid argument: Not a ConfigWriter"
-    self._config_writer = config_writer
-    self._shared = shared
-    self._forcelock = forcelock
-
-  def __enter__(self):
-    try:
-      self._config_writer._OpenConfig(# pylint: disable=W0212
-                                      self._shared,
-                                      force=self._forcelock)
-    except Exception:
-      logging.debug("Opening configuration failed")
-      try:
-        self._config_writer._CloseConfig(False) # pylint: disable=W0212
-      except Exception: # pylint: disable=W0703
-        logging.debug("Closing configuration failed as well")
-      raise
-
-  def __exit__(self, exc_type, exc_value, traceback):
-    # save the configuration, if this was a write opreration that succeeded
-    if exc_type is not None:
-      logging.debug("Configuration operation failed,"
-                    " the changes will not be saved")
-    # pylint: disable=W0212
-    self._config_writer._CloseConfig(not self._shared and exc_type is None)
-    return False
 
 
 def _UpdateIvNames(base_idx, disks):
@@ -263,7 +219,7 @@ class ConfigWriter(object):
     """
     return os.path.exists(pathutils.CLUSTER_CONF_FILE)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNdParams(self, node):
     """Get the node params populated with cluster defaults.
 
@@ -275,7 +231,7 @@ class ConfigWriter(object):
     nodegroup = self._UnlockedGetNodeGroup(node.group)
     return self._ConfigData().cluster.FillND(node, nodegroup)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNdGroupParams(self, nodegroup):
     """Get the node groups params populated with cluster defaults.
 
@@ -297,7 +253,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.FillNDGroup(group)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetGroupSshPorts(self):
     """Get a map of group UUIDs to SSH ports.
 
@@ -312,7 +268,7 @@ class ConfigWriter(object):
       port_map[uuid] = port
     return port_map
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceDiskParams(self, instance):
     """Get the disk params populated with inherit chain.
 
@@ -325,7 +281,7 @@ class ConfigWriter(object):
     nodegroup = self._UnlockedGetNodeGroup(node.group)
     return self._UnlockedGetGroupDiskParams(nodegroup)
 
-  @_ConfigSync()
+  @ConfigSync()
   def SetInstanceDiskTemplate(self, inst_uuid, disk_template):
     """Set the instance's disk template to the given value.
 
@@ -359,7 +315,7 @@ class ConfigWriter(object):
     return [self._UnlockedGetDiskInfo(disk_uuid)
             for disk_uuid in instance.disks]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceDisks(self, inst_uuid):
     """Return the disks' info for the given instance
 
@@ -427,7 +383,7 @@ class ConfigWriter(object):
     instance.serial_no += 1
     instance.mtime = time.time()
 
-  @_ConfigSync()
+  @ConfigSync()
   def AddInstanceDisk(self, inst_uuid, disk, idx=None):
     """Add a disk to the config and attach it to instance.
 
@@ -487,7 +443,7 @@ class ConfigWriter(object):
     del self._ConfigData().disks[disk_uuid]
     self._ConfigData().cluster.serial_no += 1
 
-  @_ConfigSync()
+  @ConfigSync()
   def RemoveInstanceDisk(self, inst_uuid, disk_uuid):
     """Detach a disk from an instance and remove it from the config.
 
@@ -514,7 +470,7 @@ class ConfigWriter(object):
 
     return self._ConfigData().disks[disk_uuid]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetDiskInfo(self, disk_uuid):
     """Returns information about a disk.
 
@@ -562,7 +518,7 @@ class ConfigWriter(object):
     all_nodes.discard(instance.primary_node)
     return (instance.primary_node, ) + tuple(all_nodes)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceNodes(self, inst_uuid):
     """Get all disk-related nodes for an instance.
 
@@ -584,7 +540,7 @@ class ConfigWriter(object):
     all_nodes.discard(instance.primary_node)
     return tuple(all_nodes)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceSecondaryNodes(self, inst_uuid):
     """Get the list of secondary nodes.
 
@@ -641,7 +597,7 @@ class ConfigWriter(object):
                   instance.primary_node)
     return ret
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceLVsByNode(self, inst_uuid, lvmap=None):
     """Provide a mapping of node to LVs a given instance owns.
 
@@ -650,7 +606,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceLVsByNode(inst_uuid, lvmap=lvmap)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetGroupDiskParams(self, group):
     """Get the disk params populated with inherit chain.
 
@@ -673,7 +629,7 @@ class ConfigWriter(object):
     assert isinstance(data, dict), "Not a dictionary: " + str(data)
     return data
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetPotentialMasterCandidates(self):
     """Gets the list of node names of potential master candidates.
 
@@ -827,7 +783,7 @@ class ConfigWriter(object):
     existing = self._AllIDs(include_temporary=False)
     return self._temporary_ids.Generate(existing, utils.NewUUID, ec_id)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GenerateUniqueID(self, ec_id):
     """Generate an unique ID.
 
@@ -1214,7 +1170,7 @@ class ConfigWriter(object):
         feedback_fn(errmsg)
     return config_errors
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def VerifyConfig(self):
     """Verify function.
 
@@ -1227,7 +1183,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedVerifyConfig()
 
-  @_ConfigSync()
+  @ConfigSync()
   def AddTcpUdpPort(self, port):
     """Adds a new port to the available port pool.
 
@@ -1241,14 +1197,14 @@ class ConfigWriter(object):
 
     self._ConfigData().cluster.tcpudp_port_pool.add(port)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetPortList(self):
     """Returns a copy of the current port list.
 
     """
     return self._ConfigData().cluster.tcpudp_port_pool.copy()
 
-  @_ConfigSync()
+  @ConfigSync()
   def AllocatePort(self):
     """Allocate a port.
 
@@ -1269,7 +1225,7 @@ class ConfigWriter(object):
       self._ConfigData().cluster.highest_used_port = port
     return port
 
-  @_ConfigSync()
+  @ConfigSync()
   def ComputeDRBDMap(self):
     """Compute the used DRBD minor/nodes.
 
@@ -1330,7 +1286,7 @@ class ConfigWriter(object):
     if not self._offline:
       self._wconfd.ReleaseDRBDMinors(inst_uuid)
 
-  @_ConfigSync()
+  @ConfigSync()
   def ReleaseDRBDMinors(self, inst_uuid):
     """Release temporary drbd minors allocated for a given instance.
 
@@ -1347,7 +1303,7 @@ class ConfigWriter(object):
     """
     self._UnlockedReleaseDRBDMinors(inst_uuid)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetConfigVersion(self):
     """Get the configuration version.
 
@@ -1356,7 +1312,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().version
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetClusterName(self):
     """Get cluster name.
 
@@ -1365,7 +1321,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.cluster_name
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMasterNode(self):
     """Get the UUID of the master node for this cluster.
 
@@ -1374,7 +1330,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.master_node
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMasterNodeName(self):
     """Get the hostname of the master node for this cluster.
 
@@ -1383,7 +1339,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetNodeName(self._ConfigData().cluster.master_node)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMasterNodeInfo(self):
     """Get the master node information for this cluster.
 
@@ -1393,7 +1349,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetNodeInfo(self._ConfigData().cluster.master_node)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMasterIP(self):
     """Get the IP of the master node for this cluster.
 
@@ -1402,56 +1358,56 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.master_ip
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMasterNetdev(self):
     """Get the master network device for this cluster.
 
     """
     return self._ConfigData().cluster.master_netdev
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMasterNetmask(self):
     """Get the netmask of the master node for this cluster.
 
     """
     return self._ConfigData().cluster.master_netmask
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetUseExternalMipScript(self):
     """Get flag representing whether to use the external master IP setup script.
 
     """
     return self._ConfigData().cluster.use_external_mip_script
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetFileStorageDir(self):
     """Get the file storage dir for this cluster.
 
     """
     return self._ConfigData().cluster.file_storage_dir
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetSharedFileStorageDir(self):
     """Get the shared file storage dir for this cluster.
 
     """
     return self._ConfigData().cluster.shared_file_storage_dir
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetGlusterStorageDir(self):
     """Get the Gluster storage dir for this cluster.
 
     """
     return self._ConfigData().cluster.gluster_storage_dir
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetHypervisorType(self):
     """Get the hypervisor type for this cluster.
 
     """
     return self._ConfigData().cluster.enabled_hypervisors[0]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetRsaHostKey(self):
     """Return the rsa hostkey from the config.
 
@@ -1461,7 +1417,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.rsahostkeypub
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetDsaHostKey(self):
     """Return the dsa hostkey from the config.
 
@@ -1471,14 +1427,14 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.dsahostkeypub
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetDefaultIAllocator(self):
     """Get the default instance allocator for this cluster.
 
     """
     return self._ConfigData().cluster.default_iallocator
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetDefaultIAllocatorParameters(self):
     """Get the default instance allocator parameters for this cluster.
 
@@ -1488,7 +1444,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.default_iallocator_params
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetPrimaryIPFamily(self):
     """Get cluster primary ip family.
 
@@ -1497,7 +1453,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.primary_ip_family
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMasterNetworkParameters(self):
     """Get network parameters of the master node.
 
@@ -1513,7 +1469,7 @@ class ConfigWriter(object):
 
     return result
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstallImage(self):
     """Get the install image location
 
@@ -1523,7 +1479,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.install_image
 
-  @_ConfigSync()
+  @ConfigSync()
   def SetInstallImage(self, install_image):
     """Set the install image location
 
@@ -1533,7 +1489,7 @@ class ConfigWriter(object):
     """
     self._ConfigData().cluster.install_image = install_image
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceCommunicationNetwork(self):
     """Get cluster instance communication network
 
@@ -1544,7 +1500,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.instance_communication_network
 
-  @_ConfigSync()
+  @ConfigSync()
   def SetInstanceCommunicationNetwork(self, network_name):
     """Set cluster instance communication network
 
@@ -1555,7 +1511,7 @@ class ConfigWriter(object):
     """
     self._ConfigData().cluster.instance_communication_network = network_name
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetZeroingImage(self):
     """Get the zeroing image location
 
@@ -1565,7 +1521,7 @@ class ConfigWriter(object):
     """
     return self._config_data.cluster.zeroing_image
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetCompressionTools(self):
     """Get cluster compression tools
 
@@ -1576,7 +1532,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.compression_tools
 
-  @_ConfigSync()
+  @ConfigSync()
   def SetCompressionTools(self, tools):
     """Set cluster compression tools
 
@@ -1587,7 +1543,7 @@ class ConfigWriter(object):
     """
     self._ConfigData().cluster.compression_tools = tools
 
-  @_ConfigSync()
+  @ConfigSync()
   def AddNodeGroup(self, group, ec_id, check_uuid=True):
     """Add a node group to the configuration.
 
@@ -1635,7 +1591,7 @@ class ConfigWriter(object):
     self._ConfigData().nodegroups[group.uuid] = group
     self._ConfigData().cluster.serial_no += 1
 
-  @_ConfigSync()
+  @ConfigSync()
   def RemoveNodeGroup(self, group_uuid):
     """Remove a node group from the configuration.
 
@@ -1678,7 +1634,7 @@ class ConfigWriter(object):
     raise errors.OpPrereqError("Node group '%s' not found" % target,
                                errors.ECODE_NOENT)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def LookupNodeGroup(self, target):
     """Lookup a node group's UUID.
 
@@ -1706,7 +1662,7 @@ class ConfigWriter(object):
 
     return self._ConfigData().nodegroups[uuid]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeGroup(self, uuid):
     """Lookup a node group.
 
@@ -1724,14 +1680,14 @@ class ConfigWriter(object):
     """
     return dict(self._ConfigData().nodegroups)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetAllNodeGroupsInfo(self):
     """Get the configuration of all node groups.
 
     """
     return self._UnlockedGetAllNodeGroupsInfo()
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetAllNodeGroupsInfoDict(self):
     """Get the configuration of all node groups expressed as a dictionary of
     dictionaries.
@@ -1740,14 +1696,14 @@ class ConfigWriter(object):
     return dict(map(lambda (uuid, ng): (uuid, ng.ToDict()),
                     self._UnlockedGetAllNodeGroupsInfo().items()))
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeGroupList(self):
     """Get a list of node groups.
 
     """
     return self._ConfigData().nodegroups.keys()
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeGroupMembersByNodes(self, nodes):
     """Get nodes which are member in the same nodegroups as the given nodes.
 
@@ -1758,7 +1714,7 @@ class ConfigWriter(object):
                      for member_uuid in
                        self._UnlockedGetNodeGroup(ngfn(node_uuid)).members)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMultiNodeGroupInfo(self, group_uuids):
     """Get the configuration of multiple node groups.
 
@@ -1857,7 +1813,7 @@ class ConfigWriter(object):
       instance.mtime = time.time()
     return instance
 
-  @_ConfigSync()
+  @ConfigSync()
   def MarkInstanceUp(self, inst_uuid):
     """Mark the instance status to up in the config.
 
@@ -1870,7 +1826,7 @@ class ConfigWriter(object):
     return self._SetInstanceStatus(inst_uuid, constants.ADMINST_UP, True,
                                    constants.ADMIN_SOURCE)
 
-  @_ConfigSync()
+  @ConfigSync()
   def MarkInstanceOffline(self, inst_uuid):
     """Mark the instance status to down in the config.
 
@@ -1883,7 +1839,7 @@ class ConfigWriter(object):
     return self._SetInstanceStatus(inst_uuid, constants.ADMINST_OFFLINE, False,
                                    constants.ADMIN_SOURCE)
 
-  @_ConfigSync()
+  @ConfigSync()
   def RemoveInstance(self, inst_uuid):
     """Remove the instance from the configuration.
 
@@ -1910,7 +1866,7 @@ class ConfigWriter(object):
     del self._ConfigData().instances[inst_uuid]
     self._ConfigData().cluster.serial_no += 1
 
-  @_ConfigSync()
+  @ConfigSync()
   def RenameInstance(self, inst_uuid, new_name):
     """Rename an instance.
 
@@ -1937,7 +1893,7 @@ class ConfigWriter(object):
     # Force update of ssconf files
     self._ConfigData().cluster.serial_no += 1
 
-  @_ConfigSync()
+  @ConfigSync()
   def MarkInstanceDown(self, inst_uuid):
     """Mark the status of an instance to down in the configuration.
 
@@ -1951,7 +1907,7 @@ class ConfigWriter(object):
     return self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None,
                                    constants.ADMIN_SOURCE)
 
-  @_ConfigSync()
+  @ConfigSync()
   def MarkInstanceUserDown(self, inst_uuid):
     """Mark the status of an instance to user down in the configuration.
 
@@ -1963,7 +1919,7 @@ class ConfigWriter(object):
     self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None,
                             constants.USER_SOURCE)
 
-  @_ConfigSync()
+  @ConfigSync()
   def MarkInstanceDisksActive(self, inst_uuid):
     """Mark the status of instance disks active.
 
@@ -1973,7 +1929,7 @@ class ConfigWriter(object):
     """
     return self._SetInstanceStatus(inst_uuid, None, True, None)
 
-  @_ConfigSync()
+  @ConfigSync()
   def MarkInstanceDisksInactive(self, inst_uuid):
     """Mark the status of instance disks inactive.
 
@@ -1991,7 +1947,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().instances.keys()
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceList(self):
     """Get the list of instances.
 
@@ -2027,7 +1983,7 @@ class ConfigWriter(object):
 
     return self._ConfigData().instances[inst_uuid]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceInfo(self, inst_uuid):
     """Returns information about an instance.
 
@@ -2042,7 +1998,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceInfo(inst_uuid)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceNodeGroups(self, inst_uuid, primary_only=False):
     """Returns set of node group UUIDs for instance's nodes.
 
@@ -2061,7 +2017,7 @@ class ConfigWriter(object):
     return frozenset(self._UnlockedGetNodeInfo(node_uuid).group
                      for node_uuid in nodes)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceNetworks(self, inst_uuid):
     """Returns set of network UUIDs for instance's nics.
 
@@ -2079,7 +2035,7 @@ class ConfigWriter(object):
 
     return frozenset(networks)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMultiInstanceInfo(self, inst_uuids):
     """Get the configuration of multiple instances.
 
@@ -2092,7 +2048,7 @@ class ConfigWriter(object):
     """
     return [(uuid, self._UnlockedGetInstanceInfo(uuid)) for uuid in inst_uuids]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMultiInstanceInfoByName(self, inst_names):
     """Get the configuration of multiple instances.
 
@@ -2109,7 +2065,7 @@ class ConfigWriter(object):
       result.append((instance.uuid, instance))
     return result
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetAllInstancesInfo(self):
     """Get the configuration of all instances.
 
@@ -2125,7 +2081,7 @@ class ConfigWriter(object):
                     for inst_uuid in self._UnlockedGetInstanceList()])
     return my_dict
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstancesInfoByFilter(self, filter_fn):
     """Get instance configuration with a filter.
 
@@ -2141,7 +2097,7 @@ class ConfigWriter(object):
                 for (uuid, inst) in self._ConfigData().instances.items()
                 if filter_fn(inst))
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceInfoByName(self, inst_name):
     """Get the L{objects.Instance} object for a named instance.
 
@@ -2165,7 +2121,7 @@ class ConfigWriter(object):
       raise errors.OpExecError("Unknown instance: %s" % inst_uuid)
     return inst_info.name
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceName(self, inst_uuid):
     """Gets the instance name for the passed instance.
 
@@ -2177,7 +2133,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceName(inst_uuid)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetInstanceNames(self, inst_uuids):
     """Gets the instance names for the passed list of nodes.
 
@@ -2189,7 +2145,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceNames(inst_uuids)
 
-  @_ConfigSync()
+  @ConfigSync()
   def SetInstancePrimaryNode(self, inst_uuid, target_node_uuid):
     """Sets the primary node of an existing instance
 
@@ -2201,7 +2157,7 @@ class ConfigWriter(object):
     """
     self._UnlockedGetInstanceInfo(inst_uuid).primary_node = target_node_uuid
 
-  @_ConfigSync()
+  @ConfigSync()
   def SetDiskNodes(self, disk_uuid, nodes):
     """Sets the nodes of an existing disk
 
@@ -2234,7 +2190,7 @@ class ConfigWriter(object):
     self._ConfigData().nodes[node.uuid] = node
     self._ConfigData().cluster.serial_no += 1
 
-  @_ConfigSync()
+  @ConfigSync()
   def AddNode(self, node, ec_id):
     """Add a node to the configuration.
 
@@ -2244,7 +2200,7 @@ class ConfigWriter(object):
     """
     self._UnlockedAddNode(node, ec_id)
 
-  @_ConfigSync()
+  @ConfigSync()
   def RemoveNode(self, node_uuid):
     """Remove a node from the configuration.
 
@@ -2291,7 +2247,7 @@ class ConfigWriter(object):
 
     return self._ConfigData().nodes[node_uuid]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeInfo(self, node_uuid):
     """Get the configuration of a node, as stored in the config.
 
@@ -2305,7 +2261,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetNodeInfo(node_uuid)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeInstances(self, node_uuid):
     """Get the instances of a node, as stored in the config.
 
@@ -2324,7 +2280,7 @@ class ConfigWriter(object):
         sec.append(inst.uuid)
     return (pri, sec)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeGroupInstances(self, uuid, primary_only=False):
     """Get the instances of a node group.
 
@@ -2357,7 +2313,7 @@ class ConfigWriter(object):
       result += "%s=%s\n" % (key, hvparams[key])
     return result
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetHvparamsString(self, hvname):
     """Return the hypervisor parameters of the given hypervisor.
 
@@ -2381,7 +2337,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().nodes.keys()
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeList(self):
     """Return the list of nodes which are in the configuration.
 
@@ -2396,14 +2352,14 @@ class ConfigWriter(object):
                  for node in self._UnlockedGetNodeList()]
     return [node.uuid for node in all_nodes if not node.offline]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetOnlineNodeList(self):
     """Return the list of nodes which are online.
 
     """
     return self._UnlockedGetOnlineNodeList()
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetVmCapableNodeList(self):
     """Return the list of nodes which are not vm capable.
 
@@ -2412,7 +2368,7 @@ class ConfigWriter(object):
                  for node in self._UnlockedGetNodeList()]
     return [node.uuid for node in all_nodes if node.vm_capable]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNonVmCapableNodeList(self):
     """Return the list of nodes' uuids which are not vm capable.
 
@@ -2421,7 +2377,7 @@ class ConfigWriter(object):
                  for node in self._UnlockedGetNodeList()]
     return [node.uuid for node in all_nodes if not node.vm_capable]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNonVmCapableNodeNameList(self):
     """Return the list of nodes' names which are not vm capable.
 
@@ -2430,7 +2386,7 @@ class ConfigWriter(object):
                  for node in self._UnlockedGetNodeList()]
     return [node.name for node in all_nodes if not node.vm_capable]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMultiNodeInfo(self, node_uuids):
     """Get the configuration of multiple nodes.
 
@@ -2452,7 +2408,7 @@ class ConfigWriter(object):
     return dict([(node_uuid, self._UnlockedGetNodeInfo(node_uuid))
                  for node_uuid in self._UnlockedGetNodeList()])
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetAllNodesInfo(self):
     """Get the configuration of all nodes.
 
@@ -2469,7 +2425,7 @@ class ConfigWriter(object):
         return node
     return None
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeInfoByName(self, node_name):
     """Get the L{objects.Node} object for a named node.
 
@@ -2481,7 +2437,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetNodeInfoByName(node_name)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeGroupInfoByName(self, nodegroup_name):
     """Get the L{objects.NodeGroup} object for a named node group.
 
@@ -2507,7 +2463,7 @@ class ConfigWriter(object):
     else:
       raise errors.ProgrammerError("Can't handle node spec '%s'" % node_spec)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeName(self, node_spec):
     """Gets the node name for the passed node.
 
@@ -2522,7 +2478,7 @@ class ConfigWriter(object):
   def _UnlockedGetNodeNames(self, node_specs):
     return [self._UnlockedGetNodeName(node_spec) for node_spec in node_specs]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeNames(self, node_specs):
     """Gets the node names for the passed list of nodes.
 
@@ -2534,7 +2490,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetNodeNames(node_specs)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNodeGroupsFromNodes(self, node_uuids):
     """Returns groups for a list of nodes.
 
@@ -2556,7 +2512,7 @@ class ConfigWriter(object):
     return [node.uuid for node in self._ConfigData().nodes.values()
             if node.master_candidate]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMasterCandidateUuids(self):
     """Get the list of UUIDs of master candidates.
 
@@ -2586,7 +2542,7 @@ class ConfigWriter(object):
     mc_should = min(mc_max, self._ConfigData().cluster.candidate_pool_size)
     return (mc_now, mc_should, mc_max)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMasterCandidateStats(self, exceptions=None):
     """Get the number of current and maximum possible candidates.
 
@@ -2600,7 +2556,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetMasterCandidateStats(exceptions)
 
-  @_ConfigSync()
+  @ConfigSync()
   def MaintainCandidatePool(self, exception_node_uuids):
     """Try to grow the candidate pool to the desired size.
 
@@ -2664,7 +2620,7 @@ class ConfigWriter(object):
     else:
       nodegroup_obj.members.remove(node.uuid)
 
-  @_ConfigSync()
+  @ConfigSync()
   def AssignGroupNodes(self, mods):
     """Changes the group of a number of nodes.
 
@@ -3086,21 +3042,21 @@ class ConfigWriter(object):
                                       " values: %s" % err)
     return ssconf_values
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetSsconfValues(self):
     """Wrapper using lock around _UnlockedGetSsconf().
 
     """
     return self._UnlockedGetSsconfValues()
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetVGName(self):
     """Return the volume group name.
 
     """
     return self._ConfigData().cluster.volume_group_name
 
-  @_ConfigSync()
+  @ConfigSync()
   def SetVGName(self, vg_name):
     """Set the volume group name.
 
@@ -3108,14 +3064,14 @@ class ConfigWriter(object):
     self._ConfigData().cluster.volume_group_name = vg_name
     self._ConfigData().cluster.serial_no += 1
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetDRBDHelper(self):
     """Return DRBD usermode helper.
 
     """
     return self._ConfigData().cluster.drbd_usermode_helper
 
-  @_ConfigSync()
+  @ConfigSync()
   def SetDRBDHelper(self, drbd_helper):
     """Set DRBD usermode helper.
 
@@ -3123,14 +3079,14 @@ class ConfigWriter(object):
     self._ConfigData().cluster.drbd_usermode_helper = drbd_helper
     self._ConfigData().cluster.serial_no += 1
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetMACPrefix(self):
     """Return the mac prefix.
 
     """
     return self._ConfigData().cluster.mac_prefix
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetClusterInfo(self):
     """Returns information about the cluster
 
@@ -3140,14 +3096,14 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def HasAnyDiskOfType(self, dev_type):
     """Check if in there is at disk of the given type in the configuration.
 
     """
     return self._ConfigData().HasAnyDiskOfType(dev_type)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetDetachedConfig(self):
     """Returns a detached version of a ConfigManager, which represents
     a read-only snapshot of the configuration at this particular time.
@@ -3155,7 +3111,7 @@ class ConfigWriter(object):
     """
     return DetachedConfig(self._ConfigData())
 
-  @_ConfigSync()
+  @ConfigSync()
   def Update(self, target, feedback_fn, ec_id=None):
     """Notify function to be called after updates.
 
@@ -3240,7 +3196,7 @@ class ConfigWriter(object):
   def DropECReservations(self, ec_id):
     self._UnlockedDropECReservations(ec_id)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetAllNetworksInfo(self):
     """Get configuration info of all the networks.
 
@@ -3255,7 +3211,7 @@ class ConfigWriter(object):
     """
     return self._ConfigData().networks.keys()
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNetworkList(self):
     """Get the list of networks.
 
@@ -3264,7 +3220,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetNetworkList()
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNetworkNames(self):
     """Get a list of network names
 
@@ -3284,7 +3240,7 @@ class ConfigWriter(object):
 
     return self._ConfigData().networks[uuid]
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetNetwork(self, uuid):
     """Returns information about a network.
 
@@ -3298,7 +3254,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetNetwork(uuid)
 
-  @_ConfigSync()
+  @ConfigSync()
   def AddNetwork(self, net, ec_id, check_uuid=True):
     """Add a network to the configuration.
 
@@ -3344,7 +3300,7 @@ class ConfigWriter(object):
     raise errors.OpPrereqError("Network '%s' not found" % target,
                                errors.ECODE_NOENT)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def LookupNetwork(self, target):
     """Lookup a network's UUID.
 
@@ -3358,7 +3314,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedLookupNetwork(target)
 
-  @_ConfigSync()
+  @ConfigSync()
   def RemoveNetwork(self, network_uuid):
     """Remove a network from the configuration.
 
@@ -3393,14 +3349,14 @@ class ConfigWriter(object):
 
     return netparams
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetGroupNetParams(self, net_uuid, node_uuid):
     """Locking wrapper of _UnlockedGetGroupNetParams()
 
     """
     return self._UnlockedGetGroupNetParams(net_uuid, node_uuid)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def CheckIPInNodeGroup(self, ip, node_uuid):
     """Check IP uniqueness in nodegroup.
 
@@ -3428,14 +3384,14 @@ class ConfigWriter(object):
 
     return (None, None)
 
-  @_ConfigSync(shared=1)
+  @ConfigSync(shared=1)
   def GetCandidateCerts(self):
     """Returns the candidate certificate map.
 
     """
     return self._ConfigData().cluster.candidate_certs
 
-  @_ConfigSync()
+  @ConfigSync()
   def AddNodeToCandidateCerts(self, node_uuid, cert_digest,
                               info_fn=logging.info, warn_fn=logging.warn):
     """Adds an entry to the candidate certificate map.
@@ -3464,7 +3420,7 @@ class ConfigWriter(object):
                   % node_uuid)
     cluster.candidate_certs[node_uuid] = cert_digest
 
-  @_ConfigSync()
+  @ConfigSync()
   def RemoveNodeFromCandidateCerts(self, node_uuid,
                                    warn_fn=logging.warn):
     """Removes the entry of the given node in the certificate map.
