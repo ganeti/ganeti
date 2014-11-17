@@ -1287,6 +1287,7 @@ def GenericInstanceCreate(mode, opts, args):
 
   """
   instance = args[0]
+  forthcoming = opts.forthcoming
 
   (pnode, snode) = SplitNodeOption(opts.node)
 
@@ -1392,6 +1393,9 @@ def GenericInstanceCreate(mode, opts, args):
     else:
       instance_communication = opts.instance_communication
   elif mode == constants.INSTANCE_IMPORT:
+    if forthcoming:
+      raise errors.OpPrereqError("forthcoming instances can only be created,"
+                                 " not imported")
     start = False
     os_type = None
     force_variant = False
@@ -1405,6 +1409,7 @@ def GenericInstanceCreate(mode, opts, args):
     raise errors.ProgrammerError("Invalid creation mode %s" % mode)
 
   op = opcodes.OpInstanceCreate(
+    forthcoming=forthcoming,
     instance_name=instance,
     disks=disks,
     disk_template=opts.disk_template,
