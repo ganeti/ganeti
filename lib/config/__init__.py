@@ -172,6 +172,11 @@ class ConfigWriter(object):
 
   @ivar _all_rms: a list of all temporary reservation managers
 
+  Currently the class fulfills 3 main functions:
+    1. lock the configuration for access (monitor)
+    2. reload and write the config if necessary (bridge)
+    3. provide convenient access methods to config data (facade)
+
   """
   def __init__(self, cfg_file=None, offline=False, _getents=runtime.GetEnts,
                accept_foreign=False, wconfdcontext=None, wconfd=None):
