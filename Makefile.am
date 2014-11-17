@@ -513,7 +513,8 @@ cmdlib_cluster_PYTHON = \
 	lib/cmdlib/cluster/verify.py
 
 config_PYTHON = \
-	lib/config/__init__.py
+	lib/config/__init__.py \
+	lib/config/temporary_reservations.py
 
 hypervisor_PYTHON = \
 	lib/hypervisor/__init__.py \
