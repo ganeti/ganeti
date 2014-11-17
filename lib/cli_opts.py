@@ -94,6 +94,7 @@ __all__ = [
   "FORCE_FILTER_OPT",
   "FORCE_OPT",
   "FORCE_VARIANT_OPT",
+  "FORTHCOMING_OPT",
   "GATEWAY6_OPT",
   "GATEWAY_OPT",
   "GLOBAL_FILEDIR_OPT",
@@ -892,6 +893,11 @@ SINGLE_NODE_OPT = cli_option("-n", "--node", dest="node", help="Target node",
 NOSTART_OPT = cli_option("--no-start", dest="start", default=True,
                          action="store_false",
                          help="Don't start the instance after creation")
+
+FORTHCOMING_OPT = cli_option("--forthcoming", dest="forthcoming",
+                             action="store_true", default=False,
+                             help="Only reserve resources, but do not"
+                                  " create the instance yet")
 
 SHOWCMD_OPT = cli_option("--show-cmd", dest="show_command",
                          action="store_true", default=False,
