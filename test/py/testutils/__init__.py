@@ -124,6 +124,14 @@ class GanetiTestCase(unittest.TestCase):
   """
   def setUp(self):
     self._temp_files = []
+    self.patches = {}
+    self.mocks = {}
+
+  def MockOut(self, name, patch=None):
+    if patch is None:
+      patch = name
+    self.patches[name] = patch
+    self.mocks[name] = patch.start()
 
   def tearDown(self):
     while self._temp_files:
@@ -131,6 +139,12 @@ class GanetiTestCase(unittest.TestCase):
         utils.RemoveFile(self._temp_files.pop())
       except EnvironmentError:
         pass
+
+    for patch in self.patches.values():
+      patch.stop()
+
+    self.patches = {}
+    self.mocks = {}
 
   def assertFileContent(self, file_name, expected_content):
     """Checks that the content of a file is what we expect.

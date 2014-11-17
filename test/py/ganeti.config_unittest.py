@@ -51,7 +51,7 @@ from ganeti.config import TemporaryReservationManager
 import testutils
 import mocks
 import mock
-from cmdlib.testsupport.config_mock import ConfigMock
+from testutils.config_mock import ConfigMock
 
 
 def _StubGetEntResolver():

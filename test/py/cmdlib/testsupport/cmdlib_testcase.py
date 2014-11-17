@@ -38,7 +38,7 @@ import traceback
 import functools
 import sys
 
-from cmdlib.testsupport.config_mock import ConfigMock
+from testutils.config_mock import ConfigMock
 from cmdlib.testsupport.iallocator_mock import patchIAllocator
 from cmdlib.testsupport.livelock_mock import LiveLockMock
 from cmdlib.testsupport.netutils_mock import patchNetutils, \

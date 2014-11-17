@@ -34,7 +34,7 @@
 
 from cmdlib.testsupport.cmdlib_testcase import CmdlibTestCase, \
   withLockedLU
-from cmdlib.testsupport.config_mock import ConfigMock
+from testutils.config_mock import ConfigMock
 from cmdlib.testsupport.iallocator_mock import patchIAllocator
 from cmdlib.testsupport.livelock_mock import LiveLockMock
 from cmdlib.testsupport.utils_mock import patchUtils

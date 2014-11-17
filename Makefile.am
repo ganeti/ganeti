@@ -244,6 +244,7 @@ DIRS = \
         test/data/cgroup_root/devices/some_group/lxc \
         test/data/cgroup_root/devices/some_group/lxc/instance1 \
 	test/py \
+	test/py/testutils \
 	test/py/cmdlib \
 	test/py/cmdlib/testsupport \
 	tools
@@ -1573,6 +1574,7 @@ EXTRA_DIST += \
 	$(dist_TESTS) \
 	$(TEST_FILES) \
 	$(python_test_support) \
+	$(python_test_utils) \
 	man/footer.rst \
 	$(manrst) \
 	$(maninput) \
@@ -1914,12 +1916,12 @@ python_tests = \
 python_test_support = \
 	test/py/__init__.py \
 	test/py/lockperf.py \
-	test/py/testutils.py \
 	test/py/mocks.py \
+	test/py/testutils/__init__.py \
+	test/py/testutils/config_mock.py \
 	test/py/cmdlib/__init__.py \
 	test/py/cmdlib/testsupport/__init__.py \
 	test/py/cmdlib/testsupport/cmdlib_testcase.py \
-	test/py/cmdlib/testsupport/config_mock.py \
 	test/py/cmdlib/testsupport/iallocator_mock.py \
 	test/py/cmdlib/testsupport/livelock_mock.py \
 	test/py/cmdlib/testsupport/netutils_mock.py \
@@ -2004,6 +2006,7 @@ all_python_code = \
 if PY_UNIT
 all_python_code += $(python_tests)
 all_python_code += $(python_test_support)
+all_python_code += $(python_test_utils)
 endif
 
 srclink_files = \
@@ -2058,6 +2061,7 @@ pep8_python_code = \
 	$(gnt_python_sbin_SCRIPTS) \
 	qa \
 	$(python_test_support)
+	$(python_test_utils)
 
 test/py/daemon-util_unittest.bash: daemons/daemon-util
 
@@ -2634,7 +2638,7 @@ pylint-test: $(GENERATED_FILES)
 	@test -n "$(PYLINT)" || { echo 'pylint' not found during configure; exit 1; }
 	cd $(top_srcdir) && \
 		PYTHONPATH=.:./test/py $(PYLINT) $(LINT_OPTS_ALL) \
-		--rcfile=pylintrc-test  $(python_test_support)
+		--rcfile=pylintrc-test  $(python_test_support) $(python_test_utils)
 
 .PHONY: pep8
 pep8: $(GENERATED_FILES)
