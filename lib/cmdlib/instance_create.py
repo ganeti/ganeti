@@ -338,7 +338,7 @@ class LUInstanceCreate(LogicalUnit):
     self.needed_locks = {}
 
     # this is just a preventive check, but someone might still add this
-    # instance in the meantime, and creation will fail at lock-add time
+    # instance in the meantime; we check again in CheckPrereq
     CheckInstanceExistence(self, self.op.instance_name)
 
     self.add_locks[locking.LEVEL_INSTANCE] = self.op.instance_name
@@ -678,6 +678,7 @@ class LUInstanceCreate(LogicalUnit):
     """Check prerequisites.
 
     """
+    CheckInstanceExistence(self, self.op.instance_name)
     # Check that the optimistically acquired groups are correct wrt the
     # acquired nodes
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
