@@ -1362,8 +1362,6 @@ class LUClusterSetParams(LogicalUnit):
           hv_class.CheckParameterSyntax(hv_params)
           CheckHVParams(self, node_uuids, hv_name, hv_params)
 
-    self._CheckDiskTemplateConsistency()
-
     if self.op.os_hvp:
       # no need to check any newly-enabled hypervisors, since the
       # defaults have already been checked in the above code-block
@@ -1433,23 +1431,6 @@ class LUClusterSetParams(LogicalUnit):
       # check the parameter validity (remote check)
       CheckOSParams(self, False, [self.cfg.GetMasterNode()],
                     os_name, os_params, False)
-
-  def _CheckDiskTemplateConsistency(self):
-    """Check whether the disk templates that are going to be disabled
-       are still in use by some instances.
-
-    """
-    if self.op.enabled_disk_templates:
-      cluster = self.cfg.GetClusterInfo()
-      instances = self.cfg.GetAllInstancesInfo()
-
-      disk_templates_to_remove = set(cluster.enabled_disk_templates) \
-        - set(self.op.enabled_disk_templates)
-      for instance in instances.itervalues():
-        if instance.disk_template in disk_templates_to_remove:
-          raise errors.OpPrereqError("Cannot disable disk template '%s',"
-                                     " because instance '%s' is using it." %
-                                     (instance.disk_template, instance.name))
 
   def _SetVgName(self, feedback_fn):
     """Determines and sets the new volume group name.
