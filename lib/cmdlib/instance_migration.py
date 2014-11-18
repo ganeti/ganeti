@@ -388,12 +388,13 @@ class TLMigrateInstance(Tasklet):
         ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
     elif utils.AllDiskOfType(disks, constants.DTS_INT_MIRROR):
+      templates = [d.dev_type for d in disks]
       secondary_node_uuids = \
         self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
       if not secondary_node_uuids:
         raise errors.ConfigurationError("No secondary node but using"
-                                        " %s disk template" %
-                                        self.instance.disk_template)
+                                        " %s disk types" %
+                                        utils.CommaJoin(set(templates)))
       self.target_node_uuid = target_node_uuid = secondary_node_uuids[0]
       if self.lu.op.iallocator or \
         (self.lu.op.target_node_uuid and
@@ -402,11 +403,11 @@ class TLMigrateInstance(Tasklet):
           text = "failed over"
         else:
           text = "migrated"
-        raise errors.OpPrereqError("Instances with disk template %s cannot"
+        raise errors.OpPrereqError("Instances with disk types %s cannot"
                                    " be %s to arbitrary nodes"
                                    " (neither an iallocator nor a target"
                                    " node can be passed)" %
-                                   (self.instance.disk_template, text),
+                                   (utils.CommaJoin(set(templates)), text),
                                    errors.ECODE_INVAL)
       nodeinfo = self.cfg.GetNodeInfo(target_node_uuid)
       group_info = self.cfg.GetNodeGroup(nodeinfo.group)

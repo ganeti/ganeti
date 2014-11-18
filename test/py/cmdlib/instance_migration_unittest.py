@@ -99,7 +99,7 @@ class TestLUInstanceMigrate(CmdlibTestCase):
     op = self.CopyOpCode(self.op,
                          target_node=node.name)
     self.ExecOpCodeExpectOpPrereqError(
-      op, "Instances with disk template drbd cannot be migrated to"
+      op, "Instances with disk types drbd cannot be migrated to"
           " arbitrary nodes")
 
   def testMigration(self):
@@ -160,7 +160,7 @@ class TestLUInstanceFailover(CmdlibTestCase):
     op = self.CopyOpCode(self.op,
                          target_node=node.name)
     self.ExecOpCodeExpectOpPrereqError(
-      op, "Instances with disk template drbd cannot be failed over to"
+      op, "Instances with disk types drbd cannot be failed over to"
           " arbitrary nodes")
 
   def testMigration(self):
