@@ -337,13 +337,17 @@ class TLMigrateInstance(Tasklet):
                       " switching to failover")
       self.failover = True
 
-    if self.instance.disk_template not in constants.DTS_MIRRORED:
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+
+    if not utils.AllDiskOfType(disks, constants.DTS_MIRRORED):
       if self.failover:
         text = "failovers"
       else:
         text = "migrations"
+      invalid_disks = set(d.dev_type for d in disks
+                             if d.dev_type not in constants.DTS_MIRRORED)
       raise errors.OpPrereqError("Instance's disk layout '%s' does not allow"
-                                 " %s" % (self.instance.disk_template, text),
+                                 " %s" % (utils.CommaJoin(invalid_disks), text),
                                  errors.ECODE_STATE)
 
     if self.instance.disk_template in constants.DTS_EXT_MIRROR:
