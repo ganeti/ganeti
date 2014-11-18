@@ -661,7 +661,10 @@ class TLMigrateInstance(Tasklet):
     """Try to revert the disk status after a failed migration.
 
     """
-    if self.instance.disk_template in constants.DTS_EXT_MIRROR:
+
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+
+    if utils.AllDiskOfType(disks, constants.DTS_EXT_MIRROR):
       return
 
     try:
@@ -775,7 +778,9 @@ class TLMigrateInstance(Tasklet):
 
     self.migration_info = migration_info = result.payload
 
-    if self.instance.disk_template not in constants.DTS_EXT_MIRROR:
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+
+    if utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
       # Then switch the disks to master/master mode
       self._EnsureSecondary(self.target_node_uuid)
       self._GoStandalone()
