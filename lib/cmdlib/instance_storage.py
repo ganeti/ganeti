@@ -537,7 +537,7 @@ def CheckRADOSFreeSpace():
 
 
 def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
-                         iv_name, p_minor, s_minor):
+                         iv_name, p_minor, s_minor, forthcoming=False):
   """Generate a drbd8 device complete with its children.
 
   """
@@ -548,13 +548,13 @@ def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
   dev_data = objects.Disk(dev_type=constants.DT_PLAIN, size=size,
                           logical_id=(vgnames[0], names[0]),
                           nodes=[primary_uuid, secondary_uuid],
-                          params={})
+                          params={}, forthcoming=forthcoming)
   dev_data.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
   dev_meta = objects.Disk(dev_type=constants.DT_PLAIN,
                           size=constants.DRBD_META_SIZE,
                           logical_id=(vgnames[1], names[1]),
                           nodes=[primary_uuid, secondary_uuid],
-                          params={})
+                          params={}, forthcoming=forthcoming)
   dev_meta.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
   drbd_dev = objects.Disk(dev_type=constants.DT_DRBD8, size=size,
                           logical_id=(primary_uuid, secondary_uuid, port,
@@ -562,7 +562,8 @@ def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
                                       shared_secret),
                           children=[dev_data, dev_meta],
                           nodes=[primary_uuid, secondary_uuid],
-                          iv_name=iv_name, params={})
+                          iv_name=iv_name, params={},
+                          forthcoming=forthcoming)
   drbd_dev.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
   return drbd_dev
 
@@ -570,7 +571,7 @@ def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
 def GenerateDiskTemplate(
   lu, template_name, instance_uuid, primary_node_uuid, secondary_node_uuids,
   disk_info, file_storage_dir, file_driver, base_index,
-  feedback_fn, full_disk_params):
+  feedback_fn, full_disk_params, forthcoming=False):
   """Generate the entire disk layout for a given template type.
 
   """
@@ -607,7 +608,8 @@ def GenerateDiskTemplate(
                                       [data_vg, meta_vg],
                                       names[idx * 2:idx * 2 + 2],
                                       "disk/%d" % disk_index,
-                                      minors[idx * 2], minors[idx * 2 + 1])
+                                      minors[idx * 2], minors[idx * 2 + 1],
+                                      forthcoming=forthcoming)
       disk_dev.mode = disk[constants.IDISK_MODE]
       disk_dev.name = disk.get(constants.IDISK_NAME, None)
       disks.append(disk_dev)
@@ -685,7 +687,8 @@ def GenerateDiskTemplate(
                               iv_name="disk/%d" % disk_index,
                               mode=disk[constants.IDISK_MODE],
                               params=params, nodes=disk_nodes,
-                              spindles=disk.get(constants.IDISK_SPINDLES))
+                              spindles=disk.get(constants.IDISK_SPINDLES),
+                              forthcoming=forthcoming)
       disk_dev.name = disk.get(constants.IDISK_NAME, None)
       disk_dev.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
       disks.append(disk_dev)
