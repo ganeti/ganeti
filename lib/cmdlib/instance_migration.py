@@ -642,7 +642,8 @@ class TLMigrateInstance(Tasklet):
                        self.cfg.GetNodeName(self.source_node_uuid))
       demoted_node_uuid = self.target_node_uuid
 
-    if self.instance.disk_template in constants.DTS_INT_MIRROR:
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
       self._EnsureSecondary(demoted_node_uuid)
       try:
         self._WaitUntilSync()
@@ -856,6 +857,7 @@ class TLMigrateInstance(Tasklet):
 
     self.cfg.SetInstancePrimaryNode(self.instance.uuid, self.target_node_uuid)
     self.instance = self.cfg.GetInstanceInfo(self.instance_uuid)
+    disks = self.cfg.GetInstanceDisks(self.instance_uuid)
 
     result = self.rpc.call_instance_finalize_migration_dst(
                self.target_node_uuid, self.instance, migration_info, True)
@@ -866,7 +868,7 @@ class TLMigrateInstance(Tasklet):
       raise errors.OpExecError("Could not finalize instance migration: %s" %
                                msg)
 
-    if self.instance.disk_template not in constants.DTS_EXT_MIRROR:
+    if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
       self._EnsureSecondary(self.source_node_uuid)
       self._WaitUntilSync()
       self._GoStandalone()
