@@ -577,7 +577,8 @@ class ConfigWriter(object):
 
       for dev in devices:
         if dev.dev_type == constants.DT_PLAIN:
-          lvmap[node_uuid].append(dev.logical_id[0] + "/" + dev.logical_id[1])
+          if not dev.forthcoming:
+            lvmap[node_uuid].append(dev.logical_id[0] + "/" + dev.logical_id[1])
 
         elif dev.dev_type in constants.DTS_DRBD:
           if dev.children:
