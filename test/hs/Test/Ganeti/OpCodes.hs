@@ -337,6 +337,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> genMaybe genNameNE              -- src_path
           <*> genPrintableAsciiString         -- compress
           <*> arbitrary                       -- start
+          <*> arbitrary                       -- forthcoming
           <*> (genTags >>= mapM mkNonEmpty)   -- tags
           <*> arbitrary                       -- instance_communication
           <*> arbitrary                       -- helper_startup_timeout

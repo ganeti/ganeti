@@ -476,6 +476,7 @@ $(genOpCode "OpCode"
      , pSrcPath
      , pBackupCompress
      , pStartInstance
+     , pForthcoming
      , pInstTags
      , pInstanceCommunication
      , pHelperStartupTimeout
