@@ -204,6 +204,7 @@ module Ganeti.OpParams
   , pSrcNodeUuid
   , pSrcPath
   , pStartInstance
+  , pForthcoming
   , pInstTags
   , pMultiAllocInstances
   , pTempOsParams
@@ -1273,6 +1274,11 @@ pStartInstance :: Field
 pStartInstance =
   withDoc "Whether to start instance after creation" $
   defaultTrue "start"
+
+pForthcoming :: Field
+pForthcoming =
+  withDoc "Whether to only reserve resources" $
+  defaultFalse "forthcoming"
 
 -- FIXME: unify/simplify with pTags, once that migrates to NonEmpty String"
 pInstTags :: Field
