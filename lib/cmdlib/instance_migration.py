@@ -998,7 +998,10 @@ class TLMigrateInstance(Tasklet):
     self.source_node_uuid = self.instance.primary_node
 
     # FIXME: if we implement migrate-to-any in DRBD, this needs fixing
-    if self.instance.disk_template in constants.DTS_INT_MIRROR:
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+
+    # TODO allow mixed disks
+    if utils.AllDiskOfType(disks, constants.DTS_INT_MIRROR):
       secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
       self.target_node_uuid = secondary_nodes[0]
       # Otherwise self.target_node has been populated either
