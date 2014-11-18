@@ -1406,7 +1406,8 @@ class LUInstanceCreate(LogicalUnit):
                                  self.op.file_driver,
                                  0,
                                  feedback_fn,
-                                 self.cfg.GetGroupDiskParams(nodegroup))
+                                 self.cfg.GetGroupDiskParams(nodegroup),
+                                 forthcoming=self.op.forthcoming)
 
     if self.op.os_type is None:
       os_type = ""
@@ -1428,6 +1429,7 @@ class LUInstanceCreate(LogicalUnit):
                             hypervisor=self.op.hypervisor,
                             osparams=self.op.osparams,
                             osparams_private=self.op.osparams_private,
+                            forthcoming=self.op.forthcoming,
                             )
 
     if self.op.tags:
@@ -1446,6 +1448,8 @@ class LUInstanceCreate(LogicalUnit):
         result = self.rpc.call_blockdev_rename(self.pnode.uuid,
                                                zip(tmp_disks, rename_to))
         result.Raise("Failed to rename adoped LVs")
+    elif self.op.forthcoming:
+      feedback_fn("Instance is forthcoming, not creating disks")
     else:
       feedback_fn("* creating instance disks...")
       try:
@@ -1461,6 +1465,10 @@ class LUInstanceCreate(LogicalUnit):
     feedback_fn("adding disks to cluster config")
     for disk in disks:
       self.cfg.AddInstanceDisk(iobj.uuid, disk)
+
+    if self.op.forthcoming:
+      feedback_fn("Instance is forthcoming; not creating the actual instance")
+      return self.cfg.GetNodeNames(list(self.cfg.GetInstanceNodes(iobj.uuid)))
 
     # re-read the instance from the configuration
     iobj = self.cfg.GetInstanceInfo(iobj.uuid)
