@@ -350,7 +350,8 @@ class TLMigrateInstance(Tasklet):
                                  " %s" % (utils.CommaJoin(invalid_disks), text),
                                  errors.ECODE_STATE)
 
-    if self.instance.disk_template in constants.DTS_EXT_MIRROR:
+    # TODO allow heterogeneous disk types if all are mirrored in some way.
+    if utils.AllDiskOfType(disks, constants.DTS_EXT_MIRROR):
       CheckIAllocatorOrNode(self.lu, "iallocator", "target_node")
 
       if self.lu.op.iallocator:
@@ -386,7 +387,7 @@ class TLMigrateInstance(Tasklet):
                      keep=[self.instance.primary_node, self.target_node_uuid])
         ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
-    else:
+    elif utils.AllDiskOfType(disks, constants.DTS_INT_MIRROR):
       secondary_node_uuids = \
         self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
       if not secondary_node_uuids:
@@ -413,6 +414,10 @@ class TLMigrateInstance(Tasklet):
                                                               group_info)
       CheckTargetNodeIPolicy(self.lu, ipolicy, self.instance, nodeinfo,
                              self.cfg, ignore=self.ignore_ipolicy)
+
+    else:
+      raise errors.OpPrereqError("Instance mixes internal and external "
+                                 "mirroring. This is not currently supported.")
 
     i_be = cluster.FillBE(self.instance)
 
