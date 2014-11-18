@@ -882,11 +882,14 @@ class TLMigrateInstance(Tasklet):
 
     # If the instance's disk template is `rbd' or `ext' and there was a
     # successful migration, unmap the device from the source node.
-    if self.instance.disk_template in (constants.DT_RBD, constants.DT_EXT):
-      inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
-      disks = ExpandCheckDisks(inst_disks, inst_disks)
-      self.feedback_fn("* unmapping instance's disks from %s" %
-                       self.cfg.GetNodeName(self.source_node_uuid))
+    unmap_types = (constants.DT_RBD, constants.DT_EXT)
+
+    if utils.AnyDiskOfType(disks, unmap_types):
+      unmap_disks = [d for d in disks if d.dev_type in unmap_types]
+      disks = ExpandCheckDisks(unmap_disks, unmap_disks)
+      self.feedback_fn("* unmapping instance's disks %s from %s" %
+                       (utils.CommaJoin(d.name for d in unmap_disks),
+                        self.cfg.GetNodeName(self.source_node_uuid)))
       for disk in disks:
         result = self.rpc.call_blockdev_shutdown(self.source_node_uuid,
                                                  (disk, self.instance))
