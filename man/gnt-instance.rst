@@ -32,7 +32,7 @@ ADD
 |  \| {size=*VAL*,provider=*PROVIDER*}[,param=*value*... ][,options...]
 |  \| {-s|\--os-size} *SIZE*}
 | [\--no-ip-check] [\--no-name-check] [\--no-conflicts-check]
-| [\--no-start] [\--no-install]
+| [\--no-start] [\--no-install] [\--forthcoming]
 | [\--net=*N* [:options...] \| \--no-nics]
 | [{-B|\--backend-parameters} *BEPARAMS*]
 | [{-H|\--hypervisor-parameters} *HYPERVISOR* [: option=*value*... ]]
@@ -195,6 +195,10 @@ installation, allowing a manual import if so desired. Note that the
 no-installation mode will automatically disable the start-up of the
 instance (without an OS, it most likely won't be able to start-up
 successfully).
+
+Passing the ``--forthcoming`` option, Ganeti will not at all try
+to create the instance or its disks. Instead the instance will
+only be added to the configuration, so that the resources are reserved.
 
 The ``-B (--backend-parameters)`` option specifies the backend
 parameters for the instance. If no such parameters are specified, the
