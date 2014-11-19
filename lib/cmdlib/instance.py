@@ -291,6 +291,12 @@ class LUInstanceRemove(LogicalUnit):
     """Remove the instance.
 
     """
+    assert (self.owned_locks(locking.LEVEL_NODE) ==
+            self.owned_locks(locking.LEVEL_NODE_RES))
+    assert not (set(self.cfg.GetInstanceNodes(self.instance.uuid)) -
+                self.owned_locks(locking.LEVEL_NODE)), \
+      "Not owning correct locks"
+
     logging.info("Shutting down instance %s on node %s", self.instance.name,
                  self.cfg.GetNodeName(self.instance.primary_node))
 
@@ -304,12 +310,6 @@ class LUInstanceRemove(LogicalUnit):
       result.Raise("Could not shutdown instance %s on node %s" %
                    (self.instance.name,
                     self.cfg.GetNodeName(self.instance.primary_node)))
-
-    assert (self.owned_locks(locking.LEVEL_NODE) ==
-            self.owned_locks(locking.LEVEL_NODE_RES))
-    assert not (set(self.cfg.GetInstanceNodes(self.instance.uuid)) -
-                self.owned_locks(locking.LEVEL_NODE)), \
-      "Not owning correct locks"
 
     RemoveInstance(self, feedback_fn, self.instance, self.op.ignore_failures)
 
