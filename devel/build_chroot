@@ -290,7 +290,7 @@ case $DIST_RELEASE in
         vector-0.10.9.1 \
         zlib-0.5.4.1 \
         \
-        hlint-1.8.57 \
+        'hlint>=1.9.12' \
         HUnit-1.2.5.2 \
         QuickCheck-2.6 \
         test-framework-0.8.0.3 \
@@ -359,7 +359,8 @@ case $DIST_RELEASE in
        cabal install --global \
         'base64-bytestring>=1' \
         lens-3.10.2 \
-        'lifted-base>=0.1.2'
+        'lifted-base>=0.1.2' \
+        'hlint>=1.9.12'
 ;;
 
   testing)
@@ -421,7 +422,8 @@ EOF
        cabal install --global \
         'base64-bytestring>=1' \
         lens-3.10.2 \
-        'lifted-base>=0.1.2'
+        'lifted-base>=0.1.2' \
+        'hlint>=1.9.12'
 
     in_chroot -- \
       cabal install --global shelltestrunner
