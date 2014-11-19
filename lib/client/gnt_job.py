@@ -549,7 +549,7 @@ commands = {
     CancelJobs, [ArgJobId()],
     [FORCE_OPT, _KILL_OPT, _PENDING_OPT, _QUEUED_OPT, _WAITING_OPT,
      _YES_DOIT_OPT],
-    "{[--force] [--kill] {--pending | --queued | --waiting} |"
+    "{[--force] [--kill --yes-do-it] {--pending | --queued | --waiting} |"
     " <job-id> [<job-id> ...]}",
     "Cancel jobs"),
   "info": (
