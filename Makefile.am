@@ -390,10 +390,6 @@ built_python_sources = \
 	$(nodist_pkgpython_PYTHON) \
 	$(nodist_pkgpython_rpc_stub_PYTHON)
 
-# Generating the RPC wrappers depends on many things, so make sure
-# it's built at the end of the built sources
-lib/_generated_rpc.py: | $(built_base_sources) $(built_python_base_sources)
-
 # these are all built from the underlying %.in sources
 BUILT_EXAMPLES = \
 	doc/examples/ganeti-kvm-poweroff.initd \
@@ -2349,7 +2345,9 @@ lib/opcodes.py: Makefile src/hs2py lib/opcodes.py.in_before \
 	src/hs2py --opcodes >> $@
 	cat $(abs_top_srcdir)/lib/opcodes.py.in_after >> $@
 
-lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC)
+# Generating the RPC wrappers depends on many things, so make sure
+# it's built at the end of the built sources
+lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC) | $(built_base_sources) $(built_python_base_sources)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) lib/rpc_defs.py > $@
 
 lib/rpc/stub/wconfd.py: Makefile src/hs2py | stamp-directories
