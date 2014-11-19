@@ -239,7 +239,7 @@ class LUInstanceRemove(LogicalUnit):
   REQ_BGL = False
 
   def ExpandNames(self):
-    self._ExpandAndLockInstance()
+    self._ExpandAndLockInstance(allow_forthcoming=True)
     self.needed_locks[locking.LEVEL_NODE] = []
     self.needed_locks[locking.LEVEL_NODE_RES] = []
     self.recalculate_locks[locking.LEVEL_NODE] = constants.LOCKS_REPLACE
@@ -297,19 +297,24 @@ class LUInstanceRemove(LogicalUnit):
                 self.owned_locks(locking.LEVEL_NODE)), \
       "Not owning correct locks"
 
-    logging.info("Shutting down instance %s on node %s", self.instance.name,
-                 self.cfg.GetNodeName(self.instance.primary_node))
+    if not self.instance.forthcoming:
+      logging.info("Shutting down instance %s on node %s", self.instance.name,
+                   self.cfg.GetNodeName(self.instance.primary_node))
 
-    result = self.rpc.call_instance_shutdown(self.instance.primary_node,
-                                             self.instance,
-                                             self.op.shutdown_timeout,
-                                             self.op.reason)
-    if self.op.ignore_failures:
-      result.Warn("Warning: can't shutdown instance", feedback_fn)
+      result = self.rpc.call_instance_shutdown(self.instance.primary_node,
+                                               self.instance,
+                                               self.op.shutdown_timeout,
+                                               self.op.reason)
+      if self.op.ignore_failures:
+        result.Warn("Warning: can't shutdown instance", feedback_fn)
+      else:
+        result.Raise("Could not shutdown instance %s on node %s" %
+                     (self.instance.name,
+                      self.cfg.GetNodeName(self.instance.primary_node)))
     else:
-      result.Raise("Could not shutdown instance %s on node %s" %
-                   (self.instance.name,
-                    self.cfg.GetNodeName(self.instance.primary_node)))
+      logging.info("Instance %s on node %s is forthcoming; not shutting down",
+                   self.instance.name,
+                   self.cfg.GetNodeName(self.instance.primary_node))
 
     RemoveInstance(self, feedback_fn, self.instance, self.op.ignore_failures)
 
