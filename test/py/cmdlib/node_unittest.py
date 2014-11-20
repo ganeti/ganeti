@@ -33,11 +33,13 @@
 """
 
 from collections import defaultdict
+import mock
 
 from ganeti import compat
 from ganeti import constants
 from ganeti import objects
 from ganeti import opcodes
+from ganeti.cmdlib import node
 
 from testsupport import *
 
@@ -277,6 +279,54 @@ class TestLUNodeAdd(CmdlibTestCase):
     op = self.CopyOpCode(self.op_add)
     self.ExecOpCodeExpectOpPrereqError(op, "Can't get version information from"
                                        " node %s" % self.node_add.name)
+
+
+class TestLUNodeSetParams(CmdlibTestCase):
+  def setUp(self):
+    super(TestLUNodeSetParams, self).setUp()
+
+    self.MockOut(node, 'netutils', self.netutils_mod)
+    node.netutils.TcpPing.return_value = True
+
+    self.node = self.cfg.AddNewNode(
+        primary_ip='192.168.168.191',
+        secondary_ip='192.168.168.192',
+        master_candidate=True, uuid='blue_bunny')
+
+    self.snode = self.cfg.AddNewNode(
+        primary_ip='192.168.168.193',
+        secondary_ip='192.168.168.194',
+        master_candidate=True, uuid='pink_bunny')
+
+  def testSetSecondaryIp(self):
+    self.instance = self.cfg.AddNewInstance(primary_node=self.node,
+                                            secondary_node=self.snode,
+                                            disk_template='drbd')
+    op = opcodes.OpNodeSetParams(node_name=self.node.name,
+                                 secondary_ip='254.254.254.254')
+    self.ExecOpCode(op)
+
+    self.assertEqual('254.254.254.254', self.node.secondary_ip)
+    self.assertEqual(sorted(self.wconfd.all_locks.items()), [
+        ('cluster/BGL', 'shared'),
+        ('instance/mock_inst_1.example.com', 'shared'),
+        ('node-res/blue_bunny', 'exclusive'),
+        ('node/blue_bunny', 'exclusive')])
+
+  def testSetSecondaryIpNoLock(self):
+    self.instance = self.cfg.AddNewInstance(primary_node=self.node,
+                                            secondary_node=self.snode,
+                                            disk_template='file')
+    op = opcodes.OpNodeSetParams(node_name=self.node.name,
+                                 secondary_ip='254.254.254.254')
+    self.ExecOpCode(op)
+
+    self.assertEqual('254.254.254.254', self.node.secondary_ip)
+    self.assertEqual(sorted(self.wconfd.all_locks.items()), [
+        ('cluster/BGL', 'shared'),
+        ('node-res/blue_bunny', 'exclusive'),
+        ('node/blue_bunny', 'exclusive')])
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
