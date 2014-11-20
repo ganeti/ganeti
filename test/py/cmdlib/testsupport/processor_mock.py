@@ -77,11 +77,11 @@ class ProcessorMock(mcpu.Processor):
 
   """
 
-  def __init__(self, context):
+  def __init__(self, context, wconfd):
     super(ProcessorMock, self).__init__(context, 1, True)
     self.log_entries = []
     self._lu_test_func = None
-    self.wconfd = WConfdMock()
+    self.wconfd = wconfd
 
   def ExecOpCodeAndRecordOutput(self, op):
     """Executes the given opcode and records the output for further inspection.

@@ -47,6 +47,7 @@ class MockClient(object):
           del self.wconfdmock.mylocks[lockrq[0]]
       else:
         self.wconfdmock.mylocks[lockrq[0]] = lockrq[1]
+        self.wconfdmock.all_locks[lockrq[0]] = lockrq[1]
     return []
 
   def UpdateLocksWaiting(self, cid, _prio, req):
@@ -88,6 +89,7 @@ class WConfdMock(object):
   """
   def __init__(self):
     self.mylocks = {}
+    self.all_locks = {}
 
   def Client(self):
     return MockClient(self)

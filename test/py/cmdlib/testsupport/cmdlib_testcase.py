@@ -193,7 +193,8 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     self.cfg = ConfigMock()
     self.rpc = CreateRpcRunnerMock()
     self.ctx = GanetiContextMock(self)
-    self.mcpu = ProcessorMock(self.ctx)
+    self.wconfd = WConfdMock()
+    self.mcpu = ProcessorMock(self.ctx, self.wconfd)
 
     self._StopPatchers()
     try:
@@ -234,7 +235,7 @@ class CmdlibTestCase(testutils.GanetiTestCase):
 
     """
     return MockLU(self.mcpu, mock.MagicMock(), self.ctx, self.cfg, self.rpc,
-                  (1234, "/tmp/mock/livelock"), WConfdMock())
+                  (1234, "/tmp/mock/livelock"), self.wconfd)
 
   def RpcResultsBuilder(self, use_node_names=False):
     """Creates a pre-configured L{RpcResultBuilder}
