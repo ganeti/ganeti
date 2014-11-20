@@ -199,8 +199,7 @@ instanceFields =
      "Number of disks",
      FieldSimple (rsNormal . length . instDisks), QffNormal)
   , (FieldDefinition "disk.sizes" "Disk_sizes" QFTOther
-     "List of disk sizes",
-     FieldConfig getDiskSizes, QffNormal)
+     "List of disk sizes", FieldConfig getDiskSizes, QffNormal)
   , (FieldDefinition "disk.spindles" "Disk_spindles" QFTOther
      "List of disk spindles",
      FieldConfig getDiskSpindles, QffNormal)
@@ -216,10 +215,12 @@ instanceFields =
   instantiateIndexedFields C.maxDisks
   [ (fieldDefinitionCompleter "disk.size/%d" "Disk/%d" QFTUnit
     "Disk size of %s disk",
-    getIndexedConfField getInstDisksFromObj diskSize, QffNormal)
+    getIndexedOptionalConfField getInstDisksFromObj diskSize,
+    QffNormal)
   , (fieldDefinitionCompleter "disk.spindles/%d" "DiskSpindles/%d" QFTNumber
     "Spindles of %s disk",
-    getIndexedOptionalConfField getInstDisksFromObj diskSpindles, QffNormal)
+    getIndexedOptionalConfField getInstDisksFromObj diskSpindles,
+    QffNormal)
   , (fieldDefinitionCompleter "disk.name/%d" "DiskName/%d" QFTText
     "Name of %s disk",
     getIndexedOptionalConfField getInstDisksFromObj diskName, QffNormal)
@@ -266,8 +267,7 @@ instanceFields =
      (nicAggDescPrefix ++ "link"),
      FieldConfig (\cfg -> rsNormal . map
        (nicpLink . fillNicParamsFromConfig cfg . nicNicparams)
-       . instNics),
-     QffNormal)
+       . instNics), QffNormal)
   , (FieldDefinition "nic.networks" "NIC_networks" QFTOther
      "List containing each interface's network",
      FieldSimple (rsNormal . map (MaybeForJSON . nicNetwork) . instNics),
@@ -389,7 +389,8 @@ getDiskSizeRequirements cfg inst =
 -- | Get a list of disk sizes for an instance
 getDiskSizes :: ConfigData -> Instance -> ResultEntry
 getDiskSizes cfg =
-  rsErrorNoData . liftA (map diskSize) . getInstDisksFromObj cfg
+  rsErrorNoData . liftA (map $ MaybeForJSON . diskSize)
+  . getInstDisksFromObj cfg
 
 -- | Get a list of disk spindles
 getDiskSpindles :: ConfigData -> Instance -> ResultEntry
