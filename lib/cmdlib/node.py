@@ -540,7 +540,7 @@ class LUNodeSetParams(LogicalUnit):
     """Filter for getting affected instances.
 
     """
-    disks = self.cfg.GetInstanceDisks(instance.disks)
+    disks = self.cfg.GetInstanceDisks(instance.uuid)
     any_mirrored = utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR)
     return (any_mirrored and
             self.op.node_uuid in self.cfg.GetInstanceNodes(instance.uuid))
