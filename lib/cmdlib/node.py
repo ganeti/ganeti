@@ -961,7 +961,7 @@ def _GetNodeInstances(cfg, node_uuid):
 
   return _GetNodeInstancesInner(cfg,
                                 lambda inst: node_uuid in
-                                  cfg.GetInstanceNodes(inst.uuid.uuid))
+                                  cfg.GetInstanceNodes(inst.uuid))
 
 
 class LUNodeEvacuate(NoHooksLU):
