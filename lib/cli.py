@@ -1287,7 +1287,7 @@ def GenericInstanceCreate(mode, opts, args):
 
   """
   instance = args[0]
-  forthcoming = opts.forthcoming
+  forthcoming = opts.ensure_value("forthcoming", False)
 
   (pnode, snode) = SplitNodeOption(opts.node)
 
