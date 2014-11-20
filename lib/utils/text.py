@@ -159,6 +159,10 @@ def FormatUnit(value, units, roman=False):
   if units not in ("m", "g", "t", "h"):
     raise errors.ProgrammerError("Invalid unit specified '%s'" % str(units))
 
+  if not isinstance(value, (int, long, float)):
+    raise errors.ProgrammerError("Invalid value specified '%s (%s)'" % (
+        value, type(value)))
+
   suffix = ""
 
   if units == "m" or (units == "h" and value < 1024):
