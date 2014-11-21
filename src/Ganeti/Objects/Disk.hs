@@ -40,7 +40,7 @@ import Control.Applicative ((<*>), (<$>))
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.List (isPrefixOf, isInfixOf)
 import Language.Haskell.TH.Syntax
-import Text.JSON (showJSON, readJSON, JSON, JSValue(..))
+import Text.JSON (showJSON, readJSON, JSValue(..))
 import qualified Text.JSON as J
 
 import Ganeti.JSON (Container, fromObj)
