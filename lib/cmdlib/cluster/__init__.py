@@ -1165,6 +1165,14 @@ class LUClusterSetParams(LogicalUnit):
             "Cannot disable disk template '%s', because there is at least one"
             " disk using it:\n * %s" % (disk_template, "\n * ".join(disk_desc)),
             errors.ECODE_STATE)
+    if constants.DT_DISKLESS in disabled_disk_templates:
+      instances = self.cfg.GetAllInstancesInfo()
+      for inst in instances.values():
+        if not inst.disks:
+          raise errors.OpPrereqError(
+              "Cannot disable disk template 'diskless', because there is at"
+              " least one instance using it:\n * %s" % inst.name,
+              errors.ECODE_STATE)
 
   @staticmethod
   def _CheckInstanceCommunicationNetwork(network, warning_fn):

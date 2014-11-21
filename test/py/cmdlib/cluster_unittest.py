@@ -884,6 +884,14 @@ class TestLUClusterSetParams(CmdlibTestCase):
            ipolicy={constants.IPOLICY_DTS: enabled_disk_templates})
     self.ExecOpCodeExpectOpPrereqError(op, "Cannot disable disk template")
 
+  def testDisableDiskTemplateWithExistingInstanceDiskless(self):
+    self.cfg.AddNewInstance(disks=[])
+    enabled_disk_templates = [constants.DT_PLAIN]
+    op = opcodes.OpClusterSetParams(
+           enabled_disk_templates=enabled_disk_templates,
+           ipolicy={constants.IPOLICY_DTS: enabled_disk_templates})
+    self.ExecOpCodeExpectOpPrereqError(op, "Cannot disable disk template")
+
   def testVgNameNoLvmDiskTemplateEnabled(self):
     vg_name = "test_vg"
     self.cfg.SetEnabledDiskTemplates([constants.DT_DISKLESS])
