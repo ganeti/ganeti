@@ -138,7 +138,7 @@ debootstrap --arch $ARCH $DIST_RELEASE $CHDIR
 
 APT_INSTALL="apt-get install -y --no-install-recommends"
 
-if [ DIST_RELEASE = squeeze ]
+if [ $DIST_RELEASE = squeeze ]
 then
   echo "deb http://backports.debian.org/debian-backports" \
        "$DIST_RELEASE-backports main contrib non-free" \
