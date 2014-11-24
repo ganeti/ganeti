@@ -36,8 +36,6 @@ import re
 from ganeti import constants
 from ganeti import mcpu
 
-from cmdlib.testsupport.wconfd_mock import WConfdMock
-
 
 class LogRecordingCallback(mcpu.OpExecCbBase):
   """Helper class for log output recording.
