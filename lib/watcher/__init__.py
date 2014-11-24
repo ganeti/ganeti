@@ -381,7 +381,11 @@ def _VerifyDisks(cl, uuid, nodes, instances):
                    " or has offline secondaries", name)
       continue
 
-    job.append(opcodes.OpInstanceActivateDisks(instance_name=name))
+    op = opcodes.OpInstanceActivateDisks(instance_name=name)
+    op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
+                  "Activating disks for instance %s" % name,
+                  utils.EpochNano())]
+    job.append(op)
 
   if job:
     job_id = cli.SendJob(job, cl=cl)
