@@ -1675,9 +1675,6 @@ class LUClusterSetParams(LogicalUnit):
       self.cluster.max_tracked_jobs = self.op.max_tracked_jobs
 
     if self.op.maintain_node_health is not None:
-      if self.op.maintain_node_health and not constants.ENABLE_CONFD:
-        feedback_fn("Note: CONFD was disabled at build time, node health"
-                    " maintenance is not useful (still enabling it)")
       self.cluster.maintain_node_health = self.op.maintain_node_health
 
     if self.op.modify_etc_hosts is not None:

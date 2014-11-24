@@ -365,10 +365,8 @@ clean-local:
 	rm -rf apps
 	rm -rf dist
 
-HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid
-if ENABLE_CONFD
-HS_GENERATED_FILES += src/hconfd src/ganeti-confd
-endif
+HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid \
+	src/hconfd src/ganeti-confd
 if ENABLE_MOND
 HS_GENERATED_FILES += src/ganeti-mond
 endif
@@ -735,12 +733,10 @@ endif
 HS_COMPILE_PROGS = \
 	src/ganeti-kvmd \
 	src/ganeti-wconfd \
+	src/hconfd \
 	src/hluxid \
 	src/hs2py \
 	src/rpc-test
-if ENABLE_CONFD
-HS_COMPILE_PROGS += src/hconfd
-endif
 if ENABLE_MOND
 HS_COMPILE_PROGS += src/ganeti-mond
 endif
@@ -932,11 +928,6 @@ HS_LIB_SRCS = \
 	src/Ganeti/Logging/Lifted.hs \
 	src/Ganeti/Logging/WriterLog.hs \
 	src/Ganeti/Luxi.hs \
-	src/Ganeti/Metad/Config.hs \
-	src/Ganeti/Metad/ConfigServer.hs \
-	src/Ganeti/Metad/Server.hs \
-	src/Ganeti/Metad/Types.hs \
-	src/Ganeti/Metad/WebServer.hs \
 	src/Ganeti/Network.hs \
 	src/Ganeti/Objects.hs \
 	src/Ganeti/Objects/BitArray.hs \
@@ -1018,6 +1009,22 @@ if ENABLE_MOND
 HS_LIB_SRCS += src/Ganeti/Monitoring/Server.hs
 else
 EXTRA_DIST += src/Ganeti/Monitoring/Server.hs
+endif
+
+if ENABLE_METADATA
+HS_LIB_SRCS += \
+	src/Ganeti/Metad/Config.hs \
+	src/Ganeti/Metad/ConfigServer.hs \
+	src/Ganeti/Metad/Server.hs \
+	src/Ganeti/Metad/Types.hs \
+	src/Ganeti/Metad/WebServer.hs
+else
+EXTRA_DIST += \
+	src/Ganeti/Metad/Config.hs \
+	src/Ganeti/Metad/ConfigServer.hs \
+	src/Ganeti/Metad/Server.hs \
+	src/Ganeti/Metad/Types.hs \
+	src/Ganeti/Metad/WebServer.hs
 endif
 
 HS_TEST_SRCS = \
@@ -1330,7 +1337,6 @@ $(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
                                   cabal/CabalDependenciesMacros.hs
 	touch empty-cabal-config
 	cabal --config-file=empty-cabal-config configure --user \
-	  -f`test $(ENABLE_CONFD) == True && echo "confd" || echo "-confd"` \
 	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
 	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"`
 	runhaskell $(abs_top_srcdir)/cabal/CabalDependenciesMacros.hs \
@@ -1412,6 +1418,7 @@ nodist_sbin_SCRIPTS = \
 	daemons/ganeti-cleaner \
   src/ganeti-kvmd \
   src/ganeti-luxid \
+  src/ganeti-confd \
   src/ganeti-wconfd
 
 src/ganeti-luxid: src/hluxid
@@ -1422,12 +1429,8 @@ all_sbin_scripts = \
 	$(patsubst tools/%,%,$(patsubst daemons/%,%,$(patsubst scripts/%,%,\
 	$(patsubst src/%,%,$(dist_sbin_SCRIPTS) $(nodist_sbin_SCRIPTS)))))
 
-if ENABLE_CONFD
 src/ganeti-confd: src/hconfd
 	cp -f $< $@
-
-nodist_sbin_SCRIPTS += src/ganeti-confd
-endif
 
 if ENABLE_MOND
 nodist_sbin_SCRIPTS += src/ganeti-mond
@@ -2305,7 +2308,6 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DMOND_GROUP="$(MOND_GROUP)" \
 	    -DDISK_SEPARATOR="$(DISK_SEPARATOR)" \
 	    -DQEMUIMG_PATH="$(QEMUIMG_PATH)" \
-	    -DENABLE_CONFD="$(ENABLE_CONFD)" \
 	    -DXEN_CMD="$(XEN_CMD)" \
 	    -DENABLE_RESTRICTED_COMMANDS="$(ENABLE_RESTRICTED_COMMANDS)" \
 	    -DENABLE_METADATA="$(ENABLE_METADATA)" \
@@ -2401,7 +2403,6 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	  echo 's#@''GNTMONDGROUP@#$(MOND_GROUP)#g'; \
 	  echo 's#@''GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
-	  echo 's#@''CUSTOM_ENABLE_CONFD@#$(ENABLE_CONFD)#g'; \
 	  echo 's#@''CUSTOM_ENABLE_MOND@#$(ENABLE_MOND)#g'; \
 	  echo 's#@''MODULES@#$(strip $(lint_python_code))#g'; \
 	  echo 's#@''XEN_CONFIG_DIR@#$(XEN_CONFIG_DIR)#g'; \

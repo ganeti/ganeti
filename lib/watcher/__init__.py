@@ -103,8 +103,7 @@ def StartNodeDaemons():
   # on master or not, try to start the node daemon
   utils.EnsureDaemon(constants.NODED)
   # start confd as well. On non candidates it will be in disabled mode.
-  if constants.ENABLE_CONFD:
-    utils.EnsureDaemon(constants.CONFD)
+  utils.EnsureDaemon(constants.CONFD)
   # start mond as well: all nodes need monitoring
   if constants.ENABLE_MOND:
     utils.EnsureDaemon(constants.MOND)
@@ -382,7 +381,11 @@ def _VerifyDisks(cl, uuid, nodes, instances):
                    " or has offline secondaries", name)
       continue
 
-    job.append(opcodes.OpInstanceActivateDisks(instance_name=name))
+    op = opcodes.OpInstanceActivateDisks(instance_name=name)
+    op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
+                  "Activating disks for instance %s" % name,
+                  utils.EpochNano())]
+    job.append(op)
 
   if job:
     job_id = cli.SendJob(job, cl=cl)

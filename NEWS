@@ -47,6 +47,14 @@ Incompatible/important changes
 New features
 ~~~~~~~~~~~~
 
+- A new job filter rules system allows to define iptables-like rules for the
+  job scheduler, making it easier to (soft-)drain the job queue, perform
+  maintenance, and rate-limit selected job types. See gnt-filter(8) for
+  details.
+- Ganeti jobs can now be ad-hoc rate limited via the reason trail.
+  For a set of jobs queued with "--reason=rate-limit:n:label", the job
+  scheduler ensures that not more than n will be scheduled to run at the same
+  time. See ganeti(7), section "Options", for details.
 - The monitoring daemon has now variable sleep times for the data
   collectors. This currently means that the granularity of cpu-avg-load
   can be configured.
@@ -56,6 +64,8 @@ New dependencies
 
 - The monitoring daemon uses the PSQueue library. Be sure to install it
   if you use Mond.
+- The formerly optional regex-pcre is now an unconditional dependency because
+  the new job filter rules have regular expressions as a core feature.
 
 
 Version 2.12.0

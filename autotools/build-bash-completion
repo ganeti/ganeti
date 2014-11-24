@@ -900,9 +900,8 @@ def main():
     WriteHaskellCompletion(sw, script, htools=True, debug=debug)
 
   # ganeti-confd, if enabled
-  if _constants.ENABLE_CONFD:
-    WriteHaskellCompletion(sw, "src/ganeti-confd", htools=False,
-                           debug=debug)
+  WriteHaskellCompletion(sw, "src/ganeti-confd", htools=False,
+                         debug=debug)
 
   # mon-collector, if monitoring is enabled
   if _constants.ENABLE_MOND:
