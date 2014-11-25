@@ -2,7 +2,6 @@
    "admin_state_source": "user",
    "beparams": {},
    "ctime": 1372838883.9710441,
-   "disk_template": "drbd",
    "disks": ["5d61e205-bf89-4ba8-a319-589b7bb7419e"],
    "disks_active": true,
    "hvparams": {},

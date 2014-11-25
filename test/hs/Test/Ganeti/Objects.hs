@@ -176,8 +176,6 @@ instance Arbitrary ForthcomingInstanceData where
       <*> arbitrary
       -- disks
       <*> vectorOf 5 arbitrary
-      -- disk template
-      <*> genMaybe arbitrary
       -- disks active
       <*> genMaybe arbitrary
       -- network port
@@ -219,8 +217,6 @@ instance Arbitrary RealInstanceData where
       <*> arbitrary
       -- disks
       <*> vectorOf 5 arbitrary
-      -- disk template
-      <*> arbitrary
       -- disks active
       <*> arbitrary
       -- network port

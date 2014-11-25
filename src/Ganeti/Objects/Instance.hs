@@ -75,7 +75,6 @@ $(buildObjectWithForthcoming "Instance" "inst" $
       $ simpleField "nics"         [t| [PartialNic]       |]
   , defaultField [| [] |]
       $ simpleField "disks"        [t| [String]           |]
-  , simpleField "disk_template"    [t| DiskTemplate       |]
   , simpleField "disks_active"     [t| Bool               |]
   , optionalField $ simpleField "network_port" [t| Int  |]
   ]
