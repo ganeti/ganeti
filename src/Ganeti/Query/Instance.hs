@@ -120,9 +120,6 @@ instanceFields =
      "Desired state of instance",
      FieldSimple (rsMaybeNoData . liftM (== AdminUp) . instAdminState),
      QffNormal)
-  , (FieldDefinition "disk_template" "Disk_template" QFTText
-     "Instance disk template",
-     FieldSimple (rsMaybeNoData . instDiskTemplate), QffNormal)
   , (FieldDefinition "disks_active" "DisksActive" QFTBool
      "Desired state of instance disks",
      FieldSimple (rsMaybeNoData . instDisksActive), QffNormal)
@@ -190,7 +187,7 @@ instanceFields =
   map (buildHvParamField hvParamGetter)
       (C.toList C.hvsParameters \\ C.toList C.hvcGlobals) ++
 
-  -- Aggregate disk parameter fields
+  -- disk parameter fields
   [ (FieldDefinition "disk_usage" "DiskUsage" QFTUnit
      "Total disk space used by instance on each of its nodes; this is not the\
      \ disk size visible to the instance, but the usage on the node",
@@ -209,6 +206,10 @@ instanceFields =
   , (FieldDefinition "disk.uuids" "Disk_UUIDs" QFTOther
      "List of disk UUIDs",
      FieldConfig getDiskUuids, QffNormal)
+    -- For pre-2.14 backwards compatibility
+  , (FieldDefinition "disk_template" "Disk_template" QFTText
+     "Instance disk template",
+     FieldConfig getDiskTemplate, QffNormal)
   ] ++
 
   -- Per-disk parameter fields
@@ -377,15 +378,17 @@ getDefaultNicParams cfg =
 -- visible to the instance.
 getDiskSizeRequirements :: ConfigData -> Instance -> ResultEntry
 getDiskSizeRequirements cfg inst =
-  rsErrorNoData . liftA (sum . map getSizes) . getInstDisksFromObj cfg $ inst
+  rsErrorNoData . liftA (sum . map getSize) . getInstDisksFromObj cfg $ inst
  where
-  getSizes :: Disk -> Int
-  getSizes disk =
-    case instDiskTemplate inst of
-      Just DTDrbd8    -> fromMaybe 0 (diskSize disk) + C.drbdMetaSize
-      Just DTDiskless -> 0
-      Just DTBlock    -> 0
-      _               -> fromMaybe 0 (diskSize disk)
+  diskType x = lidDiskType <$> diskLogicalId x
+  getSize :: Disk -> Int
+  getSize disk =
+    let dt = diskType disk
+    in case dt of
+         Just DTDrbd8    -> fromMaybe 0 (diskSize disk) + C.drbdMetaSize
+         Just DTDiskless -> 0
+         Just DTBlock    -> 0
+         _               -> fromMaybe 0 (diskSize disk)
 
 -- | Get a list of disk sizes for an instance
 getDiskSizes :: ConfigData -> Instance -> ResultEntry
@@ -922,3 +925,18 @@ collectLiveData liveDataEnabled cfg fields instances
           else return [] -- The information is not necessary
       return . zip instances .
         map (extractLiveInfo instInfoRes consInfoRes) $ instances
+
+-- | An aggregate disk attribute for backward compatibility.
+getDiskTemplate :: ConfigData -> Instance -> ResultEntry
+getDiskTemplate cfg inst =
+  let disks = getInstDisksFromObj cfg inst
+      getDt x = lidDiskType <$> diskLogicalId x
+      disk_types :: ErrorResult [DiskTemplate]
+      disk_types = nub <$> catMaybes <$> map getDt <$> disks
+      mix :: [DiskTemplate] -> J.JSValue
+      mix []  = J.showJSON C.dtDiskless
+      mix [t] = J.showJSON t
+      mix _   = J.showJSON C.dtMixed
+  in case mix <$> disk_types of
+       Ok t -> rsNormal t
+       Bad _ -> rsNoData
