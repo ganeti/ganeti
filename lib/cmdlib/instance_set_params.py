@@ -594,9 +594,10 @@ class LUInstanceSetParams(LogicalUnit):
 
     inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     if utils.AnyDiskOfType(inst_disks, constants.DTS_NOT_CONVERTIBLE_FROM):
-      raise errors.OpPrereqError("Conversion from the '%s' disk template is"
-                                 " not supported" % self.instance.disk_template,
-                                 errors.ECODE_INVAL)
+      raise errors.OpPrereqError(
+          "Conversion from the '%s' disk template is not supported"
+          % self.cfg.GetInstanceDiskTemplate(self.instance.uuid),
+          errors.ECODE_INVAL)
 
     elif self.op.disk_template in constants.DTS_NOT_CONVERTIBLE_TO:
       raise errors.OpPrereqError("Conversion to the '%s' disk template is"
@@ -606,8 +607,7 @@ class LUInstanceSetParams(LogicalUnit):
     if (self.op.disk_template != constants.DT_EXT and
         utils.AllDiskOfType(inst_disks, [self.op.disk_template])):
       raise errors.OpPrereqError("Instance already has disk template %s" %
-                                 self.instance.disk_template,
-                                 errors.ECODE_INVAL)
+                                 self.op.disk_template, errors.ECODE_INVAL)
 
     if not self.cluster.IsDiskTemplateEnabled(self.op.disk_template):
       enabled_dts = utils.CommaJoin(self.cluster.enabled_disk_templates)
@@ -672,8 +672,9 @@ class LUInstanceSetParams(LogicalUnit):
       has_es = lambda n: IsExclusiveStorageEnabledNode(self.cfg, n)
       if compat.any(map(has_es, nodes)):
         errmsg = ("Cannot convert disk template from %s to %s when exclusive"
-                  " storage is enabled" % (self.instance.disk_template,
-                                           self.op.disk_template))
+                  " storage is enabled" % (
+                      self.cfg.GetInstanceDiskTemplate(self.instance.uuid),
+                      self.op.disk_template))
         raise errors.OpPrereqError(errmsg, errors.ECODE_STATE)
 
     # TODO remove setting the disk template after DiskSetParams exists.
@@ -1829,9 +1830,11 @@ class LUInstanceSetParams(LogicalUnit):
         raise
       result.append(("disk_template", self.op.disk_template))
 
-      assert self.instance.disk_template == self.op.disk_template, \
+      disk_info = self.cfg.GetInstanceDisks(self.instance.uuid)
+      assert utils.AllDiskOfType(disk_info, [self.op.disk_template]), \
         ("Expected disk template '%s', found '%s'" %
-         (self.op.disk_template, self.instance.disk_template))
+         (self.op.disk_template,
+          self.cfg.GetInstanceDiskTemplate(self.instance.uuid)))
 
     # Release node and resource locks if there are any (they might already have
     # been released during disk conversion)
