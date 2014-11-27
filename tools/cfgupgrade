@@ -36,12 +36,14 @@ example, 'set' is a 'list'.
 """
 
 
+import copy
 import os
 import os.path
 import sys
 import optparse
 import logging
 import time
+import functools
 from cStringIO import StringIO
 
 from ganeti import constants
@@ -99,6 +101,24 @@ def SetupLogging():
   root_logger = logging.getLogger("")
   root_logger.setLevel(logging.NOTSET)
   root_logger.addHandler(stderr_handler)
+
+
+def OrFail(description=None):
+  """Make failure non-fatal and improve reporting."""
+  def wrapper(f):
+    @functools.wraps(f)
+    def wrapped(config_data):
+      safety = copy.deepcopy(config_data)
+      try:
+        f(config_data)
+        return True
+      except BaseException, e:
+        logging.warning("%s failed:\n%s", description or f.func_name, e)
+        config_data.clear()
+        config_data.update(safety)
+        return False
+    return wrapped
+  return wrapper
 
 
 def CheckHostname(path):
@@ -273,6 +293,7 @@ def _ConvertDiskAndCheckMissingSpindles(iobj, instance):
   return missing_spindles
 
 
+@OrFail("Upgrading instance with spindles")
 def UpgradeInstances(config_data):
   """Upgrades the instances' configuration."""
 
@@ -330,6 +351,7 @@ def UpgradeWatcher():
       utils.RemoveFile(options.WATCHER_STATEFILE)
 
 
+@OrFail("Upgrading file storage paths")
 def UpgradeFileStoragePaths(config_data):
   # Write file storage paths
   if not os.path.exists(options.FILE_STORAGE_PATHS_FILE):
@@ -418,20 +440,24 @@ def ChangeInstanceIndices(config_data, old_key_field, new_key_field):
   config_data["instances"] = insts_by_new_key
 
 
+@OrFail("Changing node indices")
 def UpgradeNodeIndices(config_data):
   ChangeNodeIndices(config_data, "name", "uuid")
 
 
+@OrFail("Changing instance indices")
 def UpgradeInstanceIndices(config_data):
   ChangeInstanceIndices(config_data, "name", "uuid")
 
 
+@OrFail("Adding filters")
 def UpgradeFilters(config_data):
   filters = config_data.get("filters", None)
   if not filters:
     config_data["filters"] = {}
 
 
+@OrFail("Moving disks to top level")
 def UpgradeTopLevelDisks(config_data):
   """Upgrades the disks as config top level citizens."""
   if "instances" not in config_data:
@@ -515,16 +541,20 @@ def UpgradeAll(config_data):
   config_data["version"] = version.BuildVersion(TARGET_MAJOR, TARGET_MINOR, 0)
   UpgradeRapiUsers()
   UpgradeWatcher()
-  UpgradeFileStoragePaths(config_data)
-  UpgradeNetworks(config_data)
-  UpgradeCluster(config_data)
-  UpgradeGroups(config_data)
-  UpgradeInstances(config_data)
-  UpgradeTopLevelDisks(config_data)
-  UpgradeNodeIndices(config_data)
-  UpgradeInstanceIndices(config_data)
-  UpgradeFilters(config_data)
-  UpgradeDiskNodes(config_data)
+  steps = [UpgradeFileStoragePaths,
+           UpgradeNetworks,
+           UpgradeCluster,
+           UpgradeGroups,
+           UpgradeInstances,
+           UpgradeTopLevelDisks,
+           UpgradeNodeIndices,
+           UpgradeInstanceIndices,
+           UpgradeFilters,
+           UpgradeDiskNodes]
+  ok = True
+  for s in steps:
+    ok = ok and s(config_data)
+  return ok
 
 
 # DOWNGRADE ------------------------------------------------------------
@@ -572,9 +602,13 @@ def DowngradeForthcomingDisks(config_data):
 def DowngradeAll(config_data):
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
-  DowngradeForthcomingInstances(config_data)
-  DowngradeForthcomingDisks(config_data)
-  DowngradeDiskNodes(config_data)
+  steps = [DowngradeForthcomingInstances,
+           DowngradeForthcomingDisks,
+           DowngradeDiskNodes]
+  ok = True
+  for s in steps:
+    ok = ok and s(config_data)
+  return ok
 
 
 def _ParseOptions():
@@ -653,7 +687,8 @@ def _Downgrade(config_major, config_minor, config_version, config_data,
                 " found %s (%s.%s.%s) instead" %
                 (TARGET_MAJOR, TARGET_MINOR, config_version, config_major,
                  config_minor, config_revision))
-  DowngradeAll(config_data)
+  if not DowngradeAll(config_data):
+    raise Error("Downgrade failed")
 
 
 def _TestLoadingConfigFile():
@@ -749,7 +784,8 @@ def main():
   elif config_major == 2 and config_minor in range(0, 14):
     if config_revision != 0:
       logging.warning("Config revision is %s, not 0", config_revision)
-    UpgradeAll(config_data)
+    if not UpgradeAll(config_data):
+      raise Error("Upgrade failed")
 
   elif config_major == TARGET_MAJOR and config_minor == TARGET_MINOR:
     logging.info("No changes necessary")
