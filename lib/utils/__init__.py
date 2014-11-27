@@ -69,6 +69,7 @@ from ganeti.utils.text import *
 from ganeti.utils.wrapper import *
 from ganeti.utils.version import *
 from ganeti.utils.x509 import *
+from ganeti.utils.bitarrays import *
 
 
 _VALID_SERVICE_NAME_RE = re.compile("^[-_.a-zA-Z0-9]{1,128}$")

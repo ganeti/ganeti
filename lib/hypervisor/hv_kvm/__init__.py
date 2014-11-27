@@ -83,10 +83,6 @@ _SPICE_ADDITIONAL_PARAMS = frozenset([
   constants.HV_KVM_SPICE_USE_TLS,
   ])
 
-# Constant bitarray that reflects to a free pci slot
-# Use it with bitarray.search()
-_AVAILABLE_PCI_SLOT = bitarray("0")
-
 # below constants show the format of runtime file
 # the nics are in second possition, while the disks in 4th (last)
 # moreover disk entries are stored as a list of in tuples
@@ -184,38 +180,6 @@ def _GenerateDeviceKVMId(dev_type, dev):
                               (dev_type, dev.uuid))
 
   return "%s-%s-pci-%d" % (dev_type.lower(), dev.uuid.split("-")[0], dev.pci)
-
-
-def _GetFreeSlot(slots, slot=None, reserve=False):
-  """Helper method to get first available slot in a bitarray
-
-  @type slots: bitarray
-  @param slots: the bitarray to operate on
-  @type slot: integer
-  @param slot: if given we check whether the slot is free
-  @type reserve: boolean
-  @param reserve: whether to reserve the first available slot or not
-  @return: the idx of the (first) available slot
-  @raise errors.HotplugError: If all slots in a bitarray are occupied
-    or the given slot is not free.
-
-  """
-  if slot is not None:
-    assert slot < len(slots)
-    if slots[slot]:
-      raise errors.HypervisorError("Slots %d occupied" % slot)
-
-  else:
-    avail = slots.search(_AVAILABLE_PCI_SLOT, 1)
-    if not avail:
-      raise errors.HypervisorError("All slots occupied")
-
-    slot = int(avail[0])
-
-  if reserve:
-    slots[slot] = True
-
-  return slot
 
 
 def _GetExistingDeviceInfo(dev_type, device, runtime):
@@ -1123,15 +1087,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # while the Audio controller *must* be in slot 3.
       # That's why we bridge this option early in command line
       if soundhw in self._SOUNDHW_WITH_PCI_SLOT:
-        _ = _GetFreeSlot(pci_reservations, reserve=True)
+        _ = utils.GetFreeSlot(pci_reservations, reserve=True)
       kvm_cmd.extend(["-soundhw", soundhw])
 
     if hvp[constants.HV_DISK_TYPE] == constants.HT_DISK_SCSI:
       # The SCSI controller requires another PCI slot.
-      _ = _GetFreeSlot(pci_reservations, reserve=True)
+      _ = utils.GetFreeSlot(pci_reservations, reserve=True)
 
     # Add id to ballon and place to the first available slot (3 or 4)
-    addr = _GetFreeSlot(pci_reservations, reserve=True)
+    addr = utils.GetFreeSlot(pci_reservations, reserve=True)
     pci_info = ",bus=pci.0,addr=%s" % hex(addr)
     kvm_cmd.extend(["-balloon", "virtio,id=balloon%s" % pci_info])
     kvm_cmd.extend(["-daemonize"])
@@ -1369,7 +1333,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         # Enable the spice agent communication channel between the host and the
         # agent.
-        addr = _GetFreeSlot(pci_reservations, reserve=True)
+        addr = utils.GetFreeSlot(pci_reservations, reserve=True)
         pci_info = ",bus=pci.0,addr=%s" % hex(addr)
         kvm_cmd.extend(["-device", "virtio-serial-pci,id=spice%s" % pci_info])
         kvm_cmd.extend([
@@ -1420,12 +1384,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_disks = []
     for disk, link_name, uri in block_devices:
-      disk.pci = _GetFreeSlot(pci_reservations, disk.pci, True)
+      disk.pci = utils.GetFreeSlot(pci_reservations, disk.pci, True)
       kvm_disks.append((disk, link_name, uri))
 
     kvm_nics = []
     for nic in instance.nics:
-      nic.pci = _GetFreeSlot(pci_reservations, nic.pci, True)
+      nic.pci = utils.GetFreeSlot(pci_reservations, nic.pci, True)
       kvm_nics.append(nic)
 
     hvparams = hvp
@@ -1857,7 +1821,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         slot = int(match.group(1))
         slots[slot] = True
 
-    dev.pci = _GetFreeSlot(slots)
+    dev.pci = utils.GetFreeSlot(slots)
 
   def VerifyHotplugSupport(self, instance, action, dev_type):
     """Verifies that hotplug is supported.

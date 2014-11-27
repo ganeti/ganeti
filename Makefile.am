@@ -596,7 +596,8 @@ utils_PYTHON = \
 	lib/utils/text.py \
 	lib/utils/version.py \
 	lib/utils/wrapper.py \
-	lib/utils/x509.py
+	lib/utils/x509.py \
+	lib/utils/bitarrays.py
 
 docinput = \
 	doc/admin.rst \
@@ -1801,6 +1802,7 @@ python_tests = \
 	test/py/ganeti.utils.version_unittest.py \
 	test/py/ganeti.utils.wrapper_unittest.py \
 	test/py/ganeti.utils.x509_unittest.py \
+	test/py/ganeti.utils.bitarrays_unittest.py \
 	test/py/ganeti.utils_unittest.py \
 	test/py/ganeti.vcluster_unittest.py \
 	test/py/ganeti.workerpool_unittest.py \
