@@ -500,7 +500,9 @@ class ConfigData(ConfigObject):
     """
     if not self.cluster.enabled_disk_templates:
       template_set = \
-        set([inst.disk_template for inst in self.instances.values()])
+        set([d.dev_type for d in self.disks.values()])
+      if any(not inst.disks for inst in self.instances.values()):
+        template_set.add(constants.DT_DISKLESS)
       # Add drbd and plain, if lvm is enabled (by specifying a volume group)
       if self.cluster.volume_group_name:
         template_set.add(constants.DT_DRBD8)
