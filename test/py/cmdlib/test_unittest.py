@@ -125,6 +125,7 @@ class TestLUTestAllocator(CmdlibTestCase):
                       name="new-instance.example.com",
                       nics=[],
                       disks=[],
+                      disk_template=constants.DT_DISKLESS,
                       direction=constants.IALLOCATOR_DIR_OUT,
                       iallocator="test")
 
@@ -132,6 +133,7 @@ class TestLUTestAllocator(CmdlibTestCase):
       self.CopyOpCode(self.base_op,
                       mode=constants.IALLOCATOR_MODE_ALLOC,
                       memory=0,
+                      disk_template=constants.DT_DISKLESS,
                       os="mock_os",
                       group_name="default",
                       vcpus=1)
@@ -140,6 +142,7 @@ class TestLUTestAllocator(CmdlibTestCase):
                       mode=constants.IALLOCATOR_MODE_MULTI_ALLOC,
                       instances=["new-instance.example.com"],
                       memory=0,
+                      disk_template=constants.DT_DISKLESS,
                       os="mock_os",
                       group_name="default",
                       vcpus=1)

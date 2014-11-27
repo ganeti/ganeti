@@ -1683,15 +1683,24 @@ def ComputeDiskSize(disks):
 
   """
   # Required free disk space as a function of disk and swap space
-  size = 0
-
-  for d in disks:
+  def size_f(d):
     dev_type = d[constants.IDISK_TYPE]
-    if dev_type != constants.DT_BLOCK:
-      size += d[constants.IDISK_SIZE]
+    req_size_dict = {
+      constants.DT_DISKLESS: 0,
+      constants.DT_PLAIN: d[constants.IDISK_SIZE],
+      # Extra space for drbd metadata is added to each disk
+      constants.DT_DRBD8:
+        d[constants.IDISK_SIZE] + constants.DRBD_META_SIZE,
+      constants.DT_FILE: d[constants.IDISK_SIZE],
+      constants.DT_SHARED_FILE: d[constants.IDISK_SIZE],
+      constants.DT_GLUSTER: d[constants.IDISK_SIZE],
+      constants.DT_BLOCK: 0,
+      constants.DT_RBD: d[constants.IDISK_SIZE],
+      constants.DT_EXT: d[constants.IDISK_SIZE],
+    }
+    if dev_type not in req_size_dict:
+      raise errors.ProgrammerError("Disk template '%s' size requirement"
+                                   " is unknown" % dev_type)
+    return req_size_dict[dev_type]
 
-    # 128 MB are added for drbd metadata for each disk
-    if dev_type == constants.DT_DRBD8:
-      size += constants.DRBD_META_SIZE
-
-  return size
+  return sum(map(size_f, disks))

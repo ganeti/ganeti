@@ -172,6 +172,7 @@ class IAReqInstanceAlloc(IARequestBase):
     ("memory", ht.TNonNegativeInt),
     ("spindle_use", ht.TNonNegativeInt),
     ("disks", ht.TListOf(ht.TDict)),
+    ("disk_template", ht.TString),
     ("group_name", ht.TMaybe(ht.TNonEmptyString)),
     ("os", ht.TString),
     ("tags", _STRING_LIST),
@@ -186,8 +187,7 @@ class IAReqInstanceAlloc(IARequestBase):
     """Calculates the required nodes based on the disk_template.
 
     """
-    disk_types = [d[constants.IDISK_TYPE] for d in self.disks]
-    if any(d in constants.DTS_INT_MIRROR for d in disk_types):
+    if self.disk_template in constants.DTS_INT_MIRROR:
       return 2
     else:
       return 1
@@ -199,10 +199,13 @@ class IAReqInstanceAlloc(IARequestBase):
     done.
 
     """
+    for d in self.disks:
+      d[constants.IDISK_TYPE] = self.disk_template
     disk_space = gmi.ComputeDiskSize(self.disks)
 
     return {
       "name": self.name,
+      "disk_template": self.disk_template,
       "group_name": self.group_name,
       "tags": self.tags,
       "os": self.os,
@@ -514,7 +517,8 @@ class IAllocator(object):
     assert len(data["nodes"]) == len(ninfo), \
         "Incomplete node data computed"
 
-    data["instances"] = self._ComputeInstanceData(cfg, cluster_info, i_list)
+    data["instances"] = self._ComputeInstanceData(cfg, cluster_info, i_list,
+                                                  disk_template)
 
     self.in_data = data
 
@@ -752,7 +756,7 @@ class IAllocator(object):
     return node_results
 
   @staticmethod
-  def _ComputeInstanceData(cfg, cluster_info, i_list):
+  def _ComputeInstanceData(cfg, cluster_info, i_list, disk_template):
     """Compute global instance data.
 
     """
@@ -787,7 +791,7 @@ class IAllocator(object):
                    constants.IDISK_MODE: dsk.mode,
                    constants.IDISK_SPINDLES: dsk.spindles}
                   for dsk in inst_disks],
-        "disk_template": iinfo.disk_template,
+        "disk_template": disk_template,
         "disks_active": iinfo.disks_active,
         "hypervisor": iinfo.hypervisor,
         }
@@ -802,8 +806,12 @@ class IAllocator(object):
     """
     request = req.GetRequest(self.cfg)
     disk_template = None
-    if "disk_template" in request:
+    if request.get("disk_template") is not None:
       disk_template = request["disk_template"]
+    else:
+      disk_template = self.cfg.GetInstanceDiskTemplate(self.req.inst_uuid)
+    if disk_template is None:
+      raise errors.ProgrammerError("disk template should not be none")
     self._ComputeClusterData(disk_template=disk_template)
 
     request["type"] = req.MODE

@@ -563,42 +563,57 @@ class TestComputeIPolicyDiskSizesViolation(unittest.TestCase):
   # Minimal policy accepted by _ComputeIPolicyDiskSizesViolation()
   _MICRO_IPOL = {
     constants.IPOLICY_DTS: [constants.DT_PLAIN, constants.DT_DISKLESS],
-    constants.ISPECS_MINMAX: [NotImplemented],
+    constants.ISPECS_MINMAX: [None],
     }
+
+  def MakeDisks(self, *dev_types):
+    return [mock.Mock(dev_type=d) for d in dev_types]
 
   def test(self):
     compute_fn = _ValidateComputeMinMaxSpec
-    ret = common.ComputeIPolicyDiskSizesViolation(self._MICRO_IPOL, [1024],
-                                                  constants.DT_PLAIN,
-                                                  _compute_fn=compute_fn)
+    ret = common.ComputeIPolicyDiskSizesViolation(
+      self._MICRO_IPOL, [1024], self.MakeDisks(constants.DT_PLAIN),
+      _compute_fn=compute_fn)
     self.assertEqual(ret, [])
 
   def testDiskFull(self):
     compute_fn = _NoDiskComputeMinMaxSpec
-    ret = common.ComputeIPolicyDiskSizesViolation(self._MICRO_IPOL, [1024],
-                                                  constants.DT_PLAIN,
-                                                  _compute_fn=compute_fn)
+    ret = common.ComputeIPolicyDiskSizesViolation(
+      self._MICRO_IPOL, [1024], self.MakeDisks(constants.DT_PLAIN),
+      _compute_fn=compute_fn)
     self.assertEqual(ret, [constants.ISPEC_DISK_COUNT])
+
+  def testDisksMixed(self):
+    compute_fn = _ValidateComputeMinMaxSpec
+    ipol = copy.deepcopy(self._MICRO_IPOL)
+    ipol[constants.IPOLICY_DTS].append(constants.DT_DRBD8)
+    ret = common.ComputeIPolicyDiskSizesViolation(
+      ipol, [1024, 1024],
+      self.MakeDisks(constants.DT_DRBD8, constants.DT_PLAIN),
+      _compute_fn=compute_fn)
+    self.assertEqual(ret, [])
+
 
   def testDiskLess(self):
     compute_fn = _NoDiskComputeMinMaxSpec
     ret = common.ComputeIPolicyDiskSizesViolation(self._MICRO_IPOL, [],
-                                                  constants.DT_DISKLESS,
+                                                  [],
                                                   _compute_fn=compute_fn)
     self.assertEqual(ret, [])
 
   def testWrongTemplates(self):
     compute_fn = _ValidateComputeMinMaxSpec
-    ret = common.ComputeIPolicyDiskSizesViolation(self._MICRO_IPOL, [1024],
-                                                  constants.DT_DRBD8,
-                                                  _compute_fn=compute_fn)
+
+    ret = common.ComputeIPolicyDiskSizesViolation(
+      self._MICRO_IPOL, [1024], self.MakeDisks(constants.DT_DRBD8),
+      _compute_fn=compute_fn)
     self.assertEqual(len(ret), 1)
     self.assertTrue("Disk template" in ret[0])
 
-  def _AssertComputeViolation(self, ipolicy, disk_sizes, disk_template,
+  def _AssertComputeViolation(self, ipolicy, disk_sizes, dev_types,
                               violations):
-    ret = common.ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes,
-                                                  disk_template)
+    ret = common.ComputeIPolicyDiskSizesViolation(
+      ipolicy, disk_sizes, self.MakeDisks(*dev_types))
     self.assertEqual(len(ret), violations)
 
   def testWithIPolicy(self):
@@ -626,11 +641,13 @@ class TestComputeIPolicyDiskSizesViolation(unittest.TestCase):
       constants.IPOLICY_DTS: [disk_template],
       }
 
-    self._AssertComputeViolation(ipolicy, [512], disk_template, 0)
-    self._AssertComputeViolation(ipolicy, [], disk_template, 1)
-    self._AssertComputeViolation(ipolicy, [512, 512], disk_template, 1)
-    self._AssertComputeViolation(ipolicy, [511], disk_template, 1)
-    self._AssertComputeViolation(ipolicy, [513], disk_template, 1)
+    self._AssertComputeViolation(ipolicy, [512], [disk_template], 0)
+    self._AssertComputeViolation(ipolicy, [], [disk_template], 1)
+    self._AssertComputeViolation(ipolicy, [], [], 1)
+    self._AssertComputeViolation(ipolicy, [512, 512],
+                                 [disk_template, disk_template], 1)
+    self._AssertComputeViolation(ipolicy, [511], [disk_template], 1)
+    self._AssertComputeViolation(ipolicy, [513], [disk_template], 1)
 
 
 class _StubComputeIPolicySpecViolation:

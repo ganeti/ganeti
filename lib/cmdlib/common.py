@@ -583,11 +583,16 @@ def ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
     (constants.ISPEC_SPINDLE_USE, "", spindle_use),
     ] + [(constants.ISPEC_DISK_SIZE, str(idx), d)
          for idx, d in enumerate(disk_sizes)]
+
+  allowed_dts = set(ipolicy[constants.IPOLICY_DTS])
+  ret = []
   if disk_count != 0:
     # This check doesn't make sense for diskless instances
     test_settings.append((constants.ISPEC_DISK_COUNT, "", disk_count))
-  ret = []
-  allowed_dts = set(ipolicy[constants.IPOLICY_DTS])
+  elif constants.DT_DISKLESS not in allowed_dts:
+    ret.append("Disk template %s is not allowed (allowed templates %s)" %
+                (constants.DT_DISKLESS, utils.CommaJoin(allowed_dts)))
+
   forbidden_dts = set(disk_types) - allowed_dts
   if forbidden_dts:
     ret.append("Disk template %s is not allowed (allowed templates: %s)" %
@@ -604,8 +609,7 @@ def ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
   return ret + min_errs
 
 
-def ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes,
-                                     disk_template,
+def ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes, disks,
                                      _compute_fn=_ComputeMinMaxSpec):
   """Verifies ipolicy against provided disk sizes.
 
@@ -616,21 +620,21 @@ def ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes,
   @param ipolicy: The ipolicy
   @type disk_sizes: list of ints
   @param disk_sizes: Disk sizes of used disk (len must match C{disk_count})
-  @type disk_template: string
-  @param disk_template: The disk template of the instance
+  @type disks: list of L{Disk}
+  @param disks: The Disk objects of the instance
   @param _compute_fn: The compute function (unittest only)
   @return: A list of violations, or an empty list of no violations are found
 
   """
-  if disk_template != constants.DT_DISKLESS and disk_sizes == []:
+  if len(disk_sizes) != len(disks):
     return [constants.ISPEC_DISK_COUNT]
-  disk_templates = map(lambda _: disk_template, disk_sizes)
+  dev_types = [d.dev_type for d in disks]
   return ComputeIPolicySpecViolation(ipolicy,
                                      # mem_size, cpu_count, disk_count
                                      None, None, len(disk_sizes),
                                      None, disk_sizes, # nic_count, disk_sizes
                                      None, # spindle_use
-                                     disk_templates,
+                                     dev_types,
                                      _compute_fn=_compute_fn)
 
 

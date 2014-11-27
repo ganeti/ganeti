@@ -793,6 +793,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     # reasons, then recreating the disks on the same nodes should be fine.
     disk_template = self.instance.disk_template
     spindle_use = be_full[constants.BE_SPINDLE_USE]
+    disk_template = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
     disks = [{
       constants.IDISK_SIZE: d.size,
       constants.IDISK_MODE: d.mode,
@@ -800,6 +801,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
       constants.IDISK_TYPE: d.dev_type
       } for d in self.cfg.GetInstanceDisks(self.instance.uuid)]
     req = iallocator.IAReqInstanceAlloc(name=self.op.instance_name,
+                                        disk_template=disk_template,
                                         group_name=None,
                                         tags=list(self.instance.GetTags()),
                                         os=self.instance.os,
@@ -1763,12 +1765,12 @@ class LUInstanceGrowDisk(LogicalUnit):
     ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                             group_info)
 
+    disks = self.cfg.GetInstanceDisks(self.op.instance_uuid)
     disk_sizes = [disk.size if disk.uuid != self.disk.uuid else target_size
-                  for disk in self.cfg.GetInstanceDisks(self.op.instance_uuid)]
+                  for disk in disks]
 
     # The ipolicy checker below ignores None, so we only give it the disk size
-    res = ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes,
-                                           self.instance.disk_template)
+    res = ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes, disks)
     if res:
       msg = ("Growing disk %s violates policy: %s" %
              (self.op.disk,
