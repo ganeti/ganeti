@@ -341,11 +341,7 @@ class LUInstanceSetParams(LogicalUnit):
 
       # file-based template checks
       if self.op.disk_template in constants.DTS_FILEBASED:
-        if not self.op.file_driver:
-          self.op.file_driver = constants.FD_DEFAULT
-        elif self.op.file_driver not in constants.FILE_DRIVER:
-          raise errors.OpPrereqError("Invalid file driver name '%s'" %
-                                     self.op.file_driver, errors.ECODE_INVAL)
+        self._FillFileDriver()
 
     # Check NIC modifications
     self._CheckMods("NIC", self.op.nics, constants.INIC_PARAMS_TYPES,
@@ -1536,6 +1532,13 @@ class LUInstanceSetParams(LogicalUnit):
       msg += "done"
     return msg
 
+  def _FillFileDriver(self):
+    if not self.op.file_driver:
+      self.op.file_driver = constants.FD_DEFAULT
+    elif self.op.file_driver not in constants.FILE_DRIVER:
+      raise errors.OpPrereqError("Invalid file driver name '%s'" %
+                                 self.op.file_driver, errors.ECODE_INVAL)
+
   def _CreateNewDisk(self, idx, params, _):
     """Creates a new disk.
 
@@ -1546,12 +1549,15 @@ class LUInstanceSetParams(LogicalUnit):
         disk_type, self.cfg, self.instance.name,
         file_storage_dir=self.op.file_storage_dir)
 
+    self._FillFileDriver()
+
     secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
     disk = \
-      GenerateDiskTemplate(self, self.instance.disk_template,
+      GenerateDiskTemplate(self, disk_type,
                            self.instance.uuid, self.instance.primary_node,
                            secondary_nodes, [params], file_path,
-                           file_driver, idx, self.Log, self.diskparams)[0]
+                           self.op.file_driver, idx, self.Log,
+                           self.diskparams)[0]
 
     new_disks = CreateDisks(self, self.instance, disks=[disk])
     self.cfg.AddInstanceDisk(self.instance.uuid, disk, idx)
