@@ -31,7 +31,6 @@
 
 import copy
 import logging
-import os
 
 
 from ganeti import compat
@@ -1381,8 +1380,8 @@ class LUInstanceSetParams(LogicalUnit):
           result.Raise("Error while converting the instance's template")
 
     # In case of DRBD disk, return its port to the pool
-    if self.instance.disk_template == constants.DT_DRBD8:
-      for disk in old_disks:
+    for disk in old_disks:
+      if disk.dev_type == constants.DT_DRBD8:
         tcp_port = disk.logical_id[2]
         self.cfg.AddTcpUdpPort(tcp_port)
 
@@ -1424,10 +1423,10 @@ class LUInstanceSetParams(LogicalUnit):
 
     pnode_uuid = self.instance.primary_node
     snode_uuid = self.op.remote_node_uuid
-
-    assert self.instance.disk_template == constants.DT_PLAIN
-
     old_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+
+    assert utils.AnyDiskOfType(old_disks, [constants.DT_PLAIN])
+
     new_disks = GenerateDiskTemplate(self, self.op.disk_template,
                                      self.instance.uuid, pnode_uuid,
                                      [snode_uuid], self.disks_info,
@@ -1500,13 +1499,13 @@ class LUInstanceSetParams(LogicalUnit):
 
     """
     secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     assert len(secondary_nodes) == 1
-    assert self.instance.disk_template == constants.DT_DRBD8
+    assert utils.AnyDiskOfType(disks, [constants.DT_DRBD8])
 
     snode_uuid = secondary_nodes[0]
     feedback_fn("Converting disk template from 'drbd' to 'plain'")
 
-    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     old_disks = AnnotateDiskParams(self.instance, disks, self.cfg)
     new_disks = [d.children[0] for d in disks]
 
@@ -1681,9 +1680,10 @@ class LUInstanceSetParams(LogicalUnit):
       changes.append(("disk.name/%d" % idx, disk.name))
 
     # Modify arbitrary params in case instance template is ext
+
     for key, value in params.iteritems():
       if (key not in constants.MODIFIABLE_IDISK_PARAMS and
-          self.instance.disk_template == constants.DT_EXT):
+          disk.dev_type == constants.DT_EXT):
         # stolen from GetUpdatedParams: default means reset/delete
         if value.lower() == constants.VALUE_DEFAULT:
           try:
