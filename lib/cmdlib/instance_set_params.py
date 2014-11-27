@@ -1352,9 +1352,9 @@ class LUInstanceSetParams(LogicalUnit):
                 template_info)
     for idx, (old, new) in enumerate(zip(old_disks, new_disks)):
       feedback_fn(" - copying data from disk %s (%s), size %s" %
-                  (idx, self.instance.disk_template,
+                  (idx, old.dev_type,
                    utils.FormatUnit(new.size, "h")))
-      if self.instance.disk_template == constants.DT_DRBD8:
+      if old.dev_type == constants.DT_DRBD8:
         old = old.children[0]
       result = self.rpc.call_blockdev_convert(pnode_uuid, (old, self.instance),
                                               (new, self.instance))
@@ -1388,7 +1388,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     # Remove old disks from the instance.
     feedback_fn("Detaching old disks (%s) from the instance and removing"
-                " them from cluster config" % self.instance.disk_template)
+                " them from cluster config" % old_template)
     for old_disk in old_disks:
       self.cfg.RemoveInstanceDisk(self.instance.uuid, old_disk.uuid)
 
