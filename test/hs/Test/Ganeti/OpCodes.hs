@@ -390,7 +390,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                       -- instance_communication
       "OP_INSTANCE_GROW_DISK" ->
         OpCodes.OpInstanceGrowDisk <$> genFQDN <*> return Nothing <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
       "OP_INSTANCE_CHANGE_GROUP" ->
         OpCodes.OpInstanceChangeGroup <$> genFQDN <*> return Nothing <*>
           arbitrary <*> genMaybe genNameNE <*>
