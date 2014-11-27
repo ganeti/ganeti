@@ -2782,7 +2782,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
 
     op = self.CopyOpCode(self.op,
                          instance_name=inst.name,
-                         disks=[[constants.DDM_DETACH, "mock_name_1134",
+                         disks=[[constants.DDM_DETACH, 1,
                                  {}]])
     self.ExecOpCode(op)
     self.assertEqual([disk1], self.cfg.GetInstanceDisks(inst.uuid))

@@ -137,7 +137,6 @@ class LUInstanceSetParams(LogicalUnit):
       assert verify_fn(result)
     else:
       result = mods
-
     return result
 
   @staticmethod
@@ -179,11 +178,13 @@ class LUInstanceSetParams(LogicalUnit):
     """Verifies a disk modification.
 
     """
+    disk_type = params.get(
+        constants.IDISK_TYPE,
+        self.cfg.GetInstanceDiskTemplate(self.instance.uuid))
 
     if op == constants.DDM_ADD:
-      disk_type = params.setdefault(
-          constants.IDISK_TYPE,
-          self.cfg.GetInstanceDiskTemplate(self.instance.uuid))
+      params[constants.IDISK_TYPE] = disk_type
+
       if disk_type == constants.DT_DISKLESS:
         raise errors.OpPrereqError(
             "Must specify disk type on diskless instance", errors.ECODE_INVAL)
@@ -237,9 +238,11 @@ class LUInstanceSetParams(LogicalUnit):
         raise errors.OpPrereqError("Disk size change not possible, use"
                                    " grow-disk", errors.ECODE_INVAL)
 
+      disk_info = self.cfg.GetInstanceDisks(self.instance.uuid)
+
       # Disk modification supports changing only the disk name and mode.
       # Changing arbitrary parameters is allowed only for ext disk template",
-      if self.instance.disk_template != constants.DT_EXT:
+      if not utils.AllDiskOfType(disk_info, [constants.DT_EXT]):
         utils.ForceDictType(params, constants.MODIFIABLE_IDISK_PARAMS_TYPES)
       else:
         # We have to check that 'access' parameter can not be modified
@@ -302,6 +305,22 @@ class LUInstanceSetParams(LogicalUnit):
                                      " modifying an existing NIC",
                                      errors.ECODE_INVAL)
 
+  def _LookupDiskIndex(self, idx):
+    """Looks up uuid or name of disk if necessary."""
+    try:
+      return int(idx)
+    except ValueError:
+      pass
+    for i, d in enumerate(self.cfg.GetInstanceDisks(self.instance.uuid)):
+      if d.name == idx or d.uuid == idx:
+        return i
+    raise errors.OpPrereqError("Lookup of disk %r failed" % idx)
+
+  def _LookupDiskMods(self):
+    """Looks up uuid or name of disk if necessary."""
+    return [(op, self._LookupDiskIndex(idx), params)
+            for op, idx, params in self.op.disks]
+
   def CheckArguments(self):
     if not (self.op.nics or self.op.disks or self.op.disk_template or
             self.op.hvparams or self.op.beparams or self.op.os_name or
@@ -315,7 +334,8 @@ class LUInstanceSetParams(LogicalUnit):
                            "hypervisor", "instance", "cluster")
 
     self.op.disks = self._UpgradeDiskNicMods(
-      "disk", self.op.disks, ht.TSetParamsMods(ht.TIDiskParams))
+      "disk", self.op.disks,
+      ht.TSetParamsMods(ht.TIDiskParams))
     self.op.nics = self._UpgradeDiskNicMods(
       "NIC", self.op.nics, ht.TSetParamsMods(ht.TINicParams))
 
@@ -598,6 +618,12 @@ class LUInstanceSetParams(LogicalUnit):
     # Arguments are passed to avoid configuration lookups
     pnode_uuid = self.instance.primary_node
 
+    # TODO make sure heterogeneous disk types can be converted.
+    disk_template = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
+    if disk_template == constants.DT_MIXED:
+      raise errors.OpPrereqError(
+          "Conversion from mixed is not yet supported.")
+
     inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     if utils.AnyDiskOfType(inst_disks, constants.DTS_NOT_CONVERTIBLE_FROM):
       raise errors.OpPrereqError(
@@ -746,6 +772,7 @@ class LUInstanceSetParams(LogicalUnit):
     self._CheckMods("disk", self.op.disks, {}, ver_fn)
 
     self.diskmod = PrepareContainerMods(self.op.disks, None)
+    disk_info = self.cfg.GetInstanceDisks(self.instance.uuid)
 
     # Check the validity of the `provider' parameter
     for mod in self.diskmod:
@@ -1106,6 +1133,8 @@ class LUInstanceSetParams(LogicalUnit):
     self.cluster = self.cfg.GetClusterInfo()
     cluster_hvparams = self.cluster.hvparams[self.instance.hypervisor]
 
+    self.op.disks = self._LookupDiskMods()
+
     assert self.instance is not None, \
       "Cannot retrieve locked instance %s" % self.op.instance_name
 
@@ -1226,8 +1255,14 @@ class LUInstanceSetParams(LogicalUnit):
       else:
         old_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
         add_disk_count = ispec[constants.ISPEC_DISK_COUNT] - len(old_disks)
+        dev_type = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
+        if dev_type == constants.DT_DISKLESS and add_disk_count != 0:
+          raise errors.ProgrammerError(
+              "Conversion from diskless instance not possible and should have"
+              " been caught")
+
         new_disk_types = ([d.dev_type for d in old_disks] +
-                          [self.instance.disk_template] * add_disk_count)
+                          [dev_type] * add_disk_count)
       ispec_max = ispec.copy()
       ispec_max[constants.ISPEC_MEM_SIZE] = \
         self.be_new.get(constants.BE_MAXMEM, None)
@@ -1269,14 +1304,14 @@ class LUInstanceSetParams(LogicalUnit):
       template_info = ":".join([self.op.disk_template,
                                 self.op.ext_params["provider"]])
 
+    old_template = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
     feedback_fn("Converting disk template from '%s' to '%s'" %
-                (self.instance.disk_template, template_info))
+                (old_template, template_info))
 
-    assert not (self.instance.disk_template in
-                constants.DTS_NOT_CONVERTIBLE_FROM or
+    assert not (old_template in constants.DTS_NOT_CONVERTIBLE_FROM or
                 self.op.disk_template in constants.DTS_NOT_CONVERTIBLE_TO), \
       ("Unsupported disk template conversion from '%s' to '%s'" %
-       (self.instance.disk_template, self.op.disk_template))
+       (old_template, self.op.disk_template))
 
     pnode_uuid = self.instance.primary_node
     snode_uuid = []
@@ -1357,9 +1392,6 @@ class LUInstanceSetParams(LogicalUnit):
     for old_disk in old_disks:
       self.cfg.RemoveInstanceDisk(self.instance.uuid, old_disk.uuid)
 
-    # The old disk_template will be needed to remove the old block devices.
-    old_disk_template = self.instance.disk_template
-
     # Attach the new disks to the instance.
     feedback_fn("Adding new disks (%s) to cluster config and attaching"
                 " them to the instance" % template_info)
@@ -1378,9 +1410,8 @@ class LUInstanceSetParams(LogicalUnit):
       raise errors.OpExecError("There are some degraded disks for"
                                " this instance, please cleanup manually")
 
-    feedback_fn("Removing old block devices of type '%s'..." %
-                old_disk_template)
-    RemoveDisks(self, self.instance, disk_template=old_disk_template,
+    feedback_fn("Removing old block devices of type '%s'..." % old_template)
+    RemoveDisks(self, self.instance, disk_template=old_template,
                 disks=old_disks)
 
     # Node resource locks will be released by the caller.
@@ -1834,7 +1865,9 @@ class LUInstanceSetParams(LogicalUnit):
       if not r_shut:
         raise errors.OpExecError("Cannot shutdown instance disks, unable to"
                                  " proceed with disk template conversion")
-      mode = (self.instance.disk_template, self.op.disk_template)
+      #TODO make heterogeneous conversions work
+      mode = (self.cfg.GetInstanceDiskTemplate(self.instance.uuid),
+              self.op.disk_template)
       try:
         if mode in self._DISK_CONVERSIONS:
           self._DISK_CONVERSIONS[mode](self, feedback_fn)
