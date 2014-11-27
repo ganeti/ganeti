@@ -479,6 +479,16 @@ def UpgradeTopLevelDisks(config_data):
     iobj["disks"] = disk_uuids
 
 
+@OrFail("Removing disk template")
+def UpgradeDiskTemplate(config_data):
+  if "instances" not in config_data:
+    raise Error("Can't find the 'instances' dictionary in the configuration.")
+  instances = config_data["instances"]
+  for inst in instances.values():
+    if "disk_template" in inst:
+      del inst["disk_template"]
+
+
 # The following function is based on a method of class Disk with the same name,
 # but adjusted to work with dicts and sets.
 def _ComputeAllNodes(disk):
@@ -550,7 +560,8 @@ def UpgradeAll(config_data):
            UpgradeNodeIndices,
            UpgradeInstanceIndices,
            UpgradeFilters,
-           UpgradeDiskNodes]
+           UpgradeDiskNodes,
+           UpgradeDiskTemplate]
   ok = True
   for s in steps:
     ok = ok and s(config_data)
@@ -599,12 +610,35 @@ def DowngradeForthcomingDisks(config_data):
           inst["disks"].remove(uuid)
 
 
+def DowngradeDiskTemplate(config_data):
+  if "instances" not in config_data:
+    raise Error("Can't find the 'instances' dictionary in the configuration.")
+  instances = config_data["instances"]
+  if "disks" not in config_data:
+    raise Error("Can't find the 'disks' dictionary in the configuration.")
+  disks = config_data["disks"]
+  for inst in instances.values():
+    instance_disks = [disks.get(uuid) for uuid in inst["disks"]]
+    if any(d is None for d in instance_disks):
+      raise Error("Can't find all disks of instance %s in the configuration." %
+                  inst.name)
+    dev_types = set(d["dev_type"] for d in instance_disks)
+    if len(dev_types) > 1:
+      raise Error("Instance %s has mixed disk types: %s" %
+                  (inst.name, ', '.join(dev_types)))
+    elif len(dev_types) < 1:
+      inst["disk_template"] = constants.DT_DISKLESS
+    else:
+      inst["disk_template"] = dev_types.pop()
+
+
 def DowngradeAll(config_data):
   config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                 DOWNGRADE_MINOR, 0)
   steps = [DowngradeForthcomingInstances,
            DowngradeForthcomingDisks,
-           DowngradeDiskNodes]
+           DowngradeDiskNodes,
+           DowngradeDiskTemplate]
   ok = True
   for s in steps:
     ok = ok and s(config_data)
