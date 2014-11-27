@@ -1961,6 +1961,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     runtime[index].append(entry)
     self._SaveKVMRuntime(instance, runtime)
 
+  @_with_qmp
   def HotDelDevice(self, instance, dev_type, device, _, seq):
     """ Helper method for hot-del device
 
@@ -1973,13 +1974,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_device = _RUNTIME_DEVICE[dev_type](entry)
     kvm_devid = _GenerateDeviceKVMId(dev_type, kvm_device)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      cmds = ["device_del %s" % kvm_devid]
-      cmds += ["drive_del %s" % kvm_devid]
+      self.qmp.HotDelDisk(kvm_devid)
+      # drive_del is not implemented yet in qmp
+      command = "drive_del %s\n" % kvm_devid
+      self._CallMonitorCommand(instance.name, command)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
-      cmds = ["device_del %s" % kvm_devid]
-      cmds += ["netdev_del %s" % kvm_devid]
+      self.qmp.HotDelNic(kvm_devid)
       utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
-    self._CallHotplugCommands(instance.name, cmds)
     self._VerifyHotplugCommand(instance, kvm_device, kvm_devid, False)
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     runtime[index].remove(entry)
