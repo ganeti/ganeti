@@ -1888,25 +1888,24 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       cls._CallMonitorCommand(instance_name, c)
       time.sleep(1)
 
-  def _VerifyHotplugCommand(self, instance_name, device, dev_type,
-                            should_exist):
+  @_with_qmp
+  def _VerifyHotplugCommand(self, _instance,
+                            device, kvm_devid, should_exist):
     """Checks if a previous hotplug command has succeeded.
 
-    It issues info pci monitor command and checks depending on should_exist
-    value if an entry with PCI slot and device ID is found or not.
+    Depending on the should_exist value, verifies that an entry identified by
+    the PCI slot and device ID is present or not.
 
     @raise errors.HypervisorError: if result is not the expected one
 
     """
-    output = self._CallMonitorCommand(instance_name, self._INFO_PCI_CMD)
-    kvm_devid = _GenerateDeviceKVMId(dev_type, device)
-    match = \
-      self._FIND_PCI_DEVICE_RE(device.pci, kvm_devid).search(output.stdout)
-    if match and not should_exist:
+    found = self.qmp.HasPCIDevice(device, kvm_devid)
+
+    if found and not should_exist:
       msg = "Device %s should have been removed but is still there" % kvm_devid
       raise errors.HypervisorError(msg)
 
-    if not match and should_exist:
+    if not found and should_exist:
       msg = "Device %s should have been added but is missing" % kvm_devid
       raise errors.HypervisorError(msg)
 
@@ -1962,7 +1961,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
       self._CallHotplugCommands(instance.name, cmds)
 
-    self._VerifyHotplugCommand(instance.name, device, dev_type, True)
+    self._VerifyHotplugCommand(instance, device, kvm_devid, True)
     # update relevant entries in runtime file
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     entry = _RUNTIME_ENTRY[dev_type](device, extra)
@@ -1988,7 +1987,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       cmds += ["netdev_del %s" % kvm_devid]
       utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
     self._CallHotplugCommands(instance.name, cmds)
-    self._VerifyHotplugCommand(instance.name, kvm_device, dev_type, False)
+    self._VerifyHotplugCommand(instance, kvm_device, kvm_devid, False)
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     runtime[index].remove(entry)
     self._SaveKVMRuntime(instance, runtime)
