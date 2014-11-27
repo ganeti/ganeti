@@ -266,6 +266,8 @@ class TestClusterObject(unittest.TestCase):
     instance2 = objects.Instance()
     instance2.disk_template = constants.DT_RBD
     cfg.instances = { "myinstance1": instance1, "myinstance2": instance2 }
+    disk2 = objects.Disk(dev_type=constants.DT_RBD)
+    cfg.disks = { "pinkbunnydisk": disk2 }
     nodegroup = objects.NodeGroup()
     nodegroup.ipolicy = {}
     nodegroup.ipolicy[constants.IPOLICY_DTS] = [instance1.disk_template, \

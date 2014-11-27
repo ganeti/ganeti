@@ -1154,11 +1154,12 @@ class LUInstanceCreate(LogicalUnit):
     @raise errors.OpPrereqError: if disks are degraded
 
     """
+    disk_info = self.cfg.GetInstanceDisks(instance.uuid)
     if disk_abort:
       pass
     elif self.op.wait_for_sync:
       disk_abort = not WaitForSync(self, instance)
-    elif instance.disk_template in constants.DTS_INT_MIRROR:
+    elif utils.AnyDiskOfType(disk_info, constants.DTS_INT_MIRROR):
       # make sure the disks are not degraded (still sync-ing is ok)
       feedback_fn("* checking mirrors status")
       disk_abort = not WaitForSync(self, instance, oneshot=True)
