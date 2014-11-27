@@ -1844,36 +1844,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     dev.pci = utils.GetFreeSlot(slots)
 
+  @_with_qmp
   def VerifyHotplugSupport(self, instance, action, dev_type):
     """Verifies that hotplug is supported.
-
-    Hotplug is *not* supported in case of:
-     - fdsend module is missing (hot-add)
-     - add-fd qmp command is not supported and
-        chroot or some security model is used
 
     @raise errors.HypervisorError: in one of the previous cases
 
     """
-    with QmpConnection(self._InstanceQmpMonitor(instance.name)) as qmp:
-      qmp_supports_add_fd = fdsend and "add-fd" in qmp.supported_commands
-
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      hvp = instance.hvparams
-      security_model = hvp[constants.HV_SECURITY_MODEL]
-      use_chroot = hvp[constants.HV_KVM_USE_CHROOT]
-      if action == constants.HOTPLUG_ACTION_ADD and not qmp_supports_add_fd:
-        if use_chroot:
-          raise errors.HotplugError("Disk hotplug is not supported"
-                                    " in case of chroot.")
-        if security_model != constants.HT_SM_NONE:
-          raise errors.HotplugError("Disk Hotplug is not supported in case"
-                                    " security models are used.")
-
-    if (dev_type == constants.HOTPLUG_TARGET_NIC and
-        action == constants.HOTPLUG_ACTION_ADD and not fdsend):
-      raise errors.HotplugError("Cannot hot-add NIC."
-                                " fdsend python module is missing.")
+      if action == constants.HOTPLUG_ACTION_ADD:
+        self.qmp.CheckDiskHotAddSupport()
+    if dev_type == constants.HOTPLUG_TARGET_NIC:
+      if action == constants.HOTPLUG_ACTION_ADD:
+        self.qmp.CheckNicHotAddSupport()
 
   def HotplugSupported(self, instance):
     """Checks if hotplug is generally supported.
