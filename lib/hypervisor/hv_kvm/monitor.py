@@ -432,51 +432,47 @@ class QmpConnection(MonitorSocket):
 
       return response[self._RETURN_KEY]
 
-  def AddFd(self, fds):
-    """Pass file descriptor to kvm process via qmp socket using SCM_RIGHTS
+  def AddFd(self, fd):
+    """Wrapper around add-fd qmp command
 
-    Add the fds to an fdset so that they can be used later by hot-add commands
+    Use fdsend to send fd to a running process via SCM_RIGHTS and then add-fd
+    qmp command to add it to an fdset so that it can be used later by
+    disk hotplugging.
 
-    @type fds: list
-    @param fds: The list of file descriptors to pass
+    @type fd: int
+    @param fd: The file descriptor to pass
 
-    @return: The fdset ID that the fds have been added to
-      (None if operation fails)
+    @return: The fdset ID that the fd has been added to
+    @raise errors.HypervisorError: If add-fd fails for some reason
 
     """
     self._check_connection()
-
-    if not fdsend or "add-fd" not in self.supported_commands:
-      return None
-
     try:
+      fdsend.sendfds(self.sock, " ", fds=[fd])
       # Omit fdset-id and let qemu create a new one (see qmp-commands.hx)
-      command = {"execute": "add-fd"}
-      fdsend.sendfds(self.sock, serializer.Dump(command), fds=fds)
-      # Get the response out of the buffer
-      response = self._GetResponse("add-fd")
+      response = self.Execute("add-fd")
       fdset = response["fdset-id"]
-      logging.info("Sent fds %s and added to fdset %s", fds, fdset)
     except errors.HypervisorError, err:
-      # In case _GetResponse() fails
-      fdset = None
-      logging.info("Sending fds %s failed: %s", fds, err)
+      logging.info("Passing fd %s via SCM_RIGHTS failed: %s", fd, err)
+      raise
 
     return fdset
 
   def RemoveFdset(self, fdset):
-    """Remove the file descriptor previously passed
+    """Wrapper around remove-fd qmp command
 
-    After qemu has dup'd the fd (e.g. during disk hotplug),
-    it can be safely removed.
+    Remove the file descriptor previously passed. After qemu has dup'd the fd
+    (e.g. during disk hotplug), it can be safely removed.
 
     """
     self._check_connection()
-    # Omit the fd to cleanup all fds in the fdset (see qmp-commands.hx)
-    command = "remove-fd"
-    arguments = {"fdset-id": fdset}
-    logging.info("Removing fdset %s", fdset)
+    # Omit the fd to cleanup all fds in the fdset (see qemu/qmp-commands.hx)
     try:
-      self.Execute(command, arguments=arguments)
+      self.Execute("remove-fd", {"fdset-id": fdset})
     except errors.HypervisorError, err:
-      logging.info("Removing %s fdset failed: %s", fdset, err)
+      # There is no big deal if we cannot remove an fdset. This cleanup here is
+      # done on a best effort basis. Upon next hot-add a new fdset will be
+      # created. If we raise an exception here, that is after drive_add has
+      # succeeded, the whole hot-add action will fail and the runtime file will
+      # not be updated which will make the instance non migrate-able
+      logging.info("Removing fdset with id %s failed: %s", fdset, err)
