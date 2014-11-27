@@ -1868,7 +1868,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @raise errors.HypervisorError: if result is not the expected one
 
     """
-    found = self.qmp.HasPCIDevice(device, kvm_devid)
+    for i in range(5):
+      found = self.qmp.HasPCIDevice(device, kvm_devid)
+      logging.info("Verifying hotplug command (retry %s): %s", i, found)
+      if found and should_exist:
+        break
+      if not found and not should_exist:
+        break
+      time.sleep(1)
 
     if found and not should_exist:
       msg = "Device %s should have been removed but is still there" % kvm_devid
