@@ -480,11 +480,20 @@ def ComputeDisksInfo(disks, disk_template, default_vg, ext_params):
   return new_disks
 
 
-def CalculateFileStorageDir(lu):
+def CalculateFileStorageDir(disk_type, cfg, instance_name,
+                            file_storage_dir=None):
   """Calculate final instance file storage dir.
 
-  @type lu: L{LogicalUnit}
-  @param lu: the logical unit on whose behalf we execute
+  @type disk_type: disk template
+  @param disk_type: L{constants.DT_FILE}, L{constants.DT_SHARED_FILE}, or
+                    L{constants.DT_GLUSTER}
+
+  @type cfg: ConfigWriter
+  @param cfg: the configuration that is to be used.
+  @type file_storage_dir: path
+  @param file_storage_dir: the path below the configured base.
+  @type instance_name: string
+  @param instance_name: name of the instance this disk is for.
 
   @rtype: string
   @return: The file storage directory for the instance
@@ -492,33 +501,32 @@ def CalculateFileStorageDir(lu):
   """
   # file storage dir calculation/check
   instance_file_storage_dir = None
-  if lu.op.disk_template in constants.DTS_FILEBASED:
+  if disk_type in constants.DTS_FILEBASED:
     # build the full file storage dir path
     joinargs = []
 
     cfg_storage = None
-    if lu.op.disk_template == constants.DT_FILE:
-      cfg_storage = lu.cfg.GetFileStorageDir()
-    elif lu.op.disk_template == constants.DT_SHARED_FILE:
-      cfg_storage = lu.cfg.GetSharedFileStorageDir()
-    elif lu.op.disk_template == constants.DT_GLUSTER:
-      cfg_storage = lu.cfg.GetGlusterStorageDir()
+    if disk_type == constants.DT_FILE:
+      cfg_storage = cfg.GetFileStorageDir()
+    elif disk_type == constants.DT_SHARED_FILE:
+      cfg_storage = cfg.GetSharedFileStorageDir()
+    elif disk_type == constants.DT_GLUSTER:
+      cfg_storage = cfg.GetGlusterStorageDir()
 
     if not cfg_storage:
       raise errors.OpPrereqError(
         "Cluster file storage dir for {tpl} storage type not defined".format(
-          tpl=repr(lu.op.disk_template)
+          tpl=repr(disk_type)
         ),
-        errors.ECODE_STATE
-    )
+        errors.ECODE_STATE)
 
     joinargs.append(cfg_storage)
 
-    if lu.op.file_storage_dir is not None:
-      joinargs.append(lu.op.file_storage_dir)
+    if file_storage_dir is not None:
+      joinargs.append(file_storage_dir)
 
-    if lu.op.disk_template != constants.DT_GLUSTER:
-      joinargs.append(lu.op.instance_name)
+    if disk_type != constants.DT_GLUSTER:
+      joinargs.append(instance_name)
 
     if len(joinargs) > 1:
       # pylint: disable=W0142

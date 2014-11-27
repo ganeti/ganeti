@@ -752,7 +752,9 @@ class LUInstanceCreate(LogicalUnit):
                                   utils.CommaJoin(owned_groups)),
                                  errors.ECODE_STATE)
 
-    self.instance_file_storage_dir = CalculateFileStorageDir(self)
+    self.instance_file_storage_dir = CalculateFileStorageDir(
+        self.op.disk_template, self.cfg, self.op.instance_name,
+        self.op.file_storage_dir)
 
     if self.op.mode == constants.INSTANCE_IMPORT:
       export_info = self._ReadExportInfo()

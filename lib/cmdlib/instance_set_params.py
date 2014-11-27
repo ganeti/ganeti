@@ -1139,7 +1139,6 @@ class LUInstanceSetParams(LogicalUnit):
 
     if self.op.disk_template:
       self._PreCheckDiskTemplate(pnode_info)
-      self.instance_file_storage_dir = CalculateFileStorageDir(self)
 
     self._PreCheckDisks(ispec)
 
@@ -1280,13 +1279,16 @@ class LUInstanceSetParams(LogicalUnit):
     old_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
 
     feedback_fn("Generating new '%s' disk template..." % template_info)
+    file_storage_dir = CalculateFileStorageDir(
+        self.op.disk_template, self.cfg, self.instance.name,
+        file_storage_dir=self.op.file_storage_dir)
     new_disks = GenerateDiskTemplate(self,
                                      self.op.disk_template,
                                      self.instance.uuid,
                                      pnode_uuid,
                                      snode_uuid,
                                      self.disks_info,
-                                     self.instance_file_storage_dir,
+                                     file_storage_dir,
                                      self.op.file_driver,
                                      0,
                                      feedback_fn,
@@ -1537,12 +1539,10 @@ class LUInstanceSetParams(LogicalUnit):
 
     """
     # add a new disk
-    instance_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
-    if self.instance.disk_template in constants.DTS_FILEBASED:
-      (file_driver, file_path) = instance_disks[0].logical_id
-      file_path = os.path.dirname(file_path)
-    else:
-      file_driver = file_path = None
+    disk_type = params[constants.IDISK_TYPE]
+    file_path = CalculateFileStorageDir(
+        disk_type, self.cfg, self.instance.name,
+        file_storage_dir=self.op.file_storage_dir)
 
     secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
     disk = \
