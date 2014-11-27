@@ -432,6 +432,29 @@ class QmpConnection(MonitorSocket):
 
       return response[self._RETURN_KEY]
 
+  def GetFd(self, fd, fdname):
+    """Wrapper around the getfd qmp command
+
+    Use fdsend to send an fd to a running process via SCM_RIGHTS and then use
+    the getfd qmp command to name it properly so that it can be used
+    later by NIC hotplugging.
+
+    @type fd: int
+    @param fd: The file descriptor to pass
+    @raise errors.HypervisorError: If getfd fails for some reason
+
+    """
+    self._check_connection()
+    try:
+      fdsend.sendfds(self.sock, " ", fds=[fd])
+      arguments = {
+          "fdname": fdname,
+          }
+      self.Execute("getfd", arguments)
+    except errors.HypervisorError, err:
+      logging.info("Passing fd %s via SCM_RIGHTS failed: %s", fd, err)
+      raise
+
   def AddFd(self, fd):
     """Wrapper around add-fd qmp command
 
