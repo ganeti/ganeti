@@ -112,6 +112,26 @@ _RUNTIME_ENTRY = {
 _MIGRATION_CAPS_DELIM = ":"
 
 
+def _with_qmp(fn):
+  """Wrapper used on hotplug related methods"""
+  def wrapper(self, instance, *args, **kwargs):
+    """Open a QmpConnection, run the wrapped method and then close it"""
+    conn_created = False
+    if not getattr(self, "qmp", None):
+      filename = self._InstanceQmpMonitor(instance.name)# pylint: disable=W0212
+      self.qmp = QmpConnection(filename)
+      conn_created = True
+
+    self.qmp.connect()
+    try:
+      ret = fn(self, instance, *args, **kwargs)
+    finally:
+      if conn_created = True:
+        self.qmp.close()
+    return ret
+  return wrapper
+
+
 def _GetDriveURI(disk, link, uri, qmp=None):
   """Helper function to get the drive uri to be used in --drive kvm option
 
@@ -462,6 +482,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # in a tmpfs filesystem or has been otherwise wiped out.
     dirs = [(dname, constants.RUN_DIRS_MODE) for dname in self._DIRS]
     utils.EnsureDirs(dirs)
+    self.qmp = None
 
   @staticmethod
   def VersionsSafeForMigration(src, target):
