@@ -1508,24 +1508,36 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _GetNetworkDeviceFeatures(self, up_hvp, devlist, kvmhelp):
     """Get network device options to properly enable supported features.
 
-    Return tuple of supported and enabled tap features with nic_model.
+    Return a dict of supported and enabled tap features with nic_model along
+    with the extra strings to be appended to the --netdev and --device options.
     This function is called before opening a new tap device.
 
-    @return: (nic_model, vnet_hdr, virtio_net_queues, tap_extra, nic_extra)
-    @rtype: tuple
+    Currently the features_dict includes the following attributes:
+      - vhost (boolean)
+      - vnet_hdr (boolean)
+      - mq (boolean, int)
+
+    @rtype: (dict, str, str) tuple
+    @return: The supported features,
+             the string to be appended to the --netdev option,
+             the string to be appended to the --device option
 
     """
-    virtio_net_queues = 1
-    nic_extra = ""
     nic_type = up_hvp[constants.HV_NIC_TYPE]
-    tap_extra = ""
-    vnet_hdr = False
+    nic_extra_str = ""
+    tap_extra_str = ""
+    features = {
+      "vhost": False,
+      "vnet_hdr": False,
+      "mq": (False, 1)
+      }
+    update_features = {}
     if nic_type == constants.HT_NIC_PARAVIRTUAL:
       nic_model = self._VIRTIO
       try:
         if self._VIRTIO_NET_RE.search(devlist):
           nic_model = self._VIRTIO_NET_PCI
-          vnet_hdr = up_hvp[constants.HV_VNET_HDR]
+          update_features["vnet_hdr"] = up_hvp[constants.HV_VNET_HDR]
       except errors.HypervisorError, _:
         # Older versions of kvm don't support DEVICE_LIST, but they don't
         # have new virtio syntax either.
@@ -1534,25 +1546,30 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if up_hvp[constants.HV_VHOST_NET]:
         # Check for vhost_net support.
         if self._VHOST_RE.search(kvmhelp):
-          tap_extra = ",vhost=on"
+          update_features["vhost"] = True
+          tap_extra_str = ",vhost=on"
         else:
           raise errors.HypervisorError("vhost_net is configured"
                                        " but it is not available")
-        if up_hvp[constants.HV_VIRTIO_NET_QUEUES] > 1:
+        virtio_net_queues = up_hvp.get(constants.HV_VIRTIO_NET_QUEUES, 1)
+        if virtio_net_queues > 1:
           # Check for multiqueue virtio-net support.
           if self._VIRTIO_NET_QUEUES_RE.search(kvmhelp):
-            virtio_net_queues = up_hvp[constants.HV_VIRTIO_NET_QUEUES]
             # As advised at http://www.linux-kvm.org/page/Multiqueue formula
             # for calculating vector size is: vectors=2*N+1 where N is the
             # number of queues (HV_VIRTIO_NET_QUEUES).
-            nic_extra = ",mq=on,vectors=%d" % (2 * virtio_net_queues + 1)
+            nic_extra_str = ",mq=on,vectors=%d" % (2 * virtio_net_queues + 1)
+            update_features["mq"] = (True, virtio_net_queues)
           else:
             raise errors.HypervisorError("virtio_net_queues is configured"
                                          " but it is not available")
     else:
       nic_model = nic_type
 
-    return (nic_model, vnet_hdr, virtio_net_queues, tap_extra, nic_extra)
+    update_features["driver"] = nic_model
+    features.update(update_features)
+
+    return features, tap_extra_str, nic_extra_str
 
   # too many local variables
   # pylint: disable=R0914
