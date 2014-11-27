@@ -1236,6 +1236,10 @@ class Instance(TaggableObject):
       else:
         nlist = []
       bo[attr] = nlist
+
+    if 'disk_template' in bo:
+      del bo['disk_template']
+
     return bo
 
   @classmethod
