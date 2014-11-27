@@ -4185,6 +4185,7 @@ def FinalizeExport(instance, snap_disks):
   """
   destdir = utils.PathJoin(pathutils.EXPORT_DIR, instance.name + ".new")
   finaldestdir = utils.PathJoin(pathutils.EXPORT_DIR, instance.name)
+  disk_template = utils.GetDiskTemplate(snap_disks)
 
   config = objects.SerializableConfigParser()
 
@@ -4206,7 +4207,7 @@ def FinalizeExport(instance, snap_disks):
              instance.beparams[constants.BE_MAXMEM])
   config.set(constants.INISECT_INS, "vcpus", "%d" %
              instance.beparams[constants.BE_VCPUS])
-  config.set(constants.INISECT_INS, "disk_template", instance.disk_template)
+  config.set(constants.INISECT_INS, "disk_template", disk_template)
   config.set(constants.INISECT_INS, "hypervisor", instance.hypervisor)
   config.set(constants.INISECT_INS, "tags", " ".join(instance.GetTags()))
 
