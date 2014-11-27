@@ -175,11 +175,22 @@ class LUInstanceSetParams(LogicalUnit):
       else:
         raise errors.ProgrammerError("Unhandled operation '%s'" % op)
 
-  def _VerifyDiskModification(self, op, params, excl_stor, group_access_type):
+  def _VerifyDiskModification(self, op, params, excl_stor, group_access_types):
     """Verifies a disk modification.
 
     """
+
     if op == constants.DDM_ADD:
+      disk_type = params.setdefault(
+          constants.IDISK_TYPE,
+          self.cfg.GetInstanceDiskTemplate(self.instance.uuid))
+      if disk_type == constants.DT_DISKLESS:
+        raise errors.OpPrereqError(
+            "Must specify disk type on diskless instance", errors.ECODE_INVAL)
+
+      if disk_type != constants.DT_EXT:
+        utils.ForceDictType(params, constants.IDISK_PARAMS_TYPES)
+
       mode = params.setdefault(constants.IDISK_MODE, constants.DISK_RDWR)
       if mode not in constants.DISK_ACCESS_SET:
         raise errors.OpPrereqError("Invalid disk access mode '%s'" % mode,
@@ -201,16 +212,15 @@ class LUInstanceSetParams(LogicalUnit):
       CheckSpindlesExclusiveStorage(params, excl_stor, True)
 
       # Check disk access param (only for specific disks)
-      for disk in self.cfg.GetInstanceDisks(self.instance.uuid):
-        template = disk.dev_type
-        if template in constants.DTS_HAVE_ACCESS:
-          access_type = params.get(constants.IDISK_ACCESS, group_access_type)
-          if not IsValidDiskAccessModeCombination(self.instance.hypervisor,
-                                                  template, access_type):
-            raise errors.OpPrereqError("Selected hypervisor (%s) cannot be"
-                                       " used with %s disk access param" %
-                                       (self.instance.hypervisor, access_type),
-                                        errors.ECODE_STATE)
+      if disk_type in constants.DTS_HAVE_ACCESS:
+        access_type = params.get(constants.IDISK_ACCESS,
+                                 group_access_types[disk_type])
+        if not IsValidDiskAccessModeCombination(self.instance.hypervisor,
+                                                disk_type, access_type):
+          raise errors.OpPrereqError("Selected hypervisor (%s) cannot be"
+                                     " used with %s disk access param" %
+                                     (self.instance.hypervisor, access_type),
+                                      errors.ECODE_STATE)
 
     if op == constants.DDM_ATTACH:
       if len(params) != 1 or ('uuid' not in params and
@@ -725,25 +735,26 @@ class LUInstanceSetParams(LogicalUnit):
     node_info = self.cfg.GetNodeInfo(self.instance.primary_node)
     node_group = self.cfg.GetNodeGroup(node_info.group)
     group_disk_params = self.cfg.GetGroupDiskParams(node_group)
-    group_access_type = group_disk_params[self.instance.disk_template].get(
-      constants.RBD_ACCESS, constants.DISK_KERNELSPACE
-    )
+
+    group_access_types = dict(
+        (dt, group_disk_params[dt].get(
+            constants.RBD_ACCESS, constants.DISK_KERNELSPACE))
+        for dt in constants.DISK_TEMPLATES)
 
     # Check disk modifications. This is done here and not in CheckArguments
     # (as with NICs), because we need to know the instance's disk template
     ver_fn = lambda op, par: self._VerifyDiskModification(op, par, excl_stor,
-                                                          group_access_type)
-    if self.instance.disk_template == constants.DT_EXT:
-      self._CheckMods("disk", self.op.disks, {}, ver_fn)
-    else:
-      self._CheckMods("disk", self.op.disks, constants.IDISK_PARAMS_TYPES,
-                      ver_fn)
+                                                          group_access_types)
+    # Don't enforce param types here in case it's an ext disk added. The check
+    # happens inside _VerifyDiskModification.
+    self._CheckMods("disk", self.op.disks, {}, ver_fn)
 
     self.diskmod = PrepareContainerMods(self.op.disks, None)
 
     # Check the validity of the `provider' parameter
-    if self.instance.disk_template in constants.DT_EXT:
-      for mod in self.diskmod:
+    for mod in self.diskmod:
+      dev_type = mod[2].get(constants.IDISK_TYPE, disk_info[mod[1]].dev_type)
+      if dev_type == constants.DT_EXT:
         ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
         if mod[0] in (constants.DDM_ADD, constants.DDM_ATTACH):
           if ext_provider is None:
@@ -758,8 +769,7 @@ class LUInstanceSetParams(LogicalUnit):
                                        " modification" %
                                        constants.IDISK_PROVIDER,
                                        errors.ECODE_INVAL)
-    else:
-      for mod in self.diskmod:
+      else:
         ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
         if ext_provider is not None:
           raise errors.OpPrereqError("Parameter '%s' is only valid for"
