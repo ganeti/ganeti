@@ -488,5 +488,21 @@ class AnyDiskTemplateTest(unittest.TestCase):
         [Rbd(), Drbd()], [constants.DT_DISKLESS]))
 
 
+class GetDiskTemplateTest(unittest.TestCase):
+  def testUnique(self):
+    self.assertEqual(utils.GetDiskTemplate([Rbd()]), constants.DT_RBD)
+
+  def testDiskless(self):
+    self.assertEqual(utils.GetDiskTemplate([]), constants.DT_DISKLESS)
+
+  def testMultiple(self):
+    self.assertEqual(utils.GetDiskTemplate([Rbd(), Rbd()]),
+                     constants.DT_RBD)
+
+  def testMixed(self):
+    self.assertEqual(utils.GetDiskTemplate([Rbd(), Drbd()]),
+                     constants.DT_MIXED)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

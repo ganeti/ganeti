@@ -934,3 +934,33 @@ def AnyDiskOfType(disks_info, dev_types):
       return True
 
   return False
+
+
+def GetDiskTemplateString(disk_types):
+  """Gives a summary disk template from disk devtypes.
+
+  @type disk_types: list of string
+  @param disk_types: all the dev_types of the instance.
+  @rtype disk template
+  @returns the summarized disk template of the disk types.
+
+  """
+  disk_types = set(dev_type for dev_type in disk_types)
+  if not disk_types:
+    return constants.DT_DISKLESS
+  elif len(disk_types) > 1:
+    return constants.DT_MIXED
+  else:
+    return disk_types.pop()
+
+
+def GetDiskTemplate(disks_info):
+  """Gives a summary disk template from disks.
+
+  @type disks_info: list of L{Disk}
+  @param disks_info: all the disks of the instance.
+  @rtype disk template
+  @returns the summarized disk template of the disk types.
+
+  """
+  return GetDiskTemplateString(d.dev_type for d in disks_info)
