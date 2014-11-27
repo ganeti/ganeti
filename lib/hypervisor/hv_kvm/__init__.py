@@ -1837,7 +1837,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """Checks if hotplug is generally supported.
 
     Hotplug is *not* supported in case of:
-     - qemu versions < 1.0
+     - qemu versions < 1.7 (where all qmp related commands are supported)
      - for stopped instances
 
     @raise errors.HypervisorError: in one of the previous cases
@@ -1848,14 +1848,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     except errors.HypervisorError:
       raise errors.HotplugError("Instance is probably down")
 
-    # TODO: search for netdev_add, drive_add, device_add.....
     match = self._INFO_VERSION_RE.search(output.stdout)
     if not match:
       raise errors.HotplugError("Cannot parse qemu version via monitor")
 
+    #TODO: delegate more fine-grained checks to VerifyHotplugSupport
     v_major, v_min, _, _ = match.groups()
-    if (int(v_major), int(v_min)) < (1, 0):
-      raise errors.HotplugError("Hotplug not supported for qemu versions < 1.0")
+    if (int(v_major), int(v_min)) < (1, 7):
+      raise errors.HotplugError("Hotplug not supported for qemu versions < 1.7")
 
   @_with_qmp
   def _VerifyHotplugCommand(self, _instance,
