@@ -398,7 +398,11 @@ class QmpConnection(MonitorSocket):
       message[self._ARGUMENTS_KEY] = arguments
     self._Send(message)
 
-    return self._GetResponse(command)
+    ret = self._GetResponse(command)
+    # log important qmp commands..
+    if command not in [self._QUERY_COMMANDS, self._CAPABILITIES_COMMAND]:
+      logging.debug("QMP %s %s: %s\n", command, arguments, ret)
+    return ret
 
   def _GetResponse(self, command):
     """Parse the QMP response
