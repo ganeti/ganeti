@@ -335,7 +335,8 @@ def RemoveDisks(lu, instance, disk_template=None, disks=None,
     for port in ports_to_release:
       lu.cfg.AddTcpUdpPort(port)
 
-  CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), disk_template)
+  for d in disks:
+    CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), d.dev_type)
 
   if (len(disks) == disk_count and
       disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]):
