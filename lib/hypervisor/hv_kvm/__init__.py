@@ -115,20 +115,11 @@ _MIGRATION_CAPS_DELIM = ":"
 def _with_qmp(fn):
   """Wrapper used on hotplug related methods"""
   def wrapper(self, instance, *args, **kwargs):
-    """Open a QmpConnection, run the wrapped method and then close it"""
-    conn_created = False
+    """Create a QmpConnection and run the wrapped method"""
     if not getattr(self, "qmp", None):
       filename = self._InstanceQmpMonitor(instance.name)# pylint: disable=W0212
       self.qmp = QmpConnection(filename)
-      conn_created = True
-
-    self.qmp.connect()
-    try:
-      ret = fn(self, instance, *args, **kwargs)
-    finally:
-      if conn_created = True:
-        self.qmp.close()
-    return ret
+    return fn(self, instance, *args, **kwargs)
   return wrapper
 
 
