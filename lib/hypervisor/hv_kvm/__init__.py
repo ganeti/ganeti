@@ -1927,6 +1927,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     logging.info("Device %s has been correctly hot-plugged", kvm_devid)
 
+  @_with_qmp
   def HotAddDevice(self, instance, dev_type, device, extra, seq):
     """ Helper method to hot-add a new device
 
@@ -1936,46 +1937,22 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     # in case of hot-mod this is given
     if device.pci is None:
-      self._GetFreePCISlot(instance, device)
+      device.pci = self.qmp.GetFreePCISlot()
     kvm_devid = _GenerateDeviceKVMId(dev_type, device)
     runtime = self._LoadKVMRuntime(instance)
-    fdset = None
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      # Create a shared qmp connection because
-      # fdsets get cleaned up on monitor disconnect
-      # See qemu commit efb87c1
-      qmp = QmpConnection(self._InstanceQmpMonitor(instance.name))
-      qmp.connect()
-      drive_uri, fdset = _GetDriveURI(device, extra[0], extra[1], qmp)
-      cmds = ["drive_add dummy file=%s,if=none,id=%s,format=raw" %
-                (drive_uri, kvm_devid)]
-      cmds += ["device_add virtio-blk-pci,bus=pci.0,addr=%s,drive=%s,id=%s" %
-                (hex(device.pci), kvm_devid, kvm_devid)]
-      self._CallHotplugCommands(instance.name, cmds)
-      if fdset is not None:
-        qmp.RemoveFdset(fdset)
-      qmp.close()
+      uri = _GetDriveURI(device, extra[0], extra[1])
+      self.qmp.HotAddDisk(device, kvm_devid, uri)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       kvmpath = instance.hvparams[constants.HV_KVM_PATH]
       kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
       devlist = self._GetKVMOutput(kvmpath, self._KVMOPT_DEVICELIST)
       up_hvp = runtime[2]
-      (_, vnet_hdr,
-       virtio_net_queues, tap_extra,
-       nic_extra) = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
-      (tap, fds) = OpenTap(vnet_hdr=vnet_hdr,
-                           virtio_net_queues=virtio_net_queues)
-      # netdev_add don't support "fds=" when multiple fds are
-      # requested, generate separate "fd=" string for every fd
-      tapfd = ",".join(["fd=%s" % fd for fd in fds])
+      features, _, _ = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
+      (tap, tapfds, vhostfds) = OpenTap(features=features)
       self._ConfigureNIC(instance, seq, device, tap)
-      self._HMPPassFd(instance.name, fds, kvm_devid)
-      cmds = ["netdev_add tap,id=%s,%s%s" % (kvm_devid, tapfd, tap_extra)]
-      args = "virtio-net-pci,bus=pci.0,addr=%s,mac=%s,netdev=%s,id=%s%s" % \
-               (hex(device.pci), device.mac, kvm_devid, kvm_devid, nic_extra)
-      cmds += ["device_add %s" % args]
+      self.qmp.HotAddNic(device, kvm_devid, tapfds, vhostfds, features)
       utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
-      self._CallHotplugCommands(instance.name, cmds)
 
     self._VerifyHotplugCommand(instance, device, kvm_devid, True)
     # update relevant entries in runtime file
