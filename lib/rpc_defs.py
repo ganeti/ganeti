@@ -560,7 +560,7 @@ _NODE_CALLS = [
     ("clear_public_keys", None,
      "If the 'ganeti_pub_keys' file of the node should be cleared.")],
     None, None, "Remove a node's SSH key from the other nodes' key files."),
-  ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_URGENT, [
+  ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_SLOW, [
     ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),
     ("node_names", None, "Names of the nodes whose key is renewed"),
     ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),

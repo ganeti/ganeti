@@ -186,8 +186,10 @@ class LUClusterRenewCrypto(NoHooksLU):
 
   def Exec(self, feedback_fn):
     if self.op.node_certificates:
+      feedback_fn("Renewing Node SSL certificates")
       self._RenewNodeSslCertificates()
     if self.op.ssh_keys and not self._ssh_renewal_suppressed:
+      feedback_fn("Renewing SSH keys")
       self._RenewSshKeys()
     elif self._ssh_renewal_suppressed:
       feedback_fn("Cannot renew SSH keys if the cluster is configured to not"

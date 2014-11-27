@@ -630,17 +630,16 @@ def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None,
   permitted hosts and adds the hostkey to its own known hosts.
 
   """
-  priv_key, pub_key, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER,
+  priv_key, _, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER,
                                               _homedir_fn=_homedir_fn)
-
-  for name in priv_key, pub_key:
-    if os.path.exists(name):
-      utils.CreateBackup(name)
-    if len(_suffix) == 0:
-      utils.RemoveFile(name)
 
   new_priv_key_name = priv_key + _suffix
   new_pub_key_name = priv_key + _suffix + ".pub"
+
+  for name in new_priv_key_name, new_pub_key_name:
+    if os.path.exists(name):
+      utils.CreateBackup(name)
+    utils.RemoveFile(name)
 
   result = utils.RunCmd(["ssh-keygen", "-t", "dsa",
                          "-f", new_priv_key_name,

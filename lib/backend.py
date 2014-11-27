@@ -1527,6 +1527,7 @@ def RemoveNodeSshKey(node_uuid, node_name,
                      master_candidate_uuids,
                      potential_master_candidates,
                      ssh_port_map,
+                     keys_to_remove=None,
                      from_authorized_keys=False,
                      from_public_keys=False,
                      clear_authorized_keys=False,
@@ -1553,6 +1554,11 @@ def RemoveNodeSshKey(node_uuid, node_name,
     candidates
   @type ssh_port_map: dict of str to int
   @param ssh_port_map: mapping of node names to their SSH port
+  @type keys_to_remove: dict of str to list of str
+  @param keys_to_remove: a dictionary mapping node UUIDS to lists of SSH keys
+    to be removed. This list is supposed to be used only if the keys are not
+    in the public keys file. This is for example the case when removing a
+    master node's key.
   @type from_authorized_keys: boolean
   @param from_authorized_keys: whether or not the key should be removed
     from the C{authorized_keys} file
@@ -1579,14 +1585,17 @@ def RemoveNodeSshKey(node_uuid, node_name,
   master_node = ssconf_store.GetMasterNode()
 
   if from_authorized_keys or from_public_keys:
-    keys = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
-    if not keys or node_uuid not in keys:
-      raise errors.SshUpdateError("Node '%s' not found in the list of public"
-                                  " SSH keys. It seems someone tries to"
-                                  " remove a key from outside the cluster!"
-                                  % node_uuid)
+    if keys_to_remove:
+      keys = keys_to_remove
+    else:
+      keys = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
+      if not keys or node_uuid not in keys:
+        raise errors.SshUpdateError("Node '%s' not found in the list of public"
+                                    " SSH keys. It seems someone tries to"
+                                    " remove a key from outside the cluster!"
+                                    % node_uuid)
 
-    if node_name == master_node:
+    if node_name == master_node and not keys_to_remove:
       raise errors.SshUpdateError("Cannot remove the master node's keys.")
 
     base_data = {}
@@ -1672,7 +1681,8 @@ def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
                         pub_key_file=pathutils.SSH_PUB_KEYS,
                         ssconf_store=None,
                         noded_cert_file=pathutils.NODED_CERT_FILE,
-                        run_cmd_fn=ssh.RunSshCmdWithStdin):
+                        run_cmd_fn=ssh.RunSshCmdWithStdin,
+                        suffix=""):
   """Generates the root SSH key pair on the node.
 
   @type node_uuid: str
@@ -1695,12 +1705,78 @@ def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
   data = {}
   _InitSshUpdateData(data, noded_cert_file, ssconf_store)
   cluster_name = data[constants.SSHS_CLUSTER_NAME]
-  data[constants.SSHS_GENERATE] = True
+  data[constants.SSHS_GENERATE] = {constants.SSHS_SUFFIX: suffix}
 
   run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
              ssh_port_map.get(node_name), data,
              debug=False, verbose=False, use_cluster_key=False,
              ask_key=False, strict_host_check=False)
+
+
+def _GetMasterNodeUUID(node_uuid_name_map, master_node_name):
+  master_node_uuids = [node_uuid for (node_uuid, node_name)
+                       in node_uuid_name_map
+                       if node_name == master_node_name]
+  if len(master_node_uuids) != 1:
+    raise errors.SshUpdateError("No (unique) master UUID found. Master node"
+                                " name: '%s', Master UUID: '%s'" %
+                                (master_node_name, master_node_uuids))
+  return master_node_uuids[0]
+
+
+def _GetOldMasterKeys(master_node_uuid, pub_key_file):
+  old_master_keys_by_uuid = ssh.QueryPubKeyFile([master_node_uuid],
+                                                key_file=pub_key_file)
+  if not old_master_keys_by_uuid:
+    raise errors.SshUpdateError("No public key of the master node (UUID '%s')"
+                                " found, not generating a new key."
+                                % master_node_uuid)
+  return old_master_keys_by_uuid
+
+
+def _GetNewMasterKey(root_keyfiles, master_node_uuid):
+  new_master_keys = []
+  for (_, (_, public_key_file)) in root_keyfiles.items():
+    public_key_dir = os.path.dirname(public_key_file)
+    public_key_file_tmp_filename = \
+        os.path.splitext(os.path.basename(public_key_file))[0] \
+        + constants.SSHS_MASTER_SUFFIX + ".pub"
+    public_key_path_tmp = os.path.join(public_key_dir,
+                                       public_key_file_tmp_filename)
+    if os.path.exists(public_key_path_tmp):
+      # for some key types, there might not be any keys
+      key = utils.ReadFile(public_key_path_tmp)
+      new_master_keys.append(key)
+  if not new_master_keys:
+    raise errors.SshUpdateError("Cannot find any type of temporary SSH key.")
+  return {master_node_uuid: new_master_keys}
+
+
+def _ReplaceMasterKeyOnMaster(root_keyfiles):
+  number_of_moves = 0
+  for (_, (private_key_file, public_key_file)) in root_keyfiles.items():
+    key_dir = os.path.dirname(public_key_file)
+    private_key_file_tmp = \
+      os.path.basename(private_key_file) + constants.SSHS_MASTER_SUFFIX
+    public_key_file_tmp = private_key_file_tmp + ".pub"
+    private_key_path_tmp = os.path.join(key_dir,
+                                        private_key_file_tmp)
+    public_key_path_tmp = os.path.join(key_dir,
+                                       public_key_file_tmp)
+    if os.path.exists(public_key_file):
+      utils.CreateBackup(public_key_file)
+      utils.RemoveFile(public_key_file)
+    if os.path.exists(private_key_file):
+      utils.CreateBackup(private_key_file)
+      utils.RemoveFile(private_key_file)
+    if os.path.exists(public_key_path_tmp) and \
+        os.path.exists(private_key_path_tmp):
+      # for some key types, there might not be any keys
+      shutil.move(public_key_path_tmp, public_key_file)
+      shutil.move(private_key_path_tmp, private_key_file)
+      number_of_moves += 1
+  if not number_of_moves:
+    raise errors.SshUpdateError("Could not move at least one master SSH key.")
 
 
 def RenewSshKeys(node_uuids, node_names, ssh_port_map,
@@ -1711,6 +1787,28 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                  noded_cert_file=pathutils.NODED_CERT_FILE,
                  run_cmd_fn=ssh.RunSshCmdWithStdin):
   """Renews all SSH keys and updates authorized_keys and ganeti_pub_keys.
+
+  @type node_uuids: list of str
+  @param node_uuids: list of node UUIDs whose keys should be renewed
+  @type node_names: list of str
+  @param node_names: list of node names whose keys should be removed. This list
+    should match the C{node_uuids} parameter
+  @type ssh_port_map: dict of str to int
+  @param ssh_port_map: map of node UUID to ssh port number
+  @type master_candidate_uuids: list of str
+  @param master_candidate_uuids: list of UUIDs of master candidates or
+    master node
+  @type pub_key_file: str
+  @param pub_key_file: file path of the the public key file
+  @type noded_cert_file: str
+  @param noded_cert_file: path of the noded SSL certificate file
+  @type run_cmd_fn: function
+  @param run_cmd_fn: function to run commands on remote nodes via SSH
+  @raises ProgrammerError: if node_uuids and node_names don't match;
+    SshUpdateError if a node's key is missing from the public key file,
+    if a node's new SSH key could not be fetched from it, if there is
+    none or more than one entry in the public key list for the master
+    node.
 
   """
   if not ssconf_store:
@@ -1727,6 +1825,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
   node_uuid_name_map = zip(node_uuids, node_names)
 
   master_node_name = ssconf_store.GetMasterNode()
+
   # process non-master nodes
   for node_uuid, node_name in node_uuid_name_map:
     if node_name == master_node_name:
@@ -1780,7 +1879,58 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                   noded_cert_file=noded_cert_file,
                   run_cmd_fn=run_cmd_fn)
 
-  # FIXME: Update master key as well
+  # Renewing the master node's key
+
+  master_node_uuid = _GetMasterNodeUUID(node_uuid_name_map, master_node_name)
+
+  # Preserve the old keys for now
+  old_master_keys_by_uuid = _GetOldMasterKeys(master_node_uuid, pub_key_file)
+
+  # Generate a new master key with a suffix, don't touch the old one for now
+  _GenerateNodeSshKey(master_node_uuid, master_node_name, ssh_port_map,
+                      pub_key_file=pub_key_file,
+                      ssconf_store=ssconf_store,
+                      noded_cert_file=noded_cert_file,
+                      run_cmd_fn=run_cmd_fn,
+                      suffix=constants.SSHS_MASTER_SUFFIX)
+  # Read newly created master key
+  new_master_key_dict = _GetNewMasterKey(root_keyfiles, master_node_uuid)
+
+  # Replace master key in the master nodes' public key file
+  ssh.RemovePublicKey(master_node_uuid, key_file=pub_key_file)
+  for pub_key in new_master_key_dict[master_node_uuid]:
+    ssh.AddPublicKey(master_node_uuid, pub_key, key_file=pub_key_file)
+
+  # Add new master key to all node's public and authorized keys
+  AddNodeSshKey(master_node_uuid, master_node_name,
+                potential_master_candidates,
+                ssh_port_map,
+                to_authorized_keys=True,
+                to_public_keys=potential_master_candidate,
+                get_public_keys=False,
+                pub_key_file=pub_key_file, ssconf_store=ssconf_store,
+                noded_cert_file=noded_cert_file,
+                run_cmd_fn=run_cmd_fn)
+
+  # Remove the old key file and rename the new key to the non-temporary filename
+  _ReplaceMasterKeyOnMaster(root_keyfiles)
+
+  # Remove old key from authorized keys
+  (auth_key_file, _) = \
+      ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
+  ssh.RemoveAuthorizedKeys(auth_key_file,
+                           old_master_keys_by_uuid[master_node_uuid])
+
+  # Remove the old key from all node's authorized keys file
+  RemoveNodeSshKey(master_node_uuid, master_node_name,
+                   master_candidate_uuids,
+                   potential_master_candidates,
+                   ssh_port_map,
+                   keys_to_remove=old_master_keys_by_uuid,
+                   from_authorized_keys=True,
+                   from_public_keys=False,
+                   clear_authorized_keys=False,
+                   clear_public_keys=False)
 
 
 def GetBlockDevSizes(devices):
