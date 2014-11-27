@@ -439,21 +439,46 @@ class QmpConnection(MonitorSocket):
 
       return response[self._RETURN_KEY]
 
-  def HotAddNic(self, nic, tapfd, devid):
+  def HotAddNic(self, nic, devid, tapfds=None, vhostfds=None, features=None):
     """Hot-add a NIC
 
-    First pass the tapfd, then netdev_add and then device_add
+    First pass the tapfds, then netdev_add and then device_add
 
     """
     self._check_connection()
 
-    self.GetFd(tapfd, devid)
+    if tapfds is None:
+      tapfds = []
+    if vhostfds is None:
+      vhostfds = []
+    if features is None:
+      features = {}
+
+    enable_vhost = features.get("vhost", False)
+    enable_mq, virtio_net_queues = features.get("mq", (False, 1))
+
+    fdnames = []
+    for i, fd in enumerate(tapfds):
+      fdname = "%s-%d" % (devid, i)
+      self.GetFd(fd, fdname)
+      fdnames.append(fdname)
 
     arguments = {
       "type": "tap",
       "id": devid,
-      "fd": devid,
+      "fds": ":".join(fdnames),
     }
+    if enable_vhost:
+      fdnames = []
+      for i, fd in enumerate(vhostfds):
+        fdname = "%s-vhost-%d" % (devid, i)
+        self.GetFd(fd, fdname)
+        fdnames.append(fdname)
+
+      arguments.update({
+        "vhost": "on",
+        "vhostfds": ":".join(fdnames),
+        })
     self.Execute("netdev_add", arguments)
 
     arguments = {
@@ -464,6 +489,11 @@ class QmpConnection(MonitorSocket):
       "netdev": devid,
       "mac": nic.mac,
     }
+    if enable_mq:
+      arguments.update({
+        "mq": "on",
+        "vectors": (2 * virtio_net_queues + 1),
+        })
     self.Execute("device_add", arguments)
 
   def HotDelNic(self, devid):
