@@ -435,6 +435,41 @@ class QmpConnection(MonitorSocket):
 
       return response[self._RETURN_KEY]
 
+  def HotAddNic(self, nic, tapfd, devid):
+    """Hot-add a NIC
+
+    First pass the tapfd, then netdev_add and then device_add
+
+    """
+    self._check_connection()
+
+    self.GetFd(tapfd, devid)
+
+    arguments = {
+      "type": "tap",
+      "id": devid,
+      "fd": devid,
+    }
+    self.Execute("netdev_add", arguments)
+
+    arguments = {
+      "driver": "virtio-net-pci",
+      "id": devid,
+      "bus": "pci.0",
+      "addr": hex(nic.pci),
+      "netdev": devid,
+      "mac": nic.mac,
+    }
+    self.Execute("device_add", arguments)
+
+  def HotDelNic(self, devid):
+    """Hot-del a NIC
+
+    """
+    self._check_connection()
+    self.Execute("device_del", {"id": devid})
+    self.Execute("netdev_del", {"id": devid})
+
   def GetPCIDevices(self):
     """Get the devices of the first PCI bus of a running instance.
 
