@@ -791,7 +791,6 @@ class LUInstanceRecreateDisks(LogicalUnit):
     # they should be already be marked as drained or offline, and hence
     # skipped by the allocator. If instance disks have been lost for other
     # reasons, then recreating the disks on the same nodes should be fine.
-    disk_template = self.instance.disk_template
     spindle_use = be_full[constants.BE_SPINDLE_USE]
     disk_template = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
     disks = [{
@@ -1423,7 +1422,8 @@ def WaitForSync(lu, instance, disks=None, oneshot=False):
   if not inst_disks or disks is not None and not disks:
     return True
 
-  disks = ExpandCheckDisks(inst_disks, disks)
+  disks = [d for d in ExpandCheckDisks(inst_disks, disks)
+           if d.dev_type in constants.DTS_INT_MIRROR]
 
   if not oneshot:
     lu.LogInfo("Waiting for instance %s to sync disks", instance.name)
