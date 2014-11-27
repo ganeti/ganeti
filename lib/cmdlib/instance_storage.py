@@ -800,7 +800,6 @@ class LUInstanceRecreateDisks(LogicalUnit):
       constants.IDISK_TYPE: d.dev_type
       } for d in self.cfg.GetInstanceDisks(self.instance.uuid)]
     req = iallocator.IAReqInstanceAlloc(name=self.op.instance_name,
-                                        disk_template=disk_template,
                                         group_name=None,
                                         tags=list(self.instance.GetTags()),
                                         os=self.instance.os,

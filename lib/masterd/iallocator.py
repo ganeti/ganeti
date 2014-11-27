@@ -172,7 +172,6 @@ class IAReqInstanceAlloc(IARequestBase):
     ("memory", ht.TNonNegativeInt),
     ("spindle_use", ht.TNonNegativeInt),
     ("disks", ht.TListOf(ht.TDict)),
-    ("disk_template", ht.TString),
     ("group_name", ht.TMaybe(ht.TNonEmptyString)),
     ("os", ht.TString),
     ("tags", _STRING_LIST),
@@ -187,7 +186,8 @@ class IAReqInstanceAlloc(IARequestBase):
     """Calculates the required nodes based on the disk_template.
 
     """
-    if self.disk_template in constants.DTS_INT_MIRROR:
+    disk_types = [d[constants.IDISK_TYPE] for d in self.disks]
+    if any(d in constants.DTS_INT_MIRROR for d in disk_types):
       return 2
     else:
       return 1
@@ -199,11 +199,10 @@ class IAReqInstanceAlloc(IARequestBase):
     done.
 
     """
-    disk_space = gmi.ComputeDiskSize(self.disk_template, self.disks)
+    disk_space = gmi.ComputeDiskSize(self.disks)
 
     return {
       "name": self.name,
-      "disk_template": self.disk_template,
       "group_name": self.group_name,
       "tags": self.tags,
       "os": self.os,
@@ -792,8 +791,7 @@ class IAllocator(object):
         "disks_active": iinfo.disks_active,
         "hypervisor": iinfo.hypervisor,
         }
-      pir["disk_space_total"] = gmi.ComputeDiskSize(iinfo.disk_template,
-                                                    pir["disks"])
+      pir["disk_space_total"] = gmi.ComputeDiskSize(pir["disks"])
       instance_data[iinfo.name] = pir
 
     return instance_data

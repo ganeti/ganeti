@@ -1678,27 +1678,20 @@ def CalculateGroupIPolicy(cluster, group):
   return cluster.SimpleFillIPolicy(group.ipolicy)
 
 
-def ComputeDiskSize(disk_template, disks):
+def ComputeDiskSize(disks):
   """Compute disk size requirements according to disk template
 
   """
   # Required free disk space as a function of disk and swap space
-  req_size_dict = {
-    constants.DT_DISKLESS: 0,
-    constants.DT_PLAIN: sum(d[constants.IDISK_SIZE] for d in disks),
+  size = 0
+
+  for d in disks:
+    dev_type = d[constants.IDISK_TYPE]
+    if dev_type != constants.DT_BLOCK:
+      size += d[constants.IDISK_SIZE]
+
     # 128 MB are added for drbd metadata for each disk
-    constants.DT_DRBD8:
-      sum(d[constants.IDISK_SIZE] + constants.DRBD_META_SIZE for d in disks),
-    constants.DT_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
-    constants.DT_SHARED_FILE: sum(d[constants.IDISK_SIZE] for d in disks),
-    constants.DT_GLUSTER: sum(d[constants.IDISK_SIZE] for d in disks),
-    constants.DT_BLOCK: 0,
-    constants.DT_RBD: sum(d[constants.IDISK_SIZE] for d in disks),
-    constants.DT_EXT: sum(d[constants.IDISK_SIZE] for d in disks),
-  }
+    if dev_type == constants.DT_DRBD8:
+      size += constants.DRBD_META_SIZE
 
-  if disk_template not in req_size_dict:
-    raise errors.ProgrammerError("Disk template '%s' size requirement"
-                                 " is unknown" % disk_template)
-
-  return req_size_dict[disk_template]
+  return size
