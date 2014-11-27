@@ -202,6 +202,10 @@ class MonitorSocket(object):
     It cannot be used after this call.
 
     """
+    if self._connected:
+      self._close()
+
+  def _close(self):
     self.sock.close()
     self._connected = False
 
