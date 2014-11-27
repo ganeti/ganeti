@@ -1344,6 +1344,20 @@ class ConfigWriter(object):
     self._UnlockedReleaseDRBDMinors(disk_uuid)
 
   @ConfigSync(shared=1)
+  def GetInstanceDiskTemplate(self, inst_uuid):
+    """Return the disk template of an instance.
+
+    This corresponds to the currently attached disks. If no disks are attached,
+    it is L{constants.DT_DISKLESS}, if homogeneous disk types are attached,
+    that type is returned, if that isn't the case, L{constants.DT_MIXED} is
+    returned.
+
+    @type inst_uuid: str
+    @param inst_uuid: The uuid of the instance.
+    """
+    return utils.GetDiskTemplate(self._UnlockedGetInstanceDisks(inst_uuid))
+
+  @ConfigSync(shared=1)
   def GetConfigVersion(self):
     """Get the configuration version.
 
