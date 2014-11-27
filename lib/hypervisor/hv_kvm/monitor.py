@@ -470,6 +470,63 @@ class QmpConnection(MonitorSocket):
     self.Execute("device_del", {"id": devid})
     self.Execute("netdev_del", {"id": devid})
 
+  def HotAddDisk(self, disk, devid, uri):
+    """Hot-add a disk
+
+    Try opening the device to obtain a fd and pass it with SCM_RIGHTS. This
+    will be omitted in case of userspace access mode (open will fail).
+    Then use blockdev-add and then device_add.
+
+    """
+    self._check_connection()
+
+    if os.path.exists(uri):
+      fd = os.open(uri, os.O_RDWR)
+      fdset = self.AddFd(fd)
+      os.close(fd)
+      filename = "/dev/fdset/%s" % fdset
+    else:
+      # The uri is not a file.
+      # This can happen if a userspace uri is provided.
+      filename = uri
+      fdset = None
+
+    arguments = {
+      "options": {
+        "driver": "raw",
+        "id": devid,
+        "file": {
+          "driver": "file",
+          "filename": filename,
+        }
+      }
+    }
+    self.Execute("blockdev-add", arguments)
+
+    if fdset is not None:
+      self.RemoveFdset(fdset)
+
+    arguments = {
+      "driver": "virtio-blk-pci",
+      "id": devid,
+      "bus": "pci.0",
+      "addr": hex(disk.pci),
+      "drive": devid,
+    }
+    self.Execute("device_add", arguments)
+
+  def HotDelDisk(self, devid):
+    """Hot-del a Disk
+
+    Note that drive_del is not supported yet in qmp and thus should
+    be invoked from HMP.
+
+    """
+    self._check_connection()
+    self.Execute("device_del", {"id": devid})
+    #TODO: uncomment when drive_del gets implemented in upstream qemu
+    # self.Execute("drive_del", {"id": devid})
+
   def GetPCIDevices(self):
     """Get the devices of the first PCI bus of a running instance.
 
