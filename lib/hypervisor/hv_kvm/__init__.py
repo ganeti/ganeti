@@ -871,12 +871,10 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         data.append(info)
     return data
 
-  def _GenerateKVMBlockDevicesOptions(self, instance, up_hvp, kvm_disks,
+  def _GenerateKVMBlockDevicesOptions(self, up_hvp, kvm_disks,
                                       kvmhelp, devlist):
     """Generate KVM options regarding instance's block devices.
 
-    @type instance: L{objects.Instance}
-    @param instance: the instance object
     @type up_hvp: dict
     @param up_hvp: the instance's runtime hypervisor parameters
     @type kvm_disks: list of tuples
@@ -921,18 +919,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       aio_val = ""
     # Cache mode
     disk_cache = up_hvp[constants.HV_DISK_CACHE]
-    if instance.disk_template in constants.DTS_EXT_MIRROR:
-      if disk_cache != "none":
-        # TODO: make this a hard error, instead of a silent overwrite
-        logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
-                        " to prevent shared storage corruption on migration",
-                        disk_cache)
-      cache_val = ",cache=none"
-    elif disk_cache != constants.HT_CACHE_DEFAULT:
-      cache_val = ",cache=%s" % disk_cache
-    else:
-      cache_val = ""
     for cfdev, link_name, uri in kvm_disks:
+      if cfdev.dev_type in constants.DTS_EXT_MIRROR:
+        if disk_cache != "none":
+          # TODO: make this a hard error, instead of a silent overwrite
+          logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
+                          " to prevent shared storage corruption on migration",
+                          disk_cache)
+        cache_val = ",cache=none"
+      elif disk_cache != constants.HT_CACHE_DEFAULT:
+        cache_val = ",cache=%s" % disk_cache
+      else:
+        cache_val = ""
       if cfdev.mode != constants.DISK_RDWR:
         raise errors.HypervisorError("Instance has read-only disks which"
                                      " are not supported by KVM")
@@ -1678,8 +1676,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         continue
       self._ConfigureNIC(instance, nic_seq, nic, taps[nic_seq])
 
-    bdev_opts = self._GenerateKVMBlockDevicesOptions(instance,
-                                                     up_hvp,
+    bdev_opts = self._GenerateKVMBlockDevicesOptions(up_hvp,
                                                      kvm_disks,
                                                      kvmhelp,
                                                      devlist)
