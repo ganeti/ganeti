@@ -897,6 +897,9 @@ dtExt = Types.diskTemplateToRaw DTExt
 dtGluster :: String
 dtGluster = Types.diskTemplateToRaw DTGluster
 
+dtMixed :: String
+dtMixed = "mixed"
+
 -- | This is used to order determine the default disk template when
 -- the list of enabled disk templates is inferred from the current
 -- state of the cluster.  This only happens on an upgrade from a
@@ -2504,17 +2507,22 @@ idiskProvider = "provider"
 idiskAccess :: String
 idiskAccess = "access"
 
+idiskType :: String
+idiskType = "dev_type"
+
 idiskParamsTypes :: Map String VType
 idiskParamsTypes =
-  Map.fromList [(idiskSize, VTypeSize),
-                (idiskSpindles, VTypeInt),
-                (idiskMode, VTypeString),
-                (idiskAdopt, VTypeString),
-                (idiskVg, VTypeString),
-                (idiskMetavg, VTypeString),
-                (idiskProvider, VTypeString),
-                (idiskAccess, VTypeString),
-                (idiskName, VTypeMaybeString)]
+  Map.fromList [ (idiskSize, VTypeSize)
+               , (idiskSpindles, VTypeInt)
+               , (idiskMode, VTypeString)
+               , (idiskAdopt, VTypeString)
+               , (idiskVg, VTypeString)
+               , (idiskMetavg, VTypeString)
+               , (idiskProvider, VTypeString)
+               , (idiskAccess, VTypeString)
+               , (idiskName, VTypeMaybeString)
+               , (idiskType, VTypeString)
+               ]
 
 idiskParams :: FrozenSet String
 idiskParams = ConstantUtils.mkSet (Map.keys idiskParamsTypes)
