@@ -267,7 +267,11 @@ def CreateDisks(lu, instance, disk_template=None,
     all_node_uuids = [pnode_uuid]
 
   if disk_template is None:
-    disk_template = instance.disk_template
+    disk_template = utils.GetDiskTemplate(disks)
+    if disk_template == constants.DT_MIXED:
+      raise errors.OpExecError("Creating disk for '%s' instances "
+                               "only possible with explicit disk template."
+                               % (constants.DT_MIXED,))
 
   CheckDiskTemplateEnabled(lu.cfg.GetClusterInfo(), disk_template)
 
