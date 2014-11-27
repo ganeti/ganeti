@@ -193,6 +193,8 @@ def BuildInstanceHookEnvByObject(lu, instance, secondary_nodes=None,
   if disks is None:
     disks = lu.cfg.GetInstanceDisks(instance.uuid)
 
+  disk_template = utils.GetDiskTemplate(disks)
+
   args = {
     "name": instance.name,
     "primary_node_name": lu.cfg.GetNodeName(instance.primary_node),
@@ -203,7 +205,7 @@ def BuildInstanceHookEnvByObject(lu, instance, secondary_nodes=None,
     "minmem": bep[constants.BE_MINMEM],
     "vcpus": bep[constants.BE_VCPUS],
     "nics": NICListToTuple(lu, instance.nics),
-    "disk_template": instance.disk_template,
+    "disk_template": disk_template,
     "disks": disks,
     "bep": bep,
     "hvp": hvp,
