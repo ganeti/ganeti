@@ -1240,12 +1240,12 @@ class LUInstanceSetParams(LogicalUnit):
                 utils.CommaJoin(set(res_max + res_min))))
         raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
-  def _ConvertInstanceTemplate(self, feedback_fn):
-    """Converts the disk template of an instance.
+  def _ConvertInstanceDisks(self, feedback_fn):
+    """Converts the disks of an instance to another type.
 
-    This function converts the disk template of an instance. It supports
-    conversions among all the available disk templates except conversions
-    between the LVM-based disk templates, that use their separate code path.
+    This function converts the disks of an instance. It supports
+    conversions among all the available disk types except conversions
+    between the LVM-based disk types, that use their separate code path.
     Also, this method does not support conversions that include the 'diskless'
     template and those targeting the 'blockdev' template.
 
@@ -1353,9 +1353,6 @@ class LUInstanceSetParams(LogicalUnit):
     # The old disk_template will be needed to remove the old block devices.
     old_disk_template = self.instance.disk_template
 
-    # Update the disk template of the instance
-    self.cfg.SetInstanceDiskTemplate(self.instance.uuid, self.op.disk_template)
-
     # Attach the new disks to the instance.
     feedback_fn("Adding new disks (%s) to cluster config and attaching"
                 " them to the instance" % template_info)
@@ -1441,9 +1438,6 @@ class LUInstanceSetParams(LogicalUnit):
     for old_disk in old_disks:
       self.cfg.RemoveInstanceDisk(self.instance.uuid, old_disk.uuid)
 
-    # Update the disk template of the instance
-    self.cfg.SetInstanceDiskTemplate(self.instance.uuid, constants.DT_DRBD8)
-
     # Attach the new disks to the instance
     for (idx, new_disk) in enumerate(new_disks):
       self.cfg.AddInstanceDisk(self.instance.uuid, new_disk, idx=idx)
@@ -1493,9 +1487,6 @@ class LUInstanceSetParams(LogicalUnit):
     # Remove the old disks from the instance
     for old_disk in old_disks:
       self.cfg.RemoveInstanceDisk(self.instance.uuid, old_disk.uuid)
-
-    # Update the disk template of the instance
-    self.cfg.SetInstanceDiskTemplate(self.instance.uuid, constants.DT_PLAIN)
 
     # Attach the new disks to the instance
     for (idx, new_disk) in enumerate(new_disks):
@@ -1831,7 +1822,7 @@ class LUInstanceSetParams(LogicalUnit):
         if mode in self._DISK_CONVERSIONS:
           self._DISK_CONVERSIONS[mode](self, feedback_fn)
         else:
-          self._ConvertInstanceTemplate(feedback_fn)
+          self._ConvertInstanceDisks(feedback_fn)
       except:
         for disk in inst_disks:
           self.cfg.ReleaseDRBDMinors(disk.uuid)
