@@ -132,12 +132,12 @@ def _with_qmp(fn):
   return wrapper
 
 
-def _GetDriveURI(disk, link, uri, qmp=None):
+def _GetDriveURI(disk, link, uri):
   """Helper function to get the drive uri to be used in --drive kvm option
 
-  Invoked during startup and hot-add. In latter case if kernelspace is used
-  we get the fd of the disk, pass it to the instance via SCM rights and qmp
-  monitor, and return the proper path (/dev/fdset/<fdset>)
+  Invoked during startup and disk hot-add. In latter case and if no userspace
+  access mode is used it will be overriden with /dev/fdset/<fdset-id> (see
+  HotAddDisk() and AddFd() of QmpConnection).
 
   @type disk: L{objects.Disk}
   @param disk: A disk configuration object
@@ -145,39 +145,20 @@ def _GetDriveURI(disk, link, uri, qmp=None):
   @param link: The device link as returned by _SymlinkBlockDev()
   @type uri: string
   @param uri: The drive uri as returned by _CalculateDeviceURI()
-  @type qmp: L{QmpConnection}
-  @param qmp: The qmp connection used to pass the drive's fd
 
-  @return: (the drive uri to use, the corresponing fdset if any) tuple
+  @return: The drive uri to use in kvm option
 
   """
-  fdset = None
   access_mode = disk.params.get(constants.LDP_ACCESS,
                                 constants.DISK_KERNELSPACE)
   # If uri is available, use it during startup/hot-add
   if (uri and access_mode == constants.DISK_USERSPACE):
     drive_uri = uri
-  # During hot-add get the disk's fd and pass it to qemu via SCM rights
-  elif qmp:
-    try:
-      fd = os.open(link, os.O_RDWR)
-      fdset = qmp.AddFd([fd])
-      os.close(fd)
-    except OSError:
-      logging.warning("Cannot open disk with link %s in order to"
-                      " pass its fd to qmp monitor", link)
-      fdset = None
-
-    # fd passing succeeded
-    if fdset is not None:
-      drive_uri = "/dev/fdset/%s" % fdset
-    else:
-      drive_uri = link
   # Otherwise use the link previously created
   else:
     drive_uri = link
 
-  return drive_uri, fdset
+  return drive_uri
 
 
 def _GenerateDeviceKVMId(dev_type, dev):
@@ -440,13 +421,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # different than -drive is starting)
   _BOOT_RE = re.compile(r"^-drive\s([^-]|(?<!^)-)*,boot=on\|off", re.M | re.S)
   _UUID_RE = re.compile(r"^-uuid\s", re.M)
-
-  _INFO_PCI_RE = re.compile(r'Bus.*device[ ]*(\d+).*')
-  _INFO_PCI_CMD = "info pci"
-  _FIND_PCI_DEVICE_RE = \
-    staticmethod(
-      lambda pci, devid: re.compile(r'Bus.*device[ ]*%d,(.*\n){5,6}.*id "%s"' %
-                                    (pci, devid), re.M))
 
   _INFO_VERSION_RE = \
     re.compile(r'^QEMU (\d+)\.(\d+)(\.(\d+))?.*monitor.*', re.M)
@@ -979,7 +953,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
           boot_val = ",boot=on"
 
-      drive_uri, _ = _GetDriveURI(cfdev, link_name, uri)
+      drive_uri = _GetDriveURI(cfdev, link_name, uri)
 
       drive_val = "file=%s,format=raw%s%s%s%s" % \
                   (drive_uri, if_val, boot_val, cache_val, aio_val)
@@ -1845,21 +1819,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return result
 
-  def _GetFreePCISlot(self, instance, dev):
-    """Get the first available pci slot of a runnung instance.
-
-    """
-    slots = bitarray(32)
-    slots.setall(False) # pylint: disable=E1101
-    output = self._CallMonitorCommand(instance.name, self._INFO_PCI_CMD)
-    for line in output.stdout.splitlines():
-      match = self._INFO_PCI_RE.search(line)
-      if match:
-        slot = int(match.group(1))
-        slots[slot] = True
-
-    dev.pci = utils.GetFreeSlot(slots)
-
   @_with_qmp
   def VerifyHotplugSupport(self, instance, action, dev_type):
     """Verifies that hotplug is supported.
@@ -1897,12 +1856,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     v_major, v_min, _, _ = match.groups()
     if (int(v_major), int(v_min)) < (1, 0):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.0")
-
-  @classmethod
-  def _CallHotplugCommands(cls, instance_name, cmds):
-    for c in cmds:
-      cls._CallMonitorCommand(instance_name, c)
-      time.sleep(1)
 
   @_with_qmp
   def _VerifyHotplugCommand(self, _instance,
@@ -1999,20 +1952,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # putting it back in the same pci slot
       device.pci = self.HotDelDevice(instance, dev_type, device, _, seq)
       self.HotAddDevice(instance, dev_type, device, _, seq)
-
-  @classmethod
-  def _HMPPassFd(cls, instance_name, fds, kvm_devid):
-    """Pass file descriptor to kvm process via monitor socket using SCM_RIGHTS
-
-    Wrapper of MonitorSocket.GetFd()
-
-    """
-    mon = MonitorSocket(cls._InstanceMonitor(instance_name))
-    try:
-      mon.connect()
-      mon.GetFd(fds, kvm_devid)
-    finally:
-      mon.close()
 
   @classmethod
   def _ParseKVMVersion(cls, text):

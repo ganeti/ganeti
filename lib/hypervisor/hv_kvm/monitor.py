@@ -209,16 +209,6 @@ class MonitorSocket(object):
     self.sock.close()
     self._connected = False
 
-  def GetFd(self, fds, kvm_devid):
-    """Pass file descriptor to kvm process via monitor socket using SCM_RIGHTS
-
-    """
-    self._check_connection()
-
-    command = "getfd %s\n" % kvm_devid
-    logging.info("Passing %s fds to %s", fds, self.monitor_filename)
-    fdsend.sendfds(self.sock, command, fds=fds)
-
 
 class QmpConnection(MonitorSocket):
   """Connection to the QEMU Monitor using the QEMU Monitor Protocol (QMP).
