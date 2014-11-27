@@ -280,12 +280,12 @@ class IAReqRelocate(IARequestBase):
       raise errors.ProgrammerError("Unknown instance '%s' passed to"
                                    " IAllocator" % self.inst_uuid)
 
-    if instance.disk_template not in constants.DTS_MIRRORED:
+    if not utils.AllDiskOfType(disks, constants.DTS_MIRRORED):
       raise errors.OpPrereqError("Can't relocate non-mirrored instances",
                                  errors.ECODE_INVAL)
 
     secondary_nodes = cfg.GetInstanceSecondaryNodes(instance.uuid)
-    if (instance.disk_template in constants.DTS_INT_MIRROR and
+    if (utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR) and
         len(secondary_nodes) != 1):
       raise errors.OpPrereqError("Instance has not exactly one secondary node",
                                  errors.ECODE_STATE)
