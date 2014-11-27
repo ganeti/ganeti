@@ -870,8 +870,8 @@ class TestInstanceQuery(unittest.TestCase):
     instbyname = dict((inst.name, inst) for inst in instances)
 
     disk_usage = dict((inst.uuid,
-                       gmi.ComputeDiskSize(inst.disk_template,
-                                           [{"size": disk.size}
+                       gmi.ComputeDiskSize([{"size": disk.size,
+                                             "dev_type": disk.dev_type}
                                            for disk in inst.disks]))
                       for inst in instances)
 

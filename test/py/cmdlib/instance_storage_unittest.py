@@ -167,7 +167,8 @@ class TestCheckComputeDisksInfo(unittest.TestCase):
       self.assertEqual(disk.get("provider"), self.ext_params.get("provider"))
 
   def testComputeDisksInfoPlainToDrbd(self):
-    disks = [{constants.IDISK_SIZE: d.size,
+    disks = [{constants.IDISK_TYPE: constants.DT_DRBD8,
+              constants.IDISK_SIZE: d.size,
               constants.IDISK_MODE: d.mode,
               constants.IDISK_VG: d.logical_id[0],
               constants.IDISK_NAME: d.name}

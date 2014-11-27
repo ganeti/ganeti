@@ -377,6 +377,7 @@ def ComputeDisks(disks, disk_template, default_vg):
       constants.IDISK_MODE: mode,
       constants.IDISK_VG: data_vg,
       constants.IDISK_NAME: name,
+      constants.IDISK_TYPE: disk_template,
       }
 
     for key in [
@@ -622,6 +623,7 @@ def GenerateDiskTemplate(
                                       forthcoming=forthcoming)
       disk_dev.mode = disk[constants.IDISK_MODE]
       disk_dev.name = disk.get(constants.IDISK_NAME, None)
+      disk_dev.dev_type = template_name
       disks.append(disk_dev)
   else:
     if secondary_node_uuids:
@@ -763,6 +765,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
     constants.IDISK_PROVIDER,
     constants.IDISK_NAME,
     constants.IDISK_ACCESS,
+    constants.IDISK_TYPE,
     ]))
 
   def _RunAllocator(self):
@@ -794,6 +797,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
       constants.IDISK_SIZE: d.size,
       constants.IDISK_MODE: d.mode,
       constants.IDISK_SPINDLES: d.spindles,
+      constants.IDISK_TYPE: d.dev_type
       } for d in self.cfg.GetInstanceDisks(self.instance.uuid)]
     req = iallocator.IAReqInstanceAlloc(name=self.op.instance_name,
                                         disk_template=disk_template,

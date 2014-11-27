@@ -273,6 +273,7 @@ class IAReqRelocate(IARequestBase):
 
     """
     instance = cfg.GetInstanceInfo(self.inst_uuid)
+    disks = cfg.GetInstanceDisks(self.inst_uuid)
     if instance is None:
       raise errors.ProgrammerError("Unknown instance '%s' passed to"
                                    " IAllocator" % self.inst_uuid)
@@ -287,9 +288,9 @@ class IAReqRelocate(IARequestBase):
       raise errors.OpPrereqError("Instance has not exactly one secondary node",
                                  errors.ECODE_STATE)
 
-    inst_disks = cfg.GetInstanceDisks(instance.uuid)
-    disk_sizes = [{constants.IDISK_SIZE: disk.size} for disk in inst_disks]
-    disk_space = gmi.ComputeDiskSize(instance.disk_template, disk_sizes)
+    disk_sizes = [{constants.IDISK_SIZE: disk.size,
+                   constants.IDISK_TYPE: disk.dev_type} for disk in disks]
+    disk_space = gmi.ComputeDiskSize(disk_sizes)
 
     return {
       "name": instance.name,
@@ -782,7 +783,8 @@ class IAllocator(object):
                  cfg.GetNodeNames(
                    cfg.GetInstanceSecondaryNodes(iinfo.uuid)),
         "nics": nic_data,
-        "disks": [{constants.IDISK_SIZE: dsk.size,
+        "disks": [{constants.IDISK_TYPE: dsk.dev_type,
+                   constants.IDISK_SIZE: dsk.size,
                    constants.IDISK_MODE: dsk.mode,
                    constants.IDISK_SPINDLES: dsk.spindles}
                   for dsk in inst_disks],
