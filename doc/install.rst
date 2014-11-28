@@ -287,7 +287,7 @@ instances on a node.
    Then to configure it for Ganeti::
 
      $ echo "options drbd minor_count=128 usermode_helper=/bin/true" \
-        >> /etc/modprobe.d/drbd.conf
+        > /etc/modprobe.d/drbd.conf
      $ echo "drbd" >> /etc/modules
      $ depmod -a
      $ modprobe drbd
