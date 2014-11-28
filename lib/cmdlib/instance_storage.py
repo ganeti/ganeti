@@ -47,6 +47,7 @@ import ganeti.rpc.node as rpc
 from ganeti.cmdlib.base import LogicalUnit, NoHooksLU, Tasklet
 from ganeti.cmdlib.common import INSTANCE_DOWN, INSTANCE_NOT_RUNNING, \
   AnnotateDiskParams, CheckIAllocatorOrNode, ExpandNodeUuidAndName, \
+  ComputeIPolicyDiskSizesViolation, \
   CheckNodeOnline, CheckInstanceNodeGroups, CheckInstanceState, \
   IsExclusiveStorageEnabledNode, FindFaultyInstanceDisks, GetWantedNodes, \
   CheckDiskTemplateEnabled
@@ -1558,6 +1559,8 @@ class LUInstanceGrowDisk(LogicalUnit):
 
     self._CheckDiskSpace(node_uuids, self.disk.ComputeGrowth(self.delta))
 
+    self._CheckIPolicy(self.target)
+
   def _CheckDiskSpace(self, node_uuids, req_vgspace):
     template = self.instance.disk_template
     if (template not in (constants.DTS_NO_FREE_SPACE_CHECK) and
@@ -1568,6 +1571,29 @@ class LUInstanceGrowDisk(LogicalUnit):
       # at free space, which, in the end, is basically a dry run. So we rely on
       # the dry run performed in Exec() instead.
       CheckNodesFreeDiskPerVG(self, node_uuids, req_vgspace)
+
+  def _CheckIPolicy(self, target_size):
+    cluster = self.cfg.GetClusterInfo()
+    group_uuid = list(self.cfg.GetInstanceNodeGroups(self.op.instance_uuid,
+                                                     primary_only=True))[0]
+    group_info = self.cfg.GetNodeGroup(group_uuid)
+    ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
+                                                            group_info)
+
+    disk_sizes = [disk.size if disk.uuid != self.disk.uuid else target_size
+                  for disk in self.cfg.GetInstanceDisks(self.op.instance_uuid)]
+
+    # The ipolicy checker below ignores None, so we only give it the disk size
+    res = ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes,
+                                           self.instance.disk_template)
+    if res:
+      msg = ("Growing disk %s violates policy: %s" %
+             (self.op.disk,
+              utils.CommaJoin(res)))
+      if self.op.ignore_ipolicy:
+        self.LogWarning(msg)
+      else:
+        raise errors.OpPrereqError(msg, errors.ECODE_INVAL)
 
   def Exec(self, feedback_fn):
     """Execute disk grow.
