@@ -105,6 +105,7 @@ Draft designs
    design-disks.rst
    design-file-based-storage.rst
    design-file-based-disks-ownership.rst
+   design-multi-storage-htools.rst
    design-hroller.rst
    design-hotplug.rst
    design-internal-shutdown.rst
