@@ -538,7 +538,7 @@ class ConfigWriter(object):
     @type inst_uuid: string
     @param inst_uuid: The UUID of the instance we want to get nodes for
     @rtype: list of strings
-    @return: A list of names for all the secondary nodes of the instance
+    @return: A tuple of names for all the secondary nodes of the instance
 
     """
     (all_nodes, instance) = self._AllInstanceNodes(inst_uuid)
