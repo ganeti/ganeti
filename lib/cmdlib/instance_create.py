@@ -61,7 +61,7 @@ from ganeti.cmdlib.common import \
 from ganeti.cmdlib.instance_storage import CalculateFileStorageDir, \
   CheckNodesFreeDiskPerVG, CheckRADOSFreeSpace, CheckSpindlesExclusiveStorage, \
   ComputeDiskSizePerVG, CreateDisks, \
-  GenerateDiskTemplate, StartInstanceDisks, \
+  GenerateDiskTemplate, CommitDisks, StartInstanceDisks, \
   WaitForSync, ComputeDisks, \
   TemporaryDisk, ImageDisks, WipeDisks
 from ganeti.cmdlib.instance_utils import \
@@ -178,6 +178,10 @@ class LUInstanceCreate(LogicalUnit):
     """Check arguments.
 
     """
+    if self.op.forthcoming and self.op.commit:
+      raise errors.OpPrereqError("Forthcoming generation and commiting are"
+                                 " mutually exclusive", errors.ECODE_INVAL)
+
     # do not require name_check to ease forward/backward compatibility
     # for tools
     if self.op.no_install and self.op.start:
@@ -336,13 +340,32 @@ class LUInstanceCreate(LogicalUnit):
     """
     self.needed_locks = {}
 
-    # this is just a preventive check, but someone might still add this
-    # instance in the meantime; we check again in CheckPrereq
-    CheckInstanceExistence(self, self.op.instance_name)
+    if self.op.commit:
+      (uuid, name) = self.cfg.ExpandInstanceName(self.op.instance_name)
+      if name is None:
+        raise errors.OpPrereqError("Instance %s unknown" %
+                                   self.op.instance_name,
+                                   errors.ECODE_INVAL)
+      self.op.instance_name = name
+      if not self.cfg.GetInstanceInfo(uuid).forthcoming:
+        raise errors.OpPrereqError("Instance %s (with uuid %s) not forthcoming"
+                                   " but --commit was passed." % (name, uuid),
+                                   errors.ECODE_STATE)
+      logging.debug("Verified that instance %s with uuid %s is forthcoming",
+                    name, uuid)
+    else:
+      # this is just a preventive check, but someone might still add this
+      # instance in the meantime; we check again in CheckPrereq
+      CheckInstanceExistence(self, self.op.instance_name)
 
     self.add_locks[locking.LEVEL_INSTANCE] = self.op.instance_name
 
-    if self.op.iallocator:
+    if self.op.commit:
+      (uuid, _) = self.cfg.ExpandInstanceName(self.op.instance_name)
+      self.needed_locks[locking.LEVEL_NODE] = self.cfg.GetInstanceNodes(uuid)
+      logging.debug("Forthcoming instance %s resides on %s", uuid,
+                    self.needed_locks[locking.LEVEL_NODE])
+    elif self.op.iallocator:
       # TODO: Find a solution to not lock all nodes in the cluster, e.g. by
       # specifying a group on instance creation and then selecting nodes from
       # that group
@@ -673,15 +696,53 @@ class LUInstanceCreate(LogicalUnit):
       if name in os_defs_ and os_defs_[name] == self.op.osparams_private[name]:
         del self.op.osparams_private[name]
 
+  def _GetNodesFromForthcomingInstance(self):
+    """Set nodes as in the forthcoming instance
+
+    """
+    (uuid, name) = self.cfg.ExpandInstanceName(self.op.instance_name)
+    inst = self.cfg.GetInstanceInfo(uuid)
+    self.op.pnode_uuid = inst.primary_node
+    self.op.pnode = self.cfg.GetNodeName(inst.primary_node)
+    sec_nodes = self.cfg.GetInstanceSecondaryNodes(uuid)
+    node_names = [self.op.pnode]
+    if sec_nodes:
+      self.op.snode_uuid = sec_nodes[0]
+      self.op.snode = self.cfg.GetNodeName(sec_nodes[0])
+      node_names.append(self.op.snode)
+    self.LogInfo("Nodes of instance %s: %s", name, node_names)
+
   def CheckPrereq(self): # pylint: disable=R0914
     """Check prerequisites.
 
     """
-    CheckInstanceExistence(self, self.op.instance_name)
+    owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
+
+    if self.op.commit:
+      # Check that the instance is still on the cluster, forthcoming, and
+      # still resides on the nodes we acquired.
+      (uuid, name) = self.cfg.ExpandInstanceName(self.op.instance_name)
+      if uuid is None:
+        raise errors.OpPrereqError("Instance %s disappeared from the cluster"
+                                   " while waiting for locks"
+                                   % (self.op.instance_name,),
+                                   errors.ECODE_STATE)
+      if not self.cfg.GetInstanceInfo(uuid).forthcoming:
+        raise errors.OpPrereqError("Instance %s (with uuid %s) is no longer"
+                                   " forthcoming" % (name, uuid),
+                                   errors.ECODE_STATE)
+      required_nodes = self.cfg.GetInstanceNodes(uuid)
+      if not owned_nodes.issuperset(required_nodes):
+        raise errors.OpPrereqError("Forthcoming instance %s nodes changed"
+                                   " since locks were acquired; retry the"
+                                   " operation" % self.op.instance_name,
+                                   errors.ECODE_STATE)
+    else:
+      CheckInstanceExistence(self, self.op.instance_name)
+
     # Check that the optimistically acquired groups are correct wrt the
     # acquired nodes
     owned_groups = frozenset(self.owned_locks(locking.LEVEL_NODEGROUP))
-    owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
     cur_groups = list(self.cfg.GetNodeGroupsFromNodes(owned_nodes))
     if not owned_groups.issuperset(cur_groups):
       raise errors.OpPrereqError("New instance %s's node groups changed since"
@@ -807,7 +868,10 @@ class LUInstanceCreate(LogicalUnit):
     #### allocator run
 
     if self.op.iallocator is not None:
-      self._RunAllocator()
+      if self.op.commit:
+        self._GetNodesFromForthcomingInstance()
+      else:
+        self._RunAllocator()
 
     # Release all unneeded node locks
     keep_locks = filter(None, [self.op.pnode_uuid, self.op.snode_uuid,
@@ -1391,23 +1455,31 @@ class LUInstanceCreate(LogicalUnit):
     else:
       network_port = None
 
-    instance_uuid = self.cfg.GenerateUniqueID(self.proc.GetECId())
+    if self.op.commit:
+      (instance_uuid, _) = self.cfg.ExpandInstanceName(self.op.instance_name)
+    else:
+      instance_uuid = self.cfg.GenerateUniqueID(self.proc.GetECId())
 
     # This is ugly but we got a chicken-egg problem here
     # We can only take the group disk parameters, as the instance
     # has no disks yet (we are generating them right here).
     nodegroup = self.cfg.GetNodeGroup(self.pnode.group)
-    disks = GenerateDiskTemplate(self,
-                                 self.op.disk_template,
-                                 instance_uuid, self.pnode.uuid,
-                                 self.secondaries,
-                                 self.disks,
-                                 self.instance_file_storage_dir,
-                                 self.op.file_driver,
-                                 0,
-                                 feedback_fn,
-                                 self.cfg.GetGroupDiskParams(nodegroup),
-                                 forthcoming=self.op.forthcoming)
+
+    if self.op.commit:
+      disks = self.cfg.GetInstanceDisks(instance_uuid)
+      CommitDisks(disks)
+    else:
+      disks = GenerateDiskTemplate(self,
+                                   self.op.disk_template,
+                                   instance_uuid, self.pnode.uuid,
+                                   self.secondaries,
+                                   self.disks,
+                                   self.instance_file_storage_dir,
+                                   self.op.file_driver,
+                                   0,
+                                   feedback_fn,
+                                   self.cfg.GetGroupDiskParams(nodegroup),
+                                   forthcoming=self.op.forthcoming)
 
     if self.op.os_type is None:
       os_type = ""
@@ -1460,11 +1532,11 @@ class LUInstanceCreate(LogicalUnit):
         raise
 
     feedback_fn("adding instance %s to cluster config" % self.op.instance_name)
-    self.cfg.AddInstance(iobj, self.proc.GetECId())
+    self.cfg.AddInstance(iobj, self.proc.GetECId(), replace=self.op.commit)
 
     feedback_fn("adding disks to cluster config")
     for disk in disks:
-      self.cfg.AddInstanceDisk(iobj.uuid, disk)
+      self.cfg.AddInstanceDisk(iobj.uuid, disk, replace=self.op.commit)
 
     if self.op.forthcoming:
       feedback_fn("Instance is forthcoming; not creating the actual instance")
