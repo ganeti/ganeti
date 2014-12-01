@@ -1288,6 +1288,12 @@ def GenericInstanceCreate(mode, opts, args):
   """
   instance = args[0]
   forthcoming = opts.ensure_value("forthcoming", False)
+  commit = opts.ensure_value("commit", False)
+
+  if forthcoming and commit:
+    raise errors.OpPrereqError("Creating an instance only forthcoming and"
+                               " commiting it are mutally exclusive",
+                               errors.ECODE_INVAL)
 
   (pnode, snode) = SplitNodeOption(opts.node)
 
@@ -1410,6 +1416,7 @@ def GenericInstanceCreate(mode, opts, args):
 
   op = opcodes.OpInstanceCreate(
     forthcoming=forthcoming,
+    commit=commit,
     instance_name=instance,
     disks=disks,
     disk_template=opts.disk_template,
