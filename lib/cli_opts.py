@@ -60,6 +60,7 @@ __all__ = [
   "CLEANUP_OPT",
   "cli_option",
   "CLUSTER_DOMAIN_SECRET_OPT",
+  "COMMIT_OPT",
   "COMMON_CREATE_OPTS",
   "COMMON_OPTS",
   "COMPRESS_OPT",
@@ -898,6 +899,11 @@ FORTHCOMING_OPT = cli_option("--forthcoming", dest="forthcoming",
                              action="store_true", default=False,
                              help="Only reserve resources, but do not"
                                   " create the instance yet")
+
+COMMIT_OPT = cli_option("--commit", dest="commit",
+                        action="store_true", default=False,
+                        help="The instance is already reserved and should"
+                             " be committed now")
 
 SHOWCMD_OPT = cli_option("--show-cmd", dest="show_command",
                          action="store_true", default=False,
