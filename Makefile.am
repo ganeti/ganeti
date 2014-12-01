@@ -2121,7 +2121,8 @@ check-news:
 .PHONY: check-local
 check-local: check-dirs check-news $(GENERATED_FILES)
 	$(CHECK_PYTHON_CODE) $(check_python_code)
-	PYTHONPATH=. $(CHECK_HEADER) $(check_python_code)
+	PYTHONPATH=. $(CHECK_HEADER) \
+	    $(filter-out $(GENERATED_FILES),$(check_python_code))
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
 	error= ; \

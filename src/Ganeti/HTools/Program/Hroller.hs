@@ -409,7 +409,7 @@ main opts args = do
                            sortBy (flip compare `on` length . fst) $
                            nodesRebootGroups
       confToMoveNames =
-        map (Instance.name *** (Node.name *** flip (>>=) (return . Node.name)))
+        map (Instance.name *** (Node.name *** (=<<) (return . Node.name)))
         . getMoves (nlf, ilf)
       namesAndMoves = map (map Node.name *** confToMoveNames) outputRebootGroups
 
