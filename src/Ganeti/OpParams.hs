@@ -205,6 +205,7 @@ module Ganeti.OpParams
   , pSrcPath
   , pStartInstance
   , pForthcoming
+  , pCommit
   , pInstTags
   , pMultiAllocInstances
   , pTempOsParams
@@ -1279,6 +1280,11 @@ pForthcoming :: Field
 pForthcoming =
   withDoc "Whether to only reserve resources" $
   defaultFalse "forthcoming"
+
+pCommit :: Field
+pCommit =
+  withDoc "Commit the already reserved instance" $
+  defaultFalse "commit"
 
 -- FIXME: unify/simplify with pTags, once that migrates to NonEmpty String"
 pInstTags :: Field
