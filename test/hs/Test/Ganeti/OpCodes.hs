@@ -338,6 +338,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> genPrintableAsciiString         -- compress
           <*> arbitrary                       -- start
           <*> arbitrary                       -- forthcoming
+          <*> arbitrary                       -- commit
           <*> (genTags >>= mapM mkNonEmpty)   -- tags
           <*> arbitrary                       -- instance_communication
           <*> arbitrary                       -- helper_startup_timeout
