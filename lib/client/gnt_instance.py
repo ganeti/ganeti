@@ -1541,6 +1541,7 @@ m_inst_tags_opt = cli_option("--tags", dest="multi_mode",
 # this is defined separately due to readability only
 add_opts = [
   FORTHCOMING_OPT,
+  COMMIT_OPT,
   NOSTART_OPT,
   OS_OPT,
   FORCE_VARIANT_OPT,
