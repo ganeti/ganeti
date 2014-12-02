@@ -36,7 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.Utils.Statistics (testUtils_Statistics) where
 
-import Test.QuickCheck
+import Test.QuickCheck (Property, forAll, choose, vectorOf)
 
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHelper
