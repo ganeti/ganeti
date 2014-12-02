@@ -109,7 +109,9 @@ import System.IO.Error (isDoesNotExistError)
 import System.Process (readProcessWithExitCode)
 import qualified Test.HUnit as HUnit
 import Test.QuickCheck
+#if !MIN_VERSION_QuickCheck(2,7,0)
 import qualified Test.QuickCheck as QC
+#endif
 import Test.QuickCheck.Monadic
 import qualified Text.JSON as J
 import Numeric
