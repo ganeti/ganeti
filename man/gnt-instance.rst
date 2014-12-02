@@ -32,7 +32,7 @@ ADD
 |  \| {size=*VAL*,provider=*PROVIDER*}[,param=*value*... ][,options...]
 |  \| {-s|\--os-size} *SIZE*}
 | [\--no-ip-check] [\--no-name-check] [\--no-conflicts-check]
-| [\--no-start] [\--no-install] [\--forthcoming]
+| [\--no-start] [\--no-install] [{\--forthcoming \| \--commit}]
 | [\--net=*N* [:options...] \| \--no-nics]
 | [{-B|\--backend-parameters} *BEPARAMS*]
 | [{-H|\--hypervisor-parameters} *HYPERVISOR* [: option=*value*... ]]
@@ -199,6 +199,10 @@ successfully).
 Passing the ``--forthcoming`` option, Ganeti will not at all try
 to create the instance or its disks. Instead the instance will
 only be added to the configuration, so that the resources are reserved.
+If the ``--commit`` option is passed, then it is a prerequisite that
+an instance with that name has already been added to the configuration
+as a forthcoming instance and the request is to replace this instance
+by the newly created real one.
 
 The ``-B (--backend-parameters)`` option specifies the backend
 parameters for the instance. If no such parameters are specified, the
