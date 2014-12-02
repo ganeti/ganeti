@@ -329,7 +329,7 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceDisks(inst_uuid)
 
-  def _UnlockedAddDisk(self, disk):
+  def _UnlockedAddDisk(self, disk, replace=False):
     """Add a disk to the config.
 
     @type disk: L{objects.Disk}
@@ -341,9 +341,12 @@ class ConfigWriter(object):
 
     logging.info("Adding disk %s to configuration", disk.uuid)
 
-    self._CheckUniqueUUID(disk, include_temporary=False)
-    disk.serial_no = 1
-    disk.ctime = disk.mtime = time.time()
+    if replace:
+      self._CheckUUIDpresent(disk)
+    else:
+      self._CheckUniqueUUID(disk, include_temporary=False)
+      disk.serial_no = 1
+      disk.ctime = disk.mtime = time.time()
     disk.UpgradeConfig()
     self._ConfigData().disks[disk.uuid] = disk
     self._ConfigData().cluster.serial_no += 1
@@ -389,14 +392,14 @@ class ConfigWriter(object):
     instance.mtime = time.time()
 
   @ConfigSync()
-  def AddInstanceDisk(self, inst_uuid, disk, idx=None):
+  def AddInstanceDisk(self, inst_uuid, disk, idx=None, replace=False):
     """Add a disk to the config and attach it to instance.
 
     This is a simple wrapper over L{_UnlockedAddDisk} and
     L{_UnlockedAttachInstanceDisk}.
 
     """
-    self._UnlockedAddDisk(disk)
+    self._UnlockedAddDisk(disk, replace=replace)
     self._UnlockedAttachInstanceDisk(inst_uuid, disk.uuid, idx)
 
   def _UnlockedDetachInstanceDisk(self, inst_uuid, disk_uuid):
@@ -1795,7 +1798,7 @@ class ConfigWriter(object):
   def _CheckUUIDpresent(self, item):
     """Checks that an object with the given UUID exists.
 
-    @param: the instance or other UUID possessing object to verify that
+    @param item: the instance or other UUID possessing object to verify that
         its UUID is present
 
     """
