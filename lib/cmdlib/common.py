@@ -602,6 +602,33 @@ def ComputeIPolicySpecViolation(ipolicy, mem_size, cpu_count, disk_count,
   return ret + min_errs
 
 
+def ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes,
+                                     disk_template,
+                                     _compute_fn=_ComputeMinMaxSpec):
+  """Verifies ipolicy against provided disk sizes.
+
+  No other specs except the disk sizes, the number of disks and the disk
+  template are checked.
+
+  @type ipolicy: dict
+  @param ipolicy: The ipolicy
+  @type disk_sizes: list of ints
+  @param disk_sizes: Disk sizes of used disk (len must match C{disk_count})
+  @type disk_template: string
+  @param disk_template: The disk template of the instance
+  @param _compute_fn: The compute function (unittest only)
+  @return: A list of violations, or an empty list of no violations are found
+
+  """
+  return ComputeIPolicySpecViolation(ipolicy,
+                                     # mem_size, cpu_count, disk_count
+                                     None, None, len(disk_sizes),
+                                     None, disk_sizes, # nic_count, disk_sizes
+                                     None, # spindle_use
+                                     disk_template,
+                                     _compute_fn=_compute_fn)
+
+
 def ComputeIPolicyInstanceViolation(ipolicy, instance, cfg,
                                     _compute_fn=ComputeIPolicySpecViolation):
   """Compute if instance meets the specs of ipolicy.

@@ -702,6 +702,7 @@ $(genOpCode "OpCode"
      , pDiskIndex
      , pDiskChgAmount
      , pDiskChgAbsolute
+     , pIgnoreIpolicy
      ],
      "instance_name")
   , ("OpInstanceChangeGroup",
