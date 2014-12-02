@@ -696,6 +696,15 @@ def GenerateDiskTemplate(
   return disks
 
 
+def CommitDisks(disks):
+  """Recursively remove the forthcoming flag
+
+  """
+  for disk in disks:
+    disk.forthcoming = False
+    CommitDisks(disk.children)
+
+
 def CheckSpindlesExclusiveStorage(diskdict, es_flag, required):
   """Check the presence of the spindle options with exclusive_storage.
 
