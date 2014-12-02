@@ -1731,13 +1731,16 @@ class ConfigWriter(object):
     """
     return [(uuid, self._UnlockedGetNodeGroup(uuid)) for uuid in group_uuids]
 
-  def AddInstance(self, instance, _ec_id):
+  def AddInstance(self, instance, _ec_id, replace=False):
     """Add an instance to the config.
 
     This should be used after creating a new instance.
 
     @type instance: L{objects.Instance}
     @param instance: the instance object
+    @type replace: bool
+    @param replace: if true, expect the instance to be present and
+        replace rather than add.
 
     """
     if not isinstance(instance, objects.Instance):
@@ -1750,7 +1753,10 @@ class ConfigWriter(object):
                                         " MAC address '%s' already in use." %
                                         (instance.name, nic.mac))
 
-    self._CheckUniqueUUID(instance, include_temporary=False)
+    if replace:
+      self._CheckUUIDpresent(instance)
+    else:
+      self._CheckUniqueUUID(instance, include_temporary=False)
 
     instance.serial_no = 1
     instance.ctime = instance.mtime = time.time()
@@ -1785,6 +1791,19 @@ class ConfigWriter(object):
     if item.uuid in self._AllIDs(include_temporary=include_temporary):
       raise errors.ConfigurationError("Cannot add '%s': UUID %s already"
                                       " in use" % (item.name, item.uuid))
+
+  def _CheckUUIDpresent(self, item):
+    """Checks that an object with the given UUID exists.
+
+    @param: the instance or other UUID possessing object to verify that
+        its UUID is present
+
+    """
+    if not item.uuid:
+      raise errors.ConfigurationError("'%s' must have an UUID" % (item.name,))
+    if item.uuid not in self._AllIDs(include_temporary=False):
+      raise errors.ConfigurationError("Cannot replace '%s': UUID %s not present"
+                                      % (item.name, item.uuid))
 
   def _SetInstanceStatus(self, inst_uuid, status, disks_active,
                          admin_state_source):

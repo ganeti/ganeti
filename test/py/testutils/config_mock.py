@@ -814,7 +814,7 @@ class ConfigMock(config.ConfigWriter):
     if net_uuid:
       return self._UnlockedReserveIp(net_uuid, address, ec_id, check)
 
-  def AddInstance(self, instance, ec_id):
+  def AddInstance(self, instance, ec_id, replace=False):
     """Add an instance to the config.
 
     """
