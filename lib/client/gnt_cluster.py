@@ -993,6 +993,9 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   @param new_ssh_keys: Whether to generate new node SSH keys
 
   """
+  ToStdout("Updating certificates now. Running \"gnt-cluster verify\" "
+           " is recommended after this operation.")
+
   if new_rapi_cert and rapi_cert_filename:
     ToStderr("Only one of the --new-rapi-certificate and --rapi-certificate"
              " options can be specified at the same time.")
@@ -1042,7 +1045,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
       return 1
 
   def _RenewCryptoInner(ctx):
-    ctx.feedback_fn("Updating certificates and keys")
+    ctx.feedback_fn("Updating cluster-wide certificates and keys")
     # Note: the node certificate will be generated in the LU
     bootstrap.GenerateClusterCrypto(new_cluster_cert,
                                     new_rapi_cert,
@@ -1081,9 +1084,6 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
           ctx.ssh.CopyFileToNode(node_name, port, file_name)
 
   RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
-
-  ToStdout("All requested certificates and keys have been replaced."
-           " Running \"gnt-cluster verify\" now is recommended.")
 
   if new_node_cert or new_ssh_keys:
     cl = GetClient()
