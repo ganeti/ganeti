@@ -1048,7 +1048,23 @@ def _VerifySshSetup(node_status_list, my_name):
                         " in the 'authorized_keys' file of itself."
                         % (my_name, uuid))
 
-  # Check if something cluttered up the 'authorized_key' file
+  return result
+
+
+def _VerifySshClutter(node_status_list, my_name):
+  """Verifies that the 'authorized_keys' files are not cluttered up.
+
+  @type node_status_list: list of tuples
+  @param node_status_list: list of nodes of the cluster associated with a
+    couple of flags: (uuid, name, is_master_candidate,
+    is_potential_master_candidate, online)
+  @type my_name: str
+  @param my_name: name of this node
+
+  """
+  result = []
+  (auth_key_file, _) = \
+    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
   node_names = [name for (_, name, _, _) in node_status_list]
   multiple_occurrences = ssh.CheckForMultipleKeys(auth_key_file, node_names)
   if multiple_occurrences:
@@ -1123,6 +1139,9 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
   if constants.NV_SSH_SETUP in what:
     result[constants.NV_SSH_SETUP] = \
       _VerifySshSetup(what[constants.NV_SSH_SETUP], my_name)
+    if constants.NV_SSH_CLUTTER in what:
+      result[constants.NV_SSH_CLUTTER] = \
+        _VerifySshClutter(what[constants.NV_SSH_SETUP], my_name)
 
   if constants.NV_NODELIST in what:
     (nodes, bynode, mcs) = what[constants.NV_NODELIST]

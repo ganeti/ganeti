@@ -3263,6 +3263,9 @@ nvNonvmnodes = "nonvmnodes"
 nvSshSetup :: String
 nvSshSetup = "ssh-setup"
 
+nvSshClutter :: String
+nvSshClutter = "ssh-clutter"
+
 -- * Instance status
 
 inststAdmindown :: String

@@ -1833,7 +1833,8 @@ class LUClusterVerify(NoHooksLU):
     jobs.extend(
       [opcodes.OpClusterVerifyGroup(group_name=group,
                                     ignore_errors=self.op.ignore_errors,
-                                    depends=depends_fn())]
+                                    depends=depends_fn(),
+                                    verify_clutter=self.op.verify_clutter)]
       for group in groups)
 
     # Fix up all parameters
@@ -2757,7 +2758,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
             node.uuid)
 
   def _VerifySshSetup(self, nodes, all_nvinfo):
-    """Evaluates the verification results of the SSH setup.
+    """Evaluates the verification results of the SSH setup and clutter test.
 
     @param nodes: List of L{objects.Node} objects
     @param all_nvinfo: RPC results
@@ -2770,12 +2771,13 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           self._ErrorIf(True, constants.CV_ENODESSH, node.name,
                         "Could not verify the SSH setup of this node.")
           return
-        result = nresult.payload.get(constants.NV_SSH_SETUP, None)
-        error_msg = ""
-        if isinstance(result, list):
-          error_msg = " ".join(result)
-        self._ErrorIf(result,
-                      constants.CV_ENODESSH, None, error_msg)
+        for ssh_test in [constants.NV_SSH_SETUP, constants.NV_SSH_CLUTTER]:
+          result = nresult.payload.get(ssh_test, None)
+          error_msg = ""
+          if isinstance(result, list):
+            error_msg = " ".join(result)
+          self._ErrorIf(result,
+                        constants.CV_ENODESSH, None, error_msg)
 
   def _VerifyFiles(self, nodes, master_node_uuid, all_nvinfo,
                    (files_all, files_opt, files_mc, files_vm)):
@@ -3530,6 +3532,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     if self.cfg.GetClusterInfo().modify_ssh_setup:
       node_verify_param[constants.NV_SSH_SETUP] = self._PrepareSshSetupCheck()
+      if self.op.verify_clutter:
+        node_verify_param[constants.NV_SSH_CLUTTER] = True
 
     if vg_name is not None:
       node_verify_param[constants.NV_VGLIST] = None

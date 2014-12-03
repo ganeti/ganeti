@@ -248,6 +248,7 @@ __all__ = [
   "USE_REPL_NET_OPT",
   "USEUNITS_OPT",
   "VERBOSE_OPT",
+  "VERIFY_CLUTTER_OPT",
   "VG_NAME_OPT",
   "WFSYNC_OPT",
   "YES_DOIT_OPT",
@@ -1562,6 +1563,11 @@ ENABLED_DATA_COLLECTORS_OPT = \
                help="Deactivate or reactivate a data collector for reporting, "
                "in the format collector=bool, where collector is one of %s."
                % ", ".join(constants.DATA_COLLECTOR_NAMES))
+
+VERIFY_CLUTTER_OPT = cli_option(
+    "--verify-ssh-clutter", default=False, dest="verify_clutter",
+    help="Verify that Ganeti did not clutter"
+    " up the 'authorized_keys' file", action="store_true")
 
 
 #: Options provided by all commands

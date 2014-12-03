@@ -297,6 +297,7 @@ module Ganeti.OpParams
   , pNodeSslCerts
   , pSshKeys
   , pNodeSetup
+  , pVerifyClutter
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -1879,3 +1880,9 @@ pNodeSetup =
   withDoc "Whether to perform a SSH setup on the new node" .
   defaultField [| False |] $
   simpleField "node_setup" [t| Bool |]
+
+pVerifyClutter :: Field
+pVerifyClutter =
+  withDoc "Whether to check for clutter in the 'authorized_keys' file." .
+  defaultField [| False |] $
+  simpleField "verify_clutter" [t| Bool |]
