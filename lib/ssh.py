@@ -207,6 +207,48 @@ def HasAuthorizedKey(file_obj, key):
   return False
 
 
+def CheckForMultipleKeys(file_obj, node_names):
+  """Check if there is at most one key per host in 'authorized_keys' file.
+
+  @type file_obj: str or file handle
+  @param file_obj: path to authorized_keys file
+  @type node_names: list of str
+  @param node_names: list of names of nodes of the cluster
+  @returns: a dictionary with hostnames which occur more than once
+
+  """
+
+  if isinstance(file_obj, basestring):
+    f = open(file_obj, "r")
+  else:
+    f = file_obj
+
+  occurrences = {}
+
+  try:
+    index = 0
+    for line in f:
+      index += 1
+      if line.startswith("#"):
+        continue
+      chunks = line.split()
+      # find the chunk with user@hostname
+      user_hostname = [chunk.strip() for chunk in chunks if "@" in chunk][0]
+      if not user_hostname in occurrences:
+        occurrences[user_hostname] = []
+      occurrences[user_hostname].append(index)
+  finally:
+    f.close()
+
+  bad_occurrences = {}
+  for user_hostname, occ in occurrences.items():
+    _, hostname = user_hostname.split("@")
+    if hostname in node_names and len(occ) > 1:
+      bad_occurrences[user_hostname] = occ
+
+  return bad_occurrences
+
+
 def AddAuthorizedKey(file_obj, key):
   """Adds an SSH public key to an authorized_keys file.
 

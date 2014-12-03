@@ -1048,6 +1048,19 @@ def _VerifySshSetup(node_status_list, my_name):
                         " in the 'authorized_keys' file of itself."
                         % (my_name, uuid))
 
+  # Check if something cluttered up the 'authorized_key' file
+  node_names = [name for (_, name, _, _) in node_status_list]
+  multiple_occurrences = ssh.CheckForMultipleKeys(auth_key_file, node_names)
+  if multiple_occurrences:
+    msg = "There are hosts which have more than one SSH key stored for the" \
+          " same user in the 'authorized_keys' file of node %s. This can be" \
+          " due to an unsuccessful operation which cluttered up the" \
+          " 'authorized_keys' file. We recommend to clean this up manually. " \
+          % my_name
+    for host, occ in multiple_occurrences.items():
+      msg += "Entry for '%s' in lines %s. " % (host, utils.CommaJoin(occ))
+    result.append(msg)
+
   return result
 
 
