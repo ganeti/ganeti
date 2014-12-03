@@ -1482,6 +1482,18 @@ def AddNodeSshKey(node_uuid, node_name,
   _InitSshUpdateData(base_data, noded_cert_file, ssconf_store)
   cluster_name = base_data[constants.SSHS_CLUSTER_NAME]
 
+  # Update the target node itself
+  if get_public_keys:
+    node_data = {}
+    _InitSshUpdateData(node_data, noded_cert_file, ssconf_store)
+    all_keys = ssh.QueryPubKeyFile(None, key_file=pub_key_file)
+    node_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
+      (constants.SSHS_OVERRIDE, all_keys)
+    run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
+               ssh_port_map.get(node_name), node_data,
+               debug=False, verbose=False, use_cluster_key=False,
+               ask_key=False, strict_host_check=False)
+
   # Update all nodes except master and the target node
   if to_authorized_keys:
     base_data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
@@ -1496,7 +1508,7 @@ def AddNodeSshKey(node_uuid, node_name,
   master_node = ssconf_store.GetMasterNode()
 
   for node in all_nodes:
-    if node in [master_node, node_name]:
+    if node == master_node:
       continue
     if node in potential_master_candidates:
       run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
@@ -1509,18 +1521,6 @@ def AddNodeSshKey(node_uuid, node_name,
                    ssh_port_map.get(node), base_data,
                    debug=False, verbose=False, use_cluster_key=False,
                    ask_key=False, strict_host_check=False)
-
-  # Update the target node itself
-  if get_public_keys:
-    node_data = {}
-    _InitSshUpdateData(node_data, noded_cert_file, ssconf_store)
-    all_keys = ssh.QueryPubKeyFile(None, key_file=pub_key_file)
-    node_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-      (constants.SSHS_OVERRIDE, all_keys)
-    run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
-               ssh_port_map.get(node_name), node_data,
-               debug=False, verbose=False, use_cluster_key=False,
-               ask_key=False, strict_host_check=False)
 
 
 def RemoveNodeSshKey(node_uuid, node_name,
@@ -1619,7 +1619,7 @@ def RemoveNodeSshKey(node_uuid, node_name,
 
     all_nodes = ssconf_store.GetNodeList()
     for node in all_nodes:
-      if node in [master_node, node_name]:
+      if node == master_node:
         continue
       ssh_port = ssh_port_map.get(node)
       if not ssh_port:
@@ -1659,7 +1659,7 @@ def RemoveNodeSshKey(node_uuid, node_name,
 
     if clear_public_keys:
       data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-        (constants.SSHS_CLEAR, None)
+        (constants.SSHS_CLEAR, {})
     elif from_public_keys:
       # Since clearing the public keys subsumes removing just a single key,
       # we only do it of clear_public_keys is 'False'.
