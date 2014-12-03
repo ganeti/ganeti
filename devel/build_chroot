@@ -173,7 +173,7 @@ function lookup_sha1 {
 function download {
   local FNAME="$1"
   local URL="$2"
-  in_chroot -- wget --output-document="$FNAME" "$URL"
+  in_chroot -- wget --no-check-certificate --output-document="$FNAME" "$URL"
   verify_sha1 "$FNAME" "$( lookup_sha1 "$URL" )"
 }
 
