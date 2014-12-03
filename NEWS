@@ -41,6 +41,9 @@ New features
 - The monitoring daemon has now variable sleep times for the data
   collectors. This currently means that the granularity of cpu-avg-load
   can be configured.
+- The 'gnt-cluster verify' command now has the option
+  '--verify-ssh-clutter', which verifies whether Ganeti (accidentally)
+  cluttered up the 'authorized_keys' file.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
