@@ -780,7 +780,7 @@ class TLMigrateInstance(Tasklet):
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
 
-    if utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
+    if not utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
       # Then switch the disks to master/master mode
       self._EnsureSecondary(self.target_node_uuid)
       self._GoStandalone()
