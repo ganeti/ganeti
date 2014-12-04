@@ -580,7 +580,7 @@ class TestComputeIPolicyDiskSizesViolation(unittest.TestCase):
 
   def testDiskLess(self):
     compute_fn = _NoDiskComputeMinMaxSpec
-    ret = common.ComputeIPolicyDiskSizesViolation(self._MICRO_IPOL, [1024],
+    ret = common.ComputeIPolicyDiskSizesViolation(self._MICRO_IPOL, [],
                                                   constants.DT_DISKLESS,
                                                   _compute_fn=compute_fn)
     self.assertEqual(ret, [])
