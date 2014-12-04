@@ -54,7 +54,7 @@ To keep track where each device is plugged into, we add the
 files, since it is hypervisor specific info. This is added for easy
 object manipulation and is ensured not to be written back to the config.
 
-We propose to make use of QEMU 1.0 monitor commands so that
+We propose to make use of QEMU 1.7 QMP commands so that
 modifications to devices take effect instantly without the need for hard
 reboot. The only change exposed to the end-user will be the addition of
 a ``--hotplug`` option to the ``gnt-instance modify`` command.
@@ -81,7 +81,7 @@ Who decides where to hotplug each device? As long as this is a
 hypervisor specific matter, there is no point for the master node to
 decide such a thing. Master node just has to request noded to hotplug a
 device. To this end, hypervisor specific code should parse the current
-PCI configuration (i.e. ``info pci`` QEMU monitor command), find the first
+PCI configuration (i.e. ``query-pci`` QMP command), find the first
 available slot and hotplug the device. Having noded to decide where to
 hotplug a device we ensure that no error will occur due to duplicate
 slot assignment (if masterd keeps track of PCI reservations and noded
@@ -149,18 +149,19 @@ Hypervisor changes
 ------------------
 
 We implement hotplug on top of the KVM hypervisor. We take advantage of
-QEMU 1.0 monitor commands (``device_add``, ``device_del``,
-``drive_add``, ``drive_del``, ``netdev_add``,`` netdev_del``). QEMU
+QEMU 1.7 QMP commands (``device_add``, ``device_del``,
+``blockdev-add``, ``netdev_add``, ``netdev_del``). Since ``drive_del``
+is not yet implemented in QMP we use the one of HMP. QEMU
 refers to devices based on their id. We use ``uuid`` to name them
 properly. If a device is about to be hotplugged we parse the output of
-``info pci`` and find the occupied PCI slots. We choose the first
+``query-pci`` and find the occupied PCI slots. We choose the first
 available and the whole device object is appended to the corresponding
 entry in the runtime file.
 
 Concerning NIC handling, we build on the top of the existing logic
 (first create a tap with _OpenTap() and then pass its file descriptor to
 the KVM process). To this end we need to pass access rights to the
-corresponding file descriptor over the monitor socket (UNIX domain
+corresponding file descriptor over the QMP socket (UNIX domain
 socket). The open file is passed as a socket-level control message
 (SCM), using the ``fdsend`` python library.
 
@@ -220,8 +221,8 @@ support only disk addition/deletion.
  gnt-instance modify --net 1:remove --hotplug test
 
 
-Dealing with chroot and uid pool
---------------------------------
+Dealing with chroot and uid pool (and disks in general)
+-------------------------------------------------------
 
 The design so far covers all issues that arise without addressing the
 case where the kvm process will not run with root privileges.
@@ -232,18 +233,18 @@ Specifically:
 - in case of uid pool security model, the kvm process is not allowed
   to access the device
 
-For NIC hotplug we address this problem by using the ``getfd`` monitor
+For NIC hotplug we address this problem by using the ``getfd`` QMP
 command and passing the file descriptor to the kvm process over the
 monitor socket using SCM_RIGHTS. For disk hotplug and in case of uid
 pool we can let the hypervisor code temporarily ``chown()`` the  device
 before the actual hotplug. Still this is insufficient in case of chroot.
 In this case, we need to ``mknod()`` the device inside the chroot. Both
-workarounds can be avoided, if we make use of the ``add-fd`` qemu
-monitor command, that was introduced in version 1.7. This command is the
+workarounds can be avoided, if we make use of the ``add-fd``
+QMP command, that was introduced in version 1.7. This command is the
 equivalent of NICs' `get-fd`` for disks and will allow disk hotplug in
-every case. So, if the qemu monitor does not support the ``add-fd``
-command, we will not allow disk hotplug for chroot and uid security
-model and notify the user with the corresponding warning.
+every case. So, if the QMP does not support the ``add-fd``
+command, we will not allow disk hotplug
+and notify the user with the corresponding warning.
 
 .. vim: set textwidth=72 :
 .. Local Variables:

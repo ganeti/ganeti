@@ -83,10 +83,6 @@ _SPICE_ADDITIONAL_PARAMS = frozenset([
   constants.HV_KVM_SPICE_USE_TLS,
   ])
 
-# Constant bitarray that reflects to a free pci slot
-# Use it with bitarray.search()
-_AVAILABLE_PCI_SLOT = bitarray("0")
-
 # below constants show the format of runtime file
 # the nics are in second possition, while the disks in 4th (last)
 # moreover disk entries are stored as a list of in tuples
@@ -116,12 +112,23 @@ _RUNTIME_ENTRY = {
 _MIGRATION_CAPS_DELIM = ":"
 
 
-def _GetDriveURI(disk, link, uri, qmp=None):
+def _with_qmp(fn):
+  """Wrapper used on hotplug related methods"""
+  def wrapper(self, instance, *args, **kwargs):
+    """Create a QmpConnection and run the wrapped method"""
+    if not getattr(self, "qmp", None):
+      filename = self._InstanceQmpMonitor(instance.name)# pylint: disable=W0212
+      self.qmp = QmpConnection(filename)
+    return fn(self, instance, *args, **kwargs)
+  return wrapper
+
+
+def _GetDriveURI(disk, link, uri):
   """Helper function to get the drive uri to be used in --drive kvm option
 
-  Invoked during startup and hot-add. In latter case if kernelspace is used
-  we get the fd of the disk, pass it to the instance via SCM rights and qmp
-  monitor, and return the proper path (/dev/fdset/<fdset>)
+  Invoked during startup and disk hot-add. In latter case and if no userspace
+  access mode is used it will be overriden with /dev/fdset/<fdset-id> (see
+  HotAddDisk() and AddFd() of QmpConnection).
 
   @type disk: L{objects.Disk}
   @param disk: A disk configuration object
@@ -129,39 +136,20 @@ def _GetDriveURI(disk, link, uri, qmp=None):
   @param link: The device link as returned by _SymlinkBlockDev()
   @type uri: string
   @param uri: The drive uri as returned by _CalculateDeviceURI()
-  @type qmp: L{QmpConnection}
-  @param qmp: The qmp connection used to pass the drive's fd
 
-  @return: (the drive uri to use, the corresponing fdset if any) tuple
+  @return: The drive uri to use in kvm option
 
   """
-  fdset = None
   access_mode = disk.params.get(constants.LDP_ACCESS,
                                 constants.DISK_KERNELSPACE)
   # If uri is available, use it during startup/hot-add
   if (uri and access_mode == constants.DISK_USERSPACE):
     drive_uri = uri
-  # During hot-add get the disk's fd and pass it to qemu via SCM rights
-  elif qmp:
-    try:
-      fd = os.open(link, os.O_RDWR)
-      fdset = qmp.AddFd([fd])
-      os.close(fd)
-    except OSError:
-      logging.warning("Cannot open disk with link %s in order to"
-                      " pass its fd to qmp monitor", link)
-      fdset = None
-
-    # fd passing succeeded
-    if fdset is not None:
-      drive_uri = "/dev/fdset/%s" % fdset
-    else:
-      drive_uri = link
   # Otherwise use the link previously created
   else:
     drive_uri = link
 
-  return drive_uri, fdset
+  return drive_uri
 
 
 def _GenerateDeviceKVMId(dev_type, dev):
@@ -184,38 +172,6 @@ def _GenerateDeviceKVMId(dev_type, dev):
                               (dev_type, dev.uuid))
 
   return "%s-%s-pci-%d" % (dev_type.lower(), dev.uuid.split("-")[0], dev.pci)
-
-
-def _GetFreeSlot(slots, slot=None, reserve=False):
-  """Helper method to get first available slot in a bitarray
-
-  @type slots: bitarray
-  @param slots: the bitarray to operate on
-  @type slot: integer
-  @param slot: if given we check whether the slot is free
-  @type reserve: boolean
-  @param reserve: whether to reserve the first available slot or not
-  @return: the idx of the (first) available slot
-  @raise errors.HotplugError: If all slots in a bitarray are occupied
-    or the given slot is not free.
-
-  """
-  if slot is not None:
-    assert slot < len(slots)
-    if slots[slot]:
-      raise errors.HypervisorError("Slots %d occupied" % slot)
-
-  else:
-    avail = slots.search(_AVAILABLE_PCI_SLOT, 1)
-    if not avail:
-      raise errors.HypervisorError("All slots occupied")
-
-    slot = int(avail[0])
-
-  if reserve:
-    slots[slot] = True
-
-  return slot
 
 
 def _GetExistingDeviceInfo(dev_type, device, runtime):
@@ -457,13 +413,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _BOOT_RE = re.compile(r"^-drive\s([^-]|(?<!^)-)*,boot=on\|off", re.M | re.S)
   _UUID_RE = re.compile(r"^-uuid\s", re.M)
 
-  _INFO_PCI_RE = re.compile(r'Bus.*device[ ]*(\d+).*')
-  _INFO_PCI_CMD = "info pci"
-  _FIND_PCI_DEVICE_RE = \
-    staticmethod(
-      lambda pci, devid: re.compile(r'Bus.*device[ ]*%d,(.*\n){5,6}.*id "%s"' %
-                                    (pci, devid), re.M))
-
   _INFO_VERSION_RE = \
     re.compile(r'^QEMU (\d+)\.(\d+)(\.(\d+))?.*monitor.*', re.M)
   _INFO_VERSION_CMD = "info version"
@@ -498,6 +447,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # in a tmpfs filesystem or has been otherwise wiped out.
     dirs = [(dname, constants.RUN_DIRS_MODE) for dname in self._DIRS]
     utils.EnsureDirs(dirs)
+    self.qmp = None
 
   @staticmethod
   def VersionsSafeForMigration(src, target):
@@ -994,7 +944,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
         if needs_boot_flag and disk_type != constants.HT_DISK_IDE:
           boot_val = ",boot=on"
 
-      drive_uri, _ = _GetDriveURI(cfdev, link_name, uri)
+      drive_uri = _GetDriveURI(cfdev, link_name, uri)
 
       drive_val = "file=%s,format=raw%s%s%s%s" % \
                   (drive_uri, if_val, boot_val, cache_val, aio_val)
@@ -1123,15 +1073,15 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # while the Audio controller *must* be in slot 3.
       # That's why we bridge this option early in command line
       if soundhw in self._SOUNDHW_WITH_PCI_SLOT:
-        _ = _GetFreeSlot(pci_reservations, reserve=True)
+        _ = utils.GetFreeSlot(pci_reservations, reserve=True)
       kvm_cmd.extend(["-soundhw", soundhw])
 
     if hvp[constants.HV_DISK_TYPE] == constants.HT_DISK_SCSI:
       # The SCSI controller requires another PCI slot.
-      _ = _GetFreeSlot(pci_reservations, reserve=True)
+      _ = utils.GetFreeSlot(pci_reservations, reserve=True)
 
     # Add id to ballon and place to the first available slot (3 or 4)
-    addr = _GetFreeSlot(pci_reservations, reserve=True)
+    addr = utils.GetFreeSlot(pci_reservations, reserve=True)
     pci_info = ",bus=pci.0,addr=%s" % hex(addr)
     kvm_cmd.extend(["-balloon", "virtio,id=balloon%s" % pci_info])
     kvm_cmd.extend(["-daemonize"])
@@ -1369,7 +1319,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       else:
         # Enable the spice agent communication channel between the host and the
         # agent.
-        addr = _GetFreeSlot(pci_reservations, reserve=True)
+        addr = utils.GetFreeSlot(pci_reservations, reserve=True)
         pci_info = ",bus=pci.0,addr=%s" % hex(addr)
         kvm_cmd.extend(["-device", "virtio-serial-pci,id=spice%s" % pci_info])
         kvm_cmd.extend([
@@ -1420,12 +1370,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_disks = []
     for disk, link_name, uri in block_devices:
-      disk.pci = _GetFreeSlot(pci_reservations, disk.pci, True)
+      disk.pci = utils.GetFreeSlot(pci_reservations, disk.pci, True)
       kvm_disks.append((disk, link_name, uri))
 
     kvm_nics = []
     for nic in instance.nics:
-      nic.pci = _GetFreeSlot(pci_reservations, nic.pci, True)
+      nic.pci = utils.GetFreeSlot(pci_reservations, nic.pci, True)
       kvm_nics.append(nic)
 
     hvparams = hvp
@@ -1523,24 +1473,36 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def _GetNetworkDeviceFeatures(self, up_hvp, devlist, kvmhelp):
     """Get network device options to properly enable supported features.
 
-    Return tuple of supported and enabled tap features with nic_model.
+    Return a dict of supported and enabled tap features with nic_model along
+    with the extra strings to be appended to the --netdev and --device options.
     This function is called before opening a new tap device.
 
-    @return: (nic_model, vnet_hdr, virtio_net_queues, tap_extra, nic_extra)
-    @rtype: tuple
+    Currently the features_dict includes the following attributes:
+      - vhost (boolean)
+      - vnet_hdr (boolean)
+      - mq (boolean, int)
+
+    @rtype: (dict, str, str) tuple
+    @return: The supported features,
+             the string to be appended to the --netdev option,
+             the string to be appended to the --device option
 
     """
-    virtio_net_queues = 1
-    nic_extra = ""
     nic_type = up_hvp[constants.HV_NIC_TYPE]
-    tap_extra = ""
-    vnet_hdr = False
+    nic_extra_str = ""
+    tap_extra_str = ""
+    features = {
+      "vhost": False,
+      "vnet_hdr": False,
+      "mq": (False, 1)
+      }
+    update_features = {}
     if nic_type == constants.HT_NIC_PARAVIRTUAL:
       nic_model = self._VIRTIO
       try:
         if self._VIRTIO_NET_RE.search(devlist):
           nic_model = self._VIRTIO_NET_PCI
-          vnet_hdr = up_hvp[constants.HV_VNET_HDR]
+          update_features["vnet_hdr"] = up_hvp[constants.HV_VNET_HDR]
       except errors.HypervisorError, _:
         # Older versions of kvm don't support DEVICE_LIST, but they don't
         # have new virtio syntax either.
@@ -1549,25 +1511,30 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       if up_hvp[constants.HV_VHOST_NET]:
         # Check for vhost_net support.
         if self._VHOST_RE.search(kvmhelp):
-          tap_extra = ",vhost=on"
+          update_features["vhost"] = True
+          tap_extra_str = ",vhost=on"
         else:
           raise errors.HypervisorError("vhost_net is configured"
                                        " but it is not available")
-        if up_hvp[constants.HV_VIRTIO_NET_QUEUES] > 1:
+        virtio_net_queues = up_hvp.get(constants.HV_VIRTIO_NET_QUEUES, 1)
+        if virtio_net_queues > 1:
           # Check for multiqueue virtio-net support.
           if self._VIRTIO_NET_QUEUES_RE.search(kvmhelp):
-            virtio_net_queues = up_hvp[constants.HV_VIRTIO_NET_QUEUES]
             # As advised at http://www.linux-kvm.org/page/Multiqueue formula
             # for calculating vector size is: vectors=2*N+1 where N is the
             # number of queues (HV_VIRTIO_NET_QUEUES).
-            nic_extra = ",mq=on,vectors=%d" % (2 * virtio_net_queues + 1)
+            nic_extra_str = ",mq=on,vectors=%d" % (2 * virtio_net_queues + 1)
+            update_features["mq"] = (True, virtio_net_queues)
           else:
             raise errors.HypervisorError("virtio_net_queues is configured"
                                          " but it is not available")
     else:
       nic_model = nic_type
 
-    return (nic_model, vnet_hdr, virtio_net_queues, tap_extra, nic_extra)
+    update_features["driver"] = nic_model
+    features.update(update_features)
+
+    return features, tap_extra_str, nic_extra_str
 
   # too many local variables
   # pylint: disable=R0914
@@ -1633,18 +1600,27 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not kvm_nics:
       kvm_cmd.extend(["-net", "none"])
     else:
-      (nic_model, vnet_hdr,
-       virtio_net_queues, tap_extra,
-       nic_extra) = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
+      features, tap_extra, nic_extra = \
+          self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
+      nic_model = features["driver"]
       kvm_supports_netdev = self._NETDEV_RE.search(kvmhelp)
       for nic_seq, nic in enumerate(kvm_nics):
-        tapname, nic_tapfds = OpenTap(vnet_hdr=vnet_hdr,
-                                      virtio_net_queues=virtio_net_queues,
-                                      name=self._GenerateKvmTapName(nic))
+        tapname, nic_tapfds, nic_vhostfds = \
+          OpenTap(features=features, name=self._GenerateKvmTapName(nic))
+
         tapfds.extend(nic_tapfds)
+        tapfds.extend(nic_vhostfds)
         taps.append(tapname)
         tapfd = "%s%s" % ("fds=" if len(nic_tapfds) > 1 else "fd=",
                           ":".join(str(fd) for fd in nic_tapfds))
+
+        if nic_vhostfds:
+          vhostfd = "%s%s" % (",vhostfds="
+                              if len(nic_vhostfds) > 1 else ",vhostfd=",
+                              ":".join(str(fd) for fd in nic_vhostfds))
+        else:
+          vhostfd = ""
+
         if kvm_supports_netdev:
           nic_val = "%s,mac=%s" % (nic_model, nic.mac)
           try:
@@ -1656,8 +1632,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
           except errors.HotplugError:
             netdev = "netdev%d" % nic_seq
           nic_val += (",netdev=%s%s" % (netdev, nic_extra))
-          tap_val = ("type=tap,id=%s,%s%s" %
-                     (netdev, tapfd, tap_extra))
+          tap_val = ("type=tap,id=%s,%s%s%s" %
+                     (netdev, tapfd, vhostfd, tap_extra))
           kvm_cmd.extend(["-netdev", tap_val, "-device", nic_val])
         else:
           nic_val = "nic,vlan=%s,macaddr=%s,model=%s" % (nic_seq,
@@ -1850,57 +1826,25 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return result
 
-  def _GetFreePCISlot(self, instance, dev):
-    """Get the first available pci slot of a runnung instance.
-
-    """
-    slots = bitarray(32)
-    slots.setall(False) # pylint: disable=E1101
-    output = self._CallMonitorCommand(instance.name, self._INFO_PCI_CMD)
-    for line in output.stdout.splitlines():
-      match = self._INFO_PCI_RE.search(line)
-      if match:
-        slot = int(match.group(1))
-        slots[slot] = True
-
-    dev.pci = _GetFreeSlot(slots)
-
+  @_with_qmp
   def VerifyHotplugSupport(self, instance, action, dev_type):
     """Verifies that hotplug is supported.
-
-    Hotplug is *not* supported in case of:
-     - fdsend module is missing (hot-add)
-     - add-fd qmp command is not supported and
-        chroot or some security model is used
 
     @raise errors.HypervisorError: in one of the previous cases
 
     """
-    with QmpConnection(self._InstanceQmpMonitor(instance.name)) as qmp:
-      qmp_supports_add_fd = fdsend and "add-fd" in qmp.supported_commands
-
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      hvp = instance.hvparams
-      security_model = hvp[constants.HV_SECURITY_MODEL]
-      use_chroot = hvp[constants.HV_KVM_USE_CHROOT]
-      if action == constants.HOTPLUG_ACTION_ADD and not qmp_supports_add_fd:
-        if use_chroot:
-          raise errors.HotplugError("Disk hotplug is not supported"
-                                    " in case of chroot.")
-        if security_model != constants.HT_SM_NONE:
-          raise errors.HotplugError("Disk Hotplug is not supported in case"
-                                    " security models are used.")
-
-    if (dev_type == constants.HOTPLUG_TARGET_NIC and
-        action == constants.HOTPLUG_ACTION_ADD and not fdsend):
-      raise errors.HotplugError("Cannot hot-add NIC."
-                                " fdsend python module is missing.")
+      if action == constants.HOTPLUG_ACTION_ADD:
+        self.qmp.CheckDiskHotAddSupport()
+    if dev_type == constants.HOTPLUG_TARGET_NIC:
+      if action == constants.HOTPLUG_ACTION_ADD:
+        self.qmp.CheckNicHotAddSupport()
 
   def HotplugSupported(self, instance):
     """Checks if hotplug is generally supported.
 
     Hotplug is *not* supported in case of:
-     - qemu versions < 1.0
+     - qemu versions < 1.7 (where all qmp related commands are supported)
      - for stopped instances
 
     @raise errors.HypervisorError: in one of the previous cases
@@ -1911,45 +1855,46 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     except errors.HypervisorError:
       raise errors.HotplugError("Instance is probably down")
 
-    # TODO: search for netdev_add, drive_add, device_add.....
     match = self._INFO_VERSION_RE.search(output.stdout)
     if not match:
       raise errors.HotplugError("Cannot parse qemu version via monitor")
 
+    #TODO: delegate more fine-grained checks to VerifyHotplugSupport
     v_major, v_min, _, _ = match.groups()
-    if (int(v_major), int(v_min)) < (1, 0):
-      raise errors.HotplugError("Hotplug not supported for qemu versions < 1.0")
+    if (int(v_major), int(v_min)) < (1, 7):
+      raise errors.HotplugError("Hotplug not supported for qemu versions < 1.7")
 
-  @classmethod
-  def _CallHotplugCommands(cls, instance_name, cmds):
-    for c in cmds:
-      cls._CallMonitorCommand(instance_name, c)
-      time.sleep(1)
-
-  def _VerifyHotplugCommand(self, instance_name, device, dev_type,
-                            should_exist):
+  @_with_qmp
+  def _VerifyHotplugCommand(self, _instance,
+                            device, kvm_devid, should_exist):
     """Checks if a previous hotplug command has succeeded.
 
-    It issues info pci monitor command and checks depending on should_exist
-    value if an entry with PCI slot and device ID is found or not.
+    Depending on the should_exist value, verifies that an entry identified by
+    the PCI slot and device ID is present or not.
 
     @raise errors.HypervisorError: if result is not the expected one
 
     """
-    output = self._CallMonitorCommand(instance_name, self._INFO_PCI_CMD)
-    kvm_devid = _GenerateDeviceKVMId(dev_type, device)
-    match = \
-      self._FIND_PCI_DEVICE_RE(device.pci, kvm_devid).search(output.stdout)
-    if match and not should_exist:
+    for i in range(5):
+      found = self.qmp.HasPCIDevice(device, kvm_devid)
+      logging.info("Verifying hotplug command (retry %s): %s", i, found)
+      if found and should_exist:
+        break
+      if not found and not should_exist:
+        break
+      time.sleep(1)
+
+    if found and not should_exist:
       msg = "Device %s should have been removed but is still there" % kvm_devid
       raise errors.HypervisorError(msg)
 
-    if not match and should_exist:
+    if not found and should_exist:
       msg = "Device %s should have been added but is missing" % kvm_devid
       raise errors.HypervisorError(msg)
 
     logging.info("Device %s has been correctly hot-plugged", kvm_devid)
 
+  @_with_qmp
   def HotAddDevice(self, instance, dev_type, device, extra, seq):
     """ Helper method to hot-add a new device
 
@@ -1959,54 +1904,31 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """
     # in case of hot-mod this is given
     if device.pci is None:
-      self._GetFreePCISlot(instance, device)
+      device.pci = self.qmp.GetFreePCISlot()
     kvm_devid = _GenerateDeviceKVMId(dev_type, device)
     runtime = self._LoadKVMRuntime(instance)
-    fdset = None
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      # Create a shared qmp connection because
-      # fdsets get cleaned up on monitor disconnect
-      # See qemu commit efb87c1
-      qmp = QmpConnection(self._InstanceQmpMonitor(instance.name))
-      qmp.connect()
-      drive_uri, fdset = _GetDriveURI(device, extra[0], extra[1], qmp)
-      cmds = ["drive_add dummy file=%s,if=none,id=%s,format=raw" %
-                (drive_uri, kvm_devid)]
-      cmds += ["device_add virtio-blk-pci,bus=pci.0,addr=%s,drive=%s,id=%s" %
-                (hex(device.pci), kvm_devid, kvm_devid)]
-      self._CallHotplugCommands(instance.name, cmds)
-      if fdset is not None:
-        qmp.RemoveFdset(fdset)
-      qmp.close()
+      uri = _GetDriveURI(device, extra[0], extra[1])
+      self.qmp.HotAddDisk(device, kvm_devid, uri)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       kvmpath = instance.hvparams[constants.HV_KVM_PATH]
       kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
       devlist = self._GetKVMOutput(kvmpath, self._KVMOPT_DEVICELIST)
       up_hvp = runtime[2]
-      (_, vnet_hdr,
-       virtio_net_queues, tap_extra,
-       nic_extra) = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
-      (tap, fds) = OpenTap(vnet_hdr=vnet_hdr,
-                           virtio_net_queues=virtio_net_queues)
-      # netdev_add don't support "fds=" when multiple fds are
-      # requested, generate separate "fd=" string for every fd
-      tapfd = ",".join(["fd=%s" % fd for fd in fds])
+      features, _, _ = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
+      (tap, tapfds, vhostfds) = OpenTap(features=features)
       self._ConfigureNIC(instance, seq, device, tap)
-      self._HMPPassFd(instance.name, fds, kvm_devid)
-      cmds = ["netdev_add tap,id=%s,%s%s" % (kvm_devid, tapfd, tap_extra)]
-      args = "virtio-net-pci,bus=pci.0,addr=%s,mac=%s,netdev=%s,id=%s%s" % \
-               (hex(device.pci), device.mac, kvm_devid, kvm_devid, nic_extra)
-      cmds += ["device_add %s" % args]
+      self.qmp.HotAddNic(device, kvm_devid, tapfds, vhostfds, features)
       utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
-      self._CallHotplugCommands(instance.name, cmds)
 
-    self._VerifyHotplugCommand(instance.name, device, dev_type, True)
+    self._VerifyHotplugCommand(instance, device, kvm_devid, True)
     # update relevant entries in runtime file
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     entry = _RUNTIME_ENTRY[dev_type](device, extra)
     runtime[index].append(entry)
     self._SaveKVMRuntime(instance, runtime)
 
+  @_with_qmp
   def HotDelDevice(self, instance, dev_type, device, _, seq):
     """ Helper method for hot-del device
 
@@ -2019,14 +1941,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     kvm_device = _RUNTIME_DEVICE[dev_type](entry)
     kvm_devid = _GenerateDeviceKVMId(dev_type, kvm_device)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
-      cmds = ["device_del %s" % kvm_devid]
-      cmds += ["drive_del %s" % kvm_devid]
+      self.qmp.HotDelDisk(kvm_devid)
+      # drive_del is not implemented yet in qmp
+      command = "drive_del %s\n" % kvm_devid
+      self._CallMonitorCommand(instance.name, command)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
-      cmds = ["device_del %s" % kvm_devid]
-      cmds += ["netdev_del %s" % kvm_devid]
+      self.qmp.HotDelNic(kvm_devid)
       utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
-    self._CallHotplugCommands(instance.name, cmds)
-    self._VerifyHotplugCommand(instance.name, kvm_device, dev_type, False)
+    self._VerifyHotplugCommand(instance, kvm_device, kvm_devid, False)
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     runtime[index].remove(entry)
     self._SaveKVMRuntime(instance, runtime)
@@ -2044,20 +1966,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # putting it back in the same pci slot
       device.pci = self.HotDelDevice(instance, dev_type, device, _, seq)
       self.HotAddDevice(instance, dev_type, device, _, seq)
-
-  @classmethod
-  def _HMPPassFd(cls, instance_name, fds, kvm_devid):
-    """Pass file descriptor to kvm process via monitor socket using SCM_RIGHTS
-
-    Wrapper of MonitorSocket.GetFd()
-
-    """
-    mon = MonitorSocket(cls._InstanceMonitor(instance_name))
-    try:
-      mon.connect()
-      mon.GetFd(fds, kvm_devid)
-    finally:
-      mon.close()
 
   @classmethod
   def _ParseKVMVersion(cls, text):

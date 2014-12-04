@@ -617,7 +617,8 @@ utils_PYTHON = \
 	lib/utils/text.py \
 	lib/utils/version.py \
 	lib/utils/wrapper.py \
-	lib/utils/x509.py
+	lib/utils/x509.py \
+	lib/utils/bitarrays.py
 
 docinput = \
 	doc/admin.rst \
@@ -1905,6 +1906,7 @@ python_tests = \
 	test/py/ganeti.utils.version_unittest.py \
 	test/py/ganeti.utils.wrapper_unittest.py \
 	test/py/ganeti.utils.x509_unittest.py \
+	test/py/ganeti.utils.bitarrays_unittest.py \
 	test/py/ganeti.utils_unittest.py \
 	test/py/ganeti.vcluster_unittest.py \
 	test/py/ganeti.workerpool_unittest.py \
@@ -2510,7 +2512,8 @@ check-news:
 .PHONY: check-local
 check-local: check-dirs check-news $(GENERATED_FILES)
 	$(CHECK_PYTHON_CODE) $(check_python_code)
-	PYTHONPATH=. $(CHECK_HEADER) $(check_python_code)
+	PYTHONPATH=. $(CHECK_HEADER) \
+	    $(filter-out $(GENERATED_FILES),$(check_python_code))
 	$(CHECK_VERSION) $(VERSION) $(top_srcdir)/NEWS
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(CHECK_IMPORTS) . $(standalone_python_modules)
 	error= ; \

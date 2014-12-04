@@ -44,6 +44,8 @@ try:
 except ImportError:
   fdsend = None
 
+from bitarray import bitarray
+
 from ganeti import errors
 from ganeti import utils
 from ganeti import serializer
@@ -140,10 +142,6 @@ class MonitorSocket(object):
 
     """
     self.monitor_filename = monitor_filename
-    self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    # We want to fail if the server doesn't send a complete message
-    # in a reasonable amount of time
-    self.sock.settimeout(self._SOCKET_TIMEOUT)
     self._connected = False
 
   def _check_socket(self):
@@ -168,6 +166,19 @@ class MonitorSocket(object):
                                    " invoke connect() on it")
 
   def connect(self):
+    """Connect to the monitor socket if not already connected.
+
+    """
+    if not self._connected:
+      self._connect()
+
+  def is_connected(self):
+    """Return whether there is a connection to the socket or not.
+
+    """
+    return self._connected
+
+  def _connect(self):
     """Connects to the monitor.
 
     Connects to the UNIX socket
@@ -182,6 +193,10 @@ class MonitorSocket(object):
 
     # Check file existance/stuff
     try:
+      self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+      # We want to fail if the server doesn't send a complete message
+      # in a reasonable amount of time
+      self.sock.settimeout(self._SOCKET_TIMEOUT)
       self.sock.connect(self.monitor_filename)
     except EnvironmentError:
       raise errors.HypervisorError("Can't connect to qmp socket")
@@ -193,17 +208,32 @@ class MonitorSocket(object):
     It cannot be used after this call.
 
     """
+    if self._connected:
+      self._close()
+
+  def _close(self):
     self.sock.close()
+    self._connected = False
 
-  def GetFd(self, fds, kvm_devid):
-    """Pass file descriptor to kvm process via monitor socket using SCM_RIGHTS
 
-    """
-    self._check_connection()
-
-    command = "getfd %s\n" % kvm_devid
-    logging.info("Passing %s fds to %s", fds, self.monitor_filename)
-    fdsend.sendfds(self.sock, command, fds=fds)
+def _ensure_connection(fn):
+  """Decorator that wraps MonitorSocket external methods"""
+  def wrapper(*args, **kwargs):
+    """Ensure proper connect/close and exception propagation"""
+    mon = args[0]
+    already_connected = mon.is_connected()
+    mon.connect()
+    try:
+      ret = fn(*args, **kwargs)
+    finally:
+      # In general this decorator wraps external methods.
+      # Here we close the connection only if we initiated it before,
+      # to protect us from using the socket after closing it
+      # in case we invoke a decorated method internally by accident.
+      if not already_connected:
+        mon.close()
+    return ret
+  return wrapper
 
 
 class QmpConnection(MonitorSocket):
@@ -225,6 +255,7 @@ class QmpConnection(MonitorSocket):
   _CAPABILITIES_COMMAND = "qmp_capabilities"
   _QUERY_COMMANDS = "query-commands"
   _MESSAGE_END_TOKEN = "\r\n"
+  _QEMU_PCI_SLOTS = 32 # The number of PCI slots QEMU exposes by default
 
   def __init__(self, monitor_filename):
     super(QmpConnection, self).__init__(monitor_filename)
@@ -393,7 +424,11 @@ class QmpConnection(MonitorSocket):
       message[self._ARGUMENTS_KEY] = arguments
     self._Send(message)
 
-    return self._GetResponse(command)
+    ret = self._GetResponse(command)
+    # log important qmp commands..
+    if command not in [self._QUERY_COMMANDS, self._CAPABILITIES_COMMAND]:
+      logging.debug("QMP %s %s: %s\n", command, arguments, ret)
+    return ret
 
   def _GetResponse(self, command):
     """Parse the QMP response
@@ -424,51 +459,269 @@ class QmpConnection(MonitorSocket):
 
       return response[self._RETURN_KEY]
 
-  def AddFd(self, fds):
-    """Pass file descriptor to kvm process via qmp socket using SCM_RIGHTS
+  @_ensure_connection
+  def HotAddNic(self, nic, devid, tapfds=None, vhostfds=None, features=None):
+    """Hot-add a NIC
 
-    Add the fds to an fdset so that they can be used later by hot-add commands
+    First pass the tapfds, then netdev_add and then device_add
 
-    @type fds: list
-    @param fds: The list of file descriptors to pass
+    """
+    if tapfds is None:
+      tapfds = []
+    if vhostfds is None:
+      vhostfds = []
+    if features is None:
+      features = {}
 
-    @return: The fdset ID that the fds have been added to
-      (None if operation fails)
+    enable_vhost = features.get("vhost", False)
+    enable_mq, virtio_net_queues = features.get("mq", (False, 1))
+
+    fdnames = []
+    for i, fd in enumerate(tapfds):
+      fdname = "%s-%d" % (devid, i)
+      self._GetFd(fd, fdname)
+      fdnames.append(fdname)
+
+    arguments = {
+      "type": "tap",
+      "id": devid,
+      "fds": ":".join(fdnames),
+    }
+    if enable_vhost:
+      fdnames = []
+      for i, fd in enumerate(vhostfds):
+        fdname = "%s-vhost-%d" % (devid, i)
+        self._GetFd(fd, fdname)
+        fdnames.append(fdname)
+
+      arguments.update({
+        "vhost": "on",
+        "vhostfds": ":".join(fdnames),
+        })
+    self.Execute("netdev_add", arguments)
+
+    arguments = {
+      "driver": "virtio-net-pci",
+      "id": devid,
+      "bus": "pci.0",
+      "addr": hex(nic.pci),
+      "netdev": devid,
+      "mac": nic.mac,
+    }
+    if enable_mq:
+      arguments.update({
+        "mq": "on",
+        "vectors": (2 * virtio_net_queues + 1),
+        })
+    self.Execute("device_add", arguments)
+
+  @_ensure_connection
+  def HotDelNic(self, devid):
+    """Hot-del a NIC
+
+    """
+    self.Execute("device_del", {"id": devid})
+    self.Execute("netdev_del", {"id": devid})
+
+  @_ensure_connection
+  def HotAddDisk(self, disk, devid, uri):
+    """Hot-add a disk
+
+    Try opening the device to obtain a fd and pass it with SCM_RIGHTS. This
+    will be omitted in case of userspace access mode (open will fail).
+    Then use blockdev-add and then device_add.
+
+    """
+    if os.path.exists(uri):
+      fd = os.open(uri, os.O_RDWR)
+      fdset = self._AddFd(fd)
+      os.close(fd)
+      filename = "/dev/fdset/%s" % fdset
+    else:
+      # The uri is not a file.
+      # This can happen if a userspace uri is provided.
+      filename = uri
+      fdset = None
+
+    arguments = {
+      "options": {
+        "driver": "raw",
+        "id": devid,
+        "file": {
+          "driver": "file",
+          "filename": filename,
+        }
+      }
+    }
+    self.Execute("blockdev-add", arguments)
+
+    if fdset is not None:
+      self._RemoveFdset(fdset)
+
+    arguments = {
+      "driver": "virtio-blk-pci",
+      "id": devid,
+      "bus": "pci.0",
+      "addr": hex(disk.pci),
+      "drive": devid,
+    }
+    self.Execute("device_add", arguments)
+
+  @_ensure_connection
+  def HotDelDisk(self, devid):
+    """Hot-del a Disk
+
+    Note that drive_del is not supported yet in qmp and thus should
+    be invoked from HMP.
+
+    """
+    self.Execute("device_del", {"id": devid})
+    #TODO: uncomment when drive_del gets implemented in upstream qemu
+    # self.Execute("drive_del", {"id": devid})
+
+  def _GetPCIDevices(self):
+    """Get the devices of the first PCI bus of a running instance.
 
     """
     self._check_connection()
+    pci = self.Execute("query-pci")
+    bus = pci[0]
+    devices = bus["devices"]
+    return devices
 
-    if not fdsend or "add-fd" not in self.supported_commands:
-      return None
+  @_ensure_connection
+  def HasPCIDevice(self, device, devid):
+    """Check if a specific device exists or not on a running instance.
 
+    It will match the PCI slot of the device and the id currently
+    obtained by _GenerateDeviceKVMId().
+
+    """
+    for d in self._GetPCIDevices():
+      if d["qdev_id"] == devid and d["slot"] == device.pci:
+        return True
+
+    return False
+
+  @_ensure_connection
+  def GetFreePCISlot(self):
+    """Get the first available PCI slot of a running instance.
+
+    """
+    slots = bitarray(self._QEMU_PCI_SLOTS)
+    slots.setall(False) # pylint: disable=E1101
+    for d in self._GetPCIDevices():
+      slot = d["slot"]
+      slots[slot] = True
+
+    return utils.GetFreeSlot(slots)
+
+  @_ensure_connection
+  def CheckDiskHotAddSupport(self):
+    """Check if disk hotplug is possible
+
+    Hotplug is *not* supported in case:
+     - fdsend module is missing
+     - add-fd and blockdev-add qmp commands are not supported
+
+    """
+    def _raise(reason):
+      raise errors.HotplugError("Cannot hot-add disk: %s." % reason)
+
+    if not fdsend:
+      _raise("fdsend python module is missing")
+
+    if "add-fd" not in self.supported_commands:
+      _raise("add-fd qmp command is not supported")
+
+    if "blockdev-add" not in self.supported_commands:
+      _raise("blockdev-add qmp command is not supported")
+
+  @_ensure_connection
+  def CheckNicHotAddSupport(self):
+    """Check if NIC hotplug is possible
+
+    Hotplug is *not* supported in case:
+     - fdsend module is missing
+     - getfd and netdev_add qmp commands are not supported
+
+    """
+    def _raise(reason):
+      raise errors.HotplugError("Cannot hot-add NIC: %s." % reason)
+
+    if not fdsend:
+      _raise("fdsend python module is missing")
+
+    if "getfd" not in self.supported_commands:
+      _raise("getfd qmp command is not supported")
+
+    if "netdev_add" not in self.supported_commands:
+      _raise("netdev_add qmp command is not supported")
+
+  def _GetFd(self, fd, fdname):
+    """Wrapper around the getfd qmp command
+
+    Use fdsend to send an fd to a running process via SCM_RIGHTS and then use
+    the getfd qmp command to name it properly so that it can be used
+    later by NIC hotplugging.
+
+    @type fd: int
+    @param fd: The file descriptor to pass
+    @raise errors.HypervisorError: If getfd fails for some reason
+
+    """
+    self._check_connection()
     try:
-      # Omit fdset-id and let qemu create a new one (see qmp-commands.hx)
-      command = {"execute": "add-fd"}
-      fdsend.sendfds(self.sock, serializer.Dump(command), fds=fds)
-      # Get the response out of the buffer
-      response = self._GetResponse("add-fd")
-      fdset = response["fdset-id"]
-      logging.info("Sent fds %s and added to fdset %s", fds, fdset)
+      fdsend.sendfds(self.sock, " ", fds=[fd])
+      arguments = {
+          "fdname": fdname,
+          }
+      self.Execute("getfd", arguments)
     except errors.HypervisorError, err:
-      # In case _GetResponse() fails
-      fdset = None
-      logging.info("Sending fds %s failed: %s", fds, err)
+      logging.info("Passing fd %s via SCM_RIGHTS failed: %s", fd, err)
+      raise
+
+  def _AddFd(self, fd):
+    """Wrapper around add-fd qmp command
+
+    Use fdsend to send fd to a running process via SCM_RIGHTS and then add-fd
+    qmp command to add it to an fdset so that it can be used later by
+    disk hotplugging.
+
+    @type fd: int
+    @param fd: The file descriptor to pass
+
+    @return: The fdset ID that the fd has been added to
+    @raise errors.HypervisorError: If add-fd fails for some reason
+
+    """
+    self._check_connection()
+    try:
+      fdsend.sendfds(self.sock, " ", fds=[fd])
+      # Omit fdset-id and let qemu create a new one (see qmp-commands.hx)
+      response = self.Execute("add-fd")
+      fdset = response["fdset-id"]
+    except errors.HypervisorError, err:
+      logging.info("Passing fd %s via SCM_RIGHTS failed: %s", fd, err)
+      raise
 
     return fdset
 
-  def RemoveFdset(self, fdset):
-    """Remove the file descriptor previously passed
+  def _RemoveFdset(self, fdset):
+    """Wrapper around remove-fd qmp command
 
-    After qemu has dup'd the fd (e.g. during disk hotplug),
-    it can be safely removed.
+    Remove the file descriptor previously passed. After qemu has dup'd the fd
+    (e.g. during disk hotplug), it can be safely removed.
 
     """
     self._check_connection()
-    # Omit the fd to cleanup all fds in the fdset (see qmp-commands.hx)
-    command = "remove-fd"
-    arguments = {"fdset-id": fdset}
-    logging.info("Removing fdset %s", fdset)
+    # Omit the fd to cleanup all fds in the fdset (see qemu/qmp-commands.hx)
     try:
-      self.Execute(command, arguments=arguments)
+      self.Execute("remove-fd", {"fdset-id": fdset})
     except errors.HypervisorError, err:
-      logging.info("Removing %s fdset failed: %s", fdset, err)
+      # There is no big deal if we cannot remove an fdset. This cleanup here is
+      # done on a best effort basis. Upon next hot-add a new fdset will be
+      # created. If we raise an exception here, that is after drive_add has
+      # succeeded, the whole hot-add action will fail and the runtime file will
+      # not be updated which will make the instance non migrate-able
+      logging.info("Removing fdset with id %s failed: %s", fdset, err)

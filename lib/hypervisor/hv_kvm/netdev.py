@@ -124,29 +124,31 @@ def _ProbeTapMqVirtioNet(fd, _features_fn=_GetTunFeatures):
   return result
 
 
-def OpenTap(vnet_hdr=True, virtio_net_queues=1, name=""):
+def OpenTap(name="", features=None):
   """Open a new tap device and return its file descriptor.
 
   This is intended to be used by a qemu-type hypervisor together with the -net
   tap,fd=<fd> or -net tap,fds=x:y:...:z command line parameter.
 
-  @type vnet_hdr: boolean
-  @param vnet_hdr: Enable the VNET Header
-
-  @type virtio_net_queues: int
-  @param virtio_net_queues: Set number of tap queues but not more than 8,
-                            queues only work with virtio-net device;
-                            disabled by default (one queue).
-
   @type name: string
   @param name: name for the TAP interface being created; if an empty
                string is passed, the OS will generate a unique name
 
-  @return: (ifname, [tapfds])
+  @type features: dict
+  @param features: A dict denoting whether vhost, vnet_hdr, mq
+    netdev features are enabled or not.
+
+  @return: (ifname, [tapfds], [vhostfds])
   @rtype: tuple
 
   """
   tapfds = []
+  vhostfds = []
+  if features is None:
+    features = {}
+  vhost = features.get("vhost", False)
+  vnet_hdr = features.get("vnet_hdr", True)
+  _, virtio_net_queues = features.get("mq", (False, 1))
 
   for _ in range(virtio_net_queues):
     try:
@@ -174,9 +176,20 @@ def OpenTap(vnet_hdr=True, virtio_net_queues=1, name=""):
       raise errors.HypervisorError("Failed to allocate a new TAP device: %s" %
                                    err)
 
+    if vhost:
+      # This is done regularly by the qemu process if vhost=on was passed with
+      # --netdev option. Still, in case of hotplug and if the process does not
+      # run with root privileges, we have to get the fds and pass them via
+      # SCM_RIGHTS prior to qemu using them.
+      try:
+        vhostfd = os.open("/dev/vhost-net", os.O_RDWR)
+        vhostfds.append(vhostfd)
+      except EnvironmentError:
+        raise errors.HypervisorError("Failed to open /dev/vhost-net")
+
     tapfds.append(tapfd)
 
   # Get the interface name from the ioctl
   ifname = struct.unpack("16sh", res)[0].strip("\x00")
 
-  return (ifname, tapfds)
+  return (ifname, tapfds, vhostfds)

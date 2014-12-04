@@ -608,7 +608,9 @@ def GrowDisk(opts, args):
   op = opcodes.OpInstanceGrowDisk(instance_name=instance,
                                   disk=disk, amount=amount,
                                   wait_for_sync=opts.wait_for_sync,
-                                  absolute=opts.absolute)
+                                  absolute=opts.absolute,
+                                  ignore_ipolicy=opts.ignore_ipolicy
+                                  )
   SubmitOrSend(op, opts)
   return 0
 
@@ -1690,7 +1692,8 @@ commands = {
     GrowDisk,
     [ArgInstance(min=1, max=1), ArgUnknown(min=1, max=1),
      ArgUnknown(min=1, max=1)],
-    SUBMIT_OPTS + [NWSYNC_OPT, DRY_RUN_OPT, PRIORITY_OPT, ABSOLUTE_OPT],
+    SUBMIT_OPTS +
+    [NWSYNC_OPT, DRY_RUN_OPT, PRIORITY_OPT, ABSOLUTE_OPT, IGNORE_IPOLICY_OPT],
     "<instance> <disk> <size>", "Grow an instance's disk"),
   "change-group": (
     ChangeGroup, ARGS_ONE_INSTANCE,

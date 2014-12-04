@@ -558,6 +558,105 @@ class TestComputeIPolicySpecViolation(unittest.TestCase):
     ipolicy1[constants.IPOLICY_DTS] = ["another_template"]
     AssertComputeViolation(ipolicy1, 1)
 
+
+class TestComputeIPolicyDiskSizesViolation(unittest.TestCase):
+  # Minimal policy accepted by _ComputeIPolicyDiskSizesViolation()
+  _MICRO_IPOL = {
+    constants.IPOLICY_DTS: [constants.DT_PLAIN, constants.DT_DISKLESS],
+    constants.ISPECS_MINMAX: [NotImplemented],
+    }
+
+  def test(self):
+    compute_fn = _ValidateComputeMinMaxSpec
+    ret = common.ComputeIPolicyDiskSizesViolation(self._MICRO_IPOL, [1024],
+                                                  constants.DT_PLAIN,
+                                                  _compute_fn=compute_fn)
+    self.assertEqual(ret, [])
+
+  def testDiskFull(self):
+    compute_fn = _NoDiskComputeMinMaxSpec
+    ret = common.ComputeIPolicyDiskSizesViolation(self._MICRO_IPOL, [1024],
+                                                  constants.DT_PLAIN,
+                                                  _compute_fn=compute_fn)
+    self.assertEqual(ret, [constants.ISPEC_DISK_COUNT])
+
+  def testDiskLess(self):
+    compute_fn = _NoDiskComputeMinMaxSpec
+    ret = common.ComputeIPolicyDiskSizesViolation(self._MICRO_IPOL, [1024],
+                                                  constants.DT_DISKLESS,
+                                                  _compute_fn=compute_fn)
+    self.assertEqual(ret, [])
+
+  def testWrongTemplates(self):
+    compute_fn = _ValidateComputeMinMaxSpec
+    ret = common.ComputeIPolicyDiskSizesViolation(self._MICRO_IPOL, [1024],
+                                                  constants.DT_DRBD8,
+                                                  _compute_fn=compute_fn)
+    self.assertEqual(len(ret), 1)
+    self.assertTrue("Disk template" in ret[0])
+
+  def _AssertComputeViolation(self, ipolicy, disk_sizes, disk_template,
+                              violations):
+    ret = common.ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes,
+                                                  disk_template)
+    self.assertEqual(len(ret), violations)
+
+  def testWithIPolicy(self):
+    mem_size = 2048
+    cpu_count = 2
+    disk_count = 1
+    disk_sizes = [512]
+    nic_count = 1
+    spindle_use = 4
+    disk_template = "mytemplate"
+    ispec = {
+      constants.ISPEC_MEM_SIZE: mem_size,
+      constants.ISPEC_CPU_COUNT: cpu_count,
+      constants.ISPEC_DISK_COUNT: disk_count,
+      constants.ISPEC_DISK_SIZE: disk_sizes[0],
+      constants.ISPEC_NIC_COUNT: nic_count,
+      constants.ISPEC_SPINDLE_USE: spindle_use,
+      }
+
+    ipolicy = {
+      constants.ISPECS_MINMAX: [{
+        constants.ISPECS_MIN: ispec,
+        constants.ISPECS_MAX: ispec,
+        }],
+      constants.IPOLICY_DTS: [disk_template],
+      }
+
+    self._AssertComputeViolation(ipolicy, [512], disk_template, 0)
+    self._AssertComputeViolation(ipolicy, [], disk_template, 1)
+    self._AssertComputeViolation(ipolicy, [512, 512], disk_template, 1)
+    self._AssertComputeViolation(ipolicy, [511], disk_template, 1)
+    self._AssertComputeViolation(ipolicy, [513], disk_template, 1)
+
+
+class _StubComputeIPolicySpecViolation:
+  def __init__(self, mem_size, cpu_count, disk_count, nic_count, disk_sizes,
+               spindle_use, disk_template):
+    self.mem_size = mem_size
+    self.cpu_count = cpu_count
+    self.disk_count = disk_count
+    self.nic_count = nic_count
+    self.disk_sizes = disk_sizes
+    self.spindle_use = spindle_use
+    self.disk_template = disk_template
+
+  def __call__(self, _, mem_size, cpu_count, disk_count, nic_count, disk_sizes,
+               spindle_use, disk_template):
+    assert self.mem_size == mem_size
+    assert self.cpu_count == cpu_count
+    assert self.disk_count == disk_count
+    assert self.nic_count == nic_count
+    assert self.disk_sizes == disk_sizes
+    assert self.spindle_use == spindle_use
+    assert self.disk_template == disk_template
+
+    return []
+
+
 class _FakeConfigForComputeIPolicyInstanceViolation:
   def __init__(self, be, excl_stor):
     self.cluster = objects.Cluster(beparams={"default": be})
