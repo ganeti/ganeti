@@ -526,7 +526,7 @@ class TestKvmRuntime(testutils.GanetiTestCase):
     self.MockOut('write_file', mock.patch('ganeti.utils.WriteFile'))
     self.MockOut(mock.patch(kvm_class + '.ValidateParameters'))
     self.MockOut(mock.patch('ganeti.hypervisor.hv_kvm.OpenTap',
-                            return_value=('test_nic', [])))
+                            return_value=('test_nic', [], [])))
     self.MockOut(mock.patch(kvm_class + '._ConfigureNIC'))
     self.MockOut('pid_alive', mock.patch(kvm_class + '._InstancePidAlive',
                                          return_value=('file', -1, False)))
