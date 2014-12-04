@@ -229,7 +229,7 @@ case $DIST_RELEASE in
         libcurl4-gnutls-dev \
         libpcre3-dev \
         happy \
-        hlint hscolour pandoc \
+        hscolour pandoc \
         graphviz qemu-utils \
         python-docutils \
         python-simplejson \
@@ -323,7 +323,7 @@ case $DIST_RELEASE in
       libghc-hslogger-dev libghc-crypto-dev \
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev \
-      libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
+      libghc-snap-server-dev libpcre3 libpcre3-dev happy hscolour pandoc \
       libghc-zlib-dev libghc-psqueue-dev \
       cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
@@ -374,14 +374,22 @@ case $DIST_RELEASE in
       libghc-hslogger-dev libghc-crypto-dev \
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev \
-      libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
+      libghc-snap-server-dev libpcre3 libpcre3-dev happy hscolour pandoc \
       libghc-zlib-dev libghc-psqueue-dev \
       libghc-base64-bytestring-dev libghc-lens-dev libghc-lifted-base-dev \
+      libghc-cabal-dev \
       cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-pyinotify python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
       shelltestrunner python-dev pylint openssh-client vim git git-email
+
+    in_chroot -- \
+      cabal update
+
+    in_chroot -- \
+      cabal install --global \
+       'hlint>=1.9.12'
 ;;
 
   precise)
@@ -404,7 +412,9 @@ EOF
       libghc-hslogger-dev libghc-crypto-dev \
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
-      libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
+      libghc-cabal-dev \
+      cabal-install \
+      libghc-snap-server-dev libpcre3 libpcre3-dev happy hscolour pandoc \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
@@ -439,8 +449,10 @@ EOF
       libghc-hslogger-dev libghc-crypto-dev \
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
-      libghc-snap-server-dev libpcre3 libpcre3-dev hscolour hlint pandoc \
+      libghc-snap-server-dev libpcre3 libpcre3-dev happy hscolour pandoc \
       libghc-lifted-base-dev \
+      libghc-cabal-dev \
+      cabal-install \
       libghc-base64-bytestring-dev \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
@@ -448,6 +460,12 @@ EOF
       shelltestrunner python-dev pylint openssh-client vim git git-email \
       build-essential
 
+    in_chroot -- \
+      cabal update
+
+     in_chroot -- \
+       cabal install --global \
+        'hlint>=1.9.12'
 ;;
 esac
 
