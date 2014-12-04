@@ -370,7 +370,6 @@ class LUInstanceCreate(LogicalUnit):
       # specifying a group on instance creation and then selecting nodes from
       # that group
       self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
-      self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
 
       if self.op.opportunistic_locking:
         self.opportunistic_locks[locking.LEVEL_NODE] = True
@@ -398,7 +397,6 @@ class LUInstanceCreate(LogicalUnit):
 
       if src_node is None:
         self.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
-        self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
         self.op.src_node = None
         if os.path.isabs(src_path):
           raise errors.OpPrereqError("Importing an instance from a path"
@@ -878,7 +876,6 @@ class LUInstanceCreate(LogicalUnit):
                                self.op.src_node_uuid])
     ReleaseLocks(self, locking.LEVEL_NODE, keep=keep_locks)
     ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=keep_locks)
-    ReleaseLocks(self, locking.LEVEL_NODE_ALLOC)
     # Release all unneeded group locks
     ReleaseLocks(self, locking.LEVEL_NODEGROUP,
                  keep=self.cfg.GetNodeGroupsFromNodes(keep_locks))
