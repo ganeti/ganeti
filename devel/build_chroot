@@ -448,7 +448,7 @@ EOF
       libghc-regex-pcre-dev libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
       libghc-snap-server-dev libpcre3 libpcre3-dev happy hscolour pandoc \
-      libghc-lifted-base-dev \
+      libghc-lens-dev libghc-lifted-base-dev \
       libghc-cabal-dev \
       cabal-install \
       libghc-base64-bytestring-dev \
