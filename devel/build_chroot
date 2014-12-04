@@ -405,16 +405,15 @@ EOF
     echo "Installing packages"
     in_chroot -- \
       $APT_INSTALL \
-      autoconf automake ghc ghc-haddock libghc-network-dev \
-      libghc-test-framework{,-hunit,-quickcheck2}-dev \
-      libghc-json-dev libghc-curl-dev libghc-hinotify-dev \
+      autoconf automake ghc ghc-haddock \
+      libghc-curl-dev libghc-hinotify-dev \
       libghc-parallel-dev libghc-utf8-string-dev \
-      libghc-hslogger-dev libghc-crypto-dev \
-      libghc-regex-pcre-dev libghc-attoparsec-dev \
+      libghc-crypto-dev \
+      libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
       libghc-cabal-dev \
       cabal-install \
-      libghc-snap-server-dev libpcre3 libpcre3-dev happy hscolour pandoc \
+      libpcre3 libpcre3-dev happy hscolour pandoc \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
@@ -424,13 +423,25 @@ EOF
     in_chroot -- \
       cabal update
 
+     # Precise has network-2.4.0.0, which breaks, see
+     #   https://github.com/haskell/network/issues/60
      in_chroot -- \
        cabal install --global \
         'base64-bytestring>=1' \
+        hslogger-1.2.3 \
+        'hlint>=1.9.12' \
+        json-0.7 \
         lens-3.10.2 \
         'lifted-base>=0.1.2' \
-        'hlint>=1.9.12' \
-        shelltestrunner
+        'network>=2.4.0.1' \
+        'regex-pcre>=0.94.4' \
+        parsec-3.1.3 \
+        shelltestrunner \
+        'snap-server>=0.8.1' \
+        test-framework-0.8.0.3 \
+        test-framework-hunit-0.3.0.1 \
+        test-framework-quickcheck2-0.3.0.2 \
+        'transformers>=0.3.0.0'
     ;;
 
   *)
