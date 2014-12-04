@@ -433,10 +433,8 @@ EOF
         'base64-bytestring>=1' \
         lens-3.10.2 \
         'lifted-base>=0.1.2' \
-        'hlint>=1.9.12'
-
-    in_chroot -- \
-      cabal install --global shelltestrunner
+        'hlint>=1.9.12' \
+        shelltestrunner
     ;;
 
   *)
