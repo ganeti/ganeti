@@ -622,12 +622,15 @@ def ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes,
   @return: A list of violations, or an empty list of no violations are found
 
   """
+  if disk_template != constants.DT_DISKLESS and disk_sizes == []:
+    return [constants.ISPEC_DISK_COUNT]
+  disk_templates = map (lambda _: disk_template, disk_sizes)
   return ComputeIPolicySpecViolation(ipolicy,
                                      # mem_size, cpu_count, disk_count
                                      None, None, len(disk_sizes),
                                      None, disk_sizes, # nic_count, disk_sizes
                                      None, # spindle_use
-                                     disk_template,
+                                     disk_templates,
                                      _compute_fn=_compute_fn)
 
 
