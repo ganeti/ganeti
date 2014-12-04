@@ -2338,8 +2338,8 @@ class TLReplaceDisks(Tasklet):
         self.disks = range(len(self.instance.disks))
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
-    if (not self.disks or
-        not utils.AllDiskOfType(map(lambda i: disks[i], self.disks),
+    if (not disks or
+        not utils.AllDiskOfType(map(lambda i: disks[i], disks),
                                 [constants.DT_DRBD8])):
       raise errors.OpPrereqError("Can only run replace disks for DRBD8-based"
                                  " instances", errors.ECODE_INVAL)
