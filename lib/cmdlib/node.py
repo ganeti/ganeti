@@ -361,7 +361,7 @@ class LUNodeAdd(LogicalUnit):
         port_map,
         True, # from authorized keys
         True, # from public keys
-        True, # clear authorized keys
+        False, # clear authorized keys
         True) # clear public keys
       remove_result[master_node].Raise(
         "Could not remove SSH keys of node %s before readding,"
