@@ -421,10 +421,6 @@ EOF
       python-dev pylint openssh-client vim git git-email \
       build-essential
 
-    echo "Installing cabal packages"
-    in_chroot -- \
-      $APT_INSTALL cabal-install
-
     in_chroot -- \
       cabal update
 
