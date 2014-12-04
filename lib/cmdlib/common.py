@@ -624,7 +624,7 @@ def ComputeIPolicyDiskSizesViolation(ipolicy, disk_sizes,
   """
   if disk_template != constants.DT_DISKLESS and disk_sizes == []:
     return [constants.ISPEC_DISK_COUNT]
-  disk_templates = map (lambda _: disk_template, disk_sizes)
+  disk_templates = map(lambda _: disk_template, disk_sizes)
   return ComputeIPolicySpecViolation(ipolicy,
                                      # mem_size, cpu_count, disk_count
                                      None, None, len(disk_sizes),
