@@ -61,19 +61,6 @@ sighupReceived = [False]
 _OP_PREFIX = "Op"
 _LU_PREFIX = "LU"
 
-#: LU classes which don't need to acquire the node allocation lock
-#: (L{locking.NAL}) when they acquire all node or node resource locks
-_NODE_ALLOC_WHITELIST = frozenset([])
-
-#: LU classes which don't need to acquire the node allocation lock
-#: (L{locking.NAL}) in the same mode (shared/exclusive) as the node
-#: or node resource locks
-_NODE_ALLOC_MODE_WHITELIST = compat.UniqueFrozenset([
-  cmdlib.LUBackupExport,
-  cmdlib.LUBackupRemove,
-  cmdlib.LUOobCommand,
-  ])
-
 
 class LockAcquireTimeout(Exception):
   """Exception to report timeouts on acquiring locks.
@@ -267,43 +254,6 @@ def _FailingSubmitManyJobs(_):
   """
   raise errors.ProgrammerError("Opcodes processed without callbacks (e.g."
                                " queries) can not submit jobs")
-
-
-def _VerifyLocks(lu, _mode_whitelist=_NODE_ALLOC_MODE_WHITELIST,
-                 _nal_whitelist=_NODE_ALLOC_WHITELIST):
-  """Performs consistency checks on locks acquired by a logical unit.
-
-  @type lu: L{cmdlib.LogicalUnit}
-  @param lu: Logical unit instance
-
-  """
-  if not __debug__:
-    return
-
-  allocset = lu.owned_locks(locking.LEVEL_NODE_ALLOC)
-  have_nal = locking.NAL in allocset
-
-  for level in [locking.LEVEL_NODE, locking.LEVEL_NODE_RES]:
-    # TODO: Verify using actual lock mode, not using LU variables
-    if level in lu.needed_locks:
-      share_node_alloc = lu.share_locks[locking.LEVEL_NODE_ALLOC]
-      share_level = lu.share_locks[level]
-
-      if lu.__class__ in _mode_whitelist:
-        assert share_node_alloc != share_level, \
-          "LU is whitelisted to use different modes for node allocation lock"
-      else:
-        assert bool(share_node_alloc) == bool(share_level), \
-          ("Node allocation lock must be acquired using the same mode as nodes"
-           " and node resources")
-
-      if lu.__class__ in _nal_whitelist:
-        assert not have_nal, \
-          "LU is whitelisted for not acquiring the node allocation lock"
-      elif lu.needed_locks[level] == locking.ALL_SET:
-        assert have_nal, \
-          ("Node allocation lock must be used if an LU acquires all nodes"
-           " or node resources")
 
 
 def _LockList(names):
@@ -578,8 +528,6 @@ class Processor(object):
         pending = []
 
       logging.debug("Finished acquiring locks")
-
-      _VerifyLocks(lu)
 
       if self._cbs:
         self._cbs.NotifyStart()
