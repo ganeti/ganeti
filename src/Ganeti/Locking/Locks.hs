@@ -61,8 +61,6 @@ data GanetiLocks = ClusterLockSet
                  | BGL
                  | InstanceLockSet
                  | Instance String
-                 | NodeAllocLockSet
-                 | NAL
                  | NodeGroupLockSet
                  | NodeGroup String
                  | NodeLockSet
@@ -82,8 +80,6 @@ lockName :: GanetiLocks -> String
 lockName BGL = "cluster/BGL"
 lockName ClusterLockSet = "cluster/[lockset]"
 lockName InstanceLockSet = "instance/[lockset]"
-lockName NodeAllocLockSet = "node-alloc/[lockset]"
-lockName NAL = "node-alloc/NAL"
 lockName (Instance uuid) = "instance/" ++ uuid
 lockName NodeGroupLockSet = "nodegroup/[lockset]"
 lockName (NodeGroup uuid) = "nodegroup/" ++ uuid
@@ -103,8 +99,6 @@ lockFromName "instance/[lockset]" = return InstanceLockSet
 lockFromName (stripPrefix "instance/" -> Just uuid) = return $ Instance uuid
 lockFromName "nodegroup/[lockset]" = return NodeGroupLockSet
 lockFromName (stripPrefix "nodegroup/" -> Just uuid) = return $ NodeGroup uuid
-lockFromName "node-alloc/[lockset]" = return NodeAllocLockSet
-lockFromName "node-alloc/NAL" = return NAL
 lockFromName "node-res/[lockset]" = return NodeResLockSet
 lockFromName (stripPrefix "node-res/" -> Just uuid) = return $ NodeRes uuid
 lockFromName "node/[lockset]" = return NodeLockSet
@@ -121,7 +115,6 @@ instance J.JSON GanetiLocks where
 -- | The levels, the locks belong to.
 data LockLevel = LevelCluster
                | LevelInstance
-               | LevelNodeAlloc
                | LevelNodeGroup
                | LevelNode
                | LevelNodeRes
@@ -134,7 +127,6 @@ data LockLevel = LevelCluster
 lockLevelName :: LockLevel -> String
 lockLevelName LevelCluster = "cluster"
 lockLevelName LevelInstance = "instance"
-lockLevelName LevelNodeAlloc = "node-alloc"
 lockLevelName LevelNodeGroup = "nodegroup"
 lockLevelName LevelNode = "node"
 lockLevelName LevelNodeRes = "node-res"
@@ -145,7 +137,6 @@ lockLevelName LevelConfig = "config"
 lockLevelFromName :: String -> J.Result LockLevel
 lockLevelFromName "cluster" = return LevelCluster
 lockLevelFromName "instance" = return LevelInstance
-lockLevelFromName "node-alloc" = return LevelNodeAlloc
 lockLevelFromName "nodegroup" = return LevelNodeGroup
 lockLevelFromName "node" = return LevelNode
 lockLevelFromName "node-res" = return LevelNodeRes
@@ -162,8 +153,6 @@ lockLevel :: GanetiLocks -> LockLevel
 lockLevel BGL = LevelCluster
 lockLevel ClusterLockSet = LevelCluster
 lockLevel InstanceLockSet = LevelInstance
-lockLevel NodeAllocLockSet = LevelNodeAlloc
-lockLevel NAL = LevelNodeAlloc
 lockLevel (Instance _) = LevelInstance
 lockLevel NodeGroupLockSet = LevelNodeGroup
 lockLevel (NodeGroup _) = LevelNodeGroup
@@ -179,7 +168,6 @@ instance Lock GanetiLocks where
   lockImplications BGL = [ClusterLockSet]
   lockImplications (Instance _) = [InstanceLockSet]
   lockImplications (NodeGroup _) = [NodeGroupLockSet]
-  lockImplications NAL = [NodeAllocLockSet]
   lockImplications (NodeRes _) = [NodeResLockSet]
   lockImplications (Node _) = [NodeLockSet]
   lockImplications (Network _) = [NetworkLockSet]

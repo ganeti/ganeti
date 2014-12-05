@@ -58,8 +58,6 @@ instance Arbitrary GanetiLocks where
                     , Instance <$> genFQDN
                     , return NodeGroupLockSet
                     , NodeGroup <$> genUUID
-                    , return NAL
-                    , return NodeAllocLockSet
                     , return NodeResLockSet
                     , NodeRes <$> genUUID
                     , return NodeLockSet
