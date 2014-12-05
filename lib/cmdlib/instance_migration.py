@@ -69,11 +69,6 @@ def _ExpandNamesForMigration(lu):
   lu.recalculate_locks[locking.LEVEL_NODE_RES] = constants.LOCKS_REPLACE
   lu.dont_collate_locks[locking.LEVEL_NODE_RES] = True
 
-  # The node allocation lock is actually only needed for externally replicated
-  # instances (e.g. sharedfile or RBD) and if an iallocator is used.
-  lu.needed_locks[locking.LEVEL_NODE_ALLOC] = []
-  lu.dont_collate_locks[locking.LEVEL_NODE_ALLOC] = True
-
 
 def _DeclareLocksForMigration(lu, level):
   """Declares locks for L{TLMigrateInstance}.
@@ -82,27 +77,21 @@ def _DeclareLocksForMigration(lu, level):
   @param level: Lock level
 
   """
-  if level == locking.LEVEL_NODE_ALLOC:
+  if level == locking.LEVEL_NODE:
     assert lu.op.instance_name in lu.owned_locks(locking.LEVEL_INSTANCE)
 
     instance = lu.cfg.GetInstanceInfo(lu.op.instance_uuid)
 
-    # Node locks are already declared here rather than at LEVEL_NODE as we need
-    # the instance object anyway to declare the node allocation lock.
     disks = lu.cfg.GetInstanceDisks(instance.uuid)
     if utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
       if lu.op.target_node is None:
         lu.needed_locks[locking.LEVEL_NODE] = locking.ALL_SET
-        lu.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
       else:
         lu.needed_locks[locking.LEVEL_NODE] = [instance.primary_node,
                                                lu.op.target_node_uuid]
-      del lu.recalculate_locks[locking.LEVEL_NODE]
     else:
       lu._LockInstancesNodes() # pylint: disable=W0212
 
-  elif level == locking.LEVEL_NODE:
-    # Node locks are declared together with the node allocation lock
     assert (lu.needed_locks[locking.LEVEL_NODE] or
             lu.needed_locks[locking.LEVEL_NODE] is locking.ALL_SET)
 
@@ -355,7 +344,6 @@ class TLMigrateInstance(Tasklet):
       CheckIAllocatorOrNode(self.lu, "iallocator", "target_node")
 
       if self.lu.op.iallocator:
-        assert locking.NAL in self.lu.owned_locks(locking.LEVEL_NODE_ALLOC)
         self._RunAllocator()
       else:
         # We set set self.target_node_uuid as it is required by
@@ -385,7 +373,6 @@ class TLMigrateInstance(Tasklet):
         # in the LU
         ReleaseLocks(self.lu, locking.LEVEL_NODE,
                      keep=[self.instance.primary_node, self.target_node_uuid])
-        ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
     elif utils.AllDiskOfType(disks, constants.DTS_INT_MIRROR):
       templates = [d.dev_type for d in disks]
@@ -499,8 +486,6 @@ class TLMigrateInstance(Tasklet):
     """Run the allocator based on input opcode.
 
     """
-    assert locking.NAL in self.lu.owned_locks(locking.LEVEL_NODE_ALLOC)
-
     # FIXME: add a self.ignore_ipolicy option
     req = iallocator.IAReqRelocate(
           inst_uuid=self.instance_uuid,
