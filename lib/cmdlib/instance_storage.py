@@ -852,7 +852,6 @@ class LUInstanceRecreateDisks(LogicalUnit):
       if self.op.iallocator:
         # iallocator will select a new node in the same group
         self.needed_locks[locking.LEVEL_NODEGROUP] = []
-        self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
 
     self.needed_locks[locking.LEVEL_NODE_RES] = []
 
@@ -888,7 +887,6 @@ class LUInstanceRecreateDisks(LogicalUnit):
           self.needed_locks[locking.LEVEL_NODE].extend(
             self.cfg.GetNodeGroup(group_uuid).members)
 
-        assert locking.NAL in self.owned_locks(locking.LEVEL_NODE_ALLOC)
       elif not self.op.nodes:
         self._LockInstancesNodes(primary_only=False)
     elif level == locking.LEVEL_NODE_RES:
@@ -982,7 +980,6 @@ class LUInstanceRecreateDisks(LogicalUnit):
       # Release unneeded node and node resource locks
       ReleaseLocks(self, locking.LEVEL_NODE, keep=self.op.node_uuids)
       ReleaseLocks(self, locking.LEVEL_NODE_RES, keep=self.op.node_uuids)
-      ReleaseLocks(self, locking.LEVEL_NODE_ALLOC)
 
     if self.op.node_uuids:
       node_uuids = self.op.node_uuids
@@ -1926,7 +1923,6 @@ class LUInstanceReplaceDisks(LogicalUnit):
       if self.op.iallocator is not None:
         # iallocator will select a new node in the same group
         self.needed_locks[locking.LEVEL_NODEGROUP] = []
-        self.needed_locks[locking.LEVEL_NODE_ALLOC] = locking.ALL_SET
 
     self.needed_locks[locking.LEVEL_NODE_RES] = []
 
@@ -1958,7 +1954,6 @@ class LUInstanceReplaceDisks(LogicalUnit):
       if self.op.iallocator is not None:
         assert self.op.remote_node_uuid is None
         assert not self.needed_locks[locking.LEVEL_NODE]
-        assert locking.NAL in self.owned_locks(locking.LEVEL_NODE_ALLOC)
 
         # Lock member nodes of all locked groups
         self.needed_locks[locking.LEVEL_NODE] = \
@@ -2401,7 +2396,6 @@ class TLReplaceDisks(Tasklet):
     # Release unneeded node and node resource locks
     ReleaseLocks(self.lu, locking.LEVEL_NODE, keep=touched_nodes)
     ReleaseLocks(self.lu, locking.LEVEL_NODE_RES, keep=touched_nodes)
-    ReleaseLocks(self.lu, locking.LEVEL_NODE_ALLOC)
 
     # Release any owned node group
     ReleaseLocks(self.lu, locking.LEVEL_NODEGROUP)
