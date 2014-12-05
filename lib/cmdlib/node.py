@@ -549,9 +549,6 @@ class LUNodeSetParams(LogicalUnit):
     if self.lock_all:
       self.needed_locks = {
         locking.LEVEL_NODE: locking.ALL_SET,
-
-        # Block allocations when all nodes are locked
-        locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
         }
     else:
       self.needed_locks = {
@@ -568,7 +565,6 @@ class LUNodeSetParams(LogicalUnit):
     self.share_locks = ShareAll()
     self.share_locks[locking.LEVEL_NODE] = 0
     self.share_locks[locking.LEVEL_NODE_RES] = 0
-    self.share_locks[locking.LEVEL_NODE_ALLOC] = 0
 
     if self.lock_instances:
       self.needed_locks[locking.LEVEL_INSTANCE] = \
@@ -1323,7 +1319,6 @@ class LUNodeQueryvols(NoHooksLU):
     else:
       self.needed_locks = {
         locking.LEVEL_NODE: locking.ALL_SET,
-        locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
         }
 
   def Exec(self, feedback_fn):
@@ -1399,7 +1394,6 @@ class LUNodeQueryStorage(NoHooksLU):
     else:
       self.needed_locks = {
         locking.LEVEL_NODE: locking.ALL_SET,
-        locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
         }
 
   def _DetermineStorageType(self):
