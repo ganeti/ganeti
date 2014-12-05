@@ -957,7 +957,8 @@ def _VerifyClientCertificate(cert_file=pathutils.NODED_CLIENT_CERT_FILE):
     return (None, utils.GetCertificateDigest(cert_filename=cert_file))
 
 
-def _VerifySshSetup(node_status_list, my_name):
+def _VerifySshSetup(node_status_list, my_name,
+                    pub_key_file=pathutils.SSH_PUB_KEYS):
   """Verifies the state of the SSH key files.
 
   @type node_status_list: list of tuples
@@ -966,6 +967,8 @@ def _VerifySshSetup(node_status_list, my_name):
     is_potential_master_candidate, online)
   @type my_name: str
   @param my_name: name of this node
+  @type pub_key_file: str
+  @param pub_key_file: filename of the public key file
 
   """
   if node_status_list is None:
@@ -979,6 +982,13 @@ def _VerifySshSetup(node_status_list, my_name):
      my_status_list[0]
 
   result = []
+
+  if not os.path.exists(pub_key_file):
+    result.append("The public key file '%s' does not exist. Consider running"
+                  " 'gnt-cluster renew-crypto --new-ssh-keys"
+                  " [--no-ssh-key-check]' to fix this." % pub_key_file)
+    return result
+
   pot_mc_uuids = [uuid for (uuid, _, _, _) in node_status_list]
   pub_keys = ssh.QueryPubKeyFile(None)
 

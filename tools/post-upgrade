@@ -62,7 +62,7 @@ def main():
     result = utils.RunCmd(["gnt-cluster", "renew-crypto",
                            "--new-ssh-keys", "--no-ssh-key-check", "-f"])
     if result.failed:
-      cli.ToStderr("Failed to create node certificates: %s; Output %s" %
+      cli.ToStderr("Failed to create SSH keys: %s; Output %s" %
                    (result.fail_reason, result.output))
 
   return 0

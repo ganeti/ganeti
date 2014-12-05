@@ -507,6 +507,9 @@ def _ManipulatePubKeyFile(target_identifier, target_key,
   3) Finally, the list of lines is assembled to a string and written
   atomically to the public key file, thereby overriding it.
 
+  If the public key file does not exist, we create it. This is necessary for
+  a smooth transition after an upgrade.
+
   @type target_identifier: str
   @param target_identifier: identifier of the node whose key is added; in most
     cases this is the node's UUID, but in some it is the node's host name
@@ -530,11 +533,19 @@ def _ManipulatePubKeyFile(target_identifier, target_key,
   assert process_line_fn is not None
 
   old_lines = []
-  try:
-    f_orig = open(key_file, "r")
-    old_lines = f_orig.readlines()
-  finally:
-    f_orig.close()
+  f_orig = None
+  if os.path.exists(key_file):
+    try:
+      f_orig = open(key_file, "r")
+      old_lines = f_orig.readlines()
+    finally:
+      f_orig.close()
+  else:
+    try:
+      f_orig = open(key_file, "w")
+      f_orig.close()
+    except IOError as e:
+      raise errors.SshUpdateError("Cannot create public key file: %s" % e)
 
   found = False
   new_lines = []
