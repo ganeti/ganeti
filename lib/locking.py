@@ -937,24 +937,16 @@ class _AcquireTimeout(Exception):
 #   same time.
 # - LEVEL_NODE_RES is for node resources and should be used by operations with
 #   possibly high impact on the node's disks.
-# - LEVEL_NODE_ALLOC blocks instance allocations for the whole cluster
-#   ("NAL" is the only lock at this level). It should be acquired in shared
-#   mode when an opcode blocks all or a significant amount of a cluster's
-#   locks. Opcodes doing instance allocations should acquire in exclusive mode.
-#   Once the set of acquired locks for an opcode has been reduced to the working
-#   set, the NAL should be released as well to allow allocations to proceed.
 (LEVEL_CLUSTER,
  LEVEL_INSTANCE,
- LEVEL_NODE_ALLOC,
  LEVEL_NODEGROUP,
  LEVEL_NODE,
  LEVEL_NODE_RES,
- LEVEL_NETWORK) = range(0, 7)
+ LEVEL_NETWORK) = range(0, 6)
 
 LEVELS = [
   LEVEL_CLUSTER,
   LEVEL_INSTANCE,
-  LEVEL_NODE_ALLOC,
   LEVEL_NODEGROUP,
   LEVEL_NODE,
   LEVEL_NODE_RES,
@@ -974,7 +966,6 @@ LEVELS_MOD = compat.UniqueFrozenset([
 LEVEL_NAMES = {
   LEVEL_CLUSTER: "cluster",
   LEVEL_INSTANCE: "instance",
-  LEVEL_NODE_ALLOC: "node-alloc",
   LEVEL_NODEGROUP: "nodegroup",
   LEVEL_NODE: "node",
   LEVEL_NODE_RES: "node-res",
@@ -983,6 +974,3 @@ LEVEL_NAMES = {
 
 # Constant for the big ganeti lock
 BGL = "BGL"
-
-#: Node allocation lock
-NAL = "NAL"

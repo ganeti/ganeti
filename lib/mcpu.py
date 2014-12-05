@@ -397,7 +397,6 @@ class Processor(object):
         expand_fns = {
           locking.LEVEL_CLUSTER: (lambda: [locking.BGL]),
           locking.LEVEL_INSTANCE: self.cfg.GetInstanceList,
-          locking.LEVEL_NODE_ALLOC: (lambda: [locking.NAL]),
           locking.LEVEL_NODEGROUP: self.cfg.GetNodeGroupList,
           locking.LEVEL_NODE: self.cfg.GetNodeList,
           locking.LEVEL_NODE_RES: self.cfg.GetNodeList,

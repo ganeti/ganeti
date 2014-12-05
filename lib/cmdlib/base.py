@@ -189,7 +189,6 @@ class LogicalUnit(object): # pylint: disable=R0902
       locking.LEVEL_CLUSTER: (lambda: [locking.BGL]),
       locking.LEVEL_INSTANCE:
         lambda: self.cfg.GetInstanceNames(self.cfg.GetInstanceList()),
-      locking.LEVEL_NODE_ALLOC: (lambda: [locking.NAL]),
       locking.LEVEL_NODEGROUP: self.cfg.GetNodeGroupList,
       locking.LEVEL_NODE: self.cfg.GetNodeList,
       locking.LEVEL_NODE_RES: self.cfg.GetNodeList,
