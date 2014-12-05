@@ -113,11 +113,9 @@ class LUClusterRenewCrypto(NoHooksLU):
   def ExpandNames(self):
     self.needed_locks = {
       locking.LEVEL_NODE: locking.ALL_SET,
-      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
     }
     self.share_locks = ShareAll()
     self.share_locks[locking.LEVEL_NODE] = 0
-    self.share_locks[locking.LEVEL_NODE_ALLOC] = 0
 
   def CheckPrereq(self):
     """Check prerequisites.
@@ -501,7 +499,6 @@ class LUClusterRedistConf(NoHooksLU):
   def ExpandNames(self):
     self.needed_locks = {
       locking.LEVEL_NODE: locking.ALL_SET,
-      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
     }
     self.share_locks = ShareAll()
 
@@ -617,15 +614,11 @@ class LUClusterRepairDiskSizes(NoHooksLU):
       self.needed_locks = {
         locking.LEVEL_NODE_RES: locking.ALL_SET,
         locking.LEVEL_INSTANCE: locking.ALL_SET,
-
-        # This opcode is acquires the node locks for all instances
-        locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
         }
 
     self.share_locks = {
       locking.LEVEL_NODE_RES: 1,
       locking.LEVEL_INSTANCE: 0,
-      locking.LEVEL_NODE_ALLOC: 1,
       }
 
   def DeclareLocks(self, level):
@@ -927,7 +920,6 @@ class LUClusterSetParams(LogicalUnit):
       locking.LEVEL_NODE: locking.ALL_SET,
       locking.LEVEL_INSTANCE: locking.ALL_SET,
       locking.LEVEL_NODEGROUP: locking.ALL_SET,
-      locking.LEVEL_NODE_ALLOC: locking.ALL_SET,
     }
     self.share_locks = ShareAll()
 
