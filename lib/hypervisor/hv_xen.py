@@ -525,11 +525,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
     cfg_file = cls._InstanceNICFile(instance_name, idx)
     data = StringIO()
 
-    data.write("TAGS=%s\n" % r"\ ".join(instance.GetTags()))
+    data.write("TAGS=\"%s\"\n" % r"\ ".join(instance.GetTags()))
     if nic.netinfo:
       netinfo = objects.Network.FromDict(nic.netinfo)
       for k, v in netinfo.HooksDict().iteritems():
-        data.write("%s=%s\n" % (k, v))
+        data.write("%s=\"%s\"\n" % (k, v))
 
     data.write("MAC=%s\n" % nic.mac)
     if nic.ip:
