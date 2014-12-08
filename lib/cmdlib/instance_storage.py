@@ -1896,7 +1896,7 @@ class LUInstanceReplaceDisks(LogicalUnit):
                                  " secondary node", errors.ECODE_INVAL)
 
   def ExpandNames(self):
-    self._ExpandAndLockInstance()
+    self._ExpandAndLockInstance(allow_forthcoming=True)
 
     assert locking.LEVEL_NODE not in self.needed_locks
     assert locking.LEVEL_NODE_RES not in self.needed_locks
@@ -2443,7 +2443,9 @@ class TLReplaceDisks(Tasklet):
     activate_disks = not self.instance.disks_active
 
     # Activate the instance disks if we're replacing them on a down instance
-    if activate_disks:
+    # that is real (forthcoming instances currently only have forthcoming
+    # disks).
+    if activate_disks and not self.instance.forthcoming:
       StartInstanceDisks(self.lu, self.instance, True)
       # Re-read the instance object modified by the previous call
       self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
@@ -2459,7 +2461,7 @@ class TLReplaceDisks(Tasklet):
     finally:
       # Deactivate the instance disks if we're replacing them on a
       # down instance
-      if activate_disks:
+      if activate_disks and not self.instance.forthcoming:
         _SafeShutdownInstanceDisks(self.lu, self.instance,
                                    req_states=INSTANCE_NOT_RUNNING)
 
@@ -2631,6 +2633,10 @@ class TLReplaceDisks(Tasklet):
     """
     steps_total = 6
 
+    if self.instance.forthcoming:
+      feedback_fn("Instance forthcoming, not touching disks")
+      return
+
     # Step: check device activation
     self.lu.LogStep(1, steps_total, "Check device existence")
     self._CheckDisksExistence([self.other_node_uuid, self.target_node_uuid])
@@ -2790,6 +2796,30 @@ class TLReplaceDisks(Tasklet):
     Failures are not very well handled.
 
     """
+    if self.instance.forthcoming:
+      feedback_fn("Instance fortcoming, will only update the configuration")
+      inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+      minors = self.cfg.AllocateDRBDMinor([self.new_node_uuid
+                                           for _ in inst_disks],
+                                          self.instance.uuid)
+      logging.debug("Allocated minors %r", minors)
+      iv_names = {}
+      for idx, (dev, new_minor) in enumerate(zip(inst_disks, minors)):
+        (o_node1, _, o_port, o_minor1, o_minor2, o_secret) = \
+            dev.logical_id
+        if self.instance.primary_node == o_node1:
+          p_minor = o_minor1
+        else:
+          p_minor = o_minor2
+        new_net_id = (self.instance.primary_node, self.new_node_uuid, o_port,
+                      p_minor, new_minor, o_secret)
+        iv_names[idx] = (dev, dev.children, new_net_id)
+        logging.debug("Allocated new_minor: %s, new_logical_id: %s", new_minor,
+                      new_net_id)
+      self._UpdateDisksSecondary(iv_names, feedback_fn)
+      ReleaseLocks(self.lu, locking.LEVEL_NODE)
+      return
+
     steps_total = 6
 
     pnode = self.instance.primary_node
