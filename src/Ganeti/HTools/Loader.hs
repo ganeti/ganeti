@@ -329,7 +329,7 @@ checkData nl il =
                  delta_dsk = truncate (Node.tDsk node)
                              - Node.fDsk node
                              - nodeIdsk node il
-                 newn = Node.setXmem node delta_mem
+                 newn = node `Node.setXmem` delta_mem
                  umsg1 =
                    if delta_mem > 512 || delta_dsk > 1024
                       then printf "node %s is missing %d MB ram \
