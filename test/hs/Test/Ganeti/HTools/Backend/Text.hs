@@ -180,21 +180,21 @@ prop_ISpecIdempotent ispec =
   case Text.loadISpec "dummy" . Utils.sepSplit ',' .
        Text.serializeISpec $ ispec of
     Bad msg -> failTest $ "Failed to load ispec: " ++ msg
-    Ok ispec' -> ispec ==? ispec'
+    Ok ispec' -> ispec' ==? ispec
 
 prop_MultipleMinMaxISpecsIdempotent :: [Types.MinMaxISpecs] -> Property
 prop_MultipleMinMaxISpecsIdempotent minmaxes =
   case Text.loadMultipleMinMaxISpecs "dummy" . Utils.sepSplit ';' .
        Text.serializeMultipleMinMaxISpecs $ minmaxes of
     Bad msg -> failTest $ "Failed to load min/max ispecs: " ++ msg
-    Ok minmaxes' -> minmaxes ==? minmaxes'
+    Ok minmaxes' -> minmaxes' ==? minmaxes
 
 prop_IPolicyIdempotent :: Types.IPolicy -> Property
 prop_IPolicyIdempotent ipol =
   case Text.loadIPolicy . Utils.sepSplit '|' $
        Text.serializeIPolicy owner ipol of
     Bad msg -> failTest $ "Failed to load ispec: " ++ msg
-    Ok res -> (owner, ipol) ==? res
+    Ok res -> res ==? (owner, ipol)
   where owner = "dummy"
 
 -- | This property, while being in the text tests, does more than just
@@ -221,8 +221,8 @@ prop_CreateSerialise =
        Bad msg -> failTest $ "Failed to allocate: " ++ msg
        Ok (_, _, _, [], _) -> counterexample
                               "Failed to allocate: no allocations" False
-       Ok (_, nl', il', _, _) ->
-         let cdata = Loader.ClusterData defGroupList nl' il' ctags
+       Ok (_, nl', il, _, _) ->
+         let cdata = Loader.ClusterData defGroupList nl' il ctags
                      Types.defIPolicy
              saved = Text.serializeCluster cdata
          in case Text.parseData saved >>= Loader.mergeData [] [] [] [] (TOD 0 0)
@@ -230,11 +230,11 @@ prop_CreateSerialise =
               Bad msg -> failTest $ "Failed to load/merge: " ++ msg
               Ok (Loader.ClusterData gl2 nl2 il2 ctags2 cpol2) ->
                 let (_, nl3) = Loader.checkData nl2 il2
-                in conjoin [ ctags ==? ctags2
-                           , Types.defIPolicy ==? cpol2
-                           , il' ==? il2
-                           , defGroupList ==? gl2
-                           , nl' ==? nl3
+                in conjoin [ ctags2 ==? ctags
+                           , cpol2 ==? Types.defIPolicy
+                           , il2 ==? il
+                           , gl2 ==? defGroupList
+                           , nl3 ==? nl'
                            ]
 
 testSuite "HTools/Backend/Text"
