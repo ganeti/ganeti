@@ -2753,6 +2753,24 @@ class TLReplaceDisks(Tasklet):
       self.lu.LogStep(cstep.next(), steps_total, "Removing old storage")
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
 
+  def _UpdateDisksSecondary(self, iv_names, feedback_fn):
+    """Update the configuration of disks to have a new secondary.
+
+    @param iv_names: iterable of triples for all volumes of the instance.
+        The first component has to be the device and the third the logical
+        id.
+    @param feedback_fn: function to used send feedback back to the caller of
+        the OpCode
+    """
+    self.lu.LogInfo("Updating instance configuration")
+    for dev, _, new_logical_id in iv_names.itervalues():
+      dev.logical_id = new_logical_id
+      self.cfg.Update(dev, feedback_fn)
+      self.cfg.SetDiskNodes(dev.uuid, [self.instance.primary_node,
+                                       self.new_node_uuid])
+
+    self.cfg.Update(self.instance, feedback_fn)
+
   def _ExecDrbd8Secondary(self, feedback_fn):
     """Replace the secondary node for DRBD 8.
 
@@ -2875,14 +2893,7 @@ class TLReplaceDisks(Tasklet):
 
     # if we managed to detach at least one, we update all the disks of
     # the instance to point to the new secondary
-    self.lu.LogInfo("Updating instance configuration")
-    for dev, _, new_logical_id in iv_names.itervalues():
-      dev.logical_id = new_logical_id
-      self.cfg.Update(dev, feedback_fn)
-      self.cfg.SetDiskNodes(dev.uuid, [self.instance.primary_node,
-                                       self.new_node_uuid])
-
-    self.cfg.Update(self.instance, feedback_fn)
+    self._UpdateDisksSecondary(iv_names, feedback_fn)
 
     # Release all node locks (the configuration has been updated)
     ReleaseLocks(self.lu, locking.LEVEL_NODE)
