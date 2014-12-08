@@ -598,7 +598,8 @@ pytools_PYTHON = \
 	lib/tools/node_daemon_setup.py \
 	lib/tools/prepare_node_join.py \
 	lib/tools/common.py \
-	lib/tools/ssh_update.py
+	lib/tools/ssh_update.py \
+	lib/tools/cfgupgrade.py
 
 utils_PYTHON = \
 	lib/utils/__init__.py \

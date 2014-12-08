@@ -38,14 +38,17 @@ import tempfile
 import operator
 import json
 
+from ganeti import cli
 from ganeti import constants
 from ganeti import utils
 from ganeti import serializer
 from ganeti import netutils
 
 from ganeti.utils import version
+from ganeti.tools.cfgupgrade import CfgUpgrade, ParseOptions, Error
 
 import testutils
+import mock
 
 
 def GetMinimalConfig():
@@ -86,23 +89,28 @@ def GetMinimalConfig():
 
 
 def _RunUpgrade(path, dry_run, no_verify, ignore_hostname=True,
-                downgrade=False):
-  cmd = [sys.executable, "%s/tools/cfgupgrade" % testutils.GetSourceDir(),
-         "--debug", "--force", "--path=%s" % path, "--confdir=%s" % path]
+                downgrade=False, fail=False):
+  args = ["--debug", "--force", "--path=%s" % path, "--confdir=%s" % path]
 
   if ignore_hostname:
-    cmd.append("--ignore-hostname")
+    args.append("--ignore-hostname")
   if dry_run:
-    cmd.append("--dry-run")
+    args.append("--dry-run")
   if no_verify:
-    cmd.append("--no-verify")
+    args.append("--no-verify")
   if downgrade:
-    cmd.append("--downgrade")
+    args.append("--downgrade")
 
-  result = utils.RunCmd(cmd, cwd=os.getcwd())
-  if result.failed:
-    raise Exception("cfgupgrade failed: %s, output %r" %
-                    (result.fail_reason, result.output))
+  opts, args = ParseOptions(args=args)
+  upgrade = CfgUpgrade(opts, args)
+
+  with mock.patch('sys.exit'):
+    with mock.patch.object(upgrade, 'SetupLogging'):
+      with mock.patch.object(cli, 'ToStderr'):
+        upgrade.Run()
+    if sys.exit.called:
+      raise Error("upgrade failed")
+
 
 
 class TestCfgupgrade(unittest.TestCase):
@@ -490,6 +498,7 @@ class TestCfgupgrade(unittest.TestCase):
     _RunUpgrade(self.tmpdir, True, True, downgrade=True)
     newconf = self._LoadConfig()
     self.assertEqual(oldconf["version"], newconf["version"])
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
