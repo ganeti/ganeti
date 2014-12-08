@@ -12,6 +12,10 @@ New features
 
 - The build system now enforces external Haskell dependencies to lie in
   a supported range as declared by our new ganeti.cabal file.
+- Basic support for instance reservations has been added. Instance addition
+  supports a --forthcoming option telling Ganeti to only reserve the resources
+  but not create the actual instance. The instance can later be created with
+  by passing the --commit option to the instance addition command.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
