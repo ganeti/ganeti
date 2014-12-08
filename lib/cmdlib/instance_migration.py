@@ -125,7 +125,7 @@ class LUInstanceFailover(LogicalUnit):
     self.target_node = getattr(self.op, "target_node", None)
 
   def ExpandNames(self):
-    self._ExpandAndLockInstance()
+    self._ExpandAndLockInstance(allow_forthcoming=True)
     _ExpandNamesForMigration(self)
 
     self._migrater = \
@@ -897,6 +897,13 @@ class TLMigrateInstance(Tasklet):
     starting it on the secondary.
 
     """
+    if self.instance.forthcoming:
+      self.feedback_fn("Instance is forthcoming, just updating the"
+                       "  configuration")
+      self.cfg.SetInstancePrimaryNode(self.instance.uuid,
+                                      self.target_node_uuid)
+      return
+
     primary_node = self.cfg.GetNodeInfo(self.instance.primary_node)
 
     source_node_uuid = self.instance.primary_node
