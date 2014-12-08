@@ -51,7 +51,8 @@ import qa_job_utils
 import qa_logging
 import qa_utils
 
-from qa_utils import AssertEqual, AssertCommand, GetCommandOutput
+from qa_utils import AssertEqual, AssertCommand, AssertRedirectedCommand, \
+  GetCommandOutput
 
 
 # Prefix for LVM volumes created by QA code during tests
@@ -1358,8 +1359,8 @@ def TestUpgrade():
     nodes = qa_config.AcquireManyNodes(n)
     live_instances.append(cf(nodes))
 
-  AssertCommand(["gnt-cluster", "upgrade", "--to", other_version])
-  AssertCommand(["gnt-cluster", "verify"])
+  AssertRedirectedCommand(["gnt-cluster", "upgrade", "--to", other_version])
+  AssertRedirectedCommand(["gnt-cluster", "verify"])
 
   for instance in live_instances:
     qa_instance.TestInstanceRemove(instance)
@@ -1369,8 +1370,8 @@ def TestUpgrade():
     nodes = qa_config.AcquireManyNodes(n)
     live_instances.append(cf(nodes))
 
-  AssertCommand(["gnt-cluster", "upgrade", "--to", this_version])
-  AssertCommand(["gnt-cluster", "verify"])
+  AssertRedirectedCommand(["gnt-cluster", "upgrade", "--to", this_version])
+  AssertRedirectedCommand(["gnt-cluster", "verify"])
 
   for instance in live_instances:
     qa_instance.TestInstanceRemove(instance)
