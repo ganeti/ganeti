@@ -203,6 +203,10 @@ If the ``--commit`` option is passed, then it is a prerequisite that
 an instance with that name has already been added to the configuration
 as a forthcoming instance and the request is to replace this instance
 by the newly created real one.
+Note that if the reason for reserving an instance is that DNS names
+still need to be propagated, the reservation has to be done with
+``--no-name-check`` and ``--no-ip-check`` as these options are not
+implied by ``--forthcoming``.
 
 The ``-B (--backend-parameters)`` option specifies the backend
 parameters for the instance. If no such parameters are specified, the
