@@ -154,7 +154,7 @@ class LUInstanceRename(LogicalUnit):
       CheckInstanceExistence(self, self.op.new_name)
 
   def ExpandNames(self):
-    self._ExpandAndLockInstance()
+    self._ExpandAndLockInstance(allow_forthcoming=True)
 
     # Note that this call might not resolve anything if name checks have been
     # disabled in the opcode. In this case, we might have a renaming collision
@@ -193,6 +193,9 @@ class LUInstanceRename(LogicalUnit):
     # re-read the instance from the configuration after rename
     renamed_inst = self.cfg.GetInstanceInfo(self.instance.uuid)
     disks = self.cfg.GetInstanceDisks(renamed_inst.uuid)
+
+    if self.instance.forthcoming:
+      return renamed_inst.name
 
     if rename_file_storage:
       new_file_storage_dir = os.path.dirname(disks[0].logical_id[1])
