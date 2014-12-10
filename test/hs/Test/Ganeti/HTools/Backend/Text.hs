@@ -229,12 +229,13 @@ prop_CreateSerialise =
             of
               Bad msg -> failTest $ "Failed to load/merge: " ++ msg
               Ok (Loader.ClusterData gl2 nl2 il2 ctags2 cpol2) ->
-                conjoin [ ctags ==? ctags2
-                        , Types.defIPolicy ==? cpol2
-                        , il' ==? il2
-                        , defGroupList ==? gl2
-                        , nl' ==? nl2
-                        ]
+                let (_, nl3) = Loader.checkData nl2 il2
+                in conjoin [ ctags ==? ctags2
+                           , Types.defIPolicy ==? cpol2
+                           , il' ==? il2
+                           , defGroupList ==? gl2
+                           , nl' ==? nl3
+                           ]
 
 testSuite "HTools/Backend/Text"
             [ 'prop_Load_Instance
