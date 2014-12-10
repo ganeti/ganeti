@@ -322,19 +322,14 @@ checkData nl il =
     Container.mapAccum
         (\ msgs node ->
              let nname = Node.name node
-                 nilst = map (`Container.find` il) (Node.pList node)
-                 dilst = filter Instance.instanceDown nilst
-                 adj_mem = sum . map Instance.mem $ dilst
                  delta_mem = truncate (Node.tMem node)
                              - Node.nMem node
                              - Node.fMem node
                              - nodeImem node il
-                             + adj_mem
                  delta_dsk = truncate (Node.tDsk node)
                              - Node.fDsk node
                              - nodeIdsk node il
-                 newn = Node.setFmem (Node.setXmem node delta_mem)
-                        (Node.fMem node - adj_mem)
+                 newn = Node.setXmem node delta_mem
                  umsg1 =
                    if delta_mem > 512 || delta_dsk > 1024
                       then printf "node %s is missing %d MB ram \
