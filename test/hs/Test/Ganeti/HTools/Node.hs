@@ -41,6 +41,7 @@ module Test.Ganeti.HTools.Node
   , setInstanceSmallerThanNode
   , genNode
   , genOnlineNode
+  , genEmptyOnlineNode
   , genNodeList
   , genUniqueNodeList
   ) where
@@ -117,6 +118,24 @@ genOnlineNode =
                               Node.availMem n > 0 &&
                               Node.availCpu n > 0 &&
                               Node.tSpindles n > 0)
+
+-- | Helper function to generate a sane empty node with consistent
+-- internal data.
+genEmptyOnlineNode :: Gen Node.Node
+genEmptyOnlineNode =
+  (do node <- arbitrary
+      let fmem = truncate (Node.tMem node) - Node.nMem node
+      let node' = node { Node.offline = False
+                       , Node.fMem = fmem
+                       , Node.pMem = fromIntegral fmem / Node.tMem node
+                       , Node.rMem = 0
+                       , Node.pRem = 0
+                       }
+      return node') `suchThat` (\ n -> not (Node.failN1 n) &&
+                                       Node.availDisk n > 0 &&
+                                       Node.availMem n > 0 &&
+                                       Node.availCpu n > 0 &&
+                                       Node.tSpindles n > 0)
 
 -- | Generate a node with exclusive storage enabled.
 genExclStorNode :: Gen Node.Node
