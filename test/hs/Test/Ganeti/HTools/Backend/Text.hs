@@ -49,7 +49,8 @@ import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHTools
 import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode,
                                     genInstanceOnNodeList)
-import Test.Ganeti.HTools.Node (genNode, genOnlineNode, genUniqueNodeList)
+import Test.Ganeti.HTools.Node (genNode, genOnlineNode, genEmptyOnlineNode
+                               , genUniqueNodeList)
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.AlgorithmParams as Alg
@@ -208,7 +209,7 @@ prop_CreateSerialise =
   forAll genTags $ \ctags ->
   forAll (choose (1, 20)) $ \maxiter ->
   forAll (choose (2, 10)) $ \count ->
-  forAll genOnlineNode $ \node ->
+  forAll genEmptyOnlineNode $ \node ->
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let nl = makeSmallCluster node count
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
