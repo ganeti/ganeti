@@ -1699,8 +1699,8 @@ hvKvmUseChroot = "use_chroot"
 hvKvmUserShutdown :: String
 hvKvmUserShutdown = "user_shutdown"
 
-hvLxcStartupWait :: String
-hvLxcStartupWait = "lxc_startup_wait"
+hvLxcStartupTimeout :: String
+hvLxcStartupTimeout = "startup_timeout"
 
 hvLxcCgroupUse :: String
 hvLxcCgroupUse = "lxc_cgroup_use"
@@ -1884,7 +1884,7 @@ hvsParameterTypes = Map.fromList
   , (hvLxcDropCapabilities,             VTypeString)
   , (hvLxcExtraConfig,                  VTypeString)
   , (hvLxcTty,                          VTypeInt)
-  , (hvLxcStartupWait,                  VTypeInt)
+  , (hvLxcStartupTimeout,               VTypeInt)
   , (hvMemPath,                         VTypeString)
   , (hvMigrationBandwidth,              VTypeInt)
   , (hvMigrationDowntime,               VTypeInt)
@@ -3980,7 +3980,7 @@ hvcDefaults =
           , (hvLxcDropCapabilities, PyValueEx lxcDropCapabilitiesDefault)
           , (hvLxcExtraConfig,      PyValueEx "")
           , (hvLxcTty,              PyValueEx (6 :: Int))
-          , (hvLxcStartupWait,      PyValueEx (30 :: Int))
+          , (hvLxcStartupTimeout,   PyValueEx (30 :: Int))
           ])
   ]
 

@@ -146,7 +146,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     constants.HV_LXC_DROP_CAPABILITIES: hv_base.NO_CHECK,
     constants.HV_LXC_EXTRA_CONFIG: hv_base.NO_CHECK,
     constants.HV_LXC_TTY: hv_base.REQ_NONNEGATIVE_INT_CHECK,
-    constants.HV_LXC_STARTUP_WAIT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
+    constants.HV_LXC_STARTUP_TIMEOUT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     }
 
   _REBOOT_TIMEOUT = 120 # secs
@@ -703,12 +703,12 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       raise HypervisorError("Failed to start instance %s : %s" %
                             (instance.name, result.output))
 
-    lxc_startup_wait = instance.hvparams[constants.HV_LXC_STARTUP_WAIT]
+    lxc_startup_timeout = instance.hvparams[constants.HV_LXC_STARTUP_TIMEOUT]
     if not self._WaitForInstanceState(instance.name,
                                       constants.LXC_STATE_RUNNING,
-                                      lxc_startup_wait):
+                                      lxc_startup_timeout):
       raise HypervisorError("Instance %s state didn't change to RUNNING within"
-                            " %s secs" % (instance.name, lxc_startup_wait))
+                            " %s secs" % (instance.name, lxc_startup_timeout))
 
     # Ensure that the instance is running correctly after being daemonized
     if not self._IsInstanceAlive(instance.name):

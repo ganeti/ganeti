@@ -870,7 +870,7 @@ virtio\_net\_queues
 
     It is set to ``1`` by default.
 
-lxc\_startup\_wait
+startup\_timeout
     Valid for the LXC hypervisor.
 
     This integer option specifies the number of seconds to wait
