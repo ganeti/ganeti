@@ -178,6 +178,7 @@ module Ganeti.Types
   , OsParamsPrivate
   , TimeStampObject(..)
   , UuidObject(..)
+  , ForthcomingObject(..)
   , SerialNoObject(..)
   , TagsObject(..)
   ) where
@@ -979,6 +980,10 @@ class TimeStampObject a where
 -- | Class of objects that have an UUID.
 class UuidObject a where
   uuidOf :: a -> String
+
+-- | Class of objects that can be forthcoming.
+class ForthcomingObject a where
+  isForthcoming :: a -> Bool
 
 -- | Class of object that have a serial number.
 class SerialNoObject a where
