@@ -1702,8 +1702,8 @@ hvKvmUserShutdown = "user_shutdown"
 hvLxcStartupTimeout :: String
 hvLxcStartupTimeout = "startup_timeout"
 
-hvLxcCgroupUse :: String
-hvLxcCgroupUse = "lxc_cgroup_use"
+hvLxcExtraCgroups :: String
+hvLxcExtraCgroups = "extra_cgroups"
 
 hvLxcDevices :: String
 hvLxcDevices = "lxc_devices"
@@ -1879,9 +1879,9 @@ hvsParameterTypes = Map.fromList
   , (hvKvmSpiceZlibGlzImgCompr,         VTypeString)
   , (hvKvmUseChroot,                    VTypeBool)
   , (hvKvmUserShutdown,                 VTypeBool)
-  , (hvLxcCgroupUse,                    VTypeString)
   , (hvLxcDevices,                      VTypeString)
   , (hvLxcDropCapabilities,             VTypeString)
+  , (hvLxcExtraCgroups,                 VTypeString)
   , (hvLxcExtraConfig,                  VTypeString)
   , (hvLxcNumTtys,                      VTypeInt)
   , (hvLxcStartupTimeout,               VTypeInt)
@@ -3975,9 +3975,9 @@ hvcDefaults =
   , (Chroot, Map.fromList [(hvInitScript, PyValueEx "/ganeti-chroot")])
   , (Lxc, Map.fromList
           [ (hvCpuMask,             PyValueEx "")
-          , (hvLxcCgroupUse,        PyValueEx "")
           , (hvLxcDevices,          PyValueEx lxcDevicesDefault)
           , (hvLxcDropCapabilities, PyValueEx lxcDropCapabilitiesDefault)
+          , (hvLxcExtraCgroups,     PyValueEx "")
           , (hvLxcExtraConfig,      PyValueEx "")
           , (hvLxcNumTtys,          PyValueEx (6 :: Int))
           , (hvLxcStartupTimeout,   PyValueEx (30 :: Int))

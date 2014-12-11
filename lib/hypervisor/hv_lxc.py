@@ -141,9 +141,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
   PARAMETERS = {
     constants.HV_CPU_MASK: hv_base.OPT_CPU_MASK_CHECK,
-    constants.HV_LXC_CGROUP_USE: hv_base.NO_CHECK,
     constants.HV_LXC_DEVICES: hv_base.NO_CHECK,
     constants.HV_LXC_DROP_CAPABILITIES: hv_base.NO_CHECK,
+    constants.HV_LXC_EXTRA_CGROUPS: hv_base.NO_CHECK,
     constants.HV_LXC_EXTRA_CONFIG: hv_base.NO_CHECK,
     constants.HV_LXC_NUM_TTYS: hv_base.REQ_NONNEGATIVE_INT_CHECK,
     constants.HV_LXC_STARTUP_TIMEOUT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
@@ -635,10 +635,10 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       cls._GetOrPrepareCgroupSubsysMountPoint(subsystem)
 
     # Check cgroup subsystems required by the LXC
-    if hvparams is None or not hvparams[constants.HV_LXC_CGROUP_USE]:
+    if hvparams is None or not hvparams[constants.HV_LXC_EXTRA_CGROUPS]:
       enable_subsystems = cls._GetCgroupEnabledKernelSubsystems()
     else:
-      enable_subsystems = hvparams[constants.HV_LXC_CGROUP_USE].split(",")
+      enable_subsystems = hvparams[constants.HV_LXC_EXTRA_CGROUPS].split(",")
 
     for subsystem in enable_subsystems:
       cls._GetOrPrepareCgroupSubsysMountPoint(subsystem)
