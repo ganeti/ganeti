@@ -47,6 +47,7 @@ module Ganeti.Query.Common
   , timeStampFields
   , uuidFields
   , serialFields
+  , forthcomingFields
   , tagsFields
   , dictFieldGetter
   , buildNdParamField
@@ -159,6 +160,15 @@ timeStampFields =
      FieldSimple (rsNormal . TimeAsDoubleJSON . cTimeOf), QffNormal)
   , (FieldDefinition "mtime" "MTime" QFTTimestamp "Modification timestamp",
      FieldSimple (rsNormal . TimeAsDoubleJSON . mTimeOf), QffNormal)
+  ]
+
+-- | The list of the field for the property of being forthcoming.
+forthcomingFields :: (ForthcomingObject a) => String -> FieldList a b
+forthcomingFields name =
+  [ ( FieldDefinition "forthcoming" "Forthcoming" QFTBool
+      $ "whether the " ++ name ++ " is forthcoming"
+    , FieldSimple (rsNormal . isForthcoming), QffNormal
+    )
   ]
 
 -- | The list of UUID fields.
