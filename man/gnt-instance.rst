@@ -952,7 +952,7 @@ lxc\_extra\_config
 
     This parameter is not set by default.
 
-lxc\_tty
+num_ttys
     Valid for the LXC hypervisor.
 
     This option specifies the number of ttys(actually ptys) that

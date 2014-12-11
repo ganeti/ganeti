@@ -145,7 +145,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     constants.HV_LXC_DEVICES: hv_base.NO_CHECK,
     constants.HV_LXC_DROP_CAPABILITIES: hv_base.NO_CHECK,
     constants.HV_LXC_EXTRA_CONFIG: hv_base.NO_CHECK,
-    constants.HV_LXC_TTY: hv_base.REQ_NONNEGATIVE_INT_CHECK,
+    constants.HV_LXC_NUM_TTYS: hv_base.REQ_NONNEGATIVE_INT_CHECK,
     constants.HV_LXC_STARTUP_TIMEOUT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     }
 
@@ -530,9 +530,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # separate pseudo-TTY instances
     out.append("lxc.pts = 255")
     # standard TTYs
-    lxc_ttys = instance.hvparams[constants.HV_LXC_TTY]
-    if lxc_ttys: # if it is the number greater than 0
-      out.append("lxc.tty = %s" % lxc_ttys)
+    num_ttys = instance.hvparams[constants.HV_LXC_NUM_TTYS]
+    if num_ttys: # if it is the number greater than 0
+      out.append("lxc.tty = %s" % num_ttys)
 
     # console log file
     # After the following patch was applied, we lost the console log file output

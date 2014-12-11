@@ -646,8 +646,8 @@ def TestInstanceModify(instance):
     args.extend([
       ["-H", "%s=0" % constants.HV_CPU_MASK],
       ["-H", "%s=%s" % (constants.HV_CPU_MASK, constants.VALUE_DEFAULT)],
-      ["-H", "%s=0" % constants.HV_LXC_TTY],
-      ["-H", "%s=%s" % (constants.HV_LXC_TTY, constants.VALUE_DEFAULT)],
+      ["-H", "%s=0" % constants.HV_LXC_NUM_TTYS],
+      ["-H", "%s=%s" % (constants.HV_LXC_NUM_TTYS, constants.VALUE_DEFAULT)],
       ])
 
   url = "http://example.com/busybox.img"
