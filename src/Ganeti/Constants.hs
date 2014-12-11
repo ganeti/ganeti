@@ -1706,13 +1706,13 @@ hvLxcExtraCgroups :: String
 hvLxcExtraCgroups = "extra_cgroups"
 
 hvLxcDevices :: String
-hvLxcDevices = "lxc_devices"
+hvLxcDevices = "devices"
 
 hvLxcDropCapabilities :: String
-hvLxcDropCapabilities = "lxc_drop_capabilities"
+hvLxcDropCapabilities = "drop_capabilities"
 
 hvLxcExtraConfig :: String
-hvLxcExtraConfig = "lxc_extra_config"
+hvLxcExtraConfig = "extra_config"
 
 hvLxcNumTtys :: String
 hvLxcNumTtys = "num_ttys"

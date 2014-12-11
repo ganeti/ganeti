@@ -904,7 +904,7 @@ extra\_cgroups
     If this parameter is not specified, a list of subsystems will be
     taken from /proc/cgroups instead.
 
-lxc\_drop\_capabilities
+drop\_capabilities
     Valid for the LXC hypervisor.
 
     This option specifies the list of capabilities which should be
@@ -921,7 +921,7 @@ lxc\_drop\_capabilities
 
     The default value is ``mac_override,sys_boot,sys_module,sys_time``.
 
-lxc\_devices
+devices
     Valid for the LXC hypervisor.
 
     This option specifies the list of devices that can be accessed
@@ -942,14 +942,14 @@ lxc\_devices
     By default, this parameter contains (/dev/null, /dev/zero,
     /dev/full, /dev/random, /dev/urandom, /dev/aio, /dev/tty,
     /dev/console, /dev/ptmx and first block of Unix98 PTY slaves) with
-    read-writable(rw) access.
+    read-write(rw) access.
 
-lxc\_extra\_config
+extra\_config
     Valid for the LXC hypervisor.
 
     This option specifies the list of extra config parameters which
     are not supported by the Ganeti LXC hypervisor natively.
-    Each value of this option must be valid a line of the LXC
+    Each value of this option must be a valid line of the LXC
     container config file(see: **lxc.container.conf**\(5)).
 
     This parameter is not set by default.
