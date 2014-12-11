@@ -496,6 +496,34 @@ def DowngradeFilters(config_data):
     del config_data["filters"]
 
 
+def DowngradeLxcParams(hvparams):
+  hv = "lxc"
+  if hv not in hvparams:
+    return
+
+  params_to_del = [
+    "devices",
+    "drop_capabilities",
+    "extra_cgroups",
+    "extra_config",
+    "num_ttys",
+    "startup_timeout",
+  ]
+  for param in params_to_del:
+    if param in hvparams[hv]:
+      del hvparams[hv][param]
+
+
+def DowngradeAllLxcParams(config_data):
+  cluster = config_data["cluster"]
+  if "hvparams" in cluster:
+    DowngradeLxcParams(cluster["hvparams"])
+
+  for iobj in cluster.get("instances", {}):
+    if "hvparams" in iobj:
+      DowngradeLxcParams(iobj["hvparams"])
+
+
 def DowngradeAll(config_data):
   # Any code specific to a particular version should be labeled that way, so
   # it can be removed when updating to the next version.
@@ -504,6 +532,7 @@ def DowngradeAll(config_data):
   DowngradeExtAccess(config_data)
   DowngradeDataCollectors(config_data)
   DowngradeFilters(config_data)
+  DowngradeAllLxcParams(config_data)
 
 
 def _ParseOptions():
