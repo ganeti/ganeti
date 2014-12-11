@@ -334,6 +334,7 @@ instanceFields =
   timeStampFields ++
   serialFields "Instance" ++
   uuidFields "Instance" ++
+  forthcomingFields "Instance" ++
   tagsFields
 
 -- * Helper functions for node property retrieval

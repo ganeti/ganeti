@@ -2228,6 +2228,9 @@ def _BuildInstanceFields():
     (_MakeField("console", "Console", QFT_OTHER,
                 "Instance console information"), IQ_CONSOLE, 0,
      _GetInstanceConsole),
+    (_MakeField("forthcoming", "Forthcoming", QFT_BOOL,
+                "Whether the Instance is forthcoming"), IQ_CONFIG, 0,
+     lambda _, inst: bool(inst.forthcoming)),
     ]
 
   # Add simple fields
