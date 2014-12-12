@@ -535,7 +535,7 @@ applyMoveEx force nl inst (ReplaceAndFailover new_pdx) =
       force_s = Node.offline old_s || force
       new_nl = do -- OpResult
         Node.checkMigration old_p tgt_n
-        new_p <- Node.addPri tgt_n inst
+        new_p <- Node.addPriEx force tgt_n inst
         new_s <- Node.addSecEx force_s int_p inst new_pdx
         let new_inst = Instance.setBoth inst new_pdx old_pdx
         return (Container.add new_pdx new_p $
@@ -566,29 +566,33 @@ applyMove :: Node.List -> Instance.Instance
 applyMove = applyMoveEx False
 
 -- | Tries to allocate an instance on one given node.
-allocateOnSingle :: Node.List -> Instance.Instance -> Ndx
+allocateOnSingle :: AlgorithmOptions
+                 -> Node.List -> Instance.Instance -> Ndx
                  -> OpResult Node.AllocElement
-allocateOnSingle nl inst new_pdx =
+allocateOnSingle opts nl inst new_pdx =
   let p = Container.find new_pdx nl
       new_inst = Instance.setBoth inst new_pdx Node.noSecondary
+      force = algIgnoreSoftErrors opts
   in do
     Instance.instMatchesPolicy inst (Node.iPolicy p) (Node.exclStorage p)
-    new_p <- Node.addPri p inst
+    new_p <- Node.addPriEx force p inst
     let new_nl = Container.add new_pdx new_p nl
         new_score = compCV new_nl
     return (new_nl, new_inst, [new_p], new_score)
 
 -- | Tries to allocate an instance on a given pair of nodes.
-allocateOnPair :: [Statistics]
+allocateOnPair :: AlgorithmOptions
+               -> [Statistics]
                -> Node.List -> Instance.Instance -> Ndx -> Ndx
                -> OpResult Node.AllocElement
-allocateOnPair stats nl inst new_pdx new_sdx =
+allocateOnPair opts stats nl inst new_pdx new_sdx =
   let tgt_p = Container.find new_pdx nl
       tgt_s = Container.find new_sdx nl
+      force = algIgnoreSoftErrors opts
   in do
     Instance.instMatchesPolicy inst (Node.iPolicy tgt_p)
       (Node.exclStorage tgt_p)
-    new_p <- Node.addPri tgt_p inst
+    new_p <- Node.addPriEx force tgt_p inst
     new_s <- Node.addSec tgt_s inst new_pdx
     let new_inst = Instance.setBoth inst new_pdx new_sdx
         new_nl = Container.addTwo new_pdx new_p new_sdx new_s nl
@@ -855,26 +859,27 @@ genAllocNodes gl nl count drop_unalloc =
 
 -- | Try to allocate an instance on the cluster.
 tryAlloc :: (Monad m) =>
-            Node.List         -- ^ The node list
+            AlgorithmOptions
+         -> Node.List         -- ^ The node list
          -> Instance.List     -- ^ The instance list
          -> Instance.Instance -- ^ The instance to allocate
          -> AllocNodes        -- ^ The allocation targets
          -> m AllocSolution   -- ^ Possible solution list
-tryAlloc _  _ _    (Right []) = fail "Not enough online nodes"
-tryAlloc nl _ inst (Right ok_pairs) =
+tryAlloc _ _  _ _    (Right []) = fail "Not enough online nodes"
+tryAlloc opts nl _ inst (Right ok_pairs) =
   let cstat = compClusterStatistics $ Container.elems nl
       psols = parMap rwhnf (\(p, ss) ->
                               foldl' (\cstate ->
                                         concatAllocs cstate .
-                                        allocateOnPair cstat nl inst p)
+                                        allocateOnPair opts cstat nl inst p)
                               emptyAllocSolution ss) ok_pairs
       sols = foldl' sumAllocs emptyAllocSolution psols
   in return $ annotateSolution sols
 
-tryAlloc _  _ _    (Left []) = fail "No online nodes"
-tryAlloc nl _ inst (Left all_nodes) =
+tryAlloc _ _  _ _    (Left []) = fail "No online nodes"
+tryAlloc opts nl _ inst (Left all_nodes) =
   let sols = foldl' (\cstate ->
-                       concatAllocs cstate . allocateOnSingle nl inst
+                       concatAllocs cstate . allocateOnSingle opts nl inst
                     ) emptyAllocSolution all_nodes
   in return $ annotateSolution sols
 
@@ -932,14 +937,15 @@ filterValidGroups (ng:ngs) inst =
              Instance.name inst):msgs)
 
 -- | Finds an allocation solution for an instance on a group
-findAllocation :: Group.List           -- ^ The group list
+findAllocation :: AlgorithmOptions
+               -> Group.List           -- ^ The group list
                -> Node.List            -- ^ The node list
                -> Instance.List        -- ^ The instance list
                -> Gdx                  -- ^ The group to allocate to
                -> Instance.Instance    -- ^ The instance to allocate
                -> Int                  -- ^ Required number of nodes
                -> Result (AllocSolution, [String])
-findAllocation mggl mgnl mgil gdx inst cnt = do
+findAllocation opts mggl mgnl mgil gdx inst cnt = do
   let belongsTo nl' nidx = nidx `elem` map Node.idx (Container.elems nl')
       nl = Container.filter ((== gdx) . Node.group) mgnl
       il = Container.filter (belongsTo nl . Instance.pNode) mgil
@@ -947,7 +953,7 @@ findAllocation mggl mgnl mgil gdx inst cnt = do
   unless (hasRequiredNetworks group' inst) . failError
          $ "The group " ++ Group.name group' ++ " is not connected to\
            \ a network required by instance " ++ Instance.name inst
-  solution <- genAllocNodes mggl nl cnt False >>= tryAlloc nl il inst
+  solution <- genAllocNodes mggl nl cnt False >>= tryAlloc opts nl il inst
   return (solution, solutionDescription (group', return solution))
 
 -- | Finds the best group for an instance on a multi-group cluster.
@@ -956,14 +962,15 @@ findAllocation mggl mgnl mgil gdx inst cnt = do
 -- accepted as valid, and additionally if the allowed groups parameter
 -- is not null then allocation will only be run for those group
 -- indices.
-findBestAllocGroup :: Group.List           -- ^ The group list
+findBestAllocGroup :: AlgorithmOptions
+                   -> Group.List           -- ^ The group list
                    -> Node.List            -- ^ The node list
                    -> Instance.List        -- ^ The instance list
                    -> Maybe [Gdx]          -- ^ The allowed groups
                    -> Instance.Instance    -- ^ The instance to allocate
                    -> Int                  -- ^ Required number of nodes
                    -> Result (Group.Group, AllocSolution, [String])
-findBestAllocGroup mggl mgnl mgil allowed_gdxs inst cnt =
+findBestAllocGroup opts mggl mgnl mgil allowed_gdxs inst cnt =
   let groups_by_idx = splitCluster mgnl mgil
       groups = map (\(gid, d) -> (Container.find gid mggl, d)) groups_by_idx
       groups' = maybe groups
@@ -972,7 +979,7 @@ findBestAllocGroup mggl mgnl mgil allowed_gdxs inst cnt =
       (groups'', filter_group_msgs) = filterValidGroups groups' inst
       sols = map (\(gr, (nl, il)) ->
                    (gr, genAllocNodes mggl nl cnt False >>=
-                        tryAlloc nl il inst))
+                        tryAlloc opts nl il inst))
              groups''::[(Group.Group, Result AllocSolution)]
       all_msgs = filter_group_msgs ++ concatMap solutionDescription sols
       goodSols = filterMGResults sols
@@ -986,30 +993,32 @@ findBestAllocGroup mggl mgnl mgil allowed_gdxs inst cnt =
        (final_group, final_sol):_ -> return (final_group, final_sol, all_msgs)
 
 -- | Try to allocate an instance on a multi-group cluster.
-tryMGAlloc :: Group.List           -- ^ The group list
+tryMGAlloc :: AlgorithmOptions
+           -> Group.List           -- ^ The group list
            -> Node.List            -- ^ The node list
            -> Instance.List        -- ^ The instance list
            -> Instance.Instance    -- ^ The instance to allocate
            -> Int                  -- ^ Required number of nodes
            -> Result AllocSolution -- ^ Possible solution list
-tryMGAlloc mggl mgnl mgil inst cnt = do
+tryMGAlloc opts mggl mgnl mgil inst cnt = do
   (best_group, solution, all_msgs) <-
-      findBestAllocGroup mggl mgnl mgil Nothing inst cnt
+      findBestAllocGroup opts mggl mgnl mgil Nothing inst cnt
   let group_name = Group.name best_group
       selmsg = "Selected group: " ++ group_name
   return $ solution { asLog = selmsg:all_msgs }
 
 -- | Try to allocate an instance to a group.
-tryGroupAlloc :: Group.List           -- ^ The group list
+tryGroupAlloc :: AlgorithmOptions
+              -> Group.List           -- ^ The group list
               -> Node.List            -- ^ The node list
               -> Instance.List        -- ^ The instance list
               -> String               -- ^ The allocation group (name)
               -> Instance.Instance    -- ^ The instance to allocate
               -> Int                  -- ^ Required number of nodes
               -> Result AllocSolution -- ^ Solution
-tryGroupAlloc mggl mgnl ngil gn inst cnt = do
+tryGroupAlloc opts mggl mgnl ngil gn inst cnt = do
   gdx <- Group.idx <$> Container.findByName mggl gn
-  (solution, msgs) <- findAllocation mggl mgnl ngil gdx inst cnt
+  (solution, msgs) <- findAllocation opts mggl mgnl ngil gdx inst cnt
   return $ solution { asLog = msgs }
 
 -- | Calculate the new instance list after allocation solution.
@@ -1027,7 +1036,8 @@ extractNl nl Nothing = nl
 extractNl _ (Just (xnl, _, _, _)) = xnl
 
 -- | Try to allocate a list of instances on a multi-group cluster.
-allocList :: Group.List                                -- ^ The group list
+allocList :: AlgorithmOptions
+          -> Group.List                                -- ^ The group list
           -> Node.List                                 -- ^ The node list
           -> Instance.List                             -- ^ The instance list
           -> [(Instance.Instance, AllocDetails)]       -- ^ The instance to
@@ -1037,15 +1047,15 @@ allocList :: Group.List                                -- ^ The group list
           -> Result (Node.List, Instance.List,
                      AllocSolutionList)                -- ^ The final solution
                                                        --   list
-allocList _  nl il [] result = Ok (nl, il, result)
-allocList gl nl il ((xi, AllocDetails xicnt mgn):xies) result = do
+allocList _ _  nl il [] result = Ok (nl, il, result)
+allocList opts gl nl il ((xi, AllocDetails xicnt mgn):xies) result = do
   ares <- case mgn of
-    Nothing -> tryMGAlloc gl nl il xi xicnt
-    Just gn -> tryGroupAlloc gl nl il gn xi xicnt
+    Nothing -> tryMGAlloc opts gl nl il xi xicnt
+    Just gn -> tryGroupAlloc opts gl nl il gn xi xicnt
   let sol = asSolution ares
       nl' = extractNl nl sol
       il' = updateIl il sol
-  allocList gl nl' il' xies ((xi, ares):result)
+  allocList opts gl nl' il' xies ((xi, ares):result)
 
 -- | Function which fails if the requested mode is change secondary.
 --
@@ -1376,14 +1386,15 @@ tryNodeEvac opts _ ini_nl ini_il mode idxs =
 -- Note that the correct behaviour of this function relies on the
 -- function 'nodeEvacInstance' to be able to do correctly both
 -- intra-group and inter-group moves when passed the 'ChangeAll' mode.
-tryChangeGroup :: Group.List    -- ^ The cluster groups
+tryChangeGroup :: AlgorithmOptions
+               -> Group.List    -- ^ The cluster groups
                -> Node.List     -- ^ The node list (cluster-wide)
                -> Instance.List -- ^ Instance list (cluster-wide)
                -> [Gdx]         -- ^ Target groups; if empty, any
                                 -- groups not being evacuated
                -> [Idx]         -- ^ List of instance (indices) to be evacuated
                -> Result (Node.List, Instance.List, EvacSolution)
-tryChangeGroup gl ini_nl ini_il gdxs idxs =
+tryChangeGroup opts gl ini_nl ini_il gdxs idxs =
   let evac_gdxs = nub $ map (instancePriGroup ini_nl .
                              flip Container.find ini_il) idxs
       target_gdxs = (if null gdxs
@@ -1399,7 +1410,7 @@ tryChangeGroup gl ini_nl ini_il gdxs idxs =
                   let solution = do
                         let ncnt = Instance.requiredNodes $
                                    Instance.diskTemplate inst
-                        (grp, _, _) <- findBestAllocGroup gl nl il
+                        (grp, _, _) <- findBestAllocGroup opts gl nl il
                                        (Just target_gdxs) inst ncnt
                         let gdx = Group.idx grp
                         av_nodes <- availableGroupNodes group_ndx
@@ -1417,14 +1428,14 @@ tryChangeGroup gl ini_nl ini_il gdxs idxs =
 -- This places instances of the same size on the cluster until we're
 -- out of space. The result will be a list of identically-sized
 -- instances.
-iterateAlloc :: AllocMethod
-iterateAlloc nl il limit newinst allocnodes ixes cstats =
+iterateAlloc :: AlgorithmOptions -> AllocMethod
+iterateAlloc opts nl il limit newinst allocnodes ixes cstats =
   let depth = length ixes
       newname = printf "new-%d" depth::String
       newidx = Container.size il
       newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
       newlimit = fmap (flip (-) 1) limit
-  in case tryAlloc nl il newi2 allocnodes of
+  in case tryAlloc opts nl il newi2 allocnodes of
        Bad s -> Bad s
        Ok (AllocSolution { asFailures = errs, asSolution = sols3 }) ->
          let newsol = Ok (collapseFailures errs, nl, il, ixes, cstats) in
@@ -1433,7 +1444,7 @@ iterateAlloc nl il limit newinst allocnodes ixes cstats =
            Just (xnl, xi, _, _) ->
              if limit == Just 0
                then newsol
-               else iterateAlloc xnl (Container.add newidx xi il)
+               else iterateAlloc opts xnl (Container.add newidx xi il)
                       newlimit newinst allocnodes (xi:ixes)
                       (totalResources xnl:cstats)
 
@@ -1455,9 +1466,9 @@ sufficesShrinking allocFn inst fm =
 -- This places instances on the cluster, and decreases the spec until
 -- we can allocate again. The result will be a list of decreasing
 -- instance specs.
-tieredAlloc :: AllocMethod
-tieredAlloc nl il limit newinst allocnodes ixes cstats =
-  case iterateAlloc nl il limit newinst allocnodes ixes cstats of
+tieredAlloc :: AlgorithmOptions -> AllocMethod
+tieredAlloc opts nl il limit newinst allocnodes ixes cstats =
+  case iterateAlloc opts nl il limit newinst allocnodes ixes cstats of
     Bad s -> Bad s
     Ok (errs, nl', il', ixes', cstats') ->
       let newsol = Ok (errs, nl', il', ixes', cstats')
@@ -1467,8 +1478,9 @@ tieredAlloc nl il limit newinst allocnodes ixes cstats =
                                Just n -> (n <= ixes_cnt,
                                             Just (n - ixes_cnt))
           sortedErrs = map fst $ sortBy (comparing snd) errs
-          suffShrink = sufficesShrinking (fromMaybe emptyAllocSolution
-                                          . flip (tryAlloc nl' il') allocnodes)
+          suffShrink = sufficesShrinking
+                         (fromMaybe emptyAllocSolution
+                          . flip (tryAlloc opts nl' il') allocnodes)
                        newinst
           bigSteps = filter isJust . map suffShrink . reverse $ sortedErrs
           progress (Ok (_, _, _, newil', _)) (Ok (_, _, _, newil, _)) =
@@ -1478,11 +1490,11 @@ tieredAlloc nl il limit newinst allocnodes ixes cstats =
            let newsol' = case Instance.shrinkByType newinst . last
                                 $ sortedErrs of
                  Bad _ -> newsol
-                 Ok newinst' -> tieredAlloc nl' il' newlimit
+                 Ok newinst' -> tieredAlloc opts nl' il' newlimit
                                 newinst' allocnodes ixes' cstats'
            in if progress newsol' newsol then newsol' else
                 case bigSteps of
-                  Just newinst':_ -> tieredAlloc nl' il' newlimit
+                  Just newinst':_ -> tieredAlloc opts nl' il' newlimit
                                      newinst' allocnodes ixes' cstats'
                   _ -> newsol
 

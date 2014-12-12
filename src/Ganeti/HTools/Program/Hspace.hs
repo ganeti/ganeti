@@ -49,6 +49,7 @@ import System.IO
 
 import Text.Printf (printf, hPrintf)
 
+import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Group as Group
@@ -57,6 +58,7 @@ import qualified Ganeti.HTools.Instance as Instance
 
 import Ganeti.BasicTypes
 import Ganeti.Common
+import Ganeti.HTools.AlgorithmParams (AlgorithmOptions)
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
@@ -441,9 +443,13 @@ instFromSpec spx dt su =
     [Instance.Disk (rspecDsk spx) (Just $ rspecSpn spx)]
     (rspecCpu spx) Running [] True (-1) (-1) dt su []
 
-combineTiered :: Maybe Int -> Cluster.AllocNodes -> Cluster.AllocResult ->
-           Instance.Instance -> Result Cluster.AllocResult
-combineTiered limit allocnodes result inst = do
+combineTiered :: AlgorithmOptions
+              -> Maybe Int
+              -> Cluster.AllocNodes
+              -> Cluster.AllocResult
+              -> Instance.Instance
+              -> Result Cluster.AllocResult
+combineTiered algOpts limit allocnodes result inst = do
   let (_, nl, il, ixes, cstats) = result
       ixes_cnt = length ixes
       (stop, newlimit) = case limit of
@@ -451,7 +457,7 @@ combineTiered limit allocnodes result inst = do
         Just n -> (n <= ixes_cnt, Just (n - ixes_cnt))
   if stop
     then return result
-    else Cluster.tieredAlloc nl il newlimit inst allocnodes ixes cstats
+    else Cluster.tieredAlloc algOpts nl il newlimit inst allocnodes ixes cstats
 
 -- | Main function.
 main :: Options -> [String] -> IO ()
@@ -525,13 +531,19 @@ main opts args = do
                             minmaxes
                  Just t -> [t]
       tinsts = map (\ts -> instFromSpec ts disk_template su) tspecs
+
+      algOpts = Alg.fromCLIOptions opts
+
   tspec <- case tspecs of
     [] -> exitErr "Empty list of specs received from the cluster"
     t:_ -> return t
 
   (treason, trl_nl, _, spec_map) <-
     runAllocation cdata stop_allocation
-       (foldM (combineTiered alloclimit allocnodes) ([], nl, il, [], []) tinsts)
+       (foldM (combineTiered algOpts alloclimit allocnodes)
+              ([], nl, il, [], [])
+              tinsts
+       )
        tspec disk_template SpecTiered opts
 
   printTiered machine_r spec_map nl trl_nl treason
@@ -543,7 +555,7 @@ main opts args = do
 
   (sreason, fin_nl, allocs, _) <-
       runAllocation cdata stop_allocation
-            (Cluster.iterateAlloc nl il alloclimit
+            (Cluster.iterateAlloc algOpts nl il alloclimit
              (instFromSpec ispec disk_template su) allocnodes [] [])
             ispec disk_template SpecNormal opts
 

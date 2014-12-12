@@ -152,8 +152,9 @@ prop_Alloc_sane inst =
   forAll genOnlineNode $ \node ->
   let (nl, il, inst') = makeSmallEmptyCluster node count inst
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
+      opts = Alg.defaultOptions
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
-     Cluster.tryAlloc nl il inst' of
+     Cluster.tryAlloc opts nl il inst' of
        Bad msg -> failTest msg
        Ok as ->
          case Cluster.asSolution as of
@@ -179,8 +180,9 @@ prop_CanTieredAlloc =
       il = Container.empty
       rqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
       allocnodes = Cluster.genAllocNodes defGroupList nl rqnodes True
+      opts = Alg.defaultOptions
   in case allocnodes >>= \allocnodes' ->
-    Cluster.tieredAlloc nl il (Just 5) inst allocnodes' [] [] of
+    Cluster.tieredAlloc opts nl il (Just 5) inst allocnodes' [] [] of
        Bad msg -> failTest $ "Failed to tiered alloc: " ++ msg
        Ok (_, nl', il', ixes, cstats) ->
          let (ai_alloc, ai_pool, ai_unav) =
@@ -206,8 +208,9 @@ genClusterAlloc :: Int -> Node.Node -> Instance.Instance
 genClusterAlloc count node inst =
   let nl = makeSmallCluster node count
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
+      opts = Alg.defaultOptions
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
-     Cluster.tryAlloc nl Container.empty inst of
+     Cluster.tryAlloc opts nl Container.empty inst of
        Bad msg -> Bad $ "Can't allocate: " ++ msg
        Ok as ->
          case Cluster.asSolution as of
@@ -296,8 +299,9 @@ prop_AllocChangeGroup =
           nl4 = Container.fromList . map (\n -> (Node.idx n, n)) $ nl3
           gl' = Container.add (Group.idx grp2) grp2 defGroupList
           nl' = IntMap.union nl nl4
+          opts = Alg.defaultOptions
       in check_EvacMode grp2 inst' $
-         Cluster.tryChangeGroup gl' nl' il [] [Instance.idx inst']
+         Cluster.tryChangeGroup opts gl' nl' il [] [Instance.idx inst']
 
 -- | Check that allocating multiple instances on a cluster, then
 -- adding an empty node, results in a valid rebalance.
@@ -312,8 +316,9 @@ prop_AllocBalance =
       il = Container.empty
       allocnodes = Cluster.genAllocNodes defGroupList nl' 2 True
       i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
+      opts = Alg.defaultOptions
   in case allocnodes >>= \allocnodes' ->
-    Cluster.iterateAlloc nl' il (Just 5) i_templ allocnodes' [] [] of
+    Cluster.iterateAlloc opts nl' il (Just 5) i_templ allocnodes' [] [] of
        Bad msg -> failTest $ "Failed to allocate: " ++ msg
        Ok (_, _, _, [], _) -> failTest "Failed to allocate: no instances"
        Ok (_, xnl, il', _, _) ->
@@ -360,7 +365,7 @@ prop_SplitCluster node inst =
 canAllocOn :: Node.List -> Int -> Instance.Instance -> Maybe String
 canAllocOn nl reqnodes inst =
   case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
-       Cluster.tryAlloc nl Container.empty inst of
+       Cluster.tryAlloc Alg.defaultOptions nl Container.empty inst of
        Bad msg -> Just $ "Can't allocate: " ++ msg
        Ok as ->
          case Cluster.asSolution as of
