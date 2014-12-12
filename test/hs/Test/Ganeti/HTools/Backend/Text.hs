@@ -49,9 +49,12 @@ import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHTools
 import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode,
                                     genInstanceOnNodeList)
-import Test.Ganeti.HTools.Node (genNode, genOnlineNode, genUniqueNodeList)
+import Test.Ganeti.HTools.Node (genNode, genOnlineNode, genEmptyOnlineNode
+                               , genUniqueNodeList)
 
 import Ganeti.BasicTypes
+import Ganeti.Types (InstanceStatus(..))
+import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Backend.Text as Text
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
@@ -107,7 +110,7 @@ prop_Load_Instance name mem dsk vcpus status
 
 prop_Load_InstanceFail :: [(String, Int)] -> [String] -> Property
 prop_Load_InstanceFail ktn fields =
-  length fields < 10 || length fields > 12 ==>
+  length fields < 10 || length fields > 13 ==>
     case Text.loadInst nl fields of
       Ok _ -> failTest "Managed to load instance from invalid data"
       Bad msg -> counterexample ("Unrecognised error message: " ++ msg) $
@@ -178,21 +181,21 @@ prop_ISpecIdempotent ispec =
   case Text.loadISpec "dummy" . Utils.sepSplit ',' .
        Text.serializeISpec $ ispec of
     Bad msg -> failTest $ "Failed to load ispec: " ++ msg
-    Ok ispec' -> ispec ==? ispec'
+    Ok ispec' -> ispec' ==? ispec
 
 prop_MultipleMinMaxISpecsIdempotent :: [Types.MinMaxISpecs] -> Property
 prop_MultipleMinMaxISpecsIdempotent minmaxes =
   case Text.loadMultipleMinMaxISpecs "dummy" . Utils.sepSplit ';' .
        Text.serializeMultipleMinMaxISpecs $ minmaxes of
     Bad msg -> failTest $ "Failed to load min/max ispecs: " ++ msg
-    Ok minmaxes' -> minmaxes ==? minmaxes'
+    Ok minmaxes' -> minmaxes' ==? minmaxes
 
 prop_IPolicyIdempotent :: Types.IPolicy -> Property
 prop_IPolicyIdempotent ipol =
   case Text.loadIPolicy . Utils.sepSplit '|' $
        Text.serializeIPolicy owner ipol of
     Bad msg -> failTest $ "Failed to load ispec: " ++ msg
-    Ok res -> (owner, ipol) ==? res
+    Ok res -> res ==? (owner, ipol)
   where owner = "dummy"
 
 -- | This property, while being in the text tests, does more than just
@@ -207,30 +210,42 @@ prop_CreateSerialise =
   forAll genTags $ \ctags ->
   forAll (choose (1, 20)) $ \maxiter ->
   forAll (choose (2, 10)) $ \count ->
-  forAll genOnlineNode $ \node ->
-  forAll (genInstanceSmallerThanNode node) $ \inst ->
+  forAll genEmptyOnlineNode $ \node ->
+  forAll (genInstanceSmallerThanNode node `suchThat`
+            -- We want to test with a working node, so don't generate a
+            -- status that indicates a problem with the node.
+            (\i -> Instance.runSt i `elem` [ StatusDown
+                                           , StatusOffline
+                                           , ErrorDown
+                                           , ErrorUp
+                                           , Running
+                                           , UserDown
+                                           ])) $ \inst ->
   let nl = makeSmallCluster node count
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
+      opts = Alg.defaultOptions
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>= \allocn ->
-     Cluster.iterateAlloc nl Container.empty (Just maxiter) inst allocn [] []
+     Cluster.iterateAlloc opts nl Container.empty (Just maxiter) inst allocn
+                          [] []
      of
        Bad msg -> failTest $ "Failed to allocate: " ++ msg
        Ok (_, _, _, [], _) -> counterexample
                               "Failed to allocate: no allocations" False
-       Ok (_, nl', il', _, _) ->
-         let cdata = Loader.ClusterData defGroupList nl' il' ctags
+       Ok (_, nl', il, _, _) ->
+         let cdata = Loader.ClusterData defGroupList nl' il ctags
                      Types.defIPolicy
              saved = Text.serializeCluster cdata
          in case Text.parseData saved >>= Loader.mergeData [] [] [] [] (TOD 0 0)
             of
               Bad msg -> failTest $ "Failed to load/merge: " ++ msg
               Ok (Loader.ClusterData gl2 nl2 il2 ctags2 cpol2) ->
-                conjoin [ ctags ==? ctags2
-                        , Types.defIPolicy ==? cpol2
-                        , il' ==? il2
-                        , defGroupList ==? gl2
-                        , nl' ==? nl2
-                        ]
+                let (_, nl3) = Loader.checkData nl2 il2
+                in conjoin [ ctags2 ==? ctags
+                           , cpol2 ==? Types.defIPolicy
+                           , il2 ==? il
+                           , gl2 ==? defGroupList
+                           , nl3 ==? nl'
+                           ]
 
 testSuite "HTools/Backend/Text"
             [ 'prop_Load_Instance

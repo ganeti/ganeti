@@ -139,7 +139,7 @@ assignIndices name_element =
           . zip [0..] $ name_element
   in (M.fromList name_idx, Container.fromList idx_element)
 
--- | Given am indexed node list, and the name of the master, mark it as such. 
+-- | Given am indexed node list, and the name of the master, mark it as such.
 setMaster :: (Monad m) => NameAssoc -> Node.List -> String -> m Node.List
 setMaster node_names node_idx master = do
   kmaster <- maybe (fail $ "Master node " ++ master ++ " unknown") return $
@@ -322,19 +322,14 @@ checkData nl il =
     Container.mapAccum
         (\ msgs node ->
              let nname = Node.name node
-                 nilst = map (`Container.find` il) (Node.pList node)
-                 dilst = filter Instance.instanceDown nilst
-                 adj_mem = sum . map Instance.mem $ dilst
                  delta_mem = truncate (Node.tMem node)
                              - Node.nMem node
                              - Node.fMem node
                              - nodeImem node il
-                             + adj_mem
                  delta_dsk = truncate (Node.tDsk node)
                              - Node.fDsk node
                              - nodeIdsk node il
-                 newn = Node.setFmem (Node.setXmem node delta_mem)
-                        (Node.fMem node - adj_mem)
+                 newn = node `Node.setXmem` delta_mem
                  umsg1 =
                    if delta_mem > 512 || delta_dsk > 1024
                       then printf "node %s is missing %d MB ram \
@@ -349,7 +344,7 @@ nodeImem :: Node.Node -> Instance.List -> Int
 nodeImem node il =
   let rfind = flip Container.find il
       il' = map rfind $ Node.pList node
-      oil' = filter Instance.notOffline il'
+      oil' = filter Instance.usesMemory il'
   in sum . map Instance.mem $ oil'
 
 

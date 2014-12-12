@@ -108,9 +108,12 @@ parseBaseInstance n a = do
   su    <- extract "spindle_use"
   nics  <- extract "nics" >>= toArray >>= asObjectList >>=
            mapM (parseNic n . fromJSObject)
+  -- Not forthcoming by default.
+  forthcoming <- extract "forthcoming" `orElse` Ok False
   return
     (n,
-     Instance.create n mem disk disks vcpus Running tags True 0 0 dt su nics)
+     Instance.create n mem disk disks vcpus Running tags True 0 0 dt su nics
+                     forthcoming)
 
 -- | Parses an instance as found in the cluster instance list.
 parseInstance :: NameAssoc -- ^ The node name-to-index association list
@@ -414,19 +417,19 @@ processRequest opts request =
   let Request rqtype (ClusterData gl nl il _ _) = request
   in case rqtype of
        Allocate xi (Cluster.AllocDetails reqn Nothing) ->
-         Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate il
+         Cluster.tryMGAlloc opts gl nl il xi reqn >>= formatAllocate il
        Allocate xi (Cluster.AllocDetails reqn (Just gn)) ->
-         Cluster.tryGroupAlloc gl nl il gn xi reqn >>= formatAllocate il
+         Cluster.tryGroupAlloc opts gl nl il gn xi reqn >>= formatAllocate il
        Relocate idx reqn exnodes ->
          processRelocate opts gl nl il idx reqn exnodes >>= formatRelocate
        ChangeGroup gdxs idxs ->
-         Cluster.tryChangeGroup gl nl il idxs gdxs >>=
+         Cluster.tryChangeGroup opts gl nl il idxs gdxs >>=
                 formatNodeEvac gl nl il
        NodeEvacuate xi mode ->
          Cluster.tryNodeEvac opts gl nl il mode xi >>=
                 formatNodeEvac gl nl il
        MultiAllocate xies ->
-         Cluster.allocList gl nl il xies [] >>= formatMultiAlloc
+         Cluster.allocList opts gl nl il xies [] >>= formatMultiAlloc
 
 -- | Reads the request from the data file(s).
 readRequest :: FilePath -> IO Request

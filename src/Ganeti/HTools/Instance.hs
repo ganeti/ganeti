@@ -66,6 +66,7 @@ module Ganeti.HTools.Instance
   , allNodes
   , usesLocalStorage
   , mirrorType
+  , usesMemory
   ) where
 
 import Control.Monad (liftM2)
@@ -104,6 +105,7 @@ data Instance = Instance
   , exclTags     :: [String]  -- ^ List of instance exclusion tags
   , arPolicy     :: T.AutoRepairPolicy -- ^ Instance's auto-repair policy
   , nics         :: [Nic]     -- ^ NICs of the instance
+  , forthcoming  :: Bool      -- ^ Is the instance is forthcoming?
   } deriving (Show, Eq)
 
 instance T.Element Instance where
@@ -185,9 +187,9 @@ type List = Container.Container Instance
 -- later (via 'setIdx' for example).
 create :: String -> Int -> Int -> [Disk] -> Int -> T.InstanceStatus
        -> [String] -> Bool -> T.Ndx -> T.Ndx -> T.DiskTemplate -> Int
-       -> [Nic] -> Instance
+       -> [Nic] -> Bool -> Instance
 create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
-       auto_balance_init pn sn dt su nics_init =
+       auto_balance_init pn sn dt su nics_init forthcoming_init =
   Instance { name = name_init
            , alias = name_init
            , mem = mem_init
@@ -207,6 +209,7 @@ create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
            , exclTags = []
            , arPolicy = T.ArNotEnabled
            , nics = nics_init
+           , forthcoming = forthcoming_init
            }
 
 -- | Changes the index.
@@ -384,3 +387,21 @@ supportsMoves = (`elem` movableDiskTemplates)
 -- | A simple wrapper over 'T.templateMirrorType'.
 mirrorType :: Instance -> T.MirrorType
 mirrorType = T.templateMirrorType . diskTemplate
+
+
+-- | Whether the instance uses memory on its host node.
+-- Depends on the `InstanceStatus` and on whether the instance is forthcoming;
+-- instances that aren't running or existent don't use memory.
+usesMemory :: Instance -> Bool
+usesMemory inst
+  | forthcoming inst = False
+  | otherwise        = case runSt inst of
+      T.StatusDown    -> False
+      T.StatusOffline -> False
+      T.ErrorDown     -> False
+      T.ErrorUp       -> True
+      T.NodeDown      -> True -- value has little meaning when node is down
+      T.NodeOffline   -> True -- value has little meaning when node is offline
+      T.Running       -> True
+      T.UserDown      -> False
+      T.WrongNode     -> True

@@ -41,6 +41,7 @@ module Test.Ganeti.HTools.Node
   , setInstanceSmallerThanNode
   , genNode
   , genOnlineNode
+  , genEmptyOnlineNode
   , genNodeList
   , genUniqueNodeList
   ) where
@@ -118,15 +119,41 @@ genOnlineNode =
                               Node.availCpu n > 0 &&
                               Node.tSpindles n > 0)
 
+-- | Helper function to generate a sane empty node with consistent
+-- internal data.
+genEmptyOnlineNode :: Gen Node.Node
+genEmptyOnlineNode =
+  (do node <- arbitrary
+      let fmem = truncate (Node.tMem node) - Node.nMem node
+      let node' = node { Node.offline = False
+                       , Node.fMem = fmem
+                       , Node.fMemForth = fmem
+                       , Node.pMem = fromIntegral fmem / Node.tMem node
+                       , Node.pMemForth = fromIntegral fmem / Node.tMem node
+                       , Node.rMem = 0
+                       , Node.rMemForth = 0
+                       , Node.pRem = 0
+                       , Node.pRemForth = 0
+                       }
+      return node') `suchThat` (\ n -> not (Node.failN1 n) &&
+                                       Node.availDisk n > 0 &&
+                                       Node.availMem n > 0 &&
+                                       Node.availCpu n > 0 &&
+                                       Node.tSpindles n > 0)
+
 -- | Generate a node with exclusive storage enabled.
 genExclStorNode :: Gen Node.Node
 genExclStorNode = do
   n <- genOnlineNode
   fs <- choose (Types.unitSpindle, Node.tSpindles n)
+  fsForth <- choose (Types.unitSpindle, fs)
   let pd = fromIntegral fs / fromIntegral (Node.tSpindles n)::Double
+  let pdForth = fromIntegral fsForth / fromIntegral (Node.tSpindles n)::Double
   return n { Node.exclStorage = True
            , Node.fSpindles = fs
+           , Node.fSpindlesForth = fsForth
            , Node.pDsk = pd
+           , Node.pDskForth = pdForth
            }
 
 -- | Generate a node with exclusive storage possibly enabled.
@@ -187,17 +214,6 @@ prop_setMcpu node mc =
   Types.iPolicyVcpuRatio (Node.iPolicy newnode) ==? mc
     where newnode = Node.setMcpu node mc
 
-prop_setFmemGreater :: Node.Node -> Int -> Property
-prop_setFmemGreater node new_mem =
-  not (Node.failN1 node) && (Node.rMem node >= 0) &&
-  (new_mem > Node.rMem node) ==>
-  not (Node.failN1 (Node.setFmem node new_mem))
-
-prop_setFmemExact :: Node.Node -> Property
-prop_setFmemExact node =
-  not (Node.failN1 node) && (Node.rMem node >= 0) ==>
-  not (Node.failN1 (Node.setFmem node (Node.rMem node)))
-
 -- Check if adding an instance that consumes exactly all reserved
 -- memory does not raise an N+1 error
 prop_addPri_NoN1Fail :: Property
@@ -212,7 +228,7 @@ prop_addPri_NoN1Fail =
 prop_addPriFM :: Node.Node -> Instance.Instance -> Property
 prop_addPriFM node inst =
   Instance.mem inst >= Node.fMem node && not (Node.failN1 node) &&
-  not (Instance.isOffline inst) ==>
+  Instance.usesMemory inst ==>
   (Node.addPri node inst'' ==? Bad Types.FailMem)
   where inst' = setInstanceSmallerThanNode node inst
         inst'' = inst' { Instance.mem = Instance.mem inst }
@@ -254,7 +270,8 @@ prop_addPriFC :: Property
 prop_addPriFC =
   forAll (choose (1, maxCpu)) $ \extra ->
   forAll genMaybeExclStorNode $ \node ->
-  forAll (arbitrary `suchThat` Instance.notOffline) $ \inst ->
+  forAll (arbitrary `suchThat` Instance.notOffline
+                    `suchThat` (not . Instance.forthcoming)) $ \inst ->
   let inst' = setInstanceSmallerThanNode node inst
       inst'' = inst' { Instance.vcpus = Node.availCpu node + extra }
   in case Node.addPri node inst'' of
@@ -282,7 +299,7 @@ prop_addOfflinePri (NonNegative extra_mem) (NonNegative extra_cpu) =
   let inst' = inst { Instance.runSt = Types.StatusOffline
                    , Instance.mem = Node.availMem node + extra_mem
                    , Instance.vcpus = Node.availCpu node + extra_cpu }
-  in case Node.addPri node inst' of
+  in case Node.addPriEx True node inst' of
        Ok _ -> passTest
        v -> failTest $ "Expected OpGood, but got: " ++ show v
 
@@ -304,7 +321,8 @@ prop_addOfflineSec (NonNegative extra_mem) (NonNegative extra_cpu) pdx =
 -- | Checks for memory reservation changes.
 prop_rMem :: Instance.Instance -> Property
 prop_rMem inst =
-  not (Instance.isOffline inst) ==>
+  not (Instance.isOffline inst) && not (Instance.forthcoming inst) ==>
+  -- TODO Should we also require ((> Types.unitMem) . Node.fMemForth) ?
   forAll (genMaybeExclStorNode `suchThat` ((> Types.unitMem) . Node.fMem)) $
     \node ->
   -- ab = auto_balance, nb = non-auto_balance
@@ -450,8 +468,6 @@ testSuite "HTools/Node"
             [ 'prop_setAlias
             , 'prop_setOffline
             , 'prop_setMcpu
-            , 'prop_setFmemGreater
-            , 'prop_setFmemExact
             , 'prop_setXmem
             , 'prop_addPriFM
             , 'prop_addPriFD
