@@ -1091,8 +1091,18 @@ buildObjectWithForthcoming sname field_pfx fields = do
                  [todict, fromdict]
   instArray <- genArrayObjectInstance name
                  (simpleField "forthcoming" [t| Bool |] : fields)
+  let forthPredName = mkName $ field_pfx ++ "Forthcoming"
+  let forthPredDecls = [ SigD forthPredName
+                           $ ArrowT `AppT` ConT name `AppT` ConT ''Bool
+                       , FunD forthPredName
+                         [ Clause [ConP (mkName real_nm) [WildP]]
+                                   (NormalB $ ConE 'False) []
+                         , Clause [ConP (mkName forth_nm) [WildP]]
+                                   (NormalB $ ConE 'True) []
+                         ]
+                       ]
   return $ concreteDecls ++ forthcomingDecls ++ [declD, instJSONdecl]
-           ++ accessors ++ lenses ++ [instDict, instArray]
+           ++ forthPredDecls ++ accessors ++ lenses ++ [instDict, instArray]
 
 -- | Generates an object definition: data type and its JSON instance.
 buildObjectSerialisation :: String -> [Field] -> Q [Dec]
