@@ -139,6 +139,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   _DIR_MODE = 0755
   _STASH_KEY_ALLOCATED_LOOP_DEV = "allocated_loopdev"
 
+  _MEMORY_PARAMETER = "memory.limit_in_bytes"
+  _MEMORY_SWAP_PARAMETER = "memory.memsw.limit_in_bytes"
+
   PARAMETERS = {
     constants.HV_CPU_MASK: hv_base.OPT_CPU_MASK_CHECK,
     constants.HV_LXC_DEVICES: hv_base.NO_CHECK,
@@ -591,8 +594,10 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # Memory
     out.append("lxc.cgroup.memory.limit_in_bytes = %dM" %
                instance.beparams[constants.BE_MAXMEM])
-    out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
-               instance.beparams[constants.BE_MAXMEM])
+    if LXCHypervisor._IsCgroupParameterPresent(self._MEMORY_SWAP_PARAMETER,
+                                               instance.hvparams):
+      out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
+                 instance.beparams[constants.BE_MAXMEM])
 
     # Device control
     # deny direct device access
@@ -849,9 +854,17 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     current_mem_usage = self._GetCgroupMemoryLimit(instance.name)
     shrinking = mem_in_bytes <= current_mem_usage
 
-    # memory.memsw.limit_in_bytes is the superlimit of the memory.limit_in_bytes
-    # so the order of setting these parameters is quite important.
-    cgparams = ["memory.memsw.limit_in_bytes", "memory.limit_in_bytes"]
+    # The memsw.limit_in_bytes parameter might be present depending on kernel
+    # parameters.
+    # If present, it has to be modified at the same time as limit_in_bytes.
+    if LXCHypervisor._IsCgroupParameterPresent(self._MEMORY_SWAP_PARAMETER,
+                                               instance.hvparams):
+      # memory.memsw.limit_in_bytes is the superlimit of memory.limit_in_bytes
+      # so the order of setting these parameters is quite important.
+      cgparams = [self._MEMORY_SWAP_PARAMETER, self._MEMORY_PARAMETER]
+    else:
+      cgparams = [self._MEMORY_PARAMETER]
+
     if shrinking:
       cgparams.reverse()
 
