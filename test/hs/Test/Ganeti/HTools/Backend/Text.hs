@@ -53,6 +53,7 @@ import Test.Ganeti.HTools.Node (genNode, genOnlineNode, genEmptyOnlineNode
                                , genUniqueNodeList)
 
 import Ganeti.BasicTypes
+import Ganeti.Types (InstanceStatus(..))
 import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Backend.Text as Text
 import qualified Ganeti.HTools.Cluster as Cluster
@@ -210,7 +211,16 @@ prop_CreateSerialise =
   forAll (choose (1, 20)) $ \maxiter ->
   forAll (choose (2, 10)) $ \count ->
   forAll genEmptyOnlineNode $ \node ->
-  forAll (genInstanceSmallerThanNode node) $ \inst ->
+  forAll (genInstanceSmallerThanNode node `suchThat`
+            -- We want to test with a working node, so don't generate a
+            -- status that indicates a problem with the node.
+            (\i -> Instance.runSt i `elem` [ StatusDown
+                                           , StatusOffline
+                                           , ErrorDown
+                                           , ErrorUp
+                                           , Running
+                                           , UserDown
+                                           ])) $ \inst ->
   let nl = makeSmallCluster node count
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
       opts = Alg.defaultOptions

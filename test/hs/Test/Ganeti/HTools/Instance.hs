@@ -89,7 +89,7 @@ genInstanceSmallerThanNode node =
                          (Node.availDisk node `div` 2)
                          (Node.availCpu node `div` 2)
                          (if Node.exclStorage node
-                          then Just $ Node.fSpindles node `div` 2
+                          then Just $ Node.fSpindlesForth node `div` 2
                           else Nothing)
 
 -- | Generates an instance possibly bigger than a node.
