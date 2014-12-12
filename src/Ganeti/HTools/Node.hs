@@ -46,7 +46,6 @@ module Ganeti.HTools.Node
   , setAlias
   , setOffline
   , setXmem
-  , setFmem
   , setPri
   , calcFmemOfflineOrForthcoming
   , setSec
@@ -671,15 +670,6 @@ getPolicyHealth n =
 -- | Set the CPU speed
 setCpuSpeed :: Node -> Double -> Node
 setCpuSpeed n f = n { tCpuSpeed = f }
-
--- TODO Get rid of setFmem, it is not used in code any more:
-
--- | Sets the free memory.
-setFmem :: Node -> Int -> Node
-setFmem t new_mem =
-  let new_n1 = new_mem < rMem t
-      new_mp = fromIntegral new_mem / tMem t
-  in t { fMem = new_mem, failN1 = new_n1, pMem = new_mp }
 
 -- | Removes a primary instance.
 removePri :: Node -> Instance.Instance -> Node
