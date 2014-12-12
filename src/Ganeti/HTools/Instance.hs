@@ -66,6 +66,7 @@ module Ganeti.HTools.Instance
   , allNodes
   , usesLocalStorage
   , mirrorType
+  , usesMemory
   ) where
 
 import Control.Monad (liftM2)
@@ -386,3 +387,21 @@ supportsMoves = (`elem` movableDiskTemplates)
 -- | A simple wrapper over 'T.templateMirrorType'.
 mirrorType :: Instance -> T.MirrorType
 mirrorType = T.templateMirrorType . diskTemplate
+
+
+-- | Whether the instance uses memory on its host node.
+-- Depends on the `InstanceStatus` and on whether the instance is forthcoming;
+-- instances that aren't running or existent don't use memory.
+usesMemory :: Instance -> Bool
+usesMemory inst
+  | forthcoming inst = False
+  | otherwise        = case runSt inst of
+      T.StatusDown    -> False
+      T.StatusOffline -> False
+      T.ErrorDown     -> False
+      T.ErrorUp       -> True
+      T.NodeDown      -> True -- value has little meaning when node is down
+      T.NodeOffline   -> True -- value has little meaning when node is offline
+      T.Running       -> True
+      T.UserDown      -> False
+      T.WrongNode     -> True

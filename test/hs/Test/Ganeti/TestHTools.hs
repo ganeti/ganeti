@@ -134,6 +134,6 @@ setInstanceSmallerThanNode node inst =
           , Instance.vcpus = Node.availCpu node `div` 2
           , Instance.disks = [Instance.Disk new_dsk
                               (if Node.exclStorage node
-                               then Just $ Node.fSpindles node `div` 2
+                               then Just $ Node.fSpindlesForth node `div` 2
                                else Nothing)]
           }
