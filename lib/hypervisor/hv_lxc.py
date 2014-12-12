@@ -336,37 +336,36 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return cgroups
 
   @classmethod
-  def _GetCgroupInstanceSubsysDir(cls, instance_name, subsystem):
-    """Return the directory of the cgroup subsystem for the instance.
+  def _GetCgroupSubsysDir(cls, subsystem):
+    """Return the directory of the cgroup subsystem we use.
 
-    @type instance_name: string
-    @param instance_name: instance name
     @type subsystem: string
     @param subsystem: cgroup subsystem name
-    @rtype string
-    @return path of the instance hierarchy directory for the subsystem
+    @rtype: string
+    @return: path of the hierarchy directory for the subsystem
 
     """
     subsys_dir = cls._GetOrPrepareCgroupSubsysMountPoint(subsystem)
     base_group = cls._GetCurrentCgroupSubsysGroups().get(subsystem, "")
 
-    return utils.PathJoin(subsys_dir, base_group, "lxc", instance_name)
+    return utils.PathJoin(subsys_dir, base_group, "lxc")
 
   @classmethod
-  def _GetCgroupInstanceParamPath(cls, instance_name, param_name):
+  def _GetCgroupParamPath(cls, param_name, instance_name=None):
     """Return the path of the specified cgroup parameter file.
 
-    @type instance_name: string
-    @param instance_name: instance name
     @type param_name: string
     @param param_name: cgroup subsystem parameter name
-    @rtype string
-    @return path of the cgroup subsystem parameter file
+    @rtype: string
+    @return: path of the cgroup subsystem parameter file
 
     """
     subsystem = param_name.split(".", 1)[0]
-    subsys_dir = cls._GetCgroupInstanceSubsysDir(instance_name, subsystem)
-    return utils.PathJoin(subsys_dir, param_name)
+    subsys_dir = cls._GetCgroupSubsysDir(subsystem)
+    if instance_name is not None:
+      return utils.PathJoin(subsys_dir, instance_name, param_name)
+    else:
+      return utils.PathJoin(subsys_dir, param_name)
 
   @classmethod
   def _GetCgroupInstanceValue(cls, instance_name, param_name):
@@ -380,7 +379,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     @return value read from cgroup subsystem fs
 
     """
-    param_path = cls._GetCgroupInstanceParamPath(instance_name, param_name)
+    param_path = cls._GetCgroupParamPath(param_name,
+                                         instance_name=instance_name)
     return utils.ReadFile(param_path).rstrip("\n")
 
   @classmethod
@@ -395,7 +395,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     @param param_value: cgroup subsystem parameter value to be set
 
     """
-    param_path = cls._GetCgroupInstanceParamPath(instance_name, param_name)
+    param_path = cls._GetCgroupParamPath(param_name,
+                                         instance_name=instance_name)
     # When interacting with cgroup fs, errno is quite important information
     # to see what happened when setting a cgroup parameter, so just throw
     # an error to the upper level.
@@ -409,6 +410,25 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     finally:
       if fd != -1:
         os.close(fd)
+
+  @classmethod
+  def _IsCgroupParameterPresent(cls, parameter, hvparams=None):
+    """Return whether a cgroup parameter can be used.
+
+    This is checked by seeing whether there is a file representation of the
+    parameter in the location where the cgroup is mounted.
+
+    @type parameter: string
+    @param parameter: The name of the parameter.
+    @param hvparams: dict
+    @param hvparams: The hypervisor parameters, optional.
+    @rtype: boolean
+
+    """
+    cls._EnsureCgroupMounts(hvparams)
+    param_path = cls._GetCgroupParamPath(parameter)
+
+    return os.path.exists(param_path)
 
   @classmethod
   def _GetCgroupCpuList(cls, instance_name):
