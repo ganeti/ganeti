@@ -52,6 +52,7 @@ import Test.Ganeti.HTools.Instance (genInstanceSmallerThanNode,
 import Test.Ganeti.HTools.Node (genNode, genOnlineNode, genUniqueNodeList)
 
 import Ganeti.BasicTypes
+import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Backend.Text as Text
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
@@ -211,8 +212,10 @@ prop_CreateSerialise =
   forAll (genInstanceSmallerThanNode node) $ \inst ->
   let nl = makeSmallCluster node count
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
+      opts = Alg.defaultOptions
   in case Cluster.genAllocNodes defGroupList nl reqnodes True >>= \allocn ->
-     Cluster.iterateAlloc nl Container.empty (Just maxiter) inst allocn [] []
+     Cluster.iterateAlloc opts nl Container.empty (Just maxiter) inst allocn
+                          [] []
      of
        Bad msg -> failTest $ "Failed to allocate: " ++ msg
        Ok (_, _, _, [], _) -> counterexample

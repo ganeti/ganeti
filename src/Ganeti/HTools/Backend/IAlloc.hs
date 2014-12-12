@@ -414,19 +414,19 @@ processRequest opts request =
   let Request rqtype (ClusterData gl nl il _ _) = request
   in case rqtype of
        Allocate xi (Cluster.AllocDetails reqn Nothing) ->
-         Cluster.tryMGAlloc gl nl il xi reqn >>= formatAllocate il
+         Cluster.tryMGAlloc opts gl nl il xi reqn >>= formatAllocate il
        Allocate xi (Cluster.AllocDetails reqn (Just gn)) ->
-         Cluster.tryGroupAlloc gl nl il gn xi reqn >>= formatAllocate il
+         Cluster.tryGroupAlloc opts gl nl il gn xi reqn >>= formatAllocate il
        Relocate idx reqn exnodes ->
          processRelocate opts gl nl il idx reqn exnodes >>= formatRelocate
        ChangeGroup gdxs idxs ->
-         Cluster.tryChangeGroup gl nl il idxs gdxs >>=
+         Cluster.tryChangeGroup opts gl nl il idxs gdxs >>=
                 formatNodeEvac gl nl il
        NodeEvacuate xi mode ->
          Cluster.tryNodeEvac opts gl nl il mode xi >>=
                 formatNodeEvac gl nl il
        MultiAllocate xies ->
-         Cluster.allocList gl nl il xies [] >>= formatMultiAlloc
+         Cluster.allocList opts gl nl il xies [] >>= formatMultiAlloc
 
 -- | Reads the request from the data file(s).
 readRequest :: FilePath -> IO Request
