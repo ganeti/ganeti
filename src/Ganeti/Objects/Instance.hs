@@ -96,3 +96,6 @@ instance SerialNoObject Instance where
 
 instance TagsObject Instance where
   tagsOf = instTags
+
+instance ForthcomingObject Instance where
+  isForthcoming = instForthcoming
