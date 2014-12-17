@@ -259,6 +259,9 @@ $(buildObjectWithForthcoming "Disk" "disk" $
 instance UuidObject Disk where
   uuidOf = diskUuid
 
+instance ForthcomingObject Disk where
+  isForthcoming = diskForthcoming
+
 -- | Determines whether a disk or one of his children has the given logical id
 -- (determined by the volume group name and by the logical volume name).
 -- This can be true only for DRBD or LVM disks.
