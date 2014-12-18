@@ -149,10 +149,18 @@ The first two operations will be performed using the config functions
 will be performed using the functions ``AttachInstanceDisk`` and
 ``DetachInstanceDisk``.
 
-Since Ganeti doesn't allow for a `Disk` object to not be attached anywhere (for
-now) we will create two wrapper functions (namely ``AddInstanceDisk`` and
-``RemoveInstanceDisk``) which will add and attach a disk at the same time
-(respectively detach and remove a disk).
+More specifically, the `add` operation will add and attach a disk at the same
+time, using a wrapper that calls the ``AddDisk`` and ``AttachInstanceDisk``
+functions. On the same vein, the `remove` operation will detach and remove a
+disk using a wrapper that calls the ``DetachInstanceDisk`` and
+``RemoveInstanceDisk``. The `attach` and `detach` operations are simpler, in
+the sense that they only call the ``AttachInstanceDisk`` and
+``DetachInstanceDisk`` functions respectively.
+
+It is important to note that the `detach` operation introduces the notion of
+disks that are not attached to any instance. For this reason, the configuration
+checks for detached disks will be removed, as the detached disks can be handled
+by the code.
 
 In addition since Ganeti doesn't allow for a `Disk` object to be attached to
 more than one `Instance` at once, when attaching a disk to an instance we have
@@ -222,10 +230,39 @@ fall into the following general categories:
    required. This is incompatible as well and will need to be listed in
    the NEWS file.
 
+Attach/Detach disks from cli
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The `attach`/`detach` options should be available through the command
+``gnt-instance modify``. Like the `add`/`remove` options, the `attach`/`detach`
+options can be invoked using the legacy syntax or the new syntax that supports
+indexes. For the attach option, we can refer to the disk using either its
+`name` or `uuid`. The detach option on the other hand has the same syntax as
+the remove option, and we can refer to a disk by its `name`, `uuid` or `index`
+in the instance.
+
+The attach/detach syntax can be seen below:
+
+* **Legacy syntax**
+
+  .. code-block:: bash
+
+    gnt-instance modify --disk attach,name=*NAME* *INSTANCE*
+    gnt-instance modify --disk attach,uuid=*UUID* *INSTANCE*
+    gnt-instance modify --disk detach *INSTANCE*
+
+* **New syntax**
+
+  .. code-block:: bash
+
+    gnt-instance modify --disk *N*:attach,name=*NAME* *INSTANCE*
+    gnt-instance modify --disk *N*:attach,uuid=*UUID* *INSTANCE*
+    gnt-instance modify --disk *N*:detach *INSTANCE*
+    gnt-instance modify --disk *NAME*:detach *INSTANCE*
+    gnt-instance modify --disk *UUID*:detach *INSTANCE*
+
 
 .. TODO: Locks for Disk objects
-
-.. TODO: Attach/Detach disks
 
 .. TODO: LUs for disks
 
