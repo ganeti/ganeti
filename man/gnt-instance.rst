@@ -1337,8 +1337,10 @@ MODIFY
 | [\--disk add:size=*SIZE*[,options...] \|
 |  \--disk *N*:add,size=*SIZE*[,options...] \|
 |  \--disk *N*:add,size=*SIZE*,provider=*PROVIDER*[,options...][,param=*value*... ] \|
+|  \--disk *N*:attach,{name=*NAME* | uuid=*UUID*}\|
 |  \--disk *ID*:modify[,options...]
 |  \--disk [*ID*:]remove]
+|  \--disk [*ID*:]detach]
 | [\{-t|\--disk-template} { plain | rbd } \|
 |  \{-t|\--disk-template} drbd -n *new_secondary*] [\--no-wait-for-sync] \|
 |  \{-t|\--disk-template} ext {-e|--ext-params} {provider=*PROVIDER*}[,param=*value*... ] \|
@@ -1395,20 +1397,27 @@ memory to the given size (in MB if a different suffix is not specified),
 by ballooning it up or down to the new value.
 
 The ``--disk add:size=*SIZE*,[options..]`` option adds a disk to the
-instance, and ``--disk *N*:add:size=*SIZE*,[options..]`` will add a disk
-to the the instance at a specific index. The available options are the
-same as in the **add** command (``spindles``, ``mode``, ``name``, ``vg``,
-``metavg`` and ``access``). Per default, gnt-instance waits for the disk
+instance, and ``--disk *N*:add,size=*SIZE*,[options..]`` will add a disk
+to the instance at a specific index. The available options are the same
+as in the **add** command (``spindles``, ``mode``, ``name``, ``vg``,
+``metavg`` and ``access``). By default, gnt-instance waits for the disk
 mirror to sync.
 If you do not want this behavior, use the ``--no-wait-for-sync`` option.
 When adding an ExtStorage disk, the ``provider=*PROVIDER*`` option is
 also mandatory and specifies the ExtStorage provider. Also, for
 ExtStorage disks arbitrary parameters can be passed as additional comma
-separated options, same as in the **add** command. The ``--disk remove``
+separated options, same as in the **add** command. The
+``--disk attach:name=*NAME*`` option attaches an existing disk to the
+instance at the last disk index and ``--disk *N*:attach,name=*NAME*``
+will attach a disk to the instance at a specific index. The accepted
+disk identifiers are its ``name`` or ``uuid``. The ``--disk remove``
 option will remove the last disk of the instance. Use
-``--disk `` *ID*``:remove`` to remove a disk by its identifier. *ID*
-can be the index of the disk, the disks's name or the disks's UUID. The
-``--disk *ID*:modify[,options...]`` will change the options of the disk.
+``--disk `` *ID*``:remove`` to remove a disk by its identifier. *ID* can
+be the index of the disk, the disks's name or the disks's UUID. The
+above apply also to the ``--disk detach`` option, which removes a disk
+from an instance but keeps it in the configuration and doesn't destroy
+it. The ``--disk *ID*:modify[,options...]`` will change the options of
+the disk.
 Available options are:
 
 mode
