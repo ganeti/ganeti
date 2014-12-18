@@ -2796,6 +2796,32 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
     self.assertEqual([disk2, disk1], self.cfg.GetInstanceDisks(inst.uuid))
 
+  def testRemoveDiskRemovesStorageDir(self):
+    inst = self.cfg.AddNewInstance(disks=[self.cfg.CreateDisk(dev_type='file')])
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_REMOVE, -1,
+                                 {}]])
+    self.rpc.call_file_storage_dir_remove.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master)
+    self.ExecOpCode(op)
+    self.rpc.call_file_storage_dir_remove.assert_called_with(
+        self.master.uuid, '/file/storage')
+
+  def testRemoveDiskKeepsStorageForRemaining(self):
+    inst = self.cfg.AddNewInstance(disks=[self.cfg.CreateDisk(dev_type='file'),
+                                          self.cfg.CreateDisk(dev_type='file')])
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_REMOVE, -1,
+                                 {}]])
+    self.rpc.call_file_storage_dir_remove.return_value = \
+      self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(self.master)
+    self.ExecOpCode(op)
+    self.assertFalse(self.rpc.call_file_storage_dir_remove.called)
+
   def testModifyDiskWithSize(self):
     op = self.CopyOpCode(self.op,
                          disks=[[constants.DDM_MODIFY, 0,
