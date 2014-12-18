@@ -1133,7 +1133,7 @@ class _FakeConfigForGenDiskTemplate(ConfigMock):
   def GenerateUniqueID(self, ec_id):
     return "ec%s-uq%s" % (ec_id, self._unique_id.next())
 
-  def AllocateDRBDMinor(self, nodes, instance):
+  def AllocateDRBDMinor(self, nodes, disk):
     return [self._drbd_minor.next()
             for _ in nodes]
 

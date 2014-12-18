@@ -150,22 +150,22 @@ computeDRBDMap = uncurry T.computeDRBDMap =<< readTempResState
 -- Allocate a drbd minor.
 --
 -- The free minor will be automatically computed from the existing devices.
--- A node can be given multiple times in order to allocate multiple minors.
+-- A node can not be given multiple times.
 -- The result is the list of minors, in the same order as the passed nodes.
 allocateDRBDMinor
-  :: T.InstanceUUID -> [T.NodeUUID] -> WConfdMonad [T.DRBDMinor]
-allocateDRBDMinor inst nodes =
-  modifyTempResStateErr (\cfg -> T.allocateDRBDMinor cfg inst nodes)
+  :: T.DiskUUID -> [T.NodeUUID] -> WConfdMonad [T.DRBDMinor]
+allocateDRBDMinor disk nodes =
+  modifyTempResStateErr (\cfg -> T.allocateDRBDMinor cfg disk nodes)
 
--- Release temporary drbd minors allocated for a given instance using
+-- Release temporary drbd minors allocated for a given disk using
 -- 'allocateDRBDMinor'.
 --
 -- This should be called on the error paths, on the success paths
 -- it's automatically called by the ConfigWriter add and update
 -- functions.
 releaseDRBDMinors
-  :: T.InstanceUUID -> WConfdMonad ()
-releaseDRBDMinors inst = modifyTempResState (const $ T.releaseDRBDMinors inst)
+  :: T.DiskUUID -> WConfdMonad ()
+releaseDRBDMinors disk = modifyTempResState (const $ T.releaseDRBDMinors disk)
 
 -- *** MACs
 

@@ -437,6 +437,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     self.all_node_info = self.cfg.GetAllNodesInfo()
     self.all_inst_info = self.cfg.GetAllInstancesInfo()
+    self.all_disks_info = self.cfg.GetAllDisksInfo()
 
     self.my_node_uuids = group_node_uuids
     self.my_node_info = dict((node_uuid, self.all_node_info[node_uuid])
@@ -1178,14 +1179,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         self._ErrorIf(test, constants.CV_ENODEDRBDHELPER, ninfo.name,
                       "wrong drbd usermode helper: %s", payload)
 
-  def _VerifyNodeDrbd(self, ninfo, nresult, instanceinfo, drbd_helper,
-                      drbd_map):
+  def _VerifyNodeDrbd(self, ninfo, nresult, instanceinfo, disks_info,
+                      drbd_helper, drbd_map):
     """Verifies and the node DRBD status.
 
     @type ninfo: L{objects.Node}
     @param ninfo: the node to check
     @param nresult: the remote results for the node
     @param instanceinfo: the dict of instances
+    @param disks_info: the dict of disks
     @param drbd_helper: the configured DRBD usermode helper
     @param drbd_map: the DRBD map as returned by
         L{ganeti.config.ConfigWriter.ComputeDRBDMap}
@@ -1195,18 +1197,24 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     # compute the DRBD minors
     node_drbd = {}
-    for minor, inst_uuid in drbd_map[ninfo.uuid].items():
-      test = inst_uuid not in instanceinfo
+    for minor, disk_uuid in drbd_map[ninfo.uuid].items():
+      test = disk_uuid not in disks_info
       self._ErrorIf(test, constants.CV_ECLUSTERCFG, None,
-                    "ghost instance '%s' in temporary DRBD map", inst_uuid)
-        # ghost instance should not be running, but otherwise we
-        # don't give double warnings (both ghost instance and
+                    "ghost disk '%s' in temporary DRBD map", disk_uuid)
+        # ghost disk should not be active, but otherwise we
+        # don't give double warnings (both ghost disk and
         # unallocated minor in use)
       if test:
-        node_drbd[minor] = (inst_uuid, False)
+        node_drbd[minor] = (disk_uuid, None, False)
       else:
-        instance = instanceinfo[inst_uuid]
-        node_drbd[minor] = (inst_uuid, instance.disks_active)
+        disk_active = False
+        disk_instance = None
+        for (inst_uuid, inst) in instanceinfo.items():
+          if disk_uuid in inst.disks:
+            disk_active = inst.disks_active
+            disk_instance = inst_uuid
+            break
+        node_drbd[minor] = (disk_uuid, disk_instance, disk_active)
 
     # and now check them
     used_minors = nresult.get(constants.NV_DRBDLIST, [])
@@ -1217,11 +1225,16 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # we cannot check drbd status
       return
 
-    for minor, (inst_uuid, must_exist) in node_drbd.items():
+    for minor, (disk_uuid, inst_uuid, must_exist) in node_drbd.items():
       test = minor not in used_minors and must_exist
+      if inst_uuid is not None:
+        attached = "(attached in instance '%s')" % \
+          self.cfg.GetInstanceName(inst_uuid)
+      else:
+        attached = "(detached)"
       self._ErrorIf(test, constants.CV_ENODEDRBD, ninfo.name,
-                    "drbd minor %d of instance %s is not active", minor,
-                    self.cfg.GetInstanceName(inst_uuid))
+                    "drbd minor %d of disk %s %s is not active",
+                    minor, disk_uuid, attached)
     for minor in used_minors:
       test = minor not in node_drbd
       self._ErrorIf(test, constants.CV_ENODEDRBD, ninfo.name,
@@ -2033,8 +2046,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       if nimg.vm_capable:
         self._UpdateVerifyNodeLVM(node_i, nresult, vg_name, nimg)
         if constants.DT_DRBD8 in cluster.enabled_disk_templates:
-          self._VerifyNodeDrbd(node_i, nresult, self.all_inst_info, drbd_helper,
-                               all_drbd_map)
+          self._VerifyNodeDrbd(node_i, nresult, self.all_inst_info,
+                               self.all_disks_info, drbd_helper, all_drbd_map)
 
         if (constants.DT_PLAIN in cluster.enabled_disk_templates) or \
             (constants.DT_DRBD8 in cluster.enabled_disk_templates):

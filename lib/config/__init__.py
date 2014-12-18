@@ -351,6 +351,7 @@ class ConfigWriter(object):
     disk.UpgradeConfig()
     self._ConfigData().disks[disk.uuid] = disk
     self._ConfigData().cluster.serial_no += 1
+    self._UnlockedReleaseDRBDMinors(disk.uuid)
 
   def _UnlockedAttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
     """Attach a disk to an instance.
@@ -1232,53 +1233,56 @@ class ConfigWriter(object):
       return dict(map(lambda (k, v): (k, dict(v)),
                       self._wconfd.ComputeDRBDMap()))
 
-  def AllocateDRBDMinor(self, node_uuids, inst_uuid):
+  def AllocateDRBDMinor(self, node_uuids, disk_uuid):
     """Allocate a drbd minor.
 
     This is just a wrapper over a call to WConfd.
 
     The free minor will be automatically computed from the existing
-    devices. A node can be given multiple times in order to allocate
-    multiple minors. The result is the list of minors, in the same
+    devices. A node can not be given multiple times.
+    The result is the list of minors, in the same
     order as the passed nodes.
 
-    @type inst_uuid: string
-    @param inst_uuid: the instance for which we allocate minors
+    @type node_uuids: list of strings
+    @param node_uuids: the nodes in which we allocate minors
+    @type disk_uuid: string
+    @param disk_uuid: the disk for which we allocate minors
+    @rtype: list of ints
+    @return: A list of minors in the same order as the passed nodes
 
     """
-    assert isinstance(inst_uuid, basestring), \
-           "Invalid argument '%s' passed to AllocateDRBDMinor" % inst_uuid
+    assert isinstance(disk_uuid, basestring), \
+           "Invalid argument '%s' passed to AllocateDRBDMinor" % disk_uuid
 
     if self._offline:
       raise errors.ProgrammerError("Can't call AllocateDRBDMinor"
                                    " in offline mode")
 
-    result = self._wconfd.AllocateDRBDMinor(inst_uuid, node_uuids)
+    result = self._wconfd.AllocateDRBDMinor(disk_uuid, node_uuids)
     logging.debug("Request to allocate drbd minors, input: %s, returning %s",
                   node_uuids, result)
     return result
 
-  def _UnlockedReleaseDRBDMinors(self, inst_uuid):
-    """Release temporary drbd minors allocated for a given instance.
+  def _UnlockedReleaseDRBDMinors(self, disk_uuid):
+    """Release temporary drbd minors allocated for a given disk.
 
     This is just a wrapper over a call to WConfd.
 
-    @type inst_uuid: string
-    @param inst_uuid: the instance for which temporary minors should be
-                      released
+    @type disk_uuid: string
+    @param disk_uuid: the disk for which temporary minors should be released
 
     """
-    assert isinstance(inst_uuid, basestring), \
+    assert isinstance(disk_uuid, basestring), \
            "Invalid argument passed to ReleaseDRBDMinors"
     # in offline mode we allow the calls to release DRBD minors,
     # because then nothing can be allocated anyway;
     # this is useful for testing
     if not self._offline:
-      self._wconfd.ReleaseDRBDMinors(inst_uuid)
+      self._wconfd.ReleaseDRBDMinors(disk_uuid)
 
   @ConfigSync()
-  def ReleaseDRBDMinors(self, inst_uuid):
-    """Release temporary drbd minors allocated for a given instance.
+  def ReleaseDRBDMinors(self, disk_uuid):
+    """Release temporary drbd minors allocated for a given disk.
 
     This should be called on the error paths, on the success paths
     it's automatically called by the ConfigWriter add and update
@@ -1286,12 +1290,11 @@ class ConfigWriter(object):
 
     This function is just a wrapper over L{_UnlockedReleaseDRBDMinors}.
 
-    @type inst_uuid: string
-    @param inst_uuid: the instance for which temporary minors should be
-                      released
+    @type disk_uuid: string
+    @param disk_uuid: the disk for which temporary minors should be released
 
     """
-    self._UnlockedReleaseDRBDMinors(inst_uuid)
+    self._UnlockedReleaseDRBDMinors(disk_uuid)
 
   @ConfigSync(shared=1)
   def GetConfigVersion(self):
@@ -3178,7 +3181,7 @@ class ConfigWriter(object):
       self._ConfigData().cluster.serial_no += 1
       self._ConfigData().cluster.mtime = now
 
-    if isinstance(target, objects.Instance):
+    if isinstance(target, objects.Disk):
       self._UnlockedReleaseDRBDMinors(target.uuid)
 
     if ec_id is not None:

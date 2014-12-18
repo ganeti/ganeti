@@ -44,6 +44,7 @@ module Ganeti.WConfd.TempRes
   , emptyTempResState
   , NodeUUID
   , InstanceUUID
+  , DiskUUID
   , NetworkUUID
   , DRBDMinor
   , DRBDMap
@@ -111,15 +112,17 @@ type NodeUUID = String
 
 type InstanceUUID = String
 
+type DiskUUID = String
+
 type NetworkUUID = String
 
 type DRBDMinor = Int
 
 -- | A map of the usage of DRBD minors
-type DRBDMap = Map NodeUUID (Map DRBDMinor InstanceUUID)
+type DRBDMap = Map NodeUUID (Map DRBDMinor DiskUUID)
 
 -- | A map of the usage of DRBD minors with possible duplicates
-type DRBDMap' = Map NodeUUID (Map DRBDMinor [InstanceUUID])
+type DRBDMap' = Map NodeUUID (Map DRBDMinor [DiskUUID])
 
 -- * The state data structure
 
@@ -218,16 +221,15 @@ computeDRBDMap' :: (MonadError GanetiException m)
                 => ConfigData -> TempResState -> m DRBDMap'
 computeDRBDMap' cfg trs =
     flip execStateT (fmap (fmap (: [])) (trsDRBD trs))
-    $ F.forM_ (configInstances cfg) addDisks
+    $ F.forM_ (configDisks cfg) addMinors
   where
     -- | Creates a lens for modifying the list of instances
-    nodeMinor :: NodeUUID -> DRBDMinor -> Lens' DRBDMap' [InstanceUUID]
+    nodeMinor :: NodeUUID -> DRBDMinor -> Lens' DRBDMap' [DiskUUID]
     nodeMinor node minor = maybeLens (at node) . maybeLens (at minor)
-    -- | Adds disks of an instance within the state monad
-    addDisks inst = do
-                      disks <- toError $ getDrbdMinorsForInstance cfg inst
-                      forM_ disks $ \(minor, node) -> nodeMinor node minor
-                                                          %= (uuidOf inst :)
+    -- | Adds minors of a disk within the state monad
+    addMinors disk = do
+      let minors = getDrbdMinorsForDisk disk
+      forM_ minors $ \(minor, node) -> nodeMinor node minor %= (uuidOf disk :)
 
 -- | Compute the map of used DRBD minor/nodes.
 -- Report any duplicate entries as an error.
@@ -246,25 +248,27 @@ computeDRBDMap cfg trs = do
 -- Allocate a drbd minor.
 --
 -- The free minor will be automatically computed from the existing devices.
--- A node can be given multiple times in order to allocate multiple minors.
+-- A node can not be given multiple times.
 -- The result is the list of minors, in the same order as the passed nodes.
 allocateDRBDMinor :: (MonadError GanetiException m, MonadState TempResState m)
-                  => ConfigData -> InstanceUUID -> [NodeUUID]
+                  => ConfigData -> DiskUUID -> [NodeUUID]
                   -> m [DRBDMinor]
-allocateDRBDMinor cfg inst nodes = do
+allocateDRBDMinor cfg disk nodes = do
+  unless (nodes == ordNub nodes) . resError
+    $ "Duplicate nodes detected in list '" ++ show nodes ++ "'"
   dMap <- computeDRBDMap' cfg =<< get
   let usedMap = fmap M.keysSet dMap
-  let alloc :: S.Set DRBDMinor -> Map DRBDMinor InstanceUUID
-            -> (DRBDMinor, Map DRBDMinor InstanceUUID)
+  let alloc :: S.Set DRBDMinor -> Map DRBDMinor DiskUUID
+            -> (DRBDMinor, Map DRBDMinor DiskUUID)
       alloc used m = let k = findFirst 0 (M.keysSet m `S.union` used)
-                      in (k, M.insert k inst m)
+                     in (k, M.insert k disk m)
   forM nodes $ \node -> trsDRBDL . maybeLens (at node)
                         %%= alloc (M.findWithDefault mempty node usedMap)
 
--- Release temporary drbd minors allocated for a given instance using
+-- Release temporary drbd minors allocated for a given disk using
 -- 'allocateDRBDMinor'.
-releaseDRBDMinors :: (MonadState TempResState m) => InstanceUUID -> m ()
-releaseDRBDMinors inst = trsDRBDL %= filterNested (/= inst)
+releaseDRBDMinors :: (MonadState TempResState m) => DiskUUID -> m ()
+releaseDRBDMinors disk = trsDRBDL %= filterNested (/= disk)
 
 -- * Other temporary resources
 

@@ -66,6 +66,7 @@ module Ganeti.Config
     , getInstAllNodes
     , getInstDisks
     , getInstDisksFromObj
+    , getDrbdMinorsForDisk
     , getDrbdMinorsForInstance
     , getFilledInstHvParams
     , getFilledInstBeParams

@@ -467,7 +467,8 @@ class LUInstanceMove(LogicalUnit):
       CreateDisks(self, self.instance, target_node_uuid=target_node.uuid)
     except errors.OpExecError:
       self.LogWarning("Device creation failed")
-      self.cfg.ReleaseDRBDMinors(self.instance.uuid)
+      for disk_uuid in self.instance.disks:
+        self.cfg.ReleaseDRBDMinors(disk_uuid)
       raise
 
     errs = []
@@ -500,7 +501,8 @@ class LUInstanceMove(LogicalUnit):
       try:
         RemoveDisks(self, self.instance, target_node_uuid=target_node.uuid)
       finally:
-        self.cfg.ReleaseDRBDMinors(self.instance.uuid)
+        for disk_uuid in self.instance.disks:
+          self.cfg.ReleaseDRBDMinors(disk_uuid)
         raise errors.OpExecError("Errors during disk copy: %s" %
                                  (",".join(errs),))
 

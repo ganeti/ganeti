@@ -538,7 +538,7 @@ def CheckRADOSFreeSpace():
 
 
 def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
-                         iv_name, p_minor, s_minor, forthcoming=False):
+                         iv_name, forthcoming=False):
   """Generate a drbd8 device complete with its children.
 
   """
@@ -557,15 +557,19 @@ def _GenerateDRBD8Branch(lu, primary_uuid, secondary_uuid, size, vgnames, names,
                           nodes=[primary_uuid, secondary_uuid],
                           params={}, forthcoming=forthcoming)
   dev_meta.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
+
+  drbd_uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
+  minors = lu.cfg.AllocateDRBDMinor([primary_uuid, secondary_uuid], drbd_uuid)
+  assert len(minors) == 2
   drbd_dev = objects.Disk(dev_type=constants.DT_DRBD8, size=size,
                           logical_id=(primary_uuid, secondary_uuid, port,
-                                      p_minor, s_minor,
+                                      minors[0], minors[1],
                                       shared_secret),
                           children=[dev_data, dev_meta],
                           nodes=[primary_uuid, secondary_uuid],
                           iv_name=iv_name, params={},
                           forthcoming=forthcoming)
-  drbd_dev.uuid = lu.cfg.GenerateUniqueID(lu.proc.GetECId())
+  drbd_dev.uuid = drbd_uuid
   return drbd_dev
 
 
@@ -588,8 +592,6 @@ def GenerateDiskTemplate(
     if len(secondary_node_uuids) != 1:
       raise errors.ProgrammerError("Wrong template configuration")
     remote_node_uuid = secondary_node_uuids[0]
-    minors = lu.cfg.AllocateDRBDMinor(
-      [primary_node_uuid, remote_node_uuid] * len(disk_info), instance_uuid)
 
     (drbd_params, _, _) = objects.Disk.ComputeLDParams(template_name,
                                                        full_disk_params)
@@ -609,7 +611,6 @@ def GenerateDiskTemplate(
                                       [data_vg, meta_vg],
                                       names[idx * 2:idx * 2 + 2],
                                       "disk/%d" % disk_index,
-                                      minors[idx * 2], minors[idx * 2 + 1],
                                       forthcoming=forthcoming)
       disk_dev.mode = disk[constants.IDISK_MODE]
       disk_dev.name = disk.get(constants.IDISK_NAME, None)
@@ -1018,7 +1019,7 @@ class LUInstanceRecreateDisks(LogicalUnit):
                                          # have changed
         (_, _, old_port, _, _, old_secret) = disk.logical_id
         new_minors = self.cfg.AllocateDRBDMinor(self.op.node_uuids,
-                                                self.instance.uuid)
+                                                disk.uuid)
         new_id = (self.op.node_uuids[0], self.op.node_uuids[1], old_port,
                   new_minors[0], new_minors[1], old_secret)
         assert len(disk.logical_id) == len(new_id)
@@ -2855,9 +2856,10 @@ class TLReplaceDisks(Tasklet):
     # after this, we must manually remove the drbd minors on both the
     # error and the success paths
     self.lu.LogStep(4, steps_total, "Changing drbd configuration")
-    minors = self.cfg.AllocateDRBDMinor([self.new_node_uuid
-                                         for _ in inst_disks],
-                                        self.instance.uuid)
+    minors = []
+    for disk in inst_disks:
+      minor = self.cfg.AllocateDRBDMinor([self.new_node_uuid], disk.uuid)
+      minors.append(minor[0])
     logging.debug("Allocated minors %r", minors)
 
     iv_names = {}
@@ -2896,10 +2898,12 @@ class TLReplaceDisks(Tasklet):
                              GetInstanceInfoText(self.instance), False,
                              excl_stor)
       except errors.GenericError:
-        self.cfg.ReleaseDRBDMinors(self.instance.uuid)
+        for disk in inst_disks:
+          self.cfg.ReleaseDRBDMinors(disk.uuid)
         raise
 
     # We have new devices, shutdown the drbd on the old secondary
+
     for idx, dev in enumerate(inst_disks):
       self.lu.LogInfo("Shutting down drbd for disk/%d on old node", idx)
       msg = self.rpc.call_blockdev_shutdown(self.target_node_uuid,
@@ -2917,7 +2921,8 @@ class TLReplaceDisks(Tasklet):
     msg = result.fail_msg
     if msg:
       # detaches didn't succeed (unlikely)
-      self.cfg.ReleaseDRBDMinors(self.instance.uuid)
+      for disk in inst_disks:
+        self.cfg.ReleaseDRBDMinors(disk.uuid)
       raise errors.OpExecError("Can't detach the disks from the network on"
                                " old node: %s" % (msg,))
 
