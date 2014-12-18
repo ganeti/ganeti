@@ -1258,37 +1258,52 @@ def _ConvertNicDiskModifications(mods):
       # Add item as last item (legacy interface)
       action = constants.DDM_ADD
       identifier = -1
+    elif identifier == constants.DDM_ATTACH:
+      # Attach item as last item (legacy interface)
+      action = constants.DDM_ATTACH
+      identifier = -1
     elif identifier == constants.DDM_REMOVE:
       # Remove last item (legacy interface)
       action = constants.DDM_REMOVE
       identifier = -1
+    elif identifier == constants.DDM_DETACH:
+      # Detach last item (legacy interface)
+      action = constants.DDM_DETACH
+      identifier = -1
     else:
-      # Modifications and adding/removing at arbitrary indices
+      # Modifications and adding/attaching/removing/detaching at arbitrary
+      # indices
       add = params.pop(constants.DDM_ADD, _MISSING)
+      attach = params.pop(constants.DDM_ATTACH, _MISSING)
       remove = params.pop(constants.DDM_REMOVE, _MISSING)
+      detach = params.pop(constants.DDM_DETACH, _MISSING)
       modify = params.pop(constants.DDM_MODIFY, _MISSING)
 
-      if modify is _MISSING:
-        if not (add is _MISSING or remove is _MISSING):
-          raise errors.OpPrereqError("Cannot add and remove at the same time",
-                                     errors.ECODE_INVAL)
-        elif add is not _MISSING:
-          action = constants.DDM_ADD
-        elif remove is not _MISSING:
-          action = constants.DDM_REMOVE
-        else:
-          action = constants.DDM_MODIFY
-
-      elif add is _MISSING and remove is _MISSING:
-        action = constants.DDM_MODIFY
-      else:
-        raise errors.OpPrereqError("Cannot modify and add/remove at the"
-                                   " same time", errors.ECODE_INVAL)
+      # Check if the user has requested more than one operation and raise an
+      # exception. If no operations have been given, default to modify.
+      action = constants.DDM_MODIFY
+      ops = {
+        constants.DDM_ADD: add,
+        constants.DDM_ATTACH: attach,
+        constants.DDM_REMOVE: remove,
+        constants.DDM_DETACH: detach,
+        constants.DDM_MODIFY: modify,
+      }
+      count = 0
+      for op, param in ops.items():
+        if param is not _MISSING:
+          count += 1
+          action = op
+      if count > 1:
+        raise errors.OpPrereqError(
+          "Cannot do more than one of the following operations at the"
+          " same time: %s" % ", ".join(ops.keys()),
+          errors.ECODE_INVAL)
 
       assert not (constants.DDMS_VALUES_WITH_MODIFY & set(params.keys()))
 
-    if action == constants.DDM_REMOVE and params:
-      raise errors.OpPrereqError("Not accepting parameters on removal",
+    if action in (constants.DDM_REMOVE, constants.DDM_DETACH) and params:
+      raise errors.OpPrereqError("Not accepting parameters on removal/detach",
                                  errors.ECODE_INVAL)
 
     result.append((action, identifier, params))

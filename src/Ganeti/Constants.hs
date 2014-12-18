@@ -1196,14 +1196,20 @@ inisectOspPrivate = "os_private"
 ddmAdd :: String
 ddmAdd = Types.ddmFullToRaw DdmFullAdd
 
+ddmAttach :: String
+ddmAttach = Types.ddmFullToRaw DdmFullAttach
+
 ddmModify :: String
 ddmModify = Types.ddmFullToRaw DdmFullModify
 
 ddmRemove :: String
 ddmRemove = Types.ddmFullToRaw DdmFullRemove
 
+ddmDetach :: String
+ddmDetach = Types.ddmFullToRaw DdmFullDetach
+
 ddmsValues :: FrozenSet String
-ddmsValues = ConstantUtils.mkSet [ddmAdd, ddmRemove]
+ddmsValues = ConstantUtils.mkSet [ddmAdd, ddmAttach, ddmRemove, ddmDetach]
 
 ddmsValuesWithModify :: FrozenSet String
 ddmsValuesWithModify = ConstantUtils.mkSet $ map Types.ddmFullToRaw [minBound..]
