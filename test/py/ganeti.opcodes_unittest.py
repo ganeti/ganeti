@@ -377,7 +377,9 @@ class TestOpInstanceSetParams(unittest.TestCase):
   def _GenericTests(self, fn):
     self.assertTrue(fn([]))
     self.assertTrue(fn([(constants.DDM_ADD, {})]))
+    self.assertTrue(fn([(constants.DDM_ATTACH, {})]))
     self.assertTrue(fn([(constants.DDM_REMOVE, {})]))
+    self.assertTrue(fn([(constants.DDM_DETACH, {})]))
     for i in [0, 1, 2, 3, 9, 10, 1024]:
       self.assertTrue(fn([(i, {})]))
 
@@ -404,6 +406,7 @@ class TestOpInstanceSetParams(unittest.TestCase):
     for param in constants.IDISK_PARAMS:
       self.assertTrue(fn([[constants.DDM_ADD, {param: 0}]]))
       self.assertTrue(fn([[constants.DDM_ADD, {param: param}]]))
+      self.assertTrue(fn([[constants.DDM_ATTACH, {param: param}]]))
 
 
 if __name__ == "__main__":
