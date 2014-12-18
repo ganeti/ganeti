@@ -148,6 +148,77 @@ class TestConfigRunner(unittest.TestCase):
     self.assertEqual(all_nodes[0], iobj.primary_node,
                      msg="Primary node not first node in list")
 
+  def _CreateInstanceDisk(self, cfg):
+    # Construct instance and add a plain disk
+    inst = self._create_instance(cfg)
+    cfg.AddInstance(inst, "my-job")
+    disk = objects.Disk(dev_type=constants.DT_PLAIN, size=128,
+                        logical_id=("myxenvg", "disk25494"), uuid="disk0",
+                        name="name0")
+    cfg.AddInstanceDisk(inst.uuid, disk)
+
+    return inst, disk
+
+  def testDiskInfoByUUID(self):
+    """Check if the GetDiskInfo works with UUIDs."""
+    # Create mock config writer
+    cfg = self._get_object_mock()
+
+    # Create an instance and attach a disk to it
+    inst, disk = self._CreateInstanceDisk(cfg)
+
+    result = cfg.GetDiskInfo("disk0")
+    self.assertEqual(disk, result)
+
+  def testDiskInfoByName(self):
+    """Check if the GetDiskInfo works with names."""
+    # Create mock config writer
+    cfg = self._get_object_mock()
+
+    # Create an instance and attach a disk to it
+    inst, disk = self._CreateInstanceDisk(cfg)
+
+    result = cfg.GetDiskInfoByName("name0")
+    self.assertEqual(disk, result)
+
+  def testDiskInfoByWrongUUID(self):
+    """Assert that GetDiskInfo raises an exception when given a wrong UUID."""
+    # Create mock config writer
+    cfg = self._get_object_mock()
+
+    # Create an instance and attach a disk to it
+    inst, disk = self._CreateInstanceDisk(cfg)
+
+    result = cfg.GetDiskInfo("disk1134")
+    self.assertEqual(None, result)
+
+  def testDiskInfoByWrongName(self):
+    """Assert that GetDiskInfo returns None when given a wrong name."""
+    # Create mock config writer
+    cfg = self._get_object_mock()
+
+    # Create an instance and attach a disk to it
+    inst, disk = self._CreateInstanceDisk(cfg)
+
+    result = cfg.GetDiskInfoByName("name1134")
+    self.assertEqual(None, result)
+
+  def testDiskInfoDuplicateName(self):
+    """Assert that GetDiskInfo raises exception on duplicate names."""
+    # Create mock config writer
+    cfg = self._get_object_mock()
+
+    # Create an instance and attach a disk to it
+    inst, disk = self._CreateInstanceDisk(cfg)
+
+    # Create a disk with the same name and attach it to the instance.
+    disk = objects.Disk(dev_type=constants.DT_PLAIN, size=128,
+                        logical_id=("myxenvg", "disk25494"), uuid="disk1",
+                        name="name0")
+    cfg.AddInstanceDisk(inst.uuid, disk)
+
+    self.assertRaises(errors.ConfigurationError, cfg.GetDiskInfoByName, "name0")
+
   def testInstNodesNoDisks(self):
     """Test all_nodes/secondary_nodes when there are no disks"""
     # construct instance
