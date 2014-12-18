@@ -519,8 +519,8 @@ class LUInstanceMove(LogicalUnit):
       self.LogInfo("Starting instance %s on node %s",
                    self.instance.name, target_node.name)
 
-      disks_ok, _ = AssembleInstanceDisks(self, self.instance,
-                                          ignore_secondaries=True)
+      disks_ok, _, _ = AssembleInstanceDisks(self, self.instance,
+                                             ignore_secondaries=True)
       if not disks_ok:
         ShutdownInstanceDisks(self, self.instance)
         raise errors.OpExecError("Can't activate the instance's disks")

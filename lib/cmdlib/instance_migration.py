@@ -963,8 +963,8 @@ class TLMigrateInstance(Tasklet):
       logging.info("Starting instance %s on node %s", self.instance.name,
                    self.cfg.GetNodeName(self.target_node_uuid))
 
-      disks_ok, _ = AssembleInstanceDisks(self.lu, self.instance,
-                                          ignore_secondaries=True)
+      disks_ok, _, _ = AssembleInstanceDisks(self.lu, self.instance,
+                                             ignore_secondaries=True)
       if not disks_ok:
         ShutdownInstanceDisks(self.lu, self.instance)
         raise errors.OpExecError("Can't activate the instance's disks")
