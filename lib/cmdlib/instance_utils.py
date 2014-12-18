@@ -873,8 +873,8 @@ def PrepareContainerMods(mods, private_fn):
 
 
 def ApplyContainerMods(kind, container, chgdesc, mods,
-                       create_fn, modify_fn, remove_fn,
-                       post_add_fn=None):
+                       create_fn, attach_fn, modify_fn, remove_fn,
+                       detach_fn, post_add_fn=None):
   """Applies descriptions in C{mods} to C{container}.
 
   @type kind: string
@@ -890,6 +890,10 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
     receives absolute item index, parameters and private data object as added
     by L{PrepareContainerMods}, returns tuple containing new item and changes
     as list
+  @type attach_fn: callable
+  @param attach_fn: Callback for attaching an existing item to a container
+    (L{constants.DDM_ATTACH}); receives absolute item index and item UUID or
+    name, returns tuple containing new item and changes as list
   @type modify_fn: callable
   @param modify_fn: Callback for modifying an existing item
     (L{constants.DDM_MODIFY}); receives absolute item index, item, parameters
@@ -897,6 +901,9 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
     changes as list
   @type remove_fn: callable
   @param remove_fn: Callback on removing item; receives absolute item index,
+    item and private data object as added by L{PrepareContainerMods}
+  @type detach_fn: callable
+  @param detach_fn: Callback on detaching item; receives absolute item index,
     item and private data object as added by L{PrepareContainerMods}
   @type post_add_fn: callable
   @param post_add_fn: Callable for post-processing a newly created item after
@@ -919,6 +926,18 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
       if post_add_fn is not None:
         post_add_fn(addidx, item)
 
+    elif op == constants.DDM_ATTACH:
+      addidx = GetIndexFromIdentifier(identifier, kind, container)
+      if attach_fn is None:
+        item = params
+      else:
+        (item, changes) = attach_fn(addidx, params, private)
+
+      InsertItemToIndex(identifier, item, container)
+
+      if post_add_fn is not None:
+        post_add_fn(addidx, item)
+
     else:
       # Retrieve existing item
       (absidx, item) = GetItemFromContainer(identifier, kind, container)
@@ -930,6 +949,18 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
 
         if remove_fn is not None:
           msg = remove_fn(absidx, item, private)
+          if msg:
+            changes.append(("%s/%s" % (kind, absidx), msg))
+
+        assert container[absidx] == item
+        del container[absidx]
+      elif op == constants.DDM_DETACH:
+        assert not params
+
+        changes = [("%s/%s" % (kind, absidx), "detach")]
+
+        if detach_fn is not None:
+          msg = detach_fn(absidx, item, private)
           if msg:
             changes.append(("%s/%s" % (kind, absidx), msg))
 

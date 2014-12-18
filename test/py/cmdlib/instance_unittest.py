@@ -963,7 +963,7 @@ class TestApplyContainerMods(unittest.TestCase):
     container = []
     chgdesc = []
     instance_utils.ApplyContainerMods("test", container, chgdesc, [], None,
-                                      None, None)
+                                      None, None, None, None)
     self.assertEqual(container, [])
     self.assertEqual(chgdesc, [])
 
@@ -976,8 +976,8 @@ class TestApplyContainerMods(unittest.TestCase):
       (constants.DDM_ADD, 0, "Start"),
       (constants.DDM_ADD, -1, "End"),
       ], None)
-    instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
-                                      None, None, None)
+instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
+                                  None, None, None, None, None)
     self.assertEqual(container, ["Start", "Hello", "World", "End"])
     self.assertEqual(chgdesc, [])
 
@@ -987,8 +987,8 @@ class TestApplyContainerMods(unittest.TestCase):
       (constants.DDM_ADD, 5, "four"),
       (constants.DDM_ADD, 7, "xyz"),
       ], None)
-    instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
-                                      None, None, None)
+instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
+                                  None, None, None, None, None)
     self.assertEqual(container,
                      ["zero", "Start", "Hello", "Added", "World", "four",
                       "End", "xyz"])
@@ -999,7 +999,8 @@ class TestApplyContainerMods(unittest.TestCase):
         (constants.DDM_ADD, idx, "error"),
         ], None)
       self.assertRaises(IndexError, instance_utils.ApplyContainerMods,
-                        "test", container, None, mods, None, None, None)
+                        "test", container, None, mods, None, None, None, None,
+                        None)
 
   def testRemoveError(self):
     for idx in [0, 1, 2, 100, -1, -4]:
@@ -1007,13 +1008,13 @@ class TestApplyContainerMods(unittest.TestCase):
         (constants.DDM_REMOVE, idx, None),
         ], None)
       self.assertRaises(IndexError, instance_utils.ApplyContainerMods,
-                        "test", [], None, mods, None, None, None)
+                        "test", [], None, mods, None, None, None, None, None)
 
     mods = instance_utils.PrepareContainerMods([
       (constants.DDM_REMOVE, 0, object()),
       ], None)
     self.assertRaises(AssertionError, instance_utils.ApplyContainerMods,
-                      "test", [""], None, mods, None, None, None)
+                      "test", [""], None, mods, None, None, None, None, None)
 
   def testAddError(self):
     for idx in range(-100, -1) + [100]:
@@ -1021,7 +1022,7 @@ class TestApplyContainerMods(unittest.TestCase):
         (constants.DDM_ADD, idx, None),
         ], None)
       self.assertRaises(IndexError, instance_utils.ApplyContainerMods,
-                        "test", [], None, mods, None, None, None)
+                        "test", [], None, mods, None, None, None, None, None)
 
   def testRemove(self):
     container = ["item 1", "item 2"]
@@ -1031,8 +1032,8 @@ class TestApplyContainerMods(unittest.TestCase):
       (constants.DDM_ADD, -1, "bbb"),
       ], None)
     chgdesc = []
-    instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
-                                      None, None, None)
+instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
+                                  None, None, None, None, None)
     self.assertEqual(container, ["item 1", "item 2", "bbb"])
     self.assertEqual(chgdesc, [
       ("test/2", "remove"),
@@ -1046,8 +1047,8 @@ class TestApplyContainerMods(unittest.TestCase):
       (constants.DDM_MODIFY, 1, "c"),
       ], None)
     chgdesc = []
-    instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
-                                      None, None, None)
+instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
+                                  None, None, None, None, None)
     self.assertEqual(container, ["item 1", "item 2"])
     self.assertEqual(chgdesc, [])
 
@@ -1056,7 +1057,8 @@ class TestApplyContainerMods(unittest.TestCase):
         (constants.DDM_MODIFY, idx, "error"),
         ], None)
       self.assertRaises(IndexError, instance_utils.ApplyContainerMods,
-                        "test", container, None, mods, None, None, None)
+                        "test", container, None, mods, None, None, None, None,
+                        None)
 
   @staticmethod
   def _CreateTestFn(idx, params, private):
@@ -1090,8 +1092,8 @@ class TestApplyContainerMods(unittest.TestCase):
       (constants.DDM_ADD, 1, "More"),
       ], mock.Mock)
     instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
-                                      self._CreateTestFn, self._ModifyTestFn,
-                                      self._RemoveTestFn)
+                                      self._CreateTestFn, None, self._ModifyTestFn,
+                                      self._RemoveTestFn, None)
     self.assertEqual(container, [
       (000, "Start"),
       (100, "More"),
