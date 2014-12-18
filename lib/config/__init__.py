@@ -489,6 +489,40 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetDiskInfo(disk_uuid)
 
+  def _UnlockedGetDiskInfoByName(self, disk_name):
+    """Return information about a named disk.
+
+    Return disk information from the configuration file, searching with the
+    name of the disk.
+
+    @param disk_name: Name of the disk
+
+    @rtype: L{objects.Disk}
+    @return: the disk object
+
+    """
+    disk = None
+    count = 0
+    for d in self._ConfigData().disks.itervalues():
+      if d.name == disk_name:
+        count += 1
+        disk = d
+
+    if count > 1:
+      raise errors.ConfigurationError("There are %s disks with this name: %s"
+                                      % (count, disk_name))
+
+    return disk
+
+  @ConfigSync(shared=1)
+  def GetDiskInfoByName(self, disk_name):
+    """Return information about a named disk.
+
+    This is a simple wrapper over L{_UnlockedGetDiskInfoByName}.
+
+    """
+    return self._UnlockedGetDiskInfoByName(disk_name)
+
   def _UnlockedGetDiskList(self):
     """Get the list of disks.
 
