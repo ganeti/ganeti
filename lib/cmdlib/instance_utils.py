@@ -908,36 +908,13 @@ def ApplyContainerMods(kind, container, chgdesc, mods,
     changes = None
 
     if op == constants.DDM_ADD:
-      # Calculate where item will be added
-      # When adding an item, identifier can only be an index
-      try:
-        idx = int(identifier)
-      except ValueError:
-        raise errors.OpPrereqError("Only possitive integer or -1 is accepted as"
-                                   " identifier for %s" % constants.DDM_ADD,
-                                   errors.ECODE_INVAL)
-      if idx == -1:
-        addidx = len(container)
-      else:
-        if idx < 0:
-          raise IndexError("Not accepting negative indices other than -1")
-        elif idx > len(container):
-          raise IndexError("Got %s index %s, but there are only %s" %
-                           (kind, idx, len(container)))
-        addidx = idx
-
+      addidx = GetIndexFromIdentifier(identifier, kind, container)
       if create_fn is None:
         item = params
       else:
         (item, changes) = create_fn(addidx, params, private)
 
-      if idx == -1:
-        container.append(item)
-      else:
-        assert idx >= 0
-        assert idx <= len(container)
-        # list.insert does so before the specified index
-        container.insert(idx, item)
+      InsertItemToIndex(identifier, item, container)
 
       if post_add_fn is not None:
         post_add_fn(addidx, item)
@@ -1004,6 +981,62 @@ def GetItemFromContainer(identifier, kind, container):
 
   raise errors.OpPrereqError("Cannot find %s with identifier %s" %
                              (kind, identifier), errors.ECODE_NOENT)
+
+
+def GetIndexFromIdentifier(identifier, kind, container):
+  """Check if the identifier represents a valid container index and return it.
+
+  Used in "add" and "attach" actions.
+
+  @type identifier: string
+  @param identifier: Item index or name or UUID
+  @type kind: string
+  @param kind: Type of item, e.g. "disk", "nic"
+  @type container: list
+  @param container: Container to calculate the index from
+
+  """
+  try:
+    idx = int(identifier)
+  except ValueError:
+    raise errors.OpPrereqError("Only positive integer or -1 is accepted",
+                               errors.ECODE_INVAL)
+  if idx == -1:
+    return len(container)
+  else:
+    if idx < 0:
+      raise IndexError("Not accepting negative indices other than -1")
+    elif idx > len(container):
+      raise IndexError("Got %s index %s, but there are only %s" %
+                        (kind, idx, len(container)))
+  return idx
+
+
+def InsertItemToIndex(identifier, item, container):
+  """Insert an item to the provided index of a container.
+
+  Used in "add" and "attach" actions.
+
+  @type identifier: string
+  @param identifier: Item index
+  @type item: object
+  @param item: The item to be inserted
+  @type container: list
+  @param container: Container to insert the item to
+
+  """
+  try:
+    idx = int(identifier)
+  except ValueError:
+    raise errors.OpPrereqError("Only positive integer or -1 is accepted",
+                               errors.ECODE_INVAL)
+  if idx == -1:
+    container.append(item)
+  else:
+    assert idx >= 0
+    assert idx <= len(container)
+    # list.insert does so before the specified index
+    container.insert(idx, item)
 
 
 def CheckNodesPhysicalCPUs(lu, node_uuids, requested, hypervisor_specs):
