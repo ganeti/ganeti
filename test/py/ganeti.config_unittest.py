@@ -690,6 +690,54 @@ class TestConfigRunner(unittest.TestCase):
     cfg.RemoveNodeFromCandidateCerts(node_uuid, warn_fn=None)
     self.assertEqual(0, len(cfg.GetCandidateCerts()))
 
+  def testAttachDetachDisks(self):
+    """Test if the attach/detach wrappers work properly.
+
+    This test checks if the configuration remains in a consistent state after a
+    series of detach/attach ops
+    """
+    # construct instance
+    cfg = self._get_object_mock()
+    inst = self._create_instance(cfg)
+    disk = objects.Disk(dev_type=constants.DT_PLAIN, size=128,
+                        logical_id=("myxenvg", "disk25494"), uuid="disk0")
+    cfg.AddInstance(inst, "my-job")
+    cfg.AddInstanceDisk(inst.uuid, disk)
+
+    # Detach disk from non-existent instance
+    self.assertRaises(errors.ConfigurationError, cfg.DetachInstanceDisk,
+                      "1134", "disk0")
+
+    # Detach non-existent disk
+    self.assertRaises(errors.ConfigurationError, cfg.DetachInstanceDisk,
+                      "test-uuid", "disk1")
+
+    # Detach disk
+    cfg.DetachInstanceDisk("test-uuid", "disk0")
+    instance_disks = cfg.GetInstanceDisks("test-uuid")
+    self.assertEqual(instance_disks, [])
+
+    # Detach disk again
+    self.assertRaises(errors.ProgrammerError, cfg.DetachInstanceDisk,
+                      "test-uuid", "disk0")
+
+    # Attach disk to non-existent instance
+    self.assertRaises(errors.ConfigurationError, cfg.AttachInstanceDisk,
+                      "1134", "disk0")
+
+    # Attach non-existent disk
+    self.assertRaises(errors.ConfigurationError, cfg.AttachInstanceDisk,
+                      "test-uuid", "disk1")
+
+    # Attach disk
+    cfg.AttachInstanceDisk("test-uuid", "disk0")
+    instance_disks = cfg.GetInstanceDisks("test-uuid")
+    self.assertEqual(instance_disks, [disk])
+
+    # Attach disk again
+    self.assertRaises(errors.ReservationError, cfg.AttachInstanceDisk,
+                      "test-uuid", "disk0")
+
 
 def _IsErrorInList(err_str, err_list):
   return any(map(lambda e: err_str in e, err_list))
