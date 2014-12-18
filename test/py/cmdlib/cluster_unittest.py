@@ -1108,6 +1108,12 @@ class TestLUClusterVerifyConfig(CmdlibTestCase):
       "following instances have a non-existing primary-node")
     self.assertFalse(result)
 
+  def testDanglingDisk(self):
+    self.cfg.AddOrphanDisk()
+    op = opcodes.OpClusterVerifyConfig()
+    result = self.ExecOpCode(op)
+    self.assertTrue(result)
+
 
 class TestLUClusterVerifyGroup(CmdlibTestCase):
   def testEmptyNodeGroup(self):
