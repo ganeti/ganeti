@@ -1023,6 +1023,98 @@ class TestIndexOperations(unittest.TestCase):
 
 
 class TestApplyContainerMods(unittest.TestCase):
+
+  def applyAndAssert(self, container, inp, expected_container,
+                     expected_chgdesc=[]):
+    """Apply a list of changes to a container and check the container state
+
+    Parameters:
+    @type container: List
+    @param container: The container on which we will apply the changes
+    @type inp: List<(action, index, object)>
+    @param inp: The list of changes, a tupple with three elements:
+                i. action, e.g. constants.DDM_ADD
+                ii. index, e.g. -1, 0, 10
+                iii. object (any type)
+    @type expected: List
+    @param expected: The expected state of the container
+    @type chgdesc: List
+    @param chgdesc: List of applied changes
+
+
+    """
+    chgdesc = []
+    mods = instance_utils.PrepareContainerMods(inp, None)
+    instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
+                                      None, None, None, None, None)
+    self.assertEqual(container, expected_container)
+    self.assertEqual(chgdesc, expected_chgdesc)
+
+  def _insertContainerSuccessFn(self, op):
+    container = []
+    inp = [(op, -1, "Hello"),
+           (op, -1, "World"),
+           (op, 0, "Start"),
+           (op, -1, "End"),
+           ]
+    expected = ["Start", "Hello", "World", "End"]
+    self.applyAndAssert(container, inp, expected)
+
+    inp = [(op, 0, "zero"),
+           (op, 3, "Added"),
+           (op, 5, "four"),
+           (op, 7, "xyz"),
+           ]
+    expected = ["zero", "Start", "Hello", "Added", "World", "four", "End",
+                "xyz"]
+    self.applyAndAssert(container, inp, expected)
+
+  def _insertContainerErrorFn(self, op):
+    container = []
+    expected = None
+
+    inp = [(op, 1, "error"), ]
+    self.assertRaises(IndexError, self.applyAndAssert, container, inp,
+                      expected)
+
+    inp = [(op, -2, "error"), ]
+    self.assertRaises(IndexError, self.applyAndAssert, container, inp,
+                      expected)
+
+  def _extractContainerSuccessFn(self, op):
+    container = ["item1", "item2", "item3", "item4", "item5"]
+    inp = [(op, -1, None),
+           (op, -0, None),
+           (op, 1, None),
+           ]
+    expected = ["item2", "item4"]
+    chgdesc = [('test/4', op),
+               ('test/0', op),
+               ('test/1', op)
+               ]
+    self.applyAndAssert(container, inp, expected, chgdesc)
+
+  def _extractContainerErrorFn(self, op):
+    container = []
+    expected = None
+
+    inp = [(op, 0, None), ]
+    self.assertRaises(IndexError, self.applyAndAssert, container, inp,
+                      expected)
+
+    inp = [(op, -1, None), ]
+    self.assertRaises(IndexError, self.applyAndAssert, container, inp,
+                      expected)
+
+    inp = [(op, 2, None), ]
+    self.assertRaises(IndexError, self.applyAndAssert, container, inp,
+                      expected)
+    container = [""]
+    inp = [(op, 0, None), ]
+    expected = None
+    self.assertRaises(AssertionError, self.applyAndAssert, container, inp,
+                      expected)
+
   def testEmptyContainer(self):
     container = []
     chgdesc = []
@@ -1031,77 +1123,29 @@ class TestApplyContainerMods(unittest.TestCase):
     self.assertEqual(container, [])
     self.assertEqual(chgdesc, [])
 
-  def testAdd(self):
-    container = []
-    chgdesc = []
-    mods = instance_utils.PrepareContainerMods([
-      (constants.DDM_ADD, -1, "Hello"),
-      (constants.DDM_ADD, -1, "World"),
-      (constants.DDM_ADD, 0, "Start"),
-      (constants.DDM_ADD, -1, "End"),
-      ], None)
-instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
-                                  None, None, None, None, None)
-    self.assertEqual(container, ["Start", "Hello", "World", "End"])
-    self.assertEqual(chgdesc, [])
-
-    mods = instance_utils.PrepareContainerMods([
-      (constants.DDM_ADD, 0, "zero"),
-      (constants.DDM_ADD, 3, "Added"),
-      (constants.DDM_ADD, 5, "four"),
-      (constants.DDM_ADD, 7, "xyz"),
-      ], None)
-instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
-                                  None, None, None, None, None)
-    self.assertEqual(container,
-                     ["zero", "Start", "Hello", "Added", "World", "four",
-                      "End", "xyz"])
-    self.assertEqual(chgdesc, [])
-
-    for idx in [-2, len(container) + 1]:
-      mods = instance_utils.PrepareContainerMods([
-        (constants.DDM_ADD, idx, "error"),
-        ], None)
-      self.assertRaises(IndexError, instance_utils.ApplyContainerMods,
-                        "test", container, None, mods, None, None, None, None,
-                        None)
-
-  def testRemoveError(self):
-    for idx in [0, 1, 2, 100, -1, -4]:
-      mods = instance_utils.PrepareContainerMods([
-        (constants.DDM_REMOVE, idx, None),
-        ], None)
-      self.assertRaises(IndexError, instance_utils.ApplyContainerMods,
-                        "test", [], None, mods, None, None, None, None, None)
-
-    mods = instance_utils.PrepareContainerMods([
-      (constants.DDM_REMOVE, 0, object()),
-      ], None)
-    self.assertRaises(AssertionError, instance_utils.ApplyContainerMods,
-                      "test", [""], None, mods, None, None, None, None, None)
+  def testAddSuccess(self):
+    self._insertContainerSuccessFn(constants.DDM_ADD)
 
   def testAddError(self):
-    for idx in range(-100, -1) + [100]:
-      mods = instance_utils.PrepareContainerMods([
-        (constants.DDM_ADD, idx, None),
-        ], None)
-      self.assertRaises(IndexError, instance_utils.ApplyContainerMods,
-                        "test", [], None, mods, None, None, None, None, None)
+    self._insertContainerErrorFn(constants.DDM_ADD)
 
-  def testRemove(self):
-    container = ["item 1", "item 2"]
-    mods = instance_utils.PrepareContainerMods([
-      (constants.DDM_ADD, -1, "aaa"),
-      (constants.DDM_REMOVE, -1, None),
-      (constants.DDM_ADD, -1, "bbb"),
-      ], None)
-    chgdesc = []
-instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
-                                  None, None, None, None, None)
-    self.assertEqual(container, ["item 1", "item 2", "bbb"])
-    self.assertEqual(chgdesc, [
-      ("test/2", "remove"),
-      ])
+  def testAttachSuccess(self):
+    self._insertContainerSuccessFn(constants.DDM_ATTACH)
+
+  def testAttachError(self):
+    self._insertContainerErrorFn(constants.DDM_ATTACH)
+
+  def testRemoveSuccess(self):
+    self._extractContainerSuccessFn(constants.DDM_REMOVE)
+
+  def testRemoveError(self):
+    self._extractContainerErrorFn(constants.DDM_REMOVE)
+
+  def testDetachSuccess(self):
+    self._extractContainerSuccessFn(constants.DDM_DETACH)
+
+  def testDetachError(self):
+    self._extractContainerErrorFn(constants.DDM_DETACH)
 
   def testModify(self):
     container = ["item 1", "item 2"]
@@ -1111,8 +1155,8 @@ instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
       (constants.DDM_MODIFY, 1, "c"),
       ], None)
     chgdesc = []
-instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
-                                  None, None, None, None, None)
+    instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
+                                      None, None, None, None, None)
     self.assertEqual(container, ["item 1", "item 2"])
     self.assertEqual(chgdesc, [])
 
@@ -1132,6 +1176,13 @@ instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
       ])
 
   @staticmethod
+  def _AttachTestFn(idx, params, private):
+    private.data = ("attach", idx, params)
+    return ((100 * idx, params), [
+      ("test/%s" % idx, hex(idx)),
+      ])
+
+  @staticmethod
   def _ModifyTestFn(idx, item, params, private):
     private.data = ("modify", idx, params)
     return [
@@ -1141,6 +1192,10 @@ instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
   @staticmethod
   def _RemoveTestFn(idx, item, private):
     private.data = ("remove", idx, item)
+
+  @staticmethod
+  def _DetachTestFn(idx, item, private):
+    private.data = ("detach", idx, item)
 
   def testAddWithCreateFunction(self):
     container = []
@@ -1154,14 +1209,17 @@ instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
       (constants.DDM_MODIFY, -1, "foobar"),
       (constants.DDM_REMOVE, 2, None),
       (constants.DDM_ADD, 1, "More"),
+      (constants.DDM_DETACH, -1, None),
+      (constants.DDM_ATTACH, 0, "Hello"),
       ], mock.Mock)
     instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
-                                      self._CreateTestFn, None, self._ModifyTestFn,
-                                      self._RemoveTestFn, None)
+                                      self._CreateTestFn, self._AttachTestFn,
+                                      self._ModifyTestFn, self._RemoveTestFn,
+                                      self._DetachTestFn)
     self.assertEqual(container, [
+      (000, "Hello"),
       (000, "Start"),
       (100, "More"),
-      (000, "Hello"),
       ])
     self.assertEqual(chgdesc, [
       ("test/0", "0x0"),
@@ -1171,7 +1229,9 @@ instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
       ("test/2", "remove"),
       ("test/2", "modify foobar"),
       ("test/2", "remove"),
-      ("test/1", "0x1")
+      ("test/1", "0x1"),
+      ("test/2", "detach"),
+      ("test/0", "0x0"),
       ])
     self.assertTrue(compat.all(op == private.data[0]
                                for (op, _, _, private) in mods))
@@ -1184,6 +1244,8 @@ instance_utils.ApplyContainerMods("test", container, chgdesc, mods,
       ("modify", 2, "foobar"),
       ("remove", 2, (300, "End")),
       ("add", 1, "More"),
+      ("detach", 2, (000, "Hello")),
+      ("attach", 0, "Hello"),
       ])
 
 
