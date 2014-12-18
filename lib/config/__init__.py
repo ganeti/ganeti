@@ -935,8 +935,6 @@ class ConfigWriter(object):
     @param result: list containing diagnostic messages
 
     """
-    instance_disk_uuids = [d for insts in data.instances.values()
-                           for d in insts.disks]
     for disk_uuid in data.disks:
       disk = data.disks[disk_uuid]
       result.extend(["disk %s error: %s" % (disk.uuid, msg)
@@ -944,9 +942,6 @@ class ConfigWriter(object):
       if disk.uuid != disk_uuid:
         result.append("disk '%s' is indexed by wrong UUID '%s'" %
                       (disk.name, disk_uuid))
-      if disk.uuid not in instance_disk_uuids:
-        result.append("disk '%s' is not attached to any instance" %
-                      disk.uuid)
 
   def _UnlockedVerifyConfig(self):
     """Verify function.
