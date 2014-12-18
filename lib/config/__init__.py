@@ -404,6 +404,15 @@ class ConfigWriter(object):
     self._UnlockedAddDisk(disk, replace=replace)
     self._UnlockedAttachInstanceDisk(inst_uuid, disk.uuid, idx)
 
+  @ConfigSync()
+  def AttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
+    """Attach an existing disk to an instance.
+
+    This is a simple wrapper over L{_UnlockedAttachInstanceDisk}.
+
+    """
+    self._UnlockedAttachInstanceDisk(inst_uuid, disk_uuid, idx)
+
   def _UnlockedDetachInstanceDisk(self, inst_uuid, disk_uuid):
     """Detach a disk from an instance.
 
@@ -463,6 +472,14 @@ class ConfigWriter(object):
     """
     self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
     self._UnlockedRemoveDisk(disk_uuid)
+
+  @ConfigSync()
+  def DetachInstanceDisk(self, inst_uuid, disk_uuid):
+    """Detach a disk from an instance.
+
+    This is a simple wrapper over L{_UnlockedDetachInstanceDisk}.
+    """
+    self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
 
   def _UnlockedGetDiskInfo(self, disk_uuid):
     """Returns information about a disk.
