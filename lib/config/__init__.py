@@ -577,8 +577,9 @@ class ConfigWriter(object):
   def _UnlockedGetInstanceNodes(self, inst_uuid):
     """Get all disk-related nodes for an instance.
 
-    For non-DRBD, this will be empty, for DRBD it will contain both
-    the primary and the secondaries.
+    For non-DRBD instances, this will contain only the instance's primary node,
+    whereas for DRBD instances, it will contain both the primary and the
+    secondaries.
 
     @type inst_uuid: string
     @param inst_uuid: The UUID of the instance we want to get nodes for
