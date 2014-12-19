@@ -550,6 +550,7 @@ lxcDropCapabilitiesDefault =
   ++ ",sys_boot"    -- Use reboot(2) and kexec_load(2)
   ++ ",sys_module"  -- Load and unload kernel modules
   ++ ",sys_time"    -- Set system clock, set real-time (hardware) clock
+  ++ ",sys_admin"   -- Various system administration operations
 
 lxcStateRunning :: String
 lxcStateRunning = "RUNNING"

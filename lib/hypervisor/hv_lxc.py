@@ -551,7 +551,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # root FS
     out.append("lxc.rootfs = %s" % sda_dev_path)
 
-    # TODO: additional mounts, if we disable CAP_SYS_ADMIN
+    # Necessary file systems
+    out.append("lxc.mount.entry = proc proc proc nodev,noexec,nosuid 0 0")
+    out.append("lxc.mount.entry = sysfs sys sysfs defaults 0 0")
 
     # CPUs
     if instance.hvparams[constants.HV_CPU_MASK]:

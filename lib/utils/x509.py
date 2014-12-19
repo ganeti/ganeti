@@ -340,8 +340,8 @@ def ExtractX509Certificate(pem):
           OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM, cert))
 
 
-def PrepareX509CertKeyCheck(cert, key):
-  """Get function for verifying certificate with a certain private key.
+def X509CertKeyCheck(cert, key):
+  """Function for verifying certificate with a certain private key.
 
   @type key: OpenSSL.crypto.PKey
   @param key: Private key object
@@ -353,10 +353,9 @@ def PrepareX509CertKeyCheck(cert, key):
 
   """
   ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
-  ctx.use_privatekey(key)
   ctx.use_certificate(cert)
-
-  return ctx.check_privatekey
+  ctx.use_privatekey(key)
+  ctx.check_privatekey()
 
 
 def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
@@ -396,9 +395,8 @@ def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
                                "Unable to load private key: %s" % err)
 
   # Check consistency of server.pem file
-  check_fn = PrepareX509CertKeyCheck(noded_cert, noded_key)
   try:
-    check_fn()
+    X509CertKeyCheck(noded_cert, noded_key)
   except OpenSSL.SSL.Error:
     # This should never happen as it would mean the certificate in server.pem
     # is out of sync with the private key stored in the same file
@@ -406,9 +404,8 @@ def CheckNodeCertificate(cert, _noded_cert_file=pathutils.NODED_CERT_FILE):
                                "Certificate does not match with private key")
 
   # Check with supplied certificate with local key
-  check_fn = PrepareX509CertKeyCheck(cert, noded_key)
   try:
-    check_fn()
+    X509CertKeyCheck(cert, noded_key)
   except OpenSSL.SSL.Error:
     raise errors.GenericError("Given cluster certificate does not match"
                               " local key")

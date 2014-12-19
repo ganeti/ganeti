@@ -115,9 +115,8 @@ def _VerifyCertificate(cert_pem, _check_fn=utils.CheckNodeCertificate):
 
   # Check certificate with given key; this detects cases where the key given on
   # stdin doesn't match the certificate also given on stdin
-  x509_check_fn = utils.PrepareX509CertKeyCheck(cert, key)
   try:
-    x509_check_fn()
+    utils.X509CertKeyCheck(cert, key)
   except OpenSSL.SSL.Error:
     raise errors.X509CertError("(stdin)",
                                "Certificate is not signed with given key")
