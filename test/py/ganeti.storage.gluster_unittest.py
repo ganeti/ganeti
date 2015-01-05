@@ -119,7 +119,7 @@ class TestGlusterVolume(testutils.GanetiTestCase):
                                           vol_name="testvol")
     self.assertEqual(
       vol_1._GetFUSEMountString(),
-      "203.0.113.42:24007:testvol"
+      "-o server-port=24007 203.0.113.42:/testvol"
     )
 
     vol_2 = TestGlusterVolume._MakeVolume(addr=TestGlusterVolume.testAddrIpv[6],
@@ -128,7 +128,7 @@ class TestGlusterVolume(testutils.GanetiTestCase):
     # This _ought_ to work. https://bugzilla.redhat.com/show_bug.cgi?id=764188
     self.assertEqual(
       vol_2._GetFUSEMountString(),
-      "2001:db8:0:74:65:28:6:69:24007:testvol"
+      "-o server-port=24007 2001:db8:0:74:65:28:6:69:/testvol"
     )
 
     vol_3 = TestGlusterVolume._MakeVolume(addr="localhost",
@@ -136,7 +136,8 @@ class TestGlusterVolume(testutils.GanetiTestCase):
                                           vol_name="testvol")
     fuseMountString = vol_3._GetFUSEMountString()
     self.assertTrue(fuseMountString in
-                    ["127.0.0.1:9001:testvol", "::1:9001:testvol"],
+                    ["-o server-port=9001 127.0.0.1:/testvol",
+                     "-o server-port=9001 ::1:/testvol"],
                     msg="%s not testvol on localhost:9001" % (fuseMountString,))
 
 
