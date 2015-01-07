@@ -1984,7 +1984,7 @@ def _UpgradeAfterConfigurationChange(oldversion):
   if not _RunCommandAndReport([pathutils.POST_UPGRADE, oldversion]):
     returnvalue = 1
 
-  ToStdout("Unpasuing the watcher.")
+  ToStdout("Unpausing the watcher.")
   if not _RunCommandAndReport(["gnt-cluster", "watcher", "continue"]):
     returnvalue = 1
 
