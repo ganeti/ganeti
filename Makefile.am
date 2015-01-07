@@ -509,6 +509,7 @@ cmdlib_cluster_PYTHON = \
 
 config_PYTHON = \
 	lib/config/__init__.py \
+	lib/config/verify.py \
 	lib/config/temporary_reservations.py \
 	lib/config/utils.py
 

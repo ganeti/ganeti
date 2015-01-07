@@ -53,6 +53,7 @@ import itertools
 
 from ganeti.config.temporary_reservations import TemporaryReservationManager
 from ganeti.config.utils import ConfigSync, ConfigManager
+from ganeti.config.verify import VerifyType, VerifyNic, VerifyIpolicy
 
 from ganeti import errors
 from ganeti import utils
@@ -891,65 +892,15 @@ class ConfigWriter(object):
         except IndexError:
           pass
 
-    def _helper(owner, attr, value, template):
-      try:
-        utils.ForceDictType(value, template)
-      except errors.GenericError, err:
-        result.append("%s has invalid %s: %s" % (owner, attr, err))
-
-    def _helper_nic(owner, params):
-      try:
-        objects.NIC.CheckParameterSyntax(params)
-      except errors.ConfigurationError, err:
-        result.append("%s has invalid nicparams: %s" % (owner, err))
-
-    def _helper_ipolicy(owner, ipolicy, iscluster):
-      try:
-        objects.InstancePolicy.CheckParameterSyntax(ipolicy, iscluster)
-      except errors.ConfigurationError, err:
-        result.append("%s has invalid instance policy: %s" % (owner, err))
-      for key, value in ipolicy.items():
-        if key == constants.ISPECS_MINMAX:
-          for k in range(len(value)):
-            _helper_ispecs(owner, "ipolicy/%s[%s]" % (key, k), value[k])
-        elif key == constants.ISPECS_STD:
-          _helper(owner, "ipolicy/" + key, value,
-                  constants.ISPECS_PARAMETER_TYPES)
-        else:
-          # FIXME: assuming list type
-          if key in constants.IPOLICY_PARAMETERS:
-            exp_type = float
-            # if the value is int, it can be converted into float
-            convertible_types = [int]
-          else:
-            exp_type = list
-            convertible_types = []
-          # Try to convert from allowed types, if necessary.
-          if any(isinstance(value, ct) for ct in convertible_types):
-            try:
-              value = exp_type(value)
-              ipolicy[key] = value
-            except ValueError:
-              pass
-          if not isinstance(value, exp_type):
-            result.append("%s has invalid instance policy: for %s,"
-                          " expecting %s, got %s" %
-                          (owner, key, exp_type.__name__, type(value)))
-
-    def _helper_ispecs(owner, parentkey, params):
-      for (key, value) in params.items():
-        fullkey = "/".join([parentkey, key])
-        _helper(owner, fullkey, value, constants.ISPECS_PARAMETER_TYPES)
-
     # check cluster parameters
-    _helper("cluster", "beparams", cluster.SimpleFillBE({}),
-            constants.BES_PARAMETER_TYPES)
-    _helper("cluster", "nicparams", cluster.SimpleFillNIC({}),
-            constants.NICS_PARAMETER_TYPES)
-    _helper_nic("cluster", cluster.SimpleFillNIC({}))
-    _helper("cluster", "ndparams", cluster.SimpleFillND({}),
-            constants.NDS_PARAMETER_TYPES)
-    _helper_ipolicy("cluster", cluster.ipolicy, True)
+    VerifyType("cluster", "beparams", cluster.SimpleFillBE({}),
+               constants.BES_PARAMETER_TYPES, result.append)
+    VerifyType("cluster", "nicparams", cluster.SimpleFillNIC({}),
+               constants.NICS_PARAMETER_TYPES, result.append)
+    VerifyNic("cluster", cluster.SimpleFillNIC({}), result.append)
+    VerifyType("cluster", "ndparams", cluster.SimpleFillND({}),
+               constants.NDS_PARAMETER_TYPES, result.append)
+    VerifyIpolicy("cluster", cluster.ipolicy, True, result.append)
 
     for disk_template in cluster.diskparams:
       if disk_template not in constants.DTS_HAVE_ACCESS:
@@ -989,9 +940,9 @@ class ConfigWriter(object):
         if nic.nicparams:
           filled = cluster.SimpleFillNIC(nic.nicparams)
           owner = "instance %s nic %d" % (instance.name, idx)
-          _helper(owner, "nicparams",
-                  filled, constants.NICS_PARAMETER_TYPES)
-          _helper_nic(owner, filled)
+          VerifyType(owner, "nicparams",
+                     filled, constants.NICS_PARAMETER_TYPES, result.append)
+          VerifyNic(owner, filled, result.append)
 
       # disk template checks
       if not instance.disk_template in data.cluster.enabled_disk_templates:
@@ -1000,8 +951,9 @@ class ConfigWriter(object):
 
       # parameter checks
       if instance.beparams:
-        _helper("instance %s" % instance.name, "beparams",
-                cluster.FillBE(instance), constants.BES_PARAMETER_TYPES)
+        VerifyType("instance %s" % instance.name, "beparams",
+                   cluster.FillBE(instance), constants.BES_PARAMETER_TYPES,
+                   result.append)
 
       # check that disks exists
       for disk_uuid in instance.disks:
@@ -1077,9 +1029,9 @@ class ConfigWriter(object):
         result.append("Node '%s' has invalid group '%s'" %
                       (node.name, node.group))
       else:
-        _helper("node %s" % node.name, "ndparams",
-                cluster.FillND(node, data.nodegroups[node.group]),
-                constants.NDS_PARAMETER_TYPES)
+        VerifyType("node %s" % node.name, "ndparams",
+                   cluster.FillND(node, data.nodegroups[node.group]),
+                   constants.NDS_PARAMETER_TYPES, result.append)
       used_globals = constants.NDC_GLOBALS.intersection(node.ndparams)
       if used_globals:
         result.append("Node '%s' has some global parameters set: %s" %
@@ -1100,12 +1052,12 @@ class ConfigWriter(object):
       else:
         nodegroups_names.add(nodegroup.name)
       group_name = "group %s" % nodegroup.name
-      _helper_ipolicy(group_name, cluster.SimpleFillIPolicy(nodegroup.ipolicy),
-                      False)
+      VerifyIpolicy(group_name, cluster.SimpleFillIPolicy(nodegroup.ipolicy),
+                    False, result.append)
       if nodegroup.ndparams:
-        _helper(group_name, "ndparams",
-                cluster.SimpleFillND(nodegroup.ndparams),
-                constants.NDS_PARAMETER_TYPES)
+        VerifyType(group_name, "ndparams",
+                   cluster.SimpleFillND(nodegroup.ndparams),
+                   constants.NDS_PARAMETER_TYPES, result.append)
 
     # drbd minors check
     # FIXME: The check for DRBD map needs to be implemented in WConfd
