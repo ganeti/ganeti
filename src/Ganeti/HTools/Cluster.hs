@@ -97,6 +97,7 @@ import Data.Ord (comparing)
 import Text.Printf (printf)
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), defaultOptions)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
@@ -108,7 +109,7 @@ import Ganeti.Compat
 import qualified Ganeti.OpCodes as OpCodes
 import Ganeti.Utils
 import Ganeti.Utils.Statistics
-import Ganeti.Types (EvacMode(..), mkNonEmpty)
+import Ganeti.Types (EvacMode(..), mkNonEmpty, mkNonNegative)
 
 -- * Types
 
@@ -1704,7 +1705,7 @@ iMoveToJob nl il idx move =
                       Bad msg -> error $ "Empty node name for idx " ++
                                  show n ++ ": " ++ msg ++ "??"
                       Ok ne -> Just ne
-      opF = OpCodes.OpInstanceMigrate
+      opF' = OpCodes.OpInstanceMigrate
               { OpCodes.opInstanceName        = iname
               , OpCodes.opInstanceUuid        = Nothing
               , OpCodes.opMigrationMode       = Nothing -- default
@@ -1719,6 +1720,20 @@ iMoveToJob nl il idx move =
               , OpCodes.opIgnoreHvversions    = True
               }
       opFA n = opF { OpCodes.opTargetNode = lookNode n } -- not drbd
+      opFforced =
+        OpCodes.OpInstanceFailover
+          { OpCodes.opInstanceName        = iname
+          , OpCodes.opInstanceUuid        = Nothing
+          , OpCodes.opShutdownTimeout     =
+              fromJust $ mkNonNegative C.defaultShutdownTimeout
+          , OpCodes.opIgnoreConsistency = False
+          , OpCodes.opTargetNode = Nothing
+          , OpCodes.opTargetNodeUuid = Nothing
+          , OpCodes.opIgnoreIpolicy = False
+          , OpCodes.opIallocator = Nothing
+          , OpCodes.opMigrationCleanup = False
+          }
+      opF = if Instance.forthcoming inst then opFforced else opF'
       opR n = OpCodes.OpInstanceReplaceDisks
                 { OpCodes.opInstanceName     = iname
                 , OpCodes.opInstanceUuid     = Nothing
