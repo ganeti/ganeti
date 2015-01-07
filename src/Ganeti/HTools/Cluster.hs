@@ -342,19 +342,26 @@ computeAllocationDelta cini cfin =
 -- with their statistical accumulation function and a bit to decide whether it
 -- is a statistics for online nodes.
 detailedCVInfoExt :: [((Double, String), ([Double] -> Statistics, Bool))]
-detailedCVInfoExt = [ ((1,  "free_mem_cv"), (getStdDevStatistics, True))
-                    , ((1,  "free_disk_cv"), (getStdDevStatistics, True))
+detailedCVInfoExt = [ ((0.5,  "free_mem_cv"), (getStdDevStatistics, True))
+                    , ((0.5,  "free_disk_cv"), (getStdDevStatistics, True))
                     , ((1,  "n1_cnt"), (getSumStatistics, True))
                     , ((1,  "reserved_mem_cv"), (getStdDevStatistics, True))
                     , ((4,  "offline_all_cnt"), (getSumStatistics, False))
                     , ((16, "offline_pri_cnt"), (getSumStatistics, False))
-                    , ((1,  "vcpu_ratio_cv"), (getStdDevStatistics, True))
+                    , ( (0.5,  "vcpu_ratio_cv")
+                      , (getStdDevStatistics, True))
                     , ((1,  "cpu_load_cv"), (getStdDevStatistics, True))
                     , ((1,  "mem_load_cv"), (getStdDevStatistics, True))
                     , ((1,  "disk_load_cv"), (getStdDevStatistics, True))
                     , ((1,  "net_load_cv"), (getStdDevStatistics, True))
                     , ((2,  "pri_tags_score"), (getSumStatistics, True))
-                    , ((1,  "spindles_cv"), (getStdDevStatistics, True))
+                    , ((0.5,  "spindles_cv"), (getStdDevStatistics, True))
+                    , ((0.5,  "free_mem_cv_forth"), (getStdDevStatistics, True))
+                    , ( (0.5,  "free_disk_cv_forth")
+                      , (getStdDevStatistics, True))
+                    , ( (0.5,  "vcpu_ratio_cv_forth")
+                      , (getStdDevStatistics, True))
+                    , ((0.5,  "spindles_cv_forth"), (getStdDevStatistics, True))
                     ]
 
 -- | The names and weights of the individual elements in the CV list.
@@ -378,7 +385,9 @@ detailedCVOnlineStatus = map snd detailedCVAggregation
 compDetailedCVNode :: Node.Node -> [Double]
 compDetailedCVNode node =
   let mem = Node.pMem node
+      memF = Node.pMemForth node
       dsk = Node.pDsk node
+      dskF = Node.pDskForth node
       n1 = fromIntegral
            $ if Node.failN1 node
                then length (Node.sList node) + length (Node.pList node)
@@ -388,14 +397,17 @@ compDetailedCVNode node =
       isec = fromIntegral . length $ Node.sList node
       ioff = ipri + isec
       cpu = Node.pCpuEff node
+      cpuF = Node.pCpuEffForth node
       DynUtil c1 m1 d1 nn1 = Node.utilLoad node
       DynUtil c2 m2 d2 nn2 = Node.utilPool node
       (c_load, m_load, d_load, n_load) = (c1/c2, m1/m2, d1/d2, nn1/nn2)
       pri_tags = fromIntegral $ Node.conflictingPrimaries node
       spindles = Node.instSpindles node / Node.hiSpindles node
+      spindlesF = Node.instSpindlesForth node / Node.hiSpindles node
   in [ mem, dsk, n1, res, ioff, ipri, cpu
      , c_load, m_load, d_load, n_load
      , pri_tags, spindles
+     , memF, dskF, cpuF, spindlesF
      ]
 
 -- | Compute the statistics of a cluster.
