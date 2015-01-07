@@ -327,12 +327,12 @@ main opts args = do
       ini_tbl = Cluster.Table nl il ini_cv []
       min_cv = optMinScore opts
 
-  checkNeedRebalance opts ini_cv
-
   if verbose > 2
     then printf "Initial coefficients: overall %.8f\n%s"
            ini_cv (Cluster.printStats "  " nl)::IO ()
     else printf "Initial score: %.8f\n" ini_cv
+
+  checkNeedRebalance opts ini_cv
 
   putStrLn "Trying to minimize the CV..."
   let imlen = maximum . map (length . Instance.alias) $ Container.elems il
