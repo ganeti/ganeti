@@ -38,6 +38,7 @@ module Ganeti.HTools.Node
   ( Node(..)
   , List
   , pCpuEff
+  , pCpuEffForth
   -- * Constructor
   , create
   -- ** Finalization after data loading
@@ -227,6 +228,11 @@ instance T.Element Node where
 -- by CPU speed.
 pCpuEff :: Node -> Double
 pCpuEff n = pCpu n / tCpuSpeed n
+
+-- | Derived parameter: ratio of virutal to physical CPUs, weighted
+-- by CPU speed and taking forthcoming instances into account.
+pCpuEffForth :: Node -> Double
+pCpuEffForth n = pCpuForth n / tCpuSpeed n
 
 -- | A simple name for the int, node association list.
 type AssocList = [(T.Ndx, Node)]
