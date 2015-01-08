@@ -223,7 +223,7 @@ instance T.Element Node where
   setIdx = setIdx
   allNames n = [name n, alias n]
 
--- | Derived parameter: ratio of virutal to pysical CPUs, weighted
+-- | Derived parameter: ratio of virutal to physical CPUs, weighted
 -- by CPU speed.
 pCpuEff :: Node -> Double
 pCpuEff n = pCpu n / tCpuSpeed n
