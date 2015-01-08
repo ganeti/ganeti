@@ -1165,6 +1165,19 @@ class TestLUClusterVerifyGroup(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
+  def testVerifyNodeDrbdSuccess(self):
+    ninfo = self.cfg.AddNewNode()
+    disk = self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
+                                primary_node=self.master,
+                                secondary_node=ninfo)
+    instance = self.cfg.AddNewInstance(disks=[disk])
+    instanceinfo = self.cfg.GetAllInstancesInfo()
+    disks_info = self.cfg.GetAllDisksInfo()
+    drbd_map = {ninfo.uuid: {0: disk.uuid}}
+    minors = verify.LUClusterVerifyGroup._ComputeDrbdMinors(
+      ninfo, instanceinfo, disks_info, drbd_map, lambda *args: None)
+    self.assertEquals(minors, {0: (disk.uuid, instance.uuid, False)})
+
 
 class TestLUClusterVerifyClientCerts(CmdlibTestCase):
 

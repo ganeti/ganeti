@@ -1179,6 +1179,42 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         self._ErrorIf(test, constants.CV_ENODEDRBDHELPER, ninfo.name,
                       "wrong drbd usermode helper: %s", payload)
 
+  @staticmethod
+  def _ComputeDrbdMinors(ninfo, instanceinfo, disks_info, drbd_map, error_if):
+    """Gives the DRBD information in a map for a node.
+
+    @type ninfo: L{objects.Node}
+    @param ninfo: the node to check
+    @param instanceinfo: the dict of instances
+    @param disks_info: the dict of disks
+    @param drbd_map: the DRBD map as returned by
+        L{ganeti.config.ConfigWriter.ComputeDRBDMap}
+    @type error_if: callable like L{_ErrorIf}
+    @param error_if: The error reporting function
+    @return: dict from minor number to (disk_uuid, instance_uuid, active)
+
+    """
+    node_drbd = {}
+    for minor, disk_uuid in drbd_map[ninfo.uuid].items():
+      test = disk_uuid not in disks_info
+      error_if(test, constants.CV_ECLUSTERCFG, None,
+               "ghost disk '%s' in temporary DRBD map", disk_uuid)
+        # ghost disk should not be active, but otherwise we
+        # don't give double warnings (both ghost disk and
+        # unallocated minor in use)
+      if test:
+        node_drbd[minor] = (disk_uuid, None, False)
+      else:
+        disk_active = False
+        disk_instance = None
+        for (inst_uuid, inst) in instanceinfo.items():
+          if disk_uuid in inst.disks:
+            disk_active = inst.disks_active
+            disk_instance = inst_uuid
+            break
+        node_drbd[minor] = (disk_uuid, disk_instance, disk_active)
+    return node_drbd
+
   def _VerifyNodeDrbd(self, ninfo, nresult, instanceinfo, disks_info,
                       drbd_helper, drbd_map):
     """Verifies and the node DRBD status.
@@ -1196,25 +1232,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     self._VerifyNodeDrbdHelper(ninfo, nresult, drbd_helper)
 
     # compute the DRBD minors
-    node_drbd = {}
-    for minor, disk_uuid in drbd_map[ninfo.uuid].items():
-      test = disk_uuid not in disks_info
-      self._ErrorIf(test, constants.CV_ECLUSTERCFG, None,
-                    "ghost disk '%s' in temporary DRBD map", disk_uuid)
-        # ghost disk should not be active, but otherwise we
-        # don't give double warnings (both ghost disk and
-        # unallocated minor in use)
-      if test:
-        node_drbd[minor] = (disk_uuid, None, False)
-      else:
-        disk_active = False
-        disk_instance = None
-        for (inst_uuid, inst) in instanceinfo.items():
-          if disk_uuid in inst.disks:
-            disk_active = inst.disks_active
-            disk_instance = inst_uuid
-            break
-        node_drbd[minor] = (disk_uuid, disk_instance, disk_active)
+    node_drbd = self._ComputeDrbdMinors(ninfo, instanceinfo, disks_info,
+                                        drbd_map, self._ErrorIf)
 
     # and now check them
     used_minors = nresult.get(constants.NV_DRBDLIST, [])
