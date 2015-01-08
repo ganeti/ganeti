@@ -1140,10 +1140,6 @@ def GatherMasterVotes(node_names):
   knows, whereas the number of entries in the list could be different
   (if some nodes vote for another master).
 
-  We remove ourselves from the list since we know that (bugs aside)
-  since we use the same source for configuration information for both
-  backend and boostrap, we'll always vote for ourselves.
-
   @type node_names: list
   @param node_names: the list of nodes to query for master info; the current
       node will be removed if it is in the list
@@ -1151,13 +1147,8 @@ def GatherMasterVotes(node_names):
   @return: list of (node, votes)
 
   """
-  myself = netutils.Hostname.GetSysName()
-  try:
-    node_names.remove(myself)
-  except ValueError:
-    pass
   if not node_names:
-    # no nodes left (eventually after removing myself)
+    # no nodes
     return []
   results = rpc.BootstrapRunner().call_master_node_name(node_names)
   if not isinstance(results, dict):
