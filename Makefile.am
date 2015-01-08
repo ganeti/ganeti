@@ -1226,8 +1226,7 @@ qa_scripts = \
 	qa/qa_performance.py \
 	qa/qa_rapi.py \
 	qa/qa_tags.py \
-	qa/qa_utils.py \
-	qa/rapi-workload.py
+	qa/qa_utils.py
 
 bin_SCRIPTS = $(HS_BIN_PROGS)
 install-exec-hook:
