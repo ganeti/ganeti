@@ -157,3 +157,8 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 ./test/hs/hbal -t$TESTDATA_DIR/hbal-soft-errors.data --ignore-soft-errors
 >>>/Solution length=[1-9]/
 >>>=0
+
+# forthcoming instances can be balanced as well
+./test/hs/hbal -t$TESTDATA_DIR/hbal-forth.data
+>>>/Solution length=[1-9]/
+>>>=0

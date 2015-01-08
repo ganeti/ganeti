@@ -1,0 +1,13 @@
+default|fake-uuid|preferred||
+
+node1|65523|1023|65523|3405248|3405248|24|M|fake-uuid|1||N|0|1|1.0
+node2|65523|1023|65523|3405248|3405248|24|N|fake-uuid|1||N|0|1|1.0
+node3|65523|1023|65523|3405248|3405248|24|N|fake-uuid|1||N|0|1|1.0
+
+forthcoming-inst1|128|2176|1|ADMIN_down|Y|node1|node2|drbd||1|-|Y
+forthcoming-inst2|128|2176|1|ADMIN_down|Y|node1|node2|drbd||1|-|Y
+forthcoming-inst3|128|2176|1|ADMIN_down|Y|node1|node2|drbd||1|-|Y
+
+
+|128,1,1024,1,1,1|128,1,512,1,1,1;1024,8,1048576,16,8,12|drbd,plain,diskless|4.0|32.0
+default|128,1,1024,1,1,1|128,1,512,1,1,1;1024,8,1048576,16,8,12|drbd,plain,diskless|4.0|32.0
