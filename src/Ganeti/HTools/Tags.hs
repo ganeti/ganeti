@@ -108,7 +108,7 @@ hasStandbyTag = any (standbyPrefix `isPrefixOf`) . Node.nTags
 getMigRestrictionsList :: [String] -> [String] -> [String]
 getMigRestrictionsList ctags ntags =
   mapMaybe (stripPrefix migrationPrefix) ctags >>= \ prefix ->
-  filter (prefix `isPrefixOf`) ntags
+  filter ((prefix ++ ":") `isPrefixOf`) ntags
 
 -- | Given the cluster tags extract the migration restrictions
 -- from a node tag.
