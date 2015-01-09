@@ -205,7 +205,7 @@ class TestLUInstanceReplaceDisks(CmdlibTestCase):
     self.node2 = self.cfg.AddNewNode()
 
   def MakeOpCode(self, disks, early_release=False, ignore_ipolicy=False,
-                 remote_node=False, mode='replace_auto'):
+                 remote_node=False, mode='replace_auto', iallocator=None):
     return opcodes.OpInstanceReplaceDisks(
         instance_name=self.instance.name,
         instance_uuid=self.instance.uuid,
@@ -215,7 +215,7 @@ class TestLUInstanceReplaceDisks(CmdlibTestCase):
         disks=disks,
         remote_node=self.node2.name if remote_node else None,
         remote_node_uuid=self.node2.uuid if remote_node else None,
-        iallocator=None)
+        iallocator=iallocator)
 
   def testInvalidTemplate(self):
     self.instance = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP,
@@ -264,6 +264,33 @@ class TestLUInstanceReplaceDisks(CmdlibTestCase):
     opcode = self.MakeOpCode([0], mode='replace_on_secondary')
     self.ExecOpCode(opcode)
     self.rpc.call_blockdev_rename.assert_any_call(self.node2.uuid, [])
+
+  def testReplaceSecondaryNew(self):
+    disk = self.cfg.CreateDisk(dev_type=constants.DT_DRBD8,
+                               primary_node=self.node1,
+                               secondary_node=self.node2)
+    self.instance = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP,
+                                            disk_template='drbd',
+                                            disks=[disk],
+                                            primary_node=self.node1,
+                                            secondary_node=self.node2)
+
+    self.SimulateDiskFailure(self.node2, 0)
+    node3 = self.cfg.AddNewNode()
+    self.MockOut(instance_storage.TLReplaceDisks, '_RunAllocator',
+                 return_value=node3.uuid)
+    self.rpc.call_drbd_disconnect_net().__getitem__().fail_msg = None
+    self.rpc.call_blockdev_shutdown().fail_msg = None
+    self.rpc.call_drbd_attach_net().fail_msg = None
+
+    opcode = self.MakeOpCode([], mode='replace_new_secondary',
+                             iallocator='hail')
+    self.ExecOpCode(opcode)
+    self.rpc.call_blockdev_shutdown.assert_any_call(
+        self.node2.uuid, (disk, self.instance))
+    self.rpc.call_drbd_attach_net.assert_any_call(
+        [self.node1.uuid, node3.uuid], ([disk], self.instance),
+        self.instance.name, False)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
