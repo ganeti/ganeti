@@ -167,7 +167,7 @@ def _TryReadFile(path):
 
 
 def _ReadSshKeys(keyfiles, _tostderr_fn=ToStderr):
-  """Reads SSH keys according to C{keyfiles}.
+  """Reads the DSA SSH keys according to C{keyfiles}.
 
   @type keyfiles: dict
   @param keyfiles: Dictionary with keys of L{constants.SSHK_ALL} and two-values
@@ -186,8 +186,8 @@ def _ReadSshKeys(keyfiles, _tostderr_fn=ToStderr):
     if public_key and private_key:
       result.append((kind, private_key, public_key))
     elif public_key or private_key:
-      _tostderr_fn("Couldn't find a complete set of keys for kind '%s'; files"
-                   " '%s' and '%s'", kind, private_file, public_file)
+      _tostderr_fn("Couldn't find a complete set of keys for kind '%s';"
+                   " files '%s' and '%s'", kind, private_file, public_file)
 
   return result
 
@@ -222,7 +222,10 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   (_, root_keyfiles) = \
     ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
 
-  root_keys = _ReadSshKeys(root_keyfiles)
+  dsa_root_keyfiles = dict((kind, value) for (kind, value)
+                           in root_keyfiles.items()
+                           if kind == constants.SSHK_DSA)
+  root_keys = _ReadSshKeys(dsa_root_keyfiles)
 
   (_, cert_pem) = \
     utils.ExtractX509Certificate(utils.ReadFile(pathutils.NODED_CERT_FILE))
@@ -241,14 +244,14 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
                          use_cluster_key=False, ask_key=options.ssh_key_check,
                          strict_host_check=options.ssh_key_check)
 
-  fetched_keys = ssh.ReadRemoteSshPubKeys(root_keyfiles, node, cluster_name,
-                                          ssh_port, options.ssh_key_check,
-                                          options.ssh_key_check)
-  for pub_key in fetched_keys.values():
-    # Unfortunately, we have to add the key with the node name rather than
-    # the node's UUID here, because at this point, we do not have a UUID yet.
-    # The entry will be corrected in noded later.
-    ssh.AddPublicKey(node, pub_key)
+  (_, dsa_pub_keyfile) = root_keyfiles[constants.SSHK_DSA]
+  pub_key = ssh.ReadRemoteSshPubKeys(dsa_pub_keyfile, node, cluster_name,
+                                     ssh_port, options.ssh_key_check,
+                                     options.ssh_key_check)
+  # Unfortunately, we have to add the key with the node name rather than
+  # the node's UUID here, because at this point, we do not have a UUID yet.
+  # The entry will be corrected in noded later.
+  ssh.AddPublicKey(node, pub_key)
 
 
 @UsesRPC

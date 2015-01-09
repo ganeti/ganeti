@@ -1013,22 +1013,17 @@ def _VerifySshSetup(node_status_list, my_name,
 
     (_, key_files) = \
       ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
+    (_, dsa_pub_key_filename) = key_files[constants.SSHK_DSA]
+
     my_keys = pub_keys[my_uuid]
-    num_keys = 0
-    for (key_type, (_, pub_key_file)) in key_files.items():
-      try:
-        pub_key = utils.ReadFile(pub_key_file)
-        if pub_key.strip() not in my_keys:
-          result.append("The %s key of node %s does not match this node's keys"
-                        " in the pub key file." % (key_type, my_name))
-        num_keys += 1
-      except IOError:
-        # There might not be keys of every type.
-        pass
-    if num_keys != len(my_keys):
-      result.append("The number of keys for node %s in the public key file"
-                    " (%s) does not match the number of keys on the node"
-                    " (%s)." % (my_name, len(my_keys), len(key_files)))
+
+    dsa_pub_key = utils.ReadFile(dsa_pub_key_filename)
+    if dsa_pub_key.strip() not in my_keys:
+      result.append("The dsa key of node %s does not match this node's key"
+                    " in the pub key file." % (my_name))
+    if len(my_keys) != 1:
+      result.append("There is more than one key for node %s in the public key"
+                    " file." % my_name)
   else:
     if len(pub_keys.keys()) > 0:
       result.append("The public key file of node '%s' is not empty, although"
@@ -1918,19 +1913,20 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                         noded_cert_file=noded_cert_file,
                         run_cmd_fn=run_cmd_fn)
 
-    fetched_keys = ssh.ReadRemoteSshPubKeys(root_keyfiles, node_name,
-                                            cluster_name,
-                                            ssh_port_map[node_name],
-                                            False, # ask_key
-                                            False) # key_check
-    if not fetched_keys:
+    try:
+      (_, dsa_pub_keyfile) = root_keyfiles[constants.SSHK_DSA]
+      pub_key = ssh.ReadRemoteSshPubKeys(dsa_pub_keyfile,
+                                         node_name, cluster_name,
+                                         ssh_port_map[node_name],
+                                         False, # ask_key
+                                         False) # key_check
+    except:
       raise errors.SshUpdateError("Could not fetch key of node %s"
                                   " (UUID %s)" % (node_name, node_uuid))
 
     if potential_master_candidate:
       ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
-      for pub_key in fetched_keys.values():
-        ssh.AddPublicKey(node_uuid, pub_key, key_file=pub_key_file)
+      ssh.AddPublicKey(node_uuid, pub_key, key_file=pub_key_file)
 
     AddNodeSshKey(node_uuid, node_name,
                   potential_master_candidates,

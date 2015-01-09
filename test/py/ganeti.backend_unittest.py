@@ -1311,7 +1311,7 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
   _NODE1_NAME = "name1"
   _NODE2_NAME = "name2"
   _NODE3_NAME = "name3"
-  _NODE1_KEYS = ["key11", "key12"]
+  _NODE1_KEYS = ["key11"]
   _NODE2_KEYS = ["key21"]
   _NODE3_KEYS = ["key31"]
 
@@ -1329,7 +1329,6 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
 
   _AUTH_RESULT = {
     _NODE1_KEYS[0]: True,
-    _NODE1_KEYS[1]: True,
     _NODE2_KEYS[0]: False,
     _NODE3_KEYS[0]: False,
   }
@@ -1390,7 +1389,7 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
 
   def testMissingMasterCandidate(self):
     auth_result = copy.deepcopy(self._AUTH_RESULT)
-    auth_result["key12"] = False
+    auth_result["key11"] = False
     self._has_authorized_mock.side_effect = \
       lambda _, key : auth_result[key]
     self._query_mock.return_value = self._PUB_KEY_RESULT
