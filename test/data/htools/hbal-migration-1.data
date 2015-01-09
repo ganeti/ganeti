@@ -1,6 +1,6 @@
 group-01|fake-uuid-01|preferred||
 
-node-01|16384|0|12288|409600|204800|16|N|fake-uuid-01|1|hv:new
+node-01|16384|0|12288|409600|204800|16|N|fake-uuid-01|1|hv:new,hvthisisnotamigrationtag
 node-02|16384|0|16384|409600|306600|16|N|fake-uuid-01|1|
 node-03|16384|0|16384|409600|306600|16|N|fake-uuid-01|1|hv:new
 node-04|16384|0|16384|409600|306600|16|N|fake-uuid-01|1|
