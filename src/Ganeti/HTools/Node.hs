@@ -808,10 +808,9 @@ addPri = addPriEx False
 -- | Adds a primary instance (extended version).
 addPriEx :: Bool               -- ^ Whether to override the N+1 and
                                -- other /soft/ checks, useful if we
-                               -- come from a worse status.
+                               -- come from a worse status (e.g. offline).
                                -- If this is True, forthcoming instances
                                -- may exceed available Node resources.
-                               -- (e.g. offline)
          -> Node               -- ^ The target node
          -> Instance.Instance  -- ^ The instance to add
          -> T.OpResult Node    -- ^ The result of the operation,
