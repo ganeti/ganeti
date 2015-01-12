@@ -41,7 +41,8 @@ import qa_config
 import qa_error
 import qa_utils
 
-from qa_utils import AssertCommand, AssertEqual, AssertIn, GetCommandOutput
+from qa_utils import AssertCommand, AssertRedirectedCommand, AssertEqual, \
+  AssertIn, GetCommandOutput
 
 
 def NodeAdd(node, readd=False, group=None):
@@ -64,6 +65,9 @@ def NodeAdd(node, readd=False, group=None):
   cmd.append(node.primary)
 
   AssertCommand(cmd)
+
+  if readd:
+    AssertRedirectedCommand(["gnt-cluster", "verify"])
 
   if readd:
     assert node.added
@@ -264,6 +268,8 @@ def TestNodeModify(node):
   # Test setting secondary IP address
   AssertCommand(["gnt-node", "modify", "--secondary-ip=%s" % node.secondary,
                  node.primary])
+
+  AssertRedirectedCommand(["gnt-cluster", "verify"])
 
 
 def _CreateOobScriptStructure():

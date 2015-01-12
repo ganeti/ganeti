@@ -1698,23 +1698,23 @@ hvKvmUseChroot = "use_chroot"
 hvKvmUserShutdown :: String
 hvKvmUserShutdown = "user_shutdown"
 
-hvLxcStartupWait :: String
-hvLxcStartupWait = "lxc_startup_wait"
+hvLxcStartupTimeout :: String
+hvLxcStartupTimeout = "startup_timeout"
 
-hvLxcCgroupUse :: String
-hvLxcCgroupUse = "lxc_cgroup_use"
+hvLxcExtraCgroups :: String
+hvLxcExtraCgroups = "extra_cgroups"
 
 hvLxcDevices :: String
-hvLxcDevices = "lxc_devices"
+hvLxcDevices = "devices"
 
 hvLxcDropCapabilities :: String
-hvLxcDropCapabilities = "lxc_drop_capabilities"
+hvLxcDropCapabilities = "drop_capabilities"
 
 hvLxcExtraConfig :: String
-hvLxcExtraConfig = "lxc_extra_config"
+hvLxcExtraConfig = "extra_config"
 
-hvLxcTty :: String
-hvLxcTty = "lxc_tty"
+hvLxcNumTtys :: String
+hvLxcNumTtys = "num_ttys"
 
 hvMemPath :: String
 hvMemPath = "mem_path"
@@ -1878,12 +1878,12 @@ hvsParameterTypes = Map.fromList
   , (hvKvmSpiceZlibGlzImgCompr,         VTypeString)
   , (hvKvmUseChroot,                    VTypeBool)
   , (hvKvmUserShutdown,                 VTypeBool)
-  , (hvLxcCgroupUse,                    VTypeString)
   , (hvLxcDevices,                      VTypeString)
   , (hvLxcDropCapabilities,             VTypeString)
+  , (hvLxcExtraCgroups,                 VTypeString)
   , (hvLxcExtraConfig,                  VTypeString)
-  , (hvLxcTty,                          VTypeInt)
-  , (hvLxcStartupWait,                  VTypeInt)
+  , (hvLxcNumTtys,                      VTypeInt)
+  , (hvLxcStartupTimeout,               VTypeInt)
   , (hvMemPath,                         VTypeString)
   , (hvMigrationBandwidth,              VTypeInt)
   , (hvMigrationDowntime,               VTypeInt)
@@ -3262,6 +3262,9 @@ nvNonvmnodes = "nonvmnodes"
 nvSshSetup :: String
 nvSshSetup = "ssh-setup"
 
+nvSshClutter :: String
+nvSshClutter = "ssh-clutter"
+
 -- * Instance status
 
 inststAdmindown :: String
@@ -3971,12 +3974,12 @@ hvcDefaults =
   , (Chroot, Map.fromList [(hvInitScript, PyValueEx "/ganeti-chroot")])
   , (Lxc, Map.fromList
           [ (hvCpuMask,             PyValueEx "")
-          , (hvLxcCgroupUse,        PyValueEx "")
           , (hvLxcDevices,          PyValueEx lxcDevicesDefault)
           , (hvLxcDropCapabilities, PyValueEx lxcDropCapabilitiesDefault)
+          , (hvLxcExtraCgroups,     PyValueEx "")
           , (hvLxcExtraConfig,      PyValueEx "")
-          , (hvLxcTty,              PyValueEx (6 :: Int))
-          , (hvLxcStartupWait,      PyValueEx (30 :: Int))
+          , (hvLxcNumTtys,          PyValueEx (6 :: Int))
+          , (hvLxcStartupTimeout,   PyValueEx (30 :: Int))
           ])
   ]
 
@@ -4576,6 +4579,15 @@ sshsClear = "clear"
 
 sshsGenerate :: String
 sshsGenerate = "generate"
+
+sshsSuffix :: String
+sshsSuffix = "suffix"
+
+sshsRename :: String
+sshsRename = "rename"
+
+sshsMasterSuffix :: String
+sshsMasterSuffix = "_master_tmp"
 
 sshsActions :: FrozenSet String
 sshsActions = ConstantUtils.mkSet [ sshsAdd

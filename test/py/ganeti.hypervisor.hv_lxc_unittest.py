@@ -178,23 +178,39 @@ class TestCgroupReadData(LXCHypervisorTestCase):
 
   @patch_object(LXCHypervisor, "_GetOrPrepareCgroupSubsysMountPoint")
   @patch_object(LXCHypervisor, "_GetCurrentCgroupSubsysGroups")
-  def testGetCgroupInstanceSubsysDir(self, getcgg_mock, getmp_mock):
+  def testGetCgroupSubsysDir(self, getcgg_mock, getmp_mock):
     getmp_mock.return_value = "/cg"
     getcgg_mock.return_value = {"cpuset": "grp"}
-    self.assertEqual(self.hv._GetCgroupInstanceSubsysDir("instance1", "memory"),
-                     "/cg/lxc/instance1")
-    self.assertEqual(self.hv._GetCgroupInstanceSubsysDir("instance1", "cpuset"),
-                     "/cg/grp/lxc/instance1")
+    self.assertEqual(
+      self.hv._GetCgroupSubsysDir("memory"), "/cg/lxc"
+    )
+    self.assertEqual(
+      self.hv._GetCgroupSubsysDir("cpuset"), "/cg/grp/lxc"
+    )
 
-  @patch_object(LXCHypervisor, "_GetCgroupInstanceSubsysDir")
+  @patch_object(LXCHypervisor, "_GetOrPrepareCgroupSubsysMountPoint")
+  @patch_object(LXCHypervisor, "_GetCurrentCgroupSubsysGroups")
+  def testGetCgroupParamPath(self, getcgg_mock, getmp_mock):
+    getmp_mock.return_value = "/cg"
+    getcgg_mock.return_value = {"cpuset": "grp"}
+    self.assertEqual(
+      self.hv._GetCgroupParamPath("memory.memsw.limit_in_bytes",
+                                  instance_name="instance1"),
+      "/cg/lxc/instance1/memory.memsw.limit_in_bytes"
+    )
+    self.assertEqual(
+      self.hv._GetCgroupParamPath("cpuset.cpus"),
+      "/cg/grp/lxc/cpuset.cpus"
+    )
+
+  @patch_object(LXCHypervisor, "_GetCgroupSubsysDir")
   def testGetCgroupInstanceValue(self, getdir_mock):
-    getdir_mock.return_value = utils.PathJoin(self.cgroot, "memory", "lxc",
-                                              "instance1")
+    getdir_mock.return_value = utils.PathJoin(self.cgroot, "memory", "lxc")
     self.assertEqual(self.hv._GetCgroupInstanceValue("instance1",
                                                      "memory.limit_in_bytes"),
                      "128")
     getdir_mock.return_value = utils.PathJoin(self.cgroot, "cpuset",
-                                              "some_group", "lxc", "instance1")
+                                              "some_group", "lxc")
     self.assertEqual(self.hv._GetCgroupInstanceValue("instance1",
                                                      "cpuset.cpus"),
                      "0-1")

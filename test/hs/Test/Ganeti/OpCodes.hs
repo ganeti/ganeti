@@ -175,13 +175,14 @@ instance Arbitrary OpCodes.OpCode where
       "OP_CLUSTER_VERIFY" ->
         OpCodes.OpClusterVerify <$> arbitrary <*> arbitrary <*>
           genListSet Nothing <*> genListSet Nothing <*> arbitrary <*>
-          genMaybe genNameNE
+          genMaybe genNameNE <*> arbitrary
       "OP_CLUSTER_VERIFY_CONFIG" ->
         OpCodes.OpClusterVerifyConfig <$> arbitrary <*> arbitrary <*>
           genListSet Nothing <*> arbitrary
       "OP_CLUSTER_VERIFY_GROUP" ->
         OpCodes.OpClusterVerifyGroup <$> genNameNE <*> arbitrary <*>
-          arbitrary <*> genListSet Nothing <*> genListSet Nothing <*> arbitrary
+          arbitrary <*> genListSet Nothing <*> genListSet Nothing <*>
+          arbitrary <*> arbitrary
       "OP_CLUSTER_VERIFY_DISKS" -> pure OpCodes.OpClusterVerifyDisks
       "OP_GROUP_VERIFY_DISKS" ->
         OpCodes.OpGroupVerifyDisks <$> genNameNE

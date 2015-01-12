@@ -139,14 +139,17 @@ class LXCHypervisor(hv_base.BaseHypervisor):
   _DIR_MODE = 0755
   _STASH_KEY_ALLOCATED_LOOP_DEV = "allocated_loopdev"
 
+  _MEMORY_PARAMETER = "memory.limit_in_bytes"
+  _MEMORY_SWAP_PARAMETER = "memory.memsw.limit_in_bytes"
+
   PARAMETERS = {
     constants.HV_CPU_MASK: hv_base.OPT_CPU_MASK_CHECK,
-    constants.HV_LXC_CGROUP_USE: hv_base.NO_CHECK,
     constants.HV_LXC_DEVICES: hv_base.NO_CHECK,
     constants.HV_LXC_DROP_CAPABILITIES: hv_base.NO_CHECK,
+    constants.HV_LXC_EXTRA_CGROUPS: hv_base.NO_CHECK,
     constants.HV_LXC_EXTRA_CONFIG: hv_base.NO_CHECK,
-    constants.HV_LXC_TTY: hv_base.REQ_NONNEGATIVE_INT_CHECK,
-    constants.HV_LXC_STARTUP_WAIT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
+    constants.HV_LXC_NUM_TTYS: hv_base.REQ_NONNEGATIVE_INT_CHECK,
+    constants.HV_LXC_STARTUP_TIMEOUT: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     }
 
   _REBOOT_TIMEOUT = 120 # secs
@@ -336,37 +339,36 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     return cgroups
 
   @classmethod
-  def _GetCgroupInstanceSubsysDir(cls, instance_name, subsystem):
-    """Return the directory of the cgroup subsystem for the instance.
+  def _GetCgroupSubsysDir(cls, subsystem):
+    """Return the directory of the cgroup subsystem we use.
 
-    @type instance_name: string
-    @param instance_name: instance name
     @type subsystem: string
     @param subsystem: cgroup subsystem name
-    @rtype string
-    @return path of the instance hierarchy directory for the subsystem
+    @rtype: string
+    @return: path of the hierarchy directory for the subsystem
 
     """
     subsys_dir = cls._GetOrPrepareCgroupSubsysMountPoint(subsystem)
     base_group = cls._GetCurrentCgroupSubsysGroups().get(subsystem, "")
 
-    return utils.PathJoin(subsys_dir, base_group, "lxc", instance_name)
+    return utils.PathJoin(subsys_dir, base_group, "lxc")
 
   @classmethod
-  def _GetCgroupInstanceParamPath(cls, instance_name, param_name):
+  def _GetCgroupParamPath(cls, param_name, instance_name=None):
     """Return the path of the specified cgroup parameter file.
 
-    @type instance_name: string
-    @param instance_name: instance name
     @type param_name: string
     @param param_name: cgroup subsystem parameter name
-    @rtype string
-    @return path of the cgroup subsystem parameter file
+    @rtype: string
+    @return: path of the cgroup subsystem parameter file
 
     """
     subsystem = param_name.split(".", 1)[0]
-    subsys_dir = cls._GetCgroupInstanceSubsysDir(instance_name, subsystem)
-    return utils.PathJoin(subsys_dir, param_name)
+    subsys_dir = cls._GetCgroupSubsysDir(subsystem)
+    if instance_name is not None:
+      return utils.PathJoin(subsys_dir, instance_name, param_name)
+    else:
+      return utils.PathJoin(subsys_dir, param_name)
 
   @classmethod
   def _GetCgroupInstanceValue(cls, instance_name, param_name):
@@ -380,7 +382,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     @return value read from cgroup subsystem fs
 
     """
-    param_path = cls._GetCgroupInstanceParamPath(instance_name, param_name)
+    param_path = cls._GetCgroupParamPath(param_name,
+                                         instance_name=instance_name)
     return utils.ReadFile(param_path).rstrip("\n")
 
   @classmethod
@@ -395,7 +398,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     @param param_value: cgroup subsystem parameter value to be set
 
     """
-    param_path = cls._GetCgroupInstanceParamPath(instance_name, param_name)
+    param_path = cls._GetCgroupParamPath(param_name,
+                                         instance_name=instance_name)
     # When interacting with cgroup fs, errno is quite important information
     # to see what happened when setting a cgroup parameter, so just throw
     # an error to the upper level.
@@ -409,6 +413,25 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     finally:
       if fd != -1:
         os.close(fd)
+
+  @classmethod
+  def _IsCgroupParameterPresent(cls, parameter, hvparams=None):
+    """Return whether a cgroup parameter can be used.
+
+    This is checked by seeing whether there is a file representation of the
+    parameter in the location where the cgroup is mounted.
+
+    @type parameter: string
+    @param parameter: The name of the parameter.
+    @param hvparams: dict
+    @param hvparams: The hypervisor parameters, optional.
+    @rtype: boolean
+
+    """
+    cls._EnsureCgroupMounts(hvparams)
+    param_path = cls._GetCgroupParamPath(parameter)
+
+    return os.path.exists(param_path)
 
   @classmethod
   def _GetCgroupCpuList(cls, instance_name):
@@ -530,9 +553,9 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # separate pseudo-TTY instances
     out.append("lxc.pts = 255")
     # standard TTYs
-    lxc_ttys = instance.hvparams[constants.HV_LXC_TTY]
-    if lxc_ttys: # if it is the number greater than 0
-      out.append("lxc.tty = %s" % lxc_ttys)
+    num_ttys = instance.hvparams[constants.HV_LXC_NUM_TTYS]
+    if num_ttys: # if it is the number greater than 0
+      out.append("lxc.tty = %s" % num_ttys)
 
     # console log file
     # After the following patch was applied, we lost the console log file output
@@ -571,8 +594,10 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     # Memory
     out.append("lxc.cgroup.memory.limit_in_bytes = %dM" %
                instance.beparams[constants.BE_MAXMEM])
-    out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
-               instance.beparams[constants.BE_MAXMEM])
+    if LXCHypervisor._IsCgroupParameterPresent(self._MEMORY_SWAP_PARAMETER,
+                                               instance.hvparams):
+      out.append("lxc.cgroup.memory.memsw.limit_in_bytes = %dM" %
+                 instance.beparams[constants.BE_MAXMEM])
 
     # Device control
     # deny direct device access
@@ -635,10 +660,10 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       cls._GetOrPrepareCgroupSubsysMountPoint(subsystem)
 
     # Check cgroup subsystems required by the LXC
-    if hvparams is None or not hvparams[constants.HV_LXC_CGROUP_USE]:
+    if hvparams is None or not hvparams[constants.HV_LXC_EXTRA_CGROUPS]:
       enable_subsystems = cls._GetCgroupEnabledKernelSubsystems()
     else:
-      enable_subsystems = hvparams[constants.HV_LXC_CGROUP_USE].split(",")
+      enable_subsystems = hvparams[constants.HV_LXC_EXTRA_CGROUPS].split(",")
 
     for subsystem in enable_subsystems:
       cls._GetOrPrepareCgroupSubsysMountPoint(subsystem)
@@ -703,12 +728,12 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       raise HypervisorError("Failed to start instance %s : %s" %
                             (instance.name, result.output))
 
-    lxc_startup_wait = instance.hvparams[constants.HV_LXC_STARTUP_WAIT]
+    lxc_startup_timeout = instance.hvparams[constants.HV_LXC_STARTUP_TIMEOUT]
     if not self._WaitForInstanceState(instance.name,
                                       constants.LXC_STATE_RUNNING,
-                                      lxc_startup_wait):
+                                      lxc_startup_timeout):
       raise HypervisorError("Instance %s state didn't change to RUNNING within"
-                            " %s secs" % (instance.name, lxc_startup_wait))
+                            " %s secs" % (instance.name, lxc_startup_timeout))
 
     # Ensure that the instance is running correctly after being daemonized
     if not self._IsInstanceAlive(instance.name):
@@ -829,9 +854,17 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     current_mem_usage = self._GetCgroupMemoryLimit(instance.name)
     shrinking = mem_in_bytes <= current_mem_usage
 
-    # memory.memsw.limit_in_bytes is the superlimit of the memory.limit_in_bytes
-    # so the order of setting these parameters is quite important.
-    cgparams = ["memory.memsw.limit_in_bytes", "memory.limit_in_bytes"]
+    # The memsw.limit_in_bytes parameter might be present depending on kernel
+    # parameters.
+    # If present, it has to be modified at the same time as limit_in_bytes.
+    if LXCHypervisor._IsCgroupParameterPresent(self._MEMORY_SWAP_PARAMETER,
+                                               instance.hvparams):
+      # memory.memsw.limit_in_bytes is the superlimit of memory.limit_in_bytes
+      # so the order of setting these parameters is quite important.
+      cgparams = [self._MEMORY_SWAP_PARAMETER, self._MEMORY_PARAMETER]
+    else:
+      cgparams = [self._MEMORY_PARAMETER]
+
     if shrinking:
       cgparams.reverse()
 

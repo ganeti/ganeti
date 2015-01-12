@@ -923,6 +923,7 @@ VERIFY
 | **verify** [\--no-nplus1-mem] [\--node-group *nodegroup*]
 | [\--error-codes] [{-I|\--ignore-errors} *errorcode*]
 | [{-I|\--ignore-errors} *errorcode*...]
+| [--verify-ssh-clutter]
 
 Verify correctness of cluster configuration. This is safe with
 respect to running instances, and incurs no downtime of the
@@ -969,6 +970,13 @@ given error.
 Note that the verification of the configuration file consistency across
 master candidates can fail if there are other concurrently running
 operations that modify the configuration.
+
+The ``--verify-ssh-clutter`` option checks if more than one SSH key for the
+same 'user@hostname' pair exists in the 'authorizied_keys' file. This is only
+checked for hostnames of nodes which belong to the cluster. This check is
+optional, because there might be other systems manipulating the
+'authorized_keys' files, which would cause too many false positives
+otherwise.
 
 List of error codes:
 

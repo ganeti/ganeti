@@ -159,6 +159,7 @@ $(genOpCode "OpCode"
      , pIgnoreErrors
      , pVerbose
      , pOptGroupName
+     , pVerifyClutter
      ],
      [])
   , ("OpClusterVerifyConfig",
@@ -179,6 +180,7 @@ $(genOpCode "OpCode"
      , pSkipChecks
      , pIgnoreErrors
      , pVerbose
+     , pVerifyClutter
      ],
      "group_name")
   , ("OpClusterVerifyDisks",

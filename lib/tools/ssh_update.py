@@ -62,7 +62,7 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
     ht.TItems(
       [ht.TElemOf(constants.SSHS_ACTIONS),
        ht.TDictOf(ht.TNonEmptyString, ht.TListOf(ht.TNonEmptyString))]),
-  constants.SSHS_GENERATE: ht.TBool,
+  constants.SSHS_GENERATE: ht.TDictOf(ht.TNonEmptyString, ht.TString),
   })
 
 
@@ -188,12 +188,13 @@ def GenerateRootSshKeys(data, dry_run):
   @param dry_run: Whether to perform a dry run
 
   """
-  generate = data.get(constants.SSHS_GENERATE)
-  if generate:
+  generate_info = data.get(constants.SSHS_GENERATE)
+  if generate_info:
+    suffix = generate_info[constants.SSHS_SUFFIX]
     if dry_run:
       logging.info("This is a dry run, not generating any files.")
     else:
-      common.GenerateRootSshKeys(SshUpdateError)
+      common.GenerateRootSshKeys(SshUpdateError, _suffix=suffix)
 
 
 def Main():

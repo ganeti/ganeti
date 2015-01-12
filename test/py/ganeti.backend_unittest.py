@@ -1346,19 +1346,24 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
       .patch_object(utils, "ReadFile")
     self._read_file_mock = self._read_file_patcher.start()
     self._read_file_mock.return_value = self._NODE1_KEYS[0]
+    self.tmpdir = tempfile.mkdtemp()
+    self.pub_key_file = os.path.join(self.tmpdir, "pub_key_file")
+    open(self.pub_key_file, "w").close()
 
   def tearDown(self):
     super(testutils.GanetiTestCase, self).tearDown()
     self._has_authorized_patcher.stop()
     self._query_patcher.stop()
     self._read_file_patcher.stop()
+    shutil.rmtree(self.tmpdir)
 
   def testValidData(self):
     self._has_authorized_mock.side_effect = \
       lambda _, key : self._AUTH_RESULT[key]
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
-                                     self._NODE1_NAME)
+                                     self._NODE1_NAME,
+                                     pub_key_file=self.pub_key_file)
     self.assertEqual(result, [])
 
   def testMissingKey(self):
@@ -1368,7 +1373,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     del pub_key_missing[self._NODE2_UUID]
     self._query_mock.return_value = pub_key_missing
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
-                                     self._NODE1_NAME)
+                                     self._NODE1_NAME,
+                                     pub_key_file=self.pub_key_file)
     self.assertTrue(self._NODE2_UUID in result[0])
 
   def testUnknownKey(self):
@@ -1378,7 +1384,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     pub_key_missing["unkownnodeuuid"] = "pinkbunny"
     self._query_mock.return_value = pub_key_missing
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
-                                     self._NODE1_NAME)
+                                     self._NODE1_NAME,
+                                     pub_key_file=self.pub_key_file)
     self.assertTrue("unkownnodeuuid" in result[0])
 
   def testMissingMasterCandidate(self):
@@ -1388,7 +1395,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
       lambda _, key : auth_result[key]
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
-                                     self._NODE1_NAME)
+                                     self._NODE1_NAME,
+                                     pub_key_file=self.pub_key_file)
     self.assertTrue(self._NODE1_UUID in result[0])
 
   def testSuperfluousNormalNode(self):
@@ -1398,7 +1406,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
       lambda _, key : auth_result[key]
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
-                                     self._NODE1_NAME)
+                                     self._NODE1_NAME,
+                                     pub_key_file=self.pub_key_file)
     self.assertTrue(self._NODE3_UUID in result[0])
 
 

@@ -88,7 +88,6 @@ DATA_COLLECTOR_INTERVAL_OPT = cli_option(
     "--data-collector-interval", default={}, type="keyval",
     help="Set collection intervals in seconds of data collectors.")
 
-
 _EPO_PING_INTERVAL = 30 # 30 seconds between pings
 _EPO_PING_TIMEOUT = 1 # 1 second
 _EPO_REACHABLE_TIMEOUT = 15 * 60 # 15 minutes
@@ -743,7 +742,8 @@ def VerifyCluster(opts, args):
                                debug_simulate_errors=opts.simulate_errors,
                                skip_checks=skip_checks,
                                ignore_errors=opts.ignore_errors,
-                               group_name=opts.nodegroup)
+                               group_name=opts.nodegroup,
+                               verify_clutter=opts.verify_clutter)
   result = SubmitOpCode(op, cl=cl, opts=opts)
 
   # Keep track of submitted jobs
@@ -993,6 +993,9 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   @param new_ssh_keys: Whether to generate new node SSH keys
 
   """
+  ToStdout("Updating certificates now. Running \"gnt-cluster verify\" "
+           " is recommended after this operation.")
+
   if new_rapi_cert and rapi_cert_filename:
     ToStderr("Only one of the --new-rapi-certificate and --rapi-certificate"
              " options can be specified at the same time.")
@@ -1042,7 +1045,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
       return 1
 
   def _RenewCryptoInner(ctx):
-    ctx.feedback_fn("Updating certificates and keys")
+    ctx.feedback_fn("Updating cluster-wide certificates and keys")
     # Note: the node certificate will be generated in the LU
     bootstrap.GenerateClusterCrypto(new_cluster_cert,
                                     new_rapi_cert,
@@ -1081,9 +1084,6 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
           ctx.ssh.CopyFileToNode(node_name, port, file_name)
 
   RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
-
-  ToStdout("All requested certificates and keys have been replaced."
-           " Running \"gnt-cluster verify\" now is recommended.")
 
   if new_node_cert or new_ssh_keys:
     cl = GetClient()
@@ -2195,7 +2195,7 @@ def _UpgradeAfterConfigurationChange(oldversion):
   if not _RunCommandAndReport([pathutils.POST_UPGRADE, oldversion]):
     returnvalue = 1
 
-  ToStdout("Unpasuing the watcher.")
+  ToStdout("Unpausing the watcher.")
   if not _RunCommandAndReport(["gnt-cluster", "watcher", "continue"]):
     returnvalue = 1
 
@@ -2333,7 +2333,8 @@ commands = {
   "verify": (
     VerifyCluster, ARGS_NONE,
     [VERBOSE_OPT, DEBUG_SIMERR_OPT, ERROR_CODES_OPT, NONPLUS1_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT, NODEGROUP_OPT, IGNORE_ERRORS_OPT],
+     DRY_RUN_OPT, PRIORITY_OPT, NODEGROUP_OPT, IGNORE_ERRORS_OPT,
+     VERIFY_CLUTTER_OPT],
     "", "Does a check on the cluster configuration"),
   "verify-disks": (
     VerifyDisks, ARGS_NONE, [PRIORITY_OPT],

@@ -207,6 +207,48 @@ def HasAuthorizedKey(file_obj, key):
   return False
 
 
+def CheckForMultipleKeys(file_obj, node_names):
+  """Check if there is at most one key per host in 'authorized_keys' file.
+
+  @type file_obj: str or file handle
+  @param file_obj: path to authorized_keys file
+  @type node_names: list of str
+  @param node_names: list of names of nodes of the cluster
+  @returns: a dictionary with hostnames which occur more than once
+
+  """
+
+  if isinstance(file_obj, basestring):
+    f = open(file_obj, "r")
+  else:
+    f = file_obj
+
+  occurrences = {}
+
+  try:
+    index = 0
+    for line in f:
+      index += 1
+      if line.startswith("#"):
+        continue
+      chunks = line.split()
+      # find the chunk with user@hostname
+      user_hostname = [chunk.strip() for chunk in chunks if "@" in chunk][0]
+      if not user_hostname in occurrences:
+        occurrences[user_hostname] = []
+      occurrences[user_hostname].append(index)
+  finally:
+    f.close()
+
+  bad_occurrences = {}
+  for user_hostname, occ in occurrences.items():
+    _, hostname = user_hostname.split("@")
+    if hostname in node_names and len(occ) > 1:
+      bad_occurrences[user_hostname] = occ
+
+  return bad_occurrences
+
+
 def AddAuthorizedKey(file_obj, key):
   """Adds an SSH public key to an authorized_keys file.
 
@@ -465,6 +507,9 @@ def _ManipulatePubKeyFile(target_identifier, target_key,
   3) Finally, the list of lines is assembled to a string and written
   atomically to the public key file, thereby overriding it.
 
+  If the public key file does not exist, we create it. This is necessary for
+  a smooth transition after an upgrade.
+
   @type target_identifier: str
   @param target_identifier: identifier of the node whose key is added; in most
     cases this is the node's UUID, but in some it is the node's host name
@@ -488,11 +533,19 @@ def _ManipulatePubKeyFile(target_identifier, target_key,
   assert process_line_fn is not None
 
   old_lines = []
-  try:
-    f_orig = open(key_file, "r")
-    old_lines = f_orig.readlines()
-  finally:
-    f_orig.close()
+  f_orig = None
+  if os.path.exists(key_file):
+    try:
+      f_orig = open(key_file, "r")
+      old_lines = f_orig.readlines()
+    finally:
+      f_orig.close()
+  else:
+    try:
+      f_orig = open(key_file, "w")
+      f_orig.close()
+    except IOError as e:
+      raise errors.SshUpdateError("Cannot create public key file: %s" % e)
 
   found = False
   new_lines = []
@@ -630,17 +683,16 @@ def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None,
   permitted hosts and adds the hostkey to its own known hosts.
 
   """
-  priv_key, pub_key, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER,
+  priv_key, _, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER,
                                               _homedir_fn=_homedir_fn)
-
-  for name in priv_key, pub_key:
-    if os.path.exists(name):
-      utils.CreateBackup(name)
-    if len(_suffix) == 0:
-      utils.RemoveFile(name)
 
   new_priv_key_name = priv_key + _suffix
   new_pub_key_name = priv_key + _suffix + ".pub"
+
+  for name in new_priv_key_name, new_pub_key_name:
+    if os.path.exists(name):
+      utils.CreateBackup(name)
+    utils.RemoveFile(name)
 
   result = utils.RunCmd(["ssh-keygen", "-t", "dsa",
                          "-f", new_priv_key_name,
