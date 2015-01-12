@@ -189,6 +189,7 @@ module Ganeti.OpParams
   , pRemoteNode
   , pRemoteNodeUuid
   , pEvacMode
+  , pIgnoreSoftErrors
   , pInstCreateMode
   , pNoInstall
   , pInstOs
@@ -1080,6 +1081,12 @@ pEvacMode :: Field
 pEvacMode =
   withDoc "Node evacuation mode" .
   renameField "EvacMode" $ simpleField "mode" [t| EvacMode |]
+
+pIgnoreSoftErrors :: Field
+pIgnoreSoftErrors =
+  withDoc "Ignore soft htools errors" .
+  optionalField $
+  booleanField "ignore_soft_errors"
 
 pInstanceName :: Field
 pInstanceName =
