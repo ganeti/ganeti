@@ -587,7 +587,7 @@ addPriEx force t inst =
          | uses_disk && new_inst_sp > hiSpindles t && strict -> Bad T.FailDisk
          | new_failn1 && not (failN1 t) && strict -> Bad T.FailMem
          | l_cpu >= 0 && l_cpu < new_pcpu && strict -> Bad T.FailCPU
-         | rejectAddTags old_tags inst_tags -> Bad T.FailTags
+         | strict && rejectAddTags old_tags inst_tags -> Bad T.FailTags
          | otherwise ->
            let new_plist = iname:pList t
                new_mp = fromIntegral new_mem / tMem t
