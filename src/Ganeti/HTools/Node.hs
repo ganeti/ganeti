@@ -895,7 +895,7 @@ addPriEx force t inst =
           | strict && uses_disk && new_inst_sp > hiSpindles t -> Bad T.FailDisk
           | strict && new_failn1 && not (failN1 t) -> Bad T.FailMem
           | strict && l_cpu >= 0 && l_cpu < new_pcpu -> Bad T.FailCPU
-          | rejectAddTags old_tags inst_tags -> Bad T.FailTags
+          | strict && rejectAddTags old_tags inst_tags -> Bad T.FailTags
 
           -- When strict also check forthcoming limits, but after normal checks
           | strict, Bad err <- checkForthcomingViolation -> Bad err
