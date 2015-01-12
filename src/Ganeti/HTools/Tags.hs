@@ -101,19 +101,23 @@ autoRepairTagSuspended = autoRepairTagPrefix ++ "suspend:"
 hasStandbyTag :: Node.Node -> Bool
 hasStandbyTag = any (standbyPrefix `isPrefixOf`) . Node.nTags
 
--- * Migration restriction tags
+-- * Utility functions
 
--- | Given the cluster tags extract the migration restrictions
--- from a node tag, as a list.
-getMigRestrictionsList :: [String] -> [String] -> [String]
-getMigRestrictionsList ctags ntags =
-  mapMaybe (stripPrefix migrationPrefix) ctags >>= \ prefix ->
-  filter ((prefix ++ ":") `isPrefixOf`) ntags
+-- | Htools standard tag extraction. Given a set of cluster tags,
+-- take those starting with a specific prefix, strip the prefix
+-- and append a colon, and then take those node tags starting with
+-- one of those strings.
+getTags :: String -> [String] -> [String] -> S.Set String
+getTags prefix ctags ntags = S.fromList
+  (mapMaybe (stripPrefix prefix) ctags >>= \ p ->
+    filter ((p ++ ":") `isPrefixOf`) ntags)
+
+-- * Migration restriction tags
 
 -- | Given the cluster tags extract the migration restrictions
 -- from a node tag.
 getMigRestrictions :: [String] -> [String] -> S.Set String
-getMigRestrictions ctags = S.fromList . getMigRestrictionsList ctags
+getMigRestrictions = getTags migrationPrefix
 
 -- | Maybe split a string on the first single occurence of "::" return
 -- the parts before and after.
@@ -139,4 +143,4 @@ getRecvMigRestrictions :: [String] -> [String] -> S.Set String
 getRecvMigRestrictions ctags ntags =
   let migs = migrations ctags
       closure tag = (:) tag . map fst $ filter ((==) tag . snd) migs
-  in S.fromList $ getMigRestrictionsList ctags ntags >>= closure
+  in S.fromList $ S.elems (getMigRestrictions ctags ntags) >>= closure
