@@ -780,7 +780,7 @@ HFLAGS = \
 	-fwarn-tabs \
 	-optP-include -optP$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	-hide-all-packages \
-	`cat $(HASKELL_PACKAGE_IDS_FILE)`
+	`cat $(HASKELL_PACKAGE_IDS_FILE)` \
 	$(GHC_BYVERSION_FLAGS)
 if DEVELOPER_MODE
 HFLAGS += -Werror
