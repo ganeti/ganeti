@@ -442,7 +442,8 @@ def EvacuateNode(opts, args):
   op = opcodes.OpNodeEvacuate(node_name=args[0], mode=mode,
                               remote_node=opts.dst_node,
                               iallocator=opts.iallocator,
-                              early_release=opts.early_release)
+                              early_release=opts.early_release,
+                              ignore_soft_errors=opts.ignore_soft_errors)
   result = SubmitOrSend(op, opts, cl=cl)
 
   # Keep track of submitted jobs
@@ -1134,8 +1135,9 @@ commands = {
     "Add a node to the cluster"),
   "evacuate": (
     EvacuateNode, ARGS_ONE_NODE,
-    [FORCE_OPT, IALLOCATOR_OPT, NEW_SECONDARY_OPT, EARLY_RELEASE_OPT,
-     PRIORITY_OPT, PRIMARY_ONLY_OPT, SECONDARY_ONLY_OPT] + SUBMIT_OPTS,
+    [FORCE_OPT, IALLOCATOR_OPT, IGNORE_SOFT_ERRORS_OPT, NEW_SECONDARY_OPT,
+     EARLY_RELEASE_OPT, PRIORITY_OPT, PRIMARY_ONLY_OPT, SECONDARY_ONLY_OPT]
+    + SUBMIT_OPTS,
     "[-f] {-I <iallocator> | -n <dst>} [-p | -s] [options...] <node>",
     "Relocate the primary and/or secondary instances from a node"),
   "failover": (
