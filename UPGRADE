@@ -59,6 +59,13 @@ handling of SSH keys will not affect your cluster.
 If you want to be prompted for each newly created SSH key, leave out
 the ``--no-ssh-key-check`` option in the command listed above.
 
+Note that after a downgrade from 2.13 to 2.12, the individual SSH keys
+will not get removed automatically. This can lead to reachability
+errors under very specific circumstances (Issue 1008). In case you plan
+on keeping 2.12 for a while and not upgrade to 2.13 again soon, we recommend
+to replace all SSH key pairs of non-master nodes' with the master node's SSH
+key pair.
+
 
 2.11
 ----
