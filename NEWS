@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.13.0
---------------
+Version 2.13.0 beta1
+--------------------
 
-*(unreleased)*
+*(Released Wed, 14 Jan 2015)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -26,6 +26,10 @@ Incompatible/important changes
   --ignore-hvversions to restore the old behavior of only warning.
 - Node tags starting with htools:migration: or htools:allowmigration: now have
   a special meaning to htools(1). See hbal(1) for details.
+- The LXC hypervisor code has been repaired and improved. Instances cannot be
+  migrated and cannot have more than one disk, but should otherwise work as with
+  other hypervisors. OS script changes should not be necessary. LXC version
+  1.0.0 or higher required.
 
 New features
 ~~~~~~~~~~~~
@@ -52,6 +56,14 @@ New dependencies
   if you use Mond.
 - The formerly optional regex-pcre is now an unconditional dependency because
   the new job filter rules have regular expressions as a core feature.
+
+Known issues
+~~~~~~~~~~~~
+
+The following issues are known to be present in the beta and will be fixed
+before rc1:
+
+- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start.
 
 
 Version 2.12.0
