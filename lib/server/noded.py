@@ -1104,7 +1104,10 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     name, idata, ial_params_dict = params
     ial_params = []
     for ial_param in ial_params_dict.items():
-      ial_params.append("--" + ial_param[0] + "=" + ial_param[1])
+      if ial_param[1] is not None:
+        ial_params.append("--" + ial_param[0] + "=" + ial_param[1])
+      else:
+        ial_params.append("--" + ial_param[0])
     iar = backend.IAllocatorRunner()
     return iar.Run(name, idata, ial_params)
 
