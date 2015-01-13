@@ -94,6 +94,7 @@ EVACUATE
 
 | **evacuate** [-f] [\--early-release] [\--submit] [\--print-job-id]
 | [{-I|\--iallocator} *NAME* \| {-n|\--new-secondary} *destination\_node*]
+| [--ignore-soft-errors]
 | [{-p|\--primary-only} \| {-s|\--secondary-only} ]
 |  {*node*}
 
@@ -137,6 +138,8 @@ each affected instance individually:
 Note that the iallocator currently only considers disk information of
 the default disk template, even if the instance's disk templates differ
 from that.
+
+The ``--ignore-soft-errors`` option is passed through to the allocator.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
