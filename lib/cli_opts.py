@@ -120,6 +120,7 @@ __all__ = [
   "IGNORE_OFFLINE_OPT",
   "IGNORE_REMOVE_FAILURES_OPT",
   "IGNORE_SECONDARIES_OPT",
+  "IGNORE_SOFT_ERRORS_OPT",
   "IGNORE_SIZE_OPT",
   "INCLUDEDEFAULTS_OPT",
   "INSTALL_IMAGE_OPT",
@@ -583,6 +584,12 @@ IGNORE_OFFLINE_OPT = cli_option("--ignore-offline", dest="ignore_offline",
                                   action="store_true", default=False,
                                   help=("Ignore offline nodes and do as much"
                                         " as possible"))
+
+IGNORE_SOFT_ERRORS_OPT = cli_option("--ignore-soft-errors",
+                                    dest="ignore_soft_errors",
+                                    action="store_true", default=False,
+                                    help=("Tell htools to ignore any soft"
+                                          " errors like N+1 violations"))
 
 TAG_ADD_OPT = cli_option("--tags", dest="tags",
                          default=None, help="Comma-separated list of instance"
