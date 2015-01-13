@@ -2,6 +2,33 @@ News
 ====
 
 
+Version 2.12.1
+--------------
+
+*(Released Wed, 14 Jan 2015)*
+
+- Fix users under which the wconfd and metad daemons run (issue #976)
+- Clean up stale livelock files (issue #865)
+- Fix setting up the metadata daemon's network interface for Xen
+- Make watcher identify itself on disk activation
+- Add "ignore-ipolicy" option to gnt-instance grow-disk
+- Check disk size ipolicy during "gnt-instance grow-disk" (issue #995)
+
+Inherited from the 2.11 branch:
+
+- Fix counting votes when doing master failover (issue #962)
+- Fix broken haskell dependencies (issues #758 and #912)
+- Check if IPv6 is used directly when running SSH (issue #892)
+
+Inherited from the 2.10 branch:
+
+- Fix typo in gnt_cluster output (issue #1015)
+- Use the Python path detected at configure time in the top-level Python
+  scripts.
+- Fix check for sphinx-build from python2-sphinx
+- Properly check if an instance exists in 'gnt-instance console'
+
+
 Version 2.12.0
 --------------
 
