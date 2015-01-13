@@ -426,7 +426,8 @@ class LUTestAllocator(NoHooksLU):
                                         target_groups=self.op.target_groups)
     elif self.op.mode == constants.IALLOCATOR_MODE_NODE_EVAC:
       req = iallocator.IAReqNodeEvac(instances=self.op.instances,
-                                     evac_mode=self.op.evac_mode)
+                                     evac_mode=self.op.evac_mode,
+                                     ignore_soft_errors=False)
     elif self.op.mode == constants.IALLOCATOR_MODE_MULTI_ALLOC:
       disk_template = self.op.disk_template
       insts = [iallocator.IAReqInstanceAlloc(name="%s%s" % (self.op.name, idx),

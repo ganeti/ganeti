@@ -1122,8 +1122,9 @@ class LUNodeEvacuate(NoHooksLU):
 
     elif self.op.iallocator is not None:
       # TODO: Implement relocation to other group
-      req = iallocator.IAReqNodeEvac(evac_mode=self.op.mode,
-                                     instances=list(self.instance_names))
+      req = iallocator.IAReqNodeEvac(
+          evac_mode=self.op.mode, instances=list(self.instance_names),
+          ignore_soft_errors=self.op.ignore_soft_errors)
       ial = iallocator.IAllocator(self.cfg, self.rpc, req)
 
       ial.Run(self.op.iallocator)

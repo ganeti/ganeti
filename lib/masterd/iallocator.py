@@ -365,6 +365,7 @@ class IAReqNodeEvac(IARequestBase):
   REQ_PARAMS = [
     ("instances", _STRING_LIST),
     ("evac_mode", ht.TEvacMode),
+    ("ignore_soft_errors", ht.TBool),
     ]
   REQ_RESULT = _NEVAC_RESULT
 
@@ -376,6 +377,16 @@ class IAReqNodeEvac(IARequestBase):
       "instances": self.instances,
       "evac_mode": self.evac_mode,
       }
+
+  def GetExtraParams(self):
+    """Get extra iallocator command line options for
+    node-evacuate requests.
+
+    """
+    if self.ignore_soft_errors:
+      return {"ignore-soft-errors": None}
+    else:
+      return {}
 
 
 class IAReqGroupChange(IARequestBase):
