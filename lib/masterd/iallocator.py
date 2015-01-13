@@ -141,6 +141,12 @@ class IARequestBase(outils.ValidatedSlots):
     """
     raise NotImplementedError
 
+  def GetExtraParams(self): # pylint: disable=R0201
+    """Gets extra parameters to the IAllocator call.
+
+    """
+    return {}
+
   def ValidateResult(self, ia, result):
     """Validates the result of an request.
 
@@ -802,6 +808,9 @@ class IAllocator(object):
       call_fn = self.rpc.call_iallocator_runner
 
     ial_params = self.cfg.GetDefaultIAllocatorParameters()
+
+    for ial_param in self.req.GetExtraParams().items():
+      ial_params[ial_param[0]] = ial_param[1]
 
     result = call_fn(self.cfg.GetMasterNode(), name, self.in_text, ial_params)
     result.Raise("Failure while running the iallocator script")
