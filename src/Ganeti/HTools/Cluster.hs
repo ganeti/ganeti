@@ -560,11 +560,6 @@ applyMoveEx force nl inst (FailoverAndReplace new_sdx) =
                 new_inst, old_sdx, new_sdx)
   in new_nl
 
--- | Applies an instance move to a given node list and instance.
-applyMove :: Node.List -> Instance.Instance
-          -> IMove -> OpResult (Node.List, Instance.Instance, Ndx, Ndx)
-applyMove = applyMoveEx False
-
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: AlgorithmOptions
                  -> Node.List -> Instance.Instance -> Ndx
@@ -1128,11 +1123,13 @@ nodeEvacInstance opts nl il mode inst@(Instance.Instance
                    failOnSecondaryChange mode dt >>
                    evacOneNodeOnly opts nl il inst gdx avail_nodes
 
-nodeEvacInstance _ nl il ChangePrimary
+nodeEvacInstance opts nl il ChangePrimary
                  inst@(Instance.Instance {Instance.diskTemplate = DTDrbd8})
                  _ _ =
   do
-    (nl', inst', _, _) <- opToResult $ applyMove nl inst Failover
+    (nl', inst', _, _) <- opToResult
+                          $ applyMoveEx (algIgnoreSoftErrors opts) nl inst
+                            Failover
     let idx = Instance.idx inst
         il' = Container.add idx inst' il
         ops = iMoveToJob nl' il' idx Failover
