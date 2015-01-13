@@ -435,6 +435,7 @@ $(genOpCode "OpCode"
      , pRemoteNodeUuid
      , pIallocator
      , pEvacMode
+     , pIgnoreSoftErrors
      ],
      "node_name")
   , ("OpInstanceCreate",

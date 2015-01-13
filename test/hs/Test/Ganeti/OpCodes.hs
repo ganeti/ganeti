@@ -297,7 +297,7 @@ instance Arbitrary OpCodes.OpCode where
       "OP_NODE_EVACUATE" ->
         OpCodes.OpNodeEvacuate <$> arbitrary <*> genNodeNameNE <*>
           return Nothing <*> genMaybe genNodeNameNE <*> return Nothing <*>
-          genMaybe genNameNE <*> arbitrary
+          genMaybe genNameNE <*> arbitrary <*> arbitrary
       "OP_INSTANCE_CREATE" ->
         OpCodes.OpInstanceCreate
           <$> genFQDN                         -- instance_name
