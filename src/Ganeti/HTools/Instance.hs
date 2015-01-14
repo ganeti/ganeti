@@ -103,6 +103,8 @@ data Instance = Instance
   , spindleUse   :: Int       -- ^ The numbers of used spindles
   , allTags      :: [String]  -- ^ List of all instance tags
   , exclTags     :: [String]  -- ^ List of instance exclusion tags
+  , locationScore :: Int      -- ^ The number of common-failures between
+                              -- primary and secondary node of the instance
   , arPolicy     :: T.AutoRepairPolicy -- ^ Instance's auto-repair policy
   , nics         :: [Nic]     -- ^ NICs of the instance
   , forthcoming  :: Bool      -- ^ Is the instance is forthcoming?
@@ -207,6 +209,7 @@ create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
            , spindleUse = su
            , allTags = tags_init
            , exclTags = []
+           , locationScore = 0
            , arPolicy = T.ArNotEnabled
            , nics = nics_init
            , forthcoming = forthcoming_init

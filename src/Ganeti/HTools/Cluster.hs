@@ -62,6 +62,7 @@ module Ganeti.HTools.Cluster
   , printNodes
   , printInsts
   -- * Balacing functions
+  , setInstanceLocationScore
   , doNextBalance
   , tryBalance
   , compCV
@@ -95,6 +96,7 @@ import Data.List
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
 import Data.Ord (comparing)
 import Text.Printf (printf)
+import qualified Data.Set as Set
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -465,6 +467,17 @@ compCV = compCVNodes . Container.elems
 getOnline :: Node.List -> [Node.Node]
 getOnline = filter (not . Node.offline) . Container.elems
 
+-- | Sets the location score of an instance, given its primary
+-- and secondary node.
+setInstanceLocationScore :: Instance.Instance -- ^ the original instance
+                         -> Node.Node -- ^ the primary node of the instance
+                         -> Node.Node -- ^ the secondary node of the instance
+                         -> Instance.Instance -- ^ the instance with the
+                                              -- location score updated
+setInstanceLocationScore t p s =
+  t { Instance.locationScore =
+         Set.size $ Node.locationTags p `Set.intersection` Node.locationTags s }
+
 -- * Balancing functions
 
 -- | Compute best table. Note that the ordering of the arguments is important.
@@ -508,17 +521,18 @@ applyMoveEx force nl inst (ReplacePrimary new_pdx) =
       tgt_n = Container.find new_pdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
+      new_inst = Instance.setPri (setInstanceLocationScore inst tgt_n int_s)
+                 new_pdx
       force_p = Node.offline old_p || force
       new_nl = do -- OpResult
                   -- check that the current secondary can host the instance
                   -- during the migration
         Node.checkMigration old_p old_s
         Node.checkMigration old_s tgt_n
-        tmp_s <- Node.addPriEx force_p int_s inst
-        let tmp_s' = Node.removePri tmp_s inst
-        new_p <- Node.addPriEx force_p tgt_n inst
-        new_s <- Node.addSecEx force_p tmp_s' inst new_pdx
-        let new_inst = Instance.setPri inst new_pdx
+        tmp_s <- Node.addPriEx force_p int_s new_inst
+        let tmp_s' = Node.removePri tmp_s new_inst
+        new_p <- Node.addPriEx force_p tgt_n new_inst
+        new_s <- Node.addSecEx force_p tmp_s' new_inst new_pdx
         return (Container.add new_pdx new_p $
                 Container.addTwo old_pdx int_p old_sdx new_s nl,
                 new_inst, new_pdx, old_sdx)
@@ -530,13 +544,18 @@ applyMoveEx force nl inst (ReplaceSecondary new_sdx) =
       old_sdx = Instance.sNode inst
       old_s = Container.find old_sdx nl
       tgt_n = Container.find new_sdx nl
+      pnode = Container.find old_pdx nl
+      pnode' = Node.removePri pnode inst
       int_s = Node.removeSec old_s inst
       force_s = Node.offline old_s || force
-      new_inst = Instance.setSec inst new_sdx
-      new_nl = Node.addSecEx force_s tgt_n inst old_pdx >>=
-               \new_s -> return (Container.addTwo new_sdx
-                                 new_s old_sdx int_s nl,
-                                 new_inst, old_pdx, new_sdx)
+      new_inst = Instance.setSec (setInstanceLocationScore inst pnode tgt_n)
+                 new_sdx
+      new_nl = do
+        new_s <- Node.addSecEx force_s tgt_n new_inst old_pdx
+        pnode'' <- Node.addPriEx True pnode' new_inst
+        return (Container.add old_pdx pnode'' $
+                Container.addTwo new_sdx new_s old_sdx int_s nl,
+                new_inst, old_pdx, new_sdx)
   in new_nl
 
 -- Replace the secondary and failover (r:np, f)
@@ -545,12 +564,13 @@ applyMoveEx force nl inst (ReplaceAndFailover new_pdx) =
       tgt_n = Container.find new_pdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
+      new_inst = Instance.setBoth (setInstanceLocationScore inst int_s tgt_n)
+                 new_pdx old_pdx
       force_s = Node.offline old_s || force
       new_nl = do -- OpResult
         Node.checkMigration old_p tgt_n
-        new_p <- Node.addPriEx force tgt_n inst
-        new_s <- Node.addSecEx force_s int_p inst new_pdx
-        let new_inst = Instance.setBoth inst new_pdx old_pdx
+        new_p <- Node.addPriEx force tgt_n new_inst
+        new_s <- Node.addSecEx force_s int_p new_inst new_pdx
         return (Container.add new_pdx new_p $
                 Container.addTwo old_pdx new_s old_sdx int_s nl,
                 new_inst, new_pdx, old_pdx)
@@ -563,11 +583,12 @@ applyMoveEx force nl inst (FailoverAndReplace new_sdx) =
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
       force_p = Node.offline old_p || force
+      new_inst = Instance.setBoth (setInstanceLocationScore inst int_s tgt_n)
+                 old_sdx new_sdx
       new_nl = do -- OpResult
         Node.checkMigration old_p old_s
-        new_p <- Node.addPriEx force_p int_s inst
-        new_s <- Node.addSecEx force_p tgt_n inst old_sdx
-        let new_inst = Instance.setBoth inst old_sdx new_sdx
+        new_p <- Node.addPriEx force_p int_s new_inst
+        new_s <- Node.addSecEx force_p tgt_n new_inst old_sdx
         return (Container.add new_sdx new_s $
                 Container.addTwo old_sdx new_p old_pdx int_p nl,
                 new_inst, old_sdx, new_sdx)
@@ -600,10 +621,11 @@ allocateOnPair opts stats nl inst new_pdx new_sdx =
   in do
     Instance.instMatchesPolicy inst (Node.iPolicy tgt_p)
       (Node.exclStorage tgt_p)
-    new_p <- Node.addPriEx force tgt_p inst
-    new_s <- Node.addSec tgt_s inst new_pdx
-    let new_inst = Instance.setBoth inst new_pdx new_sdx
-        new_nl = Container.addTwo new_pdx new_p new_sdx new_s nl
+    let new_inst = Instance.setBoth (setInstanceLocationScore inst tgt_p tgt_s)
+                   new_pdx new_sdx
+    new_p <- Node.addPriEx force tgt_p new_inst
+    new_s <- Node.addSec tgt_s new_inst new_pdx
+    let new_nl = Container.addTwo new_pdx new_p new_sdx new_s nl
         new_stats = updateClusterStatisticsTwice stats
                       (tgt_p, new_p) (tgt_s, new_s)
     return (new_nl, new_inst, [new_p, new_s], compCVfromStats new_stats)

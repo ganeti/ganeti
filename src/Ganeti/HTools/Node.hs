@@ -208,6 +208,7 @@ data Node = Node
   , rmigTags :: Set.Set String -- ^ migration tags able to receive
   , locationTags :: Set.Set String -- ^ common-failure domains the node belongs
                                    -- to
+  , locationScore :: Int
   } deriving (Show, Eq)
 {- A note on how we handle spindles
 
@@ -375,6 +376,7 @@ create name_init mem_t_init mem_n_init mem_f_init
        , migTags = Set.empty
        , rmigTags = Set.empty
        , locationTags = Set.empty
+       , locationScore = 0
        }
 
 -- | Conversion formula from mDsk\/tDsk to loDsk.
@@ -548,6 +550,7 @@ setPri t inst
           , pCpu = fromIntegral new_count / tCpu t
           , utilLoad = utilLoad t `T.addUtil` Instance.util inst
           , instSpindles = calcSpindleUse True t inst
+          , locationScore = locationScore t + Instance.locationScore inst
           }
 
   -- Forthcoming instance, update forthcoming fields only.
@@ -743,6 +746,8 @@ removePri t inst =
                    , failN1 = new_failn1, pMem = new_mp, pDsk = new_dp
                    , uCpu = new_ucpu, pCpu = new_rcpu, utilLoad = new_load
                    , instSpindles = new_inst_sp, fSpindles = new_free_sp
+                   , locationScore = locationScore t
+                                     - Instance.locationScore inst
                    }
 
 -- | Removes a secondary instance.
@@ -921,6 +926,8 @@ addPriEx force t inst =
                   , utilLoad = new_load
                   , instSpindles = new_inst_sp
                   , fSpindles = new_free_sp
+                  , locationScore = locationScore t
+                                    + Instance.locationScore inst
                   }
 
 -- | Adds a secondary instance (basic version).

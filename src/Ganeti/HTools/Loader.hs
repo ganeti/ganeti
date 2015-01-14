@@ -147,6 +147,14 @@ setMaster node_names node_idx master = do
   let mnode = Container.find kmaster node_idx
   return $ Container.add kmaster (Node.setMaster mnode True) node_idx
 
+-- | Given the nodes with the location tags already set correctly, compute
+-- the location score for an instance.
+setLocationScore :: Node.List -> Instance.Instance -> Instance.Instance
+setLocationScore nl inst =
+  let pnode = Container.find (Instance.pNode inst) nl
+      snode = Container.find (Instance.sNode inst) nl
+  in Cluster.setInstanceLocationScore inst pnode snode
+
 -- | For each instance, add its index to its primary and secondary nodes.
 fixNodes :: Node.List
          -> Instance.Instance
@@ -308,14 +316,15 @@ mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
                            updateExclTags allextags .
                            updateMovable selinst_names exinst_names) il3
       nl2 = Container.map (addLocationTags ctags) nl
-      nl3 = foldl' fixNodes nl2 (Container.elems il4)
+      il5 = Container.map (setLocationScore nl2) il4
+      nl3 = foldl' fixNodes nl2 (Container.elems il5)
       nl4 = Container.map (setNodePolicy gl .
                            computeAlias common_suffix .
                            (`Node.buildPeers` il4)) nl3
-      il5 = Container.map (disableSplitMoves nl3) il4
+      il6 = Container.map (disableSplitMoves nl3) il5
       nl5 = Container.map (addMigrationTags ctags) nl4
   in if' (null lkp_unknown)
-         (Ok cdata { cdNodes = nl5, cdInstances = il5 })
+         (Ok cdata { cdNodes = nl5, cdInstances = il6 })
          (Bad $ "Unknown instance(s): " ++ show(map lrContent lkp_unknown))
 
 -- | In a cluster description, clear dynamic utilisation information.
