@@ -45,6 +45,7 @@ module Ganeti.HTools.Tags
   , autoRepairTagSuspended
   , getMigRestrictions
   , getRecvMigRestrictions
+  , getLocations
   ) where
 
 import Control.Monad (guard, (>=>))
@@ -74,6 +75,10 @@ migrationPrefix = "htools:migration:"
 -- | Prefix of tags allowing migration
 allowMigrationPrefix :: String
 allowMigrationPrefix = "htools:allowmigration:"
+
+-- | The prefix for location tags.
+locationPrefix :: String
+locationPrefix = "htools:nlocation:"
 
 -- | The tag to be added to nodes that were shutdown by hsqueeze.
 standbyAuto :: String
@@ -144,3 +149,10 @@ getRecvMigRestrictions ctags ntags =
   let migs = migrations ctags
       closure tag = (:) tag . map fst $ filter ((==) tag . snd) migs
   in S.fromList $ S.elems (getMigRestrictions ctags ntags) >>= closure
+
+-- * Location tags
+
+-- | Given the cluster tags, extract the node location tags
+-- from the node tags.
+getLocations :: [String] -> [String] -> S.Set String
+getLocations = getTags locationPrefix
