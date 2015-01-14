@@ -365,6 +365,7 @@ detailedCVInfoExt = [ ((0.5,  "free_mem_cv"), (getStdDevStatistics, True))
                     , ( (0.5,  "vcpu_ratio_cv_forth")
                       , (getStdDevStatistics, True))
                     , ((0.5,  "spindles_cv_forth"), (getStdDevStatistics, True))
+                    , ((1,  "location_score"), (getSumStatistics, True))
                     ]
 
 -- | The names and weights of the individual elements in the CV list.
@@ -407,10 +408,12 @@ compDetailedCVNode node =
       pri_tags = fromIntegral $ Node.conflictingPrimaries node
       spindles = Node.instSpindles node / Node.hiSpindles node
       spindlesF = Node.instSpindlesForth node / Node.hiSpindles node
+      location_score = fromIntegral $ Node.locationScore node
   in [ mem, dsk, n1, res, ioff, ipri, cpu
      , c_load, m_load, d_load, n_load
      , pri_tags, spindles
      , memF, dskF, cpuF, spindlesF
+     , location_score
      ]
 
 -- | Compute the statistics of a cluster.
