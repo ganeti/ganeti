@@ -269,6 +269,14 @@ addMigrationTags ctags node =
       rmigTags = Tags.getRecvMigRestrictions ctags ntags
   in Node.setRecvMigrationTags (Node.setMigrationTags node migTags) rmigTags
 
+-- | Set the location tags on a node given the cluster tags;
+-- this assumes that the node tags are already set on that node.
+addLocationTags :: [String] -- ^ cluster tags
+                -> Node.Node -> Node.Node
+addLocationTags ctags node =
+  let ntags = Node.nTags node
+  in Node.setLocationTags node $ Tags.getLocations ctags ntags
+
 -- | Initializer function that loads the data from a node and instance
 -- list and massages it into the correct format.
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
@@ -299,14 +307,15 @@ mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
       il4 = Container.map (computeAlias common_suffix .
                            updateExclTags allextags .
                            updateMovable selinst_names exinst_names) il3
-      nl2 = foldl' fixNodes nl (Container.elems il4)
-      nl3 = Container.map (setNodePolicy gl .
+      nl2 = Container.map (addLocationTags ctags) nl
+      nl3 = foldl' fixNodes nl2 (Container.elems il4)
+      nl4 = Container.map (setNodePolicy gl .
                            computeAlias common_suffix .
-                           (`Node.buildPeers` il4)) nl2
+                           (`Node.buildPeers` il4)) nl3
       il5 = Container.map (disableSplitMoves nl3) il4
-      nl4 = Container.map (addMigrationTags ctags) nl3
+      nl5 = Container.map (addMigrationTags ctags) nl4
   in if' (null lkp_unknown)
-         (Ok cdata { cdNodes = nl4, cdInstances = il5 })
+         (Ok cdata { cdNodes = nl5, cdInstances = il5 })
          (Bad $ "Unknown instance(s): " ++ show(map lrContent lkp_unknown))
 
 -- | In a cluster description, clear dynamic utilisation information.

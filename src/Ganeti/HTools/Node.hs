@@ -58,6 +58,7 @@ module Ganeti.HTools.Node
   , setCpuSpeed
   , setMigrationTags
   , setRecvMigrationTags
+  , setLocationTags
   -- * Tag maps
   , addTags
   , delTags
@@ -205,6 +206,8 @@ data Node = Node
   , exclStorage :: Bool   -- ^ Effective value of exclusive_storage
   , migTags  :: Set.Set String -- ^ migration-relevant tags
   , rmigTags :: Set.Set String -- ^ migration tags able to receive
+  , locationTags :: Set.Set String -- ^ common-failure domains the node belongs
+                                   -- to
   } deriving (Show, Eq)
 {- A note on how we handle spindles
 
@@ -371,6 +374,7 @@ create name_init mem_t_init mem_n_init mem_f_init
        , exclStorage = excl_stor
        , migTags = Set.empty
        , rmigTags = Set.empty
+       , locationTags = Set.empty
        }
 
 -- | Conversion formula from mDsk\/tDsk to loDsk.
@@ -416,6 +420,10 @@ setMigrationTags t val = t { migTags = val }
 -- | Set the migration tags a node is able to receive
 setRecvMigrationTags :: Node -> Set.Set String -> Node
 setRecvMigrationTags t val = t { rmigTags = val }
+
+-- | Set the location tags
+setLocationTags :: Node -> Set.Set String -> Node
+setLocationTags t val = t { locationTags = val }
 
 -- | Sets the unnaccounted memory.
 setXmem :: Node -> Int -> Node
