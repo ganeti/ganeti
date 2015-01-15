@@ -1,0 +1,13 @@
+group-01|fake-uuid-01|preferred||
+
+node-01|16384|0|15360|409600|306600|16|N|fake-uuid-01|1|power:a
+node-02|16384|0|15360|409600|306600|16|N|fake-uuid-01|1|power:a
+node-11|16384|0|15360|409600|306600|16|N|fake-uuid-01|1|power:b
+node-12|16384|0|15360|409600|306600|16|N|fake-uuid-01|1|power:b
+
+inst01|1024|51200|1|running|Y|node-01|node-02|drbd||1
+inst02|1024|51200|1|running|Y|node-02|node-01|drbd||1
+inst11|1024|51200|1|running|Y|node-11|node-12|drbd||1
+inst12|1024|51200|1|running|Y|node-12|node-11|drbd||1
+
+htools:nlocation:power

@@ -26,3 +26,6 @@
 >>>= 0
 
 
+./test/hs/hbal -t $TESTDATA_DIR/hbal-location-1.data
+>>>/Solution length=[1-9]/
+>>>= 0
