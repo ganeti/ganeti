@@ -97,16 +97,13 @@ def GetInstanceInfo(instance):
         else:
           nodes.append(nodestr)
 
-  disk_template = info["Disk template"]
-  if not disk_template:
-    raise qa_error.Error("Can't get instance disk template")
-  storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
-
   re_drbdnode = re.compile(r"^([^\s,]+),\s+minor=([0-9]+)$")
   vols = []
   drbd_min = {}
+  dtypes = []
   for (count, diskinfo) in enumerate(info["Disks"]):
     (dtype, _) = diskinfo["disk/%s" % count].split(",", 1)
+    dtypes.append(dtype)
     if dtype == constants.DT_DRBD8:
       for child in diskinfo["child devices"]:
         vols.append(child["logical_id"])
@@ -120,6 +117,10 @@ def GetInstanceInfo(instance):
         minorlist.append(minor)
     elif dtype == constants.DT_PLAIN:
       vols.append(diskinfo["logical_id"])
+
+  # TODO remove and modify calling sites
+  disk_template = utils.GetDiskTemplateString(dtypes)
+  storage_type = constants.MAP_DISK_TEMPLATE_STORAGE_TYPE[disk_template]
 
   assert nodes
   assert len(nodes) < 2 or vols
