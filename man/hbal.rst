@@ -134,6 +134,8 @@ following components:
 - standard deviation of the dynamic load on the nodes, for cpus,
   memory, disk and network
 - standard deviation of the CPU load provided by MonD
+- the count of instances with primary and secondary in the same failure
+  domain
 
 The free memory and free disk values help ensure that all nodes are
 somewhat balanced in their resource usage. The reserved memory helps
@@ -142,7 +144,8 @@ instances, and that no node keeps too much memory reserved for
 N+1. And finally, the N+1 percentage helps guide the algorithm towards
 eliminating N+1 failures, if possible.
 
-Except for the N+1 failures and offline instances counts, we use the
+Except for the N+1 failures, offline instances counts, and failure
+domain violation counts, we use the
 standard deviation since when used with values within a fixed range
 (we use percents expressed as values between zero and one) it gives
 consistent results across all metrics (there are some small issues
@@ -241,6 +244,21 @@ that have been upgraded with a migration tag suffices. In more complicated
 situations, it is always possible to use a different migration tag for
 each hypervisor used and explictly state the allowed migration directions
 by means of *htools:allowmigration:* tags.
+
+LOCATION TAGS
+~~~~~~~~~~~~~
+
+Within a node group, certain nodes might be more likely to fail simultaneously
+due to a common cause of error (e.g., if they share the same power supply unit).
+Ganeti can be made aware of thos common causes of failure by means of tags.
+
+cluster tags *htools:nlocation:a*, *htools:nlocation:b*, etc
+  This make make node tags of the form *a:\**, *b:\**, etc be considered
+  to have a common cause of failure.
+
+Instances with primary and secondary node having a common cause of failure are
+considered badly placed. While such placements are always allowed, they count
+heavily towards the cluster score.
 
 OPTIONS
 -------
