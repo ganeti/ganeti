@@ -440,7 +440,7 @@ def ExtStorageFromDisk(name, base_dir=None):
       _CheckExtStorageFile(es_dir, filename)
     except errors.BlockDeviceError, err:
       if required:
-        return False, err
+        return False, str(err)
 
   parameters = []
   if constants.ES_PARAMETERS_FILE in es_files:
