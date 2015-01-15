@@ -357,7 +357,7 @@ def _ExtStorageAction(action, unique_id, ext_params,
       lines = [utils.SafeEncode(val)
                for val in utils.TailFile(logfile, lines=20)]
     else:
-      lines = result.output[-20:]
+      lines = result.output.splitlines()[-20:]
 
     base.ThrowError("External storage's %s script failed (%s), last"
                     " lines of output:\n%s",
