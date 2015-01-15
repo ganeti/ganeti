@@ -54,13 +54,16 @@ The following components will be added cluster metric, weighed appropriately.
 
 The weights for these components might have to be tuned as experience with these
 setups grows, but as a starting point, both components will have a weight of
-0.5 each. In this way, any common-failure violations are less important than
-any hard constraints missed (instances on offline nodes, N+1 redundancy,
-exclusion tags) so that the hard constraints will be restored first when
-balancing a cluster. Nevertheless, with weight 0.5 the new common-failure
-components will still be significantly more important than all the balancedness
-components (cpu, disk, memory), as the latter are standard deviations of
-fractions.
+1.0 each. In this way, any common-failure violations are less important than
+any hard constraints missed (like instances on offline nodes) so that
+the hard constraints will be restored first when balancing a cluster.
+Nevertheless, with weight 1.0 the new common-failure components will
+still be significantly more important than all the balancedness components
+(cpu, disk, memory), as the latter are standard deviations of fractions.
+It will also dominate the disk load component which, which, when only taking
+static information into account, essentially amounts to counting disks. In
+this way, Ganeti will be willing to sacrifice equal numbers of disks on every
+node in order to fulfill location requirements.
 
 Appart from changing the balancedness metric, common-failure tags will
 not have any other effect. In particular, as opposed to exclusion tags,
