@@ -16,6 +16,9 @@ New features
   supports a --forthcoming option telling Ganeti to only reserve the resources
   but not create the actual instance. The instance can later be created with
   by passing the --commit option to the instance addition command.
+- Node tags starting with htools:nlocation: now have a special meaning to htools(1).
+  They control between which nodes migration is possible, e.g., during hypervisor
+  upgrades. See hbal(1) for details.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
