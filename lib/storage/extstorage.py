@@ -333,7 +333,7 @@ def _ExtStorageAction(action, unique_id, ext_params,
 
   # Explicitly check if the script is valid
   try:
-    _CheckExtStorageFile(inst_es.path, action)
+    _CheckExtStorageFile(inst_es.path, action) # pylint: disable=E1103
   except errors.BlockDeviceError:
     base.ThrowError("Action '%s' is not supported by provider '%s'" %
                     (action, driver))
@@ -343,6 +343,7 @@ def _ExtStorageAction(action, unique_id, ext_params,
   script = getattr(inst_es, script_name)
 
   # Run the external script
+  # pylint: disable=E1103
   result = utils.RunCmd([script], env=create_env,
                         cwd=inst_es.path, output=logfile,)
   if result.failed:
