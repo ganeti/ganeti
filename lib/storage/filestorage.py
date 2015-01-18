@@ -91,6 +91,7 @@ class FileDeviceHelper(object):
       _file_path_acceptance_fn = CheckFileStoragePathAcceptance
     _file_path_acceptance_fn(path)
 
+    self.file_path_acceptance_fn = _file_path_acceptance_fn
     self.path = path
 
   def Exists(self, assert_exists=None):
@@ -167,6 +168,19 @@ class FileDeviceHelper(object):
     except EnvironmentError, err:
       base.ThrowError("%s: can't grow: ", self.path, str(err))
 
+  def Move(self, new_path):
+    """Move file to a location inside the file storage dir.
+
+    """
+    # Check that the file exists
+    self.Exists(assert_exists=True)
+    self.file_path_acceptance_fn(new_path)
+    try:
+      os.rename(self.path, new_path)
+      self.path = new_path
+    except OSError, err:
+      base.ThrowError("%s: can't rename to %s: ", str(err), new_path)
+
 
 class FileStorage(base.BlockDev):
   """File device.
@@ -237,8 +251,7 @@ class FileStorage(base.BlockDev):
     """Renames the file.
 
     """
-    # TODO: implement rename for file-based storage
-    base.ThrowError("Rename is not supported for file-based storage")
+    return self.file.Move(new_id[1])
 
   def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Grow the file
