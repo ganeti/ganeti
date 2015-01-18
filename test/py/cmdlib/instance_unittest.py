@@ -38,6 +38,7 @@ import re
 import unittest
 import mock
 import operator
+import os
 
 from ganeti import backend
 from ganeti import compat
@@ -2753,6 +2754,46 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.assertTrue(self.rpc.call_hotplug_supported.called)
     self.assertTrue(self.rpc.call_hotplug_device.called)
     self.assertTrue(self.rpc.call_blockdev_shutdown.called)
+
+  def testDetachAttachFileBasedDisk(self):
+    """Detach and re-attach a disk from a file-based instance."""
+    # Create our disk and calculate the path where it is stored, its name, as
+    # well as the expected path where it will be moved.
+    mock_disk = self.cfg.CreateDisk(
+      name='mock_disk_1134', dev_type=constants.DT_FILE,
+      logical_id=('loop', '/tmp/instance/disk'))
+
+    # Create a file-based instance
+    file_disk = self.cfg.CreateDisk(
+      dev_type=constants.DT_FILE,
+      logical_id=('loop', '/tmp/instance/disk2'))
+    inst = self.cfg.AddNewInstance(name='instance',
+                                   disk_template=constants.DT_FILE,
+                                   disks=[file_disk, mock_disk],
+                                   )
+
+    # Detach the disk and assert that it has been moved to the upper directory
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_DETACH, -1,
+                                 {}]],
+                         )
+    self.ExecOpCode(op)
+    mock_disk = self.cfg.GetDiskInfo(mock_disk.uuid)
+    self.assertEqual('/tmp/disk', mock_disk.logical_id[1])
+
+    # Re-attach the disk and assert that it has been moved to the original
+    # directory
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_ATTACH, -1,
+                                 {
+                                   constants.IDISK_NAME: "mock_disk_1134"
+                                 }]],
+                         )
+    self.ExecOpCode(op)
+    mock_disk = self.cfg.GetDiskInfo(mock_disk.uuid)
+    self.assertIn('/tmp/instance', mock_disk.logical_id[1])
 
   def testAttachDetachDisk(self):
     """Check if the disks can be attached and detached in sequence.

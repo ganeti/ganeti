@@ -406,6 +406,12 @@ class CmdlibTestCase(testutils.GanetiTestCase):
   def AddCleanup(self, func, *args, **kwargs):
     self._cleanups.append((func, args, kwargs))
 
+  def assertIn(self, first, second, msg=None):
+    if first not in second:
+      if msg is None:
+        msg = "%r not found in %r" % (first, second)
+      self.fail(msg)
+
 
 # pylint: disable=C0103
 def withLockedLU(func):
