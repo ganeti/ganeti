@@ -1640,6 +1640,21 @@ class LUInstanceSetParams(LogicalUnit):
     name = params.get(constants.IDISK_NAME, None)
 
     disk = self.GenericGetDiskInfo(uuid, name)
+
+    # Rename disk before attaching (if disk is filebased)
+    if disk.dev_type in (constants.DTS_INSTANCE_DEPENDENT_PATH):
+      # Add disk size/mode, else GenerateDiskTemplate will not work.
+      params[constants.IDISK_SIZE] = disk.size
+      params[constants.IDISK_MODE] = str(disk.mode)
+      dummy_disk = self._GenerateDiskTemplateWrapper(idx, disk.dev_type, params)
+      new_logical_id = dummy_disk.logical_id
+      result = self.rpc.call_blockdev_rename(self.instance.primary_node,
+                                             [(disk, new_logical_id)])
+      result.Raise("Failed before attach")
+      self.cfg.SetDiskLogicalID(disk.uuid, new_logical_id)
+      disk.logical_id = new_logical_id
+
+    # Attach disk to instance
     self.cfg.AttachInstanceDisk(self.instance.uuid, disk.uuid, idx)
 
     # re-read the instance from the configuration
@@ -1735,6 +1750,23 @@ class LUInstanceSetParams(LogicalUnit):
 
     # Always shutdown the disk before detaching.
     ShutdownInstanceDisks(self, self.instance, [root])
+
+    # Rename detached disk.
+    #
+    # Transform logical_id from:
+    #   <file_storage_dir>/<instance_name>/<disk_name>
+    # to
+    #   <file_storage_dir>/<disk_name>
+    if root.dev_type in (constants.DT_FILE, constants.DT_SHARED_FILE):
+      file_driver = root.logical_id[0]
+      instance_path, disk_name = os.path.split(root.logical_id[1])
+      new_path = os.path.join(os.path.dirname(instance_path), disk_name)
+      new_logical_id = (file_driver, new_path)
+      result = self.rpc.call_blockdev_rename(self.instance.primary_node,
+                                             [(root, new_logical_id)])
+      result.Raise("Failed before detach")
+      # Update logical_id
+      self.cfg.SetDiskLogicalID(root.uuid, new_logical_id)
 
     # Remove disk from config
     self.cfg.DetachInstanceDisk(self.instance.uuid, root.uuid)
