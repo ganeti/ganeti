@@ -31,7 +31,7 @@
 
 import copy
 import logging
-
+import os
 
 from ganeti import compat
 from ganeti import constants
@@ -1566,12 +1566,7 @@ class LUInstanceSetParams(LogicalUnit):
       raise errors.OpPrereqError("Invalid file driver name '%s'" %
                                  self.op.file_driver, errors.ECODE_INVAL)
 
-  def _CreateNewDisk(self, idx, params, _):
-    """Creates a new disk.
-
-    """
-    # add a new disk
-    disk_type = params[constants.IDISK_TYPE]
+  def _GenerateDiskTemplateWrapper(self, idx, disk_type, params):
     file_path = CalculateFileStorageDir(
         disk_type, self.cfg, self.instance.name,
         file_storage_dir=self.op.file_storage_dir)
@@ -1579,13 +1574,20 @@ class LUInstanceSetParams(LogicalUnit):
     self._FillFileDriver()
 
     secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
-    disk = \
-      GenerateDiskTemplate(self, disk_type,
-                           self.instance.uuid, self.instance.primary_node,
-                           secondary_nodes, [params], file_path,
-                           self.op.file_driver, idx, self.Log,
-                           self.diskparams)[0]
+    return \
+      GenerateDiskTemplate(self, disk_type, self.instance.uuid,
+                           self.instance.primary_node, secondary_nodes,
+                           [params], file_path, self.op.file_driver, idx,
+                           self.Log, self.diskparams)[0]
 
+  def _CreateNewDisk(self, idx, params, _):
+    """Creates a new disk.
+
+    """
+    # add a new disk
+    disk_template = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
+    disk = self._GenerateDiskTemplateWrapper(idx, disk_template,
+                                             params)
     new_disks = CreateDisks(self, self.instance, disks=[disk])
     self.cfg.AddInstanceDisk(self.instance.uuid, disk, idx)
 
