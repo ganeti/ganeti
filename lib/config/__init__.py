@@ -2220,6 +2220,28 @@ class ConfigWriter(object):
     """
     self._UnlockedGetDiskInfo(disk_uuid).nodes = nodes
 
+  @ConfigSync()
+  def SetDiskLogicalID(self, disk_uuid, logical_id):
+    """Sets the logical_id of an existing disk
+
+    @param disk_uuid: disk UUID
+    @type disk_uuid: string
+    @param logical_id: the new logical_id for the disk
+    @type logical_id: tuple
+
+    """
+    disk = self._UnlockedGetDiskInfo(disk_uuid)
+    if disk is None:
+      raise errors.ConfigurationError("Unknown disk UUID '%s'" % disk_uuid)
+
+    if len(disk.logical_id) != len(logical_id):
+      raise errors.ProgrammerError("Logical ID format mismatch\n"
+                                   "Existing logical ID: %s\n"
+                                   "New logical ID: %s", disk.logical_id,
+                                   logical_id)
+
+    disk.logical_id = logical_id
+
   def _UnlockedGetInstanceNames(self, inst_uuids):
     return [self._UnlockedGetInstanceName(uuid) for uuid in inst_uuids]
 
