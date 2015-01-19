@@ -341,7 +341,8 @@ The options that can be passed to the program are as follows:
   option, the only migrations that hbal will do are migrations of
   instances off a drained node. This can be useful if during a reinstall
   of the base operating system migration is only possible from the old
-  OS to the new OS.
+  OS to the new OS. Note, however, that usually the use of migration
+  tags is the better choice.
 
 \--select-instances=*instances*
   This parameter marks the given instances (as a comma-separated list)
