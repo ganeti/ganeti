@@ -1,5 +1,5 @@
 name:                ganeti
-version:             2.14
+version:             2.15
 homepage:            http://www.ganeti.org
 license:             BSD2
 license-file:        COPYING

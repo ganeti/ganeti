@@ -1,6 +1,6 @@
 # Configure script for Ganeti
 m4_define([gnt_version_major], [2])
-m4_define([gnt_version_minor], [14])
+m4_define([gnt_version_minor], [15])
 m4_define([gnt_version_revision], [0])
 m4_define([gnt_version_suffix], [~alpha1])
 m4_define([gnt_version_full],

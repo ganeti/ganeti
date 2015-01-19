@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -59,11 +59,11 @@ from ganeti.utils import version
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 14
+TARGET_MINOR = 15
 #: Target major version for downgrade
 DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
-DOWNGRADE_MINOR = 13
+DOWNGRADE_MINOR = 14
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -183,8 +183,8 @@ class CfgUpgrade(object):
       self._Downgrade(config_major, config_minor, config_version,
                       config_revision)
 
-    # Upgrade from 2.{0..13} to 2.14
-    elif config_major == 2 and config_minor in range(0, 14):
+    # Upgrade from 2.{0..14} to 2.15
+    elif config_major == 2 and config_minor in range(0, 15):
       if config_revision != 0:
         logging.warning("Config revision is %s, not 0", config_revision)
       if not self.UpgradeAll():
@@ -682,77 +682,10 @@ class CfgUpgrade(object):
 
   # DOWNGRADE ------------------------------------------------------------
 
-  def _RecursiveRemoveNodes(self, disk):
-    if "nodes" in disk:
-      del disk["nodes"]
-    for disk in disk.get("children", []):
-      self._RecursiveRemoveNodes(disk)
-
-  @OrFail("Downgrading disk nodes")
-  def DowngradeDiskNodes(self):
-    if "disks" not in self.config_data:
-      raise Error("Can't find the 'disks' dictionary in the configuration.")
-    for disk in self.config_data["disks"].itervalues():
-      self._RecursiveRemoveNodes(disk)
-
-  @OrFail("Removing forthcoming instances")
-  def DowngradeForthcomingInstances(self):
-    if "instances" not in self.config_data:
-      raise Error("Can't find the 'instances' dictionary in the configuration.")
-    instances = self.config_data["instances"]
-    uuids = instances.keys()
-    for uuid in uuids:
-      if instances[uuid].get("forthcoming"):
-        del instances[uuid]
-
-  @OrFail("Removing forthcoming disks")
-  def DowngradeForthcomingDisks(self):
-    if "instances" not in self.config_data:
-      raise Error("Can't find the 'instances' dictionary in the configuration.")
-    instances = self.config_data["instances"]
-    if "disks" not in self.config_data:
-      raise Error("Can't find the 'disks' dictionary in the configuration.")
-    disks = self.config_data["disks"]
-    uuids = disks.keys()
-    for uuid in uuids:
-      if disks[uuid].get("forthcoming"):
-        del disks[uuid]
-        for inst in instances:
-          if "disk" in inst and uuid in inst["disks"]:
-            inst["disks"].remove(uuid)
-
-  @OrFail("Re-adding disk template")
-  def DowngradeDiskTemplate(self):
-    if "instances" not in self.config_data:
-      raise Error("Can't find the 'instances' dictionary in the configuration.")
-    instances = self.config_data["instances"]
-    if "disks" not in self.config_data:
-      raise Error("Can't find the 'disks' dictionary in the configuration.")
-    disks = self.config_data["disks"]
-    for inst in instances.values():
-      instance_disks = [disks.get(uuid) for uuid in inst["disks"]]
-      if any(d is None for d in instance_disks):
-        raise Error("Can't find all disks of instance %s in the configuration."
-                    % inst.name)
-      dev_types = set(d["dev_type"] for d in instance_disks)
-      if len(dev_types) > 1:
-        raise Error("Instance %s has mixed disk types: %s" %
-                    (inst.name, ', '.join(dev_types)))
-      elif len(dev_types) < 1:
-        inst["disk_template"] = constants.DT_DISKLESS
-      else:
-        inst["disk_template"] = dev_types.pop()
-
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
-    steps = [self.DowngradeForthcomingInstances,
-             self.DowngradeForthcomingDisks,
-             self.DowngradeDiskNodes,
-             self.DowngradeDiskTemplate]
-    for s in steps:
-      s()
-    return not self.errors
+    return True
 
   def _ComposePaths(self):
     # We need to keep filenames locally because they might be renamed between

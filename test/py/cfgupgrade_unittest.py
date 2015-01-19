@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2010, 2012, 2013 Google Inc.
+# Copyright (C) 2010, 2012, 2013, 2014, 2015 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -422,6 +422,9 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFullConfigFrom_2_13(self):
     self._TestUpgradeFromFile("cluster_config_2.13.json", False)
 
+  def testUpgradeFullConfigFrom_2_14(self):
+    self._TestUpgradeFromFile("cluster_config_2.14.json", False)
+
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
@@ -439,7 +442,7 @@ class TestCfgupgrade(unittest.TestCase):
   def testDowngradeFullConfig(self):
     """Test for upgrade + downgrade combination."""
     # This test can work only with the previous version of a configuration!
-    oldconfname = "cluster_config_2.13.json"
+    oldconfname = "cluster_config_2.14.json"
     self._TestUpgradeFromFile(oldconfname, False)
     _RunUpgrade(self.tmpdir, False, True, downgrade=True)
     oldconf = self._LoadTestDataConfig(oldconfname)
