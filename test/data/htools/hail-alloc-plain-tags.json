@@ -1,0 +1,271 @@
+{
+  "cluster_tags": [
+    "htools:iextags:service"
+  ],
+  "instances": {
+    "instance-1": {
+      "admin_state": "up",
+      "admin_state_source": "admin",
+      "disk_space_total": 256,
+      "disk_template": "drbd",
+      "disks": [
+        {
+          "mode": "rw",
+          "size": 128,
+          "spindles": 1
+        }
+      ],
+      "hypervisor": "xen-pvm",
+      "memory": 128,
+      "nics": [
+        {
+          "bridge": "xen-br0",
+          "ip": null,
+          "link": "xen-br0",
+          "mac": "aa:00:00:15:92:6f",
+          "mode": "bridged"
+        }
+      ],
+      "nodes": [
+        "node1",
+        "node2"
+      ],
+      "os": "debian-image",
+      "spindle_use": 1,
+      "tags": [
+        "service:foo"
+      ],
+      "vcpus": 1
+    },
+    "instance-2": {
+      "admin_state": "up",
+      "admin_state_source": "admin",
+      "disk_space_total": 256,
+      "disk_template": "drbd",
+      "disks": [
+        {
+          "mode": "rw",
+          "size": 128,
+          "spindles": 1
+        }
+      ],
+      "hypervisor": "xen-pvm",
+      "memory": 128,
+      "nics": [
+        {
+          "bridge": "xen-br0",
+          "ip": null,
+          "link": "xen-br0",
+          "mac": "aa:00:00:15:92:6f",
+          "mode": "bridged"
+        }
+      ],
+      "nodes": [
+        "node2",
+        "node3"
+      ],
+      "os": "debian-image",
+      "spindle_use": 1,
+      "tags": [
+        "service:foo"
+      ],
+      "vcpus": 1
+    },
+    "instance-3": {
+      "admin_state": "up",
+      "admin_state_source": "admin",
+      "disk_space_total": 256,
+      "disk_template": "drbd",
+      "disks": [
+        {
+          "mode": "rw",
+          "size": 128,
+          "spindles": 1
+        }
+      ],
+      "hypervisor": "xen-pvm",
+      "memory": 128,
+      "nics": [
+        {
+          "bridge": "xen-br0",
+          "ip": null,
+          "link": "xen-br0",
+          "mac": "aa:00:00:15:92:6f",
+          "mode": "bridged"
+        }
+      ],
+      "nodes": [
+        "node3",
+        "node1"
+      ],
+      "os": "debian-image",
+      "spindle_use": 1,
+      "tags": [
+        "service:foo"
+      ],
+      "vcpus": 1
+    }
+  },
+  "nodegroups": {
+    "uuid-group-1": {
+      "alloc_policy": "preferred",
+      "ipolicy": {
+        "disk-templates": [
+          "sharedfile",
+          "diskless",
+          "plain",
+          "blockdev",
+          "drbd",
+          "file",
+          "rbd"
+        ],
+        "minmax": [
+          {
+            "max": {
+              "cpu-count": 8,
+              "disk-count": 16,
+              "disk-size": 1048576,
+              "memory-size": 32768,
+              "nic-count": 8,
+              "spindle-use": 8
+            },
+            "min": {
+              "cpu-count": 1,
+              "disk-count": 1,
+              "disk-size": 128,
+              "memory-size": 128,
+              "nic-count": 1,
+              "spindle-use": 1
+            }
+          }
+        ],
+        "spindle-ratio": 32.0,
+        "std": {
+          "cpu-count": 1,
+          "disk-count": 1,
+          "disk-size": 1024,
+          "memory-size": 128,
+          "nic-count": 1,
+          "spindle-use": 1
+        },
+        "vcpu-ratio": 4.0
+      },
+      "name": "default",
+      "networks": [],
+      "tags": []
+    }
+  },
+  "nodes": {
+    "node1": {
+      "drained": false,
+      "free_disk": 1377024,
+      "free_memory": 32635,
+      "free_spindles": 12,
+      "group": "uuid-group-1",
+      "i_pri_memory": 0,
+      "i_pri_up_memory": 0,
+      "master_candidate": true,
+      "master_capable": true,
+      "ndparams": {
+        "exclusive_storage": false,
+        "oob_program": null,
+        "spindle_count": 1
+      },
+      "offline": false,
+      "primary_ip": "192.168.1.1",
+      "reserved_cpus": 0,
+      "reserved_memory": 0,
+      "secondary_ip": "192.168.2.1",
+      "tags": [],
+      "total_cpus": 4,
+      "total_disk": 1377280,
+      "total_memory": 32763,
+      "total_spindles": 12,
+      "vm_capable": true
+    },
+    "node2": {
+      "drained": false,
+      "free_disk": 1377024,
+      "free_memory": 32635,
+      "free_spindles": 12,
+      "group": "uuid-group-1",
+      "i_pri_memory": 0,
+      "i_pri_up_memory": 0,
+      "master_candidate": true,
+      "master_capable": true,
+      "ndparams": {
+        "exclusive_storage": false,
+        "oob_program": null,
+        "spindle_count": 1
+      },
+      "offline": false,
+      "primary_ip": "192.168.1.2",
+      "reserved_cpus": 0,
+      "reserved_memory": 0,
+      "secondary_ip": "192.168.2.2",
+      "tags": [],
+      "total_cpus": 4,
+      "total_disk": 1377280,
+      "total_memory": 32763,
+      "total_spindles": 12,
+      "vm_capable": true
+    },
+    "node3": {
+      "drained": false,
+      "free_disk": 1377024,
+      "free_memory": 32635,
+      "free_spindles": 12,
+      "group": "uuid-group-1",
+      "i_pri_memory": 0,
+      "i_pri_up_memory": 0,
+      "master_candidate": true,
+      "master_capable": true,
+      "ndparams": {
+        "exclusive_storage": false,
+        "oob_program": null,
+        "spindle_count": 1
+      },
+      "offline": false,
+      "primary_ip": "192.168.1.3",
+      "reserved_cpus": 0,
+      "reserved_memory": 0,
+      "secondary_ip": "192.168.2.3",
+      "tags": [],
+      "total_cpus": 4,
+      "total_disk": 1377280,
+      "total_memory": 32763,
+      "total_spindles": 12,
+      "vm_capable": true
+    }
+  },
+  "request": {
+    "disk_space_total": 1024,
+    "disk_template": "plain",
+    "disks": [
+      {
+        "mode": "rw",
+        "size": 1024,
+        "spindles": 1
+      }
+    ],
+    "hypervisor": "xen-pvm",
+    "memory": 1024,
+    "name": "instance-new",
+    "nics": [
+      {
+        "bridge": null,
+        "ip": null,
+        "mac": "00:11:22:33:44:55"
+      }
+    ],
+    "os": "instance-debootstrap",
+    "required_nodes": 1,
+    "spindle_use": 1,
+    "tags": [
+      "service:foo",
+      "service:bar"
+    ],
+    "type": "allocate",
+    "vcpus": 1
+  }
+}

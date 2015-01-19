@@ -162,3 +162,12 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 ./test/hs/hail $T/hail-alloc-spindles.json.excl-stor
 >>> /"success":true,"info":"Request successful: Selected group: group1,.*FailSpindles: 2",.*"result":\["node1"\]/
 >>>= 0
+
+# Check that --ignore-soft-errors works and ignores tag errors
+./test/hs/hail $TESTDATA_DIR/hail-alloc-plain-tags.json
+>>> /"success":false,.*FailTags: 3/
+>>>= 0
+
+./test/hs/hail --ignore-soft-errors $TESTDATA_DIR/hail-alloc-plain-tags.json
+>>> /"success":true/
+>>>= 0
