@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2010, 2013 Google Inc.
+# Copyright (C) 2010, 2013, 2014, 2015 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -741,6 +741,19 @@ class LXCHypervisor(hv_base.BaseHypervisor):
                             " lxc process exited after being daemonized" %
                             instance.name)
 
+  @classmethod
+  def _VerifyDiskRequirements(cls, block_devices):
+    """Insures that the disks provided work with the current implementation.
+
+    """
+    if len(block_devices) == 0:
+      raise HypervisorError("LXC cannot have diskless instances.")
+
+    if len(block_devices) > 1:
+      raise HypervisorError("At the moment, LXC cannot support more than one"
+                            " disk attached to it. Please create this"
+                            " instance anew with fewer disks.")
+
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
@@ -748,6 +761,8 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     We use volatile containers.
 
     """
+    LXCHypervisor._VerifyDiskRequirements(block_devices)
+
     stash = {}
 
     # Since LXC version >= 1.0.0, the LXC strictly requires all cgroup
@@ -766,9 +781,6 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       _CreateBlankFile(log_file, constants.SECURE_FILE_MODE)
 
     try:
-      if not block_devices:
-        raise HypervisorError("LXC needs at least one disk")
-
       sda_dev_path = block_devices[0][1]
       # LXC needs to use partition mapping devices to access each partition
       # of the storage
