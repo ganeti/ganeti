@@ -235,8 +235,9 @@ prop_addPriFM node inst =
 
 -- | Check that adding a primary instance with too much disk fails
 -- with type FailDisk.
-prop_addPriFD :: Node.Node -> Instance.Instance -> Property
-prop_addPriFD node inst =
+prop_addPriFD :: Instance.Instance -> Property
+prop_addPriFD inst =
+  forAll (genNode (Just 1) Nothing) $ \node ->
   forAll (elements Instance.localStorageTemplates) $ \dt ->
   Instance.dsk inst >= Node.fDsk node && not (Node.failN1 node) ==>
   let inst' = setInstanceSmallerThanNode node inst
