@@ -970,6 +970,13 @@ dtsFilebased =
   ConstantUtils.mkSet $ map Types.diskTemplateToRaw
   [DTSharedFile, DTFile, DTGluster]
 
+-- | The set of file based disk templates whose path is tied to the instance
+-- name
+dtsInstanceDependentPath :: FrozenSet String
+dtsInstanceDependentPath =
+  ConstantUtils.mkSet $ map Types.diskTemplateToRaw
+  [DTSharedFile, DTFile]
+
 -- | The set of disk templates that can be moved by copying
 --
 -- Note: a requirement is that they're not accessed externally or

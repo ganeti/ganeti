@@ -319,5 +319,15 @@ class TestFileDeviceHelper(testutils.GanetiTestCase):
       env.volume.Remove()
       env.volume.Exists(assert_exists=False)
 
+  def testRenameFile(self):
+    """Test if we can rename a file."""
+    with TestFileDeviceHelper.TempEnvironment(create_file=True) as env:
+      new_path = os.path.join(env.subdirectory, 'middle')
+      env.volume.Move(new_path)
+      self.assertEqual(new_path, env.volume.path)
+      env.volume.Exists(assert_exists=True)
+      env.path = new_path # update the path for the context manager
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
