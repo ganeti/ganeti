@@ -26,10 +26,10 @@ New dependencies
 - Building the Haskell part of Ganeti now requires Cabal and cabal-install.
 
 
-Version 2.13.0
---------------
+Version 2.13.0 beta1
+--------------------
 
-*(unreleased)*
+*(Released Wed, 14 Jan 2015)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,6 +50,10 @@ Incompatible/important changes
   --ignore-hvversions to restore the old behavior of only warning.
 - Node tags starting with htools:migration: or htools:allowmigration: now have
   a special meaning to htools(1). See hbal(1) for details.
+- The LXC hypervisor code has been repaired and improved. Instances cannot be
+  migrated and cannot have more than one disk, but should otherwise work as with
+  other hypervisors. OS script changes should not be necessary. LXC version
+  1.0.0 or higher required.
 
 New features
 ~~~~~~~~~~~~
@@ -76,6 +80,41 @@ New dependencies
   if you use Mond.
 - The formerly optional regex-pcre is now an unconditional dependency because
   the new job filter rules have regular expressions as a core feature.
+
+Known issues
+~~~~~~~~~~~~
+
+The following issues are known to be present in the beta and will be fixed
+before rc1:
+
+- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start.
+
+
+Version 2.12.1
+--------------
+
+*(Released Wed, 14 Jan 2015)*
+
+- Fix users under which the wconfd and metad daemons run (issue #976)
+- Clean up stale livelock files (issue #865)
+- Fix setting up the metadata daemon's network interface for Xen
+- Make watcher identify itself on disk activation
+- Add "ignore-ipolicy" option to gnt-instance grow-disk
+- Check disk size ipolicy during "gnt-instance grow-disk" (issue #995)
+
+Inherited from the 2.11 branch:
+
+- Fix counting votes when doing master failover (issue #962)
+- Fix broken haskell dependencies (issues #758 and #912)
+- Check if IPv6 is used directly when running SSH (issue #892)
+
+Inherited from the 2.10 branch:
+
+- Fix typo in gnt_cluster output (issue #1015)
+- Use the Python path detected at configure time in the top-level Python
+  scripts.
+- Fix check for sphinx-build from python2-sphinx
+- Properly check if an instance exists in 'gnt-instance console'
 
 
 Version 2.12.0

@@ -2,7 +2,7 @@
 Design document drafts
 ======================
 
-.. Last updated for Ganeti 2.12
+.. Last updated for Ganeti 2.13
 
 .. toctree::
    :maxdepth: 2
@@ -14,13 +14,11 @@ Design document drafts
    design-storagetypes.rst
    design-glusterfs-ganeti-support.rst
    design-hugepages-support.rst
-   design-optables.rst
    design-ceph-ganeti-support.rst
    design-hsqueeze.rst
    design-os.rst
    design-move-instance-improvements.rst
    design-node-security.rst
-   design-disk-conversion.rst
    design-ifdown.rst
    design-location.rst
    design-reservations.rst

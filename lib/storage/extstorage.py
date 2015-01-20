@@ -333,7 +333,7 @@ def _ExtStorageAction(action, unique_id, ext_params,
 
   # Explicitly check if the script is valid
   try:
-    _CheckExtStorageFile(inst_es.path, action)
+    _CheckExtStorageFile(inst_es.path, action) # pylint: disable=E1103
   except errors.BlockDeviceError:
     base.ThrowError("Action '%s' is not supported by provider '%s'" %
                     (action, driver))
@@ -343,6 +343,7 @@ def _ExtStorageAction(action, unique_id, ext_params,
   script = getattr(inst_es, script_name)
 
   # Run the external script
+  # pylint: disable=E1103
   result = utils.RunCmd([script], env=create_env,
                         cwd=inst_es.path, output=logfile,)
   if result.failed:
@@ -357,7 +358,7 @@ def _ExtStorageAction(action, unique_id, ext_params,
       lines = [utils.SafeEncode(val)
                for val in utils.TailFile(logfile, lines=20)]
     else:
-      lines = result.output[-20:]
+      lines = result.output.splitlines()[-20:]
 
     base.ThrowError("External storage's %s script failed (%s), last"
                     " lines of output:\n%s",
@@ -440,7 +441,7 @@ def ExtStorageFromDisk(name, base_dir=None):
       _CheckExtStorageFile(es_dir, filename)
     except errors.BlockDeviceError, err:
       if required:
-        return False, err
+        return False, str(err)
 
   parameters = []
   if constants.ES_PARAMETERS_FILE in es_files:

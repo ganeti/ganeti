@@ -78,6 +78,7 @@ and draft versions (which are either incomplete or not implemented).
    design-2.10.rst
    design-2.11.rst
    design-2.12.rst
+   design-2.13.rst
 
 Draft designs
 -------------
@@ -100,6 +101,7 @@ Draft designs
    design-cpu-pinning.rst
    design-device-uuid-name.rst
    design-daemons.rst
+   design-disk-conversion.rst
    design-disks.rst
    design-file-based-storage.rst
    design-hroller.rst
@@ -118,6 +120,7 @@ Draft designs
    design-oob.rst
    design-openvswitch.rst
    design-opportunistic-locking.rst
+   design-optables.rst
    design-os.rst
    design-ovf-support.rst
    design-partitioned

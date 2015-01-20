@@ -1124,28 +1124,22 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
   nonmaster_nodes = [name for name in online_nodes
                      if name != master_node]
 
-  (_, root_keyfiles) = \
-    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False,
-                        _homedir_fn=homedir_fn)
+  _, pub_key_filename, _ = \
+    ssh.GetUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False,
+                     kind=constants.SSHK_DSA, _homedir_fn=homedir_fn)
 
   # get the key file of the master node
-  for (_, (_, public_key_file)) in root_keyfiles.items():
-    try:
-      pub_key = utils.ReadFile(public_key_file)
-      ssh.AddPublicKey(node_uuid_map[master_node], pub_key,
-                       key_file=pub_key_file)
-    except IOError:
-      # Not all types of keys might be existing
-      pass
+  pub_key = utils.ReadFile(pub_key_filename)
+  ssh.AddPublicKey(node_uuid_map[master_node], pub_key,
+                   key_file=pub_key_file)
 
   # get the key files of all non-master nodes
   for node in nonmaster_nodes:
-    fetched_keys = ssh.ReadRemoteSshPubKeys(root_keyfiles, node, cluster_name,
-                                            ssh_port_map[node],
-                                            options.ssh_key_check,
-                                            options.ssh_key_check)
-    for pub_key in fetched_keys.values():
-      ssh.AddPublicKey(node_uuid_map[node], pub_key, key_file=pub_key_file)
+    pub_key = ssh.ReadRemoteSshPubKeys(pub_key_filename, node, cluster_name,
+                                       ssh_port_map[node],
+                                       options.ssh_key_check,
+                                       options.ssh_key_check)
+    ssh.AddPublicKey(node_uuid_map[node], pub_key, key_file=pub_key_file)
 
 
 def RenewCrypto(opts, args):

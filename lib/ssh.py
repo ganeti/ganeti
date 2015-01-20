@@ -684,7 +684,7 @@ def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None,
 
   """
   priv_key, _, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER,
-                                              _homedir_fn=_homedir_fn)
+                                        _homedir_fn=_homedir_fn)
 
   new_priv_key_name = priv_key + _suffix
   new_pub_key_name = priv_key + _suffix + ".pub"
@@ -1087,40 +1087,27 @@ def GetSshPortMap(nodes, cfg):
   return node_port_map
 
 
-def ReadRemoteSshPubKeys(keyfiles, node, cluster_name, port, ask_key,
+def ReadRemoteSshPubKeys(pub_key_file, node, cluster_name, port, ask_key,
                          strict_host_check):
-  """Fetches the public SSH keys from a node via SSH.
+  """Fetches the public DSA SSH key from a node via SSH.
 
-  @type keyfiles: dict from string to (string, string) tuples
-  @param keyfiles: a dictionary mapping the type of key (e.g. rsa, dsa) to a
-    tuple consisting of the file name of the private and public key
+  @type pub_key_file: string
+  @param pub_key_file: a tuple consisting of the file name of the public DSA key
 
   """
   ssh_runner = SshRunner(cluster_name)
 
-  failed_results = {}
-  fetched_keys = {}
-  for (kind, (_, public_key_file)) in keyfiles.items():
-    cmd = ["cat", public_key_file]
-    ssh_cmd = ssh_runner.BuildCmd(node, constants.SSH_LOGIN_USER,
-                                  utils.ShellQuoteArgs(cmd),
-                                  batch=False, ask_key=ask_key, quiet=False,
-                                  strict_host_check=strict_host_check,
-                                  use_cluster_key=False,
-                                  port=port)
+  cmd = ["cat", pub_key_file]
+  ssh_cmd = ssh_runner.BuildCmd(node, constants.SSH_LOGIN_USER,
+                                utils.ShellQuoteArgs(cmd),
+                                batch=False, ask_key=ask_key, quiet=False,
+                                strict_host_check=strict_host_check,
+                                use_cluster_key=False,
+                                port=port)
 
-    result = utils.RunCmd(ssh_cmd)
-    if result.failed:
-      failed_results[kind] = (result.cmd, result.fail_reason)
-    else:
-      fetched_keys[kind] = result.stdout
-
-  if len(fetched_keys.keys()) < 1:
-    error_msg = "Could not fetch any public SSH key."
-    for (kind, (cmd, fail_reason)) in failed_results.items():
-      error_msg += "Could not fetch the public '%s' SSH key from node '%s':" \
-                   " ran command '%s', failure reason: '%s'. " % \
-                   (kind, node, cmd, fail_reason)
-    raise errors.OpPrereqError(error_msg)
-
-  return fetched_keys
+  result = utils.RunCmd(ssh_cmd)
+  if result.failed:
+    raise errors.OpPrereqError("Could not fetch a public DSA SSH key from node"
+                               " '%s': ran command '%s', failure reason: '%s'."
+                               % (node, cmd, result.fail_reason))
+  return result.stdout
