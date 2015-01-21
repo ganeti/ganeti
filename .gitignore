@@ -121,6 +121,7 @@
 /tools/node-cleanup
 /tools/node-daemon-setup
 /tools/prepare-node-join
+/tools/shebang/
 
 # scripts
 /scripts/gnt-backup
