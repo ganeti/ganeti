@@ -74,10 +74,12 @@ toYN False = "N"
 prop_Load_Instance :: String -> Int -> Int -> Int -> Types.InstanceStatus
                    -> NonEmptyList Char -> String
                    -> NonNegative Int -> NonNegative Int -> Bool
-                   -> Types.DiskTemplate -> Int -> Property
+                   -> Types.DiskTemplate -> Int -> NonNegative Int -> Bool
+                   -> [String] -> Property
 prop_Load_Instance name mem dsk vcpus status
                    (NonEmpty pnode) snode
-                   (NonNegative pdx) (NonNegative sdx) autobal dt su =
+                   (NonNegative pdx) (NonNegative sdx) autobal dt su
+                   (NonNegative spindles) forth ignoredFields =
   pnode /= snode && pdx /= sdx ==>
   let vcpus_s = show vcpus
       dsk_s = show dsk
@@ -91,9 +93,10 @@ prop_Load_Instance name mem dsk vcpus status
       tags = ""
       sbal = toYN autobal
       sdt = Types.diskTemplateToRaw dt
-      inst = Text.loadInst nl
+      inst = Text.loadInst nl $
              [name, mem_s, dsk_s, vcpus_s, status_s,
-              sbal, pnode, snode, sdt, tags, su_s]
+              sbal, pnode, snode, sdt, tags, su_s, show spindles, toYN forth]
+              ++ ignoredFields
       fail1 = Text.loadInst nl
               [name, mem_s, dsk_s, vcpus_s, status_s,
                sbal, pnode, pnode, tags]
@@ -110,6 +113,8 @@ prop_Load_Instance name mem dsk vcpus status
                                       else sdx) &&
                Instance.autoBalance i == autobal &&
                Instance.spindleUse i == su &&
+               Instance.getTotalSpindles i == Just spindles &&
+               Instance.forthcoming i == forth &&
                isBad fail1
 
 prop_Load_InstanceFail :: [(String, Int)] -> [String] -> Property
@@ -167,6 +172,42 @@ prop_Load_NodeFail :: [String] -> Property
 prop_Load_NodeFail fields =
   length fields < 8 ==> isNothing $ Text.loadNode Map.empty fields
 
+prop_Load_NodeSuccess :: String -> NonNegative Int -> NonNegative Int
+               -> NonNegative Int -> NonNegative Int -> NonNegative Int
+               -> NonNegative Int -> Bool -> NonNegative Int
+               -> Bool -> NonNegative Int -> NonNegative Int
+               -> NonNegative Int -> [String] -> Property
+prop_Load_NodeSuccess name (NonNegative tm) (NonNegative nm) (NonNegative fm)
+                      (NonNegative td) (NonNegative fd) (NonNegative tc) fo
+                      (NonNegative spindles) excl_stor
+                      (NonNegative free_spindles) (NonNegative nos_cpu)
+                      (NonNegative cpu_speed) ignoredFields =
+  forAll genTags $ \tags ->
+  let node' = Text.loadNode defGroupAssoc $
+                  [ name, show tm, show nm, show fm
+                  , show td, show fd, show tc
+                  , toYN fo, Group.uuid defGroup
+                  , show spindles
+                  , intercalate "," tags
+                  , toYN excl_stor
+                  , show free_spindles
+                  , show nos_cpu
+                  , show cpu_speed
+                  ] ++ ignoredFields
+  in case node' of
+    Bad msg -> failTest $ "Failed to load node: " ++ msg
+    Ok (_, node) -> conjoin [ Node.name node ==? name
+                            , Node.tMem node ==? fromIntegral tm
+                            , Node.nMem node ==? nm
+                            , Node.fMem node ==? fm
+                            , Node.tDsk node ==? fromIntegral td
+                            , Node.fDsk node ==? fd
+                            , Node.tCpu node ==? fromIntegral tc
+                            , Node.nTags node ==? tags
+                            , Node.fSpindles node ==? free_spindles
+                            , Node.nCpu node ==? nos_cpu
+                            , Node.tCpuSpeed node ==? fromIntegral cpu_speed
+                            ]
 
 prop_NodeLSIdempotent :: Property
 prop_NodeLSIdempotent =
@@ -256,6 +297,7 @@ testSuite "HTools/Backend/Text"
             , 'prop_InstanceLSIdempotent
             , 'prop_Load_Node
             , 'prop_Load_NodeFail
+            , 'prop_Load_NodeSuccess
             , 'prop_NodeLSIdempotent
             , 'prop_ISpecIdempotent
             , 'prop_MultipleMinMaxISpecsIdempotent
