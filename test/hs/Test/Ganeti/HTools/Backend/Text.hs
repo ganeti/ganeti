@@ -110,7 +110,7 @@ prop_Load_Instance name mem dsk vcpus status
 
 prop_Load_InstanceFail :: [(String, Int)] -> [String] -> Property
 prop_Load_InstanceFail ktn fields =
-  length fields < 10 || length fields > 13 ==>
+  length fields < 10 ==>
     case Text.loadInst nl fields of
       Ok _ -> failTest "Managed to load instance from invalid data"
       Bad msg -> counterexample ("Unrecognised error message: " ++ msg) $
@@ -163,7 +163,8 @@ prop_Load_Node name tm nm fm td fd tc fo =
 
 prop_Load_NodeFail :: [String] -> Property
 prop_Load_NodeFail fields =
-  length fields /= 8 ==> isNothing $ Text.loadNode Map.empty fields
+  length fields < 8 ==> isNothing $ Text.loadNode Map.empty fields
+
 
 prop_NodeLSIdempotent :: Property
 prop_NodeLSIdempotent =
