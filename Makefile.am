@@ -655,6 +655,7 @@ docinput = \
 	doc/design-disk-conversion.rst \
 	doc/design-disks.rst \
 	doc/design-draft.rst \
+	doc/design-file-based-disks-ownership.rst \
 	doc/design-file-based-storage.rst \
 	doc/design-glusterfs-ganeti-support.rst \
 	doc/design-hotplug.rst \
@@ -673,6 +674,7 @@ docinput = \
 	doc/design-monitoring-agent.rst \
 	doc/design-move-instance-improvements.rst \
 	doc/design-multi-reloc.rst \
+	doc/design-multi-storage-htools.rst \
 	doc/design-multi-version-tests.rst \
 	doc/design-network.rst \
 	doc/design-network2.rst \
@@ -696,6 +698,7 @@ docinput = \
 	doc/design-shared-storage.rst \
 	doc/design-ssh-ports.rst \
 	doc/design-storagetypes.rst \
+	doc/design-sync-rate-throttling.rst \
 	doc/design-systemd.rst \
 	doc/design-upgrade.rst \
 	doc/design-virtual-clusters.rst \
