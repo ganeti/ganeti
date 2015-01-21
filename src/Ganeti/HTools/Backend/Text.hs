@@ -204,7 +204,7 @@ serializeCluster (ClusterData gl nl il ctags cpol) =
 loadGroup :: (Monad m) => [String]
           -> m (String, Group.Group) -- ^ The result, a tuple of group
                                      -- UUID and group object
-loadGroup [name, gid, apol, tags, nets] = do
+loadGroup (name:gid:apol:tags:nets:_) = do
   xapol <- allocPolicyFromRaw apol
   let xtags = commaSplit tags
   let xnets = commaSplit nets
@@ -218,8 +218,8 @@ loadNode :: (Monad m) =>
          -> [String]              -- ^ Input data as a list of fields
          -> m (String, Node.Node) -- ^ The result, a tuple o node name
                                   -- and node object
-loadNode ktg [name, tm, nm, fm, td, fd, tc, fo, gu, spindles, tags,
-              excl_stor, free_spindles, nos_cpu, cpu_speed] = do
+loadNode ktg (name:tm:nm:fm:td:fd:tc:fo:gu:spindles:tags:
+              excl_stor:free_spindles:nos_cpu:cpu_speed:_) = do
   gdx <- lookupGroup ktg name gu
   new_node <-
       if "?" `elem` [tm,nm,fm,td,fd,tc] then
@@ -280,8 +280,8 @@ loadInst :: NameAssoc -- ^ Association list with the current nodes
          -> Result (String, Instance.Instance) -- ^ A tuple of
                                                -- instance name and
                                                -- the instance object
-loadInst ktn [ name, mem, dsk, vcpus, status, auto_bal, pnode, snode
-             , dt, tags, su, spindles, forthcoming_yn ] = do
+loadInst ktn (name:mem:dsk:vcpus:status:auto_bal:pnode:snode
+             :dt:tags:su:spindles:forthcoming_yn:_) = do
   pidx <- lookupNode ktn name pnode
   sidx <- if null snode
             then return Node.noSecondary
@@ -334,7 +334,7 @@ loadInst _ s = fail $ "Invalid/incomplete instance data: '" ++ show s ++ "'"
 
 -- | Loads a spec from a field list.
 loadISpec :: String -> [String] -> Result ISpec
-loadISpec owner [mem_s, cpu_c, dsk_s, dsk_c, nic_c, su] = do
+loadISpec owner (mem_s:cpu_c:dsk_s:dsk_c:nic_c:su:_) = do
   xmem_s <- tryRead (owner ++ "/memsize") mem_s
   xcpu_c <- tryRead (owner ++ "/cpucount") cpu_c
   xdsk_s <- tryRead (owner ++ "/disksize") dsk_s
@@ -369,8 +369,8 @@ loadMultipleMinMaxISpecs owner ispecs = do
 
 -- | Loads an ipolicy from a field list.
 loadIPolicy :: [String] -> Result (String, IPolicy)
-loadIPolicy [owner, stdspec, minmaxspecs, dtemplates,
-             vcpu_ratio, spindle_ratio] = do
+loadIPolicy (owner:stdspec:minmaxspecs:dtemplates:
+             vcpu_ratio:spindle_ratio:_) = do
   xstdspec <- loadISpec (owner ++ "/stdspec") (commaSplit stdspec)
   xminmaxspecs <- loadMultipleMinMaxISpecs owner $
                   sepSplit iSpecsSeparator minmaxspecs
@@ -434,10 +434,11 @@ parseData fdata = do
   let flines = lines fdata
   (glines, nlines, ilines, ctags, pollines) <-
       case sepSplit "" flines of
-        [a, b, c, d, e] -> Ok (a, b, c, d, e)
+        -- Ignore all additional fields
+        a:b:c:d:e:_ -> Ok (a, b, c, d, e)
         [a, b, c, d] -> Ok (a, b, c, d, [])
         xs -> Bad $ printf "Invalid format of the input file: %d sections\
-                           \ instead of 4 or 5" (length xs)
+                           \ instead of 4 or more" (length xs)
   {- group file: name uuid alloc_policy -}
   (ktg, gl) <- loadTabular glines loadGroup
   {- node file: name t_mem n_mem f_mem t_disk f_disk t_cpu offline grp_uuid
