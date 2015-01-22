@@ -380,10 +380,12 @@ class LUInstanceSetParams(LogicalUnit):
     name = params.get(constants.IDISK_NAME, None)
 
     disk = self.GenericGetDiskInfo(uuid, name)
-    if disk.dev_type != self.instance.disk_template:
+    instance_template = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
+    if (disk.dev_type != instance_template or
+        instance_template == constants.DT_DISKLESS):
       raise errors.OpPrereqError("Instance has '%s' template while disk has"
                                  " '%s' template" %
-                                 (self.instance.disk_template, disk.dev_type),
+                                 (instance_template, disk.dev_type),
                                  errors.ECODE_INVAL)
 
     instance_nodes = self.cfg.GetInstanceNodes(self.instance.uuid)

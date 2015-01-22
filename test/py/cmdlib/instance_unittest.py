@@ -2054,7 +2054,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.MockOut(instance_set_params, 'netutils', self.netutils_mod)
     self.MockOut(instance_utils, 'netutils', self.netutils_mod)
 
-    self.inst = self.cfg.AddNewInstance()
+    self.dev_type = constants.DT_PLAIN
+    self.inst = self.cfg.AddNewInstance(disk_template=self.dev_type)
     self.op = opcodes.OpInstanceSetParams(instance_name=self.inst.name)
 
     self.running_inst = \
@@ -2893,7 +2894,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
 
   def testSetOldDiskTemplate(self):
     op = self.CopyOpCode(self.op,
-                         disk_template=self.inst.disk_template)
+                         disk_template=self.dev_type)
     self.ExecOpCodeExpectOpPrereqError(
       op, "Instance already has disk template")
 

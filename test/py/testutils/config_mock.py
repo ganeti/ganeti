@@ -284,7 +284,6 @@ class ConfigMock(config.ConfigWriter):
                             admin_state_source=admin_state_source,
                             nics=nics,
                             disks=[],
-                            disk_template=disk_template,
                             disks_active=disks_active,
                             network_port=network_port)
     self.AddInstance(inst, None)
