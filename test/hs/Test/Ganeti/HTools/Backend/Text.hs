@@ -67,6 +67,10 @@ import qualified Ganeti.Utils as Utils
 
 -- * Instance text loader tests
 
+toYN :: Bool -> String
+toYN True = "Y"
+toYN False = "N"
+
 prop_Load_Instance :: String -> Int -> Int -> Int -> Types.InstanceStatus
                    -> NonEmptyList Char -> String
                    -> NonNegative Int -> NonNegative Int -> Bool
@@ -85,7 +89,7 @@ prop_Load_Instance name mem dsk vcpus status
               else [(pnode, pdx), (snode, sdx)]
       nl = Map.fromList ndx
       tags = ""
-      sbal = if autobal then "Y" else "N"
+      sbal = toYN autobal
       sdt = Types.diskTemplateToRaw dt
       inst = Text.loadInst nl
              [name, mem_s, dsk_s, vcpus_s, status_s,
@@ -141,9 +145,7 @@ prop_Load_Node name tm nm fm td fd tc fo =
       td_s = conv td
       fd_s = conv fd
       tc_s = conv tc
-      fo_s = if fo
-               then "Y"
-               else "N"
+      fo_s = toYN fo
       any_broken = any (< 0) [tm, nm, fm, td, fd, tc]
       gid = Group.uuid defGroup
   in case Text.loadNode defGroupAssoc
