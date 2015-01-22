@@ -41,7 +41,7 @@ import Text.JSON
 import System.IO.Error (isEOFError)
 
 import Ganeti.Path as Path
-import Ganeti.Daemon (DaemonOptions)
+import Ganeti.Daemon (DaemonOptions, cleanupSocket, describeError)
 import qualified Ganeti.Logging as Logging
 import Ganeti.Runtime (GanetiDaemon(..))
 import Ganeti.UDSServer (Client, ConnectConfig(..), Server, ServerConfig(..))
@@ -93,7 +93,9 @@ acceptClients config server =
 start :: DaemonOptions -> MVar InstanceParams -> IO ()
 start _ config = do
      socket_path <- Path.defaultMetadSocket
-     server <- UDSServer.connectServer metadConfig True socket_path
+     cleanupSocket socket_path
+     server <- describeError "binding to the socket" Nothing (Just socket_path)
+               $ UDSServer.connectServer metadConfig True socket_path
      finally
        (acceptClients config server)
        (UDSServer.closeServer server)
