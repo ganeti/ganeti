@@ -38,7 +38,6 @@ import Control.Concurrent
 import Control.Exception (try, finally)
 import Control.Monad (unless)
 import Text.JSON
-import System.FilePath ((</>))
 import System.IO.Error (isEOFError)
 
 import Ganeti.Path as Path
@@ -50,11 +49,6 @@ import qualified Ganeti.UDSServer as UDSServer
 
 import Ganeti.Metad.Config as Config
 import Ganeti.Metad.Types (InstanceParams)
-
-metadSocket :: IO FilePath
-metadSocket =
-  do dir <- Path.socketDir
-     return $ dir </> "ganeti-metad"
 
 -- | Update the configuration with the received instance parameters.
 updateConfig :: MVar InstanceParams -> String -> IO ()
@@ -97,8 +91,9 @@ acceptClients config server =
      acceptClients config server
 
 start :: DaemonOptions -> MVar InstanceParams -> IO ()
-start _ config =
-  do server <- UDSServer.connectServer metadConfig True =<< metadSocket
+start _ config = do
+     socket_path <- Path.defaultMetadSocket
+     server <- UDSServer.connectServer metadConfig True socket_path
      finally
        (acceptClients config server)
        (UDSServer.closeServer server)
