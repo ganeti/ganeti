@@ -939,7 +939,7 @@ findBestAllocGroup mggl mgnl mgil allowed_gdxs inst cnt =
       sortedSols = sortMGResults goodSols
   in case sortedSols of
        [] -> Bad $ if null groups'
-                     then "no groups for evacuation: allowed groups was" ++
+                     then "no groups for evacuation: allowed groups was " ++
                           show allowed_gdxs ++ ", all groups: " ++
                           show (map fst groups)
                      else intercalate ", " all_msgs
