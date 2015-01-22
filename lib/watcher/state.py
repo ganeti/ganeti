@@ -197,7 +197,7 @@ class WatcherState(object):
     # Second, delete expired records
     earliest = time.time() - RETRY_EXPIRATION
     expired_instances = [i for i in idict
-                         if idict[i][KEY_RESTART_WHEN] < earliest]
+                         if idict[i].get(KEY_RESTART_WHEN, 0) < earliest]
     for inst in expired_instances:
       logging.debug("Expiring record for instance %s", inst)
       idict.pop(inst, None)
