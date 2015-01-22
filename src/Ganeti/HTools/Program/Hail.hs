@@ -44,11 +44,12 @@ import System.IO
 
 import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Dedicated as Dedicated
 
 import Ganeti.Common
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Backend.IAlloc
-import Ganeti.HTools.Loader (Request(..), ClusterData(..))
+import Ganeti.HTools.Loader (Request(..), ClusterData(..), isAllocationRequest)
 import Ganeti.HTools.ExtLoader (maybeSaveData, loadExternalData
                                , queryAllMonDDCs)
 import Ganeti.Utils
@@ -106,12 +107,22 @@ main opts args = do
   when (verbose > 2) .
        hPutStrLn stderr $ "Received cluster data: " ++ show cdata
 
+  let dedicatedAlloc = maybe False (Dedicated.isDedicated cdata)
+                       $ isAllocationRequest rq
+
+  when (verbose > 1 && dedicatedAlloc) $
+      hPutStrLn stderr "Allocation on a dedicated cluster;\
+                       \ using lost-allocations metrics."
+
   maybePrintNodes shownodes "Initial cluster"
        (Cluster.printNodes (cdNodes cdata))
 
   maybeSaveData savecluster "pre-ialloc" "before iallocator run" cdata
 
-  let (maybe_ni, resp) = runIAllocator (Alg.fromCLIOptions opts) request
+  let runAlloc = if dedicatedAlloc
+                   then Dedicated.runDedicatedAllocation
+                   else runIAllocator
+      (maybe_ni, resp) = runAlloc (Alg.fromCLIOptions opts) request
       (fin_nl, fin_il) = fromMaybe (cdNodes cdata, cdInstances cdata) maybe_ni
   putStrLn resp
 

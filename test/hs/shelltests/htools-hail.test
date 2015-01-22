@@ -64,7 +64,7 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 
 # Run some of the tests above, with exclusive storage enabled
 ./test/hs/hail $T/hail-alloc-drbd.json.excl-stor
->>> /"success":true,.*,"result":\["node2","node1"\]/
+>>> /"success":true,.*,"result":\["node.","node."\]/
 >>>= 0
 
 ./test/hs/hail $T/hail-reloc-drbd.json.excl-stor
