@@ -51,6 +51,7 @@ module Ganeti.HTools.Loader
   , RqType(..)
   , Request(..)
   , ClusterData(..)
+  , isAllocationRequest
   , emptyCluster
   ) where
 
@@ -95,6 +96,21 @@ data RqType
 -- | A complete request, as received from Ganeti.
 data Request = Request RqType ClusterData
                deriving (Show)
+
+-- | Decide whether a request asks to allocate new instances; if so, also
+-- return the desired node group, if a unique node group is specified.
+-- That is, return `Nothing` if the request is not an allocation request,
+-- `Just Nothing`, if it is an Allocation request, but there is no unique
+-- group specified, and return `Just (Just g)` if it is an allocation request
+-- uniquely requesting Group `g`.
+isAllocationRequest :: RqType -> Maybe (Maybe String)
+isAllocationRequest (Allocate _ (Cluster.AllocDetails _ grp)) = Just grp
+isAllocationRequest (MultiAllocate reqs) = Just $
+  case ordNub . catMaybes
+       $ map (\(_, Cluster.AllocDetails _ grp) -> grp) reqs of
+    [grp] -> Just grp
+    _ -> Nothing
+isAllocationRequest _ = Nothing
 
 -- | The cluster state.
 data ClusterData = ClusterData
