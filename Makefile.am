@@ -890,6 +890,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/CLI.hs \
 	src/Ganeti/HTools/Cluster.hs \
 	src/Ganeti/HTools/Container.hs \
+	src/Ganeti/HTools/Dedicated.hs \
 	src/Ganeti/HTools/ExtLoader.hs \
 	src/Ganeti/HTools/Graph.hs \
 	src/Ganeti/HTools/Group.hs \
