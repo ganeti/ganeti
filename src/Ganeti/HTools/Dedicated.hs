@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.HTools.Dedicated
   ( isDedicated
   , testInstances
+  , allocationVector
   ) where
 
 import Control.Applicative (liftA2)
@@ -44,6 +45,7 @@ import qualified Data.IntMap as IntMap
 import qualified Data.IntSet as IntSet
 import Data.List (sortBy)
 
+import Ganeti.BasicTypes (iterateOk)
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Loader as Loader
@@ -87,3 +89,9 @@ testInstances =
   . sortBy (flip compare `on` T.iSpecDiskSize)
   . map T.minMaxISpecsMinSpec
   . T.iPolicyMinMaxISpecs
+
+-- | Given the test instances, compute the allocations vector of a node
+allocationVector :: [Instance.Instance] -> Node.Node -> [Int]
+allocationVector insts node =
+  map (\ inst -> length $ iterateOk (`Node.addPri` inst) node) insts
+
