@@ -34,14 +34,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.HTools.Dedicated
   ( isDedicated
+  , testInstances
   ) where
 
 import Control.Applicative (liftA2)
 import qualified Data.Foldable as F
+import Data.Function (on)
 import qualified Data.IntMap as IntMap
 import qualified Data.IntSet as IntSet
+import Data.List (sortBy)
 
 import qualified Ganeti.HTools.Group as Group
+import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Loader as Loader
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Types as T
@@ -59,3 +63,27 @@ isDedicated cdata maybeGroup =
   in F.all (liftA2 (||) Node.exclStorage
             $ not  . (`IntSet.member` groups) . Node.group)
      $ Loader.cdNodes cdata
+
+-- | Given a specification interval, create an instance minimally fitting
+-- into that interval. In other words create an instance from the lower bounds
+-- of the specified interval.
+minimallyCompliantInstance :: T.ISpec -> Instance.Instance
+minimallyCompliantInstance spec =
+  Instance.create "minimalspecinstance"
+    (T.iSpecMemorySize spec)
+    (T.iSpecDiskSize spec)
+    []
+    (T.iSpecCpuCount spec)
+    T.Running [] False Node.noSecondary Node.noSecondary T.DTPlain
+    (T.iSpecSpindleUse spec)
+    [] False
+
+-- | From an instance policy get the list of test instances, in correct order,
+-- for which the allocation count has to be determined for the lost allocations
+-- metrics.
+testInstances :: T.IPolicy -> [Instance.Instance]
+testInstances =
+  map minimallyCompliantInstance
+  . sortBy (flip compare `on` T.iSpecDiskSize)
+  . map T.minMaxISpecsMinSpec
+  . T.iPolicyMinMaxISpecs
