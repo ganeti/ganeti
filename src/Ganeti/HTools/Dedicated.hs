@@ -36,6 +36,8 @@ module Ganeti.HTools.Dedicated
   ( isDedicated
   , testInstances
   , allocationVector
+  , Metric
+  , lostAllocationsMetric
   ) where
 
 import Control.Applicative (liftA2)
@@ -95,3 +97,23 @@ allocationVector :: [Instance.Instance] -> Node.Node -> [Int]
 allocationVector insts node =
   map (\ inst -> length $ iterateOk (`Node.addPri` inst) node) insts
 
+-- | The metric do be used in dedicated allocation.
+type Metric = ([Int], Int)
+
+-- | Given the test instances and an instance to be placed, compute
+-- the lost allocations metrics for that node, together with the
+-- modified node. Return Bad if it is not possible to place the
+-- instance on that node.
+lostAllocationsMetric :: Alg.AlgorithmOptions
+                      -> [Instance.Instance]
+                      -> Instance.Instance
+                      -> Node.Node
+                      -> T.OpResult (Metric, Node.Node)
+lostAllocationsMetric opts insts inst node = do
+  let allocVec = allocationVector insts
+      before = allocVec node
+      force = Alg.algIgnoreSoftErrors opts
+  node' <- Node.addPriEx force node inst
+  let after = allocVec node'
+      disk = Node.fDsk node'
+  return ((zipWith (-) before after, disk), node')
