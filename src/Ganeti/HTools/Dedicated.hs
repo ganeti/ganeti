@@ -40,17 +40,20 @@ module Ganeti.HTools.Dedicated
   , lostAllocationsMetric
   , allocateOnSingle
   , allocateOnPair
+  , findAllocation
   ) where
 
 import Control.Applicative (liftA2)
+import Control.Monad (unless)
 import qualified Data.Foldable as F
 import Data.Function (on)
 import qualified Data.IntMap as IntMap
 import qualified Data.IntSet as IntSet
 import Data.List (sortBy)
 
-import Ganeti.BasicTypes (iterateOk)
+import Ganeti.BasicTypes (iterateOk, Result, failError)
 import qualified Ganeti.HTools.AlgorithmParams as Alg
+import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
@@ -159,3 +162,38 @@ allocateOnPair opts nl inst pdx sdx = do
       metric = (zipWith (+) lAllP lAllS, dskP + dskS)
       nl' = Container.addTwo pdx primary' sdx secondary' nl
   return (nl', inst', [primary', secondary'], metric)
+
+-- | Find an allocation for an instance on a group.
+findAllocation :: Alg.AlgorithmOptions
+               -> Group.List
+               -> Node.List
+               -> T.Gdx
+               -> Instance.Instance
+               -> Int
+               -> Result (Cluster.GenericAllocSolution Metric, [String])
+findAllocation opts mggl mgnl gdx inst count = do
+  let nl = Container.filter ((== gdx) . Node.group) mgnl
+      group = Container.find gdx mggl
+  unless (Cluster.hasRequiredNetworks group inst) . failError
+         $ "The group " ++ Group.name group ++ " is not connected to\
+           \ a network required by instance " ++ Instance.name inst
+  allocNodes <- Cluster.genAllocNodes mggl nl count False
+  solution <- case allocNodes of
+    (Right []) -> fail "Not enough online nodes"
+    (Right pairs) ->
+      let sols = foldl Cluster.sumAllocs Cluster.emptyAllocSolution
+                   $ map (\(p, ss) -> foldl
+                           (\cstate ->
+                             Cluster.concatAllocs cstate
+                             . allocateOnPair opts nl inst p)
+                           Cluster.emptyAllocSolution ss)
+                     pairs
+       in return $ Cluster.genericAnnotateSolution show sols
+    (Left []) -> fail "No online nodes"
+    (Left nodes) ->
+      let sols = foldl (\cstate ->
+                          Cluster.concatAllocs cstate
+                          . allocateOnSingle opts nl inst)
+                       Cluster.emptyAllocSolution nodes
+      in return $ Cluster.genericAnnotateSolution show sols
+  return (solution, Cluster.solutionDescription (group, return solution))
