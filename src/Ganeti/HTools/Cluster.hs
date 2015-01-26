@@ -41,6 +41,11 @@ module Ganeti.HTools.Cluster
     AllocDetails(..)
   , GenericAllocSolution(..)
   , AllocSolution
+  , emptyAllocSolution
+  , concatAllocs
+  , sumAllocs
+  , updateIl
+  , extractNl
   , EvacSolution(..)
   , Table(..)
   , CStats(..)
@@ -52,6 +57,7 @@ module Ganeti.HTools.Cluster
   -- * Generic functions
   , totalResources
   , computeAllocationDelta
+  , hasRequiredNetworks
   -- * First phase functions
   , computeBadItems
   -- * Second phase functions
@@ -63,6 +69,8 @@ module Ganeti.HTools.Cluster
   -- * Display functions
   , printNodes
   , printInsts
+  , genericAnnotateSolution
+  , solutionDescription
   -- * Balacing functions
   , setInstanceLocationScore
   , doNextBalance
@@ -1076,14 +1084,16 @@ tryGroupAlloc opts mggl mgnl ngil gn inst cnt = do
 
 -- | Calculate the new instance list after allocation solution.
 updateIl :: Instance.List           -- ^ The original instance list
-         -> Maybe Node.AllocElement -- ^ The result of the allocation attempt
+         -> Maybe (Node.GenericAllocElement a) -- ^ The result of
+                                               -- the allocation attempt
          -> Instance.List           -- ^ The updated instance list
 updateIl il Nothing = il
 updateIl il (Just (_, xi, _, _)) = Container.add (Container.size il) xi il
 
 -- | Extract the the new node list from the allocation solution.
 extractNl :: Node.List               -- ^ The original node list
-          -> Maybe Node.AllocElement -- ^ The result of the allocation attempt
+          -> Maybe (Node.GenericAllocElement a) -- ^ The result of the
+                                                -- allocation attempt
           -> Node.List               -- ^ The new node list
 extractNl nl Nothing = nl
 extractNl _ (Just (xnl, _, _, _)) = xnl
