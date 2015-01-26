@@ -91,6 +91,7 @@ module Ganeti.HTools.Node
   , list
   -- * Misc stuff
   , AssocList
+  , GenericAllocElement
   , AllocElement
   , noSecondary
   , computeGroups
@@ -245,8 +246,12 @@ type AssocList = [(T.Ndx, Node)]
 type List = Container.Container Node
 
 -- | A simple name for an allocation element (here just for logistic
+-- reasons), generic in the type of the metric.
+type GenericAllocElement a = (List, Instance.Instance, [Node], a)
+
+-- | A simple name for an allocation element (here just for logistic
 -- reasons).
-type AllocElement = (List, Instance.Instance, [Node], T.Score)
+type AllocElement = GenericAllocElement T.Score
 
 -- | Constant node index for a non-moveable instance.
 noSecondary :: T.Ndx

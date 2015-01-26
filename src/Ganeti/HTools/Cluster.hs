@@ -39,13 +39,15 @@ module Ganeti.HTools.Cluster
   (
     -- * Types
     AllocDetails(..)
-  , AllocSolution(..)
+  , GenericAllocSolution(..)
+  , AllocSolution
   , EvacSolution(..)
   , Table(..)
   , CStats(..)
   , AllocNodes
   , AllocResult
   , AllocMethod
+  , GenericAllocSolutionList
   , AllocSolutionList
   -- * Generic functions
   , totalResources
@@ -122,12 +124,15 @@ data AllocDetails = AllocDetails Int (Maybe String)
                     deriving (Show)
 
 -- | Allocation\/relocation solution.
-data AllocSolution = AllocSolution
+data GenericAllocSolution a = AllocSolution
   { asFailures :: [FailMode]              -- ^ Failure counts
   , asAllocs   :: Int                     -- ^ Good allocation count
-  , asSolution :: Maybe Node.AllocElement -- ^ The actual allocation result
+  , asSolution :: Maybe (Node.GenericAllocElement a) -- ^ The actual allocation
+                                          -- result
   , asLog      :: [String]                -- ^ Informational messages
   }
+
+type AllocSolution = GenericAllocSolution Score
 
 -- | Node evacuation/group change iallocator result type. This result
 -- type consists of actual opcodes (a restricted subset) that are
@@ -144,7 +149,8 @@ type AllocResult = (FailStats, Node.List, Instance.List,
                     [Instance.Instance], [CStats])
 
 -- | Type alias for easier handling.
-type AllocSolutionList = [(Instance.Instance, AllocSolution)]
+type GenericAllocSolutionList a = [(Instance.Instance, GenericAllocSolution a)]
+type AllocSolutionList = GenericAllocSolutionList Score
 
 -- | A type denoting the valid allocation mode/pairs.
 --
@@ -156,7 +162,7 @@ type AllocSolutionList = [(Instance.Instance, AllocSolution)]
 type AllocNodes = Either [Ndx] [(Ndx, [Ndx])]
 
 -- | The empty solution we start with when computing allocations.
-emptyAllocSolution :: AllocSolution
+emptyAllocSolution :: GenericAllocSolution a
 emptyAllocSolution = AllocSolution { asFailures = [], asAllocs = 0
                                    , asSolution = Nothing, asLog = [] }
 
@@ -800,9 +806,10 @@ collapseFailures flst =
             [minBound..maxBound]
 
 -- | Compares two Maybe AllocElement and chooses the best score.
-bestAllocElement :: Maybe Node.AllocElement
-                 -> Maybe Node.AllocElement
-                 -> Maybe Node.AllocElement
+bestAllocElement :: Ord a
+                 => Maybe (Node.GenericAllocElement a)
+                 -> Maybe (Node.GenericAllocElement a)
+                 -> Maybe (Node.GenericAllocElement a)
 bestAllocElement a Nothing = a
 bestAllocElement Nothing b = b
 bestAllocElement a@(Just (_, _, _, ascore)) b@(Just (_, _, _, bscore)) =
@@ -810,7 +817,10 @@ bestAllocElement a@(Just (_, _, _, ascore)) b@(Just (_, _, _, bscore)) =
 
 -- | Update current Allocation solution and failure stats with new
 -- elements.
-concatAllocs :: AllocSolution -> OpResult Node.AllocElement -> AllocSolution
+concatAllocs :: Ord a
+             => GenericAllocSolution a
+             -> OpResult (Node.GenericAllocElement a)
+             -> GenericAllocSolution a
 concatAllocs as (Bad reason) = as { asFailures = reason : asFailures as }
 
 concatAllocs as (Ok ns) =
@@ -827,7 +837,10 @@ concatAllocs as (Ok ns) =
   in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolution = nsols }
 
 -- | Sums two 'AllocSolution' structures.
-sumAllocs :: AllocSolution -> AllocSolution -> AllocSolution
+sumAllocs :: Ord a
+          => GenericAllocSolution a
+          -> GenericAllocSolution a
+          -> GenericAllocSolution a
 sumAllocs (AllocSolution aFails aAllocs aSols aLog)
           (AllocSolution bFails bAllocs bSols bLog) =
   -- note: we add b first, since usually it will be smaller; when
@@ -840,8 +853,8 @@ sumAllocs (AllocSolution aFails aAllocs aSols aLog)
   in AllocSolution nFails nAllocs nSols nLog
 
 -- | Given a solution, generates a reasonable description for it.
-describeSolution :: AllocSolution -> String
-describeSolution as =
+genericDescribeSolution :: (a -> String) -> GenericAllocSolution a -> String
+genericDescribeSolution formatMetrics as =
   let fcnt = asFailures as
       sols = asSolution as
       freasons =
@@ -851,13 +864,20 @@ describeSolution as =
      Nothing -> "No valid allocation solutions, failure reasons: " ++
                 (if null fcnt then "unknown reasons" else freasons)
      Just (_, _, nodes, cv) ->
-         printf ("score: %.8f, successes %d, failures %d (%s)" ++
-                 " for node(s) %s") cv (asAllocs as) (length fcnt) freasons
+         printf ("score: %s, successes %d, failures %d (%s)" ++
+                 " for node(s) %s") (formatMetrics cv) (asAllocs as)
+               (length fcnt) freasons
                (intercalate "/" . map Node.name $ nodes)
 
 -- | Annotates a solution with the appropriate string.
+genericAnnotateSolution :: (a -> String)
+                        ->GenericAllocSolution a -> GenericAllocSolution a
+genericAnnotateSolution formatMetrics as =
+  as { asLog = genericDescribeSolution formatMetrics as : asLog as }
+
+-- | Annotate a solution based on the standard metrics
 annotateSolution :: AllocSolution -> AllocSolution
-annotateSolution as = as { asLog = describeSolution as : asLog as }
+annotateSolution = genericAnnotateSolution (printf "%.8f")
 
 -- | Reverses an evacuation solution.
 --
@@ -917,7 +937,7 @@ tryAlloc opts nl _ inst (Left all_nodes) =
   in return $ annotateSolution sols
 
 -- | Given a group/result, describe it as a nice (list of) messages.
-solutionDescription :: (Group.Group, Result AllocSolution)
+solutionDescription :: (Group.Group, Result (GenericAllocSolution a))
                     -> [String]
 solutionDescription (grp, result) =
   case result of
