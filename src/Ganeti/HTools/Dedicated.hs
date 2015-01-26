@@ -38,6 +38,7 @@ module Ganeti.HTools.Dedicated
   , allocationVector
   , Metric
   , lostAllocationsMetric
+  , allocateOnSingle
   ) where
 
 import Control.Applicative (liftA2)
@@ -48,6 +49,8 @@ import qualified Data.IntSet as IntSet
 import Data.List (sortBy)
 
 import Ganeti.BasicTypes (iterateOk)
+import qualified Ganeti.HTools.AlgorithmParams as Alg
+import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Loader as Loader
@@ -117,3 +120,18 @@ lostAllocationsMetric opts insts inst node = do
   let after = allocVec node'
       disk = Node.fDsk node'
   return ((zipWith (-) before after, disk), node')
+
+-- | Allocate an instance on a given node.
+allocateOnSingle :: Alg.AlgorithmOptions
+                 -> Node.List -> Instance.Instance -> T.Ndx
+                 -> T.OpResult (Node.GenericAllocElement Metric)
+allocateOnSingle opts nl inst new_pdx = do
+  let primary = Container.find new_pdx nl
+      policy = Node.iPolicy primary
+      testInst = testInstances policy
+      excl = Node.exclStorage primary
+      new_inst = Instance.setBoth inst new_pdx Node.noSecondary
+  Instance.instMatchesPolicy inst policy excl
+  (metrics, new_p) <- lostAllocationsMetric opts testInst inst primary
+  let new_nl = Container.add new_pdx new_p nl
+  return (new_nl, new_inst, [new_p], metrics)
