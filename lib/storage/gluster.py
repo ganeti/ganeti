@@ -192,8 +192,8 @@ class GlusterVolume(object):
     @rtype: str
     """
 
-    return "{ip}:{port}:{volume}" \
-              .format(ip=self.server_ip, port=self.port, volume=self.volume)
+    return "-o server-port={port} {ip}:/{volume}" \
+              .format(port=self.port, ip=self.server_ip, volume=self.volume)
 
   def GetKVMMountString(self, path):
     """Return the string KVM needs to use this volume.

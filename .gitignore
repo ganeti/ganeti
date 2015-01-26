@@ -134,8 +134,8 @@
 /tools/node-cleanup
 /tools/node-daemon-setup
 /tools/prepare-node-join
-/tools/ssh-update
 /tools/shebang/
+/tools/ssh-update
 
 # scripts
 /scripts/gnt-backup

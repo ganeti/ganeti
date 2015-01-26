@@ -116,8 +116,8 @@ import Ganeti.Types (EvacMode(..), mkNonEmpty, mkNonNegative)
 -- * Types
 
 -- | Allocation details for an instance, specifying
--- | required number of nodes, and
--- | an optional group (name) to allocate to
+-- required number of nodes, and
+-- an optional group (name) to allocate to
 data AllocDetails = AllocDetails Int (Maybe String)
                     deriving (Show)
 
@@ -1019,7 +1019,7 @@ findBestAllocGroup opts mggl mgnl mgil allowed_gdxs inst cnt =
       sortedSols = sortMGResults goodSols
   in case sortedSols of
        [] -> Bad $ if null groups'
-                     then "no groups for evacuation: allowed groups was" ++
+                     then "no groups for evacuation: allowed groups was " ++
                           show allowed_gdxs ++ ", all groups: " ++
                           show (map fst groups)
                      else intercalate ", " all_msgs
