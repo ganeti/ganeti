@@ -38,11 +38,10 @@ import Control.Concurrent
 import Control.Exception (try, finally)
 import Control.Monad (unless)
 import Text.JSON
-import System.FilePath ((</>))
 import System.IO.Error (isEOFError)
 
 import Ganeti.Path as Path
-import Ganeti.Daemon (DaemonOptions)
+import Ganeti.Daemon (DaemonOptions, cleanupSocket, describeError)
 import qualified Ganeti.Logging as Logging
 import Ganeti.Runtime (GanetiDaemon(..))
 import Ganeti.UDSServer (Client, ConnectConfig(..), Server, ServerConfig(..))
@@ -50,11 +49,6 @@ import qualified Ganeti.UDSServer as UDSServer
 
 import Ganeti.Metad.Config as Config
 import Ganeti.Metad.Types (InstanceParams)
-
-metadSocket :: IO FilePath
-metadSocket =
-  do dir <- Path.socketDir
-     return $ dir </> "ganeti-metad"
 
 -- | Update the configuration with the received instance parameters.
 updateConfig :: MVar InstanceParams -> String -> IO ()
@@ -97,8 +91,11 @@ acceptClients config server =
      acceptClients config server
 
 start :: DaemonOptions -> MVar InstanceParams -> IO ()
-start _ config =
-  do server <- UDSServer.connectServer metadConfig True =<< metadSocket
+start _ config = do
+     socket_path <- Path.defaultMetadSocket
+     cleanupSocket socket_path
+     server <- describeError "binding to the socket" Nothing (Just socket_path)
+               $ UDSServer.connectServer metadConfig True socket_path
      finally
        (acceptClients config server)
        (UDSServer.closeServer server)

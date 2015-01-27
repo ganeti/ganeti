@@ -42,6 +42,7 @@ module Ganeti.Path
   , livelockFile
   , defaultQuerySocket
   , defaultWConfdSocket
+  , defaultMetadSocket
   , confdHmacKey
   , clusterConfFile
   , lockStatusFile
@@ -122,6 +123,10 @@ defaultQuerySocket = socketDir `pjoin` "ganeti-query"
 -- | The default WConfD socket for queries.
 defaultWConfdSocket :: IO FilePath
 defaultWConfdSocket = socketDir `pjoin` "ganeti-wconfd"
+
+-- | The default MetaD socket for communication.
+defaultMetadSocket :: IO FilePath
+defaultMetadSocket = socketDir `pjoin` "ganeti-metad"
 
 -- | Path to file containing confd's HMAC key.
 confdHmacKey :: IO FilePath

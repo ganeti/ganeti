@@ -1774,6 +1774,12 @@ class Cluster(TaggableObject):
         raise errors.ConfigurationError(msg)
       self.ipolicy = FillIPolicy(constants.IPOLICY_DEFAULTS, self.ipolicy)
 
+    # hv_state_static added in 2.7
+    if self.hv_state_static is None:
+      self.hv_state_static = {}
+    if self.disk_state_static is None:
+      self.disk_state_static = {}
+
     if self.candidate_certs is None:
       self.candidate_certs = {}
 
