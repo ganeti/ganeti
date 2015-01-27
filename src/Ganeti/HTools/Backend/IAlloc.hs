@@ -37,6 +37,7 @@ module Ganeti.HTools.Backend.IAlloc
   , runIAllocator
   , processRelocate
   , loadData
+  , formatAllocate
   ) where
 
 import Data.Either ()
@@ -283,11 +284,13 @@ formatResponse success info result =
   in encodeStrict $ makeObj [e_success, e_info, e_result]
 
 -- | Flatten the log of a solution into a string.
-describeSolution :: Cluster.AllocSolution -> String
+describeSolution :: Cluster.GenericAllocSolution a -> String
 describeSolution = intercalate ", " . Cluster.asLog
 
 -- | Convert allocation/relocation results into the result format.
-formatAllocate :: Instance.List -> Cluster.AllocSolution -> Result IAllocResult
+formatAllocate :: Instance.List
+               -> Cluster.GenericAllocSolution a
+               -> Result IAllocResult
 formatAllocate il as = do
   let info = describeSolution as
   case Cluster.asSolution as of
