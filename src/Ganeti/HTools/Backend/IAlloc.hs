@@ -38,6 +38,7 @@ module Ganeti.HTools.Backend.IAlloc
   , processRelocate
   , loadData
   , formatAllocate
+  , formatIAllocResult
   ) where
 
 import Data.Either ()
@@ -445,17 +446,22 @@ readRequest fp = do
     Bad err -> exitErr err
     Ok (fix_msgs, rq) -> maybeShowWarnings fix_msgs >> return rq
 
--- | Main iallocator pipeline.
-runIAllocator :: AlgorithmOptions
-              -> Request -> (Maybe (Node.List, Instance.List), String)
-runIAllocator opts request =
+-- | Format an IAlloc result to maybe the new cluster and a response.
+formatIAllocResult :: Result IAllocResult
+                   -> (Maybe (Node.List, Instance.List), String)
+formatIAllocResult iallocResult =
   let (ok, info, result, cdata) =
-        case processRequest opts request of
+        case iallocResult of
           Ok (msg, r, nl, il) -> (True, "Request successful: " ++ msg, r,
                                   Just (nl, il))
           Bad msg -> (False, "Request failed: " ++ msg, JSArray [], Nothing)
       rstring = formatResponse ok info result
   in (cdata, rstring)
+
+-- | Main iallocator pipeline.
+runIAllocator :: AlgorithmOptions
+              -> Request -> (Maybe (Node.List, Instance.List), String)
+runIAllocator opts request = formatIAllocResult $ processRequest opts request
 
 -- | Load the data from an iallocation request file
 loadData :: FilePath -- ^ The path to the file
