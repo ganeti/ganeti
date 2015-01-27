@@ -34,57 +34,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 module Ganeti.Metad.ConfigServer where
 
-import Control.Concurrent
-import Control.Exception (try, finally)
-import Control.Monad (unless)
-import Text.JSON
-import System.IO.Error (isEOFError)
+import Control.Concurrent (forkIO)
+import Control.Concurrent.MVar (MVar)
+import Control.Exception (finally)
+import qualified Text.JSON as J
 
+import Ganeti.BasicTypes
 import Ganeti.Path as Path
 import Ganeti.Daemon (DaemonOptions, cleanupSocket, describeError)
+import qualified Ganeti.JSON as J
 import qualified Ganeti.Logging as Logging
 import Ganeti.Runtime (GanetiDaemon(..))
 import Ganeti.UDSServer (Client, ConnectConfig(..), Server, ServerConfig(..))
 import qualified Ganeti.UDSServer as UDSServer
 
-import Ganeti.Metad.Config as Config
+import Ganeti.Metad.ConfigCore
 import Ganeti.Metad.Types (InstanceParams)
-
--- | Update the configuration with the received instance parameters.
-updateConfig :: MVar InstanceParams -> String -> IO ()
-updateConfig config str =
-  case decode str of
-    Error err ->
-      Logging.logDebug $ show err
-    Ok x ->
-      case Config.getInstanceParams x of
-        Error err ->
-          Logging.logError $ "Could not get instance parameters: " ++ err
-        Ok (name, instanceParams) -> do
-          cfg <- takeMVar config
-          let cfg' = mergeConfig cfg instanceParams
-          putMVar config cfg'
-          Logging.logInfo $
-            "Updated instance " ++ show name ++ " configuration"
-          Logging.logDebug $ "Instance configuration: " ++ show cfg'
 
 -- | Reads messages from clients and update the configuration
 -- according to these messages.
-acceptConfig :: MVar InstanceParams -> Client -> IO ()
-acceptConfig config client =
-  do res <- try $ UDSServer.recvMsg client
-     case res of
-       Left err -> do
-         unless (isEOFError err) .
-           Logging.logDebug $ show err
-         return ()
-       Right str -> do
-         Logging.logDebug $ "Received: " ++ str
-         updateConfig config str
+acceptConfig :: MetadHandle -> Client -> IO ()
+acceptConfig config client = do
+  result <- runResultT $ do
+    msg <- liftIO $ UDSServer.recvMsg client
+    Logging.logDebug $ "Received: " ++ msg
+    instData <- toErrorStr . J.fromJResultE "Parsing instance data" . J.decode
+                $ msg
+    runMetadMonad (updateConfig instData) config
+  annotateResult "Updating Metad instance configuration" $ withError show result
 
 -- | Loop that accepts clients and dispatches them to an isolated
 -- thread that will handle the client's requests.
-acceptClients :: MVar InstanceParams -> Server -> IO ()
+acceptClients :: MetadHandle -> Server -> IO ()
 acceptClients config server =
   do client <- UDSServer.acceptClient server
      _ <- forkIO $ acceptConfig config client
@@ -97,7 +78,7 @@ start _ config = do
      server <- describeError "binding to the socket" Nothing (Just socket_path)
                $ UDSServer.connectServer metadConfig True socket_path
      finally
-       (acceptClients config server)
+       (acceptClients (MetadHandle config) server)
        (UDSServer.closeServer server)
   where
     metadConfig = ServerConfig GanetiMetad $ ConnectConfig 60 60

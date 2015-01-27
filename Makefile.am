@@ -1027,6 +1027,7 @@ endif
 if ENABLE_METADATA
 HS_LIB_SRCS += \
 	src/Ganeti/Metad/Config.hs \
+	src/Ganeti/Metad/ConfigCore.hs \
 	src/Ganeti/Metad/ConfigServer.hs \
 	src/Ganeti/Metad/Server.hs \
 	src/Ganeti/Metad/Types.hs \
@@ -1034,6 +1035,7 @@ HS_LIB_SRCS += \
 else
 EXTRA_DIST += \
 	src/Ganeti/Metad/Config.hs \
+	src/Ganeti/Metad/ConfigCore.hs \
 	src/Ganeti/Metad/ConfigServer.hs \
 	src/Ganeti/Metad/Server.hs \
 	src/Ganeti/Metad/Types.hs \
