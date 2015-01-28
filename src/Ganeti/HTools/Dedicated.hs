@@ -39,6 +39,7 @@ module Ganeti.HTools.Dedicated
   , Metric
   , lostAllocationsMetric
   , allocateOnSingle
+  , allocateOnPair
   ) where
 
 import Control.Applicative (liftA2)
@@ -135,3 +136,26 @@ allocateOnSingle opts nl inst new_pdx = do
   (metrics, new_p) <- lostAllocationsMetric opts testInst inst primary
   let new_nl = Container.add new_pdx new_p nl
   return (new_nl, new_inst, [new_p], metrics)
+
+-- | Allocate an instance on a given pair of nodes.
+allocateOnPair :: Alg.AlgorithmOptions
+               -> Node.List
+               -> Instance.Instance
+               -> T.Ndx
+               -> T.Ndx
+               -> T.OpResult (Node.GenericAllocElement Metric)
+allocateOnPair opts nl inst pdx sdx = do
+  let primary = Container.find pdx nl
+      secondary = Container.find sdx nl
+      policy = Node.iPolicy primary
+      testInst = testInstances policy
+      inst' = Instance.setBoth inst pdx sdx
+  Instance.instMatchesPolicy inst policy (Node.exclStorage primary)
+  ((lAllP, dskP), primary') <- lostAllocationsMetric opts testInst inst' primary
+  secondary' <- Node.addSec secondary inst' pdx
+  let lAllS =  zipWith (-) (allocationVector testInst secondary)
+                           (allocationVector testInst secondary')
+      dskS = Node.fDsk secondary'
+      metric = (zipWith (+) lAllP lAllS, dskP + dskS)
+      nl' = Container.addTwo pdx primary' sdx secondary' nl
+  return (nl', inst', [primary', secondary'], metric)
