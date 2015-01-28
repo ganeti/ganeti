@@ -39,6 +39,7 @@ module Ganeti.HTools.Backend.IAlloc
   , loadData
   , formatAllocate
   , formatIAllocResult
+  , formatMultiAlloc
   ) where
 
 import Data.Either ()
@@ -302,7 +303,8 @@ formatAllocate il as = do
         return (info, showJSON $ map Node.name nodes, nl, il')
 
 -- | Convert multi allocation results into the result format.
-formatMultiAlloc :: (Node.List, Instance.List, Cluster.AllocSolutionList)
+formatMultiAlloc :: ( Node.List, Instance.List
+                    , Cluster.GenericAllocSolutionList a)
                  -> Result IAllocResult
 formatMultiAlloc (fin_nl, fin_il, ars) =
   let rars = reverse ars

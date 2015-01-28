@@ -85,6 +85,8 @@ module Ganeti.HTools.Cluster
   , tryAlloc
   , tryGroupAlloc
   , tryMGAlloc
+  , filterMGResults
+  , sortMGResults
   , tryNodeEvac
   , tryChangeGroup
   , collapseFailures
@@ -957,8 +959,8 @@ solutionDescription (grp, result) =
 -- | From a list of possibly bad and possibly empty solutions, filter
 -- only the groups with a valid result. Note that the result will be
 -- reversed compared to the original list.
-filterMGResults :: [(Group.Group, Result AllocSolution)]
-                -> [(Group.Group, AllocSolution)]
+filterMGResults :: [(Group.Group, Result (GenericAllocSolution a))]
+                -> [(Group.Group, GenericAllocSolution a)]
 filterMGResults = foldl' fn []
   where unallocable = not . Group.isAllocable
         fn accu (grp, rasol) =
@@ -969,8 +971,9 @@ filterMGResults = foldl' fn []
                    | otherwise -> (grp, sol):accu
 
 -- | Sort multigroup results based on policy and score.
-sortMGResults :: [(Group.Group, AllocSolution)]
-              -> [(Group.Group, AllocSolution)]
+sortMGResults :: Ord a
+              => [(Group.Group, GenericAllocSolution a)]
+              -> [(Group.Group, GenericAllocSolution a)]
 sortMGResults sols =
   let extractScore (_, _, _, x) = x
       solScore (grp, sol) = (Group.allocPolicy grp,
