@@ -41,18 +41,21 @@ module Ganeti.HTools.Dedicated
   , allocateOnSingle
   , allocateOnPair
   , findAllocation
+  , runDedicatedAllocation
   ) where
 
-import Control.Applicative (liftA2)
-import Control.Monad (unless)
+import Control.Applicative (liftA2, (<$>))
+import Control.Arrow ((&&&))
+import Control.Monad (unless, liftM, foldM)
 import qualified Data.Foldable as F
 import Data.Function (on)
 import qualified Data.IntMap as IntMap
 import qualified Data.IntSet as IntSet
-import Data.List (sortBy)
+import Data.List (sortBy, intercalate)
 
 import Ganeti.BasicTypes (iterateOk, Result, failError)
 import qualified Ganeti.HTools.AlgorithmParams as Alg
+import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
@@ -197,3 +200,57 @@ findAllocation opts mggl mgnl gdx inst count = do
                        Cluster.emptyAllocSolution nodes
       in return $ Cluster.genericAnnotateSolution show sols
   return (solution, Cluster.solutionDescription (group, return solution))
+
+-- | Find an allocation in a suitable group.
+findMGAllocation :: Alg.AlgorithmOptions
+                 -> Group.List
+                 -> Node.List
+                 -> Instance.List
+                 -> Instance.Instance
+                 -> Int
+                 -> Result (Cluster.GenericAllocSolution Metric)
+findMGAllocation opts gl nl il inst count = do
+  let groups_by_idx = Cluster.splitCluster nl il
+      genSol (gdx, (nl', _)) =
+        liftM fst $ findAllocation opts gl nl' gdx inst count
+      sols = map (flip Container.find gl . fst &&& genSol) groups_by_idx
+      goodSols = Cluster.sortMGResults $ Cluster.filterMGResults sols
+      all_msgs = concatMap Cluster.solutionDescription sols
+  case goodSols of
+    [] -> fail $ intercalate ", " all_msgs
+    (final_group, final_sol):_ ->
+      let sel_msg = "Selected group: " ++ Group.name final_group
+      in return $ final_sol { Cluster.asLog = sel_msg : all_msgs }
+
+-- | Handle allocation requests in the dedicated scenario.
+runDedicatedAllocation :: Alg.AlgorithmOptions
+                       -> Loader.Request
+                       -> (Maybe (Node.List, Instance.List), String)
+runDedicatedAllocation opts request =
+  let Loader.Request rqtype (Loader.ClusterData gl nl il _ _) = request
+      allocresult =
+        case rqtype of
+          Loader.Allocate inst (Cluster.AllocDetails count (Just gn)) -> do
+            gdx <- Group.idx <$> Container.findByName gl gn
+            (solution, msgs) <- findAllocation opts gl nl gdx inst count
+            IAlloc.formatAllocate il $ solution { Cluster.asLog = msgs }
+          Loader.Allocate inst (Cluster.AllocDetails count Nothing) ->
+            findMGAllocation opts gl nl il inst count
+              >>= IAlloc.formatAllocate il
+          Loader.MultiAllocate insts ->
+            IAlloc.formatMultiAlloc =<< foldM
+              (\(nl', il', res)
+                (inst, Cluster.AllocDetails count maybeGroup) -> do
+                  ares <- maybe (findMGAllocation opts gl nl' il' inst count)
+                            (\gn -> do
+                               gdx <- Group.idx <$> Container.findByName gl gn
+                               liftM fst
+                                 $ findAllocation opts gl nl gdx inst count)
+                          maybeGroup
+                  let sol = Cluster.asSolution ares
+                      nl'' = Cluster.extractNl nl' sol
+                      il'' = Cluster.updateIl il' sol
+                  return (nl'', il'', (inst, ares):res))
+               (nl, il, []) insts
+          _ -> fail "Dedicated Allocation only for proper allocation requests"
+  in IAlloc.formatIAllocResult allocresult
