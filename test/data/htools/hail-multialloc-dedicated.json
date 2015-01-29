@@ -1,0 +1,284 @@
+{
+  "cluster_tags": [],
+  "instances": {
+    "instance2-quarter": {
+      "disk_space_total": 10240,
+      "disk_template": "plain",
+      "disks": [
+        {
+          "mode": "rw",
+          "size": 10240,
+          "spindles": 1
+        }
+      ],
+      "memory": 1024,
+      "nics": [],
+      "nodes": [
+        "node2-quarter"
+      ],
+      "spindle_use": 1,
+      "tags": [],
+      "vcpus": 1
+    },
+    "instance3-half": {
+      "disk_space_total": 20480,
+      "disk_template": "plain",
+      "disks": [
+        {
+          "mode": "rw",
+          "size": 20480,
+          "spindles": 2
+        }
+      ],
+      "memory": 2048,
+      "nics": [],
+      "nodes": [
+        "node3-half"
+      ],
+      "spindle_use": 2,
+      "tags": [],
+      "vcpus": 2
+    },
+    "instance4-full": {
+      "disk_space_total": 40960,
+      "disk_template": "plain",
+      "disks": [
+        {
+          "mode": "rw",
+          "size": 40960,
+          "spindles": 4
+        }
+      ],
+      "memory": 4096,
+      "nics": [],
+      "nodes": [
+        "node4-full"
+      ],
+      "spindle_use": 4,
+      "tags": [],
+      "vcpus": 4
+    }
+  },
+  "nodegroups": {
+    "uuid-group-1": {
+      "alloc_policy": "preferred",
+      "ipolicy": {
+        "disk-templates": [
+          "plain"
+        ],
+        "minmax": [
+          {
+            "max": {
+              "cpu-count": 1,
+              "disk-count": 1,
+              "disk-size": 10240,
+              "memory-size": 1024,
+              "nic-count": 1,
+              "spindle-use": 1
+            },
+            "min": {
+              "cpu-count": 1,
+              "disk-count": 1,
+              "disk-size": 10220,
+              "memory-size": 1022,
+              "nic-count": 1,
+              "spindle-use": 1
+            }
+          },
+          {
+            "max": {
+              "cpu-count": 2,
+              "disk-count": 2,
+              "disk-size": 20480,
+              "memory-size": 2048,
+              "nic-count": 1,
+              "spindle-use": 2
+            },
+            "min": {
+              "cpu-count": 2,
+              "disk-count": 2,
+              "disk-size": 20460,
+              "memory-size": 2046,
+              "nic-count": 1,
+              "spindle-use": 2
+            }
+          },
+          {
+            "max": {
+              "cpu-count": 4,
+              "disk-count": 4,
+              "disk-size": 40960,
+              "memory-size": 4096,
+              "nic-count": 1,
+              "spindle-use": 4
+            },
+            "min": {
+              "cpu-count": 4,
+              "disk-count": 4,
+              "disk-size": 40940,
+              "memory-size": 4094,
+              "nic-count": 1,
+              "spindle-use": 4
+            }
+          }
+        ],
+        "spindle-ratio": 1.0,
+        "std": {
+          "cpu-count": 1,
+          "disk-count": 1,
+          "disk-size": 10240,
+          "memory-size": 1024,
+          "nic-count": 1,
+          "spindle-use": 1
+        },
+        "vcpu-ratio": 1.0
+      },
+      "name": "default",
+      "networks": [],
+      "tags": []
+    }
+  },
+  "nodes": {
+    "node1-empty": {
+      "drained": false,
+      "free_disk": 40960,
+      "free_memory": 4096,
+      "free_spindles": 4,
+      "group": "uuid-group-1",
+      "master_candidate": true,
+      "master_capable": true,
+      "ndparams": {
+        "exclusive_storage": true,
+        "spindle_count": 1
+      },
+      "offline": false,
+      "primary_ip": "192.0.2.1",
+      "reserved_cpus": 0,
+      "reserved_memory": 0,
+      "secondary_ip": "198.51.100.1",
+      "tags": [],
+      "total_cpus": 5,
+      "total_disk": 40960,
+      "total_memory": 4096,
+      "total_spindles": 5,
+      "vm_capable": true
+    },
+    "node2-quarter": {
+      "drained": false,
+      "free_disk": 30720,
+      "free_memory": 3072,
+      "free_spindles": 3,
+      "group": "uuid-group-1",
+      "master_candidate": true,
+      "master_capable": true,
+      "ndparams": {
+        "exclusive_storage": true,
+        "spindle_count": 1
+      },
+      "offline": false,
+      "primary_ip": "192.0.2.2",
+      "reserved_cpus": 0,
+      "reserved_memory": 0,
+      "secondary_ip": "198.51.100.2",
+      "tags": [],
+      "total_cpus": 5,
+      "total_disk": 40960,
+      "total_memory": 4096,
+      "total_spindles": 5,
+      "vm_capable": true
+    },
+    "node3-half": {
+      "drained": false,
+      "free_disk": 20480,
+      "free_memory": 2048,
+      "free_spindles": 2,
+      "group": "uuid-group-1",
+      "master_candidate": true,
+      "master_capable": true,
+      "ndparams": {
+        "exclusive_storage": true,
+        "spindle_count": 1
+      },
+      "offline": false,
+      "primary_ip": "192.0.2.3",
+      "reserved_cpus": 0,
+      "reserved_memory": 0,
+      "secondary_ip": "198.51.100.3",
+      "tags": [],
+      "total_cpus": 5,
+      "total_disk": 40960,
+      "total_memory": 4096,
+      "total_spindles": 5,
+      "vm_capable": true
+    },
+    "node4-full": {
+      "drained": false,
+      "free_disk": 0,
+      "free_memory": 0,
+      "free_spindles": 0,
+      "group": "uuid-group-1",
+      "master_candidate": true,
+      "master_capable": true,
+      "ndparams": {
+        "exclusive_storage": true,
+        "spindle_count": 1
+      },
+      "offline": false,
+      "primary_ip": "192.0.2.4",
+      "reserved_cpus": 0,
+      "reserved_memory": 0,
+      "secondary_ip": "198.51.100.4",
+      "tags": [],
+      "total_cpus": 5,
+      "total_disk": 40960,
+      "total_memory": 4096,
+      "total_spindles": 5,
+      "vm_capable": true
+    }
+  },
+  "request": {
+    "instances": [
+      {
+        "disk_space_total": 10230,
+        "disk_template": "plain",
+        "disks": [
+          {
+            "mode": "rw",
+            "size": 10230,
+            "spindles": 1
+          }
+        ],
+        "hypervisor": "xen-pvm",
+        "memory": 1023,
+        "name": "instance-new-quarter-1",
+        "nics": [],
+        "os": "instance-debootstrap",
+        "required_nodes": 1,
+        "spindle_use": 1,
+        "tags": [],
+        "vcpus": 1
+      },
+      {
+        "disk_space_total": 10230,
+        "disk_template": "plain",
+        "disks": [
+          {
+            "mode": "rw",
+            "size": 10230,
+            "spindles": 1
+          }
+        ],
+        "hypervisor": "xen-pvm",
+        "memory": 1023,
+        "name": "instance-new-quarter-2",
+        "nics": [],
+        "os": "instance-debootstrap",
+        "required_nodes": 1,
+        "spindle_use": 1,
+        "tags": [],
+        "vcpus": 1
+      }
+    ],
+    "type": "multi-allocate"
+  }
+}

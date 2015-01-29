@@ -176,3 +176,8 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 ./test/hs/hail $TESTDATA_DIR/hail-alloc-dedicated-1.json
 >>> /"success":true.*"result":\["node2-quarter"\]/
 >>>= 0
+
+# Verify dedicated multi-allocation
+./test/hs/hail $TESTDATA_DIR/hail-multialloc-dedicated.json
+>>> /"success":true.*"result":\[\[\[.*\["node2-quarter"\]/
+>>>= 0
