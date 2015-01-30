@@ -433,10 +433,10 @@ class LUBackupExport(LogicalUnit):
       ShutdownInstanceDisks(self, self.instance)
       raise errors.OpExecError("Could not start instance: %s" % msg)
 
-  def InstanceDown(self):
-    """Returns true iff the instance is shut down during transfer."""
-    return (self.instance.admin_state != constants.ADMINST_UP or
-            self.op.shutdown)
+  def TrySnapshot(self):
+    """Returns true if there is a reason to prefer a snapshot."""
+    return (not self.op.remove_instance and
+            self.instance.admin_state == constants.ADMINST_UP)
 
   def DoReboot(self):
     """Returns true iff the instance needs to be started after transfer."""
@@ -476,7 +476,7 @@ class LUBackupExport(LogicalUnit):
       self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     try:
-      snapshot = not self.InstanceDown()
+      snapshot = self.TrySnapshot()
       helper = masterd.instance.ExportInstanceHelper(self, feedback_fn,
                                                      self.instance, snapshot)
 
