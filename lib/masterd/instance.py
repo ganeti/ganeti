@@ -1211,6 +1211,7 @@ class ExportInstanceHelper(object):
         new_dev = objects.Disk(dev_type=dev_type, size=disk.size,
                                logical_id=disk_id, iv_name=disk.iv_name,
                                params=disk_params)
+        new_dev.uuid = self._lu.cfg.GenerateUniqueID(self._lu.proc.GetECId())
 
       assert idx not in self._disks_to_transfer
       self._disks_to_transfer[idx] = new_dev
@@ -1268,7 +1269,7 @@ class ExportInstanceHelper(object):
         continue
 
       path = utils.PathJoin(pathutils.EXPORT_DIR, "%s.new" % instance.name,
-                            dev.logical_id[1])
+                            dev.uuid)
 
       finished_fn = compat.partial(self._TransferFinished, idx)
 

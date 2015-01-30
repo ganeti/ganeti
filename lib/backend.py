@@ -4230,7 +4230,7 @@ def FinalizeExport(instance, snap_disks):
       config.set(constants.INISECT_INS, "disk%d_ivname" % disk_count,
                  ("%s" % disk.iv_name))
       config.set(constants.INISECT_INS, "disk%d_dump" % disk_count,
-                 ("%s" % disk.logical_id[1]))
+                 ("%s" % disk.uuid))
       config.set(constants.INISECT_INS, "disk%d_size" % disk_count,
                  ("%d" % disk.size))
       config.set(constants.INISECT_INS, "disk%d_name" % disk_count,
