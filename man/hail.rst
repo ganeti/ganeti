@@ -34,7 +34,9 @@ the CPUload collector.
 ALGORITHM
 ~~~~~~~~~
 
-The program uses a simplified version of the hbal algorithm.
+On regular node groups, the program uses a simplified version of
+the hbal algorithm; for allocation on node groups with exclusive
+storage see below.
 
 For single-node allocations (non-mirrored instances), again we
 select the node which, when chosen as the primary node, gives the best
@@ -63,6 +65,17 @@ The deprecated *multi-evacuate* modes is no longer supported.
 
 In all cases, the cluster (or group) scoring is identical to the hbal
 algorithm.
+
+For allocation on node groups with exclusive storage, the lost-allocations
+metrics is used instead to determine which node to allocate an instance
+on. For a node the allocation vector is the vector of, for each instance
+policy interval in decreasing order, the number of instances minimally
+compliant with that interval that still can be placed on that node. The
+lost-allocations vector for an instance on a node is the difference of
+the allocation vectors for that node before and after placing the
+instance on that node. The lost-allocations metrics is the lost allocation
+vector followed by the remaining disk space on the chosen node, all
+compared lexicographically.
 
 OPTIONS
 -------
