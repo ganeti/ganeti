@@ -1226,7 +1226,7 @@ class ExportInstanceHelper(object):
 
     """
     disk = self._disks_to_transfer.get(disk_index)
-    if disk and not self._removed_snaps[disk_index]:
+    if self._snapshot and disk and not self._removed_snaps[disk_index]:
       src_node = self._instance.primary_node
       src_node_name = self._lu.cfg.GetNodeName(src_node)
 
