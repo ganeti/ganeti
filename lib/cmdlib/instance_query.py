@@ -35,6 +35,7 @@ import itertools
 from ganeti import compat
 from ganeti import constants
 from ganeti import locking
+from ganeti import utils
 from ganeti.cmdlib.base import NoHooksLU
 from ganeti.cmdlib.common import ShareAll, GetWantedInstances, \
   CheckInstancesNodeGroups, AnnotateDiskParams
@@ -270,9 +271,10 @@ class LUInstanceQueryData(NoHooksLU):
       group2name_fn = lambda uuid: groups[uuid].name
       node_uuid2name_fn = lambda uuid: nodes[uuid].name
 
-      disks = map(compat.partial(self._ComputeDiskStatus, instance,
-                                 node_uuid2name_fn),
-                  self.cfg.GetInstanceDisks(instance.uuid))
+      disk_objects = self.cfg.GetInstanceDisks(instance.uuid)
+      output_disks = map(compat.partial(self._ComputeDiskStatus, instance,
+                                        node_uuid2name_fn),
+                         disk_objects)
 
       secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
       snodes_group_uuids = [nodes[snode_uuid].group
@@ -291,8 +293,8 @@ class LUInstanceQueryData(NoHooksLU):
         "os": instance.os,
         # this happens to be the same format used for hooks
         "nics": NICListToTuple(self, instance.nics),
-        "disk_template": instance.disk_template,
-        "disks": disks,
+        "disk_template": utils.GetDiskTemplate(disk_objects),
+        "disks": output_disks,
         "hypervisor": instance.hypervisor,
         "network_port": instance.network_port,
         "hv_instance": instance.hvparams,
