@@ -141,7 +141,7 @@ data Options = Options
   , optAcceptExisting :: Bool        -- ^ accept existing N+1 violations
   , optMonD        :: Bool           -- ^ Query MonDs
   , optMonDFile    :: Maybe FilePath -- ^ Optional file with data provided
-                                     -- ^ by MonDs
+                                     -- by MonDs
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optRestrictedMigrate :: Bool     -- ^ Disallow replace-primary moves
   , optExInst      :: [String]       -- ^ Instances to be excluded
