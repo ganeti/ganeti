@@ -100,6 +100,7 @@ module Ganeti.HTools.CLI
   , oPrintNodes
   , oQuiet
   , oRapiMaster
+  , oReason
   , oSaveCluster
   , oSelInst
   , oShowHelp
@@ -178,6 +179,8 @@ data Options = Options
   , optOneStepOnly :: Bool           -- ^ Only do the first step
   , optOutPath     :: FilePath       -- ^ Path to the output directory
   , optPrintMoves  :: Bool           -- ^ Whether to show the instance moves
+  , optReason      :: Maybe String   -- ^ The reason to be passed when
+                                     -- submitting jobs
   , optSaveCluster :: Maybe FilePath -- ^ Save cluster state to this file
   , optShowCmds    :: Maybe FilePath -- ^ Whether to show the command list
   , optShowHelp    :: Bool           -- ^ Just show the help
@@ -242,6 +245,7 @@ defaultOptions  = Options
   , optOneStepOnly = False
   , optOutPath     = "."
   , optPrintMoves  = False
+  , optReason      = Nothing
   , optSaveCluster = Nothing
   , optShowCmds    = Nothing
   , optShowHelp    = False
@@ -438,6 +442,13 @@ oExecJobs =
    (NoArg (\ opts -> Ok opts { optExecJobs = True}))
    "execute the suggested moves via Luxi (only available when using\
    \ it for data gathering)",
+   OptComplNone)
+
+oReason :: OptType
+oReason =
+  (Option "" ["reason"]
+   (ReqArg (\ f opts -> Ok opts { optReason = Just f }) "REASON")
+   "The reason to pass to the submitted jobs",
    OptComplNone)
 
 oForce :: OptType
