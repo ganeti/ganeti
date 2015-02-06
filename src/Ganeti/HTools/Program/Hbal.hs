@@ -43,7 +43,7 @@ import Control.Arrow ((&&&))
 import Control.Lens (over)
 import Control.Monad
 import Data.List
-import Data.Maybe (isNothing)
+import Data.Maybe (isNothing, fromMaybe)
 import System.Exit
 import System.IO
 
@@ -86,6 +86,7 @@ options = do
     , luxi
     , oIAllocSrc
     , oExecJobs
+    , oReason
     , oGroup
     , oMaxSolLength
     , oVerbose
@@ -116,10 +117,11 @@ arguments = []
 
 -- | Wraps an 'OpCode' in a 'MetaOpCode' while also adding a comment
 -- about what generated the opcode.
-annotateOpCode :: Timestamp -> Jobs.Annotator
-annotateOpCode ts =
+annotateOpCode :: Maybe String -> Timestamp -> Jobs.Annotator
+annotateOpCode reason ts =
   over (metaParamsL . opReasonL)
-      (++ [("hbal", "hbal " ++ version ++ " called", reasonTrailTimestamp ts)])
+      (++ [( "hbal", fromMaybe ("hbal " ++ version ++ " called") reason
+           , reasonTrailTimestamp ts)])
   . setOpComment ("rebalancing via hbal " ++ version)
   . wrapOpCode
 
@@ -187,7 +189,7 @@ maybeExecJobs opts ord_plc fin_nl il cmd_jobs =
             Just master -> do
               ts <- currentTimestamp
               let annotator = maybe id setOpPriority (optPriority opts) .
-                              annotateOpCode ts
+                              annotateOpCode (optReason opts) ts
               execWithCancel annotator master $
                 zip (map toOpcodes cmd_jobs) (map toDescr cmd_jobs))
     else return $ Ok ()
