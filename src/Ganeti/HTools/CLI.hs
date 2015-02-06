@@ -61,6 +61,7 @@ module Ganeti.HTools.CLI
   , oMonD
   , oMonDDataFile
   , oEvacMode
+  , oFirstJobGroup
   , oRestrictedMigrate
   , oExInst
   , oExTags
@@ -153,6 +154,7 @@ data Options = Options
   , optExInst      :: [String]       -- ^ Instances to be excluded
   , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
   , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
+  , optFirstJobGroup :: Bool         -- ^ Only execute the first group of jobs
   , optForce       :: Bool           -- ^ Force the execution
   , optFullEvacuation :: Bool        -- ^ Fully evacuate nodes to be rebooted
   , optGroup       :: Maybe GroupID  -- ^ The UUID of the group to process
@@ -218,6 +220,7 @@ defaultOptions  = Options
   , optExInst      = []
   , optExTags      = Nothing
   , optExecJobs    = False
+  , optFirstJobGroup = False
   , optForce       = False
   , optFullEvacuation = False
   , optGroup       = Nothing
@@ -449,6 +452,13 @@ oReason =
   (Option "" ["reason"]
    (ReqArg (\ f opts -> Ok opts { optReason = Just f }) "REASON")
    "The reason to pass to the submitted jobs",
+   OptComplNone)
+
+oFirstJobGroup :: OptType
+oFirstJobGroup =
+  (Option "" ["first-job-group"]
+   (NoArg (\ opts -> Ok opts {optFirstJobGroup = True}))
+   "only execute the first group of jobs",
    OptComplNone)
 
 oForce :: OptType
