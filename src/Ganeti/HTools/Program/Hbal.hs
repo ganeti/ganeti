@@ -86,6 +86,7 @@ options = do
     , luxi
     , oIAllocSrc
     , oExecJobs
+    , oFirstJobGroup
     , oReason
     , oGroup
     , oMaxSolLength
@@ -359,9 +360,13 @@ main opts args = do
   unless (verbose < 1) $
          printf "Solution length=%d\n" (length ord_plc)
 
-  let cmd_jobs = Cluster.splitJobs cmd_strs
+  let cmd_jobs = (if optFirstJobGroup opts then take 1 else id)
+                 $ Cluster.splitJobs cmd_strs
 
-  maybeSaveCommands "Commands to run to reach the above solution:" opts
+  maybeSaveCommands (if optFirstJobGroup opts
+                        then "First set of jobs:"
+                        else "Commands to run to reach the above solution:")
+                    opts
     $ Cluster.formatCmds cmd_jobs
 
   maybeSaveData (optSaveCluster opts) "balanced" "after balancing"
