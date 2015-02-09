@@ -2,7 +2,7 @@
 Design document drafts
 ======================
 
-.. Last updated for Ganeti 2.13
+.. Last updated for Ganeti 2.14
 
 .. toctree::
    :maxdepth: 2
