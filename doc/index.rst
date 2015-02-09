@@ -105,6 +105,7 @@ Draft designs
    design-disks.rst
    design-file-based-storage.rst
    design-hroller.rst
+   design-hsqueeze.rst
    design-hotplug.rst
    design-internal-shutdown.rst
    design-kvmd.rst
