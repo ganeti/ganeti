@@ -219,6 +219,8 @@ class TestLogicalVolume(unittest.TestCase):
       ("-wi-a-", 253, 7, 4096.00, 4, ["/dev/abc"]),
       ("-ri-a-", 253, 4, 4.00, 5, ["/dev/abc", "/dev/def"]),
       ("-wc-ao", 15, 18, 4096.00, 32, ["/dev/abc", "/dev/def", "/dev/ghi0"]),
+      # Physical devices might be missing with thin volumes
+      ("twc-ao", 15, 18, 4096.00, 32, []),
       ]
     for exp in true_out:
       for sep in "#;|":

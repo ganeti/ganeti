@@ -441,7 +441,15 @@ class LogicalVolume(base.BlockDev):
     """Parse one line of the lvs output used in L{_GetLvInfo}.
 
     """
-    elems = line.strip().rstrip(sep).split(sep)
+    elems = line.strip().split(sep)
+
+    # The previous iteration of code here assumed that LVM might put another
+    # separator to the right of the output. The PV info might be empty for
+    # thin volumes, so stripping off the separators might cut off the last
+    # empty element - do this instead.
+    if len(elems) == 7 and elems[-1] == "":
+      elems.pop()
+
     if len(elems) != 6:
       base.ThrowError("Can't parse LVS output, len(%s) != 6", str(elems))
 
@@ -466,12 +474,12 @@ class LogicalVolume(base.BlockDev):
       base.ThrowError("Can't parse the number of stripes: %s", err)
 
     pv_names = []
-    for pv in pvs.split(","):
-      m = re.match(cls._PARSE_PV_DEV_RE, pv)
-      if not m:
-        base.ThrowError("Can't parse this device list: %s", pvs)
-      pv_names.append(m.group(1))
-    assert len(pv_names) > 0
+    if pvs != "":
+      for pv in pvs.split(","):
+        m = re.match(cls._PARSE_PV_DEV_RE, pv)
+        if not m:
+          base.ThrowError("Can't parse this device list: %s", pvs)
+        pv_names.append(m.group(1))
 
     return (status, major, minor, pe_size, stripes, pv_names)
 
