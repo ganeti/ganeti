@@ -440,7 +440,6 @@ class LUBackupExport(LogicalUnit):
 
   def DoReboot(self):
     """Returns true iff the instance needs to be started after transfer."""
-
     return (self.op.shutdown and
             self.instance.admin_state == constants.ADMINST_UP and
             not self.op.remove_instance)
@@ -476,15 +475,18 @@ class LUBackupExport(LogicalUnit):
       self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     try:
-      snapshot = self.TrySnapshot()
       helper = masterd.instance.ExportInstanceHelper(self, feedback_fn,
-                                                     self.instance, snapshot)
+                                                     self.instance)
 
-      if snapshot:
-        helper.CreateSnapshots()
+      snapshots_available = False
+      if self.TrySnapshot():
+        snapshots_available = helper.CreateSnapshots()
+        if not snapshots_available and not self.op.shutdown:
+          raise errors.OpExecError("Not all disks could be snapshotted, and "
+                                   "you requested a live export; aborting")
 
       try:
-        if self.DoReboot() and snapshot:
+        if self.DoReboot() and snapshots_available:
           self.StartInstance(feedback_fn, src_node_uuid)
         if self.op.mode == constants.EXPORT_MODE_LOCAL:
           (fin_resu, dresults) = helper.LocalExport(self.dst_node,
@@ -504,7 +506,7 @@ class LUBackupExport(LogicalUnit):
                                                      self.op.compress,
                                                      timeouts)
 
-        if self.DoReboot() and not snapshot:
+        if self.DoReboot() and not snapshots_available:
           self.StartInstance(feedback_fn, src_node_uuid)
       finally:
         helper.Cleanup()
