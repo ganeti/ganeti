@@ -4126,15 +4126,14 @@ def BlockdevSnapshot(disk, snap_name, snap_size):
     else:
       _Fail("Cannot find block device %s", disk)
 
-  if disk.dev_type == constants.DT_DRBD8:
-    if not disk.children:
-      _Fail("DRBD device '%s' without backing storage cannot be snapshotted",
-            disk.unique_id)
-    return BlockdevSnapshot(disk.children[0], snap_name, snap_size)
-  elif disk.dev_type == constants.DT_PLAIN:
-    return _DiskSnapshot(disk, snap_name, snap_size)
-  elif disk.dev_type == constants.DT_EXT:
-    return _DiskSnapshot(disk, snap_name, snap_size)
+  if disk.SupportsSnapshots():
+    if disk.dev_type == constants.DT_DRBD8:
+      if not disk.children:
+        _Fail("DRBD device '%s' without backing storage cannot be snapshotted",
+              disk.unique_id)
+      return BlockdevSnapshot(disk.children[0], snap_name, snap_size)
+    else:
+      return _DiskSnapshot(disk, snap_name, snap_size)
   else:
     _Fail("Cannot snapshot block device '%s' of type '%s'",
           disk.logical_id, disk.dev_type)
