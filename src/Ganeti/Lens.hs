@@ -72,8 +72,19 @@ makeCustomLensesFiltered :: (String -> Bool) -> Name -> Q [Dec]
 makeCustomLensesFiltered f = makeLensesWith customRules
   where
     customRules :: LensRules
-    customRules = set lensField (fmap lensFieldName . mfilter f . Just)
-                      defaultRules
+    customRules = set lensField nameFun lensRules
+#if MIN_VERSION_lens(4,5,0)
+    nameFun :: Name -> [Name] -> Name -> [DefName]
+    nameFun _ _ = liftM (TopName . mkName) . nameFilter . nameBase
+#elif MIN_VERSION_lens(4,4,0)
+    nameFun :: [Name] -> Name -> [DefName]
+    nameFun _ = liftM (TopName . mkName) . nameFilter . nameBase
+#else
+    nameFun :: String -> Maybe String
+    nameFun = nameFilter
+#endif
+    nameFilter :: (MonadPlus m) => String -> m String
+    nameFilter = liftM lensFieldName . mfilter f . return
 
 -- | Create lenses for all fields of a given data type.
 makeCustomLenses :: Name -> Q [Dec]
