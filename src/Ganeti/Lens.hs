@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes, CPP #-}
 
 {-| Provides all lens-related functions.
 
@@ -43,6 +43,14 @@ module Ganeti.Lens
   , mapMOf2
   , atSet
   ) where
+
+
+-- The following macro is just a temporary solution for 2.12 and 2.13.
+-- Since 2.14 cabal creates proper macros for all dependencies.
+#define MIN_VERSION_lens(maj,min,rev) \
+  (((maj)<LENS_MAJOR)|| \
+   (((maj)==LENS_MAJOR)&&((min)<=LENS_MINOR))|| \
+   (((maj)==LENS_MAJOR)&&((min)==LENS_MINOR)&&((rev)<=LENS_REV)))
 
 import Control.Applicative ((<$>), WrappedMonad(..))
 import Control.Lens

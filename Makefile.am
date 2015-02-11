@@ -272,6 +272,7 @@ CLEANFILES = \
 	$(addsuffix /*.o,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_hi,$(HS_DIRS)) \
 	$(addsuffix /*.$(HTEST_SUFFIX)_o,$(HS_DIRS)) \
+	hs-lens-version \
 	Makefile.ghc \
 	Makefile.ghc.bak \
 	$(PYTHON_BOOTSTRAP) \
@@ -1171,14 +1172,21 @@ install-exec-hook:
 
 HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 
+hs-lens-version:
+	ghc-pkg list --simple-output lens \
+	| sed -r -e 's/^lens-([0-9]+)\.([0-9]+)\.([0-9]+)(\.([0-9]+))?/\
+	  -DLENS_MAJOR=\1 -DLENS_MINOR=\2 -DLENS_REV=\3/' \
+	> $@
+
 HS_MAKEFILE_GHC_SRCS = $(HS_SRC_PROGS:%=%.hs)
 if WANT_HSTESTS
 HS_MAKEFILE_GHC_SRCS += $(HS_TEST_PROGS:%=%.hs)
 endif
-Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
+Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile hs-lens-version \
               | $(built_base_sources) $(HS_BUILT_SRCS)
 	$(GHC) -M -dep-makefile $@ -dep-suffix $(HPROF_SUFFIX) \
 		-dep-suffix $(HTEST_SUFFIX) $(HFLAGS) -itest/hs \
+	  $(shell cat hs-lens-version) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(HS_MAKEFILE_GHC_SRCS)
 # Since ghc -M does not generate dependency line for object files, dependencies
 # from a target executable seed object (e.g. src/hluxid.o) to objects which
@@ -1194,26 +1202,29 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile \
 
 @include_makefile_ghc@
 
-%.o:
+%.o: hs-lens-version
 	@echo '[GHC]: $@ <- $^'
 	@$(GHC) -c $(HFLAGS) \
+	  $(shell cat hs-lens-version) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 
 # For TH+profiling we need to compile twice: Once without profiling,
 # and then once with profiling. See
 # http://www.haskell.org/ghc/docs/7.0.4/html/users_guide/template-haskell.html#id636646
 if HPROFILE
-%.$(HPROF_SUFFIX)_o: %.o
+%.$(HPROF_SUFFIX)_o: %.o hs-lens-version
 	@echo '[GHC|prof]: $@ <- $^'
 	@$(GHC) -c $(HFLAGS) \
+	  $(shell cat hs-lens-version) \
 	  $(HPROFFLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) \
 		$(@:%.$(HPROF_SUFFIX)_o=%.hs)
 endif
 
-%.$(HTEST_SUFFIX)_o:
+%.$(HTEST_SUFFIX)_o: hs-lens-version
 	@echo '[GHC|test]: $@ <- $^'
 	@$(GHC) -c $(HTEST_FLAGS) \
+	  $(shell cat hs-lens-version) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
 
 %.hi: %.o ;
@@ -1223,16 +1234,17 @@ endif
 if HPROFILE
 $(HS_SRC_PROGS): %: %.$(HPROF_SUFFIX)_o | stamp-directories
 else
-$(HS_SRC_PROGS): %: %.o | stamp-directories
+$(HS_SRC_PROGS): %: %.o hs-lens-version | stamp-directories
 endif
 	@echo '[GHC-link]: $@'
 	$(GHC) $(HFLAGS) \
+	  $(shell cat hs-lens-version) \
 		$(HPROFFLAGS) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
 
-$(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
+$(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o hs-lens-version \
 	                   | stamp-directories $(built_python_sources)
 	@if [ "$(HS_NODEV)" ]; then \
 	  echo "Error: cannot run unittests without the development" \
@@ -1241,6 +1253,7 @@ $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
 	fi
 	@echo '[GHC-link|test]: $@'
 	$(GHC) $(HTEST_FLAGS) \
+	  $(shell cat hs-lens-version) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
@@ -2624,10 +2637,11 @@ $(APIDOC_HS_DIR)/index.html: $(HS_LIBTESTBUILT_SRCS) Makefile
 	  $(HS_LIBTESTBUILT_SRCS)
 
 .PHONY: TAGS
-TAGS: $(GENERATED_FILES)
+TAGS: $(GENERATED_FILES) hs-lens-version
 	rm -f TAGS
 	$(GHC) -e ":etags TAGS_hs" -v0 \
 	  $(filter-out -O -Werror,$(HFLAGS)) \
+	  $(shell cat hs-lens-version) \
 		-osuf tags.o \
 		-hisuf tags.hi \
     -lcurl \
