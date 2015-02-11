@@ -612,7 +612,7 @@ Installing Ganeti
 **Mandatory** on all nodes.
 
 It's now time to install the Ganeti software itself.  Download the
-source from the project page at `<http://code.google.com/p/ganeti/>`_,
+source from the project page at `<http://downloads.ganeti.org/releases/>`_,
 and install it (replace 2.6.0 with the latest version)::
 
   $ tar xvzf ganeti-%2.6.0%.tar.gz
