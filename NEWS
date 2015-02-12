@@ -19,6 +19,8 @@ New features
 - Node tags starting with htools:nlocation: now have a special meaning to htools(1).
   They control between which nodes migration is possible, e.g., during hypervisor
   upgrades. See hbal(1) for details.
+- The node-allocation lock as been removed for good, thus speeding up parallel
+  instance allocation and creation.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
