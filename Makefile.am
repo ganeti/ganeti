@@ -1376,6 +1376,7 @@ EXTRA_DIST = \
 	daemons/daemon-util.in \
 	daemons/ganeti-cleaner.in \
 	$(pkglib_python_scripts) \
+	devel/build_chroot \
 	devel/upload \
 	devel/webserver \
 	tools/kvm-ifup.in \
