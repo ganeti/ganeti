@@ -15,7 +15,6 @@ Design document drafts
    design-glusterfs-ganeti-support.rst
    design-hugepages-support.rst
    design-ceph-ganeti-support.rst
-   design-hsqueeze.rst
    design-os.rst
    design-move-instance-improvements.rst
    design-node-security.rst

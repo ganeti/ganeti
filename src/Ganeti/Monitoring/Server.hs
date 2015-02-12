@@ -50,6 +50,7 @@ import Data.List (find)
 import Data.Monoid (mempty)
 import qualified Data.Map as Map
 import qualified Data.PSQueue as Queue
+import Network.BSD (getServicePortNumber)
 import Snap.Core
 import Snap.Http.Server
 import qualified Text.JSON as J
@@ -67,7 +68,7 @@ import Ganeti.Objects (DataCollectorConfig(..))
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as CU
 import Ganeti.Runtime
-import Ganeti.Utils (getCurrentTimeUSec)
+import Ganeti.Utils (getCurrentTimeUSec, withDefaultOnIOError)
 
 -- * Types and constants definitions
 
@@ -105,9 +106,12 @@ prepMain :: PrepFn CheckResult PrepResult
 prepMain opts _ = do
   accessLog <- daemonsExtraLogFile GanetiMond AccessLog
   errorLog <- daemonsExtraLogFile GanetiMond ErrorLog
+  defaultPort <- withDefaultOnIOError C.defaultMondPort
+                 . liftM fromIntegral
+                 $ getServicePortNumber C.mond
   return .
     setPort
-      (maybe C.defaultMondPort fromIntegral (optPort opts)) .
+      (maybe defaultPort fromIntegral (optPort opts)) .
     maybe id (setBind . pack) (optBindAddress opts)
     $ defaultHttpConf accessLog errorLog
 
