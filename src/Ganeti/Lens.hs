@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes, CPP #-}
 
 {-| Provides all lens-related functions.
 
@@ -44,6 +44,14 @@ module Ganeti.Lens
   , atSet
   ) where
 
+
+-- The following macro is just a temporary solution for 2.12 and 2.13.
+-- Since 2.14 cabal creates proper macros for all dependencies.
+#define MIN_VERSION_lens(maj,min,rev) \
+  (((maj)<LENS_MAJOR)|| \
+   (((maj)==LENS_MAJOR)&&((min)<=LENS_MINOR))|| \
+   (((maj)==LENS_MAJOR)&&((min)==LENS_MINOR)&&((rev)<=LENS_REV)))
+
 import Control.Applicative ((<$>), WrappedMonad(..))
 import Control.Lens
 import Control.Monad
@@ -64,8 +72,19 @@ makeCustomLensesFiltered :: (String -> Bool) -> Name -> Q [Dec]
 makeCustomLensesFiltered f = makeLensesWith customRules
   where
     customRules :: LensRules
-    customRules = set lensField (fmap lensFieldName . mfilter f . Just)
-                      defaultRules
+    customRules = set lensField nameFun lensRules
+#if MIN_VERSION_lens(4,5,0)
+    nameFun :: Name -> [Name] -> Name -> [DefName]
+    nameFun _ _ = liftM (TopName . mkName) . nameFilter . nameBase
+#elif MIN_VERSION_lens(4,4,0)
+    nameFun :: [Name] -> Name -> [DefName]
+    nameFun _ = liftM (TopName . mkName) . nameFilter . nameBase
+#else
+    nameFun :: String -> Maybe String
+    nameFun = nameFilter
+#endif
+    nameFilter :: (MonadPlus m) => String -> m String
+    nameFilter = liftM lensFieldName . mfilter f . return
 
 -- | Create lenses for all fields of a given data type.
 makeCustomLenses :: Name -> Q [Dec]
