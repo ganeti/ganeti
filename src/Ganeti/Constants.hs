@@ -4771,6 +4771,11 @@ cpuavgloadBufferSize = 150
 cpuavgloadWindowSize :: Int
 cpuavgloadWindowSize = 600
 
+-- * Xen cpu load collector
+
+xentopCommand :: String
+xentopCommand = "xentop"
+
 -- * Monitoring daemon
 
 -- | Mond's variable for periodical data collection
