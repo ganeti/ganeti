@@ -139,7 +139,9 @@ instance JSON DCVersion where
   readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for type DCVersion"
 
 -- | Type for the value field of the above map.
-data CollectorData = CPULoadData (Seq.Seq (ClockTime, [Int]))
+data CollectorData =
+  CPULoadData (Seq.Seq (ClockTime, [Int]))
+  | InstanceCpuLoad (Map.Map String (Seq.Seq (ClockTime, Double)))
 
 -- | Type for the map storing the data of the statefull DataCollectors.
 type CollectorMap = Map.Map String CollectorData
