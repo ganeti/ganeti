@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell, FunctionalDependencies, FlexibleContexts, CPP #-}
+{-# LANGUAGE TemplateHaskell, FunctionalDependencies, FlexibleContexts, CPP,
+             TypeFamilies, UndecidableInstances #-}
 -- {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 
 {-| Creates a client out of list of RPC server components.
@@ -55,6 +56,7 @@ import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Error
 import Control.Monad.Reader
+import Control.Monad.Trans.Control
 import Language.Haskell.TH
 import qualified Text.JSON as J
 
@@ -94,6 +96,21 @@ instance MonadError GanetiException RpcClientMonad where
   throwError = RpcClientMonad . throwError
   catchError (RpcClientMonad k) h =
     RpcClientMonad (catchError k (runRpcClientMonad . h))
+
+instance MonadBaseControl IO RpcClientMonad where
+#if MIN_VERSION_monad_control(1,0,0)
+-- Needs Undecidable instances
+  type StM RpcClientMonad b = StM (ReaderT Client ResultG) b
+  liftBaseWith f = RpcClientMonad . liftBaseWith
+                   $ \r -> f (r . runRpcClientMonad)
+  restoreM = RpcClientMonad . restoreM
+#else
+  newtype StM RpcClientMonad b = StMRpcClientMonad
+    { runStMRpcClientMonad :: StM (ReaderT Client ResultG) b }
+  liftBaseWith f = RpcClientMonad . liftBaseWith
+                   $ \r -> f (liftM StMRpcClientMonad . r . runRpcClientMonad)
+  restoreM = RpcClientMonad . restoreM . runStMRpcClientMonad
+#endif
 
 -- * The TH functions to construct RPC client functions from RPC server ones
 

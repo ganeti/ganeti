@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE CPP #-}
 
 {-
@@ -206,18 +207,33 @@ instance (MonadBase IO m, Error a) => MonadBase IO (ResultT a m) where
                    . (try :: IO a -> IO (Either IOError a))
 
 instance (Error a) => MonadTransControl (ResultT a) where
+#if MIN_VERSION_monad_control(1,0,0)
+-- Needs Undecidable instances
+  type StT (ResultT a) b = GenericResult a b
+  liftWith f = ResultT . liftM return $ f runResultT
+  restoreT = ResultT
+#else
   newtype StT (ResultT a) b = StResultT { runStResultT :: GenericResult a b }
   liftWith f = ResultT . liftM return $ f (liftM StResultT . runResultT)
   restoreT = ResultT . liftM runStResultT
+#endif
   {-# INLINE liftWith #-}
   {-# INLINE restoreT #-}
 
 instance (Error a, MonadBaseControl IO m)
          => MonadBaseControl IO (ResultT a m) where
+#if MIN_VERSION_monad_control(1,0,0)
+-- Needs Undecidable instances
+  type StM (ResultT a m) b
+    = ComposeSt (ResultT a) m b
+  liftBaseWith = defaultLiftBaseWith
+  restoreM = defaultRestoreM
+#else
   newtype StM (ResultT a m) b
     = StMResultT { runStMResultT :: ComposeSt (ResultT a) m b }
   liftBaseWith = defaultLiftBaseWith StMResultT
   restoreM = defaultRestoreM runStMResultT
+#endif
   {-# INLINE liftBaseWith #-}
   {-# INLINE restoreM #-}
 

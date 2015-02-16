@@ -1,5 +1,5 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeFamilies,
-             TemplateHaskell, CPP #-}
+             TemplateHaskell, CPP, UndecidableInstances #-}
 
 {-| All RPC calls are run within this monad.
 
@@ -198,11 +198,19 @@ instance MonadBase IO WConfdMonadInt where
   liftBase = WConfdMonadInt . liftBase
 
 instance MonadBaseControl IO WConfdMonadInt where
+#if MIN_VERSION_monad_control(1,0,0)
+-- Needs Undecidable instances
+  type StM WConfdMonadInt b = StM WConfdMonadIntType b
+  liftBaseWith f = WConfdMonadInt . liftBaseWith
+                   $ \r -> f (r . getWConfdMonadInt)
+  restoreM = WConfdMonadInt . restoreM
+#else
   newtype StM WConfdMonadInt b = StMWConfdMonadInt
     { runStMWConfdMonadInt :: StM WConfdMonadIntType b }
   liftBaseWith f = WConfdMonadInt . liftBaseWith
                    $ \r -> f (liftM StMWConfdMonadInt . r . getWConfdMonadInt)
   restoreM = WConfdMonadInt . restoreM . runStMWConfdMonadInt
+#endif
 
 instance MonadLog WConfdMonadInt where
   logAt p = WConfdMonadInt . logAt p
