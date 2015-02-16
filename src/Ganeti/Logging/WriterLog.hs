@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances, FlexibleContexts, TypeFamilies,
              MultiParamTypeClasses, GeneralizedNewtypeDeriving,
-             StandaloneDeriving #-}
+             StandaloneDeriving, UndecidableInstances, CPP #-}
 
 {-| A pure implementation of MonadLog using MonadWriter
 
@@ -109,19 +109,35 @@ instance (Monad m) => MonadLog (WriterLogT m) where
   logAt = curry (WriterLogT . tell . singleton)
 
 instance MonadTransControl WriterLogT where
+#if MIN_VERSION_monad_control(1,0,0)
+-- Needs Undecidable instances
+    type StT WriterLogT a = (a, LogSeq)
+    liftWith f = WriterLogT . WriterT $ liftM (\x -> (x, mempty))
+                              (f runWriterLogT)
+    restoreT = WriterLogT . WriterT
+#else
     newtype StT WriterLogT a =
       StWriterLog { unStWriterLog :: (a, LogSeq) }
     liftWith f = WriterLogT . WriterT $ liftM (\x -> (x, mempty))
                               (f $ liftM StWriterLog . runWriterLogT)
     restoreT = WriterLogT . WriterT . liftM unStWriterLog
+#endif
     {-# INLINE liftWith #-}
     {-# INLINE restoreT #-}
 
 instance (MonadBaseControl IO m)
          => MonadBaseControl IO (WriterLogT m) where
+#if MIN_VERSION_monad_control(1,0,0)
+-- Needs Undecidable instances
+  type StM (WriterLogT m) a
+    = ComposeSt WriterLogT m a
+  liftBaseWith = defaultLiftBaseWith
+  restoreM = defaultRestoreM
+#else
   newtype StM (WriterLogT m) a
     = StMWriterLog { runStMWriterLog :: ComposeSt WriterLogT m a }
   liftBaseWith = defaultLiftBaseWith StMWriterLog
   restoreM = defaultRestoreM runStMWriterLog
+#endif
   {-# INLINE liftBaseWith #-}
   {-# INLINE restoreM #-}
