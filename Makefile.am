@@ -880,6 +880,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/DataCollectors/Lv.hs \
 	src/Ganeti/DataCollectors/Program.hs \
 	src/Ganeti/DataCollectors/Types.hs \
+	src/Ganeti/DataCollectors/XenCpuLoad.hs \
 	src/Ganeti/Errors.hs \
 	src/Ganeti/HTools/AlgorithmParams.hs \
 	src/Ganeti/HTools/Backend/IAlloc.hs \

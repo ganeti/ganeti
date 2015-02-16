@@ -5270,6 +5270,9 @@ ipv4NetworkMaxSize = 30
 dataCollectorCPULoad    :: String
 dataCollectorCPULoad    = "cpu-avg-load"
 
+dataCollectorXenCpuLoad :: String
+dataCollectorXenCpuLoad = "xen-cpu-avg-load"
+
 dataCollectorDiskStats  :: String
 dataCollectorDiskStats  = "diskstats"
 
