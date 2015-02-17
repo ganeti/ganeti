@@ -5155,18 +5155,12 @@ def DrbdDisconnectNet(disks):
             err, exc=True)
 
 
-def DrbdAttachNet(disks, instance_name, multimaster):
+def DrbdAttachNet(disks, multimaster):
   """Attaches the network on a list of drbd devices.
 
   """
   bdevs = _FindDisks(disks)
 
-  if multimaster:
-    for idx, rd in enumerate(bdevs):
-      try:
-        _SymlinkBlockDev(instance_name, rd.dev_path, idx)
-      except EnvironmentError, err:
-        _Fail("Can't create symlink: %s", err)
   # reconnect disks, switch to new master configuration and if
   # needed primary mode
   for rd in bdevs:
@@ -5219,14 +5213,6 @@ def DrbdAttachNet(disks, instance_name, multimaster):
     utils.Retry(_Attach, (0.1, 1.5, 5.0), 2 * 60)
   except utils.RetryTimeout:
     _Fail("Timeout in disk reconnecting")
-
-  if multimaster:
-    # change to primary mode
-    for rd in bdevs:
-      try:
-        rd.Open()
-      except errors.BlockDeviceError, err:
-        _Fail("Can't change to primary mode: %s", err)
 
 
 def DrbdWaitSync(disks):

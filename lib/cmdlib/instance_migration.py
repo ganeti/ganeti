@@ -585,7 +585,7 @@ class TLMigrateInstance(Tasklet):
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     result = self.rpc.call_drbd_attach_net(self.all_node_uuids,
                                            (disks, self.instance),
-                                           self.instance.name, multimaster)
+                                           multimaster)
     for node_uuid, nres in result.items():
       nres.Raise("Cannot change disks config on node %s" %
                  self.cfg.GetNodeName(node_uuid))
@@ -796,9 +796,9 @@ class TLMigrateInstance(Tasklet):
       self._GoStandalone()
       self._GoReconnect(True)
       self._WaitUntilSync()
-    elif utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
-      self._OpenInstanceDisks(self.source_node_uuid, False)
-      self._OpenInstanceDisks(self.target_node_uuid, False)
+
+    self._OpenInstanceDisks(self.source_node_uuid, False)
+    self._OpenInstanceDisks(self.target_node_uuid, False)
 
     self.feedback_fn("* preparing %s to accept the instance" %
                      self.cfg.GetNodeName(self.target_node_uuid))

@@ -2961,7 +2961,6 @@ class TLReplaceDisks(Tasklet):
     result = self.rpc.call_drbd_attach_net([self.instance.primary_node,
                                             self.new_node_uuid],
                                            (inst_disks, self.instance),
-                                           self.instance.name,
                                            False)
     for to_node, to_result in result.items():
       msg = to_result.fail_msg

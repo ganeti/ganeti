@@ -431,7 +431,6 @@ _BLOCKDEV_CALLS = [
    "Disconnects the network of the given drbd devices"),
   ("drbd_attach_net", MULTI, None, constants.RPC_TMO_NORMAL, [
     ("disks", ED_DISKS_DICT_DP, None),
-    ("instance_name", None, None),
     ("multimaster", None, None),
     ], None, None, "Connects the given DRBD devices"),
   ("drbd_wait_sync", MULTI, None, constants.RPC_TMO_SLOW, [

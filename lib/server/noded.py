@@ -458,9 +458,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     disk list must all be drbd devices.
 
     """
-    disks, instance_name, multimaster = params
+    disks, multimaster = params
     disks = [objects.Disk.FromDict(disk) for disk in disks]
-    return backend.DrbdAttachNet(disks, instance_name, multimaster)
+    return backend.DrbdAttachNet(disks, multimaster)
 
   @staticmethod
   def perspective_drbd_wait_sync(params):
