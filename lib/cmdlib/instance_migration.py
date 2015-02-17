@@ -561,19 +561,6 @@ class TLMigrateInstance(Tasklet):
     result.Raise("Cannot close instance disks on node %s" %
                  self.cfg.GetNodeName(node_uuid))
 
-  def _EnsureSecondary(self, node_uuid):
-    """Demote a node to secondary.
-
-    """
-    self.feedback_fn("* switching node %s to secondary mode" %
-                     self.cfg.GetNodeName(node_uuid))
-
-    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
-    result = self.rpc.call_blockdev_close(node_uuid, self.instance.name,
-                                          (disks, self.instance))
-    result.Raise("Cannot change disk to secondary on node %s" %
-                 self.cfg.GetNodeName(node_uuid))
-
   def _GoStandalone(self):
     """Disconnect from the network.
 
@@ -659,8 +646,10 @@ class TLMigrateInstance(Tasklet):
       demoted_node_uuid = self.target_node_uuid
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+
+    self._CloseInstanceDisks(demoted_node_uuid)
+
     if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
-      self._EnsureSecondary(demoted_node_uuid)
       try:
         self._WaitUntilSync()
       except errors.OpExecError:
@@ -671,7 +660,6 @@ class TLMigrateInstance(Tasklet):
       self._GoReconnect(False)
       self._WaitUntilSync()
     elif utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
-      self._CloseInstanceDisks(demoted_node_uuid)
       self._OpenInstanceDisks(self.instance.primary_node, True)
 
     self.feedback_fn("* done")
@@ -683,13 +671,13 @@ class TLMigrateInstance(Tasklet):
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
 
+    self._CloseInstanceDisks(self.target_node_uuid)
+
     if utils.AllDiskOfType(disks, constants.DTS_EXT_MIRROR):
-      self._CloseInstanceDisks(self.target_node_uuid)
       self._OpenInstanceDisks(self.source_node_uuid, True)
       return
 
     try:
-      self._EnsureSecondary(self.target_node_uuid)
       self._GoStandalone()
       self._GoReconnect(False)
       self._WaitUntilSync()
@@ -801,14 +789,14 @@ class TLMigrateInstance(Tasklet):
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
 
+    self._CloseInstanceDisks(self.target_node_uuid)
+
     if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
       # Then switch the disks to master/master mode
-      self._EnsureSecondary(self.target_node_uuid)
       self._GoStandalone()
       self._GoReconnect(True)
       self._WaitUntilSync()
     elif utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
-      self._CloseInstanceDisks(self.target_node_uuid)
       self._OpenInstanceDisks(self.source_node_uuid, False)
       self._OpenInstanceDisks(self.target_node_uuid, False)
 
@@ -898,14 +886,14 @@ class TLMigrateInstance(Tasklet):
       raise errors.OpExecError("Could not finalize instance migration: %s" %
                                msg)
 
+    self._CloseInstanceDisks(self.source_node_uuid)
+
     if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
-      self._EnsureSecondary(self.source_node_uuid)
       self._WaitUntilSync()
       self._GoStandalone()
       self._GoReconnect(False)
       self._WaitUntilSync()
     elif utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
-      self._CloseInstanceDisks(self.source_node_uuid)
       self._OpenInstanceDisks(self.target_node_uuid, True)
 
     # If the instance's disk template is `rbd' or `ext' and there was a
