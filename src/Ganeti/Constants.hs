@@ -4776,6 +4776,11 @@ cpuavgloadWindowSize = 600
 xentopCommand :: String
 xentopCommand = "xentop"
 
+-- | Minimal observation time in seconds, the xen cpu load collector
+-- can report load averages for the first time.
+xentopAverageThreshold :: Int
+xentopAverageThreshold = 100
+
 -- * Monitoring daemon
 
 -- | Mond's variable for periodical data collection
