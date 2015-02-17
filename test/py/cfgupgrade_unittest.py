@@ -72,6 +72,7 @@ def GetMinimalConfig():
         "lv": { "active": True, "interval": 5000000 },
         "inst-status-xen": { "active": True, "interval": 5000000 },
         "cpu-avg-load": { "active": True, "interval": 5000000 },
+        "xen-cpu-avg-load": { "active": True, "interval": 5000000 },
       },
     },
     "instances": {},

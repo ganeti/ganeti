@@ -682,7 +682,16 @@ class CfgUpgrade(object):
 
   # DOWNGRADE ------------------------------------------------------------
 
+  @classmethod
+  def DowngradeCollectors(cls, collectors):
+    if constants.DATA_COLLECTOR_XEN_CPU_LOAD in collectors:
+      del collectors[constants.DATA_COLLECTOR_XEN_CPU_LOAD]
+
+  def DowngradeCluster(self, cluster):
+    self.DowngradeCollectors(cluster["data_collectors"])
+
   def DowngradeAll(self):
+    self.DowngradeCluster(self.config_data["cluster"])
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
     return True

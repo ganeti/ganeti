@@ -42,6 +42,7 @@ import qualified Ganeti.DataCollectors.Diskstats as Diskstats
 import qualified Ganeti.DataCollectors.Drbd as Drbd
 import qualified Ganeti.DataCollectors.InstStatus as InstStatus
 import qualified Ganeti.DataCollectors.Lv as Lv
+import qualified Ganeti.DataCollectors.XenCpuLoad as XenCpuLoad
 import Ganeti.DataCollectors.Types (DataCollector(..),ReportBuilder(..))
 import Ganeti.JSON (GenericContainer(..))
 import Ganeti.Objects
@@ -51,6 +52,7 @@ import Ganeti.Types
 collectors :: [DataCollector]
 collectors =
   [ cpuLoadCollector
+  , xenCpuLoadCollector
   , diskStatsCollector
   , drdbCollector
   , instStatusCollector
@@ -83,4 +85,8 @@ collectors =
     cpuLoadCollector =
       DataCollector CPUload.dcName CPUload.dcCategory CPUload.dcKind
         (StatefulR CPUload.dcReport) (Just CPUload.dcUpdate) activeConfig
+        updateInterval
+    xenCpuLoadCollector =
+      DataCollector XenCpuLoad.dcName XenCpuLoad.dcCategory XenCpuLoad.dcKind
+        (StatefulR XenCpuLoad.dcReport) (Just XenCpuLoad.dcUpdate) activeConfig
         updateInterval

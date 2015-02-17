@@ -5295,6 +5295,7 @@ dataCollectorNames =
                       , dataCollectorDrbd
                       , dataCollectorLv
                       , dataCollectorInstStatus
+                      , dataCollectorXenCpuLoad
                       ]
 
 dataCollectorStateActive :: String
