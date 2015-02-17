@@ -417,6 +417,11 @@ _BLOCKDEV_CALLS = [
     ("instance_name", None, None),
     ("disks", ED_DISKS_DICT_DP, None),
     ], None, None, "Closes the given block devices"),
+  ("blockdev_open", SINGLE, None, constants.RPC_TMO_NORMAL, [
+    ("instance_name", None, None),
+    ("disks", ED_DISKS_DICT_DP, None),
+    ("exclusive", None, None),
+    ], None, None, "Opens the given block devices in required mode"),
   ("blockdev_getdimensions", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("disks", ED_MULTI_DISKS_DICT_DP, None),
     ], None, None, "Returns size and spindles of the given disks"),

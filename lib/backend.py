@@ -4551,6 +4551,29 @@ def BlockdevClose(instance_name, disks):
       _RemoveBlockDevLinks(instance_name, disks)
 
 
+def BlockdevOpen(instance_name, disks, exclusive):
+  """Opens the given block devices.
+
+  """
+  bdevs = []
+  for cf in disks:
+    rd = _RecursiveFindBD(cf)
+    if rd is None:
+      _Fail("Can't find device %s", cf)
+    bdevs.append(rd)
+
+  msg = []
+  for idx, rd in enumerate(bdevs):
+    try:
+      rd.Open(exclusive=exclusive)
+      _SymlinkBlockDev(instance_name, rd.dev_path, idx)
+    except errors.BlockDeviceError, err:
+      msg.append(str(err))
+
+  if msg:
+    _Fail("Can't open devices: %s", ",".join(msg))
+
+
 def ValidateHVParams(hvname, hvparams):
   """Validates the given hypervisor parameters.
 

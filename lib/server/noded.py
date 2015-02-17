@@ -411,6 +411,15 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.BlockdevClose(params[0], disks)
 
   @staticmethod
+  def perspective_blockdev_open(params):
+    """Opens the given block devices.
+
+    """
+    disks = [objects.Disk.FromDict(cf) for cf in params[1]]
+    exclusive = params[2]
+    return backend.BlockdevOpen(params[0], disks, exclusive)
+
+  @staticmethod
   def perspective_blockdev_getdimensions(params):
     """Compute the sizes of the given block devices.
 
