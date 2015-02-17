@@ -331,16 +331,15 @@ def _ExtStorageAction(action, unique_id, ext_params,
     base.ThrowError("Action '%s' doesn't result in a valid ExtStorage script" %
                     action)
 
-  # Explicitly check if the script is valid
-  try:
-    _CheckExtStorageFile(inst_es.path, action) # pylint: disable=E1103
-  except errors.BlockDeviceError:
-    base.ThrowError("Action '%s' is not supported by provider '%s'" %
-                    (action, driver))
-
   # Find out which external script to run according the given action
   script_name = action + "_script"
   script = getattr(inst_es, script_name)
+
+  # Here script is either a valid file path or None if the script is optional
+  if not script:
+    logging.info("Optional action '%s' is not supported by provider '%s',"
+                 " skipping", action, driver)
+    return
 
   # Run the external script
   # pylint: disable=E1103
@@ -368,7 +367,7 @@ def _ExtStorageAction(action, unique_id, ext_params,
     return result.stdout
 
 
-def _CheckExtStorageFile(base_dir, filename):
+def _CheckExtStorageFile(base_dir, filename, required):
   """Check prereqs for an ExtStorage file.
 
   Check if file exists, if it is a regular file and in case it is
@@ -378,8 +377,15 @@ def _CheckExtStorageFile(base_dir, filename):
   @param base_dir: Base directory containing ExtStorage installations.
   @type filename: string
   @param filename: The basename of the ExtStorage file.
+  @type required: bool
+  @param required: Whether the file is required or not.
 
-  @raises BlockDeviceError: In case prereqs are not met.
+  @rtype: String
+  @return: The file path if the file is found and is valid,
+           None if the file is not found and not required.
+
+  @raises BlockDeviceError: In case prereqs are not met
+    (found and not valid/executable, not found and required)
 
   """
 
@@ -387,6 +393,11 @@ def _CheckExtStorageFile(base_dir, filename):
   try:
     st = os.stat(file_path)
   except EnvironmentError, err:
+    if not required:
+      logging.info("Optional file '%s' under path '%s' is missing",
+                   filename, base_dir)
+      return None
+
     base.ThrowError("File '%s' under path '%s' is missing (%s)" %
                     (filename, base_dir, utils.ErrnoOrStr(err)))
 
@@ -398,6 +409,8 @@ def _CheckExtStorageFile(base_dir, filename):
     if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
       base.ThrowError("File '%s' under path '%s' is not executable" %
                       (filename, base_dir))
+
+  return file_path
 
 
 def ExtStorageFromDisk(name, base_dir=None):
@@ -425,23 +438,24 @@ def ExtStorageFromDisk(name, base_dir=None):
     return False, ("Directory for External Storage Provider %s not"
                    " found in search path" % name)
 
-  # ES Files dictionary, we will populate it with the absolute path
-  # names; if the value is True, then it is a required file, otherwise
-  # an optional one
+  # ES Files dictionary: this will be populated later with the absolute path
+  # names for each script; currently we denote for each script if it is
+  # required (True) or optional (False)
   es_files = dict.fromkeys(constants.ES_SCRIPTS, True)
 
-  # Let the snapshot script be optional
+  # Let the snapshot script be optional for backwards compatibility
   es_files[constants.ES_SCRIPT_SNAPSHOT] = False
 
   es_files[constants.ES_PARAMETERS_FILE] = True
 
   for (filename, required) in es_files.items():
-    es_files[filename] = utils.PathJoin(es_dir, filename)
     try:
-      _CheckExtStorageFile(es_dir, filename)
+      # Here we actually fill the dict with the ablsolute path name for each
+      # script or None, depending on the corresponding checks. See the
+      # function's docstrings for more on these checks.
+      es_files[filename] = _CheckExtStorageFile(es_dir, filename, required)
     except errors.BlockDeviceError, err:
-      if required:
-        return False, str(err)
+      return False, str(err)
 
   parameters = []
   if constants.ES_PARAMETERS_FILE in es_files:

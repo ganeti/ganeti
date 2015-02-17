@@ -22,15 +22,17 @@ REFERENCE
 ---------
 
 There are eight required files: *create*, *attach*, *detach*, *remove*,
-*grow*, *setinfo*, *verify*, *snapshot* (executables) and *parameters.list*
+*grow*, *setinfo*, *verify*, (executables) and *parameters.list*
 (text file).
+
+Currenlty there is also one optional file: *snapshot* (executable).
 
 Common environment
 ~~~~~~~~~~~~~~~~~~
 
 All commands will get their input via environment variables. A common
-set of variables will be exported for all commands, and some of them
-might have extra ones. Note that all counts are zero-based.
+set of variables will be exported for all commands, and some commands
+might have extra variables. Note that all counts are zero-based.
 
 Since Ganeti version 2.5, the environment will be cleaned up before
 being passed to scripts, therefore they will not inherit the environment
@@ -46,7 +48,8 @@ VOL_NAME
     disk count.
 
 VOL_SIZE
-    The volume's size in mebibytes.
+    Available only to the **create** and **grow** scripts. The volume's
+    size in mebibytes.
 
 VOL_NEW_SIZE
     Available only to the **grow** script. It declares the new size of
@@ -64,7 +67,7 @@ VOL_METADATA
     this value to ``originstname+X`` where ``X`` is the instance's name.
 
 VOL_CNAME
-    The name of the Disk config object (optional).
+    The human-readable name of the Disk config object (optional).
 
 VOL_UUID
     The uuid of the Disk config object.
@@ -73,7 +76,7 @@ VOL_SNAPSHOT_NAME
     The name of the volume's snapshot.
 
 VOL_SNAPSHOT_SIZE
-    The size of the volume's size
+    The size of the volume's snapshot.
 
 EXECUTABLE SCRIPTS
 ------------------
@@ -212,7 +215,7 @@ snapshot
 The *snapshot* script is used to take a snapshot of the given volume.
 
 The ``VOL_SNAPSHOT_NAME`` and ``VOL_SNAPSHOT_SIZE`` variables contain
-the name and size of the snapshot that is about to be taken.
+the name and size of the snapshot we are about to create.
 
 Currently this operation is used only during gnt-backup export and
 Ganeti sets those values to ``VOL_NAME.snap`` and ``VOL_SIZE``
