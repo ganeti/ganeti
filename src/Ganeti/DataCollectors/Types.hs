@@ -138,7 +138,7 @@ instance JSON DCVersion where
     then Ok DCVerBuiltin else Ok . DCVersion $ fromJSString s
   readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for type DCVersion"
 
--- | Type for the value field of the above map.
+-- | Type for the value field of the `CollectorMap` below.
 data CollectorData = CPULoadData (Seq.Seq (ClockTime, [Int]))
 
 -- | Type for the map storing the data of the statefull DataCollectors.
