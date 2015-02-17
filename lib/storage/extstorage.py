@@ -187,7 +187,8 @@ class ExtStorageDevice(base.BlockDev):
     """
     _ExtStorageAction(constants.ES_ACTION_OPEN, self.unique_id,
                       self.ext_params,
-                      name=self.name, uuid=self.uuid)
+                      name=self.name, uuid=self.uuid,
+                      exclusive=exclusive)
 
   def Close(self):
     """Notifies that the device will no longer be used for I/O.
@@ -280,7 +281,8 @@ class ExtStorageDevice(base.BlockDev):
 def _ExtStorageAction(action, unique_id, ext_params,
                       size=None, grow=None, metadata=None,
                       name=None, uuid=None,
-                      snap_name=None, snap_size=None):
+                      snap_name=None, snap_size=None,
+                      exclusive=None):
   """Take an External Storage action.
 
   Take an External Storage action concerning or affecting
@@ -307,6 +309,8 @@ def _ExtStorageAction(action, unique_id, ext_params,
   @param snap_size: the size of the snapshot
   @type snap_name: string
   @param snap_name: the name of the snapshot
+  @type exclusive: boolean
+  @param exclusive: Whether the Volume will be opened exclusively or not
   @param uuid: uuid of the Volume (objects.Disk.uuid)
   @rtype: None or a block device path (during attach)
 
@@ -321,7 +325,8 @@ def _ExtStorageAction(action, unique_id, ext_params,
   # Create the basic environment for the driver's scripts
   create_env = _ExtStorageEnvironment(unique_id, ext_params, size,
                                       grow, metadata, name, uuid,
-                                      snap_name, snap_size)
+                                      snap_name, snap_size,
+                                      exclusive)
 
   # Do not use log file for action `attach' as we need
   # to get the output from RunResult
@@ -493,7 +498,8 @@ def ExtStorageFromDisk(name, base_dir=None):
 def _ExtStorageEnvironment(unique_id, ext_params,
                            size=None, grow=None, metadata=None,
                            name=None, uuid=None,
-                           snap_name=None, snap_size=None):
+                           snap_name=None, snap_size=None,
+                           exclusive=None):
   """Calculate the environment for an External Storage script.
 
   @type unique_id: tuple (driver, vol_name)
@@ -514,6 +520,8 @@ def _ExtStorageEnvironment(unique_id, ext_params,
   @param snap_size: the size of the snapshot
   @type snap_name: string
   @param snap_name: the name of the snapshot
+  @type exclusive: boolean
+  @param exclusive: Whether the Volume will be opened exclusively or not
   @rtype: dict
   @return: dict of environment variables
 
@@ -547,6 +555,9 @@ def _ExtStorageEnvironment(unique_id, ext_params,
 
   if snap_size is not None:
     result["VOL_SNAPSHOT_SIZE"] = str(snap_size)
+
+  if exclusive is not None:
+    result["VOL_OPEN_EXCLUSIVE"] = str(exclusive)
 
   return result
 

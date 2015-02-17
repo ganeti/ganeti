@@ -79,6 +79,10 @@ VOL_SNAPSHOT_NAME
 VOL_SNAPSHOT_SIZE
     The size of the volume's snapshot.
 
+VOL_OPEN_EXCLUSIVE
+    Whether the volume will be opened for exclusive access or not.
+    This will be False (denoting shared access) during migration.
+
 EXECUTABLE SCRIPTS
 ------------------
 
@@ -234,6 +238,10 @@ open
 The *open* script is used to open the given volume.
 
 This makes the volume ready for I/O.
+
+The ``VOL_OPEN_EXCLUSIVE`` variable denotes whether the volume will be
+opened for exclusive access or not. It is True by default and
+False (denoting shared access) during migration.
 
 The script returns ``0`` on success.
 

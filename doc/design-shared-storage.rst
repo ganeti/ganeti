@@ -231,6 +231,9 @@ all commands, and some commands might have extra variables.
 ``VOL_SNAPSHOT_SIZE``
   The size of the volume's snapshot.
   Available only to the `snapshot` script.
+``VOL_OPEN_EXCLUSIVE``
+  Whether the volume will be accessed exclusively or not.
+  Available only to the `open` script.
 
 All scripts except `attach` should return 0 on success and non-zero on
 error, accompanied by an appropriate error message on stderr. The
