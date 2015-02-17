@@ -4545,7 +4545,7 @@ def BlockdevClose(instance_name, disks):
     except errors.BlockDeviceError, err:
       msg.append(str(err))
   if msg:
-    _Fail("Can't make devices secondary: %s", ",".join(msg))
+    _Fail("Can't close devices: %s", ",".join(msg))
   else:
     if instance_name:
       _RemoveBlockDevLinks(instance_name, disks)

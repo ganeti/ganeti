@@ -530,6 +530,37 @@ class TLMigrateInstance(Tasklet):
           self.feedback_fn("   - progress: %.1f%%" % min_percent)
         time.sleep(2)
 
+  def _OpenInstanceDisks(self, node_uuid, exclusive):
+    """Open instance disks.
+
+    """
+    if exclusive:
+      mode = "in exclusive mode"
+    else:
+      mode = "in shared mode"
+
+    self.feedback_fn("* opening instance disks on node %s %s" %
+                     (self.cfg.GetNodeName(node_uuid), mode))
+
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    result = self.rpc.call_blockdev_open(node_uuid, self.instance.name,
+                                         (disks, self.instance), exclusive)
+    result.Raise("Cannot open disks on node %s" %
+                 self.cfg.GetNodeName(node_uuid))
+
+  def _CloseInstanceDisks(self, node_uuid):
+    """Close instance disks.
+
+    """
+    self.feedback_fn("* closing instance disks on node %s" %
+                     self.cfg.GetNodeName(node_uuid))
+
+    disks = self.cfg.GetInstanceDisks(self.instance.uuid)
+    result = self.rpc.call_blockdev_close(node_uuid, self.instance.name,
+                                          (disks, self.instance))
+    result.Raise("Cannot close instance disks on node %s" %
+                 self.cfg.GetNodeName(node_uuid))
+
   def _EnsureSecondary(self, node_uuid):
     """Demote a node to secondary.
 
@@ -639,6 +670,9 @@ class TLMigrateInstance(Tasklet):
       self._GoStandalone()
       self._GoReconnect(False)
       self._WaitUntilSync()
+    elif utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
+      self._CloseInstanceDisks(demoted_node_uuid)
+      self._OpenInstanceDisks(self.instance.primary_node, True)
 
     self.feedback_fn("* done")
 
@@ -650,6 +684,8 @@ class TLMigrateInstance(Tasklet):
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
 
     if utils.AllDiskOfType(disks, constants.DTS_EXT_MIRROR):
+      self._CloseInstanceDisks(self.target_node_uuid)
+      self._OpenInstanceDisks(self.source_node_uuid, True)
       return
 
     try:
@@ -765,12 +801,16 @@ class TLMigrateInstance(Tasklet):
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
 
-    if not utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
+    if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
       # Then switch the disks to master/master mode
       self._EnsureSecondary(self.target_node_uuid)
       self._GoStandalone()
       self._GoReconnect(True)
       self._WaitUntilSync()
+    elif utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
+      self._CloseInstanceDisks(self.target_node_uuid)
+      self._OpenInstanceDisks(self.source_node_uuid, False)
+      self._OpenInstanceDisks(self.target_node_uuid, False)
 
     self.feedback_fn("* preparing %s to accept the instance" %
                      self.cfg.GetNodeName(self.target_node_uuid))
@@ -864,6 +904,9 @@ class TLMigrateInstance(Tasklet):
       self._GoStandalone()
       self._GoReconnect(False)
       self._WaitUntilSync()
+    elif utils.AnyDiskOfType(disks, constants.DTS_EXT_MIRROR):
+      self._CloseInstanceDisks(self.source_node_uuid)
+      self._OpenInstanceDisks(self.target_node_uuid, True)
 
     # If the instance's disk template is `rbd' or `ext' and there was a
     # successful migration, unmap the device from the source node.
