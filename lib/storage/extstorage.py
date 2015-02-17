@@ -181,7 +181,7 @@ class ExtStorageDevice(base.BlockDev):
     self.minor = None
     self.dev_path = None
 
-  def Open(self, force=False):
+  def Open(self, force=False, exclusive=True):
     """Make the device ready for I/O.
 
     """

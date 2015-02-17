@@ -666,7 +666,7 @@ class DRBD8Dev(base.BlockDev):
                                   is_degraded=is_degraded,
                                   ldisk_status=ldisk_status)
 
-  def Open(self, force=False):
+  def Open(self, force=False, exclusive=True):
     """Make the local state primary.
 
     If the 'force' parameter is given, DRBD is instructed to switch the device

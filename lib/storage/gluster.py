@@ -338,7 +338,7 @@ class GlusterStorage(base.BlockDev):
     self.dev_path = None
     self.attached = False
 
-  def Open(self, force=False):
+  def Open(self, force=False, exclusive=True):
     """Make the device ready for I/O.
 
     This is a no-op for the file type.

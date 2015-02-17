@@ -593,7 +593,7 @@ class LogicalVolume(base.BlockDev):
                                   is_degraded=self._degraded,
                                   ldisk_status=ldisk_status)
 
-  def Open(self, force=False):
+  def Open(self, force=False, exclusive=True):
     """Make the device ready for I/O.
 
     This is a no-op for the LV device type.
@@ -834,7 +834,7 @@ class PersistentBlockDevice(base.BlockDev):
     """
     pass
 
-  def Open(self, force=False):
+  def Open(self, force=False, exclusive=True):
     """Make the device ready for I/O.
 
     """
@@ -1174,7 +1174,7 @@ class RADOSBlockDevice(base.BlockDev):
         base.ThrowError("rbd unmap failed (%s): %s",
                         result.fail_reason, result.output)
 
-  def Open(self, force=False):
+  def Open(self, force=False, exclusive=True):
     """Make the device ready for I/O.
 
     """
