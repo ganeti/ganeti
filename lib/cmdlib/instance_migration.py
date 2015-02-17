@@ -992,6 +992,9 @@ class TLMigrateInstance(Tasklet):
                                  (self.instance.name,
                                   self.cfg.GetNodeName(source_node_uuid), msg))
 
+    if self.instance.disk_template in constants.DTS_EXT_MIRROR:
+      self._CloseInstanceDisks(source_node_uuid)
+
     self.feedback_fn("* deactivating the instance's disks on source node")
     if not ShutdownInstanceDisks(self.lu, self.instance, ignore_primary=True):
       raise errors.OpExecError("Can't shut down the instance's disks")
