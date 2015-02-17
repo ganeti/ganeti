@@ -25,7 +25,8 @@ There are eight required files: *create*, *attach*, *detach*, *remove*,
 *grow*, *setinfo*, *verify*, (executables) and *parameters.list*
 (text file).
 
-Currenlty there is also one optional file: *snapshot* (executable).
+There are also three optional files: *open*, *close*, and
+*snapshot* (executables).
 
 Common environment
 ~~~~~~~~~~~~~~~~~~
@@ -226,6 +227,30 @@ The script returns ``0`` on success.
 Please note that this script is optional and not all providers should
 implement it. Of course if it is not present, instance backup export
 will not be supported for the given provider.
+
+open
+~~~~
+
+The *open* script is used to open the given volume.
+
+This makes the volume ready for I/O.
+
+The script returns ``0`` on success.
+
+Please note that this script is optional and not all providers should
+implement it.
+
+close
+~~~~~
+
+The *close* script is used to close the given volume.
+
+This disables I/O on the volume.
+
+The script returns ``0`` on success.
+
+Please note that this script is optional and not all providers should
+implement it.
 
 TEXT FILES
 ----------

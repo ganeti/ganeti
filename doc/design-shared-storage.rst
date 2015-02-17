@@ -185,7 +185,9 @@ An “ExtStorage provider” will have to provide the following methods:
 - Detach a disk from a given node
 - SetInfo to a disk (add metadata)
 - Verify its supported parameters
-- Snapshot a disk (currently used during gnt-backup export)
+- Snapshot a disk (optional)
+- Open a disk (optional)
+- Close a disk (optional)
 
 The proposed ExtStorage interface borrows heavily from the OS
 interface and follows a one-script-per-function approach. An ExtStorage
@@ -199,16 +201,19 @@ provider is expected to provide the following scripts:
 - ``setinfo``
 - ``verify``
 - ``snapshot`` (optional)
+- ``open`` (optional)
+- ``close`` (optional)
 
 All scripts will be called with no arguments and get their input via
 environment variables. A common set of variables will be exported for
-all commands, and some of them might have extra ones.
+all commands, and some commands might have extra variables.
 
 ``VOL_NAME``
   The name of the volume. This is unique for Ganeti and it
   uses it to refer to a specific volume inside the external storage.
 ``VOL_SIZE``
   The volume's size in mebibytes.
+  Available only to the `create` and `grow` scripts.
 ``VOL_NEW_SIZE``
   Available only to the `grow` script. It declares the
   new size of the volume after grow (in mebibytes).
@@ -221,10 +226,10 @@ all commands, and some of them might have extra ones.
 ``VOL_CNAME``
   The human readable name of the disk (if any).
 ``VOL_SNAPSHOT_NAME``
-  The name of the volume's snapshot to be taken.
+  The name of the volume's snapshot.
   Available only to the `snapshot` script.
 ``VOL_SNAPSHOT_SIZE``
-  The size of the volume's snapshot to be taken.
+  The size of the volume's snapshot.
   Available only to the `snapshot` script.
 
 All scripts except `attach` should return 0 on success and non-zero on
@@ -233,9 +238,14 @@ error, accompanied by an appropriate error message on stderr. The
 the block device's full path, after it has been successfully attached to
 the host node. On error it should return non-zero.
 
-To keep backwards compatibility we let the ``snapshot`` script be
-optional. If present then the provider will support instance backup
-export as well.
+The ``snapshot``, ``open`` and ``close`` scripts are introduced after
+the first implementation of the ExtStorage Interface. To keep backwards
+compatibility with the first implementation, we make these scripts
+optional.
+
+The ``snapshot`` script, if present, will be used for instance backup
+export. The ``open`` script makes the device ready for I/O. The ``close``
+script disables the I/O on the device.
 
 Implementation
 --------------
@@ -243,7 +253,8 @@ Implementation
 To support the ExtStorage interface, we will introduce a new disk
 template called `ext`. This template will implement the existing Ganeti
 disk interface in `lib/bdev.py` (create, remove, attach, assemble,
-shutdown, grow, setinfo), and will simultaneously pass control to the
+shutdown, grow, setinfo, open, close),
+and will simultaneously pass control to the
 external scripts to actually handle the above actions. The `ext` disk
 template will act as a translation layer between the current Ganeti disk
 interface and the ExtStorage providers.

@@ -185,13 +185,17 @@ class ExtStorageDevice(base.BlockDev):
     """Make the device ready for I/O.
 
     """
-    pass
+    _ExtStorageAction(constants.ES_ACTION_OPEN, self.unique_id,
+                      self.ext_params,
+                      name=self.name, uuid=self.uuid)
 
   def Close(self):
     """Notifies that the device will no longer be used for I/O.
 
     """
-    pass
+    _ExtStorageAction(constants.ES_ACTION_CLOSE, self.unique_id,
+                      self.ext_params,
+                      name=self.name, uuid=self.uuid)
 
   def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Grow the Volume.
@@ -443,8 +447,11 @@ def ExtStorageFromDisk(name, base_dir=None):
   # required (True) or optional (False)
   es_files = dict.fromkeys(constants.ES_SCRIPTS, True)
 
-  # Let the snapshot script be optional for backwards compatibility
+  # Let the snapshot, open, and close scripts be optional
+  # for backwards compatibility
   es_files[constants.ES_SCRIPT_SNAPSHOT] = False
+  es_files[constants.ES_SCRIPT_OPEN] = False
+  es_files[constants.ES_SCRIPT_CLOSE] = False
 
   es_files[constants.ES_PARAMETERS_FILE] = True
 
@@ -477,6 +484,8 @@ def ExtStorageFromDisk(name, base_dir=None):
                        setinfo_script=es_files[constants.ES_SCRIPT_SETINFO],
                        verify_script=es_files[constants.ES_SCRIPT_VERIFY],
                        snapshot_script=es_files[constants.ES_SCRIPT_SNAPSHOT],
+                       open_script=es_files[constants.ES_SCRIPT_OPEN],
+                       close_script=es_files[constants.ES_SCRIPT_CLOSE],
                        supported_parameters=parameters)
   return True, es_obj
 
