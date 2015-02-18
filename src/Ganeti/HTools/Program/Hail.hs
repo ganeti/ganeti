@@ -66,6 +66,7 @@ options =
     , oIgnoreDyn
     , oIgnoreSoftErrors
     , oMonD
+    , oMonDXen
     ]
 
 -- | The list of arguments supported by the program.
