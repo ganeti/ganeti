@@ -817,6 +817,7 @@ $(genOpCode "OpCode"
      , pZeroFreeSpace
      , pZeroingTimeoutFixed
      , pZeroingTimeoutPerMiB
+     , pLongSleep
      ],
      "instance_name")
   , ("OpBackupRemove",

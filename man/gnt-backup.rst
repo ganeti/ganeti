@@ -29,7 +29,7 @@ EXPORT
 | [\--ignore-remove-failures] [\--submit] [\--print-job-id]
 | [\--transport-compression=*compression-mode*]
 | [\--zero-free-space] [\--zeroing-timeout-fixed]
-| [\--zeroing-timeout-per-mib]
+| [\--zeroing-timeout-per-mib] [\--long-sleep]
 | {*instance*}
 
 Exports an instance to the target node. All the instance data and
@@ -61,6 +61,12 @@ is used. The ``--zeroing-timeout-fixed`` and
 ``--zeroing-timeout-per-mib`` options control the timeout, the former
 determining the minimum time to wait, and the latter how much longer
 to wait per MiB of data the instance has.
+
+The ``--long-sleep`` option allows Ganeti to keep the instance shut
+down for the entire duration of the export if necessary. This is
+needed if snapshots are not supported by the underlying storage type,
+or if the creation of snapshots fails for some reason - e.g. lack of
+space.
 
 The exit code of the command is 0 if all disks were backed up
 successfully, 1 if no data was backed up or if the configuration

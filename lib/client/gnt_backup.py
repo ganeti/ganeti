@@ -109,7 +109,8 @@ def ExportInstance(opts, args):
     ignore_remove_failures=ignore_remove_failures,
     zero_free_space=opts.zero_free_space,
     zeroing_timeout_fixed=opts.zeroing_timeout_fixed,
-    zeroing_timeout_per_mib=opts.zeroing_timeout_per_mib
+    zeroing_timeout_per_mib=opts.zeroing_timeout_per_mib,
+    long_sleep=opts.long_sleep
   )
 
   SubmitOrSend(op, opts)
@@ -169,7 +170,7 @@ commands = {
     [FORCE_OPT, SINGLE_NODE_OPT, TRANSPORT_COMPRESSION_OPT, NOSHUTDOWN_OPT,
      SHUTDOWN_TIMEOUT_OPT, REMOVE_INSTANCE_OPT, IGNORE_REMOVE_FAILURES_OPT,
      DRY_RUN_OPT, PRIORITY_OPT, ZERO_FREE_SPACE_OPT, ZEROING_TIMEOUT_FIXED_OPT,
-     ZEROING_TIMEOUT_PER_MIB_OPT] + SUBMIT_OPTS,
+     ZEROING_TIMEOUT_PER_MIB_OPT, LONG_SLEEP_OPT] + SUBMIT_OPTS,
     "-n <target_node> [opts...] <name>",
     "Exports an instance to an image"),
   "import": (

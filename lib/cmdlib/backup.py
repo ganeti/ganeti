@@ -312,6 +312,11 @@ class LUBackupExport(LogicalUnit):
                                    " only with the --zero-free-space option",
                                    errors.ECODE_INVAL)
 
+    if self.op.long_sleep and not self.op.shutdown:
+      raise errors.OpPrereqError("The long sleep option only makes sense when"
+                                 " the instance can be shut down.",
+                                 errors.ECODE_INVAL)
+
     self.secondary_nodes = \
       self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
     self.inst_disks = self.cfg.GetInstanceDisks(self.instance.uuid)
@@ -483,9 +488,18 @@ class LUBackupExport(LogicalUnit):
       snapshots_available = False
       if self.TrySnapshot():
         snapshots_available = helper.CreateSnapshots()
-        if not snapshots_available and not self.op.shutdown:
-          raise errors.OpExecError("Not all disks could be snapshotted, and "
-                                   "you requested a live export; aborting")
+        if not snapshots_available:
+          if not self.op.shutdown:
+            raise errors.OpExecError(
+              "Not all disks could be snapshotted, and you requested a live "
+              "export; aborting"
+            )
+          if not self.op.long_sleep:
+            raise errors.OpExecError(
+              "Not all disks could be snapshotted, and you did not allow the "
+              "instance to remain offline for a longer time through the "
+              "--long-sleep option; aborting"
+            )
 
       try:
         if self.DoReboot() and snapshots_available:
