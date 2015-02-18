@@ -322,7 +322,8 @@ class CfgUpgrade(object):
     for name in constants.DATA_COLLECTOR_NAMES:
       cluster["data_collectors"][name] = \
         cluster["data_collectors"].get(
-            name, dict(active=True, interval=constants.MOND_TIME_INTERVAL * 1e6))
+            name, dict(active=True,
+                       interval=constants.MOND_TIME_INTERVAL * 1e6))
 
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
