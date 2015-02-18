@@ -60,6 +60,7 @@ module Ganeti.HTools.CLI
   , oDynuFile
   , oMonD
   , oMonDDataFile
+  , oMonDXen
   , oEvacMode
   , oFirstJobGroup
   , oRestrictedMigrate
@@ -149,6 +150,8 @@ data Options = Options
   , optMonD        :: Bool           -- ^ Query MonDs
   , optMonDFile    :: Maybe FilePath -- ^ Optional file with data provided
                                      -- by MonDs
+  , optMonDXen     :: Bool           -- ^ Should Xen-specific collectors be
+                                     -- considered (only if MonD is queried)
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optRestrictedMigrate :: Bool     -- ^ Disallow replace-primary moves
   , optExInst      :: [String]       -- ^ Instances to be excluded
@@ -215,6 +218,7 @@ defaultOptions  = Options
   , optDynuFile    = Nothing
   , optMonD        = False
   , optMonDFile = Nothing
+  , optMonDXen     = False
   , optEvacMode    = False
   , optRestrictedMigrate = False
   , optExInst      = []
@@ -337,6 +341,13 @@ oMonDDataFile =
    (ReqArg (\ f opts -> Ok opts { optMonDFile = Just f }) "FILE")
    "Import data provided by MonDs from the given FILE",
    OptComplFile)
+
+oMonDXen :: OptType
+oMonDXen =
+  (Option "" ["mond-xen"]
+    (NoArg (\ opts -> Ok opts { optMonDXen = True }))
+    "also consider xen-specific collectors in MonD queries",
+    OptComplNone)
 
 oDiskTemplate :: OptType
 oDiskTemplate =
