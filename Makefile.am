@@ -886,6 +886,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/AlgorithmParams.hs \
 	src/Ganeti/HTools/Backend/IAlloc.hs \
 	src/Ganeti/HTools/Backend/Luxi.hs \
+	src/Ganeti/HTools/Backend/MonD.hs \
 	src/Ganeti/HTools/Backend/Rapi.hs \
 	src/Ganeti/HTools/Backend/Simu.hs \
 	src/Ganeti/HTools/Backend/Text.hs \
@@ -1048,12 +1049,12 @@ HS_TEST_SRCS = \
 	test/hs/Test/Ganeti/Constants.hs \
 	test/hs/Test/Ganeti/Daemon.hs \
 	test/hs/Test/Ganeti/Errors.hs \
+	test/hs/Test/Ganeti/HTools/Backend/MonD.hs \
 	test/hs/Test/Ganeti/HTools/Backend/Simu.hs \
 	test/hs/Test/Ganeti/HTools/Backend/Text.hs \
 	test/hs/Test/Ganeti/HTools/CLI.hs \
 	test/hs/Test/Ganeti/HTools/Cluster.hs \
 	test/hs/Test/Ganeti/HTools/Container.hs \
-	test/hs/Test/Ganeti/HTools/ExtLoader.hs \
 	test/hs/Test/Ganeti/HTools/Graph.hs \
 	test/hs/Test/Ganeti/HTools/Instance.hs \
 	test/hs/Test/Ganeti/HTools/Loader.hs \

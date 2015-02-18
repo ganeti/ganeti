@@ -49,12 +49,12 @@ import Test.Ganeti.Confd.Utils
 import Test.Ganeti.Confd.Types
 import Test.Ganeti.Daemon
 import Test.Ganeti.Errors
+import Test.Ganeti.HTools.Backend.MonD
 import Test.Ganeti.HTools.Backend.Simu
 import Test.Ganeti.HTools.Backend.Text
 import Test.Ganeti.HTools.CLI
 import Test.Ganeti.HTools.Cluster
 import Test.Ganeti.HTools.Container
-import Test.Ganeti.HTools.ExtLoader
 import Test.Ganeti.HTools.Graph
 import Test.Ganeti.HTools.Instance
 import Test.Ganeti.HTools.Loader
@@ -124,12 +124,12 @@ allTests =
   , testBlock_Drbd_Parser
   , testBlock_Drbd_Types
   , testErrors
+  , testHTools_Backend_MonD
   , testHTools_Backend_Simu
   , testHTools_Backend_Text
   , testHTools_CLI
   , testHTools_Cluster
   , testHTools_Container
-  , testHTools_ExtLoader
   , testHTools_Graph
   , testHTools_Instance
   , testHTools_Loader

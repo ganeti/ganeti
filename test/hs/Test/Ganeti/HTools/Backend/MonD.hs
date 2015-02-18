@@ -1,10 +1,12 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-{-| Unittests for the MonD data parse function -}
+{-| Unittests for htools' ganeti-mond backend
+
+-}
 
 {-
 
-Copyright (C) 2013 Google Inc.
+Copyright (C) 2015 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,8 +34,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -}
 
-module Test.Ganeti.HTools.ExtLoader
-  ( testHTools_ExtLoader
+module Test.Ganeti.HTools.Backend.MonD
+  (testHTools_Backend_MonD
   ) where
 
 import qualified Test.HUnit as HUnit
@@ -44,7 +46,7 @@ import qualified Ganeti.DataCollectors.CPUload as CPUload
 
 import Ganeti.Cpu.Types (CPUavgload(..))
 import Ganeti.DataCollectors.Types (DCReport(..))
-import Ganeti.HTools.ExtLoader
+import Ganeti.HTools.Backend.MonD
 import Ganeti.JSON
 import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHelper
@@ -123,6 +125,6 @@ compareCPUavgload a b =
      && length (cavCpus a) == length (cavCpus b)
      && and (zipWith relError (cavCpus a) (cavCpus b))
 
-testSuite "HTools/ExtLoader"
+testSuite "HTools/Backend/MonD"
           [ 'case_parseMonDData
           ]

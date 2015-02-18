@@ -49,9 +49,9 @@ import qualified Ganeti.HTools.Dedicated as Dedicated
 import Ganeti.Common
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Backend.IAlloc
+import qualified Ganeti.HTools.Backend.MonD as MonD
 import Ganeti.HTools.Loader (Request(..), ClusterData(..), isAllocationRequest)
-import Ganeti.HTools.ExtLoader (maybeSaveData, loadExternalData
-                               , queryAllMonDDCs)
+import Ganeti.HTools.ExtLoader (maybeSaveData, loadExternalData)
 import Ganeti.Utils
 
 -- | Options list and functions.
@@ -87,7 +87,7 @@ wrapReadRequest opts args = do
     else do
       let Request rqt cdata = r1
       cdata' <-
-        if optMonD opts then queryAllMonDDCs cdata opts else return cdata
+        if optMonD opts then MonD.queryAllMonDDCs cdata opts else return cdata
       return $ Request rqt cdata'
 
 -- | Main function.
