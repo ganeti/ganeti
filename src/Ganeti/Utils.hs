@@ -67,6 +67,7 @@ module Ganeti.Utils
   , clockTimeToCTime
   , clockTimeToUSec
   , cTimeToClockTime
+  , diffClockTimes
   , chompPrefix
   , warn
   , wrap
@@ -131,7 +132,8 @@ import System.Exit
 import System.Posix.Files
 import System.Posix.IO
 import System.Posix.User
-import System.Time
+import System.Time (ClockTime(..), getClockTime, TimeDiff(..))
+import qualified System.Time as STime
 
 -- * Debug functions
 
@@ -469,6 +471,17 @@ clockTimeToUSec (TOD ctime pico) =
 -- | Convert a ClockTime into a (seconds-only) 'EpochTime' (AKA @time_t@).
 cTimeToClockTime :: EpochTime -> ClockTime
 cTimeToClockTime (CTime timet) = TOD (toInteger timet) 0
+
+-- | A version of `diffClockTimes` that works around ghc bug #2519.
+diffClockTimes :: ClockTime -> ClockTime -> TimeDiff
+diffClockTimes t1 t2 =
+  let delta = STime.diffClockTimes t1 t2
+      secondInPicoseconds = 1000000000000
+  in if tdPicosec delta < 0
+       then delta { tdSec = tdSec delta - 1
+                  , tdPicosec = tdPicosec delta + secondInPicoseconds
+                  }
+       else delta
 
 {-| Strip a prefix from a string, allowing the last character of the prefix
 (which is assumed to be a separator) to be absent from the string if the string
