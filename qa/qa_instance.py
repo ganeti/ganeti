@@ -1073,10 +1073,13 @@ def TestRecreateDisks(instance, inodes, othernodes):
 def TestInstanceExport(instance, node):
   """gnt-backup export -n ..."""
   name = instance.name
-  # Export does not work for file-based templates, thus we skip the test
+  options = ["gnt-backup", "export", "-n", node.primary]
+
+  # For files and shared files, the --long-sleep option should be used
   if instance.disk_template in [constants.DT_FILE, constants.DT_SHARED_FILE]:
-    return
-  AssertCommand(["gnt-backup", "export", "-n", node.primary, name])
+    options.append("--long-sleep")
+
+  AssertCommand(options + [name])
   return qa_utils.ResolveInstanceName(name)
 
 
