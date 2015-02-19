@@ -285,18 +285,19 @@ class LUBackupExport(LogicalUnit):
       if self.instance.hypervisor == constants.HT_KVM and \
          not hvparams.get(constants.HV_KVM_USER_SHUTDOWN, False):
         raise errors.OpPrereqError("Instance shutdown detection must be "
-                                   "enabled for zeroing to work")
+                                   "enabled for zeroing to work",
+                                   errors.ECODE_INVAL)
 
       # Check that the instance is set to boot from the disk
       if constants.HV_BOOT_ORDER in hvparams and \
          hvparams[constants.HV_BOOT_ORDER] != constants.HT_BO_DISK:
         raise errors.OpPrereqError("Booting from disk must be set for zeroing "
-                                   "to work")
+                                   "to work", errors.ECODE_INVAL)
 
       # Check that the zeroing image is set
       if not self.cfg.GetZeroingImage():
         raise errors.OpPrereqError("A zeroing image must be set for zeroing to"
-                                   " work")
+                                   " work", errors.ECODE_INVAL)
 
       if self.op.zeroing_timeout_fixed is None:
         self.op.zeroing_timeout_fixed = constants.HELPER_VM_STARTUP
@@ -308,7 +309,8 @@ class LUBackupExport(LogicalUnit):
       if (self.op.zeroing_timeout_fixed is not None or
           self.op.zeroing_timeout_per_mib is not None):
         raise errors.OpPrereqError("Zeroing timeout options can only be used"
-                                   " only with the --zero-free-space option")
+                                   " only with the --zero-free-space option",
+                                   errors.ECODE_INVAL)
 
     self.secondary_nodes = \
       self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
