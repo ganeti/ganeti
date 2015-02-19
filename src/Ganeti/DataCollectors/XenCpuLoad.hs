@@ -42,6 +42,8 @@ module Ganeti.DataCollectors.XenCpuLoad
   , dcUpdate
   ) where
 
+import Control.Applicative ((<$>))
+import Control.Arrow ((***))
 import Control.Monad (liftM, when)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Map as Map
@@ -49,12 +51,12 @@ import Data.Maybe (mapMaybe)
 import qualified Data.Sequence as Seq
 import System.Process (readProcess)
 import qualified Text.JSON as J
-import System.Time (getClockTime, ClockTime)
+import System.Time (ClockTime, getClockTime, addToClockTime)
 
 import Ganeti.BasicTypes (GenericResult(..), Result, genericResult, runResultT)
 import qualified Ganeti.Constants as C
 import Ganeti.DataCollectors.Types
-import Ganeti.Utils (readMaybe, clockTimeToUSec)
+import Ganeti.Utils (readMaybe, clockTimeToUSec, diffClockTimes)
 
 -- | The name of this data collector.
 dcName :: String
@@ -101,6 +103,26 @@ parseXentop s = do
             vals
     _ -> Bad "Insufficient number of output columns"
 
+
+-- | Add a new value to a sequence of observations, taking into account
+-- counter rollovers. In case of a rollover, we drop the joining interval
+-- so that we do not have to make assumptions about the value at which is
+-- rolled over, but we do keep the right sequence, appropriately moved.
+combineWithRollover :: Seq.Seq (ClockTime, Double)
+                    -> Seq.Seq (ClockTime, Double)
+                    -> Seq.Seq (ClockTime, Double)
+combineWithRollover new old | Seq.null new || Seq.null old = new Seq.>< old
+combineWithRollover new old =
+  let (t2, x2) = Seq.index new $ Seq.length new - 1
+      (t1, x1) = Seq.index old 0
+  in if x2 > x1
+       then new Seq.>< old
+       else let delta_t = diffClockTimes t2 t1
+                deltax = x2 - x1
+                old' = (addToClockTime delta_t *** (+ deltax))
+                       <$> Seq.drop 1 old
+            in new Seq.>< old'
+
 -- | Updates the given Collector data.
 dcUpdate :: Maybe CollectorData -> IO CollectorData
 dcUpdate maybeCollector = do
@@ -112,7 +134,7 @@ dcUpdate maybeCollector = do
   let newValues = Map.map (Seq.singleton . (,) now)
                   $ genericResult (const Map.empty) id newResult
       sampleSizeUSec = fromIntegral C.cpuavgloadWindowSize * 1000000
-      combinedValues = Map.unionWith (Seq.><) newValues oldData
+      combinedValues = Map.unionWith combineWithRollover newValues oldData
       withinRange = Map.map
                       (Seq.dropWhileR
                         ((<) sampleSizeUSec
