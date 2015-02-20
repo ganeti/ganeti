@@ -58,7 +58,7 @@ class Client(cl.AbstractStubClient, stub.ClientRpcStub):
     cl.AbstractStubClient.__init__(self, timeouts, transport)
     stub.ClientRpcStub.__init__(self)
 
-    retries = 10
+    retries = 12
     for try_no in range(0, retries):
       try:
         self._InitTransport()
@@ -68,4 +68,4 @@ class Client(cl.AbstractStubClient, stub.ClientRpcStub):
         if try_no == retries -1:
           raise
         logging.debug("Will retry")
-        time.sleep(10 * random.random())
+        time.sleep(try_no * 10 + 10 * random.random())

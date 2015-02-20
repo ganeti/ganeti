@@ -79,6 +79,7 @@ and draft versions (which are either incomplete or not implemented).
    design-2.11.rst
    design-2.12.rst
    design-2.13.rst
+   design-2.14.rst
 
 Draft designs
 -------------

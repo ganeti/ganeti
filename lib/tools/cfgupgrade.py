@@ -318,9 +318,12 @@ class CfgUpgrade(object):
       cluster.get("compression_tools", constants.IEC_DEFAULT_TOOLS)
     if "enabled_user_shutdown" not in cluster:
       cluster["enabled_user_shutdown"] = False
-    cluster["data_collectors"] = dict(
-      (name, dict(active=True, interval=constants.MOND_TIME_INTERVAL * 1e6))
-      for name in constants.DATA_COLLECTOR_NAMES)
+    cluster["data_collectors"] = cluster.get("data_collectors", {})
+    for name in constants.DATA_COLLECTOR_NAMES:
+      cluster["data_collectors"][name] = \
+        cluster["data_collectors"].get(
+            name, dict(active=True,
+                       interval=constants.MOND_TIME_INTERVAL * 1e6))
 
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
