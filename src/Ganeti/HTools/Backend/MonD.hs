@@ -71,7 +71,21 @@ import Ganeti.Utils (exitIfBad)
 data DataCollector = DataCollector
   { dName     :: String           -- ^ Name of the data collector
   , dCategory :: Maybe DCCategory -- ^ The name of the category
+  , dMkReport :: DCReport -> Maybe Report -- ^ How to parse a monitor report
+  , dUse      :: [(Node.Node, Report)]
+                 -> (Node.List, Instance.List)
+                 -> Result (Node.List, Instance.List)
+                 -- ^ How the collector reports are to be used to bring dynamic
+                 -- data into a cluster
   }
+
+-- | The node-total CPU collector.
+totalCPUCollector :: DataCollector
+totalCPUCollector = DataCollector { dName = CPUload.dcName
+                                  , dCategory = CPUload.dcCategory
+                                  , dMkReport = mkCpuReport
+                                  , dUse = useNodeTotalCPU
+                                  }
 
 -- | The actual data types for MonD's Data Collectors.
 data Report = CPUavgloadReport CPUavgload
@@ -81,7 +95,7 @@ collectors :: Options -> [DataCollector]
 collectors opts =
   if optIgnoreDynu opts
     then []
-    else [ DataCollector CPUload.dcName CPUload.dcCategory ]
+    else [ totalCPUCollector ]
 
 -- | MonDs Data parsed by a mock file. Representing (node name, list of reports
 -- produced by MonDs Data Collectors).
@@ -118,6 +132,24 @@ queryAllMonDDCs cdata opts = do
   (nl', il') <- foldM (queryAllMonDs map_mDD) (nl, il) (collectors opts)
   return $ cdata {cdNodes = nl', cdInstances = il'}
 
+-- | Take reports of node CPU values and update a node accordingly.
+updateNodeCpuFromReport :: (Node.Node, Report) -> Node.Node
+updateNodeCpuFromReport (node, CPUavgloadReport cav) =
+  let ct = cavCpuTotal cav
+      du = Node.utilLoad node
+      du' = du {cpuWeight = ct}
+  in node { Node.utilLoad = du' }
+
+-- | Update cluster data from node CPU load reports.
+useNodeTotalCPU :: [(Node.Node, Report)]
+                -> (Node.List, Instance.List)
+                -> Result (Node.List, Instance.List)
+useNodeTotalCPU reports (nl, il) =
+  let newnodes = map updateNodeCpuFromReport reports
+      il' = foldl updateCpuUtilDataFromNode il newnodes
+      nl' = zip (Container.keys nl) newnodes
+  in return (Container.fromList nl', il')
+
 -- | Query all MonDs for a single Data Collector.
 queryAllMonDs :: Maybe MapMonDData -> (Node.List, Instance.List)
                  -> DataCollector -> IO (Node.List, Instance.List)
@@ -126,9 +158,12 @@ queryAllMonDs m (nl, il) dc = do
   let elems' = catMaybes elems
   if length elems == length elems'
     then
-      let il' = foldl updateUtilData il elems'
-          nl' = zip (Container.keys nl) elems'
-      in return (Container.fromList nl', il')
+      let results = zip (Container.elems nl) elems'
+      in case dUse dc results (nl, il) of
+        Ok (nl', il') -> return (nl', il')
+        Bad s -> do
+          logWarning s
+          return (nl, il)
     else do
       logWarning $ "Didn't receive an answer by all MonDs, " ++ dName dc
                    ++ "'s data will be ignored."
@@ -151,16 +186,14 @@ fromCurl dc node = do
 -- | Return the data from correct combination of a Data Collector
 -- and a DCReport.
 mkReport :: DataCollector -> Maybe DCReport -> Maybe Report
-mkReport dc dcr =
-  case dcr of
-    Nothing -> Nothing
-    Just dcr' ->
-      case () of
-           _ | CPUload.dcName == dName dc ->
-                 case fromJVal (dcReportData dcr') :: Result CPUavgload of
-                   Ok cav -> Just $ CPUavgloadReport cav
-                   Bad _ -> Nothing
-             | otherwise -> Nothing
+mkReport dc = (>>= dMkReport dc)
+
+-- | Parse a DCReport for the node-total CPU collector.
+mkCpuReport :: DCReport -> Maybe Report
+mkCpuReport dcr =
+  case fromJVal (dcReportData dcr) :: Result CPUavgload of
+    Ok cav -> Just $ CPUavgloadReport cav
+    Bad _ -> Nothing
 
 -- | Get data report for the specified Data Collector and Node from the map.
 fromFile :: DataCollector -> Node.Node -> MapMonDData -> Maybe DCReport
@@ -168,27 +201,18 @@ fromFile dc node m =
   let matchDCName dcr = dName dc == dcReportName dcr
   in maybe Nothing (L.find matchDCName) $ Map.lookup (Node.name node) m
 
--- | Query a MonD for a single Data Collector.
+-- | Query a single MonD for a single Data Collector.
 queryAMonD :: Maybe MapMonDData -> DataCollector -> Node.Node
-              -> IO (Maybe Node.Node)
-queryAMonD m dc node = do
-  dcReport <-
-    case m of
+              -> IO (Maybe Report)
+queryAMonD m dc node =
+  liftM (mkReport dc) $ case m of
       Nothing -> fromCurl dc node
       Just m' -> return $ fromFile dc node m'
-  case mkReport dc dcReport of
-    Nothing -> return Nothing
-    Just report ->
-      case report of
-        CPUavgloadReport cav ->
-          let ct = cavCpuTotal cav
-              du = Node.utilLoad node
-              du' = du {cpuWeight = ct}
-          in return $ Just node {Node.utilLoad = du'}
 
--- | Update utilization data.
-updateUtilData :: Instance.List -> Node.Node -> Instance.List
-updateUtilData il node =
+-- | Update the instance CPU-utilization data, asuming that each virtual
+-- CPU contributes equally to the node CPU load.
+updateCpuUtilDataFromNode :: Instance.List -> Node.Node -> Instance.List
+updateCpuUtilDataFromNode il node =
   let ct = cpuWeight (Node.utilLoad node)
       n_uCpu = Node.uCpu node
       upd inst =
