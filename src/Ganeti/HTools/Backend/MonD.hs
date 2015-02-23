@@ -45,14 +45,17 @@ module Ganeti.HTools.Backend.MonD
 
 import Control.Monad
 import qualified Data.List as L
+import qualified Data.IntMap as IntMap
 import qualified Data.Map as Map
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, mapMaybe)
+import qualified Data.Set as Set
 import Network.Curl
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.Cpu.Types
+import qualified Ganeti.DataCollectors.XenCpuLoad as XenCpuLoad
 import qualified Ganeti.DataCollectors.CPUload as CPUload
 import Ganeti.DataCollectors.Types ( DCReport, DCCategory
                                    , dcReportData, dcReportName
@@ -71,6 +74,7 @@ import Ganeti.Utils (exitIfBad)
 
 -- | The actual data types for MonD's Data Collectors.
 data Report = CPUavgloadReport CPUavgload
+            | InstanceCpuReport (Map.Map String Double)
 
 -- | Type describing a data collector basic information.
 data DataCollector = DataCollector
@@ -100,6 +104,7 @@ updateNodeCpuFromReport (node, CPUavgloadReport cav) =
       du = Node.utilLoad node
       du' = du {cpuWeight = ct}
   in node { Node.utilLoad = du' }
+updateNodeCpuFromReport (node, _) = node
 
 -- | Update the instance CPU-utilization data, asuming that each virtual
 -- CPU contributes equally to the node CPU load.
@@ -136,14 +141,60 @@ totalCPUCollector = DataCollector { dName = CPUload.dcName
                                   , dUse = useNodeTotalCPU
                                   }
 
+-- * Xen instance CPU-usage collector
+
+-- | Parse results of the Xen-Cpu-load data collector.
+mkXenCpuReport :: DCReport -> Maybe Report
+mkXenCpuReport =
+  liftM InstanceCpuReport . maybeParseMap . dcReportData
+
+-- | Update cluster data based on the per-instance CPU usage
+-- reports
+useInstanceCpuData :: [(Node.Node, Report)]
+                   -> (Node.List, Instance.List)
+                   -> Result (Node.List, Instance.List)
+useInstanceCpuData reports (nl, il) = do
+  let toMap (InstanceCpuReport m) = Just m
+      toMap _ = Nothing
+  let usage = Map.unions $ mapMaybe (toMap . snd) reports
+      missingData = (Set.fromList . map Instance.name $ IntMap.elems il)
+                    Set.\\ Map.keysSet usage
+  unless (Set.null missingData)
+    . Bad . (++) "No CPU information available for "
+    . show $ Set.elems missingData
+  let updateInstance inst =
+        let cpu = Map.lookup (Instance.name inst) usage
+            dynU = Instance.util inst
+            dynU' = maybe dynU (\c -> dynU { cpuWeight = c }) cpu
+        in inst { Instance.util = dynU' }
+  let il' = IntMap.map updateInstance il
+  let updateNode node =
+        let cpu = sum
+                  . map (\ idx -> maybe 0 (cpuWeight . Instance.util)
+                                  $ IntMap.lookup idx il')
+                  $ Node.pList node
+            dynU = Node.utilLoad node
+            dynU' = dynU { cpuWeight = cpu }
+        in node { Node.utilLoad = dynU' }
+  let nl' = IntMap.map updateNode nl
+  return (nl', il')
+
+-- | Collector for per-instance CPU data as observed by Xen
+xenCPUCollector :: DataCollector
+xenCPUCollector = DataCollector { dName = XenCpuLoad.dcName
+                                , dCategory = XenCpuLoad.dcCategory
+                                , dMkReport = mkXenCpuReport
+                                , dUse = useInstanceCpuData
+                                }
+
 -- * Collector choice
 
 -- | The list of Data Collectors used by hail and hbal.
 collectors :: Options -> [DataCollector]
-collectors opts =
-  if optIgnoreDynu opts
-    then []
-    else [ totalCPUCollector ]
+collectors opts
+  | optIgnoreDynu opts = []
+  | optMonDXen opts = [ xenCPUCollector ]
+  | otherwise = [ totalCPUCollector ]
 
 -- * Querying infrastructure
 
