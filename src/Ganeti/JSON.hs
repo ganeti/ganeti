@@ -79,6 +79,7 @@ module Ganeti.JSON
   , nestedAccessByKeyDotted
   , branchOnField
   , addField
+  , maybeParseMap
   )
   where
 
@@ -537,3 +538,7 @@ branchOnField k _ _ _ = J.Error $ "Need an object to branch on key " ++ k
 addField :: (String, J.JSValue) -> J.JSValue -> J.JSValue
 addField (n,v) (J.JSObject obj) = J.JSObject $ JT.set_field obj n v
 addField _ jsval = jsval
+
+-- | Maybe obtain a map from a JSON object.
+maybeParseMap :: J.JSON a => J.JSValue -> Maybe (Map.Map String a)
+maybeParseMap = liftM fromContainer . readContainer <=< asJSObject
