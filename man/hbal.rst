@@ -33,6 +33,7 @@ Algorithm options:
 **[ \--ignore-dynu ]**
 **[ \--ignore-soft-errors ]**
 **[ \--mond *yes|no* ]**
+**[ \--mond-xen ]**
 **[ \--evac-mode ]**
 **[ \--restricted-migration ]**
 **[ \--select-instances *inst...* ]**
@@ -419,6 +420,10 @@ The options that can be passed to the program are as follows:
 \--mond=*yes|no*
   If given the program will query all MonDs to fetch data from the
   supported data collectors over the network.
+
+\--mond-xen
+  If given, also query Xen-specific collectors from MonD, provided
+  that monitoring daemons are queried at all.
 
 \--mond-data *datafile*
   The name of the file holding the data provided by MonD, to override
