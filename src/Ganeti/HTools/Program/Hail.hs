@@ -39,6 +39,7 @@ module Ganeti.HTools.Program.Hail
   ) where
 
 import Control.Monad
+import Control.Monad.Writer (runWriterT)
 import Data.Maybe (fromMaybe, isJust)
 import System.IO
 
@@ -87,8 +88,9 @@ wrapReadRequest opts args = do
       return $ Request rqt cdata
     else do
       let Request rqt cdata = r1
-      cdata' <-
-        if optMonD opts then MonD.queryAllMonDDCs cdata opts else return cdata
+      (cdata', _) <- runWriterT $ if optMonD opts
+                                    then MonD.queryAllMonDDCs cdata opts
+                                    else return cdata
       return $ Request rqt cdata'
 
 -- | Main function.

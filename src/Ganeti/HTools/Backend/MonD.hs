@@ -44,6 +44,7 @@ module Ganeti.HTools.Backend.MonD
   ) where
 
 import Control.Monad
+import Control.Monad.Writer
 import qualified Data.List as L
 import qualified Data.IntMap as IntMap
 import qualified Data.Map as Map
@@ -67,7 +68,7 @@ import Ganeti.HTools.Loader (ClusterData(..))
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.JSON
-import Ganeti.Logging (logWarning)
+import Ganeti.Logging.Lifted (logWarning)
 import Ganeti.Utils (exitIfBad)
 
 -- * General definitions
@@ -265,11 +266,12 @@ queryAMonD m dc node =
       Nothing -> fromCurl dc node
       Just m' -> return $ fromFile dc node m'
 
--- | Query all MonDs for a single Data Collector.
+-- | Query all MonDs for a single Data Collector. Return the updated
+-- cluster, as well as a bit inidicating wether the collector succeeded.
 queryAllMonDs :: Maybe MapMonDData -> (Node.List, Instance.List)
-                 -> DataCollector -> IO (Node.List, Instance.List)
+                 -> DataCollector -> WriterT All IO (Node.List, Instance.List)
 queryAllMonDs m (nl, il) dc = do
-  elems <- mapM (queryAMonD m dc) (Container.elems nl)
+  elems <- liftIO $ mapM (queryAMonD m dc) (Container.elems nl)
   let elems' = catMaybes elems
   if length elems == length elems'
     then
@@ -278,21 +280,25 @@ queryAllMonDs m (nl, il) dc = do
         Ok (nl', il') -> return (nl', il')
         Bad s -> do
           logWarning s
+          tell $ All False
           return (nl, il)
     else do
       logWarning $ "Didn't receive an answer by all MonDs, " ++ dName dc
                    ++ "'s data will be ignored."
+      tell $ All False
       return (nl,il)
 
--- | Query all MonDs for all Data Collector.
-queryAllMonDDCs :: ClusterData -> Options -> IO ClusterData
+-- | Query all MonDs for all Data Collector. Return the cluster enriched
+-- by dynamic data, as well as a bit indicating wether all collectors
+-- could be queried successfully.
+queryAllMonDDCs :: ClusterData -> Options -> WriterT All IO ClusterData
 queryAllMonDDCs cdata opts = do
   map_mDD <-
     case optMonDFile opts of
       Nothing -> return Nothing
       Just fp -> do
-        monDData_contents <- readFile fp
-        monDData <- exitIfBad "can't parse MonD data"
+        monDData_contents <- liftIO $ readFile fp
+        monDData <- liftIO . exitIfBad "can't parse MonD data"
                     . pMonDData $ monDData_contents
         return . Just $ Map.fromList monDData
   let (ClusterData _ nl il _ _) = cdata

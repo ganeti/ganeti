@@ -43,6 +43,7 @@ module Ganeti.HTools.ExtLoader
   ) where
 
 import Control.Monad
+import Control.Monad.Writer (runWriterT)
 import Control.Exception
 import Data.Maybe (isJust, fromJust)
 import System.FilePath
@@ -124,9 +125,9 @@ loadExternalData opts = do
       ldresult = input_data >>= (if ignoreDynU then clearDynU else return)
                             >>= mergeData eff_u exTags selInsts exInsts now
   cdata <- exitIfBad "failed to load data, aborting" ldresult
-  cdata' <- if optMonD opts
-              then MonD.queryAllMonDDCs cdata opts
-              else return cdata
+  (cdata', _) <- runWriterT $ if optMonD opts
+                                then MonD.queryAllMonDDCs cdata opts
+                                else return cdata
   let (fix_msgs, nl) = checkData (cdNodes cdata') (cdInstances cdata')
 
   unless (optVerbose opts == 0) $ maybeShowWarnings fix_msgs
