@@ -106,6 +106,7 @@ options = do
     , oIgnoreDyn 
     , oMonD
     , oMonDDataFile
+    , oMonDExitMissing
     , oMonDXen
     , oExTags
     , oExInst
