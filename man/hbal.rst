@@ -34,6 +34,7 @@ Algorithm options:
 **[ \--ignore-soft-errors ]**
 **[ \--mond *yes|no* ]**
 **[ \--mond-xen ]**
+**[ \--exit-on-missing-mond-data ]**
 **[ \--evac-mode ]**
 **[ \--restricted-migration ]**
 **[ \--select-instances *inst...* ]**
@@ -424,6 +425,11 @@ The options that can be passed to the program are as follows:
 \--mond-xen
   If given, also query Xen-specific collectors from MonD, provided
   that monitoring daemons are queried at all.
+
+\--exit-on-missing-mond-data
+  If given, abort if the data obtainable from querying MonDs is incomplete.
+  The default behavior is to continue with a best guess based on the static
+  information.
 
 \--mond-data *datafile*
   The name of the file holding the data provided by MonD, to override
