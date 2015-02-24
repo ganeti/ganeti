@@ -62,6 +62,7 @@ module Ganeti.HTools.CLI
   , oMonDDataFile
   , oMonDXen
   , oEvacMode
+  , oMonDExitMissing
   , oFirstJobGroup
   , oRestrictedMigrate
   , oExInst
@@ -152,6 +153,8 @@ data Options = Options
                                      -- by MonDs
   , optMonDXen     :: Bool           -- ^ Should Xen-specific collectors be
                                      -- considered (only if MonD is queried)
+  , optMonDExitMissing :: Bool       -- ^ If the program should exit on missing
+                                     -- MonD data
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optRestrictedMigrate :: Bool     -- ^ Disallow replace-primary moves
   , optExInst      :: [String]       -- ^ Instances to be excluded
@@ -219,6 +222,7 @@ defaultOptions  = Options
   , optMonD        = False
   , optMonDFile = Nothing
   , optMonDXen     = False
+  , optMonDExitMissing = False
   , optEvacMode    = False
   , optRestrictedMigrate = False
   , optExInst      = []
@@ -347,6 +351,13 @@ oMonDXen =
   (Option "" ["mond-xen"]
     (NoArg (\ opts -> Ok opts { optMonDXen = True }))
     "also consider xen-specific collectors in MonD queries",
+    OptComplNone)
+
+oMonDExitMissing :: OptType
+oMonDExitMissing =
+  (Option "" ["exit-on-missing-mond-data"]
+    (NoArg (\ opts -> Ok opts { optMonDExitMissing = True }))
+    "abort if the data available from the monitoring daemons is incomplete",
     OptComplNone)
 
 oDiskTemplate :: OptType
