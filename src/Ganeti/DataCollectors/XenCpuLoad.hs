@@ -42,7 +42,7 @@ module Ganeti.DataCollectors.XenCpuLoad
   , dcUpdate
   ) where
 
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), liftA2)
 import Control.Arrow ((***))
 import Control.Monad (liftM, when)
 import Control.Monad.IO.Class (liftIO)
@@ -141,7 +141,13 @@ dcUpdate maybeCollector = do
                          . (clockTimeToUSec now -)
                          . clockTimeToUSec . fst))
                       combinedValues
-  return $ InstanceCpuLoad withinRange
+      withoutOld = Map.filter
+                     (liftA2 (&&) (not . Seq.null)
+                      $ (>) (fromIntegral $ C.xentopAverageThreshold * 1000000)
+                        . (clockTimeToUSec now -) . clockTimeToUSec
+                        . fst . flip Seq.index 0)
+                     withinRange
+  return $ InstanceCpuLoad withoutOld
 
 -- | From a list of timestamps and cumulative CPU data, compute the
 -- average CPU activity in vCPUs.
