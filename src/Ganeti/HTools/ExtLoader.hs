@@ -46,6 +46,7 @@ import Control.Monad
 import Control.Monad.Writer (runWriterT)
 import Control.Exception
 import Data.Maybe (isJust, fromJust)
+import Data.Monoid (getAll)
 import System.FilePath
 import System.IO
 import System.Time (getClockTime)
@@ -125,9 +126,11 @@ loadExternalData opts = do
       ldresult = input_data >>= (if ignoreDynU then clearDynU else return)
                             >>= mergeData eff_u exTags selInsts exInsts now
   cdata <- exitIfBad "failed to load data, aborting" ldresult
-  (cdata', _) <- runWriterT $ if optMonD opts
-                                then MonD.queryAllMonDDCs cdata opts
-                                else return cdata
+  (cdata', ok) <- runWriterT $ if optMonD opts
+                                 then MonD.queryAllMonDDCs cdata opts
+                                 else return cdata
+  exitWhen (optMonDExitMissing opts && not (getAll ok))
+      "Not all required data available"
   let (fix_msgs, nl) = checkData (cdNodes cdata') (cdInstances cdata')
 
   unless (optVerbose opts == 0) $ maybeShowWarnings fix_msgs
