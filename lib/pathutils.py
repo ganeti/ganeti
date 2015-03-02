@@ -156,6 +156,8 @@ MASTER_SOCKET = SOCKET_DIR + "/ganeti-master"
 QUERY_SOCKET = SOCKET_DIR + "/ganeti-query"
 #: WConfD socket
 WCONFD_SOCKET = SOCKET_DIR + "/ganeti-wconfd"
+#: Metad socket
+METAD_SOCKET = SOCKET_DIR + "/ganeti-metad"
 
 LOG_OS_DIR = LOG_DIR + "/os"
 LOG_ES_DIR = LOG_DIR + "/extstorage"
