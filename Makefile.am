@@ -455,6 +455,7 @@ pkgpython_PYTHON = \
 	lib/locking.py \
 	lib/luxi.py \
 	lib/mcpu.py \
+	lib/metad.py \
 	lib/netutils.py \
 	lib/objects.py \
 	lib/opcodes_base.py \
