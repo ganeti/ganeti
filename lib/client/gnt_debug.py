@@ -47,6 +47,7 @@ from ganeti import utils
 from ganeti import errors
 from ganeti import compat
 from ganeti import ht
+from ganeti import metad
 from ganeti import wconfd
 
 
@@ -632,6 +633,29 @@ def ListLocks(opts, args): # pylint: disable=W0613
   return 0
 
 
+def Metad(opts, args): # pylint: disable=W0613
+  """Send commands to Metad.
+
+  @param opts: the command line options selected by the user
+  @type args: list
+  @param args: the command to send, followed by the command-specific arguments
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  if args[0] == "echo":
+    if len(args) != 2:
+      ToStderr("Command 'echo' takes only precisely argument.")
+      return 1
+    result = metad.Client().Echo(args[1])
+    print "Answer: %s" % (result,)
+  else:
+    ToStderr("Command '%s' not supported", args[0])
+    return 1
+
+  return 0
+
+
 def Wconfd(opts, args): # pylint: disable=W0613
   """Send commands to WConfD.
 
@@ -768,6 +792,9 @@ commands = {
   "wconfd": (
     Wconfd, [ArgUnknown(min=1)], [],
     "<cmd> <args...>", "Directly talk to WConfD"),
+  "metad": (
+    Metad, [ArgUnknown(min=1)], [],
+    "<cmd> <args...>", "Directly talk to Metad"),
   }
 
 #: dictionary with aliases for commands
