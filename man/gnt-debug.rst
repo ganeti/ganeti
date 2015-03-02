@@ -128,6 +128,16 @@ the entire list of fields.
 Use ``--interval`` to repeat the listing. A delay specified by the
 option value in seconds is inserted.
 
+METAD
+~~~~~
+
+| **metad** echo *text*
+
+Tests the WConf daemon by invoking its ``echo`` function.
+
+A given text is sent to Metad through RPC, echoed back by Metad and
+printed to the console.
+
 WCONFD
 ~~~~~~
 
