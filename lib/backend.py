@@ -56,12 +56,12 @@ import random
 import re
 import shutil
 import signal
-import socket
 import stat
 import tempfile
 import time
 import zlib
 import copy
+import contextlib
 
 from ganeti import errors
 from ganeti import http
@@ -86,8 +86,7 @@ from ganeti import ht
 from ganeti.storage.base import BlockDev
 from ganeti.storage.drbd import DRBD8
 from ganeti import hooksmaster
-from ganeti.rpc import transport
-from ganeti.rpc.errors import NoMasterError, TimeoutError
+import ganeti.metad as metad
 
 
 _BOOT_ID_PATH = "/proc/sys/kernel/random/boot_id"
@@ -2933,28 +2932,8 @@ def ModifyInstanceMetadata(metadata):
     if result.failed:
       raise errors.HypervisorError("Failed to start metadata daemon")
 
-  def _Connect():
-    return transport.Transport(pathutils.SOCKET_DIR + "/ganeti-metad")
-
-  retries = 5
-
-  while True:
-    try:
-      trans = utils.Retry(_Connect, 1.0, constants.LUXI_DEF_CTMO)
-      break
-    except utils.RetryTimeout:
-      raise TimeoutError("Connection to metadata daemon timed out")
-    except (socket.error, NoMasterError), err:
-      if retries == 0:
-        raise TimeoutError("Failed to connect to metadata daemon: %s" % err)
-      else:
-        retries -= 1
-
-  data = serializer.DumpJson(metadata,
-                             private_encoder=serializer.EncodeWithPrivateFields)
-
-  trans.Send(data)
-  trans.Close()
+  with contextlib.closing(metad.Client()) as client:
+    client.UpdateConfig(metadata)
 
 
 def BlockdevCreate(disk, size, owner, on_primary, info, excl_stor):

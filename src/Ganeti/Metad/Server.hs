@@ -37,6 +37,7 @@ import Control.Concurrent
 import qualified Data.Map (empty)
 
 import Ganeti.Daemon (DaemonOptions)
+import Ganeti.Metad.ConfigCore (MetadHandle(..))
 import qualified Ganeti.Metad.ConfigServer as ConfigServer
 import qualified Ganeti.Metad.WebServer as WebServer
 
@@ -44,4 +45,4 @@ start :: DaemonOptions -> IO ()
 start opts =
   do config <- newMVar Data.Map.empty
      _ <- forkIO $ WebServer.start opts config
-     ConfigServer.start opts config
+     ConfigServer.start opts (MetadHandle config)

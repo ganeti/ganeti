@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections, TemplateHaskell #-}
 {-| Configuration server for the metadata daemon.
 
 -}
@@ -34,51 +34,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 module Ganeti.Metad.ConfigServer where
 
-import Control.Concurrent (forkIO)
-import Control.Concurrent.MVar (MVar)
 import Control.Exception (finally)
-import qualified Text.JSON as J
+import Control.Monad.Reader
 
-import Ganeti.BasicTypes
 import Ganeti.Path as Path
 import Ganeti.Daemon (DaemonOptions, cleanupSocket, describeError)
-import qualified Ganeti.JSON as J
-import qualified Ganeti.Logging as Logging
 import Ganeti.Runtime (GanetiDaemon(..))
-import Ganeti.UDSServer (Client, ConnectConfig(..), Server, ServerConfig(..))
+import Ganeti.THH.RPC
+import Ganeti.UDSServer (ConnectConfig(..), ServerConfig(..))
 import qualified Ganeti.UDSServer as UDSServer
 
 import Ganeti.Metad.ConfigCore
-import Ganeti.Metad.Types (InstanceParams)
 
--- | Reads messages from clients and update the configuration
--- according to these messages.
-acceptConfig :: MetadHandle -> Client -> IO ()
-acceptConfig config client = do
-  result <- runResultT $ do
-    msg <- liftIO $ UDSServer.recvMsg client
-    Logging.logDebug $ "Received: " ++ msg
-    instData <- toErrorStr . J.fromJResultE "Parsing instance data" . J.decode
-                $ msg
-    runMetadMonad (updateConfig instData) config
-  annotateResult "Updating Metad instance configuration" $ withError show result
+-- * The handler that converts RPCs to calls to the above functions
 
--- | Loop that accepts clients and dispatches them to an isolated
--- thread that will handle the client's requests.
-acceptClients :: MetadHandle -> Server -> IO ()
-acceptClients config server =
-  do client <- UDSServer.acceptClient server
-     _ <- forkIO $ acceptConfig config client
-     acceptClients config server
+handler :: RpcServer MetadMonadInt
+handler = $( mkRpcM exportedFunctions )
 
-start :: DaemonOptions -> MVar InstanceParams -> IO ()
+-- * The main server code
+
+start :: DaemonOptions -> MetadHandle -> IO ()
 start _ config = do
      socket_path <- Path.defaultMetadSocket
      cleanupSocket socket_path
      server <- describeError "binding to the socket" Nothing (Just socket_path)
                $ UDSServer.connectServer metadConfig True socket_path
      finally
-       (acceptClients (MetadHandle config) server)
+       (forever $ runMetadMonadInt (UDSServer.listener handler server) config)
        (UDSServer.closeServer server)
   where
     metadConfig = ServerConfig GanetiMetad $ ConnectConfig 60 60
