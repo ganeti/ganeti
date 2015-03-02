@@ -384,6 +384,10 @@ built_python_base_sources = \
 	lib/opcodes.py \
 	lib/rpc/stub/wconfd.py
 
+if ENABLE_METADATA
+built_python_base_sources += lib/rpc/stub/metad.py
+endif
+
 built_python_sources = \
 	$(nodist_pkgpython_PYTHON) \
 	$(nodist_pkgpython_rpc_stub_PYTHON)
@@ -418,6 +422,10 @@ nodist_pkgpython_PYTHON = \
 
 nodist_pkgpython_rpc_stub_PYTHON = \
 	lib/rpc/stub/wconfd.py
+
+if ENABLE_METADATA
+nodist_pkgpython_rpc_stub_PYTHON += lib/rpc/stub/metad.py
+endif
 
 nodist_pkgpython_bin_SCRIPTS = \
 	$(nodist_pkglib_python_scripts)
@@ -2373,6 +2381,11 @@ lib/opcodes.py: Makefile src/hs2py lib/opcodes.py.in_before \
 # it's built at the end of the built sources
 lib/_generated_rpc.py: lib/rpc_defs.py $(BUILD_RPC) | $(built_base_sources) $(built_python_base_sources)
 	PYTHONPATH=. $(RUN_IN_TEMPDIR) $(CURDIR)/$(BUILD_RPC) lib/rpc_defs.py > $@
+
+if ENABLE_METADATA
+lib/rpc/stub/metad.py: Makefile src/hs2py | stamp-directories
+	src/hs2py --metad-rpc > $@
+endif
 
 lib/rpc/stub/wconfd.py: Makefile src/hs2py | stamp-directories
 	src/hs2py --wconfd-rpc > $@
