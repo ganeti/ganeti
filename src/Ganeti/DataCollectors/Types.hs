@@ -49,6 +49,7 @@ module Ganeti.DataCollectors.Types
   , getCategoryName
   ) where
 
+import Control.DeepSeq (NFData, rnf, force)
 import Data.Char
 import Data.Ratio
 import qualified Data.Map as Map
@@ -137,6 +138,9 @@ instance JSON DCVersion where
 
 -- | Type for the value field of the `CollectorMap` below.
 data CollectorData = CPULoadData (Seq.Seq (Integer, [Int]))
+
+instance NFData CollectorData where
+  rnf (CPULoadData x) = rnf x
 
 -- | Type for the map storing the data of the statefull DataCollectors.
 type CollectorMap = Map.Map String CollectorData
