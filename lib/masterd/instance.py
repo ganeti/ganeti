@@ -1277,14 +1277,22 @@ class ExportInstanceHelper(object):
 
     assert len(dresults) == len(instance.disks)
 
-    self._feedback_fn("Finalizing export on %s" % dest_node.name)
-    result = self._lu.rpc.call_finalize_export(dest_node.uuid, instance,
-                                               self._snap_disks)
-    msg = result.fail_msg
-    fin_resu = not msg
-    if msg:
-      self._lu.LogWarning("Could not finalize export for instance %s"
-                          " on node %s: %s", instance.name, dest_node.name, msg)
+    # Finalize only if all the disks have been exported successfully
+    if all(dresults):
+      self._feedback_fn("Finalizing export on %s" % dest_node.name)
+      result = self._lu.rpc.call_finalize_export(dest_node.uuid, instance,
+                                                 self._snap_disks)
+      msg = result.fail_msg
+      fin_resu = not msg
+      if msg:
+        self._lu.LogWarning("Could not finalize export for instance %s"
+                            " on node %s: %s", instance.name, dest_node.name,
+                            msg)
+    else:
+      fin_resu = False
+      self._lu.LogWarning("Some disk exports have failed; there may be "
+                          "leftover data for instance %s on node %s",
+                          instance.name, dest_node.name)
 
     return (fin_resu, dresults)
 
