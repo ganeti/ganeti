@@ -68,13 +68,12 @@ needed if snapshots are not supported by the underlying storage type,
 or if the creation of snapshots fails for some reason - e.g. lack of
 space.
 
-The exit code of the command is 0 if all disks were backed up
-successfully, 1 if no data was backed up or if the configuration
-export failed, and 2 if just some of the disks failed to backup.
-The exact details of the failures will be shown during the command
-execution (and will be stored in the job log). It is recommended
-that for any non-zero exit code, the backup is considered invalid,
-and retried.
+Should the snapshotting or transfer of any of the instance disks
+fail, the backup will not complete and any previous backups will be
+preserved. The exact details of the failures will be shown during the
+command execution (and will be stored in the job log). It is
+recommended that for any non-zero exit code, the backup is considered
+invalid, and retried.
 
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.

@@ -59,7 +59,7 @@ prop_stddev_update =
       direct = stdDev modified
   in counterexample ("Value computed by update " ++ show with_update
                      ++ " differs too much from correct value " ++ show direct)
-                    (abs (with_update - direct) < 1e-12)
+                    (abs (with_update - direct) < 1e-10)
 
 testSuite "Utils/Statistics"
   [ 'prop_stddev_update
