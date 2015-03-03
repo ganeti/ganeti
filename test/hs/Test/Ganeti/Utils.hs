@@ -348,7 +348,7 @@ prop_stddev_update =
       direct = stdDev modified
   in printTestCase ("Value computed by update " ++ show with_update
                     ++ " differs too much from correct value " ++ show direct)
-                   (abs (with_update - direct) < 1e-12)
+                   (abs (with_update - direct) < 1e-10)
 
 -- | Test list for the Utils module.
 testSuite "Utils"

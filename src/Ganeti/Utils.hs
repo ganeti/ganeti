@@ -223,7 +223,7 @@ updateStatistics (SumStatistics s) (x, y) = SumStatistics $ s +  (y - x)
 updateStatistics (StdDevStatistics n s var) (x, y) =
   let !ds = y - x
       !dss = y * y - x * x
-      !dnnvar = n * dss - (2 * s + ds) * ds
+      !dnnvar = (n * dss - 2 * s * ds) - ds * ds
       !s' = s + ds
       !var' = max 0 $ var + dnnvar / (n * n)
   in StdDevStatistics n s' var'

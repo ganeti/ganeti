@@ -566,6 +566,7 @@ def LeaveCluster(modify_ssh_setup):
     logging.exception("Error while removing cluster secrets")
 
   utils.StopDaemon(constants.CONFD)
+  utils.StopDaemon(constants.MOND)
   utils.StopDaemon(constants.KVMD)
 
   # Raise a custom exception (handled in ganeti-noded)
