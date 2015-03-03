@@ -41,6 +41,8 @@ module Ganeti.Monitoring.Server
   ) where
 
 import Control.Applicative
+import Control.DeepSeq (force)
+import Control.Exception.Base (evaluate)
 import Control.Monad
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 hiding (map, filter, find)
@@ -251,6 +253,7 @@ collect m collector =
       let name = dName collector
           existing = Map.lookup name m
       new_data <- update existing
+      _ <- evaluate $ force new_data
       return $ Map.insert name new_data m
 
 -- | Invokes collect for each data collector.
