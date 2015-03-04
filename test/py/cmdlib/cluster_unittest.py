@@ -2469,7 +2469,48 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     self._AssertCertFiles(pathutils)
 
     cluster = self.cfg.GetClusterInfo()
-    self.assertFalse(cluster.candidate_certs.values)
+    self.assertFalse(cluster.candidate_certs)
+
+  def _RpcSuccessfulAfterRetriesNonMaster(self, node_uuid, _):
+    if self._retries < self._max_retries and node_uuid != self._master_uuid:
+      self._retries += 1
+      return self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(node_uuid)
+    else:
+      return self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(node_uuid,
+          [(constants.CRYPTO_TYPE_SSL_DIGEST, self._GetFakeDigest(node_uuid))])
+
+  def _NonMasterRetries(self, pathutils, max_retries):
+    self._InitPathutils(pathutils)
+
+    self._master_uuid = self.cfg.GetMasterNode()
+    self._max_retries = max_retries
+    self._retries = 0
+    self.rpc.call_node_crypto_tokens = self._RpcSuccessfulAfterRetriesNonMaster
+
+    # Add one non-master node
+    self.cfg.AddNewNode()
+
+    op = opcodes.OpClusterRenewCrypto()
+    self.ExecOpCode(op)
+
+    self._AssertCertFiles(pathutils)
+
+    return self.cfg.GetClusterInfo()
+
+  @patchPathutils("cluster")
+  def testNonMasterRetriesSuccess(self, pathutils):
+    cluster = self._NonMasterRetries(pathutils, 2)
+    self.assertEqual(2, len(cluster.candidate_certs.values()))
+
+  @patchPathutils("cluster")
+  def testNonMasterRetriesFail(self, pathutils):
+    cluster = self._NonMasterRetries(pathutils, 5)
+
+    # Only the master digest should be in the cert list
+    self.assertEqual(1, len(cluster.candidate_certs.values()))
+    self.assertTrue(self._master_uuid in cluster.candidate_certs)
 
 
 if __name__ == "__main__":

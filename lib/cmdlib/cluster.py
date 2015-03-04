@@ -164,14 +164,19 @@ class LUClusterRenewCrypto(NoHooksLU):
         feedback_fn("* Skipping offline node %s" % node_info.name)
         continue
       if node_uuid != master_uuid:
-        try:
-          new_digest = CreateNewClientCert(self, node_uuid)
-          if node_info.master_candidate:
-            utils.AddNodeToCandidateCerts(node_uuid,
-                                          new_digest,
-                                          cluster.candidate_certs)
-        except errors.OpExecError as e:
-          node_errors[node_uuid] = e
+        for _ in range(self._MAX_NUM_RETRIES):
+          try:
+            new_digest = CreateNewClientCert(self, node_uuid)
+            if node_info.master_candidate:
+              utils.AddNodeToCandidateCerts(node_uuid,
+                                            new_digest,
+                                            cluster.candidate_certs)
+            break
+          except errors.OpExecError as last_exception:
+            pass
+        else:
+          if last_exception:
+            node_errors[node_uuid] = last_exception
 
     if node_errors:
       msg = ("Some nodes' SSL client certificates could not be renewed."
