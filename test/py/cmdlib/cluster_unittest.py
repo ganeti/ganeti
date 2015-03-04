@@ -2288,15 +2288,27 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
 
     """
     return "FA:KE:%s:%s:%s:%s" % (uuid[0:2], uuid[2:4], uuid[4:6], uuid[6:8])
- 
-  @patchPathutils("cluster")
-  def testSuccessfulCase(self, pathutils):
 
-    # patch pathutils to point to temporary files
-    pathutils.NODED_CERT_FILE = self._node_cert 
-    pathutils.NODED_CLIENT_CERT_FILE = self._client_node_cert 
+  def _InitPathutils(self, pathutils):
+    """Patch pathutils to point to temporary files.
+
+    """
+    pathutils.NODED_CERT_FILE = self._node_cert
+    pathutils.NODED_CLIENT_CERT_FILE = self._client_node_cert
     pathutils.NODED_CLIENT_CERT_FILE_TMP = \
         self._client_node_cert_tmp
+
+  def _AssertCertFiles(self, pathutils):
+    """Check if the correct certificates exist and don't exist on the master.
+
+    """
+    self.assertTrue(os.path.exists(pathutils.NODED_CERT_FILE))
+    self.assertTrue(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE))
+    self.assertFalse(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE_TMP))
+
+  @patchPathutils("cluster")
+  def testSuccessfulCase(self, pathutils):
+    self._InitPathutils(pathutils)
 
     # create a few non-master, online nodes
     num_nodes = 3
@@ -2312,10 +2324,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     op = opcodes.OpClusterRenewCrypto()
     self.ExecOpCode(op)
 
-    # Check if the correct certificates exist and don't exist on the master
-    self.assertTrue(os.path.exists(pathutils.NODED_CERT_FILE))
-    self.assertTrue(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE))
-    self.assertFalse(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE_TMP))
+    self._AssertCertFiles(pathutils)
 
     # Check if we have the correct digests in the configuration
     cluster = self.cfg.GetClusterInfo()
@@ -2327,12 +2336,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
 
   @patchPathutils("cluster")
   def testMasterFails(self, pathutils):
-
-    # patch pathutils to point to temporary files
-    pathutils.NODED_CERT_FILE = self._node_cert
-    pathutils.NODED_CLIENT_CERT_FILE = self._client_node_cert
-    pathutils.NODED_CLIENT_CERT_FILE_TMP = \
-        self._client_node_cert_tmp
+    self._InitPathutils(pathutils)
 
     # make sure the RPC calls are failing for all nodes
     master_uuid = self.cfg.GetMasterNode()
@@ -2342,10 +2346,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     op = opcodes.OpClusterRenewCrypto()
     self.ExecOpCode(op)
 
-    # Check if the correct certificates exist and don't exist on the master
-    self.assertTrue(os.path.exists(pathutils.NODED_CERT_FILE))
-    self.assertTrue(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE))
-    self.assertFalse(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE_TMP))
+    self._AssertCertFiles(pathutils)
 
     # Check if we correctly have no candidate certificates
     cluster = self.cfg.GetClusterInfo()
@@ -2362,12 +2363,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
 
   @patchPathutils("cluster")
   def testNonMasterFails(self, pathutils):
-
-    # patch pathutils to point to temporary files
-    pathutils.NODED_CERT_FILE = self._node_cert
-    pathutils.NODED_CLIENT_CERT_FILE = self._client_node_cert
-    pathutils.NODED_CLIENT_CERT_FILE_TMP = \
-        self._client_node_cert_tmp
+    self._InitPathutils(pathutils)
 
     # create a few non-master, online nodes
     num_nodes = 3
@@ -2384,10 +2380,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     op = opcodes.OpClusterRenewCrypto()
     self.ExecOpCode(op)
 
-    # Check if the correct certificates exist and don't exist on the master
-    self.assertTrue(os.path.exists(pathutils.NODED_CERT_FILE))
-    self.assertTrue(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE))
-    self.assertFalse(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE_TMP))
+    self._AssertCertFiles(pathutils)
 
     # Check if we have the correct digests in the configuration
     cluster = self.cfg.GetClusterInfo()
