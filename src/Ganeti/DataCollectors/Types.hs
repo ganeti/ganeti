@@ -49,7 +49,7 @@ module Ganeti.DataCollectors.Types
   , getCategoryName
   ) where
 
-import Control.DeepSeq (NFData, rnf, force)
+import Control.DeepSeq (NFData, rnf)
 import Control.Seq (using, seqFoldable, rdeepseq)
 import Data.Char
 import Data.Ratio
