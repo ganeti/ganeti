@@ -202,6 +202,11 @@ class LUClusterDestroy(LogicalUnit):
   HPATH = "cluster-destroy"
   HTYPE = constants.HTYPE_CLUSTER
 
+  # Read by the job queue to detect when the cluster is gone and job files will
+  # never be available.
+  # FIXME: This variable should be removed together with the Python job queue.
+  clusterHasBeenDestroyed = False
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -250,6 +255,10 @@ class LUClusterDestroy(LogicalUnit):
     result = self.rpc.call_node_deactivate_master_ip(master_params.uuid,
                                                      master_params, ems)
     result.Warn("Error disabling the master IP address", self.LogWarning)
+
+    # signal to the job queue that the cluster is gone
+    LUClusterDestroy.clusterHasBeenDestroyed = True
+
     return master_params.uuid
 
 
