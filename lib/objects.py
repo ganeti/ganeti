@@ -599,6 +599,10 @@ class Disk(ConfigObject):
     """Test if this device needs to be opened on a secondary node."""
     return self.dev_type in (constants.DT_PLAIN,)
 
+  def SupportsSnapshots(self):
+    """Test if this device supports snapshots."""
+    return self.dev_type in constants.DTS_SNAPSHOT_CAPABLE
+
   def StaticDevPath(self):
     """Return the device path if this device type has a static one.
 

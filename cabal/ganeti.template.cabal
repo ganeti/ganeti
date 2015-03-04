@@ -83,6 +83,7 @@ library
   if flag(mond)
     build-depends:
         PSQueue                       >= 1.1        && < 1.2
+      , snap-core                     >= 0.8.1      && < 0.10
       , snap-server                   >= 0.8.1      && < 0.10
 
   if flag(metad)

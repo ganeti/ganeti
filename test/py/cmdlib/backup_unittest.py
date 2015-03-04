@@ -63,6 +63,39 @@ class TestLUBackupPrepare(CmdlibTestCase):
     self.ExecOpCode(op)
 
 
+def InstanceRemoved(remove_instance):
+  """Checks whether the instance was removed during a test of opcode execution.
+
+  """
+  def WrappingFunction(fn):
+    def CheckingFunction(self, *args, **kwargs):
+      fn(self, *args, **kwargs)
+      instance_removed = (self.rpc.call_blockdev_remove.called -
+                          self.rpc.call_blockdev_snapshot.called) > 0
+      if remove_instance and not instance_removed:
+        raise self.fail(msg="Instance not removed when it should have been")
+      if not remove_instance and instance_removed:
+        raise self.fail(msg="Instance removed when it should not have been")
+    return CheckingFunction
+  return WrappingFunction
+
+
+def TrySnapshots(try_snapshot):
+  """Checks whether an attempt to snapshot disks should have been attempted.
+
+  """
+  def WrappingFunction(fn):
+    def CheckingFunction(self, *args, **kwargs):
+      fn(self, *args, **kwargs)
+      snapshots_tried = self.rpc.call_blockdev_snapshot.called > 0
+      if try_snapshot and not snapshots_tried:
+        raise self.fail(msg="Disks should have been snapshotted but weren't")
+      if not try_snapshot and snapshots_tried:
+        raise self.fail(msg="Disks snapshotted without a need to do so")
+    return CheckingFunction
+  return WrappingFunction
+
+
 class TestLUBackupExportBase(CmdlibTestCase):
   def setUp(self):
     super(TestLUBackupExportBase, self).setUp()
@@ -122,39 +155,111 @@ class TestLUBackupExportBase(CmdlibTestCase):
 
 class TestLUBackupExportLocalExport(TestLUBackupExportBase):
   def setUp(self):
+    # The initial instance prep
     super(TestLUBackupExportLocalExport, self).setUp()
 
-    self.inst = self.cfg.AddNewInstance()
     self.target_node = self.cfg.AddNewNode()
     self.op = opcodes.OpBackupExport(mode=constants.EXPORT_MODE_LOCAL,
-                                     instance_name=self.inst.name,
                                      target_node=self.target_node.name)
+    self._PrepareInstance()
 
     self.rpc.call_import_start.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.target_node, "import_daemon")
 
-  def testExportWithShutdown(self):
-    inst = self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP)
-    op = self.CopyOpCode(self.op, instance_name=inst.name, shutdown=True)
-    self.ExecOpCode(op)
+  def _PrepareInstance(self, online=False, snapshottable=True):
+    """Produces an instance for export tests, and updates the opcode.
 
-  def testExportDeactivatedDisks(self):
+    """
+    if online:
+      admin_state = constants.ADMINST_UP
+    else:
+      admin_state = constants.ADMINST_DOWN
+
+    if snapshottable:
+      disk_template = constants.DT_PLAIN
+    else:
+      disk_template = constants.DT_FILE
+
+    inst = self.cfg.AddNewInstance(admin_state=admin_state,
+                                   disk_template=disk_template)
+    self.op = self.CopyOpCode(self.op, instance_name=inst.name)
+
+  @TrySnapshots(True)
+  @InstanceRemoved(False)
+  def testPlainExportWithShutdown(self):
+    self._PrepareInstance(online=True)
     self.ExecOpCode(self.op)
 
-  def testExportRemoveInstance(self):
+  @TrySnapshots(False)
+  @InstanceRemoved(False)
+  def testFileExportWithShutdown(self):
+    self._PrepareInstance(online=True, snapshottable=False)
+    self.ExecOpCodeExpectOpExecError(self.op, ".*--long-sleep option.*")
+
+  @TrySnapshots(False)
+  @InstanceRemoved(False)
+  def testFileLongSleepExport(self):
+    self._PrepareInstance(online=True, snapshottable=False)
+    op = self.CopyOpCode(self.op, long_sleep=True)
+    self.ExecOpCode(op)
+
+  @TrySnapshots(True)
+  @InstanceRemoved(False)
+  def testPlainLiveExport(self):
+    self._PrepareInstance(online=True)
+    op = self.CopyOpCode(self.op, shutdown=False)
+    self.ExecOpCode(op)
+
+  @TrySnapshots(False)
+  @InstanceRemoved(False)
+  def testFileLiveExport(self):
+    self._PrepareInstance(online=True, snapshottable=False)
+    op = self.CopyOpCode(self.op, shutdown=False)
+    self.ExecOpCodeExpectOpExecError(op, ".*live export.*")
+
+  @TrySnapshots(False)
+  @InstanceRemoved(False)
+  def testPlainOfflineExport(self):
+    self._PrepareInstance(online=False)
+    self.ExecOpCode(self.op)
+
+  @TrySnapshots(False)
+  @InstanceRemoved(False)
+  def testFileOfflineExport(self):
+    self._PrepareInstance(online=False, snapshottable=False)
+    self.ExecOpCode(self.op)
+
+  @TrySnapshots(False)
+  @InstanceRemoved(True)
+  def testExportRemoveOfflineInstance(self):
+    self._PrepareInstance(online=False)
     op = self.CopyOpCode(self.op, remove_instance=True)
     self.ExecOpCode(op)
 
+  @TrySnapshots(False)
+  @InstanceRemoved(True)
+  def testExportRemoveOnlineInstance(self):
+    self._PrepareInstance(online=True)
+    op = self.CopyOpCode(self.op, remove_instance=True)
+    self.ExecOpCode(op)
+
+  @TrySnapshots(False)
+  @InstanceRemoved(False)
   def testValidCompressionTool(self):
     op = self.CopyOpCode(self.op, compress="lzop")
     self.cfg.SetCompressionTools(["gzip", "lzop"])
     self.ExecOpCode(op)
 
+  @InstanceRemoved(False)
   def testInvalidCompressionTool(self):
     op = self.CopyOpCode(self.op, compress="invalid")
     self.cfg.SetCompressionTools(["gzip", "lzop"])
     self.ExecOpCodeExpectOpPrereqError(op, "Compression tool not allowed")
+
+  def testLiveLongSleep(self):
+    op = self.CopyOpCode(self.op, shutdown=False, long_sleep=True)
+    self.ExecOpCodeExpectOpPrereqError(op, ".*long sleep.*")
 
 
 class TestLUBackupExportRemoteExport(TestLUBackupExportBase):
@@ -168,11 +273,13 @@ class TestLUBackupExportRemoteExport(TestLUBackupExportBase):
                                      x509_key_name=["mock_key_name"],
                                      destination_x509_ca="mock_dest_ca")
 
+  @InstanceRemoved(False)
   def testRemoteExportWithoutX509KeyName(self):
     op = self.CopyOpCode(self.op, x509_key_name=self.REMOVE)
     self.ExecOpCodeExpectOpPrereqError(op,
                                        "Missing X509 key name for encryption")
 
+  @InstanceRemoved(False)
   def testRemoteExportWithoutX509DestCa(self):
     op = self.CopyOpCode(self.op, destination_x509_ca=self.REMOVE)
     self.ExecOpCodeExpectOpPrereqError(op,

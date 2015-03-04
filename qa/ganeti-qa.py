@@ -469,8 +469,7 @@ def RunExportImportTests(instance, inodes):
   # FIXME: export explicitly bails out on file based storage. other non-lvm
   # based storage types are untested, though. Also note that import could still
   # work, but is deeply embedded into the "export" case.
-  if (qa_config.TestEnabled("instance-export") and
-      instance.disk_template not in constants.DTS_FILEBASED):
+  if qa_config.TestEnabled("instance-export"):
     RunTest(qa_instance.TestInstanceExportNoTarget, instance)
 
     pnode = inodes[0]

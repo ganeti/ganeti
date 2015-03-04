@@ -454,12 +454,23 @@ instance Arbitrary OpCodes.OpCode where
       "OP_BACKUP_PREPARE" ->
         OpCodes.OpBackupPrepare <$> genFQDN <*> return Nothing <*> arbitrary
       "OP_BACKUP_EXPORT" ->
-        OpCodes.OpBackupExport <$> genFQDN <*> return Nothing <*>
-          genPrintableAsciiString <*>
-          arbitrary <*> arbitrary <*> return Nothing <*>
-          arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          genMaybe (pure []) <*> genMaybe genNameNE <*> arbitrary <*>
-          arbitrary <*> arbitrary
+        OpCodes.OpBackupExport
+          <$> genFQDN                  -- instance_name
+          <*> return Nothing           -- instance_uuid
+          <*> genPrintableAsciiString  -- compress
+          <*> arbitrary                -- shutdown_timeout
+          <*> arbitrary                -- target_node
+          <*> return Nothing           -- target_node_uuid
+          <*> arbitrary                -- shutdown
+          <*> arbitrary                -- remove_instance
+          <*> arbitrary                -- ignore_remove_failures
+          <*> arbitrary                -- mode
+          <*> genMaybe (pure [])       -- x509_key_name
+          <*> genMaybe genNameNE       -- destination_x509_ca
+          <*> arbitrary                -- zero_free_space
+          <*> arbitrary                -- zeroing_timeout_fixed
+          <*> arbitrary                -- zeroing_timeout_per_mib
+          <*> arbitrary                -- long_sleep
       "OP_BACKUP_REMOVE" ->
         OpCodes.OpBackupRemove <$> genFQDN <*> return Nothing
       "OP_TEST_ALLOCATOR" ->

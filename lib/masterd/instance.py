@@ -1149,7 +1149,7 @@ class _RemoteExportCb(ImportExportCbBase):
 
 
 class ExportInstanceHelper(object):
-  def __init__(self, lu, feedback_fn, instance, snapshot):
+  def __init__(self, lu, feedback_fn, instance):
     """Initializes this class.
 
     @param lu: Logical unit instance
@@ -1163,24 +1163,39 @@ class ExportInstanceHelper(object):
     self._lu = lu
     self._feedback_fn = feedback_fn
     self._instance = instance
-    self._snapshot = snapshot
 
-    self._disks_to_transfer = {}
-    self._removed_snaps = [False] * len(instance.disks)
+    self._snapshots = [None] * len(instance.disks)
+    self._snapshots_removed = [False] * len(instance.disks)
+
+  def _SnapshotsReady(self):
+    """Returns true if snapshots are ready to be used in exports.
+
+    """
+    return all(self._snapshots)
 
   def CreateSnapshots(self):
-    """Creates a snapshot for every disk of the instance.
+    """Attempts to create a snapshot for every disk of the instance.
 
     Currently support drbd, plain and ext disk templates.
 
+    @rtype: bool
+    @return: Whether following transfers can use snapshots
+
     """
-    assert not self._disks_to_transfer
+    if any(self._snapshots):
+      raise errors.ProgrammerError("Snapshot creation was invoked more than "
+                                   "once")
 
     instance = self._instance
+    inst_disks = self._lu.cfg.GetInstanceDisks(instance.uuid)
+
+    # A quick check whether we can support snapshots at all
+    if not all([d.SupportsSnapshots() for d in inst_disks]):
+      return False
+
     src_node = instance.primary_node
     src_node_name = self._lu.cfg.GetNodeName(src_node)
 
-    inst_disks = self._lu.cfg.GetInstanceDisks(instance.uuid)
     for idx, disk in enumerate(inst_disks):
       self._feedback_fn("Creating a snapshot of disk/%s on node %s" %
                         (idx, src_node_name))
@@ -1190,7 +1205,6 @@ class ExportInstanceHelper(object):
       result = self._lu.rpc.call_blockdev_snapshot(src_node,
                                                    (disk, instance),
                                                    None, None)
-      new_dev = False
       msg = result.fail_msg
       if msg:
         self._lu.LogWarning("Could not snapshot disk/%s on node %s: %s",
@@ -1211,12 +1225,19 @@ class ExportInstanceHelper(object):
         new_dev = objects.Disk(dev_type=dev_type, size=disk.size,
                                logical_id=disk_id, iv_name=disk.iv_name,
                                params=disk_params)
+        new_dev.uuid = self._lu.cfg.GenerateUniqueID(self._lu.proc.GetECId())
 
-      assert idx not in self._disks_to_transfer
-      self._disks_to_transfer[idx] = new_dev
+        self._snapshots[idx] = new_dev
+        self._snapshots_removed[idx] = False
 
-    assert len(self._disks_to_transfer) == len(instance.disks)
-    assert len(self._removed_snaps) == len(instance.disks)
+    # One final check to see if we have managed to snapshot everything
+    if self._SnapshotsReady():
+      return True
+    else:
+      # If we failed to do so, the existing snapshots are of little value to us
+      # so we can remove them straight away.
+      self.Cleanup()
+      return False
 
   def _RemoveSnapshot(self, disk_index):
     """Removes an LVM snapshot.
@@ -1225,22 +1246,47 @@ class ExportInstanceHelper(object):
     @param disk_index: Index of the snapshot to be removed
 
     """
-    disk = self._disks_to_transfer.get(disk_index)
-    if disk and not self._removed_snaps[disk_index]:
-      src_node = self._instance.primary_node
-      src_node_name = self._lu.cfg.GetNodeName(src_node)
+    snapshot = self._snapshots[disk_index]
+    if snapshot is not None and not self._snapshots_removed[disk_index]:
+      src_node_uuid = self._instance.primary_node
+      src_node_name = self._lu.cfg.GetNodeName(src_node_uuid)
 
       self._feedback_fn("Removing snapshot of disk/%s on node %s" %
                         (disk_index, src_node_name))
 
-      result = self._lu.rpc.call_blockdev_remove(src_node,
-                                                 (disk, self._instance))
+      result = self._lu.rpc.call_blockdev_remove(src_node_uuid,
+                                                 (snapshot, self._instance))
       if result.fail_msg:
         self._lu.LogWarning("Could not remove snapshot for disk/%d from node"
                             " %s: %s", disk_index, src_node_name,
                             result.fail_msg)
       else:
-        self._removed_snaps[disk_index] = True
+        self._snapshots_removed[disk_index] = True
+
+  def _GetDisksToTransfer(self):
+    """Returns disks to be transferred, whether snapshots or instance disks.
+
+    @rtype: list of L{objects.Disk}
+    @return: The disks to transfer
+
+    """
+    if self._SnapshotsReady():
+      return self._snapshots
+    else:
+      return self._lu.cfg.GetInstanceDisks(self._instance.uuid)
+
+  def _GetDiskLabel(self, idx):
+    """Returns a label which should be used to represent a disk to transfer.
+
+    @type idx: int
+    @param idx: The disk index
+    @rtype: string
+
+    """
+    if self._SnapshotsReady():
+      return "snapshot/%d" % idx
+    else:
+      return "disk/%d" % idx
 
   def LocalExport(self, dest_node, compress):
     """Intra-cluster instance export.
@@ -1251,24 +1297,16 @@ class ExportInstanceHelper(object):
     @param compress: Compression tool to use
 
     """
+    disks_to_transfer = self._GetDisksToTransfer()
+
     instance = self._instance
     src_node_uuid = instance.primary_node
 
-    if not self._snapshot:
-      disks = self._lu.cfg.GetInstanceDisks(instance.uuid)
-      self._disks_to_transfer = dict((i, disk) for i, disk in enumerate(disks))
-
-    assert len(self._disks_to_transfer) == len(instance.disks)
-
     transfers = []
 
-    for idx, dev in self._disks_to_transfer.items():
-      if not dev:
-        transfers.append(None)
-        continue
-
+    for idx, dev in enumerate(disks_to_transfer):
       path = utils.PathJoin(pathutils.EXPORT_DIR, "%s.new" % instance.name,
-                            dev.logical_id[1])
+                            dev.uuid)
 
       finished_fn = compat.partial(self._TransferFinished, idx)
 
@@ -1280,10 +1318,8 @@ class ExportInstanceHelper(object):
         src_ioargs = (dev, instance)
 
       # FIXME: pass debug option from opcode to backend
-      dt = DiskTransfer("snapshot/%s" % idx,
-                        src_io, src_ioargs,
-                        constants.IEIO_FILE, (path, ),
-                        finished_fn)
+      dt = DiskTransfer(self._GetDiskLabel(idx), src_io, src_ioargs,
+                        constants.IEIO_FILE, (path, ), finished_fn)
       transfers.append(dt)
 
     # Actually export data
@@ -1295,14 +1331,22 @@ class ExportInstanceHelper(object):
 
     assert len(dresults) == len(instance.disks)
 
-    self._feedback_fn("Finalizing export on %s" % dest_node.name)
-    result = self._lu.rpc.call_finalize_export(dest_node.uuid, instance,
-                                               self._disks_to_transfer.values())
-    msg = result.fail_msg
-    fin_resu = not msg
-    if msg:
-      self._lu.LogWarning("Could not finalize export for instance %s"
-                          " on node %s: %s", instance.name, dest_node.name, msg)
+    # Finalize only if all the disks have been exported successfully
+    if all(dresults):
+      self._feedback_fn("Finalizing export on %s" % dest_node.name)
+      result = self._lu.rpc.call_finalize_export(dest_node.uuid, instance,
+                                                 disks_to_transfer)
+      msg = result.fail_msg
+      fin_resu = not msg
+      if msg:
+        self._lu.LogWarning("Could not finalize export for instance %s"
+                            " on node %s: %s", instance.name, dest_node.name,
+                            msg)
+    else:
+      fin_resu = False
+      self._lu.LogWarning("Some disk exports have failed; there may be "
+                          "leftover data for instance %s on node %s",
+                          instance.name, dest_node.name)
 
     return (fin_resu, dresults)
 
@@ -1322,15 +1366,15 @@ class ExportInstanceHelper(object):
 
     """
     instance = self._instance
-    inst_disks = self._lu.cfg.GetInstanceDisks(instance.uuid)
+    disks_to_transfer = self._GetDisksToTransfer()
 
-    assert len(disk_info) == len(instance.disks)
+    assert len(disk_info) == len(disks_to_transfer)
 
-    cbs = _RemoteExportCb(self._feedback_fn, len(instance.disks))
+    cbs = _RemoteExportCb(self._feedback_fn, len(disks_to_transfer))
 
     ieloop = ImportExportLoop(self._lu)
     try:
-      for idx, (dev, (host, port, magic)) in enumerate(zip(inst_disks,
+      for idx, (dev, (host, port, magic)) in enumerate(zip(disks_to_transfer,
                                                            disk_info)):
         # Decide whether to use IPv6
         ipv6 = netutils.IP6Address.IsValid(host)
@@ -1375,8 +1419,7 @@ class ExportInstanceHelper(object):
     """Remove all snapshots.
 
     """
-    assert len(self._removed_snaps) == len(self._instance.disks)
-    for idx in range(len(self._instance.disks)):
+    for idx in range(len(self._snapshots)):
       self._RemoveSnapshot(idx)
 
 

@@ -1347,7 +1347,7 @@ HASKELL_PACKAGE_VERSIONS_FILE = cabal_macros.h
 $(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
                                   cabal/CabalDependenciesMacros.hs
 	touch empty-cabal-config
-	cabal --config-file=empty-cabal-config configure --user \
+	$(CABAL) --config-file=empty-cabal-config configure --user \
 	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
 	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"`
 	runhaskell $(abs_top_srcdir)/cabal/CabalDependenciesMacros.hs \

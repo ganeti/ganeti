@@ -285,18 +285,19 @@ class LUBackupExport(LogicalUnit):
       if self.instance.hypervisor == constants.HT_KVM and \
          not hvparams.get(constants.HV_KVM_USER_SHUTDOWN, False):
         raise errors.OpPrereqError("Instance shutdown detection must be "
-                                   "enabled for zeroing to work")
+                                   "enabled for zeroing to work",
+                                   errors.ECODE_INVAL)
 
       # Check that the instance is set to boot from the disk
       if constants.HV_BOOT_ORDER in hvparams and \
          hvparams[constants.HV_BOOT_ORDER] != constants.HT_BO_DISK:
         raise errors.OpPrereqError("Booting from disk must be set for zeroing "
-                                   "to work")
+                                   "to work", errors.ECODE_INVAL)
 
       # Check that the zeroing image is set
       if not self.cfg.GetZeroingImage():
         raise errors.OpPrereqError("A zeroing image must be set for zeroing to"
-                                   " work")
+                                   " work", errors.ECODE_INVAL)
 
       if self.op.zeroing_timeout_fixed is None:
         self.op.zeroing_timeout_fixed = constants.HELPER_VM_STARTUP
@@ -308,7 +309,13 @@ class LUBackupExport(LogicalUnit):
       if (self.op.zeroing_timeout_fixed is not None or
           self.op.zeroing_timeout_per_mib is not None):
         raise errors.OpPrereqError("Zeroing timeout options can only be used"
-                                   " only with the --zero-free-space option")
+                                   " only with the --zero-free-space option",
+                                   errors.ECODE_INVAL)
+
+    if self.op.long_sleep and not self.op.shutdown:
+      raise errors.OpPrereqError("The long sleep option only makes sense when"
+                                 " the instance can be shut down.",
+                                 errors.ECODE_INVAL)
 
     self.secondary_nodes = \
       self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
@@ -433,14 +440,13 @@ class LUBackupExport(LogicalUnit):
       ShutdownInstanceDisks(self, self.instance)
       raise errors.OpExecError("Could not start instance: %s" % msg)
 
-  def InstanceDown(self):
-    """Returns true iff the instance is shut down during transfer."""
-    return (self.instance.admin_state != constants.ADMINST_UP or
-            self.op.shutdown)
+  def TrySnapshot(self):
+    """Returns true if there is a reason to prefer a snapshot."""
+    return (not self.op.remove_instance and
+            self.instance.admin_state == constants.ADMINST_UP)
 
   def DoReboot(self):
     """Returns true iff the instance needs to be started after transfer."""
-
     return (self.op.shutdown and
             self.instance.admin_state == constants.ADMINST_UP and
             not self.op.remove_instance)
@@ -476,15 +482,27 @@ class LUBackupExport(LogicalUnit):
       self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
 
     try:
-      snapshot = not self.InstanceDown()
       helper = masterd.instance.ExportInstanceHelper(self, feedback_fn,
-                                                     self.instance, snapshot)
+                                                     self.instance)
 
-      if snapshot:
-        helper.CreateSnapshots()
+      snapshots_available = False
+      if self.TrySnapshot():
+        snapshots_available = helper.CreateSnapshots()
+        if not snapshots_available:
+          if not self.op.shutdown:
+            raise errors.OpExecError(
+              "Not all disks could be snapshotted, and you requested a live "
+              "export; aborting"
+            )
+          if not self.op.long_sleep:
+            raise errors.OpExecError(
+              "Not all disks could be snapshotted, and you did not allow the "
+              "instance to remain offline for a longer time through the "
+              "--long-sleep option; aborting"
+            )
 
       try:
-        if self.DoReboot() and snapshot:
+        if self.DoReboot() and snapshots_available:
           self.StartInstance(feedback_fn, src_node_uuid)
         if self.op.mode == constants.EXPORT_MODE_LOCAL:
           (fin_resu, dresults) = helper.LocalExport(self.dst_node,
@@ -504,7 +522,7 @@ class LUBackupExport(LogicalUnit):
                                                      self.op.compress,
                                                      timeouts)
 
-        if self.DoReboot() and not snapshot:
+        if self.DoReboot() and not snapshots_available:
           self.StartInstance(feedback_fn, src_node_uuid)
       finally:
         helper.Cleanup()

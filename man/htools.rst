@@ -287,7 +287,7 @@ support all options. Some common options are:
 
 -v, \--verbose
   Increase the output verbosity. Each usage of this option will
-  increase the verbosity (currently more than 2 doesn't make sense)
+  increase the verbosity (currently more than 5 doesn't make sense)
   from the default of one.
 
 -q, \--quiet

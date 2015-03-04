@@ -301,6 +301,7 @@ module Ganeti.OpParams
   , pSshKeys
   , pNodeSetup
   , pVerifyClutter
+  , pLongSleep
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -1905,3 +1906,9 @@ pVerifyClutter =
   withDoc "Whether to check for clutter in the 'authorized_keys' file." .
   defaultField [| False |] $
   simpleField "verify_clutter" [t| Bool |]
+
+pLongSleep :: Field
+pLongSleep =
+  withDoc "Whether to allow long instance shutdowns during exports" .
+  defaultField [| False |] $
+  simpleField "long_sleep" [t| Bool |]

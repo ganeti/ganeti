@@ -133,6 +133,7 @@ __all__ = [
   "IPOLICY_STD_SPECS_OPT",
   "IPOLICY_STD_SPECS_STR",
   "IPOLICY_VCPU_RATIO",
+  "LONG_SLEEP_OPT",
   "MAC_PREFIX_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
@@ -1588,6 +1589,9 @@ VERIFY_CLUTTER_OPT = cli_option(
     help="Verify that Ganeti did not clutter"
     " up the 'authorized_keys' file", action="store_true")
 
+LONG_SLEEP_OPT = cli_option(
+    "--long-sleep", default=False, dest="long_sleep",
+    help="Allow long shutdowns when backing up instances", action="store_true")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]

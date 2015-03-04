@@ -985,6 +985,11 @@ dtsCopyable :: FrozenSet String
 dtsCopyable =
   ConstantUtils.mkSet $ map Types.diskTemplateToRaw [DTPlain, DTFile]
 
+-- | The set of disk templates which can be snapshot.
+dtsSnapshotCapable :: FrozenSet String
+dtsSnapshotCapable =
+  ConstantUtils.mkSet $ map Types.diskTemplateToRaw [DTPlain, DTDrbd8, DTExt]
+
 -- | The set of disk templates that are supported by exclusive_storage
 dtsExclStorage :: FrozenSet String
 dtsExclStorage = ConstantUtils.mkSet $ map Types.diskTemplateToRaw [DTPlain]
