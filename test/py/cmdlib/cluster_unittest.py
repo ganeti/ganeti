@@ -2306,6 +2306,15 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     self.assertTrue(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE))
     self.assertFalse(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE_TMP))
 
+  def _CompletelySuccessfulRpc(self, node_uuid, _):
+    """Fake RPC call which always returns successfully.
+
+    """
+    return self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(node_uuid,
+            [(constants.CRYPTO_TYPE_SSL_DIGEST,
+              self._GetFakeDigest(node_uuid))])
+
   @patchPathutils("cluster")
   def testSuccessfulCase(self, pathutils):
     self._InitPathutils(pathutils)
@@ -2314,12 +2323,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     num_nodes = 3
     for _ in range(num_nodes):
       self.cfg.AddNewNode()
-
-    # make sure the RPC calls are successful for all nodes
-    self.rpc.call_node_crypto_tokens = \
-      lambda node_uuid, _: self.RpcResultsBuilder() \
-        .CreateSuccessfulNodeResult(node_uuid,
-          [(constants.CRYPTO_TYPE_SSL_DIGEST, self._GetFakeDigest(node_uuid))])
+    self.rpc.call_node_crypto_tokens = self._CompletelySuccessfulRpc
 
     op = opcodes.OpClusterRenewCrypto()
     self.ExecOpCode(op)
@@ -2394,6 +2398,34 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
         expected_digest = self._GetFakeDigest(node_uuid)
         self.assertEqual(expected_digest, cluster.candidate_certs[node_uuid])
 
+  @patchPathutils("cluster")
+  def testOfflineNodes(self, pathutils):
+    self._InitPathutils(pathutils)
+
+    # create a few non-master, online nodes
+    num_nodes = 3
+    offline_index = 1
+    for i in range(num_nodes):
+      # Pick one node to be offline.
+      self.cfg.AddNewNode(offline=(i==offline_index))
+    self.rpc.call_node_crypto_tokens = self._CompletelySuccessfulRpc
+
+    op = opcodes.OpClusterRenewCrypto()
+    self.ExecOpCode(op)
+
+    self._AssertCertFiles(pathutils)
+
+    # Check if we have the correct digests in the configuration
+    cluster = self.cfg.GetClusterInfo()
+    # There should be one digest missing.
+    self.assertEqual(num_nodes, len(cluster.candidate_certs))
+    nodes = self.cfg.GetAllNodesInfo()
+    for (node_uuid, node_info) in nodes.items():
+      if node_info.offline == True:
+        self.assertTrue(node_uuid not in cluster.candidate_certs)
+      else:
+        expected_digest = self._GetFakeDigest(node_uuid)
+        self.assertEqual(expected_digest, cluster.candidate_certs[node_uuid])
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
