@@ -1574,6 +1574,7 @@ python_test_support = \
 	test/py/cmdlib/testsupport/iallocator_mock.py \
 	test/py/cmdlib/testsupport/lock_manager_mock.py \
 	test/py/cmdlib/testsupport/netutils_mock.py \
+	test/py/cmdlib/testsupport/pathutils_mock.py \
 	test/py/cmdlib/testsupport/processor_mock.py \
 	test/py/cmdlib/testsupport/rpc_runner_mock.py \
 	test/py/cmdlib/testsupport/ssh_mock.py \
