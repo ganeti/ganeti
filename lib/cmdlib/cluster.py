@@ -129,12 +129,14 @@ class LUClusterRenewCrypto(NoHooksLU):
     except IOError:
       logging.info("No old certificate available.")
 
-    new_master_digest = _UpdateMasterClientCert(self, master_uuid, cluster,
-                                                feedback_fn)
+    # Technically it should not be necessary to set the cert
+    # paths. However, due to a bug in the mock library, we
+    # have to do this to be able to test the function properly.
+    _UpdateMasterClientCert(
+        self, master_uuid, cluster, feedback_fn,
+        client_cert=pathutils.NODED_CLIENT_CERT_FILE,
+        client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP)
 
-    utils.AddNodeToCandidateCerts(master_uuid,
-                                  new_master_digest,
-                                  cluster.candidate_certs)
     nodes = self.cfg.GetAllNodesInfo()
     for (node_uuid, node_info) in nodes.items():
       if node_info.offline:
