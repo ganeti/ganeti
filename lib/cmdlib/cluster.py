@@ -129,13 +129,28 @@ class LUClusterRenewCrypto(NoHooksLU):
     except IOError:
       logging.info("No old certificate available.")
 
-    # Technically it should not be necessary to set the cert
-    # paths. However, due to a bug in the mock library, we
-    # have to do this to be able to test the function properly.
-    _UpdateMasterClientCert(
-        self, master_uuid, cluster, feedback_fn,
-        client_cert=pathutils.NODED_CLIENT_CERT_FILE,
-        client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP)
+    try:
+      # Technically it should not be necessary to set the cert
+      # paths. However, due to a bug in the mock library, we
+      # have to do this to be able to test the function properly.
+      _UpdateMasterClientCert(
+          self, master_uuid, cluster, feedback_fn,
+          client_cert=pathutils.NODED_CLIENT_CERT_FILE,
+          client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP)
+    except errors.OpExecError as e:
+      feedback_fn("Could not renew the master's client SSL certificate."
+                  " Cleaning up. Error: %s." % e)
+      # Cleaning up temporary certificates
+      utils.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid,
+                                         cluster.candidate_certs)
+      utils.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid,
+                                         cluster.candidate_certs)
+      return
+    finally:
+      try:
+        utils.RemoveFile(pathutils.NODED_CLIENT_CERT_FILE_TMP)
+      except IOError:
+        pass
 
     nodes = self.cfg.GetAllNodesInfo()
     for (node_uuid, node_info) in nodes.items():

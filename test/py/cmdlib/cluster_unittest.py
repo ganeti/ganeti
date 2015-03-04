@@ -2325,6 +2325,32 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
       expected_digest = self._GetFakeDigest(node_uuid)
       self.assertEqual(expected_digest, cluster.candidate_certs[node_uuid])
 
+  @patchPathutils("cluster")
+  def testMasterFails(self, pathutils):
+
+    # patch pathutils to point to temporary files
+    pathutils.NODED_CERT_FILE = self._node_cert
+    pathutils.NODED_CLIENT_CERT_FILE = self._client_node_cert
+    pathutils.NODED_CLIENT_CERT_FILE_TMP = \
+        self._client_node_cert_tmp
+
+    # make sure the RPC calls are failing for all nodes
+    master_uuid = self.cfg.GetMasterNode()
+    self.rpc.call_node_crypto_tokens.return_value = self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(master_uuid)
+
+    op = opcodes.OpClusterRenewCrypto()
+    self.ExecOpCode(op)
+
+    # Check if the correct certificates exist and don't exist on the master
+    self.assertTrue(os.path.exists(pathutils.NODED_CERT_FILE))
+    self.assertTrue(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE))
+    self.assertFalse(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE_TMP))
+
+    # Check if we correctly have no candidate certificates
+    cluster = self.cfg.GetClusterInfo()
+    self.assertFalse(cluster.candidate_certs)
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
