@@ -2427,5 +2427,50 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
         expected_digest = self._GetFakeDigest(node_uuid)
         self.assertEqual(expected_digest, cluster.candidate_certs[node_uuid])
 
+  def _RpcSuccessfulAfterRetries(self, node_uuid, _):
+    if self._retries < self._max_retries:
+      self._retries += 1
+      return self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(node_uuid)
+    else:
+      return self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(node_uuid,
+          [(constants.CRYPTO_TYPE_SSL_DIGEST, self._GetFakeDigest(node_uuid))])
+
+  @patchPathutils("cluster")
+  def testMasterRetriesSuccess(self, pathutils):
+    self._InitPathutils(pathutils)
+
+    self._max_retries = 2
+    self._retries = 0
+    self.rpc.call_node_crypto_tokens = self._RpcSuccessfulAfterRetries
+
+    op = opcodes.OpClusterRenewCrypto()
+    self.ExecOpCode(op)
+
+    self._AssertCertFiles(pathutils)
+
+    cluster = self.cfg.GetClusterInfo()
+    master_uuid = self.cfg.GetMasterNode()
+    self.assertTrue(self._GetFakeDigest(master_uuid)
+                    in cluster.candidate_certs.values())
+
+  @patchPathutils("cluster")
+  def testMasterRetriesFail(self, pathutils):
+    self._InitPathutils(pathutils)
+
+    self._max_retries = 5
+    self._retries = 0
+    self.rpc.call_node_crypto_tokens = self._RpcSuccessfulAfterRetries
+
+    op = opcodes.OpClusterRenewCrypto()
+    self.ExecOpCode(op)
+
+    self._AssertCertFiles(pathutils)
+
+    cluster = self.cfg.GetClusterInfo()
+    self.assertFalse(cluster.candidate_certs.values)
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

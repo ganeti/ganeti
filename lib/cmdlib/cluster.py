@@ -111,6 +111,8 @@ class LUClusterRenewCrypto(NoHooksLU):
   takes care of the renewal of the client SSL certificates.
 
   """
+  _MAX_NUM_RETRIES = 3
+
   def Exec(self, feedback_fn):
     master_uuid = self.cfg.GetMasterNode()
     cluster = self.cfg.GetClusterInfo()
@@ -129,28 +131,31 @@ class LUClusterRenewCrypto(NoHooksLU):
     except IOError:
       logging.info("No old certificate available.")
 
-    try:
-      # Technically it should not be necessary to set the cert
-      # paths. However, due to a bug in the mock library, we
-      # have to do this to be able to test the function properly.
-      _UpdateMasterClientCert(
-          self, master_uuid, cluster, feedback_fn,
-          client_cert=pathutils.NODED_CLIENT_CERT_FILE,
-          client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP)
-    except errors.OpExecError as e:
+    for _ in range(self._MAX_NUM_RETRIES):
+      try:
+        # Technically it should not be necessary to set the cert
+        # paths. However, due to a bug in the mock library, we
+        # have to do this to be able to test the function properly.
+        _UpdateMasterClientCert(
+            self, master_uuid, cluster, feedback_fn,
+            client_cert=pathutils.NODED_CLIENT_CERT_FILE,
+            client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP)
+        break
+      except errors.OpExecError as e:
+        pass
+    else:
       feedback_fn("Could not renew the master's client SSL certificate."
-                  " Cleaning up. Error: %s." % e)
+                   " Cleaning up. Error: %s." % e)
       # Cleaning up temporary certificates
       utils.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid,
                                          cluster.candidate_certs)
       utils.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid,
                                          cluster.candidate_certs)
-      return
-    finally:
       try:
         utils.RemoveFile(pathutils.NODED_CLIENT_CERT_FILE_TMP)
       except IOError:
         pass
+      return
 
     node_errors = {}
     nodes = self.cfg.GetAllNodesInfo()
