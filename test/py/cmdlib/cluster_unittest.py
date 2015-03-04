@@ -2351,6 +2351,56 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     cluster = self.cfg.GetClusterInfo()
     self.assertFalse(cluster.candidate_certs)
 
+  def _partiallyFailingRpc(self, node_uuid, _):
+    if node_uuid == self._failed_node:
+      return self.RpcResultsBuilder() \
+        .CreateFailedNodeResult(node_uuid)
+    else:
+      return self.RpcResultsBuilder() \
+        .CreateSuccessfulNodeResult(node_uuid,
+          [(constants.CRYPTO_TYPE_SSL_DIGEST, self._GetFakeDigest(node_uuid))])
+
+  @patchPathutils("cluster")
+  def testNonMasterFails(self, pathutils):
+
+    # patch pathutils to point to temporary files
+    pathutils.NODED_CERT_FILE = self._node_cert
+    pathutils.NODED_CLIENT_CERT_FILE = self._client_node_cert
+    pathutils.NODED_CLIENT_CERT_FILE_TMP = \
+        self._client_node_cert_tmp
+
+    # create a few non-master, online nodes
+    num_nodes = 3
+    for _ in range(num_nodes):
+      self.cfg.AddNewNode()
+    nodes = self.cfg.GetAllNodesInfo()
+
+    # pick one node as the failing one
+    master_uuid = self.cfg.GetMasterNode()
+    self._failed_node = [node_uuid for node_uuid in nodes
+                         if node_uuid != master_uuid][1]
+    self.rpc.call_node_crypto_tokens = self._partiallyFailingRpc
+
+    op = opcodes.OpClusterRenewCrypto()
+    self.ExecOpCode(op)
+
+    # Check if the correct certificates exist and don't exist on the master
+    self.assertTrue(os.path.exists(pathutils.NODED_CERT_FILE))
+    self.assertTrue(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE))
+    self.assertFalse(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE_TMP))
+
+    # Check if we have the correct digests in the configuration
+    cluster = self.cfg.GetClusterInfo()
+    # There should be one digest missing.
+    self.assertEqual(num_nodes, len(cluster.candidate_certs))
+    nodes = self.cfg.GetAllNodesInfo()
+    for (node_uuid, _) in nodes.items():
+      if node_uuid == self._failed_node:
+        self.assertTrue(node_uuid not in cluster.candidate_certs)
+      else:
+        expected_digest = self._GetFakeDigest(node_uuid)
+        self.assertEqual(expected_digest, cluster.candidate_certs[node_uuid])
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
