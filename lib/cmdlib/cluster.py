@@ -130,6 +130,9 @@ class LUClusterRenewCrypto(NoHooksLU):
     self.cfg.AddNodeToCandidateCerts(master_uuid, new_master_digest)
     nodes = self.cfg.GetAllNodesInfo()
     for (node_uuid, node_info) in nodes.items():
+      if node_info.offline:
+        feedback_fn("* Skipping offline node %s" % node_info.name)
+        continue
       if node_uuid != master_uuid:
         new_digest = CreateNewClientCert(self, node_uuid)
         if node_info.master_candidate:
