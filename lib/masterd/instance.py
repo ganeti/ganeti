@@ -1156,8 +1156,6 @@ class ExportInstanceHelper(object):
     @param feedback_fn: Feedback function
     @type instance: L{objects.Instance}
     @param instance: Instance object
-    @type snapshot: bool
-    @param instance: whether the export should use snapshotting
 
     """
     self._lu = lu
