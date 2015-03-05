@@ -219,6 +219,9 @@ The extra dependencies for these are:
 
 - `snap-server` <http://hackage.haskell.org/package/snap-server>`_, version
   0.8.1 and above.
+- `case-insensitive`
+  <http://hackage.haskell.org/package/case-insensitive>`_, version
+  0.4.0.1 and above (it's also a dependency of ``snap-server``).
 - `PSQueue <http://hackage.haskell.org/package/PSQueue>`_,
   version 1.0 and above.
 
