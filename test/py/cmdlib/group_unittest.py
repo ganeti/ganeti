@@ -148,6 +148,7 @@ class TestLUGroupAssignNodes(CmdlibTestCase):
 
   @withLockedLU
   def testCheckAssignmentForSplitInstances(self, lu):
+    self.cfg._OpenConfig(True)
     g1 = self.cfg.AddNewNodeGroup()
     g2 = self.cfg.AddNewNodeGroup()
     g3 = self.cfg.AddNewNodeGroup()

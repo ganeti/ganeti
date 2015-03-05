@@ -306,6 +306,9 @@ class ConfigWriter(object):
   def _ConfigData(self):
     return self._config_data
 
+  def OutDate(self):
+    self._config_data = None
+
   def _SetConfigData(self, cfg):
     self._config_data = cfg
 
@@ -2873,18 +2876,27 @@ class ConfigWriter(object):
       # Upgrade configuration if needed
       self._UpgradeConfig(saveafter=True)
     else:
-      # poll until we acquire the lock
-      while True:
-        dict_data = \
-          self._wconfd.LockConfig(self._GetWConfdContext(), bool(shared))
-        logging.debug("Received config from WConfd.LockConfig [shared=%s]",
-                      bool(shared))
-        if dict_data is not None:
-          break
-        time.sleep(random.random())
+      if shared:
+        if self._config_data is None:
+          logging.debug("Requesting config, as I have no up-to-date copy")
+          dict_data = self._wconfd.ReadConfig()
+        else:
+          logging.debug("My config copy is up to date.")
+          dict_data = None
+      else:
+        # poll until we acquire the lock
+        while True:
+          dict_data = \
+              self._wconfd.LockConfig(self._GetWConfdContext(), bool(shared))
+          logging.debug("Received config from WConfd.LockConfig [shared=%s]",
+                        bool(shared))
+          if dict_data is not None:
+            break
+          time.sleep(random.random())
 
       try:
-        self._SetConfigData(objects.ConfigData.FromDict(dict_data))
+        if dict_data is not None:
+          self._SetConfigData(objects.ConfigData.FromDict(dict_data))
       except Exception, err:
         raise errors.ConfigurationError(err)
 

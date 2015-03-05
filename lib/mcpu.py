@@ -480,6 +480,8 @@ class Processor(object):
       logging.debug("Lock request for level %s is %s", level, request)
       return request
 
+    self.cfg.OutDate()
+
     if timeout is None:
       ## Note: once we are so desperate for locks to request them
       ## unconditionally, we no longer care about an original plan
@@ -518,6 +520,7 @@ class Processor(object):
 
     """
     write_count = self.cfg.write_count
+    lu.cfg.OutDate()
     lu.CheckPrereq()
 
     hm = self.BuildHooksManager(lu)
@@ -570,6 +573,7 @@ class Processor(object):
     if level not in locking.LEVELS:
       if pending:
         self._RequestAndWait(pending, calc_timeout())
+        lu.cfg.OutDate()
         lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
         pending = []
 
@@ -615,6 +619,7 @@ class Processor(object):
 
     if dont_collate and pending:
       self._RequestAndWait(pending, calc_timeout())
+      lu.cfg.OutDate()
       lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
       pending = []
 
@@ -656,6 +661,7 @@ class Processor(object):
         else:
           if pending:
             self._RequestAndWait(pending, calc_timeout())
+            lu.cfg.OutDate()
             lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
             pending = []
           self._AcquireLocks(level, needed_locks, share, opportunistic,
