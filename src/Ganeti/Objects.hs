@@ -354,7 +354,7 @@ instance Show LogicalVolume where
   showsPrec _ (LogicalVolume g v) =
     showString g . showString "/" . showString v
 
--- | Check the constraints for a VG/LV names (except the @/dev/@ check).
+-- | Check the constraints for a VG/LV names (except the @\/dev\/@ check).
 instance Validatable LogicalVolume where
   validate (LogicalVolume g v) = do
       let vgn = "Volume group name"

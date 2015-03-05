@@ -71,8 +71,9 @@ getSecretOsParams = getOsParams "osparams_secret" "secret"
 -- data structure containing all parameters and their visibility.
 --
 -- Example:
---   { "os-image": ["http://example.com/disk.img", "public"],
---     "os-password": ["mypassword", "secret"] }
+--
+-- > { "os-image": ["http://example.com/disk.img", "public"],
+-- >   "os-password": ["mypassword", "secret"] }
 makeInstanceParams
   :: JSObject JSValue -> JSObject JSValue -> JSObject JSValue -> JSValue
 makeInstanceParams pub priv sec =
