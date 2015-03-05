@@ -153,19 +153,22 @@ extractValue (Pointer l) json =
       value <- indexWithString x js
       getJSValue xs value
 
--- | Extract a JSValue from an object at the position defined by the path.
+-- | Extract a 'JSValue' from an object at the position defined by the path.
 --
 -- The path syntax follows RCF6901. Error is returned if the path doesn't
 -- exist, Ok if the path leads to an valid value.
 --
 -- JSON pointer syntax according to RFC6901:
--- "/path/0/x" => Pointer ["path", "0", "x"]
+--
+-- > "/path/0/x" => Pointer ["path", "0", "x"]
+--
 -- This accesses 1 in the following JSON:
--- { "path": { "0": { "x": 1 } } }
+--
+-- > { "path": { "0": { "x": 1 } } }
 --
 -- or the following:
 --
--- { "path": [{"x": 1}] }
+-- > { "path": [{"x": 1}] }
 extractJSONPath :: J.JSON a => String -> a -> J.Result J.JSValue
 extractJSONPath path obj = do
   pointer <- pointerFromString path
