@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Implementation of the Ganeti data collector types.
 
@@ -51,6 +52,8 @@ module Ganeti.DataCollectors.Types
   , DataCollector(..)
   ) where
 
+import Control.DeepSeq (NFData, rnf)
+import Control.Seq (using, seqFoldable, rdeepseq)
 import Data.Char
 import Data.Ratio
 import qualified Data.Map as Map
@@ -140,6 +143,28 @@ instance JSON DCVersion where
 
 -- | Type for the value field of the `CollectorMap` below.
 data CollectorData = CPULoadData (Seq.Seq (ClockTime, [Int]))
+
+{-
+
+Naturally, we want to make CollectorData an instance of NFData as
+follows.
+
+instance NFData CollectorData where
+  rnf (CPULoadData x) = rnf x
+
+However, Seq.Seq only became an instance of NFData in version 0.5.0.0
+of containers (Released 2012). So, for the moment, we use a generic
+way to reduce to normal form. In later versions of Ganeti, where we
+have the infra structure to do so, we will choose implementation depending
+on the version of the containers library available.
+
+-}
+
+instance NFData ClockTime where
+  rnf (TOD x y) = rnf x `seq` rnf y
+
+instance NFData CollectorData where
+  rnf (CPULoadData x) =  (x `using` seqFoldable rdeepseq) `seq` ()
 
 -- | Type for the map storing the data of the statefull DataCollectors.
 type CollectorMap = Map.Map String CollectorData

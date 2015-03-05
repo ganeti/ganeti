@@ -104,7 +104,7 @@ mapMOf2 :: Over (->) (Compose (WrappedMonad m) g) s t a b
 mapMOf2 k f = unwrapMonad . traverseOf2 k (WrapMonad . f)
 
 -- | A helper lens over sets.
--- While a similar lens exists in the package (as @Lens' Set (Maybe ())@@),
+-- While a similar lens exists in the package (as @Lens' Set (Maybe ())@),
 -- it's available only in most recent versions.
 -- And using @Bool@ instead of @Maybe ()@ is more convenient.
 atSet :: (Ord a) => a -> Lens' (S.Set a) Bool
