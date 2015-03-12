@@ -1242,10 +1242,15 @@ install-exec-hook:
 
 HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 
+# select the last line of output and extract the version number,
+# padding with 0s if needed
 hs-lens-version:
 	ghc-pkg list --simple-output lens \
-	| sed -r -e 's/^lens-([0-9]+)\.([0-9]+)\.([0-9]+)(\.([0-9]+))?/\
-	  -DLENS_MAJOR=\1 -DLENS_MINOR=\2 -DLENS_REV=\3/' \
+	| sed -r -e '$$!d' \
+    -e 's/^lens-([0-9]+(\.[0-9]+)*)/\1 0 0 0/' \
+    -e 's/\./ /g' -e 's/([0-9]+) *([0-9]+) *([0-9]+) .*/\
+        -DLENS_MAJOR=\1 -DLENS_MINOR=\2 -DLENS_REV=\3/' \
+    -e 's/^\s*//' \
 	> $@
 
 HS_MAKEFILE_GHC_SRCS = $(HS_SRC_PROGS:%=%.hs)
