@@ -74,6 +74,7 @@ from ganeti import query
 from ganeti import qlang
 from ganeti import pathutils
 from ganeti import vcluster
+from ganeti.cmdlib import cluster
 
 
 JOBQUEUE_THREADS = 1
@@ -1956,6 +1957,11 @@ class JobQueue(object):
     job = self.SafeLoadJobFromDisk(job_id, True, writable=False)
     if job is not None:
       return job.CalcStatus() in constants.JOBS_FINALIZED
+    elif cluster.LUClusterDestroy.clusterHasBeenDestroyed:
+      # FIXME: The above variable is a temporary workaround until the Python job
+      # queue is completely removed. When removing the job queue, also remove
+      # the variable from LUClusterDestroy.
+      return True
     else:
       return None
 
