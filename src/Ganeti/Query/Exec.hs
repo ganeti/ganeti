@@ -201,7 +201,10 @@ forkJobProcess :: (Error e, Show e)
                   -- and process id in the job file
                -> ResultT e IO (FilePath, ProcessID)
 forkJobProcess jid luxiLivelock update = do
+  let jidStr = show . fromJobId $ jid
+
   logDebug $ "Setting the lockfile temporarily to " ++ luxiLivelock
+             ++ " for job " ++ jidStr
   update luxiLivelock
 
   -- Due to a bug in GHC forking process, we want to retry,
@@ -217,42 +220,44 @@ forkJobProcess jid luxiLivelock update = do
 
     (pid, master) <- liftIO $ forkWithPipe connectConfig (runJobProcess jid)
 
+    let logDebugJob = logDebug
+                      . (("[job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] ") ++)
+
+    logDebugJob "Forked a new process"
+
     let onError = do
-          logDebug "Closing the pipe to the client"
+          logDebugJob "Closing the pipe to the client"
           withErrorLogAt WARNING "Closing the communication pipe failed"
               (liftIO (closeClient master)) `orElse` return ()
-          logDebug $ "Getting the status of job process "
-                     ++ show (fromJobId jid)
+          logDebugJob "Getting the status of job process"
           status <- liftIO $ getProcessStatus False True pid
           case status of
-            Just s -> logDebug $ "Child process (job " ++ show (fromJobId jid)
-                                  ++ ") status: " ++ show s
+            Just s -> logDebugJob $ "Child process status: " ++ show s
             Nothing -> do
-                      logDebug $ "Child process (job " ++ show (fromJobId jid)
-                                  ++ ") running, killing by SIGTERM"
+                      logDebugJob $ "Child process running, killing by TERM"
                       liftIO $ signalProcess sigTERM pid
 
     flip onException onError $ do
       let recv = liftIO $ recvMsg master
           send = liftIO . sendMsg master
-      logDebug "Getting the lockfile of the client"
+      logDebugJob "Getting the lockfile of the client"
       lockfile <- recv `orElse` mzero
 
-      logDebug $ "Setting the lockfile to the final " ++ lockfile
+      logDebugJob $ "Setting the lockfile to the final " ++ lockfile
       toErrorBase $ update lockfile
-      logDebug "Confirming the client it can start"
+      logDebugJob "Confirming the client it can start"
       send ""
 
       -- from now on, we communicate with the job's Python process
 
-      logDebug "Waiting for the job to ask for the job id"
+      logDebugJob "Waiting for the job to ask for the job id"
       _ <- recv
-      logDebug "Writing job id to the client"
-      send . show $ fromJobId jid
+      logDebugJob "Writing job id to the client"
+      send jidStr
 
-      logDebug "Waiting for the job to ask for the lock file name"
+      logDebugJob "Waiting for the job to ask for the lock file name"
       _ <- recv
-      logDebug "Writing the lock file name to the client"
+      logDebugJob "Writing the lock file name to the client"
       send lockfile
 
       return (lockfile, pid)
