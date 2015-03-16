@@ -1203,7 +1203,7 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile hs-lens-version \
 # object listed in Makefile.ghc.
 # e.g. src/hluxid.o : src/Ganeti/Daemon.hi
 #        => src/hluxid.o : src/Ganeti/Daemon.hi src/Ganeti/Daemon.o
-	sed -i -re 's/([^ ]+)\.hi$$/\1.hi \1.o/' $@
+	sed -i -r -e 's/([^ ]+)\.hi$$/\1.hi \1.o/' -e 's/([^ ]+)_hi$$/\1_hi \1_o/' $@
 
 @include_makefile_ghc@
 
