@@ -3271,11 +3271,16 @@ class LUInstanceSetParams(LogicalUnit):
     """Converts an instance from drbd to plain.
 
     """
-    assert len(self.instance.secondary_nodes) == 1
     assert self.instance.disk_template == constants.DT_DRBD8
+    assert len(self.instance.secondary_nodes) == 1 or not self.instance.disks
 
     pnode_uuid = self.instance.primary_node
-    snode_uuid = self.instance.secondary_nodes[0]
+
+    # it will not be possible to calculate the snode_uuid later
+    snode_uuid = None
+    if self.instance.secondary_nodes:
+      snode_uuid = self.instance.secondary_nodes[0]
+
     feedback_fn("Converting template to plain")
 
     old_disks = AnnotateDiskParams(self.instance, self.instance.disks, self.cfg)
