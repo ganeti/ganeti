@@ -382,6 +382,7 @@ detailedCVInfoExt = [ ((0.5,  "free_mem_cv"), (getStdDevStatistics, True))
                       , (getStdDevStatistics, True))
                     , ((0.5,  "spindles_cv_forth"), (getStdDevStatistics, True))
                     , ((1,  "location_score"), (getSumStatistics, True))
+                    , ((0.25,  "reserved_mem_rtotal"), (getSumStatistics, True))
                     ]
 
 -- | The names and weights of the individual elements in the CV list.
@@ -430,6 +431,7 @@ compDetailedCVNode node =
      , pri_tags, spindles
      , memF, dskF, cpuF, spindlesF
      , location_score
+     , res
      ]
 
 -- | Compute the statistics of a cluster.
