@@ -545,6 +545,26 @@ class ConfigMock(config.ConfigWriter):
     cluster.enabled_disk_templates = list(enabled_disk_templates)
     cluster.ipolicy[constants.IPOLICY_DTS] = list(enabled_disk_templates)
 
+  def SetIPolicyField(self, category, field, value):
+    """Set a value of a desired ipolicy field.
+
+    @type category: one of L{constants.ISPECS_MAX}, L{constants.ISPECS_MIN},
+      L{constants.ISPECS_STD}
+    @param category: Whether to change the default value, or the upper or lower
+      bound.
+    @type field: string
+    @param field: The field to change.
+    @type value: any
+    @param value: The value to assign.
+
+    """
+    if category not in [constants.ISPECS_MAX, constants.ISPECS_MIN,
+                        constants.ISPECS_STD]:
+      raise ValueError("Invalid ipolicy category %s" % category)
+
+    ipolicy_dict = self.GetClusterInfo().ipolicy[constants.ISPECS_MINMAX][0]
+    ipolicy_dict[category][field] = value
+
   def _OpenConfig(self, accept_foreign):
     self._config_data = objects.ConfigData(
       version=constants.CONFIG_VERSION,
