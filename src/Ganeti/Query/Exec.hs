@@ -60,8 +60,7 @@ module Ganeti.Query.Exec
   , forkJobProcess
   ) where
 
-import Control.Concurrent
-import Control.Exception.Lifted (onException)
+import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Monad
 import Control.Monad.Error
@@ -246,7 +245,9 @@ forkJobProcess jid luxiLivelock update = do
               (liftIO (closeClient master)) `orElse` return ()
           killIfAlive [sigTERM, sigABRT, sigKILL]
 
-    flip onException onError $ do
+    flip catchError (\e -> onError >> throwError e)
+      . (`mplus` (onError >> mzero))
+      $ do
       let recv = liftIO $ recvMsg master
           send = liftIO . sendMsg master
       logDebugJob "Getting the lockfile of the client"
