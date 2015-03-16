@@ -62,6 +62,7 @@ module Ganeti.Query.Exec
 
 import Control.Concurrent
 import Control.Exception.Lifted (onException)
+import Control.Concurrent.Lifted (threadDelay)
 import Control.Monad
 import Control.Monad.Error
 import Control.Monad.Trans.Maybe
@@ -73,7 +74,7 @@ import System.Environment
 import System.IO.Error (tryIOError)
 import System.Posix.Process
 import System.Posix.IO
-import System.Posix.Signals (sigTERM, signalProcess)
+import System.Posix.Signals (sigABRT, sigKILL, sigTERM, signalProcess)
 import System.Posix.Types (Fd, ProcessID)
 import System.Time
 import Text.Printf
@@ -225,17 +226,25 @@ forkJobProcess jid luxiLivelock update = do
 
     logDebugJob "Forked a new process"
 
+    let killIfAlive [] = return ()
+        killIfAlive (sig : sigs) = do
+          logDebugJob "Getting the status of the process"
+          status <- tryError . liftIO $ getProcessStatus False True pid
+          case status of
+            Left e -> logDebugJob $ "Job process already gone: " ++ show e
+            Right (Just s) -> logDebugJob $ "Child process status: " ++ show s
+            Right Nothing -> do
+                logDebugJob $ "Child process running, killing by " ++ show sig
+                liftIO $ signalProcess sig pid
+                unless (null sigs) $ do
+                  threadDelay 100000 -- wait for 0.1s and check again
+                  killIfAlive sigs
+
     let onError = do
           logDebugJob "Closing the pipe to the client"
           withErrorLogAt WARNING "Closing the communication pipe failed"
               (liftIO (closeClient master)) `orElse` return ()
-          logDebugJob "Getting the status of job process"
-          status <- liftIO $ getProcessStatus False True pid
-          case status of
-            Just s -> logDebugJob $ "Child process status: " ++ show s
-            Nothing -> do
-                      logDebugJob $ "Child process running, killing by TERM"
-                      liftIO $ signalProcess sigTERM pid
+          killIfAlive [sigTERM, sigABRT, sigKILL]
 
     flip onException onError $ do
       let recv = liftIO $ recvMsg master
