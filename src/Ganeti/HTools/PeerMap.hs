@@ -46,6 +46,7 @@ module Ganeti.HTools.PeerMap
   , add
   , remove
   , maxElem
+  , sumElems
   ) where
 
 import Data.Maybe (fromMaybe)
@@ -114,3 +115,7 @@ remove k ((x@(x', _)):xs) = if k == x'
 maxElem :: PeerMap -> Elem
 maxElem (x:_) = snd x
 maxElem _ = 0
+
+-- | Sum of all peers.
+sumElems :: PeerMap -> Elem
+sumElems = sum . map snd
