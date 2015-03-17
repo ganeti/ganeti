@@ -150,6 +150,25 @@ def _AssertRetCode(rcode, fail, cmdstr, nodename):
                          (cmdstr, nodename, rcode))
 
 
+def _PrintCommandOutput(stdout, stderr):
+  """Prints the output of commands, minimizing wasted space.
+
+  @type stdout: string
+  @type stderr: string
+
+  """
+  if stdout:
+    stdout_clean = stdout.rstrip('\n')
+    if stderr:
+      print "Stdout was:\n%s" % stdout_clean
+    else:
+      print stdout_clean
+
+  if stderr:
+    print "Stderr was:"
+    print >> sys.stderr, stderr.rstrip('\n')
+
+
 def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
   """Checks that a remote command succeeds.
 
@@ -186,12 +205,13 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
   stdout, stderr = popen.communicate()
   rcode = popen.returncode
   duration_seconds = TimedeltaToTotalSeconds(datetime.datetime.now() - start)
-  if fail is not None:
-    try:
+
+  try:
+    if fail is not None:
       _AssertRetCode(rcode, fail, cmdstr, nodename)
-    except:
-      print "Stdout was:\n%s\nStderr was:\n%s\n" % (stdout, stderr)
-      raise
+  finally:
+    if log_cmd:
+      _PrintCommandOutput(stdout, stderr)
 
   if max_seconds is not None:
     if duration_seconds > max_seconds:
