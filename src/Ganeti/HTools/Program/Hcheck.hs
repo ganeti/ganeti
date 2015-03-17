@@ -280,7 +280,7 @@ maybeSimulateGroupRebalance :: Options -> GroupInfo -> IO GroupInfo
 maybeSimulateGroupRebalance opts (gidx, (nl, il)) = do
   let ini_cv = Cluster.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
-      min_cv = optMinScore opts
+      min_cv = optMinScore opts + Cluster.optimalCVScore nl
   if ini_cv < min_cv
     then return (gidx, (nl, il))
     else executeSimulation opts ini_tbl min_cv gidx nl il
