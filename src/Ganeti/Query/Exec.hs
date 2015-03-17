@@ -62,8 +62,6 @@ module Ganeti.Query.Exec
 
 import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.Lifted (threadDelay)
-import Control.Exception.Lifted (onException, throwIO)
-import qualified Control.Exception.Lifted as E
 import Control.Monad
 import Control.Monad.Error
 import Control.Monad.Trans.Maybe
@@ -72,7 +70,7 @@ import qualified Data.Map as M
 import Data.Maybe (listToMaybe, mapMaybe)
 import System.Directory (getDirectoryContents)
 import System.Environment
-import System.IO.Error (tryIOError, annotateIOError)
+import System.IO.Error (tryIOError, annotateIOError, modifyIOError)
 import System.Posix.Process
 import System.Posix.IO
 import System.Posix.Signals (sigABRT, sigKILL, sigTERM, signalProcess)
@@ -120,9 +118,9 @@ listOpenFds = liftM filterReadable
 -- | Catches a potential `IOError` and sets its description via
 -- `annotateIOError`. This makes exceptions more informative when they
 -- are thrown from an unnamed `Handle`.
-rethrowAnnotateIOError :: IO a -> String -> IO a
-rethrowAnnotateIOError f desc =
-  E.catch f (\e -> throwIO $ annotateIOError e desc Nothing Nothing)
+rethrowAnnotateIOError :: String -> IO a -> IO a
+rethrowAnnotateIOError desc =
+  modifyIOError (\e -> annotateIOError e desc Nothing Nothing)
 
 -- Code that is executed in a @fork@-ed process and that the replaces iteself
 -- with the actual job process
@@ -258,15 +256,11 @@ forkJobProcess jid luxiLivelock update = do
     flip catchError (\e -> onError >> throwError e)
       . (`mplus` (onError >> mzero))
       $ do
-      let recv = liftIO $ recvMsg master
-                   `rethrowAnnotateIOError` "ganeti job process input pipe"
-                   `onException`
-                   logError "recv from ganeti job process pipe failed"
-
-          send x = liftIO $ sendMsg master x
-                     `rethrowAnnotateIOError` "ganeti job process output pipe"
-                     `onException`
-                     logError "send to ganeti job process pipe failed"
+      let annotatedIO msg k = liftIO $ rethrowAnnotateIOError msg k
+      let recv = annotatedIO "ganeti job process input pipe"
+                             (recvMsg master)
+          send x = annotatedIO "ganeti job process output pipe"
+                                (sendMsg master x)
 
       logDebugJob "Getting the lockfile of the client"
       lockfile <- recv `orElse` mzero
