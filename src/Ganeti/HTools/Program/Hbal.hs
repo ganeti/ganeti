@@ -290,13 +290,14 @@ checkGroup force verbose gname nl il = do
            \ consider using the --ignore-soft-errors option."
 
 -- | Check that we actually need to rebalance.
-checkNeedRebalance :: Options -> Score -> IO ()
-checkNeedRebalance opts ini_cv = do
+checkNeedRebalance :: Options -> Score -> Score -> IO ()
+checkNeedRebalance opts ini_cv opt_cv = do
   let min_cv = optMinScore opts
-  when (ini_cv < min_cv) $ do
+  when (ini_cv - opt_cv < min_cv) $ do
          printf "Cluster is already well balanced (initial score %.6g,\n\
+                \optimum score due to N+1 reservations %.6g,\n\
                 \minimum score %.6g).\nNothing to do, exiting\n"
-                ini_cv min_cv:: IO ()
+                ini_cv opt_cv min_cv:: IO ()
          exitSuccess
 
 -- | Main function.
@@ -329,6 +330,7 @@ main opts args = do
   maybePrintNodes shownodes "Initial cluster" (Cluster.printNodes nl)
 
   let ini_cv = Cluster.compCV nl
+      opt_cv = Cluster.optimalCVScore nl
       ini_tbl = Cluster.Table nl il ini_cv []
       min_cv = optMinScore opts
 
@@ -337,7 +339,7 @@ main opts args = do
            ini_cv (Cluster.printStats "  " nl)::IO ()
     else printf "Initial score: %.8f\n" ini_cv
 
-  checkNeedRebalance opts ini_cv
+  checkNeedRebalance opts ini_cv opt_cv
 
   putStrLn "Trying to minimize the CV..."
   let imlen = maximum . map (length . Instance.alias) $ Container.elems il
@@ -345,7 +347,7 @@ main opts args = do
 
   (fin_tbl, cmd_strs) <- iterateDepth True (fromCLIOptions opts) ini_tbl
                          (optMaxLength opts)
-                         nmlen imlen [] min_cv
+                         nmlen imlen [] (opt_cv + min_cv)
   let (Cluster.Table fin_nl fin_il fin_cv fin_plc) = fin_tbl
       ord_plc = reverse fin_plc
       sol_msg = case () of
