@@ -26,6 +26,7 @@ Design document drafts
    design-configlock.rst
    design-multi-storage-htools.rst
    design-dedicated-allocation.rst
+   design-allocation-efficiency.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
