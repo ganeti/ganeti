@@ -118,6 +118,7 @@ following components:
 
 - standard deviation of the percent of free memory
 - standard deviation of the percent of reserved memory
+- the sum of the percentages of reserved memory
 - standard deviation of the percent of free disk
 - count of nodes failing N+1 check
 - count of instances living (either as primary or secondary) on
@@ -186,7 +187,8 @@ nodes with less CPU load.
 
 On a perfectly balanced cluster (all nodes the same size, all
 instances the same size and spread across the nodes equally), the
-values for all metrics would be zero. This doesn't happen too often in
+values for all metrics would be zero, with the exception of the total
+percentage of reserved memory. This doesn't happen too often in
 practice :)
 
 OFFLINE INSTANCES
