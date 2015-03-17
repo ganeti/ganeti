@@ -76,6 +76,7 @@ module Ganeti.HTools.Cluster
   , doNextBalance
   , tryBalance
   , compCV
+  , optimalCVScore
   , compCVNodes
   , compDetailedCV
   , printStats
@@ -102,7 +103,7 @@ module Ganeti.HTools.Cluster
 
 import Control.Applicative ((<$>), liftA2)
 import Control.Arrow ((&&&))
-import Control.Monad (unless)
+import Control.Monad (unless, guard)
 import qualified Data.IntSet as IntSet
 import Data.List
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
@@ -117,6 +118,7 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Nic as Nic
 import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.PeerMap as P
 import qualified Ganeti.HTools.Group as Group
 import Ganeti.HTools.Types
 import Ganeti.Compat
@@ -357,6 +359,12 @@ computeAllocationDelta cini cfin =
                        }
   in (rini, rfin, runa)
 
+-- | Coefficient for the total reserved memory in the cluster metric. We
+-- use a (local) constant here, as it is also used in the computation of
+-- the best possible cluster score.
+reservedMemRtotalCoeff :: Double
+reservedMemRtotalCoeff = 0.25
+
 -- | The names and weights of the individual elements in the CV list, together
 -- with their statistical accumulation function and a bit to decide whether it
 -- is a statistics for online nodes.
@@ -382,8 +390,26 @@ detailedCVInfoExt = [ ((0.5,  "free_mem_cv"), (getStdDevStatistics, True))
                       , (getStdDevStatistics, True))
                     , ((0.5,  "spindles_cv_forth"), (getStdDevStatistics, True))
                     , ((1,  "location_score"), (getSumStatistics, True))
-                    , ((0.25,  "reserved_mem_rtotal"), (getSumStatistics, True))
+                    , ( (reservedMemRtotalCoeff,  "reserved_mem_rtotal")
+                      , (getSumStatistics, True))
                     ]
+
+-- | Compute the lower bound of the cluster score, i.e., the sum of the minimal
+-- values for all cluster score values that are not 0 on a perfectly balanced
+-- cluster.
+optimalCVScore :: Node.List -> Double
+optimalCVScore nodelist = fromMaybe 0 $ do
+  let nodes = Container.elems nodelist
+  guard $ length nodes > 1
+  let nodeMems = map Node.tMem nodes
+      totalMem = sum nodeMems
+      totalMemOneLessNode = totalMem - maximum nodeMems
+  guard $ totalMemOneLessNode > 0
+  let totalDrbdMem = fromIntegral . sum $ map (P.sumElems . Node.peers) nodes
+      optimalUsage = totalDrbdMem / totalMem
+      optimalUsageOneLessNode = totalDrbdMem / totalMemOneLessNode
+      relativeReserved = optimalUsageOneLessNode - optimalUsage
+  return $ reservedMemRtotalCoeff * relativeReserved
 
 -- | The names and weights of the individual elements in the CV list.
 detailedCVInfo :: [(Double, String)]
