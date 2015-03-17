@@ -311,8 +311,8 @@ The options that can be passed to the program are as follows:
   any numeric fields.
 
 -e *score*, \--min-score=*score*
-  This parameter denotes the minimum score we are happy with and alters
-  the computation in two ways:
+  This parameter denotes how much above the N+1 bound the cluster score
+  can for us to be happy with and alters the computation in two ways:
 
   - if the cluster has the initial score lower than this value, then we
     don't enter the algorithm at all, and exit with success
