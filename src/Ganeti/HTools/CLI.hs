@@ -611,7 +611,7 @@ oMinScore =
   (Option "e" ["min-score"]
    (reqWithConversion (tryRead "min score")
     (\e opts -> Ok opts { optMinScore = e }) "EPSILON")
-   "mininum score to aim for",
+   "mininum excess to the N+1 limit to aim for",
    OptComplFloat)
 
 oNoHeaders :: OptType
