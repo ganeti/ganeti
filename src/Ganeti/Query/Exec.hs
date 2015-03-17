@@ -228,8 +228,8 @@ forkJobProcess jid luxiLivelock update = do
 
     (pid, master) <- liftIO $ forkWithPipe connectConfig (runJobProcess jid)
 
-    let logDebugJob = logDebug
-                      . (("[job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] ") ++)
+    let jobLogPrefix = "[start:job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] "
+        logDebugJob = logDebug . (jobLogPrefix ++)
 
     logDebugJob "Forked a new process"
 
@@ -256,31 +256,25 @@ forkJobProcess jid luxiLivelock update = do
     flip catchError (\e -> onError >> throwError e)
       . (`mplus` (onError >> mzero))
       $ do
-      let annotatedIO msg k = liftIO $ rethrowAnnotateIOError msg k
-      let recv = annotatedIO "ganeti job process input pipe"
-                             (recvMsg master)
-          send x = annotatedIO "ganeti job process output pipe"
-                                (sendMsg master x)
+      let annotatedIO msg k = do
+            logDebugJob msg
+            liftIO $ rethrowAnnotateIOError (jobLogPrefix ++ msg) k
+      let recv msg = annotatedIO msg (recvMsg master)
+          send msg x = annotatedIO msg (sendMsg master x)
 
-      logDebugJob "Getting the lockfile of the client"
-      lockfile <- recv `orElse` mzero
+      lockfile <- recv "Getting the lockfile of the client" `orElse` mzero
 
       logDebugJob $ "Setting the lockfile to the final " ++ lockfile
       toErrorBase $ update lockfile
-      logDebugJob "Confirming the client it can start"
-      send ""
+      send "Confirming the client it can start" ""
 
       -- from now on, we communicate with the job's Python process
 
-      logDebugJob "Waiting for the job to ask for the job id"
-      _ <- recv
-      logDebugJob "Writing job id to the client"
-      send jidStr
+      _ <- recv "Waiting for the job to ask for the job id"
+      send "Writing job id to the client" jidStr
 
-      logDebugJob "Waiting for the job to ask for the lock file name"
-      _ <- recv
-      logDebugJob "Writing the lock file name to the client"
-      send lockfile
+      _ <- recv "Waiting for the job to ask for the lock file name"
+      send "Writing the lock file name to the client" lockfile
 
       return (lockfile, pid)
 
