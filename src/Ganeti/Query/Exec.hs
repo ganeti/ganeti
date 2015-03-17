@@ -60,8 +60,9 @@ module Ganeti.Query.Exec
   , forkJobProcess
   ) where
 
-import Control.Concurrent
-import Control.Exception.Lifted (onException, throwIO)
+import Control.Concurrent (rtsSupportsBoundThreads)
+import Control.Concurrent.Lifted (threadDelay)
+import Control.Exception (onException, throwIO)
 import qualified Control.Exception.Lifted as E
 import Control.Monad
 import Control.Monad.Error
@@ -74,7 +75,7 @@ import System.Environment
 import System.IO.Error (tryIOError, annotateIOError)
 import System.Posix.Process
 import System.Posix.IO
-import System.Posix.Signals (sigTERM, signalProcess)
+import System.Posix.Signals (sigABRT, sigKILL, sigTERM, signalProcess)
 import System.Posix.Types (Fd, ProcessID)
 import System.Time
 import Text.Printf
@@ -210,7 +211,10 @@ forkJobProcess :: (Error e, Show e)
                   -- and process id in the job file
                -> ResultT e IO (FilePath, ProcessID)
 forkJobProcess jid luxiLivelock update = do
+  let jidStr = show . fromJobId $ jid
+
   logDebug $ "Setting the lockfile temporarily to " ++ luxiLivelock
+             ++ " for job " ++ jidStr
   update luxiLivelock
 
   -- Due to a bug in GHC forking process, we want to retry,
@@ -226,22 +230,34 @@ forkJobProcess jid luxiLivelock update = do
 
     (pid, master) <- liftIO $ forkWithPipe connectConfig (runJobProcess jid)
 
+    let logDebugJob = logDebug
+                      . (("[job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] ") ++)
+
+    logDebugJob "Forked a new process"
+
+    let killIfAlive [] = return ()
+        killIfAlive (sig : sigs) = do
+          logDebugJob "Getting the status of the process"
+          status <- tryError . liftIO $ getProcessStatus False True pid
+          case status of
+            Left e -> logDebugJob $ "Job process already gone: " ++ show e
+            Right (Just s) -> logDebugJob $ "Child process status: " ++ show s
+            Right Nothing -> do
+                logDebugJob $ "Child process running, killing by " ++ show sig
+                liftIO $ signalProcess sig pid
+                unless (null sigs) $ do
+                  threadDelay 100000 -- wait for 0.1s and check again
+                  killIfAlive sigs
+
     let onError = do
-          logDebug "Closing the pipe to the client"
+          logDebugJob "Closing the pipe to the client"
           withErrorLogAt WARNING "Closing the communication pipe failed"
               (liftIO (closeClient master)) `orElse` return ()
-          logDebug $ "Getting the status of job process "
-                     ++ show (fromJobId jid)
-          status <- liftIO $ getProcessStatus False True pid
-          case status of
-            Just s -> logDebug $ "Child process (job " ++ show (fromJobId jid)
-                                  ++ ") status: " ++ show s
-            Nothing -> do
-                      logDebug $ "Child process (job " ++ show (fromJobId jid)
-                                  ++ ") running, killing by SIGTERM"
-                      liftIO $ signalProcess sigTERM pid
+          killIfAlive [sigTERM, sigABRT, sigKILL]
 
-    flip onException onError $ do
+    flip catchError (\e -> onError >> throwError e)
+      . (`mplus` (onError >> mzero))
+      $ do
       let recv = liftIO $ recvMsg master
                    `rethrowAnnotateIOError` "ganeti job process input pipe"
                    `onException`
@@ -252,24 +268,24 @@ forkJobProcess jid luxiLivelock update = do
                      `onException`
                      logError "send to ganeti job process pipe failed"
 
-      logDebug "Getting the lockfile of the client"
+      logDebugJob "Getting the lockfile of the client"
       lockfile <- recv `orElse` mzero
 
-      logDebug $ "Setting the lockfile to the final " ++ lockfile
+      logDebugJob $ "Setting the lockfile to the final " ++ lockfile
       toErrorBase $ update lockfile
-      logDebug "Confirming the client it can start"
+      logDebugJob "Confirming the client it can start"
       send ""
 
       -- from now on, we communicate with the job's Python process
 
-      logDebug "Waiting for the job to ask for the job id"
+      logDebugJob "Waiting for the job to ask for the job id"
       _ <- recv
-      logDebug "Writing job id to the client"
-      send . show $ fromJobId jid
+      logDebugJob "Writing job id to the client"
+      send jidStr
 
-      logDebug "Waiting for the job to ask for the lock file name"
+      logDebugJob "Waiting for the job to ask for the lock file name"
       _ <- recv
-      logDebug "Writing the lock file name to the client"
+      logDebugJob "Writing the lock file name to the client"
       send lockfile
 
       return (lockfile, pid)
