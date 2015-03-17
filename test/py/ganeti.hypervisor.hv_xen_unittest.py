@@ -169,6 +169,36 @@ class TestParseInstanceList(testutils.GanetiTestCase):
         self.fail("Exception was not raised")
 
 
+class TestInstanceStateParsing(unittest.TestCase):
+  def testRunningStates(self):
+    states = [
+      "r-----",
+      "r-p---",
+      "rb----",
+      "rbp---",
+      "-b----",
+      "-bp---",
+      "-----d",
+      "--p--d",
+      "------",
+      "--p---",
+    ]
+    for state in states:
+      self.assertEqual(hv_xen._XenToHypervisorInstanceState(state),
+                       hv_base.HvInstanceState.RUNNING)
+
+  def testShutdownStates(self):
+    states = [
+      "---s--",
+      "--ps--",
+      "---s-d",
+      "--ps-d",
+    ]
+    for state in states:
+      self.assertEqual(hv_xen._XenToHypervisorInstanceState(state),
+                       hv_base.HvInstanceState.SHUTDOWN)
+
+
 class TestGetInstanceList(testutils.GanetiTestCase):
   def _Fail(self):
     return utils.RunResult(constants.EXIT_FAILURE, None,

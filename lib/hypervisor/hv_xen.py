@@ -182,7 +182,7 @@ def _IsInstanceRunning(instance_info):
   """Determine whether an instance is running.
 
   An instance is running if it is in the following Xen states:
-  running, blocked, or paused.
+  running, blocked, paused, or dying (about to be destroyed / shutdown).
 
   For some strange reason, Xen once printed 'rb----' which does not make any
   sense because an instance cannot be both running and blocked.  Fortunately,
@@ -193,6 +193,9 @@ def _IsInstanceRunning(instance_info):
   to be scheduled to run.
   http://old-list-archives.xenproject.org/xen-users/2007-06/msg00849.html
 
+  A dying instance is about to be removed, but it is still consuming resources,
+  and counts as running.
+
   @type instance_info: string
   @param instance_info: Information about instance, as supplied by Xen.
   @rtype: bool
@@ -202,15 +205,51 @@ def _IsInstanceRunning(instance_info):
   return instance_info == "r-----" \
       or instance_info == "rb----" \
       or instance_info == "-b----" \
-      or instance_info == "--p---" \
+      or instance_info == "-----d" \
       or instance_info == "------"
 
 
 def _IsInstanceShutdown(instance_info):
-  return instance_info == "---s--"
+  """Determine whether the instance is shutdown.
+
+  An instance is shutdown when a user shuts it down from within, and we do not
+  remove domains to be able to detect that.
+
+  The dying state has been added as a precaution, as Xen's status reporting is
+  weird.
+
+  """
+  return instance_info == "---s--" \
+      or instance_info == "---s-d"
+
+
+def _IgnorePaused(instance_info):
+  """Removes information about whether a Xen state is paused from the state.
+
+  As it turns out, an instance can be reported as paused in almost any
+  condition. Paused instances can be paused, running instances can be paused for
+  scheduling, and any other condition can appear to be paused as a result of
+  races or improbable conditions in Xen's status reporting.
+  As we do not use Xen's pause commands in any way at the time, we can simply
+  ignore the paused field and save ourselves a lot of trouble.
+
+  Should we ever use the pause commands, several samples would be needed before
+  we could confirm the domain as paused.
+
+  """
+  return instance_info.replace('p', '-')
 
 
 def _XenToHypervisorInstanceState(instance_info):
+  """Maps Xen states to hypervisor states.
+
+  @type instance_info: string
+  @param instance_info: Information about instance, as supplied by Xen.
+  @rtype: L{hv_base.HvInstanceState}
+
+  """
+  instance_info = _IgnorePaused(instance_info)
+
   if _IsInstanceRunning(instance_info):
     return hv_base.HvInstanceState.RUNNING
   elif _IsInstanceShutdown(instance_info):
