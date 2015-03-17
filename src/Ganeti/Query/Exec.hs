@@ -62,8 +62,6 @@ module Ganeti.Query.Exec
 
 import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.Lifted (threadDelay)
-import Control.Exception (onException, throwIO)
-import qualified Control.Exception.Lifted as E
 import Control.Monad
 import Control.Monad.Error
 import Control.Monad.Trans.Maybe
@@ -72,7 +70,7 @@ import qualified Data.Map as M
 import Data.Maybe (listToMaybe, mapMaybe)
 import System.Directory (getDirectoryContents)
 import System.Environment
-import System.IO.Error (tryIOError, annotateIOError)
+import System.IO.Error (tryIOError, annotateIOError, modifyIOError)
 import System.Posix.Process
 import System.Posix.IO
 import System.Posix.Signals (sigABRT, sigKILL, sigTERM, signalProcess)
@@ -120,9 +118,9 @@ listOpenFds = liftM filterReadable
 -- | Catches a potential `IOError` and sets its description via
 -- `annotateIOError`. This makes exceptions more informative when they
 -- are thrown from an unnamed `Handle`.
-rethrowAnnotateIOError :: IO a -> String -> IO a
-rethrowAnnotateIOError f desc =
-  E.catch f (\e -> throwIO $ annotateIOError e desc Nothing Nothing)
+rethrowAnnotateIOError :: String -> IO a -> IO a
+rethrowAnnotateIOError desc =
+  modifyIOError (\e -> annotateIOError e desc Nothing Nothing)
 
 -- Code that is executed in a @fork@-ed process and that the replaces iteself
 -- with the actual job process
@@ -230,8 +228,8 @@ forkJobProcess jid luxiLivelock update = do
 
     (pid, master) <- liftIO $ forkWithPipe connectConfig (runJobProcess jid)
 
-    let logDebugJob = logDebug
-                      . (("[job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] ") ++)
+    let jobLogPrefix = "[start:job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] "
+        logDebugJob = logDebug . (jobLogPrefix ++)
 
     logDebugJob "Forked a new process"
 
@@ -258,35 +256,25 @@ forkJobProcess jid luxiLivelock update = do
     flip catchError (\e -> onError >> throwError e)
       . (`mplus` (onError >> mzero))
       $ do
-      let recv = liftIO $ recvMsg master
-                   `rethrowAnnotateIOError` "ganeti job process input pipe"
-                   `onException`
-                   logError "recv from ganeti job process pipe failed"
+      let annotatedIO msg k = do
+            logDebugJob msg
+            liftIO $ rethrowAnnotateIOError (jobLogPrefix ++ msg) k
+      let recv msg = annotatedIO msg (recvMsg master)
+          send msg x = annotatedIO msg (sendMsg master x)
 
-          send x = liftIO $ sendMsg master x
-                     `rethrowAnnotateIOError` "ganeti job process output pipe"
-                     `onException`
-                     logError "send to ganeti job process pipe failed"
-
-      logDebugJob "Getting the lockfile of the client"
-      lockfile <- recv `orElse` mzero
+      lockfile <- recv "Getting the lockfile of the client" `orElse` mzero
 
       logDebugJob $ "Setting the lockfile to the final " ++ lockfile
       toErrorBase $ update lockfile
-      logDebugJob "Confirming the client it can start"
-      send ""
+      send "Confirming the client it can start" ""
 
       -- from now on, we communicate with the job's Python process
 
-      logDebugJob "Waiting for the job to ask for the job id"
-      _ <- recv
-      logDebugJob "Writing job id to the client"
-      send jidStr
+      _ <- recv "Waiting for the job to ask for the job id"
+      send "Writing job id to the client" jidStr
 
-      logDebugJob "Waiting for the job to ask for the lock file name"
-      _ <- recv
-      logDebugJob "Writing the lock file name to the client"
-      send lockfile
+      _ <- recv "Waiting for the job to ask for the lock file name"
+      send "Writing the lock file name to the client" lockfile
 
       return (lockfile, pid)
 
