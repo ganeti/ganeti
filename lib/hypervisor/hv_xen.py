@@ -154,7 +154,7 @@ def _ParseInstanceList(lines, include_node):
   return result
 
 
-def _GetAllInstanceList(fn, include_node, _timeout=5):
+def _GetAllInstanceList(fn, include_node, delays, timeout):
   """Return the list of instances including running and shutdown.
 
   See L{_RunInstanceList} and L{_ParseInstanceList} for parameter details.
@@ -162,7 +162,7 @@ def _GetAllInstanceList(fn, include_node, _timeout=5):
   """
   instance_list_errors = []
   try:
-    lines = utils.Retry(_RunInstanceList, (0.3, 1.5, 1.0), _timeout,
+    lines = utils.Retry(_RunInstanceList, delays, timeout,
                         args=(fn, instance_list_errors))
   except utils.RetryTimeout:
     if instance_list_errors:
@@ -260,23 +260,23 @@ def _XenToHypervisorInstanceState(instance_info):
                                    instance_info)
 
 
-def _GetRunningInstanceList(fn, include_node, _timeout=5):
+def _GetRunningInstanceList(fn, include_node, delays, timeout):
   """Return the list of running instances.
 
   See L{_GetAllInstanceList} for parameter details.
 
   """
-  instances = _GetAllInstanceList(fn, include_node, _timeout)
+  instances = _GetAllInstanceList(fn, include_node, delays, timeout)
   return [i for i in instances if hv_base.HvInstanceState.IsRunning(i[4])]
 
 
-def _GetShutdownInstanceList(fn, include_node, _timeout=5):
+def _GetShutdownInstanceList(fn, include_node, delays, timeout):
   """Return the list of shutdown instances.
 
   See L{_GetAllInstanceList} for parameter details.
 
   """
-  instances = _GetAllInstanceList(fn, include_node, _timeout)
+  instances = _GetAllInstanceList(fn, include_node, delays, timeout)
   return [i for i in instances if hv_base.HvInstanceState.IsShutdown(i[4])]
 
 
@@ -444,6 +444,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
   _ROOT_DIR = pathutils.RUN_DIR + "/xen-hypervisor"
   _NICS_DIR = _ROOT_DIR + "/nic" # contains NICs' info
   _DIRS = [_ROOT_DIR, _NICS_DIR]
+
+  _INSTANCE_LIST_DELAYS = (0.3, 1.5, 1.0)
+  _INSTANCE_LIST_TIMEOUT = 5
 
   ANCILLARY_FILES = [
     XEND_CONFIG_FILE,
@@ -649,7 +652,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     return _GetAllInstanceList(lambda: self._RunXen(["list"], hvparams),
-                               include_node)
+                               include_node, delays=self._INSTANCE_LIST_DELAYS,
+                               timeout=self._INSTANCE_LIST_TIMEOUT)
 
   def ListInstances(self, hvparams=None):
     """Get the list of running instances.
@@ -663,7 +667,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     instance_list = _GetRunningInstanceList(
       lambda: self._RunXen(["list"], hvparams),
-      False)
+      False, delays=self._INSTANCE_LIST_DELAYS,
+      timeout=self._INSTANCE_LIST_TIMEOUT)
     return [info[0] for info in instance_list]
 
   def GetInstanceInfo(self, instance_name, hvparams=None):
