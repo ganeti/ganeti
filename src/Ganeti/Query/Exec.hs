@@ -64,7 +64,6 @@ import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Monad
 import Control.Monad.Error
-import Control.Monad.Trans.Maybe
 import Data.Functor
 import qualified Data.Map as M
 import Data.Maybe (listToMaybe, mapMaybe)
@@ -219,9 +218,8 @@ forkJobProcess jid luxiLivelock update = do
   -- if the forked process fails to start.
   -- If it fails later on, the failure is handled by 'ResultT'
   -- and no retry is performed.
-  let execWriterLogInside =
-        MaybeT . ResultT . execWriterLogT . runResultT . runMaybeT
-  resultOpt <- retryMaybeN C.luxidRetryForkCount
+  let execWriterLogInside = ResultT . execWriterLogT . runResultT
+  retryErrorN C.luxidRetryForkCount
                $ \tryNo -> execWriterLogInside $ do
     let maxWaitUS = 2^(tryNo - 1) * C.luxidRetryForkStepUS
     when (tryNo >= 2) . liftIO $ delayRandom (0, maxWaitUS)
@@ -254,7 +252,6 @@ forkJobProcess jid luxiLivelock update = do
           killIfAlive [sigTERM, sigABRT, sigKILL]
 
     flip catchError (\e -> onError >> throwError e)
-      . (`mplus` (onError >> mzero))
       $ do
       let annotatedIO msg k = do
             logDebugJob msg
@@ -262,7 +259,7 @@ forkJobProcess jid luxiLivelock update = do
       let recv msg = annotatedIO msg (recvMsg master)
           send msg x = annotatedIO msg (sendMsg master x)
 
-      lockfile <- recv "Getting the lockfile of the client" `orElse` mzero
+      lockfile <- recv "Getting the lockfile of the client"
 
       logDebugJob $ "Setting the lockfile to the final " ++ lockfile
       toErrorBase $ update lockfile
@@ -277,6 +274,3 @@ forkJobProcess jid luxiLivelock update = do
       send "Writing the lock file name to the client" lockfile
 
       return (lockfile, pid)
-
-  maybe (failError "Unable to start the client process\
-                   \ - fork timed out repeatedly") return resultOpt
