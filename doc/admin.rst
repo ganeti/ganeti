@@ -164,7 +164,9 @@ There are several disk templates you can choose from:
 .. note::
   Disk templates marked with an asterisk require Ganeti to access the
   file system. Ganeti will refuse to do so unless you whitelist the
-  relevant paths in :pyeval:`pathutils.FILE_STORAGE_PATHS_FILE`.
+  relevant paths in the file storage paths configuration which,
+  with default configure-time paths is located
+  in :pyeval:`pathutils.FILE_STORAGE_PATHS_FILE`.
 
   The default paths used by Ganeti are:
 
