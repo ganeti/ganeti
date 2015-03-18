@@ -110,6 +110,8 @@ class LUClusterRenewCrypto(NoHooksLU):
   takes care of the renewal of the client SSL certificates.
 
   """
+  _MAX_NUM_RETRIES = 3
+
   def Exec(self, feedback_fn):
     master_uuid = self.cfg.GetMasterNode()
 
@@ -125,21 +127,60 @@ class LUClusterRenewCrypto(NoHooksLU):
     except IOError:
       logging.info("No old certificate available.")
 
-    new_master_digest = _UpdateMasterClientCert(self, self.cfg, master_uuid)
+    for _ in range(self._MAX_NUM_RETRIES):
+      try:
+        # Technically it should not be necessary to set the cert
+        # paths. However, due to a bug in the mock library, we
+        # have to do this to be able to test the function properly.
+        _UpdateMasterClientCert(
+            self, self.cfg, master_uuid,
+            client_cert=pathutils.NODED_CLIENT_CERT_FILE,
+            client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP)
+        break
+      except errors.OpExecError as e:
+        pass
+    else:
+      feedback_fn("Could not renew the master's client SSL certificate."
+                   " Cleaning up. Error: %s." % e)
+      # Cleaning up temporary certificates
+      self.cfg.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid)
+      self.cfg.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid)
+      try:
+        utils.RemoveFile(pathutils.NODED_CLIENT_CERT_FILE_TMP)
+      except IOError:
+        pass
+      return
 
-    self.cfg.AddNodeToCandidateCerts(master_uuid, new_master_digest)
+    node_errors = {}
     nodes = self.cfg.GetAllNodesInfo()
     for (node_uuid, node_info) in nodes.items():
       if node_info.offline:
         feedback_fn("* Skipping offline node %s" % node_info.name)
         continue
       if node_uuid != master_uuid:
-        new_digest = CreateNewClientCert(self, node_uuid)
-        if node_info.master_candidate:
-          self.cfg.AddNodeToCandidateCerts(node_uuid, new_digest)
+        for _ in range(self._MAX_NUM_RETRIES):
+          try:
+            new_digest = CreateNewClientCert(self, node_uuid)
+            if node_info.master_candidate:
+              self.cfg.AddNodeToCandidateCerts(node_uuid,
+                                               new_digest)
+            break
+          except errors.OpExecError as last_exception:
+            pass
+        else:
+          if last_exception:
+            node_errors[node_uuid] = last_exception
+
+    if node_errors:
+      msg = ("Some nodes' SSL client certificates could not be renewed."
+             " Please make sure those nodes are reachable and rerun"
+             " the operation. The affected nodes and their errors are:\n")
+      for uuid, e in node_errors.items():
+        msg += "Node %s: %s\n" % (uuid, e)
+      feedback_fn(msg)
+
     self.cfg.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid)
     self.cfg.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid)
-    # Trigger another update of the config now with the new master cert
 
 
 class LUClusterActivateMasterIp(NoHooksLU):
