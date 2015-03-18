@@ -1787,6 +1787,16 @@ class JobQueue(object):
         break
 
     if not raw_data:
+      logging.debug("No data available for job %s", job_id)
+      if int(job_id) == self.primary_jid:
+        logging.warning("My own job file (%s) disappeared;"
+                        " this should only happy at cluster desctruction",
+                        job_id)
+        if mcpu.lusExecuting[0] == 0:
+          logging.warning("Not in execution; cleaning up myself due to missing"
+                          " job file")
+          logging.shutdown()
+          os._exit(1) # pylint: disable=W0212
       return None
 
     if writable is None:
