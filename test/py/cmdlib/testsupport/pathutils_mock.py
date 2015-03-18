@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2013 Google Inc.
+# Copyright (C) 2015 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,36 +28,21 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-"""Support classes and functions for testing the cmdlib module.
+"""Support for mocking the ssh module"""
 
-"""
 
-from cmdlib.testsupport.cmdlib_testcase import CmdlibTestCase, \
-  withLockedLU
-from cmdlib.testsupport.config_mock import ConfigMock
-from cmdlib.testsupport.iallocator_mock import patchIAllocator
-from cmdlib.testsupport.livelock_mock import LiveLockMock
-from cmdlib.testsupport.utils_mock import patchUtils
-from cmdlib.testsupport.netutils_mock import patchNetutils, HostnameMock
-from cmdlib.testsupport.processor_mock import ProcessorMock
-from cmdlib.testsupport.pathutils_mock import patchPathutils
-from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock, \
-  RpcResultsBuilder
-from cmdlib.testsupport.ssh_mock import patchSsh
-from cmdlib.testsupport.wconfd_mock import WConfdMock
+from cmdlib.testsupport.util import patchModule
 
-__all__ = ["CmdlibTestCase",
-           "withLockedLU",
-           "ConfigMock",
-           "CreateRpcRunnerMock",
-           "HostnameMock",
-           "patchIAllocator",
-           "patchUtils",
-           "patchNetutils",
-           "patchSsh",
-           "patchPathutils",
-           "ProcessorMock",
-           "RpcResultsBuilder",
-           "LiveLockMock",
-           "WConfdMock",
-           ]
+
+# pylint: disable=C0103
+def patchPathutils(module_under_test):
+  """Patches the L{ganeti.pathutils} module for tests.
+
+  This function is meant to be used as a decorator for test methods.
+
+  @type module_under_test: string
+  @param module_under_test: the module within cmdlib which is tested. The
+        "ganeti.cmdlib" prefix is optional.
+
+  """
+  return patchModule(module_under_test, "pathutils")
