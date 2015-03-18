@@ -397,7 +397,7 @@ BUILT_EXAMPLES = \
 	doc/examples/systemd/ganeti-rapi.service \
 	doc/examples/systemd/ganeti-wconfd.service
 
-dist_ifup_SCRIPTS = \
+nodist_ifup_SCRIPTS = \
 	tools/kvm-ifup-os \
 	tools/xen-ifup-os
 
