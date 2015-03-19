@@ -152,13 +152,33 @@ def _AssertRetCode(rcode, fail, cmdstr, nodename):
                          (cmdstr, nodename, rcode))
 
 
+def _PrintCommandOutput(stdout, stderr):
+  """Prints the output of commands, minimizing wasted space.
+
+  @type stdout: string
+  @type stderr: string
+
+  """
+  if stdout:
+    stdout_clean = stdout.rstrip('\n')
+    if stderr:
+      print "Stdout was:\n%s" % stdout_clean
+    else:
+      print stdout_clean
+
+  if stderr:
+    print "Stderr was:"
+    print >> sys.stderr, stderr.rstrip('\n')
+
+
 def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
   """Checks that a remote command succeeds.
 
   @param cmd: either a string (the command to execute) or a list (to
       be converted using L{utils.ShellQuoteArgs} into a string)
-  @type fail: boolean
-  @param fail: if the command is expected to fail instead of succeeding
+  @type fail: boolean or None
+  @param fail: if the command is expected to fail instead of succeeding,
+               or None if we don't care
   @param node: if passed, it should be the node on which the command
       should be executed, instead of the master node (can be either a
       dict or a string)
@@ -167,7 +187,7 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
   @type max_seconds: double
   @param max_seconds: fail if the command takes more than C{max_seconds}
       seconds
-  @return: the return code of the command
+  @return: the return code, stdout and stderr of the command
   @raise qa_error.Error: if the command fails when it shouldn't or vice versa
 
   """
@@ -182,9 +202,18 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
     cmdstr = utils.ShellQuoteArgs(cmd)
 
   start = datetime.datetime.now()
-  rcode = StartSSH(nodename, cmdstr, log_cmd=log_cmd).wait()
+  popen = StartSSH(nodename, cmdstr, log_cmd=log_cmd)
+  # Run the command
+  stdout, stderr = popen.communicate()
+  rcode = popen.returncode
   duration_seconds = TimedeltaToTotalSeconds(datetime.datetime.now() - start)
-  _AssertRetCode(rcode, fail, cmdstr, nodename)
+
+  try:
+    if fail is not None:
+      _AssertRetCode(rcode, fail, cmdstr, nodename)
+  finally:
+    if log_cmd:
+      _PrintCommandOutput(stdout, stderr)
 
   if max_seconds is not None:
     if duration_seconds > max_seconds:
@@ -192,7 +221,7 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
         "Cmd '%s' took %f seconds, maximum of %f was exceeded" %
         (cmdstr, duration_seconds, max_seconds))
 
-  return rcode
+  return rcode, stdout, stderr
 
 
 def AssertRedirectedCommand(cmd, fail=False, node=None, log_cmd=True):
@@ -295,7 +324,8 @@ def StartSSH(node, cmd, strict=True, log_cmd=True):
 
   """
   return StartLocalCommand(GetSSHCommand(node, cmd, strict=strict),
-                           _nolog_opts=True, log_cmd=log_cmd)
+                           _nolog_opts=True, log_cmd=log_cmd,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def StartMultiplexer(node):
@@ -552,10 +582,10 @@ def GenericQueryTest(cmd, fields, namefield="name", test_unknown=True):
                   fail=True)
 
   # Check exit code for listing unknown field
-  AssertEqual(AssertRedirectedCommand([cmd, "list",
-                                       "--output=field/does/not/exist"],
-                                      fail=True),
-              constants.EXIT_UNKNOWN_FIELD)
+  rcode, _, _ = AssertRedirectedCommand([cmd, "list",
+                                         "--output=field/does/not/exist"],
+                                        fail=True)
+  AssertEqual(rcode, constants.EXIT_UNKNOWN_FIELD)
 
 
 def GenericQueryFieldsTest(cmd, fields):
@@ -573,9 +603,9 @@ def GenericQueryFieldsTest(cmd, fields):
               utils.NiceSort(fields))
 
   # Check exit code for listing unknown field
-  AssertEqual(AssertCommand([cmd, "list-fields", "field/does/not/exist"],
-                            fail=True),
-              constants.EXIT_UNKNOWN_FIELD)
+  rcode, _, _ = AssertCommand([cmd, "list-fields", "field/does/not/exist"],
+                              fail=True)
+  AssertEqual(rcode, constants.EXIT_UNKNOWN_FIELD)
 
 
 def AddToEtcHosts(hostnames):
