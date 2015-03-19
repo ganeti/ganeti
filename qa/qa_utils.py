@@ -500,7 +500,7 @@ def CheckFileUnmodified(node, filename):
   @param filename: absolute filename to check
 
   """
-  cmd = utils.ShellQuoteArgs(["sha1sum", filename])
+  cmd = utils.ShellQuoteArgs(["sha1sum", MakeNodePath(node, filename)])
 
   def Read():
     return GetCommandOutput(node, cmd).strip()
