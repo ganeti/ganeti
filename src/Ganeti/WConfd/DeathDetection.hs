@@ -66,10 +66,13 @@ cleanupLocksTask :: WConfdMonadInt ()
 cleanupLocksTask = forever . runResultT $ do
   logDebug "Death detection timer fired"
   owners <- liftM L.lockOwners readLockAllocation
+  mylivelock <- liftM dhLivelock daemonHandle
   logDebug $ "Current lock owners: " ++ show owners
   let cleanupIfDead owner = do
         let fpath = ciLockFile owner
-        died <- liftIO (isDead fpath)
+        died <- if fpath == mylivelock
+                  then return False
+                  else liftIO (isDead fpath)
         when died $ do
           logInfo $ show owner ++ " died, releasing locks and reservations"
           persCleanup persistentTempRes owner
@@ -81,7 +84,9 @@ cleanupLocksTask = forever . runResultT $ do
   remainingFiles <- liftIO listLiveLocks
   logDebug $ "Livelockfiles remaining: " ++ show remainingFiles
   let cleanupStaleIfDead fpath = do
-        died <- liftIO (isDead fpath)
+        died <- if fpath == mylivelock
+                  then return False
+                  else liftIO (isDead fpath)
         when died $ do
           logInfo $ "Cleaning up stale file " ++ fpath
           _ <- liftIO . E.try $ removeFile fpath
