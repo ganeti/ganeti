@@ -51,7 +51,8 @@ import qa_job_utils
 import qa_logging
 import qa_utils
 
-from qa_utils import AssertEqual, AssertCommand, GetCommandOutput
+from qa_utils import AssertEqual, AssertCommand, GetCommandOutput, \
+                     CheckFileUnmodified
 
 
 # Prefix for LVM volumes created by QA code during tests
@@ -150,8 +151,9 @@ def AssertClusterVerify(fail=False, errors=None,
   cvcmd = "gnt-cluster verify"
   mnode = qa_config.GetMasterNode()
   if errors or warnings or no_warnings:
-    cvout = GetCommandOutput(mnode.primary, cvcmd + " --error-codes",
-                             fail=(fail or errors))
+    with CheckFileUnmodified(mnode.primary, pathutils.CLUSTER_CONF_FILE):
+      cvout = GetCommandOutput(mnode.primary, cvcmd + " --error-codes",
+                               fail=(fail or errors))
     print cvout
     (act_errs, act_warns) = _GetCVErrorCodes(cvout)
     if errors:
@@ -162,7 +164,8 @@ def AssertClusterVerify(fail=False, errors=None,
       _CheckVerifyNoWarnings(act_warns, no_warnings)
 
   else:
-    AssertCommand(cvcmd, fail=fail, node=mnode)
+    with CheckFileUnmodified(mnode.primary, pathutils.CLUSTER_CONF_FILE):
+      AssertCommand(cvcmd, fail=fail, node=mnode)
 
 
 # data for testing failures due to bad keys/values for disk parameters
