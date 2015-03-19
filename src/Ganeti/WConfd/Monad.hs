@@ -46,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.WConfd.Monad
   ( DaemonHandle
   , dhConfigPath
+  , dhLivelock
   , mkDaemonHandle
   , WConfdMonadInt
   , runWConfdMonadInt
@@ -92,6 +93,7 @@ import Ganeti.Logging.WriterLog
 import Ganeti.Objects (ConfigData)
 import Ganeti.Utils.AsyncWorker
 import Ganeti.Utils.IORef
+import Ganeti.Utils.Livelock (Livelock)
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.TempRes
 
@@ -116,6 +118,7 @@ data DaemonHandle = DaemonHandle
   , dhSaveConfigWorker :: AsyncWorker Any ()
   , dhSaveLocksWorker :: AsyncWorker () ()
   , dhSaveTempResWorker :: AsyncWorker () ()
+  , dhLivelock :: Livelock
   }
 
 mkDaemonHandle :: FilePath
@@ -138,10 +141,12 @@ mkDaemonHandle :: FilePath
                -> (IO TempResState -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the temporary reservations state.
+               -> Livelock
                -> ResultG DaemonHandle
 mkDaemonHandle cpath cstat lstat trstat
                saveWorkerFn distMCsWorkerFn distSSConfWorkerFn
-               saveLockWorkerFn saveTempResWorkerFn = do
+               saveLockWorkerFn saveTempResWorkerFn
+               livelock = do
   ds <- newIORef $ DaemonState cstat lstat trstat
   let readConfigIO = dsConfigState `liftM` readIORef ds :: IO ConfigState
 
@@ -155,6 +160,7 @@ mkDaemonHandle cpath cstat lstat trstat
   saveTempResWorker <- saveTempResWorkerFn $ dsTempRes `liftM` readIORef ds
 
   return $ DaemonHandle ds cpath saveWorker saveLockWorker saveTempResWorker
+                        livelock
 
 -- * The monad and its instances
 
