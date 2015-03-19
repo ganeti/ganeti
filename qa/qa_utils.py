@@ -498,10 +498,13 @@ def CheckFileUnmodified(node, filename):
   @param node: node the command should run on
   @type filename: string
   @param filename: absolute filename to check
+
   """
   cmd = utils.ShellQuoteArgs(["sha1sum", filename])
+
   def Read():
     return GetCommandOutput(node, cmd).strip()
+
   # read the configuration
   before = Read()
   yield
