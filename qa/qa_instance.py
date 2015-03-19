@@ -566,6 +566,25 @@ def TestInstanceInfo(instance):
   AssertCommand(["gnt-instance", "info", instance.name])
 
 
+def _TestKVMHotplug(instance):
+  """Tests hotplug modification commands, noting that they
+
+  """
+  args_to_try = [
+    ["--net", "-1:add", "--hotplug"],
+    ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--hotplug", "--force"],
+    ["--net", "-1:remove", "--hotplug"],
+    ["--disk", "-1:add,size=1G", "--hotplug"],
+    ["--disk", "-1:remove", "--hotplug"],
+  ]
+  for alist in args_to_try:
+    _, stdout, stderr = \
+      AssertCommand(["gnt-instance", "modify"] + alist + [instance.name])
+    if "failed" in stdout or "failed" in stderr:
+      raise qa_error.Error("Hotplugging command failed; please check output"
+                           " for further information")
+
+
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
 def TestInstanceModify(instance):
   """gnt-instance modify"""
@@ -611,16 +630,7 @@ def TestInstanceModify(instance):
       ])
   elif default_hv == constants.HT_KVM and \
     qa_config.TestEnabled("instance-device-hotplug"):
-    # FIXME: Fix issue 885 and then re-enable the tests below
-    #args.extend([
-    #  ["--net", "-1:add", "--hotplug"],
-    #  ["--net", "-1:modify,mac=aa:bb:cc:dd:ee:ff", "--hotplug", "--force"],
-    #  ["--net", "-1:remove", "--hotplug"],
-    #  ])
-    args.extend([
-      ["--disk", "-1:add,size=1G", "--hotplug"],
-      ["--disk", "-1:remove", "--hotplug"],
-      ])
+    _TestKVMHotplug(instance)
 
   url = "http://example.com/busybox.img"
   args.extend([

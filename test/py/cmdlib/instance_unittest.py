@@ -2394,6 +2394,30 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          disk_template=constants.DT_PLAIN)
     self.ExecOpCode(op)
 
+  def testConvertDisklessDRBDToPlain(self):
+    self.cfg.SetIPolicyField(
+      constants.ISPECS_MIN, constants.ISPEC_DISK_COUNT, 0)
+    self.inst.disks = []
+    self.inst.disk_template = constants.DT_DRBD8
+
+    op = self.CopyOpCode(self.op,
+                         disk_template=constants.DT_PLAIN)
+    self.ExecOpCode(op)
+
+    self.assertEqual(self.inst.disk_template, constants.DT_PLAIN)
+
+  def testConvertDisklessPlainToDRBD(self):
+    self.cfg.SetIPolicyField(
+      constants.ISPECS_MIN, constants.ISPEC_DISK_COUNT, 0)
+    self.inst.disks = []
+    self.inst.disk_template = constants.DT_PLAIN
+
+    op = self.CopyOpCode(self.op,
+                         disk_template=constants.DT_DRBD8,
+                         remote_node=self.snode.name)
+    self.ExecOpCode(op)
+
+    self.assertEqual(self.inst.disk_template, constants.DT_DRBD8)
 
 class TestLUInstanceChangeGroup(CmdlibTestCase):
   def setUp(self):
