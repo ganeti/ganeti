@@ -7,6 +7,16 @@ Version 2.15.0
 
 *(unreleased)*
 
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- In order to improve allocation efficiency when using DRBD, the cluster
+  metric now takes the total reserved memory into account. A consequence
+  of this change is that the best possible cluster metric is no longer 0.
+  htools(1) interprets minimal cluster scores to be offsets of the theoretical
+  lower bound, so only users interpreting the cluster score directly should
+  be affected.
+
 New features
 ~~~~~~~~~~~~
 
