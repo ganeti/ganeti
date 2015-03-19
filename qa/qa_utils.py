@@ -32,6 +32,7 @@
 
 """
 
+import contextlib
 import copy
 import datetime
 import operator
@@ -486,6 +487,29 @@ def BackupFile(node, path):
   print "Backup filename: %s" % result
 
   return result
+
+
+@contextlib.contextmanager
+def CheckFileUnmodified(node, filename):
+  """Checks that the content of a given file remains the same after running a
+  wrapped code.
+
+  @type node: string
+  @param node: node the command should run on
+  @type filename: string
+  @param filename: absolute filename to check
+  """
+  cmd = utils.ShellQuoteArgs(["sha1sum", filename])
+  def Read():
+    return GetCommandOutput(node, cmd).strip()
+  # read the configuration
+  before = Read()
+  yield
+  # check that the configuration hasn't changed
+  after = Read()
+  if before != after:
+    raise qa_error.Error("File '%s' has changed unexpectedly on node %s"
+                         " during the last operation" % (filename, node))
 
 
 def ResolveInstanceName(instance):
