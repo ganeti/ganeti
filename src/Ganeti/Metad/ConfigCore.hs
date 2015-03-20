@@ -1,4 +1,4 @@
-{-# LANGUAGE TupleSections, TemplateHaskell,
+{-# LANGUAGE TupleSections, TemplateHaskell, CPP, UndecidableInstances,
     MultiParamTypeClasses, TypeFamilies, GeneralizedNewtypeDeriving #-}
 {-| Functions of the metadata daemon exported for RPC
 
@@ -37,7 +37,6 @@ module Ganeti.Metad.ConfigCore where
 
 import Control.Applicative
 import Control.Concurrent.MVar.Lifted
-import Control.Monad
 import Control.Monad.Base
 import Control.Monad.IO.Class
 import Control.Monad.Reader
@@ -69,11 +68,19 @@ newtype MetadMonadInt a = MetadMonadInt
            , L.MonadLog )
 
 instance MonadBaseControl IO MetadMonadInt where
+#if MIN_VERSION_monad_control(1,0,0)
+-- Needs Undecidable instances
+  type StM MetadMonadInt b = StM MetadMonadIntType b
+  liftBaseWith f = MetadMonadInt . liftBaseWith
+                   $ \r -> f (r . getMetadMonadInt)
+  restoreM = MetadMonadInt . restoreM
+#else
   newtype StM MetadMonadInt b = StMMetadMonadInt
     { runStMMetadMonadInt :: StM MetadMonadIntType b }
   liftBaseWith f = MetadMonadInt . liftBaseWith
                    $ \r -> f (liftM StMMetadMonadInt . r . getMetadMonadInt)
   restoreM = MetadMonadInt . restoreM . runStMMetadMonadInt
+#endif
 
 -- | Runs the internal part of the MetadMonad monad on a given daemon
 -- handle.
