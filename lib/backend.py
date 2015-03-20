@@ -1609,17 +1609,19 @@ def RemoveNodeSshKey(node_uuid, node_name,
     should be cleared on the node whose keys are removed
   @type clear_public_keys: boolean
   @param clear_public_keys: whether to clear the node's C{ganeti_pub_key} file
+  @rtype: list of string
+  @returns: list of feedback messages
 
   """
+  result_msgs = []
+
   # Make sure at least one of these flags is true.
-  assert (from_authorized_keys or from_public_keys or clear_authorized_keys
-          or clear_public_keys)
+  if not (from_authorized_keys or from_public_keys or clear_authorized_keys
+          or clear_public_keys):
+    result_msgs.append("No removal from any key file was requested.")
 
   if not ssconf_store:
     ssconf_store = ssconf.SimpleStore()
-
-  if not (from_authorized_keys or from_public_keys or clear_authorized_keys):
-    raise errors.SshUpdateError("No removal from any key file was requested.")
 
   master_node = ssconf_store.GetMasterNode()
 
@@ -1676,16 +1678,24 @@ def RemoveNodeSshKey(node_uuid, node_name,
                                    " node '%s', map: %s." %
                                    (node, ssh_port_map))
         if node in potential_master_candidates:
-          run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                     ssh_port, pot_mc_data,
-                     debug=False, verbose=False, use_cluster_key=False,
-                     ask_key=False, strict_host_check=False)
-        else:
-          if from_authorized_keys:
+          try:
             run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                       ssh_port, base_data,
+                       ssh_port, pot_mc_data,
                        debug=False, verbose=False, use_cluster_key=False,
                        ask_key=False, strict_host_check=False)
+          except errors.OpExecError as e:
+            result_msgs.append("Warning: the SSH setup of node '%s' could not"
+                               " be adjusted." % node)
+        else:
+          if from_authorized_keys:
+            try:
+              run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
+                         ssh_port, base_data,
+                         debug=False, verbose=False, use_cluster_key=False,
+                         ask_key=False, strict_host_check=False)
+            except errors.OpExecError as e:
+              result_msgs.append("Warning: the SSH setup of node '%s' could"
+                                 " not be adjusted." % node)
 
   if clear_authorized_keys or from_public_keys or clear_public_keys:
     data = {}
@@ -1728,10 +1738,12 @@ def RemoveNodeSshKey(node_uuid, node_name,
                  ssh_port, data,
                  debug=False, verbose=False, use_cluster_key=False,
                  ask_key=False, strict_host_check=False)
-    except errors.OpExecError, e:
-      logging.info("Removing SSH keys from node '%s' failed. This can happen"
-                   " when the node is already unreachable. Error: %s",
-                   node_name, e)
+    except errors.OpExecError as e:
+      result_msgs.append("Removing SSH keys from node '%s' failed. This can"
+                         " happen when the node is already unreachable."
+                         " Error: %s" % (node_name, e))
+
+  return result_msgs
 
 
 def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,

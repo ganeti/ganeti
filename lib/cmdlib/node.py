@@ -877,9 +877,13 @@ class LUNodeSetParams(LogicalUnit):
             False, # currently, all nodes are potential master candidates
             False, # do not clear node's 'authorized_keys'
             False) # do not clear node's 'ganeti_pub_keys'
+          if not ssh_result[master_node].fail_msg:
+            for message in ssh_result[master_node].payload:
+              feedback_fn(message)
           ssh_result[master_node].Raise(
             "Could not adjust the SSH setup after demoting node '%s'"
             " (UUID: %s)." % (node.name, node.uuid))
+
         if self.new_role == self._ROLE_CANDIDATE:
           ssh_result = self.rpc.call_node_ssh_key_add(
             [master_node], node.uuid, node.name,
