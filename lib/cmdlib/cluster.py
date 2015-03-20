@@ -297,6 +297,8 @@ class LUClusterDestroy(LogicalUnit):
                                                      master_params, ems)
     result.Warn("Error disabling the master IP address", self.LogWarning)
 
+    self.wconfd.Client().PrepareClusterDestruction(self.wconfdcontext)
+
     # signal to the job queue that the cluster is gone
     LUClusterDestroy.clusterHasBeenDestroyed = True
 
