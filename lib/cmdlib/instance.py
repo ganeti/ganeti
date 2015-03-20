@@ -3916,10 +3916,15 @@ class LUInstanceSetParams(LogicalUnit):
 
     """
     secondary_nodes = self.cfg.GetInstanceSecondaryNodes(self.instance.uuid)
-    assert len(secondary_nodes) == 1
-    assert self.instance.disk_template == constants.DT_DRBD8
 
-    snode_uuid = secondary_nodes[0]
+    assert self.instance.disk_template == constants.DT_DRBD8
+    assert len(secondary_nodes) == 1 or not self.instance.disks
+
+    # it will not be possible to calculate the snode_uuid later
+    snode_uuid = None
+    if secondary_nodes:
+      snode_uuid = secondary_nodes[0]
+
     feedback_fn("Converting disk template from 'drbd' to 'plain'")
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)

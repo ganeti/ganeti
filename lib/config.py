@@ -1329,7 +1329,7 @@ class ConfigWriter(object):
       self._ConfigData().cluster.highest_used_port = port
     return port
 
-  @_ConfigSync()
+  @_ConfigSync(shared=1)
   def ComputeDRBDMap(self):
     """Compute the used DRBD minor/nodes.
 

@@ -32,6 +32,7 @@
 
 """
 
+import contextlib
 import copy
 import datetime
 import operator
@@ -152,6 +153,25 @@ def _AssertRetCode(rcode, fail, cmdstr, nodename):
                          (cmdstr, nodename, rcode))
 
 
+def _PrintCommandOutput(stdout, stderr):
+  """Prints the output of commands, minimizing wasted space.
+
+  @type stdout: string
+  @type stderr: string
+
+  """
+  if stdout:
+    stdout_clean = stdout.rstrip('\n')
+    if stderr:
+      print "Stdout was:\n%s" % stdout_clean
+    else:
+      print stdout_clean
+
+  if stderr:
+    print "Stderr was:"
+    print >> sys.stderr, stderr.rstrip('\n')
+
+
 def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
   """Checks that a remote command succeeds.
 
@@ -188,8 +208,13 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
   stdout, stderr = popen.communicate()
   rcode = popen.returncode
   duration_seconds = TimedeltaToTotalSeconds(datetime.datetime.now() - start)
-  if fail is not None:
-    _AssertRetCode(rcode, fail, cmdstr, nodename)
+
+  try:
+    if fail is not None:
+      _AssertRetCode(rcode, fail, cmdstr, nodename)
+  finally:
+    if log_cmd:
+      _PrintCommandOutput(stdout, stderr)
 
   if max_seconds is not None:
     if duration_seconds > max_seconds:
@@ -462,6 +487,32 @@ def BackupFile(node, path):
   print "Backup filename: %s" % result
 
   return result
+
+
+@contextlib.contextmanager
+def CheckFileUnmodified(node, filename):
+  """Checks that the content of a given file remains the same after running a
+  wrapped code.
+
+  @type node: string
+  @param node: node the command should run on
+  @type filename: string
+  @param filename: absolute filename to check
+
+  """
+  cmd = utils.ShellQuoteArgs(["sha1sum", MakeNodePath(node, filename)])
+
+  def Read():
+    return GetCommandOutput(node, cmd).strip()
+
+  # read the configuration
+  before = Read()
+  yield
+  # check that the configuration hasn't changed
+  after = Read()
+  if before != after:
+    raise qa_error.Error("File '%s' has changed unexpectedly on node %s"
+                         " during the last operation" % (filename, node))
 
 
 def ResolveInstanceName(instance):
