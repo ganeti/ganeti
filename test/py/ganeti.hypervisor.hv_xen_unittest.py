@@ -169,6 +169,36 @@ class TestParseInstanceList(testutils.GanetiTestCase):
         self.fail("Exception was not raised")
 
 
+class TestInstanceStateParsing(unittest.TestCase):
+  def testRunningStates(self):
+    states = [
+      "r-----",
+      "r-p---",
+      "rb----",
+      "rbp---",
+      "-b----",
+      "-bp---",
+      "-----d",
+      "--p--d",
+      "------",
+      "--p---",
+    ]
+    for state in states:
+      self.assertEqual(hv_xen._XenToHypervisorInstanceState(state),
+                       hv_base.HvInstanceState.RUNNING)
+
+  def testShutdownStates(self):
+    states = [
+      "---s--",
+      "--ps--",
+      "---s-d",
+      "--ps-d",
+    ]
+    for state in states:
+      self.assertEqual(hv_xen._XenToHypervisorInstanceState(state),
+                       hv_base.HvInstanceState.SHUTDOWN)
+
+
 class TestGetInstanceList(testutils.GanetiTestCase):
   def _Fail(self):
     return utils.RunResult(constants.EXIT_FAILURE, None,
@@ -178,7 +208,8 @@ class TestGetInstanceList(testutils.GanetiTestCase):
   def testTimeout(self):
     fn = testutils.CallCounter(self._Fail)
     try:
-      hv_xen._GetRunningInstanceList(fn, False, _timeout=0.1)
+      hv_xen._GetRunningInstanceList(fn, False, delays=(0.02, 1.0, 0.03),
+                                     timeout=0.1)
     except errors.HypervisorError, err:
       self.assertTrue("timeout exceeded" in str(err))
     else:
@@ -196,7 +227,8 @@ class TestGetInstanceList(testutils.GanetiTestCase):
 
     fn = testutils.CallCounter(compat.partial(self._Success, data))
 
-    result = hv_xen._GetRunningInstanceList(fn, True, _timeout=0.1)
+    result = hv_xen._GetRunningInstanceList(fn, True, delays=(0.02, 1.0, 0.03),
+                                            timeout=0.1)
 
     self.assertEqual(len(result), 4)
 
@@ -554,6 +586,12 @@ class _TestXenHypervisor(object):
 
     self.vncpw = "".join(random.sample(string.ascii_letters, 10))
 
+    self._xen_delay = self.TARGET._INSTANCE_LIST_DELAYS
+    self.TARGET._INSTANCE_LIST_DELAYS = (0.01, 1.0, 0.05)
+
+    self._list_timeout = self.TARGET._INSTANCE_LIST_TIMEOUT
+    self.TARGET._INSTANCE_LIST_TIMEOUT = 0.1
+
     self.vncpw_path = utils.PathJoin(self.tmpdir, "vncpw")
     utils.WriteFile(self.vncpw_path, data=self.vncpw)
 
@@ -561,6 +599,9 @@ class _TestXenHypervisor(object):
     super(_TestXenHypervisor, self).tearDown()
 
     shutil.rmtree(self.tmpdir)
+
+    self.TARGET._INSTANCE_LIST_DELAYS = self._xen_delay
+    self.TARGET._INSTANCE_LIST_TIMEOUT = self._list_timeout
 
   def _GetHv(self, run_cmd=NotImplemented):
     return self.TARGET(_cfgdir=self.tmpdir, _run_cmd_fn=run_cmd, _cmd=self.CMD)

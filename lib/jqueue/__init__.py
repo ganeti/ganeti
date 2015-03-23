@@ -1912,7 +1912,8 @@ class JobQueue(object):
     # Try to load from disk
     job = self.SafeLoadJobFromDisk(job_id, True, writable=False)
 
-    assert not job.writable, "Got writable job" # pylint: disable=E1101
+    if job:
+      assert not job.writable, "Got writable job" # pylint: disable=E1101
 
     if job:
       return job.CalcStatus()

@@ -1503,7 +1503,6 @@ class LUInstanceSetParams(LogicalUnit):
     assert len(secondary_nodes) == 1
     assert utils.AnyDiskOfType(disks, [constants.DT_DRBD8])
 
-    snode_uuid = secondary_nodes[0]
     feedback_fn("Converting disk template from 'drbd' to 'plain'")
 
     old_disks = AnnotateDiskParams(self.instance, disks, self.cfg)
@@ -1537,7 +1536,7 @@ class LUInstanceSetParams(LogicalUnit):
 
     feedback_fn("Removing volumes on the secondary node...")
     RemoveDisks(self, self.instance, disks=old_disks,
-                target_node_uuid=snode_uuid)
+                target_node_uuid=secondary_nodes[0])
 
     feedback_fn("Removing unneeded volumes on the primary node...")
     meta_disks = []
