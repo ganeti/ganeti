@@ -48,6 +48,9 @@ New features
 - The 'gnt-cluster verify' command now has the option
   '--verify-ssh-clutter', which verifies whether Ganeti (accidentally)
   cluttered up the 'authorized_keys' file.
+- Instance disks can now be converted from one disk template to another for many
+  different template combinations. When available, more efficient conversions
+  will be used, otherwise the disks are simply copied over.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
