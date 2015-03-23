@@ -1782,7 +1782,11 @@ class ConfigWriter(object):
     result = []
     for name in inst_names:
       instance = self._UnlockedGetInstanceInfoByName(name)
-      result.append((instance.uuid, instance))
+      if instance:
+        result.append((instance.uuid, instance))
+      else:
+        raise errors.ConfigurationError("Instance data of instance '%s'"
+                                        " not found." % name)
     return result
 
   @locking.ssynchronized(_config_lock, shared=1)
