@@ -23,7 +23,7 @@
 # /
 /.hsenv
 /Makefile
-/hs-lens-version
+/hs-pkg-versions
 /Makefile.ghc
 /Makefile.ghc.bak
 /Makefile.in
