@@ -1,5 +1,7 @@
-{-# LANGUAGE FlexibleInstances, FlexibleContexts, TypeFamilies, GeneralizedNewtypeDeriving,
-             StandaloneDeriving, MultiParamTypeClasses, UndecidableInstances, CPP #-}
+{-# LANGUAGE FlexibleInstances, FlexibleContexts, TypeFamilies,
+             GeneralizedNewtypeDeriving,
+             StandaloneDeriving, MultiParamTypeClasses, UndecidableInstances,
+             CPP #-}
 
 {-| A pure implementation of MonadLog using MonadWriter
 
