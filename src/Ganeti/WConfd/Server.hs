@@ -54,7 +54,6 @@ import qualified Ganeti.Path as Path
 import Ganeti.THH.RPC
 import Ganeti.UDSServer
 import Ganeti.Utils.Livelock (mkLivelockFile)
-
 import Ganeti.Errors (formatError)
 import Ganeti.Runtime
 import Ganeti.WConfd.ConfigState

@@ -650,4 +650,4 @@ main _ _ (server, cref, jq) = do
 
   finally
     (forever $ U.listener (luxiHandler (qlock, jq, creader)) server)
-    (closeServer server)
+    (closeServer server >> removeFile qlockFile)

@@ -1,7 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeFamilies,
-             GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
-
+             GeneralizedNewtypeDeriving,
+             TemplateHaskell, CPP, UndecidableInstances #-}
 {-| All RPC calls are run within this monad.
 
 It encapsulates:
@@ -47,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.WConfd.Monad
   ( DaemonHandle
   , dhConfigPath
+  , dhLivelock
   , mkDaemonHandle
   , WConfdMonadInt
   , runWConfdMonadInt
@@ -178,11 +178,19 @@ newtype WConfdMonadInt a = WConfdMonadInt
   deriving (Functor, Applicative, Monad, MonadIO, MonadBase IO, MonadLog)
 
 instance MonadBaseControl IO WConfdMonadInt where
+#if MIN_VERSION_monad_control(1,0,0)
+-- Needs Undecidable instances
+  type StM WConfdMonadInt b = StM WConfdMonadIntType b
+  liftBaseWith f = WConfdMonadInt . liftBaseWith
+                   $ \r -> f (r . getWConfdMonadInt)
+  restoreM = WConfdMonadInt . restoreM
+#else
   newtype StM WConfdMonadInt b = StMWConfdMonadInt
     { runStMWConfdMonadInt :: StM WConfdMonadIntType b }
   liftBaseWith f = WConfdMonadInt . liftBaseWith
                    $ \r -> f (liftM StMWConfdMonadInt . r . getWConfdMonadInt)
   restoreM = WConfdMonadInt . restoreM . runStMWConfdMonadInt
+#endif
 
 -- | Runs the internal part of the WConfdMonad monad on a given daemon
 -- handle.
@@ -237,16 +245,16 @@ modifyConfigStateErrWithImmediate f immediateFollowup = do
   if modified
     then if distSync
       then do
-        logDebug "Triggering config write\
-                 \ together with full synchronous distribution"
+        logDebug $ "Triggering config write" ++
+                   " together with full synchronous distribution"
         res <- liftBase . triggerWithResult (Any True) $ dhSaveConfigWorker dh
         immediateFollowup
         wait res
         logDebug "Config write and distribution finished"
       else do
         -- trigger the config. saving worker and wait for it
-        logDebug "Triggering config write\
-                 \ and asynchronous distribution"
+        logDebug $ "Triggering config write" ++
+                   " and asynchronous distribution"
         res <- liftBase . triggerWithResult (Any False) $ dhSaveConfigWorker dh
         immediateFollowup
         wait res

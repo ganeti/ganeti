@@ -75,6 +75,9 @@ class MockClient(object):
       self.wconfdmock.mylocks[lockrq[0]] = lockrq[1]
     return [lockrq[0] for lockrq in req]
 
+  def PrepareClusterDestruction(self, _cid):
+    pass
+
 
 class WConfdMock(object):
   """Mock calls to WConfD.

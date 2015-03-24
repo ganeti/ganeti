@@ -1408,6 +1408,7 @@ class JobQueue(object):
         data and other ganeti objects
 
     """
+    self.primary_jid = None
     self.context = context
     self._memcache = weakref.WeakValueDictionary()
     self._my_hostname = netutils.Hostname.GetSysName()
@@ -1454,6 +1455,12 @@ class JobQueue(object):
     Pick up a job that already is in the job queue and start/resume it.
 
     """
+    if self.primary_jid:
+      logging.warning("Job process asked to pick up %s, but already has %s",
+                      job_id, self.primary_jid)
+
+    self.primary_jid = int(job_id)
+
     job = self._LoadJobUnlocked(job_id)
 
     if job is None:
@@ -1791,6 +1798,16 @@ class JobQueue(object):
         break
 
     if not raw_data:
+      logging.debug("No data available for job %s", job_id)
+      if int(job_id) == self.primary_jid:
+        logging.warning("My own job file (%s) disappeared;"
+                        " this should only happy at cluster desctruction",
+                        job_id)
+        if mcpu.lusExecuting[0] == 0:
+          logging.warning("Not in execution; cleaning up myself due to missing"
+                          " job file")
+          logging.shutdown()
+          os._exit(1) # pylint: disable=W0212
       return None
 
     if writable is None:
