@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances, FlexibleContexts, TypeFamilies,
-             MultiParamTypeClasses #-}
+             MultiParamTypeClasses, CPP #-}
 
 {-| A pure implementation of MonadLog using MonadWriter
 
@@ -44,6 +44,14 @@ module Ganeti.Logging.WriterLog
   , execWriterLogT
   , execWriterLog
   ) where
+
+-- The following macro is just a temporary solution for 2.12 and 2.13.
+-- Since 2.14 cabal creates proper macros for all dependencies.
+#define MIN_VERSION_monad_control(maj,min,rev) \
+  (((maj)<MONAD_CONTROL_MAJOR)|| \
+   (((maj)==MONAD_CONTROL_MAJOR)&&((min)<=MONAD_CONTROL_MINOR))|| \
+   (((maj)==MONAD_CONTROL_MAJOR)&&((min)==MONAD_CONTROL_MINOR)&& \
+    ((rev)<=MONAD_CONTROL_REV)))
 
 import Control.Applicative
 import Control.Monad

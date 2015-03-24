@@ -1,5 +1,5 @@
-{-# LANGUAGE MultiParamTypeClasses, TypeFamilies #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies,
+             TemplateHaskell, CPP #-}
 
 {-| All RPC calls are run within this monad.
 
@@ -64,6 +64,14 @@ module Ganeti.WConfd.Monad
   , modifyTempResStateErr
   , readTempResState
   ) where
+
+-- The following macro is just a temporary solution for 2.12 and 2.13.
+-- Since 2.14 cabal creates proper macros for all dependencies.
+#define MIN_VERSION_monad_control(maj,min,rev) \
+  (((maj)<MONAD_CONTROL_MAJOR)|| \
+   (((maj)==MONAD_CONTROL_MAJOR)&&((min)<=MONAD_CONTROL_MINOR))|| \
+   (((maj)==MONAD_CONTROL_MAJOR)&&((min)==MONAD_CONTROL_MINOR)&& \
+    ((rev)<=MONAD_CONTROL_REV)))
 
 import Control.Applicative
 import Control.Arrow ((&&&), second)
@@ -244,14 +252,14 @@ modifyConfigStateErr f = do
   when modified $ do
     if distSync
       then do
-        logDebug "Triggering config write\
-                 \ together with full synchronous distribution"
+        logDebug $ "Triggering config write" ++
+                   " together with full synchronous distribution"
         liftBase . triggerAndWait (Any True) . dhSaveConfigWorker $ dh
         logDebug "Config write and distribution finished"
       else do
         -- trigger the config. saving worker and wait for it
-        logDebug "Triggering config write\
-                 \ and asynchronous distribution"
+        logDebug $ "Triggering config write" ++
+                   " and asynchronous distribution"
         liftBase . triggerAndWait (Any False) . dhSaveConfigWorker $ dh
     return ()
   return r

@@ -1177,11 +1177,18 @@ HS_SRCS = $(HS_LIBTESTBUILT_SRCS)
 hs-pkg-versions:
 	ghc-pkg list --simple-output lens \
 	| sed -r -e '$$!d' \
-    -e 's/^lens-([0-9]+(\.[0-9]+)*)/\1 0 0 0/' \
-    -e 's/\./ /g' -e 's/([0-9]+) *([0-9]+) *([0-9]+) .*/\
-        -DLENS_MAJOR=\1 -DLENS_MINOR=\2 -DLENS_REV=\3/' \
-    -e 's/^\s*//' \
+	  -e 's/^lens-([0-9]+(\.[0-9]+)*)/\1 0 0 0/' \
+	  -e 's/\./ /g' -e 's/([0-9]+) *([0-9]+) *([0-9]+) .*/\
+	      -DLENS_MAJOR=\1 -DLENS_MINOR=\2 -DLENS_REV=\3/' \
+	  -e 's/^\s*//' \
 	> $@
+	ghc-pkg list --simple-output monad-control \
+	| sed -r -e '$$!d' \
+	  -e 's/^monad-control-([0-9]+(\.[0-9]+)*)/\1 0 0 0/' \
+	  -e 's/\./ /g' -e 's/([0-9]+) *([0-9]+) *([0-9]+) .*/\
+	   -DMONAD_CONTROL_MAJOR=\1 -DMONAD_CONTROL_MINOR=\2 -DMONAD_CONTROL_REV=\3/'\
+	  -e 's/^\s*//' \
+	>> $@
 
 HS_MAKEFILE_GHC_SRCS = $(HS_SRC_PROGS:%=%.hs)
 if WANT_HSTESTS
