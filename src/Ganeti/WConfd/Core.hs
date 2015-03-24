@@ -41,19 +41,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.WConfd.Core where
 
 import Control.Arrow ((&&&))
+import Control.Concurrent (myThreadId)
+import Control.Lens.Setter (set)
 import Control.Monad (liftM, unless, when)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Language.Haskell.TH (Name)
+import System.Posix.Process (getProcessID)
 import qualified System.Random as Rand
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import qualified Ganeti.JSON as J
 import qualified Ganeti.Locking.Allocation as L
-import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock), LockLevel(LevelConfig)
-                            , lockLevel, LockLevel, ClientId )
+import Ganeti.Logging (logDebug)
+import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock, BGL)
+                            , LockLevel(LevelConfig)
+                            , lockLevel, LockLevel
+                            , ClientType(ClientOther), ClientId(..) )
 import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Objects (ConfigData, DRBDSecret, LogicalVolume, Ip4Address)
+import Ganeti.Objects.Lens (configClusterL, clusterMasterNodeL)
+import Ganeti.WConfd.ConfigState (csConfigDataL)
 import qualified Ganeti.WConfd.ConfigVerify as V
 import Ganeti.WConfd.DeathDetection (cleanupLocks)
 import Ganeti.WConfd.Language
@@ -310,11 +319,45 @@ guardedOpportunisticLockUnion :: Int
 guardedOpportunisticLockUnion count cid req =
   modifyLockWaiting $ LW.guardedOpportunisticLockUnion count cid req
 
+-- * Prepareation for cluster destruction
+
+-- | Prepare daemon for cluster destruction. This consists of
+-- verifying that the requester owns the BGL exclusively, transfering the BGL
+-- to WConfD itself, and modifying the configuration so that no
+-- node is the master any more. Note that, since we own the BGL exclusively,
+-- we can safely modify the configuration, as no other process can request
+-- changes.
+prepareClusterDestruction :: ClientId -> WConfdMonad ()
+prepareClusterDestruction cid = do
+  la <- readLockAllocation
+  unless (L.holdsLock cid BGL L.OwnExclusive la)
+    . failError $ "Cluster destruction requested without owning BGL exclusively"
+  logDebug $ "preparing cluster destruction as requested by " ++ show cid
+  -- transfer BGL to ourselfs. The do this, by adding a super-priority waiting
+  -- request and then releasing the BGL of the requestor.
+  dh <- daemonHandle
+  pid <- liftIO getProcessID
+  tid <- liftIO myThreadId
+  let mycid = ClientId { ciIdentifier = ClientOther $ "wconfd-" ++ show tid
+                       , ciLockFile = dhLivelock dh
+                       , ciPid = pid
+                       }
+  _ <- modifyLockWaiting $ LW.updateLocksWaiting
+                           (fromIntegral C.opPrioHighest - 1) mycid
+                           [L.requestExclusive BGL]
+  _ <- modifyLockWaiting $ LW.updateLocks cid [L.requestRelease BGL]
+  -- To avoid beeing restarted we change the configuration to a no-master
+  -- state.
+  modifyConfigState $ (,) ()
+    . set (csConfigDataL . configClusterL . clusterMasterNodeL) ""
+
+
 -- * The list of all functions exported to RPC.
 
 exportedFunctions :: [Name]
 exportedFunctions = [ 'echo
                     , 'cleanupLocks
+                    , 'prepareClusterDestruction
                     -- config
                     , 'readConfig
                     , 'writeConfig

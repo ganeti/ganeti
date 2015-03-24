@@ -46,15 +46,16 @@ import Control.Monad
 import Control.Monad.Error
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import Ganeti.Daemon
 import Ganeti.Daemon.Utils (handleMasterVerificationOptions)
 import Ganeti.Logging (logDebug)
 import qualified Ganeti.Path as Path
 import Ganeti.THH.RPC
 import Ganeti.UDSServer
-
 import Ganeti.Errors (formatError)
 import Ganeti.Runtime
+import Ganeti.Utils.Livelock (mkLivelockFile)
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.ConfigVerify
 import Ganeti.WConfd.ConfigWriter
@@ -93,6 +94,7 @@ prepMain _ _ = do
     verifyConfigErr cdata
     lock <- readPersistent persistentLocks
     tempres <- readPersistent persistentTempRes
+    (_, livelock) <- mkLivelockFile C.wconfdLivelockPrefix
     mkDaemonHandle conf_file
                    (mkConfigState cdata)
                    lock
@@ -102,6 +104,7 @@ prepMain _ _ = do
                    distSSConfAsyncTask
                    (writePersistentAsyncTask persistentLocks)
                    (writePersistentAsyncTask persistentTempRes)
+                   livelock
 
   return (s, dh)
 

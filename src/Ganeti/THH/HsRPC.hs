@@ -1,6 +1,5 @@
-{-# LANGUAGE TemplateHaskell, FunctionalDependencies, FlexibleContexts,
-             GeneralizedNewtypeDeriving, TypeFamilies #-}
--- {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
+{-# LANGUAGE TemplateHaskell, FunctionalDependencies, FlexibleContexts, CPP,
+             GeneralizedNewtypeDeriving, TypeFamilies, UndecidableInstances #-}
 
 {-| Creates a client out of list of RPC server components.
 
@@ -43,6 +42,14 @@ module Ganeti.THH.HsRPC
   , mkRpcCalls
   ) where
 
+-- The following macro is just a temporary solution for 2.12 and 2.13.
+-- Since 2.14 cabal creates proper macros for all dependencies.
+#define MIN_VERSION_monad_control(maj,min,rev) \
+  (((maj)<MONAD_CONTROL_MAJOR)|| \
+   (((maj)==MONAD_CONTROL_MAJOR)&&((min)<=MONAD_CONTROL_MINOR))|| \
+   (((maj)==MONAD_CONTROL_MAJOR)&&((min)==MONAD_CONTROL_MINOR)&& \
+    ((rev)<=MONAD_CONTROL_REV)))
+
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Base
@@ -70,11 +77,19 @@ newtype RpcClientMonad a =
             MonadError GanetiException)
 
 instance MonadBaseControl IO RpcClientMonad where
+#if MIN_VERSION_monad_control(1,0,0)
+-- Needs Undecidable instances
+  type StM RpcClientMonad b = StM (ReaderT Client ResultG) b
+  liftBaseWith f = RpcClientMonad . liftBaseWith
+                   $ \r -> f (r . runRpcClientMonad)
+  restoreM = RpcClientMonad . restoreM
+#else
   newtype StM RpcClientMonad b = StMRpcClientMonad
     { runStMRpcClientMonad :: StM (ReaderT Client ResultG) b }
   liftBaseWith f = RpcClientMonad . liftBaseWith
                    $ \r -> f (liftM StMRpcClientMonad . r . runRpcClientMonad)
   restoreM = RpcClientMonad . restoreM . runStMRpcClientMonad
+#endif
 
 -- * The TH functions to construct RPC client functions from RPC server ones
 

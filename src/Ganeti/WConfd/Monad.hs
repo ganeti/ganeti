@@ -1,7 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeFamilies,
-             GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
-
+             GeneralizedNewtypeDeriving,
+             TemplateHaskell, CPP, UndecidableInstances #-}
 {-| All RPC calls are run within this monad.
 
 It encapsulates:
@@ -47,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.WConfd.Monad
   ( DaemonHandle
   , dhConfigPath
+  , dhLivelock
   , mkDaemonHandle
   , WConfdMonadInt
   , runWConfdMonadInt
@@ -64,6 +64,14 @@ module Ganeti.WConfd.Monad
   , modifyTempResStateErr
   , readTempResState
   ) where
+
+-- The following macro is just a temporary solution for 2.12 and 2.13.
+-- Since 2.14 cabal creates proper macros for all dependencies.
+#define MIN_VERSION_monad_control(maj,min,rev) \
+  (((maj)<MONAD_CONTROL_MAJOR)|| \
+   (((maj)==MONAD_CONTROL_MAJOR)&&((min)<=MONAD_CONTROL_MINOR))|| \
+   (((maj)==MONAD_CONTROL_MAJOR)&&((min)==MONAD_CONTROL_MINOR)&& \
+    ((rev)<=MONAD_CONTROL_REV)))
 
 import Control.Applicative
 import Control.Arrow ((&&&), second)
@@ -93,6 +101,7 @@ import Ganeti.Logging.WriterLog
 import Ganeti.Objects (ConfigData)
 import Ganeti.Utils.AsyncWorker
 import Ganeti.Utils.IORef
+import Ganeti.Utils.Livelock (Livelock)
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.TempRes
 
@@ -117,6 +126,7 @@ data DaemonHandle = DaemonHandle
   , dhSaveConfigWorker :: AsyncWorker Any ()
   , dhSaveLocksWorker :: AsyncWorker () ()
   , dhSaveTempResWorker :: AsyncWorker () ()
+  , dhLivelock :: Livelock
   }
 
 mkDaemonHandle :: FilePath
@@ -139,10 +149,12 @@ mkDaemonHandle :: FilePath
                -> (IO TempResState -> ResultG (AsyncWorker () ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the temporary reservations state.
+               -> Livelock
                -> ResultG DaemonHandle
 mkDaemonHandle cpath cstat lstat trstat
                saveWorkerFn distMCsWorkerFn distSSConfWorkerFn
-               saveLockWorkerFn saveTempResWorkerFn = do
+               saveLockWorkerFn saveTempResWorkerFn
+               livelock = do
   ds <- newIORef $ DaemonState cstat lstat trstat
   let readConfigIO = dsConfigState `liftM` readIORef ds :: IO ConfigState
 
@@ -156,6 +168,7 @@ mkDaemonHandle cpath cstat lstat trstat
   saveTempResWorker <- saveTempResWorkerFn $ dsTempRes `liftM` readIORef ds
 
   return $ DaemonHandle ds cpath saveWorker saveLockWorker saveTempResWorker
+                        livelock
 
 -- * The monad and its instances
 
@@ -169,11 +182,19 @@ newtype WConfdMonadInt a = WConfdMonadInt
   deriving (Functor, Applicative, Monad, MonadIO, MonadBase IO, MonadLog)
 
 instance MonadBaseControl IO WConfdMonadInt where
+#if MIN_VERSION_monad_control(1,0,0)
+-- Needs Undecidable instances
+  type StM WConfdMonadInt b = StM WConfdMonadIntType b
+  liftBaseWith f = WConfdMonadInt . liftBaseWith
+                   $ \r -> f (r . getWConfdMonadInt)
+  restoreM = WConfdMonadInt . restoreM
+#else
   newtype StM WConfdMonadInt b = StMWConfdMonadInt
     { runStMWConfdMonadInt :: StM WConfdMonadIntType b }
   liftBaseWith f = WConfdMonadInt . liftBaseWith
                    $ \r -> f (liftM StMWConfdMonadInt . r . getWConfdMonadInt)
   restoreM = WConfdMonadInt . restoreM . runStMWConfdMonadInt
+#endif
 
 -- | Runs the internal part of the WConfdMonad monad on a given daemon
 -- handle.
@@ -220,14 +241,14 @@ modifyConfigStateErr f = do
   when modified $ do
     if distSync
       then do
-        logDebug "Triggering config write\
-                 \ together with full synchronous distribution"
+        logDebug $ "Triggering config write" ++
+                   " together with full synchronous distribution"
         liftBase . triggerAndWait (Any True) . dhSaveConfigWorker $ dh
         logDebug "Config write and distribution finished"
       else do
         -- trigger the config. saving worker and wait for it
-        logDebug "Triggering config write\
-                 \ and asynchronous distribution"
+        logDebug $ "Triggering config write" ++
+                   " and asynchronous distribution"
         liftBase . triggerAndWait (Any False) . dhSaveConfigWorker $ dh
         logDebug "Config writer finished with local task"
     return ()

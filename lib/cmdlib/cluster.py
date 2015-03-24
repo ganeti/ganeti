@@ -152,6 +152,7 @@ class LUClusterRenewCrypto(NoHooksLU):
     except IOError:
       logging.info("No old certificate available.")
 
+    last_exception = None
     for _ in range(self._MAX_NUM_RETRIES):
       try:
         # Technically it should not be necessary to set the cert
@@ -163,10 +164,11 @@ class LUClusterRenewCrypto(NoHooksLU):
             client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP)
         break
       except errors.OpExecError as e:
-        pass
+        last_exception = e
     else:
-      feedback_fn("Could not renew the master's client SSL certificate."
-                   " Cleaning up. Error: %s." % e)
+      if last_exception:
+        feedback_fn("Could not renew the master's client SSL certificate."
+                     " Cleaning up. Error: %s." % last_exception)
       # Cleaning up temporary certificates
       self.cfg.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid)
       self.cfg.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid)
@@ -183,6 +185,7 @@ class LUClusterRenewCrypto(NoHooksLU):
         logging.info("* Skipping offline node %s", node_info.name)
         continue
       if node_uuid != master_uuid:
+        last_exception = None
         for _ in range(self._MAX_NUM_RETRIES):
           try:
             new_digest = CreateNewClientCert(self, node_uuid)
@@ -190,8 +193,8 @@ class LUClusterRenewCrypto(NoHooksLU):
               self.cfg.AddNodeToCandidateCerts(node_uuid,
                                                new_digest)
             break
-          except errors.OpExecError as last_exception:
-            pass
+          except errors.OpExecError as e:
+            last_exception = e
         else:
           if last_exception:
             node_errors[node_uuid] = last_exception
@@ -353,6 +356,8 @@ class LUClusterDestroy(LogicalUnit):
     result = self.rpc.call_node_deactivate_master_ip(master_params.uuid,
                                                      master_params, ems)
     result.Warn("Error disabling the master IP address", self.LogWarning)
+
+    self.wconfd.Client().PrepareClusterDestruction(self.wconfdcontext)
 
     # signal to the job queue that the cluster is gone
     LUClusterDestroy.clusterHasBeenDestroyed = True
@@ -3265,7 +3270,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if test:
       nimg.hyp_fail = True
     else:
-      nimg.instances = [inst.uuid for (_, inst) in
+      nimg.instances = [uuid for (uuid, _) in
                         self.cfg.GetMultiInstanceInfoByName(idata)]
 
   def _UpdateNodeInfo(self, ninfo, nresult, nimg, vg_name):
