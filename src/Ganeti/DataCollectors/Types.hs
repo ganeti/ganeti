@@ -155,6 +155,7 @@ instance NFData ClockTime where
 
 instance NFData CollectorData where
   rnf (CPULoadData x) = rnf x
+  rnf (InstanceCpuLoad x) = rnf x
 
 #else
 
@@ -168,6 +169,8 @@ form
 
 instance NFData CollectorData where
   rnf (CPULoadData x) =  (x `using` seqFoldable rdeepseq) `seq` ()
+  rnf (InstanceCpuLoad x) = (x `using` seqFoldable (seqFoldable rdeepseq))
+                            `seq` ()
 
 #endif
 
