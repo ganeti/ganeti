@@ -1,7 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses, TypeFamilies,
-             GeneralizedNewtypeDeriving, CPP,
-             TemplateHaskell, UndecidableInstances #-}
-
+             GeneralizedNewtypeDeriving,
+             TemplateHaskell, CPP, UndecidableInstances #-}
 {-| All RPC calls are run within this monad.
 
 It encapsulates:
@@ -47,6 +46,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.WConfd.Monad
   ( DaemonHandle
   , dhConfigPath
+  , dhLivelock
   , mkDaemonHandle
   , WConfdMonadInt
   , runWConfdMonadInt

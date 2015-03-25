@@ -417,6 +417,11 @@ _BLOCKDEV_CALLS = [
     ("instance_name", None, None),
     ("disks", ED_DISKS_DICT_DP, None),
     ], None, None, "Closes the given block devices"),
+  ("blockdev_open", SINGLE, None, constants.RPC_TMO_NORMAL, [
+    ("instance_name", None, None),
+    ("disks", ED_DISKS_DICT_DP, None),
+    ("exclusive", None, None),
+    ], None, None, "Opens the given block devices in required mode"),
   ("blockdev_getdimensions", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("disks", ED_MULTI_DISKS_DICT_DP, None),
     ], None, None, "Returns size and spindles of the given disks"),
@@ -426,7 +431,6 @@ _BLOCKDEV_CALLS = [
    "Disconnects the network of the given drbd devices"),
   ("drbd_attach_net", MULTI, None, constants.RPC_TMO_NORMAL, [
     ("disks", ED_DISKS_DICT_DP, None),
-    ("instance_name", None, None),
     ("multimaster", None, None),
     ], None, None, "Connects the given DRBD devices"),
   ("drbd_wait_sync", MULTI, None, constants.RPC_TMO_SLOW, [
@@ -525,7 +529,7 @@ _NODE_CALLS = [
     ("ovs_name", None, "Name of the OpenvSwitch to create"),
     ("ovs_link", None, "Link of the OpenvSwitch to the outside"),
     ], None, None, "This will create and setup the OpenvSwitch"),
-  ("node_crypto_tokens", SINGLE, None, constants.RPC_TMO_NORMAL, [
+  ("node_crypto_tokens", SINGLE, None, constants.RPC_TMO_SLOW, [
     ("token_request", None,
      "List of tuples of requested crypto token types, actions"),
     ], None, None, "Handle crypto tokens of the node."),

@@ -1513,7 +1513,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if test:
       nimg.hyp_fail = True
     else:
-      nimg.instances = [inst.uuid for (_, inst) in
+      nimg.instances = [uuid for (uuid, _) in
                         self.cfg.GetMultiInstanceInfoByName(idata)]
 
   def _UpdateNodeInfo(self, ninfo, nresult, nimg, vg_name):

@@ -411,6 +411,15 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     return backend.BlockdevClose(params[0], disks)
 
   @staticmethod
+  def perspective_blockdev_open(params):
+    """Opens the given block devices.
+
+    """
+    disks = [objects.Disk.FromDict(cf) for cf in params[1]]
+    exclusive = params[2]
+    return backend.BlockdevOpen(params[0], disks, exclusive)
+
+  @staticmethod
   def perspective_blockdev_getdimensions(params):
     """Compute the sizes of the given block devices.
 
@@ -449,9 +458,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     disk list must all be drbd devices.
 
     """
-    disks, instance_name, multimaster = params
+    disks, multimaster = params
     disks = [objects.Disk.FromDict(disk) for disk in disks]
-    return backend.DrbdAttachNet(disks, instance_name, multimaster)
+    return backend.DrbdAttachNet(disks, multimaster)
 
   @staticmethod
   def perspective_drbd_wait_sync(params):

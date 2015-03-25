@@ -181,17 +181,22 @@ class ExtStorageDevice(base.BlockDev):
     self.minor = None
     self.dev_path = None
 
-  def Open(self, force=False):
+  def Open(self, force=False, exclusive=True):
     """Make the device ready for I/O.
 
     """
-    pass
+    _ExtStorageAction(constants.ES_ACTION_OPEN, self.unique_id,
+                      self.ext_params,
+                      name=self.name, uuid=self.uuid,
+                      exclusive=exclusive)
 
   def Close(self):
     """Notifies that the device will no longer be used for I/O.
 
     """
-    pass
+    _ExtStorageAction(constants.ES_ACTION_CLOSE, self.unique_id,
+                      self.ext_params,
+                      name=self.name, uuid=self.uuid)
 
   def Grow(self, amount, dryrun, backingstore, excl_stor):
     """Grow the Volume.
@@ -276,7 +281,8 @@ class ExtStorageDevice(base.BlockDev):
 def _ExtStorageAction(action, unique_id, ext_params,
                       size=None, grow=None, metadata=None,
                       name=None, uuid=None,
-                      snap_name=None, snap_size=None):
+                      snap_name=None, snap_size=None,
+                      exclusive=None):
   """Take an External Storage action.
 
   Take an External Storage action concerning or affecting
@@ -303,6 +309,8 @@ def _ExtStorageAction(action, unique_id, ext_params,
   @param snap_size: the size of the snapshot
   @type snap_name: string
   @param snap_name: the name of the snapshot
+  @type exclusive: boolean
+  @param exclusive: Whether the Volume will be opened exclusively or not
   @param uuid: uuid of the Volume (objects.Disk.uuid)
   @rtype: None or a block device path (during attach)
 
@@ -317,7 +325,8 @@ def _ExtStorageAction(action, unique_id, ext_params,
   # Create the basic environment for the driver's scripts
   create_env = _ExtStorageEnvironment(unique_id, ext_params, size,
                                       grow, metadata, name, uuid,
-                                      snap_name, snap_size)
+                                      snap_name, snap_size,
+                                      exclusive)
 
   # Do not use log file for action `attach' as we need
   # to get the output from RunResult
@@ -331,16 +340,15 @@ def _ExtStorageAction(action, unique_id, ext_params,
     base.ThrowError("Action '%s' doesn't result in a valid ExtStorage script" %
                     action)
 
-  # Explicitly check if the script is valid
-  try:
-    _CheckExtStorageFile(inst_es.path, action) # pylint: disable=E1103
-  except errors.BlockDeviceError:
-    base.ThrowError("Action '%s' is not supported by provider '%s'" %
-                    (action, driver))
-
   # Find out which external script to run according the given action
   script_name = action + "_script"
   script = getattr(inst_es, script_name)
+
+  # Here script is either a valid file path or None if the script is optional
+  if not script:
+    logging.info("Optional action '%s' is not supported by provider '%s',"
+                 " skipping", action, driver)
+    return
 
   # Run the external script
   # pylint: disable=E1103
@@ -368,7 +376,7 @@ def _ExtStorageAction(action, unique_id, ext_params,
     return result.stdout
 
 
-def _CheckExtStorageFile(base_dir, filename):
+def _CheckExtStorageFile(base_dir, filename, required):
   """Check prereqs for an ExtStorage file.
 
   Check if file exists, if it is a regular file and in case it is
@@ -378,8 +386,15 @@ def _CheckExtStorageFile(base_dir, filename):
   @param base_dir: Base directory containing ExtStorage installations.
   @type filename: string
   @param filename: The basename of the ExtStorage file.
+  @type required: bool
+  @param required: Whether the file is required or not.
 
-  @raises BlockDeviceError: In case prereqs are not met.
+  @rtype: String
+  @return: The file path if the file is found and is valid,
+           None if the file is not found and not required.
+
+  @raises BlockDeviceError: In case prereqs are not met
+    (found and not valid/executable, not found and required)
 
   """
 
@@ -387,6 +402,11 @@ def _CheckExtStorageFile(base_dir, filename):
   try:
     st = os.stat(file_path)
   except EnvironmentError, err:
+    if not required:
+      logging.info("Optional file '%s' under path '%s' is missing",
+                   filename, base_dir)
+      return None
+
     base.ThrowError("File '%s' under path '%s' is missing (%s)" %
                     (filename, base_dir, utils.ErrnoOrStr(err)))
 
@@ -398,6 +418,8 @@ def _CheckExtStorageFile(base_dir, filename):
     if stat.S_IMODE(st.st_mode) & stat.S_IXUSR != stat.S_IXUSR:
       base.ThrowError("File '%s' under path '%s' is not executable" %
                       (filename, base_dir))
+
+  return file_path
 
 
 def ExtStorageFromDisk(name, base_dir=None):
@@ -425,23 +447,27 @@ def ExtStorageFromDisk(name, base_dir=None):
     return False, ("Directory for External Storage Provider %s not"
                    " found in search path" % name)
 
-  # ES Files dictionary, we will populate it with the absolute path
-  # names; if the value is True, then it is a required file, otherwise
-  # an optional one
+  # ES Files dictionary: this will be populated later with the absolute path
+  # names for each script; currently we denote for each script if it is
+  # required (True) or optional (False)
   es_files = dict.fromkeys(constants.ES_SCRIPTS, True)
 
-  # Let the snapshot script be optional
+  # Let the snapshot, open, and close scripts be optional
+  # for backwards compatibility
   es_files[constants.ES_SCRIPT_SNAPSHOT] = False
+  es_files[constants.ES_SCRIPT_OPEN] = False
+  es_files[constants.ES_SCRIPT_CLOSE] = False
 
   es_files[constants.ES_PARAMETERS_FILE] = True
 
   for (filename, required) in es_files.items():
-    es_files[filename] = utils.PathJoin(es_dir, filename)
     try:
-      _CheckExtStorageFile(es_dir, filename)
+      # Here we actually fill the dict with the ablsolute path name for each
+      # script or None, depending on the corresponding checks. See the
+      # function's docstrings for more on these checks.
+      es_files[filename] = _CheckExtStorageFile(es_dir, filename, required)
     except errors.BlockDeviceError, err:
-      if required:
-        return False, str(err)
+      return False, str(err)
 
   parameters = []
   if constants.ES_PARAMETERS_FILE in es_files:
@@ -463,6 +489,8 @@ def ExtStorageFromDisk(name, base_dir=None):
                        setinfo_script=es_files[constants.ES_SCRIPT_SETINFO],
                        verify_script=es_files[constants.ES_SCRIPT_VERIFY],
                        snapshot_script=es_files[constants.ES_SCRIPT_SNAPSHOT],
+                       open_script=es_files[constants.ES_SCRIPT_OPEN],
+                       close_script=es_files[constants.ES_SCRIPT_CLOSE],
                        supported_parameters=parameters)
   return True, es_obj
 
@@ -470,7 +498,8 @@ def ExtStorageFromDisk(name, base_dir=None):
 def _ExtStorageEnvironment(unique_id, ext_params,
                            size=None, grow=None, metadata=None,
                            name=None, uuid=None,
-                           snap_name=None, snap_size=None):
+                           snap_name=None, snap_size=None,
+                           exclusive=None):
   """Calculate the environment for an External Storage script.
 
   @type unique_id: tuple (driver, vol_name)
@@ -491,6 +520,8 @@ def _ExtStorageEnvironment(unique_id, ext_params,
   @param snap_size: the size of the snapshot
   @type snap_name: string
   @param snap_name: the name of the snapshot
+  @type exclusive: boolean
+  @param exclusive: Whether the Volume will be opened exclusively or not
   @rtype: dict
   @return: dict of environment variables
 
@@ -524,6 +555,9 @@ def _ExtStorageEnvironment(unique_id, ext_params,
 
   if snap_size is not None:
     result["VOL_SNAPSHOT_SIZE"] = str(snap_size)
+
+  if exclusive is not None:
+    result["VOL_OPEN_EXCLUSIVE"] = str(exclusive)
 
   return result
 

@@ -171,14 +171,17 @@ class BlockDev(object):
     """
     raise NotImplementedError
 
-  def Open(self, force=False):
+  def Open(self, force=False, exclusive=True):
     """Make the device ready for use.
 
-    This makes the device ready for I/O. For now, just the DRBD
-    devices need this.
+    This makes the device ready for I/O.
 
     The force parameter signifies that if the device has any kind of
     --force thing, it should be used, we know what we are doing.
+
+    The exclusive parameter denotes whether the device will
+    be opened for exclusive access (True) or for concurrent shared
+    access by multiple nodes (False) (e.g. during migration).
 
     @type force: boolean
 

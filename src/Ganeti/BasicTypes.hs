@@ -47,6 +47,7 @@ module Ganeti.BasicTypes
   , toError
   , toErrorBase
   , toErrorStr
+  , tryError
   , Error(..) -- re-export from Control.Monad.Error
   , MonadIO(..) -- re-export from Control.Monad.IO.Class
   , isOk
@@ -272,6 +273,13 @@ toErrorBase = (toError =<<) . liftBase . runResultT
 -- to a monad stack. See also 'annotateResult'.
 toErrorStr :: (MonadError e m, Error e) => Result a -> m a
 toErrorStr = withError strMsg
+
+-- | Run a given computation and if an error occurs, return it as `Left` of
+-- `Either`.
+-- This is a generalized version of 'try'.
+tryError :: (MonadError e m) => m a -> m (Either e a)
+tryError = flip catchError (return . Left) . liftM Right
+{-# INLINE tryError #-}
 
 -- | Converts a monadic result with a 'String' message into
 -- a 'ResultT' with an arbitrary 'Error'.

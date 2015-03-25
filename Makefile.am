@@ -412,7 +412,7 @@ BUILT_EXAMPLES = \
 	doc/examples/systemd/ganeti-rapi.service \
 	doc/examples/systemd/ganeti-wconfd.service
 
-dist_ifup_SCRIPTS = \
+nodist_ifup_SCRIPTS = \
 	tools/kvm-ifup-os \
 	tools/xen-ifup-os
 
@@ -1335,7 +1335,7 @@ Makefile.ghc: $(HS_MAKEFILE_GHC_SRCS) Makefile $(HASKELL_PACKAGE_VERSIONS_FILE) 
 # object listed in Makefile.ghc.
 # e.g. src/hluxid.o : src/Ganeti/Daemon.hi
 #        => src/hluxid.o : src/Ganeti/Daemon.hi src/Ganeti/Daemon.o
-	sed -i -re 's/([^ ]+)\.hi$$/\1.hi \1.o/' $@
+	sed -i -r -e 's/([^ ]+)\.hi$$/\1.hi \1.o/' -e 's/([^ ]+)_hi$$/\1_hi \1_o/' $@
 
 @include_makefile_ghc@
 
@@ -1956,6 +1956,7 @@ python_test_support = \
 	test/py/cmdlib/testsupport/iallocator_mock.py \
 	test/py/cmdlib/testsupport/livelock_mock.py \
 	test/py/cmdlib/testsupport/netutils_mock.py \
+	test/py/cmdlib/testsupport/pathutils_mock.py \
 	test/py/cmdlib/testsupport/processor_mock.py \
 	test/py/cmdlib/testsupport/rpc_runner_mock.py \
 	test/py/cmdlib/testsupport/ssh_mock.py \

@@ -72,7 +72,7 @@ mkSSConf cdata = SSConf $ M.fromList
     , (SSMasterNetdev, return $ clusterMasterNetdev cluster)
     , (SSMasterNetmask, return . show $ clusterMasterNetmask cluster)
     , (SSMasterNode, return
-                     . genericResult (error "Master node not found") nodeName
+                     . genericResult (const "NO MASTER") nodeName
                      . getNode cdata $ clusterMasterNode cluster)
     , (SSNodeList, mapLines nodeName nodes)
     , (SSNodePrimaryIps, mapLines (spcPair . (nodeName &&& nodePrimaryIp))

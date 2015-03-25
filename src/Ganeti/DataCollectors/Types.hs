@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, CPP #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Implementation of the Ganeti data collector types.
 
@@ -51,6 +52,10 @@ module Ganeti.DataCollectors.Types
   , DataCollector(..)
   ) where
 
+import Control.DeepSeq (NFData, rnf)
+#if !MIN_VERSION_containers(0,5,0)
+import Control.Seq (using, seqFoldable, rdeepseq)
+#endif
 import Data.Char
 import Data.Ratio
 import qualified Data.Map as Map
@@ -82,8 +87,8 @@ instance JSON DCCategory where
     let s' = fromJSString s
     in case Map.lookup s' categoryNames of
          Just category -> Ok category
-         Nothing -> fail $ "Invalid category name " ++ s' ++ " for type\
-                           \ DCCategory"
+         Nothing -> fail $ "Invalid category name " ++ s' ++ " for type"
+                           ++ " DCCategory"
   readJSON v = fail $ "Invalid JSON value " ++ show v ++ " for type DCCategory"
 
 -- | The possible status codes of a data collector.
@@ -142,6 +147,29 @@ instance JSON DCVersion where
 data CollectorData =
   CPULoadData (Seq.Seq (ClockTime, [Int]))
   | InstanceCpuLoad (Map.Map String (Seq.Seq (ClockTime, Double)))
+
+instance NFData ClockTime where
+  rnf (TOD x y) = rnf x `seq` rnf y
+
+#if MIN_VERSION_containers(0,5,0)
+
+instance NFData CollectorData where
+  rnf (CPULoadData x) = rnf x
+
+#else
+
+{-
+
+In older versions of the containers library, Seq is not an
+instance of NFData, so use a generic way to reduce to normal
+form
+
+-}
+
+instance NFData CollectorData where
+  rnf (CPULoadData x) =  (x `using` seqFoldable rdeepseq) `seq` ()
+
+#endif
 
 -- | Type for the map storing the data of the statefull DataCollectors.
 type CollectorMap = Map.Map String CollectorData

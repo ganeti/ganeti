@@ -108,6 +108,7 @@ class LUClusterRenewCrypto(NoHooksLU):
 
   """
 
+  _MAX_NUM_RETRIES = 3
   REQ_BGL = False
 
   def ExpandNames(self):
@@ -128,7 +129,7 @@ class LUClusterRenewCrypto(NoHooksLU):
     self._ssh_renewal_suppressed = \
       not self.cfg.GetClusterInfo().modify_ssh_setup and self.op.ssh_keys
 
-  def _RenewNodeSslCertificates(self):
+  def _RenewNodeSslCertificates(self, feedback_fn):
     """Renews the nodes' SSL certificates.
 
     Note that most of this operation is done in gnt_cluster.py, this LU only
@@ -149,15 +150,61 @@ class LUClusterRenewCrypto(NoHooksLU):
     except IOError:
       logging.info("No old certificate available.")
 
-    new_master_digest = _UpdateMasterClientCert(self, self.cfg, master_uuid)
+    last_exception = None
+    for _ in range(self._MAX_NUM_RETRIES):
+      try:
+        # Technically it should not be necessary to set the cert
+        # paths. However, due to a bug in the mock library, we
+        # have to do this to be able to test the function properly.
+        _UpdateMasterClientCert(
+            self, self.cfg, master_uuid,
+            client_cert=pathutils.NODED_CLIENT_CERT_FILE,
+            client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP)
+        break
+      except errors.OpExecError as e:
+        last_exception = e
+    else:
+      if last_exception:
+        feedback_fn("Could not renew the master's client SSL certificate."
+                    " Cleaning up. Error: %s." % last_exception)
+      # Cleaning up temporary certificates
+      self.cfg.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid)
+      self.cfg.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid)
+      try:
+        utils.RemoveFile(pathutils.NODED_CLIENT_CERT_FILE_TMP)
+      except IOError:
+        pass
+      return
 
-    self.cfg.AddNodeToCandidateCerts(master_uuid, new_master_digest)
+    node_errors = {}
     nodes = self.cfg.GetAllNodesInfo()
     for (node_uuid, node_info) in nodes.items():
+      if node_info.offline:
+        logging.info("* Skipping offline node %s", node_info.name)
+        continue
       if node_uuid != master_uuid:
-        new_digest = CreateNewClientCert(self, node_uuid)
-        if node_info.master_candidate:
-          self.cfg.AddNodeToCandidateCerts(node_uuid, new_digest)
+        last_exception = None
+        for _ in range(self._MAX_NUM_RETRIES):
+          try:
+            new_digest = CreateNewClientCert(self, node_uuid)
+            if node_info.master_candidate:
+              self.cfg.AddNodeToCandidateCerts(node_uuid,
+                                               new_digest)
+            break
+          except errors.OpExecError as e:
+            last_exception = e
+        else:
+          if last_exception:
+            node_errors[node_uuid] = last_exception
+
+    if node_errors:
+      msg = ("Some nodes' SSL client certificates could not be renewed."
+             " Please make sure those nodes are reachable and rerun"
+             " the operation. The affected nodes and their errors are:\n")
+      for uuid, e in node_errors.items():
+        msg += "Node %s: %s\n" % (uuid, e)
+      feedback_fn(msg)
+
     self.cfg.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid)
     self.cfg.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid)
 
@@ -184,8 +231,10 @@ class LUClusterRenewCrypto(NoHooksLU):
 
   def Exec(self, feedback_fn):
     if self.op.node_certificates:
-      self._RenewNodeSslCertificates()
+      feedback_fn("Renewing Node SSL certificates")
+      self._RenewNodeSslCertificates(feedback_fn)
     if self.op.ssh_keys and not self._ssh_renewal_suppressed:
+      feedback_fn("Renewing SSH keys")
       self._RenewSshKeys()
     elif self._ssh_renewal_suppressed:
       feedback_fn("Cannot renew SSH keys if the cluster is configured to not"
@@ -252,6 +301,11 @@ class LUClusterDestroy(LogicalUnit):
   HPATH = "cluster-destroy"
   HTYPE = constants.HTYPE_CLUSTER
 
+  # Read by the job queue to detect when the cluster is gone and job files will
+  # never be available.
+  # FIXME: This variable should be removed together with the Python job queue.
+  clusterHasBeenDestroyed = False
+
   def BuildHooksEnv(self):
     """Build hooks env.
 
@@ -300,6 +354,12 @@ class LUClusterDestroy(LogicalUnit):
     result = self.rpc.call_node_deactivate_master_ip(master_params.uuid,
                                                      master_params, ems)
     result.Warn("Error disabling the master IP address", self.LogWarning)
+
+    self.wconfd.Client().PrepareClusterDestruction(self.wconfdcontext)
+
+    # signal to the job queue that the cluster is gone
+    LUClusterDestroy.clusterHasBeenDestroyed = True
+
     return master_params.uuid
 
 

@@ -1608,17 +1608,19 @@ def RemoveNodeSshKey(node_uuid, node_name,
     should be cleared on the node whose keys are removed
   @type clear_public_keys: boolean
   @param clear_public_keys: whether to clear the node's C{ganeti_pub_key} file
+  @rtype: list of string
+  @returns: list of feedback messages
 
   """
+  result_msgs = []
+
   # Make sure at least one of these flags is true.
-  assert (from_authorized_keys or from_public_keys or clear_authorized_keys
-          or clear_public_keys)
+  if not (from_authorized_keys or from_public_keys or clear_authorized_keys
+          or clear_public_keys):
+    result_msgs.append("No removal from any key file was requested.")
 
   if not ssconf_store:
     ssconf_store = ssconf.SimpleStore()
-
-  if not (from_authorized_keys or from_public_keys or clear_authorized_keys):
-    raise errors.SshUpdateError("No removal from any key file was requested.")
 
   master_node = ssconf_store.GetMasterNode()
 
@@ -1675,16 +1677,24 @@ def RemoveNodeSshKey(node_uuid, node_name,
                                    " node '%s', map: %s." %
                                    (node, ssh_port_map))
         if node in potential_master_candidates:
-          run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                     ssh_port, pot_mc_data,
-                     debug=False, verbose=False, use_cluster_key=False,
-                     ask_key=False, strict_host_check=False)
-        else:
-          if from_authorized_keys:
+          try:
             run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                       ssh_port, base_data,
+                       ssh_port, pot_mc_data,
                        debug=False, verbose=False, use_cluster_key=False,
                        ask_key=False, strict_host_check=False)
+          except errors.OpExecError as e:
+            result_msgs.append("Warning: the SSH setup of node '%s' could not"
+                               " be adjusted." % node)
+        else:
+          if from_authorized_keys:
+            try:
+              run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
+                         ssh_port, base_data,
+                         debug=False, verbose=False, use_cluster_key=False,
+                         ask_key=False, strict_host_check=False)
+            except errors.OpExecError as e:
+              result_msgs.append("Warning: the SSH setup of node '%s' could"
+                                 " not be adjusted." % node)
 
   if clear_authorized_keys or from_public_keys or clear_public_keys:
     data = {}
@@ -1727,10 +1737,12 @@ def RemoveNodeSshKey(node_uuid, node_name,
                  ssh_port, data,
                  debug=False, verbose=False, use_cluster_key=False,
                  ask_key=False, strict_host_check=False)
-    except errors.OpExecError, e:
-      logging.info("Removing SSH keys from node '%s' failed. This can happen"
-                   " when the node is already unreachable. Error: %s",
-                   node_name, e)
+    except errors.OpExecError as e:
+      result_msgs.append("Removing SSH keys from node '%s' failed. This can"
+                         " happen when the node is already unreachable."
+                         " Error: %s" % (node_name, e))
+
+  return result_msgs
 
 
 def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
@@ -2763,21 +2775,10 @@ def AcceptInstance(instance, info, target):
   @param target: target host (usually ip), on this node
 
   """
-  # TODO: why is this required only for DTS_EXT_MIRROR?
-  if utils.AnyDiskOfType(instance.disks_info, constants.DTS_EXT_MIRROR):
-    # Create the symlinks, as the disks are not active
-    # in any way
-    try:
-      _GatherAndLinkBlockDevs(instance)
-    except errors.BlockDeviceError, err:
-      _Fail("Block device error: %s", err, exc=True)
-
   hyper = hypervisor.GetHypervisor(instance.hypervisor)
   try:
     hyper.AcceptInstance(instance, info, target)
   except errors.HypervisorError, err:
-    if utils.AnyDiskOfType(instance.disks_info, constants.DTS_EXT_MIRROR):
-      _RemoveBlockDevLinks(instance.name, instance.disks_info)
     _Fail("Failed to accept instance: %s", err, exc=True)
 
 
@@ -4524,10 +4525,33 @@ def BlockdevClose(instance_name, disks):
     except errors.BlockDeviceError, err:
       msg.append(str(err))
   if msg:
-    _Fail("Can't make devices secondary: %s", ",".join(msg))
+    _Fail("Can't close devices: %s", ",".join(msg))
   else:
     if instance_name:
       _RemoveBlockDevLinks(instance_name, disks)
+
+
+def BlockdevOpen(instance_name, disks, exclusive):
+  """Opens the given block devices.
+
+  """
+  bdevs = []
+  for cf in disks:
+    rd = _RecursiveFindBD(cf)
+    if rd is None:
+      _Fail("Can't find device %s", cf)
+    bdevs.append(rd)
+
+  msg = []
+  for idx, rd in enumerate(bdevs):
+    try:
+      rd.Open(exclusive=exclusive)
+      _SymlinkBlockDev(instance_name, rd.dev_path, idx)
+    except errors.BlockDeviceError, err:
+      msg.append(str(err))
+
+  if msg:
+    _Fail("Can't open devices: %s", ",".join(msg))
 
 
 def ValidateHVParams(hvname, hvparams):
@@ -5122,18 +5146,12 @@ def DrbdDisconnectNet(disks):
             err, exc=True)
 
 
-def DrbdAttachNet(disks, instance_name, multimaster):
+def DrbdAttachNet(disks, multimaster):
   """Attaches the network on a list of drbd devices.
 
   """
   bdevs = _FindDisks(disks)
 
-  if multimaster:
-    for idx, rd in enumerate(bdevs):
-      try:
-        _SymlinkBlockDev(instance_name, rd.dev_path, idx)
-      except EnvironmentError, err:
-        _Fail("Can't create symlink: %s", err)
   # reconnect disks, switch to new master configuration and if
   # needed primary mode
   for rd in bdevs:
@@ -5186,14 +5204,6 @@ def DrbdAttachNet(disks, instance_name, multimaster):
     utils.Retry(_Attach, (0.1, 1.5, 5.0), 2 * 60)
   except utils.RetryTimeout:
     _Fail("Timeout in disk reconnecting")
-
-  if multimaster:
-    # change to primary mode
-    for rd in bdevs:
-      try:
-        rd.Open()
-      except errors.BlockDeviceError, err:
-        _Fail("Can't change to primary mode: %s", err)
 
 
 def DrbdWaitSync(disks):

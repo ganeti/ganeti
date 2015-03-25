@@ -42,6 +42,8 @@ import socket
 import time
 
 from ganeti import constants
+import ganeti.errors
+from ganeti import ssconf
 from ganeti import utils
 from ganeti.rpc import errors
 
@@ -117,6 +119,15 @@ class Transport:
     except socket.error, err:
       error_code = err.args[0]
       if error_code in (errno.ENOENT, errno.ECONNREFUSED):
+        # Verify if we're acutally on the master node before trying
+        # again.
+        ss = ssconf.SimpleStore()
+        try:
+          master, myself = ssconf.GetMasterAndMyself(ss=ss)
+        except ganeti.errors.ConfigurationError:
+          raise errors.NoMasterError(address)
+        if master != myself:
+          raise errors.NoMasterError(address)
         raise utils.RetryAgain()
       elif error_code in (errno.EPERM, errno.EACCES):
         raise errors.PermissionError(address)

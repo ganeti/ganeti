@@ -46,6 +46,7 @@ module Ganeti.Logging.WriterLog
   , execWriterLog
   ) where
 
+
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Base

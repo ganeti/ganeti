@@ -279,6 +279,13 @@ def ReleaseBdevPartitionMapping(loop_dev_path):
     raise errors.CommandError("Failed to release partition mapping of %s: %s" %
                               (loop_dev_path, result.output))
 
+  # The invocation of udevadm settle was added here because users had issues
+  # with the loopback device still being busy after kpartx / earlier commands
+  # did their work.
+  result = utils_process.RunCmd(["udevadm", "settle"])
+  if result.failed:
+    raise errors.CommandError("Waiting on udev failed: %s" % result.output)
+
   result = utils_process.RunCmd(["losetup", "-d", loop_dev_path])
   if result.failed:
     raise errors.CommandError("Failed to detach %s: %s" %

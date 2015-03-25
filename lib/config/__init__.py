@@ -1241,7 +1241,7 @@ class ConfigWriter(object):
       self._ConfigData().cluster.highest_used_port = port
     return port
 
-  @ConfigSync()
+  @ConfigSync(shared=1)
   def ComputeDRBDMap(self):
     """Compute the used DRBD minor/nodes.
 
@@ -2113,7 +2113,11 @@ class ConfigWriter(object):
     result = []
     for name in inst_names:
       instance = self._UnlockedGetInstanceInfoByName(name)
-      result.append((instance.uuid, instance))
+      if instance:
+        result.append((instance.uuid, instance))
+      else:
+        raise errors.ConfigurationError("Instance data of instance '%s'"
+                                        " not found." % name)
     return result
 
   @ConfigSync(shared=1)

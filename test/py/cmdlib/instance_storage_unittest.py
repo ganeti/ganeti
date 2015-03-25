@@ -291,7 +291,7 @@ class TestLUInstanceReplaceDisks(CmdlibTestCase):
         self.node2.uuid, (disk, self.instance))
     self.rpc.call_drbd_attach_net.assert_any_call(
         [self.node1.uuid, node3.uuid], ([disk], self.instance),
-        self.instance.name, False)
+        False)
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
