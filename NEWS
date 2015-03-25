@@ -63,7 +63,53 @@ Known issues
 The following issues are known to be present in the beta and will be fixed
 before rc1:
 
-- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start.
+- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start
+
+
+Version 2.12.2
+--------------
+
+*(Released Wed, 25 Mar 2015)*
+
+- Support for the lens Haskell library up to version 4.7 (issue #1028)
+- SSH keys are now distributed only to master and master candidates
+  (issue #377)
+- Improved performance for operations that frequently read the
+  cluster configuration
+- Improved robustness of spawning job processes that occasionally caused
+  newly-started jobs to timeout
+- Fixed race condition during cluster verify which occasionally caused
+  it to fail
+
+Inherited from the 2.11 branch:
+
+- Fix failing automatic glusterfs mounts (issue #984)
+- Fix watcher failing to read its status file after an upgrade
+  (issue #1022)
+- Improve Xen instance state handling, in particular of somewhat exotic
+  transitional states
+
+Inherited from the 2.10 branch:
+
+- Fix failing to change a diskless drbd instance to plain
+  (issue #1036)
+- Fixed issues with auto-upgrades from pre-2.6
+  (hv_state_static and disk_state_static)
+- Fix memory leak in the monitoring daemon
+
+Inherited from the 2.9 branch:
+
+- Fix file descriptor leak in Confd client
+
+Known issues
+~~~~~~~~~~~~
+
+- GHC 7.8 introduced some incompatible changes, so currently Ganeti
+  2.12. doesn't compile on GHC 7.8
+- Under certain conditions instance doesn't get unpaused after live
+  migration (issue #1050)
+- GlusterFS support breaks at upgrade to 2.12 - switches back to
+  shared-file (issue #1030)
 
 
 Version 2.12.1
