@@ -48,6 +48,7 @@ import Control.Applicative ((<$>))
 import Control.Monad (liftM)
 import Test.QuickCheck hiding (Result)
 
+import Test.Ganeti.TestHTools (nullISpec)
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.HTools.Types ()
@@ -98,12 +99,20 @@ genInstanceSmallerThanNode node =
                           else Nothing)
 
 -- | Generates an instance possibly bigger than a node.
+-- In any case, that instance will be bigger than the node's ipolicy's lower
+-- bound.
 genInstanceMaybeBiggerThanNode :: Node.Node -> Gen Instance.Instance
 genInstanceMaybeBiggerThanNode node =
-  genInstanceSmallerThan (Node.availMem  node + Types.unitMem * 2)
-                         (Node.availDisk node + Types.unitDsk * 3)
-                         (Node.availCpu  node + Types.unitCpu * 4)
-                         (if Node.exclStorage node
+  let minISpec = runListHead nullISpec Types.minMaxISpecsMinSpec
+                 . Types.iPolicyMinMaxISpecs $ Node.iPolicy node
+  in genInstanceWithin (Types.iSpecMemorySize minISpec)
+                       (Types.iSpecDiskSize minISpec)
+                       (Types.iSpecCpuCount minISpec)
+                       (Types.iSpecSpindleUse minISpec)
+                       (Node.availMem  node + Types.unitMem * 2)
+                       (Node.availDisk node + Types.unitDsk * 3)
+                       (Node.availCpu  node + Types.unitCpu * 4)
+                       (if Node.exclStorage node
                           then Just $ Node.fSpindles node +
                                Types.unitSpindle * 5
                           else Nothing)
