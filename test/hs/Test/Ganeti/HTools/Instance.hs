@@ -61,24 +61,31 @@ import qualified Ganeti.HTools.Types as Types
 
 -- * Arbitrary instances
 
--- | Generates a random instance with maximum disk/mem/cpu values.
-genInstanceSmallerThan :: Int -> Int -> Int -> Maybe Int ->
-                          Gen Instance.Instance
-genInstanceSmallerThan lim_mem lim_dsk lim_cpu lim_spin = do
+-- | Generates a random instance with maximum and minimum disk/mem/cpu values.
+genInstanceWithin :: Int -> Int -> Int -> Int
+                  -> Int -> Int -> Int -> Maybe Int
+                  -> Gen Instance.Instance
+genInstanceWithin min_mem min_dsk min_cpu min_spin
+                  max_mem max_dsk max_cpu max_spin = do
   name <- genFQDN
-  mem <- choose (0, lim_mem)
-  dsk <- choose (0, lim_dsk)
+  mem <- choose (min_mem, max_mem)
+  dsk <- choose (min_dsk, max_dsk)
   run_st <- arbitrary
   pn <- arbitrary
   sn <- arbitrary
-  vcpus <- choose (0, lim_cpu)
+  vcpus <- choose (min_cpu, max_cpu)
   dt <- arbitrary
-  spindles <- case lim_spin of
-    Nothing -> genMaybe $ choose (0, maxSpindles)
-    Just ls -> liftM Just $ choose (0, ls)
+  spindles <- case max_spin of
+    Nothing -> genMaybe $ choose (min_spin, maxSpindles)
+    Just ls -> liftM Just $ choose (min_spin, ls)
   let disk = Instance.Disk dsk spindles
   return $ Instance.create
     name mem dsk [disk] vcpus run_st [] True pn sn dt 1 []
+
+-- | Generate an instance with maximum disk/mem/cpu values.
+genInstanceSmallerThan :: Int -> Int -> Int -> Maybe Int
+                       -> Gen Instance.Instance
+genInstanceSmallerThan = genInstanceWithin 0 0 0 0
 
 -- | Generates an instance smaller than a node.
 genInstanceSmallerThanNode :: Node.Node -> Gen Instance.Instance
