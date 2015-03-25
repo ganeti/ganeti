@@ -191,7 +191,7 @@ class LUClusterRenewCrypto(NoHooksLU):
               self.cfg.AddNodeToCandidateCerts(node_uuid,
                                                new_digest)
             break
-          except errors.OpExecError as last_exception:
+          except errors.OpExecError as e:
             last_exception = e
         else:
           if last_exception:
