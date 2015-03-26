@@ -30,10 +30,10 @@ Known issues
 ~~~~~~~~~~~~
 
 
-Version 2.14.0 beta1
+Version 2.14.0 beta2
 --------------------
 
-*(Released Fri, 13 Feb 2015)*
+*(Released Thu, 26 Mar 2015)*
 
 New features
 ~~~~~~~~~~~~
@@ -49,6 +49,8 @@ New features
   upgrades. See hbal(1) for details.
 - The node-allocation lock as been removed for good, thus speeding up parallel
   instance allocation and creation.
+- The external storage interface has been extended by optional ``open``
+  and ``close`` scripts.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
@@ -58,17 +60,37 @@ New dependencies
 Known issues
 ~~~~~~~~~~~~
 
-This beta is known to have all issues of 2.13.0 beta1, in particular the following.
+- GHC 7.8 introduced some incompatible changes, so currently Ganeti
+  2.12. doesn't compile on GHC 7.8
+- Under certain conditions instance doesn't get unpaused after live
+  migration (issue #1050)
+- GlusterFS support breaks at upgrade to 2.12 - switches back to
+  shared-file (issue #1030)
 
-- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start.
 
-We will move to rc1 only once these issues are fixed.
+Since 2.14.0 beta1
+~~~~~~~~~~~~~~~~~~
+
+The following issues have been fixed:
+
+- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start
+
+The extension of the external storage interface was not present in 2.14.0 beta1.
 
 
-Version 2.13.0 beta1
+Version 2.14.0 beta1
 --------------------
 
-*(Released Wed, 14 Jan 2015)*
+*(Released Fri, 13 Feb 2015)*
+
+This was the first beta release of the 2.14 series. All important changes
+are listed in the latest 2.14 entry.
+
+
+Version 2.13.0 rc1
+------------------
+
+*(Released Wed, 25 Mar 2015)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -111,6 +133,9 @@ New features
 - The 'gnt-cluster verify' command now has the option
   '--verify-ssh-clutter', which verifies whether Ganeti (accidentally)
   cluttered up the 'authorized_keys' file.
+- Instance disks can now be converted from one disk template to another for many
+  different template combinations. When available, more efficient conversions
+  will be used, otherwise the disks are simply copied over.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
@@ -123,10 +148,74 @@ New dependencies
 Known issues
 ~~~~~~~~~~~~
 
-The following issues are known to be present in the beta and will be fixed
-before rc1:
+- GHC 7.8 introduced some incompatible changes, so currently Ganeti
+  2.12. doesn't compile on GHC 7.8
+- Under certain conditions instance doesn't get unpaused after live
+  migration (issue #1050)
+- GlusterFS support breaks at upgrade to 2.12 - switches back to
+  shared-file (issue #1030)
 
-- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start.
+Since 2.13.0 beta1
+~~~~~~~~~~~~~~~~~~
+
+The following issues have been fixed:
+
+- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start
+
+
+Version 2.13.0 beta1
+--------------------
+
+*(Released Wed, 14 Jan 2015)*
+
+This was the first beta release of the 2.13 series. All important changes
+are listed in the latest 2.13 entry.
+
+
+Version 2.12.2
+--------------
+
+*(Released Wed, 25 Mar 2015)*
+
+- Support for the lens Haskell library up to version 4.7 (issue #1028)
+- SSH keys are now distributed only to master and master candidates
+  (issue #377)
+- Improved performance for operations that frequently read the
+  cluster configuration
+- Improved robustness of spawning job processes that occasionally caused
+  newly-started jobs to timeout
+- Fixed race condition during cluster verify which occasionally caused
+  it to fail
+
+Inherited from the 2.11 branch:
+
+- Fix failing automatic glusterfs mounts (issue #984)
+- Fix watcher failing to read its status file after an upgrade
+  (issue #1022)
+- Improve Xen instance state handling, in particular of somewhat exotic
+  transitional states
+
+Inherited from the 2.10 branch:
+
+- Fix failing to change a diskless drbd instance to plain
+  (issue #1036)
+- Fixed issues with auto-upgrades from pre-2.6
+  (hv_state_static and disk_state_static)
+- Fix memory leak in the monitoring daemon
+
+Inherited from the 2.9 branch:
+
+- Fix file descriptor leak in Confd client
+
+Known issues
+~~~~~~~~~~~~
+
+- GHC 7.8 introduced some incompatible changes, so currently Ganeti
+  2.12. doesn't compile on GHC 7.8
+- Under certain conditions instance doesn't get unpaused after live
+  migration (issue #1050)
+- GlusterFS support breaks at upgrade to 2.12 - switches back to
+  shared-file (issue #1030)
 
 
 Version 2.12.1
