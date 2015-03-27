@@ -709,6 +709,7 @@ docinput = \
 	doc/design-resource-model.rst \
 	doc/design-restricted-commands.rst \
 	doc/design-shared-storage.rst \
+	doc/design-shared-storage-redundancy.rst \
 	doc/design-ssh-ports.rst \
 	doc/design-storagetypes.rst \
 	doc/design-sync-rate-throttling.rst \
