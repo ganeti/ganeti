@@ -2211,7 +2211,7 @@ epydoc.conf: epydoc.conf.in $(REPLACE_VARS_SED)
 
 vcs-version:
 	if test -d .git; then \
-	  git describe > $@; \
+	  git describe | tr '"' - > $@; \
 	elif test ! -f $@ ; then \
 	  echo "Cannot auto-generate $@ file"; exit 1; \
 	fi
@@ -2236,7 +2236,7 @@ src/Ganeti/Version.hs: src/Ganeti/Version.hs.in \
 	vcs-version $(built_base_sources)
 	set -e; \
 	VCSVER=`cat $(abs_top_srcdir)/vcs-version`; \
-	sed -e "s/%ver%/$$VCSVER/" < $< > $@
+	sed -e 's"%ver%"'"$$VCSVER"'"' < $< > $@
 
 src/Ganeti/Hs2Py/ListConstants.hs: src/Ganeti/Hs2Py/ListConstants.hs.in \
 				   src/Ganeti/Constants.hs \
