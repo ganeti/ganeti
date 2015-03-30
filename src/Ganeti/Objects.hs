@@ -848,8 +848,10 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "primary_ip_family"              [t| IpFamily               |]
   , simpleField "prealloc_wipe_disks"            [t| Bool                   |]
   , simpleField "ipolicy"                        [t| FilledIPolicy          |]
-  , simpleField "hv_state_static"                [t| HypervisorState        |]
-  , simpleField "disk_state_static"              [t| DiskState              |]
+  , defaultField [| emptyContainer |] $
+    simpleField "hv_state_static"                [t| HypervisorState        |]
+  , defaultField [| emptyContainer |] $
+    simpleField "disk_state_static"              [t| DiskState              |]
   , simpleField "enabled_disk_templates"         [t| [DiskTemplate]         |]
   , simpleField "candidate_certs"                [t| CandidateCertificates  |]
   , simpleField "max_running_jobs"               [t| Int                    |]
