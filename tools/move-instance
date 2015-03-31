@@ -510,7 +510,7 @@ class MoveDestExecutor(object):
                                     mrt.move.dest_disk_template,
                                     mrt.src_instinfo, mrt.src_expinfo,
                                     mrt.move.hvparams, mrt.move.beparams,
-                                    mrt.move.beparams, mrt.move.nics,
+                                    mrt.move.osparams, mrt.move.nics,
                                     is_attempt_opportunistic
                                     )
 
