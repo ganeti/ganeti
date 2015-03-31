@@ -53,6 +53,7 @@ module Ganeti.BasicTypes
   , handleErrorT
   , iterateOk
   , select
+  , runListHead
   , LookupResult(..)
   , MatchPriority(..)
   , lookupName
@@ -277,6 +278,12 @@ select :: a            -- ^ default result
        -> [(Bool, a)]  -- ^ list of \"condition, result\"
        -> a            -- ^ first result which has a True condition, or default
 select def = maybe def snd . find fst
+
+-- | Apply a function to the first element of a list, return the default
+-- value, if the list is empty. This is just a convenient combination of
+-- maybe and listToMaybe.
+runListHead :: a -> (b -> a) -> [b] -> a
+runListHead a f = maybe a f . listToMaybe
 
 -- * Lookup of partial names functionality
 

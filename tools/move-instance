@@ -461,7 +461,7 @@ class MoveDestExecutor(object):
                                   mrt.move.dest_disk_template,
                                   mrt.src_instinfo, mrt.src_expinfo,
                                   mrt.move.hvparams, mrt.move.beparams,
-                                  mrt.move.beparams, mrt.move.nics)
+                                  mrt.move.osparams, mrt.move.nics)
     mrt.PollJob(dest_client, job_id,
                 remote_import_fn=compat.partial(self._SetImportInfo, mrt))
 

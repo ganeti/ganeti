@@ -122,7 +122,7 @@ command.
 
 The NICs of the instances can be specified via the ``--net``
 option. By default, one NIC is created for the instance, with a
-random MAC, and set up according the the cluster level NIC
+random MAC, and set up according to the cluster level NIC
 parameters. Each NIC can take these parameters (all optional):
 
 mac
@@ -137,7 +137,7 @@ ip
     passed in the **network** parameter if this NIC is meant to be
     connected to the said network. ``--no-conflicts-check`` can be used
     to override this check. The special value **pool** causes Ganeti to
-    select an IP from the the network the NIC is or will be connected to.
+    select an IP from the network the NIC is or will be connected to.
     One can pick an externally reserved IP of a network along with
     ``--no-conflict-check``. Note that this IP cannot be assigned to
     any other instance until it gets released.
