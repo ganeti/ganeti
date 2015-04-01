@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.TestHTools
   ( nullIPolicy
+  , nullISpec
   , defGroup
   , defGroupList
   , defGroupAssoc
@@ -58,17 +59,21 @@ import qualified Ganeti.HTools.Types as Types
 
 -- * Helpers
 
+-- | An ISpec with 0 resources.
+nullISpec :: Types.ISpec
+nullISpec = Types.ISpec { Types.iSpecMemorySize = 0
+                        , Types.iSpecCpuCount   = 0
+                        , Types.iSpecDiskSize   = 0
+                        , Types.iSpecDiskCount  = 0
+                        , Types.iSpecNicCount   = 0
+                        , Types.iSpecSpindleUse = 0
+                        }
+
 -- | Null iPolicy, and by null we mean very liberal.
 nullIPolicy :: Types.IPolicy
 nullIPolicy = Types.IPolicy
   { Types.iPolicyMinMaxISpecs = [Types.MinMaxISpecs
-    { Types.minMaxISpecsMinSpec = Types.ISpec { Types.iSpecMemorySize = 0
-                                              , Types.iSpecCpuCount   = 0
-                                              , Types.iSpecDiskSize   = 0
-                                              , Types.iSpecDiskCount  = 0
-                                              , Types.iSpecNicCount   = 0
-                                              , Types.iSpecSpindleUse = 0
-                                              }
+    { Types.minMaxISpecsMinSpec = nullISpec
     , Types.minMaxISpecsMaxSpec = Types.ISpec
       { Types.iSpecMemorySize = maxBound
       , Types.iSpecCpuCount   = maxBound

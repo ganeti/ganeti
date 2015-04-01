@@ -70,6 +70,7 @@ module Ganeti.JSON
   , ArrayObject(..)
   , HasStringRepr(..)
   , GenericContainer(..)
+  , emptyContainer
   , Container
   , MaybeForJSON(..)
   , TimeAsDoubleJSON(..)
@@ -327,6 +328,10 @@ newtype GenericContainer a b =
 
 instance (NFData a, NFData b) => NFData (GenericContainer a b) where
   rnf = rnf . Map.toList . fromContainer
+
+-- | The empty container.
+emptyContainer :: GenericContainer a b
+emptyContainer = GenericContainer Map.empty
 
 -- | Type alias for string keys.
 type Container = GenericContainer String
