@@ -39,6 +39,7 @@ module Test.Ganeti.HTools.Cluster (testHTools_Cluster) where
 
 import Test.QuickCheck hiding (Result)
 
+import Control.Monad (liftM)
 import qualified Data.IntMap as IntMap
 import Data.Maybe
 
@@ -174,7 +175,8 @@ prop_Alloc_sane inst =
 prop_CanTieredAlloc :: Property
 prop_CanTieredAlloc =
   forAll (choose (2, 5)) $ \count ->
-  forAll (genOnlineNode `suchThat` isNodeBig 4) $ \node ->
+  forAll (liftM (Node.setPolicy Types.defIPolicy)
+            (genOnlineNode `suchThat` isNodeBig 4)) $ \node ->
   forAll (genInstanceMaybeBiggerThanNode node) $ \inst ->
   let nl = makeSmallCluster node count
       il = Container.empty
