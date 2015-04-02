@@ -1059,10 +1059,11 @@ def MasterFailover(no_voting=False):
     utils.Retry(_check_ip, (1, 1.5, 5), total_timeout)
   except utils.RetryTimeout:
     warning = ("The master IP is still reachable after %s seconds,"
-               " continuing but activating the master on the current"
+               " continuing but activating the master IP on the current"
                " node will probably fail" % total_timeout)
     logging.warning("%s", warning)
     warnings.append(warning)
+    rcode = 1
 
   if jstore.CheckDrainFlag():
     logging.info("Undraining job queue")
