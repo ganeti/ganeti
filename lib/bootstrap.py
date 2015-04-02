@@ -1051,12 +1051,12 @@ def MasterFailover(no_voting=False):
   total_timeout = 30
 
   # Here we have a phase where no master should be running
-  def _check_ip():
-    if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
+  def _check_ip(expected):
+    if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT) != expected:
       raise utils.RetryAgain()
 
   try:
-    utils.Retry(_check_ip, (1, 1.5, 5), total_timeout)
+    utils.Retry(_check_ip, (1, 1.5, 5), total_timeout, args=[False])
   except utils.RetryTimeout:
     warning = ("The master IP is still reachable after %s seconds,"
                " continuing but activating the master IP on the current"
@@ -1077,6 +1077,19 @@ def MasterFailover(no_voting=False):
   if msg:
     logging.error("Could not start the master role on the new master"
                   " %s, please check: %s", new_master, msg)
+    rcode = 1
+
+  # Finally verify that the new master managed to set up the master IP
+  # and warn if it didn't.
+  try:
+    utils.Retry(_check_ip, (1, 1.5, 5), total_timeout, args=[True])
+  except utils.RetryTimeout:
+    warning = ("The master IP did not come up within %s seconds; the"
+               " cluster should still be working and reachable via %s,"
+               " but not via the master IP address"
+               % (total_timeout, new_master))
+    logging.warning("%s", warning)
+    warnings.append(warning)
     rcode = 1
 
   logging.info("Master failed over from %s to %s", old_master, new_master)
