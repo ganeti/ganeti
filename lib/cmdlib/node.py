@@ -689,6 +689,9 @@ class LUNodeSetParams(LogicalUnit):
 
     # If we're no longer master capable, we'll demote ourselves from MC
     if self.op.master_capable is False and node.master_candidate:
+      if self.op.node_uuid == self.cfg.GetMasterNode():
+        raise errors.OpPrereqError("Master must remain master capable",
+                                   errors.ECODE_STATE)
       self.LogInfo("Demoting from master candidate")
       self.op.master_candidate = False
 

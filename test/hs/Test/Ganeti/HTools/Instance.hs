@@ -49,6 +49,7 @@ import Control.Applicative ((<$>))
 import Control.Monad (liftM)
 import Test.QuickCheck hiding (Result)
 
+import Test.Ganeti.TestHTools (nullISpec)
 import Test.Ganeti.TestHelper
 import Test.Ganeti.TestCommon
 import Test.Ganeti.HTools.Types ()
@@ -62,25 +63,32 @@ import qualified Ganeti.HTools.Types as Types
 
 -- * Arbitrary instances
 
--- | Generates a random instance with maximum disk/mem/cpu values.
-genInstanceSmallerThan :: Int -> Int -> Int -> Maybe Int ->
-                          Gen Instance.Instance
-genInstanceSmallerThan lim_mem lim_dsk lim_cpu lim_spin = do
+-- | Generates a random instance with maximum and minimum disk/mem/cpu values.
+genInstanceWithin :: Int -> Int -> Int -> Int
+                  -> Int -> Int -> Int -> Maybe Int
+                  -> Gen Instance.Instance
+genInstanceWithin min_mem min_dsk min_cpu min_spin
+                  max_mem max_dsk max_cpu max_spin = do
   name <- genFQDN
-  mem <- choose (0, lim_mem)
-  dsk <- choose (0, lim_dsk)
+  mem <- choose (min_mem, max_mem)
+  dsk <- choose (min_dsk, max_dsk)
   run_st <- arbitrary
   pn <- arbitrary
   sn <- arbitrary
-  vcpus <- choose (0, lim_cpu)
+  vcpus <- choose (min_cpu, max_cpu)
   dt <- arbitrary
-  spindles <- case lim_spin of
-    Nothing -> genMaybe $ choose (0, maxSpindles)
-    Just ls -> liftM Just $ choose (0, ls)
+  spindles <- case max_spin of
+    Nothing -> genMaybe $ choose (min_spin, maxSpindles)
+    Just ls -> liftM Just $ choose (min_spin, ls)
   forthcoming <- arbitrary
   let disk = Instance.Disk dsk spindles
   return $ Instance.create
     name mem dsk [disk] vcpus run_st [] True pn sn dt 1 [] forthcoming
+
+-- | Generate an instance with maximum disk/mem/cpu values.
+genInstanceSmallerThan :: Int -> Int -> Int -> Maybe Int
+                       -> Gen Instance.Instance
+genInstanceSmallerThan = genInstanceWithin 0 0 0 0
 
 -- | Generates an instance smaller than a node.
 genInstanceSmallerThanNode :: Node.Node -> Gen Instance.Instance
@@ -93,12 +101,20 @@ genInstanceSmallerThanNode node =
                           else Nothing)
 
 -- | Generates an instance possibly bigger than a node.
+-- In any case, that instance will be bigger than the node's ipolicy's lower
+-- bound.
 genInstanceMaybeBiggerThanNode :: Node.Node -> Gen Instance.Instance
 genInstanceMaybeBiggerThanNode node =
-  genInstanceSmallerThan (Node.availMem  node + Types.unitMem * 2)
-                         (Node.availDisk node + Types.unitDsk * 3)
-                         (Node.availCpu  node + Types.unitCpu * 4)
-                         (if Node.exclStorage node
+  let minISpec = runListHead nullISpec Types.minMaxISpecsMinSpec
+                 . Types.iPolicyMinMaxISpecs $ Node.iPolicy node
+  in genInstanceWithin (Types.iSpecMemorySize minISpec)
+                       (Types.iSpecDiskSize minISpec)
+                       (Types.iSpecCpuCount minISpec)
+                       (Types.iSpecSpindleUse minISpec)
+                       (Node.availMem  node + Types.unitMem * 2)
+                       (Node.availDisk node + Types.unitDsk * 3)
+                       (Node.availCpu  node + Types.unitCpu * 4)
+                       (if Node.exclStorage node
                           then Just $ Node.fSpindles node +
                                Types.unitSpindle * 5
                           else Nothing)

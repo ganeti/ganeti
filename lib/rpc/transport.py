@@ -217,7 +217,8 @@ class Transport:
     for try_no in range(0, retries):
       try:
         return fn(try_no)
-      except (socket.error, errors.ConnectionClosedError) as ex:
+      except (socket.error, errors.ConnectionClosedError,
+              errors.TimeoutError) as ex:
         on_error(ex)
         # we retry on a network error, unless it's the last try
         if try_no == retries - 1:
