@@ -961,7 +961,7 @@ class PersistentBlockDevice(base.BlockDev):
       return False
 
     self.major = os.major(st.st_rdev)
-    self.minor = os.minor(st.st_rdev)
+    self.minor = utils.osminor(st.st_rdev)
     self.attached = True
 
     return True
@@ -1097,7 +1097,7 @@ class RADOSBlockDevice(base.BlockDev):
       return False
 
     self.major = os.major(st.st_rdev)
-    self.minor = os.minor(st.st_rdev)
+    self.minor = utils.osminor(st.st_rdev)
     self.attached = True
 
     return True
@@ -1458,7 +1458,7 @@ class ExtStorageDevice(base.BlockDev):
       return False
 
     self.major = os.major(st.st_rdev)
-    self.minor = os.minor(st.st_rdev)
+    self.minor = utils.osminor(st.st_rdev)
     self.attached = True
 
     return True
