@@ -182,3 +182,13 @@ def LookupSpaceInfoByStorageType(storage_space_info, storage_type):
         logging.warning("Storage space information requested for"
                         " ambiguous storage type '%s'.", storage_type)
   return result
+
+
+def osminor(dev):
+  """Return the device minor number from a raw device number.
+
+  This is a replacement for os.minor working around the issue that
+  Python's os.minor still has the old definition. See Ganeti issue
+  1058 for more details.
+  """
+  return (dev & 0xff) | ((dev >> 12) & ~0xff)

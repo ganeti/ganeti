@@ -985,6 +985,7 @@ def MasterFailover(no_voting=False):
   @param no_voting: force the operation without remote nodes agreement
                       (dangerous)
 
+  @returns: the pair of an exit code and warnings to display
   """
   sstore = ssconf.SimpleStore()
 
@@ -1025,6 +1026,7 @@ def MasterFailover(no_voting=False):
   # end checks
 
   rcode = 0
+  warnings = []
 
   logging.info("Setting master to %s, old master: %s", new_master, old_master)
 
@@ -1071,13 +1073,17 @@ def MasterFailover(no_voting=False):
 
   msg = result.fail_msg
   if msg:
-    logging.warning("Could not disable the master IP: %s", msg)
+    warning = "Could not disable the master IP: %s" % (msg,)
+    logging.warning("%s", warning)
+    warnings.append(warning)
 
   result = runner.call_node_stop_master(old_master)
   msg = result.fail_msg
   if msg:
-    logging.error("Could not disable the master role on the old master"
-                  " %s, please disable manually: %s", old_master, msg)
+    warning = ("Could not disable the master role on the old master"
+               " %s, please disable manually: %s" % (old_master, msg))
+    logging.error("%s", warning)
+    warnings.append(warning)
 
   logging.info("Checking master IP non-reachability...")
 
@@ -1085,16 +1091,19 @@ def MasterFailover(no_voting=False):
   total_timeout = 30
 
   # Here we have a phase where no master should be running
-  def _check_ip():
-    if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT):
+  def _check_ip(expected):
+    if netutils.TcpPing(master_ip, constants.DEFAULT_NODED_PORT) != expected:
       raise utils.RetryAgain()
 
   try:
-    utils.Retry(_check_ip, (1, 1.5, 5), total_timeout)
+    utils.Retry(_check_ip, (1, 1.5, 5), total_timeout, args=[False])
   except utils.RetryTimeout:
-    logging.warning("The master IP is still reachable after %s seconds,"
-                    " continuing but activating the master on the current"
-                    " node will probably fail", total_timeout)
+    warning = ("The master IP is still reachable after %s seconds,"
+               " continuing but activating the master IP on the current"
+               " node will probably fail" % total_timeout)
+    logging.warning("%s", warning)
+    warnings.append(warning)
+    rcode = 1
 
   if jstore.CheckDrainFlag():
     logging.info("Undraining job queue")
@@ -1110,8 +1119,21 @@ def MasterFailover(no_voting=False):
                   " %s, please check: %s", new_master, msg)
     rcode = 1
 
+  # Finally verify that the new master managed to set up the master IP
+  # and warn if it didn't.
+  try:
+    utils.Retry(_check_ip, (1, 1.5, 5), total_timeout, args=[True])
+  except utils.RetryTimeout:
+    warning = ("The master IP did not come up within %s seconds; the"
+               " cluster should still be working and reachable via %s,"
+               " but not via the master IP address"
+               % (total_timeout, new_master))
+    logging.warning("%s", warning)
+    warnings.append(warning)
+    rcode = 1
+
   logging.info("Master failed over from %s to %s", old_master, new_master)
-  return rcode
+  return rcode, warnings
 
 
 def GetMaster():
