@@ -176,7 +176,7 @@ prop_CanTieredAlloc :: Property
 prop_CanTieredAlloc =
   forAll (choose (2, 5)) $ \count ->
   forAll (liftM (Node.setPolicy Types.defIPolicy)
-            (genOnlineNode `suchThat` isNodeBig 4)) $ \node ->
+            (genOnlineNode `suchThat` isNodeBig 5)) $ \node ->
   forAll (genInstanceMaybeBiggerThanNode node) $ \inst ->
   let nl = makeSmallCluster node count
       il = Container.empty

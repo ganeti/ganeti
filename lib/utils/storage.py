@@ -290,3 +290,13 @@ def ReleaseBdevPartitionMapping(loop_dev_path):
   if result.failed:
     raise errors.CommandError("Failed to detach %s: %s" %
                               (loop_dev_path, result.output))
+
+
+def osminor(dev):
+  """Return the device minor number from a raw device number.
+
+  This is a replacement for os.minor working around the issue that
+  Python's os.minor still has the old definition. See Ganeti issue
+  1058 for more details.
+  """
+  return (dev & 0xff) | ((dev >> 12) & ~0xff)
