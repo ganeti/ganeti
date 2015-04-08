@@ -9,7 +9,7 @@ Background
 
 Currently, there is no consistent management of different variants of storage
 in Ganeti. One direct consequence is that storage space reporting is currently
-broken for all storage that is not based on lvm technolgy. This design looks at
+broken for all storage that is not based on lvm technology. This design looks at
 the root causes and proposes a way to fix it.
 
 Proposed changes
@@ -233,7 +233,7 @@ displayed in ``gnt-node list-storage``. This will also adapt to the
 extended storage reporting capabilities. The user can specify a storage
 type using ``--storage-type``. If he requests storage information about
 a storage type which does not support space reporting, a warning is
-emitted. If no storage type is specified explicitely, ``gnt-node
+emitted. If no storage type is specified explicitly, ``gnt-node
 list-storage`` will try to report storage on the storage type of the
 default disk template. If the default disk template's storage type does
 not support space reporting, an error message is emitted.
