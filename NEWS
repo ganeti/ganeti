@@ -2,6 +2,17 @@ News
 ====
 
 
+Version 2.11.7
+--------------
+
+*(unreleased)*
+
+- The operation 'gnt-cluster renew-crypto --new-node-certificates' is
+  now more robust against intermitten reachability errors. Nodes that
+  are temporarily not reachable, are contacted with several retries.
+  Nodes which are marked as offline are omitted right away.
+
+
 Version 2.11.6
 --------------
 
