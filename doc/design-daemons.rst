@@ -175,7 +175,7 @@ proposed, and presented hereafter.
 
 ``Configuration query daemon (RConfD)``
   It is written in Haskell, and it corresponds to the old ConfD. It will run on
-  all the master candidates and it will serve information about the the static
+  all the master candidates and it will serve information about the static
   configuration of the cluster (the one contained in ``config.data``). The
   provided information will be highly available (as in: a response will be
   available as long as a stable-enough connection between the client and at

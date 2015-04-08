@@ -858,7 +858,10 @@ def MasterFailover(opts, args):
     if not AskUser(usertext):
       return 1
 
-  return bootstrap.MasterFailover(no_voting=opts.no_voting)
+  rvlaue, msgs = bootstrap.MasterFailover(no_voting=opts.no_voting)
+  for msg in msgs:
+    ToStderr(msg)
+  return rvlaue
 
 
 def MasterPing(opts, args):
