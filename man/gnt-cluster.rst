@@ -84,7 +84,7 @@ Passing the ``--use-replication-network`` option will cause the
 copy to be done over the replication network (only matters if the
 primary/secondary IPs are different). Example::
 
-    # gnt-cluster -n node1.example.com -n node2.example.com copyfile /tmp/test
+    # gnt-cluster copyfile -n node1.example.com -n node2.example.com /tmp/test
 
 This will copy the file /tmp/test from the current node to the two
 named nodes.

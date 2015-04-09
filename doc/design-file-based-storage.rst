@@ -21,7 +21,7 @@ Goals:
 
 * reuse existing image files
 
-* allow Ganeti to initalize the cluster without checking for a volume
+* allow Ganeti to initialize the cluster without checking for a volume
   group (e.g. xenvg)
 
 Non Goals:
@@ -267,7 +267,7 @@ Export/Import instance
 Provided "dump/restore" is used in the "export" and "import" guest-os
 scripts, there are no modifications needed when file-based instances are
 exported/imported. If any other backup-tool (which requires access to
-the mounted file-system) is used then the image file can be temporaily
+the mounted file-system) is used then the image file can be temporarily
 mounted. This can be done in different ways:
 
 Mount a raw image file via loopback driver::
