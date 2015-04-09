@@ -2983,8 +2983,12 @@ class ConfigWriter(object):
     else:
       try:
         if releaselock:
-          self._wconfd.WriteConfigAndUnlock(self._GetWConfdContext(),
-                                            self._ConfigData().ToDict())
+          res = self._wconfd.WriteConfigAndUnlock(self._GetWConfdContext(),
+                                                  self._ConfigData().ToDict())
+          if not res:
+            logging.warning("WriteConfigAndUnlock indicates we already have"
+                            " released the lock; assuming this was just a retry"
+                            " and the initial call succeeded")
         else:
           self._wconfd.WriteConfig(self._GetWConfdContext(),
                                    self._ConfigData().ToDict())

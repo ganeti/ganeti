@@ -55,7 +55,7 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.JSON as J
 import qualified Ganeti.Locking.Allocation as L
-import Ganeti.Logging (logDebug)
+import Ganeti.Logging (logDebug, logWarning)
 import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock, BGL)
                             , LockLevel(LevelConfig)
                             , lockLevel, LockLevel
@@ -133,12 +133,20 @@ unlockConfig
   :: ClientId -> WConfdMonad ()
 unlockConfig cid = freeLocksLevel cid LevelConfig
 
--- | Write the configuration, verifying the config lock is held exclusively,
--- and release the config lock.
-writeConfigAndUnlock :: ClientId -> ConfigData -> WConfdMonad ()
+-- | Write the configuration, if the config lock is held exclusively,
+-- and release the config lock. It the caller does not have the config
+-- lock, return False.
+writeConfigAndUnlock :: ClientId -> ConfigData -> WConfdMonad Bool
 writeConfigAndUnlock cid cdata = do
-  checkConfigLock cid L.OwnExclusive
-  CW.writeConfigWithImmediate cdata $ unlockConfig cid
+  la <- readLockAllocation
+  if L.holdsLock cid ConfigLock L.OwnExclusive la
+    then do
+      CW.writeConfigWithImmediate cdata $ unlockConfig cid
+      return True
+    else do
+      logWarning $ show cid ++ " tried writeConfigAndUnlock without owning"
+                   ++ " the config lock"
+      return False
 
 -- | Force the distribution of configuration without actually modifying it.
 -- It is not necessary to hold a lock for this operation.
