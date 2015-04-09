@@ -246,7 +246,7 @@ def ShowNetworkConfig(_, args):
     idx = 0
     while idx < lenmapping:
       line = mapping[idx: idx + 64]
-      ToStdout("     %s %s %d", str(idx).rjust(3), line.ljust(64), idx + 63)
+      ToStdout("     %s %s %d", str(idx).rjust(4), line.ljust(64), idx + 63)
       idx += 64
     ToStdout("         (X) used    (.) free")
 
