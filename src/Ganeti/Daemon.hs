@@ -505,7 +505,9 @@ innerMain daemon opts syslog check_result prep_fn exec_fn fd = do
                  `Control.Exception.catch` handlePrepErr True fd
   -- no error reported, we should now close the fd
   maybeCloseFd fd
-  finally (exec_fn opts check_result prep_result) (finalCleanup pidFile)
+  finally (exec_fn opts check_result prep_result)
+          (finalCleanup pidFile
+           >> logNotice (daemonName daemon ++ " daemon shutdown"))
 
 -- | Daemon prepare error handling function.
 handlePrepErr :: Bool -> Maybe Fd -> IOError -> IO a
