@@ -334,7 +334,12 @@ getFQDNwithHints hints = do
 
 -- | Return the full qualified host name, honoring the vcluster setup.
 getFQDN :: IO String
-getFQDN = getFQDNwithHints Nothing
+getFQDN = do
+  familyresult <- Ssconf.getPrimaryIPFamily Nothing
+  getFQDNwithHints
+    $ genericResult (const Nothing)
+        (\family -> Just $ Socket.defaultHints { Socket.addrFamily = family })
+        familyresult
 
 -- | Returns if the current node is the master node.
 isMaster :: IO Bool
