@@ -674,6 +674,7 @@ docinput = \
 	doc/design-shared-storage.rst \
 	doc/design-ssh-ports.rst \
 	doc/design-storagetypes.rst \
+	doc/design-sync-rate-throttling.rst \
 	doc/design-systemd.rst \
 	doc/design-upgrade.rst \
 	doc/design-virtual-clusters.rst \
