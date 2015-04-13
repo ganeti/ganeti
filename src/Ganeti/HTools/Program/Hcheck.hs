@@ -67,6 +67,7 @@ options = do
     [ oDataFile
     , oDiskMoves
     , oDynuFile
+    , oIgnoreDyn
     , oEvacMode
     , oExInst
     , oExTags
