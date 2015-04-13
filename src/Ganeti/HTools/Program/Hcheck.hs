@@ -39,6 +39,7 @@ module Ganeti.HTools.Program.Hcheck
   ) where
 
 import Control.Monad
+import qualified Data.IntMap as IntMap
 import Data.List (transpose)
 import System.Exit
 import Text.Printf (printf)
@@ -48,6 +49,7 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import qualified Ganeti.HTools.Cluster.Utils as ClusterUtils
+import qualified Ganeti.HTools.GlobalN1 as GlobalN1
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -120,6 +122,7 @@ commonData =[ ("N1_FAIL", "Nodes not N+1 happy")
             , ("CONFLICT_TAGS", "Nodes with conflicting instances")
             , ("OFFLINE_PRI", "Instances having the primary node offline")
             , ("OFFLINE_SEC", "Instances having a secondary node offline")
+            , ("GN1_FAIL", "Nodes not directly evacuateable")
             ]
 
 -- | Data showed per group.
@@ -251,6 +254,8 @@ perGroupChecks gl (gidx, (nl, il)) =
   let grp = Container.find gidx gl
       offnl = filter Node.offline (Container.elems nl)
       n1violated = length . fst $ Cluster.computeBadItems nl il
+      gn1fail = length . filter (not . GlobalN1.canEvacuateNode (nl, il))
+                  $ IntMap.elems nl
       conflicttags = length $ filter (>0)
                      (map Node.conflictingPrimaries (Container.elems nl))
       offline_pri = sum . map length $ map Node.pList offnl
@@ -260,6 +265,7 @@ perGroupChecks gl (gidx, (nl, il)) =
                    , conflicttags
                    , offline_pri
                    , offline_sec
+                   , gn1fail
                    ]
   in ((grp, score), groupstats)
 
