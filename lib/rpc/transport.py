@@ -200,14 +200,15 @@ class Transport:
     return self.Recv()
 
   @staticmethod
-  def RetryOnNetworkError(fn, on_error, retries=5, wait_on_error=5):
+  def RetryOnNetworkError(fn, on_error, retries=15, wait_on_error=5):
     """Calls a given function, retrying if it fails on a network IO
     exception.
 
     This allows to re-establish a broken connection and retry an IO operation.
 
     The function receives one an integer argument stating the current retry
-    number, 0 being the first call, 1 being the retry.
+    number, 0 being the first call, 1 being the first retry, 2 the second,
+    and so on.
 
     If any exception occurs, on_error is invoked first with the exception given
     as an argument. Then, if the exception is a network exception, the function
@@ -225,7 +226,7 @@ class Transport:
           raise
         logging.error("Network error: %s, retring (retry attempt number %d)",
                       ex, try_no + 1)
-        time.sleep(wait_on_error)
+        time.sleep(wait_on_error * try_no)
       except Exception, ex:
         on_error(ex)
         raise
