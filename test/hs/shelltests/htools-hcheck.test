@@ -1,0 +1,7 @@
+./test/hs/hcheck -t $TESTDATA_DIR/shared-n1-failure.data
+>>>/Nodes not directly evacuateable: 1/
+>>>= 1
+
+./test/hs/hcheck -t $TESTDATA_DIR/shared-n1-failure.data --machine-readable
+>>>/HCHECK_INIT_CLUSTER_GN1_FAIL=1/
+>>>= 1

@@ -29,3 +29,21 @@
 ./test/hs/hbal -t $TESTDATA_DIR/hbal-location-1.data
 >>>/Solution length=[1-9]/
 >>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/shared-n1-failure.data --ignore-dynu
+>>>/Cluster is already well balanced/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/shared-n1-failure.data --ignore-dynu -pname,pcnt -O nodeA
+>>>2/Final cluster status:
+ Name  pcnt
+ nodeA    0
+ nodeB    4
+ nodeC    2
+ nodeD    4/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/shared-n1-failure.data --ignore-dynu -O nodeC
+>>>/No solution found/
+>>>= 0
+

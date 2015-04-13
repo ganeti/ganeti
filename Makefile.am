@@ -1725,6 +1725,7 @@ TEST_FILES = \
 	test/data/htools/hsqueeze-mixed-instances.data \
 	test/data/htools/hsqueeze-overutilized.data \
 	test/data/htools/hsqueeze-underutilized.data \
+	test/data/htools/shared-n1-failure.data \
 	test/data/htools/unique-reboot-order.data \
 	test/data/mond-data.txt \
 	test/hs/shelltests/htools-balancing.test \
@@ -1734,6 +1735,7 @@ TEST_FILES = \
 	test/hs/shelltests/htools-hail.test \
 	test/hs/shelltests/htools-hbal-evac.test \
 	test/hs/shelltests/htools-hbal.test \
+	test/hs/shelltests/htools-hcheck.test \
 	test/hs/shelltests/htools-hroller.test \
 	test/hs/shelltests/htools-hspace.test \
 	test/hs/shelltests/htools-hsqueeze.test \
