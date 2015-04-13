@@ -67,6 +67,7 @@ import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Moves as Moves
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Tags as Tags
@@ -169,7 +170,7 @@ setLocationScore :: Node.List -> Instance.Instance -> Instance.Instance
 setLocationScore nl inst =
   let pnode = Container.find (Instance.pNode inst) nl
       snode = Container.find (Instance.sNode inst) nl
-  in Cluster.setInstanceLocationScore inst pnode snode
+  in Moves.setInstanceLocationScore inst pnode snode
 
 -- | For each instance, add its index to its primary and secondary nodes.
 fixNodes :: Node.List

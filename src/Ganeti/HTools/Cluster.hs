@@ -72,7 +72,6 @@ module Ganeti.HTools.Cluster
   , genericAnnotateSolution
   , solutionDescription
   -- * Balacing functions
-  , setInstanceLocationScore
   , doNextBalance
   , tryBalance
   , compCV
@@ -109,12 +108,12 @@ import Data.List
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
 import Data.Ord (comparing)
 import Text.Printf (printf)
-import qualified Data.Set as Set
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), defaultOptions)
 import qualified Ganeti.HTools.Container as Container
+import Ganeti.HTools.Cluster.Moves (setInstanceLocationScore, applyMoveEx)
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Nic as Nic
 import qualified Ganeti.HTools.Node as Node
@@ -253,18 +252,6 @@ computeBadItems nl il =
                       concatMap (\ n -> Node.sList n ++ Node.pList n) bad_nodes
   in
     (bad_nodes, bad_instances)
-
--- | Extracts the node pairs for an instance. This can fail if the
--- instance is single-homed. FIXME: this needs to be improved,
--- together with the general enhancement for handling non-DRBD moves.
-instanceNodes :: Node.List -> Instance.Instance ->
-                 (Ndx, Ndx, Node.Node, Node.Node)
-instanceNodes nl inst =
-  let old_pdx = Instance.pNode inst
-      old_sdx = Instance.sNode inst
-      old_p = Container.find old_pdx nl
-      old_s = Container.find old_sdx nl
-  in (old_pdx, old_sdx, old_p, old_s)
 
 -- | Zero-initializer for the CStats type.
 emptyCStats :: CStats
@@ -514,132 +501,12 @@ compCV = compCVNodes . Container.elems
 getOnline :: Node.List -> [Node.Node]
 getOnline = filter (not . Node.offline) . Container.elems
 
--- | Sets the location score of an instance, given its primary
--- and secondary node.
-setInstanceLocationScore :: Instance.Instance -- ^ the original instance
-                         -> Node.Node -- ^ the primary node of the instance
-                         -> Node.Node -- ^ the secondary node of the instance
-                         -> Instance.Instance -- ^ the instance with the
-                                              -- location score updated
-setInstanceLocationScore t p s =
-  t { Instance.locationScore =
-         Set.size $ Node.locationTags p `Set.intersection` Node.locationTags s }
-
 -- * Balancing functions
 
 -- | Compute best table. Note that the ordering of the arguments is important.
 compareTables :: Table -> Table -> Table
 compareTables a@(Table _ _ a_cv _) b@(Table _ _ b_cv _ ) =
   if a_cv > b_cv then b else a
-
--- | Applies an instance move to a given node list and instance.
-applyMoveEx :: Bool -- ^ whether to ignore soft errors
-               -> Node.List -> Instance.Instance
-               -> IMove -> OpResult (Node.List, Instance.Instance, Ndx, Ndx)
--- Failover (f)
-applyMoveEx force nl inst Failover =
-  let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
-      int_p = Node.removePri old_p inst
-      int_s = Node.removeSec old_s inst
-      new_nl = do -- OpResult
-        Node.checkMigration old_p old_s
-        new_p <- Node.addPriEx (Node.offline old_p || force) int_s inst
-        new_s <- Node.addSec int_p inst old_sdx
-        let new_inst = Instance.setBoth inst old_sdx old_pdx
-        return (Container.addTwo old_pdx new_s old_sdx new_p nl,
-                new_inst, old_sdx, old_pdx)
-  in new_nl
-
--- Failover to any (fa)
-applyMoveEx force nl inst (FailoverToAny new_pdx) = do
-  let (old_pdx, old_sdx, old_pnode, _) = instanceNodes nl inst
-      new_pnode = Container.find new_pdx nl
-      force_failover = Node.offline old_pnode || force
-  Node.checkMigration old_pnode new_pnode
-  new_pnode' <- Node.addPriEx force_failover new_pnode inst
-  let old_pnode' = Node.removePri old_pnode inst
-      inst' = Instance.setPri inst new_pdx
-      nl' = Container.addTwo old_pdx old_pnode' new_pdx new_pnode' nl
-  return (nl', inst', new_pdx, old_sdx)
-
--- Replace the primary (f:, r:np, f)
-applyMoveEx force nl inst (ReplacePrimary new_pdx) =
-  let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
-      tgt_n = Container.find new_pdx nl
-      int_p = Node.removePri old_p inst
-      int_s = Node.removeSec old_s inst
-      new_inst = Instance.setPri (setInstanceLocationScore inst tgt_n int_s)
-                 new_pdx
-      force_p = Node.offline old_p || force
-      new_nl = do -- OpResult
-                  -- check that the current secondary can host the instance
-                  -- during the migration
-        Node.checkMigration old_p old_s
-        Node.checkMigration old_s tgt_n
-        tmp_s <- Node.addPriEx force_p int_s new_inst
-        let tmp_s' = Node.removePri tmp_s new_inst
-        new_p <- Node.addPriEx force_p tgt_n new_inst
-        new_s <- Node.addSecEx force_p tmp_s' new_inst new_pdx
-        return (Container.add new_pdx new_p $
-                Container.addTwo old_pdx int_p old_sdx new_s nl,
-                new_inst, new_pdx, old_sdx)
-  in new_nl
-
--- Replace the secondary (r:ns)
-applyMoveEx force nl inst (ReplaceSecondary new_sdx) =
-  let old_pdx = Instance.pNode inst
-      old_sdx = Instance.sNode inst
-      old_s = Container.find old_sdx nl
-      tgt_n = Container.find new_sdx nl
-      pnode = Container.find old_pdx nl
-      pnode' = Node.removePri pnode inst
-      int_s = Node.removeSec old_s inst
-      force_s = Node.offline old_s || force
-      new_inst = Instance.setSec (setInstanceLocationScore inst pnode tgt_n)
-                 new_sdx
-      new_nl = do
-        new_s <- Node.addSecEx force_s tgt_n new_inst old_pdx
-        pnode'' <- Node.addPriEx True pnode' new_inst
-        return (Container.add old_pdx pnode'' $
-                Container.addTwo new_sdx new_s old_sdx int_s nl,
-                new_inst, old_pdx, new_sdx)
-  in new_nl
-
--- Replace the secondary and failover (r:np, f)
-applyMoveEx force nl inst (ReplaceAndFailover new_pdx) =
-  let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
-      tgt_n = Container.find new_pdx nl
-      int_p = Node.removePri old_p inst
-      int_s = Node.removeSec old_s inst
-      new_inst = Instance.setBoth (setInstanceLocationScore inst int_s tgt_n)
-                 new_pdx old_pdx
-      force_s = Node.offline old_s || force
-      new_nl = do -- OpResult
-        Node.checkMigration old_p tgt_n
-        new_p <- Node.addPriEx force tgt_n new_inst
-        new_s <- Node.addSecEx force_s int_p new_inst new_pdx
-        return (Container.add new_pdx new_p $
-                Container.addTwo old_pdx new_s old_sdx int_s nl,
-                new_inst, new_pdx, old_pdx)
-  in new_nl
-
--- Failver and replace the secondary (f, r:ns)
-applyMoveEx force nl inst (FailoverAndReplace new_sdx) =
-  let (old_pdx, old_sdx, old_p, old_s) = instanceNodes nl inst
-      tgt_n = Container.find new_sdx nl
-      int_p = Node.removePri old_p inst
-      int_s = Node.removeSec old_s inst
-      force_p = Node.offline old_p || force
-      new_inst = Instance.setBoth (setInstanceLocationScore inst int_s tgt_n)
-                 old_sdx new_sdx
-      new_nl = do -- OpResult
-        Node.checkMigration old_p old_s
-        new_p <- Node.addPriEx force_p int_s new_inst
-        new_s <- Node.addSecEx force_p tgt_n new_inst old_sdx
-        return (Container.add new_sdx new_s $
-                Container.addTwo old_sdx new_p old_pdx int_p nl,
-                new_inst, old_sdx, new_sdx)
-  in new_nl
 
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: AlgorithmOptions
