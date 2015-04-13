@@ -912,6 +912,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Container.hs \
 	src/Ganeti/HTools/Dedicated.hs \
 	src/Ganeti/HTools/ExtLoader.hs \
+	src/Ganeti/HTools/GlobalN1.hs \
 	src/Ganeti/HTools/Graph.hs \
 	src/Ganeti/HTools/Group.hs \
 	src/Ganeti/HTools/Instance.hs \
