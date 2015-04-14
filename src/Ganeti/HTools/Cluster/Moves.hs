@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.HTools.Cluster.Moves
   ( applyMoveEx
   , setInstanceLocationScore
+  , move
   ) where
 
 import qualified Data.Set as Set
@@ -175,3 +176,13 @@ applyMoveEx force nl inst (FailoverAndReplace new_sdx) =
                 Container.addTwo old_sdx new_p old_pdx int_p nl,
                 new_inst, old_sdx, new_sdx)
   in new_nl
+
+-- | Apply a move to an instance, ignoring soft errors. This is a
+-- variant of `applyMoveEx True` suitable for folding.
+move :: (Node.List, Instance.List)
+        -> (Idx, IMove)
+        -> OpResult (Node.List, Instance.List)
+move (nl, il) (idx, mv) = do
+  let inst = Container.find idx il
+  (nl', inst', _, _) <- applyMoveEx True nl inst mv
+  return (nl', Container.add idx inst' il)
