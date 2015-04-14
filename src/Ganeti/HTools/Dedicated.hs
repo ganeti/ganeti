@@ -57,6 +57,7 @@ import Ganeti.BasicTypes (iterateOk, Result, failError)
 import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Utils as ClusterUtils
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
@@ -210,7 +211,7 @@ findMGAllocation :: Alg.AlgorithmOptions
                  -> Int
                  -> Result (Cluster.GenericAllocSolution Metric)
 findMGAllocation opts gl nl il inst count = do
-  let groups_by_idx = Cluster.splitCluster nl il
+  let groups_by_idx = ClusterUtils.splitCluster nl il
       genSol (gdx, (nl', _)) =
         liftM fst $ findAllocation opts gl nl' gdx inst count
       sols = map (flip Container.find gl . fst &&& genSol) groups_by_idx

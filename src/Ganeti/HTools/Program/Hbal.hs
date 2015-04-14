@@ -53,6 +53,7 @@ import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), fromCLIOptions)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Cluster.Metrics as Metrics
+import qualified Ganeti.HTools.Cluster.Utils as ClusterUtils
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -206,7 +207,7 @@ maybeExecJobs opts ord_plc fin_nl il cmd_jobs =
 selectGroup :: Options -> Group.List -> Node.List -> Instance.List
             -> IO (String, (Node.List, Instance.List))
 selectGroup opts gl nlf ilf = do
-  let ngroups = Cluster.splitCluster nlf ilf
+  let ngroups = ClusterUtils.splitCluster nlf ilf
   when (length ngroups > 1 && isNothing (optGroup opts)) $ do
     hPutStrLn stderr "Found multiple node groups:"
     mapM_ (hPutStrLn stderr . ("  " ++) . Group.name .

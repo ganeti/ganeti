@@ -47,6 +47,7 @@ import Ganeti.HTools.AlgorithmParams (fromCLIOptions)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Cluster.Metrics as Metrics
+import qualified Ganeti.HTools.Cluster.Utils as ClusterUtils
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -312,7 +313,7 @@ main opts args = do
   (ClusterData gl fixed_nl ilf _ _) <- loadExternalData opts
   nlf <- setNodeStatus opts fixed_nl
 
-  let splitcluster = Cluster.splitCluster nlf ilf
+  let splitcluster = ClusterUtils.splitCluster nlf ilf
 
   when machineread $ printGroupsMappings gl
 

@@ -54,7 +54,9 @@ import Ganeti.BasicTypes
 import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Evacuate as Evacuate
 import qualified Ganeti.HTools.Cluster.Metrics as Metrics
+import qualified Ganeti.HTools.Cluster.Utils as ClusterUtils
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
@@ -243,15 +245,15 @@ prop_AllocRelocate =
 -- | Helper property checker for the result of a nodeEvac or
 -- changeGroup operation.
 check_EvacMode :: Group.Group -> Instance.Instance
-               -> Result (Node.List, Instance.List, Cluster.EvacSolution)
+               -> Result (Node.List, Instance.List, Evacuate.EvacSolution)
                -> Property
 check_EvacMode grp inst result =
   case result of
     Bad msg -> failTest $ "Couldn't evacuate/change group:" ++ msg
     Ok (_, _, es) ->
-      let moved = Cluster.esMoved es
-          failed = Cluster.esFailed es
-          opcodes = not . null $ Cluster.esOpCodes es
+      let moved = Evacuate.esMoved es
+          failed = Evacuate.esFailed es
+          opcodes = not . null $ Evacuate.esOpCodes es
       in conjoin
            [ failmsg ("'failed' not empty: " ++ show failed) (null failed)
            , failmsg "'opcodes' is null" opcodes
@@ -276,7 +278,7 @@ prop_AllocEvacuate =
     Bad msg -> failTest msg
     Ok (nl, il, inst') ->
       conjoin . map (\mode -> check_EvacMode defGroup inst' $
-                              Cluster.tryNodeEvac Alg.defaultOptions
+                              Evacuate.tryNodeEvac Alg.defaultOptions
                                 defGroupList nl il mode
                                 [Instance.idx inst']) .
                               evacModeOptions .
@@ -357,7 +359,7 @@ prop_SplitCluster node inst =
   let nl = makeSmallCluster node 2
       (nl', il') = foldl (\(ns, is) _ -> assignInstance ns is inst 0 1)
                    (nl, Container.empty) [1..icnt]
-      gni = Cluster.splitCluster nl' il'
+      gni = ClusterUtils.splitCluster nl' il'
   in sum (map (Container.size . snd . snd) gni) == icnt &&
      all (\(guuid, (nl'', _)) -> all ((== guuid) . Node.group)
                                  (Container.elems nl'')) gni

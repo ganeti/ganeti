@@ -52,6 +52,7 @@ import Text.JSON (JSObject, JSValue(JSArray),
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Evacuate as Evacuate
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
@@ -325,20 +326,20 @@ formatMultiAlloc (fin_nl, fin_il, ars) =
 formatNodeEvac :: Group.List
                -> Node.List
                -> Instance.List
-               -> (Node.List, Instance.List, Cluster.EvacSolution)
+               -> (Node.List, Instance.List, Evacuate.EvacSolution)
                -> Result IAllocResult
 formatNodeEvac gl nl il (fin_nl, fin_il, es) =
   let iname = Instance.name . flip Container.find il
       nname = Node.name . flip Container.find nl
       gname = Group.name . flip Container.find gl
-      fes = map (\(idx, msg) -> (iname idx, msg)) $ Cluster.esFailed es
+      fes = map (\(idx, msg) -> (iname idx, msg)) $ Evacuate.esFailed es
       mes = map (\(idx, gdx, ndxs) -> (iname idx, gname gdx, map nname ndxs))
-            $ Cluster.esMoved es
+            $ Evacuate.esMoved es
       failed = length fes
       moved  = length mes
       info = show failed ++ " instances failed to move and " ++ show moved ++
              " were moved successfully"
-  in Ok (info, showJSON (mes, fes, Cluster.esOpCodes es), fin_nl, fin_il)
+  in Ok (info, showJSON (mes, fes, Evacuate.esOpCodes es), fin_nl, fin_il)
 
 -- | Runs relocate for a single instance.
 --
@@ -371,12 +372,12 @@ processRelocate opts gl nl il idx 1 exndx = do
        fail $ "Unsupported request: excluded nodes not equal to\
               \ instance's " ++  node_type ++ "(" ++ show exp_node
               ++ " versus " ++ show exndx ++ ")"
-  (nl', il', esol) <- Cluster.tryNodeEvac opts gl nl il reloc_type [idx]
-  nodes <- case lookup idx (Cluster.esFailed esol) of
+  (nl', il', esol) <- Evacuate.tryNodeEvac opts gl nl il reloc_type [idx]
+  nodes <- case lookup idx (Evacuate.esFailed esol) of
              Just msg -> fail msg
              Nothing ->
                  case lookup idx (map (\(a, _, b) -> (a, b))
-                                  (Cluster.esMoved esol)) of
+                                  (Evacuate.esMoved esol)) of
                    Nothing ->
                        fail "Internal error: lost instance idx during move"
                    Just n -> return n
@@ -432,7 +433,7 @@ processRequest opts request =
          Cluster.tryChangeGroup opts gl nl il idxs gdxs >>=
                 formatNodeEvac gl nl il
        NodeEvacuate xi mode ->
-         Cluster.tryNodeEvac opts gl nl il mode xi >>=
+         Evacuate.tryNodeEvac opts gl nl il mode xi >>=
                 formatNodeEvac gl nl il
        MultiAllocate xies ->
          Cluster.allocList opts gl nl il xies [] >>= formatMultiAlloc

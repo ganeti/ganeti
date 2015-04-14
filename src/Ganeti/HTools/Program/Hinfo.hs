@@ -46,6 +46,7 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Utils as ClusterUtils
 import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
@@ -122,7 +123,7 @@ showGroupInfo :: Int -> Group.List -> Node.List -> Instance.List -> IO ()
 showGroupInfo verbose gl nl il = do
   let cgrs   = map (\(gdx, (gnl, gil)) ->
                  calcGroupInfo (Container.find gdx gl) gnl gil) $
-                 Cluster.splitCluster nl il
+                 ClusterUtils.splitCluster nl il
       cn1h   = all giN1Status cgrs
       grs    = map groupRowFormatHelper cgrs
       header = ["Group", "Nodes", "Instances", "Bad_Nodes", "Bad_Instances",
