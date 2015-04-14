@@ -152,6 +152,28 @@ class FakeSshFileManager(object):
             for name, (uuid, key, pot_mc, mc, master)
             in self._all_node_data.items() if pot_mc]
 
+  def GetAllPurePotentialMasterCandidates(self):
+    """Get the potential master candidates which are not master candidates."""
+    return [(name, uuid, key, pot_mc, mc, master)
+            for name, (uuid, key, pot_mc, mc, master)
+            in self._all_node_data.items() if pot_mc and not mc]
+
+  def GetAllMasterCandidates(self):
+    return [(name, uuid, key, pot_mc, mc, master)
+            for name, (uuid, key, pot_mc, mc, master)
+            in self._all_node_data.items() if mc]
+
+  def GetAllNormalNodes(self):
+    return [(name, uuid, key, pot_mc, mc, master)
+            for name, (uuid, key, pot_mc, mc, master)
+            in self._all_node_data.items() if not mc and not pot_mc]
+
+  def GetPublicKeysOfNode(self, node):
+    return self._public_keys[node]
+
+  def GetAuthorizedKeysOfNode(self, node):
+    return self._authorized_keys[node]
+
   def SetOrAddNode(self, name, uuid, key, pot_mc, mc, master):
     """Adds a new node to the state of the file manager.
 
@@ -239,7 +261,8 @@ class FakeSshFileManager(object):
     for name in self._all_node_data.keys():
       node_auth_keys = self._authorized_keys[name]
       if key in node_auth_keys:
-        return False
+        raise Exception("Node '%s' does have the key '%s' in its"
+                        " 'authorized_keys' file." % (name, key))
     return True
 
   def NoNodeHasPublicKey(self, uuid, key):
