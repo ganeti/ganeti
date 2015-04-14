@@ -1842,6 +1842,7 @@ python_test_support = \
 	test/py/__init__.py \
 	test/py/lockperf.py \
 	test/py/testutils.py \
+	test/py/testutils_ssh.py \
 	test/py/mocks.py \
 	test/py/cmdlib/__init__.py \
 	test/py/cmdlib/testsupport/__init__.py \
