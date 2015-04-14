@@ -54,6 +54,7 @@ import Ganeti.BasicTypes
 import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
@@ -128,7 +129,7 @@ prop_Score_Zero node =
      (Node.tSpindles node > 0) && (Node.tCpu node > 0)) ==>
   let fn = Node.buildPeers node Container.empty
       nlst = replicate count fn
-      score = Cluster.compCVNodes nlst
+      score = Metrics.compCVNodes nlst
   -- we can't say == 0 here as the floating point errors accumulate;
   -- this should be much lower than the default score in CLI.hs
   in score <= 1e-12
@@ -166,7 +167,7 @@ prop_Alloc_sane inst =
              in counterexample "Cluster can be balanced after allocation"
                   (not (canBalance tbl True True False)) .&&.
                 counterexample "Solution score differs from actual node list"
-                  (abs (Cluster.compCV xnl - cv) < 1e-12)
+                  (abs (Metrics.compCV xnl - cv) < 1e-12)
 
 -- | Checks that on a 2-5 node cluster, we can allocate a random
 -- instance spec via tiered allocation (whatever the original instance
@@ -325,7 +326,7 @@ prop_AllocBalance =
        Ok (_, _, _, [], _) -> failTest "Failed to allocate: no instances"
        Ok (_, xnl, il', _, _) ->
          let ynl = Container.add (Node.idx hnode) hnode xnl
-             cv = Cluster.compCV ynl
+             cv = Metrics.compCV ynl
              tbl = Cluster.Table ynl il' cv []
          in counterexample "Failed to rebalance" $
             canBalance tbl True True False

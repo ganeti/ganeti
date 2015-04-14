@@ -52,6 +52,7 @@ import Text.Printf (printf, hPrintf)
 import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -379,8 +380,8 @@ printTiered False spec_map ini_nl fin_nl sreason = do
 -- | Displays the initial/final cluster scores.
 printClusterScores :: Node.List -> Node.List -> IO ()
 printClusterScores ini_nl fin_nl = do
-  printf "  - initial cluster score: %.8f\n" $ Cluster.compCV ini_nl::IO ()
-  printf "  -   final cluster score: %.8f\n" $ Cluster.compCV fin_nl
+  printf "  - initial cluster score: %.8f\n" $ Metrics.compCV ini_nl::IO ()
+  printf "  -   final cluster score: %.8f\n" $ Metrics.compCV fin_nl
 
 -- | Displays the cluster efficiency.
 printClusterEff :: Cluster.CStats -> Bool -> IO ()
@@ -493,7 +494,7 @@ main opts args = do
 
   when (verbose > 2) $
          hPrintf stderr "Initial coefficients: overall %.8f\n%s"
-                 (Cluster.compCV nl) (Cluster.printStats "  " nl)
+                 (Metrics.compCV nl) (Metrics.printStats "  " nl)
 
   printCluster machine_r (Cluster.totalResources nl) (length all_nodes)
     (Node.haveExclStorage nl)

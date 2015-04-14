@@ -50,6 +50,7 @@ import Text.Printf (printf)
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Backend.Rapi as Rapi
@@ -82,7 +83,7 @@ printCluster :: Node.List -> Instance.List
              -> String
 printCluster nl il =
   let (bad_nodes, bad_instances) = Cluster.computeBadItems nl il
-      ccv = Cluster.compCV nl
+      ccv = Metrics.compCV nl
       nodes = Container.elems nl
       insts = Container.elems il
       t_ram = sum . map Node.tMem $ nodes

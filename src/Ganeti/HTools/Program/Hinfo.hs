@@ -46,6 +46,7 @@ import Text.Printf (printf)
 
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Instance as Instance
@@ -101,7 +102,7 @@ calcGroupInfo g nl il =
       bn_size                    = length bad_nodes
       bi_size                    = length bad_instances
       n1h                        = bn_size == 0
-      score                      = Cluster.compCV nl
+      score                      = Metrics.compCV nl
   in GroupInfo (Group.name g) nl_size il_size bn_size bi_size n1h score
 
 -- | Helper to format one group row result.
@@ -192,5 +193,5 @@ main opts args = do
 
   maybePrintNodes shownodes "Cluster" (Cluster.printNodes nlf)
 
-  printf "Cluster coefficients:\n%s" (Cluster.printStats "  " nlf)::IO ()
-  printf "Cluster score: %.8f\n" (Cluster.compCV nlf)
+  printf "Cluster coefficients:\n%s" (Metrics.printStats "  " nlf)::IO ()
+  printf "Cluster score: %.8f\n" (Metrics.compCV nlf)

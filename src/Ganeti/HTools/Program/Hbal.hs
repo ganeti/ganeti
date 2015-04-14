@@ -52,6 +52,7 @@ import Text.Printf (printf)
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), fromCLIOptions)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -329,14 +330,14 @@ main opts args = do
 
   maybePrintNodes shownodes "Initial cluster" (Cluster.printNodes nl)
 
-  let ini_cv = Cluster.compCV nl
-      opt_cv = Cluster.optimalCVScore nl
+  let ini_cv = Metrics.compCV nl
+      opt_cv = Metrics.optimalCVScore nl
       ini_tbl = Cluster.Table nl il ini_cv []
       min_cv = optMinScore opts
 
   if verbose > 2
     then printf "Initial coefficients: overall %.8f\n%s"
-           ini_cv (Cluster.printStats "  " nl)::IO ()
+           ini_cv (Metrics.printStats "  " nl)::IO ()
     else printf "Initial score: %.8f\n" ini_cv
 
   checkNeedRebalance opts ini_cv opt_cv
@@ -354,7 +355,7 @@ main opts args = do
                   _ | null fin_plc -> printf "No solution found\n"
                     | verbose > 2 ->
                         printf "Final coefficients:   overall %.8f\n%s"
-                        fin_cv (Cluster.printStats "  " fin_nl)
+                        fin_cv (Metrics.printStats "  " fin_nl)
                     | otherwise ->
                         printf "Cluster score improved from %.8f to %.8f\n"
                         ini_cv fin_cv ::String

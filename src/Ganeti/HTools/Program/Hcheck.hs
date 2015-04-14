@@ -46,6 +46,7 @@ import Text.Printf (printf)
 import Ganeti.HTools.AlgorithmParams (fromCLIOptions)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
@@ -253,7 +254,7 @@ perGroupChecks gl (gidx, (nl, il)) =
                      (map Node.conflictingPrimaries (Container.elems nl))
       offline_pri = sum . map length $ map Node.pList offnl
       offline_sec = length $ map Node.sList offnl
-      score = Cluster.compCV nl
+      score = Metrics.compCV nl
       groupstats = [ n1violated
                    , conflicttags
                    , offline_pri
@@ -279,9 +280,9 @@ executeSimulation opts ini_tbl min_cv gidx nl il = do
 -- | Simulate group rebalance if group's score is not good
 maybeSimulateGroupRebalance :: Options -> GroupInfo -> IO GroupInfo
 maybeSimulateGroupRebalance opts (gidx, (nl, il)) = do
-  let ini_cv = Cluster.compCV nl
+  let ini_cv = Metrics.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
-      min_cv = optMinScore opts + Cluster.optimalCVScore nl
+      min_cv = optMinScore opts + Metrics.optimalCVScore nl
   if ini_cv < min_cv
     then return (gidx, (nl, il))
     else executeSimulation opts ini_tbl min_cv gidx nl il

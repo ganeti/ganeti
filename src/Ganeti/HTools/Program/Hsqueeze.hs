@@ -53,6 +53,7 @@ import qualified Ganeti.HTools.AlgorithmParams as Alg
 import Ganeti.HTools.CLI
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import Ganeti.HTools.ExtLoader
 import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Loader
@@ -131,7 +132,7 @@ allNodesCapacityFor inst (nl, _) =
 balance :: (Node.List, Instance.List) 
            -> ((Node.List, Instance.List), [MoveJob])
 balance (nl, il) =
-  let ini_cv = Cluster.compCV nl
+  let ini_cv = Metrics.compCV nl
       ini_tbl = Cluster.Table nl il ini_cv []
       balanceStep = Cluster.tryBalance
                       (Alg.defaultOptions { Alg.algMinGain = 0.0
