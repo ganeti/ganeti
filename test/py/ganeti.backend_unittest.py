@@ -36,6 +36,7 @@ import os
 import shutil
 import tempfile
 import testutils
+import testutils_ssh
 import unittest
 
 from ganeti import backend
@@ -956,12 +957,15 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
   _SSH_PORT = 22
 
   def setUp(self):
+    self._ssh_file_manager = testutils_ssh.FakeSshFileManager()
     testutils.GanetiTestCase.setUp(self)
     self._ssh_add_authorized_patcher = testutils \
       .patch_object(ssh, "AddAuthorizedKeys")
     self._ssh_remove_authorized_patcher = testutils \
       .patch_object(ssh, "RemoveAuthorizedKeys")
     self._ssh_add_authorized_mock = self._ssh_add_authorized_patcher.start()
+    self._ssh_add_authorized_mock.side_effect = \
+        self._ssh_file_manager.AddAuthorizedKeys
 
     self._ssconf_mock = mock.Mock()
     self._ssconf_mock.GetNodeList = mock.Mock()
@@ -969,15 +973,51 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssconf_mock.GetClusterName = mock.Mock()
 
     self._run_cmd_mock = mock.Mock()
+    self._run_cmd_mock.side_effect = self._ssh_file_manager.RunCommand
 
     self._ssh_remove_authorized_mock = \
       self._ssh_remove_authorized_patcher.start()
+    self._ssh_remove_authorized_mock.side_effect = \
+        self._ssh_file_manager.RemoveAuthorizedKeys
+
+    self._ssh_add_public_key_patcher = testutils \
+      .patch_object(ssh, "AddPublicKey")
+    self._ssh_add_public_key_mock = \
+      self._ssh_add_public_key_patcher.start()
+    self._ssh_add_public_key_mock.side_effect = \
+      self._ssh_file_manager.AddPublicKey
+
+    self._ssh_remove_public_key_patcher = testutils \
+      .patch_object(ssh, "RemovePublicKey")
+    self._ssh_remove_public_key_mock = \
+      self._ssh_remove_public_key_patcher.start()
+    self._ssh_remove_public_key_mock.side_effect = \
+      self._ssh_file_manager.RemovePublicKey
+
+    self._ssh_query_pub_key_file_patcher = testutils \
+      .patch_object(ssh, "QueryPubKeyFile")
+    self._ssh_query_pub_key_file_mock = \
+      self._ssh_query_pub_key_file_patcher.start()
+    self._ssh_query_pub_key_file_mock.side_effect = \
+      self._ssh_file_manager.QueryPubKeyFile
+
+    self._ssh_replace_name_by_uuid_patcher = testutils \
+      .patch_object(ssh, "ReplaceNameByUuid")
+    self._ssh_replace_name_by_uuid_mock = \
+      self._ssh_replace_name_by_uuid_patcher.start()
+    self._ssh_replace_name_by_uuid_mock.side_effect = \
+      self._ssh_file_manager.ReplaceNameByUuid
+
     self.noded_cert_file = testutils.TestDataFilename("cert1.pem")
 
   def tearDown(self):
     super(testutils.GanetiTestCase, self).tearDown()
     self._ssh_add_authorized_patcher.stop()
     self._ssh_remove_authorized_patcher.stop()
+    self._ssh_add_public_key_patcher.stop()
+    self._ssh_remove_public_key_patcher.stop()
+    self._ssh_query_pub_key_file_patcher.stop()
+    self._ssh_replace_name_by_uuid_patcher.stop()
 
   def _SetupTestData(self, number_of_nodes=15, number_of_pot_mcs=5,
                      number_of_mcs=5):
@@ -996,21 +1036,15 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssconf_mock.GetClusterName.reset_mock()
     self._run_cmd_mock.reset_mock()
 
-    for i in range(number_of_nodes):
-      node_name = "node_name_%s" % i
-      node_uuid = "node_uuid_%s" % i
-      self._ssh_port_map[node_name] = self._SSH_PORT
-      self._all_nodes.append(node_name)
+    self._ssh_file_manager.InitAllNodes(15, 10, 5)
+    self._master_node = self._ssh_file_manager.GetMasterNodeName()
+    self._ssh_port_map = self._ssh_file_manager.GetSshPortMap(self._SSH_PORT)
+    self._potential_master_candidates = \
+        self._ssh_file_manager.GetAllPotentialMasterCandidateNodeNames()
+    self._master_candidate_uuids = \
+        self._ssh_file_manager.GetAllMasterCandidateUuids()
+    self._all_nodes = self._ssh_file_manager.GetAllNodeNames()
 
-      if i in range(number_of_mcs + number_of_pot_mcs):
-        ssh.AddPublicKey("node_uuid_%s" % i, "key%s" % i,
-                         key_file=self._pub_key_file)
-        self._potential_master_candidates.append(node_name)
-
-      if i in range(number_of_mcs):
-        self._master_candidate_uuids.append(node_uuid)
-
-    self._master_node = "node_name_%s" % (number_of_mcs / 2)
     self._ssconf_mock.GetNodeList.return_value = self._all_nodes
 
   def _TearDownTestData(self):
@@ -1066,6 +1100,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     test_node_uuid = "node_uuid_7"
 
     self._SetupTestData()
+    ssh.AddPublicKey(test_node_uuid, "some_old_key",
+                     key_file=self._pub_key_file)
 
     backend._GenerateNodeSshKey(test_node_uuid, test_node_name,
                                 self._ssh_port_map,
@@ -1080,103 +1116,143 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
       for call in calls:
         self.assertTrue(constants.SSHS_GENERATE in call)
 
-  def testAddNodeSshKeyValid(self):
+  def _AddNewNodeToTestData(self, name, uuid, key, pot_mc, mc, master):
+    self._ssh_file_manager.SetOrAddNode(name, uuid, key, pot_mc, mc, master)
+
+    if pot_mc:
+      ssh.AddPublicKey(name, key, key_file=self._pub_key_file)
+      self._potential_master_candidates.append(name)
+
+    self._ssh_port_map[name] = self._SSH_PORT
+
+  def testAddMasterCandidate(self):
     new_node_name = "new_node_name"
     new_node_uuid = "new_node_uuid"
-    new_node_key1 = "new_node_key1"
-    new_node_key2 = "new_node_key2"
+    new_node_key = "new_node_key"
+    is_master_candidate = True
+    is_potential_master_candidate = True
+    is_master = False
 
-    for (to_authorized_keys, to_public_keys, get_public_keys) in \
-        [(True, True, False), (False, True, False),
-         (True, True, True), (False, True, True)]:
+    self._SetupTestData()
+    self._AddNewNodeToTestData(
+        new_node_name, new_node_uuid, new_node_key,
+        is_potential_master_candidate, is_master_candidate,
+        is_master)
 
-      self._SetupTestData()
+    backend.AddNodeSshKey(new_node_uuid, new_node_name,
+                          self._potential_master_candidates,
+                          self._ssh_port_map,
+                          to_authorized_keys=is_master_candidate,
+                          to_public_keys=is_potential_master_candidate,
+                          get_public_keys=is_potential_master_candidate,
+                          pub_key_file=self._pub_key_file,
+                          ssconf_store=self._ssconf_mock,
+                          noded_cert_file=self.noded_cert_file,
+                          run_cmd_fn=self._run_cmd_mock)
 
-      # set up public key file, ssconf store, and node lists
-      if to_public_keys:
-        for key in [new_node_key1, new_node_key2]:
-          ssh.AddPublicKey(new_node_name, key, key_file=self._pub_key_file)
-        self._potential_master_candidates.append(new_node_name)
+    self._ssh_file_manager.PotentialMasterCandidatesOnlyHavePublicKey(
+        new_node_name)
+    self.assertTrue(self._ssh_file_manager.AllNodesHaveAuthorizedKey(
+        new_node_key))
 
-      self._ssh_port_map[new_node_name] = self._SSH_PORT
+    self._TearDownTestData()
 
-      backend.AddNodeSshKey(new_node_uuid, new_node_name,
-                            self._potential_master_candidates,
-                            self._ssh_port_map,
-                            to_authorized_keys=to_authorized_keys,
-                            to_public_keys=to_public_keys,
-                            get_public_keys=get_public_keys,
-                            pub_key_file=self._pub_key_file,
-                            ssconf_store=self._ssconf_mock,
-                            noded_cert_file=self.noded_cert_file,
-                            run_cmd_fn=self._run_cmd_mock)
+  def testAddPotentialMasterCandidate(self):
+    new_node_name = "new_node_name"
+    new_node_uuid = "new_node_uuid"
+    new_node_key = "new_node_key"
+    is_master_candidate = False
+    is_potential_master_candidate = True
+    is_master = False
 
-      calls_per_node = self._GetCallsPerNode()
+    self._SetupTestData()
+    self._AddNewNodeToTestData(
+        new_node_name, new_node_uuid, new_node_key,
+        is_potential_master_candidate, is_master_candidate,
+        is_master)
 
-      # one sample node per type (master candidate, potential master candidate,
-      # normal node)
-      mc_idx = 3
-      pot_mc_idx = 7
-      normal_idx = 12
-      sample_nodes = [mc_idx, pot_mc_idx, normal_idx]
-      pot_sample_nodes = [mc_idx, pot_mc_idx]
+    backend.AddNodeSshKey(new_node_uuid, new_node_name,
+                          self._potential_master_candidates,
+                          self._ssh_port_map,
+                          to_authorized_keys=is_master_candidate,
+                          to_public_keys=is_potential_master_candidate,
+                          get_public_keys=is_potential_master_candidate,
+                          pub_key_file=self._pub_key_file,
+                          ssconf_store=self._ssconf_mock,
+                          noded_cert_file=self.noded_cert_file,
+                          run_cmd_fn=self._run_cmd_mock)
 
-      if to_authorized_keys:
-        for node_idx in sample_nodes:
-          self.assertTrue(self._KeyReceived(
-            calls_per_node, "node_name_%i" % node_idx,
-            constants.SSHS_SSH_AUTHORIZED_KEYS, new_node_key1),
-            "Node %i did not receive authorized key '%s' although it should"
-            " have." % (node_idx, new_node_key1))
-      else:
-        for node_idx in sample_nodes:
-          self.assertFalse(self._KeyReceived(
-            calls_per_node, "node_name_%i" % node_idx,
-            constants.SSHS_SSH_AUTHORIZED_KEYS, new_node_key1),
-            "Node %i received authorized key '%s', although it should not have."
-            % (node_idx, new_node_key1))
+    self._ssh_file_manager.PotentialMasterCandidatesOnlyHavePublicKey(
+        new_node_name)
+    self.assertTrue(self._ssh_file_manager.NoNodeHasAuthorizedKey(
+        new_node_key))
 
-      if to_public_keys:
-        for node_idx in pot_sample_nodes:
-          self.assertTrue(self._KeyReceived(
-            calls_per_node, "node_name_%i" % node_idx,
-            constants.SSHS_SSH_PUBLIC_KEYS, new_node_key1),
-            "Node %i did not receive public key '%s', although it should have."
-             % (node_idx, new_node_key1))
-      else:
-        for node_idx in sample_nodes:
-          self.assertFalse(self._KeyReceived(
-            calls_per_node, "node_name_%i" % node_idx,
-            constants.SSHS_SSH_PUBLIC_KEYS, new_node_key1),
-            "Node %i did receive public key '%s', although it should have."
-             % (node_idx, new_node_key1))
+    self._TearDownTestData()
 
-      if get_public_keys:
-        for node_idx in sample_nodes:
-          if node_idx in pot_sample_nodes:
-            self.assertTrue(self._KeyReceived(
-              calls_per_node, new_node_name,
-              constants.SSHS_SSH_PUBLIC_KEYS, "key%s" % node_idx),
-              "The new node '%s' did not receive public key of node %i,"
-              " although it should have." %
-              (new_node_name, node_idx))
-          else:
-            self.assertFalse(self._KeyReceived(
-              calls_per_node, new_node_name,
-              constants.SSHS_SSH_PUBLIC_KEYS, "key%s" % node_idx),
-              "The new node '%s' did receive public key of node %i,"
-              " although it should not have." %
-              (new_node_name, node_idx))
-      else:
-        new_node_name not in calls_per_node
+  def testAddNormalNode(self):
+    new_node_name = "new_node_name"
+    new_node_uuid = "new_node_uuid"
+    new_node_key = "new_node_key"
+    is_master_candidate = False
+    is_potential_master_candidate = False
+    is_master = False
 
-      self._TearDownTestData()
+    self._SetupTestData()
+    self._AddNewNodeToTestData(
+        new_node_name, new_node_uuid, new_node_key,
+        is_potential_master_candidate, is_master_candidate,
+        is_master)
+
+    self.assertRaises(
+        AssertionError, backend.AddNodeSshKey, new_node_uuid, new_node_name,
+        self._potential_master_candidates, self._ssh_port_map,
+        to_authorized_keys=is_master_candidate,
+        to_public_keys=is_potential_master_candidate,
+        get_public_keys=is_potential_master_candidate,
+        pub_key_file=self._pub_key_file,
+        ssconf_store=self._ssconf_mock,
+        noded_cert_file=self.noded_cert_file,
+        run_cmd_fn=self._run_cmd_mock)
+
+    self.assertTrue(self._ssh_file_manager.NoNodeHasPublicKey(
+        new_node_uuid, new_node_key))
+    self.assertTrue(self._ssh_file_manager.NoNodeHasAuthorizedKey(
+        new_node_key))
+
+    self._TearDownTestData()
+
+  def testPromoteToMasterCandidate(self):
+    self._SetupTestData()
+
+    # Get one of the potential master candidates
+    node_name, node_uuid, node_key, pot_mc, mc, master = \
+      self._ssh_file_manager.GetAllPotentialMasterCandidates()[0]
+    # Update it's role to master candidate in the test data
+    self._ssh_file_manager.SetOrAddNode(node_name, node_uuid, node_key,
+                                        pot_mc, True, master)
+
+    backend.AddNodeSshKey(node_uuid, node_name,
+                          self._potential_master_candidates,
+                          self._ssh_port_map,
+                          to_authorized_keys=True,
+                          to_public_keys=False,
+                          get_public_keys=False,
+                          pub_key_file=self._pub_key_file,
+                          ssconf_store=self._ssconf_mock,
+                          noded_cert_file=self.noded_cert_file,
+                          run_cmd_fn=self._run_cmd_mock)
+
+    self._ssh_file_manager.PotentialMasterCandidatesOnlyHavePublicKey(
+        node_name)
+    self.assertTrue(self._ssh_file_manager.AllNodesHaveAuthorizedKey(
+        node_key))
+
+    self._TearDownTestData()
 
   def testRemoveNodeSshKeyValid(self):
     node_name = "node_name"
     node_uuid = "node_uuid"
-    node_key1 = "node_key1"
-    node_key2 = "node_key2"
+    node_key = "node_key"
 
     for (from_authorized_keys, from_public_keys,
          clear_authorized_keys, clear_public_keys) in \
@@ -1193,11 +1269,10 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
       # set up public key file, ssconf store, and node lists
       if from_public_keys or from_authorized_keys:
-        for key in [node_key1, node_key2]:
-          ssh.AddPublicKey(node_uuid, key, key_file=self._pub_key_file)
+        ssh.AddPublicKey(node_uuid, node_key, key_file=self._pub_key_file)
         self._potential_master_candidates.append(node_name)
       if from_authorized_keys:
-        ssh.AddAuthorizedKeys(self._pub_key_file, [node_key1, node_key2])
+        ssh.AddAuthorizedKeys(self._pub_key_file, [node_key])
 
       self._ssh_port_map[node_name] = self._SSH_PORT
 
@@ -1231,42 +1306,42 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         for node_idx in sample_nodes:
           self.assertTrue(self._KeyRemoved(
             calls_per_node, "node_name_%i" % node_idx,
-            constants.SSHS_SSH_AUTHORIZED_KEYS, node_key1),
+            constants.SSHS_SSH_AUTHORIZED_KEYS, node_key),
             "Node %i did not get request to remove authorized key '%s'"
-            " although it should have." % (node_idx, node_key1))
+            " although it should have." % (node_idx, node_key))
       else:
         for node_idx in sample_nodes:
           self.assertFalse(self._KeyRemoved(
             calls_per_node, "node_name_%i" % node_idx,
-            constants.SSHS_SSH_AUTHORIZED_KEYS, node_key1),
+            constants.SSHS_SSH_AUTHORIZED_KEYS, node_key),
             "Node %i got requested to remove authorized key '%s', although it"
-            " should not have." % (node_idx, node_key1))
+            " should not have." % (node_idx, node_key))
 
       if from_public_keys:
         for node_idx in pot_sample_nodes:
           self.assertTrue(self._KeyRemoved(
             calls_per_node, "node_name_%i" % node_idx,
-            constants.SSHS_SSH_PUBLIC_KEYS, node_key1),
+            constants.SSHS_SSH_PUBLIC_KEYS, node_key),
             "Node %i did not receive request to remove public key '%s',"
-            " although it should have." % (node_idx, node_key1))
+            " although it should have." % (node_idx, node_key))
         self.assertTrue(self._KeyRemoved(
           calls_per_node, node_name,
-          constants.SSHS_SSH_PUBLIC_KEYS, node_key1),
+          constants.SSHS_SSH_PUBLIC_KEYS, node_key),
           "Node %s did not receive request to remove its own public key '%s',"
-          " although it should have." % (node_name, node_key1))
+          " although it should have." % (node_name, node_key))
         for node_idx in list(set(sample_nodes) - set(pot_sample_nodes)):
           self.assertFalse(self._KeyRemoved(
             calls_per_node, "node_name_%i" % node_idx,
-            constants.SSHS_SSH_PUBLIC_KEYS, node_key1),
+            constants.SSHS_SSH_PUBLIC_KEYS, node_key),
             "Node %i received a request to remove public key '%s',"
-            " although it should not have." % (node_idx, node_key1))
+            " although it should not have." % (node_idx, node_key))
       else:
         for node_idx in sample_nodes:
           self.assertFalse(self._KeyRemoved(
             calls_per_node, "node_name_%i" % node_idx,
-            constants.SSHS_SSH_PUBLIC_KEYS, node_key1),
+            constants.SSHS_SSH_PUBLIC_KEYS, node_key),
             "Node %i received a request to remove public key '%s',"
-            " although it should not have." % (node_idx, node_key1))
+            " although it should not have." % (node_idx, node_key))
 
       if clear_authorized_keys:
         for node_idx in list(set(sample_nodes) - set([mc_idx])):
