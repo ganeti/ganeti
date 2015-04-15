@@ -5,3 +5,20 @@
 ./test/hs/hcheck -t $TESTDATA_DIR/shared-n1-failure.data --machine-readable
 >>>/HCHECK_INIT_CLUSTER_GN1_FAIL=1/
 >>>= 1
+
+./test/hs/hcheck -t $TESTDATA_DIR/shared-n1-failure.data --machine-readable
+>>>/HCHECK_INIT_CLUSTER_NEED_REBALANCE=1/
+>>>= 1
+
+./test/hs/hcheck -t $TESTDATA_DIR/shared-n1-failure.data --machine-readable --no-capacity-checks
+>>>/HCHECK_INIT_CLUSTER_NEED_REBALANCE=0/
+>>>= 0
+
+./test/hs/hcheck -t $TESTDATA_DIR/shared-n1-failure.data
+>>>/Cluster is not healthy: True/
+>>>= 1
+
+./test/hs/hcheck -t $TESTDATA_DIR/shared-n1-failure.data --no-capacity-checks
+>>>/Cluster is not healthy: False/
+>>>= 0
+
