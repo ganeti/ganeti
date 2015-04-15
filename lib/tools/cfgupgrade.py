@@ -59,11 +59,11 @@ from ganeti.utils import version
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 15
+TARGET_MINOR = 16
 #: Target major version for downgrade
 DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
-DOWNGRADE_MINOR = 14
+DOWNGRADE_MINOR = 15
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -183,8 +183,8 @@ class CfgUpgrade(object):
       self._Downgrade(config_major, config_minor, config_version,
                       config_revision)
 
-    # Upgrade from 2.{0..14} to 2.15
-    elif config_major == 2 and config_minor in range(0, 15):
+    # Upgrade from 2.{0..15} to 2.16
+    elif config_major == 2 and config_minor in range(0, 16):
       if config_revision != 0:
         logging.warning("Config revision is %s, not 0", config_revision)
       if not self.UpgradeAll():
@@ -685,16 +685,7 @@ class CfgUpgrade(object):
 
   # DOWNGRADE ------------------------------------------------------------
 
-  @classmethod
-  def DowngradeCollectors(cls, collectors):
-    if constants.DATA_COLLECTOR_XEN_CPU_LOAD in collectors:
-      del collectors[constants.DATA_COLLECTOR_XEN_CPU_LOAD]
-
-  def DowngradeCluster(self, cluster):
-    self.DowngradeCollectors(cluster["data_collectors"])
-
   def DowngradeAll(self):
-    self.DowngradeCluster(self.config_data["cluster"])
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
     return True
