@@ -36,6 +36,7 @@ Algorithm options:
 **[ \--evac-mode ]**
 **[ \--select-instances *inst...* ]**
 **[ \--exclude-instances *inst...* ]**
+**[ \--no-capacity-checks ]**
 
 Reporting options:
 
@@ -65,6 +66,11 @@ OPTIONS
 \--no-simulation
   Only perform checks based on current cluster state, without trying
   to simulate rebalancing.
+
+\--no-capacity-checks
+  Do not check for global N+1 redundancy, i.e., do not warn if the
+  shared-storage instances of one node cannot be moved to the others
+  should that node fail.
 
 For a detailed description about the options listed above have a look at
 **htools**\(1), **hspace**\(1) and **hbal**\(1).
