@@ -49,6 +49,7 @@ module Ganeti.Types
   , DiskTemplate(..)
   , diskTemplateToRaw
   , diskTemplateFromRaw
+  , diskTemplateMovable
   , TagKind(..)
   , tagKindToRaw
   , tagKindFromRaw
@@ -330,6 +331,21 @@ instance THH.PyValue DiskTemplate where
 instance HasStringRepr DiskTemplate where
   fromStringRepr = diskTemplateFromRaw
   toStringRepr = diskTemplateToRaw
+
+-- | Predicate on disk templates indicating if instances based on this
+-- disk template can freely be moved (to any node in the node group).
+diskTemplateMovable :: DiskTemplate -> Bool
+-- Note: we deliberately do not use wildcard pattern to force an
+-- update of this function whenever a new disk template is added.
+diskTemplateMovable DTDiskless    = True
+diskTemplateMovable DTFile        = False
+diskTemplateMovable DTSharedFile  = True
+diskTemplateMovable DTPlain       = False
+diskTemplateMovable DTBlock       = False
+diskTemplateMovable DTDrbd8       = False
+diskTemplateMovable DTRbd         = True
+diskTemplateMovable DTExt         = True
+diskTemplateMovable DTGluster     = True
 
 -- | Data type representing what items the tag operations apply to.
 $(THH.declareLADT ''String "TagKind"
