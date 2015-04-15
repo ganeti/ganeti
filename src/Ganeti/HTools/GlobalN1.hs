@@ -48,7 +48,7 @@ import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Types ( IMove(Failover), Ndx, Gdx, Idx, opToResult)
-import Ganeti.Types ( DiskTemplate(DTDrbd8, DTPlain, DTFile)
+import Ganeti.Types ( DiskTemplate(DTDrbd8), diskTemplateMovable
                     , EvacMode(ChangePrimary))
 
 -- | Foldable function describing how a non-DRBD instance
@@ -71,7 +71,7 @@ canEvacuateNode (nl, il) n = isOk $ do
                                          . Instance.diskTemplate
                                          . flip Container.find il)
                               $ Node.pList n
-      sharedIdxs = filter (not . (`elem` [DTPlain, DTFile])
+      sharedIdxs = filter (diskTemplateMovable
                            . Instance.diskTemplate
                            . flip Container.find il) otherIdxs
   -- failover all DRBD instances with primaries on n
