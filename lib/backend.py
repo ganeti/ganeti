@@ -1910,6 +1910,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                                   % (node_name, node_uuid))
 
     if master_candidate:
+      logging.debug("Removing SSH key of node '%s'." % node_name)
       RemoveNodeSshKey(node_uuid, node_name,
                        master_candidate_uuids,
                        potential_master_candidates,
@@ -1920,6 +1921,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                        clear_authorized_keys=False,
                        clear_public_keys=False)
 
+    logging.debug("Generating new SSH key for node '%s'.", node_name)
     _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
                         pub_key_file=pub_key_file,
                         ssconf_store=ssconf_store,
@@ -1928,6 +1930,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
 
     try:
       (_, dsa_pub_keyfile) = root_keyfiles[constants.SSHK_DSA]
+      logging.debug("Fetching newly created SSH key from node '%s'.", node_name)
       pub_key = ssh.ReadRemoteSshPubKeys(dsa_pub_keyfile,
                                          node_name, cluster_name,
                                          ssh_port_map[node_name],
@@ -1941,6 +1944,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
       ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
       ssh.AddPublicKey(node_uuid, pub_key, key_file=pub_key_file)
 
+    logging.debug("Add ssh key of node '%s'.", node_name)
     AddNodeSshKey(node_uuid, node_name,
                   potential_master_candidates,
                   ssh_port_map,
@@ -1957,6 +1961,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
   old_master_keys_by_uuid = _GetOldMasterKeys(master_node_uuid, pub_key_file)
 
   # Generate a new master key with a suffix, don't touch the old one for now
+  logging.debug("Generate new ssh key of master.")
   _GenerateNodeSshKey(master_node_uuid, master_node_name, ssh_port_map,
                       pub_key_file=pub_key_file,
                       ssconf_store=ssconf_store,
@@ -1972,6 +1977,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
     ssh.AddPublicKey(master_node_uuid, pub_key, key_file=pub_key_file)
 
   # Add new master key to all node's public and authorized keys
+  logging.debug("Add new master key to all nodes.")
   AddNodeSshKey(master_node_uuid, master_node_name,
                 potential_master_candidates,
                 ssh_port_map,
@@ -1992,6 +1998,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                            old_master_keys_by_uuid[master_node_uuid])
 
   # Remove the old key from all node's authorized keys file
+  logging.debug("Remove the old master key from all nodes.")
   RemoveNodeSshKey(master_node_uuid, master_node_name,
                    master_candidate_uuids,
                    potential_master_candidates,
