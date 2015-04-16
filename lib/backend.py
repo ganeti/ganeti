@@ -1673,8 +1673,12 @@ def RemoveNodeSshKey(node_uuid, node_name,
         ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
 
       all_nodes = ssconf_store.GetNodeList()
+      online_nodes = ssconf_store.GetOnlineNodeList()
       for node in all_nodes:
         if node == master_node:
+          continue
+        if node not in online_nodes:
+          logging.debug("Skipping offline node '%s'.", node)
           continue
         ssh_port = ssh_port_map.get(node)
         if not ssh_port:

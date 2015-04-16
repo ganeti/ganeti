@@ -1358,6 +1358,11 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._TearDownTestData()
 
+  def _GetReducedOnlineNodeList(self):
+    """'Randomly' mark some nodes as offline."""
+    return [name for name in self._all_nodes
+            if '3' not in name and '5' not in name]
+
   def testAddKeyWithOfflineNodes(self):
     new_node_name = "new_node_name"
     new_node_uuid = "new_node_uuid"
@@ -1371,11 +1376,9 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         new_node_name, new_node_uuid, new_node_key,
         is_potential_master_candidate, is_master_candidate,
         is_master)
-
-    # 'randomly' mark some nodes as offline
-    self._online_nodes = [name for name in self._all_nodes
-                          if '3' not in name and '5' not in name]
+    self._online_nodes = self._GetReducedOnlineNodeList()
     self._ssconf_mock.GetOnlineNodeList.return_value = self._online_nodes
+
     backend.AddNodeSshKey(new_node_uuid, new_node_name,
                           self._potential_master_candidates,
                           self._ssh_port_map,
@@ -1394,6 +1397,37 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
       else:
         self.assertFalse(self._ssh_file_manager.NodeHasAuthorizedKey(
             node, new_node_key))
+
+    self._TearDownTestData()
+
+  def testRemoveKeyWithOfflineNodes(self):
+    self._SetupTestData()
+    (node_name, node_uuid, node_key, is_potential_master_candidate,
+     is_master_candidate, is_master) = \
+        self._ssh_file_manager.GetAllMasterCandidates()[0]
+    self._online_nodes = self._GetReducedOnlineNodeList()
+    self._ssconf_mock.GetOnlineNodeList.return_value = self._online_nodes
+
+    backend.RemoveNodeSshKey(node_uuid, node_name,
+                             self._master_candidate_uuids,
+                             self._potential_master_candidates,
+                             self._ssh_port_map,
+                             from_authorized_keys=True,
+                             from_public_keys=True,
+                             clear_authorized_keys=True,
+                             clear_public_keys=True,
+                             pub_key_file=self._pub_key_file,
+                             ssconf_store=self._ssconf_mock,
+                             noded_cert_file=self.noded_cert_file,
+                             run_cmd_fn=self._run_cmd_mock)
+
+    for node in self._all_nodes:
+      if node in self._online_nodes:
+        self.assertFalse(self._ssh_file_manager.NodeHasAuthorizedKey(
+            node, node_key))
+      else:
+        self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
+            node, node_key))
 
     self._TearDownTestData()
 
