@@ -1400,6 +1400,75 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
             node, node_key))
 
+  def testAddKeySuccessfullyWithRetries(self):
+    new_node_name = "new_node_name"
+    new_node_uuid = "new_node_uuid"
+    new_node_key = "new_node_key"
+    is_master_candidate = True
+    is_potential_master_candidate = True
+    is_master = False
+
+    self._AddNewNodeToTestData(
+        new_node_name, new_node_uuid, new_node_key,
+        is_potential_master_candidate, is_master_candidate,
+        is_master)
+    self._ssh_file_manager.SetMaxRetries(
+        new_node_name, constants.SSHS_MAX_RETRIES)
+
+    backend.AddNodeSshKey(new_node_uuid, new_node_name,
+                          self._potential_master_candidates,
+                          self._ssh_port_map,
+                          to_authorized_keys=is_master_candidate,
+                          to_public_keys=is_potential_master_candidate,
+                          get_public_keys=is_potential_master_candidate,
+                          pub_key_file=self._pub_key_file,
+                          ssconf_store=self._ssconf_mock,
+                          noded_cert_file=self.noded_cert_file,
+                          run_cmd_fn=self._run_cmd_mock)
+
+    self._ssh_file_manager.PotentialMasterCandidatesOnlyHavePublicKey(
+        new_node_name)
+    self.assertTrue(self._ssh_file_manager.AllNodesHaveAuthorizedKey(
+        new_node_key))
+
+  def testAddKeyFailedWithRetries(self):
+    new_node_name = "new_node_name"
+    new_node_uuid = "new_node_uuid"
+    new_node_key = "new_node_key"
+    is_master_candidate = True
+    is_potential_master_candidate = True
+    is_master = False
+
+    self._AddNewNodeToTestData(
+        new_node_name, new_node_uuid, new_node_key,
+        is_potential_master_candidate, is_master_candidate,
+        is_master)
+    self._ssh_file_manager.SetMaxRetries(
+        new_node_name, constants.SSHS_MAX_RETRIES + 1)
+
+    self.assertRaises(
+        errors.SshUpdateError, backend.AddNodeSshKey, new_node_uuid,
+        new_node_name, self._potential_master_candidates, self._ssh_port_map,
+        to_authorized_keys=is_master_candidate,
+        to_public_keys=is_potential_master_candidate,
+        get_public_keys=is_potential_master_candidate,
+        pub_key_file=self._pub_key_file,
+        ssconf_store=self._ssconf_mock,
+        noded_cert_file=self.noded_cert_file,
+        run_cmd_fn=self._run_cmd_mock)
+
+    for node in self._all_nodes:
+      if node == new_node_name:
+        self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
+          node, new_node_key))
+      else:
+        self.assertFalse(self._ssh_file_manager.NodeHasAuthorizedKey(
+          node, new_node_key))
+
+    self.assertTrue(self._ssh_file_manager.NoNodeHasPublicKey(
+        new_node_uuid, new_node_key))
+
+
 class TestVerifySshSetup(testutils.GanetiTestCase):
 
   _NODE1_UUID = "uuid1"

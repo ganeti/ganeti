@@ -1521,16 +1521,34 @@ def AddNodeSshKey(node_uuid, node_name,
   cluster_name = base_data[constants.SSHS_CLUSTER_NAME]
 
   # Update the target node itself
+  logging.debug("Updating SSH key files of target node '%s'.", node_name)
   if get_public_keys:
     node_data = {}
     _InitSshUpdateData(node_data, noded_cert_file, ssconf_store)
     all_keys = ssh.QueryPubKeyFile(None, key_file=pub_key_file)
     node_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
       (constants.SSHS_OVERRIDE, all_keys)
-    run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
-               ssh_port_map.get(node_name), node_data,
-               debug=False, verbose=False, use_cluster_key=False,
-               ask_key=False, strict_host_check=False)
+
+    last_exception = None
+    for _ in range(constants.SSHS_MAX_RETRIES):
+      try:
+        run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
+                   ssh_port_map.get(node_name), node_data,
+                   debug=False, verbose=False, use_cluster_key=False,
+                   ask_key=False, strict_host_check=False)
+        break
+      except errors.OpExecError as e:
+        logging.error("Updating SSH key files of node '%s' failed."
+                      " Error: %s", node_name, e)
+        last_exception = e
+    else:
+      if last_exception:
+        # Clean up the master's public key file if adding key fails
+        if to_public_keys:
+          ssh.RemovePublicKey(node_uuid)
+        raise errors.SshUpdateError(
+          "Could not update the SSH setup of node '%s' itself. Error: %s."
+          % (node_name, last_exception))
 
   # Update all nodes except master and the target node
   if to_authorized_keys:

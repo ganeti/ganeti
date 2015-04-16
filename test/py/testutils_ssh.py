@@ -32,6 +32,7 @@
 
 from ganeti import constants
 from ganeti import pathutils
+from ganeti import errors
 
 
 class FakeSshFileManager(object):
@@ -66,6 +67,13 @@ class FakeSshFileManager(object):
     self._public_keys = {} # dict of dicts
     # Node name of the master node
     self._master_node_name = None
+    # Dictionary mapping nodes by name to number of retries where 'RunCommand'
+    # succeeds. For example if set to '3', RunCommand will fail two times when
+    # called for this node before it succeeds in the 3rd retry.
+    self._max_retries = {}
+    # Dictionary mapping nodes by name to number of retries which
+    # 'RunCommand' has already carried out.
+    self._retries = {}
 
   def _SetMasterNodeName(self):
     self._master_node_name = [name for name, (_, _, _, _, master)
@@ -123,6 +131,17 @@ class FakeSshFileManager(object):
       self._FillPublicKeyOfOneNode(node)
       self._FillAuthorizedKeyOfOneNode(node)
     self._SetMasterNodeName()
+
+  def SetMaxRetries(self, node_name, retries):
+    """Set the number of unsuccessful retries of 'RunCommand' per node.
+
+    @type node_name: string
+    @param node_name: name of the node
+    @type retries: integer
+    @param retries: number of unsuccessful retries
+
+    """
+    self._max_retries[node_name] = retries
 
   def GetSshPortMap(self, port):
     """Creates a SSH port map with all nodes mapped to the given port.
@@ -277,7 +296,8 @@ class FakeSshFileManager(object):
     for name in self._all_node_data.keys():
       node_pub_keys = self._public_keys[name]
       if (uuid, key) in node_pub_keys.items():
-        return False
+        raise Exception("Node '%s' does have public key '%s' of node '%s'"
+                        % (name, key, uuid))
     return True
 
   def PotentialMasterCandidatesOnlyHavePublicKey(self, query_node_name):
@@ -322,6 +342,14 @@ class FakeSshFileManager(object):
     of SSH keys. No actual key files of any node is touched.
 
     """
+    if node in self._max_retries:
+      if node not in self._retries:
+        self._retries[node] = 0
+      self._retries[node] += 1
+      if self._retries[node] < self._max_retries[node]:
+        raise errors.OpExecError("(Fake) SSH connection to node '%s' failed."
+                                 % node)
+
     assert base_cmd == pathutils.SSH_UPDATE
 
     if constants.SSHS_SSH_AUTHORIZED_KEYS in data:
