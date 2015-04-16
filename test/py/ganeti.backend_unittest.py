@@ -1011,6 +1011,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self.noded_cert_file = testutils.TestDataFilename("cert1.pem")
 
+    self._SetupTestData()
+
   def tearDown(self):
     super(testutils.GanetiTestCase, self).tearDown()
     self._ssh_add_authorized_patcher.stop()
@@ -1019,6 +1021,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssh_remove_public_key_patcher.stop()
     self._ssh_query_pub_key_file_patcher.stop()
     self._ssh_replace_name_by_uuid_patcher.stop()
+    self._TearDownTestData()
 
   def _SetupTestData(self, number_of_nodes=15, number_of_pot_mcs=5,
                      number_of_mcs=5):
@@ -1100,7 +1103,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     is_potential_master_candidate = True
     is_master = False
 
-    self._SetupTestData()
     self._AddNewNodeToTestData(
         new_node_name, new_node_uuid, new_node_key,
         is_potential_master_candidate, is_master_candidate,
@@ -1122,8 +1124,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self.assertTrue(self._ssh_file_manager.AllNodesHaveAuthorizedKey(
         new_node_key))
 
-    self._TearDownTestData()
-
   def testAddPotentialMasterCandidate(self):
     new_node_name = "new_node_name"
     new_node_uuid = "new_node_uuid"
@@ -1132,7 +1132,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     is_potential_master_candidate = True
     is_master = False
 
-    self._SetupTestData()
     self._AddNewNodeToTestData(
         new_node_name, new_node_uuid, new_node_key,
         is_potential_master_candidate, is_master_candidate,
@@ -1154,8 +1153,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self.assertTrue(self._ssh_file_manager.NoNodeHasAuthorizedKey(
         new_node_key))
 
-    self._TearDownTestData()
-
   def testAddNormalNode(self):
     new_node_name = "new_node_name"
     new_node_uuid = "new_node_uuid"
@@ -1164,7 +1161,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     is_potential_master_candidate = False
     is_master = False
 
-    self._SetupTestData()
     self._AddNewNodeToTestData(
         new_node_name, new_node_uuid, new_node_key,
         is_potential_master_candidate, is_master_candidate,
@@ -1186,11 +1182,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self.assertTrue(self._ssh_file_manager.NoNodeHasAuthorizedKey(
         new_node_key))
 
-    self._TearDownTestData()
-
   def testPromoteToMasterCandidate(self):
-    self._SetupTestData()
-
     # Get one of the potential master candidates
     node_name, node_uuid, node_key, pot_mc, mc, master = \
       self._ssh_file_manager.GetAllPurePotentialMasterCandidates()[0]
@@ -1214,10 +1206,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self.assertTrue(self._ssh_file_manager.AllNodesHaveAuthorizedKey(
         node_key))
 
-    self._TearDownTestData()
-
   def testRemoveMasterCandidate(self):
-    self._SetupTestData()
     (node_name, node_uuid, node_key, is_potential_master_candidate,
      is_master_candidate, is_master) = \
         self._ssh_file_manager.GetAllMasterCandidates()[0]
@@ -1243,10 +1232,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self.assertEqual(0,
         len(self._ssh_file_manager.GetAuthorizedKeysOfNode(node_name)))
 
-    self._TearDownTestData()
-
   def testRemovePotentialMasterCandidate(self):
-    self._SetupTestData()
     (node_name, node_uuid, node_key, is_potential_master_candidate,
      is_master_candidate, is_master) = \
         self._ssh_file_manager.GetAllPurePotentialMasterCandidates()[0]
@@ -1272,10 +1258,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self.assertEqual(0,
         len(self._ssh_file_manager.GetAuthorizedKeysOfNode(node_name)))
 
-    self._TearDownTestData()
-
   def testRemoveNormalNode(self):
-    self._SetupTestData()
     (node_name, node_uuid, node_key, is_potential_master_candidate,
      is_master_candidate, is_master) = \
         self._ssh_file_manager.GetAllNormalNodes()[0]
@@ -1301,10 +1284,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self.assertEqual(0,
         len(self._ssh_file_manager.GetAuthorizedKeysOfNode(node_name)))
 
-    self._TearDownTestData()
-
   def testDemoteMasterCandidateToPotentialMasterCandidate(self):
-    self._SetupTestData()
     (node_name, node_uuid, node_key, is_potential_master_candidate,
      is_master_candidate, is_master) = \
         self._ssh_file_manager.GetAllMasterCandidates()[0]
@@ -1328,10 +1308,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssh_file_manager.PotentialMasterCandidatesOnlyHavePublicKey(node_name)
     self.assertTrue(self._ssh_file_manager.NoNodeHasAuthorizedKey(node_key))
 
-    self._TearDownTestData()
-
   def testDemotePotentialMasterCandidateToNormalNode(self):
-    self._SetupTestData()
     (node_name, node_uuid, node_key, is_potential_master_candidate,
      is_master_candidate, is_master) = \
         self._ssh_file_manager.GetAllPurePotentialMasterCandidates()[0]
@@ -1356,8 +1333,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         node_uuid, node_key))
     self.assertTrue(self._ssh_file_manager.NoNodeHasAuthorizedKey(node_key))
 
-    self._TearDownTestData()
-
   def _GetReducedOnlineNodeList(self):
     """'Randomly' mark some nodes as offline."""
     return [name for name in self._all_nodes
@@ -1371,7 +1346,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     is_potential_master_candidate = True
     is_master = False
 
-    self._SetupTestData()
     self._AddNewNodeToTestData(
         new_node_name, new_node_uuid, new_node_key,
         is_potential_master_candidate, is_master_candidate,
@@ -1398,10 +1372,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         self.assertFalse(self._ssh_file_manager.NodeHasAuthorizedKey(
             node, new_node_key))
 
-    self._TearDownTestData()
-
   def testRemoveKeyWithOfflineNodes(self):
-    self._SetupTestData()
     (node_name, node_uuid, node_key, is_potential_master_candidate,
      is_master_candidate, is_master) = \
         self._ssh_file_manager.GetAllMasterCandidates()[0]
@@ -1428,8 +1399,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
       else:
         self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
             node, node_key))
-
-    self._TearDownTestData()
 
 class TestVerifySshSetup(testutils.GanetiTestCase):
 
