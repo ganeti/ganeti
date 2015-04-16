@@ -1677,6 +1677,7 @@ TEST_FILES = \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-dedicated-1.json \
 	test/data/htools/hail-alloc-drbd.json \
+	test/data/htools/hail-alloc-ext.json \
 	test/data/htools/hail-alloc-invalid-network.json \
 	test/data/htools/hail-alloc-invalid-twodisks.json \
 	test/data/htools/hail-alloc-restricted-network.json \
@@ -1727,6 +1728,7 @@ TEST_FILES = \
 	test/data/htools/hsqueeze-overutilized.data \
 	test/data/htools/hsqueeze-underutilized.data \
 	test/data/htools/shared-n1-failure.data \
+	test/data/htools/shared-n1-restriction.data \
 	test/data/htools/unique-reboot-order.data \
 	test/data/mond-data.txt \
 	test/hs/shelltests/htools-balancing.test \
