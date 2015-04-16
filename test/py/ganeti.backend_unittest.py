@@ -971,6 +971,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssconf_mock.GetNodeList = mock.Mock()
     self._ssconf_mock.GetMasterNode = mock.Mock()
     self._ssconf_mock.GetClusterName = mock.Mock()
+    self._ssconf_mock.GetOnlineNodeList = mock.Mock()
 
     self._run_cmd_mock = mock.Mock()
     self._run_cmd_mock.side_effect = self._ssh_file_manager.RunCommand
@@ -1034,6 +1035,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssconf_mock.GetNodeList.reset_mock()
     self._ssconf_mock.GetMasterNode.reset_mock()
     self._ssconf_mock.GetClusterName.reset_mock()
+    self._ssconf_mock.GetOnlineNodeList.reset_mock()
     self._run_cmd_mock.reset_mock()
 
     self._ssh_file_manager.InitAllNodes(15, 10, 5)
@@ -1046,6 +1048,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._all_nodes = self._ssh_file_manager.GetAllNodeNames()
 
     self._ssconf_mock.GetNodeList.return_value = self._all_nodes
+    self._ssconf_mock.GetOnlineNodeList.return_value = self._all_nodes
 
   def _TearDownTestData(self):
     os.remove(self._pub_key_file)
@@ -1355,6 +1358,44 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._TearDownTestData()
 
+  def testAddKeyWithOfflineNodes(self):
+    new_node_name = "new_node_name"
+    new_node_uuid = "new_node_uuid"
+    new_node_key = "new_node_key"
+    is_master_candidate = True
+    is_potential_master_candidate = True
+    is_master = False
+
+    self._SetupTestData()
+    self._AddNewNodeToTestData(
+        new_node_name, new_node_uuid, new_node_key,
+        is_potential_master_candidate, is_master_candidate,
+        is_master)
+
+    # 'randomly' mark some nodes as offline
+    self._online_nodes = [name for name in self._all_nodes
+                          if '3' not in name and '5' not in name]
+    self._ssconf_mock.GetOnlineNodeList.return_value = self._online_nodes
+    backend.AddNodeSshKey(new_node_uuid, new_node_name,
+                          self._potential_master_candidates,
+                          self._ssh_port_map,
+                          to_authorized_keys=is_master_candidate,
+                          to_public_keys=is_potential_master_candidate,
+                          get_public_keys=is_potential_master_candidate,
+                          pub_key_file=self._pub_key_file,
+                          ssconf_store=self._ssconf_mock,
+                          noded_cert_file=self.noded_cert_file,
+                          run_cmd_fn=self._run_cmd_mock)
+
+    for node in self._all_nodes:
+      if node in self._online_nodes:
+        self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
+            node, new_node_key))
+      else:
+        self.assertFalse(self._ssh_file_manager.NodeHasAuthorizedKey(
+            node, new_node_key))
+
+    self._TearDownTestData()
 
 class TestVerifySshSetup(testutils.GanetiTestCase):
 

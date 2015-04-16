@@ -1544,9 +1544,13 @@ def AddNodeSshKey(node_uuid, node_name,
 
   all_nodes = ssconf_store.GetNodeList()
   master_node = ssconf_store.GetMasterNode()
+  online_nodes = ssconf_store.GetOnlineNodeList()
 
   for node in all_nodes:
     if node == master_node:
+      continue
+    if node not in online_nodes:
+      logging.debug("Skipping offline node '%s'.", node)
       continue
     if node in potential_master_candidates:
       run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
