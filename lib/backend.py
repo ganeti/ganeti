@@ -1890,6 +1890,8 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
 
   (_, root_keyfiles) = \
     ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
+  (_, dsa_pub_keyfile) = root_keyfiles[constants.SSHK_DSA]
+  old_master_key = utils.ReadFile(dsa_pub_keyfile)
 
   node_uuid_name_map = zip(node_uuids, node_names)
 
@@ -1910,16 +1912,31 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                                   % (node_name, node_uuid))
 
     if master_candidate:
-      logging.debug("Removing SSH key of node '%s'." % node_name)
-      RemoveNodeSshKey(node_uuid, node_name,
-                       master_candidate_uuids,
-                       potential_master_candidates,
-                       ssh_port_map,
-                       master_uuid=master_node_uuid,
-                       from_authorized_keys=master_candidate,
-                       from_public_keys=False,
-                       clear_authorized_keys=False,
-                       clear_public_keys=False)
+      logging.debug("Fetching old SSH key from node '%s'.", node_name)
+      old_pub_key = ssh.ReadRemoteSshPubKeys(dsa_pub_keyfile,
+                                             node_name, cluster_name,
+                                             ssh_port_map[node_name],
+                                             False, # ask_key
+                                             False) # key_check
+      if old_pub_key != old_master_key:
+        # If we are already in a multi-key setup (that is past Ganeti 2.12),
+        # we can safely remove the old key of the node. Otherwise, we cannot
+        # remove that node's key, because it is also the master node's key
+        # and that would terminate all communication from the master to the
+        # node.
+        logging.debug("Removing SSH key of node '%s'.", node_name)
+        RemoveNodeSshKey(node_uuid, node_name,
+                         master_candidate_uuids,
+                         potential_master_candidates,
+                         ssh_port_map,
+                         master_uuid=master_node_uuid,
+                         from_authorized_keys=master_candidate,
+                         from_public_keys=False,
+                         clear_authorized_keys=False,
+                         clear_public_keys=False)
+      else:
+        logging.debug("Old key of node '%s' is the same as the current master"
+                      " key. Not deleting that key on the node.", node_name)
 
     logging.debug("Generating new SSH key for node '%s'.", node_name)
     _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
@@ -1929,7 +1946,6 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                         run_cmd_fn=run_cmd_fn)
 
     try:
-      (_, dsa_pub_keyfile) = root_keyfiles[constants.SSHK_DSA]
       logging.debug("Fetching newly created SSH key from node '%s'.", node_name)
       pub_key = ssh.ReadRemoteSshPubKeys(dsa_pub_keyfile,
                                          node_name, cluster_name,
