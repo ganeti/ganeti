@@ -4584,9 +4584,6 @@ sshsGenerate = "generate"
 sshsSuffix :: String
 sshsSuffix = "suffix"
 
-sshsRename :: String
-sshsRename = "rename"
-
 sshsMasterSuffix :: String
 sshsMasterSuffix = "_master_tmp"
 
