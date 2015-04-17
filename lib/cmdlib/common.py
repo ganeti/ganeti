@@ -1554,3 +1554,11 @@ def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None):
     for node_uuid in stop_nodes:
       results[node_uuid].Warn("Failed to stop KVM daemon in node '%s'" %
                               node_uuid, feedback_fn)
+
+
+def EvaluateSshUpdateRPC(result, master_uuid, feedback_fn):
+  node_errors = result[master_uuid].payload
+  if node_errors:
+    feedback_fn("Some nodes' SSH key files could not be updated:")
+    for node_name, error_msg in node_errors:
+      feedback_fn("%s: %s" % (node_name, error_msg))

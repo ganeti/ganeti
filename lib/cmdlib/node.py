@@ -53,7 +53,7 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   GetWantedNodes, MapInstanceLvsToNodes, RunPostHook, \
   FindFaultyInstanceDisks, CheckStorageTypeEnabled, CreateNewClientCert, \
   AddNodeCertToCandidateCerts, RemoveNodeCertFromCandidateCerts, \
-  EnsureKvmdOnNodes
+  EnsureKvmdOnNodes, EvaluateSshUpdateRPC
 from ganeti.ssh import GetSshPortMap
 
 
@@ -339,7 +339,7 @@ class LUNodeAdd(LogicalUnit):
       result.Raise("Failed to initialize OpenVSwitch on new node")
 
   def _SshUpdate(self, new_node_uuid, new_node_name, is_master_candidate,
-                 is_potential_master_candidate, rpcrunner, readd):
+                 is_potential_master_candidate, rpcrunner, readd, feedback_fn):
     """Update the SSH setup of all nodes after adding a new node.
 
     @type readd: boolean
@@ -372,7 +372,9 @@ class LUNodeAdd(LogicalUnit):
       potential_master_candidates, port_map,
       is_master_candidate, is_potential_master_candidate,
       is_potential_master_candidate)
+
     result[master_node].Raise("Could not update the node's SSH setup.")
+    EvaluateSshUpdateRPC(result, master_node, feedback_fn)
 
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
@@ -481,7 +483,7 @@ class LUNodeAdd(LogicalUnit):
       # FIXME: so far, all nodes are considered potential master candidates
       self._SshUpdate(self.new_node.uuid, self.new_node.name,
                       self.new_node.master_candidate, True,
-                      self.rpc, self.op.readd)
+                      self.rpc, self.op.readd, feedback_fn)
 
 
 class LUNodeSetParams(LogicalUnit):
@@ -897,6 +899,7 @@ class LUNodeSetParams(LogicalUnit):
           ssh_result[master_node].Raise(
             "Could not update the SSH setup of node '%s' after promotion"
             " (UUID: %s)." % (node.name, node.uuid))
+          EvaluateSshUpdateRPC(ssh_result, master_node, feedback_fn)
 
     return result
 

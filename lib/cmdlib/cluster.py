@@ -68,7 +68,8 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   CheckDiskAccessModeConsistency, CreateNewClientCert, \
   AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp, \
   CheckImageValidity, \
-  CheckDiskAccessModeConsistency, CreateNewClientCert, EnsureKvmdOnNodes
+  CheckDiskAccessModeConsistency, CreateNewClientCert, EnsureKvmdOnNodes, \
+  EvaluateSshUpdateRPC
 
 import ganeti.masterd.instance
 
@@ -210,7 +211,7 @@ class LUClusterRenewCrypto(NoHooksLU):
     self.cfg.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid)
     self.cfg.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid)
 
-  def _RenewSshKeys(self):
+  def _RenewSshKeys(self, feedback_fn):
     """Renew all nodes' SSH keys.
 
     """
@@ -224,12 +225,19 @@ class LUClusterRenewCrypto(NoHooksLU):
     port_map = ssh.GetSshPortMap(node_names, self.cfg)
     potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
     master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
+
     result = self.rpc.call_node_ssh_keys_renew(
       [master_uuid],
       node_uuids, node_names, port_map,
       master_candidate_uuids,
       potential_master_candidates)
+
+    # Check if there were serious errors (for example master key files not
+    # writable).
     result[master_uuid].Raise("Could not renew the SSH keys of all nodes")
+
+    # Process any non-disruptive errors (a few nodes unreachable etc.)
+    EvaluateSshUpdateRPC(result, master_uuid, feedback_fn)
 
   def Exec(self, feedback_fn):
     if self.op.node_certificates:
@@ -237,7 +245,7 @@ class LUClusterRenewCrypto(NoHooksLU):
       self._RenewNodeSslCertificates(feedback_fn)
     if self.op.ssh_keys and not self._ssh_renewal_suppressed:
       feedback_fn("Renewing SSH keys")
-      self._RenewSshKeys()
+      self._RenewSshKeys(feedback_fn)
     elif self._ssh_renewal_suppressed:
       feedback_fn("Cannot renew SSH keys if the cluster is configured to not"
                   " modify the SSH setup.")

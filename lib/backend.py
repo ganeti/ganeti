@@ -1564,23 +1564,47 @@ def AddNodeSshKey(node_uuid, node_name,
   master_node = ssconf_store.GetMasterNode()
   online_nodes = ssconf_store.GetOnlineNodeList()
 
+  node_errors = []
   for node in all_nodes:
     if node == master_node:
+      logging.debug("Skipping master node '%s'.", master_node)
       continue
     if node not in online_nodes:
       logging.debug("Skipping offline node '%s'.", node)
       continue
     if node in potential_master_candidates:
-      run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                 ssh_port_map.get(node), pot_mc_data,
-                 debug=False, verbose=False, use_cluster_key=False,
-                 ask_key=False, strict_host_check=False)
+      logging.debug("Updating SSH key files of node '%s'.")
+      for i in range(constants.SSHS_MAX_RETRIES):
+        try:
+          run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
+                     ssh_port_map.get(node), pot_mc_data,
+                     debug=False, verbose=False, use_cluster_key=False,
+                     ask_key=False, strict_host_check=False)
+          break
+        except errors.OpExecError as e:
+          logging.error("Updating SSH key files of node '%s' failed"
+                        " at try no %s. Error: %s.", node, i, e)
+          last_exception = e
+      else:
+        if last_exception:
+          error_msg = ("When adding the key of node '%s', updating SSH key"
+                       " files of node '%s' failed after %s retries."
+                       " Not trying again. Last error was: %s." %
+                       (node, node_name, constants.SSHS_MAX_RETRIES,
+                        last_exception))
+          node_errors.append((node, error_msg))
+          # We only log the error and don't throw an exception, because
+          # one unreachable node shall not abort the entire procedure.
+          logging.error(error_msg)
+
     else:
       if to_authorized_keys:
         run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
                    ssh_port_map.get(node), base_data,
                    debug=False, verbose=False, use_cluster_key=False,
                    ask_key=False, strict_host_check=False)
+
+  return node_errors
 
 
 def RemoveNodeSshKey(node_uuid, node_name,
@@ -1923,6 +1947,10 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
 
   master_node_name = ssconf_store.GetMasterNode()
   master_node_uuid = _GetMasterNodeUUID(node_uuid_name_map, master_node_name)
+  # List of all node errors that happened, but which did not abort the
+  # procedure as a whole. It is important that this is a list to have a
+  # somewhat chronological history of events.
+  all_node_errors = []
 
   # process non-master nodes
   for node_uuid, node_name in node_uuid_name_map:
@@ -1987,15 +2015,16 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
       ssh.AddPublicKey(node_uuid, pub_key, key_file=pub_key_file)
 
     logging.debug("Add ssh key of node '%s'.", node_name)
-    AddNodeSshKey(node_uuid, node_name,
-                  potential_master_candidates,
-                  ssh_port_map,
-                  to_authorized_keys=master_candidate,
-                  to_public_keys=potential_master_candidate,
-                  get_public_keys=True,
-                  pub_key_file=pub_key_file, ssconf_store=ssconf_store,
-                  noded_cert_file=noded_cert_file,
-                  run_cmd_fn=run_cmd_fn)
+    node_errors = AddNodeSshKey(
+        node_uuid, node_name, potential_master_candidates,
+        ssh_port_map, to_authorized_keys=master_candidate,
+        to_public_keys=potential_master_candidate,
+        get_public_keys=True,
+        pub_key_file=pub_key_file, ssconf_store=ssconf_store,
+        noded_cert_file=noded_cert_file,
+        run_cmd_fn=run_cmd_fn)
+    if node_errors:
+      all_node_errors = all_node_errors + node_errors
 
   # Renewing the master node's key
 
@@ -2020,15 +2049,14 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
 
   # Add new master key to all node's public and authorized keys
   logging.debug("Add new master key to all nodes.")
-  AddNodeSshKey(master_node_uuid, master_node_name,
-                potential_master_candidates,
-                ssh_port_map,
-                to_authorized_keys=True,
-                to_public_keys=True,
-                get_public_keys=False,
-                pub_key_file=pub_key_file, ssconf_store=ssconf_store,
-                noded_cert_file=noded_cert_file,
-                run_cmd_fn=run_cmd_fn)
+  node_errors = AddNodeSshKey(
+      master_node_uuid, master_node_name, potential_master_candidates,
+      ssh_port_map, to_authorized_keys=True, to_public_keys=True,
+      get_public_keys=False, pub_key_file=pub_key_file,
+      ssconf_store=ssconf_store, noded_cert_file=noded_cert_file,
+      run_cmd_fn=run_cmd_fn)
+  if node_errors:
+    all_node_errors = all_node_errors + node_errors
 
   # Remove the old key file and rename the new key to the non-temporary filename
   _ReplaceMasterKeyOnMaster(root_keyfiles)
@@ -2050,6 +2078,8 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
                    from_public_keys=False,
                    clear_authorized_keys=False,
                    clear_public_keys=False)
+
+  return all_node_errors
 
 
 def GetBlockDevSizes(devices):
