@@ -1095,13 +1095,13 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_port_map[name] = self._SSH_PORT
 
+  def _GetNewMasterCandidate(self):
+    """Returns the properties of a new master candidate node."""
+    return ("new_node_name", "new_node_uuid", "new_node_key", True, True, False)
+
   def testAddMasterCandidate(self):
-    new_node_name = "new_node_name"
-    new_node_uuid = "new_node_uuid"
-    new_node_key = "new_node_key"
-    is_master_candidate = True
-    is_potential_master_candidate = True
-    is_master = False
+    (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
+     is_potential_master_candidate, is_master) = self._GetNewMasterCandidate()
 
     self._AddNewNodeToTestData(
         new_node_name, new_node_uuid, new_node_key,
@@ -1339,12 +1339,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
             if '3' not in name and '5' not in name]
 
   def testAddKeyWithOfflineNodes(self):
-    new_node_name = "new_node_name"
-    new_node_uuid = "new_node_uuid"
-    new_node_key = "new_node_key"
-    is_master_candidate = True
-    is_potential_master_candidate = True
-    is_master = False
+    (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
+     is_potential_master_candidate, is_master) = self._GetNewMasterCandidate()
 
     self._AddNewNodeToTestData(
         new_node_name, new_node_uuid, new_node_key,
@@ -1408,12 +1404,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     itself takes a couple of retries to succeed.
 
     """
-    new_node_name = "new_node_name"
-    new_node_uuid = "new_node_uuid"
-    new_node_key = "new_node_key"
-    is_master_candidate = True
-    is_potential_master_candidate = True
-    is_master = False
+    (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
+     is_potential_master_candidate, is_master) = self._GetNewMasterCandidate()
 
     self._AddNewNodeToTestData(
         new_node_name, new_node_uuid, new_node_key,
@@ -1446,12 +1438,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     successfully rolled back and thus the state of the cluster is cleaned up.
 
     """
-    new_node_name = "new_node_name"
-    new_node_uuid = "new_node_uuid"
-    new_node_key = "new_node_key"
-    is_master_candidate = True
-    is_potential_master_candidate = True
-    is_master = False
+    (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
+     is_potential_master_candidate, is_master) = self._GetNewMasterCandidate()
 
     self._AddNewNodeToTestData(
         new_node_name, new_node_uuid, new_node_key,
@@ -1490,12 +1478,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     to succeed.
 
     """
-    new_node_name = "new_node_name"
-    new_node_uuid = "new_node_uuid"
-    new_node_key = "new_node_key"
-    is_master_candidate = True
-    is_potential_master_candidate = True
-    is_master = False
+    (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
+     is_potential_master_candidate, is_master) = self._GetNewMasterCandidate()
 
     other_node_name, _, _, _, _, _ = self._ssh_file_manager \
         .GetAllMasterCandidates()[0]
@@ -1530,12 +1514,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     updated.
 
     """
-    new_node_name = "new_node_name"
-    new_node_uuid = "new_node_uuid"
-    new_node_key = "new_node_key"
-    is_master_candidate = True
-    is_potential_master_candidate = True
-    is_master = False
+    (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
+     is_potential_master_candidate, is_master) = self._GetNewMasterCandidate()
 
     other_node_name, _, _, _, _, _ = self._ssh_file_manager \
         .GetAllMasterCandidates()[0]
