@@ -36,6 +36,7 @@ Algorithm options:
 **[ \--evac-mode ]**
 **[ \--select-instances *inst...* ]**
 **[ \--exclude-instances *inst...* ]**
+**[ \--no-capacity-checks ]**
 
 Reporting options:
 
@@ -59,12 +60,22 @@ simulation if necessary.
 
 For more information about the algorithm details check **hbal**\(1).
 
+Additionally, hcheck also checks if the cluster is globally N+1 redundant.
+That is, it checks for every node, if after failing over the DRBD instances
+all instances on that node that with disks externally stored can be restarted
+on some other node.
+
 OPTIONS
 -------
 
 \--no-simulation
   Only perform checks based on current cluster state, without trying
   to simulate rebalancing.
+
+\--no-capacity-checks
+  Do not check for global N+1 redundancy, i.e., do not warn if the
+  shared-storage instances of one node cannot be moved to the others
+  should that node fail.
 
 For a detailed description about the options listed above have a look at
 **htools**\(1), **hspace**\(1) and **hbal**\(1).

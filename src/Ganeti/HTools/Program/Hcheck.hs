@@ -91,6 +91,7 @@ options = do
     , oQuiet
     , oRapiMaster
     , oSelInst
+    , oNoCapacityChecks
     , oVerbose
     ]
 
@@ -117,21 +118,22 @@ htcPrefix :: String
 htcPrefix = "HCHECK"
 
 -- | Data showed both per group and per cluster.
-commonData :: [(String, String)]
-commonData =[ ("N1_FAIL", "Nodes not N+1 happy")
-            , ("CONFLICT_TAGS", "Nodes with conflicting instances")
-            , ("OFFLINE_PRI", "Instances having the primary node offline")
-            , ("OFFLINE_SEC", "Instances having a secondary node offline")
-            , ("GN1_FAIL", "Nodes not directly evacuateable")
-            ]
+commonData :: Options -> [(String, String)]
+commonData opts =
+  [ ("N1_FAIL", "Nodes not N+1 happy")
+  , ("CONFLICT_TAGS", "Nodes with conflicting instances")
+  , ("OFFLINE_PRI", "Instances having the primary node offline")
+  , ("OFFLINE_SEC", "Instances having a secondary node offline")
+  ]
+  ++ [ ("GN1_FAIL", "Nodes not directly evacuateable")  | optCapacity opts ]
 
 -- | Data showed per group.
-groupData :: [(String, String)]
-groupData = commonData ++ [("SCORE", "Group score")]
+groupData :: Options -> [(String, String)]
+groupData opts = commonData opts ++ [("SCORE", "Group score")]
 
 -- | Data showed per cluster.
-clusterData :: [(String, String)]
-clusterData = commonData ++
+clusterData :: Options -> [(String, String)]
+clusterData opts = commonData opts  ++
               [ ("NEED_REBALANCE", "Cluster is not healthy") ]
 
 -- | Phase-specific prefix for machine readable version.
@@ -145,9 +147,9 @@ levelPrefix GroupLvl {} = "GROUP"
 levelPrefix ClusterLvl  = "CLUSTER"
 
 -- | Machine-readable keys to show depending on given level.
-keysData :: Level -> [String]
-keysData GroupLvl {} = map fst groupData
-keysData ClusterLvl  = map fst clusterData
+keysData :: Options -> Level -> [String]
+keysData opts GroupLvl {} = map fst $ groupData opts
+keysData opts ClusterLvl  = map fst $ clusterData opts
 
 -- | Description of phases for human readable version.
 phaseDescr :: Phase -> String
@@ -155,9 +157,9 @@ phaseDescr Initial = "initially"
 phaseDescr Rebalanced = "after rebalancing"
 
 -- | Description to show depending on given level.
-descrData :: Level -> [String]
-descrData GroupLvl {} = map snd groupData
-descrData ClusterLvl  = map snd clusterData
+descrData :: Options -> Level -> [String]
+descrData opts GroupLvl {} = map snd $ groupData opts
+descrData opts ClusterLvl  = map snd $ clusterData opts
 
 -- | Human readable prefix for statistics.
 phaseLevelDescr :: Phase -> Level -> String
@@ -195,20 +197,20 @@ prepareKey level@(GroupLvl idx) phase suffix =
   printf "%s_%s_%s_%s" (phasePrefix phase) (levelPrefix level) idx suffix
 
 -- | Print all the statistics for given level and phase.
-printStats :: Int            -- ^ Verbosity level
+printStats :: Options
            -> Bool           -- ^ If the output should be machine readable
            -> Level          -- ^ Level on which we are printing
            -> Phase          -- ^ Current phase of simulation
            -> [String]       -- ^ Values to print
            -> IO ()
-printStats _ True level phase values = do
-  let keys = map (prepareKey level phase) (keysData level)
+printStats opts True level phase values = do
+  let keys = map (prepareKey level phase) (keysData opts level)
   printKeysHTC $ zip keys values
 
-printStats verbose False level phase values = do
+printStats opts False level phase values = do
   let prefix = phaseLevelDescr phase level
-      descr = descrData level
-  unless (verbose < 1) $ do
+      descr = descrData opts level
+  unless (optVerbose opts < 1) $ do
     putStrLn ""
     putStr prefix
     mapM_ (uncurry (printf "    %s: %s\n")) (zip descr values)
@@ -229,17 +231,17 @@ prepareClusterValues machineread stats bstats =
   map show stats ++ map (printBool machineread) bstats
 
 -- | Print all the statistics on a group level.
-printGroupStats :: Int -> Bool -> Phase -> GroupStats -> IO ()
-printGroupStats verbose machineread phase ((grp, score), stats) = do
+printGroupStats :: Options -> Bool -> Phase -> GroupStats -> IO ()
+printGroupStats opts machineread phase ((grp, score), stats) = do
   let values = prepareGroupValues stats score
       extradata = extractGroupData machineread grp
-  printStats verbose machineread (GroupLvl extradata) phase values
+  printStats opts machineread (GroupLvl extradata) phase values
 
 -- | Print all the statistics on a cluster (global) level.
-printClusterStats :: Int -> Bool -> Phase -> [Int] -> Bool -> IO ()
-printClusterStats verbose machineread phase stats needhbal = do
+printClusterStats :: Options -> Bool -> Phase -> [Int] -> Bool -> IO ()
+printClusterStats opts machineread phase stats needhbal = do
   let values = prepareClusterValues machineread stats [needhbal]
-  printStats verbose machineread ClusterLvl phase values
+  printStats opts machineread ClusterLvl phase values
 
 -- | Check if any of cluster metrics is non-zero.
 clusterNeedsRebalance :: [Int] -> Bool
@@ -249,8 +251,8 @@ clusterNeedsRebalance stats = sum stats > 0
 instances residing on offline nodes.
 
 -}
-perGroupChecks :: Group.List -> GroupInfo -> GroupStats
-perGroupChecks gl (gidx, (nl, il)) =
+perGroupChecks :: Options -> Group.List -> GroupInfo -> GroupStats
+perGroupChecks opts gl (gidx, (nl, il)) =
   let grp = Container.find gidx gl
       offnl = filter Node.offline (Container.elems nl)
       n1violated = length . fst $ Cluster.computeBadItems nl il
@@ -265,8 +267,8 @@ perGroupChecks gl (gidx, (nl, il)) =
                    , conflicttags
                    , offline_pri
                    , offline_sec
-                   , gn1fail
                    ]
+                   ++ [ gn1fail | optCapacity opts ]
   in ((grp, score), groupstats)
 
 -- | Use Hbal's iterateDepth to simulate group rebalance.
@@ -323,7 +325,7 @@ main opts args = do
 
   when machineread $ printGroupsMappings gl
 
-  let groupsstats = map (perGroupChecks gl) splitcluster
+  let groupsstats = map (perGroupChecks opts gl) splitcluster
       clusterstats = map sum . transpose . map snd $ groupsstats
       needrebalance = clusterNeedsRebalance clusterstats
 
@@ -334,9 +336,9 @@ main opts args = do
                         then "Cluster needs rebalancing."
                         else "No need to rebalance cluster, no problems found."
 
-  mapM_ (printGroupStats verbose machineread Initial) groupsstats
+  mapM_ (printGroupStats opts machineread Initial) groupsstats
 
-  printClusterStats verbose machineread Initial clusterstats needrebalance
+  printClusterStats opts machineread Initial clusterstats needrebalance
 
   let exitOK = nosimulation || not needrebalance
       simulate = not nosimulation && needrebalance
@@ -344,13 +346,13 @@ main opts args = do
   rebalancedcluster <- maybeSimulateRebalance simulate opts splitcluster
 
   when (simulate || machineread) $ do
-    let newgroupstats = map (perGroupChecks gl) rebalancedcluster
+    let newgroupstats = map (perGroupChecks opts gl) rebalancedcluster
         newclusterstats = map sum . transpose . map snd $ newgroupstats
         newneedrebalance = clusterNeedsRebalance clusterstats
 
-    mapM_ (printGroupStats verbose machineread Rebalanced) newgroupstats
+    mapM_ (printGroupStats opts machineread Rebalanced) newgroupstats
 
-    printClusterStats verbose machineread Rebalanced newclusterstats
+    printClusterStats opts machineread Rebalanced newclusterstats
                            newneedrebalance
 
   printFinalHTC machineread

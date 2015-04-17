@@ -115,6 +115,7 @@ module Ganeti.HTools.CLI
   , oTieredSpec
   , oVerbose
   , oPriority
+  , oNoCapacityChecks
   , genericOpts
   ) where
 
@@ -204,6 +205,7 @@ data Options = Options
   , optReplay      :: Maybe String   -- ^ Unittests: RNG state
   , optVerbose     :: Int            -- ^ Verbosity level
   , optPriority    :: Maybe OpSubmitPriority -- ^ OpCode submit priority
+  , optCapacity    :: Bool           -- ^ Also do capacity-related checks
   } deriving Show
 
 -- | Default values for the command line options.
@@ -271,6 +273,7 @@ defaultOptions  = Options
   , optReplay      = Nothing
   , optVerbose     = 1
   , optPriority    = Nothing
+  , optCapacity    = True
   }
 
 -- | Abbreviation for the option type.
@@ -782,6 +785,13 @@ oPriority =
               Ok opts { optPriority = Just prio }) "PRIO")
    "set the priority of submitted jobs",
     OptComplChoices (map fmtSubmitPriority [minBound..maxBound]))
+
+oNoCapacityChecks :: OptType
+oNoCapacityChecks =
+  (Option "" ["no-capacity-checks"]
+   (NoArg (\ opts -> Ok opts { optCapacity = False}))
+   "disable capacity checks (like global N+1 redundancy)",
+   OptComplNone)
 
 -- | Generic options.
 genericOpts :: [GenericOptType Options]
