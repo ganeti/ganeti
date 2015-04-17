@@ -34,14 +34,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.HTools.GlobalN1
   ( canEvacuateNode
+  , allocGlobalN1
   ) where
 
 import Control.Monad (foldM)
 import qualified Data.IntMap as IntMap
+import qualified Data.Foldable as Foldable
 import Data.List (partition)
 
 import Ganeti.BasicTypes (isOk, Result)
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), defaultOptions)
+import qualified Ganeti.HTools.Cluster.AllocationSolution as AllocSol
 import qualified Ganeti.HTools.Cluster.Evacuate as Evacuate
 import Ganeti.HTools.Cluster.Moves (move)
 import qualified Ganeti.HTools.Container as Container
@@ -83,3 +86,13 @@ canEvacuateNode (nl, il) n = isOk $ do
   _ <- foldM (evac (Node.group n') . map Node.idx $ IntMap.elems nl'')
              (nl'',il') sharedIdxs
   return ()
+
+-- | Predicate on wheter an allocation element leads to a globally N+1 redundant
+-- state.
+allocGlobalN1 :: Node.List -- ^ the original list of nodes
+              -> Instance.List -- ^ the original list of instances
+              -> AllocSol.GenericAllocElement a -> Bool
+allocGlobalN1 nl il alloc =
+  let il' = AllocSol.updateIl il $ Just alloc
+      nl' = AllocSol.extractNl nl il $ Just alloc
+  in Foldable.all (canEvacuateNode (nl', il')) nl'
