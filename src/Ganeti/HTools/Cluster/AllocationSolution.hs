@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013, 2015 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -46,9 +46,15 @@ module Ganeti.HTools.Cluster.AllocationSolution
   , genericAnnotateSolution
   , annotateSolution
   , solutionDescription
+  , AllocSolutionCollection
+  , emptyAllocCollection
+  , concatAllocCollections
+  , collectionToSolution
   ) where
 
-import Data.List (intercalate, foldl')
+import Data.Ord (comparing)
+import Data.List (intercalate, foldl', sortBy)
+import Data.Maybe (listToMaybe)
 import Text.Printf (printf)
 
 import Ganeti.BasicTypes (GenericResult(..), Result)
@@ -61,6 +67,10 @@ import qualified Ganeti.HTools.Types as T
 -- | A simple name for an allocation element (here just for logistic
 -- reasons), generic in the type of the metric.
 type GenericAllocElement a = (Node.List, Instance.Instance, [Node.Node], a)
+
+-- | Obtain the metric of a GenericAllocElement.
+allocMetric :: GenericAllocElement a -> a
+allocMetric (_, _, _, a) = a
 
 -- | A simple name for an allocation element (here just for logistic
 -- reasons).
@@ -201,3 +211,55 @@ solutionDescription (grp, result) =
   where gname = Group.name grp
         pol = T.allocPolicyToRaw (Group.allocPolicy grp)
 
+-- * Collection of Allocation Solutions for later filtering
+
+-- | Collection of Allocation Solution
+data AllocSolutionCollection a = AllocSolutionCollection
+  { ascFailures  :: [T.FailMode]            -- ^ Failure counts
+  , ascAllocs    :: Int                     -- ^ Good allocation count
+  , ascSolutions :: [GenericAllocElement a] -- ^ The actual allocation results
+  , ascLog       :: [String]                -- ^ Informational messages
+  }
+
+-- | Empty collection of allocation solutions.
+emptyAllocCollection :: AllocSolutionCollection a
+emptyAllocCollection = AllocSolutionCollection
+                         { ascFailures = []
+                         , ascAllocs = 0
+                         , ascSolutions = []
+                         , ascLog = []
+                         }
+
+-- | Update current collection of solution and failure stats with new
+-- elements.
+concatAllocCollections :: Ord a
+                       => AllocSolutionCollection a
+                       -> T.OpResult (GenericAllocElement a)
+                       -> AllocSolutionCollection a
+concatAllocCollections asc (Bad reason) =
+  asc { ascFailures = reason : ascFailures asc }
+
+concatAllocCollections asc (Ok ns) =
+  asc { ascAllocs = ascAllocs asc + 1, ascSolutions = ns : ascSolutions asc }
+
+-- | From a collection of solutions collapse to a single one by chosing the best
+-- that fulfills a given predicate.
+collectionToSolution :: Ord a
+                     => T.FailMode -- ^ Failure mode to assign to solutions
+                                   -- filtered out in this step
+                     -> (GenericAllocElement a -> Bool) -- ^ predicate
+                                                        -- to restrict to
+                     -> AllocSolutionCollection a
+                     -> GenericAllocSolution a
+collectionToSolution failmode isgood asc =
+  let sols = sortBy (comparing allocMetric) $ ascSolutions asc
+      (dropped, good) = break isgood sols
+      dropcount = length dropped
+      nsols = ascAllocs asc - dropcount
+      failures = replicate dropcount failmode ++ ascFailures asc
+      sol = listToMaybe good
+  in AllocSolution { asFailures = failures
+                   , asAllocs = nsols
+                   , asSolution = sol
+                   , asLog = ascLog asc
+                   }
