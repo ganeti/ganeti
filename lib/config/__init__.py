@@ -1772,23 +1772,12 @@ class ConfigWriter(object):
     if not isinstance(instance, objects.Instance):
       raise errors.ProgrammerError("Invalid type passed to AddInstance")
 
-    all_macs = self._AllMACs()
-    for nic in instance.nics:
-      if nic.mac in all_macs:
-        raise errors.ConfigurationError("Cannot add instance %s:"
-                                        " MAC address '%s' already in use." %
-                                        (instance.name, nic.mac))
-
-    if replace:
-      self._CheckUUIDpresent(instance)
-    else:
-      self._CheckUniqueUUID(instance, include_temporary=False)
-
     instance.serial_no = 1
-    instance.ctime = instance.mtime = time.time()
 
     utils.SimpleRetry(True, self._wconfd.AddInstance, 0.1, 30,
-                      args=[instance.ToDict(), self._GetWConfdContext()])
+                      args=[instance.ToDict(),
+                            self._GetWConfdContext(),
+                            replace])
     self.OutDate()
 
   def _EnsureUUID(self, item, ec_id):
