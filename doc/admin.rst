@@ -1533,7 +1533,7 @@ Limitations
 Note that the set of characters present in a tag and the maximum tag
 length are restricted. Currently the maximum length is 128 characters,
 there can be at most 4096 tags per object, and the set of characters is
-comprised by alphanumeric characters and additionally ``.+*/:@-``.
+comprised by alphanumeric characters and additionally ``.+*/:@-_``.
 
 Operations
 ++++++++++
