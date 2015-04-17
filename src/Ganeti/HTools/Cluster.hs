@@ -96,8 +96,9 @@ import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), defaultOptions)
 import qualified Ganeti.HTools.Container as Container
 import Ganeti.HTools.Cluster.AllocationSolution
     ( AllocElement, GenericAllocSolution(..) , AllocSolution, emptyAllocSolution
-    , sumAllocs, concatAllocs, extractNl, updateIl
-    , annotateSolution, solutionDescription, collapseFailures )
+    , sumAllocs, extractNl, updateIl
+    , annotateSolution, solutionDescription, collapseFailures
+    , emptyAllocCollection, concatAllocCollections, collectionToSolution )
 import Ganeti.HTools.Cluster.Evacuate ( EvacSolution(..), emptyEvacSolution
                                       , updateEvacSolution, reverseEvacSolution
                                       , nodeEvacInstance)
@@ -107,6 +108,7 @@ import Ganeti.HTools.Cluster.Metrics ( compCV, compCVfromStats
 import Ganeti.HTools.Cluster.Moves (setInstanceLocationScore, applyMoveEx)
 import Ganeti.HTools.Cluster.Utils (splitCluster, instancePriGroup
                                    , availableGroupNodes, iMoveToJob)
+import Ganeti.HTools.GlobalN1 (allocGlobalN1)
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Nic as Nic
 import qualified Ganeti.HTools.Node as Node
@@ -540,22 +542,31 @@ tryAlloc :: (Monad m) =>
          -> AllocNodes        -- ^ The allocation targets
          -> m AllocSolution   -- ^ Possible solution list
 tryAlloc _ _  _ _    (Right []) = fail "Not enough online nodes"
-tryAlloc opts nl _ inst (Right ok_pairs) =
+tryAlloc opts nl il inst (Right ok_pairs) =
   let cstat = compClusterStatistics $ Container.elems nl
+      n1pred = if algCapacity opts
+                 then allocGlobalN1 nl il
+                 else const True
       psols = parMap rwhnf (\(p, ss) ->
-                              foldl' (\cstate ->
-                                        concatAllocs cstate .
-                                        allocateOnPair opts cstat nl inst p)
-                              emptyAllocSolution ss) ok_pairs
+                              collectionToSolution FailN1 n1pred $
+                              foldl (\cstate ->
+                                      concatAllocCollections cstate
+                                      . allocateOnPair opts cstat nl inst p)
+                              emptyAllocCollection ss) ok_pairs
       sols = foldl' sumAllocs emptyAllocSolution psols
   in return $ annotateSolution sols
 
 tryAlloc _ _  _ _    (Left []) = fail "No online nodes"
-tryAlloc opts nl _ inst (Left all_nodes) =
-  let sols = foldl' (\cstate ->
-                       concatAllocs cstate . allocateOnSingle opts nl inst
-                    ) emptyAllocSolution all_nodes
-  in return $ annotateSolution sols
+tryAlloc opts nl il inst (Left all_nodes) =
+  let sols = foldl (\cstate ->
+                       concatAllocCollections cstate
+                       . allocateOnSingle opts nl inst
+                   ) emptyAllocCollection all_nodes
+      n1pred = if algCapacity opts
+                 then allocGlobalN1 nl il
+                 else const True
+  in return . annotateSolution
+       $ collectionToSolution FailN1 n1pred sols
 
 -- | From a list of possibly bad and possibly empty solutions, filter
 -- only the groups with a valid result. Note that the result will be
@@ -779,7 +790,7 @@ iterateAlloc opts nl il limit newinst allocnodes ixes cstats =
       newidx = Container.size il
       newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
       newlimit = fmap (flip (-) 1) limit
-  in case tryAlloc opts nl il newi2 allocnodes of
+  in case tryAlloc ( opts { algCapacity = False } ) nl il newi2 allocnodes of
        Bad s -> Bad s
        Ok (AllocSolution { asFailures = errs, asSolution = sols3 }) ->
          let newsol = Ok (collapseFailures errs, nl, il, ixes, cstats) in
