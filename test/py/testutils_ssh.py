@@ -253,28 +253,25 @@ class FakeSshFileManager(object):
     """
     return key in self._authorized_keys[file_node_name]
 
-  def AllNodesHaveAuthorizedKey(self, key):
+  def AssertAllNodesHaveAuthorizedKey(self, key):
     """Check if all nodes have a particular key in their auth. keys file.
 
     @type key: string
     @param key: key exptected to be present in all node's authorized_keys file
-    @rtype: boolean
-    @return: True if key is present in all node's authorized_keys file
+    @raise: Exception if a node does not have the authorized key.
 
     """
     for name in self._all_node_data.keys():
       if key not in self._authorized_keys[name]:
         raise Exception("Node '%s' does not have the key '%s' in its"
                         " 'authorized_keys' file." % (name, key))
-    return True
 
-  def NoNodeHasAuthorizedKey(self, key):
+  def AssertNoNodeHasAuthorizedKey(self, key):
     """Check if none of the nodes has a particular key in their auth. keys file.
 
     @type key: string
     @param key: key exptected to be present in all node's authorized_keys file
-    @rtype: boolean
-    @return: True if key is not present in all node's authorized_keys file
+    @raise Exception: if a node *does* have the authorized key.
 
     """
     for name in self._all_node_data.keys():
@@ -282,15 +279,13 @@ class FakeSshFileManager(object):
       if key in node_auth_keys:
         raise Exception("Node '%s' does have the key '%s' in its"
                         " 'authorized_keys' file." % (name, key))
-    return True
 
-  def NoNodeHasPublicKey(self, uuid, key):
+  def AssertNoNodeHasPublicKey(self, uuid, key):
     """Check if none of the nodes have the given public key in their file.
 
     @type uuid: string
     @param uuid: UUID of the node whose key is looked for
-    @type key: string
-    @param key: SSH key to be looked for
+    @raise Exception: if a node *does* have the public key.
 
     """
     for name in self._all_node_data.keys():
@@ -298,9 +293,8 @@ class FakeSshFileManager(object):
       if (uuid, key) in node_pub_keys.items():
         raise Exception("Node '%s' does have public key '%s' of node '%s'"
                         % (name, key, uuid))
-    return True
 
-  def PotentialMasterCandidatesOnlyHavePublicKey(self, query_node_name):
+  def AssertPotentialMasterCandidatesOnlyHavePublicKey(self, query_node_name):
     """Checks if the node's key is on all potential master candidates only.
 
     This ensures that the node's key is in all public key files of all
@@ -311,6 +305,8 @@ class FakeSshFileManager(object):
                             in the public key file of all potential master
                             candidates
     @type query_node_name: string
+    @raise Exception: when a potential master candidate does not have
+                      the public key or a normal node *does* have a public key.
 
     """
     query_node_uuid, query_node_key, _, _, _ = \
