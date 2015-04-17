@@ -258,7 +258,7 @@ class FakeSshFileManager(object):
 
     @type key: string
     @param key: key exptected to be present in all node's authorized_keys file
-    @raise: Exception if a node does not have the authorized key.
+    @raise Exception: if a node does not have the authorized key.
 
     """
     for name in self._all_node_data.keys():

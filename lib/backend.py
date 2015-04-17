@@ -1810,16 +1810,25 @@ def RemoveNodeSshKey(node_uuid, node_name,
             constants.SSHS_SSH_AUTHORIZED_KEYS in data):
       return
 
-    try:
-      run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
-                 ssh_port, data,
-                 debug=False, verbose=False, use_cluster_key=False,
-                 ask_key=False, strict_host_check=False)
-    except errors.OpExecError as e:
-      result_msgs[node_name] = \
-          ("Removing SSH keys from node '%s' failed. This can"
-           " happen when the node is already unreachable."
-           " Error: %s" % (node_name, e))
+    last_exception = None
+    for i in range(constants.SSHS_MAX_RETRIES):
+      try:
+        run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
+                   ssh_port, data,
+                   debug=False, verbose=False, use_cluster_key=False,
+                   ask_key=False, strict_host_check=False)
+      except errors.OpExecError as e:
+        logging.error("Updating the SSH key files of node '%s', whose key"
+                      " itself is being removed failed with try no %s."
+                      " Error: %s", node_name, i, e)
+        last_exception = e
+    else:
+      if last_exception:
+        result_msgs.append(
+            (node_name,
+             ("Removing SSH keys from node '%s' failed after %s retries."
+              " This can happen when the node is already unreachable."
+              " Error: %s" % (node_name, constants.SSHS_MAX_RETRIES, e))))
 
   return result_msgs
 

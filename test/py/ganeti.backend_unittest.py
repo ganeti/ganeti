@@ -1606,6 +1606,68 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self.assertTrue([error_msg for (node, error_msg) in error_msgs
                      if node == other_node_name])
 
+  def testRemoveKeySuccessfullyWithRetriesOnTargetNode(self):
+    """Test removing keys even if the target nodes needs retries.
+
+    This tests checks whether a key can be removed successfully even
+    when removing the key on the node itself needs retries.
+
+    """
+    all_master_candidates = self._ssh_file_manager.GetAllMasterCandidates()
+    node_name, node_uuid, node_key, _, _, _ = all_master_candidates[0]
+    assert node_name != self._master_node
+    self._ssh_file_manager.SetMaxRetries(
+        node_name, constants.SSHS_MAX_RETRIES)
+
+    backend.RemoveNodeSshKey(node_uuid, node_name,
+                             self._master_candidate_uuids,
+                             self._potential_master_candidates,
+                             self._ssh_port_map,
+                             from_authorized_keys=True,
+                             from_public_keys=True,
+                             clear_authorized_keys=True,
+                             clear_public_keys=True,
+                             pub_key_file=self._pub_key_file,
+                             ssconf_store=self._ssconf_mock,
+                             noded_cert_file=self.noded_cert_file,
+                             run_cmd_fn=self._run_cmd_mock)
+
+    self._ssh_file_manager.AssertNoNodeHasPublicKey(node_uuid, node_key)
+    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_key)
+
+  def testRemoveKeyFailedWithRetriesOnTargetNode(self):
+    """Test removing keys even if contacting the node fails with retries.
+
+    This tests checks whether the removal of a key finishes properly, even if
+    the update of the key files on the node itself fails despite several
+    retries.
+
+    """
+    all_master_candidates = self._ssh_file_manager.GetAllMasterCandidates()
+    node_name, node_uuid, node_key, _, _, _ = all_master_candidates[0]
+    assert node_name != self._master_node
+    self._ssh_file_manager.SetMaxRetries(
+        node_name, constants.SSHS_MAX_RETRIES + 1)
+
+    error_msgs = backend.RemoveNodeSshKey(
+        node_uuid, node_name, self._master_candidate_uuids,
+        self._potential_master_candidates, self._ssh_port_map,
+        from_authorized_keys=True, from_public_keys=True,
+        clear_authorized_keys=True, clear_public_keys=True,
+        pub_key_file=self._pub_key_file, ssconf_store=self._ssconf_mock,
+        noded_cert_file=self.noded_cert_file, run_cmd_fn=self._run_cmd_mock)
+
+    for node in self._all_nodes:
+      if node == node_name:
+        self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
+            node, node_key))
+      else:
+        self.assertFalse(self._ssh_file_manager.NodeHasAuthorizedKey(
+            node, node_key))
+    self.assertTrue([error_msg for (node, error_msg) in error_msgs
+                     if node == node_name])
+
+
 class TestVerifySshSetup(testutils.GanetiTestCase):
 
   _NODE1_UUID = "uuid1"
