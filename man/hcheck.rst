@@ -60,6 +60,11 @@ simulation if necessary.
 
 For more information about the algorithm details check **hbal**\(1).
 
+Additionally, hcheck also checks if the cluster is globally N+1 redundant.
+That is, it checks for every node, if after failing over the DRBD instances
+all instances on that node that with disks externally stored can be restarted
+on some other node.
+
 OPTIONS
 -------
 
