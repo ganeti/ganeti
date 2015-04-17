@@ -92,11 +92,22 @@ updateIl il (Just (_, xi, _, _)) = Container.add (Container.size il) xi il
 
 -- | Extract the the new node list from the allocation solution.
 extractNl :: Node.List               -- ^ The original node list
+          -> Instance.List           -- ^ The original instance list
           -> Maybe (GenericAllocElement a) -- ^ The result of the
                                            -- allocation attempt
           -> Node.List               -- ^ The new node list
-extractNl nl Nothing = nl
-extractNl _ (Just (xnl, _, _, _)) = xnl
+extractNl nl _ Nothing = nl
+extractNl _ il (Just (xnl, _, ns, _)) =
+  let newIndex = Container.size il
+      fixIndex = map (\i -> if i < 0 then newIndex else i)
+      fixIndices nodes node =
+        let nidx = Node.idx node
+            n = Container.find nidx nodes
+            n' = n { Node.pList = fixIndex $ Node.pList n
+                   , Node.sList = fixIndex $ Node.sList n
+                   }
+        in Container.add nidx n' nodes
+  in foldl fixIndices xnl ns
 
 -- | Compares two Maybe AllocElement and chooses the best score.
 bestAllocElement :: Ord a

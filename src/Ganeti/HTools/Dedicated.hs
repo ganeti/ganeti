@@ -250,7 +250,7 @@ runDedicatedAllocation opts request =
                                  $ findAllocation opts gl nl gdx inst count)
                           maybeGroup
                   let sol = AllocSol.asSolution ares
-                      nl'' = AllocSol.extractNl nl' sol
+                      nl'' = AllocSol.extractNl nl' il' sol
                       il'' = AllocSol.updateIl il' sol
                   return (nl'', il'', (inst, ares):res))
                (nl, il, []) insts

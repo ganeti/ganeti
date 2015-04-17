@@ -705,7 +705,7 @@ allocList opts gl nl il ((xi, AllocDetails xicnt mgn):xies) result = do
     Nothing -> tryMGAlloc opts gl nl il xi xicnt
     Just gn -> tryGroupAlloc opts gl nl il gn xi xicnt
   let sol = asSolution ares
-      nl' = extractNl nl sol
+      nl' = extractNl nl il sol
       il' = updateIl il sol
   allocList opts gl nl' il' xies ((xi, ares):result)
 
