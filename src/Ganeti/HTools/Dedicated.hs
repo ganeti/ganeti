@@ -57,6 +57,7 @@ import Ganeti.BasicTypes (iterateOk, Result, failError)
 import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.AllocationSolution as AllocSol
 import qualified Ganeti.HTools.Cluster.Utils as ClusterUtils
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
@@ -132,7 +133,7 @@ lostAllocationsMetric opts insts inst node = do
 -- | Allocate an instance on a given node.
 allocateOnSingle :: Alg.AlgorithmOptions
                  -> Node.List -> Instance.Instance -> T.Ndx
-                 -> T.OpResult (Node.GenericAllocElement Metric)
+                 -> T.OpResult (AllocSol.GenericAllocElement Metric)
 allocateOnSingle opts nl inst new_pdx = do
   let primary = Container.find new_pdx nl
       policy = Node.iPolicy primary
@@ -150,7 +151,7 @@ allocateOnPair :: Alg.AlgorithmOptions
                -> Instance.Instance
                -> T.Ndx
                -> T.Ndx
-               -> T.OpResult (Node.GenericAllocElement Metric)
+               -> T.OpResult (AllocSol.GenericAllocElement Metric)
 allocateOnPair opts nl inst pdx sdx = do
   let primary = Container.find pdx nl
       secondary = Container.find sdx nl
@@ -174,7 +175,7 @@ findAllocation :: Alg.AlgorithmOptions
                -> T.Gdx
                -> Instance.Instance
                -> Int
-               -> Result (Cluster.GenericAllocSolution Metric, [String])
+               -> Result (AllocSol.GenericAllocSolution Metric, [String])
 findAllocation opts mggl mgnl gdx inst count = do
   let nl = Container.filter ((== gdx) . Node.group) mgnl
       group = Container.find gdx mggl
@@ -185,22 +186,22 @@ findAllocation opts mggl mgnl gdx inst count = do
   solution <- case allocNodes of
     (Right []) -> fail "Not enough online nodes"
     (Right pairs) ->
-      let sols = foldl Cluster.sumAllocs Cluster.emptyAllocSolution
+      let sols = foldl AllocSol.sumAllocs AllocSol.emptyAllocSolution
                    $ map (\(p, ss) -> foldl
                            (\cstate ->
-                             Cluster.concatAllocs cstate
+                             AllocSol.concatAllocs cstate
                              . allocateOnPair opts nl inst p)
-                           Cluster.emptyAllocSolution ss)
+                           AllocSol.emptyAllocSolution ss)
                      pairs
-       in return $ Cluster.genericAnnotateSolution show sols
+       in return $ AllocSol.genericAnnotateSolution show sols
     (Left []) -> fail "No online nodes"
     (Left nodes) ->
       let sols = foldl (\cstate ->
-                          Cluster.concatAllocs cstate
+                          AllocSol.concatAllocs cstate
                           . allocateOnSingle opts nl inst)
-                       Cluster.emptyAllocSolution nodes
-      in return $ Cluster.genericAnnotateSolution show sols
-  return (solution, Cluster.solutionDescription (group, return solution))
+                       AllocSol.emptyAllocSolution nodes
+      in return $ AllocSol.genericAnnotateSolution show sols
+  return (solution, AllocSol.solutionDescription (group, return solution))
 
 -- | Find an allocation in a suitable group.
 findMGAllocation :: Alg.AlgorithmOptions
@@ -209,19 +210,19 @@ findMGAllocation :: Alg.AlgorithmOptions
                  -> Instance.List
                  -> Instance.Instance
                  -> Int
-                 -> Result (Cluster.GenericAllocSolution Metric)
+                 -> Result (AllocSol.GenericAllocSolution Metric)
 findMGAllocation opts gl nl il inst count = do
   let groups_by_idx = ClusterUtils.splitCluster nl il
       genSol (gdx, (nl', _)) =
         liftM fst $ findAllocation opts gl nl' gdx inst count
       sols = map (flip Container.find gl . fst &&& genSol) groups_by_idx
       goodSols = Cluster.sortMGResults $ Cluster.filterMGResults sols
-      all_msgs = concatMap Cluster.solutionDescription sols
+      all_msgs = concatMap AllocSol.solutionDescription sols
   case goodSols of
     [] -> fail $ intercalate ", " all_msgs
     (final_group, final_sol):_ ->
       let sel_msg = "Selected group: " ++ Group.name final_group
-      in return $ final_sol { Cluster.asLog = sel_msg : all_msgs }
+      in return $ final_sol { AllocSol.asLog = sel_msg : all_msgs }
 
 -- | Handle allocation requests in the dedicated scenario.
 runDedicatedAllocation :: Alg.AlgorithmOptions
@@ -234,7 +235,7 @@ runDedicatedAllocation opts request =
           Loader.Allocate inst (Cluster.AllocDetails count (Just gn)) -> do
             gdx <- Group.idx <$> Container.findByName gl gn
             (solution, msgs) <- findAllocation opts gl nl gdx inst count
-            IAlloc.formatAllocate il $ solution { Cluster.asLog = msgs }
+            IAlloc.formatAllocate il $ solution { AllocSol.asLog = msgs }
           Loader.Allocate inst (Cluster.AllocDetails count Nothing) ->
             findMGAllocation opts gl nl il inst count
               >>= IAlloc.formatAllocate il
@@ -248,9 +249,9 @@ runDedicatedAllocation opts request =
                                liftM fst
                                  $ findAllocation opts gl nl gdx inst count)
                           maybeGroup
-                  let sol = Cluster.asSolution ares
-                      nl'' = Cluster.extractNl nl' sol
-                      il'' = Cluster.updateIl il' sol
+                  let sol = AllocSol.asSolution ares
+                      nl'' = AllocSol.extractNl nl' sol
+                      il'' = AllocSol.updateIl il' sol
                   return (nl'', il'', (inst, ares):res))
                (nl, il, []) insts
           _ -> fail "Dedicated Allocation only for proper allocation requests"

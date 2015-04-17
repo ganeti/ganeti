@@ -39,13 +39,6 @@ module Ganeti.HTools.Cluster
   (
     -- * Types
     AllocDetails(..)
-  , GenericAllocSolution(..)
-  , AllocSolution
-  , emptyAllocSolution
-  , concatAllocs
-  , sumAllocs
-  , updateIl
-  , extractNl
   , Table(..)
   , CStats(..)
   , AllocNodes
@@ -68,8 +61,6 @@ module Ganeti.HTools.Cluster
   -- * Display functions
   , printNodes
   , printInsts
-  , genericAnnotateSolution
-  , solutionDescription
   -- * Balacing functions
   , doNextBalance
   , tryBalance
@@ -82,7 +73,6 @@ module Ganeti.HTools.Cluster
   , filterMGResults
   , sortMGResults
   , tryChangeGroup
-  , collapseFailures
   , allocList
   -- * Allocation functions
   , iterateAlloc
@@ -104,6 +94,10 @@ import Text.Printf (printf)
 import Ganeti.BasicTypes
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), defaultOptions)
 import qualified Ganeti.HTools.Container as Container
+import Ganeti.HTools.Cluster.AllocationSolution
+    ( AllocElement, GenericAllocSolution(..) , AllocSolution, emptyAllocSolution
+    , sumAllocs, concatAllocs, extractNl, updateIl
+    , annotateSolution, solutionDescription, collapseFailures )
 import Ganeti.HTools.Cluster.Evacuate ( EvacSolution(..), emptyEvacSolution
                                       , updateEvacSolution, reverseEvacSolution
                                       , nodeEvacInstance)
@@ -131,23 +125,13 @@ import Ganeti.Types (EvacMode(..))
 data AllocDetails = AllocDetails Int (Maybe String)
                     deriving (Show)
 
--- | Allocation\/relocation solution.
-data GenericAllocSolution a = AllocSolution
-  { asFailures :: [FailMode]              -- ^ Failure counts
-  , asAllocs   :: Int                     -- ^ Good allocation count
-  , asSolution :: Maybe (Node.GenericAllocElement a) -- ^ The actual allocation
-                                          -- result
-  , asLog      :: [String]                -- ^ Informational messages
-  }
-
-type AllocSolution = GenericAllocSolution Score
-
 -- | Allocation results, as used in 'iterateAlloc' and 'tieredAlloc'.
 type AllocResult = (FailStats, Node.List, Instance.List,
                     [Instance.Instance], [CStats])
 
 -- | Type alias for easier handling.
-type GenericAllocSolutionList a = [(Instance.Instance, GenericAllocSolution a)]
+type GenericAllocSolutionList a =
+  [(Instance.Instance, GenericAllocSolution a)]
 type AllocSolutionList = GenericAllocSolutionList Score
 
 -- | A type denoting the valid allocation mode/pairs.
@@ -158,11 +142,6 @@ type AllocSolutionList = GenericAllocSolutionList Score
 -- association list, grouped by primary node and holding the potential
 -- secondary nodes in the sub-list.
 type AllocNodes = Either [Ndx] [(Ndx, [Ndx])]
-
--- | The empty solution we start with when computing allocations.
-emptyAllocSolution :: GenericAllocSolution a
-emptyAllocSolution = AllocSolution { asFailures = [], asAllocs = 0
-                                   , asSolution = Nothing, asLog = [] }
 
 -- | The complete state for the balancing solution.
 data Table = Table Node.List Instance.List Score [Placement]
@@ -336,7 +315,7 @@ compareTables a@(Table _ _ a_cv _) b@(Table _ _ b_cv _ ) =
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: AlgorithmOptions
                  -> Node.List -> Instance.Instance -> Ndx
-                 -> OpResult Node.AllocElement
+                 -> OpResult AllocElement
 allocateOnSingle opts nl inst new_pdx =
   let p = Container.find new_pdx nl
       new_inst = Instance.setBoth inst new_pdx Node.noSecondary
@@ -352,7 +331,7 @@ allocateOnSingle opts nl inst new_pdx =
 allocateOnPair :: AlgorithmOptions
                -> [Statistics]
                -> Node.List -> Instance.Instance -> Ndx -> Ndx
-               -> OpResult Node.AllocElement
+               -> OpResult AllocElement
 allocateOnPair opts stats nl inst new_pdx new_sdx =
   let tgt_p = Container.find new_pdx nl
       tgt_s = Container.find new_sdx nl
@@ -529,86 +508,6 @@ tryBalance opts ini_tbl =
 
 -- * Allocation functions
 
--- | Build failure stats out of a list of failures.
-collapseFailures :: [FailMode] -> FailStats
-collapseFailures flst =
-    map (\k -> (k, foldl' (\a e -> if e == k then a + 1 else a) 0 flst))
-            [minBound..maxBound]
-
--- | Compares two Maybe AllocElement and chooses the best score.
-bestAllocElement :: Ord a
-                 => Maybe (Node.GenericAllocElement a)
-                 -> Maybe (Node.GenericAllocElement a)
-                 -> Maybe (Node.GenericAllocElement a)
-bestAllocElement a Nothing = a
-bestAllocElement Nothing b = b
-bestAllocElement a@(Just (_, _, _, ascore)) b@(Just (_, _, _, bscore)) =
-  if ascore < bscore then a else b
-
--- | Update current Allocation solution and failure stats with new
--- elements.
-concatAllocs :: Ord a
-             => GenericAllocSolution a
-             -> OpResult (Node.GenericAllocElement a)
-             -> GenericAllocSolution a
-concatAllocs as (Bad reason) = as { asFailures = reason : asFailures as }
-
-concatAllocs as (Ok ns) =
-  let -- Choose the old or new solution, based on the cluster score
-    cntok = asAllocs as
-    osols = asSolution as
-    nsols = bestAllocElement osols (Just ns)
-    nsuc = cntok + 1
-    -- Note: we force evaluation of nsols here in order to keep the
-    -- memory profile low - we know that we will need nsols for sure
-    -- in the next cycle, so we force evaluation of nsols, since the
-    -- foldl' in the caller will only evaluate the tuple, but not the
-    -- elements of the tuple
-  in nsols `seq` nsuc `seq` as { asAllocs = nsuc, asSolution = nsols }
-
--- | Sums two 'AllocSolution' structures.
-sumAllocs :: Ord a
-          => GenericAllocSolution a
-          -> GenericAllocSolution a
-          -> GenericAllocSolution a
-sumAllocs (AllocSolution aFails aAllocs aSols aLog)
-          (AllocSolution bFails bAllocs bSols bLog) =
-  -- note: we add b first, since usually it will be smaller; when
-  -- fold'ing, a will grow and grow whereas b is the per-group
-  -- result, hence smaller
-  let nFails  = bFails ++ aFails
-      nAllocs = aAllocs + bAllocs
-      nSols   = bestAllocElement aSols bSols
-      nLog    = bLog ++ aLog
-  in AllocSolution nFails nAllocs nSols nLog
-
--- | Given a solution, generates a reasonable description for it.
-genericDescribeSolution :: (a -> String) -> GenericAllocSolution a -> String
-genericDescribeSolution formatMetrics as =
-  let fcnt = asFailures as
-      sols = asSolution as
-      freasons =
-        intercalate ", " . map (\(a, b) -> printf "%s: %d" (show a) b) .
-        filter ((> 0) . snd) . collapseFailures $ fcnt
-  in case sols of
-     Nothing -> "No valid allocation solutions, failure reasons: " ++
-                (if null fcnt then "unknown reasons" else freasons)
-     Just (_, _, nodes, cv) ->
-         printf ("score: %s, successes %d, failures %d (%s)" ++
-                 " for node(s) %s") (formatMetrics cv) (asAllocs as)
-               (length fcnt) freasons
-               (intercalate "/" . map Node.name $ nodes)
-
--- | Annotates a solution with the appropriate string.
-genericAnnotateSolution :: (a -> String)
-                        ->GenericAllocSolution a -> GenericAllocSolution a
-genericAnnotateSolution formatMetrics as =
-  as { asLog = genericDescribeSolution formatMetrics as : asLog as }
-
--- | Annotate a solution based on the standard metrics
-annotateSolution :: AllocSolution -> AllocSolution
-annotateSolution = genericAnnotateSolution (printf "%.8f")
-
 -- | Generate the valid node allocation singles or pairs for a new instance.
 genAllocNodes :: Group.List        -- ^ Group list
               -> Node.List         -- ^ The node map
@@ -657,16 +556,6 @@ tryAlloc opts nl _ inst (Left all_nodes) =
                        concatAllocs cstate . allocateOnSingle opts nl inst
                     ) emptyAllocSolution all_nodes
   in return $ annotateSolution sols
-
--- | Given a group/result, describe it as a nice (list of) messages.
-solutionDescription :: (Group.Group, Result (GenericAllocSolution a))
-                    -> [String]
-solutionDescription (grp, result) =
-  case result of
-    Ok solution -> map (printf "Group %s (%s): %s" gname pol) (asLog solution)
-    Bad message -> [printf "Group %s: error %s" gname message]
-  where gname = Group.name grp
-        pol = allocPolicyToRaw (Group.allocPolicy grp)
 
 -- | From a list of possibly bad and possibly empty solutions, filter
 -- only the groups with a valid result. Note that the result will be
@@ -797,21 +686,6 @@ tryGroupAlloc opts mggl mgnl ngil gn inst cnt = do
   (solution, msgs) <- findAllocation opts mggl mgnl ngil gdx inst cnt
   return $ solution { asLog = msgs }
 
--- | Calculate the new instance list after allocation solution.
-updateIl :: Instance.List           -- ^ The original instance list
-         -> Maybe (Node.GenericAllocElement a) -- ^ The result of
-                                               -- the allocation attempt
-         -> Instance.List           -- ^ The updated instance list
-updateIl il Nothing = il
-updateIl il (Just (_, xi, _, _)) = Container.add (Container.size il) xi il
-
--- | Extract the the new node list from the allocation solution.
-extractNl :: Node.List               -- ^ The original node list
-          -> Maybe (Node.GenericAllocElement a) -- ^ The result of the
-                                                -- allocation attempt
-          -> Node.List               -- ^ The new node list
-extractNl nl Nothing = nl
-extractNl _ (Just (xnl, _, _, _)) = xnl
 
 -- | Try to allocate a list of instances on a multi-group cluster.
 allocList :: AlgorithmOptions

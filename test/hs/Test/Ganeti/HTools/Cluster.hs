@@ -54,6 +54,7 @@ import Ganeti.BasicTypes
 import qualified Ganeti.HTools.AlgorithmParams as Alg
 import qualified Ganeti.HTools.Backend.IAlloc as IAlloc
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.AllocationSolution as AllocSol
 import qualified Ganeti.HTools.Cluster.Evacuate as Evacuate
 import qualified Ganeti.HTools.Cluster.Metrics as Metrics
 import qualified Ganeti.HTools.Cluster.Utils as ClusterUtils
@@ -161,7 +162,7 @@ prop_Alloc_sane inst =
      Cluster.tryAlloc opts nl il inst' of
        Bad msg -> failTest msg
        Ok as ->
-         case Cluster.asSolution as of
+         case AllocSol.asSolution as of
            Nothing -> failTest "Failed to allocate, empty solution"
            Just (xnl, xi, _, cv) ->
              let il' = Container.add (Instance.idx xi) xi il
@@ -218,7 +219,7 @@ genClusterAlloc count node inst =
      Cluster.tryAlloc opts nl Container.empty inst of
        Bad msg -> Bad $ "Can't allocate: " ++ msg
        Ok as ->
-         case Cluster.asSolution as of
+         case AllocSol.asSolution as of
            Nothing -> Bad "Empty solution?"
            Just (xnl, xi, _, _) ->
              let xil = Container.add (Instance.idx xi) xi Container.empty
@@ -373,9 +374,9 @@ canAllocOn nl reqnodes inst =
        Cluster.tryAlloc Alg.defaultOptions nl Container.empty inst of
        Bad msg -> Just $ "Can't allocate: " ++ msg
        Ok as ->
-         case Cluster.asSolution as of
+         case AllocSol.asSolution as of
            Nothing -> Just $ "No allocation solution; failures: " ++
-                      show (Cluster.collapseFailures $ Cluster.asFailures as)
+                      show (AllocSol.collapseFailures $ AllocSol.asFailures as)
            Just _ -> Nothing
 
 -- | Checks that allocation obeys minimum and maximum instance

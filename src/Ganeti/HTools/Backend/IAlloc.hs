@@ -52,6 +52,7 @@ import Text.JSON (JSObject, JSValue(JSArray),
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Cluster as Cluster
+import qualified Ganeti.HTools.Cluster.AllocationSolution as AllocSol
 import qualified Ganeti.HTools.Cluster.Evacuate as Evacuate
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
@@ -287,16 +288,16 @@ formatResponse success info result =
   in encodeStrict $ makeObj [e_success, e_info, e_result]
 
 -- | Flatten the log of a solution into a string.
-describeSolution :: Cluster.GenericAllocSolution a -> String
-describeSolution = intercalate ", " . Cluster.asLog
+describeSolution :: AllocSol.GenericAllocSolution a -> String
+describeSolution = intercalate ", " . AllocSol.asLog
 
 -- | Convert allocation/relocation results into the result format.
 formatAllocate :: Instance.List
-               -> Cluster.GenericAllocSolution a
+               -> AllocSol.GenericAllocSolution a
                -> Result IAllocResult
 formatAllocate il as = do
   let info = describeSolution as
-  case Cluster.asSolution as of
+  case AllocSol.asSolution as of
     Nothing -> fail info
     Just (nl, inst, nodes, _) ->
       do
@@ -309,9 +310,9 @@ formatMultiAlloc :: ( Node.List, Instance.List
                  -> Result IAllocResult
 formatMultiAlloc (fin_nl, fin_il, ars) =
   let rars = reverse ars
-      (allocated, failed) = partition (isJust . Cluster.asSolution . snd) rars
+      (allocated, failed) = partition (isJust . AllocSol.asSolution . snd) rars
       aars = map (\(_, ar) ->
-                     let (_, inst, nodes, _) = fromJust $ Cluster.asSolution ar
+                     let (_, inst, nodes, _) = fromJust $ AllocSol.asSolution ar
                          iname = Instance.name inst
                          nnames = map Node.name nodes
                      in (iname, nnames)) allocated
