@@ -366,6 +366,7 @@ class LUNodeAdd(LogicalUnit):
       remove_result[master_node].Raise(
         "Could not remove SSH keys of node %s before readding,"
         " (UUID: %s)." % (new_node_name, new_node_uuid))
+      EvaluateSshUpdateRPC(remove_result, master_node, feedback_fn)
 
     result = rpcrunner.call_node_ssh_key_add(
       [master_node], new_node_uuid, new_node_name,
@@ -882,12 +883,10 @@ class LUNodeSetParams(LogicalUnit):
             False, # currently, all nodes are potential master candidates
             False, # do not clear node's 'authorized_keys'
             False) # do not clear node's 'ganeti_pub_keys'
-          if not ssh_result[master_node].fail_msg:
-            for message in ssh_result[master_node].payload:
-              feedback_fn(message)
           ssh_result[master_node].Raise(
             "Could not adjust the SSH setup after demoting node '%s'"
             " (UUID: %s)." % (node.name, node.uuid))
+          EvaluateSshUpdateRPC(ssh_result, master_node, feedback_fn)
 
         if self.new_role == self._ROLE_CANDIDATE:
           ssh_result = self.rpc.call_node_ssh_key_add(
@@ -1596,6 +1595,7 @@ class LUNodeRemove(LogicalUnit):
       result[master_node].Raise(
         "Could not remove the SSH key of node '%s' (UUID: %s)." %
         (self.op.node_name, self.node.uuid))
+      EvaluateSshUpdateRPC(result, master_node, feedback_fn)
 
     # Promote nodes to master candidate as needed
     AdjustCandidatePool(self, [self.node.uuid])

@@ -1659,12 +1659,13 @@ def RemoveNodeSshKey(node_uuid, node_name,
   @returns: list of feedback messages
 
   """
+  # Non-disruptive error messages, list of (node, msg) pairs
   result_msgs = []
 
   # Make sure at least one of these flags is true.
   if not (from_authorized_keys or from_public_keys or clear_authorized_keys
           or clear_public_keys):
-    result_msgs.append("No removal from any key file was requested.")
+    raise errors.SshUpdateError("No removal from any key file was requested.")
 
   if not ssconf_store:
     ssconf_store = ssconf.SimpleStore()
@@ -1716,8 +1717,11 @@ def RemoveNodeSshKey(node_uuid, node_name,
 
       all_nodes = ssconf_store.GetNodeList()
       online_nodes = ssconf_store.GetOnlineNodeList()
+      logging.debug("Removing key of node '%s' from all nodes but itself and"
+                    " master.", node_name)
       for node in all_nodes:
         if node == master_node:
+          logging.debug("Skipping master node '%s'.", master_node)
           continue
         if node not in online_nodes:
           logging.debug("Skipping offline node '%s'.", node)
@@ -1727,25 +1731,48 @@ def RemoveNodeSshKey(node_uuid, node_name,
           raise errors.OpExecError("No SSH port information available for"
                                    " node '%s', map: %s." %
                                    (node, ssh_port_map))
+        error_msg_try = ("The SSH setup of node '%s' could not"
+                         " be adjusted in try no %s. Error: %s.")
+        error_msg_final = ("When removing the key of node '%s', updating the"
+                           " SSH key files of node '%s' failed after %s"
+                           " retries. Not trying again. Last error was: %s.")
         if node in potential_master_candidates:
-          try:
-            run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                       ssh_port, pot_mc_data,
-                       debug=False, verbose=False, use_cluster_key=False,
-                       ask_key=False, strict_host_check=False)
-          except errors.OpExecError as e:
-            result_msgs.append("Warning: the SSH setup of node '%s' could not"
-                               " be adjusted." % node)
-        else:
-          if from_authorized_keys:
+          for i in range(constants.SSHS_MAX_RETRIES):
             try:
               run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                         ssh_port, base_data,
+                         ssh_port, pot_mc_data,
                          debug=False, verbose=False, use_cluster_key=False,
                          ask_key=False, strict_host_check=False)
+              break
             except errors.OpExecError as e:
-              result_msgs.append("Warning: the SSH setup of node '%s' could"
-                                 " not be adjusted." % node)
+              logging.error(error_msg_try, node, i, e)
+              last_exception = e
+          else:
+            if last_exception:
+              error_msg = error_msg_final % (
+                  node_name, node, constants.SSHS_MAX_RETRIES, last_exception)
+              result_msgs.append((node, error_msg))
+              logging.error(error_msg)
+
+        else:
+          last_exception = None
+          if from_authorized_keys:
+            for i in range(constants.SSHS_MAX_RETRIES):
+              try:
+                run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
+                           ssh_port, base_data,
+                           debug=False, verbose=False, use_cluster_key=False,
+                           ask_key=False, strict_host_check=False)
+                break
+              except errors.OpExecError as e:
+                logging.error(error_msg_try, node, i, e)
+                last_exception = e
+          else:
+            if last_exception:
+              error_msg = error_msg_final % (
+                  node_name, node, constants.SSHS_MAX_RETRIES, last_exception)
+              result_msgs.append((node, error_msg))
+              logging.error(error_msg)
 
   if clear_authorized_keys or from_public_keys or clear_public_keys:
     data = {}
@@ -1789,9 +1816,10 @@ def RemoveNodeSshKey(node_uuid, node_name,
                  debug=False, verbose=False, use_cluster_key=False,
                  ask_key=False, strict_host_check=False)
     except errors.OpExecError as e:
-      result_msgs.append("Removing SSH keys from node '%s' failed. This can"
-                         " happen when the node is already unreachable."
-                         " Error: %s" % (node_name, e))
+      result_msgs[node_name] = \
+          ("Removing SSH keys from node '%s' failed. This can"
+           " happen when the node is already unreachable."
+           " Error: %s" % (node_name, e))
 
   return result_msgs
 
@@ -1979,15 +2007,14 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
         # and that would terminate all communication from the master to the
         # node.
         logging.debug("Removing SSH key of node '%s'.", node_name)
-        RemoveNodeSshKey(node_uuid, node_name,
-                         master_candidate_uuids,
-                         potential_master_candidates,
-                         ssh_port_map,
-                         master_uuid=master_node_uuid,
-                         from_authorized_keys=master_candidate,
-                         from_public_keys=False,
-                         clear_authorized_keys=False,
-                         clear_public_keys=False)
+        node_errors = RemoveNodeSshKey(
+           node_uuid, node_name, master_candidate_uuids,
+           potential_master_candidates, ssh_port_map,
+           master_uuid=master_node_uuid, from_authorized_keys=master_candidate,
+           from_public_keys=False, clear_authorized_keys=False,
+           clear_public_keys=False)
+        if node_errors:
+          all_node_errors = all_node_errors + node_errors
       else:
         logging.debug("Old key of node '%s' is the same as the current master"
                       " key. Not deleting that key on the node.", node_name)
@@ -2069,15 +2096,14 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
 
   # Remove the old key from all node's authorized keys file
   logging.debug("Remove the old master key from all nodes.")
-  RemoveNodeSshKey(master_node_uuid, master_node_name,
-                   master_candidate_uuids,
-                   potential_master_candidates,
-                   ssh_port_map,
-                   keys_to_remove=old_master_keys_by_uuid,
-                   from_authorized_keys=True,
-                   from_public_keys=False,
-                   clear_authorized_keys=False,
-                   clear_public_keys=False)
+  node_errors = RemoveNodeSshKey(
+      master_node_uuid, master_node_name, master_candidate_uuids,
+      potential_master_candidates, ssh_port_map,
+      keys_to_remove=old_master_keys_by_uuid, from_authorized_keys=True,
+      from_public_keys=False, clear_authorized_keys=False,
+      clear_public_keys=False)
+  if node_errors:
+    all_node_errors = all_node_errors + node_errors
 
   return all_node_errors
 
