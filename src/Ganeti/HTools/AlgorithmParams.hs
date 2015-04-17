@@ -51,6 +51,8 @@ data AlgorithmOptions = AlgorithmOptions
   , algEvacMode :: Bool             -- ^ Consider only eavacation moves
   , algMinGain :: Double            -- ^ Minimal gain per balancing step
   , algMinGainLimit :: Double       -- ^ Limit below which minimal gain is used
+  , algCapacity :: Bool             -- ^ Whether to check capacity properties,
+                                    -- like global N+1 redundancy
   }
 
 -- | Obtain the relevant algorithmic option from the commandline options
@@ -63,6 +65,7 @@ fromCLIOptions opts = AlgorithmOptions
   , algEvacMode = CLI.optEvacMode opts
   , algMinGain = CLI.optMinGain opts
   , algMinGainLimit = CLI.optMinGainLim opts
+  , algCapacity = CLI.optCapacity opts
   }
 
 -- | Default options for the balancing algorithm
