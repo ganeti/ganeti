@@ -3083,6 +3083,12 @@ cvEnoden1 =
    Types.cVErrorCodeToRaw CvENODEN1,
    "Not enough memory to accommodate instance failovers")
 
+cvEextags :: (String, String, String)
+cvEextags =
+  ("node",
+   Types.cVErrorCodeToRaw CvEEXTAGS,
+   "Instances with same exclusion tag on the same node")
+
 cvEnodenet :: (String, String, String)
 cvEnodenet =
   ("node",
