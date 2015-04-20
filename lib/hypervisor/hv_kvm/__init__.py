@@ -802,11 +802,40 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(cls._NICS_DIR, instance_name)
 
   @classmethod
-  def _InstanceNICFile(cls, instance_name, seq):
+  def _InstanceNICFile(cls, instance_name, seq_or_uuid):
     """Returns the name of the file containing the tap device for a given NIC
 
     """
-    return utils.PathJoin(cls._InstanceNICDir(instance_name), str(seq))
+    return utils.PathJoin(cls._InstanceNICDir(instance_name), str(seq_or_uuid))
+
+  @classmethod
+  def _GetInstanceNICTap(cls, instance_name, nic):
+    """Returns the tap for the corresponding nic
+
+    Search for tap file named after NIC's uuid.
+    For old instances without uuid indexed tap files returns nothing.
+
+    """
+    try:
+      return utils.ReadFile(cls._InstanceNICFile(instance_name, nic.uuid))
+    except EnvironmentError:
+      pass
+
+  @classmethod
+  def _WriteInstanceNICFiles(cls, instance_name, seq, nic, tap):
+    """Write tap name to both instance NIC files
+
+    """
+    for ident in [seq, nic.uuid]:
+      utils.WriteFile(cls._InstanceNICFile(instance_name, ident), data=tap)
+
+  @classmethod
+  def _RemoveInstanceNICFiles(cls, instance_name, seq, nic):
+    """Write tap name to both instance NIC files
+
+    """
+    for ident in [seq, nic.uuid]:
+      utils.RemoveFile(cls._InstanceNICFile(instance_name, ident))
 
   @classmethod
   def _InstanceKeymapFile(cls, instance_name):
