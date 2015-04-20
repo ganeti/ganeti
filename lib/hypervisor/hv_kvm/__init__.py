@@ -79,7 +79,7 @@ from ganeti.hypervisor.hv_kvm.monitor import QmpConnection, QmpMessage, \
 from ganeti.hypervisor.hv_kvm.netdev import OpenTap
 
 
-_KVM_NETWORK_SCRIPT = pathutils.CONF_DIR + "/kvm-vif-bridge"
+_KVM_NETWORK_SCRIPT = pathutils.CONF_DIR + "/kvm-ifup-custom"
 _KVM_START_PAUSED_FLAG = "-S"
 
 #: SPICE parameters which depend on L{constants.HV_KVM_SPICE_BIND}

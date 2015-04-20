@@ -22,7 +22,7 @@ source @PKGLIBDIR@/net-common
 
 # Execute the user-supplied network script, if applicable
 if [ -x "$CONF_DIR/kvm-ifdown-custom" ]; then
-  exec $CONF_DIR/kvm-ifdown-custom
+  exec $CONF_DIR/kvm-ifdown-custom "$@"
 fi
 
 exit 0

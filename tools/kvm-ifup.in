@@ -37,8 +37,10 @@ if is_instance_communication_tap && [ -x "$CONF_DIR/kvm-ifup-os" ]; then
   . $CONF_DIR/kvm-ifup-os
 fi
 
-# Execute the user-supplied network script, if applicable
-if [ -x "$CONF_DIR/kvm-vif-bridge" ]; then
+# Execute the user-supplied network script, if applicable.
+if [ -x "$CONF_DIR/kvm-ifup-custom" ]; then
+  exec $CONF_DIR/kvm-ifup-custom "$@"
+elif [ -x "$CONF_DIR/kvm-vif-bridge" ]; then
   exec $CONF_DIR/kvm-vif-bridge
 fi
 
