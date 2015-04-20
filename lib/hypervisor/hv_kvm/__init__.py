@@ -2288,7 +2288,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self._CallMonitorCommand(instance.name, command)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       self.qmp.HotDelNic(kvm_devid)
-      utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
+      self._UnconfigureNIC(instance.name, kvm_device, False)
+      self._RemoveInstanceNICFiles(instance.name, seq, device)
     self._VerifyHotplugCommand(instance, kvm_devid, False)
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     runtime[index].remove(entry)
@@ -2420,6 +2421,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     pidfile, pid, alive = self._InstancePidAlive(instance_name)
     if pid > 0 and alive:
       raise errors.HypervisorError("Cannot cleanup a live instance")
+    self._UnconfigureInstanceNICs(instance_name)
     self._RemoveInstanceRuntimeFiles(pidfile, instance_name)
     self._ClearUserShutdown(instance_name)
 
@@ -2514,6 +2516,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self._ConfigureRoutedNICs(instance, info)
       self._WriteKVMRuntime(instance.name, info)
     else:
+      self._UnconfigureInstanceNICs(instance.name, info)
       self.StopInstance(instance, force=True)
 
   def MigrateInstance(self, cluster_name, instance, target, live_migration):
@@ -2584,6 +2587,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if success:
       pidfile, pid, _ = self._InstancePidAlive(instance.name)
       utils.KillProcess(pid)
+      self._UnconfigureInstanceNICs(instance.name)
       self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
       self._ClearUserShutdown(instance.name)
     else:
