@@ -1632,12 +1632,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to save KVM runtime file: %s" % err)
 
-  def _ReadKVMRuntime(self, instance_name):
+  @classmethod
+  def _ReadKVMRuntime(cls, instance_name):
     """Read an instance's KVM runtime
 
     """
     try:
-      file_content = utils.ReadFile(self._InstanceKVMRuntime(instance_name))
+      file_content = utils.ReadFile(cls._InstanceKVMRuntime(instance_name))
     except EnvironmentError, err:
       raise errors.HypervisorError("Failed to load KVM runtime file: %s" % err)
     return file_content
@@ -1656,12 +1657,13 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     self._WriteKVMRuntime(instance.name, serialized_form)
 
-  def _LoadKVMRuntime(self, instance, serialized_runtime=None):
+  @classmethod
+  def _LoadKVMRuntime(cls, instance_name, serialized_runtime=None):
     """Load an instance's KVM runtime
 
     """
     if not serialized_runtime:
-      serialized_runtime = self._ReadKVMRuntime(instance.name)
+      serialized_runtime = cls._ReadKVMRuntime(instance_name)
 
     return _AnalyzeSerializedRuntime(serialized_runtime)
 
@@ -2076,7 +2078,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @raise errors.HypervisorError: if one of the above applies
 
     """
-    runtime = self._LoadKVMRuntime(instance)
+    runtime = self._LoadKVMRuntime(instance.name)
     device_type = _DEVICE_TYPE[dev_type](runtime[2])
     if device_type not in _HOTPLUGGABLE_DEVICE_TYPES[dev_type]:
       msg = "Hotplug is not supported for device type %s" % device_type
@@ -2202,7 +2204,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     kvm_devid = _GenerateDeviceKVMId(dev_type, device)
-    runtime = self._LoadKVMRuntime(instance)
+    runtime = self._LoadKVMRuntime(instance.name)
     up_hvp = runtime[2]
     device_type = _DEVICE_TYPE[dev_type](up_hvp)
     bus_state = self._GetBusSlots(up_hvp, runtime)
@@ -2251,7 +2253,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     invokes the device-specific method.
 
     """
-    runtime = self._LoadKVMRuntime(instance)
+    runtime = self._LoadKVMRuntime(instance.name)
     entry = _GetExistingDeviceInfo(dev_type, device, runtime)
     kvm_device = _RUNTIME_DEVICE[dev_type](entry)
     kvm_devid = _GenerateDeviceKVMId(dev_type, kvm_device)
@@ -2401,7 +2403,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
                                    " not running" % instance.name)
     # StopInstance will delete the saved KVM runtime so:
     # ...first load it...
-    kvm_runtime = self._LoadKVMRuntime(instance)
+    kvm_runtime = self._LoadKVMRuntime(instance.name)
     # ...now we can safely call StopInstance...
     if not self.StopInstance(instance):
       self.StopInstance(instance, force=True)
@@ -2433,7 +2435,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param target: target host (usually ip), on this node
 
     """
-    kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
+    kvm_runtime = self._LoadKVMRuntime(instance.name, serialized_runtime=info)
     incoming_address = (target, instance.hvparams[constants.HV_MIGRATION_PORT])
     kvmpath = instance.hvparams[constants.HV_KVM_PATH]
     kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
@@ -2448,7 +2450,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type info: string
     @param info: serialized KVM runtime info
     """
-    kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
+    kvm_runtime = self._LoadKVMRuntime(instance.name, serialized_runtime=info)
     kvm_nics = kvm_runtime[1]
 
     for nic_seq, nic in enumerate(kvm_nics):
