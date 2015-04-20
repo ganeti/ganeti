@@ -441,6 +441,7 @@ $(THH.declareLADT ''String "CVErrorCode"
   , ("CvENODEGLUSTERSTORAGEPATHUNUSABLE",
      "ENODEGLUSTERSTORAGEPATHUNUSABLE")
   , ("CvEGROUPDIFFERENTPVSIZE",        "EGROUPDIFFERENTPVSIZE")
+  , ("CvEEXTAGS",                      "EEXTAGS")
   ])
 $(THH.makeJSONInstance ''CVErrorCode)
 
