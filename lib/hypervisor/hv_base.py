@@ -209,30 +209,32 @@ def GenerateTapName():
   return "gnt.com.%d" % idx
 
 
-def ConfigureNIC(cmd, instance, seq, nic, tap):
-  """Run the network configuration script for a specified NIC
+def CreateNICEnv(instance_name, nic, tap, seq=None, instance_tags=None):
+  """Create environment variables for a specific NIC
 
-  @type cmd: string
-  @param cmd: command to run
-  @type instance: instance object
-  @param instance: instance we're acting on
+  This will be used during NIC ifup/ifdown scripts.
+  Since instance tags may change during NIC creation and removal
+  and because during cleanup the instance object is not available, we
+  pass them only upon NIC creation (instance startup/NIC hot-plugging).
+
+  @type instance_name: string
+  @param instance_name: The name of the instance
+  @type nic: L{objects.NIC}
+  @param nic: The NIC object
+  @type tap: string
+  @param tap: The tap name
   @type seq: int
-  @param seq: nic sequence number
-  @type nic: nic object
-  @param nic: nic we're acting on
-  @type tap: str
-  @param tap: the host's tap interface this NIC corresponds to
+  @param seq: The NIC's sequense number
+  @type instance_tags: list
+  @param instance_tags: The tags of the instance
 
   """
   env = {
     "PATH": "%s:/sbin:/usr/sbin" % os.environ["PATH"],
-    "INSTANCE": instance.name,
+    "INSTANCE": instance_name,
     "MAC": nic.mac,
     "MODE": nic.nicparams[constants.NIC_MODE],
-    "INTERFACE": tap,
-    "INTERFACE_INDEX": str(seq),
     "INTERFACE_UUID": nic.uuid,
-    "TAGS": " ".join(instance.GetTags()),
   }
 
   if nic.ip:
@@ -251,9 +253,39 @@ def ConfigureNIC(cmd, instance, seq, nic, tap):
     n = objects.Network.FromDict(nic.netinfo)
     env.update(n.HooksDict())
 
+  if instance_tags:
+    env["TAGS"] = " ".join(instance_tags)
+
+  # This should always be available except for old instances in the
+  # cluster without uuid indexed tap files.
+  if tap:
+    env["INTERFACE"] = tap
+
+  if seq is not None:
+    env["INTERFACE_INDEX"] = str(seq)
+
   if nic.nicparams[constants.NIC_MODE] == constants.NIC_MODE_BRIDGED:
     env["BRIDGE"] = nic.nicparams[constants.NIC_LINK]
 
+  return env
+
+
+def ConfigureNIC(cmd, instance, seq, nic, tap):
+  """Run the network configuration script for a specified NIC
+
+  @type cmd: string
+  @param cmd: command to run
+  @type instance: instance object
+  @param instance: instance we're acting on
+  @type seq: int
+  @param seq: nic sequence number
+  @type nic: nic object
+  @param nic: nic we're acting on
+  @type tap: str
+  @param tap: the host's tap interface this NIC corresponds to
+
+  """
+  env = CreateNICEnv(instance.name, nic, tap, seq, instance.GetTags())
   result = utils.RunCmd(cmd, env=env)
   if result.failed:
     raise errors.HypervisorError("Failed to configure interface %s: %s;"
