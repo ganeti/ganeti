@@ -1759,6 +1759,36 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if n_drained:
       feedback_fn("  - NOTICE: %d drained node(s) found." % n_drained)
 
+  def _VerifyExclusionTags(self, nodename, pinst, ctags):
+    """Verify that all instances have different exclusion tags.
+
+    @type nodename: string
+    @param nodename: the name of the node for which the check is done
+    @type pinst: list of string
+    @param pinst: list of UUIDs of those instances having the given node
+        as primary node
+    @type ctags: list of string
+    @param ctags: tags of the cluster
+
+    """
+    exclusion_prefixes = utils.GetExclusionPrefixes(ctags)
+    tags_seen = set([])
+    conflicting_tags = set([])
+    for iuuid in pinst:
+      allitags = self.my_inst_info[iuuid].tags
+      if allitags is None:
+        allitags = []
+      itags = set([tag for tag in allitags
+                   if utils.IsGoodTag(exclusion_prefixes, tag)])
+      conflicts = itags.intersection(tags_seen)
+      if len(conflicts) > 0:
+        conflicting_tags = conflicting_tags.union(conflicts)
+      tags_seen = tags_seen.union(itags)
+
+    self._ErrorIf(len(conflicting_tags) > 0, constants.CV_EEXTAGS, nodename,
+                  "Tags where there is more than one instance: %s",
+                  list(conflicting_tags), code=constants.CV_WARNING)
+
   def Exec(self, feedback_fn):
     """Verify integrity of the node group, performing various test on nodes.
 
@@ -2097,6 +2127,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                         "instance should not run on node %s", node_i.name)
           self._ErrorIf(not test, constants.CV_ENODEORPHANINSTANCE, node_i.name,
                         "node is running unknown instance %s", inst_uuid)
+
+        self._VerifyExclusionTags(node_i.name, nimg.pinst, cluster.tags)
 
     self._VerifyGroupDRBDVersion(all_nvinfo)
     self._VerifyGroupLVM(node_image, vg_name)
