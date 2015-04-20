@@ -128,6 +128,7 @@
 
 # tools
 /tools/kvm-ifup
+/tools/kvm-ifdown
 /tools/kvm-ifup-os
 /tools/xen-ifup-os
 /tools/burnin
