@@ -220,10 +220,6 @@ class LUClusterRenewCrypto(NoHooksLU):
                   " master candidate cert list. Current state of the"
                   " list: %s.", cluster.candidate_certs)
 
-    # Trigger another update of the config now with the new master cert
-    logging.debug("Trigger an update of the configuration on all nodes.")
-    self.cfg.Update(cluster, feedback_fn)
-
 
 class LUClusterActivateMasterIp(NoHooksLU):
   """Activate the master IP on the master node.
