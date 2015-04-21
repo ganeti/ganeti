@@ -68,6 +68,7 @@ import Ganeti.Confd.Types (ConfdRequestType(..), ConfdReqField(..),
                            ConfdReplyStatus(..), ConfdNodeRole(..),
                            ConfdErrorType(..))
 import qualified Ganeti.Confd.Types as Types
+import qualified Ganeti.HTools.Tags.Constants as Tags
 
 {-# ANN module "HLint: ignore Use camelCase" #-}
 
@@ -5325,3 +5326,8 @@ dataCollectorsEnabledName = "enabled_data_collectors"
 
 dataCollectorsIntervalName :: String
 dataCollectorsIntervalName = "data_collector_interval"
+
+-- * HTools tag prefixes
+
+exTagsPrefix :: String
+exTagsPrefix = Tags.exTagsPrefix
