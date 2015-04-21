@@ -2063,6 +2063,16 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.running_op = \
       opcodes.OpInstanceSetParams(instance_name=self.running_inst.name)
 
+    ext_disks = [self.cfg.CreateDisk(dev_type=constants.DT_EXT,
+                                     params={
+                                       constants.IDISK_PROVIDER: "pvdr"
+                                     })]
+    self.ext_storage_inst = \
+      self.cfg.AddNewInstance(disk_template=constants.DT_EXT,
+                              disks=ext_disks)
+    self.ext_storage_op = \
+      opcodes.OpInstanceSetParams(instance_name=self.ext_storage_inst.name)
+
     self.snode = self.cfg.AddNewNode()
 
     self.mocked_storage_type = constants.ST_LVM_VG
@@ -2102,7 +2112,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
         .Build()
 
     def _InstanceInfo(_, instance, __, ___):
-      if instance == self.inst.name:
+      if instance in [self.inst.name, self.ext_storage_inst.name]:
         return self.RpcResultsBuilder() \
           .CreateSuccessfulNodeResult(self.master, None)
       elif instance == self.running_inst.name:
@@ -2537,8 +2547,47 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                    constants.IDISK_SIZE: 1024
                                  }]])
     self.ExecOpCode(op)
-
     self.assertTrue(self.rpc.call_blockdev_shutdown.called)
+
+  def testAddDiskIndexBased(self):
+    SPECIFIC_SIZE = 435 * 4
+    insertion_index = len(self.inst.disks)
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_ADD, insertion_index,
+                                 {
+                                   constants.IDISK_SIZE: SPECIFIC_SIZE
+                                 }]])
+    self.ExecOpCode(op)
+    self.assertEqual(len(self.inst.disks), insertion_index + 1)
+    new_disk = self.cfg.GetDisk(self.inst.disks[insertion_index])
+    self.assertEqual(new_disk.size, SPECIFIC_SIZE)
+
+  def testAddDiskHugeIndex(self):
+    op = self.CopyOpCode(self.op,
+                         disks=[[constants.DDM_ADD, 5,
+                                 {
+                                   constants.IDISK_SIZE: 1024
+                                 }]])
+    self.ExecOpCodeExpectException(
+      op, IndexError, "Got disk index.*but there are only.*"
+    )
+
+  def testAddExtDisk(self):
+    op = self.CopyOpCode(self.ext_storage_op,
+                         disks=[[constants.DDM_ADD, -1,
+                                 {
+                                   constants.IDISK_SIZE: 1024
+                                 }]])
+    self.ExecOpCodeExpectOpPrereqError(op,
+                                       "Missing provider for template 'ext'")
+
+    op = self.CopyOpCode(self.ext_storage_op,
+                         disks=[[constants.DDM_ADD, -1,
+                                 {
+                                   constants.IDISK_SIZE: 1024,
+                                   constants.IDISK_PROVIDER: "bla"
+                                 }]])
+    self.ExecOpCode(op)
 
   def testAddDiskDownInstanceNoWaitForSync(self):
     op = self.CopyOpCode(self.op,
@@ -2892,6 +2941,19 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                                   }]])
     self.ExecOpCode(op)
 
+  def testModifyExtDiskProvider(self):
+    mod = [[constants.DDM_MODIFY, 0,
+             {
+               constants.IDISK_PROVIDER: "anything"
+             }]]
+    op = self.CopyOpCode(self.op, disks=mod)
+    self.ExecOpCodeExpectException(op, errors.TypeEnforcementError,
+                                   "Unknown parameter 'provider'")
+
+    op = self.CopyOpCode(self.ext_storage_op, disks=mod)
+    self.ExecOpCodeExpectOpPrereqError(op, "Disk 'provider' parameter change"
+                                           " is not possible")
+
   def testSetOldDiskTemplate(self):
     op = self.CopyOpCode(self.op,
                          disk_template=self.dev_type)
@@ -2920,15 +2982,7 @@ class TestLUInstanceSetParams(CmdlibTestCase):
           " template, not .*")
 
   def testConvertToExtWithSameProvider(self):
-    for disk_uuid in self.inst.disks:
-      self.cfg.RemoveInstanceDisk(self.inst.uuid, disk_uuid)
-    disk = self.cfg.CreateDisk(dev_type=constants.DT_EXT,
-                               params={constants.IDISK_PROVIDER: "pvdr"})
-    self.cfg.AddInstanceDisk(self.inst.uuid, disk)
-    self.inst.disk_template = constants.DT_EXT
-
-    op = self.CopyOpCode(self.op,
-                         instance_name=self.inst.name,
+    op = self.CopyOpCode(self.ext_storage_op,
                          disk_template=constants.DT_EXT,
                          ext_params={constants.IDISK_PROVIDER: "pvdr"})
     self.ExecOpCodeExpectOpPrereqError(

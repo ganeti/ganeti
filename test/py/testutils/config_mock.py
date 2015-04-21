@@ -859,3 +859,9 @@ class ConfigMock(config.ConfigWriter):
     self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
     self._UnlockedReleaseDRBDMinors(instance.uuid)
     self._UnlockedCommitTemporaryIps(ec_id)
+
+  def GetDisk(self, disk_uuid):
+    """Retrieves a disk object if present.
+
+    """
+    return self._ConfigData().disks[disk_uuid]
