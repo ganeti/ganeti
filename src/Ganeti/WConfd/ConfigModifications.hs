@@ -39,27 +39,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.ConfigModifications where
 
-import Control.Lens.Setter ((.~))
+import Control.Lens.Setter ((.~), (%~))
 import Control.Lens.Traversal (mapMOf)
-import Control.Monad (unless)
+import Control.Monad (unless, when, forM_)
 import Control.Monad.IO.Class (liftIO)
-import Data.Maybe (isJust, maybeToList)
+import Data.Maybe (isJust, maybeToList, fromMaybe)
 import Language.Haskell.TH (Name)
-import System.Time (getClockTime)
+import System.Time (getClockTime, ClockTime)
 import Text.Printf (printf)
 import qualified Data.Map as M
 import qualified Data.Set as S
 
-import Ganeti.BasicTypes (GenericResult(..), toError)
+import Ganeti.BasicTypes (GenericResult(..), genericResult, toError)
 import Ganeti.Errors (GanetiException(..))
-import Ganeti.JSON (GenericContainer(..), alterContainerL)
+import Ganeti.JSON (Container, GenericContainer(..), alterContainerL
+                   , lookupContainer, MaybeForJSON(..))
 import Ganeti.Locking.Locks (ClientId, ciIdentifier)
-import Ganeti.Logging.Lifted (logDebug)
+import Ganeti.Logging.Lifted (logDebug, logInfo)
 import Ganeti.Objects
 import Ganeti.Objects.Lens
 import Ganeti.WConfd.ConfigState (ConfigState, csConfigData, csConfigDataL)
 import Ganeti.WConfd.Monad (WConfdMonad, modifyConfigWithLock)
 import qualified Ganeti.WConfd.TempRes as T
+
+type DiskUUID = String
+type InstanceUUID = String
+
+-- * accessor functions
+
+getInstanceByUUID :: ConfigState
+                  -> InstanceUUID
+                  -> GenericResult GanetiException Instance
+getInstanceByUUID cs uuid = lookupContainer
+  (Bad . ConfigurationError $
+    printf "Could not find instance with UUID %s" uuid)
+  uuid
+  (configInstances . csConfigData $ cs)
 
 -- * getters
 
@@ -158,6 +173,77 @@ addInstanceChecks inst replace cs = do
              "Cannot replace %s: UUID %s not present"
              (show $ instName inst) (instUuid inst)
 
+addDiskChecks :: Disk
+              -> Bool
+              -> ConfigState
+              -> GenericResult GanetiException ()
+addDiskChecks disk replace cs =
+  if replace
+    then
+      unless (checkUUIDpresent cs disk) . Bad . ConfigurationError $ printf
+             "Cannot add %s: UUID %s already in use"
+             (show $ diskName disk) (diskUuid disk)
+    else
+      unless (checkUniqueUUID cs disk) . Bad . ConfigurationError $ printf
+             "Cannot replace %s: UUID %s not present"
+             (show $ diskName disk) (diskUuid disk)
+
+attachInstanceDiskChecks :: InstanceUUID
+                         -> DiskUUID
+                         -> MaybeForJSON Int
+                         -> ConfigState
+                         -> GenericResult GanetiException ()
+attachInstanceDiskChecks uuidInst uuidDisk idx' cs = do
+  let diskPresent = elem uuidDisk . map diskUuid . M.elems
+                  . fromContainer . configDisks . csConfigData $ cs
+  unless diskPresent . Bad . ConfigurationError $ printf
+    "Disk %s doesn't exist" uuidDisk
+
+  inst <- getInstanceByUUID cs uuidInst
+  let numDisks = length $ instDisks inst
+      idx = fromMaybe numDisks (unMaybeForJSON idx')
+
+  when (idx < 0) . Bad . GenericError $
+    "Not accepting negative indices"
+  when (idx > numDisks) . Bad . GenericError $ printf
+    "Got disk index %d, but there are only %d" idx numDisks
+
+  let insts = M.elems . fromContainer . configInstances . csConfigData $ cs
+  forM_ insts (\inst' -> when (uuidDisk `elem` instDisks inst') . Bad
+    . ReservationError $ printf "Disk %s already attached to instance %s"
+        uuidDisk (show $ instName inst))
+
+-- * Pure config modifications functions
+
+attachInstanceDisk' :: InstanceUUID
+                    -> DiskUUID
+                    -> MaybeForJSON Int
+                    -> ClockTime
+                    -> ConfigState
+                    -> ConfigState
+attachInstanceDisk' iUuid dUuid idx' ct cs =
+  let inst = genericResult (error "impossible") id (getInstanceByUUID cs iUuid)
+      numDisks = length $ instDisks inst
+      idx = fromMaybe numDisks (unMaybeForJSON idx')
+
+      insert = instDisksL %~ (\ds -> take idx ds ++ [dUuid] ++ drop idx ds)
+      incr = instSerialL %~ (+ 1)
+      time = instMtimeL .~ ct
+
+      inst' = time . incr . insert $ inst
+      disks = updateIvNames idx inst' (configDisks . csConfigData $ cs)
+
+      ri = csConfigDataL . configInstancesL
+         . alterContainerL iUuid .~ Just inst'
+      rds = csConfigDataL . configDisksL .~ disks
+  in rds . ri $ cs
+    where updateIvNames :: Int -> Instance -> Container Disk -> Container Disk
+          updateIvNames idx inst (GenericContainer m) =
+            let dUuids = drop idx (instDisks inst)
+                upgradeIv m' (idx'', dUuid') =
+                  M.adjust (diskIvNameL .~ "disk/" ++ show idx'') dUuid' m'
+            in GenericContainer $ foldl upgradeIv m (zip [idx..] dUuids)
+
 -- * RPCs
 
 -- | Add a new instance to the configuration, release DRBD minors,
@@ -183,8 +269,41 @@ addInstance inst cid replace = do
   logDebug $ "AddInstance: result of config modification is " ++ show r
   return $ isJust r
 
+addInstanceDisk :: InstanceUUID
+                -> Disk
+                -> MaybeForJSON Int
+                -> Bool
+                -> WConfdMonad Bool
+addInstanceDisk iUuid disk idx replace = do
+  logInfo $ printf "Adding disk %s to configuration" (diskUuid disk)
+  ct <- liftIO getClockTime
+  let addD = csConfigDataL . configDisksL . alterContainerL (uuidOf disk)
+               .~ Just disk
+      incrSerialNo = csConfigDataL . configSerialL %~ (+1)
+  r <- modifyConfigWithLock (\_ cs -> do
+           toError $ addDiskChecks disk replace cs
+           let cs' = incrSerialNo . addD $ cs
+           toError $ attachInstanceDiskChecks iUuid (diskUuid disk) idx cs'
+           return $ attachInstanceDisk' iUuid (diskUuid disk) idx ct cs')
+       . T.releaseDRBDMinors $ uuidOf disk
+  return $ isJust r
+
+attachInstanceDisk :: InstanceUUID
+                   -> DiskUUID
+                   -> MaybeForJSON Int
+                   -> WConfdMonad Bool
+attachInstanceDisk iUuid dUuid idx = do
+  ct <- liftIO getClockTime
+  r <- modifyConfigWithLock (\_ cs -> do
+           toError $ attachInstanceDiskChecks iUuid dUuid idx cs
+           return $ attachInstanceDisk' iUuid dUuid idx ct cs)
+       (return ())
+  return $ isJust r
+
 -- * The list of functions exported to RPC.
 
 exportedFunctions :: [Name]
 exportedFunctions = [ 'addInstance
+                    , 'addInstanceDisk
+                    , 'attachInstanceDisk
                     ]

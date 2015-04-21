@@ -859,3 +859,27 @@ class ConfigMock(config.ConfigWriter):
     self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
     self._UnlockedReleaseDRBDMinors(instance.uuid)
     self._UnlockedCommitTemporaryIps(ec_id)
+
+  def _UnlockedAddDisk(self, disk):
+    disk.UpgradeConfig()
+    self._ConfigData().disks[disk.uuid] = disk
+    self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
+    self._UnlockedReleaseDRBDMinors(disk.uuid)
+
+  def _UnlockedAttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if idx is None:
+      idx = len(instance.disks)
+    instance.disks.insert(idx, disk_uuid)
+    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
+    for (disk_idx, disk) in enumerate(instance_disks[idx:]):
+      disk.iv_name = "disk/%s" % (idx + disk_idx)
+    instance.serial_no += 1
+    instance.mtime = time.time()
+
+  def AddInstanceDisk(self, inst_uuid, disk, idx=None, replace=False):
+    self._UnlockedAddDisk(disk)
+    self._UnlockedAttachInstanceDisk(inst_uuid, disk.uuid, idx)
+
+  def AttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
+    self._UnlockedAttachInstanceDisk(inst_uuid, disk_uuid, idx)

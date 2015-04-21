@@ -313,88 +313,21 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceDisks(inst_uuid)
 
-  def _UnlockedAddDisk(self, disk, replace=False):
-    """Add a disk to the config.
-
-    @type disk: L{objects.Disk}
-    @param disk: The disk object
-
-    """
-    if not isinstance(disk, objects.Disk):
-      raise errors.ProgrammerError("Invalid type passed to _UnlockedAddDisk")
-
-    logging.info("Adding disk %s to configuration", disk.uuid)
-
-    if replace:
-      self._CheckUUIDpresent(disk)
-    else:
-      self._CheckUniqueUUID(disk, include_temporary=False)
-      disk.serial_no = 1
-      disk.ctime = disk.mtime = time.time()
-    disk.UpgradeConfig()
-    self._ConfigData().disks[disk.uuid] = disk
-    self._ConfigData().cluster.serial_no += 1
-    self._UnlockedReleaseDRBDMinors(disk.uuid)
-
-  def _UnlockedAttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
-    """Attach a disk to an instance.
-
-    @type inst_uuid: string
-    @param inst_uuid: The UUID of the instance object
-    @type disk_uuid: string
-    @param disk_uuid: The UUID of the disk object
-    @type idx: int
-    @param idx: the index of the newly attached disk; if not
-      passed, the disk will be attached as the last one.
-
-    """
-    instance = self._UnlockedGetInstanceInfo(inst_uuid)
-    if instance is None:
-      raise errors.ConfigurationError("Instance %s doesn't exist"
-                                      % inst_uuid)
-    if disk_uuid not in self._ConfigData().disks:
-      raise errors.ConfigurationError("Disk %s doesn't exist" % disk_uuid)
-
-    if idx is None:
-      idx = len(instance.disks)
-    else:
-      if idx < 0:
-        raise IndexError("Not accepting negative indices other than -1")
-      elif idx > len(instance.disks):
-        raise IndexError("Got disk index %s, but there are only %s" %
-                         (idx, len(instance.disks)))
-
-    # Disk must not be attached anywhere else
-    for inst in self._ConfigData().instances.values():
-      if disk_uuid in inst.disks:
-        raise errors.ReservationError("Disk %s already attached to instance %s"
-                                      % (disk_uuid, inst.name))
-
-    instance.disks.insert(idx, disk_uuid)
-    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
-    _UpdateIvNames(idx, instance_disks[idx:])
-    instance.serial_no += 1
-    instance.mtime = time.time()
-
-  @ConfigSync()
   def AddInstanceDisk(self, inst_uuid, disk, idx=None, replace=False):
-    """Add a disk to the config and attach it to instance.
+    """Add a disk to the config and attach it to instance."""
+    if not isinstance(disk, objects.Disk):
+      raise errors.ProgrammerError("Invalid type passed to AddInstanceDisk")
 
-    This is a simple wrapper over L{_UnlockedAddDisk} and
-    L{_UnlockedAttachInstanceDisk}.
+    disk.UpgradeConfig()
+    utils.SimpleRetry(True, self._wconfd.AddInstanceDisk, 0.1, 30,
+                      args=[inst_uuid, disk.ToDict(), idx, replace])
+    self.OutDate()
 
-    """
-    self._UnlockedAddDisk(disk, replace=replace)
-    self._UnlockedAttachInstanceDisk(inst_uuid, disk.uuid, idx)
-
-  @ConfigSync()
   def AttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
-    """Attach an existing disk to an instance.
-
-    This is a simple wrapper over L{_UnlockedAttachInstanceDisk}.
-
-    """
-    self._UnlockedAttachInstanceDisk(inst_uuid, disk_uuid, idx)
+    """Attach an existing disk to an instance."""
+    utils.SimpleRetry(True, self._wconfd.AttachInstanceDisk, 0.1, 30,
+                      args=[inst_uuid, disk_uuid, idx])
+    self.OutDate()
 
   def _UnlockedDetachInstanceDisk(self, inst_uuid, disk_uuid):
     """Detach a disk from an instance.
