@@ -6,7 +6,7 @@ This module holds all the tag interpretation done by htools.
 
 {-
 
-Copyright (C) 2014 Google Inc.
+Copyright (C) 2014, 2015 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,14 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Ganeti.HTools.Tags
-  ( exTagsPrefix
-  , standbyAuto
-  , hasStandbyTag
-  , autoRepairTagPrefix
-  , autoRepairTagEnabled
-  , autoRepairTagPending
-  , autoRepairTagResult
-  , autoRepairTagSuspended
+  ( hasStandbyTag
   , getMigRestrictions
   , getRecvMigRestrictions
   , getLocations
@@ -54,51 +47,9 @@ import Data.Maybe (mapMaybe)
 import qualified Data.Set as S
 
 import qualified Ganeti.HTools.Node as Node
-
--- * Constants
-
--- | The exclusion tag prefix. Instance tags starting with this prefix
--- describe a service provided by the instance. Instances providing the
--- same service at not places on the same node.
-exTagsPrefix :: String
-exTagsPrefix = "htools:iextags:"
-
--- | The tag-prefix indicating that hsqueeze should consider a node
--- as being standby.
-standbyPrefix :: String
-standbyPrefix = "htools:standby:"
-
--- | The prefix for migration tags
-migrationPrefix :: String
-migrationPrefix = "htools:migration:"
-
--- | Prefix of tags allowing migration
-allowMigrationPrefix :: String
-allowMigrationPrefix = "htools:allowmigration:"
-
--- | The prefix for location tags.
-locationPrefix :: String
-locationPrefix = "htools:nlocation:"
-
--- | The tag to be added to nodes that were shutdown by hsqueeze.
-standbyAuto :: String
-standbyAuto = "htools:standby:auto"
-
--- | Auto-repair tag prefix
-autoRepairTagPrefix :: String
-autoRepairTagPrefix = "ganeti:watcher:autorepair:"
-
-autoRepairTagEnabled :: String
-autoRepairTagEnabled = autoRepairTagPrefix
-
-autoRepairTagPending :: String
-autoRepairTagPending = autoRepairTagPrefix ++ "pending:"
-
-autoRepairTagResult :: String
-autoRepairTagResult = autoRepairTagPrefix ++ "result:"
-
-autoRepairTagSuspended :: String
-autoRepairTagSuspended = autoRepairTagPrefix ++ "suspend:"
+import Ganeti.HTools.Tags.Constants ( standbyPrefix
+                                    , migrationPrefix, allowMigrationPrefix
+                                    , locationPrefix )
 
 -- * Predicates
 

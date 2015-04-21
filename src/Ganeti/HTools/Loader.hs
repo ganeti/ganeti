@@ -71,6 +71,7 @@ import qualified Ganeti.HTools.Cluster.Moves as Moves
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Tags as Tags
+import qualified Ganeti.HTools.Tags.Constants as TagsC
 import Ganeti.HTools.Types
 import Ganeti.Utils
 import Ganeti.Types (EvacMode)
@@ -249,8 +250,8 @@ setArPolicy ctags gl nl il time =
 getArPolicy :: [String] -> ClockTime -> Maybe AutoRepairPolicy
 getArPolicy tags time =
   let enabled = mapMaybe (autoRepairTypeFromRaw <=<
-                          chompPrefix Tags.autoRepairTagEnabled) tags
-      suspended = mapMaybe (chompPrefix Tags.autoRepairTagSuspended) tags
+                          chompPrefix TagsC.autoRepairTagEnabled) tags
+      suspended = mapMaybe (chompPrefix TagsC.autoRepairTagSuspended) tags
       futureTs = filter (> time) . map (flip TOD 0) $
                    mapMaybe (tryRead "auto-repair suspend time") suspended
   in
@@ -275,7 +276,7 @@ longestDomain (x:xs) =
 
 -- | Extracts the exclusion tags from the cluster configuration.
 extractExTags :: [String] -> [String]
-extractExTags = filter (not . null) . mapMaybe (chompPrefix Tags.exTagsPrefix)
+extractExTags = filter (not . null) . mapMaybe (chompPrefix TagsC.exTagsPrefix)
 
 -- | Extracts the common suffix from node\/instance names.
 commonSuffix :: Node.List -> Instance.List -> String

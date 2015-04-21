@@ -144,6 +144,7 @@ HS_DIRS = \
 	src/Ganeti/HTools/Backend \
 	src/Ganeti/HTools/Cluster \
 	src/Ganeti/HTools/Program \
+	src/Ganeti/HTools/Tags \
 	src/Ganeti/Hypervisor \
 	src/Ganeti/Hypervisor/Xen \
 	src/Ganeti/JQScheduler \
@@ -932,6 +933,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Program/Hroller.hs \
 	src/Ganeti/HTools/Program/Main.hs \
 	src/Ganeti/HTools/Tags.hs \
+	src/Ganeti/HTools/Tags/Constants.hs \
 	src/Ganeti/HTools/Types.hs \
 	src/Ganeti/Hypervisor/Xen.hs \
 	src/Ganeti/Hypervisor/Xen/XmParser.hs \

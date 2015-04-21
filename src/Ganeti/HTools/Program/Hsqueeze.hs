@@ -58,7 +58,8 @@ import Ganeti.HTools.ExtLoader
 import qualified Ganeti.HTools.Instance as Instance
 import Ganeti.HTools.Loader
 import qualified Ganeti.HTools.Node as Node
-import Ganeti.HTools.Tags (hasStandbyTag, standbyAuto)
+import Ganeti.HTools.Tags (hasStandbyTag)
+import Ganeti.HTools.Tags.Constants (standbyAuto)
 import Ganeti.HTools.Types
 import Ganeti.JQueue (currentTimestamp, reasonTrailTimestamp)
 import Ganeti.JQueue.Objects (Timestamp)

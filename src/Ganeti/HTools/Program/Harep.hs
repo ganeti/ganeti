@@ -63,7 +63,7 @@ import qualified Ganeti.Path as Path
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.ExtLoader
-import qualified Ganeti.HTools.Tags as Tags
+import qualified Ganeti.HTools.Tags.Constants as Tags
 import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
