@@ -212,6 +212,12 @@ class LUInstanceSetParams(LogicalUnit):
       CheckSpindlesExclusiveStorage(params, excl_stor, True)
       CheckDiskExtProvider(params, disk_type)
 
+      # Make sure we do not add syncing disks to instances with inactive disks
+      if not self.op.wait_for_sync and not self.instance.disks_active:
+        raise errors.OpPrereqError("Can't %s a disk to an instance with"
+                                   " deactivated disks and --no-wait-for-sync"
+                                   " given" % op, errors.ECODE_INVAL)
+
       # Check disk access param (only for specific disks)
       if disk_type in constants.DTS_HAVE_ACCESS:
         access_type = params.get(constants.IDISK_ACCESS,
@@ -777,14 +783,6 @@ class LUInstanceSetParams(LogicalUnit):
     self._CheckMods("disk", self.op.disks, {}, ver_fn)
 
     self.diskmod = PrepareContainerMods(self.op.disks, None)
-
-    if not self.op.wait_for_sync and not self.instance.disks_active:
-      for mod in self.diskmod:
-        if mod[0] in (constants.DDM_ADD, constants.DDM_ATTACH):
-          raise errors.OpPrereqError("Can't %s a disk to an instance with"
-                                     " deactivated disks and"
-                                     " --no-wait-for-sync given" % mod[0],
-                                     errors.ECODE_INVAL)
 
     def _PrepareDiskMod(_, disk, params, __):
       disk.name = params.get(constants.IDISK_NAME, None)
