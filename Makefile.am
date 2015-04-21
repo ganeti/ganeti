@@ -629,6 +629,7 @@ utils_PYTHON = \
 	lib/utils/security.py \
 	lib/utils/storage.py \
 	lib/utils/text.py \
+	lib/utils/tags.py \
 	lib/utils/version.py \
 	lib/utils/wrapper.py \
 	lib/utils/x509.py \
