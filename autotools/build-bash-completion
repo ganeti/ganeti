@@ -720,6 +720,9 @@ def HaskellOptToOptParse(opts, kind):
   elif kind == "onenode":
     return cli.cli_option(*opts, type="string",
                           completion_suggest=cli.OPT_COMPL_ONE_NODE)
+  elif kind == "manynodes":
+    # FIXME: no support for many nodes
+    return cli.cli_option(*opts, type="string")
   elif kind == "manyinstances":
     # FIXME: no support for many instances
     return cli.cli_option(*opts, type="string")
