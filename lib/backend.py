@@ -1529,26 +1529,19 @@ def AddNodeSshKey(node_uuid, node_name,
     node_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
       (constants.SSHS_OVERRIDE, all_keys)
 
-    last_exception = None
-    for _ in range(constants.SSHS_MAX_RETRIES):
-      try:
-        run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
-                   ssh_port_map.get(node_name), node_data,
-                   debug=False, verbose=False, use_cluster_key=False,
-                   ask_key=False, strict_host_check=False)
-        break
-      except errors.OpExecError as e:
-        logging.error("Updating SSH key files of node '%s' failed."
-                      " Error: %s", node_name, e)
-        last_exception = e
-    else:
-      if last_exception:
-        # Clean up the master's public key file if adding key fails
-        if to_public_keys:
-          ssh.RemovePublicKey(node_uuid)
-        raise errors.SshUpdateError(
-          "Could not update the SSH setup of node '%s' itself. Error: %s."
-          % (node_name, last_exception))
+    try:
+      utils.RetryByNumberOfTimes(
+          constants.SSHS_MAX_RETRIES,
+          errors.SshUpdateError,
+          run_cmd_fn, cluster_name, node_name, pathutils.SSH_UPDATE,
+          ssh_port_map.get(node_name), node_data,
+          debug=False, verbose=False, use_cluster_key=False,
+          ask_key=False, strict_host_check=False)
+    except errors.SshUpdateError as e:
+      # Clean up the master's public key file if adding key fails
+      if to_public_keys:
+        ssh.RemovePublicKey(node_uuid)
+      raise e
 
   # Update all nodes except master and the target node
   if to_authorized_keys:
@@ -1573,29 +1566,25 @@ def AddNodeSshKey(node_uuid, node_name,
       logging.debug("Skipping offline node '%s'.", node)
       continue
     if node in potential_master_candidates:
-      logging.debug("Updating SSH key files of node '%s'.")
-      for i in range(constants.SSHS_MAX_RETRIES):
-        try:
-          run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                     ssh_port_map.get(node), pot_mc_data,
-                     debug=False, verbose=False, use_cluster_key=False,
-                     ask_key=False, strict_host_check=False)
-          break
-        except errors.OpExecError as e:
-          logging.error("Updating SSH key files of node '%s' failed"
-                        " at try no %s. Error: %s.", node, i, e)
-          last_exception = e
-      else:
-        if last_exception:
-          error_msg = ("When adding the key of node '%s', updating SSH key"
-                       " files of node '%s' failed after %s retries."
-                       " Not trying again. Last error was: %s." %
-                       (node, node_name, constants.SSHS_MAX_RETRIES,
-                        last_exception))
-          node_errors.append((node, error_msg))
-          # We only log the error and don't throw an exception, because
-          # one unreachable node shall not abort the entire procedure.
-          logging.error(error_msg)
+      logging.debug("Updating SSH key files of node '%s'.", node)
+      try:
+        utils.RetryByNumberOfTimes(
+            constants.SSHS_MAX_RETRIES,
+            errors.SshUpdateError,
+            run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
+            ssh_port_map.get(node), pot_mc_data,
+            debug=False, verbose=False, use_cluster_key=False,
+            ask_key=False, strict_host_check=False)
+      except errors.SshUpdateError as last_exception:
+        error_msg = ("When adding the key of node '%s', updating SSH key"
+                     " files of node '%s' failed after %s retries."
+                     " Not trying again. Last error was: %s." %
+                     (node, node_name, constants.SSHS_MAX_RETRIES,
+                      last_exception))
+        node_errors.append((node, error_msg))
+        # We only log the error and don't throw an exception, because
+        # one unreachable node shall not abort the entire procedure.
+        logging.error(error_msg)
 
     else:
       if to_authorized_keys:
@@ -1731,46 +1720,40 @@ def RemoveNodeSshKey(node_uuid, node_name,
           raise errors.OpExecError("No SSH port information available for"
                                    " node '%s', map: %s." %
                                    (node, ssh_port_map))
-        error_msg_try = ("The SSH setup of node '%s' could not"
-                         " be adjusted in try no %s. Error: %s.")
         error_msg_final = ("When removing the key of node '%s', updating the"
-                           " SSH key files of node '%s' failed after %s"
-                           " retries. Not trying again. Last error was: %s.")
+                           " SSH key files of node '%s' failed. Last error"
+                           " was: %s.")
         if node in potential_master_candidates:
-          for i in range(constants.SSHS_MAX_RETRIES):
-            try:
-              run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                         ssh_port, pot_mc_data,
-                         debug=False, verbose=False, use_cluster_key=False,
-                         ask_key=False, strict_host_check=False)
-              break
-            except errors.OpExecError as e:
-              logging.error(error_msg_try, node, i, e)
-              last_exception = e
-          else:
-            if last_exception:
-              error_msg = error_msg_final % (
-                  node_name, node, constants.SSHS_MAX_RETRIES, last_exception)
-              result_msgs.append((node, error_msg))
-              logging.error(error_msg)
+          logging.debug("Updating key setup of potential master candidate node"
+                        " %s.", node)
+          try:
+            utils.RetryByNumberOfTimes(
+                constants.SSHS_MAX_RETRIES,
+                errors.SshUpdateError,
+                run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
+                ssh_port, pot_mc_data,
+                debug=False, verbose=False, use_cluster_key=False,
+                ask_key=False, strict_host_check=False)
+          except errors.SshUpdateError as last_exception:
+            error_msg = error_msg_final % (
+                node_name, node, last_exception)
+            result_msgs.append((node, error_msg))
+            logging.error(error_msg)
 
         else:
-          last_exception = None
           if from_authorized_keys:
-            for i in range(constants.SSHS_MAX_RETRIES):
-              try:
-                run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                           ssh_port, base_data,
-                           debug=False, verbose=False, use_cluster_key=False,
-                           ask_key=False, strict_host_check=False)
-                break
-              except errors.OpExecError as e:
-                logging.error(error_msg_try, node, i, e)
-                last_exception = e
-          else:
-            if last_exception:
+            logging.debug("Updating key setup of normal node %s.", node)
+            try:
+              utils.RetryByNumberOfTimes(
+                  constants.SSHS_MAX_RETRIES,
+                  errors.SshUpdateError,
+                  run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
+                  ssh_port, base_data,
+                  debug=False, verbose=False, use_cluster_key=False,
+                  ask_key=False, strict_host_check=False)
+            except errors.SshUpdateError as last_exception:
               error_msg = error_msg_final % (
-                  node_name, node, constants.SSHS_MAX_RETRIES, last_exception)
+                  node_name, node, last_exception)
               result_msgs.append((node, error_msg))
               logging.error(error_msg)
 
@@ -1810,25 +1793,21 @@ def RemoveNodeSshKey(node_uuid, node_name,
             constants.SSHS_SSH_AUTHORIZED_KEYS in data):
       return
 
-    last_exception = None
-    for i in range(constants.SSHS_MAX_RETRIES):
-      try:
-        run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
-                   ssh_port, data,
-                   debug=False, verbose=False, use_cluster_key=False,
-                   ask_key=False, strict_host_check=False)
-      except errors.OpExecError as e:
-        logging.error("Updating the SSH key files of node '%s', whose key"
-                      " itself is being removed failed with try no %s."
-                      " Error: %s", node_name, i, e)
-        last_exception = e
-    else:
-      if last_exception:
-        result_msgs.append(
-            (node_name,
-             ("Removing SSH keys from node '%s' failed after %s retries."
-              " This can happen when the node is already unreachable."
-              " Error: %s" % (node_name, constants.SSHS_MAX_RETRIES, e))))
+    logging.debug("Updating SSH key setup of target node '%s'.", node_name)
+    try:
+      utils.RetryByNumberOfTimes(
+          constants.SSHS_MAX_RETRIES,
+          errors.SshUpdateError,
+          run_cmd_fn, cluster_name, node_name, pathutils.SSH_UPDATE,
+          ssh_port, data,
+          debug=False, verbose=False, use_cluster_key=False,
+          ask_key=False, strict_host_check=False)
+    except errors.SshUpdateError as last_exception:
+      result_msgs.append(
+          (node_name,
+           ("Removing SSH keys from node '%s' failed."
+            " This can happen when the node is already unreachable."
+            " Error: %s" % (node_name, last_exception))))
 
   return result_msgs
 
