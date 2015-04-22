@@ -1677,6 +1677,7 @@ TEST_FILES = \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-dedicated-1.json \
 	test/data/htools/hail-alloc-drbd.json \
+	test/data/htools/hail-alloc-drbd-restricted.json \
 	test/data/htools/hail-alloc-ext.json \
 	test/data/htools/hail-alloc-invalid-network.json \
 	test/data/htools/hail-alloc-invalid-twodisks.json \
@@ -1716,6 +1717,7 @@ TEST_FILES = \
 	test/data/htools/multiple-master.data \
 	test/data/htools/multiple-tags.data \
 	test/data/htools/n1-failure.data \
+	test/data/htools/partly-used.data \
 	test/data/htools/rapi/groups.json \
 	test/data/htools/rapi/info.json \
 	test/data/htools/rapi/instances.json \

@@ -190,3 +190,24 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 ./test/hs/hail -t $TESTDATA_DIR/shared-n1-restriction.data $TESTDATA_DIR/hail-alloc-ext.json --no-capacity-checks
 >>> /"success":true.*"result":\["nodeA"\]/
 >>>= 0
+
+# Verify that allocation restrications are honored
+./test/hs/hail -t $TESTDATA_DIR/partly-used.data $TESTDATA_DIR/hail-alloc-drbd.json
+>>> /successes 20,.*"result":\["node-0[45]","node-0[45]"\]/
+>>>= 0
+
+./test/hs/hail -t $TESTDATA_DIR/partly-used.data --restrict-allocation-to node-01,node-02,node-03 $TESTDATA_DIR/hail-alloc-drbd.json
+>>> /successes 6,.*"result":\["node-0[123]","node-0[123]"\]/
+>>>= 0
+
+./test/hs/hail -t $TESTDATA_DIR/partly-used.data $TESTDATA_DIR/hail-alloc-drbd-restricted.json
+>>> /successes 6,.*"result":\["node-0[123]","node-0[123]"\]/
+>>>= 0
+
+./test/hs/hail -t $TESTDATA_DIR/partly-used.data --restrict-allocation-to node-01,node-02 $TESTDATA_DIR/hail-alloc-drbd-restricted.json
+>>> /successes 2,.*"result":\["node-0[12]","node-0[12]"\]/
+>>>= 0
+
+./test/hs/hail -t $TESTDATA_DIR/partly-used.data --restrict-allocation-to node-03,node-04 $TESTDATA_DIR/hail-alloc-drbd-restricted.json
+>>> /successes 2,.*"result":\["node-0[34]","node-0[34]"\]/
+>>>= 0
