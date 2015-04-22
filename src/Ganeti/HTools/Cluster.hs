@@ -511,18 +511,21 @@ tryBalance opts ini_tbl =
 -- * Allocation functions
 
 -- | Generate the valid node allocation singles or pairs for a new instance.
-genAllocNodes :: Group.List        -- ^ Group list
+genAllocNodes :: AlgorithmOptions  -- ^ algorithmic options to honor
+              -> Group.List        -- ^ Group list
               -> Node.List         -- ^ The node map
               -> Int               -- ^ The number of nodes required
               -> Bool              -- ^ Whether to drop or not
                                    -- unallocable nodes
               -> Result AllocNodes -- ^ The (monadic) result
-genAllocNodes gl nl count drop_unalloc =
+genAllocNodes opts gl nl count drop_unalloc =
   let filter_fn = if drop_unalloc
                     then filter (Group.isAllocable .
                                  flip Container.find gl . Node.group)
                     else id
-      all_nodes = filter_fn $ getOnline nl
+      restrict_fn = maybe id (\ns -> filter (flip elem ns . Node.name))
+                    $ algRestrictToNodes opts
+      all_nodes = restrict_fn . filter_fn $ getOnline nl
       all_pairs = [(Node.idx p,
                     [Node.idx s | s <- all_nodes,
                                        Node.idx p /= Node.idx s,
@@ -629,7 +632,7 @@ findAllocation opts mggl mgnl mgil gdx inst cnt = do
   unless (hasRequiredNetworks group' inst) . failError
          $ "The group " ++ Group.name group' ++ " is not connected to\
            \ a network required by instance " ++ Instance.name inst
-  solution <- genAllocNodes mggl nl cnt False >>= tryAlloc opts nl il inst
+  solution <- genAllocNodes opts mggl nl cnt False >>= tryAlloc opts nl il inst
   return (solution, solutionDescription (group', return solution))
 
 -- | Finds the best group for an instance on a multi-group cluster.
@@ -654,7 +657,7 @@ findBestAllocGroup opts mggl mgnl mgil allowed_gdxs inst cnt =
                 allowed_gdxs
       (groups'', filter_group_msgs) = filterValidGroups groups' inst
       sols = map (\(gr, (nl, il)) ->
-                   (gr, genAllocNodes mggl nl cnt False >>=
+                   (gr, genAllocNodes opts mggl nl cnt False >>=
                         tryAlloc opts nl il inst))
              groups''::[(Group.Group, Result AllocSolution)]
       all_msgs = filter_group_msgs ++ concatMap solutionDescription sols

@@ -182,7 +182,7 @@ findAllocation opts mggl mgnl gdx inst count = do
   unless (Cluster.hasRequiredNetworks group inst) . failError
          $ "The group " ++ Group.name group ++ " is not connected to\
            \ a network required by instance " ++ Instance.name inst
-  allocNodes <- Cluster.genAllocNodes mggl nl count False
+  allocNodes <- Cluster.genAllocNodes opts mggl nl count False
   solution <- case allocNodes of
     (Right []) -> fail "Not enough online nodes"
     (Right pairs) ->

@@ -268,9 +268,9 @@ prop_CreateSerialise =
   let nl = makeSmallCluster node count
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
       opts = Alg.defaultOptions
-  in case Cluster.genAllocNodes defGroupList nl reqnodes True >>= \allocn ->
-     Cluster.iterateAlloc opts nl Container.empty (Just maxiter) inst allocn
-                          [] []
+  in case Cluster.genAllocNodes opts defGroupList nl reqnodes True
+          >>= \allocn -> Cluster.iterateAlloc opts nl Container.empty
+                                   (Just maxiter) inst allocn [] []
      of
        Bad msg -> failTest $ "Failed to allocate: " ++ msg
        Ok (_, _, _, [], _) -> counterexample

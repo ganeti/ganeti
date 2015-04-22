@@ -469,6 +469,7 @@ main opts args = do
       machine_r = optMachineReadable opts
       independent_grps = optIndependentGroups opts
       accept_existing = optAcceptExisting opts
+      algOpts = Alg.fromCLIOptions opts
 
   orig_cdata@(ClusterData gl fixed_nl il _ ipol) <- loadExternalData opts
   nl <- setNodeStatus opts fixed_nl
@@ -519,7 +520,7 @@ main opts args = do
                    else Just (optMaxLength opts)
 
   allocnodes <- exitIfBad "failure during allocation" $
-                Cluster.genAllocNodes gl' nl req_nodes True
+                Cluster.genAllocNodes algOpts gl' nl req_nodes True
 
   when (verbose > 3)
     . hPrintf stderr "Allocatable nodes: %s\n" $ show allocnodes
@@ -532,8 +533,6 @@ main opts args = do
                             minmaxes
                  Just t -> [t]
       tinsts = map (\ts -> instFromSpec ts disk_template su) tspecs
-
-      algOpts = Alg.fromCLIOptions opts
 
   tspec <- case tspecs of
     [] -> exitErr "Empty list of specs received from the cluster"

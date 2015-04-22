@@ -158,7 +158,8 @@ prop_Alloc_sane inst =
   let (nl, il, inst') = makeSmallEmptyCluster node count inst
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
       opts = Alg.defaultOptions
-  in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
+  in case Cluster.genAllocNodes Alg.defaultOptions
+                                defGroupList nl reqnodes True >>=
      Cluster.tryAlloc opts nl il inst' of
        Bad msg -> failTest msg
        Ok as ->
@@ -185,7 +186,8 @@ prop_CanTieredAlloc =
   let nl = makeSmallCluster node count
       il = Container.empty
       rqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
-      allocnodes = Cluster.genAllocNodes defGroupList nl rqnodes True
+      allocnodes = Cluster.genAllocNodes Alg.defaultOptions
+                                         defGroupList nl rqnodes True
       opts = Alg.defaultOptions
   in case allocnodes >>= \allocnodes' ->
     Cluster.tieredAlloc opts nl il (Just 5) inst allocnodes' [] [] of
@@ -215,7 +217,8 @@ genClusterAlloc count node inst =
   let nl = makeSmallCluster node count
       reqnodes = Instance.requiredNodes $ Instance.diskTemplate inst
       opts = Alg.defaultOptions
-  in case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
+  in case Cluster.genAllocNodes Alg.defaultOptions
+                                defGroupList nl reqnodes True >>=
      Cluster.tryAlloc opts nl Container.empty inst of
        Bad msg -> Bad $ "Can't allocate: " ++ msg
        Ok as ->
@@ -320,7 +323,8 @@ prop_AllocBalance =
       hnode = snd $ IntMap.findMax nl
       nl' = IntMap.deleteMax nl
       il = Container.empty
-      allocnodes = Cluster.genAllocNodes defGroupList nl' 2 True
+      allocnodes = Cluster.genAllocNodes Alg.defaultOptions
+                                         defGroupList nl' 2 True
       i_templ = createInstance Types.unitMem Types.unitDsk Types.unitCpu
       opts = Alg.defaultOptions
   in case allocnodes >>= \allocnodes' ->
@@ -370,7 +374,8 @@ prop_SplitCluster node inst =
 -- otherwise the 'Just' value will contain the error message.
 canAllocOn :: Node.List -> Int -> Instance.Instance -> Maybe String
 canAllocOn nl reqnodes inst =
-  case Cluster.genAllocNodes defGroupList nl reqnodes True >>=
+  case Cluster.genAllocNodes Alg.defaultOptions
+                             defGroupList nl reqnodes True >>=
        Cluster.tryAlloc Alg.defaultOptions nl Container.empty inst of
        Bad msg -> Just $ "Can't allocate: " ++ msg
        Ok as ->
