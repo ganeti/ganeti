@@ -104,6 +104,7 @@ module Ganeti.HTools.CLI
   , oQuiet
   , oRapiMaster
   , oReason
+  , oRestrictToNodes
   , oSaveCluster
   , oSelInst
   , oShowHelp
@@ -184,6 +185,8 @@ data Options = Options
   , optNodeSim     :: [String]       -- ^ Cluster simulation mode
   , optNodeTags    :: Maybe [String] -- ^ List of node tags to restrict to 
   , optOffline     :: [String]       -- ^ Names of offline nodes
+  , optRestrictToNodes :: Maybe [String] -- ^ if not Nothing, restrict
+                                     -- allocation to those nodes
   , optOfflineMaintenance :: Bool    -- ^ Pretend all instances are offline
   , optOneStepOnly :: Bool           -- ^ Only do the first step
   , optOutPath     :: FilePath       -- ^ Path to the output directory
@@ -254,6 +257,7 @@ defaultOptions  = Options
   , optNodeTags    = Nothing
   , optSkipNonRedundant = False
   , optOffline     = []
+  , optRestrictToNodes = Nothing
   , optOfflineMaintenance = False
   , optOneStepOnly = False
   , optOutPath     = "."
@@ -660,6 +664,13 @@ oOfflineNode =
    (ReqArg (\ n o -> Ok o { optOffline = n:optOffline o }) "NODE")
    "set node as offline",
    OptComplOneNode)
+
+oRestrictToNodes :: OptType
+oRestrictToNodes =
+  (Option "" ["restrict-allocation-to"]
+    (ReqArg (\ ns o -> Ok o { optRestrictToNodes = Just $ sepSplit ',' ns })
+     "NODE,...") "Restrict allocations to the given set of nodes",
+   OptComplManyNodes)
 
 oOneStepOnly :: OptType
 oOneStepOnly =
