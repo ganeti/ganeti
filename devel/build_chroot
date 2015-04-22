@@ -308,7 +308,8 @@ case $DIST_RELEASE in
       $APT_INSTALL -t squeeze-backports \
         git \
         git-email \
-        vim
+        vim \
+        exuberant-ctags
 
 ;;
 
@@ -329,7 +330,7 @@ case $DIST_RELEASE in
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
-      shelltestrunner python-dev openssh-client vim git git-email
+      shelltestrunner python-dev openssh-client vim git git-email exuberant-ctags
 
     # We need version 0.9.4 of pyinotify because the packaged version, 0.9.3, is
     # incompatibile with the packaged version of python-epydoc 3.0.1.
@@ -382,7 +383,8 @@ case $DIST_RELEASE in
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-pyinotify python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
-      shelltestrunner python-dev pylint openssh-client vim git git-email
+      shelltestrunner python-dev pylint openssh-client \
+      vim git git-email exuberant-ctags
 
     in_chroot -- \
       cabal update
@@ -417,7 +419,7 @@ EOF
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
-      python-dev pylint openssh-client vim git git-email \
+      python-dev pylint openssh-client vim git git-email exuberant-ctags \
       build-essential
 
     in_chroot -- \
@@ -470,7 +472,8 @@ EOF
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
-      shelltestrunner python-dev pylint openssh-client vim git git-email \
+      shelltestrunner python-dev pylint openssh-client \
+      vim git git-email exuberant-ctags \
       build-essential
 
     in_chroot -- \
