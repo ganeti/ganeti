@@ -490,13 +490,10 @@ class IAllocator(object):
 
     if isinstance(self.req, IAReqInstanceAlloc):
       hypervisor_name = self.req.hypervisor
-      node_whitelist = self.req.node_whitelist
     elif isinstance(self.req, IAReqRelocate):
       hypervisor_name = iinfo[self.req.inst_uuid].hypervisor
-      node_whitelist = None
     else:
       hypervisor_name = cluster_info.primary_hypervisor
-      node_whitelist = None
 
     if not disk_template:
       disk_template = cluster_info.enabled_disk_templates[0]
@@ -511,7 +508,7 @@ class IAllocator(object):
 
     data["nodegroups"] = self._ComputeNodeGroupData(cluster_info, ginfo)
 
-    config_ndata = self._ComputeBasicNodeData(cfg, ninfo, node_whitelist)
+    config_ndata = self._ComputeBasicNodeData(cfg, ninfo)
     data["nodes"] = self._ComputeDynamicNodeData(
         ninfo, node_data, node_iinfo, i_list, config_ndata, disk_template)
     assert len(data["nodes"]) == len(ninfo), \
@@ -539,7 +536,7 @@ class IAllocator(object):
     return ng
 
   @staticmethod
-  def _ComputeBasicNodeData(cfg, node_cfg, node_whitelist):
+  def _ComputeBasicNodeData(cfg, node_cfg):
     """Compute global node data.
 
     @rtype: dict
@@ -551,9 +548,7 @@ class IAllocator(object):
       "tags": list(ninfo.GetTags()),
       "primary_ip": ninfo.primary_ip,
       "secondary_ip": ninfo.secondary_ip,
-      "offline": (ninfo.offline or
-                  not (node_whitelist is None or
-                       ninfo.name in node_whitelist)),
+      "offline": ninfo.offline,
       "drained": ninfo.drained,
       "master_candidate": ninfo.master_candidate,
       "group": ninfo.group,
@@ -815,6 +810,14 @@ class IAllocator(object):
     self._ComputeClusterData(disk_template=disk_template)
 
     request["type"] = req.MODE
+
+    if isinstance(self.req, IAReqInstanceAlloc):
+      node_whitelist = self.req.node_whitelist
+    else:
+      node_whitelist = None
+    if node_whitelist:
+      request["restrict-to-nodes"] = node_whitelist
+
     self.in_data["request"] = request
 
     self.in_text = serializer.Dump(self.in_data)

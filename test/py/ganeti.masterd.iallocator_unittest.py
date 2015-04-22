@@ -109,7 +109,7 @@ class TestComputeBasicNodeData(unittest.TestCase):
                              _FakeConfigWithNdParams())
 
   def testEmpty(self):
-    self.assertEqual(self.fn({}, None), {})
+    self.assertEqual(self.fn({}), {})
 
   def testSimple(self):
     node1 = objects.Node(name="node1",
@@ -139,7 +139,7 @@ class TestComputeBasicNodeData(unittest.TestCase):
       "#unused-2#": node2,
       }
 
-    self.assertEqual(self.fn(ninfo, None), {
+    self.assertEqual(self.fn(ninfo), {
       "node1": {
         "tags": [],
         "primary_ip": "192.0.2.1",
@@ -166,25 +166,6 @@ class TestComputeBasicNodeData(unittest.TestCase):
         },
       })
 
-  def testOfflineNode(self):
-    for whitelist in [None, [], set(), ["node1"], ["node2"]]:
-      result = self.fn({
-        "node1": objects.Node(name="node1", offline=True)
-        }, whitelist)
-      self.assertEqual(len(result), 1)
-      self.assertTrue(result["node1"]["offline"])
-
-  def testWhitelist(self):
-    for whitelist in [None, [], set(), ["node1"], ["node2"]]:
-      result = self.fn({
-        "node1": objects.Node(name="node1", offline=False)
-        }, whitelist)
-      self.assertEqual(len(result), 1)
-
-      if whitelist is None or "node1" in whitelist:
-        self.assertFalse(result["node1"]["offline"])
-      else:
-        self.assertTrue(result["node1"]["offline"])
 
 class TestProcessStorageInfo(unittest.TestCase):
 
