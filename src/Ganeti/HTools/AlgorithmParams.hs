@@ -53,6 +53,7 @@ data AlgorithmOptions = AlgorithmOptions
   , algMinGainLimit :: Double       -- ^ Limit below which minimal gain is used
   , algCapacity :: Bool             -- ^ Whether to check capacity properties,
                                     -- like global N+1 redundancy
+  , algRestrictToNodes :: Maybe [String] -- ^ nodes to restrict allocation to
   }
 
 -- | Obtain the relevant algorithmic option from the commandline options
@@ -66,6 +67,7 @@ fromCLIOptions opts = AlgorithmOptions
   , algMinGain = CLI.optMinGain opts
   , algMinGainLimit = CLI.optMinGainLim opts
   , algCapacity = CLI.optCapacity opts
+  , algRestrictToNodes = CLI.optRestrictToNodes opts
   }
 
 -- | Default options for the balancing algorithm
