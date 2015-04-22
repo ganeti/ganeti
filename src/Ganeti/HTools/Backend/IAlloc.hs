@@ -60,7 +60,7 @@ import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Nic as Nic
 import qualified Ganeti.Constants as C
-import Ganeti.HTools.AlgorithmParams (AlgorithmOptions)
+import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(algRestrictToNodes))
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
@@ -230,10 +230,12 @@ parseData now body = do
             do
               rname     <- extrReq "name"
               rgn       <- maybeFromObj request "group_name"
+              rest_nodes <- maybeFromObj request "restrict-to-nodes"
               req_nodes <- extrReq "required_nodes"
               inew      <- parseBaseInstance rname request
               let io = updateExclTags (extractExTags ctags) $ snd inew
               return $ Allocate io (Cluster.AllocDetails req_nodes rgn)
+                                rest_nodes
         | optype == C.iallocatorModeReloc ->
             do
               rname     <- extrReq "name"
@@ -424,10 +426,15 @@ processRequest :: AlgorithmOptions -> Request -> Result IAllocResult
 processRequest opts request =
   let Request rqtype (ClusterData gl nl il _ _) = request
   in case rqtype of
-       Allocate xi (Cluster.AllocDetails reqn Nothing) ->
-         Cluster.tryMGAlloc opts gl nl il xi reqn >>= formatAllocate il
-       Allocate xi (Cluster.AllocDetails reqn (Just gn)) ->
-         Cluster.tryGroupAlloc opts gl nl il gn xi reqn >>= formatAllocate il
+       Allocate xi (Cluster.AllocDetails reqn Nothing) rest_nodes ->
+         let opts' = opts { algRestrictToNodes = algRestrictToNodes opts
+                                                 `mplus` rest_nodes }
+         in Cluster.tryMGAlloc opts' gl nl il xi reqn >>= formatAllocate il
+       Allocate xi (Cluster.AllocDetails reqn (Just gn)) rest_nodes ->
+         let opts' = opts { algRestrictToNodes = algRestrictToNodes opts
+                                                 `mplus` rest_nodes }
+         in Cluster.tryGroupAlloc opts' gl nl il gn xi reqn
+            >>= formatAllocate il
        Relocate idx reqn exnodes ->
          processRelocate opts gl nl il idx reqn exnodes >>= formatRelocate
        ChangeGroup gdxs idxs ->

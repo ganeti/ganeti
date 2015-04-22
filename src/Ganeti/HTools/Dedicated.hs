@@ -46,7 +46,7 @@ module Ganeti.HTools.Dedicated
 
 import Control.Applicative (liftA2, (<$>))
 import Control.Arrow ((&&&))
-import Control.Monad (unless, liftM, foldM)
+import Control.Monad (unless, liftM, foldM, mplus)
 import qualified Data.Foldable as F
 import Data.Function (on)
 import qualified Data.IntMap as IntMap
@@ -232,13 +232,17 @@ runDedicatedAllocation opts request =
   let Loader.Request rqtype (Loader.ClusterData gl nl il _ _) = request
       allocresult =
         case rqtype of
-          Loader.Allocate inst (Cluster.AllocDetails count (Just gn)) -> do
+          Loader.Allocate inst (Cluster.AllocDetails count (Just gn)) rNds -> do
             gdx <- Group.idx <$> Container.findByName gl gn
-            (solution, msgs) <- findAllocation opts gl nl gdx inst count
+            let opts' = opts { Alg.algRestrictToNodes =
+                                 Alg.algRestrictToNodes opts `mplus` rNds }
+            (solution, msgs) <- findAllocation opts' gl nl gdx inst count
             IAlloc.formatAllocate il $ solution { AllocSol.asLog = msgs }
-          Loader.Allocate inst (Cluster.AllocDetails count Nothing) ->
-            findMGAllocation opts gl nl il inst count
-              >>= IAlloc.formatAllocate il
+          Loader.Allocate inst (Cluster.AllocDetails count Nothing) rNds ->
+            let opts' = opts { Alg.algRestrictToNodes =
+                                 Alg.algRestrictToNodes opts `mplus` rNds }
+            in findMGAllocation opts' gl nl il inst count
+                 >>= IAlloc.formatAllocate il
           Loader.MultiAllocate insts ->
             IAlloc.formatMultiAlloc =<< foldM
               (\(nl', il', res)

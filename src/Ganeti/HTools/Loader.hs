@@ -84,8 +84,8 @@ request-specific fields.
 
 -}
 data RqType
-  = Allocate Instance.Instance Cluster.AllocDetails   -- ^ A new instance
-                                                      --   allocation
+  = Allocate Instance.Instance Cluster.AllocDetails (Maybe [String])
+    -- ^ A new instance allocation, maybe with allocation restrictions
   | Relocate Idx Int [Ndx]                            -- ^ Choose a new
                                                       --   secondary node
   | NodeEvacuate [Idx] EvacMode                       -- ^ node-evacuate mode
@@ -105,7 +105,7 @@ data Request = Request RqType ClusterData
 -- group specified, and return `Just (Just g)` if it is an allocation request
 -- uniquely requesting Group `g`.
 isAllocationRequest :: RqType -> Maybe (Maybe String)
-isAllocationRequest (Allocate _ (Cluster.AllocDetails _ grp)) = Just grp
+isAllocationRequest (Allocate _ (Cluster.AllocDetails _ grp) _) = Just grp
 isAllocationRequest (MultiAllocate reqs) = Just $
   case ordNub . catMaybes
        $ map (\(_, Cluster.AllocDetails _ grp) -> grp) reqs of
