@@ -654,6 +654,7 @@ docinput = \
 	doc/design-2.12.rst \
 	doc/design-2.13.rst \
 	doc/design-2.14.rst \
+	doc/design-2.15.rst \
 	doc/design-allocation-efficiency.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
@@ -664,7 +665,7 @@ docinput = \
 	doc/design-cpu-pinning.rst \
 	doc/design-cpu-speed.rst \
 	doc/design-daemons.rst \
-        doc/design-dedicated-allocation.rst \
+	doc/design-dedicated-allocation.rst \
 	doc/design-device-uuid-name.rst \
 	doc/design-disk-conversion.rst \
 	doc/design-disks.rst \
