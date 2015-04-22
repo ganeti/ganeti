@@ -1380,13 +1380,10 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
                              noded_cert_file=self.noded_cert_file,
                              run_cmd_fn=self._run_cmd_mock)
 
-    for node in self._all_nodes:
-      if node in self._online_nodes:
-        self.assertFalse(self._ssh_file_manager.NodeHasAuthorizedKey(
-            node, node_key))
-      else:
-        self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
-            node, node_key))
+    offline_nodes = [node for node in self._all_nodes
+                     if node not in self._online_nodes]
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        offline_nodes, node_key)
 
   def testAddKeySuccessfullyOnNewNodeWithRetries(self):
     """Tests adding a new node's key when updating that node takes retries.
@@ -1527,14 +1524,11 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         noded_cert_file=self.noded_cert_file,
         run_cmd_fn=self._run_cmd_mock)
 
-    for node in self._all_nodes:
-      if node == other_node_name:
-        self.assertFalse(self._ssh_file_manager.NodeHasAuthorizedKey(
-          node, new_node_key))
-      else:
-        self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
-          node, new_node_key))
-
+    rest_nodes = [node for node in self._all_nodes
+                  if node != other_node_name]
+    rest_nodes.append(new_node_name)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        rest_nodes, new_node_key)
     self.assertTrue([error_msg for (node, error_msg) in node_errors
                      if node == other_node_name])
 
@@ -1596,13 +1590,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         pub_key_file=self._pub_key_file, ssconf_store=self._ssconf_mock,
         noded_cert_file=self.noded_cert_file, run_cmd_fn=self._run_cmd_mock)
 
-    for node in self._all_nodes:
-      if node == other_node_name:
-        self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
-            node, node_key))
-      else:
-        self.assertFalse(self._ssh_file_manager.NodeHasAuthorizedKey(
-            node, node_key))
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [other_node_name], node_key)
     self.assertTrue([error_msg for (node, error_msg) in error_msgs
                      if node == other_node_name])
 
@@ -1657,13 +1646,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         pub_key_file=self._pub_key_file, ssconf_store=self._ssconf_mock,
         noded_cert_file=self.noded_cert_file, run_cmd_fn=self._run_cmd_mock)
 
-    for node in self._all_nodes:
-      if node == node_name:
-        self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
-            node, node_key))
-      else:
-        self.assertFalse(self._ssh_file_manager.NodeHasAuthorizedKey(
-            node, node_key))
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_key)
     self.assertTrue([error_msg for (node, error_msg) in error_msgs
                      if node == node_name])
 
