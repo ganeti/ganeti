@@ -302,7 +302,8 @@
             "5c390722-6a7a-4bb4-9cef-98d896a8e6b1.disk0_data"
           ],
           "params": {},
-          "size": 1024
+          "size": 1024,
+          "uuid": "55b3fa41-2bfe-4aef-ac32-fbf3be06a242"
         },
         {
           "dev_type": "plain",
@@ -311,7 +312,8 @@
             "5c390722-6a7a-4bb4-9cef-98d896a8e6b1.disk0_meta"
           ],
           "params": {},
-          "size": 128
+          "size": 128,
+          "uuid": "33eff786-0152-4653-8fc8-ea280fea9297"
         }
       ],
       "ctime": 1363620258.608976,
