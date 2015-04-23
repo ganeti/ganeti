@@ -69,7 +69,7 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp, \
   CheckImageValidity, \
   CheckDiskAccessModeConsistency, CreateNewClientCert, EnsureKvmdOnNodes, \
-  EvaluateSshUpdateRPC
+  WarnAboutFailedSshUpdates
 
 import ganeti.masterd.instance
 
@@ -272,7 +272,7 @@ class LUClusterRenewCrypto(NoHooksLU):
     result[master_uuid].Raise("Could not renew the SSH keys of all nodes")
 
     # Process any non-disruptive errors (a few nodes unreachable etc.)
-    EvaluateSshUpdateRPC(result, master_uuid, feedback_fn)
+    WarnAboutFailedSshUpdates(result, master_uuid, feedback_fn)
 
   def Exec(self, feedback_fn):
     if self.op.node_certificates:

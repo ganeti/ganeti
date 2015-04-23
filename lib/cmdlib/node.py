@@ -53,7 +53,8 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   GetWantedNodes, MapInstanceLvsToNodes, RunPostHook, \
   FindFaultyInstanceDisks, CheckStorageTypeEnabled, CreateNewClientCert, \
   AddNodeCertToCandidateCerts, RemoveNodeCertFromCandidateCerts, \
-  EnsureKvmdOnNodes, EvaluateSshUpdateRPC
+  EnsureKvmdOnNodes, WarnAboutFailedSshUpdates
+
 from ganeti.ssh import GetSshPortMap
 
 
@@ -366,7 +367,7 @@ class LUNodeAdd(LogicalUnit):
       remove_result[master_node].Raise(
         "Could not remove SSH keys of node %s before readding,"
         " (UUID: %s)." % (new_node_name, new_node_uuid))
-      EvaluateSshUpdateRPC(remove_result, master_node, feedback_fn)
+      WarnAboutFailedSshUpdates(remove_result, master_node, feedback_fn)
 
     result = rpcrunner.call_node_ssh_key_add(
       [master_node], new_node_uuid, new_node_name,
@@ -375,7 +376,7 @@ class LUNodeAdd(LogicalUnit):
       is_potential_master_candidate)
 
     result[master_node].Raise("Could not update the node's SSH setup.")
-    EvaluateSshUpdateRPC(result, master_node, feedback_fn)
+    WarnAboutFailedSshUpdates(result, master_node, feedback_fn)
 
   def Exec(self, feedback_fn):
     """Adds the new node to the cluster.
@@ -886,7 +887,7 @@ class LUNodeSetParams(LogicalUnit):
           ssh_result[master_node].Raise(
             "Could not adjust the SSH setup after demoting node '%s'"
             " (UUID: %s)." % (node.name, node.uuid))
-          EvaluateSshUpdateRPC(ssh_result, master_node, feedback_fn)
+          WarnAboutFailedSshUpdates(ssh_result, master_node, feedback_fn)
 
         if self.new_role == self._ROLE_CANDIDATE:
           ssh_result = self.rpc.call_node_ssh_key_add(
@@ -898,7 +899,7 @@ class LUNodeSetParams(LogicalUnit):
           ssh_result[master_node].Raise(
             "Could not update the SSH setup of node '%s' after promotion"
             " (UUID: %s)." % (node.name, node.uuid))
-          EvaluateSshUpdateRPC(ssh_result, master_node, feedback_fn)
+          WarnAboutFailedSshUpdates(ssh_result, master_node, feedback_fn)
 
     return result
 
@@ -1595,7 +1596,7 @@ class LUNodeRemove(LogicalUnit):
       result[master_node].Raise(
         "Could not remove the SSH key of node '%s' (UUID: %s)." %
         (self.op.node_name, self.node.uuid))
-      EvaluateSshUpdateRPC(result, master_node, feedback_fn)
+      WarnAboutFailedSshUpdates(result, master_node, feedback_fn)
 
     # Promote nodes to master candidate as needed
     AdjustCandidatePool(self, [self.node.uuid])
