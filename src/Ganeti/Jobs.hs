@@ -62,37 +62,42 @@ type Annotator = OpCode -> MetaOpCode
 
 --- | Wrapper over execJobSet checking for early termination via an IORef.
 execCancelWrapper :: Annotator -> String -> IORef Int
-                  -> [([[OpCode]], String)] -> IO (Result ())
-execCancelWrapper _    _      _    [] = return $ Ok ()
-execCancelWrapper anno master cref jobs = do
+                  -> [([[OpCode]], String)]
+                  -> [(String, [(Int, JobStatus)])]-> IO (Result ())
+execCancelWrapper _    _      _    []   _ = return $ Ok ()
+execCancelWrapper anno master cref jobs submitted = do
   cancel <- readIORef cref
   if cancel > 0
     then do
       putStrLn "Exiting early due to user request, "
+      putStrLn $ show (length submitted) ++ "jobset(s) submitted: "
+      print submitted
       putStrLn $ show (length jobs) ++ " jobset(s) not submitted:"
       print $ map swap jobs
       return $ Ok ()
-    else execJobSet anno master cref jobs
+    else execJobSet anno master cref jobs submitted
 
 --- | Execute an entire jobset.
 execJobSet :: Annotator -> String -> IORef Int
-           -> [([[OpCode]], String)] -> IO (Result ())
-execJobSet _    _      _    [] = return $ Ok ()
-execJobSet anno master cref ((opcodes, descr):jobs) = do
-    putStrLn descr
+           -> [([[OpCode]], String)]
+           -> [(String, [(Int, JobStatus)])] -> IO (Result ())
+execJobSet _    _      _    []                      _ = return $ Ok ()
+execJobSet anno master cref ((opcodes, descr):jobs) submitted = do
     jrs <- bracket (L.getLuxiClient master) L.closeClient $
            execJobsWait metaopcodes logfn
     case jrs of
       Bad x -> return $ Bad x
       Ok x -> let failures = filter ((/= JOB_STATUS_SUCCESS) . snd) x in
                 if null failures
-                then execCancelWrapper anno master cref jobs
+                then execCancelWrapper anno master cref jobs $
+                  submitted ++ [(descr, jobs_info x)]
                 else return . Bad . unlines $ [
                   "Not all jobs completed successfully: " ++ show failures,
                   "Aborting."]
   where metaopcodes = map (map anno) opcodes
         logfn = putStrLn . ("Got job IDs " ++)
                 . commaJoin . map (show . fromJobId)
+        jobs_info ji = zip (map (fromJobId . fst) ji) $ map snd ji
 
 -- | Signal handler for graceful termination.
 handleSigInt :: IORef Int -> IO ()
@@ -117,7 +122,7 @@ execWithCancel anno master cmd_jobs = do
   cref <- newIORef 0
   mapM_ (\(hnd, sig) -> installHandler sig (Catch (hnd cref)) Nothing)
     [(handleSigTerm, softwareTermination), (handleSigInt, keyboardSignal)]
-  execCancelWrapper anno master cref cmd_jobs
+  execCancelWrapper anno master cref cmd_jobs []
 
 -- | Submits a set of jobs and returns their job IDs without waiting for
 -- completion.
