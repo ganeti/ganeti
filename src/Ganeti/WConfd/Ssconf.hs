@@ -42,10 +42,11 @@ module Ganeti.WConfd.Ssconf
   , mkSSConf
   ) where
 
-import Control.Arrow ((&&&))
+import Control.Arrow ((&&&), first, second)
 import Data.Foldable (Foldable(..), toList)
 import Data.List (partition)
 import qualified Data.Map as M
+import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Config
@@ -56,8 +57,34 @@ import Ganeti.Ssconf
 import Ganeti.Utils
 import Ganeti.Types
 
+eqPair :: (String, String) -> String
+eqPair (x, y) = x ++ "=" ++ y
+
+mkSSConfHvparams :: Cluster -> [(Hypervisor, [String])]
+mkSSConfHvparams cluster = map (id &&& hvparams) [minBound..maxBound]
+  where
+    hvparams :: Hypervisor -> [String]
+    hvparams h = maybe [] hvparamsStrings
+                 $ lookupContainer Nothing h (clusterHvparams cluster)
+
+    -- | Convert a collection of hypervisor parameters to strings in the form
+    -- @key=value@.
+    hvparamsStrings :: HvParams -> [String]
+    hvparamsStrings =
+      map (eqPair . second hvparamShow) . M.toList . fromContainer
+
+    -- | Convert a hypervisor parameter in its JSON representation to a String.
+    -- Strings, numbers and booleans are just printed (without quotes), booleans
+    -- printed as @True@/@False@ and other JSON values (should they exist) as
+    -- their JSON representations.
+    hvparamShow :: J.JSValue -> String
+    hvparamShow (J.JSString s) = J.fromJSString s
+    hvparamShow (J.JSRational _ r) = J.showJSRational r []
+    hvparamShow (J.JSBool b) = show b
+    hvparamShow x = J.encode x
+
 mkSSConf :: ConfigData -> SSConf
-mkSSConf cdata = SSConf $ M.fromList
+mkSSConf cdata = SSConf . M.fromList $
     [ (SSClusterName, return $ clusterClusterName cluster)
     , (SSClusterTags, toList $ tagsOf cluster)
     , (SSFileStorageDir, return $ clusterFileStorageDir cluster)
@@ -99,11 +126,11 @@ mkSSConf cdata = SSConf $ M.fromList
                    . configNetworks $ cdata)
     , (SSEnabledUserShutdown, return . show . clusterEnabledUserShutdown
                               $ cluster)
-    ]
+    ] ++
+    map (first hvparamsSSKey) (mkSSConfHvparams cluster)
   where
     mapLines :: (Foldable f) => (a -> String) -> f a -> [String]
     mapLines f = map f . toList
-    eqPair (x, y) = x ++ "=" ++ y
     spcPair (x, y) = x ++ " " ++ y
     toPairs = M.assocs . fromContainer
 

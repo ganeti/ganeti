@@ -891,7 +891,7 @@ ipFamilyToVersion IpFamilyV4 = C.ip4Version
 ipFamilyToVersion IpFamilyV6 = C.ip6Version
 
 -- | Cluster HvParams (hvtype to hvparams mapping).
-type ClusterHvParams = Container HvParams
+type ClusterHvParams = GenericContainer Hypervisor HvParams
 
 -- | Cluster Os-HvParams (os to hvparams mapping).
 type OsHvParams = Container ClusterHvParams

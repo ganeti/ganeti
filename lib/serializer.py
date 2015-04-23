@@ -253,10 +253,10 @@ class Private(object):
     return self._item
 
   def __str__(self):
-    return "<%s>" % self._descr
+    return "<%s>" % (self._descr, )
 
   def __repr__(self):
-    return "Private(?, descr=%r)".format(self._descr)
+    return "Private(?, descr=%r)" % (self._descr, )
 
   # pylint: disable=W0212
   # If it doesn't access _item directly, the call will go through __getattr__
@@ -280,7 +280,7 @@ class Private(object):
 
   def __call__(self, *args, **kwargs):
     return Private(self._item(*args, **kwargs),
-                   descr="%s()" % self._descr)
+                   descr="%s()" % (self._descr, ))
 
   # pylint: disable=R0201
   # While this could get away with being a function, it needs to be a method.

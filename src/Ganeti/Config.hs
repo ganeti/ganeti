@@ -318,7 +318,7 @@ getGroupInstances cfg gname =
 getFilledInstHvParams :: [String] -> ConfigData -> Instance -> HvParams
 getFilledInstHvParams globals cfg inst =
   -- First get the defaults of the parent
-  let hvName = hypervisorToRaw . instHypervisor $ inst
+  let hvName = instHypervisor inst
       hvParamMap = fromContainer . clusterHvparams $ configCluster cfg
       parentHvParams = maybe M.empty fromContainer $ M.lookup hvName hvParamMap
   -- Then the os defaults for the given hypervisor

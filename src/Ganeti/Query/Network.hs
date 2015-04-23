@@ -44,11 +44,12 @@ module Ganeti.Query.Network
 
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, mapMaybe)
-import Data.List (find, foldl', intercalate)
+import Data.List (find, intercalate)
 
 import Ganeti.JSON
 import Ganeti.Network
 import Ganeti.Objects
+import qualified Ganeti.Objects.BitArray as BA
 import Ganeti.Query.Language
 import Ganeti.Query.Common
 import Ganeti.Query.Types
@@ -165,24 +166,17 @@ getNetworkUuid cfg name =
 -- | Computes the reservations list for a network.
 --
 -- This doesn't use the netmask for validation of the length, instead
--- simply iterating over the reservations string.
-getReservations :: Ip4Network -> String -> [Ip4Address]
-getReservations net =
-  reverse .
-  fst .
-  foldl' (\(accu, addr) c ->
-            let addr' = nextIp4Address addr
-                accu' = case c of
-                          '1' -> addr:accu
-                          '0' -> accu
-                          _ -> -- FIXME: the reservations string
-                               -- should be a proper type
-                               accu
-            in (accu', addr')) ([], ip4netAddr net)
+-- simply iterating over the reservations.
+getReservations :: Ip4Network -> Maybe AddressPool -> [Ip4Address]
+getReservations _ Nothing = []
+getReservations net (Just pool) =
+  map snd . filter fst
+  $ zip (BA.toList . apReservations $ pool)
+        (iterate nextIp4Address $ ip4netAddr net)
 
 -- | Computes the external reservations as string for a network.
 getExtReservationsString :: Network -> ResultEntry
 getExtReservationsString net =
   let addrs = getReservations (networkNetwork net)
-              (maybe "" show $ networkExtReservations net)
+                              (networkExtReservations net)
   in rsNormal . intercalate ", " $ map show addrs
