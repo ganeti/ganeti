@@ -3234,7 +3234,8 @@ def OSEnvironment(instance, inst_os, debug=0):
       cannot be found
 
   """
-  result = OSCoreEnv(instance.os, inst_os, instance.osparams, debug=debug)
+  result = OSCoreEnv(instance.os, inst_os, objects.FillDict(instance.osparams,
+                     instance.osparams_private.Unprivate()), debug=debug)
 
   for attr in ["name", "os", "uuid", "ctime", "mtime", "primary_node"]:
     result["INSTANCE_%s" % attr.upper()] = str(getattr(instance, attr))
