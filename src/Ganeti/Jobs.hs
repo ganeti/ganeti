@@ -44,6 +44,7 @@ module Ganeti.Jobs
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
 import Data.List
+import Data.Tuple
 import Data.IORef
 import System.Exit
 import System.Posix.Process
@@ -67,8 +68,9 @@ execCancelWrapper anno master cref jobs = do
   cancel <- readIORef cref
   if cancel > 0
     then do
-      putStrLn $ "Exiting early due to user request, " ++
-               show (length jobs) ++ " jobset(s) remaining."
+      putStrLn "Exiting early due to user request, "
+      putStrLn $ show (length jobs) ++ " jobset(s) not submitted:"
+      print $ map swap jobs
       return $ Ok ()
     else execJobSet anno master cref jobs
 
