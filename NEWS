@@ -388,6 +388,17 @@ This was the first beta release of the 2.12 series. All important changes
 are listed in the latest 2.12 entry.
 
 
+Version 2.11.7
+--------------
+
+*(Released Fri, 17 Apr 2015)*
+
+- The operation 'gnt-cluster renew-crypto --new-node-certificates' is
+  now more robust against intermitten reachability errors. Nodes that
+  are temporarily not reachable, are contacted with several retries.
+  Nodes which are marked as offline are omitted right away.
+
+
 Version 2.11.6
 --------------
 
