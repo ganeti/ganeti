@@ -395,7 +395,7 @@ class CfgUpgrade(object):
     if "children" in disk:
       for d in disk["children"]:
         AssignUuid(d)
-  
+
   def _ConvertDiskAndCheckMissingSpindles(self, iobj, instance):
     missing_spindles = False
     if "disks" not in iobj:
