@@ -656,6 +656,7 @@ docinput = \
 	doc/design-disk-conversion.rst \
 	doc/design-disks.rst \
 	doc/design-draft.rst \
+	doc/design-file-based-disks-ownership.rst \
 	doc/design-file-based-storage.rst \
 	doc/design-glusterfs-ganeti-support.rst \
 	doc/design-hotplug.rst \
