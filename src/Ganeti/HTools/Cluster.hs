@@ -793,7 +793,10 @@ iterateAlloc opts nl il limit newinst allocnodes ixes cstats =
       newidx = Container.size il
       newi2 = Instance.setIdx (Instance.setName newinst newname) newidx
       newlimit = fmap (flip (-) 1) limit
-  in case tryAlloc ( opts { algCapacity = False } ) nl il newi2 allocnodes of
+      opts' = if Instance.diskTemplate newi2 == DTDrbd8
+                then opts { algCapacity = False }
+                else opts
+  in case tryAlloc opts' nl il newi2 allocnodes of
        Bad s -> Bad s
        Ok (AllocSolution { asFailures = errs, asSolution = sols3 }) ->
          let newsol = Ok (collapseFailures errs, nl, il, ixes, cstats) in
