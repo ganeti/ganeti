@@ -20,6 +20,9 @@ Incompatible/important changes
 New features
 ~~~~~~~~~~~~
 
+- On dedicated clusters, hail will now favour allocations filling up
+  nodes efficiently over balanced allocations.
+
 New dependencies
 ~~~~~~~~~~~~~~~~
 
