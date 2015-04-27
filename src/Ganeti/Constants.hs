@@ -4603,6 +4603,11 @@ sshsSshPublicKeys = "public_keys"
 sshsNodeDaemonCertificate :: String
 sshsNodeDaemonCertificate = "node_daemon_certificate"
 
+-- Number of maximum retries when contacting nodes per SSH
+-- during SSH update operations.
+sshsMaxRetries :: Integer
+sshsMaxRetries = 3
+
 sshsAdd :: String
 sshsAdd = "add"
 
@@ -4623,9 +4628,6 @@ sshsGenerate = "generate"
 
 sshsSuffix :: String
 sshsSuffix = "suffix"
-
-sshsRename :: String
-sshsRename = "rename"
 
 sshsMasterSuffix :: String
 sshsMasterSuffix = "_master_tmp"

@@ -269,7 +269,7 @@ getDefaultHypervisorSpec cfg = (hv, getHvParamsFromCluster cfg hv)
 getHvParamsFromCluster :: ConfigData -> Hypervisor -> HvParams
 getHvParamsFromCluster cfg hv =
   fromMaybe (GenericContainer Map.empty) .
-    Map.lookup (hypervisorToRaw hv) .
+    Map.lookup hv .
       fromContainer . clusterHvparams $ configCluster cfg
 
 -- | Given an alias list and a field list, copies field definitions under a

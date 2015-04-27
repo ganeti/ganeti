@@ -550,5 +550,6 @@ rm -rf $TEMP_DATA_DIR
 
 echo "Chroot created. In order to run it:"
 echo " * sudo cp $FINAL_CHROOT_CONF $CONF_DIR/$FINAL_CHROOT_CONF"
+echo " * sudo mkdir -p $CHROOT_DIR"
 echo " * sudo cp $COMP_FILEPATH $CHROOT_DIR/$COMP_FILENAME"
 echo "Then run \"schroot -c $CHROOTNAME\""

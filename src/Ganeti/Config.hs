@@ -331,7 +331,7 @@ getGroupInstances cfg gname =
 getFilledInstHvParams :: [String] -> ConfigData -> Instance -> HvParams
 getFilledInstHvParams globals cfg inst =
   -- First get the defaults of the parent
-  let maybeHvName = liftM hypervisorToRaw . instHypervisor $ inst
+  let maybeHvName = instHypervisor inst
       hvParamMap = fromContainer . clusterHvparams $ configCluster cfg
       parentHvParams =
         maybe M.empty fromContainer (maybeHvName >>= flip M.lookup hvParamMap)

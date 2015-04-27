@@ -2,7 +2,7 @@
 Design document drafts
 ======================
 
-.. Last updated for Ganeti 2.14
+.. Last updated for Ganeti 2.15
 
 .. toctree::
    :maxdepth: 2
@@ -25,8 +25,6 @@ Design document drafts
    design-network2.rst
    design-configlock.rst
    design-multi-storage-htools.rst
-   design-dedicated-allocation.rst
-   design-allocation-efficiency.rst
    design-shared-storage-redundancy.rst
 
 .. vim: set textwidth=72 :

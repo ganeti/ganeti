@@ -80,6 +80,7 @@ and draft versions (which are either incomplete or not implemented).
    design-2.12.rst
    design-2.13.rst
    design-2.14.rst
+   design-2.15.rst
 
 Draft designs
 -------------
@@ -94,12 +95,14 @@ Draft designs
    admin.rst
    cluster-merge.rst
    cluster-keys-replacement.rst
+   design-allocation-efficiency.rst
    design-autorepair.rst
    design-bulk-create.rst
    design-chained-jobs.rst
    design-cmdlib-unittests.rst
    design-cpu-speed.rst
    design-cpu-pinning.rst
+   design-dedicated-allocation.rst
    design-device-uuid-name.rst
    design-daemons.rst
    design-disk-conversion.rst

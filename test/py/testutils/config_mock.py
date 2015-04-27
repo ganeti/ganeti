@@ -883,3 +883,9 @@ class ConfigMock(config.ConfigWriter):
 
   def AttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
     self._UnlockedAttachInstanceDisk(inst_uuid, disk_uuid, idx)
+
+  def GetDisk(self, disk_uuid):
+    """Retrieves a disk object if present.
+
+    """
+    return self._ConfigData().disks[disk_uuid]

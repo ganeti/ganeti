@@ -241,9 +241,11 @@ def ShowNetworkConfig(_, args):
     ToStdout("  Free: %d (%.2f%%)", free_count,
              100 * float(free_count) / float(size))
     ToStdout("  Usage map:")
+    lenmapping = len(mapping)
     idx = 0
-    for line in textwrap.wrap(mapping, width=64):
-      ToStdout("     %s %s %d", str(idx).rjust(3), line.ljust(64), idx + 63)
+    while idx < lenmapping:
+      line = mapping[idx: idx + 64]
+      ToStdout("     %s %s %d", str(idx).rjust(4), line.ljust(64), idx + 63)
       idx += 64
     ToStdout("         (X) used    (.) free")
 

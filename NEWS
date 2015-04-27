@@ -8,10 +8,10 @@ Version 2.16.0
 *(unreleased)*
 
 
-Version 2.15.0
---------------
+Version 2.15.0 beta1
+--------------------
 
-*(unreleased)*
+*(Released Thu, 23 Apr 2015)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -25,6 +25,9 @@ Incompatible/important changes
 
 New features
 ~~~~~~~~~~~~
+
+- On dedicated clusters, hail will now favour allocations filling up
+  nodes efficiently over balanced allocations.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
@@ -420,6 +423,17 @@ Version 2.12.0 beta1
 
 This was the first beta release of the 2.12 series. All important changes
 are listed in the latest 2.12 entry.
+
+
+Version 2.11.7
+--------------
+
+*(Released Fri, 17 Apr 2015)*
+
+- The operation 'gnt-cluster renew-crypto --new-node-certificates' is
+  now more robust against intermitten reachability errors. Nodes that
+  are temporarily not reachable, are contacted with several retries.
+  Nodes which are marked as offline are omitted right away.
 
 
 Version 2.11.6
