@@ -65,12 +65,11 @@ Modifications to existing tools
   on the next move, it will filter out those moves that lead from a
   shared storage N+1 redundant configuration into one that isn't.
 
-- ``hspace`` computing the capacity for DRBD instances will be unchanged.
-  For shared storage instances, however, it will first evacuate one node
-  and then compute capacity as normal pretending that node was offline.
-  While this technically deviates from interatively doing what hail does,
-  it should still give a reasonable estimate of the cluster capacity without
-  significantly increasing the algorithmic complexity.
+- ``hspace`` computing the capacity for DRBD instances will be unchanged;
+  In particular, the options ``--accept-exisiting`` and ``--independent-groups``
+  will continue to work. For shared storage instances, however, will strictly
+  iterate over the same allocation step as hail does.
+
 
 Other modifications related to opportunistic locking
 ----------------------------------------------------
