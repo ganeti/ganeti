@@ -365,12 +365,7 @@ def ComputeDisks(disks, disk_template, default_vg):
       raise errors.OpPrereqError("Invalid disk size '%s'" % size,
                                  errors.ECODE_INVAL)
 
-    ext_provider = disk.get(constants.IDISK_PROVIDER, None)
-    if ext_provider and disk_template != constants.DT_EXT:
-      raise errors.OpPrereqError("The '%s' option is only valid for the %s"
-                                 " disk template, not %s" %
-                                 (constants.IDISK_PROVIDER, constants.DT_EXT,
-                                  disk_template), errors.ECODE_INVAL)
+    CheckDiskExtProvider(disk, disk_template)
 
     data_vg = disk.get(constants.IDISK_VG, default_vg)
     name = disk.get(constants.IDISK_NAME, None)
@@ -400,14 +395,10 @@ def ComputeDisks(disks, disk_template, default_vg):
     # For extstorage, demand the `provider' option and add any
     # additional parameters (ext-params) to the dict
     if disk_template == constants.DT_EXT:
-      if ext_provider:
-        new_disk[constants.IDISK_PROVIDER] = ext_provider
-        for key in disk:
-          if key not in constants.IDISK_PARAMS:
-            new_disk[key] = disk[key]
-      else:
-        raise errors.OpPrereqError("Missing provider for template '%s'" %
-                                   constants.DT_EXT, errors.ECODE_INVAL)
+      new_disk[constants.IDISK_PROVIDER] = disk[constants.IDISK_PROVIDER]
+      for key in disk:
+        if key not in constants.IDISK_PARAMS:
+          new_disk[key] = disk[key]
 
     new_disks.append(new_disk)
 
@@ -743,6 +734,29 @@ def CheckSpindlesExclusiveStorage(diskdict, es_flag, required):
     raise errors.OpPrereqError("You must specify spindles in instance disks"
                                " when exclusive storage is active",
                                errors.ECODE_INVAL)
+
+
+def CheckDiskExtProvider(diskdict, disk_template):
+  """Check that the given disk should or should not have the provider param.
+
+  @type diskdict: dict
+  @param diskdict: disk parameters
+  @type disk_template: string
+  @param disk_template: the desired template of this disk
+  @raise errors.OpPrereqError: when the parameter is used in the wrong way
+
+  """
+  ext_provider = diskdict.get(constants.IDISK_PROVIDER, None)
+
+  if ext_provider and disk_template != constants.DT_EXT:
+    raise errors.OpPrereqError("The '%s' option is only valid for the %s"
+                               " disk template, not %s" %
+                               (constants.IDISK_PROVIDER, constants.DT_EXT,
+                                disk_template), errors.ECODE_INVAL)
+
+  if ext_provider is None and disk_template == constants.DT_EXT:
+    raise errors.OpPrereqError("Missing provider for template '%s'" %
+                               constants.DT_EXT, errors.ECODE_INVAL)
 
 
 class LUInstanceRecreateDisks(LogicalUnit):

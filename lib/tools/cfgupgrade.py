@@ -389,6 +389,14 @@ class CfgUpgrade(object):
                 " Substituting with uuid %s." % (name, uuid))
           nic["network"] = uuid
 
+  @classmethod
+  def AssignUuid(cls, disk):
+    if not "uuid" in disk:
+      disk["uuid"] = utils.io.NewUUID()
+    if "children" in disk:
+      for d in disk["children"]:
+        cls.AssignUuid(d)
+
   def _ConvertDiskAndCheckMissingSpindles(self, iobj, instance):
     missing_spindles = False
     if "disks" not in iobj:
@@ -413,8 +421,7 @@ class CfgUpgrade(object):
         if not "spindles" in dobj:
           missing_spindles = True
 
-        if not "uuid" in dobj:
-          dobj["uuid"] = utils.io.NewUUID()
+        self.AssignUuid(dobj)
     return missing_spindles
 
   @OrFail("Upgrading instance with spindles")

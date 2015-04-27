@@ -38,6 +38,7 @@ module Ganeti.Ssconf
   ( SSKey(..)
   , sSKeyToRaw
   , sSKeyFromRaw
+  , hvparamsSSKey
   , getPrimaryIPFamily
   , parseNodesVmCapable
   , getNodesVmCapable
@@ -53,6 +54,7 @@ module Ganeti.Ssconf
   , emptySSConf
   ) where
 
+import Control.Arrow ((&&&))
 import Control.Applicative ((<$>))
 import Control.Exception
 import Control.Monad (forM, liftM)
@@ -83,39 +85,60 @@ maxFileSize = 131072
 sSFilePrefix :: FilePath
 sSFilePrefix = C.ssconfFileprefix
 
-$(declareSADT "SSKey"
-  [ ("SSClusterName",          'C.ssClusterName)
-  , ("SSClusterTags",          'C.ssClusterTags)
-  , ("SSFileStorageDir",       'C.ssFileStorageDir)
-  , ("SSSharedFileStorageDir", 'C.ssSharedFileStorageDir)
-  , ("SSGlusterStorageDir",    'C.ssGlusterStorageDir)
-  , ("SSMasterCandidates",     'C.ssMasterCandidates)
-  , ("SSMasterCandidatesIps",  'C.ssMasterCandidatesIps)
-  , ("SSMasterCandidatesCerts",'C.ssMasterCandidatesCerts)
-  , ("SSMasterIp",             'C.ssMasterIp)
-  , ("SSMasterNetdev",         'C.ssMasterNetdev)
-  , ("SSMasterNetmask",        'C.ssMasterNetmask)
-  , ("SSMasterNode",           'C.ssMasterNode)
-  , ("SSNodeList",             'C.ssNodeList)
-  , ("SSNodePrimaryIps",       'C.ssNodePrimaryIps)
-  , ("SSNodeSecondaryIps",     'C.ssNodeSecondaryIps)
-  , ("SSNodeVmCapable",        'C.ssNodeVmCapable)
-  , ("SSOfflineNodes",         'C.ssOfflineNodes)
-  , ("SSOnlineNodes",          'C.ssOnlineNodes)
-  , ("SSPrimaryIpFamily",      'C.ssPrimaryIpFamily)
-  , ("SSInstanceList",         'C.ssInstanceList)
-  , ("SSReleaseVersion",       'C.ssReleaseVersion)
-  , ("SSHypervisorList",       'C.ssHypervisorList)
-  , ("SSMaintainNodeHealth",   'C.ssMaintainNodeHealth)
-  , ("SSUidPool",              'C.ssUidPool)
-  , ("SSNodegroups",           'C.ssNodegroups)
-  , ("SSNetworks",             'C.ssNetworks)
-  , ("SSEnabledUserShutdown",  'C.ssEnabledUserShutdown)
-  ])
+$(declareLADT ''String "SSKey" (
+  [ ("SSClusterName",           C.ssClusterName)
+  , ("SSClusterTags",           C.ssClusterTags)
+  , ("SSFileStorageDir",        C.ssFileStorageDir)
+  , ("SSSharedFileStorageDir",  C.ssSharedFileStorageDir)
+  , ("SSGlusterStorageDir",     C.ssGlusterStorageDir)
+  , ("SSMasterCandidates",      C.ssMasterCandidates)
+  , ("SSMasterCandidatesIps",   C.ssMasterCandidatesIps)
+  , ("SSMasterCandidatesCerts", C.ssMasterCandidatesCerts)
+  , ("SSMasterIp",              C.ssMasterIp)
+  , ("SSMasterNetdev",          C.ssMasterNetdev)
+  , ("SSMasterNetmask",         C.ssMasterNetmask)
+  , ("SSMasterNode",            C.ssMasterNode)
+  , ("SSNodeList",              C.ssNodeList)
+  , ("SSNodePrimaryIps",        C.ssNodePrimaryIps)
+  , ("SSNodeSecondaryIps",      C.ssNodeSecondaryIps)
+  , ("SSNodeVmCapable",         C.ssNodeVmCapable)
+  , ("SSOfflineNodes",          C.ssOfflineNodes)
+  , ("SSOnlineNodes",           C.ssOnlineNodes)
+  , ("SSPrimaryIpFamily",       C.ssPrimaryIpFamily)
+  , ("SSInstanceList",          C.ssInstanceList)
+  , ("SSReleaseVersion",        C.ssReleaseVersion)
+  , ("SSHypervisorList",        C.ssHypervisorList)
+  , ("SSMaintainNodeHealth",    C.ssMaintainNodeHealth)
+  , ("SSUidPool",               C.ssUidPool)
+  , ("SSNodegroups",            C.ssNodegroups)
+  , ("SSNetworks",              C.ssNetworks)
+  , ("SSEnabledUserShutdown",   C.ssEnabledUserShutdown)
+  ] ++
+  -- Automatically generate SSHvparamsXxx for each hypervisor type:
+  map ((("SSHvparams" ++) . show)
+       &&& ((C.ssHvparamsPref ++) . Types.hypervisorToRaw))
+    [minBound..maxBound]
+  ))
 
 instance HasStringRepr SSKey where
   fromStringRepr = sSKeyFromRaw
   toStringRepr = sSKeyToRaw
+
+-- | For a given hypervisor get the corresponding SSConf key that contains its
+-- parameters.
+--
+-- The corresponding SSKeys are generated automatically by TH, but since we
+-- don't have convenient infrastructure for generating this function, it's just
+-- manual. All constructors must be given explicitly so that adding another
+-- hypervisor will trigger "incomplete pattern" warning and force the
+-- corresponding addition.
+hvparamsSSKey :: Types.Hypervisor -> SSKey
+hvparamsSSKey Types.Kvm = SSHvparamsKvm
+hvparamsSSKey Types.XenPvm = SSHvparamsXenPvm
+hvparamsSSKey Types.Chroot = SSHvparamsChroot
+hvparamsSSKey Types.XenHvm = SSHvparamsXenHvm
+hvparamsSSKey Types.Lxc = SSHvparamsLxc
+hvparamsSSKey Types.Fake = SSHvparamsFake
 
 -- | Convert a ssconf key into a (full) file path.
 keyToFilename :: FilePath     -- ^ Config path root

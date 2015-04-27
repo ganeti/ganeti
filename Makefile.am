@@ -1957,6 +1957,7 @@ python_tests = \
 python_test_support = \
 	test/py/__init__.py \
 	test/py/lockperf.py \
+	test/py/testutils_ssh.py \
 	test/py/mocks.py \
 	test/py/testutils/__init__.py \
 	test/py/testutils/config_mock.py \

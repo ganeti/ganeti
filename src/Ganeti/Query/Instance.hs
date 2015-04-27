@@ -896,7 +896,7 @@ getHypervisorSpecs :: ConfigData -> [Instance] -> [(Hypervisor, HvParams)]
 getHypervisorSpecs cfg instances =
   let hvs = nub . mapMaybe instHypervisor $ instances
       hvParamMap = (fromContainer . clusterHvparams . configCluster $ cfg)
-  in zip hvs . map ((Map.!) hvParamMap . hypervisorToRaw) $ hvs
+  in zip hvs . map ((Map.!) hvParamMap) $ hvs
 
 -- | Collect live data from RPC query if enabled.
 collectLiveData :: Bool        -- ^ Live queries allowed

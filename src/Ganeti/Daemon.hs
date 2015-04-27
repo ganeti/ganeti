@@ -340,10 +340,10 @@ vClusterHostNameEnvVar :: String
 vClusterHostNameEnvVar = "GANETI_HOSTNAME"
 
 -- | Get the real full qualified host name.
-getFQDN' :: IO String
-getFQDN' = do
+getFQDN' :: Maybe Socket.AddrInfo -> IO String
+getFQDN' hints = do
   hostname <- getHostName
-  addrInfos <- Socket.getAddrInfo Nothing (Just hostname) Nothing
+  addrInfos <- Socket.getAddrInfo hints (Just hostname) Nothing
   let address = listToMaybe addrInfos >>= (Just . Socket.addrAddress)
   case address of
     Just a -> do
@@ -351,9 +351,10 @@ getFQDN' = do
       return (fromMaybe hostname fqdn)
     Nothing -> return hostname
 
--- | Return the full qualified host name, honoring the vcluster setup.
-getFQDN :: IO String
-getFQDN = do
+-- | Return the full qualified host name, honoring the vcluster setup
+-- and hints on the preferred socket type or protocol.
+getFQDNwithHints :: Maybe Socket.AddrInfo -> IO String
+getFQDNwithHints hints = do
   let ioErrorToNothing :: IOError -> IO (Maybe String)
       ioErrorToNothing _ = return Nothing
   vcluster_node <- Control.Exception.catch
@@ -361,7 +362,16 @@ getFQDN = do
                      ioErrorToNothing
   case vcluster_node of
     Just node_name -> return node_name
-    Nothing -> getFQDN'
+    Nothing -> getFQDN' hints
+
+-- | Return the full qualified host name, honoring the vcluster setup.
+getFQDN :: IO String
+getFQDN = do
+  familyresult <- Ssconf.getPrimaryIPFamily Nothing
+  getFQDNwithHints
+    $ genericResult (const Nothing)
+        (\family -> Just $ Socket.defaultHints { Socket.addrFamily = family })
+        familyresult
 
 -- | Returns if the current node is the master node.
 isMaster :: IO Bool

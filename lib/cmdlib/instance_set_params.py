@@ -53,9 +53,9 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   GetUpdatedParams, CheckInstanceState, ExpandNodeUuidAndName, \
   IsValidDiskAccessModeCombination, AnnotateDiskParams
 from ganeti.cmdlib.instance_storage import CalculateFileStorageDir, \
-  CheckNodesFreeDiskPerVG, CheckRADOSFreeSpace, CheckSpindlesExclusiveStorage, \
-  ComputeDiskSizePerVG, ComputeDisksInfo, CreateDisks, \
-  CreateSingleBlockDev, GenerateDiskTemplate, \
+  CheckDiskExtProvider, CheckNodesFreeDiskPerVG, CheckRADOSFreeSpace, \
+  CheckSpindlesExclusiveStorage, ComputeDiskSizePerVG, ComputeDisksInfo, \
+  CreateDisks, CreateSingleBlockDev, GenerateDiskTemplate, \
   IsExclusiveStorageEnabledNodeUuid, ShutdownInstanceDisks, \
   WaitForSync, WipeOrCleanupDisks, AssembleInstanceDisks
 from ganeti.cmdlib.instance_utils import BuildInstanceHookEnvByObject, \
@@ -210,6 +210,13 @@ class LUInstanceSetParams(LogicalUnit):
     # This check is necessary both when adding and attaching disks
     if op in (constants.DDM_ADD, constants.DDM_ATTACH):
       CheckSpindlesExclusiveStorage(params, excl_stor, True)
+      CheckDiskExtProvider(params, disk_type)
+
+      # Make sure we do not add syncing disks to instances with inactive disks
+      if not self.op.wait_for_sync and not self.instance.disks_active:
+        raise errors.OpPrereqError("Can't %s a disk to an instance with"
+                                   " deactivated disks and --no-wait-for-sync"
+                                   " given" % op, errors.ECODE_INVAL)
 
       # Check disk access param (only for specific disks)
       if disk_type in constants.DTS_HAVE_ACCESS:
@@ -244,10 +251,13 @@ class LUInstanceSetParams(LogicalUnit):
       if not utils.AllDiskOfType(disk_info, [constants.DT_EXT]):
         utils.ForceDictType(params, constants.MODIFIABLE_IDISK_PARAMS_TYPES)
       else:
-        # We have to check that 'access' parameter can not be modified
-        if constants.IDISK_ACCESS in params:
-          raise errors.OpPrereqError("Disk 'access' parameter change is"
-                                     " not possible", errors.ECODE_INVAL)
+        # We have to check that the 'access' and 'disk_provider' parameters
+        # cannot be modified
+        for param in [constants.IDISK_ACCESS, constants.IDISK_PROVIDER]:
+          if param in params:
+            raise errors.OpPrereqError("Disk '%s' parameter change is"
+                                       " not possible" % param,
+                                       errors.ECODE_INVAL)
 
       name = params.get(constants.IDISK_NAME, None)
       if name is not None and name.lower() == constants.VALUE_NONE:
@@ -773,42 +783,6 @@ class LUInstanceSetParams(LogicalUnit):
     self._CheckMods("disk", self.op.disks, {}, ver_fn)
 
     self.diskmod = PrepareContainerMods(self.op.disks, None)
-    disk_info = self.cfg.GetInstanceDisks(self.instance.uuid)
-
-    # Check the validity of the `provider' parameter
-    for mod in self.diskmod:
-      dev_type = mod[2].get(constants.IDISK_TYPE, disk_info[mod[1]].dev_type)
-      if dev_type == constants.DT_EXT:
-        ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
-        if mod[0] in (constants.DDM_ADD, constants.DDM_ATTACH):
-          if ext_provider is None:
-            raise errors.OpPrereqError("Instance template is '%s' and parameter"
-                                       " '%s' missing, during disk %s" %
-                                       (constants.DT_EXT,
-                                        constants.IDISK_PROVIDER, mod[0]),
-                                       errors.ECODE_NOENT)
-        elif mod[0] == constants.DDM_MODIFY:
-          if ext_provider:
-            raise errors.OpPrereqError("Parameter '%s' is invalid during disk"
-                                       " modification" %
-                                       constants.IDISK_PROVIDER,
-                                       errors.ECODE_INVAL)
-      else:
-        ext_provider = mod[2].get(constants.IDISK_PROVIDER, None)
-        if ext_provider is not None:
-          raise errors.OpPrereqError("Parameter '%s' is only valid for"
-                                     " instances of type '%s'" %
-                                     (constants.IDISK_PROVIDER,
-                                      constants.DT_EXT),
-                                     errors.ECODE_INVAL)
-
-    if not self.op.wait_for_sync and not self.instance.disks_active:
-      for mod in self.diskmod:
-        if mod[0] in (constants.DDM_ADD, constants.DDM_ATTACH):
-          raise errors.OpPrereqError("Can't %s a disk to an instance with"
-                                     " deactivated disks and"
-                                     " --no-wait-for-sync given" % mod[0],
-                                     errors.ECODE_INVAL)
 
     def _PrepareDiskMod(_, disk, params, __):
       disk.name = params.get(constants.IDISK_NAME, None)

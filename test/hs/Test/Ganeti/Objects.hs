@@ -312,6 +312,10 @@ instance Arbitrary ClusterHvParams where
 instance Arbitrary OsHvParams where
   arbitrary = return $ GenericContainer Map.empty
 
+-- | No real arbitrary instance for 'GroupDiskParams' yet.
+instance Arbitrary GroupDiskParams where
+  arbitrary = return $ GenericContainer Map.empty
+
 instance Arbitrary ClusterNicParams where
   arbitrary = (GenericContainer . Map.singleton C.ppDefault) <$> arbitrary
 

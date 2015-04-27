@@ -99,11 +99,10 @@ verifyConfig cd = do
     reportIf (null enabledHvs)
          "enabled hypervisors list doesn't have any entries"
     -- we don't need to check for invalid HVS as they would fail to parse
-    let missingHvp = S.fromList (map hypervisorToRaw enabledHvs)
-                      S.\\ keysSet hvParams
+    let missingHvp = S.fromList enabledHvs S.\\ keysSet hvParams
     reportIf (not $ S.null missingHvp)
            $ "hypervisor parameters missing for the enabled hypervisor(s) "
-             ++ (commaJoin . S.toList $ missingHvp)
+             ++ (commaJoin . map hypervisorToRaw . S.toList $ missingHvp)
 
     let enabledDiskTemplates = clusterEnabledDiskTemplates cluster
     reportIf (null enabledDiskTemplates)
