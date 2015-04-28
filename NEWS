@@ -59,10 +59,10 @@ This was the first beta release of the 2.14 series. All important changes
 are listed in the latest 2.14 entry.
 
 
-Version 2.13.0 rc1
-------------------
+Version 2.13.0
+--------------
 
-*(Released Wed, 25 Mar 2015)*
+*(Released Tue, 28 Apr 2015)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -126,6 +126,29 @@ Known issues
   migration (issue #1050)
 - GlusterFS support breaks at upgrade to 2.12 - switches back to
   shared-file (issue #1030)
+
+Since 2.13.0 rc1
+~~~~~~~~~~~~~~~~~~
+
+The following issues have been fixed:
+
+- Bugs related to ssh-key handling of master candidates (issues 1045,
+  1046, 1047)
+
+Fixes inherited from the 2.12 branch:
+
+- Upgrade from old versions (2.5 and 2.6) was failing (issues 1070, 1019).
+- gnt-network info outputs wrong external reservations (issue 1068)
+- Refuse to demote master from master capability (issue 1023)
+
+
+Version 2.13.0 rc1
+------------------
+
+*(Released Wed, 25 Mar 2015)*
+
+This was the first release candidate of the 2.13 series.
+All important changes are listed in the latest 2.13 entry.
 
 Since 2.13.0 beta1
 ~~~~~~~~~~~~~~~~~~
