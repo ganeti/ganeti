@@ -110,6 +110,50 @@ This was the first beta release of the 2.13 series. All important changes
 are listed in the latest 2.13 entry.
 
 
+Version 2.12.3
+--------------
+
+*(Released Wed, 29 Apr 2015)*
+
+- Fixed Issue #1019: upgrade from 2.6.2 to 2.12 fails. cfgupgrade
+  doesn't migrate the config.data file properly
+- Fixed Issue 1023: Master master-capable option bug
+- Fixed Issue 1068: gnt-network info outputs wrong external reservations
+- Fixed Issue 1070: Upgrade of Ganeti 2.5.2 to 2.12.0 fails due to
+  missing UUIDs for disks
+- Fixed Issue 1073: ssconf_hvparams_* not distributed with ssconf
+
+Inherited from the 2.11 branch:
+
+- Fixed Issue 1032: Renew-crypto --new-node-certificates sometimes does not
+  complete.
+  The operation 'gnt-cluster renew-crypto --new-node-certificates' is
+  now more robust against intermitten reachability errors. Nodes that
+  are temporarily not reachable, are contacted with several retries.
+  Nodes which are marked as offline are omitted right away.
+
+Inherited from the 2.10 branch:
+
+- Fixed Issue 1057: master-failover succeeds, but IP remains assigned to
+  old master
+- Fixed Issue 1058: Python's os.minor() does not support devices with
+  high minor numbers
+- Fixed Issue 1059: Luxid fails if DNS returns an IPv6 address that does
+  not reverse resolve
+
+Known issues
+~~~~~~~~~~~~
+
+Pending since 2.12.2:
+
+- GHC 7.8 introduced some incompatible changes, so currently Ganeti
+  2.12. doesn't compile on GHC 7.8
+- Under certain conditions instance doesn't get unpaused after live
+  migration (issue #1050)
+- GlusterFS support breaks at upgrade to 2.12 - switches back to
+  shared-file (issue #1030)
+
+
 Version 2.12.2
 --------------
 
