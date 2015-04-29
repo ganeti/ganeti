@@ -141,7 +141,8 @@ writeConfigAndUnlock cid cdata = do
   la <- readLockAllocation
   if L.holdsLock cid ConfigLock L.OwnExclusive la
     then do
-      CW.writeConfigWithImmediate cdata $ unlockConfig cid
+      CW.writeConfig cdata
+      unlockConfig cid
       return True
     else do
       logWarning $ show cid ++ " tried writeConfigAndUnlock without owning"
