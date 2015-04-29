@@ -142,58 +142,6 @@ class GanetiBaseAsyncoreDispatcher(asyncore.dispatcher):
     return False
 
 
-class AsyncStreamServer(GanetiBaseAsyncoreDispatcher):
-  """A stream server to use with asyncore.
-
-  Each request is accepted, and then dispatched to a separate asyncore
-  dispatcher to handle.
-
-  """
-
-  _REQUEST_QUEUE_SIZE = 5
-
-  def __init__(self, family, address):
-    """Constructor for AsyncStreamServer
-
-    @type family: integer
-    @param family: socket family (one of socket.AF_*)
-    @type address: address family dependent
-    @param address: address to bind the socket to
-
-    """
-    GanetiBaseAsyncoreDispatcher.__init__(self)
-    self.family = family
-    self.create_socket(self.family, socket.SOCK_STREAM)
-    self.set_reuse_addr()
-    self.bind(address)
-    self.listen(self._REQUEST_QUEUE_SIZE)
-
-  # this method is overriding an asyncore.dispatcher method
-  def handle_accept(self):
-    """Accept a new client connection.
-
-    Creates a new instance of the handler class, which will use asyncore to
-    serve the client.
-
-    """
-    accept_result = utils.IgnoreSignals(self.accept)
-    if accept_result is not None:
-      connected_socket, client_address = accept_result
-      if self.family == socket.AF_UNIX:
-        # override the client address, as for unix sockets nothing meaningful
-        # is passed in from accept anyway
-        client_address = netutils.GetSocketCredentials(connected_socket)
-      logging.info("Accepted connection from %s",
-                   netutils.FormatAddress(client_address, family=self.family))
-      self.handle_connection(connected_socket, client_address)
-
-  def handle_connection(self, connected_socket, client_address):
-    """Handle an already accepted connection.
-
-    """
-    raise NotImplementedError
-
-
 class AsyncTerminatedMessageStream(asynchat.async_chat):
   """A terminator separated message stream asyncore module.
 

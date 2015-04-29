@@ -38,25 +38,17 @@ inheritance from parent classes requires it.
 # pylint: disable=C0103
 # C0103: Invalid name ganeti-masterd
 
-import os
-import sys
-import socket
 import time
-import tempfile
 import logging
-
 
 from ganeti import config
 from ganeti import constants
 from ganeti import daemon
 from ganeti import jqueue
 from ganeti import luxi
-import ganeti.rpc.errors as rpcerr
 from ganeti import utils
 from ganeti import errors
-from ganeti import workerpool
 import ganeti.rpc.node as rpc
-import ganeti.rpc.client as rpccl
 from ganeti import ht
 
 
@@ -77,49 +69,6 @@ def _LogNewJob(status, info, ops):
   else:
     logging.info("Failed to submit job, reason: '%s', summary: %s",
                  info, op_summary)
-
-
-class ClientRequestWorker(workerpool.BaseWorker):
-  # pylint: disable=W0221
-  def RunTask(self, server, message, client):
-    """Process the request.
-
-    """
-    client_ops = ClientOps(server)
-
-    try:
-      (method, args, ver) = rpccl.ParseRequest(message)
-    except rpcerr.ProtocolError, err:
-      logging.error("Protocol Error: %s", err)
-      client.close_log()
-      return
-
-    success = False
-    try:
-      # Verify client's version if there was one in the request
-      if ver is not None and ver != constants.LUXI_VERSION:
-        raise errors.LuxiError("LUXI version mismatch, server %s, request %s" %
-                               (constants.LUXI_VERSION, ver))
-
-      result = client_ops.handle_request(method, args)
-      success = True
-    except errors.GenericError, err:
-      logging.exception("Unexpected exception")
-      success = False
-      result = errors.EncodeException(err)
-    except:
-      logging.exception("Unexpected exception")
-      err = sys.exc_info()
-      result = "Caught exception: %s" % str(err[1])
-
-    try:
-      reply = rpccl.FormatResponse(success, result)
-      client.send_message(reply)
-      # awake the main thread so that it can write out the data.
-      server.awaker.signal()
-    except: # pylint: disable=W0702
-      logging.exception("Send error")
-      client.close_log()
 
 
 class MasterClientHandler(daemon.AsyncTerminatedMessageStream):
@@ -194,74 +143,6 @@ class _MasterShutdownCheck(object):
       return None
     else:
       return remaining
-
-
-class MasterServer(daemon.AsyncStreamServer):
-  """Master Server.
-
-  This is the main asynchronous master server. It handles connections to the
-  master socket.
-
-  """
-  family = socket.AF_UNIX
-
-  def __init__(self, address, uid, gid):
-    """MasterServer constructor
-
-    @param address: the unix socket address to bind the MasterServer to
-    @param uid: The uid of the owner of the socket
-    @param gid: The gid of the owner of the socket
-
-    """
-    temp_name = tempfile.mktemp(dir=os.path.dirname(address))
-    daemon.AsyncStreamServer.__init__(self, self.family, temp_name)
-    os.chmod(temp_name, 0770)
-    os.chown(temp_name, uid, gid)
-    os.rename(temp_name, address)
-
-    self.awaker = daemon.AsyncAwaker()
-
-    # We'll only start threads once we've forked.
-    self.context = None
-    self.request_workers = None
-
-    self._shutdown_check = None
-
-  def handle_connection(self, connected_socket, client_address):
-    # TODO: add connection count and limit the number of open connections to a
-    # maximum number to avoid breaking for lack of file descriptors or memory.
-    MasterClientHandler(self, connected_socket, client_address, self.family)
-
-  def setup_context(self):
-    self.context = GanetiContext()
-    self.request_workers = workerpool.WorkerPool("ClientReq",
-                                                 CLIENT_REQUEST_WORKERS,
-                                                 ClientRequestWorker)
-
-  def WaitForShutdown(self):
-    """Prepares server for shutdown.
-
-    """
-    if self._shutdown_check is None:
-      self._shutdown_check = _MasterShutdownCheck()
-
-    return self._shutdown_check(self.context.jobqueue.PrepareShutdown())
-
-  def server_cleanup(self):
-    """Cleanup the server.
-
-    This involves shutting down the processor threads and the master
-    socket.
-
-    """
-    try:
-      self.close()
-    finally:
-      if self.request_workers:
-        self.request_workers.TerminateWorkers()
-      if self.context:
-        self.context.jobqueue.Shutdown()
-        self.context.livelock.close()
 
 
 class ClientOps(object):
