@@ -32,6 +32,7 @@
 """
 
 
+import logging
 import time
 
 from ganeti import errors
@@ -250,3 +251,30 @@ def CountRetry(expected, fn, count, args=None):
 
   return SimpleRetry(expected, fn, 1, count, args=args,
                      wait_fn=inc_tries, _time_fn=get_tries)
+
+
+def RetryByNumberOfTimes(max_retries, exception_class, fn, *args, **kwargs):
+  """Retries calling a function up to the specified number of times.
+
+  @type max_retries: integer
+  @param max_retries: Maximum number of retries.
+  @type exception_class: class
+  @param exception_class: Exception class which is used for throwing the
+                          final exception.
+  @type fn: callable
+  @param fn: Function to be called (up to the specified maximum number of
+             retries.
+
+  """
+  last_exception = None
+  for i in range(max_retries):
+    try:
+      fn(*args, **kwargs)
+      break
+    except errors.OpExecError as e:
+      logging.error("Error after retry no. %s: %s.", i, e)
+      last_exception = e
+  else:
+    if last_exception:
+      raise exception_class("Error after %s retries. Last exception: %s."
+                            % (max_retries, last_exception))

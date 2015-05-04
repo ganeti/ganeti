@@ -86,20 +86,10 @@ Set-and-release action
 ----------------------
 
 As a typical pattern is to change the configuration and afterwards release
-the ``ConfigLock``. To avoid unncecessary delay in this operation (the next
-modification of the configuration can already happen while the last change
-is written out), WConfD will offer a combined command that will
-
-- set the configuration to the specified value,
-
-- release the config lock,
-
-- and only then wait for the configuration write to finish; it will not
-  wait for confirmation of the lock-release write.
-
-If jobs use this combined command instead of the sequential set followed
-by release, new configuration changes can come in during writeout of the
-current change; in particular, a writeout can contain more than one change.
+the ``ConfigLock``. To avoid unnecessary RPC call overhead, WConfD will offer
+a combined call. To make that call retryable, it will do nothing if the the
+``ConfigLock`` is not held by the caller; in the return value, it will indicate
+if the config lock was held when the call was made.
 
 Short-lived ``ConfigLock``
 --------------------------
@@ -124,3 +114,43 @@ status can still happen, triggered by other requests. Now, if
 ``WConfD`` gets restarted after the lock acquisition, if that happend
 in the name of the job, it would own a lock without knowing about it,
 and hence that lock would never get released.
+
+
+Approaches considered, but not working
+======================================
+
+Set-and-release action with asynchronous writes
+-----------------------------------------------
+
+Approach
+~~~~~~~~
+
+As a typical pattern is to change the configuration and afterwards release
+the ``ConfigLock``. To avoid unnecessary delay in this operation (the next
+modification of the configuration can already happen while the last change
+is written out), WConfD will offer a combined command that will
+
+- set the configuration to the specified value,
+
+- release the config lock,
+
+- and only then wait for the configuration write to finish; it will not
+  wait for confirmation of the lock-release write.
+
+If jobs use this combined command instead of the sequential set followed
+by release, new configuration changes can come in during writeout of the
+current change; in particular, a writeout can contain more than one change.
+
+Problem
+~~~~~~~
+
+This approach works fine, as long as always either ``WConfD`` can do an ordered
+shutdown or the calling process dies as well. If however, we allow random kill
+signals to be sent to individual daemons (e.g., by an out-of-memory killer),
+the following race occurs. A process can ask for a combined write-and-unlock
+operation; while the configuration is still written out, the write out of the
+updated lock status already finishes. Now, if ``WConfD`` forcefully gets killed
+in that very moment, a restarted ``WConfD`` will read the old configuration but
+the new lock status. This will make the calling process believe that its call,
+while it didn't get an answer, succeeded nevertheless, thus resulting in a
+wrong configuration state.

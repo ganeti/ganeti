@@ -1566,7 +1566,7 @@ def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None):
                               node_uuid, feedback_fn)
 
 
-def EvaluateSshUpdateRPC(result, master_uuid, feedback_fn):
+def WarnAboutFailedSshUpdates(result, master_uuid, feedback_fn):
   node_errors = result[master_uuid].payload
   if node_errors:
     feedback_fn("Some nodes' SSH key files could not be updated:")

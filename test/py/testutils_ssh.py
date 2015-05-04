@@ -34,6 +34,8 @@ from ganeti import constants
 from ganeti import pathutils
 from ganeti import errors
 
+from collections import namedtuple
+
 
 class FakeSshFileManager(object):
   """Class which 'fakes' the lowest layer of SSH key manipulation.
@@ -52,7 +54,7 @@ class FakeSshFileManager(object):
   """
   def __init__(self):
     # Dictionary mapping node name to node properties. The properties
-    # are a tuple of (node_uuid, ssh_key, is_potential_master_candidate,
+    # are a named tuple of (node_uuid, ssh_key, is_potential_master_candidate,
     # is_master_candidate, is_master).
     self._all_node_data = {}
     # Dictionary emulating the authorized keys files of all nodes. The
@@ -75,9 +77,18 @@ class FakeSshFileManager(object):
     # 'RunCommand' has already carried out.
     self._retries = {}
 
+  _NodeInfo = namedtuple(
+      "NodeInfo",
+      ["uuid",
+       "key",
+       "is_potential_master_candidate",
+       "is_master_candidate",
+       "is_master"])
+
   def _SetMasterNodeName(self):
-    self._master_node_name = [name for name, (_, _, _, _, master)
-                              in self._all_node_data.items() if master][0]
+    self._master_node_name = [name for name, node_info
+                              in self._all_node_data.items()
+                              if node_info.is_master][0]
 
   def GetMasterNodeName(self):
     return self._master_node_name
@@ -97,21 +108,21 @@ class FakeSshFileManager(object):
       mc = i < num_mcs
       master = i == num_mcs / 2
 
-      self._all_node_data[name] = (uuid, key, pot_mc, mc, master)
+      self._all_node_data[name] = self._NodeInfo(uuid, key, pot_mc, mc, master)
 
   def _FillPublicKeyOfOneNode(self, receiving_node_name):
-    _, _, is_pot_mc, _, _ = self._all_node_data[receiving_node_name]
+    node_info = self._all_node_data[receiving_node_name]
     # Nodes which are not potential master candidates receive no keys
-    if not is_pot_mc:
+    if not node_info.is_potential_master_candidate:
       return
-    for uuid, key, pot_mc, _, _ in self._all_node_data.values():
-      if pot_mc:
-        self._public_keys[receiving_node_name][uuid] = key
+    for node_info in self._all_node_data.values():
+      if node_info.is_potential_master_candidate:
+        self._public_keys[receiving_node_name][node_info.uuid] = node_info.key
 
   def _FillAuthorizedKeyOfOneNode(self, receiving_node_name):
-    for _, key, _, mc, _ in self._all_node_data.values():
-      if mc:
-        self._authorized_keys[receiving_node_name].add(key)
+    for node_info in self._all_node_data.values():
+      if node_info.is_master_candidate:
+        self._authorized_keys[receiving_node_name].add(node_info.key)
 
   def InitAllNodes(self, num_nodes, num_pot_mcs, num_mcs):
     """Initializes the entire state of the cluster wrt SSH keys.
@@ -159,33 +170,29 @@ class FakeSshFileManager(object):
     return self._all_node_data.keys()
 
   def GetAllPotentialMasterCandidateNodeNames(self):
-    return [name for name, (_, _, pot_mc, _, _)
-            in self._all_node_data.items() if pot_mc]
+    return [name for name, node_info
+            in self._all_node_data.items()
+            if node_info.is_potential_master_candidate]
 
   def GetAllMasterCandidateUuids(self):
-    return [uuid for uuid, _, _, mc, _
-            in self._all_node_data.values() if mc]
-
-  def GetAllPotentialMasterCandidates(self):
-    return [(name, uuid, key, pot_mc, mc, master)
-            for name, (uuid, key, pot_mc, mc, master)
-            in self._all_node_data.items() if pot_mc]
+    return [node_info.uuid for node_info
+            in self._all_node_data.values() if node_info.is_master_candidate]
 
   def GetAllPurePotentialMasterCandidates(self):
     """Get the potential master candidates which are not master candidates."""
-    return [(name, uuid, key, pot_mc, mc, master)
-            for name, (uuid, key, pot_mc, mc, master)
-            in self._all_node_data.items() if pot_mc and not mc]
+    return [(name, node_info) for name, node_info
+            in self._all_node_data.items()
+            if node_info.is_potential_master_candidate and
+            not node_info.is_master_candidate]
 
   def GetAllMasterCandidates(self):
-    return [(name, uuid, key, pot_mc, mc, master)
-            for name, (uuid, key, pot_mc, mc, master)
-            in self._all_node_data.items() if mc]
+    return [(name, node_info) for name, node_info
+            in self._all_node_data.items() if node_info.is_master_candidate]
 
   def GetAllNormalNodes(self):
-    return [(name, uuid, key, pot_mc, mc, master)
-            for name, (uuid, key, pot_mc, mc, master)
-            in self._all_node_data.items() if not mc and not pot_mc]
+    return [(name, node_info) for name, node_info
+            in self._all_node_data.items() if not node_info.is_master_candidate
+            and not node_info.is_potential_master_candidate]
 
   def GetPublicKeysOfNode(self, node):
     return self._public_keys[node]
@@ -214,7 +221,7 @@ class FakeSshFileManager(object):
     @param master: whether the new node is the master
 
     """
-    self._all_node_data[name] = (uuid, key, pot_mc, mc, master)
+    self._all_node_data[name] = self._NodeInfo(uuid, key, pot_mc, mc, master)
     if name not in self._authorized_keys:
       self._authorized_keys[name] = set()
     if mc:
@@ -253,6 +260,25 @@ class FakeSshFileManager(object):
     """
     return key in self._authorized_keys[file_node_name]
 
+  def AssertNodeSetOnlyHasAuthorizedKey(self, node_set, query_node_key):
+    """Check if nodes in the given set only have a particular authorized key.
+
+    @type node_set: list of strings
+    @param node_set: list of nodes who are supposed to have the key
+    @type query_node_key: string
+    @param query_node_key: key which is looked for
+
+    """
+    for node_name in self._all_node_data.keys():
+      if node_name in node_set:
+        if not self.NodeHasAuthorizedKey(node_name, query_node_key):
+          raise Exception("Node '%s' does not have authorized key '%s'."
+                          % (node_name, query_node_key))
+      else:
+        if self.NodeHasAuthorizedKey(node_name, query_node_key):
+          raise Exception("Node '%s' has authorized key '%s' although it"
+                          " should not." % (node_name, query_node_key))
+
   def AssertAllNodesHaveAuthorizedKey(self, key):
     """Check if all nodes have a particular key in their auth. keys file.
 
@@ -261,10 +287,7 @@ class FakeSshFileManager(object):
     @raise Exception: if a node does not have the authorized key.
 
     """
-    for name in self._all_node_data.keys():
-      if key not in self._authorized_keys[name]:
-        raise Exception("Node '%s' does not have the key '%s' in its"
-                        " 'authorized_keys' file." % (name, key))
+    self.AssertNodeSetOnlyHasAuthorizedKey(self._all_node_data.keys(), key)
 
   def AssertNoNodeHasAuthorizedKey(self, key):
     """Check if none of the nodes has a particular key in their auth. keys file.
@@ -274,11 +297,32 @@ class FakeSshFileManager(object):
     @raise Exception: if a node *does* have the authorized key.
 
     """
-    for name in self._all_node_data.keys():
-      node_auth_keys = self._authorized_keys[name]
-      if key in node_auth_keys:
-        raise Exception("Node '%s' does have the key '%s' in its"
-                        " 'authorized_keys' file." % (name, key))
+    self.AssertNodeSetOnlyHasAuthorizedKey([], key)
+
+  def AssertNodeSetOnlyHasPublicKey(self, node_set, query_node_uuid,
+                                    query_node_key):
+    """Check if nodes in the given set only have a particular public key.
+
+    @type node_set: list of strings
+    @param node_set: list of nodes who are supposed to have the key
+    @type query_node_uuid: string
+    @param query_node_uuid: uuid of the node whose key is looked for
+    @type query_node_key: string
+    @param query_node_key: key which is looked for
+
+    """
+    for node_name in self._all_node_data.keys():
+      if node_name in node_set:
+        if not self.NodeHasPublicKey(node_name, query_node_uuid,
+                                     query_node_key):
+          raise Exception("Node '%s' does not have public key '%s' of node"
+                          " '%s'." % (node_name, query_node_key,
+                                      query_node_uuid))
+      else:
+        if self.NodeHasPublicKey(node_name, query_node_uuid, query_node_key):
+          raise Exception("Node '%s' has public key '%s' of node"
+                          " '%s' although it should not."
+                          % (node_name, query_node_key, query_node_uuid))
 
   def AssertNoNodeHasPublicKey(self, uuid, key):
     """Check if none of the nodes have the given public key in their file.
@@ -288,11 +332,7 @@ class FakeSshFileManager(object):
     @raise Exception: if a node *does* have the public key.
 
     """
-    for name in self._all_node_data.keys():
-      node_pub_keys = self._public_keys[name]
-      if (uuid, key) in node_pub_keys.items():
-        raise Exception("Node '%s' does have public key '%s' of node '%s'"
-                        % (name, key, uuid))
+    self.AssertNodeSetOnlyHasPublicKey([], uuid, key)
 
   def AssertPotentialMasterCandidatesOnlyHavePublicKey(self, query_node_name):
     """Checks if the node's key is on all potential master candidates only.
@@ -311,16 +351,9 @@ class FakeSshFileManager(object):
     """
     query_node_uuid, query_node_key, _, _, _ = \
         self._all_node_data[query_node_name]
-    for name, (_, _, pot_mc, _, _) in self._all_node_data.items():
-      has_key = self.NodeHasPublicKey(name, query_node_uuid, query_node_key)
-      if pot_mc:
-        if not has_key:
-          raise Exception("Potential master candidate '%s' does not have the"
-                          " key.")
-      else:
-        if has_key:
-          raise Exception("Normal node (not potential master candidate) '%s'"
-                          " does have the key, although it should not have.")
+    potential_master_candidates = self.GetAllPotentialMasterCandidateNodeNames()
+    self.AssertNodeSetOnlyHasPublicKey(
+        potential_master_candidates, query_node_uuid, query_node_key)
 
   # Disabling a pylint warning about unused parameters. Those need
   # to be here to properly mock the real methods.

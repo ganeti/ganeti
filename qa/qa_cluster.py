@@ -1277,7 +1277,9 @@ def TestClusterBurnin():
     if len(instances) < 1:
       raise qa_error.Error("Burnin needs at least one instance")
 
-    script = qa_utils.UploadFile(master.primary, "../tools/burnin")
+    burnin_file = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                               "../tools/burnin")
+    script = qa_utils.UploadFile(master.primary, burnin_file)
     try:
       disks = qa_config.GetDiskOptions()
       # Run burnin
