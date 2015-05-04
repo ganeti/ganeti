@@ -2092,66 +2092,6 @@ class JobQueue(object):
     self._UpdateQueueSizeUnlocked()
     return len(archive_jobs)
 
-  def _Query(self, fields, qfilter):
-    qobj = query.Query(query.JOB_FIELDS, fields, qfilter=qfilter,
-                       namefield="id")
-
-    # Archived jobs are only looked at if the "archived" field is referenced
-    # either as a requested field or in the filter. By default archived jobs
-    # are ignored.
-    include_archived = (query.JQ_ARCHIVED in qobj.RequestedData())
-
-    job_ids = qobj.RequestedNames()
-
-    list_all = (job_ids is None)
-
-    if list_all:
-      # Since files are added to/removed from the queue atomically, there's no
-      # risk of getting the job ids in an inconsistent state.
-      job_ids = self._GetJobIDsUnlocked(archived=include_archived)
-
-    jobs = []
-
-    for job_id in job_ids:
-      job = self.SafeLoadJobFromDisk(job_id, True, writable=False)
-      if job is not None or not list_all:
-        jobs.append((job_id, job))
-
-    return (qobj, jobs, list_all)
-
-  def QueryJobs(self, fields, qfilter):
-    """Returns a list of jobs in queue.
-
-    @type fields: sequence
-    @param fields: List of wanted fields
-    @type qfilter: None or query2 filter (list)
-    @param qfilter: Query filter
-
-    """
-    (qobj, ctx, _) = self._Query(fields, qfilter)
-
-    return query.GetQueryResponse(qobj, ctx, sort_by_name=False)
-
-  def OldStyleQueryJobs(self, job_ids, fields):
-    """Returns a list of jobs in queue.
-
-    @type job_ids: list
-    @param job_ids: sequence of job identifiers or None for all
-    @type fields: list
-    @param fields: names of fields to return
-    @rtype: list
-    @return: list one element per job, each element being list with
-        the requested fields
-
-    """
-    # backwards compat:
-    job_ids = [int(jid) for jid in job_ids]
-    qfilter = qlang.MakeSimpleFilter("id", job_ids)
-
-    (qobj, ctx, _) = self._Query(fields, qfilter)
-
-    return qobj.OldStyleQuery(ctx, sort_by_name=False)
-
   @locking.ssynchronized(_LOCK)
   def PrepareShutdown(self):
     """Prepare to stop the job queue.
