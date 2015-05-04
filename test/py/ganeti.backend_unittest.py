@@ -44,7 +44,9 @@ from ganeti import hypervisor
 from ganeti import netutils
 from ganeti import objects
 from ganeti import pathutils
+from ganeti import serializer
 from ganeti import utils
+from cmdlib.testsupport.config_mock import ConfigMock
 
 
 class TestX509Certificates(unittest.TestCase):
@@ -946,6 +948,39 @@ class TestSpaceReportingConstants(unittest.TestCase):
   def testAllNotReportingTypesDontHaveFunction(self):
     for storage_type in TestSpaceReportingConstants.NOT_REPORTING:
       self.assertEqual(None, backend._STORAGE_TYPE_INFO_FN[storage_type])
+
+
+class TestOSEnvironment(unittest.TestCase):
+  """Ensure the presence of public and private parameters.
+
+  They have to be present inside os environment variables.
+
+  """
+
+  def _CreateEnv(self):
+    """Create and return an environment."""
+    config_mock = ConfigMock()
+    inst = config_mock.AddNewInstance(
+             osparams={"public_param": "public_info"},
+             osparams_private=serializer.PrivateDict({"private_param":
+                                                     "private_info",
+                                                     "another_private_param":
+                                                     "more_privacy"}),
+             nics = [])
+    inst.disks_info = ""
+    inst.secondary_nodes = []
+
+    return backend.OSEnvironment(inst, config_mock.CreateOs())
+
+  def testParamPresence(self):
+    env = self._CreateEnv()
+    env_keys = env.keys()
+    self.assertIn("OSP_PUBLIC_PARAM", env)
+    self.assertIn("OSP_PRIVATE_PARAM", env)
+    self.assertIn("OSP_ANOTHER_PRIVATE_PARAM", env)
+    self.assertEqual("public_info", env["OSP_PUBLIC_PARAM"])
+    self.assertEqual("private_info", env["OSP_PRIVATE_PARAM"])
+    self.assertEqual("more_privacy", env["OSP_ANOTHER_PRIVATE_PARAM"])
 
 
 if __name__ == "__main__":
