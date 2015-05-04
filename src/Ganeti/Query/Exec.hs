@@ -275,4 +275,6 @@ forkJobProcess jid luxiLivelock update = do
       _ <- recv "Waiting for the job to ask for the lock file name"
       send "Writing the lock file name to the client" lockfile
 
+      liftIO $ closeClient master
+
       return (lockfile, pid)
