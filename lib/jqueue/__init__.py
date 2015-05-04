@@ -1423,11 +1423,6 @@ class JobQueue(object):
     self.acquire = self._lock.acquire
     self.release = self._lock.release
 
-    # Read serial file
-    self._last_serial = jstore.ReadSerial()
-    assert self._last_serial is not None, ("Serial file was modified between"
-                                           " check in jstore and here")
-
     # Get initial list of nodes
     self._nodes = dict((n.name, n.primary_ip)
                        for n in cfg.GetAllNodesInfo().values()
