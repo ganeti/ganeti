@@ -251,7 +251,11 @@ your instances to DRBD to take advantage of the new features.
 Supported DRBD versions: 8.0-8.4. It's recommended to have at least
 version 8.0.12. Note that for version 8.2 and newer it is needed to pass
 the ``usermode_helper=/bin/true`` parameter to the module, either by
-configuring ``/etc/modules`` or when inserting it manually.
+configuring ``/etc/modules`` or when inserting it manually. When using
+Xen and DRBD 8.3.2 or higher, it is recommended_ to use the
+``disable_sendpage=1`` setting as well.
+
+.. _recommended: https://drbd.linbit.com/users-guide/s-xen-drbd-mod-params.html
 
 Now the bad news: unless your distribution already provides it
 installing DRBD might involve recompiling your kernel or anyway fiddling
