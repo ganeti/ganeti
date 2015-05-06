@@ -1700,7 +1700,7 @@ class TestLUClusterVerifyGroupVerifyOrphanVolumes(
       self.master_uuid: ["mock_vg/disk_0"]
     }
 
-    lu._VerifyOrphanVolumes(node_vol_should, node_imgs,
+    lu._VerifyOrphanVolumes("mock_vg", node_vol_should, node_imgs,
                             utils.FieldSet("mock_vg/disk_2"))
     self.mcpu.assertLogContainsRegex("volume mock_vg/disk_1 is unknown")
     self.mcpu.assertLogDoesNotContainRegex("volume mock_vg/disk_0 is unknown")

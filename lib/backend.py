@@ -1094,7 +1094,7 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
 
   if constants.NV_LVLIST in what and vm_capable:
     try:
-      val = GetVolumeList([what[constants.NV_LVLIST]])
+      val = GetVolumeList(utils.ListVolumeGroups().keys())
     except RPCFail, err:
       val = str(err)
     result[constants.NV_LVLIST] = val

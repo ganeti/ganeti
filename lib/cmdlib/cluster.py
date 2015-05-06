@@ -2621,12 +2621,15 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                     "instance lives on non-vm_capable node %s",
                     self.cfg.GetNodeName(node_uuid))
 
-  def _VerifyOrphanVolumes(self, node_vol_should, node_image, reserved):
+  def _VerifyOrphanVolumes(self, vg_name, node_vol_should, node_image,
+                           reserved):
     """Verify if there are any unknown volumes in the cluster.
 
     The .os, .swap and backup volumes are ignored. All other volumes are
     reported as unknown.
 
+    @type vg_name: string
+    @param vg_name: the name of the Ganeti-administered volume group
     @type reserved: L{ganeti.utils.FieldSet}
     @param reserved: a FieldSet of reserved volume names
 
@@ -2637,6 +2640,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         # skip non-healthy nodes
         continue
       for volume in n_img.volumes:
+        # skip volumes not belonging to the ganeti-administered volume group
+        if volume.split('/')[0] != vg_name:
+          continue
+
         test = ((node_uuid not in node_vol_should or
                 volume not in node_vol_should[node_uuid]) and
                 not reserved.Matches(volume))
@@ -3757,7 +3764,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           self.cfg.GetInstanceLVsByNode(instance.uuid, lvmap=node_vol_should)
           break
 
-    self._VerifyOrphanVolumes(node_vol_should, node_image, reserved)
+    self._VerifyOrphanVolumes(vg_name, node_vol_should, node_image, reserved)
 
     if constants.VERIFY_NPLUSONE_MEM not in self.op.skip_checks:
       feedback_fn("* Verifying N+1 Memory redundancy")
