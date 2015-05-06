@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction #-}
 
 {-|  The WConfd functions for direct configuration manipulation
 
@@ -39,9 +39,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.ConfigModifications where
 
+import Control.Lens.Getter ((^.))
 import Control.Lens.Setter ((.~), (%~))
 import Control.Lens.Traversal (mapMOf)
 import Control.Monad (unless, when, forM_)
+import Control.Monad.Error (throwError)
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (isJust, maybeToList, fromMaybe)
 import Language.Haskell.TH (Name)
@@ -51,6 +53,7 @@ import qualified Data.Map as M
 import qualified Data.Set as S
 
 import Ganeti.BasicTypes (GenericResult(..), genericResult, toError)
+import Ganeti.Constants (lastDrbdPort)
 import Ganeti.Errors (GanetiException(..))
 import Ganeti.JSON (Container, GenericContainer(..), alterContainerL
                    , lookupContainer, MaybeForJSON(..))
@@ -59,7 +62,8 @@ import Ganeti.Logging.Lifted (logDebug, logInfo)
 import Ganeti.Objects
 import Ganeti.Objects.Lens
 import Ganeti.WConfd.ConfigState (ConfigState, csConfigData, csConfigDataL)
-import Ganeti.WConfd.Monad (WConfdMonad, modifyConfigWithLock)
+import Ganeti.WConfd.Monad (WConfdMonad, modifyConfigWithLock
+                           , modifyConfigAndReturnWithLock)
 import qualified Ganeti.WConfd.TempRes as T
 
 type DiskUUID = String
@@ -300,10 +304,29 @@ attachInstanceDisk iUuid dUuid idx = do
        (return ())
   return $ isJust r
 
+-- | Allocate a port.
+-- The port will be taken from the available port pool or from the
+-- default port range (and in this case we increase
+-- highest_used_port).
+allocatePort :: WConfdMonad (MaybeForJSON Int)
+allocatePort = do
+  maybePort <- modifyConfigAndReturnWithLock (\_ cs ->
+    let portPoolL = csConfigDataL . configClusterL . clusterTcpudpPortPoolL
+        hupL = csConfigDataL . configClusterL . clusterHighestUsedPortL
+    in case cs ^. portPoolL of
+      [] -> if cs ^. hupL >= lastDrbdPort
+        then throwError . ConfigurationError $ printf
+          "The highest used port is greater than %s. Aborting." lastDrbdPort
+        else return (cs ^. hupL + 1, hupL %~ (+1) $ cs)
+      (p:ps) -> return (p, portPoolL .~ ps $ cs))
+    (return ())
+  return . MaybeForJSON $ maybePort
+
 -- * The list of functions exported to RPC.
 
 exportedFunctions :: [Name]
 exportedFunctions = [ 'addInstance
                     , 'addInstanceDisk
+                    , 'allocatePort
                     , 'attachInstanceDisk
                     ]
