@@ -889,3 +889,6 @@ class ConfigMock(config.ConfigWriter):
 
     """
     return self._ConfigData().disks[disk_uuid]
+
+  def AllocatePort(self):
+    return 1
