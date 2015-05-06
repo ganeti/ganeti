@@ -76,10 +76,11 @@ import Ganeti.UDSServer
 import Ganeti.OpParams (pTagsObject)
 import Ganeti.OpCodes
 import qualified Ganeti.Query.Language as Qlang
-import Ganeti.Runtime (GanetiDaemon(..))
+import Ganeti.Runtime (GanetiDaemon(..), GanetiGroup(..), MiscGroup(..))
 import Ganeti.THH
 import Ganeti.THH.Field
 import Ganeti.Types
+import Ganeti.Utils
 
 
 -- | Currently supported Luxi operations and JSON serialization.
@@ -181,7 +182,13 @@ $(genStrOfOp ''LuxiOp "strOfOp")
 
 
 luxiConnectConfig :: ServerConfig
-luxiConnectConfig = ServerConfig GanetiLuxid
+luxiConnectConfig = ServerConfig
+                      -- The rapi daemon talks to the luxi one, and for this
+                      -- purpose we need group rw permissions.
+                      FilePermissions { fpOwner = Just GanetiLuxid
+                                      , fpGroup = Just $ ExtraGroup DaemonsGroup
+                                      , fpPermissions = 0o0660
+                                      }
                       ConnectConfig { recvTmo    = luxiDefRwto
                                     , sendTmo    = luxiDefRwto
                                     }

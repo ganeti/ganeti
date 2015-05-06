@@ -122,7 +122,6 @@ import System.IO
 import System.Exit
 import System.Posix.Files
 import System.Posix.IO
-import System.Posix.User
 import System.Time
 
 -- * Debug functions
@@ -694,8 +693,8 @@ watchFile fpath timeout old = watchFileBy fpath timeout (/= old)
 -- directories and files. All parameters are optional, with nothing
 -- meaning that the default value should be left untouched.
 
-data FilePermissions = FilePermissions { fpOwner :: Maybe String
-                                       , fpGroup :: Maybe String
+data FilePermissions = FilePermissions { fpOwner :: Maybe GanetiDaemon
+                                       , fpGroup :: Maybe GanetiGroup
                                        , fpPermissions :: FileMode
                                        }
 
@@ -703,22 +702,29 @@ data FilePermissions = FilePermissions { fpOwner :: Maybe String
 -- possibly ownerships, as required.
 ensurePermissions :: FilePath -> FilePermissions -> IO (Result ())
 ensurePermissions fpath perms = do
+  -- Fetch the list of entities
+  runtimeEnts <- runResultT getEnts
+  ents <- exitIfBad "Can't determine user/group ids" runtimeEnts
+
+  -- Get the existing file properties
   eitherFileStatus <- try $ getFileStatus fpath
                       :: IO (Either IOError FileStatus)
+
+  -- And see if any modifications are needed
   (flip $ either (return . Bad . show)) eitherFileStatus $ \fstat -> do
     ownertry <- case fpOwner perms of
       Nothing -> return $ Right ()
       Just owner -> try $ do
-        ownerid <- userID `liftM` getUserEntryForName owner
+        let ownerid = reUserToUid ents M.! owner
         unless (ownerid == fileOwner fstat) $ do
-          logDebug $ "Changing owner of " ++ fpath ++ " to " ++ owner
+          logDebug $ "Changing owner of " ++ fpath ++ " to " ++ show owner
           setOwnerAndGroup fpath ownerid (-1)
     grouptry <- case fpGroup perms of
       Nothing -> return $ Right ()
       Just grp -> try $ do
-        groupid <- groupID `liftM` getGroupEntryForName grp
+        let groupid = reGroupToGid ents M.! grp
         unless (groupid == fileGroup fstat) $ do
-          logDebug $ "Changing group of " ++ fpath ++ " to " ++ grp
+          logDebug $ "Changing group of " ++ fpath ++ " to " ++ show grp
           setOwnerAndGroup fpath (-1) groupid
     let fp = fpPermissions perms
     permtry <- if fileMode fstat == fp
