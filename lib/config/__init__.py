@@ -1153,26 +1153,17 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.tcpudp_port_pool.copy()
 
-  @ConfigSync()
   def AllocatePort(self):
-    """Allocate a port.
+    """Allocate a port."""
+    def WithRetry():
+      port = self._wconfd.AllocatePort()
+      self.OutDate()
 
-    The port will be taken from the available port pool or from the
-    default port range (and in this case we increase
-    highest_used_port).
-
-    """
-    # If there are TCP/IP ports configured, we use them first.
-    if self._ConfigData().cluster.tcpudp_port_pool:
-      port = self._ConfigData().cluster.tcpudp_port_pool.pop()
-    else:
-      port = self._ConfigData().cluster.highest_used_port + 1
-      if port >= constants.LAST_DRBD_PORT:
-        raise errors.ConfigurationError("The highest used port is greater"
-                                        " than %s. Aborting." %
-                                        constants.LAST_DRBD_PORT)
-      self._ConfigData().cluster.highest_used_port = port
-    return port
+      if port is None:
+        raise utils.RetryAgain()
+      else:
+        return port
+    return utils.Retry(WithRetry, 0.1, 30)
 
   @ConfigSync(shared=1)
   def ComputeDRBDMap(self):
