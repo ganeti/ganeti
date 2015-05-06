@@ -57,6 +57,7 @@ module Ganeti.WConfd.Monad
   , forceConfigStateDistribution
   , readConfigState
   , modifyConfigDataErr_
+  , modifyConfigAndReturnWithLock
   , modifyConfigWithLock
   , modifyLockWaiting
   , modifyLockWaiting_
@@ -379,11 +380,11 @@ readLockAllocation = liftM LW.getAllocation readLockWaiting
 -- | Modify the configuration while temporarily acquiring
 -- the configuration lock. If the configuration lock is held by
 -- someone else, nothing is changed and Nothing is returned.
-modifyConfigWithLock
-  :: (TempResState -> ConfigState -> AtomicModifyMonad ConfigState)
+modifyConfigAndReturnWithLock
+  :: (TempResState -> ConfigState -> AtomicModifyMonad (a, ConfigState))
      -> State TempResState ()
-     -> WConfdMonad (Maybe ())
-modifyConfigWithLock f tempres = do
+     -> WConfdMonad (Maybe a)
+modifyConfigAndReturnWithLock f tempres = do
   now <- liftIO getClockTime
   dh <- lift . WConfdMonadInt $ ask
   pid <- liftIO getProcessID
@@ -395,7 +396,7 @@ modifyConfigWithLock f tempres = do
   let modCS ds@(DaemonState { dsTempRes = tr }) =
         mapMOf2
           dsConfigStateL
-          (\cs -> liftM (unpackConfigResult now cs . (,) ())  (f tr cs))
+          (\cs -> liftM (unpackConfigResult now cs)  (f tr cs))
           ds
   maybeDist <- bracket
     (atomicModifyWithLens (dhDaemonState dh) dsLockWaitingL
@@ -411,12 +412,12 @@ modifyConfigWithLock f tempres = do
         _ -> return ())
     (\(res, _) -> case res of
         Ok s | S.null s ->do
-          ((), modif, dist) <- atomicModifyIORefErrLog (dhDaemonState dh)
+          ret <- atomicModifyIORefErrLog (dhDaemonState dh)
                                  (liftM swap . modCS)
           atomicModifyWithLens (dhDaemonState dh) dsTempResL $ runState tempres
-          return $ Just (modif, dist)
+          return $ Just ret
         _ -> return Nothing)
-  flip (maybe $ return Nothing) maybeDist $ \(modified, dist) -> do
+  flip (maybe $ return Nothing) maybeDist $ \(val, modified, dist) -> do
     when modified $ do
       logDebug . (++) "Triggering config write; distribution "
         $ if dist then "synchronously" else "asynchronously"
@@ -425,4 +426,11 @@ modifyConfigWithLock f tempres = do
     logDebug "Triggering temporary reservations write"
     liftBase . triggerAndWait_ . dhSaveTempResWorker $ dh
     logDebug "Temporary reservations write finished"
-    return $ Just ()
+    return $ Just val
+
+modifyConfigWithLock
+  :: (TempResState -> ConfigState -> AtomicModifyMonad ConfigState)
+     -> State TempResState ()
+     -> WConfdMonad (Maybe ())
+modifyConfigWithLock f = modifyConfigAndReturnWithLock f'
+  where f' tr cs = fmap ((,) ()) (f tr cs)
