@@ -883,7 +883,9 @@ class LUInstanceCreate(LogicalUnit):
 
     assert (self.owned_locks(locking.LEVEL_NODE) ==
             self.owned_locks(locking.LEVEL_NODE_RES)), \
-      "Node locks differ from node resource locks"
+      ("Node locks differ from node resource locks (%s vs %s)"
+       % (self.owned_locks(locking.LEVEL_NODE),
+          self.owned_locks(locking.LEVEL_NODE_RES)))
 
     #### node related checks
 
