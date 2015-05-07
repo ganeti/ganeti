@@ -42,6 +42,8 @@
 /configure
 /devel/squeeze-amd64.tar.gz
 /devel/squeeze-amd64.conf
+/devel/wheezy-amd64.tar.gz
+/devel/wheezy-amd64.conf
 /epydoc.conf
 /ganeti
 /stamp-srclinks
