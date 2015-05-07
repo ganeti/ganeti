@@ -1498,6 +1498,57 @@ class JobQueue(object):
     """
     return rpc.JobQueueRunner(self.context, address_list)
 
+  @locking.ssynchronized(_LOCK)
+  def AddNode(self, node):
+    """Register a new node with the queue.
+
+    @type node: L{objects.Node}
+    @param node: the node object to be added
+
+    """
+    node_name = node.name
+    assert node_name != self._my_hostname
+
+    # Clean queue directory on added node
+    result = self._GetRpc(None).call_jobqueue_purge(node_name)
+    msg = result.fail_msg
+    if msg:
+      logging.warning("Cannot cleanup queue directory on node %s: %s",
+                      node_name, msg)
+
+    if not node.master_candidate:
+      # remove if existing, ignoring errors
+      self._nodes.pop(node_name, None)
+      # and skip the replication of the job ids
+      return
+
+    # Upload the whole queue excluding archived jobs
+    files = [self._GetJobPath(job_id) for job_id in self._GetJobIDsUnlocked()]
+
+    # Upload current serial file
+    files.append(pathutils.JOB_QUEUE_SERIAL_FILE)
+
+    # Static address list
+    addrs = [node.primary_ip]
+
+    for file_name in files:
+      # Read file content
+      content = utils.ReadFile(file_name)
+
+      result = _CallJqUpdate(self._GetRpc(addrs), [node_name],
+                             file_name, content)
+      msg = result[node_name].fail_msg
+      if msg:
+        logging.error("Failed to upload file %s to node %s: %s",
+                      file_name, node_name, msg)
+
+    msg = result[node_name].fail_msg
+    if msg:
+      logging.error("Failed to set queue drained flag on node %s: %s",
+                    node_name, msg)
+
+    self._nodes[node_name] = node.primary_ip
+
   @staticmethod
   def _CheckRpcResult(result, nodes, failmsg):
     """Verifies the status of an RPC call.

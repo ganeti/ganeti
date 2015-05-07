@@ -458,7 +458,6 @@ class LUNodeAdd(LogicalUnit):
     self._InitOpenVSwitch()
 
     if self.op.readd:
-      self.context.ReaddNode(self.new_node)
       RedistributeAncillaryFiles(self)
       # make sure we redistribute the config
       self.cfg.Update(self.new_node, feedback_fn)
@@ -866,7 +865,6 @@ class LUNodeSetParams(LogicalUnit):
     # this will trigger job queue propagation or cleanup if the mc
     # flag changed
     if [self.old_role, self.new_role].count(self._ROLE_CANDIDATE) == 1:
-      self.context.ReaddNode(node)
 
       if self.cfg.GetClusterInfo().modify_ssh_setup:
         potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
