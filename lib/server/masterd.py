@@ -103,30 +103,3 @@ class GanetiContext(object):
   # method could be a function, but keep interface backwards compatible
   def GetRpc(self, cfg):
     return rpc.RpcRunner(cfg, lambda _: None)
-
-  def AddNode(self, cfg, node, ec_id):
-    """Adds a node to the configuration.
-
-    """
-    # Add it to the configuration
-    cfg.AddNode(node, ec_id)
-
-    # If preseeding fails it'll not be added
-    self.jobqueue.AddNode(node)
-
-  def ReaddNode(self, node):
-    """Updates a node that's already in the configuration
-
-    """
-    # Synchronize the queue again
-    self.jobqueue.AddNode(node)
-
-  def RemoveNode(self, cfg, node):
-    """Removes a node from the configuration and lock manager.
-
-    """
-    # Remove node from configuration
-    cfg.RemoveNode(node.uuid)
-
-    # Notify job queue
-    self.jobqueue.RemoveNode(node.name)
