@@ -80,9 +80,6 @@ class GanetiContextMock(object):
   def AddNode(self, cfg, node, ec_id):
     cfg.AddNode(node, ec_id)
 
-  def ReaddNode(self, node):
-    pass
-
   def RemoveNode(self, cfg, node):
     cfg.RemoveNode(node.uuid)
 
