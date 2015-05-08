@@ -485,7 +485,6 @@ def AdjustCandidatePool(lu, exceptions):
     lu.LogInfo("Promoted nodes to master candidate role: %s",
                utils.CommaJoin(node.name for node in mod_list))
     for node in mod_list:
-      lu.context.ReaddNode(node)
       AddNodeCertToCandidateCerts(lu, lu.cfg, node.uuid)
   mc_now, mc_max, _ = lu.cfg.GetMasterCandidateStats(exceptions)
   if mc_now > mc_max:
