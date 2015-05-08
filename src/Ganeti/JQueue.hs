@@ -123,6 +123,7 @@ import Ganeti.Path
 import Ganeti.Query.Exec as Exec
 import Ganeti.Rpc (executeRpcCall, ERpcError, logRpcErrors,
                    RpcCallJobqueueUpdate(..), RpcCallJobqueueRename(..))
+import Ganeti.Runtime (GanetiDaemon(..), GanetiGroup(..), MiscGroup(..))
 import Ganeti.Types
 import Ganeti.Utils
 import Ganeti.Utils.Atomic
@@ -646,8 +647,8 @@ notifyJob pid = runResultT $ do
 
 -- | Permissions for the archive directories.
 queueDirPermissions :: FilePermissions
-queueDirPermissions = FilePermissions { fpOwner = Just C.masterdUser
-                                      , fpGroup = Just C.daemonsGroup
+queueDirPermissions = FilePermissions { fpOwner = Just GanetiMasterd
+                                      , fpGroup = Just $ ExtraGroup DaemonsGroup
                                       , fpPermissions = 0o0750
                                       }
 

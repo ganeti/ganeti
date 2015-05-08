@@ -1742,19 +1742,27 @@ class TestLUClusterVerifyGroupVerifyOrphanVolumes(
   @withLockedLU
   def testOrphanedVolume(self, lu):
     master_img = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
-    master_img.volumes = ["mock_vg/disk_0", "mock_vg/disk_1", "mock_vg/disk_2"]
+    master_img.volumes = [
+      "mock_vg/disk_0",  # Required, present, no error
+      "mock_vg/disk_1",  # Unknown, present, orphan
+      "mock_vg/disk_2",  # Reserved, present, no error
+      "other_vg/disk_0", # Required, present, no error
+      "other_vg/disk_1", # Unknown, present, no error
+                         ]
     node_imgs = {
       self.master_uuid: master_img
     }
     node_vol_should = {
-      self.master_uuid: ["mock_vg/disk_0"]
+      self.master_uuid: ["mock_vg/disk_0", "other_vg/disk_0", "other_vg/disk_1"]
     }
 
-    lu._VerifyOrphanVolumes(node_vol_should, node_imgs,
+    lu._VerifyOrphanVolumes("mock_vg", node_vol_should, node_imgs,
                             utils.FieldSet("mock_vg/disk_2"))
     self.mcpu.assertLogContainsRegex("volume mock_vg/disk_1 is unknown")
     self.mcpu.assertLogDoesNotContainRegex("volume mock_vg/disk_0 is unknown")
     self.mcpu.assertLogDoesNotContainRegex("volume mock_vg/disk_2 is unknown")
+    self.mcpu.assertLogDoesNotContainRegex("volume other_vg/disk_0 is unknown")
+    self.mcpu.assertLogDoesNotContainRegex("volume other_vg/disk_1 is unknown")
 
 
 class TestLUClusterVerifyGroupVerifyNPlusOneMemory(

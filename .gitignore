@@ -43,6 +43,8 @@
 /configure
 /devel/squeeze-amd64.tar.gz
 /devel/squeeze-amd64.conf
+/devel/wheezy-amd64.tar.gz
+/devel/wheezy-amd64.conf
 /dist/
 /empty-cabal-config
 /epydoc.conf
