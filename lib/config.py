@@ -2901,12 +2901,9 @@ class ConfigWriter(object):
       try:
         if dict_data is not None:
           self._SetConfigData(objects.ConfigData.FromDict(dict_data))
+          self._UpgradeConfig()
       except Exception, err:
         raise errors.ConfigurationError(err)
-
-      # Transitional fix until ConfigWriter is completely rewritten into
-      # Haskell
-      self._UpgradeConfig()
 
   def _CloseConfig(self, save):
     """Release resources relating the config data.
@@ -2921,7 +2918,7 @@ class ConfigWriter(object):
       logging.critical("Can't write the configuration: %s", str(err))
       raise
     finally:
-      if not self._offline:
+      if not self._offline and not self._lock_current_shared:
         try:
           self._wconfd.UnlockConfig(self._GetWConfdContext())
         except AttributeError:
