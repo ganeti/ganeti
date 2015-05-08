@@ -49,7 +49,7 @@ from ganeti import pathutils
 from ganeti import serializer
 from ganeti import ssh
 from ganeti import utils
-from cmdlib.testsupport.config_mock import ConfigMock
+from testutils.config_mock import ConfigMock
 
 
 class TestX509Certificates(unittest.TestCase):
