@@ -1705,6 +1705,7 @@ TEST_FILES = \
 	test/data/htools/hbal-migration-3.data \
 	test/data/htools/hail-multialloc-dedicated.json \
 	test/data/htools/hbal-soft-errors.data \
+	test/data/htools/hbal-soft-errors2.data \
 	test/data/htools/hbal-split-insts.data \
 	test/data/htools/hspace-groups-one.data \
 	test/data/htools/hspace-groups-two.data \
