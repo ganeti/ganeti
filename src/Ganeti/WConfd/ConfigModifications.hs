@@ -129,6 +129,36 @@ getAllMACs :: ConfigState -> S.Set String
 getAllMACs = S.fromList . map nicMac . concatMap instNics . M.elems
            . fromContainer . configInstances . csConfigData
 
+-- | Checks if the two objects given have the same serial number
+checkSerial :: SerialNoObject a => a -> a -> GenericResult GanetiException ()
+checkSerial target current = if serialOf target == serialOf current
+  then Ok ()
+  else Bad . ConfigurationError $ printf
+    "Configuration object updated since it has been read: %d != %d"
+    (serialOf current) (serialOf target)
+
+-- | Updates an object present in a container.
+-- The presense of the object in the container
+-- is determined by the uuid of the object.
+--
+-- A check that serial number of the
+-- object is consistent with the serial number
+-- of the object in the container.
+-- 
+-- If so, the object is updated, and then
+-- inserted into the container.
+replaceIn :: (UuidObject a, SerialNoObject a)
+          => (a -> a)
+          -> a
+          -> Container a
+          -> GenericResult GanetiException (Container a)
+replaceIn updateTarget target = alterContainerL (uuidOf target) extract
+  where extract Nothing = Bad $ ConfigurationError
+          "Configuration object unknown"
+        extract (Just current) = do
+          checkSerial target current
+          return . Just . updateTarget $ target
+
 -- * UUID config checks
 
 -- | Checks if the config has the given UUID
@@ -322,6 +352,79 @@ allocatePort = do
     (return ())
   return . MaybeForJSON $ maybePort
 
+-- | The configuration is updated by the provided cluster
+updateCluster :: Cluster -> WConfdMonad Bool
+updateCluster cluster = do
+  ct <- liftIO getClockTime
+  let updateC = (clusterSerialL %~ (+1)) . (clusterMtimeL .~ ct)
+  r <- modifyConfigWithLock (\_ cs -> do
+    toError $ checkSerial cluster (configCluster . csConfigData $ cs)
+    return . (csConfigDataL . configClusterL %~ updateC) $ cs)
+    (return ())
+  return $ isJust r
+
+-- | The configuration is updated by the provided node
+updateNode :: Node -> WConfdMonad Bool
+updateNode node = do
+  ct <- liftIO getClockTime
+  let updateC = (clusterSerialL %~ (+1)) . (clusterMtimeL .~ ct)
+      updateN = (nodeSerialL %~ (+1)) . (nodeMtimeL .~ ct)
+  r <- modifyConfigWithLock (\_ cs -> do
+    nC <- toError $ replaceIn updateN node (configNodes . csConfigData $ cs)
+    return . (csConfigDataL . configNodesL .~ nC)
+           . (csConfigDataL . configClusterL %~ updateC)
+           $ cs)
+    (return ())
+  return $ isJust r
+
+-- | The configuration is updated by the provided instance
+updateInstance :: Instance -> WConfdMonad Bool
+updateInstance inst = do
+  ct <- liftIO getClockTime
+  let updateI = (instSerialL %~ (+1)) . (instMtimeL .~ ct)
+  r <- modifyConfigWithLock (\_ cs -> do
+    iC <- toError $ replaceIn updateI inst
+                              (configInstances . csConfigData $ cs)
+    return . (csConfigDataL . configInstancesL .~ iC) $ cs)
+    (return ())
+  return $ isJust r
+
+-- | The configuration is updated by the provided nodegroup
+updateNodeGroup :: NodeGroup -> WConfdMonad Bool
+updateNodeGroup ng = do
+  ct <- liftIO getClockTime
+  let updateNg = (groupSerialL %~ (+1)) . (groupMtimeL .~ ct)
+  r <- modifyConfigWithLock (\_ cs -> do
+    ngC <- toError $ replaceIn updateNg ng
+                               (configNodegroups . csConfigData $ cs)
+    return . (csConfigDataL . configNodegroupsL .~ ngC) $ cs)
+    (return ())
+  return $ isJust r
+
+-- | The configuration is updated by the provided network
+updateNetwork :: Network -> WConfdMonad Bool
+updateNetwork net = do
+  ct <- liftIO getClockTime
+  let updateNet = (networkSerialL %~ (+1)) . (networkMtimeL .~ ct)
+  r <- modifyConfigWithLock (\_ cs -> do
+    nC <- toError $ replaceIn updateNet net
+                               (configNetworks . csConfigData $ cs)
+    return . (csConfigDataL . configNetworksL .~ nC) $ cs)
+    (return ())
+  return $ isJust r
+
+-- | The configuration is updated by the provided disk
+updateDisk :: Disk -> WConfdMonad Bool
+updateDisk disk = do
+  ct <- liftIO getClockTime
+  let updateD = (diskSerialL %~ (+1)) . (diskMtimeL .~ ct)
+  r <- modifyConfigWithLock (\_ cs -> do
+    dC <- toError $ replaceIn updateD disk
+                              (configDisks . csConfigData $ cs)
+    return . (csConfigDataL . configDisksL .~ dC) $ cs)
+    . T.releaseDRBDMinors $ uuidOf disk
+  return $ isJust r
+
 -- * The list of functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -329,4 +432,10 @@ exportedFunctions = [ 'addInstance
                     , 'addInstanceDisk
                     , 'allocatePort
                     , 'attachInstanceDisk
+                    , 'updateCluster
+                    , 'updateDisk
+                    , 'updateInstance
+                    , 'updateNetwork
+                    , 'updateNode
+                    , 'updateNodeGroup
                     ]
