@@ -53,9 +53,10 @@ import Ganeti.Logging (logDebug)
 import qualified Ganeti.Path as Path
 import Ganeti.THH.RPC
 import Ganeti.UDSServer
-import Ganeti.Utils.Livelock (mkLivelockFile)
 import Ganeti.Errors (formatError)
 import Ganeti.Runtime
+import Ganeti.Utils
+import Ganeti.Utils.Livelock (mkLivelockFile)
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.ConfigVerify
 import Ganeti.WConfd.ConfigWriter
@@ -109,7 +110,17 @@ prepMain _ _ = do
   return (s, dh)
 
 serverConfig :: ServerConfig
-serverConfig = ServerConfig GanetiWConfd $ ConnectConfig 60 60
+serverConfig = ServerConfig
+                 -- All the daemons that need to talk to WConfd should be
+                 -- running as the same user - the former master daemon user.
+                 FilePermissions { fpOwner = Just GanetiWConfd
+                                 , fpGroup = Just $ ExtraGroup DaemonsGroup
+                                 , fpPermissions = 0o0600
+                                 }
+                 ConnectConfig { recvTmo = 60
+                               , sendTmo = 60
+                               }
+
 
 -- | Main function.
 main :: MainFn () PrepResult

@@ -62,6 +62,7 @@ module Ganeti.Query.Exec
 
 import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.Lifted (threadDelay)
+import Control.Exception (finally)
 import Control.Monad
 import Control.Monad.Error
 import Data.Functor
@@ -194,8 +195,9 @@ runJobProcess jid s = withErrorLogAt CRITICAL (show jid) $
 forkWithPipe :: ConnectConfig -> (Client -> IO ()) -> IO (ProcessID, Client)
 forkWithPipe conf childAction = do
   (master, child) <- pipeClient conf
-  pid <- forkProcess (closeClient master >> childAction child)
-  closeClient child
+  pid <- finally
+           (forkProcess (closeClient master >> childAction child))
+           $ closeClient child
   return (pid, master)
 
 -- | Forks the job process and starts processing of the given job.
@@ -272,5 +274,7 @@ forkJobProcess jid luxiLivelock update = do
 
       _ <- recv "Waiting for the job to ask for the lock file name"
       send "Writing the lock file name to the client" lockfile
+
+      liftIO $ closeClient master
 
       return (lockfile, pid)

@@ -39,10 +39,11 @@ import Control.Monad.Reader
 
 import Ganeti.Path as Path
 import Ganeti.Daemon (DaemonOptions, cleanupSocket, describeError)
-import Ganeti.Runtime (GanetiDaemon(..))
+import Ganeti.Runtime (GanetiDaemon(..), GanetiGroup(..), MiscGroup(..))
 import Ganeti.THH.RPC
 import Ganeti.UDSServer (ConnectConfig(..), ServerConfig(..))
 import qualified Ganeti.UDSServer as UDSServer
+import Ganeti.Utils (FilePermissions(..))
 
 import Ganeti.Metad.ConfigCore
 
@@ -63,4 +64,15 @@ start _ config = do
        (forever $ runMetadMonadInt (UDSServer.listener handler server) config)
        (UDSServer.closeServer server)
   where
-    metadConfig = ServerConfig GanetiMetad $ ConnectConfig 60 60
+    metadConfig =
+      ServerConfig
+        -- The permission 0600 is completely acceptable because only the node
+        -- daemon talks to the metadata daemon, and the node daemon runs as
+        -- root.
+        FilePermissions { fpOwner = Just GanetiMetad
+                        , fpGroup = Just $ ExtraGroup DaemonsGroup
+                        , fpPermissions = 0o0600
+                        }
+        ConnectConfig { recvTmo = 60
+                      , sendTmo = 60
+                      }

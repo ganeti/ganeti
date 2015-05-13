@@ -98,7 +98,6 @@ import Ganeti.BasicTypes
 import Ganeti.Errors (GanetiException(..), ErrorResult)
 import Ganeti.JSON
 import Ganeti.Logging
-import Ganeti.Runtime (GanetiDaemon(..), MiscGroup(..), GanetiGroup(..))
 import Ganeti.THH
 import Ganeti.Utils
 import Ganeti.Constants (privateParametersBlacklist)
@@ -143,7 +142,7 @@ $(genStrOfKey ''MsgKeys "strOfKey")
 
 -- Information required for creating a server connection.
 data ServerConfig = ServerConfig
-                    { connDaemon :: GanetiDaemon
+                    { connPermissions :: FilePermissions
                     , connConfig :: ConnectConfig
                     }
 
@@ -226,8 +225,10 @@ connectClient conf tmo path = do
 connectServer :: ServerConfig -> Bool -> FilePath -> IO Server
 connectServer sconf setOwner path = do
   s <- openServerSocket path
-  when setOwner . setOwnerAndGroupFromNames path (connDaemon sconf) $
-    ExtraGroup DaemonsGroup
+  when setOwner $ do
+    res <- ensurePermissions path (connPermissions sconf)
+    exitIfBad "Error - could not set socket properties" res
+
   S.listen s 5 -- 5 is the max backlog
   return Server { sSocket = s, sPath = path, serverConfig = connConfig sconf }
 
