@@ -2794,12 +2794,9 @@ class ConfigWriter(object):
       try:
         if dict_data is not None:
           self._SetConfigData(objects.ConfigData.FromDict(dict_data))
+          self._UpgradeConfig()
       except Exception, err:
         raise errors.ConfigurationError(err)
-
-      # Transitional fix until ConfigWriter is completely rewritten into
-      # Haskell
-      self._UpgradeConfig()
 
   def _CloseConfig(self, save):
     """Release resources relating the config data.
