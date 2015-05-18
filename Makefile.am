@@ -1320,7 +1320,7 @@ test/hs/%.o: hs-pkg-versions
 
 %.o: hs-pkg-versions
 	@echo '[GHC]: $@ <- $^'
-	@$(GHC) -c $(HFLAGS) $(HFLAGS_NOPROF) \
+	@$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
 	  $(shell cat hs-pkg-versions) \
 		$(HS_PARALLEL3) $(HS_REGEX_PCRE) $(HEXTRA_COMBINED) $(@:%.o=%.hs)
 

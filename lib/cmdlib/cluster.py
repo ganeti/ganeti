@@ -3567,7 +3567,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if n_drained:
       feedback_fn("  - NOTICE: %d drained node(s) found." % n_drained)
 
-  def Exec(self, feedback_fn):
+  def Exec(self, feedback_fn): # pylint: disable=R0915
     """Verify integrity of the node group, performing various test on nodes.
 
     """

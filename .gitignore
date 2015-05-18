@@ -11,9 +11,11 @@
 *.o
 *.hpc_o
 *.prof_o
+*.dyn_o
 *.hi
 *.hpc_hi
 *.prof_hi
+*.dyn_hi
 *.hp
 *.tix
 *.prof

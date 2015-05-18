@@ -60,11 +60,27 @@ New dependencies
 - The formerly optional regex-pcre is now an unconditional dependency because
   the new job filter rules have regular expressions as a core feature.
 
+
+Version 2.12.4
+--------------
+
+*(Released Tue, 12 May 2015)*
+
+- Fixed Issue #1082: RAPI is unresponsive after master-failover
+- Fixed Issue #1083: Cluster verify reports existing instance disks on
+  non-default VGs as missing
+- Fixed a possible file descriptor leak when forking jobs
+- Fixed missing private parameters in the environment for OS scripts
+- Fixed a performance regression when handling configuration
+  (only upgrade it if it changes)
+- Adapt for compilation with GHC7.8 (compiles with warnings;
+  cherrypicked from 2.14)
+
 Known issues
 ~~~~~~~~~~~~
 
-- GHC 7.8 introduced some incompatible changes, so currently Ganeti
-  2.12. doesn't compile on GHC 7.8
+Pending since 2.12.2:
+
 - Under certain conditions instance doesn't get unpaused after live
   migration (issue #1050)
 - GlusterFS support breaks at upgrade to 2.12 - switches back to
