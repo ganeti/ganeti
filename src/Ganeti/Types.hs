@@ -475,6 +475,7 @@ $(THH.makeJSONInstance ''OobStatus)
 $(THH.declareLADT ''String "StorageType"
   [ ("StorageFile", "file")
   , ("StorageSharedFile", "sharedfile")
+  , ("StorageGluster", "gluster")
   , ("StorageLvmPv", "lvm-pv")
   , ("StorageLvmVg", "lvm-vg")
   , ("StorageDiskless", "diskless")
@@ -498,6 +499,7 @@ data StorageUnitRaw = SURaw StorageType StorageKey
 -- | Full storage unit with storage-type-specific parameters
 data StorageUnit = SUFile StorageKey
                  | SUSharedFile StorageKey
+                 | SUGluster StorageKey
                  | SULvmPv StorageKey SPExclusiveStorage
                  | SULvmVg StorageKey SPExclusiveStorage
                  | SUDiskless StorageKey
@@ -509,6 +511,7 @@ data StorageUnit = SUFile StorageKey
 instance Show StorageUnit where
   show (SUFile key) = showSUSimple StorageFile key
   show (SUSharedFile key) = showSUSimple StorageSharedFile key
+  show (SUGluster key) = showSUSimple StorageGluster key
   show (SULvmPv key es) = showSULvm StorageLvmPv key es
   show (SULvmVg key es) = showSULvm StorageLvmVg key es
   show (SUDiskless key) = showSUSimple StorageDiskless key
@@ -519,6 +522,7 @@ instance Show StorageUnit where
 instance JSON StorageUnit where
   showJSON (SUFile key) = showJSON (StorageFile, key, []::[String])
   showJSON (SUSharedFile key) = showJSON (StorageSharedFile, key, []::[String])
+  showJSON (SUGluster key) = showJSON (StorageGluster, key, []::[String])
   showJSON (SULvmPv key es) = showJSON (StorageLvmPv, key, [es])
   showJSON (SULvmVg key es) = showJSON (StorageLvmVg, key, [es])
   showJSON (SUDiskless key) = showJSON (StorageDiskless, key, []::[String])
@@ -550,7 +554,7 @@ diskTemplateToStorageType DTPlain = StorageLvmVg
 diskTemplateToStorageType DTRbd = StorageRados
 diskTemplateToStorageType DTDiskless = StorageDiskless
 diskTemplateToStorageType DTBlock = StorageBlock
-diskTemplateToStorageType DTGluster = StorageSharedFile
+diskTemplateToStorageType DTGluster = StorageGluster
 
 -- | Equips a raw storage unit with its parameters
 addParamsToStorageUnit :: SPExclusiveStorage -> StorageUnitRaw -> StorageUnit
@@ -559,6 +563,7 @@ addParamsToStorageUnit _ (SURaw StorageDiskless key) = SUDiskless key
 addParamsToStorageUnit _ (SURaw StorageExt key) = SUExt key
 addParamsToStorageUnit _ (SURaw StorageFile key) = SUFile key
 addParamsToStorageUnit _ (SURaw StorageSharedFile key) = SUSharedFile key
+addParamsToStorageUnit _ (SURaw StorageGluster key) = SUGluster key
 addParamsToStorageUnit es (SURaw StorageLvmPv key) = SULvmPv key es
 addParamsToStorageUnit es (SURaw StorageLvmVg key) = SULvmVg key es
 addParamsToStorageUnit _ (SURaw StorageRados key) = SURados key
