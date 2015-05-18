@@ -277,6 +277,8 @@ def TestFilterAcceptPause():
   and that the ACCEPT filter immediately allows starting.
   """
 
+  AssertCommand(["gnt-cluster", "watcher", "pause", "600"])
+
   # Add a filter chain that pauses all new jobs apart from those with a
   # specific reason.
   # When the pausing filter is deleted, paused jobs must be continued.
@@ -310,7 +312,7 @@ def TestFilterAcceptPause():
     "0.01",
   ]))
 
-  time.sleep(0.5)  # give some time to get queued
+  time.sleep(5)  # give some time to get queued
 
   AssertStatusRetry(jid1, "queued")  # job should be paused
   AssertStatusRetry(jid2, "success")  # job should not be paused
@@ -320,7 +322,10 @@ def TestFilterAcceptPause():
   AssertCommand(["gnt-filter", "delete", uuid2])
 
   # Now the paused job should run through.
+  time.sleep(5)
   AssertStatusRetry(jid1, "success")
+
+  AssertCommand(["gnt-cluster", "watcher", "continue"])
 
 
 def TestFilterRateLimit():
