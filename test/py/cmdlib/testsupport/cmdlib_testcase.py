@@ -231,7 +231,7 @@ class CmdlibTestCase(testutils.GanetiTestCase):
     @return: A mock LU
 
     """
-    return MockLU(self.mcpu, mock.MagicMock(), self.ctx, self.cfg, self.rpc,
+    return MockLU(self.mcpu, mock.MagicMock(), self.cfg, self.rpc,
                   (1234, "/tmp/mock/livelock"), self.wconfd)
 
   def RpcResultsBuilder(self, use_node_names=False):

@@ -252,10 +252,9 @@ class TestHooksMaster(unittest.TestCase):
 
   def setUp(self):
     self.op = opcodes.OpCode()
-    self.context = FakeContext()
     # WARNING: here we pass None as RpcRunner instance since we know
     # our usage via HooksMaster will not use lu.rpc
-    self.lu = FakeLU(FakeProc(), self.op, self.context, FakeConfig(),
+    self.lu = FakeLU(FakeProc(), self.op, FakeConfig(),
                      None, (123, "/foo/bar"), None)
 
   def testTotalFalse(self):
@@ -528,7 +527,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
 
     self.op = opcodes.OpTestDummy(result=False, messages=[], fail=False)
     self.lu = FakeEnvWithCustomPostHookNodesLU(FakeProc(), self.op,
-                                               FakeContext(), FakeConfig(),
+                                               FakeConfig(),
                                                None,
                                                (123, "/foo/bar"),
                                                None)

@@ -685,7 +685,7 @@ class Processor(object):
         raise errors.ProgrammerError("Opcode '%s' requires BGL, but locks are"
                                      " disabled" % op.OP_ID)
 
-      lu = lu_class(self, op, self.context, self.cfg, self.rpc,
+      lu = lu_class(self, op, self.cfg, self.rpc,
                     self._wconfdcontext, self.wconfd)
       lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
       lu.ExpandNames()
