@@ -403,7 +403,7 @@ def _InitFileStorageDir(file_storage_dir):
 
 def _PrepareFileBasedStorage(
     enabled_disk_templates, file_storage_dir,
-    default_dir, file_disk_template,
+    default_dir, file_disk_template, _storage_path_acceptance_fn,
     init_fn=_InitFileStorageDir, acceptance_fn=None):
   """Checks if a file-base storage type is enabled and inits the dir.
 
@@ -415,14 +415,19 @@ def _PrepareFileBasedStorage(
   @param default_dir: default file storage directory when C{file_storage_dir}
       is 'None'
   @type file_disk_template: string
-  @param file_disk_template: a disk template whose storage type is 'ST_FILE' or
-      'ST_SHARED_FILE'
+  @param file_disk_template: a disk template whose storage type is 'ST_FILE',
+      'ST_SHARED_FILE' or 'ST_GLUSTER'
+  @type _storage_path_acceptance_fn: function
+  @param _storage_path_acceptance_fn: checks whether the given file-based
+      storage directory is acceptable
+  @see: C{cluster.CheckFileBasedStoragePathVsEnabledDiskTemplates} for details
+
   @rtype: string
   @returns: the name of the actual file storage directory
 
   """
   assert (file_disk_template in utils.storage.GetDiskTemplatesOfStorageTypes(
-            constants.ST_FILE, constants.ST_SHARED_FILE
+            constants.ST_FILE, constants.ST_SHARED_FILE, constants.ST_GLUSTER
          ))
 
   if file_storage_dir is None:
@@ -432,8 +437,8 @@ def _PrepareFileBasedStorage(
         lambda path: filestorage.CheckFileStoragePathAcceptance(
             path, exact_match_ok=True)
 
-  cluster.CheckFileStoragePathVsEnabledDiskTemplates(
-      logging.warning, file_storage_dir, enabled_disk_templates)
+  _storage_path_acceptance_fn(logging.warning, file_storage_dir,
+                              enabled_disk_templates)
 
   file_storage_enabled = file_disk_template in enabled_disk_templates
   if file_storage_enabled:
@@ -458,6 +463,7 @@ def _PrepareFileStorage(
   return _PrepareFileBasedStorage(
       enabled_disk_templates, file_storage_dir,
       pathutils.DEFAULT_FILE_STORAGE_DIR, constants.DT_FILE,
+      cluster.CheckFileStoragePathVsEnabledDiskTemplates,
       init_fn=init_fn, acceptance_fn=acceptance_fn)
 
 
@@ -472,6 +478,7 @@ def _PrepareSharedFileStorage(
   return _PrepareFileBasedStorage(
       enabled_disk_templates, file_storage_dir,
       pathutils.DEFAULT_SHARED_FILE_STORAGE_DIR, constants.DT_SHARED_FILE,
+      cluster.CheckSharedFileStoragePathVsEnabledDiskTemplates,
       init_fn=init_fn, acceptance_fn=acceptance_fn)
 
 
@@ -486,6 +493,7 @@ def _PrepareGlusterStorage(
   return _PrepareFileBasedStorage(
       enabled_disk_templates, file_storage_dir,
       pathutils.DEFAULT_GLUSTER_STORAGE_DIR, constants.DT_GLUSTER,
+      cluster.CheckGlusterStoragePathVsEnabledDiskTemplates,
       init_fn=init_fn, acceptance_fn=acceptance_fn)
 
 
@@ -682,6 +690,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                                          file_storage_dir)
   shared_file_storage_dir = _PrepareSharedFileStorage(enabled_disk_templates,
                                                       shared_file_storage_dir)
+  gluster_storage_dir = _PrepareGlusterStorage(enabled_disk_templates,
+                                               gluster_storage_dir)
 
   if not re.match("^[0-9a-z]{2}:[0-9a-z]{2}:[0-9a-z]{2}$", mac_prefix):
     raise errors.OpPrereqError("Invalid mac prefix given '%s'" % mac_prefix,

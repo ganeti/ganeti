@@ -3015,6 +3015,12 @@ cvEnodesharedfilestoragepathunusable =
    Types.cVErrorCodeToRaw CvENODESHAREDFILESTORAGEPATHUNUSABLE,
    "Shared file storage path unusable")
 
+cvEnodeglusterstoragepathunusable :: (String, String, String)
+cvEnodeglusterstoragepathunusable =
+  ("node",
+   Types.cVErrorCodeToRaw CvENODEGLUSTERSTORAGEPATHUNUSABLE,
+   "Gluster storage path unusable")
+
 cvEnodessh :: (String, String, String)
 cvEnodessh =
   ("node",
@@ -3076,6 +3082,7 @@ cvAllEcodes =
    cvEnoderpc,
    cvEnodesetup,
    cvEnodesharedfilestoragepathunusable,
+   cvEnodeglusterstoragepathunusable,
    cvEnodessh,
    cvEnodetime,
    cvEnodeuserscripts,
@@ -3116,6 +3123,9 @@ nvFileStoragePath = "file-storage-path"
 
 nvSharedFileStoragePath :: String
 nvSharedFileStoragePath = "shared-file-storage-path"
+
+nvGlusterStoragePath :: String
+nvGlusterStoragePath = "gluster-storage-path"
 
 nvHvinfo :: String
 nvHvinfo = "hvinfo"
