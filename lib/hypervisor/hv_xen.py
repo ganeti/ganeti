@@ -472,6 +472,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     VIF_BRIDGE_SCRIPT,
     ]
   ANCILLARY_FILES_OPT = [
+    XEND_CONFIG_FILE,
     XL_CONFIG_FILE,
     ]
 
