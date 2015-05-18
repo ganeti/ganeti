@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.14.0 rc1
+Version 2.14.0 rc2
 ------------------
 
-*(Released Wed, 29 Apr 2015)*
+*(Released Tue, 19 May 2015)*
 
 New features
 ~~~~~~~~~~~~
@@ -32,12 +32,27 @@ New dependencies
 Known issues
 ~~~~~~~~~~~~
 
-- GHC 7.8 introduced some incompatible changes, so currently Ganeti
-  2.12. doesn't compile on GHC 7.8
 - Under certain conditions instance doesn't get unpaused after live
   migration (issue #1050)
-- GlusterFS support breaks at upgrade to 2.12 - switches back to
-  shared-file (issue #1030)
+
+Since 2.14.0 rc1
+~~~~~~~~~~~~~~~~
+
+- private parameters are now properly exported to instance create scripts
+- unnecessary config unlocks and upgrades have been removed, improving
+  performance, in particular of cluster verification
+- some rarely occuring file-descriptor leaks have been fixed
+- The checks for orphan and lost volumes have been fixed to also work
+  correctly when multiple volume groups are used.
+
+
+Version 2.14.0 rc1
+------------------
+
+*(Released Wed, 29 Apr 2015)*
+
+This was the first release candidate in the 2.14 series. All important
+changes are listed in the latest 2.14 entry.
 
 Since 2.14.0 beta2
 ~~~~~~~~~~~~~~~~~~
