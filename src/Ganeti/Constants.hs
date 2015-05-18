@@ -744,7 +744,9 @@ stsReport = ConstantUtils.mkSet [stFile, stLvmPv, stLvmVg]
 -- | (as used by LUQueryNodeStorage)
 stsReportNodeStorage :: FrozenSet String
 stsReportNodeStorage = ConstantUtils.union stsReport $
-                                           ConstantUtils.mkSet [stSharedFile]
+                                           ConstantUtils.mkSet [ stSharedFile
+                                                               , stGluster
+                                                               ]
 
 -- * Storage fields
 -- ** First two are valid in LU context only, not passed to backend

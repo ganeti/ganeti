@@ -451,7 +451,7 @@ parsing by scripts. In both cases, the ``--units`` option can be
 used to enforce a given output unit.
 
 The ``--storage-type`` option can be used to choose a storage unit
-type. Possible choices are lvm-pv, lvm-vg or file.
+type. Possible choices are lvm-pv, lvm-vg, file, sharedfile and gluster.
 
 The ``-o (--output)`` option takes a comma-separated list of output
 fields. The available fields and their meaning are:
