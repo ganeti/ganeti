@@ -376,18 +376,18 @@ def TestAdHocReasonRateLimit():
   # Only the first 2 jobs must be scheduled.
   jid1 = int(stdout_of([
     "gnt-debug", "delay", "--print-jobid", "--submit",
-    "--reason=rate-limit:2:hello", "20",
+    "--reason=rate-limit:2:hello", "200",
   ]))
   jid2 = int(stdout_of([
     "gnt-debug", "delay", "--print-jobid", "--submit",
-    "--reason=rate-limit:2:hello", "20",
+    "--reason=rate-limit:2:hello", "200",
   ]))
   jid3 = int(stdout_of([
     "gnt-debug", "delay", "--print-jobid", "--submit",
-    "--reason=rate-limit:2:hello", "20",
+    "--reason=rate-limit:2:hello", "200",
   ]))
 
-  time.sleep(0.1)  # give the scheduler some time to notice
+  time.sleep(5)  # give the scheduler some time to notice
 
   AssertIn(GetJobStatus(jid1), ["running", "waiting"],
            msg="Job should not be rate-limited")
