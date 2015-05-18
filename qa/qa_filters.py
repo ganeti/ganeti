@@ -332,6 +332,7 @@ def TestFilterRateLimit():
   # (simply set it to the default).
   AssertCommand(["gnt-cluster", "modify", "--max-running-jobs=20"])
   AssertCommand(["gnt-cluster", "modify", "--max-tracked-jobs=25"])
+  AssertCommand(["gnt-cluster", "watcher", "pause", "600"])
 
   # Add a filter that rejects all new jobs.
   uuid = stdout_of([
@@ -362,6 +363,7 @@ def TestFilterRateLimit():
   # Clean up.
   AssertCommand(["gnt-filter", "delete", uuid])
   KillWaitJobs([jid1, jid2, jid3])
+  AssertCommand(["gnt-cluster", "watcher", "continue"])
 
 
 def TestAdHocReasonRateLimit():
