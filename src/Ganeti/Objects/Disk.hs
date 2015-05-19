@@ -259,6 +259,9 @@ $(buildObjectWithForthcoming "Disk" "disk" $
 instance UuidObject Disk where
   uuidOf = diskUuid
 
+instance SerialNoObject Disk where
+  serialOf = diskSerial
+
 instance ForthcomingObject Disk where
   isForthcoming = diskForthcoming
 
