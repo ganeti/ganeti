@@ -289,7 +289,6 @@ class Processor(object):
     @param ec_id: execution context identifier
 
     """
-    self.context = context
     self._ec_id = ec_id
     self._cbs = None
     self.cfg = context.GetConfig(ec_id)
