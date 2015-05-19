@@ -303,60 +303,6 @@ class TestConfigRunner(unittest.TestCase):
       node2.uuid: ["myxenvg/disk0", "myxenvg/meta0"],
       })
 
-  def testUpdateCluster(self):
-    """Test updates on the cluster object"""
-    cfg = self._get_object()
-    # construct a fake cluster object
-    fake_cl = objects.Cluster()
-    # fail if we didn't read the config
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_cl, None)
-
-    cl = cfg.GetClusterInfo()
-    # first pass, must not fail
-    cfg.Update(cl, None)
-    # second pass, also must not fail (after the config has been written)
-    cfg.Update(cl, None)
-    # but the fake_cl update should still fail
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_cl, None)
-
-  def testUpdateNode(self):
-    """Test updates on one node object"""
-    cfg = self._get_object()
-    # construct a fake node
-    fake_node = objects.Node()
-    # fail if we didn't read the config
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_node,
-                          None)
-
-    node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
-    # first pass, must not fail
-    cfg.Update(node, None)
-    # second pass, also must not fail (after the config has been written)
-    cfg.Update(node, None)
-    # but the fake_node update should still fail
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_node,
-                          None)
-
-  def testUpdateInstance(self):
-    """Test updates on one instance object"""
-    cfg = self._get_object_mock()
-    # construct a fake instance
-    inst = self._create_instance(cfg)
-    fake_instance = objects.Instance()
-    # fail if we didn't read the config
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance,
-                          None)
-
-    cfg.AddInstance(inst, "my-job")
-    instance = cfg.GetInstanceInfo(cfg.GetInstanceList()[0])
-    # first pass, must not fail
-    cfg.Update(instance, None)
-    # second pass, also must not fail (after the config has been written)
-    cfg.Update(instance, None)
-    # but the fake_instance update should still fail
-    self.failUnlessRaises(errors.ConfigurationError, cfg.Update, fake_instance,
-                          None)
-
   def testUpgradeSave(self):
     """Test that any modification done during upgrading is saved back"""
     cfg = self._get_object()
