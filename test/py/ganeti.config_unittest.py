@@ -376,7 +376,7 @@ class TestConfigRunner(unittest.TestCase):
         constants.ND_CPU_SPEED: 1.0,
         }
 
-    cfg = self._get_object()
+    cfg = self._get_object_mock()
     node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
     node.ndparams = my_ndparams
     cfg.Update(node, None)
@@ -404,7 +404,7 @@ class TestConfigRunner(unittest.TestCase):
       constants.ND_SSH_PORT: 222,
       constants.ND_CPU_SPEED: 1.0,
       }
-    cfg = self._get_object()
+    cfg = self._get_object_mock()
     node = cfg.GetNodeInfo(cfg.GetNodeList()[0])
     node.ndparams = node_ndparams
     cfg.Update(node, None)
