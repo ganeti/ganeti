@@ -160,7 +160,7 @@ gnt-cluster upgrade
 The actual upgrade process will be done by a new command ``upgrade`` to
 ``gnt-cluster``. If called with the option ``--to`` which take precisely
 one argument, the version to
-upgrade (or downgrade) to, given as full string with major, minor, suffix,
+upgrade (or downgrade) to, given as full string with major, minor, revision,
 and suffix. To be compatible with current configuration upgrade and downgrade
 procedures, the new version must be of the same major version and
 either an equal or higher minor version, or precisely the previous
