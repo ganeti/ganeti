@@ -1531,43 +1531,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     self.assertRaises(IndexError, queue.GetNextUpdate)
 
 
-class TestEvaluateJobProcessorResult(unittest.TestCase):
-  def testFinished(self):
-    depmgr = _FakeDependencyManager()
-    job = _IdOnlyFakeJob(30953)
-    jqueue._EvaluateJobProcessorResult(depmgr, job,
-                                       jqueue._JobProcessor.FINISHED)
-    self.assertEqual(depmgr.GetNextNotification(), job.id)
-    self.assertRaises(IndexError, depmgr.GetNextNotification)
-
-  def testDefer(self):
-    depmgr = _FakeDependencyManager()
-    job = _IdOnlyFakeJob(11326, priority=5463)
-    try:
-      jqueue._EvaluateJobProcessorResult(depmgr, job,
-                                         jqueue._JobProcessor.DEFER)
-    except workerpool.DeferTask, err:
-      self.assertEqual(err.priority, 5463)
-    else:
-      self.fail("Didn't raise exception")
-    self.assertRaises(IndexError, depmgr.GetNextNotification)
-
-  def testWaitdep(self):
-    depmgr = _FakeDependencyManager()
-    job = _IdOnlyFakeJob(21317)
-    jqueue._EvaluateJobProcessorResult(depmgr, job,
-                                       jqueue._JobProcessor.WAITDEP)
-    self.assertRaises(IndexError, depmgr.GetNextNotification)
-
-  def testOther(self):
-    depmgr = _FakeDependencyManager()
-    job = _IdOnlyFakeJob(5813)
-    self.assertRaises(errors.ProgrammerError,
-                      jqueue._EvaluateJobProcessorResult,
-                      depmgr, job, "Other result")
-    self.assertRaises(IndexError, depmgr.GetNextNotification)
-
-
 class _FakeTimeoutStrategy:
   def __init__(self, timeouts):
     self.timeouts = timeouts
@@ -1882,18 +1845,12 @@ class TestJobDependencyManager(unittest.TestCase):
   def setUp(self):
     self._status = []
     self._queue = []
-    self.jdm = jqueue._JobDependencyManager(self._GetStatus, self._Enqueue)
+    self.jdm = jqueue._JobDependencyManager(self._GetStatus)
 
   def _GetStatus(self, job_id):
     (exp_job_id, result) = self._status.pop(0)
     self.assertEqual(exp_job_id, job_id)
     return result
-
-  def _Enqueue(self, jobs):
-    self.assertFalse(self.jdm._lock.is_owned(),
-                     msg=("Must not own manager lock while re-adding jobs"
-                          " (potential deadlock)"))
-    self._queue.append(jobs)
 
   def testNotFinalizedThenCancel(self):
     job = _IdOnlyFakeJob(17697)
@@ -2019,26 +1976,6 @@ class TestJobDependencyManager(unittest.TestCase):
       self.assertFalse(self.jdm.JobWaiting(job))
       self.assertFalse(self.jdm.GetLockInfo([query.LQ_PENDING]))
 
-  def testNotify(self):
-    job = _IdOnlyFakeJob(8227)
-    job_id = str(4113)
-
-    self._status.append((job_id, constants.JOB_STATUS_RUNNING))
-    (result, _) = self.jdm.CheckAndRegister(job, job_id, [])
-    self.assertEqual(result, self.jdm.WAIT)
-    self.assertFalse(self._status)
-    self.assertFalse(self._queue)
-    self.assertTrue(self.jdm.JobWaiting(job))
-    self.assertEqual(self.jdm._waiters, {
-      job_id: set([job]),
-      })
-
-    self.jdm.NotifyWaiters(job_id)
-    self.assertFalse(self._status)
-    self.assertFalse(self.jdm._waiters)
-    self.assertFalse(self.jdm.JobWaiting(job))
-    self.assertEqual(self._queue, [set([job])])
-
   def testWrongStatus(self):
     job = _IdOnlyFakeJob(10102)
     job_id = str(1271)
@@ -2100,78 +2037,6 @@ class TestJobDependencyManager(unittest.TestCase):
       job_id: set(),
       })
 
-    # Force cleanup
-    self.jdm.NotifyWaiters("0")
-    self.assertFalse(self.jdm._waiters)
-    self.assertFalse(self._status)
-    self.assertFalse(self._queue)
-
-  def testMultipleWaiting(self):
-    # Use a deterministic random generator
-    rnd = random.Random(21402)
-
-    job_ids = map(str, rnd.sample(range(1, 10000), 150))
-
-    waiters = dict((job_ids.pop(),
-                    set(map(_IdOnlyFakeJob,
-                            [job_ids.pop()
-                             for _ in range(rnd.randint(1, 20))])))
-                   for _ in range(10))
-
-    # Ensure there are no duplicate job IDs
-    assert not utils.FindDuplicates(waiters.keys() +
-                                    [job.id
-                                     for jobs in waiters.values()
-                                     for job in jobs])
-
-    # Register all jobs as waiters
-    for job_id, job in [(job_id, job)
-                        for (job_id, jobs) in waiters.items()
-                        for job in jobs]:
-      self._status.append((job_id, constants.JOB_STATUS_QUEUED))
-      (result, _) = self.jdm.CheckAndRegister(job, job_id,
-                                              [constants.JOB_STATUS_SUCCESS])
-      self.assertEqual(result, self.jdm.WAIT)
-      self.assertFalse(self._status)
-      self.assertFalse(self._queue)
-      self.assertTrue(self.jdm.JobWaiting(job))
-
-    self.assertEqual(self.jdm._waiters, waiters)
-
-    def _MakeSet((name, mode, owner_names, pending)):
-      return (name, mode, owner_names,
-              [(pendmode, set(pend)) for (pendmode, pend) in pending])
-
-    def _CheckLockInfo():
-      info = self.jdm.GetLockInfo([query.LQ_PENDING])
-      self.assertEqual(sorted(map(_MakeSet, info)), sorted([
-        ("job/%s" % job_id, None, None,
-         [("job", set([job.id for job in jobs]))])
-        for job_id, jobs in waiters.items()
-        if jobs
-        ]))
-
-    _CheckLockInfo()
-
-    # Notify in random order
-    for job_id in rnd.sample(waiters, len(waiters)):
-      # Remove from pending waiter list
-      jobs = waiters.pop(job_id)
-      for job in jobs:
-        self._status.append((job_id, constants.JOB_STATUS_SUCCESS))
-        (result, _) = self.jdm.CheckAndRegister(job, job_id,
-                                                [constants.JOB_STATUS_SUCCESS])
-        self.assertEqual(result, self.jdm.CONTINUE)
-        self.assertFalse(self._status)
-        self.assertFalse(self._queue)
-        self.assertFalse(self.jdm.JobWaiting(job))
-
-      _CheckLockInfo()
-
-    self.assertFalse(self.jdm.GetLockInfo([query.LQ_PENDING]))
-
-    assert not waiters
-
   def testSelfDependency(self):
     job = _IdOnlyFakeJob(18937)
 
@@ -2186,7 +2051,7 @@ class TestJobDependencyManager(unittest.TestCase):
     def _FakeStatus(_):
       raise errors.JobLost("#msg#")
 
-    jdm = jqueue._JobDependencyManager(_FakeStatus, None)
+    jdm = jqueue._JobDependencyManager(_FakeStatus)
     (result, _) = jdm.CheckAndRegister(job, job_id, [])
     self.assertEqual(result, self.jdm.ERROR)
     self.assertFalse(jdm.JobWaiting(job))

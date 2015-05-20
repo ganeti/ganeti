@@ -33,9 +33,6 @@
 Locking: there's a single, large lock in the L{JobQueue} class. It's
 used by all other classes in this module.
 
-@var JOBQUEUE_THREADS: the number of worker threads we start for
-    processing jobs
-
 """
 
 import logging
@@ -56,7 +53,6 @@ except ImportError:
 from ganeti import asyncnotifier
 from ganeti import constants
 from ganeti import serializer
-from ganeti import workerpool
 from ganeti import locking
 from ganeti import luxi
 from ganeti import opcodes
@@ -76,8 +72,6 @@ from ganeti import pathutils
 from ganeti import vcluster
 from ganeti.cmdlib import cluster
 
-
-JOBQUEUE_THREADS = 1
 
 # member lock names to be passed to @ssynchronized decorator
 _LOCK = "_lock"
@@ -1147,114 +1141,6 @@ class _JobProcessor(object):
       queue.release()
 
 
-def _EvaluateJobProcessorResult(depmgr, job, result):
-  """Looks at a result from L{_JobProcessor} for a job.
-
-  To be used in a L{_JobQueueWorker}.
-
-  """
-  if result == _JobProcessor.FINISHED:
-    # Notify waiting jobs
-    depmgr.NotifyWaiters(job.id)
-
-  elif result == _JobProcessor.DEFER:
-    # Schedule again
-    raise workerpool.DeferTask(priority=job.CalcPriority())
-
-  elif result == _JobProcessor.WAITDEP:
-    # No-op, dependency manager will re-schedule
-    pass
-
-  else:
-    raise errors.ProgrammerError("Job processor returned unknown status %s" %
-                                 (result, ))
-
-
-class _JobQueueWorker(workerpool.BaseWorker):
-  """The actual job workers.
-
-  """
-  def RunTask(self, job): # pylint: disable=W0221
-    """Job executor.
-
-    @type job: L{_QueuedJob}
-    @param job: the job to be processed
-
-    """
-    assert job.writable, "Expected writable job"
-
-    # Ensure only one worker is active on a single job. If a job registers for
-    # a dependency job, and the other job notifies before the first worker is
-    # done, the job can end up in the tasklist more than once.
-    job.processor_lock.acquire()
-    try:
-      return self._RunTaskInner(job)
-    finally:
-      job.processor_lock.release()
-
-  def _RunTaskInner(self, job):
-    """Executes a job.
-
-    Must be called with per-job lock acquired.
-
-    """
-    queue = job.queue
-    assert queue == self.pool.queue
-
-    setname_fn = lambda op: self.SetTaskName(self._GetWorkerName(job, op))
-    setname_fn(None)
-
-    proc = mcpu.Processor(queue.context, job.id)
-
-    # Create wrapper for setting thread name
-    wrap_execop_fn = compat.partial(self._WrapExecOpCode, setname_fn,
-                                    proc.ExecOpCode)
-
-    _EvaluateJobProcessorResult(queue.depmgr, job,
-                                _JobProcessor(queue, wrap_execop_fn, job)())
-
-  @staticmethod
-  def _WrapExecOpCode(setname_fn, execop_fn, op, *args, **kwargs):
-    """Updates the worker thread name to include a short summary of the opcode.
-
-    @param setname_fn: Callable setting worker thread name
-    @param execop_fn: Callable for executing opcode (usually
-                      L{mcpu.Processor.ExecOpCode})
-
-    """
-    setname_fn(op)
-    try:
-      return execop_fn(op, *args, **kwargs)
-    finally:
-      setname_fn(None)
-
-  @staticmethod
-  def _GetWorkerName(job, op):
-    """Sets the worker thread name.
-
-    @type job: L{_QueuedJob}
-    @type op: L{opcodes.OpCode}
-
-    """
-    parts = ["Job%s" % job.id]
-
-    if op:
-      parts.append(op.TinySummary())
-
-    return "/".join(parts)
-
-
-class _JobQueueWorkerPool(workerpool.WorkerPool):
-  """Simple class implementing a job-processing workerpool.
-
-  """
-  def __init__(self, queue):
-    super(_JobQueueWorkerPool, self).__init__("Jq",
-                                              JOBQUEUE_THREADS,
-                                              _JobQueueWorker)
-    self.queue = queue
-
-
 class _JobDependencyManager:
   """Keeps track of job dependencies.
 
@@ -1265,12 +1151,11 @@ class _JobDependencyManager:
    CONTINUE,
    WRONGSTATUS) = range(1, 6)
 
-  def __init__(self, getstatus_fn, enqueue_fn):
+  def __init__(self, getstatus_fn):
     """Initializes this class.
 
     """
     self._getstatus_fn = getstatus_fn
-    self._enqueue_fn = enqueue_fn
 
     self._waiters = {}
     self._lock = locking.SharedLock("JobDepMgr")
@@ -1365,31 +1250,6 @@ class _JobDependencyManager:
                    if not waiters]:
       del self._waiters[job_id]
 
-  def NotifyWaiters(self, job_id):
-    """Notifies all jobs waiting for a certain job ID.
-
-    @attention: Do not call until L{CheckAndRegister} returned a status other
-      than C{WAITDEP} for C{job_id}, or behaviour is undefined
-    @type job_id: int
-    @param job_id: Job ID
-
-    """
-    assert ht.TJobId(job_id)
-
-    self._lock.acquire()
-    try:
-      self._RemoveEmptyWaitersUnlocked()
-
-      jobs = self._waiters.pop(job_id, None)
-    finally:
-      self._lock.release()
-
-    if jobs:
-      # Re-add jobs to workerpool
-      logging.debug("Re-adding %s jobs which were waiting for job %s",
-                    len(jobs), job_id)
-      self._enqueue_fn(jobs)
-
 
 class JobQueue(object):
   """Queue used to manage the jobs.
@@ -1438,59 +1298,7 @@ class JobQueue(object):
     assert ht.TInt(self._queue_size)
 
     # Job dependencies
-    self.depmgr = _JobDependencyManager(self._GetJobStatusForDependencies,
-                                        self._EnqueueJobs)
-
-    # Setup worker pool
-    self._wpool = _JobQueueWorkerPool(self)
-
-  def _PickupJobUnlocked(self, job_id):
-    """Load a job from the job queue
-
-    Pick up a job that already is in the job queue and start/resume it.
-
-    """
-    if self.primary_jid:
-      logging.warning("Job process asked to pick up %s, but already has %s",
-                      job_id, self.primary_jid)
-
-    self.primary_jid = int(job_id)
-
-    job = self._LoadJobUnlocked(job_id)
-
-    if job is None:
-      logging.warning("Job %s could not be read", job_id)
-      return
-
-    job.AddReasons(pickup=True)
-
-    status = job.CalcStatus()
-    if status == constants.JOB_STATUS_QUEUED:
-      job.SetPid(os.getpid())
-      self._EnqueueJobsUnlocked([job])
-      logging.info("Restarting job %s", job.id)
-
-    elif status in (constants.JOB_STATUS_RUNNING,
-                    constants.JOB_STATUS_WAITING,
-                    constants.JOB_STATUS_CANCELING):
-      logging.warning("Unfinished job %s found: %s", job.id, job)
-
-      if status == constants.JOB_STATUS_WAITING:
-        job.MarkUnfinishedOps(constants.OP_STATUS_QUEUED, None)
-        job.SetPid(os.getpid())
-        self._EnqueueJobsUnlocked([job])
-        logging.info("Restarting job %s", job.id)
-      else:
-        to_encode = errors.OpExecError("Unclean master daemon shutdown")
-        job.MarkUnfinishedOps(constants.OP_STATUS_ERROR,
-                              _EncodeOpError(to_encode))
-        job.Finalize()
-
-    self.UpdateJobUnlocked(job)
-
-  @locking.ssynchronized(_LOCK)
-  def PickupJob(self, job_id):
-    self._PickupJobUnlocked(job_id)
+    self.depmgr = _JobDependencyManager(self._GetJobStatusForDependencies)
 
   def _GetRpc(self, address_list):
     """Gets RPC runner with context.
@@ -1871,28 +1679,6 @@ class JobQueue(object):
 
     return (True, result)
 
-  @locking.ssynchronized(_LOCK)
-  def _EnqueueJobs(self, jobs):
-    """Helper function to add jobs to worker pool's queue.
-
-    @type jobs: list
-    @param jobs: List of all jobs
-
-    """
-    return self._EnqueueJobsUnlocked(jobs)
-
-  def _EnqueueJobsUnlocked(self, jobs):
-    """Helper function to add jobs to worker pool's queue.
-
-    @type jobs: list
-    @param jobs: List of all jobs
-
-    """
-    assert self._lock.is_owned(shared=0), "Must own lock in exclusive mode"
-    self._wpool.AddManyTasks([(job, ) for job in jobs],
-                             priority=[job.CalcPriority() for job in jobs],
-                             task_id=map(_GetIdAttr, jobs))
-
   def _GetJobStatusForDependencies(self, job_id):
     """Gets the status of a job for dependencies.
 
@@ -1993,13 +1779,6 @@ class JobQueue(object):
 
     def fn(job):
       (success, msg) = job.ChangePriority(priority)
-
-      if success:
-        try:
-          self._wpool.ChangeTaskPriority(job.id, job.CalcPriority())
-        except workerpool.NoSuchTask:
-          logging.debug("Job %s is not in workerpool at this time", job.id)
-
       return (success, msg)
 
     return self._ModifyJobUnlocked(job_id, fn)
@@ -2030,26 +1809,3 @@ class JobQueue(object):
       self.UpdateJobUnlocked(job)
 
     return (success, msg)
-
-  @locking.ssynchronized(_LOCK)
-  def PrepareShutdown(self):
-    """Prepare to stop the job queue.
-
-    Returns whether there are any jobs currently running. If the latter is the
-    case, the job queue is not yet ready for shutdown. Once this function
-    returns C{True} L{Shutdown} can be called without interfering with any job.
-
-    @rtype: bool
-    @return: Whether there are any running jobs
-
-    """
-    return self._wpool.HasRunningTasks()
-
-  @locking.ssynchronized(_LOCK)
-  def Shutdown(self):
-    """Stops the job queue.
-
-    This shutdowns all the worker threads an closes the queue.
-
-    """
-    self._wpool.TerminateWorkers()
