@@ -1865,9 +1865,6 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertEqual(self.jdm._waiters, {
       job_id: set([job]),
       })
-    self.assertEqual(self.jdm.GetLockInfo([query.LQ_PENDING]), [
-      ("job/28625", None, None, [("job", [job.id])])
-      ])
 
     self._status.append((job_id, constants.JOB_STATUS_CANCELED))
     (result, _) = self.jdm.CheckAndRegister(job, job_id, [])
@@ -1875,7 +1872,6 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertFalse(self._status)
     self.assertFalse(self._queue)
     self.assertFalse(self.jdm.JobWaiting(job))
-    self.assertFalse(self.jdm.GetLockInfo([query.LQ_PENDING]))
 
   def testNotFinalizedThenQueued(self):
     # This can happen on a queue shutdown
@@ -1895,9 +1891,6 @@ class TestJobDependencyManager(unittest.TestCase):
       self.assertEqual(self.jdm._waiters, {
         job_id: set([job]),
         })
-      self.assertEqual(self.jdm.GetLockInfo([query.LQ_PENDING]), [
-        ("job/22971", None, None, [("job", [job.id])])
-        ])
 
   def testRequireCancel(self):
     job = _IdOnlyFakeJob(5278)
@@ -1913,9 +1906,6 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertEqual(self.jdm._waiters, {
       job_id: set([job]),
       })
-    self.assertEqual(self.jdm.GetLockInfo([query.LQ_PENDING]), [
-      ("job/9610", None, None, [("job", [job.id])])
-      ])
 
     self._status.append((job_id, constants.JOB_STATUS_CANCELED))
     (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
@@ -1923,7 +1913,6 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertFalse(self._status)
     self.assertFalse(self._queue)
     self.assertFalse(self.jdm.JobWaiting(job))
-    self.assertFalse(self.jdm.GetLockInfo([query.LQ_PENDING]))
 
   def testRequireError(self):
     job = _IdOnlyFakeJob(21459)
@@ -1946,7 +1935,6 @@ class TestJobDependencyManager(unittest.TestCase):
     self.assertFalse(self._status)
     self.assertFalse(self._queue)
     self.assertFalse(self.jdm.JobWaiting(job))
-    self.assertFalse(self.jdm.GetLockInfo([query.LQ_PENDING]))
 
   def testRequireMultiple(self):
     dep_status = list(constants.JOBS_FINALIZED)
@@ -1964,9 +1952,6 @@ class TestJobDependencyManager(unittest.TestCase):
       self.assertEqual(self.jdm._waiters, {
         job_id: set([job]),
         })
-      self.assertEqual(self.jdm.GetLockInfo([query.LQ_PENDING]), [
-        ("job/14609", None, None, [("job", [job.id])])
-        ])
 
       self._status.append((job_id, end_status))
       (result, _) = self.jdm.CheckAndRegister(job, job_id, dep_status)
@@ -1974,7 +1959,6 @@ class TestJobDependencyManager(unittest.TestCase):
       self.assertFalse(self._status)
       self.assertFalse(self._queue)
       self.assertFalse(self.jdm.JobWaiting(job))
-      self.assertFalse(self.jdm.GetLockInfo([query.LQ_PENDING]))
 
   def testWrongStatus(self):
     job = _IdOnlyFakeJob(10102)
@@ -2055,7 +2039,6 @@ class TestJobDependencyManager(unittest.TestCase):
     (result, _) = jdm.CheckAndRegister(job, job_id, [])
     self.assertEqual(result, self.jdm.ERROR)
     self.assertFalse(jdm.JobWaiting(job))
-    self.assertFalse(jdm.GetLockInfo([query.LQ_PENDING]))
 
 
 if __name__ == "__main__":

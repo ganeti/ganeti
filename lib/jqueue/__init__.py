@@ -1161,22 +1161,6 @@ class _JobDependencyManager:
     self._lock = locking.SharedLock("JobDepMgr")
 
   @locking.ssynchronized(_LOCK, shared=1)
-  def GetLockInfo(self, requested): # pylint: disable=W0613
-    """Retrieves information about waiting jobs.
-
-    @type requested: set
-    @param requested: Requested information, see C{query.LQ_*}
-
-    """
-    # No need to sort here, that's being done by the lock manager and query
-    # library. There are no priorities for notifying jobs, hence all show up as
-    # one item under "pending".
-    return [("job/%s" % job_id, None, None,
-             [("job", [job.id for job in waiters])])
-            for job_id, waiters in self._waiters.items()
-            if waiters]
-
-  @locking.ssynchronized(_LOCK, shared=1)
   def JobWaiting(self, job):
     """Checks if a job is waiting.
 
