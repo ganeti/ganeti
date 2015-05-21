@@ -120,6 +120,8 @@ def main():
       if cancel[0]:
         logging.debug("Got cancel request, cancelling job %d", job_id)
         r = context.jobqueue.CancelJob(job_id)
+        job = context.jobqueue.SafeLoadJobFromDisk(job_id, False)
+        proc = _JobProcessor(context.jobqueue, execfun, job)
         logging.debug("CancelJob result for job %d: %s", job_id, r)
         cancel[0] = False
       if prio_change[0]:
@@ -130,6 +132,8 @@ def main():
           utils.RemoveFile(fname)
           logging.debug("Changing priority of job %d to %d", job_id, new_prio)
           r = context.jobqueue.ChangeJobPriority(job_id, new_prio)
+          job = context.jobqueue.SafeLoadJobFromDisk(job_id, False)
+          proc = _JobProcessor(context.jobqueue, execfun, job)
           logging.debug("Result of changing priority of %d to %d: %s", job_id,
                         new_prio, r)
         except Exception: # pylint: disable=W0703
