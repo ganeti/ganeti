@@ -1233,7 +1233,6 @@ class JobQueue(object):
         data and other ganeti objects
 
     """
-    self.primary_jid = None
     self.context = context
     self._memcache = weakref.WeakValueDictionary()
     self._my_hostname = netutils.Hostname.GetSysName()
@@ -1245,12 +1244,6 @@ class JobQueue(object):
 
     # Remove master node
     self._nodes.pop(self._my_hostname, None)
-
-    # TODO: Check consistency across nodes
-
-    self._queue_size = None
-    self._UpdateQueueSizeUnlocked()
-    assert ht.TInt(self._queue_size)
 
     # Job dependencies
     self.depmgr = _JobDependencyManager(self._GetJobStatusForDependencies)
@@ -1546,15 +1539,6 @@ class JobQueue(object):
 
     if not raw_data:
       logging.debug("No data available for job %s", job_id)
-      if int(job_id) == self.primary_jid:
-        logging.warning("My own job file (%s) disappeared;"
-                        " this should only happy at cluster desctruction",
-                        job_id)
-        if mcpu.lusExecuting[0] == 0:
-          logging.warning("Not in execution; cleaning up myself due to missing"
-                          " job file")
-          logging.shutdown()
-          os._exit(1) # pylint: disable=W0212
       return None
 
     if writable is None:
@@ -1588,12 +1572,6 @@ class JobQueue(object):
     except (errors.JobFileCorrupted, EnvironmentError):
       logging.exception("Can't load/parse job %s", job_id)
       return None
-
-  def _UpdateQueueSizeUnlocked(self):
-    """Update the queue size.
-
-    """
-    self._queue_size = len(self._GetJobIDsUnlocked(sort=False))
 
   @classmethod
   def SubmitManyJobs(cls, jobs):
