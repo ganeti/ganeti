@@ -892,3 +892,29 @@ class ConfigMock(config.ConfigWriter):
 
   def AllocatePort(self):
     return 1
+
+  def Update(self, target, feedback_fn, ec_id=None):
+    def replace_in(target, tdict):
+      tdict[target.uuid] = target
+
+    update_serial = False
+    if isinstance(target, objects.Cluster):
+      self._ConfigData().cluster = target
+    elif isinstance(target, objects.Node):
+      replace_in(target, self._ConfigData().nodes)
+      update_serial = True
+    elif isinstance(target, objects.Instance):
+      replace_in(target, self._ConfigData().instances)
+    elif isinstance(target, objects.NodeGroup):
+      replace_in(target, self._ConfigData().nodegroups)
+    elif isinstance(target, objects.Network):
+      replace_in(target, self._ConfigData().networks)
+    elif isinstance(target, objects.Disk):
+      replace_in(target, self._ConfigData().disks)
+
+    target.serial_no += 1
+    target.mtime = now = time.time()
+
+    if update_serial:
+      self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
+      self._ConfigData().cluster.mtime = now

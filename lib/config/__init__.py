@@ -668,6 +668,11 @@ class ConfigWriter(object):
     """
     self._wconfd.ReserveMAC(self._GetWConfdContext(), mac)
 
+  @ConfigSync(shared=1)
+  def CommitTemporaryIps(self, _ec_id):
+    """A simple wrapper around L{_UnlockedCommitTemporaryIps}"""
+    self._UnlockedCommitTemporaryIps(_ec_id)
+
   def _UnlockedCommitTemporaryIps(self, _ec_id):
     """Commit all reserved IP address to their respective pools
 
@@ -1091,6 +1096,11 @@ class ConfigWriter(object):
                       (ip, utils.CommaJoin(owners)))
 
     return result
+
+  @ConfigSync(shared=1)
+  def VerifyConfigAndLog(self, feedback_fn=None):
+    """A simple wrapper around L{_UnlockedVerifyConfigAndLog}"""
+    return self._UnlockedVerifyConfigAndLog(feedback_fn=feedback_fn)
 
   def _UnlockedVerifyConfigAndLog(self, feedback_fn=None):
     """Verify the configuration and log any errors.
@@ -3102,7 +3112,6 @@ class ConfigWriter(object):
     """
     return DetachedConfig(self._ConfigData())
 
-  @ConfigSync()
   def Update(self, target, feedback_fn, ec_id=None):
     """Notify function to be called after updates.
 
@@ -3118,60 +3127,57 @@ class ConfigWriter(object):
     @param feedback_fn: Callable feedback function
 
     """
-    if self._ConfigData() is None:
-      raise errors.ProgrammerError("Configuration file not read,"
-                                   " cannot save.")
 
-    def check_serial(target, current):
-      if current is None:
-        raise errors.ConfigurationError("Configuration object unknown")
-      elif current.serial_no != target.serial_no:
-        raise errors.ConfigurationError("Configuration object updated since"
-                                        " it has been read: %d != %d",
-                                        current.serial_no, target.serial_no)
-
-    def replace_in(target, tdict):
-      check_serial(target, tdict.get(target.uuid))
-      tdict[target.uuid] = target
-
-    update_serial = False
+    update_function = None
     if isinstance(target, objects.Cluster):
-      check_serial(target, self._ConfigData().cluster)
-      self._ConfigData().cluster = target
+      if self._offline:
+        self.UpdateOfflineCluster(target, feedback_fn)
+        return
+      else:
+        update_function = self._wconfd.UpdateCluster
     elif isinstance(target, objects.Node):
-      replace_in(target, self._ConfigData().nodes)
-      update_serial = True
+      update_function = self._wconfd.UpdateNode
     elif isinstance(target, objects.Instance):
-      replace_in(target, self._ConfigData().instances)
+      update_function = self._wconfd.UpdateInstance
     elif isinstance(target, objects.NodeGroup):
-      replace_in(target, self._ConfigData().nodegroups)
+      update_function = self._wconfd.UpdateNodeGroup
     elif isinstance(target, objects.Network):
-      replace_in(target, self._ConfigData().networks)
+      update_function = self._wconfd.UpdateNetwork
     elif isinstance(target, objects.Disk):
-      replace_in(target, self._ConfigData().disks)
+      update_function = self._wconfd.UpdateDisk
     else:
       raise errors.ProgrammerError("Invalid object type (%s) passed to"
                                    " ConfigWriter.Update" % type(target))
+
+    def WithRetry():
+      result = update_function(target.ToDict())
+      self.OutDate()
+
+      if result is None:
+        raise utils.RetryAgain()
+      else:
+        return float(result)
+    mtime = utils.Retry(WithRetry, 0.1, 30)
+    self.OutDate()
     target.serial_no += 1
-    target.mtime = now = time.time()
-
-    if update_serial:
-      # for node updates, we need to increase the cluster serial too
-      self._ConfigData().cluster.serial_no += 1
-      self._ConfigData().cluster.mtime = now
-
-    if isinstance(target, objects.Disk):
-      self._UnlockedReleaseDRBDMinors(target.uuid)
+    target.mtime = mtime
 
     if ec_id is not None:
       # Commit all ips reserved by OpInstanceSetParams and OpGroupSetParams
       # FIXME: After RemoveInstance is moved to WConfd, use its internal
       # functions from TempRes module.
-      self._UnlockedCommitTemporaryIps(ec_id)
+      self.CommitTemporaryIps(ec_id)
 
     # Just verify the configuration with our feedback function.
     # It will get written automatically by the decorator.
-    self._UnlockedVerifyConfigAndLog(feedback_fn=feedback_fn)
+    self.VerifyConfigAndLog(feedback_fn=feedback_fn)
+
+  @ConfigSync()
+  def UpdateOfflineCluster(self, target, feedback_fn):
+    self._ConfigData().cluster = target
+    target.serial_no += 1
+    target.mtime = time.time()
+    self.VerifyConfigAndLog(feedback_fn=feedback_fn)
 
   def _UnlockedDropECReservations(self, _ec_id):
     """Drop per-execution-context reservations
