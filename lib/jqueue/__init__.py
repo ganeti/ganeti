@@ -30,9 +30,6 @@
 
 """Module implementing the job queue handling.
 
-Locking: there's a single, large lock in the L{JobQueue} class. It's
-used by all other classes in this module.
-
 """
 
 import logging
@@ -72,10 +69,6 @@ from ganeti import pathutils
 from ganeti import vcluster
 from ganeti.cmdlib import cluster
 
-
-# member lock names to be passed to @ssynchronized decorator
-_LOCK = "_lock"
-_QUEUE = "_queue"
 
 #: Retrieves "id" attribute
 _GetIdAttr = operator.attrgetter("id")
@@ -578,7 +571,6 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
       logging.debug("Canceling opcode")
       raise CancelJob()
 
-  @locking.ssynchronized(_QUEUE, shared=1)
   def NotifyStart(self):
     """Mark the opcode as running, not lock-waiting.
 
@@ -603,7 +595,6 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     # And finally replicate the job status
     self._queue.UpdateJobUnlocked(self._job)
 
-  @locking.ssynchronized(_QUEUE, shared=1)
   def NotifyRetry(self):
     """Mark opcode again as lock-waiting.
 
@@ -614,7 +605,6 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     self._op.status = constants.OP_STATUS_WAITING
     logging.debug("Opcode will be retried. Back to waiting.")
 
-  @locking.ssynchronized(_QUEUE, shared=1)
   def _AppendFeedback(self, timestamp, log_type, log_msg):
     """Internal feedback append function, with locks
 
@@ -966,7 +956,6 @@ class _JobProcessor(object):
 
     logging.debug("Processing job %s", job.id)
 
-    queue.acquire(shared=1)
     try:
       opcount = len(job.ops)
 
@@ -1029,11 +1018,7 @@ class _JobProcessor(object):
 
           assert not opctx.jobdeps, "Not all dependencies were removed"
 
-          queue.release()
-          try:
-            (op_status, op_result) = self._ExecOpCodeUnlocked(opctx)
-          finally:
-            queue.acquire(shared=1)
+          (op_status, op_result) = self._ExecOpCodeUnlocked(opctx)
 
           op.status = op_status
           op.result = op_result
@@ -1138,7 +1123,6 @@ class _JobProcessor(object):
         return self.DEFER
     finally:
       assert job.writable, "Job became read-only while being processed"
-      queue.release()
 
 
 class _JobDependencyManager:
@@ -1158,9 +1142,7 @@ class _JobDependencyManager:
     self._getstatus_fn = getstatus_fn
 
     self._waiters = {}
-    self._lock = locking.SharedLock("JobDepMgr")
 
-  @locking.ssynchronized(_LOCK, shared=1)
   def JobWaiting(self, job):
     """Checks if a job is waiting.
 
@@ -1168,7 +1150,6 @@ class _JobDependencyManager:
     return compat.any(job in jobs
                       for jobs in self._waiters.values())
 
-  @locking.ssynchronized(_LOCK)
   def CheckAndRegister(self, job, dep_job_id, dep_status):
     """Checks if a dependency job has the requested status.
 
@@ -1257,16 +1238,6 @@ class JobQueue(object):
     self._memcache = weakref.WeakValueDictionary()
     self._my_hostname = netutils.Hostname.GetSysName()
 
-    # The Big JobQueue lock. If a code block or method acquires it in shared
-    # mode safe it must guarantee concurrency with all the code acquiring it in
-    # shared mode, including itself. In order not to acquire it at all
-    # concurrency must be guaranteed with all code acquiring it in shared mode
-    # and all code acquiring it exclusively.
-    self._lock = locking.SharedLock("JobQueue")
-
-    self.acquire = self._lock.acquire
-    self.release = self._lock.release
-
     # Get initial list of nodes
     self._nodes = dict((n.name, n.primary_ip)
                        for n in cfg.GetAllNodesInfo().values()
@@ -1290,7 +1261,6 @@ class JobQueue(object):
     """
     return rpc.JobQueueRunner(self.context, address_list)
 
-  @locking.ssynchronized(_LOCK)
   def AddNode(self, node):
     """Register a new node with the queue.
 
@@ -1730,7 +1700,6 @@ class JobQueue(object):
     else:
       return None
 
-  @locking.ssynchronized(_LOCK)
   def CancelJob(self, job_id):
     """Cancels a job.
 
@@ -1744,7 +1713,6 @@ class JobQueue(object):
 
     return self._ModifyJobUnlocked(job_id, lambda job: job.Cancel())
 
-  @locking.ssynchronized(_LOCK)
   def ChangeJobPriority(self, job_id, priority):
     """Changes a job's priority.
 

@@ -516,7 +516,6 @@ class _DisabledFakeDependencyManager:
 
 class _FakeQueueForProc:
   def __init__(self, depmgr=None):
-    self._acquired = False
     self._updates = []
     self._submitted = []
 
@@ -527,29 +526,16 @@ class _FakeQueueForProc:
     else:
       self.depmgr = _DisabledFakeDependencyManager()
 
-  def IsAcquired(self):
-    return self._acquired
-
   def GetNextUpdate(self):
     return self._updates.pop(0)
 
   def GetNextSubmittedJob(self):
     return self._submitted.pop(0)
 
-  def acquire(self, shared=0):
-    assert shared == 1
-    self._acquired = True
-
-  def release(self):
-    assert self._acquired
-    self._acquired = False
-
   def UpdateJobUnlocked(self, job, replicate=True):
-    assert self._acquired, "Lock not acquired while updating job"
     self._updates.append((job, bool(replicate)))
 
   def SubmitManyJobs(self, jobs):
-    assert not self._acquired, "Lock acquired while submitting jobs"
     job_ids = [self._submit_count.next() for _ in jobs]
     self._submitted.extend(zip(job_ids, jobs))
     return job_ids
@@ -563,8 +549,6 @@ class _FakeExecOpCodeForProc:
 
   def __call__(self, op, cbs, timeout=None):
     assert isinstance(op, opcodes.OpTestDummy)
-    assert not self._queue.IsAcquired(), \
-           "Queue lock not released when executing opcode"
 
     if self._before_start:
       self._before_start(timeout, cbs.CurrentPriority())
@@ -573,9 +557,6 @@ class _FakeExecOpCodeForProc:
 
     if self._after_start:
       self._after_start(op, cbs)
-
-    # Check again after the callbacks
-    assert not self._queue.IsAcquired()
 
     if op.fail:
       raise errors.OpExecError("Error requested (%s)" % op.result)
@@ -620,7 +601,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       def _BeforeStart(timeout, priority):
         self.assertEqual(queue.GetNextUpdate(), (job, True))
         self.assertRaises(IndexError, queue.GetNextUpdate)
-        self.assertFalse(queue.IsAcquired())
         self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
         self.assertFalse(job.cur_opctx)
 
@@ -628,7 +608,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         self.assertEqual(queue.GetNextUpdate(), (job, True))
         self.assertRaises(IndexError, queue.GetNextUpdate)
 
-        self.assertFalse(queue.IsAcquired())
         self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
         self.assertFalse(job.cur_opctx)
 
@@ -820,7 +799,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     def _BeforeStart(timeout, priority):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
 
       # Mark as cancelled
@@ -834,7 +812,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     def _AfterStart(op, cbs):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
 
     opexec = _FakeExecOpCodeForProc(queue, _BeforeStart, _AfterStart)
@@ -865,7 +842,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_QUEUED)
 
     def _BeforeStart(timeout, priority):
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
 
       # Mark as cancelled
@@ -1049,13 +1025,11 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     def _BeforeStart(timeout, priority):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
 
     def _AfterStart(op, cbs):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
 
       self.assertRaises(AssertionError, cbs.Feedback,
@@ -1140,7 +1114,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
     def _BeforeStart(timeout, priority):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
       self.assertFalse(job.cur_opctx)
 
@@ -1148,7 +1121,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
 
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
       self.assertFalse(job.cur_opctx)
 
@@ -1217,7 +1189,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         # Job should only be updated when it wasn't waiting for another job
         self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
       self.assertFalse(job.cur_opctx)
 
@@ -1225,7 +1196,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
 
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
       self.assertFalse(job.cur_opctx)
 
@@ -1336,7 +1306,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         # Job should only be updated when it wasn't waiting for another job
         self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
       self.assertFalse(job.cur_opctx)
 
@@ -1344,7 +1313,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
 
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
       self.assertFalse(job.cur_opctx)
 
@@ -1445,7 +1413,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
         # Job should only be updated when it wasn't waiting for another job
         self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
       self.assertFalse(job.cur_opctx)
 
@@ -1453,7 +1420,6 @@ class TestJobProcessor(unittest.TestCase, _JobProcessorTestUtils):
       self.assertEqual(queue.GetNextUpdate(), (job, True))
       self.assertRaises(IndexError, queue.GetNextUpdate)
 
-      self.assertFalse(queue.IsAcquired())
       self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
       self.assertFalse(job.cur_opctx)
 
@@ -1570,7 +1536,6 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
       self.assertEqual(self.queue.GetNextUpdate(), (job, True))
     self.assertRaises(IndexError, self.queue.GetNextUpdate)
 
-    self.assertFalse(self.queue.IsAcquired())
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_WAITING)
 
     ts = self.timeout_strategy
@@ -1608,7 +1573,6 @@ class TestJobProcessorTimeouts(unittest.TestCase, _JobProcessorTestUtils):
     self.assertEqual(self.queue.GetNextUpdate(), (job, True))
     self.assertRaises(IndexError, self.queue.GetNextUpdate)
 
-    self.assertFalse(self.queue.IsAcquired())
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
 
     # Job is running, cancelling shouldn't be possible
@@ -1765,7 +1729,6 @@ class TestJobProcessorChangePriority(unittest.TestCase, _JobProcessorTestUtils):
     self.opexecprio = []
 
   def _BeforeStart(self, timeout, priority):
-    self.assertFalse(self.queue.IsAcquired())
     self.opexecprio.append(priority)
 
   def testChangePriorityWhileRunning(self):
