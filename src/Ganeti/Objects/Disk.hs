@@ -256,8 +256,15 @@ $(buildObjectWithForthcoming "Disk" "disk" $
   ++ serialFields
   ++ timeStampFields)
 
+instance TimeStampObject Disk where
+  cTimeOf = diskCtime
+  mTimeOf = diskMtime
+
 instance UuidObject Disk where
   uuidOf = diskUuid
+
+instance SerialNoObject Disk where
+  serialOf = diskSerial
 
 instance ForthcomingObject Disk where
   isForthcoming = diskForthcoming
