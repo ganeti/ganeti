@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction #-}
+{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction, FlexibleContexts #-}
 
 {-|  The WConfd functions for direct configuration manipulation
 
@@ -43,7 +43,7 @@ import Control.Lens.Getter ((^.))
 import Control.Lens.Setter ((.~), (%~))
 import Control.Lens.Traversal (mapMOf)
 import Control.Monad (unless, when, forM_)
-import Control.Monad.Error (throwError)
+import Control.Monad.Error (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
 import Data.Maybe (isJust, maybeToList, fromMaybe)
 import Language.Haskell.TH (Name)
@@ -56,7 +56,7 @@ import Ganeti.BasicTypes (GenericResult(..), genericResult, toError)
 import Ganeti.Constants (lastDrbdPort)
 import Ganeti.Errors (GanetiException(..))
 import Ganeti.JSON (Container, GenericContainer(..), alterContainerL
-                   , lookupContainer, MaybeForJSON(..))
+                   , lookupContainer, MaybeForJSON(..), TimeAsDoubleJSON(..))
 import Ganeti.Locking.Locks (ClientId, ciIdentifier)
 import Ganeti.Logging.Lifted (logDebug, logInfo)
 import Ganeti.Objects
@@ -128,6 +128,79 @@ getAllIDs cs =
 getAllMACs :: ConfigState -> S.Set String
 getAllMACs = S.fromList . map nicMac . concatMap instNics . M.elems
            . fromContainer . configInstances . csConfigData
+
+-- | Checks if the two objects are equal,
+-- excluding timestamps. The serial number of
+-- current must be one greater than that of target.
+--
+-- If this is true, it implies that the update RPC
+-- updated the config, but did not successfully return.
+isIdentical :: (Eq a, SerialNoObjectL a, TimeStampObjectL a)
+            => ClockTime
+            -> a
+            -> a
+            -> Bool
+isIdentical now target current = (mTimeL .~ now $ current) ==
+  ((serialL %~ (+1)) . (mTimeL .~ now) $ target)
+
+-- | Checks if the two objects given have the same serial number
+checkSerial :: SerialNoObject a => a -> a -> GenericResult GanetiException ()
+checkSerial target current = if serialOf target == serialOf current
+  then Ok ()
+  else Bad . ConfigurationError $ printf
+    "Configuration object updated since it has been read: %d != %d"
+    (serialOf current) (serialOf target)
+
+-- | Updates an object present in a container.
+-- The presence of the object in the container
+-- is determined by the uuid of the object.
+--
+-- A check that serial number of the
+-- object is consistent with the serial number
+-- of the object in the container is performed.
+--
+-- If the check passes, the object's serial number
+-- is incremented, and modification time is updated,
+-- and then is inserted into the container.
+replaceIn :: (UuidObject a, TimeStampObjectL a, SerialNoObjectL a)
+          => ClockTime
+          -> a
+          -> Container a
+          -> GenericResult GanetiException (Container a)
+replaceIn now target = alterContainerL (uuidOf target) extract
+  where extract Nothing = Bad $ ConfigurationError
+          "Configuration object unknown"
+        extract (Just current) = do
+          checkSerial target current
+          return . Just . (serialL %~ (+1)) . (mTimeL .~ now) $ target
+
+-- | Utility fuction that combines the two
+-- possible actions that could be taken when
+-- given a target.
+--
+-- If the target is identical to the current
+-- value, we return the modification time of
+-- the current value, and not change the config.
+--
+-- If not, we update the config.
+updateConfigIfNecessary :: (Monad m, MonadError GanetiException m, Eq a,
+                            UuidObject a, SerialNoObjectL a, TimeStampObjectL a)
+                        => ClockTime
+                        -> a
+                        -> (ConfigState -> Container a)
+                        -> (ConfigState
+                           -> m (ClockTime, ConfigState))
+                        -> ConfigState
+                        -> m (ClockTime, ConfigState)
+updateConfigIfNecessary now target getContainer f cs = do
+  let container = getContainer cs
+  current <- lookupContainer (toError . Bad . ConfigurationError $
+    "Configuraton object unknown")
+    (uuidOf target)
+    container
+  if isIdentical now target current
+    then return (mTimeOf current, cs)
+    else f cs
 
 -- * UUID config checks
 
@@ -322,6 +395,84 @@ allocatePort = do
     (return ())
   return . MaybeForJSON $ maybePort
 
+-- | The configuration is updated by the provided cluster
+updateCluster :: Cluster -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateCluster cluster = do
+  ct <- liftIO getClockTime
+  r <- modifyConfigAndReturnWithLock (\_ cs -> do
+    let currentCluster = configCluster . csConfigData $ cs
+    if isIdentical ct cluster currentCluster
+      then return (mTimeOf currentCluster, cs)
+      else do
+        toError $ checkSerial cluster currentCluster
+        let updateC = (clusterSerialL %~ (+1)) . (clusterMtimeL .~ ct)
+        return (ct, csConfigDataL . configClusterL .~ updateC cluster $ cs))
+    (return ())
+  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+
+-- | The configuration is updated by the provided node
+updateNode :: Node -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateNode node = do
+  ct <- liftIO getClockTime
+  let nL = csConfigDataL . configNodesL
+      updateC = (clusterSerialL %~ (+1)) . (clusterMtimeL .~ ct)
+  r <- modifyConfigAndReturnWithLock (\_ -> updateConfigIfNecessary ct node
+    (^. nL) (\cs -> do
+      nC <- toError $ replaceIn ct node (cs ^. nL)
+      return (ct, (nL .~ nC)
+                . (csConfigDataL . configClusterL %~ updateC)
+                $ cs)))
+    (return ())
+  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+
+-- | The configuration is updated by the provided instance
+updateInstance :: Instance -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateInstance inst = do
+  ct <- liftIO getClockTime
+  let iL = csConfigDataL . configInstancesL
+  r <- modifyConfigAndReturnWithLock (\_ -> updateConfigIfNecessary ct inst
+    (^. iL) (\cs -> do
+      iC <- toError $ replaceIn ct inst (cs ^. iL)
+      return (ct, (iL .~ iC) cs)))
+    (return ())
+  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+
+-- | The configuration is updated by the provided nodegroup
+updateNodeGroup :: NodeGroup -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateNodeGroup ng = do
+  ct <- liftIO getClockTime
+  let ngL = csConfigDataL . configNodegroupsL
+  r <- modifyConfigAndReturnWithLock (\_ -> updateConfigIfNecessary ct ng
+    (^. ngL) (\cs -> do
+      ngC <- toError $ replaceIn ct ng (cs ^. ngL)
+      return (ct, (ngL .~ ngC) cs)))
+    (return ())
+  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+
+-- | The configuration is updated by the provided network
+updateNetwork :: Network -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateNetwork net = do
+  ct <- liftIO getClockTime
+  let nL = csConfigDataL . configNetworksL
+  r <- modifyConfigAndReturnWithLock (\_ -> updateConfigIfNecessary ct net
+    (^. nL) (\cs -> do
+      nC <- toError $ replaceIn ct net (cs ^. nL)
+      return (ct, (nL .~ nC) cs)))
+    (return ())
+  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+
+-- | The configuration is updated by the provided disk
+updateDisk :: Disk -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateDisk disk = do
+  ct <- liftIO getClockTime
+  let dL = csConfigDataL . configDisksL
+  r <- modifyConfigAndReturnWithLock (\_ -> updateConfigIfNecessary ct disk
+    (^. dL) (\cs -> do
+      dC <- toError $ replaceIn ct disk (cs ^. dL)
+      return (ct, (dL .~ dC) cs)))
+    . T.releaseDRBDMinors $ uuidOf disk
+  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+
 -- * The list of functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -329,4 +480,10 @@ exportedFunctions = [ 'addInstance
                     , 'addInstanceDisk
                     , 'allocatePort
                     , 'attachInstanceDisk
+                    , 'updateCluster
+                    , 'updateDisk
+                    , 'updateInstance
+                    , 'updateNetwork
+                    , 'updateNode
+                    , 'updateNodeGroup
                     ]
