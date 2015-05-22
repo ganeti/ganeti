@@ -1245,6 +1245,12 @@ def TestClusterRenewCrypto():
     _AssertSsconfCertFiles(master)
     AssertCommand(["gnt-cluster", "verify"])
 
+    # Only renew cluster certificate
+    AssertCommand(["gnt-cluster", "renew-crypto", "--force",
+                   "--new-cluster-certificate"])
+    _AssertSsconfCertFiles(master)
+    AssertCommand(["gnt-cluster", "verify"])
+
     # Restore RAPI certificate
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
                    "--rapi-certificate=%s" % rapi_cert_backup])
