@@ -918,3 +918,6 @@ class ConfigMock(config.ConfigWriter):
     if update_serial:
       self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
       self._ConfigData().cluster.mtime = now
+
+  def MarkInstanceDisksActive(self, inst_uuid):
+    return self._SetInstanceStatus(inst_uuid, None, True, None)

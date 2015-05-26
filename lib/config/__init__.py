@@ -1893,7 +1893,6 @@ class ConfigWriter(object):
     self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None,
                             constants.USER_SOURCE)
 
-  @ConfigSync()
   def MarkInstanceDisksActive(self, inst_uuid):
     """Mark the status of instance disks active.
 
@@ -1901,7 +1900,15 @@ class ConfigWriter(object):
     @return: the updated instance object
 
     """
-    return self._SetInstanceStatus(inst_uuid, None, True, None)
+    def WithRetry():
+      result = self._wconfd.MarkInstanceDisksActive(inst_uuid)
+      self.OutDate()
+
+      if result is None:
+        raise utils.RetryAgain()
+      else:
+        return result
+    return objects.Instance.FromDict(utils.Retry(WithRetry, 0.1, 30))
 
   @ConfigSync()
   def MarkInstanceDisksInactive(self, inst_uuid):
