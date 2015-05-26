@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.ConfigModifications where
 
+import Control.Lens (_2)
 import Control.Lens.Getter ((^.))
 import Control.Lens.Setter ((.~), (%~))
 import Control.Lens.Traversal (mapMOf)
@@ -189,9 +190,9 @@ updateConfigIfNecessary :: (Monad m, MonadError GanetiException m, Eq a,
                         -> a
                         -> (ConfigState -> Container a)
                         -> (ConfigState
-                           -> m (ClockTime, ConfigState))
+                           -> m ((Int, ClockTime), ConfigState))
                         -> ConfigState
-                        -> m (ClockTime, ConfigState)
+                        -> m ((Int, ClockTime), ConfigState)
 updateConfigIfNecessary now target getContainer f cs = do
   let container = getContainer cs
   current <- lookupContainer (toError . Bad . ConfigurationError $
@@ -199,7 +200,7 @@ updateConfigIfNecessary now target getContainer f cs = do
     (uuidOf target)
     container
   if isIdentical now target current
-    then return (mTimeOf current, cs)
+    then return ((serialOf current, mTimeOf current), cs)
     else f cs
 
 -- * UUID config checks
@@ -396,22 +397,23 @@ allocatePort = do
   return . MaybeForJSON $ maybePort
 
 -- | The configuration is updated by the provided cluster
-updateCluster :: Cluster -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateCluster :: Cluster -> WConfdMonad (MaybeForJSON (Int, TimeAsDoubleJSON))
 updateCluster cluster = do
   ct <- liftIO getClockTime
   r <- modifyConfigAndReturnWithLock (\_ cs -> do
     let currentCluster = configCluster . csConfigData $ cs
     if isIdentical ct cluster currentCluster
-      then return (mTimeOf currentCluster, cs)
+      then return ((serialOf currentCluster, mTimeOf currentCluster), cs)
       else do
         toError $ checkSerial cluster currentCluster
         let updateC = (clusterSerialL %~ (+1)) . (clusterMtimeL .~ ct)
-        return (ct, csConfigDataL . configClusterL .~ updateC cluster $ cs))
+        return ((serialOf cluster + 1, ct)
+               , csConfigDataL . configClusterL .~ updateC cluster $ cs))
     (return ())
-  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+  return . MaybeForJSON $ fmap (_2 %~ TimeAsDoubleJSON) r
 
 -- | The configuration is updated by the provided node
-updateNode :: Node -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateNode :: Node -> WConfdMonad (MaybeForJSON (Int, TimeAsDoubleJSON))
 updateNode node = do
   ct <- liftIO getClockTime
   let nL = csConfigDataL . configNodesL
@@ -419,59 +421,60 @@ updateNode node = do
   r <- modifyConfigAndReturnWithLock (\_ -> updateConfigIfNecessary ct node
     (^. nL) (\cs -> do
       nC <- toError $ replaceIn ct node (cs ^. nL)
-      return (ct, (nL .~ nC)
+      return ((serialOf node + 1, ct), (nL .~ nC)
                 . (csConfigDataL . configClusterL %~ updateC)
                 $ cs)))
     (return ())
-  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+  return . MaybeForJSON $ fmap (_2 %~ TimeAsDoubleJSON) r
 
 -- | The configuration is updated by the provided instance
-updateInstance :: Instance -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateInstance :: Instance -> WConfdMonad (MaybeForJSON (Int, TimeAsDoubleJSON))
 updateInstance inst = do
   ct <- liftIO getClockTime
   let iL = csConfigDataL . configInstancesL
   r <- modifyConfigAndReturnWithLock (\_ -> updateConfigIfNecessary ct inst
     (^. iL) (\cs -> do
       iC <- toError $ replaceIn ct inst (cs ^. iL)
-      return (ct, (iL .~ iC) cs)))
+      return ((serialOf inst + 1, ct), (iL .~ iC) cs)))
     (return ())
-  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+  return . MaybeForJSON $ fmap (_2 %~ TimeAsDoubleJSON) r
 
 -- | The configuration is updated by the provided nodegroup
-updateNodeGroup :: NodeGroup -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateNodeGroup :: NodeGroup
+                -> WConfdMonad (MaybeForJSON (Int, TimeAsDoubleJSON))
 updateNodeGroup ng = do
   ct <- liftIO getClockTime
   let ngL = csConfigDataL . configNodegroupsL
   r <- modifyConfigAndReturnWithLock (\_ -> updateConfigIfNecessary ct ng
     (^. ngL) (\cs -> do
       ngC <- toError $ replaceIn ct ng (cs ^. ngL)
-      return (ct, (ngL .~ ngC) cs)))
+      return ((serialOf ng + 1, ct), (ngL .~ ngC) cs)))
     (return ())
-  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+  return . MaybeForJSON $ fmap (_2 %~ TimeAsDoubleJSON) r
 
 -- | The configuration is updated by the provided network
-updateNetwork :: Network -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateNetwork :: Network -> WConfdMonad (MaybeForJSON (Int, TimeAsDoubleJSON))
 updateNetwork net = do
   ct <- liftIO getClockTime
   let nL = csConfigDataL . configNetworksL
   r <- modifyConfigAndReturnWithLock (\_ -> updateConfigIfNecessary ct net
     (^. nL) (\cs -> do
       nC <- toError $ replaceIn ct net (cs ^. nL)
-      return (ct, (nL .~ nC) cs)))
+      return ((serialOf net + 1, ct), (nL .~ nC) cs)))
     (return ())
-  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+  return . MaybeForJSON $ fmap (_2 %~ TimeAsDoubleJSON) r
 
 -- | The configuration is updated by the provided disk
-updateDisk :: Disk -> WConfdMonad (MaybeForJSON TimeAsDoubleJSON)
+updateDisk :: Disk -> WConfdMonad (MaybeForJSON (Int, TimeAsDoubleJSON))
 updateDisk disk = do
   ct <- liftIO getClockTime
   let dL = csConfigDataL . configDisksL
   r <- modifyConfigAndReturnWithLock (\_ -> updateConfigIfNecessary ct disk
     (^. dL) (\cs -> do
       dC <- toError $ replaceIn ct disk (cs ^. dL)
-      return (ct, (dL .~ dC) cs)))
+      return ((serialOf disk + 1, ct), (dL .~ dC) cs)))
     . T.releaseDRBDMinors $ uuidOf disk
-  return . MaybeForJSON $ fmap TimeAsDoubleJSON r
+  return . MaybeForJSON $ fmap (_2 %~ TimeAsDoubleJSON) r
 
 -- * The list of functions exported to RPC.
 

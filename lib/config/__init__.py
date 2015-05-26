@@ -3156,11 +3156,11 @@ class ConfigWriter(object):
       if result is None:
         raise utils.RetryAgain()
       else:
-        return float(result)
-    mtime = utils.Retry(WithRetry, 0.1, 30)
+        return result
+    vals = utils.Retry(WithRetry, 0.1, 30)
     self.OutDate()
-    target.serial_no += 1
-    target.mtime = mtime
+    target.serial_no = vals[0]
+    target.mtime = float(vals[1])
 
     if ec_id is not None:
       # Commit all ips reserved by OpInstanceSetParams and OpGroupSetParams
