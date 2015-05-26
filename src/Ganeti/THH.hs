@@ -77,7 +77,7 @@ module Ganeti.THH ( declareSADT
 
 import Control.Arrow ((&&&), second)
 import Control.Applicative
-import Control.Lens.Type (Lens')
+import Control.Lens.Type (Lens, Lens')
 import Control.Lens (lens, set, element)
 import Control.Monad
 import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
@@ -979,8 +979,15 @@ buildAccessor fnm fpfx rnm rpfx nm pfx field = do
              , Clause [ConP fnm [VarP x]] (NormalB f_body) []
              ]]
 
--- | Build lense declartions for a field, if the type of the field
--- is the same in the forthcoming and the real variant.
+-- | Build lense declartions for a field.
+--
+-- If the type of the field is the same in
+-- the forthcoming and the real variant, the lens
+-- will be a simple lens (Lens' s a).
+--
+-- Otherwise, the type will be (Lens s s (Maybe a) a).
+-- This is because the field in forthcoming variant
+-- has type (Maybe a), but the real variant has type a.
 buildLens :: (Name, Name) -- ^ names of the forthcoming constructors
           -> (Name, Name) -- ^ names of the real constructors
           -> Name -- ^ name of the type
@@ -991,32 +998,45 @@ buildLens :: (Name, Name) -- ^ names of the forthcoming constructors
           -> Q [Dec]
 buildLens (fnm, fdnm) (rnm, rdnm) nm pfx ar (field, i) = do
   let optField = makeOptional field
-  if fieldIsOptional field /= fieldIsOptional optField
-     then return []
-     else do
-       let lensnm = mkName $ pfx ++ fieldRecordName  field ++ "L"
-       (accnm, _, ftype) <- fieldTypeInfo pfx field
-       vars <- replicateM ar (newName "x")
-       var <- newName "val"
-       context <- newName "val"
-       let body cn cdn = NormalB
-                           . (ConE cn `AppE`)
-                           . foldl (\e (j, x) -> AppE e . VarE
-                                                   $ if i == j then var else x)
-                             (ConE cdn)
-                          $ zip [0..] vars
-       let setterE = LamE [VarP context, VarP var] $ CaseE (VarE context)
-                        [ Match (ConP fnm [ConP fdnm . set (element i) WildP
-                                             $ map VarP vars])
-                                (body fnm fdnm) []
-                        , Match (ConP rnm [ConP rdnm . set (element i) WildP
-                                             $ map VarP vars])
-                                (body rnm rdnm) []
-                        ]
-       return [ SigD lensnm $ ConT ''Lens' `AppT` ConT nm `AppT` ftype
-              , ValD (VarP lensnm)
+      isSimple = fieldIsOptional field == fieldIsOptional optField
+      lensnm = mkName $ pfx ++ fieldRecordName  field ++ "L"
+  (accnm, _, ftype) <- fieldTypeInfo pfx field
+  vars <- replicateM ar (newName "x")
+  var <- newName "val"
+  context <- newName "val"
+  jE <- [| Just |]
+  let body eJ cn cdn = NormalB
+                      . (ConE cn `AppE`)
+                      . foldl (\e (j, x) -> AppE e $
+                                                if i == j
+                                                  then if eJ
+                                                    then AppE jE (VarE var)
+                                                    else VarE var
+                                                  else VarE x)
+                        (ConE cdn)
+                     $ zip [0..] vars
+  let setterE = LamE [VarP context, VarP var] $ CaseE (VarE context)
+                   [ Match (ConP fnm [ConP fdnm . set (element i) WildP
+                                        $ map VarP vars])
+                           (body (not isSimple) fnm fdnm) []
+                   , Match (ConP rnm [ConP rdnm . set (element i) WildP
+                                        $ map VarP vars])
+                           (body False rnm rdnm) []
+                   ]
+  let lensD = ValD (VarP lensnm)
                      (NormalB  $ VarE 'lens `AppE` VarE accnm `AppE` setterE) []
-              ]
+
+  if isSimple
+     then
+       return $ (SigD lensnm $ ConT ''Lens' `AppT` ConT nm `AppT` ftype)
+              : lensD : []
+     else
+       return $ (SigD lensnm $ ConT ''Lens `AppT`
+                              ConT nm `AppT`
+                              ConT nm `AppT`
+                              (ConT ''Maybe `AppT` ftype) `AppT`
+                              ftype)
+              : lensD : []
 
 -- | Build an object that can have a forthcoming variant.
 -- This will create 3 data types: two objects, prefixed by
