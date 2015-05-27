@@ -430,6 +430,12 @@ class LUInstanceCreate(LogicalUnit):
           self.needed_locks[locking.LEVEL_NODE]))
     self.share_locks[locking.LEVEL_NODEGROUP] = 1
 
+  def DeclareLocks(self, level):
+    if level == locking.LEVEL_NODE_RES:
+      if self.op.opportunistic_locking:
+        self.needed_locks[locking.LEVEL_NODE_RES] = \
+          CopyLockList(list(self.owned_locks(locking.LEVEL_NODE)))
+
   def _RunAllocator(self):
     """Run the allocator based on input opcode.
 
