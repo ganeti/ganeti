@@ -815,7 +815,7 @@ class IAllocator(object):
       node_whitelist = self.req.node_whitelist
     else:
       node_whitelist = None
-    if node_whitelist:
+    if node_whitelist is not None:
       request["restrict-to-nodes"] = node_whitelist
 
     self.in_data["request"] = request
