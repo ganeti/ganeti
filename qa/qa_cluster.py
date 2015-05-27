@@ -1150,11 +1150,8 @@ def TestClusterVersion():
   AssertCommand(["gnt-cluster", "version"])
 
 
-def _AssertSsconfCertFiles(master):
+def _AssertSsconfCertFiles():
   """This asserts that all ssconf_master_candidate_certs have the same content.
-
-  @type master: string
-  @param master: name of the master node
 
   """
   (vcluster_master, _) = qa_config.GetVclusterSettings()
@@ -1240,25 +1237,25 @@ def TestClusterRenewCrypto():
                    "--new-cluster-certificate", "--new-confd-hmac-key",
                    "--new-rapi-certificate", "--new-cluster-domain-secret",
                    "--new-node-certificates"])
-    _AssertSsconfCertFiles(master)
+    _AssertSsconfCertFiles()
     AssertCommand(["gnt-cluster", "verify"])
 
     # Only renew node certificates
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
                    "--new-node-certificates"])
-    _AssertSsconfCertFiles(master)
+    _AssertSsconfCertFiles()
     AssertCommand(["gnt-cluster", "verify"])
 
     # Only renew cluster certificate
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
                    "--new-cluster-certificate"])
-    _AssertSsconfCertFiles(master)
+    _AssertSsconfCertFiles()
     AssertCommand(["gnt-cluster", "verify"])
 
     # Restore RAPI certificate
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
                    "--rapi-certificate=%s" % rapi_cert_backup])
-    _AssertSsconfCertFiles(master)
+    _AssertSsconfCertFiles()
     AssertCommand(["gnt-cluster", "verify"])
   finally:
     AssertCommand(["rm", "-f", rapi_cert_backup])
