@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.ConfigModifications where
 
+import Control.Applicative ((<$>))
 import Control.Lens (_2)
 import Control.Lens.Getter ((^.))
 import Control.Lens.Setter ((.~), (%~))
@@ -396,6 +397,22 @@ allocatePort = do
     (return ())
   return . MaybeForJSON $ maybePort
 
+-- | Mark the status of instance disks active.
+markInstanceDisksActive :: InstanceUUID -> WConfdMonad (MaybeForJSON Instance)
+markInstanceDisksActive iUuid = do
+  ct <- liftIO getClockTime
+  MaybeForJSON <$> modifyConfigAndReturnWithLock (\_ cs -> do
+    inst <- toError $ getInstanceByUUID cs iUuid
+    if instDisksActive inst == Just True
+      then return (inst, cs)
+      else do
+        let inst' = (instDisksActiveL .~ True) inst
+            iL = csConfigDataL . configInstancesL
+        cs' <- fmap (flip (iL .~) cs) . toError $ replaceIn ct inst' (cs ^. iL)
+        inst'' <- toError $ getInstanceByUUID cs' iUuid
+        return (inst'', cs'))
+    (return ())
+
 -- | The configuration is updated by the provided cluster
 updateCluster :: Cluster -> WConfdMonad (MaybeForJSON (Int, TimeAsDoubleJSON))
 updateCluster cluster = do
@@ -483,6 +500,7 @@ exportedFunctions = [ 'addInstance
                     , 'addInstanceDisk
                     , 'allocatePort
                     , 'attachInstanceDisk
+                    , 'markInstanceDisksActive
                     , 'updateCluster
                     , 'updateDisk
                     , 'updateInstance
