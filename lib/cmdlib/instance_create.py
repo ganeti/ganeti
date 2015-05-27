@@ -438,6 +438,7 @@ class LUInstanceCreate(LogicalUnit):
       node_name_whitelist = self.cfg.GetNodeNames(
         set(self.owned_locks(locking.LEVEL_NODE)) &
         set(self.owned_locks(locking.LEVEL_NODE_RES)))
+      logging.debug("Trying to allocate on nodes %s", node_name_whitelist)
     else:
       node_name_whitelist = None
 
