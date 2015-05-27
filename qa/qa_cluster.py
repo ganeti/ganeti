@@ -1157,13 +1157,17 @@ def _AssertSsconfCertFiles(master):
   @param master: name of the master node
 
   """
+  (vcluster_master, _) = qa_config.GetVclusterSettings()
+  if vcluster_master:
+    print "Skipping asserting SsconfCertFiles for Vcluster"
+    return
   nodes = qa_config.get("nodes")
   ssconf_file = "/var/lib/ganeti/ssconf_master_candidates_certs"
   ssconf_content = {}
   for node in nodes:
     cmd = ["cat", ssconf_file]
     print "Ssconf Master Certificates of node '%s'." % node.primary
-    result_output = GetCommandOutput(master.primary, utils.ShellQuoteArgs(cmd))
+    result_output = GetCommandOutput(node.primary, utils.ShellQuoteArgs(cmd))
     ssconf_content[node] = result_output
 
     # Clean up result to make it comparable:
