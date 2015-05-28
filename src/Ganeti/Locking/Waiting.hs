@@ -230,6 +230,16 @@ updateLocksWaiting' prio owner reqs state =
                                 }
   in (state'', (result, notify))
 
+-- | Predicate whether a request is already fulfilled in a given state
+-- and no requests for that owner are pending.
+requestFulfilled :: (Ord a, Ord b)
+                 => b -> [L.LockRequest a] -> LockWaiting a b c -> Bool
+requestFulfilled owner req state =
+  let locks = L.listLocks owner $ lwAllocation state
+      isFulfilled r = M.lookup (L.lockAffected r) locks
+                        == L.lockRequestType r
+  in not (hasPendingRequest owner state) && all isFulfilled req
+
 -- | Update the locks on an onwer according to the given request, if possible.
 -- Additionally (if the request succeeds) fulfill any pending requests that
 -- became possible through this request. Return the new state of the waiting
@@ -237,18 +247,22 @@ updateLocksWaiting' prio owner reqs state =
 -- The result is, as for lock allocation, the set of owners the request is
 -- blocked on. Again, the type is chosen to be suitable for use in
 -- atomicModifyIORef.
+-- For convenience, fulfilled requests are always accepted.
 updateLocks :: (Lock a, Ord b, Ord c)
             => b
             -> [L.LockRequest a]
             -> LockWaiting a b c
             -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
 updateLocks owner req state =
-  second (second $ S.delete owner) $ updateLocks' owner req state
+  if requestFulfilled owner req state
+    then (state, (Ok S.empty, S.empty))
+    else second (second $ S.delete owner) $ updateLocks' owner req state
 
 -- | Update locks as soon as possible. If the request cannot be fulfilled
 -- immediately add the request to the waiting queue. The first argument is
 -- the priority at which the owner is waiting, the remaining are as for
 -- updateLocks, and so is the output.
+-- For convenience, fulfilled requests are always accepted.
 updateLocksWaiting :: (Lock a, Ord b, Ord c)
                    => c
                    -> b
@@ -256,7 +270,10 @@ updateLocksWaiting :: (Lock a, Ord b, Ord c)
                    -> LockWaiting a b c
                    -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
 updateLocksWaiting prio owner req state =
-  second (second $ S.delete owner) $ updateLocksWaiting' prio owner req state
+  if requestFulfilled owner req state
+    then (state, (Ok S.empty, S.empty))
+     else second (second $ S.delete owner)
+            $ updateLocksWaiting' prio owner req state
 
 -- | Compute the state of a waiting after an owner gives up
 -- on his pending request.
