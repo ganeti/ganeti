@@ -38,6 +38,7 @@ module Ganeti.Locking.Waiting
  , emptyWaiting
  , updateLocks
  , updateLocksWaiting
+ , safeUpdateLocksWaiting
  , getAllocation
  , getPendingOwners
  , hasPendingRequest
@@ -275,6 +276,7 @@ updateLocksWaiting prio owner req state =
      else second (second $ S.delete owner)
             $ updateLocksWaiting' prio owner req state
 
+
 -- | Compute the state of a waiting after an owner gives up
 -- on his pending request.
 removePendingRequest :: (Lock a, Ord b, Ord c)
@@ -293,6 +295,25 @@ removePendingRequest owner state =
       in state { lwPendingOwners = M.delete owner pendingOwners
                , lwPending = pending'
                }
+
+-- | A repeatable version of `updateLocksWaiting`. If the owner has a pending
+-- request and the pending request is equal to the current one, do nothing;
+-- otherwise call updateLocksWaiting.
+safeUpdateLocksWaiting :: (Lock a, Ord b, Ord c)
+                       => c
+                       -> b
+                       -> [L.LockRequest a]
+                       -> LockWaiting a b c
+                       -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
+safeUpdateLocksWaiting prio owner req state =
+  if hasPendingRequest owner state
+       && S.singleton req
+          == (S.map (\(_, _, r) -> r)
+              . S.filter (\(_, b, _) -> b == owner) $ getPendingRequests state)
+    then let (_, answer) = updateLocksWaiting prio owner req
+                           $ removePendingRequest owner state
+         in (state, answer)
+    else updateLocksWaiting prio owner req state
 
 -- | Convenience function to release all pending requests and locks
 -- of a given owner. Return the new configuration and the owners to
