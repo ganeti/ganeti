@@ -2360,6 +2360,8 @@ src/AutoConf.hs: Makefile src/AutoConf.hs.in $(PRINT_PY_CONSTANTS) \
 	    -DNODED_GROUP="$(NODED_GROUP)" \
 	    -DMOND_USER="$(MOND_USER)" \
 	    -DMOND_GROUP="$(MOND_GROUP)" \
+	    -DMETAD_USER="$(METAD_USER)" \
+	    -DMETAD_GROUP="$(METAD_GROUP)" \
 	    -DDISK_SEPARATOR="$(DISK_SEPARATOR)" \
 	    -DQEMUIMG_PATH="$(QEMUIMG_PATH)" \
 	    -DXEN_CMD="$(XEN_CMD)" \
@@ -2453,6 +2455,7 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTLUXIDUSER@#$(LUXID_USER)#g'; \
 	  echo 's#@''GNTNODEDUSER@#$(NODED_USER)#g'; \
 	  echo 's#@''GNTMONDUSER@#$(MOND_USER)#g'; \
+	  echo 's#@''GNTMETADUSER@#$(METAD_USER)#g'; \
 	  echo 's#@''GNTRAPIGROUP@#$(RAPI_GROUP)#g'; \
 	  echo 's#@''GNTADMINGROUP@#$(ADMIN_GROUP)#g'; \
 	  echo 's#@''GNTCONFDGROUP@#$(CONFD_GROUP)#g'; \
@@ -2461,6 +2464,7 @@ $(REPLACE_VARS_SED): $(SHELL_ENV_INIT) Makefile stamp-directories
 	  echo 's#@''GNTLUXIDGROUP@#$(LUXID_GROUP)#g'; \
 	  echo 's#@''GNTMASTERDGROUP@#$(MASTERD_GROUP)#g'; \
 	  echo 's#@''GNTMONDGROUP@#$(MOND_GROUP)#g'; \
+	  echo 's#@''GNTMETADGROUP@#$(METAD_GROUP)#g'; \
 	  echo 's#@''GNTDAEMONSGROUP@#$(DAEMONS_GROUP)#g'; \
 	  echo 's#@''CUSTOM_ENABLE_MOND@#$(ENABLE_MOND)#g'; \
 	  echo 's#@''MODULES@#$(strip $(lint_python_code))#g'; \

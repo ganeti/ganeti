@@ -337,7 +337,7 @@ AC_ARG_WITH([user-prefix],
     [ to change the default)]
   )],
   [user_masterd="${withval}masterd";
-   user_metad="$user_default";
+   user_metad="${withval}metad";
    user_rapi="${withval}rapi";
    user_confd="${withval}confd";
    user_wconfd="${withval}masterd";
@@ -363,6 +363,7 @@ AC_SUBST(KVMD_USER, $user_kvmd)
 AC_SUBST(LUXID_USER, $user_luxid)
 AC_SUBST(NODED_USER, $user_noded)
 AC_SUBST(MOND_USER, $user_mond)
+AC_SUBST(METAD_USER, $user_metad)
 
 # --with-group-prefix=...
 AC_ARG_WITH([group-prefix],
@@ -378,7 +379,7 @@ AC_ARG_WITH([group-prefix],
    group_kvmd="$group_default";
    group_luxid="${withval}luxid";
    group_masterd="${withval}masterd";
-   group_metad="$group_default";
+   group_metad="${withval}metad";
    group_noded="$group_default";
    group_daemons="${withval}daemons";
    group_mond="$group_default"],
@@ -404,6 +405,7 @@ AC_SUBST(METAD_GROUP, $group_metad)
 AC_SUBST(NODED_GROUP, $group_noded)
 AC_SUBST(DAEMONS_GROUP, $group_daemons)
 AC_SUBST(MOND_GROUP, $group_mond)
+AC_SUBST(METAD_GROUP, $group_metad)
 
 # Print the config to the user
 AC_MSG_NOTICE([Running ganeti-masterd as $group_masterd:$group_masterd])
