@@ -276,7 +276,7 @@ updateLocksWaiting cid prio req =
   liftM S.toList
   . (>>= toErrorStr)
   . modifyLockWaiting
-  $ LW.updateLocksWaiting prio cid (fromGanetiLockRequest req)
+  $ LW.safeUpdateLocksWaiting prio cid (fromGanetiLockRequest req)
 
 -- | Tell whether a given owner has pending requests.
 hasPendingRequest :: ClientId -> WConfdMonad Bool
