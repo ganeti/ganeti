@@ -66,6 +66,7 @@ module Ganeti.HTools.Node
   , addPriEx
   , addSec
   , addSecEx
+  , addSecExEx
   -- * Stats
   , availDisk
   , availMem
@@ -571,7 +572,15 @@ addSec = addSecEx False
 
 -- | Adds a secondary instance (extended version).
 addSecEx :: Bool -> Node -> Instance.Instance -> T.Ndx -> T.OpResult Node
-addSecEx force t inst pdx =
+addSecEx = addSecExEx False
+
+-- | Adds a secondary instance (doubly extended version). The first parameter
+-- tells `addSecExEx` to ignore disks completly. There is only one legitimate
+-- use case for this, and this is failing over a DRBD instance where the primary
+-- node is offline (and hence will become the secondary afterwards).
+addSecExEx :: Bool
+           -> Bool -> Node -> Instance.Instance -> T.Ndx -> T.OpResult Node
+addSecExEx ignore_disks force t inst pdx =
   let iname = Instance.idx inst
       old_peers = peers t
       old_mem = fMem t
@@ -593,7 +602,7 @@ addSecEx force t inst pdx =
       strict = not force
   in case () of
        _ | not (Instance.hasSecondary inst) -> Bad T.FailDisk
-         | new_dsk <= 0 -> Bad T.FailDisk
+         | not ignore_disks && new_dsk <= 0 -> Bad T.FailDisk
          | new_dsk < loDsk t && strict -> Bad T.FailDisk
          | exclStorage t && new_free_sp < 0 -> Bad T.FailSpindles
          | new_inst_sp > hiSpindles t && strict -> Bad T.FailDisk

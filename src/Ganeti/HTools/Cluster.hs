@@ -460,7 +460,8 @@ applyMove nl inst Failover =
       int_s = Node.removeSec old_s inst
       new_nl = do -- Maybe monad
         new_p <- Node.addPriEx (Node.offline old_p) int_s inst
-        new_s <- Node.addSec int_p inst old_sdx
+        new_s <- Node.addSecExEx (Node.offline old_p) (Node.offline old_p)
+                   int_p inst old_sdx
         let new_inst = Instance.setBoth inst old_sdx old_pdx
         return (Container.addTwo old_pdx new_s old_sdx new_p nl,
                 new_inst, old_sdx, old_pdx)
