@@ -42,6 +42,7 @@ from ganeti import utils
 
 import ganeti.masterd.instance as gmi
 
+import logging
 
 _STRING_LIST = ht.TListOf(ht.TString)
 _JOB_LIST = ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
@@ -816,6 +817,7 @@ class IAllocator(object):
     self.in_data["request"] = request
 
     self.in_text = serializer.Dump(self.in_data)
+    logging.debug("IAllocator request: %s", self.in_text)
 
   def Run(self, name, validate=True, call_fn=None):
     """Run an instance allocator and return the results.
