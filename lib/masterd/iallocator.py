@@ -808,10 +808,8 @@ class IAllocator(object):
     disk_template = None
     if request.get("disk_template") is not None:
       disk_template = request["disk_template"]
-    else:
+    elif isinstance(req, IAReqRelocate):
       disk_template = self.cfg.GetInstanceDiskTemplate(self.req.inst_uuid)
-    if disk_template is None:
-      raise errors.ProgrammerError("disk template should not be none")
     self._ComputeClusterData(disk_template=disk_template)
 
     request["type"] = req.MODE
