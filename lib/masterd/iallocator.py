@@ -518,8 +518,7 @@ class IAllocator(object):
     assert len(data["nodes"]) == len(ninfo), \
         "Incomplete node data computed"
 
-    data["instances"] = self._ComputeInstanceData(cfg, cluster_info, i_list,
-                                                  disk_template)
+    data["instances"] = self._ComputeInstanceData(cfg, cluster_info, i_list)
 
     self.in_data = data
 
@@ -757,7 +756,7 @@ class IAllocator(object):
     return node_results
 
   @staticmethod
-  def _ComputeInstanceData(cfg, cluster_info, i_list, disk_template):
+  def _ComputeInstanceData(cfg, cluster_info, i_list):
     """Compute global instance data.
 
     """
@@ -776,6 +775,7 @@ class IAllocator(object):
           nic_dict["bridge"] = filled_params[constants.NIC_LINK]
         nic_data.append(nic_dict)
       inst_disks = cfg.GetInstanceDisks(iinfo.uuid)
+      inst_disktemplate = cfg.GetInstanceDiskTemplate(iinfo.uuid)
       pir = {
         "tags": list(iinfo.GetTags()),
         "admin_state": iinfo.admin_state,
@@ -792,7 +792,7 @@ class IAllocator(object):
                    constants.IDISK_MODE: dsk.mode,
                    constants.IDISK_SPINDLES: dsk.spindles}
                   for dsk in inst_disks],
-        "disk_template": disk_template,
+        "disk_template": inst_disktemplate,
         "disks_active": iinfo.disks_active,
         "hypervisor": iinfo.hypervisor,
         }
