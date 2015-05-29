@@ -70,6 +70,7 @@ import qualified Ganeti.WConfd.TempRes as T
 
 type DiskUUID = String
 type InstanceUUID = String
+type NodeUUID = String
 
 -- * accessor functions
 
@@ -413,6 +414,16 @@ markInstanceDisksActive iUuid = do
         return (inst'', cs'))
     (return ())
 
+-- | Sets the primary node of an existing instance
+setInstancePrimaryNode :: InstanceUUID -> NodeUUID -> WConfdMonad Bool
+setInstancePrimaryNode iUuid nUuid = isJust <$> modifyConfigWithLock
+  (\_ -> mapMOf (csConfigDataL . configInstancesL . alterContainerL iUuid)
+    (\mi -> case mi of
+      Nothing -> throwError . ConfigurationError $
+        printf "Could not find instance with UUID %s" iUuid
+      Just ist -> return . Just $ (instPrimaryNodeL .~ nUuid) ist))
+  (return ())
+
 -- | The configuration is updated by the provided cluster
 updateCluster :: Cluster -> WConfdMonad (MaybeForJSON (Int, TimeAsDoubleJSON))
 updateCluster cluster = do
@@ -501,6 +512,7 @@ exportedFunctions = [ 'addInstance
                     , 'allocatePort
                     , 'attachInstanceDisk
                     , 'markInstanceDisksActive
+                    , 'setInstancePrimaryNode
                     , 'updateCluster
                     , 'updateDisk
                     , 'updateInstance
