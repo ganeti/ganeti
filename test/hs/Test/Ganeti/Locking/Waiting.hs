@@ -247,6 +247,24 @@ prop_PendingJustified =
   in printTestCase "Pebding requests must be good and not fulfillable"
      . all isJustified . S.toList $ getPendingRequests state
 
+-- | Verify that `updateLocks` is idempotent, except that in the repetition,
+-- no waiters are notified.
+prop_UpdateIdempotent :: Property
+prop_UpdateIdempotent =
+  forAll (arbitrary :: Gen (LockWaiting TestLock TestOwner Integer)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \owner ->
+  forAll (arbitrary :: Gen [LockRequest TestLock]) $ \req ->
+  let (state', (answer', _)) = updateLocks owner req state
+      (state'', (answer'', nfy)) = updateLocks owner req state'
+  in conjoin [ printTestCase ("repeated updateLocks waiting gave different\
+                              \ answers: " ++ show answer' ++ " /= "
+                              ++ show answer'') $ answer' == answer''
+             , printTestCase "updateLocks not idempotent"
+               $ extRepr state' == extRepr state''
+             , printTestCase ("notifications (" ++ show nfy ++ ") on replay")
+               $ S.null nfy
+             ]
+
 -- | Verify that extRepr . fromExtRepr = id for all valid extensional
 -- representations.
 prop_extReprPreserved :: Property
@@ -352,6 +370,7 @@ testSuite "Locking/Waiting"
  , 'prop_ProgressSound
  , 'prop_PendingJustified
  , 'prop_extReprPreserved
+ , 'prop_UpdateIdempotent
  , 'prop_SimulateUpdateLocks
  , 'prop_SimulateUpdateLocksWaiting
  , 'prop_ReadShow
