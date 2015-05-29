@@ -921,3 +921,6 @@ class ConfigMock(config.ConfigWriter):
 
   def MarkInstanceDisksActive(self, inst_uuid):
     return self._SetInstanceStatus(inst_uuid, None, True, None)
+
+  def SetInstancePrimaryNode(self, inst_uuid, target_node_uuid):
+    self._UnlockedGetInstanceInfo(inst_uuid).primary_node = target_node_uuid

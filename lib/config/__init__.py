@@ -2130,7 +2130,6 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetInstanceNames(inst_uuids)
 
-  @ConfigSync()
   def SetInstancePrimaryNode(self, inst_uuid, target_node_uuid):
     """Sets the primary node of an existing instance
 
@@ -2140,7 +2139,9 @@ class ConfigWriter(object):
     @type target_node_uuid: string
 
     """
-    self._UnlockedGetInstanceInfo(inst_uuid).primary_node = target_node_uuid
+    utils.SimpleRetry(True, self._wconfd.SetInstancePrimaryNode, 0.1, 30,
+                      args=[inst_uuid, target_node_uuid])
+    self.OutDate()
 
   @ConfigSync()
   def SetDiskNodes(self, disk_uuid, nodes):
