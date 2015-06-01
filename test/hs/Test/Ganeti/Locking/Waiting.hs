@@ -257,12 +257,12 @@ prop_UpdateIdempotent =
   forAll (arbitrary :: Gen [LockRequest TestLock]) $ \req ->
   let (state', (answer', _)) = updateLocks owner req state
       (state'', (answer'', nfy)) = updateLocks owner req state'
-  in conjoin [ printTestCase ("repeated updateLocks waiting gave different\
-                              \ answers: " ++ show answer' ++ " /= "
-                              ++ show answer'') $ answer' == answer''
-             , printTestCase "updateLocks not idempotent"
+  in conjoin [ counterexample ("repeated updateLocks waiting gave different\
+                               \ answers: " ++ show answer' ++ " /= "
+                               ++ show answer'') $ answer' == answer''
+             , counterexample "updateLocks not idempotent"
                $ extRepr state' == extRepr state''
-             , printTestCase ("notifications (" ++ show nfy ++ ") on replay")
+             , counterexample ("notifications (" ++ show nfy ++ ") on replay")
                $ S.null nfy
              ]
 
@@ -322,13 +322,13 @@ prop_SafeUpdateWaitingCorrect  =
   forAll (arbitrary :: Gen [LockRequest TestLock]) $ \req ->
   let (state', answer') = updateLocksWaiting prio owner req state
       (state'', answer'') = safeUpdateLocksWaiting prio owner req state
-  in conjoin [ printTestCase ("safeUpdateLocksWaiting gave different answer: "
+  in conjoin [ counterexample ("safeUpdateLocksWaiting gave different answer: "
                               ++ show answer' ++ " /= " ++ show answer'')
                $ answer' == answer''
-             , printTestCase ("safeUpdateLocksWaiting gave different states\
-                              \ after answer " ++ show answer' ++ ": "
-                              ++ show (extRepr state') ++ " /= "
-                              ++ show (extRepr state''))
+             , counterexample ("safeUpdateLocksWaiting gave different states\
+                               \ after answer " ++ show answer' ++ ": "
+                               ++ show (extRepr state') ++ " /= "
+                               ++ show (extRepr state''))
                $ extRepr state' == extRepr state''
              ]
 
@@ -342,12 +342,12 @@ prop_SafeUpdateWaitingIdempotent =
   forAll (arbitrary :: Gen [LockRequest TestLock]) $ \req ->
   let (state', (answer', _)) = safeUpdateLocksWaiting prio owner req state
       (state'', (answer'', nfy)) = safeUpdateLocksWaiting prio owner req state'
-  in conjoin [ printTestCase ("repeated safeUpdateLocks waiting gave different\
-                              \ answers: " ++ show answer' ++ " /= "
-                              ++ show answer'') $ answer' == answer''
-             , printTestCase "safeUpdateLocksWaiting not idempotent"
+  in conjoin [ counterexample ("repeated safeUpdateLocks waiting gave different\
+                               \ answers: " ++ show answer' ++ " /= "
+                               ++ show answer'') $ answer' == answer''
+             , counterexample "safeUpdateLocksWaiting not idempotent"
                $ extRepr state' == extRepr state''
-             , printTestCase ("notifications (" ++ show nfy ++ ") on replay")
+             , counterexample ("notifications (" ++ show nfy ++ ") on replay")
                $ S.null nfy
              ]
 
