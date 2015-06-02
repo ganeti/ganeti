@@ -195,7 +195,7 @@ class _QueuedJob(object):
   # pylint: disable=W0212
   __slots__ = ["queue", "id", "ops", "log_serial", "ops_iter", "cur_opctx",
                "received_timestamp", "start_timestamp", "end_timestamp",
-               "processor_lock", "writable", "archived",
+               "writable", "archived",
                "livelock", "process_id",
                "__weakref__"]
 
@@ -261,12 +261,6 @@ class _QueuedJob(object):
     obj.writable = writable
     obj.ops_iter = None
     obj.cur_opctx = None
-
-    # Read-only jobs are not processed and therefore don't need a lock
-    if writable:
-      obj.processor_lock = threading.Lock()
-    else:
-      obj.processor_lock = None
 
   def __repr__(self):
     status = ["%s.%s" % (self.__class__.__module__, self.__class__.__name__),
