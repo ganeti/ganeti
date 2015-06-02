@@ -1072,6 +1072,14 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     return self._ReadConfigFile(instance.name)
 
+  def _UseMigrationDaemon(self, hvparams):
+    """Whether to start a socat daemon when accepting an instance.
+
+    @rtype: bool
+
+    """
+    return self._GetCommand(hvparams) == constants.XEN_CMD_XL
+
   def AcceptInstance(self, instance, info, target):
     """Prepare to accept an instance.
 
@@ -1083,7 +1091,10 @@ class XenHypervisor(hv_base.BaseHypervisor):
     @param target: target host (usually ip), on this node
 
     """
-    pass
+    if self._UseMigrationDaemon(instance.hvparams):
+      port = instance.hvparams[constants.HV_MIGRATION_PORT]
+      utils.StartDaemon(["socat", "TCP-LISTEN:%d,bind=%s" % (port, target),
+                         "SYSTEM:'xl migrate-receive'"])
 
   def FinalizeMigrationDst(self, instance, info, success):
     """Finalize an instance migration.
@@ -1102,7 +1113,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
     if success:
       self._WriteConfigFile(instance.name, info)
 
-  def MigrateInstance(self, cluster_name, instance, target, live):
+  def MigrateInstance(self, _cluster_name, instance, target, live):
     """Migrate an instance to a target node.
 
     The migration will not be attempted if the instance is not
@@ -1118,11 +1129,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     port = instance.hvparams[constants.HV_MIGRATION_PORT]
 
-    return self._MigrateInstance(cluster_name, instance.name, target, port,
-                                 live, instance.hvparams)
+    return self._MigrateInstance(instance.name, target, port, live,
+                                 instance.hvparams)
 
-  def _MigrateInstance(self, cluster_name, instance_name, target, port, live,
-                       hvparams, _ping_fn=netutils.TcpPing):
+  def _MigrateInstance(self, instance_name, target, port, live, hvparams,
+                       _ping_fn=netutils.TcpPing):
     """Migrate an instance to a target node.
 
     @see: L{MigrateInstance} for details
@@ -1136,26 +1147,28 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     cmd = self._GetCommand(hvparams)
 
-    if (cmd == constants.XEN_CMD_XM and
-        not _ping_fn(target, port, live_port_needed=True)):
-      raise errors.HypervisorError("Remote host %s not listening on port"
-                                   " %s, cannot migrate" % (target, port))
-
     args = ["migrate"]
 
     if cmd == constants.XEN_CMD_XM:
+      # Try and see if xm is listening on the specified port
+      if not _ping_fn(target, port, live_port_needed=True):
+        raise errors.HypervisorError("Remote host %s not listening on port"
+                                     " %s, cannot migrate" % (target, port))
+
       args.extend(["-p", "%d" % port])
       if live:
         args.append("-l")
 
     elif cmd == constants.XEN_CMD_XL:
+      # Rather than using SSH, use socat as Ganeti cannot guarantee the presence
+      # of usable SSH keys as of 2.13
       args.extend([
-        "-s", constants.XL_SSH_CMD % cluster_name,
+        "-s", constants.XL_SOCAT_CMD % (target, port),
         "-C", self._ConfigFileName(instance_name),
         ])
 
     else:
-      raise errors.HypervisorError("Unsupported Xen command: %s" % self._cmd)
+      raise errors.HypervisorError("Unsupported Xen command: %s" % cmd)
 
     args.extend([instance_name, target])
 

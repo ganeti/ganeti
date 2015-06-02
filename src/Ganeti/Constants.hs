@@ -503,6 +503,12 @@ xenInitrd = AutoConf.xenInitrd
 xenKernel :: String
 xenKernel = AutoConf.xenKernel
 
+xlSocatCmd :: String
+xlSocatCmd = "socat - tcp:%s:%d #"
+
+xlPidfileSuffix :: String
+xlPidfileSuffix = ".pid"
+
 -- FIXME: perhaps rename to 'validXenCommands' for consistency with
 -- other constants
 knownXenCommands :: FrozenSet String
