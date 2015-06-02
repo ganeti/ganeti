@@ -248,6 +248,24 @@ prop_PendingJustified =
   in counterexample "Pending requests must be good and not fulfillable"
      . all isJustified . S.toList $ getPendingRequests state
 
+-- | Verify that `updateLocks` is idempotent, except that in the repetition,
+-- no waiters are notified.
+prop_UpdateIdempotent :: Property
+prop_UpdateIdempotent =
+  forAll (arbitrary :: Gen (LockWaiting TestLock TestOwner Integer)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \owner ->
+  forAll (arbitrary :: Gen [LockRequest TestLock]) $ \req ->
+  let (state', (answer', _)) = updateLocks owner req state
+      (state'', (answer'', nfy)) = updateLocks owner req state'
+  in conjoin [ counterexample ("repeated updateLocks waiting gave different\
+                               \ answers: " ++ show answer' ++ " /= "
+                               ++ show answer'') $ answer' == answer''
+             , counterexample "updateLocks not idempotent"
+               $ extRepr state' == extRepr state''
+             , counterexample ("notifications (" ++ show nfy ++ ") on replay")
+               $ S.null nfy
+             ]
+
 -- | Verify that extRepr . fromExtRepr = id for all valid extensional
 -- representations.
 prop_extReprPreserved :: Property
@@ -292,6 +310,46 @@ prop_SimulateUpdateLocksWaiting =
            , notify == notify'
            , extRepr finState == extRepr finState'
            ]
+
+-- | Verify that if a requestor has no pending requests, `safeUpdateWaiting`
+-- conincides with `updateLocksWaiting`.
+prop_SafeUpdateWaitingCorrect :: Property
+prop_SafeUpdateWaitingCorrect  =
+  forAll (arbitrary :: Gen TestOwner) $ \owner ->
+  forAll ((arbitrary :: Gen (LockWaiting TestLock TestOwner Integer))
+          `suchThat` (not . hasPendingRequest owner)) $ \state ->
+  forAll (arbitrary :: Gen Integer) $ \prio ->
+  forAll (arbitrary :: Gen [LockRequest TestLock]) $ \req ->
+  let (state', answer') = updateLocksWaiting prio owner req state
+      (state'', answer'') = safeUpdateLocksWaiting prio owner req state
+  in conjoin [ counterexample ("safeUpdateLocksWaiting gave different answer: "
+                              ++ show answer' ++ " /= " ++ show answer'')
+               $ answer' == answer''
+             , counterexample ("safeUpdateLocksWaiting gave different states\
+                               \ after answer " ++ show answer' ++ ": "
+                               ++ show (extRepr state') ++ " /= "
+                               ++ show (extRepr state''))
+               $ extRepr state' == extRepr state''
+             ]
+
+-- | Verify that `safeUpdateLocksWaiting` is idempotent, that in the repetition
+-- no notifications are done.
+prop_SafeUpdateWaitingIdempotent :: Property
+prop_SafeUpdateWaitingIdempotent =
+  forAll (arbitrary :: Gen (LockWaiting TestLock TestOwner Integer)) $ \state ->
+  forAll (arbitrary :: Gen TestOwner) $ \owner ->
+  forAll (arbitrary :: Gen Integer) $ \prio ->
+  forAll (arbitrary :: Gen [LockRequest TestLock]) $ \req ->
+  let (state', (answer', _)) = safeUpdateLocksWaiting prio owner req state
+      (state'', (answer'', nfy)) = safeUpdateLocksWaiting prio owner req state'
+  in conjoin [ counterexample ("repeated safeUpdateLocks waiting gave different\
+                               \ answers: " ++ show answer' ++ " /= "
+                               ++ show answer'') $ answer' == answer''
+             , counterexample "safeUpdateLocksWaiting not idempotent"
+               $ extRepr state' == extRepr state''
+             , counterexample ("notifications (" ++ show nfy ++ ") on replay")
+               $ S.null nfy
+             ]
 
 -- | Verify that for LockWaiting we have readJSON . showJSON is extensionally
 -- equivalent to Ok.
@@ -354,9 +412,12 @@ testSuite "Locking/Waiting"
  , 'prop_ProgressSound
  , 'prop_PendingJustified
  , 'prop_extReprPreserved
+ , 'prop_UpdateIdempotent
  , 'prop_SimulateUpdateLocks
  , 'prop_SimulateUpdateLocksWaiting
  , 'prop_ReadShow
+ , 'prop_SafeUpdateWaitingCorrect
+ , 'prop_SafeUpdateWaitingIdempotent
  , 'prop_OpportunisticMonotone
  , 'prop_OpportunisticAnswer
  ]

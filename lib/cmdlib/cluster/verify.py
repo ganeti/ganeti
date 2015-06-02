@@ -1796,7 +1796,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                   "Tags where there is more than one instance: %s",
                   list(conflicting_tags), code=constants.CV_WARNING)
 
-  def Exec(self, feedback_fn):
+  def Exec(self, feedback_fn): # pylint: disable=R0915
     """Verify integrity of the node group, performing various test on nodes.
 
     """
