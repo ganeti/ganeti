@@ -364,10 +364,12 @@ in the design.
 - Instead of using the same certificate for all nodes as both, server
   and client certificate, we generate a common server certificate (and
   the corresponding private key) for all nodes and a different client
-  certificate (and the corresponding private key) for each node. All
-  those certificates will be self-signed for now. The client
-  certificates will use the node UUID as serial number to ensure
-  uniqueness within the cluster.
+  certificate (and the corresponding private key) for each node. The
+  server certificate will be self-signed. The client certficate will
+  be signed by the server certificate. The client certificates will
+  use the node UUID as serial number to ensure uniqueness within the
+  cluster. They will use the host's hostname as the certificate
+  common name (CN).
 - In addition, we store a mapping of
   (node UUID, client certificate digest) in the cluster's configuration
   and ssconf for hosts that are master or master candidate.
@@ -426,9 +428,21 @@ Drawbacks of this design:
 - Even though this proposal is an improvement towards the previous
   situation in Ganeti, it still does not use the full power of SSL. For
   further improvements, see Section "Related and future work".
+- Signing the client certificates with the server certificate will
+  increase the complexity of the renew-crypto, as a renewal of the
+  server certificates requires the renewal (and signing) of all client
+  certificates as well.
 
 Alternative proposals:
 
+- The initial version of this document described a setup where the
+  client certificates were also self-signed. This led to a serious
+  problem (Issue 1094), which would only have been solvable by
+  distributing all client certificates to all nodes and load them
+  as trusted CAs. As this would have resulted in having to restart
+  noded on all nodes every time a node is added, removed, demoted
+  or promoted, this was not feasible and we switched to client
+  certficates which are signed by the server certificate.
 - Instead of generating a client certificate per node, one could think
   of just generating two different client certificates, one for normal
   nodes and one for master candidates. Noded could then just check if
@@ -511,6 +525,8 @@ Cluster verify will be extended by the following checks:
 - Whether no node tries to use the certificate of another node. In
   particular, it is important to check that no normal node tries to
   use the certificate of a master candidate.
+- Whether there are still self-signed client certificates in use (from
+  a pre 2.12.4 Ganeti version).
 
 
 Crypto renewal
@@ -529,6 +545,18 @@ If for whatever reason, the candidate map becomes inconsistent, for example
 due inconsistent updating after a demotion or offlining), the user can use
 this option to renew the client certificates and update the candidate
 certificate map.
+
+Note that renewing the server certificate requires all client certificates
+being renewed and signed by the new server certificate, because
+otherwise their signature can not be verified by the server who only has
+the new server certificate then.
+
+As there was a different design in place in Ganeti 2.12.4 and previous
+versions, we have to ensure that renew-crypto works on pre 2.12 versions and
+2.12.1-4. Users that got hit by Issue 1094 will be encouraged to run
+renew-crypto at least once after switching to 2.12.5. Those who did not
+encounter this bug yet, will still get nagged friendly by gnt-cluster
+verify.
 
 
 Further considerations
@@ -590,26 +618,19 @@ As a trade-off wrt to complexity and implementation effort, we did not
 implement them yet (as of version 2.11) but describe them here for
 future reference.
 
-- All SSL certificates that Ganeti uses so far are self-signed. It would
-  increase the security if they were signed by a common CA. There is
-  already a design doc for a Ganeti CA which was suggested in a
-  different context (related to import/export). This would also be a
-  benefit for the RPC calls. See design doc :doc:`design-impexp2` for
-  more information. Implementing a CA is rather complex, because it
-  would mean also to support renewing the CA certificate and providing
-  and supporting infrastructure to revoke compromised certificates.
+- The server certificate is currently self-signed and the client certificates
+  are signed by the server certificate. It would increase the security if they
+  were signed by a common CA. There is already a design doc for a Ganeti CA
+  which was suggested in a different context (related to import/export).
+  This would also be a benefit for the RPC calls. See design doc
+  :doc:`design-impexp2` for more information. Implementing a CA is rather
+  complex, because it would mean also to support renewing the CA certificate and
+  providing and supporting infrastructure to revoke compromised certificates.
 - An extension of the previous suggestion would be to even enable the
   system administrator to use an external CA. Especially in bigger
   setups, where already an SSL infrastructure exists, it would be useful
   if Ganeti can simply be integrated with it, rather than forcing the
   user to use the Ganeti CA.
-- A lighter version of using a CA would be to use the server certificate
-  to sign the client certificate instead of using self-signed
-  certificates for both. The probleme here is that this would make
-  renewing the server certificate rather complicated, because all client
-  certificates would need to be resigned and redistributed as well,
-  which leads to interesting chicken-and-egg problems when this is done
-  via RPC calls.
 - Ganeti RPC calls are currently done without checking if the hostname
   of the node complies with the common name of the certificate. This
   might be a desirable feature, but would increase the effort when a
