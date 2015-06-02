@@ -1180,6 +1180,38 @@ def TestClusterVersion():
   AssertCommand(["gnt-cluster", "version"])
 
 
+def _AssertSsconfCertFiles():
+  """This asserts that all ssconf_master_candidate_certs have the same content.
+
+  """
+  (vcluster_master, _) = qa_config.GetVclusterSettings()
+  if vcluster_master:
+    print "Skipping asserting SsconfCertFiles for Vcluster"
+    return
+  nodes = qa_config.get("nodes")
+  ssconf_file = "/var/lib/ganeti/ssconf_master_candidates_certs"
+  ssconf_content = {}
+  for node in nodes:
+    cmd = ["cat", ssconf_file]
+    print "Ssconf Master Certificates of node '%s'." % node.primary
+    result_output = GetCommandOutput(node.primary, utils.ShellQuoteArgs(cmd))
+    ssconf_content[node] = result_output
+
+    # Clean up result to make it comparable:
+    # remove trailing whitespace from each line, remove empty lines, sort lines
+    lines_node = result_output.split('\n')
+    lines_node = [line.strip() for line in lines_node if len(line.strip()) > 0]
+    lines_node.sort()
+
+    ssconf_content[node] = lines_node
+
+  first_node = nodes[0]
+  for node in nodes[1:]:
+    if not ssconf_content[node] == ssconf_content[first_node]:
+      raise Exception("Cert list of node '%s' differs from the list of node"
+                      " '%s'." % (node, first_node))
+
+
 def TestClusterRenewCrypto():
   """gnt-cluster renew-crypto"""
   master = qa_config.GetMasterNode()
@@ -1236,10 +1268,20 @@ def TestClusterRenewCrypto():
                    "--new-rapi-certificate", "--new-cluster-domain-secret",
                    "--new-node-certificates", "--new-ssh-keys",
                    "--no-ssh-key-check"])
+    _AssertSsconfCertFiles()
+    AssertCommand(["gnt-cluster", "verify"])
 
     # Only renew node certificates
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
                    "--new-node-certificates"])
+    _AssertSsconfCertFiles()
+    AssertCommand(["gnt-cluster", "verify"])
+
+    # Only renew cluster certificate
+    AssertCommand(["gnt-cluster", "renew-crypto", "--force",
+                   "--new-cluster-certificate"])
+    _AssertSsconfCertFiles()
+    AssertCommand(["gnt-cluster", "verify"])
 
     # Only renew SSH keys
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
@@ -1248,6 +1290,8 @@ def TestClusterRenewCrypto():
     # Restore RAPI certificate
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
                    "--rapi-certificate=%s" % rapi_cert_backup])
+    _AssertSsconfCertFiles()
+    AssertCommand(["gnt-cluster", "verify"])
   finally:
     AssertCommand(["rm", "-f", rapi_cert_backup])
 

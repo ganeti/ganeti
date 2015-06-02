@@ -42,6 +42,7 @@ from ganeti import utils
 
 import ganeti.masterd.instance as gmi
 
+import logging
 
 _STRING_LIST = ht.TListOf(ht.TString)
 _JOB_LIST = ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {
@@ -517,8 +518,7 @@ class IAllocator(object):
     assert len(data["nodes"]) == len(ninfo), \
         "Incomplete node data computed"
 
-    data["instances"] = self._ComputeInstanceData(cfg, cluster_info, i_list,
-                                                  disk_template)
+    data["instances"] = self._ComputeInstanceData(cfg, cluster_info, i_list)
 
     self.in_data = data
 
@@ -756,7 +756,7 @@ class IAllocator(object):
     return node_results
 
   @staticmethod
-  def _ComputeInstanceData(cfg, cluster_info, i_list, disk_template):
+  def _ComputeInstanceData(cfg, cluster_info, i_list):
     """Compute global instance data.
 
     """
@@ -775,6 +775,7 @@ class IAllocator(object):
           nic_dict["bridge"] = filled_params[constants.NIC_LINK]
         nic_data.append(nic_dict)
       inst_disks = cfg.GetInstanceDisks(iinfo.uuid)
+      inst_disktemplate = cfg.GetInstanceDiskTemplate(iinfo.uuid)
       pir = {
         "tags": list(iinfo.GetTags()),
         "admin_state": iinfo.admin_state,
@@ -791,7 +792,7 @@ class IAllocator(object):
                    constants.IDISK_MODE: dsk.mode,
                    constants.IDISK_SPINDLES: dsk.spindles}
                   for dsk in inst_disks],
-        "disk_template": disk_template,
+        "disk_template": inst_disktemplate,
         "disks_active": iinfo.disks_active,
         "hypervisor": iinfo.hypervisor,
         }
@@ -808,16 +809,15 @@ class IAllocator(object):
     disk_template = None
     if request.get("disk_template") is not None:
       disk_template = request["disk_template"]
-    else:
+    elif isinstance(req, IAReqRelocate):
       disk_template = self.cfg.GetInstanceDiskTemplate(self.req.inst_uuid)
-    if disk_template is None:
-      raise errors.ProgrammerError("disk template should not be none")
     self._ComputeClusterData(disk_template=disk_template)
 
     request["type"] = req.MODE
     self.in_data["request"] = request
 
     self.in_text = serializer.Dump(self.in_data)
+    logging.debug("IAllocator request: %s", self.in_text)
 
   def Run(self, name, validate=True, call_fn=None):
     """Run an instance allocator and return the results.
