@@ -36,7 +36,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.JQScheduler
   ( JQStatus
   , jqLivelock
-  , jqForkLock
   , emptyJQStatus
   , selectJobsToRun
   , scheduleSomeJobs
