@@ -44,6 +44,7 @@ module Ganeti.JQScheduler
   , dequeueJob
   , setJobPriority
   , cleanupIfDead
+  , updateStatusAndScheduleSomeJobs
   , configChangeNeedsRescheduling
   ) where
 
@@ -472,11 +473,9 @@ cleanupIfDead state jid = do
   let jobWS = find ((==) jid . qjId . jJob) $ qRunning jobs
   maybe (return True) (checkForDeath state) jobWS
 
--- | Time-based watcher for updating the job queue.
-onTimeWatcher :: JQStatus -> IO ()
-onTimeWatcher qstate = forever $ do
-  threadDelay watchInterval
-  logDebug "Job queue watcher timer fired"
+-- | Force the queue to check the state of all jobs.
+updateStatusAndScheduleSomeJobs :: JQStatus -> IO ()
+updateStatusAndScheduleSomeJobs qstate =  do
   jobs <- readIORef (jqJobs qstate)
   mapM_ (checkForDeath qstate) $ qRunning jobs
   jobs' <- readIORef (jqJobs qstate)
@@ -485,6 +484,13 @@ onTimeWatcher qstate = forever $ do
   jobs'' <- readIORef (jqJobs qstate)
   logInfo $ showQueue jobs''
   scheduleSomeJobs qstate
+
+-- | Time-based watcher for updating the job queue.
+onTimeWatcher :: JQStatus -> IO ()
+onTimeWatcher qstate = forever $ do
+  threadDelay watchInterval
+  logDebug "Job queue watcher timer fired"
+  updateStatusAndScheduleSomeJobs qstate
   logDebug "Job queue watcher cycle finished"
 
 -- | Read a single, non-archived, job, specified by its id, from disk.
