@@ -13,6 +13,7 @@
 #Configuration
 : ${ARCH:=amd64}
 : ${DIST_RELEASE:=wheezy}
+: ${VARIANT:=}
 : ${CONF_DIR:=/etc/schroot/chroot.d}
 : ${CHROOT_DIR:=/srv/chroot}
 : ${ALTERNATIVE_EDITOR:=/usr/bin/vim.basic}
@@ -22,8 +23,11 @@
 # DATA_DIR
 # CHROOT_EXTRA_DEBIAN_PACKAGES
 
+# make the appended variant name more readable
+[ -n "$VARIANT" ] && VARIANT="-${VARIANT#-}"
+
 #Automatically generated variables
-CHROOTNAME=$DIST_RELEASE-$ARCH
+CHROOTNAME=$DIST_RELEASE-$ARCH$VARIANT
 CHNAME=building_$CHROOTNAME
 TEMP_CHROOT_CONF=$CONF_DIR/$CHNAME.conf
 FINAL_CHROOT_CONF=$CHROOTNAME.conf
@@ -96,7 +100,7 @@ if [ ! -f $ACTUAL_DATA_DIR/temp.schroot.conf.in ]
 then
   cat <<END >$ACTUAL_DATA_DIR/temp.schroot.conf.in
 [${CHNAME}]
-description=Debian ${DIST_RELEASE} ${ARCH}
+description=Debian ${DIST_RELEASE}${VARIANT} ${ARCH}
 directory=${CHDIR}
 groups=${GROUP}
 users=root
@@ -216,7 +220,7 @@ function install_cabal {
 }
 
 
-case $DIST_RELEASE in
+case ${DIST_RELEASE}${VARIANT} in
 
   squeeze)
 
