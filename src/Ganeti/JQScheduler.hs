@@ -591,4 +591,6 @@ configChangeNeedsRescheduling :: ConfigData -> ConfigData -> Bool
 configChangeNeedsRescheduling oldConfig newConfig =
   or -- Trigger rescheduling if:
     [ configFilters oldConfig /= configFilters newConfig -- filters changed
+    , clusterMaxRunningJobs (configCluster oldConfig)
+      /= clusterMaxRunningJobs (configCluster newConfig) -- run queue length
     ]
