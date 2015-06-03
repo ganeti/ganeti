@@ -547,6 +547,7 @@ rpc_stub_PYTHON = \
 pytools_PYTHON = \
 	lib/tools/__init__.py \
 	lib/tools/burnin.py \
+	lib/tools/common.py \
 	lib/tools/ensure_dirs.py \
 	lib/tools/node_cleanup.py \
 	lib/tools/node_daemon_setup.py \
