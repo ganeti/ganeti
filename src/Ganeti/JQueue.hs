@@ -536,15 +536,15 @@ isQueueOpen :: IO Bool
 isQueueOpen = liftM not (jobQueueDrainFile >>= doesFileExist)
 
 -- | Start enqueued jobs by executing the Python code.
-startJobs :: ConfigData
-          -> Livelock -- ^ Luxi's livelock path
+startJobs :: Livelock -- ^ Luxi's livelock path
           -> Lock -- ^ lock for forking new processes
           -> [QueuedJob] -- ^ the list of jobs to start
           -> IO [ErrorResult QueuedJob]
-startJobs cfg luxiLivelock forkLock jobs = do
+startJobs luxiLivelock forkLock jobs = do
   qdir <- queueDir
   let updateJob job llfile =
-        void . writeAndReplicateJob cfg qdir $ job { qjLivelock = Just llfile }
+        void . mkResultT . writeJobToDisk qdir
+          $ job { qjLivelock = Just llfile }
   let runJob job = withLock forkLock $ do
         (llfile, _) <- Exec.forkJobProcess (qjId job) luxiLivelock
                                            (updateJob job)

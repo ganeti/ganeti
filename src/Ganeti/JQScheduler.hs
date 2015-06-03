@@ -419,7 +419,7 @@ scheduleSomeJobs qstate = do
       mapM_ (attachWatcher qstate) chosen
 
       -- Start the jobs.
-      result <- JQ.startJobs cfg (jqLivelock qstate) (jqForkLock qstate) jobs
+      result <- JQ.startJobs (jqLivelock qstate) (jqForkLock qstate) jobs
       let badWith (x, Bad y) = Just (x, y)
           badWith _          = Nothing
       let failed = mapMaybe badWith $ zip chosen result
