@@ -634,7 +634,7 @@ main _ _ (server, cref, jq) = do
         (Ok old, Ok new) -> (newConfig, configChangeNeedsRescheduling old new)
         _                -> (newConfig, True) -- no old or new config, schedule
 
-    when runScheduler (scheduleSomeJobs jq)
+    when runScheduler (updateStatusAndScheduleSomeJobs jq)
 
   let creader = readIORef cref
 
