@@ -2720,6 +2720,7 @@ hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	  --ignore "Use first" \
 	  --ignore "Use &&&" \
 	  --ignore "Use &&" \
+	  --ignore "Use ||" \
 	  --ignore "Use void" \
 	  --ignore "Reduce duplication" \
 	  --ignore "Use import/export shortcut" \
