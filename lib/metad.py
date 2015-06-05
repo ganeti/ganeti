@@ -77,6 +77,15 @@ if constants.ENABLE_METAD:
           logging.debug("Will retry")
           time.sleep(try_no * 10 + 10 * random.random())
 
+      def _InitTransport(self):
+        """(Re)initialize the transport if needed.
+
+        """
+        if self.transport is None:
+          self.transport = self.transport_class(self._GetAddress(),
+                                                timeouts=self.timeouts,
+                                                allow_non_master=True)
+
 else:
   class Client(object):
     """An empty client representation that just throws an exception.
