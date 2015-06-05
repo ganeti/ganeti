@@ -64,7 +64,7 @@ class Transport:
 
   """
 
-  def __init__(self, address, timeouts=None):
+  def __init__(self, address, timeouts=None, allow_non_master=None):
     """Constructor for the Client class.
 
     Arguments:
@@ -98,7 +98,8 @@ class Transport:
       # Try to connect
       try:
         utils.Retry(self._Connect, 1.0, self._ctimeout,
-                    args=(self.socket, address, self._ctimeout))
+                    args=(self.socket, address, self._ctimeout,
+                          allow_non_master))
       except utils.RetryTimeout:
         raise errors.TimeoutError("Connect timed out")
 
@@ -110,7 +111,7 @@ class Transport:
       raise
 
   @staticmethod
-  def _Connect(sock, address, timeout):
+  def _Connect(sock, address, timeout, allow_non_master):
     sock.settimeout(timeout)
     try:
       sock.connect(address)
@@ -119,15 +120,16 @@ class Transport:
     except socket.error, err:
       error_code = err.args[0]
       if error_code in (errno.ENOENT, errno.ECONNREFUSED):
-        # Verify if we're acutally on the master node before trying
-        # again.
-        ss = ssconf.SimpleStore()
-        try:
-          master, myself = ssconf.GetMasterAndMyself(ss=ss)
-        except ganeti.errors.ConfigurationError:
-          raise errors.NoMasterError(address)
-        if master != myself:
-          raise errors.NoMasterError(address)
+        if not allow_non_master:
+          # Verify if we're actually on the master node before trying
+          # again.
+          ss = ssconf.SimpleStore()
+          try:
+            master, myself = ssconf.GetMasterAndMyself(ss=ss)
+          except ganeti.errors.ConfigurationError:
+            raise errors.NoMasterError(address)
+          if master != myself:
+            raise errors.NoMasterError(address)
         raise utils.RetryAgain()
       elif error_code in (errno.EPERM, errno.EACCES):
         raise errors.PermissionError(address)
