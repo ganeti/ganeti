@@ -4474,6 +4474,9 @@ ndsSsconf = "ssconf"
 ndsStartNodeDaemon :: String
 ndsStartNodeDaemon = "start_node_daemon"
 
+ndsNodeName :: String
+ndsNodeName = "node_name"
+
 -- * VCluster related constants
 
 vClusterEtcHosts :: String

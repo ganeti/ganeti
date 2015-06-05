@@ -551,7 +551,8 @@ pytools_PYTHON = \
 	lib/tools/ensure_dirs.py \
 	lib/tools/node_cleanup.py \
 	lib/tools/node_daemon_setup.py \
-	lib/tools/prepare_node_join.py
+	lib/tools/prepare_node_join.py \
+	lib/tools/ssl_update.py
 
 utils_PYTHON = \
 	lib/utils/__init__.py \
@@ -2307,6 +2308,7 @@ tools/ensure-dirs: MODULE = ganeti.tools.ensure_dirs
 tools/node-daemon-setup: MODULE = ganeti.tools.node_daemon_setup
 tools/prepare-node-join: MODULE = ganeti.tools.prepare_node_join
 tools/node-cleanup: MODULE = ganeti.tools.node_cleanup
+tools/ssl-update: MODULE = ganeti.tools.ssl_update
 $(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst test/hs/%,%,$@)
 
 $(PYTHON_BOOTSTRAP) $(gnt_scripts) $(gnt_python_sbin_SCRIPTS): Makefile | stamp-directories
