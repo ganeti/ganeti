@@ -760,6 +760,24 @@ def _GetProcStatusPath(pid):
   return "/proc/%d/status" % pid
 
 
+def GetProcCmdline(pid):
+  """Returns the command line of a pid as a list of arguments.
+
+  @type pid: int
+  @param pid: Process ID
+  @rtype: list of string
+
+  @raise EnvironmentError: If the process does not exist
+
+  """
+  proc_path = "/proc/%d/cmdline" % pid
+  with open(proc_path, 'r') as f:
+    nulled_cmdline = f.read()
+  # Individual arguments are separated by nul chars in the contents of the proc
+  # file
+  return nulled_cmdline.split('\x00')
+
+
 def IsProcessAlive(pid):
   """Check if a given pid exists on the system.
 
