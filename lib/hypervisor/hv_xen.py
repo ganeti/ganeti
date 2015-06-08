@@ -36,6 +36,7 @@ import logging
 import errno
 import string # pylint: disable=W0402
 import shutil
+import time
 from cStringIO import StringIO
 
 from ganeti import constants
@@ -1150,8 +1151,18 @@ class XenHypervisor(hv_base.BaseHypervisor):
       # And try and kill a previous daemon
       XenHypervisor._KillMigrationDaemon(instance)
 
-      utils.StartDaemon(["socat", "TCP-LISTEN:%d,bind=%s" % (port, target),
-                         "SYSTEM:'xl migrate-receive'"], pidfile=pidfile)
+      listening_arg = "TCP-LISTEN:%d,bind=%s" % (port, target)
+      socat_pid = utils.StartDaemon(["socat", listening_arg,
+                                     "SYSTEM:'xl migrate-receive'"],
+                                     pidfile=pidfile)
+
+      # Wait for a while to make sure the socat process has successfully started
+      # listening
+      time.sleep(1)
+      if not utils.IsProcessAlive(socat_pid):
+        raise errors.HypervisorError("Could not start receiving socat process"
+                                     " on port %d: check if port is available" %
+                                     port)
 
   def FinalizeMigrationDst(self, instance, info, success):
     """Finalize an instance migration.
