@@ -298,7 +298,12 @@ start() {
   # Grant capabilities to daemons that need them
   local daemoncaps=$(_daemon_caps $plain_name)
   if [[ "$daemoncaps" != "" ]]; then
-    setcap $daemoncaps $(readlink -f $daemonexec)
+    if type -p setcap >/dev/null; then
+      setcap $daemoncaps $(readlink -f $daemonexec)
+    else
+      echo "setcap missing, could not set capabilities for $name." >&2
+      return 1
+    fi
   fi
 
   if type -p start-stop-daemon >/dev/null; then
