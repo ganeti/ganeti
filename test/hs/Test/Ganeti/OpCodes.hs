@@ -323,7 +323,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                       -- no_install
           <*> pure emptyJSObject              -- osparams
           <*> genMaybe arbitraryPrivateJSObj  -- osparams_private
-          <*> genMaybe arbitraryPrivateJSObj  -- osparams_secret
+          <*> genMaybe arbitrarySecretJSObj  -- osparams_secret
           <*> genMaybe genNameNE              -- os_type
           <*> genMaybe genNodeNameNE          -- pnode
           <*> return Nothing                  -- pnode_uuid
@@ -350,7 +350,7 @@ instance Arbitrary OpCodes.OpCode where
       "OP_INSTANCE_REINSTALL" ->
         OpCodes.OpInstanceReinstall <$> genFQDN <*> return Nothing <*>
           arbitrary <*> genMaybe genNameNE <*> genMaybe (pure emptyJSObject)
-          <*> genMaybe arbitraryPrivateJSObj <*> genMaybe arbitraryPrivateJSObj
+          <*> genMaybe arbitraryPrivateJSObj <*> genMaybe arbitrarySecretJSObj
       "OP_INSTANCE_REMOVE" ->
         OpCodes.OpInstanceRemove <$> genFQDN <*> return Nothing <*>
           arbitrary <*> arbitrary
@@ -574,6 +574,13 @@ arbitraryPrivateJSObj =
   constructor <$> (fromNonEmpty <$> genNameNE)
               <*> (fromNonEmpty <$> genNameNE)
     where constructor k v = showPrivateJSObject [(k, v)]
+
+-- | JSObject of arbitrary secret data.
+arbitrarySecretJSObj :: Gen (J.JSObject (Secret J.JSValue))
+arbitrarySecretJSObj =
+  constructor <$> (fromNonEmpty <$> genNameNE)
+              <*> (fromNonEmpty <$> genNameNE)
+    where constructor k v = showSecretJSObject [(k, v)]
 
 -- | Arbitrary instance for MetaOpCode, defined here due to TH ordering.
 $(genArbitrary ''OpCodes.MetaOpCode)
