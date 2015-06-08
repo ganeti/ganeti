@@ -100,7 +100,6 @@ def RegenerateClientCertificate(
   # The hostname of the node is provided with the input data.
   hostname = data.get(constants.NDS_NODE_NAME)
 
-  # TODO: make backup of the file before regenerating.
   utils.GenerateSignedSslCert(client_cert, serial_no, signing_cert,
                               common_name=hostname)
 
