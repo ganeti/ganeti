@@ -506,8 +506,8 @@ xenKernel = AutoConf.xenKernel
 xlSocatCmd :: String
 xlSocatCmd = "socat - tcp:%s:%d #"
 
-xlPidfileSuffix :: String
-xlPidfileSuffix = ".pid"
+xlMigrationPidfile :: String
+xlMigrationPidfile = "socat.pid"
 
 -- FIXME: perhaps rename to 'validXenCommands' for consistency with
 -- other constants

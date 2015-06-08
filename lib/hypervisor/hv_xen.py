@@ -460,8 +460,11 @@ class XenHypervisor(hv_base.BaseHypervisor):
   REBOOT_RETRY_COUNT = 60
   REBOOT_RETRY_INTERVAL = 10
   _ROOT_DIR = pathutils.RUN_DIR + "/xen-hypervisor"
-  _NICS_DIR = _ROOT_DIR + "/nic" # contains NICs' info
-  _DIRS = [_ROOT_DIR, _NICS_DIR]
+  # contains NICs' info
+  _NICS_DIR = _ROOT_DIR + "/nic"
+  # contains the pidfiles of socat processes used to migrate instaces under xl
+  _MIGRATION_DIR = _ROOT_DIR + "/migration"
+  _DIRS = [_ROOT_DIR, _NICS_DIR, _MIGRATION_DIR]
 
   _INSTANCE_LIST_DELAYS = (0.3, 1.5, 1.0)
   _INSTANCE_LIST_TIMEOUT = 5
@@ -554,6 +557,20 @@ class XenHypervisor(hv_base.BaseHypervisor):
     return utils.PathJoin(self._cfgdir, instance_name)
 
   @classmethod
+  def _EnsureDirs(cls, extra_dirs=None):
+    """Makes sure that the directories needed by the hypervisor exist.
+
+    @type extra_dirs: list of string or None
+    @param extra_dirs: Additional directories which ought to exist.
+
+    """
+    if extra_dirs is None:
+      extra_dirs = []
+    dirs = [(dname, constants.RUN_DIRS_MODE) for dname in
+            (cls._DIRS + extra_dirs)]
+    utils.EnsureDirs(dirs)
+
+  @classmethod
   def _WriteNICInfoFile(cls, instance, idx, nic):
     """Write the Xen config file for the instance.
 
@@ -561,9 +578,7 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     instance_name = instance.name
-    dirs = [(dname, constants.RUN_DIRS_MODE)
-            for dname in cls._DIRS + [cls._InstanceNICDir(instance_name)]]
-    utils.EnsureDirs(dirs)
+    cls._EnsureDirs(extra_dirs=[cls._InstanceNICDir(instance_name)])
 
     cfg_file = cls._InstanceNICFile(instance_name, idx)
     data = StringIO()
@@ -625,6 +640,18 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     return utils.PathJoin(cls._InstanceNICDir(instance_name), str(seq))
+
+  @classmethod
+  def _InstanceMigrationPidfile(cls, _instance_name):
+    """Returns the name of the pid file for a socat process used to migrate.
+
+    """
+    #TODO(riba): At the moment, we are using a single pidfile because we
+    # use a single port for migrations at the moment. This is because we do not
+    # allow more migrations, so dynamic port selection and the needed port
+    # modifications are not needed.
+    # The _instance_name parameter has been left here for future use.
+    return utils.PathJoin(cls._MIGRATION_DIR, constants.XL_MIGRATION_PIDFILE)
 
   @classmethod
   def _GetConfig(cls, instance, startup_memory, block_devices):
@@ -1080,6 +1107,28 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     return self._GetCommand(hvparams) == constants.XEN_CMD_XL
 
+  @classmethod
+  def _KillMigrationDaemon(cls, instance):
+    """Kills the migration daemon if present.
+
+    """
+    pidfile = cls._InstanceMigrationPidfile(instance.name)
+    read_pid = utils.ReadPidFile(pidfile)
+
+    # There is no pidfile, hence nothing for us to do
+    if read_pid == 0:
+      return
+
+    if utils.IsProcessAlive(read_pid):
+      # If the process is alive, let's make sure we are killing the right one
+      cmdline = ' '.join(utils.GetProcCmdline(read_pid))
+      if cmdline.count("xl migrate-receive") > 0:
+        utils.KillProcess(read_pid)
+
+    # By this point the process is not running, whether killed or initially
+    # nonexistent, so it is safe to remove the pidfile.
+    utils.RemoveFile(pidfile)
+
   def AcceptInstance(self, instance, info, target):
     """Prepare to accept an instance.
 
@@ -1093,8 +1142,16 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     if self._UseMigrationDaemon(instance.hvparams):
       port = instance.hvparams[constants.HV_MIGRATION_PORT]
+
+      # Make sure there is somewhere to put the pidfile.
+      XenHypervisor._EnsureDirs()
+      pidfile = XenHypervisor._InstanceMigrationPidfile(instance.name)
+
+      # And try and kill a previous daemon
+      XenHypervisor._KillMigrationDaemon(instance)
+
       utils.StartDaemon(["socat", "TCP-LISTEN:%d,bind=%s" % (port, target),
-                         "SYSTEM:'xl migrate-receive'"])
+                         "SYSTEM:'xl migrate-receive'"], pidfile=pidfile)
 
   def FinalizeMigrationDst(self, instance, info, success):
     """Finalize an instance migration.
@@ -1112,6 +1169,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
     """
     if success:
       self._WriteConfigFile(instance.name, info)
+    elif self._UseMigrationDaemon(instance.hvparams):
+      XenHypervisor._KillMigrationDaemon(instance)
 
   def MigrateInstance(self, _cluster_name, instance, target, live):
     """Migrate an instance to a target node.
