@@ -546,7 +546,7 @@ startJobs luxiLivelock forkLock jobs = do
         void . mkResultT . writeJobToDisk qdir
           $ job { qjLivelock = Just llfile }
   let runJob job = withLock forkLock $ do
-        (llfile, _) <- Exec.forkJobProcess (qjId job) luxiLivelock
+        (llfile, _) <- Exec.forkJobProcess job luxiLivelock
                                            (updateJob job)
         return $ job { qjLivelock = Just llfile }
   mapM (runResultT . runJob) jobs

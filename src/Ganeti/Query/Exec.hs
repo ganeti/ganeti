@@ -81,6 +81,7 @@ import Text.Printf
 import qualified AutoConf as AC
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import Ganeti.JQueue.Objects
 import Ganeti.Logging
 import Ganeti.Logging.WriterLog
 import qualified Ganeti.Path as P
@@ -203,14 +204,14 @@ forkWithPipe conf childAction = do
 -- | Forks the job process and starts processing of the given job.
 -- Returns the livelock of the job and its process ID.
 forkJobProcess :: (Error e, Show e)
-               => JobId -- ^ a job to process
+               => QueuedJob -- ^ a job to process
                -> FilePath  -- ^ the daemons own livelock file
                -> (FilePath -> ResultT e IO ())
                   -- ^ a callback function to update the livelock file
                   -- and process id in the job file
                -> ResultT e IO (FilePath, ProcessID)
-forkJobProcess jid luxiLivelock update = do
-  let jidStr = show . fromJobId $ jid
+forkJobProcess job luxiLivelock update = do
+  let jidStr = show . fromJobId . qjId $ job
 
   logDebug $ "Setting the lockfile temporarily to " ++ luxiLivelock
              ++ " for job " ++ jidStr
@@ -226,7 +227,8 @@ forkJobProcess jid luxiLivelock update = do
     let maxWaitUS = 2^(tryNo - 1) * C.luxidRetryForkStepUS
     when (tryNo >= 2) . liftIO $ delayRandom (0, maxWaitUS)
 
-    (pid, master) <- liftIO $ forkWithPipe connectConfig (runJobProcess jid)
+    (pid, master) <- liftIO $ forkWithPipe connectConfig (runJobProcess
+                                                          . qjId $ job)
 
     let jobLogPrefix = "[start:job-" ++ jidStr ++ ",pid=" ++ show pid ++ "] "
         logDebugJob = logDebug . (jobLogPrefix ++)
