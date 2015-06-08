@@ -245,6 +245,7 @@ case $DIST_RELEASE in
 
     in_chroot -- \
       easy_install \
+        unittest2==0.5.1 \
         logilab-astng==0.24.1 \
         logilab-common==0.58.3 \
         mock==1.0.1 \
