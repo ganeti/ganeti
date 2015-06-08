@@ -7,6 +7,13 @@ Version 2.16.0
 
 *(unreleased)*
 
+New dependencies
+~~~~~~~~~~~~~~~~
+
+- Using the metadata daemon now requires the presence of the 'setcap' utility.
+  On Debian-based systems, it is available as a part of the 'libcap2-bin'
+  package.
+
 
 Version 2.15.0 beta1
 --------------------
