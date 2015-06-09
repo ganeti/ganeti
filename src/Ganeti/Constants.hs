@@ -375,6 +375,11 @@ rapi = Runtime.daemonName GanetiRapi
 kvmd :: String
 kvmd = Runtime.daemonName GanetiKvmd
 
+-- Set of daemons which only run on the master.
+-- Keep in sync with the 'daemon-util' script.
+daemonsMaster :: FrozenSet String
+daemonsMaster = ConstantUtils.mkSet [wconfd, luxid, rapi]
+
 daemons :: FrozenSet String
 daemons =
   ConstantUtils.mkSet

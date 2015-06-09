@@ -132,7 +132,7 @@ NODED_CERT_MODE = 0440
 RESTRICTED_COMMANDS_LOCK_FILE = LOCK_DIR + "/ganeti-restricted-commands.lock"
 
 #: Lock file for watcher, locked in shared mode by watcher; lock in exclusive
-# mode to block watcher (see L{cli._RunWhileClusterStoppedHelper.Call}
+# mode to block watcher (see L{cli._RunWhileDaemonsStoppedHelper.Call}
 WATCHER_LOCK_FILE = LOCK_DIR + "/ganeti-watcher.lock"
 
 #: Status file for per-group watcher, locked in exclusive mode by watcher
