@@ -390,8 +390,6 @@ class LUClusterPostInit(LogicalUnit):
                  self.master_ndparams.get(constants.ND_OVS_LINK, None))
       result.Raise("Could not successully configure Open vSwitch")
 
-    _UpdateMasterClientCert(self, self.cfg, self.master_uuid)
-
     return True
 
 

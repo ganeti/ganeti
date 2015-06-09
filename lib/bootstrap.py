@@ -104,10 +104,12 @@ def GenerateHmacKey(file_name):
 
 # pylint: disable=R0913
 def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
-                          new_confd_hmac_key, new_cds,
+                          new_confd_hmac_key, new_cds, new_client_cert,
+                          master_name,
                           rapi_cert_pem=None, spice_cert_pem=None,
                           spice_cacert_pem=None, cds=None,
                           nodecert_file=pathutils.NODED_CERT_FILE,
+                          clientcert_file=pathutils.NODED_CLIENT_CERT_FILE,
                           rapicert_file=pathutils.RAPI_CERT_FILE,
                           spicecert_file=pathutils.SPICE_CERT_FILE,
                           spicecacert_file=pathutils.SPICE_CACERT_FILE,
@@ -125,6 +127,10 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
   @param new_confd_hmac_key: Whether to generate a new HMAC key
   @type new_cds: bool
   @param new_cds: Whether to generate a new cluster domain secret
+  @type new_client_cert: bool
+  @param new_client_cert: Whether to generate a new client certificate
+  @type master_name: string
+  @param master_name: FQDN of the master node
   @type rapi_cert_pem: string
   @param rapi_cert_pem: New RAPI certificate in PEM format
   @type spice_cert_pem: string
@@ -151,6 +157,12 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
   utils.GenerateNewSslCert(
     new_cluster_cert, nodecert_file, 1,
     "Generating new cluster certificate at %s" % nodecert_file)
+
+  # If the cluster certificate was renewed, the client cert has to be
+  # renewed and resigned.
+  if new_cluster_cert or new_client_cert:
+    utils.GenerateNewClientSslCert(clientcert_file, nodecert_file,
+                                   master_name)
 
   # confd HMAC key
   if new_confd_hmac_key or not os.path.exists(hmackey_file):
@@ -213,7 +225,7 @@ def _InitGanetiServerSetup(master_name):
 
   """
   # Generate cluster secrets
-  GenerateClusterCrypto(True, False, False, False, False)
+  GenerateClusterCrypto(True, False, False, False, False, False, master_name)
 
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:

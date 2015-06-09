@@ -35,6 +35,7 @@ import logging
 import OpenSSL
 import os
 import uuid as uuid_module
+import time
 
 from ganeti.utils import io
 from ganeti.utils import x509
@@ -60,7 +61,7 @@ def GetCertificateDigest(cert_filename=pathutils.NODED_CLIENT_CERT_FILE):
 
 def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg,
                        uid=-1, gid=-1):
-  """Creates a new SSL certificate and backups the old one.
+  """Creates a new server SSL certificate and backups the old one.
 
   @type new_cert: boolean
   @param new_cert: whether a new certificate should be created
@@ -83,6 +84,23 @@ def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg,
 
     logging.debug(log_msg)
     x509.GenerateSelfSignedSslCert(cert_filename, serial_no, uid=uid, gid=gid)
+
+
+def GenerateNewClientSslCert(cert_filename, signing_cert_filename,
+                             hostname):
+  """Creates a new server SSL certificate and backups the old one.
+
+  @type cert_filename: string
+  @param cert_filename: filename of the certificate file
+  @type signing_cert_filename: string
+  @param signing_cert_filename: name of the certificate to be used for signing
+  @type hostname: string
+  @param hostname: name of the machine whose cert is created
+
+  """
+  serial_no = int(time.time())
+  x509.GenerateSignedSslCert(cert_filename, serial_no, signing_cert_filename,
+                             common_name=hostname)
 
 
 def VerifyCertificate(filename):

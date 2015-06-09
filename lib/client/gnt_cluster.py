@@ -1018,12 +1018,15 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
 
   def _RenewCryptoInner(ctx):
     ctx.feedback_fn("Updating certificates and keys")
-    # Note: the node certificate will be generated in the LU
+
+    master_name = ssconf.SimpleStore().GetMasterNode()
     bootstrap.GenerateClusterCrypto(new_cluster_cert,
                                     new_rapi_cert,
                                     new_spice_cert,
                                     new_confd_hmac_key,
                                     new_cds,
+                                    True, # new client certificate for master
+                                    master_name,
                                     rapi_cert_pem=rapi_cert_pem,
                                     spice_cert_pem=spice_cert_pem,
                                     spice_cacert_pem=spice_cacert_pem,
