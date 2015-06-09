@@ -300,6 +300,7 @@ CLEANFILES = \
 	tools/vif-ganeti-metad \
 	tools/net-common \
 	tools/users-setup \
+	tools/ssl-update \
 	tools/vcluster-setup \
 	$(python_scripts_shebang) \
 	stamp-directories \
@@ -1160,6 +1161,7 @@ PYTHON_BOOTSTRAP = \
 	tools/ensure-dirs \
 	tools/node-cleanup \
 	tools/node-daemon-setup \
+	tools/ssl-update \
 	tools/prepare-node-join
 
 qa_scripts = \
@@ -1403,7 +1405,8 @@ pkglib_python_scripts = \
 nodist_pkglib_python_scripts = \
 	tools/ensure-dirs \
 	tools/node-daemon-setup \
-	tools/prepare-node-join
+	tools/prepare-node-join \
+	tools/ssl-update
 
 pkglib_python_basenames = \
 	$(patsubst daemons/%,%,$(patsubst tools/%,%,\

@@ -1055,15 +1055,46 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
         for file_name in files_to_copy:
           ctx.ssh.CopyFileToNode(node_name, port, file_name)
 
-  RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
+  def _RenewClientCerts(ctx):
+    ctx.feedback_fn("Updating client SSL certificates.")
+
+    # TODO: transport those options outside.
+    debug = True
+    verbose = True
+
+    cluster_name = ssconf.SimpleStore().GetClusterName()
+
+    for node_name in ctx.nonmaster_nodes:
+      ssh_port = ctx.ssh_ports[node_name]
+      data = {
+        constants.NDS_CLUSTER_NAME: cluster_name,
+        constants.NDS_NODE_DAEMON_CERTIFICATE:
+          utils.ReadFile(pathutils.NODED_CERT_FILE),
+        constants.NDS_NODE_NAME: node_name,
+        }
+
+      bootstrap.RunNodeSetupCmd(
+          cluster_name,
+          node_name,
+          pathutils.SSL_UPDATE,
+          debug,
+          verbose,
+          True, # use cluster key
+          False, # ask key
+          True, # strict host check
+          ssh_port,
+          data)
+
+  if new_cluster_cert or new_rapi_cert or new_spice_cert \
+      or new_confd_hmac_key or new_cds:
+    RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
+
+  if new_node_cert:
+    RunWhileDaemonsStopped(ToStdout, [constants.NODED, constants.WCONFD],
+                           _RenewClientCerts)
 
   ToStdout("All requested certificates and keys have been replaced."
            " Running \"gnt-cluster verify\" now is recommended.")
-
-  if new_node_cert:
-    cl = GetClient()
-    renew_op = opcodes.OpClusterRenewCrypto()
-    SubmitOpCode(renew_op, cl=cl)
 
   return 0
 
