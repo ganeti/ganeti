@@ -1019,14 +1019,13 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   def _RenewCryptoInner(ctx):
     ctx.feedback_fn("Updating certificates and keys")
 
-    master_name = ssconf.SimpleStore().GetMasterNode()
-    bootstrap.GenerateClusterCrypto(new_cluster_cert,
+    bootstrap.GenerateClusterCrypto(False,
                                     new_rapi_cert,
                                     new_spice_cert,
                                     new_confd_hmac_key,
                                     new_cds,
-                                    True, # new client certificate for master
-                                    master_name,
+                                    False,
+                                    None,
                                     rapi_cert_pem=rapi_cert_pem,
                                     spice_cert_pem=spice_cert_pem,
                                     spice_cacert_pem=spice_cacert_pem,
@@ -1067,7 +1066,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
 
     cluster_name = ssconf.SimpleStore().GetClusterName()
 
-    for node_name in ctx.nonmaster_nodes:
+    for node_name in ctx.nonmaster_nodes + [ctx.master_node]:
       ssh_port = ctx.ssh_ports[node_name]
       data = {
         constants.NDS_CLUSTER_NAME: cluster_name,
@@ -1088,13 +1087,42 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
           ssh_port,
           data)
 
+  def _RenewServerAndClientCerts(ctx):
+    ctx.feedback_fn("Updating the cluster SSL certificate.")
+
+    master_name = ssconf.SimpleStore().GetMasterNode()
+    bootstrap.GenerateClusterCrypto(True, # cluster cert
+                                    False, # rapi cert
+                                    False, # spice cert
+                                    False, # confd hmac key
+                                    False, # cds
+                                    True, # client cert
+                                    master_name)
+
+    for node_name in ctx.nonmaster_nodes:
+      port = ctx.ssh_ports[node_name]
+      server_cert = pathutils.NODED_CERT_FILE
+      ctx.feedback_fn("Copying %s to %s:%d" %
+                      (server_cert, node_name, port))
+      ctx.ssh.CopyFileToNode(node_name, port, server_cert)
+
+    _RenewClientCerts(ctx)
+
+
   if new_cluster_cert or new_rapi_cert or new_spice_cert \
       or new_confd_hmac_key or new_cds:
     RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
 
-  if new_node_cert:
+  # If only node certficates are recreated, call _RenewClientCerts only.
+  if new_node_cert and not new_cluster_cert:
     RunWhileDaemonsStopped(ToStdout, [constants.NODED, constants.WCONFD],
                            _RenewClientCerts)
+
+  # If the cluster certificate are renewed, the client certificates need
+  # to be renewed too.
+  if new_cluster_cert:
+    RunWhileDaemonsStopped(ToStdout, [constants.NODED, constants.WCONFD],
+                           _RenewServerAndClientCerts)
 
   ToStdout("All requested certificates and keys have been replaced."
            " Running \"gnt-cluster verify\" now is recommended.")
