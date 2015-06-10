@@ -2,6 +2,25 @@ News
 ====
 
 
+Version 2.13.1
+--------------
+
+*(unreleased)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The SSH security changes reduced the number of nodes which can SSH into
+  other nodes. Unfortunately enough, the Ganeti implementation of migration
+  for the xl stack of Xen required SSH to be able to migrate the instance,
+  leading to a situation where full movement of an instance around the cluster
+  was not possible. This version fixes the issue by using socat to transfer
+  instance data. While socat is less secure than SSH, it is about as secure as
+  xm migrations, and occurs over the secondary network if present. As a
+  consequence of this change, Xen instance migrations using xl cannot occur
+  between nodes running 2.13.0 and 2.13.1.
+
+
 Version 2.13.0
 --------------
 
