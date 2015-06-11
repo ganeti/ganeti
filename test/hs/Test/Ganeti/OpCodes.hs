@@ -413,6 +413,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> return Nothing                  -- pnode_uuid
           <*> genMaybe genNodeNameNE          -- remote_node
           <*> return Nothing                  -- remote_node_uuid
+          <*> genMaybe genNameNE              -- iallocator
           <*> genMaybe genNameNE              -- os_name
           <*> pure emptyJSObject              -- osparams
           <*> genMaybe arbitraryPrivateJSObj  -- osparams_private

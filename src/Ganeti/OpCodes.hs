@@ -687,6 +687,7 @@ $(genOpCode "OpCode"
      , withDoc
        "Secondary node UUID (used when changing disk template)"
        pRemoteNodeUuid
+     , pIallocator
      , pOsNameChange
      , pInstOsParams
      , pInstOsParamsPrivate
