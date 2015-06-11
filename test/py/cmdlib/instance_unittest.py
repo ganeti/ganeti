@@ -2048,6 +2048,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.inst = self.cfg.AddNewInstance(disk_template=self.dev_type)
     self.op = opcodes.OpInstanceSetParams(instance_name=self.inst.name)
 
+    self.cfg._cluster.default_iallocator=None
+
     self.running_inst = \
       self.cfg.AddNewInstance(admin_state=constants.ADMINST_UP)
     self.running_op = \
@@ -2157,8 +2159,9 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     op = self.CopyOpCode(self.op,
                          disk_template=constants.DT_DRBD8)
     self.ExecOpCodeExpectOpPrereqError(
-      op, "Changing the disk template to a mirrored one requires specifying"
-          " a secondary node")
+      op, "No iallocator or node given and no cluster-wide default iallocator"
+          " found; please specify either an iallocator or a node, or set a"
+          " cluster-wide default iallocator")
 
   def testPrimaryNodeToOldPrimaryNode(self):
     op = self.CopyOpCode(self.op,

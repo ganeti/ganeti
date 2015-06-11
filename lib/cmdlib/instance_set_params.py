@@ -39,6 +39,7 @@ from ganeti import errors
 from ganeti import ht
 from ganeti import hypervisor
 from ganeti import locking
+from ganeti.masterd import iallocator
 from ganeti import netutils
 from ganeti import objects
 from ganeti import utils
@@ -51,7 +52,8 @@ from ganeti.cmdlib.common import INSTANCE_DOWN, \
   CheckParamsNotGlobal, \
   IsExclusiveStorageEnabledNode, CheckHVParams, CheckOSParams, \
   GetUpdatedParams, CheckInstanceState, ExpandNodeUuidAndName, \
-  IsValidDiskAccessModeCombination, AnnotateDiskParams
+  IsValidDiskAccessModeCombination, AnnotateDiskParams, \
+  CheckIAllocatorOrNode
 from ganeti.cmdlib.instance_storage import CalculateFileStorageDir, \
   CheckDiskExtProvider, CheckNodesFreeDiskPerVG, CheckRADOSFreeSpace, \
   CheckSpindlesExclusiveStorage, ComputeDiskSizePerVG, ComputeDisksInfo, \
@@ -357,10 +359,7 @@ class LUInstanceSetParams(LogicalUnit):
 
       # mirrored template node checks
       if self.op.disk_template in constants.DTS_INT_MIRROR:
-        if not self.op.remote_node:
-          raise errors.OpPrereqError("Changing the disk template to a mirrored"
-                                     " one requires specifying a secondary"
-                                     " node", errors.ECODE_INVAL)
+        CheckIAllocatorOrNode(self, "iallocator", "remote_node")
       elif self.op.remote_node:
         self.LogWarning("Changing the disk template to a non-mirrored one,"
                         " the secondary node will be ignored")
@@ -433,6 +432,12 @@ class LUInstanceSetParams(LogicalUnit):
           ExpandNodeUuidAndName(self.cfg, self.op.remote_node_uuid,
                                 self.op.remote_node)
         self.needed_locks[locking.LEVEL_NODE].append(self.op.remote_node_uuid)
+      elif self.op.disk_template in constants.DTS_INT_MIRROR:
+        # If we have to find the secondary node for a conversion to DRBD,
+        # close node locks to the whole node group.
+        self.needed_locks[locking.LEVEL_NODE] = \
+          list(self.cfg.GetNodeGroupMembersByNodes(
+            self.needed_locks[locking.LEVEL_NODE]))
     elif level == locking.LEVEL_NODE_RES and self.op.disk_template:
       # Copy node locks
       self.needed_locks[locking.LEVEL_NODE_RES] = \
@@ -674,7 +679,8 @@ class LUInstanceSetParams(LogicalUnit):
                                        default_vg, self.op.ext_params)
 
     # mirror node verification
-    if self.op.disk_template in constants.DTS_INT_MIRROR:
+    if self.op.disk_template in constants.DTS_INT_MIRROR \
+        and self.op.remote_node_uuid:
       if self.op.remote_node_uuid == pnode_uuid:
         raise errors.OpPrereqError("Given new secondary node %s is the same"
                                    " as the primary node of the instance" %
@@ -709,7 +715,8 @@ class LUInstanceSetParams(LogicalUnit):
     if not self.op.disk_template in constants.DTS_EXCL_STORAGE:
       # Make sure none of the nodes require exclusive storage
       nodes = [pnode_info]
-      if self.op.disk_template in constants.DTS_INT_MIRROR:
+      if self.op.disk_template in constants.DTS_INT_MIRROR \
+          and self.op.remote_node_uuid:
         assert snode_info
         nodes.append(snode_info)
       has_es = lambda n: IsExclusiveStorageEnabledNode(self.cfg, n)
@@ -731,8 +738,9 @@ class LUInstanceSetParams(LogicalUnit):
           utils.AllDiskOfType(inst_disks, [constants.DT_PLAIN])):
       # for conversions from the 'plain' to the 'drbd' disk template, check
       # only the remote node's capacity
-      req_sizes = ComputeDiskSizePerVG(self.op.disk_template, self.disks_info)
-      CheckNodesFreeDiskPerVG(self, [self.op.remote_node_uuid], req_sizes)
+      if self.op.remote_node_uuid:
+        req_sizes = ComputeDiskSizePerVG(self.op.disk_template, self.disks_info)
+        CheckNodesFreeDiskPerVG(self, [self.op.remote_node_uuid], req_sizes)
     elif self.op.disk_template in constants.DTS_LVM:
       # rest lvm-based capacity checks
       node_uuids = [pnode_uuid]
@@ -1394,6 +1402,24 @@ class LUInstanceSetParams(LogicalUnit):
 
     """
     feedback_fn("Converting disk template from 'plain' to 'drbd'")
+
+    if not self.op.remote_node_uuid:
+      feedback_fn("Using %s to choose new secondary" % self.op.iallocator)
+
+      req = iallocator.IAReqInstanceAllocateSecondary(
+        name=self.op.instance_name)
+      ial = iallocator.IAllocator(self.cfg, self.rpc, req)
+      ial.Run(self.op.iallocator)
+
+      if not ial.success:
+        raise errors.OpPrereqError("Can's find secondary node using"
+                                   " iallocator %s: %s" %
+                                   (self.op.iallocator, ial.info),
+                                   errors.ECODE_NORES)
+      feedback_fn("%s choose %s as new secondary"
+                  % (self.op.iallocator, ial.result))
+      self.op.remote_node = ial.result
+      self.op.remote_node_uuid = self.cfg.GetNodeInfoByName(ial.result).uuid
 
     pnode_uuid = self.instance.primary_node
     snode_uuid = self.op.remote_node_uuid
