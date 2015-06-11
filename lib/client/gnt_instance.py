@@ -1399,12 +1399,7 @@ def SetInstanceParams(opts, args):
 
   # verify the user provided parameters for disk template conversions
   if opts.disk_template:
-    if (not opts.node and
-        opts.disk_template in constants.DTS_INT_MIRROR):
-      ToStderr("Changing the disk template to a mirrored one requires"
-               " specifying a secondary node")
-      return 1
-    elif (opts.ext_params and
+    if (opts.ext_params and
           opts.disk_template != constants.DT_EXT):
       ToStderr("Specifying ExtStorage parameters requires converting"
                " to the '%s' disk template" % constants.DT_EXT)
@@ -1443,6 +1438,7 @@ def SetInstanceParams(opts, args):
                                    file_driver=opts.file_driver,
                                    file_storage_dir=opts.file_storage_dir,
                                    remote_node=opts.node,
+                                   iallocator=opts.iallocator,
                                    pnode=opts.new_primary_node,
                                    hvparams=opts.hvparams,
                                    beparams=opts.beparams,
@@ -1659,7 +1655,8 @@ commands = {
   "modify": (
     SetInstanceParams, ARGS_ONE_INSTANCE,
     [BACKEND_OPT, DISK_OPT, FORCE_OPT, HVOPTS_OPT, NET_OPT] + SUBMIT_OPTS +
-    [DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, OS_OPT, FORCE_VARIANT_OPT,
+    [DISK_TEMPLATE_OPT, SINGLE_NODE_OPT, IALLOCATOR_OPT,
+     OS_OPT, FORCE_VARIANT_OPT,
      OSPARAMS_OPT, OSPARAMS_PRIVATE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NWSYNC_OPT,
      OFFLINE_INST_OPT, ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
      NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT,
