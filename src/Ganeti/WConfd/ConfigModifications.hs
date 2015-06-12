@@ -47,6 +47,7 @@ import Control.Lens.Traversal (mapMOf)
 import Control.Monad (unless, when, forM_, foldM)
 import Control.Monad.Error (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
+import Data.Foldable (fold, foldMap)
 import Data.List (elemIndex)
 import Data.Maybe (isJust, maybeToList, fromMaybe)
 import Language.Haskell.TH (Name)
@@ -325,6 +326,75 @@ attachInstanceDisk' iUuid dUuid idx' ct cs =
                   M.adjust (diskIvNameL .~ "disk/" ++ show idx'') dUuid' m'
             in GenericContainer $ foldl upgradeIv m (zip [idx..] dUuids)
 
+-- * Monadic config modification functions which can return errors
+
+detachInstanceDisk' :: MonadError GanetiException m
+                    => InstanceUUID
+                    -> DiskUUID
+                    -> ClockTime
+                    -> ConfigState
+                    -> m ConfigState
+detachInstanceDisk' iUuid dUuid ct cs =
+  let resetIv :: MonadError GanetiException m
+              => Int
+              -> [DiskUUID]
+              -> ConfigState
+              -> m ConfigState
+      resetIv startIdx disks = mapMOf (csConfigDataL . configDisksL)
+        (\cd -> foldM (\c (idx, dUuid') -> mapMOf (alterContainerL dUuid')
+          (\md -> case md of
+            Nothing -> throwError . ConfigurationError $
+              printf "Could not find disk with UUID %s" dUuid'
+            Just disk -> return
+                       . Just
+                       . (diskIvNameL .~ ("disk/" ++ show idx))
+                       $ disk) c)
+          cd (zip [startIdx..] disks))
+      iL = csConfigDataL . configInstancesL . alterContainerL iUuid
+  in case cs ^. iL of
+    Nothing -> throwError . ConfigurationError $
+      printf "Could not find instance with UUID %s" iUuid
+    Just ist -> case elemIndex dUuid (instDisks ist) of
+      Nothing -> return cs
+      Just idx ->
+        let ist' = (instDisksL %~ filter (/= dUuid))
+                 . (instSerialL %~ (+1))
+                 . (instMtimeL .~ ct)
+                 $ ist
+            cs' = iL .~ Just ist' $ cs
+            dks = drop (idx + 1) (instDisks ist)
+        in resetIv idx dks cs'
+
+removeInstanceDisk' :: MonadError GanetiException m
+                    => InstanceUUID
+                    -> DiskUUID
+                    -> ClockTime
+                    -> ConfigState
+                    -> m ConfigState
+removeInstanceDisk' iUuid dUuid ct =
+  let f cs
+        | elem dUuid
+          . fold
+          . fmap instDisks
+          . configInstances
+          . csConfigData
+          $ cs
+        = throwError . ProgrammerError $
+        printf "Cannot remove disk %s. Disk is attached to an instance" dUuid
+        | elem dUuid
+          . foldMap (:[])
+          . fmap diskUuid
+          . configDisks
+          . csConfigData
+          $ cs
+        = return
+         . ((csConfigDataL . configDisksL . alterContainerL dUuid) .~ Nothing)
+         . ((csConfigDataL . configClusterL . clusterSerialL) %~ (+1))
+         . ((csConfigDataL . configClusterL . clusterMtimeL) .~ ct)
+         $ cs
+        | otherwise = return cs
+  in (f =<<) . detachInstanceDisk' iUuid dUuid ct
+
 -- * RPCs
 
 -- | Add a new instance to the configuration, release DRBD minors,
@@ -385,39 +455,16 @@ attachInstanceDisk iUuid dUuid idx = do
 detachInstanceDisk :: InstanceUUID -> DiskUUID -> WConfdMonad Bool
 detachInstanceDisk iUuid dUuid = do
   ct <- liftIO getClockTime
-  let resetIv :: MonadError GanetiException m
-              => Int
-              -> [DiskUUID]
-              -> ConfigState
-              -> m ConfigState
-      resetIv startIdx disks = mapMOf (csConfigDataL . configDisksL)
-        (\cd -> foldM (\c (idx, dUuid') -> mapMOf (alterContainerL dUuid')
-          (\md -> case md of
-            Nothing -> throwError . ConfigurationError $
-              printf "Could not find disk with UUID %s" dUuid'
-            Just disk -> return
-                       . Just
-                       . (diskIvNameL .~ ("disk/" ++ show idx))
-                       $ disk) c)
-          cd (zip [startIdx..] disks))
-      iL = csConfigDataL . configInstancesL . alterContainerL iUuid
-      f :: MonadError GanetiException m
-        => ConfigState
-        -> m ConfigState
-      f cs = case cs ^. iL of
-        Nothing -> throwError . ConfigurationError $
-          printf "Could not find instance with UUID %s" iUuid
-        Just ist -> case elemIndex dUuid (instDisks ist) of
-          Nothing -> return cs
-          Just idx ->
-            let ist' = (instDisksL %~ filter (/= dUuid))
-                     . (instSerialL %~ (+1))
-                     . (instMtimeL .~ ct)
-                     $ ist
-                cs' = iL .~ Just ist' $ cs
-                dks = drop (idx + 1) (instDisks ist)
-            in resetIv idx dks cs'
-  isJust <$> modifyConfigWithLock (const f) (return ())
+  isJust <$> modifyConfigWithLock
+    (const $ detachInstanceDisk' iUuid dUuid ct) (return ())
+
+-- | Detach a disk from an instance and
+-- remove it from the config.
+removeInstanceDisk :: InstanceUUID -> DiskUUID -> WConfdMonad Bool
+removeInstanceDisk iUuid dUuid = do
+  ct <- liftIO getClockTime
+  isJust <$> modifyConfigWithLock
+    (const $ removeInstanceDisk' iUuid dUuid ct) (return ())
 
 -- | Allocate a port.
 -- The port will be taken from the available port pool or from the
@@ -552,6 +599,7 @@ exportedFunctions = [ 'addInstance
                     , 'attachInstanceDisk
                     , 'detachInstanceDisk
                     , 'markInstanceDisksActive
+                    , 'removeInstanceDisk
                     , 'setInstancePrimaryNode
                     , 'updateCluster
                     , 'updateDisk
