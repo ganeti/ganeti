@@ -87,6 +87,9 @@ request-specific fields.
 data RqType
   = Allocate Instance.Instance Cluster.AllocDetails (Maybe [String])
     -- ^ A new instance allocation, maybe with allocation restrictions
+  | AllocateSecondary Idx                             -- ^ Find a suitable
+                                                      -- secondary node for disk
+                                                      -- conversion
   | Relocate Idx Int [Ndx]                            -- ^ Choose a new
                                                       --   secondary node
   | NodeEvacuate [Idx] EvacMode                       -- ^ node-evacuate mode

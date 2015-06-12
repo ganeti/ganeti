@@ -53,6 +53,7 @@ import Text.JSON (JSObject, JSValue(JSArray),
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Cluster.AllocationSolution as AllocSol
+import qualified Ganeti.HTools.Cluster.AllocateSecondary as AllocSecondary
 import qualified Ganeti.HTools.Cluster.Evacuate as Evacuate
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Group as Group
@@ -275,6 +276,11 @@ parseData now body = do
                                  return (io, Cluster.AllocDetails
                                                req_nodes rgn))
               return $ MultiAllocate prqs
+        | optype == C.iallocatorModeAllocateSecondary ->
+            do
+              rname <- extrReq "name"
+              ridx  <- lookupInstance kti rname
+              return $ AllocateSecondary ridx
         | otherwise -> fail ("Invalid request type '" ++ optype ++ "'")
   return (msgs, Request rqtype cdata)
 
@@ -305,6 +311,20 @@ formatAllocate il as = do
       do
         let il' = Container.add (Instance.idx inst) inst il
         return (info, showJSON $ map Node.name nodes, nl, il')
+
+-- | Convert allocation/relocation results into the result format.
+formatAllocateSecondary :: Instance.List
+                        -> AllocSol.GenericAllocSolution a
+                        -> Result IAllocResult
+formatAllocateSecondary il as = do
+  let info = describeSolution as
+  case AllocSol.asSolution as of
+    Nothing -> fail info
+    Just (nl, inst, [_, snode], _) ->
+      do
+        let il' = Container.add (Instance.idx inst) inst il
+        return (info, showJSON $ Node.name snode, nl, il')
+    _ -> fail $ "Internal error (not a DRBD allocation); info was: " ++ info
 
 -- | Convert multi allocation results into the result format.
 formatMultiAlloc :: ( Node.List, Instance.List
@@ -445,6 +465,9 @@ processRequest opts request =
                 formatNodeEvac gl nl il
        MultiAllocate xies ->
          Cluster.allocList opts gl nl il xies [] >>= formatMultiAlloc
+       AllocateSecondary xi ->
+         AllocSecondary.tryAllocateSecondary opts gl nl il xi
+           >>= formatAllocateSecondary il
 
 -- | Reads the request from the data file(s).
 readRequest :: FilePath -> IO Request
