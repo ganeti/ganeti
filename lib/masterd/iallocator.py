@@ -232,6 +232,23 @@ class IAReqInstanceAlloc(IARequestBase):
                                          (len(result), self.RequiredNodes()))
 
 
+class IAReqInstanceAllocateSecondary(IARequestBase):
+  """Request to find a secondary node for plain to DRBD conversion.
+
+  """
+  # pylint: disable=E1101
+  MODE = constants.IALLOCATOR_MODE_ALLOCATE_SECONDARY
+  REQ_PARAMS = [
+    _INST_NAME,
+    ]
+  REQ_RESULT = ht.TString
+
+  def GetRequest(self, cfg):
+    return {
+      "name": self.name
+    }
+
+
 class IAReqMultiInstanceAlloc(IARequestBase):
   """An multi instance allocation request.
 
