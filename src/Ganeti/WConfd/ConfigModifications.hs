@@ -44,9 +44,10 @@ import Control.Lens (_2)
 import Control.Lens.Getter ((^.))
 import Control.Lens.Setter ((.~), (%~))
 import Control.Lens.Traversal (mapMOf)
-import Control.Monad (unless, when, forM_)
+import Control.Monad (unless, when, forM_, foldM)
 import Control.Monad.Error (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
+import Data.List (elemIndex)
 import Data.Maybe (isJust, maybeToList, fromMaybe)
 import Language.Haskell.TH (Name)
 import System.Time (getClockTime, ClockTime)
@@ -380,6 +381,44 @@ attachInstanceDisk iUuid dUuid idx = do
        (return ())
   return $ isJust r
 
+-- | Detach a disk from an instance.
+detachInstanceDisk :: InstanceUUID -> DiskUUID -> WConfdMonad Bool
+detachInstanceDisk iUuid dUuid = do
+  ct <- liftIO getClockTime
+  let resetIv :: MonadError GanetiException m
+              => Int
+              -> [DiskUUID]
+              -> ConfigState
+              -> m ConfigState
+      resetIv startIdx disks = mapMOf (csConfigDataL . configDisksL)
+        (\cd -> foldM (\c (idx, dUuid') -> mapMOf (alterContainerL dUuid')
+          (\md -> case md of
+            Nothing -> throwError . ConfigurationError $
+              printf "Could not find disk with UUID %s" dUuid'
+            Just disk -> return
+                       . Just
+                       . (diskIvNameL .~ ("disk/" ++ show idx))
+                       $ disk) c)
+          cd (zip [startIdx..] disks))
+      iL = csConfigDataL . configInstancesL . alterContainerL iUuid
+      f :: MonadError GanetiException m
+        => ConfigState
+        -> m ConfigState
+      f cs = case cs ^. iL of
+        Nothing -> throwError . ConfigurationError $
+          printf "Could not find instance with UUID %s" iUuid
+        Just ist -> case elemIndex dUuid (instDisks ist) of
+          Nothing -> return cs
+          Just idx ->
+            let ist' = (instDisksL %~ filter (/= dUuid))
+                     . (instSerialL %~ (+1))
+                     . (instMtimeL .~ ct)
+                     $ ist
+                cs' = iL .~ Just ist' $ cs
+                dks = drop (idx + 1) (instDisks ist)
+            in resetIv idx dks cs'
+  isJust <$> modifyConfigWithLock (const f) (return ())
+
 -- | Allocate a port.
 -- The port will be taken from the available port pool or from the
 -- default port range (and in this case we increase
@@ -511,6 +550,7 @@ exportedFunctions = [ 'addInstance
                     , 'addInstanceDisk
                     , 'allocatePort
                     , 'attachInstanceDisk
+                    , 'detachInstanceDisk
                     , 'markInstanceDisksActive
                     , 'setInstancePrimaryNode
                     , 'updateCluster
