@@ -924,3 +924,6 @@ class ConfigMock(config.ConfigWriter):
 
   def SetInstancePrimaryNode(self, inst_uuid, target_node_uuid):
     self._UnlockedGetInstanceInfo(inst_uuid).primary_node = target_node_uuid
+
+  def DetachInstanceDisk(self, inst_uuid, disk_uuid):
+    self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)

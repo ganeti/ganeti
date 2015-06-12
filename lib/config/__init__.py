@@ -389,13 +389,11 @@ class ConfigWriter(object):
     self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
     self._UnlockedRemoveDisk(disk_uuid)
 
-  @ConfigSync()
   def DetachInstanceDisk(self, inst_uuid, disk_uuid):
-    """Detach a disk from an instance.
-
-    This is a simple wrapper over L{_UnlockedDetachInstanceDisk}.
-    """
-    self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
+    """Detach a disk from an instance."""
+    utils.SimpleRetry(True, self._wconfd.DetachInstanceDisk, 0.1, 30,
+                      args=[inst_uuid, disk_uuid])
+    self.OutDate()
 
   def _UnlockedGetDiskInfo(self, disk_uuid):
     """Returns information about a disk.
