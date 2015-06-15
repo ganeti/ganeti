@@ -211,3 +211,8 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 ./test/hs/hail -t $TESTDATA_DIR/partly-used.data --restrict-allocation-to node-03,node-04 $TESTDATA_DIR/hail-alloc-drbd-restricted.json
 >>> /successes 2,.*"result":\["node-0[34]","node-0[34]"\]/
 >>>= 0
+
+# Verify allocate-secondary
+./test/hs/hail $TESTDATA_DIR/hail-alloc-secondary.json
+>>> /successes 2, failures 0.*"result":"node-2-2"/
+>>>= 0
