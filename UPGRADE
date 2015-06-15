@@ -47,7 +47,7 @@ above``. 2.13 comes with the new feature of enhanced SSH security
 through individual SSH keys. This features needs to be enabled
 after the upgrade by::
 
-   $ gnt-cluster renew-crypt --new-ssh-keys --no-ssh-key-check
+   $ gnt-cluster renew-crypto --new-ssh-keys --no-ssh-key-check
 
 Note that new SSH keys are generated automatically without warning when
 upgrading with ``gnt-cluster upgrade``.
