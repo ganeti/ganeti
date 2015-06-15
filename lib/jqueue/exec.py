@@ -44,6 +44,7 @@ import time
 from ganeti import mcpu
 from ganeti.server import masterd
 from ganeti.rpc import transport
+from ganeti import serializer
 from ganeti import utils
 from ganeti import pathutils
 from ganeti.utils import livelock
@@ -52,9 +53,11 @@ from ganeti.jqueue import _JobProcessor
 
 
 def _GetMasterInfo():
-  """Retrieves the job id and lock file name from the master process
+  """Retrieve job id, lock file name and secret params from the master process
 
   This also closes standard input/output
+
+  @rtype: (int, string, json encoding of a list of dicts)
 
   """
   logging.debug("Opening transport over stdin/out")
@@ -65,7 +68,27 @@ def _GetMasterInfo():
     logging.debug("Reading the livelock name from the master process")
     livelock_name = livelock.LiveLockName(trans.Call(""))
     logging.debug("Got livelock %s", livelock_name)
-  return (job_id, livelock_name)
+    logging.debug("Reading secret parameters from the master process")
+    secret_params = trans.Call("")
+    logging.debug("Got secret parameters.")
+  return (job_id, livelock_name, secret_params)
+
+
+def RestorePrivateValueWrapping(json):
+  """Wrap private values in JSON decoded structure.
+
+  @param json: the json-decoded value to protect.
+
+  """
+  result = []
+
+  for secrets_dict in json:
+    if secrets_dict is None:
+      data = serializer.PrivateDict()
+    else:
+      data = serializer.PrivateDict(secrets_dict)
+    result.append(data)
+  return result
 
 
 def main():
@@ -75,7 +98,12 @@ def main():
   logname = pathutils.GetLogFilename("jobs")
   utils.SetupLogging(logname, "job-startup", debug=debug)
 
-  (job_id, livelock_name) = _GetMasterInfo()
+  (job_id, livelock_name, secret_params_serialized) = _GetMasterInfo()
+
+  secret_params = ""
+  if secret_params_serialized:
+    secret_params_json = serializer.LoadJson(secret_params_serialized)
+    secret_params = RestorePrivateValueWrapping(secret_params_json)
 
   utils.SetupLogging(logname, "job-%s" % (job_id,), debug=debug)
 
@@ -105,6 +133,12 @@ def main():
     signal.signal(signal.SIGUSR1, _User1Handler)
 
     job = context.jobqueue.SafeLoadJobFromDisk(job_id, False)
+
+    if secret_params:
+      for i in range(0, len(secret_params)):
+        if hasattr(job.ops[i].input, "osparams_secret") and secret_params[i]:
+          job.ops[i].input.osparams_secret = secret_params[i]
+
     job.SetPid(os.getpid())
 
     execfun = mcpu.Processor(context, job_id, job_id).ExecOpCode

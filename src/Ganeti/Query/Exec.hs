@@ -76,14 +76,17 @@ import System.Posix.IO
 import System.Posix.Signals (sigABRT, sigKILL, sigTERM, signalProcess)
 import System.Posix.Types (Fd, ProcessID)
 import System.Time
+import Text.JSON
 import Text.Printf
 
 import qualified AutoConf as AC
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import Ganeti.JQueue.Objects
+import Ganeti.JSON (MaybeForJSON(..))
 import Ganeti.Logging
 import Ganeti.Logging.WriterLog
+import Ganeti.OpCodes
 import qualified Ganeti.Path as P
 import Ganeti.Types
 import Ganeti.UDSServer
@@ -188,6 +191,22 @@ runJobProcess jid s = withErrorLogAt CRITICAL (show jid) $
 
     failError $ "Failed to execute " ++ AC.pythonPath ++ " " ++ execPy
 
+filterSecretParameters :: [QueuedOpCode] -> [MaybeForJSON (JSObject
+                                                           (Private JSValue))]
+filterSecretParameters =
+  map (MaybeForJSON . getSecretParams) . mapMaybe (transformOpCode . qoInput)
+  where
+    transformOpCode :: InputOpCode -> Maybe OpCode
+    transformOpCode inputCode =
+      case inputCode of
+        ValidOpCode moc -> Just (metaOpCode moc)
+        _ -> Nothing
+    getSecretParams :: OpCode -> Maybe (JSObject (Private JSValue))
+    getSecretParams opcode =
+      case opcode of
+        (OpInstanceCreate {}) -> opOsparamsSecret opcode
+        (OpInstanceReinstall {}) -> opOsparamsSecret opcode
+        _ -> Nothing
 
 -- | Forks a child POSIX process, creating a bi-directional communication
 -- channel between the master and the child processes.
@@ -212,6 +231,9 @@ forkJobProcess :: (Error e, Show e)
                -> ResultT e IO (FilePath, ProcessID)
 forkJobProcess job luxiLivelock update = do
   let jidStr = show . fromJobId . qjId $ job
+
+  -- Retrieve secret parameters if present
+  let secretParams = encodeStrict . filterSecretParameters . qjOps $ job
 
   logDebug $ "Setting the lockfile temporarily to " ++ luxiLivelock
              ++ " for job " ++ jidStr
@@ -276,6 +298,9 @@ forkJobProcess job luxiLivelock update = do
 
       _ <- recv "Waiting for the job to ask for the lock file name"
       send "Writing the lock file name to the client" lockfile
+
+      _ <- recv "Waiting for the job to ask for secret parameters"
+      send "Writing secret parameters to the client" secretParams
 
       liftIO $ closeClient master
 
