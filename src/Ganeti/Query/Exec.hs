@@ -194,14 +194,15 @@ runJobProcess jid s = withErrorLogAt CRITICAL (show jid) $
 filterSecretParameters :: [QueuedOpCode] -> [MaybeForJSON (JSObject
                                                            (Private JSValue))]
 filterSecretParameters =
-  map (MaybeForJSON . getSecretParams) . mapMaybe (transformOpCode . qoInput)
+   map (MaybeForJSON . fmap revealValInJSObject
+        . getSecretParams) . mapMaybe (transformOpCode . qoInput)
   where
     transformOpCode :: InputOpCode -> Maybe OpCode
     transformOpCode inputCode =
       case inputCode of
         ValidOpCode moc -> Just (metaOpCode moc)
         _ -> Nothing
-    getSecretParams :: OpCode -> Maybe (JSObject (Private JSValue))
+    getSecretParams :: OpCode -> Maybe (JSObject (Secret JSValue))
     getSecretParams opcode =
       case opcode of
         (OpInstanceCreate {}) -> opOsparamsSecret opcode

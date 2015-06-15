@@ -174,6 +174,9 @@ module Ganeti.Types
   , hotplugActionToRaw
   , Private(..)
   , showPrivateJSObject
+  , Secret(..)
+  , showSecretJSObject
+  , revealValInJSObject
   , HvParams
   , OsParams
   , OsParamsPrivate
@@ -949,6 +952,9 @@ $(THH.makeJSONInstance ''HotplugTarget)
 
 -- * Private type and instances
 
+redacted :: String
+redacted = "<redacted>"
+
 -- | A container for values that should be happy to be manipulated yet
 -- refuses to be shown unless explicitly requested.
 newtype Private a = Private { getPrivate :: a }
@@ -963,7 +969,7 @@ instance (Show a, JSON.JSON a) => JSON.JSON (Private a) where
 -- It would be better not to implement this at all.
 -- Alas, Show OpCode requires Show Private.
 instance Show a => Show (Private a) where
-  show _ = "<redacted>"
+  show _ = redacted
 
 instance THH.PyValue a => THH.PyValue (Private a) where
   showValue (Private x) = "Private(" ++ THH.showValue x ++ ")"
@@ -981,6 +987,43 @@ showPrivateJSObject :: (JSON.JSON a) =>
 showPrivateJSObject value = JSON.toJSObject $ map f value
   where f (k, v) = (k, Private $ JSON.showJSON v)
 
+-- * Secret type and instances
+
+-- | A container for values that behaves like Private, but doesn't leak the
+-- value through showJSON
+newtype Secret a = Secret { getSecret :: a }
+  deriving (Eq, Ord, Functor)
+
+instance (Show a, JSON.JSON a) => JSON.JSON (Secret a) where
+  readJSON = liftM Secret . JSON.readJSON
+  showJSON = const . JSON.JSString $ JSON.toJSString redacted
+
+instance Show a => Show (Secret a) where
+  show _ = redacted
+
+instance THH.PyValue a => THH.PyValue (Secret a) where
+  showValue (Secret x) = "Secret(" ++ THH.showValue x ++ ")"
+
+instance Applicative Secret where
+  pure = Secret
+  Secret f <*> Secret x = Secret (f x)
+
+instance Monad Secret where
+  (Secret x) >>= f = f x
+  return = Secret
+
+-- | We return "<redacted>" here to satisfy the idempotence of serialization and
+-- deserialization, although this will impact the meaningfulness of secret
+-- parameters within configuration tests.
+showSecretJSObject :: (JSON.JSON a) =>
+                       [(String, a)] -> JSON.JSObject (Secret JSON.JSValue)
+showSecretJSObject value = JSON.toJSObject $ map f value
+  where f (k, _) = (k, Secret $ JSON.showJSON redacted)
+
+revealValInJSObject :: JSON.JSObject (Secret JSON.JSValue)
+                  -> JSON.JSObject (Private JSON.JSValue)
+revealValInJSObject object = JSON.toJSObject . map f $ JSON.fromJSObject object
+  where f (k, v) = (k, Private $ getSecret v)
 
 -- | The hypervisor parameter type. This is currently a simple map,
 -- without type checking on key/value pairs.

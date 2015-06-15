@@ -442,6 +442,20 @@ def TPrivate(val_type):
   return desc(fn)
 
 
+def TSecret(val_type):
+  """Checks if a given value is an instance of Private.
+
+  However, the type is named Secret in the Haskell equivalent.
+
+  """
+  def fn(val):
+    return isinstance(val, Private) and val_type(val.Get())
+
+  desc = WithDesc("Private %s" % Parens(val_type))
+
+  return desc(fn)
+
+
 def TListOf(my_type):
   """Checks if a given value is a list with all elements of the same type.
 

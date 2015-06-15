@@ -1220,7 +1220,7 @@ pInstOsParamsSecret :: Field
 pInstOsParamsSecret =
   withDoc "Secret OS parameters for instance" .
   optionalField $
-  simpleField "osparams_secret" [t| JSObject (Private JSValue) |]
+  simpleField "osparams_secret" [t| JSObject (Secret JSValue) |]
 
 pPrimaryNode :: Field
 pPrimaryNode =
@@ -1340,7 +1340,7 @@ pTempOsParamsSecret :: Field
 pTempOsParamsSecret =
   withDoc "Secret OS parameters for instance reinstalls" .
   optionalField $
-  simpleField "osparams_secret" [t| JSObject (Private JSValue) |]
+  simpleField "osparams_secret" [t| JSObject (Secret JSValue) |]
 
 pShutdownTimeout :: Field
 pShutdownTimeout =
