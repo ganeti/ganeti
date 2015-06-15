@@ -4382,12 +4382,8 @@ cryptoTypes = ConstantUtils.mkSet [cryptoTypeSslDigest]
 cryptoActionGet :: String
 cryptoActionGet = "get"
 
--- This is 'create and get'
-cryptoActionCreate :: String
-cryptoActionCreate = "create"
-
 cryptoActions :: FrozenSet String
-cryptoActions = ConstantUtils.mkSet [cryptoActionGet, cryptoActionCreate]
+cryptoActions = ConstantUtils.mkSet [cryptoActionGet]
 
 -- * Options for CryptoActions
 

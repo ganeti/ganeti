@@ -1211,13 +1211,8 @@ def GetCryptoTokens(token_requests):
   @return: list of tuples of the token type and the public crypto token
 
   """
-  getents = runtime.GetEnts()
-  _VALID_CERT_FILES = [pathutils.NODED_CERT_FILE,
-                       pathutils.NODED_CLIENT_CERT_FILE,
-                       pathutils.NODED_CLIENT_CERT_FILE_TMP]
-  _DEFAULT_CERT_FILE = pathutils.NODED_CLIENT_CERT_FILE
   tokens = []
-  for (token_type, action, options) in token_requests:
+  for (token_type, action, _) in token_requests:
     if token_type not in constants.CRYPTO_TYPES:
       raise errors.ProgrammerError("Token type '%s' not supported." %
                                    token_type)
@@ -1225,46 +1220,8 @@ def GetCryptoTokens(token_requests):
       raise errors.ProgrammerError("Action '%s' is not supported." %
                                    action)
     if token_type == constants.CRYPTO_TYPE_SSL_DIGEST:
-      if action == constants.CRYPTO_ACTION_CREATE:
-
-        # extract file name from options
-        cert_filename = None
-        if options:
-          cert_filename = options.get(constants.CRYPTO_OPTION_CERT_FILE)
-        if not cert_filename:
-          cert_filename = _DEFAULT_CERT_FILE
-        # For security reason, we don't allow arbitrary filenames
-        if not cert_filename in _VALID_CERT_FILES:
-          raise errors.ProgrammerError(
-            "The certificate file name path '%s' is not allowed." %
-            cert_filename)
-
-        # extract serial number from options
-        serial_no = None
-        if options:
-          try:
-            serial_no = int(options[constants.CRYPTO_OPTION_SERIAL_NO])
-          except ValueError:
-            raise errors.ProgrammerError(
-              "The given serial number is not an intenger: %s." %
-              options.get(constants.CRYPTO_OPTION_SERIAL_NO))
-          except KeyError:
-            raise errors.ProgrammerError("No serial number was provided.")
-
-        if not serial_no:
-          raise errors.ProgrammerError(
-            "Cannot create an SSL certificate without a serial no.")
-
-        utils.GenerateNewSslCert(
-          True, cert_filename, serial_no,
-          "Create new client SSL certificate in %s." % cert_filename,
-          uid=getents.masterd_uid, gid=getents.masterd_gid)
-        tokens.append((token_type,
-                       utils.GetCertificateDigest(
-                         cert_filename=cert_filename)))
-      elif action == constants.CRYPTO_ACTION_GET:
-        tokens.append((token_type,
-                       utils.GetCertificateDigest()))
+      tokens.append((token_type,
+                     utils.GetCertificateDigest()))
   return tokens
 
 

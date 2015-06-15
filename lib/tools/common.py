@@ -165,6 +165,8 @@ def GenerateClientCertificate(
 
   # The hostname of the node is provided with the input data.
   hostname = data.get(constants.NDS_NODE_NAME)
+  if not hostname:
+    raise error_fn("No hostname found.")
 
   utils.GenerateSignedSslCert(client_cert, serial_no, signing_cert,
                               common_name=hostname)

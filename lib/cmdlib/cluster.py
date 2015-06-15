@@ -65,10 +65,9 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
   CheckOSParams, CheckHVParams, AdjustCandidatePool, CheckNodePVs, \
   ComputeIPolicyInstanceViolation, AnnotateDiskParams, SupportsOob, \
   CheckIpolicyVsDiskTemplates, CheckDiskAccessModeValidity, \
-  CheckDiskAccessModeConsistency, CreateNewClientCert, \
+  CheckDiskAccessModeConsistency, GetClientCertDigest, \
   AddInstanceCommunicationNetworkOp, ConnectInstanceCommunicationNetworkOp, \
-  CheckImageValidity, \
-  CheckDiskAccessModeConsistency, CreateNewClientCert, EnsureKvmdOnNodes
+  CheckImageValidity, CheckDiskAccessModeConsistency, EnsureKvmdOnNodes
 
 import ganeti.masterd.instance
 
@@ -93,7 +92,7 @@ def _UpdateMasterClientCert(
   @return: the digest of the newly created client certificate
 
   """
-  client_digest = CreateNewClientCert(lu, master_uuid, filename=client_cert_tmp)
+  client_digest = GetClientCertDigest(lu, master_uuid, filename=client_cert_tmp)
   cfg.AddNodeToCandidateCerts(master_uuid, client_digest)
   # This triggers an update of the config and distribution of it with the old
   # SSL certificate
@@ -188,7 +187,7 @@ class LUClusterRenewCrypto(NoHooksLU):
         last_exception = None
         for i in range(self._MAX_NUM_RETRIES):
           try:
-            new_digest = CreateNewClientCert(self, node_uuid)
+            new_digest = GetClientCertDigest(self, node_uuid)
             if node_info.master_candidate:
               self.cfg.AddNodeToCandidateCerts(node_uuid,
                                                new_digest)

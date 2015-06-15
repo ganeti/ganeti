@@ -51,7 +51,7 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   CheckInstanceState, INSTANCE_DOWN, GetUpdatedParams, \
   AdjustCandidatePool, CheckIAllocatorOrNode, LoadNodeEvacResult, \
   GetWantedNodes, MapInstanceLvsToNodes, RunPostHook, \
-  FindFaultyInstanceDisks, CheckStorageTypeEnabled, CreateNewClientCert, \
+  FindFaultyInstanceDisks, CheckStorageTypeEnabled, GetClientCertDigest, \
   AddNodeCertToCandidateCerts, RemoveNodeCertFromCandidateCerts, \
   EnsureKvmdOnNodes
 
@@ -431,7 +431,7 @@ class LUNodeAdd(LogicalUnit):
       RedistributeAncillaryFiles(self)
 
     # We create a new certificate even if the node is readded
-    digest = CreateNewClientCert(self, self.new_node.uuid)
+    digest = GetClientCertDigest(self, self.new_node.uuid)
     if self.new_node.master_candidate:
       self.cfg.AddNodeToCandidateCerts(self.new_node.uuid, digest)
     else:

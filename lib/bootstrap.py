@@ -1010,6 +1010,7 @@ def SetupNodeDaemon(opts, cluster_name, node, ssh_port):
       utils.ReadFile(pathutils.NODED_CERT_FILE),
     constants.NDS_SSCONF: ssconf.SimpleStore().ReadAll(),
     constants.NDS_START_NODE_DAEMON: True,
+    constants.NDS_NODE_NAME: node,
     }
 
   RunNodeSetupCmd(cluster_name, node, pathutils.NODE_DAEMON_SETUP,
