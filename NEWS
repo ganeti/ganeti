@@ -7,6 +7,15 @@ Version 2.16.0
 
 *(unreleased)*
 
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The IAllocator protocol has been extended by a new ``allocate-secondary``
+  request type. Currently, this new request type is only used when in disk
+  conversion to DRBD no secondary node is specified. As long as this new
+  feature is not used, a third-party IAllocator not aware of this extension can
+  be continued to be used.
+
 New dependencies
 ~~~~~~~~~~~~~~~~
 
