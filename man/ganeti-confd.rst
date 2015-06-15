@@ -9,7 +9,8 @@ ganeti-confd - Ganeti conf daemon
 Synopsis
 --------
 
-**ganeti-confd** [-f] [-d]
+**ganeti-confd** [-f] [-d]  [--syslog] [-p *PORT*] [-b *ADDRESS*]
+[--no-user-checks]
 
 DESCRIPTION
 -----------

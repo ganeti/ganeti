@@ -57,17 +57,6 @@ DAEMONS_EXTRA_LOGFILES = \
        for extra in DAEMONS_EXTRA_LOGBASE[daemon]))
          for daemon in DAEMONS_EXTRA_LOGBASE)
 
-# When the Xen toolstack used is "xl", live migration requires the source host
-# to connect to the target host via ssh (xl runs this command). We need to pass
-# the command xl runs some extra info so that it can use Ganeti's key
-# verification and not fail. Note that this string is incomplete: it must be
-# filled with the cluster name before being used.
-XL_SSH_CMD = ("ssh -l %s -oGlobalKnownHostsFile=%s"
-              " -oUserKnownHostsFile=/dev/null"
-              " -oCheckHostIp=no -oStrictHostKeyChecking=yes"
-              " -oHostKeyAlias=%%s") % (SSH_LOGIN_USER,
-                                        pathutils.SSH_KNOWN_HOSTS_FILE)
-
 IE_MAGIC_RE = re.compile(r"^[-_.a-zA-Z0-9]{5,100}$")
 
 # External script validation mask
