@@ -61,6 +61,7 @@ from cmdlib.cmdlib_unittest import _FakeLU
 from testsupport import *
 
 import testutils
+from testutils.config_mock import _UpdateIvNames
 
 
 class TestComputeIPolicyInstanceSpecViolation(unittest.TestCase):
@@ -1337,7 +1338,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       self.assertTrue(disk.children is None)
 
     self._CheckIvNames(result, base_index, base_index + len(disk_info))
-    config._UpdateIvNames(base_index, result)
+    _UpdateIvNames(base_index, result)
     self._CheckIvNames(result, base_index, base_index + len(disk_info))
 
     return result
@@ -1522,7 +1523,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
       self.assertEqual(disk.children[1].size, constants.DRBD_META_SIZE)
 
     self._CheckIvNames(result, 0, len(disk_info))
-    config._UpdateIvNames(0, result)
+    _UpdateIvNames(0, result)
     self._CheckIvNames(result, 0, len(disk_info))
 
     self.assertEqual(map(operator.attrgetter("logical_id"), result), [

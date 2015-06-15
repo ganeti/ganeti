@@ -53,6 +53,16 @@ def _StubGetEntResolver():
   return mocks.FakeGetentResolver()
 
 
+def _UpdateIvNames(base_idx, disks):
+  """Update the C{iv_name} attribute of disks.
+
+  @type disks: list of L{objects.Disk}
+
+  """
+  for (idx, disk) in enumerate(disks):
+    disk.iv_name = "disk/%s" % (base_idx + idx)
+
+
 # pylint: disable=R0904
 class ConfigMock(config.ConfigWriter):
   """A mocked cluster configuration with added methods for easy customization.
@@ -925,5 +935,37 @@ class ConfigMock(config.ConfigWriter):
   def SetInstancePrimaryNode(self, inst_uuid, target_node_uuid):
     self._UnlockedGetInstanceInfo(inst_uuid).primary_node = target_node_uuid
 
+  def _UnlockedDetachInstanceDisk(self, inst_uuid, disk_uuid):
+    """Detach a disk from an instance.
+
+    @type inst_uuid: string
+    @param inst_uuid: The UUID of the instance object
+    @type disk_uuid: string
+    @param disk_uuid: The UUID of the disk object
+
+    """
+    instance = self._UnlockedGetInstanceInfo(inst_uuid)
+    if instance is None:
+      raise errors.ConfigurationError("Instance %s doesn't exist"
+                                      % inst_uuid)
+    if disk_uuid not in self._ConfigData().disks:
+      raise errors.ConfigurationError("Disk %s doesn't exist" % disk_uuid)
+
+    # Check if disk is attached to the instance
+    if disk_uuid not in instance.disks:
+      raise errors.ProgrammerError("Disk %s is not attached to an instance"
+                                   % disk_uuid)
+
+    idx = instance.disks.index(disk_uuid)
+    instance.disks.remove(disk_uuid)
+    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
+    _UpdateIvNames(idx, instance_disks[idx:])
+    instance.serial_no += 1
+    instance.mtime = time.time()
+
   def DetachInstanceDisk(self, inst_uuid, disk_uuid):
     self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
+
+  def RemoveInstanceDisk(self, inst_uuid, disk_uuid):
+    self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
+    self._UnlockedRemoveDisk(disk_uuid)

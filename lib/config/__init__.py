@@ -155,16 +155,6 @@ def _CheckInstanceDiskIvNames(disks):
   return result
 
 
-def _UpdateIvNames(base_idx, disks):
-  """Update the C{iv_name} attribute of disks.
-
-  @type disks: list of L{objects.Disk}
-
-  """
-  for (idx, disk) in enumerate(disks):
-    disk.iv_name = "disk/%s" % (base_idx + idx)
-
-
 class ConfigWriter(object):
   """The interface to the cluster configuration.
 
@@ -329,34 +319,6 @@ class ConfigWriter(object):
                       args=[inst_uuid, disk_uuid, idx])
     self.OutDate()
 
-  def _UnlockedDetachInstanceDisk(self, inst_uuid, disk_uuid):
-    """Detach a disk from an instance.
-
-    @type inst_uuid: string
-    @param inst_uuid: The UUID of the instance object
-    @type disk_uuid: string
-    @param disk_uuid: The UUID of the disk object
-
-    """
-    instance = self._UnlockedGetInstanceInfo(inst_uuid)
-    if instance is None:
-      raise errors.ConfigurationError("Instance %s doesn't exist"
-                                      % inst_uuid)
-    if disk_uuid not in self._ConfigData().disks:
-      raise errors.ConfigurationError("Disk %s doesn't exist" % disk_uuid)
-
-    # Check if disk is attached to the instance
-    if disk_uuid not in instance.disks:
-      raise errors.ProgrammerError("Disk %s is not attached to an instance"
-                                   % disk_uuid)
-
-    idx = instance.disks.index(disk_uuid)
-    instance.disks.remove(disk_uuid)
-    instance_disks = self._UnlockedGetInstanceDisks(inst_uuid)
-    _UpdateIvNames(idx, instance_disks[idx:])
-    instance.serial_no += 1
-    instance.mtime = time.time()
-
   def _UnlockedRemoveDisk(self, disk_uuid):
     """Remove the disk from the configuration.
 
@@ -378,16 +340,11 @@ class ConfigWriter(object):
     del self._ConfigData().disks[disk_uuid]
     self._ConfigData().cluster.serial_no += 1
 
-  @ConfigSync()
   def RemoveInstanceDisk(self, inst_uuid, disk_uuid):
-    """Detach a disk from an instance and remove it from the config.
-
-    This is a simple wrapper over L{_UnlockedDetachInstanceDisk} and
-    L{_UnlockedRemoveDisk}.
-
-    """
-    self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
-    self._UnlockedRemoveDisk(disk_uuid)
+    """Detach a disk from an instance and remove it from the config."""
+    utils.SimpleRetry(True, self._wconfd.RemoveInstanceDisk, 0.1, 30,
+                      args=[inst_uuid, disk_uuid])
+    self.OutDate()
 
   def DetachInstanceDisk(self, inst_uuid, disk_uuid):
     """Detach a disk from an instance."""

@@ -51,7 +51,7 @@ from ganeti.config import TemporaryReservationManager
 import testutils
 import mocks
 import mock
-from testutils.config_mock import ConfigMock
+from testutils.config_mock import ConfigMock, _UpdateIvNames
 
 
 def _StubGetEntResolver():
@@ -688,7 +688,7 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
   def testNoError(self):
     disks = self._MakeDisks(["disk/0", "disk/1"])
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
-    config._UpdateIvNames(0, disks)
+    _UpdateIvNames(0, disks)
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
   def testWrongNames(self):
@@ -699,7 +699,7 @@ class TestCheckInstanceDiskIvNames(unittest.TestCase):
       ])
 
     # Fix names
-    config._UpdateIvNames(0, disks)
+    _UpdateIvNames(0, disks)
     self.assertEqual(config._CheckInstanceDiskIvNames(disks), [])
 
 
