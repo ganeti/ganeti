@@ -36,14 +36,12 @@ import os.path
 import optparse
 import sys
 import logging
-import time
 
 from ganeti import cli
 from ganeti import constants
 from ganeti import errors
 from ganeti import utils
 from ganeti import ht
-from ganeti import pathutils
 from ganeti.tools import common
 
 
@@ -77,33 +75,6 @@ def ParseOptions():
   return common.VerifyOptions(parser, opts, args)
 
 
-def RegenerateClientCertificate(
-    data, client_cert=pathutils.NODED_CLIENT_CERT_FILE,
-    signing_cert=pathutils.NODED_CERT_FILE):
-  """Regenerates the client certificate of the node.
-
-  @type data: string
-  @param data: the JSON-formated input data
-
-  """
-  if not os.path.exists(signing_cert):
-    raise SslSetupError("The signing certificate '%s' cannot be found."
-                        % signing_cert)
-
-  # TODO: This sets the serial number to the number of seconds
-  # since epoch. This is technically not a correct serial number
-  # (in the way SSL is supposed to be used), but it serves us well
-  # enough for now, as we don't have any infrastructure for keeping
-  # track of the number of signed certificates yet.
-  serial_no = int(time.time())
-
-  # The hostname of the node is provided with the input data.
-  hostname = data.get(constants.NDS_NODE_NAME)
-
-  utils.GenerateSignedSslCert(client_cert, serial_no, signing_cert,
-                              common_name=hostname)
-
-
 def Main():
   """Main routine.
 
@@ -121,7 +92,7 @@ def Main():
     # is the same as on this node.
     common.VerifyCertificate(data, SslSetupError)
 
-    RegenerateClientCertificate(data)
+    common.GenerateClientCertificate(data, SslSetupError)
 
   except Exception, err: # pylint: disable=W0703
     logging.debug("Caught unhandled exception", exc_info=True)

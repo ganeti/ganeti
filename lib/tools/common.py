@@ -33,9 +33,12 @@
 
 import logging
 import OpenSSL
+import os
+import time
 from cStringIO import StringIO
 
 from ganeti import constants
+from ganeti import pathutils
 from ganeti import utils
 from ganeti import serializer
 from ganeti import ssconf
@@ -138,3 +141,30 @@ def LoadData(raw, data_check):
 
   """
   return serializer.LoadAndVerifyJson(raw, data_check)
+
+
+def GenerateClientCertificate(
+    data, error_fn, client_cert=pathutils.NODED_CLIENT_CERT_FILE,
+    signing_cert=pathutils.NODED_CERT_FILE):
+  """Regenerates the client certificate of the node.
+
+  @type data: string
+  @param data: the JSON-formated input data
+
+  """
+  if not os.path.exists(signing_cert):
+    raise error_fn("The signing certificate '%s' cannot be found."
+                   % signing_cert)
+
+  # TODO: This sets the serial number to the number of seconds
+  # since epoch. This is technically not a correct serial number
+  # (in the way SSL is supposed to be used), but it serves us well
+  # enough for now, as we don't have any infrastructure for keeping
+  # track of the number of signed certificates yet.
+  serial_no = int(time.time())
+
+  # The hostname of the node is provided with the input data.
+  hostname = data.get(constants.NDS_NODE_NAME)
+
+  utils.GenerateSignedSslCert(client_cert, serial_no, signing_cert,
+                              common_name=hostname)

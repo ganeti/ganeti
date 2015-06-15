@@ -37,18 +37,15 @@ import os.path
 import OpenSSL
 import time
 
-from ganeti import errors
 from ganeti import constants
-from ganeti import serializer
-from ganeti import pathutils
-from ganeti import compat
 from ganeti import utils
-from ganeti.tools import ssl_update
+from ganeti.tools import common
 
 import testutils
 
 
 class TestGenerateClientCert(unittest.TestCase):
+
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
 
@@ -67,8 +64,9 @@ class TestGenerateClientCert(unittest.TestCase):
             constants.NDS_NODE_DAEMON_CERTIFICATE: "some_cert",
             constants.NDS_NODE_NAME: my_node_name}
 
-    ssl_update.RegenerateClientCertificate(data, client_cert=self.client_cert,
-                                           signing_cert=self.server_cert)
+    common.GenerateClientCertificate(data, Exception,
+                                     client_cert=self.client_cert,
+                                     signing_cert=self.server_cert)
 
     client_cert_pem = utils.ReadFile(self.client_cert)
     server_cert_pem = utils.ReadFile(self.server_cert)
