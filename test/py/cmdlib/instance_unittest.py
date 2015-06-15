@@ -1784,17 +1784,6 @@ class TestCheckOpportunisticLocking(unittest.TestCase):
           instance.CheckOpportunisticLocking(op)
 
 
-class TestLUInstanceRemove(CmdlibTestCase):
-  def testRemoveMissingInstance(self):
-    op = opcodes.OpInstanceRemove(instance_name="missing.inst")
-    self.ExecOpCodeExpectOpPrereqError(op, "Instance 'missing.inst' not known")
-
-  def testRemoveInst(self):
-    inst = self.cfg.AddNewInstance(disks=[])
-    op = opcodes.OpInstanceRemove(instance_name=inst.name)
-    self.ExecOpCode(op)
-
-
 class TestLUInstanceMove(CmdlibTestCase):
   def setUp(self):
     super(TestLUInstanceMove, self).setUp()

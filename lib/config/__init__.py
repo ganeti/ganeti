@@ -1768,32 +1768,13 @@ class ConfigWriter(object):
     return self._SetInstanceStatus(inst_uuid, constants.ADMINST_OFFLINE, False,
                                    constants.ADMIN_SOURCE)
 
-  @ConfigSync()
   def RemoveInstance(self, inst_uuid):
     """Remove the instance from the configuration.
 
     """
-    if inst_uuid not in self._ConfigData().instances:
-      raise errors.ConfigurationError("Unknown instance '%s'" % inst_uuid)
-
-    # If a network port has been allocated to the instance,
-    # return it to the pool of free ports.
-    inst = self._ConfigData().instances[inst_uuid]
-    network_port = getattr(inst, "network_port", None)
-    if network_port is not None:
-      self._ConfigData().cluster.tcpudp_port_pool.add(network_port)
-
-    instance = self._UnlockedGetInstanceInfo(inst_uuid)
-
-    # FIXME: After RemoveInstance is moved to WConfd, use its internal
-    # function from TempRes module.
-    for nic in instance.nics:
-      if nic.network and nic.ip:
-        # Return all IP addresses to the respective address pools
-        self._UnlockedCommitIp(constants.RELEASE_ACTION, nic.network, nic.ip)
-
-    del self._ConfigData().instances[inst_uuid]
-    self._ConfigData().cluster.serial_no += 1
+    utils.SimpleRetry(True, self._wconfd.RemoveInstance, 0.1, 30,
+                      args=[inst_uuid])
+    self.OutDate()
 
   @ConfigSync()
   def RenameInstance(self, inst_uuid, new_name):

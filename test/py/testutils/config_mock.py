@@ -969,3 +969,6 @@ class ConfigMock(config.ConfigWriter):
   def RemoveInstanceDisk(self, inst_uuid, disk_uuid):
     self._UnlockedDetachInstanceDisk(inst_uuid, disk_uuid)
     self._UnlockedRemoveDisk(disk_uuid)
+
+  def RemoveInstance(self, inst_uuid):
+    del self._ConfigData().instances[inst_uuid]
