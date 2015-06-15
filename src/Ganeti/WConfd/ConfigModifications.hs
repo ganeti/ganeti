@@ -47,9 +47,10 @@ import Control.Lens.Traversal (mapMOf)
 import Control.Monad (unless, when, forM_, foldM)
 import Control.Monad.Error (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.State (StateT, get, put, modify, execStateT)
 import Data.Foldable (fold, foldMap)
 import Data.List (elemIndex)
-import Data.Maybe (isJust, maybeToList, fromMaybe)
+import Data.Maybe (isJust, maybeToList, fromMaybe, fromJust)
 import Language.Haskell.TH (Name)
 import System.Time (getClockTime, ClockTime)
 import Text.Printf (printf)
@@ -466,6 +467,42 @@ removeInstanceDisk iUuid dUuid = do
   isJust <$> modifyConfigWithLock
     (const $ removeInstanceDisk' iUuid dUuid ct) (return ())
 
+-- | Remove the instance from the configuration.
+removeInstance :: InstanceUUID -> WConfdMonad Bool
+removeInstance iUuid = do
+  ct <- liftIO getClockTime
+  let iL = csConfigDataL . configInstancesL . alterContainerL iUuid
+      pL = csConfigDataL . configClusterL . clusterTcpudpPortPoolL
+      sL = csConfigDataL . configClusterL . clusterSerialL
+      mL = csConfigDataL . configClusterL . clusterMtimeL
+
+      -- Add the instances' network port to the cluster pool
+      f :: Monad m => StateT ConfigState m ()
+      f = get >>= (maybe
+        (return ())
+        (maybe
+          (return ())
+          (modify . (pL %~) . (:))
+          . instNetworkPort)
+        . (^. iL))
+
+      -- Release all IP addresses to the pool
+      g :: (MonadError GanetiException m, Functor m) => StateT ConfigState m ()
+      g = get >>= (maybe
+        (return ())
+        (mapM_ (\nic ->
+          when ((isJust . nicNetwork $ nic) && (isJust . nicIp $ nic)) $ do
+            let network = fromJust . nicNetwork $ nic
+            ip <- readIp4Address (fromJust . nicIp $ nic)
+            get >>= mapMOf csConfigDataL (T.commitReleaseIp network ip) >>= put)
+          . instNics)
+        . (^. iL))
+
+      -- Remove the instance and update cluster serial num, and mtime
+      h :: Monad m => StateT ConfigState m ()
+      h = modify $ (iL .~ Nothing) . (sL %~ (+1)) . (mL .~ ct)
+  isJust <$> modifyConfigWithLock (const $ execStateT (f >> g >> h)) (return ())
+
 -- | Allocate a port.
 -- The port will be taken from the available port pool or from the
 -- default port range (and in this case we increase
@@ -599,6 +636,7 @@ exportedFunctions = [ 'addInstance
                     , 'attachInstanceDisk
                     , 'detachInstanceDisk
                     , 'markInstanceDisksActive
+                    , 'removeInstance
                     , 'removeInstanceDisk
                     , 'setInstancePrimaryNode
                     , 'updateCluster
