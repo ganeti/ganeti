@@ -508,6 +508,7 @@ class TestLUClusterSetParams(CmdlibTestCase):
   def testFileStorageDir(self):
     op = opcodes.OpClusterSetParams(file_storage_dir="/random/path")
     self.ExecOpCode(op)
+    self.assertEqual("/random/path", self.cluster.file_storage_dir)
 
   def testSetFileStorageDirToCurrentValue(self):
     op = opcodes.OpClusterSetParams(
@@ -531,6 +532,36 @@ class TestLUClusterSetParams(CmdlibTestCase):
     op = opcodes.OpClusterSetParams(file_storage_dir='/some/path/')
     self.ExecOpCode(op)
     self.mcpu.assertLogContainsRegex("although file storage is not enabled")
+
+  def testSharedFileStorageDir(self):
+    op = opcodes.OpClusterSetParams(shared_file_storage_dir="/random/path")
+    self.ExecOpCode(op)
+    self.assertEqual("/random/path", self.cluster.shared_file_storage_dir)
+
+  def testSetSharedFileStorageDirToCurrentValue(self):
+    op = opcodes.OpClusterSetParams(shared_file_storage_dir="/random/path")
+    self.ExecOpCode(op)
+    op = opcodes.OpClusterSetParams(shared_file_storage_dir="/random/path")
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex("shared file storage dir already set to"
+                                     " value")
+
+  def testUnsetSharedFileStorageDirSharedFileStorageEnabled(self):
+    self.cfg.SetEnabledDiskTemplates([constants.DT_SHARED_FILE])
+    op = opcodes.OpClusterSetParams(shared_file_storage_dir='')
+    self.ExecOpCodeExpectOpPrereqError(op, "Unsetting the 'sharedfile' storage")
+
+  def testUnsetSharedFileStorageDirSharedFileStorageDisabled(self):
+    self.cfg.SetEnabledDiskTemplates([constants.DT_PLAIN])
+    op = opcodes.OpClusterSetParams(shared_file_storage_dir='')
+    self.ExecOpCode(op)
+
+  def testSetSharedFileStorageDirSharedFileStorageDisabled(self):
+    self.cfg.SetEnabledDiskTemplates([constants.DT_PLAIN])
+    op = opcodes.OpClusterSetParams(shared_file_storage_dir='/some/path/')
+    self.ExecOpCode(op)
+    self.mcpu.assertLogContainsRegex("although sharedfile storage is not"
+                                     " enabled")
 
   def testValidDrbdHelper(self):
     node1 = self.cfg.AddNewNode()

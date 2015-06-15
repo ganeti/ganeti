@@ -9,7 +9,7 @@ ganeti-mond - Ganeti monitoring daemon
 Synopsis
 --------
 
-**ganeti-mond** [-d] [-f] [--no-user-checks] [-p PORT]
+**ganeti-mond** [-f] [-d] [-p *PORT*] [-b *ADDRESS*] [--no-user-checks]
 
 DESCRIPTION
 -----------

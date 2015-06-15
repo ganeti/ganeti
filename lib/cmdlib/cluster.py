@@ -1722,6 +1722,7 @@ class LUClusterSetParams(LogicalUnit):
 
     self.cluster = self.cfg.GetClusterInfo()
     self._SetFileStorageDir(feedback_fn)
+    self._SetSharedFileStorageDir(feedback_fn)
     self.cfg.Update(self.cluster, feedback_fn)
     self._SetDrbdHelper(feedback_fn)
 
