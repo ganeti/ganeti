@@ -654,6 +654,7 @@ $(THH.makeJSONInstance ''IAllocatorTestDir)
 -- | IAllocator mode. FIXME: use this in "HTools.Backend.IAlloc".
 $(THH.declareLADT ''String "IAllocatorMode"
   [ ("IAllocatorAlloc",       "allocate")
+  , ("IAllocatorAllocateSecondary", "allocate-secondary")
   , ("IAllocatorMultiAlloc",  "multi-allocate")
   , ("IAllocatorReloc",       "relocate")
   , ("IAllocatorNodeEvac",    "node-evacuate")

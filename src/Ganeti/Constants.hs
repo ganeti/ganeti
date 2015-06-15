@@ -3409,6 +3409,10 @@ validIallocatorDirections =
 iallocatorModeAlloc :: String
 iallocatorModeAlloc = Types.iAllocatorModeToRaw IAllocatorAlloc
 
+iallocatorModeAllocateSecondary :: String
+iallocatorModeAllocateSecondary =
+  Types.iAllocatorModeToRaw IAllocatorAllocateSecondary
+
 iallocatorModeChgGroup :: String
 iallocatorModeChgGroup = Types.iAllocatorModeToRaw IAllocatorChangeGroup
 
