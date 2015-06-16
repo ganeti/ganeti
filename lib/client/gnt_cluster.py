@@ -786,7 +786,7 @@ def VerifyDisks(opts, args):
   """
   cl = GetClient()
 
-  op = opcodes.OpClusterVerifyDisks()
+  op = opcodes.OpClusterVerifyDisks(group_name=opts.nodegroup)
 
   result = SubmitOpCode(op, cl=cl, opts=opts)
 
@@ -2334,7 +2334,7 @@ commands = {
      VERIFY_CLUTTER_OPT],
     "", "Does a check on the cluster configuration"),
   "verify-disks": (
-    VerifyDisks, ARGS_NONE, [PRIORITY_OPT],
+    VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT],
     "", "Does a check on the cluster disk status"),
   "repair-disk-sizes": (
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],
