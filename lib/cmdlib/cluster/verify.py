@@ -193,9 +193,14 @@ class LUClusterVerifyDisks(NoHooksLU):
 
   def ExpandNames(self):
     self.share_locks = ShareAll()
-    self.needed_locks = {
-      locking.LEVEL_NODEGROUP: locking.ALL_SET,
-      }
+    if self.op.group_name:
+      self.needed_locks = {
+        locking.LEVEL_NODEGROUP: [self.cfg.LookupNodeGroup(self.op.group_name)]
+        }
+    else:
+      self.needed_locks = {
+        locking.LEVEL_NODEGROUP: locking.ALL_SET,
+        }
 
   def Exec(self, feedback_fn):
     group_names = self.owned_locks(locking.LEVEL_NODEGROUP)
