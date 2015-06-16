@@ -2300,7 +2300,8 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     shutil.copy(testutils.TestDataFilename("cert1.pem"), self._node_cert)
     self._client_node_cert = self._CreateTempFile()
     shutil.copy(testutils.TestDataFilename("cert2.pem"), self._client_node_cert)
-    self._client_node_cert_tmp = self._CreateTempFile()
+    self._client_node_cert_digest = \
+        "BF:24:F7:57:50:60:43:87:83:E3:0D:7E:EF:DD:14:6C:13:43:20:4E"
 
   def tearDown(self):
     super(TestLUClusterRenewCrypto, self).tearDown()
@@ -2321,8 +2322,6 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     """
     pathutils.NODED_CERT_FILE = self._node_cert
     pathutils.NODED_CLIENT_CERT_FILE = self._client_node_cert
-    pathutils.NODED_CLIENT_CERT_FILE_TMP = \
-        self._client_node_cert_tmp
 
   def _AssertCertFiles(self, pathutils):
     """Check if the correct certificates exist and don't exist on the master.
@@ -2330,7 +2329,6 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     """
     self.assertTrue(os.path.exists(pathutils.NODED_CERT_FILE))
     self.assertTrue(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE))
-    self.assertFalse(os.path.exists(pathutils.NODED_CLIENT_CERT_FILE_TMP))
 
   def _CompletelySuccessfulRpc(self, node_uuid, _):
     """Fake RPC call which always returns successfully.
@@ -2360,27 +2358,17 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
     cluster = self.cfg.GetClusterInfo()
     self.assertEqual(num_nodes + 1, len(cluster.candidate_certs))
     nodes = self.cfg.GetAllNodesInfo()
-    for (node_uuid, _) in nodes.items():
-      expected_digest = self._GetFakeDigest(node_uuid)
-      self.assertEqual(expected_digest, cluster.candidate_certs[node_uuid])
-
-  @patchPathutils("cluster")
-  def testMasterFails(self, pathutils):
-    self._InitPathutils(pathutils)
-
-    # make sure the RPC calls are failing for all nodes
     master_uuid = self.cfg.GetMasterNode()
-    self.rpc.call_node_crypto_tokens.return_value = self.RpcResultsBuilder() \
-        .CreateFailedNodeResult(master_uuid)
-
-    op = opcodes.OpClusterRenewCrypto()
-    self.ExecOpCode(op)
-
-    self._AssertCertFiles(pathutils)
-
-    # Check if we correctly have no candidate certificates
-    cluster = self.cfg.GetClusterInfo()
-    self.assertFalse(cluster.candidate_certs)
+    for (node_uuid, _) in nodes.items():
+      if node_uuid == master_uuid:
+        # The master digest is from the actual test certificate.
+        self.assertEqual(self._client_node_cert_digest,
+                         cluster.candidate_certs[node_uuid])
+      else:
+        # The non-master nodes have the fake digest from the
+        # mock RPC.
+        expected_digest = self._GetFakeDigest(node_uuid)
+        self.assertEqual(expected_digest, cluster.candidate_certs[node_uuid])
 
   def _partiallyFailingRpc(self, node_uuid, _):
     if node_uuid == self._failed_node:
@@ -2421,8 +2409,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
       if node_uuid == self._failed_node:
         self.assertTrue(node_uuid not in cluster.candidate_certs)
       else:
-        expected_digest = self._GetFakeDigest(node_uuid)
-        self.assertEqual(expected_digest, cluster.candidate_certs[node_uuid])
+        self.assertTrue(node_uuid in cluster.candidate_certs)
 
   @patchPathutils("cluster")
   def testOfflineNodes(self, pathutils):
@@ -2450,8 +2437,7 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
       if node_info.offline == True:
         self.assertTrue(node_uuid not in cluster.candidate_certs)
       else:
-        expected_digest = self._GetFakeDigest(node_uuid)
-        self.assertEqual(expected_digest, cluster.candidate_certs[node_uuid])
+        self.assertTrue(node_uuid in cluster.candidate_certs)
 
   def _RpcSuccessfulAfterRetries(self, node_uuid, _):
     if self._retries < self._max_retries:
@@ -2462,40 +2448,6 @@ class TestLUClusterRenewCrypto(CmdlibTestCase):
       return self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(node_uuid,
           [(constants.CRYPTO_TYPE_SSL_DIGEST, self._GetFakeDigest(node_uuid))])
-
-  @patchPathutils("cluster")
-  def testMasterRetriesSuccess(self, pathutils):
-    self._InitPathutils(pathutils)
-
-    self._max_retries = 2
-    self._retries = 0
-    self.rpc.call_node_crypto_tokens = self._RpcSuccessfulAfterRetries
-
-    op = opcodes.OpClusterRenewCrypto()
-    self.ExecOpCode(op)
-
-    self._AssertCertFiles(pathutils)
-
-    cluster = self.cfg.GetClusterInfo()
-    master_uuid = self.cfg.GetMasterNode()
-    self.assertTrue(self._GetFakeDigest(master_uuid)
-                    in cluster.candidate_certs.values())
-
-  @patchPathutils("cluster")
-  def testMasterRetriesFail(self, pathutils):
-    self._InitPathutils(pathutils)
-
-    self._max_retries = 5
-    self._retries = 0
-    self.rpc.call_node_crypto_tokens = self._RpcSuccessfulAfterRetries
-
-    op = opcodes.OpClusterRenewCrypto()
-    self.ExecOpCode(op)
-
-    self._AssertCertFiles(pathutils)
-
-    cluster = self.cfg.GetClusterInfo()
-    self.assertFalse(cluster.candidate_certs)
 
   def _RpcSuccessfulAfterRetriesNonMaster(self, node_uuid, _):
     if self._retries < self._max_retries and node_uuid != self._master_uuid:

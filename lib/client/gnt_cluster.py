@@ -46,6 +46,7 @@ from ganeti.cli import *
 from ganeti import bootstrap
 from ganeti import compat
 from ganeti import constants
+from ganeti import config
 from ganeti import errors
 from ganeti import netutils
 from ganeti import objects
@@ -1087,6 +1088,28 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
           ssh_port,
           data)
 
+    # Create a temporary ssconf file using the master's client cert digest
+    # and the 'bootstrap' keyword to enable distribution of all nodes' digests.
+    master_digest = utils.GetCertificateDigest()
+    ssconf_master_candidate_certs_filename = os.path.join(
+        pathutils.DATA_DIR, "%s%s" %
+        (constants.SSCONF_FILEPREFIX, constants.SS_MASTER_CANDIDATES_CERTS))
+    utils.WriteFile(
+        ssconf_master_candidate_certs_filename,
+        data="%s=%s" % (constants.CRYPTO_BOOTSTRAP, master_digest))
+    for node_name in ctx.nonmaster_nodes:
+      port = ctx.ssh_ports[node_name]
+      ctx.feedback_fn("Copying %s to %s:%d" %
+                      (ssconf_master_candidate_certs_filename, node_name, port))
+      ctx.ssh.CopyFileToNode(node_name, port,
+                             ssconf_master_candidate_certs_filename)
+
+    # Write the boostrap entry to the config using wconfd.
+    config_live_lock = utils.livelock.LiveLock("renew_crypto")
+    cfg = config.GetConfig(None, config_live_lock)
+    cfg.AddNodeToCandidateCerts(constants.CRYPTO_BOOTSTRAP, master_digest)
+    cfg.Update(cfg.GetClusterInfo(), ctx.feedback_fn)
+
   def _RenewServerAndClientCerts(ctx):
     ctx.feedback_fn("Updating the cluster SSL certificate.")
 
@@ -1108,7 +1131,6 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
 
     _RenewClientCerts(ctx)
 
-
   if new_cluster_cert or new_rapi_cert or new_spice_cert \
       or new_confd_hmac_key or new_cds:
     RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
@@ -1126,6 +1148,11 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
 
   ToStdout("All requested certificates and keys have been replaced."
            " Running \"gnt-cluster verify\" now is recommended.")
+
+  if new_node_cert or new_cluster_cert:
+    cl = GetClient()
+    renew_op = opcodes.OpClusterRenewCrypto()
+    SubmitOpCode(renew_op, cl=cl)
 
   return 0
 

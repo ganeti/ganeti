@@ -118,60 +118,14 @@ class LUClusterRenewCrypto(NoHooksLU):
     logging.debug("Renewing the master's SSL node certificate."
                   " Master's UUID: %s.", master_uuid)
 
-    server_digest = utils.GetCertificateDigest(
-      cert_filename=pathutils.NODED_CERT_FILE)
-    logging.debug("SSL digest of the node certificate: %s.", server_digest)
-    self.cfg.AddNodeToCandidateCerts("%s-SERVER" % master_uuid,
-                                     server_digest)
-    logging.debug("Added master's digest as *-SERVER entry to configuration."
-                  " Current list of candidate certificates: %s.",
-                  str(cluster.candidate_certs))
-    try:
-      old_master_digest = utils.GetCertificateDigest(
+    # mapping node UUIDs to client certificate digests
+    digest_map = {}
+    master_digest = utils.GetCertificateDigest(
         cert_filename=pathutils.NODED_CLIENT_CERT_FILE)
-      logging.debug("SSL digest of old master's SSL node certificate: %s.",
-                    old_master_digest)
-      self.cfg.AddNodeToCandidateCerts("%s-OLDMASTER" % master_uuid,
-                                       old_master_digest)
-      logging.debug("Added old master's node certificate digest to config"
-                    " as *-OLDMASTER. Current list of candidate certificates:"
-                    " %s.", str(cluster.candidate_certs))
-    except IOError:
-      logging.info("No old master certificate available.")
-
-    last_exception = None
-    for i in range(self._MAX_NUM_RETRIES):
-      try:
-        # Technically it should not be necessary to set the cert
-        # paths. However, due to a bug in the mock library, we
-        # have to do this to be able to test the function properly.
-        _UpdateMasterClientCert(
-            self, self.cfg, master_uuid,
-            client_cert=pathutils.NODED_CLIENT_CERT_FILE,
-            client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP)
-        logging.debug("Successfully renewed the master's node certificate.")
-        break
-      except errors.OpExecError as e:
-        logging.error("Renewing the master's SSL node certificate failed"
-                      " at attempt no. %s with error '%s'", str(i), e)
-        last_exception = e
-    else:
-      if last_exception:
-        feedback_fn("Could not renew the master's client SSL certificate."
-                    " Cleaning up. Error: %s." % last_exception)
-      # Cleaning up temporary certificates
-      self.cfg.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid)
-      self.cfg.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid)
-      logging.debug("Cleaned up *-SERVER and *-OLDMASTER certificate from"
-                    " master candidate cert list. Current state of the"
-                    " list: %s.", str(cluster.candidate_certs))
-      try:
-        utils.RemoveFile(pathutils.NODED_CLIENT_CERT_FILE_TMP)
-      except IOError as e:
-        logging.debug("Could not clean up temporary node certificate of the"
-                      " master node. (Possibly because it was already removed"
-                      " properly.) Error: %s.", e)
-      return
+    digest_map[master_uuid] = master_digest
+    logging.debug("Adding the master's SSL node certificate digest to the"
+                  " configuration. Master's UUID: %s, Digest: %s",
+                  master_uuid, master_digest)
 
     node_errors = {}
     nodes = self.cfg.GetAllNodesInfo()
@@ -183,21 +137,20 @@ class LUClusterRenewCrypto(NoHooksLU):
                       node_info.name, node_uuid)
         continue
       if node_uuid != master_uuid:
-        logging.debug("Renewing node certificate of node '%s'.", node_uuid)
+        logging.debug("Adding certificate digest of node '%s'.", node_uuid)
         last_exception = None
         for i in range(self._MAX_NUM_RETRIES):
           try:
-            new_digest = GetClientCertDigest(self, node_uuid)
             if node_info.master_candidate:
-              self.cfg.AddNodeToCandidateCerts(node_uuid,
-                                               new_digest)
+              node_digest = GetClientCertDigest(self, node_uuid)
+              digest_map[node_uuid] = node_digest
               logging.debug("Added the node's certificate to candidate"
                             " certificate list. Current list: %s.",
                             str(cluster.candidate_certs))
             break
           except errors.OpExecError as e:
             last_exception = e
-            logging.error("Could not renew a non-master node's SSL node"
+            logging.error("Could not fetch a non-master node's SSL node"
                           " certificate at attempt no. %s. The node's UUID"
                           " is %s, and the error was: %s.",
                           str(i), node_uuid, e)
@@ -206,18 +159,14 @@ class LUClusterRenewCrypto(NoHooksLU):
             node_errors[node_uuid] = last_exception
 
     if node_errors:
-      msg = ("Some nodes' SSL client certificates could not be renewed."
+      msg = ("Some nodes' SSL client certificates could not be fetched."
              " Please make sure those nodes are reachable and rerun"
              " the operation. The affected nodes and their errors are:\n")
       for uuid, e in node_errors.items():
         msg += "Node %s: %s\n" % (uuid, e)
       feedback_fn(msg)
 
-    self.cfg.RemoveNodeFromCandidateCerts("%s-SERVER" % master_uuid)
-    self.cfg.RemoveNodeFromCandidateCerts("%s-OLDMASTER" % master_uuid)
-    logging.debug("Cleaned up *-SERVER and *-OLDMASTER certificate from"
-                  " master candidate cert list. Current state of the"
-                  " list: %s.", cluster.candidate_certs)
+    self.cfg.SetCandidateCerts(digest_map)
 
 
 class LUClusterActivateMasterIp(NoHooksLU):

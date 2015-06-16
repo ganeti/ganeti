@@ -3412,6 +3412,16 @@ class ConfigWriter(object):
     return self._ConfigData().cluster.candidate_certs
 
   @_ConfigSync()
+  def SetCandidateCerts(self, certs):
+    """Replaces the master candidate cert list with the new values.
+
+    @type certs: dict of string to string
+    @param certs: map of node UUIDs to SSL client certificate digests.
+
+    """
+    self._ConfigData().cluster.candidate_certs = certs
+
+  @_ConfigSync()
   def AddNodeToCandidateCerts(self, node_uuid, cert_digest,
                               info_fn=logging.info, warn_fn=logging.warn):
     """Adds an entry to the candidate certificate map.
