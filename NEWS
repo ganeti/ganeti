@@ -2,6 +2,19 @@ News
 ====
 
 
+Version 2.15.0 rc1
+------------------
+
+*(Released Tue, 16 Jun 2015)*
+
+Known issues:
+~~~~~~~~~~~~~
+
+- Issue 1094: differences in encodings in SSL certificates due to
+  different OpenSSL versions can result in rendering a cluster
+  uncommunicative after a master-failover.
+
+
 Version 2.15.0 beta1
 --------------------
 
