@@ -985,10 +985,13 @@ List of error codes:
 VERIFY-DISKS
 ~~~~~~~~~~~~
 
-**verify-disks**
+**verify-disks** [\--node-group *nodegroup*]
 
 The command checks which instances have degraded DRBD disks and
 activates the disks of those instances.
+
+With ``--node-group``, restrict the verification to those nodes and
+instances that live in the named group.
 
 This command is run from the **ganeti-watcher** tool, which also
 has a different, complementary algorithm for doing this check.
