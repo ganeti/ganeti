@@ -214,7 +214,7 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
     GenerateHmacKey(cds_file)
 
 
-def _InitGanetiServerSetup(master_name):
+def _InitGanetiServerSetup(master_name, cfg):
   """Setup the necessary configuration for the initial node daemon.
 
   This creates the nodepass file containing the shared password for
@@ -222,11 +222,21 @@ def _InitGanetiServerSetup(master_name):
 
   @type master_name: str
   @param master_name: Name of the master node
+  @type cfg: ConfigWriter
+  @param cfg: the configuration writer
 
   """
   # Generate cluster secrets
   GenerateClusterCrypto(True, False, False, False, False, False, master_name)
 
+  # Add the master's SSL certificate digest to the configuration.
+  master_uuid = cfg.GetMasterNode()
+  master_digest = utils.GetCertificateDigest()
+  cfg.AddNodeToCandidateCerts(master_uuid, master_digest)
+  cfg.Update(cfg.GetClusterInfo(), logging.error)
+  ssconf.WriteSsconfFiles(cfg.GetSsconfValues())
+
+  # set up the inter-node password and certificate
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:
     raise errors.OpExecError("Could not start the node daemon, command %s"
@@ -894,7 +904,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   ssconf.WriteSsconfFiles(cfg.GetSsconfValues())
 
   # set up the inter-node password and certificate
-  _InitGanetiServerSetup(hostname.name)
+  _InitGanetiServerSetup(hostname.name, cfg)
 
   logging.debug("Starting daemons")
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "start-all"])

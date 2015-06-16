@@ -217,16 +217,7 @@ class TestLUClusterDestroy(CmdlibTestCase):
 
 class TestLUClusterPostInit(CmdlibTestCase):
 
-  @testutils.patch_object(cluster, "_UpdateMasterClientCert")
-  def testExecution(self, update_client_cert_mock):
-    # mock the client certificate creation as it is tested separately
-    update_client_cert_mock.return_value = None
-    # For the purpose of this test, return the same certificate digest for all
-    # nodes
-    self.rpc.call_node_crypto_tokens = \
-      lambda node_uuid, _: self.RpcResultsBuilder() \
-        .CreateSuccessfulNodeResult(node_uuid,
-          [(constants.CRYPTO_TYPE_SSL_DIGEST, "IA:MA:FA:KE:DI:GE:ST")])
+  def testExecution(self):
     op = opcodes.OpClusterPostInit()
 
     self.ExecOpCode(op)
