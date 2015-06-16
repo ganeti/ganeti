@@ -72,36 +72,6 @@ from ganeti.cmdlib.common import ShareAll, RunPostHook, \
 import ganeti.masterd.instance
 
 
-def _UpdateMasterClientCert(
-    lu, cfg, master_uuid,
-    client_cert=pathutils.NODED_CLIENT_CERT_FILE,
-    client_cert_tmp=pathutils.NODED_CLIENT_CERT_FILE_TMP):
-  """Renews the master's client certificate and propagates the config.
-
-  @type lu: C{LogicalUnit}
-  @param lu: the logical unit holding the config
-  @type cfg: C{config.ConfigWriter}
-  @param cfg: the cluster's configuration
-  @type master_uuid: string
-  @param master_uuid: the master node's UUID
-  @type client_cert: string
-  @param client_cert: the path of the client certificate
-  @type client_cert_tmp: string
-  @param client_cert_tmp: the temporary path of the client certificate
-  @rtype: string
-  @return: the digest of the newly created client certificate
-
-  """
-  client_digest = GetClientCertDigest(lu, master_uuid, filename=client_cert_tmp)
-  cfg.AddNodeToCandidateCerts(master_uuid, client_digest)
-  # This triggers an update of the config and distribution of it with the old
-  # SSL certificate
-
-  utils.RemoveFile(client_cert)
-  utils.RenameFile(client_cert_tmp, client_cert)
-  return client_digest
-
-
 class LUClusterRenewCrypto(NoHooksLU):
   """Renew the cluster's crypto tokens.
 
