@@ -4385,6 +4385,11 @@ cryptoActionGet = "get"
 cryptoActions :: FrozenSet String
 cryptoActions = ConstantUtils.mkSet [cryptoActionGet]
 
+-- Key word for master candidate cert list for bootstrapping.
+
+cryptoBootstrap :: String
+cryptoBootstrap = "bootstrap"
+
 -- * Options for CryptoActions
 
 -- Filename of the certificate

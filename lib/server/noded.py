@@ -1266,7 +1266,6 @@ def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
   """
   # some parameters are unused, but this is the API
   # pylint: disable=W0613
-  _BOOTSTRAP = "bootstrap"
   sstore = ssconf.SimpleStore()
   try:
     candidate_certs = sstore.GetMasterCandidatesCertMap()
@@ -1276,7 +1275,7 @@ def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
     candidate_certs = None
   if not candidate_certs:
     candidate_certs = {
-      _BOOTSTRAP: utils.GetCertificateDigest(
+      constants.CRYPTO_BOOTSTRAP: utils.GetCertificateDigest(
         cert_filename=pathutils.NODED_CERT_FILE)}
   return cert.digest("sha1") in candidate_certs.values()
   # pylint: enable=W0613
