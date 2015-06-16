@@ -1708,32 +1708,17 @@ class ConfigWriter(object):
     @return: the updated instance object
 
     """
-    if inst_uuid not in self._ConfigData().instances:
-      raise errors.ConfigurationError("Unknown instance '%s'" %
-                                      inst_uuid)
-    instance = self._ConfigData().instances[inst_uuid]
+    def WithRetry():
+      result = self._wconfd.SetInstanceStatus(inst_uuid, status,
+                                              disks_active, admin_state_source)
+      self.OutDate()
 
-    if status is None:
-      status = instance.admin_state
-    if disks_active is None:
-      disks_active = instance.disks_active
-    if admin_state_source is None:
-      admin_state_source = instance.admin_state_source
+      if result is None:
+        raise utils.RetryAgain()
+      else:
+        return result
+    return objects.Instance.FromDict(utils.Retry(WithRetry, 0.1, 30))
 
-    assert status in constants.ADMINST_ALL, \
-           "Invalid status '%s' passed to SetInstanceStatus" % (status,)
-
-    if instance.admin_state != status or \
-       instance.disks_active != disks_active or \
-       instance.admin_state_source != admin_state_source:
-      instance.admin_state = status
-      instance.disks_active = disks_active
-      instance.admin_state_source = admin_state_source
-      instance.serial_no += 1
-      instance.mtime = time.time()
-    return instance
-
-  @ConfigSync()
   def MarkInstanceUp(self, inst_uuid):
     """Mark the instance status to up in the config.
 
@@ -1746,7 +1731,6 @@ class ConfigWriter(object):
     return self._SetInstanceStatus(inst_uuid, constants.ADMINST_UP, True,
                                    constants.ADMIN_SOURCE)
 
-  @ConfigSync()
   def MarkInstanceOffline(self, inst_uuid):
     """Mark the instance status to down in the config.
 
@@ -1794,7 +1778,6 @@ class ConfigWriter(object):
     # Force update of ssconf files
     self._ConfigData().cluster.serial_no += 1
 
-  @ConfigSync()
   def MarkInstanceDown(self, inst_uuid):
     """Mark the status of an instance to down in the configuration.
 
@@ -1808,7 +1791,6 @@ class ConfigWriter(object):
     return self._SetInstanceStatus(inst_uuid, constants.ADMINST_DOWN, None,
                                    constants.ADMIN_SOURCE)
 
-  @ConfigSync()
   def MarkInstanceUserDown(self, inst_uuid):
     """Mark the status of an instance to user down in the configuration.
 
@@ -1827,17 +1809,8 @@ class ConfigWriter(object):
     @return: the updated instance object
 
     """
-    def WithRetry():
-      result = self._wconfd.MarkInstanceDisksActive(inst_uuid)
-      self.OutDate()
+    return self._SetInstanceStatus(inst_uuid, None, True, None)
 
-      if result is None:
-        raise utils.RetryAgain()
-      else:
-        return result
-    return objects.Instance.FromDict(utils.Retry(WithRetry, 0.1, 30))
-
-  @ConfigSync()
   def MarkInstanceDisksInactive(self, inst_uuid):
     """Mark the status of instance disks inactive.
 

@@ -929,11 +929,35 @@ class ConfigMock(config.ConfigWriter):
       self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
       self._ConfigData().cluster.mtime = now
 
-  def MarkInstanceDisksActive(self, inst_uuid):
-    return self._SetInstanceStatus(inst_uuid, None, True, None)
-
   def SetInstancePrimaryNode(self, inst_uuid, target_node_uuid):
     self._UnlockedGetInstanceInfo(inst_uuid).primary_node = target_node_uuid
+
+  def _SetInstanceStatus(self, inst_uuid, status,
+                         disks_active, admin_state_source):
+    if inst_uuid not in self._ConfigData().instances:
+      raise errors.ConfigurationError("Unknown instance '%s'" %
+                                      inst_uuid)
+    instance = self._ConfigData().instances[inst_uuid]
+
+    if status is None:
+      status = instance.admin_state
+    if disks_active is None:
+      disks_active = instance.disks_active
+    if admin_state_source is None:
+      admin_state_source = instance.admin_state_source
+
+    assert status in constants.ADMINST_ALL, \
+           "Invalid status '%s' passed to SetInstanceStatus" % (status,)
+
+    if instance.admin_state != status or \
+       instance.disks_active != disks_active or \
+       instance.admin_state_source != admin_state_source:
+      instance.admin_state = status
+      instance.disks_active = disks_active
+      instance.admin_state_source = admin_state_source
+      instance.serial_no += 1
+      instance.mtime = time.time()
+    return instance
 
   def _UnlockedDetachInstanceDisk(self, inst_uuid, disk_uuid):
     """Detach a disk from an instance.

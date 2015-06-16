@@ -44,10 +44,11 @@ import Control.Lens (_2)
 import Control.Lens.Getter ((^.))
 import Control.Lens.Setter ((.~), (%~))
 import Control.Lens.Traversal (mapMOf)
-import Control.Monad (unless, when, forM_, foldM)
+import Control.Monad (unless, when, forM_, foldM, liftM2)
 import Control.Monad.Error (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.State (StateT, get, put, modify, execStateT)
+import Control.Monad.Trans.State (StateT, get, put, modify,
+                                  runStateT, execStateT)
 import Data.Foldable (fold, foldMap)
 import Data.List (elemIndex)
 import Data.Maybe (isJust, maybeToList, fromMaybe, fromJust)
@@ -66,6 +67,7 @@ import Ganeti.Locking.Locks (ClientId, ciIdentifier)
 import Ganeti.Logging.Lifted (logDebug, logInfo)
 import Ganeti.Objects
 import Ganeti.Objects.Lens
+import Ganeti.Types (AdminState, AdminStateSource)
 import Ganeti.WConfd.ConfigState (ConfigState, csConfigData, csConfigDataL)
 import Ganeti.WConfd.Monad (WConfdMonad, modifyConfigWithLock
                            , modifyConfigAndReturnWithLock)
@@ -529,21 +531,37 @@ addTcpUdpPort port =
       f = mapMOf pL (return . (port:) . filter (/= port))
   in isJust <$> modifyConfigWithLock (const f) (return ())
 
--- | Mark the status of instance disks active.
-markInstanceDisksActive :: InstanceUUID -> WConfdMonad (MaybeForJSON Instance)
-markInstanceDisksActive iUuid = do
+-- | Set the instances' status to a given value.
+setInstanceStatus :: InstanceUUID
+                  -> Maybe AdminState
+                  -> Maybe Bool
+                  -> Maybe AdminStateSource
+                  -> WConfdMonad (MaybeForJSON Instance)
+setInstanceStatus iUuid m1 m2 m3 = do
   ct <- liftIO getClockTime
-  MaybeForJSON <$> modifyConfigAndReturnWithLock (\_ cs -> do
-    inst <- toError $ getInstanceByUUID cs iUuid
-    if instDisksActive inst == Just True
-      then return (inst, cs)
-      else do
-        let inst' = (instDisksActiveL .~ True) inst
-            iL = csConfigDataL . configInstancesL
-        cs' <- fmap (flip (iL .~) cs) . toError $ replaceIn ct inst' (cs ^. iL)
-        inst'' <- toError $ getInstanceByUUID cs' iUuid
-        return (inst'', cs'))
-    (return ())
+  let modifyInstance = maybe id (instAdminStateL .~) m1
+                     . maybe id (instDisksActiveL .~) m2
+                     . maybe id (instAdminStateSourceL .~) m3
+      reviseInstance = (instSerialL %~ (+1))
+                     . (instMtimeL .~ ct)
+
+      g :: Instance -> Instance
+      g i = if modifyInstance i == i
+              then i
+              else reviseInstance . modifyInstance $ i
+
+      iL = csConfigDataL . configInstancesL . alterContainerL iUuid
+
+      f :: MonadError GanetiException m => StateT ConfigState m Instance
+      f = get >>= (maybe
+        (throwError . ConfigurationError $
+          printf "Could not find instance with UUID %s" iUuid)
+        (liftM2 (>>)
+          (modify . (iL .~) . Just)
+          return . g)
+        . (^. iL))
+  MaybeForJSON <$> modifyConfigAndReturnWithLock
+    (const $ runStateT f) (return ())
 
 -- | Sets the primary node of an existing instance
 setInstancePrimaryNode :: InstanceUUID -> NodeUUID -> WConfdMonad Bool
@@ -644,10 +662,10 @@ exportedFunctions = [ 'addInstance
                     , 'allocatePort
                     , 'attachInstanceDisk
                     , 'detachInstanceDisk
-                    , 'markInstanceDisksActive
                     , 'removeInstance
                     , 'removeInstanceDisk
                     , 'setInstancePrimaryNode
+                    , 'setInstanceStatus
                     , 'updateCluster
                     , 'updateDisk
                     , 'updateInstance
