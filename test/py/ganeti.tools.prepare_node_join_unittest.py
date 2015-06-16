@@ -34,11 +34,9 @@ import unittest
 import shutil
 import tempfile
 import os.path
-import OpenSSL
 
 from ganeti import errors
 from ganeti import constants
-from ganeti import serializer
 from ganeti import pathutils
 from ganeti import compat
 from ganeti import utils
@@ -48,25 +46,6 @@ import testutils
 
 
 _JoinError = prepare_node_join.JoinError
-
-
-class TestLoadData(unittest.TestCase):
-  def testNoJson(self):
-    self.assertRaises(errors.ParseError, prepare_node_join.LoadData, "")
-    self.assertRaises(errors.ParseError, prepare_node_join.LoadData, "}")
-
-  def testInvalidDataStructure(self):
-    raw = serializer.DumpJson({
-      "some other thing": False,
-      })
-    self.assertRaises(errors.ParseError, prepare_node_join.LoadData, raw)
-
-    raw = serializer.DumpJson([])
-    self.assertRaises(errors.ParseError, prepare_node_join.LoadData, raw)
-
-  def testValidData(self):
-    raw = serializer.DumpJson({})
-    self.assertEqual(prepare_node_join.LoadData(raw), {})
 
 
 class TestVerifyCertificate(testutils.GanetiTestCase):
@@ -102,33 +81,6 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
     cert_filename = testutils.TestDataFilename("cert1.pem")
     cert_pem = utils.ReadFile(cert_filename)
     prepare_node_join._VerifyCertificate(cert_pem, _check_fn=self._Check)
-
-
-class TestVerifyClusterName(unittest.TestCase):
-  def setUp(self):
-    unittest.TestCase.setUp(self)
-    self.tmpdir = tempfile.mkdtemp()
-
-  def tearDown(self):
-    unittest.TestCase.tearDown(self)
-    shutil.rmtree(self.tmpdir)
-
-  def testNoName(self):
-    self.assertRaises(_JoinError, prepare_node_join.VerifyClusterName,
-                      {}, _verify_fn=NotImplemented)
-
-  @staticmethod
-  def _FailingVerify(name):
-    assert name == "cluster.example.com"
-    raise errors.GenericError()
-
-  def testFailingVerification(self):
-    data = {
-      constants.SSHS_CLUSTER_NAME: "cluster.example.com",
-      }
-
-    self.assertRaises(errors.GenericError, prepare_node_join.VerifyClusterName,
-                      data, _verify_fn=self._FailingVerify)
 
 
 class TestUpdateSshDaemon(unittest.TestCase):

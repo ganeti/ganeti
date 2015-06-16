@@ -38,6 +38,8 @@ import OpenSSL
 import time
 
 from ganeti import constants
+from ganeti import errors
+from ganeti import serializer
 from ganeti import utils
 from ganeti.tools import common
 
@@ -76,6 +78,57 @@ class TestGenerateClientCert(unittest.TestCase):
                                                    server_cert_pem)
     self.assertEqual(client_cert.get_issuer().CN, signing_cert.get_subject().CN)
     self.assertEqual(client_cert.get_subject().CN, my_node_name)
+
+
+class TestLoadData(unittest.TestCase):
+
+  def testNoJson(self):
+    self.assertRaises(errors.ParseError, common.LoadData, Exception, "")
+    self.assertRaises(errors.ParseError, common.LoadData, Exception, "}")
+
+  def testInvalidDataStructure(self):
+    raw = serializer.DumpJson({
+      "some other thing": False,
+      })
+    self.assertRaises(errors.ParseError, common.LoadData, Exception, raw)
+
+    raw = serializer.DumpJson([])
+    self.assertRaises(errors.ParseError, common.LoadData, Exception, raw)
+
+  def testValidData(self):
+    raw = serializer.DumpJson({})
+    self.assertEqual(common.LoadData(raw, Exception), {})
+
+
+class TestVerifyClusterName(unittest.TestCase):
+
+  class MyException(Exception):
+    pass
+
+  def setUp(self):
+    unittest.TestCase.setUp(self)
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    unittest.TestCase.tearDown(self)
+    shutil.rmtree(self.tmpdir)
+
+  def testNoName(self):
+    self.assertRaises(self.MyException, common.VerifyClusterName,
+                      {}, self.MyException, _verify_fn=NotImplemented)
+
+  @staticmethod
+  def _FailingVerify(name):
+    assert name == "cluster.example.com"
+    raise errors.GenericError()
+
+  def testFailingVerification(self):
+    data = {
+      constants.SSHS_CLUSTER_NAME: "cluster.example.com",
+      }
+
+    self.assertRaises(errors.GenericError, common.VerifyClusterName,
+                      data, Exception, _verify_fn=self._FailingVerify)
 
 
 if __name__ == "__main__":

@@ -43,10 +43,9 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import pathutils
 from ganeti import utils
-from ganeti import serializer
 from ganeti import ht
 from ganeti import ssh
-from ganeti import ssconf
+from ganeti.tools import common
 
 
 _SSH_KEY_LIST_ITEM = \
@@ -89,17 +88,7 @@ def ParseOptions():
 
   (opts, args) = parser.parse_args()
 
-  return VerifyOptions(parser, opts, args)
-
-
-def VerifyOptions(parser, opts, args):
-  """Verifies options and arguments for correctness.
-
-  """
-  if args:
-    parser.error("No arguments are expected")
-
-  return opts
+  return common.VerifyOptions(parser, opts, args)
 
 
 def _VerifyCertificate(cert_pem, _check_fn=utils.CheckNodeCertificate):
@@ -135,19 +124,6 @@ def VerifyCertificate(data, _verify_fn=_VerifyCertificate):
   cert = data.get(constants.SSHS_NODE_DAEMON_CERTIFICATE)
   if cert:
     _verify_fn(cert)
-
-
-def VerifyClusterName(data, _verify_fn=ssconf.VerifyClusterName):
-  """Verifies cluster name.
-
-  @type data: dict
-
-  """
-  name = data.get(constants.SSHS_CLUSTER_NAME)
-  if name:
-    _verify_fn(name)
-  else:
-    raise JoinError("Cluster name must be specified")
 
 
 def _UpdateKeyFiles(keys, dry_run, keyfiles):
@@ -238,15 +214,6 @@ def UpdateSshRoot(data, dry_run, _homedir_fn=None):
       utils.AddAuthorizedKey(auth_keys_file, public_key)
 
 
-def LoadData(raw):
-  """Parses and verifies input data.
-
-  @rtype: dict
-
-  """
-  return serializer.LoadAndVerifyJson(raw, _DATA_CHECK)
-
-
 def Main():
   """Main routine.
 
@@ -256,10 +223,10 @@ def Main():
   utils.SetupToolLogging(opts.debug, opts.verbose)
 
   try:
-    data = LoadData(sys.stdin.read())
+    data = common.LoadData(sys.stdin.read(), _DATA_CHECK)
 
     # Check if input data is correct
-    VerifyClusterName(data)
+    common.VerifyClusterName(data, JoinError)
     VerifyCertificate(data)
 
     # Update SSH files
