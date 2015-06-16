@@ -533,15 +533,15 @@ addTcpUdpPort port =
 
 -- | Set the instances' status to a given value.
 setInstanceStatus :: InstanceUUID
-                  -> Maybe AdminState
-                  -> Maybe Bool
-                  -> Maybe AdminStateSource
+                  -> MaybeForJSON AdminState
+                  -> MaybeForJSON Bool
+                  -> MaybeForJSON AdminStateSource
                   -> WConfdMonad (MaybeForJSON Instance)
 setInstanceStatus iUuid m1 m2 m3 = do
   ct <- liftIO getClockTime
-  let modifyInstance = maybe id (instAdminStateL .~) m1
-                     . maybe id (instDisksActiveL .~) m2
-                     . maybe id (instAdminStateSourceL .~) m3
+  let modifyInstance = maybe id (instAdminStateL .~) (unMaybeForJSON m1)
+                     . maybe id (instDisksActiveL .~) (unMaybeForJSON m2)
+                     . maybe id (instAdminStateSourceL .~) (unMaybeForJSON m3)
       reviseInstance = (instSerialL %~ (+1))
                      . (instMtimeL .~ ct)
 
