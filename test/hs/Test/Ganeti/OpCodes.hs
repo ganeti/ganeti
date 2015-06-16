@@ -183,7 +183,8 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpClusterVerifyGroup <$> genNameNE <*> arbitrary <*>
           arbitrary <*> genListSet Nothing <*> genListSet Nothing <*>
           arbitrary <*> arbitrary
-      "OP_CLUSTER_VERIFY_DISKS" -> pure OpCodes.OpClusterVerifyDisks
+      "OP_CLUSTER_VERIFY_DISKS" ->
+        OpCodes.OpClusterVerifyDisks <$> genMaybe genNameNE
       "OP_GROUP_VERIFY_DISKS" ->
         OpCodes.OpGroupVerifyDisks <$> genNameNE
       "OP_CLUSTER_REPAIR_DISK_SIZES" ->

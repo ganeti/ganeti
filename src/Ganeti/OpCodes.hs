@@ -186,7 +186,8 @@ $(genOpCode "OpCode"
   , ("OpClusterVerifyDisks",
      [t| JobIdListOnly |],
      OpDoc.opClusterVerifyDisks,
-     [],
+     [ pOptGroupName
+     ],
      [])
   , ("OpGroupVerifyDisks",
      [t| (Map String String, [String], Map String [[String]]) |],
