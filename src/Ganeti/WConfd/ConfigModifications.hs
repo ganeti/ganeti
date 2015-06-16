@@ -521,6 +521,14 @@ allocatePort = do
     (return ())
   return . MaybeForJSON $ maybePort
 
+-- | Adds a new port to the available port pool.
+addTcpUdpPort :: Int -> WConfdMonad Bool
+addTcpUdpPort port =
+  let pL = csConfigDataL . configClusterL . clusterTcpudpPortPoolL
+      f :: Monad m => ConfigState -> m ConfigState
+      f = mapMOf pL (return . (port:) . filter (/= port))
+  in isJust <$> modifyConfigWithLock (const f) (return ())
+
 -- | Mark the status of instance disks active.
 markInstanceDisksActive :: InstanceUUID -> WConfdMonad (MaybeForJSON Instance)
 markInstanceDisksActive iUuid = do
@@ -632,6 +640,7 @@ updateDisk disk = do
 exportedFunctions :: [Name]
 exportedFunctions = [ 'addInstance
                     , 'addInstanceDisk
+                    , 'addTcpUdpPort
                     , 'allocatePort
                     , 'attachInstanceDisk
                     , 'detachInstanceDisk

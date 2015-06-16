@@ -1097,19 +1097,10 @@ class ConfigWriter(object):
     """
     return self._UnlockedVerifyConfig()
 
-  @ConfigSync()
   def AddTcpUdpPort(self, port):
-    """Adds a new port to the available port pool.
-
-    @warning: this method does not "flush" the configuration (via
-        L{_WriteConfig}); callers should do that themselves once the
-        configuration is stable
-
-    """
-    if not isinstance(port, int):
-      raise errors.ProgrammerError("Invalid type passed for port")
-
-    self._ConfigData().cluster.tcpudp_port_pool.add(port)
+    """Adds a new port to the available port pool."""
+    utils.SimpleRetry(True, self._wconfd.AddTcpUdpPort, 0.1, 30, args=[port])
+    self.OutDate()
 
   @ConfigSync(shared=1)
   def GetPortList(self):

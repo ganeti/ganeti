@@ -972,3 +972,6 @@ class ConfigMock(config.ConfigWriter):
 
   def RemoveInstance(self, inst_uuid):
     del self._ConfigData().instances[inst_uuid]
+
+  def AddTcpUdpPort(self, port):
+    self._ConfigData().cluster.tcpudp_port_pool.add(port)
