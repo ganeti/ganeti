@@ -108,7 +108,7 @@ import Ganeti.HTools.Cluster.Metrics ( compCV, compCVfromStats
 import Ganeti.HTools.Cluster.Moves (setInstanceLocationScore, applyMoveEx)
 import Ganeti.HTools.Cluster.Utils (splitCluster, instancePriGroup
                                    , availableGroupNodes, iMoveToJob)
-import Ganeti.HTools.GlobalN1 (allocGlobalN1)
+import Ganeti.HTools.GlobalN1 (allocGlobalN1, redundant)
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Nic as Nic
 import qualified Ganeti.HTools.Node as Node
@@ -786,8 +786,8 @@ tryChangeGroup opts gl ini_nl ini_il gdxs idxs =
 -- This places instances of the same size on the cluster until we're
 -- out of space. The result will be a list of identically-sized
 -- instances.
-iterateAlloc :: AlgorithmOptions -> AllocMethod
-iterateAlloc opts nl il limit newinst allocnodes ixes cstats =
+iterateAllocSmallStep :: AlgorithmOptions -> AllocMethod
+iterateAllocSmallStep opts nl il limit newinst allocnodes ixes cstats =
   let depth = length ixes
       newname = printf "new-%d" depth::String
       newidx = Container.size il
@@ -805,9 +805,38 @@ iterateAlloc opts nl il limit newinst allocnodes ixes cstats =
            Just (xnl, xi, _, _) ->
              if limit == Just 0
                then newsol
-               else iterateAlloc opts xnl (Container.add newidx xi il)
+               else iterateAllocSmallStep opts xnl (Container.add newidx xi il)
                       newlimit newinst allocnodes (xi:ixes)
                       (totalResources xnl:cstats)
+
+-- | A speed-up version of `iterateAllocSmallStep`.
+--
+-- This function returns precisely the same result as `iterateAllocSmallStep`.
+-- However the computation is speed up by the following heuristic: allocate
+-- a group of instances iteratively without considering global N+1 redundancy;
+-- if the result of this is globally N+1 redundant, then everything was OK
+-- inbetween and we can continue from there. Only if that fails, do a
+-- step-by-step iterative allocation.
+iterateAlloc :: AlgorithmOptions -> AllocMethod
+iterateAlloc opts nl il limit newinst allocnodes ixes cstats =
+  if not $ algCapacity opts
+    then iterateAllocSmallStep opts nl il limit newinst allocnodes ixes cstats
+    else let bigstepsize = 20
+             (limit', newlimit) = maybe (Just bigstepsize, Nothing)
+                                    (Just . min bigstepsize
+                                     &&& Just . max 0 . flip (-) bigstepsize)
+                                    limit
+             opts' = opts { algCapacity = False }
+         in case iterateAllocSmallStep opts' nl il limit'
+                                       newinst allocnodes ixes cstats of
+            Bad s -> Bad s
+            Ok res@(_, nl', il', ixes', cstats') | redundant nl' il' ->
+              if newlimit == Just 0 || length ixes' == length ixes
+                then return res
+                else iterateAlloc opts nl' il' newlimit newinst allocnodes
+                                  ixes' cstats'
+            _ -> iterateAllocSmallStep opts nl il limit newinst allocnodes
+                                       ixes cstats
 
 -- | Predicate whether shrinking a single resource can lead to a valid
 -- allocation.
