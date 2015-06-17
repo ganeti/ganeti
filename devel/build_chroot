@@ -35,8 +35,6 @@ COMP_FILEPATH=$ROOT/$COMP_FILENAME
 TEMP_DATA_DIR=`mktemp -d`
 ACTUAL_DATA_DIR=$DATA_DIR
 ACTUAL_DATA_DIR=${ACTUAL_DATA_DIR:-$TEMP_DATA_DIR}
-GHC_VERSION="7.6.3"
-CABAL_INSTALL_VERSION="1.18.0.2"
 SHA1_LIST='
 cabal-install-1.18.0.2.tar.gz 2d1f7a48d17b1e02a1e67584a889b2ff4176a773
 ghc-7.6.3-i386-unknown-linux.tar.bz2 f042b4171a2d4745137f2e425e6949c185f8ea14
@@ -44,7 +42,7 @@ ghc-7.6.3-x86_64-unknown-linux.tar.bz2 46ec3f3352ff57fba0dcbc8d9c20f7bcb6924b77
 '
 
 # export all variables needed in the schroot
-export ARCH GHC_VERSION CABAL_INSTALL_VERSION SHA1_LIST
+export ARCH SHA1_LIST
 
 # Use gzip --rsyncable if available, to speed up transfers of generated files
 # The environment variable GZIP is read automatically by 'gzip',
@@ -218,6 +216,10 @@ function install_cabal {
 case $DIST_RELEASE in
 
   squeeze)
+
+    GHC_VERSION="7.6.3"
+    CABAL_INSTALL_VERSION="1.18.0.2"
+    export GHC_VERSION CABAL_INSTALL_VERSION
 
     # do not install libghc6-network-dev, since it's too old, and just
     # confuses the dependencies
