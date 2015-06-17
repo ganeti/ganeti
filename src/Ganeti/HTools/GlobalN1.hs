@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.HTools.GlobalN1
   ( canEvacuateNode
+  , redundant
   , allocGlobalN1
   ) where
 
@@ -87,6 +88,10 @@ canEvacuateNode (nl, il) n = isOk $ do
                     $ Container.elems nl'
   foldM_ (evac grp escapenodes) (nl',il') sharedIdxs
 
+-- | Predicate on wheter a given situation is globally N+1 redundant.
+redundant :: Node.List -> Instance.List -> Bool
+redundant nl il = Foldable.all (canEvacuateNode (nl, il)) nl
+
 -- | Predicate on wheter an allocation element leads to a globally N+1 redundant
 -- state.
 allocGlobalN1 :: Node.List -- ^ the original list of nodes
@@ -95,4 +100,4 @@ allocGlobalN1 :: Node.List -- ^ the original list of nodes
 allocGlobalN1 nl il alloc =
   let il' = AllocSol.updateIl il $ Just alloc
       nl' = AllocSol.extractNl nl il $ Just alloc
-  in Foldable.all (canEvacuateNode (nl', il')) nl'
+  in redundant nl' il'
