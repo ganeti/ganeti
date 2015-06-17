@@ -219,6 +219,7 @@ case $DIST_RELEASE in
 
     GHC_VERSION="7.6.3"
     CABAL_INSTALL_VERSION="1.18.0.2"
+    CABAL_LIB_VERSION=">=1.18.0 && <1.19"
     export GHC_VERSION CABAL_INSTALL_VERSION
 
     # do not install libghc6-network-dev, since it's too old, and just
@@ -303,6 +304,7 @@ case $DIST_RELEASE in
         snap-server-0.9.4.0 \
         PSQueue-1.1 \
         \
+        "Cabal $CABAL_LIB_VERSION" \
         cabal-file-th-0.2.3 \
         shelltestrunner
 
