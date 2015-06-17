@@ -407,6 +407,102 @@ case ${DIST_RELEASE}${VARIANT} in
        'hlint>=1.9.12'
 ;;
 
+  jessie-ghc78)
+
+    GHC_VERSION="7.8.4"
+    GHC_VARIANT="-deb7"
+    CABAL_INSTALL_VERSION="1.22.4.0"
+    # the version of the Cabal library below must match the version used by
+    # CABAL_INSTALL_VERSION, see the dependencies of cabal-install
+    CABAL_LIB_VERSION=">=1.22.2 && <1.23"
+    export GHC_VERSION GHC_VARIANT CABAL_INSTALL_VERSION
+
+    in_chroot -- \
+      $APT_INSTALL \
+        autoconf automake \
+        zlib1g-dev \
+        libgmp3-dev \
+        libcurl4-openssl-dev \
+        libpcre3-dev \
+        happy \
+        hlint hscolour pandoc \
+        graphviz qemu-utils \
+        python-docutils \
+        python-simplejson \
+        python-pyparsing \
+        python-pyinotify \
+        python-pycurl \
+        python-ipaddr \
+        python-yaml \
+        python-paramiko \
+        git \
+        git-email \
+        vim
+
+    in_chroot -- \
+      $APT_INSTALL python-setuptools python-dev build-essential
+
+    in_chroot -- \
+      easy_install \
+        logilab-astng==0.24.1 \
+        logilab-common==0.58.3 \
+        mock==1.0.1 \
+        pylint==0.26.0
+
+    in_chroot -- \
+      easy_install \
+        sphinx==1.1.3 \
+        pep8==1.3.3 \
+        coverage==3.4 \
+        bitarray==0.8.0
+
+    install_ghc
+
+    install_cabal
+
+    in_chroot -- \
+      cabal update
+
+    # since we're using Cabal >=1.16, we can use the parallel install option
+    in_chroot -- \
+      cabal install --global -j --enable-library-profiling \
+        attoparsec==0.12.1.6 \
+        base64-bytestring==1.0.0.1 \
+        blaze-builder==0.4.0.1 \
+        case-insensitive==1.2.0.4 \
+        Crypto==4.2.5.1 \
+        curl==1.3.8 \
+        happy==1.19.5 \
+        hashable==1.2.3.2 \
+        hinotify==0.3.7 \
+        hscolour==1.23 \
+        hslogger==1.2.8 \
+        json==0.9.1 \
+        lifted-base==0.2.3.6 \
+        lens==4.9.1 \
+        MonadCatchIO-transformers==0.3.1.3 \
+        network==2.6.0.2 \
+        parallel==3.2.0.6 \
+        parsec==3.1.7 \
+        regex-pcre==0.94.4 \
+        temporary==1.2.0.3 \
+        vector==0.10.12.3 \
+        zlib==0.5.4.2 \
+        \
+        hlint==1.9.20 \
+        HUnit==1.2.5.2 \
+        QuickCheck==2.8.1 \
+        test-framework==0.8.1.1 \
+        test-framework-hunit==0.3.0.1 \
+        test-framework-quickcheck2==0.3.0.3 \
+        \
+        snap-server==0.9.5.1 \
+        \
+        "Cabal $CABAL_LIB_VERSION" \
+        cabal-file-th==0.2.3 \
+        shelltestrunner==1.3.5
+;;
+
   precise)
     # ghc, git-email and other dependencies are hosted in the universe
     # repository, which is not enabled by default.
