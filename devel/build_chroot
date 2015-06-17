@@ -377,7 +377,7 @@ case ${DIST_RELEASE}${VARIANT} in
         'hlint>=1.9.12'
 ;;
 
-  testing)
+  jessie)
 
     in_chroot -- \
       $APT_INSTALL \
