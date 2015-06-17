@@ -809,6 +809,21 @@ iterateAllocSmallStep opts nl il limit newinst allocnodes ixes cstats =
                       newlimit newinst allocnodes (xi:ixes)
                       (totalResources xnl:cstats)
 
+-- | Guess a number of machines worth trying to put on the cluster in one step.
+-- The goal is to guess a number close to the actual capacity of the cluster but
+-- preferrably not bigger, unless it is quite small (as we don't want to do
+-- big steps smaller than 10).
+guessBigstepSize :: Node.List -> Instance.Instance -> Int
+guessBigstepSize nl inst =
+  let nodes = Container.elems nl
+      totalUnusedMemory = sum $ map Node.fMem nodes
+      reserved = round . maximum $ map Node.tMem nodes
+      capacity = (totalUnusedMemory - reserved) `div` Instance.mem inst
+      -- however, at every node we might lose almost an instance if it just
+      -- doesn't fit by a tiny margin
+      guess = capacity - Container.size nl
+  in if guess < 10 then 10 else guess
+
 -- | A speed-up version of `iterateAllocSmallStep`.
 --
 -- This function returns precisely the same result as `iterateAllocSmallStep`.
@@ -821,7 +836,7 @@ iterateAlloc :: AlgorithmOptions -> AllocMethod
 iterateAlloc opts nl il limit newinst allocnodes ixes cstats =
   if not $ algCapacity opts
     then iterateAllocSmallStep opts nl il limit newinst allocnodes ixes cstats
-    else let bigstepsize = 20
+    else let bigstepsize = guessBigstepSize nl newinst
              (limit', newlimit) = maybe (Just bigstepsize, Nothing)
                                     (Just . min bigstepsize
                                      &&& Just . max 0 . flip (-) bigstepsize)
