@@ -37,7 +37,6 @@ module Ganeti.HTools.GlobalN1
   ) where
 
 import Control.Monad (foldM)
-import qualified Data.IntMap as IntMap
 import Data.List (partition)
 
 import Ganeti.BasicTypes (isOk, Result)
@@ -78,8 +77,6 @@ canEvacuateNode (nl, il) n = isOk $ do
   (nl', il') <- opToResult
                 . foldM move (nl, il) $ map (flip (,) Failover) drbdIdxs
   -- evacuate other instances
-  let n' = Node.setOffline n True
-      nl'' = Container.add (Node.idx n') n' nl'
-  _ <- foldM (evac (Node.group n') . map Node.idx $ IntMap.elems nl'')
-             (nl'',il') sharedIdxs
+  let escapenodes = filter (/= Node.idx n) $ Container.keys nl'
+  _ <- foldM (evac (Node.group n) escapenodes) (nl',il') sharedIdxs
   return ()
