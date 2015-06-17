@@ -1013,8 +1013,8 @@ instance Monad Secret where
   (Secret x) >>= f = f x
   return = Secret
 
--- | We return "<redacted>" here to satisfy the idempotence of serialization and
--- deserialization, although this will impact the meaningfulness of secret
+-- | We return "\<redacted\>" here to satisfy the idempotence of serialization
+-- and deserialization, although this will impact the meaningfulness of secret
 -- parameters within configuration tests.
 showSecretJSObject :: (JSON.JSON a) =>
                        [(String, a)] -> JSON.JSObject (Secret JSON.JSValue)
