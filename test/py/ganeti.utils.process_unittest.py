@@ -30,14 +30,15 @@
 
 """Script for testing ganeti.utils.process"""
 
-import unittest
-import tempfile
-import shutil
 import os
-import stat
-import time
 import select
+import shutil
 import signal
+import stat
+import subprocess
+import tempfile
+import time
+import unittest
 
 from ganeti import constants
 from ganeti import utils
@@ -740,6 +741,16 @@ class RunInSeparateProcess(unittest.TestCase):
 
     self.assertRaises(errors.GenericError,
                       utils.RunInSeparateProcess, _exc)
+
+
+class GetCmdline(unittest.TestCase):
+  def test(self):
+    sample_cmd = "sleep 2; true"
+    pid = subprocess.Popen(sample_cmd, shell=True).pid
+    cmdline = utils.GetProcCmdline(pid)
+    # As the popen will quote and pass on the sample_cmd, it should be returned
+    # by the function as an element in the list of arguments
+    self.assertTrue(sample_cmd in cmdline)
 
 
 if __name__ == "__main__":

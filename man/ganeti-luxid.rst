@@ -9,7 +9,8 @@ ganeti-luxid - Ganeti query daemon
 Synopsis
 --------
 
-**ganeti-luxid** [-f] [-d]
+**ganeti-luxid** [-f] [-d] [--syslog] [--no-user-checks]
+[--no-voting --yes-do-it]
 
 DESCRIPTION
 -----------

@@ -871,8 +871,8 @@ class _TestXenHypervisor(object):
 
     for live in [False, True]:
       try:
-        hv._MigrateInstance(NotImplemented, name, target, port, live,
-                            self.VALID_HVPARAMS, _ping_fn=NotImplemented)
+        hv._MigrateInstance(name, target, port, live, self.VALID_HVPARAMS,
+                            _ping_fn=NotImplemented)
       except errors.HypervisorError, err:
         self.assertEqual(str(err), "Instance not running, cannot migrate")
       else:
@@ -900,8 +900,7 @@ class _TestXenHypervisor(object):
         pass
       else:
         try:
-          hv._MigrateInstance(NotImplemented, name, target, port, live,
-                              hvparams,
+          hv._MigrateInstance(name, target, port, live, hvparams,
                               _ping_fn=compat.partial(self._FakeTcpPing,
                                                       (target, port), False))
         except errors.HypervisorError, err:
@@ -910,7 +909,7 @@ class _TestXenHypervisor(object):
         else:
           self.fail("Exception was not raised")
 
-  def _MigrateInstanceCmd(self, cluster_name, instance_name, target, port,
+  def _MigrateInstanceCmd(self, instance_name, target, port,
                           live, fail, cmd):
     if cmd == [self.CMD, "list"]:
       output = testutils.ReadTestData("xen-xm-list-4.0.1-four-instances.txt")
@@ -923,7 +922,7 @@ class _TestXenHypervisor(object):
 
       elif self.CMD == constants.XEN_CMD_XL:
         args = [
-          "-s", constants.XL_SSH_CMD % cluster_name,
+          "-s", constants.XL_SOCAT_CMD % (target, port),
           "-C", utils.PathJoin(self.tmpdir, instance_name),
           ]
 
@@ -943,7 +942,6 @@ class _TestXenHypervisor(object):
     return self._SuccessCommand(output, cmd)
 
   def testMigrateInstance(self):
-    clustername = "cluster.example.com"
     instname = "server01.example.com"
     target = constants.IP4_ADDRESS_LOCALHOST
     port = 22364
@@ -958,21 +956,20 @@ class _TestXenHypervisor(object):
 
         run_cmd = \
           compat.partial(self._MigrateInstanceCmd,
-                         clustername, instname, target, port, live,
-                         fail)
+                         instname, target, port, live, fail)
 
         hv = self._GetHv(run_cmd=run_cmd)
 
         if fail:
           try:
-            hv._MigrateInstance(clustername, instname, target, port, live,
-                                hvparams, _ping_fn=ping_fn)
+            hv._MigrateInstance(instname, target, port, live, hvparams,
+                                _ping_fn=ping_fn)
           except errors.HypervisorError, err:
             self.assertTrue(str(err).startswith("Failed to migrate instance"))
           else:
             self.fail("Exception was not raised")
         else:
-          hv._MigrateInstance(clustername, instname, target, port, live,
+          hv._MigrateInstance(instname, target, port, live,
                               hvparams, _ping_fn=ping_fn)
 
         if self.CMD == constants.XEN_CMD_XM:

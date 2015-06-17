@@ -37,8 +37,7 @@ module Ganeti.HTools.GlobalN1
   , allocGlobalN1
   ) where
 
-import Control.Monad (foldM)
-import qualified Data.IntMap as IntMap
+import Control.Monad (foldM, foldM_)
 import qualified Data.Foldable as Foldable
 import Data.List (partition)
 
@@ -81,11 +80,12 @@ canEvacuateNode (nl, il) n = isOk $ do
   (nl', il') <- opToResult
                 . foldM move (nl, il) $ map (flip (,) Failover) drbdIdxs
   -- evacuate other instances
-  let n' = Node.setOffline n True
-      nl'' = Container.add (Node.idx n') n' nl'
-  _ <- foldM (evac (Node.group n') . map Node.idx $ IntMap.elems nl'')
-             (nl'',il') sharedIdxs
-  return ()
+  let grp = Node.group n
+      escapenodes = filter (/= Node.idx n)
+                    . map Node.idx
+                    . filter ((== grp) . Node.group)
+                    $ Container.elems nl'
+  foldM_ (evac grp escapenodes) (nl',il') sharedIdxs
 
 -- | Predicate on wheter an allocation element leads to a globally N+1 redundant
 -- state.

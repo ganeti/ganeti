@@ -24,6 +24,19 @@ New dependencies
   package.
 
 
+Version 2.15.0 rc1
+------------------
+
+*(Released Wed, 17 Jun 2015)*
+
+Known issues:
+~~~~~~~~~~~~~
+
+- Issue 1094: differences in encodings in SSL certificates due to
+  different OpenSSL versions can result in rendering a cluster
+  uncommunicative after a master-failover.
+
+
 Version 2.15.0 beta1
 --------------------
 
@@ -230,6 +243,20 @@ New dependencies
 - The formerly optional regex-pcre is now an unconditional dependency because
   the new job filter rules have regular expressions as a core feature.
 
+Since 2.13.0 rc1
+~~~~~~~~~~~~~~~~~~
+
+The following issues have been fixed:
+
+- Bugs related to ssh-key handling of master candidates (issues 1045,
+  1046, 1047)
+
+Fixes inherited from the 2.12 branch:
+
+- Upgrade from old versions (2.5 and 2.6) was failing (issues 1070, 1019).
+- gnt-network info outputs wrong external reservations (issue 1068)
+- Refuse to demote master from master capability (issue 1023)
+
 
 Version 2.12.4
 --------------
@@ -255,20 +282,6 @@ Pending since 2.12.2:
   migration (issue #1050)
 - GlusterFS support breaks at upgrade to 2.12 - switches back to
   shared-file (issue #1030)
-
-Since 2.13.0 rc1
-~~~~~~~~~~~~~~~~~~
-
-The following issues have been fixed:
-
-- Bugs related to ssh-key handling of master candidates (issues 1045,
-  1046, 1047)
-
-Fixes inherited from the 2.12 branch:
-
-- Upgrade from old versions (2.5 and 2.6) was failing (issues 1070, 1019).
-- gnt-network info outputs wrong external reservations (issue 1068)
-- Refuse to demote master from master capability (issue 1023)
 
 
 Version 2.13.0 rc1
