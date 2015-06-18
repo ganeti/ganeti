@@ -109,3 +109,21 @@ Advise only
 These tags are of advisory nature only. That is, all ``htools`` will strictly
 obey the restrictions imposed by those tags, but Ganeti will not prevent users
 from manually instructing other migrations.
+
+
+Instance pinning
+================
+
+Sometimes, administrators want specific instances located in a particular,
+typically geographic, location. To support these kind of requests, instances
+can be assigned tags of the form *htools:desiredlocation:x* where *x* is a
+failure tag. Those tags indicate the the instance wants to be placed on a
+node tagged *x*. To make ``htools`` honor those desires, the metric is extended,
+appropriately weighted, by the following component.
+
+- The number of instances tagged *htools:desiredlocation:x* where their
+  primary node is not tagged with *x*.
+
+Again, instance pinning is just heuristics, not a hard enforced requirement;
+it will only be achieved by the cluster metrics favouring such placements.
+
