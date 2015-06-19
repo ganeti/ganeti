@@ -275,7 +275,9 @@ $(genOpCode "OpCode"
   , ("OpClusterRenewCrypto",
      [t| () |],
      OpDoc.opClusterRenewCrypto,
-     [],
+     [ pVerbose
+     , pDebug
+     ],
      [])
   , ("OpQuery",
      [t| QueryResponse |],

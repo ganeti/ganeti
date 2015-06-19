@@ -2941,7 +2941,8 @@ class _RunWhileDaemonsStoppedHelper(object):
 
   """
   def __init__(self, feedback_fn, cluster_name, master_node,
-               online_nodes, ssh_ports, exclude_daemons):
+               online_nodes, ssh_ports, exclude_daemons, debug,
+               verbose):
     """Initializes this class.
 
     @type feedback_fn: callable
@@ -2958,6 +2959,10 @@ class _RunWhileDaemonsStoppedHelper(object):
     @param exclude_daemons: list of daemons to shutdown
     @param exclude_daemons: list of daemons that will be restarted after
                             all others are shutdown
+    @type debug: boolean
+    @param debug: show debug output
+    @type verbose: boolesn
+    @param verbose: show verbose output
 
     """
     self.feedback_fn = feedback_fn
@@ -2972,6 +2977,8 @@ class _RunWhileDaemonsStoppedHelper(object):
                             if name != master_node]
 
     self.exclude_daemons = exclude_daemons
+    self.debug = debug
+    self.verbose = verbose
 
     assert self.master_node not in self.nonmaster_nodes
 
@@ -3060,7 +3067,7 @@ class _RunWhileDaemonsStoppedHelper(object):
       watcher_block.Close()
 
 
-def RunWhileDaemonsStopped(feedback_fn, exclude_daemons, fn, *args):
+def RunWhileDaemonsStopped(feedback_fn, exclude_daemons, fn, *args, **kwargs):
   """Calls a function while all cluster daemons are stopped.
 
   @type feedback_fn: callable
@@ -3090,9 +3097,12 @@ def RunWhileDaemonsStopped(feedback_fn, exclude_daemons, fn, *args):
   if exclude_daemons is None:
     exclude_daemons = []
 
+  debug = kwargs.get("debug", False)
+  verbose = kwargs.get("verbose", False)
+
   return _RunWhileDaemonsStoppedHelper(
       feedback_fn, cluster_name, master_node, online_nodes, ssh_ports,
-      exclude_daemons).Call(fn, *args)
+      exclude_daemons, debug, verbose).Call(fn, *args)
 
 
 def RunWhileClusterStopped(feedback_fn, fn, *args):

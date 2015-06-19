@@ -941,7 +941,7 @@ def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
 def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
                  rapi_cert_filename, new_spice_cert, spice_cert_filename,
                  spice_cacert_filename, new_confd_hmac_key, new_cds,
-                 cds_filename, force, new_node_cert):
+                 cds_filename, force, new_node_cert, verbose, debug):
   """Renews cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -967,6 +967,10 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   @param force: Whether to ask user for confirmation
   @type new_node_cert: string
   @param new_node_cert: Whether to generate new node certificates
+  @type verbose: boolean
+  @param verbose: show verbose output
+  @type debug: boolean
+  @param debug: show debug output
 
   """
   if new_rapi_cert and rapi_cert_filename:
@@ -1061,10 +1065,6 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   def _RenewClientCerts(ctx):
     ctx.feedback_fn("Updating client SSL certificates.")
 
-    # TODO: transport those options outside.
-    debug = True
-    verbose = True
-
     cluster_name = ssconf.SimpleStore().GetClusterName()
 
     for node_name in ctx.nonmaster_nodes + [ctx.master_node]:
@@ -1080,8 +1080,8 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
           cluster_name,
           node_name,
           pathutils.SSL_UPDATE,
-          debug,
-          verbose,
+          ctx.debug,
+          ctx.verbose,
           True, # use cluster key
           False, # ask key
           True, # strict host check
@@ -1138,13 +1138,14 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   # If only node certficates are recreated, call _RenewClientCerts only.
   if new_node_cert and not new_cluster_cert:
     RunWhileDaemonsStopped(ToStdout, [constants.NODED, constants.WCONFD],
-                           _RenewClientCerts)
+                           _RenewClientCerts, verbose=verbose, debug=debug)
 
   # If the cluster certificate are renewed, the client certificates need
   # to be renewed too.
   if new_cluster_cert:
     RunWhileDaemonsStopped(ToStdout, [constants.NODED, constants.WCONFD],
-                           _RenewServerAndClientCerts)
+                           _RenewServerAndClientCerts, verbose=verbose,
+                           debug=debug)
 
   ToStdout("All requested certificates and keys have been replaced."
            " Running \"gnt-cluster verify\" now is recommended.")
@@ -1171,7 +1172,9 @@ def RenewCrypto(opts, args):
                       opts.new_cluster_domain_secret,
                       opts.cluster_domain_secret,
                       opts.force,
-                      opts.new_node_cert)
+                      opts.new_node_cert,
+                      opts.verbose,
+                      opts.debug > 0)
 
 
 def _GetEnabledDiskTemplates(opts):
@@ -2389,7 +2392,7 @@ commands = {
      NEW_CONFD_HMAC_KEY_OPT, FORCE_OPT,
      NEW_CLUSTER_DOMAIN_SECRET_OPT, CLUSTER_DOMAIN_SECRET_OPT,
      NEW_SPICE_CERT_OPT, SPICE_CERT_OPT, SPICE_CACERT_OPT,
-     NEW_NODE_CERT_OPT],
+     NEW_NODE_CERT_OPT, VERBOSE_OPT],
     "[opts...]",
     "Renews cluster certificates, keys and secrets"),
   "epo": (
