@@ -557,6 +557,12 @@ class HttpSslParams(object):
     self.ssl_cert_pem = utils.ReadFile(ssl_cert_path)
     self.ssl_cert_path = ssl_cert_path
 
+  def GetCertificateDigest(self):
+    return utils.GetCertificateDigest(cert_filename=self.ssl_cert_path)
+
+  def GetCertificateFilename(self):
+    return self.ssl_cert_path
+
   def GetKey(self):
     return OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
                                           self.ssl_key_pem)
@@ -615,6 +621,9 @@ class HttpBase(object):
     ctx.use_privatekey(self._ssl_key)
     ctx.use_certificate(self._ssl_cert)
     ctx.check_privatekey()
+    logging.debug("Certificate digest: %s.", ssl_params.GetCertificateDigest())
+    logging.debug("Certificate filename: %s.",
+                  ssl_params.GetCertificateFilename())
 
     if ssl_verify_peer:
       ctx.set_verify(OpenSSL.SSL.VERIFY_PEER |
