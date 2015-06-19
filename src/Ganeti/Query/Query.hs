@@ -227,13 +227,15 @@ genericQuery fieldsMap collector nameFn configFn getFn cfg
              _  -> mapM (getFn cfg) wanted
   -- Run the first pass of the filter, without a runtime context; this will
   -- limit the objects that we'll contact for exports
-  fobjects <- toError $ filterM (\n -> evaluateFilter cfg Nothing n cfilter)
-                        objects
-  -- Gather the runtime data
-  runtimes <- case collector of
+  fobjects <- toError $
+    filterM (\n -> evaluateQueryFilter cfg Nothing n cfilter) objects
+  -- Gather the runtime data and filter the results again,
+  -- based on the gathered data
+  runtimes <- (case collector of
     CollectorSimple     collFn -> lift $ collFn live' cfg fobjects
-    CollectorFieldAware collFn -> lift $ collFn live' cfg fields fobjects
-  -- Filter the results again, based on the gathered data
+    CollectorFieldAware collFn -> lift $ collFn live' cfg fields fobjects) >>=
+    (toError . filterM (\(obj, runtime) ->
+      evaluateQueryFilter cfg (Just runtime) obj cfilter))
   let fdata = map (\(obj, runtime) ->
                      map (execGetter cfg runtime obj) fgetters)
               runtimes
