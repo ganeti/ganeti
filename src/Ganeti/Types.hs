@@ -177,6 +177,7 @@ module Ganeti.Types
   , Secret(..)
   , showSecretJSObject
   , revealValInJSObject
+  , redacted
   , HvParams
   , OsParams
   , OsParamsPrivate

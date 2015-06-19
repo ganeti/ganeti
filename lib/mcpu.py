@@ -276,6 +276,17 @@ def _LockList(names):
     return list(names)
 
 
+def _CheckSecretParameters(op):
+  """Check if secret parameters are expected, but missing.
+
+  """
+  if hasattr(op, "osparams_secret") and op.osparams_secret:
+    for secret_param in op.osparams_secret:
+      if op.osparams_secret[secret_param].Get() == constants.REDACTED:
+        raise errors.OpPrereqError("Please re-submit secret parameters to job.",
+                                   errors.ECODE_INVAL)
+
+
 class Processor(object):
   """Object which runs OpCodes"""
   DISPATCH_TABLE = _ComputeDispatchTable()
@@ -687,6 +698,7 @@ class Processor(object):
       lu = lu_class(self, op, self.cfg, self.rpc,
                     self._wconfdcontext, self.wconfd)
       lu.wconfdlocks = self.wconfd.Client().ListLocks(self._wconfdcontext)
+      _CheckSecretParameters(op)
       lu.ExpandNames()
       assert lu.needed_locks is not None, "needed_locks not set by LU"
 

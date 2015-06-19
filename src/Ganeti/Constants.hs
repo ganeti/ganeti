@@ -5262,6 +5262,10 @@ debugModeConfidentialityWarning =
   "ALERT: %s started in debug mode.\n\
   \ Private and secret parameters WILL be logged!\n"
 
+-- | Use to hide secret parameter value
+redacted :: String
+redacted = Types.redacted
+
 -- * Stat dictionary entries
 --
 -- The get_file_info RPC returns a number of values as a dictionary, and the
