@@ -1038,9 +1038,6 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
 
     files_to_copy = []
 
-    if new_cluster_cert:
-      files_to_copy.append(pathutils.NODED_CERT_FILE)
-
     if new_rapi_cert or rapi_cert_pem:
       files_to_copy.append(pathutils.RAPI_CERT_FILE)
 
