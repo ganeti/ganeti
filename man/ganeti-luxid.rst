@@ -16,7 +16,9 @@ DESCRIPTION
 -----------
 
 **ganeti-luxid** is a daemon used to answer queries related to the
-configuration and the current live state of a Ganeti cluster.
+configuration and the current live state of a Ganeti cluster. Additionally,
+it is the autorative daemon for the Ganeti job queue. Jobs can be
+submitted via this daemon and it schedules and starts them.
 
 For testing purposes, you can give the ``-f`` option and the
 program won't detach from the running terminal.
@@ -28,9 +30,7 @@ passing in the ``--syslog`` option.
 
 The **ganeti-luxid** daemon listens on a Unix socket
 (``@LOCALSTATEDIR@/run/ganeti/socket/ganeti-query``) on which it exports
-a ``Luxi`` endpoint, serving query operations only. Commands and tools
-use this socket if the build-time option for split queries has been
-enabled.
+a ``Luxi`` endpoint supporting the full set of commands.
 
 The daemon will refuse to start if the user and group do not match the
 one defined at build time; this behaviour can be overridden by the
@@ -43,13 +43,8 @@ allow failover in a two-node cluster, this can be overridden by the
 option has to be given as well.
 
 
-ROLE
-~~~~
-
-The role of the query daemon is to answer queries about the (live)
-cluster state without going through the master daemon. Only queries
-which don't require locks can be handles by the query daemon, which
-might lead to slightly outdated results in some cases.
+Only queries which don't require locks can be handled by the luxi daemon,
+which might lead to slightly outdated results in some cases.
 
 The config is reloaded from disk automatically when it changes, with a
 rate limit of once per second.
