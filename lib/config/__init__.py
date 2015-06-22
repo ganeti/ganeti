@@ -1168,7 +1168,7 @@ class ConfigWriter(object):
                   node_uuids, result)
     return result
 
-  def _UnlockedReleaseDRBDMinors(self, disk_uuid):
+  def ReleaseDRBDMinors(self, disk_uuid):
     """Release temporary drbd minors allocated for a given disk.
 
     This is just a wrapper over a call to WConfd.
@@ -1184,21 +1184,6 @@ class ConfigWriter(object):
     # this is useful for testing
     if not self._offline:
       self._wconfd.ReleaseDRBDMinors(disk_uuid)
-
-  def ReleaseDRBDMinors(self, disk_uuid):
-    """Release temporary drbd minors allocated for a given disk.
-
-    This should be called on the error paths, on the success paths
-    it's automatically called by the ConfigWriter add and update
-    functions.
-
-    This function is just a wrapper over L{_UnlockedReleaseDRBDMinors}.
-
-    @type disk_uuid: string
-    @param disk_uuid: the disk for which temporary minors should be released
-
-    """
-    self._UnlockedReleaseDRBDMinors(disk_uuid)
 
   @ConfigSync(shared=1)
   def GetInstanceDiskTemplate(self, inst_uuid):

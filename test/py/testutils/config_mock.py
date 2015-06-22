@@ -609,7 +609,7 @@ class ConfigMock(config.ConfigWriter):
   def AllocateDRBDMinor(self, node_uuids, disk_uuid):
     return map(lambda _: 0, node_uuids)
 
-  def _UnlockedReleaseDRBDMinors(self, disk_uuid):
+  def ReleaseDRBDMinors(self, disk_uuid):
     pass
 
   def SetIPolicyField(self, category, field, value):
@@ -867,14 +867,14 @@ class ConfigMock(config.ConfigWriter):
     instance.ctime = instance.mtime = time.time()
     self._ConfigData().instances[instance.uuid] = instance
     self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
-    self._UnlockedReleaseDRBDMinors(instance.uuid)
+    self.ReleaseDRBDMinors(instance.uuid)
     self._UnlockedCommitTemporaryIps(ec_id)
 
   def _UnlockedAddDisk(self, disk):
     disk.UpgradeConfig()
     self._ConfigData().disks[disk.uuid] = disk
     self._ConfigData().cluster.serial_no += 1 # pylint: disable=E1103
-    self._UnlockedReleaseDRBDMinors(disk.uuid)
+    self.ReleaseDRBDMinors(disk.uuid)
 
   def _UnlockedAttachInstanceDisk(self, inst_uuid, disk_uuid, idx=None):
     instance = self._UnlockedGetInstanceInfo(inst_uuid)
