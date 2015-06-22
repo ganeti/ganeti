@@ -1501,6 +1501,7 @@ man_MANS = \
 	man/ganeti-extstorage-interface.7 \
 	man/ganeti-rapi.8 \
 	man/ganeti-watcher.8 \
+	man/ganeti-wconfd.8 \
 	man/ganeti.7 \
 	man/gnt-backup.8 \
 	man/gnt-cluster.8 \
