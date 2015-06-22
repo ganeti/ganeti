@@ -236,6 +236,20 @@ def _InitGanetiServerSetup(master_name, cfg):
   cfg.Update(cfg.GetClusterInfo(), logging.error)
   ssconf.WriteSsconfFiles(cfg.GetSsconfValues())
 
+  if not os.path.exists(
+      os.path.join(pathutils.DATA_DIR,
+      "%s%s" % (constants.SSCONF_FILEPREFIX,
+                constants.SS_MASTER_CANDIDATES_CERTS))):
+    raise errors.OpExecError("Ssconf file for master candidate certificates"
+                             " was not written.")
+
+  if not os.path.exists(pathutils.NODED_CERT_FILE):
+    raise errors.OpExecError("The server certficate was not created properly.")
+
+  if not os.path.exists(pathutils.NODED_CLIENT_CERT_FILE):
+    raise errors.OpExecError("The client certificate was not created"
+                             " properly.")
+
   # set up the inter-node password and certificate
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:
