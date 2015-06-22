@@ -1211,6 +1211,13 @@ hs-pkg-versions:
 	   -DMONAD_CONTROL_MAJOR=\1 -DMONAD_CONTROL_MINOR=\2 -DMONAD_CONTROL_REV=\3/'\
 	  -e 's/^\s*//' \
 	>> $@
+	ghc-pkg list --simple-output QuickCheck \
+	| sed -r -e '$$!d' \
+	  -e 's/^QuickCheck-([0-9]+(\.[0-9]+)*)/\1 0 0 0/' \
+	  -e 's/\./ /g' -e 's/([0-9]+) *([0-9]+) *([0-9]+) .*/\
+	   -DQUICKCHECK_MAJOR=\1 -DQUICKCHECK_MINOR=\2 -DQUICKCHECK_REV=\3/'\
+	  -e 's/^\s*//' \
+	>> $@
 
 HS_MAKEFILE_GHC_SRCS = $(HS_SRC_PROGS:%=%.hs)
 if WANT_HSTESTS

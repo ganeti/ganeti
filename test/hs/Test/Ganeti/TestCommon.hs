@@ -83,6 +83,14 @@ module Test.Ganeti.TestCommon
   , getTempFileName
   ) where
 
+-- The following macro is just a temporary solution for 2.12 and 2.13.
+-- Since 2.14 cabal creates proper macros for all dependencies.
+#define MIN_VERSION_QuickCheck(maj,min,rev) \
+  (((maj)<QUICKCHECK_MAJOR)|| \
+   (((maj)==QUICKCHECK_MAJOR)&&((min)<=QUICKCHECK_MINOR))|| \
+   (((maj)==QUICKCHECK_MAJOR)&&((min)==QUICKCHECK_MINOR)&& \
+    ((rev)<=QUICKCHECK_REV)))
+
 import Control.Applicative
 import Control.Exception (catchJust)
 import Control.Monad
