@@ -84,6 +84,7 @@ options = do
     , oIndependentGroups
     , oAcceptExisting
     , oOfflineNode
+    , oNoCapacityChecks
     , oMachineReadable
     , oMaxCpu
     , oMaxSolLength
