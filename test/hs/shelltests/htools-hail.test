@@ -39,7 +39,7 @@ echo '{"request": 0}' | ./test/hs/hail -
 >>>= 0
 
 # check that hail correctly applies the disk policy on a per-disk basis
-./test/hs/hail $TESTDATA_DIR/hail-alloc-twodisks.json
+./test/hs/hail $TESTDATA_DIR/hail-alloc-twodisks.json --no-capacity-checks
 >>> /"success":true,.*,"result":\["node1"\]/
 >>>= 0
 
@@ -58,7 +58,7 @@ echo '{"request": 0}' | ./test/hs/hail -
 >>>= 0
 
 # check that hail succeeds with the same test data, but with the network restrictions removed
-cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-net-1-."' | ./test/hs/hail -
+cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-net-1-."' | ./test/hs/hail - --no-capacity-checks
 >>> /"success":true,"info":"Request successful: Selected group: Group 2.*/
 >>>= 0
 
@@ -155,7 +155,7 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 >>>= 0
 
 # Check interaction between policies and spindles
-./test/hs/hail $TESTDATA_DIR/hail-alloc-spindles.json
+./test/hs/hail $TESTDATA_DIR/hail-alloc-spindles.json --no-capacity-checks
 >>> /"success":true,"info":"Request successful: Selected group: group2,.*FailSpindles: 2,.*"result":\["node4"\]/
 >>>= 0
 
