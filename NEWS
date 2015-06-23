@@ -7,19 +7,6 @@ Version 2.15.0 rc1
 
 *(Released Wed, 17 Jun 2015)*
 
-Known issues:
-~~~~~~~~~~~~~
-
-- Issue 1094: differences in encodings in SSL certificates due to
-  different OpenSSL versions can result in rendering a cluster
-  uncommunicative after a master-failover.
-
-
-Version 2.15.0 beta1
---------------------
-
-*(Released Thu, 30 Apr 2015)*
-
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -42,8 +29,21 @@ New dependencies
 - The indirect dependency on Haskell package 'case-insensitive' is now
   explicit.
 
-Known issues
-~~~~~~~~~~~~
+Known issues:
+~~~~~~~~~~~~~
+
+- Issue 1094: differences in encodings in SSL certificates due to
+  different OpenSSL versions can result in rendering a cluster
+  uncommunicative after a master-failover.
+
+
+Version 2.15.0 beta1
+--------------------
+
+*(Released Thu, 30 Apr 2015)*
+
+This was the second beta release in the 2.15 series. All important changes
+are listed in the latest 2.15 entry.
 
 
 Version 2.14.0
