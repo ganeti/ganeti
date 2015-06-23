@@ -48,7 +48,7 @@ master_doc = "index"
 
 # General information about the project.
 project = u"Ganeti"
-copyright = u"%s Google Inc." % ", ".join(map(str, range(2006, 2013 + 1)))
+copyright = u"%s Google Inc." % ", ".join(map(str, range(2006, 2015 + 1)))
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
