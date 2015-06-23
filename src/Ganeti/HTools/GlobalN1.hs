@@ -40,17 +40,20 @@ module Ganeti.HTools.GlobalN1
 
 import Control.Monad (foldM, foldM_)
 import qualified Data.Foldable as Foldable
-import Data.List (partition)
+import Data.Function (on)
+import Data.List (partition, sortBy)
 
 import Ganeti.BasicTypes (isOk, Result)
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), defaultOptions)
+import Ganeti.HTools.Cluster.AllocatePrimitives (allocateOnSingle)
 import qualified Ganeti.HTools.Cluster.AllocationSolution as AllocSol
 import qualified Ganeti.HTools.Cluster.Evacuate as Evacuate
 import Ganeti.HTools.Cluster.Moves (move)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
-import Ganeti.HTools.Types ( IMove(Failover), Ndx, Gdx, Idx, opToResult)
+import Ganeti.HTools.Types ( IMove(Failover), Ndx, Gdx, Idx, opToResult,
+                             FailMode(FailN1) )
 import Ganeti.Types ( DiskTemplate(DTDrbd8), diskTemplateMovable
                     , EvacMode(ChangePrimary))
 
@@ -65,6 +68,24 @@ evac gdx ndxs (nl, il) idx = do
                      gdx ndxs
   return (nl', il')
 
+-- | Foldable function describing how a non-movable instance is to
+-- be recreated on one of the given nodes.
+recreate :: [Ndx]
+         -> (Node.List, Instance.List)
+         -> Instance.Instance
+         -> Result (Node.List, Instance.List)
+recreate targetnodes (nl, il) inst = do
+  let opts = defaultOptions { algIgnoreSoftErrors = True, algEvacMode = True }
+      sols = foldl (\cstate ->
+                       AllocSol.concatAllocCollections cstate
+                       . allocateOnSingle opts nl inst
+                   ) AllocSol.emptyAllocCollection targetnodes
+      sol = AllocSol.collectionToSolution FailN1 (const True) sols
+  alloc <- maybe (fail "No solution found") return $ AllocSol.asSolution sol
+  let il' = AllocSol.updateIl il $ Just alloc
+      nl' = AllocSol.extractNl nl il $ Just alloc
+  return (nl', il')
+
 -- | Decide if a node can be evacuated, i.e., all DRBD instances
 -- failed over and all shared/external storage instances moved off
 -- to other nodes.
@@ -74,9 +95,9 @@ canEvacuateNode (nl, il) n = isOk $ do
                                          . Instance.diskTemplate
                                          . flip Container.find il)
                               $ Node.pList n
-      sharedIdxs = filter (diskTemplateMovable
-                           . Instance.diskTemplate
-                           . flip Container.find il) otherIdxs
+      (sharedIdxs, nonMoveIdxs) = partition (diskTemplateMovable
+                                  . Instance.diskTemplate
+                                  . flip Container.find il) otherIdxs
   -- failover all DRBD instances with primaries on n
   (nl', il') <- opToResult
                 . foldM move (nl, il) $ map (flip (,) Failover) drbdIdxs
@@ -86,7 +107,10 @@ canEvacuateNode (nl, il) n = isOk $ do
                     . map Node.idx
                     . filter ((== grp) . Node.group)
                     $ Container.elems nl'
-  foldM_ (evac grp escapenodes) (nl',il') sharedIdxs
+  (nl'', il'') <- foldM (evac grp escapenodes) (nl',il') sharedIdxs
+  let recreateInstances = sortBy (flip compare `on` Instance.mem)
+                          $ map (`Container.find` il'') nonMoveIdxs
+  foldM_ (recreate escapenodes) (nl'', il'') recreateInstances
 
 -- | Predicate on wheter a given situation is globally N+1 redundant.
 redundant :: Node.List -> Instance.List -> Bool
