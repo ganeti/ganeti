@@ -27,6 +27,7 @@ Design document drafts
    design-multi-storage-htools.rst
    design-shared-storage-redundancy.rst
    design-repaird.rst
+   design-plain-redundancy.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:
