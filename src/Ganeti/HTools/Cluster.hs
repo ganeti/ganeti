@@ -94,18 +94,18 @@ import Text.Printf (printf)
 import Ganeti.BasicTypes
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), defaultOptions)
 import qualified Ganeti.HTools.Container as Container
+import Ganeti.HTools.Cluster.AllocatePrimitives ( allocateOnSingle
+                                                , allocateOnPair)
 import Ganeti.HTools.Cluster.AllocationSolution
-    ( AllocElement, GenericAllocSolution(..) , AllocSolution, emptyAllocSolution
+    ( GenericAllocSolution(..) , AllocSolution, emptyAllocSolution
     , sumAllocs, extractNl, updateIl
     , annotateSolution, solutionDescription, collapseFailures
     , emptyAllocCollection, concatAllocCollections, collectionToSolution )
 import Ganeti.HTools.Cluster.Evacuate ( EvacSolution(..), emptyEvacSolution
                                       , updateEvacSolution, reverseEvacSolution
                                       , nodeEvacInstance)
-import Ganeti.HTools.Cluster.Metrics ( compCV, compCVfromStats
-                                     , compClusterStatistics
-                                     , updateClusterStatisticsTwice)
-import Ganeti.HTools.Cluster.Moves (setInstanceLocationScore, applyMoveEx)
+import Ganeti.HTools.Cluster.Metrics (compCV, compClusterStatistics)
+import Ganeti.HTools.Cluster.Moves (applyMoveEx)
 import Ganeti.HTools.Cluster.Utils (splitCluster, instancePriGroup
                                    , availableGroupNodes, iMoveToJob)
 import Ganeti.HTools.GlobalN1 (allocGlobalN1, redundant)
@@ -116,7 +116,6 @@ import qualified Ganeti.HTools.Group as Group
 import Ganeti.HTools.Types
 import Ganeti.Compat
 import Ganeti.Utils
-import Ganeti.Utils.Statistics
 import Ganeti.Types (EvacMode(..))
 
 -- * Types
@@ -313,42 +312,6 @@ getOnline = filter (not . Node.offline) . Container.elems
 compareTables :: Table -> Table -> Table
 compareTables a@(Table _ _ a_cv _) b@(Table _ _ b_cv _ ) =
   if a_cv > b_cv then b else a
-
--- | Tries to allocate an instance on one given node.
-allocateOnSingle :: AlgorithmOptions
-                 -> Node.List -> Instance.Instance -> Ndx
-                 -> OpResult AllocElement
-allocateOnSingle opts nl inst new_pdx =
-  let p = Container.find new_pdx nl
-      new_inst = Instance.setBoth inst new_pdx Node.noSecondary
-      force = algIgnoreSoftErrors opts
-  in do
-    Instance.instMatchesPolicy inst (Node.iPolicy p) (Node.exclStorage p)
-    new_p <- Node.addPriEx force p inst
-    let new_nl = Container.add new_pdx new_p nl
-        new_score = compCV new_nl
-    return (new_nl, new_inst, [new_p], new_score)
-
--- | Tries to allocate an instance on a given pair of nodes.
-allocateOnPair :: AlgorithmOptions
-               -> [Statistics]
-               -> Node.List -> Instance.Instance -> Ndx -> Ndx
-               -> OpResult AllocElement
-allocateOnPair opts stats nl inst new_pdx new_sdx =
-  let tgt_p = Container.find new_pdx nl
-      tgt_s = Container.find new_sdx nl
-      force = algIgnoreSoftErrors opts
-  in do
-    Instance.instMatchesPolicy inst (Node.iPolicy tgt_p)
-      (Node.exclStorage tgt_p)
-    let new_inst = Instance.setBoth (setInstanceLocationScore inst tgt_p tgt_s)
-                   new_pdx new_sdx
-    new_p <- Node.addPriEx force tgt_p new_inst
-    new_s <- Node.addSec tgt_s new_inst new_pdx
-    let new_nl = Container.addTwo new_pdx new_p new_sdx new_s nl
-        new_stats = updateClusterStatisticsTwice stats
-                      (tgt_p, new_p) (tgt_s, new_s)
-    return (new_nl, new_inst, [new_p, new_s], compCVfromStats new_stats)
 
 -- | Tries to perform an instance move and returns the best table
 -- between the original one and the new one.
