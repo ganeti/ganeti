@@ -39,6 +39,14 @@ the Ganeti binaries should happen in the same way as for all other binaries on
 your system.
 
 
+2.12
+----
+
+Due to issue #1094 in Ganeti 2.11 and 2.12 up to version 2.12.4, we
+advise to rerun 'gnt-cluster renew-crypto --new-node-certificates'
+after an upgrade to 2.12.5 or higher.
+
+
 2.11
 ----
 
