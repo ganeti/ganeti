@@ -3991,9 +3991,11 @@ def CreateX509Certificate(validity, cryptodir=pathutils.CRYPTO_KEYS_DIR):
   @return: Certificate name and public part
 
   """
+  serial_no = int(time.time())
   (key_pem, cert_pem) = \
     utils.GenerateSelfSignedX509Cert(netutils.Hostname.GetSysName(),
-                                     min(validity, _MAX_SSL_CERT_VALIDITY), 1)
+                                     min(validity, _MAX_SSL_CERT_VALIDITY),
+                                     serial_no)
 
   cert_dir = tempfile.mkdtemp(dir=cryptodir,
                               prefix="x509-%s-" % utils.TimestampForFilename())
