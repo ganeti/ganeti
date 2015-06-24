@@ -941,6 +941,12 @@ def _VerifyNodeInfo(what, vm_capable, result, all_hvparams):
 def _VerifyClientCertificate(cert_file=pathutils.NODED_CLIENT_CERT_FILE):
   """Verify the existance and validity of the client SSL certificate.
 
+  Also, verify that the client certificate is not self-signed. Self-
+  signed client certificates stem from Ganeti versions 2.12.0 - 2.12.4
+  and should be replaced by client certificates signed by the server
+  certificate. Hence we output a warning when we encounter a self-signed
+  one.
+
   """
   create_cert_cmd = "gnt-cluster renew-crypto --new-node-certificates"
   if not os.path.exists(cert_file):
@@ -951,9 +957,13 @@ def _VerifyClientCertificate(cert_file=pathutils.NODED_CLIENT_CERT_FILE):
   (errcode, msg) = utils.VerifyCertificate(cert_file)
   if errcode is not None:
     return (errcode, msg)
-  else:
-    # if everything is fine, we return the digest to be compared to the config
-    return (None, utils.GetCertificateDigest(cert_filename=cert_file))
+
+  (errcode, msg) = utils.IsCertificateSelfSigned(cert_file)
+  if errcode is not None:
+    return (errcode, msg)
+
+  # if everything is fine, we return the digest to be compared to the config
+  return (None, utils.GetCertificateDigest(cert_filename=cert_file))
 
 
 def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):

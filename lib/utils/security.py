@@ -119,7 +119,7 @@ def VerifyCertificate(filename):
 
   (errcode, msg) = \
     x509.VerifyX509Certificate(cert, constants.SSL_CERT_EXPIRATION_WARN,
-                                constants.SSL_CERT_EXPIRATION_ERROR)
+                               constants.SSL_CERT_EXPIRATION_ERROR)
 
   if msg:
     fnamemsg = "While verifying %s: %s" % (filename, msg)
@@ -134,3 +134,33 @@ def VerifyCertificate(filename):
     return (constants.CV_ERROR, fnamemsg)
 
   raise errors.ProgrammerError("Unhandled certificate error code %r" % errcode)
+
+
+def IsCertificateSelfSigned(cert_filename):
+  """Checks whether the certificate issuer is the same as the owner.
+
+  Note that this does not actually verify the signature, it simply
+  compares the certificates common name and the issuer's common
+  name. This is sufficient, because now that Ganeti started creating
+  non-self-signed client-certificates, it uses their hostnames
+  as common names and thus they are distinguishable by common name
+  from the server certificates.
+
+  @type cert_filename: string
+  @param cert_filename: filename of the certificate to examine
+
+  """
+  try:
+    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           io.ReadFile(cert_filename))
+  except Exception, err: # pylint: disable=W0703
+    return (constants.CV_ERROR,
+            "Failed to load X509 certificate %s: %s" % (cert_filename, err))
+
+  if cert.get_subject().CN == cert.get_issuer().CN:
+    msg = "The certificate '%s' is self-signed. Please run 'gnt-cluster" \
+          " renew-crypto --new-node-certificates' to get a properly signed" \
+          " certificate." % cert_filename
+    return (constants.CV_WARNING, msg)
+
+  return (None, None)

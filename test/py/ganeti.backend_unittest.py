@@ -177,7 +177,7 @@ class TestNodeVerify(testutils.GanetiTestCase):
     verif_cert.return_value = (None, None)
     cert_file = testutils.TestDataFilename("cert2.pem")
     (errcode, digest) = backend._VerifyClientCertificate(cert_file=cert_file)
-    self.assertEqual(None, errcode)
+    self.assertEqual(constants.CV_WARNING, errcode)
     self.assertTrue(isinstance(digest, str))
 
   @testutils.patch_object(utils, "VerifyCertificate")
