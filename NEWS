@@ -15,6 +15,8 @@ Incompatible/important changes
   conversion to DRBD no secondary node is specified. As long as this new
   feature is not used, a third-party IAllocator not aware of this extension can
   be continued to be used.
+- ``htools`` now also take into account N+1 redundancy for plain and shared
+  storage. To obtain the old behavior, add the ``--no-capacity-checks`` option.
 
 New dependencies
 ~~~~~~~~~~~~~~~~
