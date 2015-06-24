@@ -1739,6 +1739,7 @@ TEST_FILES = \
 	test/data/htools/hsqueeze-mixed-instances.data \
 	test/data/htools/hsqueeze-overutilized.data \
 	test/data/htools/hsqueeze-underutilized.data \
+	test/data/htools/plain-n1-restriction.data \
 	test/data/htools/shared-n1-failure.data \
 	test/data/htools/shared-n1-restriction.data \
 	test/data/htools/unique-reboot-order.data \
