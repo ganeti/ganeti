@@ -2,6 +2,17 @@ News
 ====
 
 
+Version 2.12.5
+--------------
+
+*(unreleased)*
+
+- Fixed Issue #1094: Differences in encodings of SSL certificates can
+  render a cluster uncommunicative after a master-failover. Please
+  rerun 'gnt-cluster renew-crypto --new-node-certificates' after an
+  upgrade to 2.12.5.
+
+
 Version 2.12.4
 --------------
 
