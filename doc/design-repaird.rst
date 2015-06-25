@@ -1,18 +1,20 @@
-====================
-Ganeti Repair Daemon
-====================
+=========================
+Ganeti Maintenance Daemon
+=========================
 
 .. contents:: :depth: 4
 
 This design document outlines the implementation of a new Ganeti
-daemon coordinating repairs on a cluster.
+daemon coordinating all maintenance operations on a cluster
+(rebalancing, activate disks, ERROR_down handling, node repairs
+actions).
 
 
 Current state and shortcomings
 ==============================
 
-With ``harep``, Ganeti has a basic mechanism for repairs of a
-cluster. The ``harep`` tool can fix a broken DRBD status, migrate,
+With ``harep``, Ganeti has a basic mechanism for repairs of instances
+in a cluster. The ``harep`` tool can fix a broken DRBD status, migrate,
 failover, and reinstall instances. It is intended to be run regularly,
 e.g., via a cron job. It will submit appropriate Ganeti jobs to take
 action within the range allowed by instance tags and keep track
@@ -32,8 +34,9 @@ swap.
 Proposed changes
 ================
 
-We propose the addition of an additional daemon, called ``repaird`` that will
-coordinate the work for repair needs of individual nodes. The information
+We propose the addition of an additional daemon, called ``maintd``
+that will coordinate cluster balance actions, instance repair actions,
+and work for hardware repair needs of individual nodes. The information
 about the work to be done will be obtained from a dedicated data collector
 via the :doc:`design-monitoring-agent`.
 
@@ -47,6 +50,11 @@ is configurable, but needs to be white-listed ahead of time by the node.
 For convenience, the empty string will stand for a build-in diagnose that
 always reports that everything is OK; this will also be the default value
 for this collector.
+
+Note that the self-diagnose data collector itself can, and usually will,
+call separate diagnose tools for separate subsystems. However, it always
+has to provide a consolidated description of the overall health state
+of the node.
 
 Protocol
 ~~~~~~~~
@@ -66,6 +74,15 @@ no action needed, some action is needed that can be taken while instances
 continue to run on that node, it is necessary to evacuate and offline
 the node, and it is necessary to evacuate and offline the node without
 attempting live migrations, respectively.
+
+command
+.......
+
+If the status is ``live-repair``, a repair command can be specified.
+This command will be executed as repair action following the
+:doc:`design-restricted-commands`, however extended to read information
+on ``stdin``. The whole diagnose JSON object will be provided as ``stdin``
+to those commands.
 
 details
 .......
@@ -96,6 +113,11 @@ via RAPI, we require the node to white-list the command using a mechanism
 similar to the :doc:`design-restricted-commands`; in our case, the white-listing
 directory will be ``/etc/ganeti/node-diagnose-commands``.
 
+For the repair-commands, as mentioned, we extend the
+:doc:`design-restricted-commands` by allowing input on ``stdin``. All other
+restrictions, in particular the white-listing requirement, remain. The
+white-listing directory will be ``/etc/ganeti/node-repair-commands``.
+
 Result forging
 ..............
 
@@ -110,6 +132,8 @@ Repair-event life cycle
 -----------------------
 
 Once a repair event is detected, a unique identifier is assigned to it.
+As long as the node-health collector returns the same output (as JSON
+object), this is still considered the same event.
 This identifier can be used to cancel an observed event at any time; for
 this an appropriate command-line and RAPI endpoint will be provided. Cancelling
 an event tells the repair daemon not to take any actions (despite them
@@ -118,26 +142,29 @@ no longer observed.
 
 Corresponding Ganeti actions will be initiated and success or failure of
 these Ganeti jobs monitored. All jobs submitted by the repair daemon
-will have the string ``gnt:daemon:repaird`` and the event identifier
+will have the string ``gnt:daemon:maintd`` and the event identifier
 in the reason trail, so that :doc:`design-optables` is possible.
 Once a job fails, no further jobs will be submitted for this event
 to avoid further damage; the repair action is considered failed in this case.
 
 Once all requested actions succeeded, or one failed, the node where the
-event as observed will be tagged by a tag starting with ``repaird:repairready:``
-or ``repaird:repairfailed:``, respectively, where the event identifier is
+event as observed will be tagged by a tag starting with ``maintd:repairready:``
+or ``maintd:repairfailed:``, respectively, where the event identifier is
 encoded in the rest of the tag. On the one hand, it can be used as an
 additional verification whether a node is ready for a specific repair.
 However, the main purpose is to provide a simple and uniform interface
-to acknowledge an event; once that tag is removed, the repair daemon
-will forget about this event, as soon as it is no longer observed by
-any monitoring daemon.
+to acknowledge an event. Once a ``maintd:repairready`` tag is removed,
+the maintenance daemon will forget about this event, as soon as it is no
+longer observed by any monitoring daemon. Removing a ``maintd:repairfailed:``
+tag will make the maintenance daemon to unconditionally forget the event;
+note that, if the underlying problem is not fixed yet, this provides an
+easy way of restarting a repair flow.
 
 
 Repair daemon
 -------------
 
-The new daemon ``repaird`` will be running on the master node only. It will
+The new daemon ``maintd`` will be running on the master node only. It will
 verify the master status of its node by popular vote in the same way as all the
 other master-only daemons. If started on a non-master node, it will exit
 immediately with exit code ``exitNotmaster``, i.e., 11.
@@ -207,7 +234,7 @@ Superseeding ``harep`` and implicit balancing
 
 To have a single point coordinating all repair actions, the new repair daemon
 will also have the ability to take over the work currently done by ``harep``.
-To allow a smooth transition, ``repaird`` when carrying out ``harep``'s duties
+To allow a smooth transition, ``maintd`` when carrying out ``harep``'s duties
 will add tags in precisely the same way as ``harep`` does.
 As the new daemon will have to move instances, it will also have the ability
 to balance the cluster in a way coordinated with the necessary evacuation
@@ -222,8 +249,9 @@ continue to exist unchanged as part of the ``htools``.
 Mode of operation
 ~~~~~~~~~~~~~~~~~
 
-The repair daemon will at fixed interval poll the monitoring daemons for
-the value of the self-diagnose data collector; if load-based balancing is
+The repair daemon will poll the monitoring daemons for
+the value of the self-diagnose data collector at the same (configurable)
+rate the monitoring daemon collects this collector; if load-based balancing is
 enabled, it will also collect for the the load data needed.
 
 Repair events will be exposed on the web status page as soon as observed.
@@ -232,13 +260,14 @@ A new round will be started if all jobs of the old round have finished, and
 there is an unhandled repair event or the cluster is unbalanced enough (provided
 that autobalancing is enabled).
 
-In each round, ``repaird`` will first determine the most invasive action for
+In each round, ``maintd`` will first determine the most invasive action for
 each node; despite the self-diagnose collector summing observations in a single
 action recommendation, a new, more invasive recommendation can be issued before
 the handling of the first recommendation is finished. For all nodes to be
 evacuated, the first evacuation task is scheduled, in a way that these tasks do
 not conflict with each other. Then, for all instances on a non-affected node,
 that need ``harep``-style repair (if enabled) those jobs are scheduled to the
-extend of not conflicting with each other. Then on the remaining node, the jobs
+extend of not conflicting with each other. Then on the remaining nodes that
+are not part of a failed repair event either, the jobs
 of the first balancing step are scheduled. All those jobs of a round are
 submitted at once. As they do not conflict they will be able to run in parallel.
