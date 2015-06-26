@@ -138,7 +138,7 @@ def main():
 
     if secret_params:
       for i in range(0, len(secret_params)):
-        if hasattr(job.ops[i].input, "osparams_secret") and secret_params[i]:
+        if hasattr(job.ops[i].input, "osparams_secret"):
           job.ops[i].input.osparams_secret = secret_params[i]
 
     execfun = mcpu.Processor(context, job_id, job_id).ExecOpCode
