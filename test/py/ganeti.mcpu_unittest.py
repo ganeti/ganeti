@@ -35,10 +35,12 @@ import unittest
 import itertools
 
 from ganeti import compat
+from ganeti import errors
 from ganeti import mcpu
 from ganeti import opcodes
 from ganeti import cmdlib
 from ganeti import locking
+from ganeti import serializer
 from ganeti import constants
 from ganeti.constants import \
     LOCK_ATTEMPTS_TIMEOUT, \
@@ -174,6 +176,42 @@ class TestProcessResult(unittest.TestCase):
     # of specifying "just inherit the priority".
     self.assertEqual(op2.comment, "foobar")
     self.assertEqual(op2.debug_level, 3)
+
+
+class TestSecretParams(unittest.TestCase):
+  def testSecretParamsCheckNoError(self):
+    op = opcodes.OpInstanceCreate(
+      instance_name="plain.example.com",
+      pnode="master.example.com",
+      disk_template=constants.DT_PLAIN,
+      mode=constants.INSTANCE_CREATE,
+      nics=[{}],
+      disks=[{
+        constants.IDISK_SIZE: 1024
+      }],
+      osparams_secret= serializer.PrivateDict({"foo":"bar", "foo2":"bar2"}),
+      os_type="debian-image")
+
+    try:
+      mcpu._CheckSecretParameters(op)
+    except errors.OpPrereqError:
+      self.fail("OpPrereqError raised unexpectedly in _CheckSecretParameters")
+
+  def testSecretParamsCheckWithError(self):
+    op = opcodes.OpInstanceCreate(
+      instance_name="plain.example.com",
+      pnode="master.example.com",
+      disk_template=constants.DT_PLAIN,
+      mode=constants.INSTANCE_CREATE,
+      nics=[{}],
+      disks=[{
+        constants.IDISK_SIZE: 1024
+      }],
+      osparams_secret= serializer.PrivateDict({"foo":"bar",
+                                              "secret_param":"<redacted>"}),
+      os_type="debian-image")
+
+    self.assertRaises(errors.OpPrereqError, mcpu._CheckSecretParameters, op)
 
 
 if __name__ == "__main__":
