@@ -119,6 +119,46 @@ This was the first beta release of the 2.14 series. All important changes
 are listed in the latest 2.14 entry.
 
 
+Version 2.13.1
+--------------
+
+*(Released Tue, 16 Jun 2015)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The SSH security changes reduced the number of nodes which can SSH into
+  other nodes. Unfortunately enough, the Ganeti implementation of migration
+  for the xl stack of Xen required SSH to be able to migrate the instance,
+  leading to a situation where full movement of an instance around the cluster
+  was not possible. This version fixes the issue by using socat to transfer
+  instance data. While socat is less secure than SSH, it is about as secure as
+  xm migrations, and occurs over the secondary network if present. As a
+  consequence of this change, Xen instance migrations using xl cannot occur
+  between nodes running 2.13.0 and 2.13.1.
+
+Other fixes and known issues
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Inherited from 2.12:
+
+- Fixed Issue #1082: RAPI is unresponsive after master-failover
+- Fixed Issue #1083: Cluster verify reports existing instance disks on
+  non-default VGs as missing
+- Fixed Issue #1101: Modifying the storage directory for the shared-file disk
+  template doesn't work
+- Fixed a possible file descriptor leak when forking jobs
+- Fixed missing private parameters in the environment for OS scripts
+- Fixed a performance regression when handling configuration
+  (only upgrade it if it changes)
+- Adapt for compilation with GHC7.8 (compiles with warnings;
+  cherrypicked from 2.14)
+
+Known issues:
+- Issue #1094: Mismatch in SSL encodings breaks RPC communication
+- Issue #1104: Export fails: key is too small
+
+
 Version 2.13.0
 --------------
 

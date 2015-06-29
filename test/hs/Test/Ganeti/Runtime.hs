@@ -89,23 +89,23 @@ case_UsersGroups = do
               \from ganeti import serializer\n\
               \import sys\n\
               \users = [constants.MASTERD_USER,\n\
+              \         constants.METAD_USER,\n\
               \         constants.NODED_USER,\n\
               \         constants.RAPI_USER,\n\
               \         constants.CONFD_USER,\n\
               \         constants.WCONFD_USER,\n\
               \         constants.KVMD_USER,\n\
               \         constants.LUXID_USER,\n\
-              \         constants.METAD_USER,\n\
               \         constants.MOND_USER,\n\
               \        ]\n\
               \groups = [constants.MASTERD_GROUP,\n\
+              \          constants.METAD_GROUP,\n\
               \          constants.NODED_GROUP,\n\
               \          constants.RAPI_GROUP,\n\
               \          constants.CONFD_GROUP,\n\
               \          constants.WCONFD_GROUP,\n\
               \          constants.KVMD_GROUP,\n\
               \          constants.LUXID_GROUP,\n\
-              \          constants.METAD_GROUP,\n\
               \          constants.MOND_GROUP,\n\
               \          constants.DAEMONS_GROUP,\n\
               \          constants.ADMIN_GROUP,\n\
