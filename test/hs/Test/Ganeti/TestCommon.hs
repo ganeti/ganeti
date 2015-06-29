@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 {-| Common helper functions and instances for all Ganeti tests.
@@ -88,7 +89,16 @@ module Test.Ganeti.TestCommon
   , relativeError
   , getTempFileName
   , listOfUniqueBy
+  , counterexample
   ) where
+
+-- The following macro is just a temporary solution for 2.12 and 2.13.
+-- Since 2.14 cabal creates proper macros for all dependencies.
+#define MIN_VERSION_QuickCheck(maj,min,rev) \
+  (((maj)<QUICKCHECK_MAJOR)|| \
+   (((maj)==QUICKCHECK_MAJOR)&&((min)<=QUICKCHECK_MINOR))|| \
+   (((maj)==QUICKCHECK_MAJOR)&&((min)==QUICKCHECK_MINOR)&& \
+    ((rev)<=QUICKCHECK_REV)))
 
 import Control.Applicative
 import Control.Exception (catchJust)
@@ -107,6 +117,9 @@ import System.IO.Error (isDoesNotExistError)
 import System.Process (readProcessWithExitCode)
 import qualified Test.HUnit as HUnit
 import Test.QuickCheck
+#if !MIN_VERSION_QuickCheck(2,7,0)
+import qualified Test.QuickCheck as QC
+#endif
 import Test.QuickCheck.Monadic
 import qualified Text.JSON as J
 import Numeric
@@ -163,7 +176,7 @@ maxOpCodes = 16
 -- | Checks for equality with proper annotation. The first argument is
 -- the computed value, the second one the expected value.
 (==?) :: (Show a, Eq a) => a -> a -> Property
-(==?) x y = printTestCase
+(==?) x y = counterexample
             ("Expected equality, but got mismatch\nexpected: " ++
              show y ++ "\n but got: " ++ show x) (x == y)
 infix 3 ==?
@@ -172,14 +185,14 @@ infix 3 ==?
 -- is the computed value, the second one the expected (not equal)
 -- value.
 (/=?) :: (Show a, Eq a) => a -> a -> Property
-(/=?) x y = printTestCase
+(/=?) x y = counterexample
             ("Expected inequality, but got equality: '" ++
              show x ++ "'.") (x /= y)
 infix 3 /=?
 
 -- | Show a message and fail the test.
 failTest :: String -> Property
-failTest msg = printTestCase msg False
+failTest msg = counterexample msg False
 
 -- | A 'True' property.
 passTest :: Property
@@ -519,7 +532,7 @@ genPropParser parser s expected =
 -- | Generate an arbitrary non negative integer number
 genNonNegative :: Gen Int
 genNonNegative =
-  fmap fromIntegral (arbitrary::Gen (Test.QuickCheck.NonNegative Int))
+  fmap fromEnum (arbitrary::Gen (Test.QuickCheck.NonNegative Int))
 
 -- | Computes the relative error of two 'Double' numbers.
 --
@@ -579,3 +592,8 @@ listOfUniqueBy gen keyFun forbidden = do
       else do
         x <- gen `suchThat` ((`Set.notMember` usedKeys) . keyFun)
         return $ Just (x, (i + 1, Set.insert (keyFun x) usedKeys))
+
+#if !MIN_VERSION_QuickCheck(2,7,0)
+counterexample :: Testable prop => String -> prop -> Property
+counterexample = QC.printTestCase
+#endif

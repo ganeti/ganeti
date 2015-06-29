@@ -78,7 +78,7 @@ prop_ImpliedOrder :: Property
 prop_ImpliedOrder =
   forAll ((arbitrary :: Gen GanetiLocks)
           `suchThat` (not . null . lockImplications)) $ \b ->
-  printTestCase "Implied locks must be earlier in the lock order"
+  counterexample "Implied locks must be earlier in the lock order"
   . flip all (lockImplications b) $ \a ->
   a < b
 
@@ -89,7 +89,7 @@ prop_ImpliedIntervall =
           `suchThat` (not . null . lockImplications)) $ \b ->
   forAll (elements $ lockImplications b) $ \a ->
   forAll (arbitrary `suchThat` liftA2 (&&) (a <) (<= b)) $ \x ->
-  printTestCase ("Locks between a group and a member of the group"
+  counterexample ("Locks between a group and a member of the group"
                  ++ " must also belong to the group")
   $ a `elem` lockImplications x
 

@@ -83,12 +83,12 @@ instance Arbitrary Types.ISpec where
     cpu_c <- arbitrary::Gen (NonNegative Int)
     nic_c <- arbitrary::Gen (NonNegative Int)
     su    <- arbitrary::Gen (NonNegative Int)
-    return Types.ISpec { Types.iSpecMemorySize = fromIntegral mem_s
-                       , Types.iSpecCpuCount   = fromIntegral cpu_c
-                       , Types.iSpecDiskSize   = fromIntegral dsk_s
-                       , Types.iSpecDiskCount  = fromIntegral dsk_c
-                       , Types.iSpecNicCount   = fromIntegral nic_c
-                       , Types.iSpecSpindleUse = fromIntegral su
+    return Types.ISpec { Types.iSpecMemorySize = fromEnum mem_s
+                       , Types.iSpecCpuCount   = fromEnum cpu_c
+                       , Types.iSpecDiskSize   = fromEnum dsk_s
+                       , Types.iSpecDiskCount  = fromEnum dsk_c
+                       , Types.iSpecNicCount   = fromEnum nic_c
+                       , Types.iSpecSpindleUse = fromEnum su
                        }
 
 -- | Generates an ispec bigger than the given one.
@@ -100,12 +100,12 @@ genBiggerISpec imin = do
   cpu_c <- choose (Types.iSpecCpuCount imin, maxBound)
   nic_c <- choose (Types.iSpecNicCount imin, maxBound)
   su    <- choose (Types.iSpecSpindleUse imin, maxBound)
-  return Types.ISpec { Types.iSpecMemorySize = fromIntegral mem_s
-                     , Types.iSpecCpuCount   = fromIntegral cpu_c
-                     , Types.iSpecDiskSize   = fromIntegral dsk_s
-                     , Types.iSpecDiskCount  = fromIntegral dsk_c
-                     , Types.iSpecNicCount   = fromIntegral nic_c
-                     , Types.iSpecSpindleUse = fromIntegral su
+  return Types.ISpec { Types.iSpecMemorySize = fromEnum mem_s
+                     , Types.iSpecCpuCount   = fromEnum cpu_c
+                     , Types.iSpecDiskSize   = fromEnum dsk_s
+                     , Types.iSpecDiskCount  = fromEnum dsk_c
+                     , Types.iSpecNicCount   = fromEnum nic_c
+                     , Types.iSpecSpindleUse = fromEnum su
                      }
 
 genMinMaxISpecs :: Gen Types.MinMaxISpecs
@@ -164,7 +164,7 @@ prop_IPolicy_serialisation = testSerialisation
 prop_opToResult :: Types.OpResult Int -> Property
 prop_opToResult op =
   case op of
-    Bad _ -> printTestCase ("expected bad but got " ++ show r) $ isBad r
+    Bad _ -> counterexample ("expected bad but got " ++ show r) $ isBad r
     Ok v  -> case r of
                Bad msg -> failTest ("expected Ok but got Bad " ++ msg)
                Ok v' -> v ==? v'

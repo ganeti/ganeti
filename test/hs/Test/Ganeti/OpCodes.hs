@@ -702,7 +702,7 @@ prop_setOpComment op comment =
 prop_mkDiskIndex_fail :: QuickCheck.Positive Int -> Property
 prop_mkDiskIndex_fail (Positive i) =
   case mkDiskIndex (negate i) of
-    Bad msg -> printTestCase "error message " $
+    Bad msg -> counterexample "error message " $
                "Invalid value" `isPrefixOf` msg
     Ok v -> failTest $ "Succeeded to build disk index '" ++ show v ++
                        "' from negative value " ++ show (negate i)

@@ -146,9 +146,9 @@ prop_monad_laws :: Int -> Result Int
                 -> Property
 prop_monad_laws a m (Fun _ k) (Fun _ h) =
   conjoin
-  [ printTestCase "return a >>= k == k a" ((return a >>= k) ==? k a)
-  , printTestCase "m >>= return == m" ((m >>= return) ==? m)
-  , printTestCase "m >>= (\\x -> k x >>= h) == (m >>= k) >>= h)"
+  [ counterexample "return a >>= k == k a" ((return a >>= k) ==? k a)
+  , counterexample "m >>= return == m" ((m >>= return) ==? m)
+  , counterexample "m >>= (\\x -> k x >>= h) == (m >>= k) >>= h)"
     ((m >>= (\x -> k x >>= h)) ==? ((m >>= k) >>= h))
   ]
 
@@ -159,11 +159,11 @@ prop_monad_laws a m (Fun _ k) (Fun _ h) =
 -- > v >> mzero = mzero
 prop_monadplus_mzero :: Result Int -> Fun Int (Result Int) -> Property
 prop_monadplus_mzero v (Fun _ f) =
-  printTestCase "mzero >>= f = mzero" ((mzero >>= f) ==? mzero) .&&.
+  counterexample "mzero >>= f = mzero" ((mzero >>= f) ==? mzero) .&&.
   -- FIXME: since we have "many" mzeros, we can't test for equality,
   -- just that we got back a 'Bad' value; I'm not sure if this means
   -- our MonadPlus instance is not sound or not...
-  printTestCase "v >> mzero = mzero" (isBad (v >> mzero))
+  counterexample "v >> mzero = mzero" (isBad (v >> mzero))
 
 testSuite "BasicTypes"
   [ 'prop_functor_id

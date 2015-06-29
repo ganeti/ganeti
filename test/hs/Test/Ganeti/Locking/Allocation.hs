@@ -145,7 +145,7 @@ prop_LocksDisjoint =
   forAll (arbitrary `suchThat` (/= a)) $ \b ->
   let aExclusive = M.keysSet . M.filter (== OwnExclusive) $ listLocks  a state
       bAll = M.keysSet $ listLocks b state
-  in printTestCase
+  in counterexample
      (show a ++ "'s exclusive lock" ++ " is not respected by " ++ show b)
      (S.null $ S.intersection aExclusive bAll)
 
@@ -156,7 +156,7 @@ prop_LockslistComplete =
   forAll (arbitrary :: Gen TestOwner) $ \a ->
   forAll ((arbitrary :: Gen (LockAllocation TestLock TestOwner))
           `suchThat` (not . M.null . listLocks a)) $ \state ->
-  printTestCase "All owned locks must be mentioned in the all-locks list" $
+  counterexample "All owned locks must be mentioned in the all-locks list" $
     let allLocks = listAllLocks state in
     all (`elem` allLocks) (M.keys $ listLocks a state)
 
@@ -165,8 +165,8 @@ prop_LockslistComplete =
 prop_LocksAllOwnersSubsetLockslist :: Property
 prop_LocksAllOwnersSubsetLockslist =
   forAll (arbitrary :: Gen (LockAllocation TestLock TestOwner)) $ \state ->
-  printTestCase "The list of all active locks must contain all locks mentioned\
-                \ in the locks state" $
+  counterexample "The list of all active locks must contain all locks mentioned\
+                 \ in the locks state" $
   S.isSubsetOf (S.fromList . map fst $ listAllLocksOwners state)
       (S.fromList $ listAllLocks state)
 
@@ -177,7 +177,7 @@ prop_LocksAllOwnersComplete =
   forAll (arbitrary :: Gen TestOwner) $ \a ->
   forAll ((arbitrary :: Gen (LockAllocation TestLock TestOwner))
           `suchThat` (not . M.null . listLocks a)) $ \state ->
-  printTestCase "Owned locks must be mentioned in list of all locks' state" $
+  counterexample "Owned locks must be mentioned in list of all locks' state" $
    let allLocksState = listAllLocksOwners state
    in flip all (M.toList $ listLocks a state) $ \(lock, ownership) ->
      elem (a, ownership) . fromMaybe [] $ lookup lock allLocksState
@@ -188,8 +188,8 @@ prop_LocksAllOwnersSound :: Property
 prop_LocksAllOwnersSound =
   forAll ((arbitrary :: Gen (LockAllocation TestLock TestOwner))
           `suchThat` (not . null . listAllLocksOwners)) $ \state ->
-  printTestCase "All locks mentioned in listAllLocksOwners must be owned by the\
-                \ mentioned owner" .
+  counterexample "All locks mentioned in listAllLocksOwners must be owned by\
+                 \ the mentioned owner" .
   flip all (listAllLocksOwners state) $ \(lock, owners) ->
   flip all owners $ \(owner, ownership) -> holdsLock owner lock ownership state
 
@@ -202,7 +202,7 @@ prop_LockImplicationX =
   forAll (arbitrary :: Gen TestOwner) $ \a ->
   forAll (arbitrary `suchThat` (/= a)) $ \b ->
   let bExclusive = M.keysSet . M.filter (== OwnExclusive) $ listLocks  b state
-  in printTestCase "Others cannot have an exclusive lock on an implied lock" .
+  in counterexample "Others cannot have an exclusive lock on an implied lock" .
      flip all (M.keys $ listLocks a state) $ \lock ->
      flip all (lockImplications lock) $ \impliedlock ->
      not $ S.member impliedlock bExclusive
@@ -217,7 +217,7 @@ prop_LockImplicationS =
   forAll (arbitrary `suchThat` (/= a)) $ \b ->
   let aExclusive = M.keys . M.filter (== OwnExclusive) $ listLocks  a state
       bAll = M.keysSet $ listLocks b state
-  in printTestCase "Others cannot hold locks implied by an exclusive lock" .
+  in counterexample "Others cannot hold locks implied by an exclusive lock" .
      flip all aExclusive $ \lock ->
      flip all (lockImplications lock) $ \impliedlock ->
      not $ S.member impliedlock bAll
@@ -245,12 +245,12 @@ prop_LockupdateAtomic =
   forAll (arbitrary :: Gen [LockRequest TestLock]) $ \request ->
   let (state', result) = updateLocks a request state
   in if result == Ok S.empty
-       then printTestCase
+       then counterexample
             ("Update succeeded, but in final state " ++ show state'
               ++ "not all locks are as requested")
             $ let owned = listLocks a state'
               in all (requestSucceeded owned) request
-       else printTestCase
+       else counterexample
             ("Update failed, but state changed to " ++ show state')
             (state == state')
 
@@ -261,7 +261,7 @@ prop_LockReleaseSucceeds =
   forAll (arbitrary :: Gen TestOwner) $ \a ->
   forAll (arbitrary :: Gen TestLock) $ \lock ->
   let (_, result) = updateLocks a [requestRelease lock] state
-  in printTestCase
+  in counterexample
      ("Releasing a lock has to suceed uncondiationally, but got "
        ++ show result)
      (isOk result)
@@ -281,7 +281,7 @@ prop_BlockSufficient =
                         . snd . updateLocks a request)) $ \state ->
   let (_, result) = updateLocks a request state
       blockedOn = genericResult (const S.empty) id result
-  in  printTestCase "After all blockers release, a request must succeed"
+  in  counterexample "After all blockers release, a request must succeed"
       . isOk . snd . updateLocks a request $ F.foldl freeLocks state blockedOn
 
 -- | Verify the property that every blocking owner is necessary, i.e., even
@@ -301,7 +301,7 @@ prop_BlockNecessary =
                         . snd . updateLocks a request)) $ \state ->
   let (_, result) = updateLocks a request state
       blockers = genericResult (const S.empty) id result
-  in  printTestCase "Each blocker alone must block the request"
+  in  counterexample "Each blocker alone must block the request"
       . flip all (S.elems blockers) $ \blocker ->
         (==) (Ok $ S.singleton blocker) . snd . updateLocks a request
         . F.foldl freeLocks state
@@ -332,7 +332,7 @@ prop_OwnerSound :: Property
 prop_OwnerSound =
   forAll ((arbitrary :: Gen (LockAllocation TestLock TestOwner))
           `suchThat` (not . null . lockOwners)) $ \state ->
-  printTestCase "All subjects listed as owners must own at least one lock"
+  counterexample "All subjects listed as owners must own at least one lock"
   . flip all (lockOwners state) $ \owner ->
   not . M.null $ listLocks owner state
 

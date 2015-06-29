@@ -238,8 +238,12 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
   xmtotal <- lvconvert 0.0 "mtotal" mtotal
   xmnode <- lvconvert 0 "mnode" mnode
   xmfree <- lvconvert 0 "mfree" mfree
-  xdtotal <- lvconvert 0.0 "dtotal" dtotal
-  xdfree <- lvconvert 0 "dfree" dfree
+  let xdtotal = genericResult (const 0.0) id
+                  $ lvconvert 0.0 "dtotal" dtotal
+      xdfree = genericResult (const 0) id
+                 $ lvconvert 0 "dfree" dfree
+      -- "dtotal" and "dfree" might be missing, e.g., if sharedfile
+      -- is the only supported disk template
   xctotal <- lvconvert 0.0 "ctotal" ctotal
   xcnos <- lvconvert 0 "cnos" cnos
   let node = flip Node.setCpuSpeed xcpu_speed .

@@ -36,8 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.Utils.Statistics (testUtils_Statistics) where
 
-import Test.QuickCheck
+import Test.QuickCheck (Property, forAll, choose, vectorOf)
 
+import Test.Ganeti.TestCommon
 import Test.Ganeti.TestHelper
 
 import Ganeti.Utils (stdDev)
@@ -56,7 +57,7 @@ prop_stddev_update =
       with_update = getStatisticValue
                     $ updateStatistics (getStdDevStatistics original) (a,b)
       direct = stdDev modified
-  in printTestCase ("Value computed by update " ++ show with_update
+  in counterexample ("Value computed by update " ++ show with_update
                     ++ " differs too much from correct value " ++ show direct)
                    (abs (with_update - direct) < 1e-10)
 

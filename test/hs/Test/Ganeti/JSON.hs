@@ -91,8 +91,9 @@ prop_arrayMaybeFromObj t xs k =
 prop_arrayMaybeFromObjFail :: String -> String -> Property
 prop_arrayMaybeFromObjFail t k =
   case JSON.tryArrayMaybeFromObj t [] k of
-    BasicTypes.Ok r -> fail $
-                       "Unexpected result, got: " ++ show (r::[Maybe Int])
+    BasicTypes.Ok r -> property
+      (fail $ "Unexpected result, got: " ++ show (r::[Maybe Int])
+         :: Gen Property)
     BasicTypes.Bad e -> conjoin [ Data.List.isInfixOf t e ==? True
                                 , Data.List.isInfixOf k e ==? True
                                 ]

@@ -72,7 +72,7 @@ wOrderFlag = elements ['b', 'f', 'd', 'n']
 
 -- | Property for testing the JSON serialization of a DeviceInfo.
 prop_DeviceInfo :: Property
-prop_DeviceInfo = do
+prop_DeviceInfo = property $ do
   minor <- natural
   state <- arbitrary
   locRole <- arbitrary
@@ -117,11 +117,11 @@ prop_DeviceInfo = do
           , ("perfIndicators", showJSON perfInd)
           , ("instance", maybe JSNull showJSON inst)
           ]
-  obtained ==? expected
+  return $ obtained ==? expected
 
 -- | Property for testing the JSON serialization of a PerfIndicators.
 prop_PerfIndicators :: Property
-prop_PerfIndicators = do
+prop_PerfIndicators = property $ do
   ns <- natural
   nr <- natural
   dw <- natural
@@ -154,11 +154,11 @@ prop_PerfIndicators = do
           , optionalJSField "writeOrder" wo
           , optionalJSField "outOfSync" oos
           ]
-  obtained ==? expected
+  return $ obtained ==? expected
 
 -- | Function for testing the JSON serialization of a SyncStatus.
 prop_SyncStatus :: Property
-prop_SyncStatus = do
+prop_SyncStatus = property $ do
   perc <- percent
   numer <- natural
   denom <- natural
@@ -182,7 +182,7 @@ prop_SyncStatus = do
         , optionalJSField "want" wa
         , Just ("speedUnit", showJSON $ show sizeU2 ++ "/" ++ show timeU)
         ]
-  obtained ==? expected
+  return $ obtained ==? expected
 
 testSuite "Block/Drbd/Types"
           [ 'prop_DeviceInfo
