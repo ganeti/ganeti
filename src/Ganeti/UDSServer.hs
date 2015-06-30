@@ -400,7 +400,7 @@ logMsg handler req (Bad err) =
 logMsg handler req (Ok result) = do
   -- only log the first 2,000 chars of the result
   logDebug $ "Result (truncated): " ++ take 2000 (J.encode result)
-  logInfo $ "Successfully handled " ++ hInputLogShort handler req
+  logDebug $ "Successfully handled " ++ hInputLogShort handler req
 
 -- | Prepares an outgoing message.
 prepareMsg
