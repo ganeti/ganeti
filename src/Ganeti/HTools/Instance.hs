@@ -70,6 +70,7 @@ module Ganeti.HTools.Instance
   ) where
 
 import Control.Monad (liftM2)
+import qualified Data.Set as Set
 
 import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Types as T
@@ -103,6 +104,7 @@ data Instance = Instance
   , spindleUse   :: Int       -- ^ The numbers of used spindles
   , allTags      :: [String]  -- ^ List of all instance tags
   , exclTags     :: [String]  -- ^ List of instance exclusion tags
+  , dsrdLocTags  :: Set.Set String -- ^ Instance desired location tags
   , locationScore :: Int      -- ^ The number of common-failures between
                               -- primary and secondary node of the instance
   , arPolicy     :: T.AutoRepairPolicy -- ^ Instance's auto-repair policy
@@ -209,6 +211,7 @@ create name_init mem_init dsk_init disks_init vcpus_init run_init tags_init
            , spindleUse = su
            , allTags = tags_init
            , exclTags = []
+           , dsrdLocTags = Set.empty
            , locationScore = 0
            , arPolicy = T.ArNotEnabled
            , nics = nics_init

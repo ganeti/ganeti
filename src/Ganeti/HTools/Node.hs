@@ -208,7 +208,8 @@ data Node = Node
   , rmigTags :: Set.Set String -- ^ migration tags able to receive
   , locationTags :: Set.Set String -- ^ common-failure domains the node belongs
                                    -- to
-  , locationScore :: Int
+  , locationScore :: Int -- ^ Sum of instance location and desired location
+                         -- scores
   } deriving (Show, Eq)
 {- A note on how we handle spindles
 
@@ -534,8 +535,19 @@ calcFmemOfflineOrForthcoming node allInstances =
          . filter (not . Instance.usesMemory)
          $ nodeInstances
 
+-- | Calculates the desired location score of an instance, given its primary
+-- node.
+getInstanceDsrdLocScore :: Node -- ^ the primary node of the instance
+                        -> Instance.Instance -- ^ the original instance
+                        -> Int -- ^ the desired location score of the instance
+getInstanceDsrdLocScore p t =
+        desiredLocationScore (Instance.dsrdLocTags t) (locationTags p)
+  where desiredLocationScore instTags nodeTags =
+          Set.size instTags - Set.size ( instTags `Set.intersection` nodeTags )
+        -- this way we get the number of unsatisfied desired locations
+
 -- | Assigns an instance to a node as primary and update the used VCPU
--- count, utilisation data and tags map.
+-- count, utilisation data, tags map and desired location score.
 setPri :: Node -> Instance.Instance -> Node
 setPri t inst
   -- Real instance, update real fields and forthcoming fields.
@@ -547,6 +559,7 @@ setPri t inst
           , utilLoad = utilLoad t `T.addUtil` Instance.util inst
           , instSpindles = calcSpindleUse True t inst
           , locationScore = locationScore t + Instance.locationScore inst
+                            + getInstanceDsrdLocScore t inst
           }
 
   -- Forthcoming instance, update forthcoming fields only.
@@ -744,6 +757,7 @@ removePri t inst =
                    , instSpindles = new_inst_sp, fSpindles = new_free_sp
                    , locationScore = locationScore t
                                      - Instance.locationScore inst
+                                     - getInstanceDsrdLocScore t inst
                    }
 
 -- | Removes a secondary instance.
@@ -924,6 +938,7 @@ addPriEx force t inst =
                   , fSpindles = new_free_sp
                   , locationScore = locationScore t
                                     + Instance.locationScore inst
+                                    + getInstanceDsrdLocScore t inst
                   }
 
 -- | Adds a secondary instance (basic version).

@@ -43,6 +43,7 @@ module Ganeti.HTools.Tags.Constants
   , migrationPrefix
   , allowMigrationPrefix
   , locationPrefix
+  , desiredLocationPrefix
   , standbyAuto
   , autoRepairTagPrefix
   , autoRepairTagEnabled
@@ -70,9 +71,13 @@ migrationPrefix = "htools:migration:"
 allowMigrationPrefix :: String
 allowMigrationPrefix = "htools:allowmigration:"
 
--- | The prefix for location tags.
+-- | The prefix for node location tags.
 locationPrefix :: String
 locationPrefix = "htools:nlocation:"
+
+-- | The prefix for instance desired location tags.
+desiredLocationPrefix :: String
+desiredLocationPrefix = "htools:desiredlocation:"
 
 -- | The tag to be added to nodes that were shutdown by hsqueeze.
 standbyAuto :: String

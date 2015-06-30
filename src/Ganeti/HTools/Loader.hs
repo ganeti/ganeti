@@ -59,6 +59,7 @@ import Control.Monad
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
+import qualified Data.Set as Set
 import Text.Printf (printf)
 import System.Time (ClockTime(..))
 
@@ -208,6 +209,14 @@ updateExclTags tl inst =
       exclTags = filter (\tag -> any (`isPrefixOf` tag) tl) allTags
   in inst { Instance.exclTags = exclTags }
 
+-- | Update instance with desired location tags list.
+updateDesiredLocationTags :: [String] -> Instance.Instance -> Instance.Instance
+updateDesiredLocationTags tl inst =
+  let allTags = Instance.allTags inst
+      dsrdLocTags = filter (\tag -> any (`isPrefixOf` tag) tl) allTags
+  in inst { Instance.dsrdLocTags = Set.fromList dsrdLocTags }
+
+
 -- | Update the movable attribute.
 updateMovable :: [String]           -- ^ Selected instances (if not empty)
               -> [String]           -- ^ Excluded instances
@@ -281,6 +290,11 @@ longestDomain (x:xs) =
 extractExTags :: [String] -> [String]
 extractExTags = filter (not . null) . mapMaybe (chompPrefix TagsC.exTagsPrefix)
 
+-- | Extracts the desired locations from the instance tags.
+extractDesiredLocations :: [String] -> [String]
+extractDesiredLocations =
+  filter (not . null) . mapMaybe (chompPrefix TagsC.desiredLocationPrefix)
+
 -- | Extracts the common suffix from node\/instance names.
 commonSuffix :: Node.List -> Instance.List -> String
 commonSuffix nl il =
@@ -325,6 +339,7 @@ mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
                               in Container.add (Instance.idx inst) new_i im
                    ) il2 um
       allextags = extags ++ extractExTags ctags
+      dsrdLocTags = extractDesiredLocations ctags
       inst_names = map Instance.name $ Container.elems il3
       selinst_lkp = map (lookupName inst_names) selinsts
       exinst_lkp = map (lookupName inst_names) exinsts
@@ -335,6 +350,7 @@ mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
       common_suffix = longestDomain (node_names ++ inst_names)
       il4 = Container.map (computeAlias common_suffix .
                            updateExclTags allextags .
+                           updateDesiredLocationTags dsrdLocTags .
                            updateMovable selinst_names exinst_names) il3
       nl2 = Container.map (addLocationTags ctags) nl
       il5 = Container.map (setLocationScore nl2) il4
