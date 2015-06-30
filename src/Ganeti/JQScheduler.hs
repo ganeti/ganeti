@@ -168,7 +168,7 @@ readJobStatus jWS@(JobWithStat {jStat=fstat, jJob=job})  = do
       return Nothing
     Just fstat' -> do
       let jids = show $ fromJobId jid
-      logInfo $ "Rereading job "  ++ jids
+      logDebug $ "Rereading job "  ++ jids
       readResult <- loadJobFromDisk qdir True jid
       case readResult of
         Bad s -> do

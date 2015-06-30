@@ -21,7 +21,7 @@ commands), **gnt-debug**\(8) (debug commands).
 
 Ganeti daemons: **ganeti-watcher**\(8) (automatic instance restarter),
 **ganeti-cleaner**\(8) (job queue cleaner), **ganeti-noded**\(8) (node
-daemon), **ganeti-masterd**\(8) (master daemon), **ganeti-rapi**\(8)
+daemon), **ganeti-rapi**\(8)
 (remote API daemon).
 
 Ganeti htools: **htools**\(1) (generic binary), **hbal**\(1) (cluster

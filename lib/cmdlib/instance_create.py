@@ -195,15 +195,28 @@ class LUInstanceCreate(LogicalUnit):
       raise errors.OpPrereqError("Cannot do IP address check without a name"
                                  " check", errors.ECODE_INVAL)
 
+    # instance name verification
+    if self.op.name_check:
+      self.hostname = CheckHostnameSane(self, self.op.instance_name)
+      self.op.instance_name = self.hostname.name
+      # used in CheckPrereq for ip ping check
+      self.check_ip = self.hostname.ip
+    else:
+      self.check_ip = None
+
     # add NIC for instance communication
     if self.op.instance_communication:
       nic_name = ComputeInstanceCommunicationNIC(self.op.instance_name)
 
-      self.op.nics.append({constants.INIC_NAME: nic_name,
-                           constants.INIC_MAC: constants.VALUE_GENERATE,
-                           constants.INIC_IP: constants.NIC_IP_POOL,
-                           constants.INIC_NETWORK:
-                             self.cfg.GetInstanceCommunicationNetwork()})
+      for nic in self.op.nics:
+        if nic.get(constants.INIC_NAME, None) == nic_name:
+          break
+      else:
+        self.op.nics.append({constants.INIC_NAME: nic_name,
+                             constants.INIC_MAC: constants.VALUE_GENERATE,
+                             constants.INIC_IP: constants.NIC_IP_POOL,
+                             constants.INIC_NETWORK:
+                               self.cfg.GetInstanceCommunicationNetwork()})
 
     # timeouts for unsafe OS installs
     if self.op.helper_startup_timeout is None:
@@ -222,15 +235,6 @@ class LUInstanceCreate(LogicalUnit):
 
     self._CheckDiskArguments()
     assert self.op.disk_template is not None
-
-    # instance name verification
-    if self.op.name_check:
-      self.hostname = CheckHostnameSane(self, self.op.instance_name)
-      self.op.instance_name = self.hostname.name
-      # used in CheckPrereq for ip ping check
-      self.check_ip = self.hostname.ip
-    else:
-      self.check_ip = None
 
     # file storage checks
     if (self.op.file_driver and
