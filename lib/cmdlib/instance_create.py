@@ -198,7 +198,7 @@ class LUInstanceCreate(LogicalUnit):
 
     # instance name verification
     if self.op.name_check:
-      self.hostname = _CheckHostnameSane(self, self.op.instance_name)
+      self.hostname = CheckHostnameSane(self, self.op.instance_name)
       self.op.instance_name = self.hostname.name
       # used in CheckPrereq for ip ping check
       self.check_ip = self.hostname.ip
