@@ -121,8 +121,15 @@ failure tag. Those tags indicate the the instance wants to be placed on a
 node tagged *x*. To make ``htools`` honor those desires, the metric is extended,
 appropriately weighted, by the following component.
 
-- The number of instances tagged *htools:desiredlocation:x* where their
-  primary node is not tagged with *x*.
+- Sum of dissatisfied desired locations number among all cluster instances.
+  An instance desired location is dissatisfied when the instance is assigned
+  a desired-location tag *x* where the node is not tagged with the location
+  tag *x*.
+
+Such metric extension allows to specify multiple desired locations for each
+instance. These desired locations may be contradictive as well. Contradictive
+desired locations mean that we don't care which one of desired locations will
+be satisfied.
 
 Again, instance pinning is just heuristics, not a hard enforced requirement;
 it will only be achieved by the cluster metrics favouring such placements.
