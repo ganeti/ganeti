@@ -1701,6 +1701,10 @@ TEST_FILES = \
 	test/data/htools/hail-reloc-drbd.json \
 	test/data/htools/hail-reloc-drbd-crowded.json \
 	test/data/htools/hbal-cpu-speed.data \
+	test/data/htools/hbal-desiredlocation-1.data \
+	test/data/htools/hbal-desiredlocation-2.data \
+	test/data/htools/hbal-desiredlocation-3.data \
+	test/data/htools/hbal-desiredlocation-4.data \
 	test/data/htools/hbal-dyn.data \
 	test/data/htools/hbal-evac.data \
 	test/data/htools/hbal-excl-tags.data \
