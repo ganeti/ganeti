@@ -3765,6 +3765,9 @@ ssFilePerms = 0o444
 ssEnabledUserShutdown :: String
 ssEnabledUserShutdown = "enabled_user_shutdown"
 
+ssSshPorts :: String
+ssSshPorts = "ssh_ports"
+
 -- | Cluster wide default parameters
 defaultEnabledHypervisor :: String
 defaultEnabledHypervisor = htXenPvm

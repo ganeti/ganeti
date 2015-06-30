@@ -328,6 +328,10 @@ class ConfigWriter(object):
     """
     return os.path.exists(pathutils.CLUSTER_CONF_FILE)
 
+  def _UnlockedGetNdParams(self, node):
+    nodegroup = self._UnlockedGetNodeGroup(node.group)
+    return self._ConfigData().cluster.FillND(node, nodegroup)
+
   @_ConfigSync(shared=1)
   def GetNdParams(self, node):
     """Get the node params populated with cluster defaults.
@@ -337,8 +341,7 @@ class ConfigWriter(object):
     @return: A dict with the filled in node params
 
     """
-    nodegroup = self._UnlockedGetNodeGroup(node.group)
-    return self._ConfigData().cluster.FillND(node, nodegroup)
+    return self._UnlockedGetNdParams(node)
 
   @_ConfigSync(shared=1)
   def GetNdGroupParams(self, nodegroup):
@@ -2972,6 +2975,13 @@ class ConfigWriter(object):
       ssconf_values[ssconf_key] = all_hvparams[hv]
     return ssconf_values
 
+  def _UnlockedGetSshPortMap(self, node_infos):
+    node_ports = dict([(node.name,
+                        self._UnlockedGetNdParams(node).get(
+                            constants.ND_SSH_PORT))
+                       for node in node_infos])
+    return node_ports
+
   def _UnlockedGetSsconfValues(self):
     """Return the values needed by ssconf.
 
@@ -3023,6 +3033,10 @@ class ConfigWriter(object):
                 self._ConfigData().networks.values()]
     networks_data = fn(utils.NiceSort(networks))
 
+    ssh_ports = fn("%s=%s" % (node_name, port)
+                   for node_name, port
+                   in self._UnlockedGetSshPortMap(node_infos).items())
+
     ssconf_values = {
       constants.SS_CLUSTER_NAME: cluster.cluster_name,
       constants.SS_CLUSTER_TAGS: cluster_tags,
@@ -3051,6 +3065,7 @@ class ConfigWriter(object):
       constants.SS_NODEGROUPS: nodegroups_data,
       constants.SS_NETWORKS: networks_data,
       constants.SS_ENABLED_USER_SHUTDOWN: str(cluster.enabled_user_shutdown),
+      constants.SS_SSH_PORTS: ssh_ports,
       }
     ssconf_values = self._ExtendByAllHvparamsStrings(ssconf_values,
                                                      all_hvparams)
