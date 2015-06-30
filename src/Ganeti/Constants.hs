@@ -377,12 +377,8 @@ kvmd = Runtime.daemonName GanetiKvmd
 
 daemons :: FrozenSet String
 daemons =
-  ConstantUtils.mkSet [confd,
-                       luxid,
-                       masterd,
-                       mond,
-                       noded,
-                       rapi]
+  ConstantUtils.mkSet
+  $ map Runtime.daemonName [minBound .. maxBound]
 
 defaultConfdPort :: Int
 defaultConfdPort = 1814
