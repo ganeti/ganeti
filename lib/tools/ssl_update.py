@@ -42,6 +42,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import utils
 from ganeti import ht
+from ganeti import pathutils
 from ganeti.tools import common
 
 
@@ -49,6 +50,7 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
   constants.NDS_CLUSTER_NAME: ht.TNonEmptyString,
   constants.NDS_NODE_DAEMON_CERTIFICATE: ht.TNonEmptyString,
   constants.NDS_NODE_NAME: ht.TNonEmptyString,
+  constants.NDS_ACTION: ht.TNonEmptyString,
   })
 
 
@@ -75,6 +77,37 @@ def ParseOptions():
   return common.VerifyOptions(parser, opts, args)
 
 
+def DeleteClientCertificate():
+  """Deleting the client certificate. This is necessary for downgrades."""
+  if os.path.exists(pathutils.NODED_CLIENT_CERT_FILE):
+    os.remove(pathutils.NODED_CLIENT_CERT_FILE)
+  else:
+    logging.debug("Trying to delete the client certificate '%s' which did not"
+                  " exist.", pathutils.NODED_CLIENT_CERT_FILE)
+
+
+def ClearMasterCandidateSsconfList():
+  """Clear the ssconf list of master candidate certs.
+
+  This is necessary when deleting the client certificates for a downgrade,
+  because otherwise the master cannot distribute the configuration to the
+  nodes via RPC during a downgrade anymore.
+
+  """
+  ssconf_file = os.path.join(
+    pathutils.DATA_DIR,
+    "%s%s" % (constants.SSCONF_FILEPREFIX,
+              constants.SS_MASTER_CANDIDATES_CERTS))
+  if os.path.exists:
+    os.remove(ssconf_file)
+  else:
+    logging.debug("Trying to delete the ssconf file '%s' which does not"
+                  " exist.", ssconf_file)
+
+
+# pylint: disable=E1103
+# This pyling message complains about 'data' as 'bool' not having a get
+# member, but obviously the type is wrongly inferred.
 def Main():
   """Main routine.
 
@@ -92,7 +125,17 @@ def Main():
     # is the same as on this node.
     common.VerifyCertificate(data, SslSetupError)
 
-    common.GenerateClientCertificate(data, SslSetupError)
+    action = data.get(constants.NDS_ACTION)
+    if not action:
+      raise SslSetupError("No Action specified.")
+
+    if action == constants.CRYPTO_ACTION_CREATE:
+      common.GenerateClientCertificate(data, SslSetupError)
+    elif action == constants.CRYPTO_ACTION_DELETE:
+      DeleteClientCertificate()
+      ClearMasterCandidateSsconfList()
+    else:
+      raise SslSetupError("Unsupported action: %s." % action)
 
   except Exception, err: # pylint: disable=W0703
     logging.debug("Caught unhandled exception", exc_info=True)

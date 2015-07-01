@@ -1071,6 +1071,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
         constants.NDS_NODE_DAEMON_CERTIFICATE:
           utils.ReadFile(pathutils.NODED_CERT_FILE),
         constants.NDS_NODE_NAME: node_name,
+        constants.NDS_ACTION: constants.CRYPTO_ACTION_CREATE,
         }
 
       bootstrap.RunNodeSetupCmd(
@@ -2068,6 +2069,38 @@ def _VersionSpecificDowngrade():
   @return: True upon success
   """
   ToStdout("Performing version-specific downgrade tasks.")
+
+  nodes = ssconf.SimpleStore().GetOnlineNodeList()
+  cluster_name = ssconf.SimpleStore().GetClusterName()
+  ssh_ports = ssconf.SimpleStore().GetSshPortMap()
+
+  for node in nodes:
+    data = {
+      constants.NDS_CLUSTER_NAME: cluster_name,
+      constants.NDS_NODE_DAEMON_CERTIFICATE:
+        utils.ReadFile(pathutils.NODED_CERT_FILE),
+      constants.NDS_NODE_NAME: node,
+      constants.NDS_ACTION: constants.CRYPTO_ACTION_DELETE,
+      }
+
+    try:
+      bootstrap.RunNodeSetupCmd(
+          cluster_name,
+          node,
+          pathutils.SSL_UPDATE,
+          True, # debug
+          True, # verbose,
+          True, # use cluster key
+          False, # ask key
+          True, # strict host check
+          ssh_ports[node],
+          data)
+    except Exception as e: # pylint: disable=W0703
+      # As downgrading can fail if a node is temporarily unreachable
+      # only output the error, but do not abort the entire operation.
+      ToStderr("Downgrading SSL setup of node '%s' failed: %s." %
+               (node, e))
+
   return True
 
 

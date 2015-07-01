@@ -4385,8 +4385,17 @@ cryptoTypes = ConstantUtils.mkSet [cryptoTypeSslDigest]
 cryptoActionGet :: String
 cryptoActionGet = "get"
 
+cryptoActionCreate :: String
+cryptoActionCreate = "create"
+
+cryptoActionDelete :: String
+cryptoActionDelete = "delete"
+
 cryptoActions :: FrozenSet String
-cryptoActions = ConstantUtils.mkSet [cryptoActionGet]
+cryptoActions =
+  ConstantUtils.mkSet [ cryptoActionCreate
+                      , cryptoActionGet
+                      , cryptoActionDelete]
 
 -- Key word for master candidate cert list for bootstrapping.
 
@@ -4485,6 +4494,9 @@ ndsStartNodeDaemon = "start_node_daemon"
 
 ndsNodeName :: String
 ndsNodeName = "node_name"
+
+ndsAction :: String
+ndsAction = "action"
 
 -- * VCluster related constants
 
