@@ -684,7 +684,7 @@ def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None,
 
   """
   priv_key, _, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER,
-                                        _homedir_fn=_homedir_fn)
+                                        mkdir=True, _homedir_fn=_homedir_fn)
 
   new_priv_key_name = priv_key + _suffix
   new_pub_key_name = priv_key + _suffix + ".pub"
