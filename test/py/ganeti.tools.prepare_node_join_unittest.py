@@ -143,6 +143,9 @@ class TestUpdateSshDaemon(unittest.TestCase):
       constants.SSHK_DSA:
         (utils.PathJoin(self.tmpdir, "dsa.private"),
          utils.PathJoin(self.tmpdir, "dsa.public")),
+      constants.SSHK_ECDSA:
+        (utils.PathJoin(self.tmpdir, "ecdsa.private"),
+         utils.PathJoin(self.tmpdir, "ecdsa.public")),
       }
 
   def tearDown(self):
@@ -180,6 +183,13 @@ class TestUpdateSshDaemon(unittest.TestCase):
         ],
       })
 
+  def testDryRunEcdsa(self):
+    self._TestDryRun({
+      constants.SSHS_SSH_HOST_KEY: [
+        (constants.SSHK_ECDSA, "ecdsapriv", "ecdsapub"),
+        ],
+      })
+
   def _RunCmd(self, fail, cmd, interactive=NotImplemented):
     self.assertTrue(interactive)
     self.assertEqual(cmd, [pathutils.DAEMON_UTIL, "reload-ssh-keys"])
@@ -195,6 +205,7 @@ class TestUpdateSshDaemon(unittest.TestCase):
     data = {
       constants.SSHS_SSH_HOST_KEY: [
         (constants.SSHK_DSA, "dsapriv", "dsapub"),
+        (constants.SSHK_ECDSA, "ecdsapriv", "ecdsapub"),
         (constants.SSHK_RSA, "rsapriv", "rsapub"),
         ],
       }
@@ -209,6 +220,7 @@ class TestUpdateSshDaemon(unittest.TestCase):
     self.assertEqual(sorted(os.listdir(self.tmpdir)), sorted([
       "rsa.public", "rsa.private",
       "dsa.public", "dsa.private",
+      "ecdsa.public", "ecdsa.private",
       ]))
     self.assertEqual(utils.ReadFile(utils.PathJoin(self.tmpdir, "rsa.public")),
                      "rsapub")
@@ -218,6 +230,10 @@ class TestUpdateSshDaemon(unittest.TestCase):
                      "dsapub")
     self.assertEqual(utils.ReadFile(utils.PathJoin(self.tmpdir, "dsa.private")),
                      "dsapriv")
+    self.assertEqual(utils.ReadFile(utils.PathJoin(
+        self.tmpdir, "ecdsa.public")), "ecdsapub")
+    self.assertEqual(utils.ReadFile(utils.PathJoin(
+        self.tmpdir, "ecdsa.private")), "ecdsapriv")
 
   def testSuccess(self):
     self._TestUpdate(False)
