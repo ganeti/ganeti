@@ -91,6 +91,16 @@ class IsBeforeTest(unittest.TestCase):
         self.assertTrue(version.IsBefore((2, 10, 1), 2, 11, 0))
         self.assertFalse(version.IsBefore((2, 11, 0), 2, 10, 3))
 
+class IsEqualTest(unittest.Testcase):
+    def testIsEqual(self):
+        self.assertTrue(version.IsEqual((2, 10, 0), 2, 10, 0))
+        self.assertFalse(version.IsEqual((2, 10, 0), 2, 10, 2))
+        self.assertFalse(version.IsEqual((2, 10, 0), 2, 12, 0))
+        self.assertFalse(version.IsEqual((2, 10, 0), 3, 10, 0))
+        self.assertTrue(version.IsEqual((2, 10, 0), 2, 10, None))
+        self.assertTrue(version.IsEqual((2, 10, 5), 2, 10, None))
+        self.assertFalse(version.IsEqual((2, 11, 5), 2, 10, None))
+        self.assertFalse(version.IsEqual((3, 10, 5), 2, 10, None))
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

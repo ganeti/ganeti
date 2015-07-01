@@ -181,3 +181,29 @@ def IsBefore(version, major, minor, revision):
     return True
 
   return version < (major, minor, revision)
+
+
+def IsEqual(version, major, minor, revision):
+  """Decide if a given version matches the given version.
+
+  If the revision is set to None, only major and minor are compared.
+
+  @param version: (major, minor, revision) or None, with None being
+      before all versions
+  @type version: (int, int, int) or None
+  @param major: major version
+  @type major: int
+  @param minor: minor version
+  @type minor: int
+  @param revision: revision
+  @type revision: int
+
+  """
+  if version is None:
+    return False
+
+  if revision is None:
+    current_major, current_minor, _ = version
+    return (current_major, current_minor) == (major, minor)
+
+  return version == (major, minor, revision)

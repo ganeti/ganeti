@@ -51,7 +51,8 @@ def main():
 
   version = utils.version.ParseVersion(versionstring)
 
-  if utils.version.IsBefore(version, 2, 11, 0):
+  if utils.version.IsBefore(version, 2, 11, 0) or \
+      utils.version.IsEqual(version, 2, 12, None):
     result = utils.RunCmd(["gnt-cluster", "renew-crypto",
                            "--new-node-certificates", "-f"])
     if result.failed:
