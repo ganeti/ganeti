@@ -367,6 +367,9 @@ metad = Runtime.daemonName GanetiMetad
 mond :: String
 mond = Runtime.daemonName GanetiMond
 
+maintd :: String
+maintd = Runtime.daemonName GanetiMaintd
+
 noded :: String
 noded = Runtime.daemonName GanetiNoded
 
@@ -398,6 +401,9 @@ defaultConfdPort = 1814
 defaultMondPort :: Int
 defaultMondPort = 1815
 
+defaultMaintdPort :: Int
+defaultMaintdPort = 1816
+
 defaultMetadPort :: Int
 defaultMetadPort = 80
 
@@ -413,6 +419,7 @@ daemonsPorts =
   [ (confd, (Udp, defaultConfdPort))
   , (metad, (Tcp, defaultMetadPort))
   , (mond, (Tcp, defaultMondPort))
+  , (maintd, (Tcp, defaultMaintdPort))
   , (noded, (Tcp, defaultNodedPort))
   , (rapi, (Tcp, defaultRapiPort))
   , (ssh, (Tcp, 22))

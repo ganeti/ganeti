@@ -56,7 +56,7 @@ _mond_enabled() {
 }
 
 if _mond_enabled; then
-  DAEMONS+=( ganeti-mond )
+  DAEMONS+=( ganeti-mond ganeti-maintd)
 fi
 
 # The full list of all daemons we know about

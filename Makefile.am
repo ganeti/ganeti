@@ -151,6 +151,7 @@ HS_DIRS = \
 	src/Ganeti/JQueue \
 	src/Ganeti/Locking \
 	src/Ganeti/Logging \
+	src/Ganeti/MaintD \
 	src/Ganeti/Monitoring \
 	src/Ganeti/Metad \
 	src/Ganeti/Objects \
@@ -352,6 +353,7 @@ CLEANFILES = \
 	src/ganeti-confd \
 	src/ganeti-wconfd \
 	src/ganeti-luxid \
+	src/ganeti-maintd \
 	src/ganeti-metad \
 	src/ganeti-mond \
 	.hpc/*.mix src/*.tix test/hs/*.tix *.tix \
@@ -371,7 +373,7 @@ clean-local:
 HS_GENERATED_FILES = $(HS_PROGS) src/hluxid src/ganeti-luxid \
 	src/hconfd src/ganeti-confd
 if ENABLE_MOND
-HS_GENERATED_FILES += src/ganeti-mond
+HS_GENERATED_FILES += src/ganeti-mond src/ganeti-maintd
 endif
 if ENABLE_METADATA
 HS_GENERATED_FILES += src/ganeti-metad
@@ -410,6 +412,7 @@ BUILT_EXAMPLES = \
 	doc/examples/systemd/ganeti-kvmd.service \
 	doc/examples/systemd/ganeti-luxid.service \
 	doc/examples/systemd/ganeti-metad.service \
+	doc/examples/systemd/ganeti-maintd.service \
 	doc/examples/systemd/ganeti-mond.service \
 	doc/examples/systemd/ganeti-noded.service \
 	doc/examples/systemd/ganeti-rapi.service \
@@ -767,7 +770,7 @@ HS_COMPILE_PROGS = \
 	src/hs2py \
 	src/rpc-test
 if ENABLE_MOND
-HS_COMPILE_PROGS += src/ganeti-mond
+HS_COMPILE_PROGS += src/ganeti-mond src/ganeti-maintd
 endif
 if ENABLE_METADATA
 HS_COMPILE_PROGS += src/ganeti-metad
@@ -969,6 +972,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Logging/Lifted.hs \
 	src/Ganeti/Logging/WriterLog.hs \
 	src/Ganeti/Luxi.hs \
+	src/Ganeti/MaintD/Server.hs \
 	src/Ganeti/Network.hs \
 	src/Ganeti/Objects.hs \
 	src/Ganeti/Objects/BitArray.hs \
@@ -1478,7 +1482,7 @@ src/ganeti-confd: src/hconfd
 	cp -f $< $@
 
 if ENABLE_MOND
-nodist_sbin_SCRIPTS += src/ganeti-mond
+nodist_sbin_SCRIPTS += src/ganeti-mond src/ganeti-maintd
 endif
 
 if ENABLE_METADATA

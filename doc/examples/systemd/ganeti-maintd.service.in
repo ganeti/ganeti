@@ -1,0 +1,18 @@
+[Unit]
+Description = Ganeti maintenance daemon (maintd)
+Documentation = man:ganeti-maintd(8)
+Requires = ganeti-common.service
+After = ganeti-common.service
+PartOf = ganeti-master.target
+ConditionPathExists = @LOCALSTATEDIR@/lib/ganeti/config.data
+
+[Service]
+Type = simple
+User = @GNTMONDUSER@
+Group = @GNTMONDGROUP@
+ExecStart = @SBINDIR@/ganeti-maintd -f
+Restart = on-failure
+SuccessExitStatus = 0 11
+
+[Install]
+WantedBy = ganeti-master.target ganeti.target
