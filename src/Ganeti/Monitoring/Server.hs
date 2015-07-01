@@ -52,7 +52,6 @@ import Data.List (find)
 import Data.Monoid (mempty)
 import qualified Data.Map as Map
 import qualified Data.PSQueue as Queue
-import Network.BSD (getServicePortNumber)
 import Snap.Core
 import Snap.Http.Server
 import qualified Text.JSON as J
@@ -70,7 +69,8 @@ import Ganeti.Objects (DataCollectorConfig(..))
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as CU
 import Ganeti.Runtime
-import Ganeti.Utils (getCurrentTimeUSec, withDefaultOnIOError)
+import Ganeti.Utils (getCurrentTimeUSec)
+import Ganeti.Utils.Http (httpConfFromOpts, error404)
 
 -- * Types and constants definitions
 
@@ -86,17 +86,6 @@ type PrepResult = Config Snap ()
 latestAPIVersion :: Int
 latestAPIVersion = C.mondLatestApiVersion
 
--- * Configuration handling
-
--- | The default configuration for the HTTP server.
-defaultHttpConf :: FilePath -> FilePath -> Config Snap ()
-defaultHttpConf accessLog errorLog =
-  setAccessLog (ConfigFileLog accessLog) .
-  setCompression False .
-  setErrorLog (ConfigFileLog errorLog) $
-  setVerbose False
-  emptyConfig
-
 -- * Helper functions
 
 -- | Check function for the monitoring agent.
@@ -105,17 +94,7 @@ checkMain _ = return $ Right ()
 
 -- | Prepare function for monitoring agent.
 prepMain :: PrepFn CheckResult PrepResult
-prepMain opts _ = do
-  accessLog <- daemonsExtraLogFile GanetiMond AccessLog
-  errorLog <- daemonsExtraLogFile GanetiMond ErrorLog
-  defaultPort <- withDefaultOnIOError C.defaultMondPort
-                 . liftM fromIntegral
-                 $ getServicePortNumber C.mond
-  return .
-    setPort
-      (maybe defaultPort fromIntegral (optPort opts)) .
-    maybe id (setBind . pack) (optBindAddress opts)
-    $ defaultHttpConf accessLog errorLog
+prepMain opts _ = httpConfFromOpts GanetiMond opts
 
 -- * Query answers
 
@@ -218,11 +197,6 @@ errorReport :: Snap ()
 errorReport = do
   modifyResponse $ setResponseStatus 404 "Not found"
   writeBS "Unable to produce a report for the requested resource"
-
-error404 :: Snap ()
-error404 = do
-  modifyResponse $ setResponseStatus 404 "Not found"
-  writeBS "Resource not found"
 
 -- | Return the report of one collector.
 oneReport :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
