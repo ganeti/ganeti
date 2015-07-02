@@ -1668,6 +1668,7 @@ TEST_FILES = \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-forth.data \
 	test/data/htools/hbal-location-1.data \
+	test/data/htools/hbal-location-2.data \
 	test/data/htools/hbal-migration-1.data \
 	test/data/htools/hbal-migration-2.data \
 	test/data/htools/hbal-migration-3.data \
