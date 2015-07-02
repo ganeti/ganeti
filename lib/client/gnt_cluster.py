@@ -1129,8 +1129,7 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
 
     _RenewClientCerts(ctx)
 
-  if new_cluster_cert or new_rapi_cert or new_spice_cert \
-      or new_confd_hmac_key or new_cds:
+  if new_rapi_cert or new_spice_cert or new_confd_hmac_key or new_cds:
     RunWhileClusterStopped(ToStdout, _RenewCryptoInner)
 
   # If only node certficates are recreated, call _RenewClientCerts only.
