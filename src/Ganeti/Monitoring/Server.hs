@@ -46,7 +46,7 @@ import Control.DeepSeq (force)
 import Control.Exception.Base (evaluate)
 import Control.Monad
 import Control.Monad.IO.Class
-import Data.ByteString.Char8 (pack, unpack)
+import Data.ByteString.Char8 (unpack)
 import Data.Maybe (fromMaybe)
 import Data.List (find)
 import Data.Monoid (mempty)
@@ -70,7 +70,7 @@ import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as CU
 import Ganeti.Runtime
 import Ganeti.Utils (getCurrentTimeUSec)
-import Ganeti.Utils.Http (httpConfFromOpts, error404)
+import Ganeti.Utils.Http (httpConfFromOpts, error404, plainJSON)
 
 -- * Types and constants definitions
 
@@ -100,12 +100,12 @@ prepMain opts _ = httpConfFromOpts GanetiMond opts
 
 -- | Reply to the supported API version numbers query.
 versionQ :: Snap ()
-versionQ = writeBS . pack $ J.encode [latestAPIVersion]
+versionQ = plainJSON [latestAPIVersion]
 
 -- | Version 1 of the monitoring HTTP API.
 version1Api :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
 version1Api mvar mvarConfig =
-  let returnNull = writeBS . pack $ J.encode J.JSNull :: Snap ()
+  let returnNull = plainJSON J.JSNull
   in ifTop returnNull <|>
      route
        [ ("list", listHandler mvarConfig)
@@ -148,7 +148,7 @@ dcListItem dc =
 listHandler :: MVar ConfigAccess -> Snap ()
 listHandler mvarConfig = dir "collectors" $ do
   collectors' <- liftIO $ activeCollectors mvarConfig
-  writeBS . pack . J.encode $ map dcListItem collectors'
+  plainJSON $ map dcListItem collectors'
 
 -- | Handler for returning data collector reports.
 reportHandler :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
@@ -164,7 +164,7 @@ allReports :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()
 allReports mvar mvarConfig = do
   collectors' <- liftIO $ activeCollectors mvarConfig
   reports <- mapM (liftIO . getReport mvar) collectors'
-  writeBS . pack . J.encode $ reports
+  plainJSON reports
 
 -- | Takes the CollectorMap and a DataCollector and returns the report for this
 -- collector.
@@ -215,7 +215,7 @@ oneReport mvar mvarConfig = do
       Just col -> return col
       Nothing -> fail "Unable to find the requested collector"
   dcr <- liftIO $ getReport mvar collector
-  writeBS . pack . J.encode $ dcr
+  plainJSON dcr
 
 -- | The function implementing the HTTP API of the monitoring agent.
 monitoringApi :: MVar CollectorMap -> MVar ConfigAccess -> Snap ()

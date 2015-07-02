@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Utils.Http
   ( httpConfFromOpts
   , error404
+  , plainJSON
   ) where
 
 import Control.Monad (liftM)
@@ -47,6 +48,7 @@ import Snap.Core (Snap, writeBS, modifyResponse, setResponseStatus)
 import Snap.Http.Server.Config ( Config, ConfigLog(ConfigFileLog), emptyConfig
                                , setAccessLog, setErrorLog, setCompression
                                , setVerbose, setPort, setBind )
+import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
 import Ganeti.Daemon (DaemonOptions(..))
@@ -90,3 +92,6 @@ error404 = do
   modifyResponse $ setResponseStatus 404 "Not found"
   writeBS "Resource not found"
 
+-- | Return the JSON encoding of an object
+plainJSON :: J.JSON a => a -> Snap ()
+plainJSON = writeBS . pack . J.encode
