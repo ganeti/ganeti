@@ -67,10 +67,6 @@ class Transport:
   def __init__(self, address, timeouts=None, allow_non_master=None):
     """Constructor for the Client class.
 
-    Arguments:
-      - address: a valid address the the used transport class
-      - timeout: a list of timeouts, to be used on connect and read/write
-
     There are two timeouts used since we might want to wait for a long
     time for a response, but the connect timeout should be lower.
 
@@ -80,6 +76,13 @@ class Transport:
     invidual receive, it might be that the total duration is longer
     than timeout value passed (we make a hard limit at twice the read
     timeout).
+
+    @type address: socket address
+    @param address: address the transport connects to
+    @type timeouts: list of ints
+    @param timeouts: timeouts to be used on connect and read/write
+    @type allow_non_master: bool
+    @param allow_non_master: skip checks for the master node on errors
 
     """
     self.address = address
