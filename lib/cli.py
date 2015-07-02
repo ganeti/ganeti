@@ -2956,9 +2956,8 @@ class _RunWhileDaemonsStoppedHelper(object):
     @type ssh_ports: list
     @param ssh_ports: List of SSH ports of online nodes
     @type exclude_daemons: list of string
-    @param exclude_daemons: list of daemons to shutdown
-    @param exclude_daemons: list of daemons that will be restarted after
-                            all others are shutdown
+    @param exclude_daemons: list of daemons that will be restarted on master
+                            after all others are shutdown
     @type debug: boolean
     @param debug: show debug output
     @type verbose: boolesn
@@ -3032,12 +3031,11 @@ class _RunWhileDaemonsStoppedHelper(object):
           self.feedback_fn("Stopping daemons on %s" % node_name)
           self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "stop-all"])
           # Starting any daemons listed as exception
-          for daemon in self.exclude_daemons:
-            if (daemon in constants.DAEMONS_MASTER and
-                node_name != self.master_node):
-              continue
-            self.feedback_fn("Starting daemon '%s' on %s" % (daemon, node_name))
-            self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "start", daemon])
+          if node_name == self.master_node:
+            for daemon in self.exclude_daemons:
+              self.feedback_fn("Starting daemon '%s' on %s" % (daemon,
+                                                               node_name))
+              self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "start", daemon])
 
         # All daemons are shut down now
         try:
@@ -3053,12 +3051,12 @@ class _RunWhileDaemonsStoppedHelper(object):
           # Stopping any daemons listed as exception.
           # This might look unnecessary, but it makes sure that daemon-util
           # starts all daemons in the right order.
-          for daemon in self.exclude_daemons:
-            if (daemon in constants.DAEMONS_MASTER and
-                node_name != self.master_node):
-              continue
-            self.feedback_fn("Stopping daemon '%s' on %s" % (daemon, node_name))
-            self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "stop", daemon])
+          if node_name == self.master_node:
+            self.exclude_daemons.reverse()
+            for daemon in self.exclude_daemons:
+              self.feedback_fn("Stopping daemon '%s' on %s" % (daemon,
+                                                               node_name))
+              self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "stop", daemon])
           self.feedback_fn("Starting daemons on %s" % node_name)
           self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "start-all"])
 
@@ -3073,8 +3071,10 @@ def RunWhileDaemonsStopped(feedback_fn, exclude_daemons, fn, *args, **kwargs):
   @type feedback_fn: callable
   @param feedback_fn: Feedback function
   @type exclude_daemons: list of string
-  @param exclude_daemons: list of daemons that are NOT stopped. If None,
-                          all daemons will be stopped.
+  @param exclude_daemons: list of daemons that stopped, but immediately
+                          restarted on the master to be available when calling
+                          'fn'. If None, all daemons will be stopped and none
+                          will be started before calling 'fn'.
   @type fn: callable
   @param fn: Function to be called when daemons are stopped
 
