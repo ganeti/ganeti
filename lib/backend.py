@@ -2237,7 +2237,8 @@ def ModifyInstanceMetadata(metadata):
       raise errors.HypervisorError("Failed to start metadata daemon")
 
   def _Connect():
-    return transport.Transport(pathutils.SOCKET_DIR + "/ganeti-metad")
+    return transport.Transport(pathutils.SOCKET_DIR + "/ganeti-metad",
+                               allow_non_master=True)
 
   retries = 5
 
