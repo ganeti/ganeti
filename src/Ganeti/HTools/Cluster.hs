@@ -568,7 +568,7 @@ applyMoveEx force nl inst (ReplaceAndFailover new_pdx) =
       tgt_n = Container.find new_pdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
-      new_inst = Instance.setBoth (setInstanceLocationScore inst int_s tgt_n)
+      new_inst = Instance.setBoth (setInstanceLocationScore inst tgt_n int_p)
                  new_pdx old_pdx
       force_s = Node.offline old_s || force
       new_nl = do -- OpResult
