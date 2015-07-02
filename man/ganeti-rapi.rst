@@ -9,7 +9,7 @@ ganeti-rapi - Ganeti remote API daemon
 Synopsis
 --------
 
-| **ganeti-rapi** [-d] [-f] [-p *PORT] [-b *ADDRESS*] [-i *INTERFACE*]
+| **ganeti-rapi** [-d] [-f] [-p *PORT*] [-b *ADDRESS*] [-i *INTERFACE*]
 | [\--no-ssl] [-K *SSL_KEY_FILE*] [-C *SSL_CERT_FILE*]
 | [\--require-authentication]
 
@@ -28,8 +28,11 @@ The daemon will listen to the "ganeti-rapi" TCP port, as listed in the
 system services database, or if not defined, to port 5080 by default.
 The port can be overridded by passing the ``-p`` option. The ``-b``
 option can be used to specify the address to bind to (defaults to
-``0.0.0.0``); alternatively, the ``-i`` option can be used to specify
-the interface to bind do.
+``0.0.0.0``). Note that if you specify the address, the watcher
+needs to be informed about it using its option ``--rapi-ip``, otherwise
+it will not be able to reach the RAPI interface and will attempt to
+restart it all the time. Alternatively to setting the IP with ``--b``,
+the ``-i`` option can be used to specify the interface to bind do.
 
 See the *Ganeti remote API* documentation for further information.
 
