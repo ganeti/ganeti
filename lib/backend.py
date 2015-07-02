@@ -2250,6 +2250,8 @@ def ModifyInstanceMetadata(metadata):
       raise TimeoutError("Connection to metadata daemon timed out")
     except (socket.error, NoMasterError), err:
       if retries == 0:
+        logging.error("Failed to connect to the metadata daemon",
+                      exc_info=True)
         raise TimeoutError("Failed to connect to metadata daemon: %s" % err)
       else:
         retries -= 1
