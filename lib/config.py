@@ -102,7 +102,12 @@ def GetConfig(ec_id, livelock, **kwargs):
 
   """
   kwargs['wconfdcontext'] = GetWConfdContext(ec_id, livelock)
-  kwargs['wconfd'] = wc.Client()
+
+  # if the config is to be opened in the accept_foreign mode, we should
+  # also tell the RPC client not to check for the master node
+  accept_foreign = kwargs.get('accept_foreign', False)
+  kwargs['wconfd'] = wc.Client(allow_non_master=accept_foreign)
+
   return ConfigWriter(**kwargs)
 
 
