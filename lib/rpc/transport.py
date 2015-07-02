@@ -250,7 +250,8 @@ class FdTransport:
   Unlike L{Transport}, this doesn't use timeouts.
   """
 
-  def __init__(self, fds, timeouts=None): # pylint: disable=W0613
+  def __init__(self, fds,
+               timeouts=None, allow_non_master=None): # pylint: disable=W0613
     """Constructor for the Client class.
 
     @type fds: pair of file descriptors
@@ -258,6 +259,8 @@ class FdTransport:
         and the file descriptor for writing (the second)
     @type timeouts: int
     @param timeouts: unused
+    @type allow_non_master: bool
+    @param allow_non_master: unused
 
     """
     self._rstream = io.open(fds[0], 'rb', 0)
