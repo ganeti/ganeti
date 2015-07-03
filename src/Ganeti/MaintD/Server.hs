@@ -42,15 +42,29 @@ module Ganeti.MaintD.Server
   ) where
 
 import Control.Applicative ((<|>))
+import Control.Concurrent (forkIO, threadDelay)
+import Control.Monad (forever, void, unless)
+import Control.Monad.IO.Class (liftIO)
+import qualified Data.Set as Set
 import Snap.Core (Snap, method, Method(GET), ifTop)
 import Snap.Http.Server (httpServe)
 import Snap.Http.Server.Config (Config)
+import System.IO.Error (tryIOError)
+import System.Time (getClockTime)
 
+import Ganeti.BasicTypes (GenericResult(..), ResultT, runResultT, mkResultT)
 import qualified Ganeti.Constants as C
 import Ganeti.Daemon ( OptType, CheckFn, PrepFn, MainFn, oDebug
                      , oNoVoting, oYesDoIt, oPort, oBindAddress, oNoDaemonize)
 import Ganeti.Daemon.Utils (handleMasterVerificationOptions)
+import qualified Ganeti.HTools.Backend.Luxi as Luxi
+import qualified Ganeti.HTools.Container as Container
+import Ganeti.HTools.Loader (ClusterData(..), mergeData, checkData)
+import Ganeti.Logging.Lifted
+import Ganeti.MaintD.Autorepairs (harepTasks)
+import qualified Ganeti.Path as Path
 import Ganeti.Runtime (GanetiDaemon(GanetiMaintd))
+import Ganeti.Types (JobId(..))
 import Ganeti.Utils.Http (httpConfFromOpts, plainJSON, error404)
 
 -- | Options list and functions.
@@ -70,6 +84,40 @@ type CheckResult = ()
 -- | Type alias for prepMain results
 type PrepResult = Config Snap ()
 
+-- | Load cluster data
+--
+-- At the moment, only the static data is fetched via luxi;
+-- once we support load-based balancing in maintd as well,
+-- we also need to query the MonDs for the load data.
+loadClusterData :: ResultT String IO ClusterData
+loadClusterData = do
+  now <- liftIO getClockTime
+  socket <- liftIO Path.defaultQuerySocket
+  either_inp <-  liftIO . tryIOError $ Luxi.loadData socket
+  input_data <- mkResultT $ case either_inp of
+                  Left e -> do
+                    let msg = show e
+                    logNotice $ "Couldn't read data from luxid: " ++ msg
+                    return $ Bad msg
+                  Right r -> return r
+  cdata <- mkResultT . return $ mergeData [] [] [] [] now input_data
+  let (msgs, nl) = checkData (cdNodes cdata) (cdInstances cdata)
+  unless (null msgs) . logDebug $ "Cluster data inconsistencies: " ++ show msgs
+  return $ cdata { cdNodes = nl }
+
+-- | Perform one round of maintenance
+maintenance :: ResultT String IO ()
+maintenance = do
+  liftIO $ threadDelay 60000000
+  logDebug "New round of maintenance started"
+  cData <- loadClusterData
+  let il = cdInstances cData
+      nl = cdNodes cData
+      nidxs = Set.fromList $ Container.keys nl
+  (nidxs', jobs) <- harepTasks (nl, il) nidxs
+  logDebug $ "Unaffected nodes " ++ show (Set.toList nidxs')
+             ++ ", jobs submitted " ++ show (map fromJobId jobs)
+
 -- | The information to serve via HTTP
 httpInterface :: Snap ()
 httpInterface = ifTop (method GET $ plainJSON [1 :: Int])
@@ -85,5 +133,8 @@ prepMain opts _ = httpConfFromOpts GanetiMaintd opts
 
 -- | Main function.
 main :: MainFn CheckResult PrepResult
-main _ _ httpConf =
+main _ _ httpConf = do
+  void . forkIO . forever $ do
+    res <- runResultT maintenance
+    logDebug $ "Maintenance round done, result is " ++ show res
   httpServe httpConf httpInterface
