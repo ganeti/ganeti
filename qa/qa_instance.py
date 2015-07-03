@@ -1565,6 +1565,21 @@ def TestInstanceAddOsParams():
   pnode.Release()
 
 
+def TestSecretOsParams():
+  """Tests secret os parameter transmission"""
+
+  secret_keys = ["param1", "param2"]
+  cmd = (["gnt-debug", "test-osparams", "--os-parameters-secret",
+         "param1=secret1,param2=secret2", "--submit", "--print-jobid"])
+  _TestRedactionOfSecretOsParams(cmd, secret_keys)
+
+  cmd_output = stdout_of(["gnt-debug", "test-osparams",
+                         "--os-parameters-secret",
+                         "param1=secret1,param2=secret2"])
+  AssertIn("\'param1\': \'secret1\'", cmd_output)
+  AssertIn("\'param2\': \'secret2\'", cmd_output)
+
+
 available_instance_tests = [
   ("instance-add-plain-disk", constants.DT_PLAIN,
    TestInstanceAddWithPlainDisk, 1),

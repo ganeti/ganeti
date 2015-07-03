@@ -1065,6 +1065,7 @@ def RunQa():
     qa_instance.TestInstanceCreationRestrictedByDiskTemplates)
 
   RunTestIf("instance-add-osparams", qa_instance.TestInstanceAddOsParams)
+  RunTestIf("instance-add-osparams", qa_instance.TestSecretOsParams)
 
   # Test removing instance with offline drbd secondary
   if qa_config.TestEnabled(["instance-remove-drbd-offline",
