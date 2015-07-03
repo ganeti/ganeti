@@ -353,6 +353,23 @@ class LUTestJqueue(NoHooksLU):
     return True
 
 
+class LUTestOsParams(NoHooksLU):
+  """Utility LU to test secret OS parameter transmission.
+
+  """
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.needed_locks = {}
+
+  def Exec(self, feedback_fn):
+    if self.op.osparams_secret:
+      msg = "Secret OS parameters: %s" % self.op.osparams_secret.Unprivate()
+      feedback_fn(msg)
+    else:
+      raise errors.OpExecError("Opcode needs secret parameters")
+
+
 class LUTestAllocator(NoHooksLU):
   """Run allocator tests.
 

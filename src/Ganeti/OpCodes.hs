@@ -903,6 +903,12 @@ $(genOpCode "OpCode"
      , pJQueueFail
      ],
      [])
+  , ("OpTestOsParams",
+     [t| () |],
+     OpDoc.opTestOsParams,
+     [ pInstOsParamsSecret
+     ],
+     [])
   , ("OpTestDummy",
      [t| () |],
      OpDoc.opTestDummy,
