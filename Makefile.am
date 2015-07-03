@@ -973,6 +973,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Logging/Lifted.hs \
 	src/Ganeti/Logging/WriterLog.hs \
 	src/Ganeti/Luxi.hs \
+	src/Ganeti/MaintD/Autorepairs.hs \
 	src/Ganeti/MaintD/Server.hs \
 	src/Ganeti/MaintD/Utils.hs \
 	src/Ganeti/Network.hs \
