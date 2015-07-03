@@ -205,8 +205,9 @@ filterSecretParameters =
     getSecretParams :: OpCode -> Maybe (JSObject (Secret JSValue))
     getSecretParams opcode =
       case opcode of
-        (OpInstanceCreate {}) -> opOsparamsSecret opcode
-        (OpInstanceReinstall {}) -> opOsparamsSecret opcode
+        (OpInstanceCreate {opOsparamsSecret = x}) -> x
+        (OpInstanceReinstall {opOsparamsSecret = x}) -> x
+        (OpTestOsParams {opOsparamsSecret = x}) -> x
         _ -> Nothing
 
 -- | Forks a child POSIX process, creating a bi-directional communication
