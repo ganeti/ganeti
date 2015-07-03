@@ -91,7 +91,7 @@ class IsBeforeTest(unittest.TestCase):
         self.assertTrue(version.IsBefore((2, 10, 1), 2, 11, 0))
         self.assertFalse(version.IsBefore((2, 11, 0), 2, 10, 3))
 
-class IsEqualTest(unittest.Testcase):
+class IsEqualTest(unittest.TestCase):
     def testIsEqual(self):
         self.assertTrue(version.IsEqual((2, 10, 0), 2, 10, 0))
         self.assertFalse(version.IsEqual((2, 10, 0), 2, 10, 2))
