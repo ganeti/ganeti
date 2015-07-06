@@ -198,6 +198,19 @@ class TestInstanceStateParsing(unittest.TestCase):
       self.assertEqual(hv_xen._XenToHypervisorInstanceState(state),
                        hv_base.HvInstanceState.SHUTDOWN)
 
+  def testCrashingStates(self):
+    states = [
+      "--psc-",
+      "---sc-",
+      "---scd",
+      "--p-c-",
+      "----c-",
+      "----cd",
+    ]
+    for state in states:
+      self.assertRaises(hv_xen._InstanceCrashed,
+                        hv_xen._XenToHypervisorInstanceState, state)
+
 
 class TestGetInstanceList(testutils.GanetiTestCase):
   def _Fail(self):
@@ -237,6 +250,23 @@ class TestGetInstanceList(testutils.GanetiTestCase):
       "server01.example.com",
       "web3106215069.example.com",
       "testinstance.example.com",
+      ])
+
+    self.assertEqual(fn.Count(), 1)
+
+  def testOmitCrashed(self):
+    data = testutils.ReadTestData("xen-xl-list-4.4-crashed-instances.txt")
+
+    fn = testutils.CallCounter(compat.partial(self._Success, data))
+
+    result = hv_xen._GetAllInstanceList(fn, True, delays=(0.02, 1.0, 0.03),
+                                        timeout=0.1)
+
+    self.assertEqual(len(result), 2)
+
+    self.assertEqual(map(compat.fst, result), [
+      "Domain-0",
+      "server01.example.com",
       ])
 
     self.assertEqual(fn.Count(), 1)
