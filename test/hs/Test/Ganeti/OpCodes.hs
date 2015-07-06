@@ -487,6 +487,8 @@ instance Arbitrary OpCodes.OpCode where
       "OP_TEST_JQUEUE" ->
         OpCodes.OpTestJqueue <$> arbitrary <*> arbitrary <*>
           resize 20 (listOf genFQDN) <*> arbitrary
+      "OP_TEST_OS_PARAMS" ->
+        OpCodes.OpTestOsParams <$> genMaybe arbitrarySecretJSObj
       "OP_TEST_DUMMY" ->
         OpCodes.OpTestDummy <$> pure J.JSNull <*> pure J.JSNull <*>
           pure J.JSNull <*> pure J.JSNull
