@@ -68,6 +68,7 @@ import qualified Text.JSON as J
 import qualified AutoConf
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as CU
 import Ganeti.JSON (GenericContainer(..), HasStringRepr(..))
 import qualified Ganeti.Path as Path
 import Ganeti.THH
@@ -86,38 +87,7 @@ sSFilePrefix :: FilePath
 sSFilePrefix = C.ssconfFileprefix
 
 $(declareLADT ''String "SSKey" (
-  [ ("SSClusterName",           C.ssClusterName)
-  , ("SSClusterTags",           C.ssClusterTags)
-  , ("SSFileStorageDir",        C.ssFileStorageDir)
-  , ("SSSharedFileStorageDir",  C.ssSharedFileStorageDir)
-  , ("SSGlusterStorageDir",     C.ssGlusterStorageDir)
-  , ("SSMasterCandidates",      C.ssMasterCandidates)
-  , ("SSMasterCandidatesIps",   C.ssMasterCandidatesIps)
-  , ("SSMasterCandidatesCerts", C.ssMasterCandidatesCerts)
-  , ("SSMasterIp",              C.ssMasterIp)
-  , ("SSMasterNetdev",          C.ssMasterNetdev)
-  , ("SSMasterNetmask",         C.ssMasterNetmask)
-  , ("SSMasterNode",            C.ssMasterNode)
-  , ("SSNodeList",              C.ssNodeList)
-  , ("SSNodePrimaryIps",        C.ssNodePrimaryIps)
-  , ("SSNodeSecondaryIps",      C.ssNodeSecondaryIps)
-  , ("SSNodeVmCapable",         C.ssNodeVmCapable)
-  , ("SSOfflineNodes",          C.ssOfflineNodes)
-  , ("SSOnlineNodes",           C.ssOnlineNodes)
-  , ("SSPrimaryIpFamily",       C.ssPrimaryIpFamily)
-  , ("SSInstanceList",          C.ssInstanceList)
-  , ("SSReleaseVersion",        C.ssReleaseVersion)
-  , ("SSHypervisorList",        C.ssHypervisorList)
-  , ("SSMaintainNodeHealth",    C.ssMaintainNodeHealth)
-  , ("SSUidPool",               C.ssUidPool)
-  , ("SSNodegroups",            C.ssNodegroups)
-  , ("SSNetworks",              C.ssNetworks)
-  , ("SSEnabledUserShutdown",   C.ssEnabledUserShutdown)
-  ] ++
-  -- Automatically generate SSHvparamsXxx for each hypervisor type:
-  map ((("SSHvparams" ++) . show)
-       &&& ((C.ssHvparamsPref ++) . Types.hypervisorToRaw))
-    [minBound..maxBound]
+  map (ssconfConstructorName &&& id) . CU.toList $ C.validSsKeys
   ))
 
 instance HasStringRepr SSKey where
