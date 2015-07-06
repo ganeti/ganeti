@@ -38,6 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.ConstantUtils where
 
 import Data.Char (ord)
+import Data.Monoid (Monoid(..))
 import Data.Set (Set)
 import qualified Data.Set as Set (difference, fromList, toList, union)
 
@@ -61,6 +62,10 @@ instance PyValue PythonNone where
 -- See 'PyValue' instance for 'FrozenSet'.
 newtype FrozenSet a = FrozenSet { unFrozenSet :: Set a }
   deriving (Eq, Ord, Show)
+
+instance (Ord a) => Monoid (FrozenSet a) where
+  mempty = FrozenSet mempty
+  mappend (FrozenSet s) (FrozenSet t) = FrozenSet (mappend s t)
 
 -- | Converts a Haskell 'Set' into a Python 'frozenset'
 --
