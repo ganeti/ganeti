@@ -73,6 +73,7 @@ module Ganeti.THH ( declareSADT
                   , buildParam
                   , genException
                   , excErrMsg
+                  , ssconfConstructorName
                   ) where
 
 import Control.Arrow ((&&&), second)
@@ -1547,3 +1548,7 @@ genLoadExc tname sname opdefs = do
   let clause2 = Clause [VarP arg_else] (NormalB fail_type) []
   sigt <- [t| JSON.JSValue -> JSON.Result $(conT tname) |]
   return $ (SigD fname sigt, FunD fname [clause1, clause2])
+
+-- | Compute the ssconf constructor name from its file name.
+ssconfConstructorName :: String -> String
+ssconfConstructorName = camelCase . ("s_s_" ++)
