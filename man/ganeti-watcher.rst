@@ -12,6 +12,7 @@ Synopsis
 **ganeti-watcher** [``--debug``]
 [``--job-age=``*age*]
 [``--ignore-pause``]
+[``--no-verify-disks``]
 
 DESCRIPTION
 -----------
@@ -41,6 +42,9 @@ them a limited number of times.
 Another function is to "repair" DRBD links by reactivating the
 block devices of instances which have secondaries on nodes that
 have been rebooted.
+
+Additionally, it will verify and repair degraded DRBD disks; this
+will not happen, if the ``--no-verify-disks`` option is given.
 
 The watcher will also archive old jobs (older than the age given
 via the ``--job-age`` option, which defaults to 6 hours), in order
