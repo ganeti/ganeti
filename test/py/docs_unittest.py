@@ -90,6 +90,7 @@ RAPI_OPCODE_EXCLUDE = compat.UniqueFrozenset([
   opcodes.OpTestDelay,
   opcodes.OpTestDummy,
   opcodes.OpTestJqueue,
+  opcodes.OpTestOsParams,
   ])
 
 
