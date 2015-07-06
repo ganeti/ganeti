@@ -47,6 +47,7 @@ import qa_daemon
 import qa_utils
 import qa_error
 
+from qa_filters import stdout_of
 from qa_utils import AssertCommand, AssertEqual, AssertIn
 from qa_utils import InstanceCheck, INST_DOWN, INST_UP, FIRST_ARG, RETURN_VALUE
 from qa_instance_utils import CheckSsconfInstanceList, \
@@ -1514,6 +1515,54 @@ def TestInstanceCommunication(instance, master):
   result_output = qa_utils.GetCommandOutput(master.primary,
                                             utils.ShellQuoteArgs(cmd))
   print result_output
+
+
+def _TestRedactionOfSecretOsParams(cmd, secret_keys):
+  """Tests redaction of secret os parameters
+
+  """
+  AssertCommand(["gnt-cluster", "modify", "--max-running-jobs", "1"])
+  debug_delay_id = int(stdout_of(["gnt-debug", "delay", "--print-jobid",
+                       "--submit", "300"]))
+  cmd_jid = int(stdout_of(cmd))
+  job_file = "/var/lib/ganeti/queue/job-%s" % cmd_jid
+
+  for k in secret_keys:
+    grep_cmd = ["grep", "\"%s\":\"<redacted>\"" % k, job_file]
+    AssertCommand(grep_cmd)
+
+  AssertCommand(["gnt-job", "cancel", "--kill", "--yes-do-it",
+                str(debug_delay_id)])
+  AssertCommand(["gnt-cluster", "modify", "--max-running-jobs", "20"])
+  AssertCommand(["gnt-job", "wait", str(cmd_jid)])
+
+
+def TestInstanceAddOsParams():
+  """Tests instance add with secret os parameters"""
+
+  if not qa_config.IsTemplateSupported(constants.DT_PLAIN):
+    return
+
+  pnode = qa_config.AcquireNode()
+  instance = qa_config.AcquireInstance()
+
+  secret_keys = ["param1", "param2"]
+  cmd = (["gnt-instance", "add",
+          "--os-type=%s" % qa_config.get("os"),
+          "--disk-template=%s" % constants.DT_PLAIN,
+          "--os-parameters-secret",
+          "param1=secret1,param2=secret2",
+          "--node=%s" % pnode.primary] +
+          GetGenericAddParameters(instance, constants.DT_PLAIN))
+  cmd.append("--submit")
+  cmd.append("--print-jobid")
+  cmd.append(instance.name)
+
+  _TestRedactionOfSecretOsParams(cmd, secret_keys)
+
+  TestInstanceRemove(instance)
+  instance.Release()
+  pnode.Release()
 
 
 available_instance_tests = [

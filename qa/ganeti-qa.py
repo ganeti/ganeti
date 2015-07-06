@@ -1064,6 +1064,8 @@ def RunQa():
     "instance-add-restricted-by-disktemplates",
     qa_instance.TestInstanceCreationRestrictedByDiskTemplates)
 
+  RunTestIf("instance-add-osparams", qa_instance.TestInstanceAddOsParams)
+
   # Test removing instance with offline drbd secondary
   if qa_config.TestEnabled(["instance-remove-drbd-offline",
                             "instance-add-drbd-disk"]):
