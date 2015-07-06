@@ -49,6 +49,7 @@ import Control.Arrow ((***),(&&&))
 import Data.List ((\\))
 import Data.Map (Map)
 import qualified Data.Map as Map (empty, fromList, keys, insert)
+import Data.Monoid
 
 import qualified AutoConf
 import Ganeti.ConstantUtils (PythonChar(..), FrozenSet, Protocol(..),
@@ -3905,6 +3906,40 @@ ssFilePerms = 0o444
 
 ssEnabledUserShutdown :: String
 ssEnabledUserShutdown = "enabled_user_shutdown"
+
+validSsKeys :: FrozenSet String
+validSsKeys = ConstantUtils.mkSet
+  [ ssClusterName
+  , ssClusterTags
+  , ssFileStorageDir
+  , ssSharedFileStorageDir
+  , ssGlusterStorageDir
+  , ssMasterCandidates
+  , ssMasterCandidatesIps
+  , ssMasterCandidatesCerts
+  , ssMasterIp
+  , ssMasterNetdev
+  , ssMasterNetmask
+  , ssMasterNode
+  , ssNodeList
+  , ssNodePrimaryIps
+  , ssNodeSecondaryIps
+  , ssNodeVmCapable
+  , ssOfflineNodes
+  , ssOnlineNodes
+  , ssPrimaryIpFamily
+  , ssInstanceList
+  , ssReleaseVersion
+  , ssHypervisorList
+  , ssMaintainNodeHealth
+  , ssUidPool
+  , ssNodegroups
+  , ssNetworks
+  , ssEnabledUserShutdown
+  ]
+  <>
+  validSsHvparamsKeys
+
 
 -- | Cluster wide default parameters
 defaultEnabledHypervisor :: String
