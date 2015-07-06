@@ -115,6 +115,15 @@ def _RunInstanceList(fn, instance_list_errors):
   return result.stdout.splitlines()
 
 
+class _InstanceCrashed(errors.GenericError):
+  """Instance has reached a violent ending.
+
+  This is raised within the Xen hypervisor only, and should not be seen or used
+  outside.
+
+  """
+
+
 def _ParseInstanceList(lines, include_node):
   """Parses the output of listing instances by xen.
 
@@ -146,6 +155,10 @@ def _ParseInstanceList(lines, include_node):
     except (TypeError, ValueError), err:
       raise errors.HypervisorError("Can't parse instance list,"
                                    " line: %s, error: %s" % (line, err))
+    except _InstanceCrashed:
+      # The crashed instance can be interpreted as being down, so we omit it
+      # from the instance list.
+      continue
 
     # skip the Domain-0 (optional)
     if include_node or data[0] != _DOM0_NAME:
@@ -240,6 +253,18 @@ def _IgnorePaused(instance_info):
   return instance_info.replace('p', '-')
 
 
+def _IsCrashed(instance_info):
+  """Returns whether an instance is in the crashed Xen state.
+
+  When a horrible misconfiguration happens to a Xen domain, it can crash,
+  meaning that it encounters a violent ending. While this state usually flashes
+  only temporarily before the domain is restarted, being able to check for it
+  allows Ganeti not to act confused and do something about it.
+
+  """
+  return instance_info.count('c') > 0
+
+
 def _XenToHypervisorInstanceState(instance_info):
   """Maps Xen states to hypervisor states.
 
@@ -249,6 +274,9 @@ def _XenToHypervisorInstanceState(instance_info):
 
   """
   instance_info = _IgnorePaused(instance_info)
+
+  if _IsCrashed(instance_info):
+    raise _InstanceCrashed("Instance detected as crashed, should be omitted")
 
   if _IsInstanceRunning(instance_info):
     return hv_base.HvInstanceState.RUNNING
