@@ -474,6 +474,8 @@ def ParseOptions():
   parser.add_option("--no-wait-children", dest="wait_children",
                     action="store_false",
                     help="Don't wait for child processes")
+  parser.add_option("--no-verify-disks", dest="no_verify_disks", default=False,
+                    action="store_true", help="Do not verify disk status")
   # See optparse documentation for why default values are not set by options
   parser.set_defaults(wait_children=True)
   options, args = parser.parse_args()
@@ -860,7 +862,8 @@ def _GroupWatcher(opts):
 
     started = _CheckInstances(client, notepad, instances, locks)
     _CheckDisks(client, notepad, nodes, instances, started)
-    _VerifyDisks(client, group_uuid, nodes, instances)
+    if not opts.no_verify_disks:
+      _VerifyDisks(client, group_uuid, nodes, instances)
   except Exception, err:
     logging.info("Not updating status file due to failure: %s", err)
     raise
