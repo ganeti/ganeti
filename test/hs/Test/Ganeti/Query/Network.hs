@@ -52,9 +52,6 @@ import Test.QuickCheck
 import qualified Data.Map as Map
 import Data.Maybe
 
-instance Arbitrary ConfigData where
-  arbitrary = genEmptyCluster 0 >>= genConfigDataWithNetworks
-
 -- | Check if looking up a valid network ID of a nodegroup yields
 -- a non-Nothing result.
 prop_getGroupConnection :: NodeGroup -> Property

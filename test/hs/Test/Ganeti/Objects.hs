@@ -342,6 +342,9 @@ instance Arbitrary IAllocatorParams where
 
 $(genArbitrary ''Cluster)
 
+instance Arbitrary ConfigData where
+  arbitrary = genEmptyCluster 0 >>= genConfigDataWithNetworks
+
 instance Arbitrary AddressPool where
   arbitrary = AddressPool . BA.fromList <$> arbitrary
 
