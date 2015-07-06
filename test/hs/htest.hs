@@ -95,6 +95,7 @@ import Test.Ganeti.Types
 import Test.Ganeti.Utils
 import Test.Ganeti.Utils.MultiMap
 import Test.Ganeti.Utils.Statistics
+import Test.Ganeti.WConfd.Ssconf
 import Test.Ganeti.WConfd.TempRes
 
 -- | Our default test options, overring the built-in test-framework
@@ -167,6 +168,7 @@ allTests =
   , testUtils
   , testUtils_MultiMap
   , testUtils_Statistics
+  , testWConfd_Ssconf
   , testWConfd_TempRes
   ]
 
