@@ -974,6 +974,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Logging/WriterLog.hs \
 	src/Ganeti/Luxi.hs \
 	src/Ganeti/MaintD/Server.hs \
+	src/Ganeti/MaintD/Utils.hs \
 	src/Ganeti/Network.hs \
 	src/Ganeti/Objects.hs \
 	src/Ganeti/Objects/BitArray.hs \

@@ -4787,6 +4787,9 @@ _opcodeReasonSrcMasterd = _opcodeReasonSrcDaemon ++ ":masterd"
 opcodeReasonSrcNoded :: String
 opcodeReasonSrcNoded = _opcodeReasonSrcDaemon ++ ":noded"
 
+opcodeReasonSrcMaintd :: String
+opcodeReasonSrcMaintd = _opcodeReasonSrcDaemon ++ ":maintd"
+
 opcodeReasonSrcOpcode :: String
 opcodeReasonSrcOpcode = "gnt:opcode"
 
