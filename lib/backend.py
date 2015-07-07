@@ -4971,12 +4971,13 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
 
   elif ieio == constants.IEIO_RAW_DISK:
     (disk, ) = ieargs
+    real_disk = _OpenRealBD(disk)
 
     if mode == constants.IEM_IMPORT:
-      suffix = utils.BuildShellCmd("| %s", disk.Import())
+      suffix = "| %s" % utils.ShellQuoteArgs(real_disk.Import())
 
     elif mode == constants.IEM_EXPORT:
-      prefix = utils.BuildShellCmd("%s |", disk.Export())
+      prefix = "%s |" % utils.ShellQuoteArgs(real_disk.Export())
       exp_size = disk.size
 
   elif ieio == constants.IEIO_SCRIPT:
