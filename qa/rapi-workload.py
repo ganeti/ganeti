@@ -90,8 +90,8 @@ class GanetiRapiClientWrapper(object):
 
   """
   def __init__(self):
-    self._client = qa_rapi.Setup(RAPI_USERNAME,
-                                 qa_rapi.LookupRapiSecret(RAPI_USERNAME))
+    qa_rapi.SetupRapi()
+    self._client = qa_rapi.GetClient()
 
     self._method_invocations = {}
 

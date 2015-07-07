@@ -35,7 +35,6 @@
 import re
 import tempfile
 import time
-import os.path
 
 from ganeti import _constants
 from ganeti import constants
@@ -182,28 +181,8 @@ def TestClusterInitDisk():
     AssertCommand(["gnt-cluster", "init", "-D", param, name], fail=True)
 
 
-def TestClusterInit(rapi_user, rapi_secret):
+def TestClusterInit():
   """gnt-cluster init"""
-  master = qa_config.GetMasterNode()
-
-  rapi_users_path = qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)
-  rapi_dir = os.path.dirname(rapi_users_path)
-
-  # First create the RAPI credentials
-  fh = tempfile.NamedTemporaryFile()
-  try:
-    fh.write("%s %s write\n" % (rapi_user, rapi_secret))
-    fh.flush()
-
-    tmpru = qa_utils.UploadFile(master.primary, fh.name)
-    try:
-      AssertCommand(["mkdir", "-p", rapi_dir])
-      AssertCommand(["mv", tmpru, rapi_users_path])
-    finally:
-      AssertCommand(["rm", "-f", tmpru])
-  finally:
-    fh.close()
-
   # Initialize cluster
   enabled_disk_templates = qa_config.GetEnabledDiskTemplates()
   cmd = [
@@ -230,6 +209,7 @@ def TestClusterInit(rapi_user, rapi_secret):
     if spec_values:
       cmd.append("--specs-%s=%s" % (spec_type, ",".join(spec_values)))
 
+  master = qa_config.GetMasterNode()
   if master.secondary:
     cmd.append("--secondary-ip=%s" % master.secondary)
 

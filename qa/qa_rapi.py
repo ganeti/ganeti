@@ -34,6 +34,7 @@
 
 import functools
 import itertools
+import os.path
 import random
 import re
 import tempfile
@@ -64,7 +65,8 @@ from qa_instance import IsDiskReplacingSupported
 from qa_instance import IsFailoverSupported
 from qa_instance import IsMigrationSupported
 from qa_job_utils import RunWithLocks
-from qa_utils import (AssertEqual, AssertIn, AssertMatch, StartLocalCommand)
+from qa_utils import (AssertEqual, AssertIn, AssertMatch, AssertCommand,
+                      StartLocalCommand)
 from qa_utils import InstanceCheck, INST_DOWN, INST_UP, FIRST_ARG
 
 
@@ -74,19 +76,18 @@ _rapi_username = None
 _rapi_password = None
 
 
-def Setup(username, password):
-  """Configures the RAPI client.
+def ReloadCertificates():
+  """Reloads the client RAPI certificate with the one present on the node.
 
   """
+  if _rapi_username is None or _rapi_password is None:
+    raise qa_error.Error("RAPI username and password have to be set before"
+                         " attempting to reload a certificate.")
+
   # pylint: disable=W0603
   # due to global usage
   global _rapi_ca
   global _rapi_client
-  global _rapi_username
-  global _rapi_password
-
-  _rapi_username = username
-  _rapi_password = password
 
   master = qa_config.GetMasterNode()
 
@@ -111,16 +112,46 @@ def Setup(username, password):
     assert _rapi_client is None
   else:
     _rapi_client = rapi.client.GanetiRapiClient(master.primary, port=port,
-                                                username=username,
-                                                password=password,
+                                                username=_rapi_username,
+                                                password=_rapi_password,
                                                 curl_config_fn=cfg_curl)
 
     print "RAPI protocol version: %s" % _rapi_client.GetVersion()
 
+
+#TODO(riba): Remove in 2.13, used just by rapi-workload which disappears there
+def GetClient():
+  """Retrieves the RAPI client prepared by this module.
+
+  """
   return _rapi_client
 
 
-def LookupRapiSecret(rapi_user):
+def _CreateRapiUser(rapi_user, rapi_secret):
+  """RAPI credentials creation.
+
+  """
+  master = qa_config.GetMasterNode()
+
+  rapi_users_path = qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)
+  rapi_dir = os.path.dirname(rapi_users_path)
+
+  fh = tempfile.NamedTemporaryFile()
+  try:
+    fh.write("%s %s write\n" % (rapi_user, rapi_secret))
+    fh.flush()
+
+    tmpru = qa_utils.UploadFile(master.primary, fh.name)
+    try:
+      AssertCommand(["mkdir", "-p", rapi_dir])
+      AssertCommand(["mv", tmpru, rapi_users_path])
+    finally:
+      AssertCommand(["rm", "-f", tmpru])
+  finally:
+    fh.close()
+
+
+def _LookupRapiSecret(rapi_user):
   """Find the RAPI secret for the given user.
 
   @param rapi_user: Login user
@@ -143,6 +174,32 @@ def LookupRapiSecret(rapi_user):
     raise qa_error.Error("Unsupported password schema for RAPI user %s:"
                          " not a clear text password" % rapi_user)
   return secret
+
+
+def SetupRapi():
+  """Sets up the RAPI certificate and usernames for the client.
+
+  """
+  if not Enabled():
+    return (None, None)
+
+  # pylint: disable=W0603
+  # due to global usage
+  global _rapi_username
+  global _rapi_password
+
+  _rapi_username = "ganeti-qa"
+  if qa_config.TestEnabled("create-cluster"):
+    # For a new cluster, we have to invent a secret and a user
+    _rapi_password = utils.GenerateSecret()
+    _CreateRapiUser(_rapi_username, _rapi_password)
+  else:
+    # On an existing cluster, just find out the user's secret
+    _rapi_password = _LookupRapiSecret(_rapi_username)
+
+  # Once a username and password have been set, we can fetch the certs and
+  # get all we need for a working RAPI client.
+  ReloadCertificates()
 
 
 INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
