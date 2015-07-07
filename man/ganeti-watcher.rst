@@ -9,10 +9,8 @@ ganeti-watcher - Ganeti cluster watcher
 Synopsis
 --------
 
-**ganeti-watcher** [``--debug``]
-[``--job-age=``*age*]
-[``--ignore-pause``]
-[``--no-verify-disks``]
+**ganeti-watcher** [\--debug] [\--job-age=*age* ] [\--ignore-pause]
+[\--rapi-ip=*IP*] [\--no-verify-disks]
 
 DESCRIPTION
 -----------
@@ -31,6 +29,11 @@ wants to run it just once.
 
 The ``--debug`` option will increase the verbosity of the watcher
 and also activate logging to the standard error.
+
+The ``--rapi-ip`` option needs to be set if the RAPI daemon was
+started with a particular IP (using the ``-b`` option). The two
+options need to be exactly the same to ensure that the watcher
+can reach the RAPI interface.
 
 Master operations
 ~~~~~~~~~~~~~~~~~

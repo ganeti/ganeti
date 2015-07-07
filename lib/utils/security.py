@@ -35,6 +35,7 @@ import logging
 import OpenSSL
 import os
 import uuid as uuid_module
+import time
 
 from ganeti.utils import io
 from ganeti.utils import x509
@@ -60,7 +61,7 @@ def GetCertificateDigest(cert_filename=pathutils.NODED_CLIENT_CERT_FILE):
 
 def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg,
                        uid=-1, gid=-1):
-  """Creates a new SSL certificate and backups the old one.
+  """Creates a new server SSL certificate and backups the old one.
 
   @type new_cert: boolean
   @param new_cert: whether a new certificate should be created
@@ -85,6 +86,23 @@ def GenerateNewSslCert(new_cert, cert_filename, serial_no, log_msg,
     x509.GenerateSelfSignedSslCert(cert_filename, serial_no, uid=uid, gid=gid)
 
 
+def GenerateNewClientSslCert(cert_filename, signing_cert_filename,
+                             hostname):
+  """Creates a new server SSL certificate and backups the old one.
+
+  @type cert_filename: string
+  @param cert_filename: filename of the certificate file
+  @type signing_cert_filename: string
+  @param signing_cert_filename: name of the certificate to be used for signing
+  @type hostname: string
+  @param hostname: name of the machine whose cert is created
+
+  """
+  serial_no = int(time.time())
+  x509.GenerateSignedSslCert(cert_filename, serial_no, signing_cert_filename,
+                             common_name=hostname)
+
+
 def VerifyCertificate(filename):
   """Verifies a SSL certificate.
 
@@ -101,7 +119,7 @@ def VerifyCertificate(filename):
 
   (errcode, msg) = \
     x509.VerifyX509Certificate(cert, constants.SSL_CERT_EXPIRATION_WARN,
-                                constants.SSL_CERT_EXPIRATION_ERROR)
+                               constants.SSL_CERT_EXPIRATION_ERROR)
 
   if msg:
     fnamemsg = "While verifying %s: %s" % (filename, msg)
@@ -116,3 +134,33 @@ def VerifyCertificate(filename):
     return (constants.CV_ERROR, fnamemsg)
 
   raise errors.ProgrammerError("Unhandled certificate error code %r" % errcode)
+
+
+def IsCertificateSelfSigned(cert_filename):
+  """Checks whether the certificate issuer is the same as the owner.
+
+  Note that this does not actually verify the signature, it simply
+  compares the certificates common name and the issuer's common
+  name. This is sufficient, because now that Ganeti started creating
+  non-self-signed client-certificates, it uses their hostnames
+  as common names and thus they are distinguishable by common name
+  from the server certificates.
+
+  @type cert_filename: string
+  @param cert_filename: filename of the certificate to examine
+
+  """
+  try:
+    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           io.ReadFile(cert_filename))
+  except Exception, err: # pylint: disable=W0703
+    return (constants.CV_ERROR,
+            "Failed to load X509 certificate %s: %s" % (cert_filename, err))
+
+  if cert.get_subject().CN == cert.get_issuer().CN:
+    msg = "The certificate '%s' is self-signed. Please run 'gnt-cluster" \
+          " renew-crypto --new-node-certificates' to get a properly signed" \
+          " certificate." % cert_filename
+    return (constants.CV_WARNING, msg)
+
+  return (None, None)

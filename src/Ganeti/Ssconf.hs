@@ -113,6 +113,7 @@ $(declareLADT ''String "SSKey" (
   , ("SSNodegroups",            C.ssNodegroups)
   , ("SSNetworks",              C.ssNetworks)
   , ("SSEnabledUserShutdown",   C.ssEnabledUserShutdown)
+  , ("SSSshPorts",              C.ssSshPorts)
   ] ++
   -- Automatically generate SSHvparamsXxx for each hypervisor type:
   map ((("SSHvparams" ++) . show)

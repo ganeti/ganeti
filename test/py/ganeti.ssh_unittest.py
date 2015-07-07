@@ -147,6 +147,9 @@ class TestGetUserFiles(unittest.TestCase):
         constants.SSHK_DSA:
           (os.path.join(self.tmpdir, ".ssh", "id_dsa"),
            os.path.join(self.tmpdir, ".ssh", "id_dsa.pub")),
+        constants.SSHK_ECDSA:
+          (os.path.join(self.tmpdir, ".ssh", "id_ecdsa"),
+           os.path.join(self.tmpdir, ".ssh", "id_ecdsa.pub")),
       }))
     self.assertEqual(os.listdir(self.tmpdir), [])
 

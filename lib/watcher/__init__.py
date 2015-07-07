@@ -476,6 +476,9 @@ def ParseOptions():
                     help="Don't wait for child processes")
   parser.add_option("--no-verify-disks", dest="no_verify_disks", default=False,
                     action="store_true", help="Do not verify disk status")
+  parser.add_option("--rapi-ip", dest="rapi_ip",
+                    default=constants.IP4_ADDRESS_LOCALHOST,
+                    help="Use this IP to talk to RAPI.")
   # See optparse documentation for why default values are not set by options
   parser.set_defaults(wait_children=True)
   options, args = parser.parse_args()
@@ -703,13 +706,13 @@ def _GlobalWatcher(opts):
 
   # If RAPI isn't responding to queries, try one restart
   logging.debug("Attempting to talk to remote API on %s",
-                constants.IP4_ADDRESS_LOCALHOST)
-  if not IsRapiResponding(constants.IP4_ADDRESS_LOCALHOST):
+                opts.rapi_ip)
+  if not IsRapiResponding(opts.rapi_ip):
     logging.warning("Couldn't get answer from remote API, restaring daemon")
     utils.StopDaemon(constants.RAPI)
     utils.EnsureDaemon(constants.RAPI)
     logging.debug("Second attempt to talk to remote API")
-    if not IsRapiResponding(constants.IP4_ADDRESS_LOCALHOST):
+    if not IsRapiResponding(opts.rapi_ip):
       logging.fatal("RAPI is not responding")
   logging.debug("Successfully talked to remote API")
 

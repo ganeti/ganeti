@@ -236,13 +236,30 @@ def SetupCluster(rapi_user):
   return rapi_secret
 
 
-def RunClusterTests():
+def RunClusterTests(rapi_user=None, rapi_secret=None):
   """Runs tests related to gnt-cluster.
+
+  @type rapi_user: string
+  @param rapi_user: name of the rapi user
+  @type rapi_secret: string
+  @param rapi_secret: the rapi secret
 
   """
   for test, fn in [
     ("create-cluster", qa_cluster.TestClusterInitDisk),
-    ("cluster-renew-crypto", qa_cluster.TestClusterRenewCrypto),
+    ("cluster-renew-crypto", qa_cluster.TestClusterRenewCrypto)
+    ]:
+    RunTestIf(test, fn)
+
+  # Since renew-crypto replaces the RAPI cert, reload it.
+  if qa_rapi.Enabled():
+    if not rapi_user:
+      raise qa_error.Error("No RAPI user given.")
+    if not rapi_secret:
+      raise qa_error.Error("No RAPI secret given.")
+    qa_rapi.Setup(rapi_user, rapi_secret)
+
+  for test, fn in [
     ("cluster-verify", qa_cluster.TestClusterVerify),
     ("cluster-reserved-lvs", qa_cluster.TestClusterReservedLvs),
     # TODO: add more cluster modify tests
@@ -957,7 +974,7 @@ def RunQa():
     # Load RAPI certificate
     qa_rapi.Setup(rapi_user, rapi_secret)
 
-  RunTestBlock(RunClusterTests)
+  RunTestBlock(RunClusterTests, rapi_user=rapi_user, rapi_secret=rapi_secret)
   RunTestBlock(RunOsTests)
 
   RunTestIf("tags", qa_tags.TestClusterTags)

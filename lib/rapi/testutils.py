@@ -266,7 +266,8 @@ class _TestLuxiTransport(object):
   arguments.
 
   """
-  def __init__(self, record_fn, address, timeouts=None): # pylint: disable=W0613
+  def __init__(self, record_fn, address, timeouts=None, # pylint: disable=W0613
+               allow_non_master=None): # pylint: disable=W0613
     """Initializes this class.
 
     """

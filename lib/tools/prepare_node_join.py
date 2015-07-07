@@ -197,7 +197,7 @@ def Main():
 
     # Check if input data is correct
     common.VerifyClusterName(data, JoinError)
-    common.VerifyCertificate(data, JoinError)
+    common.VerifyCertificateSoft(data, JoinError)
 
     # Update SSH files
     UpdateSshDaemon(data, opts.dry_run)

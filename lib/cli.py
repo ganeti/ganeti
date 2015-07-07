@@ -80,6 +80,7 @@ __all__ = [
   "JobSubmittedException",
   "ParseTimespec",
   "RunWhileClusterStopped",
+  "RunWhileDaemonsStopped",
   "SubmitOpCode",
   "SubmitOpCodeToDrainedQueue",
   "SubmitOrSend",
@@ -1444,12 +1445,13 @@ def GenericInstanceCreate(mode, opts, args):
   return 0
 
 
-class _RunWhileClusterStoppedHelper(object):
-  """Helper class for L{RunWhileClusterStopped} to simplify state management
+class _RunWhileDaemonsStoppedHelper(object):
+  """Helper class for L{RunWhileDaemonsStopped} to simplify state management
 
   """
   def __init__(self, feedback_fn, cluster_name, master_node,
-               online_nodes, ssh_ports):
+               online_nodes, ssh_ports, exclude_daemons, debug,
+               verbose):
     """Initializes this class.
 
     @type feedback_fn: callable
@@ -1462,6 +1464,14 @@ class _RunWhileClusterStoppedHelper(object):
     @param online_nodes: List of names of online nodes
     @type ssh_ports: list
     @param ssh_ports: List of SSH ports of online nodes
+    @type exclude_daemons: list of string
+    @param exclude_daemons: list of daemons to shutdown
+    @param exclude_daemons: list of daemons that will be restarted after
+                            all others are shutdown
+    @type debug: boolean
+    @param debug: show debug output
+    @type verbose: boolesn
+    @param verbose: show verbose output
 
     """
     self.feedback_fn = feedback_fn
@@ -1474,6 +1484,10 @@ class _RunWhileClusterStoppedHelper(object):
 
     self.nonmaster_nodes = [name for name in online_nodes
                             if name != master_node]
+
+    self.exclude_daemons = exclude_daemons
+    self.debug = debug
+    self.verbose = verbose
 
     assert self.master_node not in self.nonmaster_nodes
 
@@ -1526,6 +1540,13 @@ class _RunWhileClusterStoppedHelper(object):
         for node_name in self.online_nodes:
           self.feedback_fn("Stopping daemons on %s" % node_name)
           self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "stop-all"])
+          # Starting any daemons listed as exception
+          for daemon in self.exclude_daemons:
+            if (daemon in constants.DAEMONS_MASTER and
+                node_name != self.master_node):
+              continue
+            self.feedback_fn("Starting daemon '%s' on %s" % (daemon, node_name))
+            self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "start", daemon])
 
         # All daemons are shut down now
         try:
@@ -1538,18 +1559,31 @@ class _RunWhileClusterStoppedHelper(object):
       finally:
         # Start cluster again, master node last
         for node_name in self.nonmaster_nodes + [self.master_node]:
+          # Stopping any daemons listed as exception.
+          # This might look unnecessary, but it makes sure that daemon-util
+          # starts all daemons in the right order.
+          for daemon in self.exclude_daemons:
+            if (daemon in constants.DAEMONS_MASTER and
+                node_name != self.master_node):
+              continue
+            self.feedback_fn("Stopping daemon '%s' on %s" % (daemon, node_name))
+            self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "stop", daemon])
           self.feedback_fn("Starting daemons on %s" % node_name)
           self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "start-all"])
+
     finally:
       # Resume watcher
       watcher_block.Close()
 
 
-def RunWhileClusterStopped(feedback_fn, fn, *args):
+def RunWhileDaemonsStopped(feedback_fn, exclude_daemons, fn, *args, **kwargs):
   """Calls a function while all cluster daemons are stopped.
 
   @type feedback_fn: callable
   @param feedback_fn: Feedback function
+  @type exclude_daemons: list of string
+  @param exclude_daemons: list of daemons that are NOT stopped. If None,
+                          all daemons will be stopped.
   @type fn: callable
   @param fn: Function to be called when daemons are stopped
 
@@ -1569,9 +1603,27 @@ def RunWhileClusterStopped(feedback_fn, fn, *args):
   del cl
 
   assert master_node in online_nodes
+  if exclude_daemons is None:
+    exclude_daemons = []
 
-  return _RunWhileClusterStoppedHelper(feedback_fn, cluster_name, master_node,
-                                       online_nodes, ssh_ports).Call(fn, *args)
+  debug = kwargs.get("debug", False)
+  verbose = kwargs.get("verbose", False)
+
+  return _RunWhileDaemonsStoppedHelper(
+      feedback_fn, cluster_name, master_node, online_nodes, ssh_ports,
+      exclude_daemons, debug, verbose).Call(fn, *args)
+
+
+def RunWhileClusterStopped(feedback_fn, fn, *args):
+  """Calls a function while all cluster daemons are stopped.
+
+  @type feedback_fn: callable
+  @param feedback_fn: Feedback function
+  @type fn: callable
+  @param fn: Function to be called when daemons are stopped
+
+  """
+  RunWhileDaemonsStopped(feedback_fn, None, fn, *args)
 
 
 def GenerateTable(headers, fields, separator, data,

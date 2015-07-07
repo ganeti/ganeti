@@ -322,6 +322,7 @@ CLEANFILES = \
 	tools/vif-ganeti-metad \
 	tools/net-common \
 	tools/users-setup \
+	tools/ssl-update \
 	tools/vcluster-setup \
 	tools/prepare-node-join \
 	tools/ssh-update \
@@ -572,12 +573,13 @@ rpc_stub_PYTHON = \
 pytools_PYTHON = \
 	lib/tools/__init__.py \
 	lib/tools/burnin.py \
+	lib/tools/common.py \
 	lib/tools/ensure_dirs.py \
 	lib/tools/node_cleanup.py \
 	lib/tools/node_daemon_setup.py \
 	lib/tools/prepare_node_join.py \
-	lib/tools/common.py \
-	lib/tools/ssh_update.py
+	lib/tools/ssh_update.py \
+	lib/tools/ssl_update.py
 
 utils_PYTHON = \
 	lib/utils/__init__.py \
@@ -1226,7 +1228,8 @@ PYTHON_BOOTSTRAP = \
 	tools/node-cleanup \
 	tools/node-daemon-setup \
 	tools/prepare-node-join \
-	tools/ssh-update
+	tools/ssh-update \
+	tools/ssl-update
 
 qa_scripts = \
 	qa/__init__.py \
@@ -1471,7 +1474,8 @@ nodist_pkglib_python_scripts = \
 	tools/ensure-dirs \
 	tools/node-daemon-setup \
 	tools/prepare-node-join \
-	tools/ssh-update
+	tools/ssh-update \
+	tools/ssl-update
 
 pkglib_python_basenames = \
 	$(patsubst daemons/%,%,$(patsubst tools/%,%,\
@@ -2393,6 +2397,7 @@ tools/node-daemon-setup: MODULE = ganeti.tools.node_daemon_setup
 tools/prepare-node-join: MODULE = ganeti.tools.prepare_node_join
 tools/ssh-update: MODULE = ganeti.tools.ssh_update
 tools/node-cleanup: MODULE = ganeti.tools.node_cleanup
+tools/ssl-update: MODULE = ganeti.tools.ssl_update
 $(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst test/hs/%,%,$@)
 
 $(PYTHON_BOOTSTRAP) $(gnt_scripts) $(gnt_python_sbin_SCRIPTS): Makefile | stamp-directories

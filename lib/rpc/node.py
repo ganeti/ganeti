@@ -106,13 +106,13 @@ def Shutdown():
 
 
 def _ConfigRpcCurl(curl):
-  noded_cert = str(pathutils.NODED_CERT_FILE)
-  noded_client_cert = str(pathutils.NODED_CLIENT_CERT_FILE)
+  noded_cert = pathutils.NODED_CERT_FILE
+  noded_client_cert = pathutils.NODED_CLIENT_CERT_FILE
 
   # FIXME: The next two lines are necessary to ensure upgradability from
   # 2.10 to 2.11. Remove in 2.12, because this slows down RPC calls.
   if not os.path.exists(noded_client_cert):
-    logging.info("Using server certificate as client certificate for RPC"
+    logging.warn("Using server certificate as client certificate for RPC"
                  "call.")
     noded_client_cert = noded_cert
 

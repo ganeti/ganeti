@@ -64,12 +64,8 @@ class Transport:
 
   """
 
-  def __init__(self, address, timeouts=None):
+  def __init__(self, address, timeouts=None, allow_non_master=None):
     """Constructor for the Client class.
-
-    Arguments:
-      - address: a valid address the the used transport class
-      - timeout: a list of timeouts, to be used on connect and read/write
 
     There are two timeouts used since we might want to wait for a long
     time for a response, but the connect timeout should be lower.
@@ -80,6 +76,13 @@ class Transport:
     invidual receive, it might be that the total duration is longer
     than timeout value passed (we make a hard limit at twice the read
     timeout).
+
+    @type address: socket address
+    @param address: address the transport connects to
+    @type timeouts: list of ints
+    @param timeouts: timeouts to be used on connect and read/write
+    @type allow_non_master: bool
+    @param allow_non_master: skip checks for the master node on errors
 
     """
     self.address = address
@@ -98,7 +101,8 @@ class Transport:
       # Try to connect
       try:
         utils.Retry(self._Connect, 1.0, self._ctimeout,
-                    args=(self.socket, address, self._ctimeout))
+                    args=(self.socket, address, self._ctimeout,
+                          allow_non_master))
       except utils.RetryTimeout:
         raise errors.TimeoutError("Connect timed out")
 
@@ -110,7 +114,7 @@ class Transport:
       raise
 
   @staticmethod
-  def _Connect(sock, address, timeout):
+  def _Connect(sock, address, timeout, allow_non_master):
     sock.settimeout(timeout)
     try:
       sock.connect(address)
@@ -119,15 +123,16 @@ class Transport:
     except socket.error, err:
       error_code = err.args[0]
       if error_code in (errno.ENOENT, errno.ECONNREFUSED):
-        # Verify if we're acutally on the master node before trying
-        # again.
-        ss = ssconf.SimpleStore()
-        try:
-          master, myself = ssconf.GetMasterAndMyself(ss=ss)
-        except ganeti.errors.ConfigurationError:
-          raise errors.NoMasterError(address)
-        if master != myself:
-          raise errors.NoMasterError(address)
+        if not allow_non_master:
+          # Verify if we're actually on the master node before trying
+          # again.
+          ss = ssconf.SimpleStore()
+          try:
+            master, myself = ssconf.GetMasterAndMyself(ss=ss)
+          except ganeti.errors.ConfigurationError:
+            raise errors.NoMasterError(address)
+          if master != myself:
+            raise errors.NoMasterError(address)
         raise utils.RetryAgain()
       elif error_code in (errno.EPERM, errno.EACCES):
         raise errors.PermissionError(address)
@@ -245,7 +250,8 @@ class FdTransport:
   Unlike L{Transport}, this doesn't use timeouts.
   """
 
-  def __init__(self, fds, timeouts=None): # pylint: disable=W0613
+  def __init__(self, fds,
+               timeouts=None, allow_non_master=None): # pylint: disable=W0613
     """Constructor for the Client class.
 
     @type fds: pair of file descriptors
@@ -253,6 +259,8 @@ class FdTransport:
         and the file descriptor for writing (the second)
     @type timeouts: int
     @param timeouts: unused
+    @type allow_non_master: bool
+    @param allow_non_master: unused
 
     """
     self._rstream = io.open(fds[0], 'rb', 0)

@@ -100,6 +100,7 @@ module Ganeti.OpParams
   , pBackupCompress
   , pStartupPaused
   , pVerbose
+  , pDebug
   , pDebugSimulateErrors
   , pErrorCodes
   , pSkipChecks
@@ -566,6 +567,11 @@ pVerbose :: Field
 pVerbose =
   withDoc "Verbose mode" $
   defaultFalse "verbose"
+
+pDebug :: Field
+pDebug =
+  withDoc "Debug mode" $
+  defaultFalse "debug"
 
 pOptGroupName :: Field
 pOptGroupName =
