@@ -134,6 +134,7 @@
 /tools/node-daemon-setup
 /tools/prepare-node-join
 /tools/shebang/
+/tools/ssl-update
 
 # scripts
 /scripts/gnt-backup
