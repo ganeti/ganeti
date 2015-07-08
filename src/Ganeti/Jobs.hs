@@ -38,11 +38,13 @@ module Ganeti.Jobs
   , execWithCancel
   , execJobsWait
   , execJobsWaitOk
+  , execJobsWaitOkJid
   , waitForJobs
   ) where
 
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
+import Control.Monad (void)
 import Data.List
 import Data.Tuple
 import Data.IORef
@@ -164,9 +166,10 @@ waitForJobs jids client = waitForJobs' 500000 15000000
                    else
                      return . Ok $ zip jids sts'
 
--- | Execute jobs and return @Ok@ only if all of them succeeded.
-execJobsWaitOk :: [[MetaOpCode]] -> L.Client -> IO (Result ())
-execJobsWaitOk opcodes client = do
+-- | Execute jobs and return @Ok@ only if all of them succeeded; in
+-- this case, also return the list of Job IDs.
+execJobsWaitOkJid :: [[MetaOpCode]] -> L.Client -> IO (Result [JobId])
+execJobsWaitOkJid opcodes client = do
   let nullog = const (return () :: IO ())
       failed = filter ((/=) JOB_STATUS_SUCCESS . snd)
       fmtfail (i, s) = show (fromJobId i) ++ "=>" ++ jobStatusToRaw s
@@ -174,7 +177,12 @@ execJobsWaitOk opcodes client = do
   case sts of
     Bad e -> return $ Bad e
     Ok sts' -> return (if null $ failed sts' then
-                         Ok ()
+                         Ok $ map fst sts'
                        else
                          Bad ("The following jobs failed: " ++
                               (intercalate ", " . map fmtfail $ failed sts')))
+
+-- | Execute jobs and return @Ok@ only if all of them succeeded.
+execJobsWaitOk :: [[MetaOpCode]] -> L.Client -> IO (Result ())
+execJobsWaitOk opcodes =
+  fmap void . execJobsWaitOkJid opcodes
