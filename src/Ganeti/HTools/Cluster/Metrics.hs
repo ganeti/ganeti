@@ -63,7 +63,8 @@ reservedMemRtotalCoeff = 0.25
 -- | The names and weights of the individual elements in the CV list, together
 -- with their statistical accumulation function and a bit to decide whether it
 -- is a statistics for online nodes.
-detailedCVInfoExt :: [((Double, String), ([Double] -> Statistics, Bool))]
+detailedCVInfoExt :: [((Double, String)
+                     , ([AggregateComponent] -> Statistics, Bool))]
 detailedCVInfoExt = [ ((0.5,  "free_mem_cv"), (getStdDevStatistics, True))
                     , ((0.5,  "free_disk_cv"), (getStdDevStatistics, True))
                     , ((1,  "n1_cnt"), (getSumStatistics, True))
@@ -85,6 +86,8 @@ detailedCVInfoExt = [ ((0.5,  "free_mem_cv"), (getStdDevStatistics, True))
                       , (getStdDevStatistics, True))
                     , ((0.5,  "spindles_cv_forth"), (getStdDevStatistics, True))
                     , ((1,  "location_score"), (getSumStatistics, True))
+                    , ( (1,  "location_exclusion_score")
+                      , (getMapStatistics, True))
                     , ( (reservedMemRtotalCoeff,  "reserved_mem_rtotal")
                       , (getSumStatistics, True))
                     ]
@@ -115,7 +118,7 @@ detailedCVWeights :: [Double]
 detailedCVWeights = map fst detailedCVInfo
 
 -- | The aggregation functions for the weights
-detailedCVAggregation :: [([Double] -> Statistics, Bool)]
+detailedCVAggregation :: [([AggregateComponent] -> Statistics, Bool)]
 detailedCVAggregation = map snd detailedCVInfoExt
 
 -- | The bit vector describing which parts of the statistics are
@@ -124,7 +127,7 @@ detailedCVOnlineStatus :: [Bool]
 detailedCVOnlineStatus = map snd detailedCVAggregation
 
 -- | Compute statistical measures of a single node.
-compDetailedCVNode :: Node.Node -> [Double]
+compDetailedCVNode  :: Node.Node -> [AggregateComponent]
 compDetailedCVNode node =
   let mem = Node.pMem node
       memF = Node.pMemForth node
@@ -147,12 +150,17 @@ compDetailedCVNode node =
       spindles = Node.instSpindles node / Node.hiSpindles node
       spindlesF = Node.instSpindlesForth node / Node.hiSpindles node
       location_score = fromIntegral $ Node.locationScore node
-  in [ mem, dsk, n1, res, ioff, ipri, cpu
-     , c_load, m_load, d_load, n_load
-     , pri_tags, spindles
-     , memF, dskF, cpuF, spindlesF
-     , location_score
-     , res
+      location_exclusion_score = Node.instanceMap node
+  in [ SimpleNumber mem, SimpleNumber dsk, SimpleNumber n1, SimpleNumber res
+     , SimpleNumber ioff, SimpleNumber ipri, SimpleNumber cpu
+     , SimpleNumber c_load, SimpleNumber m_load, SimpleNumber d_load
+     , SimpleNumber n_load
+     , SimpleNumber pri_tags, SimpleNumber spindles
+     , SimpleNumber memF, SimpleNumber dskF, SimpleNumber cpuF
+     , SimpleNumber spindlesF
+     , SimpleNumber location_score
+     , SpreadValues location_exclusion_score
+     , SimpleNumber res
      ]
 
 -- | Compute the statistics of a cluster.
@@ -218,4 +226,3 @@ printStats lp nl =
                          , printf "x%.2f" w
                          ]) hd
   in printTable lp header formatted $ False:repeat True
-

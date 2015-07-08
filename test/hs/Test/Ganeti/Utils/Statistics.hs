@@ -54,8 +54,10 @@ prop_stddev_update =
   forAll (choose (1, 6) >>= flip vectorOf (choose (0, 1))) $ \ys ->
   let original = xs ++ [a] ++ ys
       modified = xs ++ [b] ++ ys
-      with_update = getStatisticValue
-                    $ updateStatistics (getStdDevStatistics original) (a,b)
+      with_update =
+        getStatisticValue
+        $ updateStatistics (getStdDevStatistics $ map SimpleNumber original)
+                           (SimpleNumber a, SimpleNumber b)
       direct = stdDev modified
   in counterexample ("Value computed by update " ++ show with_update
                      ++ " differs too much from correct value " ++ show direct)
