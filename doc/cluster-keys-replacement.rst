@@ -24,13 +24,30 @@ don't forget to use "shred" to remove files securely afterwards).
 Replacing SSL keys
 ==================
 
-The cluster SSL key is stored in ``/var/lib/ganeti/server.pem``.
+The cluster-wide SSL key is stored in ``/var/lib/ganeti/server.pem``.
+Besides that, since Ganeti 2.11, each node has an individual node
+SSL key, which is stored in ``/var/lib/ganeti/client.pem``. This
+client certificate is signed by the cluster-wide SSL certficate.
 
-Run the following command to generate a new key::
+To renew the individual node certificates, run this command::
+
+  gnt-cluster renew-crypto --new-node-certificates
+
+Run the following command to generate a new cluster-wide certificate::
 
   gnt-cluster renew-crypto --new-cluster-certificate
 
-  # Older version, which don't have this command, can instead use:
+Note that this triggers both, the renewal of the cluster certificate
+as well as the renewal of the individual node certificate. The reason
+for this is that the node certificates are signed by the cluster
+certificate and thus they need to be renewed and signed as soon as
+the changes certificate changes. Therefore, the command above is
+equivalent to::
+
+  gnt-cluster renew-crypto --new-cluster-certificate --new-node-certificates
+
+On older versions, which don't have this command, use this instead::
+
   chmod 0600 /var/lib/ganeti/server.pem &&
   openssl req -new -newkey rsa:1024 -days 1825 -nodes \
    -x509 -keyout /var/lib/ganeti/server.pem \
@@ -41,6 +58,10 @@ Run the following command to generate a new key::
   gnt-cluster copyfile /var/lib/ganeti/server.pem
 
   gnt-cluster command /etc/init.d/ganeti restart
+
+Note that older versions don't have individual node certificates and thus
+one does not have to handle the creation and distribution of them.
+
 
 Replacing SSH keys
 ==================

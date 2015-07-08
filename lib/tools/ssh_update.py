@@ -210,7 +210,7 @@ def Main():
 
     # Check if input data is correct
     common.VerifyClusterName(data, SshUpdateError)
-    common.VerifyCertificate(data, SshUpdateError)
+    common.VerifyCertificateSoft(data, SshUpdateError)
 
     # Update / Generate SSH files
     UpdateAuthorizedKeys(data, opts.dry_run)

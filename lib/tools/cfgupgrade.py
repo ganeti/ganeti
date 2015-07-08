@@ -207,8 +207,15 @@ class CfgUpgrade(object):
                       backup=True)
 
       if not self.opts.dry_run:
+        # This creates the cluster certificate if it does not exist yet.
+        # In this case, we do not automatically create a client certificate
+        # as well, because if the cluster certificate did not exist before,
+        # no client certificate will exist on any node yet. In this case
+        # all client certificate should be renewed by 'gnt-cluster
+        # renew-crypto --new-node-certificates'. This will be enforced
+        # by a nagging warning in 'gnt-cluster verify'.
         bootstrap.GenerateClusterCrypto(
-          False, False, False, False, False,
+          False, False, False, False, False, False, None,
           nodecert_file=self.opts.SERVER_PEM_PATH,
           rapicert_file=self.opts.RAPI_CERT_FILE,
           spicecert_file=self.opts.SPICE_CERT_FILE,

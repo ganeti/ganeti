@@ -1377,8 +1377,8 @@ def RemoveNodeCertFromCandidateCerts(cfg, node_uuid):
   cfg.RemoveNodeFromCandidateCerts(node_uuid)
 
 
-def CreateNewClientCert(lu, node_uuid, filename=None):
-  """Creates a new client SSL certificate for the node.
+def GetClientCertDigest(lu, node_uuid, filename=None):
+  """Get the client SSL certificate digest for the node.
 
   @type node_uuid: string
   @param node_uuid: the node's UUID
@@ -1391,13 +1391,12 @@ def CreateNewClientCert(lu, node_uuid, filename=None):
   options = {}
   if filename:
     options[constants.CRYPTO_OPTION_CERT_FILE] = filename
-  options[constants.CRYPTO_OPTION_SERIAL_NO] = utils.UuidToInt(node_uuid)
   result = lu.rpc.call_node_crypto_tokens(
              node_uuid,
              [(constants.CRYPTO_TYPE_SSL_DIGEST,
-               constants.CRYPTO_ACTION_CREATE,
+               constants.CRYPTO_ACTION_GET,
                options)])
-  result.Raise("Could not create the node's (uuid %s) SSL client"
+  result.Raise("Could not fetch the node's (uuid %s) SSL client"
                " certificate." % node_uuid)
   ((crypto_type, new_digest), ) = result.payload
   assert crypto_type == constants.CRYPTO_TYPE_SSL_DIGEST

@@ -66,6 +66,7 @@ KVM_IFUP = _constants.PKGLIBDIR + "/kvm-ifup"
 PREPARE_NODE_JOIN = _constants.PKGLIBDIR + "/prepare-node-join"
 SSH_UPDATE = _constants.PKGLIBDIR + "/ssh-update"
 NODE_DAEMON_SETUP = _constants.PKGLIBDIR + "/node-daemon-setup"
+SSL_UPDATE = _constants.PKGLIBDIR + "/ssl-update"
 XEN_CONSOLE_WRAPPER = _constants.PKGLIBDIR + "/tools/xen-console-wrapper"
 CFGUPGRADE = _constants.PKGLIBDIR + "/tools/cfgupgrade"
 POST_UPGRADE = _constants.PKGLIBDIR + "/tools/post-upgrade"
@@ -125,7 +126,6 @@ RESTRICTED_COMMANDS_DIR = CONF_DIR + "/restricted-commands"
 #: Node daemon certificate path
 NODED_CERT_FILE = DATA_DIR + "/server.pem"
 NODED_CLIENT_CERT_FILE = DATA_DIR + "/client.pem"
-NODED_CLIENT_CERT_FILE_TMP = DATA_DIR + "/client.pem.tmp"
 
 #: Node daemon certificate file permissions
 NODED_CERT_MODE = 0440
@@ -134,7 +134,7 @@ NODED_CERT_MODE = 0440
 RESTRICTED_COMMANDS_LOCK_FILE = LOCK_DIR + "/ganeti-restricted-commands.lock"
 
 #: Lock file for watcher, locked in shared mode by watcher; lock in exclusive
-# mode to block watcher (see L{cli._RunWhileClusterStoppedHelper.Call}
+# mode to block watcher (see L{cli._RunWhileDaemonsStoppedHelper.Call}
 WATCHER_LOCK_FILE = LOCK_DIR + "/ganeti-watcher.lock"
 
 #: Status file for per-group watcher, locked in exclusive mode by watcher

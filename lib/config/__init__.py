@@ -40,8 +40,12 @@ much memory.
 
 """
 
-# pylint: disable=R0904
+# pylint: disable=R0904,C0302
 # R0904: Too many public methods
+
+# C0302: This module has become too big and should be split up
+# FIXME: This has been added only temporarily as a merge introduced enough lines
+#        to hit the threshold. This will be fixed in a follow-up patch.
 
 import copy
 import os
@@ -106,7 +110,12 @@ def GetConfig(ec_id, livelock, **kwargs):
 
   """
   kwargs['wconfdcontext'] = GetWConfdContext(ec_id, livelock)
-  kwargs['wconfd'] = wc.Client()
+
+  # if the config is to be opened in the accept_foreign mode, we should
+  # also tell the RPC client not to check for the master node
+  accept_foreign = kwargs.get('accept_foreign', False)
+  kwargs['wconfd'] = wc.Client(allow_non_master=accept_foreign)
+
   return ConfigWriter(**kwargs)
 
 
@@ -225,6 +234,10 @@ class ConfigWriter(object):
     """
     return os.path.exists(pathutils.CLUSTER_CONF_FILE)
 
+  def _UnlockedGetNdParams(self, node):
+    nodegroup = self._UnlockedGetNodeGroup(node.group)
+    return self._ConfigData().cluster.FillND(node, nodegroup)
+
   @ConfigSync(shared=1)
   def GetNdParams(self, node):
     """Get the node params populated with cluster defaults.
@@ -234,8 +247,7 @@ class ConfigWriter(object):
     @return: A dict with the filled in node params
 
     """
-    nodegroup = self._UnlockedGetNodeGroup(node.group)
-    return self._ConfigData().cluster.FillND(node, nodegroup)
+    return self._UnlockedGetNdParams(node)
 
   @ConfigSync(shared=1)
   def GetNdGroupParams(self, nodegroup):
@@ -3030,6 +3042,13 @@ class ConfigWriter(object):
       ssconf_values[ssconf_key] = all_hvparams[hv]
     return ssconf_values
 
+  def _UnlockedGetSshPortMap(self, node_infos):
+    node_ports = dict([(node.name,
+                        self._UnlockedGetNdParams(node).get(
+                            constants.ND_SSH_PORT))
+                       for node in node_infos])
+    return node_ports
+
   def _UnlockedGetSsconfValues(self):
     """Return the values needed by ssconf.
 
@@ -3081,6 +3100,10 @@ class ConfigWriter(object):
                 self._ConfigData().networks.values()]
     networks_data = fn(utils.NiceSort(networks))
 
+    ssh_ports = fn("%s=%s" % (node_name, port)
+                   for node_name, port
+                   in self._UnlockedGetSshPortMap(node_infos).items())
+
     ssconf_values = {
       constants.SS_CLUSTER_NAME: cluster.cluster_name,
       constants.SS_CLUSTER_TAGS: cluster_tags,
@@ -3109,6 +3132,7 @@ class ConfigWriter(object):
       constants.SS_NODEGROUPS: nodegroups_data,
       constants.SS_NETWORKS: networks_data,
       constants.SS_ENABLED_USER_SHUTDOWN: str(cluster.enabled_user_shutdown),
+      constants.SS_SSH_PORTS: ssh_ports,
       }
     ssconf_values = self._ExtendByAllHvparamsStrings(ssconf_values,
                                                      all_hvparams)
@@ -3468,6 +3492,16 @@ class ConfigWriter(object):
 
     """
     return self._ConfigData().cluster.candidate_certs
+
+  @ConfigSync()
+  def SetCandidateCerts(self, certs):
+    """Replaces the master candidate cert list with the new values.
+
+    @type certs: dict of string to string
+    @param certs: map of node UUIDs to SSL client certificate digests.
+
+    """
+    self._ConfigData().cluster.candidate_certs = certs
 
   @ConfigSync()
   def AddNodeToCandidateCerts(self, node_uuid, cert_digest,
