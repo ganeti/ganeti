@@ -46,7 +46,7 @@ import qa_config
 import qa_logging
 import qa_error
 
-from qa_utils import AssertCommand, GetCommandOutput, GetObjectInfo
+from qa_utils import AssertCommand, GetCommandOutput, GetObjectInfo, stdout_of
 
 
 AVAILABLE_LOCKS = [locking.LEVEL_NODE, ]
