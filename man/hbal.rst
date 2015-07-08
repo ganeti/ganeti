@@ -139,6 +139,8 @@ following components:
 - standard deviation of the CPU load provided by MonD
 - the count of instances with primary and secondary in the same failure
   domain
+- the count of instances sharing the same exclusion tags which primary
+  instances placed in the same failure domain
 - the overall sum of dissatisfied desired locations among all cluster
   instances
 
@@ -277,9 +279,10 @@ cluster tags *htools:nlocation:a*, *htools:nlocation:b*, etc
   This make make node tags of the form *a:\**, *b:\**, etc be considered
   to have a common cause of failure.
 
-Instances with primary and secondary node having a common cause of failure are
-considered badly placed. While such placements are always allowed, they count
-heavily towards the cluster score.
+Instances with primary and secondary node having a common cause of failure and
+instances sharing the same exclusion tag with primary nodes having a common
+failure are considered badly placed. While such placements are always allowed,
+they count heavily towards the cluster score.
 
 OPTIONS
 -------
