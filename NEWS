@@ -2,6 +2,37 @@ News
 ====
 
 
+Version 2.14.1
+--------------
+
+*(Released Fri, 10 Jul 2015)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The SSH security changes reduced the number of nodes which can SSH into
+  other nodes. Unfortunately enough, the Ganeti implementation of migration
+  for the xl stack of Xen required SSH to be able to migrate the instance,
+  leading to a situation where full movement of an instance around the cluster
+  was not possible. This version fixes the issue by using socat to transfer
+  instance data. While socat is less secure than SSH, it is about as secure as
+  xm migrations, and occurs over the secondary network if present. As a
+  consequence of this change, Xen instance migrations using xl cannot occur
+  between nodes running 2.14.0 and 2.14.1.
+- This release contains a fix for the problem that different encodings in
+  SSL certificates can break RPC communication (issue 1094). The fix makes
+  it necessary to rerun 'gnt-cluster renew-crypto --new-node-certificates'
+  after the cluster is fully upgraded to 2.14.1
+
+Other Changes
+~~~~~~~~~~~~~
+
+- The ``htools`` now properly work also on shared-storage clusters.
+- Instance moves now work properly also for the plain disk template.
+- Filter-evaluation for run-time data filter was fixed (issue 1100).
+- Various improvements to the documentation have been added.
+
+
 Version 2.14.0
 --------------
 
