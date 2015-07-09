@@ -40,12 +40,8 @@ much memory.
 
 """
 
-# pylint: disable=R0904,C0302
+# pylint: disable=R0904
 # R0904: Too many public methods
-
-# C0302: This module has become too big and should be split up
-# FIXME: This has been added only temporarily as a merge introduced enough lines
-#        to hit the threshold. This will be fixed in a follow-up patch.
 
 import copy
 import os
@@ -57,7 +53,8 @@ import itertools
 
 from ganeti.config.temporary_reservations import TemporaryReservationManager
 from ganeti.config.utils import ConfigSync, ConfigManager
-from ganeti.config.verify import VerifyType, VerifyNic, VerifyIpolicy
+from ganeti.config.verify import (VerifyType, VerifyNic, VerifyIpolicy,
+                                  ValidateConfig)
 
 from ganeti import errors
 from ganeti import utils
@@ -121,20 +118,6 @@ def GetConfig(ec_id, livelock, **kwargs):
 
 # job id used for resource management at config upgrade time
 _UPGRADE_CONFIG_JID = "jid-cfg-upgrade"
-
-
-def _ValidateConfig(data):
-  """Verifies that a configuration dict looks valid.
-
-  This only verifies the version of the configuration.
-
-  @raise errors.ConfigurationError: if the version differs from what
-      we expect
-
-  """
-  if data['version'] != constants.CONFIG_VERSION:
-    raise errors.ConfigVersionMismatch(constants.CONFIG_VERSION,
-                                       data['version'])
 
 
 def _MatchNameComponentIgnoreCase(short_name, names):
@@ -2839,7 +2822,7 @@ class ConfigWriter(object):
         raw_data = utils.ReadFile(self._cfg_file)
         data_dict = serializer.Load(raw_data)
         # Make sure the configuration has the right version
-        _ValidateConfig(data_dict)
+        ValidateConfig(data_dict)
         data = objects.ConfigData.FromDict(data_dict)
       except errors.ConfigVersionMismatch:
         raise
