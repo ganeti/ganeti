@@ -785,7 +785,7 @@ guessBigstepSize nl inst =
       -- however, at every node we might lose almost an instance if it just
       -- doesn't fit by a tiny margin
       guess = capacity - Container.size nl
-  in if guess < 10 then 10 else guess
+  in if guess < 20 then 20 else guess
 
 -- | A speed-up version of `iterateAllocSmallStep`.
 --
@@ -795,11 +795,17 @@ guessBigstepSize nl inst =
 -- if the result of this is globally N+1 redundant, then everything was OK
 -- inbetween and we can continue from there. Only if that fails, do a
 -- step-by-step iterative allocation.
-iterateAlloc :: AlgorithmOptions -> AllocMethod
-iterateAlloc opts nl il limit newinst allocnodes ixes cstats =
+-- In order to further speed up the computation while keeping it robust, we
+-- first try (if the first argument is True) a number of steps guessed from
+-- the node capacity, then, if that failed, a fixed step size and only as last
+-- restort step-by-step iterative allocation.
+iterateAlloc' :: Bool -> AlgorithmOptions -> AllocMethod
+iterateAlloc' tryHugestep opts nl il limit newinst allocnodes ixes cstats =
   if not $ algCapacity opts
     then iterateAllocSmallStep opts nl il limit newinst allocnodes ixes cstats
-    else let bigstepsize = guessBigstepSize nl newinst
+    else let bigstepsize = if tryHugestep
+                             then guessBigstepSize nl newinst
+                             else 10
              (limit', newlimit) = maybe (Just bigstepsize, Nothing)
                                     (Just . min bigstepsize
                                      &&& Just . max 0 . flip (-) bigstepsize)
@@ -811,10 +817,17 @@ iterateAlloc opts nl il limit newinst allocnodes ixes cstats =
             Ok res@(_, nl', il', ixes', cstats') | redundant nl' il' ->
               if newlimit == Just 0 || length ixes' == length ixes
                 then return res
-                else iterateAlloc opts nl' il' newlimit newinst allocnodes
-                                  ixes' cstats'
-            _ -> iterateAllocSmallStep opts nl il limit newinst allocnodes
-                                       ixes cstats
+                else iterateAlloc' tryHugestep opts nl' il' newlimit newinst
+                                   allocnodes ixes' cstats'
+            _ -> if tryHugestep
+                   then iterateAlloc' False opts nl il limit newinst allocnodes
+                                      ixes cstats
+                   else iterateAllocSmallStep opts nl il limit newinst
+                                              allocnodes ixes cstats
+
+-- | A speed-up version of `iterateAllocSmallStep`.
+iterateAlloc :: AlgorithmOptions -> AllocMethod
+iterateAlloc = iterateAlloc' True
 
 -- | Predicate whether shrinking a single resource can lead to a valid
 -- allocation.
