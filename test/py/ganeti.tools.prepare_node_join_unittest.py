@@ -37,7 +37,6 @@ import os.path
 
 from ganeti import errors
 from ganeti import constants
-from ganeti import serializer
 from ganeti import pathutils
 from ganeti import compat
 from ganeti import utils
@@ -50,36 +49,6 @@ import testutils
 _JoinError = prepare_node_join.JoinError
 _DATA_CHECK = prepare_node_join._DATA_CHECK
 
-class TestLoadData(unittest.TestCase):
-  def testNoJson(self):
-    self.assertRaises(errors.ParseError, common.LoadData, "", _DATA_CHECK)
-    self.assertRaises(errors.ParseError, common.LoadData, "}", _DATA_CHECK)
-
-  def testInvalidDataStructure(self):
-    raw = serializer.DumpJson({
-      "some other thing": False,
-      })
-    self.assertRaises(errors.ParseError, common.LoadData, raw, _DATA_CHECK)
-
-    raw = serializer.DumpJson([])
-    self.assertRaises(errors.ParseError, common.LoadData, raw, _DATA_CHECK)
-
-  def testEmptyDict(self):
-    raw = serializer.DumpJson({})
-    self.assertEqual(common.LoadData(raw, _DATA_CHECK), {})
-
-  def testValidData(self):
-    key_list = [[constants.SSHK_DSA, "private foo", "public bar"]]
-    data_dict = {
-      constants.SSHS_CLUSTER_NAME: "Skynet",
-      constants.SSHS_SSH_HOST_KEY: key_list,
-      constants.SSHS_SSH_ROOT_KEY: key_list,
-      constants.SSHS_SSH_AUTHORIZED_KEYS:
-        {"nodeuuid01234": ["foo"],
-         "nodeuuid56789": ["bar"]}}
-    raw = serializer.DumpJson(data_dict)
-    self.assertEqual(common.LoadData(raw, _DATA_CHECK), data_dict)
-
 
 class TestVerifyCertificate(testutils.GanetiTestCase):
   def setUp(self):
@@ -91,19 +60,19 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
     shutil.rmtree(self.tmpdir)
 
   def testNoCert(self):
-    common.VerifyCertificate({}, error_fn=prepare_node_join.JoinError,
-                             _verify_fn=NotImplemented)
+    common.VerifyCertificateSoft({}, error_fn=prepare_node_join.JoinError,
+                                 _verify_fn=NotImplemented)
 
   def testGivenPrivateKey(self):
     cert_filename = testutils.TestDataFilename("cert2.pem")
     cert_pem = utils.ReadFile(cert_filename)
 
-    self.assertRaises(_JoinError, common._VerifyCertificate,
+    self.assertRaises(_JoinError, common._VerifyCertificateSoft,
                       cert_pem, _JoinError, _check_fn=NotImplemented)
 
   def testInvalidCertificate(self):
     self.assertRaises(errors.X509CertError,
-                      common._VerifyCertificate,
+                      common._VerifyCertificateSoft,
                       "Something that's not a certificate",
                       _JoinError, _check_fn=NotImplemented)
 
@@ -114,35 +83,8 @@ class TestVerifyCertificate(testutils.GanetiTestCase):
   def testSuccessfulCheck(self):
     cert_filename = testutils.TestDataFilename("cert1.pem")
     cert_pem = utils.ReadFile(cert_filename)
-    common._VerifyCertificate(cert_pem, _JoinError,
+    common._VerifyCertificateSoft(cert_pem, _JoinError,
       _check_fn=self._Check)
-
-
-class TestVerifyClusterName(unittest.TestCase):
-  def setUp(self):
-    unittest.TestCase.setUp(self)
-    self.tmpdir = tempfile.mkdtemp()
-
-  def tearDown(self):
-    unittest.TestCase.tearDown(self)
-    shutil.rmtree(self.tmpdir)
-
-  def testNoName(self):
-    self.assertRaises(_JoinError, common.VerifyClusterName,
-                      {}, _JoinError, _verify_fn=NotImplemented)
-
-  @staticmethod
-  def _FailingVerify(name):
-    assert name == "cluster.example.com"
-    raise errors.GenericError()
-
-  def testFailingVerification(self):
-    data = {
-      constants.SSHS_CLUSTER_NAME: "cluster.example.com",
-      }
-
-    self.assertRaises(errors.GenericError, common.VerifyClusterName,
-                      data, _JoinError, _verify_fn=self._FailingVerify)
 
 
 class TestUpdateSshDaemon(unittest.TestCase):
@@ -157,6 +99,9 @@ class TestUpdateSshDaemon(unittest.TestCase):
       constants.SSHK_DSA:
         (utils.PathJoin(self.tmpdir, "dsa.private"),
          utils.PathJoin(self.tmpdir, "dsa.public")),
+      constants.SSHK_ECDSA:
+        (utils.PathJoin(self.tmpdir, "ecdsa.private"),
+         utils.PathJoin(self.tmpdir, "ecdsa.public")),
       }
 
   def tearDown(self):
@@ -194,6 +139,13 @@ class TestUpdateSshDaemon(unittest.TestCase):
         ],
       })
 
+  def testDryRunEcdsa(self):
+    self._TestDryRun({
+      constants.SSHS_SSH_HOST_KEY: [
+        (constants.SSHK_ECDSA, "ecdsapriv", "ecdsapub"),
+        ],
+      })
+
   def _RunCmd(self, fail, cmd, interactive=NotImplemented):
     self.assertTrue(interactive)
     self.assertEqual(cmd, [pathutils.DAEMON_UTIL, "reload-ssh-keys"])
@@ -209,6 +161,7 @@ class TestUpdateSshDaemon(unittest.TestCase):
     data = {
       constants.SSHS_SSH_HOST_KEY: [
         (constants.SSHK_DSA, "dsapriv", "dsapub"),
+        (constants.SSHK_ECDSA, "ecdsapriv", "ecdsapub"),
         (constants.SSHK_RSA, "rsapriv", "rsapub"),
         ],
       }
@@ -223,6 +176,7 @@ class TestUpdateSshDaemon(unittest.TestCase):
     self.assertEqual(sorted(os.listdir(self.tmpdir)), sorted([
       "rsa.public", "rsa.private",
       "dsa.public", "dsa.private",
+      "ecdsa.public", "ecdsa.private",
       ]))
     self.assertEqual(utils.ReadFile(utils.PathJoin(self.tmpdir, "rsa.public")),
                      "rsapub")
@@ -232,6 +186,10 @@ class TestUpdateSshDaemon(unittest.TestCase):
                      "dsapub")
     self.assertEqual(utils.ReadFile(utils.PathJoin(self.tmpdir, "dsa.private")),
                      "dsapriv")
+    self.assertEqual(utils.ReadFile(utils.PathJoin(
+        self.tmpdir, "ecdsa.public")), "ecdsapub")
+    self.assertEqual(utils.ReadFile(utils.PathJoin(
+        self.tmpdir, "ecdsa.private")), "ecdsapriv")
 
   def testSuccess(self):
     self._TestUpdate(False)

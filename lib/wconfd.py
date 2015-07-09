@@ -51,13 +51,16 @@ class Client(cl.AbstractStubClient, stub.ClientRpcStub):
   implements data serialization/deserialization.
 
   """
-  def __init__(self, timeouts=None, transport=Transport):
+  def __init__(self, timeouts=None, transport=Transport, allow_non_master=None):
     """Constructor for the Client class.
 
     Arguments are the same as for L{AbstractClient}.
 
     """
-    cl.AbstractStubClient.__init__(self, timeouts, transport)
+    cl.AbstractStubClient.__init__(self,
+                                   timeouts=timeouts,
+                                   transport=transport,
+                                   allow_non_master=allow_non_master)
     stub.ClientRpcStub.__init__(self)
 
     retries = 12

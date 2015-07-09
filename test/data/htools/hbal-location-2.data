@@ -1,0 +1,10 @@
+group-01|fake-uuid-01|preferred||
+
+node-01|16384|0|15360|409600|306600|16|N|fake-uuid-01|1|power:a,power:c
+node-02|2048|0|1024|109600|6600|16|N|fake-uuid-01|1|power:b
+node-03|2048|0|2048|409600|409600|16|N|fake-uuid-01|1|power:a,power:c
+
+inst1|1024|51200|1|running|Y|node-01|node-02|drbd||1
+inst2|1024|51200|1|running|Y|node-02|node-01|drbd||1
+
+htools:nlocation:power

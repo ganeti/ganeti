@@ -1327,23 +1327,49 @@ def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
   @param conn: the OpenSSL connection object
   @type cert: C{OpenSSL.X509}
   @param cert: the peer's SSL certificate
+  @type errdepth: integer
+  @param errdepth: number of the step in the certificate chain starting at 0
+                   for the actual client certificate.
 
   """
   # some parameters are unused, but this is the API
   # pylint: disable=W0613
-  _BOOTSTRAP = "bootstrap"
-  sstore = ssconf.SimpleStore()
-  try:
-    candidate_certs = sstore.GetMasterCandidatesCertMap()
-  except errors.ConfigurationError:
-    logging.info("No candidate certificates found. Switching to "
-                 "bootstrap/update mode.")
-    candidate_certs = None
-  if not candidate_certs:
-    candidate_certs = {
-      _BOOTSTRAP: utils.GetCertificateDigest(
-        cert_filename=pathutils.NODED_CERT_FILE)}
-  return cert.digest("sha1") in candidate_certs.values()
+
+  # If we receive a certificate from the certificate chain that is higher
+  # than the lowest element of the chain, we have to check it against the
+  # server certificate.
+  if errdepth > 0:
+    server_digest = utils.GetCertificateDigest(
+        cert_filename=pathutils.NODED_CERT_FILE)
+    match = cert.digest("sha1") == server_digest
+    if not match:
+      logging.debug("Received certificate from the certificate chain, which"
+                    " does not match the server certficate. Digest of the"
+                    " received certificate: %s. Digest of the server"
+                    " certificate: %s.", cert.digest("sha1"), server_digest)
+    return match
+  elif errdepth == 0:
+    sstore = ssconf.SimpleStore()
+    try:
+      candidate_certs = sstore.GetMasterCandidatesCertMap()
+    except errors.ConfigurationError:
+      logging.info("No candidate certificates found. Switching to "
+                   "bootstrap/update mode.")
+      candidate_certs = None
+    if not candidate_certs:
+      candidate_certs = {
+        constants.CRYPTO_BOOTSTRAP: utils.GetCertificateDigest(
+          cert_filename=pathutils.NODED_CERT_FILE)}
+    match = cert.digest("sha1") in candidate_certs.values()
+    if not match:
+      logging.debug("Received certificate which is not a certificate of a"
+                    " master candidate. Certificate digest: %s. List of master"
+                    " candidate certificate digests: %s.", cert.digest("sha1"),
+                    str(candidate_certs))
+    return match
+  else:
+    logging.error("Invalid errdepth value: %s.", errdepth)
+    return False
   # pylint: enable=W0613
 
 

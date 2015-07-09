@@ -48,6 +48,7 @@ from ganeti import serializer
 from ganeti import runtime
 from ganeti import ht
 from ganeti import ssconf
+from ganeti.tools import common
 
 
 _DATA_CHECK = ht.TStrictDict(False, True, {
@@ -55,6 +56,7 @@ _DATA_CHECK = ht.TStrictDict(False, True, {
   constants.NDS_NODE_DAEMON_CERTIFICATE: ht.TNonEmptyString,
   constants.NDS_SSCONF: ht.TDictOf(ht.TNonEmptyString, ht.TString),
   constants.NDS_START_NODE_DAEMON: ht.TBool,
+  constants.NDS_NODE_NAME: ht.TString,
   })
 
 
@@ -227,6 +229,7 @@ def Main():
                     mode=pathutils.NODED_CERT_MODE,
                     uid=getent.masterd_uid, gid=getent.masterd_gid,
                     dry_run=opts.dry_run)
+    common.GenerateClientCertificate(data, SetupError)
 
     if (data.get(constants.NDS_START_NODE_DAEMON) and # pylint: disable=E1103
         not opts.dry_run):

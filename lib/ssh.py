@@ -83,6 +83,8 @@ def GetUserFiles(user, mkdir=False, dircheck=True, kind=constants.SSHK_DSA,
     suffix = "dsa"
   elif kind == constants.SSHK_RSA:
     suffix = "rsa"
+  elif kind == constants.SSHK_ECDSA:
+    suffix = "ecdsa"
   else:
     raise errors.ProgrammerError("Unknown SSH key kind '%s'" % kind)
 

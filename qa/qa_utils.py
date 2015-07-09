@@ -228,6 +228,19 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
   return rcode, stdout, stderr
 
 
+def stdout_of(cmd):
+  """Small helper to run a stdout_of.
+  Makes sure the stdout_of returns exit code 0.
+
+  @type cmd: list of strings
+  @param cmd: the stdout_of to run
+
+  @return: Captured, stripped stdout.
+  """
+  _, out, _ = AssertCommand(cmd)
+  return out.strip()
+
+
 def AssertRedirectedCommand(cmd, fail=False, node=None, log_cmd=True):
   """Executes a command with redirected output.
 

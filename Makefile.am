@@ -337,6 +337,7 @@ CLEANFILES = \
 	tools/vif-ganeti-metad \
 	tools/net-common \
 	tools/users-setup \
+	tools/ssl-update \
 	tools/vcluster-setup \
 	tools/prepare-node-join \
 	tools/ssh-update \
@@ -605,12 +606,13 @@ rpc_stub_PYTHON = \
 pytools_PYTHON = \
 	lib/tools/__init__.py \
 	lib/tools/burnin.py \
+	lib/tools/common.py \
 	lib/tools/ensure_dirs.py \
 	lib/tools/node_cleanup.py \
 	lib/tools/node_daemon_setup.py \
 	lib/tools/prepare_node_join.py \
-	lib/tools/common.py \
 	lib/tools/ssh_update.py \
+	lib/tools/ssl_update.py \
 	lib/tools/cfgupgrade.py
 
 utils_PYTHON = \
@@ -1294,7 +1296,8 @@ PYTHON_BOOTSTRAP = \
 	tools/node-cleanup \
 	tools/node-daemon-setup \
 	tools/prepare-node-join \
-	tools/ssh-update
+	tools/ssh-update \
+	tools/ssl-update
 
 qa_scripts = \
 	qa/__init__.py \
@@ -1535,7 +1538,8 @@ nodist_pkglib_python_scripts = \
 	tools/ensure-dirs \
 	tools/node-daemon-setup \
 	tools/prepare-node-join \
-	tools/ssh-update
+	tools/ssh-update \
+	tools/ssl-update
 
 pkglib_python_basenames = \
 	$(patsubst daemons/%,%,$(patsubst tools/%,%,\
@@ -1712,6 +1716,7 @@ TEST_FILES = \
 	test/data/htools/hbal-forth.data \
 	test/data/htools/hbal-location-1.data \
 	test/data/htools/hbal-location-exclusion.data \
+	test/data/htools/hbal-location-2.data \
 	test/data/htools/hbal-migration-1.data \
 	test/data/htools/hbal-migration-2.data \
 	test/data/htools/hbal-migration-3.data \
@@ -1867,6 +1872,7 @@ TEST_FILES = \
 	test/data/vgreduce-removemissing-2.02.66-ok.txt \
 	test/data/vgs-missing-pvs-2.02.02.txt \
 	test/data/vgs-missing-pvs-2.02.66.txt \
+	test/data/xen-xl-list-4.4-crashed-instances.txt \
 	test/data/xen-xm-info-4.0.1.txt \
 	test/data/xen-xm-list-4.0.1-dom0-only.txt \
 	test/data/xen-xm-list-4.0.1-four-instances.txt \
@@ -2499,6 +2505,7 @@ tools/node-daemon-setup: MODULE = ganeti.tools.node_daemon_setup
 tools/prepare-node-join: MODULE = ganeti.tools.prepare_node_join
 tools/ssh-update: MODULE = ganeti.tools.ssh_update
 tools/node-cleanup: MODULE = ganeti.tools.node_cleanup
+tools/ssl-update: MODULE = ganeti.tools.ssl_update
 $(HS_BUILT_TEST_HELPERS): TESTROLE = $(patsubst test/hs/%,%,$@)
 
 $(PYTHON_BOOTSTRAP) $(gnt_scripts) $(gnt_python_sbin_SCRIPTS): Makefile | stamp-directories

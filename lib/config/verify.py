@@ -36,6 +36,20 @@ from ganeti import objects
 from ganeti import utils
 
 
+def ValidateConfig(data):
+  """Verifies that a configuration dict looks valid.
+
+  This only verifies the version of the configuration.
+
+  @raise errors.ConfigurationError: if the version differs from what
+      we expect
+
+  """
+  if data['version'] != constants.CONFIG_VERSION:
+    raise errors.ConfigVersionMismatch(constants.CONFIG_VERSION,
+                                       data['version'])
+
+
 def VerifyType(owner, attr, value, template, callback):
   """Checks if an attribute has correct form.
 

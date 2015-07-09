@@ -165,21 +165,24 @@ class AbstractClient(object):
 
   """
 
-  def __init__(self, timeouts=None, transport=t.Transport):
+  def __init__(self, timeouts=None, transport=t.Transport,
+               allow_non_master=False):
     """Constructor for the Client class.
-
-    Arguments:
-      - address: a valid address the the used transport class
-      - timeout: a list of timeouts, to be used on connect and read/write
-      - transport: a Transport-like class
-
 
     If timeout is not passed, the default timeouts of the transport
     class are used.
 
+    @type timeouts: list of ints
+    @param timeouts: timeouts to be used on connect and read/write
+    @type transport: L{Transport} or another compatible class
+    @param transport: the underlying transport to use for the RPC calls
+    @type allow_non_master: bool
+    @param allow_non_master: skip checks for the master node on errors
+
     """
     self.timeouts = timeouts
     self.transport_class = transport
+    self.allow_non_master = allow_non_master
     self.transport = None
     # The version used in RPC communication, by default unused:
     self.version = None
@@ -195,8 +198,10 @@ class AbstractClient(object):
 
     """
     if self.transport is None:
-      self.transport = self.transport_class(self._GetAddress(),
-                                            timeouts=self.timeouts)
+      self.transport = \
+        self.transport_class(self._GetAddress(),
+                             timeouts=self.timeouts,
+                             allow_non_master=self.allow_non_master)
 
   def _CloseTransport(self):
     """Close the transport, ignoring errors.
@@ -251,15 +256,24 @@ class AbstractStubClient(AbstractClient):
   stub (second).
   """
 
-  def __init__(self, timeouts=None, transport=t.Transport):
+  def __init__(self, timeouts=None, transport=t.Transport,
+               allow_non_master=None):
     """Constructor for the class.
 
     Arguments are the same as for L{AbstractClient}. Checks that SOCKET_PATH
     attribute is defined (in the stub class).
+
+    @type timeouts: list of ints
+    @param timeouts: timeouts to be used on connect and read/write
+    @type transport: L{Transport} or another compatible class
+    @param transport: the underlying transport to use for the RPC calls
+    @type allow_non_master: bool
+    @param allow_non_master: skip checks for the master node on errors
     """
 
     super(AbstractStubClient, self).__init__(timeouts=timeouts,
-                                             transport=transport)
+                                             transport=transport,
+                                             allow_non_master=allow_non_master)
 
   def _GenericInvoke(self, method, *args):
     return self.CallMethod(method, args)

@@ -851,14 +851,20 @@ RENEW-CRYPTO
 
 This command will stop all Ganeti daemons in the cluster and start
 them again once the new certificates and keys are replicated. The
-options ``--new-cluster-certificate`` and ``--new-confd-hmac-key``
-can be used to regenerate respectively the cluster-internal SSL
-certificate and the HMAC key used by **ganeti-confd**\(8).
+option ``--new-confd-hmac-key`` can be used to regenerate
+the HMAC key used by **ganeti-confd**\(8).
 
-The option ``--new-node-certificates`` will generate new node SSL
-certificates for all nodes. Note that the regeneration of the node
-certificates takes place after the other certificates are created
-and distributed and the ganeti daemons are restarted again.
+The option ``--new-cluster-certificate`` will regenerate the
+cluster-internal server SSL certificate. The option
+``--new-node-certificates`` will generate new node SSL
+certificates for all nodes. Note that for the regeneration of
+of the server SSL certficate will invoke a regeneration of the
+node certificates as well, because node certificates are signed
+by the server certificate and thus have to be recreated and
+signed by the new server certificate. Nodes which are offline
+during a renewal of the server or the node certificates are not
+accessible anymore once they are marked as online again. To
+fix this, please readd the node instead.
 
 To generate a new self-signed RAPI certificate (used by
 **ganeti-rapi**\(8)) specify ``--new-rapi-certificate``. If you want to
