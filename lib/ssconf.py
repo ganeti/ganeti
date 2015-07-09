@@ -84,6 +84,7 @@ _VALID_KEYS = compat.UniqueFrozenset([
   constants.SS_HVPARAMS_XEN_CHROOT,
   constants.SS_HVPARAMS_XEN_LXC,
   constants.SS_ENABLED_USER_SHUTDOWN,
+  constants.SS_SSH_PORTS,
   ])
 
 #: Maximum size for ssconf files
@@ -257,6 +258,27 @@ class SimpleStore(object):
     nl = data.splitlines(False)
     return nl
 
+  def _GetDictOfSsconfMap(self, ss_file_key):
+    """Reads a file with lines like key=value and returns a dict.
+
+    This utility function reads a file containing ssconf values of
+    the form "key=value", splits the lines at "=" and returns a
+    dictionary mapping the keys to the values.
+
+    @type ss_file_key: string
+    @param ss_file_key: the constant referring to an ssconf file
+    @rtype: dict of string to string
+    @return: a dictionary mapping the keys to the values
+
+    """
+    data = self._ReadFile(ss_file_key)
+    lines = data.splitlines(False)
+    mapping = {}
+    for line in lines:
+      (key, value) = line.split("=")
+      mapping[key] = value
+    return mapping
+
   def GetMasterCandidatesCertMap(self):
     """Returns the map of master candidate UUIDs to ssl cert.
 
@@ -265,13 +287,18 @@ class SimpleStore(object):
       to their SSL certificate digests
 
     """
-    data = self._ReadFile(constants.SS_MASTER_CANDIDATES_CERTS)
-    lines = data.splitlines(False)
-    certs = {}
-    for line in lines:
-      (node_uuid, cert_digest) = line.split("=")
-      certs[node_uuid] = cert_digest
-    return certs
+    return self._GetDictOfSsconfMap(constants.SS_MASTER_CANDIDATES_CERTS)
+
+  def GetSshPortMap(self):
+    """Returns the map of node names to SSH port.
+
+    @rtype: dict of string to string
+    @return: dictionary mapping the node names to their SSH port
+
+    """
+    return dict([(node_name, int(ssh_port)) for
+                  node_name, ssh_port in
+                  self._GetDictOfSsconfMap(constants.SS_SSH_PORTS).items()])
 
   def GetMasterIP(self):
     """Get the IP of the master node for this cluster.
@@ -389,13 +416,7 @@ class SimpleStore(object):
     @returns: dictionary with hypervisor parameters
 
     """
-    data = self._ReadFile(constants.SS_HVPARAMS_PREF + hvname)
-    lines = data.splitlines(False)
-    hvparams = {}
-    for line in lines:
-      (key, value) = line.split("=")
-      hvparams[key] = value
-    return hvparams
+    return self._GetDictOfSsconfMap(constants.SS_HVPARAMS_PREF + hvname)
 
   def GetHvparams(self):
     """Return the hypervisor parameters of all hypervisors.

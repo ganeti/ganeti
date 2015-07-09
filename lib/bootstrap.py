@@ -79,10 +79,12 @@ def GenerateHmacKey(file_name):
 
 # pylint: disable=R0913
 def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
-                          new_confd_hmac_key, new_cds,
+                          new_confd_hmac_key, new_cds, new_client_cert,
+                          master_name,
                           rapi_cert_pem=None, spice_cert_pem=None,
                           spice_cacert_pem=None, cds=None,
                           nodecert_file=pathutils.NODED_CERT_FILE,
+                          clientcert_file=pathutils.NODED_CLIENT_CERT_FILE,
                           rapicert_file=pathutils.RAPI_CERT_FILE,
                           spicecert_file=pathutils.SPICE_CERT_FILE,
                           spicecacert_file=pathutils.SPICE_CACERT_FILE,
@@ -100,6 +102,10 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
   @param new_confd_hmac_key: Whether to generate a new HMAC key
   @type new_cds: bool
   @param new_cds: Whether to generate a new cluster domain secret
+  @type new_client_cert: bool
+  @param new_client_cert: Whether to generate a new client certificate
+  @type master_name: string
+  @param master_name: FQDN of the master node
   @type rapi_cert_pem: string
   @param rapi_cert_pem: New RAPI certificate in PEM format
   @type spice_cert_pem: string
@@ -126,6 +132,12 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
   utils.GenerateNewSslCert(
     new_cluster_cert, nodecert_file, 1,
     "Generating new cluster certificate at %s" % nodecert_file)
+
+  # If the cluster certificate was renewed, the client cert has to be
+  # renewed and resigned.
+  if new_cluster_cert or new_client_cert:
+    utils.GenerateNewClientSslCert(clientcert_file, nodecert_file,
+                                   master_name)
 
   # confd HMAC key
   if new_confd_hmac_key or not os.path.exists(hmackey_file):
@@ -177,7 +189,7 @@ def GenerateClusterCrypto(new_cluster_cert, new_rapi_cert, new_spice_cert,
     GenerateHmacKey(cds_file)
 
 
-def _InitGanetiServerSetup(master_name):
+def _InitGanetiServerSetup(master_name, cfg):
   """Setup the necessary configuration for the initial node daemon.
 
   This creates the nodepass file containing the shared password for
@@ -185,11 +197,34 @@ def _InitGanetiServerSetup(master_name):
 
   @type master_name: str
   @param master_name: Name of the master node
+  @type cfg: ConfigWriter
+  @param cfg: the configuration writer
 
   """
   # Generate cluster secrets
-  GenerateClusterCrypto(True, False, False, False, False)
+  GenerateClusterCrypto(True, False, False, False, False, False, master_name)
 
+  # Add the master's SSL certificate digest to the configuration.
+  master_uuid = cfg.GetMasterNode()
+  master_digest = utils.GetCertificateDigest()
+  cfg.AddNodeToCandidateCerts(master_uuid, master_digest)
+  cfg.Update(cfg.GetClusterInfo(), logging.error)
+  ssconf.WriteSsconfFiles(cfg.GetSsconfValues())
+
+  if not os.path.exists(os.path.join(pathutils.DATA_DIR,
+                        "%s%s" % (constants.SSCONF_FILEPREFIX,
+                                  constants.SS_MASTER_CANDIDATES_CERTS))):
+    raise errors.OpExecError("Ssconf file for master candidate certificates"
+                             " was not written.")
+
+  if not os.path.exists(pathutils.NODED_CERT_FILE):
+    raise errors.OpExecError("The server certficate was not created properly.")
+
+  if not os.path.exists(pathutils.NODED_CLIENT_CERT_FILE):
+    raise errors.OpExecError("The client certificate was not created"
+                             " properly.")
+
+  # set up the inter-node password and certificate
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "start", constants.NODED])
   if result.failed:
     raise errors.OpExecError("Could not start the node daemon, command %s"
@@ -780,7 +815,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   if modify_ssh_setup:
     ssh.InitPubKeyFile(master_uuid)
   # set up the inter-node password and certificate
-  _InitGanetiServerSetup(hostname.name)
+  _InitGanetiServerSetup(hostname.name, cfg)
 
   logging.debug("Starting daemons")
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "start-all"])
@@ -897,6 +932,7 @@ def SetupNodeDaemon(opts, cluster_name, node, ssh_port):
       utils.ReadFile(pathutils.NODED_CERT_FILE),
     constants.NDS_SSCONF: ssconf.SimpleStore().ReadAll(),
     constants.NDS_START_NODE_DAEMON: True,
+    constants.NDS_NODE_NAME: node,
     }
 
   ssh.RunSshCmdWithStdin(cluster_name, node, pathutils.NODE_DAEMON_SETUP,

@@ -942,6 +942,12 @@ def _VerifyNodeInfo(what, vm_capable, result, all_hvparams):
 def _VerifyClientCertificate(cert_file=pathutils.NODED_CLIENT_CERT_FILE):
   """Verify the existance and validity of the client SSL certificate.
 
+  Also, verify that the client certificate is not self-signed. Self-
+  signed client certificates stem from Ganeti versions 2.12.0 - 2.12.4
+  and should be replaced by client certificates signed by the server
+  certificate. Hence we output a warning when we encounter a self-signed
+  one.
+
   """
   create_cert_cmd = "gnt-cluster renew-crypto --new-node-certificates"
   if not os.path.exists(cert_file):
@@ -952,9 +958,13 @@ def _VerifyClientCertificate(cert_file=pathutils.NODED_CLIENT_CERT_FILE):
   (errcode, msg) = utils.VerifyCertificate(cert_file)
   if errcode is not None:
     return (errcode, msg)
-  else:
-    # if everything is fine, we return the digest to be compared to the config
-    return (None, utils.GetCertificateDigest(cert_filename=cert_file))
+
+  (errcode, msg) = utils.IsCertificateSelfSigned(cert_file)
+  if errcode is not None:
+    return (errcode, msg)
+
+  # if everything is fine, we return the digest to be compared to the config
+  return (None, utils.GetCertificateDigest(cert_filename=cert_file))
 
 
 def _VerifySshSetup(node_status_list, my_name,
@@ -1353,13 +1363,8 @@ def GetCryptoTokens(token_requests):
   @return: list of tuples of the token type and the public crypto token
 
   """
-  getents = runtime.GetEnts()
-  _VALID_CERT_FILES = [pathutils.NODED_CERT_FILE,
-                       pathutils.NODED_CLIENT_CERT_FILE,
-                       pathutils.NODED_CLIENT_CERT_FILE_TMP]
-  _DEFAULT_CERT_FILE = pathutils.NODED_CLIENT_CERT_FILE
   tokens = []
-  for (token_type, action, options) in token_requests:
+  for (token_type, action, _) in token_requests:
     if token_type not in constants.CRYPTO_TYPES:
       raise errors.ProgrammerError("Token type '%s' not supported." %
                                    token_type)
@@ -1367,46 +1372,8 @@ def GetCryptoTokens(token_requests):
       raise errors.ProgrammerError("Action '%s' is not supported." %
                                    action)
     if token_type == constants.CRYPTO_TYPE_SSL_DIGEST:
-      if action == constants.CRYPTO_ACTION_CREATE:
-
-        # extract file name from options
-        cert_filename = None
-        if options:
-          cert_filename = options.get(constants.CRYPTO_OPTION_CERT_FILE)
-        if not cert_filename:
-          cert_filename = _DEFAULT_CERT_FILE
-        # For security reason, we don't allow arbitrary filenames
-        if not cert_filename in _VALID_CERT_FILES:
-          raise errors.ProgrammerError(
-            "The certificate file name path '%s' is not allowed." %
-            cert_filename)
-
-        # extract serial number from options
-        serial_no = None
-        if options:
-          try:
-            serial_no = int(options[constants.CRYPTO_OPTION_SERIAL_NO])
-          except ValueError:
-            raise errors.ProgrammerError(
-              "The given serial number is not an intenger: %s." %
-              options.get(constants.CRYPTO_OPTION_SERIAL_NO))
-          except KeyError:
-            raise errors.ProgrammerError("No serial number was provided.")
-
-        if not serial_no:
-          raise errors.ProgrammerError(
-            "Cannot create an SSL certificate without a serial no.")
-
-        utils.GenerateNewSslCert(
-          True, cert_filename, serial_no,
-          "Create new client SSL certificate in %s." % cert_filename,
-          uid=getents.masterd_uid, gid=getents.masterd_gid)
-        tokens.append((token_type,
-                       utils.GetCertificateDigest(
-                         cert_filename=cert_filename)))
-      elif action == constants.CRYPTO_ACTION_GET:
-        tokens.append((token_type,
-                       utils.GetCertificateDigest()))
+      tokens.append((token_type,
+                     utils.GetCertificateDigest()))
   return tokens
 
 
@@ -4859,9 +4826,11 @@ def CreateX509Certificate(validity, cryptodir=pathutils.CRYPTO_KEYS_DIR):
   @return: Certificate name and public part
 
   """
+  serial_no = int(time.time())
   (key_pem, cert_pem) = \
     utils.GenerateSelfSignedX509Cert(netutils.Hostname.GetSysName(),
-                                     min(validity, _MAX_SSL_CERT_VALIDITY), 1)
+                                     min(validity, _MAX_SSL_CERT_VALIDITY),
+                                     serial_no)
 
   cert_dir = tempfile.mkdtemp(dir=cryptodir,
                               prefix="x509-%s-" % utils.TimestampForFilename())
@@ -4950,12 +4919,13 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
 
   elif ieio == constants.IEIO_RAW_DISK:
     (disk, ) = ieargs
+    real_disk = _OpenRealBD(disk)
 
     if mode == constants.IEM_IMPORT:
-      suffix = utils.BuildShellCmd("| %s", disk.Import())
+      suffix = "| %s" % utils.ShellQuoteArgs(real_disk.Import())
 
     elif mode == constants.IEM_EXPORT:
-      prefix = utils.BuildShellCmd("%s |", disk.Export())
+      prefix = "%s |" % utils.ShellQuoteArgs(real_disk.Export())
       exp_size = disk.size
 
   elif ieio == constants.IEIO_SCRIPT:

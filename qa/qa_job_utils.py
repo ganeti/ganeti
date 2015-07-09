@@ -46,7 +46,7 @@ import qa_config
 import qa_logging
 import qa_error
 
-from qa_utils import AssertCommand, GetCommandOutput, GetObjectInfo
+from qa_utils import AssertCommand, GetCommandOutput, GetObjectInfo, stdout_of
 
 
 AVAILABLE_LOCKS = [locking.LEVEL_NODE, ]
@@ -365,7 +365,15 @@ def RunWithLocks(fn, locks, timeout, block, *args, **kwargs):
                          "acquired in the course of a QA test.")
 
   # The watcher may interfere by issuing its own jobs - therefore pause it
+  # also reject all its jobs and wait for any running jobs to finish.
   AssertCommand(["gnt-cluster", "watcher", "pause", "12h"])
+  filter_uuid = stdout_of([
+    "gnt-filter", "add",
+    '--predicates=[["reason", ["=", "source", "gnt:watcher"]]]',
+    "--action=REJECT"
+  ])
+  while stdout_of(["gnt-job", "list", "--no-header", "--running"]) != "":
+    time.sleep(1)
 
   # Find out the lock names prior to starting the delay function
   lock_name_map = _FindLockNames(locks)
@@ -416,6 +424,7 @@ def RunWithLocks(fn, locks, timeout, block, *args, **kwargs):
     pass
 
   # Revive the watcher
+  AssertCommand(["gnt-filter", "delete", filter_uuid])
   AssertCommand(["gnt-cluster", "watcher", "continue"])
 
 

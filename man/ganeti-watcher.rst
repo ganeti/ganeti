@@ -9,9 +9,8 @@ ganeti-watcher - Ganeti cluster watcher
 Synopsis
 --------
 
-**ganeti-watcher** [``--debug``]
-[``--job-age=``*age*]
-[``--ignore-pause``]
+**ganeti-watcher** [\--debug] [\--job-age=*age* ] [\--ignore-pause]
+[\--rapi-ip=*IP*] [\--no-verify-disks]
 
 DESCRIPTION
 -----------
@@ -31,6 +30,11 @@ wants to run it just once.
 The ``--debug`` option will increase the verbosity of the watcher
 and also activate logging to the standard error.
 
+The ``--rapi-ip`` option needs to be set if the RAPI daemon was
+started with a particular IP (using the ``-b`` option). The two
+options need to be exactly the same to ensure that the watcher
+can reach the RAPI interface.
+
 Master operations
 ~~~~~~~~~~~~~~~~~
 
@@ -41,6 +45,9 @@ them a limited number of times.
 Another function is to "repair" DRBD links by reactivating the
 block devices of instances which have secondaries on nodes that
 have been rebooted.
+
+Additionally, it will verify and repair degraded DRBD disks; this
+will not happen, if the ``--no-verify-disks`` option is given.
 
 The watcher will also archive old jobs (older than the age given
 via the ``--job-age`` option, which defaults to 6 hours), in order

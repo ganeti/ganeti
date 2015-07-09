@@ -53,7 +53,8 @@ import itertools
 
 from ganeti.config.temporary_reservations import TemporaryReservationManager
 from ganeti.config.utils import ConfigSync, ConfigManager
-from ganeti.config.verify import VerifyType, VerifyNic, VerifyIpolicy
+from ganeti.config.verify import (VerifyType, VerifyNic, VerifyIpolicy,
+                                  ValidateConfig)
 
 from ganeti import errors
 from ganeti import utils
@@ -106,26 +107,17 @@ def GetConfig(ec_id, livelock, **kwargs):
 
   """
   kwargs['wconfdcontext'] = GetWConfdContext(ec_id, livelock)
-  kwargs['wconfd'] = wc.Client()
+
+  # if the config is to be opened in the accept_foreign mode, we should
+  # also tell the RPC client not to check for the master node
+  accept_foreign = kwargs.get('accept_foreign', False)
+  kwargs['wconfd'] = wc.Client(allow_non_master=accept_foreign)
+
   return ConfigWriter(**kwargs)
 
 
 # job id used for resource management at config upgrade time
 _UPGRADE_CONFIG_JID = "jid-cfg-upgrade"
-
-
-def _ValidateConfig(data):
-  """Verifies that a configuration dict looks valid.
-
-  This only verifies the version of the configuration.
-
-  @raise errors.ConfigurationError: if the version differs from what
-      we expect
-
-  """
-  if data['version'] != constants.CONFIG_VERSION:
-    raise errors.ConfigVersionMismatch(constants.CONFIG_VERSION,
-                                       data['version'])
 
 
 def _MatchNameComponentIgnoreCase(short_name, names):
@@ -225,6 +217,10 @@ class ConfigWriter(object):
     """
     return os.path.exists(pathutils.CLUSTER_CONF_FILE)
 
+  def _UnlockedGetNdParams(self, node):
+    nodegroup = self._UnlockedGetNodeGroup(node.group)
+    return self._ConfigData().cluster.FillND(node, nodegroup)
+
   @ConfigSync(shared=1)
   def GetNdParams(self, node):
     """Get the node params populated with cluster defaults.
@@ -234,8 +230,7 @@ class ConfigWriter(object):
     @return: A dict with the filled in node params
 
     """
-    nodegroup = self._UnlockedGetNodeGroup(node.group)
-    return self._ConfigData().cluster.FillND(node, nodegroup)
+    return self._UnlockedGetNdParams(node)
 
   @ConfigSync(shared=1)
   def GetNdGroupParams(self, nodegroup):
@@ -2827,7 +2822,7 @@ class ConfigWriter(object):
         raw_data = utils.ReadFile(self._cfg_file)
         data_dict = serializer.Load(raw_data)
         # Make sure the configuration has the right version
-        _ValidateConfig(data_dict)
+        ValidateConfig(data_dict)
         data = objects.ConfigData.FromDict(data_dict)
       except errors.ConfigVersionMismatch:
         raise
@@ -3030,6 +3025,13 @@ class ConfigWriter(object):
       ssconf_values[ssconf_key] = all_hvparams[hv]
     return ssconf_values
 
+  def _UnlockedGetSshPortMap(self, node_infos):
+    node_ports = dict([(node.name,
+                        self._UnlockedGetNdParams(node).get(
+                            constants.ND_SSH_PORT))
+                       for node in node_infos])
+    return node_ports
+
   def _UnlockedGetSsconfValues(self):
     """Return the values needed by ssconf.
 
@@ -3081,6 +3083,10 @@ class ConfigWriter(object):
                 self._ConfigData().networks.values()]
     networks_data = fn(utils.NiceSort(networks))
 
+    ssh_ports = fn("%s=%s" % (node_name, port)
+                   for node_name, port
+                   in self._UnlockedGetSshPortMap(node_infos).items())
+
     ssconf_values = {
       constants.SS_CLUSTER_NAME: cluster.cluster_name,
       constants.SS_CLUSTER_TAGS: cluster_tags,
@@ -3109,6 +3115,7 @@ class ConfigWriter(object):
       constants.SS_NODEGROUPS: nodegroups_data,
       constants.SS_NETWORKS: networks_data,
       constants.SS_ENABLED_USER_SHUTDOWN: str(cluster.enabled_user_shutdown),
+      constants.SS_SSH_PORTS: ssh_ports,
       }
     ssconf_values = self._ExtendByAllHvparamsStrings(ssconf_values,
                                                      all_hvparams)
@@ -3468,6 +3475,16 @@ class ConfigWriter(object):
 
     """
     return self._ConfigData().cluster.candidate_certs
+
+  @ConfigSync()
+  def SetCandidateCerts(self, certs):
+    """Replaces the master candidate cert list with the new values.
+
+    @type certs: dict of string to string
+    @param certs: map of node UUIDs to SSL client certificate digests.
+
+    """
+    self._ConfigData().cluster.candidate_certs = certs
 
   @ConfigSync()
   def AddNodeToCandidateCerts(self, node_uuid, cert_digest,

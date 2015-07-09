@@ -39,20 +39,7 @@ from ganeti.utils import retry
 
 import qa_job_utils
 import qa_utils
-from qa_utils import AssertCommand, AssertEqual, AssertIn
-
-
-def stdout_of(cmd):
-  """Small helper to run a stdout_of.
-  Makes sure the stdout_of returns exit code 0.
-
-  @type cmd: list of strings
-  @param cmd: the stdout_of to run
-
-  @return: Captured, stripped stdout.
-  """
-  _, out, _ = AssertCommand(cmd)
-  return out.strip()
+from qa_utils import AssertCommand, AssertEqual, AssertIn, stdout_of
 
 
 def GetJobStatus(job_id):

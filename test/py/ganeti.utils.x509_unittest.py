@@ -245,7 +245,7 @@ class TestVerifyCertificateInner(unittest.TestCase):
     self.assertEqual(errcode, utils.CERT_ERROR)
 
 
-class TestGenerateSelfSignedX509Cert(unittest.TestCase):
+class TestGenerateX509Certs(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
 
@@ -293,6 +293,40 @@ class TestGenerateSelfSignedX509Cert(unittest.TestCase):
 
     self.assert_(self._checkRsaPrivateKey(cert1))
     self.assert_(self._checkCertificate(cert1))
+
+  def _checkKeyMatchesCert(self, key, cert):
+    ctx = OpenSSL.SSL.Context(OpenSSL.SSL.TLSv1_METHOD)
+    ctx.use_privatekey(key)
+    ctx.use_certificate(cert)
+    try:
+      ctx.check_privatekey()
+    except OpenSSL.SSL.Error:
+      return False
+    else:
+      return True
+
+  def testSignedSslCertificate(self):
+    server_cert_filename = os.path.join(self.tmpdir, "server.pem")
+    utils.GenerateSelfSignedSslCert(server_cert_filename, 123456)
+
+    client_hostname = "myhost.example.com"
+    client_cert_filename = os.path.join(self.tmpdir, "client.pem")
+    utils.GenerateSignedSslCert(client_cert_filename, 666,
+        server_cert_filename, common_name=client_hostname)
+
+    client_cert_pem = utils.ReadFile(client_cert_filename)
+
+    self._checkRsaPrivateKey(client_cert_pem)
+    self._checkCertificate(client_cert_pem)
+
+    priv_key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
+                                              client_cert_pem)
+    client_cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                           client_cert_pem)
+
+    self.assertTrue(self._checkKeyMatchesCert(priv_key, client_cert))
+    self.assertEqual(client_cert.get_issuer().CN, "ganeti.example.com")
+    self.assertEqual(client_cert.get_subject().CN, client_hostname)
 
 
 class TestCheckNodeCertificate(testutils.GanetiTestCase):

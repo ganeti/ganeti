@@ -380,14 +380,15 @@ rapi = Runtime.daemonName GanetiRapi
 kvmd :: String
 kvmd = Runtime.daemonName GanetiKvmd
 
+-- Set of daemons which only run on the master.
+-- Keep in sync with the 'daemon-util' script.
+daemonsMaster :: FrozenSet String
+daemonsMaster = ConstantUtils.mkSet [wconfd, luxid, rapi]
+
 daemons :: FrozenSet String
 daemons =
-  ConstantUtils.mkSet [confd,
-                       luxid,
-                       masterd,
-                       mond,
-                       noded,
-                       rapi]
+  ConstantUtils.mkSet
+  $ map Runtime.daemonName [minBound .. maxBound]
 
 defaultConfdPort :: Int
 defaultConfdPort = 1814
@@ -3895,6 +3896,9 @@ ssFilePerms = 0o444
 ssEnabledUserShutdown :: String
 ssEnabledUserShutdown = "enabled_user_shutdown"
 
+ssSshPorts :: String
+ssSshPorts = "ssh_ports"
+
 -- | Cluster wide default parameters
 defaultEnabledHypervisor :: String
 defaultEnabledHypervisor = htXenPvm
@@ -4543,12 +4547,22 @@ cryptoTypes = ConstantUtils.mkSet [cryptoTypeSslDigest]
 cryptoActionGet :: String
 cryptoActionGet = "get"
 
--- This is 'create and get'
 cryptoActionCreate :: String
 cryptoActionCreate = "create"
 
+cryptoActionDelete :: String
+cryptoActionDelete = "delete"
+
 cryptoActions :: FrozenSet String
-cryptoActions = ConstantUtils.mkSet [cryptoActionGet, cryptoActionCreate]
+cryptoActions =
+  ConstantUtils.mkSet [ cryptoActionCreate
+                      , cryptoActionGet
+                      , cryptoActionDelete]
+
+-- Key word for master candidate cert list for bootstrapping.
+
+cryptoBootstrap :: String
+cryptoBootstrap = "bootstrap"
 
 -- * Options for CryptoActions
 
@@ -4565,11 +4579,14 @@ cryptoOptionSerialNo = "serial_no"
 sshkDsa :: String
 sshkDsa = "dsa"
 
+sshkEcdsa :: String
+sshkEcdsa = "ecdsa"
+
 sshkRsa :: String
 sshkRsa = "rsa"
 
 sshkAll :: FrozenSet String
-sshkAll = ConstantUtils.mkSet [sshkRsa, sshkDsa]
+sshkAll = ConstantUtils.mkSet [sshkRsa, sshkDsa, sshkEcdsa]
 
 -- * SSH authorized key types
 
@@ -4646,6 +4663,12 @@ sshHostDsaPriv = sshConfigDir ++ "/ssh_host_dsa_key"
 sshHostDsaPub :: String
 sshHostDsaPub = sshHostDsaPriv ++ ".pub"
 
+sshHostEcdsaPriv :: String
+sshHostEcdsaPriv = sshConfigDir ++ "/ssh_host_ecdsa_key"
+
+sshHostEcdsaPub :: String
+sshHostEcdsaPub = sshHostEcdsaPriv ++ ".pub"
+
 sshHostRsaPriv :: String
 sshHostRsaPriv = sshConfigDir ++ "/ssh_host_rsa_key"
 
@@ -4656,6 +4679,7 @@ sshDaemonKeyfiles :: Map String (String, String)
 sshDaemonKeyfiles =
   Map.fromList [ (sshkRsa, (sshHostRsaPriv, sshHostRsaPub))
                , (sshkDsa, (sshHostDsaPriv, sshHostDsaPub))
+               , (sshkEcdsa, (sshHostEcdsaPriv, sshHostEcdsaPub))
                ]
 
 -- * Node daemon setup
@@ -4671,6 +4695,12 @@ ndsSsconf = "ssconf"
 
 ndsStartNodeDaemon :: String
 ndsStartNodeDaemon = "start_node_daemon"
+
+ndsNodeName :: String
+ndsNodeName = "node_name"
+
+ndsAction :: String
+ndsAction = "action"
 
 -- * VCluster related constants
 

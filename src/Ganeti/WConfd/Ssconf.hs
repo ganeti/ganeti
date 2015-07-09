@@ -127,6 +127,8 @@ mkSSConf cdata = SSConf . M.fromList $
                    . configNetworks $ cdata)
     , (SSEnabledUserShutdown, return . show . clusterEnabledUserShutdown
                               $ cluster)
+    , (SSSshPorts, mapLines (eqPair . (nodeName
+                                       &&& getSshPort cdata)) nodes)
     ] ++
     map (first hvparamsSSKey) (mkSSConfHvparams cluster)
   where
@@ -140,3 +142,9 @@ mkSSConf cdata = SSConf . M.fromList $
     nodes = niceSortKey nodeName . toList $ configNodes cdata
     (offline, online) = partition nodeOffline nodes
     nodeGroups = niceSortKey groupName . toList $ configNodegroups cdata
+
+    -- This will return the empty string only for the situation where the
+    -- configuration is corrupted and no nodegroup can be found for that node.
+    getSshPort :: ConfigData -> Node -> String
+    getSshPort cfg node = maybe "" (show . ndpSshPort)
+                          $ getNodeNdParams cfg node

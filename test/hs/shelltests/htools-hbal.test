@@ -25,7 +25,6 @@
  node-04    0/
 >>>= 0
 
-
 ./test/hs/hbal -t $TESTDATA_DIR/hbal-location-1.data
 >>>/Solution length=[1-9]/
 >>>= 0
@@ -47,3 +46,10 @@
 >>>/No solution found/
 >>>= 0
 
+./test/hs/hbal --print-nodes=name,pcnt -t $TESTDATA_DIR/hbal-location-2.data
+>>>2/Final cluster status:
+ Name    pcnt
+ node-01    1
+ node-02    0
+ node-03    1/
+>>>= 0
