@@ -1517,7 +1517,7 @@ def TestInstanceCommunication(instance, master):
   print result_output
 
 
-def _TestRedactionOfSecretOsParams(cmd, secret_keys):
+def _TestRedactionOfSecretOsParams(node, cmd, secret_keys):
   """Tests redaction of secret os parameters
 
   """
@@ -1525,7 +1525,8 @@ def _TestRedactionOfSecretOsParams(cmd, secret_keys):
   debug_delay_id = int(stdout_of(["gnt-debug", "delay", "--print-jobid",
                        "--submit", "300"]))
   cmd_jid = int(stdout_of(cmd))
-  job_file = "/var/lib/ganeti/queue/job-%s" % cmd_jid
+  job_file_abspath = "%s/job-%s" % (pathutils.QUEUE_DIR, cmd_jid)
+  job_file = qa_utils.MakeNodePath(node, job_file_abspath)
 
   for k in secret_keys:
     grep_cmd = ["grep", "\"%s\":\"<redacted>\"" % k, job_file]
@@ -1543,7 +1544,7 @@ def TestInstanceAddOsParams():
   if not qa_config.IsTemplateSupported(constants.DT_PLAIN):
     return
 
-  pnode = qa_config.AcquireNode()
+  master = qa_config.GetMasterNode()
   instance = qa_config.AcquireInstance()
 
   secret_keys = ["param1", "param2"]
@@ -1552,26 +1553,26 @@ def TestInstanceAddOsParams():
           "--disk-template=%s" % constants.DT_PLAIN,
           "--os-parameters-secret",
           "param1=secret1,param2=secret2",
-          "--node=%s" % pnode.primary] +
+          "--node=%s" % master.primary] +
           GetGenericAddParameters(instance, constants.DT_PLAIN))
   cmd.append("--submit")
   cmd.append("--print-jobid")
   cmd.append(instance.name)
 
-  _TestRedactionOfSecretOsParams(cmd, secret_keys)
+  _TestRedactionOfSecretOsParams(master.primary, cmd, secret_keys)
 
   TestInstanceRemove(instance)
   instance.Release()
-  pnode.Release()
 
 
 def TestSecretOsParams():
   """Tests secret os parameter transmission"""
 
+  master = qa_config.GetMasterNode()
   secret_keys = ["param1", "param2"]
   cmd = (["gnt-debug", "test-osparams", "--os-parameters-secret",
          "param1=secret1,param2=secret2", "--submit", "--print-jobid"])
-  _TestRedactionOfSecretOsParams(cmd, secret_keys)
+  _TestRedactionOfSecretOsParams(master.primary, cmd, secret_keys)
 
   cmd_output = stdout_of(["gnt-debug", "test-osparams",
                          "--os-parameters-secret",
