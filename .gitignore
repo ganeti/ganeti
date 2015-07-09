@@ -140,6 +140,7 @@
 /tools/prepare-node-join
 /tools/shebang/
 /tools/ssh-update
+/tools/ssl-update
 
 # scripts
 /scripts/gnt-backup
