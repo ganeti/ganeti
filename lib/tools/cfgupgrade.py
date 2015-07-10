@@ -59,11 +59,11 @@ from ganeti.utils import version
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 16
+TARGET_MINOR = 17
 #: Target major version for downgrade
 DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
-DOWNGRADE_MINOR = 15
+DOWNGRADE_MINOR = 16
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -183,8 +183,8 @@ class CfgUpgrade(object):
       self._Downgrade(config_major, config_minor, config_version,
                       config_revision)
 
-    # Upgrade from 2.{0..15} to 2.16
-    elif config_major == 2 and config_minor in range(0, 16):
+    # Upgrade from 2.{0..n-1} to 2.n
+    elif config_major == 2 and config_minor in range(0, TARGET_MINOR):
       if config_revision != 0:
         logging.warning("Config revision is %s, not 0", config_revision)
       if not self.UpgradeAll():

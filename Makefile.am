@@ -1807,6 +1807,7 @@ TEST_FILES = \
 	test/data/cluster_config_2.13.json \
 	test/data/cluster_config_2.14.json \
 	test/data/cluster_config_2.15.json \
+	test/data/cluster_config_2.16.json \
 	test/data/instance-minor-pairing.txt \
 	test/data/instance-disks.txt \
 	test/data/ip-addr-show-dummy0.txt \
