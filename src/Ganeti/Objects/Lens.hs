@@ -149,6 +149,14 @@ instance SerialNoObjectL Cluster where
 instance TagsObjectL Cluster where
   tagsL = clusterTagsL
 
+$(makeCustomLenses ''MaintenanceData)
+
+instance TimeStampObjectL MaintenanceData where
+  mTimeL = maintMtimeL
+
+instance SerialNoObjectL MaintenanceData where
+  serialL = maintSerialL
+
 $(makeCustomLenses ''ConfigData)
 
 instance SerialNoObjectL ConfigData where

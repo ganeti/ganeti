@@ -983,6 +983,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Objects/Disk.hs \
 	src/Ganeti/Objects/Instance.hs \
 	src/Ganeti/Objects/Lens.hs \
+	src/Ganeti/Objects/Maintenance.hs \
 	src/Ganeti/Objects/Nic.hs \
 	src/Ganeti/OpCodes.hs \
 	src/Ganeti/OpCodes/Lens.hs \

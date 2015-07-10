@@ -375,6 +375,13 @@ instance Arbitrary FilterRule where
                          <*> arbitrary
                          <*> genUUID
 
+instance Arbitrary MaintenanceData where
+  arbitrary = MaintenanceData <$> (fromPositive <$> arbitrary)
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+                              <*> arbitrary
+
 -- | Generates a network instance with minimum netmasks of /24. Generating
 -- bigger networks slows down the tests, because long bit strings are generated
 -- for the reservations.
@@ -431,6 +438,7 @@ genEmptyCluster ncount = do
       networks = GenericContainer Map.empty
       disks = GenericContainer Map.empty
       filters = GenericContainer Map.empty
+  maintenance <- arbitrary
   let contgroups = GenericContainer $ Map.singleton guuid grp
   serial <- arbitrary
   -- timestamp fields
@@ -438,7 +446,7 @@ genEmptyCluster ncount = do
   mtime <- arbitrary
   cluster <- resize 8 arbitrary
   let c = ConfigData version cluster contnodes contgroups continsts networks
-            disks filters ctime mtime serial
+            disks filters ctime maintenance mtime serial
   return c
 
 -- | FIXME: make an even simpler base version of creating a cluster.

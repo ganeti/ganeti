@@ -863,6 +863,7 @@ def InitConfig(version, cluster_config, master_node_config,
     default_nodegroup.uuid: default_nodegroup,
     }
   now = time.time()
+  maintenance = objects.Maintenance(serial_no=1, ctime=now, mtime=now)
   config_data = objects.ConfigData(version=version,
                                    cluster=cluster_config,
                                    nodegroups=nodegroups,
@@ -871,6 +872,7 @@ def InitConfig(version, cluster_config, master_node_config,
                                    networks={},
                                    disks={},
                                    filters={},
+                                   maintenance=maintenance,
                                    serial_no=1,
                                    ctime=now, mtime=now)
   utils.WriteFile(cfg_file,

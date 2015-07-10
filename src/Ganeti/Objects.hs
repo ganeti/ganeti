@@ -103,6 +103,7 @@ module Ganeti.Objects
   , module Ganeti.PartialParams
   , module Ganeti.Objects.Disk
   , module Ganeti.Objects.Instance
+  , module Ganeti.Objects.Maintenance
   ) where
 
 import Control.Applicative
@@ -126,6 +127,7 @@ import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
 import Ganeti.Objects.BitArray (BitArray)
 import Ganeti.Objects.Disk
+import Ganeti.Objects.Maintenance
 import Ganeti.Objects.Nic
 import Ganeti.Objects.Instance
 import Ganeti.Query.Language
@@ -701,6 +703,7 @@ $(buildObject "ConfigData" "config" $
   , simpleField "networks"   [t| Container Network   |]
   , simpleField "disks"      [t| Container Disk      |]
   , simpleField "filters"    [t| Container FilterRule |]
+  , simpleField "maintenance" [t| MaintenanceData    |]
   ]
   ++ timeStampFields
   ++ serialFields)

@@ -677,6 +677,14 @@ class CfgUpgrade(object):
         else:
           disk["nodes"] = []
 
+  @OrFail("Upgrading maintenance data")
+  def UpgradeMaintenance(self):
+    # pylint can't infer config_data type
+    # pylint: disable=E1103
+    maintenance = self.config_data.get("maintenance", None)
+    if maintenance is None:
+      self.config_data["maintenance"] = {}
+
   def UpgradeAll(self):
     self.config_data["version"] = version.BuildVersion(TARGET_MAJOR,
                                                        TARGET_MINOR, 0)
@@ -692,7 +700,8 @@ class CfgUpgrade(object):
              self.UpgradeInstanceIndices,
              self.UpgradeFilters,
              self.UpgradeDiskNodes,
-             self.UpgradeDiskTemplate]
+             self.UpgradeDiskTemplate,
+             self.UpgradeMaintenance]
     for s in steps:
       s()
     return not self.errors
@@ -700,6 +709,8 @@ class CfgUpgrade(object):
   # DOWNGRADE ------------------------------------------------------------
 
   def DowngradeAll(self):
+    if "maintenance" in self.config_data:
+      del self.config_data["maintenance"]
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
     return True
