@@ -31,6 +31,8 @@ greater parallelization. As all of these approaches aim to tackle two different
 aspects of the problem, they do not exclude each other and will be presented
 independently.
 
+.. _move-performance:
+
 The performance of Ganeti moves
 ===============================
 
