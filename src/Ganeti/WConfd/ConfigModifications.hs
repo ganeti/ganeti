@@ -42,9 +42,9 @@ module Ganeti.WConfd.ConfigModifications where
 import Control.Applicative ((<$>))
 import Control.Lens (_2)
 import Control.Lens.Getter ((^.))
-import Control.Lens.Setter ((.~), (%~))
+import Control.Lens.Setter ((.~), (%~), (+~), over)
 import Control.Lens.Traversal (mapMOf)
-import Control.Monad (unless, when, forM_, foldM, liftM2)
+import Control.Monad (unless, when, forM_, foldM, liftM, liftM2)
 import Control.Monad.Error (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.State (StateT, get, put, modify,
@@ -653,6 +653,17 @@ updateDisk disk = do
     . T.releaseDRBDMinors $ uuidOf disk
   return . MaybeForJSON $ fmap (_2 %~ TimeAsDoubleJSON) r
 
+-- | Set the maintenance intervall.
+setMaintdRoundDelay :: Int -> WConfdMonad Bool
+setMaintdRoundDelay delay = do
+  now <- liftIO getClockTime
+  let setDelay = over (csConfigDataL . configMaintenanceL)
+                   $ (serialL +~ 1) . (mTimeL .~ now)
+                     . (maintRoundDelayL .~ delay)
+  liftM isJust $ modifyConfigWithLock
+    (\_ cs -> return . setDelay $ cs)
+    (return ())
+
 -- * The list of functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -672,4 +683,5 @@ exportedFunctions = [ 'addInstance
                     , 'updateNetwork
                     , 'updateNode
                     , 'updateNodeGroup
+                    , 'setMaintdRoundDelay
                     ]

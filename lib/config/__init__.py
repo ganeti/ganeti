@@ -3383,6 +3383,11 @@ class ConfigWriter(object):
       if disk_uuid in inst_info.disks:
         return inst_uuid
 
+  def SetMaintdRoundDelay(self, delay):
+    """Set the minimal time the maintenance daemon should wait between rounds"""
+    utils.SimpleRetry(True, self._wconfd.SetMaintdRoundDelay, 0.1, 30,
+                      args=[delay])
+
 
 class DetachedConfig(ConfigWriter):
   """Read-only snapshot of the config."""
