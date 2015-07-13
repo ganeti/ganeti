@@ -4912,6 +4912,12 @@ mondLatestApiVersion = 1
 mondDefaultCategory :: String
 mondDefaultCategory = "default"
 
+-- * Maintenance daemon
+
+-- | Default wait in seconds time between maintenance rounds.
+maintdDefaultRoundDelay :: Int
+maintdDefaultRoundDelay = 300
+
 -- * Disk access modes
 
 diskUserspace :: String
