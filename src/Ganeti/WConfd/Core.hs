@@ -61,7 +61,9 @@ import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock, BGL)
                             , lockLevel, LockLevel
                             , ClientType(ClientOther), ClientId(..) )
 import qualified Ganeti.Locking.Waiting as LW
-import Ganeti.Objects (ConfigData, DRBDSecret, LogicalVolume, Ip4Address)
+import Ganeti.Objects ( ConfigData, DRBDSecret, LogicalVolume, Ip4Address
+                      , configMaintenance, maintRoundDelay
+                      )
 import Ganeti.Objects.Lens (configClusterL, clusterMasterNodeL)
 import Ganeti.WConfd.ConfigState (csConfigDataL)
 import qualified Ganeti.WConfd.ConfigVerify as V
@@ -153,6 +155,13 @@ writeConfigAndUnlock cid cdata = do
 -- It is not necessary to hold a lock for this operation.
 flushConfig :: WConfdMonad ()
 flushConfig = forceConfigStateDistribution
+
+-- *** Access to individual parts of the configuration
+
+-- | Get the configurable value of the maintenance interval
+maintenanceRoundDelay :: WConfdMonad Int
+maintenanceRoundDelay = liftM ( maintRoundDelay . configMaintenance )
+                              CW.readConfig
 
 -- ** Temporary reservations related functions
 
@@ -384,6 +393,7 @@ exportedFunctions = [ 'echo
                     , 'unlockConfig
                     , 'writeConfigAndUnlock
                     , 'flushConfig
+                    , 'maintenanceRoundDelay
                     -- temporary reservations (common)
                     , 'dropAllReservations
                     -- DRBD
