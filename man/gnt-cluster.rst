@@ -710,6 +710,7 @@ MODIFY
 | [\--install-image *image*]
 | [\--zeroing-image *image*]
 | [\--user-shutdown {yes \| no}]
+| [\--maintenance-interval *seconds*]
 
 
 Modify the options for the cluster.
@@ -773,6 +774,9 @@ will create a new network with the supplied name with the default
 parameters for instance communication.  If the supplied network exists,
 Ganeti will check its parameters and warn about unusual configurations,
 but it will still use that network for instance communication.
+
+The ``--maintenance-interval`` option specified the minimal waiting
+time by the maintenance daemon between maintenance rounds.
 
 See **gnt-cluster init** for a description of ``--install-image`` and
 ``--zeroing-image``.
