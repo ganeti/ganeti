@@ -1795,6 +1795,9 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.compression_tools is not None:
       self.cfg.SetCompressionTools(self.op.compression_tools)
 
+    if self.op.maint_round_delay is not None:
+      self.cfg.SetMaintdRoundDelay(self.op.maint_round_delay)
+
     network_name = self.op.instance_communication_network
     if network_name is not None:
       return self._ModifyInstanceCommunicationNetwork(self.cfg,
