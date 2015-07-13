@@ -13,7 +13,7 @@ Incompatible/important changes
 - This release contains a fix for the problem that different encodings in
   SSL certificates can break RPC communication (issue 1094). The fix makes
   it necessary to rerun 'gnt-cluster renew-crypto --new-node-certificates'
-  after the cluster is fully upgraded to 2.14.1
+  after the cluster is fully upgraded to 2.13.2
 
 Other fixes and known issues
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
