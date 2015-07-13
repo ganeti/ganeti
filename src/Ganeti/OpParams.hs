@@ -297,6 +297,7 @@ module Ganeti.OpParams
   , pEnabledUserShutdown
   , pAdminStateSource
   , pEnabledDataCollectors
+  , pMaintdRoundDelay
   , pDataCollectorInterval
   , pNodeSslCerts
   , pSshKeys
@@ -1888,6 +1889,12 @@ pDataCollectorInterval =
   withDoc "Sets the interval in that data collectors are run" .
   optionalField $
   simpleField C.dataCollectorsIntervalName [t| GenericContainer String Int |]
+
+pMaintdRoundDelay :: Field
+pMaintdRoundDelay =
+  withDoc "Minimal delay between rounds of the maintenance daemon"
+  . optionalField
+  $ simpleField "maint_round_delay" [t| Int |]
 
 pNodeSslCerts :: Field
 pNodeSslCerts =

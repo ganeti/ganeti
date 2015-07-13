@@ -260,6 +260,7 @@ $(genOpCode "OpCode"
      , pEnabledUserShutdown
      , pEnabledDataCollectors
      , pDataCollectorInterval
+     , pMaintdRoundDelay
      ],
      [])
   , ("OpClusterRedistConf",
