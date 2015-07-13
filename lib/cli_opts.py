@@ -135,6 +135,7 @@ __all__ = [
   "IPOLICY_VCPU_RATIO",
   "LONG_SLEEP_OPT",
   "MAC_PREFIX_OPT",
+  "MAINT_INTERVAL_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
   "MASTER_NETMASK_OPT",
@@ -1095,6 +1096,11 @@ COMPRESSION_TOOLS_OPT = \
                dest="compression_tools", type="string", default=None,
                help="Comma-separated list of compression tools which are"
                     " allowed to be used by Ganeti in various operations")
+
+MAINT_INTERVAL_OPT = \
+  cli_option("--maintenance-interval", dest="maint_round_delay", type="int",
+             default=None, help="Minimal time in seconds, the maintenance"
+             " daemon waits between rounds")
 
 VG_NAME_OPT = cli_option("--vg-name", dest="vg_name",
                          help=("Enables LVM and specifies the volume group"
