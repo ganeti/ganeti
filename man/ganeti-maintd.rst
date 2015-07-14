@@ -32,3 +32,27 @@ of cluster nodes believes that it is running on the master node. To
 allow failover in a two-node cluster, this can be overridden by the
 ``--no-voting`` option. In this case, the ``--yes-do-it`` option has
 to be given as well.
+
+Operation
+~~~~~~~~~
+
+The maintenance daemon will carry out precisely the same jobs that
+**harep**\(1) would do if continously run. In particular, it can
+be controlled by the same set of opt-in tags.
+
+Communication
+~~~~~~~~~~~~~
+
+The daemon will expose its internal state via HTTP. The answer is
+encoded in JSON format and is specific to the particular request.
+
+``/``
++++++
+The root resource. It will return the list of supported protocol
+versions. At the moment, only version ``1`` is supported.
+
+``/1/jobs``
++++++++++++
+The list of jobs the daemon will wait for to finish, before starting
+the next round of maintenance.
+
