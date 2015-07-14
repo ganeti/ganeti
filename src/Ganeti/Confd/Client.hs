@@ -82,7 +82,7 @@ query client crType cQuery = do
       hmac = hmacKey client
       jobs = map (queryOneServer semaphore answer crType cQuery hmac) dest
       watchdog reqAnswers = do
-        threadDelay $ 1000000 * C.confdClientExpireTimeout
+        threadDelaySeconds C.confdClientExpireTimeout
         _ <- swapMVar reqAnswers 0
         putMVar semaphore ()
       waitForResult reqAnswers = do

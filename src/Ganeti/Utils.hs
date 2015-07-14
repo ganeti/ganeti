@@ -96,6 +96,7 @@ module Ganeti.Utils
   , ensurePermissions
   , ordNub
   , isSubsequenceOf
+  , threadDelaySeconds
   ) where
 
 import Control.Applicative
@@ -188,6 +189,10 @@ ensureQuoted :: String -> String
 ensureQuoted v = if not (all (\c -> isAlphaNum c || c == '.') v)
                  then '\'':v ++ "'"
                  else v
+
+-- | Delay a thread for several seconds.
+threadDelaySeconds :: Int -> IO ()
+threadDelaySeconds = threadDelay . (*) 1000000
 
 -- * Mathematical functions
 

@@ -121,10 +121,6 @@ onQueuedJobs = over qEnqueuedL
 unreadJob :: QueuedJob -> JobWithStat
 unreadJob job = JobWithStat {jJob=job, jStat=nullFStat, jINotify=Nothing}
 
--- | Reload interval for polling the running jobs for updates in microseconds.
-watchInterval :: Int
-watchInterval = C.luxidJobqueuePollInterval * 1000000 
-
 -- | Read a cluster parameter from the configuration, using a default if the
 -- configuration is not available.
 getConfigValue :: (Cluster -> a) -> a -> JQStatus -> IO a
@@ -488,7 +484,7 @@ updateStatusAndScheduleSomeJobs qstate =  do
 -- | Time-based watcher for updating the job queue.
 onTimeWatcher :: JQStatus -> IO ()
 onTimeWatcher qstate = forever $ do
-  threadDelay watchInterval
+  threadDelaySeconds C.luxidJobqueuePollInterval
   logDebug "Job queue watcher timer fired"
   updateStatusAndScheduleSomeJobs qstate
   logDebug "Job queue watcher cycle finished"
