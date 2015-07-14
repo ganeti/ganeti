@@ -43,14 +43,17 @@ module Ganeti.MaintD.Server
 
 import Control.Applicative ((<|>))
 import Control.Concurrent (forkIO)
-import Control.Monad (forever, void, unless, when)
+import Control.Exception.Lifted (bracket)
+import Control.Monad (forever, void, unless, when, liftM)
 import Control.Monad.IO.Class (liftIO)
+import Data.IORef (IORef, newIORef, readIORef)
 import qualified Data.Set as Set
-import Snap.Core (Snap, method, Method(GET), ifTop)
+import Snap.Core (Snap, method, Method(GET), ifTop, dir, route)
 import Snap.Http.Server (httpServe)
 import Snap.Http.Server.Config (Config)
 import System.IO.Error (tryIOError)
 import System.Time (getClockTime)
+import qualified Text.JSON as J
 
 import Ganeti.BasicTypes ( GenericResult(..), ResultT, runResultT, mkResultT
                          , withErrorT, isBad)
@@ -61,8 +64,11 @@ import Ganeti.Daemon.Utils (handleMasterVerificationOptions)
 import qualified Ganeti.HTools.Backend.Luxi as Luxi
 import qualified Ganeti.HTools.Container as Container
 import Ganeti.HTools.Loader (ClusterData(..), mergeData, checkData)
+import Ganeti.Jobs (waitForJobs)
 import Ganeti.Logging.Lifted
+import qualified Ganeti.Luxi as L
 import Ganeti.MaintD.Autorepairs (harepTasks)
+import Ganeti.MaintD.MemoryState
 import qualified Ganeti.Path as Path
 import Ganeti.Runtime (GanetiDaemon(GanetiMaintd))
 import Ganeti.Types (JobId(..))
@@ -109,23 +115,43 @@ loadClusterData = do
   return $ cdata { cdNodes = nl }
 
 -- | Perform one round of maintenance
-maintenance :: ResultT String IO ()
-maintenance = do
+maintenance :: IORef MemoryState -> ResultT String IO ()
+maintenance memstate = do
   delay <- withErrorT show $ runNewWConfdClient maintenanceRoundDelay
   liftIO $ threadDelaySeconds delay
+  oldjobs <- getJobs memstate
+  logDebug $ "Jobs submitted in the last round: "
+             ++ show (map fromJobId oldjobs)
+  luxiSocket <- liftIO Path.defaultQuerySocket
+  bracket (mkResultT . liftM (either (Bad . show) Ok)
+            . tryIOError $ L.getLuxiClient luxiSocket)
+          (liftIO . L.closeClient)
+          $ void . mkResultT . waitForJobs oldjobs
+  liftIO $ clearJobs memstate
   logDebug "New round of maintenance started"
   cData <- loadClusterData
   let il = cdInstances cData
       nl = cdNodes cData
       nidxs = Set.fromList $ Container.keys nl
   (nidxs', jobs) <- harepTasks (nl, il) nidxs
+  liftIO $ appendJobs memstate jobs
   logDebug $ "Unaffected nodes " ++ show (Set.toList nidxs')
              ++ ", jobs submitted " ++ show (map fromJobId jobs)
 
+-- | Expose a part of the memory state
+exposeState :: J.JSON a => (MemoryState -> a) -> IORef MemoryState -> Snap ()
+exposeState selector ref = do
+  state <- liftIO $ readIORef ref
+  plainJSON $ selector state
+
 -- | The information to serve via HTTP
-httpInterface :: Snap ()
-httpInterface = ifTop (method GET $ plainJSON [1 :: Int])
-                <|> error404
+httpInterface :: IORef MemoryState -> Snap ()
+httpInterface memstate =
+  ifTop (method GET $ plainJSON [1 :: Int])
+  <|> dir "1" (ifTop (plainJSON J.JSNull)
+               <|> route [ ("jobs", exposeState msJobs memstate)
+                         ])
+  <|> error404
 
 -- | Check function for luxid.
 checkMain :: CheckFn CheckResult
@@ -138,10 +164,11 @@ prepMain opts _ = httpConfFromOpts GanetiMaintd opts
 -- | Main function.
 main :: MainFn CheckResult PrepResult
 main _ _ httpConf = do
+  memstate <- newIORef emptyMemoryState
   void . forkIO . forever $ do
-    res <- runResultT maintenance
+    res <- runResultT $ maintenance memstate
     logDebug $ "Maintenance round done, result is " ++ show res
     when (isBad res) $ do
       logInfo "Backing off after a round with internal errors"
       threadDelaySeconds C.maintdDefaultRoundDelay
-  httpServe httpConf httpInterface
+  httpServe httpConf $ httpInterface memstate
