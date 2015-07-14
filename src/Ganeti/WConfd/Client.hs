@@ -38,14 +38,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.Client where
 
+import Control.Concurrent (threadDelay)
 import Control.Exception.Lifted (bracket)
 import Control.Monad (unless)
 import Control.Monad.Base
 import Control.Monad.Error (MonadError)
-import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Control (MonadBaseControl)
 
-import Ganeti.THH.HsRPC
+import Ganeti.BasicTypes (runResultT, GenericResult(..))
 import Ganeti.Constants
 import Ganeti.Errors (GanetiException)
 import Ganeti.JSON (unMaybeForJSON)
@@ -103,3 +103,14 @@ withLockedConfig :: ClientId
 withLockedConfig c shared =
   -- Unlock config even if something throws.
   bracket (waitLockConfig c shared) (const $ unlockConfig c)
+
+
+-- * Other functions
+
+-- | Try an RPC until no errors occur and the result is true.
+runModifyRpc :: RpcClientMonad Bool -> IO ()
+runModifyRpc action = do
+  res <- runResultT $ runNewWConfdClient action
+  unless (res == Ok True) $ do
+    threadDelay 100000 -- sleep 0.1 seconds
+    runModifyRpc action
