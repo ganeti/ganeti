@@ -42,8 +42,8 @@ module Ganeti.MaintD.Server
   ) where
 
 import Control.Applicative ((<|>))
-import Control.Concurrent (forkIO, threadDelay)
-import Control.Monad (forever, void, unless)
+import Control.Concurrent (forkIO)
+import Control.Monad (forever, void, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Set as Set
 import Snap.Core (Snap, method, Method(GET), ifTop)
@@ -52,7 +52,8 @@ import Snap.Http.Server.Config (Config)
 import System.IO.Error (tryIOError)
 import System.Time (getClockTime)
 
-import Ganeti.BasicTypes (GenericResult(..), ResultT, runResultT, mkResultT)
+import Ganeti.BasicTypes ( GenericResult(..), ResultT, runResultT, mkResultT
+                         , withErrorT, isBad)
 import qualified Ganeti.Constants as C
 import Ganeti.Daemon ( OptType, CheckFn, PrepFn, MainFn, oDebug
                      , oNoVoting, oYesDoIt, oPort, oBindAddress, oNoDaemonize)
@@ -65,7 +66,9 @@ import Ganeti.MaintD.Autorepairs (harepTasks)
 import qualified Ganeti.Path as Path
 import Ganeti.Runtime (GanetiDaemon(GanetiMaintd))
 import Ganeti.Types (JobId(..))
+import Ganeti.Utils (threadDelaySeconds)
 import Ganeti.Utils.Http (httpConfFromOpts, plainJSON, error404)
+import Ganeti.WConfd.Client (runNewWConfdClient, maintenanceRoundDelay)
 
 -- | Options list and functions.
 options :: [OptType]
@@ -108,7 +111,8 @@ loadClusterData = do
 -- | Perform one round of maintenance
 maintenance :: ResultT String IO ()
 maintenance = do
-  liftIO $ threadDelay 60000000
+  delay <- withErrorT show $ runNewWConfdClient maintenanceRoundDelay
+  liftIO $ threadDelaySeconds delay
   logDebug "New round of maintenance started"
   cData <- loadClusterData
   let il = cdInstances cData
@@ -137,4 +141,7 @@ main _ _ httpConf = do
   void . forkIO . forever $ do
     res <- runResultT maintenance
     logDebug $ "Maintenance round done, result is " ++ show res
+    when (isBad res) $ do
+      logInfo "Backing off after a round with internal errors"
+      threadDelaySeconds C.maintdDefaultRoundDelay
   httpServe httpConf httpInterface
