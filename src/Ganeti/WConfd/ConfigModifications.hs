@@ -67,7 +67,8 @@ import Ganeti.Locking.Locks (ClientId, ciIdentifier)
 import Ganeti.Logging.Lifted (logDebug, logInfo)
 import Ganeti.Objects
 import Ganeti.Objects.Lens
-import Ganeti.Types (AdminState, AdminStateSource)
+import Ganeti.Types (AdminState, AdminStateSource, JobId)
+import Ganeti.Utils (ordNub)
 import Ganeti.WConfd.ConfigState (ConfigState, csConfigData, csConfigDataL)
 import Ganeti.WConfd.Monad (WConfdMonad, modifyConfigWithLock
                            , modifyConfigAndReturnWithLock)
@@ -664,6 +665,28 @@ setMaintdRoundDelay delay = do
     (\_ cs -> return . setDelay $ cs)
     (return ())
 
+-- | Clear the list of current maintenance jobs.
+clearMaintdJobs :: WConfdMonad Bool
+clearMaintdJobs = do
+  now <- liftIO getClockTime
+  let clear = over (csConfigDataL . configMaintenanceL)
+                $ (serialL +~ 1) . (mTimeL .~ now) . (maintJobsL .~ [])
+  liftM isJust $ modifyConfigWithLock
+    (\_ cs -> return . clear $ cs)
+    (return ())
+
+-- | Append new jobs to the list of current maintenace jobs, if
+-- not alread present.
+appendMaintdJobs :: [JobId] -> WConfdMonad Bool
+appendMaintdJobs jobs = do
+  now <- liftIO getClockTime
+  let addJobs = over (csConfigDataL . configMaintenanceL)
+                  $ (serialL +~ 1) . (mTimeL .~ now)
+                    . over maintJobsL (ordNub . (++ jobs))
+  liftM isJust $ modifyConfigWithLock
+    (\_ cs -> return . addJobs $ cs)
+    (return ())
+
 -- * The list of functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -684,4 +707,6 @@ exportedFunctions = [ 'addInstance
                     , 'updateNode
                     , 'updateNodeGroup
                     , 'setMaintdRoundDelay
+                    , 'clearMaintdJobs
+                    , 'appendMaintdJobs
                     ]
