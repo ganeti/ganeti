@@ -334,61 +334,65 @@ checkSingleStep force ini_tbl target cur_tbl move =
              upd_tbl = Table upd_nl upd_il upd_cvar upd_plc
          in compareTables cur_tbl upd_tbl
 
--- | Given the status of the current secondary as a valid new node and
--- the current candidate target node, generate the possible moves for
--- a instance.
-possibleMoves :: MirrorType -- ^ The mirroring type of the instance
-              -> Bool       -- ^ Whether the secondary node is a valid new node
-              -> Bool       -- ^ Whether we can change the primary node
-              -> Bool       -- ^ Whether we alowed to move disks
-              -> (Bool, Bool) -- ^ Whether migration is restricted and whether
-                              -- the instance primary is offline
-              -> Ndx        -- ^ Target node candidate
-              -> [IMove]    -- ^ List of valid result moves
+-- | Generate all possible migration moves of an instance given some
+-- additional parameters
+migrationMoves :: MirrorType -- ^ The mirroring type of the instance
+               -> Bool       -- ^ Whether the secondary node is active
+               -> [Ndx]      -- ^ Target node candidate list
+               -> [IMove]    -- ^ List of valid result moves
+migrationMoves MirrorNone _ _ = []
+migrationMoves MirrorInternal False _ = []
+migrationMoves MirrorInternal True  _ = [Failover]
+migrationMoves MirrorExternal _ nodes_idx = map FailoverToAny nodes_idx
 
-possibleMoves MirrorNone _ _ _ _ _ = []
+-- | Generate all possible disk moves (complex instance moves consist of disk
+-- moves and maybe migrations) of an instance given some additional parameters
+diskMoves :: MirrorType   -- ^ The mirroring type of the instance
+          -> Bool         -- ^ Whether the secondary node is a valid new node
+          -> Bool         -- ^ Whether we can change the primary node
+          -> (Bool, Bool) -- ^ Whether migration is restricted and whether
+                          -- the instance primary is offline
+          -> [Ndx]        -- ^ Target node candidates list
+          -> [IMove]      -- ^ List of valid result moves
+diskMoves MirrorNone _ _ _ _ = []
+diskMoves MirrorExternal _ _ _ _ = []
+diskMoves MirrorInternal valid_sec inst_moves restr nodes_idx =
+  concatMap (intMirrSingleDiskMove valid_sec inst_moves restr) nodes_idx
+  where
+    intMirrSingleDiskMove _ False _ tdx =
+      [ReplaceSecondary tdx]
 
-possibleMoves MirrorExternal _ False _ _ _ = []
+    intMirrSingleDiskMove _ _ (True, False) tdx =
+      [ReplaceSecondary tdx]
 
-possibleMoves MirrorExternal _ True _ _ tdx =
-  [ FailoverToAny tdx ]
+    intMirrSingleDiskMove True True (False, _) tdx =
+      [ ReplaceSecondary tdx
+      , ReplaceAndFailover tdx
+      , ReplacePrimary tdx
+      , FailoverAndReplace tdx
+      ]
 
-possibleMoves MirrorInternal _ _ False _ _ = []
+    intMirrSingleDiskMove True True (True, True) tdx =
+      [ ReplaceSecondary tdx
+      , ReplaceAndFailover tdx
+      , FailoverAndReplace tdx
+      ]
 
-possibleMoves MirrorInternal _ False True _ tdx =
-  [ ReplaceSecondary tdx ]
+    intMirrSingleDiskMove False True _ tdx =
+      [ ReplaceSecondary tdx
+      , ReplaceAndFailover tdx
+      ]
 
-possibleMoves MirrorInternal _ _ True (True, False) tdx =
-  [ ReplaceSecondary tdx
-  ]
-
-possibleMoves MirrorInternal True True True (False, _) tdx =
-  [ ReplaceSecondary tdx
-  , ReplaceAndFailover tdx
-  , ReplacePrimary tdx
-  , FailoverAndReplace tdx
-  ]
-
-possibleMoves MirrorInternal True True True (True, True) tdx =
-  [ ReplaceSecondary tdx
-  , ReplaceAndFailover tdx
-  , FailoverAndReplace tdx
-  ]
-
-possibleMoves MirrorInternal False True True _ tdx =
-  [ ReplaceSecondary tdx
-  , ReplaceAndFailover tdx
-  ]
 
 -- | Compute the best move for a given instance.
 checkInstanceMove ::  AlgorithmOptions -- ^ Algorithmic options for balancing
                   -> [Ndx]             -- ^ Allowed target node indices
                   -> Table             -- ^ Original table
                   -> Instance.Instance -- ^ Instance to move
-                  -> Table             -- ^ Best new table for this instance
+                  -> (Table, Table)    -- ^ Pair of best new tables:
+                                       -- migrations only and with disk moves
 checkInstanceMove opts nodes_idx ini_tbl@(Table nl _ _ _) target =
   let force = algIgnoreSoftErrors opts
-      disk_moves = algDiskMoves opts
       inst_moves = algInstanceMoves opts
       rest_mig = algRestrictedMigration opts
       opdx = Instance.pNode target
@@ -397,19 +401,23 @@ checkInstanceMove opts nodes_idx ini_tbl@(Table nl _ _ _) target =
       nodes = filter (`notElem` bad_nodes) nodes_idx
       mir_type = Instance.mirrorType target
       use_secondary = elem osdx nodes_idx && inst_moves
-      aft_failover = if mir_type == MirrorInternal && use_secondary
-                       -- if drbd and allowed to failover
-                       then checkSingleStep force ini_tbl target ini_tbl
-                              Failover
-                       else ini_tbl
       primary_drained = Node.offline
                         . flip Container.find nl
                         $ Instance.pNode target
-      all_moves = concatMap (possibleMoves mir_type use_secondary inst_moves
-                             disk_moves (rest_mig, primary_drained)) nodes
-    in
-      -- iterate over the possible nodes for this instance
-      foldl' (checkSingleStep force ini_tbl target) aft_failover all_moves
+
+      migrations = migrationMoves mir_type use_secondary nodes
+      disk_moves = diskMoves mir_type use_secondary inst_moves
+                   (rest_mig, primary_drained) nodes
+
+      -- iterate over the possible nodes and migrations for this instance
+      best_migr_tbl =
+        if inst_moves
+          then foldl' (checkSingleStep force ini_tbl target) ini_tbl migrations
+          else ini_tbl
+      -- iterate over the possible moves for this instance
+      best_tbl =
+        foldl' (checkSingleStep force ini_tbl target) best_migr_tbl disk_moves
+  in (best_migr_tbl, best_tbl)
 
 -- | Compute the best next move.
 checkMove :: AlgorithmOptions       -- ^ Algorithmic options for balancing
@@ -417,21 +425,26 @@ checkMove :: AlgorithmOptions       -- ^ Algorithmic options for balancing
              -> Table               -- ^ The current solution
              -> [Instance.Instance] -- ^ List of instances still to move
              -> Table               -- ^ The new solution
-checkMove opts nodes_idx ini_tbl victims =
-  let Table _ _ _ ini_plc = ini_tbl
+checkMove opts nodes_idx ini_tbl@(Table _ _ ini_cv _) victims =
+  let disk_moves = algDiskMoves opts
+      disk_moves_f = algDiskMovesFactor opts
       -- we're using rwhnf from the Control.Parallel.Strategies
       -- package; we don't need to use rnf as that would force too
       -- much evaluation in single-threaded cases, and in
       -- multi-threaded case the weak head normal form is enough to
       -- spark the evaluation
-      tables = parMap rwhnf (checkInstanceMove opts nodes_idx ini_tbl)
-               victims
+      table_pairs = parMap rwhnf (checkInstanceMove opts nodes_idx ini_tbl)
+                    victims
+
       -- iterate over all instances, computing the best move
-      best_tbl = foldl' compareTables ini_tbl tables
-      Table _ _ _ best_plc = best_tbl
-  in if length best_plc == length ini_plc
-       then ini_tbl -- no advancement
-       else best_tbl
+      best_migr_tbl@(Table _ _ best_migr_cv _) =
+        foldl' compareTables ini_tbl $ map fst table_pairs
+      best_tbl@(Table _ _ best_cv _) =
+        foldl' compareTables ini_tbl $ map snd table_pairs
+  in if not disk_moves
+     || ini_cv - best_cv <= (ini_cv - best_migr_cv) * disk_moves_f
+       then best_migr_tbl
+       else best_tbl -- best including disk moves
 
 -- | Check if we are allowed to go deeper in the balancing.
 doNextBalance :: Table     -- ^ The starting table

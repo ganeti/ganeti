@@ -101,6 +101,7 @@ options = do
     , oMinGain
     , oMinGainLim
     , oDiskMoves
+    , oAvoidDiskMoves
     , oSelInst
     , oInstMoves
     , oIgnoreSoftErrors

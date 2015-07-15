@@ -55,6 +55,7 @@ module Ganeti.HTools.CLI
   -- * The options
   , oDataFile
   , oDiskMoves
+  , oAvoidDiskMoves
   , oDiskTemplate
   , oSpindleUse
   , oDynuFile
@@ -142,6 +143,9 @@ import Ganeti.Utils
 data Options = Options
   { optDataFile    :: Maybe FilePath -- ^ Path to the cluster data file
   , optDiskMoves   :: Bool           -- ^ Allow disk moves
+  , optAvoidDiskMoves :: Double      -- ^ Allow only disk moves improving
+                                     -- cluster score in more than
+                                     -- optAvoidDiskMoves times
   , optInstMoves   :: Bool           -- ^ Allow instance moves
   , optDiskTemplate :: Maybe DiskTemplate  -- ^ Override for the disk template
   , optSpindleUse  :: Maybe Int      -- ^ Override for the spindle usage
@@ -216,6 +220,7 @@ defaultOptions :: Options
 defaultOptions  = Options
   { optDataFile    = Nothing
   , optDiskMoves   = True
+  , optAvoidDiskMoves = 1.0
   , optInstMoves   = True
   , optIndependentGroups = False
   , optAcceptExisting = False
@@ -336,6 +341,16 @@ oDiskMoves =
    "disallow disk moves from the list of allowed instance changes,\
    \ thus allowing only the 'cheap' failover/migrate operations",
    OptComplNone)
+
+oAvoidDiskMoves :: OptType
+oAvoidDiskMoves =
+  (Option "" ["avoid-disk-moves"]
+   (reqWithConversion (tryRead "disk moves avoiding factor")
+    (\f opts -> Ok opts { optAvoidDiskMoves = f }) "FACTOR")
+   "gain in cluster metrics on each balancing step including disk moves\
+   \ should be FACTOR times higher than the gain after migrations in order to\
+   \ admit disk move during the step",
+   OptComplFloat)
 
 oMonD :: OptType
 oMonD =

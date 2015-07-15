@@ -70,6 +70,7 @@ options = do
   return
     [ oDataFile
     , oDiskMoves
+    , oAvoidDiskMoves
     , oDynuFile
     , oIgnoreDyn
     , oEvacMode

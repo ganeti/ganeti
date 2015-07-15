@@ -45,6 +45,10 @@ import qualified Ganeti.HTools.CLI as CLI
 
 data AlgorithmOptions = AlgorithmOptions
   { algDiskMoves :: Bool            -- ^ Whether disk moves are allowed
+  , algDiskMovesFactor :: Double    -- ^ Allow only disk moves leads to gain
+                                    -- in cluster score more than
+                                    -- algDiskMovesFactor times higher than
+                                    -- the gain in migration moves
   , algInstanceMoves :: Bool        -- ^ Whether instance moves are allowed
   , algRestrictedMigration :: Bool  -- ^ Whether migration is restricted
   , algIgnoreSoftErrors :: Bool     -- ^ Whether to always ignore soft errors
@@ -60,6 +64,7 @@ data AlgorithmOptions = AlgorithmOptions
 fromCLIOptions :: CLI.Options -> AlgorithmOptions
 fromCLIOptions opts = AlgorithmOptions
   { algDiskMoves = CLI.optDiskMoves opts
+  , algDiskMovesFactor = CLI.optAvoidDiskMoves opts
   , algInstanceMoves = CLI.optInstMoves opts
   , algRestrictedMigration = CLI.optRestrictedMigrate opts
   , algIgnoreSoftErrors = CLI.optIgnoreSoftErrors opts
