@@ -28,6 +28,7 @@ Algorithm options:
 **[ -g *delta* ]** **[ \--min-gain-limit *threshold* ]**
 **[ -O *name...* ]**
 **[ \--no-disk-moves ]**
+**[ \--avoid-disk-moves *factor* ]**
 **[ \--no-instance-moves ]**
 **[ -U *util-file* ]**
 **[ \--ignore-dynu ]**
@@ -362,6 +363,12 @@ The options that can be passed to the program are as follows:
   (i.e. "gnt-instance replace-disks") operations. This will result in
   a much quicker balancing, but of course the improvements are
   limited. It is up to the user to decide when to use one or another.
+
+\--avoid-disk-moves=*factor*
+  This parameter prevents hbal from not profitable enough disk moves.
+  During each balancing step it will admit disk move only if the gain
+  in the cluster metrics is *factor* times higher than the gain
+  achievable without disk moves.
 
 \--no-instance-moves
   This parameter prevents hbal from using instance moves
