@@ -92,3 +92,11 @@
  node-02    0
  node-03    1/
 >>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-disk-moves.data --avoid-disk-moves=1.2
+>>>/Solution length=1/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-disk-moves.data --avoid-disk-moves=5
+>>>/Solution length=2/
+>>>= 0
