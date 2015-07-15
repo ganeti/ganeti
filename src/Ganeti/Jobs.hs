@@ -42,17 +42,18 @@ module Ganeti.Jobs
   , waitForJobs
   ) where
 
-import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
-import Control.Monad (void)
+import Control.Monad (void, forM)
 import Data.List
 import Data.Tuple
 import Data.IORef
 import System.Exit
 import System.Posix.Process
 import System.Posix.Signals
+import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
+import qualified Ganeti.Constants as C
 import Ganeti.Errors
 import qualified Ganeti.Luxi as L
 import Ganeti.OpCodes
@@ -149,22 +150,31 @@ execJobsWait opcodes callback client = do
       callback jids'
       waitForJobs jids' client
 
+-- | Wait for one job units it is finished, using the WaitForJobChange
+-- luxi command. Return the JobId and the and the final job status.
+waitForJob :: L.Client -> L.JobId -> ResultT String IO (L.JobId, JobStatus)
+waitForJob c jid = waitForJob' J.JSNull 0 where
+  waitForJob' prevJob prevLog = do
+    rval <- mkResultT' $ L.callMethod (L.WaitForJobChange jid ["status"]
+                                       prevJob (J.showJSON prevLog)
+                                       C.luxiWfjcTimeout) c
+    let parsed = J.readJSON rval
+                 :: (J.Result ( [JobStatus]
+                              , [ (Int, J.JSValue, J.JSValue, J.JSValue)]))
+    (status, logs) <- case parsed of
+      J.Ok ([s], ls) -> return (s, ls)
+      J.Ok (s, _) -> fail $ "Expected precisely one job status, got " ++ show s
+      J.Error x -> fail $ show x
+    let pLog =  maximum $ prevLog : map (\(cnt, _, _, _) -> cnt) logs
+    if status > JOB_STATUS_RUNNING
+      then return (jid, status)
+      else waitForJob' (J.showJSON [status]) pLog
+
+
 -- | Polls a set of jobs at an increasing interval until all are finished one
 -- way or another.
 waitForJobs :: [L.JobId] -> L.Client -> IO (Result [(L.JobId, JobStatus)])
-waitForJobs jids client = waitForJobs' 500000 15000000
-  where
-    waitForJobs' delay maxdelay = do
-      -- TODO: this should use WaitForJobChange once it's available in Haskell
-      -- land, instead of a fixed schedule of sleeping intervals.
-      threadDelay delay
-      sts <- L.queryJobsStatus client jids
-      case sts of
-        Bad e -> return . Bad $ "Checking job status: " ++ formatError e
-        Ok sts' -> if any (<= JOB_STATUS_RUNNING) sts' then
-                     waitForJobs' (min (delay * 2) maxdelay) maxdelay
-                   else
-                     return . Ok $ zip jids sts'
+waitForJobs jids = runResultT . forM jids . waitForJob
 
 -- | Execute jobs and return @Ok@ only if all of them succeeded; in
 -- this case, also return the list of Job IDs.
