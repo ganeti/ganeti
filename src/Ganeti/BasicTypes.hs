@@ -42,6 +42,7 @@ module Ganeti.BasicTypes
   , Result
   , ResultT(..)
   , mkResultT
+  , mkResultT'
   , withError
   , withErrorT
   , toError
@@ -291,6 +292,11 @@ tryError = flip catchError (return . Left) . liftM Right
 -- See also 'toErrorStr'.
 mkResultT :: (Monad m, Error e) => m (Result a) -> ResultT e m a
 mkResultT = ResultT . liftM toErrorStr
+
+-- | Generalisation of mkResultT accepting any showable failures.
+mkResultT' :: (Monad m, Error e, Show s)
+           => m (GenericResult s a) -> ResultT e m a
+mkResultT' = mkResultT . liftM (genericResult (Bad . show) Ok)
 
 -- | Simple checker for whether a 'GenericResult' is OK.
 isOk :: GenericResult a b -> Bool
