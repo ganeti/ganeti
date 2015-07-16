@@ -661,39 +661,42 @@ checkSingleStep force ini_tbl target cur_tbl move =
 possibleMoves :: MirrorType -- ^ The mirroring type of the instance
               -> Bool       -- ^ Whether the secondary node is a valid new node
               -> Bool       -- ^ Whether we can change the primary node
+              -> Bool       -- ^ Whether we alowed to move disks
               -> (Bool, Bool) -- ^ Whether migration is restricted and whether
                               -- the instance primary is offline
               -> Ndx        -- ^ Target node candidate
               -> [IMove]    -- ^ List of valid result moves
 
-possibleMoves MirrorNone _ _ _ _ = []
+possibleMoves MirrorNone _ _ _ _ _ = []
 
-possibleMoves MirrorExternal _ False _  _ = []
+possibleMoves MirrorExternal _ False _ _ _ = []
 
-possibleMoves MirrorExternal _ True _ tdx =
+possibleMoves MirrorExternal _ True _ _ tdx =
   [ FailoverToAny tdx ]
 
-possibleMoves MirrorInternal _ False _ tdx =
+possibleMoves MirrorInternal _ _ False _ _ = []
+
+possibleMoves MirrorInternal _ False True _ tdx =
   [ ReplaceSecondary tdx ]
 
-possibleMoves MirrorInternal _ _ (True, False) tdx =
+possibleMoves MirrorInternal _ _ True (True, False) tdx =
   [ ReplaceSecondary tdx
   ]
 
-possibleMoves MirrorInternal True True (False, _) tdx =
+possibleMoves MirrorInternal True True True (False, _) tdx =
   [ ReplaceSecondary tdx
   , ReplaceAndFailover tdx
   , ReplacePrimary tdx
   , FailoverAndReplace tdx
   ]
 
-possibleMoves MirrorInternal True True (True, True) tdx =
+possibleMoves MirrorInternal True True True (True, True) tdx =
   [ ReplaceSecondary tdx
   , ReplaceAndFailover tdx
   , FailoverAndReplace tdx
   ]
 
-possibleMoves MirrorInternal False True _ tdx =
+possibleMoves MirrorInternal False True True _ tdx =
   [ ReplaceSecondary tdx
   , ReplaceAndFailover tdx
   ]
@@ -723,12 +726,8 @@ checkInstanceMove opts nodes_idx ini_tbl@(Table nl _ _ _) target =
       primary_drained = Node.offline
                         . flip Container.find nl
                         $ Instance.pNode target
-      all_moves =
-        if disk_moves
-          then concatMap (possibleMoves mir_type use_secondary inst_moves
-                          (rest_mig, primary_drained))
-               nodes
-          else []
+      all_moves = concatMap (possibleMoves mir_type use_secondary inst_moves
+                             disk_moves (rest_mig, primary_drained)) nodes
     in
       -- iterate over the possible nodes for this instance
       foldl' (checkSingleStep force ini_tbl target) aft_failover all_moves

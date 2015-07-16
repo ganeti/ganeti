@@ -162,54 +162,24 @@ kernels. For KVM no reboot should be necessary.
 Xen settings
 ~~~~~~~~~~~~
 
-It's recommended that dom0 is restricted to a low amount of memory
-(512MiB or 1GiB is reasonable) and that memory ballooning is disabled in
-the file ``/etc/xen/xend-config.sxp`` by setting the value
-``dom0-min-mem`` to 0, like this::
+Depending on which toolstack you are using, the hypervisor parameter
+``xen_cmd`` has to be set to the matching value, either ``xm`` or
+``xl``.
 
-  (dom0-min-mem 0)
+Some useful best practices for Xen are to restrict the amount of memory
+dom0 has available, and pin the dom0 to a limited number of CPUs.
+Instructions for how to achieve this for various toolstacks can be found
+on the Xen wiki_.
 
-For optimum performance when running both CPU and I/O intensive
-instances, it's also recommended that the dom0 is restricted to one CPU
-only. For example you can add ``dom0_max_vcpus=1,dom0_vcpus_pin`` to your
-kernels boot command line and set ``dom0-cpus`` in
-``/etc/xen/xend-config.sxp`` like this::
+.. _wiki: http://wiki.xenproject.org/wiki/Xen_Project_Best_Practices
 
-  (dom0-cpus 1)
-
-It is recommended that you disable xen's automatic save of virtual
+It is recommended that you disable Xen's automatic save of virtual
 machines at system shutdown and subsequent restore of them at reboot.
 To obtain this make sure the variable ``XENDOMAINS_SAVE`` in the file
 ``/etc/default/xendomains`` is set to an empty value.
 
-If you want to use live migration make sure you have, in the xen config
-file, something that allows the nodes to migrate instances between each
-other. For example:
-
-.. code-block:: text
-
-  (xend-relocation-server yes)
-  (xend-relocation-port 8002)
-  (xend-relocation-address '')
-  (xend-relocation-hosts-allow '^192\\.0\\.2\\.[0-9]+$')
-
-
-The second line assumes that the hypervisor parameter
-``migration_port`` is set 8002, otherwise modify it to match. The last
-line assumes that all your nodes have secondary IPs in the
-192.0.2.0/24 network, adjust it accordingly to your setup.
-
-If you want to run HVM instances too with Ganeti and want VNC access to
-the console of your instances, set the following two entries in
-``/etc/xen/xend-config.sxp``:
-
-.. code-block:: text
-
-  (vnc-listen '0.0.0.0') (vncpasswd '')
-
-You need to restart the Xen daemon for these settings to take effect::
-
-  $ /etc/init.d/xend restart
+You may need to restart the Xen daemon for some of these settings to
+take effect. The best way to do this depends on your distribution.
 
 Selecting the instance kernel
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
