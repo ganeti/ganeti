@@ -46,6 +46,37 @@ This was the second beta release in the 2.15 series. All important changes
 are listed in the latest 2.15 entry.
 
 
+Version 2.14.1
+--------------
+
+*(Released Fri, 10 Jul 2015)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The SSH security changes reduced the number of nodes which can SSH into
+  other nodes. Unfortunately enough, the Ganeti implementation of migration
+  for the xl stack of Xen required SSH to be able to migrate the instance,
+  leading to a situation where full movement of an instance around the cluster
+  was not possible. This version fixes the issue by using socat to transfer
+  instance data. While socat is less secure than SSH, it is about as secure as
+  xm migrations, and occurs over the secondary network if present. As a
+  consequence of this change, Xen instance migrations using xl cannot occur
+  between nodes running 2.14.0 and 2.14.1.
+- This release contains a fix for the problem that different encodings in
+  SSL certificates can break RPC communication (issue 1094). The fix makes
+  it necessary to rerun 'gnt-cluster renew-crypto --new-node-certificates'
+  after the cluster is fully upgraded to 2.14.1
+
+Other Changes
+~~~~~~~~~~~~~
+
+- The ``htools`` now properly work also on shared-storage clusters.
+- Instance moves now work properly also for the plain disk template.
+- Filter-evaluation for run-time data filter was fixed (issue 1100).
+- Various improvements to the documentation have been added.
+
+
 Version 2.14.0
 --------------
 
@@ -163,6 +194,40 @@ This was the first beta release of the 2.14 series. All important changes
 are listed in the latest 2.14 entry.
 
 
+Version 2.13.2
+--------------
+
+*(Released Mon, 13 Jul 2015)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- This release contains a fix for the problem that different encodings in
+  SSL certificates can break RPC communication (issue 1094). The fix makes
+  it necessary to rerun 'gnt-cluster renew-crypto --new-node-certificates'
+  after the cluster is fully upgraded to 2.13.2
+
+Other fixes and known issues
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Inherited from 2.12:
+
+- Fixed Issue #1115: Race between starting WConfD and updating the config
+- Fixed Issue #1114: Binding RAPI to a specific IP makes the watcher
+  restart the RAPI
+- Fixed Issue #1100: Filter-evaluation for run-time data filter
+- Better handling of the "crashed" Xen state
+- The watcher can be instructed to skip disk verification
+- Reduce amount of logging on successful requests
+- Prevent multiple communication NICs being created for instances
+- The ``htools`` now properly work also on shared-storage clusters
+- Instance moves now work properly also for the plain disk template
+- Various improvements to the documentation have been added
+
+Known issues:
+- Issue #1104: gnt-backup: dh key too small
+
+
 Version 2.13.1
 --------------
 
@@ -276,6 +341,75 @@ Fixes inherited from the 2.12 branch:
 - Refuse to demote master from master capability (issue 1023)
 
 
+Version 2.13.0 rc1
+------------------
+
+*(Released Wed, 25 Mar 2015)*
+
+This was the first release candidate of the 2.13 series.
+All important changes are listed in the latest 2.13 entry.
+
+Since 2.13.0 beta1
+~~~~~~~~~~~~~~~~~~
+
+The following issues have been fixed:
+
+- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start
+
+
+Version 2.13.0 beta1
+--------------------
+
+*(Released Wed, 14 Jan 2015)*
+
+This was the first beta release of the 2.13 series. All important changes
+are listed in the latest 2.13 entry.
+
+
+Version 2.12.5
+--------------
+
+*(Released Mon, 13 Jul 2015)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- This release contains a fix for the problem that different encodings in
+  SSL certificates can break RPC communication (issue 1094). The fix makes
+  it necessary to rerun 'gnt-cluster renew-crypto --new-node-certificates'
+  after the cluster is fully upgraded to 2.12.5.
+
+Fixed and improvements
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Fixed Issue #1030: GlusterFS support breaks at upgrade to 2.12 -
+  switches back to shared-file
+- Fixed Issue #1094 (see the notice in Incompatible/important changes):
+  Differences in encodings of SSL certificates can render a cluster
+  uncommunicative after a master-failover
+- Fixed Issue #1098: Support for ECDSA SSH keys
+- Fixed Issue #1100: Filter-evaluation for run-time data filter
+- Fixed Issue #1101: Modifying the storage directory for the shared-file
+  disk template doesn't work
+- Fixed Issue #1108: Spurious "NIC name already used" errors during
+  instance creation
+- Fixed Issue #1114: Binding RAPI to a specific IP makes the watcher
+  restart the RAPI
+- Fixed Issue #1115: Race between starting WConfD and updating the config
+- Better handling of the "crashed" Xen state
+- The ``htools`` now properly work also on shared-storage clusters
+- Various improvements to the documentation have been added
+
+Inherited from the 2.11 branch:
+
+- Fixed Issue #1113: Reduce amount of logging on successful requests
+
+Known issues
+~~~~~~~~~~~~
+
+- Issue #1104: gnt-backup: dh key too small
+
+
 Version 2.12.4
 --------------
 
@@ -300,31 +434,6 @@ Pending since 2.12.2:
   migration (issue #1050)
 - GlusterFS support breaks at upgrade to 2.12 - switches back to
   shared-file (issue #1030)
-
-
-Version 2.13.0 rc1
-------------------
-
-*(Released Wed, 25 Mar 2015)*
-
-This was the first release candidate of the 2.13 series.
-All important changes are listed in the latest 2.13 entry.
-
-Since 2.13.0 beta1
-~~~~~~~~~~~~~~~~~~
-
-The following issues have been fixed:
-
-- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start
-
-
-Version 2.13.0 beta1
---------------------
-
-*(Released Wed, 14 Jan 2015)*
-
-This was the first beta release of the 2.13 series. All important changes
-are listed in the latest 2.13 entry.
 
 
 Version 2.12.3
