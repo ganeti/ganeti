@@ -149,6 +149,50 @@ Fixes inherited from the 2.12 branch:
 - Refuse to demote master from master capability (issue 1023)
 
 
+Version 2.12.5
+--------------
+
+*(Released Mon, 13 Jul 2015)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- This release contains a fix for the problem that different encodings in
+  SSL certificates can break RPC communication (issue 1094). The fix makes
+  it necessary to rerun 'gnt-cluster renew-crypto --new-node-certificates'
+  after the cluster is fully upgraded to 2.12.5.
+
+Fixed and improvements
+~~~~~~~~~~~~~~~~~~~~~~
+
+- Fixed Issue #1030: GlusterFS support breaks at upgrade to 2.12 -
+  switches back to shared-file
+- Fixed Issue #1094 (see the notice in Incompatible/important changes):
+  Differences in encodings of SSL certificates can render a cluster
+  uncommunicative after a master-failover
+- Fixed Issue #1098: Support for ECDSA SSH keys
+- Fixed Issue #1100: Filter-evaluation for run-time data filter
+- Fixed Issue #1101: Modifying the storage directory for the shared-file
+  disk template doesn't work
+- Fixed Issue #1108: Spurious "NIC name already used" errors during
+  instance creation
+- Fixed Issue #1114: Binding RAPI to a specific IP makes the watcher
+  restart the RAPI
+- Fixed Issue #1115: Race between starting WConfD and updating the config
+- Better handling of the "crashed" Xen state
+- The ``htools`` now properly work also on shared-storage clusters
+- Various improvements to the documentation have been added
+
+Inherited from the 2.11 branch:
+
+- Fixed Issue #1113: Reduce amount of logging on successful requests
+
+Known issues
+~~~~~~~~~~~~
+
+- Issue #1104: gnt-backup: dh key too small
+
+
 Version 2.12.4
 --------------
 
