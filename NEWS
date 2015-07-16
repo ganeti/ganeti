@@ -149,6 +149,31 @@ Fixes inherited from the 2.12 branch:
 - Refuse to demote master from master capability (issue 1023)
 
 
+Version 2.13.0 rc1
+------------------
+
+*(Released Wed, 25 Mar 2015)*
+
+This was the first release candidate of the 2.13 series.
+All important changes are listed in the latest 2.13 entry.
+
+Since 2.13.0 beta1
+~~~~~~~~~~~~~~~~~~
+
+The following issues have been fixed:
+
+- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start
+
+
+Version 2.13.0 beta1
+--------------------
+
+*(Released Wed, 14 Jan 2015)*
+
+This was the first beta release of the 2.13 series. All important changes
+are listed in the latest 2.13 entry.
+
+
 Version 2.12.5
 --------------
 
@@ -217,31 +242,6 @@ Pending since 2.12.2:
   migration (issue #1050)
 - GlusterFS support breaks at upgrade to 2.12 - switches back to
   shared-file (issue #1030)
-
-
-Version 2.13.0 rc1
-------------------
-
-*(Released Wed, 25 Mar 2015)*
-
-This was the first release candidate of the 2.13 series.
-All important changes are listed in the latest 2.13 entry.
-
-Since 2.13.0 beta1
-~~~~~~~~~~~~~~~~~~
-
-The following issues have been fixed:
-
-- Issue 1018: Cluster init (and possibly other jobs) occasionally fail to start
-
-
-Version 2.13.0 beta1
---------------------
-
-*(Released Wed, 14 Jan 2015)*
-
-This was the first beta release of the 2.13 series. All important changes
-are listed in the latest 2.13 entry.
 
 
 Version 2.12.3
