@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, FlexibleContexts #-}
 
 {-| The Ganeti WConfd client functions.
 
@@ -39,13 +39,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.WConfd.Client where
 
 import Control.Exception.Lifted (bracket)
+import Control.Monad (unless)
+import Control.Monad.Base
+import Control.Monad.Error (MonadError)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Trans.Control (MonadBaseControl)
 
 import Ganeti.THH.HsRPC
 import Ganeti.Constants
+import Ganeti.Errors (GanetiException)
 import Ganeti.JSON (unMaybeForJSON)
 import Ganeti.Locking.Locks (ClientId)
 import Ganeti.Objects (ConfigData)
-import Ganeti.UDSServer (ConnectConfig(..), Client, connectClient)
+import qualified Ganeti.Path as Path
+import Ganeti.THH.HsRPC
+import Ganeti.UDSServer (ConnectConfig(..), Client, connectClient, closeClient)
 import Ganeti.WConfd.Core (exportedFunctions)
 
 -- * Generated client functions
@@ -64,6 +72,15 @@ wconfdConnectConfig = ConnectConfig { recvTmo    = wconfdDefRwto
 -- configuration and timeout.
 getWConfdClient :: FilePath -> IO Client
 getWConfdClient = connectClient wconfdConnectConfig wconfdDefCtmo
+
+-- | Run an Rpc with a fresh client.
+runNewWConfdClient :: ( MonadBase IO m, MonadBaseControl IO m
+                      ,  MonadError GanetiException m )
+                   => RpcClientMonad a -> m a
+runNewWConfdClient request =
+  bracket (liftBase (Path.defaultWConfdSocket >>= getWConfdClient))
+          (liftBase . closeClient)
+    $ runRpcClient request
 
 -- * Helper functions for getting a remote lock
 
