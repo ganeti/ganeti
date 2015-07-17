@@ -36,15 +36,12 @@ import os.path
 import optparse
 import sys
 import logging
-import OpenSSL
-from cStringIO import StringIO
 
 from ganeti import cli
 from ganeti import constants
 from ganeti import errors
 from ganeti import pathutils
 from ganeti import utils
-from ganeti import serializer
 from ganeti import runtime
 from ganeti import ht
 from ganeti import ssconf
@@ -93,87 +90,6 @@ def VerifyOptions(parser, opts, args):
   return opts
 
 
-def _VerifyCertificate(cert_pem, _check_fn=utils.CheckNodeCertificate):
-  """Verifies a certificate against the local node daemon certificate.
-
-  @type cert_pem: string
-  @param cert_pem: Certificate and key in PEM format
-  @rtype: string
-  @return: Formatted key and certificate
-
-  """
-  try:
-    cert = \
-      OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-  except Exception, err:
-    raise errors.X509CertError("(stdin)",
-                               "Unable to load certificate: %s" % err)
-
-  try:
-    key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, cert_pem)
-  except OpenSSL.crypto.Error, err:
-    raise errors.X509CertError("(stdin)",
-                               "Unable to load private key: %s" % err)
-
-  # Check certificate with given key; this detects cases where the key given on
-  # stdin doesn't match the certificate also given on stdin
-  try:
-    utils.X509CertKeyCheck(cert, key)
-  except OpenSSL.SSL.Error:
-    raise errors.X509CertError("(stdin)",
-                               "Certificate is not signed with given key")
-
-  # Standard checks, including check against an existing local certificate
-  # (no-op if that doesn't exist)
-  _check_fn(cert)
-
-  key_encoded = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM, key)
-  cert_encoded = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
-                                                 cert)
-  complete_cert_encoded = key_encoded + cert_encoded
-  if not cert_pem == complete_cert_encoded:
-    logging.error("The certificate differs after being reencoded. Please"
-                  " renew the certificates cluster-wide to prevent future"
-                  " inconsistencies.")
-
-  # Format for storing on disk
-  buf = StringIO()
-  buf.write(cert_pem)
-  return buf.getvalue()
-
-
-def VerifyCertificate(data, _verify_fn=_VerifyCertificate):
-  """Verifies cluster certificate.
-
-  @type data: dict
-  @rtype: string
-  @return: Formatted key and certificate
-
-  """
-  cert = data.get(constants.NDS_NODE_DAEMON_CERTIFICATE)
-  if not cert:
-    raise SetupError("Node daemon certificate must be specified")
-
-  return _verify_fn(cert)
-
-
-def VerifyClusterName(data, _verify_fn=ssconf.VerifyClusterName):
-  """Verifies cluster name.
-
-  @type data: dict
-  @rtype: string
-  @return: Cluster name
-
-  """
-  name = data.get(constants.NDS_CLUSTER_NAME)
-  if not name:
-    raise SetupError("Cluster name must be specified")
-
-  _verify_fn(name)
-
-  return name
-
-
 def VerifySsconf(data, cluster_name, _verify_fn=ssconf.VerifyKeys):
   """Verifies ssconf names.
 
@@ -195,15 +111,6 @@ def VerifySsconf(data, cluster_name, _verify_fn=ssconf.VerifyKeys):
   return items
 
 
-def LoadData(raw):
-  """Parses and verifies input data.
-
-  @rtype: dict
-
-  """
-  return serializer.LoadAndVerifyJson(raw, _DATA_CHECK)
-
-
 def Main():
   """Main routine.
 
@@ -215,10 +122,11 @@ def Main():
   try:
     getent = runtime.GetEnts()
 
-    data = LoadData(sys.stdin.read())
+    data = common.LoadData(sys.stdin.read(), SetupError)
 
-    cluster_name = VerifyClusterName(data)
-    cert_pem = VerifyCertificate(data)
+    cluster_name = common.VerifyClusterName(data, SetupError,
+                                            constants.NDS_CLUSTER_NAME)
+    cert_pem = common.VerifyCertificateStrong(data, SetupError)
     ssdata = VerifySsconf(data, cluster_name)
 
     logging.info("Writing ssconf files ...")
