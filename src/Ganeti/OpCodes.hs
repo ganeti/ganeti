@@ -261,6 +261,8 @@ $(genOpCode "OpCode"
      , pEnabledDataCollectors
      , pDataCollectorInterval
      , pMaintdRoundDelay
+     , pMaintdEnableBalancing
+     , pMaintdBalancingThreshold
      ],
      [])
   , ("OpClusterRedistConf",

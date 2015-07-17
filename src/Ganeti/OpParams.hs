@@ -298,6 +298,8 @@ module Ganeti.OpParams
   , pAdminStateSource
   , pEnabledDataCollectors
   , pMaintdRoundDelay
+  , pMaintdEnableBalancing
+  , pMaintdBalancingThreshold
   , pDataCollectorInterval
   , pNodeSslCerts
   , pSshKeys
@@ -1895,6 +1897,18 @@ pMaintdRoundDelay =
   withDoc "Minimal delay between rounds of the maintenance daemon"
   . optionalField
   $ simpleField "maint_round_delay" [t| Int |]
+
+pMaintdEnableBalancing :: Field
+pMaintdEnableBalancing =
+  withDoc "Whether the maintenance daemon should also keep the cluster balanced"
+  . optionalField
+  $ simpleField "maint_balance" [t| Bool |]
+
+pMaintdBalancingThreshold :: Field
+pMaintdBalancingThreshold =
+  withDoc "Minimal gain per balancing step by the maintenance daemon"
+  . optionalField
+  $ simpleField "maint_balance_threshold" [t| Double |]
 
 pNodeSslCerts :: Field
 pNodeSslCerts =

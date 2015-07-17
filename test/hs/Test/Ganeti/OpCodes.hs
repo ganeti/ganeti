@@ -252,6 +252,8 @@ instance Arbitrary OpCodes.OpCode where
           <*> genMaybe arbitraryDataCollector   -- enabled_data_collectors
           <*> arbitraryDataCollectorInterval   -- data_collector_interval
           <*> genMaybe (fromPositive <$> arbitrary) -- maintd round interval
+          <*> genMaybe arbitrary           -- enable maintd balancing
+          <*> genMaybe arbitrary           -- maintd balancing threshold
       "OP_CLUSTER_REDIST_CONF" -> pure OpCodes.OpClusterRedistConf
       "OP_CLUSTER_ACTIVATE_MASTER_IP" ->
         pure OpCodes.OpClusterActivateMasterIp

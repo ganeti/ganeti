@@ -272,6 +272,10 @@ handleCall _ _ cdata QueryClusterInfo =
                         $ clusterDataCollectors cluster)
             , ("maint_round_delay",
                showJSON . maintRoundDelay $ configMaintenance  cdata)
+            , ("maint_balance",
+               showJSON . maintBalance $ configMaintenance cdata)
+            , ("maint_balance_threshold",
+               showJSON . maintBalanceThreshold $ configMaintenance cdata)
             ]
 
   in case master of
