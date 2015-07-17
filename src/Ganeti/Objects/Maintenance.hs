@@ -47,6 +47,9 @@ $(buildObject "MaintenanceData" "maint" $
   [ defaultField [| C.maintdDefaultRoundDelay |]
     $ simpleField "roundDelay" [t| Int |]
   , defaultField [| [] |] $ simpleField "jobs" [t| [ JobId ] |]
+  , defaultField [| False |] $ simpleField "balance" [t| Bool |]
+  , defaultField [| 0.1 :: Double |]
+    $ simpleField "balanceThreshold" [t| Double |]
   ]
   ++ timeStampFields
   ++ serialFields)
