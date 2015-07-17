@@ -127,14 +127,16 @@ maintenance memstate = do
             . tryIOError $ L.getLuxiClient luxiSocket)
           (liftIO . L.closeClient)
           $ void . mkResultT . waitForJobs oldjobs
-  liftIO $ clearJobs memstate
+  unless (null oldjobs)
+    . liftIO $ clearJobs memstate
   logDebug "New round of maintenance started"
   cData <- loadClusterData
   let il = cdInstances cData
       nl = cdNodes cData
       nidxs = Set.fromList $ Container.keys nl
   (nidxs', jobs) <- harepTasks (nl, il) nidxs
-  liftIO $ appendJobs memstate jobs
+  unless (null oldjobs)
+   . liftIO $ appendJobs memstate jobs
   logDebug $ "Unaffected nodes " ++ show (Set.toList nidxs')
              ++ ", jobs submitted " ++ show (map fromJobId jobs)
 
