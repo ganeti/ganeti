@@ -60,6 +60,9 @@ def _VerifyCertificateStrong(cert_pem, error_fn,
                              _check_fn=utils.CheckNodeCertificate):
   """Verifies a certificate against the local node daemon certificate.
 
+  Includes elaborate tests of encodings etc., and returns formatted
+  certificate.
+
   @type cert_pem: string
   @param cert_pem: Certificate and key in PEM format
   @type error_fn: callable
