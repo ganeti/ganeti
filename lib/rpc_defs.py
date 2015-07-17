@@ -537,7 +537,6 @@ _NODE_CALLS = [
     ("node_uuid", None, "UUID of the node whose key is distributed"),
     ("node_name", None, "Name of the node whose key is distributed"),
     ("potential_master_candidates", None, "Potential master candidates"),
-    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
     ("to_authorized_keys", None, "Whether the node's key should be added"
      " to all nodes' 'authorized_keys' file"),
     ("to_public_keys", None, "Whether the node's key should be added"
@@ -550,7 +549,6 @@ _NODE_CALLS = [
     ("node_name", None, "Name of the node whose key is removed"),
     ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
     ("potential_master_candidates", None, "Potential master candidates"),
-    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
     ("from_authorized_keys", None,
      "If the key should be removed from the 'authorized_keys' file."),
     ("from_public_keys", None,
@@ -563,7 +561,6 @@ _NODE_CALLS = [
   ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_SLOW, [
     ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),
     ("node_names", None, "Names of the nodes whose key is renewed"),
-    ("ssh_port_map", None, "Map of nodes' SSH ports to be used for transfers"),
     ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
     ("potential_master_candidates", None, "Potential master candidates")],
     None, None, "Renew all SSH key pairs of all nodes nodes."),

@@ -175,13 +175,12 @@ class LUClusterRenewCrypto(NoHooksLU):
                         in nodes.items() if not node_info.offline]
     node_names = [name for (_, name) in nodes_uuid_names]
     node_uuids = [uuid for (uuid, _) in nodes_uuid_names]
-    port_map = ssh.GetSshPortMap(node_names, self.cfg)
     potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
     master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
 
     result = self.rpc.call_node_ssh_keys_renew(
       [master_uuid],
-      node_uuids, node_names, port_map,
+      node_uuids, node_names,
       master_candidate_uuids,
       potential_master_candidates)
 

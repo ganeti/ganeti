@@ -1067,28 +1067,6 @@ def RunSshCmdWithStdin(cluster_name, node, basecmd, port, data,
                              (result.cmd, result.fail_reason))
 
 
-def GetSshPortMap(nodes, cfg):
-  """Retrieves SSH ports of given nodes from the config.
-
-  @param nodes: the names of nodes
-  @type nodes: a list of strings
-  @param cfg: a configuration object
-  @type cfg: L{ConfigWriter}
-  @return: a map from node names to ssh ports
-  @rtype: a dict from str to int
-
-  """
-  node_port_map = {}
-  node_groups = dict(map(lambda n: (n.name, n.group),
-                         cfg.GetAllNodesInfo().values()))
-  group_port_map = cfg.GetGroupSshPorts()
-  for node in nodes:
-    group_uuid = node_groups.get(node)
-    ssh_port = group_port_map.get(group_uuid)
-    node_port_map[node] = ssh_port
-  return node_port_map
-
-
 def ReadRemoteSshPubKeys(pub_key_file, node, cluster_name, port, ask_key,
                          strict_host_check):
   """Fetches the public DSA SSH key from a node via SSH.
