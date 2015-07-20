@@ -687,6 +687,27 @@ appendMaintdJobs jobs = do
     (\_ cs -> return . addJobs $ cs)
     (return ())
 
+-- | Set the autobalance flag.
+setMaintdBalance :: Bool -> WConfdMonad Bool
+setMaintdBalance value = do
+  now <- liftIO getClockTime
+  let setFlag = over (csConfigDataL . configMaintenanceL)
+                  $ (serialL +~ 1) . (mTimeL .~ now) . (maintBalanceL .~ value)
+  liftM isJust $ modifyConfigWithLock
+    (\_ cs -> return . setFlag $ cs)
+    (return ())
+
+-- | Set the auto-balance threshold.
+setMaintdBalanceThreshold :: Double -> WConfdMonad Bool
+setMaintdBalanceThreshold value = do
+  now <- liftIO getClockTime
+  let setValue = over (csConfigDataL . configMaintenanceL)
+                   $ (serialL +~ 1) . (mTimeL .~ now)
+                     . (maintBalanceThresholdL .~ value)
+  liftM isJust $ modifyConfigWithLock
+    (\_ cs -> return . setValue $ cs)
+    (return ())
+
 -- * The list of functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -709,4 +730,6 @@ exportedFunctions = [ 'addInstance
                     , 'setMaintdRoundDelay
                     , 'clearMaintdJobs
                     , 'appendMaintdJobs
+                    , 'setMaintdBalance
+                    , 'setMaintdBalanceThreshold
                     ]
