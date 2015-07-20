@@ -3388,6 +3388,16 @@ class ConfigWriter(object):
     utils.SimpleRetry(True, self._wconfd.SetMaintdRoundDelay, 0.1, 30,
                       args=[delay])
 
+  def SetMaintdBalance(self, flag):
+    """Enable/disable auto-balancing by the maintenance daemon"""
+    utils.SimpleRetry(True, self._wconfd.SetMaintdBalance, 0.1, 30,
+                      args=[flag])
+
+  def SetMaintdBalanceThreshold(self, score):
+    """Set the minimal score improvement per move for balancing steps"""
+    utils.SimpleRetry(True, self._wconfd.SetMaintdBalanceThreshold, 0.1, 30,
+                      args=[score])
+
 
 class DetachedConfig(ConfigWriter):
   """Read-only snapshot of the config."""

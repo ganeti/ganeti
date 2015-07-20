@@ -1797,6 +1797,12 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.maint_round_delay is not None:
       self.cfg.SetMaintdRoundDelay(self.op.maint_round_delay)
 
+    if self.op.maint_balance is not None:
+      self.cfg.SetMaintdBalance(self.op.maint_balance)
+
+    if self.op.maint_balance_threshold is not None:
+      self.cfg.SetMaintdBalanceThreshold(self.op.maint_balance_threshold)
+
     network_name = self.op.instance_communication_network
     if network_name is not None:
       return self._ModifyInstanceCommunicationNetwork(self.cfg,
