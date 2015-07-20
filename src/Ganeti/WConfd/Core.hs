@@ -63,6 +63,7 @@ import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock, BGL)
 import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Objects ( ConfigData, DRBDSecret, LogicalVolume, Ip4Address
                       , configMaintenance, maintRoundDelay, maintJobs
+                      , maintBalance, maintBalanceThreshold
                       )
 import Ganeti.Objects.Lens (configClusterL, clusterMasterNodeL)
 import Ganeti.Types (JobId)
@@ -167,6 +168,11 @@ maintenanceRoundDelay = liftM ( maintRoundDelay . configMaintenance )
 -- | Get the list of jobs in the state of the maintenance daemon.
 maintenanceJobs :: WConfdMonad [JobId]
 maintenanceJobs = liftM ( maintJobs . configMaintenance ) CW.readConfig
+
+-- | Get the information related to balancing for the maintenance daemon.
+maintenanceBalancing :: WConfdMonad (Bool, Double)
+maintenanceBalancing = liftM ((maintBalance &&& maintBalanceThreshold)
+                              . configMaintenance) CW.readConfig
 
 -- ** Temporary reservations related functions
 
@@ -400,6 +406,7 @@ exportedFunctions = [ 'echo
                     , 'flushConfig
                     , 'maintenanceRoundDelay
                     , 'maintenanceJobs
+                    , 'maintenanceBalancing
                     -- temporary reservations (common)
                     , 'dropAllReservations
                     -- DRBD
