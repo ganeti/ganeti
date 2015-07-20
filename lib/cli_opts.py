@@ -135,6 +135,8 @@ __all__ = [
   "IPOLICY_VCPU_RATIO",
   "LONG_SLEEP_OPT",
   "MAC_PREFIX_OPT",
+  "MAINT_BALANCE_OPT",
+  "MAINT_BALANCE_THRESHOLD_OPT",
   "MAINT_INTERVAL_OPT",
   "MAINTAIN_NODE_HEALTH_OPT",
   "MASTER_NETDEV_OPT",
@@ -1101,6 +1103,16 @@ MAINT_INTERVAL_OPT = \
   cli_option("--maintenance-interval", dest="maint_round_delay", type="int",
              default=None, help="Minimal time in seconds, the maintenance"
              " daemon waits between rounds")
+
+MAINT_BALANCE_OPT = \
+  cli_option("--auto-balance-cluster", dest="maint_balance", type="bool",
+             default=None, metavar=_YORNO, help="Whether the maintenance"
+             " daemon should balance the cluster")
+
+MAINT_BALANCE_THRESHOLD_OPT = \
+  cli_option("--auto-balance-threshold", dest="maint_balance_threshold",
+             type="float", default=None, metavar="CLUSTERSCORE",
+             help="Minimal gain for an auto-balancing step to be taken")
 
 VG_NAME_OPT = cli_option("--vg-name", dest="vg_name",
                          help=("Enables LVM and specifies the volume group"

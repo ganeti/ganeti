@@ -1361,6 +1361,8 @@ def SetClusterParams(opts, args):
           opts.shared_file_storage_dir is not None or
           opts.enabled_user_shutdown is not None or
           opts.maint_round_delay is not None or
+          opts.maint_balance is not None or
+          opts.maint_balance_threshold is not None or
           opts.data_collector_interval or
           opts.enabled_data_collectors):
     ToStderr("Please give at least one of the parameters.")
@@ -1507,6 +1509,8 @@ def SetClusterParams(opts, args):
     compression_tools=compression_tools,
     enabled_user_shutdown=opts.enabled_user_shutdown,
     maint_round_delay=opts.maint_round_delay,
+    maint_balance=opts.maint_balance,
+    maint_balance_threshold=opts.maint_balance_threshold,
     enabled_data_collectors=enabled_data_collectors,
     data_collector_interval=data_collector_interval,
     )
@@ -2498,7 +2502,7 @@ commands = {
      [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
       COMPRESSION_TOOLS_OPT] +
      [ENABLED_DATA_COLLECTORS_OPT, DATA_COLLECTOR_INTERVAL_OPT,
-      MAINT_INTERVAL_OPT],
+      MAINT_INTERVAL_OPT, MAINT_BALANCE_OPT, MAINT_BALANCE_THRESHOLD_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
   "renew-crypto": (
