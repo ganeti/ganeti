@@ -2981,8 +2981,8 @@ class TLReplaceDisks(Tasklet):
       if msg:
         raise errors.OpExecError(
           "Can't attach drbd disks on node %s: %s (please do a gnt-instance "
-          "info to see the status of disks)" %
-          (self.cfg.GetNodeName(to_node), msg))
+          "info %s to see the status of disks)" %
+          (self.cfg.GetNodeName(to_node), msg, self.instance.name))
 
     cstep = itertools.count(5)
 
