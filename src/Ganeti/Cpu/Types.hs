@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Cpu.Types
   ( CPUstat(..)
   , CPUavgload(..)
+  , emptyCPUavgload
   ) where
 
 import Ganeti.THH
@@ -48,6 +49,14 @@ $(buildObject "CPUavgload" "cav"
   , simpleField "cpus"       [t| [Double] |]
   , simpleField "cpu_total"  [t| Double |]
   ])
+
+-- | CPU activity of an idle node. This can be used as a default
+-- value for offline nodes.
+emptyCPUavgload :: CPUavgload
+emptyCPUavgload = CPUavgload { cavCpuNumber = 1
+                             , cavCpus = [ 0.0 ]
+                             , cavCpuTotal = 0.0
+                             }
 
 -- | This is the format of the data parsed by the input file.
 $(buildObject "CPUstat" "cs"
