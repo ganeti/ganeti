@@ -2130,7 +2130,7 @@ class TLReplaceDisks(Tasklet):
                 (utils.CommaJoin(self.disks), self.instance.name))
     feedback_fn("Current primary node: %s" %
                 self.cfg.GetNodeName(self.instance.primary_node))
-    feedback_fn("Current seconary node: %s" %
+    feedback_fn("Current secondary node: %s" %
                 utils.CommaJoin(self.cfg.GetNodeNames(
                                   self.instance.secondary_nodes)))
 
