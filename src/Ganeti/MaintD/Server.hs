@@ -169,8 +169,9 @@ main _ _ httpConf = do
   memstate <- newIORef emptyMemoryState
   void . forkIO . forever $ do
     res <- runResultT $ maintenance memstate
-    logDebug $ "Maintenance round done, result is " ++ show res
+    (if isBad res then logInfo else logDebug)
+       $ "Maintenance round result is " ++ show res
     when (isBad res) $ do
-      logInfo "Backing off after a round with internal errors"
+      logDebug "Backing off after a round with internal errors"
       threadDelaySeconds C.maintdDefaultRoundDelay
   httpServe httpConf $ httpInterface memstate
