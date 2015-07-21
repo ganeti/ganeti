@@ -2,8 +2,8 @@ News
 ====
 
 
-Version 2.16.0
---------------
+Version 2.16.0 beta1
+--------------------
 
 *(unreleased)*
 
@@ -17,6 +17,15 @@ Incompatible/important changes
   be continued to be used.
 - ``htools`` now also take into account N+1 redundancy for plain and shared
   storage. To obtain the old behavior, add the ``--no-capacity-checks`` option.
+
+New features
+~~~~~~~~~~~~
+
+- ``hbal`` can now be made aware of common causes of failures (for
+  nodes). Look at ``hbal`` man page's LOCATION TAGS section for more details.
+- ``hbal`` can now be made aware of desired location for instances. Look
+  at ``hbal`` man page's DESIRED LOCATION TAGS section for more details.
+- Secret parameters are now readacted in job files
 
 New dependencies
 ~~~~~~~~~~~~~~~~
