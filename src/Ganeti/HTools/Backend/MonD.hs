@@ -41,6 +41,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.HTools.Backend.MonD
   ( queryAllMonDDCs
   , pMonDData
+  , Report(..)
+  , DataCollector
+  , dName
+  , fromCurl
+  , mkReport
+  , totalCPUCollector
+  , xenCPUCollector
   ) where
 
 import Control.Monad
