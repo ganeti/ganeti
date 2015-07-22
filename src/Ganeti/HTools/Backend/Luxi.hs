@@ -57,41 +57,6 @@ import Ganeti.JSON
 
 -- * Utility functions
 
--- | Get values behind \"data\" part of the result.
-getData :: (Monad m) => JSValue -> m JSValue
-getData (JSObject o) = fromObj (fromJSObject o) "data"
-getData x = fail $ "Invalid input, expected dict entry but got " ++ show x
-
--- | Converts a (status, value) into m value, if possible.
-parseQueryField :: (Monad m) => JSValue -> m (JSValue, JSValue)
-parseQueryField (JSArray [status, result]) = return (status, result)
-parseQueryField o =
-  fail $ "Invalid query field, expected (status, value) but got " ++ show o
-
--- | Parse a result row.
-parseQueryRow :: (Monad m) => JSValue -> m [(JSValue, JSValue)]
-parseQueryRow (JSArray arr) = mapM parseQueryField arr
-parseQueryRow o =
-  fail $ "Invalid query row result, expected array but got " ++ show o
-
--- | Parse an overall query result and get the [(status, value)] list
--- for each element queried.
-parseQueryResult :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
-parseQueryResult (JSArray arr) = mapM parseQueryRow arr
-parseQueryResult o =
-  fail $ "Invalid query result, expected array but got " ++ show o
-
--- | Prepare resulting output as parsers expect it.
-extractArray :: (Monad m) => JSValue -> m [[(JSValue, JSValue)]]
-extractArray v =
-  getData v >>= parseQueryResult
-
--- | Testing result status for more verbose error message.
-fromJValWithStatus :: (Text.JSON.JSON a, Monad m) => (JSValue, JSValue) -> m a
-fromJValWithStatus (st, v) = do
-  st' <- fromJVal st
-  Qlang.checkRS st' v >>= fromJVal
-
 annotateConvert :: String -> String -> String -> Result a -> Result a
 annotateConvert otype oname oattr =
   annotateResult $ otype ++ " '" ++ oname ++
@@ -106,7 +71,7 @@ genericConvert :: (Text.JSON.JSON a) =>
                -> (JSValue, JSValue) -- ^ The value we're trying to convert
                -> Result a           -- ^ The annotated result
 genericConvert otype oname oattr =
-  annotateConvert otype oname oattr . fromJValWithStatus
+  annotateConvert otype oname oattr . L.fromJValWithStatus
 
 convertArrayMaybe :: (Text.JSON.JSON a) =>
                   String             -- ^ The object type
@@ -172,7 +137,7 @@ queryGroups = liftM errToResult . L.callMethod queryGroupsMsg
 getInstances :: NameAssoc
              -> JSValue
              -> Result [(String, Instance.Instance)]
-getInstances ktn arr = extractArray arr >>= mapM (parseInstance ktn)
+getInstances ktn arr = L.extractArray arr >>= mapM (parseInstance ktn)
 
 -- | Construct an instance from a JSON object.
 parseInstance :: NameAssoc
@@ -182,7 +147,7 @@ parseInstance ktn [ name, disk, mem, vcpus
                   , status, pnode, snodes, tags, oram
                   , auto_balance, disk_template, su
                   , dsizes, dspindles, forthcoming ] = do
-  xname <- annotateResult "Parsing new instance" (fromJValWithStatus name)
+  xname <- annotateResult "Parsing new instance" (L.fromJValWithStatus name)
   let convert a = genericConvert "Instance" xname a
   xdisk <- convert "disk_usage" disk
   xmem <- case oram of -- FIXME: remove the "guessing"
@@ -212,7 +177,7 @@ parseInstance _ v = fail ("Invalid instance query result: " ++ show v)
 
 -- | Parse a node list in JSON format.
 getNodes :: NameAssoc -> JSValue -> Result [(String, Node.Node)]
-getNodes ktg arr = extractArray arr >>= mapM (parseNode ktg)
+getNodes ktg arr = L.extractArray arr >>= mapM (parseNode ktg)
 
 -- | Construct a node from a JSON object.
 parseNode :: NameAssoc -> [(JSValue, JSValue)] -> Result (String, Node.Node)
@@ -220,7 +185,7 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
               , ctotal, cnos, offline, drained, vm_capable, spindles, g_uuid
               , tags, excl_stor, sptotal, spfree, cpu_speed ]
     = do
-  xname <- annotateResult "Parsing new node" (fromJValWithStatus name)
+  xname <- annotateResult "Parsing new node" (L.fromJValWithStatus name)
   let convert a = genericConvert "Node" xname a
   xoffline <- convert "offline" offline
   xdrained <- convert "drained" drained
@@ -272,12 +237,12 @@ getClusterData _ = Bad "Cannot parse cluster info, not a JSON record"
 
 -- | Parses the cluster groups.
 getGroups :: JSValue -> Result [(String, Group.Group)]
-getGroups jsv = extractArray jsv >>= mapM parseGroup
+getGroups jsv = L.extractArray jsv >>= mapM parseGroup
 
 -- | Parses a given group information.
 parseGroup :: [(JSValue, JSValue)] -> Result (String, Group.Group)
 parseGroup [uuid, name, apol, ipol, tags] = do
-  xname <- annotateResult "Parsing new group" (fromJValWithStatus name)
+  xname <- annotateResult "Parsing new group" (L.fromJValWithStatus name)
   let convert a = genericConvert "Group" xname a
   xuuid <- convert "uuid" uuid
   xapol <- convert "alloc_policy" apol
