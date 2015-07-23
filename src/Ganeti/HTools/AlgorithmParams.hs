@@ -41,6 +41,8 @@ module Ganeti.HTools.AlgorithmParams
   , fromCLIOptions
   ) where
 
+import qualified Data.Set as Set
+
 import qualified Ganeti.HTools.CLI as CLI
 
 data AlgorithmOptions = AlgorithmOptions
@@ -58,6 +60,8 @@ data AlgorithmOptions = AlgorithmOptions
   , algCapacity :: Bool             -- ^ Whether to check capacity properties,
                                     -- like global N+1 redundancy
   , algRestrictToNodes :: Maybe [String] -- ^ nodes to restrict allocation to
+  , algAllowedNodes :: Maybe (Set.Set Int) -- ^ if given, do not perform any
+                                    -- operations involving other nodes
   }
 
 -- | Obtain the relevant algorithmic option from the commandline options
@@ -73,6 +77,7 @@ fromCLIOptions opts = AlgorithmOptions
   , algMinGainLimit = CLI.optMinGainLim opts
   , algCapacity = CLI.optCapacity opts
   , algRestrictToNodes = CLI.optRestrictToNodes opts
+  , algAllowedNodes = Nothing
   }
 
 -- | Default options for the balancing algorithm
