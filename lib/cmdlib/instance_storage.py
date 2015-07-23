@@ -2136,7 +2136,7 @@ class TLReplaceDisks(Tasklet):
                 (utils.CommaJoin(self.disks), self.instance.name))
     feedback_fn("Current primary node: %s" %
                 self.cfg.GetNodeName(self.instance.primary_node))
-    feedback_fn("Current seconary node: %s" %
+    feedback_fn("Current secondary node: %s" %
                 utils.CommaJoin(self.cfg.GetNodeNames(
                                   self.instance.secondary_nodes)))
 
@@ -2592,8 +2592,8 @@ class TLReplaceDisks(Tasklet):
       if msg:
         raise errors.OpExecError(
           "Can't attach drbd disks on node %s: %s (please do a gnt-instance "
-          "info to see the status of disks)" %
-          (self.cfg.GetNodeName(to_node), msg))
+          "info %s to see the status of disks)" %
+          (self.cfg.GetNodeName(to_node), msg, self.instance.name))
 
     cstep = itertools.count(5)
 
