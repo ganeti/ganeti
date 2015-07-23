@@ -58,6 +58,7 @@ module Ganeti.Utils
   , exitWhen
   , exitUnless
   , logWarningIfBad
+  , logAndBad
   , rStripSpace
   , newUUID
   , isUUID
@@ -354,6 +355,12 @@ logWarningIfBad msg defVal (Bad s) = do
   logWarning $ msg ++ ": " ++ s
   return defVal
 logWarningIfBad _ _ (Ok v) = return v
+
+-- | Log a message and return a Bad result.
+logAndBad :: String -> IO (Result a)
+logAndBad msg = do
+  logNotice msg
+  return $ Bad msg
 
 -- | Try an IO interaction, log errors and unfold as a 'Result'.
 tryAndLogIOError :: IO a -> String -> (a -> Result b) -> IO (Result b)

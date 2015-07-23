@@ -62,13 +62,7 @@ import Ganeti.MaintD.Utils (annotateOpCode)
 import Ganeti.OpCodes (OpCode(..))
 import qualified Ganeti.Path as Path
 import Ganeti.Types (JobId, JobStatus(..), TagKind(..), mkNonNegative)
-import Ganeti.Utils (newUUID)
-
--- | Log a message and return a Bad result.
-logAndBad :: String -> IO (Result a)
-logAndBad msg = do
-  logNotice msg
-  return $ Bad msg
+import Ganeti.Utils (newUUID, logAndBad)
 
 -- | Apply and remove tags form an instance indicated by `InstanceData`.
 commitChange :: L.Client
