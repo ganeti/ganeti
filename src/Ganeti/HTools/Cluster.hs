@@ -450,7 +450,7 @@ checkMove opts nodes_idx ini_tbl@(Table _ _ ini_cv _) victims =
 doNextBalance :: Table     -- ^ The starting table
               -> Int       -- ^ Remaining length
               -> Score     -- ^ Score at which to stop
-              -> Bool      -- ^ The resulting table and commands
+              -> Bool      -- ^ True if we can continue
 doNextBalance ini_tbl max_rounds min_score =
   let Table _ _ ini_cv ini_plc = ini_tbl
       ini_plc_len = length ini_plc
