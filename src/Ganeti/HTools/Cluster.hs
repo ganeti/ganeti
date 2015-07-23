@@ -86,6 +86,7 @@ import Control.Applicative ((<$>), liftA2)
 import Control.Arrow ((&&&))
 import Control.Monad (unless)
 import qualified Data.IntSet as IntSet
+import qualified Data.Set as Set
 import Data.List
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
 import Data.Ord (comparing)
@@ -476,7 +477,13 @@ tryBalance opts ini_tbl =
         reloc_inst = filter (\i -> Instance.movable i &&
                                    Instance.autoBalance i) all_inst'
         node_idx = map Node.idx online_nodes
-        fin_tbl = checkMove opts node_idx ini_tbl reloc_inst
+        allowed_node = maybe (const True) (flip Set.member)
+                         $ algAllowedNodes opts
+        good_nidx = filter allowed_node node_idx
+        allowed_inst = liftA2 (&&) (allowed_node . Instance.pNode)
+                         (liftA2 (||) allowed_node (< 0) . Instance.sNode)
+        good_reloc_inst = filter allowed_inst reloc_inst
+        fin_tbl = checkMove opts good_nidx ini_tbl good_reloc_inst
         (Table _ _ fin_cv _) = fin_tbl
     in
       if fin_cv < ini_cv && (ini_cv > mg_limit || ini_cv - fin_cv >= min_gain)
