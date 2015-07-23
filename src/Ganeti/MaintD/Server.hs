@@ -68,13 +68,15 @@ import Ganeti.Jobs (waitForJobs)
 import Ganeti.Logging.Lifted
 import qualified Ganeti.Luxi as L
 import Ganeti.MaintD.Autorepairs (harepTasks)
+import Ganeti.MaintD.Balance (balanceTask)
 import Ganeti.MaintD.MemoryState
 import qualified Ganeti.Path as Path
 import Ganeti.Runtime (GanetiDaemon(GanetiMaintd))
 import Ganeti.Types (JobId(..))
 import Ganeti.Utils (threadDelaySeconds)
 import Ganeti.Utils.Http (httpConfFromOpts, plainJSON, error404)
-import Ganeti.WConfd.Client (runNewWConfdClient, maintenanceRoundDelay)
+import Ganeti.WConfd.Client ( runNewWConfdClient, maintenanceRoundDelay
+                            , maintenanceBalancing)
 
 -- | Options list and functions.
 options :: [OptType]
@@ -137,8 +139,15 @@ maintenance memstate = do
   (nidxs', jobs) <- harepTasks (nl, il) nidxs
   unless (null oldjobs)
    . liftIO $ appendJobs memstate jobs
-  logDebug $ "Unaffected nodes " ++ show (Set.toList nidxs')
+  logDebug $ "Nodes unaffected by harep " ++ show (Set.toList nidxs')
              ++ ", jobs submitted " ++ show (map fromJobId jobs)
+  (bal, thresh) <- withErrorT show $ runNewWConfdClient maintenanceBalancing
+  when (bal && not (Set.null nidxs')) $ do
+    logDebug $ "Will balance unaffected nodes, threshold " ++ show thresh
+    jobs' <- balanceTask (nl, il) nidxs thresh
+    logDebug $ "Balancing jobs submitted: " ++ show (map fromJobId jobs')
+    unless (null jobs')
+      . liftIO $ appendJobs memstate jobs'
 
 -- | Expose a part of the memory state
 exposeState :: J.JSON a => (MemoryState -> a) -> IORef MemoryState -> Snap ()

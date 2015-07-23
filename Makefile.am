@@ -976,6 +976,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Logging/WriterLog.hs \
 	src/Ganeti/Luxi.hs \
 	src/Ganeti/MaintD/Autorepairs.hs \
+	src/Ganeti/MaintD/Balance.hs \
         src/Ganeti/MaintD/MemoryState.hs \
 	src/Ganeti/MaintD/Server.hs \
 	src/Ganeti/MaintD/Utils.hs \
