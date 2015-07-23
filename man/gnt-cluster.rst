@@ -713,6 +713,8 @@ MODIFY
 | [\--enabled-data-collectors *collectors*]
 | [\--data-collector-interval *intervals*]
 | [\--maintenance-interval *seconds*]
+| [\--auto-balance-cluster {yes \| no }]
+| [\--auto-balance-threshold *score* ]
 
 
 Modify the options for the cluster.
@@ -786,6 +788,13 @@ shall be collected.
 
 The ``--maintenance-interval`` option specified the minimal waiting
 time by the maintenance daemon between maintenance rounds.
+The ``--auto-balance-cluster`` option tell the maintenance daemon
+whether to also keep the cluster in a balanced fashion. If so, it
+will carry out moves, provided the gain in the cluster score for
+that move is at least the value specified by ``--auto-balance-threshold``
+in absolute terms, unless the cluster score it at least 10 times that
+value, in which case all beneficial steps will be done if auto-balancing
+is enabled.
 
 See **gnt-cluster init** for a description of ``--install-image`` and
 ``--zeroing-image``.
