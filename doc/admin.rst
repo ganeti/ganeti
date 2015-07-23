@@ -869,7 +869,7 @@ to NIC configuration scripts and hooks via environment variables.
 To make this network available on a nodegroup you should specify the
 connectivity mode and link during connection::
 
-  # gnt-network connect test bridged br100 default nodegroup1
+  # gnt-network connect --nic-parameters mode=bridged,link=br100 test default nodegroup1
 
 To add a NIC inside this network::
 
