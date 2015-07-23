@@ -189,7 +189,7 @@ doRepair client instData (rtype, opcodes) = runResultT $ do
             let nodes = filter (>= 0) [Instance.pNode inst, Instance.sNode inst]
             return (nodes, jids' ++ tagjobs)
     otherSt -> do
-      logDebug $ "Not repairing " ++ iname ++ " becuase it is in state "
+      logDebug $ "Not repairing " ++ iname ++ " because it is in state "
                  ++ show otherSt
       return ([], [])
 
