@@ -2181,42 +2181,6 @@ def _VersionSpecificDowngrade():
   """
   ToStdout("Performing version-specific downgrade tasks.")
 
-  # Determine if this cluster is set up with SSH handling
-  # (aka not using --no-ssh-init), check if the public
-  # keyfile exists.
-  update_keys = os.path.exists(pathutils.SSH_PUB_KEYS)
-
-  if not update_keys:
-    return True
-
-  ToStdout("Replace nodes' SSH keys with the master's keys.")
-  (_, root_keyfiles) = \
-    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
-
-  dsa_root_keyfiles = dict((kind, value) for (kind, value)
-                           in root_keyfiles.items()
-                           if kind == constants.SSHK_DSA)
-  master_private_keyfile, master_public_keyfile = \
-      dsa_root_keyfiles[constants.SSHK_DSA]
-
-  nodes = ssconf.SimpleStore().GetOnlineNodeList()
-  master_node = ssconf.SimpleStore().GetMasterNode()
-  cluster_name = ssconf.SimpleStore().GetClusterName()
-
-  # If master node is in 'nodes', remove it
-  if master_node in nodes:
-    nodes.remove(master_node)
-
-  srun = ssh.SshRunner(cluster_name=cluster_name)
-  for name in nodes:
-    for key_file in [master_private_keyfile, master_public_keyfile]:
-      command = utils.text.ShellQuoteArgs([
-          "scp", key_file, "%s:%s" % (name, key_file)])
-      result = srun.Run(master_node, constants.SSH_LOGIN_USER, command)
-      if result.exit_code != 0:
-        ToStderr("Overiding SSH key '%s' of node '%s' failed. You might"
-                 " want to clean up manually." % (key_file, name))
-
   return True
 
 
