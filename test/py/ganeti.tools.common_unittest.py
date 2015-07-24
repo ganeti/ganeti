@@ -115,7 +115,8 @@ class TestVerifyClusterName(unittest.TestCase):
 
   def testNoName(self):
     self.assertRaises(self.MyException, common.VerifyClusterName,
-                      {}, self.MyException, _verify_fn=NotImplemented)
+                      {}, self.MyException, "cluster_name",
+                      _verify_fn=NotImplemented)
 
   @staticmethod
   def _FailingVerify(name):
@@ -128,7 +129,87 @@ class TestVerifyClusterName(unittest.TestCase):
       }
 
     self.assertRaises(errors.GenericError, common.VerifyClusterName,
-                      data, Exception, _verify_fn=self._FailingVerify)
+                      data, self.MyException, "cluster_name",
+                      _verify_fn=self._FailingVerify)
+
+
+class TestVerifyCertificateStrong(testutils.GanetiTestCase):
+
+  class MyException(Exception):
+    pass
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    self.tmpdir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    testutils.GanetiTestCase.tearDown(self)
+    shutil.rmtree(self.tmpdir)
+
+  def testNoCert(self):
+    self.assertRaises(self.MyException, common.VerifyCertificateStrong,
+                      {}, self.MyException, _verify_fn=NotImplemented)
+
+  def testVerificationSuccessWithCert(self):
+    common.VerifyCertificateStrong({
+      constants.NDS_NODE_DAEMON_CERTIFICATE: "something",
+      }, self.MyException, _verify_fn=lambda x,y: None)
+
+  def testNoPrivateKey(self):
+    cert_filename = testutils.TestDataFilename("cert1.pem")
+    cert_pem = utils.ReadFile(cert_filename)
+
+    self.assertRaises(self.MyException,
+                      common._VerifyCertificateStrong,
+                      cert_pem, self.MyException, _check_fn=NotImplemented)
+
+  def testInvalidCertificate(self):
+    self.assertRaises(self.MyException,
+                      common._VerifyCertificateStrong,
+                      "Something that's not a certificate",
+                      self.MyException,
+                      _check_fn=NotImplemented)
+
+  @staticmethod
+  def _Check(cert):
+    assert cert.get_subject()
+
+  def testSuccessfulCheck(self):
+    cert_filename = testutils.TestDataFilename("cert2.pem")
+    cert_pem = utils.ReadFile(cert_filename)
+    result = \
+      common._VerifyCertificateStrong(cert_pem, self.MyException,
+                                      _check_fn=self._Check)
+
+    cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, result)
+    self.assertTrue(cert)
+
+    key = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM, result)
+    self.assertTrue(key)
+
+  def testMismatchingKey(self):
+    cert1_path = testutils.TestDataFilename("cert1.pem")
+    cert2_path = testutils.TestDataFilename("cert2.pem")
+
+    # Extract certificate
+    cert1 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                            utils.ReadFile(cert1_path))
+    cert1_pem = OpenSSL.crypto.dump_certificate(OpenSSL.crypto.FILETYPE_PEM,
+                                                cert1)
+
+    # Extract mismatching key
+    key2 = OpenSSL.crypto.load_privatekey(OpenSSL.crypto.FILETYPE_PEM,
+                                          utils.ReadFile(cert2_path))
+    key2_pem = OpenSSL.crypto.dump_privatekey(OpenSSL.crypto.FILETYPE_PEM,
+                                              key2)
+
+    try:
+      common._VerifyCertificateStrong(cert1_pem + key2_pem, self.MyException,
+                                      _check_fn=NotImplemented)
+    except self.MyException, err:
+      self.assertTrue("not signed with given key" in str(err))
+    else:
+      self.fail("Exception was not raised")
 
 
 if __name__ == "__main__":

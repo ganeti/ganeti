@@ -1415,7 +1415,6 @@ def _InitSshUpdateData(data, noded_cert_file, ssconf_store):
 
 def AddNodeSshKey(node_uuid, node_name,
                   potential_master_candidates,
-                  ssh_port_map,
                   to_authorized_keys=False,
                   to_public_keys=False,
                   get_public_keys=False,
@@ -1436,8 +1435,6 @@ def AddNodeSshKey(node_uuid, node_name,
   @param node_uuid: the UUID of the node whose key is added
   @type node_name: str
   @param node_name: the name of the node whose key is added
-  @type ssh_port_map: dict from str to int
-  @param ssh_port_map: a mapping from node names to SSH port numbers
   @type potential_master_candidates: list of str
   @param potential_master_candidates: list of node names of potential master
     candidates; this should match the list of uuids in the public key file
@@ -1486,6 +1483,8 @@ def AddNodeSshKey(node_uuid, node_name,
   base_data = {}
   _InitSshUpdateData(base_data, noded_cert_file, ssconf_store)
   cluster_name = base_data[constants.SSHS_CLUSTER_NAME]
+
+  ssh_port_map = ssconf_store.GetSshPortMap()
 
   # Update the target node itself
   logging.debug("Updating SSH key files of target node '%s'.", node_name)
@@ -1566,7 +1565,6 @@ def AddNodeSshKey(node_uuid, node_name,
 def RemoveNodeSshKey(node_uuid, node_name,
                      master_candidate_uuids,
                      potential_master_candidates,
-                     ssh_port_map,
                      master_uuid=None,
                      keys_to_remove=None,
                      from_authorized_keys=False,
@@ -1593,8 +1591,6 @@ def RemoveNodeSshKey(node_uuid, node_name,
   @type potential_master_candidates: list of str
   @param potential_master_candidates: list of names of potential master
     candidates
-  @type ssh_port_map: dict of str to int
-  @param ssh_port_map: mapping of node names to their SSH port
   @type keys_to_remove: dict of str to list of str
   @param keys_to_remove: a dictionary mapping node UUIDS to lists of SSH keys
     to be removed. This list is supposed to be used only if the keys are not
@@ -1627,6 +1623,7 @@ def RemoveNodeSshKey(node_uuid, node_name,
     ssconf_store = ssconf.SimpleStore()
 
   master_node = ssconf_store.GetMasterNode()
+  ssh_port_map = ssconf_store.GetSshPortMap()
 
   if from_authorized_keys or from_public_keys:
     if keys_to_remove:
@@ -1881,8 +1878,7 @@ def _ReplaceMasterKeyOnMaster(root_keyfiles):
     raise errors.SshUpdateError("Could not move at least one master SSH key.")
 
 
-def RenewSshKeys(node_uuids, node_names, ssh_port_map,
-                 master_candidate_uuids,
+def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                  potential_master_candidates,
                  pub_key_file=pathutils.SSH_PUB_KEYS,
                  ssconf_store=None,
@@ -1895,8 +1891,6 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
   @type node_names: list of str
   @param node_names: list of node names whose keys should be removed. This list
     should match the C{node_uuids} parameter
-  @type ssh_port_map: dict of str to int
-  @param ssh_port_map: map of node UUID to ssh port number
   @type master_candidate_uuids: list of str
   @param master_candidate_uuids: list of UUIDs of master candidates or
     master node
@@ -1930,6 +1924,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
 
   master_node_name = ssconf_store.GetMasterNode()
   master_node_uuid = _GetMasterNodeUUID(node_uuid_name_map, master_node_name)
+  ssh_port_map = ssconf_store.GetSshPortMap()
   # List of all node errors that happened, but which did not abort the
   # procedure as a whole. It is important that this is a list to have a
   # somewhat chronological history of events.
@@ -1964,7 +1959,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
         logging.debug("Removing SSH key of node '%s'.", node_name)
         node_errors = RemoveNodeSshKey(
            node_uuid, node_name, master_candidate_uuids,
-           potential_master_candidates, ssh_port_map,
+           potential_master_candidates,
            master_uuid=master_node_uuid, from_authorized_keys=master_candidate,
            from_public_keys=False, clear_authorized_keys=False,
            clear_public_keys=False)
@@ -1999,7 +1994,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
     logging.debug("Add ssh key of node '%s'.", node_name)
     node_errors = AddNodeSshKey(
         node_uuid, node_name, potential_master_candidates,
-        ssh_port_map, to_authorized_keys=master_candidate,
+        to_authorized_keys=master_candidate,
         to_public_keys=potential_master_candidate,
         get_public_keys=True,
         pub_key_file=pub_key_file, ssconf_store=ssconf_store,
@@ -2033,7 +2028,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
   logging.debug("Add new master key to all nodes.")
   node_errors = AddNodeSshKey(
       master_node_uuid, master_node_name, potential_master_candidates,
-      ssh_port_map, to_authorized_keys=True, to_public_keys=True,
+      to_authorized_keys=True, to_public_keys=True,
       get_public_keys=False, pub_key_file=pub_key_file,
       ssconf_store=ssconf_store, noded_cert_file=noded_cert_file,
       run_cmd_fn=run_cmd_fn)
@@ -2053,7 +2048,7 @@ def RenewSshKeys(node_uuids, node_names, ssh_port_map,
   logging.debug("Remove the old master key from all nodes.")
   node_errors = RemoveNodeSshKey(
       master_node_uuid, master_node_name, master_candidate_uuids,
-      potential_master_candidates, ssh_port_map,
+      potential_master_candidates,
       keys_to_remove=old_master_keys_by_uuid, from_authorized_keys=True,
       from_public_keys=False, clear_authorized_keys=False,
       clear_public_keys=False)
