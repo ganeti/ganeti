@@ -544,6 +544,9 @@ kernel\_args
     setting this to single will cause the instance to start in
     single-user mode.
 
+    Note that the hypervisor setting ``serial_console`` appends
+    ``"console=ttyS0,<serial_speed>"`` to the end of ``kernel_args`` in KVM.
+
 initrd\_path
     Valid for the Xen PVM and KVM hypervisors.
 
@@ -574,6 +577,10 @@ serial\_console
     unless a connection is made to it within about 2 seconds of the
     instance's startup. For such case it's recommended to disable this
     option, which is enabled by default.
+
+    Enabling serial console emulation also appends
+    ``"console=ttyS0,<serial_speed>"`` to the end of ``kernel_args`` in KVM and
+    may infere with previous settings.
 
 serial\_speed
     Valid for the KVM hypervisor.
