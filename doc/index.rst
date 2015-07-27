@@ -81,6 +81,7 @@ and draft versions (which are either incomplete or not implemented).
    design-2.13.rst
    design-2.14.rst
    design-2.15.rst
+   design-2.16.rst
 
 Draft designs
 -------------
@@ -114,6 +115,7 @@ Draft designs
    design-hotplug.rst
    design-internal-shutdown.rst
    design-kvmd.rst
+   design-location.rst
    design-linuxha.rst
    design-lu-generated-jobs.rst
    design-monitoring-agent.rst
@@ -131,11 +133,13 @@ Draft designs
    design-ovf-support.rst
    design-partitioned
    design-performance-tests.rst
+   design-plain-redundancy.rst
    design-query2.rst
    design-query-splitting.rst
    design-reason-trail.rst
    design-restricted-commands.rst
    design-shared-storage.rst
+   design-shared-storage-redundancy.rst
    design-ssh-ports.rst
    design-storagetypes.rst
    design-systemd.rst

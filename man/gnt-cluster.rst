@@ -859,7 +859,7 @@ RENEW-CRYPTO
 | [\--new-rapi-certificate] [\--rapi-certificate *rapi-cert*]
 | [\--new-spice-certificate | \--spice-certificate *spice-cert*
 | \--spice-ca-certificate *spice-ca-cert*]
-| [\--new-ssh-keys]
+| [\--new-ssh-keys] [\--no-ssh-key-check]
 | [\--new-cluster-domain-secret] [\--cluster-domain-secret *filename*]
 
 This command will stop all Ganeti daemons in the cluster and start
@@ -892,7 +892,10 @@ signing CA certificate to ``--spice-ca-certificate``.
 
 The option ``--new-ssh-keys`` renews all SSH keys of all nodes
 and updates the ``authorized_keys`` files of all nodes to contain
-only the (new) public keys of all master candidates.
+only the (new) public keys of all master candidates. To avoid having
+to confirm the fingerprint of each node use the
+``--no-ssh-key-check`` option. Be aware of that this includes a
+security risk as you omit verifying the machines' identities.
 
 Finally ``--new-cluster-domain-secret`` generates a new, random
 cluster domain secret, and ``--cluster-domain-secret`` reads the

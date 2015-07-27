@@ -115,7 +115,7 @@ combineWithRollover new old | Seq.null new || Seq.null old = new Seq.>< old
 combineWithRollover new old =
   let (t2, x2) = Seq.index new $ Seq.length new - 1
       (t1, x1) = Seq.index old 0
-  in if x2 > x1
+  in if x2 >= x1
        then new Seq.>< old
        else let delta_t = diffClockTimes t2 t1
                 deltax = x2 - x1

@@ -60,6 +60,9 @@ def _VerifyCertificateStrong(cert_pem, error_fn,
                              _check_fn=utils.CheckNodeCertificate):
   """Verifies a certificate against the local node daemon certificate.
 
+  Includes elaborate tests of encodings etc., and returns formatted
+  certificate.
+
   @type cert_pem: string
   @param cert_pem: Certificate and key in PEM format
   @type error_fn: callable
@@ -163,18 +166,20 @@ def VerifyCertificateStrong(data, error_fn,
   return _verify_fn(cert, error_fn)
 
 
-def VerifyClusterName(data, error_fn,
+def VerifyClusterName(data, error_fn, cluster_name_constant,
                       _verify_fn=ssconf.VerifyClusterName):
   """Verifies cluster name.
 
   @type data: dict
 
   """
-  name = data.get(constants.SSHS_CLUSTER_NAME)
+  name = data.get(cluster_name_constant)
   if name:
     _verify_fn(name)
   else:
     raise error_fn("Cluster name must be specified")
+
+  return name
 
 
 def LoadData(raw, data_check):

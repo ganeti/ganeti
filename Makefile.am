@@ -662,6 +662,7 @@ docinput = \
 	doc/design-2.13.rst \
 	doc/design-2.14.rst \
 	doc/design-2.15.rst \
+	doc/design-2.16.rst \
 	doc/design-allocation-efficiency.rst \
 	doc/design-autorepair.rst \
 	doc/design-bulk-create.rst \
@@ -1169,6 +1170,11 @@ doc/html/index.html: ENABLE_MANPAGES =
 doc/man-html/index.html: ENABLE_MANPAGES = 1
 doc/man-html/index.html: doc/manpages-enabled.rst $(mandocrst)
 
+if HAS_SPHINX_PRE13
+        SPHINX_HTML_THEME=default
+else
+        SPHINX_HTML_THEME=classic
+endif
 # Note: we use here an order-only prerequisite, as the contents of
 # _constants.py are not actually influencing the html build output: it
 # has to exist in order for the sphinx module to be loaded
@@ -1196,12 +1202,12 @@ endif
 	dir=$(dir $@) && \
 	@mkdir_p@ $$dir && \
 	PYTHONPATH=. ENABLE_MANPAGES=$(ENABLE_MANPAGES) COPY_DOC=1 \
+        HTML_THEME=$(SPHINX_HTML_THEME) \
 	$(RUN_IN_TEMPDIR) autotools/sphinx-wrapper $(SPHINX) -q -W -b html \
 	    -d . \
 	    -D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
 	    -D release="$(PACKAGE_VERSION)" \
 	    -D graphviz_dot="$(DOT)" \
-	    -D enable_manpages="$(ENABLE_MANPAGES)" \
 	    doc $(CURDIR)/$$dir && \
 	rm -f $$dir/.buildinfo $$dir/objects.inv
 	touch $@

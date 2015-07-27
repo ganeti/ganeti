@@ -2,6 +2,7 @@
 NODED_ARGS="-d"
 RAPI_ARGS="-d"
 CONFD_ARGS="-d"
+MOND_ARGS="-d"
 WCONFD_ARGS="-d"
 LUXID_ARGS="-d"
 MAINTD_ARGS="-d"
