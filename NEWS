@@ -17,6 +17,8 @@ Incompatible/important changes
   be continued to be used.
 - ``htools`` now also take into account N+1 redundancy for plain and shared
   storage. To obtain the old behavior, add the ``--no-capacity-checks`` option.
+- ``hail`` now tries to keep the overall cluster balanced; in particular it
+  now prefers more empty groups over groups that are internally more balanced.
 
 New features
 ~~~~~~~~~~~~
