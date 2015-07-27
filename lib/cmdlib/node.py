@@ -55,8 +55,6 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   AddNodeCertToCandidateCerts, RemoveNodeCertFromCandidateCerts, \
   EnsureKvmdOnNodes, WarnAboutFailedSshUpdates
 
-from ganeti.ssh import GetSshPortMap
-
 
 def _DecideSelfPromotion(lu, exceptions=None):
   """Decide whether I should promote myself as a master candidate.
@@ -349,7 +347,6 @@ class LUNodeAdd(LogicalUnit):
     """
     potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
     master_node = self.cfg.GetMasterNode()
-    port_map = GetSshPortMap(potential_master_candidates, self.cfg)
 
     if readd:
       # clear previous keys
@@ -359,7 +356,6 @@ class LUNodeAdd(LogicalUnit):
         new_node_uuid, new_node_name,
         master_candidate_uuids,
         potential_master_candidates,
-        port_map,
         True, # from authorized keys
         True, # from public keys
         False, # clear authorized keys
@@ -371,7 +367,7 @@ class LUNodeAdd(LogicalUnit):
 
     result = rpcrunner.call_node_ssh_key_add(
       [master_node], new_node_uuid, new_node_name,
-      potential_master_candidates, port_map,
+      potential_master_candidates,
       is_master_candidate, is_potential_master_candidate,
       is_potential_master_candidate)
 
@@ -868,14 +864,13 @@ class LUNodeSetParams(LogicalUnit):
 
       if self.cfg.GetClusterInfo().modify_ssh_setup:
         potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
-        ssh_port_map = GetSshPortMap(potential_master_candidates, self.cfg)
         master_node = self.cfg.GetMasterNode()
         if self.old_role == self._ROLE_CANDIDATE:
           master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
           ssh_result = self.rpc.call_node_ssh_key_remove(
             [master_node],
             node.uuid, node.name,
-            master_candidate_uuids, potential_master_candidates, ssh_port_map,
+            master_candidate_uuids, potential_master_candidates,
             True, # remove node's key from all nodes' authorized_keys file
             False, # currently, all nodes are potential master candidates
             False, # do not clear node's 'authorized_keys'
@@ -888,7 +883,7 @@ class LUNodeSetParams(LogicalUnit):
         if self.new_role == self._ROLE_CANDIDATE:
           ssh_result = self.rpc.call_node_ssh_key_add(
             [master_node], node.uuid, node.name,
-            potential_master_candidates, ssh_port_map,
+            potential_master_candidates,
             True, # add node's key to all node's 'authorized_keys'
             True, # all nodes are potential master candidates
             False) # do not update the node's public keys
@@ -1577,13 +1572,12 @@ class LUNodeRemove(LogicalUnit):
       potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
       potential_master_candidate = \
         self.op.node_name in potential_master_candidates
-      ssh_port_map = GetSshPortMap(potential_master_candidates, self.cfg)
       master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
       master_node = self.cfg.GetMasterNode()
       result = self.rpc.call_node_ssh_key_remove(
         [master_node],
         self.node.uuid, self.op.node_name,
-        master_candidate_uuids, potential_master_candidates, ssh_port_map,
+        master_candidate_uuids, potential_master_candidates,
         self.node.master_candidate, # from_authorized_keys
         potential_master_candidate, # from_public_keys
         True, # clear node's 'authorized_keys'

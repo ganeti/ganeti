@@ -932,10 +932,10 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Distributes a new node's SSH key if authorized.
 
     """
-    (node_uuid, node_name, potential_master_candidates, ssh_port_map,
+    (node_uuid, node_name, potential_master_candidates,
      to_authorized_keys, to_public_keys, get_public_keys) = params
     return backend.AddNodeSshKey(node_uuid, node_name,
-                                 potential_master_candidates, ssh_port_map,
+                                 potential_master_candidates,
                                  to_authorized_keys=to_authorized_keys,
                                  to_public_keys=to_public_keys,
                                  get_public_keys=get_public_keys)
@@ -945,9 +945,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Generates a new root SSH key pair on the node.
 
     """
-    (node_uuids, node_names, ssh_port_map,
-     master_candidate_uuids, potential_master_candidates) = params
-    return backend.RenewSshKeys(node_uuids, node_names, ssh_port_map,
+    (node_uuids, node_names, master_candidate_uuids,
+     potential_master_candidates) = params
+    return backend.RenewSshKeys(node_uuids, node_names,
                                 master_candidate_uuids,
                                 potential_master_candidates)
 
@@ -957,13 +957,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
 
     """
     (node_uuid, node_name,
-     master_candidate_uuids, potential_master_candidates, ssh_port_map,
+     master_candidate_uuids, potential_master_candidates,
      from_authorized_keys, from_public_keys, clear_authorized_keys,
      clear_public_keys) = params
     return backend.RemoveNodeSshKey(node_uuid, node_name,
                                     master_candidate_uuids,
                                     potential_master_candidates,
-                                    ssh_port_map,
                                     from_authorized_keys=from_authorized_keys,
                                     from_public_keys=from_public_keys,
                                     clear_authorized_keys=clear_authorized_keys,

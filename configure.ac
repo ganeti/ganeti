@@ -537,6 +537,9 @@ else
   fi
 fi
 AM_CONDITIONAL([HAS_SPHINX], [test -n "$SPHINX"])
+AM_CONDITIONAL([HAS_SPHINX_PRE13],
+ [test -n "$SPHINX" && echo "$sphinxver" | grep -q -E \
+  '^Sphinx([[[:space:]]]+|\(sphinx-build[[1-9]]?\)|v)*[[1-9]]\.[[0-2]]\.'])
 
 AC_ARG_ENABLE([manpages-in-doc],
   [AS_HELP_STRING([--enable-manpages-in-doc],

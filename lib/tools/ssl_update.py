@@ -119,7 +119,7 @@ def Main():
   try:
     data = common.LoadData(sys.stdin.read(), _DATA_CHECK)
 
-    common.VerifyClusterName(data, SslSetupError)
+    common.VerifyClusterName(data, SslSetupError, constants.NDS_CLUSTER_NAME)
 
     # Verifies whether the server certificate of the caller
     # is the same as on this node.
