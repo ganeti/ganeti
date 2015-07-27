@@ -618,9 +618,9 @@ findBestAllocGroup opts mggl mgnl mgil allowed_gdxs inst cnt =
                 (\gs -> filter ((`elem` gs) . Group.idx . fst) groups)
                 allowed_gdxs
       (groups'', filter_group_msgs) = filterValidGroups groups' inst
-      sols = map (\(gr, (nl, il)) ->
+      sols = map (\(gr, (nl, _)) ->
                    (gr, genAllocNodes opts mggl nl cnt False >>=
-                        tryAlloc opts nl il inst))
+                        tryAlloc opts mgnl mgil inst))
              groups''::[(Group.Group, Result AllocSolution)]
       all_msgs = filter_group_msgs ++ concatMap solutionDescription sols
       goodSols = filterMGResults sols
