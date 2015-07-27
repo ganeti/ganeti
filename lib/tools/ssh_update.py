@@ -209,7 +209,7 @@ def Main():
     data = common.LoadData(sys.stdin.read(), _DATA_CHECK)
 
     # Check if input data is correct
-    common.VerifyClusterName(data, SshUpdateError)
+    common.VerifyClusterName(data, SshUpdateError, constants.SSHS_CLUSTER_NAME)
     common.VerifyCertificateSoft(data, SshUpdateError)
 
     # Update / Generate SSH files

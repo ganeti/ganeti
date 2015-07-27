@@ -45,7 +45,6 @@ from ganeti import errors
 from ganeti import hypervisor
 from ganeti import netutils
 from ganeti import objects
-from ganeti import pathutils
 from ganeti import serializer
 from ganeti import ssh
 from ganeti import utils
@@ -948,6 +947,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssconf_mock.GetMasterNode = mock.Mock()
     self._ssconf_mock.GetClusterName = mock.Mock()
     self._ssconf_mock.GetOnlineNodeList = mock.Mock()
+    self._ssconf_mock.GetSshPortMap = mock.Mock()
 
     self._run_cmd_mock = mock.Mock()
     self._run_cmd_mock.side_effect = self._ssh_file_manager.RunCommand
@@ -1008,7 +1008,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._all_nodes = []
     self._potential_master_candidates = []
     self._master_candidate_uuids = []
-    self._ssh_port_map = {}
 
     self._ssconf_mock.reset_mock()
     self._ssconf_mock.GetNodeList.reset_mock()
@@ -1019,7 +1018,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_file_manager.InitAllNodes(15, 10, 5)
     self._master_node = self._ssh_file_manager.GetMasterNodeName()
-    self._ssh_port_map = self._ssh_file_manager.GetSshPortMap(self._SSH_PORT)
+    self._ssconf_mock.GetSshPortMap.return_value = \
+        self._ssh_file_manager.GetSshPortMap(self._SSH_PORT)
     self._potential_master_candidates = \
         self._ssh_file_manager.GetAllPotentialMasterCandidateNodeNames()
     self._master_candidate_uuids = \
@@ -1049,12 +1049,13 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     ssh.AddPublicKey(test_node_uuid, "some_old_key",
                      key_file=self._pub_key_file)
 
-    backend._GenerateNodeSshKey(test_node_uuid, test_node_name,
-                                self._ssh_port_map,
-                                pub_key_file=self._pub_key_file,
-                                ssconf_store=self._ssconf_mock,
-                                noded_cert_file=self.noded_cert_file,
-                                run_cmd_fn=self._run_cmd_mock)
+    backend._GenerateNodeSshKey(
+        test_node_uuid, test_node_name,
+        self._ssh_file_manager.GetSshPortMap(self._SSH_PORT),
+        pub_key_file=self._pub_key_file,
+        ssconf_store=self._ssconf_mock,
+        noded_cert_file=self.noded_cert_file,
+        run_cmd_fn=self._run_cmd_mock)
 
     calls_per_node = self._GetCallsPerNode()
     for node, calls in calls_per_node.items():
@@ -1069,7 +1070,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
       ssh.AddPublicKey(name, key, key_file=self._pub_key_file)
       self._potential_master_candidates.append(name)
 
-    self._ssh_port_map[name] = self._SSH_PORT
+    self._ssconf_mock.GetSshPortMap.return_value = \
+        self._ssh_file_manager.GetSshPortMap(self._SSH_PORT)
 
   def _GetNewMasterCandidate(self):
     """Returns the properties of a new master candidate node."""
@@ -1086,7 +1088,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     backend.AddNodeSshKey(new_node_uuid, new_node_name,
                           self._potential_master_candidates,
-                          self._ssh_port_map,
                           to_authorized_keys=is_master_candidate,
                           to_public_keys=is_potential_master_candidate,
                           get_public_keys=is_potential_master_candidate,
@@ -1114,7 +1115,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     backend.AddNodeSshKey(new_node_uuid, new_node_name,
                           self._potential_master_candidates,
-                          self._ssh_port_map,
                           to_authorized_keys=is_master_candidate,
                           to_public_keys=is_potential_master_candidate,
                           get_public_keys=is_potential_master_candidate,
@@ -1142,7 +1142,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self.assertRaises(
         AssertionError, backend.AddNodeSshKey, new_node_uuid, new_node_name,
-        self._potential_master_candidates, self._ssh_port_map,
+        self._potential_master_candidates,
         to_authorized_keys=is_master_candidate,
         to_public_keys=is_potential_master_candidate,
         get_public_keys=is_potential_master_candidate,
@@ -1165,7 +1165,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     backend.AddNodeSshKey(node_info.uuid, node_name,
                           self._potential_master_candidates,
-                          self._ssh_port_map,
                           to_authorized_keys=True,
                           to_public_keys=False,
                           get_public_keys=False,
@@ -1186,7 +1185,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend.RemoveNodeSshKey(node_uuid, node_name,
                              self._master_candidate_uuids,
                              self._potential_master_candidates,
-                             self._ssh_port_map,
                              from_authorized_keys=True,
                              from_public_keys=True,
                              clear_authorized_keys=True,
@@ -1210,7 +1208,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend.RemoveNodeSshKey(node_info.uuid, node_name,
                              self._master_candidate_uuids,
                              self._potential_master_candidates,
-                             self._ssh_port_map,
                              from_authorized_keys=False,
                              from_public_keys=True,
                              clear_authorized_keys=True,
@@ -1234,7 +1231,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend.RemoveNodeSshKey(node_info.uuid, node_name,
                              self._master_candidate_uuids,
                              self._potential_master_candidates,
-                             self._ssh_port_map,
                              from_authorized_keys=False,
                              from_public_keys=False,
                              clear_authorized_keys=True,
@@ -1261,7 +1257,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend.RemoveNodeSshKey(node_info.uuid, node_name,
                              self._master_candidate_uuids,
                              self._potential_master_candidates,
-                             self._ssh_port_map,
                              from_authorized_keys=True,
                              from_public_keys=False,
                              clear_authorized_keys=False,
@@ -1285,7 +1280,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend.RemoveNodeSshKey(node_info.uuid, node_name,
                              self._master_candidate_uuids,
                              self._potential_master_candidates,
-                             self._ssh_port_map,
                              from_authorized_keys=False,
                              from_public_keys=True,
                              clear_authorized_keys=False,
@@ -1317,7 +1311,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     backend.AddNodeSshKey(new_node_uuid, new_node_name,
                           self._potential_master_candidates,
-                          self._ssh_port_map,
                           to_authorized_keys=is_master_candidate,
                           to_public_keys=is_potential_master_candidate,
                           get_public_keys=is_potential_master_candidate,
@@ -1343,7 +1336,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend.RemoveNodeSshKey(node_info.uuid, node_name,
                              self._master_candidate_uuids,
                              self._potential_master_candidates,
-                             self._ssh_port_map,
                              from_authorized_keys=True,
                              from_public_keys=True,
                              clear_authorized_keys=True,
@@ -1378,7 +1370,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     backend.AddNodeSshKey(new_node_uuid, new_node_name,
                           self._potential_master_candidates,
-                          self._ssh_port_map,
                           to_authorized_keys=is_master_candidate,
                           to_public_keys=is_potential_master_candidate,
                           get_public_keys=is_potential_master_candidate,
@@ -1412,7 +1403,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self.assertRaises(
         errors.SshUpdateError, backend.AddNodeSshKey, new_node_uuid,
-        new_node_name, self._potential_master_candidates, self._ssh_port_map,
+        new_node_name, self._potential_master_candidates,
         to_authorized_keys=is_master_candidate,
         to_public_keys=is_potential_master_candidate,
         get_public_keys=is_potential_master_candidate,
@@ -1453,7 +1444,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     backend.AddNodeSshKey(new_node_uuid, new_node_name,
                           self._potential_master_candidates,
-                          self._ssh_port_map,
                           to_authorized_keys=is_master_candidate,
                           to_public_keys=is_potential_master_candidate,
                           get_public_keys=is_potential_master_candidate,
@@ -1487,7 +1477,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     node_errors = backend.AddNodeSshKey(
         new_node_uuid, new_node_name, self._potential_master_candidates,
-        self._ssh_port_map, to_authorized_keys=is_master_candidate,
+        to_authorized_keys=is_master_candidate,
         to_public_keys=is_potential_master_candidate,
         get_public_keys=is_potential_master_candidate,
         pub_key_file=self._pub_key_file,
@@ -1523,7 +1513,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend.RemoveNodeSshKey(node_info.uuid, node_name,
                              self._master_candidate_uuids,
                              self._potential_master_candidates,
-                             self._ssh_port_map,
                              from_authorized_keys=True,
                              from_public_keys=True,
                              clear_authorized_keys=True,
@@ -1556,7 +1545,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     error_msgs = backend.RemoveNodeSshKey(
         node_info.uuid, node_name, self._master_candidate_uuids,
-        self._potential_master_candidates, self._ssh_port_map,
+        self._potential_master_candidates,
         from_authorized_keys=True, from_public_keys=True,
         clear_authorized_keys=True, clear_public_keys=True,
         pub_key_file=self._pub_key_file, ssconf_store=self._ssconf_mock,
@@ -1583,7 +1572,6 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend.RemoveNodeSshKey(node_info.uuid, node_name,
                              self._master_candidate_uuids,
                              self._potential_master_candidates,
-                             self._ssh_port_map,
                              from_authorized_keys=True,
                              from_public_keys=True,
                              clear_authorized_keys=True,
@@ -1613,7 +1601,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     error_msgs = backend.RemoveNodeSshKey(
         node_info.uuid, node_name, self._master_candidate_uuids,
-        self._potential_master_candidates, self._ssh_port_map,
+        self._potential_master_candidates,
         from_authorized_keys=True, from_public_keys=True,
         clear_authorized_keys=True, clear_public_keys=True,
         pub_key_file=self._pub_key_file, ssconf_store=self._ssconf_mock,
