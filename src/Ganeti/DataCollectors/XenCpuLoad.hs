@@ -143,7 +143,8 @@ dcUpdate maybeCollector = do
                       combinedValues
       withoutOld = Map.filter
                      (liftA2 (&&) (not . Seq.null)
-                      $ (>) (fromIntegral $ C.xentopAverageThreshold * 1000000)
+                      $ (>) (fromIntegral
+                               $ 3 * C.xentopAverageThreshold * 1000000)
                         . (clockTimeToUSec now -) . clockTimeToUSec
                         . fst . flip Seq.index 0)
                      withinRange
