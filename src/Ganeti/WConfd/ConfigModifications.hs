@@ -1,4 +1,5 @@
-{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction, FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell, NoMonomorphismRestriction, FlexibleContexts,
+    RankNTypes #-}
 
 {-|  The WConfd functions for direct configuration manipulation
 
@@ -42,8 +43,9 @@ module Ganeti.WConfd.ConfigModifications where
 import Control.Applicative ((<$>))
 import Control.Lens (_2)
 import Control.Lens.Getter ((^.))
-import Control.Lens.Setter ((.~), (%~), (+~), over)
+import Control.Lens.Setter (Setter, (.~), (%~), (+~), over)
 import Control.Lens.Traversal (mapMOf)
+import Control.Lens.Type (Simple)
 import Control.Monad (unless, when, forM_, foldM, liftM, liftM2)
 import Control.Monad.Error (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
@@ -654,59 +656,50 @@ updateDisk disk = do
     . T.releaseDRBDMinors $ uuidOf disk
   return . MaybeForJSON $ fmap (_2 %~ TimeAsDoubleJSON) r
 
+-- | Set a particular value and bump serial in the hosting
+-- structure. Arguments are a setter to focus on the part
+-- of the configuration that gets serial-bumped, and a modification
+-- of that part. The function will do the change and bump the serial
+-- in the WConfdMonad temporarily acquiring the configuration lock.
+-- Return True if that succeeded and False if the configuration lock
+-- was not available; no change is done in the latter case.
+changeAndBump :: (SerialNoObjectL a, TimeStampObjectL a)
+              => Simple Setter ConfigState a
+              -> (a -> a)
+              -> WConfdMonad Bool
+changeAndBump focus change = do
+  now <- liftIO getClockTime
+  let operation = over focus $ (serialL +~ 1) . (mTimeL .~ now) . change
+  liftM isJust $ modifyConfigWithLock
+    (\_ cs -> return . operation $ cs)
+    (return ())
+
+-- | Change and bump part of the maintenance part of the configuration.
+changeAndBumpMaint :: (MaintenanceData -> MaintenanceData) -> WConfdMonad Bool
+changeAndBumpMaint = changeAndBump $ csConfigDataL . configMaintenanceL
+
 -- | Set the maintenance intervall.
 setMaintdRoundDelay :: Int -> WConfdMonad Bool
-setMaintdRoundDelay delay = do
-  now <- liftIO getClockTime
-  let setDelay = over (csConfigDataL . configMaintenanceL)
-                   $ (serialL +~ 1) . (mTimeL .~ now)
-                     . (maintRoundDelayL .~ delay)
-  liftM isJust $ modifyConfigWithLock
-    (\_ cs -> return . setDelay $ cs)
-    (return ())
+setMaintdRoundDelay delay = changeAndBumpMaint $ maintRoundDelayL .~ delay
 
 -- | Clear the list of current maintenance jobs.
 clearMaintdJobs :: WConfdMonad Bool
-clearMaintdJobs = do
-  now <- liftIO getClockTime
-  let clear = over (csConfigDataL . configMaintenanceL)
-                $ (serialL +~ 1) . (mTimeL .~ now) . (maintJobsL .~ [])
-  liftM isJust $ modifyConfigWithLock
-    (\_ cs -> return . clear $ cs)
-    (return ())
+clearMaintdJobs = changeAndBumpMaint $ maintJobsL .~ []
 
 -- | Append new jobs to the list of current maintenace jobs, if
 -- not alread present.
 appendMaintdJobs :: [JobId] -> WConfdMonad Bool
-appendMaintdJobs jobs = do
-  now <- liftIO getClockTime
-  let addJobs = over (csConfigDataL . configMaintenanceL)
-                  $ (serialL +~ 1) . (mTimeL .~ now)
-                    . over maintJobsL (ordNub . (++ jobs))
-  liftM isJust $ modifyConfigWithLock
-    (\_ cs -> return . addJobs $ cs)
-    (return ())
+appendMaintdJobs jobs = changeAndBumpMaint . over maintJobsL
+                          $ ordNub . (++ jobs)
 
 -- | Set the autobalance flag.
 setMaintdBalance :: Bool -> WConfdMonad Bool
-setMaintdBalance value = do
-  now <- liftIO getClockTime
-  let setFlag = over (csConfigDataL . configMaintenanceL)
-                  $ (serialL +~ 1) . (mTimeL .~ now) . (maintBalanceL .~ value)
-  liftM isJust $ modifyConfigWithLock
-    (\_ cs -> return . setFlag $ cs)
-    (return ())
+setMaintdBalance value = changeAndBumpMaint $ maintBalanceL .~ value
 
 -- | Set the auto-balance threshold.
 setMaintdBalanceThreshold :: Double -> WConfdMonad Bool
-setMaintdBalanceThreshold value = do
-  now <- liftIO getClockTime
-  let setValue = over (csConfigDataL . configMaintenanceL)
-                   $ (serialL +~ 1) . (mTimeL .~ now)
-                     . (maintBalanceThresholdL .~ value)
-  liftM isJust $ modifyConfigWithLock
-    (\_ cs -> return . setValue $ cs)
-    (return ())
+setMaintdBalanceThreshold value = changeAndBumpMaint
+                                    $ maintBalanceThresholdL .~ value
 
 -- * The list of functions exported to RPC.
 
