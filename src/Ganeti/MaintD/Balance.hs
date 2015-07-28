@@ -44,6 +44,7 @@ import Control.Monad (liftM)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.Set as Set
 import qualified Data.Map as Map
+import Data.Maybe (mapMaybe)
 import qualified Data.Traversable as Traversable
 import System.IO.Error (tryIOError)
 import Text.Printf (printf)
@@ -124,8 +125,16 @@ getXenInstances = do
       getXen _ = []
   return $ Set.fromList (answer >>= getXen)
 
+-- | Look for an instance in a given report.
+findInstanceLoad :: String -> AllReports -> Maybe Double
+findInstanceLoad  name r | MonD.InstanceCpuReport m <- rIndividual r =
+  Map.lookup name m
+findInstanceLoad _ _ = Nothing
+
 -- | Update the CPU load of one instance based on the reports.
--- Fail if instance CPU load is not (yet) available.
+-- Fail if instance CPU load is not (yet) available. However, do
+-- accpet missing load data for instances on offline nodes, as well
+-- as old load data for recently migrated instances.
 updateCPUInstance :: Node.List
                   -> Container.Container AllReports
                   -> Set.Set String
@@ -135,13 +144,17 @@ updateCPUInstance nl reports xeninsts inst =
   let name = Instance.name inst
       nidx = Instance.pNode inst
   in if name `Set.member` xeninsts
-    then let rep = rIndividual $ Container.find nidx reports
-         in case rep of MonD.InstanceCpuReport m | Map.member name m ->
-                          return $ inst { Instance.util = zeroUtil {
-                                             cpuWeight = m Map.! name } }
-                        _ | Node.offline $ Container.find nidx nl ->
-                          return $ inst { Instance.util = zeroUtil }
-                        _ -> fail $ "Xen CPU data unavailable for " ++ name
+    then let onNodeLoad = findInstanceLoad name (Container.find nidx reports)
+             allLoads = mapMaybe (findInstanceLoad name)
+                          $ Container.elems reports
+         in case () of
+           _ | Just load <- onNodeLoad ->
+                 return $ inst { Instance.util = zeroUtil { cpuWeight = load } }
+           _ | (load:_) <- allLoads ->
+                 return $ inst { Instance.util = zeroUtil { cpuWeight = load } }
+           _ | Node.offline $ Container.find nidx nl ->
+                 return $ inst { Instance.util = zeroUtil }
+           _ -> fail $ "Xen CPU data unavailable for " ++ name
     else let rep = rTotal $ Container.find nidx reports
          in case rep of MonD.CPUavgloadReport (CPUavgload _ _ ndload) ->
                           let w = ndload * fromIntegral (Instance.vcpus inst)
