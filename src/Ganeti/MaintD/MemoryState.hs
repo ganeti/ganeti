@@ -46,6 +46,9 @@ module Ganeti.MaintD.MemoryState
   , getJobs
   , clearJobs
   , appendJobs
+  , getEvacuated
+  , addEvacuated
+  , rmEvacuated
   ) where
 
 import Control.Monad.IO.Class (liftIO)
@@ -55,20 +58,23 @@ import Ganeti.BasicTypes (ResultT, withErrorT)
 import Ganeti.Types (JobId)
 import Ganeti.Utils (ordNub)
 import Ganeti.WConfd.Client ( runNewWConfdClient, maintenanceJobs, runModifyRpc
-                            , clearMaintdJobs, appendMaintdJobs )
+                            , clearMaintdJobs, appendMaintdJobs
+                            , maintenanceEvacuated, addMaintdEvacuated
+                            , rmMaintdEvacuated)
 
 -- | In-memory copy of parts of the state of the maintenance
 -- daemon.
 data MemoryState = MemoryState
   { msJobs :: [ JobId ]
+  , msEvacuated :: [ String ]
   }
 
 -- | Inital state of the in-memory copy. All parts will be updated
 -- before use, after one round at the latest this copy is up to date.
 emptyMemoryState :: MemoryState
-emptyMemoryState = MemoryState {
-                     msJobs = []
-                   }
+emptyMemoryState = MemoryState { msJobs = []
+                               , msEvacuated = []
+                               }
 
 -- | Get the list of jobs from the authoritative copy, and update the
 -- in-memory copy as well.
@@ -90,3 +96,25 @@ appendJobs memstate jobs = do
   runModifyRpc $ appendMaintdJobs jobs
   atomicModifyIORef memstate
     $ \ s -> ( s { msJobs = ordNub $ msJobs s ++ jobs }, ())
+
+-- | Get the list of recently evacuated instances from the authoritative
+-- copy and update the in-memory state.
+getEvacuated :: IORef MemoryState -> ResultT String IO [String]
+getEvacuated memstate = do
+  evac <- withErrorT show $ runNewWConfdClient maintenanceEvacuated
+  liftIO . atomicModifyIORef memstate $ \s -> (s { msEvacuated = evac }, ())
+  return evac
+
+-- | Add names to the list of recently evacuated instances.
+addEvacuated :: IORef MemoryState -> [String] -> IO ()
+addEvacuated memstate names = do
+  runModifyRpc $ addMaintdEvacuated names
+  atomicModifyIORef memstate
+    $ \s -> (s { msEvacuated = ordNub $ msEvacuated s ++ names }, ())
+
+-- | Remove a name from the list of recently evacuated instances.
+rmEvacuated :: IORef MemoryState -> String -> IO ()
+rmEvacuated memstate name = do
+  runModifyRpc $ rmMaintdEvacuated name
+  atomicModifyIORef memstate
+    $ \s -> (s { msEvacuated = filter (/= name) $ msEvacuated s }, ())
