@@ -144,7 +144,7 @@ maintenance memstate = do
   (bal, thresh) <- withErrorT show $ runNewWConfdClient maintenanceBalancing
   when (bal && not (Set.null nidxs')) $ do
     logDebug $ "Will balance unaffected nodes, threshold " ++ show thresh
-    jobs' <- balanceTask (nl, il) nidxs thresh
+    jobs' <- balanceTask memstate (nl, il) nidxs thresh
     logDebug $ "Balancing jobs submitted: " ++ show (map fromJobId jobs')
     unless (null jobs')
       . liftIO $ appendJobs memstate jobs'

@@ -40,11 +40,12 @@ module Ganeti.MaintD.Balance
   ) where
 
 import Control.Exception.Lifted (bracket)
-import Control.Monad (liftM)
+import Control.Monad (liftM, unless, when)
 import Control.Monad.IO.Class (liftIO)
+import Data.IORef (IORef)
 import qualified Data.Set as Set
 import qualified Data.Map as Map
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, isJust)
 import qualified Data.Traversable as Traversable
 import System.IO.Error (tryIOError)
 import Text.Printf (printf)
@@ -66,6 +67,8 @@ import Ganeti.Jobs (submitJobs)
 import Ganeti.HTools.Types ( zeroUtil, DynUtil(cpuWeight), addUtil, subUtil
                            , MoveJob)
 import Ganeti.Logging.Lifted (logDebug)
+import Ganeti.MaintD.MemoryState ( MemoryState, getEvacuated
+                                 , addEvacuated, rmEvacuated)
 import Ganeti.MaintD.Utils (annotateOpCode)
 import qualified Ganeti.Luxi as L
 import Ganeti.OpCodes (MetaOpCode)
@@ -138,9 +141,10 @@ findInstanceLoad _ _ = Nothing
 updateCPUInstance :: Node.List
                   -> Container.Container AllReports
                   -> Set.Set String
+                  -> [String]
                   -> Instance.Instance
                   -> Result Instance.Instance
-updateCPUInstance nl reports xeninsts inst =
+updateCPUInstance nl reports xeninsts evacuated inst =
   let name = Instance.name inst
       nidx = Instance.pNode inst
   in if name `Set.member` xeninsts
@@ -153,6 +157,8 @@ updateCPUInstance nl reports xeninsts inst =
            _ | (load:_) <- allLoads ->
                  return $ inst { Instance.util = zeroUtil { cpuWeight = load } }
            _ | Node.offline $ Container.find nidx nl ->
+                 return $ inst { Instance.util = zeroUtil }
+           _ | Instance.name inst `elem` evacuated ->
                  return $ inst { Instance.util = zeroUtil }
            _ -> fail $ "Xen CPU data unavailable for " ++ name
     else let rep = rTotal $ Container.find nidx reports
@@ -170,9 +176,10 @@ updateCPUInstance nl reports xeninsts inst =
 updateCPULoad :: (Node.List, Instance.List)
               -> Container.Container AllReports
               -> Set.Set String
+              -> [ String ]
               -> Result (Node.List, Instance.List)
-updateCPULoad (nl, il) reports xeninsts = do
-  il' <- Traversable.mapM (updateCPUInstance nl reports xeninsts) il
+updateCPULoad (nl, il) reports xeninsts evacuated = do
+  il' <- Traversable.mapM (updateCPUInstance nl reports xeninsts evacuated) il
   let addNodeUtil n delta = n { Node.utilLoad = addUtil (Node.utilLoad n) delta
                               , Node.utilLoadForth =
                                   addUtil (Node.utilLoadForth n) delta
@@ -186,6 +193,26 @@ updateCPULoad (nl, il) reports xeninsts = do
   let nl' = foldl (\nnl i -> updateNodeUtil nnl (Container.find i il)
                                $ Container.find i il') nl $ Container.keys il
   return (nl', il')
+
+-- | For an instance, given by name, verify if an individual load report is
+-- available again.
+cleanUpEvacuation :: IORef MemoryState
+                  -> Instance.List
+                  -> Container.Container AllReports
+                  -> String
+                  -> IO ()
+cleanUpEvacuation memstate il reports name = do
+  let insts = filter ((==) name . Instance.name) $ Container.elems il
+  case insts of
+    [] -> do
+            logDebug $ "Instnace " ++ name ++ "no longer on the cluster"
+            rmEvacuated memstate name
+    inst:_ -> do
+                 let nidx = Instance.pNode inst
+                 when (isJust . findInstanceLoad name
+                         $ Container.find nidx reports) $ do
+                   logDebug $ "Load data for " ++ name ++ " available again"
+                   rmEvacuated memstate name
 
 -- * Balancing
 
@@ -213,14 +240,25 @@ iterateBalance opts ini_tbl cmds =
       in iterateBalance opts next_tbl cmds'
     _ -> cmds
 
+-- | List instances evacuated in a move job, if any.
+evacuatedInsts :: (Node.List, Instance.List)
+               -> MoveJob
+               -> [String]
+evacuatedInsts (nl, il) (_, idx, _, _) =
+  let inst = Container.find idx il
+      node = Container.find (Instance.pNode inst) nl
+  in [Instance.name inst | Node.offline node]
+
 -- | Balance a single group, restricted to the allowed nodes and
 -- minimal gain.
-balanceGroup :: L.Client
+balanceGroup :: IORef MemoryState
+             -> Set.Set String
+             -> L.Client
              -> Set.Set Int
              -> Double
              -> (Int,  (Node.List, Instance.List))
              -> ResultT String IO [JobId]
-balanceGroup client allowedNodes threshold (gidx, (nl, il)) = do
+balanceGroup memstate xens client allowedNodes threshold (gidx, (nl, il)) = do
   logDebug $ printf "Balancing group %d, %d nodes, %d instances." gidx
                (Container.size nl) (Container.size il)
   let ini_cv = Metrics.compCV nl
@@ -234,9 +272,14 @@ balanceGroup client allowedNodes threshold (gidx, (nl, il)) = do
   logDebug $ "First task group: " ++ show tasks
   now <- liftIO currentTimestamp
   let jobs = tasks >>= map (moveToJob now (nl, il))
+      evacs = filter (`Set.member` xens)
+              (concat tasks >>= evacuatedInsts (nl, il))
   if null jobs
     then return []
     else do
+      unless (null evacs) $ do
+        logDebug $ "Evacuation of instances " ++ show evacs
+        liftIO $ addEvacuated memstate evacs
       jids <- liftIO $ submitJobs jobs client
       case jids of
         Bad e -> mkResultT . logAndBad
@@ -248,16 +291,22 @@ balanceGroup client allowedNodes threshold (gidx, (nl, il)) = do
 -- | Carry out all the needed balancing, based on live CPU data, only touching
 -- the available nodes. Only carry out balancing steps where the gain is above
 -- the threshold.
-balanceTask :: (Node.List, Instance.List) -- ^ current cluster configuration
+balanceTask :: IORef MemoryState
+            -> (Node.List, Instance.List) -- ^ current cluster configuration
             -> Set.Set Int -- ^ node indices on which actions may be taken
             -> Double -- ^ threshold for improvement
             -> ResultT String IO [JobId] -- ^ jobs submitted
-balanceTask (nl, il) okNodes threshold = do
+balanceTask memstate (nl, il) okNodes threshold = do
   logDebug "Collecting dynamic load values"
+  evacuated <- getEvacuated memstate
+  logDebug $ "Not expecting load data from: " ++ show evacuated
   reports <- queryLoad nl
   xenInstances <- getXenInstances
-  (nl', il') <- mkResultT . return $ updateCPULoad (nl, il) reports xenInstances
+  (nl', il') <- mkResultT . return
+                  $ updateCPULoad (nl, il) reports xenInstances evacuated
+  liftIO $ mapM_ (cleanUpEvacuation memstate il reports) evacuated
   let ngroups = ClusterUtils.splitCluster nl' il'
   luxiSocket <- liftIO Path.defaultQuerySocket
   bracket (liftIO $ L.getLuxiClient luxiSocket) (liftIO . L.closeClient) $ \c ->
-    liftM concat $ mapM (balanceGroup c okNodes threshold) ngroups
+    liftM concat $ mapM (balanceGroup memstate xenInstances c okNodes threshold)
+                        ngroups
