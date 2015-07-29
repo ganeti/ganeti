@@ -56,3 +56,10 @@ versions. At the moment, only version ``1`` is supported.
 The list of jobs the daemon will wait for to finish, before starting
 the next round of maintenance.
 
+``/1/evacuated``
+++++++++++++++++
+The list of instance names the daemon does not expect to have load
+data available because they have been recently evacuated from an
+offline (or drained) node. Currently, this affects only Xen instances,
+as for other hypervisors the overall CPU load on the node is taken
+as balancing measure.

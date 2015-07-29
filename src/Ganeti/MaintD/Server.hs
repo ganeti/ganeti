@@ -161,6 +161,7 @@ httpInterface memstate =
   ifTop (method GET $ plainJSON [1 :: Int])
   <|> dir "1" (ifTop (plainJSON J.JSNull)
                <|> route [ ("jobs", exposeState msJobs memstate)
+                         , ("evacuated", exposeState msEvacuated memstate)
                          ])
   <|> error404
 
