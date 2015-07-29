@@ -701,6 +701,16 @@ setMaintdBalanceThreshold :: Double -> WConfdMonad Bool
 setMaintdBalanceThreshold value = changeAndBumpMaint
                                     $ maintBalanceThresholdL .~ value
 
+-- | Add a name to the list of recently evacuated instances.
+addMaintdEvacuated :: [String] -> WConfdMonad Bool
+addMaintdEvacuated names = changeAndBumpMaint . over maintEvacuatedL
+                            $ ordNub . (++ names)
+
+-- | Remove a name from the list of recently evacuated instances.
+rmMaintdEvacuated :: String -> WConfdMonad Bool
+rmMaintdEvacuated name = changeAndBumpMaint . over maintEvacuatedL
+                          $ filter (/= name)
+
 -- * The list of functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -725,4 +735,6 @@ exportedFunctions = [ 'addInstance
                     , 'appendMaintdJobs
                     , 'setMaintdBalance
                     , 'setMaintdBalanceThreshold
+                    , 'addMaintdEvacuated
+                    , 'rmMaintdEvacuated
                     ]

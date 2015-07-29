@@ -63,7 +63,7 @@ import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock, BGL)
 import qualified Ganeti.Locking.Waiting as LW
 import Ganeti.Objects ( ConfigData, DRBDSecret, LogicalVolume, Ip4Address
                       , configMaintenance, maintRoundDelay, maintJobs
-                      , maintBalance, maintBalanceThreshold
+                      , maintBalance, maintBalanceThreshold, maintEvacuated
                       )
 import Ganeti.Objects.Lens (configClusterL, clusterMasterNodeL)
 import Ganeti.Types (JobId)
@@ -173,6 +173,10 @@ maintenanceJobs = liftM ( maintJobs . configMaintenance ) CW.readConfig
 maintenanceBalancing :: WConfdMonad (Bool, Double)
 maintenanceBalancing = liftM ((maintBalance &&& maintBalanceThreshold)
                               . configMaintenance) CW.readConfig
+
+-- | Get the list of recently evacuated instances.
+maintenanceEvacuated :: WConfdMonad [String]
+maintenanceEvacuated = liftM (maintEvacuated . configMaintenance) CW.readConfig
 
 -- ** Temporary reservations related functions
 
@@ -407,6 +411,7 @@ exportedFunctions = [ 'echo
                     , 'maintenanceRoundDelay
                     , 'maintenanceJobs
                     , 'maintenanceBalancing
+                    , 'maintenanceEvacuated
                     -- temporary reservations (common)
                     , 'dropAllReservations
                     -- DRBD

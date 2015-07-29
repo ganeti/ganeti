@@ -50,6 +50,7 @@ $(buildObject "MaintenanceData" "maint" $
   , defaultField [| False |] $ simpleField "balance" [t| Bool |]
   , defaultField [| 0.1 :: Double |]
     $ simpleField "balanceThreshold" [t| Double |]
+  , defaultField [| [] |] $ simpleField "evacuated" [t| [ String ] |]
   ]
   ++ timeStampFields
   ++ serialFields)

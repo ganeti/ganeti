@@ -557,7 +557,7 @@ class Filter(ConfigObject):
 
 class Maintenance(ConfigObject):
   """Config object representing the state of the maintenance daemon"""
-  __slots__ = ["roundDelay", "jobs", "balance", "balanceThreshold",
+  __slots__ = ["roundDelay", "jobs", "evacuated", "balance", "balanceThreshold",
                "serial_no"] + _TIMESTAMPS
 
   def UpgradeConfig(self):
