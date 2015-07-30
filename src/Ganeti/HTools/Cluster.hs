@@ -868,6 +868,24 @@ underlyingCause :: FailMode -> FailMode
 underlyingCause FailN1 = FailMem
 underlyingCause x = x
 
+-- | Shrink a resource of an instance until the failure statistics for
+-- this resource changes. Note that it might no be possible to allocate
+-- an instance at this size; nevertheless there might be a need to change
+-- the resource to shrink on, e.g., if the current instance is too big on
+-- to resources.
+doShrink :: (Instance.Instance -> AllocSolution) -> Instance.Instance
+         -> FailMode -> Maybe Instance.Instance
+doShrink allocFn inst fm =
+  let physRes = underlyingCause fm
+      getCount = runListHead 0 snd . filter ((==) physRes . fst)
+                 . collapseFailures . map underlyingCause . asFailures
+      initialStat = getCount $ allocFn inst
+  in  case dropWhile ((==) initialStat . getCount . fst)
+           . map (allocFn &&& id)
+           $ iterateOk (`Instance.shrinkByType` physRes) inst
+      of x:_ -> Just $ snd x
+         _ -> Nothing
+
 -- | Tiered allocation method.
 --
 -- This places instances on the cluster, and decreases the spec until
@@ -886,18 +904,17 @@ tieredAlloc opts nl il limit newinst allocnodes ixes cstats =
                                             Just (n - ixes_cnt))
           sortedErrs = nub . map (underlyingCause . fst)
                         $ sortBy (flip $ comparing snd) errs
-          suffShrink = sufficesShrinking
-                         (fromMaybe emptyAllocSolution
-                          . flip (tryAlloc opts nl' il') allocnodes)
-                       newinst
+          allocFn = fromMaybe emptyAllocSolution
+                      . flip (tryAlloc opts nl' il') allocnodes
+          suffShrink = sufficesShrinking allocFn newinst
           bigSteps = filter isJust . map suffShrink $ sortedErrs
           progress (Ok (_, _, _, newil', _)) (Ok (_, _, _, newil, _)) =
             length newil' > length newil
           progress _ _ = False
       in if stop then newsol else
-           let newsol' = case map (Instance.shrinkByType newinst) sortedErrs of
-                 Ok newinst' : _ -> tieredAlloc opts nl' il' newlimit
-                                     newinst' allocnodes ixes' cstats'
+           let newsol' = case map (doShrink allocFn newinst) sortedErrs of
+                 Just newinst' : _ -> tieredAlloc opts nl' il' newlimit
+                                        newinst' allocnodes ixes' cstats'
                  _ -> newsol
            in if progress newsol' newsol then newsol' else
                 case bigSteps of
