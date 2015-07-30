@@ -1,3 +1,5 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 {-| Memory copy of the state of the maintenance daemon.
 
 While the autoritative state of the maintenance daemon is
@@ -52,11 +54,13 @@ module Ganeti.MaintD.MemoryState
   ) where
 
 import Control.Monad.IO.Class (liftIO)
-import Data.IORef (IORef, atomicModifyIORef)
+import Data.IORef (IORef)
 
 import Ganeti.BasicTypes (ResultT, withErrorT)
+import Ganeti.Lens (makeCustomLenses)
 import Ganeti.Types (JobId)
 import Ganeti.Utils (ordNub)
+import Ganeti.Utils.IORef (atomicModifyWithLens_)
 import Ganeti.WConfd.Client ( runNewWConfdClient, maintenanceJobs, runModifyRpc
                             , clearMaintdJobs, appendMaintdJobs
                             , maintenanceEvacuated, addMaintdEvacuated
@@ -68,6 +72,8 @@ data MemoryState = MemoryState
   { msJobs :: [ JobId ]
   , msEvacuated :: [ String ]
   }
+
+$(makeCustomLenses ''MemoryState)
 
 -- | Inital state of the in-memory copy. All parts will be updated
 -- before use, after one round at the latest this copy is up to date.
@@ -81,40 +87,37 @@ emptyMemoryState = MemoryState { msJobs = []
 getJobs :: IORef MemoryState -> ResultT String IO [JobId]
 getJobs memstate = do
   jobs <- withErrorT show $ runNewWConfdClient maintenanceJobs
-  liftIO . atomicModifyIORef memstate $ \ s -> (s { msJobs = jobs }, ())
+  liftIO . atomicModifyWithLens_ memstate msJobsL $ const jobs
   return jobs
 
 -- | Reset the list of active jobs.
 clearJobs :: IORef MemoryState -> IO ()
 clearJobs memstate = do
   runModifyRpc clearMaintdJobs
-  atomicModifyIORef memstate $ \ s -> ( s { msJobs = [] }, ())
+  atomicModifyWithLens_ memstate msJobsL $ const []
 
 -- | Append jobs to the list of active jobs, if not present already
 appendJobs :: IORef MemoryState -> [JobId] -> IO ()
 appendJobs memstate jobs = do
   runModifyRpc $ appendMaintdJobs jobs
-  atomicModifyIORef memstate
-    $ \ s -> ( s { msJobs = ordNub $ msJobs s ++ jobs }, ())
+  atomicModifyWithLens_ memstate msJobsL $ ordNub . (++ jobs)
 
 -- | Get the list of recently evacuated instances from the authoritative
 -- copy and update the in-memory state.
 getEvacuated :: IORef MemoryState -> ResultT String IO [String]
 getEvacuated memstate = do
   evac <- withErrorT show $ runNewWConfdClient maintenanceEvacuated
-  liftIO . atomicModifyIORef memstate $ \s -> (s { msEvacuated = evac }, ())
+  liftIO . atomicModifyWithLens_ memstate msEvacuatedL $ const evac
   return evac
 
 -- | Add names to the list of recently evacuated instances.
 addEvacuated :: IORef MemoryState -> [String] -> IO ()
 addEvacuated memstate names = do
   runModifyRpc $ addMaintdEvacuated names
-  atomicModifyIORef memstate
-    $ \s -> (s { msEvacuated = ordNub $ msEvacuated s ++ names }, ())
+  atomicModifyWithLens_ memstate msEvacuatedL $ ordNub . (++ names)
 
 -- | Remove a name from the list of recently evacuated instances.
 rmEvacuated :: IORef MemoryState -> String -> IO ()
 rmEvacuated memstate name = do
   runModifyRpc $ rmMaintdEvacuated name
-  atomicModifyIORef memstate
-    $ \s -> (s { msEvacuated = filter (/= name) $ msEvacuated s }, ())
+  atomicModifyWithLens_ memstate msEvacuatedL $ filter (/= name)
