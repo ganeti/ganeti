@@ -2538,6 +2538,10 @@ def _SymlinkBlockDev(instance_name, device_path, idx):
   @return: absolute path to the disk's symlink
 
   """
+  # In case we have only a userspace access URI, device_path is None
+  if not device_path:
+    return None
+
   link_name = _GetBlockDevSymlinkPath(instance_name, idx)
   try:
     os.symlink(device_path, link_name)
@@ -4045,9 +4049,10 @@ def OSEnvironment(instance, inst_os, debug=0):
   for idx, disk in enumerate(instance.disks_info):
     real_disk = _OpenRealBD(disk)
     uri = _CalculateDeviceURI(instance, disk, real_disk)
-    result["DISK_%d_PATH" % idx] = real_disk.dev_path
     result["DISK_%d_ACCESS" % idx] = disk.mode
     result["DISK_%d_UUID" % idx] = disk.uuid
+    if real_disk.dev_path:
+      result["DISK_%d_PATH" % idx] = real_disk.dev_path
     if uri:
       result["DISK_%d_URI" % idx] = uri
     if disk.name:

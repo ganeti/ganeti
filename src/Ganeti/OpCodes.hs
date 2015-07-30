@@ -631,7 +631,7 @@ $(genOpCode "OpCode"
      ],
      "instance_name")
   , ("OpInstanceActivateDisks",
-     [t| [(NonEmptyString, NonEmptyString, NonEmptyString)] |],
+     [t| [(NonEmptyString, NonEmptyString, Maybe NonEmptyString)] |],
      OpDoc.opInstanceActivateDisks,
      [ pInstanceName
      , pInstanceUuid

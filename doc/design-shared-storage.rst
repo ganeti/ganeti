@@ -329,7 +329,9 @@ with the hypervisor it corresponds to (e.g. kvm:<uri>). The prefix will
 be case insensitive. If the 'attach' script doesn't return any extra
 lines, we assume that the ExtStorage provider doesn't support userspace
 access (this way we maintain backward compatibility with the existing
-'attach' scripts).
+'attach' scripts). In case the provider supports *only* userspace
+access and thus a local block device is not available, then the first
+line should be an empty line.
 
 The 'GetUserspaceAccessUri' method of the 'ExtStorageDevice' class will
 parse the output of the 'attach' script and if the provider supports
