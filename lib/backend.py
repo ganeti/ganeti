@@ -4044,9 +4044,12 @@ def OSEnvironment(instance, inst_os, debug=0):
   # Disks
   for idx, disk in enumerate(instance.disks_info):
     real_disk = _OpenRealBD(disk)
+    uri = _CalculateDeviceURI(instance, disk, real_disk)
     result["DISK_%d_PATH" % idx] = real_disk.dev_path
     result["DISK_%d_ACCESS" % idx] = disk.mode
     result["DISK_%d_UUID" % idx] = disk.uuid
+    if uri:
+      result["DISK_%d_URI" % idx] = uri
     if disk.name:
       result["DISK_%d_NAME" % idx] = disk.name
     if constants.HV_DISK_TYPE in instance.hvparams:
