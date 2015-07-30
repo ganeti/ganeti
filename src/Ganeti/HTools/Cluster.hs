@@ -877,21 +877,20 @@ tieredAlloc opts nl il limit newinst allocnodes ixes cstats =
                                Nothing -> (False, Nothing)
                                Just n -> (n <= ixes_cnt,
                                             Just (n - ixes_cnt))
-          sortedErrs = map fst $ sortBy (comparing snd) errs
+          sortedErrs = map fst $ sortBy (flip $ comparing snd) errs
           suffShrink = sufficesShrinking
                          (fromMaybe emptyAllocSolution
                           . flip (tryAlloc opts nl' il') allocnodes)
                        newinst
-          bigSteps = filter isJust . map suffShrink . reverse $ sortedErrs
+          bigSteps = filter isJust . map suffShrink $ sortedErrs
           progress (Ok (_, _, _, newil', _)) (Ok (_, _, _, newil, _)) =
             length newil' > length newil
           progress _ _ = False
       in if stop then newsol else
-           let newsol' = case Instance.shrinkByType newinst . last
-                                $ sortedErrs of
-                 Bad _ -> newsol
-                 Ok newinst' -> tieredAlloc opts nl' il' newlimit
-                                newinst' allocnodes ixes' cstats'
+           let newsol' = case map (Instance.shrinkByType newinst) sortedErrs of
+                 Ok newinst' : _ -> tieredAlloc opts nl' il' newlimit
+                                     newinst' allocnodes ixes' cstats'
+                 _ -> newsol
            in if progress newsol' newsol then newsol' else
                 case bigSteps of
                   Just newinst':_ -> tieredAlloc opts nl' il' newlimit
