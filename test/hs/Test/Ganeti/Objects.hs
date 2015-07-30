@@ -383,6 +383,7 @@ instance Arbitrary MaintenanceData where
                               <*> arbitrary
                               <*> arbitrary
                               <*> arbitrary
+                              <*> arbitrary
 
 -- | Generates a network instance with minimum netmasks of /24. Generating
 -- bigger networks slows down the tests, because long bit strings are generated
