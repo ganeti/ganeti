@@ -861,6 +861,13 @@ sufficesShrinking allocFn inst fm =
   of x:_ -> Just . snd $ x
      _ -> Nothing
 
+-- | For a failure determine the underlying resource that most likely
+-- causes this kind of failure. In particular, N+1 violations are most
+-- likely caused by lack of memory.
+underlyingCause :: FailMode -> FailMode
+underlyingCause FailN1 = FailMem
+underlyingCause x = x
+
 -- | Tiered allocation method.
 --
 -- This places instances on the cluster, and decreases the spec until
@@ -877,7 +884,8 @@ tieredAlloc opts nl il limit newinst allocnodes ixes cstats =
                                Nothing -> (False, Nothing)
                                Just n -> (n <= ixes_cnt,
                                             Just (n - ixes_cnt))
-          sortedErrs = map fst $ sortBy (flip $ comparing snd) errs
+          sortedErrs = nub . map (underlyingCause . fst)
+                        $ sortBy (flip $ comparing snd) errs
           suffShrink = sufficesShrinking
                          (fromMaybe emptyAllocSolution
                           . flip (tryAlloc opts nl' il') allocnodes)
