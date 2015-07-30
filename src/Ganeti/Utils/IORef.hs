@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Utils.IORef
   ( atomicModifyWithLens
+  , atomicModifyWithLens_
   , atomicModifyIORefErr
   , atomicModifyIORefErrLog
   ) where
@@ -52,6 +53,11 @@ import Ganeti.Logging.WriterLog
 atomicModifyWithLens :: (MonadBase IO m)
                      => IORef a -> Lens a a b c -> (b -> (r, c)) -> m r
 atomicModifyWithLens ref l f = atomicModifyIORef ref (swap . traverseOf l f)
+
+-- | Atomically modify an 'IORef', not reading any value.
+atomicModifyWithLens_ :: (MonadBase IO m)
+                      => IORef a -> Lens a a b c -> (b -> c) -> m ()
+atomicModifyWithLens_ ref l f = atomicModifyWithLens ref l $ (,) () . f
 
 -- | Atomically modifies an 'IORef' using a function that can possibly fail.
 -- If it fails, the value of the 'IORef' is preserved.
