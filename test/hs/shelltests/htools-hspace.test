@@ -26,7 +26,7 @@
 >>>=0
 
 # Mixed cluster, half with exclusive storage
-./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-mixed.data --no-capacity-checks > $T/capacity && sh -c ". $T/capacity && test \"\${HTS_TSPEC}\" = '131072,1048576,4,12=2 131072,1048576,4,10=2 129984,1048320,4,10=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 6 && test \"\${HTS_TRL_SPN_FREE}\" = 0 && test \"\${HTS_FIN_SPN_FREE}\" = 18"
+./test/hs/hspace --machine-readable -t $TESTDATA_DIR/hspace-tiered-mixed.data --no-capacity-checks > $T/capacity && sh -c ". $T/capacity && echo \"\${HTS_TSPEC}\" | grep -q '131072,1048576,4,12=2 .*129984,1048320,4,10=2' && test \"\${HTS_ALLOC_INSTANCES}\" = 6 && test \"\${HTS_TRL_SPN_FREE}\" = 0 && test \"\${HTS_FIN_SPN_FREE}\" = 18"
 >>>=0
 
 # Verify that instance policy for disks is adhered to
