@@ -2105,12 +2105,12 @@ class LUInstanceMultiAlloc(NoHooksLU):
           (op.snode_uuid, op.snode) = \
             ExpandNodeUuidAndName(self.cfg, None, node_names[1])
 
-          jobs.append([op])
+        jobs.append([op])
 
-        missing = set(op2inst.keys()) - set(failed)
-        assert not missing, \
-          "Iallocator did return incomplete result: %s" % \
-          utils.CommaJoin(missing)
+      missing = set(op2inst.keys()) - set(failed)
+      assert not missing, \
+        "Iallocator did return incomplete result: %s" % \
+        utils.CommaJoin(missing)
     else:
       jobs.extend([op] for op in self.op.instances)
 
