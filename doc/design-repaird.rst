@@ -189,7 +189,7 @@ Returns the list of supported protocol versions, initially just ``[1]``.
 Returns a list of all non-cleared incidents. Each incident is reported
 as a JSON object with at least the following information.
 
-- ``id`` The unique identifier assigned to the event.
+- ``uuid`` The unique identifier assigned to the event.
 
 - ``node`` The UUID of the node on which the even was observed.
 
