@@ -607,7 +607,7 @@ def GetLuxiClient(try_restart):
     # this is, from cli.GetClient, a not-master case
     raise NotMasterError("Not on master node (%s)" % err)
 
-  except rpcerr.NoMasterError, err:
+  except (rpcerr.NoMasterError, rpcerr.TimeoutError), err:
     if not try_restart:
       raise
 
