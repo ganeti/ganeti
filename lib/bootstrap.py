@@ -238,8 +238,8 @@ def _InitGanetiServerSetup(master_name, cfg):
 
   if not os.path.exists(
       os.path.join(pathutils.DATA_DIR,
-      "%s%s" % (constants.SSCONF_FILEPREFIX,
-                constants.SS_MASTER_CANDIDATES_CERTS))):
+                   "%s%s" % (constants.SSCONF_FILEPREFIX,
+                             constants.SS_MASTER_CANDIDATES_CERTS))):
     raise errors.OpExecError("Ssconf file for master candidate certificates"
                              " was not written.")
 
