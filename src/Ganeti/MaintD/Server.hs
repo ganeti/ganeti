@@ -137,7 +137,7 @@ maintenance memstate = do
       nl = cdNodes cData
       nidxs = Set.fromList $ Container.keys nl
   (nidxs', jobs) <- harepTasks (nl, il) nidxs
-  unless (null oldjobs)
+  unless (null jobs)
    . liftIO $ appendJobs memstate jobs
   logDebug $ "Nodes unaffected by harep " ++ show (Set.toList nidxs')
              ++ ", jobs submitted " ++ show (map fromJobId jobs)
