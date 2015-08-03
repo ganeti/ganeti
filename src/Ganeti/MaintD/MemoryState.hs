@@ -51,6 +51,9 @@ module Ganeti.MaintD.MemoryState
   , getEvacuated
   , addEvacuated
   , rmEvacuated
+  , getIncidents
+  , updateIncident
+  , rmIncident
   ) where
 
 import Control.Monad.IO.Class (liftIO)
@@ -58,19 +61,23 @@ import Data.IORef (IORef)
 
 import Ganeti.BasicTypes (ResultT, withErrorT)
 import Ganeti.Lens (makeCustomLenses)
-import Ganeti.Types (JobId)
+import Ganeti.Objects.Maintenance (Incident)
+import Ganeti.Types (JobId, uuidOf)
 import Ganeti.Utils (ordNub)
 import Ganeti.Utils.IORef (atomicModifyWithLens_)
 import Ganeti.WConfd.Client ( runNewWConfdClient, maintenanceJobs, runModifyRpc
                             , clearMaintdJobs, appendMaintdJobs
                             , maintenanceEvacuated, addMaintdEvacuated
-                            , rmMaintdEvacuated)
+                            , rmMaintdEvacuated
+                            , maintenanceIncidents, updateMaintdIncident
+                            , rmMaintdIncident )
 
 -- | In-memory copy of parts of the state of the maintenance
 -- daemon.
 data MemoryState = MemoryState
   { msJobs :: [ JobId ]
   , msEvacuated :: [ String ]
+  , msIncidents :: [ Incident ]
   }
 
 $(makeCustomLenses ''MemoryState)
@@ -80,6 +87,7 @@ $(makeCustomLenses ''MemoryState)
 emptyMemoryState :: MemoryState
 emptyMemoryState = MemoryState { msJobs = []
                                , msEvacuated = []
+                               , msIncidents = []
                                }
 
 -- | Get the list of jobs from the authoritative copy, and update the
@@ -121,3 +129,25 @@ rmEvacuated :: IORef MemoryState -> String -> IO ()
 rmEvacuated memstate name = do
   runModifyRpc $ rmMaintdEvacuated name
   atomicModifyWithLens_ memstate msEvacuatedL $ filter (/= name)
+
+-- | Get the list of incidents fo the authoritative copy and update the
+-- in-memory state.
+getIncidents :: IORef MemoryState -> ResultT String IO  [Incident]
+getIncidents memstate = do
+  incidents <- withErrorT show $ runNewWConfdClient maintenanceIncidents
+  liftIO . atomicModifyWithLens_ memstate msIncidentsL $ const incidents
+  return incidents
+
+-- | Update an incident.
+updateIncident :: IORef MemoryState -> Incident -> IO ()
+updateIncident memstate incident = do
+  runModifyRpc $ updateMaintdIncident incident
+  atomicModifyWithLens_ memstate msIncidentsL
+    $ (incident :) . filter ((/= uuidOf incident) . uuidOf)
+
+-- | Remove an incident.
+rmIncident :: IORef MemoryState -> String -> IO ()
+rmIncident memstate uuid = do
+  runModifyRpc $ rmMaintdIncident uuid
+  atomicModifyWithLens_ memstate msIncidentsL
+    $ filter ((/= uuid) . uuidOf)
