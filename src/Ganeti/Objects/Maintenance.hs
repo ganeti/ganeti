@@ -36,12 +36,62 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Objects.Maintenance
   ( MaintenanceData(..)
+  , RepairAction(..)
+  , RepairStatus(..)
+  , Incident(..)
   ) where
+
+import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
 import Ganeti.THH
 import Ganeti.THH.Field
 import Ganeti.Types
+
+-- | Action to be taken for a certain repair event. Note
+-- that the order is important, as we rely on values higher
+-- in the derived order to be more intrusive actions.
+$(declareLADT ''String "RepairAction"
+    [ ("RANoop", "Ok")
+    , ("RALiveRepair", "live-repair")
+    , ("RAEvacuate", "evacuate")
+    , ("RAEvacuateFailover", "evacute-failover")
+    ])
+$(makeJSONInstance ''RepairAction)
+
+-- | Progress made on the particular repair event. Again we rely
+-- on the order in that everything larger than `RSPending` is finalized
+-- in the sense that no further jobs will be submitted.
+$(declareLADT ''String "RepairStatus"
+   [ ("RSNoted", "noted")
+   , ("RSPending", "pending")
+   , ("RSCanceled", "canceled")
+   , ("RSFailed", "failed")
+   , ("RSCompleted", "completed")
+   ])
+$(makeJSONInstance ''RepairStatus)
+
+$(buildObject "Incident" "incident" $
+   [ simpleField "original" [t| J.JSValue |]
+   , simpleField "action" [t| RepairAction |]
+   , defaultField [| [] |] $ simpleField "jobs" [t| [ JobId ] |]
+   , simpleField "node" [t| String |]
+   , simpleField "repair-status" [t| RepairStatus |]
+   , simpleField "tag" [t| String |]
+   ]
+   ++ uuidFields
+   ++ timeStampFields
+   ++ serialFields)
+
+instance SerialNoObject Incident where
+  serialOf = incidentSerial
+
+instance TimeStampObject Incident where
+  cTimeOf = incidentCtime
+  mTimeOf = incidentMtime
+
+instance UuidObject Incident where
+  uuidOf = incidentUuid
 
 $(buildObject "MaintenanceData" "maint" $
   [ defaultField [| C.maintdDefaultRoundDelay |]
@@ -51,6 +101,7 @@ $(buildObject "MaintenanceData" "maint" $
   , defaultField [| 0.1 :: Double |]
     $ simpleField "balanceThreshold" [t| Double |]
   , defaultField [| [] |] $ simpleField "evacuated" [t| [ String ] |]
+  , defaultField [| [] |] $ simpleField "incidents" [t| [ Incident ] |]
   ]
   ++ timeStampFields
   ++ serialFields)

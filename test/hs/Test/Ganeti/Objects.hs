@@ -375,8 +375,27 @@ instance Arbitrary FilterRule where
                          <*> arbitrary
                          <*> genUUID
 
+instance Arbitrary RepairStatus where
+  arbitrary = elements [ RSNoted, RSPending, RSCanceled, RSFailed, RSCompleted ]
+
+instance Arbitrary RepairAction where
+  arbitrary = elements [ RANoop, RALiveRepair, RAEvacuate, RAEvacuateFailover ]
+
+instance Arbitrary Incident where
+  arbitrary = Incident <$> pure (J.JSObject $ J.toJSObject [])
+                       <*> arbitrary
+                       <*> arbitrary
+                       <*> arbitrary
+                       <*> arbitrary
+                       <*> arbitrary
+                       <*> arbitrary
+                       <*> arbitrary
+                       <*> arbitrary
+                       <*> arbitrary
+
 instance Arbitrary MaintenanceData where
   arbitrary = MaintenanceData <$> (fromPositive <$> arbitrary)
+                              <*> arbitrary
                               <*> arbitrary
                               <*> arbitrary
                               <*> arbitrary

@@ -711,6 +711,19 @@ rmMaintdEvacuated :: String -> WConfdMonad Bool
 rmMaintdEvacuated name = changeAndBumpMaint . over maintEvacuatedL
                           $ filter (/= name)
 
+-- | Update an incident to the list of known incidents; if the incident,
+-- as identified by the UUID, is not present, it is added.
+updateMaintdIncident :: Incident -> WConfdMonad Bool
+updateMaintdIncident incident =
+  changeAndBumpMaint . over maintIncidentsL
+    $ (incident :) . filter ((/= uuidOf incident) . uuidOf)
+
+-- | Remove an incident from the list of known incidents.
+rmMaintdIncident :: String -> WConfdMonad Bool
+rmMaintdIncident uuid =
+  changeAndBumpMaint . over maintIncidentsL
+    $ filter ((/= uuid) . uuidOf)
+
 -- * The list of functions exported to RPC.
 
 exportedFunctions :: [Name]
@@ -737,4 +750,6 @@ exportedFunctions = [ 'addInstance
                     , 'setMaintdBalanceThreshold
                     , 'addMaintdEvacuated
                     , 'rmMaintdEvacuated
+                    , 'updateMaintdIncident
+                    , 'rmMaintdIncident
                     ]
