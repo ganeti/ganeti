@@ -703,6 +703,7 @@ def _GlobalWatcher(opts):
   # we are on master now
   utils.EnsureDaemon(constants.RAPI)
   utils.EnsureDaemon(constants.WCONFD)
+  utils.EnsureDaemon(constants.MAINTD)
 
   # If RAPI isn't responding to queries, try one restart
   logging.debug("Attempting to talk to remote API on %s",
