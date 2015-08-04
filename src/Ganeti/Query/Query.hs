@@ -218,7 +218,9 @@ genericQuery fieldsMap collector nameFn configFn getFn cfg
              live fields qfilter wanted =
   runResultT $ do
   cfilter <- toError $ compileFilter fieldsMap qfilter
-  let selected = getSelectedFields fieldsMap fields
+  let allfields = ordNub $ fields ++ filterArguments qfilter
+      count = length $ ordNub fields
+      selected = getSelectedFields fieldsMap allfields
       (fdefs, fgetters, _) = unzip3 selected
       live' = live && needsLiveData fgetters
   objects <- toError $ case wanted of
@@ -233,13 +235,14 @@ genericQuery fieldsMap collector nameFn configFn getFn cfg
   -- based on the gathered data
   runtimes <- (case collector of
     CollectorSimple     collFn -> lift $ collFn live' cfg fobjects
-    CollectorFieldAware collFn -> lift $ collFn live' cfg fields fobjects) >>=
-    (toError . filterM (\(obj, runtime) ->
+    CollectorFieldAware collFn -> lift $ collFn live' cfg allfields fobjects)
+    >>= (toError . filterM (\(obj, runtime) ->
       evaluateFilter cfg (Just runtime) obj cfilter))
   let fdata = map (\(obj, runtime) ->
                      map (execGetter cfg runtime obj) fgetters)
               runtimes
-  return QueryResult { qresFields = fdefs, qresData = fdata }
+  return QueryResult { qresFields = take count fdefs
+                     , qresData = map (take count) fdata }
 
 -- | Dummy recollection of the data for a lock from the prefected
 -- data for all locks.
