@@ -218,8 +218,9 @@ genericQuery fieldsMap collector nameFn configFn getFn cfg
              live fields qfilter wanted =
   runResultT $ do
   cfilter <- toError $ compileFilter fieldsMap qfilter
-  let allfields = ordNub $ fields ++ filterArguments qfilter
-      count = length $ ordNub fields
+  let allfields = (++) fields . filter (not . (`elem` fields))
+                  . ordNub $ filterArguments qfilter
+      count = length fields
       selected = getSelectedFields fieldsMap allfields
       (fdefs, fgetters, _) = unzip3 selected
       live' = live && needsLiveData fgetters
