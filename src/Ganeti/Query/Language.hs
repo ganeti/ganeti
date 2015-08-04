@@ -36,6 +36,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Query.Language
     ( Filter(..)
+    , filterArguments
     , FilterField
     , FilterValue(..)
     , FilterRegex -- note: we don't export the constructor, must use helpers
@@ -190,6 +191,12 @@ data Filter a
     | RegexpFilter   a FilterRegex  -- ^ @=~@ /field/ /regexp/
     | ContainsFilter a FilterValue  -- ^ @=[]@ /list-field/ /value/
       deriving (Show, Eq)
+
+-- | Get the \"things\" a filter talks about. This is useful, e.g.,
+-- to decide which additional fields to fetch in a query depending
+-- on live data.
+filterArguments :: Filter a -> [a]
+filterArguments = toList
 
 -- | Serialiser for the 'Filter' data type.
 showFilter :: (JSON a) => Filter a -> JSValue
