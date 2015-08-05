@@ -97,6 +97,7 @@ module Ganeti.Utils
   , ensurePermissions
   , ordNub
   , isSubsequenceOf
+  , maxBy
   , threadDelaySeconds
   ) where
 
@@ -830,3 +831,10 @@ isSubsequenceOf []    _                    = True
 isSubsequenceOf _     []                   = False
 isSubsequenceOf a@(x:a') (y:b) | x == y    = isSubsequenceOf a' b
                                | otherwise = isSubsequenceOf a b
+
+-- | Compute the maximum of two elements by a given order.
+-- As opposed to using `maximumBy`, is function is guaranteed
+-- to be total, as the signature enforces a non-empty list of
+-- arguments.
+maxBy :: (a -> a -> Ordering) -> a -> a -> a
+maxBy ord a b = maximumBy ord [a, b]
