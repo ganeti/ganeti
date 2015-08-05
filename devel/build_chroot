@@ -560,7 +560,8 @@ EOF
         test-framework-0.8.0.3 \
         test-framework-hunit-0.3.0.1 \
         test-framework-quickcheck2-0.3.0.2 \
-        'transformers>=0.3.0.0'
+        'transformers>=0.3.0.0' \
+        zlib-0.5.4.2
     ;;
 
   *)
