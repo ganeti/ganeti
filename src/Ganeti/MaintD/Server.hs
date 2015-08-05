@@ -162,6 +162,7 @@ httpInterface memstate =
   <|> dir "1" (ifTop (plainJSON J.JSNull)
                <|> route [ ("jobs", exposeState msJobs memstate)
                          , ("evacuated", exposeState msEvacuated memstate)
+                         , ("status", exposeState msIncidents memstate)
                          ])
   <|> error404
 
