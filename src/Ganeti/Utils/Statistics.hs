@@ -1,5 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
-
+{-# LANGUAGE BangPatterns, MultiParamTypeClasses, FunctionalDependencies#-}
 
 {-| Utility functions for statistical accumulation. -}
 
@@ -34,100 +33,105 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Ganeti.Utils.Statistics
-  ( Statistics
+  ( Stat
+  , SumStat(..)
+  , StdDevStat(..)
   , TagTagMap
-  , AggregateComponent(..)
-  , getSumStatistics
-  , getStdDevStatistics
-  , getMapStatistics
-  , getStatisticValue
-  , updateStatistics
+  , MapData(..)
+  , MapStat(..)
+  , update
+  , calculate
+  , getValue
+  , toDouble
   ) where
 
 import qualified Data.Foldable as Foldable
 import Data.List (foldl')
 import qualified Data.Map as Map
 
+-- | Typeclass describing necessary statistical accumulations functions. Types
+-- defining an instance of Stat behave as if the given statistics were computed
+-- on the list of values, but they allow a potentially more efficient update of
+-- a given value. c is the statistical accumulation data type itself while s is
+-- a type of spread values used to calculate a statistics. s defined as a
+-- type dependent from c in order to pretend ambiguity.
+class (Show c) => Stat s c | c -> s where
+  -- | Calculate a statistics from the spread values list.
+  calculate :: [s] -> c
+  -- | In a given statistics replace on value by another. This will only give
+  -- meaningful results, if the original value was actually part of
+  -- the statistics.
+  update :: c -> s -> s -> c
+  -- | Obtain the value of a statistics.
+  getValue :: c -> Double
+
+-- | Type of statistical accumulations representing simple sum of values
+data SumStat = SumStat Double deriving Show
+-- | Type of statistical accumulations representing values standard deviation
+data StdDevStat = StdDevStat Double Double Double deriving Show
+                  -- count, sum, and not the sum of squares---instead the
+                  -- computed variance for better precission.
+-- | Type of statistical accumulations representing the amount of instances per
+-- each tags pair. See Also TagTagMap documentation.
+data MapStat = MapStat TagTagMap deriving Show
+
+instance Stat Double SumStat where
+  calculate xs =
+    let addComponent s x =
+          let !s' = s + x
+          in s'
+        st = foldl' addComponent 0 xs
+    in SumStat st
+  update (SumStat s) x x' =
+    SumStat $ s + x' - x
+  getValue (SumStat s) = s
+
+instance Stat Double StdDevStat where
+  calculate xs =
+    let addComponent (n, s) x =
+          let !n' = n + 1
+              !s' = s + x
+          in (n', s')
+        (nt, st) = foldl' addComponent (0, 0) xs
+        mean = st / nt
+        center x = x - mean
+        nvar = foldl' (\v x -> let d = center x in v + d * d) 0 xs
+    in StdDevStat nt st (nvar / nt)
+  update (StdDevStat n s var) x x' =
+    let !ds = x' - x
+        !dss = x' * x' - x * x
+        !dnnvar = (n * dss - 2 * s * ds) - ds * ds
+        !s' = s + ds
+        !var' = max 0 $ var + dnnvar / (n * n)
+    in StdDevStat n s' var'
+  getValue (StdDevStat _ _ var) = sqrt var
+
 -- | Type to store the number of instances for each exclusion and location
 -- pair. This is necessary to calculate second component of location score.
 type TagTagMap = Map.Map (String, String) Int
 
--- | Abstract type of statistical accumulations. They behave as if the given
--- statistics were computed on the list of values, but they allow a potentially
--- more efficient update of a given value.
-data Statistics = SumStatistics Double
-                | StdDevStatistics Double Double Double
-                  -- count, sum, and not the sum of squares---instead the
-                  -- computed variance for better precission.
-                | MapStatistics TagTagMap deriving Show
+-- | Data type used to store spread values of type TagTagMap. This data type
+-- is introduced only to defin an instance of Stat for TagTagMap.
+data MapData = MapData TagTagMap
 
--- | Abstract type of per-node statistics measures. The SimpleNumber is used
--- to construct SumStatistics and StdDevStatistics while SpreadValues is used
--- to construct MapStatistics.
-data AggregateComponent = SimpleNumber Double
-                        | SpreadValues TagTagMap
--- Each function below depends on the contents of AggregateComponent but it's
--- necessary to define each function as a function processing both
--- SimpleNumber and SpreadValues instances (see Metrics.hs). That's why
--- pattern matches for invalid type defined as functions which change nothing.
+-- | Helper function unpacking [MapData] spread values list.
+mapTmpToMap :: [MapData] -> [TagTagMap]
+mapTmpToMap (MapData m : xs) = m : mapTmpToMap xs
+mapTmpToMap _ = []
 
--- | Get a statistics that sums up the values.
-getSumStatistics :: [AggregateComponent] -> Statistics
-getSumStatistics xs =
-  let addComponent s (SimpleNumber x) =
-        let !s' = s + x
-        in s'
-      addComponent s _ = s
-      st = foldl' addComponent 0 xs
-  in SumStatistics st
+instance Stat MapData MapStat where
+  calculate xs =
+    let addComponent m x =
+          let !m' = Map.unionWith (+) m x
+          in m'
+        mt = foldl' addComponent Map.empty (mapTmpToMap xs)
+    in MapStat mt
+  update (MapStat m) (MapData x) (MapData x') =
+    let nm = Map.unionWith (+) (Map.unionWith (-) m x) x'
+    in MapStat nm
+  getValue (MapStat m) = fromIntegral $ Foldable.sum m - Map.size m
 
--- | Get a statistics for the standard deviation.
-getStdDevStatistics :: [AggregateComponent] -> Statistics
-getStdDevStatistics xs =
-  let addComponent (n, s) (SimpleNumber x) =
-        let !n' = n + 1
-            !s' = s + x
-        in (n', s')
-      addComponent (n, s) _ = (n, s)
-      (nt, st) = foldl' addComponent (0, 0) xs
-      mean = st / nt
-      center (SimpleNumber x) = x - mean
-      center _ = 0
-      nvar = foldl' (\v x -> let d = center x in v + d * d) 0 xs
-  in StdDevStatistics nt st (nvar / nt)
-
--- | Get a statistics for the standard deviation.
-getMapStatistics :: [AggregateComponent] -> Statistics
-getMapStatistics xs =
-  let addComponent m (SpreadValues x) =
-        let !m' = Map.unionWith (+) m x
-        in m'
-      addComponent m _ = m
-      mt = foldl' addComponent Map.empty xs
-  in MapStatistics mt
-
--- | Obtain the value of a statistics.
-getStatisticValue :: Statistics -> Double
-getStatisticValue (SumStatistics s) = s
-getStatisticValue (StdDevStatistics _ _ var) = sqrt var
-getStatisticValue (MapStatistics m) = fromIntegral $ Foldable.sum m - Map.size m
--- Function above calculates sum (N_i - 1) over each map entry.
-
--- | In a given statistics replace on value by another. This
--- will only give meaningful results, if the original value
--- was actually part of the statistics.
-updateStatistics :: Statistics -> (AggregateComponent, AggregateComponent) ->
-                    Statistics
-updateStatistics (SumStatistics s) (SimpleNumber x, SimpleNumber y) =
-  SumStatistics $ s + (y - x)
-updateStatistics (StdDevStatistics n s var) (SimpleNumber x, SimpleNumber y) =
-  let !ds = y - x
-      !dss = y * y - x * x
-      !dnnvar = (n * dss - 2 * s * ds) - ds * ds
-      !s' = s + ds
-      !var' = max 0 $ var + dnnvar / (n * n)
-  in StdDevStatistics n s' var'
-updateStatistics (MapStatistics m) (SpreadValues x, SpreadValues y) =
-  let nm = Map.unionWith (+) (Map.unionWith (-) m x) y
-  in MapStatistics nm
-updateStatistics s _ = s
+-- | Converts Integral types to Double. It's usefull than it's not enough type
+-- information in the expression to call fromIntegral directly.
+toDouble :: (Integral a) => a -> Double
+toDouble = fromIntegral

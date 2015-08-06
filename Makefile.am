@@ -922,6 +922,8 @@ HS_LIB_SRCS = \
 	src/Ganeti/HTools/Cluster/AllocationSolution.hs \
 	src/Ganeti/HTools/Cluster/Evacuate.hs \
 	src/Ganeti/HTools/Cluster/Metrics.hs \
+	src/Ganeti/HTools/Cluster/MetricsComponents.hs \
+	src/Ganeti/HTools/Cluster/MetricsTH.hs \
 	src/Ganeti/HTools/Cluster/Moves.hs \
 	src/Ganeti/HTools/Cluster/Utils.hs \
 	src/Ganeti/HTools/Container.hs \

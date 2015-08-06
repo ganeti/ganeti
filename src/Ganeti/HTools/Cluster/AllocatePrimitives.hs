@@ -39,14 +39,14 @@ module Ganeti.HTools.Cluster.AllocatePrimitives
 
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..))
 import Ganeti.HTools.Cluster.AllocationSolution (AllocElement)
-import Ganeti.HTools.Cluster.Metrics ( compCV, compCVfromStats
+import Ganeti.HTools.Cluster.Metrics ( ClusterStatistics, compCV
+                                     , compCVfromStats
                                      , updateClusterStatisticsTwice)
 import Ganeti.HTools.Cluster.Moves (setInstanceLocationScore)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Instance as Instance
 import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Types
-import Ganeti.Utils.Statistics
 
 -- | Tries to allocate an instance on one given node.
 allocateOnSingle :: AlgorithmOptions
@@ -65,7 +65,7 @@ allocateOnSingle opts nl inst new_pdx =
 
 -- | Tries to allocate an instance on a given pair of nodes.
 allocateOnPair :: AlgorithmOptions
-               -> [Statistics]
+               -> ClusterStatistics
                -> Node.List -> Instance.Instance -> Ndx -> Ndx
                -> OpResult AllocElement
 allocateOnPair opts stats nl inst new_pdx new_sdx =
