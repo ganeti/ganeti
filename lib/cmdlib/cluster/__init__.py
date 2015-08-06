@@ -1454,6 +1454,20 @@ class LUClusterSetParams(LogicalUnit):
         feedback_fn("Cluster LVM configuration already in desired"
                     " state, not changing")
 
+  def _SetDiagnoseDataCollectorFilename(self, feedback_fn):
+    """Determines and sets the filename of the script
+    diagnose data collector should run.
+
+    """
+    if self.op.diagnose_data_collector_filename is not None:
+      fn = self.op.diagnose_data_collector_filename
+      if fn != self.cfg.GetDiagnoseDataCollectorFilename():
+        self.cfg.SetDiagnoseDataCollectorFilename(fn)
+      else:
+        feedback_fn("Diagnose data collector filename"
+                    " configuration already in desired"
+                    " state, not changing")
+
   def _SetFileStorageDir(self, feedback_fn):
     """Set the file storage directory.
 
@@ -1621,6 +1635,7 @@ class LUClusterSetParams(LogicalUnit):
     self._SetSharedFileStorageDir(feedback_fn)
     self.cfg.Update(self.cluster, feedback_fn)
     self._SetDrbdHelper(feedback_fn)
+    self._SetDiagnoseDataCollectorFilename(feedback_fn)
 
     # re-read the fresh configuration again
     self.cluster = self.cfg.GetClusterInfo()
