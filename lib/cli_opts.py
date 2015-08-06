@@ -82,6 +82,7 @@ __all__ = [
   "DST_NODE_OPT",
   "EARLY_RELEASE_OPT",
   "ENABLED_DATA_COLLECTORS_OPT",
+  "DIAGNOSE_DATA_COLLECTOR_FILENAME_OPT",
   "ENABLED_DISK_TEMPLATES_OPT",
   "ENABLED_HV_OPT",
   "ENABLED_USER_SHUTDOWN_OPT",
@@ -1601,6 +1602,17 @@ ENABLED_DATA_COLLECTORS_OPT = \
                help="Deactivate or reactivate a data collector for reporting, "
                "in the format collector=bool, where collector is one of %s."
                % ", ".join(constants.DATA_COLLECTOR_NAMES))
+
+DIAGNOSE_DATA_COLLECTOR_FILENAME_OPT = \
+    cli_option("--diagnose-data-collector-filename",
+                         dest="diagnose_data_collector_filename",
+                         help=("Set's the file name of the script"
+                               " diagnose data collector should run"
+                               " If this value is empty string, the collector"
+                               " will return a success value"
+                               " without running anything"),
+                         type="string")
+
 
 VERIFY_CLUTTER_OPT = cli_option(
     "--verify-ssh-clutter", default=False, dest="verify_clutter",
