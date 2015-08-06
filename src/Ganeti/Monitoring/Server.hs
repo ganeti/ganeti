@@ -190,6 +190,7 @@ catFromName "instance"   = BT.Ok $ Just DCInstance
 catFromName "storage"    = BT.Ok $ Just DCStorage
 catFromName "daemon"     = BT.Ok $ Just DCDaemon
 catFromName "hypervisor" = BT.Ok $ Just DCHypervisor
+catFromName "node"       = BT.Ok $ Just DCNode
 catFromName "default"    = BT.Ok Nothing
 catFromName _            = BT.Bad "No such category"
 

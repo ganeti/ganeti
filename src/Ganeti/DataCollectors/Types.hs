@@ -68,7 +68,7 @@ import Ganeti.THH
 import Ganeti.Utils (getCurrentTimeUSec)
 
 -- | The possible classes a data collector can belong to.
-data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor
+data DCCategory = DCInstance | DCStorage | DCDaemon | DCHypervisor | DCNode
   deriving (Show, Eq, Read, Enum, Bounded)
 
 -- | Get the category name and return it as a string.

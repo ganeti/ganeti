@@ -38,6 +38,7 @@ import Data.Map (findWithDefault)
 import Data.Monoid (mempty)
 
 import qualified Ganeti.DataCollectors.CPUload as CPUload
+import qualified Ganeti.DataCollectors.Diagnose as Diagnose
 import qualified Ganeti.DataCollectors.Diskstats as Diskstats
 import qualified Ganeti.DataCollectors.Drbd as Drbd
 import qualified Ganeti.DataCollectors.InstStatus as InstStatus
@@ -57,6 +58,7 @@ collectors =
   , drdbCollector
   , instStatusCollector
   , lvCollector
+  , diagnoseCollector
   ]
   where
     f .&&. g = \x y -> f x y && g x y
@@ -82,6 +84,9 @@ collectors =
     lvCollector =
       DataCollector Lv.dcName Lv.dcCategory Lv.dcKind
         (StatelessR Lv.dcReport) Nothing activeConfig updateInterval
+    diagnoseCollector =
+      DataCollector Diagnose.dcName Diagnose.dcCategory Diagnose.dcKind
+        (StatelessR Diagnose.dcReport) Nothing activeConfig updateInterval
     cpuLoadCollector =
       DataCollector CPUload.dcName CPUload.dcCategory CPUload.dcKind
         (StatefulR CPUload.dcReport) (Just CPUload.dcUpdate) activeConfig
