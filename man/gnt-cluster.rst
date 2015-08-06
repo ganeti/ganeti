@@ -715,6 +715,7 @@ MODIFY
 | [\--maintenance-interval *seconds*]
 | [\--auto-balance-cluster {yes \| no }]
 | [\--auto-balance-threshold *score* ]
+| [\--diagnose-data-collector-filename *filename*]
 
 
 Modify the options for the cluster.
@@ -785,6 +786,11 @@ first expects a list name=bool pairs to activate or decative the mentioned
 data collector. The second option expects similar pairs of collector name
 and number of seconds specifying the interval at which the collector
 shall be collected.
+
+The ``--diagnose-data-collector-filename`` option specifies the filename
+of the script diagnose data collector should run. If this value is an
+empty string, the data collector will return sucess without running
+anything. The default value is empty string.
 
 The ``--maintenance-interval`` option specified the minimal waiting
 time by the maintenance daemon between maintenance rounds.

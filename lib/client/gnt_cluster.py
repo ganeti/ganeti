@@ -1364,6 +1364,7 @@ def SetClusterParams(opts, args):
           opts.maint_balance is not None or
           opts.maint_balance_threshold is not None or
           opts.data_collector_interval or
+          opts.diagnose_data_collector_filename is not None or
           opts.enabled_data_collectors):
     ToStderr("Please give at least one of the parameters.")
     return 1
@@ -1513,6 +1514,7 @@ def SetClusterParams(opts, args):
     maint_balance_threshold=opts.maint_balance_threshold,
     enabled_data_collectors=enabled_data_collectors,
     data_collector_interval=data_collector_interval,
+    diagnose_data_collector_filename=opts.diagnose_data_collector_filename
     )
   return base.GetResult(None, opts, SubmitOrSend(op, opts))
 
@@ -2502,6 +2504,7 @@ commands = {
      [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
       COMPRESSION_TOOLS_OPT] +
      [ENABLED_DATA_COLLECTORS_OPT, DATA_COLLECTOR_INTERVAL_OPT,
+      DIAGNOSE_DATA_COLLECTOR_FILENAME_OPT,
       MAINT_INTERVAL_OPT, MAINT_BALANCE_OPT, MAINT_BALANCE_THRESHOLD_OPT],
     "[opts...]",
     "Alters the parameters of the cluster"),
