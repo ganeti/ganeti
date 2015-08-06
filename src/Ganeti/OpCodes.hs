@@ -260,6 +260,7 @@ $(genOpCode "OpCode"
      , pEnabledUserShutdown
      , pEnabledDataCollectors
      , pDataCollectorInterval
+     , pDiagnoseDataCollectorFilename
      , pMaintdRoundDelay
      , pMaintdEnableBalancing
      , pMaintdBalancingThreshold

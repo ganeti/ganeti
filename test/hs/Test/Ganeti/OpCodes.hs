@@ -251,6 +251,7 @@ instance Arbitrary OpCodes.OpCode where
           <*> arbitrary                    -- enabled_user_shutdown
           <*> genMaybe arbitraryDataCollector   -- enabled_data_collectors
           <*> arbitraryDataCollectorInterval   -- data_collector_interval
+          <*> genMaybe genName             -- diagnose_data_collector_filename
           <*> genMaybe (fromPositive <$> arbitrary) -- maintd round interval
           <*> genMaybe arbitrary           -- enable maintd balancing
           <*> genMaybe arbitrary           -- maintd balancing threshold

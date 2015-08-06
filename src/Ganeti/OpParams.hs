@@ -301,6 +301,7 @@ module Ganeti.OpParams
   , pMaintdEnableBalancing
   , pMaintdBalancingThreshold
   , pDataCollectorInterval
+  , pDiagnoseDataCollectorFilename
   , pNodeSslCerts
   , pSshKeys
   , pNodeSetup
@@ -1891,6 +1892,11 @@ pDataCollectorInterval =
   withDoc "Sets the interval in that data collectors are run" .
   optionalField $
   simpleField C.dataCollectorsIntervalName [t| GenericContainer String Int |]
+
+pDiagnoseDataCollectorFilename :: Field
+pDiagnoseDataCollectorFilename =
+  withDoc "Sets the filename of the script diagnose data collector should run" $
+  optionalStringField "diagnose_data_collector_filename"
 
 pMaintdRoundDelay :: Field
 pMaintdRoundDelay =
