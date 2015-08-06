@@ -2965,6 +2965,21 @@ class ConfigWriter(object):
     self._ConfigData().cluster.serial_no += 1
 
   @ConfigSync(shared=1)
+  def GetDiagnoseDataCollectorFilename(self):
+    """Return the diagnose data collector filename
+
+    """
+    return self._ConfigData().cluster.diagnose_data_collector_filename
+
+  @ConfigSync()
+  def SetDiagnoseDataCollectorFilename(self, fn):
+    """Set the volume group name.
+
+    """
+    self._ConfigData().cluster.diagnose_data_collector_filename = fn
+    self._ConfigData().cluster.serial_no += 1
+
+  @ConfigSync(shared=1)
   def GetDRBDHelper(self):
     """Return DRBD usermode helper.
 
