@@ -672,6 +672,8 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "compression_tools"              [t| [String]                |]
   , simpleField "enabled_user_shutdown"          [t| Bool                    |]
   , simpleField "data_collectors"         [t| Container DataCollectorConfig  |]
+  , defaultField [| [] |] $ simpleField
+      "diagnose_data_collector_filename"         [t| String                  |]
  ]
  ++ timeStampFields
  ++ uuidFields

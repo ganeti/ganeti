@@ -270,6 +270,8 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("data_collector_interval",
                showJSON . fmap dataCollectorInterval
                         $ clusterDataCollectors cluster)
+            , ("diagnose_data_collector_filename",
+               showJSON $ clusterDiagnoseDataCollectorFilename cluster)
             , ("maint_round_delay",
                showJSON . maintRoundDelay $ configMaintenance  cdata)
             , ("maint_balance",

@@ -1672,6 +1672,7 @@ class Cluster(TaggableObject):
     "compression_tools",
     "enabled_user_shutdown",
     "data_collectors",
+    "diagnose_data_collector_filename",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
