@@ -5409,6 +5409,9 @@ dataCollectorLv         = "lv"
 dataCollectorInstStatus :: String
 dataCollectorInstStatus = "inst-status-xen"
 
+dataCollectorDiagnose :: String
+dataCollectorDiagnose = "diagnose"
+
 dataCollectorParameterInterval :: String
 dataCollectorParameterInterval = "interval"
 
@@ -5420,6 +5423,7 @@ dataCollectorNames =
                       , dataCollectorLv
                       , dataCollectorInstStatus
                       , dataCollectorXenCpuLoad
+                      , dataCollectorDiagnose
                       ]
 
 dataCollectorStateActive :: String
@@ -5430,6 +5434,9 @@ dataCollectorsEnabledName = "enabled_data_collectors"
 
 dataCollectorsIntervalName :: String
 dataCollectorsIntervalName = "data_collector_interval"
+
+dataCollectorDiagnoseDirectory :: String
+dataCollectorDiagnoseDirectory = sysconfdir ++ "/ganeti/node-diagnose-commands"
 
 -- * HTools tag prefixes
 
