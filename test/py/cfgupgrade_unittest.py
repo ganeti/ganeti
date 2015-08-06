@@ -67,6 +67,7 @@ def GetMinimalConfig():
       "compression_tools": constants.IEC_DEFAULT_TOOLS,
       "enabled_user_shutdown": False,
       "data_collectors": {
+        "diagnose": { "active": True, "interval": 5000000 },
         "diskstats": { "active": True, "interval": 5000000 },
         "drbd": { "active": True, "interval": 5000000 },
         "lv": { "active": True, "interval": 5000000 },
@@ -74,6 +75,7 @@ def GetMinimalConfig():
         "cpu-avg-load": { "active": True, "interval": 5000000 },
         "xen-cpu-avg-load": { "active": True, "interval": 5000000 },
       },
+      "diagnose_data_collector_filename": "",
     },
     "instances": {},
     "disks": {},

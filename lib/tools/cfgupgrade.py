@@ -331,6 +331,8 @@ class CfgUpgrade(object):
         cluster["data_collectors"].get(
             name, dict(active=True,
                        interval=constants.MOND_TIME_INTERVAL * 1e6))
+    if "diagnose_data_collector_filename" not in cluster:
+      cluster["diagnose_data_collector_filename"] = ""
 
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
@@ -711,6 +713,15 @@ class CfgUpgrade(object):
   def DowngradeAll(self):
     if "maintenance" in self.config_data:
       del self.config_data["maintenance"]
+    if "cluster" in self.config_data:
+      cluster = self.config_data["cluster"]
+      if "diagnose_data_collector_filename" in cluster:
+        del cluster["diagnose_data_collector_filename"]
+      if ("data_collectors" in cluster and
+          constants.DATA_COLLECTOR_DIAGNOSE in
+             cluster["data_collectors"]):
+        del (cluster["data_collectors"]
+                [constants.DATA_COLLECTOR_DIAGNOSE])
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
     return True
