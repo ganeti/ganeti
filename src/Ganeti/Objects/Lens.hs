@@ -164,3 +164,5 @@ instance SerialNoObjectL ConfigData where
 
 instance TimeStampObjectL ConfigData where
   mTimeL = configMtimeL
+
+$(makeCustomLenses ''Incident)
