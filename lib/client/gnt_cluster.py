@@ -58,6 +58,7 @@ from ganeti import ssconf
 from ganeti import ssh
 from ganeti import uidpool
 from ganeti import utils
+from ganeti import wconfd
 from ganeti.client import base
 
 
@@ -1909,6 +1910,21 @@ def Epo(opts, args, qcl=None, _on_fn=_EpoOn, _off_fn=_EpoOff,
     return _off_fn(opts, node_list, inst_map)
 
 
+def RemoveRepair(opts, args):
+  """Uncoditionally remove a repair event
+
+  @param opts: the command line options selected by the user (ignored)
+  @type args: list
+  @param args: one element, the uuid of the event to remove
+  @rtype: int
+  @return: the desired exit code
+
+  """
+  uuid = args[0]
+  wconfd.Client().RmMaintdIncident(uuid)
+  return 0
+
+
 def _GetCreateCommand(info):
   buf = StringIO()
   buf.write("gnt-cluster init")
@@ -2535,6 +2551,9 @@ commands = {
   "upgrade": (
     UpgradeGanetiCommand, ARGS_NONE, [TO_OPT, RESUME_OPT], "",
     "Upgrade (or downgrade) to a new Ganeti version"),
+  "remove-repair": (
+    RemoveRepair, [ArgUnknown()], [], "<uuid>",
+    "Remove a repair event from the list of pending events"),
   }
 
 

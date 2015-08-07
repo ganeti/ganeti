@@ -851,6 +851,16 @@ configuration mismatches.
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
+REMOVE-REPAIR
+~~~~~~~~~~~~~
+
+**remove-repair** *uuid*
+
+Unconditionally remove the specified repair event from the list of repair
+events tracked by the maintenance daemon. Note that if the node still reports
+the same breakage, a new event for this breakage will be created at next
+node querying by the daemon.
+
 RENAME
 ~~~~~~
 
