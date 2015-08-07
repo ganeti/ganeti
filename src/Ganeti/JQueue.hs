@@ -503,7 +503,10 @@ readSerialFromDisk = do
 allocateJobIds :: [Node] -> Lock -> Int -> IO (Result [JobId])
 allocateJobIds mastercandidates lock n =
   if n <= 0
-    then return . Bad $ "Can only allocate positive number of job ids"
+    then if n == 0
+           then return $ Ok []
+           else return . Bad
+                  $ "Can only allocate non-negative number of job ids"
     else withLock lock $ do
       rjobid <- readSerialFromDisk
       case rjobid of
