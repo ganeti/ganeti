@@ -981,6 +981,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/MaintD/Autorepairs.hs \
 	src/Ganeti/MaintD/Balance.hs \
 	src/Ganeti/MaintD/CollectIncidents.hs \
+	src/Ganeti/MaintD/HandleIncidents.hs \
         src/Ganeti/MaintD/MemoryState.hs \
 	src/Ganeti/MaintD/Server.hs \
 	src/Ganeti/MaintD/Utils.hs \
