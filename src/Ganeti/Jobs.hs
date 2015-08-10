@@ -40,10 +40,12 @@ module Ganeti.Jobs
   , execJobsWaitOk
   , execJobsWaitOkJid
   , waitForJobs
+  , forceFailover
   ) where
 
 import Control.Exception (bracket)
 import Control.Monad (void, forM)
+import Data.Functor.Identity (runIdentity)
 import Data.List
 import Data.Tuple
 import Data.IORef
@@ -196,3 +198,19 @@ execJobsWaitOkJid opcodes client = do
 execJobsWaitOk :: [[MetaOpCode]] -> L.Client -> IO (Result ())
 execJobsWaitOk opcodes =
   fmap void . execJobsWaitOkJid opcodes
+
+-- | Channge Migrations to Failovers
+forceFailover :: OpCode -> OpCode
+forceFailover op@(OpInstanceMigrate {}) =
+  let timeout = runIdentity $ mkNonNegative C.defaultShutdownTimeout
+  in OpInstanceFailover { opInstanceName = opInstanceName op
+                        , opInstanceUuid = opInstanceUuid op
+                        , opShutdownTimeout = timeout
+                        , opIgnoreConsistency = True
+                        , opTargetNode = opTargetNode op
+                        , opTargetNodeUuid = opTargetNodeUuid op
+                        , opIgnoreIpolicy = opIgnoreIpolicy op
+                        , opMigrationCleanup = opMigrationCleanup op
+                        , opIallocator = opIallocator op
+                        }
+forceFailover op = op
