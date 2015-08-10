@@ -55,7 +55,7 @@ $(declareLADT ''String "RepairAction"
     [ ("RANoop", "Ok")
     , ("RALiveRepair", "live-repair")
     , ("RAEvacuate", "evacuate")
-    , ("RAEvacuateFailover", "evacute-failover")
+    , ("RAEvacuateFailover", "evacuate-failover")
     ])
 $(makeJSONInstance ''RepairAction)
 
