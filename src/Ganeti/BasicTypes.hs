@@ -8,7 +8,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2015 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -76,6 +76,7 @@ module Ganeti.BasicTypes
   , compareNameComponent
   , ListSet(..)
   , emptyListSet
+  , Down(..)
   ) where
 
 import Control.Applicative
@@ -93,6 +94,9 @@ import Data.Set (Set)
 import qualified Data.Set as Set (empty)
 import Text.JSON (JSON)
 import qualified Text.JSON as JSON (readJSON, showJSON)
+#if MIN_VERSION_base(4,6,0)
+import Data.Ord
+#endif
 
 -- Remove after we require >= 1.8.58
 -- See: https://github.com/ndmitchell/hlint/issues/24
@@ -477,3 +481,52 @@ instance (Ord a, JSON a) => JSON (ListSet a) where
 
 emptyListSet :: ListSet a
 emptyListSet = ListSet Set.empty
+
+#if MIN_VERSION_base(4,6,0)
+-- Down already defined in Data.Ord
+#else
+-- Copyright   :  (c) The University of Glasgow 2005
+-- License     :  BSD-style
+
+newtype Down a = Down a deriving (Eq, Show, Read)
+
+instance Ord a => Ord (Down a) where
+    compare (Down x) (Down y) = y `compare` x
+
+{- License text of the above code fragment:
+
+The Glasgow Haskell Compiler License
+
+Copyright 2004, The University Court of the University of Glasgow.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+- Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+- Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+- Neither name of the University nor the names of its contributors may be
+used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE UNIVERSITY COURT OF THE UNIVERSITY OF
+GLASGOW AND THE CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+UNIVERSITY COURT OF THE UNIVERSITY OF GLASGOW OR THE CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
+OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+DAMAGE.
+
+-}
+
+#endif
