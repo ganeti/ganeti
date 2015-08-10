@@ -113,14 +113,18 @@ echo = return
 -- | Update the configuration with the received instance parameters.
 updateConfig :: J.JSValue -> MetadMonad ()
 updateConfig input = do
-  (name, instanceParams) <- J.fromJResultE "Could not get instance parameters"
-                            $ Config.getInstanceParams input
-  cfg' <- modifyInstParams $ \cfg ->
-    let cfg' = mergeConfig cfg instanceParams
-     in return (cfg', cfg')
-  L.logInfo $
-    "Updated instance " ++ show name ++ " configuration"
-  L.logDebug $ "Instance configuration: " ++ show cfg'
+  (name, m'instanceParams) <- J.fromJResultE "Could not get instance parameters"
+                              $ Config.getInstanceParams input
+  case m'instanceParams of
+    Nothing -> L.logInfo $ "No communication NIC for instance " ++ name
+                           ++ ", skipping"
+    Just instanceParams -> do
+      cfg' <- modifyInstParams $ \cfg ->
+        let cfg' = mergeConfig cfg instanceParams
+         in return (cfg', cfg')
+      L.logInfo $
+        "Updated instance " ++ name ++ " configuration"
+      L.logDebug $ "Instance configuration: " ++ show cfg'
 
 -- * The list of all functions exported to RPC.
 
