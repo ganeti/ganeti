@@ -2026,6 +2026,21 @@ class TestLUInstanceMultiAlloc(CmdlibTestCase):
                                       iallocator="mock_ialloc")
     self.ExecOpCode(op)
 
+  def testManyInstancesWithIAllocator(self):
+    snode = self.cfg.AddNewNode()
+
+    inst1 = self.CopyOpCode(self.inst_op)
+    inst2 = self.CopyOpCode(self.inst_op, instance_name="inst2.example.com")
+
+    self.iallocator_cls.return_value.result = \
+      ([("inst.example.com",  [self.master.name, snode.name]),
+        ("inst2.example.com", [self.master.name, snode.name])],
+       [])
+
+    op = opcodes.OpInstanceMultiAlloc(instances=[inst1, inst2],
+                                      iallocator="mock_ialloc")
+    self.ExecOpCode(op)
+
   def testWithIAllocatorOpportunisticLocking(self):
     snode = self.cfg.AddNewNode()
     self.iallocator_cls.return_value.result = \
