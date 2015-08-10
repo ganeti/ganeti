@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 {-| Implementation of the Ganeti confd server functionality.
 
 -}
@@ -74,11 +76,11 @@ import Ganeti.DataCollectors (collectors)
 type CRef = IORef (Result (ConfigData, LinkIpMap))
 
 -- | A small type alias for readability.
-type StatusAnswer = (ConfdReplyStatus, J.JSValue)
+type StatusAnswer = (ConfdReplyStatus, J.JSValue, Int)
 
 -- | Unknown entry standard response.
 queryUnknownEntry :: StatusAnswer
-queryUnknownEntry = (ReplyStatusError, J.showJSON ConfdErrorUnknownEntry)
+queryUnknownEntry = (ReplyStatusError, J.showJSON ConfdErrorUnknownEntry, 0)
 
 {- not used yet
 -- | Internal error standard response.
@@ -88,7 +90,7 @@ queryInternalError = (ReplyStatusError, J.showJSON ConfdErrorInternal)
 
 -- | Argument error standard response.
 queryArgumentError :: StatusAnswer
-queryArgumentError = (ReplyStatusError, J.showJSON ConfdErrorArgument)
+queryArgumentError = (ReplyStatusError, J.showJSON ConfdErrorArgument, 0)
 
 -- | Converter from specific error to a string format.
 gntErrorToResult :: ErrorResult a -> Result a
@@ -97,7 +99,7 @@ gntErrorToResult (Ok x) = Ok x
 
 -- * Confd base functionality
 
--- | Computes the node role.
+-- | Computes the node role
 nodeRole :: ConfigData -> String -> Result ConfdNodeRole
 nodeRole cfg name = do
   cmaster <- errToResult $ QCluster.clusterMasterNodeName cfg
@@ -123,7 +125,8 @@ getNodePipByInstanceIp cfg linkipmap link instip =
     Just instname ->
       case getInstPrimaryNode cfg instname of
         Bad _ -> queryUnknownEntry -- either instance or node not found
-        Ok node -> (ReplyStatusOk, J.showJSON (nodePrimaryIp node))
+        Ok node -> (ReplyStatusOk, J.showJSON (nodePrimaryIp node),
+                    clusterSerial $ configCluster cfg)
 
 -- | Returns a node name for a given UUID
 uuidToNodeName :: ConfigData -> String -> Result String
@@ -142,11 +145,11 @@ encodeMinors cfg (node_uuid, a, b, c, d, peer_uuid) = do
 -- | Builds the response to a given query.
 buildResponse :: (ConfigData, LinkIpMap) -> ConfdRequest -> Result StatusAnswer
 buildResponse (cfg, _) (ConfdRequest { confdRqType = ReqPing }) =
-  return (ReplyStatusOk, J.showJSON (configVersion cfg))
+  return (ReplyStatusOk, J.showJSON (configVersion cfg), 0)
 
 buildResponse cdata req@(ConfdRequest { confdRqType = ReqClusterMaster }) =
   case confdRqQuery req of
-    EmptyQuery -> liftM ((,) ReplyStatusOk . J.showJSON) master_name
+    EmptyQuery -> liftM ((ReplyStatusOk,,serial) . J.showJSON) master_name
     PlainQuery _ -> return queryArgumentError
     DictQuery reqq -> do
       mnode <- gntErrorToResult $ getNode cfg master_uuid
@@ -156,25 +159,28 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqClusterMaster }) =
                                    ReqFieldIp -> clusterMasterIp cluster
                                    ReqFieldMNodePip -> nodePrimaryIp mnode
                       ) (confdReqQFields reqq)
-      return (ReplyStatusOk, J.showJSON fvals)
+      return (ReplyStatusOk, J.showJSON fvals, serial)
     where master_uuid = clusterMasterNode cluster
           master_name = errToResult $ QCluster.clusterMasterNodeName cfg
           cluster = configCluster cfg
           cfg = fst cdata
+          serial = clusterSerial $ configCluster cfg
 
 buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeRoleByName }) = do
   node_name <- case confdRqQuery req of
                  PlainQuery str -> return str
                  _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
   role <- nodeRole (fst cdata) node_name
-  return (ReplyStatusOk, J.showJSON role)
+  return (ReplyStatusOk, J.showJSON role,
+          clusterSerial . configCluster $ fst cdata)
 
 buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipList }) =
   -- note: we use foldlWithKey because that's present accross more
   -- versions of the library
   return (ReplyStatusOk, J.showJSON $
           M.foldlWithKey (\accu _ n -> nodePrimaryIp n:accu) []
-          (fromContainer . configNodes . fst $ cdata))
+          (fromContainer . configNodes . fst $ cdata),
+          clusterSerial . configCluster $ fst cdata)
 
 buildResponse cdata (ConfdRequest { confdRqType = ReqMcPipList }) =
   -- note: we use foldlWithKey because that's present accross more
@@ -183,7 +189,8 @@ buildResponse cdata (ConfdRequest { confdRqType = ReqMcPipList }) =
           M.foldlWithKey (\accu _ n -> if nodeMasterCandidate n
                                          then nodePrimaryIp n:accu
                                          else accu) []
-          (fromContainer . configNodes . fst $ cdata))
+          (fromContainer . configNodes . fst $ cdata),
+          clusterSerial . configCluster $ fst cdata)
 
 buildResponse (cfg, linkipmap)
               req@(ConfdRequest { confdRqType = ReqInstIpsList }) = do
@@ -191,7 +198,8 @@ buildResponse (cfg, linkipmap)
             PlainQuery str -> return str
             EmptyQuery -> return (getDefaultNicLink cfg)
             _ -> fail "Invalid query type"
-  return (ReplyStatusOk, J.showJSON $ getInstancesIpByLink linkipmap link)
+  return (ReplyStatusOk, J.showJSON $ getInstancesIpByLink linkipmap link,
+          clusterSerial $ configCluster cfg)
 
 buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipByInstPip
                                   , confdRqQuery = DictQuery query}) =
@@ -202,7 +210,8 @@ buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipByInstPip
        Nothing -> return (ReplyStatusOk,
                           J.showJSON $
                            map (getNodePipByInstanceIp cfg linkipmap link)
-                           (confdReqQIpList query))
+                           (confdReqQIpList query),
+                          clusterSerial . configCluster $ fst cdata)
 
 buildResponse _ (ConfdRequest { confdRqType = ReqNodePipByInstPip }) =
   return queryArgumentError
@@ -216,7 +225,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeDrbd }) = do
   let minors = concatMap (getInstMinorsForNode cfg (nodeUuid node)) .
                M.elems . fromContainer . configInstances $ cfg
   encoded <- mapM (encodeMinors cfg) minors
-  return (ReplyStatusOk, J.showJSON encoded)
+  return (ReplyStatusOk, J.showJSON encoded, nodeSerial node)
 
 -- | Return the list of instances for a node (as ([primary], [secondary])) given
 -- the node name.
@@ -231,7 +240,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeInstances }) = do
       Bad e -> fail $ "Node not found in the configuration: " ++ show e
   let node_uuid = nodeUuid node
       instances = getNodeInstances cfg node_uuid
-  return (ReplyStatusOk, J.showJSON instances)
+  return (ReplyStatusOk, J.showJSON instances, nodeSerial node)
 
 -- | Return the list of disks for an instance given the instance uuid.
 buildResponse cdata req@(ConfdRequest { confdRqType = ReqInstanceDisks }) = do
@@ -240,8 +249,10 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqInstanceDisks }) = do
     case confdRqQuery req of
       PlainQuery str -> return str
       _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
+  inst <- lookupContainer (Bad $ "unknown instance: " ++ inst_uuid)
+            inst_uuid $ configInstances cfg
   case getInstDisks cfg inst_uuid of
-    Ok disks -> return (ReplyStatusOk, J.showJSON disks)
+    Ok disks -> return (ReplyStatusOk, J.showJSON disks, instSerial inst)
     Bad e -> fail $ "Could not retrieve disks: " ++ show e
 
 -- | Return arbitrary configuration value given by a path.
@@ -254,7 +265,8 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqConfigQuery
       _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
   let configValue = extractJSONPath path cfg
   case configValue of
-    J.Ok jsvalue -> return (ReplyStatusOk, jsvalue)
+    J.Ok jsvalue -> return (ReplyStatusOk, jsvalue,
+                            clusterSerial $ configCluster cfg)
     J.Error _ -> return queryArgumentError
 
 -- | Return activation state of data collectors
@@ -264,18 +276,19 @@ buildResponse (cdata,_) (ConfdRequest { confdRqType = ReqDataCollectors }) = do
                    (dActive col (dName col) cdata)
                    (dInterval col (dName col) cdata))
       datacollectors = containerFromList $ map mkConfig collectors
-  return (ReplyStatusOk, J.showJSON datacollectors)
+  return (ReplyStatusOk, J.showJSON datacollectors,
+          clusterSerial . configCluster $ cdata)
 
 -- | Creates a ConfdReply from a given answer.
 serializeResponse :: Result StatusAnswer -> ConfdReply
 serializeResponse r =
-    let (status, result) = case r of
-                    Bad err -> (ReplyStatusError, J.showJSON err)
-                    Ok (code, val) -> (code, val)
+    let (status, result, serial) = case r of
+                    Bad err -> (ReplyStatusError, J.showJSON err, 0)
+                    Ok (code, val, ser) -> (code, val, ser)
     in ConfdReply { confdReplyProtocol = 1
                   , confdReplyStatus   = status
                   , confdReplyAnswer   = result
-                  , confdReplySerial   = 0 }
+                  , confdReplySerial   = serial }
 
 -- ** Client input/output handlers
 
