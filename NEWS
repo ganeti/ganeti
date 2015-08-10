@@ -37,10 +37,10 @@ New dependencies
   package.
 
 
-Version 2.15.0 rc1
-------------------
+Version 2.15.0
+--------------
 
-*(Released Wed, 17 Jun 2015)*
+*(Released Wed, 29 Jul 2015)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -51,6 +51,10 @@ Incompatible/important changes
   htools(1) interprets minimal cluster scores to be offsets of the theoretical
   lower bound, so only users interpreting the cluster score directly should
   be affected.
+- This release contains a fix for the problem that different encodings in
+  SSL certificates can break RPC communication (issue 1094). The fix makes
+  it necessary to rerun 'gnt-cluster renew-crypto --new-node-certificates'
+  after the cluster is fully upgraded to 2.14.1
 
 New features
 ~~~~~~~~~~~~
@@ -63,6 +67,15 @@ New dependencies
 
 - The indirect dependency on Haskell package 'case-insensitive' is now
   explicit.
+
+
+Version 2.15.0 rc1
+------------------
+
+*(Released Wed, 17 Jun 2015)*
+
+This was the first release candidate in the 2.15 series. All important
+changes are listed in the latest 2.15 entry.
 
 Known issues:
 ~~~~~~~~~~~~~
