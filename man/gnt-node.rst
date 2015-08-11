@@ -34,9 +34,12 @@ ADD
 Adds the given node to the cluster.
 
 This command is used to join a new node to the cluster. You will
-have to provide the password for root of the node to be able to add
-the node in the cluster. The command needs to be run on the Ganeti
-master.
+have to provide credentials to ssh as root to the node to be added.
+Forwardig of an ssh agent (the ``-A`` option of ssh) works, if an
+appropriate authorized key is set up on the node to be added. If
+the other node allows password authentication for root, another
+way of providing credentials is to provide the root password once
+asked for it. The command needs to be run on the Ganeti master.
 
 Note that the command is potentially destructive, as it will
 forcibly join the specified host to the cluster, not paying attention
