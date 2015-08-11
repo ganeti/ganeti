@@ -5,7 +5,7 @@ license:             BSD2
 license-file:        COPYING
 author:              Google Inc.
 maintainer:          ganeti-devel@googlegroups.com
-copyright:           2006-2014 Google Inc.
+copyright:           2006-2015 Google Inc.
 category:            System
 build-type:          Simple
 extra-source-files:  README
@@ -23,6 +23,10 @@ flag mond
 
 flag metad
   description: enable the ganeti metadata daemon
+  default:     True
+
+flag htest
+  description: enable tests
   default:     True
 
 
@@ -69,16 +73,18 @@ library
     , utf8-string                   >= 0.3.7      && < 0.4
     , zlib                          >= 0.5.3.3    && < 0.6
 
-    , HUnit                         >= 1.2.4.2    && < 1.3
-    , QuickCheck                    >= 2.4.2      && < 2.8
-    , test-framework                >= 0.6        && < 0.9
-    , test-framework-hunit          >= 0.2.7      && < 0.4
-    , test-framework-quickcheck2    >= 0.2.12.1   && < 0.4
-
     -- Executables:
     -- , happy
     -- , hscolour
     -- , shelltestrunner
+
+  if flag(htest)
+    build-depends:
+        HUnit                         >= 1.2.4.2    && < 1.3
+      , QuickCheck                    >= 2.4.2      && < 2.8
+      , test-framework                >= 0.6        && < 0.9
+      , test-framework-hunit          >= 0.2.7      && < 0.4
+      , test-framework-quickcheck2    >= 0.2.12.1   && < 0.4
 
   if flag(mond)
     build-depends:
