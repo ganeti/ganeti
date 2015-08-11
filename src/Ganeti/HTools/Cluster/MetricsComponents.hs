@@ -49,16 +49,21 @@ module Ganeti.HTools.Cluster.MetricsComponents
   , forOnlineNodes
   ) where
 
+
+import Control.Monad (guard)
+import Data.Maybe (fromMaybe)
 import Language.Haskell.TH
 
-import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Cluster.MetricsTH (MetricComponent(..))
+import qualified Ganeti.HTools.Container as Container
+import qualified Ganeti.HTools.Node as Node
+import qualified Ganeti.HTools.PeerMap as P
 import Ganeti.HTools.Types
 import Ganeti.Utils.Statistics
 
--- | Coefficient that will be useful for optimalCV computation.
-reservedMemRTotal :: Double
-reservedMemRTotal = 0.25
+-- | Coefficient that is used for optimal value computation.
+-- reservedMemRTotal :: Double
+-- reservedMemRTotal = 0.25
 
 -- | Type alias decreasing table size below
 type D = Double
@@ -103,8 +108,6 @@ metricComponents =
     [| toDouble . Node.locationScore |]
   , mapComp     "location_exclusion_score" [| 0.5  :: D |] True
     [| MapData . Node.instanceMap |]
-  , sumComp     "reserved_mem_rtotal"      [| reservedMemRTotal :: D |] True
-    [| Node.pRem |]
   , stdDevComp "free_mem_cv_forth"         [| 0.5  :: D |] True
     [| Node.pMemForth    |]
   , stdDevComp "free_disk_cv_forth"        [| 0.5  :: D |] True
@@ -113,6 +116,7 @@ metricComponents =
     [| Node.pCpuEffForth |]
   , sumComp    "spindles_cv_forth"         [| 0.5  :: D |] True
     [| \n -> Node.instSpindlesForth n / Node.hiSpindles n |]
+  , reservedMemRTotal
   ]
 
 -- | Function to be used as a short MetricComponent constructor for SumStat.
@@ -123,6 +127,7 @@ sumComp nm w on f = MetricComponent { name = nm
                                     , fromNodeType = [t| Double |]
                                     , statisticsType = [t| SumStat |]
                                     , forOnlineNodes = on
+                                    , optimalValue = [| zeroOptValueFunc |]
                                     }
 
 -- | Function to be used as a short MetricComponent constructor for StdDevStat.
@@ -133,8 +138,8 @@ stdDevComp nm w on f = MetricComponent { name = nm
                                        , fromNodeType = [t| Double |]
                                        , statisticsType = [t| StdDevStat |]
                                        , forOnlineNodes = on
+                                       , optimalValue = [| zeroOptValueFunc |]
                                        }
-
 
 -- | Function to be used as a short MetricComponent constructor for MapStat.
 mapComp :: String -> ExpQ -> Bool -> ExpQ -> MetricComponent
@@ -144,4 +149,40 @@ mapComp nm w on f = MetricComponent { name = nm
                                     , fromNodeType = [t| MapData |]
                                     , statisticsType = [t| MapStat |]
                                     , forOnlineNodes = on
+                                    , optimalValue = [| zeroOptValueFunc |]
                                     }
+
+-- | Function is supposed to be used in MericComponent.hs as a most widepread
+-- optimalValue function
+zeroOptValueFunc :: Node.List -> Double
+zeroOptValueFunc _ = 0
+
+-- | Weight of reservedMemRTotal component
+wReservedMemRTotal :: Double
+wReservedMemRTotal = 0.25
+
+reservedMemRTotal :: MetricComponent
+reservedMemRTotal = MetricComponent
+  { name = "reserved_mem_rtotal"
+  , weight = [| wReservedMemRTotal :: D |]
+  , fromNode =  [| Node.pRem |]
+  , fromNodeType = [t| Double |]
+  , statisticsType = [t| SumStat |]
+  , forOnlineNodes = True
+  , optimalValue = [| reservedMemRTotalOptValue |]
+  }
+
+-- | Computes theoretical opimal value for reservedMemRTotal component
+reservedMemRTotalOptValue :: Node.List -> Double
+reservedMemRTotalOptValue nodelist = fromMaybe 0 $ do
+  let nodes = Container.elems nodelist
+  guard $ length nodes > 1
+  let nodeMems = map Node.tMem nodes
+      totalMem = sum nodeMems
+      totalMemOneLessNode = totalMem - maximum nodeMems
+  guard $ totalMemOneLessNode > 0
+  let totalDrbdMem = fromIntegral . sum $ map (P.sumElems . Node.peers) nodes
+      optimalUsage = totalDrbdMem / totalMem
+      optimalUsageOneLessNode = totalDrbdMem / totalMemOneLessNode
+      relativeReserved = optimalUsageOneLessNode - optimalUsage
+  return $ wReservedMemRTotal * relativeReserved

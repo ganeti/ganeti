@@ -63,6 +63,8 @@ data MetricComponent = MetricComponent
                              -- should be defined
   , forOnlineNodes :: Bool   -- ^ Whether this component should be calculated
                              -- for online or offline nodes
+  , optimalValue   :: Q Exp  -- ^ Quasi quoted function obtaining optimal
+                             -- value of such component (Node.List -> Double)
   }
 
 -- | Declares all functions and data types implemented in template haskell
@@ -75,9 +77,11 @@ declareStatistics components = do
   updateClusterStatistics <- updateClusterStatisticsDecl components
   compCVfromStats         <- compCVfromStatsDecl components
   showClusterStatistics   <- showClusterStatisticsDecl components
+  optimalCVScore          <- optimalCVScoreDecl components
   return $ nodeValues ++ getNodeValues ++ clusterStatistics ++
            compClusterStatistics ++ updateClusterStatistics ++
-           compCVfromStats ++ showClusterStatistics
+           compCVfromStats ++ showClusterStatistics ++
+           optimalCVScore
 
 -- | Helper function constructing VarStringTypeQ
 getVarStrictTypeQ :: (String, Q Type) -> VarStrictTypeQ
@@ -234,4 +238,18 @@ showClusterStatisticsDecl components = do
   sig_d <- sigD fname ((arrowT `appT` [t| String |]) `appT`
                        ((arrowT `appT` cs_t) `appT` [t| String |]))
   fun_d <- funD fname [clause [varP lp, varP cs] (normalB result) []]
+  return [sig_d, fun_d]
+
+-- | Generates (optimalCVScore :: Node.List -> Double) declaration for metric
+-- components given. The function computes the lower bound of the cluster
+-- score, i.e., the sum of the minimal values for all cluster score values that
+-- are not 0 on a perfectly balanced cluster.
+optimalCVScoreDecl :: [MetricComponent] -> Q [Dec]
+optimalCVScoreDecl components = do
+  nl <- newName "nl"
+  let comp c = appE (optimalValue c) $ varE nl
+      stat = appE [| sum :: [Double] -> Double |] . listE $ map comp components
+      fname = mkName "optimalCVScore"
+  sig_d <- sigD fname ((arrowT `appT` [t| Node.List |]) `appT` [t| Double |])
+  fun_d <- funD fname [clause [varP nl] (normalB stat) []]
   return [sig_d, fun_d]

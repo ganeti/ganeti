@@ -45,33 +45,12 @@ module Ganeti.HTools.Cluster.Metrics
   , printStats
   ) where
 
-import Control.Monad (guard)
-import Data.Maybe (fromMaybe)
-
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Node as Node
-import qualified Ganeti.HTools.PeerMap as P
 import qualified Ganeti.HTools.Cluster.MetricsComponents as M
 import Ganeti.HTools.Cluster.MetricsTH
 
 $(declareStatistics M.metricComponents)
-
--- | Compute the lower bound of the cluster score, i.e., the sum of the minimal
--- values for all cluster score values that are not 0 on a perfectly balanced
--- cluster.
-optimalCVScore :: Node.List -> Double
-optimalCVScore nodelist = fromMaybe 0 $ do
-  let nodes = Container.elems nodelist
-  guard $ length nodes > 1
-  let nodeMems = map Node.tMem nodes
-      totalMem = sum nodeMems
-      totalMemOneLessNode = totalMem - maximum nodeMems
-  guard $ totalMemOneLessNode > 0
-  let totalDrbdMem = fromIntegral . sum $ map (P.sumElems . Node.peers) nodes
-      optimalUsage = totalDrbdMem / totalMem
-      optimalUsageOneLessNode = totalDrbdMem / totalMemOneLessNode
-      relativeReserved = optimalUsageOneLessNode - optimalUsage
-  return $ M.reservedMemRTotal * relativeReserved
 
 -- | Update a cluster statistics twice.
 updateClusterStatisticsTwice :: ClusterStatistics
