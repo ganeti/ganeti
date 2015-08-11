@@ -71,7 +71,7 @@ optimalCVScore nodelist = fromMaybe 0 $ do
       optimalUsage = totalDrbdMem / totalMem
       optimalUsageOneLessNode = totalDrbdMem / totalMemOneLessNode
       relativeReserved = optimalUsageOneLessNode - optimalUsage
-  return $ $(M.weight M.reservedMemRTotal) * relativeReserved
+  return $ M.reservedMemRTotal * relativeReserved
 
 -- | Update a cluster statistics twice.
 updateClusterStatisticsTwice :: ClusterStatistics

@@ -49,243 +49,99 @@ module Ganeti.HTools.Cluster.MetricsComponents
   , forOnlineNodes
   ) where
 
+import Language.Haskell.TH
+
 import qualified Ganeti.HTools.Node as Node
 import Ganeti.HTools.Cluster.MetricsTH (MetricComponent(..))
 import Ganeti.HTools.Types
 import Ganeti.Utils.Statistics
 
+-- | Coefficient that will be useful for optimalCV computation.
+reservedMemRTotal :: Double
+reservedMemRTotal = 0.25
+
+-- | Type alias decreasing table size below
+type D = Double
+
 -- | List containing all currently enabled cluster metrics components
 metricComponents :: [MetricComponent]
-metricComponents = [ freeMemPercent
-                   , freeDiskPercent
-                   , cpuEffRatio
-                   , spindlesUsageRatio
-                   , n1FailsCount
-                   , reservedMemPercent
-                   , offlineInstCount
-                   , offlinePriInstCount
-                   , cpuLoadRatio
-                   , memLoadRatio
-                   , diskLoadRatio
-                   , netLoadRatio
-                   , priTagsScore
-                   , locationScore
-                   , locationExclusionScore
-                   , reservedMemRTotal
-                   , freeMemPercentForth
-                   , freeDiskPercentForth
-                   , cpuEffRatioForth
-                   , spindlesUsageRatioForth
-                   ]
+metricComponents =
+  [ stdDevComp "free_mem_cv"               [| 0.5  :: D |] True [| Node.pMem |]
+  , stdDevComp "free_disk_cv"              [| 0.5  :: D |] True [| Node.pDsk |]
+  , stdDevComp "vcpu_ratio_cv"             [| 0.5  :: D |] True
+    [| Node.pCpuEff |]
+  , sumComp    "spindles_cv"               [| 0.5  :: D |] True
+    [| \n -> Node.instSpindles n / Node.hiSpindles n |]
+  , sumComp    "fail_n1"                   [| 0.5  :: D |] True
+    [| \n -> if Node.failN1 n
+               then toDouble  $ length (Node.sList n) + length (Node.pList n)
+               else 0 |]
+  , stdDevComp "reserved_mem_cv"           [| 1    :: D |] True [| Node.pRem |]
+  , sumComp    "offline_all_cnt"           [| 4    :: D |] False
+    [| \n -> toDouble $ length (Node.pList n) + length (Node.sList n) |]
+  , sumComp    "offline_pri_cnt"           [| 16   :: D |] False
+    [| toDouble . length . Node.pList |]
+  , stdDevComp "cpu_load_cv"               [| 1    :: D |] True
+    [| \n -> let DynUtil c1 _ _ _ = Node.utilLoad n
+                 DynUtil c2 _ _ _ = Node.utilPool n
+             in c1/c2 |]
+  , stdDevComp "mem_load_cv"               [| 1    :: D |] True
+    [| \n -> let DynUtil _ m1 _ _ = Node.utilLoad n
+                 DynUtil _ m2 _ _ = Node.utilPool n
+             in m1/m2 |]
+  , stdDevComp "disk_load_cv"              [| 1    :: D |] True
+    [| \n -> let DynUtil _ _ d1 _ = Node.utilLoad n
+                 DynUtil _ _ d2 _ = Node.utilPool n
+             in d1/d2 |]
+  , stdDevComp "net_load_cv"               [| 1    :: D |] True
+    [| \n -> let DynUtil _ _ _ n1 = Node.utilLoad n
+                 DynUtil _ _ _ n2 = Node.utilPool n
+             in n1/n2 |]
+  , sumComp     "pri_tags_score"           [| 2    :: D |] True
+    [| toDouble . Node.conflictingPrimaries |]
+  , sumComp     "location_score"           [| 1    :: D |] True
+    [| toDouble . Node.locationScore |]
+  , mapComp     "location_exclusion_score" [| 0.5  :: D |] True
+    [| MapData . Node.instanceMap |]
+  , sumComp     "reserved_mem_rtotal"      [| reservedMemRTotal :: D |] True
+    [| Node.pRem |]
+  , stdDevComp "free_mem_cv_forth"         [| 0.5  :: D |] True
+    [| Node.pMemForth    |]
+  , stdDevComp "free_disk_cv_forth"        [| 0.5  :: D |] True
+    [| Node.pDskForth    |]
+  , stdDevComp "vcpu_ratio_cv_forth"       [| 0.5  :: D |] True
+    [| Node.pCpuEffForth |]
+  , sumComp    "spindles_cv_forth"         [| 0.5  :: D |] True
+    [| \n -> Node.instSpindlesForth n / Node.hiSpindles n |]
+  ]
 
-freeMemPercent :: MetricComponent
-freeMemPercent = MetricComponent
-  { name = "free_mem_cv"
-  , weight = [| 0.5 :: Double |]
-  , fromNode = [| Node.pMem |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
+-- | Function to be used as a short MetricComponent constructor for SumStat.
+sumComp :: String -> ExpQ -> Bool -> ExpQ -> MetricComponent
+sumComp nm w on f = MetricComponent { name = nm
+                                    , weight = w
+                                    , fromNode = f
+                                    , fromNodeType = [t| Double |]
+                                    , statisticsType = [t| SumStat |]
+                                    , forOnlineNodes = on
+                                    }
 
-freeDiskPercent :: MetricComponent
-freeDiskPercent = MetricComponent
-  { name = "free_disk_cv"
-  , weight = [| 0.5 :: Double |]
-  , fromNode = [| Node.pDsk |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
+-- | Function to be used as a short MetricComponent constructor for StdDevStat.
+stdDevComp :: String -> ExpQ -> Bool -> ExpQ -> MetricComponent
+stdDevComp nm w on f = MetricComponent { name = nm
+                                       , weight = w
+                                       , fromNode = f
+                                       , fromNodeType = [t| Double |]
+                                       , statisticsType = [t| StdDevStat |]
+                                       , forOnlineNodes = on
+                                       }
 
-cpuEffRatio :: MetricComponent
-cpuEffRatio = MetricComponent
-  { name = "vcpu_ratio_cv"
-  , weight = [| 0.5 :: Double |]
-  , fromNode = [| Node.pCpuEff |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
 
-spindlesUsageRatio :: MetricComponent
-spindlesUsageRatio = MetricComponent
-  { name = "spindles_cv"
-  , weight = [| 0.5 :: Double |]
-  , fromNode = [| \n -> Node.instSpindles n / Node.hiSpindles n |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| SumStat |]
-  , forOnlineNodes = True
-  }
-
-n1FailsCount :: MetricComponent
-n1FailsCount = MetricComponent
-  { name = "fail_n1"
-  , weight = [| 0.5 :: Double |]
-  , fromNode = [| \n -> if Node.failN1 n
-                          then toDouble $
-                               length (Node.sList n) + length (Node.pList n)
-                          else 0 |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| SumStat |]
-  , forOnlineNodes = True
-  }
-
-reservedMemPercent :: MetricComponent
-reservedMemPercent = MetricComponent
-  { name = "reserved_mem_cv"
-  , weight = [| 1 :: Double |]
-  , fromNode = [| Node.pRem |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
-
-offlineInstCount :: MetricComponent
-offlineInstCount = MetricComponent
-  { name = "offline_all_cnt"
-  , weight = [| 4 :: Double |]
-  , fromNode = [| \n -> toDouble $
-                        length (Node.pList n) + length (Node.sList n) |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| SumStat |]
-  , forOnlineNodes = False
-  }
-
-offlinePriInstCount :: MetricComponent
-offlinePriInstCount = MetricComponent
-  { name = "offline_pri_cnt"
-  , weight = [| 16 :: Double |]
-  , fromNode = [| toDouble . length . Node.pList |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| SumStat |]
-  , forOnlineNodes = False
-  }
-
-cpuLoadRatio :: MetricComponent
-cpuLoadRatio = MetricComponent
-  { name = "cpu_load_cv"
-  , weight = [| 1 :: Double |]
-  , fromNode = [| \n -> let DynUtil c1 _ _ _ = Node.utilLoad n
-                            DynUtil c2 _ _ _ = Node.utilPool n
-                        in c1/c2 |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
-
-memLoadRatio :: MetricComponent
-memLoadRatio = MetricComponent
-  { name = "mem_load_cv"
-  , weight = [| 1 :: Double |]
-  , fromNode = [| \n -> let DynUtil _ m1 _ _ = Node.utilLoad n
-                            DynUtil _ m2 _ _ = Node.utilPool n
-                        in m1/m2 |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
-
-diskLoadRatio :: MetricComponent
-diskLoadRatio = MetricComponent
-  { name = "disk_load_cv"
-  , weight = [| 1 :: Double |]
-  , fromNode = [| \n -> let DynUtil _ _ d1 _ = Node.utilLoad n
-                            DynUtil _ _ d2 _ = Node.utilPool n
-                        in d1/d2 |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
-
-netLoadRatio :: MetricComponent
-netLoadRatio = MetricComponent
-  { name = "net_load_cv"
-  , weight = [| 1 :: Double |]
-  , fromNode = [| \n -> let DynUtil _ _ _ n1 = Node.utilLoad n
-                            DynUtil _ _ _ n2 = Node.utilPool n
-                        in n1/n2 |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
-
-priTagsScore :: MetricComponent
-priTagsScore = MetricComponent
-  { name = "pri_tags_score"
-  , weight = [| 2 :: Double |]
-  , fromNode = [| toDouble . Node.conflictingPrimaries |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| SumStat |]
-  , forOnlineNodes = True
-  }
-
-locationScore :: MetricComponent
-locationScore = MetricComponent
-  { name = "location_score"
-  , weight = [| 1 :: Double |]
-  , fromNode = [| toDouble . Node.locationScore |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| SumStat |]
-  , forOnlineNodes = True
-  }
-
-locationExclusionScore :: MetricComponent
-locationExclusionScore = MetricComponent
-  { name = "location_exclusion_score"
-  , weight = [| 1 :: Double |]
-  , fromNode = [| MapData . Node.instanceMap |]
-  , fromNodeType = [t| MapData |]
-  , statisticsType = [t| MapStat |]
-  , forOnlineNodes = True
-  }
-
-reservedMemRTotal :: MetricComponent
-reservedMemRTotal = MetricComponent
-  { name = "reserved_mem_rtotal"
-  , weight = [| 0.25 :: Double |]
-  , fromNode = [| Node.pRem |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| SumStat |]
-  , forOnlineNodes = True
-  }
-
-freeMemPercentForth :: MetricComponent
-freeMemPercentForth = MetricComponent
-  { name = "free_mem_cv_forth"
-  , weight = [| 0.5 :: Double |]
-  , fromNode = [| Node.pMemForth |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
-
-freeDiskPercentForth :: MetricComponent
-freeDiskPercentForth = MetricComponent
-  { name = "free_disk_cv_forth"
-  , weight = [| 0.5 :: Double |]
-  , fromNode = [| Node.pDskForth |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
-
-cpuEffRatioForth :: MetricComponent
-cpuEffRatioForth = MetricComponent
-  { name = "vcpu_ratio_cv_forth"
-  , weight = [| 0.5 :: Double |]
-  , fromNode = [| Node.pCpuEffForth |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| StdDevStat |]
-  , forOnlineNodes = True
-  }
-
-spindlesUsageRatioForth :: MetricComponent
-spindlesUsageRatioForth = MetricComponent
-  { name = "spindles_cv_forth"
-  , weight = [| 0.5 :: Double |]
-  , fromNode = [| \n -> Node.instSpindlesForth n / Node.hiSpindles n |]
-  , fromNodeType = [t| Double |]
-  , statisticsType = [t| SumStat |]
-  , forOnlineNodes = True
-  }
+-- | Function to be used as a short MetricComponent constructor for MapStat.
+mapComp :: String -> ExpQ -> Bool -> ExpQ -> MetricComponent
+mapComp nm w on f = MetricComponent { name = nm
+                                    , weight = w
+                                    , fromNode = f
+                                    , fromNodeType = [t| MapData |]
+                                    , statisticsType = [t| MapStat |]
+                                    , forOnlineNodes = on
+                                    }
