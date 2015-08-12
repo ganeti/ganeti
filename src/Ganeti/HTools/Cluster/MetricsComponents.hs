@@ -38,15 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Ganeti.HTools.Cluster.MetricsComponents
-  ( MetricComponent
-  , metricComponents
-  , reservedMemRTotal
-  , name
-  , weight
-  , fromNode
-  , fromNodeType
-  , statisticsType
-  , forOnlineNodes
+  ( metricComponents
   ) where
 
 
