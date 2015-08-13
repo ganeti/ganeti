@@ -2679,7 +2679,6 @@ class ConfigWriter(object):
           logging.debug("Requesting config, as I have no up-to-date copy")
           dict_data = self._wconfd.ReadConfig()
         else:
-          logging.debug("My config copy is up to date.")
           dict_data = None
       else:
         # poll until we acquire the lock
