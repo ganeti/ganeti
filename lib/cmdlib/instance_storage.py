@@ -1136,7 +1136,8 @@ def _CheckVgCapacityForNode(node_name, node_info, vg, requested):
   lvm_vg_info = utils.storage.LookupSpaceInfoByStorageType(
       space_info, constants.ST_LVM_VG)
   if not lvm_vg_info:
-    raise errors.OpPrereqError("Can't retrieve storage information for LVM")
+    raise errors.OpPrereqError("Can't retrieve storage information for LVM",
+                               errors.ECODE_ENVIRON)
   vg_free = lvm_vg_info.get("storage_free", None)
   if not isinstance(vg_free, int):
     raise errors.OpPrereqError("Can't compute free disk space on node"
