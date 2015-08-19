@@ -1306,7 +1306,10 @@ def _TestInstanceUserDownXen(instance):
   primary = _GetInstanceField(instance.name, "pnode")
   fn = lambda: AssertCommand(["xm", "shutdown", "-w", instance.name],
                              node=primary)
+
+  AssertCommand(["gnt-cluster", "modify", "--user-shutdown=true"])
   _TestInstanceUserDown(instance, fn)
+  AssertCommand(["gnt-cluster", "modify", "--user-shutdown=false"])
 
 
 @InstanceCheck(INST_UP, INST_UP, FIRST_ARG)
