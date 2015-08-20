@@ -1611,6 +1611,7 @@ EXTRA_DIST += \
 	daemons/ganeti-cleaner.in \
 	$(pkglib_python_scripts) \
 	devel/build_chroot \
+	devel/cert_digest.py \
 	devel/upload \
 	devel/webserver \
 	tools/kvm-ifup.in \
