@@ -516,6 +516,9 @@ instance Arbitrary OpCodes.OpCode where
       "OP_RESTRICTED_COMMAND" ->
         OpCodes.OpRestrictedCommand <$> arbitrary <*> genNodeNamesNE <*>
           return Nothing <*> genNameNE
+      "OP_REPAIR_COMMAND" ->
+        OpCodes.OpRepairCommand <$> genNodeNameNE <*> genNameNE <*>
+          genMaybe genPrintableAsciiStringNE
       _ -> fail $ "Undefined arbitrary for opcode " ++ op_id
 
 instance Arbitrary OpCodes.CommonOpParams where

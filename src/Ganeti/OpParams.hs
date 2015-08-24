@@ -244,6 +244,8 @@ module Ganeti.OpParams
   , pZeroingTimeoutPerMiB
   , pTagSearchPattern
   , pRestrictedCommand
+  , pRepairCommand
+  , pInput
   , pReplaceDisksMode
   , pReplaceDisksList
   , pAllowFailover
@@ -920,6 +922,17 @@ pRestrictedCommand =
   withDoc "Restricted command name" .
   renameField "RestrictedCommand" $
   simpleField "command" [t| NonEmptyString |]
+
+pRepairCommand :: Field
+pRepairCommand =
+  withDoc "Repair command name" .
+  renameField "RepairCommand" $
+  simpleField "command" [t| NonEmptyString |]
+
+pInput :: Field
+pInput =
+  withDoc "Input to be redirected to stdin of repair script" .
+  optionalField $ simpleField "input" [t| NonEmptyString |]
 
 pNodeName :: Field
 pNodeName =

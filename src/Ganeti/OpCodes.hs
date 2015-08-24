@@ -330,6 +330,14 @@ $(genOpCode "OpCode"
      , pRestrictedCommand
      ],
      [])
+  , ("OpRepairCommand",
+     [t| String |],
+     OpDoc.opRepairCommand,
+     [ pNodeName
+     , pRepairCommand
+     , pInput
+     ],
+     [])
   , ("OpNodeRemove",
      [t| () |],
       OpDoc.opNodeRemove,
