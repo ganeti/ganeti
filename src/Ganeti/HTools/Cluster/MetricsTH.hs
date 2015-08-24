@@ -42,6 +42,7 @@ module Ganeti.HTools.Cluster.MetricsTH
   ) where
 
 import Data.List (partition)
+import Data.Maybe (mapMaybe)
 import Language.Haskell.TH
 import Text.Printf (printf)
 
@@ -63,8 +64,9 @@ data MetricComponent = MetricComponent
                              -- should be defined
   , forOnlineNodes :: Bool   -- ^ Whether this component should be calculated
                              -- for online or offline nodes
-  , optimalValue   :: Q Exp  -- ^ Quasi quoted function obtaining optimal
-                             -- value of such component (Node.List -> Double)
+  , optimalValue   :: Maybe ExpQ  -- ^ Maybe quasi quoted function obtaining
+                                  -- optimal value of such component
+                                  -- (Node.List -> Double)
   }
 
 -- | Declares all functions and data types implemented in template haskell
@@ -240,16 +242,22 @@ showClusterStatisticsDecl components = do
   fun_d <- funD fname [clause [varP lp, varP cs] (normalB result) []]
   return [sig_d, fun_d]
 
+
 -- | Generates (optimalCVScore :: Node.List -> Double) declaration for metric
 -- components given. The function computes the lower bound of the cluster
 -- score, i.e., the sum of the minimal values for all cluster score values that
--- are not 0 on a perfectly balanced cluster.
+-- are not 0 on a perfectly balanced cluster. Components which optimal values
+-- are not 0 have Nothing as optimaLValue component
 optimalCVScoreDecl :: [MetricComponent] -> Q [Dec]
 optimalCVScoreDecl components = do
   nl <- newName "nl"
-  let comp c = appE (optimalValue c) $ varE nl
-      stat = appE [| sum :: [Double] -> Double |] . listE $ map comp components
+  let stat =
+        foldl (addVal nl) [| 0 :: Double |] $ mapMaybe optimalValue components
       fname = mkName "optimalCVScore"
   sig_d <- sigD fname ((arrowT `appT` [t| Node.List |]) `appT` [t| Double |])
   fun_d <- funD fname [clause [varP nl] (normalB stat) []]
   return [sig_d, fun_d]
+  where
+    addVal :: Name -> ExpQ -> ExpQ -> ExpQ
+    addVal nl cur f = appTwice [| (+) :: Double -> Double -> Double |]
+                               cur . appE f $ varE nl

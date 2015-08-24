@@ -53,10 +53,6 @@ import qualified Ganeti.HTools.PeerMap as P
 import Ganeti.HTools.Types
 import Ganeti.Utils.Statistics
 
--- | Coefficient that is used for optimal value computation.
--- reservedMemRTotal :: Double
--- reservedMemRTotal = 0.25
-
 -- | Type alias decreasing table size below
 type D = Double
 
@@ -119,7 +115,7 @@ sumComp nm w on f = MetricComponent { name = nm
                                     , fromNodeType = [t| Double |]
                                     , statisticsType = [t| SumStat |]
                                     , forOnlineNodes = on
-                                    , optimalValue = [| zeroOptValueFunc |]
+                                    , optimalValue = Nothing
                                     }
 
 -- | Function to be used as a short MetricComponent constructor for StdDevStat.
@@ -130,7 +126,7 @@ stdDevComp nm w on f = MetricComponent { name = nm
                                        , fromNodeType = [t| Double |]
                                        , statisticsType = [t| StdDevStat |]
                                        , forOnlineNodes = on
-                                       , optimalValue = [| zeroOptValueFunc |]
+                                       , optimalValue = Nothing
                                        }
 
 -- | Function to be used as a short MetricComponent constructor for MapStat.
@@ -141,13 +137,8 @@ mapComp nm w on f = MetricComponent { name = nm
                                     , fromNodeType = [t| MapData |]
                                     , statisticsType = [t| MapStat |]
                                     , forOnlineNodes = on
-                                    , optimalValue = [| zeroOptValueFunc |]
+                                    , optimalValue = Nothing
                                     }
-
--- | Function is supposed to be used in MericComponent.hs as a most widepread
--- optimalValue function
-zeroOptValueFunc :: Node.List -> Double
-zeroOptValueFunc _ = 0
 
 -- | Weight of reservedMemRTotal component
 wReservedMemRTotal :: Double
@@ -161,7 +152,7 @@ reservedMemRTotal = MetricComponent
   , fromNodeType = [t| Double |]
   , statisticsType = [t| SumStat |]
   , forOnlineNodes = True
-  , optimalValue = [| reservedMemRTotalOptValue |]
+  , optimalValue = Just [| reservedMemRTotalOptValue |]
   }
 
 -- | Computes theoretical opimal value for reservedMemRTotal component
