@@ -126,7 +126,8 @@ from ganeti.cmdlib.network import \
 from ganeti.cmdlib.misc import \
   LUOobCommand, \
   LUExtStorageDiagnose, \
-  LURestrictedCommand
+  LURestrictedCommand, \
+  LURepairCommand
 from ganeti.cmdlib.test import \
   LUTestOsParams, \
   LUTestDelay, \

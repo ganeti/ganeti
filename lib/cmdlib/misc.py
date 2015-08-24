@@ -40,7 +40,11 @@ from ganeti import qlang
 from ganeti import query
 from ganeti import utils
 from ganeti.cmdlib.base import NoHooksLU, QueryBase
-from ganeti.cmdlib.common import GetWantedNodes, SupportsOob
+from ganeti.cmdlib.common import (
+  GetWantedNodes,
+  SupportsOob,
+  ExpandNodeUuidAndName
+)
 
 
 class LUOobCommand(NoHooksLU):
@@ -418,3 +422,35 @@ class LURestrictedCommand(NoHooksLU):
         result.append((True, nres.payload))
 
     return result
+
+
+class LURepairCommand(NoHooksLU):
+  """Logical unit for executing repair commands.
+
+  """
+  REQ_BGL = False
+
+  def ExpandNames(self):
+    self.node_uuid, _ = ExpandNodeUuidAndName(self.cfg, None, self.op.node_name)
+
+    self.needed_locks = {
+      locking.LEVEL_NODE: self.node_uuid,
+      }
+    self.share_locks = {
+      locking.LEVEL_NODE: False,
+      }
+
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    """
+
+  def Exec(self, feedback_fn):
+    """Execute restricted command and return output.
+
+    """
+    owned_nodes = frozenset(self.owned_locks(locking.LEVEL_NODE))
+    assert self.node_uuid in owned_nodes
+    return self.rpc.call_repair_command(self.op.node_name,
+                                            self.op.command,
+                                            self.op.input).data[1]
