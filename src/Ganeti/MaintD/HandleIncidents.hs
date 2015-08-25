@@ -1,4 +1,4 @@
-{-| Incidient handling in the maintenance daemon.
+{-| Incident handling in the maintenance daemon.
 
 This module implements the submission of actions for ongoing
 repair events reported by the node-status data collector.
