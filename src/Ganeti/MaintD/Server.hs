@@ -68,6 +68,7 @@ import Ganeti.Logging.Lifted
 import qualified Ganeti.Luxi as L
 import Ganeti.MaintD.Autorepairs (harepTasks)
 import Ganeti.MaintD.Balance (balanceTask)
+import Ganeti.MaintD.CleanupIncidents (cleanupIncidents)
 import Ganeti.MaintD.CollectIncidents (collectIncidents)
 import Ganeti.MaintD.HandleIncidents (handleIncidents)
 import Ganeti.MaintD.MemoryState
@@ -137,6 +138,7 @@ maintenance memstate = do
   let il = cdInstances cData
       nl = cdNodes cData
       gl = cdGroups cData
+  cleanupIncidents memstate nl
   collectIncidents memstate nl
   nidxs <- handleIncidents memstate (gl, nl, il)
   (nidxs', jobs) <- harepTasks (nl, il) nidxs
