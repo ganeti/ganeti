@@ -1040,6 +1040,19 @@ def RestrictedCommand(opts, args):
   return exit_code
 
 
+def RepairCommand(opts, args):
+  cl = GetClient()
+  if opts.input:
+    inp = opts.input.decode('string_escape')
+  else:
+    inp = None
+  op = opcodes.OpRepairCommand(command=args[0], node_name=args[1],
+                               input=inp)
+  result = SubmitOrSend(op, opts, cl=cl)
+  print result
+  return constants.EXIT_SUCCESS
+
+
 class ReplyStatus(object):
   """Class holding a reply status for synchronous confd clients.
 
@@ -1249,6 +1262,10 @@ commands = {
     [SYNC_OPT, PRIORITY_OPT] + SUBMIT_OPTS + [SHOW_MACHINE_OPT, NODEGROUP_OPT],
     "<command> <node_name> [<node_name>...]",
     "Executes a restricted command on node(s)"),
+  "repair-command": (
+    RepairCommand, [ArgUnknown(min=1, max=1), ArgNode(min=1, max=1)],
+    [SUBMIT_OPT, INPUT_OPT], "{--input <input>} <command> <node_name>",
+    "Executes a repair command on a node"),
   }
 
 #: dictionary with aliases for commands

@@ -124,6 +124,7 @@ __all__ = [
   "IGNORE_SOFT_ERRORS_OPT",
   "IGNORE_SIZE_OPT",
   "INCLUDEDEFAULTS_OPT",
+  "INPUT_OPT",
   "INSTALL_IMAGE_OPT",
   "INSTANCE_COMMUNICATION_NETWORK_OPT",
   "INSTANCE_COMMUNICATION_OPT",
@@ -1622,6 +1623,11 @@ VERIFY_CLUTTER_OPT = cli_option(
 LONG_SLEEP_OPT = cli_option(
     "--long-sleep", default=False, dest="long_sleep",
     help="Allow long shutdowns when backing up instances", action="store_true")
+
+INPUT_OPT = cli_option("--input", dest="input", default=None,
+                       help=("input to be passed as stdin"
+                             " to the repair command"),
+                       type="string")
 
 #: Options provided by all commands
 COMMON_OPTS = [DEBUG_OPT, REASON_OPT]

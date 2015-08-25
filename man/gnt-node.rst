@@ -647,6 +647,23 @@ The ``-M`` option can be used to prepend the node name to all command
 output lines. ``--sync`` forces the opcode to acquire the node lock(s)
 in exclusive mode.
 
+REPAIR-COMMAND
+~~~~~~~~~~~~~~~~~~
+
+| **repair-command** { --input *input* } *command* *node*
+
+Executes a repair command. Repair commands reside in
+``@SYSCONFDIR@/ganeti/node-repair-commands`` on a node, either as a regular
+file or as a symlink. The directory must be owned by root and not be
+world- or group-writable. If a command fails verification or otherwise
+fails to start, the node daemon log must be consulted for more detailed
+information.
+
+Example for running a command::
+
+    # gnt-node repair-command --input "input string" \
+      mycommand node.example.com
+
 Tags
 ~~~~
 
