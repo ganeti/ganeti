@@ -5473,18 +5473,25 @@ def _PrepareRestrictedCmd(path, cmd,
   return _verify_cmd(path, cmd)
 
 
-def RunRestrictedCmd(cmd,
-                     _lock_timeout=_RCMD_LOCK_TIMEOUT,
-                     _lock_file=pathutils.RESTRICTED_COMMANDS_LOCK_FILE,
-                     _path=pathutils.RESTRICTED_COMMANDS_DIR,
-                     _sleep_fn=time.sleep,
-                     _prepare_fn=_PrepareRestrictedCmd,
-                     _runcmd_fn=utils.RunCmd,
-                     _enabled=constants.ENABLE_RESTRICTED_COMMANDS):
-  """Executes a restricted command after performing strict tests.
+def RunConstrainedCmd(cmd,
+                      lock_file,
+                      path,
+                      inp=None,
+                      _lock_timeout=_RCMD_LOCK_TIMEOUT,
+                      _sleep_fn=time.sleep,
+                      _prepare_fn=_PrepareRestrictedCmd,
+                      _runcmd_fn=utils.RunCmd,
+                      _enabled=constants.ENABLE_RESTRICTED_COMMANDS):
+  """Executes a command after performing strict tests.
 
   @type cmd: string
   @param cmd: Command name
+  @type lock_file: string
+  @param lock_file: path to the lock file
+  @type path: string
+  @param path: path to the directory in which the command is present
+  @type inp: string
+  @param inp: Input to be passed to the command
   @rtype: string
   @return: Command output
   @raise RPCFail: In case of an error
@@ -5499,14 +5506,24 @@ def RunRestrictedCmd(cmd,
   try:
     cmdresult = None
     try:
-      lock = utils.FileLock.Open(_lock_file)
+      lock = utils.FileLock.Open(lock_file)
       lock.Exclusive(blocking=True, timeout=_lock_timeout)
 
-      (status, value) = _prepare_fn(_path, cmd)
+      (status, value) = _prepare_fn(path, cmd)
 
       if status:
+        if inp:
+          input_fd = tempfile.TemporaryFile()
+          input_fd.write(inp)
+          input_fd.flush()
+          input_fd.seek(0)
+        else:
+          input_fd = None
         cmdresult = _runcmd_fn([value], env={}, reset_env=True,
-                               postfork_fn=lambda _: lock.Unlock())
+                               postfork_fn=lambda _: lock.Unlock(),
+                               input_fd=input_fd)
+        if input_fd:
+          input_fd.close()
       else:
         logging.error(value)
     except Exception: # pylint: disable=W0703

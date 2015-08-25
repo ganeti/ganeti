@@ -376,7 +376,7 @@ def _GenericRestrictedCmdError(cmd):
   return "Executing command '%s' failed" % cmd
 
 
-class TestRunRestrictedCmd(unittest.TestCase):
+class TestRunConstrainedCmd(unittest.TestCase):
   def setUp(self):
     self.tmpdir = tempfile.mkdtemp()
 
@@ -388,10 +388,10 @@ class TestRunRestrictedCmd(unittest.TestCase):
     sleep_fn = testutils.CallCounter(_SleepForRestrictedCmd)
     self.assertFalse(os.path.exists(lockfile))
     self.assertRaises(backend.RPCFail,
-                      backend.RunRestrictedCmd, "test",
+                      backend.RunConstrainedCmd, "test",
                       _lock_timeout=NotImplemented,
-                      _lock_file=lockfile,
-                      _path=NotImplemented,
+                      lock_file=lockfile,
+                      path=NotImplemented,
                       _sleep_fn=sleep_fn,
                       _prepare_fn=NotImplemented,
                       _runcmd_fn=NotImplemented,
@@ -404,14 +404,14 @@ class TestRunRestrictedCmd(unittest.TestCase):
 
     result = False
     try:
-      backend.RunRestrictedCmd("test22717",
-                               _lock_timeout=0.1,
-                               _lock_file=lockfile,
-                               _path=NotImplemented,
-                               _sleep_fn=sleep_fn,
-                               _prepare_fn=NotImplemented,
-                               _runcmd_fn=NotImplemented,
-                               _enabled=True)
+      backend.RunConstrainedCmd("test22717",
+                                _lock_timeout=0.1,
+                                lock_file=lockfile,
+                                path=NotImplemented,
+                                _sleep_fn=sleep_fn,
+                                _prepare_fn=NotImplemented,
+                                _runcmd_fn=NotImplemented,
+                                _enabled=True)
     except backend.RPCFail, err:
       assert str(err) == _GenericRestrictedCmdError("test22717"), \
              "Did not fail with generic error message"
@@ -443,11 +443,11 @@ class TestRunRestrictedCmd(unittest.TestCase):
     prepare_fn = testutils.CallCounter(self._PrepareRaisingException)
 
     try:
-      backend.RunRestrictedCmd("test23122",
-                               _lock_timeout=1.0, _lock_file=lockfile,
-                               _path=NotImplemented, _runcmd_fn=NotImplemented,
-                               _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
-                               _enabled=True)
+      backend.RunConstrainedCmd("test23122",
+                                _lock_timeout=1.0, lock_file=lockfile,
+                                path=NotImplemented, _runcmd_fn=NotImplemented,
+                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
+                                _enabled=True)
     except backend.RPCFail, err:
       self.assertEqual(str(err), _GenericRestrictedCmdError("test23122"))
     else:
@@ -468,11 +468,11 @@ class TestRunRestrictedCmd(unittest.TestCase):
     prepare_fn = testutils.CallCounter(self._PrepareFails)
 
     try:
-      backend.RunRestrictedCmd("test29327",
-                               _lock_timeout=1.0, _lock_file=lockfile,
-                               _path=NotImplemented, _runcmd_fn=NotImplemented,
-                               _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
-                               _enabled=True)
+      backend.RunConstrainedCmd("test29327",
+                                _lock_timeout=1.0, lock_file=lockfile,
+                                path=NotImplemented, _runcmd_fn=NotImplemented,
+                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
+                                _enabled=True)
     except backend.RPCFail, err:
       self.assertEqual(str(err), _GenericRestrictedCmdError("test29327"))
     else:
@@ -485,11 +485,11 @@ class TestRunRestrictedCmd(unittest.TestCase):
   def _SuccessfulPrepare(path, cmd):
     return (True, utils.PathJoin(path, cmd))
 
-  def testRunCmdFails(self):
+  def testRunConstrainedCmdFails(self):
     lockfile = utils.PathJoin(self.tmpdir, "lock")
 
     def fn(args, env=NotImplemented, reset_env=NotImplemented,
-           postfork_fn=NotImplemented):
+           postfork_fn=NotImplemented, input_fd=NotImplemented):
       self.assertEqual(args, [utils.PathJoin(self.tmpdir, "test3079")])
       self.assertEqual(env, {})
       self.assertTrue(reset_env)
@@ -519,11 +519,11 @@ class TestRunRestrictedCmd(unittest.TestCase):
     runcmd_fn = testutils.CallCounter(fn)
 
     try:
-      backend.RunRestrictedCmd("test3079",
-                               _lock_timeout=1.0, _lock_file=lockfile,
-                               _path=self.tmpdir, _runcmd_fn=runcmd_fn,
-                               _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
-                               _enabled=True)
+      backend.RunConstrainedCmd("test3079",
+                                _lock_timeout=1.0, lock_file=lockfile,
+                                path=self.tmpdir, _runcmd_fn=runcmd_fn,
+                                _sleep_fn=sleep_fn, _prepare_fn=prepare_fn,
+                                _enabled=True)
     except backend.RPCFail, err:
       self.assertTrue(str(err).startswith("Restricted command 'test3079'"
                                           " failed:"))
@@ -536,11 +536,11 @@ class TestRunRestrictedCmd(unittest.TestCase):
     self.assertEqual(prepare_fn.Count(), 1)
     self.assertEqual(runcmd_fn.Count(), 1)
 
-  def testRunCmdSucceeds(self):
+  def testRunConstrainedCmdSucceeds(self):
     lockfile = utils.PathJoin(self.tmpdir, "lock")
 
     def fn(args, env=NotImplemented, reset_env=NotImplemented,
-           postfork_fn=NotImplemented):
+           postfork_fn=NotImplemented, input_fd=NotImplemented):
       self.assertEqual(args, [utils.PathJoin(self.tmpdir, "test5667")])
       self.assertEqual(env, {})
       self.assertTrue(reset_env)
@@ -557,12 +557,12 @@ class TestRunRestrictedCmd(unittest.TestCase):
     prepare_fn = testutils.CallCounter(self._SuccessfulPrepare)
     runcmd_fn = testutils.CallCounter(fn)
 
-    result = backend.RunRestrictedCmd("test5667",
-                                      _lock_timeout=1.0, _lock_file=lockfile,
-                                      _path=self.tmpdir, _runcmd_fn=runcmd_fn,
-                                      _sleep_fn=sleep_fn,
-                                      _prepare_fn=prepare_fn,
-                                      _enabled=True)
+    result = backend.RunConstrainedCmd("test5667",
+                                       _lock_timeout=1.0, lock_file=lockfile,
+                                       path=self.tmpdir, _runcmd_fn=runcmd_fn,
+                                       _sleep_fn=sleep_fn,
+                                       _prepare_fn=prepare_fn,
+                                       _enabled=True)
     self.assertEqual(result, "stdout14463")
 
     self.assertEqual(sleep_fn.Count(), 0)
@@ -571,14 +571,14 @@ class TestRunRestrictedCmd(unittest.TestCase):
 
   def testCommandsDisabled(self):
     try:
-      backend.RunRestrictedCmd("test",
-                               _lock_timeout=NotImplemented,
-                               _lock_file=NotImplemented,
-                               _path=NotImplemented,
-                               _sleep_fn=NotImplemented,
-                               _prepare_fn=NotImplemented,
-                               _runcmd_fn=NotImplemented,
-                               _enabled=False)
+      backend.RunConstrainedCmd("test",
+                                _lock_timeout=NotImplemented,
+                                lock_file=NotImplemented,
+                                path=NotImplemented,
+                                _sleep_fn=NotImplemented,
+                                _prepare_fn=NotImplemented,
+                                _runcmd_fn=NotImplemented,
+                                _enabled=False)
     except backend.RPCFail, err:
       self.assertEqual(str(err),
                        "Restricted commands disabled at configure time")

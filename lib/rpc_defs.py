@@ -591,6 +591,10 @@ _MISC_CALLS = [
   ("restricted_command", MULTI, None, constants.RPC_TMO_SLOW, [
     ("cmd", None, "Command name"),
     ], None, None, "Runs restricted command"),
+  ("repair_command", SINGLE, None, constants.RPC_TMO_SLOW, [
+    ("cmd", None, "Command name"),
+    ("inp", None, "Input to be passed as stdin"),
+    ], None, None, "Runs repair command"),
   ("run_oob", SINGLE, None, constants.RPC_TMO_NORMAL, [
     ("oob_program", None, None),
     ("command", None, None),

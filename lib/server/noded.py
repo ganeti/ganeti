@@ -1023,7 +1023,23 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     (cmd, ) = params
 
-    return backend.RunRestrictedCmd(cmd)
+    return backend.RunConstrainedCmd(
+      cmd,
+      lock_file=pathutils.RESTRICTED_COMMANDS_LOCK_FILE,
+      path=pathutils.RESTRICTED_COMMANDS_DIR)
+
+  @staticmethod
+  def perspective_repair_command(params):
+    """ Run a repair command.
+
+    """
+    (cmd, inp, ) = params
+
+    return backend.RunConstrainedCmd(
+      cmd,
+      lock_file=pathutils.REPAIR_COMMANDS_LOCK_FILE,
+      path=pathutils.REPAIR_COMMANDS_DIR,
+      inp=inp)
 
   @staticmethod
   def perspective_write_ssconf_files(params):
