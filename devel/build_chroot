@@ -42,10 +42,13 @@ ACTUAL_DATA_DIR=${ACTUAL_DATA_DIR:-$TEMP_DATA_DIR}
 SHA1_LIST='
 cabal-install-1.18.0.2.tar.gz 2d1f7a48d17b1e02a1e67584a889b2ff4176a773
 cabal-install-1.22.4.0.tar.gz b98eea96d321cdeed83a201c192dac116e786ec2
+cabal-install-1.22.6.0.tar.gz d474b0eef6944af1abef92419cea13cee50993f3
 ghc-7.6.3-i386-unknown-linux.tar.bz2 f042b4171a2d4745137f2e425e6949c185f8ea14
 ghc-7.6.3-x86_64-unknown-linux.tar.bz2 46ec3f3352ff57fba0dcbc8d9c20f7bcb6924b77
 ghc-7.8.4-i386-unknown-linux-deb7.tar.bz2 4f523f854c37a43b738359506a89a37a9fa9fc5f
 ghc-7.8.4-x86_64-unknown-linux-deb7.tar.bz2 3f68321b064e5c1ffcb05838b85bcc00aa2315b4
+ghc-7.10.2-i386-unknown-linux-deb7.tar.bz2 c759ab9af566f5c3c9b75b702615f1d0c2f999fd
+ghc-7.10.2-x86_64-unknown-linux-deb7.tar.bz2 f028e4a07995353a47286478fc8644f66defa227
 '
 
 # export all variables needed in the schroot
@@ -405,6 +408,136 @@ case ${DIST_RELEASE}${VARIANT} in
     in_chroot -- \
       cabal install --global \
        'hlint>=1.9.12'
+;;
+
+  jessie-ghc710)
+
+    GHC_VERSION="7.10.2"
+    GHC_VARIANT="-deb7"
+    CABAL_INSTALL_VERSION="1.22.6.0"
+    # the version of the Cabal library below must match the version used by
+    # CABAL_INSTALL_VERSION, see the dependencies of cabal-install
+    CABAL_LIB_VERSION=">=1.22.2 && <1.23"
+    export GHC_VERSION GHC_VARIANT CABAL_INSTALL_VERSION
+
+    in_chroot -- \
+      $APT_INSTALL \
+        autoconf automake \
+        zlib1g-dev \
+        libgmp3-dev \
+        libcurl4-openssl-dev \
+        libpcre3-dev \
+        happy \
+        hlint hscolour pandoc \
+        shelltestrunner \
+        graphviz qemu-utils \
+        python-docutils \
+        python-simplejson \
+        python-pyparsing \
+        python-pyinotify \
+        python-pycurl \
+        python-ipaddr \
+        python-yaml \
+        python-paramiko \
+        git \
+        git-email \
+        vim
+
+    in_chroot -- \
+      $APT_INSTALL python-setuptools python-dev build-essential
+
+    in_chroot -- \
+      easy_install \
+        logilab-astng==0.24.1 \
+        logilab-common==0.58.3 \
+        mock==1.0.1 \
+        pylint==0.26.0
+
+    in_chroot -- \
+      easy_install \
+        sphinx==1.1.3 \
+        pep8==1.3.3 \
+        coverage==3.4 \
+        bitarray==0.8.0
+
+    install_ghc
+
+    install_cabal
+
+    in_chroot -- \
+      cabal update
+
+    in_chroot -- \
+      cabal install --global \
+        HUnit-1.2.5.2 \
+        PSQueue-1.1 \
+        StateVar-1.1.0.0 \
+        ansi-terminal-0.6.2.1 \
+        ansi-wl-pprint-0.6.7.2 \
+        base-orphans-0.4.1 \
+        base64-bytestring-1.0.0.1 \
+        blaze-builder-0.4.0.1 \
+        bytestring-builder-0.10.6.0.0 \
+        bytestring-mmap-0.2.2 \
+        curl-1.3.8 \
+        enumerator-0.4.20 \
+        extensible-exceptions-0.1.1.4 \
+        hashable-1.2.3.3 \
+        case-insensitive-1.2.0.4 \
+        hinotify-0.3.7 \
+        hostname-1.0 \
+        hslogger-1.2.9 \
+        monads-tf-0.1.0.2 \
+        MonadCatchIO-transformers-0.3.1.3 \
+        nats-1 \
+        parallel-3.2.0.6 \
+        prelude-extras-0.4 \
+        primitive-0.6 \
+        reflection-2 \
+        regex-base-0.93.2 \
+        regex-pcre-0.94.4 \
+        regex-posix-0.95.2 \
+        scientific-0.3.3.8 \
+        attoparsec-0.12.1.6 \
+        attoparsec-enumerator-0.3.4 \
+        streaming-commons-0.1.12.1 \
+        blaze-builder-enumerator-0.2.1.0 \
+        syb-0.5.1 \
+        json-0.9.1 \
+        tagged-0.8.1 \
+        tf-random-0.5 \
+        QuickCheck-2.7.6 \
+        Crypto-4.2.5.1 \
+        transformers-compat-0.4.0.4 \
+        distributive-0.4.4 \
+        exceptions-0.8.0.2 \
+        temporary-1.2.0.3 \
+        transformers-base-0.4.4 \
+        monad-control-1.0.0.4 \
+        lifted-base-0.2.3.6 \
+        unix-compat-0.4.1.4 \
+        unordered-containers-0.2.5.1 \
+        semigroups-0.16.2.2 \
+        bifunctors-5 \
+        utf8-string-0.3.8 \
+        vector-0.11.0.0 \
+        void-0.7 \
+        contravariant-1.3.2 \
+        comonad-4.2.7.2 \
+        profunctors-5.1.1 \
+        semigroupoids-5.0.0.2 \
+        free-4.12.1 \
+        adjunctions-4.2.1 \
+        kan-extensions-4.2.2 \
+        lens-4.12.3 \
+        xml-1.3.14 \
+        test-framework-0.8.1.1 \
+        test-framework-hunit-0.3.0.1 \
+        test-framework-quickcheck2-0.3.0.3 \
+        zlib-bindings-0.1.1.5 \
+        zlib-enum-0.2.3.1 \
+        snap-core-0.9.7.2 \
+        snap-server-0.9.5.1 \
 ;;
 
   jessie-ghc78)
