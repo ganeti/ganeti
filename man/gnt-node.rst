@@ -92,7 +92,7 @@ Example::
 EVACUATE
 ~~~~~~~~
 
-| **evacuate** [-f] [\--early-release] [\--submit] [\--print-job-id]
+| **evacuate** [-f] [\--early-release] [\--submit] [\--print-jobid]
 | [{-I|\--iallocator} *NAME* \| {-n|\--new-secondary} *destination\_node*]
 | [{-p|\--primary-only} \| {-s|\--secondary-only} ]
 |  {*node*}
@@ -298,7 +298,7 @@ MIGRATE
 ~~~~~~~
 
 | **migrate** [-f] [\--non-live] [\--migration-mode=live\|non-live]
-| [\--ignore-ipolicy] [\--submit] [\--print-job-id] {*node*}
+| [\--ignore-ipolicy] [\--submit] [\--print-jobid] {*node*}
 
 This command will migrate all instances having the given node as
 primary to their secondary nodes. This works only for instances
@@ -322,7 +322,7 @@ Example::
 MODIFY
 ~~~~~~
 
-| **modify** [-f] [\--submit] [\--print-job-id]
+| **modify** [-f] [\--submit] [\--print-jobid]
 | [{-C|\--master-candidate} ``yes|no``]
 | [{-D|\--drained} ``yes|no``] [{-O|\--offline} ``yes|no``]
 | [\--master-capable=``yes|no``] [\--vm-capable=``yes|no``] [\--auto-promote]
@@ -512,7 +512,7 @@ Example::
 MODIFY-STORAGE
 ~~~~~~~~~~~~~~
 
-| **modify-storage** [\--allocatable={yes|no}] [\--submit] [\--print-job-id]
+| **modify-storage** [\--allocatable={yes|no}] [\--submit] [\--print-jobid]
 | {*node*} {*storage-type*} {*volume-name*}
 
 Modifies storage volumes on a node. Only LVM physical volumes can
@@ -552,7 +552,7 @@ Example::
 POWERCYCLE
 ~~~~~~~~~~
 
-**powercycle** [\--yes] [\--force] [\--submit] [\--print-job-id] {*node*}
+**powercycle** [\--yes] [\--force] [\--submit] [\--print-jobid] {*node*}
 
 This command (tries to) forcefully reboot a node. It is a command
 that can be used if the node environment is broken, such that the

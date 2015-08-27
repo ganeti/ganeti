@@ -26,7 +26,7 @@ EXPORT
 
 | **export** {-n *node*}
 | [\--shutdown-timeout=*N*] [\--noshutdown] [\--remove-instance]
-| [\--ignore-remove-failures] [\--submit] [\--print-job-id]
+| [\--ignore-remove-failures] [\--submit] [\--print-jobid]
 | [\--transport-compression=*compression-mode*]
 | [\--zero-free-space] [\--zeroing-timeout-fixed]
 | [\--zeroing-timeout-per-mib]
@@ -91,7 +91,7 @@ IMPORT
 | [-t [diskless | plain | drbd | file]]
 | [\--identify-defaults]
 | [\--ignore-ipolicy]
-| [\--submit] [\--print-job-id]
+| [\--submit] [\--print-jobid]
 | {*instance*}
 
 Imports a new instance from an export residing on *source-node* in
