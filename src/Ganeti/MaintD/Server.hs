@@ -70,11 +70,12 @@ import Ganeti.MaintD.Autorepairs (harepTasks)
 import Ganeti.MaintD.Balance (balanceTask)
 import Ganeti.MaintD.CleanupIncidents (cleanupIncidents)
 import Ganeti.MaintD.CollectIncidents (collectIncidents)
+import Ganeti.MaintD.FailIncident (failIncident)
 import Ganeti.MaintD.HandleIncidents (handleIncidents)
 import Ganeti.MaintD.MemoryState
 import qualified Ganeti.Path as Path
 import Ganeti.Runtime (GanetiDaemon(GanetiMaintd))
-import Ganeti.Types (JobId(..))
+import Ganeti.Types (JobId(..), JobStatus(..))
 import Ganeti.Utils (threadDelaySeconds)
 import Ganeti.Utils.Http (httpConfFromOpts, plainJSON, error404)
 import Ganeti.WConfd.Client ( runNewWConfdClient, maintenanceRoundDelay
@@ -127,10 +128,14 @@ maintenance memstate = do
   logDebug $ "Jobs submitted in the last round: "
              ++ show (map fromJobId oldjobs)
   luxiSocket <- liftIO Path.defaultQuerySocket
-  bracket (mkResultT . liftM (either (Bad . show) Ok)
-            . tryIOError $ L.getLuxiClient luxiSocket)
-          (liftIO . L.closeClient)
-          $ void . mkResultT . waitForJobs oldjobs
+  jobresults <- bracket (mkResultT . liftM (either (Bad . show) Ok)
+                         . tryIOError $ L.getLuxiClient luxiSocket)
+                  (liftIO . L.closeClient)
+                  $ mkResultT . waitForJobs oldjobs
+  let failedjobs = map fst $ filter ((/=) JOB_STATUS_SUCCESS . snd) jobresults
+  unless (null failedjobs) $ do
+    logInfo . (++) "Failed jobs: " . show $ map fromJobId failedjobs
+    mapM_ (failIncident memstate) failedjobs
   unless (null oldjobs)
     . liftIO $ clearJobs memstate
   logDebug "New round of maintenance started"
