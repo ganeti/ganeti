@@ -5442,3 +5442,14 @@ dataCollectorDiagnoseDirectory = sysconfdir ++ "/ganeti/node-diagnose-commands"
 
 exTagsPrefix :: String
 exTagsPrefix = Tags.exTagsPrefix
+
+-- * MaintD tag prefixes
+
+maintdPrefix :: String
+maintdPrefix = "maintd:"
+
+maintdSuccessTagPrefix :: String
+maintdSuccessTagPrefix = maintdPrefix ++ "repairready:"
+
+maintdFailureTagPrefix :: String
+maintdFailureTagPrefix = maintdPrefix ++ "repairfailed:"

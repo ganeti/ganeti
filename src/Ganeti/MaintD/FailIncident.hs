@@ -47,6 +47,7 @@ import Data.IORef (IORef)
 import System.IO.Error (tryIOError)
 
 import Ganeti.BasicTypes (ResultT, mkResultT, GenericResult(..))
+import qualified Ganeti.Constants as C
 import Ganeti.JQueue (currentTimestamp)
 import Ganeti.Jobs (execJobsWaitOkJid)
 import Ganeti.Logging.Lifted
@@ -63,7 +64,7 @@ import Ganeti.Types (JobId, fromJobId, TagKind(..))
 markAsFailed :: IORef MemoryState -> Incident -> ResultT String IO ()
 markAsFailed memstate incident = do
   let uuid = incidentUuid incident
-      newtag = "maintd:repairfailed:" ++ uuid
+      newtag = C.maintdFailureTagPrefix ++ uuid
   logInfo $ "Marking incident " ++ uuid ++ " as failed"
   now <- liftIO currentTimestamp
   luxiSocket <- liftIO Path.defaultQuerySocket

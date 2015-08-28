@@ -104,7 +104,7 @@ updateNode memstate node = do
             logInfo $ "Registering new incident on " ++ name ++ ": " ++ origs
             uuid <- liftIO newUUID
             now <- liftIO getClockTime
-            let tag = "maintd:repairready:" ++ uuid
+            let tag = C.maintdSuccessTagPrefix ++ uuid
                 incident = Incident { incidentOriginal = orig
                                     , incidentAction = state
                                     , incidentRepairStatus = RSNoted
