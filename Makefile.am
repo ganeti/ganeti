@@ -694,6 +694,7 @@ docinput = \
 	doc/design-location.rst \
 	doc/design-linuxha.rst \
 	doc/design-lu-generated-jobs.rst \
+	doc/design-memory-over-commitment.rst \
 	doc/design-migration-speed-hbal.rst \
 	doc/design-monitoring-agent.rst \
 	doc/design-move-instance-improvements.rst \
