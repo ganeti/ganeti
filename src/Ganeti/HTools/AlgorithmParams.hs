@@ -54,6 +54,8 @@ data AlgorithmOptions = AlgorithmOptions
   , algCapacity :: Bool             -- ^ Whether to check capacity properties,
                                     -- like global N+1 redundancy
   , algRestrictToNodes :: Maybe [String] -- ^ nodes to restrict allocation to
+  , algAcceptExisting :: Bool       -- ^ accept existing violations in capacity
+                                    -- checks
   }
 
 -- | Obtain the relevant algorithmic option from the commandline options
@@ -68,6 +70,7 @@ fromCLIOptions opts = AlgorithmOptions
   , algMinGainLimit = CLI.optMinGainLim opts
   , algCapacity = CLI.optCapacity opts
   , algRestrictToNodes = CLI.optRestrictToNodes opts
+  , algAcceptExisting = CLI.optAcceptExisting opts
   }
 
 -- | Default options for the balancing algorithm
