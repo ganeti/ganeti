@@ -510,7 +510,7 @@ tryAlloc _ _  _ _    (Right []) = fail "Not enough online nodes"
 tryAlloc opts nl il inst (Right ok_pairs) =
   let cstat = compClusterStatistics $ Container.elems nl
       n1pred = if algCapacity opts
-                 then allocGlobalN1 nl il
+                 then allocGlobalN1 opts nl il
                  else const True
       psols = parMap rwhnf (\(p, ss) ->
                               collectionToSolution FailN1 n1pred $
@@ -528,7 +528,7 @@ tryAlloc opts nl il inst (Left all_nodes) =
                        . allocateOnSingle opts nl inst
                    ) emptyAllocCollection all_nodes
       n1pred = if algCapacity opts
-                 then allocGlobalN1 nl il
+                 then allocGlobalN1 opts nl il
                  else const True
   in return . annotateSolution
        $ collectionToSolution FailN1 n1pred sols
@@ -813,7 +813,7 @@ iterateAlloc' tryHugestep opts nl il limit newinst allocnodes ixes cstats =
          in case iterateAllocSmallStep opts' nl il limit'
                                        newinst allocnodes ixes cstats of
             Bad s -> Bad s
-            Ok res@(_, nl', il', ixes', cstats') | redundant nl' il' ->
+            Ok res@(_, nl', il', ixes', cstats') | redundant opts nl' il' ->
               if newlimit == Just 0 || length ixes' == length ixes
                 then return res
                 else iterateAlloc' tryHugestep opts nl' il' newlimit newinst

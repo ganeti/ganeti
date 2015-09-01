@@ -113,15 +113,20 @@ canEvacuateNode (nl, il) n = isOk $ do
   foldM_ (recreate escapenodes) (nl'', il'') recreateInstances
 
 -- | Predicate on wheter a given situation is globally N+1 redundant.
-redundant :: Node.List -> Instance.List -> Bool
-redundant nl il = Foldable.all (canEvacuateNode (nl, il)) nl
+redundant :: AlgorithmOptions -> Node.List -> Instance.List -> Bool
+redundant opts nl il =
+  let filterFun = if algAcceptExisting opts
+                    then Container.filter (not . Node.offline)
+                    else id
+  in Foldable.all (canEvacuateNode (nl, il)) $ filterFun nl
 
 -- | Predicate on wheter an allocation element leads to a globally N+1 redundant
 -- state.
-allocGlobalN1 :: Node.List -- ^ the original list of nodes
+allocGlobalN1 :: AlgorithmOptions
+              -> Node.List -- ^ the original list of nodes
               -> Instance.List -- ^ the original list of instances
               -> AllocSol.GenericAllocElement a -> Bool
-allocGlobalN1 nl il alloc =
+allocGlobalN1 opts nl il alloc =
   let il' = AllocSol.updateIl il $ Just alloc
       nl' = AllocSol.extractNl nl il $ Just alloc
-  in redundant nl' il'
+  in redundant opts nl' il'
