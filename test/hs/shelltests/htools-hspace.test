@@ -82,3 +82,11 @@
 >>>/2 instances allocated/
 >>>=0
 
+./test/hs/hspace -t $TESTDATA_DIR/hspace-existing.data
+>>>/ 0 instances allocated/
+>>>=0
+
+./test/hs/hspace -t $TESTDATA_DIR/hspace-existing.data --accept-existing
+>>>/ [1-9][0-9]* instances allocated/
+>>>=0
+
