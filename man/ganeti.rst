@@ -349,6 +349,13 @@ behaviour)::
   # gnt-instance modify -H kernel_path=an\\,example instance1
   # gnt-instance modify -H kernel_path='an\,example' instance1
 
+Additionally, the following non-string parameters can be passed. To
+pass the boolean value ``True``, only mention the key (leaving out the
+equality sign and any value). To pass the boolean value ``False``,
+again only mention the key, but prefix it with ``no_``. To pass the
+special ``None`` value, again only mention the key, but prefix it with
+a single ``-`` sign.
+
 Query filters
 ~~~~~~~~~~~~~
 
