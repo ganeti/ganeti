@@ -2076,7 +2076,7 @@ class TLReplaceDisks(Tasklet):
       cluster = self.cfg.GetClusterInfo()
       ipolicy = ganeti.masterd.instance.CalculateGroupIPolicy(cluster,
                                                               new_group_info)
-      CheckTargetNodeIPolicy(self, ipolicy, self.instance,
+      CheckTargetNodeIPolicy(self.lu, ipolicy, self.instance,
                              self.remote_node_info, self.cfg,
                              ignore=self.ignore_ipolicy)
 
