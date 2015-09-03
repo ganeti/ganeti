@@ -245,13 +245,15 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeInstances }) = do
 -- | Return the list of disks for an instance given the instance uuid.
 buildResponse cdata req@(ConfdRequest { confdRqType = ReqInstanceDisks }) = do
   let cfg = fst cdata
-  inst_uuid <-
+  inst_name <-
     case confdRqQuery req of
       PlainQuery str -> return str
       _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
-  inst <- lookupContainer (Bad $ "unknown instance: " ++ inst_uuid)
-            inst_uuid $ configInstances cfg
-  case getInstDisks cfg inst_uuid of
+  inst <-
+    case getInstance cfg inst_name of
+      Ok i -> return i
+      Bad e -> fail $ "Instance not found in the configuration: " ++ show e
+  case getInstDisks cfg . instUuid $ inst of
     Ok disks -> return (ReplyStatusOk, J.showJSON disks, instSerial inst)
     Bad e -> fail $ "Could not retrieve disks: " ++ show e
 
