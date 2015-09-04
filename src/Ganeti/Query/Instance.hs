@@ -707,6 +707,10 @@ isPrimaryOffline cfg inst =
      Ok pNode -> nodeOffline pNode
      Bad    _ -> error "Programmer error - result assumed to be OK is Bad!"
 
+-- | Determines if user shutdown reporting is enabled
+userShutdownEnabled :: ConfigData -> Bool
+userShutdownEnabled = clusterEnabledUserShutdown . configCluster
+
 -- | Determines the status of a live instance
 liveInstanceStatus :: ConfigData
                    -> (InstanceInfo, Bool)
@@ -730,19 +734,21 @@ liveInstanceStatus cfg (instInfo, foundOnPrimary) inst
           fromContainer $ getFilledInstHvParams (C.toList C.hvcGlobals) cfg inst
 
         allowDown =
-          instHypervisor inst /= Just Kvm ||
-          (Map.member C.hvKvmUserShutdown hvparams &&
-           hvparams Map.! C.hvKvmUserShutdown == J.JSBool True)
+          userShutdownEnabled cfg &&
+          (instHypervisor inst /= Just Kvm ||
+           (Map.member C.hvKvmUserShutdown hvparams &&
+            hvparams Map.! C.hvKvmUserShutdown == J.JSBool True))
 
 -- | Determines the status of a dead instance.
-deadInstanceStatus :: Instance -> InstanceStatus
-deadInstanceStatus inst =
+deadInstanceStatus :: ConfigData -> Instance -> InstanceStatus
+deadInstanceStatus cfg inst =
   case instAdminState inst of
     Just AdminUp -> ErrorDown
-    Just AdminDown | instAdminStateSource inst == Just UserSource -> UserDown
+    Just AdminDown | wasCleanedUp && userShutdownEnabled cfg -> UserDown
                    | otherwise -> StatusDown
     Just AdminOffline -> StatusOffline
     Nothing -> StatusDown
+  where wasCleanedUp = instAdminStateSource inst == Just UserSource
 
 -- | Determines the status of the instance, depending on whether it is possible
 -- to communicate with its primary node, on which node it is, and its
@@ -756,7 +762,7 @@ determineInstanceStatus cfg res inst
   | otherwise = case res of
       Left _                   -> NodeDown
       Right (Just liveData, _) -> liveInstanceStatus cfg liveData inst
-      Right (Nothing, _)       -> deadInstanceStatus inst
+      Right (Nothing, _)       -> deadInstanceStatus cfg inst
 
 -- | Extracts the instance status, retrieving it using the functions above and
 -- transforming it into a 'ResultEntry'.

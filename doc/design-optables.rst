@@ -178,7 +178,7 @@ to throttle replication traffic.
 ::
 
   {"priority": 99,
-   "predicates": [["opcode", ["=", "OP_ID", "OP_INSTNCE_REPLACE_DISKS"]]],
+   "predicates": [["opcode", ["=", "OP_ID", "OP_INSTANCE_REPLACE_DISKS"]]],
    "action": ["RATE_LIMIT", 10]}
 
 

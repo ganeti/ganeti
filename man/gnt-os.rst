@@ -65,7 +65,7 @@ operating system.
 MODIFY
 ~~~~~~
 
-| **modify** [\--submit] [\--print-job-id]
+| **modify** [\--submit] [\--print-jobid]
 | [ [ -O | --os-parameters ] =*option*=*value*]
 | [ --os-parameters-private=*option*=*value*]
 | [-H *HYPERVISOR*:option=*value*[,...]]
