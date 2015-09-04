@@ -142,6 +142,16 @@ class ExtStorageDevice(base.BlockDev):
     self.dev_path = result[0]
     self.uris = result[1:]
 
+    if not self.dev_path:
+      logging.info("A local block device is not available")
+      self.dev_path = None
+      if not self.uris:
+        logging.error("Neither a block device nor a userspace URI is available")
+        return False
+
+      self.attached = True
+      return True
+
     # Verify that dev_path exists and is a block device
     try:
       st = os.stat(self.dev_path)
