@@ -23,7 +23,7 @@ COMMANDS
 ADD
 ~~~
 
-| **add** [\--submit] [\--print-job-id]
+| **add** [\--submit] [\--print-jobid]
 | [\--node-parameters=*NDPARAMS*]
 | [\--alloc-policy=*POLICY*]
 | [{-D|\--disk-parameters} *disk-template*:*disk-param*=*value*[,*disk-param*=*value*...]]
@@ -75,7 +75,7 @@ ASSIGN-NODES
 ~~~~~~~~~~~~
 
 | **assign-nodes**
-| [\--force] [\--submit] [\--print-job-id]
+| [\--force] [\--submit] [\--print-jobid]
 | {*group*} {*node*...}
 
 Assigns one or more nodes to the specified group, moving them from their
@@ -93,7 +93,7 @@ options.
 MODIFY
 ~~~~~~
 
-| **modify** [\--submit] [\--print-job-id]
+| **modify** [\--submit] [\--print-jobid]
 | [\--node-parameters=*NDPARAMS*]
 | [\--alloc-policy=*POLICY*]
 | [\--hypervisor-state *hvstate*]
@@ -124,7 +124,7 @@ options.
 REMOVE
 ~~~~~~
 
-| **remove** [\--submit] [\--print-job-id] {*group*}
+| **remove** [\--submit] [\--print-jobid] {*group*}
 
 Deletes the indicated node group, which must be empty. There must always be at
 least one group, so the last group cannot be removed.
@@ -176,7 +176,7 @@ List available fields for node groups.
 RENAME
 ~~~~~~
 
-| **rename** [\--submit] [\--print-job-id] {*oldname*} {*newname*}
+| **rename** [\--submit] [\--print-jobid] {*oldname*} {*newname*}
 
 Renames a given group from *oldname* to *newname*.
 
@@ -187,7 +187,7 @@ options.
 EVACUATE
 ~~~~~~~~
 
-| **evacuate** [\--submit] [\--print-job-id] [\--sequential] [\--force-failover]
+| **evacuate** [\--submit] [\--print-jobid] [\--sequential] [\--force-failover]
 | [\--iallocator *NAME*] [\--to *GROUP*...] {*group*}
 
 This command will move all instances out of the given node group.

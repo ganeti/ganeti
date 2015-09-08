@@ -266,7 +266,7 @@ availability for a certain command can be checked by calling the
 command using the ``--help`` option.
 
 | **gnt-...** *command* [\--dry-run] [\--priority {low | normal | high}]
-| [\--submit] [\--print-job-id]
+| [\--submit] [\--print-jobid]
 
 The ``--dry-run`` option can be used to check whether an operation
 would succeed.
@@ -298,7 +298,7 @@ the specified format; if they are preceded by other characters
 (whitespace included), they become normal reasons and have no special
 effect.
 
-The ``--print-job-id`` option makes the command print the job id as first
+The ``--print-jobid`` option makes the command print the job id as first
 line on stdout, so that it is easy to parse by other programs.
 
 Defaults
@@ -379,6 +379,13 @@ behaviour)::
 
   # gnt-instance modify -H kernel_path=an\\,example instance1
   # gnt-instance modify -H kernel_path='an\,example' instance1
+
+Additionally, the following non-string parameters can be passed. To
+pass the boolean value ``True``, only mention the key (leaving out the
+equality sign and any value). To pass the boolean value ``False``,
+again only mention the key, but prefix it with ``no_``. To pass the
+special ``None`` value, again only mention the key, but prefix it with
+a single ``-`` sign.
 
 Query filters
 ~~~~~~~~~~~~~
