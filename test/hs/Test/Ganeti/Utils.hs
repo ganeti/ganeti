@@ -43,7 +43,11 @@ import Test.HUnit
 import Control.Applicative ((<$>), (<*>))
 import Data.Char (isSpace)
 import qualified Data.Either as Either
+#if MIN_VERSION_base(4,8,0)
+import Data.List hiding (isSubsequenceOf)
+#else
 import Data.List
+#endif
 import Data.Maybe (listToMaybe)
 import qualified Data.Set as S
 import System.Time
