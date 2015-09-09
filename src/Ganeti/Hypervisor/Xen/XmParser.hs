@@ -71,7 +71,7 @@ lispConfigParser =
           doubleP = LCDouble <$> A.rational <* A.skipSpace <* A.endOfInput
           innerDoubleP = LCDouble <$> A.rational
           stringP = LCString . unpack <$> A.takeWhile1 (not . (\c -> isSpace c
-            || c `elem` "()"))
+            || c `elem` ("()" :: String)))
           wspace = AC.many1 A.space
           rparen = A.skipSpace *> A.char ')'
           finalP =   listConfigP <* rparen
@@ -163,5 +163,5 @@ uptimeLineParser :: Parser UptimeInfo
 uptimeLineParser = do
   name <- A.takeTill isSpace <* A.skipSpace
   idNum <- A.decimal <* A.skipSpace
-  uptime <- A.takeTill (`elem` "\n\r") <* A.skipSpace
+  uptime <- A.takeTill (`elem` ("\n\r" :: String)) <* A.skipSpace
   return . UptimeInfo (unpack name) idNum $ unpack uptime
