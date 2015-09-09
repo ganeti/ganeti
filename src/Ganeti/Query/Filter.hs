@@ -136,7 +136,7 @@ trueFilter v = Bad . ParameterError $
 -- | A type synonim for a rank-2 comparator function. This is used so
 -- that we can pass the usual '<=', '>', '==' functions to 'binOpFilter'
 -- and for them to be used in multiple contexts.
-type Comparator = (Eq a, Ord a) => a -> a -> Bool
+type Comparator = forall a . (Eq a, Ord a) => a -> a -> Bool
 
 -- | Equality checker.
 --
