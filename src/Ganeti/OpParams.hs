@@ -909,12 +909,12 @@ pPowerDelay =
 pRequiredNodes :: Field
 pRequiredNodes =
   withDoc "Required list of node names" .
-  renameField "ReqNodes " $ simpleField "nodes" [t| [NonEmptyString] |]
+  renameField "ReqNodes" $ simpleField "nodes" [t| [NonEmptyString] |]
 
 pRequiredNodeUuids :: Field
 pRequiredNodeUuids =
   withDoc "Required list of node UUIDs" .
-  renameField "ReqNodeUuids " . optionalField $
+  renameField "ReqNodeUuids" . optionalField $
   simpleField "node_uuids" [t| [NonEmptyString] |]
 
 pRestrictedCommand :: Field
@@ -1536,7 +1536,7 @@ pOsNameChange =
 pDiskIndex :: Field
 pDiskIndex =
   withDoc "Disk index for e.g. grow disk" .
-  renameField "DiskIndex " $ simpleField "disk" [t| DiskIndex |]
+  renameField "DiskIndex" $ simpleField "disk" [t| DiskIndex |]
 
 pDiskChgAmount :: Field
 pDiskChgAmount =
@@ -1757,7 +1757,7 @@ pIAllocatorOs =
 pIAllocatorInstances :: Field
 pIAllocatorInstances =
   withDoc "IAllocator instances field" .
-  renameField "IAllocatorInstances " .
+  renameField "IAllocatorInstances" .
   optionalField $
   simpleField "instances" [t| [NonEmptyString] |]
 
