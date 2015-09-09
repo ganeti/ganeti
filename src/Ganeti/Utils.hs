@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts, ScopedTypeVariables, CPP #-}
 
 {-| Utility functions. -}
 
@@ -110,7 +110,11 @@ import Data.Char (toUpper, isAlphaNum, isDigit, isSpace)
 import qualified Data.Either as E
 import Data.Function (on)
 import Data.IORef
+#if MIN_VERSION_base(4,8,0)
+import Data.List hiding (isSubsequenceOf)
+#else
 import Data.List
+#endif
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
