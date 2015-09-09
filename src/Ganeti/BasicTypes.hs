@@ -172,7 +172,6 @@ instance Applicative (GenericResult a) where
 -- If 'mplus' combines two failing operations, errors of both of them
 -- are combined.
 newtype ResultT a m b = ResultT {runResultT :: m (GenericResult a b)}
-  deriving (Functor)
 
 -- | Eliminates a 'ResultT' value given appropriate continuations
 elimResultT :: (Monad m)
@@ -185,6 +184,9 @@ elimResultT l r = ResultT . (runResultT . result <=< runResultT)
     result (Ok x)   = r x
     result (Bad e)  = l e
 {-# INLINE elimResultT #-}
+
+instance (Monad m) => Functor (ResultT a m) where
+  fmap f = ResultT . liftM (fmap f) . runResultT
 
 instance (Monad m, FromString a) => Applicative (ResultT a m) where
   pure = return
