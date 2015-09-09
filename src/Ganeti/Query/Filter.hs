@@ -183,10 +183,10 @@ containsFilter :: FilterValue -> JSValue -> ErrorResult Bool
 -- note: the next two implementations are the same, but we have to
 -- repeat them due to the encapsulation done by FilterValue
 containsFilter (QuotedString val) lst = do
-  lst' <- fromJVal lst
+  lst' <- fromJVal lst :: ErrorResult [String]
   return $! val `elem` lst'
 containsFilter (NumericValue val) lst = do
-  lst' <- fromJVal lst
+  lst' <- fromJVal lst :: ErrorResult [Integer]
   return $! val `elem` lst'
 
 
