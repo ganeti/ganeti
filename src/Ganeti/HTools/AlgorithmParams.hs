@@ -62,6 +62,8 @@ data AlgorithmOptions = AlgorithmOptions
   , algRestrictToNodes :: Maybe [String] -- ^ nodes to restrict allocation to
   , algAllowedNodes :: Maybe (Set.Set Int) -- ^ if given, do not perform any
                                     -- operations involving other nodes
+  , algAcceptExisting :: Bool       -- ^ accept existing violations in capacity
+                                    -- checks
   }
 
 -- | Obtain the relevant algorithmic option from the commandline options
@@ -78,6 +80,7 @@ fromCLIOptions opts = AlgorithmOptions
   , algCapacity = CLI.optCapacity opts
   , algRestrictToNodes = CLI.optRestrictToNodes opts
   , algAllowedNodes = Nothing
+  , algAcceptExisting = CLI.optAcceptExisting opts
   }
 
 -- | Default options for the balancing algorithm

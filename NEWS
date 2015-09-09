@@ -37,6 +37,28 @@ New dependencies
   package.
 
 
+Version 2.15.1
+--------------
+
+*(Released Mon, 7 Sep 2015)*
+
+New features
+~~~~~~~~~~~~
+
+- The ext template now allows userspace-only disks to be used
+
+Bugfixes
+~~~~~~~~
+
+- Fixed the silently broken 'gnt-instance replace-disks --ignore-ipolicy'
+  command.
+- User shutdown reporting can now be disabled on Xen using the
+  '--user-shutdown' flag.
+- Remove falsely reported communication NIC error messages on instance start.
+- Fix 'gnt-node migrate' behavior when no instances are present on a node.
+- Fix the multi-allocation functionality for non-DRBD instances.
+
+
 Version 2.15.0
 --------------
 

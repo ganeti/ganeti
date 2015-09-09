@@ -1407,6 +1407,7 @@ $(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
                                   cabal/CabalDependenciesMacros.hs
 	touch empty-cabal-config
 	$(CABAL) --config-file=empty-cabal-config configure --user \
+	  -f`test $(HTEST) == yes && echo "htest" || echo "-htest"` \
 	  -f`test $(ENABLE_MOND) == True && echo "mond" || echo "-mond"` \
 	  -f`test $(ENABLE_METADATA) == True && echo "metad" || echo "-metad"`
 	runhaskell $(abs_top_srcdir)/cabal/CabalDependenciesMacros.hs \
@@ -1752,6 +1753,7 @@ TEST_FILES = \
 	test/data/htools/hbal-soft-errors.data \
 	test/data/htools/hbal-soft-errors2.data \
 	test/data/htools/hbal-split-insts.data \
+	test/data/htools/hspace-existing.data \
 	test/data/htools/hspace-groups-one.data \
 	test/data/htools/hspace-groups-two.data \
 	test/data/htools/hspace-tiered-dualspec-exclusive.data \

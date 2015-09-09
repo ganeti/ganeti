@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 {-
 
 Copyright (C) 2014 Google Inc.
@@ -30,6 +32,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Metad.Config where
 
 import Control.Arrow (second)
+import Control.Monad ((>=>), mzero)
+import Control.Monad.Trans
+import Control.Monad.Trans.Maybe
 import qualified Data.List as List (isPrefixOf)
 import qualified Data.Map as Map
 import Text.JSON
@@ -96,48 +101,57 @@ getOsParamsWithVisibility json =
      Ok $ makeInstanceParams publicOsParams privateOsParams secretOsParams
 
 -- | Finds the IP address of the instance communication NIC in the
--- instance's NICs.
-getInstanceCommunicationIp :: JSObject JSValue -> Result String
-getInstanceCommunicationIp jsonObj =
-  getNics >>= getInstanceCommunicationNic >>= getIp
+-- instance's NICs. If the corresponding NIC isn't found, 'Nothing' is returned.
+getInstanceCommunicationIp :: JSObject JSValue -> Result (Maybe String)
+getInstanceCommunicationIp =
+    runMaybeT . (getNics >=> getInstanceCommunicationNic >=> getIp)
   where
+    getIp :: JSObject JSValue -> MaybeT Result String
     getIp nic =
       case lookup "ip" (fromJSObject nic) of
-        Nothing -> Error "Could not find instance communication IP"
-        Just (JSString ip) -> Ok (JSON.fromJSString ip)
-        _ -> Error "Instance communication IP is not a string"
+        Nothing -> failErrorT "Could not find instance communication IP"
+        Just (JSString ip) -> return (JSON.fromJSString ip)
+        _ -> failErrorT "Instance communication IP is not a string"
 
-    getInstanceCommunicationNic [] =
-      Error "Could not find instance communication NIC"
-    getInstanceCommunicationNic (JSObject nic:nics) =
+    getInstanceCommunicationNic :: [JSValue] -> MaybeT Result (JSObject JSValue)
+    getInstanceCommunicationNic [] = mzero -- no communication NIC found
+    getInstanceCommunicationNic (JSObject nic : nics) =
       case lookup "name" (fromJSObject nic) of
         Just (JSString name)
           | Constants.instanceCommunicationNicPrefix
             `List.isPrefixOf` JSON.fromJSString name ->
-            Ok nic
+            return nic
         _ -> getInstanceCommunicationNic nics
-    getInstanceCommunicationNic _ =
-      Error "Found wrong data in instance NICs"
+    getInstanceCommunicationNic (n : _) =
+      failErrorT $ "Found wrong data in instance NICs: " ++ show n
 
-    getNics =
+    getNics :: JSObject JSValue -> MaybeT Result [JSValue]
+    getNics jsonObj =
       case lookup "nics" (fromJSObject jsonObj) of
-        Nothing -> Error "Could not find OS parameters key 'nics'"
-        Just (JSArray nics) -> Ok nics
-        _ -> Error "Instance nics is not an array"
+        Nothing -> failErrorT "Could not find OS parameters key 'nics'"
+        Just (JSArray nics) -> return nics
+        _ -> failErrorT "Instance nics is not an array"
+
+    -- | A helper function for failing a 'Result' wrapped in a monad
+    -- transformer.
+    failErrorT :: (MonadTrans t) => String -> t Result a
+    failErrorT = lift . JSON.Error
 
 -- | Extracts the OS parameters from the instance's parameters and
 -- returns a data structure containing all the OS parameters and their
 -- visibility indexed by the instance's IP address which is used in
 -- the instance communication NIC.
-getInstanceParams :: JSValue -> Result (String, InstanceParams)
+getInstanceParams :: JSValue -> Result (String, Maybe InstanceParams)
 getInstanceParams json =
     case json of
       JSObject jsonObj -> do
         name <- case lookup "name" (fromJSObject jsonObj) of
-                  Nothing -> Error "Could not find instance name"
-                  Just (JSString x) -> Ok (JSON.fromJSString x)
-                  _ -> Error "Name is not a string"
-        ip <- getInstanceCommunicationIp jsonObj
-        Ok (name, Map.fromList [(ip, json)])
+                  Nothing -> failError "Could not find instance name"
+                  Just (JSString x) -> return (JSON.fromJSString x)
+                  _ -> failError "Name is not a string"
+        m'ip <- getInstanceCommunicationIp jsonObj
+        return (name, fmap (\ip -> Map.fromList [(ip, json)]) m'ip)
       _ ->
-        Error "Expecting a dictionary"
+        failError "Expecting a dictionary"
+  where
+    failError = JSON.Error

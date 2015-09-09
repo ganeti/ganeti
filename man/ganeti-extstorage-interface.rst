@@ -129,6 +129,23 @@ The attach script should be idempotent if the volume is already mapped.
 If the requested volume is already mapped, then the script should just
 return to its stdout the path which is already mapped to.
 
+In case the storage technology supports userspace access to volumes as
+well, e.g. the QEMU Hypervisor can see an RBD volume using its embedded
+driver for the RBD protocol, then the provider can return extra lines
+denoting the available userspace access URIs per hypervisor. The URI
+should be in the following format: <hypervisor>:<uri>. For example, a
+RADOS provider should return kvm:rbd:<pool>/<volume name> in the second
+line of stdout after the local block device path (e.g. /dev/rbd1).
+
+So, if the ``access`` disk parameter is ``userspace`` for the ext disk
+template, then the QEMU command will end up having file=<URI> in
+the ``-drive`` option.
+
+In case the storage technology supports *only* userspace access to
+volumes, then the first line of stdout should be an empty line, denoting
+that a local block device is not available. If neither a block device
+nor a URI is returned, then Ganeti will complain.
+
 detach
 ~~~~~~
 

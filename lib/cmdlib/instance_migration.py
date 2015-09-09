@@ -980,7 +980,8 @@ class TLMigrateInstance(Tasklet):
                                  (self.instance.name,
                                   self.cfg.GetNodeName(source_node_uuid), msg))
 
-    if self.instance.disk_template in constants.DTS_EXT_MIRROR:
+    disk_template = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
+    if disk_template in constants.DTS_EXT_MIRROR:
       self._CloseInstanceDisks(source_node_uuid)
 
     self.feedback_fn("* deactivating the instance's disks on source node")

@@ -670,7 +670,7 @@ be 1.
 MODIFY
 ~~~~~~
 
-| **modify** [\--submit] [\--print-job-id]
+| **modify** [\--submit] [\--print-jobid]
 | [\--force]
 | [\--vg-name *vg-name*]
 | [\--enabled-hypervisors *hypervisors*]
@@ -841,7 +841,7 @@ The ``info`` option shows whether the watcher is currently paused.
 REDIST-CONF
 ~~~~~~~~~~~
 
-**redist-conf** [\--submit] [\--print-job-id]
+**redist-conf** [\--submit] [\--print-jobid]
 
 This command forces a full push of configuration files from the
 master node to the other nodes in the cluster. This is normally not

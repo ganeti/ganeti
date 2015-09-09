@@ -64,7 +64,6 @@ from optparse import (OptionParser, TitledHelpFormatter)
 
 
 __all__ = [
-  # Command line options
   # Generic functions for CLI programs
   "ConfirmOperation",
   "CreateIPolicyFromOpts",
@@ -132,7 +131,7 @@ __all__ = [
   "SplitNodeOption",
   "CalculateOSNames",
   "ParseFields",
-  ] + ganeti.cli_opts.__all__
+  ] + ganeti.cli_opts.__all__ # Command line options
 
 # Query result status for clients
 (QR_NORMAL,
