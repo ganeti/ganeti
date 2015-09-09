@@ -1185,8 +1185,13 @@ genDictObject :: (Name -> Field -> Q Exp)  -- ^ a saving function
               -> Q [Dec]
 genDictObject save_fn load_fn sname fields = do
   let name = mkName sname
+      -- newName fails in ghc 7.10 when used on keywords
+      newName' "data" = newName "data_ghcBug10599"
+      newName' "instance" = newName "instance_ghcBug10599"
+      newName' "type" = newName "type_ghcBug10599"
+      newName' s = newName s
   -- toDict
-  fnames <- mapM (newName . fieldVariable) fields
+  fnames <- mapM (newName' . fieldVariable) fields
   let pat = conP name (map varP fnames)
       tdexp = [| concat $(listE $ zipWith save_fn fnames fields) |]
   tdclause <- clause [pat] (normalB tdexp) []
