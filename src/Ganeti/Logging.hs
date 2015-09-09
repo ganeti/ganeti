@@ -62,7 +62,7 @@ module Ganeti.Logging
 
 import Control.Applicative ((<$>))
 import Control.Monad
-import Control.Monad.Error (Error(..), MonadError(..), catchError)
+import Control.Monad.Error.Class (MonadError(..))
 import Control.Monad.Reader
 import qualified Control.Monad.RWS.Strict as RWSS
 import qualified Control.Monad.State.Strict as SS
@@ -76,7 +76,7 @@ import System.Log.Handler (setFormatter, LogHandler)
 import System.Log.Formatter
 import System.IO
 
-import Ganeti.BasicTypes (ResultT(..))
+import Ganeti.BasicTypes (ResultT(..), FromString(..))
 import Ganeti.THH
 import qualified Ganeti.ConstantUtils as ConstantUtils
 
@@ -168,7 +168,7 @@ instance (MonadLog m) => MonadLog (SS.StateT s m) where
 instance (MonadLog m, Monoid w) => MonadLog (RWSS.RWST r w s m) where
   logAt p = lift . logAt p
 
-instance (MonadLog m, Error e) => MonadLog (ResultT e m) where
+instance (MonadLog m, FromString e) => MonadLog (ResultT e m) where
   logAt p = lift . logAt p
 
 -- | Log at debug level.

@@ -54,7 +54,7 @@ module Ganeti.Network
   ) where
 
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Error.Class (MonadError)
 import Control.Monad.State
 import Data.Function (on)
 
@@ -90,7 +90,7 @@ netIpv4NumHosts :: Network -> Integer
 netIpv4NumHosts = ipv4NumHosts . ip4netMask . networkNetwork
 
 -- | Creates a new bit array pool of the appropriate size
-newPoolArray :: (MonadError e m, Error e) => Network -> m BA.BitArray
+newPoolArray :: (MonadError e m, FromString e) => Network -> m BA.BitArray
 newPoolArray net = do
   let numhosts = netIpv4NumHosts net
   when (numhosts > ipv4NetworkMaxNumHosts) . failError $
@@ -104,15 +104,15 @@ newPoolArray net = do
   return $ BA.zeroes (fromInteger numhosts)
 
 -- | Creates a new bit array pool of the appropriate size
-newPool :: (MonadError e m, Error e) => Network -> m AddressPool
+newPool :: (MonadError e m, FromString e) => Network -> m AddressPool
 newPool = liftM AddressPool . newPoolArray
 
 -- | A helper function that creates a bit array pool, of it's missing.
-orNewPool :: (MonadError e m, Error e)
+orNewPool :: (MonadError e m, FromString e)
           => Network -> Maybe AddressPool -> m AddressPool
 orNewPool net = maybe (newPool net) return
 
-withPool :: (MonadError e m, Error e)
+withPool :: (MonadError e m, FromString e)
          => PoolPart -> (Network -> BA.BitArray -> m (a, BA.BitArray))
          -> StateT Network m a
 withPool part f = StateT $ \n -> mapMOf2 (poolLens part) (f' n) n
@@ -121,7 +121,7 @@ withPool part f = StateT $ \n -> mapMOf2 (poolLens part) (f' n) n
              . mapMOf2 addressPoolIso (f net)
              <=< orNewPool net
 
-withPool_ :: (MonadError e m, Error e)
+withPool_ :: (MonadError e m, FromString e)
           => PoolPart -> (Network -> BA.BitArray -> m BA.BitArray)
           -> Network -> m Network
 withPool_ part f = execStateT $ withPool part ((liftM ((,) ()) .) . f)
@@ -129,12 +129,12 @@ withPool_ part f = execStateT $ withPool part ((liftM ((,) ()) .) . f)
 readPool :: PoolPart -> Network -> Maybe BA.BitArray
 readPool = view . poolArrayLens
 
-readPoolE :: (MonadError e m, Error e)
+readPoolE :: (MonadError e m, FromString e)
           => PoolPart -> Network -> m BA.BitArray
 readPoolE part net =
   liftM apReservations $ orNewPool net ((view . poolLens) part net)
 
-readAllE :: (MonadError e m, Error e)
+readAllE :: (MonadError e m, FromString e)
          => Network -> m BA.BitArray
 readAllE net = do
   let toRes = liftM apReservations . orNewPool net
@@ -172,7 +172,7 @@ getMap = maybe "" (BA.asString '.' 'X') . allReservations
 
 -- | Returns an address index wrt a network.
 -- Fails if the address isn't in the network range.
-addrIndex :: (MonadError e m, Error e) => Ip4Address -> Network -> m Int
+addrIndex :: (MonadError e m, FromString e) => Ip4Address -> Network -> m Int
 addrIndex addr net = do
   let n = networkNetwork net
       i = on (-) ip4AddressToNumber addr (ip4netAddr n)
@@ -182,7 +182,7 @@ addrIndex addr net = do
 
 -- | Returns an address of a given index wrt a network.
 -- Fails if the index isn't in the network range.
-addrAt :: (MonadError e m, Error e) => Int -> Network -> m Ip4Address
+addrAt :: (MonadError e m, FromString e) => Int -> Network -> m Ip4Address
 addrAt i net | (i' < 0) || (i' >= ipv4NumHosts (ip4netMask n)) =
     failError $ "Requested index " ++ show i
                 ++ " outside the range of network '" ++ show net ++ "'"
@@ -194,13 +194,13 @@ addrAt i net | (i' < 0) || (i' >= ipv4NumHosts (ip4netMask n)) =
 
 -- | Checks if a given address is reserved.
 -- Fails if the address isn't in the network range.
-isReserved :: (MonadError e m, Error e) =>
+isReserved :: (MonadError e m, FromString e) =>
               PoolPart -> Ip4Address -> Network -> m Bool
 isReserved part addr net =
   (BA.!) `liftM` readPoolE part net `ap` addrIndex addr net
 
 -- | Marks an address as used.
-reserve :: (MonadError e m, Error e) =>
+reserve :: (MonadError e m, FromString e) =>
            PoolPart -> Ip4Address -> Network -> m Network
 reserve part addr =
     withPool_ part $ \net ba -> do
@@ -212,7 +212,7 @@ reserve part addr =
       BA.setAt idx True ba
 
 -- | Marks an address as unused.
-release :: (MonadError e m, Error e) =>
+release :: (MonadError e m, FromString e) =>
            PoolPart -> Ip4Address -> Network -> m Network
 release part addr =
     withPool_ part $ \net ba -> do
@@ -225,7 +225,7 @@ release part addr =
 
 -- | Get the first free address in the network
 -- that satisfies a given predicate.
-findFree :: (MonadError e m, Error e)
+findFree :: (MonadError e m, FromString e)
          => (Ip4Address -> Bool) -> Network -> m (Maybe Ip4Address)
 findFree p net = readAllE net >>= BA.foldr f (return Nothing)
   where

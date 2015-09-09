@@ -377,10 +377,11 @@ type FailStats = [(FailMode, Int)]
 -- will instead raise an exception.
 type OpResult = GenericResult FailMode
 
--- | 'Error' instance for 'FailMode' designed to catch unintended
+-- | 'FromString' instance for 'FailMode' designed to catch unintended
 -- use as a general monad.
-instance Error FailMode where
-  strMsg v = error $ "Programming error: OpResult used as generic monad" ++ v
+instance FromString FailMode where
+  mkFromString v = error $ "Programming error: OpResult used as generic monad"
+                           ++ v
 
 -- | Conversion from 'OpResult' to 'Result'.
 opToResult :: OpResult a -> Result a

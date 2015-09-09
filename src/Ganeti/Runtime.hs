@@ -52,7 +52,6 @@ module Ganeti.Runtime
   ) where
 
 import Control.Monad
-import Control.Monad.Error
 import qualified Data.Map as M
 import System.Exit
 import System.FilePath
@@ -195,7 +194,7 @@ allGroups = map DaemonGroup [minBound..maxBound] ++
             map ExtraGroup  [minBound..maxBound]
 
 -- | Computes the group/user maps.
-getEnts :: (Error e) => ResultT e IO RuntimeEnts
+getEnts :: (FromString e) => ResultT e IO RuntimeEnts
 getEnts = do
   let userOf = liftM userID . liftIO . getUserEntryForName . daemonUser
   let groupOf = liftM groupID . liftIO . getGroupEntryForName . daemonGroup

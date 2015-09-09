@@ -85,7 +85,7 @@ module Ganeti.JSON
 
 import Control.Applicative
 import Control.DeepSeq
-import Control.Monad.Error.Class
+import Control.Monad.Error.Class (MonadError(..))
 import Control.Monad.Writer
 import qualified Data.Foldable as F
 import qualified Data.Text as T
@@ -150,8 +150,8 @@ fromJResult s (J.Error x) = fail (s ++ ": " ++ x)
 fromJResult _ (J.Ok x) = return x
 
 -- | Converts a JSON Result into a MonadError value.
-fromJResultE :: (Error e, MonadError e m) => String -> J.Result a -> m a
-fromJResultE s (J.Error x) = throwError . strMsg $ s ++ ": " ++ x
+fromJResultE :: (FromString e, MonadError e m) => String -> J.Result a -> m a
+fromJResultE s (J.Error x) = throwError . mkFromString $ s ++ ": " ++ x
 fromJResultE _ (J.Ok x) = return x
 
 -- | Tries to read a string from a JSON value.
@@ -249,10 +249,10 @@ fromJVal v =
     J.Ok x -> return x
 
 -- | Small wrapper over 'readJSON' for 'MonadError'.
-fromJValE :: (Error e, MonadError e m, J.JSON a) => J.JSValue -> m a
+fromJValE :: (FromString e, MonadError e m, J.JSON a) => J.JSValue -> m a
 fromJValE v =
   case J.readJSON v of
-    J.Error s -> throwError . strMsg $
+    J.Error s -> throwError . mkFromString $
                   "Cannot convert value '" ++ show (pp_value v) ++
                   "', error: " ++ s
     J.Ok x -> return x

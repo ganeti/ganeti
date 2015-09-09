@@ -47,7 +47,7 @@ import Control.Lens.Setter (Setter, (.~), (%~), (+~), over)
 import Control.Lens.Traversal (mapMOf)
 import Control.Lens.Type (Simple)
 import Control.Monad (unless, when, forM_, foldM, liftM, liftM2)
-import Control.Monad.Error (throwError, MonadError)
+import Control.Monad.Error.Class (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.State (StateT, get, put, modify,
                                   runStateT, execStateT)

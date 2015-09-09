@@ -39,10 +39,13 @@ module Ganeti.Codec
 
 import Codec.Compression.Zlib (compress)
 import qualified Codec.Compression.Zlib.Internal as I
-import Control.Monad.Error
+import Control.Monad (liftM)
+import Control.Monad.Error.Class (MonadError(..))
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Internal as BL
 import Data.Monoid (mempty)
+
+import Ganeti.BasicTypes
 
 -- | Compresses a lazy bytestring.
 compressZlib :: BL.ByteString -> BL.ByteString
@@ -50,11 +53,12 @@ compressZlib = compress
 
 -- | Decompresses a lazy bytestring, throwing decoding errors using
 -- 'throwError'.
-decompressZlib :: (MonadError e m, Error e) => BL.ByteString -> m BL.ByteString
+decompressZlib :: (MonadError e m, FromString e)
+               => BL.ByteString -> m BL.ByteString
 decompressZlib = I.foldDecompressStream
                      (liftM . BL.chunk)
                      (return mempty)
-                     (const $ throwError . strMsg . ("Zlib: " ++))
+                     (const $ throwError . mkFromString . ("Zlib: " ++))
                  . I.decompressWithErrors
                      I.zlibFormat
                      I.defaultDecompressParams

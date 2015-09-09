@@ -45,8 +45,9 @@ module Ganeti.WConfd.ConfigWriter
 
 import Control.Applicative
 import Control.Monad.Base
-import Control.Monad.Error
+import Control.Monad.Error.Class (MonadError)
 import qualified Control.Monad.State.Strict as S
+import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Control
 import Data.Monoid
 

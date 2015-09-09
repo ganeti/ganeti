@@ -122,12 +122,12 @@ $(genException "GanetiException"
   , ("FileStoragePathError", [excErrMsg])
   ])
 
-instance Error GanetiException where
-  strMsg = GenericError
-
 instance JSON GanetiException where
   showJSON = saveGanetiException
   readJSON = loadGanetiException
+
+instance FromString GanetiException where
+  mkFromString = GenericError
 
 -- | Error monad using 'GanetiException' type alias.
 type ErrorResult = GenericResult GanetiException

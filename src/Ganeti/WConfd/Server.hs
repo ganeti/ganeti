@@ -43,7 +43,6 @@ module Ganeti.WConfd.Server where
 import Control.Concurrent (forkIO)
 import Control.Exception
 import Control.Monad
-import Control.Monad.Error
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
@@ -88,8 +87,8 @@ prepMain _ _ = do
   conf_file <- Path.clusterConfFile
 
   dh <- toErrorBase
-        . withErrorT (strMsg . ("Initialization of the daemon failed" ++)
-                             . formatError) $ do
+        . withErrorT (mkFromString . ("Initialization of the daemon failed" ++)
+                                   . formatError) $ do
     ents <- getEnts
     (cdata, cstat) <- loadConfigFromFile conf_file
     verifyConfigErr cdata

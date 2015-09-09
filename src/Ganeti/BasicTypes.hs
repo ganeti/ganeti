@@ -51,6 +51,7 @@ module Ganeti.BasicTypes
   , tryError
   , Error(..) -- re-export from Control.Monad.Error
   , MonadIO(..) -- re-export from Control.Monad.IO.Class
+  , FromString(..)
   , isOk
   , isBad
   , justOk
@@ -117,30 +118,42 @@ genericResult _ g (Ok b) = g b
 -- | Type alias for a string Result.
 type Result = GenericResult String
 
+-- | Type class for things that can be built from strings.
+class FromString a where
+  mkFromString :: String -> a
+
+-- | Trivial 'String' instance; requires FlexibleInstances extension
+-- though.
+instance FromString [Char] where
+  mkFromString = id
+
+instance FromString IOError where
+  mkFromString = userError
+
 -- | 'Monad' instance for 'GenericResult'.
-instance (Error a) => Monad (GenericResult a) where
+instance (FromString a) => Monad (GenericResult a) where
   (>>=) (Bad x) _ = Bad x
   (>>=) (Ok x) fn = fn x
   return = Ok
-  fail   = Bad . strMsg
+  fail   = Bad . mkFromString
 
 instance Functor (GenericResult a) where
   fmap _ (Bad msg) = Bad msg
   fmap fn (Ok val) = Ok (fn val)
 
-instance (Error a, Monoid a) => Alternative (GenericResult a) where
-  empty = Bad $ strMsg "zero Result when used as empty"
+instance (FromString a, Monoid a) => Alternative (GenericResult a) where
+  empty = Bad $ mkFromString "zero Result when used as empty"
   -- for mplus, when we 'add' two Bad values, we concatenate their
   -- error descriptions
-  (Bad x) <|> (Bad y) = Bad (x `mappend` strMsg "; " `mappend` y)
+  (Bad x) <|> (Bad y) = Bad (x `mappend` mkFromString "; " `mappend` y)
   (Bad _) <|> x = x
   x@(Ok _) <|> _ = x
 
-instance (Error a, Monoid a) => MonadPlus (GenericResult a) where
+instance (FromString a, Monoid a) => MonadPlus (GenericResult a) where
   mzero = empty
   mplus = (<|>)
 
-instance (Error a) => MonadError a (GenericResult a) where
+instance (FromString a) => MonadError a (GenericResult a) where
   throwError = Bad
   {-# INLINE throwError #-}
   catchError x h = genericResult h (const x) x
@@ -173,16 +186,16 @@ elimResultT l r = ResultT . (runResultT . result <=< runResultT)
     result (Bad e)  = l e
 {-# INLINE elimResultT #-}
 
-instance (Applicative m, Monad m, Error a) => Applicative (ResultT a m) where
+instance (Monad m, FromString a) => Applicative (ResultT a m) where
   pure = return
   (<*>) = ap
 
-instance (Monad m, Error a) => Monad (ResultT a m) where
-  fail err = ResultT (return . Bad $ strMsg err)
+instance (Monad m, FromString a) => Monad (ResultT a m) where
+  fail err = ResultT (return . Bad $ mkFromString err)
   return   = lift . return
   (>>=)    = flip (elimResultT throwError)
 
-instance (Monad m, Error a) => MonadError a (ResultT a m) where
+instance (Monad m, FromString a) => MonadError a (ResultT a m) where
   throwError = ResultT . return . Bad
   catchError = catchErrorT
 
@@ -190,24 +203,24 @@ instance MonadTrans (ResultT a) where
   lift = ResultT . liftM Ok
 
 -- | The instance catches any 'IOError' using 'try' and converts it into an
--- error message using 'strMsg'.
+-- error message using 'mkFromString'.
 --
 -- This way, monadic code within 'ResultT' that uses solely 'liftIO' to
 -- include 'IO' actions ensures that all IO exceptions are handled.
 --
 -- Other exceptions (see instances of 'Exception') are not currently handled.
 -- This might be revised in the future.
-instance (MonadIO m, Error a) => MonadIO (ResultT a m) where
+instance (MonadIO m, FromString a) => MonadIO (ResultT a m) where
   liftIO = ResultT . liftIO
                    . liftM (either (failError . show) return)
                    . (try :: IO a -> IO (Either IOError a))
 
-instance (MonadBase IO m, Error a) => MonadBase IO (ResultT a m) where
+instance (MonadBase IO m, FromString a) => MonadBase IO (ResultT a m) where
   liftBase = ResultT . liftBase
                    . liftM (either (failError . show) return)
                    . (try :: IO a -> IO (Either IOError a))
 
-instance (Error a) => MonadTransControl (ResultT a) where
+instance (FromString a) => MonadTransControl (ResultT a) where
 #if MIN_VERSION_monad_control(1,0,0)
 -- Needs Undecidable instances
   type StT (ResultT a) b = GenericResult a b
@@ -221,7 +234,7 @@ instance (Error a) => MonadTransControl (ResultT a) where
   {-# INLINE liftWith #-}
   {-# INLINE restoreT #-}
 
-instance (Error a, MonadBaseControl IO m)
+instance (FromString a, MonadBaseControl IO m)
          => MonadBaseControl IO (ResultT a m) where
 #if MIN_VERSION_monad_control(1,0,0)
 -- Needs Undecidable instances
@@ -238,7 +251,7 @@ instance (Error a, MonadBaseControl IO m)
   {-# INLINE liftBaseWith #-}
   {-# INLINE restoreM #-}
 
-instance (Monad m, Error a, Monoid a)
+instance (Monad m, FromString a, Monoid a)
          => Alternative (ResultT a m) where
   empty = ResultT $ return mzero
   -- Ensure that 'y' isn't run if 'x' contains a value. This makes it a bit
@@ -246,7 +259,7 @@ instance (Monad m, Error a, Monoid a)
   x <|> y = elimResultT combine return x
     where combine x' = ResultT $ liftM (mplus (Bad x')) (runResultT y)
 
-instance (Monad m, Error a, Monoid a)
+instance (Monad m, FromString a, Monoid a)
          => MonadPlus (ResultT a m) where
   mzero = empty
   mplus = (<|>)
@@ -259,7 +272,7 @@ withError :: (MonadError e m) => (e' -> e) -> GenericResult e' a -> m a
 withError f = genericResult (throwError . f) return
 
 -- | Changes the error message of a @ResultT@ value, if present.
-withErrorT :: (Monad m, Error e)
+withErrorT :: (Monad m, FromString e)
            => (e' -> e) -> ResultT e' m a -> ResultT e m a
 withErrorT f = ResultT . liftM (withError f) . runResultT
 
@@ -275,10 +288,10 @@ toErrorBase :: (MonadBase b m, MonadError e m) => ResultT e b a -> m a
 toErrorBase = (toError =<<) . liftBase . runResultT
 {-# INLINE toErrorBase #-}
 
--- | An alias for @withError strMsg@, which is often used to lift a pure error
--- to a monad stack. See also 'annotateResult'.
-toErrorStr :: (MonadError e m, Error e) => Result a -> m a
-toErrorStr = withError strMsg
+-- | An alias for @withError mkFromString@, which is often
+-- used to lift a pure error to a monad stack. See also 'annotateResult'.
+toErrorStr :: (MonadError e m, FromString e) => Result a -> m a
+toErrorStr = withError mkFromString
 
 -- | Run a given computation and if an error occurs, return it as `Left` of
 -- `Either`.
@@ -295,11 +308,11 @@ tryError = flip catchError (return . Left) . liftM Right
 -- should be handled by the given action.
 --
 -- See also 'toErrorStr'.
-mkResultT :: (Monad m, Error e) => m (Result a) -> ResultT e m a
+mkResultT :: (Monad m, FromString e) => m (Result a) -> ResultT e m a
 mkResultT = ResultT . liftM toErrorStr
 
 -- | Generalisation of mkResultT accepting any showable failures.
-mkResultT' :: (Monad m, Error e, Show s)
+mkResultT' :: (Monad m, FromString e, Show s)
            => m (GenericResult s a) -> ResultT e m a
 mkResultT' = mkResultT . liftM (genericResult (Bad . show) Ok)
 
@@ -340,32 +353,33 @@ isRight = not . isLeft
 -- 'MonadError'. Since 'Result' is an instance of 'MonadError' itself,
 -- it's a generalization of type @String -> Result a -> Result a@.
 -- See also 'toErrorStr'.
-annotateResult :: (MonadError e m, Error e) => String -> Result a -> m a
+annotateResult :: (MonadError e m, FromString e) => String -> Result a -> m a
 annotateResult owner = toErrorStr . annotateError owner
 
 -- | Annotate an error with an ownership information inside a 'MonadError'.
 -- See also 'annotateResult'.
-annotateError :: (MonadError e m, Error e, Monoid e) => String -> m a -> m a
+annotateError :: (MonadError e m, FromString e, Monoid e)
+              => String -> m a -> m a
 annotateError owner =
-  flip catchError (throwError . mappend (strMsg $ owner ++ ": "))
+  flip catchError (throwError . mappend (mkFromString $ owner ++ ": "))
 {-# INLINE annotateError #-}
 
 -- | Throws a 'String' message as an error in a 'MonadError'.
 -- This is a generalization of 'Bad'.
 -- It's similar to 'fail', but works within a 'MonadError', avoiding the
 -- unsafe nature of 'fail'.
-failError :: (MonadError e m, Error e) => String -> m a
-failError = throwError . strMsg
+failError :: (MonadError e m, FromString e) => String -> m a
+failError = throwError . mkFromString
 
 -- | A synonym for @flip@ 'catchErrorT'.
-handleErrorT :: (Monad m, Error e)
+handleErrorT :: (Monad m, FromString e)
              => (e' -> ResultT e m a) -> ResultT e' m a -> ResultT e m a
 handleErrorT handler = elimResultT handler return
 {-# INLINE handleErrorT #-}
 
 -- | Catches an error in a @ResultT@ value. This is similar to 'catchError',
 -- but in addition allows to change the error type.
-catchErrorT :: (Monad m, Error e)
+catchErrorT :: (Monad m, FromString e)
             => ResultT e' m a -> (e' -> ResultT e m a) -> ResultT e m a
 catchErrorT = flip handleErrorT
 {-# INLINE catchErrorT #-}

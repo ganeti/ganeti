@@ -39,7 +39,8 @@ module Ganeti.WConfd.ConfigVerify
   , verifyConfigErr
   ) where
 
-import Control.Monad.Error
+import Control.Monad (forM_)
+import Control.Monad.Error.Class (MonadError(..))
 import qualified Data.Foldable as F
 import qualified Data.Map as M
 import qualified Data.Set as S

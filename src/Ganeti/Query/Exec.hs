@@ -64,7 +64,7 @@ import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Exception (finally)
 import Control.Monad
-import Control.Monad.Error
+import Control.Monad.Error.Class (MonadError(..))
 import Data.Functor
 import qualified Data.Map as M
 import Data.Maybe (listToMaybe, mapMaybe)
@@ -103,7 +103,7 @@ connectConfig = ConnectConfig { recvTmo    = 30
                               }
 
 -- Returns the list of all open file descriptors of the current process.
-listOpenFds :: (Error e) => ResultT e IO [Fd]
+listOpenFds :: (FromString e) => ResultT e IO [Fd]
 listOpenFds = liftM filterReadable
                 $ liftIO (getDirectoryContents "/proc/self/fd") `orElse`
                   liftIO (getDirectoryContents "/dev/fd") `orElse`
@@ -224,7 +224,7 @@ forkWithPipe conf childAction = do
 
 -- | Forks the job process and starts processing of the given job.
 -- Returns the livelock of the job and its process ID.
-forkJobProcess :: (Error e, Show e)
+forkJobProcess :: (FromString e, Show e)
                => QueuedJob -- ^ a job to process
                -> FilePath  -- ^ the daemons own livelock file
                -> (FilePath -> ResultT e IO ())

@@ -46,7 +46,7 @@ module Ganeti.THH.HsRPC
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Base
-import Control.Monad.Error
+import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Reader
 import Control.Monad.Trans.Control
 import Language.Haskell.TH

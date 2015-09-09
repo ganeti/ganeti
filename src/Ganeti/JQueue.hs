@@ -483,7 +483,7 @@ replicateManyJobs rootdir mastercandidates =
   mapM_ (replicateJob rootdir mastercandidates)
 
 -- | Writes a job to a file and replicates it to master candidates.
-writeAndReplicateJob :: (Error e)
+writeAndReplicateJob :: (FromString e)
                      => ConfigData -> FilePath -> QueuedJob
                      -> ResultT e IO [(Node, ERpcError ())]
 writeAndReplicateJob cfg rootdir job = do

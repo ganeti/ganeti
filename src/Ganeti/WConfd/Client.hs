@@ -42,7 +42,7 @@ import Control.Concurrent (threadDelay)
 import Control.Exception.Lifted (bracket)
 import Control.Monad (unless)
 import Control.Monad.Base
-import Control.Monad.Error (MonadError)
+import Control.Monad.Error.Class (MonadError)
 import Control.Monad.Trans.Control (MonadBaseControl)
 
 import Ganeti.BasicTypes (runResultT, GenericResult(..))

@@ -75,7 +75,7 @@ module Ganeti.WConfd.TempRes
 
 import Control.Applicative
 import Control.Lens.At
-import Control.Monad.Error
+import Control.Monad.Error.Class (MonadError(..))
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
 import qualified Data.Foldable as F
