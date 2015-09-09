@@ -123,13 +123,17 @@ instance Functor (GenericResult a) where
   fmap _ (Bad msg) = Bad msg
   fmap fn (Ok val) = Ok (fn val)
 
-instance (Error a, Monoid a) => MonadPlus (GenericResult a) where
-  mzero = Bad $ strMsg "zero Result when used as MonadPlus"
+instance (Error a, Monoid a) => Alternative (GenericResult a) where
+  empty = Bad $ strMsg "zero Result when used as empty"
   -- for mplus, when we 'add' two Bad values, we concatenate their
   -- error descriptions
-  (Bad x) `mplus` (Bad y) = Bad (x `mappend` strMsg "; " `mappend` y)
-  (Bad _) `mplus` x = x
-  x@(Ok _) `mplus` _ = x
+  (Bad x) <|> (Bad y) = Bad (x `mappend` strMsg "; " `mappend` y)
+  (Bad _) <|> x = x
+  x@(Ok _) <|> _ = x
+
+instance (Error a, Monoid a) => MonadPlus (GenericResult a) where
+  mzero = empty
+  mplus = (<|>)
 
 instance (Error a) => MonadError a (GenericResult a) where
   throwError = Bad
@@ -142,10 +146,6 @@ instance Applicative (GenericResult a) where
   (Bad f) <*> _       = Bad f
   _       <*> (Bad x) = Bad x
   (Ok f)  <*> (Ok x)  = Ok $ f x
-
-instance (Error a, Monoid a) => Alternative (GenericResult a) where
-  empty = mzero
-  (<|>) = mplus
 
 -- | This is a monad transformation for Result. It's implementation is
 -- based on the implementations of MaybeT and ErrorT.
@@ -233,17 +233,18 @@ instance (Error a, MonadBaseControl IO m)
   {-# INLINE liftBaseWith #-}
   {-# INLINE restoreM #-}
 
-instance (Monad m, Error a, Monoid a) => MonadPlus (ResultT a m) where
-  mzero = ResultT $ return mzero
+instance (Monad m, Error a, Monoid a)
+         => Alternative (ResultT a m) where
+  empty = ResultT $ return mzero
   -- Ensure that 'y' isn't run if 'x' contains a value. This makes it a bit
   -- more complicated than 'mplus' of 'GenericResult'.
-  mplus x y = elimResultT combine return x
+  x <|> y = elimResultT combine return x
     where combine x' = ResultT $ liftM (mplus (Bad x')) (runResultT y)
 
-instance (Alternative m, Monad m, Error a, Monoid a)
-         => Alternative (ResultT a m) where
-  empty = mzero
-  (<|>) = mplus
+instance (Monad m, Error a, Monoid a)
+         => MonadPlus (ResultT a m) where
+  mzero = empty
+  mplus = (<|>)
 
 -- | Changes the error message of a result value, if present.
 -- Note that since 'GenericResult' is also a 'MonadError', this function
