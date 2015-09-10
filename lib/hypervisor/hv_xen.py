@@ -1179,8 +1179,8 @@ class XenHypervisor(hv_base.BaseHypervisor):
       # And try and kill a previous daemon
       XenHypervisor._KillMigrationDaemon(instance)
 
-      listening_arg = "TCP-LISTEN:%d,bind=%s" % (port, target)
-      socat_pid = utils.StartDaemon(["socat", listening_arg,
+      listening_arg = "TCP-LISTEN:%d,bind=%s,reuseaddr" % (port, target)
+      socat_pid = utils.StartDaemon(["socat", "-b524288", listening_arg,
                                      "SYSTEM:'xl migrate-receive'"],
                                      pidfile=pidfile)
 
