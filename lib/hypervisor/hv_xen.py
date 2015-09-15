@@ -215,11 +215,25 @@ def _IsInstanceRunning(instance_info):
   @return: Whether an instance is running.
 
   """
-  return instance_info == "r-----" \
-      or instance_info == "rb----" \
-      or instance_info == "-b----" \
-      or instance_info == "-----d" \
-      or instance_info == "------"
+  allowable_running_prefixes = [
+    "r--",
+    "rb-",
+    "-b-",
+    "---",
+  ]
+
+  def _RunningWithSuffix(suffix):
+    return map(lambda x: x + suffix, allowable_running_prefixes)
+
+  return instance_info in _RunningWithSuffix("---") \
+      # The shutdown suspend state is encountered during migration, where the
+      # instance is still considered to be running.
+      # See Xen commit e1475a6693aac8cddc4bdd456548aa05a625556b
+      or instance_info in _RunningWithSuffix("ss-") \
+      # The shutdown restart state is probably encountered during reboots.
+      # See the Xen commit above.
+      or instance_info in _RunningWithSuffix("sr-") \
+      or instance_info == "-----d"
 
 
 def _IsInstanceShutdown(instance_info):
