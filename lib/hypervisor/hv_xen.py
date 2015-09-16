@@ -225,13 +225,13 @@ def _IsInstanceRunning(instance_info):
   def _RunningWithSuffix(suffix):
     return map(lambda x: x + suffix, allowable_running_prefixes)
 
+  # The shutdown suspend ("ss") state is encountered during migration, where
+  # the instance is still considered to be running.
+  # The shutdown restart ("sr") is probably encountered during restarts - still
+  # running.
+  # See Xen commit e1475a6693aac8cddc4bdd456548aa05a625556b
   return instance_info in _RunningWithSuffix("---") \
-      # The shutdown suspend state is encountered during migration, where the
-      # instance is still considered to be running.
-      # See Xen commit e1475a6693aac8cddc4bdd456548aa05a625556b
       or instance_info in _RunningWithSuffix("ss-") \
-      # The shutdown restart state is probably encountered during reboots.
-      # See the Xen commit above.
       or instance_info in _RunningWithSuffix("sr-") \
       or instance_info == "-----d"
 
