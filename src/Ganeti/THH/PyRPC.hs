@@ -40,9 +40,11 @@ module Ganeti.THH.PyRPC
   , genPyUDSRpcStubStr
   ) where
 
-import Control.Monad
+import Prelude ()
+import Ganeti.Prelude
+
+import Control.Monad (liftM, zipWithM)
 import Data.Char (toLower, toUpper)
-import Data.Functor
 import Data.Maybe (fromMaybe)
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (liftString)

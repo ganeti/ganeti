@@ -34,7 +34,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Main(main) where
 
-import Data.Monoid (mappend)
+import Prelude ()
+import Ganeti.Prelude
+
 import Test.Framework
 import System.Environment (getArgs)
 import System.Log.Logger

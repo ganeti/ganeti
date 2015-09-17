@@ -34,8 +34,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.DataCollectors( collectors ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Data.Map (findWithDefault)
-import Data.Monoid (mempty)
 
 import qualified Ganeti.DataCollectors.CPUload as CPUload
 import qualified Ganeti.DataCollectors.Diagnose as Diagnose

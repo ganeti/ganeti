@@ -82,10 +82,11 @@ module Ganeti.Config
     , instNodes
     ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Arrow ((&&&))
-import Control.Monad
-import Control.Monad.State
+import Control.Monad (liftM)
 import qualified Data.Foldable as F
 import Data.List (foldl', nub)
 import Data.Maybe (fromMaybe)

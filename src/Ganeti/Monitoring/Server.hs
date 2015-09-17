@@ -41,15 +41,17 @@ module Ganeti.Monitoring.Server
   , DataCollector(..)
   ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Applicative
 import Control.DeepSeq (force)
 import Control.Exception.Base (evaluate)
-import Control.Monad
+import Control.Monad (void, forever, liftM, foldM, foldM_, mzero)
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 (unpack)
 import Data.Maybe (fromMaybe)
 import Data.List (find)
-import Data.Monoid (mempty)
 import qualified Data.Map as Map
 import qualified Data.PSQueue as Queue
 import Snap.Core

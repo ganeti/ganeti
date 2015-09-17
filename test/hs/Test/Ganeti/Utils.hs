@@ -37,10 +37,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.Utils (testUtils) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Test.QuickCheck hiding (Result)
 import Test.HUnit
 
-import Control.Applicative ((<$>), (<*>))
 import Data.Char (isSpace)
 import qualified Data.Either as Either
 #if MIN_VERSION_base(4,8,0)

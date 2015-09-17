@@ -82,21 +82,30 @@ module Ganeti.JQueue
     , QueuedJob(..)
     ) where
 
-import Control.Applicative (liftA2, (<|>), (<$>))
+import Prelude ()
+import Ganeti.Prelude hiding (id, log)
+
+import Control.Applicative (liftA2, (<|>))
 import Control.Arrow (first, second)
 import Control.Concurrent (forkIO, threadDelay)
 import Control.Exception
 import Control.Lens (over)
-import Control.Monad
+import Control.Monad ( filterM
+                     , liftM
+                     , foldM
+                     , void
+                     , mfilter
+                     , when
+                     , mzero
+                     , unless
+                     , msum)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
-import Data.Functor ((<$))
-import Data.List
+import Data.List (stripPrefix, sortBy, isPrefixOf)
 import Data.Maybe
 import Data.Ord (comparing)
 -- workaround what seems to be a bug in ghc 7.4's TH shadowing code
-import Prelude hiding (id, log)
 import System.Directory
 import System.FilePath
 import System.IO.Error (isDoesNotExistError)

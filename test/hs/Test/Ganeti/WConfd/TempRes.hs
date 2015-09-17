@@ -37,7 +37,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.WConfd.TempRes (testWConfd_TempRes) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
 
 import Test.QuickCheck
 

@@ -42,7 +42,9 @@ module Test.Ganeti.Locking.Allocation
   , requestSucceeded
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import qualified Data.Foldable as F
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)

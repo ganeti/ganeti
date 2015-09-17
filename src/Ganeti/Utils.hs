@@ -101,7 +101,9 @@ module Ganeti.Utils
   , threadDelaySeconds
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Concurrent
 import Control.Exception (try, bracket)
 import Control.Monad
@@ -114,7 +116,13 @@ import Data.IORef
 #if MIN_VERSION_base(4,8,0)
 import Data.List hiding (isSubsequenceOf)
 #else
-import Data.List
+import Data.List ( intercalate
+                 , find
+                 , foldl'
+                 , transpose
+                 , sortBy
+                 , isPrefixOf
+                 , maximumBy)
 #endif
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)

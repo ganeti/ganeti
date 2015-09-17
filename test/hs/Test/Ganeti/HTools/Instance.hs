@@ -44,8 +44,10 @@ module Test.Ganeti.HTools.Instance
   , Instance.Instance(..)
   ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Arrow ((&&&))
-import Control.Applicative ((<$>))
 import Control.Monad (liftM)
 import Test.QuickCheck hiding (Result)
 

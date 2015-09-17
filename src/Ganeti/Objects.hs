@@ -106,13 +106,14 @@ module Ganeti.Objects
   , module Ganeti.Objects.Maintenance
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Arrow (first)
 import Control.Monad.State
 import Data.List (foldl', intercalate)
 import Data.Maybe
 import qualified Data.Map as Map
-import Data.Monoid
 import Data.Ord (comparing)
 import Data.Ratio (numerator, denominator)
 import Data.Tuple (swap)

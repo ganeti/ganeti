@@ -92,9 +92,11 @@ module Test.Ganeti.TestCommon
   , counterexample
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Exception (catchJust)
-import Control.Monad
+import Control.Monad (guard, liftM, foldM)
 import Data.Attoparsec.Text (Parser, parseOnly)
 import Data.List
 import qualified Data.Map as M

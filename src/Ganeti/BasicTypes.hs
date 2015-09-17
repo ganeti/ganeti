@@ -80,6 +80,9 @@ module Ganeti.BasicTypes
   , Down(..)
   ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Applicative
 import Control.Exception (try)
 import Control.Monad
@@ -88,9 +91,8 @@ import Control.Monad.Error.Class
 import Control.Monad.Trans
 import Control.Monad.Trans.Control
 import Data.Function
-import Data.List
+import Data.List (find, isPrefixOf)
 import Data.Maybe
-import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set (empty)
 import Text.JSON (JSON)

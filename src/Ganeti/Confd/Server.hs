@@ -40,7 +40,9 @@ module Ganeti.Confd.Server
   , prepMain
   ) where
 
-import Control.Applicative((<$>))
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Concurrent
 import Control.Monad (forever, liftM)
 import Data.IORef

@@ -39,7 +39,9 @@ module Test.Ganeti.JQueue.Objects
   , genJobId
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Test.QuickCheck as QuickCheck
 import Text.JSON
 

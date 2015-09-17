@@ -99,13 +99,15 @@ module Ganeti.HTools.Node
   , haveExclStorage
   ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Monad (liftM, liftM2)
-import Control.Applicative ((<$>), (<*>))
 import qualified Data.Foldable as Foldable
 import Data.Function (on)
 import qualified Data.Graph as Graph
 import qualified Data.IntMap as IntMap
-import Data.List hiding (group)
+import Data.List (intercalate, foldl', delete, union, sortBy, groupBy)
 import qualified Data.Map as Map
 import Data.Ord (comparing)
 import qualified Data.Set as Set

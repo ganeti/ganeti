@@ -68,7 +68,9 @@ module Ganeti.WConfd.Monad
   , readTempResState
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Arrow ((&&&), second)
 import Control.Concurrent (forkIO, myThreadId)
 import Control.Exception.Lifted (bracket)

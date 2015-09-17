@@ -38,8 +38,10 @@ module Ganeti.Query.Node
   , collectLiveData
   ) where
 
-import Control.Applicative
-import Data.List
+import Prelude ()
+import Ganeti.Prelude
+
+import Data.List (intercalate)
 import Data.Maybe
 import qualified Data.Map as Map
 import qualified Text.JSON as J

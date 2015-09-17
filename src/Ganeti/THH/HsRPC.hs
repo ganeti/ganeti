@@ -43,11 +43,13 @@ module Ganeti.THH.HsRPC
   , mkRpcCalls
   ) where
 
-import Control.Applicative
-import Control.Monad
+import Prelude ()
+import Ganeti.Prelude
+
+import Control.Monad (liftM)
 import Control.Monad.Base
 import Control.Monad.Error.Class (MonadError)
-import Control.Monad.Reader
+import Control.Monad.Reader (ReaderT, runReaderT, ask)
 import Control.Monad.Trans.Control
 import Language.Haskell.TH
 import qualified Text.JSON as J

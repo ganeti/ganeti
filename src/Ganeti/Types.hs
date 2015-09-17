@@ -188,7 +188,9 @@ module Ganeti.Types
   , TagsObject(..)
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Monad (liftM)
 import qualified Text.JSON as JSON
 import Text.JSON (JSON, readJSON, showJSON)

@@ -36,7 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Objects.Instance where
 
-import Data.Monoid
+import Prelude ()
+import Ganeti.Prelude
 
 import Ganeti.JSON (emptyContainer)
 import Ganeti.Objects.Nic

@@ -49,11 +49,13 @@ module Test.Ganeti.Objects
   , genBitStringMaxLen
   ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Test.QuickCheck
 import qualified Test.HUnit as HUnit
 
-import Control.Applicative
-import Control.Monad
+import Control.Monad (liftM, when)
 import Data.Char
 import qualified Data.List as List
 import qualified Data.Map as Map

@@ -38,7 +38,9 @@ module Ganeti.Utils.Random
   , delayRandom
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Concurrent (threadDelay)
 import Control.Monad
 import Control.Monad.State

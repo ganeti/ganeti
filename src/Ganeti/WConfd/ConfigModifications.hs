@@ -40,7 +40,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.ConfigModifications where
 
-import Control.Applicative ((<$>))
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Lens (_2)
 import Control.Lens.Getter ((^.))
 import Control.Lens.Setter (Setter, (.~), (%~), (+~), over)
@@ -51,7 +53,7 @@ import Control.Monad.Error.Class (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.State (StateT, get, put, modify,
                                   runStateT, execStateT)
-import Data.Foldable (fold, foldMap)
+import Data.Foldable (fold)
 import Data.List (elemIndex)
 import Data.Maybe (isJust, maybeToList, fromMaybe, fromJust)
 import Language.Haskell.TH (Name)

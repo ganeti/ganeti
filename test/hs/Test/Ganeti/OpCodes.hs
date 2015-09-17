@@ -40,11 +40,13 @@ module Test.Ganeti.OpCodes
   , OpCodes.OpCode(..)
   ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Test.HUnit as HUnit
 import Test.QuickCheck as QuickCheck
 
-import Control.Applicative
-import Control.Monad
+import Control.Monad (when)
 import Data.Char
 import Data.List
 import qualified Data.Map as Map

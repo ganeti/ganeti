@@ -76,11 +76,14 @@ module Ganeti.THH ( declareSADT
                   , ssconfConstructorName
                   ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Arrow ((&&&), second)
 import Control.Applicative
 import Control.Lens.Type (Lens, Lens')
 import Control.Lens (lens, set, element)
-import Control.Monad
+import Control.Monad (liftM, replicateM, when, unless)
 import Control.Monad.Base () -- Needed to prevent spurious GHC linking errors.
 import Control.Monad.Writer (tell)
 import qualified Control.Monad.Trans as MT
@@ -89,10 +92,9 @@ import Data.Attoparsec.Text ()
   -- See issue #683 and https://ghc.haskell.org/trac/ghc/ticket/4899
 import Data.Char
 import Data.Function (on)
-import Data.List
+import Data.List (intercalate, groupBy, stripPrefix, sort, nub)
 import Data.Maybe
 import qualified Data.Map as M
-import Data.Monoid
 import qualified Data.Set as S
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (lift)

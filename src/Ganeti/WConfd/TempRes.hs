@@ -73,7 +73,9 @@ module Ganeti.WConfd.TempRes
   , reserved
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Lens.At
 import Control.Monad.Error.Class (MonadError(..))
 import Control.Monad.State

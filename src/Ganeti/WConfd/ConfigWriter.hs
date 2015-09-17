@@ -43,7 +43,10 @@ module Ganeti.WConfd.ConfigWriter
   , distSSConfAsyncTask
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
+import Control.Monad ((>=>), liftM, unless)
 import Control.Monad.Base
 import Control.Monad.Error.Class (MonadError)
 import qualified Control.Monad.State.Strict as S

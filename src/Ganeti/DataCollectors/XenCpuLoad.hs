@@ -42,7 +42,10 @@ module Ganeti.DataCollectors.XenCpuLoad
   , dcUpdate
   ) where
 
-import Control.Applicative ((<$>), liftA2)
+import Prelude ()
+import Ganeti.Prelude
+
+import Control.Applicative (liftA2)
 import Control.Arrow ((***))
 import Control.Monad (liftM, when)
 import Control.Monad.IO.Class (liftIO)

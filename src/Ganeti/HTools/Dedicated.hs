@@ -44,7 +44,10 @@ module Ganeti.HTools.Dedicated
   , runDedicatedAllocation
   ) where
 
-import Control.Applicative (liftA2, (<$>))
+import Prelude ()
+import Ganeti.Prelude
+
+import Control.Applicative (liftA2)
 import Control.Arrow ((&&&))
 import Control.Monad (unless, liftM, foldM, mplus)
 import qualified Data.Foldable as F

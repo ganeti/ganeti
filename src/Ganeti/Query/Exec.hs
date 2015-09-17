@@ -60,12 +60,14 @@ module Ganeti.Query.Exec
   , forkJobProcess
   ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Concurrent.Lifted (threadDelay)
 import Control.Exception (finally)
 import Control.Monad
 import Control.Monad.Error.Class (MonadError(..))
-import Data.Functor
 import qualified Data.Map as M
 import Data.Maybe (listToMaybe, mapMaybe)
 import System.Directory (getDirectoryContents)

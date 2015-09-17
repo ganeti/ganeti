@@ -37,10 +37,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Test.Ganeti.Rpc (testRpc) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Test.QuickCheck
 import Test.QuickCheck.Monadic (monadicIO, run, stop)
 
-import Control.Applicative
 import qualified Data.Map as Map
 
 import Test.Ganeti.TestHelper

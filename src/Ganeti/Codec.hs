@@ -37,13 +37,15 @@ module Ganeti.Codec
   , decompressZlib
   ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Codec.Compression.Zlib (compress)
 import qualified Codec.Compression.Zlib.Internal as I
 import Control.Monad (liftM)
 import Control.Monad.Error.Class (MonadError(..))
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Internal as BL
-import Data.Monoid (mempty)
 
 import Ganeti.BasicTypes
 

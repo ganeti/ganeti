@@ -65,10 +65,11 @@ module Ganeti.Query.Language
     , checkRS
     ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.DeepSeq
 import Data.Foldable
-import Data.Traversable (Traversable)
 import Data.Ratio (numerator, denominator)
 import Text.JSON.Pretty (pp_value)
 import Text.JSON.Types

@@ -37,7 +37,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 module Ganeti.Parsers where
 
-import Control.Applicative ((*>))
+import Prelude ()
+import Ganeti.Prelude
+
 import qualified Data.Attoparsec.Text as A
 import Data.Attoparsec.Text (Parser)
 import Data.Text (unpack)

@@ -42,7 +42,9 @@ module Ganeti.THH.RPC
   , mkRpcM
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Arrow ((&&&))
 import Control.Monad
 import Control.Monad.Error.Class (MonadError(..))

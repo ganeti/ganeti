@@ -82,12 +82,22 @@ module Ganeti.HTools.Cluster
   , findSplitInstances
   ) where
 
-import Control.Applicative ((<$>), liftA2)
+import Prelude ()
+import Ganeti.Prelude
+
+import Control.Applicative (liftA2)
 import Control.Arrow ((&&&))
 import Control.Monad (unless)
 import qualified Data.IntSet as IntSet
 import qualified Data.Set as Set
-import Data.List
+import Data.List ( nub
+                 , sortBy
+                 , foldl'
+                 , intersect
+                 , partition
+                 , (\\)
+                 , sort
+                 , intercalate)
 import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
 import Data.Ord (comparing)
 import Text.Printf (printf)

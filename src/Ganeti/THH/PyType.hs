@@ -39,8 +39,10 @@ module Ganeti.THH.PyType
   , pyOptionalType
   ) where
 
-import Control.Applicative
-import Control.Monad
+import Prelude ()
+import Ganeti.Prelude
+
+import Control.Monad (ap, liftM)
 import Data.List (intercalate)
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (Lift(..))

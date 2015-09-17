@@ -881,6 +881,7 @@ HPCEXCL = --exclude Main \
 	$(patsubst src.%,--exclude Test.%,$(subst /,.,$(patsubst %.hs,%, $(HS_LIB_SRCS))))
 
 HS_LIB_SRCS = \
+	src/Ganeti/Prelude.hs \
 	src/Ganeti/BasicTypes.hs \
 	src/Ganeti/Codec.hs \
 	src/Ganeti/Common.hs \

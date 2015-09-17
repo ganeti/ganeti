@@ -70,7 +70,9 @@ module Ganeti.UDSServer
   , listener
   ) where
 
-import Control.Applicative
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Concurrent.Lifted (fork, yield)
 import Control.Monad.Base
 import Control.Monad.Trans.Control
@@ -81,7 +83,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.ByteString.Lazy.UTF8 as UTF8L
 import Data.IORef
-import Data.List
+import Data.List (isInfixOf)
 import Data.Word (Word8)
 import qualified Network.Socket as S
 import System.Directory (removeFile)

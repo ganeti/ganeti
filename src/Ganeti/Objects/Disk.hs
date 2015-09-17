@@ -36,7 +36,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Objects.Disk where
 
-import Control.Applicative ((<*>), (<$>))
+import Prelude ()
+import Ganeti.Prelude
+
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.List (isPrefixOf, isInfixOf)
 import Language.Haskell.TH.Syntax

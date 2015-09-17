@@ -47,7 +47,9 @@ module Ganeti.Confd.Utils
 
 import qualified Data.Attoparsec.Text as P
 
-import Control.Applicative ((*>))
+import Prelude ()
+import Ganeti.Prelude
+
 import qualified Data.ByteString as B
 import Data.Text (pack)
 import qualified Text.JSON as J

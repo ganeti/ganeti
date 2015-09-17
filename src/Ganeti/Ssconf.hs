@@ -54,8 +54,10 @@ module Ganeti.Ssconf
   , emptySSConf
   ) where
 
+import Prelude ()
+import Ganeti.Prelude
+
 import Control.Arrow ((&&&))
-import Control.Applicative ((<$>))
 import Control.Exception
 import Control.Monad (forM, liftM)
 import qualified Data.Map as M
