@@ -34,13 +34,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.MaintD.Utils
   ( annotateOpCode
+  , getRepairCommand
   ) where
 
 import Control.Lens.Setter (over)
+import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
 import Ganeti.JQueue (reasonTrailTimestamp)
 import Ganeti.JQueue.Objects (Timestamp)
+import Ganeti.Objects.Maintenance (Incident(..))
 import Ganeti.OpCodes (OpCode, MetaOpCode, wrapOpCode)
 import Ganeti.OpCodes.Lens (metaParamsL, opReasonL)
 
@@ -51,3 +54,11 @@ annotateOpCode reason ts =
   over (metaParamsL . opReasonL)
     (++ [(C.opcodeReasonSrcMaintd, reason, reasonTrailTimestamp ts)])
   . wrapOpCode
+
+-- | Get the name of the repair command from a live-repair incident.
+getRepairCommand :: Incident -> Maybe String
+getRepairCommand incident
+  | J.JSObject obj <- incidentOriginal incident,
+    Just (J.JSString cmd) <- lookup "command" $ J.fromJSObject obj
+      = return $ J.fromJSString cmd
+getRepairCommand _ = Nothing
