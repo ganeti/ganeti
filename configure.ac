@@ -890,7 +890,8 @@ AC_SUBST(MAN_HAS_WARNINGS)
 # only supports a "minimal version" constraint, we check <3.0 afterwards.
 # We  tune _AM_PYTHON_INTERPRETER_LIST to first check interpreters that are
 # likely interpreters for Python 2.
-m4_define_default([_AM_PYTHON_INTERPRETER_LIST], [python2 python2.7 python2.6 python])
+m4_define_default([_AM_PYTHON_INTERPRETER_LIST],
+                  [python2 python2.7 python2.6 python])
 AM_PATH_PYTHON(2.6)
 if $PYTHON -c "import sys
 if (sys.hexversion >> 24) < 3:
