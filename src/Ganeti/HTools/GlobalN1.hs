@@ -118,7 +118,10 @@ redundant opts nl il =
   let filterFun = if algAcceptExisting opts
                     then Container.filter (not . Node.offline)
                     else id
-  in Foldable.all (canEvacuateNode (nl, il)) $ filterFun nl
+  in Foldable.all (canEvacuateNode (nl, il))
+       . Container.filter (not . (`elem` algCapacityIgnoreGroups opts)
+                               . Node.group)
+       $ filterFun nl
 
 -- | Predicate on wheter an allocation element leads to a globally N+1 redundant
 -- state.
