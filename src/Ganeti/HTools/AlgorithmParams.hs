@@ -42,6 +42,7 @@ module Ganeti.HTools.AlgorithmParams
   ) where
 
 import qualified Ganeti.HTools.CLI as CLI
+import qualified Ganeti.HTools.Types as T
 
 data AlgorithmOptions = AlgorithmOptions
   { algDiskMoves :: Bool            -- ^ Whether disk moves are allowed
@@ -53,6 +54,7 @@ data AlgorithmOptions = AlgorithmOptions
   , algMinGainLimit :: Double       -- ^ Limit below which minimal gain is used
   , algCapacity :: Bool             -- ^ Whether to check capacity properties,
                                     -- like global N+1 redundancy
+  , algCapacityIgnoreGroups :: [T.Gdx] -- ^ Groups to ignore in capacity checks
   , algRestrictToNodes :: Maybe [String] -- ^ nodes to restrict allocation to
   , algAcceptExisting :: Bool       -- ^ accept existing violations in capacity
                                     -- checks
@@ -69,6 +71,7 @@ fromCLIOptions opts = AlgorithmOptions
   , algMinGain = CLI.optMinGain opts
   , algMinGainLimit = CLI.optMinGainLim opts
   , algCapacity = CLI.optCapacity opts
+  , algCapacityIgnoreGroups = []
   , algRestrictToNodes = CLI.optRestrictToNodes opts
   , algAcceptExisting = CLI.optAcceptExisting opts
   }
