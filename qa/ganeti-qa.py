@@ -1049,7 +1049,7 @@ def RunQa():
 
   RunPerformanceTests()
 
-  RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)
+  RunTestIf("cluster-destroy", qa_node.TestNodeRemoveAll)
 
   RunTestIf("cluster-destroy", qa_cluster.TestClusterDestroy)
 
