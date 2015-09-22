@@ -188,7 +188,7 @@ def SetupRapi():
   global _rapi_username
   global _rapi_password
 
-  _rapi_username = "ganeti-qa"
+  _rapi_username = qa_config.get("rapi-user", "ganeti-qa")
   if qa_config.TestEnabled("create-cluster"):
     # For a new cluster, we have to invent a secret and a user
     _rapi_password = utils.GenerateSecret()
