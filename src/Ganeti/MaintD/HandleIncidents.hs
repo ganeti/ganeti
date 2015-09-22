@@ -48,8 +48,10 @@ import Data.Function (on)
 import Data.IORef (IORef)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Text.JSON as J
 
 import Ganeti.BasicTypes ( GenericResult(..), ResultT, mkResultT, Down(..))
+import qualified Ganeti.Constants as C
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), defaultOptions)
 import Ganeti.HTools.Cluster.Evacuate (tryNodeEvac, EvacSolution(..))
 import qualified Ganeti.HTools.Container as Container
@@ -63,7 +65,7 @@ import Ganeti.Logging.Lifted
 import qualified Ganeti.Luxi as L
 import Ganeti.MaintD.MemoryState ( MemoryState, getIncidents, rmIncident
                                  , updateIncident, appendJobs)
-import Ganeti.MaintD.Utils (annotateOpCode)
+import Ganeti.MaintD.Utils (annotateOpCode, getRepairCommand)
 import Ganeti.Objects.Lens (incidentJobsL)
 import Ganeti.Objects.Maintenance ( RepairStatus(..), RepairAction(..)
                                   , Incident(..))
@@ -175,6 +177,69 @@ handleEvacuation client memst (gl, nl, il) ndx migrate freenodes incident = do
                    liftIO $ appendJobs memst jids
                    return freenodes
 
+-- | Submit the next action for a live-repair incident.
+handleLiveRepairs :: L.Client -- ^ Luxi client to use
+                 -> IORef MemoryState -- ^ memory state of the daemon
+                 -> Idx -- ^ the node to handle the event on
+                 -> Set.Set Int -- ^ unaffected nodes
+                 -> Incident -- ^ the incident
+                 -> ResultT String IO (Set.Set Int) -- ^ nodes still available
+handleLiveRepairs client memst ndx freenodes incident = do
+  let maybeCmd = getRepairCommand incident
+      uuid = incidentUuid incident
+      name = incidentNode incident
+  now <- liftIO currentTimestamp
+  logDebug $ "Handling requested command " ++ show maybeCmd ++ " on " ++ name
+  case () of
+    _ | null $ incidentJobs incident,
+        Just cmd <- maybeCmd,
+        cmd /= "" -> do
+            logDebug "Submitting repair command job"
+            name' <- mkNonEmpty name
+            cmd' <- mkNonEmpty cmd
+            orig' <- mkNonEmpty . J.encode $ incidentOriginal incident
+            jids_r <- liftIO $ submitJobs
+                        [[ annotateOpCode "repair command requested by node" now
+                           OpRepairCommand { opNodeName = name'
+                                           , opRepairCommand = cmd'
+                                           , opInput = Just orig'
+                                           } ]] client
+            case jids_r of
+              Ok jids -> do
+                let incident' = over incidentJobsL (++ jids) incident
+                liftIO $ updateIncident memst incident'
+                liftIO $ appendJobs memst jids
+                logDebug $ "Jobs submitted: " ++ show (map fromJobId jids)
+              Bad e -> mkResultT . logAndBad
+                   $ "Failure requesting command " ++ cmd ++ " on " ++ name
+                     ++ ": " ++ e
+      | null $ incidentJobs incident -> do
+            logInfo $ "Marking incident " ++ uuid ++ " as failed;"
+                      ++ " command for live repair not specified"
+            let newtag = C.maintdFailureTagPrefix ++ uuid
+            jids <- mkResultT $ execJobsWaitOkJid
+                      [[ annotateOpCode "marking incident as ill specified" now
+                         . OpTagsSet TagKindNode [ newtag ]
+                         $ Just name ]] client
+            let incident' = over incidentJobsL (++ jids)
+                              $ incident { incidentRepairStatus = RSFailed
+                                         , incidentTag = newtag
+                                         }
+            liftIO $ updateIncident memst incident'
+            liftIO $ appendJobs memst jids
+      | otherwise -> do
+            logDebug "Command execution has succeeded"
+            jids <- mkResultT $ execJobsWaitOkJid
+                      [[ annotateOpCode "repair command requested by node" now
+                         . OpTagsSet TagKindNode [ incidentTag incident ]
+                         $ Just name ]] client
+            let incident' = over incidentJobsL (++ jids)
+                            $ incident { incidentRepairStatus = RSCompleted }
+            liftIO $ updateIncident memst incident'
+            liftIO $ appendJobs memst jids
+  return $ Set.delete ndx freenodes
+
+
 -- | Submit the next actions for a single incident, given the unaffected nodes;
 -- register all submitted jobs and return the new set of unaffected nodes.
 handleIncident :: L.Client
@@ -200,9 +265,8 @@ handleIncident client memstate (gl, nl, il) freeNodes (name, incident) = do
       logDebug $ "Nothing to do for " ++ show incident
       liftIO . rmIncident memstate $ uuidOf incident
       return freeNodes
-    RALiveRepair -> do
-      logInfo "Live repairs not yet implemented"
-      return freeNodes
+    RALiveRepair ->
+      handleLiveRepairs client memstate ndx freeNodes incident
     RAEvacuate ->
       handleEvacuation client memstate (gl, nl, il) ndx True freeNodes incident
     RAEvacuateFailover ->
