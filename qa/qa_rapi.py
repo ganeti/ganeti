@@ -127,10 +127,12 @@ def GetClient():
   return _rapi_client
 
 
-def _CreateRapiUser(rapi_user, rapi_secret):
-  """RAPI credentials creation.
+def _CreateRapiUser(rapi_user):
+  """RAPI credentials creation, with the secret auto-generated.
 
   """
+  rapi_secret = utils.GenerateSecret()
+
   master = qa_config.GetMasterNode()
 
   rapi_users_path = qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)
@@ -150,9 +152,11 @@ def _CreateRapiUser(rapi_user, rapi_secret):
   finally:
     fh.close()
 
+  return rapi_secret
+
 
 def _LookupRapiSecret(rapi_user):
-  """Find the RAPI secret for the given user.
+  """Find the RAPI secret for the given user on the QA machines.
 
   @param rapi_user: Login user
   @return: Login secret for the user
@@ -176,6 +180,42 @@ def _LookupRapiSecret(rapi_user):
   return secret
 
 
+def _ReadRapiSecret(password_file_path):
+  """Reads a RAPI secret stored locally.
+
+  @type password_file_path: string
+  @return: Login secret for the user
+
+  """
+  try:
+    with open(password_file_path, 'r') as pw_file:
+      return pw_file.readline().strip()
+  except IOError:
+    raise qa_error.Error("Could not open the RAPI password file located at"
+                         " %s" % password_file_path)
+
+
+def _GetRapiSecret(rapi_user):
+  """Returns the secret to be used for RAPI access.
+
+  Where exactly this secret can be found depends on the QA configuration
+  options, and this function invokes additional tools as needed. It can
+  look up a local secret, a remote one, or create a user with a new secret.
+
+  @param rapi_user: Login user
+  @return: Login secret for the user
+
+  """
+  password_file_path = qa_config.get("rapi-password-file", None)
+  if password_file_path is not None:
+    # If the password file is specified, we use the password within.
+    # The file must be present on the QA runner.
+    return _ReadRapiSecret(password_file_path)
+  else:
+    # On an existing cluster, just find out the user's secret
+    return _LookupRapiSecret(rapi_user)
+
+
 def SetupRapi():
   """Sets up the RAPI certificate and usernames for the client.
 
@@ -189,13 +229,12 @@ def SetupRapi():
   global _rapi_password
 
   _rapi_username = qa_config.get("rapi-user", "ganeti-qa")
+
   if qa_config.TestEnabled("create-cluster"):
     # For a new cluster, we have to invent a secret and a user
-    _rapi_password = utils.GenerateSecret()
-    _CreateRapiUser(_rapi_username, _rapi_password)
+    _rapi_password = _CreateRapiUser(_rapi_username)
   else:
-    # On an existing cluster, just find out the user's secret
-    _rapi_password = _LookupRapiSecret(_rapi_username)
+    _rapi_password = _GetRapiSecret(_rapi_username)
 
   # Once a username and password have been set, we can fetch the certs and
   # get all we need for a working RAPI client.
