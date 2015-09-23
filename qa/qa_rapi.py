@@ -75,11 +75,51 @@ _rapi_client = None
 _rapi_username = None
 _rapi_password = None
 
+# The files to copy if the RAPI files QA config value is set
+_FILES_TO_COPY = [
+  pathutils.CLUSTER_DOMAIN_SECRET_FILE,
+  pathutils.RAPI_CERT_FILE,
+  pathutils.RAPI_USERS_FILE,
+]
 
-def ReloadCertificates():
-  """Reloads the client RAPI certificate with the one present on the node.
+
+def _EnsureRapiFilesPresence():
+  """Ensures that the specified RAPI files are present on the cluster, if any.
 
   """
+  rapi_files_location = qa_config.get("rapi-files-location", None)
+  if rapi_files_location is None:
+    # No files to be had
+    return
+
+  print qa_logging.FormatWarning("Replacing the certificate and users file on"
+                                 " the node with the ones provided in %s"
+                                 % rapi_files_location)
+
+  # The RAPI files
+  AssertCommand(["mkdir", "-p", pathutils.RAPI_DATA_DIR])
+
+  for filename in _FILES_TO_COPY:
+    basename = os.path.split(filename)[-1]
+    AssertCommand(["cp", os.path.join(rapi_files_location, basename),
+                   filename])
+    AssertCommand(["gnt-cluster", "copyfile", filename])
+
+  # The certificates have to be reloaded now
+  AssertCommand(["service", "ganeti", "restart"])
+
+
+def ReloadCertificates(ensure_presence=True):
+  """Reloads the client RAPI certificate with the one present on the node.
+
+  If the QA is set up to use a specific certificate using the
+  "rapi-files-location" parameter, it will be put in place prior to retrieving
+  it.
+
+  """
+  if ensure_presence:
+    _EnsureRapiFilesPresence()
+
   if _rapi_username is None or _rapi_password is None:
     raise qa_error.Error("RAPI username and password have to be set before"
                          " attempting to reload a certificate.")
@@ -233,15 +273,18 @@ def SetupRapi():
 
   _rapi_username = qa_config.get("rapi-user", "ganeti-qa")
 
-  if qa_config.TestEnabled("create-cluster"):
-    # For a new cluster, we have to invent a secret and a user
+  if qa_config.TestEnabled("create-cluster") and \
+     qa_config.get("rapi-files-location") is None:
+    # For a new cluster, we have to invent a secret and a user, unless it has
+    # been provided separately
     _rapi_password = _CreateRapiUser(_rapi_username)
   else:
+    _EnsureRapiFilesPresence()
     _rapi_password = _GetRapiSecret(_rapi_username)
 
   # Once a username and password have been set, we can fetch the certs and
   # get all we need for a working RAPI client.
-  ReloadCertificates()
+  ReloadCertificates(ensure_presence=False)
 
 
 INSTANCE_FIELDS = ("name", "os", "pnode", "snodes",
