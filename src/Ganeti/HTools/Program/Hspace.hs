@@ -59,7 +59,8 @@ import qualified Ganeti.HTools.Instance as Instance
 
 import Ganeti.BasicTypes
 import Ganeti.Common
-import Ganeti.HTools.AlgorithmParams (AlgorithmOptions)
+import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(algCapacityIgnoreGroups))
+import Ganeti.HTools.GlobalN1 (redundantGrp)
 import Ganeti.HTools.Types
 import Ganeti.HTools.CLI
 import Ganeti.HTools.ExtLoader
@@ -502,15 +503,27 @@ main opts args = do
     (Node.haveExclStorage nl)
 
   let (bad_nodes, _)  = Cluster.computeBadItems nl il
+      bad_grp_idxs = filter (not . redundantGrp algOpts nl il)
+                       $ Container.keys gl
 
   when ((verbose > 3) && (not . null $ bad_nodes))
     . hPrintf stderr "Bad nodes: %s\n" . show . map Node.name $ bad_nodes
 
-  let gl' = if accept_existing
+  when ((verbose > 3) && not (null bad_grp_idxs))
+    . hPrintf stderr "Bad groups: %s\n" . show
+    $ map (Group.name . flip Container.find gl) bad_grp_idxs
+
+  let markGrpsUnalloc = foldl (flip $ IntMap.adjust Group.setUnallocable)
+      gl' = if accept_existing
               then gl
-              else foldl (flip $ IntMap.adjust Group.setUnallocable) gl
-                     (map Node.group bad_nodes)
-      grps_remaining = any Group.isAllocable $ IntMap.elems gl'
+              else markGrpsUnalloc gl $ map Node.group bad_nodes
+      (gl'', algOpts') = if independent_grps
+                           then ( markGrpsUnalloc gl' bad_grp_idxs
+                                , algOpts { algCapacityIgnoreGroups
+                                            = bad_grp_idxs }
+                                )
+                           else (gl', algOpts)
+      grps_remaining = any Group.isAllocable $ IntMap.elems gl''
       stop_allocation = case () of
                           _ | accept_existing-> Nothing
                           _ | independent_grps && grps_remaining -> Nothing
@@ -521,7 +534,7 @@ main opts args = do
                    else Just (optMaxLength opts)
 
   allocnodes <- exitIfBad "failure during allocation" $
-                Cluster.genAllocNodes algOpts gl' nl req_nodes True
+                Cluster.genAllocNodes algOpts' gl'' nl req_nodes True
 
   when (verbose > 3)
     . hPrintf stderr "Allocatable nodes: %s\n" $ show allocnodes
@@ -541,7 +554,7 @@ main opts args = do
 
   (treason, trl_nl, _, spec_map) <-
     runAllocation cdata stop_allocation
-       (foldM (combineTiered algOpts alloclimit allocnodes)
+       (foldM (combineTiered algOpts' alloclimit allocnodes)
               ([], nl, il, [], [])
               tinsts
        )
@@ -556,7 +569,7 @@ main opts args = do
 
   (sreason, fin_nl, allocs, _) <-
       runAllocation cdata stop_allocation
-            (Cluster.iterateAlloc algOpts nl il alloclimit
+            (Cluster.iterateAlloc algOpts' nl il alloclimit
              (instFromSpec ispec disk_template su) allocnodes [] [])
             ispec disk_template SpecNormal opts
 
