@@ -152,6 +152,9 @@ def _CreateRapiUser(rapi_user):
   finally:
     fh.close()
 
+  # The certificates have to be reloaded now
+  AssertCommand(["service", "ganeti", "restart"])
+
   return rapi_secret
 
 
