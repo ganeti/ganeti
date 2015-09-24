@@ -238,10 +238,6 @@ def RunClusterTests():
     ]:
     RunTestIf(test, fn)
 
-  # Since renew-crypto replaces the RAPI cert, reload it.
-  if qa_rapi.Enabled():
-    qa_rapi.ReloadCertificates()
-
   for test, fn in [
     ("cluster-verify", qa_cluster.TestClusterVerify),
     ("cluster-reserved-lvs", qa_cluster.TestClusterReservedLvs),

@@ -48,6 +48,7 @@ import qa_error
 import qa_instance
 import qa_job_utils
 import qa_logging
+import qa_rapi
 import qa_utils
 
 from qa_utils import AssertEqual, AssertCommand, GetCommandOutput, \
@@ -1239,6 +1240,10 @@ def TestClusterRenewCrypto():
     AssertCommand(["gnt-cluster", "verify"])
   finally:
     AssertCommand(["rm", "-f", rapi_cert_backup])
+
+  # Since renew-crypto replaced the RAPI cert, reload it.
+  if qa_rapi.Enabled():
+    qa_rapi.ReloadCertificates()
 
 
 def TestClusterBurnin():
