@@ -159,8 +159,8 @@ OPTIONS = [
   cli.OSPARAMS_OPT,
   cli.cli_option("--disk-size", dest="disk_size",
                  help="Disk size (determines disk count)",
-                 default="128m", type="string", metavar="<size,size,...>",
-                 completion_suggest=("128M 512M 1G 4G 1G,256M"
+                 default="1G", type="string", metavar="<size,size,...>",
+                 completion_suggest=("512M 1G 4G 1G,256M"
                                      " 4G,1G,1G 10G").split()),
   cli.cli_option("--disk-growth", dest="disk_growth", help="Disk growth",
                  default="128m", type="string", metavar="<size,size,...>"),
