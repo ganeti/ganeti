@@ -358,6 +358,8 @@ data FailMode = FailMem  -- ^ Failed due to not enough RAM
               | FailDisk -- ^ Failed due to not enough disk
               | FailCPU  -- ^ Failed due to not enough CPU capacity
               | FailN1   -- ^ Failed due to not passing N1 checks
+              | FailTooSmall -- ^ Failed due to the instance being smaller
+                             -- than allowed
               | FailTags -- ^ Failed due to tag exclusion
               | FailMig  -- ^ Failed due to migration restrictions
               | FailDiskCount -- ^ Failed due to wrong number of disks
