@@ -882,7 +882,7 @@ underlyingCause x = x
 -- this resource changes. Note that it might no be possible to allocate
 -- an instance at this size; nevertheless there might be a need to change
 -- the resource to shrink on, e.g., if the current instance is too big on
--- to resources.
+-- two resources.
 doShrink :: (Instance.Instance -> AllocSolution) -> Instance.Instance
          -> FailMode -> Maybe Instance.Instance
 doShrink allocFn inst fm =
@@ -890,11 +890,19 @@ doShrink allocFn inst fm =
       getCount = runListHead 0 snd . filter ((==) physRes . fst)
                  . collapseFailures . map underlyingCause . asFailures
       initialStat = getCount $ allocFn inst
-  in  case dropWhile ((==) initialStat . getCount . fst)
-           . map (allocFn &&& id)
-           $ iterateOk (`Instance.shrinkByType` physRes) inst
-      of x:_ -> Just $ snd x
-         _ -> Nothing
+      hasChanged = ((/=) initialStat . getCount . fst)
+      -- as the list of possible shrinks can be quite long, and, moreover,
+      -- has some cost of computing it, our heuristics is to look into it
+      -- only for a limited range; only once the list is shorter, we do
+      -- binary search.
+      lookAhead = 50
+      heuristics xs = if null (drop lookAhead xs)
+                        then length xs `div` 2
+                        else lookAhead
+  in fmap snd
+     . monotoneFind heuristics hasChanged
+     . map (allocFn &&& id)
+     $ iterateOk (`Instance.shrinkByType` physRes) inst
 
 -- | Tiered allocation method.
 --
