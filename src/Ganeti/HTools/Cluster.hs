@@ -917,7 +917,7 @@ tieredAlloc opts nl il limit newinst allocnodes ixes cstats =
           allocFn = fromMaybe emptyAllocSolution
                       . flip (tryAlloc opts nl' il') allocnodes
           suffShrink = sufficesShrinking allocFn newinst
-          bigSteps = filter isJust . map suffShrink $ sortedErrs
+          bigSteps = filter isJust . map suffShrink $ drop 1 sortedErrs
           progress (Ok (_, _, _, newil', _)) (Ok (_, _, _, newil, _)) =
             length newil' > length newil
           progress _ _ = False
