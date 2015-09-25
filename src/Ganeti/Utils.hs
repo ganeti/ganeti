@@ -99,6 +99,7 @@ module Ganeti.Utils
   , isSubsequenceOf
   , maxBy
   , threadDelaySeconds
+  , monotoneFind
   ) where
 
 import Prelude ()
@@ -849,3 +850,22 @@ isSubsequenceOf a@(x:a') (y:b) | x == y    = isSubsequenceOf a' b
 -- arguments.
 maxBy :: (a -> a -> Ordering) -> a -> a -> a
 maxBy ord a b = maximumBy ord [a, b]
+
+-- | Given a predicate that is monotone on a list, find the
+-- first list entry where it holds, if any. Use the monotonicity
+-- property to evaluate the property at as few places as possible,
+-- guided by the heuristics provided.
+monotoneFind :: ([a] -> Int) -> (a -> Bool) -> [a] -> Maybe a
+monotoneFind heuristics p xs =
+  let count = heuristics xs
+  in case () of
+    _ | x:xs' <- drop count xs
+        -> if p x
+             then (`mplus` Just x) . monotoneFind heuristics p
+                  $ take count xs
+             else monotoneFind heuristics p xs'
+    _ | x:xs' <- xs
+        -> if p x
+             then Just x
+             else monotoneFind heuristics p xs'
+    _ -> Nothing
