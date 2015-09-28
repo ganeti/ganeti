@@ -934,6 +934,8 @@ def SetupNodeDaemon(opts, cluster_name, node, ssh_port):
     constants.NDS_CLUSTER_NAME: cluster_name,
     constants.NDS_NODE_DAEMON_CERTIFICATE:
       utils.ReadFile(pathutils.NODED_CERT_FILE),
+    constants.NDS_HMAC:
+      utils.ReadFile(pathutils.CONFD_HMAC_KEY),
     constants.NDS_SSCONF: ssconf.SimpleStore().ReadAll(),
     constants.NDS_START_NODE_DAEMON: True,
     constants.NDS_NODE_NAME: node,
