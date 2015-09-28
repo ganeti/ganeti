@@ -4833,6 +4833,9 @@ ndsNodeDaemonCertificate = "node_daemon_certificate"
 ndsSsconf :: String
 ndsSsconf = "ssconf"
 
+ndsHmac :: String
+ndsHmac = "hmac_key"
+
 ndsStartNodeDaemon :: String
 ndsStartNodeDaemon = "start_node_daemon"
 
