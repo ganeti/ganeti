@@ -28,6 +28,7 @@ Design document drafts
    design-migration-speed-hbal.rst
    design-memory-over-commitment.rst
    design-macvtap.rst
+   design-n-m-redundancy.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:

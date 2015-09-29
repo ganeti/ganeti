@@ -704,6 +704,7 @@ docinput = \
 	doc/design-multi-reloc.rst \
 	doc/design-multi-storage-htools.rst \
 	doc/design-multi-version-tests.rst \
+	doc/design-n-m-redundancy.rst \
 	doc/design-network.rst \
 	doc/design-network2.rst \
 	doc/design-node-add.rst \
