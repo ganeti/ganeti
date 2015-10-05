@@ -93,6 +93,31 @@ def TestNodeAddAll():
     if node != master:
       NodeAdd(node, readd=False)
 
+  for node in qa_config.get("nodes"):
+    def GetNonStartDaemons():
+      cmd = utils.ShellQuoteArgs(["ps", "-Ao", "comm"])
+      prcs = AssertCommand(cmd, node=node)[1]
+
+      non_start_daemons = []
+
+      def AddIfNotStarted(daemon):
+        if daemon not in prcs:
+          non_start_daemons.append(daemon)
+
+      AddIfNotStarted('ganeti-noded')
+      if constants.ENABLE_MOND:
+        AddIfNotStarted('ganeti-mond')
+      if node == master:
+        AddIfNotStarted('ganeti-wconfd')
+        AddIfNotStarted('ganeti-rapi')
+        AddIfNotStarted('ganeti-luxid')
+        AddIfNotStarted('ganeti-maintd')
+      return non_start_daemons
+
+    nsd = GetNonStartDaemons()
+    for daemon in nsd:
+      raise qa_error.Error(daemon + ' is not running at %s' % node.primary)
+
 
 def MarkNodeAddedAll():
   """Mark all nodes as added.
