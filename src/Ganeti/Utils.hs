@@ -100,6 +100,7 @@ module Ganeti.Utils
   , maxBy
   , threadDelaySeconds
   , monotoneFind
+  , iterateJust
   ) where
 
 import Prelude ()
@@ -869,3 +870,8 @@ monotoneFind heuristics p xs =
              then Just x
              else monotoneFind heuristics p xs'
     _ -> Nothing
+
+-- | Iterate a funtion as long as it returns Just values, collecting
+-- all the Justs that where obtained.
+iterateJust :: (a -> Maybe a) -> a -> [a]
+iterateJust f a = a : maybe [] (iterateJust f) (f a)
