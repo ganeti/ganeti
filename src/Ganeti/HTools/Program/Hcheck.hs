@@ -53,8 +53,8 @@ import qualified Ganeti.HTools.GlobalN1 as GlobalN1
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-
 import qualified Ganeti.HTools.Program.Hbal as Hbal
+import Ganeti.HTools.RedundancyLevel (redundancy)
 
 import Ganeti.Common
 import Ganeti.HTools.CLI
@@ -112,7 +112,7 @@ data Level = GroupLvl String -- ^ Group level, with name
 type GroupInfo = (Gdx, (Node.List, Instance.List))
 
 -- | A type alias for group stats.
-type GroupStats = ((Group.Group, Double), [Int])
+type GroupStats = ((Group.Group, Double, Int), [Int])
 
 -- | Prefix for machine readable names.
 htcPrefix :: String
@@ -131,10 +131,12 @@ commonData opts =
 -- | Data showed per group.
 groupData :: Options -> [(String, String)]
 groupData opts = commonData opts ++ [("SCORE", "Group score")]
+                 ++ [("REDUNDANCY", "Group redundancy level")]
 
 -- | Data showed per cluster.
 clusterData :: Options -> [(String, String)]
 clusterData opts = commonData opts  ++
+              [ ("REDUNDANCY", "Cluster redundancy level") ] ++
               [ ("NEED_REBALANCE", "Cluster is not healthy") ]
 
 -- | Phase-specific prefix for machine readable version.
@@ -222,9 +224,9 @@ extractGroupData True grp = show $ Group.idx grp
 extractGroupData False grp = Group.name grp
 
 -- | Prepare values for group.
-prepareGroupValues :: [Int] -> Double -> [String]
-prepareGroupValues stats score =
-  map show stats ++ [printf "%.8f" score]
+prepareGroupValues :: [Int] -> Double -> Int -> [String]
+prepareGroupValues stats score redundancyLevel =
+  map show stats ++ [printf "%.8f" score] ++ [show redundancyLevel]
 
 -- | Prepare values for cluster.
 prepareClusterValues :: Bool -> [Int] -> [Bool] -> [String]
@@ -233,15 +235,16 @@ prepareClusterValues machineread stats bstats =
 
 -- | Print all the statistics on a group level.
 printGroupStats :: Options -> Bool -> Phase -> GroupStats -> IO ()
-printGroupStats opts machineread phase ((grp, score), stats) = do
-  let values = prepareGroupValues stats score
+printGroupStats opts machineread phase
+                ((grp, score, redundancyLevel), stats) = do
+  let values = prepareGroupValues stats score redundancyLevel
       extradata = extractGroupData machineread grp
   printStats opts machineread (GroupLvl extradata) phase values
 
 -- | Print all the statistics on a cluster (global) level.
-printClusterStats :: Options -> Bool -> Phase -> [Int] -> Bool -> IO ()
-printClusterStats opts machineread phase stats needhbal = do
-  let values = prepareClusterValues machineread stats [needhbal]
+printClusterStats :: Options -> Bool -> Phase -> [Int] -> Bool -> Int -> IO ()
+printClusterStats opts machineread phase stats needhbal gRed = do
+  let values = prepareClusterValues machineread (stats ++ [gRed]) [needhbal]
   printStats opts machineread ClusterLvl phase values
 
 -- | Check if any of cluster metrics is non-zero.
@@ -264,13 +267,14 @@ perGroupChecks opts gl (gidx, (nl, il)) =
       offline_pri = sum . map length $ map Node.pList offnl
       offline_sec = length $ map Node.sList offnl
       score = Metrics.compCV nl
+      redundancyLvl = redundancy (fromCLIOptions opts) nl il
       groupstats = [ n1violated
                    , conflicttags
                    , offline_pri
                    , offline_sec
                    ]
                    ++ [ gn1fail | optCapacity opts ]
-  in ((grp, score), groupstats)
+  in ((grp, score, redundancyLvl), groupstats)
 
 -- | Use Hbal's iterateDepth to simulate group rebalance.
 executeSimulation :: Options -> Cluster.Table -> Double
@@ -328,6 +332,7 @@ main opts args = do
 
   let groupsstats = map (perGroupChecks opts gl) splitcluster
       clusterstats = map sum . transpose . map snd $ groupsstats
+      globalRedundancy = minimum $ map (\((_, _, r), _) -> r) groupsstats
       needrebalance = clusterNeedsRebalance clusterstats
 
   unless (verbose < 1 || machineread) .
@@ -340,6 +345,7 @@ main opts args = do
   mapM_ (printGroupStats opts machineread Initial) groupsstats
 
   printClusterStats opts machineread Initial clusterstats needrebalance
+                    globalRedundancy
 
   let exitOK = nosimulation || not needrebalance
       simulate = not nosimulation && needrebalance
@@ -349,12 +355,14 @@ main opts args = do
   when (simulate || machineread) $ do
     let newgroupstats = map (perGroupChecks opts gl) rebalancedcluster
         newclusterstats = map sum . transpose . map snd $ newgroupstats
+        newGlobalRedundancy = minimum $ map (\((_, _, r), _) -> r)
+                                            newgroupstats
         newneedrebalance = clusterNeedsRebalance clusterstats
 
     mapM_ (printGroupStats opts machineread Rebalanced) newgroupstats
 
     printClusterStats opts machineread Rebalanced newclusterstats
-                           newneedrebalance
+                           newneedrebalance newGlobalRedundancy
 
   printFinalHTC machineread
 
