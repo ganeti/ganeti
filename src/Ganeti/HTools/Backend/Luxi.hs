@@ -93,7 +93,8 @@ queryNodesMsg =
      ["name", "mtotal", "mnode", "mfree", "dtotal", "dfree",
       "ctotal", "cnos", "offline", "drained", "vm_capable",
       "ndp/spindle_count", "group.uuid", "tags",
-      "ndp/exclusive_storage", "sptotal", "spfree", "ndp/cpu_speed"]
+      "ndp/exclusive_storage", "sptotal", "spfree", "ndp/cpu_speed",
+      "hv_state"]
      Qlang.EmptyFilter
 
 -- | The input data for instance query.
@@ -183,7 +184,8 @@ getNodes ktg arr = L.extractArray arr >>= mapM (parseNode ktg)
 parseNode :: NameAssoc -> [(JSValue, JSValue)] -> Result (String, Node.Node)
 parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
               , ctotal, cnos, offline, drained, vm_capable, spindles, g_uuid
-              , tags, excl_stor, sptotal, spfree, cpu_speed ]
+              , tags, excl_stor, sptotal, spfree, cpu_speed, hv_state ]
+
     = do
   xname <- annotateResult "Parsing new node" (L.fromJValWithStatus name)
   let convert a = genericConvert "Node" xname a
@@ -214,9 +216,11 @@ parseNode ktg [ name, mtotal, mnode, mfree, dtotal, dfree
       -- is the only supported disk template
   xctotal <- lvconvert 0.0 "ctotal" ctotal
   xcnos <- lvconvert 0 "cnos" cnos
-  let node = flip Node.setCpuSpeed xcpu_speed .
+  xhv_state <- convert "hv_state" hv_state
+  let node_mem = obtainNodeMemory xhv_state xmnode
+      node = flip Node.setCpuSpeed xcpu_speed .
              flip Node.setNodeTags xtags $
-             Node.create xname xmtotal xmnode xmfree xdtotal xdfree
+             Node.create xname xmtotal node_mem xmfree xdtotal xdfree
              xctotal xcnos (not live || xdrained) xsptotal xspfree
              xgdx xexcl_stor
   return (xname, node)

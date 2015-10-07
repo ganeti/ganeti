@@ -53,6 +53,7 @@ module Ganeti.HTools.Loader
   , ClusterData(..)
   , isAllocationRequest
   , emptyCluster
+  , obtainNodeMemory
   ) where
 
 import Control.Monad
@@ -74,8 +75,11 @@ import Ganeti.BasicTypes
 import qualified Ganeti.HTools.Tags as Tags
 import qualified Ganeti.HTools.Tags.Constants as TagsC
 import Ganeti.HTools.Types
+import qualified Ganeti.Types as T
+import qualified Ganeti.Objects as O
 import Ganeti.Utils
 import Ganeti.Types (EvacMode)
+import Ganeti.JSON
 
 -- * Types
 
@@ -415,3 +419,14 @@ nodeIdsk node il =
 eitherLive :: (Monad m) => Bool -> a -> m a -> m a
 eitherLive True _ live_data = live_data
 eitherLive False def_data _ = return def_data
+
+-- | Obtains memory used by node. It's memory_dom0 for Xen and memNode
+-- otherwise because live data collector exists only for Xen
+obtainNodeMemory :: O.FilledHvState -> Int -> Int
+obtainNodeMemory hv_state memory_dom0 =
+  let getNM ((_, hvs):_) 0 = O.hvstateMemNode hvs
+      getNM ((T.XenPvm, _):_) mem_dom0 = mem_dom0
+      getNM ((T.XenHvm, _):_) mem_dom0 = mem_dom0
+      getNM ((_, hvs):_) _ = O.hvstateMemNode hvs
+      getNM _ mem_dom0 = mem_dom0
+  in getNM (M.toList $ fromContainer hv_state) memory_dom0
