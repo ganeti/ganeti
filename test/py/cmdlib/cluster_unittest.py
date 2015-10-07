@@ -2136,7 +2136,9 @@ class TestLUClusterVerifyGroupUpdateNodeInfo(TestLUClusterVerifyGroupMethods):
   def setUp(self):
     super(TestLUClusterVerifyGroupUpdateNodeInfo, self).setUp()
     self.nimg = verify.LUClusterVerifyGroup.NodeImage(uuid=self.master_uuid)
-    self.valid_hvresult = {constants.NV_HVINFO: {"memory_free": 1024}}
+    self.valid_hvresult = {constants.NV_HVINFO: {"memory_free":  1024,
+                                                 "memory_total": 4096,
+                                                 "memory_dom0":  3072}}
 
   @withLockedLU
   def testInvalidHvNodeResult(self, lu):
@@ -2148,7 +2150,9 @@ class TestLUClusterVerifyGroupUpdateNodeInfo(TestLUClusterVerifyGroupMethods):
   @withLockedLU
   def testInvalidMemoryFreeHvNodeResult(self, lu):
     lu._UpdateNodeInfo(self.master,
-                       {constants.NV_HVINFO: {"memory_free": "abc"}},
+                       {constants.NV_HVINFO: {"memory_free":  'abc',
+                                              "memory_total": 1024,
+                                              "memory_dom0":  2048}},
                        self.nimg, None)
     self.mcpu.assertLogContainsRegex(
       "node returned invalid nodeinfo, check hypervisor")
