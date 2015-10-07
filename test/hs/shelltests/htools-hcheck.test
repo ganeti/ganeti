@@ -22,3 +22,6 @@
 >>>/Cluster is not healthy: False/
 >>>= 0
 
+./test/hs/hcheck -t $TESTDATA_DIR/hsqueeze-underutilized.data --machine-readable
+>>>/HCHECK_INIT_GROUP_0_REDUNDANCY=4/
+>>>= 0
