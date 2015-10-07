@@ -280,6 +280,10 @@ handleCall _ _ cdata QueryClusterInfo =
                showJSON . maintBalance $ configMaintenance cdata)
             , ("maint_balance_threshold",
                showJSON . maintBalanceThreshold $ configMaintenance cdata)
+            , ("hv_state",
+               showJSON $ clusterHvStateStatic cluster)
+            , ("disk_state",
+               showJSON $ clusterDiskStateStatic cluster)
             ]
 
   in case master of

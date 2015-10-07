@@ -68,6 +68,7 @@ module Ganeti.Config
     , getInstDisksFromObj
     , getDrbdMinorsForDisk
     , getDrbdMinorsForInstance
+    , getFilledHvStateParams
     , getFilledInstHvParams
     , getFilledInstBeParams
     , getFilledInstOsParams
@@ -98,6 +99,7 @@ import System.IO
 
 import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
+import qualified Ganeti.ConstantUtils as CU
 import Ganeti.Errors
 import Ganeti.JSON
 import Ganeti.Objects
@@ -326,6 +328,36 @@ getGroupInstances cfg gname =
   let gnodes = map nodeUuid (getGroupNodes cfg gname)
       ginsts = map (getNodeInstances cfg) gnodes in
   (concatMap fst ginsts, concatMap snd ginsts)
+
+-- | default FilledHvStateParams.
+defaultHvStateParams :: FilledHvStateParams
+defaultHvStateParams = FilledHvStateParams
+  { hvstateCpuNode  = CU.hvstDefaultCpuNode
+  , hvstateCpuTotal = CU.hvstDefaultCpuTotal
+  , hvstateMemHv    = CU.hvstDefaultMemoryHv
+  , hvstateMemNode  = CU.hvstDefaultMemoryNode
+  , hvstateMemTotal = CU.hvstDefaultMemoryTotal
+  }
+
+-- | Retrieves the node's static hypervisor state parameters, missing values
+-- filled with group's parameters, missing group parameters are filled
+-- with cluster's parameters. Currently, returns hvstate parameters only for
+-- the default hypervisor.
+getFilledHvStateParams :: ConfigData -> Node -> FilledHvState
+getFilledHvStateParams cfg n =
+  let cluster_hv_state =
+        fromContainer . clusterHvStateStatic $ configCluster cfg
+      def_hv = getDefaultHypervisor cfg
+      cluster_fv = fromMaybe defaultHvStateParams $ M.lookup def_hv
+                                                    cluster_hv_state
+      group_fv = case getGroupOfNode cfg n >>=
+                      M.lookup def_hv . fromContainer . groupHvStateStatic of
+                   Just pv -> fillParams cluster_fv pv
+                   Nothing -> cluster_fv
+      node_fv = case M.lookup def_hv . fromContainer $ nodeHvStateStatic n of
+                      Just pv -> fillParams group_fv pv
+                      Nothing -> group_fv
+  in GenericContainer $ M.fromList [(def_hv, node_fv)]
 
 -- | Retrieves the instance hypervisor params, missing values filled with
 -- cluster defaults.

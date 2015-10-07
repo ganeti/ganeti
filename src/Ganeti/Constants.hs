@@ -2027,11 +2027,12 @@ hvstsParameters =
 hvstDefaults :: Map String Int
 hvstDefaults =
   Map.fromList
-  [(hvstCpuNode, 1),
-   (hvstCpuTotal, 1),
-   (hvstMemoryHv, 0),
-   (hvstMemoryTotal, 0),
-   (hvstMemoryNode, 0)]
+  [ (hvstCpuNode    , ConstantUtils.hvstDefaultCpuNode    )
+  , (hvstCpuTotal   , ConstantUtils.hvstDefaultCpuTotal   )
+  , (hvstMemoryHv   , ConstantUtils.hvstDefaultMemoryHv   )
+  , (hvstMemoryTotal, ConstantUtils.hvstDefaultMemoryTotal)
+  , (hvstMemoryNode , ConstantUtils.hvstDefaultMemoryNode )
+  ]
 
 hvstsParameterTypes :: Map String VType
 hvstsParameterTypes =

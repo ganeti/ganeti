@@ -217,3 +217,20 @@ ipolicyDefaultsSpindleRatio = 32.0
 
 ipolicyDefaultsMemoryRatio :: Double
 ipolicyDefaultsMemoryRatio = 1.0
+
+-- * Hypervisor state default parameters
+
+hvstDefaultCpuNode :: Int
+hvstDefaultCpuNode = 1
+
+hvstDefaultCpuTotal :: Int
+hvstDefaultCpuTotal = 1
+
+hvstDefaultMemoryHv :: Int
+hvstDefaultMemoryHv = 1024
+
+hvstDefaultMemoryTotal :: Int
+hvstDefaultMemoryTotal = 1024
+
+hvstDefaultMemoryNode :: Int
+hvstDefaultMemoryNode = 4096

@@ -83,6 +83,11 @@ groupFields =
        "List of primary instances",
      FieldConfig (\cfg -> rsNormal . niceSort . mapMaybe instName . fst .
                           getGroupInstances cfg . groupUuid), QffNormal)
+  , (FieldDefinition "hv_state" "HypervisorState" QFTOther
+       "Custom static hypervisor state",
+     FieldSimple (rsNormal . groupHvStateStatic), QffNormal)
+  , (FieldDefinition "disk_state" "DiskState" QFTOther "Disk state",
+     FieldSimple (rsNormal . groupDiskStateStatic), QffNormal)
   ] ++
   map buildNdParamField allNDParamFields ++
   timeStampFields ++

@@ -246,13 +246,14 @@ nodeFields =
   , (FieldDefinition "powered" "Powered" QFTBool
        "Whether node is thought to be powered on",
      FieldConfig getNodePower, QffNormal)
-  -- FIXME: the two fields below are incomplete in Python, part of the
-  -- non-implemented node resource model; they are declared just for
-  -- parity, but are not functional
-  , (FieldDefinition "hv_state" "HypervisorState" QFTOther "Hypervisor state",
-     FieldSimple (const rsUnavail), QffNormal)
+  , (FieldDefinition "hv_state" "HypervisorState" QFTOther
+       "Static hypervisor state for default hypervisor only",
+     FieldConfig $ (rsNormal .) . getFilledHvStateParams, QffNormal)
+  , (FieldDefinition "custom_hv_state" "CustomHypervisorState" QFTOther
+       "Custom static hypervisor state",
+     FieldSimple $ rsNormal . nodeHvStateStatic, QffNormal)
   , (FieldDefinition "disk_state" "DiskState" QFTOther "Disk state",
-     FieldSimple (const rsUnavail), QffNormal)
+     FieldSimple $ rsNormal . nodeDiskStateStatic, QffNormal)
   ] ++
   map nodeLiveFieldBuilder nodeLiveFieldsDefs ++
   map buildNdParamField allNDParamFields ++

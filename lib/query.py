@@ -1309,32 +1309,6 @@ def _GetStatsField(field, kind, data):
     return _FS_UNAVAIL
 
 
-def _GetNodeHvState(_, node):
-  """Converts node's hypervisor state for query result.
-
-  """
-  hv_state = node.hv_state
-
-  if hv_state is None:
-    return _FS_UNAVAIL
-
-  return dict((name, value.ToDict()) for (name, value) in hv_state.items())
-
-
-def _GetNodeDiskState(_, node):
-  """Converts node's disk state for query result.
-
-  """
-  disk_state = node.disk_state
-
-  if disk_state is None:
-    return _FS_UNAVAIL
-
-  return dict((disk_kind, dict((name, value.ToDict())
-                               for (name, value) in kind_state.items()))
-              for (disk_kind, kind_state) in disk_state.items())
-
-
 def _BuildNodeFields():
   """Builds list of fields for node queries.
 
@@ -1361,10 +1335,16 @@ def _BuildNodeFields():
     (_MakeField("custom_ndparams", "CustomNodeParameters", QFT_OTHER,
                 "Custom node parameters"),
       NQ_GROUP, 0, _GetItemAttr("ndparams")),
-    (_MakeField("hv_state", "HypervisorState", QFT_OTHER, "Hypervisor state"),
-     NQ_CONFIG, 0, _GetNodeHvState),
+    # FIXME: The code below return custom hv_state instead of filled one.
+    # Anyway, this functionality is unlikely to be used.
+    (_MakeField("hv_state", "HypervisorState", QFT_OTHER,
+                "Static hypervisor state for default hypervisor only"),
+     NQ_CONFIG, 0, _GetItemAttr("hv_state_static")),
+    (_MakeField("custom_hv_state", "CustomHypervisorState", QFT_OTHER,
+                "Custom static hypervisor state"),
+     NQ_CONFIG, 0, _GetItemAttr("hv_state_static")),
     (_MakeField("disk_state", "DiskState", QFT_OTHER, "Disk state"),
-     NQ_CONFIG, 0, _GetNodeDiskState),
+     NQ_CONFIG, 0, _GetItemAttr("disk_state_static")),
     ]
 
   fields.extend(_BuildNDFields(False))
@@ -2463,6 +2443,11 @@ def _BuildGroupFields():
     (_MakeField("custom_diskparams", "CustomDiskParameters", QFT_OTHER,
                 "Custom disk parameters"),
      GQ_CONFIG, 0, _GetItemAttr("diskparams")),
+    (_MakeField("hv_state", "HypervisorState", QFT_OTHER,
+                "Custom static hypervisor state"),
+     GQ_CONFIG, 0, _GetItemAttr("hv_state_static")),
+    (_MakeField("disk_state", "DiskState", QFT_OTHER, "Disk state"),
+     GQ_CONFIG, 0, _GetItemAttr("disk_state_static")),
     ])
 
   # ND parameters
@@ -2775,6 +2760,11 @@ def _BuildClusterFields():
     (_MakeField("master_node", "Master", QFT_TEXT, "Master node name"),
      CQ_CONFIG, QFF_HOSTNAME,
      lambda ctx, cluster: _GetNodeName(ctx, None, cluster.master_node)),
+    (_MakeField("hv_state", "HypervisorState", QFT_OTHER,
+                "Custom static hypervisor state"),
+     CQ_CONFIG, 0, _GetItemAttr("hv_state_static")),
+    (_MakeField("disk_state", "DiskState", QFT_OTHER, "Disk state"),
+     CQ_CONFIG, 0, _GetItemAttr("disk_state_static")),
     ]
 
   # Simple fields
