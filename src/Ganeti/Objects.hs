@@ -104,7 +104,11 @@ module Ganeti.Objects
   , module Ganeti.Objects.Disk
   , module Ganeti.Objects.Instance
   , module Ganeti.Objects.Maintenance
-  ) where
+  , FilledHvStateParams(..)
+  , PartialHvStateParams(..)
+  , allHvStateParamFields
+  , FilledHvState
+  , PartialHvState ) where
 
 import Prelude ()
 import Ganeti.Prelude
@@ -131,6 +135,7 @@ import Ganeti.Objects.Disk
 import Ganeti.Objects.Maintenance
 import Ganeti.Objects.Nic
 import Ganeti.Objects.Instance
+import Ganeti.Objects.HvState
 import Ganeti.Query.Language
 import Ganeti.PartialParams
 import Ganeti.Types
@@ -389,6 +394,12 @@ instance PartialParams FilledIPolicy PartialIPolicy where
     FilledIPolicy <$> pminmax <*> (toFilled =<< pstd) <*> pspindleRatio
                   <*> pmemoryRatio <*> pvcpuRatio <*> pdiskTemplates
 
+-- | Disk state parameters.
+--
+-- As according to the documentation this option is unused by Ganeti,
+-- the content is just a 'JSValue'.
+type DiskState = Container JSValue
+
 -- * Node definitions
 
 $(buildParam "ND" "ndp"
@@ -403,17 +414,21 @@ $(buildParam "ND" "ndp"
   ])
 
 $(buildObject "Node" "node" $
-  [ simpleField "name"             [t| String |]
-  , simpleField "primary_ip"       [t| String |]
-  , simpleField "secondary_ip"     [t| String |]
-  , simpleField "master_candidate" [t| Bool   |]
-  , simpleField "offline"          [t| Bool   |]
-  , simpleField "drained"          [t| Bool   |]
-  , simpleField "group"            [t| String |]
-  , simpleField "master_capable"   [t| Bool   |]
-  , simpleField "vm_capable"       [t| Bool   |]
-  , simpleField "ndparams"         [t| PartialNDParams |]
-  , simpleField "powered"          [t| Bool   |]
+  [ simpleField "name"              [t| String          |]
+  , simpleField "primary_ip"        [t| String          |]
+  , simpleField "secondary_ip"      [t| String          |]
+  , simpleField "master_candidate"  [t| Bool            |]
+  , simpleField "offline"           [t| Bool            |]
+  , simpleField "drained"           [t| Bool            |]
+  , simpleField "group"             [t| String          |]
+  , simpleField "master_capable"    [t| Bool            |]
+  , simpleField "vm_capable"        [t| Bool            |]
+  , simpleField "ndparams"          [t| PartialNDParams |]
+  , simpleField "powered"           [t| Bool            |]
+  , defaultField [| emptyContainer |] $
+    simpleField "hv_state_static"   [t| PartialHvState  |]
+  , defaultField [| emptyContainer |] $
+    simpleField "disk_state_static" [t| DiskState       |]
   ]
   ++ timeStampFields
   ++ uuidFields
@@ -442,13 +457,17 @@ type GroupDiskParams = Container DiskParams
 type Networks = Container PartialNicParams
 
 $(buildObject "NodeGroup" "group" $
-  [ simpleField "name"         [t| String |]
+  [ simpleField "name"              [t| String |]
   , defaultField [| [] |] $ simpleField "members" [t| [String] |]
-  , simpleField "ndparams"     [t| PartialNDParams |]
-  , simpleField "alloc_policy" [t| AllocPolicy     |]
-  , simpleField "ipolicy"      [t| PartialIPolicy  |]
-  , simpleField "diskparams"   [t| GroupDiskParams |]
-  , simpleField "networks"     [t| Networks        |]
+  , simpleField "ndparams"          [t| PartialNDParams |]
+  , simpleField "alloc_policy"      [t| AllocPolicy     |]
+  , simpleField "ipolicy"           [t| PartialIPolicy  |]
+  , simpleField "diskparams"        [t| GroupDiskParams |]
+  , simpleField "networks"          [t| Networks        |]
+  , defaultField [| emptyContainer |] $
+    simpleField "hv_state_static"   [t| PartialHvState  |]
+  , defaultField [| emptyContainer |] $
+    simpleField "disk_state_static" [t| DiskState       |]
   ]
   ++ timeStampFields
   ++ uuidFields
@@ -614,18 +633,6 @@ type IAllocatorParams = Container JSValue
 -- | The master candidate client certificate digests
 type CandidateCertificates = Container String
 
--- | Disk state parameters.
---
--- As according to the documentation this option is unused by Ganeti,
--- the content is just a 'JSValue'.
-type DiskState = Container JSValue
-
--- | Hypervisor state parameters.
---
--- As according to the documentation this option is unused by Ganeti,
--- the content is just a 'JSValue'.
-type HypervisorState = Container JSValue
-
 -- * Cluster definitions
 $(buildObject "Cluster" "cluster" $
   [ simpleField "rsahostkeypub"                  [t| String                  |]
@@ -670,9 +677,9 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "prealloc_wipe_disks"            [t| Bool                    |]
   , simpleField "ipolicy"                        [t| FilledIPolicy           |]
   , defaultField [| emptyContainer |] $
-    simpleField "hv_state_static"                [t| HypervisorState        |]
+    simpleField "hv_state_static"                [t| FilledHvState           |]
   , defaultField [| emptyContainer |] $
-    simpleField "disk_state_static"              [t| DiskState              |]
+    simpleField "disk_state_static"              [t| DiskState               |]
   , simpleField "enabled_disk_templates"         [t| [DiskTemplate]          |]
   , simpleField "candidate_certs"                [t| CandidateCertificates   |]
   , simpleField "max_running_jobs"               [t| Int                     |]

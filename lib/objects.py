@@ -1490,6 +1490,11 @@ class Node(TaggableObject):
     if self.powered is None:
       self.powered = True
 
+    if self.hv_state_static is None:
+      self.hv_state_static = {}
+    if self.disk_state_static is None:
+      self.disk_state_static = {}
+
   def ToDict(self, _with_private=False):
     """Custom function for serializing.
 
@@ -1586,6 +1591,11 @@ class NodeGroup(TaggableObject):
       self.diskparams = {}
     if self.ipolicy is None:
       self.ipolicy = MakeEmptyIPolicy()
+
+    if self.hv_state_static is None:
+      self.hv_state_static = {}
+    if self.disk_state_static is None:
+      self.disk_state_static = {}
 
     if self.networks is None:
       self.networks = {}

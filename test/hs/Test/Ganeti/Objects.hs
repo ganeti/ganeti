@@ -91,14 +91,37 @@ instance Arbitrary (Container DataCollectorConfig) where
     return GenericContainer {
       fromContainer = Map.fromList $ zip names configs }
 
+-- FYI: Currently only memory node value is used
+instance Arbitrary PartialHvStateParams where
+  arbitrary = PartialHvStateParams <$> pure Nothing <*> pure Nothing
+              <*> pure Nothing <*> genMaybe (fromPositive <$> arbitrary)
+              <*> pure Nothing
+
+instance Arbitrary PartialHvState where
+  arbitrary = do
+    hv_params <- arbitrary
+    return GenericContainer {
+      fromContainer = Map.fromList [ hv_params ] }
+
+-- FYI: Currently only memory node value is used
+instance Arbitrary FilledHvStateParams where
+  arbitrary = FilledHvStateParams <$> pure 0 <*> pure 0 <*> pure 0
+              <*> (fromPositive <$> arbitrary) <*> pure 0
+
+instance Arbitrary FilledHvState where
+  arbitrary = do
+    hv_params <- arbitrary
+    return GenericContainer {
+      fromContainer = Map.fromList [ hv_params ] }
+
 $(genArbitrary ''PartialNDParams)
 
 instance Arbitrary Node where
   arbitrary = Node <$> genFQDN <*> genFQDN <*> genFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> genFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-              <*> arbitrary <*> arbitrary <*> genFQDN <*> arbitrary
-              <*> (Set.fromList <$> genTags)
+              <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+              <*> genFQDN <*> arbitrary <*> (Set.fromList <$> genTags)
 
 $(genArbitrary ''BlockDriver)
 
@@ -662,6 +685,8 @@ genNodeGroup = do
   nic_param_list <- vectorOf num_networks (arbitrary::Gen PartialNicParams)
   net_map <- pure (GenericContainer . Map.fromList $
     zip net_uuid_list nic_param_list)
+  hv_state <- arbitrary
+  disk_state <- arbitrary
   -- timestamp fields
   ctime <- arbitrary
   mtime <- arbitrary
@@ -669,7 +694,7 @@ genNodeGroup = do
   serial <- arbitrary
   tags <- Set.fromList <$> genTags
   let group = NodeGroup name members ndparams alloc_policy ipolicy diskparams
-              net_map ctime mtime uuid serial tags
+              net_map hv_state disk_state ctime mtime uuid serial tags
   return group
 
 instance Arbitrary NodeGroup where

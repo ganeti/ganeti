@@ -996,6 +996,7 @@ HS_LIB_SRCS = \
 	src/Ganeti/Objects/BitArray.hs \
 	src/Ganeti/Objects/Disk.hs \
 	src/Ganeti/Objects/Instance.hs \
+	src/Ganeti/Objects/HvState.hs \
 	src/Ganeti/Objects/Lens.hs \
 	src/Ganeti/Objects/Maintenance.hs \
 	src/Ganeti/Objects/Nic.hs \
