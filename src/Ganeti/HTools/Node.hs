@@ -458,6 +458,14 @@ setPolicy pol node =
 computeMaxRes :: P.PeerMap -> P.Elem
 computeMaxRes = P.maxElem
 
+-- | Calculates the lower acceptable amount of free memory. It's a negative
+-- value, thanks to memory over-commitment
+fMemTreshold :: Node -> Int
+fMemTreshold t =
+  fMemTresholdHelper (T.iPolicyMemoryRatio $ iPolicy t) (tMem t) (nMem t)
+  where fMemTresholdHelper ratio tmem nmem =
+          truncate $ (1 - ratio) * (tmem - fromIntegral nmem)
+
 -- | Builds the peer map for a given node.
 buildPeers :: Node -> Instance.List -> Node
 buildPeers t il =
@@ -474,7 +482,7 @@ buildPeers t il =
               (sList t)
       pmap = P.accumArray (+) mdata
       new_rmem = computeMaxRes pmap
-      new_failN1 = fMem t < new_rmem
+      new_failN1 = fMem t - new_rmem <= fMemTreshold t
       new_prem = fromIntegral new_rmem / tMem t
   in t { peers = pmap
        , failN1 = new_failN1
@@ -763,7 +771,7 @@ removePri t inst =
                 new_inst_sp = calcSpindleUse False t inst
                 new_mp = fromIntegral new_mem / tMem t
                 new_dp = computeNewPDsk t new_free_sp new_dsk
-                new_failn1 = new_mem <= rMem t
+                new_failn1 = new_mem - rMem t <= fMemTreshold t
                 new_ucpu = decIf i_online (uCpu t) (Instance.vcpus inst)
                 new_rcpu = fromIntegral new_ucpu / tCpu t
                 new_load = utilLoad t `T.subUtil` Instance.util inst
@@ -832,7 +840,7 @@ removeSec t inst =
                              then old_rmem
                              else computeMaxRes new_peers
                 new_prem = fromIntegral new_rmem / tMem t
-                new_failn1 = fMem t <= new_rmem
+                new_failn1 = fMem t - new_rmem <= fMemTreshold t
                 new_dp = computeNewPDsk t new_free_sp new_dsk
                 old_load = utilLoad t
                 new_load = old_load
@@ -900,7 +908,7 @@ addPriEx force t inst =
           }
 
       checkForthcomingViolation
-        | new_mem_forth <= 0                            = Bad T.FailMem
+        | new_mem_forth <= fMemTreshold t                = Bad T.FailMem
         | uses_disk && new_dsk_forth <= 0               = Bad T.FailDisk
         | uses_disk && new_dsk_forth < loDsk t          = Bad T.FailDisk
         | uses_disk && exclStorage t
@@ -923,7 +931,7 @@ addPriEx force t inst =
                new_dsk = decIf uses_disk (fDsk t) (Instance.dsk inst)
                new_free_sp = calcNewFreeSpindles True t inst
                new_inst_sp = calcSpindleUse True t inst
-               new_failn1 = new_mem <= rMem t
+               new_failn1 = new_mem - rMem t <= fMemTreshold t
                new_ucpu = incIf i_online (uCpu t) (Instance.vcpus inst)
                new_pcpu = fromIntegral new_ucpu / tCpu t
                new_dp = computeNewPDsk t new_free_sp new_dsk
@@ -935,7 +943,7 @@ addPriEx force t inst =
                new_instance_map = addTags (instanceMap t)
                                 $ getLocationExclusionPairs t inst
       in case () of
-        _ | new_mem <= 0 -> Bad T.FailMem
+        _ | new_mem <= fMemTreshold t -> Bad T.FailMem
           | uses_disk && new_dsk <= 0 -> Bad T.FailDisk
           | strict && uses_disk && new_dsk < loDsk t -> Bad T.FailDisk
           | uses_disk && exclStorage t && new_free_sp < 0 -> Bad T.FailSpindles
@@ -1021,7 +1029,7 @@ addSecExEx ignore_disks force t inst pdx =
         | new_dsk_forth < loDsk t                = Bad T.FailDisk
         | exclStorage t && new_free_sp_forth < 0 = Bad T.FailSpindles
         | new_inst_sp_forth > hiSpindles t       = Bad T.FailDisk
-        | secondary_needed_mem >= old_mem_forth  = Bad T.FailMem
+        | old_mem_forth - secondary_needed_mem <= fMemTreshold t = Bad T.FailMem
         -- TODO Check failN1 including forthcoming instances
         | otherwise                              = Ok ()
 
@@ -1037,7 +1045,7 @@ addSecExEx ignore_disks force t inst pdx =
                new_inst_sp = calcSpindleUse True t inst
                new_rmem = max (rMem t) new_peem
                new_prem = fromIntegral new_rmem / tMem t
-               new_failn1 = old_mem <= new_rmem
+               new_failn1 = old_mem - new_rmem <= fMemTreshold t
                new_dp = computeNewPDsk t new_free_sp new_dsk
                old_load = utilLoad t
                new_load = old_load
@@ -1051,7 +1059,8 @@ addSecExEx ignore_disks force t inst pdx =
           | strict && new_dsk < loDsk t -> Bad T.FailDisk
           | exclStorage t && new_free_sp < 0 -> Bad T.FailSpindles
           | strict && new_inst_sp > hiSpindles t -> Bad T.FailDisk
-          | strict && secondary_needed_mem >= old_mem -> Bad T.FailMem
+          | strict && old_mem - secondary_needed_mem <= fMemTreshold t
+                                                   -> Bad T.FailMem
           | strict && new_failn1 && not (failN1 t) -> Bad T.FailMem
 
           -- When strict also check forthcoming limits, but after normal checks
