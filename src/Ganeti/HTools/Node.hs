@@ -43,6 +43,7 @@ module Ganeti.HTools.Node
   , create
   -- ** Finalization after data loading
   , buildPeers
+  , computePmem
   , setIdx
   , setAlias
   , setOffline
@@ -304,6 +305,10 @@ haveExclStorage :: List -> Bool
 haveExclStorage nl =
   any exclStorage $ Container.elems nl
 
+-- | Conversion formula from fMem, tMem and nMem to pMem.
+computePmem :: Int -> Double -> Int -> Double
+computePmem fmem tmem nmem = fromIntegral fmem / (tmem - fromIntegral nmem)
+
 -- * Initialization functions
 
 -- | Create a new node.
@@ -344,8 +349,8 @@ create name_init mem_t_init mem_n_init mem_f_init
        , peers = P.empty
        , rMem = 0
        , rMemForth = 0
-       , pMem = fromIntegral mem_f_init / mem_t_init
-       , pMemForth = fromIntegral mem_f_init / mem_t_init
+       , pMem = computePmem mem_f_init mem_t_init mem_n_init
+       , pMemForth = computePmem mem_f_init mem_t_init mem_n_init
        , pDsk = if excl_stor
                 then computePDsk spindles_f_init $ fromIntegral spindles_t_init
                 else computePDsk dsk_f_init dsk_t_init
@@ -452,6 +457,8 @@ setPolicy pol node =
        , hiCpu = mCpuTohiCpu (T.iPolicyVcpuRatio pol) (tCpu node)
        , hiSpindles = computeHiSpindles (T.iPolicySpindleRatio pol)
                       (tSpindles node)
+       , pMem = computePmem (fMem node) (tMem node) (nMem node)
+       , pMemForth = computePmem (fMemForth node) (tMem node) (nMem node)
        }
 
 -- | Computes the maximum reserved memory for peers from a peer map.
@@ -605,7 +612,7 @@ setPri t inst
                                 (fMemForth node)
                                 (Instance.mem inst)
 
-          new_pMemForth = fromIntegral new_fMemForth / tMem node
+          new_pMemForth = computePmem new_fMemForth (tMem node) (nMem node)
 
       in node
            { pTags = addTags (pTags node) (Instance.exclTags inst)
@@ -738,7 +745,7 @@ removePri t inst =
             new_dsk_forth = incIf uses_disk (fDskForth n) (Instance.dsk inst)
             new_free_sp_forth = calcNewFreeSpindlesForth False n inst
             new_inst_sp_forth = calcSpindleUseForth False n inst
-            new_mp_forth = fromIntegral new_mem_forth / tMem n
+            new_mp_forth = computePmem new_mem_forth (tMem n) (nMem n)
             new_dp_forth = computeNewPDsk n new_free_sp_forth new_dsk_forth
             new_ucpu_forth = decIf i_online (uCpuForth n) (Instance.vcpus inst)
             new_rcpu_forth = fromIntegral new_ucpu_forth / tCpu n
@@ -769,7 +776,7 @@ removePri t inst =
                 new_dsk = incIf uses_disk (fDsk t) (Instance.dsk inst)
                 new_free_sp = calcNewFreeSpindles False t inst
                 new_inst_sp = calcSpindleUse False t inst
-                new_mp = fromIntegral new_mem / tMem t
+                new_mp = computePmem new_mem (tMem t) (nMem t)
                 new_dp = computeNewPDsk t new_free_sp new_dsk
                 new_failn1 = new_mem - rMem t <= fMemTreshold t
                 new_ucpu = decIf i_online (uCpu t) (Instance.vcpus inst)
@@ -880,7 +887,7 @@ addPriEx force t inst =
       inst_tags = Instance.exclTags inst
 
       new_mem_forth = fMemForth t - Instance.mem inst
-      new_mp_forth = fromIntegral new_mem_forth / tMem t
+      new_mp_forth = computePmem new_mem_forth (tMem t) (nMem t)
       new_dsk_forth = decIf uses_disk (fDskForth t) (Instance.dsk inst)
       new_free_sp_forth = calcNewFreeSpindlesForth True t inst
       new_inst_sp_forth = calcSpindleUseForth True t inst
@@ -938,7 +945,7 @@ addPriEx force t inst =
                new_load = utilLoad t `T.addUtil` Instance.util inst
 
                new_plist = iname:pList t
-               new_mp = fromIntegral new_mem / tMem t
+               new_mp = computePmem new_mem (tMem t) (nMem t)
 
                new_instance_map = addTags (instanceMap t)
                                 $ getLocationExclusionPairs t inst

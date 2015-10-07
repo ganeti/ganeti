@@ -128,8 +128,11 @@ genEmptyOnlineNode =
       let node' = node { Node.offline = False
                        , Node.fMem = fmem
                        , Node.fMemForth = fmem
-                       , Node.pMem = fromIntegral fmem / Node.tMem node
-                       , Node.pMemForth = fromIntegral fmem / Node.tMem node
+                       , Node.pMem = Node.computePmem fmem (Node.tMem node)
+                                                      (Node.nMem node)
+                       , Node.pMemForth = Node.computePmem fmem
+                                                           (Node.tMem node)
+                                                           (Node.nMem node)
                        , Node.rMem = 0
                        , Node.rMemForth = 0
                        , Node.pRem = 0
