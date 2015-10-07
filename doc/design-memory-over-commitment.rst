@@ -87,24 +87,27 @@ ipolicy parameter. It is added as an optional entry at the end of the
 parameter list of an ipolicy line, to remain backwards compatible.
 If the paramter is missing, the value ``1.0`` is assumed.
 
-Changes to the memory reporting on ``kvm``
-------------------------------------------
+Changes to the memory reporting on non ``xen-hvm`` and ``xen-pvm``
+------------------------------------------------------------------
 
-For ``kvm``, ``dom0`` corresponds to the amount of memory used by Ganeti
-itself and all other non-``kvm`` processes running on this node. The amount
-of memory currently reported for ``dom0``, however, includes the amount of
-active memory of the ``kvm`` processes. This is in conflict with the underlying
-assumption ``dom0`` memory is not available for instance.
+For all hypervisors ``memory_dom0`` corresponds to the amount of memory used
+by Ganeti itself and all other non-hypervisor processes running on this node.
+The amount of memory currently reported for ``memory_dom0`` on hypervisors
+other than ``xen-hvm`` and ``xen-pvm``, however, includes the amount of active
+memory of the hypervisor processes. This is in conflict with the underlying
+assumption ``memory_dom0`` memory is not available for instance.
 
-Therefore, for ``kvm`` we will report as ``dom0`` the state-of-record
-backend paramter ``memory_dom0`` for the ``kvm`` hypervisor. As a hypervisor
-backend paramter, it is run-time tunable and inheritable at group level.
-If this paramter is not present, a default value of ``1024M`` will be used,
-which is a conservative estimate of the amount of memory used by Ganeti on a
-medium-sized cluster. The reason for using a state-of-record value is to
-have a stable amount of reserved memory, irrespective of the current activity
-of Ganeti.
+Therefore, for hypervisors other than ``xen-pvm`` and ``xen-hvm`` we will use
+a new state-of-recored hypervisor paramter called ``mem_node`` in htools
+instead of the reported ``memory_dom0``. As a hypervisor state parameter, it is
+run-time tunable and inheritable at group and cluster levels. If this paramter
+is not present, a default value of ``1024M`` will be used, which is a
+conservative estimate of the amount of memory used by Ganeti on a medium-sized
+cluster. The reason for using a state-of-record value is to have a stable
+amount of reserved memory, irrespective of the current activity of Ganeti.
 
+Currently, hypervisor state parameters are partly implemented but not used
+by ganeti.
 
 Changes to the memory policy
 ----------------------------
@@ -177,9 +180,3 @@ need not be taken into account if no over-commitment is in place.
 As a starting point for experimentation we will use weight ``0.0``
 if the memory ratio is ``1.0`` and weight ``1.0`` if it is bigger
 than ``1.0``.
-
-
-
-
-
-
