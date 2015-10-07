@@ -1732,6 +1732,7 @@ TEST_FILES = \
 	test/data/htools/hail-alloc-secondary.json \
 	test/data/htools/hail-alloc-spindles.json \
 	test/data/htools/hail-alloc-twodisks.json \
+	test/data/htools/hail-alloc-memory-over-commitment.json \
 	test/data/htools/hail-change-group.json \
 	test/data/htools/hail-invalid-reloc.json \
 	test/data/htools/hail-node-evac.json \
@@ -1750,6 +1751,8 @@ TEST_FILES = \
 	test/data/htools/hbal-location-1.data \
 	test/data/htools/hbal-location-exclusion.data \
 	test/data/htools/hbal-location-2.data \
+	test/data/htools/hbal-memory-over-commitment.data \
+	test/data/htools/hbal-memory-over-commitment-2.data \
 	test/data/htools/hbal-migration-1.data \
 	test/data/htools/hbal-migration-2.data \
 	test/data/htools/hbal-migration-3.data \

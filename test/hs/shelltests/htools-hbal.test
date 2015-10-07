@@ -100,3 +100,11 @@
 ./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-disk-moves.data --avoid-disk-moves=5
 >>>/Solution length=2/
 >>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-memory-over-commitment.data
+>>>/No solution found/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-memory-over-commitment-2.data
+>>>/Solution length=1/
+>>>= 0

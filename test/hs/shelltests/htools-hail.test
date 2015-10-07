@@ -224,3 +224,8 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 ./test/hs/hail $TESTDATA_DIR/hail-alloc-secondary.json
 >>> /successes 2, failures 0.*"result":"node-2-2"/
 >>>= 0
+
+# Memory over-commitment test
+./test/hs/hail $TESTDATA_DIR/hail-alloc-memory-over-commitment.json
+>>> /"success":true.*/
+>>>= 0
