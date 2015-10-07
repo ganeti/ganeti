@@ -41,6 +41,7 @@ module Test.Ganeti.TestCommon
   , maxCpu
   , maxSpindles
   , maxVcpuRatio
+  , maxMemoryRatio
   , maxSpindleRatio
   , maxNodes
   , maxOpCodes
@@ -155,6 +156,10 @@ maxVcpuRatio = 1024.0
 -- | Max spindle ratio (random value).
 maxSpindleRatio :: Double
 maxSpindleRatio = 1024.0
+
+-- | Max memory ratio (random value).
+maxMemoryRatio :: Double
+maxMemoryRatio = 1024.0
 
 -- | Max nodes, used just to limit arbitrary instances for smaller
 -- opcode definitions (e.g. list of nodes in OpTestDelay).

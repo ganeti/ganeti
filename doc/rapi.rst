@@ -232,7 +232,8 @@ The instance policy specification is a dict with the following fields:
                                      constants.ISPECS_STD,
                                      constants.IPOLICY_DTS,
                                      constants.IPOLICY_VCPU_RATIO,
-                                     constants.IPOLICY_SPINDLE_RATIO])
+                                     constants.IPOLICY_SPINDLE_RATIO,
+                                     constants.IPOLICY_MEMORY_RATIO])
 
 
 .. pyassert::
@@ -280,6 +281,8 @@ The instance policy specification is a dict with the following fields:
   Maximum ratio of virtual to physical CPUs (`float`)
 :pyeval:`constants.IPOLICY_SPINDLE_RATIO`
   Maximum ratio of instances to their node's ``spindle_count`` (`float`)
+:pyeval:`constants.IPOLICY_MEMORY_RATIO`
+  Maximum ratio of memory overcommitment (`float`)
 
 Usage examples
 --------------

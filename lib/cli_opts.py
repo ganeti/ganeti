@@ -136,6 +136,7 @@ __all__ = [
   "IPOLICY_STD_SPECS_OPT",
   "IPOLICY_STD_SPECS_STR",
   "IPOLICY_VCPU_RATIO",
+  "IPOLICY_MEMORY_RATIO",
   "LONG_SLEEP_OPT",
   "MAC_PREFIX_OPT",
   "MAINT_BALANCE_OPT",
@@ -809,6 +810,13 @@ IPOLICY_SPINDLE_RATIO = cli_option("--ipolicy-spindle-ratio",
                                    type="maybefloat", default=None,
                                    help=("The maximum allowed instances to"
                                          " spindle ratio"))
+
+IPOLICY_MEMORY_RATIO = cli_option("--ipolicy-memory-ratio",
+                                   dest="ipolicy_memory_ratio",
+                                   type="maybefloat", default=None,
+                                   help=("The maximum allowed used memory to"
+                                         " physicall memory ratio (in terms of"
+                                         " memory overcommitment)"))
 
 HYPERVISOR_OPT = cli_option("-H", "--hypervisor-parameters", dest="hypervisor",
                             help="Hypervisor and hypervisor options, in the"
@@ -1676,6 +1684,7 @@ INSTANCE_POLICY_OPTS = [
   IPOLICY_DISK_TEMPLATES,
   IPOLICY_VCPU_RATIO,
   IPOLICY_SPINDLE_RATIO,
+  IPOLICY_MEMORY_RATIO,
   ]
 
 # instance policy split specs options

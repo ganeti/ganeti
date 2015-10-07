@@ -321,6 +321,8 @@ $(buildObject "PartialIPolicy" "ipolicy"
     simpleField "std" [t| PartialISpecParams |]
   , optionalField . renameField "SpindleRatioP" $
     simpleField "spindle-ratio" [t| Double |]
+  , optionalField . renameField "MemoryRatioP" $
+    simpleField "memory-ratio" [t| Double |]
   , optionalField . renameField "VcpuRatioP" $
     simpleField "vcpu-ratio" [t| Double |]
   , optionalField . renameField "DiskTemplatesP" $
@@ -334,6 +336,8 @@ $(buildObject "FilledIPolicy" "ipolicy"
     simpleField ConstantUtils.ispecsMinmax [t| [MinMaxISpecs] |]
   , renameField "StdSpec" $ simpleField "std" [t| FilledISpecParams |]
   , simpleField "spindle-ratio"  [t| Double |]
+  , defaultField [| ConstantUtils.ipolicyDefaultsMemoryRatio |] $
+    simpleField "memory-ratio"  [t| Double |]
   , simpleField "vcpu-ratio"     [t| Double |]
   , simpleField "disk-templates" [t| [DiskTemplate] |]
   ])
@@ -344,17 +348,20 @@ instance PartialParams FilledIPolicy PartialIPolicy where
             (FilledIPolicy { ipolicyMinMaxISpecs  = fminmax
                            , ipolicyStdSpec       = fstd
                            , ipolicySpindleRatio  = fspindleRatio
+                           , ipolicyMemoryRatio   = fmemoryRatio
                            , ipolicyVcpuRatio     = fvcpuRatio
                            , ipolicyDiskTemplates = fdiskTemplates})
             (PartialIPolicy { ipolicyMinMaxISpecsP  = pminmax
                             , ipolicyStdSpecP       = pstd
                             , ipolicySpindleRatioP  = pspindleRatio
+                            , ipolicyMemoryRatioP   = pmemoryRatio
                             , ipolicyVcpuRatioP     = pvcpuRatio
                             , ipolicyDiskTemplatesP = pdiskTemplates}) =
     FilledIPolicy
                 { ipolicyMinMaxISpecs  = fromMaybe fminmax pminmax
                 , ipolicyStdSpec       = maybe fstd (fillParams fstd) pstd
                 , ipolicySpindleRatio  = fromMaybe fspindleRatio pspindleRatio
+                , ipolicyMemoryRatio   = fromMaybe fmemoryRatio pmemoryRatio
                 , ipolicyVcpuRatio     = fromMaybe fvcpuRatio pvcpuRatio
                 , ipolicyDiskTemplates = fromMaybe fdiskTemplates
                                          pdiskTemplates
@@ -362,22 +369,25 @@ instance PartialParams FilledIPolicy PartialIPolicy where
   toPartial (FilledIPolicy { ipolicyMinMaxISpecs  = fminmax
                            , ipolicyStdSpec       = fstd
                            , ipolicySpindleRatio  = fspindleRatio
+                           , ipolicyMemoryRatio   = fmemoryRatio
                            , ipolicyVcpuRatio     = fvcpuRatio
                            , ipolicyDiskTemplates = fdiskTemplates}) =
     PartialIPolicy
                 { ipolicyMinMaxISpecsP  = Just fminmax
                 , ipolicyStdSpecP       = Just $ toPartial fstd
                 , ipolicySpindleRatioP  = Just fspindleRatio
+                , ipolicyMemoryRatioP   = Just fmemoryRatio
                 , ipolicyVcpuRatioP     = Just fvcpuRatio
                 , ipolicyDiskTemplatesP = Just fdiskTemplates
                 }
   toFilled (PartialIPolicy { ipolicyMinMaxISpecsP  = pminmax
                            , ipolicyStdSpecP       = pstd
                            , ipolicySpindleRatioP  = pspindleRatio
+                           , ipolicyMemoryRatioP   = pmemoryRatio
                            , ipolicyVcpuRatioP     = pvcpuRatio
                            , ipolicyDiskTemplatesP = pdiskTemplates}) =
-    FilledIPolicy <$> pminmax <*> (toFilled =<< pstd) <*>  pspindleRatio
-                  <*> pvcpuRatio <*> pdiskTemplates
+    FilledIPolicy <$> pminmax <*> (toFilled =<< pstd) <*> pspindleRatio
+                  <*> pmemoryRatio <*> pvcpuRatio <*> pdiskTemplates
 
 -- * Node definitions
 

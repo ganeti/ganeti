@@ -2186,13 +2186,17 @@ ipolicyVcpuRatio = ConstantUtils.ipolicyVcpuRatio
 ipolicySpindleRatio :: String
 ipolicySpindleRatio = ConstantUtils.ipolicySpindleRatio
 
+ipolicyMemoryRatio :: String
+ipolicyMemoryRatio = ConstantUtils.ipolicyMemoryRatio
+
 ispecsMinmaxKeys :: FrozenSet String
 ispecsMinmaxKeys = ConstantUtils.mkSet [ispecsMax, ispecsMin]
 
 ipolicyParameters :: FrozenSet String
 ipolicyParameters =
   ConstantUtils.mkSet [ConstantUtils.ipolicyVcpuRatio,
-                       ConstantUtils.ipolicySpindleRatio]
+                       ConstantUtils.ipolicySpindleRatio,
+                       ConstantUtils.ipolicyMemoryRatio]
 
 ipolicyAllKeys :: FrozenSet String
 ipolicyAllKeys =
@@ -4271,6 +4275,7 @@ ipolicyDefaults =
   , (ipolicyDts,          PyValueEx (ConstantUtils.toList diskTemplates))
   , (ipolicyVcpuRatio,    PyValueEx ConstantUtils.ipolicyDefaultsVcpuRatio)
   , (ipolicySpindleRatio, PyValueEx ConstantUtils.ipolicyDefaultsSpindleRatio)
+  , (ipolicyMemoryRatio,  PyValueEx ConstantUtils.ipolicyDefaultsMemoryRatio)
   ]
 
 masterPoolSizeDefault :: Int

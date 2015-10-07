@@ -94,6 +94,9 @@ nullIPolicy = Types.IPolicy
   , Types.iPolicyVcpuRatio = maxVcpuRatio -- somewhat random value, high
                                           -- enough to not impact us
   , Types.iPolicySpindleRatio = maxSpindleRatio
+  , Types.iPolicyMemoryRatio = 1 -- because there are several test which
+                                 -- become senseless in case of memory
+                                 -- over-commitment
   }
 
 -- | Default group definition.

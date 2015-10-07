@@ -254,6 +254,9 @@ $(THH.buildObject "IPolicy" "iPolicy"
       THH.simpleField ConstantUtils.ipolicyVcpuRatio [t| Double |]
   , THH.renameField "SpindleRatio" $
       THH.simpleField ConstantUtils.ipolicySpindleRatio [t| Double |]
+  , THH.renameField "MemoryRatio" .
+      THH.defaultField [| ConstantUtils.ipolicyDefaultsMemoryRatio |] $
+      THH.simpleField ConstantUtils.ipolicyMemoryRatio [t| Double |]
   ])
 
 -- | Converts an ISpec type to a RSpec one.
@@ -275,6 +278,7 @@ defIPolicy =
           , iPolicyDiskTemplates = [minBound..maxBound]
           , iPolicyVcpuRatio = ConstantUtils.ipolicyDefaultsVcpuRatio
           , iPolicySpindleRatio = ConstantUtils.ipolicyDefaultsSpindleRatio
+          , iPolicyMemoryRatio = ConstantUtils.ipolicyDefaultsMemoryRatio
           }
 
 -- | The dynamic resource specs of a machine (i.e. load or load

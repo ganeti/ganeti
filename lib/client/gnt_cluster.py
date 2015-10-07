@@ -241,6 +241,7 @@ def InitCluster(opts, args):
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
+    ipolicy_memory_ratio=opts.ipolicy_memory_ratio,
     fill_all=True)
 
   if opts.candidate_pool_size is None:
@@ -1352,6 +1353,7 @@ def SetClusterParams(opts, args):
           opts.ipolicy_disk_templates is not None or
           opts.ipolicy_vcpu_ratio is not None or
           opts.ipolicy_spindle_ratio is not None or
+          opts.ipolicy_memory_ratio is not None or
           opts.modify_etc_hosts is not None or
           opts.file_storage_dir is not None or
           opts.install_image is not None or
@@ -1409,6 +1411,7 @@ def SetClusterParams(opts, args):
     ipolicy_disk_templates=opts.ipolicy_disk_templates,
     ipolicy_vcpu_ratio=opts.ipolicy_vcpu_ratio,
     ipolicy_spindle_ratio=opts.ipolicy_spindle_ratio,
+    ipolicy_memory_ratio=opts.ipolicy_memory_ratio,
     )
 
   mnh = opts.maintain_node_health

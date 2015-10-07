@@ -168,13 +168,14 @@ serializeMultipleMinMaxISpecs minmaxes =
 -- | Generate policy data from a given policy object.
 serializeIPolicy :: String -> IPolicy -> String
 serializeIPolicy owner ipol =
-  let IPolicy minmax stdspec dts vcpu_ratio spindle_ratio = ipol
+  let IPolicy minmax stdspec dts vcpu_ratio spindle_ratio memory_ratio = ipol
       strings = [ owner
                 , serializeISpec stdspec
                 , serializeMultipleMinMaxISpecs minmax
                 , serializeDiskTemplates dts
                 , show vcpu_ratio
                 , show spindle_ratio
+                , show memory_ratio
                 ]
   in intercalate "|" strings
 
@@ -370,16 +371,21 @@ loadMultipleMinMaxISpecs owner ispecs = do
 -- | Loads an ipolicy from a field list.
 loadIPolicy :: [String] -> Result (String, IPolicy)
 loadIPolicy (owner:stdspec:minmaxspecs:dtemplates:
-             vcpu_ratio:spindle_ratio:_) = do
+             vcpu_ratio:spindle_ratio:memory_ratio:_) = do
   xstdspec <- loadISpec (owner ++ "/stdspec") (commaSplit stdspec)
   xminmaxspecs <- loadMultipleMinMaxISpecs owner $
                   sepSplit iSpecsSeparator minmaxspecs
   xdts <- mapM diskTemplateFromRaw $ commaSplit dtemplates
   xvcpu_ratio <- tryRead (owner ++ "/vcpu_ratio") vcpu_ratio
   xspindle_ratio <- tryRead (owner ++ "/spindle_ratio") spindle_ratio
+  xmemory_ratio <- tryRead (owner ++ "/memory_ratio") memory_ratio
   return (owner,
           IPolicy xminmaxspecs xstdspec
-                xdts xvcpu_ratio xspindle_ratio)
+                xdts xvcpu_ratio xspindle_ratio xmemory_ratio)
+loadIPolicy (owner:stdspec:minmaxspecs:dtemplates:
+             vcpu_ratio:spindle_ratio:_) =
+  loadIPolicy (owner:stdspec:minmaxspecs:dtemplates:
+               vcpu_ratio:spindle_ratio:["1.0"])
 loadIPolicy s = fail $ "Invalid ipolicy data: '" ++ show s ++ "'"
 
 loadOnePolicy :: (IPolicy, Group.List) -> String

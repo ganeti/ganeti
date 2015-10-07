@@ -206,8 +206,14 @@ ipolicyVcpuRatio = "vcpu-ratio"
 ipolicySpindleRatio :: String
 ipolicySpindleRatio = "spindle-ratio"
 
+ipolicyMemoryRatio :: String
+ipolicyMemoryRatio = "memory-ratio"
+
 ipolicyDefaultsVcpuRatio :: Double
 ipolicyDefaultsVcpuRatio = 4.0
 
 ipolicyDefaultsSpindleRatio :: Double
 ipolicyDefaultsSpindleRatio = 32.0
+
+ipolicyDefaultsMemoryRatio :: Double
+ipolicyDefaultsMemoryRatio = 1.0
