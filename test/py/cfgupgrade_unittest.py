@@ -435,6 +435,16 @@ class TestCfgupgrade(unittest.TestCase):
   def testUpgradeFullConfigFrom_2_16(self):
     self._TestUpgradeFromFile("cluster_config_2.16.json", False)
 
+  def testUpgradeFullConfigFrom_2_17(self):
+    self._TestUpgradeFromFile("cluster_config_2.17.json", False)
+
+  def test_2_17_to_2_16_downgrade(self):
+    self._TestUpgradeFromFile("cluster_config_2.17.json", False)
+    _RunUpgrade(self.tmpdir, False, True, downgrade=True)
+    oldconf = self._LoadConfig()
+    newconf = self._LoadTestDataConfig("cluster_config_2.16.json")
+    self.assertEqual(oldconf, newconf)
+
   def testUpgradeCurrent(self):
     self._TestSimpleUpgrade(constants.CONFIG_VERSION, False)
 
