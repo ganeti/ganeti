@@ -186,8 +186,10 @@ parseNode ktg a = do
   ctotal <- lvextract 0.0 "ctotal"
   cnos <- lvextract 0 "cnos"
   tags <- extract "tags"
-  let node = flip Node.setNodeTags tags $
-             Node.create name mtotal mnode mfree dtotal dfree ctotal cnos
+  hv_state <- extractDef emptyContainer "hv_state"
+  let node_mem = obtainNodeMemory hv_state mnode
+      node = flip Node.setNodeTags tags $
+             Node.create name mtotal node_mem mfree dtotal dfree ctotal cnos
              (not live || drained) sptotal spfree guuid' excl_stor
   return (name, node)
 

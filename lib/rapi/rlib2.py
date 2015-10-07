@@ -91,7 +91,7 @@ I_FIELDS = ["name", "admin_state", "os",
 
 N_FIELDS = ["name", "offline", "master_candidate", "drained",
             "dtotal", "dfree", "sptotal", "spfree",
-            "mtotal", "mnode", "mfree",
+            "mtotal", "mnode", "mfree", "hv_state",
             "pinst_cnt", "sinst_cnt",
             "ctotal", "cnos", "cnodes", "csockets",
             "pip", "sip", "role",
@@ -119,7 +119,7 @@ G_FIELDS = [
   "diskparams",
   "custom_diskparams",
   "ndparams",
-  "custom_ndparams",
+  "custom_ndparams"
   ] + _COMMON_FIELDS
 
 FILTER_RULE_FIELDS = [
