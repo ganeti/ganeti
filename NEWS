@@ -2,6 +2,32 @@ News
 ====
 
 
+Version 2.17.0 alpha1
+---------------------
+
+*(unreleased)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The IAllocator protocol has been extended by a new ``hv-state`` parameter.
+  This new parameter is used to estimate the amount memory used by a node
+  instead of ``reserved_mem`` on hypervisors other that ``xen-pvm`` and
+  ``xen-hvm`` because ``reserved_mem`` was reported incorrectly on them.
+  As far as this ``hv_state`` parameter is not presented in iallocator input,
+  old ``reserved_mem`` will be used.
+  conversion to DRBD no secondary node is specified. As long as this new
+  feature is not used, a third-party IAllocator not aware of this extension can
+  be continued to be used.
+
+New features
+~~~~~~~~~~~~
+
+- ``htools`` support memory over-commitment now. Look at
+  :doc:`Memory Over Commitment <design-memory-over-commitment>` for the
+  details.
+
+
 Version 2.16.0 beta1
 --------------------
 
