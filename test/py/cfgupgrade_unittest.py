@@ -56,7 +56,7 @@ def GetMinimalConfig():
     "version": constants.CONFIG_VERSION,
     "cluster": {
       "master_node": "node1-uuid",
-      "ipolicy": None,
+      "ipolicy": {},
       "default_iallocator_params": {},
       "diskparams": {},
       "ndparams": {},

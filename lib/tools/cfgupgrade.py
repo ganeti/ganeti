@@ -722,6 +722,10 @@ class CfgUpgrade(object):
              cluster["data_collectors"]):
         del (cluster["data_collectors"]
                 [constants.DATA_COLLECTOR_DIAGNOSE])
+      if "ipolicy" in cluster:
+        ipolicy = cluster["ipolicy"]
+        if "memory-ratio" in ipolicy:
+          del ipolicy["memory-ratio"]
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
     return True
