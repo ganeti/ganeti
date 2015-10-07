@@ -31,6 +31,7 @@ ADD
 | [\--ipolicy-disk-templates *template* [,*template*...]]
 | [\--ipolicy-spindle-ratio *ratio*]
 | [\--ipolicy-vcpu-ratio *ratio*]
+| [\--ipolicy-memory-ratio *ratio*]
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
 | {*group*}
@@ -103,6 +104,7 @@ MODIFY
 | [\--ipolicy-disk-templates *template* [,*template*...]]
 | [\--ipolicy-spindle-ratio *ratio*]
 | [\--ipolicy-vcpu-ratio *ratio*]
+| [\--ipolicy-memory-ratio *ratio*]
 | {*group*}
 
 Modifies some parameters from the node group.

@@ -198,6 +198,7 @@ INIT
 | [\--ipolicy-disk-templates *template* [,*template*...]]
 | [\--ipolicy-spindle-ratio *ratio*]
 | [\--ipolicy-vcpu-ratio *ratio*]
+| [\--ipolicy-memory-ratio *ratio*]
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
 | [\--drbd-usermode-helper *helper*]
@@ -582,6 +583,7 @@ of cluster-wide enabled disk templates (which can be set with
 
 - ``--ipolicy-spindle-ratio`` limits the instances-spindles ratio
 - ``--ipolicy-vcpu-ratio`` limits the vcpu-cpu ratio
+- ``--ipolicy-memory-ratio`` limits the memory over-commitment ratio
 
 All the instance policy elements can be overridden at group level. Group
 level overrides can be removed by specifying ``default`` as the value of
