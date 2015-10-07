@@ -572,6 +572,7 @@ class IAllocator(object):
       "master_capable": ninfo.master_capable,
       "vm_capable": ninfo.vm_capable,
       "ndparams": cfg.GetNdParams(ninfo),
+      "hv_state": cfg.GetFilledHvStateParams(ninfo)
       })
       for ninfo in node_cfg.values())
 

@@ -114,6 +114,7 @@ class TestComputeBasicNodeData(unittest.TestCase):
     self.assertEqual(self.fn({}), {})
 
   def testSimple(self):
+    self.maxDiff = None
     node1 = objects.Node(name="node1",
                          primary_ip="192.0.2.1",
                          secondary_ip="192.0.2.2",
@@ -153,6 +154,7 @@ class TestComputeBasicNodeData(unittest.TestCase):
         "master_capable": True,
         "vm_capable": False,
         "ndparams": None,
+        "hv_state": None,
         },
       "node2": {
         "tags": [],
@@ -165,6 +167,7 @@ class TestComputeBasicNodeData(unittest.TestCase):
         "master_capable": False,
         "vm_capable": True,
         "ndparams": None,
+        "hv_state": None,
         },
       })
 
