@@ -4269,8 +4269,8 @@ ipolicyDefaults =
                                      , (ispecSpindleUse, 1)
                                      ] :: Map String Int))
   , (ipolicyDts,          PyValueEx (ConstantUtils.toList diskTemplates))
-  , (ipolicyVcpuRatio,    PyValueEx (4.0 :: Double))
-  , (ipolicySpindleRatio, PyValueEx (32.0 :: Double))
+  , (ipolicyVcpuRatio,    PyValueEx ConstantUtils.ipolicyDefaultsVcpuRatio)
+  , (ipolicySpindleRatio, PyValueEx ConstantUtils.ipolicyDefaultsSpindleRatio)
   ]
 
 masterPoolSizeDefault :: Int
