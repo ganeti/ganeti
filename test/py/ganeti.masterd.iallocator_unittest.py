@@ -101,6 +101,8 @@ class TestIARequestBase(unittest.TestCase):
 class _FakeConfigWithNdParams:
   def GetNdParams(self, _):
     return None
+  def GetFilledHvStateParams(self, _):
+    return None
 
 
 class TestComputeBasicNodeData(unittest.TestCase):

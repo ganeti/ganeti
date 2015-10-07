@@ -222,6 +222,30 @@ class ConfigWriter(object):
     """
     return self._UnlockedGetNdParams(node)
 
+  def _UnlockedGetFilledHvStateParams(self, node):
+    cfg = self._ConfigData()
+    cluster_hv_state = cfg.cluster.hv_state_static
+    def_hv = self._UnlockedGetHypervisorType()
+    cluster_fv = constants.HVST_DEFAULTS if def_hv not in cluster_hv_state \
+                                         else cluster_hv_state[def_hv]
+    group_hv_state = self._UnlockedGetNodeGroup(node.group).hv_state_static
+    group_fv = cluster_fv if def_hv not in group_hv_state else \
+               objects.FillDict(cluster_fv, group_hv_state[def_hv])
+    node_fv = group_fv if def_hv not in node.hv_state_static else \
+              objects.FillDict(group_fv, node.hv_state_static[def_hv])
+    return {def_hv: node_fv}
+
+  @ConfigSync(shared=1)
+  def GetFilledHvStateParams(self, node):
+    """Get the node params populated with cluster defaults.
+
+    @type node: L{objects.Node}
+    @param node: The node we want to know the params for
+    @return: A dict with the filled in node hv_state params for the default hv
+
+    """
+    return self._UnlockedGetFilledHvStateParams(node)
+
   @ConfigSync(shared=1)
   def GetNdGroupParams(self, nodegroup):
     """Get the node groups params populated with cluster defaults.
@@ -1291,12 +1315,18 @@ class ConfigWriter(object):
     """
     return self._ConfigData().cluster.gluster_storage_dir
 
+  def _UnlockedGetHypervisorType(self):
+    """Get the hypervisor type for this cluster.
+
+    """
+    return self._ConfigData().cluster.enabled_hypervisors[0]
+
   @ConfigSync(shared=1)
   def GetHypervisorType(self):
     """Get the hypervisor type for this cluster.
 
     """
-    return self._ConfigData().cluster.enabled_hypervisors[0]
+    return self._UnlockedGetHypervisorType()
 
   @ConfigSync(shared=1)
   def GetRsaHostKey(self):
