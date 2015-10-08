@@ -283,8 +283,7 @@ def _GetExistingDeviceInfo(dev_type, device, runtime):
   @type runtime: tuple (cmd, nics, hvparams, disks)
   @param runtime: the runtime data to search for the device
   @raise errors.HotplugError: in case the requested device does not
-    exist (e.g. device has been added without --hotplug option) or
-    device info has not pci slot (e.g. old devices in the cluster)
+    exist (e.g. device has been added without --hotplug option)
 
   """
   index = _DEVICE_RUNTIME_INDEX[dev_type]
@@ -2041,18 +2040,17 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     return bus_slots
 
   @_with_qmp
-  def _VerifyHotplugCommand(self, _instance,
-                            device, kvm_devid, should_exist):
+  def _VerifyHotplugCommand(self, _instance, kvm_devid, should_exist):
     """Checks if a previous hotplug command has succeeded.
 
     Depending on the should_exist value, verifies that an entry identified by
-    the PCI slot and device ID is present or not.
+    device ID is present or not.
 
     @raise errors.HypervisorError: if result is not the expected one
 
     """
     for i in range(5):
-      found = self.qmp.HasPCIDevice(device, kvm_devid)
+      found = self.qmp.HasDevice(kvm_devid)
       logging.info("Verifying hotplug command (retry %s): %s", i, found)
       if found and should_exist:
         break
@@ -2097,7 +2095,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self.qmp.HotAddNic(device, kvm_devid, tapfds, vhostfds, features)
       utils.WriteFile(self._InstanceNICFile(instance.name, seq), data=tap)
 
-    self._VerifyHotplugCommand(instance, device, kvm_devid, True)
+    self._VerifyHotplugCommand(instance, kvm_devid, True)
     # update relevant entries in runtime file
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     entry = _RUNTIME_ENTRY[dev_type](device, extra)
@@ -2124,7 +2122,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       self.qmp.HotDelNic(kvm_devid)
       utils.RemoveFile(self._InstanceNICFile(instance.name, seq))
-    self._VerifyHotplugCommand(instance, kvm_device, kvm_devid, False)
+    self._VerifyHotplugCommand(instance, kvm_devid, False)
     index = _DEVICE_RUNTIME_INDEX[dev_type]
     runtime[index].remove(entry)
     self._SaveKVMRuntime(instance, runtime)

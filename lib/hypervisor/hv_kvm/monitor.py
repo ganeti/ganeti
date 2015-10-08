@@ -256,6 +256,11 @@ class QmpConnection(MonitorSocket):
   _QUERY_COMMANDS = "query-commands"
   _MESSAGE_END_TOKEN = "\r\n"
   _QEMU_PCI_SLOTS = 32 # The number of PCI slots QEMU exposes by default
+  # List of valid attributes for the device_add QMP command.
+  # Extra attributes found in device's hvinfo will be ignored.
+  _DEVICE_ATTRIBUTES = [
+    "driver", "id", "bus", "addr", "channel", "scsi-id", "lun"
+    ]
 
   def __init__(self, monitor_filename):
     super(QmpConnection, self).__init__(monitor_filename)
@@ -459,6 +464,15 @@ class QmpConnection(MonitorSocket):
 
       return response[self._RETURN_KEY]
 
+  def _filter_hvinfo(self, hvinfo):
+    """Filter non valid keys of the device's hvinfo (if any)."""
+    ret = {}
+    for k in self._DEVICE_ATTRIBUTES:
+      if k in hvinfo:
+        ret[k] = hvinfo[k]
+
+    return ret
+
   @_ensure_connection
   def HotAddNic(self, nic, devid, tapfds=None, vhostfds=None, features=None):
     """Hot-add a NIC
@@ -501,13 +515,12 @@ class QmpConnection(MonitorSocket):
     self.Execute("netdev_add", arguments)
 
     arguments = {
-      "driver": "virtio-net-pci",
-      "id": devid,
-      "bus": "pci.0",
-      "addr": hex(nic.pci),
       "netdev": devid,
       "mac": nic.mac,
     }
+    # Note that hvinfo that _GenerateDeviceHVInfo() creates
+    # sould include *only* the driver, id, bus, and addr keys
+    arguments.update(self._filter_hvinfo(nic.hvinfo))
     if enable_mq:
       arguments.update({
         "mq": "on",
@@ -559,12 +572,12 @@ class QmpConnection(MonitorSocket):
       self._RemoveFdset(fdset)
 
     arguments = {
-      "driver": "virtio-blk-pci",
-      "id": devid,
-      "bus": "pci.0",
-      "addr": hex(disk.pci),
       "drive": devid,
     }
+    # Note that hvinfo that _GenerateDeviceHVInfo() creates
+    # sould include *only* the driver, id, bus, and
+    # addr or channel, scsi-id, and lun keys
+    arguments.update(self._filter_hvinfo(disk.hvinfo))
     self.Execute("device_add", arguments)
 
   @_ensure_connection
@@ -589,17 +602,51 @@ class QmpConnection(MonitorSocket):
     devices = bus["devices"]
     return devices
 
-  @_ensure_connection
-  def HasPCIDevice(self, device, devid):
-    """Check if a specific device exists or not on a running instance.
-
-    It will match the PCI slot of the device and the id currently
-    obtained by _GenerateDeviceKVMId().
+  def _HasPCIDevice(self, devid):
+    """Check if a specific device ID exists on the PCI bus.
 
     """
     for d in self._GetPCIDevices():
-      if d["qdev_id"] == devid and d["slot"] == device.pci:
+      if d["qdev_id"] == devid:
         return True
+
+    return False
+
+  def _GetBlockDevices(self):
+    """Get the block devices of a running instance.
+
+    The query-block QMP command returns a list of dictionaries
+    including information for each virtual disk. For example:
+
+    [{"device": "disk-049f140d", "inserted": {"file": ..., "image": ...}}]
+
+    @rtype: list of dicts
+    @return: Info about the virtual disks of the instance.
+
+    """
+    self._check_connection()
+    devices = self.Execute("query-block")
+    return devices
+
+  def _HasBlockDevice(self, devid):
+    """Check if a specific device ID exists among block devices.
+
+    """
+    for d in self._GetBlockDevices():
+      if d["device"] == devid:
+        return True
+
+    return False
+
+  @_ensure_connection
+  def HasDevice(self, devid):
+    """Check if a specific device exists or not on a running instance.
+
+    It first checks the PCI devices and then the block devices.
+
+    """
+    if (self._HasPCIDevice(devid) or self._HasBlockDevice(devid)):
+      return True
 
     return False
 
