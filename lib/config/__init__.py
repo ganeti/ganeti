@@ -620,34 +620,8 @@ class ConfigWriter(object):
 
   @ConfigSync(shared=1)
   def CommitTemporaryIps(self, _ec_id):
-    """A simple wrapper around L{_UnlockedCommitTemporaryIps}"""
-    self._UnlockedCommitTemporaryIps(_ec_id)
-
-  def _UnlockedCommitTemporaryIps(self, _ec_id):
-    """Commit all reserved IP address to their respective pools
-
-    """
-    if self._offline:
-      raise errors.ProgrammerError("Can't call CommitTemporaryIps"
-                                   " in offline mode")
-    ips = self._wconfd.ListReservedIps(self._GetWConfdContext())
-    for action, address, net_uuid in ips:
-      self._UnlockedCommitIp(action, net_uuid, address)
-
-  def _UnlockedCommitIp(self, action, net_uuid, address):
-    """Commit a reserved IP address to an IP pool.
-
-    The IP address is taken from the network's IP pool and marked as free.
-
-    """
-    nobj = self._UnlockedGetNetwork(net_uuid)
-    if nobj is None:
-      raise errors.ProgrammerError("Network '%s' not found" % (net_uuid, ))
-    pool = network.AddressPool(nobj)
-    if action == constants.RESERVE_ACTION:
-      pool.Reserve(address)
-    elif action == constants.RELEASE_ACTION:
-      pool.Release(address)
+    """Tell WConfD to commit all temporary ids"""
+    self._wconfd.CommitTemporaryIps(self._GetWConfdContext())
 
   def ReleaseIp(self, net_uuid, address, _ec_id):
     """Give a specific IP address back to an IP pool.
