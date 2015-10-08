@@ -1697,6 +1697,7 @@ TEST_FILES = \
 	test/data/htools/common-suffix.data \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-dedicated-1.json \
+	test/data/htools/hail-alloc-desired-location.json \
 	test/data/htools/hail-alloc-drbd.json \
 	test/data/htools/hail-alloc-drbd-restricted.json \
 	test/data/htools/hail-alloc-ext.json \

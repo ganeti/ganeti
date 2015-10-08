@@ -234,3 +234,8 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 ./test/hs/hail $TESTDATA_DIR/hail-alloc-nlocation.json
 >>> /"success":true,.*,"result":\["node3","node2"\]/
 >>>= 0
+
+# Desired location test
+./test/hs/hail $TESTDATA_DIR/hail-alloc-desired-location.json
+>>> /"success":true,.*,"result":\["node1"\]/
+>>>= 0
