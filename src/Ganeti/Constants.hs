@@ -2727,6 +2727,25 @@ htDiskScsi = "scsi"
 htDiskSd :: String
 htDiskSd = "sd"
 
+htDiskScsiGeneric :: String
+htDiskScsiGeneric = "scsi-generic"
+
+htDiskScsiBlock :: String
+htDiskScsiBlock = "scsi-block"
+
+htDiskScsiCd :: String
+htDiskScsiCd = "scsi-cd"
+
+htDiskScsiHd :: String
+htDiskScsiHd = "scsi-hd"
+
+htScsiDeviceTypes :: FrozenSet String
+htScsiDeviceTypes =
+  ConstantUtils.mkSet [htDiskScsiGeneric,
+                       htDiskScsiBlock,
+                       htDiskScsiCd,
+                       htDiskScsiHd]
+
 htHvmValidDiskTypes :: FrozenSet String
 htHvmValidDiskTypes = ConstantUtils.mkSet [htDiskIoemu, htDiskParavirtual]
 
@@ -2737,7 +2756,11 @@ htKvmValidDiskTypes =
                        htDiskParavirtual,
                        htDiskPflash,
                        htDiskScsi,
-                       htDiskSd]
+                       htDiskSd,
+                       htDiskScsiGeneric,
+                       htDiskScsiBlock,
+                       htDiskScsiHd,
+                       htDiskScsiCd]
 
 htCacheDefault :: String
 htCacheDefault = "default"

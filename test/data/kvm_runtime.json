@@ -31,7 +31,12 @@
         "link": "br0",
         "mode": "bridged"
       },
-      "pci": 6,
+      "hvinfo": {
+        "driver": "virtio-net-pci",
+        "id": "nic-003fc157-66a8-4e6d",
+        "bus": "pci.0",
+        "addr": "0x8"
+      },
       "uuid": "003fc157-66a8-4e6d-8b7e-ec4f69751396"
     }
   ],
@@ -108,7 +113,12 @@
         "params": {
           "stripes": 1
         },
-        "pci": 4,
+        "hvinfo": {
+          "driver": "virtio-blk-pci",
+          "id": "disk-7c079136-2573-4112",
+          "bus": "pci.0",
+          "addr": "0x9"
+        },
         "size": 1024,
         "uuid": "7c079136-2573-4112-82d0-0d3d2aa90d8f"
       },
@@ -128,7 +138,12 @@
         "params": {
           "stripes": 1
         },
-        "pci": 5,
+        "hvinfo": {
+          "driver": "virtio-blk-pci",
+          "id": "disk-9f5c5bd4-6f60-480b",
+          "bus": "pci.0",
+          "addr": "0xa"
+        },
         "size": 512,
         "uuid": "9f5c5bd4-6f60-480b-acdc-9bb1a4b7df79"
       },
