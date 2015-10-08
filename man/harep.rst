@@ -65,6 +65,18 @@ the cluster has both ``fix-storage`` and ``reinstall``.
 The I1 instance will be allowed to ``failover``, the I2 instance only to
 ``fix-storage``.
 
+LIMITATIONS
+-----------
+
+Harep doesn't do any hardware failure detection on its own, it relies on
+nodes being marked as offline by the administrator.
+
+Also harep currently works only for instances with the ``drbd`` and
+``plain`` disk templates.
+
+Both these issues will be addressed by a new maintenance daemon in
+future Ganeti versions, which will supersede harep.
+
 
 OPTIONS
 -------
