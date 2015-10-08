@@ -717,6 +717,7 @@ docinput = \
 	doc/design-reservations.rst \
 	doc/design-resource-model.rst \
 	doc/design-restricted-commands.rst \
+	doc/design-scsi-kvm.rst \
 	doc/design-shared-storage.rst \
 	doc/design-shared-storage-redundancy.rst \
 	doc/design-ssh-ports.rst \
