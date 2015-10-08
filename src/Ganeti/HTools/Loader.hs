@@ -53,6 +53,8 @@ module Ganeti.HTools.Loader
   , ClusterData(..)
   , isAllocationRequest
   , emptyCluster
+  , extractDesiredLocations
+  , updateDesiredLocationTags
   ) where
 
 import Control.Monad
