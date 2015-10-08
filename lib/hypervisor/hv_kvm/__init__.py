@@ -476,6 +476,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_NIC_TYPES),
     constants.HV_DISK_TYPE:
       hv_base.ParamInSet(True, constants.HT_KVM_VALID_DISK_TYPES),
+    constants.HV_KVM_SCSI_CONTROLLER_TYPE:
+      hv_base.ParamInSet(True, constants.HT_KVM_VALID_SCSI_CONTROLLER_TYPES),
     constants.HV_KVM_CDROM_DISK_TYPE:
       hv_base.ParamInSet(False, constants.HT_KVM_VALID_DISK_TYPES),
     constants.HV_USB_MOUSE:
@@ -1230,11 +1232,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       soundhw = hvp[constants.HV_SOUNDHW]
       kvm_cmd.extend(["-soundhw", soundhw])
 
-    if hvp[constants.HV_DISK_TYPE] == constants.HT_DISK_SCSI:
-      # In case a SCSI disk is given, QEMU adds
-      # a SCSI contorller (LSI Logic / Symbios Logic 53c895a)
-      # implicitly.
-      pass
+    if hvp[constants.HV_DISK_TYPE] in constants.HT_SCSI_DEVICE_TYPES:
+      # In case a SCSI disk is given, QEMU adds a SCSI contorller
+      # (LSI Logic / Symbios Logic 53c895a) implicitly.
+      # Here, we add the controller explicitly with the default id.
+      kvm_cmd.extend([
+        "-device",
+        "%s,id=scsi" % hvp[constants.HV_KVM_SCSI_CONTROLLER_TYPE]
+        ])
 
     kvm_cmd.extend(["-balloon", "virtio"])
     kvm_cmd.extend(["-daemonize"])

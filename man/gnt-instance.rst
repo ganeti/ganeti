@@ -333,6 +333,17 @@ vif\_type
     - ioemu
     - vif
 
+scsi\_controller\_type
+    Valid for the KVM hypervisor.
+
+    This parameter specifies which type of SCSI controller to use.
+    The possible options are:
+
+    - lsi [default]
+    - megasas
+    - virtio-scsi-pci
+
+
 disk\_type
     Valid for the Xen HVM and KVM hypervisors.
 
