@@ -141,6 +141,7 @@ parseNode :: NameAssoc   -- ^ The group association
 parseNode ktg n a = do
   let desc = "invalid data for node '" ++ n ++ "'"
       extract x = tryFromObj desc a x
+      extractDef def key = fromObjWithDefault a key def
   offline <- extract "offline"
   drained <- extract "drained"
   guuid   <- extract "group"
@@ -148,6 +149,9 @@ parseNode ktg n a = do
   let vm_capable' = fromMaybe True vm_capable
   gidx <- lookupGroup ktg n guuid
   ndparams <- extract "ndparams" >>= asJSObject
+  -- Despite the fact that tags field is reported by iallocator.py,
+  -- some tests don't contain tags field
+  tags <- extractDef [] "tags"
   excl_stor <- tryFromObj desc (fromJSObject ndparams) "exclusive_storage"
   let live = not offline && vm_capable'
       lvextract def = eitherLive live def . extract
@@ -162,7 +166,8 @@ parseNode ktg n a = do
   dfree  <- lvextract 0 "free_disk"
   ctotal <- lvextract 0.0 "total_cpus"
   cnos <- lvextract 0 "reserved_cpus"
-  let node = Node.create n mtotal mnode mfree dtotal dfree ctotal cnos
+  let node = flip Node.setNodeTags tags $
+             Node.create n mtotal mnode mfree dtotal dfree ctotal cnos
              (not live || drained) sptotal spfree gidx excl_stor
   return (n, node)
 
