@@ -48,6 +48,7 @@ from bitarray import bitarray
 
 from ganeti import errors
 from ganeti import utils
+from ganeti import constants
 from ganeti import serializer
 
 
@@ -255,7 +256,6 @@ class QmpConnection(MonitorSocket):
   _CAPABILITIES_COMMAND = "qmp_capabilities"
   _QUERY_COMMANDS = "query-commands"
   _MESSAGE_END_TOKEN = "\r\n"
-  _QEMU_PCI_SLOTS = 32 # The number of PCI slots QEMU exposes by default
   # List of valid attributes for the device_add QMP command.
   # Extra attributes found in device's hvinfo will be ignored.
   _DEVICE_ATTRIBUTES = [
@@ -669,7 +669,7 @@ class QmpConnection(MonitorSocket):
     """Get the first available PCI slot of a running instance.
 
     """
-    slots = bitarray(self._QEMU_PCI_SLOTS)
+    slots = bitarray(constants.QEMU_PCI_SLOTS)
     slots.setall(False) # pylint: disable=E1101
     for d in self._GetPCIDevices():
       slot = d["slot"]

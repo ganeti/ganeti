@@ -468,6 +468,7 @@ class TestGenerateDeviceKVMId(unittest.TestCase):
 
 class TestGenerateDeviceHVInfo(testutils.GanetiTestCase):
   def testPCI(self):
+    """Test the placement of the first PCI device during startup."""
     self.MockOut(mock.patch('ganeti.utils.EnsureDirs'))
     hypervisor = hv_kvm.KVMHypervisor()
     dev_type = constants.HOTPLUG_TARGET_NIC
@@ -478,16 +479,18 @@ class TestGenerateDeviceHVInfo(testutils.GanetiTestCase):
                                           kvm_devid,
                                           hv_dev_type,
                                           bus_slots)
+    # NOTE: The PCI slot is zero-based, i.e. 13th slot has addr hex(12)
     expected_hvinfo = {
       "driver": "virtio-net-pci",
       "id": kvm_devid,
       "bus": "pci.0",
-      "addr": hex(16),
+      "addr": hex(constants.QEMU_DEFAULT_PCI_RESERVATIONS),
       }
 
     self.assertTrue(hvinfo == expected_hvinfo)
 
   def testSCSI(self):
+    """Test the placement of the first SCSI device during startup."""
     self.MockOut(mock.patch('ganeti.utils.EnsureDirs'))
     hypervisor = hv_kvm.KVMHypervisor()
     dev_type = constants.HOTPLUG_TARGET_DISK

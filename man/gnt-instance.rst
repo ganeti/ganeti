@@ -343,6 +343,14 @@ scsi\_controller\_type
     - megasas
     - virtio-scsi-pci
 
+kvm\_pci\_reservations
+    Valid for the KVM hypervisor.
+
+    The nubmer of PCI slots that QEMU will manage implicitly. By default Ganeti
+    will let QEMU use the first 12 slots (i.e. PCI slots 0-11) on its own and
+    will start adding disks and NICs from the 13rd slot (i.e. PCI slot 12)
+    onwards. So by default one can add 20 PCI devices (32 - 12). To support more
+    than that, this hypervisor parameter should be set accordingly (e.g. to 8).
 
 disk\_type
     Valid for the Xen HVM and KVM hypervisors.

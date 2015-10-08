@@ -515,6 +515,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_KVM_EXTRA: hv_base.NO_CHECK,
     constants.HV_KVM_MACHINE_VERSION: hv_base.NO_CHECK,
     constants.HV_KVM_MIGRATION_CAPS: hv_base.NO_CHECK,
+    constants.HV_KVM_PCI_RESERVATIONS:
+      (False, lambda x: (x >= 0 and x <= constants.QEMU_PCI_SLOTS),
+       "The number of PCI slots managed by QEMU (max: %s)" %
+       constants.QEMU_PCI_SLOTS,
+       None, None),
     constants.HV_VNET_HDR: hv_base.NO_CHECK,
     }
 
@@ -570,6 +575,11 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   # NOTE: This maps to the default PCI bus created by pc machine type
   # by default (pci.0). The q35 creates a PCIe bus that is not hotpluggable
   # and should be handled differently (pcie.0).
+  # NOTE: This bitarray here is defined for more fine-grained control.
+  # Currently the number of slots is QEMU_PCI_SLOTS and the reserved
+  # ones are the first QEMU_DEFAULT_PCI_RESERVATIONS.
+  # If the above constants change without updating _DEFAULT_PCI_RESERVATIONS
+  # properly, TestGenerateDeviceHVInfo() will probably break.
   _DEFAULT_PCI_RESERVATIONS = "11111111111100000000000000000000"
   # The SCSI bus is created on demand or automatically and is empty.
   # For simplicity we decide to use a different target (scsi-id)
@@ -1225,7 +1235,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     kvm_cmd.extend(["-pidfile", pidfile])
 
-    bus_slots = self._GetBusSlots()
+    bus_slots = self._GetBusSlots(hvp)
 
     # As requested by music lovers
     if hvp[constants.HV_SOUNDHW]:
@@ -2034,7 +2044,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if (int(v_major), int(v_min)) < (1, 7):
       raise errors.HotplugError("Hotplug not supported for qemu versions < 1.7")
 
-  def _GetBusSlots(self, runtime=None):
+  def _GetBusSlots(self, hvp=None, runtime=None):
     """Helper function to get the slots of PCI and SCSI QEMU buses.
 
     This will return the status of the first PCI and SCSI buses. By default
@@ -2058,6 +2068,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       _PCI_BUS: bitarray(self._DEFAULT_PCI_RESERVATIONS),
       _SCSI_BUS: bitarray(self._DEFAULT_SCSI_RESERVATIONS),
       }
+
+    # Adjust the empty slots depending of the corresponding hvparam
+    if hvp and constants.HV_KVM_PCI_RESERVATIONS in hvp:
+      res = hvp[constants.HV_KVM_PCI_RESERVATIONS]
+      pci = bitarray(constants.QEMU_PCI_SLOTS)
+      pci.setall(False) # pylint: disable=E1101
+      pci[0:res:1] = True
+      bus_slots[_PCI_BUS] = pci
 
     # This is during hot-add
     if runtime:
@@ -2118,7 +2136,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     runtime = self._LoadKVMRuntime(instance)
     up_hvp = runtime[2]
     device_type = _DEVICE_TYPE[dev_type](up_hvp)
-    bus_state = self._GetBusSlots(runtime)
+    bus_state = self._GetBusSlots(up_hvp, runtime)
     # in case of hot-mod this is given
     if not device.hvinfo:
       device.hvinfo = _GenerateDeviceHVInfo(dev_type, kvm_devid,

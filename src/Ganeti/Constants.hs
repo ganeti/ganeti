@@ -1700,6 +1700,9 @@ hvKvmDiskAio = "disk_aio"
 hvKvmScsiControllerType :: String
 hvKvmScsiControllerType = "scsi_controller_type"
 
+hvKvmPciReservations :: String
+hvKvmPciReservations = "kvm_pci_reservations"
+
 hvKvmSpiceAudioCompr :: String
 hvKvmSpiceAudioCompr = "spice_playback_compression"
 
@@ -1907,6 +1910,7 @@ hvsParameterTypes = Map.fromList
   , (hvKvmPath,                         VTypeString)
   , (hvKvmDiskAio,                      VTypeString)
   , (hvKvmScsiControllerType,           VTypeString)
+  , (hvKvmPciReservations,              VTypeInt)
   , (hvKvmSpiceAudioCompr,              VTypeBool)
   , (hvKvmSpiceBind,                    VTypeString)
   , (hvKvmSpiceIpVersion,               VTypeInt)
@@ -2646,6 +2650,12 @@ vncBasePort = 5900
 
 vncDefaultBindAddress :: String
 vncDefaultBindAddress = ip4AddressAny
+
+qemuPciSlots :: Int
+qemuPciSlots = 32
+
+qemuDefaultPciReservations :: Int
+qemuDefaultPciReservations = 12
 
 -- * NIC types
 
@@ -4058,6 +4068,7 @@ hvcDefaults =
           , (hvVncX509Verify,                   PyValueEx False)
           , (hvVncPasswordFile,                 PyValueEx "")
           , (hvKvmScsiControllerType,           PyValueEx htScsiControllerLsi)
+          , (hvKvmPciReservations,         PyValueEx qemuDefaultPciReservations)
           , (hvKvmSpiceBind,                    PyValueEx "")
           , (hvKvmSpiceIpVersion,           PyValueEx ifaceNoIpVersionSpecified)
           , (hvKvmSpicePasswordFile,            PyValueEx "")
