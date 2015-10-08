@@ -2083,7 +2083,20 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     runtime = self._LoadKVMRuntime(instance)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
       uri = _GetDriveURI(device, extra[0], extra[1])
-      self.qmp.HotAddDisk(device, kvm_devid, uri)
+
+      def drive_add_fn(filename):
+        """Helper function that uses HMP to hot-add a drive."""
+        cmd = "drive_add dummy file=%s,if=none,id=%s,format=raw" % \
+          (filename, kvm_devid)
+        self._CallMonitorCommand(instance.name, cmd)
+
+      # This must be done indirectly due to the fact that we pass the drive's
+      # file descriptor via QMP first, then we add the corresponding drive that
+      # refers to this fd. Note that if the QMP connection terminates before
+      # a drive which keeps a reference to the fd passed via the add-fd QMP
+      # command has been created, then the fd gets closed and cannot be used
+      # later (e.g., via an drive_add HMP command).
+      self.qmp.HotAddDisk(device, kvm_devid, uri, drive_add_fn)
     elif dev_type == constants.HOTPLUG_TARGET_NIC:
       kvmpath = instance.hvparams[constants.HV_KVM_PATH]
       kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)

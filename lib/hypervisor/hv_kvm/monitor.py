@@ -537,12 +537,13 @@ class QmpConnection(MonitorSocket):
     self.Execute("netdev_del", {"id": devid})
 
   @_ensure_connection
-  def HotAddDisk(self, disk, devid, uri):
+  def HotAddDisk(self, disk, devid, uri, drive_add_fn=None):
     """Hot-add a disk
 
     Try opening the device to obtain a fd and pass it with SCM_RIGHTS. This
     will be omitted in case of userspace access mode (open will fail).
-    Then use blockdev-add and then device_add.
+    Then use blockdev-add QMP command or drive_add_fn() callback if any.
+    The add the guest device.
 
     """
     if os.path.exists(uri):
@@ -556,17 +557,30 @@ class QmpConnection(MonitorSocket):
       filename = uri
       fdset = None
 
-    arguments = {
-      "options": {
-        "driver": "raw",
-        "id": devid,
-        "file": {
-          "driver": "file",
-          "filename": filename,
+    # FIXME: Use blockdev-add/blockdev-del when properly implemented in QEMU.
+    # This is an ugly hack to work around QEMU commits 48f364dd and da2cf4e8:
+    #  * HMP's drive_del is not supported any more on a drive added
+    #    via QMP's blockdev-add
+    #  * Stay away from immature blockdev-add unless you want to help
+    #     with development.
+    # Using drive_add here must be done via a callback due to the fact that if
+    # a QMP connection terminates before a drive keeps a reference to the fd
+    # passed via the add-fd QMP command, then the fd gets closed and
+    # cannot be used later.
+    if drive_add_fn:
+      drive_add_fn(filename)
+    else:
+      arguments = {
+        "options": {
+          "driver": "raw",
+          "id": devid,
+          "file": {
+            "driver": "file",
+            "filename": filename,
+          }
         }
       }
-    }
-    self.Execute("blockdev-add", arguments)
+      self.Execute("blockdev-add", arguments)
 
     if fdset is not None:
       self._RemoveFdset(fdset)
