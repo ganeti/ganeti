@@ -132,6 +132,27 @@ _DEVICE_BUS = {
     lambda ht: _SCSI_BUS if ht in constants.HT_SCSI_DEVICE_TYPES else _PCI_BUS
   }
 
+_HOTPLUGGABLE_DEVICE_TYPES = {
+  # All available NIC types except for ne2k_isa
+  constants.HOTPLUG_TARGET_NIC: [
+    constants.HT_NIC_E1000,
+    constants.HT_NIC_I82551,
+    constants.HT_NIC_I8259ER,
+    constants.HT_NIC_I85557B,
+    constants.HT_NIC_NE2K_PCI,
+    constants.HT_NIC_PARAVIRTUAL,
+    constants.HT_NIC_PCNET,
+    constants.HT_NIC_RTL8139,
+    ],
+  constants.HOTPLUG_TARGET_DISK: [
+    constants.HT_DISK_PARAVIRTUAL,
+    constants.HT_DISK_SCSI_BLOCK,
+    constants.HT_DISK_SCSI_GENERIC,
+    constants.HT_DISK_SCSI_HD,
+    constants.HT_DISK_SCSI_CD,
+    ]
+  }
+
 _PCI_BUS = "pci.0"
 _SCSI_BUS = "scsi.0"
 
@@ -1962,9 +1983,21 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def VerifyHotplugSupport(self, instance, action, dev_type):
     """Verifies that hotplug is supported.
 
-    @raise errors.HypervisorError: in one of the previous cases
+    Hotplug is not supported if:
+
+      - the instance is not running
+      - the device type is not hotplug-able
+      - the QMP version does not support the corresponding commands
+
+    @raise errors.HypervisorError: if one of the above applies
 
     """
+    runtime = self._LoadKVMRuntime(instance)
+    device_type = _DEVICE_TYPE[dev_type](runtime[2])
+    if device_type not in _HOTPLUGGABLE_DEVICE_TYPES[dev_type]:
+      msg = "Hotplug is not supported for device type %s" % device_type
+      raise errors.HypervisorError(msg)
+
     if dev_type == constants.HOTPLUG_TARGET_DISK:
       if action == constants.HOTPLUG_ACTION_ADD:
         self.qmp.CheckDiskHotAddSupport()
@@ -2072,15 +2105,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   def HotAddDevice(self, instance, dev_type, device, extra, seq):
     """ Helper method to hot-add a new device
 
-    It gets free pci slot generates the device name and invokes the
-    device specific method.
+    It generates the device ID and hvinfo, and invokes the
+    device-specific method.
 
     """
-    # in case of hot-mod this is given
-    if device.pci is None:
-      device.pci = self.qmp.GetFreePCISlot()
     kvm_devid = _GenerateDeviceKVMId(dev_type, device)
     runtime = self._LoadKVMRuntime(instance)
+    up_hvp = runtime[2]
+    device_type = _DEVICE_TYPE[dev_type](up_hvp)
+    bus_state = self._GetBusSlots(runtime)
+    # in case of hot-mod this is given
+    if not device.hvinfo:
+      device.hvinfo = _GenerateDeviceHVInfo(dev_type, kvm_devid,
+                                            device_type, bus_state)
     if dev_type == constants.HOTPLUG_TARGET_DISK:
       uri = _GetDriveURI(device, extra[0], extra[1])
 
@@ -2101,7 +2138,6 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       kvmpath = instance.hvparams[constants.HV_KVM_PATH]
       kvmhelp = self._GetKVMOutput(kvmpath, self._KVMOPT_HELP)
       devlist = self._GetKVMOutput(kvmpath, self._KVMOPT_DEVICELIST)
-      up_hvp = runtime[2]
       features, _, _ = self._GetNetworkDeviceFeatures(up_hvp, devlist, kvmhelp)
       (tap, tapfds, vhostfds) = OpenTap(features=features)
       self._ConfigureNIC(instance, seq, device, tap)
@@ -2120,7 +2156,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     """ Helper method for hot-del device
 
     It gets device info from runtime file, generates the device name and
-    invokes the device specific method.
+    invokes the device-specific method.
 
     """
     runtime = self._LoadKVMRuntime(instance)
@@ -2140,18 +2176,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     runtime[index].remove(entry)
     self._SaveKVMRuntime(instance, runtime)
 
-    return kvm_device.pci
+    return kvm_device.hvinfo
 
   def HotModDevice(self, instance, dev_type, device, _, seq):
     """ Helper method for hot-mod device
 
     It gets device info from runtime file, generates the device name and
-    invokes the device specific method. Currently only NICs support hot-mod
+    invokes the device-specific method. Currently only NICs support hot-mod
 
     """
     if dev_type == constants.HOTPLUG_TARGET_NIC:
-      # putting it back in the same pci slot
-      device.pci = self.HotDelDevice(instance, dev_type, device, _, seq)
+      # putting it back in the same bus and slot
+      device.hvinfo = self.HotDelDevice(instance, dev_type, device, _, seq)
       self.HotAddDevice(instance, dev_type, device, _, seq)
 
   @classmethod
