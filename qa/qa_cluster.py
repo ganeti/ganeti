@@ -35,7 +35,6 @@
 import re
 import tempfile
 import time
-import os.path
 
 from ganeti import _constants
 from ganeti import constants
@@ -49,6 +48,7 @@ import qa_error
 import qa_instance
 import qa_job_utils
 import qa_logging
+import qa_rapi
 import qa_utils
 
 from qa_utils import AssertEqual, AssertCommand, AssertRedirectedCommand, \
@@ -182,30 +182,11 @@ def TestClusterInitDisk():
     AssertCommand(["gnt-cluster", "init", "-D", param, name], fail=True)
 
 
-def TestClusterInit(rapi_user, rapi_secret):
+def TestClusterInit():
   """gnt-cluster init"""
-  master = qa_config.GetMasterNode()
-
-  rapi_users_path = qa_utils.MakeNodePath(master, pathutils.RAPI_USERS_FILE)
-  rapi_dir = os.path.dirname(rapi_users_path)
-
-  # First create the RAPI credentials
-  fh = tempfile.NamedTemporaryFile()
-  try:
-    fh.write("%s %s write\n" % (rapi_user, rapi_secret))
-    fh.flush()
-
-    tmpru = qa_utils.UploadFile(master.primary, fh.name)
-    try:
-      AssertCommand(["mkdir", "-p", rapi_dir])
-      AssertCommand(["mv", tmpru, rapi_users_path])
-    finally:
-      AssertCommand(["rm", "-f", tmpru])
-  finally:
-    fh.close()
-
   # If we don't modify the SSH setup by Ganeti, we have to ensure connectivity
   # before
+  master = qa_config.GetMasterNode()
   if not qa_config.GetModifySshSetup():
     (key_type, _, priv_key_file, pub_key_file, auth_key_path) = \
       qa_config.GetSshConfig()
@@ -260,6 +241,7 @@ def TestClusterInit(rapi_user, rapi_secret):
     if spec_values:
       cmd.append("--specs-%s=%s" % (spec_type, ",".join(spec_values)))
 
+  master = qa_config.GetMasterNode()
   if master.secondary:
     cmd.append("--secondary-ip=%s" % master.secondary)
 
@@ -1294,6 +1276,10 @@ def TestClusterRenewCrypto():
     AssertCommand(["gnt-cluster", "verify"])
   finally:
     AssertCommand(["rm", "-f", rapi_cert_backup])
+
+  # Since renew-crypto replaced the RAPI cert, reload it.
+  if qa_rapi.Enabled():
+    qa_rapi.ReloadCertificates()
 
 
 def TestClusterBurnin():
