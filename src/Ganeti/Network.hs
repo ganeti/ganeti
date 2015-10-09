@@ -40,6 +40,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Network
   ( PoolPart(..)
   , netIpv4NumHosts
+  , ip4BaseAddr
   , getReservedCount
   , getFreeCount
   , isFull
@@ -56,6 +57,7 @@ module Ganeti.Network
 import Control.Monad
 import Control.Monad.Error
 import Control.Monad.State
+import Data.Bits ((.&.))
 import Data.Function (on)
 
 import Ganeti.BasicTypes
@@ -64,6 +66,12 @@ import Ganeti.Lens
 import Ganeti.Objects
 import Ganeti.Objects.Lens
 import qualified Ganeti.Objects.BitArray as BA
+
+ip4BaseAddr :: Ip4Network -> Ip4Address
+ip4BaseAddr net =
+  let m = ip4netMask net
+      mask = 2^(32 :: Integer) - 2^(32 - m)
+  in ip4AddressFromNumber .  (.&.) mask . ip4AddressToNumber $ ip4netAddr net
 
 ipv4NumHosts :: (Integral n) => n -> Integer
 ipv4NumHosts mask = 2^(32 - mask)
@@ -175,7 +183,7 @@ getMap = maybe "" (BA.asString '.' 'X') . allReservations
 addrIndex :: (MonadError e m, Error e) => Ip4Address -> Network -> m Int
 addrIndex addr net = do
   let n = networkNetwork net
-      i = on (-) ip4AddressToNumber addr (ip4netAddr n)
+      i = on (-) ip4AddressToNumber addr (ip4BaseAddr n)
   when ((i < 0) || (i >= ipv4NumHosts (ip4netMask n))) . failError
     $ "Address '" ++ show addr ++ "' not in the network '" ++ show net ++ "'"
   return $ fromInteger i
@@ -187,7 +195,7 @@ addrAt i net | (i' < 0) || (i' >= ipv4NumHosts (ip4netMask n)) =
     failError $ "Requested index " ++ show i
                 ++ " outside the range of network '" ++ show net ++ "'"
              | otherwise =
-    return $ ip4AddressFromNumber (ip4AddressToNumber (ip4netAddr n) + i')
+    return $ ip4AddressFromNumber (ip4AddressToNumber (ip4BaseAddr n) + i')
   where
     n = networkNetwork net
     i' = toInteger i
