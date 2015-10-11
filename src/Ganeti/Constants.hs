@@ -4680,13 +4680,13 @@ cryptoOptionSerialNo = "serial_no"
 -- * SSH key types
 
 sshkDsa :: String
-sshkDsa = "dsa"
+sshkDsa = Types.sshKeyTypeToRaw DSA
 
 sshkEcdsa :: String
-sshkEcdsa = "ecdsa"
+sshkEcdsa = Types.sshKeyTypeToRaw ECDSA
 
 sshkRsa :: String
-sshkRsa = "rsa"
+sshkRsa = Types.sshKeyTypeToRaw RSA
 
 sshkAll :: FrozenSet String
 sshkAll = ConstantUtils.mkSet [sshkRsa, sshkDsa, sshkEcdsa]
