@@ -44,6 +44,7 @@ import qualified Ganeti.DataCollectors.Diagnose as Diagnose
 import qualified Ganeti.DataCollectors.Diskstats as Diskstats
 import qualified Ganeti.DataCollectors.Drbd as Drbd
 import qualified Ganeti.DataCollectors.InstStatus as InstStatus
+import qualified Ganeti.DataCollectors.KvmRSS as KvmRSS
 import qualified Ganeti.DataCollectors.Lv as Lv
 import qualified Ganeti.DataCollectors.XenCpuLoad as XenCpuLoad
 import Ganeti.DataCollectors.Types (DataCollector(..),ReportBuilder(..))
@@ -56,6 +57,7 @@ collectors :: [DataCollector]
 collectors =
   [ cpuLoadCollector
   , xenCpuLoadCollector
+  , kvmRSSCollector
   , diskStatsCollector
   , drdbCollector
   , instStatusCollector
@@ -97,3 +99,6 @@ collectors =
       DataCollector XenCpuLoad.dcName XenCpuLoad.dcCategory XenCpuLoad.dcKind
         (StatefulR XenCpuLoad.dcReport) (Just XenCpuLoad.dcUpdate) activeConfig
         updateInterval
+    kvmRSSCollector =
+      DataCollector KvmRSS.dcName KvmRSS.dcCategory KvmRSS.dcKind
+        (StatelessR KvmRSS.dcReport) Nothing activeConfig updateInterval

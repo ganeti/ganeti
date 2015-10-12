@@ -5437,6 +5437,7 @@ dataCollectorNames =
                       , dataCollectorLv
                       , dataCollectorInstStatus
                       , dataCollectorXenCpuLoad
+                      , dataCollectorKvmRSS
                       , dataCollectorDiagnose
                       ]
 
