@@ -1703,6 +1703,7 @@ TEST_FILES = \
 	test/data/htools/hail-alloc-invalid-network.json \
 	test/data/htools/hail-alloc-invalid-twodisks.json \
 	test/data/htools/hail-alloc-restricted-network.json \
+	test/data/htools/hail-alloc-nlocation.json \
 	test/data/htools/hail-alloc-plain-tags.json \
 	test/data/htools/hail-alloc-secondary.json \
 	test/data/htools/hail-alloc-spindles.json \

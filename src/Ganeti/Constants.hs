@@ -507,7 +507,7 @@ xenKernel :: String
 xenKernel = AutoConf.xenKernel
 
 xlSocatCmd :: String
-xlSocatCmd = "socat - tcp:%s:%d #"
+xlSocatCmd = "socat -b524288 - TCP:%s:%d #"
 
 xlMigrationPidfile :: String
 xlMigrationPidfile = "socat.pid"

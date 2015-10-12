@@ -108,6 +108,11 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 >>> /"success":false,.*FailSpindles: 1"/
 >>>= 0
 
+# check that hail correctly parses admin state
+./test/hs/hail -v -v $TESTDATA_DIR/hail-alloc-drbd.json
+>>>2 /runSt = StatusDown/
+>>>=0
+
 # check that hail can use the simu backend
 ./test/hs/hail --simu p,8,8T,16g,16 $TESTDATA_DIR/hail-alloc-drbd.json
 >>> /"success":true,/
@@ -223,4 +228,9 @@ cat $TESTDATA_DIR/hail-alloc-invalid-network.json | grep -v -e '"network":"uuid-
 # Verify allocate-secondary
 ./test/hs/hail $TESTDATA_DIR/hail-alloc-secondary.json
 >>> /successes 2, failures 0.*"result":"node-2-2"/
+>>>= 0
+
+# Check that hail account location tags
+./test/hs/hail $TESTDATA_DIR/hail-alloc-nlocation.json
+>>> /"success":true,.*,"result":\["node3","node2"\]/
 >>>= 0

@@ -172,7 +172,7 @@ getReservations _ Nothing = []
 getReservations net (Just pool) =
   map snd . filter fst
   $ zip (BA.toList . apReservations $ pool)
-        (iterate nextIp4Address $ ip4netAddr net)
+        (iterate nextIp4Address $ ip4BaseAddr net)
 
 -- | Computes the external reservations as string for a network.
 getExtReservationsString :: Network -> ResultEntry
