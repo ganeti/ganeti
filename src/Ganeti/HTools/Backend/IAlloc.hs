@@ -60,7 +60,8 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import Ganeti.JSON
-import Ganeti.Types (EvacMode(ChangePrimary, ChangeSecondary))
+import Ganeti.Types ( EvacMode(ChangePrimary, ChangeSecondary)
+                    , adminStateFromRaw, AdminState(..))
 import Ganeti.Utils
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
@@ -108,12 +109,17 @@ parseBaseInstance n a = do
   su    <- extract "spindle_use"
   nics  <- extract "nics" >>= toArray >>= asObjectList >>=
            mapM (parseNic n . fromJSObject)
+  state <- (tryFromObj errorMessage a "admin_state" >>= adminStateFromRaw)
+           `mplus` Ok AdminUp
+  let getRunSt AdminOffline = StatusOffline
+      getRunSt AdminDown = StatusDown
+      getRunSt AdminUp = Running
   -- Not forthcoming by default.
   forthcoming <- extract "forthcoming" `orElse` Ok False
   return
     (n,
-     Instance.create n mem disk disks vcpus Running tags True 0 0 dt su nics
-                     forthcoming)
+     Instance.create n mem disk disks vcpus (getRunSt state) tags
+                     True 0 0 dt su nics forthcoming)
 
 -- | Parses an instance as found in the cluster instance list.
 parseInstance :: NameAssoc -- ^ The node name-to-index association list
