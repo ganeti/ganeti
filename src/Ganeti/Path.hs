@@ -58,6 +58,7 @@ module Ganeti.Path
   , instanceReasonDir
   , getInstReasonFilename
   , jqueueExecutorPy
+  , kvmPidDir
   ) where
 
 import System.FilePath
@@ -190,3 +191,7 @@ getInstReasonFilename instName = instanceReasonDir `pjoin` instName
 jqueueExecutorPy :: IO FilePath
 jqueueExecutorPy = return $ versionedsharedir
                             </> "ganeti" </> "jqueue" </> "exec.py"
+
+-- | The path to the directory where kvm stores the pid files.
+kvmPidDir :: IO FilePath
+kvmPidDir = runDir `pjoin` "kvm-hypervisor" `pjoin` "pid"
