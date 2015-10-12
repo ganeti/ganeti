@@ -61,6 +61,7 @@ module Ganeti.THH ( declareSADT
                   , andRestArguments
                   , withDoc
                   , defaultField
+                  , notSerializeDefaultField
                   , optionalField
                   , optionalNullSerField
                   , renameField
@@ -176,6 +177,9 @@ data Field = Field { fieldName        :: String
                      -- ^ a list of extra keys added by 'fieldShow'
                    , fieldDefault     :: Maybe (Q Exp)
                      -- ^ an optional default value of type @t@
+                   , fieldSerializeDefault :: Bool
+                     -- ^ whether not presented default value will be
+                     -- serialized
                    , fieldConstr      :: Maybe String
                    , fieldIsOptional  :: OptionalType
                      -- ^ determines if a field is optional, and if yes,
@@ -192,6 +196,7 @@ simpleField fname ftype =
         , fieldShow        = Nothing
         , fieldExtraKeys   = []
         , fieldDefault     = Nothing
+        , fieldSerializeDefault = True
         , fieldConstr      = Nothing
         , fieldIsOptional  = NotOptional
         , fieldDoc         = ""
@@ -206,6 +211,7 @@ andRestArguments fname =
         , fieldShow        = Nothing
         , fieldExtraKeys   = []
         , fieldDefault     = Nothing
+        , fieldSerializeDefault = True
         , fieldConstr      = Nothing
         , fieldIsOptional  = AndRestArguments
         , fieldDoc         = ""
@@ -223,6 +229,13 @@ renameField constrName field = field { fieldConstr = Just constrName }
 -- default value).
 defaultField :: Q Exp -> Field -> Field
 defaultField defval field = field { fieldDefault = Just defval }
+
+-- | A defaultField which will be serialized only if it's value differs from
+-- a default value.
+notSerializeDefaultField :: Q Exp -> Field -> Field
+notSerializeDefaultField defval field =
+  field { fieldDefault = Just defval
+        , fieldSerializeDefault = False }
 
 -- | Marks a field optional (turning its base type into a Maybe).
 optionalField :: Field -> Field
@@ -1057,7 +1070,14 @@ saveObjectField fvar field = do
                                    Nothing -> [( $nameE, JSON.JSNull )]
                                    Just v  -> $(formatCode [| v |])
                               |]
-    NotOptional ->            formatCode fvarE
+    NotOptional -> case (fieldDefault field, fieldSerializeDefault field) of
+                     (Just v, False) -> [| if $v /= $fvarE
+                                             then $(formatCode fvarE)
+                                             else [] |]
+                     -- If a default value exists and we shouldn't serialize
+                     -- default fields - serialize only if the value differs
+                     -- from the default one.
+                     _ -> formatCode fvarE
     AndRestArguments -> [| M.toList $(varE fvar) |]
   where nameE = stringE (fieldName field)
         fvarE = varE fvar
