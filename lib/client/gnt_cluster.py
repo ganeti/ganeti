@@ -625,6 +625,8 @@ def ShowClusterConfig(opts, args):
       ("compression tools", result["compression_tools"]),
       ("enabled user shutdown", result["enabled_user_shutdown"]),
       ("modify ssh setup", result["modify_ssh_setup"]),
+      ("ssh_key_type", result["ssh_key_type"]),
+      ("ssh_key_bits", result["ssh_key_bits"]),
       ]),
 
     ("Default node parameters",

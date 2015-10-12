@@ -272,6 +272,8 @@ handleCall _ _ cdata QueryClusterInfo =
                         $ clusterDataCollectors cluster)
             , ("modify_ssh_setup",
                showJSON $ clusterModifySshSetup cluster)
+            , ("ssh_key_type", showJSON $ clusterSshKeyType cluster)
+            , ("ssh_key_bits", showJSON $ clusterSshKeyBits cluster)
             ]
 
   in case master of
