@@ -187,23 +187,18 @@ def RunEnvTests():
   RunTestIf("env", qa_env.TestGanetiCommands)
 
 
-def SetupCluster(rapi_user):
+def SetupCluster():
   """Initializes the cluster.
 
-  @param rapi_user: Login user for RAPI
-  @return: Login secret for RAPI
-
   """
-  rapi_secret = utils.GenerateSecret()
-  RunTestIf("create-cluster", qa_cluster.TestClusterInit,
-            rapi_user, rapi_secret)
+
+  RunTestIf("create-cluster", qa_cluster.TestClusterInit)
   if not qa_config.TestEnabled("create-cluster"):
     # If the cluster is already in place, we assume that exclusive-storage is
     # already set according to the configuration
     qa_config.SetExclusiveStorage(qa_config.get("exclusive-storage", False))
-    if qa_rapi.Enabled():
-      # To support RAPI on an existing cluster we have to find out the secret
-      rapi_secret = qa_rapi.LookupRapiSecret(rapi_user)
+
+  qa_rapi.SetupRapi()
 
   qa_group.ConfigureGroups()
 
@@ -233,16 +228,9 @@ def SetupCluster(rapi_user):
 
   RunTestIf("node-info", qa_node.TestNodeInfo)
 
-  return rapi_secret
 
-
-def RunClusterTests(rapi_user=None, rapi_secret=None):
+def RunClusterTests():
   """Runs tests related to gnt-cluster.
-
-  @type rapi_user: string
-  @param rapi_user: name of the rapi user
-  @type rapi_secret: string
-  @param rapi_secret: the rapi secret
 
   """
   for test, fn in [
@@ -250,14 +238,6 @@ def RunClusterTests(rapi_user=None, rapi_secret=None):
     ("cluster-renew-crypto", qa_cluster.TestClusterRenewCrypto)
     ]:
     RunTestIf(test, fn)
-
-  # Since renew-crypto replaces the RAPI cert, reload it.
-  if qa_rapi.Enabled():
-    if not rapi_user:
-      raise qa_error.Error("No RAPI user given.")
-    if not rapi_secret:
-      raise qa_error.Error("No RAPI secret given.")
-    qa_rapi.Setup(rapi_user, rapi_secret)
 
   for test, fn in [
     ("cluster-verify", qa_cluster.TestClusterVerify),
@@ -963,16 +943,10 @@ def RunQa():
   """Main QA body.
 
   """
-  rapi_user = "ganeti-qa"
-
   RunTestBlock(RunEnvTests)
-  rapi_secret = SetupCluster(rapi_user)
+  SetupCluster()
 
-  if qa_rapi.Enabled():
-    # Load RAPI certificate
-    qa_rapi.Setup(rapi_user, rapi_secret)
-
-  RunTestBlock(RunClusterTests, rapi_user=rapi_user, rapi_secret=rapi_secret)
+  RunTestBlock(RunClusterTests)
   RunTestBlock(RunOsTests)
 
   RunTestIf("tags", qa_tags.TestClusterTags)
@@ -1107,7 +1081,7 @@ def RunQa():
 
   RunPerformanceTests()
 
-  RunTestIf("create-cluster", qa_node.TestNodeRemoveAll)
+  RunTestIf("cluster-destroy", qa_node.TestNodeRemoveAll)
 
   RunTestIf("cluster-destroy", qa_cluster.TestClusterDestroy)
 

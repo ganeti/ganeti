@@ -90,3 +90,19 @@
 >>>/ [1-9][0-9]* instances allocated/
 >>>=0
 
+./test/hs/hspace -t $TESTDATA_DIR/hspace-bad-group.data
+>>>/ 0 instances allocated/
+>>>=0
+
+./test/hs/hspace -t $TESTDATA_DIR/hspace-bad-group.data -v -v -v
+>>>2/Bad groups: \["group-bad"\]/
+>>>=0
+
+./test/hs/hspace -t $TESTDATA_DIR/hspace-bad-group.data --accept-existing
+>>>/ 0 instances allocated/
+>>>=0
+
+./test/hs/hspace -t $TESTDATA_DIR/hspace-bad-group.data --independent-groups
+>>>/ [1-9][0-9]* instances allocated/
+>>>=0
+

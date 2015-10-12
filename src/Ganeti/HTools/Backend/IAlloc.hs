@@ -66,7 +66,8 @@ import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
 import Ganeti.JSON
-import Ganeti.Types (EvacMode(ChangePrimary, ChangeSecondary))
+import Ganeti.Types ( EvacMode(ChangePrimary, ChangeSecondary)
+                    , adminStateFromRaw, AdminState(..))
 import Ganeti.Utils
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
@@ -114,12 +115,17 @@ parseBaseInstance n a = do
   su    <- extract "spindle_use"
   nics  <- extract "nics" >>= toArray >>= asObjectList >>=
            mapM (parseNic n . fromJSObject)
+  state <- (tryFromObj errorMessage a "admin_state" >>= adminStateFromRaw)
+           `mplus` Ok AdminUp
+  let getRunSt AdminOffline = StatusOffline
+      getRunSt AdminDown = StatusDown
+      getRunSt AdminUp = Running
   -- Not forthcoming by default.
   forthcoming <- extract "forthcoming" `orElse` Ok False
   return
     (n,
-     Instance.create n mem disk disks vcpus Running tags True 0 0 dt su nics
-                     forthcoming)
+     Instance.create n mem disk disks vcpus (getRunSt state) tags
+                     True 0 0 dt su nics forthcoming)
 
 -- | Parses an instance as found in the cluster instance list.
 parseInstance :: NameAssoc -- ^ The node name-to-index association list
@@ -156,6 +162,9 @@ parseNode ktg n a = do
   let vm_capable' = fromMaybe True vm_capable
   gidx <- lookupGroup ktg n guuid
   ndparams <- extract "ndparams" >>= asJSObject
+  -- Despite the fact that tags field is reported by iallocator.py,
+  -- some tests don't contain tags field
+  tags <- extractDef [] "tags"
   excl_stor <- tryFromObj desc (fromJSObject ndparams) "exclusive_storage"
   let live = not offline && vm_capable'
       lvextract def = eitherLive live def . extract
@@ -171,7 +180,8 @@ parseNode ktg n a = do
   ctotal <- lvextract 0.0 "total_cpus"
   cnos <- lvextract 0 "reserved_cpus"
   let node_mem = obtainNodeMemory hvstate mnode
-      node = Node.create n mtotal node_mem mfree dtotal dfree ctotal cnos
+      node = flip Node.setNodeTags tags $
+             Node.create n mtotal node_mem mfree dtotal dfree ctotal cnos
              (not live || drained) sptotal spfree gidx excl_stor
   return (n, node)
 

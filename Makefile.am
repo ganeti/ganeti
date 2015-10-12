@@ -1729,6 +1729,7 @@ TEST_FILES = \
 	test/data/htools/hail-alloc-invalid-network.json \
 	test/data/htools/hail-alloc-invalid-twodisks.json \
 	test/data/htools/hail-alloc-restricted-network.json \
+	test/data/htools/hail-alloc-nlocation.json \
 	test/data/htools/hail-alloc-plain-tags.json \
 	test/data/htools/hail-alloc-secondary.json \
 	test/data/htools/hail-alloc-spindles.json \
@@ -1761,6 +1762,7 @@ TEST_FILES = \
 	test/data/htools/hbal-soft-errors.data \
 	test/data/htools/hbal-soft-errors2.data \
 	test/data/htools/hbal-split-insts.data \
+	test/data/htools/hspace-bad-group.data \
 	test/data/htools/hspace-existing.data \
 	test/data/htools/hspace-groups-one.data \
 	test/data/htools/hspace-groups-two.data \

@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.HTools.GlobalN1
   ( canEvacuateNode
   , redundant
+  , redundantGrp
   , allocGlobalN1
   ) where
 
@@ -118,7 +119,15 @@ redundant opts nl il =
   let filterFun = if algAcceptExisting opts
                     then Container.filter (not . Node.offline)
                     else id
-  in Foldable.all (canEvacuateNode (nl, il)) $ filterFun nl
+  in Foldable.all (canEvacuateNode (nl, il))
+       . Container.filter (not . (`elem` algCapacityIgnoreGroups opts)
+                               . Node.group)
+       $ filterFun nl
+
+-- | Predicate on wheter a given group is globally N+1 redundant.
+redundantGrp :: AlgorithmOptions -> Node.List -> Instance.List -> Gdx -> Bool
+redundantGrp opts nl il gdx =
+  redundant opts (Container.filter ((==) gdx . Node.group) nl) il
 
 -- | Predicate on wheter an allocation element leads to a globally N+1 redundant
 -- state.
