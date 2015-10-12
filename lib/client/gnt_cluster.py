@@ -299,6 +299,16 @@ def InitCluster(opts, args):
   else:
     enabled_user_shutdown = False
 
+  if opts.ssh_key_type:
+    ssh_key_type = opts.ssh_key_type
+  else:
+    ssh_key_type = constants.SSH_DEFAULT_KEY_TYPE
+
+  if opts.ssh_key_bits:
+    ssh_key_bits = opts.ssh_key_bits
+  else:
+    ssh_key_bits = constants.SSH_DEFAULT_KEY_BITS
+
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
@@ -333,6 +343,8 @@ def InitCluster(opts, args):
                         zeroing_image=zeroing_image,
                         compression_tools=compression_tools,
                         enabled_user_shutdown=enabled_user_shutdown,
+                        ssh_key_type=ssh_key_type,
+                        ssh_key_bits=ssh_key_bits,
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)

@@ -678,6 +678,8 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "compression_tools"              [t| [String]                |]
   , simpleField "enabled_user_shutdown"          [t| Bool                    |]
   , simpleField "data_collectors"         [t| Container DataCollectorConfig  |]
+  , simpleField "ssh_key_type"                   [t| SshKeyType              |]
+  , simpleField "ssh_key_bits"                   [t| Int                     |]
  ]
  ++ timeStampFields
  ++ uuidFields

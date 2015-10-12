@@ -1653,6 +1653,8 @@ class Cluster(TaggableObject):
     "compression_tools",
     "enabled_user_shutdown",
     "data_collectors",
+    "ssh_key_type",
+    "ssh_key_bits",
     ] + _TIMESTAMPS + _UUID
 
   def UpgradeConfig(self):
@@ -1807,6 +1809,12 @@ class Cluster(TaggableObject):
 
     if self.enabled_user_shutdown is None:
       self.enabled_user_shutdown = False
+
+    if self.ssh_key_type is None:
+      self.ssh_key_type = constants.SSH_DEFAULT_KEY_TYPE
+
+    if self.ssh_key_bits is None:
+      self.ssh_key_bits = constants.SSH_DEFAULT_KEY_BITS
 
   @property
   def primary_hypervisor(self):

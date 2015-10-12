@@ -4702,6 +4702,14 @@ sshakRsa = "ssh-rsa"
 sshakAll :: FrozenSet String
 sshakAll = ConstantUtils.mkSet [sshakDss, sshakRsa]
 
+-- * SSH key default values
+
+sshDefaultKeyType :: String
+sshDefaultKeyType = sshkRsa
+
+sshDefaultKeyBits :: Int
+sshDefaultKeyBits = 2048
+
 -- * SSH setup
 
 sshsClusterName :: String

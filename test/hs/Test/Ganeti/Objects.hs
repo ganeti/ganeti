@@ -375,6 +375,13 @@ instance Arbitrary FilterRule where
                          <*> arbitrary
                          <*> genUUID
 
+instance Arbitrary SshKeyType where
+  arbitrary = oneof
+    [ pure RSA
+    , pure DSA
+    , pure ECDSA
+    ]
+
 -- | Generates a network instance with minimum netmasks of /24. Generating
 -- bigger networks slows down the tests, because long bit strings are generated
 -- for the reservations.

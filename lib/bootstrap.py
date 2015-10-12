@@ -485,16 +485,17 @@ def _InitCheckDrbdHelper(drbd_helper, drbd_enabled):
 def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
                 master_netmask, master_netdev, file_storage_dir,
                 shared_file_storage_dir, gluster_storage_dir,
-                candidate_pool_size, secondary_ip=None,
-                vg_name=None, beparams=None, nicparams=None, ndparams=None,
-                hvparams=None, diskparams=None, enabled_hypervisors=None,
-                modify_etc_hosts=True, modify_ssh_setup=True,
-                maintain_node_health=False, drbd_helper=None, uid_pool=None,
-                default_iallocator=None, default_iallocator_params=None,
-                primary_ip_version=None, ipolicy=None,
-                prealloc_wipe_disks=False, use_external_mip_script=False,
-                hv_state=None, disk_state=None, enabled_disk_templates=None,
-                install_image=None, zeroing_image=None, compression_tools=None,
+                candidate_pool_size, ssh_key_type, ssh_key_bits,
+                secondary_ip=None, vg_name=None, beparams=None, nicparams=None,
+                ndparams=None, hvparams=None, diskparams=None,
+                enabled_hypervisors=None, modify_etc_hosts=True,
+                modify_ssh_setup=True, maintain_node_health=False,
+                drbd_helper=None, uid_pool=None, default_iallocator=None,
+                default_iallocator_params=None, primary_ip_version=None,
+                ipolicy=None, prealloc_wipe_disks=False,
+                use_external_mip_script=False, hv_state=None, disk_state=None,
+                enabled_disk_templates=None, install_image=None,
+                zeroing_image=None, compression_tools=None,
                 enabled_user_shutdown=False):
   """Initialise the cluster.
 
@@ -797,6 +798,8 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     zeroing_image=zeroing_image,
     compression_tools=compression_tools,
     enabled_user_shutdown=enabled_user_shutdown,
+    ssh_key_type=ssh_key_type,
+    ssh_key_bits=ssh_key_bits,
     )
   master_node_config = objects.Node(name=hostname.name,
                                     primary_ip=hostname.ip,
