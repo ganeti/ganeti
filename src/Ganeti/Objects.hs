@@ -425,9 +425,9 @@ $(buildObject "Node" "node" $
   , simpleField "vm_capable"        [t| Bool            |]
   , simpleField "ndparams"          [t| PartialNDParams |]
   , simpleField "powered"           [t| Bool            |]
-  , defaultField [| emptyContainer |] $
+  , notSerializeDefaultField [| emptyContainer |] $
     simpleField "hv_state_static"   [t| PartialHvState  |]
-  , defaultField [| emptyContainer |] $
+  , notSerializeDefaultField [| emptyContainer |] $
     simpleField "disk_state_static" [t| DiskState       |]
   ]
   ++ timeStampFields
@@ -464,9 +464,9 @@ $(buildObject "NodeGroup" "group" $
   , simpleField "ipolicy"           [t| PartialIPolicy  |]
   , simpleField "diskparams"        [t| GroupDiskParams |]
   , simpleField "networks"          [t| Networks        |]
-  , defaultField [| emptyContainer |] $
+  , notSerializeDefaultField [| emptyContainer |] $
     simpleField "hv_state_static"   [t| PartialHvState  |]
-  , defaultField [| emptyContainer |] $
+  , notSerializeDefaultField [| emptyContainer |] $
     simpleField "disk_state_static" [t| DiskState       |]
   ]
   ++ timeStampFields
@@ -676,9 +676,9 @@ $(buildObject "Cluster" "cluster" $
   , simpleField "primary_ip_family"              [t| IpFamily                |]
   , simpleField "prealloc_wipe_disks"            [t| Bool                    |]
   , simpleField "ipolicy"                        [t| FilledIPolicy           |]
-  , defaultField [| emptyContainer |] $
+  , notSerializeDefaultField [| emptyContainer |] $
     simpleField "hv_state_static"                [t| FilledHvState           |]
-  , defaultField [| emptyContainer |] $
+  , notSerializeDefaultField [| emptyContainer |] $
     simpleField "disk_state_static"              [t| DiskState               |]
   , simpleField "enabled_disk_templates"         [t| [DiskTemplate]          |]
   , simpleField "candidate_certs"                [t| CandidateCertificates   |]
