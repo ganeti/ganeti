@@ -100,7 +100,6 @@ Draft designs
    design-cpu-pinning.rst
    design-device-uuid-name.rst
    design-daemons.rst
-   design-disks.rst
    design-file-based-storage.rst
    design-hroller.rst
    design-hotplug.rst
