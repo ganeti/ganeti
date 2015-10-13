@@ -279,6 +279,30 @@ class TestSshKeys(testutils.GanetiTestCase):
       "ssh-dss AAAAB3asdfasdfaYTUCB laracroft@test\n"
       "ssh-dss AasdfliuobaosfMAAACB frodo@test\n")
 
+  def testOtherKeyTypes(self):
+    key_rsa = "ssh-rsa AAAAimnottypingallofthathere0jfJs22 test@test"
+    key_ed25519 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOlcZ6cpQTGow0LZECRHWn9"\
+                  "7Yvn16J5un501T/RcbfuF fast@secure"
+    key_ecdsa = "ecdsa-sha2-nistp256 AAAAE2VjZHNtoolongk/TNhVbEg= secure@secure"
+
+    def _ToFileContent(keys):
+      return '\n'.join(keys) + '\n'
+
+    ssh.AddAuthorizedKeys(self.tmpname, [key_rsa, key_ed25519, key_ecdsa])
+    self.assertFileContent(self.tmpname,
+                           _ToFileContent([self.KEY_A, self.KEY_B, key_rsa,
+                                           key_ed25519, key_ecdsa]))
+
+    ssh.RemoveAuthorizedKey(self.tmpname, key_ed25519)
+    self.assertFileContent(self.tmpname,
+                           _ToFileContent([self.KEY_A, self.KEY_B, key_rsa,
+                                           key_ecdsa]))
+
+    ssh.RemoveAuthorizedKey(self.tmpname, key_rsa)
+    ssh.RemoveAuthorizedKey(self.tmpname, key_ecdsa)
+    self.assertFileContent(self.tmpname,
+                           _ToFileContent([self.KEY_A, self.KEY_B]))
+
 
 class TestPublicSshKeys(testutils.GanetiTestCase):
   """Test case for the handling of the list of public ssh keys."""
@@ -450,13 +474,14 @@ class TestGetUserFiles(testutils.GanetiTestCase):
     return self.tmpdir
 
   def testNewKeysOverrideOldKeys(self):
-    ssh.InitSSHSetup(_homedir_fn=self._GetTempHomedir)
+    ssh.InitSSHSetup("dsa", 1024, _homedir_fn=self._GetTempHomedir)
     self.assertFileContentNotEqual(self.priv_filename, self._PRIV_KEY)
     self.assertFileContentNotEqual(self.pub_filename, self._PUB_KEY)
 
   def testSuffix(self):
     suffix = "_pinkbunny"
-    ssh.InitSSHSetup(_homedir_fn=self._GetTempHomedir, _suffix=suffix)
+    ssh.InitSSHSetup("dsa", 1024, _homedir_fn=self._GetTempHomedir,
+                     _suffix=suffix)
     self.assertFileContent(self.priv_filename, self._PRIV_KEY)
     self.assertFileContent(self.pub_filename, self._PUB_KEY)
     self.assertTrue(os.path.exists(self.priv_filename + suffix))

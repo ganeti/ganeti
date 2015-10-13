@@ -1216,8 +1216,9 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
   if not cl:
     cl = GetClient()
 
-  (cluster_name, master_node, modify_ssh_setup) = \
-    cl.QueryConfigValues(["cluster_name", "master_node", "modify_ssh_setup"])
+  (cluster_name, master_node, modify_ssh_setup, ssh_key_type) = \
+    cl.QueryConfigValues(["cluster_name", "master_node", "modify_ssh_setup",
+                          "ssh_key_type"])
 
   # In case Ganeti is not supposed to modify the SSH setup, simply exit and do
   # not update this file.
@@ -1242,7 +1243,7 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
 
   _, pub_key_filename, _ = \
     ssh.GetUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False,
-                     kind=constants.SSHK_DSA, _homedir_fn=homedir_fn)
+                     kind=ssh_key_type, _homedir_fn=homedir_fn)
 
   # get the key file of the master node
   pub_key = utils.ReadFile(pub_key_filename)

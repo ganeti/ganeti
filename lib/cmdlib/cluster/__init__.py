@@ -172,11 +172,16 @@ class LUClusterRenewCrypto(NoHooksLU):
     node_uuids = [uuid for (uuid, _) in nodes_uuid_names]
     potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
     master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
+
+    cluster_info = self.cfg.GetClusterInfo()
+
     result = self.rpc.call_node_ssh_keys_renew(
       [master_uuid],
       node_uuids, node_names,
       master_candidate_uuids,
-      potential_master_candidates)
+      potential_master_candidates,
+      cluster_info.ssh_key_type,
+      cluster_info.ssh_key_bits)
     result[master_uuid].Raise("Could not renew the SSH keys of all nodes")
 
   def Exec(self, feedback_fn):

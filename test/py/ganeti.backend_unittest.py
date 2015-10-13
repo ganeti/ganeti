@@ -1052,6 +1052,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend._GenerateNodeSshKey(
         test_node_uuid, test_node_name,
         self._ssh_file_manager.GetSshPortMap(self._SSH_PORT),
+        "rsa", 2048,
         pub_key_file=self._pub_key_file,
         ssconf_store=self._ssconf_mock,
         noded_cert_file=self.noded_cert_file,
@@ -1656,8 +1657,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._read_file_mock = self._read_file_patcher.start()
     self._read_file_mock.return_value = self._NODE1_KEYS[0]
     self.tmpdir = tempfile.mkdtemp()
-    self.pub_key_file = os.path.join(self.tmpdir, "pub_key_file")
-    open(self.pub_key_file, "w").close()
+    self.pub_keys_file = os.path.join(self.tmpdir, "pub_keys_file")
+    open(self.pub_keys_file, "w").close()
 
   def tearDown(self):
     super(testutils.GanetiTestCase, self).tearDown()
@@ -1672,7 +1673,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     pub_key_file=self.pub_key_file)
+                                     "dsa",
+                                     ganeti_pub_keys_file=self.pub_keys_file)
     self.assertEqual(result, [])
 
   def testMissingKey(self):
@@ -1683,7 +1685,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = pub_key_missing
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     pub_key_file=self.pub_key_file)
+                                     "dsa",
+                                     ganeti_pub_keys_file=self.pub_keys_file)
     self.assertTrue(self._NODE2_UUID in result[0])
 
   def testUnknownKey(self):
@@ -1694,7 +1697,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = pub_key_missing
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     pub_key_file=self.pub_key_file)
+                                     "dsa",
+                                     ganeti_pub_keys_file=self.pub_keys_file)
     self.assertTrue("unkownnodeuuid" in result[0])
 
   def testMissingMasterCandidate(self):
@@ -1705,7 +1709,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     pub_key_file=self.pub_key_file)
+                                     "dsa",
+                                     ganeti_pub_keys_file=self.pub_keys_file)
     self.assertTrue(self._NODE1_UUID in result[0])
 
   def testSuperfluousNormalNode(self):
@@ -1716,7 +1721,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     pub_key_file=self.pub_key_file)
+                                     "dsa",
+                                     ganeti_pub_keys_file=self.pub_keys_file)
     self.assertTrue(self._NODE3_UUID in result[0])
 
 

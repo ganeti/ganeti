@@ -191,11 +191,13 @@ def LoadData(raw, data_check):
   return serializer.LoadAndVerifyJson(raw, data_check)
 
 
-def GenerateRootSshKeys(error_fn, _suffix="", _homedir_fn=None):
+def GenerateRootSshKeys(key_type, key_bits, error_fn, _suffix="",
+                        _homedir_fn=None):
   """Generates root's SSH keys for this node.
 
   """
-  ssh.InitSSHSetup(error_fn=error_fn, _homedir_fn=_homedir_fn, _suffix=_suffix)
+  ssh.InitSSHSetup(key_type, key_bits, error_fn=error_fn,
+                   _homedir_fn=_homedir_fn, _suffix=_suffix)
 
 
 def GenerateClientCertificate(

@@ -714,7 +714,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
     utils.AddHostToEtcHosts(hostname.name, hostname.ip)
 
   if modify_ssh_setup:
-    ssh.InitSSHSetup()
+    ssh.InitSSHSetup(ssh_key_type, ssh_key_bits)
 
   if default_iallocator is not None:
     alloc_script = utils.FindFile(default_iallocator,
@@ -817,7 +817,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
 
   master_uuid = cfg.GetMasterNode()
   if modify_ssh_setup:
-    ssh.InitPubKeyFile(master_uuid)
+    ssh.InitPubKeyFile(master_uuid, ssh_key_type)
   # set up the inter-node password and certificate
   _InitGanetiServerSetup(hostname.name, cfg)
 

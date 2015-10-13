@@ -230,12 +230,17 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   (_, cert_pem) = \
     utils.ExtractX509Certificate(utils.ReadFile(pathutils.NODED_CERT_FILE))
 
+  (ssh_key_type, ssh_key_bits) = \
+    cl.QueryConfigValues(["ssh_key_type", "ssh_key_bits"])
+
   data = {
     constants.SSHS_CLUSTER_NAME: cluster_name,
     constants.SSHS_NODE_DAEMON_CERTIFICATE: cert_pem,
     constants.SSHS_SSH_HOST_KEY: host_keys,
     constants.SSHS_SSH_ROOT_KEY: root_keys,
     constants.SSHS_SSH_AUTHORIZED_KEYS: candidate_keys,
+    constants.SSHS_SSH_KEY_TYPE: ssh_key_type,
+    constants.SSHS_SSH_KEY_BITS: ssh_key_bits,
     }
 
   ssh.RunSshCmdWithStdin(cluster_name, node, pathutils.PREPARE_NODE_JOIN,
@@ -244,9 +249,9 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
                          use_cluster_key=False, ask_key=options.ssh_key_check,
                          strict_host_check=options.ssh_key_check)
 
-  (_, dsa_pub_keyfile) = root_keyfiles[constants.SSHK_DSA]
-  pub_key = ssh.ReadRemoteSshPubKeys(dsa_pub_keyfile, node, cluster_name,
-                                     ssh_port, options.ssh_key_check,
+  (_, pub_keyfile) = root_keyfiles[ssh_key_type]
+  pub_key = ssh.ReadRemoteSshPubKeys(pub_keyfile, node, cluster_name, ssh_port,
+                                     options.ssh_key_check,
                                      options.ssh_key_check)
   # Unfortunately, we have to add the key with the node name rather than
   # the node's UUID here, because at this point, we do not have a UUID yet.

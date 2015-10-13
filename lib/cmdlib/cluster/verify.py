@@ -1873,7 +1873,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       }
 
     if self.cfg.GetClusterInfo().modify_ssh_setup:
-      node_verify_param[constants.NV_SSH_SETUP] = self._PrepareSshSetupCheck()
+      node_verify_param[constants.NV_SSH_SETUP] = \
+        (self._PrepareSshSetupCheck(), self.cfg.GetClusterInfo().ssh_key_type)
       if self.op.verify_clutter:
         node_verify_param[constants.NV_SSH_CLUTTER] = True
 

@@ -4730,6 +4730,12 @@ sshsSshPublicKeys = "public_keys"
 sshsNodeDaemonCertificate :: String
 sshsNodeDaemonCertificate = "node_daemon_certificate"
 
+sshsSshKeyType :: String
+sshsSshKeyType = "ssh_key_type"
+
+sshsSshKeyBits :: String
+sshsSshKeyBits = "ssh_key_bits"
+
 -- Number of maximum retries when contacting nodes per SSH
 -- during SSH update operations.
 sshsMaxRetries :: Integer

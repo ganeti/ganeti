@@ -565,7 +565,9 @@ _NODE_CALLS = [
     ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),
     ("node_names", None, "Names of the nodes whose key is renewed"),
     ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
-    ("potential_master_candidates", None, "Potential master candidates")],
+    ("potential_master_candidates", None, "Potential master candidates"),
+    ("ssh_key_type", None, "The type of key to generate"),
+    ("ssh_key_bits", None, "The length of the key to generate")],
     None, None, "Renew all SSH key pairs of all nodes nodes."),
   ]
 
