@@ -376,8 +376,8 @@ handleCall _ _ cfg (QueryNetworks names fields lock) =
     (map Left names) fields lock
 
 handleCall _ _ cfg (QueryConfigValues fields) = do
-  let params = [ ("cluster_name", return . showJSON . clusterClusterName
-                                    . configCluster $ cfg)
+  let clusterProperty fn = showJSON . fn . configCluster $ cfg
+  let params = [ ("cluster_name", return $ clusterProperty clusterClusterName)
                , ("watcher_pause", liftM (maybe JSNull showJSON)
                                      QCluster.isWatcherPaused)
                , ("master_node", return . genericResult (const JSNull) showJSON
