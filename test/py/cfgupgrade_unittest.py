@@ -70,6 +70,7 @@ def GetMinimalConfig():
         "diagnose": { "active": True, "interval": 5000000 },
         "diskstats": { "active": True, "interval": 5000000 },
         "drbd": { "active": True, "interval": 5000000 },
+        "kvm-inst-rss": { "active": True, "interval": 5000000 },
         "lv": { "active": True, "interval": 5000000 },
         "inst-status-xen": { "active": True, "interval": 5000000 },
         "cpu-avg-load": { "active": True, "interval": 5000000 },

@@ -37,6 +37,10 @@
         "active": true,
         "interval": 5000000.0
       },
+      "kvm-inst-rss": {
+        "active": true,
+        "interval": 5000000.0
+      },
       "lv": {
         "active": true,
         "interval": 5000000.0
