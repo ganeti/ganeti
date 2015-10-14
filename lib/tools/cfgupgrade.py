@@ -717,11 +717,11 @@ class CfgUpgrade(object):
       cluster = self.config_data["cluster"]
       if "diagnose_data_collector_filename" in cluster:
         del cluster["diagnose_data_collector_filename"]
-      if ("data_collectors" in cluster and
-          constants.DATA_COLLECTOR_DIAGNOSE in
-             cluster["data_collectors"]):
-        del (cluster["data_collectors"]
-                [constants.DATA_COLLECTOR_DIAGNOSE])
+      if "data_collectors" in cluster:
+        if constants.DATA_COLLECTOR_DIAGNOSE in cluster["data_collectors"]:
+          del cluster["data_collectors"][constants.DATA_COLLECTOR_DIAGNOSE]
+        if constants.DATA_COLLECTOR_KVM_R_S_S in cluster["data_collectors"]:
+          del cluster["data_collectors"][constants.DATA_COLLECTOR_KVM_R_S_S]
       if "ipolicy" in cluster:
         ipolicy = cluster["ipolicy"]
         if "memory-ratio" in ipolicy:
