@@ -985,11 +985,12 @@ def _VerifySshSetup(node_status_list, my_name,
   if node_status_list is None:
     return ["No node list to check against the pub_key_file received."]
 
-  my_status_list = [(my_uuid, name, mc, pot_mc) for (my_uuid, name, mc, pot_mc)
+  my_status_list = [(my_uuid, name, mc, pot_mc, online) for
+                    (my_uuid, name, mc, pot_mc, online)
                     in node_status_list if name == my_name]
   if len(my_status_list) == 0:
     return ["Cannot find node information for node '%s'." % my_name]
-  (my_uuid, _, _, potential_master_candidate) = \
+  (my_uuid, _, _, potential_master_candidate, online) = \
      my_status_list[0]
 
   result = []
@@ -1000,14 +1001,16 @@ def _VerifySshSetup(node_status_list, my_name,
                   " [--no-ssh-key-check]' to fix this." % pub_key_file)
     return result
 
-  pot_mc_uuids = [uuid for (uuid, _, _, _) in node_status_list]
+  pot_mc_uuids = [uuid for (uuid, _, _, _, _) in node_status_list]
+  offline_nodes = [uuid for (uuid, _, _, _, online) in node_status_list
+                   if not online]
   pub_keys = ssh.QueryPubKeyFile(None)
 
   if potential_master_candidate:
     # Check that the set of potential master candidates matches the
     # public key file
-    pub_uuids_set = set(pub_keys.keys())
-    pot_mc_uuids_set = set(pot_mc_uuids)
+    pub_uuids_set = set(pub_keys.keys()) - set(offline_nodes)
+    pot_mc_uuids_set = set(pot_mc_uuids) - set(offline_nodes)
     missing_uuids = set([])
     if pub_uuids_set != pot_mc_uuids_set:
       unknown_uuids = pub_uuids_set - pot_mc_uuids_set
@@ -1044,7 +1047,9 @@ def _VerifySshSetup(node_status_list, my_name,
   # Check that all master candidate keys are in the authorized_keys file
   (auth_key_file, _) = \
     ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
-  for (uuid, name, mc, _) in node_status_list:
+  for (uuid, name, mc, _, online) in node_status_list:
+    if not online:
+      continue
     if uuid in missing_uuids:
       continue
     if mc:
@@ -1574,6 +1579,7 @@ def RemoveNodeSshKey(node_uuid, node_name,
                      pub_key_file=pathutils.SSH_PUB_KEYS,
                      ssconf_store=None,
                      noded_cert_file=pathutils.NODED_CERT_FILE,
+                     readd=False,
                      run_cmd_fn=ssh.RunSshCmdWithStdin):
   """Removes the node's SSH keys from the key files and distributes those.
 
@@ -1607,6 +1613,8 @@ def RemoveNodeSshKey(node_uuid, node_name,
     should be cleared on the node whose keys are removed
   @type clear_public_keys: boolean
   @param clear_public_keys: whether to clear the node's C{ganeti_pub_key} file
+  @type readd: boolean
+  @param readd: whether this is called during a readd operation.
   @rtype: list of string
   @returns: list of feedback messages
 
@@ -1630,7 +1638,7 @@ def RemoveNodeSshKey(node_uuid, node_name,
       keys = keys_to_remove
     else:
       keys = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
-      if not keys or node_uuid not in keys:
+      if (not keys or node_uuid not in keys) and not readd:
         raise errors.SshUpdateError("Node '%s' not found in the list of public"
                                     " SSH keys. It seems someone tries to"
                                     " remove a key from outside the cluster!"
@@ -1648,7 +1656,7 @@ def RemoveNodeSshKey(node_uuid, node_name,
     if node_name == master_node and not keys_to_remove:
       raise errors.SshUpdateError("Cannot remove the master node's keys.")
 
-    if keys[node_uuid]:
+    if node_uuid in keys:
       base_data = {}
       _InitSshUpdateData(base_data, noded_cert_file, ssconf_store)
       cluster_name = base_data[constants.SSHS_CLUSTER_NAME]

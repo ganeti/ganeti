@@ -556,7 +556,9 @@ _NODE_CALLS = [
     ("clear_authorized_keys", None,
      "If the 'authorized_keys' file of the node should be cleared."),
     ("clear_public_keys", None,
-     "If the 'ganeti_pub_keys' file of the node should be cleared.")],
+     "If the 'ganeti_pub_keys' file of the node should be cleared."),
+    ("readd", None,
+     "Whether this is a readd operation.")],
     None, None, "Remove a node's SSH key from the other nodes' key files."),
   ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_SLOW, [
     ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),
