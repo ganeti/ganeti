@@ -17,6 +17,8 @@ are named ``$hook-$phase.d``, where ``$phase`` is either ``pre`` or
 This is similar to the ``/etc/network/`` structure present in Debian
 for network interface handling.
 
+.. _hooks-organization:
+
 Organisation
 ------------
 
@@ -111,6 +113,8 @@ environments, but most of the variables are common.
 
 Operation list
 --------------
+
+.. _opcode-params:
 
 Node operations
 ~~~~~~~~~~~~~~~
@@ -570,6 +574,8 @@ in order to provide a clear namespace. In addition, post-execution
 scripts receive another set of variables, prefixed with *GANETI_POST_*,
 representing the status after the opcode executed.
 
+.. _common-variables:
+
 Common variables
 ~~~~~~~~~~~~~~~~
 
@@ -599,6 +605,7 @@ DATA_DIR
   The path to the Ganeti configuration directory (to read, for
   example, the *ssconf* files).
 
+.. _specialized-variables:
 
 Specialised variables
 ~~~~~~~~~~~~~~~~~~~~~
