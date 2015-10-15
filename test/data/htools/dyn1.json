@@ -1,0 +1,38 @@
+[
+  {
+    "node": "node-01-000",
+    "reports": [
+      {
+        "category": null,
+        "data": {
+          "inst-00": 0.1,
+          "inst-01": 0.1,
+          "inst-02": 0.1,
+          "inst-03": 0.1
+        },
+        "format_version": 1,
+        "kind": 0,
+        "name": "xen-cpu-avg-load",
+        "timestamp": 1444910125282702000,
+        "version": "B"
+      }
+    ]
+  },
+  {
+    "node": "node-01-001",
+    "reports": [
+      {
+        "category": null,
+        "data": {
+          "inst-10": 2.0,
+          "inst-11": 2.0
+        },
+        "format_version": 1,
+        "kind": 0,
+        "name": "xen-cpu-avg-load",
+        "timestamp": 1444910125282702000,
+        "version": "B"
+      }
+    ]
+  }
+]

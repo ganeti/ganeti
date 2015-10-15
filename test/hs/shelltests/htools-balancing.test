@@ -133,8 +133,38 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 >>>/Solution length=1/
 >>>=0
 
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data -C
+>>>/gnt-instance migrate -f -n node-01-001 inst-0./
+>>>=0
+
 # ...but the --ignore-dynu option should be honored
 ./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --ignore-dynu
+>>>/Cluster is already well balanced/
+>>>=0
+
+# Assuming idle default also gives 0 utilisation
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --idle-default
+>>>/Cluster is already well balanced/
+>>>=0
+
+# Heavy CPU load can even push instances on the more
+# crowded node
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --idle-default --mond --mond-xen --mond-data=$TESTDATA_DIR/dyn1.json -C
+>>>/gnt-instance migrate -f -n node-01-000 inst-1./
+>>>=0
+
+# ...but with default assumption about disk/net/mem fully used the move is in
+# the other direction.
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --mond --mond-xen --mond-data=$TESTDATA_DIR/dyn1.json
+>>>/Solution length=1/
+>>>=0
+
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --mond --mond-xen --mond-data=$TESTDATA_DIR/dyn1.json -C
+>>>/gnt-instance migrate -f -n node-01-001 inst-0./
+>>>=0
+
+# Still, --ignore-dynu overrides everything
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --idle-default --mond --mond-xen --mond-data=$TESTDATA_DIR/dyn1.json --ignore-dynu
 >>>/Cluster is already well balanced/
 >>>=0
 
