@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013, 2015 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -106,6 +106,7 @@ options = do
     , oInstMoves
     , oIgnoreSoftErrors
     , oDynuFile
+    , oIdleDefault
     , oIgnoreDyn 
     , oMonD
     , oMonDDataFile

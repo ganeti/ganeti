@@ -31,6 +31,7 @@ Algorithm options:
 **[ \--avoid-disk-moves *factor* ]**
 **[ \--no-instance-moves ]**
 **[ -U *util-file* ]**
+**[ \--idle-default ]**
 **[ \--ignore-dynu ]**
 **[ \--ignore-soft-errors ]**
 **[ \--mond *yes|no* ]**
@@ -420,6 +421,13 @@ The options that can be passed to the program are as follows:
   the primary instance count, but that is already tracked via other
   metrics and thus the influence of the dynamic utilisation will be
   practically insignificant.
+
+\--idle-default
+  If given, all dynamic utilisation information not provided explicitly
+  by the ``-U`` option or by the MonDs, if ``--mond`` is given, will be
+  assumed to be 0. Note that without this option the default assumption
+  about utilization will apply for the unspecified resources, which is 1.0,
+  i.e., full load, for every instance.
 
 \--ignore-dynu
   If given, all dynamic utilisation information will be ignored by
