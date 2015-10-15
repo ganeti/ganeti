@@ -8,7 +8,7 @@ used in many other places and this is more IO oriented.
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013, 2015 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -72,6 +72,7 @@ module Ganeti.HTools.CLI
   , oForce
   , oFullEvacuation
   , oGroup
+  , oIdleDefault
   , oIAllocSrc
   , oIgnoreDyn
   , oIgnoreNonRedundant
@@ -151,6 +152,8 @@ data Options = Options
   , optSpindleUse  :: Maybe Int      -- ^ Override for the spindle usage
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
   , optIgnoreDynu  :: Bool           -- ^ Do not use dynamic use data
+  , optIdleDefault :: Bool           -- ^ Assume idle load for all not provided
+                                     -- dynamic utilisation data
   , optIgnoreSoftErrors :: Bool      -- ^ Ignore soft errors in balancing moves
   , optIndependentGroups :: Bool     -- ^ consider groups independently
   , optAcceptExisting :: Bool        -- ^ accept existing N+1 violations
@@ -227,6 +230,7 @@ defaultOptions  = Options
   , optDiskTemplate = Nothing
   , optSpindleUse  = Nothing
   , optIgnoreDynu  = False
+  , optIdleDefault = False
   , optIgnoreSoftErrors = False
   , optDynuFile    = Nothing
   , optMonD        = False
@@ -430,6 +434,13 @@ oIgnoreDyn =
   (Option "" ["ignore-dynu"]
    (NoArg (\ opts -> Ok opts {optIgnoreDynu = True}))
    "Ignore any dynamic utilisation information",
+   OptComplNone)
+
+oIdleDefault :: OptType
+oIdleDefault =
+  (Option "" ["idle-default"]
+   (NoArg (\ opts -> Ok opts {optIdleDefault = True}))
+   "Assume idleness for any non-availabe dynamic utilisation data",
    OptComplNone)
 
 oIgnoreSoftErrors :: OptType
