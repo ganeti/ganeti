@@ -168,6 +168,16 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 >>>/Cluster is already well balanced/
 >>>=0
 
+# On an overcommitted cluster with small amount of memory, taking memory
+# usage into account can make a difference.
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn2.data --idle-default --mond --mond-data=$TESTDATA_DIR/dyn2.json
+>>>/Solution length=0/
+>>>=0
+
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn2.data --idle-default --mond --mond-data=$TESTDATA_DIR/dyn2.json --mond-kvm-rss -C
+>>>/gnt-instance migrate -f -n node-01-000 inst-1./
+>>>=0
+
 # Test CPU speed is taken into account
 ./test/hs/hbal -t$TESTDATA_DIR/hbal-cpu-speed.data --ignore-dynu
 >>>/inst[12] node-slow:node-fast => node-fast:node-slow/

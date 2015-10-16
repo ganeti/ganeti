@@ -1725,6 +1725,7 @@ TEST_FILES = \
 	test/data/htools/clean-nonzero-score.data \
 	test/data/htools/common-suffix.data \
 	test/data/htools/dyn1.json \
+	test/data/htools/dyn2.json \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-dedicated-1.json \
 	test/data/htools/hail-alloc-drbd.json \
@@ -1751,6 +1752,7 @@ TEST_FILES = \
 	test/data/htools/hbal-desiredlocation-3.data \
 	test/data/htools/hbal-desiredlocation-4.data \
 	test/data/htools/hbal-dyn.data \
+	test/data/htools/hbal-dyn2.data \
 	test/data/htools/hbal-evac.data \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-forth.data \
