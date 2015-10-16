@@ -25,6 +25,10 @@
         "active": true,
         "interval": 5000000.0
       },
+      "diagnose": {
+        "active": true,
+        "intervall": 5000000.0
+      },
       "diskstats": {
         "active": true,
         "interval": 5000000.0
@@ -52,6 +56,7 @@
     },
     "default_iallocator": "hail",
     "default_iallocator_params": {},
+    "diagnose_data_collector_filename": "",
     "disk_state_static": {},
     "diskparams": {
       "blockdev": {},
@@ -535,6 +540,7 @@
       "uuid": "8fde9f6d-e1f1-4850-9e9c-154966f622f5"
     }
   },
+  "maintenance": {},
   "mtime": 1421677173.729104,
   "networks": {
     "99f0128a-1c84-44da-90b9-9581ea00c075": {
