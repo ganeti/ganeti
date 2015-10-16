@@ -61,6 +61,7 @@ module Ganeti.HTools.CLI
   , oDynuFile
   , oMonD
   , oMonDDataFile
+  , oMonDKvmRSS
   , oMonDXen
   , oEvacMode
   , oMonDExitMissing
@@ -162,6 +163,8 @@ data Options = Options
                                      -- by MonDs
   , optMonDXen     :: Bool           -- ^ Should Xen-specific collectors be
                                      -- considered (only if MonD is queried)
+  , optMonDKvmRSS  :: Bool           -- ^ Should kvm RSS information be
+                                     -- considered (only if MonD is queried)
   , optMonDExitMissing :: Bool       -- ^ If the program should exit on missing
                                      -- MonD data
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
@@ -236,6 +239,7 @@ defaultOptions  = Options
   , optMonD        = False
   , optMonDFile = Nothing
   , optMonDXen     = False
+  , optMonDKvmRSS  = False
   , optMonDExitMissing = False
   , optEvacMode    = False
   , optRestrictedMigrate = False
@@ -377,6 +381,13 @@ oMonDXen =
   (Option "" ["mond-xen"]
     (NoArg (\ opts -> Ok opts { optMonDXen = True }))
     "also consider xen-specific collectors in MonD queries",
+    OptComplNone)
+
+oMonDKvmRSS :: OptType
+oMonDKvmRSS =
+  (Option "" ["mond-kvm-rss"]
+    (NoArg (\ opts -> Ok opts { optMonDKvmRSS = True }))
+    "also consider residual-set-size data for kvm instances via MonD",
     OptComplNone)
 
 oMonDExitMissing :: OptType
