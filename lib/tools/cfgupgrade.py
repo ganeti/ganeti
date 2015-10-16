@@ -59,11 +59,11 @@ from ganeti.utils import version
 #: Target major version we will upgrade to
 TARGET_MAJOR = 2
 #: Target minor version we will upgrade to
-TARGET_MINOR = 17
+TARGET_MINOR = 18
 #: Target major version for downgrade
 DOWNGRADE_MAJOR = 2
 #: Target minor version for downgrade
-DOWNGRADE_MINOR = 16
+DOWNGRADE_MINOR = 17
 
 # map of legacy device types
 # (mapping differing old LD_* constants to new DT_* constants)
@@ -711,21 +711,6 @@ class CfgUpgrade(object):
   # DOWNGRADE ------------------------------------------------------------
 
   def DowngradeAll(self):
-    if "maintenance" in self.config_data:
-      del self.config_data["maintenance"]
-    if "cluster" in self.config_data:
-      cluster = self.config_data["cluster"]
-      if "diagnose_data_collector_filename" in cluster:
-        del cluster["diagnose_data_collector_filename"]
-      if "data_collectors" in cluster:
-        if constants.DATA_COLLECTOR_DIAGNOSE in cluster["data_collectors"]:
-          del cluster["data_collectors"][constants.DATA_COLLECTOR_DIAGNOSE]
-        if constants.DATA_COLLECTOR_KVM_R_S_S in cluster["data_collectors"]:
-          del cluster["data_collectors"][constants.DATA_COLLECTOR_KVM_R_S_S]
-      if "ipolicy" in cluster:
-        ipolicy = cluster["ipolicy"]
-        if "memory-ratio" in ipolicy:
-          del ipolicy["memory-ratio"]
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
     return True
