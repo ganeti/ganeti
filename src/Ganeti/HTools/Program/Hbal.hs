@@ -112,6 +112,7 @@ options = do
     , oMonDDataFile
     , oMonDExitMissing
     , oMonDXen
+    , oMonDKvmRSS
     , oExTags
     , oExInst
     , oSaveCluster
