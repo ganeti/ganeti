@@ -49,6 +49,7 @@ module Ganeti.HTools.Backend.MonD
   , totalCPUCollector
   , xenCPUCollector
   , kvmRSSCollector
+  , scaleMemoryWeight
   ) where
 
 import Control.Monad
@@ -255,6 +256,23 @@ kvmRSSCollector = DataCollector { dName = KvmRSS.dcName
                                 , dMkReport = mkKvmRSSReport
                                 , dUse = useInstanceRSSData
                                 }
+
+-- | Scale the importance of the memory weight in dynamic utilisation,
+-- by multiplying the usage with the given factor. Note that the underlying
+-- model for dynamic utilisation is that they are reported in arbitrary units.
+scaleMemoryWeight :: Double
+                  -> (Node.List, Instance.List)
+                  -> (Node.List, Instance.List)
+scaleMemoryWeight f (nl, il) =
+  let updateInst inst =
+        let dynU = Instance.util inst
+            dynU' = dynU { memWeight = f * memWeight dynU}
+        in inst { Instance.util = dynU' }
+      updateNode node =
+        let dynU = Node.utilLoad node
+            dynU' = dynU { memWeight = f * memWeight dynU}
+        in node { Node.utilLoad = dynU' }
+  in (IntMap.map updateNode nl, IntMap.map updateInst il)
 
 -- * Collector choice
 
