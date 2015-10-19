@@ -59,6 +59,7 @@ module Ganeti.HTools.CLI
   , oDiskTemplate
   , oSpindleUse
   , oDynuFile
+  , oMemWeight
   , oMonD
   , oMonDDataFile
   , oMonDKvmRSS
@@ -167,6 +168,8 @@ data Options = Options
                                      -- considered (only if MonD is queried)
   , optMonDExitMissing :: Bool       -- ^ If the program should exit on missing
                                      -- MonD data
+  , optMemWeight   :: Double         -- ^ Rescale the weight of memory
+                                     -- utilisation
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optRestrictedMigrate :: Bool     -- ^ Disallow replace-primary moves
   , optExInst      :: [String]       -- ^ Instances to be excluded
@@ -241,6 +244,7 @@ defaultOptions  = Options
   , optMonDXen     = False
   , optMonDKvmRSS  = False
   , optMonDExitMissing = False
+  , optMemWeight   = 1.0
   , optEvacMode    = False
   , optRestrictedMigrate = False
   , optExInst      = []
@@ -389,6 +393,14 @@ oMonDKvmRSS =
     (NoArg (\ opts -> Ok opts { optMonDKvmRSS = True }))
     "also consider residual-set-size data for kvm instances via MonD",
     OptComplNone)
+
+oMemWeight :: OptType
+oMemWeight =
+  (Option "" ["mem-weight"]
+   (reqWithConversion (tryRead "memory weight factor")
+    (\ f opts -> Ok opts { optMemWeight = f }) "FACTOR")
+   "Rescale the weight of the memory utilization by the given factor",
+   OptComplFloat)
 
 oMonDExitMissing :: OptType
 oMonDExitMissing =
