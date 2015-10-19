@@ -50,6 +50,7 @@ module Ganeti.HTools.Backend.MonD
   , xenCPUCollector
   , kvmRSSCollector
   , scaleMemoryWeight
+  , useInstanceRSSData
   ) where
 
 import Control.Monad
