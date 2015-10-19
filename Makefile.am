@@ -1726,6 +1726,7 @@ TEST_FILES = \
 	test/data/htools/common-suffix.data \
 	test/data/htools/dyn1.json \
 	test/data/htools/dyn2.json \
+	test/data/htools/dyn3.json \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-dedicated-1.json \
 	test/data/htools/hail-alloc-drbd.json \
