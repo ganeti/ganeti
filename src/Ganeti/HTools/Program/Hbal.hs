@@ -50,6 +50,7 @@ import System.IO
 import Text.Printf (printf)
 
 import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(..), fromCLIOptions)
+import Ganeti.HTools.Backend.MonD (scaleMemoryWeight)
 import qualified Ganeti.HTools.Container as Container
 import qualified Ganeti.HTools.Cluster as Cluster
 import qualified Ganeti.HTools.Cluster.Metrics as Metrics
@@ -113,6 +114,7 @@ options = do
     , oMonDExitMissing
     , oMonDXen
     , oMonDKvmRSS
+    , oMemWeight
     , oExTags
     , oExInst
     , oSaveCluster
@@ -315,13 +317,14 @@ main opts args = do
       showinsts = optShowInsts opts
       force = optIgnoreSoftErrors opts
 
-  ini_cdata@(ClusterData gl fixed_nl ilf ctags ipol) <- loadExternalData opts
+  ini_cdata@(ClusterData gl fixed_nl ilf' ctags ipol) <- loadExternalData opts
 
   when (verbose > 1) $ do
        putStrLn $ "Loaded cluster tags: " ++ intercalate "," ctags
        putStrLn $ "Loaded cluster ipolicy: " ++ show ipol
 
-  nlf <- setNodeStatus opts fixed_nl
+  nlf' <- setNodeStatus opts fixed_nl
+  let (nlf, ilf) = scaleMemoryWeight (optMemWeight opts) (nlf', ilf')
   checkCluster verbose nlf ilf
 
   maybeSaveData (optSaveCluster opts) "original" "before balancing" ini_cdata

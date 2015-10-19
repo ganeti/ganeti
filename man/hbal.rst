@@ -468,6 +468,10 @@ The options that can be passed to the program are as follows:
   If given, also query the residual set size for kvm instances, provided
   that monitoring daemons are queried at all.
 
+\--mem-weight=*factor*
+  Scale the weight of the dynamic memory utilization in the cluster metrics
+  by the given factor.
+
 \--exit-on-missing-mond-data
   If given, abort if the data obtainable from querying MonDs is incomplete.
   The default behavior is to continue with a best guess based on the static
