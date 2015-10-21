@@ -942,7 +942,7 @@ DEFAULT_IALLOCATOR_PARAMS_OPT = cli_option("--default-iallocator-params",
                                            " template:option=value,"
                                            " option=value,...",
                                            type="keyval",
-                                           default={})
+                                           default=None)
 
 OS_OPT = cli_option("-o", "--os-type", dest="os", help="What OS to run",
                     metavar="<os>",
