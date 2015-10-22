@@ -298,7 +298,7 @@ balanceGroup memstate xens client allowedNodes threshold (gidx, (nl, il)) = do
 -- to change once more experience with memory over-commited clusters
 -- is gained.
 weightFromMemRatio :: Double -> Double
-weightFromMemRatio f = if f > 1.0 then 1.0 else 0.0
+weightFromMemRatio f = 0.0 `max` (f - 1) * 5.0
 
 -- | Apply the memory data to the cluster data.
 useMemData :: Double
