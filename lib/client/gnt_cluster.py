@@ -1251,7 +1251,7 @@ def SetClusterParams(opts, args):
           opts.add_uids is not None or
           opts.remove_uids is not None or
           opts.default_iallocator is not None or
-          opts.default_iallocator_params or
+          opts.default_iallocator_params is not None or
           opts.reserved_lvs is not None or
           opts.mac_prefix is not None or
           opts.master_netdev is not None or
