@@ -711,6 +711,18 @@ $(buildParam "ND" "ndp"
   , simpleField "cpu_speed"     [t| Double |]
   ])
 
+-- | Disk state parameters.
+--
+-- As according to the documentation this option is unused by Ganeti,
+-- the content is just a 'JSValue'.
+type DiskState = Container JSValue
+
+-- | Hypervisor state parameters.
+--
+-- As according to the documentation this option is unused by Ganeti,
+-- the content is just a 'JSValue'.
+type HypervisorState = Container JSValue
+
 $(buildObject "Node" "node" $
   [ simpleField "name"             [t| String |]
   , simpleField "primary_ip"       [t| String |]
@@ -723,6 +735,10 @@ $(buildObject "Node" "node" $
   , simpleField "vm_capable"       [t| Bool   |]
   , simpleField "ndparams"         [t| PartialNDParams |]
   , simpleField "powered"          [t| Bool   |]
+  , notSerializeDefaultField [| emptyContainer |] $
+    simpleField "hv_state_static"   [t| HypervisorState |]
+  , notSerializeDefaultField [| emptyContainer |] $
+    simpleField "disk_state_static" [t| DiskState       |]
   ]
   ++ timeStampFields
   ++ uuidFields
@@ -758,6 +774,10 @@ $(buildObject "NodeGroup" "group" $
   , simpleField "ipolicy"      [t| PartialIPolicy  |]
   , simpleField "diskparams"   [t| GroupDiskParams |]
   , simpleField "networks"     [t| Networks        |]
+  , notSerializeDefaultField [| emptyContainer |] $
+    simpleField "hv_state_static"   [t| HypervisorState |]
+  , notSerializeDefaultField [| emptyContainer |] $
+    simpleField "disk_state_static" [t| DiskState       |]
   ]
   ++ timeStampFields
   ++ uuidFields
@@ -922,18 +942,6 @@ type IAllocatorParams = Container JSValue
 
 -- | The master candidate client certificate digests
 type CandidateCertificates = Container String
-
--- | Disk state parameters.
---
--- As according to the documentation this option is unused by Ganeti,
--- the content is just a 'JSValue'.
-type DiskState = Container JSValue
-
--- | Hypervisor state parameters.
---
--- As according to the documentation this option is unused by Ganeti,
--- the content is just a 'JSValue'.
-type HypervisorState = Container JSValue
 
 -- * Cluster definitions
 $(buildObject "Cluster" "cluster" $
