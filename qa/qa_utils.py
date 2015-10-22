@@ -473,23 +473,32 @@ def UploadData(node, data, mode=0600, filename=None):
 
   """
   if filename:
-    tmp = "tmp=%s" % utils.ShellQuote(filename)
-  else:
-    tmp = ('tmp=$(mktemp --tmpdir gnt.XXXXXX) && '
-           'chmod %o "${tmp}"') % mode
-  cmd = ("%s && "
-         "[[ -f \"${tmp}\" ]] && "
-         "cat > \"${tmp}\" && "
-         "echo \"${tmp}\"") % tmp
+    quoted_filename = utils.ShellQuote(filename)
+    directory = utils.ShellQuote(os.path.dirname(filename))
 
-  p = subprocess.Popen(GetSSHCommand(node, cmd), shell=False,
-                       stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+    cmd = " && ".join([
+      "mkdir -p %s" % directory,
+      "cat > %s" % quoted_filename,
+      "chmod %o %s" % (mode, quoted_filename)])
+  else:
+    cmd = " && ".join([
+      'tmp=$(mktemp --tmpdir gnt.XXXXXX)',
+      'chmod %o "${tmp}"' % mode,
+      'cat > "${tmp}"',
+      'echo "${tmp}"'])
+
+  p = subprocess.Popen(GetSSHCommand(node, cmd),
+                       shell=False,
+                       stdin=subprocess.PIPE,
+                       stdout=subprocess.PIPE)
   p.stdin.write(data)
   p.stdin.close()
   AssertEqual(p.wait(), 0)
 
-  # Return temporary filename
-  return _GetCommandStdout(p).strip()
+  if filename:
+    return filename
+  else:
+    return _GetCommandStdout(p).strip()
 
 
 def BackupFile(node, path):
