@@ -275,7 +275,8 @@
     "default-instance-tests": true,
     "exclusive-storage-instance-tests": false,
 
-    "mon-collector": true
+    "mon-collector": true,
+    "maintd": true
   },
 
   "options": {

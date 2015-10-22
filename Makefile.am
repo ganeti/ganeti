@@ -1350,6 +1350,7 @@ qa_scripts = \
 	qa/qa_job.py \
 	qa/qa_job_utils.py \
 	qa/qa_logging.py \
+	qa/qa_maintd.py \
 	qa/qa_monitoring.py \
 	qa/qa_network.py \
 	qa/qa_node.py \

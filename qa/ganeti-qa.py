@@ -50,6 +50,7 @@ import qa_filters
 import qa_group
 import qa_instance
 import qa_iptables
+import qa_maintd
 import qa_monitoring
 import qa_network
 import qa_node
@@ -888,6 +889,13 @@ def RunMonitoringTests():
   RunTestIf("mon-collector", qa_monitoring.TestInstStatusCollector)
 
 
+def RunMaintdTests():
+  RunTestIf("maintd", qa_maintd.TestEvacuate)
+  RunTestIf("maintd", qa_maintd.TestEvacuateFailover)
+  if constants.ENABLE_RESTRICTED_COMMANDS:
+    RunTestIf("maintd", qa_maintd.TestLiveRepair)
+
+
 PARALLEL_TEST_DICT = {
   "parallel-failover": qa_performance.TestParallelInstanceFailover,
   "parallel-migration": qa_performance.TestParallelInstanceMigration,
@@ -1078,6 +1086,7 @@ def RunQa():
     qa_cluster.AssertClusterVerify()
 
   RunTestBlock(RunMonitoringTests)
+  RunTestBlock(RunMaintdTests)
 
   RunPerformanceTests()
 
