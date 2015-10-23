@@ -115,6 +115,7 @@ module Ganeti.HTools.CLI
   , oShowVer
   , oShowComp
   , oSkipNonRedundant
+  , oSoR
   , oStdSpec
   , oTargetResources
   , oTieredSpec
@@ -159,6 +160,7 @@ data Options = Options
   , optIgnoreSoftErrors :: Bool      -- ^ Ignore soft errors in balancing moves
   , optIndependentGroups :: Bool     -- ^ consider groups independently
   , optAcceptExisting :: Bool        -- ^ accept existing N+1 violations
+  , optSoR         :: Bool           -- ^ only use state-of-record data
   , optMonD        :: Bool           -- ^ Query MonDs
   , optMonDFile    :: Maybe FilePath -- ^ Optional file with data provided
                                      -- by MonDs
@@ -239,6 +241,7 @@ defaultOptions  = Options
   , optIdleDefault = False
   , optIgnoreSoftErrors = False
   , optDynuFile    = Nothing
+  , optSoR         = False
   , optMonD        = False
   , optMonDFile = Nothing
   , optMonDXen     = False
@@ -401,6 +404,13 @@ oMemWeight =
     (\ f opts -> Ok opts { optMemWeight = f }) "FACTOR")
    "Rescale the weight of the memory utilization by the given factor",
    OptComplFloat)
+
+oSoR :: OptType
+oSoR =
+  (Option "" ["state-of-record"]
+    (NoArg (\ opts -> Ok opts { optSoR = True }))
+    "only use state-of-record data",
+    OptComplNone)
 
 oMonDExitMissing :: OptType
 oMonDExitMissing =
