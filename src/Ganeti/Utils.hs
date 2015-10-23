@@ -45,6 +45,7 @@ module Ganeti.Utils
   , commaJoin
   , ensureQuoted
   , divideList
+  , balancedSum
   , tryRead
   , readMaybe
   , formatTable
@@ -217,6 +218,15 @@ divideList [a] = ([a], [])
 divideList (a:b:xs) = let (ls, rs) = divideList xs in (a:ls, b:rs)
 
 -- * Mathematical functions
+
+-- | Compute the sum of a list of numbers, all about the same value,
+-- and do so in a balanced way to avoid adding numbers of too different
+-- values (and thus too bad inaccuracies).
+balancedSum :: Num a => [a] -> a
+balancedSum [] = 0
+balancedSum [x] = x
+balancedSum xs = let (ls, rs) = divideList xs
+                 in balancedSum ls + balancedSum rs
 
 -- Simple and slow statistical functions, please replace with better
 -- versions
