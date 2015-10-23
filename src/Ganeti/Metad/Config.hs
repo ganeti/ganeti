@@ -80,9 +80,12 @@ getSecretOsParams = getOsParams "osparams_secret" "secret"
 -- > { "os-image": ["http://example.com/disk.img", "public"],
 -- >   "os-password": ["mypassword", "secret"] }
 makeInstanceParams
-  :: JSObject JSValue -> JSObject JSValue -> JSObject JSValue -> JSValue
+  :: JSObject JSValue
+  -> JSObject JSValue
+  -> JSObject JSValue
+  -> JSObject JSValue
 makeInstanceParams pub priv sec =
-  JSObject . JSON.toJSObject $
+  JSON.toJSObject $
     addVisibility "public" pub ++
     addVisibility "private" priv ++
     addVisibility "secret" sec
@@ -92,7 +95,7 @@ makeInstanceParams pub priv sec =
     addVisibility param params =
       map (second (JSArray . (:[key param]))) (JSON.fromJSObject params)
 
-getOsParamsWithVisibility :: JSValue -> Result JSValue
+getOsParamsWithVisibility :: JSValue -> Result (JSObject JSValue)
 getOsParamsWithVisibility json =
   do obj <- readJSON json
      publicOsParams <- getPublicOsParams obj
