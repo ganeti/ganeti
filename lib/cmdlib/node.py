@@ -359,7 +359,8 @@ class LUNodeAdd(LogicalUnit):
         True, # from authorized keys
         True, # from public keys
         False, # clear authorized keys
-        True) # clear public keys
+        True, # clear public keys
+        True) # it's a readd
       remove_result[master_node].Raise(
         "Could not remove SSH keys of node %s before readding,"
         " (UUID: %s)." % (new_node_name, new_node_uuid))
@@ -876,7 +877,8 @@ class LUNodeSetParams(LogicalUnit):
             True, # remove node's key from all nodes' authorized_keys file
             False, # currently, all nodes are potential master candidates
             False, # do not clear node's 'authorized_keys'
-            False) # do not clear node's 'ganeti_pub_keys'
+            False, # do not clear node's 'ganeti_pub_keys'
+            False) # no readd
           ssh_result[master_node].Raise(
             "Could not adjust the SSH setup after demoting node '%s'"
             " (UUID: %s)." % (node.name, node.uuid))
@@ -1583,7 +1585,8 @@ class LUNodeRemove(LogicalUnit):
         self.node.master_candidate, # from_authorized_keys
         potential_master_candidate, # from_public_keys
         True, # clear node's 'authorized_keys'
-        True) # clear node's 'ganeti_public_keys'
+        True, # clear node's 'ganeti_public_keys'
+        False) # no readd
       result[master_node].Raise(
         "Could not remove the SSH key of node '%s' (UUID: %s)." %
         (self.op.node_name, self.node.uuid))

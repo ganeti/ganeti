@@ -959,14 +959,15 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     (node_uuid, node_name,
      master_candidate_uuids, potential_master_candidates,
      from_authorized_keys, from_public_keys, clear_authorized_keys,
-     clear_public_keys) = params
+     clear_public_keys, readd) = params
     return backend.RemoveNodeSshKey(node_uuid, node_name,
                                     master_candidate_uuids,
                                     potential_master_candidates,
                                     from_authorized_keys=from_authorized_keys,
                                     from_public_keys=from_public_keys,
                                     clear_authorized_keys=clear_authorized_keys,
-                                    clear_public_keys=clear_public_keys)
+                                    clear_public_keys=clear_public_keys,
+                                    readd=readd)
 
   # cluster --------------------------
 

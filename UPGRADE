@@ -135,6 +135,10 @@ To run commands on all nodes, the `distributed shell (dsh)
 
     $ /usr/lib/ganeti/ensure-dirs --full-run
 
+   Note that ensure-dirs does not create the directories for file
+   and shared-file storage. This is due to security reasons. They need
+   to be created manually. For details see ``man gnt-cluster``. 
+
 #. Create the (missing) required users and make users part of the required
    groups on all nodes::
 
