@@ -4,7 +4,7 @@
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013, 2015 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,7 @@ module Ganeti.Utils
   , applyIf
   , commaJoin
   , ensureQuoted
+  , divideList
   , tryRead
   , readMaybe
   , formatTable
@@ -208,6 +209,12 @@ ensureQuoted v = if not (all (\c -> isAlphaNum c || c == '.') v)
 -- | Delay a thread for several seconds.
 threadDelaySeconds :: Int -> IO ()
 threadDelaySeconds = threadDelay . (*) 1000000
+
+-- | Split a list into two lists of approximately the same length.
+divideList :: [a] -> ([a], [a])
+divideList [] = ([], [])
+divideList [a] = ([a], [])
+divideList (a:b:xs) = let (ls, rs) = divideList xs in (a:ls, b:rs)
 
 -- * Mathematical functions
 
