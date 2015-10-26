@@ -890,11 +890,11 @@ def RunMonitoringTests():
 
 
 def RunMaintdTests():
-  RunTestIf("maintd", qa_maintd.TestEvacuate)
-  RunTestIf("maintd", qa_maintd.TestEvacuateFailover)
-  if constants.ENABLE_RESTRICTED_COMMANDS:
-    RunTestIf("maintd", qa_maintd.TestLiveRepair)
-
+  if constants.DT_DRBD8 in qa_config.GetEnabledDiskTemplates():
+    RunTestIf("maintd", qa_maintd.TestEvacuate)
+    RunTestIf("maintd", qa_maintd.TestEvacuateFailover)
+    if constants.ENABLE_RESTRICTED_COMMANDS:
+      RunTestIf("maintd", qa_maintd.TestLiveRepair)
 
 PARALLEL_TEST_DICT = {
   "parallel-failover": qa_performance.TestParallelInstanceFailover,
