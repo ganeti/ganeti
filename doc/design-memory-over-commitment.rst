@@ -177,6 +177,5 @@ memory). The weighting for this metric component will have to be
 determined by experimentation and will depend on the memory ratio;
 for a memory ratio of ``1.0`` the weight will be ``0.0``, as memory
 need not be taken into account if no over-commitment is in place.
-As a starting point for experimentation we will use weight ``0.0``
-if the memory ratio is ``1.0`` and weight ``1.0`` if it is bigger
-than ``1.0``.
+For memory ratios bigger than ``1.0``, the weight will be positive
+and grow with the ratio.

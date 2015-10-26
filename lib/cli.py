@@ -1551,7 +1551,9 @@ class _RunWhileDaemonsStoppedHelper(object):
       self._RunCmd(None, [pathutils.DAEMON_UTIL, "stop-master"])
       try:
         # Stop daemons on all nodes
-        for node_name in self.online_nodes:
+        online_nodes = [self.master_node] + [n for n in self.online_nodes
+                                             if n != self.master_node]
+        for node_name in online_nodes:
           self.feedback_fn("Stopping daemons on %s" % node_name)
           self._RunCmd(node_name, [pathutils.DAEMON_UTIL, "stop-all"])
           # Starting any daemons listed as exception

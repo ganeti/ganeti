@@ -133,9 +133,58 @@ diff -u $T/simu-rebal-merged.tiered $T/simu-rebal.tiered.original
 >>>/Solution length=1/
 >>>=0
 
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data -C
+>>>/gnt-instance migrate -f -n node-01-001 inst-0./
+>>>=0
+
 # ...but the --ignore-dynu option should be honored
 ./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --ignore-dynu
 >>>/Cluster is already well balanced/
+>>>=0
+
+# Assuming idle default also gives 0 utilisation
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --idle-default
+>>>/Cluster is already well balanced/
+>>>=0
+
+# Heavy CPU load can even push instances on the more
+# crowded node
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --idle-default --mond --mond-xen --mond-data=$TESTDATA_DIR/dyn1.json -C
+>>>/gnt-instance migrate -f -n node-01-000 inst-1./
+>>>=0
+
+# ...but with default assumption about disk/net/mem fully used the move is in
+# the other direction.
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --mond --mond-xen --mond-data=$TESTDATA_DIR/dyn1.json
+>>>/Solution length=1/
+>>>=0
+
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --mond --mond-xen --mond-data=$TESTDATA_DIR/dyn1.json -C
+>>>/gnt-instance migrate -f -n node-01-001 inst-0./
+>>>=0
+
+# Still, --ignore-dynu overrides everything
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn.data --idle-default --mond --mond-xen --mond-data=$TESTDATA_DIR/dyn1.json --ignore-dynu
+>>>/Cluster is already well balanced/
+>>>=0
+
+# On an overcommitted cluster with small amount of memory, taking memory
+# usage into account can make a difference.
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn2.data --idle-default --mond --mond-data=$TESTDATA_DIR/dyn2.json
+>>>/Solution length=0/
+>>>=0
+
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn2.data --idle-default --mond --mond-data=$TESTDATA_DIR/dyn2.json --mond-kvm-rss -C
+>>>/gnt-instance migrate -f -n node-01-000 inst-1./
+>>>=0
+
+# Depending on weight, instances can move in either direction
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn2.data --idle-default --mond --mond-data=$TESTDATA_DIR/dyn3.json --mond-kvm-rss -C --mem-weight=0.5
+>>>/ 1\. inst-0./
+>>>=0
+
+./test/hs/hbal -t$TESTDATA_DIR/hbal-dyn2.data --idle-default --mond --mond-data=$TESTDATA_DIR/dyn3.json --mond-kvm-rss -C --mem-weight=3.0
+>>>/ 1\. inst-1./
 >>>=0
 
 # Test CPU speed is taken into account

@@ -8,7 +8,7 @@ used in many other places and this is more IO oriented.
 
 {-
 
-Copyright (C) 2009, 2010, 2011, 2012, 2013 Google Inc.
+Copyright (C) 2009, 2010, 2011, 2012, 2013, 2015 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -59,8 +59,10 @@ module Ganeti.HTools.CLI
   , oDiskTemplate
   , oSpindleUse
   , oDynuFile
+  , oMemWeight
   , oMonD
   , oMonDDataFile
+  , oMonDKvmRSS
   , oMonDXen
   , oEvacMode
   , oMonDExitMissing
@@ -72,6 +74,7 @@ module Ganeti.HTools.CLI
   , oForce
   , oFullEvacuation
   , oGroup
+  , oIdleDefault
   , oIAllocSrc
   , oIgnoreDyn
   , oIgnoreNonRedundant
@@ -151,6 +154,8 @@ data Options = Options
   , optSpindleUse  :: Maybe Int      -- ^ Override for the spindle usage
   , optDynuFile    :: Maybe FilePath -- ^ Optional file with dynamic use data
   , optIgnoreDynu  :: Bool           -- ^ Do not use dynamic use data
+  , optIdleDefault :: Bool           -- ^ Assume idle load for all not provided
+                                     -- dynamic utilisation data
   , optIgnoreSoftErrors :: Bool      -- ^ Ignore soft errors in balancing moves
   , optIndependentGroups :: Bool     -- ^ consider groups independently
   , optAcceptExisting :: Bool        -- ^ accept existing N+1 violations
@@ -159,8 +164,12 @@ data Options = Options
                                      -- by MonDs
   , optMonDXen     :: Bool           -- ^ Should Xen-specific collectors be
                                      -- considered (only if MonD is queried)
+  , optMonDKvmRSS  :: Bool           -- ^ Should kvm RSS information be
+                                     -- considered (only if MonD is queried)
   , optMonDExitMissing :: Bool       -- ^ If the program should exit on missing
                                      -- MonD data
+  , optMemWeight   :: Double         -- ^ Rescale the weight of memory
+                                     -- utilisation
   , optEvacMode    :: Bool           -- ^ Enable evacuation mode
   , optRestrictedMigrate :: Bool     -- ^ Disallow replace-primary moves
   , optExInst      :: [String]       -- ^ Instances to be excluded
@@ -227,12 +236,15 @@ defaultOptions  = Options
   , optDiskTemplate = Nothing
   , optSpindleUse  = Nothing
   , optIgnoreDynu  = False
+  , optIdleDefault = False
   , optIgnoreSoftErrors = False
   , optDynuFile    = Nothing
   , optMonD        = False
   , optMonDFile = Nothing
   , optMonDXen     = False
+  , optMonDKvmRSS  = False
   , optMonDExitMissing = False
+  , optMemWeight   = 1.0
   , optEvacMode    = False
   , optRestrictedMigrate = False
   , optExInst      = []
@@ -375,6 +387,21 @@ oMonDXen =
     "also consider xen-specific collectors in MonD queries",
     OptComplNone)
 
+oMonDKvmRSS :: OptType
+oMonDKvmRSS =
+  (Option "" ["mond-kvm-rss"]
+    (NoArg (\ opts -> Ok opts { optMonDKvmRSS = True }))
+    "also consider residual-set-size data for kvm instances via MonD",
+    OptComplNone)
+
+oMemWeight :: OptType
+oMemWeight =
+  (Option "" ["mem-weight"]
+   (reqWithConversion (tryRead "memory weight factor")
+    (\ f opts -> Ok opts { optMemWeight = f }) "FACTOR")
+   "Rescale the weight of the memory utilization by the given factor",
+   OptComplFloat)
+
 oMonDExitMissing :: OptType
 oMonDExitMissing =
   (Option "" ["exit-on-missing-mond-data"]
@@ -430,6 +457,13 @@ oIgnoreDyn =
   (Option "" ["ignore-dynu"]
    (NoArg (\ opts -> Ok opts {optIgnoreDynu = True}))
    "Ignore any dynamic utilisation information",
+   OptComplNone)
+
+oIdleDefault :: OptType
+oIdleDefault =
+  (Option "" ["idle-default"]
+   (NoArg (\ opts -> Ok opts {optIdleDefault = True}))
+   "Assume idleness for any non-availabe dynamic utilisation data",
    OptComplNone)
 
 oIgnoreSoftErrors :: OptType

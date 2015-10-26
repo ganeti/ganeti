@@ -727,6 +727,7 @@ docinput = \
 	doc/design-reservations.rst \
 	doc/design-resource-model.rst \
 	doc/design-restricted-commands.rst \
+	doc/design-scsi-kvm.rst \
 	doc/design-shared-storage.rst \
 	doc/design-shared-storage-redundancy.rst \
 	doc/design-ssh-ports.rst \
@@ -1726,8 +1727,12 @@ TEST_FILES = \
 	test/autotools/autotools-check-news.test \
 	test/data/htools/clean-nonzero-score.data \
 	test/data/htools/common-suffix.data \
+	test/data/htools/dyn1.json \
+	test/data/htools/dyn2.json \
+	test/data/htools/dyn3.json \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-dedicated-1.json \
+	test/data/htools/hail-alloc-desired-location.json \
 	test/data/htools/hail-alloc-drbd.json \
 	test/data/htools/hail-alloc-drbd-restricted.json \
 	test/data/htools/hail-alloc-ext.json \
@@ -1752,6 +1757,7 @@ TEST_FILES = \
 	test/data/htools/hbal-desiredlocation-3.data \
 	test/data/htools/hbal-desiredlocation-4.data \
 	test/data/htools/hbal-dyn.data \
+	test/data/htools/hbal-dyn2.data \
 	test/data/htools/hbal-evac.data \
 	test/data/htools/hbal-excl-tags.data \
 	test/data/htools/hbal-forth.data \

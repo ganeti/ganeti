@@ -30,6 +30,8 @@ Design document drafts
    design-macvtap.rst
    design-n-m-redundancy.rst
    design-global-hooks.rst
+   design-scsi-kvm.rst
+   design-disks.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:

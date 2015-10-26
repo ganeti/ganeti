@@ -122,8 +122,9 @@ loadExternalData opts = do
   now <- getClockTime
 
   let ignoreDynU = optIgnoreDynu opts
+      startIdle = ignoreDynU || optIdleDefault opts
       eff_u = if ignoreDynU then [] else util_data
-      ldresult = input_data >>= (if ignoreDynU then clearDynU else return)
+      ldresult = input_data >>= (if startIdle then clearDynU else return)
                             >>= mergeData eff_u exTags selInsts exInsts now
   cdata <- exitIfBad "failed to load data, aborting" ldresult
   (cdata', ok) <- runWriterT $ if optMonD opts

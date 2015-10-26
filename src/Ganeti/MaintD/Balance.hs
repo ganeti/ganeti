@@ -39,10 +39,12 @@ module Ganeti.MaintD.Balance
   ( balanceTask
   ) where
 
+import Control.Arrow ((***), (&&&))
 import Control.Exception.Lifted (bracket)
 import Control.Monad (liftM, unless, when)
 import Control.Monad.IO.Class (liftIO)
 import Data.IORef (IORef)
+import qualified Data.IntMap as IntMap
 import qualified Data.Set as Set
 import qualified Data.Map as Map
 import Data.Maybe (mapMaybe, isJust)
@@ -65,7 +67,7 @@ import Ganeti.JQueue (currentTimestamp)
 import Ganeti.JQueue.Objects (Timestamp)
 import Ganeti.Jobs (submitJobs)
 import Ganeti.HTools.Types ( zeroUtil, DynUtil(cpuWeight), addUtil, subUtil
-                           , MoveJob)
+                           , MoveJob, iPolicyMemoryRatio)
 import Ganeti.Logging.Lifted (logDebug)
 import Ganeti.MaintD.MemoryState ( MemoryState, getEvacuated
                                  , addEvacuated, rmEvacuated)
@@ -81,6 +83,7 @@ import Ganeti.Utils (logAndBad)
 
 data AllReports = AllReports { rTotal :: MonD.Report
                              , rIndividual :: MonD.Report
+                             , rMem :: MonD.Report
                              }
 
 -- | Empty report. It describes an idle node and can be used as
@@ -88,6 +91,7 @@ data AllReports = AllReports { rTotal :: MonD.Report
 emptyReports :: AllReports
 emptyReports = AllReports (MonD.CPUavgloadReport emptyCPUavgload)
                           (MonD.InstanceCpuReport Map.empty)
+                          (MonD.InstanceRSSReport Map.empty)
 
 -- | Query a node unless it is offline and return all
 -- CPU reports. For offline nodes return the empty report.
@@ -104,7 +108,8 @@ queryNode node = do
     else do
       total <- getReport MonD.totalCPUCollector
       xeninstances <- getReport MonD.xenCPUCollector
-      return $ AllReports total xeninstances
+      rssinstances <- getReport MonD.kvmRSSCollector
+      return $ AllReports total xeninstances rssinstances
 
 -- | Get a map with the CPU live data for all nodes; for offline nodes
 -- the empty report is guessed.
@@ -286,6 +291,27 @@ balanceGroup memstate xens client allowedNodes threshold (gidx, (nl, il)) = do
                    $ "Failure submitting balancing jobs: " ++ e
         Ok jids' -> return jids'
 
+-- * Memory balancing
+
+-- | Decide the weight that dynamic memory utilization should have
+-- based on the memory-over-commitment ratio. This function is likely
+-- to change once more experience with memory over-commited clusters
+-- is gained.
+weightFromMemRatio :: Double -> Double
+weightFromMemRatio f = 0.0 `max` (f - 1) * 5.0
+
+-- | Apply the memory data to the cluster data.
+useMemData :: Double
+           -> Container.Container AllReports
+           -> (Node.List, Instance.List)
+           -> ResultT String IO (Node.List, Instance.List)
+useMemData ratio allreports (nl, il) = do
+  logDebug "Taking dynamic memory data into account"
+  let memoryReports =
+        map (flip Container.find nl *** rMem) $ IntMap.toList allreports
+  mkResultT . return . liftM (MonD.scaleMemoryWeight (weightFromMemRatio ratio))
+    $ MonD.useInstanceRSSData memoryReports (nl, il)
+
 -- * Interface function
 
 -- | Carry out all the needed balancing, based on live CPU data, only touching
@@ -305,7 +331,16 @@ balanceTask memstate (nl, il) okNodes threshold = do
   (nl', il') <- mkResultT . return
                   $ updateCPULoad (nl, il) reports xenInstances evacuated
   liftIO $ mapM_ (cleanUpEvacuation memstate il reports) evacuated
-  let ngroups = ClusterUtils.splitCluster nl' il'
+  let memoryOvercommitment =
+        maximum . (0.0:) . map (iPolicyMemoryRatio .Node.iPolicy)
+        $ IntMap.elems nl
+  logDebug $ "Memory over-commitment ratio is " ++ show memoryOvercommitment
+  (nl'', il'') <- if memoryOvercommitment > 1.0
+                    then useMemData memoryOvercommitment reports (nl', il')
+                    else return (nl', il')
+  logDebug . (++) "Dynamic node load: " . show
+    . map (Node.name &&& Node.utilLoad) $ Container.elems nl''
+  let ngroups = ClusterUtils.splitCluster nl'' il''
   luxiSocket <- liftIO Path.defaultQuerySocket
   bracket (liftIO $ L.getLuxiClient luxiSocket) (liftIO . L.closeClient) $ \c ->
     liftM concat $ mapM (balanceGroup memstate xenInstances c okNodes threshold)
