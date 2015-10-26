@@ -79,6 +79,7 @@ options = do
     , oNodeSim
     , oRapiMaster
     , luxi
+    , oSoR
     , oIAllocSrc
     , oVerbose
     , oQuiet
