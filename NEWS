@@ -11,14 +11,11 @@ Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 - The IAllocator protocol has been extended by a new ``hv-state`` parameter.
-  This new parameter is used to estimate the amount memory used by a node
-  instead of ``reserved_mem`` on hypervisors other that ``xen-pvm`` and
-  ``xen-hvm`` because ``reserved_mem`` was reported incorrectly on them.
+  This new parameter is used to estimate the amount of memory utilized by
+  the node instead of ``reserved_mem`` on hypervisors other than ``xen-pvm``
+  and ``xen-hvm`` because ``reserved_mem`` was reported incorrectly on them.
   As far as this ``hv_state`` parameter is not presented in iallocator input,
   old ``reserved_mem`` will be used.
-  conversion to DRBD no secondary node is specified. As long as this new
-  feature is not used, a third-party IAllocator not aware of this extension can
-  be continued to be used.
 
 New features
 ~~~~~~~~~~~~
