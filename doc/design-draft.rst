@@ -2,7 +2,7 @@
 Design document drafts
 ======================
 
-.. Last updated for Ganeti 2.16
+.. Last updated for Ganeti 2.17
 
 .. toctree::
    :maxdepth: 2
@@ -24,11 +24,7 @@ Design document drafts
    design-network2.rst
    design-configlock.rst
    design-multi-storage-htools.rst
-   design-repaird.rst
-   design-migration-speed-hbal.rst
-   design-memory-over-commitment.rst
    design-macvtap.rst
-   design-n-m-redundancy.rst
    design-scsi-kvm.rst
    design-disks.rst
 

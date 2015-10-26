@@ -82,6 +82,7 @@ and draft versions (which are either incomplete or not implemented).
    design-2.14.rst
    design-2.15.rst
    design-2.16.rst
+   design-2.17.rst
 
 Draft designs
 -------------
@@ -118,11 +119,14 @@ Draft designs
    design-location.rst
    design-linuxha.rst
    design-lu-generated-jobs.rst
+   design-memory-over-commitment.rst
+   design-migration-speed-hbal.rst
    design-monitoring-agent.rst
    design-move-instance-improvements.rst
    design-multi-reloc.rst
    design-multi-version-tests.rst
    design-network.rst
+   design-n-m-redundancy.rst
    design-node-add.rst
    design-node-security.rst
    design-oob.rst
@@ -137,6 +141,7 @@ Draft designs
    design-query2.rst
    design-query-splitting.rst
    design-reason-trail.rst
+   design-repaird.rst
    design-restricted-commands.rst
    design-shared-storage.rst
    design-shared-storage-redundancy.rst
