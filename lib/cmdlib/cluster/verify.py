@@ -1724,7 +1724,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
     node_status = [
       (uuid, node_info.name, node_info.master_candidate,
-       node_info.name in potential_master_candidates)
+       node_info.name in potential_master_candidates, not node_info.offline)
       for (uuid, node_info) in all_nodes_info.items()]
     return node_status
 

@@ -1626,9 +1626,9 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
   _NODE3_KEYS = ["key31"]
 
   _NODE_STATUS_LIST = [
-    (_NODE1_UUID, _NODE1_NAME, True, True),
-    (_NODE2_UUID, _NODE2_NAME, False, True),
-    (_NODE3_UUID, _NODE3_NAME, False, False),
+    (_NODE1_UUID, _NODE1_NAME, True, True, True),
+    (_NODE2_UUID, _NODE2_NAME, False, True, True),
+    (_NODE3_UUID, _NODE3_NAME, False, False, True),
     ]
 
   _PUB_KEY_RESULT = {
