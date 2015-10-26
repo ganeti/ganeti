@@ -1704,6 +1704,12 @@ hvKvmPath = "kvm_path"
 hvKvmDiskAio :: String
 hvKvmDiskAio = "disk_aio"
 
+hvKvmScsiControllerType :: String
+hvKvmScsiControllerType = "scsi_controller_type"
+
+hvKvmPciReservations :: String
+hvKvmPciReservations = "kvm_pci_reservations"
+
 hvKvmSpiceAudioCompr :: String
 hvKvmSpiceAudioCompr = "spice_playback_compression"
 
@@ -1910,6 +1916,8 @@ hvsParameterTypes = Map.fromList
   , (hvKvmMigrationCaps,                VTypeString)
   , (hvKvmPath,                         VTypeString)
   , (hvKvmDiskAio,                      VTypeString)
+  , (hvKvmScsiControllerType,           VTypeString)
+  , (hvKvmPciReservations,              VTypeInt)
   , (hvKvmSpiceAudioCompr,              VTypeBool)
   , (hvKvmSpiceBind,                    VTypeString)
   , (hvKvmSpiceIpVersion,               VTypeInt)
@@ -2655,6 +2663,12 @@ vncBasePort = 5900
 vncDefaultBindAddress :: String
 vncDefaultBindAddress = ip4AddressAny
 
+qemuPciSlots :: Int
+qemuPciSlots = 32
+
+qemuDefaultPciReservations :: Int
+qemuDefaultPciReservations = 12
+
 -- * NIC types
 
 htNicE1000 :: String
@@ -2739,6 +2753,25 @@ htDiskScsi = "scsi"
 htDiskSd :: String
 htDiskSd = "sd"
 
+htDiskScsiGeneric :: String
+htDiskScsiGeneric = "scsi-generic"
+
+htDiskScsiBlock :: String
+htDiskScsiBlock = "scsi-block"
+
+htDiskScsiCd :: String
+htDiskScsiCd = "scsi-cd"
+
+htDiskScsiHd :: String
+htDiskScsiHd = "scsi-hd"
+
+htScsiDeviceTypes :: FrozenSet String
+htScsiDeviceTypes =
+  ConstantUtils.mkSet [htDiskScsiGeneric,
+                       htDiskScsiBlock,
+                       htDiskScsiCd,
+                       htDiskScsiHd]
+
 htHvmValidDiskTypes :: FrozenSet String
 htHvmValidDiskTypes = ConstantUtils.mkSet [htDiskIoemu, htDiskParavirtual]
 
@@ -2749,7 +2782,28 @@ htKvmValidDiskTypes =
                        htDiskParavirtual,
                        htDiskPflash,
                        htDiskScsi,
-                       htDiskSd]
+                       htDiskSd,
+                       htDiskScsiGeneric,
+                       htDiskScsiBlock,
+                       htDiskScsiHd,
+                       htDiskScsiCd]
+
+-- * SCSI controller types
+
+htScsiControllerLsi :: String
+htScsiControllerLsi = "lsi"
+
+htScsiControllerVirtio :: String
+htScsiControllerVirtio = "virtio-scsi-pci"
+
+htScsiControllerMegasas :: String
+htScsiControllerMegasas = "megasas"
+
+htKvmValidScsiControllerTypes :: FrozenSet String
+htKvmValidScsiControllerTypes =
+  ConstantUtils.mkSet [htScsiControllerLsi,
+                       htScsiControllerVirtio,
+                       htScsiControllerMegasas]
 
 htCacheDefault :: String
 htCacheDefault = "default"
@@ -4025,6 +4079,8 @@ hvcDefaults =
           , (hvVncX509,                         PyValueEx "")
           , (hvVncX509Verify,                   PyValueEx False)
           , (hvVncPasswordFile,                 PyValueEx "")
+          , (hvKvmScsiControllerType,           PyValueEx htScsiControllerLsi)
+          , (hvKvmPciReservations,         PyValueEx qemuDefaultPciReservations)
           , (hvKvmSpiceBind,                    PyValueEx "")
           , (hvKvmSpiceIpVersion,           PyValueEx ifaceNoIpVersionSpecified)
           , (hvKvmSpicePasswordFile,            PyValueEx "")

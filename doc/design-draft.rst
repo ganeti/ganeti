@@ -29,6 +29,8 @@ Design document drafts
    design-memory-over-commitment.rst
    design-macvtap.rst
    design-n-m-redundancy.rst
+   design-scsi-kvm.rst
+   design-disks.rst
 
 .. vim: set textwidth=72 :
 .. Local Variables:

@@ -949,8 +949,8 @@ $(THH.makeJSONInstance ''HotplugAction)
 -- | Hotplug Device Target.
 
 $(THH.declareLADT ''String "HotplugTarget"
-  [ ("HTDisk", "hotdisk")
-  , ("HTNic",  "hotnic")
+  [ ("HTDisk", "disk")
+  , ("HTNic",  "nic")
   ])
 $(THH.makeJSONInstance ''HotplugTarget)
 

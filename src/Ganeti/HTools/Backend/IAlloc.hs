@@ -231,6 +231,10 @@ parseData now body = do
   let (kti, il) = assignIndices iobj
   -- cluster tags
   ctags <- extrObj "cluster_tags"
+  let ex_tags = extractExTags ctags
+      dsrd_loc_tags = extractDesiredLocations ctags
+      updateTags = updateExclTags ex_tags .
+                   updateDesiredLocationTags dsrd_loc_tags
   cdata1 <- mergeData [] [] [] [] now (ClusterData gl nl il ctags defIPolicy)
   let (msgs, fix_nl) = checkData (cdNodes cdata1) (cdInstances cdata1)
       cdata = cdata1 { cdNodes = fix_nl }
@@ -247,7 +251,7 @@ parseData now body = do
               rest_nodes <- maybeFromObj request "restrict-to-nodes"
               req_nodes <- extrReq "required_nodes"
               inew      <- parseBaseInstance rname request
-              let io = updateExclTags (extractExTags ctags) $ snd inew
+              let io = updateTags $ snd inew
               return $ Allocate io (Cluster.AllocDetails req_nodes rgn)
                                 rest_nodes
         | optype == C.iallocatorModeReloc ->
@@ -284,8 +288,7 @@ parseData now body = do
                                  rgn       <- maybeFromObj request "group_name"
                                  req_nodes <- extrFromReq r "required_nodes"
                                  inew      <- parseBaseInstance rname r
-                                 let io = updateExclTags (extractExTags ctags)
-                                            $ snd inew
+                                 let io = updateTags $ snd inew
                                  return (io, Cluster.AllocDetails
                                                req_nodes rgn))
               return $ MultiAllocate prqs

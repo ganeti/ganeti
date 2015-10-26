@@ -726,6 +726,7 @@ docinput = \
 	doc/design-reservations.rst \
 	doc/design-resource-model.rst \
 	doc/design-restricted-commands.rst \
+	doc/design-scsi-kvm.rst \
 	doc/design-shared-storage.rst \
 	doc/design-shared-storage-redundancy.rst \
 	doc/design-ssh-ports.rst \
@@ -1729,6 +1730,7 @@ TEST_FILES = \
 	test/data/htools/dyn3.json \
 	test/data/htools/empty-cluster.data \
 	test/data/htools/hail-alloc-dedicated-1.json \
+	test/data/htools/hail-alloc-desired-location.json \
 	test/data/htools/hail-alloc-drbd.json \
 	test/data/htools/hail-alloc-drbd-restricted.json \
 	test/data/htools/hail-alloc-ext.json \
