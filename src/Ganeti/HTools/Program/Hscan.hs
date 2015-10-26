@@ -163,7 +163,7 @@ main opts clusters = do
          def_socket <- Path.defaultQuerySocket
          let lsock = fromMaybe def_socket (optLuxi opts)
          let name = local
-         input_data <- Luxi.loadData lsock
+         input_data <- Luxi.loadData (optSoR opts) lsock
          result <- writeData nlen name opts input_data
          unless result . exitWith $ ExitFailure 2
 

@@ -135,24 +135,27 @@ queryGroups :: L.Client -> IO (Result JSValue)
 queryGroups = liftM errToResult . L.callMethod queryGroupsMsg
 
 -- | Parse a instance list in JSON format.
-getInstances :: NameAssoc
+getInstances :: Bool -- ^ use only state-of-record (SoR) data
+             -> NameAssoc
              -> JSValue
              -> Result [(String, Instance.Instance)]
-getInstances ktn arr = L.extractArray arr >>= mapM (parseInstance ktn)
+getInstances sor ktn arr = L.extractArray arr >>= mapM (parseInstance sor ktn)
 
 -- | Construct an instance from a JSON object.
-parseInstance :: NameAssoc
+parseInstance :: Bool -- ^ use only state-of-record (SoR) data
+              -> NameAssoc
               -> [(JSValue, JSValue)]
               -> Result (String, Instance.Instance)
-parseInstance ktn [ name, disk, mem, vcpus
-                  , status, pnode, snodes, tags, oram
-                  , auto_balance, disk_template, su
-                  , dsizes, dspindles, forthcoming ] = do
+parseInstance sor ktn
+  [ name, disk, mem, vcpus, status, pnode, snodes, tags, oram
+  , auto_balance, disk_template, su, dsizes, dspindles, forthcoming ] = do
   xname <- annotateResult "Parsing new instance" (L.fromJValWithStatus name)
   let convert a = genericConvert "Instance" xname a
   xdisk <- convert "disk_usage" disk
-  xmem <- case oram of -- FIXME: remove the "guessing"
-            (_, JSRational _ _) -> convert "oper_ram" oram
+  xmem <- case (sor, oram) of -- FIXME: remove the "guessing"
+            (False, (_, JSRational _ _)) -> convert "oper_ram" oram
+            -- Note: "oper_ram" is live data; we only use it if not told
+            -- to restrict to state-of-record data
             _ -> convert "be/memory" mem
   xvcpus <- convert "be/vcpus" vcpus
   xpnode <- convert "pnode" pnode >>= lookupNode ktn xname
@@ -174,7 +177,7 @@ parseInstance ktn [ name, disk, mem, vcpus
              xforthcoming
   return (xname, inst)
 
-parseInstance _ v = fail ("Invalid instance query result: " ++ show v)
+parseInstance _ _ v = fail ("Invalid instance query result: " ++ show v)
 
 -- | Parse a node list in JSON format.
 getNodes :: NameAssoc -> JSValue -> Result [(String, Node.Node)]
@@ -276,20 +279,22 @@ readData master =
 
 -- | Converts the output of 'readData' into the internal cluster
 -- representation.
-parseData :: (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
+parseData :: Bool -- ^ use only state-of-record (SoR) data
+          -> (Result JSValue, Result JSValue, Result JSValue, Result JSValue)
           -> Result ClusterData
-parseData (groups, nodes, instances, cinfo) = do
+parseData sor (groups, nodes, instances, cinfo) = do
   group_data <- groups >>= getGroups
   let (group_names, group_idx) = assignIndices group_data
   node_data <- nodes >>= getNodes group_names
   let (node_names, node_idx) = assignIndices node_data
-  inst_data <- instances >>= getInstances node_names
+  inst_data <- instances >>= getInstances sor node_names
   let (_, inst_idx) = assignIndices inst_data
   (ctags, cpol, master) <- cinfo >>= getClusterData
   node_idx' <- setMaster node_names node_idx master
   return (ClusterData group_idx node_idx' inst_idx ctags cpol)
 
 -- | Top level function for data loading.
-loadData :: String -- ^ Unix socket to use as source
+loadData :: Bool -- ^ use only state-of-record (SoR) data
+         -> String -- ^ Unix socket to use as source
          -> IO (Result ClusterData)
-loadData = fmap parseData . readData
+loadData sor = fmap (parseData sor) . readData

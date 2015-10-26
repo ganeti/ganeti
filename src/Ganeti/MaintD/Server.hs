@@ -107,7 +107,7 @@ loadClusterData :: ResultT String IO ClusterData
 loadClusterData = do
   now <- liftIO getClockTime
   socket <- liftIO Path.defaultQuerySocket
-  either_inp <-  liftIO . tryIOError $ Luxi.loadData socket
+  either_inp <-  liftIO . tryIOError $ Luxi.loadData False socket
   input_data <- mkResultT $ case either_inp of
                   Left e -> do
                     let msg = show e

@@ -114,7 +114,7 @@ loadExternalData opts = do
   input_data <-
     case () of
       _ | setRapi -> wrapIO $ Rapi.loadData mhost
-        | setLuxi -> wrapIO . Luxi.loadData $ fromJust lsock
+        | setLuxi -> wrapIO . Luxi.loadData (optSoR opts) $ fromJust lsock
         | setSim -> Simu.loadData simdata
         | setFile -> wrapIO . Text.loadData $ fromJust tfile
         | setIAllocSrc -> wrapIO . IAlloc.loadData $ fromJust iallocsrc
