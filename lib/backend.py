@@ -1100,7 +1100,7 @@ def _VerifySshClutter(node_status_list, my_name):
   return result
 
 
-def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
+def VerifyNode(what, cluster_name, all_hvparams, node_groups):
   """Verify the status of the local node.
 
   Based on the input L{what} parameter, various checks are done on the
@@ -1131,8 +1131,6 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
   @type node_groups: a dict of strings
   @param node_groups: node _names_ mapped to their group uuids (it's enough to
       have only those nodes that are in `what["nodelist"]`)
-  @type groups_cfg: a dict of dict of strings
-  @param groups_cfg: a dictionary mapping group uuids to their configuration
   @rtype: dict
   @return: a dictionary with the same keys as the input dict, and
       values representing the result of the checks
@@ -1177,19 +1175,15 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
 
     # Try to contact all nodes
     val = {}
+    ssh_port_map = ssconf.SimpleStore().GetSshPortMap()
     for node in nodes:
-      params = groups_cfg.get(node_groups.get(node))
-      ssh_port = params["ndparams"].get(constants.ND_SSH_PORT)
-      logging.debug("Ssh port %s (None = default) for node %s",
-                    str(ssh_port), node)
-
       # We only test if master candidates can communicate to other nodes.
       # We cannot test if normal nodes cannot communicate with other nodes,
       # because the administrator might have installed additional SSH keys,
       # over which Ganeti has no power.
       if my_name in mcs:
         success, message = _GetSshRunner(cluster_name). \
-                              VerifyNodeHostname(node, ssh_port)
+                              VerifyNodeHostname(node, ssh_port_map)
         if not success:
           val[node] = message
 

@@ -312,7 +312,6 @@ class LUNodeAdd(LogicalUnit):
           [node_name], vparams, cname,
           self.cfg.GetClusterInfo().hvparams,
           {node_name: self.node_group},
-          self.cfg.GetAllNodeGroupsInfoDict()
         )[node_name]
       (errmsgs, _) = CheckNodePVs(result.payload, excl_stor)
       if errmsgs:

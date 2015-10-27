@@ -821,9 +821,9 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """Run a verify sequence on this node.
 
     """
-    (what, cluster_name, hvparams, node_groups, groups_cfg) = params
+    (what, cluster_name, hvparams, node_groups) = params
     return backend.VerifyNode(what, cluster_name, hvparams,
-                              node_groups, groups_cfg)
+                              node_groups)
 
   @classmethod
   def perspective_node_verify_light(cls, params):

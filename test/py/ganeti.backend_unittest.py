@@ -135,7 +135,7 @@ class TestNodeVerify(testutils.GanetiTestCase):
     local_data = (netutils.Hostname.GetSysName(),
                   constants.IP4_ADDRESS_LOCALHOST)
     result = backend.VerifyNode({constants.NV_MASTERIP: local_data},
-                                None, {}, {}, {})
+                                None, {}, {})
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
     self.failUnless(result[constants.NV_MASTERIP], "Cannot reach localhost")
@@ -147,7 +147,7 @@ class TestNodeVerify(testutils.GanetiTestCase):
     # we just test that whatever TcpPing returns, VerifyNode returns too
     netutils.TcpPing = lambda a, b, source=None: False
     result = backend.VerifyNode({constants.NV_MASTERIP: bad_data},
-                                None, {}, {}, {})
+                                None, {}, {})
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
     self.failIf(result[constants.NV_MASTERIP],
