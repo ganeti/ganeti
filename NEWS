@@ -20,9 +20,17 @@ Incompatible/important changes
 New features
 ~~~~~~~~~~~~
 
+- There is a new daemon, the :doc:`Ganeti Maintenance Daemon <design-repaird>`,
+  that coordinates all maintenance operations on a cluster, i.e. rebalancing,
+  activate disks, ERROR_down handling and node repairs actions.
 - ``htools`` support memory over-commitment now. Look at
   :doc:`Memory Over Commitment <design-memory-over-commitment>` for the
   details.
+- ``hbal`` has a new option ``--avoid-disk-moves *factor*`` that allows disk
+  moves only if the gain in the cluster metrics is ``*factor*`` times higher
+  than with no disk moves.
+- ``hcheck`` reports the level of redundancy for each node group as a new ouput
+  parameter, see :doc:`N+M Redundancy <design-n-m-redundancy>`.
 
 
 Version 2.16.0 beta1
