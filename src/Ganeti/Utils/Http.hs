@@ -43,17 +43,21 @@ module Ganeti.Utils.Http
 import Control.Monad (liftM)
 import Data.ByteString.Char8 (pack)
 import Data.Map ((!))
+import Data.Maybe (fromMaybe)
 import Network.BSD (getServicePortNumber)
+import qualified Network.Socket as Socket
 import Snap.Core (Snap, writeBS, modifyResponse, setResponseStatus)
 import Snap.Http.Server.Config ( Config, ConfigLog(ConfigFileLog), emptyConfig
                                , setAccessLog, setErrorLog, setCompression
                                , setVerbose, setPort, setBind )
 import qualified Text.JSON as J
 
+import Ganeti.BasicTypes (GenericResult(..))
 import qualified Ganeti.Constants as C
 import Ganeti.Daemon (DaemonOptions(..))
 import Ganeti.Runtime ( GanetiDaemon, daemonName
                       , daemonsExtraLogFile, ExtraLogReason(..))
+import qualified Ganeti.Ssconf as Ssconf
 import Ganeti.Utils (withDefaultOnIOError)
 
 -- * Configuration handling
@@ -77,10 +81,11 @@ httpConfFromOpts daemon opts = do
   defaultPort <- withDefaultOnIOError standardPort
                  . liftM fromIntegral
                  $ getServicePortNumber name
+  defaultFamily <- Ssconf.getPrimaryIPFamily Nothing
+  let defaultBind = if defaultFamily == Ok Socket.AF_INET6 then "::" else "*"
   return .
-    setPort
-      (maybe defaultPort fromIntegral (optPort opts)) .
-    maybe id (setBind . pack) (optBindAddress opts)
+    setPort (maybe defaultPort fromIntegral (optPort opts)) .
+    setBind (pack . fromMaybe defaultBind $ optBindAddress opts)
     $ defaultHttpConf accessLog errorLog
 
 
