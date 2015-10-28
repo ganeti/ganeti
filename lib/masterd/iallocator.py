@@ -369,7 +369,7 @@ class IAReqNodeEvac(IARequestBase):
   REQ_PARAMS = [
     ("instances", _STRING_LIST),
     ("evac_mode", ht.TEvacMode),
-    ("ignore_soft_errors", ht.TBool),
+    ("ignore_soft_errors", ht.TMaybe(ht.TBool)),
     ]
   REQ_RESULT = _NEVAC_RESULT
 
