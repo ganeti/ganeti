@@ -311,7 +311,6 @@ class LUNodeAdd(LogicalUnit):
       result = rpcrunner.call_node_verify_light(
           [node_name], vparams, cname,
           self.cfg.GetClusterInfo().hvparams,
-          {node_name: self.node_group},
         )[node_name]
       (errmsgs, _) = CheckNodePVs(result.payload, excl_stor)
       if errmsgs:
@@ -437,10 +436,7 @@ class LUNodeAdd(LogicalUnit):
     result = self.rpc.call_node_verify(
                node_verifier_uuids, node_verify_param,
                self.cfg.GetClusterName(),
-               self.cfg.GetClusterInfo().hvparams,
-               {self.new_node.name: self.cfg.LookupNodeGroup(self.node_group)},
-               self.cfg.GetAllNodeGroupsInfoDict()
-               )
+               self.cfg.GetClusterInfo().hvparams)
     for verifier in node_verifier_uuids:
       result[verifier].Raise("Cannot communicate with node %s" % verifier)
       nl_payload = result[verifier].payload[constants.NV_NODELIST]

@@ -1100,7 +1100,7 @@ def _VerifySshClutter(node_status_list, my_name):
   return result
 
 
-def VerifyNode(what, cluster_name, all_hvparams, node_groups):
+def VerifyNode(what, cluster_name, all_hvparams):
   """Verify the status of the local node.
 
   Based on the input L{what} parameter, various checks are done on the
@@ -1128,9 +1128,6 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups):
   @param cluster_name: the cluster's name
   @type all_hvparams: dict of dict of strings
   @param all_hvparams: a dictionary mapping hypervisor names to hvparams
-  @type node_groups: a dict of strings
-  @param node_groups: node _names_ mapped to their group uuids (it's enough to
-      have only those nodes that are in `what["nodelist"]`)
   @rtype: dict
   @return: a dictionary with the same keys as the input dict, and
       values representing the result of the checks
@@ -1183,7 +1180,7 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups):
       # over which Ganeti has no power.
       if my_name in mcs:
         success, message = _GetSshRunner(cluster_name). \
-                              VerifyNodeHostname(node, ssh_port_map)
+                              VerifyNodeHostname(node, ssh_port_map[node])
         if not success:
           val[node] = message
 

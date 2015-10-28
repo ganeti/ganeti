@@ -513,7 +513,6 @@ _NODE_CALLS = [
     ("checkdict", None, "What to verify"),
     ("cluster_name", None, "Cluster name"),
     ("all_hvparams", None, "Dictionary mapping hypervisor names to hvparams"),
-    ("node_groups", None, "node names mapped to their group uuids"),
     ], None, None, "Request verification of given parameters"),
   ("node_volumes", MULTI, None, constants.RPC_TMO_FAST, [], None, None,
    "Gets all volumes on node(s)"),
@@ -681,9 +680,6 @@ CALLS = {
       ("checkdict", None, "What to verify"),
       ("cluster_name", None, "Cluster name"),
       ("hvparams", None, "Dictionary mapping hypervisor names to hvparams"),
-      ("node_groups", None, "node names mapped to their group uuids"),
-      ("groups_cfg", None,
-       "a dictionary mapping group uuids to their configuration"),
       ], None, None, "Request verification of given parameters"),
     ]),
   "RpcClientConfig": _Prepare([
