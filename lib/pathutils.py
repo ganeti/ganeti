@@ -168,6 +168,8 @@ LOG_OS_DIR = LOG_DIR + "/os"
 LOG_ES_DIR = LOG_DIR + "/extstorage"
 #: Directory for storing Xen config files after failed instance starts
 LOG_XEN_DIR = LOG_DIR + "/xen"
+# Directory to store the output of kvm instances
+LOG_KVM_DIR = LOG_DIR + "/kvm"
 
 # Job queue paths
 JOB_QUEUE_LOCK_FILE = QUEUE_DIR + "/lock"
