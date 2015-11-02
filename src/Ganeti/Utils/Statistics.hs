@@ -79,13 +79,11 @@ data MapStat = MapStat TagTagMap deriving Show
 
 instance Stat Double SumStat where
   calculate xs =
-    let addComponent s x =
-          let !s' = s + x
-          in s'
-        st = foldl' addComponent 0 xs
-    in SumStat st
+    let !sx = balancedSum xs
+    in SumStat sx
   update (SumStat s) x x' =
-    SumStat $ s + x' - x
+    let !sx' = s + (x' -x)
+    in SumStat sx'
   getValue (SumStat s) = s
 
 instance Stat Double StdDevStat where
