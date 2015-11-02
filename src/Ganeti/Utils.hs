@@ -234,16 +234,11 @@ balancedSum xs = let (ls, rs) = divideList xs
 -- | Standard deviation function.
 stdDev :: [Double] -> Double
 stdDev lst =
-  -- first, calculate the list length and sum lst in a single step,
-  -- for performance reasons
-  let (ll', sx) = foldl' (\(rl, rs) e ->
-                           let rl' = rl + 1
-                               rs' = rs + e
-                           in rl' `seq` rs' `seq` (rl', rs')) (0::Int, 0) lst
-      ll = fromIntegral ll'::Double
-      mv = sx / ll
-      av = foldl' (\accu em -> let d = em - mv in accu + d * d) 0.0 lst
-  in sqrt (av / ll) -- stddev
+  let len = fromIntegral $ length lst
+      mean = balancedSum lst / len
+      sqDist x = let d = x - mean in d * d
+      variance = balancedSum (map sqDist lst) / len
+  in sqrt variance
 
 -- *  Logical functions
 

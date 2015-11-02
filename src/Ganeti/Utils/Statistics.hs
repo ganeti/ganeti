@@ -49,6 +49,8 @@ import qualified Data.Foldable as Foldable
 import Data.List (foldl')
 import qualified Data.Map as Map
 
+import Ganeti.Utils (balancedSum)
+
 -- | Typeclass describing necessary statistical accumulations functions. Types
 -- defining an instance of Stat behave as if the given statistics were computed
 -- on the list of values, but they allow a potentially more efficient update of
@@ -88,15 +90,12 @@ instance Stat Double SumStat where
 
 instance Stat Double StdDevStat where
   calculate xs =
-    let addComponent (n, s) x =
-          let !n' = n + 1
-              !s' = s + x
-          in (n', s')
-        (nt, st) = foldl' addComponent (0, 0) xs
-        mean = st / nt
-        center x = x - mean
-        nvar = foldl' (\v x -> let d = center x in v + d * d) 0 xs
-    in StdDevStat nt st (nvar / nt)
+    let !n = fromIntegral $ length xs
+        !sx = balancedSum xs
+        !mean = sx / n
+        sqDist x = let d = x - mean in d * d
+        !var = balancedSum (map sqDist xs) / n
+    in StdDevStat n sx var
   update (StdDevStat n s var) x x' =
     let !ds = x' - x
         !dss = x' * x' - x * x
