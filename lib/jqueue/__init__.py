@@ -249,6 +249,8 @@ class _QueuedJob(object):
     self.livelock = None
     self.process_id = None
 
+    self.writable = None
+
     self._InitInMemory(self, writable)
 
     assert not self.archived, "New jobs can not be marked as archived"
@@ -1428,7 +1430,7 @@ class JobQueue(object):
       return job
 
     try:
-      job = self._LoadJobFromDisk(job_id, False)
+      job = JobQueue._LoadJobFromDisk(self, job_id, False)
       if job is None:
         return job
     except errors.JobFileCorrupted:
@@ -1449,7 +1451,8 @@ class JobQueue(object):
     logging.debug("Added job %s to the cache", job_id)
     return job
 
-  def _LoadJobFromDisk(self, job_id, try_archived, writable=None):
+  @staticmethod
+  def _LoadJobFromDisk(queue, job_id, try_archived, writable=None):
     """Load the given job file from disk.
 
     Given a job file, read, load and restore it in a _QueuedJob format.
@@ -1462,10 +1465,10 @@ class JobQueue(object):
     @return: either None or the job object
 
     """
-    path_functions = [(self._GetJobPath, False)]
+    path_functions = [(JobQueue._GetJobPath, False)]
 
     if try_archived:
-      path_functions.append((self._GetArchivedJobPath, True))
+      path_functions.append((JobQueue._GetArchivedJobPath, True))
 
     raw_data = None
     archived = None
@@ -1490,13 +1493,14 @@ class JobQueue(object):
 
     try:
       data = serializer.LoadJson(raw_data)
-      job = _QueuedJob.Restore(self, data, writable, archived)
+      job = _QueuedJob.Restore(queue, data, writable, archived)
     except Exception, err: # pylint: disable=W0703
       raise errors.JobFileCorrupted(err)
 
     return job
 
-  def SafeLoadJobFromDisk(self, job_id, try_archived, writable=None):
+  @staticmethod
+  def SafeLoadJobFromDisk(queue, job_id, try_archived, writable=None):
     """Load the given job file from disk.
 
     Given a job file, read, load and restore it in a _QueuedJob format.
@@ -1512,7 +1516,8 @@ class JobQueue(object):
 
     """
     try:
-      return self._LoadJobFromDisk(job_id, try_archived, writable=writable)
+      return JobQueue._LoadJobFromDisk(queue, job_id, try_archived,
+                                       writable=writable)
     except (errors.JobFileCorrupted, EnvironmentError):
       logging.exception("Can't load/parse job %s", job_id)
       return None
@@ -1566,7 +1571,7 @@ class JobQueue(object):
     # Not using in-memory cache as doing so would require an exclusive lock
 
     # Try to load from disk
-    job = self.SafeLoadJobFromDisk(job_id, True, writable=False)
+    job = JobQueue.SafeLoadJobFromDisk(self, job_id, True, writable=False)
 
     if job:
       assert not job.writable, "Got writable job" # pylint: disable=E1101
@@ -1611,7 +1616,7 @@ class JobQueue(object):
         None if the job doesn't exist
 
     """
-    job = self.SafeLoadJobFromDisk(job_id, True, writable=False)
+    job = JobQueue.SafeLoadJobFromDisk(self, job_id, True, writable=False)
     if job is not None:
       return job.CalcStatus() in constants.JOBS_FINALIZED
     elif cluster.LUClusterDestroy.clusterHasBeenDestroyed:

@@ -49,7 +49,7 @@ from ganeti import utils
 from ganeti import pathutils
 from ganeti.utils import livelock
 
-from ganeti.jqueue import _JobProcessor
+from ganeti.jqueue import _JobProcessor, JobQueue
 
 
 def _GetMasterInfo():
@@ -132,7 +132,7 @@ def main():
       prio_change[0] = True
     signal.signal(signal.SIGUSR1, _User1Handler)
 
-    job = context.jobqueue.SafeLoadJobFromDisk(job_id, False)
+    job = JobQueue.SafeLoadJobFromDisk(context.jobqueue, job_id, False)
 
     job.SetPid(os.getpid())
 
@@ -154,7 +154,7 @@ def main():
       if cancel[0]:
         logging.debug("Got cancel request, cancelling job %d", job_id)
         r = context.jobqueue.CancelJob(job_id)
-        job = context.jobqueue.SafeLoadJobFromDisk(job_id, False)
+        job = JobQueue.SafeLoadJobFromDisk(context.jobqueue, job_id, False)
         proc = _JobProcessor(context.jobqueue, execfun, job)
         logging.debug("CancelJob result for job %d: %s", job_id, r)
         cancel[0] = False
@@ -166,7 +166,7 @@ def main():
           utils.RemoveFile(fname)
           logging.debug("Changing priority of job %d to %d", job_id, new_prio)
           r = context.jobqueue.ChangeJobPriority(job_id, new_prio)
-          job = context.jobqueue.SafeLoadJobFromDisk(job_id, False)
+          job = JobQueue.SafeLoadJobFromDisk(context.jobqueue, job_id, False)
           proc = _JobProcessor(context.jobqueue, execfun, job)
           logging.debug("Result of changing priority of %d to %d: %s", job_id,
                         new_prio, r)
