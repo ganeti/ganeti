@@ -979,11 +979,12 @@ def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
   return pem
 
 
+# pylint: disable=R0913
 def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
                  rapi_cert_filename, new_spice_cert, spice_cert_filename,
                  spice_cacert_filename, new_confd_hmac_key, new_cds,
                  cds_filename, force, new_node_cert, new_ssh_keys,
-                 verbose, debug):
+                 ssh_key_type, ssh_key_bits, verbose, debug):
   """Renews cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -1011,10 +1012,14 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   @param new_node_cert: Whether to generate new node certificates
   @type new_ssh_keys: bool
   @param new_ssh_keys: Whether to generate new node SSH keys
+  @type ssh_key_type: One of L{constants.SSHK_ALL}
+  @param ssh_key_type: The type of SSH key to be generated
+  @type ssh_key_bits: int
+  @param ssh_key_bits: The length of the key to be generated
   @type verbose: boolean
-  @param verbose: show verbose output
+  @param verbose: Show verbose output
   @type debug: boolean
-  @param debug: show debug output
+  @param debug: Show debug output
 
   """
   ToStdout("Updating certificates now. Running \"gnt-cluster verify\" "
@@ -1195,7 +1200,9 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
     cl = GetClient()
     renew_op = opcodes.OpClusterRenewCrypto(
         node_certificates=new_node_cert or new_cluster_cert,
-        ssh_keys=new_ssh_keys)
+        renew_ssh_keys=new_ssh_keys,
+        ssh_key_type=ssh_key_type,
+        ssh_key_bits=ssh_key_bits)
     SubmitOpCode(renew_op, cl=cl)
 
   ToStdout("All requested certificates and keys have been replaced."
@@ -1277,6 +1284,8 @@ def RenewCrypto(opts, args):
                       opts.force,
                       opts.new_node_cert,
                       opts.new_ssh_keys,
+                      opts.ssh_key_type,
+                      opts.ssh_key_bits,
                       opts.verbose,
                       opts.debug > 0)
 

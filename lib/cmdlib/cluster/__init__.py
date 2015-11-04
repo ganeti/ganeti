@@ -87,17 +87,6 @@ class LUClusterRenewCrypto(NoHooksLU):
     self.share_locks = ShareAll()
     self.share_locks[locking.LEVEL_NODE] = 0
 
-  def CheckPrereq(self):
-    """Check prerequisites.
-
-    This checks whether the cluster is empty.
-
-    Any errors are signaled by raising errors.OpPrereqError.
-
-    """
-    self._ssh_renewal_suppressed = \
-      not self.cfg.GetClusterInfo().modify_ssh_setup and self.op.ssh_keys
-
   def _RenewNodeSslCertificates(self, feedback_fn):
     """Renews the nodes' SSL certificates.
 
@@ -159,8 +148,11 @@ class LUClusterRenewCrypto(NoHooksLU):
 
     self.cfg.SetCandidateCerts(digest_map)
 
-  def _RenewSshKeys(self):
+  def _RenewSshKeys(self, feedback_fn):
     """Renew all nodes' SSH keys.
+
+    @type feedback_fn: function
+    @param feedback_fn: logging function, see L{ganeti.cmdlist.base.LogicalUnit}
 
     """
     master_uuid = self.cfg.GetMasterNode()
@@ -175,25 +167,42 @@ class LUClusterRenewCrypto(NoHooksLU):
 
     cluster_info = self.cfg.GetClusterInfo()
 
+    new_ssh_key_type = self.op.ssh_key_type
+    if new_ssh_key_type is None:
+      new_ssh_key_type = cluster_info.ssh_key_type
+
+    new_ssh_key_bits = self.op.ssh_key_bits
+    if new_ssh_key_bits is None:
+      new_ssh_key_bits = cluster_info.ssh_key_bits
+
     result = self.rpc.call_node_ssh_keys_renew(
       [master_uuid],
       node_uuids, node_names,
       master_candidate_uuids,
       potential_master_candidates,
-      cluster_info.ssh_key_type,
-      cluster_info.ssh_key_bits)
+      cluster_info.ssh_key_type, # Old key type
+      new_ssh_key_type,          # New key type
+      new_ssh_key_bits)          # New key bits
     result[master_uuid].Raise("Could not renew the SSH keys of all nodes")
+
+    # After the keys have been successfully swapped, time to commit the change
+    # in key type
+    cluster_info.ssh_key_type = new_ssh_key_type
+    cluster_info.ssh_key_bits = new_ssh_key_bits
+    self.cfg.Update(cluster_info, feedback_fn)
 
   def Exec(self, feedback_fn):
     if self.op.node_certificates:
       feedback_fn("Renewing Node SSL certificates")
       self._RenewNodeSslCertificates(feedback_fn)
-    if self.op.ssh_keys and not self._ssh_renewal_suppressed:
-      feedback_fn("Renewing SSH keys")
-      self._RenewSshKeys()
-    elif self._ssh_renewal_suppressed:
-      feedback_fn("Cannot renew SSH keys if the cluster is configured to not"
-                  " modify the SSH setup.")
+
+    if self.op.renew_ssh_keys:
+      if self.cfg.GetClusterInfo().modify_ssh_setup:
+        feedback_fn("Renewing SSH keys")
+        self._RenewSshKeys(feedback_fn)
+      else:
+        feedback_fn("Cannot renew SSH keys if the cluster is configured to not"
+                    " modify the SSH setup.")
 
 
 class LUClusterActivateMasterIp(NoHooksLU):
