@@ -43,7 +43,7 @@ module Ganeti.WConfd.Core where
 import Control.Arrow ((&&&))
 import Control.Concurrent (myThreadId)
 import Control.Lens.Setter (set)
-import Control.Monad (liftM, unless, when)
+import Control.Monad (liftM, unless)
 import qualified Data.Map as M
 import qualified Data.Set as S
 import Language.Haskell.TH (Name)
@@ -54,7 +54,7 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.JSON as J
 import qualified Ganeti.Locking.Allocation as L
-import Ganeti.Logging (logDebug)
+import Ganeti.Logging (logDebug, logWarning)
 import Ganeti.Locking.Locks ( GanetiLocks(ConfigLock, BGL)
                             , LockLevel(LevelConfig)
                             , lockLevel, LockLevel
@@ -114,16 +114,22 @@ lockConfig
     -> Bool -- ^ set to 'True' if the lock should be shared
     -> WConfdMonad (J.MaybeForJSON ConfigData)
 lockConfig cid shared = do
-  let reqtype = if shared then ReqShared else ReqExclusive
-  -- warn if we already have the lock, this shouldn't happen
+  let (reqtype, owntype) = if shared
+                             then (ReqShared, L.OwnShared)
+                             else (ReqExclusive, L.OwnExclusive)
   la <- readLockAllocation
-  when (L.holdsLock cid ConfigLock L.OwnShared la)
-       . failError $ "Client " ++ show cid ++
-                     " already holds a config lock"
-  waiting <- tryUpdateLocks cid [(ConfigLock, reqtype)]
-  liftM J.MaybeForJSON $ case waiting of
-    []  -> liftM Just CW.readConfig
-    _   -> return Nothing
+  if L.holdsLock cid ConfigLock owntype la
+    then do
+      -- warn if we already have the lock, but continue (with no-op)
+      -- on the locks
+      logWarning $ "Client " ++ show cid ++ " asked to lock the config"
+                   ++ " while owning the lock"
+      liftM (J.MaybeForJSON . Just) CW.readConfig
+    else do
+      waiting <- tryUpdateLocks cid [(ConfigLock, reqtype)]
+      liftM J.MaybeForJSON $ case waiting of
+        []  -> liftM Just CW.readConfig
+        _   -> return Nothing
 
 -- | Release the config lock, if the client currently holds it.
 unlockConfig
