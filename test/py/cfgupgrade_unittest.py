@@ -74,6 +74,8 @@ def GetMinimalConfig():
         "cpu-avg-load": { "active": True, "interval": 5000000 },
         "xen-cpu-avg-load": { "active": True, "interval": 5000000 },
       },
+      "ssh_key_type": "dsa",
+      "ssh_key_bits": 1024,
     },
     "instances": {},
     "disks": {},
