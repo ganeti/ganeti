@@ -40,6 +40,7 @@ process death. The organization of such hooks will be preserved the
 same as for the :ref:`existing per-opcode hooks <hooks-organization>`.
 The same :ref:`common variables <common-variables>` will be available as
 for the usual hooks. In addition to common variables,
+:ref:`additional variables <additional-variables>` and
 :ref:`specialized variables <specialized-variables>`, corresponding to
 the surrounded opcode, will also be provided. See
 :ref:`per-opcode hooks parameters documentation <opcode-params>` for
@@ -47,11 +48,19 @@ more details.
 
 For the opcodes that are currently unsupported by hooks, and thus, don't
 presented in :ref:`opcodes list <opcode-params>`, only
-:ref:`common variables <common-variables>` will be available in the
-corresponding *global* hooks. *OBJECT_TYPE* variable for such hooks will
+:ref:`common variables <common-variables>` and
+:ref:`additional variables <additional-variables>` will be available
+inside the *global* hooks. *OBJECT_TYPE* variable for such hooks will
 be initialized with special ``NOT_APPLICABLE`` value. The hooks will be
 executed only on master daemon as their opcodes won't provide any lists
 containing target nodes.
+
+For the *global* post hooks executing after a failure or death of
+the job process, only :ref:`common variables <common-variables>`
+(except OBJECT_TYPE) and
+:ref:`additional variables <additional-variables>` will be provided.
+
+.. _additional-variables:
 
 Additional variables
 ~~~~~~~~~~~~~~~~~~~~
@@ -62,32 +71,51 @@ in order to identify the current job:
 GANETI_JOB_ID
   Id of the job current opcode belongs to.
 
+GANETI_IS_MASTER
+  The variable showing if the current node is a master node. It might
+  be useful e.g. if global hooks are used for the logging purposes.
+
+  The ``master`` value means that the node is the master node
+
+  The ``not_master`` value means that the node is not the master
+
 Due to the fact that global hooks will be executed even after job
 process has dead, a new environmental variable is introduced for the
 *global* post hooks:
 
 GANETI_POST_STATUS
-  String containing status of the opcode execution: ``succeeded``,
-  ``failed`` or ``disappeared``.
+  String containing status of the opcode execution: ``success``,
+  ``error`` or ``disappeared``.
 
-  The ``succeded`` status means that the logical unit corresponding to
-  opcode succesfully finished.
+  The ``success`` status means that the logical unit corresponding to
+  the opcode and the non-global post hooks for the opcodes have
+  succesfully finished.
 
-  The ``failed`` status means that the corresponding logical unit caused
-  an exception which has been logged.
+  The ``error`` status means that the corresponding logical unit or
+  the non-global hooks caused an exception which has been logged.
 
-  The ``disappeared`` status means that job process has died during
-  the logical unit execution.
+  The ``disappeared`` status means that the job process has died during
+  the logical unit or the non-global hooks execution.
 
 Behaviour details
 ~~~~~~~~~~~~~~~~~
 
-The code executing the logical unit will start a process which will be
-responsible for the *global* hooks execution. All the pre hooks will end
-their execution before the start of the opcode execution on each node.
-All the post hooks will start after the end of logical unit execution or
-after the job process death. In case of the job process death, the hooks
-will not be executed for the further opcodes in the job.
+*Global* pre hooks will always be executed just before the usual pre
+hooks on the same node set and on the master node. The hooks
+execution result will be ignored. In case of opcodes which don't
+support hooks, *global* pre hooks also will be executed but only on
+the master node.
+
+With the post hooks the situation is more complicated. In case of
+successful job process execution, *global* hooks will be executed just
+after the usual post hooks have run and all the errors have been
+checked. In case of ``error`` status, *global* post hooks will be
+executed only on the master node from the exception handler. Just after
+the *global* post hooks execution, the exception will be raised again
+as usual. In case of job process disappear, the scheduler will execute
+the *global* post hooks in a separate process as soon as the job
+process death is registered. The *global* post hooks will be executed
+only for the opcodes with an initialized start_timestamp.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
