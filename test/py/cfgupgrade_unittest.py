@@ -118,6 +118,10 @@ def _RunUpgrade(path, dry_run, no_verify, ignore_hostname=True,
 
 class TestCfgupgrade(unittest.TestCase):
   def setUp(self):
+    # Since we are comparing large dictionaries here, this is vital to getting
+    # useful feedback about differences in config content using assertEquals.
+    self.maxDiff = None
+
     self.tmpdir = tempfile.mkdtemp()
 
     self.config_path = utils.PathJoin(self.tmpdir, "config.data")
