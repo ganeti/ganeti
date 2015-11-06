@@ -379,6 +379,8 @@ handleCall _ _ cfg (QueryConfigValues fields) = do
                , ("master_node", return . genericResult (const JSNull) showJSON
                                    $ QCluster.clusterMasterNodeName cfg)
                , ("drain_flag", liftM (showJSON . not) isQueueOpen)
+               , ("modify_ssh_setup", return . showJSON . clusterModifySshSetup
+                                        . configCluster $ cfg)
                ] :: [(String, IO JSValue)]
   let answer = map (fromMaybe (return JSNull) . flip lookup params) fields
   answerEval <- sequence answer
