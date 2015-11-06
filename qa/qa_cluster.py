@@ -1371,7 +1371,7 @@ def TestUpgrade():
 
   This tests the 'gnt-cluster upgrade' command by flipping
   between the current and a different version of Ganeti.
-  To also recover subtile points in the configuration up/down
+  To also recover subtle points in the configuration up/down
   grades, instances are left over both upgrades.
 
   """
