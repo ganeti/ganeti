@@ -476,8 +476,34 @@ def CheckHVParams(lu, node_uuids, hvname, hvparams):
                lu.cfg.GetNodeName(node_uuid))
 
 
-def AdjustCandidatePool(lu, exceptions):
+def AddMasterCandidateSshKey(
+    lu, master_node, node, potential_master_candidates, feedback_fn):
+  ssh_result = lu.rpc.call_node_ssh_key_add(
+    [master_node], node.uuid, node.name,
+    potential_master_candidates,
+    True, # add node's key to all node's 'authorized_keys'
+    True, # all nodes are potential master candidates
+    False) # do not update the node's public keys
+  ssh_result[master_node].Raise(
+    "Could not update the SSH setup of node '%s' after promotion"
+    " (UUID: %s)." % (node.name, node.uuid))
+  WarnAboutFailedSshUpdates(ssh_result, master_node, feedback_fn)
+
+
+def AdjustCandidatePool(
+    lu, exceptions, master_node, potential_master_candidates, feedback_fn,
+    modify_ssh_setup):
   """Adjust the candidate pool after node operations.
+
+  @type master_node: string
+  @param master_node: name of the master node
+  @type potential_master_candidates: list of string
+  @param potential_master_candidates: list of node names of potential master
+      candidates
+  @type feedback_fn: function
+  @param feedback_fn: function emitting user-visible output
+  @type modify_ssh_setup: boolean
+  @param modify_ssh_setup: whether or not the ssh setup can be modified.
 
   """
   mod_list = lu.cfg.MaintainCandidatePool(exceptions)
@@ -487,6 +513,10 @@ def AdjustCandidatePool(lu, exceptions):
     for node in mod_list:
       lu.context.ReaddNode(node)
       AddNodeCertToCandidateCerts(lu, lu.cfg, node.uuid)
+      if modify_ssh_setup:
+        AddMasterCandidateSshKey(
+            lu, master_node, node, potential_master_candidates, feedback_fn)
+
   mc_now, mc_max, _ = lu.cfg.GetMasterCandidateStats(exceptions)
   if mc_now > mc_max:
     lu.LogInfo("Note: more nodes are candidates (%d) than desired (%d)" %

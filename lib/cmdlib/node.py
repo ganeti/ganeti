@@ -53,7 +53,7 @@ from ganeti.cmdlib.common import CheckParamsNotGlobal, \
   GetWantedNodes, MapInstanceLvsToNodes, RunPostHook, \
   FindFaultyInstanceDisks, CheckStorageTypeEnabled, GetClientCertDigest, \
   AddNodeCertToCandidateCerts, RemoveNodeCertFromCandidateCerts, \
-  EnsureKvmdOnNodes, WarnAboutFailedSshUpdates
+  EnsureKvmdOnNodes, WarnAboutFailedSshUpdates, AddMasterCandidateSshKey
 
 
 def _DecideSelfPromotion(lu, exceptions=None):
@@ -829,6 +829,9 @@ class LUNodeSetParams(LogicalUnit):
 
     # this will trigger configuration file update, if needed
     self.cfg.Update(node, feedback_fn)
+    master_node = self.cfg.GetMasterNode()
+    potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
+    modify_ssh_setup = self.cfg.GetClusterInfo().modify_ssh_setup
 
     if self.new_role != self.old_role:
       new_flags = self._R2F[self.new_role]
@@ -849,7 +852,9 @@ class LUNodeSetParams(LogicalUnit):
 
       # we locked all nodes, we adjust the CP before updating this node
       if self.lock_all:
-        AdjustCandidatePool(self, [node.uuid])
+        AdjustCandidatePool(
+            self, [node.uuid], master_node, potential_master_candidates,
+            feedback_fn, modify_ssh_setup)
 
       # if node gets promoted, grant RPC priviledges
       if self.new_role == self._ROLE_CANDIDATE:
@@ -865,9 +870,7 @@ class LUNodeSetParams(LogicalUnit):
     if [self.old_role, self.new_role].count(self._ROLE_CANDIDATE) == 1:
       self.context.ReaddNode(node)
 
-      if self.cfg.GetClusterInfo().modify_ssh_setup:
-        potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
-        master_node = self.cfg.GetMasterNode()
+      if modify_ssh_setup:
         if self.old_role == self._ROLE_CANDIDATE:
           master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
           ssh_result = self.rpc.call_node_ssh_key_remove(
@@ -885,16 +888,8 @@ class LUNodeSetParams(LogicalUnit):
           WarnAboutFailedSshUpdates(ssh_result, master_node, feedback_fn)
 
         if self.new_role == self._ROLE_CANDIDATE:
-          ssh_result = self.rpc.call_node_ssh_key_add(
-            [master_node], node.uuid, node.name,
-            potential_master_candidates,
-            True, # add node's key to all node's 'authorized_keys'
-            True, # all nodes are potential master candidates
-            False) # do not update the node's public keys
-          ssh_result[master_node].Raise(
-            "Could not update the SSH setup of node '%s' after promotion"
-            " (UUID: %s)." % (node.name, node.uuid))
-          WarnAboutFailedSshUpdates(ssh_result, master_node, feedback_fn)
+          AddMasterCandidateSshKey(
+              self, master_node, node, potential_master_candidates, feedback_fn)
 
     return result
 
@@ -1593,7 +1588,9 @@ class LUNodeRemove(LogicalUnit):
       WarnAboutFailedSshUpdates(result, master_node, feedback_fn)
 
     # Promote nodes to master candidate as needed
-    AdjustCandidatePool(self, [self.node.uuid])
+    AdjustCandidatePool(
+        self, [self.node.uuid], master_node, potential_master_candidates,
+        feedback_fn, modify_ssh_setup)
     self.context.RemoveNode(self.cfg, self.node)
 
     # Run post hooks on the node before it's removed
