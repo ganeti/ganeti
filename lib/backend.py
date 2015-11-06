@@ -1686,6 +1686,9 @@ def RemoveNodeSshKey(node_uuid, node_name,
         if node not in online_nodes:
           logging.debug("Skipping offline node '%s'.", node)
           continue
+        if node == node_name:
+          logging.debug("Skipping node itself '%s'.", node_name)
+          continue
         ssh_port = ssh_port_map.get(node)
         if not ssh_port:
           raise errors.OpExecError("No SSH port information available for"

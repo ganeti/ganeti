@@ -1195,10 +1195,11 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
                              run_cmd_fn=self._run_cmd_mock)
 
     self._ssh_file_manager.AssertNoNodeHasPublicKey(node_uuid, node_key)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_key)
     self.assertEqual(0,
         len(self._ssh_file_manager.GetPublicKeysOfNode(node_name)))
-    self.assertEqual(0,
+    self.assertEqual(1,
         len(self._ssh_file_manager.GetAuthorizedKeysOfNode(node_name)))
 
   def testRemovePotentialMasterCandidate(self):
@@ -1268,7 +1269,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
         node_name)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_info.key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_info.key)
 
   def testDemotePotentialMasterCandidateToNormalNode(self):
     (node_name, node_info) = \
@@ -1348,7 +1350,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     offline_nodes = [node for node in self._all_nodes
                      if node not in self._online_nodes]
     self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
-        offline_nodes, node_info.key)
+        offline_nodes + [node_name], node_info.key)
 
   def testAddKeySuccessfullyOnNewNodeWithRetries(self):
     """Tests adding a new node's key when updating that node takes retries.
@@ -1524,7 +1526,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_file_manager.AssertNoNodeHasPublicKey(
         node_info.uuid, node_info.key)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_info.key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_info.key)
 
   def testRemoveKeyFailedWithRetriesOnOtherNode(self):
     """Test removing keys even if one of the old nodes fails even with retries.
@@ -1552,7 +1555,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         noded_cert_file=self.noded_cert_file, run_cmd_fn=self._run_cmd_mock)
 
     self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
-        [other_node_name], node_info.key)
+        [other_node_name, node_name], node_info.key)
     self.assertTrue([error_msg for (node, error_msg) in error_msgs
                      if node == other_node_name])
 
@@ -1583,7 +1586,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_file_manager.AssertNoNodeHasPublicKey(
         node_info.uuid, node_info.key)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_info.key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_info.key)
 
   def testRemoveKeyFailedWithRetriesOnTargetNode(self):
     """Test removing keys even if contacting the node fails with retries.
