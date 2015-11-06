@@ -497,6 +497,17 @@ class _QaConfig(object):
     """
     return self["nodes"][0]
 
+  def GetAllNodes(self):
+    """Returns the list of nodes.
+
+    This is not intended to 'acquire' those nodes. For that,
+    C{AcquireManyNodes} is better suited. However, often it is
+    helpful to know the total number of nodes available to
+    adjust cluster parameters and that's where this function
+    is useful.
+    """
+    return self["nodes"]
+
   def GetInstanceCheckScript(self):
     """Returns path to instance check script or C{None}.
 
@@ -849,6 +860,13 @@ def GetMasterNode():
 
   """
   return GetConfig().GetMasterNode()
+
+
+def GetAllNodes():
+  """Wrapper for L{_QaConfig.GetAllNodes}.
+
+  """
+  return GetConfig().GetAllNodes()
 
 
 def AcquireInstance(_cfg=None):

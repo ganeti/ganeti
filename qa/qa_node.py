@@ -252,6 +252,16 @@ def TestNodeEvacuate(node, node2):
 def TestNodeModify(node):
   """gnt-node modify"""
 
+  default_pool_size = 10
+  nodes = qa_config.GetAllNodes()
+  test_pool_size = len(nodes) - 1
+
+  # Reduce the number of master candidates, because otherwise all
+  # subsequent 'gnt-cluster verify' commands fail due to not enough
+  # master candidates.
+  AssertCommand(["gnt-cluster", "modify",
+                 "--candidate-pool-size=%s" % test_pool_size])
+
   # make sure enough master candidates will be available by disabling the
   # master candidate role first with --auto-promote
   AssertCommand(["gnt-node", "modify", "--master-candidate=no",
@@ -262,6 +272,7 @@ def TestNodeModify(node):
     for value in ["yes", "no"]:
       AssertCommand(["gnt-node", "modify", "--force",
                      "--%s=%s" % (flag, value), node.primary])
+      AssertCommand(["gnt-cluster", "verify"])
 
   AssertCommand(["gnt-node", "modify", "--master-candidate=yes", node.primary])
 
@@ -270,6 +281,8 @@ def TestNodeModify(node):
                  node.primary])
 
   AssertRedirectedCommand(["gnt-cluster", "verify"])
+  AssertCommand(["gnt-cluster", "modify",
+                 "--candidate-pool-size=%s" % default_pool_size])
 
 
 def _CreateOobScriptStructure():
