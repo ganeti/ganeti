@@ -87,6 +87,23 @@ class LUClusterRenewCrypto(NoHooksLU):
     self.share_locks = ShareAll()
     self.share_locks[locking.LEVEL_NODE] = 0
 
+  def CheckPrereq(self):
+    """Check prerequisites.
+
+    Notably the compatibility of specified key bits and key type.
+
+    """
+    cluster_info = self.cfg.GetClusterInfo()
+
+    self.ssh_key_type = self.op.ssh_key_type
+    if self.ssh_key_type is None:
+      self.ssh_key_type = cluster_info.ssh_key_type
+
+    self.ssh_key_bits = ssh.DetermineKeyBits(self.ssh_key_type,
+                                             self.op.ssh_key_bits,
+                                             cluster_info.ssh_key_type,
+                                             cluster_info.ssh_key_bits)
+
   def _RenewNodeSslCertificates(self, feedback_fn):
     """Renews the nodes' SSL certificates.
 
@@ -167,28 +184,20 @@ class LUClusterRenewCrypto(NoHooksLU):
 
     cluster_info = self.cfg.GetClusterInfo()
 
-    new_ssh_key_type = self.op.ssh_key_type
-    if new_ssh_key_type is None:
-      new_ssh_key_type = cluster_info.ssh_key_type
-
-    new_ssh_key_bits = self.op.ssh_key_bits
-    if new_ssh_key_bits is None:
-      new_ssh_key_bits = cluster_info.ssh_key_bits
-
     result = self.rpc.call_node_ssh_keys_renew(
       [master_uuid],
       node_uuids, node_names,
       master_candidate_uuids,
       potential_master_candidates,
       cluster_info.ssh_key_type, # Old key type
-      new_ssh_key_type,          # New key type
-      new_ssh_key_bits)          # New key bits
+      self.ssh_key_type,         # New key type
+      self.ssh_key_bits)         # New key bits
     result[master_uuid].Raise("Could not renew the SSH keys of all nodes")
 
     # After the keys have been successfully swapped, time to commit the change
     # in key type
-    cluster_info.ssh_key_type = new_ssh_key_type
-    cluster_info.ssh_key_bits = new_ssh_key_bits
+    cluster_info.ssh_key_type = self.ssh_key_type
+    cluster_info.ssh_key_bits = self.ssh_key_bits
     self.cfg.Update(cluster_info, feedback_fn)
 
   def Exec(self, feedback_fn):

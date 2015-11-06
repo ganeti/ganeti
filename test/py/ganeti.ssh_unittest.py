@@ -488,5 +488,37 @@ class TestGetUserFiles(testutils.GanetiTestCase):
     self.assertTrue(os.path.exists(self.priv_filename + suffix + ".pub"))
 
 
+class TestDetermineKeyBits():
+  def testCompleteness(self):
+    self.assertEquals(constants.SSHK_ALL, ssh.SSH_KEY_VALID_BITS.keys())
+
+  def testAdoptDefault(self):
+    self.assertEquals(2048, DetermineKeyBits("rsa", None, None, None))
+    self.assertEquals(1024, DetermineKeyBits("dsa", None, None, None))
+
+  def testAdoptOldKeySize(self):
+    self.assertEquals(4098, DetermineKeyBits("rsa", None, "rsa", 4098))
+    self.assertEquals(2048, DetermineKeyBits("rsa", None, "dsa", 1024))
+
+  def testDsaSpecificValues(self):
+    self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "dsa", 2048,
+                      None, None)
+    self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "dsa", 512,
+                      None, None)
+    self.assertEquals(1024, DetermineKeyBits("dsa", None, None, None))
+
+  def testEcdsaSpecificValues(self):
+    self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "ecdsa", 2048,
+                      None, None)
+    for b in [256, 384, 521]:
+      self.assertEquals(b, DetermineKeyBits("ecdsa", b, None, None))
+
+  def testRsaSpecificValues(self):
+    self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "dsa", 766,
+                      None, None)
+    for b in [768, 769, 2048, 2049, 4096]:
+      self.assertEquals(b, DetermineKeyBits("rsa", b, None, None))
+
+
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

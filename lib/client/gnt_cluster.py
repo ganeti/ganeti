@@ -304,10 +304,8 @@ def InitCluster(opts, args):
   else:
     ssh_key_type = constants.SSH_DEFAULT_KEY_TYPE
 
-  if opts.ssh_key_bits:
-    ssh_key_bits = opts.ssh_key_bits
-  else:
-    ssh_key_bits = constants.SSH_DEFAULT_KEY_BITS
+  ssh_key_bits = ssh.DetermineKeyBits(ssh_key_type, opts.ssh_key_bits, None,
+                                      None)
 
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
