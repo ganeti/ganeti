@@ -90,6 +90,7 @@ import Ganeti.Lens hiding (chosen)
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.Path
+import Ganeti.Query.Exec (forkPostHooksProcess)
 import Ganeti.Types
 import Ganeti.Utils
 import Ganeti.Utils.Livelock
@@ -474,13 +475,29 @@ checkForDeath state jobWS = do
   return died
 
 -- | Trigger job detection for the job with the given job id.
--- Return True, if the job is dead.
+-- If the job is dead, start post hooks execution process and return True
 cleanupIfDead :: JQStatus -> JobId -> IO Bool
 cleanupIfDead state jid = do
   logDebug $ "Extra job-death detection for " ++ show (fromJobId jid)
   jobs <- readIORef (jqJobs state)
   let jobWS = find ((==) jid . qjId . jJob) $ qRunning jobs
-  maybe (return True) (checkForDeath state) jobWS
+  -- and run the post hooks
+  let runHooks = do
+        r <- runResultT . withLock (jqForkLock state)
+                                   $ forkPostHooksProcess jid
+        let sjid = show $ fromJobId jid
+        logDebug $ genericResult ((++) $ "Error starting post hooks process "
+                                         ++ "for disappeared job "
+                                         ++ sjid ++ ":")
+                                 (\pid -> "Post hooks for disappeared job "
+                                          ++ sjid ++ "have started in "
+                                          ++ show pid)
+                                 r
+  dead <- maybe (return True) (checkForDeath state) jobWS
+  if dead
+    then runHooks
+    else pure ()
+  return dead
 
 -- | Force the queue to check the state of all jobs.
 updateStatusAndScheduleSomeJobs :: JQStatus -> IO ()

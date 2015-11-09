@@ -106,7 +106,7 @@ def main():
                                     context.GetRpc(cfg).call_hooks_runner,
                                     logging.warning, cfg.GetClusterName(),
                                     cfg.GetMasterNode(), job_id,
-                                    constants.POST_HOOKS_STATUS_DISAPPEAR)
+                                    constants.POST_HOOKS_STATUS_DISAPPEARED)
   except Exception: # pylint: disable=W0703
     logging.exception("Exception when trying to run post hooks of job %d",
                       job_id)
