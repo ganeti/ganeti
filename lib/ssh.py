@@ -1100,6 +1100,7 @@ def ReadRemoteSshPubKeys(pub_key_file, node, cluster_name, port, ask_key,
   return result.stdout
 
 
+# Update gnt-cluster.rst when changing which combinations are valid.
 KeyBitInfo = namedtuple('KeyBitInfo', ['default', 'validation_fn'])
 SSH_KEY_VALID_BITS = {
   constants.SSHK_DSA: KeyBitInfo(1024, lambda b: b == 1024),

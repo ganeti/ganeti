@@ -4703,6 +4703,7 @@ sshakAll :: FrozenSet String
 sshakAll = ConstantUtils.mkSet [sshakDss, sshakRsa]
 
 -- * SSH key default values
+-- Document the change in gnt-cluster.rst when changing these
 
 sshDefaultKeyType :: String
 sshDefaultKeyType = sshkRsa
