@@ -1565,14 +1565,14 @@ class LUNodeRemove(LogicalUnit):
     assert locking.BGL in self.owned_locks(locking.LEVEL_CLUSTER), \
       "Not owning BGL"
 
+    master_node = self.cfg.GetMasterNode()
+    potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
     if modify_ssh_setup:
       # retrieve the list of potential master candidates before the node is
       # removed
-      potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
       potential_master_candidate = \
         self.op.node_name in potential_master_candidates
       master_candidate_uuids = self.cfg.GetMasterCandidateUuids()
-      master_node = self.cfg.GetMasterNode()
       result = self.rpc.call_node_ssh_key_remove(
         [master_node],
         self.node.uuid, self.op.node_name,
