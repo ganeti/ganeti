@@ -312,7 +312,17 @@ def AddNode(opts, args):
   # read the cluster name from the master
   (cluster_name, ) = cl.QueryConfigValues(["cluster_name"])
 
-  if opts.node_setup:
+  if not opts.node_setup:
+    ToStdout("-- WARNING -- \n"
+             "The option --no-node-setup is disabled. Whether or not the\n"
+             "SSH setup is manipulated while adding a node is determined\n"
+             "by the 'modify_ssh_setup' value in the cluster-wide\n"
+             "configuration instead.\n")
+
+  (modify_ssh_setup, ) = \
+    cl.QueryConfigValues(["modify_ssh_setup"])
+
+  if modify_ssh_setup:
     ToStderr("-- WARNING -- \n"
              "Performing this operation is going to perform the following\n"
              "changes to the target machine (%s) and the current cluster\n"
@@ -325,7 +335,7 @@ def AddNode(opts, args):
              "  generated public SSH key will be distributed to all other\n"
              "  cluster nodes.\n", node)
 
-  if opts.node_setup:
+  if modify_ssh_setup:
     _SetupSSH(opts, cluster_name, node, ssh_port, cl)
 
   bootstrap.SetupNodeDaemon(opts, cluster_name, node, ssh_port)
@@ -343,7 +353,7 @@ def AddNode(opts, args):
                          master_capable=opts.master_capable,
                          disk_state=disk_state,
                          hv_state=hv_state,
-                         node_setup=opts.node_setup)
+                         node_setup=modify_ssh_setup)
   SubmitOpCode(op, opts=opts)
 
 
