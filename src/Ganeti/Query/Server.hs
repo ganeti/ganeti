@@ -270,6 +270,8 @@ handleCall _ _ cdata QueryClusterInfo =
             , ("data_collector_interval",
                showJSON . fmap dataCollectorInterval
                         $ clusterDataCollectors cluster)
+            , ("modify_ssh_setup",
+               showJSON $ clusterModifySshSetup cluster)
             ]
 
   in case master of

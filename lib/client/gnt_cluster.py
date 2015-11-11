@@ -612,6 +612,7 @@ def ShowClusterConfig(opts, args):
       ("zeroing image", result["zeroing_image"]),
       ("compression tools", result["compression_tools"]),
       ("enabled user shutdown", result["enabled_user_shutdown"]),
+      ("modify ssh setup", result["modify_ssh_setup"]),
       ]),
 
     ("Default node parameters",
