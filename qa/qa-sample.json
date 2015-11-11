@@ -253,6 +253,8 @@
 
     "job-list": true,
 
+    "global-hooks": true,
+
     "jobqueue-performance": true,
     "parallel-performance": true,
 

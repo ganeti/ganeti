@@ -1347,6 +1347,7 @@ qa_scripts = \
 	qa/qa_error.py \
 	qa/qa_filters.py \
 	qa/qa_group.py \
+	qa/qa_global_hooks.py \
 	qa/qa_instance.py \
 	qa/qa_instance_utils.py \
 	qa/qa_iptables.py \

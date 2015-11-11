@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2007, 2011, 2012, 2013 Google Inc.
+# Copyright (C) 2007, 2011, 2012, 2013, 2015 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -521,6 +521,17 @@ def BackupFile(node, path):
   print "Backup filename: %s" % result
 
   return result
+
+
+def IsFileExists(node, path):
+  """Checks if a file on the node exists.
+
+  """
+  cmd = ("[[ -f \"%s\" ]] && echo yes || echo no" % path)
+
+  # Return temporary filename
+  result = GetCommandOutput(node, cmd).strip()
+  return True if result == "yes" else False
 
 
 @contextlib.contextmanager

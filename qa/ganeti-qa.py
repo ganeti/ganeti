@@ -48,6 +48,7 @@ import qa_env
 import qa_error
 import qa_filters
 import qa_group
+import qa_global_hooks
 import qa_instance
 import qa_iptables
 import qa_maintd
@@ -964,6 +965,8 @@ def RunQa():
   RunTestBlock(RunGroupRwTests)
   RunTestBlock(RunNetworkTests)
   RunTestBlock(RunFilterTests)
+
+  RunTestIf("global-hooks", qa_global_hooks.RunGlobalHooksTests)
 
   # The master shouldn't be readded or put offline; "delay" needs a non-master
   # node to test
