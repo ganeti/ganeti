@@ -54,6 +54,8 @@ import qualified Test.HUnit as HUnit
 
 import Control.Applicative
 import Control.Monad
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char
 import qualified Data.List as List
 import qualified Data.Map as Map
@@ -89,6 +91,9 @@ instance Arbitrary (Container DataCollectorConfig) where
     return GenericContainer {
       fromContainer = Map.fromList $ zip names configs }
 
+instance Arbitrary BS.ByteString where
+  arbitrary = fmap UTF8.fromString arbitrary
+
 $(genArbitrary ''PartialNDParams)
 
 instance Arbitrary Node where
@@ -96,7 +101,8 @@ instance Arbitrary Node where
               <*> arbitrary <*> arbitrary <*> arbitrary <*> genFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-              <*> genFQDN <*> arbitrary <*> (Set.fromList <$> genTags)
+              <*> fmap UTF8.fromString genUUID <*> arbitrary
+              <*> (Set.fromList <$> genTags)
 
 $(genArbitrary ''BlockDriver)
 
@@ -278,7 +284,7 @@ genDiskWithChildren num_children = do
   name <- genMaybe genName
   spindles <- arbitrary
   params <- arbitrary
-  uuid <- genName
+  uuid <- fmap UTF8.fromString genUUID
   serial <- arbitrary
   time <- arbitrary
   return . RealDisk $
@@ -370,7 +376,7 @@ instance Arbitrary FilterRule where
                          <*> arbitrary
                          <*> arbitrary
                          <*> arbitrary
-                         <*> genUUID
+                         <*> fmap UTF8.fromString genUUID
 
 -- | Generates a network instance with minimum netmasks of /24. Generating
 -- bigger networks slows down the tests, because long bit strings are generated
@@ -636,7 +642,8 @@ genNodeGroup = do
   serial <- arbitrary
   tags <- Set.fromList <$> genTags
   let group = NodeGroup name members ndparams alloc_policy ipolicy diskparams
-              net_map hv_state disk_state ctime mtime uuid serial tags
+              net_map hv_state disk_state ctime mtime (UTF8.fromString uuid)
+              serial tags
   return group
 
 instance Arbitrary NodeGroup where

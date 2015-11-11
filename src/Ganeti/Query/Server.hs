@@ -50,6 +50,7 @@ import Control.Monad.Error (MonadError)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Set as Set (toList)
 import Data.IORef
 import Data.List (intersperse)
@@ -342,7 +343,7 @@ handleCall _ status _ (ReplaceFilter mUuid priority predicates action
                                 , frPredicates = predicates
                                 , frAction = action
                                 , frReasonTrail = reason ++ [luxidReason]
-                                , frUuid = uuid
+                                , frUuid = UTF8.fromString uuid
                                 }
           writeConfig cid
             . (configFiltersL . alterContainerL uuid .~ Just rule)

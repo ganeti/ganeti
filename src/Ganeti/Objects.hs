@@ -108,6 +108,7 @@ module Ganeti.Objects
 import Control.Applicative
 import Control.Arrow (first)
 import Control.Monad.State
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.List (foldl', intercalate)
 import Data.Maybe
 import qualified Data.Map as Map
@@ -268,7 +269,7 @@ instance TagsObject Network where
   tagsOf = networkTags
 
 instance UuidObject Network where
-  uuidOf = networkUuid
+  uuidOf = UTF8.toString . networkUuid
 
 instance TimeStampObject Network where
   cTimeOf = networkCtime
@@ -428,7 +429,7 @@ instance TimeStampObject Node where
   mTimeOf = nodeMtime
 
 instance UuidObject Node where
-  uuidOf = nodeUuid
+  uuidOf = UTF8.toString . nodeUuid
 
 instance SerialNoObject Node where
   serialOf = nodeSerial
@@ -467,7 +468,7 @@ instance TimeStampObject NodeGroup where
   mTimeOf = groupMtime
 
 instance UuidObject NodeGroup where
-  uuidOf = groupUuid
+  uuidOf = UTF8.toString . groupUuid
 
 instance SerialNoObject NodeGroup where
   serialOf = groupSerial
@@ -548,7 +549,7 @@ $(buildObject "FilterRule" "fr" $
   ++ uuidFields)
 
 instance UuidObject FilterRule where
-  uuidOf = frUuid
+  uuidOf = UTF8.toString . frUuid
 
 
 -- | Order in which filter rules are evaluated, according to
@@ -689,7 +690,7 @@ instance TimeStampObject Cluster where
   mTimeOf = clusterMtime
 
 instance UuidObject Cluster where
-  uuidOf = clusterUuid
+  uuidOf = UTF8.toString . clusterUuid
 
 instance SerialNoObject Cluster where
   serialOf = clusterSerial

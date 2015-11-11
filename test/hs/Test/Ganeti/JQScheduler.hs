@@ -39,6 +39,7 @@ module Test.Ganeti.JQScheduler (testJQScheduler) where
 
 import Control.Applicative
 import Control.Lens ((&), (.~), _2)
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.List (inits)
 import Data.Maybe
 import qualified Data.Map as Map
@@ -396,7 +397,7 @@ case_jobFiltering = do
   jid3 <- makeJobId 3
   jid4 <- makeJobId 4
   unsetPrio <- mkNonNegative 1234
-  uuid1 <- newUUID
+  uuid1 <- fmap UTF8.fromString newUUID
 
   let j1 =
         nullJobWithStat QueuedJob
@@ -448,7 +449,7 @@ case_jobFiltering = do
 
       -- Gives the rule a new UUID.
       rule fr = do
-        uuid <- newUUID
+        uuid <- fmap UTF8.fromString newUUID
         return fr{ frUuid = uuid }
 
       -- Helper to create filter chains: assigns the filters in the list
