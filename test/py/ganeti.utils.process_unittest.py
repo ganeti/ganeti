@@ -745,7 +745,7 @@ class RunInSeparateProcess(unittest.TestCase):
 
 class GetCmdline(unittest.TestCase):
   def test(self):
-    sample_cmd = "sleep 2; true"
+    sample_cmd = "sleep 20; true"
     pid = subprocess.Popen(sample_cmd, shell=True).pid
     cmdline = utils.GetProcCmdline(pid)
     # As the popen will quote and pass on the sample_cmd, it should be returned

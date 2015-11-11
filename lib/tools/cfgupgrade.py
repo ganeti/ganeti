@@ -607,7 +607,9 @@ class CfgUpgrade(object):
       for disk in iobj["disks"]:
         duuid = disk["uuid"]
         disk["serial_no"] = 1
-        disk["ctime"] = disk["mtime"] = iobj["ctime"]
+        # Instances may not have the ctime value, and the Haskell serialization
+        # will have set it to zero.
+        disk["ctime"] = disk["mtime"] = iobj.get("ctime", 0)
         self.config_data["disks"][duuid] = disk
         disk_uuids.append(duuid)
       iobj["disks"] = disk_uuids
