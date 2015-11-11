@@ -232,7 +232,7 @@ def _SetBaseOpParams(src, defcomment, dst):
     dst.comment = defcomment
 
   if hasattr(src, constants.OPCODE_REASON):
-    dst.reason = getattr(dst, constants.OPCODE_REASON, [])
+    dst.reason = list(getattr(dst, constants.OPCODE_REASON, []))
     dst.reason.extend(getattr(src, constants.OPCODE_REASON, []))
 
 
