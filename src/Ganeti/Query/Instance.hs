@@ -152,7 +152,7 @@ instanceFields =
      FieldConfig (getSecondaryNodeGroupAttribute groupName), QffNormal)
   , (FieldDefinition "snodes.group.uuid" "SecondaryNodesGroupsUUID" QFTOther
      "Node group UUIDs of secondary nodes",
-     FieldConfig (getSecondaryNodeGroupAttribute groupUuid), QffNormal)
+     FieldConfig (getSecondaryNodeGroupAttribute uuidOf), QffNormal)
   ] ++
 
   -- Instance parameter fields, whole
@@ -227,7 +227,7 @@ instanceFields =
     getIndexedOptionalConfField getInstDisksFromObj diskName, QffNormal)
   , (fieldDefinitionCompleter "disk.uuid/%d" "DiskUUID/%d" QFTText
     "UUID of %s disk",
-    getIndexedConfField getInstDisksFromObj diskUuid, QffNormal)
+    getIndexedConfField getInstDisksFromObj uuidOf, QffNormal)
   ] ++
 
   -- Aggregate nic parameter fields
@@ -247,7 +247,7 @@ instanceFields =
      QffNormal)
   , (FieldDefinition "nic.uuids" "NIC_UUIDs" QFTOther
      (nicAggDescPrefix ++ "UUID"),
-     FieldSimple (rsNormal . map nicUuid . instNics), QffNormal)
+     FieldSimple (rsNormal . map uuidOf . instNics), QffNormal)
   , (FieldDefinition "nic.modes" "NIC_modes" QFTOther
      (nicAggDescPrefix ++ "mode"),
      FieldConfig (\cfg -> rsNormal . map
@@ -288,7 +288,7 @@ instanceFields =
      getIndexedOptionalField instNics nicIp, QffNormal)
   , (fieldDefinitionCompleter "nic.uuid/%d" "NicUUID/%d" QFTText
      ("UUID address" ++ nicDescSuffix),
-     getIndexedField instNics nicUuid, QffNormal)
+     getIndexedField instNics uuidOf, QffNormal)
   , (fieldDefinitionCompleter "nic.mac/%d" "NicMAC/%d" QFTText
      ("MAC address" ++ nicDescSuffix),
      getIndexedField instNics nicMac, QffNormal)
@@ -411,7 +411,7 @@ getDiskNames cfg =
 -- | Get a list of disk UUIDs for an instance
 getDiskUuids :: ConfigData -> Instance -> ResultEntry
 getDiskUuids cfg =
-  rsErrorNoData . liftA (map diskUuid) . getInstDisksFromObj cfg
+  rsErrorNoData . liftA (map uuidOf) . getInstDisksFromObj cfg
 
 -- | Creates a functions which produces a FieldConfig 'FieldGetter' when fed
 -- an index. Works for fields that may not return a value, expressed through
@@ -582,7 +582,7 @@ getPrimaryNodeGroupName cfg inst =
 -- | Get primary node group uuid
 getPrimaryNodeGroupUuid :: ConfigData -> Instance -> ResultEntry
 getPrimaryNodeGroupUuid cfg inst =
-  rsErrorNoData $ groupUuid <$> getPrimaryNodeGroup cfg inst
+  rsErrorNoData $ uuidOf <$> getPrimaryNodeGroup cfg inst
 
 -- | Get secondary nodes - the configuration objects themselves
 getSecondaryNodes :: ConfigData -> Instance -> ErrorResult [Node]
@@ -852,7 +852,7 @@ extractLiveInfo :: [(Node, ERpcError RpcResultAllInstancesInfo)]
                 -> Instance
                 -> Runtime
 extractLiveInfo nodeResultList nodeConsoleList inst =
-  let uuidConvert     = map (\(x, y) -> (nodeUuid x, y))
+  let uuidConvert     = map (\(x, y) -> (uuidOf x, y))
       uuidResultList  = uuidConvert nodeResultList
       uuidConsoleList = uuidConvert nodeConsoleList
   in case getInstanceInfo uuidResultList inst of

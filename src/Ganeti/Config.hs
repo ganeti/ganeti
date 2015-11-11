@@ -175,7 +175,7 @@ getNodeInstances cfg nname =
 -- | Computes the role of a node.
 getNodeRole :: ConfigData -> Node -> NodeRole
 getNodeRole cfg node
-  | nodeUuid node == clusterMasterNode (configCluster cfg) = NRMaster
+  | uuidOf node == clusterMasterNode (configCluster cfg) = NRMaster
   | nodeMasterCandidate node = NRCandidate
   | nodeDrained node = NRDrained
   | nodeOffline node = NROffline
@@ -322,7 +322,7 @@ getGroupNodes cfg gname =
 -- | Get (primary, secondary) instances of a given node group.
 getGroupInstances :: ConfigData -> String -> ([Instance], [Instance])
 getGroupInstances cfg gname =
-  let gnodes = map nodeUuid (getGroupNodes cfg gname)
+  let gnodes = map uuidOf (getGroupNodes cfg gname)
       ginsts = map (getNodeInstances cfg) gnodes in
   (concatMap fst ginsts, concatMap snd ginsts)
 
@@ -409,7 +409,7 @@ getInstDisks cfg iname =
 -- | Get disks for a given instance object.
 getInstDisksFromObj :: ConfigData -> Instance -> ErrorResult [Disk]
 getInstDisksFromObj cfg =
-  getInstDisks cfg . instUuid
+  getInstDisks cfg . uuidOf
 
 -- | Collects a value for all DRBD disks
 collectFromDrbdDisks
@@ -496,7 +496,7 @@ buildLinkIpInstnameMap cfg =
   let cluster = configCluster cfg
       instances = M.elems . fromContainer . configInstances $ cfg
       defparams = (M.!) (fromContainer $ clusterNicparams cluster) C.ppDefault
-      nics = concatMap (\i -> [(fromMaybe (instUuid i) $ instName i, nic)
+      nics = concatMap (\i -> [(fromMaybe (uuidOf i) $ instName i, nic)
                                 | nic <- instNics i])
              instances
   in foldl' (\accum (iname, nic) ->

@@ -336,7 +336,7 @@ queryInner cfg live (Query (ItemTypeOpCode QRExport) fields qfilter) wanted =
 
 queryInner cfg live (Query (ItemTypeLuxi QRFilter) fields qfilter) wanted =
   genericQuery FilterRules.fieldsMap (CollectorSimple dummyCollectLiveData)
-               frUuid configFilters getFilterRule cfg live fields qfilter wanted
+               uuidOf configFilters getFilterRule cfg live fields qfilter wanted
 
 queryInner _ _ (Query qkind _ _) _ =
   return . Bad . GenericError $ "Query '" ++ show qkind ++ "' not supported"

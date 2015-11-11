@@ -222,7 +222,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeDrbd }) = do
                  PlainQuery str -> return str
                  _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
   node <- gntErrorToResult $ getNode cfg node_name
-  let minors = concatMap (getInstMinorsForNode cfg (nodeUuid node)) .
+  let minors = concatMap (getInstMinorsForNode cfg (uuidOf node)) .
                M.elems . fromContainer . configInstances $ cfg
   encoded <- mapM (encodeMinors cfg) minors
   return (ReplyStatusOk, J.showJSON encoded, nodeSerial node)
@@ -238,7 +238,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeInstances }) = do
     case getNode cfg node_name of
       Ok n -> return n
       Bad e -> fail $ "Node not found in the configuration: " ++ show e
-  let node_uuid = nodeUuid node
+  let node_uuid = uuidOf node
       instances = getNodeInstances cfg node_uuid
   return (ReplyStatusOk, J.showJSON instances, nodeSerial node)
 
@@ -253,7 +253,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqInstanceDisks }) = do
     case getInstance cfg inst_name of
       Ok i -> return i
       Bad e -> fail $ "Instance not found in the configuration: " ++ show e
-  case getInstDisks cfg . instUuid $ inst of
+  case getInstDisks cfg . uuidOf $ inst of
     Ok disks -> return (ReplyStatusOk, J.showJSON disks, instSerial inst)
     Bad e -> fail $ "Could not retrieve disks: " ++ show e
 

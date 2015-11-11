@@ -411,7 +411,7 @@ genEmptyCluster ncount = do
   nodes <- vector ncount
   version <- arbitrary
   grp <- arbitrary
-  let guuid = groupUuid grp
+  let guuid = uuidOf grp
       nodes' = zipWith (\n idx ->
                           let newname = takeWhile (/= '.') (nodeName n)
                                         ++ "-" ++ show idx
@@ -452,7 +452,7 @@ genConfigDataWithNetworks old_cfg = do
   let nets_unique = map ( \(name, net) -> net { networkName = name } )
         (zip net_names nets)
       net_map = GenericContainer $ Map.fromList
-        (map (\n -> (networkUuid n, n)) nets_unique)
+        (map (\n -> (uuidOf n, n)) nets_unique)
       new_cfg = old_cfg { configNetworks = net_map }
   return new_cfg
 

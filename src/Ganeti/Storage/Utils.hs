@@ -98,4 +98,4 @@ getStorageUnitsOfNode cfg n =
 -- | Get the storage unit map for all nodes
 getStorageUnitsOfNodes :: ConfigData -> [Node] -> M.Map String [StorageUnit]
 getStorageUnitsOfNodes cfg ns =
-  M.fromList (map (\n -> (nodeUuid n, getStorageUnitsOfNode cfg n)) ns)
+  M.fromList (map (\n -> (uuidOf n, getStorageUnitsOfNode cfg n)) ns)

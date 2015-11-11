@@ -120,9 +120,9 @@ mkSSConf cdata = SSConf . M.fromList $
     , (SSMaintainNodeHealth, return . show . clusterMaintainNodeHealth
                              $ cluster)
     , (SSUidPool, mapLines formatUidRange . clusterUidPool $ cluster)
-    , (SSNodegroups, mapLines (spcPair . (groupUuid &&& groupName))
+    , (SSNodegroups, mapLines (spcPair . (uuidOf &&& groupName))
                      nodeGroups)
-    , (SSNetworks, mapLines (spcPair . (networkUuid
+    , (SSNetworks, mapLines (spcPair . (uuidOf
                                         &&& (fromNonEmpty . networkName)))
                    . configNetworks $ cdata)
     , (SSEnabledUserShutdown, return . show . clusterEnabledUserShutdown
