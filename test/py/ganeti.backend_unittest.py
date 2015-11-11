@@ -30,6 +30,7 @@
 
 """Script for testing ganeti.backend"""
 
+import collections
 import copy
 import mock
 import os
@@ -1026,8 +1027,10 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         self._ssh_file_manager.GetAllMasterCandidateUuids()
     self._all_nodes = self._ssh_file_manager.GetAllNodeNames()
 
-    self._ssconf_mock.GetNodeList.return_value = self._all_nodes
-    self._ssconf_mock.GetOnlineNodeList.return_value = self._all_nodes
+    self._ssconf_mock.GetNodeList.side_effect = \
+        self._ssh_file_manager.GetAllNodeNames
+    self._ssconf_mock.GetOnlineNodeList.side_effect = \
+        self._ssh_file_manager.GetAllNodeNames
 
   def _TearDownTestData(self):
     os.remove(self._pub_key_file)
@@ -1075,7 +1078,15 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
   def _GetNewMasterCandidate(self):
     """Returns the properties of a new master candidate node."""
-    return ("new_node_name", "new_node_uuid", "new_node_key", True, True, False)
+    return ("new_node_name", "new_node_uuid", "new_node_key",
+            True, True, False)
+
+  def _GetNewNumberedMasterCandidate(self, num):
+    """Returns the properties of a new master candidate node."""
+    return ("new_node_name_%s" % num,
+            "new_node_uuid_%s" % num,
+            "new_node_key_%s" % num,
+            True, True, False)
 
   def testAddMasterCandidate(self):
     (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
@@ -1099,6 +1110,59 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
         new_node_name)
     self._ssh_file_manager.AssertAllNodesHaveAuthorizedKey(new_node_key)
+
+  def _SetupNodeBulk(self, num_nodes, node_fn):
+    """Sets up the test data for a bulk of nodes.
+
+    @param num_nodes: number of nodes
+    @type num_nodes: integer
+    @param node_fn: function
+    @param node_fn: function to generate data of one node, taking an
+      integer as only argument
+
+    """
+    node_list = []
+    key_map = {}
+
+    for i in range(num_nodes):
+      (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
+       is_potential_master_candidate, is_master) = \
+          node_fn(i)
+
+      self._AddNewNodeToTestData(
+          new_node_name, new_node_uuid, new_node_key,
+          is_potential_master_candidate, is_master_candidate,
+          is_master)
+
+      node_list.append(
+          backend.SshAddNodeInfo(
+              uuid=new_node_uuid,
+              name=new_node_name,
+              to_authorized_keys=is_master_candidate,
+              to_public_keys=is_potential_master_candidate,
+              get_public_keys=is_potential_master_candidate))
+
+      key_map[new_node_name] = new_node_key
+
+    return (node_list, key_map)
+
+  def testAddMasterCandidateBulk(self):
+    num_nodes = 3
+    (node_list, key_map) = self._SetupNodeBulk(
+        num_nodes, self._GetNewNumberedMasterCandidate)
+
+    backend.AddNodeSshKeyBulk(node_list,
+                              self._potential_master_candidates,
+                              pub_key_file=self._pub_key_file,
+                              ssconf_store=self._ssconf_mock,
+                              noded_cert_file=self.noded_cert_file,
+                              run_cmd_fn=self._run_cmd_mock)
+
+    for node_info in node_list:
+      self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
+          node_info.name)
+      self._ssh_file_manager.AssertAllNodesHaveAuthorizedKey(
+          key_map[node_info.name])
 
   def testAddPotentialMasterCandidate(self):
     new_node_name = "new_node_name"
@@ -1309,7 +1373,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         is_potential_master_candidate, is_master_candidate,
         is_master)
     self._online_nodes = self._GetReducedOnlineNodeList()
-    self._ssconf_mock.GetOnlineNodeList.return_value = self._online_nodes
+    self._ssconf_mock.GetOnlineNodeList.side_effect = \
+        lambda : self._online_nodes
 
     backend.AddNodeSshKey(new_node_uuid, new_node_name,
                           self._potential_master_candidates,
@@ -1333,7 +1398,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     (node_name, node_info) = \
         self._ssh_file_manager.GetAllMasterCandidates()[0]
     self._online_nodes = self._GetReducedOnlineNodeList()
-    self._ssconf_mock.GetOnlineNodeList.return_value = self._online_nodes
+    self._ssconf_mock.GetOnlineNodeList.side_effect = \
+        lambda : self._online_nodes
 
     backend.RemoveNodeSshKey(node_info.uuid, node_name,
                              self._master_candidate_uuids,
