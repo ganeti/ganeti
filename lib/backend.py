@@ -1453,118 +1453,16 @@ def AddNodeSshKey(node_uuid, node_name,
     to its {ganeti_pub_keys} file
 
   """
-  # assure that at least one of those flags is true, as the function would
-  # not do anything otherwise
-  assert (to_authorized_keys or to_public_keys or get_public_keys)
-
-  if not ssconf_store:
-    ssconf_store = ssconf.SimpleStore()
-
-  # Check and fix sanity of key file
-  keys_by_name = ssh.QueryPubKeyFile([node_name], key_file=pub_key_file)
-  keys_by_uuid = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
-
-  if (not keys_by_name or node_name not in keys_by_name) \
-      and (not keys_by_uuid or node_uuid not in keys_by_uuid):
-    raise errors.SshUpdateError(
-      "No keys found for the new node '%s' (UUID %s) in the list of public"
-      " SSH keys, neither for the name or the UUID" % (node_name, node_uuid))
-  else:
-    if node_name in keys_by_name:
-      keys_by_uuid = {}
-      # Replace the name by UUID in the file as the name should only be used
-      # temporarily
-      ssh.ReplaceNameByUuid(node_uuid, node_name,
-                            error_fn=errors.SshUpdateError,
-                            key_file=pub_key_file)
-      keys_by_uuid[node_uuid] = keys_by_name[node_name]
-
-  # Update the master node's key files
-  if to_authorized_keys:
-    (auth_key_file, _) = \
-      ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
-    ssh.AddAuthorizedKeys(auth_key_file, keys_by_uuid[node_uuid])
-
-  base_data = {}
-  _InitSshUpdateData(base_data, noded_cert_file, ssconf_store)
-  cluster_name = base_data[constants.SSHS_CLUSTER_NAME]
-
-  ssh_port_map = ssconf_store.GetSshPortMap()
-
-  # Update the target node itself
-  logging.debug("Updating SSH key files of target node '%s'.", node_name)
-  if get_public_keys:
-    node_data = {}
-    _InitSshUpdateData(node_data, noded_cert_file, ssconf_store)
-    all_keys = ssh.QueryPubKeyFile(None, key_file=pub_key_file)
-    node_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-      (constants.SSHS_OVERRIDE, all_keys)
-
-    try:
-      utils.RetryByNumberOfTimes(
-          constants.SSHS_MAX_RETRIES,
-          errors.SshUpdateError,
-          run_cmd_fn, cluster_name, node_name, pathutils.SSH_UPDATE,
-          ssh_port_map.get(node_name), node_data,
-          debug=False, verbose=False, use_cluster_key=False,
-          ask_key=False, strict_host_check=False)
-    except errors.SshUpdateError as e:
-      # Clean up the master's public key file if adding key fails
-      if to_public_keys:
-        ssh.RemovePublicKey(node_uuid)
-      raise e
-
-  # Update all nodes except master and the target node
-  if to_authorized_keys:
-    base_data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
-      (constants.SSHS_ADD, keys_by_uuid)
-
-  pot_mc_data = copy.deepcopy(base_data)
-  if to_public_keys:
-    pot_mc_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-      (constants.SSHS_REPLACE_OR_ADD, keys_by_uuid)
-
-  all_nodes = ssconf_store.GetNodeList()
-  master_node = ssconf_store.GetMasterNode()
-  online_nodes = ssconf_store.GetOnlineNodeList()
-
-  node_errors = []
-  for node in all_nodes:
-    if node == master_node:
-      logging.debug("Skipping master node '%s'.", master_node)
-      continue
-    if node not in online_nodes:
-      logging.debug("Skipping offline node '%s'.", node)
-      continue
-    if node in potential_master_candidates:
-      logging.debug("Updating SSH key files of node '%s'.", node)
-      try:
-        utils.RetryByNumberOfTimes(
-            constants.SSHS_MAX_RETRIES,
-            errors.SshUpdateError,
-            run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
-            ssh_port_map.get(node), pot_mc_data,
-            debug=False, verbose=False, use_cluster_key=False,
-            ask_key=False, strict_host_check=False)
-      except errors.SshUpdateError as last_exception:
-        error_msg = ("When adding the key of node '%s', updating SSH key"
-                     " files of node '%s' failed after %s retries."
-                     " Not trying again. Last error was: %s." %
-                     (node, node_name, constants.SSHS_MAX_RETRIES,
-                      last_exception))
-        node_errors.append((node, error_msg))
-        # We only log the error and don't throw an exception, because
-        # one unreachable node shall not abort the entire procedure.
-        logging.error(error_msg)
-
-    else:
-      if to_authorized_keys:
-        run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
-                   ssh_port_map.get(node), base_data,
-                   debug=False, verbose=False, use_cluster_key=False,
-                   ask_key=False, strict_host_check=False)
-
-  return node_errors
+  node_list = [SshAddNodeInfo(name=node_name, uuid=node_uuid,
+                              to_authorized_keys=to_authorized_keys,
+                              to_public_keys=to_public_keys,
+                              get_public_keys=get_public_keys)]
+  return AddNodeSshKeyBulk(node_list,
+                           potential_master_candidates,
+                           pub_key_file=pub_key_file,
+                           ssconf_store=ssconf_store,
+                           noded_cert_file=noded_cert_file,
+                           run_cmd_fn=run_cmd_fn)
 
 
 # Node info named tuple specifically for the use with AddNodeSshKeyBulk
