@@ -70,6 +70,7 @@ import Control.DeepSeq
 import Control.Monad (filterM, foldM, liftM, unless)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as Foldable
 import Data.List (intercalate, nub, find)
 import Data.Maybe (fromMaybe)
@@ -292,7 +293,7 @@ query cfg live (Query (ItemTypeLuxi QRLock) fields qfilter) = runResultT $ do
              (CollectorSimple $ recollectLocksData livedata)
              id
              (const . GenericContainer . Map.fromList
-              . map ((id &&& id) . lockName) $ allLocks)
+              . map ((UTF8.fromString &&& id) . lockName) $ allLocks)
              (const Ok)
              cfg live fields qfilter []
   toError answer

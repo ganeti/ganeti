@@ -87,6 +87,8 @@ import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.Error.Class
 import Control.Monad.Writer
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
 import qualified Data.Text as T
 import qualified Data.Traversable as F
@@ -338,7 +340,11 @@ emptyContainer :: GenericContainer a b
 emptyContainer = GenericContainer Map.empty
 
 -- | Type alias for string keys.
-type Container = GenericContainer String
+type Container = GenericContainer BS.ByteString
+
+instance HasStringRepr BS.ByteString where
+  fromStringRepr = return . UTF8.fromString
+  toStringRepr = UTF8.toString
 
 -- | Creates a GenericContainer from a list of key-value pairs.
 containerFromList :: Ord a => [(a,b)] -> GenericContainer a b

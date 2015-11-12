@@ -78,6 +78,8 @@ import Control.Lens.At
 import Control.Monad.Error
 import Control.Monad.State
 import Control.Monad.Trans.Maybe
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
 import Data.Maybe
 import Data.Map (Map)
@@ -108,13 +110,13 @@ import qualified Ganeti.Utils.MultiMap as MM
 
 -- ** Aliases to make types more meaningful:
 
-type NodeUUID = String
+type NodeUUID = BS.ByteString
 
-type InstanceUUID = String
+type InstanceUUID = BS.ByteString
 
-type DiskUUID = String
+type DiskUUID = BS.ByteString
 
-type NetworkUUID = String
+type NetworkUUID = BS.ByteString
 
 type DRBDMinor = Int
 
@@ -229,7 +231,9 @@ computeDRBDMap' cfg trs =
     -- | Adds minors of a disk within the state monad
     addMinors disk = do
       let minors = getDrbdMinorsForDisk disk
-      forM_ minors $ \(minor, node) -> nodeMinor node minor %= (uuidOf disk :)
+      forM_ minors $ \(minor, node) ->
+        nodeMinor (UTF8.fromString node) minor %=
+            (UTF8.fromString (uuidOf disk) :)
 
 -- | Compute the map of used DRBD minor/nodes.
 -- Report any duplicate entries as an error.

@@ -86,6 +86,8 @@ import Control.Applicative
 import Control.Arrow ((&&&))
 import Control.Monad
 import Control.Monad.State
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
 import Data.List (foldl', nub)
 import Data.Maybe (fromMaybe)
@@ -216,8 +218,9 @@ getOnlineNodes = filter (not . nodeOffline) . F.toList . configNodes
 -- | Returns the default cluster link.
 getDefaultNicLink :: ConfigData -> String
 getDefaultNicLink =
-  nicpLink . (M.! C.ppDefault) . fromContainer .
-  clusterNicparams . configCluster
+  let ppDefault = UTF8.fromString C.ppDefault
+  in nicpLink . (M.! ppDefault) . fromContainer
+     . clusterNicparams . configCluster
 
 -- | Returns the default cluster hypervisor.
 getDefaultHypervisor :: ConfigData -> Hypervisor
@@ -249,11 +252,20 @@ getItem kind name allitems = do
   maybe (err "not found after successfull match?!") Ok $
         M.lookup fullname allitems
 
+-- | Simple lookup function, insisting on exact matches and using
+-- byte strings.
+getItem' :: String -> String -> M.Map BS.ByteString a -> ErrorResult a
+getItem' kind name allitems =
+  let name' = UTF8.fromString name
+      err = Bad $ OpPrereqError (kind ++ " uuid " ++ name ++ " not found")
+                    ECodeNoEnt
+  in maybe err Ok $ M.lookup name' allitems
+
 -- | Looks up a node by name or uuid.
 getNode :: ConfigData -> String -> ErrorResult Node
 getNode cfg name =
   let nodes = fromContainer (configNodes cfg)
-  in case getItem "Node" name nodes of
+  in case getItem' "Node" name nodes of
        -- if not found by uuid, we need to look it up by name
        Ok node -> Ok node
        Bad _ -> let by_name = M.mapKeys
@@ -264,7 +276,7 @@ getNode cfg name =
 getInstance :: ConfigData -> String -> ErrorResult Instance
 getInstance cfg name =
   let instances = fromContainer (configInstances cfg)
-  in case getItem "Instance" name instances of
+  in case getItem' "Instance" name instances of
        -- if not found by uuid, we need to look it up by name
        Ok inst -> Ok inst
        Bad _ -> let by_name =
@@ -277,19 +289,19 @@ getInstance cfg name =
 getDisk :: ConfigData -> String -> ErrorResult Disk
 getDisk cfg name =
   let disks = fromContainer (configDisks cfg)
-  in getItem "Disk" name disks
+  in getItem' "Disk" name disks
 
 -- | Looks up a filter by uuid.
 getFilterRule :: ConfigData -> String -> ErrorResult FilterRule
 getFilterRule cfg name =
   let filters = fromContainer (configFilters cfg)
-  in getItem "Filter" name filters
+  in getItem' "Filter" name filters
 
 -- | Looks up a node group by name or uuid.
 getGroup :: ConfigData -> String -> ErrorResult NodeGroup
 getGroup cfg name =
   let groups = fromContainer (configNodegroups cfg)
-  in case getItem "NodeGroup" name groups of
+  in case getItem' "NodeGroup" name groups of
        -- if not found by uuid, we need to look it up by name, slow
        Ok grp -> Ok grp
        Bad _ -> let by_name = M.mapKeys
@@ -336,7 +348,7 @@ getFilledInstHvParams globals cfg inst =
       parentHvParams =
         maybe M.empty fromContainer (maybeHvName >>= flip M.lookup hvParamMap)
   -- Then the os defaults for the given hypervisor
-      maybeOsName = instOs inst
+      maybeOsName = UTF8.fromString <$> instOs inst
       osParamMap = fromContainer . clusterOsHvp $ configCluster cfg
       osHvParamMap =
         maybe M.empty (maybe M.empty fromContainer . flip M.lookup osParamMap)
@@ -347,7 +359,7 @@ getFilledInstHvParams globals cfg inst =
   -- Then the child
       childHvParams = fromContainer . instHvparams $ inst
   -- Helper function
-      fillFn con val = fillDict con val globals
+      fillFn con val = fillDict con val $ fmap UTF8.fromString globals
   in GenericContainer $ fillFn (fillFn parentHvParams osHvParams) childHvParams
 
 -- | Retrieves the instance backend params, missing values filled with cluster
@@ -355,7 +367,7 @@ getFilledInstHvParams globals cfg inst =
 getFilledInstBeParams :: ConfigData -> Instance -> ErrorResult FilledBeParams
 getFilledInstBeParams cfg inst = do
   let beParamMap = fromContainer . clusterBeparams . configCluster $ cfg
-  parentParams <- getItem "FilledBeParams" C.ppDefault beParamMap
+  parentParams <- getItem' "FilledBeParams" C.ppDefault beParamMap
   return $ fillParams parentParams (instBeparams inst)
 
 -- | Retrieves the instance os params, missing values filled with cluster
@@ -366,7 +378,7 @@ getFilledInstOsParams cfg inst =
       osParamMap = fromContainer . clusterOsparams $ configCluster cfg
       childOsParams = instOsparams inst
   in case withMissingParam "Instance without OS"
-            (flip (getItem "OsParams") osParamMap)
+            (flip (getItem' "OsParams") osParamMap)
             maybeOsLookupName of
        Ok parentOsParams -> GenericContainer $
                               fillDict (fromContainer parentOsParams)
@@ -495,7 +507,8 @@ buildLinkIpInstnameMap :: ConfigData -> LinkIpMap
 buildLinkIpInstnameMap cfg =
   let cluster = configCluster cfg
       instances = M.elems . fromContainer . configInstances $ cfg
-      defparams = (M.!) (fromContainer $ clusterNicparams cluster) C.ppDefault
+      defparams = (M.!) (fromContainer $ clusterNicparams cluster)
+                    $ UTF8.fromString C.ppDefault
       nics = concatMap (\i -> [(fromMaybe (uuidOf i) $ instName i, nic)
                                 | nic <- instNics i])
              instances
@@ -516,7 +529,8 @@ buildLinkIpInstnameMap cfg =
 -- (configuration corrupt).
 getGroupOfNode :: ConfigData -> Node -> Maybe NodeGroup
 getGroupOfNode cfg node =
-  M.lookup (nodeGroup node) (fromContainer . configNodegroups $ cfg)
+  M.lookup (UTF8.fromString $ nodeGroup node)
+    (fromContainer . configNodegroups $ cfg)
 
 -- | Returns a node's ndparams, filled.
 getNodeNdParams :: ConfigData -> Node -> Maybe FilledNDParams
@@ -532,7 +546,7 @@ getNodeNdParams cfg node = do
 getNetwork :: ConfigData -> String -> ErrorResult Network
 getNetwork cfg name =
   let networks = fromContainer (configNetworks cfg)
-  in case getItem "Network" name networks of
+  in case getItem' "Network" name networks of
        Ok net -> Ok net
        Bad _ -> let by_name = M.mapKeys
                               (fromNonEmpty . networkName . (M.!) networks)

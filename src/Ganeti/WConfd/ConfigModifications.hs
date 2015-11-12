@@ -39,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.WConfd.ConfigModifications where
 
+import qualified Data.ByteString.UTF8 as UTF8
 import Control.Lens.Setter ((.~))
 import Control.Lens.Traversal (mapMOf)
 import Data.Maybe (isJust)
@@ -67,12 +68,13 @@ addInstance inst cid = do
   logDebug $ "AddInstance: client " ++ show (ciIdentifier cid)
              ++ " adding instance " ++ uuidOf inst
              ++ " with name " ++ show (instName inst)
-  let addInst = csConfigDataL . configInstancesL . alterContainerL (uuidOf inst)
+  let addInst = csConfigDataL . configInstancesL
+                . alterContainerL (UTF8.fromString $ uuidOf inst)
                   .~ Just inst
       commitRes tr = mapMOf csConfigDataL $ T.commitReservedIps cid tr
   r <- modifyConfigWithLock
          (\tr cs -> commitRes tr $ addInst  cs)
-         . T.releaseDRBDMinors $ uuidOf inst
+         . T.releaseDRBDMinors . UTF8.fromString $ uuidOf inst
   logDebug $ "AddInstance: result of config modification is " ++ show r
   return $ isJust r
 

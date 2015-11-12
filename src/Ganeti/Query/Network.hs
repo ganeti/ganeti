@@ -42,6 +42,7 @@ module Ganeti.Query.Network
 -- FIXME: everything except fieldsMap
 -- is only exported for testing.
 
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, mapMaybe)
 import Data.List (find, intercalate)
@@ -124,7 +125,7 @@ getGroupConnection ::
   String -> NodeGroup -> Maybe (String, String, String, String)
 getGroupConnection network_uuid group =
   let networks = fromContainer . groupNetworks $ group
-  in case Map.lookup network_uuid networks of
+  in case Map.lookup (UTF8.fromString network_uuid) networks of
     Nothing -> Nothing
     Just net ->
       Just (groupName group, getNicMode net, getNicLink net, getNicVlan net)

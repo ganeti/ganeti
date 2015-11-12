@@ -43,6 +43,7 @@ module Ganeti.Query.Instance
 
 import Control.Applicative
 import Control.Monad (liftM, (>=>))
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Either
 import Data.List
 import Data.Maybe
@@ -351,6 +352,7 @@ nicAggDescPrefix = "List containing each network interface's "
 -- | Given a network name id, returns the network's name.
 getNetworkName :: ConfigData -> String -> NonEmptyString
 getNetworkName cfg = networkName . (Map.!) (fromContainer $ configNetworks cfg)
+                     . UTF8.fromString
 
 -- | Gets the bridge of a NIC.
 getNicBridge :: FilledNicParams -> Maybe String
@@ -371,7 +373,8 @@ fillNicParamsFromConfig cfg = fillParams (getDefaultNicParams cfg)
 -- | Retrieves the default network interface parameters.
 getDefaultNicParams :: ConfigData -> FilledNicParams
 getDefaultNicParams cfg =
-  (Map.!) (fromContainer . clusterNicparams . configCluster $ cfg) C.ppDefault
+  (Map.!) (fromContainer . clusterNicparams . configCluster $ cfg)
+    $ UTF8.fromString C.ppDefault
 
 -- | Retrieves the real disk size requirements for all the disks of the
 -- instance. This includes the metadata etc. and is different from the values
@@ -634,7 +637,7 @@ beParamGetter field config inst =
 hvParamGetter :: String -- ^ The field we're building the getter for
               -> ConfigData -> Instance -> ResultEntry
 hvParamGetter field cfg inst =
-  rsMaybeUnavail . Map.lookup field . fromContainer $
+  rsMaybeUnavail . Map.lookup (UTF8.fromString field) . fromContainer $
     getFilledInstHvParams (C.toList C.hvcGlobals) cfg inst
 
 -- * Live fields functionality
@@ -736,8 +739,9 @@ liveInstanceStatus cfg (instInfo, foundOnPrimary) inst
         allowDown =
           userShutdownEnabled cfg &&
           (instHypervisor inst /= Just Kvm ||
-           (Map.member C.hvKvmUserShutdown hvparams &&
-            hvparams Map.! C.hvKvmUserShutdown == J.JSBool True))
+           (Map.member (UTF8.fromString C.hvKvmUserShutdown) hvparams &&
+            hvparams Map.! UTF8.fromString C.hvKvmUserShutdown
+              == J.JSBool True))
 
 -- | Determines the status of a dead instance.
 deadInstanceStatus :: ConfigData -> Instance -> InstanceStatus

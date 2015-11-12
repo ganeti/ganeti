@@ -49,6 +49,7 @@ import Test.Ganeti.TestHelper
 
 import Test.QuickCheck
 
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Map as Map
 import Data.Maybe
 
@@ -59,7 +60,8 @@ instance Arbitrary ConfigData where
 -- a non-Nothing result.
 prop_getGroupConnection :: NodeGroup -> Property
 prop_getGroupConnection group =
-  let net_keys = (Map.keys . fromContainer . groupNetworks) group
+  let net_keys = map UTF8.toString . Map.keys . fromContainer . groupNetworks
+                 $ group
   in True ==? all
     (\nk -> isJust (getGroupConnection nk group)) net_keys
 
@@ -67,14 +69,15 @@ prop_getGroupConnection group =
 -- yields 'Nothing'.
 prop_getGroupConnection_notFound :: NodeGroup -> String -> Property
 prop_getGroupConnection_notFound group uuid =
-  let net_keys = (Map.keys . fromContainer . groupNetworks) group
-  in notElem uuid net_keys ==> isNothing (getGroupConnection uuid group)
+  let net_map = fromContainer . groupNetworks $ group
+  in not (UTF8.fromString uuid `Map.member` net_map)
+     ==> isNothing (getGroupConnection uuid group)
 
 -- | Checks whether actually connected instances are identified as such.
 prop_instIsConnected :: ConfigData -> Property
 prop_instIsConnected cfg =
   let nets = (fromContainer . configNetworks) cfg
-      net_keys = Map.keys nets
+      net_keys = map UTF8.toString $ Map.keys nets
   in  forAll (genInstWithNets net_keys) $ \inst ->
       True ==? all (`instIsConnected` inst) net_keys
 
@@ -83,7 +86,7 @@ prop_instIsConnected cfg =
 prop_instIsConnected_notFound :: ConfigData -> String -> Property
 prop_instIsConnected_notFound cfg network_uuid =
   let nets = (fromContainer . configNetworks) cfg
-      net_keys = Map.keys nets
+      net_keys = map UTF8.toString $ Map.keys nets
   in  notElem network_uuid net_keys ==>
       forAll (genInstWithNets net_keys) $ \inst ->
         not (instIsConnected network_uuid inst)
