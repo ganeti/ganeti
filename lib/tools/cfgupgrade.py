@@ -115,7 +115,7 @@ def OrFail(description=None):
         f(self)
       except BaseException, e:
         msg = "%s failed:\n%s" % (description or f.func_name, e)
-        logging.error(msg)
+        logging.exception(msg)
         self.config_data = safety
         self.errors.append(msg)
     return wrapped
@@ -188,7 +188,7 @@ class CfgUpgrade(object):
       if config_revision != 0:
         logging.warning("Config revision is %s, not 0", config_revision)
       if not self.UpgradeAll():
-        raise Error("Upgrade failed:\n%s", '\n'.join(self.errors))
+        raise Error("Upgrade failed:\n%s" % '\n'.join(self.errors))
 
     elif config_major == TARGET_MAJOR and config_minor == TARGET_MINOR:
       logging.info("No changes necessary")
@@ -607,7 +607,9 @@ class CfgUpgrade(object):
       for disk in iobj["disks"]:
         duuid = disk["uuid"]
         disk["serial_no"] = 1
-        disk["ctime"] = disk["mtime"] = iobj["ctime"]
+        # Instances may not have the ctime value, and the Haskell serialization
+        # will have set it to zero.
+        disk["ctime"] = disk["mtime"] = iobj.get("ctime", 0)
         self.config_data["disks"][duuid] = disk
         disk_uuids.append(duuid)
       iobj["disks"] = disk_uuids

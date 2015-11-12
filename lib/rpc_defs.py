@@ -564,7 +564,7 @@ _NODE_CALLS = [
     ("readd", None,
      "Whether this is a readd operation.")],
     None, None, "Remove a node's SSH key from the other nodes' key files."),
-  ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_SLOW, [
+  ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_4HRS, [
     ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),
     ("node_names", None, "Names of the nodes whose key is renewed"),
     ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
