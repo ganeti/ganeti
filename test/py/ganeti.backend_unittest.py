@@ -1088,6 +1088,13 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
             "new_node_key_%s" % num,
             True, True, False)
 
+  def _GetNewNumberedPotentialMasterCandidate(self, num):
+    """Returns the properties of a new potential master candidate node."""
+    return ("new_node_name_%s" % num,
+            "new_node_uuid_%s" % num,
+            "new_node_key_%s" % num,
+            False, True, False)
+
   def testAddMasterCandidate(self):
     (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
      is_potential_master_candidate, is_master) = self._GetNewMasterCandidate()
@@ -1162,6 +1169,24 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
       self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
           node_info.name)
       self._ssh_file_manager.AssertAllNodesHaveAuthorizedKey(
+          key_map[node_info.name])
+
+  def testAddPotentialMasterCandidateBulk(self):
+    num_nodes = 3
+    (node_list, key_map) = self._SetupNodeBulk(
+        num_nodes, self._GetNewNumberedPotentialMasterCandidate)
+
+    backend.AddNodeSshKeyBulk(node_list,
+                              self._potential_master_candidates,
+                              pub_key_file=self._pub_key_file,
+                              ssconf_store=self._ssconf_mock,
+                              noded_cert_file=self.noded_cert_file,
+                              run_cmd_fn=self._run_cmd_mock)
+
+    for node_info in node_list:
+      self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
+          node_info.name)
+      self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(
           key_map[node_info.name])
 
   def testAddPotentialMasterCandidate(self):
