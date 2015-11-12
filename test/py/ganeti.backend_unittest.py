@@ -1269,6 +1269,54 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
       self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(
           key_map[node_info.name])
 
+  def _GetNewNumberedNode(self, num):
+    """Returns the properties of a node.
+
+    This will in round-robin style return a master candidate, a
+    potential master candiate and a normal node.
+
+    """
+    is_master_candidate = num % 3 == 0
+    is_potential_master_candidate = num % 3 == 0 or num % 3 == 1
+    is_master = False
+    return ("new_node_name_%s" % num,
+            "new_node_uuid_%s" % num,
+            "new_node_key_%s" % num,
+            is_master_candidate, is_potential_master_candidate, is_master)
+
+  def testAddDiverseNodeBulk(self):
+    """Tests adding keys of several nodes with several qualities.
+
+    This tests subsumes previous tests. However, we leave the previous
+    tests here, because debugging problems with this all-embracing test
+    is much more tedious than having one of the one-purpose tests fail.
+
+    """
+    num_nodes = 9
+    (node_list, key_map) = self._SetupNodeBulk(
+        num_nodes, self._GetNewNumberedNode)
+
+    backend.AddNodeSshKeyBulk(node_list,
+                              self._potential_master_candidates,
+                              pub_key_file=self._pub_key_file,
+                              ssconf_store=self._ssconf_mock,
+                              noded_cert_file=self.noded_cert_file,
+                              run_cmd_fn=self._run_cmd_mock)
+
+    for node_info in node_list:
+      if node_info.to_authorized_keys:
+        self._ssh_file_manager.AssertAllNodesHaveAuthorizedKey(
+            key_map[node_info.name])
+      else:
+        self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(
+            key_map[node_info.name])
+      if node_info.to_public_keys:
+        self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
+            node_info.name)
+      else:
+        self._ssh_file_manager.AssertNoNodeHasPublicKey(
+            node_info.uuid, key_map[node_info.name])
+
   def testPromoteToMasterCandidate(self):
     # Get one of the potential master candidates
     node_name, node_info = \

@@ -1514,6 +1514,10 @@ def AddNodeSshKeyBulk(node_list,
     ssconf_store = ssconf.SimpleStore()
 
   for node_info in node_list:
+    # replacement not necessary for keys that are not supposed to be in the
+    # list of public keys
+    if not node_info.to_public_keys:
+      continue
     # Check and fix sanity of key file
     keys_by_name = ssh.QueryPubKeyFile([node_info.name], key_file=pub_key_file)
     keys_by_uuid = ssh.QueryPubKeyFile([node_info.uuid], key_file=pub_key_file)
@@ -2009,6 +2013,10 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
   all_node_errors = []
 
   # process non-master nodes
+
+  # keys to add in bulk at the end
+  node_keys_to_add = []
+
   for node_uuid, node_name in node_uuid_name_map:
     if node_name == master_node_name:
       continue
@@ -2070,16 +2078,20 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
       ssh.AddPublicKey(node_uuid, pub_key, key_file=pub_key_file)
 
     logging.debug("Add ssh key of node '%s'.", node_name)
-    node_errors = AddNodeSshKey(
-        node_uuid, node_name, potential_master_candidates,
-        to_authorized_keys=master_candidate,
-        to_public_keys=potential_master_candidate,
-        get_public_keys=True,
-        pub_key_file=pub_key_file, ssconf_store=ssconf_store,
-        noded_cert_file=noded_cert_file,
-        run_cmd_fn=run_cmd_fn)
-    if node_errors:
-      all_node_errors = all_node_errors + node_errors
+    node_info = SshAddNodeInfo(name=node_name,
+                               uuid=node_uuid,
+                               to_authorized_keys=master_candidate,
+                               to_public_keys=potential_master_candidate,
+                               get_public_keys=True)
+    node_keys_to_add.append(node_info)
+
+  node_errors = AddNodeSshKeyBulk(
+      node_keys_to_add, potential_master_candidates,
+      pub_key_file=pub_key_file, ssconf_store=ssconf_store,
+      noded_cert_file=noded_cert_file,
+      run_cmd_fn=run_cmd_fn)
+  if node_errors:
+    all_node_errors = all_node_errors + node_errors
 
   # Renewing the master node's key
 
