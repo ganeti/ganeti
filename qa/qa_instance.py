@@ -556,6 +556,7 @@ def TestInstanceMigrate(instance, toggle_always_failover=True):
   AssertCommand(["gnt-instance", "migrate", "--force", "--allow-failover",
                  instance.name])
   AssertCommand(["gnt-instance", "start", instance.name])
+  qa_utils.RunInstanceCheck(instance, True)
   AssertCommand(cmd)
   # @InstanceCheck enforces the check that the instance is running
   qa_utils.RunInstanceCheck(instance, True)
