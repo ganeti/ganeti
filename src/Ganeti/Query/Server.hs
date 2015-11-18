@@ -385,6 +385,8 @@ handleCall _ _ cfg (QueryConfigValues fields) = do
                , ("drain_flag", liftM (showJSON . not) isQueueOpen)
                , ("modify_ssh_setup",
                   return $ clusterProperty clusterModifySshSetup)
+               , ("ssh_key_type", return $ clusterProperty clusterSshKeyType)
+               , ("ssh_key_bits", return $ clusterProperty clusterSshKeyBits)
                ] :: [(String, IO JSValue)]
   let answer = map (fromMaybe (return JSNull) . flip lookup params) fields
   answerEval <- sequence answer
