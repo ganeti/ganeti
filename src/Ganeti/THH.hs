@@ -324,7 +324,7 @@ parseFn :: Field   -- ^ The field definition
         -> Q Exp   -- ^ The resulting function that parses a JSON message
 parseFn field o =
   let fnType = [t| JSON.JSValue -> JSON.Result $(fieldType field) |]
-      expr = maybe [| readJSONWithDesc $(stringE $ fieldName field) False |]
+      expr = maybe [| readJSONWithDesc $(stringE $ fieldName field) |]
                    (`appE` o) (fieldRead field)
   in sigE expr fnType
 
@@ -580,7 +580,7 @@ genReadJSON :: String -> Q Dec
 genReadJSON name = do
   let s = mkName "s"
   body <- [| $(varE (fromRawName name)) =<<
-             readJSONWithDesc $(stringE name) True $(varE s) |]
+             readJSONWithDesc $(stringE name) $(varE s) |]
   return $ FunD 'JSON.readJSON [Clause [VarP s] (NormalB body) []]
 
 -- | Generates a JSON instance for a given type.
@@ -1299,7 +1299,7 @@ objectReadJSON :: String -> Q Dec
 objectReadJSON name = do
   let s = mkName "s"
   body <- [| $(varE . mkName $ "load" ++ name) =<<
-             readJSONWithDesc $(stringE name) False $(varE s) |]
+             readJSONWithDesc $(stringE name) $(varE s) |]
   return $ FunD 'JSON.readJSON [Clause [VarP s] (NormalB body) []]
 
 -- * Inheritable parameter tables implementation

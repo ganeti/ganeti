@@ -1,5 +1,5 @@
 {-# LANGUAGE ExistentialQuantification, TemplateHaskell, StandaloneDeriving #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans -O0 #-}
 
 {-| Implementation of the opcodes.
 

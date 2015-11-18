@@ -135,16 +135,12 @@ type JSRecord = [JSField]
 -- is being parsed into what.
 readJSONWithDesc :: (J.JSON a)
                  => String                    -- ^ description of @a@
-                 -> Bool                      -- ^ include input in
-                                              --   error messages
                  -> J.JSValue                 -- ^ input value
                  -> J.Result a
-readJSONWithDesc name incInput input =
+readJSONWithDesc name input =
   case J.readJSON input of
     J.Ok r    -> J.Ok r
-    J.Error e -> J.Error $ if incInput then msg ++ " from " ++ show input
-                                       else msg
-      where msg = "Can't parse value for '" ++ name ++ "': " ++ e
+    J.Error e -> J.Error $ "Can't parse value for '" ++ name ++ "': " ++ e
 
 -- | Converts a JSON Result into a monadic value.
 fromJResult :: Monad m => String -> J.Result a -> m a
