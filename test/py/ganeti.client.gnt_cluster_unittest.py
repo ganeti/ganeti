@@ -380,6 +380,7 @@ class TestBuildGanetiPubKeys(testutils.GanetiTestCase):
   _CLUSTER_NAME = "cluster_name"
   _PRIV_KEY = "master_private_key"
   _PUB_KEY = "master_public_key"
+  _MODIFY_SSH_SETUP = True
   _AUTH_KEYS = "a\nb\nc"
 
   def _setUpFakeKeys(self):
@@ -411,7 +412,7 @@ class TestBuildGanetiPubKeys(testutils.GanetiTestCase):
     self.mock_cl = mock.Mock()
     self.mock_cl.QueryConfigValues = mock.Mock()
     self.mock_cl.QueryConfigValues.return_value = \
-      (self._CLUSTER_NAME, self._MASTER_NODE_NAME)
+      (self._CLUSTER_NAME, self._MASTER_NODE_NAME, self._MODIFY_SSH_SETUP)
 
     self._get_online_nodes_mock = mock.Mock()
     self._get_online_nodes_mock.return_value = \

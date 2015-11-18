@@ -1212,17 +1212,23 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
   """Recreates the 'ganeti_pub_key' file by polling all nodes.
 
   """
+
+  if not cl:
+    cl = GetClient()
+
+  (cluster_name, master_node, modify_ssh_setup) = \
+    cl.QueryConfigValues(["cluster_name", "master_node", "modify_ssh_setup"])
+
+  # In case Ganeti is not supposed to modify the SSH setup, simply exit and do
+  # not update this file.
+  if not modify_ssh_setup:
+    return
+
   if os.path.exists(pub_key_file):
     utils.CreateBackup(pub_key_file)
     utils.RemoveFile(pub_key_file)
 
   ssh.ClearPubKeyFile(pub_key_file)
-
-  if not cl:
-    cl = GetClient()
-
-  (cluster_name, master_node) = \
-    cl.QueryConfigValues(["cluster_name", "master_node"])
 
   online_nodes = get_online_nodes_fn([], cl=cl)
   ssh_ports = get_nodes_ssh_ports_fn(online_nodes + [master_node], cl)
