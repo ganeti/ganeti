@@ -60,7 +60,6 @@ import stat
 import tempfile
 import time
 import zlib
-import copy
 import contextlib
 import collections
 
@@ -1586,7 +1585,7 @@ def AddNodeSshKeyBulk(node_list,
     base_data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
       (constants.SSHS_ADD, keys_by_uuid_auth)
 
-  pot_mc_data = copy.deepcopy(base_data)
+  pot_mc_data = base_data.copy()
   keys_by_uuid_pub = ssh.QueryPubKeyFile(
       [node_info.uuid for node_info in node_list
        if node_info.to_public_keys],
@@ -1740,7 +1739,7 @@ def RemoveNodeSshKey(node_uuid, node_name,
                               dircheck=False)
         ssh.RemoveAuthorizedKeys(auth_key_file, keys[node_uuid])
 
-      pot_mc_data = copy.deepcopy(base_data)
+      pot_mc_data = base_data.copy()
 
       if from_public_keys:
         pot_mc_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
