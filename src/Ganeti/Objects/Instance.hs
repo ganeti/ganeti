@@ -1,5 +1,7 @@
 {-# LANGUAGE TemplateHaskell, FunctionalDependencies #-}
 {-# OPTIONS_GHC -O0 #-}
+-- We have to disable optimisation here, as some versions of ghc otherwise
+-- fail to compile this code, at least within reasonable memory limits (40g).
 
 {-| Implementation of the Ganeti Instance config object.
 
