@@ -1031,6 +1031,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         self._ssh_file_manager.GetAllNodeNames
     self._ssconf_mock.GetOnlineNodeList.side_effect = \
         self._ssh_file_manager.GetAllNodeNames
+    self._ssconf_mock.GetMasterNode.side_effect = \
+        self._ssh_file_manager.GetMasterNodeName
 
   def _TearDownTestData(self):
     os.remove(self._pub_key_file)
@@ -1579,8 +1581,9 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         noded_cert_file=self.noded_cert_file,
         run_cmd_fn=self._run_cmd_mock)
 
+    master_node = self._ssh_file_manager.GetMasterNodeName()
     for node in self._all_nodes:
-      if node == new_node_name:
+      if node in [new_node_name, master_node]:
         self.assertTrue(self._ssh_file_manager.NodeHasAuthorizedKey(
           node, new_node_key))
       else:
