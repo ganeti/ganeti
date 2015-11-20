@@ -87,6 +87,8 @@ import Control.Applicative
 import Control.DeepSeq
 import Control.Monad.Error.Class
 import Control.Monad.Writer
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
 import qualified Data.Text as T
 import qualified Data.Traversable as F
@@ -133,16 +135,12 @@ type JSRecord = [JSField]
 -- is being parsed into what.
 readJSONWithDesc :: (J.JSON a)
                  => String                    -- ^ description of @a@
-                 -> Bool                      -- ^ include input in
-                                              --   error messages
                  -> J.JSValue                 -- ^ input value
                  -> J.Result a
-readJSONWithDesc name incInput input =
+readJSONWithDesc name input =
   case J.readJSON input of
     J.Ok r    -> J.Ok r
-    J.Error e -> J.Error $ if incInput then msg ++ " from " ++ show input
-                                       else msg
-      where msg = "Can't parse value for '" ++ name ++ "': " ++ e
+    J.Error e -> J.Error $ "Can't parse value for '" ++ name ++ "': " ++ e
 
 -- | Converts a JSON Result into a monadic value.
 fromJResult :: Monad m => String -> J.Result a -> m a
@@ -338,7 +336,11 @@ emptyContainer :: GenericContainer a b
 emptyContainer = GenericContainer Map.empty
 
 -- | Type alias for string keys.
-type Container = GenericContainer String
+type Container = GenericContainer BS.ByteString
+
+instance HasStringRepr BS.ByteString where
+  fromStringRepr = return . UTF8.fromString
+  toStringRepr = UTF8.toString
 
 -- | Creates a GenericContainer from a list of key-value pairs.
 containerFromList :: Ord a => [(a,b)] -> GenericContainer a b

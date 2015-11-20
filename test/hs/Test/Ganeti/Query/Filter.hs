@@ -40,6 +40,7 @@ module Test.Ganeti.Query.Filter (testQuery_Filter) where
 import Test.QuickCheck hiding (Result)
 import Test.QuickCheck.Monadic
 
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Map as Map
 import Data.List
 import Text.JSON (showJSON)
@@ -88,7 +89,8 @@ genClusterNames :: Int -> Int -> Gen (ConfigData, [String])
 genClusterNames min_nodes max_nodes = do
   numnodes <- choose (min_nodes, max_nodes)
   cfg <- genEmptyCluster numnodes
-  return (cfg, niceSort . Map.keys . fromContainer $ configNodes cfg)
+  return (cfg , niceSort . map UTF8.toString . Map.keys . fromContainer
+                  $ configNodes cfg)
 
 -- * Test cases
 

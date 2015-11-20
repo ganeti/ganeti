@@ -602,7 +602,7 @@ rsaKeyBits = 2048
 -- after it's been removed. Use the "openssl" utility to check the
 -- allowed ciphers, e.g.  "openssl ciphers -v HIGH:-DES".
 opensslCiphers :: String
-opensslCiphers = "HIGH:-DES:-3DES:-EXPORT:-ADH"
+opensslCiphers = "HIGH:-DES:-3DES:-EXPORT:-DH"
 
 -- * X509
 

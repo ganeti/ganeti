@@ -553,7 +553,7 @@ instance RpcCall RpcCallNodeInfo where
   rpcCallData n call     = J.encode
     ( fromMaybe (error $ "Programmer error: missing parameter for node named "
                          ++ nodeName n)
-          $ Map.lookup (nodeUuid n) (rpcCallNodeInfoStorageUnits call)
+          $ Map.lookup (uuidOf n) (rpcCallNodeInfoStorageUnits call)
     , rpcCallNodeInfoHypervisors call
     )
 

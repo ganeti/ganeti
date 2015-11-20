@@ -42,6 +42,7 @@ module Ganeti.Query.Network
 -- FIXME: everything except fieldsMap
 -- is only exported for testing.
 
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, mapMaybe)
 import Data.List (find, intercalate)
@@ -82,17 +83,17 @@ networkFields =
      QffNormal)
   , (FieldDefinition "group_list" "GroupList" QFTOther
        "List of nodegroups (group name, NIC mode, NIC link)",
-     FieldConfig (\cfg -> rsNormal . getGroupConnections cfg . networkUuid),
+     FieldConfig (\cfg -> rsNormal . getGroupConnections cfg . uuidOf),
      QffNormal)
   , (FieldDefinition "group_cnt" "NodeGroups" QFTNumber "Number of nodegroups",
      FieldConfig (\cfg -> rsNormal . length . getGroupConnections cfg
-       . networkUuid), QffNormal)
+       . uuidOf), QffNormal)
   , (FieldDefinition "inst_list" "InstanceList" QFTOther "List of instances",
-     FieldConfig (\cfg -> rsNormal . getInstances cfg . networkUuid),
+     FieldConfig (\cfg -> rsNormal . getInstances cfg . uuidOf),
      QffNormal)
   , (FieldDefinition "inst_cnt" "Instances" QFTNumber "Number of instances",
      FieldConfig (\cfg -> rsNormal . length . getInstances cfg
-       . networkUuid), QffNormal)
+       . uuidOf), QffNormal)
   , (FieldDefinition "external_reservations" "ExternalReservations" QFTText
      "External reservations",
      FieldSimple getExtReservationsString, QffNormal)
@@ -124,7 +125,7 @@ getGroupConnection ::
   String -> NodeGroup -> Maybe (String, String, String, String)
 getGroupConnection network_uuid group =
   let networks = fromContainer . groupNetworks $ group
-  in case Map.lookup network_uuid networks of
+  in case Map.lookup (UTF8.fromString network_uuid) networks of
     Nothing -> Nothing
     Just net ->
       Just (groupName group, getNicMode net, getNicLink net, getNicVlan net)
@@ -161,7 +162,7 @@ getNetworkUuid :: ConfigData -> String -> Maybe String
 getNetworkUuid cfg name =
   let net = find (\n -> name == fromNonEmpty (networkName n))
                ((Map.elems . fromContainer . configNetworks) cfg)
-  in fmap networkUuid net
+  in fmap uuidOf net
 
 -- | Computes the reservations list for a network.
 --

@@ -34,6 +34,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.DataCollectors( collectors ) where
 
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Map (findWithDefault)
 import Data.Monoid (mempty)
 
@@ -65,7 +66,7 @@ collectors =
       any xenHypervisor . clusterEnabledHypervisors $ configCluster cfg
     collectorConfig name cfg =
       let config = fromContainer . clusterDataCollectors $ configCluster cfg
-      in  findWithDefault mempty name config
+      in  findWithDefault mempty (UTF8.fromString name) config
     updateInterval name cfg = dataCollectorInterval $ collectorConfig name cfg
     activeConfig name cfg = dataCollectorActive $ collectorConfig name cfg
     diskStatsCollector =

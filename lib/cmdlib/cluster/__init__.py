@@ -1690,7 +1690,12 @@ class LUClusterSetParams(LogicalUnit):
     if self.op.candidate_pool_size is not None:
       self.cluster.candidate_pool_size = self.op.candidate_pool_size
       # we need to update the pool size here, otherwise the save will fail
-      AdjustCandidatePool(self, [])
+      master_node = self.cfg.GetMasterNode()
+      potential_master_candidates = self.cfg.GetPotentialMasterCandidates()
+      modify_ssh_setup = self.cfg.GetClusterInfo().modify_ssh_setup
+      AdjustCandidatePool(
+          self, [], master_node, potential_master_candidates, feedback_fn,
+          modify_ssh_setup)
 
     if self.op.max_running_jobs is not None:
       self.cluster.max_running_jobs = self.op.max_running_jobs

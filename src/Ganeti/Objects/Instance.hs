@@ -1,4 +1,7 @@
 {-# LANGUAGE TemplateHaskell, FunctionalDependencies #-}
+{-# OPTIONS_GHC -O0 #-}
+-- We have to disable optimisation here, as some versions of ghc otherwise
+-- fail to compile this code, at least within reasonable memory limits (40g).
 
 {-| Implementation of the Ganeti Instance config object.
 
@@ -36,6 +39,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Objects.Instance where
 
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Monoid
 
 import Ganeti.JSON (emptyContainer)
@@ -88,7 +92,7 @@ instance TimeStampObject Instance where
   mTimeOf = instMtime
 
 instance UuidObject Instance where
-  uuidOf = instUuid
+  uuidOf = UTF8.toString . instUuid
 
 instance SerialNoObject Instance where
   serialOf = instSerial

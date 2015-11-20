@@ -37,6 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Objects.Disk where
 
 import Control.Applicative ((<*>), (<$>))
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char (isAsciiLower, isAsciiUpper, isDigit)
 import Data.List (isPrefixOf, isInfixOf)
 import Language.Haskell.TH.Syntax
@@ -261,7 +262,7 @@ instance TimeStampObject Disk where
   mTimeOf = diskMtime
 
 instance UuidObject Disk where
-  uuidOf = diskUuid
+  uuidOf = UTF8.toString . diskUuid
 
 instance SerialNoObject Disk where
   serialOf = diskSerial

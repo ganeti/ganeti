@@ -126,13 +126,13 @@ instance Arbitrary ExportTarget where
                     , ExportTargetRemote <$> pure []
                     ]
 
-arbitraryDataCollector :: Gen (Container Bool)
+arbitraryDataCollector :: Gen (GenericContainer String Bool)
 arbitraryDataCollector = do
   els <-  listOf . elements $ CU.toList C.dataCollectorNames
   activation <- vector $ length els
   return . GenericContainer . Map.fromList $ zip els activation
 
-arbitraryDataCollectorInterval :: Gen (Maybe (Container Int))
+arbitraryDataCollectorInterval :: Gen (Maybe (GenericContainer String Int))
 arbitraryDataCollectorInterval = do
   els <-  listOf . elements $ CU.toList C.dataCollectorNames
   intervals <- vector $ length els
