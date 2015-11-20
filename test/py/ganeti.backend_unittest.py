@@ -1509,6 +1509,39 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
       self.assertEqual(1,
           len(self._ssh_file_manager.GetAuthorizedKeysOfNode(node_info.name)))
 
+  def testRemoveDiverseNodesBulk(self):
+    node_list = []
+    key_map = {}
+    for node_name, (node_uuid, node_key, is_potential_master_candidate,
+                    is_master_candidate, _) in \
+        self._ssh_file_manager.GetAllNodesDiverse()[:3]:
+      node_list.append(backend.SshRemoveNodeInfo(
+          uuid=node_uuid,
+          name=node_name,
+          from_authorized_keys=is_master_candidate,
+          from_public_keys=is_potential_master_candidate,
+          clear_authorized_keys=True,
+          clear_public_keys=True))
+      key_map[node_name] = node_key
+
+    backend.RemoveNodeSshKeyBulk(node_list,
+                                 self._master_candidate_uuids,
+                                 self._potential_master_candidates,
+                                 pub_key_file=self._pub_key_file,
+                                 ssconf_store=self._ssconf_mock,
+                                 noded_cert_file=self.noded_cert_file,
+                                 run_cmd_fn=self._run_cmd_mock)
+
+    for node_info in node_list:
+      self._ssh_file_manager.AssertNoNodeHasPublicKey(
+          node_info.uuid, key_map[node_info.name])
+      self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+          [node_info.name], key_map[node_info.name])
+      self.assertEqual(0,
+          len(self._ssh_file_manager.GetPublicKeysOfNode(node_info.name)))
+      self.assertEqual(1,
+          len(self._ssh_file_manager.GetAuthorizedKeysOfNode(node_info.name)))
+
   def testDemoteMasterCandidateToPotentialMasterCandidate(self):
     node_name, node_info = self._ssh_file_manager.GetAllMasterCandidates()[0]
     self._ssh_file_manager.SetOrAddNode(

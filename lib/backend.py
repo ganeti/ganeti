@@ -1930,6 +1930,9 @@ def RemoveNodeSshKeyBulk(node_list,
   all_keys_to_remove = {}
   if from_authorized_keys or from_public_keys:
     for node_info in node_list:
+      # Skip nodes that don't actually need any keys to be removed.
+      if not (node_info.from_authorized_keys or node_info.from_public_keys):
+        continue
       if node_info.name == master_node and not keys_to_remove:
         raise errors.SshUpdateError("Cannot remove the master node's keys.")
       if keys_to_remove:

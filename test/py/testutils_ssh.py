@@ -203,6 +203,43 @@ class FakeSshFileManager(object):
             in self._all_node_data.items() if not node_info.is_master_candidate
             and not node_info.is_potential_master_candidate]
 
+  def GetAllNodesDiverse(self):
+    """This returns all nodes in a diverse order.
+
+    This will return all nodes, but makes sure that they ordered so that
+    the list will contain in a round-robin fashion, a master candidate,
+    a potential master candidate, a normal node, then again a master
+    candidate, etc.
+
+    """
+    master_candidates = self.GetAllMasterCandidates()
+    potential_master_candidates = self.GetAllPurePotentialMasterCandidates()
+    normal_nodes = self.GetAllNormalNodes()
+
+    mixed_list = []
+
+    i = 0
+
+    assert (len(self._all_node_data) == len(master_candidates)
+            + len(potential_master_candidates) + len(normal_nodes))
+
+    while len(mixed_list) < len(self._all_node_data):
+      if i % 3 == 0:
+        if master_candidates:
+          mixed_list.append(master_candidates[0])
+          master_candidates = master_candidates[1:]
+      elif i % 3 == 1:
+        if potential_master_candidates:
+          mixed_list.append(potential_master_candidates[0])
+          potential_master_candidates = potential_master_candidates[1:]
+      else:  # i % 3 == 2
+        if normal_nodes:
+          mixed_list.append(normal_nodes[0])
+          normal_nodes = normal_nodes[1:]
+      i += 1
+
+    return mixed_list
+
   def GetPublicKeysOfNode(self, node):
     return self._public_keys[node]
 
