@@ -1927,8 +1927,8 @@ def RemoveNodeSshKeyBulk(node_list,
   master_node = ssconf_store.GetMasterNode()
   ssh_port_map = ssconf_store.GetSshPortMap()
 
+  all_keys_to_remove = {}
   if from_authorized_keys or from_public_keys:
-    all_keys_to_remove = {}
     for node_info in node_list:
       if node_info.name == master_node and not keys_to_remove:
         raise errors.SshUpdateError("Cannot remove the master node's keys.")
