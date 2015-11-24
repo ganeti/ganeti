@@ -2121,11 +2121,19 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
   # keys to add in bulk at the end
   node_keys_to_add = []
 
+  # list of all nodes
+  node_list = []
+
+  # list of keys to be removed before generating new keys
+  node_info_to_remove = []
+
   for node_uuid, node_name in node_uuid_name_map:
     if node_name == master_node_name:
       continue
     master_candidate = node_uuid in master_candidate_uuids
     potential_master_candidate = node_name in potential_master_candidates
+    node_list.append((node_uuid, node_name, master_candidate,
+                      potential_master_candidate))
 
     keys_by_uuid = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
     if not keys_by_uuid:
@@ -2146,18 +2154,29 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
         # remove that node's key, because it is also the master node's key
         # and that would terminate all communication from the master to the
         # node.
-        logging.debug("Removing SSH key of node '%s'.", node_name)
-        node_errors = RemoveNodeSshKey(
-           node_uuid, node_name, master_candidate_uuids,
-           potential_master_candidates,
-           master_uuid=master_node_uuid, from_authorized_keys=master_candidate,
-           from_public_keys=False, clear_authorized_keys=False,
-           clear_public_keys=False)
-        if node_errors:
-          all_node_errors = all_node_errors + node_errors
+        node_info_to_remove.append(SshRemoveNodeInfo(
+            uuid=node_uuid,
+            name=node_name,
+            from_authorized_keys=master_candidate,
+            from_public_keys=False,
+            clear_authorized_keys=False,
+            clear_public_keys=False))
       else:
         logging.debug("Old key of node '%s' is the same as the current master"
                       " key. Not deleting that key on the node.", node_name)
+
+  logging.debug("Removing old SSH keys of all master candidates.")
+  if node_info_to_remove:
+    node_errors = RemoveNodeSshKeyBulk(
+        node_info_to_remove,
+        master_candidate_uuids,
+        potential_master_candidates,
+        master_uuid=master_node_uuid)
+    if node_errors:
+      all_node_errors = all_node_errors + node_errors
+
+  for (node_uuid, node_name, master_candidate, potential_master_candidate) \
+      in node_list:
 
     logging.debug("Generating new SSH key for node '%s'.", node_name)
     _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
