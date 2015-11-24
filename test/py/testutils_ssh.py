@@ -206,7 +206,7 @@ class FakeSshFileManager(object):
   def GetAllNodesDiverse(self):
     """This returns all nodes in a diverse order.
 
-    This will return all nodes, but makes sure that they ordered so that
+    This will return all nodes, but makes sure that they are ordered so that
     the list will contain in a round-robin fashion, a master candidate,
     a potential master candidate, a normal node, then again a master
     candidate, etc.

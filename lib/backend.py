@@ -1689,172 +1689,22 @@ def RemoveNodeSshKey(node_uuid, node_name,
   @returns: list of feedback messages
 
   """
-  # Non-disruptive error messages, list of (node, msg) pairs
-  result_msgs = []
-
-  # Make sure at least one of these flags is true.
-  if not (from_authorized_keys or from_public_keys or clear_authorized_keys
-          or clear_public_keys):
-    raise errors.SshUpdateError("No removal from any key file was requested.")
-
-  if not ssconf_store:
-    ssconf_store = ssconf.SimpleStore()
-
-  master_node = ssconf_store.GetMasterNode()
-  ssh_port_map = ssconf_store.GetSshPortMap()
-
-  if from_authorized_keys or from_public_keys:
-    if keys_to_remove:
-      keys = keys_to_remove
-    else:
-      keys = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
-      if (not keys or node_uuid not in keys) and not readd:
-        raise errors.SshUpdateError("Node '%s' not found in the list of public"
-                                    " SSH keys. It seems someone tries to"
-                                    " remove a key from outside the cluster!"
-                                    % node_uuid)
-      # During an upgrade all nodes have the master key. In this case we
-      # should not remove it to avoid accidentally shutting down cluster
-      # SSH communication
-      master_keys = None
-      if master_uuid:
-        master_keys = ssh.QueryPubKeyFile([master_uuid], key_file=pub_key_file)
-        for master_key in master_keys:
-          if master_key in keys[node_uuid]:
-            keys[node_uuid].remove(master_key)
-
-    if node_name == master_node and not keys_to_remove:
-      raise errors.SshUpdateError("Cannot remove the master node's keys.")
-
-    if node_uuid in keys:
-      base_data = {}
-      _InitSshUpdateData(base_data, noded_cert_file, ssconf_store)
-      cluster_name = base_data[constants.SSHS_CLUSTER_NAME]
-
-      if from_authorized_keys:
-        base_data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
-          (constants.SSHS_REMOVE, keys)
-        (auth_key_file, _) = \
-          ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False,
-                              dircheck=False)
-        ssh.RemoveAuthorizedKeys(auth_key_file, keys[node_uuid])
-
-      pot_mc_data = base_data.copy()
-
-      if from_public_keys:
-        pot_mc_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-          (constants.SSHS_REMOVE, keys)
-        ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
-
-      all_nodes = ssconf_store.GetNodeList()
-      online_nodes = ssconf_store.GetOnlineNodeList()
-      logging.debug("Removing key of node '%s' from all nodes but itself and"
-                    " master.", node_name)
-      for node in all_nodes:
-        if node == master_node:
-          logging.debug("Skipping master node '%s'.", master_node)
-          continue
-        if node not in online_nodes:
-          logging.debug("Skipping offline node '%s'.", node)
-          continue
-        if node == node_name:
-          logging.debug("Skipping node itself '%s'.", node_name)
-          continue
-        ssh_port = ssh_port_map.get(node)
-        if not ssh_port:
-          raise errors.OpExecError("No SSH port information available for"
-                                   " node '%s', map: %s." %
-                                   (node, ssh_port_map))
-        error_msg_final = ("When removing the key of node '%s', updating the"
-                           " SSH key files of node '%s' failed. Last error"
-                           " was: %s.")
-        if node in potential_master_candidates:
-          logging.debug("Updating key setup of potential master candidate node"
-                        " %s.", node)
-          try:
-            utils.RetryByNumberOfTimes(
-                constants.SSHS_MAX_RETRIES,
-                errors.SshUpdateError,
-                run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
-                ssh_port, pot_mc_data,
-                debug=False, verbose=False, use_cluster_key=False,
-                ask_key=False, strict_host_check=False)
-          except errors.SshUpdateError as last_exception:
-            error_msg = error_msg_final % (
-                node_name, node, last_exception)
-            result_msgs.append((node, error_msg))
-            logging.error(error_msg)
-
-        else:
-          if from_authorized_keys:
-            logging.debug("Updating key setup of normal node %s.", node)
-            try:
-              utils.RetryByNumberOfTimes(
-                  constants.SSHS_MAX_RETRIES,
-                  errors.SshUpdateError,
-                  run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
-                  ssh_port, base_data,
-                  debug=False, verbose=False, use_cluster_key=False,
-                  ask_key=False, strict_host_check=False)
-            except errors.SshUpdateError as last_exception:
-              error_msg = error_msg_final % (
-                  node_name, node, last_exception)
-              result_msgs.append((node, error_msg))
-              logging.error(error_msg)
-
-  if clear_authorized_keys or from_public_keys or clear_public_keys:
-    data = {}
-    _InitSshUpdateData(data, noded_cert_file, ssconf_store)
-    cluster_name = data[constants.SSHS_CLUSTER_NAME]
-    ssh_port = ssh_port_map.get(node_name)
-    if not ssh_port:
-      raise errors.OpExecError("No SSH port information available for"
-                               " node '%s', which is leaving the cluster.")
-
-    if clear_authorized_keys:
-      # The 'authorized_keys' file is not solely managed by Ganeti. Therefore,
-      # we have to specify exactly which keys to clear to leave keys untouched
-      # that were not added by Ganeti.
-      other_master_candidate_uuids = [uuid for uuid in master_candidate_uuids
-                                      if uuid != node_uuid]
-      candidate_keys = ssh.QueryPubKeyFile(other_master_candidate_uuids,
-                                           key_file=pub_key_file)
-      data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
-        (constants.SSHS_REMOVE, candidate_keys)
-
-    if clear_public_keys:
-      data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-        (constants.SSHS_CLEAR, {})
-    elif from_public_keys:
-      # Since clearing the public keys subsumes removing just a single key,
-      # we only do it of clear_public_keys is 'False'.
-
-      if keys[node_uuid]:
-        data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-          (constants.SSHS_REMOVE, keys)
-
-    # If we have no changes to any keyfile, just return
-    if not (constants.SSHS_SSH_PUBLIC_KEYS in data or
-            constants.SSHS_SSH_AUTHORIZED_KEYS in data):
-      return
-
-    logging.debug("Updating SSH key setup of target node '%s'.", node_name)
-    try:
-      utils.RetryByNumberOfTimes(
-          constants.SSHS_MAX_RETRIES,
-          errors.SshUpdateError,
-          run_cmd_fn, cluster_name, node_name, pathutils.SSH_UPDATE,
-          ssh_port, data,
-          debug=False, verbose=False, use_cluster_key=False,
-          ask_key=False, strict_host_check=False)
-    except errors.SshUpdateError as last_exception:
-      result_msgs.append(
-          (node_name,
-           ("Removing SSH keys from node '%s' failed."
-            " This can happen when the node is already unreachable."
-            " Error: %s" % (node_name, last_exception))))
-
-  return result_msgs
+  node_list = [SshRemoveNodeInfo(uuid=node_uuid,
+                                 name=node_name,
+                                 from_authorized_keys=from_authorized_keys,
+                                 from_public_keys=from_public_keys,
+                                 clear_authorized_keys=clear_authorized_keys,
+                                 clear_public_keys=clear_public_keys)]
+  return RemoveNodeSshKeyBulk(node_list,
+                              master_candidate_uuids,
+                              potential_master_candidates,
+                              master_uuid=master_uuid,
+                              keys_to_remove=keys_to_remove,
+                              pub_key_file=pub_key_file,
+                              ssconf_store=ssconf_store,
+                              noded_cert_file=noded_cert_file,
+                              readd=readd,
+                              run_cmd_fn=run_cmd_fn)
 
 
 # Node info named tuple specifically for the use with RemoveNodeSshKeyBulk
