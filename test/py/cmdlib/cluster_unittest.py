@@ -232,9 +232,12 @@ class TestLUClusterDestroy(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-    self.assertSingleHooksCall([self.master.uuid],
-                               "cluster-destroy",
-                               constants.HOOKS_PHASE_POST)
+    self.assertHooksCall([self.master.uuid], constants.GLOBAL_HOOKS_DIR,
+                         constants.HOOKS_PHASE_PRE, index=0)
+    self.assertHooksCall([self.master.uuid], "cluster-destroy",
+                         constants.HOOKS_PHASE_POST, index=1)
+    self.assertHooksCall([self.master.uuid], constants.GLOBAL_HOOKS_DIR,
+                         constants.HOOKS_PHASE_POST, index=2)
 
 
 class TestLUClusterPostInit(CmdlibTestCase):
@@ -244,9 +247,12 @@ class TestLUClusterPostInit(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-    self.assertSingleHooksCall([self.master.uuid],
-                               "cluster-init",
-                               constants.HOOKS_PHASE_POST)
+    self.assertHooksCall([self.master.uuid], constants.GLOBAL_HOOKS_DIR,
+                         constants.HOOKS_PHASE_PRE, index=0)
+    self.assertHooksCall([self.master.uuid], "cluster-init",
+                         constants.HOOKS_PHASE_POST, index=1)
+    self.assertHooksCall([self.master.uuid], constants.GLOBAL_HOOKS_DIR,
+                         constants.HOOKS_PHASE_POST, index=2)
 
 
 class TestLUClusterQuery(CmdlibTestCase):

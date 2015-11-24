@@ -39,11 +39,23 @@ from ganeti.rpc import node as rpc
 from cmdlib.testsupport.util import patchModule
 
 
+# We don't need arguments other than nodes in this mock.
+def MockHooksExecutionFn(nodes, _hpath, _phase, _env):
+  """Helper function that generate rpc results for call_hooks_runner mock
+
+  """
+  results = RpcResultsBuilder()
+  for node in nodes:
+    results.AddSuccessfulNode(node, data=None, get_node_id_fn=lambda nid: nid)
+  return results.Build()
+
+
 def CreateRpcRunnerMock():
   """Creates a new L{mock.MagicMock} tailored for L{rpc.RpcRunner}
 
   """
   ret = mock.MagicMock(spec=rpc.RpcRunner)
+  ret.call_hooks_runner.side_effect = MockHooksExecutionFn
   return ret
 
 
@@ -106,7 +118,8 @@ class RpcResultsBuilder(object):
     else:
       return node.uuid
 
-  def CreateSuccessfulNodeResult(self, node, data=None):
+  def CreateSuccessfulNodeResult(self, node, data=None,
+                                 get_node_id_fn=None):
     """@see L{RpcResultsBuilder}
 
     @param node: @see L{RpcResultsBuilder}.
@@ -116,7 +129,8 @@ class RpcResultsBuilder(object):
     """
     if data is None:
       data = {}
-    return rpc.RpcResult(data=(True, data), node=self._GetNodeId(node))
+    node_id = get_node_id_fn(node) if get_node_id_fn else self._GetNodeId(node)
+    return rpc.RpcResult(data=(True, data), node=node_id)
 
   def CreateFailedNodeResult(self, node):
     """@see L{RpcResultsBuilder}
@@ -144,14 +158,15 @@ class RpcResultsBuilder(object):
     """
     return rpc.RpcResult(data=(False, error_msg), node=self._GetNodeId(node))
 
-  def AddSuccessfulNode(self, node, data=None):
+  def AddSuccessfulNode(self, node, data=None, get_node_id_fn=None):
     """@see L{CreateSuccessfulNode}
 
     @rtype: L{RpcResultsBuilder}
     @return: self for chaining
 
     """
-    self._results.append(self.CreateSuccessfulNodeResult(node, data))
+    self._results.append(self.CreateSuccessfulNodeResult(node, data,
+                                                         get_node_id_fn))
     return self
 
   def AddFailedNode(self, node):

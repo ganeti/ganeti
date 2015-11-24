@@ -223,9 +223,9 @@ def FakeHooksRpcSuccess(node_list, hpath, phase, env):
 class TestHooksMaster(unittest.TestCase):
   """Testing case for HooksMaster"""
 
-  def _call_false(*args):
-    """Fake call_hooks_runner function which returns False."""
-    return False
+  def _call_fail(*args):
+    """Fake call_hooks_runner which returns an empty result dictionary."""
+    return {}
 
   @staticmethod
   def _call_nodes_false(node_list, hpath, phase, env):
@@ -260,7 +260,7 @@ class TestHooksMaster(unittest.TestCase):
 
   def testTotalFalse(self):
     """Test complete rpc failure"""
-    hm = hooksmaster.HooksMaster.BuildFromLu(self._call_false, self.lu)
+    hm = hooksmaster.HooksMaster.BuildFromLu(self._call_fail, self.lu)
     self.failUnlessRaises(errors.HooksFailure,
                           hm.RunPhase, constants.HOOKS_PHASE_PRE)
     hm.RunPhase(constants.HOOKS_PHASE_POST)

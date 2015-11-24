@@ -185,7 +185,10 @@ def RunPostHook(lu, node_uuid):
   """
   hm = lu.proc.BuildHooksManager(lu)
   try:
+    # Execute usual post hooks, then global post hooks.
     hm.RunPhase(constants.HOOKS_PHASE_POST, node_uuids=[node_uuid])
+    hm.RunPhase(constants.HOOKS_PHASE_POST, [node_uuid], is_global=True,
+                post_status=constants.POST_HOOKS_STATUS_SUCCESS)
   except Exception, err: # pylint: disable=W0703
     lu.LogWarning("Errors occurred running hooks on %s: %s",
                   node_uuid, err)

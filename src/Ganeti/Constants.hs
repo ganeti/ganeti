@@ -735,6 +735,15 @@ globalHooksMaster = "master"
 globalHooksNotMaster :: String
 globalHooksNotMaster = "not_master"
 
+postHooksStatusSuccess :: String
+postHooksStatusSuccess = "success"
+
+postHooksStatusError :: String
+postHooksStatusError = "error"
+
+postHooksStatusDisappeared :: String
+postHooksStatusDisappeared = "disappeared"
+
 -- * Hooks subject type (what object type does the LU deal with)
 
 htypeCluster :: String

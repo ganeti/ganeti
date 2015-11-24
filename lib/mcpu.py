@@ -305,6 +305,7 @@ class Processor(object):
     self.cfg = context.GetConfig(ec_id)
     self.rpc = context.GetRpc(self.cfg)
     self.hmclass = hooksmaster.HooksMaster
+    self._hm = None
     self._enable_locks = enable_locks
     self.wconfd = wconfd # Indirection to allow testing
     self._wconfdcontext = context.GetWConfdContext(ec_id)
@@ -483,8 +484,10 @@ class Processor(object):
     lu.cfg.OutDate()
     lu.CheckPrereq()
 
-    hm = self.BuildHooksManager(lu)
-    h_results = hm.RunPhase(constants.HOOKS_PHASE_PRE)
+    self._hm = self.BuildHooksManager(lu)
+    # Run hooks twice: first for the global hooks, then for the usual hooks.
+    self._hm.RunPhase(constants.HOOKS_PHASE_PRE, is_global=True)
+    h_results = self._hm.RunPhase(constants.HOOKS_PHASE_PRE)
     lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
                      self.Log, None)
 
@@ -504,19 +507,20 @@ class Processor(object):
     lusExecuting[0] += 1
     try:
       result = _ProcessResult(submit_mj_fn, lu.op, lu.Exec(self.Log))
-      h_results = hm.RunPhase(constants.HOOKS_PHASE_POST)
+      h_results = self._hm.RunPhase(constants.HOOKS_PHASE_POST)
       result = lu.HooksCallBack(constants.HOOKS_PHASE_POST, h_results,
                                 self.Log, result)
     finally:
       # FIXME: This needs locks if not lu_class.REQ_BGL
       lusExecuting[0] -= 1
       if write_count != self.cfg.write_count:
-        hm.RunConfigUpdate()
+        self._hm.RunConfigUpdate()
 
     return result
 
   def BuildHooksManager(self, lu):
-    return self.hmclass.BuildFromLu(lu.rpc.call_hooks_runner, lu)
+    return self.hmclass.BuildFromLu(lu.rpc.call_hooks_runner, lu,
+                                    self.GetECId())
 
   def _LockAndExecLU(self, lu, level, calc_timeout, pending=None):
     """Execute a Logical Unit, with the needed locks.
@@ -715,6 +719,12 @@ class Processor(object):
 
     self._CheckLUResult(op, result)
 
+    # The post hooks below are always executed with a SUCCESS status because
+    # all the possible errors during pre hooks and LU execution cause
+    # exceptions and therefore the statement below will be skipped.
+    if self._hm is not None:
+      self._hm.RunPhase(constants.HOOKS_PHASE_POST, is_global=True,
+                        post_status=constants.POST_HOOKS_STATUS_SUCCESS)
     return result
 
   def Log(self, *args):
