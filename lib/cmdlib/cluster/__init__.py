@@ -298,7 +298,7 @@ class LUClusterDestroy(LogicalUnit):
     master_params = self.cfg.GetMasterNetworkParameters()
 
     # Run post hooks on master node before it's removed
-    RunPostHook(self, self.cfg.GetNodeName(master_params.uuid))
+    RunPostHook(self, master_params.uuid)
 
     ems = self.cfg.GetUseExternalMipScript()
     result = self.rpc.call_node_deactivate_master_ip(master_params.uuid,

@@ -232,7 +232,7 @@ class TestLUClusterDestroy(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-    self.assertSingleHooksCall([self.master.name],
+    self.assertSingleHooksCall([self.master.uuid],
                                "cluster-destroy",
                                constants.HOOKS_PHASE_POST)
 
@@ -1208,7 +1208,7 @@ class TestLUClusterVerifyClientCerts(CmdlibTestCase):
   def _AddNormalNode(self):
     self.normalnode = copy.deepcopy(self.master)
     self.normalnode.master_candidate = False
-    self.normalnode.uuid = "normal-node-uuid"
+    self.normalnode.uuid = "deadbeef-dead-beef-dead-beefdeadbeef"
     self.cfg.AddNode(self.normalnode, None)
 
   def testVerifyMasterCandidate(self):

@@ -1595,7 +1595,7 @@ class LUNodeRemove(LogicalUnit):
     self.cfg.RemoveNode(self.node.uuid)
 
     # Run post hooks on the node before it's removed
-    RunPostHook(self, self.node.name)
+    RunPostHook(self, self.node.uuid)
 
     # we have to call this by name rather than by UUID, as the node is no longer
     # in the config

@@ -5043,6 +5043,9 @@ diskRemoveRetryInterval  = 3
 uuidRegex :: String
 uuidRegex = "^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
 
+dummyUuid :: String
+dummyUuid = "deadbeef-dead-beed-dead-beefdeadbeef"
+
 -- * Luxi constants
 
 luxiSocketPerms :: Int

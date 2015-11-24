@@ -333,8 +333,9 @@ def RunLocalHooks(hook_opcode, hooks_path, env_builder_fn):
   """
   def decorator(fn):
     def wrapper(*args, **kwargs):
-      _, myself = ssconf.GetMasterAndMyself()
-      nodes = ([myself], [myself])  # these hooks run locally
+      # Despite the hooks run locally, we still have to pass an uuid which
+      # will be ignored in RunLocalHooks then.
+      nodes = ([constants.DUMMY_UUID], [constants.DUMMY_UUID])
 
       env_fn = compat.partial(env_builder_fn, *args, **kwargs)
 
@@ -5662,8 +5663,7 @@ class HooksRunner(object):
     """
     assert len(node_list) == 1
     node = node_list[0]
-    _, myself = ssconf.GetMasterAndMyself()
-    assert node == myself
+    assert node == constants.DUMMY_UUID
 
     results = self.RunHooks(hpath, phase, env)
 

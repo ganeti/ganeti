@@ -60,7 +60,8 @@ class FakeLU(cmdlib.LogicalUnit):
     return {}
 
   def BuildHooksNodes(self):
-    return ["a"], ["a"]
+    return (["aaaaaaaa-dead-beef-dead-beefdeadbeef"],
+            ["aaaaaaaa-dead-beef-dead-beefdeadbeef"])
 
 
 class TestHooksRunner(unittest.TestCase):
@@ -299,7 +300,8 @@ class FakeEnvLU(cmdlib.LogicalUnit):
     return self.hook_env
 
   def BuildHooksNodes(self):
-    return (["a"], ["a"])
+    return (["aaaaaaaa-dead-beef-dead-beefdeadbeef"],
+            ["aaaaaaaa-dead-beef-dead-beefdeadbeef"])
 
 
 class FakeNoHooksLU(cmdlib.NoHooksLU):
@@ -414,7 +416,7 @@ class TestHooksRunnerEnv(unittest.TestCase):
   def testNoNodes(self):
     self.lu.hook_env = {}
     hm = hooksmaster.HooksMaster.BuildFromLu(self._HooksRpc, self.lu)
-    hm.RunPhase(constants.HOOKS_PHASE_PRE, node_names=[])
+    hm.RunPhase(constants.HOOKS_PHASE_PRE, node_uuids=[])
     self.assertRaises(IndexError, self._rpcs.pop)
 
   def testSpecificNodes(self):
@@ -515,10 +517,11 @@ class FakeEnvWithCustomPostHookNodesLU(cmdlib.LogicalUnit):
     return {}
 
   def BuildHooksNodes(self):
-    return (["a"], ["a"])
+    return (["aaaaaaaa-dead-beef-dead-beefdeadbeef"],
+            ["aaaaaaaa-dead-beef-dead-beefdeadbeef"])
 
   def PreparePostHookNodes(self, post_hook_node_uuids):
-    return post_hook_node_uuids + ["b"]
+    return post_hook_node_uuids + ["bbbbbbbb-dead-beef-dead-beefdeadbeef"]
 
 
 class TestHooksRunnerEnv(unittest.TestCase):
@@ -542,13 +545,14 @@ class TestHooksRunnerEnv(unittest.TestCase):
     hm.RunPhase(constants.HOOKS_PHASE_PRE)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(node_list, set(["a"]))
+    self.assertEqual(node_list, set(["aaaaaaaa-dead-beef-dead-beefdeadbeef"]))
 
     # Check post-phase hook
     hm.RunPhase(constants.HOOKS_PHASE_POST)
 
     (node_list, hpath, phase, env) = self._rpcs.pop(0)
-    self.assertEqual(node_list, set(["a", "b"]))
+    self.assertEqual(node_list, set(["aaaaaaaa-dead-beef-dead-beefdeadbeef",
+                                     "bbbbbbbb-dead-beef-dead-beefdeadbeef"]))
 
     self.assertRaises(IndexError, self._rpcs.pop)
 

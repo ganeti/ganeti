@@ -56,7 +56,8 @@ def _RpcResultsToHooksResults(rpc_results):
 class HooksMaster(object):
   def __init__(self, opcode, hooks_path, nodes, hooks_execution_fn,
                hooks_results_adapt_fn, build_env_fn, prepare_post_nodes_fn,
-               log_fn, htype=None, cluster_name=None, master_name=None):
+               log_fn, htype=None, cluster_name=None, master_name=None,
+               master_uuid=None):
     """Base class for hooks masters.
 
     This class invokes the execution of hooks according to the behaviour
@@ -93,6 +94,8 @@ class HooksMaster(object):
     @param cluster_name: name of the cluster
     @type master_name: string
     @param master_name: name of the master
+    @type master_uuid: string
+    @param master_uuid: uuid of the master
 
     """
     self.opcode = opcode
@@ -105,6 +108,7 @@ class HooksMaster(object):
     self.htype = htype
     self.cluster_name = cluster_name
     self.master_name = master_name
+    self.master_uuid = master_uuid
 
     self.pre_env = self._BuildEnv(constants.HOOKS_PHASE_PRE)
     (self.pre_nodes, self.post_nodes) = nodes
@@ -183,10 +187,12 @@ class HooksMaster(object):
 
     assert compat.all(key == "PATH" or key.startswith("GANETI_")
                       for key in env)
+    for node in node_list:
+      assert utils.UUID_RE.match(node), "Invalid node uuid %s" % node
 
     return self.hooks_execution_fn(node_list, hpath, phase, env)
 
-  def RunPhase(self, phase, node_names=None):
+  def RunPhase(self, phase, node_uuids=None):
     """Run all the scripts for a phase.
 
     This is the main function of the HookMaster.
@@ -196,7 +202,7 @@ class HooksMaster(object):
 
     @param phase: one of L{constants.HOOKS_PHASE_POST} or
         L{constants.HOOKS_PHASE_PRE}; it denotes the hooks phase
-    @param node_names: overrides the predefined list of nodes for the given
+    @param node_uuids: overrides the predefined list of nodes for the given
         phase
     @return: the processed results of the hooks multi-node rpc call
     @raise errors.HooksFailure: on communication failure to the nodes
@@ -204,25 +210,25 @@ class HooksMaster(object):
 
     """
     if phase == constants.HOOKS_PHASE_PRE:
-      if node_names is None:
-        node_names = self.pre_nodes
+      if node_uuids is None:
+        node_uuids = self.pre_nodes
       env = self.pre_env
     elif phase == constants.HOOKS_PHASE_POST:
-      if node_names is None:
-        node_names = self.post_nodes
-        if node_names is not None and self.prepare_post_nodes_fn is not None:
-          node_names = frozenset(self.prepare_post_nodes_fn(list(node_names)))
+      if node_uuids is None:
+        node_uuids = self.post_nodes
+        if node_uuids is not None and self.prepare_post_nodes_fn is not None:
+          node_uuids = frozenset(self.prepare_post_nodes_fn(list(node_uuids)))
       env = self._BuildEnv(phase)
     else:
       raise AssertionError("Unknown phase '%s'" % phase)
 
-    if not node_names:
+    if not node_uuids:
       # empty node list, we should not attempt to run this as either
       # we're in the cluster init phase and the rpc client part can't
       # even attempt to run, or this LU doesn't do hooks at all
       return
 
-    results = self._RunWrapper(node_names, self.hooks_path, phase, env)
+    results = self._RunWrapper(node_uuids, self.hooks_path, phase, env)
     if not results:
       msg = "Communication Failure"
       if phase == constants.HOOKS_PHASE_PRE:
@@ -268,7 +274,7 @@ class HooksMaster(object):
     """
     phase = constants.HOOKS_PHASE_POST
     hpath = constants.HOOKS_NAME_CFGUPDATE
-    nodes = [self.master_name]
+    nodes = [self.master_uuid]
     self._RunWrapper(nodes, hpath, phase, self.pre_env)
 
   @staticmethod
@@ -285,9 +291,10 @@ class HooksMaster(object):
     master_name = cluster_name = None
     if lu.cfg:
       master_name = lu.cfg.GetMasterNodeName()
+      master_uuid = lu.cfg.GetMasterNode()
       cluster_name = lu.cfg.GetClusterName()
 
     return HooksMaster(lu.op.OP_ID, lu.HPATH, nodes, hooks_execution_fn,
                        _RpcResultsToHooksResults, lu.BuildHooksEnv,
                        lu.PreparePostHookNodes, lu.LogWarning, lu.HTYPE,
-                       cluster_name, master_name)
+                       cluster_name, master_name, master_uuid)

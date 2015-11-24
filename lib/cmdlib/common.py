@@ -179,16 +179,16 @@ def GetWantedInstances(lu, short_inst_names):
   return (inst_uuids, [lu.cfg.GetInstanceName(uuid) for uuid in inst_uuids])
 
 
-def RunPostHook(lu, node_name):
+def RunPostHook(lu, node_uuid):
   """Runs the post-hook for an opcode on a single node.
 
   """
   hm = lu.proc.BuildHooksManager(lu)
   try:
-    hm.RunPhase(constants.HOOKS_PHASE_POST, node_names=[node_name])
+    hm.RunPhase(constants.HOOKS_PHASE_POST, node_uuids=[node_uuid])
   except Exception, err: # pylint: disable=W0703
     lu.LogWarning("Errors occurred running hooks on %s: %s",
-                  node_name, err)
+                  node_uuid, err)
 
 
 def RedistributeAncillaryFiles(lu):
