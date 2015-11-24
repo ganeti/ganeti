@@ -1385,10 +1385,11 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_file_manager.AssertNoNodeHasPublicKey(
         node_info.uuid, node_info.key)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_info.key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_info.key)
     self.assertEqual(0,
         len(self._ssh_file_manager.GetPublicKeysOfNode(node_name)))
-    self.assertEqual(0,
+    self.assertEqual(1,
         len(self._ssh_file_manager.GetAuthorizedKeysOfNode(node_name)))
 
   def testRemoveNormalNode(self):
@@ -1408,10 +1409,11 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_file_manager.AssertNoNodeHasPublicKey(
         node_info.uuid, node_info.key)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_info.key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_info.key)
     self.assertEqual(0,
         len(self._ssh_file_manager.GetPublicKeysOfNode(node_name)))
-    self.assertEqual(0,
+    self.assertEqual(1,
         len(self._ssh_file_manager.GetAuthorizedKeysOfNode(node_name)))
 
   def testDemoteMasterCandidateToPotentialMasterCandidate(self):
@@ -1458,7 +1460,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_file_manager.AssertNoNodeHasPublicKey(
         node_info.uuid, node_info.key)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_info.key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_info.key)
 
   def _GetReducedOnlineNodeList(self):
     """'Randomly' mark some nodes as offline."""

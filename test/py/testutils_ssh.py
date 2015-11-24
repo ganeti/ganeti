@@ -126,8 +126,9 @@ class FakeSshFileManager(object):
         self._public_keys[receiving_node_name][node_info.uuid] = [node_info.key]
 
   def _FillAuthorizedKeyOfOneNode(self, receiving_node_name):
-    for node_info in self._all_node_data.values():
-      if node_info.is_master_candidate:
+    for node_name, node_info in self._all_node_data.items():
+      if node_info.is_master_candidate \
+          or node_name == receiving_node_name:
         self._authorized_keys[receiving_node_name].add(node_info.key)
 
   def InitAllNodes(self, num_nodes, num_pot_mcs, num_mcs):
@@ -279,6 +280,7 @@ class FakeSshFileManager(object):
     @param query_node_key: key which is looked for
 
     """
+    assert isinstance(node_set, list)
     for node_name in self._all_node_data.keys():
       if node_name in node_set:
         if not self.NodeHasAuthorizedKey(node_name, query_node_key):
@@ -588,7 +590,6 @@ class FakeSshFileManager(object):
     @see: C{ssh.QueryPubKey}
 
     """
-
     assert self._master_node_name
     all_keys = target_uuids is None
     if all_keys:
