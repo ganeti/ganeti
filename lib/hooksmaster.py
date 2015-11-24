@@ -39,7 +39,7 @@ from ganeti import compat
 from ganeti import pathutils
 
 
-def _RpcResultsToHooksResults(rpc_results):
+def RpcResultsToHooksResults(rpc_results):
   """Function to convert RPC results to the format expected by HooksMaster.
 
   @type rpc_results: dict(node: L{rpc.RpcResult})
@@ -333,6 +333,21 @@ class HooksMaster(object):
       cluster_name = lu.cfg.GetClusterName()
 
     return HooksMaster(lu.op.OP_ID, lu.HPATH, nodes, hooks_execution_fn,
-                       _RpcResultsToHooksResults, lu.BuildHooksEnv,
+                       RpcResultsToHooksResults, lu.BuildHooksEnv,
                        lu.PreparePostHookNodes, lu.LogWarning, lu.HTYPE,
                        cluster_name, master_name, master_uuid, job_id)
+
+
+def ExecGlobalPostHooks(opcode, master_name, rpc_runner, log_fn,
+                        cluster_name, master_uuid, job_id, status):
+  """ Build hooks manager and execute global post hooks just on the master
+
+  """
+  hm = HooksMaster(opcode, hooks_path=None, nodes=([], [master_uuid]),
+                   hooks_execution_fn=rpc_runner,
+                   hooks_results_adapt_fn=RpcResultsToHooksResults,
+                   build_env_fn=None, prepare_post_nodes_fn=None,
+                   log_fn=log_fn, htype=None, cluster_name=cluster_name,
+                   master_name=master_name, master_uuid=master_uuid,
+                   job_id=job_id)
+  hm.RunPhase(constants.HOOKS_PHASE_POST, is_global=True, post_status=status)

@@ -661,33 +661,17 @@ class Processor(object):
         raise errors.OpResultError("Opcode result does not match %s: %s" %
                                    (resultcheck_fn, utils.Truncate(result, 80)))
 
-  def ExecOpCode(self, op, cbs, timeout=None):
+  def _PrepareLockListsAndExecLU(self, op, lu_class, calc_timeout):
     """Execute an opcode.
 
-    @type op: an OpCode instance
     @param op: the opcode to be executed
-    @type cbs: L{OpExecCbBase}
-    @param cbs: Runtime callbacks
-    @type timeout: float or None
-    @param timeout: Maximum time to acquire all locks, None for no timeout
+    @param lu_class: the LU class implementing the current opcode
+    @param calc_timeout: The function calculating the time remaining
+        to acquire all locks, None for no timeout
     @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
         amount of time
 
     """
-    if not isinstance(op, opcodes.OpCode):
-      raise errors.ProgrammerError("Non-opcode instance passed"
-                                   " to ExecOpcode (%s)" % type(op))
-
-    lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
-    if lu_class is None:
-      raise errors.OpCodeUnknown("Unknown opcode")
-
-    if timeout is None:
-      calc_timeout = lambda: None
-    else:
-      calc_timeout = utils.RunningTimeout(timeout, False).Remaining
-
-    self._cbs = cbs
     try:
       if self._enable_locks:
         # Acquire the Big Ganeti Lock exclusively if this LU requires it,
@@ -717,14 +701,55 @@ class Processor(object):
         self._wconfdcontext, locking.LEVEL_NAMES[locking.LEVEL_CLUSTER])
       self._cbs = None
 
-    self._CheckLUResult(op, result)
+    return result
 
-    # The post hooks below are always executed with a SUCCESS status because
-    # all the possible errors during pre hooks and LU execution cause
-    # exceptions and therefore the statement below will be skipped.
-    if self._hm is not None:
-      self._hm.RunPhase(constants.HOOKS_PHASE_POST, is_global=True,
-                        post_status=constants.POST_HOOKS_STATUS_SUCCESS)
+  def ExecOpCode(self, op, cbs, timeout=None):
+    """Execute an opcode.
+
+    @type op: an OpCode instance
+    @param op: the opcode to be executed
+    @type cbs: L{OpExecCbBase}
+    @param cbs: Runtime callbacks
+    @type timeout: float or None
+    @param timeout: Maximum time to acquire all locks, None for no timeout
+    @raise LockAcquireTimeout: In case locks couldn't be acquired in specified
+        amount of time
+
+    """
+    if not isinstance(op, opcodes.OpCode):
+      raise errors.ProgrammerError("Non-opcode instance passed"
+                                   " to ExecOpcode (%s)" % type(op))
+
+    lu_class = self.DISPATCH_TABLE.get(op.__class__, None)
+    if lu_class is None:
+      raise errors.OpCodeUnknown("Unknown opcode")
+
+    if timeout is None:
+      calc_timeout = lambda: None
+    else:
+      calc_timeout = utils.RunningTimeout(timeout, False).Remaining
+
+    self._cbs = cbs
+    try:
+      result = self._PrepareLockListsAndExecLU(op, lu_class, calc_timeout)
+
+      # The post hooks below are always executed with a SUCCESS status because
+      # all the possible errors during pre hooks and LU execution cause
+      # exception and therefore the statement below will be skipped.
+      if self._hm is not None:
+        self._hm.RunPhase(constants.HOOKS_PHASE_POST, is_global=True,
+                          post_status=constants.POST_HOOKS_STATUS_SUCCESS)
+    except:
+      # execute global post hooks with the failed status on any exception
+      hooksmaster.ExecGlobalPostHooks(op.OP_ID, self.cfg.GetMasterNodeName(),
+                                      self.rpc.call_hooks_runner,
+                                      logging.warning,
+                                      self.cfg.GetClusterName(),
+                                      self.cfg.GetMasterNode(), self.GetECId(),
+                                      constants.POST_HOOKS_STATUS_ERROR)
+      raise
+
+    self._CheckLUResult(op, result)
     return result
 
   def Log(self, *args):
