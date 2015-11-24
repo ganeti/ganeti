@@ -724,6 +724,17 @@ hooksPhasePre = "pre"
 hooksVersion :: Int
 hooksVersion = 2
 
+-- * Global hooks related constants
+
+globalHooksDir :: String
+globalHooksDir = "global"
+
+globalHooksMaster :: String
+globalHooksMaster = "master"
+
+globalHooksNotMaster :: String
+globalHooksNotMaster = "not_master"
+
 -- * Hooks subject type (what object type does the LU deal with)
 
 htypeCluster :: String
