@@ -2900,6 +2900,59 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
     self.assertEqual([disk2, disk1], self.cfg.GetInstanceDisks(inst.uuid))
 
+  def testDetachAndAttachToDisklessInstance(self):
+    """Check if a disk can be detached and then re-attached if the instance is
+    diskless inbetween.
+
+    """
+    disk = self.cfg.CreateDisk(uuid=self.mocked_disk_uuid,
+                               primary_node=self.master.uuid)
+
+    inst = self.cfg.AddNewInstance(disks=[disk], primary_node=self.master)
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_DETACH, self.mocked_disk_uuid, {}]])
+
+    self.ExecOpCode(op)
+    self.assertEqual([], self.cfg.GetInstanceDisks(inst.uuid))
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_ATTACH, 0,
+                                 {
+                                   'uuid': self.mocked_disk_uuid
+                                 }]])
+    self.ExecOpCode(op)
+    self.assertEqual([disk], self.cfg.GetInstanceDisks(inst.uuid))
+
+  def testDetachAttachDrbdDisk(self):
+    """Check if a DRBD disk can be detached and then re-attached.
+
+    """
+    disk = self.cfg.CreateDisk(uuid=self.mocked_disk_uuid,
+                               primary_node=self.master.uuid,
+                               secondary_node=self.snode.uuid,
+                               dev_type=constants.DT_DRBD8)
+
+    inst = self.cfg.AddNewInstance(disks=[disk], primary_node=self.master)
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_DETACH, self.mocked_disk_uuid, {}]])
+
+    self.ExecOpCode(op)
+    self.assertEqual([], self.cfg.GetInstanceDisks(inst.uuid))
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_ATTACH, 0,
+                                 {
+                                   'uuid': self.mocked_disk_uuid
+                                 }]])
+    self.ExecOpCode(op)
+    self.assertEqual([disk], self.cfg.GetInstanceDisks(inst.uuid))
+
   def testRemoveDiskRemovesStorageDir(self):
     inst = self.cfg.AddNewInstance(disks=[self.cfg.CreateDisk(dev_type='file')])
     op = self.CopyOpCode(self.op,
