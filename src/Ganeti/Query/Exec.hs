@@ -58,6 +58,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Query.Exec
   ( isForkSupported
   , forkJobProcess
+  , forkPostHooksProcess
   ) where
 
 import Prelude ()
@@ -244,6 +245,10 @@ killProcessOnError pid master logFn = do
                 threadDelay 100000 -- wait for 0.1s and check again
                 killIfAlive sigs
 
+-- | Data type used only to define the return type of forkProcessCatchErrors.
+data ForkProcessRet = ForkJob (FilePath, ProcessID) |
+                      ForkPostHooks ProcessID
+
 -- | Forks current process and runs runFn in the child and commFn in the
 -- parent. Due to a bug in GHC forking process, we want to retry if the forked
 -- process fails to start. If it fails later on, the failure is handled by
@@ -252,8 +257,8 @@ forkProcessCatchErrors :: (Show e, FromString e)
                        => (Client -> IO ())
                        -> (ProcessID -> String -> ResultT e (WriterLogT IO) ())
                        -> (ProcessID -> Client
-                           -> ResultT e (WriterLogT IO) (FilePath, ProcessID))
-                       -> ResultT e IO (FilePath, ProcessID)
+                           -> ResultT e (WriterLogT IO) ForkProcessRet)
+                       -> ResultT e IO ForkProcessRet
 forkProcessCatchErrors runFn logFn commFn = do
   -- Due to a bug in GHC forking process, we want to retry
   -- if the forked process fails to start.
@@ -286,8 +291,9 @@ forkJobProcess job luxiLivelock update = do
              ++ " for job " ++ jidStr
   update luxiLivelock
 
-  forkProcessCatchErrors (childMain . qjId $ job) logDebugJob
-                         parentMain
+  ForkJob ret <- forkProcessCatchErrors (childMain . qjId $ job) logDebugJob
+                                        parentMain
+  return ret
   where
     -- Retrieve secret parameters if present
     secretParams = encodeStrict . filterSecretParameters . qjOps $ job
@@ -319,7 +325,7 @@ forkJobProcess job luxiLivelock update = do
       _ <- recv "Waiting for the job to ask for secret parameters"
       send "Writing secret parameters to the client" secretParams
       liftIO $ closeClient master
-      return (lockfile, pid)
+      return $ ForkJob (lockfile, pid)
 
     -- | Code performing communication with the parent process. During
     -- communication the livelock is created, locked and sent back
@@ -338,3 +344,38 @@ forkJobProcess job luxiLivelock update = do
           _ <- logFn "Waiting for the master process to confirm the lock"
           _ <- recvMsg s'
           return fd
+
+-- | Forks the process and starts the processing of post hooks for the opcode
+-- whose execution was unfinished due to job process disappearing.
+forkPostHooksProcess :: (FromString e, Show e)
+                     => JobId
+                     -> ResultT e IO ProcessID
+forkPostHooksProcess jid = do
+  ForkPostHooks ret <- forkProcessCatchErrors (childMain jid) logDebugJob
+                                              parentMain
+  return ret
+  where
+    jidStr = show $ fromJobId jid
+    jobLogPrefix pid = "[start:post_hooks:job-" ++ jidStr ++ ",pid="
+                       ++ show pid ++ "] "
+    logDebugJob pid = logDebug . (jobLogPrefix pid ++)
+
+    -- | Code performing communication with the child process. First, receive
+    -- livelock, then send necessary parameters to the python child.
+    parentMain pid master = do
+      let annotatedIO msg k = do
+            logDebugJob pid msg
+            liftIO $ rethrowAnnotateIOError (jobLogPrefix pid ++ msg) k
+      let recv msg = annotatedIO msg (recvMsg master)
+          send msg x = annotatedIO msg (sendMsg master x)
+      -- We communicate with the Python process
+      _ <- recv "Waiting for the post hooks executor to ask for the job id"
+      send "Writing job id to the client" jidStr
+
+      liftIO $ closeClient master
+      return $ ForkPostHooks pid
+
+    -- | Code performing communication with the parent process. Python part
+    -- will only read job file so, we don't need livelock here.
+    childMain jid' s = runProcess jid' s P.postHooksExecutorPy commFn
+      where commFn _ _ _ = return (0 :: Fd)

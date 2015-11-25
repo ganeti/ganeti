@@ -58,6 +58,7 @@ module Ganeti.Path
   , instanceReasonDir
   , getInstReasonFilename
   , jqueueExecutorPy
+  , postHooksExecutorPy
   , kvmPidDir
   ) where
 
@@ -191,6 +192,12 @@ getInstReasonFilename instName = instanceReasonDir `pjoin` instName
 jqueueExecutorPy :: IO FilePath
 jqueueExecutorPy = return $ versionedsharedir
                             </> "ganeti" </> "jqueue" </> "exec.py"
+
+-- | The path to the Python executable for global post hooks of job which
+-- process has disappeared.
+postHooksExecutorPy :: IO FilePath
+postHooksExecutorPy =
+  return $ versionedsharedir </> "ganeti" </> "jqueue" </> "post_hooks_exec.py"
 
 -- | The path to the directory where kvm stores the pid files.
 kvmPidDir :: IO FilePath
