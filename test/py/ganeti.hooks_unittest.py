@@ -556,6 +556,93 @@ class TestHooksRunnerEnv(unittest.TestCase):
 
     self.assertRaises(IndexError, self._rpcs.pop)
 
+class TestGlobalHooks(unittest.TestCase):
+  """Testing case for global post hooks.
+
+  The testing case tests global hooks functionality which is not covered by
+  the corresponding qa tests.
+  """
+  def setUp(self):
+    """Initialize rpc mock calls archive and arguments for the hooksmaster.
+
+    """
+    self._rpcs = []
+
+    self.op = opcodes.OpTestDummy(result=False, messages=[], fail=False)
+    self.master_uuid = "aaaaaaaa-dead-beef-dead-beefdeadbeef"
+    self.other_uuid = "bbbbbbbb-dead-beef-dead-beefdeadbeef"
+    self.nodes = [self.master_uuid, self.other_uuid]
+    self.hooks_nodes = (frozenset([]), frozenset(self.nodes))
+    self.cluster_name = "mock_cluster_name"
+    self.master_name = "mock_master_name"
+    self.job_id = 1234
+    self.rpc_res_conv = hooksmaster.RpcResultsToHooksResults
+
+  def _HooksRpc(self, *args):
+    self._rpcs.append(args)
+    return FakeHooksRpcSuccess(*args)
+
+  def testGlobalHooks(self):
+    """Initializes hooksmaster and runs hooks with mocked rpc.
+
+    Checks the following statements:
+      - global hooks should be run on the master node even in case of empty
+        nodes list;
+      - global hooks should be run on the master node separately from
+        the other nodes;
+      - the environmental variable IS_MASTER should be set to "master" when
+        executing on the master node;
+      - the environmental variable IS_MASTER should be set to "not_master" when
+        executing on the other nodes;
+      - for the post hooks *status* variable should be set correctly;
+      - the hooks path should be set to GLOBAL_HOOKS_DIR;
+      - phase variable should be set correctly.
+    """
+    hm = hooksmaster.HooksMaster(self.op.OP_ID, hooks_path="test",
+                                 nodes=self.hooks_nodes,
+                                 hooks_execution_fn=self._HooksRpc,
+                                 hooks_results_adapt_fn=self.rpc_res_conv,
+                                 build_env_fn=lambda : {},
+                                 prepare_post_nodes_fn=None,
+                                 log_fn=None, htype=None,
+                                 cluster_name=self.cluster_name,
+                                 master_name=self.master_name,
+                                 master_uuid=self.master_uuid,
+                                 job_id=self.job_id)
+    # Run global pre hooks.
+    hm.RunPhase(constants.HOOKS_PHASE_PRE, is_global=True)
+
+    # Check the execution results on the master node.
+    (node_list, hpath, phase, env) = self._rpcs.pop(0)
+    self.assertEqual(node_list, set([self.master_uuid]),
+                     "Pre hooks should have been run on master only")
+    self.assertEqual(hpath, constants.GLOBAL_HOOKS_DIR)
+    self.assertEqual(phase, constants.HOOKS_PHASE_PRE)
+    self.assertEqual(env["GANETI_IS_MASTER"], constants.GLOBAL_HOOKS_MASTER)
+
+    # Run global post hooks.
+    hm.RunPhase(constants.HOOKS_PHASE_POST, is_global=True,
+                post_status=constants.POST_HOOKS_STATUS_SUCCESS)
+
+    # Check the execution results on the master node.
+    (node_list, hpath, phase, env) = self._rpcs.pop(0)
+    self.assertEqual(node_list, set([self.master_uuid]),
+                     "Post hooks should have been run on master separately")
+    self.assertEqual(hpath, constants.GLOBAL_HOOKS_DIR)
+    self.assertEqual(phase, constants.HOOKS_PHASE_POST)
+    self.assertEqual(env["GANETI_IS_MASTER"], constants.GLOBAL_HOOKS_MASTER)
+
+    # Check the execution results on the other nodes.
+    (node_list, hpath, phase, env) = self._rpcs.pop(0)
+    self.assertEqual(node_list, set([self.other_uuid]),
+                     "Post hooks nodes set is not equal the passed set")
+    self.assertEqual(hpath, constants.GLOBAL_HOOKS_DIR)
+    self.assertEqual(phase, constants.HOOKS_PHASE_POST)
+    self.assertEqual(env["GANETI_IS_MASTER"], constants.GLOBAL_HOOKS_NOT_MASTER)
+
+    # Ensure that there were no more rpc mock executions.
+    self.assertRaises(IndexError, self._rpcs.pop)
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()
