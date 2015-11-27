@@ -2687,7 +2687,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
   def testAttachDiskWrongTemplate(self):
     msg = "Instance has '%s' template while disk has '%s' template" % \
       (constants.DT_PLAIN, constants.DT_BLOCK)
-    self.cfg.AddOrphanDisk(name=self.mocked_disk_name, dev_type=constants.DT_BLOCK)
+    self.cfg.AddOrphanDisk(name=self.mocked_disk_name,
+                           dev_type=constants.DT_BLOCK)
     op = self.CopyOpCode(self.op,
                          disks=[[constants.DDM_ATTACH, -1,
                                  {
@@ -2699,7 +2700,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
   def testAttachDiskWrongNodes(self):
     msg = "Disk nodes are \['mock_node_1134'\]"
 
-    self.cfg.AddOrphanDisk(name=self.mocked_disk_name, primary_node="mock_node_1134")
+    self.cfg.AddOrphanDisk(name=self.mocked_disk_name,
+                           primary_node="mock_node_1134")
     op = self.CopyOpCode(self.op,
                          disks=[[constants.DDM_ATTACH, -1,
                                  {
@@ -2709,7 +2711,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCodeExpectOpPrereqError(op, msg)
 
   def testAttachDiskRunningInstance(self):
-    self.cfg.AddOrphanDisk(name=self.mocked_disk_name, primary_node=self.master.uuid)
+    self.cfg.AddOrphanDisk(name=self.mocked_disk_name,
+                           primary_node=self.master.uuid)
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master,
@@ -2727,7 +2730,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.assertFalse(self.rpc.call_blockdev_shutdown.called)
 
   def testAttachDiskRunningInstanceNoWaitForSync(self):
-    self.cfg.AddOrphanDisk(name=self.mocked_disk_name, primary_node=self.master.uuid)
+    self.cfg.AddOrphanDisk(name=self.mocked_disk_name,
+                           primary_node=self.master.uuid)
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master,
@@ -2745,7 +2749,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.assertFalse(self.rpc.call_blockdev_shutdown.called)
 
   def testAttachDiskDownInstance(self):
-    self.cfg.AddOrphanDisk(name=self.mocked_disk_name, primary_node=self.master.uuid)
+    self.cfg.AddOrphanDisk(name=self.mocked_disk_name,
+                           primary_node=self.master.uuid)
     op = self.CopyOpCode(self.op,
                          disks=[[constants.DDM_ATTACH, -1,
                                  {
@@ -2769,7 +2774,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
           " and --no-wait-for-sync given.")
 
   def testHotAttachDisk(self):
-    self.cfg.AddOrphanDisk(name=self.mocked_disk_name, primary_node=self.master.uuid)
+    self.cfg.AddOrphanDisk(name=self.mocked_disk_name,
+                           primary_node=self.master.uuid)
     self.rpc.call_blockdev_assemble.return_value = \
       self.RpcResultsBuilder() \
         .CreateSuccessfulNodeResult(self.master,
@@ -2919,7 +2925,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
 
     op = self.CopyOpCode(self.op,
                          instance_name=inst.name,
-                         disks=[[constants.DDM_DETACH, self.mocked_disk_uuid, {}]])
+                         disks=[[constants.DDM_DETACH,
+                         self.mocked_disk_uuid, {}]])
 
     self.ExecOpCode(op)
     self.assertEqual([], self.cfg.GetInstanceDisks(inst.uuid))
@@ -2946,7 +2953,8 @@ class TestLUInstanceSetParams(CmdlibTestCase):
 
     op = self.CopyOpCode(self.op,
                          instance_name=inst.name,
-                         disks=[[constants.DDM_DETACH, self.mocked_disk_uuid, {}]])
+                         disks=[[constants.DDM_DETACH,
+                         self.mocked_disk_uuid, {}]])
 
     self.ExecOpCode(op)
     self.assertEqual([], self.cfg.GetInstanceDisks(inst.uuid))
