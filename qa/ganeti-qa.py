@@ -764,6 +764,8 @@ def RunInstanceTests():
           RunExportImportTests(instance, inodes)
           RunHardwareFailureTests(instance, inodes)
           RunRepairDiskSizes()
+          RunTestIf(["rapi", "instance-data-censorship"],
+                    qa_rapi.TestInstanceDataCensorship, instance, inodes)
           RunTest(qa_instance.TestInstanceRemove, instance)
         finally:
           instance.Release()
