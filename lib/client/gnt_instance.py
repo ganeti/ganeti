@@ -959,8 +959,7 @@ def _FormatDiskDetails(dev_type, dev, roman):
                 (drbd_info["secondary_node"],
                  compat.TryToRoman(drbd_info["secondary_minor"],
                                    convert=roman))),
-      ("port", str(compat.TryToRoman(drbd_info["port"], roman))),
-      ("auth key", str(drbd_info["secret"])),
+      ("port", str(compat.TryToRoman(drbd_info["port"], convert=roman))),
       ]
   elif dev_type == constants.DT_PLAIN:
     vg_name, lv_name = dev["logical_id"]
