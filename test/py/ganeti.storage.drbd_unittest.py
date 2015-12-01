@@ -35,6 +35,7 @@ import os
 
 from ganeti import constants
 from ganeti import errors
+from ganeti import serializer
 from ganeti.storage import drbd
 from ganeti.storage import drbd_info
 from ganeti.storage import drbd_cmdgen
@@ -436,7 +437,8 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
       drbd_info.DRBD8Info.CreateFromFile(
         filename=testutils.TestDataFilename("proc_drbd84.txt"))
 
-    self.test_unique_id = ("hosta.com", 123, "host2.com", 123, 0, "secret")
+    self.test_unique_id = ("hosta.com", 123, "host2.com", 123, 0,
+                           serializer.Private("secret"))
     self.test_dyn_params = {
       constants.DDP_LOCAL_IP: "192.0.2.1",
       constants.DDP_LOCAL_MINOR: 0,
