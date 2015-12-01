@@ -176,6 +176,11 @@ class FakeSshFileManager(object):
     return port_map
 
   def GetAllNodeNames(self):
+    """Returns all node names of the cluster.
+
+    @rtype: list of str
+    @returns: list of all node names
+    """
     return self._all_node_data.keys()
 
   def GetAllPotentialMasterCandidateNodeNames(self):
@@ -188,17 +193,38 @@ class FakeSshFileManager(object):
             in self._all_node_data.values() if node_info.is_master_candidate]
 
   def GetAllPurePotentialMasterCandidates(self):
-    """Get the potential master candidates which are not master candidates."""
+    """Get the potential master candidates which are not master candidates.
+
+    @rtype: list of tuples (string, C{_NodeInfo})
+    @returns: list of tuples of node name and node information of nodes
+              which are potential master candidates but not master
+              candidates
+    """
     return [(name, node_info) for name, node_info
             in self._all_node_data.items()
             if node_info.is_potential_master_candidate and
             not node_info.is_master_candidate]
 
   def GetAllMasterCandidates(self):
+    """Get all master candidate nodes.
+
+    @rtype: list of tuples (string, C{_NodeInfo})
+    @returns: list of tuples of node name and node information of master
+              candidate nodes.
+    """
     return [(name, node_info) for name, node_info
             in self._all_node_data.items() if node_info.is_master_candidate]
 
   def GetAllNormalNodes(self):
+    """Get all normal nodes.
+
+    Normal nodes are nodes that are neither master, master candidate nor
+    potential master candidate.
+
+    @rtype: list of tuples (string, C{_NodeInfo})
+    @returns: list of tuples of node name and node information of normal
+              nodes
+    """
     return [(name, node_info) for name, node_info
             in self._all_node_data.items() if not node_info.is_master_candidate
             and not node_info.is_potential_master_candidate]
@@ -210,6 +236,9 @@ class FakeSshFileManager(object):
     the list will contain in a round-robin fashion, a master candidate,
     a potential master candidate, a normal node, then again a master
     candidate, etc.
+
+    @rtype: list of tuples (string, C{_NodeInfo})
+    @returns: list of tuples of node name and node information
 
     """
     master_candidates = self.GetAllMasterCandidates()
@@ -241,9 +270,21 @@ class FakeSshFileManager(object):
     return mixed_list
 
   def GetPublicKeysOfNode(self, node):
+    """Returns the public keys that are stored on the given node.
+
+    @rtype: dict of str to list of str
+    @returns: a mapping of node names to a list of public keys
+
+    """
     return self._public_keys[node]
 
   def GetAuthorizedKeysOfNode(self, node):
+    """Returns the authorized keys of the given node.
+
+    @rtype: list of str
+    @returns: a list of authorized keys that are stored on that node
+
+    """
     return self._authorized_keys[node]
 
   def SetOrAddNode(self, name, uuid, key, pot_mc, mc, master):
