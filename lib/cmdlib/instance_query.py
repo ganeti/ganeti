@@ -167,6 +167,7 @@ class LUInstanceQueryData(NoHooksLU):
 
     """
     drbd_info = None
+    output_logical_id = dev.logical_id
     if dev.dev_type in constants.DTS_DRBD:
       # we change the snode then (otherwise we use the one passed in)
       if dev.logical_id[0] == instance.primary_node:
@@ -183,8 +184,9 @@ class LUInstanceQueryData(NoHooksLU):
         "secondary_node": node_uuid2name_fn(snode_uuid),
         "secondary_minor": snode_minor,
         "port": dev.logical_id[2],
-        "secret": dev.logical_id[5],
       }
+      # replace the secret present at the end of the ids with None
+      output_logical_id = dev.logical_id[:-1] + (None,)
 
     dev_pstatus = self._ComputeBlockdevStatus(instance.primary_node,
                                               instance, dev)
@@ -201,7 +203,7 @@ class LUInstanceQueryData(NoHooksLU):
     return {
       "iv_name": dev.iv_name,
       "dev_type": dev.dev_type,
-      "logical_id": dev.logical_id,
+      "logical_id": output_logical_id,
       "drbd_info": drbd_info,
       "pstatus": dev_pstatus,
       "sstatus": dev_sstatus,

@@ -424,7 +424,7 @@ instance J.JSON LogicalVolume where
 -- logical id, this is probably a good reference point.
 data DiskLogicalId
   = LIDPlain LogicalVolume  -- ^ Volume group, logical volume
-  | LIDDrbd8 String String Int Int Int DRBDSecret
+  | LIDDrbd8 String String Int Int Int (Private DRBDSecret)
   -- ^ NodeA, NodeB, Port, MinorA, MinorB, Secret
   | LIDFile FileDriver String -- ^ Driver, path
   | LIDSharedFile FileDriver String -- ^ Driver, path
@@ -453,7 +453,7 @@ lidEncodeType v = [(devType, showJSON . lidDiskType $ v)]
 encodeDLId :: DiskLogicalId -> JSValue
 encodeDLId (LIDPlain (LogicalVolume vg lv)) =
   JSArray [showJSON vg, showJSON lv]
-encodeDLId (LIDDrbd8 nodeA nodeB port minorA minorB key) =
+encodeDLId (LIDDrbd8 nodeA nodeB port minorA minorB (Private key)) =
   JSArray [ showJSON nodeA, showJSON nodeB, showJSON port
           , showJSON minorA, showJSON minorB, showJSON key ]
 encodeDLId (LIDRados pool name) = JSArray [showJSON pool, showJSON name]
@@ -485,7 +485,7 @@ decodeDLId obj lid = do
           mA' <- readJSON mA
           mB' <- readJSON mB
           k'  <- readJSON k
-          return $ LIDDrbd8 nA' nB' p' mA' mB' k'
+          return . LIDDrbd8 nA' nB' p' mA' mB' $ Private k'
         _ -> fail "Can't read logical_id for DRBD8 type"
     DTPlain ->
       case lid of
