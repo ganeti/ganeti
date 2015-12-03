@@ -10,6 +10,7 @@ SYNOPSIS
 --------
 
 **harep** [ [**-L** | **\--luxi** ] = *socket* ] [ --job-delay = *seconds* ]
+[ --dry-run ]
 
 **harep** \--version
 
@@ -89,6 +90,12 @@ The options that can be passed to the program are as follows:
 \--job-delay=*seconds*
   insert this much delay before the execution of repair jobs to allow the tool
   to continue processing instances.
+
+\--dry-run
+  only show which operations would be carried out, but do nothing, even on
+  instances where tags grant the appropriate permissions. Note that harep
+  keeps the state of repair operations in instance tags; therefore, only
+  the operations of the next round of actions can be inspected.
 
 .. vim: set textwidth=72 :
 .. Local Variables:
