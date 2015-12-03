@@ -746,7 +746,7 @@ class LUInstanceChangeGroup(LogicalUnit):
         self._LockInstancesNodes()
 
         # Lock all nodes in all potential target groups
-        lock_groups = (frozenset(self.owned_locks(locking.LEVEL_NODEGROUP)) -
+        lock_groups = (frozenset(self.owned_locks(locking.LEVEL_NODEGROUP)) |
                        self.cfg.GetInstanceNodeGroups(self.op.instance_uuid))
         member_nodes = [node_uuid
                         for group in lock_groups

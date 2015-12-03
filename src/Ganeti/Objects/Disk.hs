@@ -124,7 +124,7 @@ instance J.JSON LogicalVolume where
 -- correspondence between the 'DiskLogicalId' constructors and 'DiskTemplate'.
 data DiskLogicalId
   = LIDPlain LogicalVolume  -- ^ Volume group, logical volume
-  | LIDDrbd8 String String Int Int Int DRBDSecret
+  | LIDDrbd8 String String Int Int Int (Private DRBDSecret)
   -- ^ NodeA, NodeB, Port, MinorA, MinorB, Secret
   | LIDFile FileDriver String -- ^ Driver, path
   | LIDSharedFile FileDriver String -- ^ Driver, path

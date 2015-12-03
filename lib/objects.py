@@ -832,9 +832,14 @@ class Disk(ConfigObject):
     standard python types.
 
     """
-    bo = super(Disk, self).ToDict()
+    bo = super(Disk, self).ToDict(_with_private=_with_private)
     if not include_dynamic_params and "dynamic_params" in bo:
       del bo["dynamic_params"]
+
+    if _with_private and "logical_id" in bo:
+      mutable_id = list(bo["logical_id"])
+      mutable_id[5] = mutable_id[5].Get()
+      bo["logical_id"] = tuple(mutable_id)
 
     for attr in ("children",):
       alist = bo.get(attr, None)
@@ -856,6 +861,12 @@ class Disk(ConfigObject):
       # we need a tuple of length six here
       if len(obj.logical_id) < 6:
         obj.logical_id += (None,) * (6 - len(obj.logical_id))
+      # If we do have a tuple of length 6, make the last entry (secret key)
+      # private
+      elif (len(obj.logical_id) == 6 and
+            not isinstance(obj.logical_id[-1], serializer.Private)):
+        obj.logical_id = obj.logical_id[:-1] + \
+                         (serializer.Private(obj.logical_id[-1]),)
     return obj
 
   def __str__(self):
