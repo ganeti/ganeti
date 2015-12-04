@@ -44,6 +44,7 @@ import Control.Exception.Lifted (bracket)
 import Control.Lens.Setter (over)
 import Control.Monad (foldM)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Function (on)
 import Data.IORef (IORef)
 import qualified Data.Map as Map
@@ -214,9 +215,9 @@ handleLiveRepairs client memst ndx freenodes incident = do
                    $ "Failure requesting command " ++ cmd ++ " on " ++ name
                      ++ ": " ++ e
       | null $ incidentJobs incident -> do
-            logInfo $ "Marking incident " ++ uuid ++ " as failed;"
+            logInfo $ "Marking incident " ++ UTF8.toString uuid ++ " as failed;"
                       ++ " command for live repair not specified"
-            let newtag = C.maintdFailureTagPrefix ++ uuid
+            let newtag = C.maintdFailureTagPrefix ++ UTF8.toString uuid
             jids <- mkResultT $ execJobsWaitOkJid
                       [[ annotateOpCode "marking incident as ill specified" now
                          . OpTagsSet TagKindNode [ newtag ]

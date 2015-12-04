@@ -42,6 +42,7 @@ module Ganeti.JQScheduler.Filtering
   , matches
   ) where
 
+import qualified Data.ByteString as BS
 import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
@@ -167,7 +168,7 @@ applyingFilter filters job =
 
 
 -- | SlotMap for filter rule rate limiting, having `FilterRule` UUIDs as keys.
-type RateLimitSlotMap = SlotMap String
+type RateLimitSlotMap = SlotMap BS.ByteString
 -- We would prefer FilterRule here but that has no Ord instance (yet).
 
 
@@ -179,7 +180,9 @@ data FilterChainState = FilterChainState
 
 -- | Update a `FilterChainState` if the given `CountMap` fits into its
 -- filtering SlotsMap.
-tryFitSlots :: FilterChainState -> CountMap String -> Maybe FilterChainState
+tryFitSlots :: FilterChainState
+            -> CountMap BS.ByteString
+            -> Maybe FilterChainState
 tryFitSlots st@FilterChainState{ rateLimitSlotMap = slotMap } countMap =
   if slotMap `hasSlotsFor` countMap
     then Just st{ rateLimitSlotMap = slotMap `occupySlots` countMap }

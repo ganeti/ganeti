@@ -553,7 +553,7 @@ instance RpcCall RpcCallNodeInfo where
   rpcCallData n call     = J.encode
     ( fromMaybe (error $ "Programmer error: missing parameter for node named "
                          ++ nodeName n)
-          $ Map.lookup (nodeUuid n) (rpcCallNodeInfoStorageUnits call)
+          $ Map.lookup (uuidOf n) (rpcCallNodeInfoStorageUnits call)
     , rpcCallNodeInfoHypervisors call
     )
 
@@ -650,9 +650,9 @@ instance Rpc RpcCallExportList RpcResultExportList where
   rpcResultFill _ res = fromJSValueToRes res RpcResultExportList
 
 -- ** Job Queue Replication
-  
+
 -- | Update a job queue file
-  
+
 $(buildObject "RpcCallJobqueueUpdate" "rpcCallJobqueueUpdate"
   [ simpleField "file_name" [t| String |]
   , simpleField "content" [t| String |]
@@ -702,9 +702,9 @@ instance Rpc RpcCallJobqueueRename RpcResultJobqueueRename where
              $ JsonDecodeError ("Expected JSNull, got " ++ show (pp_value res))
 
 -- ** Watcher Status Update
-      
+
 -- | Set the watcher status
-      
+
 $(buildObject "RpcCallSetWatcherPause" "rpcCallSetWatcherPause"
   [ optionalField $ timeAsDoubleField "time"
   ])
@@ -724,9 +724,9 @@ instance Rpc RpcCallSetWatcherPause RpcResultSetWatcherPause where
            ("Expected JSNull, got " ++ show (pp_value res))
 
 -- ** Queue drain status
-      
+
 -- | Set the queu drain flag
-      
+
 $(buildObject "RpcCallSetDrainFlag" "rpcCallSetDrainFlag"
   [ simpleField "value" [t| Bool |]
   ])

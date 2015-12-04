@@ -50,6 +50,7 @@ import Control.Exception.Base (evaluate)
 import Control.Monad (void, forever, liftM, foldM, foldM_, mzero)
 import Control.Monad.IO.Class
 import Data.ByteString.Char8 (unpack)
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Maybe (fromMaybe)
 import Data.List (find)
 import qualified Data.Map as Map
@@ -127,7 +128,8 @@ collectorConfigs confdClient = do
       let answer = CT.confdReplyAnswer confdReply
       case J.readJSON answer :: J.Result (GJ.Container DataCollectorConfig) of
         J.Error _ -> Nothing
-        J.Ok container -> GJ.lookupContainer Nothing name container
+        J.Ok container -> GJ.lookupContainer Nothing (UTF8.fromString name)
+                            container
 
 activeCollectors :: MVar ConfigAccess -> IO [DataCollector]
 activeCollectors mvarConfig = do

@@ -53,6 +53,7 @@ import Control.Monad.Error.Class (throwError, MonadError)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.State (StateT, get, put, modify,
                                   runStateT, execStateT)
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Foldable (fold)
 import Data.List (elemIndex)
 import Data.Maybe (isJust, maybeToList, fromMaybe, fromJust)
@@ -90,7 +91,7 @@ getInstanceByUUID :: ConfigState
 getInstanceByUUID cs uuid = lookupContainer
   (Bad . ConfigurationError $
     printf "Could not find instance with UUID %s" uuid)
-  uuid
+  (UTF8.fromString uuid)
   (configInstances . csConfigData $ cs)
 
 -- * getters
@@ -109,7 +110,7 @@ getAllLVs = S.fromList . concatMap getLVsOfDisk . M.elems
                           ++ concatMap getLVsOfDisk (diskChildren disk)
 
 -- | Gets the ids of nodes, instances, node groups,
---   networks, disks, nics, and the custer itself.
+--   networks, disks, nics, and the cluster itself.
 getAllIDs :: ConfigState -> S.Set String
 getAllIDs cs =
   let lvs = getAllLVs cs
@@ -121,7 +122,7 @@ getAllIDs cs =
 
       instKeys = keysFromC . configInstances . csConfigData $ cs
       nodeKeys = keysFromC . configNodes . csConfigData $ cs
-      
+
       instValues = map uuidOf . valuesFromC
                  . configInstances . csConfigData $ cs
       nodeValues = map uuidOf . valuesFromC . configNodes . csConfigData $ cs
@@ -135,8 +136,14 @@ getAllIDs cs =
            . valuesFromC . configInstances . csConfigData $ cs
 
       cluster = uuidOf . configCluster . csConfigData $ cs
-  in S.union lvs . S.fromList $ instKeys ++ nodeKeys ++ instValues ++ nodeValues
-         ++ nodeGroupValues ++ networkValues ++ disksValues ++ nics ++ [cluster]
+  in S.union lvs . S.fromList $ map UTF8.toString instKeys
+       ++ map UTF8.toString nodeKeys
+       ++ instValues
+       ++ nodeValues
+       ++ nodeGroupValues
+       ++ networkValues
+       ++ disksValues
+       ++ map UTF8.toString nics ++ [cluster]
 
 getAllMACs :: ConfigState -> S.Set String
 getAllMACs = S.fromList . map nicMac . concatMap instNics . M.elems
@@ -180,7 +187,7 @@ replaceIn :: (UuidObject a, TimeStampObjectL a, SerialNoObjectL a)
           -> a
           -> Container a
           -> GenericResult GanetiException (Container a)
-replaceIn now target = alterContainerL (uuidOf target) extract
+replaceIn now target = alterContainerL (UTF8.fromString (uuidOf target)) extract
   where extract Nothing = Bad $ ConfigurationError
           "Configuration object unknown"
         extract (Just current) = do
@@ -209,7 +216,7 @@ updateConfigIfNecessary now target getContainer f cs = do
   let container = getContainer cs
   current <- lookupContainer (toError . Bad . ConfigurationError $
     "Configuraton object unknown")
-    (uuidOf target)
+    (UTF8.fromString (uuidOf target))
     container
   if isIdentical now target current
     then return ((serialOf current, mTimeOf current), cs)
@@ -256,12 +263,12 @@ addInstanceChecks inst replace cs = do
       let check = checkUUIDpresent cs inst
       unless check . Bad . ConfigurationError $ printf
              "Cannot add %s: UUID %s already in use"
-             (show $ instName inst) (instUuid inst)
+             (show $ instName inst) (UTF8.toString (instUuid inst))
     else do
       let check = checkUniqueUUID cs inst
       unless check . Bad . ConfigurationError $ printf
              "Cannot replace %s: UUID %s not present"
-             (show $ instName inst) (instUuid inst)
+             (show $ instName inst) (UTF8.toString (instUuid inst))
 
 addDiskChecks :: Disk
               -> Bool
@@ -272,11 +279,11 @@ addDiskChecks disk replace cs =
     then
       unless (checkUUIDpresent cs disk) . Bad . ConfigurationError $ printf
              "Cannot add %s: UUID %s already in use"
-             (show $ diskName disk) (diskUuid disk)
+             (show $ diskName disk) (UTF8.toString (diskUuid disk))
     else
       unless (checkUniqueUUID cs disk) . Bad . ConfigurationError $ printf
              "Cannot replace %s: UUID %s not present"
-             (show $ diskName disk) (diskUuid disk)
+             (show $ diskName disk) (UTF8.toString (diskUuid disk))
 
 attachInstanceDiskChecks :: InstanceUUID
                          -> DiskUUID
@@ -284,7 +291,7 @@ attachInstanceDiskChecks :: InstanceUUID
                          -> ConfigState
                          -> GenericResult GanetiException ()
 attachInstanceDiskChecks uuidInst uuidDisk idx' cs = do
-  let diskPresent = elem uuidDisk . map diskUuid . M.elems
+  let diskPresent = elem uuidDisk . map (UTF8.toString . diskUuid) . M.elems
                   . fromContainer . configDisks . csConfigData $ cs
   unless diskPresent . Bad . ConfigurationError $ printf
     "Disk %s doesn't exist" uuidDisk
@@ -301,7 +308,7 @@ attachInstanceDiskChecks uuidInst uuidDisk idx' cs = do
   let insts = M.elems . fromContainer . configInstances . csConfigData $ cs
   forM_ insts (\inst' -> when (uuidDisk `elem` instDisks inst') . Bad
     . ReservationError $ printf "Disk %s already attached to instance %s"
-        uuidDisk (show $ instName inst))
+        uuidDisk (show . fromMaybe "" $ instName inst))
 
 -- * Pure config modifications functions
 
@@ -324,7 +331,7 @@ attachInstanceDisk' iUuid dUuid idx' ct cs =
       disks = updateIvNames idx inst' (configDisks . csConfigData $ cs)
 
       ri = csConfigDataL . configInstancesL
-         . alterContainerL iUuid .~ Just inst'
+         . alterContainerL (UTF8.fromString iUuid) .~ Just inst'
       rds = csConfigDataL . configDisksL .~ disks
   in rds . ri $ cs
     where updateIvNames :: Int -> Instance -> Container Disk -> Container Disk
@@ -332,7 +339,8 @@ attachInstanceDisk' iUuid dUuid idx' ct cs =
             let dUuids = drop idx (instDisks inst)
                 upgradeIv m' (idx'', dUuid') =
                   M.adjust (diskIvNameL .~ "disk/" ++ show idx'') dUuid' m'
-            in GenericContainer $ foldl upgradeIv m (zip [idx..] dUuids)
+            in GenericContainer $ foldl upgradeIv m
+                (zip [idx..] (fmap UTF8.fromString dUuids))
 
 -- * Monadic config modification functions which can return errors
 
@@ -352,13 +360,14 @@ detachInstanceDisk' iUuid dUuid ct cs =
         (\cd -> foldM (\c (idx, dUuid') -> mapMOf (alterContainerL dUuid')
           (\md -> case md of
             Nothing -> throwError . ConfigurationError $
-              printf "Could not find disk with UUID %s" dUuid'
+              printf "Could not find disk with UUID %s" (UTF8.toString dUuid')
             Just disk -> return
                        . Just
                        . (diskIvNameL .~ ("disk/" ++ show idx))
                        $ disk) c)
-          cd (zip [startIdx..] disks))
-      iL = csConfigDataL . configInstancesL . alterContainerL iUuid
+          cd (zip [startIdx..] (fmap UTF8.fromString disks)))
+      iL = csConfigDataL . configInstancesL . alterContainerL
+           (UTF8.fromString iUuid)
   in case cs ^. iL of
     Nothing -> throwError . ConfigurationError $
       printf "Could not find instance with UUID %s" iUuid
@@ -391,12 +400,13 @@ removeInstanceDisk' iUuid dUuid ct =
         printf "Cannot remove disk %s. Disk is attached to an instance" dUuid
         | elem dUuid
           . foldMap (:[])
-          . fmap diskUuid
+          . fmap (UTF8.toString . diskUuid)
           . configDisks
           . csConfigData
           $ cs
         = return
-         . ((csConfigDataL . configDisksL . alterContainerL dUuid) .~ Nothing)
+         . ((csConfigDataL . configDisksL . alterContainerL
+            (UTF8.fromString dUuid)) .~ Nothing)
          . ((csConfigDataL . configClusterL . clusterSerialL) %~ (+1))
          . ((csConfigDataL . configClusterL . clusterMtimeL) .~ ct)
          $ cs
@@ -417,14 +427,15 @@ addInstance inst cid replace = do
              ++ " with name " ++ show (instName inst)
   let setCtime = instCtimeL .~ ct
       setMtime = instMtimeL .~ ct
-      addInst i = csConfigDataL . configInstancesL . alterContainerL (uuidOf i)
-                  .~ Just i
+      addInst i = csConfigDataL . configInstancesL
+                  . alterContainerL (UTF8.fromString $ uuidOf i)
+                     .~ Just i
       commitRes tr = mapMOf csConfigDataL $ T.commitReservedIps cid tr
   r <- modifyConfigWithLock
          (\tr cs -> do
            toError $ addInstanceChecks inst replace cs
            commitRes tr $ addInst (setMtime . setCtime $ inst) cs)
-         . T.releaseDRBDMinors $ uuidOf inst
+         . T.releaseDRBDMinors . UTF8.fromString $ uuidOf inst
   logDebug $ "AddInstance: result of config modification is " ++ show r
   return $ isJust r
 
@@ -434,17 +445,21 @@ addInstanceDisk :: InstanceUUID
                 -> Bool
                 -> WConfdMonad Bool
 addInstanceDisk iUuid disk idx replace = do
-  logInfo $ printf "Adding disk %s to configuration" (diskUuid disk)
+  logInfo $ printf "Adding disk %s to configuration"
+            (UTF8.toString (diskUuid disk))
   ct <- liftIO getClockTime
-  let addD = csConfigDataL . configDisksL . alterContainerL (uuidOf disk)
+  let addD = csConfigDataL . configDisksL . alterContainerL
+             (UTF8.fromString (uuidOf disk))
                .~ Just disk
       incrSerialNo = csConfigDataL . configSerialL %~ (+1)
   r <- modifyConfigWithLock (\_ cs -> do
            toError $ addDiskChecks disk replace cs
            let cs' = incrSerialNo . addD $ cs
-           toError $ attachInstanceDiskChecks iUuid (diskUuid disk) idx cs'
-           return $ attachInstanceDisk' iUuid (diskUuid disk) idx ct cs')
-       . T.releaseDRBDMinors $ uuidOf disk
+           toError $ attachInstanceDiskChecks iUuid
+               (UTF8.toString (diskUuid disk)) idx cs'
+           return $ attachInstanceDisk' iUuid
+               (UTF8.toString (diskUuid disk)) idx ct cs')
+       . T.releaseDRBDMinors $ UTF8.fromString (uuidOf disk)
   return $ isJust r
 
 attachInstanceDisk :: InstanceUUID
@@ -478,7 +493,8 @@ removeInstanceDisk iUuid dUuid = do
 removeInstance :: InstanceUUID -> WConfdMonad Bool
 removeInstance iUuid = do
   ct <- liftIO getClockTime
-  let iL = csConfigDataL . configInstancesL . alterContainerL iUuid
+  let iL = csConfigDataL . configInstancesL . alterContainerL
+           (UTF8.fromString iUuid)
       pL = csConfigDataL . configClusterL . clusterTcpudpPortPoolL
       sL = csConfigDataL . configClusterL . clusterSerialL
       mL = csConfigDataL . configClusterL . clusterMtimeL
@@ -501,7 +517,8 @@ removeInstance iUuid = do
           when ((isJust . nicNetwork $ nic) && (isJust . nicIp $ nic)) $ do
             let network = fromJust . nicNetwork $ nic
             ip <- readIp4Address (fromJust . nicIp $ nic)
-            get >>= mapMOf csConfigDataL (T.commitReleaseIp network ip) >>= put)
+            get >>= mapMOf csConfigDataL (T.commitReleaseIp
+                                          (UTF8.fromString network) ip) >>= put)
           . instNics)
         . (^. iL))
 
@@ -555,7 +572,8 @@ setInstanceStatus iUuid m1 m2 m3 = do
               then i
               else reviseInstance . modifyInstance $ i
 
-      iL = csConfigDataL . configInstancesL . alterContainerL iUuid
+      iL = csConfigDataL . configInstancesL . alterContainerL
+             (UTF8.fromString iUuid)
 
       f :: MonadError GanetiException m => StateT ConfigState m Instance
       f = get >>= (maybe
@@ -571,7 +589,8 @@ setInstanceStatus iUuid m1 m2 m3 = do
 -- | Sets the primary node of an existing instance
 setInstancePrimaryNode :: InstanceUUID -> NodeUUID -> WConfdMonad Bool
 setInstancePrimaryNode iUuid nUuid = isJust <$> modifyConfigWithLock
-  (\_ -> mapMOf (csConfigDataL . configInstancesL . alterContainerL iUuid)
+  (\_ -> mapMOf (csConfigDataL . configInstancesL . alterContainerL
+      (UTF8.fromString iUuid))
     (\mi -> case mi of
       Nothing -> throwError . ConfigurationError $
         printf "Could not find instance with UUID %s" iUuid
@@ -655,7 +674,7 @@ updateDisk disk = do
     (^. dL) (\cs -> do
       dC <- toError $ replaceIn ct disk (cs ^. dL)
       return ((serialOf disk + 1, ct), (dL .~ dC) cs)))
-    . T.releaseDRBDMinors $ uuidOf disk
+    . T.releaseDRBDMinors . UTF8.fromString $ uuidOf disk
   return . MaybeForJSON $ fmap (_2 %~ TimeAsDoubleJSON) r
 
 -- | Set a particular value and bump serial in the hosting

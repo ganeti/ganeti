@@ -46,6 +46,7 @@ module Ganeti.DataCollectors.InstStatus
 
 
 import Control.Exception.Base
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
@@ -167,7 +168,7 @@ buildStatus domains uptimes inst = do
   return $
     InstStatus
       name
-      (realInstUuid inst)
+      (UTF8.toString $ realInstUuid inst)
       adminState
       actualState
       uptime

@@ -651,6 +651,7 @@ def TStorageType(val):
 TTagKind = TElemOf(constants.VALID_TAG_TYPES)
 TDdmSimple = TElemOf(constants.DDMS_VALUES)
 TVerifyOptionalChecks = TElemOf(constants.VERIFY_OPTIONAL_CHECKS)
+TSshKeyType = TElemOf(constants.SSHK_ALL)
 
 
 @WithDesc("IPv4 network")

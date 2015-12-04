@@ -79,9 +79,7 @@ import Control.Monad.Trans.Control
 import Control.Exception (catch)
 import Control.Monad
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.UTF8 as UTF8
-import qualified Data.ByteString.Lazy.UTF8 as UTF8L
 import Data.IORef
 import Data.List (isInfixOf)
 import Data.Word (Word8)
@@ -290,9 +288,9 @@ clientToFd client | rh == wh  = join (,) <$> handleToFd rh
 -- | Sends a message over a transport.
 sendMsg :: Client -> String -> IO ()
 sendMsg s buf = withTimeout (sendTmo $ clientConfig s) "sending a message" $ do
-  let encoded = UTF8L.fromString buf
+  let encoded = UTF8.fromString buf
       handle = wsocket s
-  BL.hPut handle encoded
+  B.hPut handle encoded
   B.hPut handle bEOM
   hFlush handle
 

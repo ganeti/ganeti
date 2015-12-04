@@ -966,7 +966,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
                              ("/%s/instances/%s/activate-disks" %
                               (GANETI_RAPI_VERSION, instance)), query, None)
 
-  def DeactivateInstanceDisks(self, instance, reason=None):
+  def DeactivateInstanceDisks(self, instance, reason=None, force=False):
     """Deactivates an instance's disks.
 
     @type instance: string
@@ -978,6 +978,7 @@ class GanetiRapiClient(object): # pylint: disable=R0904
 
     """
     query = []
+    _AppendForceIf(query, force)
     _AppendReason(query, reason)
     return self._SendRequest(HTTP_PUT,
                              ("/%s/instances/%s/deactivate-disks" %

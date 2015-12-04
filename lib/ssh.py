@@ -37,6 +37,7 @@ import logging
 import os
 import tempfile
 
+from collections import namedtuple
 from functools import partial
 
 from ganeti import utils
@@ -677,15 +678,18 @@ def QueryPubKeyFile(target_uuids, key_file=pathutils.SSH_PUB_KEYS,
   return result
 
 
-def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None,
-                 _suffix=""):
+def InitSSHSetup(key_type, key_bits, error_fn=errors.OpPrereqError,
+                 _homedir_fn=None, _suffix=""):
   """Setup the SSH configuration for the node.
 
   This generates a dsa keypair for root, adds the pub key to the
   permitted hosts and adds the hostkey to its own known hosts.
 
+  @param key_type: the type of SSH keypair to be generated
+  @param key_bits: the key length, in bits, to be used
+
   """
-  priv_key, _, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER,
+  priv_key, _, auth_keys = GetUserFiles(constants.SSH_LOGIN_USER, kind=key_type,
                                         mkdir=True, _homedir_fn=_homedir_fn)
 
   new_priv_key_name = priv_key + _suffix
@@ -696,7 +700,7 @@ def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None,
       utils.CreateBackup(name)
     utils.RemoveFile(name)
 
-  result = utils.RunCmd(["ssh-keygen", "-t", "dsa",
+  result = utils.RunCmd(["ssh-keygen", "-b", str(key_bits), "-t", key_type,
                          "-f", new_priv_key_name,
                          "-q", "-N", ""])
   if result.failed:
@@ -706,16 +710,18 @@ def InitSSHSetup(error_fn=errors.OpPrereqError, _homedir_fn=None,
   AddAuthorizedKey(auth_keys, utils.ReadFile(new_pub_key_name))
 
 
-def InitPubKeyFile(master_uuid, key_file=pathutils.SSH_PUB_KEYS):
+def InitPubKeyFile(master_uuid, key_type, key_file=pathutils.SSH_PUB_KEYS):
   """Creates the public key file and adds the master node's SSH key.
 
   @type master_uuid: str
   @param master_uuid: the master node's UUID
+  @type key_type: one of L{constants.SSHK_ALL}
+  @param key_type: the type of ssh key to be used
   @type key_file: str
   @param key_file: name of the file containing the public keys
 
   """
-  _, pub_key, _ = GetUserFiles(constants.SSH_LOGIN_USER)
+  _, pub_key, _ = GetUserFiles(constants.SSH_LOGIN_USER, kind=key_type)
   ClearPubKeyFile(key_file=key_file)
   key = utils.ReadFile(pub_key)
   AddPublicKey(master_uuid, key, key_file=key_file)
@@ -1069,7 +1075,7 @@ def RunSshCmdWithStdin(cluster_name, node, basecmd, port, data,
 
 def ReadRemoteSshPubKeys(pub_key_file, node, cluster_name, port, ask_key,
                          strict_host_check):
-  """Fetches the public DSA SSH key from a node via SSH.
+  """Fetches a public SSH key from a node via SSH.
 
   @type pub_key_file: string
   @param pub_key_file: a tuple consisting of the file name of the public DSA key
@@ -1087,7 +1093,47 @@ def ReadRemoteSshPubKeys(pub_key_file, node, cluster_name, port, ask_key,
 
   result = utils.RunCmd(ssh_cmd)
   if result.failed:
-    raise errors.OpPrereqError("Could not fetch a public DSA SSH key from node"
+    raise errors.OpPrereqError("Could not fetch a public SSH key (%s) from node"
                                " '%s': ran command '%s', failure reason: '%s'."
-                               % (node, cmd, result.fail_reason))
+                               % (pub_key_file, node, cmd, result.fail_reason),
+                               errors.ECODE_INVAL)
   return result.stdout
+
+
+# Update gnt-cluster.rst when changing which combinations are valid.
+KeyBitInfo = namedtuple('KeyBitInfo', ['default', 'validation_fn'])
+SSH_KEY_VALID_BITS = {
+  constants.SSHK_DSA: KeyBitInfo(1024, lambda b: b == 1024),
+  constants.SSHK_RSA: KeyBitInfo(2048, lambda b: b >= 768),
+  constants.SSHK_ECDSA: KeyBitInfo(384, lambda b: b in [256, 384, 521]),
+}
+
+
+def DetermineKeyBits(key_type, key_bits, old_key_type, old_key_bits):
+  """Checks the key bits to be used for a given key type, or provides defaults.
+
+  @type key_type: one of L{constants.SSHK_ALL}
+  @param key_type: The key type to use.
+  @type key_bits: positive int or None
+  @param key_bits: The number of bits to use, if supplied by user.
+  @type old_key_type: one of L{constants.SSHK_ALL} or None
+  @param old_key_type: The previously used key type, if any.
+  @type old_key_bits: positive int or None
+  @param old_key_bits: The previously used number of bits, if any.
+
+  @rtype: positive int
+  @return: The number of bits to use.
+
+  """
+  if key_bits is None:
+    if old_key_type is not None and old_key_type == key_type:
+      key_bits = old_key_bits
+    else:
+      key_bits = SSH_KEY_VALID_BITS[key_type].default
+
+  if not SSH_KEY_VALID_BITS[key_type].validation_fn(key_bits):
+    raise errors.OpPrereqError("Invalid key type and bit size combination:"
+                               " %s with %s bits" % (key_type, key_bits),
+                               errors.ECODE_INVAL)
+
+  return key_bits

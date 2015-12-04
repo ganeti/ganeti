@@ -903,6 +903,10 @@ def RunPerformanceTests():
     ReportTestSkip("performance related tests", "performance")
     return
 
+  # For reproducable performance, run performance tests with the watcher
+  # paused.
+  qa_utils.AssertCommand(["gnt-cluster", "watcher", "pause", "4h"])
+
   if qa_config.TestEnabled("jobqueue-performance"):
     RunTest(qa_performance.TestParallelMaxInstanceCreationPerformance)
     RunTest(qa_performance.TestParallelNodeCountInstanceCreationPerformance)
@@ -937,6 +941,8 @@ def RunPerformanceTests():
       qa_instance.TestInstanceRemove(instance)
     finally:
       qa_config.ReleaseManyNodes(inodes)
+
+  qa_utils.AssertCommand(["gnt-cluster", "watcher", "continue"])
 
 
 def RunQa():

@@ -16,7 +16,7 @@ SYNOPSIS
 
 Backend options:
 
-{ **-m** *cluster* | **-L[** *path* **] [-X]** | **-t** *data-file* |
+{ **-m** *cluster* | **-L[** *path* **]** | **-t** *data-file* |
 **\--simulate** *spec* | **-I** *path* }
 
 

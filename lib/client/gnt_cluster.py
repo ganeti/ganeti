@@ -301,6 +301,14 @@ def InitCluster(opts, args):
   else:
     enabled_user_shutdown = False
 
+  if opts.ssh_key_type:
+    ssh_key_type = opts.ssh_key_type
+  else:
+    ssh_key_type = constants.SSH_DEFAULT_KEY_TYPE
+
+  ssh_key_bits = ssh.DetermineKeyBits(ssh_key_type, opts.ssh_key_bits, None,
+                                      None)
+
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
                         vg_name=vg_name,
@@ -335,6 +343,8 @@ def InitCluster(opts, args):
                         zeroing_image=zeroing_image,
                         compression_tools=compression_tools,
                         enabled_user_shutdown=enabled_user_shutdown,
+                        ssh_key_type=ssh_key_type,
+                        ssh_key_bits=ssh_key_bits,
                         )
   op = opcodes.OpClusterPostInit()
   SubmitOpCode(op, opts=opts)
@@ -614,6 +624,9 @@ def ShowClusterConfig(opts, args):
       ("zeroing image", result["zeroing_image"]),
       ("compression tools", result["compression_tools"]),
       ("enabled user shutdown", result["enabled_user_shutdown"]),
+      ("modify ssh setup", result["modify_ssh_setup"]),
+      ("ssh_key_type", result["ssh_key_type"]),
+      ("ssh_key_bits", result["ssh_key_bits"]),
       ]),
 
     ("Default node parameters",
@@ -966,11 +979,12 @@ def _ReadAndVerifyCert(cert_filename, verify_private_key=False):
   return pem
 
 
+# pylint: disable=R0913
 def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
                  rapi_cert_filename, new_spice_cert, spice_cert_filename,
                  spice_cacert_filename, new_confd_hmac_key, new_cds,
                  cds_filename, force, new_node_cert, new_ssh_keys,
-                 verbose, debug):
+                 ssh_key_type, ssh_key_bits, verbose, debug):
   """Renews cluster certificates, keys and secrets.
 
   @type new_cluster_cert: bool
@@ -998,10 +1012,14 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
   @param new_node_cert: Whether to generate new node certificates
   @type new_ssh_keys: bool
   @param new_ssh_keys: Whether to generate new node SSH keys
+  @type ssh_key_type: One of L{constants.SSHK_ALL}
+  @param ssh_key_type: The type of SSH key to be generated
+  @type ssh_key_bits: int
+  @param ssh_key_bits: The length of the key to be generated
   @type verbose: boolean
-  @param verbose: show verbose output
+  @param verbose: Show verbose output
   @type debug: boolean
-  @param debug: show debug output
+  @param debug: Show debug output
 
   """
   ToStdout("Updating certificates now. Running \"gnt-cluster verify\" "
@@ -1182,7 +1200,9 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
     cl = GetClient()
     renew_op = opcodes.OpClusterRenewCrypto(
         node_certificates=new_node_cert or new_cluster_cert,
-        ssh_keys=new_ssh_keys)
+        renew_ssh_keys=new_ssh_keys,
+        ssh_key_type=ssh_key_type,
+        ssh_key_bits=ssh_key_bits)
     SubmitOpCode(renew_op, cl=cl)
 
   ToStdout("All requested certificates and keys have been replaced."
@@ -1199,17 +1219,24 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
   """Recreates the 'ganeti_pub_key' file by polling all nodes.
 
   """
+
+  if not cl:
+    cl = GetClient()
+
+  (cluster_name, master_node, modify_ssh_setup, ssh_key_type) = \
+    cl.QueryConfigValues(["cluster_name", "master_node", "modify_ssh_setup",
+                          "ssh_key_type"])
+
+  # In case Ganeti is not supposed to modify the SSH setup, simply exit and do
+  # not update this file.
+  if not modify_ssh_setup:
+    return
+
   if os.path.exists(pub_key_file):
     utils.CreateBackup(pub_key_file)
     utils.RemoveFile(pub_key_file)
 
   ssh.ClearPubKeyFile(pub_key_file)
-
-  if not cl:
-    cl = GetClient()
-
-  (cluster_name, master_node) = \
-    cl.QueryConfigValues(["cluster_name", "master_node"])
 
   online_nodes = get_online_nodes_fn([], cl=cl)
   ssh_ports = get_nodes_ssh_ports_fn(online_nodes + [master_node], cl)
@@ -1223,7 +1250,7 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
 
   _, pub_key_filename, _ = \
     ssh.GetUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False,
-                     kind=constants.SSHK_DSA, _homedir_fn=homedir_fn)
+                     kind=ssh_key_type, _homedir_fn=homedir_fn)
 
   # get the key file of the master node
   pub_key = utils.ReadFile(pub_key_filename)
@@ -1257,6 +1284,8 @@ def RenewCrypto(opts, args):
                       opts.force,
                       opts.new_node_cert,
                       opts.new_ssh_keys,
+                      opts.ssh_key_type,
+                      opts.ssh_key_bits,
                       opts.verbose,
                       opts.debug > 0)
 
@@ -2432,7 +2461,7 @@ commands = {
      HV_STATE_OPT, DISK_STATE_OPT, ENABLED_DISK_TEMPLATES_OPT,
      IPOLICY_STD_SPECS_OPT, GLOBAL_GLUSTER_FILEDIR_OPT, INSTALL_IMAGE_OPT,
      ZEROING_IMAGE_OPT, COMPRESSION_TOOLS_OPT,
-     ENABLED_USER_SHUTDOWN_OPT,
+     ENABLED_USER_SHUTDOWN_OPT, SSH_KEY_BITS_OPT, SSH_KEY_TYPE_OPT,
      ]
      + INSTANCE_POLICY_OPTS + SPLIT_ISPECS_OPTS,
     "[opts...] <cluster_name>", "Initialises a new cluster configuration"),
@@ -2534,7 +2563,7 @@ commands = {
      NEW_CLUSTER_DOMAIN_SECRET_OPT, CLUSTER_DOMAIN_SECRET_OPT,
      NEW_SPICE_CERT_OPT, SPICE_CERT_OPT, SPICE_CACERT_OPT,
      NEW_NODE_CERT_OPT, NEW_SSH_KEY_OPT, NOSSH_KEYCHECK_OPT,
-     VERBOSE_OPT],
+     VERBOSE_OPT, SSH_KEY_BITS_OPT, SSH_KEY_TYPE_OPT],
     "[opts...]",
     "Renews cluster certificates, keys and secrets"),
   "epo": (

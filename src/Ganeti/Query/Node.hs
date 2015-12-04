@@ -211,7 +211,7 @@ nodeFields =
      FieldSimple (rsNormal . nodeSecondaryIp), QffNormal)
   , (FieldDefinition "master" "IsMaster" QFTBool "Whether node is master",
      FieldConfig (\cfg node ->
-                    rsNormal (nodeUuid node ==
+                    rsNormal (uuidOf node ==
                               clusterMasterNode (configCluster cfg))),
      QffNormal)
   , (FieldDefinition "group" "Group" QFTText "Node group",
@@ -236,11 +236,11 @@ nodeFields =
   , (FieldDefinition "pinst_list" "PriInstances" QFTOther
        "List of instances with this node as primary",
      FieldConfig (\cfg -> rsNormal . niceSort . mapMaybe instName . fst .
-                          getNodeInstances cfg . nodeUuid), QffNormal)
+                          getNodeInstances cfg . uuidOf), QffNormal)
   , (FieldDefinition "sinst_list" "SecInstances" QFTOther
        "List of instances with this node as secondary",
      FieldConfig (\cfg -> rsNormal . niceSort . mapMaybe instName . snd .
-                          getNodeInstances cfg . nodeUuid), QffNormal)
+                          getNodeInstances cfg . uuidOf), QffNormal)
   , (FieldDefinition "role" "Role" QFTText nodeRoleDoc,
      FieldConfig ((rsNormal .) . getNodeRole), QffNormal)
   , (FieldDefinition "powered" "Powered" QFTBool
@@ -265,7 +265,7 @@ nodeFields =
 -- | Helper function to retrieve the number of (primary or secondary) instances
 getNumInstances :: (([Instance], [Instance]) -> [Instance])
                 -> ConfigData -> Node -> Int
-getNumInstances get_fn cfg = length . get_fn . getNodeInstances cfg . nodeUuid
+getNumInstances get_fn cfg = length . get_fn . getNodeInstances cfg . uuidOf
 
 -- | The node fields map.
 fieldsMap :: FieldMap Node Runtime
@@ -309,7 +309,7 @@ collectLiveData True cfg fields nodes = do
       storage_units = if queryDomainRequired storageFields fields
                         then getStorageUnitsOfNodes cfg good_nodes
                         else Map.fromList
-                          (map (\n -> (nodeUuid n, [])) good_nodes)
+                          (map (\n -> (uuidOf n, [])) good_nodes)
   rpcres <- executeRpcCall good_nodes (RpcCallNodeInfo storage_units hvs)
   return $ fillUpList (fillPairFromMaybe rpcResultNodeBroken pickPairUnique)
       nodes rpcres

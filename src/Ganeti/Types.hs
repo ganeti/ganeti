@@ -172,6 +172,8 @@ module Ganeti.Types
   , hotplugTargetToRaw
   , HotplugAction(..)
   , hotplugActionToRaw
+  , SshKeyType(..)
+  , sshKeyTypeToRaw
   , Private(..)
   , showPrivateJSObject
   , Secret(..)
@@ -953,6 +955,15 @@ $(THH.declareLADT ''String "HotplugTarget"
   , ("HTNic",  "nic")
   ])
 $(THH.makeJSONInstance ''HotplugTarget)
+
+-- | SSH key type.
+
+$(THH.declareLADT ''String "SshKeyType"
+  [ ("RSA", "rsa")
+  , ("DSA", "dsa")
+  , ("ECDSA", "ecdsa")
+  ])
+$(THH.makeJSONInstance ''SshKeyType)
 
 -- * Private type and instances
 

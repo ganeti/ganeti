@@ -43,6 +43,7 @@ import Control.Exception.Lifted (bracket)
 import Control.Lens.Setter (over)
 import Control.Monad (liftM, when)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.IORef (IORef)
 import System.IO.Error (tryIOError)
 
@@ -64,8 +65,8 @@ import Ganeti.Types (JobId, fromJobId, TagKind(..))
 markAsFailed :: IORef MemoryState -> Incident -> ResultT String IO ()
 markAsFailed memstate incident = do
   let uuid = incidentUuid incident
-      newtag = C.maintdFailureTagPrefix ++ uuid
-  logInfo $ "Marking incident " ++ uuid ++ " as failed"
+      newtag = C.maintdFailureTagPrefix ++ UTF8.toString uuid
+  logInfo $ "Marking incident " ++ UTF8.toString uuid ++ " as failed"
   now <- liftIO currentTimestamp
   luxiSocket <- liftIO Path.defaultQuerySocket
   jids <- bracket (mkResultT . liftM (either (Bad . show) Ok)

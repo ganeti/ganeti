@@ -41,6 +41,7 @@ module Ganeti.WConfd.ConfigVerify
 
 import Control.Monad (forM_)
 import Control.Monad.Error.Class (MonadError(..))
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Foldable as F
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -63,9 +64,10 @@ checkUUIDKeys :: (UuidObject a, Show a)
               => String -> Container a -> ValidationMonad ()
 checkUUIDKeys what = mapM_ check . M.toList . fromContainer
   where
-    check (uuid, x) = reportIf (uuid /= uuidOf x)
+    check (uuid, x) = reportIf (uuid /= UTF8.fromString (uuidOf x))
                       $ what ++ " '" ++ show x
-                        ++ "' is indexed by wrong UUID '" ++ uuid ++ "'"
+                        ++ "' is indexed by wrong UUID '"
+                        ++ UTF8.toString uuid ++ "'"
 
 -- | Checks that all linked UUID of given objects exist.
 checkUUIDRefs :: (UuidObject a, Show a, F.Foldable f)
@@ -76,7 +78,7 @@ checkUUIDRefs whatObj whatTarget linkf xs targets = F.mapM_ check xs
   where
     uuids = keysSet targets
     check x = forM_ (linkf x) $ \uuid ->
-                reportIf (not $ S.member uuid uuids)
+                reportIf (not $ S.member (UTF8.fromString uuid) uuids)
                 $ whatObj ++ " '" ++ show x ++ "' references a non-existing "
                   ++ whatTarget ++ " UUID '" ++ uuid ++ "'"
 
@@ -111,7 +113,8 @@ verifyConfig cd = do
     -- we don't need to check for invalid templates as they wouldn't parse
 
     let masterNodeName = clusterMasterNode cluster
-    reportIf (not $ masterNodeName `S.member` keysSet (configNodes cd))
+    reportIf (not $ UTF8.fromString masterNodeName
+                       `S.member` keysSet (configNodes cd))
            $ "cluster has invalid primary node " ++ masterNodeName
 
     -- UUIDs

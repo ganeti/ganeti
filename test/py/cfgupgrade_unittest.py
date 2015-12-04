@@ -77,6 +77,8 @@ def GetMinimalConfig():
         "xen-cpu-avg-load": { "active": True, "interval": 5000000 },
       },
       "diagnose_data_collector_filename": "",
+      "ssh_key_type": "dsa",
+      "ssh_key_bits": 1024,
     },
     "instances": {},
     "disks": {},
@@ -120,6 +122,10 @@ def _RunUpgrade(path, dry_run, no_verify, ignore_hostname=True,
 
 class TestCfgupgrade(unittest.TestCase):
   def setUp(self):
+    # Since we are comparing large dictionaries here, this is vital to getting
+    # useful feedback about differences in config content using assertEquals.
+    self.maxDiff = None
+
     self.tmpdir = tempfile.mkdtemp()
 
     self.config_path = utils.PathJoin(self.tmpdir, "config.data")

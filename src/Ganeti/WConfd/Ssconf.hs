@@ -42,7 +42,8 @@ module Ganeti.WConfd.Ssconf
   , mkSSConf
   ) where
 
-import Control.Arrow ((&&&), first, second)
+import Control.Arrow ((&&&), (***), first)
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Foldable (Foldable(..), toList)
 import Data.List (partition)
 import Data.Maybe (mapMaybe)
@@ -72,7 +73,7 @@ mkSSConfHvparams cluster = map (id &&& hvparams) [minBound..maxBound]
     -- @key=value@.
     hvparamsStrings :: HvParams -> [String]
     hvparamsStrings =
-      map (eqPair . second hvparamShow) . M.toList . fromContainer
+      map (eqPair . (UTF8.toString *** hvparamShow)) . M.toList . fromContainer
 
     -- | Convert a hypervisor parameter in its JSON representation to a String.
     -- Strings, numbers and booleans are just printed (without quotes), booleans
@@ -120,9 +121,9 @@ mkSSConf cdata = SSConf . M.fromList $
     , (SSMaintainNodeHealth, return . show . clusterMaintainNodeHealth
                              $ cluster)
     , (SSUidPool, mapLines formatUidRange . clusterUidPool $ cluster)
-    , (SSNodegroups, mapLines (spcPair . (groupUuid &&& groupName))
+    , (SSNodegroups, mapLines (spcPair . (uuidOf &&& groupName))
                      nodeGroups)
-    , (SSNetworks, mapLines (spcPair . (networkUuid
+    , (SSNetworks, mapLines (spcPair . (uuidOf
                                         &&& (fromNonEmpty . networkName)))
                    . configNetworks $ cdata)
     , (SSEnabledUserShutdown, return . show . clusterEnabledUserShutdown
@@ -135,7 +136,7 @@ mkSSConf cdata = SSConf . M.fromList $
     mapLines :: (Foldable f) => (a -> String) -> f a -> [String]
     mapLines f = map f . toList
     spcPair (x, y) = x ++ " " ++ y
-    toPairs = M.assocs . fromContainer
+    toPairs = M.assocs . M.mapKeys UTF8.toString . fromContainer
 
     cluster = configCluster cdata
     mcs = getMasterOrCandidates cdata

@@ -1,5 +1,7 @@
 {-# LANGUAGE ExistentialQuantification, TemplateHaskell, StandaloneDeriving #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-orphans -O0 #-}
+-- We have to disable optimisation here, as some versions of ghc otherwise
+-- fail to compile this code, at least within reasonable memory limits (40g).
 
 {-| Implementation of the opcodes.
 
@@ -287,7 +289,9 @@ $(genOpCode "OpCode"
      [t| () |],
      OpDoc.opClusterRenewCrypto,
      [ pNodeSslCerts
-     , pSshKeys
+     , pRenewSshKeys
+     , pSshKeyType
+     , pSshKeyBits
      , pVerbose
      , pDebug
      ],

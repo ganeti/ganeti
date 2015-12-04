@@ -128,13 +128,13 @@ instance Arbitrary ExportTarget where
                     , ExportTargetRemote <$> pure []
                     ]
 
-arbitraryDataCollector :: Gen (Container Bool)
+arbitraryDataCollector :: Gen (GenericContainer String Bool)
 arbitraryDataCollector = do
   els <-  listOf . elements $ CU.toList C.dataCollectorNames
   activation <- vector $ length els
   return . GenericContainer . Map.fromList $ zip els activation
 
-arbitraryDataCollectorInterval :: Gen (Maybe (Container Int))
+arbitraryDataCollectorInterval :: Gen (Maybe (GenericContainer String Int))
 arbitraryDataCollectorInterval = do
   els <-  listOf . elements $ CU.toList C.dataCollectorNames
   intervals <- vector $ length els
@@ -170,8 +170,13 @@ instance Arbitrary OpCodes.OpCode where
       "OP_TAGS_DEL" ->
         arbitraryOpTagsDel
       "OP_CLUSTER_POST_INIT" -> pure OpCodes.OpClusterPostInit
-      "OP_CLUSTER_RENEW_CRYPTO" -> OpCodes.OpClusterRenewCrypto <$>
-         arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+      "OP_CLUSTER_RENEW_CRYPTO" -> OpCodes.OpClusterRenewCrypto
+         <$> arbitrary -- Node SSL certificates
+         <*> arbitrary -- renew_ssh_keys
+         <*> arbitrary -- ssh_key_type
+         <*> arbitrary -- ssh_key_bits
+         <*> arbitrary -- verbose
+         <*> arbitrary -- debug
       "OP_CLUSTER_DESTROY" -> pure OpCodes.OpClusterDestroy
       "OP_CLUSTER_QUERY" -> pure OpCodes.OpClusterQuery
       "OP_CLUSTER_VERIFY" ->

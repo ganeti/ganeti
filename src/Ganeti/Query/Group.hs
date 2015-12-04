@@ -69,20 +69,20 @@ groupFields =
   , (FieldDefinition "ndparams" "NDParams" QFTOther "Node parameters",
      FieldConfig (\cfg ng -> rsNormal (getGroupNdParams cfg ng)), QffNormal)
   , (FieldDefinition "node_cnt" "Nodes" QFTNumber "Number of nodes",
-     FieldConfig (\cfg -> rsNormal . length . getGroupNodes cfg . groupUuid),
+     FieldConfig (\cfg -> rsNormal . length . getGroupNodes cfg . uuidOf),
      QffNormal)
   , (FieldDefinition "node_list" "NodeList" QFTOther "List of nodes",
      FieldConfig (\cfg -> rsNormal . map nodeName .
-                          getGroupNodes cfg . groupUuid), QffNormal)
+                          getGroupNodes cfg . uuidOf), QffNormal)
   , (FieldDefinition "pinst_cnt" "Instances" QFTNumber
        "Number of primary instances",
      FieldConfig
-       (\cfg -> rsNormal . length . fst . getGroupInstances cfg . groupUuid),
+       (\cfg -> rsNormal . length . fst . getGroupInstances cfg . uuidOf),
      QffNormal)
   , (FieldDefinition "pinst_list" "InstanceList" QFTOther
        "List of primary instances",
      FieldConfig (\cfg -> rsNormal . niceSort . mapMaybe instName . fst .
-                          getGroupInstances cfg . groupUuid), QffNormal)
+                          getGroupInstances cfg . uuidOf), QffNormal)
   , (FieldDefinition "hv_state" "HypervisorState" QFTOther
        "Custom static hypervisor state",
      FieldSimple (rsNormal . groupHvStateStatic), QffNormal)

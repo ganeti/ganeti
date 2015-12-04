@@ -1395,6 +1395,7 @@ class R_2_instances_name_deactivate_disks(baserlib.OpcodeResource):
     """
     return ({}, {
       "instance_name": self.items[0],
+      "force": self.useForce(),
       })
 
 

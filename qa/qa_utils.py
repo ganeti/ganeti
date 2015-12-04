@@ -175,7 +175,8 @@ def _PrintCommandOutput(stdout, stderr):
     print >> sys.stderr, stderr.rstrip('\n')
 
 
-def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
+def AssertCommand(cmd, fail=False, node=None, log_cmd=True, forward_agent=True,
+                  max_seconds=None):
   """Checks that a remote command succeeds.
 
   @param cmd: either a string (the command to execute) or a list (to
@@ -188,6 +189,10 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
       dict or a string)
   @param log_cmd: if False, the command won't be logged (simply passed to
       StartSSH)
+  @type forward_agent: boolean
+  @param forward_agent: whether to forward the agent when starting the SSH
+                        session or not, sometimes useful for crypto-related
+                        operations which can use a key they should not
   @type max_seconds: double
   @param max_seconds: fail if the command takes more than C{max_seconds}
       seconds
@@ -206,7 +211,8 @@ def AssertCommand(cmd, fail=False, node=None, log_cmd=True, max_seconds=None):
     cmdstr = utils.ShellQuoteArgs(cmd)
 
   start = datetime.datetime.now()
-  popen = StartSSH(nodename, cmdstr, log_cmd=log_cmd)
+  popen = StartSSH(nodename, cmdstr, log_cmd=log_cmd,
+                   forward_agent=forward_agent)
   # Run the command
   stdout, stderr = popen.communicate()
   rcode = popen.returncode
@@ -263,7 +269,7 @@ def AssertRedirectedCommand(cmd, fail=False, node=None, log_cmd=True):
 
 
 def GetSSHCommand(node, cmd, strict=True, opts=None, tty=False,
-                  use_multiplexer=True):
+                  use_multiplexer=True, forward_agent=True):
   """Builds SSH command to be executed.
 
   @type node: string
@@ -279,6 +285,8 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=False,
   @param tty: if we should use tty; if None, will be auto-detected
   @type use_multiplexer: boolean
   @param use_multiplexer: if the multiplexer for the node should be used
+  @type forward_agent: boolean
+  @param forward_agent: whether to forward the ssh agent or not
 
   """
   args = ["ssh", "-oEscapeChar=none", "-oBatchMode=yes", "-lroot"]
@@ -289,9 +297,14 @@ def GetSSHCommand(node, cmd, strict=True, opts=None, tty=False,
   if tty:
     args.append("-t")
 
+  # Multiplexers we use right now forward agents, so even if we ought to be
+  # using one, ignore it if agent forwarding is disabled.
+  if not forward_agent:
+    use_multiplexer = False
+
   args.append("-oStrictHostKeyChecking=%s" % ("yes" if strict else "no", ))
   args.append("-oClearAllForwardings=yes")
-  args.append("-oForwardAgent=yes")
+  args.append("-oForwardAgent=%s" % ("yes" if forward_agent else "no", ))
   if opts:
     args.extend(opts)
   if node in _MULTIPLEXERS and use_multiplexer:
@@ -335,12 +348,13 @@ def StartLocalCommand(cmd, _nolog_opts=False, log_cmd=True, **kwargs):
   return subprocess.Popen(cmd, shell=False, **kwargs)
 
 
-def StartSSH(node, cmd, strict=True, log_cmd=True):
+def StartSSH(node, cmd, strict=True, log_cmd=True, forward_agent=True):
   """Starts SSH.
 
   """
-  return StartLocalCommand(GetSSHCommand(node, cmd, strict=strict),
-                           _nolog_opts=True, log_cmd=log_cmd,
+  ssh_command = GetSSHCommand(node, cmd, strict=strict,
+                              forward_agent=forward_agent)
+  return StartLocalCommand(ssh_command, _nolog_opts=True, log_cmd=log_cmd,
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
