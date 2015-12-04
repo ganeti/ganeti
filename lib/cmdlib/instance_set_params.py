@@ -391,15 +391,15 @@ class LUInstanceSetParams(LogicalUnit):
 
     disk = self.GenericGetDiskInfo(uuid, name)
     instance_template = self.cfg.GetInstanceDiskTemplate(self.instance.uuid)
-    if (disk.dev_type != instance_template or
-        instance_template == constants.DT_DISKLESS):
+    if (disk.dev_type != instance_template and
+        instance_template != constants.DT_DISKLESS):
       raise errors.OpPrereqError("Instance has '%s' template while disk has"
                                  " '%s' template" %
                                  (instance_template, disk.dev_type),
                                  errors.ECODE_INVAL)
 
     instance_nodes = self.cfg.GetInstanceNodes(self.instance.uuid)
-    if not set(disk.nodes).issubset(set(instance_nodes)):
+    if not set(instance_nodes).issubset(set(disk.nodes)):
       raise errors.OpPrereqError("Disk nodes are %s while the instance's nodes"
                                  " are %s" %
                                  (disk.nodes, instance_nodes),

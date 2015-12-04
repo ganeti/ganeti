@@ -293,7 +293,6 @@ instance Monoid DataCollectorConfig where
     }
   mappend _ a = a
 
-
 -- * IPolicy definitions
 
 $(buildParam "ISpec" "ispec"
