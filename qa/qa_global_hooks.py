@@ -38,18 +38,26 @@ from ganeti import constants
 from ganeti import pathutils
 from qa_config import GetMasterNode
 from qa_job_utils import ExecuteJobProducingCommand
-from qa_utils import AssertEqual, GetCommandOutput, IsFileExists
+from qa_utils import AssertEqual, GetCommandOutput, IsFileExists, MakeNodePath
 
 PRE_PATH = "%s/global-pre.d" % pathutils.HOOKS_BASE_DIR
 POST_PATH = "%s/global-post.d" % pathutils.HOOKS_BASE_DIR
-H_DIR = "/var/log/ganeti/qa_global_hooks"
+
+
+def _GetHDir():
+  """Returns the path to the directory created for hooks temporary files
+
+  """
+  H_DIR = "%s/qa_global_hooks" % pathutils.LOG_DIR
+  master = GetMasterNode().primary
+  return MakeNodePath(master, H_DIR)
 
 
 def _GetHookFilePath(job_id, phase, status=None):
   """Returns the path to the qa hooks temporary files.
 
   """
-  h_fname = H_DIR + "/%d_OP_TEST_DELAY_%s" % (job_id, phase)
+  h_fname = _GetHDir() + "/%d_OP_TEST_DELAY_%s" % (job_id, phase)
   if phase == "pre":
     return h_fname
   return h_fname + "_" + status
@@ -60,10 +68,13 @@ def TestHooksInitialize():
 
   """
   master = GetMasterNode().primary
-  GetCommandOutput(master, "mkdir -p %s" % pathutils.HOOKS_BASE_DIR)
-  GetCommandOutput(master, "mkdir -p %s" % PRE_PATH)
-  GetCommandOutput(master, "mkdir -p %s" % POST_PATH)
-  GetCommandOutput(master, "mkdir -p %s" % H_DIR)
+  hooks_base_dir = MakeNodePath(master, pathutils.HOOKS_BASE_DIR)
+  pre_path = MakeNodePath(master, PRE_PATH)
+  post_path = MakeNodePath(master, POST_PATH)
+  GetCommandOutput(master, "mkdir -p %s" % hooks_base_dir)
+  GetCommandOutput(master, "mkdir -p %s" % pre_path)
+  GetCommandOutput(master, "mkdir -p %s" % post_path)
+  GetCommandOutput(master, "mkdir -p %s" % _GetHDir())
   h_name = "/qa_test_hook"
   create_hook_common = """
 FOUT=%s
@@ -71,8 +82,8 @@ echo '#!/bin/sh' > $FOUT
 echo 'touch %s/$GANETI_JOB_ID"_"$GANETI_OP_CODE%s' >> $FOUT
 chmod +x $FOUT
 """
-  create_pre = create_hook_common % (PRE_PATH + h_name, H_DIR, '"_pre"')
-  create_post = create_hook_common % (POST_PATH + h_name, H_DIR,
+  create_pre = create_hook_common % (pre_path + h_name, _GetHDir(), '"_pre"')
+  create_post = create_hook_common % (post_path + h_name, _GetHDir(),
                                       '"_post_"$GANETI_POST_STATUS')
   GetCommandOutput(master, create_pre)
   GetCommandOutput(master, create_post)
@@ -151,9 +162,9 @@ def TestHooksCleanup():
 
   """
   master = GetMasterNode().primary
-  GetCommandOutput(master, "rm %s/*" % PRE_PATH)
-  GetCommandOutput(master, "rm %s/*" % POST_PATH)
-  GetCommandOutput(master, "rm -rf %s" % H_DIR)
+  GetCommandOutput(master, "rm %s/*" % MakeNodePath(master, PRE_PATH))
+  GetCommandOutput(master, "rm %s/*" % MakeNodePath(master, POST_PATH))
+  GetCommandOutput(master, "rm -rf %s" % _GetHDir())
 
 
 def RunGlobalHooksTests():
