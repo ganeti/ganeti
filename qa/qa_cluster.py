@@ -1195,6 +1195,63 @@ def _AssertSsconfCertFiles():
                       " '%s'." % (node, first_node))
 
 
+def _TestSSHKeyChanges(master_node):
+  """Tests a lot of SSH key type- and size- related functionality.
+
+  @type master_node: L{qa_config._QaNode}
+  @param master_node: The cluster master.
+
+  """
+  # Helper fn to avoid specifying base params too many times
+  def _RenewWithParams(new_params, verify=True, fail=False):
+    AssertCommand(["gnt-cluster", "renew-crypto", "--new-ssh-keys", "-f",
+                   "--no-ssh-key-check"] + new_params, fail=fail)
+    if not fail and verify:
+      AssertCommand(["gnt-cluster", "verify"])
+
+  # First test the simplest change
+  _RenewWithParams([])
+
+  # And stop here if vcluster
+  (vcluster_master, _) = qa_config.GetVclusterSettings()
+  if vcluster_master:
+    print "Skipping further SSH key replacement checks for vcluster"
+    return
+
+  # And the actual tests
+  with qa_config.AcquireManyNodesCtx(1, exclude=[master_node]) as nodes:
+    node_name = nodes[0].primary
+
+    # Another helper function for checking whether a specific key can log in
+    def _CheckLoginWithKey(key_path, fail=False):
+      AssertCommand(["ssh", "-oIdentityFile=%s" % key_path, "-oBatchMode=yes",
+                     "-oStrictHostKeyChecking=no", "-oIdentitiesOnly=yes",
+                     "-F/dev/null", node_name, "true"],
+                    fail=fail, forward_agent=False)
+
+    _RenewWithParams(["--ssh-key-type=dsa"])
+    _CheckLoginWithKey("/root/.ssh/id_dsa")
+    # Stash the key for now
+    old_key_backup = qa_utils.BackupFile(master_node.primary,
+                                         "/root/.ssh/id_dsa")
+
+    try:
+      _RenewWithParams(["--ssh-key-type=rsa"])
+      _CheckLoginWithKey("/root/.ssh/id_rsa")
+      # And check that we cannot log in with the old key
+      _CheckLoginWithKey(old_key_backup, fail=True)
+    finally:
+      AssertCommand(["rm", "-f", old_key_backup])
+
+    _RenewWithParams(["--ssh-key-bits=4096"])
+    _RenewWithParams(["--ssh-key-bits=521"], fail=True)
+
+    # Restore the cluster to its pristine state, skipping the verify as we did
+    # way too many already
+    _RenewWithParams(["--ssh-key-type=rsa", "--ssh-key-bits=2048"],
+                     verify=False)
+
+
 def TestClusterRenewCrypto():
   """gnt-cluster renew-crypto"""
   master = qa_config.GetMasterNode()
@@ -1266,9 +1323,8 @@ def TestClusterRenewCrypto():
     _AssertSsconfCertFiles()
     AssertCommand(["gnt-cluster", "verify"])
 
-    # Only renew SSH keys
-    AssertCommand(["gnt-cluster", "renew-crypto", "--force",
-                   "--new-ssh-keys", "--no-ssh-key-check"])
+    # Comprehensively test various types of SSH key changes
+    _TestSSHKeyChanges(master)
 
     # Restore RAPI certificate
     AssertCommand(["gnt-cluster", "renew-crypto", "--force",
@@ -1371,7 +1427,7 @@ def TestUpgrade():
 
   This tests the 'gnt-cluster upgrade' command by flipping
   between the current and a different version of Ganeti.
-  To also recover subtile points in the configuration up/down
+  To also recover subtle points in the configuration up/down
   grades, instances are left over both upgrades.
 
   """

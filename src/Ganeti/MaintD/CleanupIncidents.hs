@@ -42,6 +42,7 @@ module Ganeti.MaintD.CleanupIncidents
 import Control.Arrow ((&&&))
 import Control.Monad (unless)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.IORef (IORef)
 
 import Ganeti.BasicTypes (ResultT, mkResultT)
@@ -66,12 +67,12 @@ cleanupIncident memstate nl incident = do
   case nodes of
     [] -> do
             logInfo $ "No node any more with name " ++ location
-                       ++ "; will forget event " ++ uuid
-            liftIO $ rmIncident memstate uuid
+                       ++ "; will forget event " ++ UTF8.toString uuid
+            liftIO . rmIncident memstate $ UTF8.toString uuid
     [nd] -> unless (tag `elem` Node.nTags nd) $ do
               logInfo $ "Tag " ++ tag ++ " removed on " ++ location
-                        ++ "; will forget event " ++ uuid
-              liftIO $ rmIncident memstate uuid
+                        ++ "; will forget event " ++ UTF8.toString uuid
+              liftIO . rmIncident memstate $ UTF8.toString uuid
     _ -> mkResultT . logAndBad
            $ "Found More than one node with name " ++ location
 

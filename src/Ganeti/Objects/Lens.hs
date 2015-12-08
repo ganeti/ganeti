@@ -36,11 +36,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Objects.Lens where
 
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.UTF8 as UTF8
+import Control.Lens (Simple)
+import Control.Lens.Iso (Iso, iso)
 import qualified Data.Set as Set
 import System.Time (ClockTime(..))
 
 import Ganeti.Lens (makeCustomLenses, Lens')
 import Ganeti.Objects
+
+-- | Isomorphism between Strings and bytestrings
+stringL :: Simple Iso BS.ByteString String
+stringL = iso UTF8.toString UTF8.fromString
 
 -- | Class of objects that have timestamps.
 class TimeStampObject a => TimeStampObjectL a where
@@ -69,7 +77,7 @@ instance TagsObjectL Network where
   tagsL = networkTagsL
 
 instance UuidObjectL Network where
-  uuidL = networkUuidL
+  uuidL = networkUuidL . stringL
 
 instance TimeStampObjectL Network where
   mTimeL = networkMtimeL
@@ -82,7 +90,7 @@ instance TimeStampObjectL Disk where
   mTimeL = diskMtimeL
 
 instance UuidObjectL Disk where
-  uuidL = diskUuidL
+  uuidL = diskUuidL . stringL
 
 instance SerialNoObjectL Disk where
   serialL = diskSerialL
@@ -93,7 +101,7 @@ instance TimeStampObjectL Instance where
   mTimeL = instMtimeL
 
 instance UuidObjectL Instance where
-  uuidL = instUuidL
+  uuidL = instUuidL . stringL
 
 instance SerialNoObjectL Instance where
   serialL = instSerialL
@@ -113,7 +121,7 @@ instance TimeStampObjectL Node where
   mTimeL = nodeMtimeL
 
 instance UuidObjectL Node where
-  uuidL = nodeUuidL
+  uuidL = nodeUuidL . stringL
 
 instance SerialNoObjectL Node where
   serialL = nodeSerialL
@@ -127,7 +135,7 @@ instance TimeStampObjectL NodeGroup where
   mTimeL = groupMtimeL
 
 instance UuidObjectL NodeGroup where
-  uuidL = groupUuidL
+  uuidL = groupUuidL . stringL
 
 instance SerialNoObjectL NodeGroup where
   serialL = groupSerialL
@@ -141,7 +149,7 @@ instance TimeStampObjectL Cluster where
   mTimeL = clusterMtimeL
 
 instance UuidObjectL Cluster where
-  uuidL = clusterUuidL
+  uuidL = clusterUuidL . stringL
 
 instance SerialNoObjectL Cluster where
   serialL = clusterSerialL

@@ -51,12 +51,15 @@ def main():
 
   version = utils.version.ParseVersion(versionstring)
 
+  error_code = 0
+
   if utils.version.IsBefore(version, 2, 12, 5):
     result = utils.RunCmd(["gnt-cluster", "renew-crypto",
                            "--new-node-certificates", "-f"])
     if result.failed:
       cli.ToStderr("Failed to create node certificates: %s; Output %s" %
                    (result.fail_reason, result.output))
+      error_code = 1
 
   if utils.version.IsBefore(version, 2, 13, 0):
     result = utils.RunCmd(["gnt-cluster", "renew-crypto",
@@ -64,8 +67,9 @@ def main():
     if result.failed:
       cli.ToStderr("Failed to create SSH keys: %s; Output %s" %
                    (result.fail_reason, result.output))
+      error_code = 1
 
-  return 0
+  return error_code
 
 if __name__ == "__main__":
   exit(main())

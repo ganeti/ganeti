@@ -30,6 +30,7 @@
 
 """Script for testing ganeti.backend"""
 
+import collections
 import copy
 import mock
 import os
@@ -135,7 +136,7 @@ class TestNodeVerify(testutils.GanetiTestCase):
     local_data = (netutils.Hostname.GetSysName(),
                   constants.IP4_ADDRESS_LOCALHOST)
     result = backend.VerifyNode({constants.NV_MASTERIP: local_data},
-                                None, {}, {}, {})
+                                None, {})
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
     self.failUnless(result[constants.NV_MASTERIP], "Cannot reach localhost")
@@ -147,7 +148,7 @@ class TestNodeVerify(testutils.GanetiTestCase):
     # we just test that whatever TcpPing returns, VerifyNode returns too
     netutils.TcpPing = lambda a, b, source=None: False
     result = backend.VerifyNode({constants.NV_MASTERIP: bad_data},
-                                None, {}, {}, {})
+                                None, {})
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
     self.failIf(result[constants.NV_MASTERIP],
@@ -1026,8 +1027,10 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         self._ssh_file_manager.GetAllMasterCandidateUuids()
     self._all_nodes = self._ssh_file_manager.GetAllNodeNames()
 
-    self._ssconf_mock.GetNodeList.return_value = self._all_nodes
-    self._ssconf_mock.GetOnlineNodeList.return_value = self._all_nodes
+    self._ssconf_mock.GetNodeList.side_effect = \
+        self._ssh_file_manager.GetAllNodeNames
+    self._ssconf_mock.GetOnlineNodeList.side_effect = \
+        self._ssh_file_manager.GetAllNodeNames
 
   def _TearDownTestData(self):
     os.remove(self._pub_key_file)
@@ -1052,6 +1055,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     backend._GenerateNodeSshKey(
         test_node_uuid, test_node_name,
         self._ssh_file_manager.GetSshPortMap(self._SSH_PORT),
+        "rsa", 2048,
         pub_key_file=self._pub_key_file,
         ssconf_store=self._ssconf_mock,
         noded_cert_file=self.noded_cert_file,
@@ -1075,7 +1079,29 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
   def _GetNewMasterCandidate(self):
     """Returns the properties of a new master candidate node."""
-    return ("new_node_name", "new_node_uuid", "new_node_key", True, True, False)
+    return ("new_node_name", "new_node_uuid", "new_node_key",
+            True, True, False)
+
+  def _GetNewNumberedMasterCandidate(self, num):
+    """Returns the properties of a new master candidate node."""
+    return ("new_node_name_%s" % num,
+            "new_node_uuid_%s" % num,
+            "new_node_key_%s" % num,
+            True, True, False)
+
+  def _GetNewNumberedPotentialMasterCandidate(self, num):
+    """Returns the properties of a new potential master candidate node."""
+    return ("new_node_name_%s" % num,
+            "new_node_uuid_%s" % num,
+            "new_node_key_%s" % num,
+            False, True, False)
+
+  def _GetNewNumberedNormalNode(self, num):
+    """Returns the properties of a new normal node."""
+    return ("new_node_name_%s" % num,
+            "new_node_uuid_%s" % num,
+            "new_node_key_%s" % num,
+            False, False, False)
 
   def testAddMasterCandidate(self):
     (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
@@ -1099,6 +1125,77 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
         new_node_name)
     self._ssh_file_manager.AssertAllNodesHaveAuthorizedKey(new_node_key)
+
+  def _SetupNodeBulk(self, num_nodes, node_fn):
+    """Sets up the test data for a bulk of nodes.
+
+    @param num_nodes: number of nodes
+    @type num_nodes: integer
+    @param node_fn: function
+    @param node_fn: function to generate data of one node, taking an
+      integer as only argument
+
+    """
+    node_list = []
+    key_map = {}
+
+    for i in range(num_nodes):
+      (new_node_name, new_node_uuid, new_node_key, is_master_candidate,
+       is_potential_master_candidate, is_master) = \
+          node_fn(i)
+
+      self._AddNewNodeToTestData(
+          new_node_name, new_node_uuid, new_node_key,
+          is_potential_master_candidate, is_master_candidate,
+          is_master)
+
+      node_list.append(
+          backend.SshAddNodeInfo(
+              uuid=new_node_uuid,
+              name=new_node_name,
+              to_authorized_keys=is_master_candidate,
+              to_public_keys=is_potential_master_candidate,
+              get_public_keys=is_potential_master_candidate))
+
+      key_map[new_node_name] = new_node_key
+
+    return (node_list, key_map)
+
+  def testAddMasterCandidateBulk(self):
+    num_nodes = 3
+    (node_list, key_map) = self._SetupNodeBulk(
+        num_nodes, self._GetNewNumberedMasterCandidate)
+
+    backend.AddNodeSshKeyBulk(node_list,
+                              self._potential_master_candidates,
+                              pub_key_file=self._pub_key_file,
+                              ssconf_store=self._ssconf_mock,
+                              noded_cert_file=self.noded_cert_file,
+                              run_cmd_fn=self._run_cmd_mock)
+
+    for node_info in node_list:
+      self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
+          node_info.name)
+      self._ssh_file_manager.AssertAllNodesHaveAuthorizedKey(
+          key_map[node_info.name])
+
+  def testAddPotentialMasterCandidateBulk(self):
+    num_nodes = 3
+    (node_list, key_map) = self._SetupNodeBulk(
+        num_nodes, self._GetNewNumberedPotentialMasterCandidate)
+
+    backend.AddNodeSshKeyBulk(node_list,
+                              self._potential_master_candidates,
+                              pub_key_file=self._pub_key_file,
+                              ssconf_store=self._ssconf_mock,
+                              noded_cert_file=self.noded_cert_file,
+                              run_cmd_fn=self._run_cmd_mock)
+
+    for node_info in node_list:
+      self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
+          node_info.name)
+      self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(
+          key_map[node_info.name])
 
   def testAddPotentialMasterCandidate(self):
     new_node_name = "new_node_name"
@@ -1154,6 +1251,73 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssh_file_manager.AssertNoNodeHasPublicKey(new_node_uuid, new_node_key)
     self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(new_node_key)
 
+  def testAddNormalBulk(self):
+    num_nodes = 3
+    (node_list, key_map) = self._SetupNodeBulk(
+        num_nodes, self._GetNewNumberedNormalNode)
+
+    self.assertRaises(
+        AssertionError, backend.AddNodeSshKeyBulk, node_list,
+        self._potential_master_candidates,
+        pub_key_file=self._pub_key_file,
+        ssconf_store=self._ssconf_mock,
+        noded_cert_file=self.noded_cert_file,
+        run_cmd_fn=self._run_cmd_mock)
+
+    for node_info in node_list:
+      self._ssh_file_manager.AssertNoNodeHasPublicKey(
+          node_info.uuid, key_map[node_info.name])
+      self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(
+          key_map[node_info.name])
+
+  def _GetNewNumberedNode(self, num):
+    """Returns the properties of a node.
+
+    This will in round-robin style return a master candidate, a
+    potential master candiate and a normal node.
+
+    """
+    is_master_candidate = num % 3 == 0
+    is_potential_master_candidate = num % 3 == 0 or num % 3 == 1
+    is_master = False
+    return ("new_node_name_%s" % num,
+            "new_node_uuid_%s" % num,
+            "new_node_key_%s" % num,
+            is_master_candidate, is_potential_master_candidate, is_master)
+
+  def testAddDiverseNodeBulk(self):
+    """Tests adding keys of several nodes with several qualities.
+
+    This tests subsumes previous tests. However, we leave the previous
+    tests here, because debugging problems with this all-embracing test
+    is much more tedious than having one of the one-purpose tests fail.
+
+    """
+    num_nodes = 9
+    (node_list, key_map) = self._SetupNodeBulk(
+        num_nodes, self._GetNewNumberedNode)
+
+    backend.AddNodeSshKeyBulk(node_list,
+                              self._potential_master_candidates,
+                              pub_key_file=self._pub_key_file,
+                              ssconf_store=self._ssconf_mock,
+                              noded_cert_file=self.noded_cert_file,
+                              run_cmd_fn=self._run_cmd_mock)
+
+    for node_info in node_list:
+      if node_info.to_authorized_keys:
+        self._ssh_file_manager.AssertAllNodesHaveAuthorizedKey(
+            key_map[node_info.name])
+      else:
+        self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(
+            key_map[node_info.name])
+      if node_info.to_public_keys:
+        self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
+            node_info.name)
+      else:
+        self._ssh_file_manager.AssertNoNodeHasPublicKey(
+            node_info.uuid, key_map[node_info.name])
+
   def testPromoteToMasterCandidate(self):
     # Get one of the potential master candidates
     node_name, node_info = \
@@ -1195,10 +1359,11 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
                              run_cmd_fn=self._run_cmd_mock)
 
     self._ssh_file_manager.AssertNoNodeHasPublicKey(node_uuid, node_key)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_key)
     self.assertEqual(0,
         len(self._ssh_file_manager.GetPublicKeysOfNode(node_name)))
-    self.assertEqual(0,
+    self.assertEqual(1,
         len(self._ssh_file_manager.GetAuthorizedKeysOfNode(node_name)))
 
   def testRemovePotentialMasterCandidate(self):
@@ -1268,7 +1433,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_file_manager.AssertPotentialMasterCandidatesOnlyHavePublicKey(
         node_name)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_info.key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_info.key)
 
   def testDemotePotentialMasterCandidateToNormalNode(self):
     (node_name, node_info) = \
@@ -1307,7 +1473,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         is_potential_master_candidate, is_master_candidate,
         is_master)
     self._online_nodes = self._GetReducedOnlineNodeList()
-    self._ssconf_mock.GetOnlineNodeList.return_value = self._online_nodes
+    self._ssconf_mock.GetOnlineNodeList.side_effect = \
+        lambda : self._online_nodes
 
     backend.AddNodeSshKey(new_node_uuid, new_node_name,
                           self._potential_master_candidates,
@@ -1331,7 +1498,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     (node_name, node_info) = \
         self._ssh_file_manager.GetAllMasterCandidates()[0]
     self._online_nodes = self._GetReducedOnlineNodeList()
-    self._ssconf_mock.GetOnlineNodeList.return_value = self._online_nodes
+    self._ssconf_mock.GetOnlineNodeList.side_effect = \
+        lambda : self._online_nodes
 
     backend.RemoveNodeSshKey(node_info.uuid, node_name,
                              self._master_candidate_uuids,
@@ -1348,7 +1516,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     offline_nodes = [node for node in self._all_nodes
                      if node not in self._online_nodes]
     self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
-        offline_nodes, node_info.key)
+        offline_nodes + [node_name], node_info.key)
 
   def testAddKeySuccessfullyOnNewNodeWithRetries(self):
     """Tests adding a new node's key when updating that node takes retries.
@@ -1524,7 +1692,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_file_manager.AssertNoNodeHasPublicKey(
         node_info.uuid, node_info.key)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_info.key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_info.key)
 
   def testRemoveKeyFailedWithRetriesOnOtherNode(self):
     """Test removing keys even if one of the old nodes fails even with retries.
@@ -1552,7 +1721,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         noded_cert_file=self.noded_cert_file, run_cmd_fn=self._run_cmd_mock)
 
     self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
-        [other_node_name], node_info.key)
+        [other_node_name, node_name], node_info.key)
     self.assertTrue([error_msg for (node, error_msg) in error_msgs
                      if node == other_node_name])
 
@@ -1583,7 +1752,8 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
 
     self._ssh_file_manager.AssertNoNodeHasPublicKey(
         node_info.uuid, node_info.key)
-    self._ssh_file_manager.AssertNoNodeHasAuthorizedKey(node_info.key)
+    self._ssh_file_manager.AssertNodeSetOnlyHasAuthorizedKey(
+        [node_name], node_info.key)
 
   def testRemoveKeyFailedWithRetriesOnTargetNode(self):
     """Test removing keys even if contacting the node fails with retries.
@@ -1656,8 +1826,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._read_file_mock = self._read_file_patcher.start()
     self._read_file_mock.return_value = self._NODE1_KEYS[0]
     self.tmpdir = tempfile.mkdtemp()
-    self.pub_key_file = os.path.join(self.tmpdir, "pub_key_file")
-    open(self.pub_key_file, "w").close()
+    self.pub_keys_file = os.path.join(self.tmpdir, "pub_keys_file")
+    open(self.pub_keys_file, "w").close()
 
   def tearDown(self):
     super(testutils.GanetiTestCase, self).tearDown()
@@ -1672,7 +1842,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     pub_key_file=self.pub_key_file)
+                                     "dsa",
+                                     ganeti_pub_keys_file=self.pub_keys_file)
     self.assertEqual(result, [])
 
   def testMissingKey(self):
@@ -1683,7 +1854,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = pub_key_missing
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     pub_key_file=self.pub_key_file)
+                                     "dsa",
+                                     ganeti_pub_keys_file=self.pub_keys_file)
     self.assertTrue(self._NODE2_UUID in result[0])
 
   def testUnknownKey(self):
@@ -1694,7 +1866,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = pub_key_missing
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     pub_key_file=self.pub_key_file)
+                                     "dsa",
+                                     ganeti_pub_keys_file=self.pub_keys_file)
     self.assertTrue("unkownnodeuuid" in result[0])
 
   def testMissingMasterCandidate(self):
@@ -1705,7 +1878,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     pub_key_file=self.pub_key_file)
+                                     "dsa",
+                                     ganeti_pub_keys_file=self.pub_keys_file)
     self.assertTrue(self._NODE1_UUID in result[0])
 
   def testSuperfluousNormalNode(self):
@@ -1716,7 +1890,8 @@ class TestVerifySshSetup(testutils.GanetiTestCase):
     self._query_mock.return_value = self._PUB_KEY_RESULT
     result = backend._VerifySshSetup(self._NODE_STATUS_LIST,
                                      self._NODE1_NAME,
-                                     pub_key_file=self.pub_key_file)
+                                     "dsa",
+                                     ganeti_pub_keys_file=self.pub_keys_file)
     self.assertTrue(self._NODE3_UUID in result[0])
 
 

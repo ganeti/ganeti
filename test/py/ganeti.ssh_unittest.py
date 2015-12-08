@@ -279,6 +279,30 @@ class TestSshKeys(testutils.GanetiTestCase):
       "ssh-dss AAAAB3asdfasdfaYTUCB laracroft@test\n"
       "ssh-dss AasdfliuobaosfMAAACB frodo@test\n")
 
+  def testOtherKeyTypes(self):
+    key_rsa = "ssh-rsa AAAAimnottypingallofthathere0jfJs22 test@test"
+    key_ed25519 = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOlcZ6cpQTGow0LZECRHWn9"\
+                  "7Yvn16J5un501T/RcbfuF fast@secure"
+    key_ecdsa = "ecdsa-sha2-nistp256 AAAAE2VjZHNtoolongk/TNhVbEg= secure@secure"
+
+    def _ToFileContent(keys):
+      return '\n'.join(keys) + '\n'
+
+    ssh.AddAuthorizedKeys(self.tmpname, [key_rsa, key_ed25519, key_ecdsa])
+    self.assertFileContent(self.tmpname,
+                           _ToFileContent([self.KEY_A, self.KEY_B, key_rsa,
+                                           key_ed25519, key_ecdsa]))
+
+    ssh.RemoveAuthorizedKey(self.tmpname, key_ed25519)
+    self.assertFileContent(self.tmpname,
+                           _ToFileContent([self.KEY_A, self.KEY_B, key_rsa,
+                                           key_ecdsa]))
+
+    ssh.RemoveAuthorizedKey(self.tmpname, key_rsa)
+    ssh.RemoveAuthorizedKey(self.tmpname, key_ecdsa)
+    self.assertFileContent(self.tmpname,
+                           _ToFileContent([self.KEY_A, self.KEY_B]))
+
 
 class TestPublicSshKeys(testutils.GanetiTestCase):
   """Test case for the handling of the list of public ssh keys."""
@@ -450,17 +474,50 @@ class TestGetUserFiles(testutils.GanetiTestCase):
     return self.tmpdir
 
   def testNewKeysOverrideOldKeys(self):
-    ssh.InitSSHSetup(_homedir_fn=self._GetTempHomedir)
+    ssh.InitSSHSetup("dsa", 1024, _homedir_fn=self._GetTempHomedir)
     self.assertFileContentNotEqual(self.priv_filename, self._PRIV_KEY)
     self.assertFileContentNotEqual(self.pub_filename, self._PUB_KEY)
 
   def testSuffix(self):
     suffix = "_pinkbunny"
-    ssh.InitSSHSetup(_homedir_fn=self._GetTempHomedir, _suffix=suffix)
+    ssh.InitSSHSetup("dsa", 1024, _homedir_fn=self._GetTempHomedir,
+                     _suffix=suffix)
     self.assertFileContent(self.priv_filename, self._PRIV_KEY)
     self.assertFileContent(self.pub_filename, self._PUB_KEY)
     self.assertTrue(os.path.exists(self.priv_filename + suffix))
     self.assertTrue(os.path.exists(self.priv_filename + suffix + ".pub"))
+
+
+class TestDetermineKeyBits():
+  def testCompleteness(self):
+    self.assertEquals(constants.SSHK_ALL, ssh.SSH_KEY_VALID_BITS.keys())
+
+  def testAdoptDefault(self):
+    self.assertEquals(2048, DetermineKeyBits("rsa", None, None, None))
+    self.assertEquals(1024, DetermineKeyBits("dsa", None, None, None))
+
+  def testAdoptOldKeySize(self):
+    self.assertEquals(4098, DetermineKeyBits("rsa", None, "rsa", 4098))
+    self.assertEquals(2048, DetermineKeyBits("rsa", None, "dsa", 1024))
+
+  def testDsaSpecificValues(self):
+    self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "dsa", 2048,
+                      None, None)
+    self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "dsa", 512,
+                      None, None)
+    self.assertEquals(1024, DetermineKeyBits("dsa", None, None, None))
+
+  def testEcdsaSpecificValues(self):
+    self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "ecdsa", 2048,
+                      None, None)
+    for b in [256, 384, 521]:
+      self.assertEquals(b, DetermineKeyBits("ecdsa", b, None, None))
+
+  def testRsaSpecificValues(self):
+    self.assertRaises(errors.OpPrereqError, DetermineKeyBits, "dsa", 766,
+                      None, None)
+    for b in [768, 769, 2048, 2049, 4096]:
+      self.assertEquals(b, DetermineKeyBits("rsa", b, None, None))
 
 
 if __name__ == "__main__":

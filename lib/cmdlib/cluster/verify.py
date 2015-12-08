@@ -1892,7 +1892,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       }
 
     if self.cfg.GetClusterInfo().modify_ssh_setup:
-      node_verify_param[constants.NV_SSH_SETUP] = self._PrepareSshSetupCheck()
+      node_verify_param[constants.NV_SSH_SETUP] = \
+        (self._PrepareSshSetupCheck(), self.cfg.GetClusterInfo().ssh_key_type)
       if self.op.verify_clutter:
         node_verify_param[constants.NV_SSH_CLUTTER] = True
 
@@ -1982,10 +1983,6 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if self._exclusive_storage:
       node_verify_param[constants.NV_EXCLUSIVEPVS] = True
 
-    node_group_uuids = dict(map(lambda n: (n.name, n.group),
-                                self.cfg.GetAllNodesInfo().values()))
-    groups_config = self.cfg.GetAllNodeGroupsInfoDict()
-
     # At this point, we have the in-memory data structures complete,
     # except for the runtime information, which we'll gather next
 
@@ -2019,9 +2016,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       all_nvinfo = self.rpc.call_node_verify(self.my_node_uuids,
                                              node_verify_param,
                                              cluster_name,
-                                             hvparams,
-                                             node_group_uuids,
-                                             groups_config)
+                                             hvparams)
       nvinfo_endtime = time.time()
 
       if self.extra_lv_nodes and vg_name is not None:
@@ -2031,9 +2026,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
             self.rpc.call_node_verify(self.extra_lv_nodes,
                                       {constants.NV_LVLIST: vg_name},
                                       self.cfg.GetClusterName(),
-                                      self.cfg.GetClusterInfo().hvparams,
-                                      node_group_uuids,
-                                      groups_config)
+                                      self.cfg.GetClusterInfo().hvparams)
       else:
         extra_lv_nvinfo = {}
 
@@ -2061,9 +2054,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         feedback_fn("* Gathering information about the master node")
         vf_nvinfo.update(self.rpc.call_node_verify(
            additional_node_uuids, {key: node_verify_param[key]},
-           self.cfg.GetClusterName(), self.cfg.GetClusterInfo().hvparams,
-           node_group_uuids,
-           groups_config))
+           self.cfg.GetClusterName(), self.cfg.GetClusterInfo().hvparams))
       else:
         vf_nvinfo = all_nvinfo
         vf_node_info = self.my_node_info.values()

@@ -41,6 +41,7 @@ module Ganeti.Objects.Maintenance
   , Incident(..)
   ) where
 
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Text.JSON as J
 
 import qualified Ganeti.Constants as C
@@ -91,7 +92,7 @@ instance TimeStampObject Incident where
   mTimeOf = incidentMtime
 
 instance UuidObject Incident where
-  uuidOf = incidentUuid
+  uuidOf = UTF8.toString . incidentUuid
 
 $(buildObject "MaintenanceData" "maint" $
   [ defaultField [| C.maintdDefaultRoundDelay |]

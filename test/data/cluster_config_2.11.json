@@ -379,7 +379,6 @@
             "admin_state": "up",
             "admin_state_source": "admin",
             "beparams": {},
-            "ctime": 1355186880.451181,
             "disk_template": "plain",
             "disks": [
                 {

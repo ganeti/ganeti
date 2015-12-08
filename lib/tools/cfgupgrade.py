@@ -115,7 +115,7 @@ def OrFail(description=None):
         f(self)
       except BaseException, e:
         msg = "%s failed:\n%s" % (description or f.func_name, e)
-        logging.error(msg)
+        logging.exception(msg)
         self.config_data = safety
         self.errors.append(msg)
     return wrapped
@@ -188,7 +188,7 @@ class CfgUpgrade(object):
       if config_revision != 0:
         logging.warning("Config revision is %s, not 0", config_revision)
       if not self.UpgradeAll():
-        raise Error("Upgrade failed:\n%s", '\n'.join(self.errors))
+        raise Error("Upgrade failed:\n%s" % '\n'.join(self.errors))
 
     elif config_major == TARGET_MAJOR and config_minor == TARGET_MINOR:
       logging.info("No changes necessary")
@@ -307,24 +307,33 @@ class CfgUpgrade(object):
     cluster = self.config_data.get("cluster", None)
     if cluster is None:
       raise Error("Cannot find cluster")
+
     ipolicy = cluster.setdefault("ipolicy", None)
     if ipolicy:
       self.UpgradeIPolicy(ipolicy, constants.IPOLICY_DEFAULTS, False)
     ial_params = cluster.get("default_iallocator_params", None)
+
     if not ial_params:
       cluster["default_iallocator_params"] = {}
+
     if not "candidate_certs" in cluster:
       cluster["candidate_certs"] = {}
+
     cluster["instance_communication_network"] = \
       cluster.get("instance_communication_network", "")
+
     cluster["install_image"] = \
       cluster.get("install_image", "")
+
     cluster["zeroing_image"] = \
       cluster.get("zeroing_image", "")
+
     cluster["compression_tools"] = \
       cluster.get("compression_tools", constants.IEC_DEFAULT_TOOLS)
+
     if "enabled_user_shutdown" not in cluster:
       cluster["enabled_user_shutdown"] = False
+
     cluster["data_collectors"] = cluster.get("data_collectors", {})
     for name in constants.DATA_COLLECTOR_NAMES:
       cluster["data_collectors"][name] = \
@@ -333,6 +342,14 @@ class CfgUpgrade(object):
                        interval=constants.MOND_TIME_INTERVAL * 1e6))
     if "diagnose_data_collector_filename" not in cluster:
       cluster["diagnose_data_collector_filename"] = ""
+
+    # These parameters are set to pre-2.16 default values, which
+    # differ from post-2.16 default values
+    if "ssh_key_type" not in cluster:
+      cluster["ssh_key_type"] = constants.SSHK_DSA
+
+    if "ssh_key_bits" not in cluster:
+      cluster["ssh_key_bits"] = 1024
 
   @OrFail("Upgrading groups")
   def UpgradeGroups(self):
@@ -609,7 +626,9 @@ class CfgUpgrade(object):
       for disk in iobj["disks"]:
         duuid = disk["uuid"]
         disk["serial_no"] = 1
-        disk["ctime"] = disk["mtime"] = iobj["ctime"]
+        # Instances may not have the ctime value, and the Haskell serialization
+        # will have set it to zero.
+        disk["ctime"] = disk["mtime"] = iobj.get("ctime", 0)
         self.config_data["disks"][duuid] = disk
         disk_uuids.append(duuid)
       iobj["disks"] = disk_uuids
@@ -713,7 +732,8 @@ class CfgUpgrade(object):
   def DowngradeAll(self):
     self.config_data["version"] = version.BuildVersion(DOWNGRADE_MAJOR,
                                                        DOWNGRADE_MINOR, 0)
-    return True
+
+    return not self.errors
 
   def _ComposePaths(self):
     # We need to keep filenames locally because they might be renamed between

@@ -305,7 +305,9 @@ module Ganeti.OpParams
   , pDataCollectorInterval
   , pDiagnoseDataCollectorFilename
   , pNodeSslCerts
-  , pSshKeys
+  , pSshKeyBits
+  , pSshKeyType
+  , pRenewSshKeys
   , pNodeSetup
   , pVerifyClutter
   , pLongSleep
@@ -1935,11 +1937,21 @@ pNodeSslCerts =
   defaultField [| False |] $
   simpleField "node_certificates" [t| Bool |]
 
-pSshKeys :: Field
-pSshKeys =
+pSshKeyBits :: Field
+pSshKeyBits =
+  withDoc "The number of bits of the SSH key Ganeti uses" .
+  optionalField $ simpleField "ssh_key_bits" [t| Positive Int |]
+
+pSshKeyType :: Field
+pSshKeyType =
+  withDoc "The type of the SSH key Ganeti uses" .
+  optionalField $ simpleField "ssh_key_type" [t| SshKeyType |]
+
+pRenewSshKeys :: Field
+pRenewSshKeys =
   withDoc "Whether to renew SSH keys" .
   defaultField [| False |] $
-  simpleField "ssh_keys" [t| Bool |]
+  simpleField "renew_ssh_keys" [t| Bool |]
 
 pNodeSetup :: Field
 pNodeSetup =

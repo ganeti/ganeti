@@ -36,6 +36,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 module Ganeti.Objects.Nic where
 
+import qualified Data.ByteString.UTF8 as UTF8
+
 import Ganeti.THH
 import Ganeti.THH.Field
 import Ganeti.Types
@@ -55,5 +57,6 @@ $(buildObject "PartialNic" "nic" $
   ] ++ uuidFields)
 
 instance UuidObject PartialNic where
-  uuidOf = nicUuid
+  uuidOf = UTF8.toString . nicUuid
+
 

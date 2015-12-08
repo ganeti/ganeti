@@ -56,6 +56,8 @@ import Test.QuickCheck
 import qualified Test.HUnit as HUnit
 
 import Control.Monad (liftM, when)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char
 import qualified Data.List as List
 import qualified Data.Map as Map
@@ -84,7 +86,7 @@ import Ganeti.Types
 
 instance Arbitrary (Container DataCollectorConfig) where
   arbitrary = do
-    let names = CU.toList C.dataCollectorNames
+    let names = map UTF8.fromString $ CU.toList C.dataCollectorNames
     activations <- vector $ length names
     timeouts <- vector $ length names
     let configs = zipWith DataCollectorConfig activations timeouts
@@ -114,6 +116,9 @@ instance Arbitrary FilledHvState where
     return GenericContainer {
       fromContainer = Map.fromList [ hv_params ] }
 
+instance Arbitrary BS.ByteString where
+  arbitrary = fmap UTF8.fromString arbitrary
+
 $(genArbitrary ''PartialNDParams)
 
 instance Arbitrary Node where
@@ -121,7 +126,8 @@ instance Arbitrary Node where
               <*> arbitrary <*> arbitrary <*> arbitrary <*> genFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
-              <*> genFQDN <*> arbitrary <*> (Set.fromList <$> genTags)
+              <*> fmap UTF8.fromString genUUID <*> arbitrary
+              <*> (Set.fromList <$> genTags)
 
 $(genArbitrary ''BlockDriver)
 
@@ -303,7 +309,7 @@ genDiskWithChildren num_children = do
   name <- genMaybe genName
   spindles <- arbitrary
   params <- arbitrary
-  uuid <- genName
+  uuid <- fmap UTF8.fromString genUUID
   serial <- arbitrary
   time <- arbitrary
   return . RealDisk $
@@ -342,7 +348,8 @@ instance Arbitrary GroupDiskParams where
   arbitrary = return $ GenericContainer Map.empty
 
 instance Arbitrary ClusterNicParams where
-  arbitrary = (GenericContainer . Map.singleton C.ppDefault) <$> arbitrary
+  arbitrary = (GenericContainer . Map.singleton (UTF8.fromString C.ppDefault))
+              <$> arbitrary
 
 instance Arbitrary OsParams where
   arbitrary = (GenericContainer . Map.fromList) <$> arbitrary
@@ -398,7 +405,14 @@ instance Arbitrary FilterRule where
                          <*> arbitrary
                          <*> arbitrary
                          <*> arbitrary
-                         <*> genUUID
+                         <*> fmap UTF8.fromString genUUID
+
+instance Arbitrary SshKeyType where
+  arbitrary = oneof
+    [ pure RSA
+    , pure DSA
+    , pure ECDSA
+    ]
 
 instance Arbitrary RepairStatus where
   arbitrary = elements [ RSNoted, RSPending, RSCanceled, RSFailed, RSCompleted ]
@@ -468,12 +482,12 @@ genEmptyCluster ncount = do
   nodes <- vector ncount
   version <- arbitrary
   grp <- arbitrary
-  let guuid = groupUuid grp
+  let guuid = uuidOf grp
       nodes' = zipWith (\n idx ->
                           let newname = takeWhile (/= '.') (nodeName n)
                                         ++ "-" ++ show idx
-                          in (newname, n { nodeGroup = guuid,
-                                           nodeName = newname}))
+                          in ( UTF8.fromString newname
+                             , n { nodeGroup = guuid, nodeName = newname}))
                nodes [(1::Int)..]
       nodemap = Map.fromList nodes'
       contnodes = if Map.size nodemap /= ncount
@@ -486,7 +500,7 @@ genEmptyCluster ncount = do
       disks = GenericContainer Map.empty
       filters = GenericContainer Map.empty
   maintenance <- arbitrary
-  let contgroups = GenericContainer $ Map.singleton guuid grp
+  let contgroups = GenericContainer $ Map.singleton (UTF8.fromString guuid) grp
   serial <- arbitrary
   -- timestamp fields
   ctime <- arbitrary
@@ -510,7 +524,7 @@ genConfigDataWithNetworks old_cfg = do
   let nets_unique = map ( \(name, net) -> net { networkName = name } )
         (zip net_names nets)
       net_map = GenericContainer $ Map.fromList
-        (map (\n -> (networkUuid n, n)) nets_unique)
+        (map (\n -> (UTF8.fromString $ uuidOf n, n)) nets_unique)
       new_cfg = old_cfg { configNetworks = net_map }
   return new_cfg
 
@@ -681,7 +695,7 @@ genNodeGroup = do
   ipolicy <- arbitrary
   diskparams <- pure (GenericContainer Map.empty)
   num_networks <- choose (0, 3)
-  net_uuid_list <- vectorOf num_networks (arbitrary::Gen String)
+  net_uuid_list <- vectorOf num_networks (arbitrary::Gen BS.ByteString)
   nic_param_list <- vectorOf num_networks (arbitrary::Gen PartialNicParams)
   net_map <- pure (GenericContainer . Map.fromList $
     zip net_uuid_list nic_param_list)
@@ -694,7 +708,8 @@ genNodeGroup = do
   serial <- arbitrary
   tags <- Set.fromList <$> genTags
   let group = NodeGroup name members ndparams alloc_policy ipolicy diskparams
-              net_map hv_state disk_state ctime mtime uuid serial tags
+              net_map hv_state disk_state ctime mtime (UTF8.fromString uuid)
+              serial tags
   return group
 
 instance Arbitrary NodeGroup where

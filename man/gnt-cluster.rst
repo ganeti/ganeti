@@ -207,6 +207,8 @@ INIT
 | [\--zeroing-image *image*]
 | [\--compression-tools [*tool*, [*tool*]]]
 | [\--user-shutdown {yes \| no}]
+| [\--ssh-key-type *type*]
+| [\--ssh-key-bits *bits*]
 | {*clustername*}
 
 This commands is only run once initially on the first node of the
@@ -272,7 +274,10 @@ The ``--no-etc-hosts`` option allows you to initialize the cluster
 without modifying the /etc/hosts file.
 
 The ``--no-ssh-init`` option allows you to initialize the cluster
-without creating or distributing SSH key pairs.
+without creating or distributing SSH key pairs. This also sets the
+cluster-wide configuration parameter ``modify ssh setup`` to False.
+When adding nodes, Ganeti will consider this parameter to determine
+whether to create and distributed SSH key pairs on new nodes as well.
 
 The ``--file-storage-dir``, ``--shared-file-storage-dir`` and
 ``--gluster-storage-dir`` options allow you set the directory to use for
@@ -634,6 +639,18 @@ of testing whether the executable exists. These requirements are
 compatible with the gzip command line options, allowing many tools to
 be easily wrapped and used.
 
+The ``--ssh-key-type`` and ``--ssh-key-bits`` options determine the
+properties of the SSH keys Ganeti generates and uses to execute
+commands on nodes. The supported types are currently 'dsa', 'rsa', and
+'ecdsa'. The supported bit sizes vary across keys, reflecting the
+options **ssh-keygen**\(1) exposes. These are currently:
+
+- dsa: 1024 bits
+- rsa: >=768 bits
+- ecdsa: 256, 384, or 521 bits
+
+Ganeti defaults to using 2048-bit RSA keys.
+
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
@@ -888,6 +905,7 @@ RENEW-CRYPTO
 | \--spice-ca-certificate *spice-ca-cert*]
 | [\--new-ssh-keys] [\--no-ssh-key-check]
 | [\--new-cluster-domain-secret] [\--cluster-domain-secret *filename*]
+| [\--ssh-key-type *type*] | [\--ssh-key-bits *bits*]
 
 This command will stop all Ganeti daemons in the cluster and start
 them again once the new certificates and keys are replicated. The
@@ -928,6 +946,10 @@ Finally ``--new-cluster-domain-secret`` generates a new, random
 cluster domain secret, and ``--cluster-domain-secret`` reads the
 secret from a file. The cluster domain secret is used to sign
 information exchanged between separate clusters via a third party.
+
+The options ``--ssh-key-type`` and ``ssh-key-bits`` determine the
+properties of the disk types used. They are described in more detail
+in the ``init`` option description.
 
 REPAIR-DISK-SIZES
 ~~~~~~~~~~~~~~~~~

@@ -230,12 +230,17 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   (_, cert_pem) = \
     utils.ExtractX509Certificate(utils.ReadFile(pathutils.NODED_CERT_FILE))
 
+  (ssh_key_type, ssh_key_bits) = \
+    cl.QueryConfigValues(["ssh_key_type", "ssh_key_bits"])
+
   data = {
     constants.SSHS_CLUSTER_NAME: cluster_name,
     constants.SSHS_NODE_DAEMON_CERTIFICATE: cert_pem,
     constants.SSHS_SSH_HOST_KEY: host_keys,
     constants.SSHS_SSH_ROOT_KEY: root_keys,
     constants.SSHS_SSH_AUTHORIZED_KEYS: candidate_keys,
+    constants.SSHS_SSH_KEY_TYPE: ssh_key_type,
+    constants.SSHS_SSH_KEY_BITS: ssh_key_bits,
     }
 
   ssh.RunSshCmdWithStdin(cluster_name, node, pathutils.PREPARE_NODE_JOIN,
@@ -244,9 +249,9 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
                          use_cluster_key=False, ask_key=options.ssh_key_check,
                          strict_host_check=options.ssh_key_check)
 
-  (_, dsa_pub_keyfile) = root_keyfiles[constants.SSHK_DSA]
-  pub_key = ssh.ReadRemoteSshPubKeys(dsa_pub_keyfile, node, cluster_name,
-                                     ssh_port, options.ssh_key_check,
+  (_, pub_keyfile) = root_keyfiles[ssh_key_type]
+  pub_key = ssh.ReadRemoteSshPubKeys(pub_keyfile, node, cluster_name, ssh_port,
+                                     options.ssh_key_check,
                                      options.ssh_key_check)
   # Unfortunately, we have to add the key with the node name rather than
   # the node's UUID here, because at this point, we do not have a UUID yet.
@@ -312,20 +317,29 @@ def AddNode(opts, args):
   # read the cluster name from the master
   (cluster_name, ) = cl.QueryConfigValues(["cluster_name"])
 
-  if opts.node_setup:
+  if not opts.node_setup:
+    ToStdout("-- WARNING -- \n"
+             "The option --no-node-setup is disabled. Whether or not the\n"
+             "SSH setup is manipulated while adding a node is determined\n"
+             "by the 'modify_ssh_setup' value in the cluster-wide\n"
+             "configuration instead.\n")
+
+  (modify_ssh_setup, ) = \
+    cl.QueryConfigValues(["modify_ssh_setup"])
+
+  if modify_ssh_setup:
     ToStderr("-- WARNING -- \n"
              "Performing this operation is going to perform the following\n"
              "changes to the target machine (%s) and the current cluster\n"
              "nodes:\n"
-             "* A new SSH daemon key pair is generated is generated on\n"
-             "  the target machine.\n"
+             "* A new SSH daemon key pair is generated on the target machine.\n"
              "* The public SSH keys of all master candidates of the cluster\n"
              "  are added to the target machine's 'authorized_keys' file.\n"
              "* In case the target machine is a master candidate, its newly\n"
              "  generated public SSH key will be distributed to all other\n"
              "  cluster nodes.\n", node)
 
-  if opts.node_setup:
+  if modify_ssh_setup:
     _SetupSSH(opts, cluster_name, node, ssh_port, cl)
 
   bootstrap.SetupNodeDaemon(opts, cluster_name, node, ssh_port)
@@ -343,7 +357,7 @@ def AddNode(opts, args):
                          master_capable=opts.master_capable,
                          disk_state=disk_state,
                          hv_state=hv_state,
-                         node_setup=opts.node_setup)
+                         node_setup=modify_ssh_setup)
   SubmitOpCode(op, opts=opts)
 
 

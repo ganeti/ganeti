@@ -43,6 +43,7 @@ module Ganeti.MaintD.CollectIncidents
 import Control.Applicative (liftA2)
 import Control.Monad (unless)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString.UTF8 as UTF8
 import Data.IORef (IORef)
 import Network.Curl
 import System.Time (getClockTime)
@@ -111,7 +112,7 @@ updateNode memstate node = do
                                     , incidentJobs = []
                                     , incidentNode = name
                                     , incidentTag = tag
-                                    , incidentUuid = uuid
+                                    , incidentUuid = UTF8.fromString uuid
                                     , incidentCtime = now
                                     , incidentMtime = now
                                     , incidentSerial = 1

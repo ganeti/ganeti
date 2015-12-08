@@ -382,7 +382,7 @@ cancelRejectedJobs qstate cfg filters = do
   forM_ jobsToCancel $ \(job, fr) -> do
     let jid = qjId job
     logDebug $ "Cancelling job " ++ show (fromJobId jid)
-               ++ " because it was REJECTed by filter rule " ++ frUuid fr
+               ++ " because it was REJECTed by filter rule " ++ uuidOf fr
     -- First dequeue, then cancel.
     dequeueResult <- dequeueJob qstate jid
     case dequeueResult of

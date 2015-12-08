@@ -72,7 +72,7 @@ getDisks
   -> BT.ResultT String IO [Ganeti.Objects.Disk]
 getDisks inst srvAddr srvPort = do
   client <- liftIO $ getConfdClient srvAddr srvPort
-  reply <- liftIO . query client ReqInstanceDisks . PlainQuery . instUuid $ inst
+  reply <- liftIO . query client ReqInstanceDisks . PlainQuery . uuidOf $ inst
   case fmap (J.readJSON . confdReplyAnswer) reply of
     Just (J.Ok disks) -> return disks
     Just (J.Error msg) -> fail msg

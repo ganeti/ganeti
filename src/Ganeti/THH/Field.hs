@@ -50,6 +50,7 @@ module Ganeti.THH.Field
   ) where
 
 import Control.Monad
+import qualified Data.ByteString as BS
 import qualified Data.Set as Set
 import Language.Haskell.TH
 import qualified Text.JSON as JSON
@@ -118,7 +119,7 @@ serialFields =
 
 -- | UUID fields description.
 uuidFields :: [Field]
-uuidFields = [ presentInForthcoming $ simpleField "uuid" [t| String |] ]
+uuidFields = [ presentInForthcoming $ simpleField "uuid" [t| BS.ByteString |] ]
 
 -- | Tag set type alias.
 type TagSet = Set.Set String

@@ -35,9 +35,17 @@ example, 'set' is a 'list'.
 
 """
 
-from ganeti.tools.cfgupgrade import CfgUpgrade, ParseOptions
+from ganeti.tools.cfgupgrade import CfgUpgrade, Error, ParseOptions
 
 
 if __name__ == "__main__":
   opts, args = ParseOptions()
-  CfgUpgrade(opts, args).Run()
+  try:
+    CfgUpgrade(opts, args).Run()
+  except Error as e:
+    if opts.debug:
+      # If debugging, we want to see the original stack trace.
+      raise
+    else:
+      # Else silence it for the sake of convenience.
+      raise SystemExit(e)

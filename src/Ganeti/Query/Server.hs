@@ -52,6 +52,7 @@ import Control.Monad.Error.Class (MonadError)
 import Control.Monad.IO.Class
 import Control.Monad.Trans (lift)
 import Control.Monad.Trans.Maybe
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Set as Set (toList)
 import Data.IORef
 import Data.List (intersperse)
@@ -284,6 +285,10 @@ handleCall _ _ cdata QueryClusterInfo =
                showJSON $ clusterHvStateStatic cluster)
             , ("disk_state",
                showJSON $ clusterDiskStateStatic cluster)
+            , ("modify_ssh_setup",
+               showJSON $ clusterModifySshSetup cluster)
+            , ("ssh_key_type", showJSON $ clusterSshKeyType cluster)
+            , ("ssh_key_bits", showJSON $ clusterSshKeyBits cluster)
             ]
 
   in case master of
@@ -356,10 +361,11 @@ handleCall _ status _ (ReplaceFilter mUuid priority predicates action
                                 , frPredicates = predicates
                                 , frAction = action
                                 , frReasonTrail = reason ++ [luxidReason]
-                                , frUuid = uuid
+                                , frUuid = UTF8.fromString uuid
                                 }
           writeConfig cid
-            . (configFiltersL . alterContainerL uuid .~ Just rule)
+            . (configFiltersL . alterContainerL (UTF8.fromString uuid)
+                 .~ Just rule)
             $ lockedCfg
 
     -- Return UUID of added/replaced filter.
@@ -369,14 +375,14 @@ handleCall _ status cfg (DeleteFilter uuid) = runResultT $ do
   -- Check if filter exists.
   _ <- lookupContainer
     (failError $ "Filter rule with UUID " ++ uuid ++ " does not exist")
-    uuid
+    (UTF8.fromString uuid)
     (configFilters cfg)
 
   -- Ask WConfd to change the config for us.
   cid <- liftIO $ makeLuxidClientId status
   withLockedWconfdConfig cid $ \lockedCfg ->
     writeConfig cid
-      . (configFiltersL . alterContainerL uuid .~ Nothing)
+      . (configFiltersL . alterContainerL (UTF8.fromString uuid) .~ Nothing)
       $ lockedCfg
 
   return JSNull
@@ -386,13 +392,17 @@ handleCall _ _ cfg (QueryNetworks names fields lock) =
     (map Left names) fields lock
 
 handleCall _ _ cfg (QueryConfigValues fields) = do
-  let params = [ ("cluster_name", return . showJSON . clusterClusterName
-                                    . configCluster $ cfg)
+  let clusterProperty fn = showJSON . fn . configCluster $ cfg
+  let params = [ ("cluster_name", return $ clusterProperty clusterClusterName)
                , ("watcher_pause", liftM (maybe JSNull showJSON)
                                      QCluster.isWatcherPaused)
                , ("master_node", return . genericResult (const JSNull) showJSON
                                    $ QCluster.clusterMasterNodeName cfg)
                , ("drain_flag", liftM (showJSON . not) isQueueOpen)
+               , ("modify_ssh_setup",
+                  return $ clusterProperty clusterModifySshSetup)
+               , ("ssh_key_type", return $ clusterProperty clusterSshKeyType)
+               , ("ssh_key_bits", return $ clusterProperty clusterSshKeyBits)
                ] :: [(String, IO JSValue)]
   let answer = map (fromMaybe (return JSNull) . flip lookup params) fields
   answerEval <- sequence answer

@@ -342,6 +342,8 @@
     "rsahostkeypub": "YOURKEY",
     "serial_no": 3189,
     "shared_file_storage_dir": "/srv/ganeti/shared-file-storage",
+    "ssh_key_bits": 1024,
+    "ssh_key_type": "dsa",
     "tags": [
       "mytag"
     ],

@@ -60,8 +60,8 @@ import stat
 import tempfile
 import time
 import zlib
-import copy
 import contextlib
+import collections
 
 from ganeti import errors
 from ganeti import http
@@ -968,8 +968,8 @@ def _VerifyClientCertificate(cert_file=pathutils.NODED_CLIENT_CERT_FILE):
   return (None, utils.GetCertificateDigest(cert_filename=cert_file))
 
 
-def _VerifySshSetup(node_status_list, my_name,
-                    pub_key_file=pathutils.SSH_PUB_KEYS):
+def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
+                    ganeti_pub_keys_file=pathutils.SSH_PUB_KEYS):
   """Verifies the state of the SSH key files.
 
   @type node_status_list: list of tuples
@@ -978,8 +978,10 @@ def _VerifySshSetup(node_status_list, my_name,
     is_potential_master_candidate, online)
   @type my_name: str
   @param my_name: name of this node
-  @type pub_key_file: str
-  @param pub_key_file: filename of the public key file
+  @type ssh_key_type: one of L{constants.SSHK_ALL}
+  @param ssh_key_type: type of key used on nodes
+  @type ganeti_pub_keys_file: str
+  @param ganeti_pub_keys_file: filename of the public keys file
 
   """
   if node_status_list is None:
@@ -995,16 +997,16 @@ def _VerifySshSetup(node_status_list, my_name,
 
   result = []
 
-  if not os.path.exists(pub_key_file):
+  if not os.path.exists(ganeti_pub_keys_file):
     result.append("The public key file '%s' does not exist. Consider running"
                   " 'gnt-cluster renew-crypto --new-ssh-keys"
-                  " [--no-ssh-key-check]' to fix this." % pub_key_file)
+                  " [--no-ssh-key-check]' to fix this." % ganeti_pub_keys_file)
     return result
 
   pot_mc_uuids = [uuid for (uuid, _, _, _, _) in node_status_list]
   offline_nodes = [uuid for (uuid, _, _, _, online) in node_status_list
                    if not online]
-  pub_keys = ssh.QueryPubKeyFile(None)
+  pub_keys = ssh.QueryPubKeyFile(None, key_file=ganeti_pub_keys_file)
 
   if potential_master_candidate:
     # Check that the set of potential master candidates matches the
@@ -1027,14 +1029,14 @@ def _VerifySshSetup(node_status_list, my_name,
 
     (_, key_files) = \
       ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
-    (_, dsa_pub_key_filename) = key_files[constants.SSHK_DSA]
+    (_, node_pub_key_file) = key_files[ssh_key_type]
 
     my_keys = pub_keys[my_uuid]
 
-    dsa_pub_key = utils.ReadFile(dsa_pub_key_filename)
-    if dsa_pub_key.strip() not in my_keys:
+    node_pub_key = utils.ReadFile(node_pub_key_file)
+    if node_pub_key.strip() not in my_keys:
       result.append("The dsa key of node %s does not match this node's key"
-                    " in the pub key file." % (my_name))
+                    " in the pub key file." % my_name)
     if len(my_keys) != 1:
       result.append("There is more than one key for node %s in the public key"
                     " file." % my_name)
@@ -1101,7 +1103,7 @@ def _VerifySshClutter(node_status_list, my_name):
   return result
 
 
-def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
+def VerifyNode(what, cluster_name, all_hvparams):
   """Verify the status of the local node.
 
   Based on the input L{what} parameter, various checks are done on the
@@ -1129,11 +1131,6 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
   @param cluster_name: the cluster's name
   @type all_hvparams: dict of dict of strings
   @param all_hvparams: a dictionary mapping hypervisor names to hvparams
-  @type node_groups: a dict of strings
-  @param node_groups: node _names_ mapped to their group uuids (it's enough to
-      have only those nodes that are in `what["nodelist"]`)
-  @type groups_cfg: a dict of dict of strings
-  @param groups_cfg: a dictionary mapping group uuids to their configuration
   @rtype: dict
   @return: a dictionary with the same keys as the input dict, and
       values representing the result of the checks
@@ -1158,8 +1155,9 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
     result[constants.NV_CLIENT_CERT] = _VerifyClientCertificate()
 
   if constants.NV_SSH_SETUP in what:
+    node_status_list, key_type = what[constants.NV_SSH_SETUP]
     result[constants.NV_SSH_SETUP] = \
-      _VerifySshSetup(what[constants.NV_SSH_SETUP], my_name)
+      _VerifySshSetup(node_status_list, my_name, key_type)
     if constants.NV_SSH_CLUTTER in what:
       result[constants.NV_SSH_CLUTTER] = \
         _VerifySshClutter(what[constants.NV_SSH_SETUP], my_name)
@@ -1178,19 +1176,15 @@ def VerifyNode(what, cluster_name, all_hvparams, node_groups, groups_cfg):
 
     # Try to contact all nodes
     val = {}
+    ssh_port_map = ssconf.SimpleStore().GetSshPortMap()
     for node in nodes:
-      params = groups_cfg.get(node_groups.get(node))
-      ssh_port = params["ndparams"].get(constants.ND_SSH_PORT)
-      logging.debug("Ssh port %s (None = default) for node %s",
-                    str(ssh_port), node)
-
       # We only test if master candidates can communicate to other nodes.
       # We cannot test if normal nodes cannot communicate with other nodes,
       # because the administrator might have installed additional SSH keys,
       # over which Ganeti has no power.
       if my_name in mcs:
         success, message = _GetSshRunner(cluster_name). \
-                              VerifyNodeHostname(node, ssh_port)
+                              VerifyNodeHostname(node, ssh_port_map[node])
         if not success:
           val[node] = message
 
@@ -1453,6 +1447,59 @@ def AddNodeSshKey(node_uuid, node_name,
     to its {ganeti_pub_keys} file
 
   """
+  node_list = [SshAddNodeInfo(name=node_name, uuid=node_uuid,
+                              to_authorized_keys=to_authorized_keys,
+                              to_public_keys=to_public_keys,
+                              get_public_keys=get_public_keys)]
+  return AddNodeSshKeyBulk(node_list,
+                           potential_master_candidates,
+                           pub_key_file=pub_key_file,
+                           ssconf_store=ssconf_store,
+                           noded_cert_file=noded_cert_file,
+                           run_cmd_fn=run_cmd_fn)
+
+
+# Node info named tuple specifically for the use with AddNodeSshKeyBulk
+SshAddNodeInfo = collections.namedtuple(
+  "SshAddNodeInfo",
+  ["uuid",
+   "name",
+   "to_authorized_keys",
+   "to_public_keys",
+   "get_public_keys"])
+
+
+def AddNodeSshKeyBulk(node_list,
+                      potential_master_candidates,
+                      pub_key_file=pathutils.SSH_PUB_KEYS,
+                      ssconf_store=None,
+                      noded_cert_file=pathutils.NODED_CERT_FILE,
+                      run_cmd_fn=ssh.RunSshCmdWithStdin):
+  """Distributes a node's public SSH key across the cluster.
+
+  Note that this function should only be executed on the master node, which
+  then will copy the new node's key to all nodes in the cluster via SSH.
+
+  Also note: at least one of the flags C{to_authorized_keys},
+  C{to_public_keys}, and C{get_public_keys} has to be set to C{True} for
+  the function to actually perform any actions.
+
+  @type node_list: list of SshAddNodeInfo tuples
+  @param node_list: list of tuples containing the necessary node information for
+    adding their keys
+  @type potential_master_candidates: list of str
+  @param potential_master_candidates: list of node names of potential master
+    candidates; this should match the list of uuids in the public key file
+
+  """
+  # whether there are any keys to be added or retrieved at all
+  to_authorized_keys = any([node_info.to_authorized_keys for node_info in
+                            node_list])
+  to_public_keys = any([node_info.to_public_keys for node_info in
+                        node_list])
+  get_public_keys = any([node_info.get_public_keys for node_info in
+                         node_list])
+
   # assure that at least one of those flags is true, as the function would
   # not do anything otherwise
   assert (to_authorized_keys or to_public_keys or get_public_keys)
@@ -1460,30 +1507,39 @@ def AddNodeSshKey(node_uuid, node_name,
   if not ssconf_store:
     ssconf_store = ssconf.SimpleStore()
 
-  # Check and fix sanity of key file
-  keys_by_name = ssh.QueryPubKeyFile([node_name], key_file=pub_key_file)
-  keys_by_uuid = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
+  for node_info in node_list:
+    # replacement not necessary for keys that are not supposed to be in the
+    # list of public keys
+    if not node_info.to_public_keys:
+      continue
+    # Check and fix sanity of key file
+    keys_by_name = ssh.QueryPubKeyFile([node_info.name], key_file=pub_key_file)
+    keys_by_uuid = ssh.QueryPubKeyFile([node_info.uuid], key_file=pub_key_file)
 
-  if (not keys_by_name or node_name not in keys_by_name) \
-      and (not keys_by_uuid or node_uuid not in keys_by_uuid):
-    raise errors.SshUpdateError(
-      "No keys found for the new node '%s' (UUID %s) in the list of public"
-      " SSH keys, neither for the name or the UUID" % (node_name, node_uuid))
-  else:
-    if node_name in keys_by_name:
-      keys_by_uuid = {}
-      # Replace the name by UUID in the file as the name should only be used
-      # temporarily
-      ssh.ReplaceNameByUuid(node_uuid, node_name,
-                            error_fn=errors.SshUpdateError,
-                            key_file=pub_key_file)
-      keys_by_uuid[node_uuid] = keys_by_name[node_name]
+    if (not keys_by_name or node_info.name not in keys_by_name) \
+        and (not keys_by_uuid or node_info.uuid not in keys_by_uuid):
+      raise errors.SshUpdateError(
+        "No keys found for the new node '%s' (UUID %s) in the list of public"
+        " SSH keys, neither for the name or the UUID" %
+        (node_info.name, node_info.uuid))
+    else:
+      if node_info.name in keys_by_name:
+        # Replace the name by UUID in the file as the name should only be used
+        # temporarily
+        ssh.ReplaceNameByUuid(node_info.uuid, node_info.name,
+                              error_fn=errors.SshUpdateError,
+                              key_file=pub_key_file)
+
+  # Retrieve updated map of UUIDs to keys
+  keys_by_uuid = ssh.QueryPubKeyFile(
+      [node_info.uuid for node_info in node_list], key_file=pub_key_file)
 
   # Update the master node's key files
-  if to_authorized_keys:
-    (auth_key_file, _) = \
-      ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
-    ssh.AddAuthorizedKeys(auth_key_file, keys_by_uuid[node_uuid])
+  (auth_key_file, _) = \
+    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
+  for node_info in node_list:
+    if node_info.to_authorized_keys:
+      ssh.AddAuthorizedKeys(auth_key_file, keys_by_uuid[node_info.uuid])
 
   base_data = {}
   _InitSshUpdateData(base_data, noded_cert_file, ssconf_store)
@@ -1491,38 +1547,47 @@ def AddNodeSshKey(node_uuid, node_name,
 
   ssh_port_map = ssconf_store.GetSshPortMap()
 
-  # Update the target node itself
-  logging.debug("Updating SSH key files of target node '%s'.", node_name)
-  if get_public_keys:
-    node_data = {}
-    _InitSshUpdateData(node_data, noded_cert_file, ssconf_store)
-    all_keys = ssh.QueryPubKeyFile(None, key_file=pub_key_file)
-    node_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-      (constants.SSHS_OVERRIDE, all_keys)
+  # Update the target nodes themselves
+  for node_info in node_list:
+    logging.debug("Updating SSH key files of target node '%s'.", node_info.name)
+    if node_info.get_public_keys:
+      node_data = {}
+      _InitSshUpdateData(node_data, noded_cert_file, ssconf_store)
+      all_keys = ssh.QueryPubKeyFile(None, key_file=pub_key_file)
+      node_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
+        (constants.SSHS_OVERRIDE, all_keys)
 
-    try:
-      utils.RetryByNumberOfTimes(
-          constants.SSHS_MAX_RETRIES,
-          errors.SshUpdateError,
-          run_cmd_fn, cluster_name, node_name, pathutils.SSH_UPDATE,
-          ssh_port_map.get(node_name), node_data,
-          debug=False, verbose=False, use_cluster_key=False,
-          ask_key=False, strict_host_check=False)
-    except errors.SshUpdateError as e:
-      # Clean up the master's public key file if adding key fails
-      if to_public_keys:
-        ssh.RemovePublicKey(node_uuid)
-      raise e
+      try:
+        utils.RetryByNumberOfTimes(
+            constants.SSHS_MAX_RETRIES,
+            errors.SshUpdateError,
+            run_cmd_fn, cluster_name, node_info.name, pathutils.SSH_UPDATE,
+            ssh_port_map.get(node_info.name), node_data,
+            debug=False, verbose=False, use_cluster_key=False,
+            ask_key=False, strict_host_check=False)
+      except errors.SshUpdateError as e:
+        # Clean up the master's public key file if adding key fails
+        if node_info.to_public_keys:
+          ssh.RemovePublicKey(node_info.uuid)
+        raise e
 
-  # Update all nodes except master and the target node
+  # Update all nodes except master and the target nodes
+  keys_by_uuid_auth = ssh.QueryPubKeyFile(
+      [node_info.uuid for node_info in node_list
+       if node_info.to_authorized_keys],
+      key_file=pub_key_file)
   if to_authorized_keys:
     base_data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
-      (constants.SSHS_ADD, keys_by_uuid)
+      (constants.SSHS_ADD, keys_by_uuid_auth)
 
-  pot_mc_data = copy.deepcopy(base_data)
+  pot_mc_data = base_data.copy()
+  keys_by_uuid_pub = ssh.QueryPubKeyFile(
+      [node_info.uuid for node_info in node_list
+       if node_info.to_public_keys],
+      key_file=pub_key_file)
   if to_public_keys:
     pot_mc_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-      (constants.SSHS_REPLACE_OR_ADD, keys_by_uuid)
+      (constants.SSHS_REPLACE_OR_ADD, keys_by_uuid_pub)
 
   all_nodes = ssconf_store.GetNodeList()
   master_node = ssconf_store.GetMasterNode()
@@ -1550,7 +1615,7 @@ def AddNodeSshKey(node_uuid, node_name,
         error_msg = ("When adding the key of node '%s', updating SSH key"
                      " files of node '%s' failed after %s retries."
                      " Not trying again. Last error was: %s." %
-                     (node, node_name, constants.SSHS_MAX_RETRIES,
+                     (node, node_info.name, constants.SSHS_MAX_RETRIES,
                       last_exception))
         node_errors.append((node, error_msg))
         # We only log the error and don't throw an exception, because
@@ -1669,7 +1734,7 @@ def RemoveNodeSshKey(node_uuid, node_name,
                               dircheck=False)
         ssh.RemoveAuthorizedKeys(auth_key_file, keys[node_uuid])
 
-      pot_mc_data = copy.deepcopy(base_data)
+      pot_mc_data = base_data.copy()
 
       if from_public_keys:
         pot_mc_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
@@ -1686,6 +1751,9 @@ def RemoveNodeSshKey(node_uuid, node_name,
           continue
         if node not in online_nodes:
           logging.debug("Skipping offline node '%s'.", node)
+          continue
+        if node == node_name:
+          logging.debug("Skipping node itself '%s'.", node_name)
           continue
         ssh_port = ssh_port_map.get(node)
         if not ssh_port:
@@ -1784,8 +1852,8 @@ def RemoveNodeSshKey(node_uuid, node_name,
   return result_msgs
 
 
-def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
-                        pub_key_file=pathutils.SSH_PUB_KEYS,
+def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, ssh_key_type,
+                        ssh_key_bits, pub_key_file=pathutils.SSH_PUB_KEYS,
                         ssconf_store=None,
                         noded_cert_file=pathutils.NODED_CERT_FILE,
                         run_cmd_fn=ssh.RunSshCmdWithStdin,
@@ -1798,6 +1866,10 @@ def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
   @param node_name: name of the node whose key is remove
   @type ssh_port_map: dict of str to int
   @param ssh_port_map: mapping of node names to their SSH port
+  @type ssh_key_type: One of L{constants.SSHK_ALL}
+  @param ssh_key_type: the type of SSH key to be generated
+  @type ssh_key_bits: int
+  @param ssh_key_bits: the length of the key to be generated
 
   """
   if not ssconf_store:
@@ -1812,7 +1884,7 @@ def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
   data = {}
   _InitSshUpdateData(data, noded_cert_file, ssconf_store)
   cluster_name = data[constants.SSHS_CLUSTER_NAME]
-  data[constants.SSHS_GENERATE] = {constants.SSHS_SUFFIX: suffix}
+  data[constants.SSHS_GENERATE] = (ssh_key_type, ssh_key_bits, suffix)
 
   run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
              ssh_port_map.get(node_name), data,
@@ -1887,8 +1959,9 @@ def _ReplaceMasterKeyOnMaster(root_keyfiles):
 
 
 def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
-                 potential_master_candidates,
-                 pub_key_file=pathutils.SSH_PUB_KEYS,
+                 potential_master_candidates, old_key_type, new_key_type,
+                 new_key_bits,
+                 ganeti_pub_keys_file=pathutils.SSH_PUB_KEYS,
                  ssconf_store=None,
                  noded_cert_file=pathutils.NODED_CERT_FILE,
                  run_cmd_fn=ssh.RunSshCmdWithStdin):
@@ -1902,8 +1975,14 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
   @type master_candidate_uuids: list of str
   @param master_candidate_uuids: list of UUIDs of master candidates or
     master node
-  @type pub_key_file: str
-  @param pub_key_file: file path of the the public key file
+  @type old_key_type: One of L{constants.SSHK_ALL}
+  @param old_key_type: the type of SSH key already present on nodes
+  @type new_key_type: One of L{constants.SSHK_ALL}
+  @param new_key_type: the type of SSH key to be generated
+  @type new_key_bits: int
+  @param new_key_bits: the length of the key to be generated
+  @type ganeti_pub_keys_file: str
+  @param ganeti_pub_keys_file: file path of the the public key file
   @type noded_cert_file: str
   @param noded_cert_file: path of the noded SSL certificate file
   @type run_cmd_fn: function
@@ -1925,8 +2004,9 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
 
   (_, root_keyfiles) = \
     ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
-  (_, dsa_pub_keyfile) = root_keyfiles[constants.SSHK_DSA]
-  old_master_key = utils.ReadFile(dsa_pub_keyfile)
+  (_, old_pub_keyfile) = root_keyfiles[old_key_type]
+  (_, new_pub_keyfile) = root_keyfiles[new_key_type]
+  old_master_key = utils.ReadFile(old_pub_keyfile)
 
   node_uuid_name_map = zip(node_uuids, node_names)
 
@@ -1939,13 +2019,18 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
   all_node_errors = []
 
   # process non-master nodes
+
+  # keys to add in bulk at the end
+  node_keys_to_add = []
+
   for node_uuid, node_name in node_uuid_name_map:
     if node_name == master_node_name:
       continue
     master_candidate = node_uuid in master_candidate_uuids
     potential_master_candidate = node_name in potential_master_candidates
 
-    keys_by_uuid = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
+    keys_by_uuid = ssh.QueryPubKeyFile([node_uuid],
+                                       key_file=ganeti_pub_keys_file)
     if not keys_by_uuid:
       raise errors.SshUpdateError("No public key of node %s (UUID %s) found,"
                                   " not generating a new key."
@@ -1953,7 +2038,7 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
 
     if master_candidate:
       logging.debug("Fetching old SSH key from node '%s'.", node_name)
-      old_pub_key = ssh.ReadRemoteSshPubKeys(dsa_pub_keyfile,
+      old_pub_key = ssh.ReadRemoteSshPubKeys(old_pub_keyfile,
                                              node_name, cluster_name,
                                              ssh_port_map[node_name],
                                              False, # ask_key
@@ -1978,15 +2063,15 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                       " key. Not deleting that key on the node.", node_name)
 
     logging.debug("Generating new SSH key for node '%s'.", node_name)
-    _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map,
-                        pub_key_file=pub_key_file,
+    _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, new_key_type,
+                        new_key_bits, pub_key_file=ganeti_pub_keys_file,
                         ssconf_store=ssconf_store,
                         noded_cert_file=noded_cert_file,
                         run_cmd_fn=run_cmd_fn)
 
     try:
       logging.debug("Fetching newly created SSH key from node '%s'.", node_name)
-      pub_key = ssh.ReadRemoteSshPubKeys(dsa_pub_keyfile,
+      pub_key = ssh.ReadRemoteSshPubKeys(new_pub_keyfile,
                                          node_name, cluster_name,
                                          ssh_port_map[node_name],
                                          False, # ask_key
@@ -1996,30 +2081,35 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                                   " (UUID %s)" % (node_name, node_uuid))
 
     if potential_master_candidate:
-      ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
-      ssh.AddPublicKey(node_uuid, pub_key, key_file=pub_key_file)
+      ssh.RemovePublicKey(node_uuid, key_file=ganeti_pub_keys_file)
+      ssh.AddPublicKey(node_uuid, pub_key, key_file=ganeti_pub_keys_file)
 
-    logging.debug("Add ssh key of node '%s'.", node_name)
-    node_errors = AddNodeSshKey(
-        node_uuid, node_name, potential_master_candidates,
-        to_authorized_keys=master_candidate,
-        to_public_keys=potential_master_candidate,
-        get_public_keys=True,
-        pub_key_file=pub_key_file, ssconf_store=ssconf_store,
-        noded_cert_file=noded_cert_file,
-        run_cmd_fn=run_cmd_fn)
-    if node_errors:
-      all_node_errors = all_node_errors + node_errors
+    node_info = SshAddNodeInfo(name=node_name,
+                               uuid=node_uuid,
+                               to_authorized_keys=master_candidate,
+                               to_public_keys=potential_master_candidate,
+                               get_public_keys=True)
+    node_keys_to_add.append(node_info)
+
+  node_errors = AddNodeSshKeyBulk(
+      node_keys_to_add, potential_master_candidates,
+      pub_key_file=ganeti_pub_keys_file, ssconf_store=ssconf_store,
+      noded_cert_file=noded_cert_file,
+      run_cmd_fn=run_cmd_fn)
+  if node_errors:
+    all_node_errors = all_node_errors + node_errors
 
   # Renewing the master node's key
 
   # Preserve the old keys for now
-  old_master_keys_by_uuid = _GetOldMasterKeys(master_node_uuid, pub_key_file)
+  old_master_keys_by_uuid = _GetOldMasterKeys(master_node_uuid,
+                                              ganeti_pub_keys_file)
 
   # Generate a new master key with a suffix, don't touch the old one for now
   logging.debug("Generate new ssh key of master.")
   _GenerateNodeSshKey(master_node_uuid, master_node_name, ssh_port_map,
-                      pub_key_file=pub_key_file,
+                      new_key_type, new_key_bits,
+                      pub_key_file=ganeti_pub_keys_file,
                       ssconf_store=ssconf_store,
                       noded_cert_file=noded_cert_file,
                       run_cmd_fn=run_cmd_fn,
@@ -2028,16 +2118,16 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
   new_master_key_dict = _GetNewMasterKey(root_keyfiles, master_node_uuid)
 
   # Replace master key in the master nodes' public key file
-  ssh.RemovePublicKey(master_node_uuid, key_file=pub_key_file)
+  ssh.RemovePublicKey(master_node_uuid, key_file=ganeti_pub_keys_file)
   for pub_key in new_master_key_dict[master_node_uuid]:
-    ssh.AddPublicKey(master_node_uuid, pub_key, key_file=pub_key_file)
+    ssh.AddPublicKey(master_node_uuid, pub_key, key_file=ganeti_pub_keys_file)
 
   # Add new master key to all node's public and authorized keys
   logging.debug("Add new master key to all nodes.")
   node_errors = AddNodeSshKey(
       master_node_uuid, master_node_name, potential_master_candidates,
       to_authorized_keys=True, to_public_keys=True,
-      get_public_keys=False, pub_key_file=pub_key_file,
+      get_public_keys=False, pub_key_file=ganeti_pub_keys_file,
       ssconf_store=ssconf_store, noded_cert_file=noded_cert_file,
       run_cmd_fn=run_cmd_fn)
   if node_errors:

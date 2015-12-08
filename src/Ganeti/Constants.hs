@@ -609,7 +609,7 @@ rsaKeyBits = 2048
 -- after it's been removed. Use the "openssl" utility to check the
 -- allowed ciphers, e.g.  "openssl ciphers -v HIGH:-DES".
 opensslCiphers :: String
-opensslCiphers = "HIGH:-DES:-3DES:-EXPORT:-ADH"
+opensslCiphers = "HIGH:-DES:-3DES:-EXPORT:-DH"
 
 -- * X509
 
@@ -4713,13 +4713,13 @@ cryptoOptionSerialNo = "serial_no"
 -- * SSH key types
 
 sshkDsa :: String
-sshkDsa = "dsa"
+sshkDsa = Types.sshKeyTypeToRaw DSA
 
 sshkEcdsa :: String
-sshkEcdsa = "ecdsa"
+sshkEcdsa = Types.sshKeyTypeToRaw ECDSA
 
 sshkRsa :: String
-sshkRsa = "rsa"
+sshkRsa = Types.sshKeyTypeToRaw RSA
 
 sshkAll :: FrozenSet String
 sshkAll = ConstantUtils.mkSet [sshkRsa, sshkDsa, sshkEcdsa]
@@ -4734,6 +4734,15 @@ sshakRsa = "ssh-rsa"
 
 sshakAll :: FrozenSet String
 sshakAll = ConstantUtils.mkSet [sshakDss, sshakRsa]
+
+-- * SSH key default values
+-- Document the change in gnt-cluster.rst when changing these
+
+sshDefaultKeyType :: String
+sshDefaultKeyType = sshkRsa
+
+sshDefaultKeyBits :: Int
+sshDefaultKeyBits = 2048
 
 -- * SSH setup
 
@@ -4754,6 +4763,12 @@ sshsSshPublicKeys = "public_keys"
 
 sshsNodeDaemonCertificate :: String
 sshsNodeDaemonCertificate = "node_daemon_certificate"
+
+sshsSshKeyType :: String
+sshsSshKeyType = "ssh_key_type"
+
+sshsSshKeyBits :: String
+sshsSshKeyBits = "ssh_key_bits"
 
 -- Number of maximum retries when contacting nodes per SSH
 -- during SSH update operations.

@@ -39,6 +39,20 @@ New features
   parameter, see :doc:`N+M Redundancy <design-n-m-redundancy>`.
 
 
+Version 2.16.0 beta2
+--------------------
+
+*(unreleased)*
+
+Incompatible/important changes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The options ``--no-node-setup`` of ``gnt-node add`` is disabled.
+  Instead, the cluster configuration parameter ``modify_ssh_setup`` is
+  used to determine whether or not to manipulate the SSH setup of a new
+  node.
+
+
 Version 2.16.0 beta1
 --------------------
 
