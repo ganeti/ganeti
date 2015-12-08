@@ -416,7 +416,7 @@ prop_addSec_idempotent =
       inst'' = inst' { Instance.diskTemplate = Types.DTDrbd8 }
   in case Node.addSec node inst'' pdx of
        Ok node' -> Node.removeSec node' inst'' ==? node
-       _ -> failTest "Can't add instance"
+       Bad r -> failTest $ "Can't add instance" ++ show r
 
 -- | Check that no graph is created on an empty node list.
 case_emptyNodeList :: Assertion
