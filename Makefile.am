@@ -724,6 +724,7 @@ docinput = \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
 	doc/design-query-splitting.rst \
+	doc/design-rapi-pam.rst \
 	doc/design-reason-trail.rst \
 	doc/design-repaird.rst \
 	doc/design-reservations.rst \

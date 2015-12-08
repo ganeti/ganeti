@@ -115,6 +115,8 @@ CONTINUE.
 Filter chains are processed in increasing order of priority (lowest number
 means highest priority), then watermark, then UUID.
 
+.. _filter-predicates:
+
 Predicates available for the filter rules
 -----------------------------------------
 

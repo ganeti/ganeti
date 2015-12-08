@@ -107,6 +107,7 @@ Alternatively, the appropriate parameter of your HTTP client
    In the current version ``ganeti-rapi``'s realm, ``Ganeti Remote
    API``, can only be changed by modifying the source code.
 
+.. _basic-protocol:
 
 Protocol
 --------

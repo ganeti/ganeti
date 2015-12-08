@@ -140,6 +140,7 @@ Draft designs
    design-plain-redundancy.rst
    design-query2.rst
    design-query-splitting.rst
+   design-rapi-pam.rst
    design-reason-trail.rst
    design-repaird.rst
    design-restricted-commands.rst
