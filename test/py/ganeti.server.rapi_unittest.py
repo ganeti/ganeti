@@ -47,6 +47,7 @@ from ganeti import http
 from ganeti import objects
 
 import ganeti.rapi.baserlib
+from ganeti.rapi import users_file
 import ganeti.rapi.testutils
 import ganeti.rapi.rlib2
 import ganeti.http.auth
@@ -178,16 +179,14 @@ class TestRemoteApiHandler(unittest.TestCase):
 
     def _LookupUserNoWrite(name):
       if name == username:
-        return http.auth.PasswordFileUser(name, password, [])
+        return users_file.PasswordFileUser(name, password, [])
       else:
         return None
 
     for access in [rapi.RAPI_ACCESS_WRITE, rapi.RAPI_ACCESS_READ]:
       def _LookupUserWithWrite(name):
         if name == username:
-          return http.auth.PasswordFileUser(name, password, [
-            access,
-            ])
+          return users_file.PasswordFileUser(name, password, [access])
         else:
           return None
 

@@ -568,7 +568,8 @@ rapi_PYTHON = \
 	lib/rapi/client_utils.py \
 	lib/rapi/connector.py \
 	lib/rapi/rlib2.py \
-	lib/rapi/testutils.py
+	lib/rapi/testutils.py \
+	lib/rapi/users_file.py
 
 http_PYTHON = \
 	lib/http/__init__.py \

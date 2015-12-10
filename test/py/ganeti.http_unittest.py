@@ -42,6 +42,7 @@ from cStringIO import StringIO
 
 from ganeti import http
 from ganeti import compat
+from ganeti.rapi import users_file
 
 import ganeti.http.server
 import ganeti.http.client
@@ -306,7 +307,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
 
 class TestReadPasswordFile(unittest.TestCase):
   def testSimple(self):
-    users = http.auth.ParsePasswordFile("user1 password")
+    users = users_file.ParsePasswordFile("user1 password")
     self.assertEqual(len(users), 1)
     self.assertEqual(users["user1"].password, "password")
     self.assertEqual(len(users["user1"].options), 0)
@@ -321,7 +322,7 @@ class TestReadPasswordFile(unittest.TestCase):
     buf.write("   \t# Another comment\n")
     buf.write("invalidline\n")
 
-    users = http.auth.ParsePasswordFile(buf.getvalue())
+    users = users_file.ParsePasswordFile(buf.getvalue())
     self.assertEqual(len(users), 2)
     self.assertEqual(users["user1"].password, "password")
     self.assertEqual(len(users["user1"].options), 0)

@@ -38,7 +38,6 @@ import binascii
 
 from ganeti import compat
 from ganeti import http
-from ganeti import utils
 
 from cStringIO import StringIO
 
@@ -285,55 +284,3 @@ class HttpServerRequestAuthentication(object):
 
     return False
 
-
-class PasswordFileUser(object):
-  """Data structure for users from password file.
-
-  """
-  def __init__(self, name, password, options):
-    self.name = name
-    self.password = password
-    self.options = options
-
-
-def ParsePasswordFile(contents):
-  """Parses the contents of a password file.
-
-  Lines in the password file are of the following format::
-
-      <username> <password> [options]
-
-  Fields are separated by whitespace. Username and password are mandatory,
-  options are optional and separated by comma (','). Empty lines and comments
-  ('#') are ignored.
-
-  @type contents: str
-  @param contents: Contents of password file
-  @rtype: dict
-  @return: Dictionary containing L{PasswordFileUser} instances
-
-  """
-  users = {}
-
-  for line in utils.FilterEmptyLinesAndComments(contents):
-    parts = line.split(None, 2)
-    if len(parts) < 2:
-      # Invalid line
-      # TODO: Return line number from FilterEmptyLinesAndComments
-      logging.warning("Ignoring non-comment line with less than two fields")
-      continue
-
-    name = parts[0]
-    password = parts[1]
-
-    # Extract options
-    options = []
-    if len(parts) >= 3:
-      for part in parts[2].split(","):
-        options.append(part.strip())
-    else:
-      logging.warning("Ignoring values for user '%s': %s", name, parts[3:])
-
-    users[name] = PasswordFileUser(name, password, options)
-
-  return users

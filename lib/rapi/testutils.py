@@ -50,6 +50,7 @@ from ganeti import rapi
 
 import ganeti.http.server # pylint: disable=W0611
 import ganeti.server.rapi
+from ganeti.rapi import users_file
 import ganeti.rapi.client
 
 
@@ -363,8 +364,8 @@ class InputTestClient(object):
 
       """
       assert username == wanted
-      return http.auth.PasswordFileUser(username, password,
-                                        [rapi.RAPI_ACCESS_WRITE])
+      return users_file.PasswordFileUser(username, password,
+                                         [rapi.RAPI_ACCESS_WRITE])
 
     self._lcr = _LuxiCallRecorder()
 

@@ -40,7 +40,6 @@ import optparse
 import sys
 import os
 import os.path
-import errno
 
 try:
   from pyinotify import pyinotify # pylint: disable=E0611
@@ -55,10 +54,10 @@ from ganeti import ssconf
 import ganeti.rpc.errors as rpcerr
 from ganeti import serializer
 from ganeti import compat
-from ganeti import utils
 from ganeti import pathutils
 from ganeti.rapi import connector
 from ganeti.rapi import baserlib
+from ganeti.rapi import users_file
 
 import ganeti.http.auth   # pylint: disable=W0611
 import ganeti.http.server
@@ -214,53 +213,6 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     return serializer.DumpJson(result)
 
 
-class RapiUsers(object):
-  def __init__(self):
-    """Initializes this class.
-
-    """
-    self._users = None
-
-  def Get(self, username):
-    """Checks whether a user exists.
-
-    """
-    if self._users:
-      return self._users.get(username, None)
-    else:
-      return None
-
-  def Load(self, filename):
-    """Loads a file containing users and passwords.
-
-    @type filename: string
-    @param filename: Path to file
-
-    """
-    logging.info("Reading users file at %s", filename)
-    try:
-      try:
-        contents = utils.ReadFile(filename)
-      except EnvironmentError, err:
-        self._users = None
-        if err.errno == errno.ENOENT:
-          logging.warning("No users file at %s", filename)
-        else:
-          logging.warning("Error while reading %s: %s", filename, err)
-        return False
-
-      users = http.auth.ParsePasswordFile(contents)
-
-    except Exception, err: # pylint: disable=W0703
-      # We don't care about the type of exception
-      logging.error("Error while parsing %s: %s", filename, err)
-      return False
-
-    self._users = users
-
-    return True
-
-
 class FileEventHandler(asyncnotifier.FileEventHandlerBase):
   def __init__(self, wm, path, cb):
     """Initializes this class.
@@ -334,7 +286,7 @@ def PrepRapi(options, _):
   """
   mainloop = daemon.Mainloop()
 
-  users = RapiUsers()
+  users = users_file.RapiUsers()
 
   handler = RemoteApiHandler(users.Get, options.reqauth)
 
