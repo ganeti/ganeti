@@ -49,6 +49,7 @@ from ganeti import pathutils
 from ganeti.rapi import connector
 from ganeti.rapi import baserlib
 from ganeti.rapi.auth import basic_auth
+from ganeti.rapi.auth import pam
 
 import ganeti.http.auth   # pylint: disable=W0611
 import ganeti.http.server
@@ -215,7 +216,11 @@ def PrepRapi(options, _):
   """
   mainloop = daemon.Mainloop()
 
-  authenticator = basic_auth.BasicAuthenticator()
+  if options.pamauth:
+    options.reqauth = True
+    authenticator = pam.PamAuthenticator()
+  else:
+    authenticator = basic_auth.BasicAuthenticator()
 
   handler = RemoteApiHandler(authenticator, options.reqauth)
 
@@ -254,6 +259,10 @@ def Main():
                     default=False, action="store_true",
                     help=("Disable anonymous HTTP requests and require"
                           " authentication"))
+  parser.add_option("--pam-authentication", dest="pamauth",
+                    default=False, action="store_true",
+                    help=("Enable RAPI authentication and authorization via"
+                          " PAM"))
 
   daemon.GenericMain(constants.RAPI, parser, CheckRapi, PrepRapi, ExecRapi,
                      default_ssl_cert=pathutils.RAPI_CERT_FILE,
