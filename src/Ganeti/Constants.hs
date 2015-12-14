@@ -5562,3 +5562,10 @@ maintdSuccessTagPrefix = maintdPrefix ++ "repairready:"
 
 maintdFailureTagPrefix :: String
 maintdFailureTagPrefix = maintdPrefix ++ "repairfailed:"
+
+-- * RAPI PAM auth related constants
+
+-- | The name of ganeti rapi specific http header containing additional user
+-- credentials
+httpRapiPamCredential :: String
+httpRapiPamCredential = "Ganeti-RAPI-Credential"

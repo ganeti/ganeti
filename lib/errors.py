@@ -460,6 +460,12 @@ class SshUpdateError(GenericError):
   """
 
 
+class PamRapiAuthError(GenericError):
+  """Error in PAM remote API authenticator initialization.
+
+  """
+
+
 # errors should be added above
 
 

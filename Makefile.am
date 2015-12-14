@@ -575,6 +575,7 @@ rapi_PYTHON = \
 rapi_auth_PYTHON = \
 	lib/rapi/auth/__init__.py \
 	lib/rapi/auth/basic_auth.py \
+	lib/rapi/auth/pam.py \
 	lib/rapi/auth/users_file.py
 
 http_PYTHON = \
