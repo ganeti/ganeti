@@ -46,8 +46,8 @@ from ganeti import rapi
 from ganeti import http
 from ganeti import objects
 
-import ganeti.rapi.baserlib
-from ganeti.rapi import users_file
+from ganeti.rapi.auth.basic_auth import BasicAuthenticator
+from ganeti.rapi.auth import users_file
 import ganeti.rapi.testutils
 import ganeti.rapi.rlib2
 import ganeti.http.auth
@@ -63,7 +63,8 @@ class TestRemoteApiHandler(unittest.TestCase):
   def _Test(self, method, path, headers, reqbody,
             user_fn=NotImplemented, luxi_client=NotImplemented,
             reqauth=False):
-    rm = rapi.testutils._RapiMock(user_fn, luxi_client, reqauth=reqauth)
+    rm = rapi.testutils._RapiMock(BasicAuthenticator(user_fn), luxi_client,
+                                  reqauth=reqauth)
 
     (resp_code, resp_headers, resp_body) = \
       rm.FetchResponse(path, method, http.ParseHeaders(StringIO(headers)),
@@ -106,7 +107,8 @@ class TestRemoteApiHandler(unittest.TestCase):
     self.assertTrue(data["message"].startswith("Method PUT is unsupported"))
 
   def testPostInstancesNoAuth(self):
-    (code, _, _) = self._Test(http.HTTP_POST, "/2/instances", "", None)
+    (code, _, _) = self._Test(http.HTTP_POST, "/2/instances", "", None,
+                              reqauth=True)
     self.assertEqual(code, http.HttpUnauthorized.code)
 
   def testRequestWithUnsupportedMediaType(self):
@@ -135,7 +137,8 @@ class TestRemoteApiHandler(unittest.TestCase):
       "%s: %s" % (http.HTTP_AUTHORIZATION, "Unsupported scheme"),
       ])
 
-    (code, _, _) = self._Test(http.HTTP_POST, "/2/instances", headers, "")
+    (code, _, _) = self._Test(http.HTTP_POST, "/2/instances", headers, "",
+                              reqauth=True)
     self.assertEqual(code, http.HttpUnauthorized.code)
 
   def testIncompleteBasicAuth(self):
@@ -143,7 +146,8 @@ class TestRemoteApiHandler(unittest.TestCase):
       "%s: Basic" % http.HTTP_AUTHORIZATION,
       ])
 
-    (code, _, data) = self._Test(http.HTTP_POST, "/2/instances", headers, "")
+    (code, _, data) = self._Test(http.HTTP_POST, "/2/instances", headers, "",
+                                 reqauth=True)
     self.assertEqual(code, http.HttpBadRequest.code)
     self.assertEqual(data["message"],
                      "Basic authentication requires credentials")
@@ -155,8 +159,9 @@ class TestRemoteApiHandler(unittest.TestCase):
         "%s: Basic %s" % (http.HTTP_AUTHORIZATION, auth),
         ])
 
-      (code, _, data) = self._Test(http.HTTP_POST, "/2/instances", headers, "")
-      self.assertEqual(code, http.HttpUnauthorized.code)
+      (code, _, data) = self._Test(http.HTTP_POST, "/2/instances", headers, "",
+                                   reqauth=True)
+      self.assertEqual(code, http.HttpBadRequest.code)
 
   @staticmethod
   def _MakeAuthHeaders(username, password, correct_password):
@@ -197,7 +202,7 @@ class TestRemoteApiHandler(unittest.TestCase):
 
         for method in rapi.baserlib._SUPPORTED_METHODS:
           # No authorization
-          (code, _, _) = self._Test(method, path, "", "")
+          (code, _, _) = self._Test(method, path, "", "", reqauth=True)
 
           if method in (http.HTTP_DELETE, http.HTTP_POST):
             self.assertEqual(code, http.HttpNotImplemented.code)
@@ -207,22 +212,22 @@ class TestRemoteApiHandler(unittest.TestCase):
 
           # Incorrect user
           (code, _, _) = self._Test(method, path, header_fn(True), "",
-                                    user_fn=self._LookupWrongUser)
+                                    user_fn=self._LookupWrongUser, reqauth=True)
           self.assertEqual(code, http.HttpUnauthorized.code)
 
           # User has no write access, but the password is correct
           (code, _, _) = self._Test(method, path, header_fn(True), "",
-                                    user_fn=_LookupUserNoWrite)
+                                    user_fn=_LookupUserNoWrite, reqauth=True)
           self.assertEqual(code, http.HttpForbidden.code)
 
           # Wrong password and no write access
           (code, _, _) = self._Test(method, path, header_fn(False), "",
-                                    user_fn=_LookupUserNoWrite)
+                                    user_fn=_LookupUserNoWrite, reqauth=True)
           self.assertEqual(code, http.HttpUnauthorized.code)
 
           # Wrong password with write access
           (code, _, _) = self._Test(method, path, header_fn(False), "",
-                                    user_fn=_LookupUserWithWrite)
+                                    user_fn=_LookupUserWithWrite, reqauth=True)
           self.assertEqual(code, http.HttpUnauthorized.code)
 
           # Prepare request information
@@ -240,7 +245,8 @@ class TestRemoteApiHandler(unittest.TestCase):
           # User has write access, password is correct
           (code, _, data) = self._Test(method, reqpath, header_fn(True), body,
                                        user_fn=_LookupUserWithWrite,
-                                       luxi_client=_FakeLuxiClientForQuery)
+                                       luxi_client=_FakeLuxiClientForQuery,
+                                       reqauth=True)
           self.assertEqual(code, http.HTTP_OK)
           self.assertTrue(objects.QueryResponse.FromDict(data))
 
@@ -249,10 +255,14 @@ class TestRemoteApiHandler(unittest.TestCase):
 
     for method in rapi.baserlib._SUPPORTED_METHODS:
       for reqauth in [False, True]:
+        if method == http.HTTP_GET and not reqauth:
+          # we don't have a mock client to test this case
+          continue
         # No authorization
-        (code, _, _) = self._Test(method, path, "", "", reqauth=reqauth)
+        (code, _, _) = self._Test(method, path, "", "",
+                                  user_fn=lambda _ : None, reqauth=reqauth)
 
-        if method == http.HTTP_GET or reqauth:
+        if method == http.HTTP_GET and reqauth:
           self.assertEqual(code, http.HttpUnauthorized.code)
         else:
           self.assertEqual(code, http.HttpNotImplemented.code)

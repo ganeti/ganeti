@@ -99,6 +99,7 @@ httpdir = $(pkgpythondir)/http
 masterddir = $(pkgpythondir)/masterd
 confddir = $(pkgpythondir)/confd
 rapidir = $(pkgpythondir)/rapi
+rapi_authdir = $(pkgpythondir)/rapi/auth
 rpcdir = $(pkgpythondir)/rpc
 rpc_stubdir = $(pkgpythondir)/rpc/stub
 serverdir = $(pkgpythondir)/server
@@ -219,6 +220,7 @@ DIRS = \
 	lib/impexpd \
 	lib/masterd \
 	lib/rapi \
+	lib/rapi/auth \
 	lib/rpc \
 	lib/rpc/stub \
 	lib/server \
@@ -568,8 +570,12 @@ rapi_PYTHON = \
 	lib/rapi/client_utils.py \
 	lib/rapi/connector.py \
 	lib/rapi/rlib2.py \
-	lib/rapi/testutils.py \
-	lib/rapi/users_file.py
+	lib/rapi/testutils.py
+
+rapi_auth_PYTHON = \
+	lib/rapi/auth/__init__.py \
+	lib/rapi/auth/basic_auth.py \
+	lib/rapi/auth/users_file.py
 
 http_PYTHON = \
 	lib/http/__init__.py \
@@ -2121,6 +2127,7 @@ all_python_code = \
 	$(jqueue_PYTHON) \
 	$(storage_PYTHON) \
 	$(rapi_PYTHON) \
+	$(rapi_auth_PYTHON) \
 	$(server_PYTHON) \
 	$(rpc_PYTHON) \
 	$(rpc_stub_PYTHON) \

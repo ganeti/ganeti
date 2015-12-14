@@ -54,7 +54,7 @@ from ganeti import query
 from ganeti import rapi
 from ganeti import utils
 
-from ganeti.rapi.users_file import ParsePasswordFile
+from ganeti.rapi.auth.users_file import ParsePasswordFile
 import ganeti.rapi.client        # pylint: disable=W0611
 import ganeti.rapi.client_utils
 

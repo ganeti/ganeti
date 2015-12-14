@@ -136,8 +136,8 @@ class HttpServerRequestAuthentication(object):
     if not realm:
       raise AssertionError("No authentication realm")
 
-    # Check "Authorization" header
-    if self._CheckAuthorization(req):
+    # Check Authentication
+    if self.Authenticate(req):
       # User successfully authenticated
       return
 
@@ -155,24 +155,25 @@ class HttpServerRequestAuthentication(object):
 
     raise http.HttpUnauthorized(headers=headers)
 
-  def _CheckAuthorization(self, req):
-    """Checks 'Authorization' header sent by client.
+  @classmethod
+  def ExtractUserPassword(cls, req):
+    """Extracts a user and a password from the http authorization header.
 
     @type req: L{http.server._HttpServerRequest}
-    @param req: HTTP request context
-    @rtype: bool
-    @return: Whether user is allowed to execute request
-
+    @param req: HTTP request
+    @rtype: (str, str)
+    @return: A tuple containing a user and a password. One or both values
+             might be None if they are not presented
     """
     credentials = req.request_headers.get(http.HTTP_AUTHORIZATION, None)
     if not credentials:
-      return False
+      return None, None
 
     # Extract scheme
     parts = credentials.strip().split(None, 2)
     if len(parts) < 1:
       # Missing scheme
-      return False
+      return None, None
 
     # RFC2617, section 1.2: "[...] It uses an extensible, case-insensitive
     # token to identify the authentication scheme [...]"
@@ -183,7 +184,7 @@ class HttpServerRequestAuthentication(object):
       if len(parts) < 2:
         raise http.HttpBadRequest(message=("Basic authentication requires"
                                            " credentials"))
-      return self._CheckBasicAuthorization(req, parts[1])
+      return cls._ExtractBasicUserPassword(parts[1])
 
     elif scheme == HTTP_DIGEST_AUTH.lower():
       # TODO: Implement digest authentication
@@ -193,39 +194,72 @@ class HttpServerRequestAuthentication(object):
       pass
 
     # Unsupported authentication scheme
-    return False
+    return None, None
 
-  def _CheckBasicAuthorization(self, req, in_data):
-    """Checks credentials sent for basic authentication.
+  @staticmethod
+  def _ExtractBasicUserPassword(in_data):
+    """Extracts user and password from the contents of an authorization header.
 
-    @type req: L{http.server._HttpServerRequest}
-    @param req: HTTP request context
     @type in_data: str
     @param in_data: Username and password encoded as Base64
-    @rtype: bool
-    @return: Whether user is allowed to execute request
+    @rtype: (str, str)
+    @return: A tuple containing user and password. One or both values might be
+             None if they are not presented
 
     """
     try:
       creds = base64.b64decode(in_data.encode("ascii")).decode("ascii")
     except (TypeError, binascii.Error, UnicodeError):
       logging.exception("Error when decoding Basic authentication credentials")
-      return False
+      raise http.HttpBadRequest(message=("Invalid basic authorization header"))
 
     if ":" not in creds:
-      return False
+      # We have just a username without password
+      return creds, None
 
-    (user, password) = creds.split(":", 1)
+    # return (user, password) tuple
+    return creds.split(":", 1)
 
-    return self.Authenticate(req, user, password)
-
-  def Authenticate(self, req, user, password):
-    """Checks the password for a user.
+  def Authenticate(self, req):
+    """Checks the credentiales.
 
     This function MUST be overridden by a subclass.
 
     """
     raise NotImplementedError()
+
+  @classmethod
+  def ExtractSchemePassword(cls, expected_password):
+    """Extracts a scheme and a password from the expected_password.
+
+    @type expected_password: str
+    @param expected_password: Username and password encoded as Base64
+    @rtype: (str, str)
+    @return: A tuple containing a scheme and a password. Both values will be
+             None when an invalid scheme or password encoded
+
+    """
+    if expected_password is None:
+      return None, None
+    # Backwards compatibility for old-style passwords without a scheme
+    if not expected_password.startswith("{"):
+      expected_password = cls._CLEARTEXT_SCHEME + expected_password
+
+    # Check again, just to be sure
+    if not expected_password.startswith("{"):
+      raise AssertionError("Invalid scheme")
+
+    scheme_end_idx = expected_password.find("}", 1)
+
+    # Ensure scheme has a length of at least one character
+    if scheme_end_idx <= 1:
+      logging.warning("Invalid scheme in password")
+      return None, None
+
+    scheme = expected_password[:scheme_end_idx + 1].upper()
+    password = expected_password[scheme_end_idx + 1:]
+
+    return scheme, password
 
   def VerifyBasicAuthPassword(self, req, username, password, expected):
     """Checks the password for basic authentication.
@@ -245,23 +279,10 @@ class HttpServerRequestAuthentication(object):
                      users file)
 
     """
-    # Backwards compatibility for old-style passwords without a scheme
-    if not expected.startswith("{"):
-      expected = self._CLEARTEXT_SCHEME + expected
 
-    # Check again, just to be sure
-    if not expected.startswith("{"):
-      raise AssertionError("Invalid scheme")
-
-    scheme_end_idx = expected.find("}", 1)
-
-    # Ensure scheme has a length of at least one character
-    if scheme_end_idx <= 1:
-      logging.warning("Invalid scheme in password for user '%s'", username)
+    scheme, expected_password = self.ExtractSchemePassword(expected)
+    if scheme is None or password is None:
       return False
-
-    scheme = expected[:scheme_end_idx + 1].upper()
-    expected_password = expected[scheme_end_idx + 1:]
 
     # Good old plain text password
     if scheme == self._CLEARTEXT_SCHEME:
@@ -283,4 +304,3 @@ class HttpServerRequestAuthentication(object):
                     scheme, username)
 
     return False
-
