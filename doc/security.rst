@@ -185,6 +185,44 @@ Paths for certificate, private key and CA files required for SSL/TLS
 will be set at source configure time. Symlinks or command line
 parameters may be used to use different files.
 
+The RAPI binds to all interfaces by default, and allows read-only
+requests without the need for authentication. In the case that one of
+the interfaces RAPI binds to is publicly exposed, this will allow
+anyone in the world to read the state of the cluster, divulging
+potentially useful data such as the names of instances, their IP
+addresses, etc. Since the RAPI daemon resides on the master node as
+well, DoS attacks can result in Ganeti outages or issues with instances
+located on the master node.
+
+We recommend that you reduce the attack surface by either placing RAPI
+in an environment where you can control access to it, or should you
+need to expose it publicly, use various RAPI daemon options to lock
+functionality down to only what you need. RAPI daemon options are best
+added to ``/etc/default/ganeti``, the ``RAPI_ARGS`` variable. Some
+examples of situations where you might want to expose the RAPI are
+cross-cluster instance moves, which can be done only via the RAPI.
+
+If you do not use RAPI at all, we recommend that you lock it down by
+binding it to the loopback interface. This can be done by passing the
+``-b 127.0.0.1`` parameter to the RAPI daemon. Preventing the RAPI
+from starting or making it unreachable on the master node is not
+recommended, as the watcher performs health checks and will attempt to
+restart the daemon repeatedly.
+
+If you intend to use the RAPI and to expose it to the public, make sure
+to use the ``--require-authentication`` flag, disabling anonymous HTTP
+requests.
+
+Ganeti currently cannot protect users adequately from DoS attacks based
+on client-side HTTPS parameter renegotiation due to the Python OpenSSL
+library lacking necessary features. To protect yourself from these, the
+use of a HTTPS proxy handling this correctly is needed (e.g. nginx).
+Useful options for setting RAPI up for cooperation with the proxy are:
+
+- ``-p PORT`` for allowing the default RAPI port to be used by the
+  proxy
+- ``--no-ssl`` to disable SSL as it will be handled by the proxy anyway
+
 Inter-cluster instance moves
 ----------------------------
 
