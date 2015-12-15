@@ -807,7 +807,9 @@ def main():
 
   (options, args) = parser.parse_args()
 
-  utils.SetupToolLogging(options.debug, options.verbose)
+  utils.SetupToolLogging(
+      options.debug, options.verbose,
+      toolname=os.path.splitext(os.path.basename(__file__))[0])
 
   if not args:
     parser.error("No clusters specified")
