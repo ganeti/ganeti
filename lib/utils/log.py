@@ -34,10 +34,10 @@
 import os.path
 import logging
 import logging.handlers
-from cStringIO import StringIO
 
 from ganeti import constants
 from ganeti import compat
+from ganeti import pathutils
 
 
 class _ReopenableLogHandler(logging.handlers.BaseRotatingHandler):
@@ -188,7 +188,8 @@ def _ReopenLogFiles(handlers):
 
 def SetupLogging(logfile, program, debug=0, stderr_logging=False,
                  multithreaded=False, syslog=constants.SYSLOG_USAGE,
-                 console_logging=False, root_logger=None):
+                 console_logging=False, root_logger=None,
+                 verbose=True):
   """Configures the logging module.
 
   @type logfile: str
@@ -212,6 +213,8 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
       the system console if logging fails
   @type root_logger: logging.Logger
   @param root_logger: Root logger to use (for unittests)
+  @type verbose: boolean
+  @param verbose: whether to log at 'info' level already (logfile logging only)
   @raise EnvironmentError: if we can't open the log file and
       syslog/stderr logging is disabled
   @rtype: callable
@@ -267,8 +270,10 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
       logfile_handler.setFormatter(formatter)
       if debug:
         logfile_handler.setLevel(logging.DEBUG)
-      else:
+      elif verbose:
         logfile_handler.setLevel(logging.INFO)
+      else:
+        logfile_handler.setLevel(logging.WARN)
       root_logger.addHandler(logfile_handler)
       reopen_handlers.append(logfile_handler)
     except EnvironmentError:
@@ -282,11 +287,13 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
 
 
 def SetupToolLogging(debug, verbose, threadname=False,
-                     _root_logger=None, _stream=None):
+                     toolname=None):
   """Configures the logging module for tools.
 
-  All log messages are sent to stderr.
+  All log messages are sent to the tools.log logfile.
 
+  @type toolname: string
+  @param toolname: name of the tool that's logging
   @type debug: boolean
   @param debug: Disable log message filtering
   @type verbose: boolean
@@ -295,32 +302,18 @@ def SetupToolLogging(debug, verbose, threadname=False,
   @param threadname: Whether to include thread name in output
 
   """
-  if _root_logger is None:
-    root_logger = logging.getLogger("")
-  else:
-    root_logger = _root_logger
+  if not toolname:
+    toolname = "unspecified_tool"
 
-  fmt = StringIO()
-  fmt.write("%(asctime)s:")
-
-  if threadname:
-    fmt.write(" %(threadName)s")
-
-  if debug or verbose:
-    fmt.write(" %(levelname)s")
-
-  fmt.write(" %(message)s")
-
-  formatter = logging.Formatter(fmt.getvalue())
-
-  stderr_handler = logging.StreamHandler(_stream)
-  stderr_handler.setFormatter(formatter)
+  # 'SetupLogging' takes a quite unintuitive 'debug' option that
+  # is '0' for 'log higher than debug level' and '1' for
+  # 'log at NOSET' level. Hence this conversion.
+  debug_int = 0
   if debug:
-    stderr_handler.setLevel(logging.NOTSET)
-  elif verbose:
-    stderr_handler.setLevel(logging.INFO)
-  else:
-    stderr_handler.setLevel(logging.WARNING)
+    debug_int = 1
 
-  root_logger.setLevel(logging.NOTSET)
-  root_logger.addHandler(stderr_handler)
+  SetupLogging(pathutils.LOG_TOOLS,
+               program=toolname,
+               debug=debug_int,
+               multithreaded=threadname,
+               verbose=verbose)
