@@ -525,6 +525,7 @@ data FilterPredicate
   = FPJobId (Filter FilterField)
   | FPOpCode (Filter FilterField)
   | FPReason (Filter FilterField)
+  | FPUser (Filter FilterField)
   deriving (Eq, Ord, Show)
 
 
@@ -533,6 +534,7 @@ instance JSON FilterPredicate where
     FPJobId expr  -> JSArray [string "jobid",  showJSON expr]
     FPOpCode expr -> JSArray [string "opcode", showJSON expr]
     FPReason expr -> JSArray [string "reason", showJSON expr]
+    FPUser expr   -> JSArray [string "user", showJSON expr]
     where
       string = JSString . toJSString
 
@@ -542,6 +544,7 @@ instance JSON FilterPredicate where
       | name == toJSString "jobid"  -> FPJobId <$> readJSON expr
       | name == toJSString "opcode" -> FPOpCode <$> readJSON expr
       | name == toJSString "reason" -> FPReason <$> readJSON expr
+      | name == toJSString "user"   -> FPUser <$> readJSON expr
     JSArray (JSString name:params) ->
       fail $ "malformed FilterPredicate: bad parameter list for\
              \ '" ++ fromJSString name ++ "' predicate: "

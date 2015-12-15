@@ -51,6 +51,7 @@ import qualified Data.Set as Set
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
+import Ganeti.Constants (opcodeReasonSrcRlib2, opcodeReasonAuthUser)
 import Ganeti.Errors
 import Ganeti.Lens hiding (chosen)
 import Ganeti.JQScheduler.Types
@@ -86,6 +87,16 @@ opCodesOf job =
 reasonsOf :: QueuedJob -> [ReasonElem]
 reasonsOf job = job ^.. qjOpsL . traverse . qoInputL . validOpCodeL
                         . metaParamsL . opReasonL . traverse
+
+
+-- | Authenticated RAPI user submitted a job. It's always the last entry
+userOf :: QueuedJob -> String -> String
+userOf job default_user =
+  foldl extractRapiUser default_user $ reasonsOf job
+  where extractRapiUser current_user (source, reason, _) =
+          if source == opcodeReasonSrcRlib2
+          then fromMaybe current_user (stripPrefix opcodeReasonAuthUser reason)
+          else current_user
 
 
 -- | Like `evaluateFilterM`, but allowing only `Comparator` operations;
@@ -142,6 +153,9 @@ matchPredicate job watermark predicate = case predicate of
             "timestamp" -> Just $ NumericValue timestamp `comp` val
             _           -> Nothing
     in any reasonMatches (reasonsOf job)
+  FPUser fil -> evaluateFilterComparator fil $ \comp field val -> case field of
+                  "user" -> Just $ (QuotedString $ userOf job "") `comp` val
+                  _      -> Nothing
 
 
 -- | Whether all predicates of the filter rule are true for the job.

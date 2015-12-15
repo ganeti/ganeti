@@ -58,6 +58,12 @@ Filter rules consist of the following:
     This predicate is true, if one of the entries of one of the opcodes
     in this job satisfies the expression.
 
+  - ``user``. Only parameter is a boolean expression.
+    For this expression, there is only one field available ``user``,
+    which represents the authorized user submitted a job via RAPI.
+    If a job is submitted by any other interface or an authentication is
+    turned off in RAPI, it will contain an empty string.
+
 - An ``action``. One of:
 
   - ACCEPT. The job will be accepted; no further filter rules
