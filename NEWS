@@ -150,6 +150,81 @@ This was the first beta release of the 2.14 series. All important changes
 are listed in the latest 2.14 entry.
 
 
+Version 2.13.3
+--------------
+
+*(Released Mon, 14 Dec 2015)*
+
+Important changes and security notes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Security release.
+
+CVE-2015-7944
+
+Ganeti provides a RESTful control interface called the RAPI. Its HTTPS
+implementation is vulnerable to DoS attacks via client-initiated SSL
+parameter renegotiation. While the interface is not meant to be exposed
+publicly, due to the fact that it binds to all interfaces, we believe
+some users might be exposing it unintentionally and are vulnerable. A
+DoS attack can consume resources meant for Ganeti daemons and instances
+running on the master node, making both perform badly.
+
+Fixes are not feasible due to the OpenSSL Python library not exposing
+functionality needed to disable client-side renegotiation. Instead, we
+offer instructions on how to control RAPI's exposure, along with info
+on how RAPI can be setup alongside an HTTPS proxy in case users still
+want or need to expose the RAPI interface. The instructions are
+outlined in Ganeti's security document: doc/html/security.html
+
+CVE-2015-7945
+
+Ganeti leaks the DRBD secret through the RAPI interface. Examining job
+results after an instance information job reveals the secret. With the
+DRBD secret, access to the local cluster network, and ARP poisoning,
+an attacker can impersonate a Ganeti node and clone the disks of a
+DRBD-based instance. While an attacker with access to the cluster
+network is already capable of accessing any data written as DRBD
+traffic is unencrypted, having the secret expedites the process and
+allows access to the entire disk.
+
+Fixes contained in this release prevent the secret from being exposed
+via the RAPI. The DRBD secret can be changed by converting an instance
+to plain and back to DRBD, generating a new secret, but redundancy will
+be lost until the process completes.
+Since attackers with node access are capable of accessing some and
+potentially all data even without the secret, we do not recommend that
+the secret be changed for existing instances.
+
+Minor changes
+~~~~~~~~~~~~~
+
+- Calculate correct affected nodes set in InstanceChangeGroup
+  (Issue 1144)
+- Do not retry all requests after connection timeouts to prevent
+  repeated job submission
+- Fix reason trails of expanding opcodes
+- Make lockConfig call retryable
+- Extend timeout for gnt-cluster renew-crypto
+- Return the correct error code in the post-upgrade script
+- Make OpenSSL refrain from DH altogether
+- Fix upgrades of instances with missing creation time
+- Make htools tolerate missing "dtotal" and "dfree" on luxi
+- Fix default for --default-iallocator-params
+- Renew-crypto: stop daemons on master node first
+- Don't warn about broken SSH setup of offline nodes (Issue 1131)
+- At IAlloc backend guess state from admin state
+- Only search for Python-2 interpreters
+- Handle Xen 4.3 states better
+- Improve xl socat migrations
+- replace-disks: fix --ignore-ipolicy
+- Fix disabling of user shutdown reporting
+- Fix operations on empty nodes by accepting allocation of 0 jobs
+- Fix instance multi allocation for non-DRBD disks
+- Redistribute master key on downgrade
+- Allow more failover options when using the --no-disk-moves flag
+
+
 Version 2.13.2
 --------------
 
@@ -320,6 +395,76 @@ Version 2.13.0 beta1
 
 This was the first beta release of the 2.13 series. All important changes
 are listed in the latest 2.13 entry.
+
+
+Version 2.12.6
+--------------
+
+*(Released Mon, 14 Dec 2015)*
+
+Important changes and security notes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Security release.
+
+CVE-2015-7944
+
+Ganeti provides a RESTful control interface called the RAPI. Its HTTPS
+implementation is vulnerable to DoS attacks via client-initiated SSL
+parameter renegotiation. While the interface is not meant to be exposed
+publicly, due to the fact that it binds to all interfaces, we believe
+some users might be exposing it unintentionally and are vulnerable. A
+DoS attack can consume resources meant for Ganeti daemons and instances
+running on the master node, making both perform badly.
+
+Fixes are not feasible due to the OpenSSL Python library not exposing
+functionality needed to disable client-side renegotiation. Instead, we
+offer instructions on how to control RAPI's exposure, along with info
+on how RAPI can be setup alongside an HTTPS proxy in case users still
+want or need to expose the RAPI interface. The instructions are
+outlined in Ganeti's security document: doc/html/security.html
+
+CVE-2015-7945
+
+Ganeti leaks the DRBD secret through the RAPI interface. Examining job
+results after an instance information job reveals the secret. With the
+DRBD secret, access to the local cluster network, and ARP poisoning,
+an attacker can impersonate a Ganeti node and clone the disks of a
+DRBD-based instance. While an attacker with access to the cluster
+network is already capable of accessing any data written as DRBD
+traffic is unencrypted, having the secret expedites the process and
+allows access to the entire disk.
+
+Fixes contained in this release prevent the secret from being exposed
+via the RAPI. The DRBD secret can be changed by converting an instance
+to plain and back to DRBD, generating a new secret, but redundancy will
+be lost until the process completes.
+Since attackers with node access are capable of accessing some and
+potentially all data even without the secret, we do not recommend that
+the secret be changed for existing instances.
+
+Minor changes
+~~~~~~~~~~~~~
+
+- Calculate correct affected nodes set in InstanceChangeGroup
+  (Issue 1144)
+- Do not retry all requests after connection timeouts to prevent
+  repeated job submission
+- Fix reason trails of expanding opcodes
+- Make lockConfig call retryable
+- Return the correct error code in the post-upgrade script
+- Make OpenSSL refrain from DH altogether
+- Fix upgrades of instances with missing creation time
+- Make htools tolerate missing "dtotal" and "dfree" on luxi
+- Fix default for --default-iallocator-params
+- At IAlloc backend guess state from admin state
+- Only search for Python-2 interpreters
+- Handle Xen 4.3 states better
+- replace-disks: fix --ignore-ipolicy
+- Fix disabling of user shutdown reporting
+- Fix operations on empty nodes by accepting allocation of 0 jobs
+- Fix instance multi allocation for non-DRBD disks
+- Allow more failover options when using the --no-disk-moves flag
 
 
 Version 2.12.5
@@ -680,6 +825,66 @@ This was the first beta release of the 2.12 series. All important changes
 are listed in the latest 2.12 entry.
 
 
+Version 2.11.8
+--------------
+
+*(Released Mon, 14 Dec 2015)*
+
+Important changes and security notes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Security release.
+
+CVE-2015-7944
+
+Ganeti provides a RESTful control interface called the RAPI. Its HTTPS
+implementation is vulnerable to DoS attacks via client-initiated SSL
+parameter renegotiation. While the interface is not meant to be exposed
+publicly, due to the fact that it binds to all interfaces, we believe
+some users might be exposing it unintentionally and are vulnerable. A
+DoS attack can consume resources meant for Ganeti daemons and instances
+running on the master node, making both perform badly.
+
+Fixes are not feasible due to the OpenSSL Python library not exposing
+functionality needed to disable client-side renegotiation. Instead, we
+offer instructions on how to control RAPI's exposure, along with info
+on how RAPI can be setup alongside an HTTPS proxy in case users still
+want or need to expose the RAPI interface. The instructions are
+outlined in Ganeti's security document: doc/html/security.html
+
+CVE-2015-7945
+
+Ganeti leaks the DRBD secret through the RAPI interface. Examining job
+results after an instance information job reveals the secret. With the
+DRBD secret, access to the local cluster network, and ARP poisoning,
+an attacker can impersonate a Ganeti node and clone the disks of a
+DRBD-based instance. While an attacker with access to the cluster
+network is already capable of accessing any data written as DRBD
+traffic is unencrypted, having the secret expedites the process and
+allows access to the entire disk.
+
+Fixes contained in this release prevent the secret from being exposed
+via the RAPI. The DRBD secret can be changed by converting an instance
+to plain and back to DRBD, generating a new secret, but redundancy will
+be lost until the process completes.
+Since attackers with node access are capable of accessing some and
+potentially all data even without the secret, we do not recommend that
+the secret be changed for existing instances.
+
+Minor changes
+~~~~~~~~~~~~~
+
+- Make htools tolerate missing "dtotal" and "dfree" on luxi
+- Fix default for --default-iallocator-params
+- At IAlloc backend guess state from admin state
+- replace-disks: fix --ignore-ipolicy
+- Fix instance multi allocation for non-DRBD disks
+- Trigger renew-crypto on downgrade to 2.11
+- Downgrade log-message for rereading job
+- Downgrade log-level for successful requests
+- Check for gnt-cluster before running gnt-cluster upgrade
+
+
 Version 2.11.7
 --------------
 
@@ -1038,6 +1243,83 @@ This was the first beta release of the 2.11 series. All important changes
 are listed in the latest 2.11 entry.
 
 
+Version 2.10.8
+--------------
+
+*(Released Fri, 11 Dec 2015)*
+
+Important changes and security notes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Security release.
+
+CVE-2015-7944
+
+Ganeti provides a RESTful control interface called the RAPI. Its HTTPS
+implementation is vulnerable to DoS attacks via client-initiated SSL
+parameter renegotiation. While the interface is not meant to be exposed
+publicly, due to the fact that it binds to all interfaces, we believe
+some users might be exposing it unintentionally and are vulnerable. A
+DoS attack can consume resources meant for Ganeti daemons and instances
+running on the master node, making both perform badly.
+
+Fixes are not feasible due to the OpenSSL Python library not exposing
+functionality needed to disable client-side renegotiation. Instead, we
+offer instructions on how to control RAPI's exposure, along with info
+on how RAPI can be setup alongside an HTTPS proxy in case users still
+want or need to expose the RAPI interface. The instructions are
+outlined in Ganeti's security document: doc/html/security.html
+
+CVE-2015-7945
+
+Ganeti leaks the DRBD secret through the RAPI interface. Examining job
+results after an instance information job reveals the secret. With the
+DRBD secret, access to the local cluster network, and ARP poisoning,
+an attacker can impersonate a Ganeti node and clone the disks of a
+DRBD-based instance. While an attacker with access to the cluster
+network is already capable of accessing any data written as DRBD
+traffic is unencrypted, having the secret expedites the process and
+allows access to the entire disk.
+
+Fixes contained in this release prevent the secret from being exposed
+via the RAPI. The DRBD secret can be changed by converting an instance
+to plain and back to DRBD, generating a new secret, but redundancy will
+be lost until the process completes.
+Since attackers with node access are capable of accessing some and
+potentially all data even without the secret, we do not recommend that
+the secret be changed for existing instances.
+
+Minor changes
+~~~~~~~~~~~~~
+
+- Make htools tolerate missing "dtotal" and "dfree" on luxi
+- At IAlloc backend guess state from admin state
+- replace-disks: fix --ignore-ipolicy
+- Fix instance multi allocation for non-DRBD disks
+- Check for gnt-cluster before running gnt-cluster upgrade
+- Work around a Python os.minor bug
+- Add IP-related checks after master-failover
+- Pass correct backend params in move-instance
+- Allow plain/DRBD conversions regardless of lack of disks
+- Fix MonD collector thunk leak
+- Stop MonD when removing a node from a cluster
+- Finalize backup only if successful
+- Fix file descriptor leak in Confd Client
+- Auto-upgrade hv_state_static and disk_state_static
+- Do not hardcode the Python path in CLI tools
+- Use the Python interpreter from ENV
+- ganeti.daemon: fix daemon mode with GnuTLS >= 3.3 (Issues 961, 964)
+- Ganeti.Daemon: always install SIGHUP handler (Issue 755)
+- Fix DRBD version check for non VM capable nodes
+- Fix handling of the --online option
+- Add warning against hvparam changes with live migrations
+- Only verify LVs in configured VG during cluster verify
+- Fix network info in case of multi NIC instances
+- On upgrades, check for upgrades to resume first
+- Pause watcher during upgrade
+- Allow instance disks to be added with --no-wait-for-sync
+
+
 Version 2.10.7
 --------------
 
@@ -1384,6 +1666,67 @@ before rc1.
 - Issue 621: Instance related opcodes do not aquire network/group locks
 - Issue 622: Assertion Error: Node locks differ from node resource locks
 - Issue 623: IPv6 Masterd <-> Luxid communication error
+
+
+Version 2.9.7
+-------------
+
+*(Released Fri, 11 Dec 2015)*
+
+Important changes and security notes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Security release.
+
+CVE-2015-7944
+
+Ganeti provides a RESTful control interface called the RAPI. Its HTTPS
+implementation is vulnerable to DoS attacks via client-initiated SSL
+parameter renegotiation. While the interface is not meant to be exposed
+publicly, due to the fact that it binds to all interfaces, we believe
+some users might be exposing it unintentionally and are vulnerable. A
+DoS attack can consume resources meant for Ganeti daemons and instances
+running on the master node, making both perform badly.
+
+Fixes are not feasible due to the OpenSSL Python library not exposing
+functionality needed to disable client-side renegotiation. Instead, we
+offer instructions on how to control RAPI's exposure, along with info
+on how RAPI can be setup alongside an HTTPS proxy in case users still
+want or need to expose the RAPI interface. The instructions are
+outlined in Ganeti's security document: doc/html/security.html
+
+CVE-2015-7945
+
+Ganeti leaks the DRBD secret through the RAPI interface. Examining job
+results after an instance information job reveals the secret. With the
+DRBD secret, access to the local cluster network, and ARP poisoning,
+an attacker can impersonate a Ganeti node and clone the disks of a
+DRBD-based instance. While an attacker with access to the cluster
+network is already capable of accessing any data written as DRBD
+traffic is unencrypted, having the secret expedites the process and
+allows access to the entire disk.
+
+Fixes contained in this release prevent the secret from being exposed
+via the RAPI. The DRBD secret can be changed by converting an instance
+to plain and back to DRBD, generating a new secret, but redundancy will
+be lost until the process completes.
+Since attackers with node access are capable of accessing some and
+potentially all data even without the secret, we do not recommend that
+the secret be changed for existing instances.
+
+Minor changes
+~~~~~~~~~~~~~
+
+- gnt-instance replace-disks no longer crashes when --ignore-policy is
+  passed to it
+- Stop MonD when removing a node from a cluster
+- Fix file descriptor leak in Confd client
+- Always install SIGHUP handler for Haskell daemons (Issue 755)
+- Make ganeti-cleaner switch to a safe working directory (Issue 880)
+- Make htools tolerate missing "spfree" on Luxi
+- DRBD parser: consume initial empty resource lines (Issue 869)
+- KVM: set IFF_ONE_QUEUE on created tap interfaces
+- Set exclusion tags correctly in requested instance
 
 
 Version 2.9.6
