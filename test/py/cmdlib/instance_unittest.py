@@ -2968,6 +2968,35 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
     self.assertEqual([disk], self.cfg.GetInstanceDisks(inst.uuid))
 
+  def testDetachAttachExtDisk(self):
+    """Check attach/detach functionality of ExtStorage disks.
+
+    """
+    disk = self.cfg.CreateDisk(uuid=self.mocked_disk_uuid,
+                               dev_type=constants.DT_EXT,
+                               params={
+                                 constants.IDISK_PROVIDER: "pvdr"
+                               })
+
+    inst = self.cfg.AddNewInstance(disks=[disk], primary_node=self.master)
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_DETACH,
+                         self.mocked_disk_uuid, {}]])
+
+    self.ExecOpCode(op)
+    self.assertEqual([], self.cfg.GetInstanceDisks(inst.uuid))
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst.name,
+                         disks=[[constants.DDM_ATTACH, 0,
+                                 {
+                                   'uuid': self.mocked_disk_uuid
+                                 }]])
+    self.ExecOpCode(op)
+    self.assertEqual([disk], self.cfg.GetInstanceDisks(inst.uuid))
+
   def testRemoveDiskRemovesStorageDir(self):
     inst = self.cfg.AddNewInstance(disks=[self.cfg.CreateDisk(dev_type='file')])
     op = self.CopyOpCode(self.op,
