@@ -906,6 +906,7 @@ RENEW-CRYPTO
 | [\--new-ssh-keys] [\--no-ssh-key-check]
 | [\--new-cluster-domain-secret] [\--cluster-domain-secret *filename*]
 | [\--ssh-key-type *type*] | [\--ssh-key-bits *bits*]
+| [\--verbose] | [\--debug]
 
 This command will stop all Ganeti daemons in the cluster and start
 them again once the new certificates and keys are replicated. The
@@ -950,6 +951,11 @@ information exchanged between separate clusters via a third party.
 The options ``--ssh-key-type`` and ``ssh-key-bits`` determine the
 properties of the disk types used. They are described in more detail
 in the ``init`` option description.
+
+The options ``--verbose`` and ``--debug`` increase the log level
+of underlying ssh calls to all nodes. If running ``renew-crypto``
+causes any problems, use them and inspect the ``tools.log`` file
+for any unusual output.
 
 REPAIR-DISK-SIZES
 ~~~~~~~~~~~~~~~~~

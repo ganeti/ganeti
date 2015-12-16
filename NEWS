@@ -16,6 +16,12 @@ Incompatible/important changes
   and ``xen-hvm`` because ``reserved_mem`` was reported incorrectly on them.
   If this ``hv_state`` parameter is not presented in an iallocator input, the
   old ``reserved_mem`` will be used.
+- Tools now log into a separate log file ``tools.log``. Also, each log
+  message of tools is now properly labelled with the name of the tool
+  that submitted the message.
+- The options ``--debug`` and ``--verbose`` of ``gnt-cluster
+  renew-crypto`` now (also) control the log level of the SSH calls to
+  all nodes.
 
 New features
 ~~~~~~~~~~~~
