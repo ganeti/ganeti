@@ -1238,8 +1238,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
         is_potential_master_candidate, is_master_candidate,
         is_master)
 
-    self.assertRaises(
-        AssertionError, backend.AddNodeSshKey, new_node_uuid, new_node_name,
+    backend.AddNodeSshKey(new_node_uuid, new_node_name,
         self._potential_master_candidates,
         to_authorized_keys=is_master_candidate,
         to_public_keys=is_potential_master_candidate,
@@ -1257,8 +1256,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     (node_list, key_map) = self._SetupNodeBulk(
         num_nodes, self._GetNewNumberedNormalNode)
 
-    self.assertRaises(
-        AssertionError, backend.AddNodeSshKeyBulk, node_list,
+    backend.AddNodeSshKeyBulk(node_list,
         self._potential_master_candidates,
         pub_key_file=self._pub_key_file,
         ssconf_store=self._ssconf_mock,
