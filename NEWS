@@ -2,6 +2,87 @@ News
 ====
 
 
+Version 2.15.2
+--------------
+
+*(Released Wed, 16 Dec 2015)*
+
+Important changes and security notes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Security release.
+
+CVE-2015-7944
+
+Ganeti provides a RESTful control interface called the RAPI. Its HTTPS
+implementation is vulnerable to DoS attacks via client-initiated SSL
+parameter renegotiation. While the interface is not meant to be exposed
+publicly, due to the fact that it binds to all interfaces, we believe
+some users might be exposing it unintentionally and are vulnerable. A
+DoS attack can consume resources meant for Ganeti daemons and instances
+running on the master node, making both perform badly.
+
+Fixes are not feasible due to the OpenSSL Python library not exposing
+functionality needed to disable client-side renegotiation. Instead, we
+offer instructions on how to control RAPI's exposure, along with info
+on how RAPI can be setup alongside an HTTPS proxy in case users still
+want or need to expose the RAPI interface. The instructions are
+outlined in Ganeti's security document: doc/html/security.html
+
+CVE-2015-7945
+
+Ganeti leaks the DRBD secret through the RAPI interface. Examining job
+results after an instance information job reveals the secret. With the
+DRBD secret, access to the local cluster network, and ARP poisoning,
+an attacker can impersonate a Ganeti node and clone the disks of a
+DRBD-based instance. While an attacker with access to the cluster
+network is already capable of accessing any data written as DRBD
+traffic is unencrypted, having the secret expedites the process and
+allows access to the entire disk.
+
+Fixes contained in this release prevent the secret from being exposed
+via the RAPI. The DRBD secret can be changed by converting an instance
+to plain and back to DRBD, generating a new secret, but redundancy will
+be lost until the process completes.
+Since attackers with node access are capable of accessing some and
+potentially all data even without the secret, we do not recommend that
+the secret be changed for existing instances.
+
+Minor changes
+~~~~~~~~~~~~~
+
+- Allow disk aittachment to diskless instances
+- Reduce memory footprint: Compute lock allocation strictly
+- Calculate correct affected nodes set in InstanceChangeGroup
+  (Issue 1144)
+- Reduce memory footprint: Don't keep input for error messages
+- Use bulk-adding of keys in renew-crypto
+- Reduce memory footprint: Send answers strictly
+- Reduce memory footprint: Store keys as ByteStrings
+- Reduce memory footprint: Encode UUIDs as ByteStrings
+- Do not retry all requests after connection timeouts to prevent
+  repeated job submission
+- Fix reason trails of expanding opcodes
+- Make lockConfig call retryable
+- Extend timeout for gnt-cluster renew-crypto
+- Return the correct error code in the post-upgrade script
+- Make OpenSSL refrain from DH altogether
+- Fix faulty iallocator type check
+- Improve cfgupgrade output in case of errors
+- Fix upgrades of instances with missing creation time
+- Support force option for deactivate disks on RAPI
+- Make htools tolerate missing "dtotal" and "dfree" on luxi
+- Fix default for --default-iallocator-params
+- Renew-crypto: stop daemons on master node first
+- Don't warn about broken SSH setup of offline nodes (Issue 1131)
+- Fix computation in network blocks
+- At IAlloc backend guess state from admin state
+- Set node tags in iallocator htools backend
+- Only search for Python-2 interpreters
+- Handle Xen 4.3 states better
+- Improve xl socat migrations
+
+
 Version 2.15.1
 --------------
 
