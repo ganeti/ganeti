@@ -568,7 +568,9 @@ _NODE_CALLS = [
     ("potential_master_candidates", None, "Potential master candidates"),
     ("old_key_type", None, "The type of key previously used"),
     ("new_key_type", None, "The type of key to generate"),
-    ("new_key_bits", None, "The length of the key to generate")],
+    ("new_key_bits", None, "The length of the key to generate"),
+    ("debug", None, "Set logging of SSH update tool to 'debug'."),
+    ("verbose", None, "Set logging of SSH update tool to 'info'.")],
     None, None, "Renew all SSH key pairs of all nodes nodes."),
   ]
 

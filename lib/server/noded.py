@@ -946,10 +946,12 @@ class NodeRequestHandler(http.server.HttpServerHandler):
     """
     (node_uuids, node_names, master_candidate_uuids,
      potential_master_candidates, old_key_type, new_key_type,
-     new_key_bits) = params
+     new_key_bits, debug, verbose) = params
     return backend.RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                                 potential_master_candidates, old_key_type,
-                                new_key_type, new_key_bits)
+                                new_key_type, new_key_bits,
+                                ssh_update_debug=debug,
+                                ssh_update_verbose=verbose)
 
   @staticmethod
   def perspective_node_ssh_key_remove(params):

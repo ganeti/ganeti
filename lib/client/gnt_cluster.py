@@ -1202,7 +1202,9 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
         node_certificates=new_node_cert or new_cluster_cert,
         renew_ssh_keys=new_ssh_keys,
         ssh_key_type=ssh_key_type,
-        ssh_key_bits=ssh_key_bits)
+        ssh_key_bits=ssh_key_bits,
+        verbose=verbose,
+        debug=debug)
     SubmitOpCode(renew_op, cl=cl)
 
   ToStdout("All requested certificates and keys have been replaced."
