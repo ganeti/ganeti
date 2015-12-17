@@ -565,6 +565,8 @@ def LeaveCluster(modify_ssh_setup):
       utils.RemoveFile(pub_key)
     except errors.OpExecError:
       logging.exception("Error while processing ssh files")
+    except IOError:
+      logging.exception("At least one SSH file was not accessible.")
 
   try:
     utils.RemoveFile(pathutils.CONFD_HMAC_KEY)
