@@ -349,6 +349,8 @@ $(genOpCode "OpCode"
       OpDoc.opNodeRemove,
      [ pNodeName
      , pNodeUuid
+     , pVerbose
+     , pDebug
      ],
      "node_name")
   , ("OpNodeAdd",
@@ -365,6 +367,8 @@ $(genOpCode "OpCode"
      , pVmCapable
      , pNdParams
      , pNodeSetup
+     , pVerbose
+     , pDebug
      ],
      "node_name")
   , ("OpNodeQueryvols",
@@ -422,6 +426,8 @@ $(genOpCode "OpCode"
      , pSecondaryIp
      , pNdParams
      , pPowered
+     , pVerbose
+     , pDebug
      ],
      "node_name")
   , ("OpNodePowercycle",

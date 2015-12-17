@@ -729,7 +729,8 @@ def TestNode(node):
   # Identifying the node - RAPI provides these itself
   IDENTIFIERS = ["node_name", "node_uuid"]
   # As the name states, these can be set but not retrieved yet
-  NOT_EXPOSED_YET = ["hv_state", "disk_state", "auto_promote"]
+  NOT_EXPOSED_YET = ["hv_state", "disk_state", "auto_promote",
+                     "debug", "verbose"]
 
   _DoGetPutTests("/2/nodes/%s" % node.primary,
                  "/2/nodes/%s/modify" % node.primary,

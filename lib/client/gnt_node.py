@@ -357,7 +357,9 @@ def AddNode(opts, args):
                          master_capable=opts.master_capable,
                          disk_state=disk_state,
                          hv_state=hv_state,
-                         node_setup=modify_ssh_setup)
+                         node_setup=modify_ssh_setup,
+                         verbose=opts.verbose,
+                         debug=opts.debug > 0)
   SubmitOpCode(op, opts=opts)
 
 
@@ -660,7 +662,9 @@ def RemoveNode(opts, args):
   @return: the desired exit code
 
   """
-  op = opcodes.OpNodeRemove(node_name=args[0])
+  op = opcodes.OpNodeRemove(node_name=args[0],
+                            debug=opts.debug > 0,
+                            verbose=opts.verbose)
   SubmitOpCode(op, opts=opts)
   return 0
 
@@ -1001,7 +1005,9 @@ def SetNodeParams(opts, args):
                                auto_promote=opts.auto_promote,
                                powered=opts.node_powered,
                                hv_state=hv_state,
-                               disk_state=disk_state)
+                               disk_state=disk_state,
+                               verbose=opts.verbose,
+                               debug=opts.debug > 0)
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -1161,7 +1167,7 @@ commands = {
      CAPAB_MASTER_OPT, CAPAB_VM_OPT, NODE_PARAMS_OPT, HV_STATE_OPT,
      DISK_STATE_OPT],
     "[-s ip] [--readd] [--no-ssh-key-check] [--force-join]"
-    " [--no-node-setup] [--verbose] [--network] <node_name>",
+    " [--no-node-setup] [--verbose] [--network] [--debug] <node_name>",
     "Add a node to the cluster"),
   "evacuate": (
     EvacuateNode, ARGS_ONE_NODE,
@@ -1207,7 +1213,7 @@ commands = {
     [MC_OPT, DRAINED_OPT, OFFLINE_OPT,
      CAPAB_MASTER_OPT, CAPAB_VM_OPT, SECONDARY_IP_OPT,
      AUTO_PROMOTE_OPT, DRY_RUN_OPT, PRIORITY_OPT, NODE_PARAMS_OPT,
-     NODE_POWERED_OPT, HV_STATE_OPT, DISK_STATE_OPT],
+     NODE_POWERED_OPT, HV_STATE_OPT, DISK_STATE_OPT, VERBOSE_OPT],
     "<node_name>", "Alters the parameters of a node"),
   "powercycle": (
     PowercycleNode, ARGS_ONE_NODE,
@@ -1224,8 +1230,8 @@ commands = {
     "on|off|cycle|status [nodes...]",
     "Change power state of node by calling out-of-band helper."),
   "remove": (
-    RemoveNode, ARGS_ONE_NODE, [DRY_RUN_OPT, PRIORITY_OPT],
-    "<node_name>", "Removes a node from the cluster"),
+    RemoveNode, ARGS_ONE_NODE, [DRY_RUN_OPT, PRIORITY_OPT, VERBOSE_OPT],
+    "[--verbose] [--debug] <node_name>", "Removes a node from the cluster"),
   "volumes": (
     ListVolumes, [ArgNode()],
     [NOHDR_OPT, SEP_OPT, USEUNITS_OPT, FIELDS_OPT, PRIORITY_OPT],

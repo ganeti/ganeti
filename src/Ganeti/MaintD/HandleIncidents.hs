@@ -107,6 +107,8 @@ drainJob name = do
                       , opSecondaryIp = Nothing
                       , opgenericNdParams = Nothing
                       , opPowered = Nothing
+                      , opVerbose = False
+                      , opDebug = False
                       } ]
 
 -- | Submit and register the next job for a node evacuation.

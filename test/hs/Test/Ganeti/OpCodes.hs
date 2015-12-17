@@ -277,12 +277,13 @@ instance Arbitrary OpCodes.OpCode where
           arbitrary <*> arbitrary <*> arbitrary <*>
           (arbitrary `suchThat` (>0))
       "OP_NODE_REMOVE" ->
-        OpCodes.OpNodeRemove <$> genNodeNameNE <*> return Nothing
+        OpCodes.OpNodeRemove <$> genNodeNameNE <*> return Nothing <*>
+          arbitrary <*> arbitrary
       "OP_NODE_ADD" ->
         OpCodes.OpNodeAdd <$> genNodeNameNE <*> emptyMUD <*> emptyMUD <*>
           genMaybe genNameNE <*> genMaybe genNameNE <*> arbitrary <*>
           genMaybe genNameNE <*> arbitrary <*> arbitrary <*> emptyMUD <*>
-          arbitrary
+          arbitrary <*> arbitrary <*> arbitrary
       "OP_NODE_QUERYVOLS" ->
         OpCodes.OpNodeQueryvols <$> genNamesNE <*> genNodeNamesNE
       "OP_NODE_QUERY_STORAGE" ->
@@ -298,7 +299,8 @@ instance Arbitrary OpCodes.OpCode where
         OpCodes.OpNodeSetParams <$> genNodeNameNE <*> return Nothing <*>
           arbitrary <*> emptyMUD <*> emptyMUD <*> arbitrary <*> arbitrary <*>
           arbitrary <*> arbitrary <*> arbitrary <*> arbitrary <*>
-          genMaybe genNameNE <*> emptyMUD <*> arbitrary
+          genMaybe genNameNE <*> emptyMUD <*> arbitrary <*> arbitrary <*>
+          arbitrary
       "OP_NODE_POWERCYCLE" ->
         OpCodes.OpNodePowercycle <$> genNodeNameNE <*> return Nothing <*>
           arbitrary

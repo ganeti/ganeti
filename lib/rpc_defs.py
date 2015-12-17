@@ -543,7 +543,9 @@ _NODE_CALLS = [
     ("to_public_keys", None, "Whether the node's key should be added"
      " to all nodes' public key file"),
     ("get_public_keys", None, "Whether the node should get the other nodes'"
-     " public keys")],
+     " public keys"),
+    ("debug", None, "Set loglevel of ssh calls to 'debug'."),
+    ("verbose", None, "Set loglevel of ssh calls to 'verbose'.")],
     None, None, "Distribute a new node's public SSH key on the cluster."),
   ("node_ssh_key_remove", MULTI, None, constants.RPC_TMO_URGENT, [
     ("node_uuid", None, "UUID of the node whose key is removed"),
@@ -559,7 +561,9 @@ _NODE_CALLS = [
     ("clear_public_keys", None,
      "If the 'ganeti_pub_keys' file of the node should be cleared."),
     ("readd", None,
-     "Whether this is a readd operation.")],
+     "Whether this is a readd operation."),
+    ("debug", None, "Set loglevel of ssh calls to 'debug'."),
+    ("verbose", None, "Set loglevel of ssh calls to 'verbose'.")],
     None, None, "Remove a node's SSH key from the other nodes' key files."),
   ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_4HRS, [
     ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),
