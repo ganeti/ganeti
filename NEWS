@@ -20,8 +20,9 @@ Incompatible/important changes
   message of tools is now properly labelled with the name of the tool
   that submitted the message.
 - The options ``--debug`` and ``--verbose`` of ``gnt-cluster
-  renew-crypto`` now (also) control the log level of the SSH calls to
-  all nodes.
+  renew-crypto`` and ``gnt-node {add,remove,modify}`` now (also) control the
+  log level of the SSH calls to all nodes.
+
 
 New features
 ~~~~~~~~~~~~
