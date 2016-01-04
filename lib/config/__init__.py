@@ -2703,7 +2703,10 @@ class ConfigWriter(object):
     """
     # Keep a copy of the persistent part of _config_data to check for changes
     # Serialization doesn't guarantee order in dictionaries
-    oldconf = copy.deepcopy(self._ConfigData().ToDict())
+    if saveafter:
+      oldconf = copy.deepcopy(self._ConfigData().ToDict())
+    else:
+      oldconf = None
 
     # In-object upgrades
     self._ConfigData().UpgradeConfig()
@@ -2725,7 +2728,10 @@ class ConfigWriter(object):
       # serializing/deserializing the object.
       self._UnlockedAddNodeToGroup(node.uuid, node.group)
 
-    modified = (oldconf != self._ConfigData().ToDict())
+    if saveafter:
+      modified = (oldconf != self._ConfigData().ToDict())
+    else:
+      modified = True # can't prove it didn't change, but doesn't matter
     if modified and saveafter:
       self._WriteConfig()
       self._UnlockedDropECReservations(_UPGRADE_CONFIG_JID)

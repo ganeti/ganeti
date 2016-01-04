@@ -63,6 +63,7 @@ import qa_error
 import qa_logging
 import qa_utils
 
+from qa_instance import GetInstanceInfo
 from qa_instance import IsDiskReplacingSupported
 from qa_instance import IsFailoverSupported
 from qa_instance import IsMigrationSupported
@@ -1306,3 +1307,57 @@ def TestFilters():
              "GET", None)])
   for u in uuids:
     _DoTests([("/2/filters/%s" % u, lambda r: r is None, "DELETE", None)])
+
+
+_DRBD_SECRET_RE = re.compile('shared-secret.*"([0-9A-Fa-f]+)"')
+
+
+def _RetrieveSecret(instance, pnode):
+  """Retrieves the DRBD secret given an instance object and the primary node.
+
+  @type instance: L{qa_config._QaInstance}
+  @type pnode: L{qa_config._QaNode}
+
+  @rtype: string
+
+  """
+  instance_info = GetInstanceInfo(instance.name)
+
+  # We are interested in only the first disk on the primary
+  drbd_minor = instance_info["drbd-minors"][pnode.primary][0]
+
+  # This form should work for all DRBD versions
+  drbd_command = ("drbdsetup show %d; drbdsetup %d show || true" %
+                  (drbd_minor, drbd_minor))
+  instance_drbd_info = \
+    qa_utils.GetCommandOutput(pnode.primary, drbd_command)
+
+  match_obj = _DRBD_SECRET_RE.search(instance_drbd_info)
+  if match_obj is None:
+    raise qa_error.Error("Could not retrieve DRBD secret for instance %s from"
+                         " node %s." % (instance.name, pnode.primary))
+
+  return match_obj.groups(0)[0]
+
+
+def TestInstanceDataCensorship(instance, inodes):
+  """Test protection of sensitive instance data."""
+
+  if instance.disk_template != constants.DT_DRBD8:
+    print qa_utils.FormatInfo("Only the DRBD secret is a sensitive parameter"
+                              " right now, skipping for non-DRBD instance.")
+    return
+
+  drbd_secret = _RetrieveSecret(instance, inodes[0])
+
+  job_id = _rapi_client.GetInstanceInfo(instance.name)
+  if not _rapi_client.WaitForJobCompletion(job_id):
+    raise qa_error.Error("Could not fetch instance info for instance %s" %
+                         instance.name)
+  info_dict = _rapi_client.GetJobStatus(job_id)
+
+  if drbd_secret in str(info_dict):
+    print qa_utils.FormatInfo("DRBD secret: %s" % drbd_secret)
+    print qa_utils.FormatInfo("Retrieved data\n%s" % str(info_dict))
+    raise qa_error.Error("Found DRBD secret in contents of RAPI instance info"
+                         " call; see above.")
