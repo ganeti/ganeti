@@ -1035,7 +1035,8 @@ def main():
 
   utils.SetupToolLogging(
       options.debug, options.verbose, threadname=True,
-      toolname=os.path.splitext(os.path.basename(__file__))[0])
+      toolname=os.path.splitext(os.path.basename(__file__))[0],
+      logfile=None)
 
   (src_cluster_name, dest_cluster_name, instance_names) = \
     CheckOptions(parser, options, args)

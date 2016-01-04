@@ -255,7 +255,7 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
     syslog_handler.setLevel(logging.INFO)
     root_logger.addHandler(syslog_handler)
 
-  if syslog != constants.SYSLOG_ONLY:
+  if syslog != constants.SYSLOG_ONLY and logfile:
     # this can fail, if the logging directories are not setup or we have
     # a permisssion problem; in this case, it's best to log but ignore
     # the error if stderr_logging is True, and if false we re-raise the
@@ -287,7 +287,7 @@ def SetupLogging(logfile, program, debug=0, stderr_logging=False,
 
 
 def SetupToolLogging(debug, verbose, threadname=False,
-                     toolname=None):
+                     toolname=None, logfile=pathutils.LOG_TOOLS):
   """Configures the logging module for tools.
 
   All log messages are sent to the tools.log logfile.
@@ -300,6 +300,10 @@ def SetupToolLogging(debug, verbose, threadname=False,
   @param verbose: Enable verbose log messages
   @type threadname: boolean
   @param threadname: Whether to include thread name in output
+  @type logfile: string
+  @param logfile: the path of the log file to use, use "None"
+    for tools which don't necessarily run on Ganeti nodes (and
+    thus don't have the Ganeti log directory).
 
   """
   if not toolname:
@@ -312,7 +316,7 @@ def SetupToolLogging(debug, verbose, threadname=False,
   if debug:
     debug_int = 1
 
-  SetupLogging(pathutils.LOG_TOOLS,
+  SetupLogging(logfile,
                program=toolname,
                debug=debug_int,
                multithreaded=threadname,
