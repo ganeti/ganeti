@@ -45,6 +45,7 @@ import Control.Monad
 import Data.Maybe
 import System.Time
 import qualified Data.Map as Map
+import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Common
@@ -78,6 +79,7 @@ options = do
     [ luxi
     , oJobDelay
     , oReason
+    , oDryRun
     ]
 
 arguments :: [ArgCompletion]
@@ -139,7 +141,7 @@ commitChange opts client instData = do
   let iname = Instance.name $ arInstance instData
       arData = getArData $ arState instData
       rmTags = tagsToRemove instData
-      execJobsWaitOk' opcodes = do
+      execJobsWaitOk' opcodes = unless (optDryRun opts) $ do
         res <- execJobsWaitOk
                  [map (annotateOpCode (optReason opts) now) opcodes] client
         case res of
@@ -157,6 +159,17 @@ commitChange opts client instData = do
     execJobsWaitOk' [OpTagsDel TagKindInstance rmTags (Just iname)]
 
   return instData { tagsToRemove = [] }
+
+-- | Submit jobs, unless a dry-run is requested; in this case, just report
+-- the job that would be submitted.
+submitJobs' :: Options -> [[MetaOpCode]] -> L.Client -> IO (Result [JobId])
+submitJobs' opts jobs client =
+  if optDryRun opts
+    then do
+      putStrLn . (++) "jobs: " . J.encode $ map (map metaOpCode) jobs
+      return $ Ok []
+    else
+      submitJobs jobs client
 
 -- | Perform the suggested repair on an instance if its policy allows it.
 doRepair :: Options
@@ -224,8 +237,10 @@ doRepair opts client delay instData (rtype, opcodes) =
 
         uuid <- newUUID
         time <- getClockTime
-        jids <- submitJobs [map (annotateOpCode (optReason opts) now) opcodes']
-                           client
+        jids <- submitJobs'
+                  opts
+                  [map (annotateOpCode (optReason opts) now) opcodes']
+                  client
 
         case jids of
           Bad e    -> exitErr e

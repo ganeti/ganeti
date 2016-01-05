@@ -1683,8 +1683,82 @@ def RemoveNodeSshKey(node_uuid, node_name,
   @returns: list of feedback messages
 
   """
+  node_list = [SshRemoveNodeInfo(uuid=node_uuid,
+                                 name=node_name,
+                                 from_authorized_keys=from_authorized_keys,
+                                 from_public_keys=from_public_keys,
+                                 clear_authorized_keys=clear_authorized_keys,
+                                 clear_public_keys=clear_public_keys)]
+  return RemoveNodeSshKeyBulk(node_list,
+                              master_candidate_uuids,
+                              potential_master_candidates,
+                              master_uuid=master_uuid,
+                              keys_to_remove=keys_to_remove,
+                              pub_key_file=pub_key_file,
+                              ssconf_store=ssconf_store,
+                              noded_cert_file=noded_cert_file,
+                              readd=readd,
+                              run_cmd_fn=run_cmd_fn)
+
+
+# Node info named tuple specifically for the use with RemoveNodeSshKeyBulk
+SshRemoveNodeInfo = collections.namedtuple(
+  "SshRemoveNodeInfo",
+  ["uuid",
+   "name",
+   "from_authorized_keys",
+   "from_public_keys",
+   "clear_authorized_keys",
+   "clear_public_keys"])
+
+
+def RemoveNodeSshKeyBulk(node_list,
+                         master_candidate_uuids,
+                         potential_master_candidates,
+                         master_uuid=None,
+                         keys_to_remove=None,
+                         pub_key_file=pathutils.SSH_PUB_KEYS,
+                         ssconf_store=None,
+                         noded_cert_file=pathutils.NODED_CERT_FILE,
+                         readd=False,
+                         run_cmd_fn=ssh.RunSshCmdWithStdin):
+  """Removes the node's SSH keys from the key files and distributes those.
+
+  Note that at least one of the flags C{from_authorized_keys},
+  C{from_public_keys}, C{clear_authorized_keys}, and C{clear_public_keys}
+  of at least one node has to be set to C{True} for the function to perform any
+  action at all. Not doing so will trigger an assertion in the function.
+
+  @type node_list: list of C{SshRemoveNodeInfo}.
+  @param node_list: list of information about nodes whose keys are being removed
+  @type master_candidate_uuids: list of str
+  @param master_candidate_uuids: list of UUIDs of the current master candidates
+  @type potential_master_candidates: list of str
+  @param potential_master_candidates: list of names of potential master
+    candidates
+  @type keys_to_remove: dict of str to list of str
+  @param keys_to_remove: a dictionary mapping node UUIDS to lists of SSH keys
+    to be removed. This list is supposed to be used only if the keys are not
+    in the public keys file. This is for example the case when removing a
+    master node's key.
+  @type readd: boolean
+  @param readd: whether this is called during a readd operation.
+  @rtype: list of string
+  @returns: list of feedback messages
+
+  """
   # Non-disruptive error messages, list of (node, msg) pairs
   result_msgs = []
+
+  # whether there are any keys to be added or retrieved at all
+  from_authorized_keys = any([node_info.from_authorized_keys for node_info in
+                              node_list])
+  from_public_keys = any([node_info.from_public_keys for node_info in
+                          node_list])
+  clear_authorized_keys = any([node_info.clear_authorized_keys for node_info in
+                               node_list])
+  clear_public_keys = any([node_info.clear_public_keys for node_info in
+                           node_list])
 
   # Make sure at least one of these flags is true.
   if not (from_authorized_keys or from_public_keys or clear_authorized_keys
@@ -1697,53 +1771,77 @@ def RemoveNodeSshKey(node_uuid, node_name,
   master_node = ssconf_store.GetMasterNode()
   ssh_port_map = ssconf_store.GetSshPortMap()
 
+  all_keys_to_remove = {}
   if from_authorized_keys or from_public_keys:
-    if keys_to_remove:
-      keys = keys_to_remove
-    else:
-      keys = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
-      if (not keys or node_uuid not in keys) and not readd:
-        raise errors.SshUpdateError("Node '%s' not found in the list of public"
-                                    " SSH keys. It seems someone tries to"
-                                    " remove a key from outside the cluster!"
-                                    % node_uuid)
-      # During an upgrade all nodes have the master key. In this case we
-      # should not remove it to avoid accidentally shutting down cluster
-      # SSH communication
-      master_keys = None
-      if master_uuid:
-        master_keys = ssh.QueryPubKeyFile([master_uuid], key_file=pub_key_file)
-        for master_key in master_keys:
-          if master_key in keys[node_uuid]:
-            keys[node_uuid].remove(master_key)
+    for node_info in node_list:
+      # Skip nodes that don't actually need any keys to be removed.
+      if not (node_info.from_authorized_keys or node_info.from_public_keys):
+        continue
+      if node_info.name == master_node and not keys_to_remove:
+        raise errors.SshUpdateError("Cannot remove the master node's keys.")
+      if keys_to_remove:
+        keys = keys_to_remove
+      else:
+        keys = ssh.QueryPubKeyFile([node_info.uuid], key_file=pub_key_file)
+        if (not keys or node_info.uuid not in keys) and not readd:
+          raise errors.SshUpdateError("Node '%s' not found in the list of"
+                                      " public SSH keys. It seems someone"
+                                      " tries to remove a key from outside"
+                                      " the cluster!" % node_info.uuid)
+        # During an upgrade all nodes have the master key. In this case we
+        # should not remove it to avoid accidentally shutting down cluster
+        # SSH communication
+        master_keys = None
+        if master_uuid:
+          master_keys = ssh.QueryPubKeyFile([master_uuid],
+                                            key_file=pub_key_file)
+          for master_key in master_keys:
+            if master_key in keys[node_info.uuid]:
+              keys[node_info.uuid].remove(master_key)
 
-    if node_name == master_node and not keys_to_remove:
-      raise errors.SshUpdateError("Cannot remove the master node's keys.")
+      all_keys_to_remove.update(keys)
 
-    if node_uuid in keys:
+    if all_keys_to_remove:
       base_data = {}
       _InitSshUpdateData(base_data, noded_cert_file, ssconf_store)
       cluster_name = base_data[constants.SSHS_CLUSTER_NAME]
 
       if from_authorized_keys:
+        # UUIDs of nodes that are supposed to be removed from the
+        # authorized_keys files.
+        nodes_remove_from_authorized_keys = [
+            node_info.uuid for node_info in node_list
+            if node_info.from_authorized_keys]
+        keys_to_remove_from_authorized_keys = dict([
+            (uuid, keys) for (uuid, keys) in all_keys_to_remove.items()
+            if uuid in nodes_remove_from_authorized_keys])
         base_data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
-          (constants.SSHS_REMOVE, keys)
+          (constants.SSHS_REMOVE, keys_to_remove_from_authorized_keys)
         (auth_key_file, _) = \
           ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False,
                               dircheck=False)
-        ssh.RemoveAuthorizedKeys(auth_key_file, keys[node_uuid])
+
+        for uuid in nodes_remove_from_authorized_keys:
+          ssh.RemoveAuthorizedKeys(auth_key_file,
+                                   keys_to_remove_from_authorized_keys[uuid])
 
       pot_mc_data = base_data.copy()
 
       if from_public_keys:
+        nodes_remove_from_public_keys = [
+            node_info.uuid for node_info in node_list
+            if node_info.from_public_keys]
+        keys_to_remove_from_public_keys = dict([
+            (uuid, keys) for (uuid, keys) in all_keys_to_remove.items()
+            if uuid in nodes_remove_from_public_keys])
         pot_mc_data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-          (constants.SSHS_REMOVE, keys)
-        ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
+          (constants.SSHS_REMOVE, keys_to_remove_from_public_keys)
 
       all_nodes = ssconf_store.GetNodeList()
       online_nodes = ssconf_store.GetOnlineNodeList()
-      logging.debug("Removing key of node '%s' from all nodes but itself and"
-                    " master.", node_name)
+      all_nodes_to_remove = [node_info.name for node_info in node_list]
+      logging.debug("Removing keys of nodes '%s' from all nodes but itself and"
+                    " master.", ", ".join(all_nodes_to_remove))
       for node in all_nodes:
         if node == master_node:
           logging.debug("Skipping master node '%s'.", master_node)
@@ -1751,8 +1849,8 @@ def RemoveNodeSshKey(node_uuid, node_name,
         if node not in online_nodes:
           logging.debug("Skipping offline node '%s'.", node)
           continue
-        if node == node_name:
-          logging.debug("Skipping node itself '%s'.", node_name)
+        if node in all_nodes_to_remove:
+          logging.debug("Skipping node whose key is removed itself '%s'.", node)
           continue
         ssh_port = ssh_port_map.get(node)
         if not ssh_port:
@@ -1775,7 +1873,7 @@ def RemoveNodeSshKey(node_uuid, node_name,
                 ask_key=False, strict_host_check=False)
           except errors.SshUpdateError as last_exception:
             error_msg = error_msg_final % (
-                node_name, node, last_exception)
+                node_info.name, node, last_exception)
             result_msgs.append((node, error_msg))
             logging.error(error_msg)
 
@@ -1792,61 +1890,68 @@ def RemoveNodeSshKey(node_uuid, node_name,
                   ask_key=False, strict_host_check=False)
             except errors.SshUpdateError as last_exception:
               error_msg = error_msg_final % (
-                  node_name, node, last_exception)
+                  node_info.name, node, last_exception)
               result_msgs.append((node, error_msg))
               logging.error(error_msg)
 
-  if clear_authorized_keys or from_public_keys or clear_public_keys:
-    data = {}
-    _InitSshUpdateData(data, noded_cert_file, ssconf_store)
-    cluster_name = data[constants.SSHS_CLUSTER_NAME]
-    ssh_port = ssh_port_map.get(node_name)
-    if not ssh_port:
-      raise errors.OpExecError("No SSH port information available for"
-                               " node '%s', which is leaving the cluster.")
+  for node_info in node_list:
+    if node_info.clear_authorized_keys or node_info.from_public_keys or \
+        node_info.clear_public_keys:
+      data = {}
+      _InitSshUpdateData(data, noded_cert_file, ssconf_store)
+      cluster_name = data[constants.SSHS_CLUSTER_NAME]
+      ssh_port = ssh_port_map.get(node_info.name)
+      if not ssh_port:
+        raise errors.OpExecError("No SSH port information available for"
+                                 " node '%s', which is leaving the cluster.")
 
-    if clear_authorized_keys:
-      # The 'authorized_keys' file is not solely managed by Ganeti. Therefore,
-      # we have to specify exactly which keys to clear to leave keys untouched
-      # that were not added by Ganeti.
-      other_master_candidate_uuids = [uuid for uuid in master_candidate_uuids
-                                      if uuid != node_uuid]
-      candidate_keys = ssh.QueryPubKeyFile(other_master_candidate_uuids,
-                                           key_file=pub_key_file)
-      data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
-        (constants.SSHS_REMOVE, candidate_keys)
+      if node_info.clear_authorized_keys:
+        # The 'authorized_keys' file is not solely managed by Ganeti. Therefore,
+        # we have to specify exactly which keys to clear to leave keys untouched
+        # that were not added by Ganeti.
+        other_master_candidate_uuids = [uuid for uuid in master_candidate_uuids
+                                        if uuid != node_info.uuid]
+        candidate_keys = ssh.QueryPubKeyFile(other_master_candidate_uuids,
+                                             key_file=pub_key_file)
+        data[constants.SSHS_SSH_AUTHORIZED_KEYS] = \
+          (constants.SSHS_REMOVE, candidate_keys)
 
-    if clear_public_keys:
-      data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-        (constants.SSHS_CLEAR, {})
-    elif from_public_keys:
-      # Since clearing the public keys subsumes removing just a single key,
-      # we only do it of clear_public_keys is 'False'.
-
-      if keys[node_uuid]:
+      if node_info.clear_public_keys:
         data[constants.SSHS_SSH_PUBLIC_KEYS] = \
-          (constants.SSHS_REMOVE, keys)
+          (constants.SSHS_CLEAR, {})
+      elif node_info.from_public_keys:
+        # Since clearing the public keys subsumes removing just a single key,
+        # we only do it if clear_public_keys is 'False'.
 
-    # If we have no changes to any keyfile, just return
-    if not (constants.SSHS_SSH_PUBLIC_KEYS in data or
-            constants.SSHS_SSH_AUTHORIZED_KEYS in data):
-      return
+        if all_keys_to_remove:
+          data[constants.SSHS_SSH_PUBLIC_KEYS] = \
+            (constants.SSHS_REMOVE, all_keys_to_remove)
 
-    logging.debug("Updating SSH key setup of target node '%s'.", node_name)
-    try:
-      utils.RetryByNumberOfTimes(
-          constants.SSHS_MAX_RETRIES,
-          errors.SshUpdateError,
-          run_cmd_fn, cluster_name, node_name, pathutils.SSH_UPDATE,
-          ssh_port, data,
-          debug=False, verbose=False, use_cluster_key=False,
-          ask_key=False, strict_host_check=False)
-    except errors.SshUpdateError as last_exception:
-      result_msgs.append(
-          (node_name,
-           ("Removing SSH keys from node '%s' failed."
-            " This can happen when the node is already unreachable."
-            " Error: %s" % (node_name, last_exception))))
+      # If we have no changes to any keyfile, just return
+      if not (constants.SSHS_SSH_PUBLIC_KEYS in data or
+              constants.SSHS_SSH_AUTHORIZED_KEYS in data):
+        return
+
+      logging.debug("Updating SSH key setup of target node '%s'.",
+                    node_info.name)
+      try:
+        utils.RetryByNumberOfTimes(
+            constants.SSHS_MAX_RETRIES,
+            errors.SshUpdateError,
+            run_cmd_fn, cluster_name, node_info.name, pathutils.SSH_UPDATE,
+            ssh_port, data,
+            debug=False, verbose=False, use_cluster_key=False,
+            ask_key=False, strict_host_check=False)
+      except errors.SshUpdateError as last_exception:
+        result_msgs.append(
+            (node_info.name,
+             ("Removing SSH keys from node '%s' failed."
+              " This can happen when the node is already unreachable."
+              " Error: %s" % (node_info.name, last_exception))))
+
+  if all_keys_to_remove and from_public_keys:
+    for node_uuid in nodes_remove_from_public_keys:
+      ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
 
   return result_msgs
 
@@ -2022,11 +2127,19 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
   # keys to add in bulk at the end
   node_keys_to_add = []
 
+  # list of all nodes
+  node_list = []
+
+  # list of keys to be removed before generating new keys
+  node_info_to_remove = []
+
   for node_uuid, node_name in node_uuid_name_map:
     if node_name == master_node_name:
       continue
     master_candidate = node_uuid in master_candidate_uuids
     potential_master_candidate = node_name in potential_master_candidates
+    node_list.append((node_uuid, node_name, master_candidate,
+                      potential_master_candidate))
 
     keys_by_uuid = ssh.QueryPubKeyFile([node_uuid],
                                        key_file=ganeti_pub_keys_file)
@@ -2048,18 +2161,29 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
         # remove that node's key, because it is also the master node's key
         # and that would terminate all communication from the master to the
         # node.
-        logging.debug("Removing SSH key of node '%s'.", node_name)
-        node_errors = RemoveNodeSshKey(
-           node_uuid, node_name, master_candidate_uuids,
-           potential_master_candidates,
-           master_uuid=master_node_uuid, from_authorized_keys=master_candidate,
-           from_public_keys=False, clear_authorized_keys=False,
-           clear_public_keys=False)
-        if node_errors:
-          all_node_errors = all_node_errors + node_errors
+        node_info_to_remove.append(SshRemoveNodeInfo(
+            uuid=node_uuid,
+            name=node_name,
+            from_authorized_keys=master_candidate,
+            from_public_keys=False,
+            clear_authorized_keys=False,
+            clear_public_keys=False))
       else:
         logging.debug("Old key of node '%s' is the same as the current master"
                       " key. Not deleting that key on the node.", node_name)
+
+  logging.debug("Removing old SSH keys of all master candidates.")
+  if node_info_to_remove:
+    node_errors = RemoveNodeSshKeyBulk(
+        node_info_to_remove,
+        master_candidate_uuids,
+        potential_master_candidates,
+        master_uuid=master_node_uuid)
+    if node_errors:
+      all_node_errors = all_node_errors + node_errors
+
+  for (node_uuid, node_name, master_candidate, potential_master_candidate) \
+      in node_list:
 
     logging.debug("Generating new SSH key for node '%s'.", node_name)
     _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, new_key_type,

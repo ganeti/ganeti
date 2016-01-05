@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-| Implementation of lock allocation.
 
 -}
@@ -56,6 +57,7 @@ import Control.Applicative (liftA2)
 import Control.Arrow (second, (***))
 import Control.Monad (unless, guard, foldM, when)
 import Data.Foldable (for_, find)
+import Data.List (foldl')
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
@@ -196,7 +198,7 @@ updateAllocState :: (Ord a, Ord b)
                   => (Maybe (AllocationState a b) -> AllocationState a b)
                   -> LockAllocation a b -> a -> LockAllocation a b
 updateAllocState f state lock =
-  let locks' = M.alter (find (/= Shared S.empty M.empty) . Just . f)
+  let !locks' = M.alter (find (/= Shared S.empty M.empty) . Just . f)
                         lock (laLocks state)
   in state { laLocks = locks' }
 
@@ -211,19 +213,19 @@ updateLock owner state (LockRequest lock (Just OwnExclusive)) =
         Just (Exclusive _ i) -> Exclusive owner i
         Just (Shared _ i) -> Exclusive owner i
         Nothing -> Exclusive owner M.empty
-      locks' = M.insert lock lockstate' locks
+      !locks' = M.insert lock lockstate' locks
       ownersLocks' = M.insert lock OwnExclusive $ listLocks owner state
-      owned' = M.insert owner ownersLocks' $ laOwned state
+      !owned' = M.insert owner ownersLocks' $ laOwned state
   in state { laLocks = locks', laOwned = owned' }
 updateLock owner state (LockRequest lock (Just OwnShared)) =
   let ownersLocks' = M.insert lock OwnShared $ listLocks owner state
-      owned' = M.insert owner ownersLocks' $ laOwned state
+      !owned' = M.insert owner ownersLocks' $ laOwned state
       locks = laLocks state
       lockState' = case M.lookup lock locks of
         Just (Exclusive _ i) -> Shared (S.singleton owner) i
         Just (Shared s i) -> Shared (S.insert owner s) i
         _ -> Shared (S.singleton owner) M.empty
-      locks' = M.insert lock lockState' locks
+      !locks' = M.insert lock lockState' locks
   in state { laLocks = locks', laOwned = owned' }
 updateLock owner state (LockRequest lock Nothing) =
   let ownersLocks' = M.delete lock $ listLocks owner state
@@ -257,7 +259,7 @@ updateIndirects owner state req =
       fn = case lockRequestType req of
              Nothing -> M.delete (lock, owner)
              Just tp -> M.insert (lock, owner) tp
-  in foldl (updateIndirectSet fn) state $ lockImplications lock
+  in foldl' (updateIndirectSet fn) state $ lockImplications lock
 
 -- | Update the locks of an owner according to the given request. Return
 -- the pair of the new state and the result of the operation, which is the
@@ -334,8 +336,8 @@ updateLocks owner reqs state = genericResult ((,) state . Bad) (second Ok) $ do
         map (indirectBlocked (lockRequestType req))
           . lockImplications $ lockAffected req
   let blocked = S.delete owner . S.unions $ direct:indirect
-  let state' = foldl (updateLock owner) state reqs
-      state'' = foldl (updateIndirects owner) state' reqs
+  let state' = foldl' (updateLock owner) state reqs
+      state'' = foldl' (updateIndirects owner) state' reqs
   return (if S.null blocked then state'' else state, blocked)
 
 -- | Manipluate all locks of the owner with a given property.

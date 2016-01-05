@@ -308,7 +308,7 @@ attachInstanceDiskChecks uuidInst uuidDisk idx' cs = do
   let insts = M.elems . fromContainer . configInstances . csConfigData $ cs
   forM_ insts (\inst' -> when (uuidDisk `elem` instDisks inst') . Bad
     . ReservationError $ printf "Disk %s already attached to instance %s"
-        uuidDisk (show . fromMaybe "" $ instName inst))
+        uuidDisk (show . fromMaybe "" $ instName inst'))
 
 -- * Pure config modifications functions
 

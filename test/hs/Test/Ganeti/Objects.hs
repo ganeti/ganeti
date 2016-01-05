@@ -815,7 +815,8 @@ caseIncludeLogicalIdDrbd =
       time = TOD 0 0
       d = RealDisk $
         RealDiskData
-          (LIDDrbd8 "node1.example.com" "node2.example.com" 2000 1 5 "secret")
+          (LIDDrbd8 "node1.example.com" "node2.example.com" 2000 1 5
+           (Private "secret"))
           [ RealDisk $ RealDiskData (mkLIDPlain "onevg" "onelv") []
               ["node1.example.com", "node2.example.com"] "disk1" 1000 DiskRdWr
               Nothing Nothing Nothing "145145-asdf-sdf2-2134-asfd-534g2x"
