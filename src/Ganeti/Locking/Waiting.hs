@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-| Implementation of a priority waiting structure for locks.
 
 -}
@@ -56,7 +57,7 @@ module Ganeti.Locking.Waiting
 
 import Control.Arrow ((&&&), (***), second)
 import Control.Monad (liftM)
-import Data.List (sort)
+import Data.List (sort, foldl')
 import qualified Data.Map as M
 import Data.Maybe (fromMaybe)
 import qualified Data.Set as S
@@ -162,14 +163,16 @@ revisitRequests notify todo state =
   let getRequests (pending, reqs) owner =
         (M.delete owner pending
         , fromMaybe S.empty (M.lookup owner pending) `S.union` reqs)
-      (pending', requests) = S.foldl getRequests (lwPending state, S.empty) todo
+      (pending', requests) = S.foldl' getRequests (lwPending state, S.empty)
+                               todo
       revisitedOwners = S.map (\(_, o, _) -> o) requests
-      pendingOwners' = S.foldl (flip M.delete) (lwPendingOwners state)
+      pendingOwners' = S.foldl' (flip M.delete) (lwPendingOwners state)
                                revisitedOwners
       state' = state { lwPending = pending', lwPendingOwners = pendingOwners' }
-      (state'', notify') = S.foldl tryFulfillRequest (state', notify) requests
+      (!state'', !notify') = S.foldl' tryFulfillRequest (state', notify)
+                               requests
       done = notify `S.union` todo
-      newTodo = notify' S.\\ done
+      !newTodo = notify' S.\\ done
   in if S.null todo
        then (notify, state)
        else revisitRequests done newTodo state''
@@ -187,9 +190,9 @@ updateLocks' :: (Lock a, Ord b, Ord c)
              -> LockWaiting a b c
              -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
 updateLocks' owner reqs state =
-  let (allocation', result) = L.updateLocks owner reqs (lwAllocation state)
+  let (!allocation', !result) = L.updateLocks owner reqs (lwAllocation state)
       state' = state { lwAllocation = allocation' }
-      (notify, state'') = revisitRequests S.empty (S.singleton owner) state'
+      (!notify, !state'') = revisitRequests S.empty (S.singleton owner) state'
   in if M.member owner $ lwPendingOwners state
        then ( state
             , (Bad "cannot update locks while having pending requests", S.empty)
@@ -214,7 +217,7 @@ updateLocksWaiting' :: (Lock a, Ord b, Ord c)
                     -> (LockWaiting a b c, (Result (S.Set b), S.Set b))
 updateLocksWaiting' prio owner reqs state =
   let (state', (result, notify)) = updateLocks' owner reqs state
-      state'' = case result of
+      !state'' = case result of
         Bad _ -> state' -- bad requests cannot be queued
         Ok empty | S.null empty -> state'
         Ok blocked -> let blocker = S.findMin blocked
@@ -331,8 +334,8 @@ releaseResources owner state =
 fromExtRepr :: (Lock a, Ord b, Ord c)
             => ExtWaiting a b c -> LockWaiting a b c
 fromExtRepr (alloc, pending) =
-  S.foldl (\s (prio, owner, req) ->
-            fst $ updateLocksWaiting prio owner req s)
+  S.foldl' (\s (prio, owner, req) ->
+              fst $ updateLocksWaiting prio owner req s)
     (emptyWaiting { lwAllocation = alloc })
     pending
 
@@ -397,7 +400,7 @@ opportunisticLockUnion owner reqs state =
                               else L.requestExclusive) lock]
                           s
         in (s', if result == Ok S.empty then lock:success else success)
-  in second (flip (,) S.empty) $ foldl maybeAllocate (state, []) reqs'
+  in second (flip (,) S.empty) $ foldl' maybeAllocate (state, []) reqs'
 
 -- | A guarded version of opportunisticLockUnion; if the number of fulfilled
 -- requests is not at least the given amount, then do not change anything.

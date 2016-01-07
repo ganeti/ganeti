@@ -57,6 +57,7 @@ module Ganeti.HTools.CLI
   , oDiskMoves
   , oAvoidDiskMoves
   , oDiskTemplate
+  , oDryRun
   , oSpindleUse
   , oDynuFile
   , oMemWeight
@@ -177,6 +178,7 @@ data Options = Options
   , optExInst      :: [String]       -- ^ Instances to be excluded
   , optExTags      :: Maybe [String] -- ^ Tags to use for exclusion
   , optExecJobs    :: Bool           -- ^ Execute the commands via Luxi
+  , optDryRun      :: Bool           -- ^ Only do a dry run
   , optFirstJobGroup :: Bool         -- ^ Only execute the first group of jobs
   , optForce       :: Bool           -- ^ Force the execution
   , optFullEvacuation :: Bool        -- ^ Fully evacuate nodes to be rebooted
@@ -253,6 +255,7 @@ defaultOptions  = Options
   , optExInst      = []
   , optExTags      = Nothing
   , optExecJobs    = False
+  , optDryRun      = False
   , optFirstJobGroup = False
   , optForce       = False
   , optFullEvacuation = False
@@ -533,6 +536,13 @@ oExecJobs =
    (NoArg (\ opts -> Ok opts { optExecJobs = True}))
    "execute the suggested moves via Luxi (only available when using\
    \ it for data gathering)",
+   OptComplNone)
+
+oDryRun :: OptType
+oDryRun =
+  (Option "" ["dry-run"]
+   (NoArg (\ opts -> Ok opts { optDryRun = True}))
+   "do not execute any commands and just report what would be done",
    OptComplNone)
 
 oReason :: OptType

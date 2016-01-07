@@ -459,7 +459,7 @@ getInstDisksFromObj cfg =
 -- | Collects a value for all DRBD disks
 collectFromDrbdDisks
   :: (Monoid a)
-  => (String -> String -> Int -> Int -> Int -> DRBDSecret -> a)
+  => (String -> String -> Int -> Int -> Int -> Private DRBDSecret -> a)
   -- ^ NodeA, NodeB, Port, MinorA, MinorB, Secret
   -> Disk -> a
 collectFromDrbdDisks f = col
@@ -471,7 +471,8 @@ collectFromDrbdDisks f = col
 
 -- | Returns the DRBD secrets of a given 'Disk'
 getDrbdSecretsForDisk :: Disk -> [DRBDSecret]
-getDrbdSecretsForDisk = collectFromDrbdDisks (\_ _ _ _ _ secret -> [secret])
+getDrbdSecretsForDisk = collectFromDrbdDisks
+                          (\_ _ _ _ _ (Private secret) -> [secret])
 
 -- | Returns the DRBD minors of a given 'Disk'
 getDrbdMinorsForDisk :: Disk -> [(Int, String)]

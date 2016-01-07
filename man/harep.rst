@@ -10,6 +10,7 @@ SYNOPSIS
 --------
 
 **harep** [ [**-L** | **\--luxi** ] = *socket* ] [ --job-delay = *seconds* ]
+[ --dry-run ]
 
 **harep** \--version
 
@@ -18,7 +19,8 @@ DESCRIPTION
 
 Harep is the Ganeti auto-repair tool. It is able to detect that an instance is
 broken and to generate a sequence of jobs that will fix it, in accordance to the
-policies set by the administrator.
+policies set by the administrator. At the moment, only repairs for instances
+using the disk templates ``plain`` or ``drbd`` are supported.
 
 Harep is able to recognize what state an instance is in (healthy, suspended,
 needs repair, repair disallowed, pending repair, repair failed)
@@ -41,10 +43,13 @@ contain. The possible tags share the common structure::
 
 where ``<type>`` can have the following values:
 
-* ``fix-storage``: allow disk replacement or fix the backend without affecting the instance
-  itself (broken DRBD secondary)
-* ``migrate``: allow instance migration
-* ``failover``: allow instance reboot on the secondary
+* ``fix-storage``: allow disk replacement or fix the backend without affecting
+  the instance itself (broken DRBD secondary)
+* ``migrate``: allow instance migration. Note, however, that current harep does
+  not submit migrate jobs; so, currently, this permission level is equivalent to
+  ``fix-storage``.
+* ``failover``: allow instance reboot on the secondary; this action is taken, if
+  the primary node is offline.
 * ``reinstall``: allow disks to be recreated and the instance to be reinstalled
 
 Each element in the list of tags, includes all the authorizations of the
@@ -74,7 +79,14 @@ nodes being marked as offline by the administrator.
 Also harep currently works only for instances with the ``drbd`` and
 ``plain`` disk templates.
 
-Both these issues will be addressed by a new maintenance daemon in
+Using the data model of **htools**\(1), harep cannot distinguish between drained
+and offline nodes. In particular, it will (permission provided) failover
+instances also in situations where a migration would have been enough.
+In particular, handling of node draining is better done using **hbal**\(1),
+which will always submit migration jobs, however is the permission to fall
+back to failover.
+
+These issues will be addressed by a new maintenance daemon in
 future Ganeti versions, which will supersede harep.
 
 
@@ -89,6 +101,12 @@ The options that can be passed to the program are as follows:
 \--job-delay=*seconds*
   insert this much delay before the execution of repair jobs to allow the tool
   to continue processing instances.
+
+\--dry-run
+  only show which operations would be carried out, but do nothing, even on
+  instances where tags grant the appropriate permissions. Note that harep
+  keeps the state of repair operations in instance tags; therefore, only
+  the operations of the next round of actions can be inspected.
 
 .. vim: set textwidth=72 :
 .. Local Variables:

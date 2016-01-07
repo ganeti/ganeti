@@ -201,7 +201,9 @@ class DRBD8Dev(base.BlockDev):
     self._rhost = dyn_params[constants.DDP_REMOTE_IP]
     self._rport = unique_id[2]
     self._aminor = dyn_params[constants.DDP_LOCAL_MINOR]
-    self._secret = unique_id[5]
+    # The secret is wrapped in the Private data type, and it has to be extracted
+    # before use
+    self._secret = unique_id[5].Get()
 
     if children:
       if not _CanReadDevice(children[1].dev_path):
