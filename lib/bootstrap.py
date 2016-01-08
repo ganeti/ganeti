@@ -1290,3 +1290,24 @@ def GatherMasterVotes(node_names):
   vote_list.sort(key=lambda x: (x[1], x[0]), reverse=True)
 
   return vote_list
+
+
+def MajorityHealthy():
+  """Check if the majority of nodes is healthy
+
+  Gather master votes from all nodes known to this node;
+  return True if a strict majority of nodes is reachable and
+  has some opinion on which node is master. Note that this will
+  not guarantee any node to win an election but it ensures that
+  a standard master-failover is still possible.
+
+  """
+  node_names = ssconf.SimpleStore().GetNodeList()
+  node_count = len(node_names)
+  vote_list = GatherMasterVotes(node_names)
+  if vote_list is None:
+    return False
+  total_votes = sum([count for (node, count) in vote_list if node is not None])
+  logging.info("Total %d nodes, %d votes: %s", node_count, total_votes,
+               vote_list)
+  return 2 * total_votes > node_count
