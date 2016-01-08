@@ -655,6 +655,12 @@ skipping the interactive checks. This is even more dangerous, and should
 only be used in conjunction with other means (e.g. a HA suite) to
 confirm that the operation is indeed safe.
 
+Note that in order for remote node agreement checks to work, a strict
+majority of nodes still needs to be functional. To avoid situations with
+daemons not starting up on the new master, master-failover without
+the ``--no-voting`` option verifies a healthy majority of nodes and refuses
+the operation otherwise.
+
 MASTER-PING
 ~~~~~~~~~~~
 
