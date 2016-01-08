@@ -851,6 +851,14 @@ def MasterFailover(opts, args):
   @return: the desired exit code
 
   """
+  if not opts.no_voting:
+    # Verify that a majority of nodes is still healthy
+    if not bootstrap.MajorityHealthy():
+      ToStderr("Master-failover with voting is only possible if the majority"
+               " of nodes is still healthy; use the --no-voting option after"
+               " ensuring by other means that you won't end up in a dual-master"
+               " scenario.")
+      return 1
   if opts.no_voting and not opts.yes_do_it:
     usertext = ("This will perform the failover even if most other nodes"
                 " are down, or if this node is outdated. This is dangerous"
