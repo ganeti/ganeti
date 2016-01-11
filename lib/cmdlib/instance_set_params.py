@@ -408,6 +408,13 @@ class LUInstanceSetParams(LogicalUnit):
                                  " are %s" %
                                  (disk.nodes, instance_nodes),
                                  errors.ECODE_INVAL)
+    # Make sure a DRBD disk has the same primary node as the instance where it
+    # will be attached to.
+    disk_primary = disk.GetPrimaryNode(self.instance.primary_node)
+    if self.instance.primary_node != disk_primary:
+      raise errors.OpExecError("The disks' primary node is %s whereas the "
+                               "instance's primary node is %s."
+                               % (disk_primary, self.instance.primary_node))
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
