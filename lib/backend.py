@@ -1559,8 +1559,9 @@ def AddNodeSshKeyBulk(node_list,
         (constants.SSHS_OVERRIDE, all_keys)
 
       try:
+        backoff = 5  # seconds
         utils.RetryByNumberOfTimes(
-            constants.SSHS_MAX_RETRIES,
+            constants.SSHS_MAX_RETRIES, backoff,
             errors.SshUpdateError,
             run_cmd_fn, cluster_name, node_info.name, pathutils.SSH_UPDATE,
             ssh_port_map.get(node_info.name), node_data,
@@ -1605,9 +1606,9 @@ def AddNodeSshKeyBulk(node_list,
     if node in potential_master_candidates:
       logging.debug("Updating SSH key files of node '%s'.", node)
       try:
+        backoff = 5  # seconds
         utils.RetryByNumberOfTimes(
-            constants.SSHS_MAX_RETRIES,
-            errors.SshUpdateError,
+            constants.SSHS_MAX_RETRIES, backoff, errors.SshUpdateError,
             run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
             ssh_port_map.get(node), pot_mc_data,
             debug=ssh_update_debug, verbose=ssh_update_verbose,
@@ -1875,9 +1876,9 @@ def RemoveNodeSshKeyBulk(node_list,
           logging.debug("Updating key setup of potential master candidate node"
                         " %s.", node)
           try:
+            backoff = 5  # seconds
             utils.RetryByNumberOfTimes(
-                constants.SSHS_MAX_RETRIES,
-                errors.SshUpdateError,
+                constants.SSHS_MAX_RETRIES, backoff, errors.SshUpdateError,
                 run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
                 ssh_port, pot_mc_data,
                 debug=ssh_update_debug, verbose=ssh_update_verbose,
@@ -1892,9 +1893,9 @@ def RemoveNodeSshKeyBulk(node_list,
           if from_authorized_keys:
             logging.debug("Updating key setup of normal node %s.", node)
             try:
+              backoff = 5  # seconds
               utils.RetryByNumberOfTimes(
-                  constants.SSHS_MAX_RETRIES,
-                  errors.SshUpdateError,
+                  constants.SSHS_MAX_RETRIES, backoff, errors.SshUpdateError,
                   run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
                   ssh_port, base_data,
                   debug=ssh_update_debug, verbose=ssh_update_verbose,
@@ -1946,8 +1947,9 @@ def RemoveNodeSshKeyBulk(node_list,
       logging.debug("Updating SSH key setup of target node '%s'.",
                     node_info.name)
       try:
+        backoff = 5  # seconds
         utils.RetryByNumberOfTimes(
-            constants.SSHS_MAX_RETRIES,
+            constants.SSHS_MAX_RETRIES, backoff,
             errors.SshUpdateError,
             run_cmd_fn, cluster_name, node_info.name, pathutils.SSH_UPDATE,
             ssh_port, data,

@@ -32,6 +32,7 @@
 
 import collections
 import copy
+import time
 import mock
 import os
 import shutil
@@ -986,6 +987,11 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssh_replace_name_by_uuid_mock.side_effect = \
       self._ssh_file_manager.ReplaceNameByUuid
 
+    self._time_sleep_patcher = testutils \
+        .patch_object(time, "sleep")
+    self._time_sleep_mock = \
+        self._time_sleep_patcher.start()
+
     self.noded_cert_file = testutils.TestDataFilename("cert1.pem")
 
     self._SetupTestData()
@@ -998,6 +1004,7 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
     self._ssh_remove_public_key_patcher.stop()
     self._ssh_query_pub_key_file_patcher.stop()
     self._ssh_replace_name_by_uuid_patcher.stop()
+    self._time_sleep_patcher.stop()
     self._TearDownTestData()
 
   def _SetupTestData(self, number_of_nodes=15, number_of_pot_mcs=5,
