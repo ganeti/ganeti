@@ -2968,6 +2968,44 @@ class TestLUInstanceSetParams(CmdlibTestCase):
     self.ExecOpCode(op)
     self.assertEqual([disk], self.cfg.GetInstanceDisks(inst.uuid))
 
+  def testDetachAttachDrbdDiskWithWrongPrimaryNode(self):
+    """Check if disk attachment with a wrong primary node fails.
+
+    """
+    disk1 = self.cfg.CreateDisk(uuid=self.mocked_disk_uuid,
+                               primary_node=self.master.uuid,
+                               secondary_node=self.snode.uuid,
+                               dev_type=constants.DT_DRBD8)
+
+    inst1 = self.cfg.AddNewInstance(disks=[disk1], primary_node=self.master,
+                                    secondary_node=self.snode)
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst1.name,
+                         disks=[[constants.DDM_DETACH,
+                         self.mocked_disk_uuid, {}]])
+
+    self.ExecOpCode(op)
+    self.assertEqual([], self.cfg.GetInstanceDisks(inst1.uuid))
+
+    disk2 = self.cfg.CreateDisk(uuid="mock_uuid_1135",
+                               primary_node=self.snode.uuid,
+                               secondary_node=self.master.uuid,
+                               dev_type=constants.DT_DRBD8)
+
+    inst2 = self.cfg.AddNewInstance(disks=[disk2], primary_node=self.snode,
+                                    secondary_node=self.master)
+
+    op = self.CopyOpCode(self.op,
+                         instance_name=inst2.name,
+                         disks=[[constants.DDM_ATTACH, 0,
+                                 {
+                                   'uuid': self.mocked_disk_uuid
+                                 }]])
+
+    self.assertRaises(errors.OpExecError, self.ExecOpCode, op)
+
+
   def testDetachAttachExtDisk(self):
     """Check attach/detach functionality of ExtStorage disks.
 
