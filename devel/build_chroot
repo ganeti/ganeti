@@ -279,7 +279,7 @@ case ${DIST_RELEASE}${VARIANT} in
     in_chroot -- \
       cabal update
 
-    # sinec we're using Cabal >=1.16, we can use the parallel install option
+    # since we're using Cabal >=1.16, we can use the parallel install option
     in_chroot -- \
       cabal install --global -j --enable-library-profiling \
         attoparsec-0.11.1.0 \
@@ -696,6 +696,67 @@ EOF
         'transformers>=0.3.0.0' \
         zlib-0.5.4.2
     ;;
+
+  trusty)
+    # ghc, git-email and other dependencies are hosted in the universe
+    # repository, which is not enabled by default.
+    echo "Adding universe repository..."
+    cat > $CHDIR/etc/apt/sources.list.d/universe.list <<EOF
+deb http://archive.ubuntu.com/ubuntu trusty universe
+EOF
+    in_chroot -- \
+      apt-get update
+
+    echo "Installing packages"
+    in_chroot -- \
+      $APT_INSTALL \
+      autoconf automake ghc ghc-haddock \
+      libghc-curl-dev libghc-hinotify-dev \
+      libghc-parallel-dev libghc-utf8-string-dev \
+      libghc-crypto-dev \
+      libghc-attoparsec-dev \
+      libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
+      libghc-cabal-dev \
+      cabal-install \
+      libpcre3 libpcre3-dev happy hscolour pandoc \
+      python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
+      python-simplejson python-pyinotify python-pycurl python-paramiko \
+      python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
+      python-dev pylint openssh-client vim git git-email exuberant-ctags \
+      build-essential
+
+    in_chroot -- \
+      easy_install \
+        logilab-astng==0.24.1 \
+        logilab-common==0.58.3 \
+        mock==1.0.1 \
+        pylint==0.26.0 \
+        pep8==1.3.3
+
+    in_chroot -- \
+      cabal update
+
+    # since we're using Cabal >=1.16, we can use the parallel install option
+    in_chroot -- \
+       cabal install --global -j \
+        'base64-bytestring>=1' \
+        hslogger-1.2.3 \
+        'hlint>=1.9.12' \
+        json-0.7 \
+        lens-3.10.2 \
+        'lifted-base>=0.1.2' \
+        'network>=2.4.0.1' \
+        'regex-pcre>=0.94.4' \
+        parsec-3.1.3 \
+        shelltestrunner \
+        'snap-server>=0.8.1' \
+        test-framework-0.8.0.3 \
+        test-framework-hunit-0.3.0.1 \
+        test-framework-quickcheck2-0.3.0.2 \
+        'transformers>=0.3.0.0' \
+        zlib-0.5.4.2
+    ;;
+
 
   *)
     in_chroot -- \
