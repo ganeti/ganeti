@@ -583,10 +583,13 @@ waitForJobCancelation jid tmout = do
   jobR <- liftIO $ watchFileBy jobfile tmout finalizedR load
   case calcJobStatus <$> jobR of
     Ok s | s == JOB_STATUS_CANCELED ->
-             return (True, "Job successfully cancelled")
+             return (True, "Job successfully canceled")
          | finalizedR jobR ->
             return (False, "Job exited before it could have been canceled,\
                            \ status " ++ show s)
+         | s == JOB_STATUS_CANCELING ->
+             return (False, "Job cancelation was not completed before the\
+                            \ timeout, but the job may yet be canceled")
          | otherwise ->
              return (False, "Job could not be canceled, status "
                             ++ show s)
