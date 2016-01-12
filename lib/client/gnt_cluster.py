@@ -2257,6 +2257,8 @@ def UpgradeGanetiCommand(opts, args):
                  " finish it first" % (oldversion, versionstring))
         return 1
 
+  utils.SetupLogging(pathutils.LOG_COMMANDS, 'gnt-cluster upgrade', debug=1)
+
   oldversion = constants.RELEASE_VERSION
 
   if opts.resume:
