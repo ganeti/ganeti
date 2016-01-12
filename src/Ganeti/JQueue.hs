@@ -572,9 +572,10 @@ isQueuedJobDead ownlivelock =
   . mfilter (/= ownlivelock)
   . qjLivelock
 
--- | Waits for a job to finalize its execution.
-waitForJob :: JobId -> Int -> ResultG (Bool, String)
-waitForJob jid tmout = do
+-- | Waits for a job ordered to cancel to react, and returns whether it was
+-- canceled, and a user-intended description of the reason.
+waitForJobCancelation :: JobId -> Int -> ResultG (Bool, String)
+waitForJobCancelation jid tmout = do
   qDir <- liftIO queueDir
   let jobfile = liveJobFile qDir jid
       load = liftM fst <$> loadJobFromDisk qDir False jid
@@ -619,7 +620,7 @@ cancelJob kill luxiLivelock jid = runResultT $ do
           if calcJobStatus job > JOB_STATUS_WAITING
             then return (False, "Job no longer waiting, can't cancel\
                                 \ (informed it anyway)")
-            else lift $ waitForJob jid C.luxiCancelJobTimeout
+            else lift $ waitForJobCancelation jid C.luxiCancelJobTimeout
           else return (True, "SIGKILL send to the process")
       _ -> do
         logDebug $ jName ++ " in its startup phase, retrying"
