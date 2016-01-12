@@ -151,6 +151,24 @@ class LUNodeAdd(LogicalUnit):
   def PreparePostHookNodes(self, post_hook_node_uuids):
     return post_hook_node_uuids + [self.new_node.uuid]
 
+  def HooksAbortCallBack(self, phase, feedback_fn, exception):
+    """Cleans up if the hooks fail.
+
+    This function runs actions that necessary to bring the cluster into a
+    clean state again. This is necessary if for example the hooks of this
+    operation failed and leave the node in an inconsistent state.
+
+    """
+    if phase == constants.HOOKS_PHASE_PRE:
+      feedback_fn("Pre operation hook failed. Rolling back preparations.")
+
+      master_node = self.cfg.GetMasterNodeInfo().name
+      remove_result = self.rpc.call_node_ssh_key_remove_light(
+        [master_node],
+        self.op.node_name)
+      remove_result[master_node].Raise(
+        "Error removing SSH key of node '%s'." % self.op.node_name)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
