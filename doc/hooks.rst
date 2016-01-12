@@ -9,13 +9,18 @@ Introduction
 ------------
 
 In order to allow customisation of operations, Ganeti runs scripts in
-sub-directories of ``@SYSCONFDIR@/ganeti/hooks``. These sub-directories
+sub-directories of ``@SYSCONFDIR@/ganeti/hooks`` (that is usually
+``/etc/ganeti/hooks``). These sub-directories
 are named ``$hook-$phase.d``, where ``$phase`` is either ``pre`` or
 ``post`` and ``$hook`` matches the directory name given for a hook (e.g.
 ``cluster-verify-post.d`` or ``node-add-pre.d``).
 
 This is similar to the ``/etc/network/`` structure present in Debian
 for network interface handling.
+
+Note that Ganeti does not create its ``hooks`` directory by default.
+If you want to use hooks scripts, create it on all nodes. This applies
+also to all sub directories such as ``node-add-pre.d``.
 
 Organisation
 ------------
@@ -30,6 +35,11 @@ depending on the operation type.
 
 Note that, even though we call them scripts, we are actually talking
 about any executable.
+
+The filenames of the scripts need to match the regular expression
+``^[a-zA-Z0-9_-]+$``. This means in particular, that scripts having
+a filename extension (such as ``myhook.sh``) are silently ignored
+by Ganeti.
 
 *pre* scripts
 ~~~~~~~~~~~~~
