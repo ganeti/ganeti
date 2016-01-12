@@ -1920,6 +1920,53 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
                      if node == node_name])
 
 
+class TestRemoveSshKeyFromPublicKeyFile(testutils.GanetiTestCase):
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+    self._ssconf_mock = mock.Mock()
+    self._ssconf_mock.GetNodeList = mock.Mock()
+    self._tmpdir = tempfile.mkdtemp()
+    self._pub_keys_file = os.path.join(self._tmpdir, "pub_keys_file")
+
+  def testValidRemoval(self):
+    key = "myKey"
+    name = "myName"
+    ssh.AddPublicKey(name, key, key_file=self._pub_keys_file)
+    self._ssconf_mock.GetNodeList.return_value = \
+        ["myOtherNode1", "myOtherNode2"]
+
+    backend.RemoveSshKeyFromPublicKeyFile(
+        name, pub_key_file=self._pub_keys_file,
+        ssconf_store=self._ssconf_mock)
+
+    result = ssh.QueryPubKeyFile([name], key_file=self._pub_keys_file)
+    self.assertEqual({}, result)
+
+  def testStillClusterNode(self):
+    """Tests the safety check to only remove keys of obsolete nodes."""
+    key = "myKey"
+    name = "myName"
+    ssh.AddPublicKey(name, key, key_file=self._pub_keys_file)
+    self._ssconf_mock.GetNodeList.return_value = ["myName", "myOtherNode"]
+
+    self.assertRaises(
+        errors.SshUpdateError,
+        backend.RemoveSshKeyFromPublicKeyFile,
+        name, pub_key_file=self._pub_keys_file,
+        ssconf_store=self._ssconf_mock)
+
+  def testNoKey(self):
+    name = "myName"
+    # 'clear' file to make sure it exists.
+    ssh.ClearPubKeyFile(key_file=self._pub_keys_file)
+    self._ssconf_mock.GetNodeList.return_value = ["myOtherNode"]
+
+    backend.RemoveSshKeyFromPublicKeyFile(
+        name, pub_key_file=self._pub_keys_file,
+        ssconf_store=self._ssconf_mock)
+
+
 class TestVerifySshSetup(testutils.GanetiTestCase):
 
   _NODE1_UUID = "uuid1"

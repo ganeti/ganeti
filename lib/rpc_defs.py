@@ -576,6 +576,9 @@ _NODE_CALLS = [
     ("debug", None, "Set logging of SSH update tool to 'debug'."),
     ("verbose", None, "Set logging of SSH update tool to 'info'.")],
     None, None, "Renew all SSH key pairs of all nodes nodes."),
+  ("node_ssh_key_remove_light", MULTI, None, constants.RPC_TMO_FAST, [
+    ("node_name", None, "Name of the node whose key is removed")],
+    None, None, "Remove a node's SSH key from the master's public key file."),
   ]
 
 _MISC_CALLS = [

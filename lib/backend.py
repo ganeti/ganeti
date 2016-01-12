@@ -1970,6 +1970,40 @@ def RemoveNodeSshKeyBulk(node_list,
 # pylint: enable=R0913
 
 
+def RemoveSshKeyFromPublicKeyFile(node_name,
+                                  pub_key_file=pathutils.SSH_PUB_KEYS,
+                                  ssconf_store=None):
+  """Removes a SSH key from the master's public key file.
+
+  This is an operation that is only used to clean up after failed operations
+  (for example failed hooks before adding a node). To avoid abuse of this
+  function (and the matching RPC call), we add a safety check to make sure
+  that only stray keys can be removed that belong to nodes that are not
+  in the cluster (anymore).
+
+  @type node_name: string
+  @param node_name: the name of the node whose key is removed
+
+  """
+  if not ssconf_store:
+    ssconf_store = ssconf.SimpleStore()
+
+  node_list = ssconf_store.GetNodeList()
+
+  if node_name in node_list:
+    raise errors.SshUpdateError("Cannot remove key of node '%s',"
+                                " because it still belongs to the cluster."
+                                % node_name)
+
+  keys_by_name = ssh.QueryPubKeyFile([node_name], key_file=pub_key_file)
+  if not keys_by_name or node_name not in keys_by_name:
+    logging.info("The node '%s' whose key is supposed to be removed does not"
+                 " have an entry in the public key file. Hence, there is"
+                 " nothing left to do.", node_name)
+
+  ssh.RemovePublicKey(node_name, key_file=pub_key_file)
+
+
 def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, ssh_key_type,
                         ssh_key_bits, pub_key_file=pathutils.SSH_PUB_KEYS,
                         ssconf_store=None,

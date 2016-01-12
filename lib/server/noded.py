@@ -976,6 +976,14 @@ class NodeRequestHandler(http.server.HttpServerHandler):
                                     ssh_update_debug=debug,
                                     ssh_update_verbose=verbose)
 
+  @staticmethod
+  def perspective_node_ssh_key_remove_light(params):
+    """Removes a node's SSH key from the master's public key file.
+
+    """
+    (node_name, ) = params
+    return backend.RemoveSshKeyFromPublicKeyFile(node_name)
+
   # cluster --------------------------
 
   @staticmethod
