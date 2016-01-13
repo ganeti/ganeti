@@ -183,6 +183,14 @@ class FakeSshFileManager(object):
     """
     return self._all_node_data.keys()
 
+  def GetAllNodeUuids(self):
+    """Returns all node UUIDs of the cluster.
+
+    @rtype: list of str
+    @returns: list of all node UUIDs
+    """
+    return [node.uuid for node in self._all_node_data.values()]
+
   def GetAllPotentialMasterCandidateNodeNames(self):
     return [name for name, node_info
             in self._all_node_data.items()
