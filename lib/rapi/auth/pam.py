@@ -1,7 +1,7 @@
 #
 #
 
-# Copyright (C) 2015 Google Inc.
+# Copyright (C) 2015, 2016 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -68,6 +68,7 @@ PAM_SUCCESS = 0
 PAM_PROMPT_ECHO_OFF = 1
 
 PAM_AUTHTOK = 6
+PAM_USER = 2
 
 if c:
   class PamHandleT(c.Structure):
@@ -271,6 +272,7 @@ def ValidateRequest(cf, username, uri_access_rights, password=None,
   @param uri: an uri of a target resource obtained from an http header
   @param method: http method trying to access the uri
   @param body: a body of an RAPI request
+  @return: On success - authenticated user name. Throws an exception otherwise.
 
   """
   ValidateParams(username, uri_access_rights, password, service, authtok, uri,
@@ -284,11 +286,12 @@ def ValidateRequest(cf, username, uri_access_rights, password=None,
 
     """
     if num_msg > MAX_MSG_COUNT:
-      logging.info("Too many messages passed to conv function: [%d]", num_msg)
+      logging.warning("Too many messages passed to conv function: [%d]",
+                      num_msg)
       return PAM_BUF_ERR
     response = cf.calloc(num_msg, c.sizeof(PamResponse))
     if not response:
-      logging.info("calloc failed in conv function")
+      logging.warning("calloc failed in conv function")
       return PAM_BUF_ERR
     resp[0] = c.cast(response, c.POINTER(PamResponse))
     for i in range(num_msg):
@@ -296,7 +299,7 @@ def ValidateRequest(cf, username, uri_access_rights, password=None,
         continue
       resp.contents[i].resp = cf.strndup(password, len(password))
       if not resp.contents[i].resp:
-        logging.info("strndup failed in conv function")
+        logging.warning("strndup failed in conv function")
         for j in range(i):
           cf.free(c.cast(resp.contents[j].resp, c.c_void_p))
         cf.free(response)
@@ -314,7 +317,16 @@ def ValidateRequest(cf, username, uri_access_rights, password=None,
   Authenticate(cf, pam_handle, authtok)
   Authorize(cf, pam_handle, uri_access_rights, uri, method, body)
 
+  # retrieve the authorized user name
+  puser = c.c_void_p()
+  ret = cf.pam_get_item(pam_handle, PAM_USER, c.pointer(puser))
+  if ret != PAM_SUCCESS or not puser:
+    cf.pam_end(pam_handle, ret)
+    raise http.HttpInternalServerError("pam_get_item call failed [%d]" % ret)
+  user_c_string = c.cast(puser, c.c_char_p)
+
   cf.pam_end(pam_handle, PAM_SUCCESS)
+  return user_c_string.value
 
 
 def MakeStringC(string):
@@ -350,17 +362,18 @@ class PamAuthenticator(auth.RapiAuthenticator):
   def ValidateRequest(self, req, handler_access):
     """Checks whether a user can access a resource.
 
+    This function retuns authenticated user name on success.
+
     """
     username, password = HttpServerRequestAuthentication \
                            .ExtractUserPassword(req)
     authtok = req.request_headers.get(constants.HTTP_RAPI_PAM_CREDENTIAL, None)
     if handler_access is not None:
       handler_access_ = ','.join(handler_access)
-    ValidateRequest(self.cf, MakeStringC(username),
-                    MakeStringC(handler_access_),
-                    MakeStringC(password),
-                    MakeStringC(DEFAULT_SERVICE_NAME),
-                    MakeStringC(authtok), MakeStringC(req.request_path),
-                    MakeStringC(req.request_method),
-                    MakeStringC(req.request_body))
-    return True
+    return ValidateRequest(self.cf, MakeStringC(username),
+                           MakeStringC(handler_access_),
+                           MakeStringC(password),
+                           MakeStringC(DEFAULT_SERVICE_NAME),
+                           MakeStringC(authtok), MakeStringC(req.request_path),
+                           MakeStringC(req.request_method),
+                           MakeStringC(req.request_body))

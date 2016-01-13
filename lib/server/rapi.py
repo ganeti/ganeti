@@ -151,9 +151,15 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
   def Authenticate(self, req):
     """Checks whether a user can access a resource.
 
+    @return: username of an authenticated user or None otherwise
     """
     ctx = self._GetRequestContext(req)
-    return self._authenticator.ValidateRequest(req, ctx.handler_access)
+    auth_user = self._authenticator.ValidateRequest(req, ctx.handler_access)
+    if auth_user is None:
+      return False
+
+    ctx.handler.auth_user = auth_user
+    return True
 
   def HandleRequest(self, req):
     """Handles a request.

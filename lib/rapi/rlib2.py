@@ -372,6 +372,8 @@ class R_2_filters(baserlib.ResourceBase):
     priority, predicates, action, reason = \
       checkFilterParameters(self.request_body)
 
+    reason.append(self.GetAuthReason())
+
     # ReplaceFilter(None, ...) inserts a new filter.
     return self.GetClient().ReplaceFilter(None, priority, predicates, action,
                                           reason)
@@ -416,6 +418,8 @@ class R_2_filters_uuid(baserlib.ResourceBase):
 
     priority, predicates, action, reason = \
       checkFilterParameters(self.request_body)
+
+    reason.append(self.GetAuthReason())
 
     return self.GetClient().ReplaceFilter(uuid, priority, predicates, action,
                                           reason)

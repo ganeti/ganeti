@@ -137,12 +137,12 @@ class BasicAuthenticator(auth.RapiAuthenticator):
                              .ExtractSchemePassword(password)
     if not (user and expected_password == user.password):
       # Unknown user or password wrong
-      return False
+      return None
 
     if (not handler_access or
         set(user.options).intersection(handler_access)):
       # Allow access
-      return True
+      return username
 
     # Access forbidden
     raise http.HttpForbidden()

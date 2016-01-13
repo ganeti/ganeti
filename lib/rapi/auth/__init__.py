@@ -45,8 +45,9 @@ class RapiAuthenticator(object):
     @param req: HTTP request context
     @type handler_access: set of strings
     @param handler_access: access rights required by the requested resourse
-    @rtype: bool
-    @return: Whether request execution is permitted
+    @rtype: str or None
+    @return: the authenticated user name if request execution is permitted and
+             None otherwise
 
     """
     raise NotImplementedError()

@@ -4915,6 +4915,10 @@ opcodeReasonSources =
                        opcodeReasonSrcRlib2,
                        opcodeReasonSrcUser]
 
+-- | A reason content prefix for RAPI auth user
+opcodeReasonAuthUser :: String
+opcodeReasonAuthUser = "RAPI-Auth:"
+
 -- | Path generating random UUID
 randomUuidFile :: String
 randomUuidFile = ConstantUtils.randomUuidFile

@@ -323,6 +323,8 @@ class ResourceBase(object):
 
     self._client_cls = _client_cls
 
+    self.auth_user = ""
+
   def _GetRequestBody(self):
     """Returns the body data.
 
@@ -411,6 +413,11 @@ class ResourceBase(object):
       raise http.HttpInternalServerError("Internal error: no permission to"
                                          " connect to the master daemon")
 
+  def GetAuthReason(self):
+    return (constants.OPCODE_REASON_SRC_RLIB2,
+            constants.OPCODE_REASON_AUTH_USER + self.auth_user,
+            utils.EpochNano())
+
   def SubmitJob(self, op, cl=None):
     """Generic wrapper for submit job, for better http compatibility.
 
@@ -425,6 +432,11 @@ class ResourceBase(object):
     if cl is None:
       cl = self.GetClient()
     try:
+      for opcode in op:
+        # Add an authorized user name to the reason trail
+        trail = getattr(opcode, constants.OPCODE_REASON, [])
+        trail.append(self.GetAuthReason())
+        setattr(opcode, constants.OPCODE_REASON, trail)
       return cl.SubmitJob(op)
     except errors.JobQueueFull:
       raise http.HttpServiceUnavailable("Job queue is full, needs archiving")
