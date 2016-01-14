@@ -436,12 +436,13 @@ def StartMasterDaemons(no_voting):
   """
 
   if no_voting:
-    masterd_args = "--no-voting --yes-do-it"
+    daemon_args = "--no-voting --yes-do-it"
   else:
-    masterd_args = ""
+    daemon_args = ""
 
   env = {
-    "EXTRA_MASTERD_ARGS": masterd_args,
+    "EXTRA_LUXID_ARGS": daemon_args,
+    "EXTRA_WCONFD_ARGS": daemon_args,
     }
 
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "start-master"], env=env)
