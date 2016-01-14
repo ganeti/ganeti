@@ -55,7 +55,7 @@ def main():
 
   if utils.version.IsBefore(version, 2, 12, 5):
     result = utils.RunCmd(["gnt-cluster", "renew-crypto",
-                           "--new-node-certificates", "-f"])
+                           "--new-node-certificates", "-f", "-d"])
     if result.failed:
       cli.ToStderr("Failed to create node certificates: %s; Output %s" %
                    (result.fail_reason, result.output))

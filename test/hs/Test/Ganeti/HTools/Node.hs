@@ -113,10 +113,10 @@ genOnlineNode :: Gen Node.Node
 genOnlineNode =
   arbitrary `suchThat` (\n -> not (Node.offline n) &&
                               not (Node.failN1 n) &&
-                              Node.availDisk n > 0 &&
-                              Node.availMem n > 0 &&
-                              Node.availCpu n > 0 &&
-                              Node.tSpindles n > 0)
+                              Node.availDisk n > 2 * Types.unitDsk &&
+                              Node.availMem n > 2 * Types.unitMem &&
+                              Node.availCpu n > 2 &&
+                              Node.tSpindles n > 2)
 
 -- | Generate a node with exclusive storage enabled.
 genExclStorNode :: Gen Node.Node
