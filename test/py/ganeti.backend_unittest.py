@@ -1062,10 +1062,9 @@ class TestAddRemoveGenerateNodeSshKey(testutils.GanetiTestCase):
                      key_file=self._pub_key_file)
 
     backend._GenerateNodeSshKey(
-        test_node_uuid, test_node_name,
+        test_node_name,
         self._ssh_file_manager.GetSshPortMap(self._SSH_PORT),
         "rsa", 2048,
-        pub_key_file=self._pub_key_file,
         ssconf_store=self._ssconf_mock,
         noded_cert_file=self.noded_cert_file,
         run_cmd_fn=self._run_cmd_mock)

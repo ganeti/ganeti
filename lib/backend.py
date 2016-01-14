@@ -2005,8 +2005,7 @@ def RemoveSshKeyFromPublicKeyFile(node_name,
   ssh.RemovePublicKey(node_name, key_file=pub_key_file)
 
 
-def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, ssh_key_type,
-                        ssh_key_bits, pub_key_file=pathutils.SSH_PUB_KEYS,
+def _GenerateNodeSshKey(node_name, ssh_port_map, ssh_key_type, ssh_key_bits,
                         ssconf_store=None,
                         noded_cert_file=pathutils.NODED_CERT_FILE,
                         run_cmd_fn=ssh.RunSshCmdWithStdin,
@@ -2015,8 +2014,6 @@ def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, ssh_key_type,
                         ssh_update_verbose=False):
   """Generates the root SSH key pair on the node.
 
-  @type node_uuid: str
-  @param node_uuid: UUID of the node whose key is removed
   @type node_name: str
   @param node_name: name of the node whose key is remove
   @type ssh_port_map: dict of str to int
@@ -2029,12 +2026,6 @@ def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, ssh_key_type,
   """
   if not ssconf_store:
     ssconf_store = ssconf.SimpleStore()
-
-  keys_by_uuid = ssh.QueryPubKeyFile([node_uuid], key_file=pub_key_file)
-  if not keys_by_uuid or node_uuid not in keys_by_uuid:
-    raise errors.SshUpdateError("Node %s (UUID: %s) whose key is requested to"
-                                " be regenerated is not registered in the"
-                                " public keys file." % (node_name, node_uuid))
 
   data = {}
   _InitSshUpdateData(data, noded_cert_file, ssconf_store)
@@ -2194,13 +2185,6 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
     node_list.append((node_uuid, node_name, master_candidate,
                       potential_master_candidate))
 
-    keys_by_uuid = ssh.QueryPubKeyFile([node_uuid],
-                                       key_file=ganeti_pub_keys_file)
-    if not keys_by_uuid:
-      raise errors.SshUpdateError("No public key of node %s (UUID %s) found,"
-                                  " not generating a new key."
-                                  % (node_name, node_uuid))
-
     if master_candidate:
       logging.debug("Fetching old SSH key from node '%s'.", node_name)
       old_pub_key = ssh.ReadRemoteSshPubKeys(old_pub_keyfile,
@@ -2241,8 +2225,7 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
       in node_list:
 
     logging.debug("Generating new SSH key for node '%s'.", node_name)
-    _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, new_key_type,
-                        new_key_bits, pub_key_file=ganeti_pub_keys_file,
+    _GenerateNodeSshKey(node_name, ssh_port_map, new_key_type, new_key_bits,
                         ssconf_store=ssconf_store,
                         noded_cert_file=noded_cert_file,
                         run_cmd_fn=run_cmd_fn,
@@ -2289,9 +2272,8 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
 
   # Generate a new master key with a suffix, don't touch the old one for now
   logging.debug("Generate new ssh key of master.")
-  _GenerateNodeSshKey(master_node_uuid, master_node_name, ssh_port_map,
+  _GenerateNodeSshKey(master_node_name, ssh_port_map,
                       new_key_type, new_key_bits,
-                      pub_key_file=ganeti_pub_keys_file,
                       ssconf_store=ssconf_store,
                       noded_cert_file=noded_cert_file,
                       run_cmd_fn=run_cmd_fn,
