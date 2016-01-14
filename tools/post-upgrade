@@ -63,7 +63,8 @@ def main():
 
   if utils.version.IsBefore(version, 2, 13, 0):
     result = utils.RunCmd(["gnt-cluster", "renew-crypto",
-                           "--new-ssh-keys", "--no-ssh-key-check", "-f"])
+                           "--new-ssh-keys", "--no-ssh-key-check", "-f", "-d"])
+
     if result.failed:
       cli.ToStderr("Failed to create SSH keys: %s; Output %s" %
                    (result.fail_reason, result.output))
