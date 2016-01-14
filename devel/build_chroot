@@ -398,7 +398,8 @@ case ${DIST_RELEASE}${VARIANT} in
       cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-pyinotify python-paramiko \
-      python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
+      python-bitarray python-ipaddr python-yaml python-psutil \
+      qemu-utils python-coverage pep8 \
       shelltestrunner python-dev pylint openssh-client \
       vim git git-email exuberant-ctags
 
@@ -439,6 +440,7 @@ case ${DIST_RELEASE}${VARIANT} in
         python-ipaddr \
         python-yaml \
         python-paramiko \
+        python-psutil \
         git \
         git-email \
         vim
@@ -568,6 +570,7 @@ case ${DIST_RELEASE}${VARIANT} in
         python-ipaddr \
         python-yaml \
         python-paramiko \
+        python-psutil \
         git \
         git-email \
         vim
@@ -776,7 +779,8 @@ EOF
       libghc-base64-bytestring-dev \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pyinotify python-pycurl python-paramiko \
-      python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
+      python-bitarray python-ipaddr python-yaml python-psutil \
+      qemu-utils python-coverage pep8 \
       shelltestrunner python-dev pylint openssh-client \
       vim git git-email exuberant-ctags \
       build-essential
@@ -816,8 +820,15 @@ in_chroot -- \
                ndisc6 python-openssl openssl \
                python-mock fping qemu-utils
 
-in_chroot -- \
-  easy_install psutil
+# Ganeti requires psutil APIs only available in 2.x and removed in 3.0.
+# Only jessie and stretch have new enough packages, so install a pinned
+# version elsewhere.
+case ${DIST_RELEASE} in
+  squeeze|wheezy|precise|trusty)
+    in_chroot -- \
+      easy_install 'psutil>=2.0.0,<3.0.0'
+    ;;
+esac
 
 in_chroot -- \
   easy_install jsonpointer \
