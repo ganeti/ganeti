@@ -2077,33 +2077,6 @@ def _GetNewMasterKey(root_keyfiles, master_node_uuid):
   return {master_node_uuid: new_master_keys}
 
 
-def _ReplaceMasterKeyOnMaster(root_keyfiles):
-  number_of_moves = 0
-  for (_, (private_key_file, public_key_file)) in root_keyfiles.items():
-    key_dir = os.path.dirname(public_key_file)
-    private_key_file_tmp = \
-      os.path.basename(private_key_file) + constants.SSHS_MASTER_SUFFIX
-    public_key_file_tmp = private_key_file_tmp + ".pub"
-    private_key_path_tmp = os.path.join(key_dir,
-                                        private_key_file_tmp)
-    public_key_path_tmp = os.path.join(key_dir,
-                                       public_key_file_tmp)
-    if os.path.exists(public_key_file):
-      utils.CreateBackup(public_key_file)
-      utils.RemoveFile(public_key_file)
-    if os.path.exists(private_key_file):
-      utils.CreateBackup(private_key_file)
-      utils.RemoveFile(private_key_file)
-    if os.path.exists(public_key_path_tmp) and \
-        os.path.exists(private_key_path_tmp):
-      # for some key types, there might not be any keys
-      shutil.move(public_key_path_tmp, public_key_file)
-      shutil.move(private_key_path_tmp, private_key_file)
-      number_of_moves += 1
-  if not number_of_moves:
-    raise errors.SshUpdateError("Could not move at least one master SSH key.")
-
-
 def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                  potential_master_candidates, old_key_type, new_key_type,
                  new_key_bits,
@@ -2302,7 +2275,8 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
     all_node_errors = all_node_errors + node_errors
 
   # Remove the old key file and rename the new key to the non-temporary filename
-  _ReplaceMasterKeyOnMaster(root_keyfiles)
+  ssh.ReplaceSshKeys(new_key_type, new_key_type,
+                     src_key_suffix=constants.SSHS_MASTER_SUFFIX)
 
   # Remove old key from authorized keys
   (auth_key_file, _) = \
