@@ -2008,6 +2008,9 @@ def _GetInstanceDiskFields():
      IQ_CONFIG, 0, lambda ctx, inst: [disk.name for disk in inst.disks]),
     (_MakeField("disk.uuids", "Disk_UUIDs", QFT_OTHER, "List of disk UUIDs"),
      IQ_CONFIG, 0, lambda ctx, inst: [disk.uuid for disk in inst.disks]),
+    (_MakeField("disk.storage_ids", "Disk_storage_ids", QFT_OTHER,
+                "List of disk storage ids"),
+     IQ_CONFIG, 0, lambda ctx, inst: [disk.storage_id for disk in inst.disks]),
     ]
 
   # Disks by number

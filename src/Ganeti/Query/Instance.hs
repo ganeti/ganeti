@@ -207,6 +207,9 @@ instanceFields =
   , (FieldDefinition "disk.uuids" "Disk_UUIDs" QFTOther
      "List of disk UUIDs",
      FieldConfig getDiskUuids, QffNormal)
+  , (FieldDefinition "disk.storage_ids" "Disk_storage_ids" QFTOther
+     "List of disk storage ids",
+     FieldConfig getStorageIds, QffNormal)
     -- For pre-2.14 backwards compatibility
   , (FieldDefinition "disk_template" "Disk_template" QFTText
      "Instance disk template",
@@ -415,6 +418,15 @@ getDiskNames cfg =
 getDiskUuids :: ConfigData -> Instance -> ResultEntry
 getDiskUuids cfg =
   rsErrorNoData . liftA (map uuidOf) . getInstDisksFromObj cfg
+
+-- | Get a list of disk storage ids for an instance. Note that for DRBD the list
+-- will be empty.
+getStorageIds :: ConfigData -> Instance -> ResultEntry
+getStorageIds cfg = rsErrorNoData .
+  liftA (map MaybeForJSON . filter isJust . mapMaybe storageId) .
+  getInstDisksFromObj cfg
+ where
+  storageId x = getStorageId <$> diskLogicalId x
 
 -- | Creates a functions which produces a FieldConfig 'FieldGetter' when fed
 -- an index. Works for fields that may not return a value, expressed through

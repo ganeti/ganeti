@@ -152,6 +152,20 @@ lidDiskType (LIDExt {}) = DTExt
 lidEncodeType :: DiskLogicalId -> [(String, JSValue)]
 lidEncodeType v = [(devType, showJSON . lidDiskType $ v)]
 
+-- | Returns the storage path or the unique name for a given logical id if
+-- present
+getStorageId :: DiskLogicalId -> Maybe String
+getStorageId dlid =
+  case dlid of
+    LIDPlain lv -> Just $ lvGroup lv ++ "/" ++ lvVolume lv
+    LIDDrbd8 {} -> Nothing
+    LIDFile _ path -> Just path
+    LIDSharedFile _ path -> Just path
+    LIDGluster _ path -> Just path
+    LIDBlockDev _ path -> Just path
+    LIDRados _ path -> Just path
+    LIDExt _ uniqueName -> Just uniqueName
+
 -- | Custom encoder for DiskLogicalId (logical id only).
 encodeDLId :: DiskLogicalId -> JSValue
 encodeDLId (LIDPlain (LogicalVolume vg lv)) =
