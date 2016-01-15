@@ -399,11 +399,22 @@ class LUInstanceSetParams(LogicalUnit):
                                  errors.ECODE_INVAL)
 
     instance_nodes = self.cfg.GetInstanceNodes(self.instance.uuid)
-    if not set(instance_nodes).issubset(set(disk.nodes)):
+    # Make sure we do not attach disks to instances on wrong nodes. If the
+    # instance is diskless, that instance is associated only to the primary
+    # node, whereas the disk can be associated to two nodes in the case of DRBD,
+    # hence, we have a subset check here.
+    if disk.nodes and not set(instance_nodes).issubset(set(disk.nodes)):
       raise errors.OpPrereqError("Disk nodes are %s while the instance's nodes"
                                  " are %s" %
                                  (disk.nodes, instance_nodes),
                                  errors.ECODE_INVAL)
+    # Make sure a DRBD disk has the same primary node as the instance where it
+    # will be attached to.
+    disk_primary = disk.GetPrimaryNode(self.instance.primary_node)
+    if self.instance.primary_node != disk_primary:
+      raise errors.OpExecError("The disks' primary node is %s whereas the "
+                               "instance's primary node is %s."
+                               % (disk_primary, self.instance.primary_node))
 
   def ExpandNames(self):
     self._ExpandAndLockInstance()
