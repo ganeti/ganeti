@@ -354,8 +354,14 @@ def _PrepareFileBasedStorage(
             constants.ST_FILE, constants.ST_SHARED_FILE, constants.ST_GLUSTER
          ))
 
+  file_storage_enabled = file_disk_template in enabled_disk_templates
+
   if file_storage_dir is None:
-    file_storage_dir = default_dir
+    if file_storage_enabled:
+      file_storage_dir = default_dir
+    else:
+      file_storage_dir = ""
+
   if not acceptance_fn:
     acceptance_fn = \
         lambda path: filestorage.CheckFileStoragePathAcceptance(
@@ -364,7 +370,6 @@ def _PrepareFileBasedStorage(
   _storage_path_acceptance_fn(logging.warning, file_storage_dir,
                               enabled_disk_templates)
 
-  file_storage_enabled = file_disk_template in enabled_disk_templates
   if file_storage_enabled:
     try:
       acceptance_fn(file_storage_dir)

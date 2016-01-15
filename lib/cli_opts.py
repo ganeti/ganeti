@@ -1188,8 +1188,7 @@ GLOBAL_GLUSTER_FILEDIR_OPT = cli_option(
   help="Specify the default directory (cluster-wide) for mounting Gluster"
   " file systems [%s]" %
   pathutils.DEFAULT_GLUSTER_STORAGE_DIR,
-  metavar="GLUSTERDIR",
-  default=pathutils.DEFAULT_GLUSTER_STORAGE_DIR)
+  metavar="GLUSTERDIR", default=None)
 
 NOMODIFY_ETCHOSTS_OPT = cli_option("--no-etc-hosts", dest="modify_etc_hosts",
                                    help="Don't modify %s" % pathutils.ETC_HOSTS,
