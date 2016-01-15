@@ -435,12 +435,13 @@ def StartMasterDaemons(no_voting):
   """
 
   if no_voting:
-    masterd_args = "--no-voting --yes-do-it"
+    daemon_args = "--no-voting --yes-do-it"
   else:
-    masterd_args = ""
+    daemon_args = ""
 
   env = {
-    "EXTRA_MASTERD_ARGS": masterd_args,
+    "EXTRA_LUXID_ARGS": daemon_args,
+    "EXTRA_WCONFD_ARGS": daemon_args,
     }
 
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "start-master"], env=env)
@@ -565,6 +566,8 @@ def LeaveCluster(modify_ssh_setup):
       utils.RemoveFile(pub_key)
     except errors.OpExecError:
       logging.exception("Error while processing ssh files")
+    except IOError:
+      logging.exception("At least one SSH file was not accessible.")
 
   try:
     utils.RemoveFile(pathutils.CONFD_HMAC_KEY)
@@ -1496,12 +1499,6 @@ def AddNodeSshKeyBulk(node_list,
                             node_list])
   to_public_keys = any([node_info.to_public_keys for node_info in
                         node_list])
-  get_public_keys = any([node_info.get_public_keys for node_info in
-                         node_list])
-
-  # assure that at least one of those flags is true, as the function would
-  # not do anything otherwise
-  assert (to_authorized_keys or to_public_keys or get_public_keys)
 
   if not ssconf_store:
     ssconf_store = ssconf.SimpleStore()

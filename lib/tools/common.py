@@ -188,7 +188,14 @@ def LoadData(raw, data_check):
   @rtype: dict
 
   """
-  return serializer.LoadAndVerifyJson(raw, data_check)
+  result = None
+  try:
+    result = serializer.LoadAndVerifyJson(raw, data_check)
+    logging.debug("Received data: %s", serializer.DumpJson(result))
+  except Exception as e:
+    logging.warn("Received data is not valid json: %s.", str(raw))
+    raise e
+  return result
 
 
 def GenerateRootSshKeys(key_type, key_bits, error_fn, _suffix="",
