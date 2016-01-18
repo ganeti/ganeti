@@ -2184,7 +2184,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     for instance in self.all_inst_info.values():
       for secondary in self.cfg.GetInstanceSecondaryNodes(instance.uuid):
         if (secondary in self.my_node_info
-            and instance.name not in self.my_inst_info):
+            and instance.uuid not in self.my_inst_info):
           self.cfg.GetInstanceLVsByNode(instance.uuid, lvmap=node_vol_should)
           break
 
