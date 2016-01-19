@@ -405,7 +405,7 @@ class TestBuildGanetiPubKeys(testutils.GanetiTestCase):
     self._setUpFakeKeys()
 
     self._ssh_read_remote_ssh_pub_keys_patcher = testutils \
-      .patch_object(ssh, "ReadRemoteSshPubKeys")
+      .patch_object(ssh, "ReadRemoteSshPubKey")
     self._ssh_read_remote_ssh_pub_keys_mock = \
       self._ssh_read_remote_ssh_pub_keys_patcher.start()
     self._ssh_read_remote_ssh_pub_keys_mock.return_value = self._SOME_KEY_DICT

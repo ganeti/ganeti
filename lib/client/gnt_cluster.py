@@ -1269,10 +1269,10 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
 
   # get the key files of all non-master nodes
   for node in nonmaster_nodes:
-    pub_key = ssh.ReadRemoteSshPubKeys(pub_key_filename, node, cluster_name,
-                                       ssh_port_map[node],
-                                       options.ssh_key_check,
-                                       options.ssh_key_check)
+    pub_key = ssh.ReadRemoteSshPubKey(pub_key_filename, node, cluster_name,
+                                      ssh_port_map[node],
+                                      options.ssh_key_check,
+                                      options.ssh_key_check)
     ssh.AddPublicKey(node_uuid_map[node], pub_key, key_file=pub_key_file)
 
 

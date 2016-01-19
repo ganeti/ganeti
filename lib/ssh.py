@@ -1074,8 +1074,8 @@ def RunSshCmdWithStdin(cluster_name, node, basecmd, port, data,
                              (result.cmd, result.fail_reason))
 
 
-def ReadRemoteSshPubKeys(pub_key_file, node, cluster_name, port, ask_key,
-                         strict_host_check):
+def ReadRemoteSshPubKey(pub_key_file, node, cluster_name, port, ask_key,
+                        strict_host_check):
   """Fetches a public SSH key from a node via SSH.
 
   @type pub_key_file: string

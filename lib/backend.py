@@ -2059,24 +2059,6 @@ def _GetOldMasterKeys(master_node_uuid, pub_key_file):
   return old_master_keys_by_uuid
 
 
-def _GetNewMasterKey(root_keyfiles, master_node_uuid):
-  new_master_keys = []
-  for (_, (_, public_key_file)) in root_keyfiles.items():
-    public_key_dir = os.path.dirname(public_key_file)
-    public_key_file_tmp_filename = \
-        os.path.splitext(os.path.basename(public_key_file))[0] \
-        + constants.SSHS_MASTER_SUFFIX + ".pub"
-    public_key_path_tmp = os.path.join(public_key_dir,
-                                       public_key_file_tmp_filename)
-    if os.path.exists(public_key_path_tmp):
-      # for some key types, there might not be any keys
-      key = utils.ReadFile(public_key_path_tmp)
-      new_master_keys.append(key)
-  if not new_master_keys:
-    raise errors.SshUpdateError("Cannot find any type of temporary SSH key.")
-  return {master_node_uuid: new_master_keys}
-
-
 def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                  potential_master_candidates, old_key_type, new_key_type,
                  new_key_bits,
@@ -2123,11 +2105,9 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
     raise errors.ProgrammerError("List of nodes UUIDs and node names"
                                  " does not match in length.")
 
-  (_, root_keyfiles) = \
-    ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
-  (_, old_pub_keyfile) = root_keyfiles[old_key_type]
-  (_, new_pub_keyfile) = root_keyfiles[new_key_type]
-  old_master_key = utils.ReadFile(old_pub_keyfile)
+  old_pub_keyfile = ssh.GetSshPubKeyFilename(old_key_type)
+  new_pub_keyfile = ssh.GetSshPubKeyFilename(new_key_type)
+  old_master_key = ssh.ReadLocalSshPubKeys([old_key_type])
 
   node_uuid_name_map = zip(node_uuids, node_names)
 
@@ -2160,11 +2140,11 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
 
     if master_candidate:
       logging.debug("Fetching old SSH key from node '%s'.", node_name)
-      old_pub_key = ssh.ReadRemoteSshPubKeys(old_pub_keyfile,
-                                             node_name, cluster_name,
-                                             ssh_port_map[node_name],
-                                             False, # ask_key
-                                             False) # key_check
+      old_pub_key = ssh.ReadRemoteSshPubKey(old_pub_keyfile,
+                                            node_name, cluster_name,
+                                            ssh_port_map[node_name],
+                                            False, # ask_key
+                                            False) # key_check
       if old_pub_key != old_master_key:
         # If we are already in a multi-key setup (that is past Ganeti 2.12),
         # we can safely remove the old key of the node. Otherwise, we cannot
@@ -2189,6 +2169,10 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
         master_candidate_uuids,
         potential_master_candidates,
         master_uuid=master_node_uuid,
+        pub_key_file=ganeti_pub_keys_file,
+        ssconf_store=ssconf_store,
+        noded_cert_file=noded_cert_file,
+        run_cmd_fn=run_cmd_fn,
         ssh_update_debug=ssh_update_debug,
         ssh_update_verbose=ssh_update_verbose)
     if node_errors:
@@ -2207,11 +2191,11 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
 
     try:
       logging.debug("Fetching newly created SSH key from node '%s'.", node_name)
-      pub_key = ssh.ReadRemoteSshPubKeys(new_pub_keyfile,
-                                         node_name, cluster_name,
-                                         ssh_port_map[node_name],
-                                         False, # ask_key
-                                         False) # key_check
+      pub_key = ssh.ReadRemoteSshPubKey(new_pub_keyfile,
+                                        node_name, cluster_name,
+                                        ssh_port_map[node_name],
+                                        False, # ask_key
+                                        False) # key_check
     except:
       raise errors.SshUpdateError("Could not fetch key of node %s"
                                   " (UUID %s)" % (node_name, node_uuid))
@@ -2254,11 +2238,12 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                       ssh_update_debug=ssh_update_debug,
                       ssh_update_verbose=ssh_update_verbose)
   # Read newly created master key
-  new_master_key_dict = _GetNewMasterKey(root_keyfiles, master_node_uuid)
+  new_master_keys = ssh.ReadLocalSshPubKeys(
+      [new_key_type], suffix=constants.SSHS_MASTER_SUFFIX)
 
   # Replace master key in the master nodes' public key file
   ssh.RemovePublicKey(master_node_uuid, key_file=ganeti_pub_keys_file)
-  for pub_key in new_master_key_dict[master_node_uuid]:
+  for pub_key in new_master_keys:
     ssh.AddPublicKey(master_node_uuid, pub_key, key_file=ganeti_pub_keys_file)
 
   # Add new master key to all node's public and authorized keys
@@ -2292,6 +2277,10 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
       keys_to_remove=old_master_keys_by_uuid, from_authorized_keys=True,
       from_public_keys=False, clear_authorized_keys=False,
       clear_public_keys=False,
+      pub_key_file=ganeti_pub_keys_file,
+      ssconf_store=ssconf_store,
+      noded_cert_file=noded_cert_file,
+      run_cmd_fn=run_cmd_fn,
       ssh_update_debug=ssh_update_debug,
       ssh_update_verbose=ssh_update_verbose)
   if node_errors:
