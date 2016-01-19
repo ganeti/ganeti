@@ -1,10 +1,12 @@
+{-# LANGUAGE CPP #-}
+
 {-| Provides interface to the 'zlib' library.
 
 -}
 
 {-
 
-Copyright (C) 2014 Google Inc.
+Copyright (C) 2014, 2016 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,9 +45,9 @@ import Ganeti.Prelude
 import Codec.Compression.Zlib (compress)
 import qualified Codec.Compression.Zlib.Internal as I
 import Control.Monad (liftM)
-import Control.Monad.Error.Class (MonadError(..))
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Internal as BL
+import Control.Monad.Error.Class (MonadError(..))
 
 import Ganeti.BasicTypes
 
@@ -57,6 +59,13 @@ compressZlib = compress
 -- 'throwError'.
 decompressZlib :: (MonadError e m, FromString e)
                => BL.ByteString -> m BL.ByteString
+#if MIN_VERSION_zlib(0, 6, 0)
+decompressZlib = I.foldDecompressStreamWithInput
+                   (liftM . BL.chunk)
+                   return
+                   (throwError . mkFromString . (++)"Zlib: " . show)
+                   $ I.decompressST I.zlibFormat I.defaultDecompressParams
+#else
 decompressZlib = I.foldDecompressStream
                      (liftM . BL.chunk)
                      (return mempty)
@@ -64,3 +73,4 @@ decompressZlib = I.foldDecompressStream
                  . I.decompressWithErrors
                      I.zlibFormat
                      I.defaultDecompressParams
+#endif
