@@ -166,6 +166,11 @@ getStorageId dlid =
     LIDRados _ path -> Just path
     LIDExt _ uniqueName -> Just uniqueName
 
+-- | Returns the provider for ExtStorage and Nothing otherwise
+getExtProvider :: DiskLogicalId -> Maybe String
+getExtProvider (LIDExt provider _) = Just provider
+getExtProvider _ = Nothing
+
 -- | Custom encoder for DiskLogicalId (logical id only).
 encodeDLId :: DiskLogicalId -> JSValue
 encodeDLId (LIDPlain (LogicalVolume vg lv)) =

@@ -210,6 +210,9 @@ instanceFields =
   , (FieldDefinition "disk.storage_ids" "Disk_storage_ids" QFTOther
      "List of disk storage ids",
      FieldConfig getStorageIds, QffNormal)
+  , (FieldDefinition "disk.providers" "Disk_providers" QFTOther
+     "List of disk ExtStorage providers",
+     FieldConfig getProviders, QffNormal)
     -- For pre-2.14 backwards compatibility
   , (FieldDefinition "disk_template" "Disk_template" QFTText
      "Instance disk template",
@@ -418,6 +421,14 @@ getDiskNames cfg =
 getDiskUuids :: ConfigData -> Instance -> ResultEntry
 getDiskUuids cfg =
   rsErrorNoData . liftA (map uuidOf) . getInstDisksFromObj cfg
+
+-- | Get a list of ExtStorage providers for an instance
+getProviders :: ConfigData -> Instance -> ResultEntry
+getProviders cfg =
+  rsErrorNoData . liftA (map MaybeForJSON . filter isJust
+                         . mapMaybe getProvider) . getInstDisksFromObj cfg
+ where
+  getProvider x = getExtProvider <$> diskLogicalId x
 
 -- | Get a list of disk storage ids for an instance. Note that for DRBD the list
 -- will be empty.

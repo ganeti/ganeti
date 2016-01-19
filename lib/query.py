@@ -2011,6 +2011,9 @@ def _GetInstanceDiskFields():
     (_MakeField("disk.storage_ids", "Disk_storage_ids", QFT_OTHER,
                 "List of disk storage ids"),
      IQ_CONFIG, 0, lambda ctx, inst: [disk.storage_id for disk in inst.disks]),
+    (_MakeField("disk.providers", "Disk_providers", QFT_OTHER,
+                "List of disk ExtStorage providers"),
+     IQ_CONFIG, 0, lambda ctx, inst: [disk.provider for disk in inst.disks]),
     ]
 
   # Disks by number
