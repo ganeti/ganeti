@@ -2481,8 +2481,7 @@ commands = {
   "verify": (
     VerifyCluster, ARGS_NONE,
     [VERBOSE_OPT, DEBUG_SIMERR_OPT, ERROR_CODES_OPT, NONPLUS1_OPT,
-     DRY_RUN_OPT, PRIORITY_OPT, NODEGROUP_OPT, IGNORE_ERRORS_OPT,
-     VERIFY_CLUTTER_OPT],
+     PRIORITY_OPT, NODEGROUP_OPT, IGNORE_ERRORS_OPT, VERIFY_CLUTTER_OPT],
     "", "Does a check on the cluster configuration"),
   "verify-disks": (
     VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT],
