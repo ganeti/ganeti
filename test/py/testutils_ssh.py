@@ -289,11 +289,24 @@ class FakeSshFileManager(object):
   def GetAuthorizedKeysOfNode(self, node):
     """Returns the authorized keys of the given node.
 
+    @type node: string
+    @param node: name of the node
     @rtype: list of str
     @returns: a list of authorized keys that are stored on that node
 
     """
     return self._authorized_keys[node]
+
+  def GetKeyOfNode(self, node):
+    """Returns the SSH key of the given node.
+
+    @type node: string
+    @param node: name of the node
+    @rtype: string
+    @returns: the SSH key of the node
+
+    """
+    return self._all_node_data[node].key
 
   def SetOrAddNode(self, name, uuid, key, pot_mc, mc, master):
     """Adds a new node to the state of the file manager.
