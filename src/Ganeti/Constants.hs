@@ -5159,10 +5159,10 @@ luxiReqAll =
   ]
 
 luxiDefCtmo :: Int
-luxiDefCtmo = 10
+luxiDefCtmo = 30
 
 luxiDefRwto :: Int
-luxiDefRwto = 60
+luxiDefRwto = 180
 
 -- | 'WaitForJobChange' timeout
 luxiWfjcTimeout :: Int
