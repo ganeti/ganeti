@@ -438,6 +438,30 @@ class LogicalUnit(object): # pylint: disable=R0902
     # pylint: disable=W0613,R0201
     return lu_result
 
+  def HooksAbortCallBack(self, phase, feedback_fn, exception):
+    """Called when the hooks get aborted by an exception.
+
+    This method is called everytime a hooks phase is aborted by an exception.
+    This exception is most likely of type C{errors.HooksAbort}. However, we
+    keep the design of this function broad enough to handle any kind of
+    exception.
+
+    The intended purpose of this call back is to run any action that is
+    necessary to bring the cluster back to a clean state from the point
+    in time before calling the hook.
+
+    @type phase: string
+    @param phase: one of L{constants.HOOKS_PHASE_POST} or
+        L{constants.HOOKS_PHASE_PRE}; it denotes the hooks phase
+    @type feedback_fn: callable
+    @param feedback_fn: function used send feedback back to the caller
+    @type exception: Exception
+    @param exception: The exception that was raised during the execution of
+    hooks.
+
+    """
+    pass
+
   def _ExpandAndLockInstance(self, allow_forthcoming=False):
     """Helper function to expand and lock an instance.
 

@@ -485,9 +485,18 @@ class Processor(object):
     lu.CheckPrereq()
 
     self._hm = self.BuildHooksManager(lu)
-    # Run hooks twice: first for the global hooks, then for the usual hooks.
-    self._hm.RunPhase(constants.HOOKS_PHASE_PRE, is_global=True)
-    h_results = self._hm.RunPhase(constants.HOOKS_PHASE_PRE)
+    try:
+      # Run hooks twice: first for the global hooks, then for the usual hooks.
+      self._hm.RunPhase(constants.HOOKS_PHASE_PRE, is_global=True)
+      h_results = self._hm.RunPhase(constants.HOOKS_PHASE_PRE)
+    except Exception, err:  # pylint: disable=W0703
+      # This gives the LU a chance of cleaning up in case of an hooks failure.
+      # The type of exception is deliberately broad to be able to react to
+      # any kind of failure.
+      lu.HooksAbortCallBack(constants.HOOKS_PHASE_PRE, self.Log, err)
+      # We re-raise the exception to not alter the behavior of LU handling
+      # otherwise.
+      raise err
     lu.HooksCallBack(constants.HOOKS_PHASE_PRE, h_results,
                      self.Log, None)
 

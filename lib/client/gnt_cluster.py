@@ -892,6 +892,14 @@ def MasterFailover(opts, args):
   @return: the desired exit code
 
   """
+  if not opts.no_voting:
+    # Verify that a majority of nodes is still healthy
+    if not bootstrap.MajorityHealthy():
+      ToStderr("Master-failover with voting is only possible if the majority"
+               " of nodes is still healthy; use the --no-voting option after"
+               " ensuring by other means that you won't end up in a dual-master"
+               " scenario.")
+      return 1
   if opts.no_voting and not opts.yes_do_it:
     usertext = ("This will perform the failover even if most other nodes"
                 " are down, or if this node is outdated. This is dangerous"
@@ -1202,7 +1210,9 @@ def _RenewCrypto(new_cluster_cert, new_rapi_cert, # pylint: disable=R0911
         node_certificates=new_node_cert or new_cluster_cert,
         renew_ssh_keys=new_ssh_keys,
         ssh_key_type=ssh_key_type,
-        ssh_key_bits=ssh_key_bits)
+        ssh_key_bits=ssh_key_bits,
+        verbose=verbose,
+        debug=debug)
     SubmitOpCode(renew_op, cl=cl)
 
   ToStdout("All requested certificates and keys have been replaced."
@@ -2175,7 +2185,7 @@ def _UpgradeBeforeConfigurationChange(versionstring):
   rollback.append(
     lambda: utils.RunCmd(["rm", "-f", pathutils.INTENT_TO_UPGRADE]))
 
-  ToStdout("Draining queue")
+  ToStdoutAndLoginfo("Draining queue")
   client = GetClient()
   client.SetQueueDrainFlag(True)
 
@@ -2187,11 +2197,11 @@ def _UpgradeBeforeConfigurationChange(versionstring):
     ToStderr("Failed to completely empty the queue.")
     return (False, rollback)
 
-  ToStdout("Pausing the watcher for one hour.")
+  ToStdoutAndLoginfo("Pausing the watcher for one hour.")
   rollback.append(lambda: GetClient().SetWatcherPause(None))
   GetClient().SetWatcherPause(time.time() + 60 * 60)
 
-  ToStdout("Stopping daemons on master node.")
+  ToStdoutAndLoginfo("Stopping daemons on master node.")
   if not _RunCommandAndReport([pathutils.DAEMON_UTIL, "stop-all"]):
     return (False, rollback)
 
@@ -2199,7 +2209,7 @@ def _UpgradeBeforeConfigurationChange(versionstring):
     utils.RunCmd([pathutils.DAEMON_UTIL, "start-all"])
     return (False, rollback)
 
-  ToStdout("Stopping daemons everywhere.")
+  ToStdoutAndLoginfo("Stopping daemons everywhere.")
   rollback.append(lambda: _VerifyCommand([pathutils.DAEMON_UTIL, "start-all"]))
   badnodes = _VerifyCommand([pathutils.DAEMON_UTIL, "stop-all"])
   if badnodes:
@@ -2207,7 +2217,7 @@ def _UpgradeBeforeConfigurationChange(versionstring):
     return (False, rollback)
 
   backuptar = os.path.join(pathutils.BACKUP_DIR, "ganeti%d.tar" % time.time())
-  ToStdout("Backing up configuration as %s" % backuptar)
+  ToStdoutAndLoginfo("Backing up configuration as %s", backuptar)
   if not _RunCommandAndReport(["mkdir", "-p", pathutils.BACKUP_DIR]):
     return (False, rollback)
 
@@ -2235,7 +2245,7 @@ def _VersionSpecificDowngrade():
 
   @return: True upon success
   """
-  ToStdout("Performing version-specific downgrade tasks.")
+  ToStdoutAndLoginfo("Performing version-specific downgrade tasks.")
 
   return True
 
@@ -2256,7 +2266,7 @@ def _SwitchVersionAndConfig(versionstring, downgrade):
   """
   rollback = []
   if downgrade:
-    ToStdout("Downgrading configuration")
+    ToStdoutAndLoginfo("Downgrading configuration")
     if not _RunCommandAndReport([pathutils.CFGUPGRADE, "--downgrade", "-f"]):
       return (False, rollback)
     # Note: version specific downgrades need to be done before switching
@@ -2268,7 +2278,7 @@ def _SwitchVersionAndConfig(versionstring, downgrade):
   # Configuration change is the point of no return. From then onwards, it is
   # safer to push through the up/dowgrade than to try to roll it back.
 
-  ToStdout("Switching to version %s on all nodes" % versionstring)
+  ToStdoutAndLoginfo("Switching to version %s on all nodes", versionstring)
   rollback.append(lambda: _SetGanetiVersion(constants.DIR_VERSION))
   badnodes = _SetGanetiVersion(versionstring)
   if badnodes:
@@ -2283,7 +2293,7 @@ def _SwitchVersionAndConfig(versionstring, downgrade):
   # commands using their canonical (version independent) path.
 
   if not downgrade:
-    ToStdout("Upgrading configuration")
+    ToStdoutAndLoginfo("Upgrading configuration")
     if not _RunCommandAndReport([pathutils.CFGUPGRADE, "-f"]):
       return (False, rollback)
 
@@ -2308,24 +2318,24 @@ def _UpgradeAfterConfigurationChange(oldversion):
   """
   returnvalue = 0
 
-  ToStdout("Ensuring directories everywhere.")
+  ToStdoutAndLoginfo("Ensuring directories everywhere.")
   badnodes = _VerifyCommand([pathutils.ENSURE_DIRS])
   if badnodes:
     ToStderr("Warning: failed to ensure directories on %s." %
              (", ".join(badnodes)))
     returnvalue = 1
 
-  ToStdout("Starting daemons everywhere.")
+  ToStdoutAndLoginfo("Starting daemons everywhere.")
   badnodes = _VerifyCommand([pathutils.DAEMON_UTIL, "start-all"])
   if badnodes:
     ToStderr("Warning: failed to start daemons on %s." % (", ".join(badnodes),))
     returnvalue = 1
 
-  ToStdout("Redistributing the configuration.")
+  ToStdoutAndLoginfo("Redistributing the configuration.")
   if not _RunCommandAndReport(["gnt-cluster", "redist-conf", "--yes-do-it"]):
     returnvalue = 1
 
-  ToStdout("Restarting daemons everywhere.")
+  ToStdoutAndLoginfo("Restarting daemons everywhere.")
   badnodes = _VerifyCommand([pathutils.DAEMON_UTIL, "stop-all"])
   badnodes.extend(_VerifyCommand([pathutils.DAEMON_UTIL, "start-all"]))
   if badnodes:
@@ -2333,21 +2343,21 @@ def _UpgradeAfterConfigurationChange(oldversion):
              (", ".join(list(set(badnodes))),))
     returnvalue = 1
 
-  ToStdout("Undraining the queue.")
+  ToStdoutAndLoginfo("Undraining the queue.")
   if not _RunCommandAndReport(["gnt-cluster", "queue", "undrain"]):
     returnvalue = 1
 
   _RunCommandAndReport(["rm", "-f", pathutils.INTENT_TO_UPGRADE])
 
-  ToStdout("Running post-upgrade hooks")
+  ToStdoutAndLoginfo("Running post-upgrade hooks")
   if not _RunCommandAndReport([pathutils.POST_UPGRADE, oldversion]):
     returnvalue = 1
 
-  ToStdout("Unpausing the watcher.")
+  ToStdoutAndLoginfo("Unpausing the watcher.")
   if not _RunCommandAndReport(["gnt-cluster", "watcher", "continue"]):
     returnvalue = 1
 
-  ToStdout("Verifying cluster.")
+  ToStdoutAndLoginfo("Verifying cluster.")
   if not _RunCommandAndReport(["gnt-cluster", "verify"]):
     returnvalue = 1
 
@@ -2385,6 +2395,8 @@ def UpgradeGanetiCommand(opts, args):
         ToStderr("An upgrade from %s to %s is in progress; use --resume to"
                  " finish it first" % (oldversion, versionstring))
         return 1
+
+  utils.SetupLogging(pathutils.LOG_COMMANDS, 'gnt-cluster upgrade', debug=1)
 
   oldversion = constants.RELEASE_VERSION
 

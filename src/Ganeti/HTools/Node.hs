@@ -1295,6 +1295,8 @@ genOpSetOffline node offlineStatus = do
            , OpCodes.opSecondaryIp = Nothing
            , OpCodes.opgenericNdParams = Nothing
            , OpCodes.opPowered = Nothing
+           , OpCodes.opVerbose = False
+           , OpCodes.opDebug = False
            }
 
 -- | Generate OpCode for applying a OobCommand to the given nodes

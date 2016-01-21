@@ -191,7 +191,9 @@ class LUClusterRenewCrypto(NoHooksLU):
       potential_master_candidates,
       cluster_info.ssh_key_type, # Old key type
       self.ssh_key_type,         # New key type
-      self.ssh_key_bits)         # New key bits
+      self.ssh_key_bits,         # New key bits
+      self.op.debug,
+      self.op.verbose)
     result[master_uuid].Raise("Could not renew the SSH keys of all nodes")
 
     # After the keys have been successfully swapped, time to commit the change

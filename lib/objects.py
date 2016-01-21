@@ -696,6 +696,17 @@ class Disk(ConfigObject):
       raise errors.ProgrammerError("Unhandled device type %s" % self.dev_type)
     return result
 
+  def GetPrimaryNode(self, node_uuid):
+    """This function returns the primary node of the device.
+
+    If the device is not a DRBD device, we still return the node the device
+    lives on.
+
+    """
+    if self.dev_type in constants.DTS_DRBD:
+      return self.logical_id[0]
+    return node_uuid
+
   def ComputeNodeTree(self, parent_node_uuid):
     """Compute the node/disk tree for this disk and its children.
 

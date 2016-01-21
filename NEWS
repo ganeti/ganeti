@@ -22,6 +22,13 @@ Incompatible/important changes
   and ``xen-hvm`` because ``reserved_mem`` was reported incorrectly on them.
   If this ``hv_state`` parameter is not presented in an iallocator input, the
   old ``reserved_mem`` will be used.
+- Tools now log into a separate log file ``tools.log``. Also, each log
+  message of tools is now properly labelled with the name of the tool
+  that submitted the message.
+- The options ``--debug`` and ``--verbose`` of ``gnt-cluster
+  renew-crypto`` and ``gnt-node {add,remove,modify}`` now (also) control the
+  log level of the SSH calls to all nodes.
+
 
 New features
 ~~~~~~~~~~~~
@@ -51,6 +58,10 @@ Incompatible/important changes
   Instead, the cluster configuration parameter ``modify_ssh_setup`` is
   used to determine whether or not to manipulate the SSH setup of a new
   node.
+- Timeouts for communication with luxid have been increased. As a consequence,
+  Ganeti tools communicating (directly or indirectly) with luxid also time out
+  later. Please increase all timeouts for higher level tools interacting with
+  Ganeti accordingly.
 
 
 Version 2.16.0 beta1

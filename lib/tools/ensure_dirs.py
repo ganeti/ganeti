@@ -250,7 +250,9 @@ def Main():
   """
   (opts, args) = ParseOptions()
 
-  utils.SetupToolLogging(opts.debug, opts.verbose)
+  utils.SetupToolLogging(
+      opts.debug, opts.verbose,
+      toolname=os.path.splitext(os.path.basename(__file__))[0])
 
   if args:
     logging.error("No arguments are expected")

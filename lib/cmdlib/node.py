@@ -151,6 +151,24 @@ class LUNodeAdd(LogicalUnit):
   def PreparePostHookNodes(self, post_hook_node_uuids):
     return post_hook_node_uuids + [self.new_node.uuid]
 
+  def HooksAbortCallBack(self, phase, feedback_fn, exception):
+    """Cleans up if the hooks fail.
+
+    This function runs actions that necessary to bring the cluster into a
+    clean state again. This is necessary if for example the hooks of this
+    operation failed and leave the node in an inconsistent state.
+
+    """
+    if phase == constants.HOOKS_PHASE_PRE:
+      feedback_fn("Pre operation hook failed. Rolling back preparations.")
+
+      master_node = self.cfg.GetMasterNodeInfo().name
+      remove_result = self.rpc.call_node_ssh_key_remove_light(
+        [master_node],
+        self.op.node_name)
+      remove_result[master_node].Raise(
+        "Error removing SSH key of node '%s'." % self.op.node_name)
+
   def CheckPrereq(self):
     """Check prerequisites.
 
@@ -358,7 +376,9 @@ class LUNodeAdd(LogicalUnit):
         True, # from public keys
         False, # clear authorized keys
         True, # clear public keys
-        True) # it's a readd
+        True, # it's a readd
+        self.op.debug,
+        self.op.verbose)
       remove_result[master_node].Raise(
         "Could not remove SSH keys of node %s before readding,"
         " (UUID: %s)." % (new_node_name, new_node_uuid))
@@ -368,7 +388,7 @@ class LUNodeAdd(LogicalUnit):
       [master_node], new_node_uuid, new_node_name,
       potential_master_candidates,
       is_master_candidate, is_potential_master_candidate,
-      is_potential_master_candidate)
+      is_potential_master_candidate, self.op.debug, self.op.verbose)
 
     result[master_node].Raise("Could not update the node's SSH setup.")
     WarnAboutFailedSshUpdates(result, master_node, feedback_fn)
@@ -874,7 +894,9 @@ class LUNodeSetParams(LogicalUnit):
             False, # currently, all nodes are potential master candidates
             False, # do not clear node's 'authorized_keys'
             False, # do not clear node's 'ganeti_pub_keys'
-            False) # no readd
+            False, # no readd
+            self.op.debug,
+            self.op.verbose)
           ssh_result[master_node].Raise(
             "Could not adjust the SSH setup after demoting node '%s'"
             " (UUID: %s)." % (node.name, node.uuid))
@@ -1574,7 +1596,9 @@ class LUNodeRemove(LogicalUnit):
         potential_master_candidate, # from_public_keys
         True, # clear node's 'authorized_keys'
         True, # clear node's 'ganeti_public_keys'
-        False) # no readd
+        False, # no readd
+        self.op.debug,
+        self.op.verbose)
       result[master_node].Raise(
         "Could not remove the SSH key of node '%s' (UUID: %s)." %
         (self.op.node_name, self.node.uuid))

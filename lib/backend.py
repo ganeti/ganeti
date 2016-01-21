@@ -436,12 +436,13 @@ def StartMasterDaemons(no_voting):
   """
 
   if no_voting:
-    masterd_args = "--no-voting --yes-do-it"
+    daemon_args = "--no-voting --yes-do-it"
   else:
-    masterd_args = ""
+    daemon_args = ""
 
   env = {
-    "EXTRA_MASTERD_ARGS": masterd_args,
+    "EXTRA_LUXID_ARGS": daemon_args,
+    "EXTRA_WCONFD_ARGS": daemon_args,
     }
 
   result = utils.RunCmd([pathutils.DAEMON_UTIL, "start-master"], env=env)
@@ -566,6 +567,8 @@ def LeaveCluster(modify_ssh_setup):
       utils.RemoveFile(pub_key)
     except errors.OpExecError:
       logging.exception("Error while processing ssh files")
+    except IOError:
+      logging.exception("At least one SSH file was not accessible.")
 
   try:
     utils.RemoveFile(pathutils.CONFD_HMAC_KEY)
@@ -1420,7 +1423,9 @@ def AddNodeSshKey(node_uuid, node_name,
                   pub_key_file=pathutils.SSH_PUB_KEYS,
                   ssconf_store=None,
                   noded_cert_file=pathutils.NODED_CERT_FILE,
-                  run_cmd_fn=ssh.RunSshCmdWithStdin):
+                  run_cmd_fn=ssh.RunSshCmdWithStdin,
+                  ssh_update_debug=False,
+                  ssh_update_verbose=False):
   """Distributes a node's public SSH key across the cluster.
 
   Note that this function should only be executed on the master node, which
@@ -1456,7 +1461,9 @@ def AddNodeSshKey(node_uuid, node_name,
                            pub_key_file=pub_key_file,
                            ssconf_store=ssconf_store,
                            noded_cert_file=noded_cert_file,
-                           run_cmd_fn=run_cmd_fn)
+                           run_cmd_fn=run_cmd_fn,
+                           ssh_update_debug=ssh_update_debug,
+                           ssh_update_verbose=ssh_update_verbose)
 
 
 # Node info named tuple specifically for the use with AddNodeSshKeyBulk
@@ -1474,7 +1481,9 @@ def AddNodeSshKeyBulk(node_list,
                       pub_key_file=pathutils.SSH_PUB_KEYS,
                       ssconf_store=None,
                       noded_cert_file=pathutils.NODED_CERT_FILE,
-                      run_cmd_fn=ssh.RunSshCmdWithStdin):
+                      run_cmd_fn=ssh.RunSshCmdWithStdin,
+                      ssh_update_debug=False,
+                      ssh_update_verbose=False):
   """Distributes a node's public SSH key across the cluster.
 
   Note that this function should only be executed on the master node, which
@@ -1497,12 +1506,6 @@ def AddNodeSshKeyBulk(node_list,
                             node_list])
   to_public_keys = any([node_info.to_public_keys for node_info in
                         node_list])
-  get_public_keys = any([node_info.get_public_keys for node_info in
-                         node_list])
-
-  # assure that at least one of those flags is true, as the function would
-  # not do anything otherwise
-  assert (to_authorized_keys or to_public_keys or get_public_keys)
 
   if not ssconf_store:
     ssconf_store = ssconf.SimpleStore()
@@ -1558,13 +1561,14 @@ def AddNodeSshKeyBulk(node_list,
         (constants.SSHS_OVERRIDE, all_keys)
 
       try:
+        backoff = 5  # seconds
         utils.RetryByNumberOfTimes(
-            constants.SSHS_MAX_RETRIES,
+            constants.SSHS_MAX_RETRIES, backoff,
             errors.SshUpdateError,
             run_cmd_fn, cluster_name, node_info.name, pathutils.SSH_UPDATE,
             ssh_port_map.get(node_info.name), node_data,
-            debug=False, verbose=False, use_cluster_key=False,
-            ask_key=False, strict_host_check=False)
+            debug=ssh_update_debug, verbose=ssh_update_verbose,
+            use_cluster_key=False, ask_key=False, strict_host_check=False)
       except errors.SshUpdateError as e:
         # Clean up the master's public key file if adding key fails
         if node_info.to_public_keys:
@@ -1604,13 +1608,13 @@ def AddNodeSshKeyBulk(node_list,
     if node in potential_master_candidates:
       logging.debug("Updating SSH key files of node '%s'.", node)
       try:
+        backoff = 5  # seconds
         utils.RetryByNumberOfTimes(
-            constants.SSHS_MAX_RETRIES,
-            errors.SshUpdateError,
+            constants.SSHS_MAX_RETRIES, backoff, errors.SshUpdateError,
             run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
             ssh_port_map.get(node), pot_mc_data,
-            debug=False, verbose=False, use_cluster_key=False,
-            ask_key=False, strict_host_check=False)
+            debug=ssh_update_debug, verbose=ssh_update_verbose,
+            use_cluster_key=False, ask_key=False, strict_host_check=False)
       except errors.SshUpdateError as last_exception:
         error_msg = ("When adding the key of node '%s', updating SSH key"
                      " files of node '%s' failed after %s retries."
@@ -1626,12 +1630,15 @@ def AddNodeSshKeyBulk(node_list,
       if to_authorized_keys:
         run_cmd_fn(cluster_name, node, pathutils.SSH_UPDATE,
                    ssh_port_map.get(node), base_data,
-                   debug=False, verbose=False, use_cluster_key=False,
-                   ask_key=False, strict_host_check=False)
+                   debug=ssh_update_debug, verbose=ssh_update_verbose,
+                   use_cluster_key=False, ask_key=False,
+                   strict_host_check=False)
 
   return node_errors
 
 
+# TODO: will be fixed with pending patch series.
+# pylint: disable=R0913
 def RemoveNodeSshKey(node_uuid, node_name,
                      master_candidate_uuids,
                      potential_master_candidates,
@@ -1645,7 +1652,9 @@ def RemoveNodeSshKey(node_uuid, node_name,
                      ssconf_store=None,
                      noded_cert_file=pathutils.NODED_CERT_FILE,
                      readd=False,
-                     run_cmd_fn=ssh.RunSshCmdWithStdin):
+                     run_cmd_fn=ssh.RunSshCmdWithStdin,
+                     ssh_update_debug=False,
+                     ssh_update_verbose=False):
   """Removes the node's SSH keys from the key files and distributes those.
 
   Note that at least one of the flags C{from_authorized_keys},
@@ -1699,7 +1708,9 @@ def RemoveNodeSshKey(node_uuid, node_name,
                               ssconf_store=ssconf_store,
                               noded_cert_file=noded_cert_file,
                               readd=readd,
-                              run_cmd_fn=run_cmd_fn)
+                              run_cmd_fn=run_cmd_fn,
+                              ssh_update_debug=ssh_update_debug,
+                              ssh_update_verbose=ssh_update_verbose)
 
 
 # Node info named tuple specifically for the use with RemoveNodeSshKeyBulk
@@ -1722,7 +1733,9 @@ def RemoveNodeSshKeyBulk(node_list,
                          ssconf_store=None,
                          noded_cert_file=pathutils.NODED_CERT_FILE,
                          readd=False,
-                         run_cmd_fn=ssh.RunSshCmdWithStdin):
+                         run_cmd_fn=ssh.RunSshCmdWithStdin,
+                         ssh_update_debug=False,
+                         ssh_update_verbose=False):
   """Removes the node's SSH keys from the key files and distributes those.
 
   Note that at least one of the flags C{from_authorized_keys},
@@ -1865,13 +1878,13 @@ def RemoveNodeSshKeyBulk(node_list,
           logging.debug("Updating key setup of potential master candidate node"
                         " %s.", node)
           try:
+            backoff = 5  # seconds
             utils.RetryByNumberOfTimes(
-                constants.SSHS_MAX_RETRIES,
-                errors.SshUpdateError,
+                constants.SSHS_MAX_RETRIES, backoff, errors.SshUpdateError,
                 run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
                 ssh_port, pot_mc_data,
-                debug=False, verbose=False, use_cluster_key=False,
-                ask_key=False, strict_host_check=False)
+                debug=ssh_update_debug, verbose=ssh_update_verbose,
+                use_cluster_key=False, ask_key=False, strict_host_check=False)
           except errors.SshUpdateError as last_exception:
             error_msg = error_msg_final % (
                 node_info.name, node, last_exception)
@@ -1882,13 +1895,13 @@ def RemoveNodeSshKeyBulk(node_list,
           if from_authorized_keys:
             logging.debug("Updating key setup of normal node %s.", node)
             try:
+              backoff = 5  # seconds
               utils.RetryByNumberOfTimes(
-                  constants.SSHS_MAX_RETRIES,
-                  errors.SshUpdateError,
+                  constants.SSHS_MAX_RETRIES, backoff, errors.SshUpdateError,
                   run_cmd_fn, cluster_name, node, pathutils.SSH_UPDATE,
                   ssh_port, base_data,
-                  debug=False, verbose=False, use_cluster_key=False,
-                  ask_key=False, strict_host_check=False)
+                  debug=ssh_update_debug, verbose=ssh_update_verbose,
+                  use_cluster_key=False, ask_key=False, strict_host_check=False)
             except errors.SshUpdateError as last_exception:
               error_msg = error_msg_final % (
                   node_info.name, node, last_exception)
@@ -1936,13 +1949,14 @@ def RemoveNodeSshKeyBulk(node_list,
       logging.debug("Updating SSH key setup of target node '%s'.",
                     node_info.name)
       try:
+        backoff = 5  # seconds
         utils.RetryByNumberOfTimes(
-            constants.SSHS_MAX_RETRIES,
+            constants.SSHS_MAX_RETRIES, backoff,
             errors.SshUpdateError,
             run_cmd_fn, cluster_name, node_info.name, pathutils.SSH_UPDATE,
             ssh_port, data,
-            debug=False, verbose=False, use_cluster_key=False,
-            ask_key=False, strict_host_check=False)
+            debug=ssh_update_debug, verbose=ssh_update_verbose,
+            use_cluster_key=False, ask_key=False, strict_host_check=False)
       except errors.SshUpdateError as last_exception:
         result_msgs.append(
             (node_info.name,
@@ -1955,6 +1969,41 @@ def RemoveNodeSshKeyBulk(node_list,
       ssh.RemovePublicKey(node_uuid, key_file=pub_key_file)
 
   return result_msgs
+# pylint: enable=R0913
+
+
+def RemoveSshKeyFromPublicKeyFile(node_name,
+                                  pub_key_file=pathutils.SSH_PUB_KEYS,
+                                  ssconf_store=None):
+  """Removes a SSH key from the master's public key file.
+
+  This is an operation that is only used to clean up after failed operations
+  (for example failed hooks before adding a node). To avoid abuse of this
+  function (and the matching RPC call), we add a safety check to make sure
+  that only stray keys can be removed that belong to nodes that are not
+  in the cluster (anymore).
+
+  @type node_name: string
+  @param node_name: the name of the node whose key is removed
+
+  """
+  if not ssconf_store:
+    ssconf_store = ssconf.SimpleStore()
+
+  node_list = ssconf_store.GetNodeList()
+
+  if node_name in node_list:
+    raise errors.SshUpdateError("Cannot remove key of node '%s',"
+                                " because it still belongs to the cluster."
+                                % node_name)
+
+  keys_by_name = ssh.QueryPubKeyFile([node_name], key_file=pub_key_file)
+  if not keys_by_name or node_name not in keys_by_name:
+    logging.info("The node '%s' whose key is supposed to be removed does not"
+                 " have an entry in the public key file. Hence, there is"
+                 " nothing left to do.", node_name)
+
+  ssh.RemovePublicKey(node_name, key_file=pub_key_file)
 
 
 def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, ssh_key_type,
@@ -1962,7 +2011,9 @@ def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, ssh_key_type,
                         ssconf_store=None,
                         noded_cert_file=pathutils.NODED_CERT_FILE,
                         run_cmd_fn=ssh.RunSshCmdWithStdin,
-                        suffix=""):
+                        suffix="",
+                        ssh_update_debug=False,
+                        ssh_update_verbose=False):
   """Generates the root SSH key pair on the node.
 
   @type node_uuid: str
@@ -1993,8 +2044,8 @@ def _GenerateNodeSshKey(node_uuid, node_name, ssh_port_map, ssh_key_type,
 
   run_cmd_fn(cluster_name, node_name, pathutils.SSH_UPDATE,
              ssh_port_map.get(node_name), data,
-             debug=False, verbose=False, use_cluster_key=False,
-             ask_key=False, strict_host_check=False)
+             debug=ssh_update_debug, verbose=ssh_update_verbose,
+             use_cluster_key=False, ask_key=False, strict_host_check=False)
 
 
 def _GetMasterNodeUUID(node_uuid_name_map, master_node_name):
@@ -2069,7 +2120,9 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                  ganeti_pub_keys_file=pathutils.SSH_PUB_KEYS,
                  ssconf_store=None,
                  noded_cert_file=pathutils.NODED_CERT_FILE,
-                 run_cmd_fn=ssh.RunSshCmdWithStdin):
+                 run_cmd_fn=ssh.RunSshCmdWithStdin,
+                 ssh_update_debug=False,
+                 ssh_update_verbose=False):
   """Renews all SSH keys and updates authorized_keys and ganeti_pub_keys.
 
   @type node_uuids: list of str
@@ -2179,7 +2232,9 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
         node_info_to_remove,
         master_candidate_uuids,
         potential_master_candidates,
-        master_uuid=master_node_uuid)
+        master_uuid=master_node_uuid,
+        ssh_update_debug=ssh_update_debug,
+        ssh_update_verbose=ssh_update_verbose)
     if node_errors:
       all_node_errors = all_node_errors + node_errors
 
@@ -2191,7 +2246,9 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                         new_key_bits, pub_key_file=ganeti_pub_keys_file,
                         ssconf_store=ssconf_store,
                         noded_cert_file=noded_cert_file,
-                        run_cmd_fn=run_cmd_fn)
+                        run_cmd_fn=run_cmd_fn,
+                        ssh_update_verbose=ssh_update_verbose,
+                        ssh_update_debug=ssh_update_debug)
 
     try:
       logging.debug("Fetching newly created SSH key from node '%s'.", node_name)
@@ -2219,7 +2276,9 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
       node_keys_to_add, potential_master_candidates,
       pub_key_file=ganeti_pub_keys_file, ssconf_store=ssconf_store,
       noded_cert_file=noded_cert_file,
-      run_cmd_fn=run_cmd_fn)
+      run_cmd_fn=run_cmd_fn,
+      ssh_update_debug=ssh_update_debug,
+      ssh_update_verbose=ssh_update_verbose)
   if node_errors:
     all_node_errors = all_node_errors + node_errors
 
@@ -2237,7 +2296,9 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
                       ssconf_store=ssconf_store,
                       noded_cert_file=noded_cert_file,
                       run_cmd_fn=run_cmd_fn,
-                      suffix=constants.SSHS_MASTER_SUFFIX)
+                      suffix=constants.SSHS_MASTER_SUFFIX,
+                      ssh_update_debug=ssh_update_debug,
+                      ssh_update_verbose=ssh_update_verbose)
   # Read newly created master key
   new_master_key_dict = _GetNewMasterKey(root_keyfiles, master_node_uuid)
 
@@ -2253,7 +2314,9 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
       to_authorized_keys=True, to_public_keys=True,
       get_public_keys=False, pub_key_file=ganeti_pub_keys_file,
       ssconf_store=ssconf_store, noded_cert_file=noded_cert_file,
-      run_cmd_fn=run_cmd_fn)
+      run_cmd_fn=run_cmd_fn,
+      ssh_update_debug=ssh_update_debug,
+      ssh_update_verbose=ssh_update_verbose)
   if node_errors:
     all_node_errors = all_node_errors + node_errors
 
@@ -2273,7 +2336,9 @@ def RenewSshKeys(node_uuids, node_names, master_candidate_uuids,
       potential_master_candidates,
       keys_to_remove=old_master_keys_by_uuid, from_authorized_keys=True,
       from_public_keys=False, clear_authorized_keys=False,
-      clear_public_keys=False)
+      clear_public_keys=False,
+      ssh_update_debug=ssh_update_debug,
+      ssh_update_verbose=ssh_update_verbose)
   if node_errors:
     all_node_errors = all_node_errors + node_errors
 

@@ -664,14 +664,21 @@ over the master role in a 2 node cluster with the original master
 down). If the original master then comes up, it won't be able to
 start its master daemon because it won't have enough votes, but so
 won't the new master, if the master daemon ever needs a restart.
-You can pass ``--no-voting`` to **ganeti-masterd** on the new
-master to solve this problem, and run **gnt-cluster redist-conf**
-to make sure the cluster is consistent again.
+You can pass ``--no-voting`` to **ganeti-luxid** and **ganeti-wconfd**
+on the new master to solve this problem, and run
+**gnt-cluster redist-conf** to make sure the cluster is consistent
+again.
 
 The option ``--yes-do-it`` is used together with ``--no-voting``, for
 skipping the interactive checks. This is even more dangerous, and should
 only be used in conjunction with other means (e.g. a HA suite) to
 confirm that the operation is indeed safe.
+
+Note that in order for remote node agreement checks to work, a strict
+majority of nodes still needs to be functional. To avoid situations with
+daemons not starting up on the new master, master-failover without
+the ``--no-voting`` option verifies a healthy majority of nodes and refuses
+the operation otherwise.
 
 MASTER-PING
 ~~~~~~~~~~~
@@ -906,6 +913,7 @@ RENEW-CRYPTO
 | [\--new-ssh-keys] [\--no-ssh-key-check]
 | [\--new-cluster-domain-secret] [\--cluster-domain-secret *filename*]
 | [\--ssh-key-type *type*] | [\--ssh-key-bits *bits*]
+| [\--verbose] | [\--debug]
 
 This command will stop all Ganeti daemons in the cluster and start
 them again once the new certificates and keys are replicated. The
@@ -950,6 +958,11 @@ information exchanged between separate clusters via a third party.
 The options ``--ssh-key-type`` and ``ssh-key-bits`` determine the
 properties of the disk types used. They are described in more detail
 in the ``init`` option description.
+
+The options ``--verbose`` and ``--debug`` increase the log level
+of underlying ssh calls to all nodes. If running ``renew-crypto``
+causes any problems, use them and inspect the ``tools.log`` file
+for any unusual output.
 
 REPAIR-DISK-SIZES
 ~~~~~~~~~~~~~~~~~

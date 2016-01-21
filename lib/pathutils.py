@@ -194,3 +194,4 @@ def GetLogFilename(daemon_name):
 LOG_WATCHER = GetLogFilename("watcher")
 LOG_COMMANDS = GetLogFilename("commands")
 LOG_BURNIN = GetLogFilename("burnin")
+LOG_TOOLS = GetLogFilename("tools")

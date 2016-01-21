@@ -210,7 +210,9 @@ def Main():
   """
   opts = ParseOptions()
 
-  utils.SetupToolLogging(opts.debug, opts.verbose)
+  utils.SetupToolLogging(
+      opts.debug, opts.verbose,
+      toolname=os.path.splitext(os.path.basename(__file__))[0])
 
   try:
     data = common.LoadData(sys.stdin.read(), _DATA_CHECK)

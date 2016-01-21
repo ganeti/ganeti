@@ -30,6 +30,7 @@ ADD
 | [\--disk-state *diskstate*]
 | [\--hypervisor-state *hvstate*]
 | [\--no-node-setup]
+| [\--verbose] | [\--debug]
 | {*nodename*}
 
 Adds the given node to the cluster.
@@ -86,6 +87,10 @@ bring everything back in sync.
 If the node was previously part of another cluster and still has daemons
 running, the ``node-cleanup`` tool can be run on the machine to be added
 to clean remains of the previous cluster from the node.
+
+The options ``--verbose`` and ``--debug`` control the log level of the
+operation, in particular the one of the underlying SSH calls that
+Ganeti makes when adding a node.
 
 Example::
 
@@ -339,6 +344,7 @@ MODIFY
 | [\--node-powered=``yes|no``]
 | [\--hypervisor-state *hvstate*]
 | [\--disk-state *diskstate*]
+| [\--verbose] [\--debug]
 | {*node*}
 
 This command changes the role of the node. Each options takes
@@ -372,6 +378,11 @@ convert a cluster from single homed to multi-homed or vice versa
 ``--force`` is needed as well, and the target node for the first change
 must be the master.
 
+The options ``--verbose`` and ``--debug`` control the log level of the
+operation, in particular the one of the underlying SSH calls that
+Ganeti makes when modifying some parameters a node (e.g. promoting
+or demoting a node to or from 'master candidate' status).
+
 See **ganeti**\(7) for a description of ``--submit`` and other common
 options.
 
@@ -383,10 +394,15 @@ Example (setting the node back to online and master candidate)::
 REMOVE
 ~~~~~~
 
-**remove** {*nodename*}
+**remove** [\--verbose] [\--debug] {*nodename*}
 
 Removes a node from the cluster. Instances must be removed or
 migrated to another cluster before.
+
+The options ``--verbose`` and ``--debug`` control the log level of the
+operation, in particular the one of the underlying SSH calls that
+Ganeti makes when removing a node.
+
 
 Example::
 

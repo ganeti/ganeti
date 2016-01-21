@@ -486,7 +486,9 @@ def AddMasterCandidateSshKey(
     potential_master_candidates,
     True, # add node's key to all node's 'authorized_keys'
     True, # all nodes are potential master candidates
-    False) # do not update the node's public keys
+    False, # do not update the node's public keys
+    lu.op.debug,
+    lu.op.verbose)
   ssh_result[master_node].Raise(
     "Could not update the SSH setup of node '%s' after promotion"
     " (UUID: %s)." % (node.name, node.uuid))

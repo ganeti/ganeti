@@ -534,7 +534,7 @@ _NODE_CALLS = [
     ("daemon", None, "Daemon name"),
     ("run", None, "Whether the daemon should be running or stopped"),
     ], None, None, "Ensure daemon is running on the node."),
-  ("node_ssh_key_add", MULTI, None, constants.RPC_TMO_URGENT, [
+  ("node_ssh_key_add", MULTI, None, constants.RPC_TMO_FAST, [
     ("node_uuid", None, "UUID of the node whose key is distributed"),
     ("node_name", None, "Name of the node whose key is distributed"),
     ("potential_master_candidates", None, "Potential master candidates"),
@@ -543,9 +543,11 @@ _NODE_CALLS = [
     ("to_public_keys", None, "Whether the node's key should be added"
      " to all nodes' public key file"),
     ("get_public_keys", None, "Whether the node should get the other nodes'"
-     " public keys")],
+     " public keys"),
+    ("debug", None, "Set loglevel of ssh calls to 'debug'."),
+    ("verbose", None, "Set loglevel of ssh calls to 'verbose'.")],
     None, None, "Distribute a new node's public SSH key on the cluster."),
-  ("node_ssh_key_remove", MULTI, None, constants.RPC_TMO_URGENT, [
+  ("node_ssh_key_remove", MULTI, None, constants.RPC_TMO_FAST, [
     ("node_uuid", None, "UUID of the node whose key is removed"),
     ("node_name", None, "Name of the node whose key is removed"),
     ("master_candidate_uuids", None, "List of UUIDs of master candidates."),
@@ -559,7 +561,9 @@ _NODE_CALLS = [
     ("clear_public_keys", None,
      "If the 'ganeti_pub_keys' file of the node should be cleared."),
     ("readd", None,
-     "Whether this is a readd operation.")],
+     "Whether this is a readd operation."),
+    ("debug", None, "Set loglevel of ssh calls to 'debug'."),
+    ("verbose", None, "Set loglevel of ssh calls to 'verbose'.")],
     None, None, "Remove a node's SSH key from the other nodes' key files."),
   ("node_ssh_keys_renew", MULTI, None, constants.RPC_TMO_4HRS, [
     ("node_uuids", None, "UUIDs of the nodes whose key is renewed"),
@@ -568,8 +572,13 @@ _NODE_CALLS = [
     ("potential_master_candidates", None, "Potential master candidates"),
     ("old_key_type", None, "The type of key previously used"),
     ("new_key_type", None, "The type of key to generate"),
-    ("new_key_bits", None, "The length of the key to generate")],
+    ("new_key_bits", None, "The length of the key to generate"),
+    ("debug", None, "Set logging of SSH update tool to 'debug'."),
+    ("verbose", None, "Set logging of SSH update tool to 'info'.")],
     None, None, "Renew all SSH key pairs of all nodes nodes."),
+  ("node_ssh_key_remove_light", MULTI, None, constants.RPC_TMO_FAST, [
+    ("node_name", None, "Name of the node whose key is removed")],
+    None, None, "Remove a node's SSH key from the master's public key file."),
   ]
 
 _MISC_CALLS = [

@@ -30,6 +30,8 @@
 
 """Script for testing ganeti.utils.retry"""
 
+import mock
+import time
 import unittest
 
 from ganeti import constants
@@ -203,6 +205,75 @@ class TestRetry(testutils.GanetiTestCase):
                                       args=[2], wait_fn = self._wait_fn,
                                       _time_fn = self._time_fn))
     self.assertEqual(self.called, 3)
+
+
+class TestRetryByNumberOfTimes(testutils.GanetiTestCase):
+
+  def setUp(self):
+    testutils.GanetiTestCase.setUp(self)
+
+  def testSuccessOnFirst(self):
+    test_fn = mock.Mock()
+    utils.RetryByNumberOfTimes(5, 0, Exception, test_fn)
+    test_fn.assert_called_once()
+
+  def testSuccessOnFirstWithArgs(self):
+    test_fn = mock.Mock()
+    utils.RetryByNumberOfTimes(5, 0, Exception, test_fn,
+        "arg1", "arg2", kwarg1_key="kwarg1_value", kwarg2_key="kwarg2_value")
+    test_fn.assert_called_with(
+        "arg1", "arg2", kwarg1_key="kwarg1_value", kwarg2_key="kwarg2_value")
+
+  def testSuccessAtSomePoint(self):
+    self.succeed_after_try = 2
+    self.num_try = 0
+    self.max_tries = 5
+
+    def test_fn():
+      self.num_try +=1
+      if self.num_try <= self.succeed_after_try:
+        raise errors.OpExecError("I fail!")
+      else:
+        return "I succeed."
+
+    utils.RetryByNumberOfTimes(self.max_tries, 0, Exception, test_fn)
+
+  def testFailAllTries(self):
+    self.max_tries = 5
+
+    def test_fn():
+      raise errors.OpExecError("I fail!")
+
+    self.assertRaises(Exception, utils.RetryByNumberOfTimes, self.max_tries,
+                      0, Exception, test_fn)
+
+  @testutils.patch_object(time, "sleep")
+  def testBackoffZero(self, mock_sleep):
+    self.max_tries = 5
+
+    def test_fn():
+      raise errors.OpExecError("I fail!")
+
+    self.assertRaises(Exception, utils.RetryByNumberOfTimes, self.max_tries,
+                      backoff=0, exception_class=Exception, fn=test_fn)
+    for call in mock_sleep.mock_calls:
+      self.assertEqual(mock.call(0), call)
+
+  @testutils.patch_object(time, "sleep")
+  def testBackoffPositive(self, mock_sleep):
+    self.max_tries = 5
+
+    def test_fn():
+      raise errors.OpExecError("I fail!")
+
+    backoff = 3
+    self.assertRaises(Exception, utils.RetryByNumberOfTimes, self.max_tries,
+                      backoff=backoff, exception_class=Exception, fn=test_fn)
+
+    expected_calls = [3, 6, 12, 24, 48]
+    for call_idx in range(len(mock_sleep.mock_calls)):
+      self.assertEqual(mock.call(expected_calls[call_idx]),
+                       mock_sleep.mock_calls[call_idx])
 
 
 if __name__ == "__main__":
