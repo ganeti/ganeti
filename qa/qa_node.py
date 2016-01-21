@@ -309,6 +309,16 @@ def TestNodeModify(node):
   AssertCommand(["gnt-cluster", "modify",
                  "--candidate-pool-size=%s" % default_pool_size])
 
+  # For test clusters with more nodes than the default pool size,
+  # we now have too many master candidates. To readjust to the original
+  # size, manually demote all nodes and rely on auto-promotion to adjust.
+  if len(nodes) > default_pool_size:
+    master = qa_config.GetMasterNode()
+    for n in nodes:
+      if n.primary != master.primary:
+        AssertCommand(["gnt-node", "modify", "--master-candidate=no",
+                       "--auto-promote", n.primary])
+
 
 def _CreateOobScriptStructure():
   """Create a simple OOB handling script and its structure."""

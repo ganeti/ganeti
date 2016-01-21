@@ -52,6 +52,10 @@ Incompatible/important changes
   Instead, the cluster configuration parameter ``modify_ssh_setup`` is
   used to determine whether or not to manipulate the SSH setup of a new
   node.
+- Timeouts for communication with luxid have been increased. As a consequence,
+  Ganeti tools communicating (directly or indirectly) with luxid also time out
+  later. Please increase all timeouts for higher level tools interacting with
+  Ganeti accordingly.
 
 
 Version 2.16.0 beta1

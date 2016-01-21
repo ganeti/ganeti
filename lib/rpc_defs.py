@@ -534,7 +534,7 @@ _NODE_CALLS = [
     ("daemon", None, "Daemon name"),
     ("run", None, "Whether the daemon should be running or stopped"),
     ], None, None, "Ensure daemon is running on the node."),
-  ("node_ssh_key_add", MULTI, None, constants.RPC_TMO_URGENT, [
+  ("node_ssh_key_add", MULTI, None, constants.RPC_TMO_FAST, [
     ("node_uuid", None, "UUID of the node whose key is distributed"),
     ("node_name", None, "Name of the node whose key is distributed"),
     ("potential_master_candidates", None, "Potential master candidates"),
@@ -547,7 +547,7 @@ _NODE_CALLS = [
     ("debug", None, "Set loglevel of ssh calls to 'debug'."),
     ("verbose", None, "Set loglevel of ssh calls to 'verbose'.")],
     None, None, "Distribute a new node's public SSH key on the cluster."),
-  ("node_ssh_key_remove", MULTI, None, constants.RPC_TMO_URGENT, [
+  ("node_ssh_key_remove", MULTI, None, constants.RPC_TMO_FAST, [
     ("node_uuid", None, "UUID of the node whose key is removed"),
     ("node_name", None, "Name of the node whose key is removed"),
     ("master_candidate_uuids", None, "List of UUIDs of master candidates."),

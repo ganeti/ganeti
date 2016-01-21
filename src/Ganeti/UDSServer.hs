@@ -85,7 +85,7 @@ import Data.List (isInfixOf)
 import Data.Word (Word8)
 import qualified Network.Socket as S
 import System.Directory (removeFile)
-import System.IO (hClose, hFlush, hWaitForInput, Handle, IOMode(..))
+import System.IO (hClose, hFlush, hPutStr, hWaitForInput, Handle, IOMode(..))
 import System.IO.Error (isEOFError)
 import System.Posix.Types (Fd)
 import System.Posix.IO (createPipe, fdToHandle, handleToFd)
@@ -288,9 +288,8 @@ clientToFd client | rh == wh  = join (,) <$> handleToFd rh
 -- | Sends a message over a transport.
 sendMsg :: Client -> String -> IO ()
 sendMsg s buf = withTimeout (sendTmo $ clientConfig s) "sending a message" $ do
-  let encoded = UTF8.fromString buf
-      handle = wsocket s
-  B.hPut handle encoded
+  let handle = wsocket s
+  hPutStr handle buf
   B.hPut handle bEOM
   hFlush handle
 

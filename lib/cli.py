@@ -86,6 +86,7 @@ __all__ = [
   "UsesRPC",
   # Formatting functions
   "ToStderr", "ToStdout",
+  "ToStdoutAndLoginfo",
   "FormatError",
   "FormatQueryResult",
   "FormatParamsDictInfo",
@@ -2367,6 +2368,12 @@ def ToStdout(txt, *args):
 
   """
   _ToStream(sys.stdout, txt, *args)
+
+
+def ToStdoutAndLoginfo(txt, *args):
+  """Write a message to stdout and additionally log it at INFO level"""
+  ToStdout(txt, *args)
+  logging.info(txt, *args)
 
 
 def ToStderr(txt, *args):
