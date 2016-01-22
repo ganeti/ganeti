@@ -563,8 +563,8 @@ class FakeSshFileManager(object):
     new_node_data = self._NodeInfo(
         uuid=old_node_data.uuid,
         key=new_key,
-        is_potential_master_candidate=
-            old_node_data.is_potential_master_candidate,
+        is_potential_master_candidate=old_node_data
+            .is_potential_master_candidate,
         is_master_candidate=old_node_data.is_master_candidate,
         is_master=old_node_data.is_master)
 
