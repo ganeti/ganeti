@@ -1537,7 +1537,7 @@ def DetermineImageSize(lu, image, node_uuid):
   return math.ceil(byte_size / 1024. / 1024.)
 
 
-def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None):
+def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None, silent_stop=False):
   """Ensure KVM daemon is running on nodes with KVM instances.
 
   If user shutdown is enabled in the cluster:
@@ -1560,6 +1560,9 @@ def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None):
   @param nodes: if supplied, it overrides the node uuids to start/stop;
                 this is used mainly for optimization
 
+  @type silent_stop: bool
+  @param silent_stop: if we should suppress warnings in case KVM daemon is
+                      already stopped
   """
   cluster = lu.cfg.GetClusterInfo()
 
@@ -1594,9 +1597,10 @@ def EnsureKvmdOnNodes(lu, feedback_fn, nodes=None):
   # Stop KVM where necessary
   if stop_nodes:
     results = lu.rpc.call_node_ensure_daemon(stop_nodes, constants.KVMD, False)
-    for node_uuid in stop_nodes:
-      results[node_uuid].Warn("Failed to stop KVM daemon in node '%s'" %
-                              node_uuid, feedback_fn)
+    if not silent_stop:
+      for node_uuid in stop_nodes:
+        results[node_uuid].Warn("Failed to stop KVM daemon in node '%s'" %
+                                node_uuid, feedback_fn)
 
 
 def WarnAboutFailedSshUpdates(result, master_uuid, feedback_fn):

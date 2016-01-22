@@ -1666,6 +1666,10 @@ class LUClusterSetParams(LogicalUnit):
     self.cluster = self.cfg.GetClusterInfo()
 
     ensure_kvmd = False
+    stop_kvmd_silently = not (
+        constants.HT_KVM in self.cluster.enabled_hypervisors or
+        (self.op.enabled_hypervisors is not None and
+         constants.HT_KVM in self.op.enabled_hypervisors))
 
     active = constants.DATA_COLLECTOR_STATE_ACTIVE
     if self.op.enabled_data_collectors is not None:
@@ -1834,7 +1838,7 @@ class LUClusterSetParams(LogicalUnit):
     # this will update the cluster object and sync 'Ssconf', and kvmd
     # uses 'Ssconf'.
     if ensure_kvmd:
-      EnsureKvmdOnNodes(self, feedback_fn)
+      EnsureKvmdOnNodes(self, feedback_fn, silent_stop=stop_kvmd_silently)
 
     if self.op.compression_tools is not None:
       self.cfg.SetCompressionTools(self.op.compression_tools)
