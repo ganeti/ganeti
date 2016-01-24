@@ -359,7 +359,7 @@ def TestSingleInstance(client, instance_name, alternate_name, node_one,
 
   # Check that a dry run works, use string with size and unit
   Finish(client, client.CreateInstance,
-         "create", instance_name, "plain", [{"size":"1gb"}], [], dry_run=True,
+         "create", instance_name, "plain", [{"size": "1gb"}], [], dry_run=True,
           os="debian-image", pnode=node_one)
 
   # Another dry run, numeric size, should work, but still a dry run
@@ -369,14 +369,14 @@ def TestSingleInstance(client, instance_name, alternate_name, node_one,
 
   # Create a smaller instance, and delete it immediately
   Finish(client, client.CreateInstance,
-         "create", instance_name, "plain", [{"size":800}], [{}],
+         "create", instance_name, "plain", [{"size": 800}], [{}],
          os="debian-image", pnode=node_one)
 
   Finish(client, client.DeleteInstance, instance_name)
 
   # Create one instance to use in further tests
   Finish(client, client.CreateInstance,
-         "create", instance_name, "plain", [{"size":1200}], [{}],
+         "create", instance_name, "plain", [{"size": 1200}], [{}],
          os="debian-image", pnode=node_one)
 
   client.GetInstance(instance_name)
