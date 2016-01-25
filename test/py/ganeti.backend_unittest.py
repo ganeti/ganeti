@@ -629,14 +629,24 @@ class TestGetBlockDevSymlinkPath(unittest.TestCase):
     shutil.rmtree(self.tmpdir)
 
   def _Test(self, name, idx):
-    self.assertEqual(backend._GetBlockDevSymlinkPath(name, idx,
+    self.assertEqual(backend._GetBlockDevSymlinkPath(name, idx=idx,
                                                      _dir=self.tmpdir),
                      ("%s/%s%s%s" % (self.tmpdir, name,
                                      constants.DISK_SEPARATOR, idx)))
 
-  def test(self):
+  def testIndex(self):
     for idx in range(100):
       self._Test("inst1.example.com", idx)
+
+  def testUUID(self):
+    uuid = "6bcb6530-3695-47b6-9528-1ed7b5cfbf5c"
+    iname = "inst1.example.com"
+    dummy_idx = 6  # UUID should be prefered
+    expected = "%s/%s%s%s" % (self.tmpdir, iname,
+                              constants.DISK_SEPARATOR, uuid)
+    link_name = backend._GetBlockDevSymlinkPath(iname, idx=dummy_idx,
+                                                uuid=uuid, _dir=self.tmpdir)
+    self.assertEqual(expected, link_name)
 
 
 class TestGetInstanceList(unittest.TestCase):

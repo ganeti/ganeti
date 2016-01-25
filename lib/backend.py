@@ -2324,12 +2324,6 @@ def GetInstanceMigratable(instance):
   if iname not in hyper.ListInstances(hvparams=instance.hvparams):
     _Fail("Instance %s is not running", iname)
 
-  for idx in range(len(instance.disks_info)):
-    link_name = _GetBlockDevSymlinkPath(iname, idx)
-    if not os.path.islink(link_name):
-      logging.warning("Instance %s is missing symlink %s for disk %d",
-                      iname, link_name, idx)
-
 
 def GetAllInstancesInfo(hypervisor_list, all_hvparams):
   """Gather data about all instances.
@@ -2522,19 +2516,27 @@ def RunRenameInstance(instance, old_name, debug):
           " log file:\n%s", result.fail_reason, "\n".join(lines), log=False)
 
 
-def _GetBlockDevSymlinkPath(instance_name, idx, _dir=None):
+def _GetBlockDevSymlinkPath(instance_name, idx=None, uuid=None, _dir=None):
   """Returns symlink path for block device.
 
   """
   if _dir is None:
     _dir = pathutils.DISK_LINKS_DIR
 
+  assert idx is not None or uuid is not None
+
+  # Using the idx is deprecated. Use the uuid instead if it is available.
+  if uuid:
+    ident = uuid
+  else:
+    ident = idx
+
   return utils.PathJoin(_dir,
                         ("%s%s%s" %
-                         (instance_name, constants.DISK_SEPARATOR, idx)))
+                         (instance_name, constants.DISK_SEPARATOR, ident)))
 
 
-def _SymlinkBlockDev(instance_name, device_path, idx):
+def _SymlinkBlockDev(instance_name, device_path, idx=None, uuid=None):
   """Set up symlinks to a instance's block device.
 
   This is an auxiliary function run when an instance is start (on the primary
@@ -2544,6 +2546,7 @@ def _SymlinkBlockDev(instance_name, device_path, idx):
   @param instance_name: the name of the target instance
   @param device_path: path of the physical block device, on the node
   @param idx: the disk index
+  @param uuid: the disk uuid
   @return: absolute path to the disk's symlink
 
   """
@@ -2551,7 +2554,8 @@ def _SymlinkBlockDev(instance_name, device_path, idx):
   if not device_path:
     return None
 
-  link_name = _GetBlockDevSymlinkPath(instance_name, idx)
+  link_name = _GetBlockDevSymlinkPath(instance_name, idx, uuid)
+
   try:
     os.symlink(device_path, link_name)
   except OSError, err:
@@ -2570,13 +2574,19 @@ def _RemoveBlockDevLinks(instance_name, disks):
   """Remove the block device symlinks belonging to the given instance.
 
   """
-  for idx, _ in enumerate(disks):
-    link_name = _GetBlockDevSymlinkPath(instance_name, idx)
+  def _remove_symlink(link_name):
     if os.path.islink(link_name):
       try:
         os.remove(link_name)
       except OSError:
         logging.exception("Can't remove symlink '%s'", link_name)
+
+  for idx, disk in enumerate(disks):
+    link_name = _GetBlockDevSymlinkPath(instance_name, uuid=disk.uuid)
+    _remove_symlink(link_name)
+    # Remove also the deprecated symlink (if any)
+    link_name = _GetBlockDevSymlinkPath(instance_name, idx=idx)
+    _remove_symlink(link_name)
 
 
 def _CalculateDeviceURI(instance, disk, device):
@@ -2621,7 +2631,11 @@ def _GatherAndLinkBlockDevs(instance):
                                     str(disk))
     device.Open()
     try:
-      link_name = _SymlinkBlockDev(instance.name, device.dev_path, idx)
+      # Create both index-based and uuid-based symlinks
+      # for backwards compatibility
+      _SymlinkBlockDev(instance.name, device.dev_path, idx=idx)
+      link_name = _SymlinkBlockDev(instance.name, device.dev_path,
+                                   uuid=disk.uuid)
     except OSError, e:
       raise errors.BlockDeviceError("Cannot create block device symlink: %s" %
                                     e.strerror)
@@ -3446,7 +3460,10 @@ def BlockdevAssemble(disk, instance, as_primary, idx):
       link_name = None
       uri = None
       if as_primary:
-        link_name = _SymlinkBlockDev(instance.name, dev_path, idx)
+        # Create both index-based and uuid-based symlinks
+        # for backwards compatibility
+        _SymlinkBlockDev(instance.name, dev_path, idx=idx)
+        link_name = _SymlinkBlockDev(instance.name, dev_path, uuid=disk.uuid)
         uri = _CalculateDeviceURI(instance, disk, result)
     elif result:
       return result, result
@@ -4643,7 +4660,11 @@ def BlockdevOpen(instance_name, disks, exclusive):
   for idx, rd in enumerate(bdevs):
     try:
       rd.Open(exclusive=exclusive)
-      _SymlinkBlockDev(instance_name, rd.dev_path, idx)
+      _SymlinkBlockDev(instance_name, rd.dev_path, uuid=disks[idx].uuid)
+      # Also create an old type of symlink so that instances
+      # can be migratable, since they may still have deprecated
+      # symlinks in their runtime files.
+      _SymlinkBlockDev(instance_name, rd.dev_path, idx=idx)
     except errors.BlockDeviceError, err:
       msg.append(str(err))
 
