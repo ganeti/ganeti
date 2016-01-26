@@ -761,6 +761,8 @@ AC_GHC_PKG_CHECK([test-framework-0.6*], [], [
 AC_GHC_PKG_CHECK([test-framework-hunit], [], [HS_NODEV=1])
 AC_GHC_PKG_CHECK([test-framework-quickcheck2], [], [HS_NODEV=1])
 AC_GHC_PKG_CHECK([temporary], [], [HS_NODEV=1])
+AC_PATH_PROG(SHELLTEST, [shelltest], [])
+if test -z "$SHELLTEST"; then HS_NODEV=1; fi
 if test -n "$HS_NODEV"; then
    AC_MSG_WARN(m4_normalize([Required development modules were not found,
                              you won't be able to run Haskell unittests]))

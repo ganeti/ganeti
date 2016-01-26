@@ -3033,7 +3033,9 @@ live-test: all
 commit-check: autotools-check distcheck lint apidoc
 
 autotools-check:
-	TESTDATA_DIR=./test/data shelltest $(SHELLTESTARGS) \
+	@test -n "$(SHELLTEST)" || \
+	    { echo 'shelltest' not found during configure; exit 1; }
+	TESTDATA_DIR=./test/data $(SHELLTEST) $(SHELLTESTARGS) \
   $(abs_top_srcdir)/test/autotools/*-*.test \
   -- --hide-successes
 
