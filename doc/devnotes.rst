@@ -187,7 +187,8 @@ Makefile targets for running individual Python and Haskell tests.
 For Python tests::
 
   $ export PYTHONPATH=$PWD
-  $ python ./test/py/ganeti.%mytest%
+  $ python ./test/py/ganeti.%mytest% # to run a complete test file
+  $ python ./test/py/ganeti.%mytest% Class.testMethod # to run one method
 
 For Haskell tests::
 
