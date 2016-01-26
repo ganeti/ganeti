@@ -548,7 +548,7 @@ hypervisor_hv_kvm_PYTHON = \
 
 jqueue_PYTHON = \
 	lib/jqueue/__init__.py \
-	lib/jqueue/exec.py \ 
+	lib/jqueue/exec.py \
 	lib/jqueue/post_hooks_exec.py
 
 storage_PYTHON = \
