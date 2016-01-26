@@ -149,10 +149,7 @@ formatData l@(x:xs) = CPUavgload (length l - 1) xs x
 -- | Update a Map Entry.
 updateEntry :: Buffer -> Buffer -> Buffer
 updateEntry newBuffer mapEntry =
-  (Seq.><) newBuffer
-  (if Seq.length mapEntry < bufferSize
-    then mapEntry
-    else Seq.drop 1 mapEntry)
+  (Seq.><) newBuffer (Seq.take bufferSize mapEntry)
 
 -- | Updates the given Collector data.
 dcUpdate :: Maybe CollectorData -> IO CollectorData
