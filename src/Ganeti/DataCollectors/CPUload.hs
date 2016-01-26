@@ -5,7 +5,7 @@
 
 {-
 
-Copyright (C) 2013 Google Inc.
+Copyright (C) 2013, 2016 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -111,17 +111,17 @@ dcReport colData =
   in buildDCReport cpuLoadData
 
 -- | Data stored by the collector in mond's memory.
-type Buffer = Seq.Seq (ClockTime, [Int])
+type Buffer = Seq.Seq (ClockTime, [Integer])
 
 -- | Compute the load from a CPU.
-computeLoad :: CPUstat -> Int
+computeLoad :: CPUstat -> Integer
 computeLoad cpuData =
   csUser cpuData + csNice cpuData + csSystem cpuData
   + csIowait cpuData + csIrq cpuData + csSoftirq cpuData
   + csSteal cpuData + csGuest cpuData + csGuestNice cpuData
 
 -- | Reads and Computes the load for each CPU.
-dcCollectFromFile :: FilePath -> IO (ClockTime, [Int])
+dcCollectFromFile :: FilePath -> IO (ClockTime, [Integer])
 dcCollectFromFile inputFile = do
   contents <-
     ((E.try $ readFile inputFile) :: IO (Either IOError String)) >>=
@@ -175,7 +175,7 @@ computeAverage s w ticks =
             (timestampR, listR) = rightmost
             workInWindow = zipWith (-) listL listR
             timediff = timestampL - timestampR
-            overall = fromInteger (timediff * ticks) / 1000000 :: Double
+            overall = fromIntegral (timediff * ticks) / 1000000 :: Double
         if overall > 0
           then BT.Ok $ map (flip (/) overall . fromIntegral) workInWindow
           else BT.Bad $ "Time covered by data is not sufficient."
