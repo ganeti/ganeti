@@ -25,7 +25,7 @@ Most dependencies from :doc:`install-quick`, including ``qemu-img``
 - `pep8 <https://github.com/jcrocholl/pep8/>`_
 - `PyYAML <http://pyyaml.org/>`_
 
-For older developement (Ganeti < 2.4) ``docbook`` was used instead of
+For older development (Ganeti < 2.4) ``docbook`` was used instead of
 ``pandoc``.
 
 Note that for pylint, at the current moment the following versions
