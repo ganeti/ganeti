@@ -45,6 +45,7 @@ module Ganeti.DataCollectors.CPUload
 
 import Control.Arrow (first)
 import qualified Control.Exception as E
+import Control.Monad (liftM)
 import Data.Attoparsec.Text.Lazy as A
 import Data.Maybe (fromMaybe)
 import Data.Text.Lazy (pack, unpack)
@@ -71,8 +72,8 @@ bufferSize :: Int
 bufferSize = C.cpuavgloadBufferSize
 
 -- | The window size of the values that will export the average load.
-windowSize :: Integer
-windowSize = toInteger C.cpuavgloadWindowSize
+windowSizeInUSec :: Integer
+windowSizeInUSec = 1000000 * toInteger C.cpuavgloadWindowSize
 
 -- | The default setting for the maximum amount of not parsed character to
 -- print in case of error.
@@ -187,7 +188,8 @@ computeAverage s w ticks =
 buildJsonReport :: Buffer -> IO J.JSValue
 buildJsonReport v = do
   ticks <- getSysVar ClockTick
-  let res = computeAverage v windowSize ticks
+  now <- liftM clockTimeToUSec getClockTime
+  let res = computeAverage v (now - windowSizeInUSec) ticks
       showError s = J.showJSON $ GJ.containerFromList [("error", s)]
   return $ BT.genericResult showError (J.showJSON . formatData) res
 
