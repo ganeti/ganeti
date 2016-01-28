@@ -172,14 +172,13 @@ safeUpdateConfig path oldfstat save_fn =
 -- | Long-interval reload watcher.
 --
 -- This is on top of the inotify-based triggered reload.
-onWatcherTimer :: IO Bool -> FilePath -> (Result ConfigData -> IO ())
+onWatcherTimer :: FilePath -> (Result ConfigData -> IO ())
                -> MVar ServerState -> IO ()
-onWatcherTimer inotiaction path save_fn state = do
+onWatcherTimer path save_fn state = do
   threadDelay watchInterval
   logDebug "Config-reader watcher timer fired"
   modifyMVar_ state (onWatcherInner path save_fn)
-  _ <- inotiaction
-  onWatcherTimer inotiaction path save_fn state
+  onWatcherTimer path save_fn state
 
 -- | Inner onWatcher handler.
 --
@@ -304,7 +303,7 @@ initConfigReader save_fn = do
       modifyMVar_ statemvar
         (\state -> return state { reloadModel = initialPoll })
   -- fork the timeout timer
-  _ <- forkIO $ onWatcherTimer inotiaction conf_file save_fn statemvar
+  _ <- forkIO $ onWatcherTimer conf_file save_fn statemvar
   -- fork the polling timer
   unless has_inotify $ do
     _ <- forkIO $ onPollTimer inotiaction conf_file save_fn statemvar
