@@ -129,48 +129,19 @@ a particular machine that he is aming for). This means that with RAPI
 access and a compromised normal node, one can make this node a master
 candidate and then still have the power to compromise the whole cluster.
 
-To mitigate this issue, we propose the following changes:
+Various options have been explored to mitigate this, with no feasible
+solution so far. We generally advise to not expose RAPI to the Internet.
+For more details on making Ganeti secure, see :doc:`security`.
 
-- Add a flag ``master_capability_rapi_modifiable`` to the cluster
-  configuration which indicates whether or not it should be possible
-  to modify the ``master_capable`` flag of nodes via RAPI. The flag is
-  set to ``False`` by default and can itself only be changed on the
-  commandline. In this design doc, we refer to the flag as the
-  "rapi flag" from here on.
-- Only if the ``master_capabability_rapi_modifiable`` switch is set to
-  ``True``, it is possible to modify the master-capability flag of
-  nodes.
-
-With this setup, there are the following definitions of "potential
-master candidates" depending on the rapi flag:
-
-- If the rapi flag is set to ``True``, all cluster nodes are potential
-  master candidates, because as described above, all of them can
-  eventually be made master candidates via RAPI and thus security-wise,
-  we haven't won anything above the current SSH handling.
-- If the rapi flag is set to ``False``, only the master capable nodes
-  are considered potential master candidates, as it is not possible to
-  make them master candidates via RAPI at all.
-
-Note that when the rapi flag is changed, the state of the
-``ganeti_pub_keys`` file on all nodes  has to be updated accordingly.
-This should be done in the client script ``gnt_cluster`` before the
-RPC call to update the configuration is made, because this way, if
-someone would try to perform that RPC call on master to trick it into
-thinking that the flag is enabled, this would not help as the content of
-the ``ganeti_pub_keys`` file is a crucial part in the design of the
-distribution of the SSH keys.
-
-Note: One could think of always allowing to disable the master-capability
-via RAPI and just restrict the enabling of it, thus making it possible
-to RAPI-"freeze" the nodes' master-capability state once it disabled.
-However, we think these are rather confusing semantics of the involved
-flags and thus we go with proposed design.
-
-Note that this change will break RAPI compatibility, at least if the
-rapi flag is not explicitely set to ``True``. We made this choice to
-have the more secure option as default, because otherwise it is
-unlikely to be widely used.
+Alternatively, there was the idea of adding a flag to the cluster config
+that would 'freeze' the ``master_capable`` state of nodes. This turned
+out to be infeasible, as promoting a node from not ``master_capable``
+to ``master_capable`` would mean to add the nodes's key to the
+``ganeti_pub_keys`` file. Due to security reasons, this needed to be
+done in the client (similar to when adding a node). That would have
+meant that it would no longer be possible to set this flag via RAPI. As
+setting this flag via RAPI is a feature our users depend on and that
+has been available in the past, we refrain from breaking this feature.
 
 
 Cluster initialization
