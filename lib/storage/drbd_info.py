@@ -164,7 +164,8 @@ class DRBD8Info(object):
 
   """
 
-  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)(?:\.(\d+))?"
+  _VERSION_RE = re.compile(r"^version: (\d+)\.(\d+)\.(\d+)"
+                           r"(?:\.(\d+))?(?:-(\d+))?"
                            r" \(api:(\d+)/proto:(\d+)(?:-(\d+))?\)")
   _VALID_LINE_RE = re.compile("^ *([0-9]+): cs:([^ ]+).*$")
 
@@ -180,6 +181,7 @@ class DRBD8Info(object):
       - k_minor
       - k_point
       - k_fix (only on some drbd versions)
+      - k_release
       - api
       - proto
       - proto2 (only on drbd > 8.2.X)
@@ -196,6 +198,8 @@ class DRBD8Info(object):
              (version["k_major"], version["k_minor"], version["k_point"])
     if "k_fix" in version:
       retval += ".%s" % version["k_fix"]
+    if "k_release" in version:
+      retval += "-%s" % version["k_release"]
 
     retval += " (api:%d/proto:%d" % (version["api"], version["proto"])
     if "proto2" in version:
@@ -230,13 +234,15 @@ class DRBD8Info(object):
       "k_major": int(values[0]),
       "k_minor": int(values[1]),
       "k_point": int(values[2]),
-      "api": int(values[4]),
-      "proto": int(values[5]),
+      "api": int(values[5]),
+      "proto": int(values[6]),
       }
     if values[3] is not None:
       retval["k_fix"] = values[3]
-    if values[6] is not None:
-      retval["proto2"] = values[6]
+    if values[4] is not None:
+      retval["k_release"] = values[4]
+    if values[7] is not None:
+      retval["proto2"] = values[7]
 
     return retval
 
