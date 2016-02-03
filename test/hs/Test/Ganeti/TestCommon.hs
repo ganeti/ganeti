@@ -124,11 +124,13 @@ import Ganeti.JSON (ArrayObject(..))
 import Ganeti.Types
 import Ganeti.Utils.Monad (unfoldrM)
 
+#if !MIN_VERSION_QuickCheck(2,8,2)
 -- * Arbitrary orphan instances
 
 instance (Ord k, Arbitrary k, Arbitrary a) => Arbitrary (M.Map k a) where
   arbitrary = M.fromList <$> arbitrary
   shrink m = M.fromList <$> shrink (M.toList m)
+#endif
 
 
 -- * Constants
