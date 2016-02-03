@@ -539,27 +539,35 @@ class TLMigrateInstance(Tasklet):
     else:
       mode = "in shared mode"
 
+    node_name = self.cfg.GetNodeName(node_uuid)
+
     self.feedback_fn("* opening instance disks on node %s %s" %
-                     (self.cfg.GetNodeName(node_uuid), mode))
+                     (node_name, mode))
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     result = self.rpc.call_blockdev_open(node_uuid, self.instance.name,
                                          (disks, self.instance), exclusive)
-    result.Raise("Cannot open disks on node %s" %
-                 self.cfg.GetNodeName(node_uuid))
+    result.Raise("Cannot open instance disks on node %s" % node_name)
 
   def _CloseInstanceDisks(self, node_uuid):
     """Close instance disks.
 
     """
-    self.feedback_fn("* closing instance disks on node %s" %
-                     self.cfg.GetNodeName(node_uuid))
+    node_name = self.cfg.GetNodeName(node_uuid)
+
+    self.feedback_fn("* closing instance disks on node %s" % node_name)
 
     disks = self.cfg.GetInstanceDisks(self.instance.uuid)
     result = self.rpc.call_blockdev_close(node_uuid, self.instance.name,
                                           (disks, self.instance))
-    result.Raise("Cannot close instance disks on node %s" %
-                 self.cfg.GetNodeName(node_uuid))
+    msg = result.fail_msg
+    if msg:
+      if result.offline or self.ignore_consistency:
+        self.lu.LogWarning("Could not close instance disks on node %s,"
+                           " proceeding anyway" % node_name)
+      else:
+        raise errors.OpExecError("Cannot close instance disks on node %s: %s" %
+                                 (node_name, msg))
 
   def _GoStandalone(self):
     """Disconnect from the network.

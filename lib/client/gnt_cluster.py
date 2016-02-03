@@ -127,15 +127,15 @@ def _InitVgName(opts, enabled_disk_templates):
   return vg_name
 
 
-def _InitDrbdHelper(opts, enabled_disk_templates):
+def _InitDrbdHelper(opts, enabled_disk_templates, feedback_fn=ToStdout):
   """Initialize the DRBD usermode helper.
 
   """
   drbd_enabled = constants.DT_DRBD8 in enabled_disk_templates
 
   if not drbd_enabled and opts.drbd_helper is not None:
-    ToStdout("Note: You specified a DRBD usermode helper, while DRBD storage"
-             " is not enabled.")
+    feedback_fn("Note: You specified a DRBD usermode helper, while DRBD storage"
+                " is not enabled.")
 
   if drbd_enabled:
     if opts.drbd_helper is None:
