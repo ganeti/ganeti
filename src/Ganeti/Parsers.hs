@@ -56,6 +56,10 @@ skipSpaces = A.skipWhile A.isHorizontalSpace
 numberP :: Parser Int
 numberP = skipSpaces *> A.decimal
 
+-- | A parser recognizing a number preceeded by spaces.
+integerP :: Parser Integer
+integerP = skipSpaces *> A.decimal
+
 -- | A parser recognizing a word preceded by spaces, and closed by a space.
 stringP :: Parser String
 stringP = skipSpaces *> fmap unpack (A.takeWhile $ not . A.isHorizontalSpace)

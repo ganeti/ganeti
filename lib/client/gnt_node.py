@@ -250,9 +250,9 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
                          strict_host_check=options.ssh_key_check)
 
   (_, pub_keyfile) = root_keyfiles[ssh_key_type]
-  pub_key = ssh.ReadRemoteSshPubKeys(pub_keyfile, node, cluster_name, ssh_port,
-                                     options.ssh_key_check,
-                                     options.ssh_key_check)
+  pub_key = ssh.ReadRemoteSshPubKey(pub_keyfile, node, cluster_name, ssh_port,
+                                    options.ssh_key_check,
+                                    options.ssh_key_check)
   # Unfortunately, we have to add the key with the node name rather than
   # the node's UUID here, because at this point, we do not have a UUID yet.
   # The entry will be corrected in noded later.

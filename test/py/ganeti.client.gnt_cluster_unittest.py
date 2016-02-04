@@ -293,21 +293,24 @@ class InitDrbdHelper(DrbdHelperTestCase):
     opts = mock.Mock()
     opts.drbd_helper = None
     self.disableDrbd()
-    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates)
+    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates,
+                                         feedback_fn=mock.Mock())
     self.assertEquals(None, helper)
 
   def testNoDrbdHelper(self):
     opts = mock.Mock()
     self.disableDrbd()
     opts.drbd_helper = "/bin/true"
-    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates)
+    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates,
+                                         feedback_fn=mock.Mock())
     self.assertEquals(opts.drbd_helper, helper)
 
   def testDrbdHelperNone(self):
     opts = mock.Mock()
     self.enableDrbd()
     opts.drbd_helper = None
-    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates)
+    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates,
+                                         feedback_fn=mock.Mock())
     self.assertEquals(constants.DEFAULT_DRBD_HELPER, helper)
 
   def testDrbdHelperEmpty(self):
@@ -315,13 +318,14 @@ class InitDrbdHelper(DrbdHelperTestCase):
     self.enableDrbd()
     opts.drbd_helper = ''
     self.assertRaises(errors.OpPrereqError, gnt_cluster._InitDrbdHelper, opts,
-        self.enabled_disk_templates)
+        self.enabled_disk_templates, feedback_fn=mock.Mock())
 
   def testDrbdHelper(self):
     opts = mock.Mock()
     self.enableDrbd()
     opts.drbd_helper = "/bin/true"
-    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates)
+    helper = gnt_cluster._InitDrbdHelper(opts, self.enabled_disk_templates,
+                                         feedback_fn=mock.Mock())
     self.assertEquals(opts.drbd_helper, helper)
 
 
@@ -405,7 +409,7 @@ class TestBuildGanetiPubKeys(testutils.GanetiTestCase):
     self._setUpFakeKeys()
 
     self._ssh_read_remote_ssh_pub_keys_patcher = testutils \
-      .patch_object(ssh, "ReadRemoteSshPubKeys")
+      .patch_object(ssh, "ReadRemoteSshPubKey")
     self._ssh_read_remote_ssh_pub_keys_mock = \
       self._ssh_read_remote_ssh_pub_keys_patcher.start()
     self._ssh_read_remote_ssh_pub_keys_mock.return_value = self._SOME_KEY_DICT

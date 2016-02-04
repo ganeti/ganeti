@@ -127,15 +127,15 @@ def _InitVgName(opts, enabled_disk_templates):
   return vg_name
 
 
-def _InitDrbdHelper(opts, enabled_disk_templates):
+def _InitDrbdHelper(opts, enabled_disk_templates, feedback_fn=ToStdout):
   """Initialize the DRBD usermode helper.
 
   """
   drbd_enabled = constants.DT_DRBD8 in enabled_disk_templates
 
   if not drbd_enabled and opts.drbd_helper is not None:
-    ToStdout("Note: You specified a DRBD usermode helper, while DRBD storage"
-             " is not enabled.")
+    feedback_fn("Note: You specified a DRBD usermode helper, while DRBD storage"
+                " is not enabled.")
 
   if drbd_enabled:
     if opts.drbd_helper is None:
@@ -1269,10 +1269,10 @@ def _BuildGanetiPubKeys(options, pub_key_file=pathutils.SSH_PUB_KEYS, cl=None,
 
   # get the key files of all non-master nodes
   for node in nonmaster_nodes:
-    pub_key = ssh.ReadRemoteSshPubKeys(pub_key_filename, node, cluster_name,
-                                       ssh_port_map[node],
-                                       options.ssh_key_check,
-                                       options.ssh_key_check)
+    pub_key = ssh.ReadRemoteSshPubKey(pub_key_filename, node, cluster_name,
+                                      ssh_port_map[node],
+                                      options.ssh_key_check,
+                                      options.ssh_key_check)
     ssh.AddPublicKey(node_uuid_map[node], pub_key, key_file=pub_key_file)
 
 

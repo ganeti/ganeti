@@ -49,25 +49,7 @@ New features
 Version 2.16.0 beta2
 --------------------
 
-*(unreleased)*
-
-Incompatible/important changes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-- The option ``--no-node-setup`` of ``gnt-node add`` is disabled.
-  Instead, the cluster configuration parameter ``modify_ssh_setup`` is
-  used to determine whether or not to manipulate the SSH setup of a new
-  node.
-- Timeouts for communication with luxid have been increased. As a consequence,
-  Ganeti tools communicating (directly or indirectly) with luxid also time out
-  later. Please increase all timeouts for higher level tools interacting with
-  Ganeti accordingly.
-
-
-Version 2.16.0 beta1
---------------------
-
-*(Released Tue, 28 Jul 2015)*
+*(Released Tue, 2 Feb 2016)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -81,6 +63,14 @@ Incompatible/important changes
   storage. To obtain the old behavior, add the ``--no-capacity-checks`` option.
 - ``hail`` now tries to keep the overall cluster balanced; in particular it
   now prefers more empty groups over groups that are internally more balanced.
+- The option ``--no-node-setup`` of ``gnt-node add`` is disabled.
+  Instead, the cluster configuration parameter ``modify_ssh_setup`` is
+  used to determine whether or not to manipulate the SSH setup of a new
+  node.
+- Timeouts for communication with luxid have been increased. As a consequence,
+  Ganeti tools communicating (directly or indirectly) with luxid also time out
+  later. Please increase all timeouts for higher level tools interacting with
+  Ganeti accordingly.
 
 New features
 ~~~~~~~~~~~~
@@ -97,6 +87,101 @@ New dependencies
 - Using the metadata daemon now requires the presence of the 'setcap' utility.
   On Debian-based systems, it is available as a part of the 'libcap2-bin'
   package.
+
+Changes since beta1
+~~~~~~~~~~~~~~~~~~~
+- Do not add a new Inotify watchers on timer
+- Set block buffering for UDSServer
+- Fix failover in case the source node is offline
+- Add a parameter to ignore groups in capacity checks
+- Make hspace correctly handle --independent-groups
+- Accept BoringSSL as a known good ssl library
+- Make CommitTemporaryIPs call out to WConfD
+- Fix requested instance desired location tags in IAllocator
+- monitor: Use hvinfo in QMP methods
+- KVM: Work around QEMU commit 48f364dd
+- KVM: Introduce scsi_controller_type and kvm_pci_reservations hvparams
+- Improvements in SSH key handling
+- Do not generate the ganeti_pub_keys file with --no-ssh-init
+- Support force option for deactivate disks on RAPI
+- Add a --dry-run option to htools
+- Extended logging to improve traceability
+- Many documentation improvements and cleanups
+- Performance optimizations on larger clusters
+- Various QA and testing improvements
+
+Fixes inherited from 2.15 branch:
+
+- Metad: ignore instances that have no communication NIC
+- For queries, take the correct base address of an IP block
+- Fix computation in network blocks
+- Use bulk-adding of keys in renew-crypto
+- Introduce bulk-adding of SSH keys
+- Handle SSH key distribution on auto promotion
+- Do not remove authorized key of node itself
+- Support force option for deactivate disks on RAPI
+- renew-crypto: use bulk-removal of SSH keys
+- Bulk-removal of SSH keys
+- Catch IOError of SSH files when removing node
+- Fix renew-crypto on one-node-cluster
+- Increase timeout of RPC adding/removing keys
+- After TestNodeModify, fix the pool of master candidates
+
+Fixes inherited from 2.14 branch:
+
+- bdev: Allow userspace-only disk templates
+- Export disk's userspace URI to OS scripts
+- Fix instance failover in case of DTS_EXT_MIRROR
+- Set node tags in iallocator htools backend
+- Fix faulty iallocator type check
+- Allow disk attachment to diskless instances
+- Allow disk attachment with external storage
+
+Fixes inherited from 2.13 branch:
+
+- Improve xl socat migrations
+- Renew-crypto: stop daemons on master node first
+- Extend timeout for gnt-cluster renew-crypto
+
+Fixes inherited from 2.12 branch:
+
+- Accept timeout errors when luxi down
+- Fix disabling of user shutdown reporting
+- gnt-node add: password auth is only one method
+- Fix inconsistency in python and haskell objects
+- Increase default disk size of burnin to 1G
+- Only search for Python-2 interpreters
+- Handle Xen 4.3 states better
+- Return the correct error code in the post-upgrade script
+- Make openssl refrain from DH altogether
+- Fix upgrades of instances with missing creation time
+- Check for healthy majority on master failover with voting
+- Pass arguments to correct daemons during master-failover
+
+Fixes inherited from 2.11 branch:
+
+- At IAlloc backend guess state from admin state
+- Fix default for --default-iallocator-params
+
+Fixes inherited from 2.10 branch:
+
+- Make htools tolerate missing "dtotal" and "dfree" on luxi
+- KVM: explicitly configure routed NICs late
+
+Fixes inherited from the 2.9 branch:
+
+- Security patch for CVE-2015-7944 RAPI Vulnerable to DoS via SSL renegotiation
+- Security patch for CVE-2015-7945 Leak DRBD secret via RAPI
+- replace-disks: fix --ignore-ipolicy
+
+
+Version 2.16.0 beta1
+--------------------
+
+*(Released Tue, 28 Jul 2015)*
+
+This was the first beta release of the 2.16 series. All important changes
+are listed in the latest 2.16 entry.
 
 
 Version 2.15.2

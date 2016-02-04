@@ -53,16 +53,16 @@ import Ganeti.Cpu.Types
 oneCPUstatParser :: Parser CPUstat
 oneCPUstatParser =
   let nameP = stringP
-      userP = numberP
-      niceP = numberP
-      systemP = numberP
-      idleP = numberP
-      iowaitP = numberP
-      irqP = numberP
-      softirqP = numberP
-      stealP = numberP
-      guestP = numberP
-      guest_niceP = numberP
+      userP = integerP
+      niceP = integerP
+      systemP = integerP
+      idleP = integerP
+      iowaitP = integerP
+      irqP = integerP
+      softirqP = integerP
+      stealP = integerP
+      guestP = integerP
+      guest_niceP = integerP
   in
     CPUstat <$> nameP <*> userP <*> niceP <*> systemP <*> idleP <*> iowaitP
             <*> irqP <*> softirqP <*> stealP <*> guestP <*> guest_niceP

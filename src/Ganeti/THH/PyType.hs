@@ -80,6 +80,13 @@ instance Lift PyType where
   lift PTTupleOf     = [| PTTupleOf |]
 
 instance PyValue PyType where
+  -- Use lib/ht.py type aliases to avoid Python creating redundant
+  -- new match functions for commonly used OpCode param types.
+  showValue (PTMaybe (PTOther "NonEmptyString")) = ht "MaybeString"
+  showValue (PTMaybe (PTOther "Bool")) = ht "MaybeBool"
+  showValue (PTMaybe PTDictOf) = ht "MaybeDict"
+  showValue (PTMaybe PTListOf) = ht "MaybeList"
+
   showValue (PTMaybe x)   = ptApp (ht "Maybe") [x]
   showValue (PTApp tf as) = ptApp (showValue tf) as
   showValue (PTOther i)   = ht i

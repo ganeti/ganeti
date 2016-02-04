@@ -85,7 +85,8 @@ import Data.List (isInfixOf)
 import Data.Word (Word8)
 import qualified Network.Socket as S
 import System.Directory (removeFile)
-import System.IO (hClose, hFlush, hPutStr, hWaitForInput, Handle, IOMode(..))
+import System.IO ( hClose, hFlush, hPutStr, hWaitForInput, Handle, IOMode(..)
+                 , hSetBuffering, BufferMode(..))
 import System.IO.Error (isEOFError)
 import System.Posix.Types (Fd)
 import System.Posix.IO (createPipe, fdToHandle, handleToFd)
@@ -289,6 +290,10 @@ clientToFd client | rh == wh  = join (,) <$> handleToFd rh
 sendMsg :: Client -> String -> IO ()
 sendMsg s buf = withTimeout (sendTmo $ clientConfig s) "sending a message" $ do
   let handle = wsocket s
+  -- Allow buffering (up to 1MiB) when writing to the socket. Note that
+  -- otherwise we get the default of sending each byte in a separate
+  -- system call, resulting in very poor performance.
+  hSetBuffering handle (BlockBuffering . Just $ 1024 * 1024)
   hPutStr handle buf
   B.hPut handle bEOM
   hFlush handle

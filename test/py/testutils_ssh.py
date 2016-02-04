@@ -183,6 +183,14 @@ class FakeSshFileManager(object):
     """
     return self._all_node_data.keys()
 
+  def GetAllNodeUuids(self):
+    """Returns all node UUIDs of the cluster.
+
+    @rtype: list of str
+    @returns: list of all node UUIDs
+    """
+    return [node.uuid for node in self._all_node_data.values()]
+
   def GetAllPotentialMasterCandidateNodeNames(self):
     return [name for name, node_info
             in self._all_node_data.items()
@@ -281,11 +289,24 @@ class FakeSshFileManager(object):
   def GetAuthorizedKeysOfNode(self, node):
     """Returns the authorized keys of the given node.
 
+    @type node: string
+    @param node: name of the node
     @rtype: list of str
     @returns: a list of authorized keys that are stored on that node
 
     """
     return self._authorized_keys[node]
+
+  def GetKeyOfNode(self, node):
+    """Returns the SSH key of the given node.
+
+    @type node: string
+    @param node: name of the node
+    @rtype: string
+    @returns: the SSH key of the node
+
+    """
+    return self._all_node_data[node].key
 
   def SetOrAddNode(self, name, uuid, key, pot_mc, mc, master):
     """Adds a new node to the state of the file manager.
@@ -508,7 +529,46 @@ class FakeSshFileManager(object):
     if constants.SSHS_SSH_PUBLIC_KEYS in data:
       instructions_pub = data[constants.SSHS_SSH_PUBLIC_KEYS]
       self._HandlePublicKeys(instructions_pub, node)
+    if constants.SSHS_GENERATE in data:
+      instructions_generate = data[constants.SSHS_GENERATE]
+      self._GenerateNewKey(instructions_generate, node)
   # pylint: enable=W0613
+
+  def _GenerateNewKey(self, instructions_generate, node):
+    """Generates a new key for the given node.
+
+    Note that this is a very rudimentary generation of a new key. The key is
+    always generated with the same pattern, starting with 'new_key'. That
+    means if you run it twice, it will actually produce the same key. However,
+    for what we want to test, this is sufficient.
+    The 'suffix' instruction is also ignored and the key is directly overriden.
+    This works so far, but simplifies the tests a bit. It might be extended
+    in case it becomes necessary.
+
+    @type instructions_generate: tuple of (string, integer, string)
+    @param instructions_generate: an instructions tuple for generating a new
+        SSH key. This has to comply to the C{_DATA_CHECK} description in
+        C{ssh_update.py}.
+    @type node: string
+    @param node: name of node
+    """
+    (key_type, key_bits, suffix) = instructions_generate
+    assert key_type in constants.SSHK_ALL
+    assert key_bits > 0
+    assert isinstance(suffix, str)
+
+    new_key = "new_key_%s" % node
+    old_node_data = self._all_node_data[node]
+
+    new_node_data = self._NodeInfo(
+        uuid=old_node_data.uuid,
+        key=new_key,
+        is_potential_master_candidate=old_node_data
+            .is_potential_master_candidate,
+        is_master_candidate=old_node_data.is_master_candidate,
+        is_master=old_node_data.is_master)
+
+    self._all_node_data[node] = new_node_data
 
   def _EnsureAuthKeyFile(self, file_node_name):
     if file_node_name not in self._authorized_keys:

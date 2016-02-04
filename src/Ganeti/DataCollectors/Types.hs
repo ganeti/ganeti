@@ -145,7 +145,7 @@ instance JSON DCVersion where
 
 -- | Type for the value field of the `CollectorMap` below.
 data CollectorData =
-  CPULoadData (Seq.Seq (ClockTime, [Int]))
+  CPULoadData (Seq.Seq (ClockTime, [Integer]))
   | InstanceCpuLoad (Map.Map String (Seq.Seq (ClockTime, Double)))
 
 instance NFData ClockTime where

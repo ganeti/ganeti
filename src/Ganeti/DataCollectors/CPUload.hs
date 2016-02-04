@@ -5,7 +5,7 @@
 
 {-
 
-Copyright (C) 2013 Google Inc.
+Copyright (C) 2013, 2016 Google Inc.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,6 +45,7 @@ module Ganeti.DataCollectors.CPUload
 
 import Control.Arrow (first)
 import qualified Control.Exception as E
+import Control.Monad (liftM)
 import Data.Attoparsec.Text.Lazy as A
 import Data.Maybe (fromMaybe)
 import Data.Text.Lazy (pack, unpack)
@@ -71,8 +72,8 @@ bufferSize :: Int
 bufferSize = C.cpuavgloadBufferSize
 
 -- | The window size of the values that will export the average load.
-windowSize :: Integer
-windowSize = toInteger C.cpuavgloadWindowSize
+windowSizeInUSec :: Integer
+windowSizeInUSec = 1000000 * toInteger C.cpuavgloadWindowSize
 
 -- | The default setting for the maximum amount of not parsed character to
 -- print in case of error.
@@ -111,17 +112,17 @@ dcReport colData =
   in buildDCReport cpuLoadData
 
 -- | Data stored by the collector in mond's memory.
-type Buffer = Seq.Seq (ClockTime, [Int])
+type Buffer = Seq.Seq (ClockTime, [Integer])
 
 -- | Compute the load from a CPU.
-computeLoad :: CPUstat -> Int
+computeLoad :: CPUstat -> Integer
 computeLoad cpuData =
   csUser cpuData + csNice cpuData + csSystem cpuData
   + csIowait cpuData + csIrq cpuData + csSoftirq cpuData
   + csSteal cpuData + csGuest cpuData + csGuestNice cpuData
 
 -- | Reads and Computes the load for each CPU.
-dcCollectFromFile :: FilePath -> IO (ClockTime, [Int])
+dcCollectFromFile :: FilePath -> IO (ClockTime, [Integer])
 dcCollectFromFile inputFile = do
   contents <-
     ((E.try $ readFile inputFile) :: IO (Either IOError String)) >>=
@@ -149,10 +150,7 @@ formatData l@(x:xs) = CPUavgload (length l - 1) xs x
 -- | Update a Map Entry.
 updateEntry :: Buffer -> Buffer -> Buffer
 updateEntry newBuffer mapEntry =
-  (Seq.><) newBuffer
-  (if Seq.length mapEntry < bufferSize
-    then mapEntry
-    else Seq.drop 1 mapEntry)
+  (Seq.><) newBuffer (Seq.take bufferSize mapEntry)
 
 -- | Updates the given Collector data.
 dcUpdate :: Maybe CollectorData -> IO CollectorData
@@ -178,7 +176,7 @@ computeAverage s w ticks =
             (timestampR, listR) = rightmost
             workInWindow = zipWith (-) listL listR
             timediff = timestampL - timestampR
-            overall = fromInteger (timediff * ticks) / 1000000 :: Double
+            overall = fromIntegral (timediff * ticks) / 1000000 :: Double
         if overall > 0
           then BT.Ok $ map (flip (/) overall . fromIntegral) workInWindow
           else BT.Bad $ "Time covered by data is not sufficient."
@@ -190,7 +188,8 @@ computeAverage s w ticks =
 buildJsonReport :: Buffer -> IO J.JSValue
 buildJsonReport v = do
   ticks <- getSysVar ClockTick
-  let res = computeAverage v windowSize ticks
+  now <- liftM clockTimeToUSec getClockTime
+  let res = computeAverage v (now - windowSizeInUSec) ticks
       showError s = J.showJSON $ GJ.containerFromList [("error", s)]
   return $ BT.genericResult showError (J.showJSON . formatData) res
 
