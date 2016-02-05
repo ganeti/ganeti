@@ -629,7 +629,7 @@ case ${DIST_RELEASE}${VARIANT} in
         \
         hlint==1.9.20 \
         HUnit==1.2.5.2 \
-        QuickCheck==2.8.1 \
+        QuickCheck==2.7.6 \
         test-framework==0.8.1.1 \
         test-framework-hunit==0.3.0.1 \
         test-framework-quickcheck2==0.3.0.3 \
