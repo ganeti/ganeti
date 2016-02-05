@@ -317,7 +317,6 @@ case ${DIST_RELEASE}${VARIANT} in
         PSQueue-1.1 \
         \
         "Cabal $CABAL_LIB_VERSION" \
-        cabal-file-th-0.2.3 \
         shelltestrunner
 
     #Install selected packages from backports
@@ -636,7 +635,6 @@ case ${DIST_RELEASE}${VARIANT} in
         snap-server==0.9.5.1 \
         \
         "Cabal $CABAL_LIB_VERSION" \
-        cabal-file-th==0.2.3 \
         shelltestrunner==1.3.5
 ;;
 
