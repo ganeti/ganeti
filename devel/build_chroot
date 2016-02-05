@@ -551,7 +551,7 @@ case ${DIST_RELEASE}${VARIANT} in
     CABAL_INSTALL_VERSION="1.22.4.0"
     # the version of the Cabal library below must match the version used by
     # CABAL_INSTALL_VERSION, see the dependencies of cabal-install
-    CABAL_LIB_VERSION=">=1.22.2 && <1.23"
+    CABAL_LIB_VERSION="==1.22.3.0"
     export GHC_VERSION GHC_VARIANT CABAL_INSTALL_VERSION
 
     in_chroot -- \
@@ -617,7 +617,7 @@ case ${DIST_RELEASE}${VARIANT} in
         hslogger==1.2.8 \
         json==0.9.1 \
         lifted-base==0.2.3.6 \
-        lens==4.9.1 \
+        lens==4.12.3 \
         MonadCatchIO-transformers==0.3.1.3 \
         network==2.6.0.2 \
         parallel==3.2.0.6 \
