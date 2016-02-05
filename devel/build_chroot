@@ -400,7 +400,7 @@ case ${DIST_RELEASE}${VARIANT} in
       python-simplejson python-pycurl python-pyinotify python-paramiko \
       python-bitarray python-ipaddr python-yaml python-psutil \
       qemu-utils python-coverage pep8 \
-      shelltestrunner python-dev pylint openssh-client \
+      shelltestrunner python-dev pylint openssh-client ca-certificates \
       vim git git-email exuberant-ctags
 
     in_chroot -- \
@@ -446,7 +446,7 @@ case ${DIST_RELEASE}${VARIANT} in
         vim
 
     in_chroot -- \
-      $APT_INSTALL python-setuptools python-dev build-essential
+      $APT_INSTALL python-setuptools python-dev build-essential ca-certificates
 
     in_chroot -- \
       easy_install \
@@ -576,7 +576,7 @@ case ${DIST_RELEASE}${VARIANT} in
         vim
 
     in_chroot -- \
-      $APT_INSTALL python-setuptools python-dev build-essential
+      $APT_INSTALL python-setuptools python-dev build-essential ca-certificates
 
     in_chroot -- \
       easy_install \
