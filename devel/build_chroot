@@ -22,6 +22,7 @@
 # Additional Variables taken from the environmen
 # DATA_DIR
 # CHROOT_EXTRA_DEBIAN_PACKAGES
+# APT_CACHE
 
 # make the appended variant name more readable
 [ -n "$VARIANT" ] && VARIANT="-${VARIANT#-}"
@@ -142,7 +143,7 @@ cat $ACTUAL_DATA_DIR/temp.schroot.conf.in | subst_variables > $TEMP_CHROOT_CONF
 cat $ACTUAL_DATA_DIR/final.schroot.conf.in | subst_variables > $FINAL_CHROOT_CONF
 
 #Install the base system
-debootstrap --arch $ARCH $DIST_RELEASE $CHDIR
+debootstrap --arch $ARCH $DIST_RELEASE $CHDIR $APT_CACHE
 
 APT_INSTALL="apt-get install -y --no-install-recommends"
 
