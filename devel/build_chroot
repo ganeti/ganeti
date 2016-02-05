@@ -231,7 +231,7 @@ case ${DIST_RELEASE}${VARIANT} in
     GHC_VERSION="7.6.3"
     GHC_VARIANT=""
     CABAL_INSTALL_VERSION="1.18.0.2"
-    CABAL_LIB_VERSION=">=1.18.0 && <1.19"
+    CABAL_LIB_VERSION="==1.18.1"
     export GHC_VERSION GHC_VARIANT CABAL_INSTALL_VERSION
 
     # do not install libghc6-network-dev, since it's too old, and just
@@ -283,7 +283,7 @@ case ${DIST_RELEASE}${VARIANT} in
     # since we're using Cabal >=1.16, we can use the parallel install option
     in_chroot -- \
       cabal install --global -j --enable-library-profiling \
-        attoparsec-0.11.1.0 \
+        attoparsec-0.11.3.4 \
         base64-bytestring-1.0.0.1 \
         blaze-builder-0.3.3.2 \
         case-insensitive-1.1.0.3 \
@@ -296,7 +296,7 @@ case ${DIST_RELEASE}${VARIANT} in
         hslogger-1.2.3 \
         json-0.7 \
         lifted-base-0.2.2.0 \
-        lens-4.0.4 \
+        lens-4.2 \
         MonadCatchIO-transformers-0.3.0.0 \
         network-2.4.1.2 \
         parallel-3.2.0.4 \
