@@ -375,9 +375,11 @@ case ${DIST_RELEASE}${VARIANT} in
      in_chroot -- \
        cabal install --global \
         'base64-bytestring>=1' \
-        lens-3.10.2 \
+        lens-4.1.2.1 \
+        unordered-containers-0.2.5.1 \
         'lifted-base>=0.1.2' \
-        'hlint>=1.9.12'
+        'hlint>=1.9.12' \
+        'haskell-src-exts-1.16.0.1'
 ;;
 
   jessie)
