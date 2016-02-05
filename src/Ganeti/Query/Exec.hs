@@ -55,6 +55,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -}
 
+{-# LANGUAGE FlexibleContexts #-}
+
 module Ganeti.Query.Exec
   ( isForkSupported
   , forkJobProcess
