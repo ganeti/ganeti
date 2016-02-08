@@ -3335,6 +3335,16 @@ class ConfigWriter(object):
     if not self._offline:
       self._wconfd.FlushConfig()
 
+  def FlushConfigGroup(self, uuid):
+    """Force the distribution of configuration to master candidates of a group.
+
+    It is not necessary to hold a lock for this operation, it is handled
+    internally by WConfd.
+
+    """
+    if not self._offline:
+      self._wconfd.FlushConfigGroup(uuid)
+
   @ConfigSync(shared=1)
   def GetAllDiskInfo(self):
     """Get the configuration of all disks.
