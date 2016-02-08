@@ -158,7 +158,7 @@ writeConfigAndUnlock cid cdata = do
 -- | Force the distribution of configuration without actually modifying it.
 -- It is not necessary to hold a lock for this operation.
 flushConfig :: WConfdMonad ()
-flushConfig = forceConfigStateDistribution
+flushConfig = forceConfigStateDistribution Everywhere
 
 -- ** Temporary reservations related functions
 
