@@ -160,6 +160,11 @@ writeConfigAndUnlock cid cdata = do
 flushConfig :: WConfdMonad ()
 flushConfig = forceConfigStateDistribution Everywhere
 
+-- | Force the distribution of configuration to a given group without actually
+-- modifying it. It is not necessary to hold a lock for this operation.
+flushConfigGroup :: String -> WConfdMonad ()
+flushConfigGroup = forceConfigStateDistribution . ToGroups . S.singleton
+
 -- ** Temporary reservations related functions
 
 dropAllReservations :: ClientId -> WConfdMonad ()
@@ -390,6 +395,7 @@ exportedFunctions = [ 'echo
                     , 'unlockConfig
                     , 'writeConfigAndUnlock
                     , 'flushConfig
+                    , 'flushConfigGroup
                     -- temporary reservations (common)
                     , 'dropAllReservations
                     -- DRBD
