@@ -66,6 +66,7 @@ module Ganeti.WConfd.Monad
   , modifyTempResState
   , modifyTempResStateErr
   , readTempResState
+  , DistributionTarget(..)
   ) where
 
 import Prelude ()
@@ -104,6 +105,17 @@ import Ganeti.Utils.Livelock (Livelock)
 import Ganeti.WConfd.ConfigState
 import Ganeti.WConfd.TempRes
 
+-- * Monoid of the locations to flush the configuration to
+
+-- | Data type describing where the configuration has to be distributed to.
+data DistributionTarget = Everywhere | ToGroups (S.Set String) deriving Show
+
+instance Monoid DistributionTarget where
+  mempty = ToGroups S.empty
+  mappend Everywhere _ = Everywhere
+  mappend _ Everywhere = Everywhere
+  mappend (ToGroups a) (ToGroups b) = ToGroups (a `S.union` b)
+
 -- * Pure data types used in the monad
 
 -- | The state of the daemon, capturing both the configuration state and the
@@ -122,7 +134,7 @@ data DaemonHandle = DaemonHandle
   -- all static information that doesn't change during the life-time of the
   -- daemon should go here;
   -- all IDs of threads that do asynchronous work should probably also go here
-  , dhSaveConfigWorker :: AsyncWorker Any ()
+  , dhSaveConfigWorker :: AsyncWorker (Any, DistributionTarget) ()
   , dhSaveLocksWorker :: AsyncWorker () ()
   , dhSaveTempResWorker :: AsyncWorker () ()
   , dhLivelock :: Livelock
@@ -132,14 +144,17 @@ mkDaemonHandle :: FilePath
                -> ConfigState
                -> GanetiLockWaiting
                -> TempResState
-               -> (IO ConfigState -> [AsyncWorker () ()]
-                                  -> ResultG (AsyncWorker Any ()))
+               -> (IO ConfigState
+                   -> [AsyncWorker DistributionTarget ()]
+                   -> ResultG (AsyncWorker (Any, DistributionTarget) ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- saves the configuration to the master file.
-               -> (IO ConfigState -> ResultG (AsyncWorker () ()))
+               -> (IO ConfigState
+                   -> ResultG (AsyncWorker DistributionTarget ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- distributes the configuration to master candidates
-               -> (IO ConfigState -> ResultG (AsyncWorker () ()))
+               -> (IO ConfigState
+                   -> ResultG (AsyncWorker DistributionTarget ()))
                   -- ^ A function that creates a worker that asynchronously
                   -- distributes SSConf to nodes
                -> (IO GanetiLockWaiting -> ResultG (AsyncWorker () ()))
@@ -249,7 +264,8 @@ modifyConfigStateErrWithImmediate f immediateFollowup = do
       then do
         logDebug $ "Triggering config write" ++
                    " together with full synchronous distribution"
-        res <- liftBase . triggerWithResult (Any True) $ dhSaveConfigWorker dh
+        res <- liftBase . triggerWithResult (Any True, Everywhere)
+                 $ dhSaveConfigWorker dh
         immediateFollowup
         wait res
         logDebug "Config write and distribution finished"
@@ -257,7 +273,8 @@ modifyConfigStateErrWithImmediate f immediateFollowup = do
         -- trigger the config. saving worker and wait for it
         logDebug $ "Triggering config write" ++
                    " and asynchronous distribution"
-        res <- liftBase . triggerWithResult (Any False) $ dhSaveConfigWorker dh
+        res <- liftBase . triggerWithResult (Any False, Everywhere)
+                 $ dhSaveConfigWorker dh
         immediateFollowup
         wait res
         logDebug "Config writer finished with local task"
@@ -296,11 +313,11 @@ modifyConfigStateWithImmediate f =
 --
 -- We need a separate call for this operation, because 'modifyConfigState' only
 -- triggers the distribution when the configuration changes.
-forceConfigStateDistribution :: WConfdMonad ()
-forceConfigStateDistribution  = do
+forceConfigStateDistribution :: DistributionTarget -> WConfdMonad ()
+forceConfigStateDistribution target = do
   logDebug "Forcing synchronous config write together with full distribution"
   dh <- daemonHandle
-  liftBase . triggerAndWait (Any True) . dhSaveConfigWorker $ dh
+  liftBase . triggerAndWait (Any True, target) . dhSaveConfigWorker $ dh
   logDebug "Forced config write and distribution finished"
 
 -- | Atomically modifies the configuration data in the WConfdMonad
@@ -422,7 +439,7 @@ modifyConfigAndReturnWithLock f tempres = do
     when modified $ do
       logDebug . (++) "Triggering config write; distribution "
         $ if dist then "synchronously" else "asynchronously"
-      liftBase . triggerAndWait (Any dist) $ dhSaveConfigWorker dh
+      liftBase . triggerAndWait (Any dist, Everywhere) $ dhSaveConfigWorker dh
       logDebug "Config write finished"
     logDebug "Triggering temporary reservations write"
     liftBase . triggerAndWait_ . dhSaveTempResWorker $ dh
