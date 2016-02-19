@@ -40,10 +40,10 @@ New features
   parameter, see :doc:`N+M Redundancy <design-n-m-redundancy>`.
 
 
-Version 2.16.0 beta2
---------------------
+Version 2.16.0 rc1
+------------------
 
-*(Released Tue, 2 Feb 2016)*
+*(Released Thu, 18 Feb 2016)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -81,6 +81,20 @@ New dependencies
 - Using the metadata daemon now requires the presence of the 'setcap' utility.
   On Debian-based systems, it is available as a part of the 'libcap2-bin'
   package.
+
+Changes since beta2
+~~~~~~~~~~~~~~~~~~~
+- On group verify, only flush to group nodes
+
+
+Version 2.16.0 beta2
+--------------------
+
+*(Released Tue, 2 Feb 2016)*
+
+This was the second beta release of the 2.16 series. All important changes
+are listed in the latest 2.16 entry.
+
 
 Changes since beta1
 ~~~~~~~~~~~~~~~~~~~
