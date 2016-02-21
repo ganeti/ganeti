@@ -1,4 +1,15 @@
 #!/bin/bash
+
+#Requirements for this script to work:
+#* Make sure that the user who uses the chroot is in group 'src', or change
+#  the ${GROUP} variable to a group that contains the user.
+#* Add any path of the host system that you want to access inside the chroot
+#  to the /etc/schroot/default/fstab file. This is important in particular if
+#  your homedir is not in /home.
+#* Add this to your /etc/fstab:
+#  tmpfs /var/lib/schroot/mount tmpfs defaults,size=3G 0 0
+#  tmpfs /var/lib/schroot/unpack tmpfs defaults,size=3G 0 0
+
 #Configuration
 : ${ARCH:=amd64}
 : ${DIST_RELEASE:=squeeze}
@@ -6,6 +17,7 @@
 : ${CHROOT_DIR:=/srv/chroot}
 : ${ALTERNATIVE_EDITOR:=/usr/bin/vim.basic}
 : ${CHROOT_FINAL_HOOK:=/bin/true}
+: ${GROUP:=src}
 # Additional Variables taken from the environmen
 # DATA_DIR
 # CHROOT_EXTRA_DEBIAN_PACKAGES
@@ -54,7 +66,7 @@ then
   cat <<END >$ACTUAL_DATA_DIR/final.schroot.conf.in
 [${CHROOTNAME}]
 description=Debian ${DIST_RELEASE} ${ARCH}
-groups=src
+groups=${GROUP}
 source-root-groups=root
 type=file
 file=${CHROOT_DIR}/${COMP_FILENAME}
@@ -70,7 +82,7 @@ then
 [${CHNAME}]
 description=Debian ${DIST_RELEASE} ${ARCH}
 directory=${CHDIR}
-groups=src
+groups=${GROUP}
 users=root
 type=directory
 END
@@ -111,7 +123,7 @@ debootstrap --arch $ARCH $DIST_RELEASE $CHDIR
 
 APT_INSTALL="apt-get install -y --no-install-recommends"
 
-if [ DIST_RELEASE = squeeze ]
+if [ $DIST_RELEASE = squeeze ]
 then
   echo "deb http://backports.debian.org/debian-backports" \
        "$DIST_RELEASE-backports main contrib non-free" \
@@ -227,7 +239,7 @@ case $DIST_RELEASE in
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-paramiko \
       python-bitarray python-ipaddr python-yaml qemu-utils python-coverage pep8 \
-      shelltestrunner python-dev pylint openssh-client vim git git-email
+      shelltestrunner python-dev openssh-client vim git git-email
 
     # We need version 0.9.4 of pyinotify because the packaged version, 0.9.3, is
     # incompatibile with the packaged version of python-epydoc 3.0.1.
@@ -238,6 +250,14 @@ case $DIST_RELEASE in
     #   https://github.com/seb-m/pyinotify/commit/2c7e8f8959d2f8528e0d90847df360
     # and "fixed" in:
     #   https://github.com/seb-m/pyinotify/commit/98c5f41a6e2e90827a63ff1b878596
+
+    in_chroot -- \
+      easy_install \
+        logilab-astng==0.24.1 \
+        logilab-common==0.58.3 \
+        mock==1.0.1 \
+        pylint==0.26.0 \
+        pep8==1.3.3
 
     in_chroot -- \
       easy_install pyinotify==0.9.4
