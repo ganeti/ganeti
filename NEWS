@@ -2,10 +2,10 @@ News
 ====
 
 
-Version 2.17.0 alpha1
----------------------
+Version 2.17.0 beta1
+--------------------
 
-*(unreleased)*
+*(Released Mon, 22 Feb 2016)*
 
 Incompatible/important changes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,7 +22,6 @@ Incompatible/important changes
 - The options ``--debug`` and ``--verbose`` of ``gnt-cluster
   renew-crypto`` and ``gnt-node {add,remove,modify}`` now (also) control the
   log level of the SSH calls to all nodes.
-
 
 New features
 ~~~~~~~~~~~~
