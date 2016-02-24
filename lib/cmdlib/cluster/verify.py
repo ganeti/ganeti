@@ -2000,7 +2000,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       feedback_fn("* Gathering information about nodes (%s nodes)" %
                   len(self.my_node_uuids))
       # Force the configuration to be fully distributed before doing any tests
-      self.cfg.FlushConfig()
+      self.cfg.FlushConfigGroup(self.group_uuid)
       # Due to the way our RPC system works, exact response times cannot be
       # guaranteed (e.g. a broken node could run into a timeout). By keeping
       # the time before and after executing the request, we can at least have

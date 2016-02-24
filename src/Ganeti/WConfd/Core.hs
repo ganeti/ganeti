@@ -163,7 +163,12 @@ writeConfigAndUnlock cid cdata = do
 -- | Force the distribution of configuration without actually modifying it.
 -- It is not necessary to hold a lock for this operation.
 flushConfig :: WConfdMonad ()
-flushConfig = forceConfigStateDistribution
+flushConfig = forceConfigStateDistribution Everywhere
+
+-- | Force the distribution of configuration to a given group without actually
+-- modifying it. It is not necessary to hold a lock for this operation.
+flushConfigGroup :: String -> WConfdMonad ()
+flushConfigGroup = forceConfigStateDistribution . ToGroups . S.singleton
 
 -- *** Access to individual parts of the configuration
 
@@ -419,6 +424,7 @@ exportedFunctions = [ 'echo
                     , 'unlockConfig
                     , 'writeConfigAndUnlock
                     , 'flushConfig
+                    , 'flushConfigGroup
                     , 'maintenanceRoundDelay
                     , 'maintenanceJobs
                     , 'maintenanceBalancing
