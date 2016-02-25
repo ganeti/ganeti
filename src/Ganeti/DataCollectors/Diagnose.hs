@@ -61,7 +61,7 @@ import System.Process (readProcess)
 import Text.JSON (JSValue(..), toJSObject, toJSString, decode, Result(..))
 
 import Ganeti.BasicTypes (runResultT, ResultT(..), genericResult)
-import Ganeti.Config (loadConfig)
+import Ganeti.Confd.ClientFunctions (getDiagnoseCollectorFilename)
 import Ganeti.Constants (dataCollectorDiagnose, dataCollectorDiagnoseDirectory)
 import Ganeti.DataCollectors.Types ( DCCategory(..)
                                    , DCKind(..)
@@ -69,8 +69,6 @@ import Ganeti.DataCollectors.Types ( DCCategory(..)
                                    , DCReport(..)
                                    , buildReport
                                    )
-import Ganeti.Objects (configCluster, clusterDiagnoseDataCollectorFilename)
-import Ganeti.Path (clusterConfFile)
 
 -- | The name of this data collector.
 dcName :: String
@@ -150,9 +148,8 @@ fnToVal fn
 
 buildJsonReport :: IO JSValue
 buildJsonReport = fmap (genericResult okWithDetails id) . runResultT $ do
-  configData <- ResultT (clusterConfFile >>= loadConfig)
-  lift . fnToVal . clusterDiagnoseDataCollectorFilename $
-    configCluster configData
+  statusFnName <- getDiagnoseCollectorFilename Nothing Nothing
+  lift $ fnToVal statusFnName
 
 -- | The data exported by the data collector, taken from the default location.
 dcReport :: IO DCReport
