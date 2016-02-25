@@ -154,7 +154,8 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     @return: username of an authenticated user or None otherwise
     """
     ctx = self._GetRequestContext(req)
-    auth_user = self._authenticator.ValidateRequest(req, ctx.handler_access)
+    auth_user = self._authenticator.ValidateRequest(
+        req, ctx.handler_access, self.GetAuthRealm(req))
     if auth_user is None:
       return False
 

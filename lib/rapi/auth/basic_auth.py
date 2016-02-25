@@ -108,11 +108,12 @@ class BasicAuthenticator(auth.RapiAuthenticator):
                     instead of the default users_file interface.
 
     """
-    self.user_fn = user_fn
     if user_fn:
+      self.user_fn = user_fn
       return
 
     self.users = users_file.RapiUsers()
+    self.user_fn = self.users.Get
     # Setup file watcher (it'll be driven by asyncore)
     SetupFileWatcher(pathutils.RAPI_USERS_FILE,
                      compat.partial(self.users.Load,
@@ -120,29 +121,30 @@ class BasicAuthenticator(auth.RapiAuthenticator):
 
     self.users.Load(pathutils.RAPI_USERS_FILE)
 
-  def ValidateRequest(self, req, handler_access):
+  def ValidateRequest(self, req, handler_access, realm):
     """Checks whether a user can access a resource.
 
     """
-    username, password = HttpServerRequestAuthentication \
-                           .ExtractUserPassword(req)
-    if username is None:
+    request_username, request_password = HttpServerRequestAuthentication \
+                                           .ExtractUserPassword(req)
+    if request_username is None:
       raise http.HttpUnauthorized()
-    if password is None:
+    if request_password is None:
       raise http.HttpBadRequest(message=("Basic authentication requires"
-                                           " password"))
+                                         " password"))
 
-    user = self.user_fn(username) if self.user_fn else self.users.Get(username)
-    _, expected_password = HttpServerRequestAuthentication \
-                             .ExtractSchemePassword(password)
-    if not (user and expected_password == user.password):
+    user = self.user_fn(request_username)
+    if not (user and HttpServerRequestAuthentication
+                       .VerifyBasicAuthPassword(request_username,
+                                                request_password,
+                                                user.password, realm)):
       # Unknown user or password wrong
       return None
 
     if (not handler_access or
         set(user.options).intersection(handler_access)):
       # Allow access
-      return username
+      return request_username
 
     # Access forbidden
     raise http.HttpForbidden()

@@ -361,7 +361,7 @@ class InputTestClient(object):
     # pylint: disable=W0232
     class SimpleAuthenticator():
       # pylint: disable=R0201
-      def ValidateRequest(self, req, _=None):
+      def ValidateRequest(self, req, _handler_access, _realm):
         """Called to verify user credentials given in HTTP request.
 
         """

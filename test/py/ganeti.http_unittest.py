@@ -135,9 +135,11 @@ class _FakeRequestAuth(http.auth.HttpServerRequestAuthentication):
   def GetAuthRealm(self, req):
     return self.realm
 
-  def Authenticate(self, *args):
+  def Authenticate(self, req):
+    handler_access = []
     if self.authenticator:
-      return self.authenticator.ValidateRequest(*args)
+      return self.authenticator.ValidateRequest(
+          req, handler_access, self.GetAuthRealm(req))
     raise NotImplementedError()
 
 
@@ -155,7 +157,7 @@ class TestAuth(unittest.TestCase):
   def _testVerifyBasicAuthPassword(self, realm, user, password, expected):
     ra = _FakeRequestAuth(realm, False, None)
 
-    return ra.VerifyBasicAuthPassword(None, user, password, expected)
+    return ra.VerifyBasicAuthPassword(user, password, expected, realm)
 
   def testVerifyBasicAuthPassword(self):
     tvbap = self._testVerifyBasicAuthPassword
@@ -204,7 +206,7 @@ class _SimpleAuthenticator:
     self.password = password
     self.called = False
 
-  def ValidateRequest(self, req, _=None):
+  def ValidateRequest(self, req, handler_access, realm):
     self.called = True
 
     username, password = http.auth.HttpServerRequestAuthentication \
@@ -212,12 +214,9 @@ class _SimpleAuthenticator:
     if username is None or password is None:
       return False
 
-    _, expected_password = http.auth.HttpServerRequestAuthentication \
-                             .ExtractSchemePassword(password)
-    if self.user == username and expected_password == self.password:
-      return True
-
-    return False
+    return (self.user == username and
+            http.auth.HttpServerRequestAuthentication.VerifyBasicAuthPassword(
+                username, password, self.password, realm))
 
 
 class TestHttpServerRequestAuthentication(unittest.TestCase):

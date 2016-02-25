@@ -36,7 +36,7 @@ class RapiAuthenticator(object):
   """Class providing authentication interface for RAPi requests.
 
   """
-  def ValidateRequest(self, req, handler_access):
+  def ValidateRequest(self, req, handler_access, realm):
     """Checks whether it's permitted to execute an rapi request.
 
     Must be implemented in derived classes.
@@ -45,6 +45,8 @@ class RapiAuthenticator(object):
     @param req: HTTP request context
     @type handler_access: set of strings
     @param handler_access: access rights required by the requested resourse
+    @type realm: string
+    @param realm: Authentication realm
     @rtype: str or None
     @return: the authenticated user name if request execution is permitted and
              None otherwise

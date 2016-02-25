@@ -155,8 +155,8 @@ class HttpServerRequestAuthentication(object):
 
     raise http.HttpUnauthorized(headers=headers)
 
-  @classmethod
-  def ExtractUserPassword(cls, req):
+  @staticmethod
+  def ExtractUserPassword(req):
     """Extracts a user and a password from the http authorization header.
 
     @type req: L{http.server._HttpServerRequest}
@@ -184,7 +184,7 @@ class HttpServerRequestAuthentication(object):
       if len(parts) < 2:
         raise http.HttpBadRequest(message=("Basic authentication requires"
                                            " credentials"))
-      return cls._ExtractBasicUserPassword(parts[1])
+      return HttpServerRequestAuthentication._ExtractBasicUserPassword(parts[1])
 
     elif scheme == HTTP_DIGEST_AUTH.lower():
       # TODO: Implement digest authentication
@@ -228,8 +228,8 @@ class HttpServerRequestAuthentication(object):
     """
     raise NotImplementedError()
 
-  @classmethod
-  def ExtractSchemePassword(cls, expected_password):
+  @staticmethod
+  def ExtractSchemePassword(expected_password):
     """Extracts a scheme and a password from the expected_password.
 
     @type expected_password: str
@@ -243,7 +243,8 @@ class HttpServerRequestAuthentication(object):
       return None, None
     # Backwards compatibility for old-style passwords without a scheme
     if not expected_password.startswith("{"):
-      expected_password = cls._CLEARTEXT_SCHEME + expected_password
+      expected_password = (HttpServerRequestAuthentication._CLEARTEXT_SCHEME +
+                           expected_password)
 
     # Check again, just to be sure
     if not expected_password.startswith("{"):
@@ -261,15 +262,14 @@ class HttpServerRequestAuthentication(object):
 
     return scheme, password
 
-  def VerifyBasicAuthPassword(self, req, username, password, expected):
+  @staticmethod
+  def VerifyBasicAuthPassword(username, password, expected, realm):
     """Checks the password for basic authentication.
 
     As long as they don't start with an opening brace ("E{lb}"), old passwords
     are supported. A new scheme uses H(A1) from RFC2617, where H is MD5 and A1
     consists of the username, the authentication realm and the actual password.
 
-    @type req: L{http.server._HttpServerRequest}
-    @param req: HTTP request context
     @type username: string
     @param username: Username from HTTP headers
     @type password: string
@@ -277,20 +277,21 @@ class HttpServerRequestAuthentication(object):
     @type expected: string
     @param expected: Expected password with optional scheme prefix (e.g. from
                      users file)
+    @type realm: string
+    @param realm: Authentication realm
 
     """
-
-    scheme, expected_password = self.ExtractSchemePassword(expected)
+    scheme, expected_password = HttpServerRequestAuthentication \
+                                  .ExtractSchemePassword(expected)
     if scheme is None or password is None:
       return False
 
     # Good old plain text password
-    if scheme == self._CLEARTEXT_SCHEME:
+    if scheme == HttpServerRequestAuthentication._CLEARTEXT_SCHEME:
       return password == expected_password
 
     # H(A1) as described in RFC2617
-    if scheme == self._HA1_SCHEME:
-      realm = self.GetAuthRealm(req)
+    if scheme == HttpServerRequestAuthentication._HA1_SCHEME:
       if not realm:
         # There can not be a valid password for this case
         raise AssertionError("No authentication realm")

@@ -359,7 +359,7 @@ class PamAuthenticator(auth.RapiAuthenticator):
     """
     self.cf = CFunctions()
 
-  def ValidateRequest(self, req, handler_access):
+  def ValidateRequest(self, req, handler_access, _):
     """Checks whether a user can access a resource.
 
     This function retuns authenticated user name on success.
