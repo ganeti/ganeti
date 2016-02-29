@@ -126,7 +126,7 @@ The basic structure of Ganeti ``.ovf`` file is the following::
             <gnt:VersionId/>
             <gnt:AutoBalance/>
             <gnt:Tags></gnt:Tags>
-            <gnt:DiskTemplate</gnt:DiskTemplate>
+            <gnt:DiskTemplate></gnt:DiskTemplate>
             <gnt:OperatingSystem>
                 <gnt:Name/>
                 <gnt:Parameters></gnt:Parameters>

@@ -160,7 +160,7 @@ Unless specified otherwise, all entries are optional.
       "cluster_name": "cluster.example.com",
       "master_ip": "192.168.2.1",
       "master_netdev": "br0",
-      # …
+      // ...
     }
 
 ``start_node_daemon``
