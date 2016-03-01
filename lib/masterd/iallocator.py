@@ -708,9 +708,9 @@ class IAllocator(object):
           i_used_mem = int(node_instances_info[node_uuid]
                            .payload[iinfo.name]["memory"])
         i_mem_diff = beinfo[constants.BE_MAXMEM] - i_used_mem
-        mem_free -= max(0, i_mem_diff)
-
-        if iinfo.admin_state == constants.ADMINST_UP:
+        if iinfo.admin_state == constants.ADMINST_UP \
+            and not iinfo.forthcoming:
+          mem_free -= max(0, i_mem_diff)
           i_p_up_mem += beinfo[constants.BE_MAXMEM]
     return (i_p_mem, i_p_up_mem, mem_free)
 
