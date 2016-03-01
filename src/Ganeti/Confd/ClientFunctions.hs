@@ -35,6 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 module Ganeti.Confd.ClientFunctions
   ( getInstances
   , getInstanceDisks
+  , getDiagnoseCollectorFilename
   ) where
 
 import Control.Monad (liftM)
@@ -89,3 +90,15 @@ getInstanceDisks
 getInstanceDisks node srvAddr srvPort =
   liftM (uncurry (++)) (getInstances node srvAddr srvPort) >>=
     mapM (\i -> liftM ((,) i) (getDisks i srvAddr srvPort))
+
+-- | Get the name of the diagnose collector.
+getDiagnoseCollectorFilename
+  :: Maybe String -> Maybe Int -> BT.ResultT String IO String
+getDiagnoseCollectorFilename srvAddr srvPort = do
+  client <- liftIO $ getConfdClient srvAddr srvPort
+  reply <- liftIO . query client ReqConfigQuery
+             $ PlainQuery "/cluster/diagnose_data_collector_filename"
+  case fmap (J.readJSON . confdReplyAnswer) reply of
+    Just (J.Ok filename) -> return filename
+    Just (J.Error msg) -> fail msg
+    Nothing -> fail "No answer from the Confd server"
