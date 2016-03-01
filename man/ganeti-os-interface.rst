@@ -70,7 +70,12 @@ DISK_%N_PATH
     either a block device or a regular file, in which case the OS
     scripts should use ``losetup`` (if they need to mount it). E.g. the
     first disk of the instance might be exported as
-    ``DISK_0_PATH=/dev/drbd0``.
+    ``DISK_0_PATH=/dev/drbd0``. If the disk is only accessible via a
+    userspace URI, this not be set.
+
+DISK_%N_URI
+    The userspace URI to the storage for disk N of the instance, if
+    configured.
 
 DISK_%N_ACCESS
     This is how the hypervisor will export the instance disks: either
@@ -201,12 +206,22 @@ the instance. The command should write to stdout a dump of the
 given block device. The output of this program will be passed
 during restore to the **import** command.
 
-The specific disk to backup is denoted by two additional environment
-variables: ``EXPORT_INDEX`` which denotes the index in the instance
-disks structure (and could be used for example to skip the second disk
-if not needed for backup) and ``EXPORT_DEVICE`` which has the same value
-as ``DISK_N_PATH`` but is duplicated here for easier usage by shell
-scripts (rather than parse the ``DISK_...`` variables).
+The specific disk to backup is denoted by four additional environment
+variables:
+
+EXPORT_INDEX
+    The index in the instance disks structure (and could be used for
+    example to skip the second disk if not needed for backup).
+
+EXPORT_DISK_PATH
+    Alias for ``DISK_N_PATH``. It is duplicated here for easier usage
+    by shell scripts (rather than parse the ``DISK_...`` variables).
+
+EXPORT_DISK_URI
+    Alias for ``DISK_N_URI``, analagous to ``EXPORT_DISK_PATH``.
+
+EXPORT_DEVICE
+    Historical alias for ``EXPORT_DISK_PATH``.
 
 To provide the user with an estimate on how long the export will take,
 a predicted size can be written to the file descriptor passed in the
@@ -228,7 +243,8 @@ those passed to **export**, whose output will be provided on
 stdin.
 
 The difference in variables is that the current disk is denoted by
-``IMPORT_DEVICE`` and ``IMPORT_INDEX`` (instead of ``EXPORT_...``).
+``IMPORT_DISK_PATH``, ``IMPORT_DISK_URI``, ``IMPORT_DEVICE`` and
+``IMPORT_INDEX`` (instead of ``EXPORT_...``).
 
 rename
 ~~~~~~

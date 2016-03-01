@@ -5172,13 +5172,28 @@ def _GetImportExportIoCommand(instance, mode, ieio, ieargs):
     env = OSEnvironment(instance, inst_os)
 
     if mode == constants.IEM_IMPORT:
-      env["IMPORT_DEVICE"] = env["DISK_%d_PATH" % disk_index]
+      disk_path_var = "DISK_%d_PATH" % disk_index
+      if disk_path_var in env:
+        env["IMPORT_DEVICE"] = env[disk_path_var]
+        env["IMPORT_DISK_PATH"] = env[disk_path_var]
+
+      disk_uri_var = "DISK_%d_URI" % disk_index
+      if disk_uri_var in env:
+        env["IMPORT_DISK_URI"] = env[disk_uri_var]
+
       env["IMPORT_INDEX"] = str(disk_index)
       script = inst_os.import_script
 
     elif mode == constants.IEM_EXPORT:
-      real_disk = _OpenRealBD(disk)
-      env["EXPORT_DEVICE"] = real_disk.dev_path
+      disk_path_var = "DISK_%d_PATH" % disk_index
+      if disk_path_var in env:
+        env["EXPORT_DEVICE"] = env[disk_path_var]
+        env["EXPORT_DISK_PATH"] = env[disk_path_var]
+
+      disk_uri_var = "DISK_%d_URI" % disk_index
+      if disk_uri_var in env:
+        env["EXPORT_DISK_URI"] = env[disk_uri_var]
+
       env["EXPORT_INDEX"] = str(disk_index)
       script = inst_os.export_script
 
