@@ -2892,6 +2892,7 @@ class ConfigWriter(object):
       try:
         logging.debug("Writing configuration and unlocking it")
         self._WriteConfig(releaselock=True)
+        logging.debug("Configuration write, unlock finished")
       except Exception, err:
         logging.critical("Can't write the configuration: %s", str(err))
         raise
