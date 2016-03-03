@@ -42,6 +42,7 @@ ACTUAL_DATA_DIR=$DATA_DIR
 ACTUAL_DATA_DIR=${ACTUAL_DATA_DIR:-$TEMP_DATA_DIR}
 SHA1_LIST='
 cabal-install-1.18.0.2.tar.gz 2d1f7a48d17b1e02a1e67584a889b2ff4176a773
+cabal-install-1.20.0.3.tar.gz 444448b0f704420e329e8fc1989b6743c1c8546d
 cabal-install-1.22.4.0.tar.gz b98eea96d321cdeed83a201c192dac116e786ec2
 cabal-install-1.22.6.0.tar.gz d474b0eef6944af1abef92419cea13cee50993f3
 ghc-7.6.3-i386-unknown-linux.tar.bz2 f042b4171a2d4745137f2e425e6949c185f8ea14
@@ -548,10 +549,9 @@ case ${DIST_RELEASE}${VARIANT} in
 
     GHC_VERSION="7.8.4"
     GHC_VARIANT="-deb7"
-    CABAL_INSTALL_VERSION="1.22.4.0"
-    # the version of the Cabal library below must match the version used by
-    # CABAL_INSTALL_VERSION, see the dependencies of cabal-install
-    CABAL_LIB_VERSION="==1.22.3.0"
+    # Version of cabal-install closest to the jessie install
+    CABAL_INSTALL_VERSION="1.20.0.3"
+    CABAL_LIB_VERSION="==1.20.0.0"
     export GHC_VERSION GHC_VARIANT CABAL_INSTALL_VERSION
 
     in_chroot -- \
@@ -602,7 +602,9 @@ case ${DIST_RELEASE}${VARIANT} in
       cabal update
 
     # since we're using Cabal >=1.16, we can use the parallel install option
-    in_chroot -- \
+    # Set LANG as a workaround for a bug in Cabal 1.20 which breaks
+    # tf-random-0.5 install. See https://github.com/haskell/cabal/issues/1883
+    in_chroot -- env LANG=C.UTF-8 \
       cabal install --global -j --enable-library-profiling \
         attoparsec==0.12.1.6 \
         base64-bytestring==1.0.0.1 \
