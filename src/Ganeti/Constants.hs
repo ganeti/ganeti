@@ -4721,8 +4721,11 @@ sshkEcdsa = Types.sshKeyTypeToRaw ECDSA
 sshkRsa :: String
 sshkRsa = Types.sshKeyTypeToRaw RSA
 
+sshkEd25519 :: String
+sshkEd25519 = Types.sshKeyTypeToRaw Ed25519
+
 sshkAll :: FrozenSet String
-sshkAll = ConstantUtils.mkSet [sshkRsa, sshkDsa, sshkEcdsa]
+sshkAll = ConstantUtils.mkSet [sshkRsa, sshkDsa, sshkEcdsa, sshkEd25519]
 
 -- * SSH authorized key types
 
@@ -4820,6 +4823,13 @@ sshHostEcdsaPriv = sshConfigDir ++ "/ssh_host_ecdsa_key"
 sshHostEcdsaPub :: String
 sshHostEcdsaPub = sshHostEcdsaPriv ++ ".pub"
 
+-- Ed25519 Host Keys are not yet supported by Debian
+-- sshHostEd25519Priv :: String
+-- sshHostEd25519Priv = sshConfigDir ++ "/ssh_host_ed25519_key"
+
+-- sshHostEd25519Pub :: String
+-- sshHostEd25519Pub = sshHostEd25519Priv ++ ".pub"
+
 sshHostRsaPriv :: String
 sshHostRsaPriv = sshConfigDir ++ "/ssh_host_rsa_key"
 
@@ -4830,7 +4840,8 @@ sshDaemonKeyfiles :: Map String (String, String)
 sshDaemonKeyfiles =
   Map.fromList [ (sshkRsa, (sshHostRsaPriv, sshHostRsaPub))
                , (sshkDsa, (sshHostDsaPriv, sshHostDsaPub))
-               , (sshkEcdsa, (sshHostEcdsaPriv, sshHostEcdsaPub))
+               , (sshkEcdsa, (sshHostEcdsaPriv, sshHostEcdsaPub)) 
+               -- sshHostEd25519Priv,..
                ]
 
 -- * Node daemon setup

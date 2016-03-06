@@ -962,6 +962,7 @@ $(THH.declareLADT ''String "SshKeyType"
   [ ("RSA", "rsa")
   , ("DSA", "dsa")
   , ("ECDSA", "ecdsa")
+  , ("Ed25519", "ed25519")
   ])
 $(THH.makeJSONInstance ''SshKeyType)
 

@@ -150,6 +150,9 @@ class TestGetUserFiles(unittest.TestCase):
         constants.SSHK_ECDSA:
           (os.path.join(self.tmpdir, ".ssh", "id_ecdsa"),
            os.path.join(self.tmpdir, ".ssh", "id_ecdsa.pub")),
+        constants.SSHK_Ed25519:
+          (os.path.join(self.tmpdir, ".ssh", "id_ed25519"),
+           os.path.join(self.tmpdir, ".ssh", "id_ed25519.pub")),
       }))
     self.assertEqual(os.listdir(self.tmpdir), [])
 
@@ -513,6 +516,11 @@ class TestDetermineKeyBits(testutils.GanetiTestCase):
                       None, None)
     for b in [256, 384, 521]:
       self.assertEquals(b, ssh.DetermineKeyBits("ecdsa", b, None, None))
+  
+  def testEd25519SpecificValues(self):
+    self.assertRaises(errors.OpPrereqError, ssh.DetermineKeyBits, "ed25519", 256,
+                      None, None)
+    self.assertEquals(b, ssh.DetermineKeyBits("ed25519", b, None, None))
 
   def testRsaSpecificValues(self):
     self.assertRaises(errors.OpPrereqError, ssh.DetermineKeyBits, "dsa", 766,
@@ -603,7 +611,7 @@ class TestManageLocalSshPubKeys(testutils.GanetiTestCase):
 
   @testutils.patch_object(ssh, "GetAllUserFiles")
   def testReadPublicKeyFilesWithSuffix(self, mock_getalluserfiles):
-    key_types = [constants.SSHK_DSA, constants.SSHK_ECDSA]
+    key_types = [constants.SSHK_DSA, constants.SSHK_ECDSA, constants.SSHK_Ed25519]
 
     mock_getalluserfiles.return_value = (None, self._key_file_dict)
 
