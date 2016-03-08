@@ -628,6 +628,7 @@ case ${DIST_RELEASE}${VARIANT} in
         temporary==1.2.0.3 \
         vector==0.10.12.3 \
         zlib==0.5.4.2 \
+        utf8-string-0.3.8 \
         \
         hlint==1.9.20 \
         HUnit==1.2.5.2 \
