@@ -286,11 +286,14 @@ clientToFd client | rh == wh  = join (,) <$> handleToFd rh
 -- | Sends a message over a transport.
 sendMsg :: Client -> String -> IO ()
 sendMsg s buf = withTimeout (sendTmo $ clientConfig s) "sending a message" $ do
+  t1 <- getCurrentTimeUSec
   let encoded = UTF8.fromString buf
       handle = wsocket s
   B.hPut handle encoded
   B.hPut handle bEOM
   hFlush handle
+  t2 <- getCurrentTimeUSec
+  logDebug $ "sendMsg: " ++ (show ((t2 - t1) `div` 1000)) ++ "ms"
 
 -- | Given a current buffer and the handle, it will read from the
 -- network until we get a full message, and it will return that
