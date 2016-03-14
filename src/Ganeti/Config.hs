@@ -285,6 +285,17 @@ getInstance cfg name =
                       $ instances
                 in getItem "Instance" name by_name
 
+-- | Looks up an instance by exact name match
+getInstanceByName :: ConfigData -> String -> ErrorResult Instance
+getInstanceByName cfg name =
+  let instances = M.elems . fromContainer . configInstances $ cfg
+      matching = F.find (\i -> maybe False (== name) (instName i)) instances
+  in case matching of
+      Just inst -> Ok inst
+      Nothing   -> Bad $ OpPrereqError
+                   ("Instance name " ++ name ++ " not found")
+                   ECodeNoEnt
+
 -- | Looks up a disk by uuid.
 getDisk :: ConfigData -> String -> ErrorResult Disk
 getDisk cfg name =
@@ -388,7 +399,7 @@ getFilledInstOsParams cfg inst =
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> ErrorResult Node
 getInstPrimaryNode cfg name =
-  getInstance cfg name
+  getInstanceByName cfg name
   >>= withMissingParam "Instance without primary node" return . instPrimaryNode
   >>= getNode cfg
 
@@ -407,7 +418,8 @@ getDrbdDiskNodes cfg disk =
 -- the primary node has to be appended to the results.
 getInstAllNodes :: ConfigData -> String -> ErrorResult [Node]
 getInstAllNodes cfg name = do
-  inst_disks <- getInstDisks cfg name
+  inst <- getInstanceByName cfg name
+  inst_disks <- getInstDisksFromObj cfg inst
   let disk_nodes = concatMap (getDrbdDiskNodes cfg) inst_disks
   pNode <- getInstPrimaryNode cfg name
   return . nub $ pNode:disk_nodes
