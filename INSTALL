@@ -21,7 +21,7 @@ Before installing, please verify that you have the following programs:
   migration, virtio, etc, an even newer version is recommended (qemu-kvm
   versions 0.11.X and above have shown good behavior).
 - `DRBD <http://www.drbd.org/>`_, kernel module and userspace utils,
-  version 8.0.7 or above; note that Ganeti doesn't yet support version 8.4
+  version 8.0.7 or above, up to 8.4.x.
 - `RBD <http://ceph.newdream.net/>`_, kernel modules
   (``rbd.ko``/``libceph.ko``) and userspace utils (``ceph-common``)
 - `LVM2 <http://sourceware.org/lvm2/>`_

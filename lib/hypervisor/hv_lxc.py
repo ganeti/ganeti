@@ -476,11 +476,23 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """Get the list of running instances.
 
     """
-    return [iinfo[0] for iinfo in self.GetAllInstancesInfo()]
+    return self._ListAliveInstances()
 
   @classmethod
   def _IsInstanceAlive(cls, instance_name):
     """Return True if instance is alive.
+
+    """
+    result = utils.RunCmd(["lxc-ls", "--running", re.escape(instance_name)])
+    if result.failed:
+      raise HypervisorError("Failed to get running LXC containers list: %s" %
+                            result.output)
+
+    return instance_name in result.stdout.split()
+
+  @classmethod
+  def _ListAliveInstances(cls):
+    """Return list of alive instances.
 
     """
     result = utils.RunCmd(["lxc-ls", "--running"])
@@ -488,7 +500,7 @@ class LXCHypervisor(hv_base.BaseHypervisor):
       raise HypervisorError("Failed to get running LXC containers list: %s" %
                             result.output)
 
-    return instance_name in result.stdout.split()
+    return result.stdout.split()
 
   def GetInstanceInfo(self, instance_name, hvparams=None):
     """Get instance properties.
@@ -503,6 +515,18 @@ class LXCHypervisor(hv_base.BaseHypervisor):
     """
     if not self._IsInstanceAlive(instance_name):
       return None
+
+    return self._GetInstanceInfoInner(instance_name)
+
+  def _GetInstanceInfoInner(self, instance_name):
+    """Get instance properties.
+
+    @type instance_name: string
+    @param instance_name: the instance name
+    @rtype: tuple of strings
+    @return: (name, id, memory, vcpus, stat, times)
+
+    """
 
     cpu_list = self._GetCgroupCpuList(instance_name)
     memory = self._GetCgroupMemoryLimit(instance_name) / (1024 ** 2)
@@ -519,10 +543,13 @@ class LXCHypervisor(hv_base.BaseHypervisor):
 
     """
     data = []
+    running_instances = self._ListAliveInstances()
     filter_fn = lambda x: os.path.isdir(utils.PathJoin(self._INSTANCE_DIR, x))
     for dirname in filter(filter_fn, os.listdir(self._INSTANCE_DIR)):
+      if dirname not in running_instances:
+        continue
       try:
-        info = self.GetInstanceInfo(dirname)
+        info = self._GetInstanceInfoInner(dirname)
       except errors.HypervisorError:
         continue
       if info:

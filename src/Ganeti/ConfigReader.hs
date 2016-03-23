@@ -200,7 +200,7 @@ onPollTimer :: IO Bool -> FilePath -> (Result ConfigData -> IO ())
             -> MVar ServerState -> IO ()
 onPollTimer inotiaction path save_fn state = do
   threadDelay pollInterval
-  logDebug "Poll timer fired"
+  logDebug $ "Poll timer fired for " ++ path
   continue <- modifyMVar state (onPollInner inotiaction path save_fn)
   if continue
     then onPollTimer inotiaction path save_fn state
@@ -254,7 +254,7 @@ addNotifier inotify path save_fn mstate =
 onInotify :: INotify -> String -> (Result ConfigData -> IO ())
           -> MVar ServerState -> Event -> IO ()
 onInotify inotify path save_fn mstate Ignored = do
-  logDebug "File lost, trying to re-establish notifier"
+  logDebug $ "File lost, trying to re-establish notifier for " ++ path
   modifyMVar_ mstate $ \state -> do
     result <- addNotifier inotify path save_fn mstate
     (newfstat, _) <- safeUpdateConfig path (reloadFStat state) save_fn
@@ -266,7 +266,8 @@ onInotify inotify path save_fn mstate Ignored = do
                   path save_fn mstate
         return state' { reloadModel = mode }
 
-onInotify inotify path save_fn mstate _ =
+onInotify inotify path save_fn mstate _ = do
+  logDebug $ "onInotify fired for " ++ path
   modifyMVar_ mstate $ \state ->
     if reloadModel state == ReloadNotify
        then do

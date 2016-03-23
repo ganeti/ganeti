@@ -114,6 +114,17 @@ class TestLXCIsInstanceAlive(unittest.TestCase):
     runcmd_mock.return_value = RunResultOk("inst1 inst2foo")
     self.assertFalse(LXCHypervisor._IsInstanceAlive("inst2"))
 
+class TestLXCListInstances(LXCHypervisorTestCase):
+  @patch_object(utils, "RunCmd")
+  def testRunningInstnaces(self, runcmd_mock):
+    instance_list = ["inst1", "inst2", "inst3", "inst4", "inst5"]
+    runcmd_mock.return_value = RunResultOk("inst1 inst2 inst3\ninst4 inst5")
+    self.assertEqual(self.hv.ListInstances(), instance_list)
+
+  @patch_object(utils, "RunCmd")
+  def testEmpty(self, runcmd_mock):
+    runcmd_mock.return_value = RunResultOk(" ")
+    self.assertEqual(self.hv.ListInstances(), [])
 
 class TestLXCHypervisorGetInstanceInfo(LXCHypervisorTestCase):
   def setUp(self):
