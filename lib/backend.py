@@ -2926,24 +2926,23 @@ def InstanceShutdown(instance, timeout, reason, store_reason=True):
       self.tried_once = False
 
     def __call__(self):
-      if not _GetInstanceInfo(instance):
-        return
-
       try:
         hyper.StopInstance(instance, retry=self.tried_once, timeout=timeout)
         if store_reason:
           _StoreInstReasonTrail(instance.name, reason)
       except errors.HypervisorError, err:
-        # if the instance is no longer existing, consider this a
-        # success and go to cleanup
-        if not _GetInstanceInfo(instance):
-          return
+        # if the instance does no longer exist, consider this success and go to
+        # cleanup, otherwise fail without retrying
+        if _GetInstanceInfo(instance):
+          _Fail("Failed to stop instance '%s': %s", instance.name, err)
+        return
 
-        _Fail("Failed to stop instance '%s': %s", instance.name, err)
-
+      # TODO: Cleanup hypervisor implementations to prevent them from failing
+      # silently. We could easily decide if we want to retry or not by using
+      # HypervisorSoftError()/HypervisorHardError()
       self.tried_once = True
-
-      raise utils.RetryAgain()
+      if _GetInstanceInfo(instance):
+        raise utils.RetryAgain()
 
   try:
     utils.Retry(_TryShutdown(), 5, timeout)

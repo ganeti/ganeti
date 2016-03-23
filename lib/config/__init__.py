@@ -2678,17 +2678,19 @@ class ConfigWriter(object):
         if self._config_data is None:
           logging.debug("Requesting config, as I have no up-to-date copy")
           dict_data = self._wconfd.ReadConfig()
+          logging.debug("Configuration received")
         else:
           logging.debug("My config copy is up to date.")
           dict_data = None
       else:
         # poll until we acquire the lock
         while True:
+          logging.debug("Receiving config from WConfd.LockConfig [shared=%s]",
+                        bool(shared))
           dict_data = \
               self._wconfd.LockConfig(self._GetWConfdContext(), bool(shared))
-          logging.debug("Received config from WConfd.LockConfig [shared=%s]",
-                        bool(shared))
           if dict_data is not None:
+            logging.debug("Received config from WConfd.LockConfig")
             break
           time.sleep(random.random())
 
@@ -2709,6 +2711,7 @@ class ConfigWriter(object):
       try:
         logging.debug("Writing configuration and unlocking it")
         self._WriteConfig(releaselock=True)
+        logging.debug("Configuration write, unlock finished")
       except Exception, err:
         logging.critical("Can't write the configuration: %s", str(err))
         raise
