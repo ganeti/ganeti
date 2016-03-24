@@ -1392,13 +1392,17 @@ $(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
 # are created in the `%.$(HTEST_SUFFIX)_o` rule.
 test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@echo '[GHC|test]: $@ <- test/hs/$^'
-	@$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(@:%.o=%.hs)
+	@set -o pipefail ; \
+	$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
+		$(HEXTRA_COMBINED) $(@:%.o=%.hs) | \
+		sed '/^Loading package /d'
 
 %.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@echo '[GHC]: $@ <- $^'
-	@$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(@:%.o=%.hs)
+	@set -o pipefail ; \
+	$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
+		$(HEXTRA_COMBINED) $(@:%.o=%.hs) | \
+		sed '/^Loading package /d'
 
 # For TH+profiling we need to compile twice: Once without profiling,
 # and then once with profiling. See
@@ -1406,10 +1410,12 @@ test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 if HPROFILE
 %.$(HPROF_SUFFIX)_o: %.o
 	@echo '[GHC|prof]: $@ <- $^'
-	@$(GHC) -c $(HFLAGS) \
+	@set -o pipefail ; \
+	$(GHC) -c $(HFLAGS) \
 	  $(HPROFFLAGS) \
 		$(HEXTRA_COMBINED) \
-		$(@:%.$(HPROF_SUFFIX)_o=%.hs)
+		$(@:%.$(HPROF_SUFFIX)_o=%.hs) | \
+		sed '/^Loading package /d'
 endif
 
 # We depend on the non-test .o file here because we need the corresponding .so
@@ -1418,8 +1424,10 @@ endif
 # rule).
 %.$(HTEST_SUFFIX)_o: %.o
 	@echo '[GHC|test]: $@ <- $^'
-	@$(GHC) -c $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
+	@set -o pipefail ; \
+	$(GHC) -c $(HTEST_FLAGS) \
+		$(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs) | \
+		sed '/^Loading package /d'
 
 %.hi: %.o ;
 %.$(HTEST_SUFFIX)_hi: %.$(HTEST_SUFFIX)_o ;
