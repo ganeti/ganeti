@@ -851,10 +851,20 @@ HTEST_FLAGS = $(HFLAGS) -fhpc -itest/hs \
 
 # extra flags that can be overriden on the command line (e.g. -Wwarn, etc.)
 HEXTRA =
-# internal extra flags (used for test/hs/htest mainly)
-HEXTRA_INT =
 # combination of HEXTRA and HEXTRA_CONFIGURE
 HEXTRA_COMBINED = $(HEXTRA) $(HEXTRA_CONFIGURE)
+
+# extra flags used for test/hs/htest
+# Only use the threaded runtime and run tests in parallel for GHC > 7.6. A bug
+# in base that wasn't fixed until 4.7.0.0 in GHC 7.8 causes random file lock
+# errors in the JQueue tests with the threaded runtime.
+# See https://ghc.haskell.org/trac/ghc/ticket/7646
+if GHC_LE_76
+HEXTRA_TEST =
+else
+HEXTRA_TEST = -threaded -with-rtsopts=-N
+endif
+
 # exclude options for coverage reports
 HPCEXCL = --exclude Main \
 	--exclude Ganeti.Constants \
@@ -1394,7 +1404,7 @@ test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@echo '[GHC|test]: $@ <- test/hs/$^'
 	@set -o pipefail ; \
 	$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(@:%.o=%.hs) | \
+		$(HEXTRA_COMBINED) $(HEXTRA_TEST) $(@:%.o=%.hs) | \
 		sed '/^Loading package /d'
 
 %.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
@@ -1426,7 +1436,7 @@ endif
 	@echo '[GHC|test]: $@ <- $^'
 	@set -o pipefail ; \
 	$(GHC) -c $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs) | \
+		$(HEXTRA_COMBINED) $(HEXTRA_TEST) $(@:%.$(HTEST_SUFFIX)_o=%.hs) | \
 		sed '/^Loading package /d'
 
 %.hi: %.o ;
@@ -1456,7 +1466,7 @@ $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
 	fi
 	@echo '[GHC-link|test]: $@'
 	$(GHC) $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
+		$(HEXTRA_COMBINED) $(HEXTRA_TEST) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
 
