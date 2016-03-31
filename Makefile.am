@@ -2718,7 +2718,6 @@ pep8: $(GENERATED_FILES)
 	$(PEP8) --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
 	  --repeat $(pep8_python_code)
 
-# FIXME: remove ignore "Use void" when GHC 6.x is deprecated
 HLINT_EXCLUDES = src/Ganeti/THH.hs test/hs/hpc-htools.hs
 .PHONY: hlint
 hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
@@ -2726,12 +2725,6 @@ hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	@rm -f doc/hs-lint.html
 	if tty -s; then C="-c"; else C=""; fi; \
 	$(HLINT) --utf8 --report=doc/hs-lint.html --cross $$C \
-	  --ignore "Use first" \
-	  --ignore "Use &&&" \
-	  --ignore "Use &&" \
-	  --ignore "Use void" \
-	  --ignore "Reduce duplication" \
-	  --ignore "Use import/export shortcut" \
 	  --hint src/lint-hints \
 	  --cpp-file=$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	  $(filter-out $(HLINT_EXCLUDES),$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))
