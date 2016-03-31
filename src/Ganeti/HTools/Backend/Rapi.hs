@@ -198,12 +198,13 @@ parseGroup :: JSRecord -> Result (String, Group.Group)
 parseGroup a = do
   name <- tryFromObj "Parsing new group" a "name"
   let extract s = tryFromObj ("Group '" ++ name ++ "'") a s
+  let extractDef s d = fromObjWithDefault a s d
   uuid <- extract "uuid"
   apol <- extract "alloc_policy"
   ipol <- extract "ipolicy"
   tags <- extract "tags"
-  -- TODO: parse networks to which this group is connected
-  return (uuid, Group.create name uuid apol [] ipol tags)
+  nets <- extractDef "networks" []
+  return (uuid, Group.create name uuid apol nets ipol tags)
 
 -- | Parse cluster data from the info resource.
 parseCluster :: JSObject JSValue -> Result ([String], IPolicy, String)

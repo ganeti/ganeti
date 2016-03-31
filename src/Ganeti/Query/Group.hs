@@ -55,6 +55,8 @@ groupFields =
   , (FieldDefinition "custom_ipolicy" "CustomInstancePolicy" QFTOther
        "Custom instance policy limitations",
      FieldSimple (rsNormal . groupIpolicy), QffNormal)
+  , (FieldDefinition "networks" "Networks" QFTOther "Node group networks",
+     FieldSimple (rsNormal . groupNetworks), QffNormal)
   , (FieldDefinition "custom_ndparams" "CustomNDParams" QFTOther
        "Custom node parameters",
      FieldSimple (rsNormal . groupNdparams), QffNormal)

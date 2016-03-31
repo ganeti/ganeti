@@ -115,7 +115,7 @@ queryClusterInfoMsg = L.QueryClusterInfo
 queryGroupsMsg :: L.LuxiOp
 queryGroupsMsg =
   L.Query (Qlang.ItemTypeOpCode Qlang.QRGroup)
-     ["uuid", "name", "alloc_policy", "ipolicy", "tags"]
+     ["uuid", "name", "alloc_policy", "ipolicy", "tags", "networks"]
      Qlang.EmptyFilter
 
 -- | Wraper over 'callMethod' doing node query.
@@ -245,15 +245,15 @@ getGroups jsv = L.extractArray jsv >>= mapM parseGroup
 
 -- | Parses a given group information.
 parseGroup :: [(JSValue, JSValue)] -> Result (String, Group.Group)
-parseGroup [uuid, name, apol, ipol, tags] = do
+parseGroup [uuid, name, apol, ipol, tags, nets] = do
   xname <- annotateResult "Parsing new group" (L.fromJValWithStatus name)
   let convert a = genericConvert "Group" xname a
   xuuid <- convert "uuid" uuid
   xapol <- convert "alloc_policy" apol
   xipol <- convert "ipolicy" ipol
   xtags <- convert "tags" tags
-  -- TODO: parse networks to which this group is connected
-  return (xuuid, Group.create xname xuuid xapol [] xipol xtags)
+  xnets <- convert "networks" nets
+  return (xuuid, Group.create xname xuuid xapol xnets xipol xtags)
 
 parseGroup v = fail ("Invalid group query result: " ++ show v)
 
