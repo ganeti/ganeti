@@ -40,6 +40,9 @@ much memory.
 
 """
 
+# TODO: Break up this file into multiple chunks - Wconfd RPC calls, local config
+# manipulations, grouped by object they operate on (cluster/instance/disk)
+# pylint: disable=C0302
 # pylint: disable=R0904
 # R0904: Too many public methods
 
