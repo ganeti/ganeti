@@ -93,43 +93,67 @@ class _VerifyErrors(object):
 
   """
 
-  ETYPE_FIELD = "code"
   ETYPE_ERROR = constants.CV_ERROR
   ETYPE_WARNING = constants.CV_WARNING
 
-  def _Error(self, ecode, item, msg, *args, **kwargs):
-    """Format an error message.
+  def _ErrorMsgList(self, error_descriptor, object_name, message_list,
+                    log_type=ETYPE_ERROR):
+    """Format multiple error messages.
 
     Based on the opcode's error_codes parameter, either format a
     parseable error code, or a simpler error string.
 
     This must be called only from Exec and functions called from Exec.
 
+
+    @type error_descriptor: tuple (string, string, string)
+    @param error_descriptor: triplet describing the error (object_type,
+        code, description)
+    @type obj_name: string
+    @param obj_name: name of object (instance, node ..) the error relates to
+    @type message_list: list of strings
+    @param message_list: body of error messages
+    @type log_type: string
+    @param log_type: log message type (WARNING, ERROR ..)
     """
-    ltype = kwargs.get(self.ETYPE_FIELD, self.ETYPE_ERROR)
-    itype, etxt, _ = ecode
+    # Called with empty list - nothing to do
+    if not message_list:
+      return
+
+    object_type, error_code, _ = error_descriptor
     # If the error code is in the list of ignored errors, demote the error to a
     # warning
-    if etxt in self.op.ignore_errors:     # pylint: disable=E1101
-      ltype = self.ETYPE_WARNING
-    # first complete the msg
-    if args:
-      msg = msg % args
-    # then format the whole message
+    if error_code in self.op.ignore_errors:     # pylint: disable=E1101
+      log_type = self.ETYPE_WARNING
+
+    prefixed_list = []
     if self.op.error_codes: # This is a mix-in. pylint: disable=E1101
-      msg = "%s:%s:%s:%s:%s" % (ltype, etxt, itype, item, msg)
+      for msg in message_list:
+        prefixed_list.append("  - %s:%s:%s:%s:%s" % (
+            log_type, error_code, object_type, object_name, msg))
     else:
-      if item:
-        item = " " + item
-      else:
-        item = ""
-      msg = "%s: %s%s: %s" % (ltype, itype, item, msg)
-    # and finally report it via the feedback_fn
-    self._feedback_fn("  - %s" % msg) # Mix-in. pylint: disable=E1101
+      if not object_name:
+        object_name  = ""
+      for msg in message_list:
+        prefixed_list.append("  - %s: %s %s: %s" % (
+            log_type, object_type, object_name, msg))
+
+    # Report messages via the feedback_fn
+    self._feedback_fn(constants.ELOG_MESSAGE_LIST, prefixed_list) # pylint: disable=E1101,C0302
+
     # do not mark the operation as failed for WARN cases only
-    if ltype == self.ETYPE_ERROR:
+    if log_type == self.ETYPE_ERROR:
       self.bad = True
 
+  def _ErrorMsg(self, error_descriptor, object_name, message,
+                log_type=ETYPE_ERROR):
+    """Log a single error message.
+
+    """
+    self._ErrorMsgList(error_descriptor, object_name, [message], log_type)
+
+  # TODO: Replace this method with a cleaner interface, get rid of the if
+  # condition as it only rarely saves lines, but makes things less readable.
   def _ErrorIf(self, cond, *args, **kwargs):
     """Log an error message if the passed condition is True.
 
@@ -137,6 +161,17 @@ class _VerifyErrors(object):
     if (bool(cond)
         or self.op.debug_simulate_errors): # pylint: disable=E1101
       self._Error(*args, **kwargs)
+
+  # TODO: Replace this method with a cleaner interface
+  def _Error(self, ecode, item, message, *args, **kwargs):
+    """Log an error message if the passed condition is True.
+
+    """
+    #TODO: Remove 'code' argument in favour of using log_type
+    log_type = kwargs.get('code', self.ETYPE_ERROR)
+    if args:
+      message = message % args
+    self._ErrorMsgList(ecode, item, [message], log_type=log_type)
 
 
 class LUClusterVerify(NoHooksLU):
@@ -247,8 +282,8 @@ class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
 
     feedback_fn("* Verifying cluster config")
 
-    for msg in self.cfg.VerifyConfig():
-      self._ErrorIf(True, constants.CV_ECLUSTERCFG, None, msg)
+    msg_list = self.cfg.VerifyConfig()
+    self._ErrorMsgList(constants.CV_ECLUSTERCFG, None, msg_list)
 
     feedback_fn("* Verifying cluster certificate files")
 

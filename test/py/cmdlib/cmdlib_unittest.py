@@ -835,8 +835,26 @@ class _LuTestVerifyErrors(verify._VerifyErrors):
     self.op = _OpTestVerifyErrors(**kwargs)
     self.op.Validate(True)
     self.msglist = []
-    self._feedback_fn = self.msglist.append
+    self._feedback_fn = self.Feedback
     self.bad = False
+
+  # TODO: Cleanup calling conventions, make them explicit
+  def Feedback(self, *args):
+
+    # TODO: Remove this once calling conventions are explicit.
+    # Feedback can be called with anything, we interpret ELogMessageList as
+    # messages that have to be individually added to the log list, but pushed
+    # in a single update. Other types are only transparently passed forward.
+    if len(args) == 1:
+      log_type = constants.ELOG_MESSAGE
+      log_msg = args[0]
+    else:
+      log_type, log_msg = args
+
+    if log_type != constants.ELOG_MESSAGE_LIST:
+      log_msg = [log_msg]
+
+    self.msglist.extend(log_msg)
 
   def DispatchCallError(self, which, *args, **kwargs):
     if which:

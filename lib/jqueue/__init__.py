@@ -621,20 +621,44 @@ class _OpExecCallbacks(mcpu.OpExecCbBase):
     logging.debug("Opcode will be retried. Back to waiting.")
 
   @locking.ssynchronized(_QUEUE, shared=1)
-  def _AppendFeedback(self, timestamp, log_type, log_msg):
+  def _AppendFeedback(self, timestamp, log_type, log_msgs):
     """Internal feedback append function, with locks
 
-    """
-    self._job.log_serial += 1
-    self._op.log.append((self._job.log_serial, timestamp, log_type, log_msg))
+    @type timestamp: tuple (int, int)
+    @param timestamp: timestamp of the log message
+
+    @type log_type: string
+    @param log_type: log type (one of Types.ELogType)
+
+    @type log_msgs: any
+    @param log_msgs: log data to append
+     """
+
+    # This should be removed once Feedback() has a clean interface.
+    # Feedback can be called with anything, we interpret ELogMessageList as
+    # messages that have to be individually added to the log list, but pushed
+    # in a single update. Other msgtypes are only transparently passed forward.
+    if log_type == constants.ELOG_MESSAGE_LIST:
+      log_type = constants.ELOG_MESSAGE
+    else:
+      log_msgs = [log_msgs]
+
+    for msg in log_msgs:
+      self._job.log_serial += 1
+      self._op.log.append((self._job.log_serial, timestamp, log_type, msg))
     self._queue.UpdateJobUnlocked(self._job, replicate=False)
 
+  # TODO: Cleanup calling conventions, make them explicit
   def Feedback(self, *args):
     """Append a log entry.
 
+    Calling conventions:
+    arg[0]: (optional) string, message type (Types.ELogType)
+    arg[1]: data to be interpreted as a message
     """
     assert len(args) < 3
 
+    # TODO: Use separate keyword arguments for a single string vs. a list.
     if len(args) == 1:
       log_type = constants.ELOG_MESSAGE
       log_msg = args[0]

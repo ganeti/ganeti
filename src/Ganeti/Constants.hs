@@ -3583,9 +3583,14 @@ lockAttemptsTimeout :: Int
 lockAttemptsTimeout = (10 * 3600) `div` (opPrioDefault - opPrioHighest)
 
 -- * Execution log types
-
 elogMessage :: String
 elogMessage = Types.eLogTypeToRaw ELogMessage
+
+-- ELogMessageList is internal to Python code only, used to distinguish
+-- calling conventions in Feedback(), but is never serialized or loaded
+-- in Luxi.
+elogMessageList :: String
+elogMessageList = Types.eLogTypeToRaw ELogMessageList
 
 elogRemoteImport :: String
 elogRemoteImport = Types.eLogTypeToRaw ELogRemoteImport
