@@ -2062,8 +2062,9 @@ def _GetRunning():
   return len(cl.Query(constants.QR_JOB, [], qfilter).data)
 
 
-def _SetGanetiVersion(versionstring):
-  """Set the active version of ganeti to the given versionstring
+def _SetGanetiVersionAndEnsure(versionstring):
+  """Symlink the active version of ganeti to the given versionstring,
+  and run the ensure-dirs script.
 
   @type versionstring: string
   @rtype: list
@@ -2094,6 +2095,9 @@ def _SetGanetiVersion(versionstring):
         "ln", "-s", "-f", os.path.join(pathutils.SHAREDIR, versionstring),
         os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]
     cmds = [rm_lib_cmd, link_lib_cmd, rm_share_cmd, ln_share_cmd]
+
+  # Run the ensure-dirs script to verify the new version is OK.
+  cmds.append([pathutils.ENSURE_DIRS])
 
   # Submit all commands to ssh, exiting on the first failure.
   # The command string is a single argument that's given to ssh to submit to
@@ -2275,8 +2279,8 @@ def _SwitchVersionAndConfig(versionstring, downgrade):
   # safer to push through the up/dowgrade than to try to roll it back.
 
   ToStdoutAndLoginfo("Switching to version %s on all nodes", versionstring)
-  rollback.append(lambda: _SetGanetiVersion(constants.DIR_VERSION))
-  badnodes = _SetGanetiVersion(versionstring)
+  rollback.append(lambda: _SetGanetiVersionAndEnsure(constants.DIR_VERSION))
+  badnodes = _SetGanetiVersionAndEnsure(versionstring)
   if badnodes:
     ToStderr("Failed to switch to Ganeti version %s on nodes %s"
              % (versionstring, ", ".join(badnodes)))
@@ -2304,7 +2308,7 @@ def _UpgradeAfterConfigurationChange(oldversion):
   As this part is run at a time where the new version of Ganeti is already
   running, no communication should happen via luxi, as this is not a stable
   interface. Also, as the configuration change is the point of no return,
-  all actions are pushed trough, even if some of them fail.
+  all actions are pushed through, even if some of them fail.
 
   @param oldversion: the version the upgrade started from
   @type oldversion: string
@@ -2313,13 +2317,6 @@ def _UpgradeAfterConfigurationChange(oldversion):
 
   """
   returnvalue = 0
-
-  ToStdoutAndLoginfo("Ensuring directories everywhere.")
-  badnodes = _VerifyCommand([pathutils.ENSURE_DIRS])
-  if badnodes:
-    ToStderr("Warning: failed to ensure directories on %s." %
-             (", ".join(badnodes)))
-    returnvalue = 1
 
   ToStdoutAndLoginfo("Starting daemons everywhere.")
   badnodes = _VerifyCommand([pathutils.DAEMON_UTIL, "start-all"])
