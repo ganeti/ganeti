@@ -2149,6 +2149,7 @@ def _UpgradeBeforeConfigurationChange(versionstring):
   """
   rollback = []
 
+  ToStdoutAndLoginfo("Verifying %s present on all nodes", versionstring)
   if not _VerifyVersionInstalled(versionstring):
     return (False, rollback)
 
@@ -2174,10 +2175,6 @@ def _UpgradeBeforeConfigurationChange(versionstring):
 
   ToStdoutAndLoginfo("Stopping daemons on master node.")
   if not _RunCommandAndReport([pathutils.DAEMON_UTIL, "stop-all"]):
-    return (False, rollback)
-
-  if not _VerifyVersionInstalled(versionstring):
-    utils.RunCmd([pathutils.DAEMON_UTIL, "start-all"])
     return (False, rollback)
 
   ToStdoutAndLoginfo("Stopping daemons everywhere.")
