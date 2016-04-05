@@ -1981,8 +1981,7 @@ def _VerifyCommand(cmd):
   As this function is intended to run during upgrades, it
   is implemented in such a way that it still works, if all Ganeti
   daemons are down.
-
-  @param cmd: the command to execute
+  @param cmd: a list of unquoted shell arguments
   @type cmd: list
   @rtype: list
   @return: the list of node names that are online where
@@ -1990,6 +1989,23 @@ def _VerifyCommand(cmd):
 
   """
   command = utils.text.ShellQuoteArgs([str(val) for val in cmd])
+  return _VerifyCommandRaw(command)
+
+
+def _VerifyCommandRaw(command):
+  """Verify that a given command succeeds on all online nodes.
+
+  As this function is intended to run during upgrades, it
+  is implemented in such a way that it still works, if all Ganeti
+  daemons are down.
+  @param cmd: a bare string to pass to SSH. The caller must do their
+              own shell/ssh escaping.
+  @type cmd: string
+  @rtype: list
+  @return: the list of node names that are online where
+      the command failed.
+
+  """
 
   nodes = ssconf.SimpleStore().GetOnlineNodeList()
   master_node = ssconf.SimpleStore().GetMasterNode()
@@ -2054,27 +2070,39 @@ def _SetGanetiVersion(versionstring):
   @return: the list of nodes where the version change failed
 
   """
-  failed = []
+
+  # Update symlinks to point at the new version.
   if constants.HAS_GNU_LN:
-    failed.extend(_VerifyCommand(
-        ["ln", "-s", "-f", "-T",
-         os.path.join(pathutils.PKGLIBDIR, versionstring),
-         os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
-    failed.extend(_VerifyCommand(
-        ["ln", "-s", "-f", "-T",
-         os.path.join(pathutils.SHAREDIR, versionstring),
-         os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
+    link_lib_cmd = [
+        "ln", "-s", "-f", "-T",
+        os.path.join(pathutils.PKGLIBDIR, versionstring),
+        os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]
+    link_share_cmd = [
+        "ln", "-s", "-f", "-T",
+        os.path.join(pathutils.SHAREDIR, versionstring),
+        os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]
+    cmds = [link_lib_cmd, link_share_cmd]
   else:
-    failed.extend(_VerifyCommand(
-        ["rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
-    failed.extend(_VerifyCommand(
-        ["ln", "-s", "-f", os.path.join(pathutils.PKGLIBDIR, versionstring),
-         os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
-    failed.extend(_VerifyCommand(
-        ["rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
-    failed.extend(_VerifyCommand(
-        ["ln", "-s", "-f", os.path.join(pathutils.SHAREDIR, versionstring),
-         os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
+    rm_lib_cmd = [
+        "rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]
+    link_lib_cmd = [
+        "ln", "-s", "-f", os.path.join(pathutils.PKGLIBDIR, versionstring),
+        os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]
+    rm_share_cmd = [
+        "rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]
+    ln_share_cmd = [
+        "ln", "-s", "-f", os.path.join(pathutils.SHAREDIR, versionstring),
+        os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]
+    cmds = [rm_lib_cmd, link_lib_cmd, rm_share_cmd, ln_share_cmd]
+
+  # Submit all commands to ssh, exiting on the first failure.
+  # The command string is a single argument that's given to ssh to submit to
+  # the remote shell, so it only needs enough escaping to satisfy the remote
+  # shell, rather than the 2 levels of escaping usually required when using
+  # ssh from the commandline.
+  quoted_cmds = [utils.text.ShellQuoteArgs(cmd) for cmd in cmds]
+  cmd = " && ".join(quoted_cmds)
+  failed = _VerifyCommandRaw(cmd)
   return list(set(failed))
 
 
