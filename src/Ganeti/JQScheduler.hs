@@ -109,13 +109,23 @@ emptyJQStatus config = do
   return JQStatus { jqJobs = jqJ, jqConfig = config, jqLivelock = livelock
                   , jqForkLock = forkLock }
 
+-- When updating the job lists, force the elements to WHNF, otherwise it is
+-- easy to leak the resources held onto by the lazily parsed job file.
+-- This can happen, eg, if updateJob is called, but the resulting QueuedJob
+-- isn't used by the scheduler, for example when the inotify watcher or the
+-- the polling loop re-reads a job with a new message appended to it.
+
 -- | Apply a function on the running jobs.
 onRunningJobs :: ([JobWithStat] -> [JobWithStat]) -> Queue -> Queue
-onRunningJobs = over qRunningL
+onRunningJobs f q@Queue { qRunning = qr } =
+  let qr' = (foldr seq () qr) `seq` f qr -- force list els to WHNF
+  in q { qRunning = qr' }
 
 -- | Apply a function on the queued jobs.
 onQueuedJobs :: ([JobWithStat] -> [JobWithStat]) -> Queue -> Queue
-onQueuedJobs = over qEnqueuedL
+onQueuedJobs f q@Queue { qEnqueued = qe } =
+  let qe' = (foldr seq () qe) `seq` f qe -- force list els to WHNF
+  in q { qEnqueued = qe' }
 
 -- | Obtain a JobWithStat from a QueuedJob.
 unreadJob :: QueuedJob -> JobWithStat
@@ -150,7 +160,7 @@ getRQL = liftM (length . qRunning) . readIORef . jqJobs
 
 -- | Wrapper function to atomically update the jobs in the queue status.
 modifyJobs :: JQStatus -> (Queue -> Queue) -> IO ()
-modifyJobs qstat f = atomicModifyIORef (jqJobs qstat) (flip (,) ()  . f)
+modifyJobs qstat f = atomicModifyIORef' (jqJobs qstat) (flip (,) ()  . f)
 
 -- | Reread a job from disk, if the file has changed.
 readJobStatus :: JobWithStat -> IO (Maybe JobWithStat)
