@@ -173,8 +173,8 @@ nodeRoleDoc :: String
 nodeRoleDoc =
   "Node role; " ++
   intercalate ", "
-   (map (\role ->
-          "\"" ++ nodeRoleToRaw role ++ "\" for " ++ roleDescription role)
+   (map (\nrole ->
+          "\"" ++ nodeRoleToRaw nrole ++ "\" for " ++ roleDescription nrole)
    (reverse [minBound..maxBound]))
 
 -- | Get node powered status.

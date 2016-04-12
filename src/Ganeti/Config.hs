@@ -288,6 +288,17 @@ getInstance cfg name =
                       $ instances
                 in getItem "Instance" name by_name
 
+-- | Looks up an instance by exact name match
+getInstanceByName :: ConfigData -> String -> ErrorResult Instance
+getInstanceByName cfg name =
+  let instances = M.elems . fromContainer . configInstances $ cfg
+      matching = F.find (maybe False (== name) . instName) instances
+  in case matching of
+      Just inst -> Ok inst
+      Nothing   -> Bad $ OpPrereqError
+                   ("Instance name " ++ name ++ " not found")
+                   ECodeNoEnt
+
 -- | Looks up a disk by uuid.
 getDisk :: ConfigData -> String -> ErrorResult Disk
 getDisk cfg name =
@@ -421,7 +432,7 @@ getFilledInstOsParams cfg inst =
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> ErrorResult Node
 getInstPrimaryNode cfg name =
-  getInstance cfg name
+  getInstanceByName cfg name
   >>= withMissingParam "Instance without primary node" return . instPrimaryNode
   >>= getNode cfg
 
@@ -440,7 +451,8 @@ getDrbdDiskNodes cfg disk =
 -- the primary node has to be appended to the results.
 getInstAllNodes :: ConfigData -> String -> ErrorResult [Node]
 getInstAllNodes cfg name = do
-  inst_disks <- getInstDisks cfg name
+  inst <- getInstanceByName cfg name
+  inst_disks <- getInstDisksFromObj cfg inst
   let disk_nodes = concatMap (getDrbdDiskNodes cfg) inst_disks
   pNode <- getInstPrimaryNode cfg name
   return . nub $ pNode:disk_nodes
@@ -512,9 +524,9 @@ getInstMinorsForNode :: ConfigData
                      -> Instance
                      -> [(String, Int, String, String, String, String)]
 getInstMinorsForNode cfg node inst =
-  let role = if Just node == instPrimaryNode inst
-               then rolePrimary
-               else roleSecondary
+  let nrole = if Just node == instPrimaryNode inst
+                then rolePrimary
+                else roleSecondary
       iname = fromMaybe "" $ instName inst
       inst_disks = case getInstDisksFromObj cfg inst of
                      Ok disks -> disks
@@ -523,7 +535,7 @@ getInstMinorsForNode cfg node inst =
   -- separate place, or reuse the iv_name (but that is deprecated on
   -- the Python side)
   in concatMap (\(idx, dsk) ->
-            [(node, minor, iname, "disk/" ++ show idx, role, peer)
+            [(node, minor, iname, "disk/" ++ show idx, nrole, peer)
                | (minor, peer) <- getDrbdMinorsForNode node dsk]) .
      zip [(0::Int)..] $ inst_disks
 

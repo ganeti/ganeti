@@ -33,6 +33,7 @@
 """
 
 import logging
+import time
 
 import ganeti.rpc.transport as t
 
@@ -137,14 +138,16 @@ def CallRPCMethod(transport_cb, method, args, version=None):
 
   """
   assert callable(transport_cb)
-
+  t1 = time.time() * 1000
   request_msg = FormatRequest(method, args, version=version)
-
+  t2 = time.time() * 1000
   # Send request and wait for response
   response_msg = transport_cb(request_msg)
-
+  t3 = time.time() * 1000
   (success, result, resp_version) = ParseResponse(response_msg)
-
+  t4 = time.time() * 1000
+  logging.info("CallRPCMethod %s: format: %dms, sock: %dms, parse: %dms",
+               method, int(t2 - t1), int(t3 - t2), int(t4 - t3))
   # Verify version if there was one in the response
   if resp_version is not None and resp_version != version:
     raise LuxiError("RPC version mismatch, client %s, response %s" %

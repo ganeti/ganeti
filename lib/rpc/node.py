@@ -109,8 +109,10 @@ def _ConfigRpcCurl(curl):
   noded_cert = pathutils.NODED_CERT_FILE
   noded_client_cert = pathutils.NODED_CLIENT_CERT_FILE
 
-  # FIXME: The next two lines are necessary to ensure upgradability from
-  # 2.10 to 2.11. Remove in 2.12, because this slows down RPC calls.
+  # This fallback is required for backwards compatibility with 2.10. Ganeti
+  # 2.11 introduced per-node client certificates, but when we restart after
+  # an upgrade from 2.10, the client certs are not in place yet, and we need
+  # to fall back to using the cluster-wide server cert.
   if not os.path.exists(noded_client_cert):
     logging.warn("Using server certificate as client certificate for RPC"
                  "call.")

@@ -106,13 +106,13 @@ nodeRole :: ConfigData -> String -> Result ConfdNodeRole
 nodeRole cfg name = do
   cmaster <- errToResult $ QCluster.clusterMasterNodeName cfg
   mnode <- errToResult $ getNode cfg name
-  let role = case mnode of
-               node | cmaster == name -> NodeRoleMaster
-                    | nodeDrained node -> NodeRoleDrained
-                    | nodeOffline node -> NodeRoleOffline
-                    | nodeMasterCandidate node -> NodeRoleCandidate
-               _ -> NodeRoleRegular
-  return role
+  let nrole = case mnode of
+                node | cmaster == name -> NodeRoleMaster
+                     | nodeDrained node -> NodeRoleDrained
+                     | nodeOffline node -> NodeRoleOffline
+                     | nodeMasterCandidate node -> NodeRoleCandidate
+                _ -> NodeRoleRegular
+  return nrole
 
 -- | Does an instance ip -> instance -> primary node -> primary ip
 -- transformation.
@@ -172,8 +172,8 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqNodeRoleByName }) = do
   node_name <- case confdRqQuery req of
                  PlainQuery str -> return str
                  _ -> fail $ "Invalid query type " ++ show (confdRqQuery req)
-  role <- nodeRole (fst cdata) node_name
-  return (ReplyStatusOk, J.showJSON role,
+  nrole <- nodeRole (fst cdata) node_name
+  return (ReplyStatusOk, J.showJSON nrole,
           clusterSerial . configCluster $ fst cdata)
 
 buildResponse cdata (ConfdRequest { confdRqType = ReqNodePipList }) =

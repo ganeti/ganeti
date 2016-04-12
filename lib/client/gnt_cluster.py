@@ -2010,8 +2010,7 @@ def _VerifyCommand(cmd):
   As this function is intended to run during upgrades, it
   is implemented in such a way that it still works, if all Ganeti
   daemons are down.
-
-  @param cmd: the command to execute
+  @param cmd: a list of unquoted shell arguments
   @type cmd: list
   @rtype: list
   @return: the list of node names that are online where
@@ -2019,6 +2018,23 @@ def _VerifyCommand(cmd):
 
   """
   command = utils.text.ShellQuoteArgs([str(val) for val in cmd])
+  return _VerifyCommandRaw(command)
+
+
+def _VerifyCommandRaw(command):
+  """Verify that a given command succeeds on all online nodes.
+
+  As this function is intended to run during upgrades, it
+  is implemented in such a way that it still works, if all Ganeti
+  daemons are down.
+  @param cmd: a bare string to pass to SSH. The caller must do their
+              own shell/ssh escaping.
+  @type cmd: string
+  @rtype: list
+  @return: the list of node names that are online where
+      the command failed.
+
+  """
 
   nodes = ssconf.SimpleStore().GetOnlineNodeList()
   master_node = ssconf.SimpleStore().GetMasterNode()
@@ -2075,35 +2091,51 @@ def _GetRunning():
   return len(cl.Query(constants.QR_JOB, [], qfilter).data)
 
 
-def _SetGanetiVersion(versionstring):
-  """Set the active version of ganeti to the given versionstring
+def _SetGanetiVersionAndEnsure(versionstring):
+  """Symlink the active version of ganeti to the given versionstring,
+  and run the ensure-dirs script.
 
   @type versionstring: string
   @rtype: list
   @return: the list of nodes where the version change failed
 
   """
-  failed = []
+
+  # Update symlinks to point at the new version.
   if constants.HAS_GNU_LN:
-    failed.extend(_VerifyCommand(
-        ["ln", "-s", "-f", "-T",
-         os.path.join(pathutils.PKGLIBDIR, versionstring),
-         os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
-    failed.extend(_VerifyCommand(
-        ["ln", "-s", "-f", "-T",
-         os.path.join(pathutils.SHAREDIR, versionstring),
-         os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
+    link_lib_cmd = [
+        "ln", "-s", "-f", "-T",
+        os.path.join(pathutils.PKGLIBDIR, versionstring),
+        os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]
+    link_share_cmd = [
+        "ln", "-s", "-f", "-T",
+        os.path.join(pathutils.SHAREDIR, versionstring),
+        os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]
+    cmds = [link_lib_cmd, link_share_cmd]
   else:
-    failed.extend(_VerifyCommand(
-        ["rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
-    failed.extend(_VerifyCommand(
-        ["ln", "-s", "-f", os.path.join(pathutils.PKGLIBDIR, versionstring),
-         os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]))
-    failed.extend(_VerifyCommand(
-        ["rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
-    failed.extend(_VerifyCommand(
-        ["ln", "-s", "-f", os.path.join(pathutils.SHAREDIR, versionstring),
-         os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]))
+    rm_lib_cmd = [
+        "rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]
+    link_lib_cmd = [
+        "ln", "-s", "-f", os.path.join(pathutils.PKGLIBDIR, versionstring),
+        os.path.join(pathutils.SYSCONFDIR, "ganeti/lib")]
+    rm_share_cmd = [
+        "rm", "-f", os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]
+    ln_share_cmd = [
+        "ln", "-s", "-f", os.path.join(pathutils.SHAREDIR, versionstring),
+        os.path.join(pathutils.SYSCONFDIR, "ganeti/share")]
+    cmds = [rm_lib_cmd, link_lib_cmd, rm_share_cmd, ln_share_cmd]
+
+  # Run the ensure-dirs script to verify the new version is OK.
+  cmds.append([pathutils.ENSURE_DIRS])
+
+  # Submit all commands to ssh, exiting on the first failure.
+  # The command string is a single argument that's given to ssh to submit to
+  # the remote shell, so it only needs enough escaping to satisfy the remote
+  # shell, rather than the 2 levels of escaping usually required when using
+  # ssh from the commandline.
+  quoted_cmds = [utils.text.ShellQuoteArgs(cmd) for cmd in cmds]
+  cmd = " && ".join(quoted_cmds)
+  failed = _VerifyCommandRaw(cmd)
   return list(set(failed))
 
 
@@ -2178,6 +2210,7 @@ def _UpgradeBeforeConfigurationChange(versionstring):
   """
   rollback = []
 
+  ToStdoutAndLoginfo("Verifying %s present on all nodes", versionstring)
   if not _VerifyVersionInstalled(versionstring):
     return (False, rollback)
 
@@ -2203,10 +2236,6 @@ def _UpgradeBeforeConfigurationChange(versionstring):
 
   ToStdoutAndLoginfo("Stopping daemons on master node.")
   if not _RunCommandAndReport([pathutils.DAEMON_UTIL, "stop-all"]):
-    return (False, rollback)
-
-  if not _VerifyVersionInstalled(versionstring):
-    utils.RunCmd([pathutils.DAEMON_UTIL, "start-all"])
     return (False, rollback)
 
   ToStdoutAndLoginfo("Stopping daemons everywhere.")
@@ -2279,8 +2308,8 @@ def _SwitchVersionAndConfig(versionstring, downgrade):
   # safer to push through the up/dowgrade than to try to roll it back.
 
   ToStdoutAndLoginfo("Switching to version %s on all nodes", versionstring)
-  rollback.append(lambda: _SetGanetiVersion(constants.DIR_VERSION))
-  badnodes = _SetGanetiVersion(versionstring)
+  rollback.append(lambda: _SetGanetiVersionAndEnsure(constants.DIR_VERSION))
+  badnodes = _SetGanetiVersionAndEnsure(versionstring)
   if badnodes:
     ToStderr("Failed to switch to Ganeti version %s on nodes %s"
              % (versionstring, ", ".join(badnodes)))
@@ -2308,7 +2337,7 @@ def _UpgradeAfterConfigurationChange(oldversion):
   As this part is run at a time where the new version of Ganeti is already
   running, no communication should happen via luxi, as this is not a stable
   interface. Also, as the configuration change is the point of no return,
-  all actions are pushed trough, even if some of them fail.
+  all actions are pushed through, even if some of them fail.
 
   @param oldversion: the version the upgrade started from
   @type oldversion: string
@@ -2317,13 +2346,6 @@ def _UpgradeAfterConfigurationChange(oldversion):
 
   """
   returnvalue = 0
-
-  ToStdoutAndLoginfo("Ensuring directories everywhere.")
-  badnodes = _VerifyCommand([pathutils.ENSURE_DIRS])
-  if badnodes:
-    ToStderr("Warning: failed to ensure directories on %s." %
-             (", ".join(badnodes)))
-    returnvalue = 1
 
   ToStdoutAndLoginfo("Starting daemons everywhere.")
   badnodes = _VerifyCommand([pathutils.DAEMON_UTIL, "start-all"])

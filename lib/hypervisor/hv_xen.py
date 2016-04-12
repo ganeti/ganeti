@@ -997,12 +997,14 @@ class XenHypervisor(hv_base.BaseHypervisor):
       raise errors.HypervisorError("Failed to shutdown instance %s,"
                                    " not running" % name)
 
-    if force:
-      result = self._DestroyInstanceIfAlive(name, hvparams)
-    else:
+    if not force:
       self._ShutdownInstance(name, hvparams, timeout)
-      result = self._DestroyInstanceIfAlive(name, hvparams)
 
+    # TODO: Xen does always destroy the instnace after trying a gracefull
+    # shutdown. That means doing another attempt with force=True will not make
+    # any difference. This differs in behaviour from other hypervisors and
+    # should be cleaned up.
+    result = self._DestroyInstanceIfAlive(name, hvparams)
     if result is not None and result.failed and \
           self.GetInstanceInfo(name, hvparams=hvparams) is not None:
       raise errors.HypervisorError("Failed to stop instance %s: %s, %s" %

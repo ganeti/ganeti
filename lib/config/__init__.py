@@ -40,6 +40,9 @@ much memory.
 
 """
 
+# TODO: Break up this file into multiple chunks - Wconfd RPC calls, local config
+# manipulations, grouped by object they operate on (cluster/instance/disk)
+# pylint: disable=C0302
 # pylint: disable=R0904
 # R0904: Too many public methods
 
@@ -2678,16 +2681,18 @@ class ConfigWriter(object):
         if self._config_data is None:
           logging.debug("Requesting config, as I have no up-to-date copy")
           dict_data = self._wconfd.ReadConfig()
+          logging.debug("Configuration received")
         else:
           dict_data = None
       else:
         # poll until we acquire the lock
         while True:
+          logging.debug("Receiving config from WConfd.LockConfig [shared=%s]",
+                        bool(shared))
           dict_data = \
               self._wconfd.LockConfig(self._GetWConfdContext(), bool(shared))
-          logging.debug("Received config from WConfd.LockConfig [shared=%s]",
-                        bool(shared))
           if dict_data is not None:
+            logging.debug("Received config from WConfd.LockConfig")
             break
           time.sleep(random.random())
 
@@ -2708,6 +2713,7 @@ class ConfigWriter(object):
       try:
         logging.debug("Writing configuration and unlocking it")
         self._WriteConfig(releaselock=True)
+        logging.debug("Configuration write, unlock finished")
       except Exception, err:
         logging.critical("Can't write the configuration: %s", str(err))
         raise
