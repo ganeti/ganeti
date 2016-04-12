@@ -292,7 +292,7 @@ getInstance cfg name =
 getInstanceByName :: ConfigData -> String -> ErrorResult Instance
 getInstanceByName cfg name =
   let instances = M.elems . fromContainer . configInstances $ cfg
-      matching = F.find (\i -> maybe False (== name) (instName i)) instances
+      matching = F.find (maybe False (== name) . instName) instances
   in case matching of
       Just inst -> Ok inst
       Nothing   -> Bad $ OpPrereqError
@@ -524,9 +524,9 @@ getInstMinorsForNode :: ConfigData
                      -> Instance
                      -> [(String, Int, String, String, String, String)]
 getInstMinorsForNode cfg node inst =
-  let role = if Just node == instPrimaryNode inst
-               then rolePrimary
-               else roleSecondary
+  let nrole = if Just node == instPrimaryNode inst
+                then rolePrimary
+                else roleSecondary
       iname = fromMaybe "" $ instName inst
       inst_disks = case getInstDisksFromObj cfg inst of
                      Ok disks -> disks
@@ -535,7 +535,7 @@ getInstMinorsForNode cfg node inst =
   -- separate place, or reuse the iv_name (but that is deprecated on
   -- the Python side)
   in concatMap (\(idx, dsk) ->
-            [(node, minor, iname, "disk/" ++ show idx, role, peer)
+            [(node, minor, iname, "disk/" ++ show idx, nrole, peer)
                | (minor, peer) <- getDrbdMinorsForNode node dsk]) .
      zip [(0::Int)..] $ inst_disks
 

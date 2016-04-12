@@ -26,3 +26,17 @@ warn = head x ==> case x of { y:_ -> y } where note = "Head is unsafe, please us
 
 -- Never use tail, use 'case' which covers all possibilities
 warn = tail x ==> case x of { _:y -> y } where note = "Tail is unsafe, please use case and handle the empty list as well"
+
+ignore "Use first"
+ignore "Use &&&"
+ignore "Use &&"
+ignore "Reduce duplication"
+ignore "Use import/export shortcut"
+
+-- FIXME: remove ignore "Use void" when GHC 6.x is deprecated
+ignore "Use void"
+
+-- Configure newer HLint 1.9.26 to behave like older versions
+-- FIXME: Cleanup code and remove this
+ignore "Redundant bracket"
+ignore "Functor law"

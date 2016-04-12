@@ -574,7 +574,18 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
 
     self._CollectChildren(False)
 
-    pid = os.fork()
+    try:
+      pid = os.fork()
+    except OSError:
+      logging.exception("Failed to fork on request from %s:%s",
+                        client_addr[0], client_addr[1])
+      # Immediately close the connection. No SSL handshake has been done.
+      try:
+        connection.close()
+      except socket.error:
+        pass
+      return
+
     if pid == 0:
       # Child process
       try:

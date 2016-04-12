@@ -299,7 +299,7 @@ sendMsg s buf = withTimeout (sendTmo $ clientConfig s) "sending a message" $ do
   B.hPut handle bEOM
   hFlush handle
   t2 <- getCurrentTimeUSec
-  logDebug $ "sendMsg: " ++ (show ((t2 - t1) `div` 1000)) ++ "ms"
+  logDebug $ "sendMsg: " ++ show ((t2 - t1) `div` 1000) ++ "ms"
 
 -- | Given a current buffer and the handle, it will read from the
 -- network until we get a full message, and it will return that

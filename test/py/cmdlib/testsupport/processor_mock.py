@@ -46,6 +46,7 @@ class LogRecordingCallback(mcpu.OpExecCbBase):
 
     self.processor = processor
 
+  # TODO: Cleanup calling conventions, make them explicit
   def Feedback(self, *args):
     assert len(args) < 3
 
@@ -55,7 +56,16 @@ class LogRecordingCallback(mcpu.OpExecCbBase):
     else:
       (log_type, log_msg) = args
 
-    self.processor.log_entries.append((log_type, log_msg))
+    # TODO: Remove this once calling conventions are explicit.
+    # Feedback can be called with anything, we interpret ELogMessageList as
+    # messages that have to be individually added to the log list, but pushed
+    # in a single update. Other types are only transparently passed forward.
+    if log_type == constants.ELOG_MESSAGE_LIST:
+      log_msg_list = [(constants.ELOG_MESSAGE, msg) for msg in log_msg]
+    else:
+      log_msg_list = [(log_type, log_msg)]
+
+    self.processor.log_entries.extend(log_msg_list)
 
   def SubmitManyJobs(self, jobs):
     results = []

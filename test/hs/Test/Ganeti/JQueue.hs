@@ -165,7 +165,7 @@ prop_ListJobIDs = monadicIO $ do
       extractJobIDs = (>>= genericResult (fail . show) return)
   jobs <- pick $ resize 10 (listOf1 genJobId `suchThat` (\l -> l == nub l))
   (e, f, g) <-
-    run . withSystemTempDirectory "jqueue-test." $ \tempdir -> do
+    run . withSystemTempDirectory "jqueue-test-ListJobIDs." $ \tempdir -> do
     empty_dir <- extractJobIDs $ getJobIDs [tempdir]
     mapM_ (\jid -> writeFile (tempdir </> jobFileName jid) "") jobs
     full_dir <- extractJobIDs $ getJobIDs [tempdir]
@@ -186,7 +186,7 @@ prop_LoadJobs = monadicIO $ do
       job_s = encode job
   -- check that jobs in the right directories are parsed correctly
   (missing, current, archived, missing_current, broken) <-
-    run  . withSystemTempDirectory "jqueue-test." $ \tempdir -> do
+    run  . withSystemTempDirectory "jqueue-test-LoadJobs." $ \tempdir -> do
     let load a = loadJobFromDisk tempdir a jid
         live_path = liveJobFile tempdir jid
         arch_path = archivedJobFile tempdir jid
@@ -225,7 +225,7 @@ prop_DetermineDirs = monadicIO $ do
   let (valid, invalid) = splitAt (count `div` 2) $
                          map (\(QuickCheck.Positive i) -> show i) nums
   (tempdir, non_arch, with_arch, invalid_root) <-
-    run  . withSystemTempDirectory "jqueue-test." $ \tempdir -> do
+    run  . withSystemTempDirectory "jqueue-test-DetermineDirs." $ \tempdir -> do
     let arch_dir = tempdir </> jobQueueArchiveSubDir
     createDirectory arch_dir
     mapM_ (createDirectory . (arch_dir </>)) valid
