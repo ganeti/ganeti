@@ -228,8 +228,8 @@ class _PendingRequest(object):
     try:
         # LOCAL_* options added in pycurl 7.21.5
         from_str = "from %s:%s " % (
-            curl.getinfo(pycurl.LOCAL_IP),
-            curl.getinfo(pycurl.LOCAL_PORT)
+            req.getinfo(pycurl.LOCAL_IP),
+            req.getinfo(pycurl.LOCAL_PORT)
         )
     except AttributeError:
         from_str = ""
