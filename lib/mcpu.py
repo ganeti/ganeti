@@ -158,6 +158,7 @@ class OpExecCbBase(object): # pylint: disable=W0232
 
     """
 
+  # TODO: Cleanup calling conventions, make them explicit.
   def Feedback(self, *args):
     """Sends feedback from the LU code to the end-user.
 

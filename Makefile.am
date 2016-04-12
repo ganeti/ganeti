@@ -857,10 +857,20 @@ HTEST_FLAGS = $(HFLAGS) -fhpc -itest/hs \
 
 # extra flags that can be overriden on the command line (e.g. -Wwarn, etc.)
 HEXTRA =
-# internal extra flags (used for test/hs/htest mainly)
-HEXTRA_INT =
 # combination of HEXTRA and HEXTRA_CONFIGURE
 HEXTRA_COMBINED = $(HEXTRA) $(HEXTRA_CONFIGURE)
+
+# extra flags used for test/hs/htest
+# Only use the threaded runtime and run tests in parallel for GHC > 7.6. A bug
+# in base that wasn't fixed until 4.7.0.0 in GHC 7.8 causes random file lock
+# errors in the JQueue tests with the threaded runtime.
+# See https://ghc.haskell.org/trac/ghc/ticket/7646
+if GHC_LE_76
+HEXTRA_TEST =
+else
+HEXTRA_TEST = -threaded -with-rtsopts=-N
+endif
+
 # exclude options for coverage reports
 HPCEXCL = --exclude Main \
 	--exclude Ganeti.Constants \
@@ -1403,13 +1413,17 @@ $(HASKELL_PACKAGE_VERSIONS_FILE): Makefile ganeti.cabal \
 # are created in the `%.$(HTEST_SUFFIX)_o` rule.
 test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@echo '[GHC|test]: $@ <- test/hs/$^'
-	@$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(@:%.o=%.hs)
+	@set -o pipefail ; \
+	$(GHC) -c $(HFLAGS) -itest/hs $(HFLAGS_DYNAMIC) \
+		$(HEXTRA_COMBINED) $(HEXTRA_TEST) $(@:%.o=%.hs) | \
+		sed '/^Loading package /d'
 
 %.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 	@echo '[GHC]: $@ <- $^'
-	@$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
-		$(HEXTRA_COMBINED) $(@:%.o=%.hs)
+	@set -o pipefail ; \
+	$(GHC) -c $(HFLAGS) $(HFLAGS_DYNAMIC) \
+		$(HEXTRA_COMBINED) $(@:%.o=%.hs) | \
+		sed '/^Loading package /d'
 
 # For TH+profiling we need to compile twice: Once without profiling,
 # and then once with profiling. See
@@ -1417,10 +1431,12 @@ test/hs/%.o: $(HASKELL_PACKAGE_VERSIONS_FILE)
 if HPROFILE
 %.$(HPROF_SUFFIX)_o: %.o
 	@echo '[GHC|prof]: $@ <- $^'
-	@$(GHC) -c $(HFLAGS) \
+	@set -o pipefail ; \
+	$(GHC) -c $(HFLAGS) \
 	  $(HPROFFLAGS) \
 		$(HEXTRA_COMBINED) \
-		$(@:%.$(HPROF_SUFFIX)_o=%.hs)
+		$(@:%.$(HPROF_SUFFIX)_o=%.hs) | \
+		sed '/^Loading package /d'
 endif
 
 # We depend on the non-test .o file here because we need the corresponding .so
@@ -1429,8 +1445,10 @@ endif
 # rule).
 %.$(HTEST_SUFFIX)_o: %.o
 	@echo '[GHC|test]: $@ <- $^'
-	@$(GHC) -c $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) $(@:%.$(HTEST_SUFFIX)_o=%.hs)
+	@set -o pipefail ; \
+	$(GHC) -c $(HTEST_FLAGS) \
+		$(HEXTRA_COMBINED) $(HEXTRA_TEST) $(@:%.$(HTEST_SUFFIX)_o=%.hs) | \
+		sed '/^Loading package /d'
 
 %.hi: %.o ;
 %.$(HTEST_SUFFIX)_hi: %.$(HTEST_SUFFIX)_o ;
@@ -1459,7 +1477,7 @@ $(HS_TEST_PROGS): %: %.$(HTEST_SUFFIX)_o \
 	fi
 	@echo '[GHC-link|test]: $@'
 	$(GHC) $(HTEST_FLAGS) \
-		$(HEXTRA_COMBINED) --make $(@:%=%.hs)
+		$(HEXTRA_COMBINED) $(HEXTRA_TEST) --make $(@:%=%.hs)
 	@rm -f $(notdir $@).tix
 	@touch "$@"
 
@@ -2741,7 +2759,6 @@ pep8: $(GENERATED_FILES)
 	$(PEP8) --ignore='$(PEP8_IGNORE)' --exclude='$(PEP8_EXCLUDE)' \
 	  --repeat $(pep8_python_code)
 
-# FIXME: remove ignore "Use void" when GHC 6.x is deprecated
 HLINT_EXCLUDES = src/Ganeti/THH.hs test/hs/hpc-htools.hs
 .PHONY: hlint
 hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
@@ -2749,13 +2766,6 @@ hlint: $(HS_BUILT_SRCS) src/lint-hints.hs
 	@rm -f doc/hs-lint.html
 	if tty -s; then C="-c"; else C=""; fi; \
 	$(HLINT) --utf8 --report=doc/hs-lint.html --cross $$C \
-	  --ignore "Use first" \
-	  --ignore "Use &&&" \
-	  --ignore "Use &&" \
-	  --ignore "Use ||" \
-	  --ignore "Use void" \
-	  --ignore "Reduce duplication" \
-	  --ignore "Use import/export shortcut" \
 	  --hint src/lint-hints \
 	  --cpp-file=$(HASKELL_PACKAGE_VERSIONS_FILE) \
 	  $(filter-out $(HLINT_EXCLUDES),$(HS_LIBTEST_SRCS) $(HS_PROG_SRCS))

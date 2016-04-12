@@ -801,6 +801,7 @@ $(THH.makeJSONInstance ''OpStatus)
 -- | Type for the job message type.
 $(THH.declareLADT ''String "ELogType"
   [ ("ELogMessage",      "message")
+  , ("ELogMessageList",  "message-list")
   , ("ELogRemoteImport", "remote-import")
   , ("ELogJqueueTest",   "jqueue-test")
   , ("ELogDelayTest",    "delay-test")
