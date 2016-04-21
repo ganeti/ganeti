@@ -421,6 +421,7 @@ class HttpServerRequestExecutor(object):
           try:
             http.Handshake(sock, self.WRITE_TIMEOUT)
           except http.HttpSessionHandshakeUnexpectedEOF:
+            logging.debug("Unexpected EOF from %s:%s" % (client_addr[0], client_addr[1]))
             # Ignore rest
             return
 
@@ -570,6 +571,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
 
     """
     # pylint: disable=W0212
+    t_start = time.time()
     (connection, client_addr) = self.socket.accept()
 
     self._CollectChildren(False)
@@ -602,7 +604,12 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
         # In case the handler code uses temporary files
         utils.ResetTempfileModule()
 
+        t_setup = time.time()
         self.request_executor(self, self.handler, connection, client_addr)
+        t_end = time.time()
+        logging.debug("Request from %s:%s executed in: %.4f [setup: %.4f] [workers: %d]" % (
+            client_addr[0], client_addr[1], t_end - t_start, t_setup - t_start, len(self._children)))
+
       except Exception: # pylint: disable=W0703
         logging.exception("Error while handling request from %s:%s",
                           client_addr[0], client_addr[1])
