@@ -133,18 +133,31 @@ class TestNodeVerify(testutils.GanetiTestCase):
 
   def testMasterIPLocalhost(self):
     # this a real functional test, but requires localhost to be reachable
-    local_data = (netutils.Hostname.GetSysName(),
-                  constants.IP4_ADDRESS_LOCALHOST)
+    my_name = netutils.Hostname.GetSysName()
+    local_data = (my_name,constants.IP4_ADDRESS_LOCALHOST, [my_name])
     result = backend.VerifyNode({constants.NV_MASTERIP: local_data},
                                 None, {})
     self.failUnless(constants.NV_MASTERIP in result,
                     "Master IP data not returned")
-    self.failUnless(result[constants.NV_MASTERIP], "Cannot reach localhost")
+    self.failUnless(result[constants.NV_MASTERIP],
+                    "Cannot reach localhost")
+
+  def testMasterIPSkipTest(self):
+    # this a real functional test, but requires localhost to be reachable
+    local_data = (netutils.Hostname.GetSysName(),
+                  constants.IP4_ADDRESS_LOCALHOST, [])
+    result = backend.VerifyNode({constants.NV_MASTERIP: local_data},
+                                None, {})
+    self.failUnless(constants.NV_MASTERIP in result,
+                    "Master IP data not returned")
+    self.failUnless(result[constants.NV_MASTERIP] == None,
+                    "Test ran by non master candidate")
 
   def testMasterIPUnreachable(self):
     # Network 192.0.2.0/24 is reserved for test/documentation as per
     # RFC 5737
-    bad_data =  ("master.example.com", "192.0.2.1")
+    my_name = "master.example.com"
+    bad_data =  (my_name, "192.0.2.1", [my_name])
     # we just test that whatever TcpPing returns, VerifyNode returns too
     netutils.TcpPing = lambda a, b, source=None: False
     result = backend.VerifyNode({constants.NV_MASTERIP: bad_data},
@@ -153,6 +166,40 @@ class TestNodeVerify(testutils.GanetiTestCase):
                     "Master IP data not returned")
     self.failIf(result[constants.NV_MASTERIP],
                 "Result from netutils.TcpPing corrupted")
+
+  def testVerifyNodeNetTestMissingSelf(self):
+    my_name = netutils.Hostname.GetSysName()
+    local_data = ([('n1.test.com', "any", "any")], [my_name])
+    result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
+                                None, {})
+
+    self.failUnless(constants.NV_NODENETTEST in result,
+                    "NodeNetTest data not returned")
+    self.failUnless(my_name in result[constants.NV_NODENETTEST],
+                    "Missing failure in net test")
+
+  def testVerifyNodeNetTest(self):
+    my_name = netutils.Hostname.GetSysName()
+    local_data = ([(my_name, "any", "any")], [my_name])
+
+    # we just test that whatever TcpPing returns, VerifyNode returns too
+    netutils.TcpPing = lambda a, b, source=None: True
+    result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
+                                None, {})
+
+    self.failUnless(constants.NV_NODENETTEST in result,
+                    "NodeNetTest data not returned")
+    self.failUnless(result[constants.NV_NODENETTEST] == {},
+                    "NodeNetTest failed")
+
+  def testVerifyNodeNetSkipTest(self):
+    local_data = ([('n1.test.com', "any", "any")], [])
+    result = backend.VerifyNode({constants.NV_NODENETTEST: local_data},
+                                None, {})
+    self.failUnless(constants.NV_NODENETTEST in result,
+                    "NodeNetTest data not returned")
+    self.failUnless(result[constants.NV_NODENETTEST] == {},
+                    "Test ran by non master candidate")
 
   def testVerifyHvparams(self):
     test_hvparams = {constants.HV_XEN_CMD: constants.XEN_CMD_XL}
