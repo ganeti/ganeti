@@ -139,7 +139,7 @@ class _VerifyErrors(object):
             log_type, object_type, object_name, msg))
 
     # Report messages via the feedback_fn
-    self._feedback_fn(constants.ELOG_MESSAGE_LIST, prefixed_list) # pylint: disable=E1101,C0302
+    self._feedback_fn(constants.ELOG_MESSAGE_LIST, prefixed_list) # pylint: disable=E1101,C0301
 
     # do not mark the operation as failed for WARN cases only
     if log_type == self.ETYPE_ERROR:
@@ -752,27 +752,26 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
           self._ErrorIf(True, constants.CV_ENODESSH, ninfo.name,
                         "ssh communication with node '%s': %s", a_node, a_msg)
 
-    test = constants.NV_NODENETTEST not in nresult
-    self._ErrorIf(test, constants.CV_ENODENET, ninfo.name,
-                  "node hasn't returned node tcp connectivity data")
-    if not test:
-      if nresult[constants.NV_NODENETTEST]:
-        nlist = utils.NiceSort(nresult[constants.NV_NODENETTEST].keys())
-        for anode in nlist:
-          self._ErrorIf(True, constants.CV_ENODENET, ninfo.name,
-                        "tcp communication with node '%s': %s",
-                        anode, nresult[constants.NV_NODENETTEST][anode])
+    if constants.NV_NODENETTEST not in nresult:
+      self._ErrorMsg(constants.CV_ENODENET, ninfo.name,
+                     "node hasn't returned node tcp connectivity data")
+    elif nresult[constants.NV_NODENETTEST]:
+      nlist = utils.NiceSort(nresult[constants.NV_NODENETTEST].keys())
+      msglist = []
+      for node in nlist:
+        msglist.append("tcp communication with node '%s': %s" %
+                       (node, nresult[constants.NV_NODENETTEST][node]))
+      self._ErrorMsgList(constants.CV_ENODENET, ninfo.name, msglist)
 
-    test = constants.NV_MASTERIP not in nresult
-    self._ErrorIf(test, constants.CV_ENODENET, ninfo.name,
-                  "node hasn't returned node master IP reachability data")
-    if not test:
-      if not nresult[constants.NV_MASTERIP]:
-        if ninfo.uuid == self.master_node:
-          msg = "the master node cannot reach the master IP (not configured?)"
-        else:
-          msg = "cannot reach the master IP"
-        self._ErrorIf(True, constants.CV_ENODENET, ninfo.name, msg)
+    if constants.NV_MASTERIP not in nresult:
+      self._ErrorMsg(constants.CV_ENODENET, ninfo.name,
+                    "node hasn't returned node master IP reachability data")
+    elif nresult[constants.NV_MASTERIP] == False: # be explicit, could be None
+      if ninfo.uuid == self.master_node:
+        msg = "the master node cannot reach the master IP (not configured?)"
+      else:
+        msg = "cannot reach the master IP"
+      self._ErrorMsg(constants.CV_ENODENET, ninfo.name, msg)
 
   def _VerifyInstance(self, instance, node_image, diskstatus):
     """Verify an instance.
@@ -1893,11 +1892,19 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     master_node_uuid = self.master_node = self.cfg.GetMasterNode()
     master_ip = self.cfg.GetMasterIP()
 
+    online_master_candidates = sorted(
+        node.name for node in node_data_list
+        if (node.master_candidate and not node.offline))
+
     feedback_fn("* Gathering data (%d nodes)" % len(self.my_node_uuids))
 
     user_scripts = []
     if self.cfg.GetUseExternalMipScript():
       user_scripts.append(pathutils.EXTERNAL_MASTER_SETUP_SCRIPT)
+
+    online_nodes = [(node.name, node.primary_ip, node.secondary_ip)
+                    for node in node_data_list if not node.offline]
+    node_nettest_params = (online_nodes, online_master_candidates)
 
     node_verify_param = {
       constants.NV_FILELIST:
@@ -1911,15 +1918,14 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       constants.NV_HYPERVISOR: hypervisors,
       constants.NV_HVPARAMS:
         _GetAllHypervisorParameters(cluster, self.all_inst_info.values()),
-      constants.NV_NODENETTEST: [(node.name, node.primary_ip, node.secondary_ip)
-                                 for node in node_data_list
-                                 if not node.offline],
+      constants.NV_NODENETTEST: node_nettest_params,
       constants.NV_INSTANCELIST: hypervisors,
       constants.NV_VERSION: None,
       constants.NV_HVINFO: self.cfg.GetHypervisorType(),
       constants.NV_NODESETUP: None,
       constants.NV_TIME: None,
-      constants.NV_MASTERIP: (self.cfg.GetMasterNodeName(), master_ip),
+      constants.NV_MASTERIP: (self.cfg.GetMasterNodeName(), master_ip,
+                              online_master_candidates),
       constants.NV_OSLIST: None,
       constants.NV_NONVMNODES: self.cfg.GetNonVmCapableNodeNameList(),
       constants.NV_USERSCRIPTS: user_scripts,
@@ -2048,6 +2054,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
       # locking the configuration for something but very fast, pure operations.
       cluster_name = self.cfg.GetClusterName()
       hvparams = self.cfg.GetClusterInfo().hvparams
+
       all_nvinfo = self.rpc.call_node_verify(self.my_node_uuids,
                                              node_verify_param,
                                              cluster_name,

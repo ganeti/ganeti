@@ -1105,6 +1105,72 @@ def _VerifySshClutter(node_status_list, my_name):
 
   return result
 
+def VerifyNodeNetTest(my_name, test_config):
+  """Verify nodes are reachable.
+
+  @type my_name: string
+  @param my_name: name of the node this test is running on
+
+  @type test_config: tuple (node_list, master_candidate_list)
+  @param test_config: configuration for test as passed from
+      LUClusterVerify() in what[constants.NV_NODENETTEST]
+
+  @rtype: dict
+  @return: a dictionary with node names as keys and error messages
+      as values
+  """
+  result = {}
+  nodes, master_candidates = test_config
+  port = netutils.GetDaemonPort(constants.NODED)
+
+  if my_name not in master_candidates:
+    return result
+
+  my_pip, my_sip = next(
+      ((pip, sip) for name, pip, sip in nodes if name == my_name),
+      (None, None)
+  )
+  if not my_pip:
+    result[my_name] = ("Can't find my own primary/secondary IP"
+                       " in the node list")
+    return result
+
+  for name, pip, sip in nodes:
+    fail = []
+    if not netutils.TcpPing(pip, port, source=my_pip):
+      fail.append("primary")
+      if sip != pip:
+        if not netutils.TcpPing(sip, port, source=my_sip):
+          fail.append("secondary")
+      if fail:
+        result[name] = ("failure using the %s interface(s)" %
+                        " and ".join(fail))
+  return result
+
+def VerifyMasterIP(my_name, test_config):
+  """Verify master IP is reachable.
+
+  @type my_name: string
+  @param my_name: name of the node this test is running on
+
+  @type test_config: tuple (master_name, master_up, master_candidates)
+  @param test_config: configuration for test as passed from
+      LUClusterVerify() in what[constants.NV_MASTERIP]
+
+  @rtype: bool or None
+  @return: Boolean test result, None if skipped
+  """
+  master_name, master_ip, master_candidates = test_config
+  port = netutils.GetDaemonPort(constants.NODED)
+  if my_name not in master_candidates:
+    return None
+
+  if master_name == my_name:
+    source = constants.IP4_ADDRESS_LOCALHOST
+  else:
+    source = None
+  return netutils.TcpPing(master_ip, port, source=source)
+
 
 def VerifyNode(what, cluster_name, all_hvparams):
   """Verify the status of the local node.
@@ -1141,7 +1207,6 @@ def VerifyNode(what, cluster_name, all_hvparams):
   """
   result = {}
   my_name = netutils.Hostname.GetSysName()
-  port = netutils.GetDaemonPort(constants.NODED)
   vm_capable = my_name not in what.get(constants.NV_NONVMNODES, [])
 
   _VerifyHypervisors(what, vm_capable, result, all_hvparams)
@@ -1194,38 +1259,12 @@ def VerifyNode(what, cluster_name, all_hvparams):
     result[constants.NV_NODELIST] = val
 
   if constants.NV_NODENETTEST in what:
-    result[constants.NV_NODENETTEST] = tmp = {}
-    my_pip = my_sip = None
-    for name, pip, sip in what[constants.NV_NODENETTEST]:
-      if name == my_name:
-        my_pip = pip
-        my_sip = sip
-        break
-    if not my_pip:
-      tmp[my_name] = ("Can't find my own primary/secondary IP"
-                      " in the node list")
-    else:
-      for name, pip, sip in what[constants.NV_NODENETTEST]:
-        fail = []
-        if not netutils.TcpPing(pip, port, source=my_pip):
-          fail.append("primary")
-        if sip != pip:
-          if not netutils.TcpPing(sip, port, source=my_sip):
-            fail.append("secondary")
-        if fail:
-          tmp[name] = ("failure using the %s interface(s)" %
-                       " and ".join(fail))
+    result[constants.NV_NODENETTEST] = VerifyNodeNetTest(
+        my_name, what[constants.NV_NODENETTEST])
 
   if constants.NV_MASTERIP in what:
-    # FIXME: add checks on incoming data structures (here and in the
-    # rest of the function)
-    master_name, master_ip = what[constants.NV_MASTERIP]
-    if master_name == my_name:
-      source = constants.IP4_ADDRESS_LOCALHOST
-    else:
-      source = None
-    result[constants.NV_MASTERIP] = netutils.TcpPing(master_ip, port,
-                                                     source=source)
+    result[constants.NV_MASTERIP] = VerifyMasterIP(
+        my_name, what[constants.NV_MASTERIP])
 
   if constants.NV_USERSCRIPTS in what:
     result[constants.NV_USERSCRIPTS] = \
