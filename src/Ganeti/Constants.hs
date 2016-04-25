@@ -1661,6 +1661,9 @@ hvCpuCores = "cpu_cores"
 hvCpuMask :: String
 hvCpuMask = "cpu_mask"
 
+hvWorkerCpuMask :: String
+hvWorkerCpuMask = "worker_cpu_mask"
+
 hvCpuSockets :: String
 hvCpuSockets = "cpu_sockets"
 
@@ -1915,6 +1918,7 @@ hvsParameterTypes = Map.fromList
   , (hvCpuCap,                          VTypeInt)
   , (hvCpuCores,                        VTypeInt)
   , (hvCpuMask,                         VTypeString)
+  , (hvWorkerCpuMask,                   VTypeString)
   , (hvCpuSockets,                      VTypeInt)
   , (hvCpuThreads,                      VTypeInt)
   , (hvCpuType,                         VTypeString)
@@ -4143,6 +4147,7 @@ hvcDefaults =
           , (hvMemPath,                         PyValueEx "")
           , (hvRebootBehavior,                  PyValueEx instanceRebootAllowed)
           , (hvCpuMask,                         PyValueEx cpuPinningAll)
+          , (hvWorkerCpuMask,                   PyValueEx cpuPinningAll)
           , (hvCpuType,                         PyValueEx "")
           , (hvCpuCores,                        PyValueEx (0 :: Int))
           , (hvCpuThreads,                      PyValueEx (0 :: Int))

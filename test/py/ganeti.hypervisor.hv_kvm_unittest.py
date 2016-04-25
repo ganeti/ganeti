@@ -578,12 +578,12 @@ class TestKvmRuntime(testutils.GanetiTestCase):
     self.MockOut(mock.patch(kvm_class + '._CallMonitorCommand'))
 
     self.cfg = ConfigMock()
-    params = constants.HVC_DEFAULTS[constants.HT_KVM].copy()
-    beparams = constants.BEC_DEFAULTS.copy()
+    self.params = constants.HVC_DEFAULTS[constants.HT_KVM].copy()
+    self.beparams = constants.BEC_DEFAULTS.copy()
     self.instance = self.cfg.AddNewInstance(name='name.example.com',
                                             hypervisor='kvm',
-                                            hvparams=params,
-                                            beparams=beparams)
+                                            hvparams=self.params,
+                                            beparams=self.beparams)
 
   def testDirectoriesCreated(self):
     hypervisor = hv_kvm.KVMHypervisor()
@@ -615,6 +615,79 @@ class TestKvmRuntime(testutils.GanetiTestCase):
         raise errors.ProgrammerError('Unexpected command: %s' % cmd)
     self.mocks['run_cmd'].side_effect = RunCmd
     hypervisor.StartInstance(self.instance, [], False)
+
+
+class TestKvmCpuPinning(testutils.GanetiTestCase):
+  def setUp(self):
+    super(TestKvmCpuPinning, self).setUp()
+    kvm_class = 'ganeti.hypervisor.hv_kvm.KVMHypervisor'
+    self.MockOut('qmp', mock.patch('ganeti.hypervisor.hv_kvm.QmpConnection'))
+    self.MockOut('run_cmd', mock.patch('ganeti.utils.RunCmd'))
+    self.MockOut('ensure_dirs', mock.patch('ganeti.utils.EnsureDirs'))
+    self.MockOut('write_file', mock.patch('ganeti.utils.WriteFile'))
+    self.MockOut(mock.patch(kvm_class + '._InstancePidAlive',
+                            return_value=(True, 1371, True)))
+    self.MockOut(mock.patch(kvm_class + '._GetVcpuThreadIds',
+                            return_value=[1, 3, 5, 2, 4, 0 ]))
+    self.params = constants.HVC_DEFAULTS[constants.HT_KVM].copy()
+
+  def testCpuPinningDefault(self):
+    mock_process = mock.MagicMock()
+    cpu_mask = self.params['cpu_mask']
+    worker_cpu_mask = self.params['worker_cpu_mask']
+    hypervisor = hv_kvm.KVMHypervisor()
+    with mock.patch('psutil.Process', return_value=mock_process):
+      hypervisor._ExecuteCpuAffinity('test_instance', cpu_mask, worker_cpu_mask)
+
+    self.assertEqual(mock_process.set_cpu_affinity.call_count, 1)
+    self.assertEqual(mock_process.set_cpu_affinity.call_args_list[0],
+                     mock.call(range(0,12)))
+
+  def testCpuPinningPerVcpu(self):
+    mock_process = mock.MagicMock()
+    mock_process.set_cpu_affinity = mock.MagicMock()
+    mock_process.set_cpu_affinity().return_value = True
+    mock_process.get_children.return_value = []
+    mock_process.reset_mock()
+
+    cpu_mask = "1:2:4:5:10:15-17"
+    worker_cpu_mask = self.params['worker_cpu_mask']
+    hypervisor = hv_kvm.KVMHypervisor()
+
+    # This is necessary so that it provides the same object each time instead of
+    # overwriting it each time.
+    def get_mock_process(unused_pid):
+      return mock_process
+
+    with mock.patch('psutil.Process', get_mock_process):
+      hypervisor._ExecuteCpuAffinity('test_instance', cpu_mask, worker_cpu_mask)
+      self.assertEqual(mock_process.set_cpu_affinity.call_count, 7)
+      self.assertEqual(mock_process.set_cpu_affinity.call_args_list[0],
+                       mock.call(range(0,12)))
+      self.assertEqual(mock_process.set_cpu_affinity.call_args_list[6],
+                       mock.call([15, 16, 17]))
+
+  def testCpuPinningEntireInstance(self):
+    mock_process = mock.MagicMock()
+    mock_process.set_cpu_affinity = mock.MagicMock()
+    mock_process.set_cpu_affinity().return_value = True
+    mock_process.get_children.return_value = []
+    mock_process.reset_mock()
+
+    cpu_mask = "4"
+    worker_cpu_mask = "5"
+    hypervisor = hv_kvm.KVMHypervisor()
+
+    def get_mock_process(unused_pid):
+      return mock_process
+
+    with mock.patch('psutil.Process', get_mock_process):
+      hypervisor._ExecuteCpuAffinity('test_instance', cpu_mask, worker_cpu_mask)
+      self.assertEqual(mock_process.set_cpu_affinity.call_count, 7)
+      self.assertEqual(mock_process.set_cpu_affinity.call_args_list[0],
+                       mock.call([5]))
+      self.assertEqual(mock_process.set_cpu_affinity.call_args_list[1],
+                       mock.call([4]))
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

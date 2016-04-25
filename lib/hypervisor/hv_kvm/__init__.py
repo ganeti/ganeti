@@ -505,6 +505,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     constants.HV_REBOOT_BEHAVIOR:
       hv_base.ParamInSet(True, constants.REBOOT_BEHAVIORS),
     constants.HV_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
+    constants.HV_WORKER_CPU_MASK: hv_base.OPT_MULTI_CPU_MASK_CHECK,
     constants.HV_CPU_TYPE: hv_base.NO_CHECK,
     constants.HV_CPU_CORES: hv_base.OPT_NONNEGATIVE_INT_CHECK,
     constants.HV_CPU_THREADS: hv_base.OPT_NONNEGATIVE_INT_CHECK,
@@ -893,13 +894,19 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       target_process.set_cpu_affinity(range(psutil.cpu_count()))
     else:
       target_process.set_cpu_affinity(cpus)
+      for p in target_process.get_children(recursive=True):
+          p.set_cpu_affinity(cpus)
 
   @classmethod
-  def _AssignCpuAffinity(cls, cpu_mask, process_id, thread_dict):
+  def _AssignCpuAffinity(cls, cpu_mask, worker_cpu_mask, process_id,
+                         thread_dict):
     """Change CPU affinity for running VM according to given CPU mask.
 
     @param cpu_mask: CPU mask as given by the user. e.g. "0-2,4:all:1,3"
     @type cpu_mask: string
+    @param worker_cpu_mask: CPU mask as given by the user for the worker
+      threads. e.g. "0-2,4"
+    @type worker_cpu_mask: string
     @param process_id: process ID of KVM process. Used to pin entire VM
                        to physical CPUs.
     @type process_id: int
@@ -907,18 +914,18 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @type thread_dict: dict int:int
 
     """
-    # Convert the string CPU mask to a list of list of int's
-    cpu_list = utils.ParseMultiCpuMask(cpu_mask)
+    worker_cpu_list = utils.ParseCpuMask(worker_cpu_mask)
+    cls._SetProcessAffinity(process_id, worker_cpu_list)
 
+    # Convert the string CPU mask to a list of list of ints
+    cpu_list = utils.ParseMultiCpuMask(cpu_mask)
     if len(cpu_list) == 1:
       all_cpu_mapping = cpu_list[0]
-      if all_cpu_mapping == constants.CPU_PINNING_OFF:
-        # If CPU pinning has 1 entry that's "all", then do nothing
-        pass
-      else:
-        # If CPU pinning has one non-all entry, map the entire VM to
-        # one set of physical CPUs
-        cls._SetProcessAffinity(process_id, all_cpu_mapping)
+      if all_cpu_mapping != constants.CPU_PINNING_OFF:
+        # The vcpus do not inherit the affinity of the parent process so they
+        # also must be pinned.
+        for vcpu in thread_dict:
+          cls._SetProcessAffinity(thread_dict[vcpu], all_cpu_mapping)
     else:
       # The number of vCPUs mapped should match the number of vCPUs
       # reported by KVM. This was already verified earlier, so
@@ -949,7 +956,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     return result
 
-  def _ExecuteCpuAffinity(self, instance_name, cpu_mask):
+  def _ExecuteCpuAffinity(self, instance_name, cpu_mask, worker_cpu_mask):
     """Complete CPU pinning.
 
     @type instance_name: string
@@ -963,7 +970,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Get vCPU thread IDs, to be used if need to pin vCPUs separately
     thread_dict = self._GetVcpuThreadIds(instance_name)
     # Run CPU pinning, based on configured mask
-    self._AssignCpuAffinity(cpu_mask, pid, thread_dict)
+    self._AssignCpuAffinity(cpu_mask, worker_cpu_mask, pid, thread_dict)
 
   def ListInstances(self, hvparams=None):
     """Get the list of running instances.
@@ -1922,7 +1929,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     # If requested, set CPU affinity and resume instance execution
     if cpu_pinning:
-      self._ExecuteCpuAffinity(instance.name, up_hvp[constants.HV_CPU_MASK])
+      self._ExecuteCpuAffinity(instance.name, up_hvp[constants.HV_CPU_MASK],
+                               up_hvp[constants.HV_WORKER_CPU_MASK])
 
     start_memory = self._InstanceStartupMemory(instance)
     if start_memory < instance.beparams[constants.BE_MAXMEM]:
