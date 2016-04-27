@@ -5051,7 +5051,7 @@ luxiDefCtmo = 10
 luxiDefRwto :: Int
 luxiDefRwto = 60
 
--- | 'WaitForJobChange' timeout
+-- | Luxi 'WaitForJobChange' timeout
 luxiWfjcTimeout :: Int
 luxiWfjcTimeout = (luxiDefRwto - 1) `div` 2
 
@@ -5368,3 +5368,11 @@ dataCollectorsEnabledName = "enabled_data_collectors"
 
 dataCollectorsIntervalName :: String
 dataCollectorsIntervalName = "data_collector_interval"
+
+-- | The polling frequency to wait for a job status change
+cliWfjcFrequency :: Int
+cliWfjcFrequency = 20
+
+-- | Default 'WaitForJobChange' timeout in seconds
+defaultWfjcTimeout :: Int
+defaultWfjcTimeout = 60

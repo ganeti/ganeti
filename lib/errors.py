@@ -242,6 +242,15 @@ class JobLost(GenericError):
   """
 
 
+class JobCanceled(GenericError):
+  """Submitted job was canceled.
+
+  The job that was submitted has transitioned to a canceling or canceled
+  state.
+
+  """
+
+
 class JobFileCorrupted(GenericError):
   """Job file could not be properly decoded/restored.
 
