@@ -502,7 +502,8 @@ class _MockJobPollCb(cli.JobPollCbBase, cli.JobPollReportCbBase):
     self._jobstatus.append(args)
 
   def WaitForJobChangeOnce(self, job_id, fields,
-                           prev_job_info, prev_log_serial):
+                           prev_job_info, prev_log_serial,
+                           timeout=constants.DEFAULT_WFJC_TIMEOUT):
     self.tc.assertEqual(job_id, self.job_id)
     self.tc.assertEqualValues(fields, ["status"])
     self.tc.assertFalse(self._expect_notchanged)
@@ -530,6 +531,9 @@ class _MockJobPollCb(cli.JobPollCbBase, cli.JobPollReportCbBase):
     result = self._jobstatus.pop(0)
     self.tc.assertEqual(len(fields), len(result))
     return [result]
+
+  def CancelJob(self, job_id):
+    self.tc.assertEqual(job_id, self.job_id)
 
   def ReportLogMessage(self, job_id, serial, timestamp, log_type, log_msg):
     self.tc.assertEqual(job_id, self.job_id)
@@ -646,9 +650,43 @@ class TestGenericPollJob(testutils.GanetiTestCase):
                            [constants.OP_STATUS_CANCELING,
                             constants.OP_STATUS_CANCELING],
                            [None, None])
-    self.assertRaises(errors.OpExecError, cli.GenericPollJob, job_id, cbs, cbs)
+    self.assertRaises(errors.JobCanceled, cli.GenericPollJob, job_id, cbs, cbs)
     cbs.CheckEmpty()
 
+  def testNegativeUpdateFreqParameter(self):
+    job_id = 12345
+
+    cbs = _MockJobPollCb(self, job_id)
+    self.assertRaises(errors.ParameterError, cli.GenericPollJob, job_id, cbs,
+                      cbs, update_freq=-30)
+
+  def testZeroUpdateFreqParameter(self):
+    job_id = 12345
+
+    cbs = _MockJobPollCb(self, job_id)
+    self.assertRaises(errors.ParameterError, cli.GenericPollJob, job_id, cbs,
+                      cbs, update_freq=0)
+
+  def testShouldCancel(self):
+    job_id = 12345
+
+    cbs = _MockJobPollCb(self, job_id)
+    cbs.AddWfjcResult(None, None, constants.JOB_NOTCHANGED)
+    self.assertRaises(errors.JobCanceled, cli.GenericPollJob, job_id, cbs, cbs,
+                      cancel_fn=(lambda: True))
+
+  def testIgnoreCancel(self):
+    job_id = 12345
+    cbs = _MockJobPollCb(self, job_id)
+    cbs.AddWfjcResult(None, None, ((constants.JOB_STATUS_SUCCESS, ), None))
+    cbs.AddQueryJobsResult(constants.JOB_STATUS_SUCCESS,
+                           [constants.OP_STATUS_SUCCESS,
+                            constants.OP_STATUS_SUCCESS],
+                           ["Hello World", "Foo man bar"])
+    self.assertEqual(["Hello World", "Foo man bar"],
+                     cli.GenericPollJob(
+                         job_id, cbs, cbs, cancel_fn=(lambda: False)))
+    cbs.CheckEmpty()
 
 class TestFormatLogMessage(unittest.TestCase):
   def test(self):

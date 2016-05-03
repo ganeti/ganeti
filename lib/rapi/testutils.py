@@ -252,9 +252,10 @@ class _RapiMock(object):
       http.HttpClientToServerStartLine(method, path, http.HTTP_1_0)
     req_msg.headers = headers
     req_msg.body = request_body
+    req_reader = type('TestReader', (object, ), {'sock': None})()
 
     (_, _, _, resp_msg) = \
-      http.server.HttpResponder(self.handler)(lambda: (req_msg, None))
+      http.server.HttpResponder(self.handler)(lambda: (req_msg, req_reader))
 
     return (resp_msg.start_line.code, resp_msg.headers, resp_msg.body)
 

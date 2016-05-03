@@ -53,7 +53,8 @@ class RapiJobPollCb(cli.JobPollCbBase):
     self.cl = cl
 
   def WaitForJobChangeOnce(self, job_id, fields,
-                           prev_job_info, prev_log_serial):
+                           prev_job_info, prev_log_serial,
+                           timeout=constants.DEFAULT_WFJC_TIMEOUT):
     """Waits for changes on a job.
 
     """
@@ -92,6 +93,12 @@ class RapiJobPollCb(cli.JobPollCbBase):
       raise
 
     return [[result[name] for name in fields], ]
+
+  def CancelJob(self, job_id):
+    """Cancels a currently running job.
+
+    """
+    return self.cl.CancelJob(job_id)
 
 
 def PollJob(rapi_client, job_id, reporter):

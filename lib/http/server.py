@@ -86,12 +86,13 @@ class _HttpServerRequest(object):
   """Data structure for HTTP request on server side.
 
   """
-  def __init__(self, method, path, headers, body):
+  def __init__(self, method, path, headers, body, sock):
     # Request attributes
     self.request_method = method
     self.request_path = path
     self.request_headers = headers
     self.request_body = body
+    self.request_sock = sock
 
     # Response attributes
     self.resp_headers = {}
@@ -225,14 +226,15 @@ class _HttpClientToServerMessageReader(http.HttpMessageReader):
     return http.HttpClientToServerStartLine(method, path, version)
 
 
-def _HandleServerRequestInner(handler, req_msg):
+def _HandleServerRequestInner(handler, req_msg, reader):
   """Calls the handler function for the current request.
 
   """
   handler_context = _HttpServerRequest(req_msg.start_line.method,
                                        req_msg.start_line.path,
                                        req_msg.headers,
-                                       req_msg.body)
+                                       req_msg.body,
+                                       reader.sock)
 
   logging.debug("Handling request %r", handler_context)
 
@@ -308,7 +310,7 @@ class HttpResponder(object):
 
       (response_msg.start_line.code, response_msg.headers,
        response_msg.body) = \
-        _HandleServerRequestInner(self._handler, request_msg)
+        _HandleServerRequestInner(self._handler, request_msg, req_msg_reader)
     except http.HttpException, err:
       self._SetError(self.responses, self._handler, response_msg, err)
     else:

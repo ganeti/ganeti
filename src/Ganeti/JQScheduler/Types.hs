@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, BangPatterns #-}
 {-| Types for the JQScheduler.
 
 -}
@@ -43,7 +43,7 @@ import Ganeti.Utils
 
 data JobWithStat = JobWithStat { jINotify :: Maybe INotify
                                , jStat :: FStat
-                               , jJob :: QueuedJob
+                               , jJob :: !QueuedJob
                                } deriving (Eq, Show)
 
 $(makeCustomLenses' ''JobWithStat ['jJob])
@@ -54,9 +54,9 @@ nullJobWithStat :: QueuedJob -> JobWithStat
 nullJobWithStat = JobWithStat Nothing nullFStat
 
 
-data Queue = Queue { qEnqueued :: [JobWithStat]
-                   , qRunning :: [JobWithStat]
-                   , qManipulated :: [JobWithStat] -- ^ running jobs that are
+data Queue = Queue { qEnqueued :: ![JobWithStat]
+                   , qRunning :: ![JobWithStat]
+                   , qManipulated :: ![JobWithStat] -- ^ running jobs that are
                                                    -- being manipulated by
                                                    -- some thread
                    } deriving (Eq, Show)

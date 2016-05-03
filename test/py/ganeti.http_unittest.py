@@ -86,7 +86,8 @@ class TestMisc(unittest.TestCase):
 
   def testHttpServerRequest(self):
     """Test ganeti.http.server._HttpServerRequest"""
-    server_request = http.server._HttpServerRequest("GET", "/", None, None)
+    server_request = \
+        http.server._HttpServerRequest("GET", "/", None, None, None)
 
     # These are expected by users of the HTTP server
     self.assert_(hasattr(server_request, "request_method"))
@@ -221,33 +222,33 @@ class _SimpleAuthenticator:
 
 class TestHttpServerRequestAuthentication(unittest.TestCase):
   def testNoAuth(self):
-    req = http.server._HttpServerRequest("GET", "/", None, None)
+    req = http.server._HttpServerRequest("GET", "/", None, None, None)
     _FakeRequestAuth("area1", False, None).PreHandleRequest(req)
 
   def testNoRealm(self):
     headers = { http.HTTP_AUTHORIZATION: "", }
-    req = http.server._HttpServerRequest("GET", "/", headers, None)
+    req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ac = _SimpleAuthenticator("foo", "bar")
     ra = _FakeRequestAuth(None, False, ac)
     self.assertRaises(AssertionError, ra.PreHandleRequest, req)
 
   def testNoScheme(self):
     headers = { http.HTTP_AUTHORIZATION: "", }
-    req = http.server._HttpServerRequest("GET", "/", headers, None)
+    req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ac = _SimpleAuthenticator("foo", "bar")
     ra = _FakeRequestAuth("area1", False, ac)
     self.assertRaises(http.HttpUnauthorized, ra.PreHandleRequest, req)
 
   def testUnknownScheme(self):
     headers = { http.HTTP_AUTHORIZATION: "NewStyleAuth abc", }
-    req = http.server._HttpServerRequest("GET", "/", headers, None)
+    req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ac = _SimpleAuthenticator("foo", "bar")
     ra = _FakeRequestAuth("area1", False, ac)
     self.assertRaises(http.HttpUnauthorized, ra.PreHandleRequest, req)
 
   def testInvalidBase64(self):
     headers = { http.HTTP_AUTHORIZATION: "Basic x_=_", }
-    req = http.server._HttpServerRequest("GET", "/", headers, None)
+    req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ac = _SimpleAuthenticator("foo", "bar")
     ra = _FakeRequestAuth("area1", False, ac)
     self.assertRaises(http.HttpBadRequest, ra.PreHandleRequest, req)
@@ -256,7 +257,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
     headers = {
       http.HTTP_AUTHORIZATION: "Basic %s" % ("foo".encode("base64").strip(), ),
       }
-    req = http.server._HttpServerRequest("GET", "/", headers, None)
+    req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ra = _FakeRequestAuth("area1", False, None)
     self.assertRaises(http.HttpUnauthorized, ra.PreHandleRequest, req)
 
@@ -265,12 +266,12 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
       http.HTTP_AUTHORIZATION:
         "Basic %s" % ("foo:bar".encode("base64").strip(), ),
       }
-    req = http.server._HttpServerRequest("GET", "/", headers, None)
+    req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ac = _SimpleAuthenticator("foo", "bar")
     ra = _FakeRequestAuth("area1", False, ac)
     ra.PreHandleRequest(req)
 
-    req = http.server._HttpServerRequest("GET", "/", headers, None)
+    req = http.server._HttpServerRequest("GET", "/", headers, None, None)
     ac = _SimpleAuthenticator("something", "else")
     ra = _FakeRequestAuth("area1", False, ac)
     self.assertRaises(http.HttpUnauthorized, ra.PreHandleRequest, req)
@@ -286,7 +287,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
     for exc, headers in checks.items():
       for i in headers:
         headers = { http.HTTP_AUTHORIZATION: i, }
-        req = http.server._HttpServerRequest("GET", "/", headers, None)
+        req = http.server._HttpServerRequest("GET", "/", headers, None, None)
         ra = _FakeRequestAuth("area1", False, ac)
         self.assertRaises(exc, ra.PreHandleRequest, req)
 
@@ -302,7 +303,7 @@ class TestHttpServerRequestAuthentication(unittest.TestCase):
               http.HTTP_AUTHORIZATION:
                 "Basic %s" % (basic_auth.encode("base64").strip(), ),
             }
-          req = http.server._HttpServerRequest("GET", "/", headers, None)
+          req = http.server._HttpServerRequest("GET", "/", headers, None, None)
 
           ac = _SimpleAuthenticator(user, pw)
           self.assertFalse(ac.called)
