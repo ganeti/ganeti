@@ -97,6 +97,7 @@ import Data.List (intercalate, groupBy, stripPrefix, sort, nub)
 import Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
+import qualified Data.Text as T
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (lift)
 
@@ -172,7 +173,7 @@ data OptionalType
 -- allows to parse any additional arguments not covered by other fields. There
 -- can be at most one such special field and it's type must be
 -- @Map String JSON.JSValue@. See also 'andRestArguments'.
-data Field = Field { fieldName        :: String
+data Field = Field { fieldName        :: T.Text
                    , fieldType        :: Q Type
                      -- ^ the type of the field, @t@ for non-optional fields,
                      -- @Maybe t@ for optional ones.
@@ -183,25 +184,25 @@ data Field = Field { fieldName        :: String
                    , fieldShow        :: Maybe (Q Exp)
                      -- ^ an optional custom serialization function of type
                      -- @t -> (JSON.JSValue, [(String, JSON.JSValue)])@
-                   , fieldExtraKeys   :: [String]
+                   , fieldExtraKeys   :: [T.Text]
                      -- ^ a list of extra keys added by 'fieldShow'
                    , fieldDefault     :: Maybe (Q Exp)
                      -- ^ an optional default value of type @t@
                    , fieldSerializeDefault :: Bool
                      -- ^ whether not presented default value will be
                      -- serialized
-                   , fieldConstr      :: Maybe String
+                   , fieldConstr      :: Maybe T.Text
                    , fieldIsOptional  :: OptionalType
                      -- ^ determines if a field is optional, and if yes,
                      -- how
-                   , fieldDoc         :: String
+                   , fieldDoc         :: T.Text
                    , fieldPresentInForthcoming :: Bool
                    }
 
 -- | Generates a simple field.
 simpleField :: String -> Q Type -> Field
 simpleField fname ftype =
-  Field { fieldName        = fname
+  Field { fieldName        = T.pack fname
         , fieldType        = ftype
         , fieldRead        = Nothing
         , fieldShow        = Nothing
@@ -210,14 +211,14 @@ simpleField fname ftype =
         , fieldSerializeDefault = True
         , fieldConstr      = Nothing
         , fieldIsOptional  = NotOptional
-        , fieldDoc         = ""
+        , fieldDoc         = T.pack ""
         , fieldPresentInForthcoming = False
         }
 
 -- | Generate an AndRestArguments catch-all field.
 andRestArguments :: String -> Field
 andRestArguments fname =
-  Field { fieldName        = fname
+  Field { fieldName        = T.pack fname
         , fieldType        = [t| M.Map String JSON.JSValue |]
         , fieldRead        = Nothing
         , fieldShow        = Nothing
@@ -226,17 +227,17 @@ andRestArguments fname =
         , fieldSerializeDefault = True
         , fieldConstr      = Nothing
         , fieldIsOptional  = AndRestArguments
-        , fieldDoc         = ""
+        , fieldDoc         = T.pack ""
         , fieldPresentInForthcoming = True
         }
 
 withDoc :: String -> Field -> Field
 withDoc doc field =
-  field { fieldDoc = doc }
+  field { fieldDoc = T.pack doc }
 
 -- | Sets the renamed constructor field.
 renameField :: String -> Field -> Field
-renameField constrName field = field { fieldConstr = Just constrName }
+renameField constrName field = field { fieldConstr = Just $ T.pack constrName }
 
 -- | Sets the default value on a field (makes it optional with a
 -- default value).
@@ -280,14 +281,14 @@ customField :: Name      -- ^ The name of the read function
             -> Field     -- ^ Updated field
 customField readfn showfn extra field =
   field { fieldRead = Just (varE readfn), fieldShow = Just (varE showfn)
-        , fieldExtraKeys = extra }
+        , fieldExtraKeys = (map T.pack extra) }
 
 -- | Computes the record name for a given field, based on either the
 -- string value in the JSON serialisation or the custom named if any
 -- exists.
 fieldRecordName :: Field -> String
 fieldRecordName (Field { fieldName = name, fieldConstr = alias }) =
-  fromMaybe (camelCase name) alias
+  maybe (camelCase . T.unpack $ name) T.unpack alias
 
 -- | Computes the preferred variable name to use for the value of this
 -- field. If the field has a specific constructor name, then we use a
@@ -296,8 +297,8 @@ fieldRecordName (Field { fieldName = name, fieldConstr = alias }) =
 fieldVariable :: Field -> String
 fieldVariable f =
   case (fieldConstr f) of
-    Just name -> ensureLower name
-    _ -> map (\c -> if c == '-' then '_' else c) $ fieldName f
+    Just name -> ensureLower . T.unpack $ name
+    _ -> map (\c -> if c == '-' then '_' else c) . T.unpack . fieldName $ f
 
 -- | Compute the actual field type (taking into account possible
 -- optional status).
@@ -311,12 +312,12 @@ actualFieldType f | fieldIsOptional f `elem` [NotOptional, AndRestArguments] = t
 checkNonOptDef :: (Monad m) => Field -> m ()
 checkNonOptDef (Field { fieldIsOptional = OptionalOmitNull
                       , fieldName = name }) =
-  fail $ "Optional field " ++ name ++ " used in parameter declaration"
+  fail $ "Optional field " ++ (T.unpack name) ++ " used in parameter declaration"
 checkNonOptDef (Field { fieldIsOptional = OptionalSerializeNull
                       , fieldName = name }) =
-  fail $ "Optional field " ++ name ++ " used in parameter declaration"
+  fail $ "Optional field " ++ (T.unpack name) ++ " used in parameter declaration"
 checkNonOptDef (Field { fieldDefault = (Just _), fieldName = name }) =
-  fail $ "Default field " ++ name ++ " used in parameter declaration"
+  fail $ "Default field " ++ (T.unpack name) ++ " used in parameter declaration"
 checkNonOptDef _ = return ()
 
 -- | Construct a function that parses a field value. If the field has
@@ -327,7 +328,7 @@ parseFn :: Field   -- ^ The field definition
         -> Q Exp   -- ^ The resulting function that parses a JSON message
 parseFn field o =
   let fnType = [t| JSON.JSValue -> JSON.Result $(fieldType field) |]
-      expr = maybe [| readJSONWithDesc $(stringE $ fieldName field) |]
+      expr = maybe [| readJSONWithDesc $(stringE . T.unpack $ fieldName field) |]
                    (`appE` o) (fieldRead field)
   in sigE expr fnType
 
@@ -350,7 +351,7 @@ loadFnOpt :: Field   -- ^ The field definition
 loadFnOpt field@(Field { fieldDefault = Just def }) expr o
   = case fieldIsOptional field of
       NotOptional -> [| $expr >>= maybe (return $def) $(parseFn field o) |]
-      _           -> fail $ "Field " ++ fieldName field ++ ":\
+      _           -> fail $ "Field " ++ (T.unpack . fieldName $ field) ++ ":\
                             \ A field can't be optional and\
                             \ have a default value at the same time."
 loadFnOpt field expr o
@@ -726,10 +727,10 @@ genPyDefault f = maybeApp (fieldDefault f) (fieldType f)
 
 pyField :: Field -> Q Exp
 pyField f = genPyType f >>= \t ->
-            [| OpCodeField $(stringE (fieldName f))
+            [| OpCodeField $(stringE . T.unpack . fieldName $ f)
                            t
                            $(genPyDefault f)
-                           $(stringE (fieldDoc f)) |]
+                           $(stringE . T.unpack . fieldDoc $ f) |]
 
 -- | Generates a Haskell function call to "showPyClass" with the
 -- necessary information on how to build the Python class string.
@@ -805,8 +806,8 @@ genOpCode name cons = do
 genOpConsFields :: OpCodeConstructor -> Clause
 genOpConsFields (cname, _, _, fields, _) =
   let op_id = deCamelCase cname
-      fvals = map (LitE . StringL) . sort . nub $
-              concatMap (\f -> fieldName f:fieldExtraKeys f) fields
+      fieldnames f = (T.unpack . fieldName $ f):(map T.unpack $ fieldExtraKeys f)
+      fvals = map (LitE . StringL) . sort . nub $ concatMap fieldnames fields
   in Clause [LitP (StringL op_id)] (NormalB $ ListE fvals) []
 
 -- | Generates a list of all fields of an opcode constructor.
@@ -882,7 +883,7 @@ genLoadOpCode opdefs fn = do
       body = DoE [st, cst]
   -- include "OP_ID" to the list of used keys
   bodyAndOpId <- [| $(return body)
-                    <* tell (mkUsedKeys $ S.singleton opidKey) |]
+                    <* tell (mkUsedKeys . S.singleton . T.pack $ opidKey) |]
   return [Clause [VarP objname] (NormalB bodyAndOpId) []]
 
 -- * Template code for luxi
@@ -1186,7 +1187,7 @@ defaultFromJSArray keys xs = do
 -- See 'defaultToJSArray' and 'defaultFromJSArray'.
 genArrayObjectInstance :: Name -> [Field] -> Q Dec
 genArrayObjectInstance name fields = do
-  let fnames = concatMap (liftA2 (:) fieldName fieldExtraKeys) fields
+  let fnames = map T.unpack $ concatMap (liftA2 (:) fieldName fieldExtraKeys) fields
   instanceD (return []) (appT (conT ''ArrayObject) (conT name))
     [ valD (varP 'toJSArray) (normalB [| defaultToJSArray $(lift fnames) |]) []
     , valD (varP 'fromJSArray) (normalB [| defaultFromJSArray fnames |]) []
@@ -1258,7 +1259,7 @@ saveObjectField fvar field = do
                      -- from the default one.
                      _ -> formatCode fvarE
     AndRestArguments -> [| M.toList $(varE fvar) |]
-  where nameE = stringE (fieldName field)
+  where nameE = stringE (T.unpack . fieldName $ field)
         fvarE = varE fvar
 
 -- | Generates the showJSON clause for a given object name.
@@ -1283,26 +1284,29 @@ loadObjectField allFields field = do
                                    $ allFields
   -- these are used in all patterns below
   let objvar = varE objVarName
-      objfield = stringE (fieldName field)
+      objfield = stringE (T.unpack . fieldName $ field)
   case (fieldDefault field, fieldIsOptional field) of
-            -- Only non-optional fields without defaults must have a value;
-            -- we treat both optional types the same, since
-            -- 'maybeFromObj' can deal with both missing and null values
-            -- appropriately (the same)
-            (Nothing, NotOptional) ->
-                  loadFn field [| fromObj $objvar $objfield |] objvar
-            -- AndRestArguments need not to be parsed at all,
-            -- they're just extracted from the list of other fields.
-            (Nothing, AndRestArguments) ->
-                  [| return . M.fromList
-                     . filter (not . (`S.member` $(otherNames)) . fst)
-                     $ $objvar |]
-            _ ->  loadFnOpt field [| maybeFromObj $objvar $objfield |] objvar
+      -- Only non-optional fields without defaults must have a value;
+      -- we treat both optional types the same, since
+      -- 'maybeFromObj' can deal with both missing and null values
+      -- appropriately (the same)
+      (Nothing, NotOptional) ->
+            loadFn field [| fromObj $objvar $objfield |] objvar
+      -- AndRestArguments need not to be parsed at all,
+      -- they're just extracted from the list of other fields.
+      (Nothing, AndRestArguments) ->
+            [| return . M.fromList
+               . filter (not . (`S.member` $(otherNames)) . T.pack . fst)
+               $ $objvar |]
+      _ ->  loadFnOpt field [| maybeFromObj $objvar $objfield |] objvar
 
 -- | Generates the set of all used JSON dictionary keys for a field
+-- This is the equivalent of [| S.fromList (map T.pack 'fnames) |]
 fieldDictKeys :: Field -> Exp
 fieldDictKeys field = AppE (VarE 'S.fromList)
-  . ListE . map (LitE . StringL) $ liftA2 (:) fieldName fieldExtraKeys field
+  . AppE (AppE (VarE 'map) (VarE 'T.pack))
+  . ListE . map (LitE . StringL)
+  $ map T.unpack $ liftA2 (:) fieldName fieldExtraKeys field
 
 -- | Generates the list of all used JSON dictionary keys for a list of fields
 fieldsDictKeys :: [Field] -> Exp
@@ -1379,7 +1383,7 @@ buildParamAllFields :: String -> [Field] -> [Dec]
 buildParamAllFields sname fields =
   let vname = mkName ("all" ++ sname ++ "ParamFields")
       sig = SigD vname (AppT ListT (ConT ''String))
-      val = ListE $ map (LitE . StringL . fieldName) fields
+      val = ListE $ map (LitE . StringL . T.unpack . fieldName) fields
   in [sig, ValD (VarP vname) (NormalB val) []]
 
 -- | Generates the serialisation for a partial parameter.
@@ -1416,7 +1420,7 @@ loadPParamField field = do
   let name = fieldName field
   -- these are used in all patterns below
   let objvar = varE objVarName
-      objfield = stringE name
+      objfield = stringE . T.unpack $ name
       loadexp = [| $(varE 'maybeFromObj) $objvar $objfield |]
   loadFnOpt field loadexp objvar
 

@@ -394,13 +394,13 @@ instance (HasStringRepr a, Ord a, J.JSON b) =>
 
 -- * Types that (de)serialize in a special form of JSON
 
-newtype UsedKeys = UsedKeys (Maybe (Set.Set String))
+newtype UsedKeys = UsedKeys (Maybe (Set.Set T.Text))
 
 instance Monoid UsedKeys where
   mempty = UsedKeys (Just Set.empty)
   mappend (UsedKeys xs) (UsedKeys ys) = UsedKeys $ liftA2 Set.union xs ys
 
-mkUsedKeys :: Set.Set String -> UsedKeys
+mkUsedKeys :: Set.Set T.Text -> UsedKeys
 mkUsedKeys = UsedKeys . Just
 
 allUsedKeys :: UsedKeys
@@ -426,6 +426,7 @@ readJSONfromDict :: (DictObject a)
                  => J.JSValue -> J.Result a
 readJSONfromDict jsv = do
   dict <- liftM J.fromJSObject $ J.readJSON jsv
+
   (r, UsedKeys keys) <- runWriterT $ fromDictWKeys dict
   -- check that no superfluous dictionary keys are present
   case keys of
@@ -434,7 +435,7 @@ readJSONfromDict jsv = do
                ++ show (Set.toAscList superfluous) ++ ", but only "
                ++ show (Set.toAscList allowedSet) ++ " allowed."
       where
-        superfluous = Set.fromList (map fst dict) Set.\\ allowedSet
+        superfluous = Set.fromList (map (T.pack . fst) dict) Set.\\ allowedSet
     _ -> return ()
   return r
 

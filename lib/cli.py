@@ -705,7 +705,8 @@ def SendJob(ops, cl=None):
   return job_id
 
 
-def GenericPollJob(job_id, cbs, report_cbs):
+def GenericPollJob(job_id, cbs, report_cbs, cancel_fn=None,
+                   update_freq=constants.DEFAULT_WFJC_TIMEOUT):
   """Generic job-polling function.
 
   @type job_id: number
@@ -714,9 +715,13 @@ def GenericPollJob(job_id, cbs, report_cbs):
   @param cbs: Data callbacks
   @type report_cbs: Instance of L{JobPollReportCbBase}
   @param report_cbs: Reporting callbacks
-
+  @type cancel_fn: Function returning a boolean
+  @param cancel_fn: Function to check if we should cancel the running job
+  @type update_freq: int/long
+  @param update_freq: number of seconds between each WFJC reports
   @return: the opresult of the job
   @raise errors.JobLost: If job can't be found
+  @raise errors.JobCanceled: If job is canceled
   @raise errors.OpExecError: If job didn't succeed
 
   """
@@ -724,17 +729,36 @@ def GenericPollJob(job_id, cbs, report_cbs):
   prev_logmsg_serial = None
 
   status = None
+  should_cancel = False
+
+  if update_freq <= 0:
+    raise errors.ParameterError("Update frequency must be a positive number")
 
   while True:
-    result = cbs.WaitForJobChangeOnce(job_id, ["status"], prev_job_info,
-                                      prev_logmsg_serial)
+    if cancel_fn:
+      timer = 0
+      while timer < update_freq:
+        result = cbs.WaitForJobChangeOnce(job_id, ["status"], prev_job_info,
+                                          prev_logmsg_serial,
+                                          timeout=constants.CLI_WFJC_FREQUENCY)
+        should_cancel = cancel_fn()
+        if should_cancel or not result or result != constants.JOB_NOTCHANGED:
+          break
+        timer += constants.CLI_WFJC_FREQUENCY
+    else:
+      result = cbs.WaitForJobChangeOnce(job_id, ["status"], prev_job_info,
+                                      prev_logmsg_serial, timeout=update_freq)
     if not result:
       # job not found, go away!
       raise errors.JobLost("Job with id %s lost" % job_id)
 
+    if should_cancel:
+      logging.info("Job %s canceled because the client timed out.", job_id)
+      cbs.CancelJob(job_id)
+      raise errors.JobCanceled("Job was canceled")
+
     if result == constants.JOB_NOTCHANGED:
       report_cbs.ReportNotChanged(job_id, status)
-
       # Wait again
       continue
 
@@ -768,7 +792,7 @@ def GenericPollJob(job_id, cbs, report_cbs):
     return result
 
   if status in (constants.JOB_STATUS_CANCELING, constants.JOB_STATUS_CANCELED):
-    raise errors.OpExecError("Job was canceled")
+    raise errors.JobCanceled("Job was canceled")
 
   has_ok = False
   for idx, (status, msg) in enumerate(zip(opstatus, result)):
@@ -797,7 +821,8 @@ class JobPollCbBase(object):
     """
 
   def WaitForJobChangeOnce(self, job_id, fields,
-                           prev_job_info, prev_log_serial):
+                           prev_job_info, prev_log_serial,
+                           timeout=constants.DEFAULT_WFJC_TIMEOUT):
     """Waits for changes on a job.
 
     """
@@ -810,6 +835,15 @@ class JobPollCbBase(object):
     @param job_ids: Job IDs
     @type fields: list of strings
     @param fields: Fields
+
+    """
+    raise NotImplementedError()
+
+  def CancelJob(self, job_id):
+    """Cancels a currently running job.
+
+    @type job_id: number
+    @param job_id: The ID of the Job we want to cancel
 
     """
     raise NotImplementedError()
@@ -851,12 +885,14 @@ class _LuxiJobPollCb(JobPollCbBase):
     self.cl = cl
 
   def WaitForJobChangeOnce(self, job_id, fields,
-                           prev_job_info, prev_log_serial):
+                           prev_job_info, prev_log_serial,
+                           timeout=constants.DEFAULT_WFJC_TIMEOUT):
     """Waits for changes on a job.
 
     """
     return self.cl.WaitForJobChangeOnce(job_id, fields,
-                                        prev_job_info, prev_log_serial)
+                                        prev_job_info, prev_log_serial,
+                                        timeout=timeout)
 
   def QueryJobs(self, job_ids, fields):
     """Returns the selected fields for the selected job IDs.
@@ -864,6 +900,11 @@ class _LuxiJobPollCb(JobPollCbBase):
     """
     return self.cl.QueryJobs(job_ids, fields)
 
+  def CancelJob(self, job_id):
+    """Cancels a currently running job.
+
+    """
+    return self.cl.CancelJob(job_id)
 
 class FeedbackFnJobPollReportCb(JobPollReportCbBase):
   def __init__(self, feedback_fn):
@@ -932,7 +973,8 @@ def FormatLogMessage(log_type, log_msg):
   return utils.SafeEncode(log_msg)
 
 
-def PollJob(job_id, cl=None, feedback_fn=None, reporter=None):
+def PollJob(job_id, cl=None, feedback_fn=None, reporter=None, cancel_fn=None,
+            update_freq=constants.DEFAULT_WFJC_TIMEOUT):
   """Function to poll for the result of a job.
 
   @type job_id: job identified
@@ -940,6 +982,10 @@ def PollJob(job_id, cl=None, feedback_fn=None, reporter=None):
   @type cl: luxi.Client
   @param cl: the luxi client to use for communicating with the master;
              if None, a new client will be created
+  @type cancel_fn: Function returning a boolean
+  @param cancel_fn: Function to check if we should cancel the running job
+  @type update_freq: int/long
+  @param update_freq: number of seconds between each WFJC report
 
   """
   if cl is None:
@@ -953,7 +999,8 @@ def PollJob(job_id, cl=None, feedback_fn=None, reporter=None):
   elif feedback_fn:
     raise errors.ProgrammerError("Can't specify reporter and feedback function")
 
-  return GenericPollJob(job_id, _LuxiJobPollCb(cl), reporter)
+  return GenericPollJob(job_id, _LuxiJobPollCb(cl), reporter,
+                        cancel_fn=cancel_fn, update_freq=update_freq)
 
 
 def SubmitOpCode(op, cl=None, feedback_fn=None, opts=None, reporter=None):

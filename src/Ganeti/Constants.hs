@@ -5194,7 +5194,7 @@ luxiDefCtmo = 30
 luxiDefRwto :: Int
 luxiDefRwto = 180
 
--- | 'WaitForJobChange' timeout
+-- | Luxi 'WaitForJobChange' timeout
 luxiWfjcTimeout :: Int
 luxiWfjcTimeout = (luxiDefRwto - 1) `div` 2
 
@@ -5544,3 +5544,12 @@ maintdSuccessTagPrefix = maintdPrefix ++ "repairready:"
 
 maintdFailureTagPrefix :: String
 maintdFailureTagPrefix = maintdPrefix ++ "repairfailed:"
+
+-- | The polling frequency to wait for a job status change
+cliWfjcFrequency :: Int
+cliWfjcFrequency = 20
+
+-- | Default 'WaitForJobChange' timeout in seconds
+defaultWfjcTimeout :: Int
+defaultWfjcTimeout = 60
+
