@@ -52,13 +52,14 @@ class ExtStorageDevice(base.BlockDev):
   handling of the externally provided block devices.
 
   """
-  def __init__(self, unique_id, children, size, params, dyn_params, *args):
+  def __init__(self, unique_id, children, size, params, dyn_params, **kwargs):
     """Attaches to an extstorage block device.
 
     """
     super(ExtStorageDevice, self).__init__(unique_id, children, size, params,
-                                           dyn_params, *args)
-    (self.name, self.uuid) = args
+                                           dyn_params, **kwargs)
+    self.name = kwargs["name"]
+    self.uuid = kwargs["uuid"]
 
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))

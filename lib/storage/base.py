@@ -82,7 +82,7 @@ class BlockDev(object):
 
   """
   # pylint: disable=W0613
-  def __init__(self, unique_id, children, size, params, dyn_params, *args):
+  def __init__(self, unique_id, children, size, params, dyn_params, **kwargs):
     self._children = children
     self.dev_path = None
     self.unique_id = unique_id
@@ -121,7 +121,7 @@ class BlockDev(object):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params, *args):
+             dyn_params, **kwargs):
     """Create the device.
 
     If the device cannot be created, it will return None

@@ -78,14 +78,14 @@ class LogicalVolume(base.BlockDev):
   _INVALID_NAMES = compat.UniqueFrozenset([".", "..", "snapshot", "pvmove"])
   _INVALID_SUBSTRINGS = compat.UniqueFrozenset(["_mlog", "_mimage"])
 
-  def __init__(self, unique_id, children, size, params, dyn_params, *args):
+  def __init__(self, unique_id, children, size, params, dyn_params, **kwargs):
     """Attaches to a LV device.
 
     The unique_id is a tuple (vg_name, lv_name)
 
     """
     super(LogicalVolume, self).__init__(unique_id, children, size, params,
-                                        dyn_params, *args)
+                                        dyn_params, **kwargs)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self._vg_name, self._lv_name = unique_id
@@ -95,7 +95,12 @@ class LogicalVolume(base.BlockDev):
     self._degraded = True
     self.major = self.minor = self.pe_size = self.stripe_count = None
     self.pv_names = None
-    self.Attach()
+    lvs_cache = kwargs.get("lvs_cache")
+    if lvs_cache:
+      lv_info = lvs_cache.get(self.dev_path)
+      self.Attach(lv_info=lv_info)
+    else:
+      self.Attach()
 
   @staticmethod
   def _GetStdPvSize(pvs_info):
@@ -436,9 +441,9 @@ class LogicalVolume(base.BlockDev):
     self._lv_name = new_name
     self.dev_path = utils.PathJoin("/dev", self._vg_name, self._lv_name)
 
-  @classmethod
-  def _ParseLvInfoLine(cls, line, sep):
-    """Parse one line of the lvs output used in L{_GetLvInfo}.
+  @staticmethod
+  def _ParseLvInfoLine(line, sep):
+    """Parse one line of the lvs output used in L{_GetLvGlobalInfo}.
 
     """
     elems = line.strip().split(sep)
@@ -447,13 +452,13 @@ class LogicalVolume(base.BlockDev):
     # separator to the right of the output. The PV info might be empty for
     # thin volumes, so stripping off the separators might cut off the last
     # empty element - do this instead.
-    if len(elems) == 7 and elems[-1] == "":
+    if len(elems) == 8 and elems[-1] == "":
       elems.pop()
 
-    if len(elems) != 6:
-      base.ThrowError("Can't parse LVS output, len(%s) != 6", str(elems))
+    if len(elems) != 7:
+      base.ThrowError("Can't parse LVS output, len(%s) != 7", str(elems))
 
-    (status, major, minor, pe_size, stripes, pvs) = elems
+    (path, status, major, minor, pe_size, stripes, pvs) = elems
     if len(status) < 6:
       base.ThrowError("lvs lv_attr is not at least 6 characters (%s)", status)
 
@@ -476,43 +481,38 @@ class LogicalVolume(base.BlockDev):
     pv_names = []
     if pvs != "":
       for pv in pvs.split(","):
-        m = re.match(cls._PARSE_PV_DEV_RE, pv)
+        m = re.match(LogicalVolume._PARSE_PV_DEV_RE, pv)
         if not m:
           base.ThrowError("Can't parse this device list: %s", pvs)
         pv_names.append(m.group(1))
 
-    return (status, major, minor, pe_size, stripes, pv_names)
+    return (path, (status, major, minor, pe_size, stripes, pv_names))
 
-  @classmethod
-  def _GetLvInfo(cls, dev_path, _run_cmd=utils.RunCmd):
-    """Get info about the given existing LV to be used.
+  @staticmethod
+  def _GetLvGlobalInfo(_run_cmd=utils.RunCmd):
+    """Obtain the current state of the existing LV disks.
+
+    @return: a dict containing the state of each disk with the disk path as key
 
     """
     sep = "|"
     result = _run_cmd(["lvs", "--noheadings", "--separator=%s" % sep,
                        "--units=k", "--nosuffix",
-                       "-olv_attr,lv_kernel_major,lv_kernel_minor,"
-                       "vg_extent_size,stripes,devices", dev_path])
+                       "-olv_path,lv_attr,lv_kernel_major,lv_kernel_minor,"
+                       "vg_extent_size,stripes,devices"])
     if result.failed:
-      base.ThrowError("Can't find LV %s: %s, %s",
-                      dev_path, result.fail_reason, result.output)
-    # the output can (and will) have multiple lines for multi-segment
-    # LVs, as the 'stripes' parameter is a segment one, so we take
-    # only the last entry, which is the one we're interested in; note
-    # that with LVM2 anyway the 'stripes' value must be constant
-    # across segments, so this is a no-op actually
+      logging.warning("lvs command failed, the LV cache will be empty!")
+      logging.info("lvs failure: %r", result.stderr)
+      return {}
     out = result.stdout.splitlines()
-    if not out: # totally empty result? splitlines() returns at least
-                # one line for any non-empty string
-      base.ThrowError("Can't parse LVS output, no lines? Got '%s'", str(out))
-    pv_names = set()
-    for line in out:
-      (status, major, minor, pe_size, stripes, more_pvs) = \
-        cls._ParseLvInfoLine(line, sep)
-      pv_names.update(more_pvs)
-    return (status, major, minor, pe_size, stripes, pv_names)
+    if not out:
+      logging.warning("lvs command returned an empty output, the LV cache will"
+                      "be empty!")
+      return {}
+    info = {}
+    return dict([LogicalVolume._ParseLvInfoLine(line, sep) for line in out])
 
-  def Attach(self):
+  def Attach(self, lv_info=None):
     """Attach to an existing LV.
 
     This method will try to see if an existing and active LV exists
@@ -521,11 +521,9 @@ class LogicalVolume(base.BlockDev):
 
     """
     self.attached = False
-    try:
-      (status, major, minor, pe_size, stripes, pv_names) = \
-        self._GetLvInfo(self.dev_path)
-    except errors.BlockDeviceError:
-      return False
+    if not lv_info:
+      lv_info = LogicalVolume._GetLvGlobalInfo()[self.dev_path]
+    (status, major, minor, pe_size, stripes, pv_names) = lv_info
 
     self.major = major
     self.minor = minor
@@ -747,14 +745,14 @@ class PersistentBlockDevice(base.BlockDev):
   For the time being, pathnames are required to lie under /dev.
 
   """
-  def __init__(self, unique_id, children, size, params, dyn_params, *args):
+  def __init__(self, unique_id, children, size, params, dyn_params, **kwargs):
     """Attaches to a static block device.
 
     The unique_id is a path under /dev.
 
     """
     super(PersistentBlockDevice, self).__init__(unique_id, children, size,
-                                                params, dyn_params, *args)
+                                                params, dyn_params, **kwargs)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
     self.dev_path = unique_id[1]
@@ -802,7 +800,6 @@ class PersistentBlockDevice(base.BlockDev):
 
   def Attach(self):
     """Attach to an existing block device.
-
 
     """
     self.attached = False
@@ -870,12 +867,12 @@ class RADOSBlockDevice(base.BlockDev):
   this to be functional.
 
   """
-  def __init__(self, unique_id, children, size, params, dyn_params, *args):
+  def __init__(self, unique_id, children, size, params, dyn_params, **kwargs):
     """Attaches to an rbd device.
 
     """
     super(RADOSBlockDevice, self).__init__(unique_id, children, size, params,
-                                           dyn_params, *args)
+                                           dyn_params, **kwargs)
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
 
@@ -1305,7 +1302,7 @@ def _VerifyDiskParams(disk):
                                  missing)
 
 
-def FindDevice(disk, children):
+def FindDevice(disk, children, **kwargs):
   """Search for an existing, assembled device.
 
   This will succeed only if the device exists and is assembled, but it
@@ -1321,7 +1318,7 @@ def FindDevice(disk, children):
   _VerifyDiskType(disk.dev_type)
   device = DEV_MAP[disk.dev_type](disk.logical_id, children, disk.size,
                                   disk.params, disk.dynamic_params,
-                                  disk.name, disk.uuid)
+                                  name=disk.name, uuid=disk.uuid, **kwargs)
   if not device.attached:
     return None
   return device
@@ -1344,7 +1341,7 @@ def Assemble(disk, children):
   _VerifyDiskParams(disk)
   device = DEV_MAP[disk.dev_type](disk.logical_id, children, disk.size,
                                   disk.params, disk.dynamic_params,
-                                  disk.name, disk.uuid)
+                                  name=disk.name, uuid=disk.uuid)
   device.Assemble()
   return device
 
@@ -1368,7 +1365,7 @@ def Create(disk, children, excl_stor):
   device = DEV_MAP[disk.dev_type].Create(disk.logical_id, children, disk.size,
                                          disk.spindles, disk.params, excl_stor,
                                          disk.dynamic_params,
-                                         disk.name, disk.uuid)
+                                         name=disk.name, uuid=disk.uuid)
   return device
 
 # Please keep this at the bottom of the file for visibility.

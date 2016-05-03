@@ -239,38 +239,43 @@ class TestLogicalVolume(unittest.TestCase):
   def testParseLvInfoLine(self):
     """Tests for LogicalVolume._ParseLvInfoLine."""
     broken_lines = [
-      "  toomuch#-wi-ao#253#3#4096.00#2#/dev/abc(20)",
-      "  -wi-ao#253#3#4096.00#/dev/abc(20)",
-      "  -wi-a#253#3#4096.00#2#/dev/abc(20)",
-      "  -wi-ao#25.3#3#4096.00#2#/dev/abc(20)",
-      "  -wi-ao#twenty#3#4096.00#2#/dev/abc(20)",
-      "  -wi-ao#253#3.1#4096.00#2#/dev/abc(20)",
-      "  -wi-ao#253#three#4096.00#2#/dev/abc(20)",
-      "  -wi-ao#253#3#four#2#/dev/abc(20)",
-      "  -wi-ao#253#3#4096..00#2#/dev/abc(20)",
-      "  -wi-ao#253#3#4096.00#2.0#/dev/abc(20)",
-      "  -wi-ao#253#3#4096.00#two#/dev/abc(20)",
+      "  toomuch#devpath#-wi-ao#253#3#4096.00#2#/dev/abc(20)",
+      "  devpath#-wi-ao#253#3#4096.00#/dev/abc(20)",
+      "  devpath#-wi-a#253#3#4096.00#2#/dev/abc(20)",
+      "  devpath#-wi-ao#25.3#3#4096.00#2#/dev/abc(20)",
+      "  devpath#-wi-ao#twenty#3#4096.00#2#/dev/abc(20)",
+      "  devpath#-wi-ao#253#3.1#4096.00#2#/dev/abc(20)",
+      "  devpath#-wi-ao#253#three#4096.00#2#/dev/abc(20)",
+      "  devpath#-wi-ao#253#3#four#2#/dev/abc(20)",
+      "  devpath#-wi-ao#253#3#4096..00#2#/dev/abc(20)",
+      "  devpath#-wi-ao#253#3#4096.00#2.0#/dev/abc(20)",
+      "  devpath#-wi-ao#253#3#4096.00#two#/dev/abc(20)",
+      "  devpath#-wi-ao#253#3#4096.00#2#/dev/abc20",
       ]
     for broken in broken_lines:
       self.assertRaises(errors.BlockDeviceError,
                         bdev.LogicalVolume._ParseLvInfoLine, broken, "#")
 
     # Examples of good lines from "lvs":
-    #  -wi-ao|253|3|4096.00|2|/dev/sdb(144),/dev/sdc(0)
-    #  -wi-a-|253|4|4096.00|1|/dev/sdb(208)
+    #
+    #   /dev/something|-wi-ao|253|3|4096.00|2|/dev/sdb(144),/dev/sdc(0)
+    #   /dev/somethingelse|-wi-a-|253|4|4096.00|1|/dev/sdb(208)
     true_out = [
-      ("-wi-ao", 253, 3, 4096.00, 2, ["/dev/abc"]),
-      ("-wi-a-", 253, 7, 4096.00, 4, ["/dev/abc"]),
-      ("-ri-a-", 253, 4, 4.00, 5, ["/dev/abc", "/dev/def"]),
-      ("-wc-ao", 15, 18, 4096.00, 32, ["/dev/abc", "/dev/def", "/dev/ghi0"]),
-      # Physical devices might be missing with thin volumes
-      ("twc-ao", 15, 18, 4096.00, 32, []),
-      ]
+        ("/dev/path", ("-wi-ao", 253, 3, 4096.00, 2, ["/dev/abc"])),
+        ("/dev/path", ("-wi-a-", 253, 7, 4096.00, 4, ["/dev/abc"])),
+        ("/dev/path", ("-ri-a-", 253, 4, 4.00, 5, ["/dev/abc", "/dev/def"])),
+        ("/dev/path", ("-wc-ao", 15, 18, 4096.00, 32,
+                       ["/dev/abc", "/dev/def", "/dev/ghi0"])),
+        # Physical devices might be missing with thin volumes
+        ("/dev/path", ("twc-ao", 15, 18, 4096.00, 32, [])),
+    ]
     for exp in true_out:
       for sep in "#;|":
-        pvs = ",".join("%s(%s)" % (d, i * 12) for (i, d) in enumerate(exp[-1]))
-        lvs_line = (sep.join(("  %s", "%d", "%d", "%.2f", "%d", "%s")) %
-                    (exp[0:-1] + (pvs,)))
+        devpath = exp[0]
+        lvs = exp[1]
+        pvs = ",".join("%s(%s)" % (d, i * 12) for (i, d) in enumerate(lvs[-1]))
+        lvs_line = (sep.join(("  %s", "%s", "%d", "%d", "%.2f", "%d", "%s")) %
+                    ((devpath,) + lvs[0:-1] + (pvs,)))
         parsed = bdev.LogicalVolume._ParseLvInfoLine(lvs_line, sep)
         self.assertEqual(parsed, exp)
 
@@ -283,44 +288,27 @@ class TestLogicalVolume(unittest.TestCase):
     return lambda cmd: utils.RunResult(exit_code, None, stdout, "", cmd,
                                        utils.process._TIMEOUT_NONE, 5)
 
-  def testGetLvInfo(self):
-    """Tests for LogicalVolume._GetLvInfo."""
-    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume._GetLvInfo,
-                      "fake_path",
-                      _run_cmd=self._FakeRunCmd(False, "Fake error msg"))
-    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume._GetLvInfo,
-                      "fake_path", _run_cmd=self._FakeRunCmd(True, ""))
-    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume._GetLvInfo,
-                      "fake_path", _run_cmd=self._FakeRunCmd(True, "BadStdOut"))
-    good_line = "  -wi-ao|253|3|4096.00|2|/dev/abc(20)"
-    fake_cmd = self._FakeRunCmd(True, good_line)
-    good_res = bdev.LogicalVolume._GetLvInfo("fake_path", _run_cmd=fake_cmd)
-    # If the same line is repeated, the result should be the same
-    for lines in [
-      [good_line] * 2,
-      [good_line] * 3,
-      ]:
-      fake_cmd = self._FakeRunCmd(True, "\n".join(lines))
-      same_res = bdev.LogicalVolume._GetLvInfo("fake_path", fake_cmd)
-      self.assertEqual(same_res, good_res)
+  def testGetLvGlobalInfo(self):
+    """Tests for LogicalVolume._GetLvGlobalInfo."""
 
-    # Complex multi-line examples
-    one_line = "  -wi-ao|253|3|4096.00|2|/dev/sda(20),/dev/sdb(50),/dev/sdc(0)"
-    fake_cmd = self._FakeRunCmd(True, one_line)
-    one_res = bdev.LogicalVolume._GetLvInfo("fake_path", _run_cmd=fake_cmd)
-    # These should give the same results
-    for multi_lines in [
-      ("  -wi-ao|253|3|4096.00|2|/dev/sda(30),/dev/sdb(50)\n"
-       "  -wi-ao|253|3|4096.00|2|/dev/sdb(200),/dev/sdc(300)"),
-      ("  -wi-ao|253|3|4096.00|2|/dev/sda(0)\n"
-       "  -wi-ao|253|3|4096.00|2|/dev/sdb(20)\n"
-       "  -wi-ao|253|3|4096.00|2|/dev/sdc(30)"),
-      ("  -wi-ao|253|3|4096.00|2|/dev/sda(20)\n"
-       "  -wi-ao|253|3|4096.00|2|/dev/sdb(50),/dev/sdc(0)"),
-      ]:
-      fake_cmd = self._FakeRunCmd(True, multi_lines)
-      multi_res = bdev.LogicalVolume._GetLvInfo("fake_path", _run_cmd=fake_cmd)
-      self.assertEqual(multi_res, one_res)
+    good_lines="/dev/1|-wi-ao|253|3|4096.00|2|/dev/sda(20)\n" \
+        "/dev/2|-wi-ao|253|3|4096.00|2|/dev/sda(21)\n"
+    expected_output = {"/dev/1": ("-wi-ao", 253, 3, 4096, 2, ["/dev/sda"]),
+                       "/dev/2": ("-wi-ao", 253, 3, 4096, 2, ["/dev/sda"])}
+
+    self.assertEqual({},
+                     bdev.LogicalVolume._GetLvGlobalInfo(
+                         _run_cmd=self._FakeRunCmd(False, "Fake error msg")))
+    self.assertEqual({},
+                     bdev.LogicalVolume._GetLvGlobalInfo(
+                         _run_cmd=self._FakeRunCmd(True, "")))
+    self.assertRaises(errors.BlockDeviceError,
+                      bdev.LogicalVolume._GetLvGlobalInfo,
+                      _run_cmd=self._FakeRunCmd(True, "BadStdOut"))
+
+    fake_cmd = self._FakeRunCmd(True, good_lines)
+    good_res = bdev.LogicalVolume._GetLvGlobalInfo(_run_cmd=fake_cmd)
+    self.assertEqual(expected_output, good_res)
 
   @testutils.patch_object(bdev.LogicalVolume, "Attach")
   def testLogicalVolumeImport(self, attach_mock):
