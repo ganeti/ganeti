@@ -64,6 +64,8 @@ PUT should be prefered over POST.
 
 # C0103: Invalid name, since the R_* names are not conforming
 
+import OpenSSL
+
 from ganeti import opcodes
 from ganeti import objects
 from ganeti import http
@@ -198,6 +200,28 @@ def _UpdateBeparams(inst):
 
   return inst
 
+def _CheckIfConnectionDropped(sock):
+  """Utility function to monitor the state of an open connection.
+
+  @param sock: Connection's open socket
+  @return: True if the connection was remotely closed, otherwise False
+
+  """
+  try:
+    result = sock.recv(0)
+    if result == "":
+      return True
+  # The connection is still open
+  except OpenSSL.SSL.WantReadError:
+    return False
+  # The connection has been terminated gracefully
+  except OpenSSL.SSL.ZeroReturnError:
+    return True
+  # The connection was terminated
+  except OpenSSL.SSL.SysCallError:
+    return True
+  return False
+
 
 class R_root(baserlib.ResourceBase):
   """/ resource.
@@ -278,9 +302,11 @@ class R_2_os(baserlib.OpcodeResource):
     """
     cl = self.GetClient()
     op = opcodes.OpOsDiagnose(output_fields=["name", "variants"], names=[])
+    cancel_fn = (lambda: _CheckIfConnectionDropped(self._req.request_sock))
     job_id = self.SubmitJob([op], cl=cl)
     # we use custom feedback function, instead of print we log the status
-    result = cli.PollJob(job_id, cl, feedback_fn=baserlib.FeedbackFn)
+    result = cli.PollJob(job_id, cl, feedback_fn=baserlib.FeedbackFn,
+                         cancel_fn=cancel_fn)
     diagnose_data = result[0]
 
     if not isinstance(diagnose_data, list):
