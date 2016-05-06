@@ -141,7 +141,7 @@ class LogicalVolume(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params, *args):
+             dyn_params, **kwargs):
     """Create a new logical volume.
 
     """
@@ -223,7 +223,8 @@ class LogicalVolume(base.BlockDev):
     if result.failed:
       base.ThrowError("LV create failed (%s): %s",
                       result.fail_reason, result.output)
-    return LogicalVolume(unique_id, children, size, params, dyn_params, *args)
+    return LogicalVolume(unique_id, children, size, params,
+                         dyn_params, **kwargs)
 
   @staticmethod
   def _GetVolumeInfo(lvm_cmd, fields):
@@ -772,7 +773,7 @@ class PersistentBlockDevice(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params, *args):
+             dyn_params, **kwargs):
     """Create a new device
 
     This is a noop, we only return a PersistentBlockDevice instance
@@ -782,7 +783,7 @@ class PersistentBlockDevice(base.BlockDev):
       raise errors.ProgrammerError("Persistent block device requested with"
                                    " exclusive_storage")
     return PersistentBlockDevice(unique_id, children, 0, params, dyn_params,
-                                 *args)
+                                 **kwargs)
 
   def Remove(self):
     """Remove a device
@@ -884,7 +885,7 @@ class RADOSBlockDevice(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params, *args):
+             dyn_params, **kwargs):
     """Create a new rbd device.
 
     Provision a new rbd volume inside a RADOS pool.
@@ -908,7 +909,7 @@ class RADOSBlockDevice(base.BlockDev):
                       result.fail_reason, result.output)
 
     return RADOSBlockDevice(unique_id, children, size, params, dyn_params,
-                            *args)
+                            **kwargs)
 
   def Remove(self):
     """Remove the rbd device.

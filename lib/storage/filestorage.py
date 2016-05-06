@@ -287,7 +287,7 @@ class FileStorage(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params, *args):
+             dyn_params, **kwargs):
     """Create a new file.
 
     @type size: int
@@ -307,7 +307,7 @@ class FileStorage(base.BlockDev):
 
     FileDeviceHelper.CreateFile(dev_path, size)
     return FileStorage(unique_id, children, size, params, dyn_params,
-                       *args)
+                       **kwargs)
 
 
 def GetFileStorageSpaceInfo(path):
