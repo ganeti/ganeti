@@ -933,6 +933,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     @type vg_name: string
     @param vg_name: the name of the Ganeti-administered volume group
+    @type node_vol_should: dict
+    @param node_vol_should: mapping of node UUIDs to expected LVs on each node
+    @type node_image: dict
+    @param node_image: mapping of node UUIDs to L{NodeImage} objects
     @type reserved: L{ganeti.utils.FieldSet}
     @param reserved: a FieldSet of reserved volume names
 
