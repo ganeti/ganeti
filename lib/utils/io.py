@@ -605,7 +605,7 @@ def EnsureDirs(dirs):
       os.chmod(dir_name, dir_mode)
     except EnvironmentError, err:
       raise errors.GenericError("Cannot change directory permissions on"
-                                " '%s': %s" % (dir_name, err))
+                                " '%s' to 0%o: %s" % (dir_name, dir_mode, err))
     if not os.path.isdir(dir_name):
       raise errors.GenericError("%s is not a directory" % dir_name)
 
