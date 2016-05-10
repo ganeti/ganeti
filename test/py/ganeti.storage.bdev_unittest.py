@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2010, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2012, 2013, 2016 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -44,11 +44,19 @@ from ganeti.storage import bdev
 
 import testutils
 
+def _FakeRunCmd(success, stdout, cmd):
+  if success:
+    exit_code = 0
+  else:
+    exit_code = 1
+  return utils.RunResult(exit_code, None, stdout, "", cmd,
+                         utils.process._TIMEOUT_NONE, 5)
 
 class TestRADOSBlockDevice(testutils.GanetiTestCase):
   """Tests for bdev.RADOSBlockDevice volumes
 
   """
+
   def setUp(self):
     """Set up input data"""
     testutils.GanetiTestCase.setUp(self)
@@ -84,7 +92,7 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
       constants.LDP_POOL: "fake_pool"
       }
 
-  def test_ParseRbdShowmappedJson(self):
+  def testParseRbdShowmappedJson(self):
     parse_function = bdev.RADOSBlockDevice._ParseRbdShowmappedJson
 
     self.assertEqual(parse_function(self.json_output_ok, self.volume_name),
@@ -98,7 +106,7 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
     self.assertRaises(errors.BlockDeviceError, parse_function,
                       self.output_invalid, self.volume_name)
 
-  def test_ParseRbdShowmappedPlain(self):
+  def testParseRbdShowmappedPlain(self):
     parse_function = bdev.RADOSBlockDevice._ParseRbdShowmappedPlain
 
     self.assertEqual(parse_function(self.plain_output_new_ok,
@@ -127,8 +135,7 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
     """Test for bdev.RADOSBlockDevice.Import()"""
     # Set up the mock objects return values
     attach_mock.return_value = True
-    run_cmd_mock.return_value = \
-        utils.RunResult(0, None, "", "", "", utils.process._TIMEOUT_NONE, 0)
+    run_cmd_mock.return_value = _FakeRunCmd(True, "", "")
 
     # Create a fake rbd volume
     inst = bdev.RADOSBlockDevice(self.test_unique_id, [], 1024,
@@ -155,6 +162,34 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
                   inst.rbd_name, "-"]
 
     self.assertEqual(inst.Export(), export_cmd)
+
+  @testutils.patch_object(utils, "RunCmd")
+  @testutils.patch_object(bdev.RADOSBlockDevice, "Attach")
+  def testRADOSBlockDeviceCreate(self, attach_mock, run_cmd_mock):
+    """Test for bdev.RADOSBlockDevice.Create() success"""
+    attach_mock.return_value = True
+    # This returns a successful RunCmd result
+    run_cmd_mock.return_value = _FakeRunCmd(True, "", "")
+
+    expect = bdev.RADOSBlockDevice(self.test_unique_id, [], 1024,
+                                   self.test_params, {})
+    got = bdev.RADOSBlockDevice.Create(self.test_unique_id, [], 1024, None,
+                                       self.test_params, False, {},
+                                       test_kwarg="test")
+
+    self.assertEqual(expect, got)
+
+  @testutils.patch_object(bdev.RADOSBlockDevice, "Attach")
+  def testRADOSBlockDeviceCreateFailure(self, attach_mock):
+    """Test for bdev.RADOSBlockDevice.Create() failure with exclusive_storage
+    enabled
+
+    """
+    attach_mock.return_value = True
+
+    self.assertRaises(errors.ProgrammerError, bdev.RADOSBlockDevice.Create,
+                      self.test_unique_id, [], 1024, None, self.test_params,
+                      True, {})
 
 
 class TestExclusiveStoragePvs(unittest.TestCase):
@@ -234,8 +269,30 @@ class TestExclusiveStoragePvs(unittest.TestCase):
             self.assertTrue(len(epvs) == num_req or pvi.free != pvi.size)
 
 
-class TestLogicalVolume(unittest.TestCase):
+class TestLogicalVolume(testutils.GanetiTestCase):
   """Tests for bdev.LogicalVolume."""
+
+  def setUp(self):
+    """Set up test data"""
+    testutils.GanetiTestCase.setUp(self)
+
+    self.volume_name = "31225655-5775-4356-c212-e8b1e137550a.disk0"
+    self.test_unique_id = ("ganeti", self.volume_name)
+    self.test_params = {
+      constants.LDP_STRIPES: 1
+      }
+    self.pv_info_return = [objects.LvmPvInfo(name="/dev/sda5", vg_name="xenvg",
+                                             size=3500000.00, free=5000000.00,
+                                             attributes="wz--n-", lv_list=[])]
+    self.pv_info_invalid = [objects.LvmPvInfo(name="/dev/s:da5",
+                                              vg_name="xenvg",
+                                             size=3500000.00, free=5000000.00,
+                                              attributes="wz--n-", lv_list=[])]
+    self.pv_info_no_space = [objects.LvmPvInfo(name="/dev/sda5", vg_name="xenvg",
+                                               size=3500000.00, free=0.00,
+                                               attributes="wz--n-", lv_list=[])]
+
+
   def testParseLvInfoLine(self):
     """Tests for LogicalVolume._ParseLvInfoLine."""
     broken_lines = [
@@ -279,14 +336,6 @@ class TestLogicalVolume(unittest.TestCase):
         parsed = bdev.LogicalVolume._ParseLvInfoLine(lvs_line, sep)
         self.assertEqual(parsed, exp)
 
-  @staticmethod
-  def _FakeRunCmd(success, stdout):
-    if success:
-      exit_code = 0
-    else:
-      exit_code = 1
-    return lambda cmd: utils.RunResult(exit_code, None, stdout, "", cmd,
-                                       utils.process._TIMEOUT_NONE, 5)
 
   def testGetLvGlobalInfo(self):
     """Tests for LogicalVolume._GetLvGlobalInfo."""
@@ -298,15 +347,19 @@ class TestLogicalVolume(unittest.TestCase):
 
     self.assertEqual({},
                      bdev.LogicalVolume._GetLvGlobalInfo(
-                         _run_cmd=self._FakeRunCmd(False, "Fake error msg")))
+                         _run_cmd=lambda cmd: _FakeRunCmd(False,
+                                                          "Fake error msg",
+                                                          cmd)))
     self.assertEqual({},
                      bdev.LogicalVolume._GetLvGlobalInfo(
-                         _run_cmd=self._FakeRunCmd(True, "")))
+                         _run_cmd=lambda cmd: _FakeRunCmd(True,
+                                                          "",
+                                                          cmd)))
     self.assertRaises(errors.BlockDeviceError,
                       bdev.LogicalVolume._GetLvGlobalInfo,
-                      _run_cmd=self._FakeRunCmd(True, "BadStdOut"))
+                      _run_cmd=lambda cmd: _FakeRunCmd(True, "BadStdOut", cmd))
 
-    fake_cmd = self._FakeRunCmd(True, good_lines)
+    fake_cmd = lambda cmd: _FakeRunCmd(True, good_lines, cmd)
     good_res = bdev.LogicalVolume._GetLvGlobalInfo(_run_cmd=fake_cmd)
     self.assertEqual(expected_output, good_res)
 
@@ -317,8 +370,7 @@ class TestLogicalVolume(unittest.TestCase):
     attach_mock.return_value = True
 
     # Create a fake logical volume
-    test_unique_id = ("ganeti",  "31225655-5775-4356-c212-e8b1e137550a.disk0")
-    inst = bdev.LogicalVolume(test_unique_id, [], 1024, {}, {})
+    inst = bdev.LogicalVolume(self.test_unique_id, [], 1024, {}, {})
 
     # Desired output command
     import_cmd = [constants.DD_CMD,
@@ -335,8 +387,7 @@ class TestLogicalVolume(unittest.TestCase):
     attach_mock.return_value = True
 
     # Create a fake logical volume
-    test_unique_id = ("ganeti",  "31225655-5775-4356-c212-e8b1e137550a.disk0")
-    inst = bdev.LogicalVolume(test_unique_id, [], 1024, {}, {})
+    inst = bdev.LogicalVolume(self.test_unique_id, [], 1024, {}, {})
 
     # Desired output command
     export_cmd = [constants.DD_CMD,
@@ -347,19 +398,167 @@ class TestLogicalVolume(unittest.TestCase):
 
     self.assertEqual(inst.Export(), export_cmd)
 
+  @testutils.patch_object(bdev.LogicalVolume, "GetPVInfo")
+  @testutils.patch_object(utils, "RunCmd")
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testCreate(self, attach_mock, run_cmd_mock, pv_info_mock):
+    """Test for bdev.LogicalVolume.Create() success"""
+    attach_mock.return_value = True
+    # This returns a successful RunCmd result
+    run_cmd_mock.return_value = _FakeRunCmd(True, "", "")
+    pv_info_mock.return_value = self.pv_info_return
+
+    expect = bdev.LogicalVolume(self.test_unique_id, [], 1024,
+                                self.test_params, {})
+    got = bdev.LogicalVolume.Create(self.test_unique_id, [], 1024, None,
+                                    self.test_params, False, {},
+                                    test_kwarg="test")
+
+    self.assertEqual(expect, got)
+
+  @testutils.patch_object(bdev.LogicalVolume, "GetPVInfo")
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testCreateFailurePvsInfoExclStor(self, attach_mock, pv_info_mock):
+    """Test for bdev.LogicalVolume.Create() failure when pv_info is empty and
+    exclusive storage is enabled
+
+    """
+    attach_mock.return_value = True
+    pv_info_mock.return_value = []
+
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume.Create,
+                      self.test_unique_id, [], 1024, None, {}, True, {})
+
+  @testutils.patch_object(bdev.LogicalVolume, "GetPVInfo")
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testCreateFailurePvsInfoNoExclStor(self, attach_mock, pv_info_mock):
+    """Test for bdev.LogicalVolume.Create() failure when pv_info is empty and
+    exclusive storage is disabled
+
+    """
+    attach_mock.return_value = True
+    pv_info_mock.return_value = []
+
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume.Create,
+                      self.test_unique_id, [], 1024, None, {}, False, {})
+
+  @testutils.patch_object(bdev.LogicalVolume, "GetPVInfo")
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testCreateFailurePvsInvalid(self, attach_mock, pv_info_mock):
+    """Test for bdev.LogicalVolume.Create() failure when pvs_info output is
+    invalid
+
+    """
+    attach_mock.return_value = True
+    pv_info_mock.return_value = self.pv_info_invalid
+
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume.Create,
+                      self.test_unique_id, [], 1024, None, {}, False, {})
+
+  @testutils.patch_object(bdev.LogicalVolume, "GetPVInfo")
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testCreateFailureNoSpindles(self, attach_mock, pv_info_mock):
+    """Test for bdev.LogicalVolume.Create() failure when there are no spindles
+
+    """
+    attach_mock.return_value = True
+    pv_info_mock.return_value = self.pv_info_return
+
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume.Create,
+                      self.test_unique_id, [], 1024, None,
+                      self.test_params,True, {})
+
+  @testutils.patch_object(bdev.LogicalVolume, "GetPVInfo")
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testCreateFailureNotEnoughSpindles(self, attach_mock, pv_info_mock):
+    """Test for bdev.LogicalVolume.Create() failure when there are not enough
+    spindles
+
+    """
+    attach_mock.return_value = True
+    pv_info_mock.return_value = self.pv_info_return
+
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume.Create,
+                      self.test_unique_id, [], 1024, 0,
+                      self.test_params, True, {})
+
+  @testutils.patch_object(bdev.LogicalVolume, "GetPVInfo")
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testCreateFailureNotEnoughEmptyPvs(self, attach_mock, pv_info_mock):
+    """Test for bdev.LogicalVolume.Create() failure when there are not enough
+    empty pvs
+
+    """
+    attach_mock.return_value = True
+    pv_info_mock.return_value = self.pv_info_return
+
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume.Create,
+                      self.test_unique_id, [], 1024, 2,
+                      self.test_params, True, {})
+
+  @testutils.patch_object(bdev.LogicalVolume, "GetPVInfo")
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testCreateFailureNoFreeSpace(self, attach_mock, pv_info_mock):
+    """Test for bdev.LogicalVolume.Create() failure when there is no free space
+
+    """
+    attach_mock.return_value = True
+    pv_info_mock.return_value = self.pv_info_no_space
+
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume.Create,
+                      self.test_unique_id, [], 1024, None,
+                      self.test_params, False, {})
+
+  @testutils.patch_object(utils, "RunCmd")
+  @testutils.patch_object(bdev.LogicalVolume, "GetPVInfo")
+  @testutils.patch_object(bdev.LogicalVolume, "Attach")
+  def testCreateFailureCommand(self, attach_mock, pv_info_mock, run_cmd_mock):
+    """Test for bdev.LogicalVolume.Create() failure when the runcmd is incorrect
+
+    """
+    attach_mock.return_value = True
+    pv_info_mock.return_value = self.pv_info_return
+    run_cmd_mock = _FakeRunCmd(False, "", "")
+
+    self.assertRaises(errors.BlockDeviceError, bdev.LogicalVolume.Create,
+                      self.test_unique_id, [], 1024, None,
+                      self.test_params, False, {})
+
 
 class TestPersistentBlockDevice(testutils.GanetiTestCase):
   """Tests for bdev.PersistentBlockDevice volumes
 
   """
+
+  def setUp(self):
+    """Set up test data"""
+    testutils.GanetiTestCase.setUp(self)
+    self.test_unique_id = (constants.BLOCKDEV_DRIVER_MANUAL, "/dev/abc")
+
   def testPersistentBlockDeviceImport(self):
     """Test case for bdev.PersistentBlockDevice.Import()"""
     # Create a fake block device
-    test_unique_id = (constants.BLOCKDEV_DRIVER_MANUAL, "/dev/abc")
-    inst = bdev.PersistentBlockDevice(test_unique_id, [], 1024, {}, {})
+    inst = bdev.PersistentBlockDevice(self.test_unique_id, [], 1024, {}, {})
 
     self.assertRaises(errors.BlockDeviceError,
                       bdev.PersistentBlockDevice.Import, inst)
+
+  @testutils.patch_object(bdev.PersistentBlockDevice, "Attach")
+  def testCreate(self, attach_mock):
+    """Test for bdev.PersistentBlockDevice.Create()"""
+    attach_mock.return_value = True
+
+    expect = bdev.PersistentBlockDevice(self.test_unique_id, [], 0, {}, {})
+    got = bdev.PersistentBlockDevice.Create(self.test_unique_id, [], 1024, None,
+                                            {}, False, {}, test_kwarg="test")
+
+    self.assertEqual(expect, got)
+
+  def testCreateFailure(self):
+    """Test for bdev.PersistentBlockDevice.Create() failure"""
+
+    self.assertRaises(errors.ProgrammerError, bdev.PersistentBlockDevice.Create,
+                      self.test_unique_id, [], 1024, None, {}, True, {})
 
 
 if __name__ == "__main__":

@@ -301,7 +301,7 @@ class GlusterStorage(base.BlockDev):
       base.ThrowError("Invalid setup for file device")
 
     try:
-      driver, path = unique_id
+      self.driver, self.path = unique_id
     except ValueError: # wrong number of arguments
       raise ValueError("Invalid configuration data %s" % repr(unique_id))
 
@@ -310,8 +310,6 @@ class GlusterStorage(base.BlockDev):
     volume = params[constants.GLUSTER_VOLUME]
 
     self.volume = GlusterVolume(server_addr, port, volume)
-    self.path = path
-    self.driver = driver
     self.full_path = io.PathJoin(self.volume.mount_point, self.path)
     self.file = None
 

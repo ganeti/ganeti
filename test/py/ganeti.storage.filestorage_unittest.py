@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2013 Google Inc.
+# Copyright (C) 2013, 2016 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -273,19 +273,18 @@ class TestFileDeviceHelper(testutils.GanetiTestCase):
 
     # These should fail horribly.
     volume.Exists(assert_exists=False)
-    self.assertRaises(errors.BlockDeviceError, lambda: \
-      volume.Exists(assert_exists=True))
-    self.assertRaises(errors.BlockDeviceError, lambda: \
-      volume.Size())
-    self.assertRaises(errors.BlockDeviceError, lambda: \
-      volume.Grow(0.020, True, False, None))
+    self.assertRaises(errors.BlockDeviceError, volume.Exists,
+                      assert_exists=True)
+    self.assertRaises(errors.BlockDeviceError, volume.Size)
+    self.assertRaises(errors.BlockDeviceError, volume.Grow,
+                      0.020, True, False, None)
 
     # Removing however fails silently.
     volume.Remove()
 
     # Make sure we don't create all directories for you unless we ask for it
-    self.assertRaises(errors.BlockDeviceError, lambda: \
-      TestFileDeviceHelper._Make(path, create_with_size=1))
+    self.assertRaises(errors.BlockDeviceError, TestFileDeviceHelper._Make,
+                      path, create_with_size=1)
 
   def testFileCreation(self):
     with TestFileDeviceHelper.TempEnvironment() as env:
@@ -293,22 +292,22 @@ class TestFileDeviceHelper(testutils.GanetiTestCase):
 
       self.assertTrue(env.volume.Exists())
       env.volume.Exists(assert_exists=True)
-      self.assertRaises(errors.BlockDeviceError, lambda: \
-        env.volume.Exists(assert_exists=False))
+      self.assertRaises(errors.BlockDeviceError, env.volume.Exists,
+                        assert_exists=False)
 
-    self.assertRaises(errors.BlockDeviceError, lambda: \
-      TestFileDeviceHelper._Make("/enoent", create_with_size=0.042))
+    self.assertRaises(errors.BlockDeviceError, TestFileDeviceHelper._Make,
+                      "/enoent", create_with_size=0.042)
 
   def testFailSizeDirectory(self):
   # This should still fail.
    with TestFileDeviceHelper.TempEnvironment(delete_file=False) as env:
-    self.assertRaises(errors.BlockDeviceError, lambda: \
-      TestFileDeviceHelper._Make(env.subdirectory).Size())
+     test_helper = TestFileDeviceHelper._Make(env.subdirectory)
+     self.assertRaises(errors.BlockDeviceError, test_helper.Size)
 
   def testGrowFile(self):
     with TestFileDeviceHelper.TempEnvironment(create_file=True) as env:
-      self.assertRaises(errors.BlockDeviceError, lambda: \
-        env.volume.Grow(-1, False, True, None))
+      self.assertRaises(errors.BlockDeviceError, env.volume.Grow, -1,
+                        False, True, None)
 
       env.volume.Grow(2, False, True, None)
       self.assertEqual(2.0, env.volume.Size() / 1024.0**2)
@@ -327,6 +326,29 @@ class TestFileDeviceHelper(testutils.GanetiTestCase):
       self.assertEqual(new_path, env.volume.path)
       env.volume.Exists(assert_exists=True)
       env.path = new_path # update the path for the context manager
+
+
+class TestFileStorage(testutils.GanetiTestCase):
+
+  @testutils.patch_object(filestorage, "FileDeviceHelper")
+  @testutils.patch_object(filestorage.FileStorage, "Attach")
+  def testCreate(self, attach_mock, helper_mock):
+    attach_mock.return_value = True
+    helper_mock.return_value = None
+    test_unique_id = ("test_driver", "/test/file")
+
+
+    expect = filestorage.FileStorage(test_unique_id, [], 123, {}, {})
+    got = filestorage.FileStorage.Create(test_unique_id, [], 123, None, {},
+                                         False, {}, test_kwarg="test")
+
+    self.assertEqual(expect, got)
+
+  def testCreateFailure(self):
+    test_unique_id = ("test_driver", "/test/file")
+
+    self.assertRaises(errors.ProgrammerError, filestorage.FileStorage.Create,
+                      test_unique_id, [], 123, None, {}, True, {})
 
 
 if __name__ == "__main__":

@@ -93,6 +93,19 @@ class BlockDev(object):
     self.params = params
     self.dyn_params = dyn_params
 
+  def __eq__(self, other):
+    if not isinstance(self, type(other)):
+      return False
+    return (self._children == other._children and
+            self.dev_path == other.dev_path and
+            self.unique_id == other.unique_id and
+            self.major == other.major and
+            self.minor == other.minor and
+            self.attached == other.attached and
+            self.size == other.size and
+            self.params == other.params and
+            self.dyn_params == other.dyn_params)
+
   def Assemble(self):
     """Assemble the device from its components.
 

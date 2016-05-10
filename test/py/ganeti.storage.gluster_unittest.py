@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2013 Google Inc.
+# Copyright (C) 2013, 2016 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,9 +35,10 @@ import tempfile
 import unittest
 import mock
 
+from ganeti import constants
 from ganeti import errors
-from ganeti.storage import filestorage
 from ganeti.storage import gluster
+from ganeti import ssconf
 from ganeti import utils
 
 import testutils
@@ -139,6 +140,42 @@ class TestGlusterVolume(testutils.GanetiTestCase):
                     ["-o server-port=9001 127.0.0.1:/testvol",
                      "-o server-port=9001 ::1:/testvol"],
                     msg="%s not testvol on localhost:9001" % (fuseMountString,))
+
+
+class TestGlusterStorage(testutils.GanetiTestCase):
+
+  def setUp(self):
+    """Set up test data"""
+    testutils.GanetiTestCase.setUp(self)
+
+    self.test_params = {
+        constants.GLUSTER_HOST: "127.0.0.1",
+        constants.GLUSTER_PORT: "24007",
+        constants.GLUSTER_VOLUME: "/testvol"
+    }
+    self.test_unique_id = ("testdriver", "testpath")
+
+
+  @testutils.patch_object(gluster.FileDeviceHelper, "CreateFile")
+  @testutils.patch_object(gluster.GlusterVolume, "Mount")
+  @testutils.patch_object(ssconf.SimpleStore, "GetGlusterStorageDir")
+  @testutils.patch_object(gluster.GlusterStorage, "Attach")
+  def testCreate(self, attach_mock, storage_dir_mock, mount_mock, create_file_mock):
+    attach_mock.return_value = True
+    storage_dir_mock.return_value = "/testmount"
+
+    expect = gluster.GlusterStorage(self.test_unique_id, [], 123,
+                                    self.test_params, {})
+    got = gluster.GlusterStorage.Create(self.test_unique_id, [], 123, None,
+                                        self.test_params, False, {},
+                                        test_kwarg="test")
+
+    self.assertEqual(expect, got)
+
+  def testCreateFailure(self):
+    self.assertRaises(errors.ProgrammerError, gluster.GlusterStorage.Create,
+                      self.test_unique_id, [], 123, None,
+                      self.test_params, True, {})
 
 
 if __name__ == "__main__":
