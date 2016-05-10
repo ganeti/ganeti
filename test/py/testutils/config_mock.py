@@ -274,6 +274,12 @@ class ConfigMock(config.ConfigWriter):
     if disks is None:
       if disk_template == constants.DT_DISKLESS:
         disks = []
+      elif disk_template == constants.DT_EXT:
+        provider = "mock_provider"
+        disks = [self.CreateDisk(dev_type=disk_template,
+                                 primary_node=primary_node,
+                                 secondary_node=secondary_node,
+                                 params={constants.IDISK_PROVIDER: provider})]
       else:
         disks = [self.CreateDisk(dev_type=disk_template,
                                  primary_node=primary_node,

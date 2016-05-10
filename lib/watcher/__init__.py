@@ -148,13 +148,14 @@ class Instance(object):
 
   """
   def __init__(self, name, status, config_state, config_state_source,
-               disks_active, snodes):
+               disks_active, snodes, disk_template):
     self.name = name
     self.status = status
     self.config_state = config_state
     self.config_state_source = config_state_source
     self.disks_active = disks_active
     self.snodes = snodes
+    self.disk_template = disk_template
 
   def Restart(self, cl):
     """Encapsulates the start of an instance.
@@ -753,7 +754,7 @@ def _GetGroupData(qcl, uuid):
   queries = [
       (constants.QR_INSTANCE,
        ["name", "status", "admin_state", "admin_state_source", "disks_active",
-        "snodes", "pnode.group.uuid", "snodes.group.uuid"],
+        "snodes", "pnode.group.uuid", "snodes.group.uuid", "disk_template"],
        [qlang.OP_EQUAL, "pnode.group.uuid", uuid]),
       (constants.QR_NODE,
        ["name", "bootid", "offline"],
@@ -779,14 +780,14 @@ def _GetGroupData(qcl, uuid):
 
   # Load all instances
   for (name, status, config_state, config_state_source, disks_active, snodes,
-       pnode_group_uuid, snodes_group_uuid) in raw_instances:
+       pnode_group_uuid, snodes_group_uuid, disk_template) in raw_instances:
     if snodes and set([pnode_group_uuid]) != set(snodes_group_uuid):
       logging.error("Ignoring split instance '%s', primary group %s, secondary"
                     " groups %s", name, pnode_group_uuid,
                     utils.CommaJoin(snodes_group_uuid))
     else:
       instances.append(Instance(name, status, config_state, config_state_source,
-                                disks_active, snodes))
+                                disks_active, snodes, disk_template))
 
       for node in snodes:
         secondaries.setdefault(node, set()).add(name)
@@ -865,7 +866,19 @@ def _GroupWatcher(opts):
 
     started = _CheckInstances(client, notepad, instances, locks)
     _CheckDisks(client, notepad, nodes, instances, started)
-    if not opts.no_verify_disks:
+
+    # Check if the nodegroup only has ext storage type
+    only_ext = compat.all(i.disk_template == constants.DT_EXT
+                          for i in instances.values())
+
+    # We skip current NodeGroup verification if there are only external storage
+    # devices. Currently we provide an interface for external storage provider
+    # for disk verification implementations, however current ExtStorageDevice
+    # does not provide an API for this yet.
+    #
+    # This check needs to be revisited if ES_ACTION_VERIFY on ExtStorageDevice
+    # is implemented.
+    if not opts.no_verify_disks and not only_ext:
       _VerifyDisks(client, group_uuid, nodes, instances)
   except Exception, err:
     logging.info("Not updating status file due to failure: %s", err)
