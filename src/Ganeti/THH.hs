@@ -496,9 +496,9 @@ genFromRaw traw fname tname constructors = do
                      return (g, r)) constructors
   -- the otherwise clause (fallback)
   oth_clause <- do
+    let err = "Invalid string value for type " ++ (nameBase tname) ++ ": "
     g <- normalG [| otherwise |]
-    r <- [|fail ("Invalid string value for type " ++
-                 $(litE (stringL (nameBase tname))) ++ ": " ++ show $varpe) |]
+    r <- [|fail $ $(litE (stringL err)) ++ show $varpe |]
     return (g, r)
   let fun = FunD fname [Clause [VarP varp]
                         (GuardedB (clauses++[oth_clause])) []]
@@ -1565,9 +1565,9 @@ genLoadExc tname sname opdefs = do
                                         (VarE exc_name))
                           (str_matches ++ [defmatch]))) []
   -- the fail expression for the second function clause
-  fail_type <- [| fail $ "Invalid exception: expected '(string, [args])' " ++
-                  "      but got " ++ show (pp_value $(varE arg_else)) ++ "'"
-                |]
+  let err = "Invalid exception: expected '(string, [args])' " ++
+            "      but got "
+  fail_type <- [| fail $ err ++ show (pp_value $(varE arg_else)) ++ "'" |]
   -- the second function clause
   let clause2 = Clause [VarP arg_else] (NormalB fail_type) []
   sigt <- [t| JSON.JSValue -> JSON.Result $(conT tname) |]
