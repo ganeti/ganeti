@@ -1185,7 +1185,7 @@ defaultFromJSArray keys xs = do
 -- See 'defaultToJSArray' and 'defaultFromJSArray'.
 genArrayObjectInstance :: Name -> [Field] -> Q Dec
 genArrayObjectInstance name fields = do
-  let fnames = map T.unpack $ concatMap (liftA2 (:) fieldName fieldExtraKeys) fields
+  let fnames = fieldsKeys fields
   instanceD (return []) (appT (conT ''ArrayObject) (conT name))
     [ valD (varP 'toJSArray) (normalB [| defaultToJSArray $(lift fnames) |]) []
     , valD (varP 'fromJSArray) (normalB [| defaultFromJSArray fnames |]) []
@@ -1293,18 +1293,18 @@ loadObjectField allFields field = do
                $ $objvar |]
       _ ->  loadFnOpt field [| maybeFromObj $objvar $objfield |] objvar
 
--- | Generates the set of all used JSON dictionary keys for a field
--- This is the equivalent of [| S.fromList (map T.pack 'fnames) |]
-fieldDictKeys :: Field -> Exp
-fieldDictKeys field = AppE (VarE 'S.fromList)
-  . AppE (AppE (VarE 'map) (VarE 'T.pack))
-  . ListE . map (LitE . StringL)
-  $ map T.unpack $ liftA2 (:) fieldName fieldExtraKeys field
+fieldsKeys :: [Field] -> [String]
+fieldsKeys fields =
+  map T.unpack $ concatMap (liftA2 (:) fieldName fieldExtraKeys) fields
 
--- | Generates the list of all used JSON dictionary keys for a list of fields
+-- | Generates the set of all used JSON dictionary keys for a list of fields
+-- The equivalent of S.fromList (map T.pack ["f1", "f2", "f3"] )
 fieldsDictKeys :: [Field] -> Exp
 fieldsDictKeys fields =
-  AppE (VarE 'S.unions) . ListE . map fieldDictKeys $ fields
+  AppE (VarE 'S.fromList)
+  . AppE (AppE (VarE 'map) (VarE 'T.pack))
+  . ListE . map (LitE . StringL)
+  $ fieldsKeys fields
 
 -- | Generates the list of all used JSON dictionary keys for a list of fields
 fieldsDictKeysQ :: [Field] -> Q Exp
