@@ -36,7 +36,7 @@ AC_ARG_ENABLE([versionfull],
   [[if test "$enableval" != no; then
       USE_VERSION_FULL=yes
     else
-      USER_VERSION_FULL=no
+      USE_VERSION_FULL=no
     fi
   ]],
   [USE_VERSION_FULL=no
