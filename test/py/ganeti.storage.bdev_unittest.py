@@ -52,6 +52,13 @@ def _FakeRunCmd(success, stdout, cmd):
   return utils.RunResult(exit_code, None, stdout, "", cmd,
                          utils.process._TIMEOUT_NONE, 5)
 
+
+class FakeStatResult(object):
+  def __init__(self, st_mode):
+    self.st_mode = st_mode
+    self.st_rdev = 0
+
+
 class TestRADOSBlockDevice(testutils.GanetiTestCase):
   """Tests for bdev.RADOSBlockDevice volumes
 
@@ -190,6 +197,39 @@ class TestRADOSBlockDevice(testutils.GanetiTestCase):
     self.assertRaises(errors.ProgrammerError, bdev.RADOSBlockDevice.Create,
                       self.test_unique_id, [], 1024, None, self.test_params,
                       True, {})
+
+  @testutils.patch_object(bdev.RADOSBlockDevice, "_MapVolumeToBlockdev")
+  @testutils.patch_object(os, "stat")
+  def testAttach(self, stat_mock, map_mock):
+    """Test for bdev.RADOSBlockDevice.Attach()"""
+    stat_mock.return_value = FakeStatResult(0x6000) # bitmask for S_ISBLK
+    map_mock.return_value = "/fake/path"
+    dev = bdev.RADOSBlockDevice.__new__(bdev.RADOSBlockDevice)
+    dev.unique_id = self.test_unique_id
+
+    self.assertEqual(dev.Attach(), True)
+
+  @testutils.patch_object(bdev.RADOSBlockDevice, "_MapVolumeToBlockdev")
+  @testutils.patch_object(os, "stat")
+  def testAttachFailureNotBlockdev(self, stat_mock, map_mock):
+    """Test for bdev.RADOSBlockDevice.Attach() failure, not a blockdev"""
+    stat_mock.return_value = FakeStatResult(0x0)
+    map_mock.return_value = "/fake/path"
+    dev = bdev.RADOSBlockDevice.__new__(bdev.RADOSBlockDevice)
+    dev.unique_id = self.test_unique_id
+
+    self.assertEqual(dev.Attach(), False)
+
+  @testutils.patch_object(bdev.RADOSBlockDevice, "_MapVolumeToBlockdev")
+  @testutils.patch_object(os, "stat")
+  def testAttachFailureNoDevice(self, stat_mock, map_mock):
+    """Test for bdev.RADOSBlockDevice.Attach() failure, no device found"""
+    stat_mock.side_effect = OSError("No device found")
+    map_mock.return_value = "/fake/path"
+    dev = bdev.RADOSBlockDevice.__new__(bdev.RADOSBlockDevice)
+    dev.unique_id = self.test_unique_id
+
+    self.assertEqual(dev.Attach(), False)
 
 
 class TestExclusiveStoragePvs(unittest.TestCase):
@@ -524,6 +564,24 @@ class TestLogicalVolume(testutils.GanetiTestCase):
                       self.test_unique_id, [], 1024, None,
                       self.test_params, False, {})
 
+  @testutils.patch_object(bdev.LogicalVolume, "_GetLvGlobalInfo")
+  def testAttach(self, info_mock):
+    """Test for bdev.LogicalVolume.Attach()"""
+    info_mock.return_value = {"/dev/fake/path": ("v", 1, 0, 1024, 0, ["test"])}
+    dev = bdev.LogicalVolume.__new__(bdev.LogicalVolume)
+    dev.dev_path = "/dev/fake/path"
+
+    self.assertEqual(dev.Attach(), True)
+
+  @testutils.patch_object(bdev.LogicalVolume, "_GetLvGlobalInfo")
+  def testAttachFalse(self, info_mock):
+    """Test for bdev.LogicalVolume.Attach() with missing lv_info"""
+    info_mock.return_value = {}
+    dev = bdev.LogicalVolume.__new__(bdev.LogicalVolume)
+    dev.dev_path = "/dev/fake/path"
+
+    self.assertEqual(dev.Attach(), False)
+
 
 class TestPersistentBlockDevice(testutils.GanetiTestCase):
   """Tests for bdev.PersistentBlockDevice volumes
@@ -559,6 +617,33 @@ class TestPersistentBlockDevice(testutils.GanetiTestCase):
 
     self.assertRaises(errors.ProgrammerError, bdev.PersistentBlockDevice.Create,
                       self.test_unique_id, [], 1024, None, {}, True, {})
+
+  @testutils.patch_object(os, "stat")
+  def testAttach(self, stat_mock):
+    """Test for bdev.PersistentBlockDevice.Attach()"""
+    stat_mock.return_value = FakeStatResult(0x6000) # bitmask for S_ISBLK
+    dev = bdev.PersistentBlockDevice.__new__(bdev.PersistentBlockDevice)
+    dev.dev_path = "/dev/fake/path"
+
+    self.assertEqual(dev.Attach(), True)
+
+  @testutils.patch_object(os, "stat")
+  def testAttachFailureNotBlockdev(self, stat_mock):
+    """Test for bdev.PersistentBlockDevice.Attach() failure, not a blockdev"""
+    stat_mock.return_value = FakeStatResult(0x0)
+    dev = bdev.PersistentBlockDevice.__new__(bdev.PersistentBlockDevice)
+    dev.dev_path = "/dev/fake/path"
+
+    self.assertEqual(dev.Attach(), False)
+
+  @testutils.patch_object(os, "stat")
+  def testAttachFailureNoDevice(self, stat_mock):
+    """Test for bdev.PersistentBlockDevice.Attach() failure, no device found"""
+    stat_mock.side_effect = OSError("No device found")
+    dev = bdev.PersistentBlockDevice.__new__(bdev.PersistentBlockDevice)
+    dev.dev_path = "/dev/fake/path"
+
+    self.assertEqual(dev.Attach(), False)
 
 
 if __name__ == "__main__":

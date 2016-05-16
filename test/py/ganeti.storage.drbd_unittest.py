@@ -556,6 +556,24 @@ class TestDRBD8Create(testutils.GanetiTestCase):
                       self.test_unique_id, self.children, 123, None, {},
                       False, self.test_dyn_params)
 
+  @testutils.patch_object(drbd.DRBD8, "GetUsedDevs")
+  def testAttach(self, drbd_mock):
+    """Test for drbd.DRBD8Dev.Attach()"""
+    drbd_mock.return_value = [1]
+    dev = drbd.DRBD8Dev.__new__(drbd.DRBD8Dev)
+    dev._aminor = 1
+
+    self.assertEqual(dev.Attach(), True)
+
+  @testutils.patch_object(drbd.DRBD8, "GetUsedDevs")
+  def testAttach(self, drbd_mock):
+    """Test for drbd.DRBD8Dev.Attach() not finding a minor"""
+    drbd_mock.return_value = []
+    dev = drbd.DRBD8Dev.__new__(drbd.DRBD8Dev)
+    dev._aminor = 1
+
+    self.assertEqual(dev.Attach(), False)
+
 
 if __name__ == "__main__":
   testutils.GanetiTestProgram()

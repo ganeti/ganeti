@@ -31,10 +31,18 @@
 """Script for unittesting the extstorage module"""
 
 
+import os
+
 from ganeti import errors
 from ganeti.storage import extstorage
 
 import testutils
+
+
+class FakeStatResult(object):
+  def __init__(self, st_mode):
+    self.st_mode = st_mode
+    self.st_rdev = 0
 
 
 class TestExtStorageDevice(testutils.GanetiTestCase):
@@ -66,6 +74,72 @@ class TestExtStorageDevice(testutils.GanetiTestCase):
                       extstorage.ExtStorageDevice.Create,
                       self.test_unique_id, [], 123, None, {},
                       True, {}, name=self.name, uuid=self.uuid)
+
+  @testutils.patch_object(extstorage.ExtStorageDevice, "_ExtStorageAction")
+  @testutils.patch_object(os, "stat")
+  def testAttach(self, stat_mock, action_mock):
+    """Test for extstorage.ExtStorageDevice.Attach()"""
+    stat_mock.return_value = FakeStatResult(0x6000) # bitmask for S_ISBLK
+    action_mock.return_value = "/dev/path\nURI"
+    dev = extstorage.ExtStorageDevice.__new__(extstorage.ExtStorageDevice)
+    dev.unique_id = self.test_unique_id
+    dev.ext_params = {}
+    dev.name = self.name
+    dev.uuid = self.uuid
+
+    self.assertEqual(dev.Attach(), True)
+
+  @testutils.patch_object(extstorage.ExtStorageDevice, "_ExtStorageAction")
+  def testAttachNoUserspaceURI(self, action_mock):
+    """Test for extstorage.ExtStorageDevice.Attach() with no userspace URI"""
+    action_mock.return_value = ""
+    dev = extstorage.ExtStorageDevice.__new__(extstorage.ExtStorageDevice)
+    dev.unique_id = self.test_unique_id
+    dev.ext_params = {}
+    dev.name = self.name
+    dev.uuid = self.uuid
+
+    self.assertEqual(dev.Attach(), False)
+
+  @testutils.patch_object(extstorage.ExtStorageDevice, "_ExtStorageAction")
+  def testAttachWithUserspaceURI(self, action_mock):
+    """Test for extstorage.ExtStorageDevice.Attach() with userspace URI"""
+    action_mock.return_value = "\nURI"
+    dev = extstorage.ExtStorageDevice.__new__(extstorage.ExtStorageDevice)
+    dev.unique_id = self.test_unique_id
+    dev.ext_params = {}
+    dev.name = self.name
+    dev.uuid = self.uuid
+
+    self.assertEqual(dev.Attach(), True)
+
+  @testutils.patch_object(extstorage.ExtStorageDevice, "_ExtStorageAction")
+  @testutils.patch_object(os, "stat")
+  def testAttachFailureNotBlockdev(self, stat_mock, action_mock):
+    """Test for extstorage.ExtStorageDevice.Attach() failure, not a blockdev"""
+    stat_mock.return_value = FakeStatResult(0x0)
+    action_mock.return_value = "/dev/path\nURI"
+    dev = extstorage.ExtStorageDevice.__new__(extstorage.ExtStorageDevice)
+    dev.unique_id = self.test_unique_id
+    dev.ext_params = {}
+    dev.name = self.name
+    dev.uuid = self.uuid
+
+    self.assertEqual(dev.Attach(), False)
+
+  @testutils.patch_object(extstorage.ExtStorageDevice, "_ExtStorageAction")
+  @testutils.patch_object(os, "stat")
+  def testAttachFailureNoDevice(self, stat_mock, action_mock):
+    """Test for extstorage.ExtStorageDevice.Attach() failure, no device found"""
+    stat_mock.side_effect = OSError("No device found")
+    action_mock.return_value = "/dev/path\nURI"
+    dev = extstorage.ExtStorageDevice.__new__(extstorage.ExtStorageDevice)
+    dev.unique_id = self.test_unique_id
+    dev.ext_params = {}
+    dev.name = self.name
+    dev.uuid = self.uuid
+
+    self.assertEqual(dev.Attach(), False)
 
 
 if __name__ == "__main__":

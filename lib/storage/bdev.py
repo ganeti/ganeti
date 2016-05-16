@@ -523,7 +523,9 @@ class LogicalVolume(base.BlockDev):
     """
     self.attached = False
     if not lv_info:
-      lv_info = LogicalVolume._GetLvGlobalInfo()[self.dev_path]
+      lv_info = LogicalVolume._GetLvGlobalInfo().get(self.dev_path)
+    if not lv_info:
+      return False
     (status, major, minor, pe_size, stripes, pv_names) = lv_info
 
     self.major = major
