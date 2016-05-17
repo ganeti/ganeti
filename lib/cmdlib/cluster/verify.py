@@ -239,10 +239,26 @@ class LUClusterVerifyDisks(NoHooksLU):
 
   def Exec(self, feedback_fn):
     group_names = self.owned_locks(locking.LEVEL_NODEGROUP)
+    instances = self.cfg.GetInstanceList()
 
-    # Submit one instance of L{opcodes.OpGroupVerifyDisks} per node group
-    return ResultWithJobs([[opcodes.OpGroupVerifyDisks(group_name=group)]
-                           for group in group_names])
+    only_ext = compat.all(
+        self.cfg.GetInstanceDiskTemplate(i) == constants.DT_EXT
+        for i in instances)
+
+    # We skip current NodeGroup verification if there are only external storage
+    # devices. Currently we provide an interface for external storage provider
+    # for disk verification implementations, however current ExtStorageDevice
+    # does not provide an API for this yet.
+    #
+    # This check needs to be revisited if ES_ACTION_VERIFY on ExtStorageDevice
+    # is implemented.
+    if only_ext:
+      logging.info("All instances have ext storage, skipping verify disks.")
+      return ResultWithJobs([])
+    else:
+      # Submit one instance of L{opcodes.OpGroupVerifyDisks} per node group
+      return ResultWithJobs([[opcodes.OpGroupVerifyDisks(group_name=group)]
+                             for group in group_names])
 
 
 class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):
@@ -937,6 +953,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     @type vg_name: string
     @param vg_name: the name of the Ganeti-administered volume group
+    @type node_vol_should: dict
+    @param node_vol_should: mapping of node UUIDs to expected LVs on each node
+    @type node_image: dict
+    @param node_image: mapping of node UUIDs to L{NodeImage} objects
     @type reserved: L{ganeti.utils.FieldSet}
     @param reserved: a FieldSet of reserved volume names
 

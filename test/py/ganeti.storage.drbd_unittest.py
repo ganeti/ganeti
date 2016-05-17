@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #
 
-# Copyright (C) 2006, 2007, 2010, 2012, 2013 Google Inc.
+# Copyright (C) 2006, 2007, 2010, 2012, 2013, 2016 Google Inc.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -424,6 +424,7 @@ class TestDRBD8Status(testutils.GanetiTestCase):
 
 
 class TestDRBD8Construction(testutils.GanetiTestCase):
+
   def setUp(self):
     """Read in txt data"""
     testutils.GanetiTestCase.setUp(self)
@@ -469,6 +470,109 @@ class TestDRBD8Construction(testutils.GanetiTestCase):
     inst = drbd.DRBD8Dev(self.test_unique_id, [], 123, {}, self.test_dyn_params)
     self.assertEqual(inst._show_info_cls, drbd_info.DRBD84ShowInfo)
     self.assertTrue(isinstance(inst._cmd_gen, drbd_cmdgen.DRBD84CmdGenerator))
+
+
+class TestDRBD8Create(testutils.GanetiTestCase):
+
+  class fake_disk(object):
+    def __init__(self, dev_path):
+      self.dev_path = dev_path
+
+    def Assemble(self):
+      pass
+
+    def Attach(self):
+      return True
+
+  def setUp(self):
+    """Set up test data"""
+    testutils.GanetiTestCase.setUp(self)
+    self.proc84_info = \
+      drbd_info.DRBD8Info.CreateFromFile(
+        filename=testutils.TestDataFilename("proc_drbd84.txt"))
+
+    self.test_unique_id = ("hosta.com", 123, "host2.com", 123, 0,
+                           serializer.Private("secret"))
+    self.test_dyn_params = {
+      constants.DDP_LOCAL_IP: "192.0.2.1",
+      constants.DDP_LOCAL_MINOR: 0,
+      constants.DDP_REMOTE_IP: "192.0.2.2",
+      constants.DDP_REMOTE_MINOR: 0,
+    }
+
+    fake_child_1 = self.fake_disk("/dev/sda5")
+    fake_child_2 = self.fake_disk("/dev/sda6")
+    self.children = [fake_child_1, fake_child_2]
+
+  @testutils.patch_object(drbd.DRBD8Dev, "_InitMeta")
+  @testutils.patch_object(drbd.DRBD8Dev, "_CheckMetaSize")
+  @testutils.patch_object(drbd.DRBD8, "GetProcInfo")
+  def testCreate(self, proc_info, check_meta_size, init_meta):
+    proc_info.return_value = self.proc84_info
+    check_meta_size.return_value = None
+    init_meta.return_value = None
+    self.test_dyn_params[constants.DDP_LOCAL_MINOR] = 2
+
+    expected = drbd.DRBD8Dev(self.test_unique_id, [], 123, {},
+                             self.test_dyn_params)
+    got = drbd.DRBD8Dev.Create(self.test_unique_id, self.children, 123,
+                               None, {}, False, self.test_dyn_params,
+                               test_kwarg="test")
+
+    self.assertEqual(got, expected)
+
+  def testCreateFailureChildrenLength(self):
+    self.assertRaises(errors.ProgrammerError, drbd.DRBD8Dev.Create,
+                      self.test_unique_id, [], 123, None, {},
+                      False, self.test_dyn_params)
+
+  def testCreateFailureExclStorage(self):
+    self.assertRaises(errors.ProgrammerError, drbd.DRBD8Dev.Create,
+                      self.test_unique_id, self.children, 123, None, {},
+                      True, self.test_dyn_params)
+
+  def testCreateFailureNoMinor(self):
+    self.assertRaises(errors.ProgrammerError, drbd.DRBD8Dev.Create,
+                      self.test_unique_id, self.children, 123, None, {},
+                      False, {})
+
+  @testutils.patch_object(drbd.DRBD8, "GetProcInfo")
+  def testCreateFailureInUse(self, proc_info):
+    # The proc84_info config has a local minor in use, which triggers our
+    # failure test.
+    proc_info.return_value = self.proc84_info
+
+    self.assertRaises(errors.BlockDeviceError, drbd.DRBD8Dev.Create,
+                      self.test_unique_id, self.children, 123, None, {},
+                      False, self.test_dyn_params)
+
+  @testutils.patch_object(drbd.DRBD8, "GetProcInfo")
+  def testCreateFailureMetaAttach(self, proc_info):
+    proc_info.return_value = self.proc84_info
+    self.test_dyn_params[constants.DDP_LOCAL_MINOR] = 2
+    self.children[1].Attach = lambda: False
+
+    self.assertRaises(errors.BlockDeviceError, drbd.DRBD8Dev.Create,
+                      self.test_unique_id, self.children, 123, None, {},
+                      False, self.test_dyn_params)
+
+  @testutils.patch_object(drbd.DRBD8, "GetUsedDevs")
+  def testAttach(self, drbd_mock):
+    """Test for drbd.DRBD8Dev.Attach()"""
+    drbd_mock.return_value = [1]
+    dev = drbd.DRBD8Dev.__new__(drbd.DRBD8Dev)
+    dev._aminor = 1
+
+    self.assertEqual(dev.Attach(), True)
+
+  @testutils.patch_object(drbd.DRBD8, "GetUsedDevs")
+  def testAttach(self, drbd_mock):
+    """Test for drbd.DRBD8Dev.Attach() not finding a minor"""
+    drbd_mock.return_value = []
+    dev = drbd.DRBD8Dev.__new__(drbd.DRBD8Dev)
+    dev._aminor = 1
+
+    self.assertEqual(dev.Attach(), False)
 
 
 if __name__ == "__main__":

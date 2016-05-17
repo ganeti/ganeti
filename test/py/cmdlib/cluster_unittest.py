@@ -2330,7 +2330,30 @@ class TestLUClusterVerifyGroupHooksCallBack(TestLUClusterVerifyGroupMethods):
 
 
 class TestLUClusterVerifyDisks(CmdlibTestCase):
+
   def testVerifyDisks(self):
+    self.cfg.AddNewInstance(uuid="tst1.inst.corp.google.com",
+                            disk_template=constants.DT_PLAIN)
+    op = opcodes.OpClusterVerifyDisks()
+    result = self.ExecOpCode(op)
+
+    self.assertEqual(1, len(result["jobs"]))
+
+  def testVerifyDisksExt(self):
+    self.cfg.AddNewInstance(uuid="tst1.inst.corp.google.com",
+                            disk_template=constants.DT_EXT)
+    self.cfg.AddNewInstance(uuid="tst2.inst.corp.google.com",
+                            disk_template=constants.DT_EXT)
+    op = opcodes.OpClusterVerifyDisks()
+    result = self.ExecOpCode(op)
+
+    self.assertEqual(0, len(result["jobs"]))
+
+  def testVerifyDisksMixed(self):
+    self.cfg.AddNewInstance(uuid="tst1.inst.corp.google.com",
+                            disk_template=constants.DT_EXT)
+    self.cfg.AddNewInstance(uuid="tst2.inst.corp.google.com",
+                            disk_template=constants.DT_PLAIN)
     op = opcodes.OpClusterVerifyDisks()
     result = self.ExecOpCode(op)
 
