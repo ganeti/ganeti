@@ -33,12 +33,16 @@
 
 import unittest
 import itertools
+import mocks
+from cmdlib.testsupport.rpc_runner_mock import CreateRpcRunnerMock
 
 from ganeti import compat
 from ganeti import mcpu
 from ganeti import opcodes
 from ganeti import cmdlib
 from ganeti import locking
+from ganeti import ht
+from ganeti import errors
 from ganeti import constants
 from ganeti.constants import \
     LOCK_ATTEMPTS_TIMEOUT, \
@@ -174,6 +178,37 @@ class TestProcessResult(unittest.TestCase):
     # of specifying "just inherit the priority".
     self.assertEqual(op2.comment, "foobar")
     self.assertEqual(op2.debug_level, 3)
+
+class TestExecLU(unittest.TestCase):
+  class OpTest(opcodes.OpCode):
+    OP_DSC_FIELD = "data"
+    OP_PARAMS = [
+      ("data", ht.NoDefault, ht.TString, None),
+    ]
+
+  def setUp(self):
+    self.ctx = mocks.FakeContext()
+    self.cfg = self.ctx.GetConfig("ec_id")
+    self.rpc = CreateRpcRunnerMock()
+    self.proc = mcpu.Processor(self.ctx, "ec_id", enable_locks = False)
+    self.op = self.OpTest()
+    self.calc_timeout = lambda: 42
+
+  def testRunLU(self):
+    lu = mocks.FakeLU(self.proc, self.op, self.cfg, self.rpc, None)
+    self.proc._ExecLU(lu)
+
+  def testRunLUWithPrereqError(self):
+    prereq = errors.OpPrereqError(self.op, errors.ECODE_INVAL)
+    lu = mocks.FakeLU(self.proc, self.op, self.cfg, self.rpc, prereq)
+    self.assertRaises(errors.OpPrereqError, self.proc._LockAndExecLU,
+        lu, locking.LEVEL_CLUSTER, self.calc_timeout)
+
+  def testRunLUWithPrereqErrorMissingECode(self):
+    prereq = errors.OpPrereqError(self.op)
+    lu = mocks.FakeLU(self.proc, self.op, self.cfg, self.rpc, prereq)
+    self.assertRaises(errors.OpPrereqError, self.proc._LockAndExecLU,
+        lu, locking.LEVEL_CLUSTER, self.calc_timeout)
 
 
 if __name__ == "__main__":

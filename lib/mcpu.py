@@ -538,9 +538,9 @@ class Processor(object):
       try:
         result = self._ExecLU(lu)
       except errors.OpPrereqError, err:
-        (_, ecode) = err.args
-        if ecode != errors.ECODE_TEMP_NORES:
+        if len(err.args) < 2 or err.args[1] != errors.ECODE_TEMP_NORES:
           raise
+
         logging.debug("Temporarily out of resources; will retry internally")
         try:
           lu.PrepareRetry(self.Log)
