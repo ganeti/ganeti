@@ -52,13 +52,14 @@ class ExtStorageDevice(base.BlockDev):
   handling of the externally provided block devices.
 
   """
-  def __init__(self, unique_id, children, size, params, dyn_params, *args):
+  def __init__(self, unique_id, children, size, params, dyn_params, **kwargs):
     """Attaches to an extstorage block device.
 
     """
     super(ExtStorageDevice, self).__init__(unique_id, children, size, params,
-                                           dyn_params, *args)
-    (self.name, self.uuid) = args
+                                           dyn_params, **kwargs)
+    self.name = kwargs["name"]
+    self.uuid = kwargs["uuid"]
 
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise ValueError("Invalid configuration data %s" % str(unique_id))
@@ -72,14 +73,13 @@ class ExtStorageDevice(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params, *args):
+             dyn_params, **kwargs):
     """Create a new extstorage device.
 
     Provision a new volume using an extstorage provider, which will
     then be mapped to a block device.
 
     """
-    (name, uuid) = args
 
     if not isinstance(unique_id, (tuple, list)) or len(unique_id) != 2:
       raise errors.ProgrammerError("Invalid configuration data %s" %
@@ -91,10 +91,11 @@ class ExtStorageDevice(base.BlockDev):
     # Call the External Storage's create script,
     # to provision a new Volume inside the External Storage
     _ExtStorageAction(constants.ES_ACTION_CREATE, unique_id,
-                      params, size=size, name=name, uuid=uuid)
+                      params, size=size, name=kwargs["name"],
+                      uuid=kwargs["uuid"])
 
     return ExtStorageDevice(unique_id, children, size, params, dyn_params,
-                            *args)
+                            **kwargs)
 
   def Remove(self):
     """Remove the extstorage device.

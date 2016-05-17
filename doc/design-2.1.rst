@@ -68,8 +68,8 @@ all the curent VG/FileBased operations to it.
 
 Note that while we model both LVM PVs and LVM VGs, the framework will
 **not** model any relationship between the different types. In other
-words, we don't model neither inheritances nor stacking, since this is
-too complex for our needs. While a ``vgreduce`` operation on a LVM VG
+words, we model neither inheritances nor stacking, since this is too
+complex for our needs. While a ``vgreduce`` operation on a LVM VG
 could actually remove a PV from it, this will not be handled at the
 framework level, but at individual operation level. The goal is that
 this is a lightweight framework, for abstracting the different storage
@@ -389,7 +389,7 @@ Current situation
 Currently there's no easy way to merge two or more clusters together.
 But in order to optimize resources this is a needed missing piece. The
 goal of this design doc is to come up with a easy to use solution which
-allows you to merge two or more cluster together.
+allows you to merge two or more clusters together.
 
 Initial contact
 +++++++++++++++

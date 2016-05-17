@@ -293,7 +293,7 @@ class GlusterStorage(base.BlockDev):
   The unique_id for the file device is a (file_driver, file_path) tuple.
 
   """
-  def __init__(self, unique_id, children, size, params, dyn_params, *args):
+  def __init__(self, unique_id, children, size, params, dyn_params, **kwargs):
     """Initalizes a file device backend.
 
     """
@@ -301,7 +301,7 @@ class GlusterStorage(base.BlockDev):
       base.ThrowError("Invalid setup for file device")
 
     try:
-      driver, path = unique_id
+      self.driver, self.path = unique_id
     except ValueError: # wrong number of arguments
       raise ValueError("Invalid configuration data %s" % repr(unique_id))
 
@@ -310,13 +310,11 @@ class GlusterStorage(base.BlockDev):
     volume = params[constants.GLUSTER_VOLUME]
 
     self.volume = GlusterVolume(server_addr, port, volume)
-    self.path = path
-    self.driver = driver
     self.full_path = io.PathJoin(self.volume.mount_point, self.path)
     self.file = None
 
     super(GlusterStorage, self).__init__(unique_id, children, size,
-                                         params, dyn_params, *args)
+                                         params, dyn_params, **kwargs)
 
     self.Attach()
 
@@ -426,7 +424,7 @@ class GlusterStorage(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params, *args):
+             dyn_params, **kwargs):
     """Create a new file.
 
     @param size: the size of file in MiB
@@ -456,4 +454,4 @@ class GlusterStorage(base.BlockDev):
       FileDeviceHelper.CreateFile(full_path, size, create_folders=True)
 
     return GlusterStorage(unique_id, children, size, params, dyn_params,
-                          *args)
+                          **kwargs)

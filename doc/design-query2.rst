@@ -131,7 +131,7 @@ The request is a dictionary with the following entries:
 
     ["|", ["=", "name", "node1"], ["=", "name", "node2"], …]
 
-  Filters consist of S-expressions (``["operator", <operants…>]``) and
+  Filters consist of S-expressions (``["operator", <operands…>]``) and
   extensions will be made in the future to allow for more operators and
   fields. Such extensions might include a Python-style "in" operator,
   but for simplicity only "=" is supported in this implementation.

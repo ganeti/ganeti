@@ -33,6 +33,7 @@
 
 import os
 
+from ganeti import locking
 from ganeti import netutils
 
 
@@ -47,12 +48,21 @@ FAKE_CLUSTER_KEY = ("AAAAB3NzaC1yc2EAAAABIwAAAQEAsuGLw70et3eApJ/ZEJkAVZogIrm"
 
 class FakeConfig(object):
   """Fake configuration object"""
+  def __init__(self):
+    self.write_count = 0
+
+  def OutDate(self):
+    pass
 
   def IsCluster(self):
     return True
 
   def GetNodeList(self):
-    return ["a", "b", "c"]
+    return [
+      "01234567-89ab-cdef-fedc-aaaaaaaaaaaa",
+      "01234567-89ab-cdef-fedc-bbbbbbbbbbbb",
+      "01234567-89ab-cdef-fedc-cccccccccccc"
+    ]
 
   def GetRsaHostKey(self):
     return FAKE_CLUSTER_KEY
@@ -64,7 +74,7 @@ class FakeConfig(object):
     return "test.cluster"
 
   def GetMasterNode(self):
-    return "a"
+    return "01234567-89ab-cdef-fedc-aaaaaaaaaaaa"
 
   def GetMasterNodeName(self):
     return netutils.Hostname.GetSysName()
@@ -112,6 +122,14 @@ class FakeContext(object):
     self.cfg = FakeConfig()
     self.glm = FakeGLM()
 
+  def GetConfig(self, ec_id):
+    return self.cfg
+
+  def GetRpc(self, cfg):
+    return None
+
+  def GetWConfdContext(self, _ec_id):
+    return (None, None, None)
 
 class FakeGetentResolver(object):
   """Fake runtime.GetentResolver"""
@@ -139,3 +157,53 @@ class FakeGetentResolver(object):
 
   def LookupGid(self, gid):
     return "group%s" % gid
+
+class FakeLU(object):
+  HPATH = "fake-lu"
+  HTYPE = None
+
+  def __init__(self, processor, op, cfg, rpc_runner, prereq_err):
+    self.proc = processor
+    self.cfg = cfg
+    self.op  = op
+    self.rpc = rpc_runner
+    self.prereq_err = prereq_err
+
+    self.needed_locks = {}
+    self.opportunistic_locks = dict.fromkeys(locking.LEVELS, False)
+    self.dont_collate_locks = dict.fromkeys(locking.LEVELS, False)
+    self.add_locks = {}
+
+    self.LogWarning = processor.LogWarning
+
+  def CheckArguments(self):
+    pass
+
+  def ExpandNames(self):
+    pass
+
+  def DeclareLocks(self, level):
+    pass
+
+  def CheckPrereq(self):
+    if self.prereq_err:
+      raise self.prereq_err
+    pass
+
+  def Exec(self, feedback_fn):
+    pass
+
+  def BuildHooksNodes(self):
+    return ([], [])
+
+  def BuildHooksEnv(self):
+    return {}
+
+  def PreparePostHookNodes(self, post_hook_node_uuids):
+    return []
+
+  def HooksCallBack(self, phase, hook_results, feedback_fn, lu_result):
+    return lu_result
+
+  def HooksAbortCallBack(self, phase, feedback_fn, exception):
+    pass

@@ -3835,9 +3835,13 @@ def BlockdevGetmirrorstatusMulti(disks):
 
   """
   result = []
+  lvs_cache = None
+  is_plain_disk = compat.any([_CheckForPlainDisk(d) for d in disks])
+  if is_plain_disk:
+    lvs_cache = bdev.LogicalVolume._GetLvGlobalInfo()
   for disk in disks:
     try:
-      rbd = _RecursiveFindBD(disk)
+      rbd = _RecursiveFindBD(disk, lvs_cache=lvs_cache)
       if rbd is None:
         result.append((False, "Can't find device %s" % disk))
         continue
@@ -3854,7 +3858,23 @@ def BlockdevGetmirrorstatusMulti(disks):
   return result
 
 
-def _RecursiveFindBD(disk):
+def _CheckForPlainDisk(disk):
+  """Check within a disk and its children if there is a plain disk type.
+
+  @type disk: L{objects.Disk}
+  @param disk: the disk we are checking
+  @rtype: bool
+  @return: whether or not there is a plain disk type
+
+  """
+  if disk.dev_type == constants.DT_PLAIN:
+    return True
+  if disk.children:
+    return compat.any([_CheckForPlainDisk(d) for d in disk.children])
+  return False
+
+
+def _RecursiveFindBD(disk, lvs_cache=None):
   """Check if a device is activated.
 
   If so, return information about the real device.
@@ -3869,9 +3889,9 @@ def _RecursiveFindBD(disk):
   children = []
   if disk.children:
     for chdisk in disk.children:
-      children.append(_RecursiveFindBD(chdisk))
+      children.append(_RecursiveFindBD(chdisk, lvs_cache=lvs_cache))
 
-  return bdev.FindDevice(disk, children)
+  return bdev.FindDevice(disk, children, lvs_cache=lvs_cache)
 
 
 def _OpenRealBD(disk):

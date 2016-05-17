@@ -183,7 +183,7 @@ class DRBD8Dev(base.BlockDev):
   # timeout constants
   _NET_RECONFIG_TIMEOUT = 60
 
-  def __init__(self, unique_id, children, size, params, dyn_params, *args):
+  def __init__(self, unique_id, children, size, params, dyn_params, **kwargs):
     if children and children.count(None) > 0:
       children = []
     if len(children) not in (0, 2):
@@ -210,7 +210,7 @@ class DRBD8Dev(base.BlockDev):
         logging.info("drbd%s: Ignoring unreadable meta device", self._aminor)
         children = []
     super(DRBD8Dev, self).__init__(unique_id, children, size, params,
-                                   dyn_params, *args)
+                                   dyn_params, **kwargs)
     self.major = self._DRBD_MAJOR
 
     info = DRBD8.GetProcInfo()
@@ -1041,7 +1041,7 @@ class DRBD8Dev(base.BlockDev):
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
-             dyn_params, *_):
+             dyn_params, **kwargs):
     """Create a new DRBD8 device.
 
     Since DRBD devices are not created per se, just assembled, this
