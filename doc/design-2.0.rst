@@ -1711,13 +1711,13 @@ Design
 The Ganeti RAPI is implemented as independent daemon, running on the
 same node with the same permission level as Ganeti master
 daemon. Communication is done through the LUXI library to the master
-daemon. In order to keep communication asynchronous RAPI processes two
+daemon. In order to keep communication asynchronous, RAPI processes two
 types of client requests:
 
 - queries: server is able to answer immediately
 - job submission: some time is required for a useful response
 
-In the query case requested data send back to client in the HTTP
+In the query case requested data is sent back to client in the HTTP
 response body. Typical examples of queries would be: list of nodes,
 instances, cluster info, etc.
 
@@ -1725,7 +1725,7 @@ In the case of job submission, the client receive a job ID, the
 identifier which allows one to query the job progress in the job queue
 (see `Job Queue`_).
 
-Internally, each exported object has an version identifier, which is
+Internally, each exported object has a version identifier, which is
 used as a state identifier in the HTTP header E-Tag field for
 requests/responses to avoid race conditions.
 

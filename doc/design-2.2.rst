@@ -61,10 +61,10 @@ Wait for job change
 +++++++++++++++++++
 
 The REQ_WAIT_FOR_JOB_CHANGE luxi operation makes the relevant client
-thread block on its job for a relative long time. This is another easy
-way to exhaust the 16 client threads, and a place where clients often
-time out, moreover this operation is negative for the job queue lock
-contention (see below).
+thread block on its job for a relatively long time. This is another
+easy way to exhaust the 16 client threads, and a place where clients
+often time out, moreover this operation is negative for the job queue
+lock contention (see below).
 
 Job Queue lock
 ++++++++++++++
@@ -152,7 +152,7 @@ The REQ_WAIT_FOR_JOB_CHANGE luxi request is changed to be
 subscription-based, so that the executing thread doesn't have to be
 waiting for the changes to arrive. Threads producing messages (job queue
 executors) will make sure that when there is a change another thread is
-awaken and delivers it to the waiting clients. This can be either a
+awakened and delivers it to the waiting clients. This can be either a
 dedicated "wait for job changes" thread or pool, or one of the client
 workers, depending on what's easier to implement. In either case the
 main asyncore thread will only be involved in pushing of the actual
