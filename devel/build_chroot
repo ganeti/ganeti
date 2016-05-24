@@ -473,7 +473,7 @@ case ${DIST_RELEASE}${VARIANT} in
       cabal update
 
     in_chroot -- \
-      cabal install --global \
+      cabal install --global -j --enable-library-profiling \
         HUnit-1.2.5.2 \
         PSQueue-1.1 \
         StateVar-1.1.0.0 \
