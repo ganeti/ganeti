@@ -398,6 +398,16 @@ case ${DIST_RELEASE}${VARIANT} in
       libghc-zlib-dev libghc-psqueue-dev \
       libghc-base64-bytestring-dev libghc-lens-dev libghc-lifted-base-dev \
       libghc-cabal-dev \
+      ghc-prof libghc-network-prof \
+      libghc-test-framework{,-hunit,-quickcheck2}-prof \
+      libghc-json-prof libghc-curl-prof libghc-hinotify-prof \
+      libghc-parallel-prof libghc-utf8-string-prof \
+      libghc-hslogger-prof libghc-crypto-prof \
+      libghc-regex-pcre-prof libghc-attoparsec-prof \
+      libghc-vector-prof libghc-temporary-prof \
+      libghc-snap-server-prof libghc-zlib-prof libghc-psqueue-prof \
+      libghc-base64-bytestring-prof libghc-lens-prof libghc-lifted-base-prof \
+      libghc-cabal-prof \
       cabal-install \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
       python-simplejson python-pycurl python-pyinotify python-paramiko \
@@ -663,6 +673,13 @@ EOF
       libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
       libghc-cabal-dev \
+      ghc-prof \
+      libghc-curl-prof libghc-hinotify-prof \
+      libghc-parallel-prof libghc-utf8-string-prof \
+      libghc-crypto-prof \
+      libghc-attoparsec-prof \
+      libghc-vector-prof libghc-temporary-prof libghc-psqueue-prof \
+      libghc-cabal-prof \
       cabal-install \
       libpcre3 libpcre3-dev happy hscolour pandoc \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
@@ -685,7 +702,7 @@ EOF
      # Precise has network-2.4.0.0, which breaks, see
      #   https://github.com/haskell/network/issues/60
      in_chroot -- \
-       cabal install --global \
+       cabal install --global --enable-library-profiling \
         'base64-bytestring>=1' \
         'hslogger-1.2.3' \
         'hlint-1.9.22' \
@@ -724,6 +741,13 @@ EOF
       libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
       libghc-cabal-dev \
+      ghc-prof \
+      libghc-curl-prof libghc-hinotify-prof \
+      libghc-parallel-prof libghc-utf8-string-prof \
+      libghc-crypto-prof \
+      libghc-attoparsec-prof \
+      libghc-vector-prof libghc-temporary-prof libghc-psqueue-prof \
+      libghc-cabal-prof \
       cabal-install \
       libpcre3 libpcre3-dev happy hscolour pandoc \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
@@ -745,7 +769,7 @@ EOF
 
     # since we're using Cabal >=1.16, we can use the parallel install option
     in_chroot -- \
-       cabal install --global -j \
+       cabal install --global -j --enable-library-profiling \
         'base64-bytestring>=1' \
         'hslogger>=1.2.3' \
         'hlint>=1.9.12' \
@@ -786,6 +810,13 @@ EOF
       libghc-attoparsec-dev \
       libghc-vector-dev libghc-temporary-dev libghc-psqueue-dev \
       libghc-cabal-dev \
+      ghc-prof \
+      libghc-curl-prof libghc-hinotify-prof \
+      libghc-parallel-prof libghc-utf8-string-prof \
+      libghc-crypto-prof \
+      libghc-attoparsec-prof \
+      libghc-vector-prof libghc-temporary-prof libghc-psqueue-prof \
+      libghc-cabal-prof \
       cabal-install \
       libpcre3 libpcre3-dev happy hscolour pandoc \
       python-setuptools python-sphinx python-epydoc graphviz python-pyparsing \
@@ -807,7 +838,7 @@ EOF
 
     # since we're using Cabal >=1.16, we can use the parallel install option
     in_chroot -- \
-       cabal install --global -j \
+       cabal install --global -j --enable-library-profiling \
         'base64-bytestring>=1' \
         'hslogger>=1.2.3' \
         'hlint>=1.9.12' \
