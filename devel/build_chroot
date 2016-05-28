@@ -47,10 +47,10 @@ cabal-install-1.22.4.0.tar.gz b98eea96d321cdeed83a201c192dac116e786ec2
 cabal-install-1.22.6.0.tar.gz d474b0eef6944af1abef92419cea13cee50993f3
 ghc-7.6.3-i386-unknown-linux.tar.bz2 f042b4171a2d4745137f2e425e6949c185f8ea14
 ghc-7.6.3-x86_64-unknown-linux.tar.bz2 46ec3f3352ff57fba0dcbc8d9c20f7bcb6924b77
-ghc-7.8.4-i386-unknown-linux-deb7.tar.bz2 4f523f854c37a43b738359506a89a37a9fa9fc5f
-ghc-7.8.4-x86_64-unknown-linux-deb7.tar.bz2 3f68321b064e5c1ffcb05838b85bcc00aa2315b4
-ghc-7.10.2-i386-unknown-linux-deb7.tar.bz2 c759ab9af566f5c3c9b75b702615f1d0c2f999fd
-ghc-7.10.2-x86_64-unknown-linux-deb7.tar.bz2 f028e4a07995353a47286478fc8644f66defa227
+ghc-7.8.4-i386-unknown-linux-deb7.tar.xz a5d4f65b9b063eae476657cb9b93277609c42cf1
+ghc-7.8.4-x86_64-unknown-linux-deb7.tar.xz 11aec12d4bb27f6fa59dcc8535a7a3b3be8cb787
+ghc-7.10.3-i386-deb8-linux.tar.xz 8f4ca6505788deb7f68cde91f38acba68ab37d99
+ghc-7.10.3b-x86_64-deb8-linux.tar.xz c8f277a34bf62d5e8063ee17af427ca5ffe57b68
 '
 
 # export all variables needed in the schroot
@@ -192,17 +192,17 @@ function install_ghc {
   local TDIR=$( schroot -c $CHNAME -d / -- mktemp -d )
   [ -n "$TDIR" ]
   if [ "$ARCH" == "amd64" ] ; then
-    download "$TDIR"/ghc.tar.bz2 \
-      http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_VERSION}-x86_64-unknown-linux${GHC_VARIANT}.tar.bz2
+    download "$TDIR"/ghc.tar.${GHC_COMP} \
+      http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_BUILD}-x86_64-${GHC_VARIANT}.tar.${GHC_COMP}
   elif [ "$ARCH" == "i386" ] ; then
-    download "$TDIR"/ghc.tar.bz2 \
-      http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_VERSION}-i386-unknown-linux${GHC_VARIANT}.tar.bz2
+    download "$TDIR"/ghc.tar.${GHC_COMP} \
+      http://www.haskell.org/ghc/dist/${GHC_VERSION}/ghc-${GHC_BUILD}-i386-${GHC_VARIANT}.tar.${GHC_COMP}
   else
     echo "Don't know what GHC to download for architecture $ARCH" >&2
     return 1
   fi
   schroot -c $CHNAME -d "$TDIR" -- \
-    tar xjf ghc.tar.bz2
+    tar xf ghc.tar.${GHC_COMP}
   schroot -c $CHNAME -d "$TDIR/ghc-${GHC_VERSION}" -- \
     ./configure --prefix=/usr/local
   schroot -c $CHNAME -d "$TDIR/ghc-${GHC_VERSION}" -- \
@@ -230,10 +230,12 @@ case ${DIST_RELEASE}${VARIANT} in
   squeeze)
 
     GHC_VERSION="7.6.3"
-    GHC_VARIANT=""
+    GHC_BUILD="7.6.3"
+    GHC_VARIANT="unknown-linux"
+    GHC_COMP="bz2"
     CABAL_INSTALL_VERSION="1.18.0.2"
     CABAL_LIB_VERSION="==1.18.1"
-    export GHC_VERSION GHC_VARIANT CABAL_INSTALL_VERSION
+    export GHC_VERSION GHC_BUILD GHC_VARIANT GHC_COMP CABAL_INSTALL_VERSION
 
     # do not install libghc6-network-dev, since it's too old, and just
     # confuses the dependencies
@@ -426,13 +428,16 @@ case ${DIST_RELEASE}${VARIANT} in
 
   jessie-ghc710)
 
-    GHC_VERSION="7.10.2"
-    GHC_VARIANT="-deb7"
+    GHC_VERSION="7.10.3"
+    GHC_BUILD="7.10.3"
+    [ "$ARCH" == "amd64" ] && GHC_BUILD="7.10.3b"
+    GHC_VARIANT="deb8-linux"
+    GHC_COMP="xz"
     CABAL_INSTALL_VERSION="1.22.6.0"
     # the version of the Cabal library below must match the version used by
     # CABAL_INSTALL_VERSION, see the dependencies of cabal-install
     CABAL_LIB_VERSION=">=1.22.2 && <1.23"
-    export GHC_VERSION GHC_VARIANT CABAL_INSTALL_VERSION
+    export GHC_VERSION GHC_BUILD GHC_VARIANT GHC_COMP CABAL_INSTALL_VERSION
 
     in_chroot -- \
       $APT_INSTALL \
@@ -558,11 +563,13 @@ case ${DIST_RELEASE}${VARIANT} in
   jessie-ghc78)
 
     GHC_VERSION="7.8.4"
-    GHC_VARIANT="-deb7"
+    GHC_BUILD="7.8.4"
+    GHC_VARIANT="unknown-linux-deb7"
+    GHC_COMP="xz"
     # Version of cabal-install closest to the jessie install
     CABAL_INSTALL_VERSION="1.20.0.3"
     CABAL_LIB_VERSION="==1.20.0.0"
-    export GHC_VERSION GHC_VARIANT CABAL_INSTALL_VERSION
+    export GHC_VERSION GHC_BUILD GHC_VARIANT GHC_COMP CABAL_INSTALL_VERSION
 
     in_chroot -- \
       $APT_INSTALL \
