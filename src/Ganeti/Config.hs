@@ -159,10 +159,10 @@ instNodes cfg inst = maybe id S.insert (instPrimaryNode inst)
                       $ instDiskNodes cfg inst
 
 -- | Computes the secondary node UUID for a DRBD disk
-computeDiskSecondaryNode :: Disk -> Maybe String
-computeDiskSecondaryNode dsk =
+computeDiskSecondaryNode :: Disk -> String -> Maybe String
+computeDiskSecondaryNode dsk primary =
   case diskLogicalId dsk of
-    Just (LIDDrbd8 _nodeA nodeB _ _ _ _) -> Just nodeB
+    Just (LIDDrbd8 a b _ _ _ _) -> Just $ if primary == a then b else a
     _ -> Nothing
 
 -- | Get instances of a given node.
@@ -184,9 +184,9 @@ getNodeInstances cfg nname =
 
         sec_insts :: [Instance]
         sec_insts = [inst |
-            (inst, disks) <- inst_disks,
-            s_uuid <- mapMaybe computeDiskSecondaryNode disks,
-            s_uuid == nname]
+          (inst, disks) <- inst_disks,
+          s_uuid <- mapMaybe (\d -> (instPrimaryNode inst) >>= (computeDiskSecondaryNode d)) disks,
+          s_uuid == nname]
     in (pri_inst, sec_insts)
 
 -- | Computes the role of a node.
