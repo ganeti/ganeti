@@ -1173,7 +1173,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     # Cache mode
     disk_cache = up_hvp[constants.HV_DISK_CACHE]
     for cfdev, link_name, uri in kvm_disks:
-      if cfdev.dev_type in constants.DTS_EXT_MIRROR:
+      if (cfdev.dev_type in constants.DTS_EXT_MIRROR
+          and cfdev.dev_type != constants.DT_RBD):
         if disk_cache != "none":
           # TODO: make this a hard error, instead of a silent overwrite
           logging.warning("KVM: overriding disk_cache setting '%s' with 'none'"
