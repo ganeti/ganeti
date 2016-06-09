@@ -37,6 +37,7 @@ import socket
 import os
 import struct
 import re
+from contextlib import nested
 
 from ganeti import serializer
 from ganeti import constants
@@ -636,12 +637,13 @@ class TestKvmCpuPinning(testutils.GanetiTestCase):
     cpu_mask = self.params['cpu_mask']
     worker_cpu_mask = self.params['worker_cpu_mask']
     hypervisor = hv_kvm.KVMHypervisor()
-    with mock.patch('psutil.Process', return_value=mock_process):
+    with nested(mock.patch('psutil.Process', return_value=mock_process),
+                mock.patch('psutil.cpu_count', return_value=1237)):
       hypervisor._ExecuteCpuAffinity('test_instance', cpu_mask, worker_cpu_mask)
 
     self.assertEqual(mock_process.set_cpu_affinity.call_count, 1)
     self.assertEqual(mock_process.set_cpu_affinity.call_args_list[0],
-                     mock.call(range(0,12)))
+                     mock.call(range(0,1237)))
 
   def testCpuPinningPerVcpu(self):
     mock_process = mock.MagicMock()
@@ -659,11 +661,12 @@ class TestKvmCpuPinning(testutils.GanetiTestCase):
     def get_mock_process(unused_pid):
       return mock_process
 
-    with mock.patch('psutil.Process', get_mock_process):
+    with nested(mock.patch('psutil.Process', get_mock_process),
+                mock.patch('psutil.cpu_count', return_value=1237)):
       hypervisor._ExecuteCpuAffinity('test_instance', cpu_mask, worker_cpu_mask)
       self.assertEqual(mock_process.set_cpu_affinity.call_count, 7)
       self.assertEqual(mock_process.set_cpu_affinity.call_args_list[0],
-                       mock.call(range(0,12)))
+                       mock.call(range(0,1237)))
       self.assertEqual(mock_process.set_cpu_affinity.call_args_list[6],
                        mock.call([15, 16, 17]))
 
