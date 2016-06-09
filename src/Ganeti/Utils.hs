@@ -510,6 +510,9 @@ cTimeToClockTime :: EpochTime -> ClockTime
 cTimeToClockTime (CTime timet) = TOD (toInteger timet) 0
 
 -- | A version of `diffClockTimes` that works around ghc bug #2519.
+--
+-- FIXME: diffClocktimes uses local time (badly), so it still has
+-- issues when daylight savings time. Move to new time library!
 diffClockTimes :: ClockTime -> ClockTime -> TimeDiff
 diffClockTimes t1 t2 =
   let delta = STime.diffClockTimes t1 t2

@@ -299,7 +299,12 @@ prop_timediffAdd :: ClockTime -> ClockTime -> ClockTime -> Property
 prop_timediffAdd a b c =
   let fwd = Ganeti.Utils.diffClockTimes a b
       back = Ganeti.Utils.diffClockTimes b a
-  in addToClockTime fwd (addToClockTime back c) ==? c
+      c' = addToClockTime fwd (addToClockTime back c)
+      TOD cs cp = c
+      TOD cs' cp' = c'
+  in  counterexample "Dates match exactly" (c' ==? c) .||.
+      counterexample "Dates match except daylight savings time"
+                       (cs' - cs ==? 3600 .&&. cp' ==? cp)
 
 -- | Test normal operation for 'chompPrefix'.
 --
