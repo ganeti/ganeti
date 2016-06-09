@@ -264,16 +264,26 @@ getItem' kind name allitems =
                     ECodeNoEnt
   in maybe err Ok $ M.lookup name' allitems
 
+-- | Looks up a node by uuid.
+getNodeByUuid :: ConfigData -> String -> ErrorResult Node
+getNodeByUuid cfg uuid =
+  let nodes = fromContainer (configNodes cfg)
+  in getItem' "Node" uuid nodes
+
+-- | Looks up a node by name matching.
+getNodeByPartialName :: ConfigData -> String -> ErrorResult Node
+getNodeByPartialName cfg name =
+  let nodes = fromContainer (configNodes cfg)
+      by_name = M.mapKeys (nodeName . (M.!) nodes) nodes
+  in getItem "Node" name by_name
+
 -- | Looks up a node by name or uuid.
 getNode :: ConfigData -> String -> ErrorResult Node
 getNode cfg name =
-  let nodes = fromContainer (configNodes cfg)
-  in case getItem' "Node" name nodes of
-       -- if not found by uuid, we need to look it up by name
-       Ok node -> Ok node
-       Bad _ -> let by_name = M.mapKeys
-                              (nodeName . (M.!) nodes) nodes
-                in getItem "Node" name by_name
+  case getNodeByUuid cfg name of
+    -- if not found by uuid, we need to look it up by name
+    x@(Ok _) -> x
+    Bad _ -> getNodeByPartialName cfg name
 
 -- | Looks up an instance by uuid.
 getInstanceByUuid :: ConfigData -> String -> ErrorResult Instance
