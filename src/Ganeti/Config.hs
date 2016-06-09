@@ -275,22 +275,24 @@ getNode cfg name =
                               (nodeName . (M.!) nodes) nodes
                 in getItem "Node" name by_name
 
--- | Looks up an instance by name or uuid.
-getInstance :: ConfigData -> String -> ErrorResult Instance
-getInstance cfg name =
+-- | Looks up an instance by uuid.
+getInstanceByUuid :: ConfigData -> String -> ErrorResult Instance
+getInstanceByUuid cfg uuid =
   let instances = fromContainer (configInstances cfg)
-  in case getItem' "Instance" name instances of
-       -- if not found by uuid, we need to look it up by name
-       Ok inst -> Ok inst
-       Bad _ -> let by_name =
-                      M.delete ""
-                      . M.mapKeys (fromMaybe "" . instName . (M.!) instances)
-                      $ instances
-                in getItem "Instance" name by_name
+  in getItem' "Instance" uuid instances
 
--- | Looks up an instance by exact name match
-getInstanceByName :: ConfigData -> String -> ErrorResult Instance
-getInstanceByName cfg name =
+-- | Looks up an instance by approximate name.
+getInstanceByPartialName :: ConfigData -> String -> ErrorResult Instance
+getInstanceByPartialName cfg name =
+  let instances = fromContainer (configInstances cfg)
+      by_name = M.delete ""
+                  . M.mapKeys (fromMaybe "" . instName . (M.!) instances)
+                  $ instances
+  in getItem "Instance" name by_name
+
+-- | Looks up an instance by exact name match.
+getInstanceByExactName :: ConfigData -> String -> ErrorResult Instance
+getInstanceByExactName cfg name =
   let instances = M.elems . fromContainer . configInstances $ cfg
       matching = F.find (maybe False (== name) . instName) instances
   in case matching of
@@ -298,6 +300,13 @@ getInstanceByName cfg name =
       Nothing   -> Bad $ OpPrereqError
                    ("Instance name " ++ name ++ " not found")
                    ECodeNoEnt
+
+-- | Looks up an instance by partial name or uuid.
+getInstance :: ConfigData -> String -> ErrorResult Instance
+getInstance cfg name =
+  case getInstanceByUuid cfg name of
+    x@(Ok _) -> x
+    Bad _ -> getInstanceByPartialName cfg name
 
 -- | Looks up a disk by uuid.
 getDisk :: ConfigData -> String -> ErrorResult Disk
@@ -432,7 +441,7 @@ getFilledInstOsParams cfg inst =
 -- | Looks up an instance's primary node.
 getInstPrimaryNode :: ConfigData -> String -> ErrorResult Node
 getInstPrimaryNode cfg name =
-  getInstanceByName cfg name
+  getInstanceByExactName cfg name
   >>= withMissingParam "Instance without primary node" return . instPrimaryNode
   >>= getNode cfg
 
@@ -451,7 +460,7 @@ getDrbdDiskNodes cfg disk =
 -- the primary node has to be appended to the results.
 getInstAllNodes :: ConfigData -> String -> ErrorResult [Node]
 getInstAllNodes cfg name = do
-  inst <- getInstanceByName cfg name
+  inst <- getInstanceByExactName cfg name
   inst_disks <- getInstDisksFromObj cfg inst
   let disk_nodes = concatMap (getDrbdDiskNodes cfg) inst_disks
   pNode <- getInstPrimaryNode cfg name
