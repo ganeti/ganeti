@@ -520,7 +520,7 @@ case_jobFiltering = do
 -- `doc/design-optables.rst`.
 prop_jobFiltering :: Property
 prop_jobFiltering =
-  forAllShrink arbitrary shrink $ \q ->
+  forAllShrink (arbitrary `suchThat` (not . null . qEnqueued)) shrink $ \q ->
     forAllShrink (resize 4 arbitrary) shrink $ \(NonEmpty filterList) ->
 
       let running  = qRunning q ++ qManipulated q
@@ -545,8 +545,7 @@ prop_jobFiltering =
 
           -- Makes sure that each action appears with some probability.
           actionName = head . words . show
-          allActions = map actionName [ Accept, Continue, Pause, Reject
-                                      , RateLimit 0 ]
+          allActions = map actionName [ Accept, Pause, Reject, RateLimit 0 ]
           applyingActions = map (actionName . frAction)
                               . mapMaybe (applyingFilter filters)
                               $ map jJob enqueued
@@ -556,9 +555,8 @@ prop_jobFiltering =
               [ stableCover (a `elem` applyingActions) perc ("is " ++ a)
               | a <- allActions ]
 
-      -- `covers` should be after `==>` and before `conjoin` (see QuickCheck
-      -- bugs 25 and 27).
-      in (enqueued /= []) ==> actionCovers $ conjoin
+      -- `covers` should be before `conjoin` (see QuickCheck bug 27).
+      in actionCovers $ conjoin
 
            [ counterexample "scheduled jobs must be subsequence" $
                toRun `isSubsequenceOf` enqueued
