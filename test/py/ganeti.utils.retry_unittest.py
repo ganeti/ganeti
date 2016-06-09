@@ -215,7 +215,7 @@ class TestRetryByNumberOfTimes(testutils.GanetiTestCase):
   def testSuccessOnFirst(self):
     test_fn = mock.Mock()
     utils.RetryByNumberOfTimes(5, 0, Exception, test_fn)
-    test_fn.assert_called_once()
+    test_fn.assert_called_once_with()
 
   def testSuccessOnFirstWithArgs(self):
     test_fn = mock.Mock()
