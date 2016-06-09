@@ -197,12 +197,12 @@ import Control.Monad (liftM)
 import qualified Text.JSON as JSON
 import Text.JSON (JSON, readJSON, showJSON)
 import Data.Ratio (numerator, denominator)
-import qualified Data.Set as Set
 import System.Time (ClockTime)
 
 import qualified Ganeti.ConstantUtils as ConstantUtils
 import Ganeti.JSON
 import qualified Ganeti.THH as THH
+import qualified Ganeti.THH.Field as THH (TagSet)
 import Ganeti.Utils
 
 -- * Generic types
@@ -1071,5 +1071,4 @@ class SerialNoObject a where
 
 -- | Class of objects that have tags.
 class TagsObject a where
-  tagsOf :: a -> Set.Set String
-
+  tagsOf :: a -> THH.TagSet
