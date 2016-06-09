@@ -132,7 +132,7 @@ getNodePipByInstanceIp cfg linkipmap link instip =
 
 -- | Returns a node name for a given UUID
 uuidToNodeName :: ConfigData -> String -> Result String
-uuidToNodeName cfg uuid = gntErrorToResult $ nodeName <$> getNode cfg uuid
+uuidToNodeName cfg uuid = gntErrorToResult $ nodeName <$> getNodeByUuid cfg uuid
 
 -- | Encodes a list of minors into a JSON representation, converting UUIDs to
 -- names in the process
@@ -154,7 +154,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqClusterMaster }) =
     EmptyQuery -> liftM ((ReplyStatusOk,,serial) . J.showJSON) master_name
     PlainQuery _ -> return queryArgumentError
     DictQuery reqq -> do
-      mnode <- gntErrorToResult $ getNode cfg master_uuid
+      mnode <- gntErrorToResult $ getNodeByUuid cfg master_uuid
       mname <- master_name
       let fvals = map (\field -> case field of
                                    ReqFieldName -> mname

@@ -728,7 +728,7 @@ isPrimaryOffline :: ConfigData -> Instance -> Bool
 isPrimaryOffline cfg inst =
   let pNodeResult = maybe (Bad $ ParameterError "no primary node") return
                           (instPrimaryNode inst)
-                    >>= getNode cfg
+                    >>= getNodeByUuid cfg
   in case pNodeResult of
      Ok pNode -> nodeOffline pNode
      Bad    _ -> error "Programmer error - result assumed to be OK is Bad!"
@@ -946,7 +946,7 @@ collectLiveData liveDataEnabled cfg fields instances
             nub . justOk
                 $ map ( maybe (Bad $ ParameterError "no primary node") return
                        . instPrimaryNode
-                       >=> getNode cfg) instances
+                       >=> getNodeByUuid cfg) instances
           goodNodes = nodesWithValidConfig cfg instanceNodes
       instInfoRes <- executeRpcCall goodNodes (RpcCallAllInstancesInfo hvSpecs)
       consInfoRes <-

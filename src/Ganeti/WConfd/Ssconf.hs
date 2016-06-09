@@ -101,7 +101,7 @@ mkSSConf cdata = SSConf . M.fromList $
     , (SSMasterNetmask, return . show $ clusterMasterNetmask cluster)
     , (SSMasterNode, return
                      . genericResult (const "NO MASTER") nodeName
-                     . getNode cdata $ clusterMasterNode cluster)
+                     . getNodeByUuid cdata $ clusterMasterNode cluster)
     , (SSNodeList, mapLines nodeName nodes)
     , (SSNodePrimaryIps, mapLines (spcPair . (nodeName &&& nodePrimaryIp))
                                   nodes )

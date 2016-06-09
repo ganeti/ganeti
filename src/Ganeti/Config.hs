@@ -51,6 +51,7 @@ module Ganeti.Config
     , getMasterNetworkParameters
     , getOnlineNodes
     , getNode
+    , getNodeByUuid
     , getInstance
     , getDisk
     , getFilterRule
@@ -452,15 +453,15 @@ getInstPrimaryNode :: ConfigData -> String -> ErrorResult Node
 getInstPrimaryNode cfg name =
   getInstanceByExactName cfg name
   >>= withMissingParam "Instance without primary node" return . instPrimaryNode
-  >>= getNode cfg
+  >>= getNodeByUuid cfg
 
 -- | Retrieves all nodes hosting a DRBD disk
 getDrbdDiskNodes :: ConfigData -> Disk -> [Node]
 getDrbdDiskNodes cfg disk =
   let retrieved = case diskLogicalId disk of
                     Just (LIDDrbd8 nodeA nodeB _ _ _ _) ->
-                      justOk [getNode cfg nodeA, getNode cfg nodeB]
-                    _                            -> []
+                      justOk [getNodeByUuid cfg nodeA, getNodeByUuid cfg nodeB]
+                    _ -> []
   in retrieved ++ concatMap (getDrbdDiskNodes cfg) (diskChildren disk)
 
 -- | Retrieves all the nodes of the instance.
