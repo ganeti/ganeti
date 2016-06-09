@@ -65,7 +65,6 @@ module Ganeti.Config
     , getInstMinorsForNode
     , getInstAllNodes
     , getInstDisks
-    , getInstDisksFromObj
     , getDrbdMinorsForDisk
     , getDrbdMinorsForInstance
     , getFilledHvStateParams
@@ -152,7 +151,7 @@ computeDiskNodes dsk =
 -- the secondaries.
 instDiskNodes :: ConfigData -> Instance -> S.Set String
 instDiskNodes cfg inst =
-  case getInstDisksFromObj cfg inst of
+  case getInstDisks cfg inst of
     Ok disks -> S.unions $ map computeDiskNodes disks
     Bad _ -> S.empty
 
@@ -471,21 +470,14 @@ getDrbdDiskNodes cfg disk =
 getInstAllNodes :: ConfigData -> String -> ErrorResult [Node]
 getInstAllNodes cfg name = do
   inst <- getInstanceByExactName cfg name
-  inst_disks <- getInstDisksFromObj cfg inst
+  inst_disks <- getInstDisks cfg inst
   let disk_nodes = concatMap (getDrbdDiskNodes cfg) inst_disks
   pNode <- getInstPrimaryNode cfg name
   return . nub $ pNode:disk_nodes
 
--- | Get disks for a given instance.
--- The instance is specified by name or uuid.
-getInstDisks :: ConfigData -> String -> ErrorResult [Disk]
-getInstDisks cfg iname =
-  getInstance cfg iname >>= mapM (getDisk cfg) . instDisks
-
 -- | Get disks for a given instance object.
-getInstDisksFromObj :: ConfigData -> Instance -> ErrorResult [Disk]
-getInstDisksFromObj cfg =
-  getInstDisks cfg . uuidOf
+getInstDisks :: ConfigData -> Instance -> ErrorResult [Disk]
+getInstDisks cfg = mapM (getDisk cfg) . instDisks
 
 -- | Collects a value for all DRBD disks
 collectFromDrbdDisks
@@ -526,7 +518,7 @@ getDrbdMinorsForNode node disk =
 getDrbdMinorsForInstance :: ConfigData -> Instance
                          -> ErrorResult [(Int, String)]
 getDrbdMinorsForInstance cfg =
-  liftM (concatMap getDrbdMinorsForDisk) . getInstDisksFromObj cfg
+  liftM (concatMap getDrbdMinorsForDisk) . getInstDisks cfg
 
 -- | String for primary role.
 rolePrimary :: String
@@ -547,7 +539,7 @@ getInstMinorsForNode cfg node inst =
                 then rolePrimary
                 else roleSecondary
       iname = fromMaybe "" $ instName inst
-      inst_disks = case getInstDisksFromObj cfg inst of
+      inst_disks = case getInstDisks cfg inst of
                      Ok disks -> disks
                      Bad _ -> []
   -- FIXME: the disk/ build there is hack-ish; unify this in a
@@ -644,7 +636,7 @@ getInstanceLVsByNode cd inst =
     withMissingParam "Instance without Primary Node"
       (\i -> return $ MM.fromList . lvsByNode i)
       (instPrimaryNode inst)
-    <*> getInstDisksFromObj cd inst
+    <*> getInstDisks cd inst
   where
     lvsByNode :: String -> [Disk] -> [(String, LogicalVolume)]
     lvsByNode node = concatMap (lvsByNode1 node)

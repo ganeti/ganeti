@@ -223,18 +223,18 @@ instanceFields =
   instantiateIndexedFields C.maxDisks
   [ (fieldDefinitionCompleter "disk.size/%d" "Disk/%d" QFTUnit
     "Disk size of %s disk",
-    getIndexedOptionalConfField getInstDisksFromObj diskSize,
+    getIndexedOptionalConfField getInstDisks diskSize,
     QffNormal)
   , (fieldDefinitionCompleter "disk.spindles/%d" "DiskSpindles/%d" QFTNumber
     "Spindles of %s disk",
-    getIndexedOptionalConfField getInstDisksFromObj diskSpindles,
+    getIndexedOptionalConfField getInstDisks diskSpindles,
     QffNormal)
   , (fieldDefinitionCompleter "disk.name/%d" "DiskName/%d" QFTText
     "Name of %s disk",
-    getIndexedOptionalConfField getInstDisksFromObj diskName, QffNormal)
+    getIndexedOptionalConfField getInstDisks diskName, QffNormal)
   , (fieldDefinitionCompleter "disk.uuid/%d" "DiskUUID/%d" QFTText
     "UUID of %s disk",
-    getIndexedConfField getInstDisksFromObj uuidOf, QffNormal)
+    getIndexedConfField getInstDisks uuidOf, QffNormal)
   ] ++
 
   -- Aggregate nic parameter fields
@@ -387,7 +387,7 @@ getDefaultNicParams cfg =
 -- visible to the instance.
 getDiskSizeRequirements :: ConfigData -> Instance -> ResultEntry
 getDiskSizeRequirements cfg inst =
-  rsErrorNoData . liftA (sum . map getSize) . getInstDisksFromObj cfg $ inst
+  rsErrorNoData . liftA (sum . map getSize) . getInstDisks cfg $ inst
  where
   diskType x = lidDiskType <$> diskLogicalId x
   getSize :: Disk -> Int
@@ -403,30 +403,30 @@ getDiskSizeRequirements cfg inst =
 getDiskSizes :: ConfigData -> Instance -> ResultEntry
 getDiskSizes cfg =
   rsErrorNoData . liftA (map $ MaybeForJSON . diskSize)
-  . getInstDisksFromObj cfg
+  . getInstDisks cfg
 
 -- | Get a list of disk spindles
 getDiskSpindles :: ConfigData -> Instance -> ResultEntry
 getDiskSpindles cfg =
   rsErrorNoData . liftA (map (MaybeForJSON . diskSpindles)) .
-    getInstDisksFromObj cfg
+    getInstDisks cfg
 
 -- | Get a list of disk names for an instance
 getDiskNames :: ConfigData -> Instance -> ResultEntry
 getDiskNames cfg =
   rsErrorNoData . liftA (map (MaybeForJSON . diskName)) .
-    getInstDisksFromObj cfg
+    getInstDisks cfg
 
 -- | Get a list of disk UUIDs for an instance
 getDiskUuids :: ConfigData -> Instance -> ResultEntry
 getDiskUuids cfg =
-  rsErrorNoData . liftA (map uuidOf) . getInstDisksFromObj cfg
+  rsErrorNoData . liftA (map uuidOf) . getInstDisks cfg
 
 -- | Get a list of ExtStorage providers for an instance
 getProviders :: ConfigData -> Instance -> ResultEntry
 getProviders cfg =
   rsErrorNoData . liftA (map MaybeForJSON . filter isJust
-                         . mapMaybe getProvider) . getInstDisksFromObj cfg
+                         . mapMaybe getProvider) . getInstDisks cfg
  where
   getProvider x = getExtProvider <$> diskLogicalId x
 
@@ -435,7 +435,7 @@ getProviders cfg =
 getStorageIds :: ConfigData -> Instance -> ResultEntry
 getStorageIds cfg = rsErrorNoData .
   liftA (map MaybeForJSON . filter isJust . mapMaybe storageId) .
-  getInstDisksFromObj cfg
+  getInstDisks cfg
  where
   storageId x = getStorageId <$> diskLogicalId x
 
@@ -962,7 +962,7 @@ collectLiveData liveDataEnabled cfg fields instances
 -- | An aggregate disk attribute for backward compatibility.
 getDiskTemplate :: ConfigData -> Instance -> ResultEntry
 getDiskTemplate cfg inst =
-  let disks = getInstDisksFromObj cfg inst
+  let disks = getInstDisks cfg inst
       getDt x = lidDiskType <$> diskLogicalId x
       disk_types :: ErrorResult [DiskTemplate]
       disk_types = nub <$> catMaybes <$> map getDt <$> disks

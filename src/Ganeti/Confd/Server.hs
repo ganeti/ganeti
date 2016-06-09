@@ -255,7 +255,7 @@ buildResponse cdata req@(ConfdRequest { confdRqType = ReqInstanceDisks }) = do
     case getInstance cfg inst_name of
       Ok i -> return i
       Bad e -> fail $ "Instance not found in the configuration: " ++ show e
-  case getInstDisks cfg . uuidOf $ inst of
+  case getInstDisks cfg inst of
     Ok disks -> return (ReplyStatusOk, J.showJSON disks, instSerial inst)
     Bad e -> fail $ "Could not retrieve disks: " ++ show e
 
