@@ -333,7 +333,7 @@ fromJResultToRes (J.Ok v) f = Right $ f v
 fromJSValueToRes :: (J.JSON a) => J.JSValue -> (a -> b) -> ERpcError b
 fromJSValueToRes val = fromJResultToRes (J.readJSON val)
 
--- | An opaque data type for representing data that should be compressed
+-- | An opaque data type for representing data that might be compressed
 -- over the wire.
 --
 -- On Python side it is decompressed by @backend._Decompress@.
@@ -342,9 +342,16 @@ newtype Compressed = Compressed { getCompressed :: BL.ByteString }
 
 -- TODO Add a unit test for all octets
 instance J.JSON Compressed where
+  -- zlib compress and Base64 encode the data but only if it's long enough
   showJSON = J.showJSON
-             . (,) C.rpcEncodingZlibBase64
-             . Base64.encode . compressZlib . getCompressed
+    . (\x ->
+      if (BL.length $ BL.take 4096 x) < 4096 then
+        (C.rpcEncodingNone, x)
+      else
+        (C.rpcEncodingZlibBase64, Base64.encode . compressZlib $ x)
+      )
+    . getCompressed
+
   readJSON = J.readJSON >=> decompress
     where
       decompress (enc, cont)
