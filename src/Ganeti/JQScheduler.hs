@@ -64,7 +64,7 @@ import Control.Monad ( when
                      , forM_)
 import Control.Monad.IO.Class
 import Data.Function (on)
-import Data.IORef
+import Data.IORef (IORef, atomicModifyIORef, newIORef, readIORef)
 import Data.List ( find
                  , deleteFirstsBy
                  , sortBy
@@ -79,6 +79,7 @@ import qualified Data.Set as S
 import System.INotify
 
 import Ganeti.BasicTypes
+import Ganeti.Compat
 import Ganeti.Constants as C
 import Ganeti.Errors
 import Ganeti.JQScheduler.Filtering (applyingFilter, jobFiltering)

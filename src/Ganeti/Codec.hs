@@ -42,7 +42,7 @@ module Ganeti.Codec
 import Prelude ()
 import Ganeti.Prelude
 
-import Codec.Compression.Zlib (compress)
+import Codec.Compression.Zlib
 import qualified Codec.Compression.Zlib.Internal as I
 import Control.Monad (liftM)
 import qualified Data.ByteString.Lazy as BL
@@ -51,9 +51,11 @@ import Control.Monad.Error.Class (MonadError(..))
 
 import Ganeti.BasicTypes
 
+
 -- | Compresses a lazy bytestring.
 compressZlib :: BL.ByteString -> BL.ByteString
-compressZlib = compress
+compressZlib = compressWith $
+  defaultCompressParams { compressLevel = CompressionLevel 3 }
 
 -- | Decompresses a lazy bytestring, throwing decoding errors using
 -- 'throwError'.
