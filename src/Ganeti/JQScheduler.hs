@@ -56,7 +56,7 @@ import Control.Monad
 import Control.Monad.IO.Class
 import Data.Function (on)
 import Data.Functor ((<$))
-import Data.IORef
+import Data.IORef (IORef, atomicModifyIORef, newIORef, readIORef)
 import Data.List
 import Data.Maybe
 import qualified Data.Map as Map
@@ -66,6 +66,7 @@ import qualified Data.Set as S
 import System.INotify
 
 import Ganeti.BasicTypes
+import Ganeti.Compat
 import Ganeti.Constants as C
 import Ganeti.Errors
 import Ganeti.JQScheduler.Filtering (applyingFilter, jobFiltering)
