@@ -41,10 +41,12 @@ module Ganeti.Compat
   ( rwhnf
   , Control.Parallel.Strategies.parMap
   , finiteBitSize
+  , atomicModifyIORef'
   ) where
 
 import qualified Control.Parallel.Strategies
 import qualified Data.Bits
+import qualified Data.IORef
 
 -- | Wrapper over the function exported from
 -- "Control.Parallel.Strategies".
@@ -67,3 +69,15 @@ finiteBitSize :: (Data.Bits.FiniteBits a) => a -> Int
 finiteBitSize = Data.Bits.finiteBitSize
 #endif
 {-# INLINE finiteBitSize #-}
+
+-- FIXME: remove this when dropping support for GHC 7.4.
+atomicModifyIORef' :: Data.IORef.IORef a -> (a -> (a, b)) -> IO b
+#if MIN_VERSION_base(4,6,0)
+atomicModifyIORef' = Data.IORef.atomicModifyIORef'
+#else
+atomicModifyIORef' ref f = do
+    b <- Data.IORef.atomicModifyIORef ref $ \a ->
+            case f a of
+                v@(a',_) -> a' `seq` v
+    b `seq` return b
+#endif
