@@ -627,7 +627,7 @@ case_AllDefined = do
       extra_hs = hs_ops \\ py_ops
   HUnit.assertBool ("Missing OpCodes from the Haskell code:\n" ++
                     unlines extra_py) (null extra_py)
-  HUnit.assertBool ("Extra OpCodes in the Haskell code code:\n" ++
+  HUnit.assertBool ("Extra OpCodes in the Haskell code:\n" ++
                     unlines extra_hs) (null extra_hs)
 
 -- | Custom HUnit test case that forks a Python process and checks

@@ -139,7 +139,9 @@ class _VerifyErrors(object):
             log_type, object_type, object_name, msg))
 
     # Report messages via the feedback_fn
-    self._feedback_fn(constants.ELOG_MESSAGE_LIST, prefixed_list) # pylint: disable=E1101,C0301
+    # pylint: disable=E1101
+    self._feedback_fn(constants.ELOG_MESSAGE_LIST, prefixed_list)
+    # pylint: enable=E1101
 
     # do not mark the operation as failed for WARN cases only
     if log_type == self.ETYPE_ERROR:
