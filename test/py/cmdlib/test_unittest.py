@@ -85,7 +85,8 @@ class TestLUTestDelay(CmdlibTestCase):
 
     self.ExecOpCode(op)
 
-    self.rpc.call_test_delay.assert_called_once_with([self.master_uuid], DELAY_DURATION)
+    self.rpc.call_test_delay.assert_called_once_with(
+      [self.master_uuid], DELAY_DURATION)
 
   def testFailingRpc(self):
     op = opcodes.OpTestDelay(duration=DELAY_DURATION,

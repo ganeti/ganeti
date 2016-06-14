@@ -895,7 +895,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     else:
       target_process.set_cpu_affinity(cpus)
       for p in target_process.get_children(recursive=True):
-          p.set_cpu_affinity(cpus)
+        p.set_cpu_affinity(cpus)
 
   @classmethod
   def _AssignCpuAffinity(cls, cpu_mask, worker_cpu_mask, process_id,
