@@ -200,6 +200,7 @@ def _UpdateBeparams(inst):
 
   return inst
 
+
 def _CheckIfConnectionDropped(sock):
   """Utility function to monitor the state of an open connection.
 

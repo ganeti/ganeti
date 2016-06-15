@@ -113,6 +113,7 @@ class FakeGLM(object):
 
 class FakeContext(object):
   """Fake context object"""
+  # pylint: disable=W0613
 
   def __init__(self):
     self.cfg = FakeConfig()
@@ -124,8 +125,9 @@ class FakeContext(object):
   def GetRpc(self, cfg):
     return None
 
-  def GetWConfdContext(self, _ec_id):
+  def GetWConfdContext(self, ec_id):
     return (None, None, None)
+
 
 class FakeGetentResolver(object):
   """Fake runtime.GetentResolver"""
@@ -154,6 +156,7 @@ class FakeGetentResolver(object):
   def LookupGid(self, gid):
     return "group%s" % gid
 
+
 class FakeLU(object):
   HPATH = "fake-lu"
   HTYPE = None
@@ -161,7 +164,7 @@ class FakeLU(object):
   def __init__(self, processor, op, cfg, rpc_runner, prereq_err):
     self.proc = processor
     self.cfg = cfg
-    self.op  = op
+    self.op = op
     self.rpc = rpc_runner
     self.prereq_err = prereq_err
 
@@ -170,7 +173,7 @@ class FakeLU(object):
     self.dont_collate_locks = dict.fromkeys(locking.LEVELS, False)
     self.add_locks = {}
 
-    self.LogWarning = processor.LogWarning
+    self.LogWarning = processor.LogWarning # pylint: disable=C0103
 
   def CheckArguments(self):
     pass
@@ -184,7 +187,6 @@ class FakeLU(object):
   def CheckPrereq(self):
     if self.prereq_err:
       raise self.prereq_err
-    pass
 
   def Exec(self, feedback_fn):
     pass
@@ -196,7 +198,9 @@ class FakeLU(object):
     return {}
 
   def PreparePostHookNodes(self, post_hook_node_uuids):
+    # pylint: disable=W0613
     return []
 
   def HooksCallBack(self, phase, hook_results, feedback_fn, lu_result):
+    # pylint: disable=W0613
     return lu_result
