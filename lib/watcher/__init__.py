@@ -844,7 +844,7 @@ def _GroupWatcher(opts):
 
   logging.debug("Using state file %s", state_path)
 
-  # Global watcher
+  # Group watcher file lock
   statefile = state.OpenStateFile(state_path) # pylint: disable=E0602
   if not statefile:
     return constants.EXIT_FAILURE
@@ -867,26 +867,27 @@ def _GroupWatcher(opts):
 
     started = _CheckInstances(client, notepad, instances, locks)
     _CheckDisks(client, notepad, nodes, instances, started)
-
-    # Check if the nodegroup only has ext storage type
-    only_ext = compat.all(i.disk_template == constants.DT_EXT
-                          for i in instances.values())
-
-    # We skip current NodeGroup verification if there are only external storage
-    # devices. Currently we provide an interface for external storage provider
-    # for disk verification implementations, however current ExtStorageDevice
-    # does not provide an API for this yet.
-    #
-    # This check needs to be revisited if ES_ACTION_VERIFY on ExtStorageDevice
-    # is implemented.
-    if not opts.no_verify_disks and not only_ext:
-      _VerifyDisks(client, group_uuid, nodes, instances)
   except Exception, err:
     logging.info("Not updating status file due to failure: %s", err)
     raise
   else:
     # Save changes for next run
     notepad.Save(state_path)
+    notepad.Close()
+
+  # Check if the nodegroup only has ext storage type
+  only_ext = compat.all(i.disk_template == constants.DT_EXT
+                        for i in instances.values())
+
+  # We skip current NodeGroup verification if there are only external storage
+  # devices. Currently we provide an interface for external storage provider
+  # for disk verification implementations, however current ExtStorageDevice
+  # does not provide an API for this yet.
+  #
+  # This check needs to be revisited if ES_ACTION_VERIFY on ExtStorageDevice
+  # is implemented.
+  if not opts.no_verify_disks and not only_ext:
+    _VerifyDisks(client, group_uuid, nodes, instances)
 
   return constants.EXIT_SUCCESS
 
