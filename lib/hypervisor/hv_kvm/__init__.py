@@ -45,7 +45,17 @@ import urllib2
 from bitarray import bitarray
 try:
   import psutil   # pylint: disable=F0401
+  if psutil.version_info < (2, 0, 0):
+    # The psutil version seems too old, we ignore it
+    psutil_err = "too old (2.x.x needed, %s found)" % psutil.__version__
+    psutil = None
+  elif psutil.version_info >= (3,):
+    psutil_err = "too new (2.x.x needed, %s found)" % psutil.__version__
+    psutil = None
+  else:
+    psutil_err = "<no error>"
 except ImportError:
+  psutil_err = "not found"
   psutil = None
 try:
   import fdsend   # pylint: disable=F0401
@@ -716,11 +726,14 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if psutil is None:
-      raise errors.HypervisorError("psutil Python package not"
-                                   " found; cannot use CPU pinning under KVM")
+      raise errors.HypervisorError("psutil Python package %s"
+                                   "; cannot use CPU pinning"
+                                   " under KVM" % psutil_err)
 
     target_process = psutil.Process(process_id)
     if cpus == constants.CPU_PINNING_OFF:
+      # we checked this at import time
+      # pylint: disable=E1101
       target_process.set_cpu_affinity(range(psutil.cpu_count()))
     else:
       target_process.set_cpu_affinity(cpus)
