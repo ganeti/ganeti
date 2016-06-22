@@ -62,6 +62,7 @@ module Ganeti.JSON
   , lookupContainer
   , alterContainerL
   , readContainer
+  , getKeysFromContainer
   , mkUsedKeys
   , allUsedKeys
   , DictObject(..)
@@ -337,6 +338,10 @@ emptyContainer = GenericContainer Map.empty
 
 -- | Type alias for string keys.
 type Container = GenericContainer BS.ByteString
+
+-- | Returns all string keys from a container.
+getKeysFromContainer :: (Container a) -> [String]
+getKeysFromContainer = map UTF8.toString . Map.keys . fromContainer
 
 instance HasStringRepr BS.ByteString where
   fromStringRepr = return . UTF8.fromString
