@@ -43,6 +43,7 @@ module Ganeti.BasicTypes
   , ResultT(..)
   , mkResultT
   , mkResultT'
+  , mkResultTEither
   , withError
   , withErrorT
   , toError
@@ -319,6 +320,11 @@ mkResultT = ResultT . liftM toErrorStr
 mkResultT' :: (Monad m, FromString e, Show s)
            => m (GenericResult s a) -> ResultT e m a
 mkResultT' = mkResultT . liftM (genericResult (Bad . show) Ok)
+
+-- | Generalisation of mkResultT accepting any showable failures.
+mkResultTEither :: (Monad m, FromString e, Show s)
+           => m (Either s a) -> ResultT e m a
+mkResultTEither = mkResultT . liftM (either (Bad . show) Ok)
 
 -- | Simple checker for whether a 'GenericResult' is OK.
 isOk :: GenericResult a b -> Bool

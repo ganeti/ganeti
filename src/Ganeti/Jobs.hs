@@ -152,7 +152,7 @@ execJobsWait opcodes callback client = do
       callback jids'
       waitForJobs jids' client
 
--- | Wait for one job units it is finished, using the WaitForJobChange
+-- | Wait for one job until it is finished, using the WaitForJobChange
 -- luxi command. Return the JobId and the and the final job status.
 waitForJob :: L.Client -> L.JobId -> ResultT String IO (L.JobId, JobStatus)
 waitForJob c jid = waitForJob' J.JSNull 0 where

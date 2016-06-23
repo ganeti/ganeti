@@ -56,7 +56,7 @@ import System.Time (getClockTime)
 import qualified Text.JSON as J
 
 import Ganeti.BasicTypes ( GenericResult(..), ResultT, runResultT, mkResultT
-                         , withErrorT, isBad)
+                         , mkResultTEither, withErrorT, isBad, isOk)
 import qualified Ganeti.Constants as C
 import Ganeti.Daemon ( OptType, CheckFn, PrepFn, MainFn, oDebug
                      , oNoVoting, oYesDoIt, oPort, oBindAddress, oNoDaemonize)
@@ -76,7 +76,7 @@ import Ganeti.MaintD.MemoryState
 import qualified Ganeti.Path as Path
 import Ganeti.Runtime (GanetiDaemon(GanetiMaintd))
 import Ganeti.Types (JobId(..), JobStatus(..))
-import Ganeti.Utils (threadDelaySeconds)
+import Ganeti.Utils (threadDelaySeconds, partitionM)
 import Ganeti.Utils.Http (httpConfFromOpts, plainJSON, error404)
 import Ganeti.WConfd.Client ( runNewWConfdClient, maintenanceRoundDelay
                             , maintenanceBalancing)
@@ -128,10 +128,27 @@ maintenance memstate = do
   logDebug $ "Jobs submitted in the last round: "
              ++ show (map fromJobId oldjobs)
   luxiSocket <- liftIO Path.defaultQuerySocket
-  jobresults <- bracket (mkResultT . liftM (either (Bad . show) Ok)
-                         . tryIOError $ L.getLuxiClient luxiSocket)
-                  (liftIO . L.closeClient)
-                  $ mkResultT . waitForJobs oldjobs
+
+  -- Filter out any jobs in the maintenance list which can't be parsed by luxi
+  -- anymore. This can happen if the job file is corrupted, missing or archived.
+  -- We have to query one job at a time, as luxi returns a single error if any
+  -- job in the query list can't be read/parsed.
+  (okjobs, badjobs) <- bracket
+       (mkResultTEither . tryIOError $ L.getLuxiClient luxiSocket)
+       (liftIO . L.closeClient)
+       $  mkResultT . liftM Ok
+       . (\c -> partitionM (\j -> liftM isOk $ L.queryJobsStatus c [j]) oldjobs)
+
+  unless (null badjobs) $ do
+    logInfo . (++) "Unparsable jobs (marking as failed): "
+        . show $ map fromJobId badjobs
+    mapM_ (failIncident memstate) badjobs
+
+  jobresults <- bracket
+      (mkResultTEither . tryIOError $ L.getLuxiClient luxiSocket)
+      (liftIO . L.closeClient)
+      $ mkResultT . (\c -> waitForJobs okjobs c)
+
   let failedjobs = map fst $ filter ((/=) JOB_STATUS_SUCCESS . snd) jobresults
   unless (null failedjobs) $ do
     logInfo . (++) "Failed jobs: " . show $ map fromJobId failedjobs
