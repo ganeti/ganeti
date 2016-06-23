@@ -345,10 +345,34 @@ def _CheckForOfflineNodes(nodes, instance):
   return compat.any(nodes[node_name].offline for node_name in instance.snodes)
 
 
+def _GetPendingVerifyDisks(cl, uuid):
+  """Checks if there are any currently running or pending group verify jobs and
+  if so, returns their id.
+
+  """
+  qfilter = qlang.MakeSimpleFilter("status",
+                                    frozenset([constants.JOB_STATUS_RUNNING,
+                                               constants.JOB_STATUS_QUEUED,
+                                               constants.JOB_STATUS_WAITING]))
+  qresult = cl.Query(constants.QR_JOB, ["id", "summary"], qfilter)
+
+  ids = [jobid for ((_, jobid), (_, (job, ))) in qresult.data
+         if job == ("GROUP_VERIFY_DISKS(%s)" % uuid)]
+  return ids
+
+
 def _VerifyDisks(cl, uuid, nodes, instances):
   """Run a per-group "gnt-cluster verify-disks".
 
   """
+
+  existing_jobs = _GetPendingVerifyDisks(cl, uuid)
+  if existing_jobs:
+    logging.info("There are verify disks jobs already pending (%s), skipping "
+                 "VerifyDisks step for %s.",
+                 utils.CommaJoin(existing_jobs), uuid)
+    return
+
   op = opcodes.OpGroupVerifyDisks(
     group_name=uuid, priority=constants.OP_PRIO_LOW)
   op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
