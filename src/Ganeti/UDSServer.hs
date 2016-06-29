@@ -95,7 +95,7 @@ import Text.JSON.Types
 
 import Ganeti.BasicTypes
 import Ganeti.Errors (GanetiException(..), ErrorResult)
-import Ganeti.JSON
+import Ganeti.JSON (fromJResult, fromJVal, fromJResultE, fromObj)
 import Ganeti.Logging
 import Ganeti.THH
 import Ganeti.Utils

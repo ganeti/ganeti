@@ -124,7 +124,7 @@ import qualified Text.JSON as J
 import qualified AutoConf
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as ConstantUtils
-import Ganeti.JSON
+import Ganeti.JSON (DictObject(..), Container, emptyContainer, GenericContainer)
 import Ganeti.Objects.BitArray (BitArray)
 import Ganeti.Objects.Disk
 import Ganeti.Objects.Nic

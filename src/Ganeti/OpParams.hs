@@ -318,7 +318,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.THH
 import Ganeti.THH.Field
 import Ganeti.Utils
-import Ganeti.JSON
+import Ganeti.JSON (GenericContainer)
 import Ganeti.Types
 import qualified Ganeti.Query.Language as Qlang
 

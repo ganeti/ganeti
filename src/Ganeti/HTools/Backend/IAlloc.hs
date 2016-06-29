@@ -65,7 +65,7 @@ import Ganeti.HTools.AlgorithmParams (AlgorithmOptions(algRestrictToNodes))
 import Ganeti.HTools.CLI
 import Ganeti.HTools.Loader
 import Ganeti.HTools.Types
-import Ganeti.JSON
+import Ganeti.JSON (maybeFromObj, JSRecord, tryFromObj, toArray, asObjectList, readEitherString, fromJResult, fromObj, fromObjWithDefault, asJSObject)
 import Ganeti.Types ( EvacMode(ChangePrimary, ChangeSecondary)
                     , adminStateFromRaw, AdminState(..))
 import Ganeti.Utils

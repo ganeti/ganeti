@@ -56,7 +56,7 @@ import qualified Text.JSON as J
 import Ganeti.BasicTypes
 import Ganeti.Errors
 import Ganeti.Daemon
-import Ganeti.JSON
+import Ganeti.JSON (containerFromList, fromContainer)
 import Ganeti.Objects
 import Ganeti.Confd.Types
 import Ganeti.Confd.Utils

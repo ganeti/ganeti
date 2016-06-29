@@ -113,7 +113,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.Errors (ErrorResult, ResultG)
 import Ganeti.JQueue.Lens (qoInputL, validOpCodeL)
 import Ganeti.JQueue.Objects
-import Ganeti.JSON
+import Ganeti.JSON (fromJResult, fromObjWithDefault)
 import Ganeti.Logging
 import Ganeti.Luxi
 import Ganeti.Objects (ConfigData, Node)

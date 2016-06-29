@@ -128,7 +128,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.Codec
 import Ganeti.Curl.Multi
 import Ganeti.Errors
-import Ganeti.JSON
+import Ganeti.JSON (ArrayObject(..), GenericContainer(..))
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.Runtime

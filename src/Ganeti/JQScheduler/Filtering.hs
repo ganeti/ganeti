@@ -56,7 +56,7 @@ import Ganeti.Lens hiding (chosen)
 import Ganeti.JQScheduler.Types
 import Ganeti.JQueue (QueuedJob(..))
 import Ganeti.JQueue.Lens
-import Ganeti.JSON
+import Ganeti.JSON (nestedAccessByKeyDotted)
 import Ganeti.Objects (FilterRule(..), FilterAction(..), FilterPredicate(..),
                        filterRuleOrder)
 import Ganeti.OpCodes (OpCode)

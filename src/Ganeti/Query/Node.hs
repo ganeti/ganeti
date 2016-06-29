@@ -47,7 +47,7 @@ import qualified Text.JSON as J
 import Ganeti.Config
 import Ganeti.Common
 import Ganeti.Objects
-import Ganeti.JSON
+import Ganeti.JSON (jsonHead)
 import Ganeti.Rpc
 import Ganeti.Types
 import Ganeti.Query.Language
