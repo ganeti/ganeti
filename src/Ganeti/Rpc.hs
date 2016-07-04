@@ -111,6 +111,7 @@ import Control.Arrow (second)
 import Control.Monad
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Map as Map
+import Data.List (zipWith4)
 import Data.Maybe (mapMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
@@ -213,12 +214,12 @@ prepareUrl port node call =
 
 -- | Create HTTP request for a given node provided it is online,
 -- otherwise create empty response.
-prepareHttpRequest :: (RpcCall a) => Int -> [CurlOption] -> Node -> a
-                   -> ERpcError HttpClientRequest
-prepareHttpRequest port opts node call
+prepareHttpRequest :: (RpcCall a) => Int -> [CurlOption] -> Node
+                   -> String -> a -> ERpcError HttpClientRequest
+prepareHttpRequest port opts node reqdata call
   | rpcCallAcceptOffline call || not (nodeOffline node) =
       Right HttpClientRequest { requestUrl  = prepareUrl port node call
-                              , requestData = rpcCallData call
+                              , requestData = reqdata
                               , requestOpts = opts ++ curlOpts
                               }
   | otherwise = Left OfflineNodeError
@@ -275,9 +276,13 @@ getNodedPort = withDefaultOnIOError C.defaultNodedPort
                . liftM (fromIntegral . servicePort)
                $ getServiceByName C.noded "tcp"
 
--- | Execute multiple RPC calls in parallel
+-- | Execute multiple distinct RPC calls in parallel
 executeRpcCalls :: (Rpc a b) => [(Node, a)] -> IO [(Node, ERpcError b)]
-executeRpcCalls nodeCalls = do
+executeRpcCalls = executeRpcCalls' . map (\(n, c) -> (n, c, rpcCallData c))
+
+-- | Execute multiple RPC calls in parallel
+executeRpcCalls' :: (Rpc a b) => [(Node, a, String)] -> IO [(Node, ERpcError b)]
+executeRpcCalls' nodeCalls = do
   port <- getNodedPort
   cert_file <- P.nodedCertFile
   client_cert_file_name <- P.nodedClientCertFile
@@ -287,16 +292,16 @@ executeRpcCalls nodeCalls = do
   let client_cert_file = if client_file_exists
                          then client_cert_file_name
                          else cert_file
-      (nodes, calls) = unzip nodeCalls
+      (nodes, calls, datas) = unzip3 nodeCalls
       opts = map (getOptionsForCall cert_file client_cert_file) calls
-      opts_urls = zipWith3 (\n c o ->
-                         case prepareHttpRequest port o n c of
+      opts_urls = zipWith4 (\n c d o ->
+                         case prepareHttpRequest port o n d c of
                            Left v -> Left v
                            Right request ->
                              Right (CurlPostFields [requestData request]:
                                     requestOpts request,
                                     requestUrl request)
-                    ) nodes calls opts
+                    ) nodes calls datas opts
   -- split the opts_urls list; we don't want to pass the
   -- failed-already nodes to Curl
   let (lefts, rights, trail) = splitEithers opts_urls
@@ -311,8 +316,10 @@ executeRpcCalls nodeCalls = do
   return pairedList
 
 -- | Execute an RPC call for many nodes in parallel.
+-- NB this computes the RPC call payload string only once.
 executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, ERpcError b)]
-executeRpcCall nodes call = executeRpcCalls . zip nodes $ repeat call
+executeRpcCall nodes call = executeRpcCalls' [(n, call, rpc_data) | n <- nodes]
+  where rpc_data = rpcCallData call
 
 -- | Helper function that is used to read dictionaries of values.
 sanitizeDictResults :: [(String, J.Result a)] -> ERpcError [(String, a)]
