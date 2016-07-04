@@ -41,7 +41,6 @@ module Ganeti.Query.Node
 import Control.Applicative
 import Data.List
 import Data.Maybe
-import qualified Data.Map as Map
 import qualified Text.JSON as J
 
 import Ganeti.Config
@@ -303,10 +302,10 @@ collectLiveData True cfg fields nodes = do
   let hvs = [getDefaultHypervisorSpec cfg |
              queryDomainRequired hypervisorFields fields]
       good_nodes = nodesWithValidConfig cfg nodes
-      storage_units = if queryDomainRequired storageFields fields
-                        then getStorageUnitsOfNodes cfg good_nodes
-                        else Map.fromList
-                          (map (\n -> (uuidOf n, [])) good_nodes)
-  rpcres <- executeRpcCall good_nodes (RpcCallNodeInfo storage_units hvs)
+      storage_units n = if queryDomainRequired storageFields fields
+                        then getStorageUnitsOfNode cfg n
+                        else []
+  rpcres <- executeRpcCalls
+      [(n, RpcCallNodeInfo (storage_units n) hvs) | n <- good_nodes]
   return $ fillUpList (fillPairFromMaybe rpcResultNodeBroken pickPairUnique)
       nodes rpcres

@@ -111,7 +111,7 @@ import Control.Arrow (second)
 import Control.Monad
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe, mapMaybe)
+import Data.Maybe (mapMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 import qualified Data.ByteString.Base64.Lazy as Base64
@@ -179,8 +179,8 @@ class (ArrayObject a) => RpcCall a where
   -- | Calculate the timeout value for the call execution.
   rpcCallTimeout :: a -> Int
   -- | Prepare arguments of the call to be send as POST.
-  rpcCallData :: Node -> a -> String
-  rpcCallData _ = J.encode . J.JSArray . toJSArray
+  rpcCallData :: a -> String
+  rpcCallData = J.encode . J.JSArray . toJSArray
   -- | Whether we accept offline nodes when making a call.
   rpcCallAcceptOffline :: a -> Bool
 
@@ -218,7 +218,7 @@ prepareHttpRequest :: (RpcCall a) => Int -> [CurlOption] -> Node -> a
 prepareHttpRequest port opts node call
   | rpcCallAcceptOffline call || not (nodeOffline node) =
       Right HttpClientRequest { requestUrl  = prepareUrl port node call
-                              , requestData = rpcCallData node call
+                              , requestData = rpcCallData call
                               , requestOpts = opts ++ curlOpts
                               }
   | otherwise = Left OfflineNodeError
@@ -431,7 +431,7 @@ instance RpcCall RpcCallAllInstancesInfo where
   rpcCallName _          = "all_instances_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode (
+  rpcCallData call       = J.encode (
     map fst $ rpcCallAllInstInfoHypervisors call,
     GenericContainer . Map.fromList $ rpcCallAllInstInfoHypervisors call)
 
@@ -486,7 +486,7 @@ instance RpcCall RpcCallInstanceConsoleInfo where
   rpcCallName _          = "instance_console_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode .
+  rpcCallData call       = J.encode .
     GenericContainer $ Map.fromList (rpcCallInstConsInfoInstanceInfo call)
 
 instance Rpc RpcCallInstanceConsoleInfo RpcResultInstanceConsoleInfo where
@@ -522,7 +522,7 @@ instance Rpc RpcCallInstanceList RpcResultInstanceList where
 
 -- | Returns node information
 $(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
-  [ simpleField "storage_units" [t| Map.Map String [StorageUnit] |]
+  [ simpleField "storage_units" [t| [StorageUnit] |]
   , simpleField "hypervisors" [t| [ (Hypervisor, HvParams) ] |]
   ])
 
@@ -557,10 +557,8 @@ instance RpcCall RpcCallNodeInfo where
   rpcCallName _          = "node_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData n call     = J.encode
-    ( fromMaybe (error $ "Programmer error: missing parameter for node named "
-                         ++ nodeName n)
-          $ Map.lookup (uuidOf n) (rpcCallNodeInfoStorageUnits call)
+  rpcCallData call       = J.encode
+    ( rpcCallNodeInfoStorageUnits call
     , rpcCallNodeInfoHypervisors call
     )
 
@@ -582,7 +580,7 @@ instance RpcCall RpcCallVersion where
   rpcCallName _          = "version"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = True
-  rpcCallData _          = J.encode
+  rpcCallData            = J.encode
 
 instance Rpc RpcCallVersion RpcResultVersion where
   rpcResultFill _ res = fromJSValueToRes res RpcResultVersion
@@ -651,7 +649,7 @@ instance RpcCall RpcCallExportList where
   rpcCallName _          = "export_list"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
-  rpcCallData _          = J.encode
+  rpcCallData            = J.encode
 
 instance Rpc RpcCallExportList RpcResultExportList where
   rpcResultFill _ res = fromJSValueToRes res RpcResultExportList
@@ -671,7 +669,7 @@ instance RpcCall RpcCallJobqueueUpdate where
   rpcCallName _          = "jobqueue_update"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode
+  rpcCallData call       = J.encode
     ( rpcCallJobqueueUpdateFileName call
     , toCompressed $ rpcCallJobqueueUpdateContent call
     )
