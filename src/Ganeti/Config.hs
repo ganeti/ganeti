@@ -103,7 +103,7 @@ import Ganeti.BasicTypes
 import qualified Ganeti.Constants as C
 import qualified Ganeti.ConstantUtils as CU
 import Ganeti.Errors
-import Ganeti.JSON
+import Ganeti.JSON (fromJResult, fromContainer, GenericContainer(..))
 import Ganeti.Objects
 import Ganeti.Types
 import qualified Ganeti.Utils.MultiMap as MM

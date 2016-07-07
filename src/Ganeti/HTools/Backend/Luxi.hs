@@ -51,8 +51,9 @@ import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import Ganeti.JSON
-import Ganeti.Objects as O
+import Ganeti.JSON (fromJVal, tryFromObj, arrayMaybeFromJVal,
+                    getKeysFromContainer, Container)
+import Ganeti.Objects (PartialNicParams)
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
 

@@ -111,7 +111,8 @@ import Control.Arrow (second)
 import Control.Monad
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Map as Map
-import Data.Maybe (fromMaybe, mapMaybe)
+import Data.List (zipWith4)
+import Data.Maybe (mapMaybe)
 import qualified Text.JSON as J
 import Text.JSON.Pretty (pp_value)
 import qualified Data.ByteString.Base64.Lazy as Base64
@@ -128,7 +129,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.Codec
 import Ganeti.Curl.Multi
 import Ganeti.Errors
-import Ganeti.JSON
+import Ganeti.JSON (ArrayObject(..), GenericContainer(..))
 import Ganeti.Logging
 import Ganeti.Objects
 import Ganeti.Runtime
@@ -179,8 +180,8 @@ class (ArrayObject a) => RpcCall a where
   -- | Calculate the timeout value for the call execution.
   rpcCallTimeout :: a -> Int
   -- | Prepare arguments of the call to be send as POST.
-  rpcCallData :: Node -> a -> String
-  rpcCallData _ = J.encode . J.JSArray . toJSArray
+  rpcCallData :: a -> String
+  rpcCallData = J.encode . J.JSArray . toJSArray
   -- | Whether we accept offline nodes when making a call.
   rpcCallAcceptOffline :: a -> Bool
 
@@ -213,12 +214,12 @@ prepareUrl port node call =
 
 -- | Create HTTP request for a given node provided it is online,
 -- otherwise create empty response.
-prepareHttpRequest :: (RpcCall a) => Int -> [CurlOption] -> Node -> a
-                   -> ERpcError HttpClientRequest
-prepareHttpRequest port opts node call
+prepareHttpRequest :: (RpcCall a) => Int -> [CurlOption] -> Node
+                   -> String -> a -> ERpcError HttpClientRequest
+prepareHttpRequest port opts node reqdata call
   | rpcCallAcceptOffline call || not (nodeOffline node) =
       Right HttpClientRequest { requestUrl  = prepareUrl port node call
-                              , requestData = rpcCallData node call
+                              , requestData = reqdata
                               , requestOpts = opts ++ curlOpts
                               }
   | otherwise = Left OfflineNodeError
@@ -275,9 +276,13 @@ getNodedPort = withDefaultOnIOError C.defaultNodedPort
                . liftM (fromIntegral . servicePort)
                $ getServiceByName C.noded "tcp"
 
--- | Execute multiple RPC calls in parallel
+-- | Execute multiple distinct RPC calls in parallel
 executeRpcCalls :: (Rpc a b) => [(Node, a)] -> IO [(Node, ERpcError b)]
-executeRpcCalls nodeCalls = do
+executeRpcCalls = executeRpcCalls' . map (\(n, c) -> (n, c, rpcCallData c))
+
+-- | Execute multiple RPC calls in parallel
+executeRpcCalls' :: (Rpc a b) => [(Node, a, String)] -> IO [(Node, ERpcError b)]
+executeRpcCalls' nodeCalls = do
   port <- getNodedPort
   cert_file <- P.nodedCertFile
   client_cert_file_name <- P.nodedClientCertFile
@@ -287,16 +292,16 @@ executeRpcCalls nodeCalls = do
   let client_cert_file = if client_file_exists
                          then client_cert_file_name
                          else cert_file
-      (nodes, calls) = unzip nodeCalls
+      (nodes, calls, datas) = unzip3 nodeCalls
       opts = map (getOptionsForCall cert_file client_cert_file) calls
-      opts_urls = zipWith3 (\n c o ->
-                         case prepareHttpRequest port o n c of
+      opts_urls = zipWith4 (\n c d o ->
+                         case prepareHttpRequest port o n d c of
                            Left v -> Left v
                            Right request ->
                              Right (CurlPostFields [requestData request]:
                                     requestOpts request,
                                     requestUrl request)
-                    ) nodes calls opts
+                    ) nodes calls datas opts
   -- split the opts_urls list; we don't want to pass the
   -- failed-already nodes to Curl
   let (lefts, rights, trail) = splitEithers opts_urls
@@ -311,8 +316,10 @@ executeRpcCalls nodeCalls = do
   return pairedList
 
 -- | Execute an RPC call for many nodes in parallel.
+-- NB this computes the RPC call payload string only once.
 executeRpcCall :: (Rpc a b) => [Node] -> a -> IO [(Node, ERpcError b)]
-executeRpcCall nodes call = executeRpcCalls . zip nodes $ repeat call
+executeRpcCall nodes call = executeRpcCalls' [(n, call, rpc_data) | n <- nodes]
+  where rpc_data = rpcCallData call
 
 -- | Helper function that is used to read dictionaries of values.
 sanitizeDictResults :: [(String, J.Result a)] -> ERpcError [(String, a)]
@@ -431,7 +438,7 @@ instance RpcCall RpcCallAllInstancesInfo where
   rpcCallName _          = "all_instances_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode (
+  rpcCallData call       = J.encode (
     map fst $ rpcCallAllInstInfoHypervisors call,
     GenericContainer . Map.fromList $ rpcCallAllInstInfoHypervisors call)
 
@@ -486,7 +493,7 @@ instance RpcCall RpcCallInstanceConsoleInfo where
   rpcCallName _          = "instance_console_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode .
+  rpcCallData call       = J.encode .
     GenericContainer $ Map.fromList (rpcCallInstConsInfoInstanceInfo call)
 
 instance Rpc RpcCallInstanceConsoleInfo RpcResultInstanceConsoleInfo where
@@ -522,7 +529,7 @@ instance Rpc RpcCallInstanceList RpcResultInstanceList where
 
 -- | Returns node information
 $(buildObject "RpcCallNodeInfo" "rpcCallNodeInfo"
-  [ simpleField "storage_units" [t| Map.Map String [StorageUnit] |]
+  [ simpleField "storage_units" [t| [StorageUnit] |]
   , simpleField "hypervisors" [t| [ (Hypervisor, HvParams) ] |]
   ])
 
@@ -557,10 +564,8 @@ instance RpcCall RpcCallNodeInfo where
   rpcCallName _          = "node_info"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = False
-  rpcCallData n call     = J.encode
-    ( fromMaybe (error $ "Programmer error: missing parameter for node named "
-                         ++ nodeName n)
-          $ Map.lookup (uuidOf n) (rpcCallNodeInfoStorageUnits call)
+  rpcCallData call       = J.encode
+    ( rpcCallNodeInfoStorageUnits call
     , rpcCallNodeInfoHypervisors call
     )
 
@@ -582,7 +587,7 @@ instance RpcCall RpcCallVersion where
   rpcCallName _          = "version"
   rpcCallTimeout _       = rpcTimeoutToRaw Urgent
   rpcCallAcceptOffline _ = True
-  rpcCallData _          = J.encode
+  rpcCallData            = J.encode
 
 instance Rpc RpcCallVersion RpcResultVersion where
   rpcResultFill _ res = fromJSValueToRes res RpcResultVersion
@@ -651,7 +656,7 @@ instance RpcCall RpcCallExportList where
   rpcCallName _          = "export_list"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
-  rpcCallData _          = J.encode
+  rpcCallData            = J.encode
 
 instance Rpc RpcCallExportList RpcResultExportList where
   rpcResultFill _ res = fromJSValueToRes res RpcResultExportList
@@ -671,7 +676,7 @@ instance RpcCall RpcCallJobqueueUpdate where
   rpcCallName _          = "jobqueue_update"
   rpcCallTimeout _       = rpcTimeoutToRaw Fast
   rpcCallAcceptOffline _ = False
-  rpcCallData _ call     = J.encode
+  rpcCallData call       = J.encode
     ( rpcCallJobqueueUpdateFileName call
     , toCompressed $ rpcCallJobqueueUpdateContent call
     )

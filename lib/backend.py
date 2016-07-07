@@ -1104,6 +1104,7 @@ def _VerifySshClutter(node_status_list, my_name):
 
   return result
 
+
 def VerifyNodeNetTest(my_name, test_config):
   """Verify nodes are reachable.
 
@@ -1145,6 +1146,7 @@ def VerifyNodeNetTest(my_name, test_config):
         result[name] = ("failure using the %s interface(s)" %
                         " and ".join(fail))
   return result
+
 
 def VerifyMasterIP(my_name, test_config):
   """Verify master IP is reachable.

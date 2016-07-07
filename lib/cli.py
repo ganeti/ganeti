@@ -747,7 +747,7 @@ def GenericPollJob(job_id, cbs, report_cbs, cancel_fn=None,
         timer += constants.CLI_WFJC_FREQUENCY
     else:
       result = cbs.WaitForJobChangeOnce(job_id, ["status"], prev_job_info,
-                                      prev_logmsg_serial, timeout=update_freq)
+                                        prev_logmsg_serial, timeout=update_freq)
     if not result:
       # job not found, go away!
       raise errors.JobLost("Job with id %s lost" % job_id)
@@ -905,6 +905,7 @@ class _LuxiJobPollCb(JobPollCbBase):
 
     """
     return self.cl.CancelJob(job_id)
+
 
 class FeedbackFnJobPollReportCb(JobPollReportCbBase):
   def __init__(self, feedback_fn):

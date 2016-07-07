@@ -84,7 +84,7 @@ import Ganeti.Objects
 import Ganeti.Query.Language
 import Ganeti.Query.Types
 import Ganeti.Utils.Monad (anyM, allM)
-import Ganeti.JSON
+import Ganeti.JSON (fromJVal)
 
 -- | Compiles a filter based on field names to one based on getters.
 compileFilter :: FieldMap a b

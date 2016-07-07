@@ -201,7 +201,7 @@ import qualified Data.Set as Set
 import System.Time (ClockTime)
 
 import qualified Ganeti.ConstantUtils as ConstantUtils
-import Ganeti.JSON
+import Ganeti.JSON (Container, HasStringRepr(..))
 import qualified Ganeti.THH as THH
 import Ganeti.Utils
 

@@ -73,13 +73,6 @@ genStorageUnits = do
   num_storage_units <- choose (0, 5)
   vectorOf num_storage_units genStorageUnit
 
-genStorageUnitMap :: Gen (Map.Map String [StorageUnit])
-genStorageUnitMap = do
-  num_nodes <- choose (0,5)
-  node_uuids <- vectorOf num_nodes genName
-  storage_units_list <- vectorOf num_nodes genStorageUnits
-  return $ Map.fromList (zip node_uuids storage_units_list)
-
 -- FIXME: Generate more interesting hvparams
 -- | Generate Hvparams
 genHvParams :: Gen Objects.HvParams
@@ -101,7 +94,7 @@ instance Arbitrary Rpc.RpcCallInstanceList where
   arbitrary = Rpc.RpcCallInstanceList <$> arbitrary
 
 instance Arbitrary Rpc.RpcCallNodeInfo where
-  arbitrary = Rpc.RpcCallNodeInfo <$> genStorageUnitMap <*> genHvSpecs
+  arbitrary = Rpc.RpcCallNodeInfo <$> genStorageUnits <*> genHvSpecs
 
 -- | Generates per-instance console info params for the 'InstanceConsoleInfo'
 -- call.

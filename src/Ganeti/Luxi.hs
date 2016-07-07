@@ -73,7 +73,7 @@ import Text.JSON.Types
 import Ganeti.BasicTypes
 import Ganeti.Constants
 import Ganeti.Errors
-import Ganeti.JSON
+import Ganeti.JSON (fromJResult, fromJVal, fromObj, Tuple5(..), MaybeForJSON(..), TimeAsDoubleJSON(..))
 import Ganeti.UDSServer
 import Ganeti.Objects
 import Ganeti.OpParams (pTagsObject)
