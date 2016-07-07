@@ -779,8 +779,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     if constants.NV_MASTERIP not in nresult:
       self._ErrorMsg(constants.CV_ENODENET, ninfo.name,
-                    "node hasn't returned node master IP reachability data")
-    elif nresult[constants.NV_MASTERIP] == False: # be explicit, could be None
+                     "node hasn't returned node master IP reachability data")
+    elif nresult[constants.NV_MASTERIP] == False:  # be explicit, could be None
       if ninfo.uuid == self.master_node:
         msg = "the master node cannot reach the master IP (not configured?)"
       else:
