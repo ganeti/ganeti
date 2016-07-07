@@ -49,10 +49,9 @@ from qa_instance_utils import CreateInstanceDrbd8, \
 
 
 def _GetMaintTags(node):
-  tags = stdout_of(["gnt-node",
-                    "list-tags",
-                    node.primary
-                   ]).split()
+  tags = stdout_of([
+    "gnt-node", "list-tags", node.primary
+  ]).split()
   return [t for t in tags if t.startswith('maintd:repairready:')]
 
 
@@ -70,13 +69,11 @@ def _AssertRepairTagAddition(node):
 
 def _AssertNodeDrained(node):
   def fn():
-    out = stdout_of(["gnt-node",
-                     "list",
-                     "--output=name",
-                     "--no-headers",
-                     "--filter",
-                     "drained"
-                    ])
+    out = stdout_of([
+      "gnt-node", "list",
+       "--output=name", "--no-headers",
+       "--filter", "drained"
+    ])
     if node.primary not in out:
       raise retry.RetryAgain()
   retry.Retry(fn, 5.0, 500.0)
@@ -84,13 +81,11 @@ def _AssertNodeDrained(node):
 
 def _AssertInstanceRunning(inst):
   def fn():
-    out = stdout_of(["gnt-instance",
-                     "list",
-                     "--output=status",
-                     "--no-headers",
-                     "--filter",
-                     "name == \"%s\"" % inst.name
-                    ])
+    out = stdout_of([
+      "gnt-instance", "list",
+      "--output=status", "--no-headers",
+      "--filter", "name == \"%s\"" % inst.name
+    ])
     if "running" not in out:
       raise retry.RetryAgain()
   retry.Retry(fn, 5.0, 500.0)
@@ -98,13 +93,11 @@ def _AssertInstanceRunning(inst):
 
 def _AssertInstanceMove(inst, move_type):
   def fn():
-    out = stdout_of(["gnt-job",
-                     "list",
-                     "--output=status",
-                     "--no-headers",
-                     "--filter",
-                     '"%s(%s)" in summary' % (move_type, inst.name)
-                    ])
+    out = stdout_of([
+      "gnt-job", "list",
+      "--output=status", "--no-headers",
+      "--filter", '"%s(%s)" in summary' % (move_type, inst.name)
+    ])
     if 'success' not in out:
       raise retry.RetryAgain()
   retry.Retry(fn, 5.0, 500.0)
@@ -112,52 +105,34 @@ def _AssertInstanceMove(inst, move_type):
 
 def _AssertRepairCommand():
   def fn():
-    out = stdout_of(["gnt-job",
-                     "list",
-                     "--output=status",
-                     "--no-headers",
-                     "--filter",
-                     '"REPAIR_COMMAND" in summary'
-                    ])
+    out = stdout_of([
+      "gnt-job", "list",
+      "--output=status", "--no-headers",
+      "--filter", '"REPAIR_COMMAND" in summary'
+    ])
     if 'success' not in out:
       raise retry.RetryAgain()
   retry.Retry(fn, 5.0, 500.0)
 
 
 def _SetUp(diagnose_dc_filename):
-  AssertCommand(["gnt-cluster",
-                 "modify",
-                 "--maintenance-interval=3"
-                ])
-  AssertCommand(["gnt-cluster",
-                 "modify",
-                 "--diagnose-data-collector-filename",
-                 diagnose_dc_filename
-                ])
+  AssertCommand(["gnt-cluster", "modify", "--maintenance-interval=3"])
+  AssertCommand([
+    "gnt-cluster", "modify",
+    "--diagnose-data-collector-filename", diagnose_dc_filename
+  ])
 
 
 def _TearDown(node, tag, added_filepaths, drain_node=True):
-  AssertCommand(["gnt-cluster",
-                 "modify",
-                 "--diagnose-data-collector-filename",
-                 '""'
-                ])
+  AssertCommand([
+    "gnt-cluster", "modify",
+    "--diagnose-data-collector-filename", '""'
+  ])
   AssertCommand(["rm"] + added_filepaths, node=node)
   if drain_node:
-    AssertCommand(["gnt-node",
-                   "modify",
-                   "--drained=no",
-                   node.primary
-                  ])
-  AssertCommand(["gnt-node",
-                 "remove-tags",
-                 node.primary,
-                 tag
-                ])
-  AssertCommand(["gnt-cluster",
-                 "modify",
-                 "--maintenance-interval=300"
-                ])
+    AssertCommand(["gnt-node", "modify", "--drained=no", node.primary])
+  AssertCommand(["gnt-node", "remove-tags", node.primary, tag])
+  AssertCommand(["gnt-cluster", "modify", "--maintenance-interval=300"])
 
 
 def _TestEvac(filepath, filecontent, inst_move_type):
