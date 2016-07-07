@@ -51,7 +51,9 @@ import Ganeti.HTools.Types
 import qualified Ganeti.HTools.Group as Group
 import qualified Ganeti.HTools.Node as Node
 import qualified Ganeti.HTools.Instance as Instance
-import Ganeti.JSON
+import Ganeti.JSON (fromJVal, tryFromObj, arrayMaybeFromJVal,
+                    getKeysFromContainer, Container)
+import Ganeti.Objects (PartialNicParams)
 
 {-# ANN module "HLint: ignore Eta reduce" #-}
 
@@ -255,8 +257,9 @@ parseGroup [uuid, name, apol, ipol, tags, nets] = do
   xapol <- convert "alloc_policy" apol
   xipol <- convert "ipolicy" ipol
   xtags <- convert "tags" tags
-  xnets <- convert "networks" nets
-  return (xuuid, Group.create xname xuuid xapol xnets xipol xtags)
+  xnets <- convert "networks" nets :: Result (Container PartialNicParams)
+  let xnetids = getKeysFromContainer xnets
+  return (xuuid, Group.create xname xuuid xapol xnetids xipol xtags)
 
 parseGroup v = fail ("Invalid group query result: " ++ show v)
 

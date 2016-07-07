@@ -55,7 +55,7 @@ import qualified Text.JSON as J
 
 import Ganeti.BasicTypes
 import Ganeti.Errors
-import Ganeti.JSON
+import Ganeti.JSON (fromJResultE, fromJVal)
 import Ganeti.THH.Types
 import qualified Ganeti.UDSServer as US
 

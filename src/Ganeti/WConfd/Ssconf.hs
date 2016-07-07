@@ -53,7 +53,7 @@ import qualified Text.JSON as J
 import Ganeti.BasicTypes
 import Ganeti.Config
 import Ganeti.Constants
-import Ganeti.JSON
+import Ganeti.JSON (fromContainer, lookupContainer)
 import Ganeti.Objects
 import Ganeti.Ssconf
 import Ganeti.Utils

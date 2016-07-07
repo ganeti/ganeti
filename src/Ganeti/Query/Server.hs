@@ -458,19 +458,8 @@ handleCall qlock qstat cfg (SubmitManyJobs lops) =
                         else showJSON (False, genericResult id (const "") res))
               $ annotated_results
 
-handleCall _ _ cfg (WaitForJobChange jid fields prev_job prev_log tmout) = do
-  let compute_fn = computeJobUpdate cfg jid fields prev_log
-  qDir <- queueDir
-  -- verify if the job is finalized, and return immediately in this case
-  jobresult <- loadJobFromDisk qDir False jid
-  case jobresult of
-    Bad s -> return . Bad $ JobLost s
-    Ok (job, _) | not (jobFinalized job) -> do
-      let jobfile = liveJobFile qDir jid
-      answer <- watchFile jobfile (min tmout C.luxiWfjcTimeout)
-                  (prev_job, JSArray []) compute_fn
-      return . Ok $ showJSON answer
-    _ -> liftM (Ok . showJSON) compute_fn
+handleCall _ _ cfg (WaitForJobChange jid fields prev_job prev_log tmout) =
+  waitForJobChange jid prev_job tmout $ computeJobUpdate cfg jid fields prev_log
 
 handleCall _ _ cfg (SetWatcherPause time) = do
   let mcs = Config.getMasterOrCandidates cfg
@@ -569,6 +558,30 @@ handleCall _ _ _ (PickupJob _) =
 
 {-# ANN handleCall "HLint: ignore Too strict if" #-}
 
+-- | Special-case handler for WaitForJobChange RPC call for fields == ["status"]
+-- that doesn't require the use of ConfigData
+handleWaitForJobChangeStatus :: JobId -> JSValue -> JSValue -> Int
+                                -> IO (ErrorResult JSValue)
+handleWaitForJobChangeStatus jid prev_job prev_log tmout =
+  waitForJobChange jid prev_job tmout $ computeJobUpdateStatus jid prev_log
+
+-- | Common WaitForJobChange functionality shared between handleCall and
+-- handleWaitForJobChangeStatus
+waitForJobChange :: JobId -> JSValue -> Int -> IO (JSValue, JSValue)
+                          -> IO (ErrorResult JSValue)
+waitForJobChange jid prev_job tmout compute_fn = do
+  qDir <- queueDir
+  -- verify if the job is finalized, and return immediately in this case
+  jobresult <- loadJobFromDisk qDir False jid
+  case jobresult of
+    Bad s -> return . Bad $ JobLost s
+    Ok (job, _) | not (jobFinalized job) -> do
+      let jobfile = liveJobFile qDir jid
+      answer <- watchFile jobfile (min tmout C.luxiWfjcTimeout)
+                  (prev_job, JSArray []) compute_fn
+      return . Ok $ showJSON answer
+    _ -> liftM (Ok . showJSON) compute_fn
+
 -- | Query the status of a job and return the requested fields
 -- and the logs newer than the given log number.
 computeJobUpdate :: ConfigData -> JobId -> [String] -> JSValue
@@ -591,6 +604,26 @@ computeJobUpdate cfg jid fields prev_log = do
   logDebug $ "Updates for job " ++ sjid ++ " are " ++ encode (rfields, rlogs)
   return (JSArray rfields, rlogs)
 
+-- | A version of computeJobUpdate hardcoded to only return logs and the status
+-- field. By hardcoding this we avoid using the luxi Query infrastructure and
+-- the ConfigData value it requires.
+computeJobUpdateStatus :: JobId -> JSValue -> IO (JSValue, JSValue)
+computeJobUpdateStatus jid prev_log = do
+  qdir <- queueDir
+  loadResult <- loadJobFromDisk qdir True jid
+  let sjid = show $ fromJobId jid
+  logDebug $ "Inspecting status of job " ++ sjid
+  let (rfields, rlogs) = case loadResult of
+       Ok (job, _) -> (J.JSArray [status], newlogs)
+          where status  = showJSON $ calcJobStatus job -- like "status" jobField
+                oplogs  = map qoLog (qjOps job)        -- like "oplog" jobField
+                newer   = case J.readJSON prev_log of
+                  J.Ok n -> (\(idx, _time, _type, _msg) -> n < idx)
+                  _      -> const True
+                newlogs = showJSON $ concatMap (filter newer) oplogs
+       _ -> (JSArray[JSNull], JSArray [])
+  logDebug $ "Updates for job " ++ sjid ++ " are " ++ encode (rfields, rlogs)
+  return (rfields, rlogs)
 
 type LuxiConfig = (Lock, JQStatus, ConfigReader)
 
@@ -598,10 +631,20 @@ luxiExec
     :: LuxiConfig
     -> LuxiOp
     -> IO (Bool, GenericResult GanetiException JSValue)
-luxiExec (qlock, qstat, creader) args = do
-  cfg <- creader
-  result <- handleCallWrapper qlock qstat cfg args
-  return (True, result)
+luxiExec (qlock, qstat, creader) args =
+  case args of
+    -- Special case WaitForJobChange handling to avoid passing a ConfigData to
+    -- a potentially long-lived thread. ConfigData uses lots of heap, and
+    -- multiple handler threads retaining different versions of ConfigData
+    -- increases luxi's memory use for concurrent jobs that modify config.
+    WaitForJobChange jid fields prev_job prev_log tmout
+      | fields == ["status"] -> do
+        result <- handleWaitForJobChangeStatus jid prev_job prev_log tmout
+        return (True, result)
+    _ -> do
+     cfg <- creader
+     result <- handleCallWrapper qlock qstat cfg args
+     return (True, result)
 
 luxiHandler :: LuxiConfig -> U.Handler LuxiOp IO JSValue
 luxiHandler cfg = U.Handler { U.hParse         = decodeLuxiCall

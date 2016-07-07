@@ -109,8 +109,8 @@ class _VerifyErrors(object):
     @type error_descriptor: tuple (string, string, string)
     @param error_descriptor: triplet describing the error (object_type,
         code, description)
-    @type obj_name: string
-    @param obj_name: name of object (instance, node ..) the error relates to
+    @type object_name: string
+    @param object_name: name of object (instance, node ..) the error relates to
     @type message_list: list of strings
     @param message_list: body of error messages
     @type log_type: string
@@ -133,13 +133,15 @@ class _VerifyErrors(object):
             log_type, error_code, object_type, object_name, msg))
     else:
       if not object_name:
-        object_name  = ""
+        object_name = ""
       for msg in message_list:
         prefixed_list.append("  - %s: %s %s: %s" % (
             log_type, object_type, object_name, msg))
 
     # Report messages via the feedback_fn
-    self._feedback_fn(constants.ELOG_MESSAGE_LIST, prefixed_list) # pylint: disable=E1101,C0301
+    # pylint: disable=E1101
+    self._feedback_fn(constants.ELOG_MESSAGE_LIST, prefixed_list)
+    # pylint: enable=E1101
 
     # do not mark the operation as failed for WARN cases only
     if log_type == self.ETYPE_ERROR:
@@ -781,8 +783,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     if constants.NV_MASTERIP not in nresult:
       self._ErrorMsg(constants.CV_ENODENET, ninfo.name,
-                    "node hasn't returned node master IP reachability data")
-    elif nresult[constants.NV_MASTERIP] == False: # be explicit, could be None
+                     "node hasn't returned node master IP reachability data")
+    elif nresult[constants.NV_MASTERIP] == False:  # be explicit, could be None
       if ninfo.uuid == self.master_node:
         msg = "the master node cannot reach the master IP (not configured?)"
       else:

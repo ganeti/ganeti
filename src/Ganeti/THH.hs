@@ -104,7 +104,7 @@ import Language.Haskell.TH.Syntax (lift)
 import qualified Text.JSON as JSON
 import Text.JSON.Pretty (pp_value)
 
-import Ganeti.JSON
+import Ganeti.JSON (readJSONWithDesc, fromObj, DictObject(..), ArrayObject(..), maybeFromObj, mkUsedKeys, showJSONtoDict, readJSONfromDict, branchOnField, addField, allUsedKeys)
 import Ganeti.PartialParams
 import Ganeti.PyValue
 import Ganeti.THH.PyType
@@ -310,15 +310,16 @@ actualFieldType f | fieldIsOptional f `elem` [NotOptional, AndRestArguments] = t
 -- | Checks that a given field is not optional (for object types or
 -- fields which should not allow this case).
 checkNonOptDef :: (Monad m) => Field -> m ()
-checkNonOptDef (Field { fieldIsOptional = OptionalOmitNull
-                      , fieldName = name }) =
-  fail $ "Optional field " ++ (T.unpack name) ++ " used in parameter declaration"
-checkNonOptDef (Field { fieldIsOptional = OptionalSerializeNull
-                      , fieldName = name }) =
-  fail $ "Optional field " ++ (T.unpack name) ++ " used in parameter declaration"
-checkNonOptDef (Field { fieldDefault = (Just _), fieldName = name }) =
-  fail $ "Default field " ++ (T.unpack name) ++ " used in parameter declaration"
-checkNonOptDef _ = return ()
+checkNonOptDef field
+  | fieldIsOptional field == OptionalOmitNull       = failWith kOpt
+  | fieldIsOptional field == OptionalSerializeNull  = failWith kOpt
+  | isJust (fieldDefault field)                     = failWith kDef
+  | otherwise                                       = return ()
+  where failWith kind = fail $ kind ++ " field " ++ name
+                                    ++ " used in parameter declaration"
+        name = T.unpack (fieldName field)
+        kOpt = "Optional"
+        kDef = "Default"
 
 -- | Construct a function that parses a field value. If the field has
 -- a custom 'fieldRead', it's applied to @o@ and used. Otherwise
@@ -328,8 +329,9 @@ parseFn :: Field   -- ^ The field definition
         -> Q Exp   -- ^ The resulting function that parses a JSON message
 parseFn field o =
   let fnType = [t| JSON.JSValue -> JSON.Result $(fieldType field) |]
-      expr = maybe [| readJSONWithDesc $(stringE . T.unpack $ fieldName field) |]
-                   (`appE` o) (fieldRead field)
+      expr = maybe
+               [| readJSONWithDesc $(stringE . T.unpack $ fieldName field) |]
+               (`appE` o) (fieldRead field)
   in sigE expr fnType
 
 -- | Produces the expression that will de-serialise a given
@@ -806,7 +808,7 @@ genOpCode name cons = do
 genOpConsFields :: OpCodeConstructor -> Clause
 genOpConsFields (cname, _, _, fields, _) =
   let op_id = deCamelCase cname
-      fieldnames f = (T.unpack . fieldName $ f):(map T.unpack $ fieldExtraKeys f)
+      fieldnames f = map T.unpack $ fieldName f:fieldExtraKeys f
       fvals = map (LitE . StringL) . sort . nub $ concatMap fieldnames fields
   in Clause [LitP (StringL op_id)] (NormalB $ ListE fvals) []
 

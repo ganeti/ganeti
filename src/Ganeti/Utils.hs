@@ -103,6 +103,7 @@ module Ganeti.Utils
   , threadDelaySeconds
   , monotoneFind
   , iterateJust
+  , partitionM
   ) where
 
 import Prelude ()
@@ -886,7 +887,15 @@ monotoneFind heuristics p xs =
              else monotoneFind heuristics p xs'
     _ -> Nothing
 
--- | Iterate a funtion as long as it returns Just values, collecting
+-- | Iterate a function as long as it returns Just values, collecting
 -- all the Justs that where obtained.
 iterateJust :: (a -> Maybe a) -> a -> [a]
 iterateJust f a = a : maybe [] (iterateJust f) (f a)
+
+-- | A version of partition with a monadic predicate
+-- Implementation taken from David Fox's Extras package.
+partitionM :: (Monad m) => (a -> m Bool) -> [a] -> m ([a], [a])
+partitionM p xs = foldM f ([], []) xs
+  where f (a, b) x = do
+        pv <- p x
+        return $ if pv then (x : a, b) else (a, x : b)

@@ -200,7 +200,7 @@ import Data.Ratio (numerator, denominator)
 import System.Time (ClockTime)
 
 import qualified Ganeti.ConstantUtils as ConstantUtils
-import Ganeti.JSON
+import Ganeti.JSON (Container, HasStringRepr(..))
 import qualified Ganeti.THH as THH
 import qualified Ganeti.THH.Field as THH (TagSet)
 import Ganeti.Utils

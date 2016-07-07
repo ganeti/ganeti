@@ -510,7 +510,6 @@ class LogicalVolume(base.BlockDev):
       logging.warning("lvs command returned an empty output, the LV cache will"
                       "be empty!")
       return {}
-    info = {}
     return dict([LogicalVolume._ParseLvInfoLine(line, sep) for line in out])
 
   def Attach(self, lv_info=None):
