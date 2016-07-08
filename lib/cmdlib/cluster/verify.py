@@ -259,8 +259,10 @@ class LUClusterVerifyDisks(NoHooksLU):
       return ResultWithJobs([])
     else:
       # Submit one instance of L{opcodes.OpGroupVerifyDisks} per node group
-      return ResultWithJobs([[opcodes.OpGroupVerifyDisks(group_name=group)]
-                             for group in group_names])
+      return ResultWithJobs(
+          [[opcodes.OpGroupVerifyDisks(group_name=group,
+                                       is_strict=self.op.is_strict)]
+           for group in group_names])
 
 
 class LUClusterVerifyConfig(NoHooksLU, _VerifyErrors):

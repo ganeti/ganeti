@@ -90,6 +90,10 @@ DATA_COLLECTOR_INTERVAL_OPT = cli_option(
     "--data-collector-interval", default={}, type="keyval",
     help="Set collection intervals in seconds of data collectors.")
 
+STRICT_OPT = cli_option("--no-strict", default=False,
+                        dest="no_strict", action="store_true",
+                        help="Do not run group verify in strict mode")
+
 _EPO_PING_INTERVAL = 30 # 30 seconds between pings
 _EPO_PING_TIMEOUT = 1 # 1 second
 _EPO_REACHABLE_TIMEOUT = 15 * 60 # 15 minutes
@@ -802,7 +806,8 @@ def VerifyDisks(opts, args):
   """
   cl = GetClient()
 
-  op = opcodes.OpClusterVerifyDisks(group_name=opts.nodegroup)
+  op = opcodes.OpClusterVerifyDisks(group_name=opts.nodegroup,
+                                    is_strict=not opts.no_strict)
 
   result = SubmitOpCode(op, cl=cl, opts=opts)
 
@@ -2519,7 +2524,7 @@ commands = {
      VERIFY_CLUTTER_OPT],
     "", "Does a check on the cluster configuration"),
   "verify-disks": (
-    VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT],
+    VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT, STRICT_OPT],
     "", "Does a check on the cluster disk status"),
   "repair-disk-sizes": (
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],
