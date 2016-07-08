@@ -1038,13 +1038,18 @@ List of error codes:
 VERIFY-DISKS
 ~~~~~~~~~~~~
 
-**verify-disks** [\--node-group *nodegroup*]
+**verify-disks** [\--node-group *nodegroup*] [\--no-strict]
 
 The command checks which instances have degraded DRBD disks and
 activates the disks of those instances.
 
 With ``--node-group``, restrict the verification to those nodes and
 instances that live in the named group.
+
+The ``--no-strict`` option runs the group verify disks job in a
+non-strict mode. This only verifies those disks whose node locks could
+be acquired in a best-effort attempt and will skip nodes that are
+recognized as busy with other jobs.
 
 This command is run from the **ganeti-watcher** tool, which also
 has a different, complementary algorithm for doing this check.

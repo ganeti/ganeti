@@ -361,7 +361,7 @@ def _GetPendingVerifyDisks(cl, uuid):
   return ids
 
 
-def _VerifyDisks(cl, uuid, nodes, instances):
+def _VerifyDisks(cl, uuid, nodes, instances, is_strict):
   """Run a per-group "gnt-cluster verify-disks".
 
   """
@@ -374,7 +374,7 @@ def _VerifyDisks(cl, uuid, nodes, instances):
     return
 
   op = opcodes.OpGroupVerifyDisks(
-    group_name=uuid, priority=constants.OP_PRIO_LOW)
+    group_name=uuid, priority=constants.OP_PRIO_LOW, is_strict=is_strict)
   op.reason = [(constants.OPCODE_REASON_SRC_WATCHER,
                 "Verifying disks of group %s" % uuid,
                 utils.EpochNano())]
@@ -504,6 +504,9 @@ def ParseOptions():
                     help="Don't wait for child processes")
   parser.add_option("--no-verify-disks", dest="no_verify_disks", default=False,
                     action="store_true", help="Do not verify disk status")
+  parser.add_option("--no-strict", dest="no_strict",
+                    default=False, action="store_true",
+                    help="Do not run group verify in strict mode")
   parser.add_option("--rapi-ip", dest="rapi_ip",
                     default=constants.IP4_ADDRESS_LOCALHOST,
                     help="Use this IP to talk to RAPI.")
@@ -913,7 +916,8 @@ def _GroupWatcher(opts):
   # This check needs to be revisited if ES_ACTION_VERIFY on ExtStorageDevice
   # is implemented.
   if not opts.no_verify_disks and not only_ext:
-    _VerifyDisks(client, group_uuid, nodes, instances)
+    is_strict = not opts.no_strict
+    _VerifyDisks(client, group_uuid, nodes, instances, is_strict=is_strict)
 
   return constants.EXIT_SUCCESS
 
