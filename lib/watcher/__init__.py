@@ -39,6 +39,7 @@ by a node reboot.  Run from cron or similar.
 import os
 import os.path
 import sys
+import signal
 import time
 import logging
 import operator
@@ -633,34 +634,35 @@ def _StartGroupChildren(cl, wait):
   children = []
 
   for (idx, (name, uuid)) in enumerate(result):
-    args = sys.argv + [cli.NODEGROUP_OPT_NAME, uuid]
-
     if idx > 0:
       # Let's not kill the system
       time.sleep(CHILD_PROCESS_DELAY)
 
-    logging.debug("Spawning child for group '%s' (%s), arguments %s",
-                  name, uuid, args)
+    logging.debug("Spawning child for group %r (%s).", name, uuid)
 
+    signal.signal(signal.SIGCHLD, signal.SIG_IGN)
     try:
-      # TODO: Should utils.StartDaemon be used instead?
-      pid = os.spawnv(os.P_NOWAIT, args[0], args)
-    except Exception: # pylint: disable=W0703
-      logging.exception("Failed to start child for group '%s' (%s)",
-                        name, uuid)
+      pid = os.fork()
+    except OSError:
+      logging.exception("Failed to fork for group %r (%s)", name, uuid)
+
+    if pid == 0:
+      (options, _) = ParseOptions()
+      options.nodegroup = uuid
+      _GroupWatcher(options)
+      return
     else:
       logging.debug("Started with PID %s", pid)
       children.append(pid)
 
   if wait:
-    for pid in children:
-      logging.debug("Waiting for child PID %s", pid)
+    for child in children:
+      logging.debug("Waiting for child PID %s", child)
       try:
-        result = utils.RetryOnSignal(os.waitpid, pid, 0)
+        result = utils.RetryOnSignal(os.waitpid, child, 0)
       except EnvironmentError, err:
         result = str(err)
-
-      logging.debug("Child PID %s exited with status %s", pid, result)
+      logging.debug("Child PID %s exited with status %s", child, result)
 
 
 def _ArchiveJobs(cl, age):
@@ -903,7 +905,10 @@ def Main():
     logging.debug("Pause has been set, exiting")
     return constants.EXIT_SUCCESS
 
-  # Try to acquire global watcher lock in shared mode
+  # Try to acquire global watcher lock in shared mode.
+  # In case we are in the global watcher process, this lock will be held by all
+  # children processes (one for each nodegroup) and will only be released when
+  # all of them have finished running.
   lock = utils.FileLock.Open(pathutils.WATCHER_LOCK_FILE)
   try:
     lock.Shared(blocking=False)
@@ -911,7 +916,6 @@ def Main():
     logging.error("Can't acquire lock on %s: %s",
                   pathutils.WATCHER_LOCK_FILE, err)
     return constants.EXIT_SUCCESS
-
   if options.nodegroup is None:
     fn = _GlobalWatcher
   else:
