@@ -38,7 +38,6 @@ import shutil
 import errno
 import itertools
 import random
-import operator
 
 try:
   # pylint: disable=E0611
@@ -266,7 +265,7 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
     self.assertTrue(compat.all(op.priority == constants.OP_PRIO_DEFAULT
                                for op in job.ops))
-    self.assertEqual(map(operator.attrgetter("status"), job.ops), [
+    self.assertEqual([op.status for op in job.ops], [
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_SUCCESS,
@@ -289,7 +288,7 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
     self.assertTrue(compat.all(op.priority == constants.OP_PRIO_DEFAULT
                                for op in job.ops))
-    self.assertEqual(map(operator.attrgetter("status"), job.ops), [
+    self.assertEqual([op.status for op in job.ops], [
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_CANCELING,
@@ -310,9 +309,9 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
     result = job.ChangePriority(7)
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
-    self.assertEqual(map(operator.attrgetter("priority"), job.ops),
+    self.assertEqual([op.priority for op in job.ops],
                      [constants.OP_PRIO_DEFAULT, 7, 7, 7])
-    self.assertEqual(map(operator.attrgetter("status"), job.ops), [
+    self.assertEqual([op.status for op in job.ops], [
       constants.OP_STATUS_RUNNING,
       constants.OP_STATUS_QUEUED,
       constants.OP_STATUS_QUEUED,
@@ -337,7 +336,7 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
     self.assertTrue(compat.all(op.priority == constants.OP_PRIO_DEFAULT
                                for op in job.ops))
-    self.assertEqual(map(operator.attrgetter("status"), job.ops), [
+    self.assertEqual([op.status for op in job.ops], [
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_SUCCESS,
@@ -357,10 +356,10 @@ class TestQueuedJob(unittest.TestCase):
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_RUNNING)
     result = job.ChangePriority(-19)
     self.assertEqual(job.CalcPriority(), -19)
-    self.assertEqual(map(operator.attrgetter("priority"), job.ops),
+    self.assertEqual([op.priority for op in job.ops],
                      [constants.OP_PRIO_DEFAULT, constants.OP_PRIO_DEFAULT,
                       -19, -19])
-    self.assertEqual(map(operator.attrgetter("status"), job.ops), [
+    self.assertEqual([op.status for op in job.ops], [
       constants.OP_STATUS_SUCCESS,
       constants.OP_STATUS_RUNNING,
       constants.OP_STATUS_QUEUED,
@@ -1791,7 +1790,7 @@ class TestJobProcessorChangePriority(unittest.TestCase, _JobProcessorTestUtils):
     # Check status
     self.assertEqual(job.CalcStatus(), constants.JOB_STATUS_SUCCESS)
     self.assertEqual(job.CalcPriority(), constants.OP_PRIO_DEFAULT)
-    self.assertEqual(map(operator.attrgetter("priority"), job.ops),
+    self.assertEqual([op.priority for op in job.ops],
                      [constants.OP_PRIO_DEFAULT, -10, 5])
 
 

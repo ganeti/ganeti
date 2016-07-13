@@ -37,7 +37,6 @@ import itertools
 import re
 import unittest
 import mock
-import operator
 import os
 
 from ganeti import backend
@@ -1344,7 +1343,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     return result
 
   def _CheckIvNames(self, disks, base_index, end_index):
-    self.assertEqual(map(operator.attrgetter("iv_name"), disks),
+    self.assertEqual([d.iv_name for d in disks],
                      ["disk/%s" % i for i in range(base_index, end_index)])
 
   def testPlain(self):
@@ -1360,11 +1359,11 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     result = self._TestTrivialDisk(constants.DT_PLAIN, disk_info, 3,
                                    constants.DT_PLAIN)
 
-    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
+    self.assertEqual([d.logical_id for d in result], [
       ("xenvg", "ec1-uq0.disk3"),
       ("othervg", "ec1-uq1.disk4"),
       ])
-    self.assertEqual(map(operator.attrgetter("nodes"), result), [
+    self.assertEqual([d.nodes for d in result], [
                      ["node21741.example.com"], ["node21741.example.com"]])
 
 
@@ -1399,17 +1398,17 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
         expected = [(constants.FD_BLKTAP,
                      'ganeti/inst21662.example.com.%d' % x)
                     for x in (2,3,4)]
-        self.assertEqual(map(operator.attrgetter("logical_id"), result),
+        self.assertEqual([d.logical_id for d in result],
                          expected)
-        self.assertEqual(map(operator.attrgetter("nodes"), result), [
+        self.assertEqual([d.nodes for d in result], [
           [], [], []])
       else:
         if disk_template == constants.DT_FILE:
-          self.assertEqual(map(operator.attrgetter("nodes"), result), [
+          self.assertEqual([d.nodes for d in result], [
             ["node21741.example.com"], ["node21741.example.com"],
             ["node21741.example.com"]])
         else:
-          self.assertEqual(map(operator.attrgetter("nodes"), result), [
+          self.assertEqual([d.nodes for d in result], [
             [], [], []])
 
         for (idx, disk) in enumerate(result):
@@ -1429,10 +1428,10 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     result = self._TestTrivialDisk(constants.DT_BLOCK, disk_info, 10,
                                    constants.DT_BLOCK)
 
-    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
+    self.assertEqual([d.logical_id for d in result], [
       (constants.BLOCKDEV_DRIVER_MANUAL, "/tmp/some/block/dev"),
       ])
-    self.assertEqual(map(operator.attrgetter("nodes"), result), [[]])
+    self.assertEqual([d.nodes for d in result], [[]])
 
   def testRbd(self):
     disk_info = [{
@@ -1446,11 +1445,11 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     result = self._TestTrivialDisk(constants.DT_RBD, disk_info, 0,
                                    constants.DT_RBD)
 
-    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
+    self.assertEqual([d.logical_id for d in result], [
       ("rbd", "ec1-uq0.rbd.disk0"),
       ("rbd", "ec1-uq1.rbd.disk1"),
       ])
-    self.assertEqual(map(operator.attrgetter("nodes"), result), [[], []])
+    self.assertEqual([d.nodes for d in result], [[], []])
 
   def testDrbd8(self):
     gdt = instance_storage.GenerateDiskTemplate
@@ -1514,7 +1513,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
         self.assertTrue(child.children is None)
         self.assertEqual(child.nodes, exp_nodes)
 
-      self.assertEqual(map(operator.attrgetter("logical_id"), disk.children),
+      self.assertEqual([d.logical_id for d in disk.children],
                        exp_logical_ids[idx])
       self.assertEqual(disk.nodes, exp_nodes)
 
@@ -1526,7 +1525,7 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
     _UpdateIvNames(0, result)
     self._CheckIvNames(result, 0, len(disk_info))
 
-    self.assertEqual(map(operator.attrgetter("logical_id"), result), [
+    self.assertEqual([d.logical_id for d in result], [
       ("node1334.example.com", "node12272.example.com",
        constants.FIRST_DRBD_PORT, 20, 21, "ec1-secret0"),
       ("node1334.example.com", "node12272.example.com",

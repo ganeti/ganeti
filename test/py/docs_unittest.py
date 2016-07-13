@@ -33,7 +33,6 @@
 import unittest
 import re
 import itertools
-import operator
 
 from ganeti import _constants
 from ganeti import utils
@@ -302,8 +301,7 @@ class TestRapiDocs(unittest.TestCase):
 
   def _CheckTagHandlers(self, handlers):
     tag_handlers = filter(lambda x: issubclass(x, rlib2._R_Tags), handlers)
-    self.assertEqual(frozenset(map(operator.attrgetter("TAG_LEVEL"),
-                                   tag_handlers)),
+    self.assertEqual(frozenset(tag.TAG_LEVEL for tag in tag_handlers),
                      constants.VALID_TAG_TYPES)
 
 

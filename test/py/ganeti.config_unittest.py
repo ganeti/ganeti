@@ -462,8 +462,7 @@ class TestConfigRunner(unittest.TestCase):
                              uuid="798d0de3-680f-4a0e-b29a-0f54f693b3f1")
     grp2_serial = 1
     cfg.AddNodeGroup(grp2, "job")
-    self.assertEqual(set(map(operator.attrgetter("name"),
-                             cfg.GetAllNodeGroupsInfo().values())),
+    self.assertEqual(set(ng.name for ng in cfg.GetAllNodeGroupsInfo().values()),
                      set(["grp1", "grp2", constants.INITIAL_NODE_GROUP_NAME]))
 
     # No-op

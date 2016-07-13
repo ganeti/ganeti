@@ -36,7 +36,6 @@ import OpenSSL
 
 import copy
 import unittest
-import operator
 import re
 import shutil
 import os
@@ -99,7 +98,7 @@ class TestClusterVerifySsh(unittest.TestCase):
       objects.Node(name="node50", group="aaa", offline=False,
                    master_candidate=True),
       ] + mygroupnodes
-    assert not utils.FindDuplicates(map(operator.attrgetter("name"), nodes))
+    assert not utils.FindDuplicates(n.name for n in nodes)
 
     (online, perhost, _) = fn(mygroupnodes, "my", nodes)
     self.assertEqual(online, ["node%s" % i for i in range(20, 26)])
@@ -126,7 +125,7 @@ class TestClusterVerifySsh(unittest.TestCase):
       objects.Node(name="node4", group="default", offline=True,
                    master_candidate=True),
       ]
-    assert not utils.FindDuplicates(map(operator.attrgetter("name"), nodes))
+    assert not utils.FindDuplicates(n.name for n in nodes)
 
     (online, perhost, _) = fn(nodes, "default", nodes)
     self.assertEqual(online, ["node2", "node3"])
@@ -1891,7 +1890,7 @@ class TestLUClusterVerifyGroupVerifyFiles(TestLUClusterVerifyGroupMethods):
       .AddSuccessfulNode(node4, {}) \
       .AddOfflineNode(node5) \
       .Build()
-    assert set(nvinfo.keys()) == set(map(operator.attrgetter("uuid"), nodeinfo))
+    assert set(nvinfo.keys()) == set(ni.uuid for ni in nodeinfo)
 
     lu._VerifyFiles(nodeinfo, self.master_uuid, nvinfo,
                     (files_all, files_opt, files_mc, files_vm))

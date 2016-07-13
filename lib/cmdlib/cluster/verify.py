@@ -1141,8 +1141,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         filenodes = nodes
       else:
         filenodes = filter(fn, nodes)
-      nodefiles.update((filename,
-                        frozenset(map(operator.attrgetter("uuid"), filenodes)))
+      nodefiles.update((filename, frozenset(fn.uuid for fn in filenodes))
                        for filename in files)
 
     assert set(nodefiles) == (files_all | files_mc | files_vm)
@@ -1740,7 +1739,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     keyfunc = operator.attrgetter("group")
 
     return map(itertools.cycle,
-               [sorted(map(operator.attrgetter("name"), names))
+               [sorted(n.name for n in names)
                 for _, names in itertools.groupby(sorted(nodes, key=keyfunc),
                                                   keyfunc)])
 
