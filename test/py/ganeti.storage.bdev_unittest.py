@@ -378,7 +378,7 @@ class TestLogicalVolume(testutils.GanetiTestCase):
 
 
   def testGetLvGlobalInfo(self):
-    """Tests for LogicalVolume._GetLvGlobalInfo."""
+    """Tests for LogicalVolume.GetLvGlobalInfo."""
 
     good_lines="/dev/1|-wi-ao|253|3|4096.00|2|/dev/sda(20)\n" \
         "/dev/2|-wi-ao|253|3|4096.00|2|/dev/sda(21)\n"
@@ -386,21 +386,21 @@ class TestLogicalVolume(testutils.GanetiTestCase):
                        "/dev/2": ("-wi-ao", 253, 3, 4096, 2, ["/dev/sda"])}
 
     self.assertEqual({},
-                     bdev.LogicalVolume._GetLvGlobalInfo(
+                     bdev.LogicalVolume.GetLvGlobalInfo(
                          _run_cmd=lambda cmd: _FakeRunCmd(False,
                                                           "Fake error msg",
                                                           cmd)))
     self.assertEqual({},
-                     bdev.LogicalVolume._GetLvGlobalInfo(
+                     bdev.LogicalVolume.GetLvGlobalInfo(
                          _run_cmd=lambda cmd: _FakeRunCmd(True,
                                                           "",
                                                           cmd)))
     self.assertRaises(errors.BlockDeviceError,
-                      bdev.LogicalVolume._GetLvGlobalInfo,
+                      bdev.LogicalVolume.GetLvGlobalInfo,
                       _run_cmd=lambda cmd: _FakeRunCmd(True, "BadStdOut", cmd))
 
     fake_cmd = lambda cmd: _FakeRunCmd(True, good_lines, cmd)
-    good_res = bdev.LogicalVolume._GetLvGlobalInfo(_run_cmd=fake_cmd)
+    good_res = bdev.LogicalVolume.GetLvGlobalInfo(_run_cmd=fake_cmd)
     self.assertEqual(expected_output, good_res)
 
   @testutils.patch_object(bdev.LogicalVolume, "Attach")
@@ -564,7 +564,7 @@ class TestLogicalVolume(testutils.GanetiTestCase):
                       self.test_unique_id, [], 1024, None,
                       self.test_params, False, {})
 
-  @testutils.patch_object(bdev.LogicalVolume, "_GetLvGlobalInfo")
+  @testutils.patch_object(bdev.LogicalVolume, "GetLvGlobalInfo")
   def testAttach(self, info_mock):
     """Test for bdev.LogicalVolume.Attach()"""
     info_mock.return_value = {"/dev/fake/path": ("v", 1, 0, 1024, 0, ["test"])}
@@ -573,7 +573,7 @@ class TestLogicalVolume(testutils.GanetiTestCase):
 
     self.assertEqual(dev.Attach(), True)
 
-  @testutils.patch_object(bdev.LogicalVolume, "_GetLvGlobalInfo")
+  @testutils.patch_object(bdev.LogicalVolume, "GetLvGlobalInfo")
   def testAttachFalse(self, info_mock):
     """Test for bdev.LogicalVolume.Attach() with missing lv_info"""
     info_mock.return_value = {}

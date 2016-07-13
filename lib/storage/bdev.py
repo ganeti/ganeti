@@ -444,7 +444,7 @@ class LogicalVolume(base.BlockDev):
 
   @staticmethod
   def _ParseLvInfoLine(line, sep):
-    """Parse one line of the lvs output used in L{_GetLvGlobalInfo}.
+    """Parse one line of the lvs output used in L{GetLvGlobalInfo}.
 
     """
     elems = line.strip().split(sep)
@@ -490,7 +490,7 @@ class LogicalVolume(base.BlockDev):
     return (path, (status, major, minor, pe_size, stripes, pv_names))
 
   @staticmethod
-  def _GetLvGlobalInfo(_run_cmd=utils.RunCmd):
+  def GetLvGlobalInfo(_run_cmd=utils.RunCmd):
     """Obtain the current state of the existing LV disks.
 
     @return: a dict containing the state of each disk with the disk path as key
@@ -512,7 +512,7 @@ class LogicalVolume(base.BlockDev):
       return {}
     return dict([LogicalVolume._ParseLvInfoLine(line, sep) for line in out])
 
-  def Attach(self, lv_info=None):
+  def Attach(self, lv_info=None, **kwargs):
     """Attach to an existing LV.
 
     This method will try to see if an existing and active LV exists
@@ -522,7 +522,7 @@ class LogicalVolume(base.BlockDev):
     """
     self.attached = False
     if not lv_info:
-      lv_info = LogicalVolume._GetLvGlobalInfo().get(self.dev_path)
+      lv_info = LogicalVolume.GetLvGlobalInfo().get(self.dev_path)
     if not lv_info:
       return False
     (status, major, minor, pe_size, stripes, pv_names) = lv_info
