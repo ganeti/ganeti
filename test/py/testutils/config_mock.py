@@ -613,7 +613,7 @@ class ConfigMock(config.ConfigWriter):
     return dict((node_uuid, {}) for node_uuid in self._ConfigData().nodes)
 
   def AllocateDRBDMinor(self, node_uuids, disk_uuid):
-    return map(lambda _: 0, node_uuids)
+    return [0] * len(node_uuids)
 
   def ReleaseDRBDMinors(self, disk_uuid):
     pass

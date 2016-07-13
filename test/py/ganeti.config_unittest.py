@@ -658,7 +658,7 @@ class TestConfigRunner(unittest.TestCase):
     self.assertEqual(instance_disks, [disk])
 
 def _IsErrorInList(err_str, err_list):
-  return any(map(lambda e: err_str in e, err_list))
+  return any((err_str in e) for e in err_list)
 
 
 class TestTRM(unittest.TestCase):

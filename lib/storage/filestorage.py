@@ -350,8 +350,8 @@ def _GetForbiddenFileStoragePaths():
     ])
 
   for prefix in ["", "/usr", "/usr/local"]:
-    paths.update(map(lambda s: "%s/%s" % (prefix, s),
-                     ["bin", "lib", "lib32", "lib64", "sbin"]))
+    paths.update(["%s/%s" % (prefix, s) for s in
+                     ["bin", "lib", "lib32", "lib64", "sbin"]])
 
   return compat.UniqueFrozenset(map(os.path.normpath, paths))
 

@@ -1313,9 +1313,8 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
                        file_driver=NotImplemented):
     gdt = instance_storage.GenerateDiskTemplate
 
-    map(lambda params: utils.ForceDictType(params,
-                                           constants.IDISK_PARAMS_TYPES),
-        disk_info)
+    for params in disk_info:
+      utils.ForceDictType(params, constants.IDISK_PARAMS_TYPES)
 
     # Check if non-empty list of secondaries is rejected
     self.assertRaises(errors.ProgrammerError, gdt, self.lu,
@@ -1486,9 +1485,8 @@ class TestGenerateDiskTemplate(CmdlibTestCase):
 
     assert len(exp_logical_ids) == len(disk_info)
 
-    map(lambda params: utils.ForceDictType(params,
-                                           constants.IDISK_PARAMS_TYPES),
-        disk_info)
+    for params in disk_info:
+      utils.ForceDictType(params, constants.IDISK_PARAMS_TYPES)
 
     # Check if empty list of secondaries is rejected
     self.assertRaises(errors.ProgrammerError, gdt, self.lu, constants.DT_DRBD8,
