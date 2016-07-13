@@ -42,7 +42,6 @@ import sys
 import signal
 import time
 import logging
-import operator
 import errno
 from optparse import OptionParser
 
@@ -507,8 +506,7 @@ def _WriteInstanceStatus(filename, data):
                 filename, len(data))
 
   utils.WriteFile(filename,
-                  data="".join(map(compat.partial(operator.mod, "%s %s\n"),
-                                   sorted(data))))
+                  data="\n".join("%s %s" % (n, s) for (n, s) in sorted(data)))
 
 
 def _UpdateInstanceStatus(filename, instances):
@@ -763,14 +761,14 @@ def _GetGroupData(qcl, uuid):
        [qlang.OP_EQUAL, "group.uuid", uuid]),
       ]
 
-  results = []
-  for what, fields, qfilter in queries:
-    results.append(qcl.Query(what, fields, qfilter))
-
-  results_data = map(operator.attrgetter("data"), results)
+  results_data = [
+    qcl.Query(what, field, qfilter).data
+    for (what, field, qfilter) in queries
+  ]
 
   # Ensure results are tuples with two values
-  assert compat.all(map(ht.TListOf(ht.TListOf(ht.TIsLength(2))), results_data))
+  assert compat.all(
+      ht.TListOf(ht.TListOf(ht.TIsLength(2)))(d) for d in results_data)
 
   # Extract values ignoring result status
   (raw_instances, raw_nodes) = [[map(compat.snd, values)
@@ -812,7 +810,7 @@ def _LoadKnownGroups():
   result = list(line.split(None, 1)[0] for line in groups
                 if line.strip())
 
-  if not compat.all(map(utils.UUID_RE.match, result)):
+  if not compat.all(utils.UUID_RE.match(r) for r in result):
     raise errors.GenericError("Ssconf contains invalid group UUID")
 
   return result
