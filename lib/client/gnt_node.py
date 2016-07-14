@@ -988,6 +988,18 @@ def SetNodeParams(opts, args):
   else:
     disk_state = {}
 
+  # Comparing explicitly to false to distinguish between a parameter
+  # modification that doesn't set the node online (where the value will be None)
+  # and modifying the node to bring it online.
+  if opts.offline is False:
+    usertext = ("You are setting this node online manually. If the"
+                " configuration has changed, this can cause issues such as"
+                " split brain. To safely bring a node back online, please use"
+                " --readd instead. If you are confident that the configuration"
+                " hasn't changed, continue?")
+    if not AskUser(usertext):
+      return 1
+
   hv_state = dict(opts.hv_state)
 
   op = opcodes.OpNodeSetParams(node_name=args[0],
