@@ -76,7 +76,6 @@ __all__ = [
   "GetNodesSshPorts",
   "GetNodeUUIDs",
   "JobExecutor",
-  "JobSubmittedException",
   "ParseTimespec",
   "RunWhileClusterStopped",
   "RunWhileDaemonsStopped",
@@ -676,17 +675,6 @@ def AskUser(text, choices=None):
   return answer
 
 
-class JobSubmittedException(Exception):
-  """Job was submitted, client should exit.
-
-  This exception has one argument, the ID of the job that was
-  submitted. The handler should print this ID.
-
-  This is not an error, just a structured way to exit from clients.
-
-  """
-
-
 def SendJob(ops, cl=None):
   """Function to submit an opcode without waiting for the results.
 
@@ -1055,7 +1043,7 @@ def SubmitOrSend(op, opts, cl=None, feedback_fn=None):
     job_id = SendJob(job, cl=cl)
     if opts.print_jobid:
       ToStdout("%d" % job_id)
-    raise JobSubmittedException(job_id)
+    raise errors.JobSubmittedException(job_id)
   else:
     return SubmitOpCode(op, cl=cl, feedback_fn=feedback_fn, opts=opts)
 
@@ -1193,7 +1181,7 @@ def FormatError(err):
     obuf.write("\n".join(err.GetDetails()))
   elif isinstance(err, errors.GenericError):
     obuf.write("Unhandled Ganeti error: %s" % msg)
-  elif isinstance(err, JobSubmittedException):
+  elif isinstance(err, errors.JobSubmittedException):
     obuf.write("JobID: %s\n" % err.args[0])
     retcode = 0
   else:
@@ -1269,7 +1257,7 @@ def GenericMain(commands, override=None, aliases=None,
   try:
     result = func(options, args)
   except (errors.GenericError, rpcerr.ProtocolError,
-          JobSubmittedException), err:
+          errors.JobSubmittedException), err:
     result, err_msg = FormatError(err)
     logging.exception("Error during command processing")
     ToStderr(err_msg)
