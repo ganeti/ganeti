@@ -47,6 +47,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
 from ganeti import pathutils
+from ganeti.rpc.node import RunWithRPC
 from ganeti import ssh
 from ganeti import compat
 
@@ -259,7 +260,7 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   ssh.AddPublicKey(node, pub_key)
 
 
-@UsesRPC
+@RunWithRPC
 def AddNode(opts, args):
   """Add a node to the cluster.
 

@@ -46,7 +46,6 @@ from ganeti import errors
 from ganeti import constants
 from ganeti import opcodes
 import ganeti.rpc.errors as rpcerr
-import ganeti.rpc.node as rpc
 from ganeti import ssh
 from ganeti import compat
 from ganeti import netutils
@@ -82,7 +81,6 @@ __all__ = [
   "SubmitOpCode",
   "SubmitOpCodeToDrainedQueue",
   "SubmitOrSend",
-  "UsesRPC",
   # Formatting functions
   "ToStderr", "ToStdout",
   "ToStdoutAndLoginfo",
@@ -613,9 +611,6 @@ def ParseFields(selected, default):
     return default + selected[1:].split(",")
 
   return selected.split(",")
-
-
-UsesRPC = rpc.RunWithRPC
 
 
 def AskUser(text, choices=None):

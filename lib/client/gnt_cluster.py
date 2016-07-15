@@ -53,6 +53,7 @@ from ganeti import objects
 from ganeti import opcodes
 from ganeti import pathutils
 from ganeti import qlang
+from ganeti.rpc.node import RunWithRPC
 from ganeti import serializer
 from ganeti import ssconf
 from ganeti import ssh
@@ -147,7 +148,7 @@ def _InitDrbdHelper(opts, enabled_disk_templates, feedback_fn=ToStdout):
   return opts.drbd_helper
 
 
-@UsesRPC
+@RunWithRPC
 def InitCluster(opts, args):
   """Initialize the cluster.
 
@@ -349,7 +350,7 @@ def InitCluster(opts, args):
   return 0
 
 
-@UsesRPC
+@RunWithRPC
 def DestroyCluster(opts, args):
   """Destroy the cluster.
 
@@ -875,7 +876,7 @@ def RepairDiskSizes(opts, args):
   SubmitOpCode(op, opts=opts)
 
 
-@UsesRPC
+@RunWithRPC
 def MasterFailover(opts, args):
   """Failover the master node.
 
