@@ -453,13 +453,14 @@ class LogicalVolume(base.BlockDev):
     # separator to the right of the output. The PV info might be empty for
     # thin volumes, so stripping off the separators might cut off the last
     # empty element - do this instead.
-    if len(elems) == 8 and elems[-1] == "":
+    if len(elems) == 9 and elems[-1] == "":
       elems.pop()
 
-    if len(elems) != 7:
-      base.ThrowError("Can't parse LVS output, len(%s) != 7", str(elems))
+    if len(elems) != 8:
+      base.ThrowError("Can't parse LVS output, len(%s) != 8", str(elems))
 
-    (path, status, major, minor, pe_size, stripes, pvs) = elems
+    (vg_name, lv_name, status, major, minor, pe_size, stripes, pvs) = elems
+    path = os.path.join(os.environ.get('DM_DEV_DIR', '/dev'), vg_name, lv_name)
     if len(status) < 6:
       base.ThrowError("lvs lv_attr is not at least 6 characters (%s)", status)
 
@@ -499,8 +500,8 @@ class LogicalVolume(base.BlockDev):
     sep = "|"
     result = _run_cmd(["lvs", "--noheadings", "--separator=%s" % sep,
                        "--units=k", "--nosuffix",
-                       "-olv_path,lv_attr,lv_kernel_major,lv_kernel_minor,"
-                       "vg_extent_size,stripes,devices"])
+                       "-ovg_name,lv_name,lv_attr,lv_kernel_major,"
+                       "lv_kernel_minor,vg_extent_size,stripes,devices"])
     if result.failed:
       logging.warning("lvs command failed, the LV cache will be empty!")
       logging.info("lvs failure: %r", result.stderr)

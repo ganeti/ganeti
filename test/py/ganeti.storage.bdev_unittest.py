@@ -336,18 +336,18 @@ class TestLogicalVolume(testutils.GanetiTestCase):
   def testParseLvInfoLine(self):
     """Tests for LogicalVolume._ParseLvInfoLine."""
     broken_lines = [
-      "  toomuch#devpath#-wi-ao#253#3#4096.00#2#/dev/abc(20)",
-      "  devpath#-wi-ao#253#3#4096.00#/dev/abc(20)",
-      "  devpath#-wi-a#253#3#4096.00#2#/dev/abc(20)",
-      "  devpath#-wi-ao#25.3#3#4096.00#2#/dev/abc(20)",
-      "  devpath#-wi-ao#twenty#3#4096.00#2#/dev/abc(20)",
-      "  devpath#-wi-ao#253#3.1#4096.00#2#/dev/abc(20)",
-      "  devpath#-wi-ao#253#three#4096.00#2#/dev/abc(20)",
-      "  devpath#-wi-ao#253#3#four#2#/dev/abc(20)",
-      "  devpath#-wi-ao#253#3#4096..00#2#/dev/abc(20)",
-      "  devpath#-wi-ao#253#3#4096.00#2.0#/dev/abc(20)",
-      "  devpath#-wi-ao#253#3#4096.00#two#/dev/abc(20)",
-      "  devpath#-wi-ao#253#3#4096.00#2#/dev/abc20",
+      "  toomuch#vg#lv#-wi-ao#253#3#4096.00#2#/dev/abc(20)",
+      "  vg#lv#-wi-ao#253#3#4096.00#/dev/abc(20)",
+      "  vg#lv#-wi-a#253#3#4096.00#2#/dev/abc(20)",
+      "  vg#lv#-wi-ao#25.3#3#4096.00#2#/dev/abc(20)",
+      "  vg#lv#-wi-ao#twenty#3#4096.00#2#/dev/abc(20)",
+      "  vg#lv#-wi-ao#253#3.1#4096.00#2#/dev/abc(20)",
+      "  vg#lv#-wi-ao#253#three#4096.00#2#/dev/abc(20)",
+      "  vg#lv#-wi-ao#253#3#four#2#/dev/abc(20)",
+      "  vg#lv#-wi-ao#253#3#4096..00#2#/dev/abc(20)",
+      "  vg#lv#-wi-ao#253#3#4096.00#2.0#/dev/abc(20)",
+      "  vg#lv#-wi-ao#253#3#4096.00#two#/dev/abc(20)",
+      "  vg#lv#-wi-ao#253#3#4096.00#2#/dev/abc20",
       ]
     for broken in broken_lines:
       self.assertRaises(errors.BlockDeviceError,
@@ -358,32 +358,37 @@ class TestLogicalVolume(testutils.GanetiTestCase):
     #   /dev/something|-wi-ao|253|3|4096.00|2|/dev/sdb(144),/dev/sdc(0)
     #   /dev/somethingelse|-wi-a-|253|4|4096.00|1|/dev/sdb(208)
     true_out = [
-        ("/dev/path", ("-wi-ao", 253, 3, 4096.00, 2, ["/dev/abc"])),
-        ("/dev/path", ("-wi-a-", 253, 7, 4096.00, 4, ["/dev/abc"])),
-        ("/dev/path", ("-ri-a-", 253, 4, 4.00, 5, ["/dev/abc", "/dev/def"])),
-        ("/dev/path", ("-wc-ao", 15, 18, 4096.00, 32,
+        (("vg", "lv"), ("-wi-ao", 253, 3, 4096.00, 2, ["/dev/abc"])),
+        (("vg", "lv"), ("-wi-a-", 253, 7, 4096.00, 4, ["/dev/abc"])),
+        (("vg", "lv"), ("-ri-a-", 253, 4, 4.00, 5, ["/dev/abc", "/dev/def"])),
+        (("vg", "lv"), ("-wc-ao", 15, 18, 4096.00, 32,
                        ["/dev/abc", "/dev/def", "/dev/ghi0"])),
         # Physical devices might be missing with thin volumes
-        ("/dev/path", ("twc-ao", 15, 18, 4096.00, 32, [])),
+        (("vg", "lv"), ("twc-ao", 15, 18, 4096.00, 32, [])),
     ]
     for exp in true_out:
       for sep in "#;|":
-        devpath = exp[0]
+        # NB We get lvs to return vg_name and lv_name separately, but
+        # _ParseLvInfoLine returns a pathname built from these, so we
+        # need to do some extra munging to round-trip this properly.
+        vg_name, lv_name = exp[0]
+        dev = os.environ.get('DM_DEV_DIR', '/dev')
+        devpath = os.path.join(dev, vg_name, lv_name)
         lvs = exp[1]
         pvs = ",".join("%s(%s)" % (d, i * 12) for (i, d) in enumerate(lvs[-1]))
-        lvs_line = (sep.join(("  %s", "%s", "%d", "%d", "%.2f", "%d", "%s")) %
-                    ((devpath,) + lvs[0:-1] + (pvs,)))
+        fmt_str = sep.join(("  %s", "%s", "%s", "%d", "%d", "%.2f", "%d", "%s"))
+        lvs_line = fmt_str % ((vg_name, lv_name) + lvs[0:-1] + (pvs,))
         parsed = bdev.LogicalVolume._ParseLvInfoLine(lvs_line, sep)
-        self.assertEqual(parsed, exp)
+        self.assertEqual(parsed, (devpath,) + exp[1:])
 
 
   def testGetLvGlobalInfo(self):
     """Tests for LogicalVolume.GetLvGlobalInfo."""
 
-    good_lines="/dev/1|-wi-ao|253|3|4096.00|2|/dev/sda(20)\n" \
-        "/dev/2|-wi-ao|253|3|4096.00|2|/dev/sda(21)\n"
-    expected_output = {"/dev/1": ("-wi-ao", 253, 3, 4096, 2, ["/dev/sda"]),
-                       "/dev/2": ("-wi-ao", 253, 3, 4096, 2, ["/dev/sda"])}
+    good_lines="vg|1|-wi-ao|253|3|4096.00|2|/dev/sda(20)\n" \
+        "vg|2|-wi-ao|253|3|4096.00|2|/dev/sda(21)\n"
+    expected_output = {"/dev/vg/1": ("-wi-ao", 253, 3, 4096, 2, ["/dev/sda"]),
+                       "/dev/vg/2": ("-wi-ao", 253, 3, 4096, 2, ["/dev/sda"])}
 
     self.assertEqual({},
                      bdev.LogicalVolume.GetLvGlobalInfo(
