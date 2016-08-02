@@ -1781,6 +1781,7 @@ TEST_FILES = \
 	test/data/htools/hail-reloc-drbd.json \
 	test/data/htools/hail-reloc-drbd-crowded.json \
 	test/data/htools/hbal-avoid-disk-moves.data \
+	test/data/htools/hbal-avoid-long-solutionss.data \
 	test/data/htools/hbal-cpu-speed.data \
 	test/data/htools/hbal-desiredlocation-1.data \
 	test/data/htools/hbal-desiredlocation-2.data \

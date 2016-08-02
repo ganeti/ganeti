@@ -101,6 +101,38 @@
 >>>/Solution length=2/
 >>>= 0
 
+./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-long-solutions.data --long-solution-threshold=1000
+>>>/Solution length=4/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-long-solutions.data --avoid-long-solutions=0.5
+>>>/Solution length=3/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-long-solutions.data --avoid-long-solutions=5
+>>>/Solution length=2/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-long-solutions.data --long-solution-threshold=1500 --avoid-long-solutions=0.25
+>>>/Solution length=4/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-long-solutions.data --long-solution-threshold=1500 --avoid-long-solutions=1
+>>>/Solution length=3/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-long-solutions.data --long-solution-threshold=1000 --avoid-long-solutions=5
+>>>/Solution length=2/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-long-solutions.data --long-solution-threshold=10 --avoid-long-solutions=10
+>>>/Solution length=1/
+>>>= 0
+
+./test/hs/hbal -t $TESTDATA_DIR/hbal-avoid-long-solutions.data --long-solution-threshold=1 --avoid-long-solutions=10
+>>>/Solution length=0/
+>>>= 0
+
 ./test/hs/hbal -t $TESTDATA_DIR/hbal-memory-over-commitment.data
 >>>/No solution found/
 >>>= 0

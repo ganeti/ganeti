@@ -1,0 +1,17 @@
+group-01|fake-uuid-01|preferred|nic:old|
+
+node-01|16384|0|16384|409600|281600|16|N|fake-uuid-01|1|nic:new
+node-02|16384|0|16384|409600|281600|16|N|fake-uuid-01|1|nic:new
+node-03|16384|0|16384|409600|409600|16|N|fake-uuid-01|1|
+node-04|16384|0|16384|409600|409600|16|N|fake-uuid-01|1|
+
+inst1|1024|51200|1|running|Y|node-01|node-02|drbd||1
+inst2|1024|12800|1|running|Y|node-01|node-02|drbd||1
+inst3|1024|12800|1|running|Y|node-01|node-02|drbd||1
+inst4|1024|51200|1|running|Y|node-01|node-02|drbd||1
+
+htools:bandwidth:nic
+nic:new
+htools:bandwidth:nic:new::nic:new::1000
+htools:bandwidth:nic:old::nic:old::100
+htools:bandwidth:nic:new::nic:old::50
