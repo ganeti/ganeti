@@ -326,6 +326,26 @@ addLocationTags ctags node =
   let ntags = Node.nTags node
   in Node.setLocationTags node $ Tags.getLocations ctags ntags
 
+-- | Set bandwidth map on a node, according to
+-- cluster tags, group tags and node tags
+addBandwidthData :: [String]
+                 -> Group.List -> Node.Node -> Node.Node
+addBandwidthData ctags gl node =
+  let grp = Container.find (Node.group node) gl
+      nbtags = btagsFilter (Node.nTags node)
+      gbtags = btagsFilter (Group.allTags grp)
+      cbtags = btagsFilter ctags
+      btags = Tags.mergeByPrefixes cbtags $
+              Tags.mergeByPrefixes gbtags nbtags
+      bgraph = Tags.getBandwidthGraph ctags
+      tnode = Node.setBandwidthTags node btags
+      update nd (src, dst, bndwdth)
+        | Set.member src btags = Node.setBandwidthToLocation nd dst bndwdth
+        | Set.member dst btags = Node.setBandwidthToLocation nd src bndwdth
+        | otherwise = nd
+  in foldl update tnode bgraph
+  where btagsFilter tags = Tags.getBandwidth ctags tags
+
 -- | Initializer function that loads the data from a node and instance
 -- list and massages it into the correct format.
 mergeData :: [(String, DynUtil)]  -- ^ Instance utilisation data
@@ -366,8 +386,9 @@ mergeData um extags selinsts exinsts time cdata@(ClusterData gl nl il ctags _) =
                            (`Node.buildPeers` il4)) nl3
       il6 = Container.map (disableSplitMoves nl3) il5
       nl5 = Container.map (addMigrationTags ctags) nl4
+      nl6 = Container.map (addBandwidthData ctags gl) nl5
   in if' (null lkp_unknown)
-         (Ok cdata { cdNodes = nl5, cdInstances = il6 })
+         (Ok cdata { cdNodes = nl6, cdInstances = il6 })
          (Bad $ "Unknown instance(s): " ++ show(map lrContent lkp_unknown))
 
 -- | In a cluster description, clear dynamic utilisation information.
