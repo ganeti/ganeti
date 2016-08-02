@@ -60,6 +60,8 @@ module Ganeti.HTools.Node
   , setMigrationTags
   , setRecvMigrationTags
   , setLocationTags
+  , setBandwidthTags
+  , setBandwidthToLocation
   -- * Tag maps
   , addTags
   , delTags
@@ -98,6 +100,7 @@ module Ganeti.HTools.Node
   , mkNodeGraph
   , mkRebootNodeGraph
   , haveExclStorage
+  , calcBandwidthToNode
   ) where
 
 import Prelude ()
@@ -111,6 +114,7 @@ import qualified Data.IntMap as IntMap
 import Data.List (intercalate, foldl', delete, union, sortBy, groupBy)
 import qualified Data.Map as Map
 import Data.Ord (comparing)
+import Data.Maybe (mapMaybe)
 import qualified Data.Set as Set
 import Text.Printf (printf)
 
@@ -213,6 +217,10 @@ data Node = Node
                                    -- to
   , locationScore :: Int -- ^ Sum of instance location and desired location
                          -- scores
+  , bandwidthTags :: Set.Set String -- ^ Node's bandwidth tags
+  , bandwidthMap :: Map.Map String Int -- ^ Node's network bandwidth between
+                                    -- current node and any node with given
+                                    -- bandwidth tag in Mbit per second
   , instanceMap :: Map.Map (String, String) Int -- ^ Number of instances with
                                                 -- each exclusion/location tags
                                                 -- pair
@@ -384,6 +392,8 @@ create name_init mem_t_init mem_n_init mem_f_init
        , rmigTags = Set.empty
        , locationTags = Set.empty
        , locationScore = 0
+       , bandwidthTags = Set.empty
+       , bandwidthMap = Map.empty
        , instanceMap = Map.empty
        }
 
@@ -434,6 +444,15 @@ setRecvMigrationTags t val = t { rmigTags = val }
 -- | Set the location tags
 setLocationTags :: Node -> Set.Set String -> Node
 setLocationTags t val = t { locationTags = val }
+
+-- | Set the network bandwidth tags
+setBandwidthTags :: Node -> Set.Set String -> Node
+setBandwidthTags t val = t { bandwidthTags = val }
+
+-- | Add network bandwidth to nodes with given bandwidth tag
+setBandwidthToLocation :: Node -> String -> Int -> Node
+setBandwidthToLocation t tag bandwidth = t { bandwidthMap = new_map }
+  where new_map = Map.insert tag bandwidth (bandwidthMap t)
 
 -- | Sets the unnaccounted memory.
 setXmem :: Node -> Int -> Node
@@ -555,6 +574,17 @@ calcFmemOfflineOrForthcoming node allInstances =
   in sum . map Instance.mem
          . filter (not . Instance.usesMemory)
          $ nodeInstances
+
+-- | Calculate the network bandwidth between two given nodes
+calcBandwidthToNode :: Node -> Node -> Maybe Int
+calcBandwidthToNode src dst =
+  case bndwths of
+        [] -> Nothing
+        _  -> Just $ minimum bndwths
+  where dstTags = Set.toList $ bandwidthTags dst
+        srcMap = bandwidthMap src
+        mapper = flip Map.lookup srcMap
+        bndwths = mapMaybe mapper dstTags
 
 -- | Calculates the desired location score of an instance, given its primary
 -- node.
