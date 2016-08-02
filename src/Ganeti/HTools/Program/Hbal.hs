@@ -103,6 +103,8 @@ options = do
     , oMinGainLim
     , oDiskMoves
     , oAvoidDiskMoves
+    , oLongSolutionThreshold
+    , oAvoidLongSolutions
     , oSelInst
     , oInstMoves
     , oIgnoreSoftErrors

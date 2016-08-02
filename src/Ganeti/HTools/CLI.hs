@@ -56,6 +56,8 @@ module Ganeti.HTools.CLI
   , oDataFile
   , oDiskMoves
   , oAvoidDiskMoves
+  , oLongSolutionThreshold
+  , oAvoidLongSolutions
   , oDiskTemplate
   , oDryRun
   , oSpindleUse
@@ -151,6 +153,15 @@ data Options = Options
   , optAvoidDiskMoves :: Double      -- ^ Allow only disk moves improving
                                      -- cluster score in more than
                                      -- optAvoidDiskMoves times
+  , optLongSolutionThreshold :: Int  -- ^ The threshold in seconds,
+                                     -- that defines long-time solutions
+  , optAvoidLongSolutions :: Double  -- ^ Allow only long solutions,
+                                     -- whose K/N metrics are more,
+                                     -- than algLongSolutionsFactor,
+                                     -- where K is the number of times cluster
+                                     -- metric has increased and N is how much
+                                     -- the estimated time to perform
+                                     -- this solution exceeds the threshold
   , optInstMoves   :: Bool           -- ^ Allow instance moves
   , optDiskTemplate :: Maybe DiskTemplate  -- ^ Override for the disk template
   , optSpindleUse  :: Maybe Int      -- ^ Override for the spindle usage
@@ -234,6 +245,8 @@ defaultOptions  = Options
   { optDataFile    = Nothing
   , optDiskMoves   = True
   , optAvoidDiskMoves = 1.0
+  , optLongSolutionThreshold = 1000
+  , optAvoidLongSolutions = 0.0
   , optInstMoves   = True
   , optIndependentGroups = False
   , optAcceptExisting = False
@@ -368,6 +381,24 @@ oAvoidDiskMoves =
    "gain in cluster metrics on each balancing step including disk moves\
    \ should be FACTOR times higher than the gain after migrations in order to\
    \ admit disk move during the step",
+   OptComplFloat)
+
+oLongSolutionThreshold :: OptType
+oLongSolutionThreshold =
+  (Option "" ["long-solution-threshold"]
+   (reqWithConversion (tryRead "long-time solution threshold")
+    (\f opts -> Ok opts { optLongSolutionThreshold = f }) "FACTOR")
+   "specify the threshold in seconds, that defines long-time solutions",
+   OptComplInteger)
+
+oAvoidLongSolutions :: OptType
+oAvoidLongSolutions =
+  (Option "" ["avoid-long-solutions"]
+   (reqWithConversion (tryRead "long-time solutions avoiding factor")
+    (\f opts -> Ok opts { optAvoidLongSolutions = f }) "FACTOR")
+   "solution should increase cluster metric in more times,\
+   \ than it's estimated time multiplied by avoiding factor\
+   \ exceeds the threshold",
    OptComplFloat)
 
 oMonD :: OptType
