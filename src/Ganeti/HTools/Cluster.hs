@@ -98,7 +98,7 @@ import Data.List ( nub
                  , (\\)
                  , sort
                  , intercalate)
-import Data.Maybe (fromJust, fromMaybe, isJust, isNothing)
+import Data.Maybe (fromJust, fromMaybe, isJust, isNothing, mapMaybe)
 import Data.Ord (comparing)
 import Text.Printf (printf)
 
@@ -115,7 +115,8 @@ import Ganeti.HTools.Cluster.AllocationSolution
 import Ganeti.HTools.Cluster.Evacuate ( EvacSolution(..), emptyEvacSolution
                                       , updateEvacSolution, reverseEvacSolution
                                       , nodeEvacInstance)
-import Ganeti.HTools.Cluster.Metrics (compCV, compClusterStatistics)
+import Ganeti.HTools.Cluster.Metrics (compCV, compClusterStatistics
+                                      , optimalCVScore)
 import Ganeti.HTools.Cluster.Moves (applyMoveEx)
 import Ganeti.HTools.Cluster.Utils (splitCluster, instancePriGroup
                                    , availableGroupNodes, iMoveToJob)
@@ -430,12 +431,81 @@ checkInstanceMove opts nodes_idx ini_tbl@(Table nl _ _ _) target =
         foldl' (checkSingleStep force ini_tbl target) best_migr_tbl disk_moves
   in (best_migr_tbl, best_tbl)
 
+-- | The default network bandwidth value in Mbit/s
+defaultBandwidth :: Int
+defaultBandwidth = 100
+
+-- | Compute network bandwidth during given move in Mbit/s
+plcBandwidth :: Table -> Placement -> Int
+plcBandwidth (Table nl _ _ _) (_, pn, sn, move, _) =
+  fromMaybe defaultBandwidth (Node.calcBandwidthToNode src dst)
+  where getNode ndx = Container.find ndx nl
+        (src, dst) = case move of
+          Failover -> (getNode pn, getNode sn)
+          FailoverToAny ndx -> (getNode pn, getNode ndx)
+          ReplacePrimary ndx -> (getNode pn, getNode ndx)
+          ReplaceSecondary ndx -> (getNode sn, getNode ndx)
+          ReplaceAndFailover ndx -> (getNode sn, getNode ndx)
+          FailoverAndReplace ndx -> (getNode sn, getNode ndx)
+
+-- | Compute the amount of data to be moved
+moveVolume :: IMove -> Instance.Instance -> Int
+moveVolume Failover inst = Instance.mem inst
+moveVolume (FailoverToAny _) inst = Instance.mem inst
+moveVolume _ inst = Instance.mem inst + Instance.dsk inst
+
+-- | Compute the estimated time to perform move
+placementTimeEstimation :: Table -> Placement -> Double
+placementTimeEstimation tbl@(Table _ il _ _)
+                        plc@(idx, _, _, move, _) =
+  (fromIntegral volume * 8) / fromIntegral bandwidth
+  where volume = moveVolume move (Container.find idx il)
+        bandwidth = plcBandwidth tbl plc
+
+-- | Compute the estimated time to perform solution
+solutionTimeEstimation :: Table -> Double
+solutionTimeEstimation fin_tbl@(Table _ _ _ plcs) = sum times
+    where times = map (placementTimeEstimation fin_tbl) plcs
+
+-- | Filter long-time solutions without enough gain
+filterLongSolutions :: AlgorithmOptions
+                    -> Table
+                    -> Table
+                    -> Maybe Table
+filterLongSolutions opts ini_tbl fin_tbl =
+  let long_sol_th = fromIntegral $ algLongSolutionThreshold opts
+      long_sol_f = algLongSolutionsFactor opts
+      fin_t = solutionTimeEstimation fin_tbl
+      time_metric = fin_t / long_sol_th
+      Table nl _ ini_cv _ = ini_tbl
+      Table _ _ fin_cv _ = fin_tbl
+      opt_cv = optimalCVScore nl
+      improvement = (ini_cv - opt_cv) / (fin_cv - opt_cv)
+  in if long_sol_f < 0.01 ||
+        fin_t < long_sol_th ||
+        fin_cv == opt_cv ||
+        improvement > long_sol_f * time_metric
+  then Just fin_tbl
+  else Nothing
+
+-- | Filter solutions without enough gain
+filterMoveByGain :: AlgorithmOptions -> Table -> Table -> Maybe Table
+filterMoveByGain opts ini_tbl fin_tbl =
+  let mg_limit = algMinGainLimit opts
+      min_gain = algMinGain opts
+      Table _ _ ini_cv _ = ini_tbl
+      Table _ _ fin_cv _ = fin_tbl
+  in if fin_cv < ini_cv && (ini_cv > mg_limit
+      || ini_cv - fin_cv > min_gain)
+      then Just fin_tbl -- this round made success, return the new table
+      else Nothing
+
 -- | Compute the best next move.
 checkMove :: AlgorithmOptions       -- ^ Algorithmic options for balancing
              -> [Ndx]               -- ^ Allowed target node indices
              -> Table               -- ^ The current solution
              -> [Instance.Instance] -- ^ List of instances still to move
-             -> Table               -- ^ The new solution
+             -> Maybe Table         -- ^ The new solution
 checkMove opts nodes_idx ini_tbl@(Table _ _ ini_cv _) victims =
   let disk_moves = algDiskMoves opts
       disk_moves_f = algDiskMovesFactor opts
@@ -447,15 +517,20 @@ checkMove opts nodes_idx ini_tbl@(Table _ _ ini_cv _) victims =
       table_pairs = parMap rwhnf (checkInstanceMove opts nodes_idx ini_tbl)
                     victims
 
+      wout_disk_moves_tbl = mapMaybe longSolFilter (map fst table_pairs)
+      with_disk_moves_tbl = mapMaybe longSolFilter (map snd table_pairs)
+
       -- iterate over all instances, computing the best move
       best_migr_tbl@(Table _ _ best_migr_cv _) =
-        foldl' compareTables ini_tbl $ map fst table_pairs
+        foldl' compareTables ini_tbl wout_disk_moves_tbl
       best_tbl@(Table _ _ best_cv _) =
-        foldl' compareTables ini_tbl $ map snd table_pairs
-  in if not disk_moves
-     || ini_cv - best_cv <= (ini_cv - best_migr_cv) * disk_moves_f
-       then best_migr_tbl
-       else best_tbl -- best including disk moves
+        foldl' compareTables ini_tbl with_disk_moves_tbl
+      best_sol = if not disk_moves
+                  || ini_cv - best_cv <= (ini_cv - best_migr_cv) * disk_moves_f
+                  then best_migr_tbl
+                  else best_tbl -- best including disk moves
+  in Just best_sol >>= filterMoveByGain opts ini_tbl
+  where longSolFilter = filterLongSolutions opts ini_tbl
 
 -- | Check if we are allowed to go deeper in the balancing.
 doNextBalance :: Table     -- ^ The starting table
@@ -473,9 +548,7 @@ tryBalance :: AlgorithmOptions  -- ^ Algorithmic options for balancing
               -> Maybe Table    -- ^ The resulting table and commands
 tryBalance opts ini_tbl =
     let evac_mode = algEvacMode opts
-        mg_limit = algMinGainLimit opts
-        min_gain = algMinGain opts
-        Table ini_nl ini_il ini_cv _ = ini_tbl
+        Table ini_nl ini_il _ _ = ini_tbl
         all_inst = Container.elems ini_il
         all_nodes = Container.elems ini_nl
         (offline_nodes, online_nodes) = partition Node.offline all_nodes
@@ -493,12 +566,7 @@ tryBalance opts ini_tbl =
         allowed_inst = liftA2 (&&) (allowed_node . Instance.pNode)
                          (liftA2 (||) allowed_node (< 0) . Instance.sNode)
         good_reloc_inst = filter allowed_inst reloc_inst
-        fin_tbl = checkMove opts good_nidx ini_tbl good_reloc_inst
-        (Table _ _ fin_cv _) = fin_tbl
-    in
-      if fin_cv < ini_cv && (ini_cv > mg_limit || ini_cv - fin_cv >= min_gain)
-      then Just fin_tbl -- this round made success, return the new table
-      else Nothing
+    in checkMove opts good_nidx ini_tbl good_reloc_inst
 
 -- * Allocation functions
 
