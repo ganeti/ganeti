@@ -652,7 +652,8 @@ Ganeti defaults to using 2048-bit RSA keys.
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
-**master-failover** [\--no-voting] [\--yes-do-it]
+| **master-failover** [\--no-voting] [\--yes-do-it]
+| [\--ignore-offline-nodes]
 
 Failover the master role to the current node.
 
@@ -677,6 +678,12 @@ majority of nodes still needs to be functional. To avoid situations with
 daemons not starting up on the new master, master-failover without
 the ``--no-voting`` option verifies a healthy majority of nodes and refuses
 the operation otherwise.
+
+The ``--ignore-offline-nodes`` flag ignores offline nodes when the
+cluster is voting on the master. Any nodes that are offline are not
+counted towards the vote or towards the healthy nodes required for a
+majority, as they will be brought into sync with the rest of the cluster
+during a node readd operation.
 
 MASTER-PING
 ~~~~~~~~~~~

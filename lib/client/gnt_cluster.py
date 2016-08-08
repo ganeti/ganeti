@@ -74,6 +74,10 @@ FORCE_FAILOVER = cli_option("--yes-do-it", dest="yes_do_it",
                             help="Override interactive check for --no-voting",
                             default=False, action="store_true")
 
+IGNORE_OFFLINE_NODES_FAILOVER = cli_option(
+    "--ignore-offline-nodes", dest="ignore_offline_nodes",
+    help="Ignores offline nodes for master failover voting", default=True)
+
 FORCE_DISTRIBUTION = cli_option("--yes-do-it", dest="yes_do_it",
                                 help="Unconditionally distribute the"
                                 " configuration, even if the queue"
@@ -891,26 +895,31 @@ def MasterFailover(opts, args):
   @return: the desired exit code
 
   """
-  if not opts.no_voting:
-    # Verify that a majority of nodes is still healthy
-    if not bootstrap.MajorityHealthy():
+  if opts.no_voting:
+    # Don't ask for confirmation if the user provides the confirmation flag.
+    if not opts.yes_do_it:
+      usertext = ("This will perform the failover even if most other nodes"
+                  " are down, or if this node is outdated. This is dangerous"
+                  " as it can lead to a non-consistent cluster. Check the"
+                  " gnt-cluster(8) man page before proceeding. Continue?")
+      if not AskUser(usertext):
+        return 1
+  else:
+    # Verify that a majority of nodes are still healthy
+    (majority_healthy, unhealthy_nodes) = bootstrap.MajorityHealthy(
+          opts.ignore_offline_nodes)
+    if not majority_healthy:
       ToStderr("Master-failover with voting is only possible if the majority"
-               " of nodes is still healthy; use the --no-voting option after"
+               " of nodes are still healthy; use the --no-voting option after"
                " ensuring by other means that you won't end up in a dual-master"
-               " scenario.")
-      return 1
-  if opts.no_voting and not opts.yes_do_it:
-    usertext = ("This will perform the failover even if most other nodes"
-                " are down, or if this node is outdated. This is dangerous"
-                " as it can lead to a non-consistent cluster. Check the"
-                " gnt-cluster(8) man page before proceeding. Continue?")
-    if not AskUser(usertext):
+               " scenario. Unhealthy nodes: %s" % unhealthy_nodes)
       return 1
 
-  rvlaue, msgs = bootstrap.MasterFailover(no_voting=opts.no_voting)
+  rvalue, msgs = bootstrap.MasterFailover(no_voting=opts.no_voting)
   for msg in msgs:
     ToStderr(msg)
-  return rvlaue
+
+  return rvalue
 
 
 def MasterPing(opts, args):
@@ -2497,7 +2506,8 @@ commands = {
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],
     "[instance...]", "Updates mismatches in recorded disk sizes"),
   "master-failover": (
-    MasterFailover, ARGS_NONE, [NOVOTING_OPT, FORCE_FAILOVER],
+    MasterFailover, ARGS_NONE,
+    [NOVOTING_OPT, FORCE_FAILOVER, IGNORE_OFFLINE_NODES_FAILOVER],
     "", "Makes the current node the master"),
   "master-ping": (
     MasterPing, ARGS_NONE, [],
