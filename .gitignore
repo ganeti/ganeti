@@ -8,6 +8,7 @@
 *.py[co]
 *.swp
 *~
+\#*\#
 *.o
 *.hpc_o
 *.prof_o
@@ -23,6 +24,7 @@
 .hpc/
 
 # /
+/.buildbot
 /.hsenv
 /Makefile
 /Makefile.ghc
