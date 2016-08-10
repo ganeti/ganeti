@@ -2043,7 +2043,8 @@ a dead node, this will fail. Use the ``--ignore-consistency`` option
 for this purpose. Note that this option can be dangerous as errors in
 shutting down the instance will be ignored, resulting in possibly
 having the instance running on two machines in parallel (on
-disconnected DRBD drives).
+disconnected DRBD drives). This flag requires the source node to be
+marked offline first to succeed.
 
 The ``--shutdown-timeout`` is used to specify how much time to wait
 before forcing the shutdown (xm destroy in xen, killing the kvm

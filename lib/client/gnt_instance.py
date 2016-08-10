@@ -736,6 +736,7 @@ def FailoverInstance(opts, args):
   """
   cl = GetClient()
   instance_name = args[0]
+  ignore_consistency = opts.ignore_consistency
   force = opts.force
   iallocator = opts.iallocator
   target_node = opts.dst_node
@@ -753,8 +754,14 @@ def FailoverInstance(opts, args):
     if not AskUser(usertext):
       return 1
 
+  if ignore_consistency:
+    usertext = ("To failover instance %s, the source node must be marked"
+                " offline first. Is this aready the case?") % instance_name
+    if not AskUser(usertext):
+      return 1
+
   op = opcodes.OpInstanceFailover(instance_name=instance_name,
-                                  ignore_consistency=opts.ignore_consistency,
+                                  ignore_consistency=ignore_consistency,
                                   shutdown_timeout=opts.shutdown_timeout,
                                   iallocator=iallocator,
                                   target_node=target_node,

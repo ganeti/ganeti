@@ -848,7 +848,8 @@ IGNORE_CONSIST_OPT = cli_option("--ignore-consistency",
                                 dest="ignore_consistency",
                                 action="store_true", default=False,
                                 help="Ignore the consistency of the disks on"
-                                " the secondary")
+                                " the secondary. The source node must be "
+                                "marked offline first for this to succeed.")
 
 IGNORE_HVVERSIONS_OPT = cli_option("--ignore-hvversions",
                                    dest="ignore_hvversions",
