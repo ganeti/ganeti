@@ -773,15 +773,8 @@ def VerifyCluster(opts, args):
 
   results = jex.GetResults()
 
-  (bad_jobs, bad_results) = \
-    map(len,
-        # Convert iterators to lists
-        map(list,
-            # Count errors
-            map(compat.partial(itertools.ifilterfalse, bool),
-                # Convert result to booleans in a tuple
-                zip(*((job_success, len(op_results) == 1 and op_results[0])
-                      for (job_success, op_results) in results)))))
+  bad_jobs = sum(1 for (job_success, _) in results if not job_success)
+  bad_results = sum(1 for (_, op_res) in results if not (op_res and op_res[0]))
 
   if bad_jobs == 0 and bad_results == 0:
     rcode = constants.EXIT_SUCCESS
