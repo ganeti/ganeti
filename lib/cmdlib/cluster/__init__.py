@@ -665,8 +665,10 @@ class LUClusterRepairDiskSizes(NoHooksLU):
     if self.wanted_names is None:
       self.wanted_names = self.owned_locks(locking.LEVEL_INSTANCE)
 
-    self.wanted_instances = \
-        map(compat.snd, self.cfg.GetMultiInstanceInfoByName(self.wanted_names))
+    self.wanted_instances = [
+      info
+      for (_, info) in self.cfg.GetMultiInstanceInfoByName(self.wanted_names)
+    ]
 
   def _EnsureChildSizes(self, disk):
     """Ensure children of the disk have the needed disk size.

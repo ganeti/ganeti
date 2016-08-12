@@ -1196,23 +1196,22 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
                       "File %s is optional, but it must exist on all or no"
                       " nodes (not found on %s)",
                       filename,
-                      utils.CommaJoin(
-                        utils.NiceSort(
-                          map(self.cfg.GetNodeName, missing_file))))
+                      utils.CommaJoin(utils.NiceSort(
+                        self.cfg.GetNodeName(n) for n in missing_file)))
       else:
         self._ErrorIf(missing_file, constants.CV_ECLUSTERFILECHECK, None,
                       "File %s is missing from node(s) %s", filename,
-                      utils.CommaJoin(
-                        utils.NiceSort(
-                          map(self.cfg.GetNodeName, missing_file))))
+                      utils.CommaJoin(utils.NiceSort(
+                        self.cfg.GetNodeName(n) for n in missing_file)))
 
         # Warn if a node has a file it shouldn't
         unexpected = with_file - expected_nodes
         self._ErrorIf(unexpected,
                       constants.CV_ECLUSTERFILECHECK, None,
                       "File %s should not exist on node(s) %s",
-                      filename, utils.CommaJoin(
-                        utils.NiceSort(map(self.cfg.GetNodeName, unexpected))))
+                      filename,
+                      utils.CommaJoin(utils.NiceSort(
+                        self.cfg.GetNodeName(n) for n in unexpected)))
 
       # See if there are multiple versions of the file
       test = len(checksums) > 1
@@ -1220,7 +1219,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         variants = ["variant %s on %s" %
                     (idx + 1,
                      utils.CommaJoin(utils.NiceSort(
-                       map(self.cfg.GetNodeName, node_uuids))))
+                       self.cfg.GetNodeName(n) for n in node_uuids)))
                     for (idx, (checksum, node_uuids)) in
                       enumerate(sorted(checksums.items()))]
       else:
@@ -1910,10 +1909,10 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     node_verify_param = {
       constants.NV_FILELIST:
-        map(vcluster.MakeVirtualPath,
-            utils.UniqueSequence(filename
-                                 for files in filemap
-                                 for filename in files)),
+        [vcluster.MakeVirtualPath(f)
+         for f in utils.UniqueSequence(filename
+                                       for files in filemap
+                                       for filename in files)],
       constants.NV_NODELIST:
         self._SelectSshCheckNodes(node_data_list, self.group_uuid,
                                   self.all_node_info.values()),
