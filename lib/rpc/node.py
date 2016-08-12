@@ -519,8 +519,8 @@ class _RpcClientBase:
 
     # encode the arguments for each node individually, pass them and the node
     # name to the prep_fn, and serialise its return value
-    encode_args_fn = lambda node: map(compat.partial(self._encoder, node),
-                                      zip(map(compat.snd, argdefs), args))
+    encode_args_fn = lambda node: [self._encoder(node, (argdef[1], val)) for
+                                      (argdef, val) in zip(argdefs, args)]
     pnbody = dict(
       (n,
        serializer.DumpJson(prep_fn(n, encode_args_fn(n)),
@@ -550,7 +550,7 @@ def _ObjectListToDict(node, value):
   """Converts a list of L{objects} to dictionaries.
 
   """
-  return map(compat.partial(_ObjectToDict, node), value)
+  return [_ObjectToDict(node, v) for v in value]
 
 
 def _PrepareFileUpload(getents_fn, node, filename):

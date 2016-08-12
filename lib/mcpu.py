@@ -52,7 +52,6 @@ from ganeti import hooksmaster
 from ganeti import cmdlib
 from ganeti import locking
 from ganeti import utils
-from ganeti import compat
 from ganeti import wconfd
 
 
@@ -232,9 +231,8 @@ def _ProcessResult(submit_fn, op, result):
   """
   if isinstance(result, cmdlib.ResultWithJobs):
     # Copy basic parameters (e.g. priority)
-    map(compat.partial(_SetBaseOpParams, op,
-                       "Submitted by %s" % op.OP_ID),
-        itertools.chain(*result.jobs))
+    for op2 in itertools.chain(*result.jobs):
+      _SetBaseOpParams(op, "Submitted by %s" % op.OP_ID, op2)
 
     # Submit jobs
     job_submission = submit_fn(result.jobs)

@@ -33,7 +33,6 @@
 """
 
 import copy
-import functools
 import itertools
 import os.path
 import random
@@ -980,8 +979,7 @@ def TestRapiInstanceMultiAlloc(node):
   instance_two = qa_config.AcquireInstance()
   instance_list = [instance_one, instance_two]
   try:
-    rapi_dicts = map(functools.partial(_GenInstanceAllocationDict, node),
-                     instance_list)
+    rapi_dicts = [_GenInstanceAllocationDict(node, i) for i in instance_list]
 
     job_id = _rapi_client.InstancesMultiAlloc(rapi_dicts)
 
