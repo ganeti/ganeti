@@ -47,6 +47,7 @@ from ganeti import constants
 from ganeti import errors
 from ganeti import netutils
 from ganeti import pathutils
+from ganeti.rpc.node import RunWithRPC
 from ganeti import ssh
 from ganeti import compat
 
@@ -259,7 +260,7 @@ def _SetupSSH(options, cluster_name, node, ssh_port, cl):
   ssh.AddPublicKey(node, pub_key)
 
 
-@UsesRPC
+@RunWithRPC
 def AddNode(opts, args):
   """Add a node to the cluster.
 
@@ -990,6 +991,18 @@ def SetNodeParams(opts, args):
     disk_state = utils.FlatToDict(opts.disk_state)
   else:
     disk_state = {}
+
+  # Comparing explicitly to false to distinguish between a parameter
+  # modification that doesn't set the node online (where the value will be None)
+  # and modifying the node to bring it online.
+  if opts.offline is False:
+    usertext = ("You are setting this node online manually. If the"
+                " configuration has changed, this can cause issues such as"
+                " split brain. To safely bring a node back online, please use"
+                " --readd instead. If you are confident that the configuration"
+                " hasn't changed, continue?")
+    if not AskUser(usertext):
+      return 1
 
   hv_state = dict(opts.hv_state)
 

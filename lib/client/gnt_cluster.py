@@ -53,6 +53,7 @@ from ganeti import objects
 from ganeti import opcodes
 from ganeti import pathutils
 from ganeti import qlang
+from ganeti.rpc.node import RunWithRPC
 from ganeti import serializer
 from ganeti import ssconf
 from ganeti import ssh
@@ -74,6 +75,10 @@ FORCE_FAILOVER = cli_option("--yes-do-it", dest="yes_do_it",
                             help="Override interactive check for --no-voting",
                             default=False, action="store_true")
 
+IGNORE_OFFLINE_NODES_FAILOVER = cli_option(
+    "--ignore-offline-nodes", dest="ignore_offline_nodes",
+    help="Ignores offline nodes for master failover voting", default=True)
+
 FORCE_DISTRIBUTION = cli_option("--yes-do-it", dest="yes_do_it",
                                 help="Unconditionally distribute the"
                                 " configuration, even if the queue"
@@ -89,6 +94,10 @@ RESUME_OPT = cli_option("--resume", default=False, action="store_true",
 DATA_COLLECTOR_INTERVAL_OPT = cli_option(
     "--data-collector-interval", default={}, type="keyval",
     help="Set collection intervals in seconds of data collectors.")
+
+STRICT_OPT = cli_option("--no-strict", default=False,
+                        dest="no_strict", action="store_true",
+                        help="Do not run group verify in strict mode")
 
 _EPO_PING_INTERVAL = 30 # 30 seconds between pings
 _EPO_PING_TIMEOUT = 1 # 1 second
@@ -148,7 +157,7 @@ def _InitDrbdHelper(opts, enabled_disk_templates, feedback_fn=ToStdout):
   return opts.drbd_helper
 
 
-@UsesRPC
+@RunWithRPC
 def InitCluster(opts, args):
   """Initialize the cluster.
 
@@ -351,7 +360,7 @@ def InitCluster(opts, args):
   return 0
 
 
-@UsesRPC
+@RunWithRPC
 def DestroyCluster(opts, args):
   """Destroy the cluster.
 
@@ -770,15 +779,8 @@ def VerifyCluster(opts, args):
 
   results = jex.GetResults()
 
-  (bad_jobs, bad_results) = \
-    map(len,
-        # Convert iterators to lists
-        map(list,
-            # Count errors
-            map(compat.partial(itertools.ifilterfalse, bool),
-                # Convert result to booleans in a tuple
-                zip(*((job_success, len(op_results) == 1 and op_results[0])
-                      for (job_success, op_results) in results)))))
+  bad_jobs = sum(1 for (job_success, _) in results if not job_success)
+  bad_results = sum(1 for (_, op_res) in results if not (op_res and op_res[0]))
 
   if bad_jobs == 0 and bad_results == 0:
     rcode = constants.EXIT_SUCCESS
@@ -802,7 +804,8 @@ def VerifyDisks(opts, args):
   """
   cl = GetClient()
 
-  op = opcodes.OpClusterVerifyDisks(group_name=opts.nodegroup)
+  op = opcodes.OpClusterVerifyDisks(group_name=opts.nodegroup,
+                                    is_strict=not opts.no_strict)
 
   result = SubmitOpCode(op, cl=cl, opts=opts)
 
@@ -877,7 +880,7 @@ def RepairDiskSizes(opts, args):
   SubmitOpCode(op, opts=opts)
 
 
-@UsesRPC
+@RunWithRPC
 def MasterFailover(opts, args):
   """Failover the master node.
 
@@ -892,26 +895,31 @@ def MasterFailover(opts, args):
   @return: the desired exit code
 
   """
-  if not opts.no_voting:
-    # Verify that a majority of nodes is still healthy
-    if not bootstrap.MajorityHealthy():
+  if opts.no_voting:
+    # Don't ask for confirmation if the user provides the confirmation flag.
+    if not opts.yes_do_it:
+      usertext = ("This will perform the failover even if most other nodes"
+                  " are down, or if this node is outdated. This is dangerous"
+                  " as it can lead to a non-consistent cluster. Check the"
+                  " gnt-cluster(8) man page before proceeding. Continue?")
+      if not AskUser(usertext):
+        return 1
+  else:
+    # Verify that a majority of nodes are still healthy
+    (majority_healthy, unhealthy_nodes) = bootstrap.MajorityHealthy(
+          opts.ignore_offline_nodes)
+    if not majority_healthy:
       ToStderr("Master-failover with voting is only possible if the majority"
-               " of nodes is still healthy; use the --no-voting option after"
+               " of nodes are still healthy; use the --no-voting option after"
                " ensuring by other means that you won't end up in a dual-master"
-               " scenario.")
-      return 1
-  if opts.no_voting and not opts.yes_do_it:
-    usertext = ("This will perform the failover even if most other nodes"
-                " are down, or if this node is outdated. This is dangerous"
-                " as it can lead to a non-consistent cluster. Check the"
-                " gnt-cluster(8) man page before proceeding. Continue?")
-    if not AskUser(usertext):
+               " scenario. Unhealthy nodes: %s" % unhealthy_nodes)
       return 1
 
-  rvlaue, msgs = bootstrap.MasterFailover(no_voting=opts.no_voting)
+  rvalue, msgs = bootstrap.MasterFailover(no_voting=opts.no_voting)
   for msg in msgs:
     ToStderr(msg)
-  return rvlaue
+
+  return rvalue
 
 
 def MasterPing(opts, args):
@@ -2518,13 +2526,14 @@ commands = {
      PRIORITY_OPT, NODEGROUP_OPT, IGNORE_ERRORS_OPT, VERIFY_CLUTTER_OPT],
     "", "Does a check on the cluster configuration"),
   "verify-disks": (
-    VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT],
+    VerifyDisks, ARGS_NONE, [PRIORITY_OPT, NODEGROUP_OPT, STRICT_OPT],
     "", "Does a check on the cluster disk status"),
   "repair-disk-sizes": (
     RepairDiskSizes, ARGS_MANY_INSTANCES, [DRY_RUN_OPT, PRIORITY_OPT],
     "[instance...]", "Updates mismatches in recorded disk sizes"),
   "master-failover": (
-    MasterFailover, ARGS_NONE, [NOVOTING_OPT, FORCE_FAILOVER],
+    MasterFailover, ARGS_NONE,
+    [NOVOTING_OPT, FORCE_FAILOVER, IGNORE_OFFLINE_NODES_FAILOVER],
     "", "Makes the current node the master"),
   "master-ping": (
     MasterPing, ARGS_NONE, [],

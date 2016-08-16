@@ -36,7 +36,6 @@ import OpenSSL
 
 import copy
 import unittest
-import operator
 import re
 import shutil
 import os
@@ -99,7 +98,7 @@ class TestClusterVerifySsh(unittest.TestCase):
       objects.Node(name="node50", group="aaa", offline=False,
                    master_candidate=True),
       ] + mygroupnodes
-    assert not utils.FindDuplicates(map(operator.attrgetter("name"), nodes))
+    assert not utils.FindDuplicates(n.name for n in nodes)
 
     (online, perhost, _) = fn(mygroupnodes, "my", nodes)
     self.assertEqual(online, ["node%s" % i for i in range(20, 26)])
@@ -126,7 +125,7 @@ class TestClusterVerifySsh(unittest.TestCase):
       objects.Node(name="node4", group="default", offline=True,
                    master_candidate=True),
       ]
-    assert not utils.FindDuplicates(map(operator.attrgetter("name"), nodes))
+    assert not utils.FindDuplicates(n.name for n in nodes)
 
     (online, perhost, _) = fn(nodes, "default", nodes)
     self.assertEqual(online, ["node2", "node3"])
@@ -1238,8 +1237,13 @@ class TestLUClusterVerifyClientCerts(CmdlibTestCase):
         .Build()
     op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
     self.ExecOpCode(op)
-    self.mcpu.assertLogContainsRegex("Client certificate")
-    self.mcpu.assertLogContainsRegex("failed validation")
+    regexps = (
+      "Client certificate",
+      "failed validation",
+      "gnt-cluster renew-crypto --new-node-certificates",
+    )
+    for r in regexps:
+      self.mcpu.assertLogContainsRegex(r)
 
   def testVerifyNoMasterCandidateMap(self):
     client_cert = "client-cert-digest"
@@ -1253,6 +1257,8 @@ class TestLUClusterVerifyClientCerts(CmdlibTestCase):
     self.ExecOpCode(op)
     self.mcpu.assertLogContainsRegex(
       "list of master candidate certificates is empty")
+    self.mcpu.assertLogContainsRegex(
+      "gnt-cluster renew-crypto --new-node-certificates")
 
   def testVerifyNoSharingMasterCandidates(self):
     client_cert = "client-cert-digest"
@@ -1268,6 +1274,8 @@ class TestLUClusterVerifyClientCerts(CmdlibTestCase):
     self.ExecOpCode(op)
     self.mcpu.assertLogContainsRegex(
       "two master candidates configured to use the same")
+    self.mcpu.assertLogContainsRegex(
+      "gnt-cluster renew-crypto --new-node-certificates")
 
   def testVerifyMasterCandidateCertMismatch(self):
     client_cert = "client-cert-digest"
@@ -1280,6 +1288,8 @@ class TestLUClusterVerifyClientCerts(CmdlibTestCase):
     op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
     self.ExecOpCode(op)
     self.mcpu.assertLogContainsRegex("does not match its entry")
+    self.mcpu.assertLogContainsRegex(
+      "gnt-cluster renew-crypto --new-node-certificates")
 
   def testVerifyMasterCandidateUnregistered(self):
     client_cert = "client-cert-digest"
@@ -1292,6 +1302,8 @@ class TestLUClusterVerifyClientCerts(CmdlibTestCase):
     op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
     self.ExecOpCode(op)
     self.mcpu.assertLogContainsRegex("does not have an entry")
+    self.mcpu.assertLogContainsRegex(
+      "gnt-cluster renew-crypto --new-node-certificates")
 
   def testVerifyMasterCandidateOtherNodesCert(self):
     client_cert = "client-cert-digest"
@@ -1304,6 +1316,8 @@ class TestLUClusterVerifyClientCerts(CmdlibTestCase):
     op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
     self.ExecOpCode(op)
     self.mcpu.assertLogContainsRegex("using a certificate of another node")
+    self.mcpu.assertLogContainsRegex(
+      "gnt-cluster renew-crypto --new-node-certificates")
 
   def testNormalNodeStillInList(self):
     self._AddNormalNode()
@@ -1321,8 +1335,13 @@ class TestLUClusterVerifyClientCerts(CmdlibTestCase):
         .Build()
     op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
     self.ExecOpCode(op)
-    self.mcpu.assertLogContainsRegex("not a master candidate")
-    self.mcpu.assertLogContainsRegex("still listed")
+    regexps = (
+      "not a master candidate",
+      "still listed",
+      "gnt-cluster renew-crypto --new-node-certificates",
+    )
+    for r in regexps:
+      self.mcpu.assertLogContainsRegex(r)
 
   def testNormalNodeStealingMasterCandidateCert(self):
     self._AddNormalNode()
@@ -1338,9 +1357,13 @@ class TestLUClusterVerifyClientCerts(CmdlibTestCase):
         .Build()
     op = opcodes.OpClusterVerifyGroup(group_name="default", verbose=True)
     self.ExecOpCode(op)
-    self.mcpu.assertLogContainsRegex("not a master candidate")
-    self.mcpu.assertLogContainsRegex(
-      "certificate of another node which is master candidate")
+    regexps = (
+      "not a master candidate",
+      "certificate of another node which is master candidate",
+      "gnt-cluster renew-crypto --new-node-certificates",
+    )
+    for r in regexps:
+      self.mcpu.assertLogContainsRegex(r)
 
 
 class TestLUClusterVerifyGroupMethods(CmdlibTestCase):
@@ -1897,7 +1920,7 @@ class TestLUClusterVerifyGroupVerifyFiles(TestLUClusterVerifyGroupMethods):
       .AddSuccessfulNode(node4, {}) \
       .AddOfflineNode(node5) \
       .Build()
-    assert set(nvinfo.keys()) == set(map(operator.attrgetter("uuid"), nodeinfo))
+    assert set(nvinfo.keys()) == set(ni.uuid for ni in nodeinfo)
 
     lu._VerifyFiles(nodeinfo, self.master_uuid, nvinfo,
                     (files_all, files_opt, files_mc, files_vm))

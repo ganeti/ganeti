@@ -137,7 +137,7 @@ class LogicalVolume(base.BlockDev):
     empty_pvs = filter(objects.LvmPvInfo.IsEmpty, pvs_info)
     if max_pvs is not None:
       empty_pvs = empty_pvs[:max_pvs]
-    return map((lambda pv: pv.name), empty_pvs)
+    return [pv.name for pv in empty_pvs]
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
@@ -444,7 +444,7 @@ class LogicalVolume(base.BlockDev):
 
   @staticmethod
   def _ParseLvInfoLine(line, sep):
-    """Parse one line of the lvs output used in L{_GetLvGlobalInfo}.
+    """Parse one line of the lvs output used in L{GetLvGlobalInfo}.
 
     """
     elems = line.strip().split(sep)
@@ -453,13 +453,14 @@ class LogicalVolume(base.BlockDev):
     # separator to the right of the output. The PV info might be empty for
     # thin volumes, so stripping off the separators might cut off the last
     # empty element - do this instead.
-    if len(elems) == 8 and elems[-1] == "":
+    if len(elems) == 9 and elems[-1] == "":
       elems.pop()
 
-    if len(elems) != 7:
-      base.ThrowError("Can't parse LVS output, len(%s) != 7", str(elems))
+    if len(elems) != 8:
+      base.ThrowError("Can't parse LVS output, len(%s) != 8", str(elems))
 
-    (path, status, major, minor, pe_size, stripes, pvs) = elems
+    (vg_name, lv_name, status, major, minor, pe_size, stripes, pvs) = elems
+    path = os.path.join(os.environ.get('DM_DEV_DIR', '/dev'), vg_name, lv_name)
     if len(status) < 6:
       base.ThrowError("lvs lv_attr is not at least 6 characters (%s)", status)
 
@@ -490,7 +491,7 @@ class LogicalVolume(base.BlockDev):
     return (path, (status, major, minor, pe_size, stripes, pv_names))
 
   @staticmethod
-  def _GetLvGlobalInfo(_run_cmd=utils.RunCmd):
+  def GetLvGlobalInfo(_run_cmd=utils.RunCmd):
     """Obtain the current state of the existing LV disks.
 
     @return: a dict containing the state of each disk with the disk path as key
@@ -499,8 +500,8 @@ class LogicalVolume(base.BlockDev):
     sep = "|"
     result = _run_cmd(["lvs", "--noheadings", "--separator=%s" % sep,
                        "--units=k", "--nosuffix",
-                       "-olv_path,lv_attr,lv_kernel_major,lv_kernel_minor,"
-                       "vg_extent_size,stripes,devices"])
+                       "-ovg_name,lv_name,lv_attr,lv_kernel_major,"
+                       "lv_kernel_minor,vg_extent_size,stripes,devices"])
     if result.failed:
       logging.warning("lvs command failed, the LV cache will be empty!")
       logging.info("lvs failure: %r", result.stderr)
@@ -512,7 +513,7 @@ class LogicalVolume(base.BlockDev):
       return {}
     return dict([LogicalVolume._ParseLvInfoLine(line, sep) for line in out])
 
-  def Attach(self, lv_info=None):
+  def Attach(self, lv_info=None, **kwargs):
     """Attach to an existing LV.
 
     This method will try to see if an existing and active LV exists
@@ -522,7 +523,7 @@ class LogicalVolume(base.BlockDev):
     """
     self.attached = False
     if not lv_info:
-      lv_info = LogicalVolume._GetLvGlobalInfo().get(self.dev_path)
+      lv_info = LogicalVolume.GetLvGlobalInfo().get(self.dev_path)
     if not lv_info:
       return False
     (status, major, minor, pe_size, stripes, pv_names) = lv_info
@@ -1101,7 +1102,7 @@ class RADOSBlockDevice(base.BlockDev):
     lines = output.splitlines()
 
     # Try parsing the new output format (ceph >= 0.55).
-    splitted_lines = map(lambda l: l.split(), lines)
+    splitted_lines = [l.split() for l in lines]
 
     # Check for empty output.
     if not splitted_lines:
@@ -1112,7 +1113,7 @@ class RADOSBlockDevice(base.BlockDev):
     if field_cnt != allfields:
       # Parsing the new format failed. Fallback to parsing the old output
       # format (< 0.55).
-      splitted_lines = map(lambda l: l.split("\t"), lines)
+      splitted_lines = [l.split("\t") for l in lines]
       if field_cnt != allfields:
         base.ThrowError("Cannot parse rbd showmapped output expected %s fields,"
                         " found %s", allfields, field_cnt)

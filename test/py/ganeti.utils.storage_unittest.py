@@ -166,9 +166,8 @@ class TestGetDiskLabels(unittest.TestCase):
     start1 = 27
     start2 = 703
     result1 = list(storage.GetDiskLabels("", start1))
-    result2 = \
-        map(lambda x: x[1:],
-            list(storage.GetDiskLabels("", start2, start=start2 - start1)))
+    result2 = [x[1:] for x in
+            list(storage.GetDiskLabels("", start2, start=start2 - start1))]
     self.assertEqual(result1, result2)
 
 

@@ -191,12 +191,14 @@ $(genOpCode "OpCode"
      [t| JobIdListOnly |],
      OpDoc.opClusterVerifyDisks,
      [ pOptGroupName
+     , pIsStrict
      ],
      [])
   , ("OpGroupVerifyDisks",
      [t| (Map String String, [String], Map String [[String]]) |],
      OpDoc.opGroupVerifyDisks,
      [ pGroupName
+     , pIsStrict
      ],
      "group_name")
   , ("OpClusterRepairDiskSizes",

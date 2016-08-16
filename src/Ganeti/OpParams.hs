@@ -311,6 +311,7 @@ module Ganeti.OpParams
   , pNodeSetup
   , pVerifyClutter
   , pLongSleep
+  , pIsStrict
   ) where
 
 import Control.Monad (liftM, mplus)
@@ -1970,3 +1971,9 @@ pLongSleep =
   withDoc "Whether to allow long instance shutdowns during exports" .
   defaultField [| False |] $
   simpleField "long_sleep" [t| Bool |]
+
+pIsStrict :: Field
+pIsStrict =
+  withDoc "Whether the operation is in strict mode or not." .
+  defaultField [| True |] $
+  simpleField "is_strict" [t| Bool |]

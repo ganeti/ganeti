@@ -224,7 +224,7 @@ def _IsInstanceRunning(instance_info):
   ]
 
   def _RunningWithSuffix(suffix):
-    return map(lambda x: x + suffix, allowable_running_prefixes)
+    return [x + suffix for x in allowable_running_prefixes]
 
   # The shutdown suspend ("ss") state is encountered during migration, where
   # the instance is still considered to be running.
@@ -347,7 +347,7 @@ def _ParseNodeInfo(info):
     if len(fields) < 2:
       continue
 
-    (key, val) = map(lambda s: s.strip(), fields)
+    (key, val) = (s.strip() for s in fields)
 
     # Note: in Xen 3, memory has changed to total_memory
     if key in ("memory", "total_memory"):

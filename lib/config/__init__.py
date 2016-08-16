@@ -1131,8 +1131,7 @@ class ConfigWriter(object):
     if self._offline:
       raise errors.ProgrammerError("Can't call ComputeDRBDMap in offline mode")
     else:
-      return dict(map(lambda (k, v): (k, dict(v)),
-                      self._wconfd.ComputeDRBDMap()))
+      return dict((k, dict(v)) for (k, v) in self._wconfd.ComputeDRBDMap())
 
   def AllocateDRBDMinor(self, node_uuids, disk_uuid):
     """Allocate a drbd minor.
@@ -1591,8 +1590,8 @@ class ConfigWriter(object):
     dictionaries.
 
     """
-    return dict(map(lambda (uuid, ng): (uuid, ng.ToDict()),
-                    self._UnlockedGetAllNodeGroupsInfo().items()))
+    return dict((uuid, ng.ToDict()) for (uuid, ng) in
+                    self._UnlockedGetAllNodeGroupsInfo().items())
 
   @ConfigSync(shared=1)
   def GetNodeGroupList(self):

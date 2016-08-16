@@ -48,7 +48,6 @@ import pyparsing as pyp
 from ganeti import constants
 from ganeti import errors
 from ganeti import utils
-from ganeti import compat
 
 
 OP_OR = constants.QLANG_OP_OR
@@ -323,8 +322,10 @@ def MakeFilter(args, force_filter, namefield=None, isnumeric=False):
 
     result = ParseFilter(filter_text)
   elif args:
-    result = [OP_OR] + map(compat.partial(_MakeFilterPart, namefield,
-                                          isnumeric=isnumeric), args)
+    result = [OP_OR] + [
+      _MakeFilterPart(namefield, arg, isnumeric=isnumeric)
+      for arg in args
+    ]
   else:
     result = None
 

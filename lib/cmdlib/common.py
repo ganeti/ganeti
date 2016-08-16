@@ -35,7 +35,6 @@ import math
 import os
 import urllib2
 
-from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import hypervisor
@@ -1003,9 +1002,13 @@ def LoadNodeEvacResult(lu, alloc_result, early_release, use_nodes):
                  (name, _NodeEvacDest(use_nodes, group, node_names))
                  for (name, group, node_names) in moved))
 
-  return [map(compat.partial(_SetOpEarlyRelease, early_release),
-              map(opcodes.OpCode.LoadOpCode, ops))
-          for ops in jobs]
+  return [
+    [
+      _SetOpEarlyRelease(early_release, opcodes.OpCode.LoadOpCode(o))
+      for o in ops
+    ]
+    for ops in jobs
+  ]
 
 
 def _NodeEvacDest(use_nodes, group, node_names):

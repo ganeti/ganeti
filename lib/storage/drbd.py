@@ -792,7 +792,7 @@ class DRBD8Dev(base.BlockDev):
                       dual_pri=multimaster, hmac=constants.DRBD_HMAC_ALG,
                       secret=self._secret)
 
-  def Attach(self):
+  def Attach(self, **kwargs):
     """Check if our minor is configured.
 
     This doesn't do any device configurations - it only checks if the

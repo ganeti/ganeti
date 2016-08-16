@@ -119,7 +119,7 @@ class ExtStorageDevice(base.BlockDev):
     """
     pass
 
-  def Attach(self):
+  def Attach(self, **kwargs):
     """Attach to an existing extstorage device.
 
     This method maps the extstorage volume that matches our name with

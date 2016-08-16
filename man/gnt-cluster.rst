@@ -127,7 +127,7 @@ time in seconds (fractions allowed) waited between powering on
 individual nodes.
 
 Please note that the master node will not be turned down or up
-automatically.  It will just be left in a state, where you can manully
+automatically.  It will just be left in a state, where you can manually
 perform the shutdown of that one node. If the master is in the list of
 affected nodes and this is not a complete cluster emergency power-off
 (e.g. using ``--all``), you're required to do a master failover to
@@ -608,7 +608,7 @@ possible to create instances with disk templates that are not enabled in
 the cluster. It is also not possible to disable a disk template when there
 are still instances using it. The first disk template in the list of
 enabled disk template is the default disk template. It will be used for
-instance creation, if no disk template is requested explicitely.
+instance creation, if no disk template is requested explicitly.
 
 The ``--install-image`` option specifies the location of the OS image to
 use to run the OS scripts inside a virtualized environment. This can be
@@ -654,7 +654,8 @@ Ganeti defaults to using 2048-bit RSA keys.
 MASTER-FAILOVER
 ~~~~~~~~~~~~~~~
 
-**master-failover** [\--no-voting] [\--yes-do-it]
+| **master-failover** [\--no-voting] [\--yes-do-it]
+| [\--ignore-offline-nodes]
 
 Failover the master role to the current node.
 
@@ -679,6 +680,12 @@ majority of nodes still needs to be functional. To avoid situations with
 daemons not starting up on the new master, master-failover without
 the ``--no-voting`` option verifies a healthy majority of nodes and refuses
 the operation otherwise.
+
+The ``--ignore-offline-nodes`` flag ignores offline nodes when the
+cluster is voting on the master. Any nodes that are offline are not
+counted towards the vote or towards the healthy nodes required for a
+majority, as they will be brought into sync with the rest of the cluster
+during a node readd operation.
 
 MASTER-PING
 ~~~~~~~~~~~
@@ -808,7 +815,7 @@ but it will still use that network for instance communication.
 
 The ``--enabled-data-collectors`` and ``--data-collector-interval``
 options are to control the behavior of the **ganeti-mond**\(8). The
-first expects a list name=bool pairs to activate or decative the mentioned
+first expects a list name=bool pairs to activate or deactivate the mentioned
 data collector. The second option expects similar pairs of collector name
 and number of seconds specifying the interval at which the collector
 shall be collected.
@@ -924,7 +931,7 @@ The option ``--new-cluster-certificate`` will regenerate the
 cluster-internal server SSL certificate. The option
 ``--new-node-certificates`` will generate new node SSL
 certificates for all nodes. Note that for the regeneration of
-of the server SSL certficate will invoke a regeneration of the
+of the server SSL certificate will invoke a regeneration of the
 node certificates as well, because node certificates are signed
 by the server certificate and thus have to be recreated and
 signed by the new server certificate. Nodes which are offline
@@ -1056,7 +1063,7 @@ master candidates can fail if there are other concurrently running
 operations that modify the configuration.
 
 The ``--verify-ssh-clutter`` option checks if more than one SSH key for the
-same 'user@hostname' pair exists in the 'authorizied_keys' file. This is only
+same 'user@hostname' pair exists in the 'authorized_keys' file. This is only
 checked for hostnames of nodes which belong to the cluster. This check is
 optional, because there might be other systems manipulating the
 'authorized_keys' files, which would cause too many false positives
@@ -1069,13 +1076,18 @@ List of error codes:
 VERIFY-DISKS
 ~~~~~~~~~~~~
 
-**verify-disks** [\--node-group *nodegroup*]
+**verify-disks** [\--node-group *nodegroup*] [\--no-strict]
 
 The command checks which instances have degraded DRBD disks and
 activates the disks of those instances.
 
 With ``--node-group``, restrict the verification to those nodes and
 instances that live in the named group.
+
+The ``--no-strict`` option runs the group verify disks job in a
+non-strict mode. This only verifies those disks whose node locks could
+be acquired in a best-effort attempt and will skip nodes that are
+recognized as busy with other jobs.
 
 This command is run from the **ganeti-watcher** tool, which also
 has a different, complementary algorithm for doing this check.
