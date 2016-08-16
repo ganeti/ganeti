@@ -36,7 +36,7 @@ Adds the given node to the cluster.
 
 This command is used to join a new node to the cluster. You will
 have to provide credentials to ssh as root to the node to be added.
-Forwardig of an ssh agent (the ``-A`` option of ssh) works, if an
+Forwarding of an ssh agent (the ``-A`` option of ssh) works, if an
 appropriate authorized key is set up on the node to be added. If
 the other node allows password authentication for root, another
 way of providing credentials is to provide the root password once
@@ -50,11 +50,11 @@ The ``-s (--secondary-ip)`` is used in dual-home clusters and
 specifies the new node's IP in the secondary network. See the
 discussion in **gnt-cluster**\(8) for more information.
 
-In case you're readding a node after hardware failure, you can use
+In case you're re-adding a node after hardware failure, you can use
 the ``--readd`` parameter. In this case, you don't need to pass the
 secondary IP again, it will be reused from the cluster. Also, the
 drained and offline flags of the node will be cleared before
-re-adding it. Note that even for readded nodes, a new SSH key is
+re-adding it. Note that even for re-added nodes, a new SSH key is
 generated and distributed and previous Ganeti keys are removed
 from the machine.
 
@@ -64,7 +64,7 @@ exists you can skip this option, otherwise it's mandatory.
 
 The ``--no-node-setup`` option that used to prevent Ganeti from performing
 the initial SSH setup on the new node is no longer valid. Instead,
-Ganeti consideres the ``modify ssh setup`` configuration parameter
+Ganeti considers the ``modify ssh setup`` configuration parameter
 (which is set using ``--no-ssh-init`` during cluster initialization)
 to determine whether or not to do the SSH setup on a new node or not.
 If this parameter is set to ``False``, Ganeti will not touch the SSH
@@ -593,11 +593,13 @@ Note that this command will only work if the out-of-band functionality
 is configured and enabled on the cluster. If this is not the case,
 please use the **powercycle** command above.
 
-Using ``--force`` you skip the confirmation to do the operation.
-Currently this only has effect on ``off`` and ``cycle``. On those two
-you can *not* operate on the master. However, the command will provide
-you with the command to invoke to operate on the master nerver-mind.
-This is considered harmful and Ganeti does not support the use of it.
+Currently this only has effect for ``off`` and ``cycle``.  For safety,
+Ganeti will not allow either of these operations to be run on the master
+node. However, it will print a command line which can then be run
+manually on the master. Note that powering off the master is potentially
+dangerous, and Ganeti does not support doing this.
+
+Providing ``--force`` will skip confirmations for the operation.
 
 Providing ``--ignore-status`` will ignore the offline=N state of a node
 and continue with power off.
