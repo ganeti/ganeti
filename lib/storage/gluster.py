@@ -381,7 +381,7 @@ class GlusterStorage(base.BlockDev):
     """
     self.file.Grow(amount, dryrun, backingstore, excl_stor)
 
-  def Attach(self):
+  def Attach(self, **kwargs):
     """Attach to an existing file.
 
     Check if this file already exists.

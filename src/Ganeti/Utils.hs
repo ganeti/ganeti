@@ -102,6 +102,7 @@ module Ganeti.Utils
   , monotoneFind
   , iterateJust
   , partitionM
+  , frequency
   ) where
 
 import Prelude ()
@@ -122,7 +123,9 @@ import Data.List hiding (isSubsequenceOf)
 import Data.List ( intercalate
                  , find
                  , foldl'
+                 , group
                  , transpose
+                 , sort
                  , sortBy
                  , isPrefixOf
                  , maximumBy)
@@ -884,3 +887,8 @@ partitionM p xs = foldM f ([], []) xs
   where f (a, b) x = do
         pv <- p x
         return $ if pv then (x : a, b) else (a, x : b)
+
+-- | Returns a list of tuples of elements and the number of times they occur
+-- in a list
+frequency :: Ord t => [t] -> [(Int, t)]
+frequency xs = map (\x -> (length x, head x)) . group . sort $ xs

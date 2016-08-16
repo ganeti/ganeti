@@ -3822,7 +3822,7 @@ def BlockdevGetmirrorstatusMulti(disks):
   lvs_cache = None
   is_plain_disk = compat.any([_CheckForPlainDisk(d) for d in disks])
   if is_plain_disk:
-    lvs_cache = bdev.LogicalVolume._GetLvGlobalInfo()
+    lvs_cache = bdev.LogicalVolume.GetLvGlobalInfo()
   for disk in disks:
     try:
       rbd = _RecursiveFindBD(disk, lvs_cache=lvs_cache)

@@ -34,7 +34,6 @@ import unittest
 import tempfile
 import shutil
 import os
-import operator
 
 from ganeti import utils
 from ganeti import serializer
@@ -336,8 +335,7 @@ class TestQaConfig(unittest.TestCase):
                                qa_config._QaNode))
 
   def testAcquireAndReleaseInstance(self):
-    self.assertFalse(compat.any(map(operator.attrgetter("used"),
-                                    self.config["instances"])))
+    self.assertFalse(compat.any(i.used for i in self.config["instances"]))
 
     inst = qa_config.AcquireInstance(_cfg=self.config)
     self.assertTrue(inst.used)
@@ -348,8 +346,7 @@ class TestQaConfig(unittest.TestCase):
     self.assertFalse(inst.used)
     self.assertTrue(inst.disk_template is None)
 
-    self.assertFalse(compat.any(map(operator.attrgetter("used"),
-                                    self.config["instances"])))
+    self.assertFalse(compat.any(i.used for i in self.config["instances"]))
 
   def testAcquireInstanceTooMany(self):
     # Acquire all instances
@@ -363,8 +360,7 @@ class TestQaConfig(unittest.TestCase):
                       qa_config.AcquireInstance, _cfg=self.config)
 
   def testAcquireNodeNoneAdded(self):
-    self.assertFalse(compat.any(map(operator.attrgetter("added"),
-                                    self.config["nodes"])))
+    self.assertFalse(compat.any(n.added for n in self.config["nodes"]))
 
     # First call must return master node
     node = qa_config.AcquireNode(_cfg=self.config)
@@ -420,7 +416,7 @@ class TestQaConfig(unittest.TestCase):
       self.assertEqual(acquired, sorted(acquired, key=key_fn))
 
       # Release previously acquired nodes
-      qa_config.ReleaseManyNodes(map(operator.itemgetter(2), acquired))
+      qa_config.ReleaseManyNodes([a[2] for a in acquired])
 
       # Check if nodes were actually released
       for node in self.config["nodes"]:

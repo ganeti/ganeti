@@ -32,7 +32,6 @@
 
 import itertools
 
-from ganeti import compat
 from ganeti import constants
 from ganeti import locking
 from ganeti import utils
@@ -194,10 +193,10 @@ class LUInstanceQueryData(NoHooksLU):
     dev_sstatus = self._ComputeBlockdevStatus(snode_uuid, instance, dev)
 
     if dev.children:
-      dev_children = map(compat.partial(self._ComputeDiskStatusInner,
-                                        instance, snode_uuid,
-                                        node_uuid2name_fn),
-                         dev.children)
+      dev_children = [
+        self._ComputeDiskStatusInner(instance, snode_uuid, node_uuid2name_fn, d)
+        for d in dev.children
+      ]
     else:
       dev_children = []
 
@@ -274,9 +273,8 @@ class LUInstanceQueryData(NoHooksLU):
       node_uuid2name_fn = lambda uuid: nodes[uuid].name
 
       disk_objects = self.cfg.GetInstanceDisks(instance.uuid)
-      output_disks = map(compat.partial(self._ComputeDiskStatus, instance,
-                                        node_uuid2name_fn),
-                         disk_objects)
+      output_disks = [self._ComputeDiskStatus(instance, node_uuid2name_fn, d)
+                      for d in disk_objects]
 
       secondary_nodes = self.cfg.GetInstanceSecondaryNodes(instance.uuid)
       snodes_group_uuids = [nodes[snode_uuid].group

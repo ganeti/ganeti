@@ -96,7 +96,7 @@ class BlockDev(object):
   def __eq__(self, other):
     if not isinstance(self, type(other)):
       return False
-    return (self._children == other._children and
+    return (self._children == other._children and # pylint: disable=W0212
             self.dev_path == other.dev_path and
             self.unique_id == other.unique_id and
             self.major == other.major and
@@ -120,7 +120,7 @@ class BlockDev(object):
     """
     pass
 
-  def Attach(self):
+  def Attach(self, **kwargs):
     """Find a device which matches our config and attach to it.
 
     """

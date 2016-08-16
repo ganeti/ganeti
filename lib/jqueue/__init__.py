@@ -1399,8 +1399,8 @@ class JobQueue(object):
 
     if archived:
       archive_path = pathutils.JOB_QUEUE_ARCHIVE_DIR
-      result.extend(map(compat.partial(utils.PathJoin, archive_path),
-                        utils.ListVisibleFiles(archive_path)))
+      result.extend(utils.PathJoin(archive_path, job_file) for job_file in
+                        utils.ListVisibleFiles(archive_path))
 
     return result
 

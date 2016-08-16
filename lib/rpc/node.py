@@ -393,7 +393,7 @@ class _RpcProcessor:
     assert isinstance(body, dict)
     assert len(body) == len(hosts)
     assert compat.all(isinstance(v, str) for v in body.values())
-    assert frozenset(map(lambda x: x[2], hosts)) == frozenset(body.keys()), \
+    assert frozenset(h[2] for h in hosts) == frozenset(body.keys()), \
         "%s != %s" % (hosts, body.keys())
 
     for (name, ip, original_name) in hosts:
@@ -519,8 +519,8 @@ class _RpcClientBase:
 
     # encode the arguments for each node individually, pass them and the node
     # name to the prep_fn, and serialise its return value
-    encode_args_fn = lambda node: map(compat.partial(self._encoder, node),
-                                      zip(map(compat.snd, argdefs), args))
+    encode_args_fn = lambda node: [self._encoder(node, (argdef[1], val)) for
+                                      (argdef, val) in zip(argdefs, args)]
     pnbody = dict(
       (n,
        serializer.DumpJson(prep_fn(n, encode_args_fn(n)),
@@ -532,8 +532,7 @@ class _RpcClientBase:
                         req_resolver_opts)
 
     if postproc_fn:
-      return dict(map(lambda (key, value): (key, postproc_fn(value)),
-                      result.items()))
+      return dict((k, postproc_fn(v)) for (k, v) in result.items())
     else:
       return result
 
@@ -551,7 +550,7 @@ def _ObjectListToDict(node, value):
   """Converts a list of L{objects} to dictionaries.
 
   """
-  return map(compat.partial(_ObjectToDict, node), value)
+  return [_ObjectToDict(node, v) for v in value]
 
 
 def _PrepareFileUpload(getents_fn, node, filename):
