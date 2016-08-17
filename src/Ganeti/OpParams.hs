@@ -147,6 +147,7 @@ module Ganeti.OpParams
   , pRemoveUids
   , pMaintainNodeHealth
   , pModifyEtcHosts
+  , pModifySshSetup
   , pPreallocWipeDisks
   , pNicParams
   , pInstNics
@@ -769,6 +770,10 @@ pMaintainNodeHealth =
 -- | Whether to modify and keep in sync the @/etc/hosts@ files of nodes.
 pModifyEtcHosts :: Field
 pModifyEtcHosts = optionalField $ booleanField "modify_etc_hosts"
+
+-- | Whether to modify SSH setup on node add or when renewing crypto
+pModifySshSetup :: Field
+pModifySshSetup = optionalField $ booleanField "modify_ssh_setup"
 
 -- | Whether to wipe disks before allocating them to instances.
 pPreallocWipeDisks :: Field

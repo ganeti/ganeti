@@ -256,6 +256,7 @@ $(genOpCode "OpCode"
      , pUseExternalMipScript
      , pEnabledDiskTemplates
      , pModifyEtcHosts
+     , pModifySshSetup
      , pClusterFileStorageDir
      , pClusterSharedFileStorageDir
      , pClusterGlusterStorageDir

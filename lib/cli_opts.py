@@ -149,6 +149,7 @@ __all__ = [
   "MC_OPT",
   "MIGRATION_MODE_OPT",
   "MODIFY_ETCHOSTS_OPT",
+  "MODIFY_SSH_SETUP_OPT",
   "NET_OPT",
   "NETWORK6_OPT",
   "NETWORK_OPT",
@@ -1205,6 +1206,12 @@ MODIFY_ETCHOSTS_OPT = \
 NOMODIFY_SSH_SETUP_OPT = cli_option("--no-ssh-init", dest="modify_ssh_setup",
                                     help="Don't initialize SSH keys",
                                     action="store_false", default=True)
+
+MODIFY_SSH_SETUP_OPT = \
+ cli_option("--modify-ssh-setup", dest="modify_ssh_setup", metavar=_YORNO,
+            default=None, type="bool",
+            help="Defines whether the cluster should update node SSH keys"
+            " on node add and on renew-crypto")
 
 ERROR_CODES_OPT = cli_option("--error-codes", dest="error_codes",
                              help="Enable parseable error messages",

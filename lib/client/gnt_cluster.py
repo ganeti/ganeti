@@ -1402,6 +1402,7 @@ def SetClusterParams(opts, args):
           opts.ipolicy_spindle_ratio is not None or
           opts.ipolicy_memory_ratio is not None or
           opts.modify_etc_hosts is not None or
+          opts.modify_ssh_setup is not None or
           opts.file_storage_dir is not None or
           opts.install_image is not None or
           opts.instance_communication_network is not None or
@@ -1538,6 +1539,7 @@ def SetClusterParams(opts, args):
     max_tracked_jobs=opts.max_tracked_jobs,
     maintain_node_health=mnh,
     modify_etc_hosts=opts.modify_etc_hosts,
+    modify_ssh_setup=opts.modify_ssh_setup,
     uid_pool=uid_pool,
     add_uids=add_uids,
     remove_uids=remove_uids,
@@ -2590,7 +2592,7 @@ commands = {
      PREALLOC_WIPE_DISKS_OPT, NODE_PARAMS_OPT, USE_EXTERNAL_MIP_SCRIPT,
      DISK_PARAMS_OPT, HV_STATE_OPT, DISK_STATE_OPT] + SUBMIT_OPTS +
      [ENABLED_DISK_TEMPLATES_OPT, IPOLICY_STD_SPECS_OPT, MODIFY_ETCHOSTS_OPT,
-      ENABLED_USER_SHUTDOWN_OPT] +
+      MODIFY_SSH_SETUP_OPT, ENABLED_USER_SHUTDOWN_OPT] +
      INSTANCE_POLICY_OPTS +
      [GLOBAL_FILEDIR_OPT, GLOBAL_SHARED_FILEDIR_OPT, ZEROING_IMAGE_OPT,
       COMPRESSION_TOOLS_OPT] +
