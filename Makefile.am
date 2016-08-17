@@ -234,17 +234,17 @@ DIRS = \
 	test/data/ovfdata \
 	test/data/ovfdata/other \
 	test/data/cgroup_root \
-        test/data/cgroup_root/memory \
-        test/data/cgroup_root/memory/lxc \
-        test/data/cgroup_root/memory/lxc/instance1 \
-        test/data/cgroup_root/cpuset \
-        test/data/cgroup_root/cpuset/some_group \
-        test/data/cgroup_root/cpuset/some_group/lxc \
-        test/data/cgroup_root/cpuset/some_group/lxc/instance1 \
-        test/data/cgroup_root/devices \
-        test/data/cgroup_root/devices/some_group \
-        test/data/cgroup_root/devices/some_group/lxc \
-        test/data/cgroup_root/devices/some_group/lxc/instance1 \
+	test/data/cgroup_root/memory \
+	test/data/cgroup_root/memory/lxc \
+	test/data/cgroup_root/memory/lxc/instance1 \
+	test/data/cgroup_root/cpuset \
+	test/data/cgroup_root/cpuset/some_group \
+	test/data/cgroup_root/cpuset/some_group/lxc \
+	test/data/cgroup_root/cpuset/some_group/lxc/instance1 \
+	test/data/cgroup_root/devices \
+	test/data/cgroup_root/devices/some_group \
+	test/data/cgroup_root/devices/some_group/lxc \
+	test/data/cgroup_root/devices/some_group/lxc/instance1 \
 	test/py \
 	test/py/testutils \
 	test/py/cmdlib \
@@ -535,9 +535,9 @@ hypervisor_PYTHON = \
 	lib/hypervisor/hv_xen.py
 
 hypervisor_hv_kvm_PYTHON = \
-  lib/hypervisor/hv_kvm/__init__.py \
-  lib/hypervisor/hv_kvm/monitor.py \
-  lib/hypervisor/hv_kvm/netdev.py
+	lib/hypervisor/hv_kvm/__init__.py \
+	lib/hypervisor/hv_kvm/monitor.py \
+	lib/hypervisor/hv_kvm/netdev.py
 
 jqueue_PYTHON = \
 	lib/jqueue/__init__.py \
@@ -1204,11 +1204,11 @@ endif
 	PYTHONPATH=. ENABLE_MANPAGES=$(ENABLE_MANPAGES) COPY_DOC=1 \
         HTML_THEME=$(SPHINX_HTML_THEME) \
 	$(RUN_IN_TEMPDIR) autotools/sphinx-wrapper $(SPHINX) -q -W -b html \
-	    -d . \
-	    -D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
-	    -D release="$(PACKAGE_VERSION)" \
-	    -D graphviz_dot="$(DOT)" \
-	    doc $(CURDIR)/$$dir && \
+		-d . \
+		-D version="$(VERSION_MAJOR).$(VERSION_MINOR)" \
+		-D release="$(PACKAGE_VERSION)" \
+		-D graphviz_dot="$(DOT)" \
+	doc $(CURDIR)/$$dir && \
 	rm -f $$dir/.buildinfo $$dir/objects.inv
 	touch $@
 
@@ -1486,10 +1486,10 @@ dist_sbin_SCRIPTS = \
 
 nodist_sbin_SCRIPTS = \
 	daemons/ganeti-cleaner \
-  src/ganeti-kvmd \
-  src/ganeti-luxid \
-  src/ganeti-confd \
-  src/ganeti-wconfd
+	src/ganeti-kvmd \
+	src/ganeti-luxid \
+	src/ganeti-confd \
+	src/ganeti-wconfd
 
 src/ganeti-luxid: src/hluxid
 	cp -f $< $@
@@ -1543,7 +1543,7 @@ dist_tools_python_SCRIPTS = \
 
 nodist_tools_python_SCRIPTS = \
 	tools/node-cleanup \
-        $(python_scripts_shebang)
+	$(python_scripts_shebang)
 
 tools_python_basenames = \
 	$(patsubst shebang/%,%,\
@@ -1622,7 +1622,7 @@ EXTRA_DIST += \
 	tools/vif-ganeti-metad.in \
 	tools/net-common.in \
 	tools/vcluster-setup.in \
-        $(python_scripts) \
+	$(python_scripts) \
 	$(docinput) \
 	doc/html \
 	$(BUILT_EXAMPLES:%=%.in) \
@@ -1825,9 +1825,9 @@ TEST_FILES = \
 	test/data/bdev-rbd/output_invalid.txt \
 	test/data/cert1.pem \
 	test/data/cert2.pem \
-        test/data/cgroup_root/memory/lxc/instance1/memory.limit_in_bytes \
-        test/data/cgroup_root/cpuset/some_group/lxc/instance1/cpuset.cpus \
-        test/data/cgroup_root/devices/some_group/lxc/instance1/devices.list \
+	test/data/cgroup_root/memory/lxc/instance1/memory.limit_in_bytes \
+	test/data/cgroup_root/cpuset/some_group/lxc/instance1/cpuset.cpus \
+	test/data/cgroup_root/devices/some_group/lxc/instance1/devices.list \
 	test/data/cluster_config_2.7.json \
 	test/data/cluster_config_2.8.json \
 	test/data/cluster_config_2.9.json \
@@ -1882,7 +1882,7 @@ TEST_FILES = \
 	test/data/ovfdata/wrong_ova.ova \
 	test/data/ovfdata/wrong_xml.ovf \
 	test/data/proc_cgroup.txt \
-        test/data/proc_diskstats.txt \
+	test/data/proc_diskstats.txt \
 	test/data/proc_drbd8.txt \
 	test/data/proc_drbd80-emptyline.txt \
 	test/data/proc_drbd80-emptyversion.txt \
@@ -2924,7 +2924,7 @@ TAGS: $(GENERATED_FILES)
 	  $(filter-out -O -Werror,$(HFLAGS)) \
 		-osuf tags.o \
 		-hisuf tags.hi \
-    -lcurl \
+	-lcurl \
 	  $(HS_LIBTEST_SRCS)
 	find . -path './lib/*.py' -o -path './scripts/gnt-*' -o \
 	  -path './daemons/ganeti-*' -o -path './tools/*' -o \
