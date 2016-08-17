@@ -715,8 +715,8 @@ MODIFY
 | [\--add-uids *user-id pool definition*]
 | [\--remove-uids *user-id pool definition*]
 | [{-C|\--candidate-pool-size} *candidate\_pool\_size*]
-| [--max-running-jobs *count* ]
-| [--max-tracked-jobs *count* ]
+| [\--max-running-jobs *count* ]
+| [\--max-tracked-jobs *count* ]
 | [\--maintain-node-health {yes \| no}]
 | [\--prealloc-wipe-disks {yes \| no}]
 | [{-I|\--default-iallocator} *default instance allocator*]
@@ -726,6 +726,7 @@ MODIFY
 | [{-m|\--mac-prefix} *mac-prefix*]
 | [\--master-netdev *interface-name*]
 | [\--master-netmask *netmask*]
+| [\--modify-etc-hosts {yes \| no}]
 | [\--use-external-mip-script {yes \| no}]
 | [\--hypervisor-state *hvstate*]
 | [\--disk-state *diskstate*]
@@ -766,6 +767,9 @@ The ``--vg-name``, ``--enabled-hypervisors``, ``-H (--hypervisor-parameters)``,
 ``--shared-file-storage-dir``, ``--enabled-disk-templates``, and
 ``--user-shutdown`` options are
 described in the **init** command.
+
+The ``--modify-etc-hosts`` option is described by ``--no-etc-hosts`` in
+the **init** command.
 
 The ``--hypervisor-state`` and ``--disk-state`` options are described in
 detail in **ganeti**\(7).

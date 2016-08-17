@@ -888,6 +888,7 @@ partitionM p xs = foldM f ([], []) xs
         pv <- p x
         return $ if pv then (x : a, b) else (a, x : b)
 
+{-# ANN frequency "HLint: ignore Use alternative" #-}
 -- | Returns a list of tuples of elements and the number of times they occur
 -- in a list
 frequency :: Ord t => [t] -> [(Int, t)]

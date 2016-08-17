@@ -177,7 +177,7 @@ getNodeInstances cfg nname =
     let all_insts = M.elems . fromContainer . configInstances $ cfg
         all_disks = fromContainer . configDisks $ cfg
 
-        pri_inst = filter ((== Just nname) . instPrimaryNode) $ all_insts
+        pri_inst = filter ((== Just nname) . instPrimaryNode) all_insts
 
         find_disk :: String -> Maybe Disk
         find_disk d_uuid = M.lookup (UTF8.fromString d_uuid) all_disks
