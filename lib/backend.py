@@ -1018,16 +1018,17 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
     missing_uuids = set([])
     if pub_uuids_set != pot_mc_uuids_set:
       unknown_uuids = pub_uuids_set - pot_mc_uuids_set
+      pub_key_path = "%s:%s" % (my_name, ganeti_pub_keys_file)
       if unknown_uuids:
-        result.append("The following node UUIDs are listed in the public key"
-                      " file on node '%s', but are not potential master"
-                      " candidates: %s."
-                      % (my_name, ", ".join(list(unknown_uuids))))
+        result.append("The following node UUIDs are listed in the shared public"
+                      " keys file %s, but are not potential master"
+                      " candidates: %s." %
+                      (pub_key_path, ", ".join(list(unknown_uuids))))
       missing_uuids = pot_mc_uuids_set - pub_uuids_set
       if missing_uuids:
         result.append("The following node UUIDs of potential master candidates"
-                      " are missing in the public key file on node %s: %s."
-                      % (my_name, ", ".join(list(missing_uuids))))
+                      " are missing in the shared public keys file %s: %s." %
+                      (pub_key_path, ", ".join(list(missing_uuids))))
 
     (_, key_files) = \
       ssh.GetAllUserFiles(constants.SSH_LOGIN_USER, mkdir=False, dircheck=False)
@@ -1036,17 +1037,19 @@ def _VerifySshSetup(node_status_list, my_name, ssh_key_type,
     my_keys = pub_keys[my_uuid]
 
     node_pub_key = utils.ReadFile(node_pub_key_file)
+    node_pub_key_path = "%s:%s" % (my_name, node_pub_key_file)
     if node_pub_key.strip() not in my_keys:
-      result.append("The dsa key of node %s does not match this node's key"
-                    " in the pub key file." % my_name)
+      result.append("The key for node %s in the cluster config does not match"
+                    " this node's key in the node public key file %s." %
+                    (my_name, node_pub_key_path))
     if len(my_keys) != 1:
-      result.append("There is more than one key for node %s in the public key"
-                    " file." % my_name)
+      result.append("There is more than one key for node %s in the node public"
+                    " key file %s." % (my_name, node_pub_key_path))
   else:
     if len(pub_keys.keys()) > 0:
-      result.append("The public key file of node '%s' is not empty, although"
-                    " the node is not a potential master candidate."
-                    % my_name)
+      result.append("The public key file %s is not empty, although"
+                    " the node is not a potential master candidate." %
+                    node_pub_key_path)
 
   # Check that all master candidate keys are in the authorized_keys file
   (auth_key_file, _) = \
