@@ -503,6 +503,10 @@ access
     Attempts to use this feature without rbd support compiled in KVM
     result in a "no such file or directory" error messages.
 
+user-id
+    The user id is used by ceph to determine the keyring to use for
+    authentication. By default the admin keyring is used.
+
 .. _deadlocks: http://tracker.ceph.com/issues/3076
 
 The option ``--maintain-node-health`` allows one to enable/disable
