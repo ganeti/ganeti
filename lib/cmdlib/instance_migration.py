@@ -712,7 +712,7 @@ class TLMigrateInstance(Tasklet):
         self.feedback_fn("* warning: hypervisor version mismatch between"
                          " source (%s) and target (%s) node" %
                          (src_version, dst_version))
-        hv = hypervisor.GetHypervisor(self.instance.hypervisor)
+        hv = hypervisor.GetHypervisorClass(self.instance.hypervisor)
         if hv.VersionsSafeForMigration(src_version, dst_version):
           self.feedback_fn("  migrating from hypervisor version %s to %s should"
                            " be safe" % (src_version, dst_version))
