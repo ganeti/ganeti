@@ -344,7 +344,7 @@ addBandwidthData ctags gl node =
         | Set.member dst btags = Node.setBandwidthToLocation nd src bndwdth
         | otherwise = nd
   in foldl update tnode bgraph
-  where btagsFilter tags = Tags.getBandwidth ctags tags
+  where btagsFilter = Tags.getBandwidth ctags
 
 -- | Initializer function that loads the data from a node and instance
 -- list and massages it into the correct format.

@@ -141,7 +141,7 @@ getBandwidthGraph ctags =
   where parseInt (a, b, s) = case maybeRead s :: Maybe Int of
           Just i -> Just (a, b, i)
           Nothing -> Nothing
-        listToTuple (a:b:c:[]) = Just (a, b, c)
+        listToTuple [a, b, c] = Just (a, b, c)
         listToTuple _ = Nothing
 
 -- | Maybe extract string after first occurence of ":" return
