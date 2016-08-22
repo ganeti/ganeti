@@ -2330,6 +2330,9 @@ ldpPlanAhead = "c-plan-ahead"
 ldpPool :: String
 ldpPool = "pool"
 
+ldpUserId :: String
+ldpUserId = "user-id"
+
 ldpProtocol :: String
 ldpProtocol = "protocol"
 
@@ -2357,7 +2360,8 @@ diskLdTypes =
    (ldpDelayTarget, VTypeInt),
    (ldpMaxRate, VTypeInt),
    (ldpMinRate, VTypeInt),
-   (ldpPool, VTypeString)]
+   (ldpPool, VTypeString),
+   (ldpUserId, VTypeString)]
 
 diskLdParameters :: FrozenSet String
 diskLdParameters = ConstantUtils.mkSet (Map.keys diskLdTypes)
@@ -2418,6 +2422,9 @@ lvStripes = "stripes"
 rbdAccess :: String
 rbdAccess = "access"
 
+rbdUserId :: String
+rbdUserId = "user-id"
+
 rbdPool :: String
 rbdPool = "pool"
 
@@ -2440,6 +2447,7 @@ diskDtTypes =
                 (drbdMinRate, VTypeInt),
                 (lvStripes, VTypeInt),
                 (rbdAccess, VTypeString),
+                (rbdUserId, VTypeString),
                 (rbdPool, VTypeString),
                 (glusterHost, VTypeString),
                 (glusterVolume, VTypeString),
@@ -4240,6 +4248,9 @@ defaultPlanAhead = 20
 defaultRbdPool :: String
 defaultRbdPool = "rbd"
 
+defaultRbdUserId :: String
+defaultRbdUserId = ""
+
 diskLdDefaults :: Map DiskTemplate (Map String PyValueEx)
 diskLdDefaults =
   Map.fromList
@@ -4266,11 +4277,13 @@ diskLdDefaults =
   , (DTPlain, Map.fromList [(ldpStripes, PyValueEx lvmStripecount)])
   , (DTRbd, Map.fromList
             [ (ldpPool, PyValueEx defaultRbdPool)
+            , (ldpUserId, PyValueEx defaultRbdUserId)
             , (ldpAccess, PyValueEx diskKernelspace)
             ])
   , (DTSharedFile, Map.empty)
   , (DTGluster, Map.fromList
                 [ (rbdAccess, PyValueEx diskKernelspace)
+                , (rbdUserId, PyValueEx defaultRbdUserId)
                 , (glusterHost, PyValueEx glusterHostDefault)
                 , (glusterVolume, PyValueEx glusterVolumeDefault)
                 , (glusterPort, PyValueEx glusterPortDefault)
@@ -4301,16 +4314,19 @@ diskDtDefaults =
                    ])
   , (DTExt,        Map.fromList
                    [ (rbdAccess, PyValueEx diskKernelspace)
+                   , (rbdUserId, PyValueEx defaultRbdUserId)
                    ])
   , (DTFile,       Map.empty)
   , (DTPlain,      Map.fromList [(lvStripes, PyValueEx lvmStripecount)])
   , (DTRbd,        Map.fromList
                    [ (rbdPool, PyValueEx defaultRbdPool)
                    , (rbdAccess, PyValueEx diskKernelspace)
+                   , (rbdUserId, PyValueEx defaultRbdUserId)
                    ])
   , (DTSharedFile, Map.empty)
   , (DTGluster, Map.fromList
                 [ (rbdAccess, PyValueEx diskKernelspace)
+                , (rbdUserId, PyValueEx defaultRbdUserId)
                 , (glusterHost, PyValueEx glusterHostDefault)
                 , (glusterVolume, PyValueEx glusterVolumeDefault)
                 , (glusterPort, PyValueEx glusterPortDefault)
