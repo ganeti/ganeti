@@ -352,7 +352,7 @@ instance J.JSON Compressed where
   -- zlib compress and Base64 encode the data but only if it's long enough
   showJSON = J.showJSON
     . (\x ->
-      if (BL.length $ BL.take 4096 x) < 4096 then
+      if BL.length (BL.take 4096 x) < 4096 then
         (C.rpcEncodingNone, x)
       else
         (C.rpcEncodingZlibBase64, Base64.encode . compressZlib $ x)

@@ -898,11 +898,12 @@ iterateJust f a = a : maybe [] (iterateJust f) (f a)
 -- | A version of partition with a monadic predicate
 -- Implementation taken from David Fox's Extras package.
 partitionM :: (Monad m) => (a -> m Bool) -> [a] -> m ([a], [a])
-partitionM p xs = foldM f ([], []) xs
+partitionM p = foldM f ([], [])
   where f (a, b) x = do
         pv <- p x
         return $ if pv then (x : a, b) else (a, x : b)
 
+{-# ANN frequency "HLint: ignore Use alternative" #-}
 -- | Returns a list of tuples of elements and the number of times they occur
 -- in a list
 frequency :: Ord t => [t] -> [(Int, t)]

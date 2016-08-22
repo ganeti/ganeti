@@ -147,7 +147,7 @@ maintenance memstate = do
   jobresults <- bracket
       (mkResultTEither . tryIOError $ L.getLuxiClient luxiSocket)
       (liftIO . L.closeClient)
-      $ mkResultT . (\c -> waitForJobs okjobs c)
+      $ mkResultT . (waitForJobs okjobs)
 
   let failedjobs = map fst $ filter ((/=) JOB_STATUS_SUCCESS . snd) jobresults
   unless (null failedjobs) $ do
