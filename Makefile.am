@@ -729,6 +729,7 @@ docinput = \
 	doc/design-partitioned.rst \
 	doc/design-plain-redundancy.rst \
 	doc/design-performance-tests.rst \
+	doc/design-predictive-queue.rst \
 	doc/design-query-splitting.rst \
 	doc/design-query2.rst \
 	doc/design-query-splitting.rst \

@@ -138,6 +138,7 @@ Draft designs
    design-partitioned
    design-performance-tests.rst
    design-plain-redundancy.rst
+   design-predictive-queue.rst
    design-query2.rst
    design-query-splitting.rst
    design-rapi-pam.rst
