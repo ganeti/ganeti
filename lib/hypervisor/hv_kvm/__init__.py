@@ -389,7 +389,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+(\w+)",
                                     re.M | re.I)
   _MIGRATION_PROGRESS_RE = \
-    re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n"
+    re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n.*"
                r"\s*remaining\s+ram:\s+(?P<remaining>\d+)\s+kbytes\s*\n"
                r"\s*total\s+ram:\s+(?P<total>\d+)\s+kbytes\s*\n", re.I)
 
