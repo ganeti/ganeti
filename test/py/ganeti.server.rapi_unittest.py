@@ -107,8 +107,7 @@ class TestRemoteApiHandler(unittest.TestCase):
     self.assertTrue(data["message"].startswith("Method PUT is unsupported"))
 
   def testPostInstancesNoAuth(self):
-    (code, _, _) = self._Test(http.HTTP_POST, "/2/instances", "", None,
-                              reqauth=True)
+    (code, _, _) = self._Test(http.HTTP_POST, "/2/instances", "", None)
     self.assertEqual(code, http.HttpUnauthorized.code)
 
   def testRequestWithUnsupportedMediaType(self):
@@ -137,8 +136,7 @@ class TestRemoteApiHandler(unittest.TestCase):
       "%s: %s" % (http.HTTP_AUTHORIZATION, "Unsupported scheme"),
       ])
 
-    (code, _, _) = self._Test(http.HTTP_POST, "/2/instances", headers, "",
-                              reqauth=True)
+    (code, _, _) = self._Test(http.HTTP_POST, "/2/instances", headers, "")
     self.assertEqual(code, http.HttpUnauthorized.code)
 
   def testIncompleteBasicAuth(self):
@@ -146,8 +144,7 @@ class TestRemoteApiHandler(unittest.TestCase):
       "%s: Basic" % http.HTTP_AUTHORIZATION,
       ])
 
-    (code, _, data) = self._Test(http.HTTP_POST, "/2/instances", headers, "",
-                                 reqauth=True)
+    (code, _, data) = self._Test(http.HTTP_POST, "/2/instances", headers, "")
     self.assertEqual(code, http.HttpBadRequest.code)
     self.assertEqual(data["message"],
                      "Basic authentication requires credentials")
@@ -159,8 +156,7 @@ class TestRemoteApiHandler(unittest.TestCase):
         "%s: Basic %s" % (http.HTTP_AUTHORIZATION, auth),
         ])
 
-      (code, _, data) = self._Test(http.HTTP_POST, "/2/instances", headers, "",
-                                   reqauth=True)
+      (code, _, data) = self._Test(http.HTTP_POST, "/2/instances", headers, "")
       self.assertEqual(code, http.HttpBadRequest.code)
 
   @staticmethod
@@ -202,7 +198,7 @@ class TestRemoteApiHandler(unittest.TestCase):
 
         for method in rapi.baserlib._SUPPORTED_METHODS:
           # No authorization
-          (code, _, _) = self._Test(method, path, "", "", reqauth=True)
+          (code, _, _) = self._Test(method, path, "", "")
 
           if method in (http.HTTP_DELETE, http.HTTP_POST):
             self.assertEqual(code, http.HttpNotImplemented.code)
@@ -212,22 +208,22 @@ class TestRemoteApiHandler(unittest.TestCase):
 
           # Incorrect user
           (code, _, _) = self._Test(method, path, header_fn(True), "",
-                                    user_fn=self._LookupWrongUser, reqauth=True)
+                                    user_fn=self._LookupWrongUser)
           self.assertEqual(code, http.HttpUnauthorized.code)
 
           # User has no write access, but the password is correct
           (code, _, _) = self._Test(method, path, header_fn(True), "",
-                                    user_fn=_LookupUserNoWrite, reqauth=True)
+                                    user_fn=_LookupUserNoWrite)
           self.assertEqual(code, http.HttpForbidden.code)
 
           # Wrong password and no write access
           (code, _, _) = self._Test(method, path, header_fn(False), "",
-                                    user_fn=_LookupUserNoWrite, reqauth=True)
+                                    user_fn=_LookupUserNoWrite)
           self.assertEqual(code, http.HttpUnauthorized.code)
 
           # Wrong password with write access
           (code, _, _) = self._Test(method, path, header_fn(False), "",
-                                    user_fn=_LookupUserWithWrite, reqauth=True)
+                                    user_fn=_LookupUserWithWrite)
           self.assertEqual(code, http.HttpUnauthorized.code)
 
           # Prepare request information
@@ -245,8 +241,7 @@ class TestRemoteApiHandler(unittest.TestCase):
           # User has write access, password is correct
           (code, _, data) = self._Test(method, reqpath, header_fn(True), body,
                                        user_fn=_LookupUserWithWrite,
-                                       luxi_client=_FakeLuxiClientForQuery,
-                                       reqauth=True)
+                                       luxi_client=_FakeLuxiClientForQuery)
           self.assertEqual(code, http.HTTP_OK)
           self.assertTrue(objects.QueryResponse.FromDict(data))
 

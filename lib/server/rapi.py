@@ -146,7 +146,12 @@ class RemoteApiHandler(http.auth.HttpServerRequestAuthentication,
     """Determine whether authentication is required.
 
     """
-    return self._reqauth
+    # Auth is required if
+    # a) Auth is forced to be enabled always.
+    # b) Auth isn't enforced, but the handler for that path/HTTP method
+    #    (GET, PUT etc) requires cluster config read/write access. An
+    #    example of this can be seen in rapi.rlib2.R_2_jobs_id_wait.GET_ACCESS.
+    return self._reqauth or bool(self._GetRequestContext(req).handler_access)
 
   def Authenticate(self, req):
     """Checks whether a user can access a resource.
