@@ -487,7 +487,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
 
     # We detect here the nodes that will need the extra RPC calls for verifying
     # split LV volumes; they should be locked.
-    extra_lv_nodes = set()
+    extra_lv_nodes = {}
 
     for inst in self.my_inst_info.values():
       disks = self.cfg.GetInstanceDisks(inst.uuid)
@@ -495,16 +495,23 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
         inst_nodes = self.cfg.GetInstanceNodes(inst.uuid)
         for nuuid in inst_nodes:
           if self.all_node_info[nuuid].group != self.group_uuid:
-            extra_lv_nodes.add(nuuid)
+            if nuuid in extra_lv_nodes:
+              extra_lv_nodes[nuuid].append(inst.name)
+            else:
+              extra_lv_nodes[nuuid] = [inst.name]
 
+    extra_lv_nodes_set = set(extra_lv_nodes.iterkeys())
     unlocked_lv_nodes = \
-        extra_lv_nodes.difference(self.owned_locks(locking.LEVEL_NODE))
+        extra_lv_nodes_set.difference(self.owned_locks(locking.LEVEL_NODE))
 
     if unlocked_lv_nodes:
+      node_strings = ['%s: [%s]' % (
+          self.cfg.GetNodeName(node), utils.CommaJoin(extra_lv_nodes[node]))
+            for node in unlocked_lv_nodes]
       raise errors.OpPrereqError("Missing node locks for LV check: %s" %
-                                 utils.CommaJoin(unlocked_lv_nodes),
+                                 utils.CommaJoin(node_strings),
                                  errors.ECODE_STATE)
-    self.extra_lv_nodes = list(extra_lv_nodes)
+    self.extra_lv_nodes = list(extra_lv_nodes_set)
 
   def _VerifyNode(self, ninfo, nresult):
     """Perform some basic validation on data returned from a node.
