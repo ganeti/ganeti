@@ -40,6 +40,7 @@ module Test.Ganeti.Objects
   ( testObjects
   , Node(..)
   , genConfigDataWithNetworks
+  , genConfigDataWithValues
   , genDisk
   , genDiskWithChildren
   , genEmptyCluster
@@ -122,7 +123,7 @@ instance Arbitrary BS.ByteString where
 $(genArbitrary ''PartialNDParams)
 
 instance Arbitrary Node where
-  arbitrary = Node <$> genFQDN <*> genFQDN <*> genFQDN
+  arbitrary = Node <$> genFQDN <*> genIp6Addr <*> genIp6Addr
               <*> arbitrary <*> arbitrary <*> arbitrary <*> genFQDN
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
               <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
@@ -527,6 +528,33 @@ genConfigDataWithNetworks old_cfg = do
         (map (\n -> (UTF8.fromString $ uuidOf n, n)) nets_unique)
       new_cfg = old_cfg { configNetworks = net_map }
   return new_cfg
+
+genConfigDataWithValues :: Int -> Int -> Gen ConfigData
+genConfigDataWithValues nNodes nInsts = do
+  emptyData <- genEmptyCluster nNodes
+  insts <- vectorOf nInsts (genInstanceFromConfigData emptyData)
+  let getInstName i
+        | RealInstance rinst <- i = UTF8.fromString $ realInstName rinst
+        | ForthcomingInstance finst <- i =
+            UTF8.fromString . fromMaybe "" $ forthcomingInstName finst
+        | otherwise = error ("Inconsistent instance type: " ++ show i)
+  let instmap = Map.fromList . map (\x -> (getInstName x, x)) $ insts
+      continsts = GenericContainer instmap
+  return $ emptyData { configInstances = continsts }
+
+genInstanceFromConfigData :: ConfigData -> Gen Instance
+genInstanceFromConfigData cfg = do
+  inst <- RealInstance <$> arbitrary :: Gen Instance
+  let nodes = getKeysFromContainer . configNodes $ cfg
+      new_inst = case inst of
+                      RealInstance rinst ->
+                        RealInstance rinst { realInstPrimaryNode = head nodes }
+                      ForthcomingInstance finst ->
+                        ForthcomingInstance finst
+                          { forthcomingInstPrimaryNode = Just $ head nodes }
+  -- FIXME: generate instance's secondary nodes using drbd/disk info
+  return new_inst
+
 
 -- * Test properties
 

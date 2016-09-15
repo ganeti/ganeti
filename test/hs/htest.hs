@@ -67,6 +67,7 @@ import Test.Ganeti.Hypervisor.Xen.XmParser
 import Test.Ganeti.JSON
 import Test.Ganeti.Jobs
 import Test.Ganeti.JQueue
+import Test.Ganeti.JQueue.LockDecls
 import Test.Ganeti.JQScheduler
 import Test.Ganeti.Kvmd
 import Test.Ganeti.Locking.Allocation
@@ -145,6 +146,7 @@ allTests =
   , testJQueue
   , testJQScheduler
   , testKvmd
+  , testLockDecls
   , testLocking_Allocation
   , testLocking_Locks
   , testLocking_Waiting

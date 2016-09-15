@@ -81,6 +81,7 @@ module Ganeti.Config
     , getAllLVs
     , buildLinkIpInstnameMap
     , instNodes
+    , instName
     ) where
 
 import Prelude ()

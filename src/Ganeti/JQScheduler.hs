@@ -86,10 +86,12 @@ import Ganeti.JQScheduler.Filtering (applyingFilter, jobFiltering)
 import Ganeti.JQScheduler.Types
 import Ganeti.JQScheduler.ReasonRateLimiting (reasonRateLimit)
 import Ganeti.JQueue as JQ
+import Ganeti.JQueue.LockDecls
 import Ganeti.JSON (fromContainer)
 import Ganeti.Lens hiding (chosen)
 import Ganeti.Logging
 import Ganeti.Objects
+import Ganeti.OpCodes
 import Ganeti.Path
 import Ganeti.Query.Exec (forkPostHooksProcess)
 import Ganeti.Types
@@ -322,20 +324,36 @@ jobEligible queue jWS =
       blocks = flip elem jdeps . qjId . jJob
   in not . any blocks . liftA2 (++) qRunning qEnqueued $ queue
 
+extractFirstOpCode :: JobWithStat -> Maybe OpCode
+extractFirstOpCode job =
+  let qop = listToMaybe . qjOps . jJob $ job
+      metaOps = maybe [] (JQ.toMetaOpCode . qoInput) qop
+  in (fmap metaOpCode) . listToMaybe $ metaOps
+
+-- | Sort the given job queue by its static lock weight in relation to the
+-- currently running jobs.
+sortByStaticLocks :: ConfigData -> Queue -> [JobWithStat] -> [JobWithStat]
+sortByStaticLocks cfg queue = sortBy (compare `on` opWeight)
+  where opWeight :: JobWithStat -> Double
+        opWeight job = staticWeight cfg (extractFirstOpCode job) runningOps
+        runningOps = catMaybes . (fmap extractFirstOpCode) . qRunning $ queue
+
 -- | Decide on which jobs to schedule next for execution. This is the
 -- pure function doing the scheduling.
-selectJobsToRun :: Int  -- ^ How many jobs are allowed to run at the
+selectJobsToRun :: ConfigData
+                -> Int  -- ^ How many jobs are allowed to run at the
                         -- same time.
                 -> Set FilterRule -- ^ Filter rules to respect for scheduling
                 -> Queue
                 -> (Queue, [JobWithStat])
-selectJobsToRun count filters queue =
+selectJobsToRun cfg count filters queue =
   let n = count - length (qRunning queue) - length (qManipulated queue)
       chosen = take n
                . jobFiltering queue filters
                . reasonRateLimit queue
                . sortBy (comparing (calcJobPriority . jJob))
                . filter (jobEligible queue)
+               . sortByStaticLocks cfg queue
                $ qEnqueued queue
       remain = deleteFirstsBy ((==) `on` (qjId . jJob)) (qEnqueued queue) chosen
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
@@ -431,7 +449,7 @@ scheduleSomeJobs qstate = do
       -- Select the jobs to run.
       count <- getMaxRunningJobs qstate
       chosen <- atomicModifyIORef (jqJobs qstate)
-                                  (selectJobsToRun count filters)
+                                  (selectJobsToRun cfg count filters)
       let jobs = map jJob chosen
       unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
         $ map (show . fromJobId . qjId) jobs
@@ -450,7 +468,7 @@ scheduleSomeJobs qstate = do
 showQueue :: Queue -> String
 showQueue (Queue {qEnqueued=waiting, qRunning=running}) =
   let showids = show . map (fromJobId . qjId . jJob)
-  in "Waiting jobs: " ++ showids waiting 
+  in "Waiting jobs: " ++ showids waiting
        ++ "; running jobs: " ++ showids running
 
 -- | Check if a job died, and clean up if so. Return True, if

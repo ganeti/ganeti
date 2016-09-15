@@ -5607,3 +5607,30 @@ cliWfjcFrequency = 20
 -- | Default 'WaitForJobChange' timeout in seconds
 defaultWfjcTimeout :: Int
 defaultWfjcTimeout = 60
+
+-- | Base value for static lock declaration weight.
+staticLockBaseWeight :: Double
+staticLockBaseWeight = 1.0
+
+-- | Weight assigned to two locks that do not conflict with each other.
+staticLockNoWeight :: Double
+staticLockNoWeight = 0
+
+-- | Weight assigned to two locks that do not conflict but whose introduction
+-- in the system raises the chance of contention.
+staticLockDegradeWeight :: Double
+staticLockDegradeWeight = 0.3
+
+-- | Weight assigned to two locks that do not conflict but whose introduction
+-- in the system significantly raises the chance of contention.
+staticLockHeavyDegradeWeight :: Double
+staticLockHeavyDegradeWeight = 0.5
+
+-- | Weight assigned to two locks that might conflict but there is not enough
+-- available data to know with certainty.
+staticLockMaybeBlockWeight :: Double
+staticLockMaybeBlockWeight = 1.5
+
+-- | Weight assigned to two locks that will surely conflict.
+staticLockSureBlockWeight :: Double
+staticLockSureBlockWeight = 3

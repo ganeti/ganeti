@@ -75,6 +75,7 @@ module Ganeti.JQueue
     , notifyJob
     , queueDirPermissions
     , archiveJobs
+    , toMetaOpCode
     -- re-export
     , Timestamp
     , InputOpCode(..)

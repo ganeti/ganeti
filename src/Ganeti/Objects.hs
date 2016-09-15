@@ -720,7 +720,6 @@ instance TagsObject Cluster where
 -- * ConfigData definitions
 
 $(buildObject "ConfigData" "config" $
---  timeStampFields ++
   [ simpleField "version"    [t| Int                 |]
   , simpleField "cluster"    [t| Cluster             |]
   , simpleField "nodes"      [t| Container Node      |]
