@@ -932,9 +932,9 @@ class XenHypervisor(hv_base.BaseHypervisor):
                     or None for no timeout
 
     """
-    instance_info = self.GetInstanceInfo(name, hvparams=hvparams)
+    info = self.GetInstanceInfo(name, hvparams=hvparams)
 
-    if instance_info is None or _IsInstanceShutdown(instance_info[4]):
+    if info is None or hv_base.HvInstanceState.IsShutdown(info[4]):
       logging.info("Failed to shutdown instance %s, not running", name)
       return None
 
