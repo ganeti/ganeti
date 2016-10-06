@@ -1899,10 +1899,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self._RunKVMCmd(name, kvm_cmd, tapfds)
 
     utils.EnsureDirs([(self._InstanceNICDir(instance.name),
-                     constants.RUN_DIRS_MODE)])
+                       constants.RUN_DIRS_MODE)])
     for nic_seq, tap in enumerate(taps):
-      utils.WriteFile(self._InstanceNICFile(instance.name, nic_seq),
-                      data=tap)
+      utils.WriteFile(self._InstanceNICFile(instance.name, nic_seq), data=tap)
 
     if vnc_pwd:
       change_cmd = "change vnc password %s" % vnc_pwd
@@ -2385,6 +2384,32 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp,
                             incoming=incoming_address)
 
+  def _ConfigureRoutedNICs(self, instance, info):
+    """Configures all NICs in routed mode
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance to be configured
+    @type info: string
+    @param info: serialized KVM runtime info
+    """
+    kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
+    kvm_nics = kvm_runtime[1]
+
+    for nic_seq, nic in enumerate(kvm_nics):
+      if nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_ROUTED:
+        # Bridged/OVS interfaces have already been configured
+        continue
+      try:
+        tap = utils.ReadFile(self._InstanceNICFile(instance.name, nic_seq))
+      except EnvironmentError, err:
+        logging.warning("Failed to find host interface for %s NIC #%d: %s",
+                        instance.name, nic_seq, str(err))
+        continue
+      try:
+        self._ConfigureNIC(instance, nic_seq, nic, tap)
+      except errors.HypervisorError, err:
+        logging.warning(str(err))
+
   def FinalizeMigrationDst(self, instance, info, success):
     """Finalize the instance migration on the target node.
 
@@ -2395,29 +2420,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if success:
-      kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
-      kvm_nics = kvm_runtime[1]
-
-      for nic_seq, nic in enumerate(kvm_nics):
-        if nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_ROUTED:
-          # Bridged/OVS interfaces have already been configured
-          continue
-        try:
-          tap = utils.ReadFile(self._InstanceNICFile(instance.name, nic_seq))
-        except EnvironmentError, err:
-          logging.warning("Failed to find host interface for %s NIC #%d: %s",
-                          instance.name, nic_seq, str(err))
-          continue
-        try:
-          self._ConfigureNIC(instance, nic_seq, nic, tap)
-        except errors.HypervisorError, err:
-          logging.warning(str(err))
-
+      self._ConfigureRoutedNICs(instance, info)
       self._WriteKVMRuntime(instance.name, info)
     else:
       self.StopInstance(instance, force=True)
 
-  def MigrateInstance(self, cluster_name, instance, target, live):
+  def MigrateInstance(self, cluster_name, instance, target, live_migration):
     """Migrate an instance to a target node.
 
     The migration will not be attempted if the instance is not
@@ -2429,8 +2437,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param instance: the instance to be migrated
     @type target: string
     @param target: ip address of the target node
-    @type live: boolean
-    @param live: perform a live migration
+    @type live_migration: boolean
+    @param live_migration: perform a live migration
 
     """
     instance_name = instance.name
@@ -2439,7 +2447,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not alive:
       raise errors.HypervisorError("Instance not running, cannot migrate")
 
-    if not live:
+    if not live_migration:
       self._CallMonitorCommand(instance_name, "stop")
 
     migrate_command = ("migrate_set_speed %dm" %

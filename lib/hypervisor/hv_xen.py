@@ -842,12 +842,12 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     """
     instance_list = self._GetInstanceList(instance_name == _DOM0_NAME, hvparams)
-    result = None
+
     for data in instance_list:
       if data[0] == instance_name:
-        result = data
-        break
-    return result
+        return data
+
+    return None
 
   def GetAllInstancesInfo(self, hvparams=None):
     """Get properties of all instances.
