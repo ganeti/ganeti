@@ -611,8 +611,9 @@ class TLMigrateInstance(Tasklet):
                      " hangs, the hypervisor might be in a bad state)")
 
     cluster_hvparams = self.cfg.GetClusterInfo().hvparams
+    online_node_uuids = self.cfg.GetOnlineNodeList()
     instance_list = self.rpc.call_instance_list(
-        self.all_node_uuids, [self.instance.hypervisor], cluster_hvparams)
+        online_node_uuids, [self.instance.hypervisor], cluster_hvparams)
 
     # Verify each result and raise an exception if failed
     for node_uuid, result in instance_list.items():
@@ -692,10 +693,19 @@ class TLMigrateInstance(Tasklet):
                                " and restart this operation")
 
     if not (runningon_source or runningon_target):
-      raise errors.OpExecError("Instance does not seem to be running at all;"
-                               " in this case it's safer to repair by"
-                               " running 'gnt-instance stop' to ensure disk"
-                               " shutdown, and then restarting it")
+      if len(instance_locations) == 1:
+        # The instance is running on a differrent node than expected, let's
+        # adopt it as if it was running on the secondary
+        self.target_node_uuid = instance_locations[0]
+        self.feedback_fn("* instance running on unexpected node (%s),"
+                         " updating as the new secondary" %
+                         self.cfg.GetNodeName(self.target_node_uuid))
+        runningon_target = True
+      else:
+        raise errors.OpExecError("Instance does not seem to be running at all;"
+                                 " in this case it's safer to repair by"
+                                 " running 'gnt-instance stop' to ensure disk"
+                                 " shutdown, and then restarting it")
 
     if runningon_target:
       # the migration has actually succeeded, we need to update the config
