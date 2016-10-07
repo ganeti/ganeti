@@ -2467,24 +2467,28 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     migrate_command = "migrate -d tcp:%s:%s" % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
 
-  def FinalizeMigrationSource(self, instance, success, live):
+  def FinalizeMigrationSource(self, instance, success, _):
     """Finalize the instance migration on the source node.
 
     @type instance: L{objects.Instance}
     @param instance: the instance that was migrated
     @type success: bool
     @param success: whether the migration succeeded or not
-    @type live: bool
-    @param live: whether the user requested a live migration or not
 
     """
     if success:
       pidfile, pid, _ = self._InstancePidAlive(instance.name)
       utils.KillProcess(pid)
       self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
-    elif live:
-      self._CallMonitorCommand(instance.name, self._CONT_CMD)
-    self._ClearUserShutdown(instance.name)
+      self._ClearUserShutdown(instance.name)
+    else:
+      # Detect if PID is alive rather than deciding if we were to perform a live
+      # migration.
+      _, _, alive = self._InstancePidAlive(instance.name)
+      if alive:
+        self._CallMonitorCommand(instance.name, self._CONT_CMD)
+      else:
+        self.CleanupInstance(instance.name)
 
   def GetMigrationStatus(self, instance):
     """Get the migration status
