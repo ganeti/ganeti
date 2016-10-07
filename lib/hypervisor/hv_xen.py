@@ -34,6 +34,7 @@
 
 import logging
 import errno
+import os
 import string # pylint: disable=W0402
 import shutil
 import time
@@ -896,9 +897,39 @@ class XenHypervisor(hv_base.BaseHypervisor):
 
     self._WriteConfigFile(instance.name, buf.getvalue())
 
+  def VerifyInstance(self, instance):
+    """Verify if running instance (configuration) is in correct state.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to verify
+
+    @return: bool, if instance in correct state
+    """
+    config_file = utils.PathJoin(self._cfgdir, "auto", instance.name)
+    return os.path.exists(config_file)
+
+  def RestoreInstance(self, instance, block_devices):
+    """Fixup running instance's state.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to restore
+    @type block_devices: list of tuples (disk_object, link_name, drive_uri)
+    @param block_devices: blockdevices assigned to this instance
+    """
+    startup_memory = self._InstanceStartupMemory(instance)
+    self._MakeConfigFile(instance, startup_memory, block_devices)
+
   def StartInstance(self, instance, block_devices, startup_paused):
     """Start an instance.
 
+    @type instance: L{objects.Instance}
+    @param instance: instance to start
+    @type block_devices: list of tuples (cfdev, rldev)
+      - cfdev: dict containing ganeti config disk part
+      - rldev: ganeti.block.bdev.BlockDev object
+    @param block_devices: blockdevices assigned to this instance
+    @type startup_paused: bool
+    @param startup_paused: if instance should be paused at startup
     """
     startup_memory = self._InstanceStartupMemory(instance)
 

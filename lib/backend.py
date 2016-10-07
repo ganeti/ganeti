@@ -2911,15 +2911,21 @@ def StartInstance(instance, startup_paused, reason, store_reason=True):
   @rtype: None
 
   """
-  instance_info = _GetInstanceInfo(instance)
-
-  if instance_info and not _IsInstanceUserDown(instance_info):
-    logging.info("Instance '%s' already running, not starting", instance.name)
-    return
-
   try:
-    block_devices = _GatherAndLinkBlockDevs(instance)
+    instance_info = _GetInstanceInfo(instance)
     hyper = hypervisor.GetHypervisor(instance.hypervisor)
+
+    if instance_info and not _IsInstanceUserDown(instance_info):
+      logging.info("Instance '%s' already running, not starting", instance.name)
+      if hyper.VerifyInstance(instance):
+        return
+      logging.info("Instance '%s' hypervisor config out of date. Restoring.",
+                   instance.name)
+      block_devices = _GatherAndLinkBlockDevs(instance)
+      hyper.RestoreInstance(instance, block_devices)
+      return
+
+    block_devices = _GatherAndLinkBlockDevs(instance)
     hyper.StartInstance(instance, block_devices, startup_paused)
     if store_reason:
       _StoreInstReasonTrail(instance.name, reason)
