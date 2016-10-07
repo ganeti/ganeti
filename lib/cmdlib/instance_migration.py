@@ -872,30 +872,41 @@ class TLMigrateInstance(Tasklet):
 
       time.sleep(self._MIGRATION_POLL_INTERVAL)
 
-    result = self.rpc.call_instance_finalize_migration_src(
-               self.source_node_uuid, self.instance, True, self.live)
-    msg = result.fail_msg
-    if msg:
-      logging.error("Instance migration succeeded, but finalization failed"
-                    " on the source node: %s", msg)
-      raise errors.OpExecError("Could not finalize instance migration: %s" %
-                               msg)
+    # Always call finalize on both source and target, they should compose
+    # a single operation, consisting of (potentially) parallel steps, that
+    # should be always attempted/retried together (like in _AbortMigration)
+    # without setting any expecetations in what order they execute.
+    result_src = self.rpc.call_instance_finalize_migration_src(
+        self.source_node_uuid, self.instance, True, self.live)
 
+    result_dst = self.rpc.call_instance_finalize_migration_dst(
+        self.target_node_uuid, self.instance, migration_info, True)
+
+    err_msg = []
+    if result_src.fail_msg:
+      logging.error("Instance migration succeeded, but finalization failed"
+                    " on the source node: %s", result_src.fail_msg)
+      err_msg.append(self.cfg.GetNodeName(self.source_node_uuid) + ': '
+                     + result_src.fail_msg)
+
+    if result_dst.fail_msg:
+      logging.error("Instance migration succeeded, but finalization failed"
+                    " on the target node: %s", result_dst.fail_msg)
+      err_msg.append(self.cfg.GetNodeName(self.target_node_uuid) + ': '
+                     + result_dst.fail_msg)
+
+    if err_msg:
+      raise errors.OpExecError(
+          "Could not finalize instance migration: %s" % ' '.join(err_msg))
+
+    # Update instance location only after finalize completed. This way, if
+    # either finalize fails, the config still stores the old primary location,
+    # so we can know which instance to delete if we need to (manually) clean up.
     self.cfg.SetInstancePrimaryNode(self.instance.uuid, self.target_node_uuid)
     self.instance = self.cfg.GetInstanceInfo(self.instance_uuid)
-    disks = self.cfg.GetInstanceDisks(self.instance_uuid)
-
-    result = self.rpc.call_instance_finalize_migration_dst(
-               self.target_node_uuid, self.instance, migration_info, True)
-    msg = result.fail_msg
-    if msg:
-      logging.error("Instance migration succeeded, but finalization failed"
-                    " on the target node: %s", msg)
-      raise errors.OpExecError("Could not finalize instance migration: %s" %
-                               msg)
 
     self._CloseInstanceDisks(self.source_node_uuid)
-
+    disks = self.cfg.GetInstanceDisks(self.instance_uuid)
     if utils.AnyDiskOfType(disks, constants.DTS_INT_MIRROR):
       self._WaitUntilSync()
       self._GoStandalone()
