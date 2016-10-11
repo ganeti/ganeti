@@ -137,7 +137,7 @@ def GetInterfaceIpAddresses(ifname):
 
   """
   result = utils.RunCmd([constants.IP_COMMAND_PATH, "-o", "addr", "show",
-                         ifname])
+                         "dev", ifname])
 
   if result.failed:
     logging.error("Error running the ip command while getting the IP"
