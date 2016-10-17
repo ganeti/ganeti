@@ -1254,7 +1254,7 @@ class Instance(TaggableObject):
     if _with_private:
       bo["osparams_private"] = self.osparams_private.Unprivate()
 
-    for attr in "nics", :
+    for attr in ("nics",):
       alist = bo.get(attr, None)
       if alist:
         nlist = outils.ContainerToDicts(alist)
