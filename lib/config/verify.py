@@ -107,8 +107,8 @@ def VerifyIpolicy(owner, ipolicy, iscluster, callback):
     callback("%s has invalid instance policy: %s" % (owner, err))
   for key, value in ipolicy.items():
     if key == constants.ISPECS_MINMAX:
-      for k in range(len(value)):
-        VerifyIspecs(owner, "ipolicy/%s[%s]" % (key, k), value[k], callback)
+      for i, val in enumerate(value):
+        VerifyIspecs(owner, "ipolicy/%s[%s]" % (key, i), val, callback)
     elif key == constants.ISPECS_STD:
       VerifyType(owner, "ipolicy/" + key, value,
                  constants.ISPECS_PARAMETER_TYPES, callback)
