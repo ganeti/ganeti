@@ -648,9 +648,9 @@ def GenerateDiskTemplate(
 
     elif template_name in constants.DTS_FILEBASED: # Gluster handled above
       logical_id_fn = \
-        lambda _, disk_index, disk: (file_driver,
-                                     "%s/%s" % (file_storage_dir,
-                                                names[idx]))
+        lambda idx, disk_index, disk: (file_driver,
+                                       "%s/%s" % (file_storage_dir,
+                                                  names[idx]))
       if template_name == constants.DT_FILE:
         disk_nodes = [primary_node_uuid]
 
