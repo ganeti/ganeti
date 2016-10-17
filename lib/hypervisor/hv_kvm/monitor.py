@@ -104,7 +104,7 @@ class QmpMessage(object):
     """Delete the specified element from the QmpMessage.
 
     """
-    del(self.data[key])
+    del self.data[key]
 
   @staticmethod
   def BuildFromJsonString(json_string):
