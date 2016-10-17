@@ -687,7 +687,7 @@ def FilterEmptyLinesAndComments(text):
   @rtype: list
 
   """
-  return [line for line in map(lambda s: s.strip(), text.splitlines())
+  return [line for line in [s.strip() for s in text.splitlines()]
           # Ignore empty lines and comments
           if line and not line.startswith("#")]
 

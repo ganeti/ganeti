@@ -371,7 +371,7 @@ def ProcessRequests(requests, lock_monitor_cb=None, _curl=pycurl.Curl,
   # Prepare all requests
   curl_to_client = \
     dict((client.GetCurlHandle(), client)
-         for client in map(lambda req: _StartRequest(_curl(), req), requests))
+         for client in [_StartRequest(_curl(), req) for req in requests])
 
   assert len(curl_to_client) == len(requests)
 

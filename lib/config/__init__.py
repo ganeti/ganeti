@@ -1253,8 +1253,7 @@ class ConfigWriter(object):
     if self._offline:
       raise errors.ProgrammerError("Can't call ComputeDRBDMap in offline mode")
     else:
-      return dict(map(lambda (k, v): (k, dict(v)),
-                      self._wconfd.ComputeDRBDMap()))
+      return dict((k, dict(v)) for (k, v) in self._wconfd.ComputeDRBDMap())
 
   def AllocateDRBDMinor(self, node_uuids, disk_uuid):
     """Allocate a drbd minor.
@@ -1723,8 +1722,8 @@ class ConfigWriter(object):
     dictionaries.
 
     """
-    return dict(map(lambda (uuid, ng): (uuid, ng.ToDict()),
-                    self._UnlockedGetAllNodeGroupsInfo().items()))
+    return dict((uuid, ng.ToDict()) for (uuid, ng) in
+                    self._UnlockedGetAllNodeGroupsInfo().items())
 
   @ConfigSync(shared=1)
   def GetNodeGroupList(self):
@@ -2016,7 +2015,7 @@ class ConfigWriter(object):
 
     if expanded_name is not None:
       # there has to be exactly one instance with that name
-      inst = (filter(lambda n: n.name == expanded_name, all_insts)[0])
+      inst = [n for n in all_insts if n.name == expanded_name][0]
       return (inst.uuid, inst.name)
     else:
       return (None, None)
@@ -2300,7 +2299,7 @@ class ConfigWriter(object):
 
     if expanded_name is not None:
       # there has to be exactly one node with that name
-      node = (filter(lambda n: n.name == expanded_name, all_nodes)[0])
+      node = [n for n in all_nodes if n.name == expanded_name][0]
       return (node.uuid, node.name)
     else:
       return (None, None)

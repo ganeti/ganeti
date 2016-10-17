@@ -102,8 +102,8 @@ class DRBD8(object):
 
     """
     info = DRBD8.GetProcInfo()
-    return filter(lambda m: not info.GetMinorStatus(m).is_unconfigured,
-                  info.GetMinors())
+    return [m for m in info.GetMinors()
+            if not info.GetMinorStatus(m).is_unconfigured]
 
   @staticmethod
   def FindUnusedMinor():

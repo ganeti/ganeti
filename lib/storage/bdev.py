@@ -132,7 +132,7 @@ class LogicalVolume(base.BlockDev):
     empty_pvs = filter(objects.LvmPvInfo.IsEmpty, pvs_info)
     if max_pvs is not None:
       empty_pvs = empty_pvs[:max_pvs]
-    return map((lambda pv: pv.name), empty_pvs)
+    return [pv.name for pv in empty_pvs]
 
   @classmethod
   def Create(cls, unique_id, children, size, spindles, params, excl_stor,
@@ -1102,7 +1102,7 @@ class RADOSBlockDevice(base.BlockDev):
     lines = output.splitlines()
 
     # Try parsing the new output format (ceph >= 0.55).
-    splitted_lines = map(lambda l: l.split(), lines)
+    splitted_lines = [l.split() for l in lines]
 
     # Check for empty output.
     if not splitted_lines:
@@ -1113,14 +1113,13 @@ class RADOSBlockDevice(base.BlockDev):
     if field_cnt != allfields:
       # Parsing the new format failed. Fallback to parsing the old output
       # format (< 0.55).
-      splitted_lines = map(lambda l: l.split("\t"), lines)
+      splitted_lines = [l.split("\t") for l in lines]
       if field_cnt != allfields:
         base.ThrowError("Cannot parse rbd showmapped output expected %s fields,"
                         " found %s", allfields, field_cnt)
 
-    matched_lines = \
-      filter(lambda l: len(l) == allfields and l[volumefield] == volume_name,
-             splitted_lines)
+    matched_lines = [l for l in splitted_lines
+                     if len(l) == allfields and l[volumefield] == volume_name]
 
     if len(matched_lines) > 1:
       base.ThrowError("rbd volume %s mapped more than once", volume_name)

@@ -685,7 +685,7 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     # exclusive_storage wants all PVs to have the same size (approximately),
     # if the smallest and the biggest ones are okay, everything is fine.
     # pv_min is None iff pv_max is None
-    vals = filter((lambda ni: ni.pv_min is not None), node_image.values())
+    vals = [ni for ni in node_image.values() if ni.pv_min is not None]
     if not vals:
       return
     (pvmin, minnode_uuid) = min((ni.pv_min, ni.uuid) for ni in vals)
@@ -1972,8 +1972,8 @@ class LUClusterVerifyGroup(LogicalUnit, _VerifyErrors):
     if self._exclusive_storage:
       node_verify_param[constants.NV_EXCLUSIVEPVS] = True
 
-    node_group_uuids = dict(map(lambda n: (n.name, n.group),
-                                self.cfg.GetAllNodesInfo().values()))
+    node_group_uuids = dict((n.name, n.group) for n in
+                                self.cfg.GetAllNodesInfo().values())
     groups_config = self.cfg.GetAllNodeGroupsInfoDict()
 
     # At this point, we have the in-memory data structures complete,

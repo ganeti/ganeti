@@ -393,7 +393,7 @@ class _RpcProcessor:
     assert isinstance(body, dict)
     assert len(body) == len(hosts)
     assert compat.all(isinstance(v, str) for v in body.values())
-    assert frozenset(map(lambda x: x[2], hosts)) == frozenset(body.keys()), \
+    assert frozenset(h[2] for h in hosts) == frozenset(body.keys()), \
         "%s != %s" % (hosts, body.keys())
 
     for (name, ip, original_name) in hosts:
@@ -532,8 +532,7 @@ class _RpcClientBase:
                         req_resolver_opts)
 
     if postproc_fn:
-      return dict(map(lambda (key, value): (key, postproc_fn(value)),
-                      result.items()))
+      return dict((k, postproc_fn(v)) for (k, v) in result.items())
     else:
       return result
 

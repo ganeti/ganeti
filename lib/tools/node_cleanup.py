@@ -91,9 +91,8 @@ def Main():
       (pathutils.CLUSTER_CONF_FILE, True),
       (pathutils.CLUSTER_DOMAIN_SECRET_FILE, True),
       ]
-    clean_files.extend(map(lambda s: (s, True), pathutils.ALL_CERT_FILES))
-    clean_files.extend(map(lambda s: (s, False),
-                           ssconf.SimpleStore().GetFileList()))
+    clean_files.extend((f, True) for f in pathutils.ALL_CERT_FILES)
+    clean_files.extend((f, False) for f in ssconf.SimpleStore().GetFileList())
 
     if not opts.yes_do_it:
       cli.ToStderr("Cleaning a node is irreversible. If you really want to"

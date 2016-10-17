@@ -2358,10 +2358,9 @@ def GetNodesSshPorts(nodes, cl):
   @rtype: a list of tuples
 
   """
-  return map(lambda t: t[0],
-             cl.QueryNodes(names=nodes,
-                           fields=["ndp/ssh_port"],
-                           use_locking=False))
+  return [t[0] for t in cl.QueryNodes(names=nodes,
+                                      fields=["ndp/ssh_port"],
+                                      use_locking=False)]
 
 
 def GetNodeUUIDs(nodes, cl):
@@ -2375,10 +2374,9 @@ def GetNodeUUIDs(nodes, cl):
   @rtype: a list of tuples
 
   """
-  return map(lambda t: t[0],
-             cl.QueryNodes(names=nodes,
-                           fields=["uuid"],
-                           use_locking=False))
+  return [t[0] for t in cl.QueryNodes(names=nodes,
+                                      fields=["uuid"],
+                                      use_locking=False)]
 
 
 def _ToStream(stream, txt, *args):
