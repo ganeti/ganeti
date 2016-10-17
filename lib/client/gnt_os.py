@@ -233,13 +233,6 @@ def DiagnoseOS(opts, args):
       status = "partial valid"
       has_bad = True
 
-    def _OutputPerNodeOSStatus(msg_map):
-      map_k = utils.NiceSort(msg_map.keys())
-      for node_name in map_k:
-        ToStdout("  Node: %s, status: %s", node_name, msg_map[node_name])
-        for msg in nodes_hidden[node_name]:
-          ToStdout(msg)
-
     st_msg = "OS: %s [global status: %s]" % (os_name, status)
     if hid:
       st_msg += " [hidden]"
@@ -248,8 +241,13 @@ def DiagnoseOS(opts, args):
     ToStdout(st_msg)
     if os_variants:
       ToStdout("  Variants: [%s]" % utils.CommaJoin(os_variants))
-    _OutputPerNodeOSStatus(nodes_valid)
-    _OutputPerNodeOSStatus(nodes_bad)
+
+    for msg_map in (nodes_valid, nodes_bad):
+      map_k = utils.NiceSort(msg_map.keys())
+      for node_name in map_k:
+        ToStdout("  Node: %s, status: %s", node_name, msg_map[node_name])
+        for msg in nodes_hidden[node_name]:
+          ToStdout(msg)
     ToStdout("")
 
   return int(has_bad)
