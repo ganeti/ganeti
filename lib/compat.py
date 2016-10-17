@@ -61,7 +61,7 @@ try:
   # this additional version is needed for compatibility with the hmac module
   sha1 = sha1_hash
 except ImportError:
-  from md5 import new as md5_hash
+  from md5 import new as md5_hash # pylint: disable=W0611
   import sha
   sha1 = sha
   sha1_hash = sha.new

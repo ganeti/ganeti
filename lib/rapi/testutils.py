@@ -49,8 +49,8 @@ import ganeti.rpc.client as rpccl
 from ganeti import rapi
 
 import ganeti.http.server # pylint: disable=W0611
-import ganeti.server.rapi
-import ganeti.rapi.client
+import ganeti.server.rapi # pylint: disable=W0611
+import ganeti.rapi.client # pylint: disable=W0611
 
 
 _URI_RE = re.compile(r"https://(?P<host>.*):(?P<port>\d+)(?P<path>/.*)")
