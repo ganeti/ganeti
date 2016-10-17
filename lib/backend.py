@@ -2988,9 +2988,8 @@ def InstanceReboot(instance, reboot_type, shutdown_timeout, reason):
   elif reboot_type == constants.INSTANCE_REBOOT_HARD:
     try:
       InstanceShutdown(instance, shutdown_timeout, reason, store_reason=False)
-      result = StartInstance(instance, False, reason, store_reason=False)
+      StartInstance(instance, False, reason, store_reason=False)
       _StoreInstReasonTrail(instance.name, reason)
-      return result
     except errors.HypervisorError, err:
       _Fail("Failed to hard reboot instance '%s': %s", instance.name, err)
   else:
