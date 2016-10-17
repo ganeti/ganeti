@@ -59,12 +59,12 @@ try:
   from hashlib import md5 as md5_hash # pylint: disable=W0611,E0611,F0401
   from hashlib import sha1 as sha1_hash # pylint: disable=W0611,E0611,F0401
   # this additional version is needed for compatibility with the hmac module
-  sha1 = sha1_hash
+  sha1 = sha1_hash # pylint: disable=C0103
 except ImportError:
   from md5 import new as md5_hash # pylint: disable=W0611
   import sha
   sha1 = sha
-  sha1_hash = sha.new
+  sha1_hash = sha.new # pylint: disable=C0103
 
 
 def _all(seq):

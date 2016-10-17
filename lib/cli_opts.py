@@ -551,7 +551,7 @@ class CliOption(Option):
 
 
 # optparse.py sets make_option, so we do it for our own option class, too
-cli_option = CliOption
+cli_option = CliOption # pylint: disable=C0103
 
 
 _YORNO = "yes|no"
