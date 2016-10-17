@@ -2061,8 +2061,7 @@ class Cluster(TaggableObject):
       - at public visibility:  {public}
       - at private visibility: {private}
       - at secret visibility:  {secret}
-      """.format(dupes=formatter(duplicate_keys),
-                 public=formatter(params_public & duplicate_keys),
+      """.format(public=formatter(params_public & duplicate_keys),
                  private=formatter(params_private & duplicate_keys),
                  secret=formatter(params_secret & duplicate_keys))
       raise errors.OpPrereqError(msg)
