@@ -288,7 +288,7 @@ def PythonEvalRole(role, rawtext, text, lineno, inliner,
   code = docutils.utils.unescape(text, restore_backslashes=True)
 
   try:
-    result = eval(code, EVAL_NS)
+    result = eval(code, EVAL_NS) # pylint: disable=W0123
   except Exception, err: # pylint: disable=W0703
     msg = inliner.reporter.error("Failed to evaluate %r: %s" % (code, err),
                                  line=lineno)
@@ -321,7 +321,7 @@ class PythonAssert(s_compat.Directive):
     code = "\n".join(self.content)
 
     try:
-      result = eval(code, EVAL_NS)
+      result = eval(code, EVAL_NS) # pylint: disable=W0123
     except Exception, err:
       raise self.error("Failed to evaluate %r: %s" % (code, err))
 
