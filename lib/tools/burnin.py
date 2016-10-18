@@ -677,8 +677,10 @@ class Burner(JobHandler):
                                     hypervisor=self.hypervisor,
                                     osparams=self.opts.osparams,
                                     )
-      remove_instance = lambda name: lambda: self.to_rem.append(name)
-      self.ExecOrQueue(instance, [op], post_process=remove_instance(instance))
+      # NB the i=instance default param is needed here so the lambda captures
+      # the variable. See https://docs.python.org/2/faq/programming.html#id11
+      rm_inst = lambda i=instance: self.to_rem.append(i) # pylint: disable=C0322
+      self.ExecOrQueue(instance, [op], post_process=rm_inst)
 
   @_DoBatch(False)
   def BurnModifyRuntimeMemory(self):
