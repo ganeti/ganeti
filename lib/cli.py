@@ -56,7 +56,7 @@ from ganeti import pathutils
 from ganeti import serializer
 import ganeti.cli_opts
 # Import constants
-from ganeti.cli_opts import *  # pylint: disable=W0401
+from ganeti.cli_opts import *  # pylint: disable=W0401,W0614
 
 from ganeti.runtime import (GetClient)
 
