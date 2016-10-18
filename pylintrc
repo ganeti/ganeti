@@ -20,7 +20,6 @@ evaluation = 10.0 - ((float(5 * error + warning + refactor + convention) / state
 comment = yes
 
 [BASIC]
-required-attributes =
 # disabling docstring checks since we have way too many without (complex
 # inheritance hierarchies)
 #no-docstring-rgx = __.*__
@@ -53,7 +52,6 @@ dummy-variables-rgx = _
 additional-builtins =
 
 [CLASSES]
-ignore-iface-methods =
 defining-attr-methods = __init__,__new__,setUp
 valid-classmethod-first-arg = cls,mcs
 
