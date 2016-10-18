@@ -31,8 +31,9 @@
 """DRBD information parsing utilities"""
 
 import errno
-import pyparsing as pyp
 import re
+
+import pyparsing as pyp
 
 from ganeti import constants
 from ganeti import utils

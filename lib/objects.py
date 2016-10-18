@@ -50,6 +50,7 @@ import copy
 import logging
 import time
 from cStringIO import StringIO
+from socket import AF_INET
 
 from ganeti import errors
 from ganeti import constants
@@ -57,8 +58,6 @@ from ganeti import netutils
 from ganeti import outils
 from ganeti import utils
 from ganeti import serializer
-
-from socket import AF_INET
 
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",

@@ -31,14 +31,15 @@
 
 """
 
+import errno
 import logging
 import mimetools
-import OpenSSL
 import select
 import socket
-import errno
 
 from cStringIO import StringIO
+
+import OpenSSL
 
 from ganeti import constants
 from ganeti import utils

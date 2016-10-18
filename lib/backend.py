@@ -47,11 +47,12 @@
 
 
 import base64
+import contextlib
+import collections
 import errno
 import logging
 import os
 import os.path
-import pycurl
 import random
 import re
 import shutil
@@ -60,8 +61,8 @@ import stat
 import tempfile
 import time
 import zlib
-import contextlib
-import collections
+
+import pycurl
 
 from ganeti import errors
 from ganeti import http

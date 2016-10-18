@@ -32,11 +32,13 @@
 
 """
 
+import base64
 import logging
 import re
-import base64
-import pycurl
+
 from cStringIO import StringIO
+
+import pycurl
 
 from ganeti import errors
 from ganeti import opcodes

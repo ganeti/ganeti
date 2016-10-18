@@ -35,12 +35,14 @@
 # W0614: Unused import %s from wildcard import (since we need cli)
 # C0103: Invalid name gnt-cluster
 
-from cStringIO import StringIO
+import itertools
 import os
 import time
-import OpenSSL
 import tempfile
-import itertools
+
+from cStringIO import StringIO
+
+import OpenSSL
 
 from ganeti.cli import *
 from ganeti import bootstrap

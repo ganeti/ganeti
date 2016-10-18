@@ -39,13 +39,14 @@
 # if they need to start using instance attributes
 # R0904: Too many public methods
 
-import logging
-import zlib
 import base64
-import pycurl
-import threading
 import copy
+import logging
 import os
+import threading
+import zlib
+
+import pycurl
 
 from ganeti import utils
 from ganeti import objects

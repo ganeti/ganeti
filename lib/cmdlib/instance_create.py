@@ -29,10 +29,10 @@
 
 """Logical unit for creating a single instance."""
 
-import OpenSSL
 import logging
 import os
 
+import OpenSSL
 
 from ganeti import compat
 from ganeti import constants

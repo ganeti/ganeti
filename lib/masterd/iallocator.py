@@ -30,19 +30,19 @@
 
 """Module implementing the iallocator code."""
 
+import logging
+
 from ganeti import compat
 from ganeti import constants
 from ganeti import errors
 from ganeti import ht
 from ganeti import outils
 from ganeti import opcodes
-import ganeti.rpc.node as rpc
 from ganeti import serializer
 from ganeti import utils
 
+import ganeti.rpc.node as rpc
 import ganeti.masterd.instance as gmi
-
-import logging
 
 _STRING_LIST = ht.TListOf(ht.TString)
 _JOB_LIST = ht.TListOf(ht.TListOf(ht.TStrictDict(True, False, {

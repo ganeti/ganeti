@@ -32,9 +32,11 @@
 """
 
 import logging
-import pycurl
 import threading
+
 from cStringIO import StringIO
+
+import pycurl
 
 from ganeti import http
 from ganeti import compat

@@ -31,6 +31,9 @@
 """Module containing Ganeti's command line parsing options"""
 
 import re
+
+from optparse import (Option, OptionValueError)
+
 import simplejson
 
 from ganeti import utils
@@ -39,8 +42,6 @@ from ganeti import constants
 from ganeti import compat
 from ganeti import pathutils
 from ganeti import serializer
-
-from optparse import (Option, OptionValueError)
 
 
 __all__ = [

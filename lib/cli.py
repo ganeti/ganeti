@@ -39,7 +39,9 @@ import logging
 import errno
 import itertools
 import shlex
+
 from cStringIO import StringIO
+from optparse import (OptionParser, TitledHelpFormatter)
 
 from ganeti import utils
 from ganeti import errors
@@ -59,8 +61,6 @@ import ganeti.cli_opts
 from ganeti.cli_opts import *  # pylint: disable=W0401,W0614
 
 from ganeti.runtime import (GetClient)
-
-from optparse import (OptionParser, TitledHelpFormatter)
 
 
 __all__ = [

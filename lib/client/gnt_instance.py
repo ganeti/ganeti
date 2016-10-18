@@ -36,8 +36,9 @@
 
 import copy
 import itertools
-import simplejson
 import logging
+
+import simplejson
 
 from ganeti.cli import *
 from ganeti import opcodes
