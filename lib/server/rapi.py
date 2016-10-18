@@ -61,7 +61,6 @@ from ganeti.rapi import connector
 from ganeti.rapi import baserlib
 
 import ganeti.http.auth   # pylint: disable=W0611
-import ganeti.http.server
 
 
 class RemoteApiRequestContext(object):

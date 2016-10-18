@@ -44,7 +44,7 @@ from ganeti import pathutils
 from ganeti import utils
 from ganeti.cmdlib.common import AnnotateDiskParams, \
   ComputeIPolicyInstanceViolation, CheckDiskTemplateEnabled, \
-  CheckDiskTemplateEnabled, ComputeIPolicySpecViolation
+  ComputeIPolicySpecViolation
 
 
 #: Type description for changes as returned by L{ApplyContainerMods}'s
