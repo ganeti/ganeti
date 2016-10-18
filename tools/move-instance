@@ -943,9 +943,9 @@ def _CheckInstanceOptions(parser, options, instance_names):
       options.nics = cli.ParseNicOption(options.nics)
   else:
     # Moving more than one instance
-    if (options.dest_instance_name or options.dest_primary_node or
-        options.dest_secondary_node or options.hvparams or
-        options.beparams or options.osparams or options.nics):
+    if compat.any(options.dest_instance_name, options.dest_primary_node,
+                  options.dest_secondary_node, options.hvparams,
+                  options.beparams, options.osparams, options.nics):
       parser.error("The options --dest-instance-name, --dest-primary-node,"
                    " --dest-secondary-node, --hypervisor-parameters,"
                    " --backend-parameters, --os-parameters and --net can"
