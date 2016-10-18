@@ -32,8 +32,9 @@
 
 """
 
-# pylint: disable=C0103
+# pylint: disable=C0103, C0413
 # C0103: Invalid name
+# C0413: Wrong import position
 
 import sys
 

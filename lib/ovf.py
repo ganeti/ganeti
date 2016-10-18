@@ -32,10 +32,11 @@
 
 """
 
-# pylint: disable=F0401, E1101
+# pylint: disable=F0401, E1101, C0413
 
 # F0401 because ElementTree is not default for python 2.4
 # E1101 makes no sense - pylint assumes that ElementTree object is a tuple
+# C0413 Wrong import position
 
 
 import ConfigParser

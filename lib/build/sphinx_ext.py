@@ -32,6 +32,9 @@
 
 """
 
+# pylint: disable=C0413
+# C0413: Wrong import position
+
 import re
 from cStringIO import StringIO
 
