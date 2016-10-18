@@ -1370,7 +1370,6 @@ def SSLVerifyPeer(conn, cert, errnum, errdepth, ok):
   else:
     logging.error("Invalid errdepth value: %s.", errdepth)
     return False
-  # pylint: enable=W0613
 
 
 def PrepNoded(options, _):
