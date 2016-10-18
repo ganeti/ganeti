@@ -278,7 +278,7 @@ class ConfigObject(outils.ValidatedSlots):
       raise errors.ConfigurationError("Invalid object passed to FromDict:"
                                       " expected dict, got %s" % type(val))
     val_str = dict([(str(k), v) for k, v in val.iteritems()])
-    obj = cls(**val_str) # pylint: disable=W0142
+    obj = cls(**val_str)
     return obj
 
   def Copy(self):

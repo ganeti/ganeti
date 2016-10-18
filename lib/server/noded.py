@@ -30,13 +30,10 @@
 
 """Ganeti node daemon"""
 
-# pylint: disable=C0103,W0142
+# pylint: disable=C0103
 
 # C0103: Functions in this module need to have a given name structure,
 # and the name of the daemon doesn't match
-
-# W0142: Used * or ** magic, since we do use it extensively in this
-# module
 
 import os
 import sys

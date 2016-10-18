@@ -209,7 +209,7 @@ class LUClusterVerify(NoHooksLU):
       for group in groups)
 
     # Fix up all parameters
-    for op in itertools.chain(*jobs): # pylint: disable=W0142
+    for op in itertools.chain(*jobs):
       op.debug_simulate_errors = self.op.debug_simulate_errors
       op.verbose = self.op.verbose
       op.error_codes = self.op.error_codes

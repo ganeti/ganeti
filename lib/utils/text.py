@@ -564,8 +564,7 @@ class LineSplitter(object):
 
     if args:
       # Python 2.4 doesn't have functools.partial yet
-      self._line_fn = \
-        lambda line: line_fn(line, *args) # pylint: disable=W0142
+      self._line_fn = lambda line: line_fn(line, *args)
     else:
       self._line_fn = line_fn
 

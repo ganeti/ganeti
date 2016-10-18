@@ -119,7 +119,7 @@ def _partial(func, *args, **keywords): # pylint: disable=W0622
   def newfunc(*fargs, **fkeywords):
     newkeywords = keywords.copy()
     newkeywords.update(fkeywords)
-    return func(*(args + fargs), **newkeywords) # pylint: disable=W0142
+    return func(*(args + fargs), **newkeywords)
 
   newfunc.func = func
   newfunc.args = args

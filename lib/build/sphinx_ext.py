@@ -281,9 +281,8 @@ def PythonEvalRole(role, rawtext, text, lineno, inliner,
   The expression's result is included as a literal.
 
   """
-  # pylint: disable=W0102,W0613,W0142
+  # pylint: disable=W0102,W0613
   # W0102: Dangerous default value as argument
-  # W0142: Used * or ** magic
   # W0613: Unused argument
 
   code = docutils.utils.unescape(text, restore_backslashes=True)

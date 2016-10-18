@@ -31,7 +31,7 @@
 
 """
 
-# pylint: disable=C0103,W0142
+# pylint: disable=C0103
 
 # C0103: Invalid name ganeti-watcher
 

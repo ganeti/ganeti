@@ -416,7 +416,7 @@ class JobHandler(FeedbackAccumulator):
       cli.SetGenericOpcodeOpts(ops, self.opts)
       self.queued_ops.append((ops, name, post_process))
     else:
-      val = self.ExecOp(self.queue_retry, *ops) # pylint: disable=W0142
+      val = self.ExecOp(self.queue_retry, *ops)
       if post_process is not None:
         post_process()
       return val
@@ -458,7 +458,7 @@ class JobHandler(FeedbackAccumulator):
     self.ClearFeedbackBuf()
     jex = cli.JobExecutor(cl=self.cl, feedback_fn=self.Feedback)
     for ops, name, _ in jobs:
-      jex.QueueJob(name, *ops) # pylint: disable=W0142
+      jex.QueueJob(name, *ops)
     try:
       results = jex.GetResults()
     except Exception, err: # pylint: disable=W0703

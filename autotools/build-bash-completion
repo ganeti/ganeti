@@ -703,8 +703,6 @@ def HaskellOptToOptParse(opts, kind):
       kept in sync
 
   """
-  # pylint: disable=W0142
-  # since we pass *opts in a number of places
   opts = opts.split(",")
   if kind == "none":
     return cli.cli_option(*opts, action="store_true")
@@ -761,8 +759,6 @@ def HaskellArgToCliArg(kind, min_cnt, max_cnt):
     max_cnt = None
   else:
     max_cnt = int(max_cnt)
-  # pylint: disable=W0142
-  # since we pass **kwargs
   kwargs = {"min": min_cnt, "max": max_cnt}
 
   if kind.startswith("choices=") or kind.startswith("suggest="):

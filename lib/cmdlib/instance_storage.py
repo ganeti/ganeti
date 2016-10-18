@@ -525,7 +525,6 @@ def CalculateFileStorageDir(disk_type, cfg, instance_name,
       joinargs.append(instance_name)
 
     if len(joinargs) > 1:
-      # pylint: disable=W0142
       instance_file_storage_dir = utils.PathJoin(*joinargs)
     else:
       instance_file_storage_dir = joinargs[0]

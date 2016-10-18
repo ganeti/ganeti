@@ -213,7 +213,7 @@ def BuildInstanceHookEnvByObject(lu, instance, secondary_nodes=None,
   }
   if override:
     args.update(override)
-  return BuildInstanceHookEnv(**args) # pylint: disable=W0142
+  return BuildInstanceHookEnv(**args)
 
 
 def GetClusterDomainSecret():

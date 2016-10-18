@@ -2758,7 +2758,7 @@ class ConfigWriter(object):
 
     # Update timestamps and serials (only once per node/group object)
     now = time.time()
-    for obj in frozenset(itertools.chain(*resmod)): # pylint: disable=W0142
+    for obj in frozenset(itertools.chain(*resmod)):
       obj.serial_no += 1
       obj.mtime = now
 

@@ -62,7 +62,7 @@ def _CreateBlankFile(path, mode):
     raise HypervisorError("Failed to create file %s: %s" % (path, err))
 
 
-class LXCVersion(tuple): # pylint: disable=R0924
+class LXCVersion(tuple):
   """LXC version class.
 
   """

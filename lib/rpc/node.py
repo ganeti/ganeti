@@ -252,7 +252,7 @@ class RpcResult(object):
       args = (msg, ecode)
     else:
       args = (msg, )
-    raise ec(*args) # pylint: disable=W0142
+    raise ec(*args)
 
   def Warn(self, msg, feedback_fn):
     """If the result has failed, call the feedback_fn.

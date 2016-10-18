@@ -103,7 +103,7 @@ def VerifyOpInput(op_id, data):
   op_cls = _GetOpById(op_id)
 
   try:
-    op = op_cls(**data) # pylint: disable=W0142
+    op = op_cls(**data)
   except TypeError, err:
     raise VerificationError("Unable to create opcode instance: %s" % err)
 
