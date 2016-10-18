@@ -658,7 +658,7 @@ class LUInstanceMultiAlloc(NoHooksLU):
 
     """
     if self.op.iallocator:
-      (allocatable, failed_insts) = self.ia_result
+      (allocatable, failed_insts) = self.ia_result # pylint: disable=W0633
       allocatable_insts = map(compat.fst, allocatable)
     else:
       allocatable_insts = [op.instance_name for op in self.op.instances]
@@ -676,7 +676,7 @@ class LUInstanceMultiAlloc(NoHooksLU):
     jobs = []
     if self.op.iallocator:
       op2inst = dict((op.instance_name, op) for op in self.op.instances)
-      (allocatable, failed) = self.ia_result
+      (allocatable, failed) = self.ia_result # pylint: disable=W0633
 
       for (name, node_names) in allocatable:
         op = op2inst.pop(name)
