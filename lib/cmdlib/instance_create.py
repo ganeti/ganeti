@@ -113,7 +113,7 @@ class LUInstanceCreate(LogicalUnit):
     for disk in self.op.disks:
       if self.op.disk_template != constants.DT_EXT:
         utils.ForceDictType(disk, constants.IDISK_PARAMS_TYPES)
-      if constants.IDISK_ADOPT in disk:
+      if constants.IDISK_ADOPT in disk: # pylint: disable=R0102
         has_adopt = True
       else:
         has_no_adopt = True
