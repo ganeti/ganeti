@@ -1278,7 +1278,7 @@ class OVFImporter(Converter):
       options
 
     """
-    assert type(self.options.hypervisor) is tuple
+    assert isinstance(self.options.hypervisor, tuple)
     assert len(self.options.hypervisor) == 2
     results = {}
     if self.options.hypervisor[0]:

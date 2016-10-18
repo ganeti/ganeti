@@ -2796,7 +2796,7 @@ def _InitISpecsFromSplitOpts(ipolicy, ispecs_mem_size, ispecs_cpu_count,
   else:
     forced_type = TISPECS_CLUSTER_TYPES
   for specs in ispecs_transposed.values():
-    assert type(specs) is dict
+    assert isinstance(specs, dict)
     utils.ForceDictType(specs, forced_type)
 
   # then transpose
