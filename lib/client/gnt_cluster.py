@@ -294,10 +294,7 @@ def InitCluster(opts, args):
 
   default_ialloc_params = opts.default_iallocator_params
 
-  if opts.enabled_user_shutdown:
-    enabled_user_shutdown = True
-  else:
-    enabled_user_shutdown = False
+  enabled_user_shutdown = bool(opts.enabled_user_shutdown)
 
   bootstrap.InitCluster(cluster_name=args[0],
                         secondary_ip=opts.secondary_ip,
