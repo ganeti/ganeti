@@ -60,11 +60,12 @@ instanceNodes nl inst =
 -- | Sets the location score of an instance, given its primary
 -- and secondary node.
 setInstanceLocationScore :: Instance.Instance -- ^ the original instance
-                         -> Node.Node -- ^ the primary node of the instance
-                         -> Node.Node -- ^ the secondary node of the instance
+                         -> Node.Node         -- ^ the primary node of the instance
+                         -> Maybe Node.Node   -- ^ the secondary node of the instance
                          -> Instance.Instance -- ^ the instance with the
                                               -- location score updated
-setInstanceLocationScore t p s =
+setInstanceLocationScore t _ Nothing = t { Instance.locationScore = 0 }
+setInstanceLocationScore t p (Just s) =
   t { Instance.locationScore =
          Set.size $ Node.locationTags p `Set.intersection` Node.locationTags s }
 
@@ -105,7 +106,8 @@ applyMoveEx force nl inst (ReplacePrimary new_pdx) =
       tgt_n = Container.find new_pdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
-      new_inst = Instance.setPri (setInstanceLocationScore inst tgt_n int_s)
+      new_inst = Instance.setPri (setInstanceLocationScore inst tgt_n
+                                                             (Just int_s))
                  new_pdx
       force_p = Node.offline old_p || force
       new_nl = do -- OpResult
@@ -132,7 +134,8 @@ applyMoveEx force nl inst (ReplaceSecondary new_sdx) =
       pnode' = Node.removePri pnode inst
       int_s = Node.removeSec old_s inst
       force_s = Node.offline old_s || force
-      new_inst = Instance.setSec (setInstanceLocationScore inst pnode tgt_n)
+      new_inst = Instance.setSec (setInstanceLocationScore inst pnode
+                                                             (Just tgt_n))
                  new_sdx
       new_nl = do
         new_s <- Node.addSecEx force_s tgt_n new_inst old_pdx
@@ -148,7 +151,8 @@ applyMoveEx force nl inst (ReplaceAndFailover new_pdx) =
       tgt_n = Container.find new_pdx nl
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
-      new_inst = Instance.setBoth (setInstanceLocationScore inst tgt_n int_p)
+      new_inst = Instance.setBoth (setInstanceLocationScore inst tgt_n
+                                                              (Just int_p))
                  new_pdx old_pdx
       force_s = Node.offline old_s || force
       new_nl = do -- OpResult
@@ -167,7 +171,8 @@ applyMoveEx force nl inst (FailoverAndReplace new_sdx) =
       int_p = Node.removePri old_p inst
       int_s = Node.removeSec old_s inst
       force_p = Node.offline old_p || force
-      new_inst = Instance.setBoth (setInstanceLocationScore inst int_s tgt_n)
+      new_inst = Instance.setBoth (setInstanceLocationScore inst int_s
+                                                              (Just tgt_n))
                  old_sdx new_sdx
       new_nl = do -- OpResult
         Node.checkMigration old_p old_s
