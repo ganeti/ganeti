@@ -179,7 +179,7 @@ class LUInstanceRename(LogicalUnit):
     renamed_storage = [d for d in disks
                        if (d.dev_type in constants.DTS_FILEBASED and
                            d.dev_type != constants.DT_GLUSTER)]
-    if (renamed_storage and self.op.new_name != self.instance.name):
+    if renamed_storage and self.op.new_name != self.instance.name:
       disks = self.cfg.GetInstanceDisks(self.instance.uuid)
       old_file_storage_dir = os.path.dirname(disks[0].logical_id[1])
       rename_file_storage = True

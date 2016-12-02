@@ -2907,7 +2907,7 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
 
   split_specs = (ispecs_mem_size or ispecs_cpu_count or ispecs_disk_count or
                  ispecs_disk_size or ispecs_nic_count)
-  if (split_specs and (minmax_ispecs is not None or std_ispecs is not None)):
+  if split_specs and (minmax_ispecs is not None or std_ispecs is not None):
     raise errors.OpPrereqError("A --specs-xxx option cannot be specified"
                                " together with any --ipolicy-xxx-specs option",
                                errors.ECODE_INVAL)
@@ -2918,7 +2918,7 @@ def CreateIPolicyFromOpts(ispecs_mem_size=None,
     _InitISpecsFromSplitOpts(ipolicy_out, ispecs_mem_size, ispecs_cpu_count,
                              ispecs_disk_count, ispecs_disk_size,
                              ispecs_nic_count, group_ipolicy, fill_all)
-  elif (minmax_ispecs is not None or std_ispecs is not None):
+  elif minmax_ispecs is not None or std_ispecs is not None:
     _InitISpecsFromFullOpts(ipolicy_out, minmax_ispecs, std_ispecs,
                             group_ipolicy, allowed_values)
 

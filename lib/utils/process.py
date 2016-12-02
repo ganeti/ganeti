@@ -1097,7 +1097,7 @@ def CloseFDs(noclose_fds=None):
     MAXFD = 1024
 
   maxfd = resource.getrlimit(resource.RLIMIT_NOFILE)[1]
-  if (maxfd == resource.RLIM_INFINITY):
+  if maxfd == resource.RLIM_INFINITY:
     maxfd = MAXFD
 
   # Iterate through and close all file descriptors (except the standard ones)
