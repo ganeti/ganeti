@@ -472,8 +472,8 @@ class LUInstanceCreate(LogicalUnit):
                                  (self.op.iallocator, ial.info),
                                  ecode)
 
-    (self.op.pnode_uuid, self.op.pnode) = \
-      ExpandNodeUuidAndName(self.cfg, None, ial.result[0])
+    (self.op.pnode_uuid, self.op.pnode) = ExpandNodeUuidAndName(
+        self.cfg, None, ial.result[0]) # pylint: disable=E1136
     self.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
                  self.op.instance_name, self.op.iallocator,
                  utils.CommaJoin(ial.result))
@@ -481,8 +481,8 @@ class LUInstanceCreate(LogicalUnit):
     assert req.RequiredNodes() in (1, 2), "Wrong node count from iallocator"
 
     if req.RequiredNodes() == 2:
-      (self.op.snode_uuid, self.op.snode) = \
-        ExpandNodeUuidAndName(self.cfg, None, ial.result[1])
+      (self.op.snode_uuid, self.op.snode) = ExpandNodeUuidAndName(
+          self.cfg, None, ial.result[1]) # pylint: disable=E1136
 
   def BuildHooksEnv(self):
     """Build hooks env.

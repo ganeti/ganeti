@@ -2246,7 +2246,7 @@ class TLReplaceDisks(Tasklet):
                                  " %s" % (iallocator_name, ial.info),
                                  errors.ECODE_NORES)
 
-    remote_node_name = ial.result[0]
+    remote_node_name = ial.result[0] # pylint: disable=E1136
     remote_node = lu.cfg.GetNodeInfoByName(remote_node_name)
 
     if remote_node is None:

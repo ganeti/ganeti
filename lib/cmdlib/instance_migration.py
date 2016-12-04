@@ -499,7 +499,8 @@ class TLMigrateInstance(Tasklet):
                                  " iallocator '%s': %s" %
                                  (self.lu.op.iallocator, ial.info),
                                  errors.ECODE_NORES)
-    self.target_node_uuid = self.cfg.GetNodeInfoByName(ial.result[0]).uuid
+    self.target_node_uuid = self.cfg.GetNodeInfoByName(
+        ial.result[0]).uuid # pylint: disable=E1136
     self.lu.LogInfo("Selected nodes for instance %s via iallocator %s: %s",
                     self.instance_name, self.lu.op.iallocator,
                     utils.CommaJoin(ial.result))
