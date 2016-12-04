@@ -596,8 +596,8 @@ def GenerateDiskTemplate(
       raise errors.ProgrammerError("Wrong template configuration")
     remote_node_uuid = secondary_node_uuids[0]
 
-    (drbd_params, _, _) = objects.Disk.ComputeLDParams(template_name,
-                                                       full_disk_params)
+    drbd_params = objects.Disk.ComputeLDParams(template_name,
+                                               full_disk_params)[0]
     drbd_default_metavg = drbd_params[constants.LDP_DEFAULT_METAVG]
 
     names = []

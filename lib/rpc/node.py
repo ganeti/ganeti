@@ -953,7 +953,7 @@ class RpcRunner(_RpcClientBase,
     """Wrapper for L{AnnotateDiskParams}.
 
     """
-    (anno_disk,) = self._DisksDictDP(node, ([disk], instance))
+    anno_disk = self._DisksDictDP(node, ([disk], instance))[0]
     return anno_disk
 
   def _EncodeNodeToDiskDictDP(self, node, value):
