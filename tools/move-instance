@@ -414,7 +414,7 @@ class MoveRuntime(object):
       errmsg = None
     except Abort:
       errmsg = "Aborted"
-    except Exception, err:
+    except Exception, err:  # pylint: disable=W0703
       logging.exception("Caught unhandled exception")
       errmsg = str(err)
 

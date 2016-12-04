@@ -420,7 +420,7 @@ def HostWorker(logdir, username, password, use_agent, hostname,
     print "  %s: received KeyboardInterrupt, aborting" % hostname
     WriteLog("ERROR: ABORT_KEYBOARD_INTERRUPT", logfile)
     result = 1
-  except Exception, err:
+  except Exception, err: # pylint: disable=W0703
     result = 1
     trace = traceback.format_exc()
     msg = "ERROR: UNHANDLED_EXECPTION_ERROR: %s\nTrace: %s" % (err, trace)

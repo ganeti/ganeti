@@ -200,7 +200,7 @@ class NodeRequestHandler(http.server.HttpServerHandler):
       # And return the error's arguments, which must be already in
       # correct tuple format
       result = err.args
-    except Exception, err:
+    except Exception, err: # pylint: disable=W0703
       logging.exception("Error in RPC call")
       result = (False, "Error while executing backend function: %s" % str(err))
 
