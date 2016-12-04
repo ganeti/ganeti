@@ -2693,6 +2693,9 @@ LINT_OPTS =
 LINT_OPTS_ALL = $(LINT_OPTS) \
   $(addprefix --disable=,$(LINT_DISABLE))
 
+# Whitelist loading pycurl C extension for attribute checking
+LINT_OPTS_ALL += --extension-pkg-whitelist=pycurl
+
 LINT_TARGETS = pylint pylint-qa pylint-test
 if HAS_PEP8
 LINT_TARGETS += pep8
