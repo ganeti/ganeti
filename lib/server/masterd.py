@@ -107,7 +107,7 @@ class ClientRequestWorker(workerpool.BaseWorker):
       logging.exception("Unexpected exception")
       success = False
       result = errors.EncodeException(err)
-    except:
+    except: # pylint: disable=W0702
       logging.exception("Unexpected exception")
       err = sys.exc_info()
       result = "Caught exception: %s" % str(err[1])
