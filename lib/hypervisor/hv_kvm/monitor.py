@@ -385,7 +385,7 @@ class QmpConnection(MonitorSocket):
       self.sock.sendall(message_str)
     except socket.timeout, err:
       raise errors.HypervisorError("Timeout while sending a QMP message: "
-                                   "%s (%s)" % (err.string, err.errno))
+                                   "%s" % err)
     except socket.error, err:
       raise errors.HypervisorError("Unable to send data from KVM using the"
                                    " QMP protocol: %s" % err)
