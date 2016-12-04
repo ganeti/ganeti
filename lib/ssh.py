@@ -170,13 +170,13 @@ def AddAuthorizedKeys(file_obj, keys):
                            in key_field_list
                            if split_key != line_key]
       nl = line.endswith("\n")
-    else:
-      if not nl:
-        f.write("\n")
-      for (key, _) in key_field_list:
-        f.write(key.rstrip("\r\n"))
-        f.write("\n")
-      f.flush()
+
+    if not nl:
+      f.write("\n")
+    for (key, _) in key_field_list:
+      f.write(key.rstrip("\r\n"))
+      f.write("\n")
+    f.flush()
   finally:
     f.close()
 
