@@ -370,6 +370,8 @@ class LUInstanceReinstall(LogicalUnit):
     self.op.osparams = self.op.osparams or {}
     self.op.osparams_private = self.op.osparams_private or {}
     self.op.osparams_secret = self.op.osparams_secret or {}
+    self.op.remove_osparams = self.op.remove_osparams or []
+    self.op.remove_osparams_private = self.op.remove_osparams_private or []
 
     # Handle the use of 'default' values.
     if self.op.clear_osparams:
@@ -382,6 +384,20 @@ class LUInstanceReinstall(LogicalUnit):
     params_private = GetUpdatedParams(instance.osparams_private,
                                         self.op.osparams_private)
     params_secret = self.op.osparams_secret
+
+    for osp in self.op.remove_osparams:
+      if osp in params_public:
+        del params_public[osp]
+      else:
+        self.LogWarning("Trying to remove OS parameter %s but parameter"
+                        " does not exist" % osp)
+
+    for osp in self.op.remove_osparams_private:
+      if osp in params_private:
+        del params_private[osp]
+      else:
+        self.LogWarning("Trying to remove private OS parameter %s but"
+                        " parameter does not exist" % osp)
 
     # Handle OS parameters
     if self.op.os_type is not None:

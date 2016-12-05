@@ -1543,7 +1543,11 @@ available OS templates. OS parameters can be overridden using ``-O
 
 The ``--clear-os-parameters(-private)`` option will clear all
 public/private OS parameters before applying any updates from
-``--os-parameters(-private)`` during an instance reinstall.
+``--os-parameters(-private)`` during an instance reinstall. Similarly,
+the ``--remove-os-parameters(-private)`` option will clear only the
+specified public/private parameters and will pass the rest to the
+'create' command provided by the appropriate OS interface (see
+**ganeti-os-interface**\(7) man page for more information).
 
 Since this is a potentially dangerous command, the user will be
 required to confirm this action, unless the ``-f`` flag is passed.

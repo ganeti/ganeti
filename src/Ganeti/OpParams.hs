@@ -219,6 +219,8 @@ module Ganeti.OpParams
   , pTempOsParamsSecret
   , pTempOsParamsClear
   , pTempOsParamsPrivateClear
+  , pTempOsParamsRemove
+  , pTempOsParamsPrivateRemove
   , pTempHvParams
   , pTempBeParams
   , pIgnoreFailures
@@ -1403,6 +1405,16 @@ pTempOsParamsPrivateClear :: Field
 pTempOsParamsPrivateClear =
   withDoc "Clear current OS private parameters before instance reinstalls" $
   defaultFalse "clear_osparams_private"
+
+pTempOsParamsRemove :: Field
+pTempOsParamsRemove =
+  withDoc "Remove OS parameters before instance reinstalls" .
+  optionalField $ simpleField "remove_osparams" [t| [String] |]
+
+pTempOsParamsPrivateRemove :: Field
+pTempOsParamsPrivateRemove =
+  withDoc "Remove private OS parameters before instance reinstalls" .
+  optionalField $ simpleField "remove_osparams_private" [t| [String] |]
 
 pShutdownTimeout :: Field
 pShutdownTimeout =
