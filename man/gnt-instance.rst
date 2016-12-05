@@ -1526,6 +1526,8 @@ REINSTALL
 | [{-O|\--os-parameters} *OS\_PARAMETERS*]
 | [--os-parameters-private} *OS\_PARAMETERS*]
 | [--os-parameters-secret} *OS\_PARAMETERS*]
+| [--clear-os-parameters]
+| [--clear-os-parameters-private]
 | [\--submit] [\--print-jobid]
 | {*instance*...}
 
@@ -1538,6 +1540,10 @@ The user is prompted to select the OS template from the list of
 available OS templates. OS parameters can be overridden using ``-O
 (--os-parameters)`` (more documentation for this option under the
 **add** command).
+
+The ``--clear-os-parameters(-private)`` option will clear all
+public/private OS parameters before applying any updates from
+``--os-parameters(-private)`` during an instance reinstall.
 
 Since this is a potentially dangerous command, the user will be
 required to confirm this action, unless the ``-f`` flag is passed.

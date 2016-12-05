@@ -365,6 +365,7 @@ genOpCodeFromId op_id =
       OpCodes.OpInstanceReinstall <$> genFQDN <*> return Nothing <*>
         arbitrary <*> genMaybe genNameNE <*> genMaybe (pure emptyJSObject)
         <*> genMaybe arbitraryPrivateJSObj <*> genMaybe arbitrarySecretJSObj
+        <*> arbitrary <*> arbitrary
     "OP_INSTANCE_REMOVE" ->
       OpCodes.OpInstanceRemove <$> genFQDN <*> return Nothing <*>
         arbitrary <*> arbitrary

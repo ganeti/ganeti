@@ -242,6 +242,8 @@ detectBroken nl inst =
                                  , opTempOsParams = Nothing
                                  , opOsparamsPrivate = Nothing
                                  , opOsparamsSecret = Nothing
+                                 , opClearOsparams = False
+                                 , opClearOsparamsPrivate = False
                                  , opForceVariant = False
                                  }
            ])
@@ -296,6 +298,8 @@ detectBroken nl inst =
                                  , opTempOsParams = Nothing
                                  , opOsparamsPrivate = Nothing
                                  , opOsparamsSecret = Nothing
+                                 , opClearOsparams = False
+                                 , opClearOsparamsPrivate = False
                                  , opForceVariant = False
                                  }
            ])

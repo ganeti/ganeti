@@ -400,12 +400,16 @@ def ReinstallInstance(opts, args):
 
   jex = JobExecutor(verbose=multi_on, opts=opts)
   for instance_name in inames:
-    op = opcodes.OpInstanceReinstall(instance_name=instance_name,
-                                     os_type=os_name,
-                                     force_variant=opts.force_variant,
-                                     osparams=opts.osparams,
-                                     osparams_private=opts.osparams_private,
-                                     osparams_secret=opts.osparams_secret)
+    op = opcodes.OpInstanceReinstall(
+      instance_name=instance_name,
+      os_type=os_name,
+      force_variant=opts.force_variant,
+      osparams=opts.osparams,
+      osparams_private=opts.osparams_private,
+      osparams_secret=opts.osparams_secret,
+      clear_osparams=opts.clear_osparams,
+      clear_osparams_private=opts.clear_osparams_private
+    )
     jex.QueueJob(instance_name, op)
 
   results = jex.WaitOrShow(not opts.submit_only)
@@ -1658,7 +1662,8 @@ commands = {
      m_pri_node_opt, m_sec_node_opt, m_clust_opt, m_inst_opt, m_node_tags_opt,
      m_pri_node_tags_opt, m_sec_node_tags_opt, m_inst_tags_opt, SELECT_OS_OPT]
     + SUBMIT_OPTS + [DRY_RUN_OPT, PRIORITY_OPT, OSPARAMS_OPT,
-                     OSPARAMS_PRIVATE_OPT, OSPARAMS_SECRET_OPT],
+                     OSPARAMS_PRIVATE_OPT, OSPARAMS_SECRET_OPT,
+                     CLEAR_OSPARAMS_OPT, CLEAR_OSPARAMS_PRIVATE_OPT],
     "[-f] <instance>", "Reinstall a stopped instance"),
   "remove": (
     RemoveInstance, ARGS_ONE_INSTANCE,

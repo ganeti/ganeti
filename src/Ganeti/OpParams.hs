@@ -217,6 +217,8 @@ module Ganeti.OpParams
   , pTempOsParams
   , pTempOsParamsPrivate
   , pTempOsParamsSecret
+  , pTempOsParamsClear
+  , pTempOsParamsPrivateClear
   , pTempHvParams
   , pTempBeParams
   , pIgnoreFailures
@@ -1391,6 +1393,16 @@ pTempOsParamsSecret =
   withDoc "Secret OS parameters for instance reinstalls" .
   optionalField $
   simpleField "osparams_secret" [t| JSObject (Secret JSValue) |]
+
+pTempOsParamsClear :: Field
+pTempOsParamsClear =
+  withDoc "Clear current OS parameters before instance reinstalls" $
+  defaultFalse "clear_osparams"
+
+pTempOsParamsPrivateClear :: Field
+pTempOsParamsPrivateClear =
+  withDoc "Clear current OS private parameters before instance reinstalls" $
+  defaultFalse "clear_osparams_private"
 
 pShutdownTimeout :: Field
 pShutdownTimeout =

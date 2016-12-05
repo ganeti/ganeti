@@ -372,6 +372,12 @@ class LUInstanceReinstall(LogicalUnit):
     self.op.osparams_secret = self.op.osparams_secret or {}
 
     # Handle the use of 'default' values.
+    if self.op.clear_osparams:
+      instance.osparams.clear()
+
+    if self.op.clear_osparams_private:
+      instance.osparams_private.clear()
+
     params_public = GetUpdatedParams(instance.osparams, self.op.osparams)
     params_private = GetUpdatedParams(instance.osparams_private,
                                         self.op.osparams_private)

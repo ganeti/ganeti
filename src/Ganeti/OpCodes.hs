@@ -534,6 +534,8 @@ $(genOpCode "OpCode"
      , pTempOsParams
      , pTempOsParamsPrivate
      , pTempOsParamsSecret
+     , pTempOsParamsClear
+     , pTempOsParamsPrivateClear
      ],
      "instance_name")
   , ("OpInstanceRemove",

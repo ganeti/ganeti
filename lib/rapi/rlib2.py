@@ -1302,11 +1302,18 @@ def _ParseInstanceReinstallRequest(name, data):
   start = baserlib.CheckParameter(data, "start", exptype=bool,
                                   default=True)
   osparams = baserlib.CheckParameter(data, "osparams", default=None)
+  clear_osparams = baserlib.CheckParameter(data, "clear_osparams",
+                                           default=False)
+  clear_osparams_private = baserlib.CheckParameter(data,
+                                                   "clear_osparams_private",
+                                                   default=False)
 
   ops = [
     opcodes.OpInstanceShutdown(instance_name=name),
     opcodes.OpInstanceReinstall(instance_name=name, os_type=ostype,
-                                osparams=osparams),
+                                osparams=osparams,
+                                clear_osparams=clear_osparams,
+                                clear_osparams_private=clear_osparams_private),
     ]
 
   if start:
