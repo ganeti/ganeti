@@ -2695,7 +2695,9 @@ PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(built_python_sources
 #         overzealous, eg where we use parens to make it clear that we're
 #         deliberately doing a comparison that should yield bool, or are using
 #         parens clarify precedence or to allow multi-line expressions.
-LINT_DISABLE = I0013 R0912 R0204 C0325
+# C0330 = disable wrong indentation warnings. pylint is much more strict than
+#         pep8, and it would be too invasive to fix all these.
+LINT_DISABLE = I0013 R0912 R0204 C0325 C0330
 # Additional pylint options
 LINT_OPTS =
 # The combined set of pylint options
