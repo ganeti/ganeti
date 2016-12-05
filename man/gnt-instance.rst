@@ -1380,6 +1380,8 @@ MODIFY
 | [--os-parameters-private *param*=*value*... ]
 | [--clear-os-parameters]
 | [--clear-os-parameters-private]
+| [--remove-os-parameters *param*[,*param*...]]
+| [--remove-os-parameters-private *param*[,*param*...]]
 | [\--offline \| \--online]
 | [\--submit] [\--print-jobid]
 | [\--ignore-ipolicy]
@@ -1399,7 +1401,10 @@ which options can be specified, see the **add** command.
 
 The ``--clear-os-parameters`` option will clear all current (public)
 instance OS parameters and the ``--clear-os-parameters-private`` will
-clear all current private OS parameters.
+clear all current private OS parameters. Similarly, the
+``--remove-os-parameters`` option will clear only the specified
+parameters and the ``--remove-os-parameters-private`` will clear only
+the specified private OS parameters.
 
 The ``-t (--disk-template)`` option will change the disk template of
 the instance.  Currently, conversions between all the available

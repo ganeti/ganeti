@@ -221,6 +221,8 @@ __all__ = [
   "REASON_OPT",
   "REBOOT_TYPE_OPT",
   "REMOVE_INSTANCE_OPT",
+  "REMOVE_OSPARAMS_OPT",
+  "REMOVE_OSPARAMS_PRIVATE_OPT",
   "REMOVE_RESERVED_IPS_OPT",
   "REMOVE_UIDS_OPT",
   "RESERVED_LVS_OPT",
@@ -743,6 +745,21 @@ CLEAR_OSPARAMS_PRIVATE_OPT = cli_option("--clear-os-parameters-private",
                                         default=False,
                                         help="Clear current private OS"
                                              " parameters")
+
+REMOVE_OSPARAMS_OPT = cli_option("--remove-os-parameters",
+                                 dest="remove_osparams",
+                                 type="list",
+                                 default=None,
+                                 help="Comma-separated list of OS parameters"
+                                      " that should be removed")
+
+REMOVE_OSPARAMS_PRIVATE_OPT = cli_option("--remove-os-parameters-private",
+                                         dest="remove_osparams_private",
+                                         type="list",
+                                         default=None,
+                                         help="Comma-separated list of private"
+                                              " OS parameters that should be"
+                                              " removed")
 
 FORCE_VARIANT_OPT = cli_option("--force-variant", dest="force_variant",
                                action="store_true", default=False,

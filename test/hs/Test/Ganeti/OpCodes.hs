@@ -433,6 +433,8 @@ genOpCodeFromId op_id =
         <*> genMaybe arbitraryPrivateJSObj  -- osparams_private
         <*> arbitrary                       -- clear_osparams
         <*> arbitrary                       -- clear_osparams_private
+        <*> genMaybe (listOf genPrintableAsciiString) -- remove_osparams
+        <*> genMaybe (listOf genPrintableAsciiString) -- remove_osparams_private
         <*> arbitrary                       -- wait_for_sync
         <*> arbitrary                       -- offline
         <*> arbitrary                       -- conflicts_check

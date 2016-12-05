@@ -141,6 +141,8 @@ module Ganeti.OpParams
   , pInstOsParamsSecret
   , pInstOsParamsClear
   , pInstOsParamsPrivateClear
+  , pInstOsParamsRemove
+  , pInstOsParamsPrivateRemove
   , pCandidatePoolSize
   , pMaxRunningJobs
   , pMaxTrackedJobs
@@ -1259,6 +1261,16 @@ pInstOsParamsPrivateClear :: Field
 pInstOsParamsPrivateClear =
   withDoc "Clear current private OS parameters from instance" $
   defaultFalse "clear_osparams_private"
+
+pInstOsParamsRemove :: Field
+pInstOsParamsRemove =
+  withDoc "Remove OS parameters from instance" .
+  optionalField $ simpleField "remove_osparams" [t| [String] |]
+
+pInstOsParamsPrivateRemove :: Field
+pInstOsParamsPrivateRemove =
+  withDoc "Remove private OS parameters from instance" .
+  optionalField $ simpleField "remove_osparams_private" [t| [String] |]
 
 pPrimaryNode :: Field
 pPrimaryNode =
