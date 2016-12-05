@@ -35,10 +35,13 @@ pass to and from external parties.
 
 """
 
-# pylint: disable=E0203,W0201,R0902
+# pylint: disable=E0203,E0237,W0201,R0902
 
 # E0203: Access to member %r before its definition, since we use
 # objects.py which doesn't explicitly initialise its members
+
+# E0237: Assigning to attribute not defined in class slots. pylint doesn't
+# appear to notice many of the slots defined in __slots__ for several objects.
 
 # W0201: Attribute '%s' defined outside __init__
 
