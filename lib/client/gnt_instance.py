@@ -1371,6 +1371,7 @@ def SetInstanceParams(opts, args):
   """
   if not (opts.nics or opts.disks or opts.disk_template or opts.hvparams or
           opts.beparams or opts.os or opts.osparams or opts.osparams_private
+          or opts.clear_osparams or opts.clear_osparams_private
           or opts.offline_inst or opts.online_inst or opts.runtime_mem or
           opts.new_primary_node or opts.instance_communication is not None):
     ToStderr("Please give at least one of the parameters.")
@@ -1435,31 +1436,35 @@ def SetInstanceParams(opts, args):
 
   instance_comm = opts.instance_communication
 
-  op = opcodes.OpInstanceSetParams(instance_name=args[0],
-                                   nics=nics,
-                                   disks=disks,
-                                   hotplug=opts.hotplug,
-                                   hotplug_if_possible=opts.hotplug_if_possible,
-                                   disk_template=opts.disk_template,
-                                   ext_params=ext_params,
-                                   file_driver=opts.file_driver,
-                                   file_storage_dir=opts.file_storage_dir,
-                                   remote_node=opts.node,
-                                   iallocator=opts.iallocator,
-                                   pnode=opts.new_primary_node,
-                                   hvparams=opts.hvparams,
-                                   beparams=opts.beparams,
-                                   runtime_mem=opts.runtime_mem,
-                                   os_name=opts.os,
-                                   osparams=opts.osparams,
-                                   osparams_private=opts.osparams_private,
-                                   force_variant=opts.force_variant,
-                                   force=opts.force,
-                                   wait_for_sync=opts.wait_for_sync,
-                                   offline=offline,
-                                   conflicts_check=opts.conflicts_check,
-                                   ignore_ipolicy=opts.ignore_ipolicy,
-                                   instance_communication=instance_comm)
+  op = opcodes.OpInstanceSetParams(
+    instance_name=args[0],
+    nics=nics,
+    disks=disks,
+    hotplug=opts.hotplug,
+    hotplug_if_possible=opts.hotplug_if_possible,
+    disk_template=opts.disk_template,
+    ext_params=ext_params,
+    file_driver=opts.file_driver,
+    file_storage_dir=opts.file_storage_dir,
+    remote_node=opts.node,
+    iallocator=opts.iallocator,
+    pnode=opts.new_primary_node,
+    hvparams=opts.hvparams,
+    beparams=opts.beparams,
+    runtime_mem=opts.runtime_mem,
+    os_name=opts.os,
+    osparams=opts.osparams,
+    osparams_private=opts.osparams_private,
+    clear_osparams=opts.clear_osparams,
+    clear_osparams_private=opts.clear_osparams_private,
+    force_variant=opts.force_variant,
+    force=opts.force,
+    wait_for_sync=opts.wait_for_sync,
+    offline=offline,
+    conflicts_check=opts.conflicts_check,
+    ignore_ipolicy=opts.ignore_ipolicy,
+    instance_communication=instance_comm
+  )
 
   # even if here we process the result, we allow submit only
   result = SubmitOrSend(op, opts)
@@ -1668,7 +1673,8 @@ commands = {
      OFFLINE_INST_OPT, ONLINE_INST_OPT, IGNORE_IPOLICY_OPT, RUNTIME_MEM_OPT,
      NOCONFLICTSCHECK_OPT, NEW_PRIMARY_OPT, HOTPLUG_OPT,
      HOTPLUG_IF_POSSIBLE_OPT, INSTANCE_COMMUNICATION_OPT,
-     EXT_PARAMS_OPT, FILESTORE_DRIVER_OPT, FILESTORE_DIR_OPT],
+     EXT_PARAMS_OPT, FILESTORE_DRIVER_OPT, FILESTORE_DIR_OPT,
+     CLEAR_OSPARAMS_OPT, CLEAR_OSPARAMS_PRIVATE_OPT],
     "<instance>", "Alters the parameters of an instance"),
   "shutdown": (
     GenericManyOps("shutdown", _ShutdownInstance), [ArgInstance()],

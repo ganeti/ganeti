@@ -58,6 +58,8 @@ __all__ = [
   "CAPAB_MASTER_OPT",
   "CAPAB_VM_OPT",
   "CLEANUP_OPT",
+  "CLEAR_OSPARAMS_OPT",
+  "CLEAR_OSPARAMS_PRIVATE_OPT",
   "cli_option",
   "CLUSTER_DOMAIN_SECRET_OPT",
   "COMMIT_OPT",
@@ -728,6 +730,19 @@ OSPARAMS_SECRET_OPT = cli_option("--os-parameters-secret",
                                  help="Secret OS parameters (won't be logged or"
                                       " saved; you must supply these for every"
                                       " operation.)")
+
+CLEAR_OSPARAMS_OPT = cli_option("--clear-os-parameters",
+                                dest="clear_osparams",
+                                action="store_true",
+                                default=False,
+                                help="Clear current OS parameters")
+
+CLEAR_OSPARAMS_PRIVATE_OPT = cli_option("--clear-os-parameters-private",
+                                        dest="clear_osparams_private",
+                                        action="store_true",
+                                        default=False,
+                                        help="Clear current private OS"
+                                             " parameters")
 
 FORCE_VARIANT_OPT = cli_option("--force-variant", dest="force_variant",
                                action="store_true", default=False,

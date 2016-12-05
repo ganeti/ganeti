@@ -1378,6 +1378,8 @@ MODIFY
 | [\--os-type=*OS* [\--force-variant]]
 | [{-O|\--os-parameters} *param*=*value*... ]
 | [--os-parameters-private *param*=*value*... ]
+| [--clear-os-parameters]
+| [--clear-os-parameters-private]
 | [\--offline \| \--online]
 | [\--submit] [\--print-jobid]
 | [\--ignore-ipolicy]
@@ -1394,6 +1396,10 @@ The ``-H (--hypervisor-parameters)``, ``-B (--backend-parameters)``
 and ``-O (--os-parameters)`` options specifies hypervisor, backend and
 OS parameter options in the form of name=value[,...]. For details
 which options can be specified, see the **add** command.
+
+The ``--clear-os-parameters`` option will clear all current (public)
+instance OS parameters and the ``--clear-os-parameters-private`` will
+clear all current private OS parameters.
 
 The ``-t (--disk-template)`` option will change the disk template of
 the instance.  Currently, conversions between all the available

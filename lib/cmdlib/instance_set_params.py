@@ -337,6 +337,7 @@ class LUInstanceSetParams(LogicalUnit):
             self.op.hvparams or self.op.beparams or self.op.os_name or
             self.op.osparams or self.op.offline is not None or
             self.op.runtime_mem or self.op.pnode or self.op.osparams_private or
+            self.op.clear_osparams or self.op.clear_osparams_private or
             self.op.instance_communication is not None):
       raise errors.OpPrereqError("No changes submitted", errors.ECODE_INVAL)
 
@@ -991,14 +992,25 @@ class LUInstanceSetParams(LogicalUnit):
                    if self.op.os_name and not self.op.force
                    else self.instance.os)
 
-    if self.op.osparams or self.op.osparams_private:
+    if (self.op.osparams or self.op.osparams_private or
+        self.op.clear_osparams or self.op.clear_osparams_private):
       public_parms = self.op.osparams or {}
       private_parms = self.op.osparams_private or {}
+      self.os_inst_removed = []
+      self.os_inst_private_removed = []
       dupe_keys = utils.GetRepeatedKeys(public_parms, private_parms)
 
       if dupe_keys:
         raise errors.OpPrereqError("OS parameters repeated multiple times: %s" %
                                    utils.CommaJoin(dupe_keys))
+
+      if self.op.clear_osparams:
+        self.os_inst_removed = self.instance.osparams
+        self.instance.osparams = {}
+
+      if self.op.clear_osparams_private:
+        self.os_inst_private_removed = self.instance.osparams_private
+        self.instance.osparams_private = {}
 
       self.os_inst = GetUpdatedParams(self.instance.osparams,
                                       public_parms)
@@ -1955,6 +1967,16 @@ class LUInstanceSetParams(LogicalUnit):
       self.instance.os = self.op.os_name
 
     # osparams changes
+    if self.op.clear_osparams:
+      self.instance.osparams = self.os_inst
+      for osp in self.os_inst_removed:
+        result.append(("os/%s" % osp, "<removed>"))
+
+    if self.op.clear_osparams_private:
+      self.instance.osparams_private = self.os_inst_private
+      for osp in self.os_inst_private_removed:
+        result.append(("os_private/%s" % osp, "<removed>"))
+
     if self.op.osparams:
       self.instance.osparams = self.os_inst
       for key, val in self.op.osparams.iteritems():
