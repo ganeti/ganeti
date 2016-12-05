@@ -2688,7 +2688,10 @@ PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(built_python_sources
 # I0013 = disable warnings for ignoring whole files
 # R0912 = disable too many branches warning. It's useful, but ganeti requires
 #         a lot of refactoring to fix this.
-LINT_DISABLE = I0013 R0912
+# R0204 = disable redefined-variable-type warning. There are a large number of
+#         cases where Ganeti assigns multiple types (eg set/list, float/int) to
+#         the same variable, and these are benign.
+LINT_DISABLE = I0013 R0912 R0204
 # Additional pylint options
 LINT_OPTS =
 # The combined set of pylint options
