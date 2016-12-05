@@ -1077,33 +1077,48 @@ class TestParseModifyInstanceRequest(RAPITestCase):
             for nics in [[], [(0, { constants.INIC_IP: "192.0.2.1", })]]:
               for disks in test_disks:
                 for disk_template in constants.DISK_TEMPLATES:
-                  data = {
-                    "osparams": osparams,
-                    "hvparams": hvparams,
-                    "beparams": beparams,
-                    "nics": nics,
-                    "disks": disks,
-                    "force": force,
-                    "disk_template": disk_template,
-                    }
+                  for clear_osparams in [False, True]:
+                    for clear_osparams_private in [False, True]:
+                      for remove_osparams in [[], ["osp1", "osp2"]]:
+                        for remove_osparams_private in [[], ["priv_osp1",
+                                                             "priv_osp2"]]:
+                          data = {
+                            "osparams": osparams,
+                            "hvparams": hvparams,
+                            "beparams": beparams,
+                            "nics": nics,
+                            "disks": disks,
+                            "force": force,
+                            "disk_template": disk_template,
+                            "clear_osparams": clear_osparams,
+                            "clear_osparams_private": clear_osparams_private,
+                            "remove_osparams": remove_osparams,
+                            "remove_osparams_private": remove_osparams_private,
+                          }
 
-                  op = self.getSubmittedOpcode(
-                    rlib2.R_2_instances_name_modify, [name], {}, data, "PUT",
-                    opcodes.OpInstanceSetParams
-                  )
+                          op = self.getSubmittedOpcode(
+                            rlib2.R_2_instances_name_modify, [name], {}, data,
+                            "PUT", opcodes.OpInstanceSetParams
+                          )
 
-                  self.assertEqual(op.instance_name, name)
-                  self.assertEqual(op.hvparams, hvparams)
-                  self.assertEqual(op.beparams, beparams)
-                  self.assertEqual(op.osparams, osparams)
-                  self.assertEqual(op.force, force)
-                  self.assertEqual(op.nics, nics)
-                  self.assertEqual(op.disks, disks)
-                  self.assertEqual(op.disk_template, disk_template)
-                  self.assertTrue(op.remote_node is None)
-                  self.assertTrue(op.os_name is None)
-                  self.assertFalse(op.force_variant)
-                  self.assertFalse(op.dry_run)
+                          self.assertEqual(op.instance_name, name)
+                          self.assertEqual(op.hvparams, hvparams)
+                          self.assertEqual(op.beparams, beparams)
+                          self.assertEqual(op.osparams, osparams)
+                          self.assertEqual(op.force, force)
+                          self.assertEqual(op.nics, nics)
+                          self.assertEqual(op.disks, disks)
+                          self.assertEqual(op.disk_template, disk_template)
+                          self.assertEqual(op.clear_osparams, clear_osparams)
+                          self.assertEqual(op.clear_osparams_private,
+                                           clear_osparams_private)
+                          self.assertEqual(op.remove_osparams, remove_osparams)
+                          self.assertEqual(op.remove_osparams_private,
+                                           remove_osparams_private)
+                          self.assertTrue(op.remote_node is None)
+                          self.assertTrue(op.os_name is None)
+                          self.assertFalse(op.force_variant)
+                          self.assertFalse(op.dry_run)
 
   def testDefaults(self):
     name = "instir8aish31"
@@ -1112,7 +1127,9 @@ class TestParseModifyInstanceRequest(RAPITestCase):
                                  {}, "PUT", opcodes.OpInstanceSetParams)
 
     for i in ["hvparams", "beparams", "osparams", "force", "nics", "disks",
-              "disk_template", "remote_node", "os_name", "force_variant"]:
+              "disk_template", "remote_node", "os_name", "force_variant",
+              "clear_osparams", "clear_osparams_private", "remove_osparams",
+              "remove_osparams_private"]:
       self.assertTrue(hasattr(op, i))
 
 
