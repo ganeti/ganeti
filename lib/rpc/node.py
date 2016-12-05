@@ -305,7 +305,7 @@ def _SsconfResolver(ssconf_ips, node_list, _,
   return result
 
 
-class _StaticResolver:
+class _StaticResolver(object):
   def __init__(self, addresses):
     """Initializes this class.
 
@@ -363,7 +363,7 @@ def _NodeConfigResolver(single_node_fn, all_nodes_fn, node_uuids, opts):
             for uuid in node_uuids]
 
 
-class _RpcProcessor:
+class _RpcProcessor(object):
   def __init__(self, resolver, port, lock_monitor_cb=None):
     """Initializes this class.
 
@@ -472,7 +472,7 @@ class _RpcProcessor:
     return self._CombineResults(results, requests, procedure)
 
 
-class _RpcClientBase:
+class _RpcClientBase(object):
   def __init__(self, resolver, encoder_fn, lock_monitor_cb=None,
                _req_process_fn=None):
     """Initializes this class.

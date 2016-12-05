@@ -721,7 +721,7 @@ def InitPubKeyFile(master_uuid, key_file=pathutils.SSH_PUB_KEYS):
   AddPublicKey(master_uuid, key, key_file=key_file)
 
 
-class SshRunner:
+class SshRunner(object):
   """Wrapper for SSH commands.
 
   """

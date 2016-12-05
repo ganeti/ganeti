@@ -704,7 +704,7 @@ def _EncodeOpError(err):
   return errors.EncodeException(to_encode)
 
 
-class _TimeoutStrategyWrapper:
+class _TimeoutStrategyWrapper(object):
   def __init__(self, fn):
     """Initializes this class.
 
@@ -736,7 +736,7 @@ class _TimeoutStrategyWrapper:
     return result
 
 
-class _OpExecContext:
+class _OpExecContext(object):
   def __init__(self, op, index, log_prefix, timeout_strategy_factory):
     """Initializes this class.
 
@@ -1279,7 +1279,7 @@ class _JobQueueWorkerPool(workerpool.WorkerPool):
     self.queue = queue
 
 
-class _JobDependencyManager:
+class _JobDependencyManager(object):
   """Keeps track of job dependencies.
 
   """

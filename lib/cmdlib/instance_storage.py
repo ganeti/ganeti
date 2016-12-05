@@ -3014,7 +3014,7 @@ class TLReplaceDisks(Tasklet):
       self._RemoveOldStorage(self.target_node_uuid, iv_names)
 
 
-class TemporaryDisk():
+class TemporaryDisk(object):
   """ Creates a new temporary bootable disk, and makes sure it is destroyed.
 
   Is a context manager, and should be used with the ``with`` statement as such.

@@ -52,7 +52,7 @@ DEF_CTMO = constants.LUXI_DEF_CTMO
 DEF_RWTO = constants.LUXI_DEF_RWTO
 
 
-class Transport:
+class Transport(object):
   """Low-level transport class.
 
   This is used on the client side.
@@ -243,7 +243,7 @@ class Transport:
       self.socket = None
 
 
-class FdTransport:
+class FdTransport(object):
   """Low-level transport class that works on arbitrary file descriptors.
 
   Unlike L{Transport}, this doesn't use timeouts.
