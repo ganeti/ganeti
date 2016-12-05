@@ -2686,7 +2686,9 @@ PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(built_python_sources
 
 # A space-separated list of pylint warnings to completely ignore:
 # I0013 = disable warnings for ignoring whole files
-LINT_DISABLE = I0013
+# R0912 = disable too many branches warning. It's useful, but ganeti requires
+#         a lot of refactoring to fix this.
+LINT_DISABLE = I0013 R0912
 # Additional pylint options
 LINT_OPTS =
 # The combined set of pylint options
