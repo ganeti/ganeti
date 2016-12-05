@@ -934,12 +934,12 @@ def Daemonize(logfile):
 
   # this might fail
   pid = os.fork()
-  if (pid == 0):  # The first child.
+  if pid == 0:  # The first child.
     SetupDaemonEnv()
 
     # this might fail
     pid = os.fork() # Fork a second child.
-    if (pid == 0):  # The second child.
+    if pid == 0:  # The second child.
       utils_wrapper.CloseFdNoError(rpipe)
     else:
       # exit() or _exit()?  See below.

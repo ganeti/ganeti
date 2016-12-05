@@ -678,7 +678,7 @@ def InitCluster(cluster_name, mac_prefix, # pylint: disable=R0913, R0914
   for template, dt_params in diskparams.items():
     param_keys = set(dt_params.keys())
     default_param_keys = set(constants.DISK_DT_DEFAULTS[template].keys())
-    if not (param_keys <= default_param_keys):
+    if param_keys > default_param_keys:
       unknown_params = param_keys - default_param_keys
       raise errors.OpPrereqError("Invalid parameters for disk template %s:"
                                  " %s" % (template,

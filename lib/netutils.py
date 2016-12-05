@@ -428,7 +428,7 @@ class IPAddress(object):
     @return: True if valid, False otherwise
 
     """
-    assert (isinstance(netmask, (int, long)))
+    assert isinstance(netmask, (int, long))
 
     return 0 < netmask <= cls.iplen
 

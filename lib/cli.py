@@ -2944,7 +2944,7 @@ def _NotAContainer(data):
   @rtype: bool
 
   """
-  return not (isinstance(data, (list, dict, tuple)))
+  return not isinstance(data, (list, dict, tuple))
 
 
 def _GetAlignmentMapping(data):

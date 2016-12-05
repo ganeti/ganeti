@@ -195,7 +195,7 @@ def InitCluster(opts, args):
   # check the disk template types here, as we cannot rely on the type check done
   # by the opcode parameter types
   diskparams_keys = set(diskparams.keys())
-  if not (diskparams_keys <= constants.DISK_TEMPLATES):
+  if diskparams_keys > constants.DISK_TEMPLATES:
     unknown = utils.NiceSort(diskparams_keys - constants.DISK_TEMPLATES)
     ToStderr("Disk templates unknown: %s" % utils.CommaJoin(unknown))
     return 1

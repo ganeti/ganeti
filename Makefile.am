@@ -2691,7 +2691,11 @@ PEP8_EXCLUDE = $(subst $(space),$(comma),$(strip $(notdir $(built_python_sources
 # R0204 = disable redefined-variable-type warning. There are a large number of
 #         cases where Ganeti assigns multiple types (eg set/list, float/int) to
 #         the same variable, and these are benign.
-LINT_DISABLE = I0013 R0912 R0204
+# C0325 = disable superfluous-parens. There are a lot of cases where this is
+#         overzealous, eg where we use parens to make it clear that we're
+#         deliberately doing a comparison that should yield bool, or are using
+#         parens clarify precedence or to allow multi-line expressions.
+LINT_DISABLE = I0013 R0912 R0204 C0325
 # Additional pylint options
 LINT_OPTS =
 # The combined set of pylint options
