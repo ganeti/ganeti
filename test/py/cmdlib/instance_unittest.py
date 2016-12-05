@@ -2237,6 +2237,43 @@ class TestLUInstanceSetParams(CmdlibTestCase):
                          })
     self.ExecOpCode(op)
 
+  def testRemoveOsParam(self):
+    os_param = self.os.supported_parameters[0]
+    self.inst.osparams[os_param] = "test_param_val"
+    op = self.CopyOpCode(self.op, remove_osparams=[os_param])
+    self.ExecOpCode(op)
+    # FIXME: use assertNotIn when py 2.7 is minimum supported version
+    self.assertFalse(os_param in self.inst.osparams)
+
+  def testClearOsParams(self):
+    os = self.cfg.CreateOs(supported_parameters=["parm1", "parm2"])
+    inst = self.cfg.AddNewInstance(osparams={"parm1": "val1", "parm2": "val1"})
+
+    op = self.CopyOpCode(self.op, clear_osparams=True, instance_name=inst.name)
+    self.ExecOpCode(op)
+    self.assertEqual(len(inst.osparams), 0)
+
+  def testRemovePrivateOsParam(self):
+    os_param = self.os.supported_parameters[0]
+    self.inst.osparams_private[os_param] = "test_param_val"
+    op = self.CopyOpCode(self.op, remove_osparams_private=[os_param])
+    self.ExecOpCode(op)
+    # FIXME: use assertNotIn when py 2.7 is minimum supported version
+    self.assertFalse(os_param in self.inst.osparams_private)
+
+  def testClearPrivateOsParams(self):
+    os = self.cfg.CreateOs(supported_parameters=["parm1", "parm2"])
+    inst = self.cfg.AddNewInstance(osparams_private={
+                                     "parm1": "val1",
+                                     "parm2": "val2"
+                                   })
+
+    op = self.CopyOpCode(self.op,
+                         clear_osparams_private=True,
+                         instance_name=inst.name)
+    self.ExecOpCode(op)
+    self.assertEqual(len(inst.osparams), 0)
+
   def testIncreaseMemoryTooMuch(self):
     op = self.CopyOpCode(self.running_op,
                          beparams={
