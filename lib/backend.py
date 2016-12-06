@@ -1799,9 +1799,10 @@ def RemoveNodeSshKeyBulk(node_list,
         if master_uuid:
           master_keys = ssh.QueryPubKeyFile([master_uuid],
                                             key_file=pub_key_file)
-          for master_key in master_keys:
-            if master_key in keys[node_info.uuid]:
-              keys[node_info.uuid].remove(master_key)
+
+          # Remove any master keys from the list of keys to remove from the node
+          keys[node_info.uuid] = list(
+              set(keys[node_info.uuid]) - set(master_keys))
 
       all_keys_to_remove.update(keys)
 
