@@ -147,43 +147,44 @@ class LUOobCommand(NoHooksLU):
         self.LogWarning("Out-of-band RPC failed on node '%s': %s",
                         node.name, result.fail_msg)
         node_entry.append((constants.RS_NODATA, None))
+        continue
+
+      try:
+        self._CheckPayload(result)
+      except errors.OpExecError, err:
+        self.LogWarning("Payload returned by node '%s' is not valid: %s",
+                        node.name, err)
+        node_entry.append((constants.RS_NODATA, None))
       else:
-        try:
-          self._CheckPayload(result)
-        except errors.OpExecError, err:
-          self.LogWarning("Payload returned by node '%s' is not valid: %s",
-                          node.name, err)
-          node_entry.append((constants.RS_NODATA, None))
-        else:
-          if self.op.command == constants.OOB_HEALTH:
-            # For health we should log important events
-            for item, status in result.payload:
-              if status in [constants.OOB_STATUS_WARNING,
-                            constants.OOB_STATUS_CRITICAL]:
-                self.LogWarning("Item '%s' on node '%s' has status '%s'",
-                                item, node.name, status)
+        if self.op.command == constants.OOB_HEALTH:
+          # For health we should log important events
+          for item, status in result.payload:
+            if status in [constants.OOB_STATUS_WARNING,
+                          constants.OOB_STATUS_CRITICAL]:
+              self.LogWarning("Item '%s' on node '%s' has status '%s'",
+                              item, node.name, status)
 
-          if self.op.command == constants.OOB_POWER_ON:
-            node.powered = True
-          elif self.op.command == constants.OOB_POWER_OFF:
-            node.powered = False
-          elif self.op.command == constants.OOB_POWER_STATUS:
-            powered = result.payload[constants.OOB_POWER_STATUS_POWERED]
-            if powered != node.powered:
-              logging.warning(("Recorded power state (%s) of node '%s' does not"
-                               " match actual power state (%s)"), node.powered,
-                              node.name, powered)
+        if self.op.command == constants.OOB_POWER_ON:
+          node.powered = True
+        elif self.op.command == constants.OOB_POWER_OFF:
+          node.powered = False
+        elif self.op.command == constants.OOB_POWER_STATUS:
+          powered = result.payload[constants.OOB_POWER_STATUS_POWERED]
+          if powered != node.powered:
+            logging.warning(("Recorded power state (%s) of node '%s' does not"
+                             " match actual power state (%s)"), node.powered,
+                            node.name, powered)
 
-          # For configuration changing commands we should update the node
-          if self.op.command in (constants.OOB_POWER_ON,
-                                 constants.OOB_POWER_OFF):
-            self.cfg.Update(node, feedback_fn)
+        # For configuration changing commands we should update the node
+        if self.op.command in (constants.OOB_POWER_ON,
+                               constants.OOB_POWER_OFF):
+          self.cfg.Update(node, feedback_fn)
 
-          node_entry.append((constants.RS_NORMAL, result.payload))
+        node_entry.append((constants.RS_NORMAL, result.payload))
 
-          if (self.op.command == constants.OOB_POWER_ON and
-              idx < len(self.nodes) - 1):
-            time.sleep(self.op.power_delay)
+        if (self.op.command == constants.OOB_POWER_ON and
+            idx < len(self.nodes) - 1):
+          time.sleep(self.op.power_delay)
 
     return ret
 
