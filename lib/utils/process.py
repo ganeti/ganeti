@@ -530,6 +530,7 @@ def _RunCmdPipe(cmd, env, via_shell, cwd, interactive, timeout, noclose_fds,
   @return: (out, err, status)
 
   """
+  # pylint: disable=R0101
   poller = select.poll()
 
   if interactive:
