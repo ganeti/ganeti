@@ -829,14 +829,15 @@ def VerifyDisks(opts, args):
         if all_missing:
           ToStdout("Instance %s cannot be verified as it lives on"
                    " broken nodes", iname)
-        else:
-          ToStdout("Instance %s has missing logical volumes:", iname)
-          ival.sort()
-          for node, vol in ival:
-            if node in bad_nodes:
-              ToStdout("\tbroken node %s /dev/%s", node, vol)
-            else:
-              ToStdout("\t%s /dev/%s", node, vol)
+          continue
+
+        ToStdout("Instance %s has missing logical volumes:", iname)
+        ival.sort()
+        for node, vol in ival:
+          if node in bad_nodes:
+            ToStdout("\tbroken node %s /dev/%s", node, vol)
+          else:
+            ToStdout("\t%s /dev/%s", node, vol)
 
       ToStdout("You need to replace or recreate disks for all the above"
                " instances if this message persists after fixing broken nodes.")
