@@ -360,15 +360,11 @@ def StartDaemon(cmd, env=None, cwd="/", output=None, output_fd=None,
           # First fork
           pid = os.fork()
           if pid == 0:
-            try:
-              # Child process, won't return
-              _StartDaemonChild(errpipe_read, errpipe_write,
-                                pidpipe_read, pidpipe_write,
-                                cmd, cmd_env, cwd,
-                                output, output_fd, pidfile)
-            finally:
-              # Well, maybe child process failed
-              os._exit(1) # pylint: disable=W0212
+            # Try to start child process, will either execve or exit on failure.
+            _StartDaemonChild(errpipe_read, errpipe_write,
+                              pidpipe_read, pidpipe_write,
+                              cmd, cmd_env, cwd,
+                              output, output_fd, pidfile)
         finally:
           utils_wrapper.CloseFdNoError(errpipe_write)
 
