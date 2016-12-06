@@ -77,6 +77,12 @@ from ganeti.cmdlib.instance_utils import \
 import ganeti.masterd.instance
 
 
+def _ValidateTrunkVLAN(vlan):
+  if not compat.all(vl.isdigit() for vl in vlan[1:].split(':')):
+    raise errors.OpPrereqError("Specified VLAN parameter is invalid"
+                               " : %s" % vlan, errors.ECODE_INVAL)
+
+
 class LUInstanceCreate(LogicalUnit):
   """Create an instance.
 
@@ -152,19 +158,10 @@ class LUInstanceCreate(LogicalUnit):
           # vlan starting with dot means single untagged vlan,
           # might be followed by trunk (:)
           if not vlan[1:].isdigit():
-            vlanlist = vlan[1:].split(':')
-            for vl in vlanlist:
-              if not vl.isdigit():
-                raise errors.OpPrereqError("Specified VLAN parameter is "
-                                           "invalid : %s" % vlan,
-                                             errors.ECODE_INVAL)
+            _ValidateTrunkVLAN(vlan)
         elif vlan[0] == ":":
           # Trunk - tagged only
-          vlanlist = vlan[1:].split(':')
-          for vl in vlanlist:
-            if not vl.isdigit():
-              raise errors.OpPrereqError("Specified VLAN parameter is invalid"
-                                           " : %s" % vlan, errors.ECODE_INVAL)
+          _ValidateTrunkVLAN(vlan)
         elif vlan.isdigit():
           # This is the simplest case. No dots, only single digit
           # -> Create untagged access port, dot needs to be added
