@@ -332,28 +332,34 @@ extractFirstOpCode job =
 
 -- | Sort the given job queue by its static lock weight in relation to the
 -- currently running jobs.
-sortByStaticLocks :: ConfigData -> Queue -> [JobWithStat] -> [JobWithStat]
-sortByStaticLocks cfg queue = sortBy (compare `on` opWeight)
+sortByStaticLocks :: ConfigData
+                  -> Queue
+                  -> Timestamp -- Current time
+                  -> [JobWithStat]
+                  -> [JobWithStat]
+sortByStaticLocks cfg queue currTime = sortBy (compare `on` opWeight)
   where opWeight :: JobWithStat -> Double
-        opWeight job = staticWeight cfg (extractFirstOpCode job) runningOps
+        opWeight job = adjustedWeight currTime (recvTime job)
+                       . staticWeight cfg (extractFirstOpCode job) $ runningOps
+        recvTime = fromMaybe noTimestamp . qjReceivedTimestamp . jJob
         runningOps = catMaybes . (fmap extractFirstOpCode) . qRunning $ queue
 
 -- | Decide on which jobs to schedule next for execution. This is the
 -- pure function doing the scheduling.
 selectJobsToRun :: ConfigData
-                -> Int  -- ^ How many jobs are allowed to run at the
-                        -- same time.
-                -> Set FilterRule -- ^ Filter rules to respect for scheduling
+                -> Int -- How many jobs are allowed to run at the same time.
+                -> Timestamp -- Current time
+                -> Set FilterRule -- Filter rules to respect for scheduling
                 -> Queue
                 -> (Queue, [JobWithStat])
-selectJobsToRun cfg count filters queue =
+selectJobsToRun cfg count currTime filters queue =
   let n = count - length (qRunning queue) - length (qManipulated queue)
       chosen = take n
                . jobFiltering queue filters
                . reasonRateLimit queue
                . sortBy (comparing (calcJobPriority . jJob))
                . filter (jobEligible queue)
-               . sortByStaticLocks cfg queue
+               . sortByStaticLocks cfg queue currTime
                $ qEnqueued queue
       remain = deleteFirstsBy ((==) `on` (qjId . jJob)) (qEnqueued queue) chosen
   in (queue {qEnqueued=remain, qRunning=qRunning queue ++ chosen}, chosen)
@@ -446,10 +452,12 @@ scheduleSomeJobs qstate = do
       -- Check if jobs are rejected by a REJECT filter, and cancel them.
       cancelRejectedJobs qstate cfg filters
 
+      ts <- currentTimestamp
+
       -- Select the jobs to run.
       count <- getMaxRunningJobs qstate
       chosen <- atomicModifyIORef (jqJobs qstate)
-                                  (selectJobsToRun cfg count filters)
+                                  (selectJobsToRun cfg count ts filters)
       let jobs = map jJob chosen
       unless (null chosen) . logInfo . (++) "Starting jobs: " . commaJoin
         $ map (show . fromJobId . qjId) jobs

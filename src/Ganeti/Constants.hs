@@ -5634,3 +5634,14 @@ staticLockMaybeBlockWeight = 1.5
 -- | Weight assigned to two locks that will surely conflict.
 staticLockSureBlockWeight :: Double
 staticLockSureBlockWeight = 3
+
+-- | How many seconds make up a "tick" in the job queue starvation prevention
+-- system.
+jobQueueTickInSeconds :: Double
+jobQueueTickInSeconds = 30
+
+-- | Job queue starvation prevention coefficient. This means how many "ticks"
+-- of time need to pass before a job has 100% certainty to be in front of the
+-- queue.
+jobQueueStarvationCoeff :: Double
+jobQueueStarvationCoeff = 30

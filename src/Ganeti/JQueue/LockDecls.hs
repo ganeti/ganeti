@@ -33,7 +33,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 -}
 
 module Ganeti.JQueue.LockDecls
-    (staticWeight) where
+    ( staticWeight
+    , adjustedWeight
+    ) where
 
 import Data.List (foldl')
 import Data.Maybe (isNothing, fromMaybe, catMaybes, isJust, fromJust)
@@ -48,6 +50,7 @@ import qualified Ganeti.Constants as C
 import Ganeti.Errors
 import Ganeti.Objects (ConfigData, nodeName, instName, groupName)
 import qualified Ganeti.Objects.Instance as ObjInst
+import qualified Ganeti.JQueue.Objects as JQ
 import Ganeti.OpCodes
 import Ganeti.Types
 
@@ -589,3 +592,12 @@ staticWeight cfg op runningOps
         maxValue = C.staticLockSureBlockWeight * 5 -- Worst case scenario
                                                    -- multiplied by all 5 lock
                                                    -- levels
+
+-- | Adjust any static weight to its appropriate anti-starvation value. It
+-- takes the current time and the time since the job was queued as parameters.
+adjustedWeight :: JQ.Timestamp -> JQ.Timestamp -> Double -> Double
+adjustedWeight (currTime, _) (recvTime, _) weight =
+  let timeVal = max 0 (1 - ticks / C.jobQueueStarvationCoeff)
+      ticks = timeDiff / C.jobQueueTickInSeconds
+      timeDiff = fromIntegral $ currTime - recvTime
+  in weight * timeVal
