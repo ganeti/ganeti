@@ -47,6 +47,9 @@ module Test.Ganeti.Objects
   , genInst
   , genInstWithNets
   , genValidNetwork
+  , genValidGroupName
+  , genValidNodeName
+  , genValidInstanceName
   , genBitStringMaxLen
   ) where
 
@@ -60,6 +63,7 @@ import Control.Monad (liftM, when)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.UTF8 as UTF8
 import Data.Char
+import qualified Data.Foldable as F
 import qualified Data.List as List
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
@@ -531,8 +535,8 @@ genConfigDataWithNetworks old_cfg = do
 
 genConfigDataWithValues :: Int -> Int -> Gen ConfigData
 genConfigDataWithValues nNodes nInsts = do
-  emptyData <- genEmptyCluster nNodes
-  insts <- vectorOf nInsts (genInstanceFromConfigData emptyData)
+  cfg <- genConfigDataWithNetworks =<< genEmptyCluster nNodes
+  insts <- vectorOf nInsts (genInstanceFromConfigData cfg)
   let getInstName i
         | RealInstance rinst <- i = UTF8.fromString $ realInstName rinst
         | ForthcomingInstance finst <- i =
@@ -540,21 +544,33 @@ genConfigDataWithValues nNodes nInsts = do
         | otherwise = error ("Inconsistent instance type: " ++ show i)
   let instmap = Map.fromList . map (\x -> (getInstName x, x)) $ insts
       continsts = GenericContainer instmap
-  return $ emptyData { configInstances = continsts }
+  return $ cfg { configInstances = continsts }
 
 genInstanceFromConfigData :: ConfigData -> Gen Instance
 genInstanceFromConfigData cfg = do
-  inst <- RealInstance <$> arbitrary :: Gen Instance
-  let nodes = getKeysFromContainer . configNodes $ cfg
+  inst <- RealInstance <$> arbitrary
+  let nets = map (fromNonEmpty . networkName) . F.toList . configNetworks $ cfg
+      nodes = map nodeName . F.toList . configNodes $ cfg
       new_inst = case inst of
-                      RealInstance rinst ->
-                        RealInstance rinst { realInstPrimaryNode = head nodes }
-                      ForthcomingInstance finst ->
-                        ForthcomingInstance finst
-                          { forthcomingInstPrimaryNode = Just $ head nodes }
+                    RealInstance rinst ->
+                      RealInstance rinst { realInstPrimaryNode = head nodes }
+                    ForthcomingInstance finst ->
+                      ForthcomingInstance finst
+                        { forthcomingInstPrimaryNode = Just $ head nodes }
   -- FIXME: generate instance's secondary nodes using drbd/disk info
-  return new_inst
+  enhanceInstWithNets new_inst nets
 
+genValidGroupName :: ConfigData -> Gen String
+genValidGroupName cfg =
+  elements . map groupName . F.toList . configNodegroups $ cfg
+
+genValidNodeName :: ConfigData -> Gen String
+genValidNodeName cfg =
+  elements . map nodeName . F.toList . configNodes $ cfg
+
+genValidInstanceName :: ConfigData -> Gen (Maybe String)
+genValidInstanceName cfg =
+  elements . map instName . F.toList . configInstances $ cfg
 
 -- * Test properties
 
