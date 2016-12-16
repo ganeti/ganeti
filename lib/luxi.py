@@ -117,12 +117,13 @@ class Client(cl.AbstractClient):
 
   def SubmitJob(self, ops):
     ops_state = [op.__getstate__()
-                               if not isinstance(op, objects.ConfigObject)
-                               else op.ToDict(_with_private=True) for op in ops]
+                 if not isinstance(op, objects.ConfigObject)
+                 else op.ToDict(_with_private=True)
+                 for op in ops]
     return self.CallMethod(REQ_SUBMIT_JOB, (ops_state, ))
 
   def SubmitJobToDrainedQueue(self, ops):
-    ops_state = map(lambda op: op.__getstate__(), ops)
+    ops_state = [op.__getstate__() for op in ops]
     return self.CallMethod(REQ_SUBMIT_JOB_TO_DRAINED_QUEUE, (ops_state, ))
 
   def SubmitManyJobs(self, jobs):

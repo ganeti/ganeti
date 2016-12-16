@@ -479,9 +479,8 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
   """Generic HTTP server class
 
   """
-  MAX_CHILDREN = 20
 
-  def __init__(self, mainloop, local_address, port, handler,
+  def __init__(self, mainloop, local_address, port, max_clients, handler,
                ssl_params=None, ssl_verify_peer=False,
                request_executor_class=None, ssl_verify_callback=None):
     """Initializes the HTTP server
@@ -492,6 +491,11 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     @param local_address: Local IP address to bind to
     @type port: int
     @param port: TCP port to listen on
+    @type max_clients: int
+    @param max_clients: maximum number of client connections
+        open simultaneously.
+    @type handler: HttpServerHandler
+    @param handler: Request handler object
     @type ssl_params: HttpSslParams
     @param ssl_params: SSL key and certificate
     @type ssl_verify_peer: bool
@@ -524,6 +528,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     self._children = []
     self.set_socket(self.socket)
     self.accepting = True
+    self.max_clients = max_clients
     mainloop.RegisterSignal(self)
 
   def Start(self):
@@ -549,7 +554,7 @@ class HttpServer(http.HttpBase, asyncore.dispatcher):
     """
     if not quick:
       # Don't wait for other processes if it should be a quick check
-      while len(self._children) > self.MAX_CHILDREN:
+      while len(self._children) > self.max_clients:
         try:
           # Waiting without a timeout brings us into a potential DoS situation.
           # As soon as too many children run, we'll not respond to new

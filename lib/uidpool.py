@@ -310,7 +310,7 @@ def RequestUnusedUid(all_uids):
   taken_uids = list(taken_uids)
   random.shuffle(taken_uids)
 
-  for uid in (unused_uids + taken_uids):
+  for uid in unused_uids + taken_uids:
     try:
       # Create the lock file
       # Note: we don't care if it exists. Only the fact that we can

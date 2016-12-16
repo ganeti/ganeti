@@ -32,10 +32,12 @@
 """
 
 import logging
-import OpenSSL
 import os
 import time
+
 from cStringIO import StringIO
+
+import OpenSSL
 
 from ganeti import constants
 from ganeti import errors

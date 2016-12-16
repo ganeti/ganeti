@@ -300,8 +300,36 @@ class BaseHypervisor(object):
   CAN_MIGRATE = False
 
   def StartInstance(self, instance, block_devices, startup_paused):
-    """Start an instance."""
+    """Start an instance.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to start
+    @type block_devices: list of tuples (disk_object, link_name, drive_uri)
+    @param block_devices: blockdevices assigned to this instance
+    @type startup_paused: bool
+    @param startup_paused: if instance should be paused at startup
+    """
     raise NotImplementedError
+
+  def VerifyInstance(self, instance):  # pylint: disable=R0201,W0613
+    """Verify if running instance (config) is in correct state.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to verify
+
+    @return: bool, if instance in correct state
+    """
+    return True
+
+  def RestoreInstance(self, instance, block_devices):
+    """Fixup running instance's (config) state.
+
+    @type instance: L{objects.Instance}
+    @param instance: instance to restore
+    @type block_devices: list of tuples (disk_object, link_name, drive_uri)
+    @param block_devices: blockdevices assigned to this instance
+    """
+    pass
 
   def StopInstance(self, instance, force=False, retry=False, name=None,
                    timeout=None):

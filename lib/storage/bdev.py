@@ -1118,9 +1118,8 @@ class RADOSBlockDevice(base.BlockDev):
         base.ThrowError("Cannot parse rbd showmapped output expected %s fields,"
                         " found %s", allfields, field_cnt)
 
-    matched_lines = \
-      filter(lambda l: len(l) == allfields and l[volumefield] == volume_name,
-             splitted_lines)
+    matched_lines = [l for l in splitted_lines
+                     if len(l) == allfields and l[volumefield] == volume_name]
 
     if len(matched_lines) > 1:
       base.ThrowError("rbd volume %s mapped more than once", volume_name)

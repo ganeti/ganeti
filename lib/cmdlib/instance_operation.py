@@ -429,8 +429,7 @@ class LUInstanceReinstall(LogicalUnit):
     os_image = objects.GetOSImage(self.op.osparams)
 
     if os_image is not None:
-      feedback_fn("Using OS image '%s', not changing instance"
-                  " configuration" % os_image)
+      feedback_fn("Using OS image '%s'" % os_image)
     else:
       os_image = objects.GetOSImage(self.instance.osparams)
 
@@ -447,6 +446,11 @@ class LUInstanceReinstall(LogicalUnit):
       self.LogInfo("No OS scripts or OS image specified or found in the"
                    " instance's configuration, nothing to install")
     else:
+      if self.op.osparams is not None:
+        self.instance.osparams = self.op.osparams
+      if self.op.osparams_private is not None:
+        self.instance.osparams_private = self.op.osparams_private
+      self.cfg.Update(self.instance, feedback_fn)
       StartInstanceDisks(self, self.instance, None)
       self.instance = self.cfg.GetInstanceInfo(self.instance.uuid)
       try:

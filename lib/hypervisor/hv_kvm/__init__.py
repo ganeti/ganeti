@@ -200,7 +200,7 @@ def _GetDriveURI(disk, link, uri):
   access_mode = disk.params.get(constants.LDP_ACCESS,
                                 constants.DISK_KERNELSPACE)
   # If uri is available, use it during startup/hot-add
-  if (uri and access_mode == constants.DISK_USERSPACE):
+  if uri and access_mode == constants.DISK_USERSPACE:
     drive_uri = uri
   # Otherwise use the link previously created
   else:
@@ -540,7 +540,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
   _MIGRATION_STATUS_RE = re.compile(r"Migration\s+status:\s+(\w+)",
                                     re.M | re.I)
   _MIGRATION_PROGRESS_RE = \
-    re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n"
+    re.compile(r"\s*transferred\s+ram:\s+(?P<transferred>\d+)\s+kbytes\s*\n.*"
                r"\s*remaining\s+ram:\s+(?P<remaining>\d+)\s+kbytes\s*\n"
                r"\s*total\s+ram:\s+(?P<total>\d+)\s+kbytes\s*\n", re.I)
 
@@ -1279,7 +1279,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       # TODO (2.8): kernel_irqchip and kvm_shadow_mem machine properties, as
       # extra hypervisor parameters. We should also investigate whether and how
       # shadow_mem should be considered for the resource model.
-      if (hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED):
+      if hvp[constants.HV_KVM_FLAG] == constants.HT_KVM_ENABLED:
         specprop = ",accel=kvm"
       else:
         specprop = ""
@@ -1899,10 +1899,9 @@ class KVMHypervisor(hv_base.BaseHypervisor):
       self._RunKVMCmd(name, kvm_cmd, tapfds)
 
     utils.EnsureDirs([(self._InstanceNICDir(instance.name),
-                     constants.RUN_DIRS_MODE)])
+                       constants.RUN_DIRS_MODE)])
     for nic_seq, tap in enumerate(taps):
-      utils.WriteFile(self._InstanceNICFile(instance.name, nic_seq),
-                      data=tap)
+      utils.WriteFile(self._InstanceNICFile(instance.name, nic_seq), data=tap)
 
     if vnc_pwd:
       change_cmd = "change vnc password %s" % vnc_pwd
@@ -2385,6 +2384,32 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     self._ExecuteKVMRuntime(instance, kvm_runtime, kvmhelp,
                             incoming=incoming_address)
 
+  def _ConfigureRoutedNICs(self, instance, info):
+    """Configures all NICs in routed mode
+
+    @type instance: L{objects.Instance}
+    @param instance: the instance to be configured
+    @type info: string
+    @param info: serialized KVM runtime info
+    """
+    kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
+    kvm_nics = kvm_runtime[1]
+
+    for nic_seq, nic in enumerate(kvm_nics):
+      if nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_ROUTED:
+        # Bridged/OVS interfaces have already been configured
+        continue
+      try:
+        tap = utils.ReadFile(self._InstanceNICFile(instance.name, nic_seq))
+      except EnvironmentError, err:
+        logging.warning("Failed to find host interface for %s NIC #%d: %s",
+                        instance.name, nic_seq, str(err))
+        continue
+      try:
+        self._ConfigureNIC(instance, nic_seq, nic, tap)
+      except errors.HypervisorError, err:
+        logging.warning(str(err))
+
   def FinalizeMigrationDst(self, instance, info, success):
     """Finalize the instance migration on the target node.
 
@@ -2395,29 +2420,12 @@ class KVMHypervisor(hv_base.BaseHypervisor):
 
     """
     if success:
-      kvm_runtime = self._LoadKVMRuntime(instance, serialized_runtime=info)
-      kvm_nics = kvm_runtime[1]
-
-      for nic_seq, nic in enumerate(kvm_nics):
-        if nic.nicparams[constants.NIC_MODE] != constants.NIC_MODE_ROUTED:
-          # Bridged/OVS interfaces have already been configured
-          continue
-        try:
-          tap = utils.ReadFile(self._InstanceNICFile(instance.name, nic_seq))
-        except EnvironmentError, err:
-          logging.warning("Failed to find host interface for %s NIC #%d: %s",
-                          instance.name, nic_seq, str(err))
-          continue
-        try:
-          self._ConfigureNIC(instance, nic_seq, nic, tap)
-        except errors.HypervisorError, err:
-          logging.warning(str(err))
-
+      self._ConfigureRoutedNICs(instance, info)
       self._WriteKVMRuntime(instance.name, info)
     else:
       self.StopInstance(instance, force=True)
 
-  def MigrateInstance(self, cluster_name, instance, target, live):
+  def MigrateInstance(self, cluster_name, instance, target, live_migration):
     """Migrate an instance to a target node.
 
     The migration will not be attempted if the instance is not
@@ -2429,8 +2437,8 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     @param instance: the instance to be migrated
     @type target: string
     @param target: ip address of the target node
-    @type live: boolean
-    @param live: perform a live migration
+    @type live_migration: boolean
+    @param live_migration: perform a live migration
 
     """
     instance_name = instance.name
@@ -2439,7 +2447,7 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     if not alive:
       raise errors.HypervisorError("Instance not running, cannot migrate")
 
-    if not live:
+    if not live_migration:
       self._CallMonitorCommand(instance_name, "stop")
 
     migrate_command = ("migrate_set_speed %dm" %
@@ -2459,24 +2467,28 @@ class KVMHypervisor(hv_base.BaseHypervisor):
     migrate_command = "migrate -d tcp:%s:%s" % (target, port)
     self._CallMonitorCommand(instance_name, migrate_command)
 
-  def FinalizeMigrationSource(self, instance, success, live):
+  def FinalizeMigrationSource(self, instance, success, _):
     """Finalize the instance migration on the source node.
 
     @type instance: L{objects.Instance}
     @param instance: the instance that was migrated
     @type success: bool
     @param success: whether the migration succeeded or not
-    @type live: bool
-    @param live: whether the user requested a live migration or not
 
     """
     if success:
       pidfile, pid, _ = self._InstancePidAlive(instance.name)
       utils.KillProcess(pid)
       self._RemoveInstanceRuntimeFiles(pidfile, instance.name)
-    elif live:
-      self._CallMonitorCommand(instance.name, self._CONT_CMD)
-    self._ClearUserShutdown(instance.name)
+      self._ClearUserShutdown(instance.name)
+    else:
+      # Detect if PID is alive rather than deciding if we were to perform a live
+      # migration.
+      _, _, alive = self._InstancePidAlive(instance.name)
+      if alive:
+        self._CallMonitorCommand(instance.name, self._CONT_CMD)
+      else:
+        self.CleanupInstance(instance.name)
 
   def GetMigrationStatus(self, instance):
     """Get the migration status

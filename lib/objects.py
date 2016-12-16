@@ -35,10 +35,13 @@ pass to and from external parties.
 
 """
 
-# pylint: disable=E0203,W0201,R0902
+# pylint: disable=E0203,E0237,W0201,R0902
 
 # E0203: Access to member %r before its definition, since we use
 # objects.py which doesn't explicitly initialise its members
+
+# E0237: Assigning to attribute not defined in class slots. pylint doesn't
+# appear to notice many of the slots defined in __slots__ for several objects.
 
 # W0201: Attribute '%s' defined outside __init__
 
@@ -50,6 +53,7 @@ import copy
 import logging
 import time
 from cStringIO import StringIO
+from socket import AF_INET
 
 from ganeti import errors
 from ganeti import constants
@@ -57,8 +61,6 @@ from ganeti import netutils
 from ganeti import outils
 from ganeti import utils
 from ganeti import serializer
-
-from socket import AF_INET
 
 
 __all__ = ["ConfigObject", "ConfigData", "NIC", "Disk", "Instance",
@@ -278,7 +280,7 @@ class ConfigObject(outils.ValidatedSlots):
       raise errors.ConfigurationError("Invalid object passed to FromDict:"
                                       " expected dict, got %s" % type(val))
     val_str = dict([(str(k), v) for k, v in val.iteritems()])
-    obj = cls(**val_str) # pylint: disable=W0142
+    obj = cls(**val_str)
     return obj
 
   def Copy(self):
@@ -1275,7 +1277,7 @@ class Instance(TaggableObject):
     if _with_private:
       bo["osparams_private"] = self.osparams_private.Unprivate()
 
-    for attr in "nics", :
+    for attr in ("nics",):
       alist = bo.get(attr, None)
       if alist:
         nlist = outils.ContainerToDicts(alist)
@@ -2101,8 +2103,7 @@ class Cluster(TaggableObject):
       - at public visibility:  {public}
       - at private visibility: {private}
       - at secret visibility:  {secret}
-      """.format(dupes=formatter(duplicate_keys),
-                 public=formatter(params_public & duplicate_keys),
+      """.format(public=formatter(params_public & duplicate_keys),
                  private=formatter(params_private & duplicate_keys),
                  secret=formatter(params_secret & duplicate_keys))
       raise errors.OpPrereqError(msg)

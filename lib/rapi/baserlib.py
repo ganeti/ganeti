@@ -206,7 +206,7 @@ def FillOpcode(opcls, body, static, rename=None):
   params = dict((str(key), value) for (key, value) in params.items())
 
   try:
-    op = opcls(**params) # pylint: disable=W0142
+    op = opcls(**params)
     op.Validate(False)
   except (errors.OpPrereqError, TypeError), err:
     raise http.HttpBadRequest("Invalid body parameters: %s" % err)
